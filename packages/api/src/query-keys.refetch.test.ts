@@ -37,6 +37,10 @@ describe("applyEvent during a refetch", () => {
 		expect(isInvalidated(queryClient, listKey)).toBe(false);
 	});
 
+	// The result brings the deleted row back at the delete's version. The
+	// row leaves at settle and the list refetches at once. The delete's
+	// membership flush at 250 ms cancels that refetch and starts another,
+	// as a flush does for any fetch in flight.
 	test("a ticket.deleted that arrives during a refetch makes the list refetch again, so the row leaves", async () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
 		const { queryFn, answer } = observeQuery(queryClient, listKey);
@@ -45,9 +49,11 @@ describe("applyEvent during a refetch", () => {
 		expect(queryFn).toHaveBeenCalledTimes(1);
 		applier.applyEvent(deletedEvent(summaryAt(4)));
 		await answer(0, listPage(summaryAt(4)));
-		advanceTo(500);
+		expect(cached(queryClient, listKey)).toEqual(listPage());
 		expect(queryFn).toHaveBeenCalledTimes(2);
-		await answer(1, listPage());
+		advanceTo(500);
+		expect(queryFn).toHaveBeenCalledTimes(3);
+		await answer(2, listPage());
 		expect(cached(queryClient, listKey)).toEqual(listPage());
 	});
 

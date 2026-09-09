@@ -79,8 +79,9 @@ export type EventApplier = {
 // The compare is per entry, so an older event never overwrites a newer
 // field and never lowers a version. A queued invalidation never blocks a
 // patch, and neither does a fetch in flight: the patch lands, and the
-// fetch's result replaces it. The settle check keeps the version patched
-// during a fetch and refetches when the result is older. The detail
+// fetch's result replaces it. The settle check keeps every change made
+// during a fetch. It compares each row of the result with those changes
+// and refetches a query whose rows are behind. The detail
 // holds the description, which a summary lacks. A description event moves
 // the detail to its version, sets `descriptionStale`, and queues the
 // detail's refetch. The refetch replaces the whole entry, which clears the
@@ -119,30 +120,34 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 
 	// Returns the id of every cached parent whose `children` lost a row. One
 	// change walks the cache once, however many queries the cache holds. A
-	// query with a fetch in flight, or with no data yet, gets the version
-	// recorded for the settle check. That check refetches when the result
-	// is older. A query that was invalidated before the patch refetches once
+	// query with a fetch in flight, or with no data yet, gets the change
+	// recorded for the settle check. That check compares every row of the
+	// result with the record, and a query whose rows are behind refetches.
+	// A delete is recorded for every such query, because the result can
+	// hold the deleted row. A query that was invalidated before the patch refetches once
 	// more after it, because `setQueryData` clears the invalidated flag. A
 	// detail that took a description event refetches, so the text catches up.
 	const patchTicket = (change: TicketChange) => {
 		const parentsThatLostAChild: string[] = [];
-		const { id, version } = change.summary;
+		const { id } = change.summary;
 		const description = change.fields.includes("description");
 		for (const query of queryClient.getQueryCache().getAll()) {
 			const data = query.state.data;
 			const fetching = query.state.fetchStatus !== "idle";
 			if (data === undefined) {
-				if (fetching && holdsTicketRows(query.queryKey)) settle.record(query, id, version);
+				if (fetching && holdsTicketRows(query.queryKey)) settle.record(query, change);
 				continue;
 			}
 			const detail = isDetail(query.queryKey);
 			const own = detail && (data as { id: unknown }).id === id;
 			const patched = patchTicketQuery(query.queryKey, data, change);
+			if (fetching && (patched !== undefined || (change.deleted && holdsTicketRows(query.queryKey)))) {
+				settle.record(query, change);
+			}
 			if (patched === undefined) continue;
 			const invalidated = query.state.isInvalidated;
 			queryClient.setQueryData(query.queryKey, patched);
-			if (fetching) settle.record(query, id, version);
-			else if (invalidated || (own && description)) enqueue([forQuery(query)]);
+			if (!fetching && (invalidated || (own && description))) enqueue([forQuery(query)]);
 			if (detail && childCount(patched) < childCount(data)) parentsThatLostAChild.push((data as { id: string }).id);
 		}
 		return parentsThatLostAChild;
