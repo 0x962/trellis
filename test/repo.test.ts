@@ -144,6 +144,12 @@ describe("root scaffold", () => {
 		expect(home.startsWith(homedir())).toBe(false);
 	});
 
+	// Design reviewers write screenshots to .review/ in every worktree.
+	test(".gitignore ignores the .review/ screenshot directory", async () => {
+		const lines = (await text(".gitignore")).split("\n");
+		expect(lines).toContain(".review/");
+	});
+
 	test("LICENSE is MIT for Navid Khan 2026", async () => {
 		const license = await text("LICENSE");
 		expect(license).toStartWith("MIT License");
