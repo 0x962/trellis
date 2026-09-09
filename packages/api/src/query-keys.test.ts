@@ -1,56 +1,20 @@
-import { describe, expect, spyOn, test } from "bun:test";
-import { QueryClient } from "@tanstack/query-core";
-import { createFakeScheduler } from "../test/fakeScheduler.ts";
-import { projectId, queryKey, statusId, t1, t2, ticket, ticketSummary, ulid } from "../test/fixtures.ts";
-import { createEventApplier } from "./query-keys.ts";
-
-// The detail is keyed by the identifier from the URL and matched by the `id`
-// in its data. Sub-resource queries (timeline, prs, attachments) are opened
-// from a loaded detail, so their keys carry the ticket's ULID and the
-// applier matches them by input.
-const listKey = queryKey(["tickets", "list"], { project: "CDE" });
-const boardKey = queryKey(["tickets", "board"], { project: "CDE" });
-const countsKey = queryKey(["tickets", "counts"], { project: "CDE" });
-const inboxKey = queryKey(["inbox", "get"], { project: "CDE" });
-const detailKey = queryKey(["tickets", "get"], { ticket: "CDE-42" });
-const healthKey = queryKey(["system", "health"]);
-
-const summaryAt = (version: number, overrides: Record<string, unknown> = {}) =>
-	ticketSummary({ version, ...overrides });
-
-type Summary = ReturnType<typeof ticketSummary>;
-
-const updatedEvent = (summary: Summary, fields: string[] = ["title"]) => ({
-	type: "ticket.updated" as const,
-	summary,
-	fields,
-	batchId: ulid,
-});
-
-const listPage = (...items: Summary[]) => ({ items, nextCursor: null });
-const boardPage = (...items: Summary[]) => ({ columns: [{ statusId, count: items.length, items }] });
-
-const isInvalidated = (queryClient: QueryClient, key: unknown[]) =>
-	queryClient.getQueryState(key)?.isInvalidated === true;
-
-const cached = (queryClient: QueryClient, key: unknown[]): unknown => queryClient.getQueryData(key);
-
-// Seeds the cache, then installs the spies, so seeding never counts as a call.
-const setup = (seed: (queryClient: QueryClient) => void) => {
-	const queryClient = new QueryClient();
-	seed(queryClient);
-	const { scheduler, advanceTo } = createFakeScheduler();
-	const applier = createEventApplier(queryClient, { scheduler });
-	const setQueryData = spyOn(queryClient, "setQueryData");
-	const invalidateQueries = spyOn(queryClient, "invalidateQueries");
-	return { queryClient, advanceTo, applier, setQueryData, invalidateQueries };
-};
-
-const seedTicketCaches = (summary: Summary) => (queryClient: QueryClient) => {
-	queryClient.setQueryData(listKey, listPage(summary));
-	queryClient.setQueryData(boardKey, boardPage(summary));
-	queryClient.setQueryData(detailKey, ticket(summary));
-};
+import { describe, expect, test } from "bun:test";
+import {
+	boardKey,
+	boardPage,
+	cached,
+	createdEvent,
+	deletedEvent,
+	detailKey,
+	isInvalidated,
+	listKey,
+	listPage,
+	seedTicketCaches,
+	setup,
+	summaryAt,
+	updatedEvent,
+} from "../test/applierHarness.ts";
+import { infiniteQueryKey, queryKey, t1, t2, ticket } from "../test/fixtures.ts";
 
 describe("applyEvent on ticket events", () => {
 	test("applyEvent patches every cached list, board, and detail that holds the ticket when the incoming version is higher", () => {
@@ -99,167 +63,138 @@ describe("applyEvent on ticket events", () => {
 		expect(setQueryData).toHaveBeenCalledTimes(3);
 	});
 
+	// The held events fold into one: the highest version wins the row, and
+	// every field any of them named still counts, so a status change that a
+	// later title change supersedes still refetches the filtered lists.
+	test("held events keep the fields of every event, so a superseded status change still invalidates", () => {
+		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
+		applier.beginMutation(t1);
+		applier.applyEvent(updatedEvent(summaryAt(4), ["status"]));
+		applier.applyEvent(updatedEvent(summaryAt(5, { title: "Fifth" }), ["title"]));
+		applier.endMutation(t1);
+		advanceTo(2000);
+		expect(cached(queryClient, listKey)).toEqual(listPage(summaryAt(5, { title: "Fifth" })));
+		expect(isInvalidated(queryClient, listKey)).toBe(true);
+	});
+
+	test("a ticket.deleted held behind a mutation still removes the ticket after settle", () => {
+		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
+		applier.beginMutation(t1);
+		applier.applyEvent(updatedEvent(summaryAt(4), ["title"]));
+		applier.applyEvent(deletedEvent(summaryAt(4)));
+		applier.endMutation(t1);
+		advanceTo(2000);
+		expect(cached(queryClient, listKey)).toEqual(listPage());
+		expect(queryClient.getQueryCache().find({ queryKey: detailKey, exact: true })).toBeUndefined();
+		expect(isInvalidated(queryClient, listKey)).toBe(true);
+	});
+
 	test("a ticket.deleted event removes the ticket from lists and drops its detail", () => {
 		const { queryClient, advanceTo, applier, invalidateQueries } = setup((queryClient) => {
 			queryClient.setQueryData(listKey, listPage(summaryAt(3)));
 			queryClient.setQueryData(detailKey, ticket(summaryAt(3)));
 		});
-		applier.applyEvent({ type: "ticket.deleted" as const, summary: summaryAt(4), fields: [], batchId: ulid });
+		applier.applyEvent(deletedEvent(summaryAt(4)));
 		expect(cached(queryClient, listKey)).toEqual(listPage());
 		expect(queryClient.getQueryCache().find({ queryKey: detailKey, exact: true })).toBeUndefined();
 		expect(invalidateQueries).not.toHaveBeenCalled();
 		advanceTo(250);
 		expect(invalidateQueries).toHaveBeenCalledTimes(1);
 	});
+
+	// The QueryClient is shared with every other query the app runs, so a key
+	// that is not an oRPC key sits beside the ticket queries.
+	test("a cached query with a key that is not an oRPC key is skipped", () => {
+		const { queryClient, applier } = setup((queryClient) => {
+			queryClient.setQueryData(["theme"], "dark");
+			queryClient.setQueryData(listKey, listPage(summaryAt(3)));
+		});
+		const v4 = summaryAt(4, { title: "Renamed" });
+		applier.applyEvent(updatedEvent(v4));
+		expect(cached(queryClient, listKey)).toEqual(listPage(v4));
+		expect(cached(queryClient, ["theme"])).toBe("dark");
+	});
+
+	// A cursor-paged table holds an infinite query: `{pages, pageParams}`, one
+	// list page per entry.
+	test("an infinite tickets.list entry is patched page by page", () => {
+		const pagedKey = infiniteQueryKey(["tickets", "list"], { project: "CDE" });
+		const other = summaryAt(1, { id: t2, identifier: "CDE-43", number: 43 });
+		const { queryClient, applier } = setup((queryClient) => {
+			queryClient.setQueryData(pagedKey, {
+				pages: [listPage(other), listPage(summaryAt(3))],
+				pageParams: [undefined, "cursor-1"],
+			});
+		});
+		const v4 = summaryAt(4, { title: "Renamed" });
+		applier.applyEvent(updatedEvent(v4));
+		expect(cached(queryClient, pagedKey)).toEqual({
+			pages: [listPage(other), listPage(v4)],
+			pageParams: [undefined, "cursor-1"],
+		});
+		applier.applyEvent(deletedEvent(summaryAt(5)));
+		expect(cached(queryClient, pagedKey)).toEqual({
+			pages: [listPage(other), listPage()],
+			pageParams: [undefined, "cursor-1"],
+		});
+	});
+
+	// The description lives only on the detail and a summary event does not
+	// carry it. A detail that took the new version with the old text would let
+	// the next save pass the version check and overwrite the newer text.
+	test("a description event leaves the detail at its version and invalidates it", () => {
+		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
+		applier.applyEvent(updatedEvent(summaryAt(4), ["description"]));
+		expect(cached(queryClient, listKey)).toEqual(listPage(summaryAt(4)));
+		expect(cached(queryClient, detailKey)).toEqual(ticket(summaryAt(3)));
+		advanceTo(2000);
+		expect(isInvalidated(queryClient, detailKey)).toBe(true);
+	});
 });
 
-describe("invalidation", () => {
-	const filteredListKey = queryKey(["tickets", "list"], { status: ["in-progress"], parent: "none" });
+describe("applyEvent on a parent's detail", () => {
+	const child = (version: number, overrides: Record<string, unknown> = {}) =>
+		summaryAt(version, {
+			id: t2,
+			identifier: "CDE-43",
+			number: 43,
+			parent: { id: t1, identifier: "CDE-42" },
+			...overrides,
+		});
+	const parentKey = detailKey;
+	const otherParentKey = queryKey(["tickets", "get"], { ticket: "CDE-50" });
+	const t3 = "01J8Z6X4Q3M2K1H0G9F8E7D6T3";
 
-	const seedMembershipCaches = (queryClient: QueryClient) => {
-		const v3 = summaryAt(3);
-		queryClient.setQueryData(filteredListKey, listPage(v3));
-		queryClient.setQueryData(boardKey, boardPage(v3));
-		queryClient.setQueryData(countsKey, { total: 1, byStatus: [{ statusId, count: 1 }] });
-		queryClient.setQueryData(inboxKey, { review: { items: [], total: 0 } });
-		queryClient.setQueryData(detailKey, ticket(v3));
-		queryClient.setQueryData(healthKey, { ok: true });
-	};
-
-	const membershipKeys = [filteredListKey, boardKey, countsKey, inboxKey];
-
-	// A patch keeps a row current, but a filtered list cannot know whether the
-	// row still belongs to it after a status, project, priority, parent, or
-	// completion change. Only those fields, and create or delete, refetch.
-	test("only membership-changing fields and create or delete events enqueue an invalidation", () => {
-		const cases = [
-			{ name: "status", event: updatedEvent(summaryAt(4), ["status"]), invalidates: true },
-			{ name: "title", event: updatedEvent(summaryAt(4), ["title"]), invalidates: false },
-			{
-				name: "created",
-				event: {
-					type: "ticket.created" as const,
-					summary: summaryAt(1, { id: t2, identifier: "CDE-43", number: 43 }),
-					fields: [],
-					batchId: ulid,
-				},
-				invalidates: true,
-			},
-		];
-		for (const { name, event, invalidates } of cases) {
-			const { queryClient, advanceTo, applier, invalidateQueries } = setup(seedMembershipCaches);
-			applier.applyEvent(event);
-			expect(invalidateQueries, `${name} fired at t=0`).not.toHaveBeenCalled();
-			advanceTo(1000);
-			for (const key of membershipKeys) {
-				expect(isInvalidated(queryClient, key), `${name} ${JSON.stringify(key[0])}`).toBe(invalidates);
-			}
-			expect(isInvalidated(queryClient, detailKey), `${name} detail`).toBe(false);
-			expect(isInvalidated(queryClient, healthKey), `${name} health`).toBe(false);
-		}
+	test("a deleted child leaves its parent's children and the parent detail refetches", () => {
+		const { queryClient, advanceTo, applier } = setup((queryClient) => {
+			queryClient.setQueryData(parentKey, ticket({ ...summaryAt(3), childCount: 1, children: [child(3)] }));
+		});
+		applier.applyEvent(deletedEvent(child(4)));
+		expect((cached(queryClient, parentKey) as { children: unknown[] }).children).toEqual([]);
+		advanceTo(2000);
+		expect(isInvalidated(queryClient, parentKey)).toBe(true);
 	});
 
-	// One flush is one `invalidateQueries` call that covers every queued key,
-	// so the call count is the flush count.
-	test("the coalescer folds three invalidations within 250 ms into one trailing call", () => {
-		const { advanceTo, applier, invalidateQueries } = setup(seedMembershipCaches);
-		for (const [at, version] of [
-			[0, 4],
-			[100, 5],
-			[200, 6],
-		] as const) {
-			advanceTo(at);
-			applier.applyEvent(updatedEvent(summaryAt(version), ["status"]));
-		}
-		advanceTo(449);
-		expect(invalidateQueries).not.toHaveBeenCalled();
-		advanceTo(450);
-		expect(invalidateQueries).toHaveBeenCalledTimes(1);
-		advanceTo(5000);
-		expect(invalidateQueries).toHaveBeenCalledTimes(1);
+	test("a created sub-ticket refetches its parent's detail", () => {
+		const { queryClient, advanceTo, applier } = setup((queryClient) => {
+			queryClient.setQueryData(parentKey, ticket(summaryAt(3)));
+		});
+		applier.applyEvent(createdEvent(child(1)));
+		advanceTo(2000);
+		expect(isInvalidated(queryClient, parentKey)).toBe(true);
 	});
 
-	test("the coalescer forces one invalidation at 1 s under a constant event stream", () => {
-		const { advanceTo, applier, invalidateQueries } = setup(seedMembershipCaches);
-		for (let at = 0; at <= 1500; at += 100) {
-			advanceTo(at);
-			applier.applyEvent(updatedEvent(summaryAt(4 + at / 100), ["status"]));
-			expect(invalidateQueries, `t=${at}`).toHaveBeenCalledTimes(at >= 1000 ? 1 : 0);
-		}
-		advanceTo(1749);
-		expect(invalidateQueries).toHaveBeenCalledTimes(1);
-		advanceTo(1750);
-		expect(invalidateQueries).toHaveBeenCalledTimes(2);
-		advanceTo(5000);
-		expect(invalidateQueries).toHaveBeenCalledTimes(2);
-	});
-
-	const prsKey = (id: string) => queryKey(["pullRequests", "list"], { ticket: id });
-	const attachmentsKey = (id: string) => queryKey(["attachments", "list"], { ticket: id });
-	const timelineKey = (id: string) => queryKey(["timeline", "list"], { ticket: id });
-	const statusesKey = queryKey(["statuses", "list"], { project: "CDE" });
-	const projectsListKey = queryKey(["projects", "list"]);
-	const projectKey = queryKey(["projects", "get"], { project: "CDE" });
-	const ghKey = queryKey(["system", "gh"]);
-
-	const seedResourceCaches = (queryClient: QueryClient) => {
-		queryClient.setQueryData(detailKey, ticket(summaryAt(3)));
-		queryClient.setQueryData(listKey, listPage(summaryAt(3)));
-		for (const id of [t1, t2]) {
-			queryClient.setQueryData(prsKey(id), []);
-			queryClient.setQueryData(attachmentsKey(id), []);
-			queryClient.setQueryData(timelineKey(id), { items: [], nextCursor: null });
-		}
-		queryClient.setQueryData(statusesKey, { statuses: [], inheritedFrom: null });
-		queryClient.setQueryData(projectsListKey, []);
-		queryClient.setQueryData(projectKey, { id: projectId });
-		queryClient.setQueryData(ghKey, { ok: true });
-		queryClient.setQueryData(healthKey, { ok: true });
-	};
-
-	test("non-ticket events invalidate the keys the plan lists for them", () => {
-		const cases = [
-			{
-				event: { type: "comment.created" as const, id: ulid, ticketId: t1 },
-				invalidated: [timelineKey(t1), detailKey],
-				untouched: [timelineKey(t2), attachmentsKey(t1), prsKey(t1), healthKey],
-			},
-			{
-				event: { type: "attachment.created" as const, id: ulid, ticketId: t1 },
-				invalidated: [attachmentsKey(t1), detailKey],
-				untouched: [attachmentsKey(t2), timelineKey(t1), prsKey(t1), healthKey],
-			},
-			{
-				event: { type: "pr.updated" as const, id: ulid, ticketIds: [t1], state: "open", ciState: "pass" },
-				invalidated: [prsKey(t1), detailKey, listKey],
-				untouched: [prsKey(t2), attachmentsKey(t1), timelineKey(t1), healthKey],
-			},
-			{
-				event: { type: "statuses.changed" as const, projectId },
-				invalidated: [statusesKey, projectsListKey, projectKey, listKey],
-				untouched: [ghKey, healthKey],
-			},
-			{
-				event: { type: "gh.status" as const, ok: false, reason: "missing" },
-				invalidated: [ghKey],
-				untouched: [healthKey, listKey, detailKey],
-			},
-			{
-				event: { type: "reset" as const, reason: "restart" },
-				invalidated: [detailKey, listKey, prsKey(t1), statusesKey, projectsListKey, projectKey, ghKey, healthKey],
-				untouched: [],
-			},
-		];
-		for (const { event, invalidated, untouched } of cases) {
-			const { queryClient, advanceTo, applier } = setup(seedResourceCaches);
-			applier.applyEvent(event);
-			advanceTo(1000);
-			for (const key of invalidated) {
-				expect(isInvalidated(queryClient, key), `${event.type} ${JSON.stringify(key)}`).toBe(true);
-			}
-			for (const key of untouched) {
-				expect(isInvalidated(queryClient, key), `${event.type} ${JSON.stringify(key)}`).toBe(false);
-			}
-		}
+	test("a child that moves to another parent leaves the old parent's children and the new parent refetches", () => {
+		const { queryClient, advanceTo, applier } = setup((queryClient) => {
+			queryClient.setQueryData(parentKey, ticket({ ...summaryAt(3), childCount: 1, children: [child(3)] }));
+			queryClient.setQueryData(
+				otherParentKey,
+				ticket({ ...summaryAt(2, { id: t3, identifier: "CDE-50", number: 50 }) }),
+			);
+		});
+		applier.applyEvent(updatedEvent(child(4, { parent: { id: t3, identifier: "CDE-50" } }), ["parent"]));
+		expect((cached(queryClient, parentKey) as { children: unknown[] }).children).toEqual([]);
+		advanceTo(2000);
+		expect(isInvalidated(queryClient, otherParentKey)).toBe(true);
 	});
 });

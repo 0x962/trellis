@@ -14,9 +14,12 @@ export const ReviewerSchema = z.enum(["human", "agent"]);
 export type Reviewer = z.infer<typeof ReviewerSchema>;
 
 // The kinds a client may send in `x-trellis-actor`. `system` is the poller's
-// own kind and never crosses the wire.
+// own kind: the header rejects it, and stored rows carry it.
 export const ActorKindSchema = z.enum(["human", "agent"]);
 export type ActorKind = z.infer<typeof ActorKindSchema>;
+
+export const StoredActorKindSchema = z.enum(["human", "agent", "system"]);
+export type StoredActorKind = z.infer<typeof StoredActorKindSchema>;
 
 export const PrStateSchema = z.enum(["open", "closed", "merged"]);
 export type PrState = z.infer<typeof PrStateSchema>;

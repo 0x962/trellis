@@ -1,27 +1,11 @@
-import { partialMatchKey, type Query, type QueryClient, type QueryKey } from "@tanstack/query-core";
+import type { QueryClient } from "@tanstack/query-core";
 import { EventSchema, type TrellisEvent } from "./events.ts";
-import type { InboxSection } from "./schemas/inbox.ts";
-import type { SearchOutput } from "./schemas/search.ts";
-import type { BoardOutput, ListOutput, Ticket, TicketSummary } from "./schemas/ticket.ts";
+import { byInput, createInvalidationCoalescer, family, ticketDetail } from "./invalidationCoalescer.ts";
+import { realScheduler, type Scheduler } from "./scheduler.ts";
+import { patchTicketQuery, type TicketChange } from "./ticketPatches.ts";
 
-// The clock and the timers the coalescer uses. A test injects a fake one, so
-// no test waits on real time.
-export type Scheduler = {
-	now: () => number;
-	setTimeout: (callback: () => void, delayMs: number) => unknown;
-	clearTimeout: (handle: unknown) => void;
-};
-
-export const realScheduler: Scheduler = {
-	now: () => Date.now(),
-	setTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
-	clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
-};
-
-// A flush runs 250 ms after the last queued invalidation and at most 1 s
-// after the first one, so a constant event stream still refetches once a second.
-export const TRAILING_MS = 250;
-export const MAX_WAIT_MS = 1000;
+export { MAX_WAIT_MS, TRAILING_MS } from "./invalidationCoalescer.ts";
+export { realScheduler, type Scheduler } from "./scheduler.ts";
 
 // A patch keeps a row current, but a filtered list cannot know whether the
 // row still belongs to it after one of these fields changes. Only these
@@ -38,14 +22,8 @@ export const membershipFields: ReadonlySet<string> = new Set([
 
 type TicketEvent = Extract<TrellisEvent, { type: "ticket.created" | "ticket.updated" | "ticket.deleted" }>;
 
-// One query family to invalidate. `path` is a prefix of the procedure path
-// (`["tickets"]` covers every ticket query). `input` narrows by the query
-// input; `dataId` narrows by the `id` inside the cached data, which is how
-// a detail keyed by identifier is found by ULID.
-type Matcher = { path: string[]; input?: Record<string, unknown>; dataId?: string };
-
-const family = (...path: string[]): Matcher => ({ path });
-const byInput = (path: string[], input: Record<string, unknown>): Matcher => ({ path, input });
+// A ticket change with the event kind the cache reacts to.
+type HeldChange = TicketChange & { created: boolean };
 
 const membershipMatchers = [
 	family("tickets", "list"),
@@ -54,86 +32,21 @@ const membershipMatchers = [
 	family("inbox", "get"),
 ];
 
-const ticketDetail = (id: string) => [
-	{ path: ["tickets", "get"], dataId: id },
-	byInput(["tickets", "get"], { ticket: id }),
-];
+const toChange = (event: TicketEvent): HeldChange => ({
+	summary: event.summary,
+	fields: event.fields,
+	deleted: event.type === "ticket.deleted",
+	created: event.type === "ticket.created",
+});
 
-const dataId = (query: Query) => (query.state.data as { id?: unknown } | undefined)?.id;
-
-const matches = (query: Query, matcher: Matcher) => {
-	const key: QueryKey = matcher.input === undefined ? [matcher.path] : [matcher.path, { input: matcher.input }];
-	return partialMatchKey(query.queryKey, key) && (matcher.dataId === undefined || dataId(query) === matcher.dataId);
-};
-
-const pathOf = (query: Query) => (query.queryKey[0] as string[]).join(".");
-
-// Returns the patched array, or undefined when the array does not hold the
-// ticket or already holds a version at least as new.
-const patchItems = (items: TicketSummary[], summary: TicketSummary, deleted: boolean) => {
-	const index = items.findIndex((item) => item.id === summary.id);
-	if (index < 0) return undefined;
-	if (deleted) return items.toSpliced(index, 1);
-	if (summary.version <= items[index]!.version) return undefined;
-	return items.with(index, summary);
-};
-
-const patchList = (data: ListOutput, summary: TicketSummary, deleted: boolean) => {
-	const items = patchItems(data.items, summary, deleted);
-	return items === undefined ? undefined : { ...data, items };
-};
-
-const patchBoard = (data: BoardOutput, summary: TicketSummary, deleted: boolean) => {
-	let changed = false;
-	const columns = data.columns.map((column) => {
-		const items = patchItems(column.items, summary, deleted);
-		if (items === undefined) return column;
-		changed = true;
-		return { ...column, items, count: column.count - (column.items.length - items.length) };
-	});
-	return changed ? { ...data, columns } : undefined;
-};
-
-// Every inbox section is `{items, total}`, so the sections are walked by name.
-const patchInbox = (data: Record<string, InboxSection>, summary: TicketSummary, deleted: boolean) => {
-	let changed = false;
-	const sections: Record<string, InboxSection> = {};
-	for (const [name, section] of Object.entries(data)) {
-		const items = patchItems(section.items, summary, deleted);
-		if (items === undefined) {
-			sections[name] = section;
-			continue;
-		}
-		changed = true;
-		sections[name] = { ...section, items, total: section.total - (section.items.length - items.length) };
-	}
-	return changed ? sections : undefined;
-};
-
-const patchSearch = (data: SearchOutput, summary: TicketSummary, deleted: boolean) => {
-	const tickets = patchItems(data.tickets, summary, deleted);
-	return tickets === undefined ? undefined : { ...data, tickets };
-};
-
-// The detail keeps the fields the summary does not carry: description,
-// children, prs, attachments. A child's own event patches it inside `children`.
-const patchDetail = (data: Ticket, summary: TicketSummary) => {
-	if (data.id !== summary.id) {
-		const children = patchItems(data.children, summary, false);
-		return children === undefined ? undefined : { ...data, children };
-	}
-	if (summary.version <= data.version) return undefined;
-	return { ...data, ...summary };
-};
-
-// The cached shapes that hold ticket summaries, by procedure path.
-const patchers: Record<string, (data: unknown, summary: TicketSummary, deleted: boolean) => unknown> = {
-	"tickets.list": (data, summary, deleted) => patchList(data as ListOutput, summary, deleted),
-	"tickets.board": (data, summary, deleted) => patchBoard(data as BoardOutput, summary, deleted),
-	"inbox.get": (data, summary, deleted) => patchInbox(data as Record<string, InboxSection>, summary, deleted),
-	"search.query": (data, summary, deleted) => patchSearch(data as SearchOutput, summary, deleted),
-	"tickets.get": (data, summary) => patchDetail(data as Ticket, summary),
-};
+// Two changes to one ticket fold into one: the highest version wins the row,
+// every named field stays named, and a delete or a create stays visible.
+const mergeChanges = (held: HeldChange, next: HeldChange): HeldChange => ({
+	summary: next.summary.version >= held.summary.version ? next.summary : held.summary,
+	fields: [...new Set([...held.fields, ...next.fields])],
+	deleted: held.deleted || next.deleted,
+	created: held.created || next.created,
+});
 
 export type EventApplier = {
 	applyEvent: (event: unknown) => void;
@@ -145,70 +58,48 @@ export type EventApplier = {
 // list, board, inbox section, search result, and detail that holds the
 // ticket, and only when the incoming version is higher. Invalidations queue
 // in a coalescer and flush as one `invalidateQueries` call. While a mutation
-// is in flight for a ticket, its events wait and the highest version applies
-// after the mutation settles, so the mutation's own response never overwrites
-// a newer row.
+// is in flight for a ticket, its events wait, folded into one change, and
+// apply after the mutation settles, so the mutation's own response never
+// overwrites a newer row.
 export const createEventApplier = (queryClient: QueryClient, options: { scheduler?: Scheduler } = {}): EventApplier => {
 	const scheduler = options.scheduler ?? realScheduler;
+	const { enqueue, invalidateAll } = createInvalidationCoalescer(queryClient, scheduler);
 	const inFlight = new Map<string, number>();
-	const waiting = new Map<string, TicketEvent>();
-	const pending = new Map<string, Matcher>();
-	let timer: unknown;
-	let firstQueuedAt = 0;
+	const waiting = new Map<string, HeldChange>();
 
-	const flush = () => {
-		timer = undefined;
-		const matchers = [...pending.values()];
-		pending.clear();
-		void queryClient.invalidateQueries({ predicate: (query) => matchers.some((matcher) => matches(query, matcher)) });
-	};
-
-	const enqueue = (matchers: Matcher[]) => {
-		for (const matcher of matchers) pending.set(JSON.stringify(matcher), matcher);
-		const now = scheduler.now();
-		if (timer === undefined) {
-			firstQueuedAt = now;
-		} else {
-			scheduler.clearTimeout(timer);
-		}
-		const flushAt = Math.min(now + TRAILING_MS, firstQueuedAt + MAX_WAIT_MS);
-		timer = scheduler.setTimeout(flush, flushAt - now);
-	};
-
-	const invalidateAll = () => {
-		if (timer !== undefined) scheduler.clearTimeout(timer);
-		timer = undefined;
-		pending.clear();
-		void queryClient.invalidateQueries();
-	};
-
-	const patchTicket = (summary: TicketSummary, deleted: boolean) => {
+	const patchTicket = (change: TicketChange) => {
 		for (const query of queryClient.getQueryCache().getAll()) {
 			const data = query.state.data;
 			if (data === undefined) continue;
-			const path = pathOf(query);
-			if (path === "tickets.get" && deleted && (data as Ticket).id === summary.id) {
+			if (change.deleted && (data as { id?: unknown }).id === change.summary.id && isDetail(query.queryKey)) {
 				queryClient.removeQueries({ queryKey: query.queryKey, exact: true });
 				continue;
 			}
-			const patcher = patchers[path];
-			if (patcher === undefined) continue;
-			const patched = patcher(data, summary, deleted);
+			const patched = patchTicketQuery(query.queryKey, data, change);
 			if (patched !== undefined) queryClient.setQueryData(query.queryKey, patched);
 		}
 	};
 
+	// A create, a delete, and a parent change alter the parent's `children`
+	// and its child counts, so the parent's detail refetches.
+	const applyChange = (change: HeldChange) => {
+		const { summary, fields } = change;
+		patchTicket(change);
+		const membership = change.created || change.deleted;
+		if (membership || fields.some((field) => membershipFields.has(field))) enqueue(membershipMatchers);
+		if ((membership || fields.includes("parent")) && summary.parent !== null) enqueue(ticketDetail(summary.parent.id));
+		if (fields.includes("description")) enqueue(ticketDetail(summary.id));
+	};
+
 	const applyTicketEvent = (event: TicketEvent) => {
 		const id = event.summary.id;
+		const change = toChange(event);
 		if (inFlight.has(id)) {
 			const held = waiting.get(id);
-			if (held === undefined || held.summary.version < event.summary.version) waiting.set(id, event);
+			waiting.set(id, held === undefined ? change : mergeChanges(held, change));
 			return;
 		}
-		patchTicket(event.summary, event.type === "ticket.deleted");
-		if (event.type !== "ticket.updated" || event.fields.some((field) => membershipFields.has(field))) {
-			enqueue(membershipMatchers);
-		}
+		applyChange(change);
 	};
 
 	const applyEvent = (input: unknown) => {
@@ -279,10 +170,16 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		inFlight.delete(ticketId);
 		const held = waiting.get(ticketId);
 		waiting.delete(ticketId);
-		if (held !== undefined) applyTicketEvent(held);
+		if (held !== undefined) applyChange(held);
 	};
 
 	return { applyEvent, beginMutation, endMutation };
+};
+
+// True for a `tickets.get` key: `[["tickets", "get"], options]`.
+const isDetail = (queryKey: readonly unknown[]) => {
+	const path = queryKey[0];
+	return Array.isArray(path) && path.join(".") === "tickets.get";
 };
 
 // One applier per QueryClient, created on first use with real timers.

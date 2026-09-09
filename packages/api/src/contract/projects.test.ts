@@ -12,3 +12,11 @@ test("projects.create requires a key without a parent and forbids one with a par
 	expect(await accepts(schema, { parent: "CDE", key: "WEB", name: "Web" })).toBe(false);
 	expect(await accepts(schema, { key: "cde", name: "Code" })).toBe(false);
 });
+
+// Every mutation of an archived project is PROJECT_ARCHIVED, so each write
+// procedure declares it and a client can narrow on the code.
+test("every project write declares PROJECT_ARCHIVED", () => {
+	for (const name of ["create", "update", "move", "delete", "setRepos"] as const) {
+		expect(projects[name]["~orpc"].errorMap, name).toHaveProperty("PROJECT_ARCHIVED");
+	}
+});

@@ -1,3 +1,5 @@
+import { generateOperationKey } from "@orpc/tanstack-query";
+
 // Wire-shaped fixtures for the api tests. Every id is a Crockford base32 ULID,
 // the id format every trellis row uses on the wire.
 export const ulid = "01J8Z6X4Q3M2K1H0G9F8E7D6C5";
@@ -51,7 +53,38 @@ export const ticket = (overrides: Record<string, unknown> = {}) => ({
 	...overrides,
 });
 
-// The query key `@orpc/tanstack-query` builds for `queryOptions({ input })`:
-// `[path, { input, type: "query" }]`. A key without an input omits `input`.
-export const queryKey = (path: string[], input?: unknown) =>
-	input === undefined ? [path, { type: "query" }] : [path, { input, type: "query" }];
+// The query keys `@orpc/tanstack-query` builds for `queryOptions({ input })`
+// and `infiniteOptions({ input })`, from the library's own key builder, so a
+// fixture key always has the shape the web app's cache holds.
+export const queryKey = (path: string[], input?: unknown): unknown[] =>
+	generateOperationKey(path, { input, type: "query" });
+
+export const infiniteQueryKey = (path: string[], input: unknown): unknown[] =>
+	generateOperationKey(path, { input, type: "infinite" });
+
+// One pull request as `tickets.get` and `pullRequests.list` return it.
+export const linkedPullRequest = (overrides: Record<string, unknown> = {}) => ({
+	id: ulid,
+	owner: "0x962",
+	repo: "trellis",
+	number: 7,
+	url: "https://github.com/0x962/trellis/pull/7",
+	title: "Add the thing",
+	state: "open",
+	isDraft: false,
+	headRef: "cde-42-thing",
+	baseRef: "main",
+	reviewState: "none",
+	mergedAt: null,
+	closedAt: null,
+	checks: [],
+	ciState: "none",
+	fetchedAt: null,
+	fetchError: null,
+	createdAt: "2026-09-09T10:00:00.000Z",
+	updatedAt: "2026-09-09T10:05:00.000Z",
+	source: "manual",
+	linkedBy: { name: "navid", kind: "human" },
+	linkedAt: "2026-09-09T10:05:00.000Z",
+	...overrides,
+});

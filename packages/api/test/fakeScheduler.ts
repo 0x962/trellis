@@ -1,4 +1,4 @@
-import type { Scheduler } from "../src/query-keys.ts";
+import type { Scheduler } from "../src/scheduler.ts";
 
 // A scheduler whose clock moves only when a test calls `advanceTo`. A timer
 // runs when the clock reaches its due time, in due-time order, with `now()`

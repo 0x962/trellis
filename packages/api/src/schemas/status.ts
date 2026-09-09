@@ -1,9 +1,16 @@
 import { z } from "zod";
 import { ProjectRefStringSchema, StatusRefStringSchema } from "../refs.ts";
 import { ReviewerSchema, StatusCategorySchema } from "./enums.ts";
-import { CountSchema, IsoDateTimeSchema, SlugSchema, UlidSchema } from "./primitives.ts";
+import { CountSchema, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primitives.ts";
 
 const StatusNameSchema = z.string().min(1).max(40);
+
+// A status slug is the name in slug form. The reserved project slugs (`board`,
+// `settings`) are web routes under a project path; a status is never a route
+// segment, so a status named Settings keeps its slug.
+const StatusSlugSchema = z
+	.string()
+	.regex(slugPattern, "Expected a slug: lower-case letters, digits, and single dashes.");
 
 // `color` is a token name from packages/ui, never a raw color value.
 const ColorSchema = z.string().min(1).max(40);
@@ -11,7 +18,7 @@ const ColorSchema = z.string().min(1).max(40);
 // The status fields every ticket row carries.
 export const StatusSummarySchema = z.object({
 	id: UlidSchema,
-	slug: SlugSchema,
+	slug: StatusSlugSchema,
 	name: StatusNameSchema,
 	category: StatusCategorySchema,
 	reviewer: ReviewerSchema.nullable(),

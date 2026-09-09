@@ -30,7 +30,7 @@ export const projects = {
 		.input(ProjectCreateInputSchema)
 		.output(ProjectSchema),
 	update: base
-		.errors(pickErrors(["DUPLICATE"]))
+		.errors(pickErrors(["DUPLICATE", "PROJECT_ARCHIVED"]))
 		.route({ method: "PATCH", path: "/projects/{project}", summary: "Change project fields" })
 		.input(ProjectUpdateInputSchema)
 		.output(ProjectSchema),
@@ -40,7 +40,7 @@ export const projects = {
 		.input(ProjectMoveInputSchema)
 		.output(ProjectSchema),
 	delete: base
-		.errors(pickErrors(["AGENT_CANNOT_DELETE", "PROJECT_NOT_EMPTY"]))
+		.errors(pickErrors(["AGENT_CANNOT_DELETE", "PROJECT_NOT_EMPTY", "PROJECT_ARCHIVED"]))
 		.route({ method: "DELETE", path: "/projects/{project}", summary: "Delete a project" })
 		.input(ProjectDeleteInputSchema)
 		.output(ProjectDeleteOutputSchema),
