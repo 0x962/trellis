@@ -80,12 +80,13 @@ const patchChildren = (data: Ticket, change: TicketChange) => {
 
 // The detail keeps the fields the summary does not carry: description,
 // children, prs, attachments. A description change is not in the summary.
-// The applier holds the detail's version after a description event and
-// refetches the detail, so the text and the version arrive together.
-const patchDetail = (data: Ticket, change: TicketChange) => {
+// So the detail keeps its old text at the new version, and it carries
+// `descriptionStale` until a refetch replaces the whole entry.
+const patchDetail = (data: Ticket, change: TicketChange): Ticket | undefined => {
 	if (data.id !== change.summary.id) return patchChildren(data, change);
 	if (change.summary.version <= data.version) return undefined;
-	return { ...data, ...change.summary };
+	const patched = { ...data, ...change.summary };
+	return change.fields.includes("description") ? { ...patched, descriptionStale: true } : patched;
 };
 
 // The cached shapes that hold ticket summaries, by procedure path.

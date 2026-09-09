@@ -54,39 +54,28 @@ const toChange = (event: TicketEvent): HeldChange => ({
 	created: event.type === "ticket.created",
 });
 
-// Two changes to one ticket fold into one. The highest version wins the row.
-// Every named field stays named, and a delete or a create stays visible.
-const mergeChanges = (held: HeldChange, next: HeldChange): HeldChange => ({
-	summary: next.summary.version >= held.summary.version ? next.summary : held.summary,
-	fields: [...new Set([...held.fields, ...next.fields])],
-	deleted: held.deleted || next.deleted,
-	created: held.created || next.created,
-});
-
 export type EventApplier = {
 	applyEvent: (event: unknown) => void;
 	beginMutation: (ticketId: string) => void;
 	endMutation: (ticketId: string) => void;
 };
 
-// Patch first, invalidate rarely. Every `ticket.*` event patches each cached
+// Patch first, invalidate rarely. A `ticket.*` event visits every cached
 // list, board, inbox section, search result, and detail that holds the
-// ticket. A patch lands only when the incoming version is higher. A query
-// with a queued invalidation takes the patch too, and the invalidation still
-// fires. Invalidations queue in two coalescers, one for the inbox and one for
-// the rest, and each flush is one `invalidateQueries` call. A query whose
-// refetch is already running takes no patch and refetches once more after
-// the event: that refetch may have read the rows before the event's commit,
-// a patch would clear the invalidated flag with old data still in the query,
-// and under `staleTime: Infinity` nothing else would repair the older row.
-// The detail holds the description and a summary event does not carry it.
-// So after a description event the detail takes every summary field but
-// keeps its version until a refetch brings a row at that version or newer.
-// A save from a detail with old text then fails the server's version check
-// instead of overwriting the newer text. While a mutation is in flight
-// for a ticket, its events wait, folded into one change. They apply after
-// the mutation settles, so the mutation's own response never overwrites a
-// newer row.
+// ticket. An entry takes the event's summary only when the event's version
+// is higher than the entry's own, and then its version equals the event's.
+// The compare is per entry, so an older event never overwrites a newer
+// field and never lowers a version. No other version bookkeeping exists.
+// A queued invalidation never blocks a patch, and neither does a refetch in
+// flight: the patch lands and the refetch's result replaces it. The detail
+// holds the description, which a summary lacks. A description event moves
+// the detail to its version, sets `descriptionStale`, and queues the
+// detail's refetch. The refetch replaces the whole entry, which clears the
+// flag. Invalidations queue in two coalescers, one for the inbox and one
+// for the rest, and each flush is one `invalidateQueries` call. While a
+// mutation is in flight for a ticket, its events wait. After the mutation
+// settles they apply in version order, so the mutation's own response
+// never overwrites a newer row.
 export const createEventApplier = (queryClient: QueryClient, options: { scheduler?: Scheduler } = {}): EventApplier => {
 	const scheduler = options.scheduler ?? realScheduler;
 	const general = createInvalidationCoalescer(queryClient, scheduler);
@@ -95,10 +84,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		maxWaitMs: INBOX_MAX_WAIT_MS,
 	});
 	const inFlight = new Map<string, number>();
-	const waiting = new Map<string, HeldChange>();
-	// By ticket id: the version of the last description event. A cached
-	// detail below that version holds old text.
-	const descriptionVersions = new Map<string, number>();
+	const waiting = new Map<string, HeldChange[]>();
 
 	const enqueue = (matchers: Matcher[]) => {
 		const inboxMatchers = matchers.filter(isInboxMatcher);
@@ -112,45 +98,30 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		general.invalidateAll();
 	};
 
-	// True for one cached detail of the changed ticket while it holds old
-	// text: its version is below the last description event's version. The
-	// test is per cache entry, because the cache can hold one ticket's detail
-	// under the identifier key and under the ULID key, and a refetch brings
-	// the text to one entry at a time.
-	const holdsOldText = (id: string, data: unknown) => {
-		const version = descriptionVersions.get(id);
-		return (
-			version !== undefined && (data as { id: unknown }).id === id && (data as { version: number }).version < version
-		);
-	};
-
 	// Returns the id of every cached parent whose `children` lost a row. One
 	// change walks the cache once, however many queries the cache holds. A
-	// detail with old text takes the patch at its own version, and refetches
-	// once more after every event, because a refetch that started before the
-	// event can bring the text at the description's version and miss the
-	// event.
+	// query that was invalidated before the patch refetches once more after
+	// it. `setQueryData` clears the invalidated flag, and a refetch already
+	// running can bring rows read before the event's commit. A detail that
+	// took a description event refetches, so the text catches up.
 	const patchTicket = (change: TicketChange) => {
 		const parentsThatLostAChild: string[] = [];
 		const id = change.summary.id;
-		if (change.fields.includes("description")) descriptionVersions.set(id, change.summary.version);
+		const description = change.fields.includes("description");
 		for (const query of queryClient.getQueryCache().getAll()) {
 			const data = query.state.data;
 			if (data === undefined) continue;
 			const detail = isDetail(query.queryKey);
-			if (change.deleted && detail && (data as { id: unknown }).id === id) {
+			const own = detail && (data as { id: unknown }).id === id;
+			if (change.deleted && own) {
 				queryClient.removeQueries({ queryKey: query.queryKey, exact: true });
 				continue;
 			}
 			const patched = patchTicketQuery(query.queryKey, data, change);
 			if (patched === undefined) continue;
-			const oldText = detail && holdsOldText(id, data);
-			if (oldText || query.state.isInvalidated) enqueue([forQuery(query)]);
-			if (query.state.isInvalidated) continue;
-			queryClient.setQueryData(
-				query.queryKey,
-				oldText ? { ...patched, version: (data as { version: number }).version } : patched,
-			);
+			const wasInvalidated = query.state.isInvalidated;
+			queryClient.setQueryData(query.queryKey, patched);
+			if (wasInvalidated || (own && description)) enqueue([forQuery(query)]);
 			if (detail && childCount(patched) < childCount(data)) parentsThatLostAChild.push((data as { id: string }).id);
 		}
 		return parentsThatLostAChild;
@@ -168,16 +139,15 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			enqueue(ticketDetail(summary.parent.id));
 		}
 		for (const id of parentsThatLostAChild) enqueue(ticketDetail(id));
-		if (fields.includes("description")) enqueue(ticketDetail(summary.id));
 		if (!change.deleted) enqueue([forTicket(["timeline", "list"], summary.id)]);
 	};
 
 	const applyTicketEvent = (event: TicketEvent) => {
 		const id = event.summary.id;
 		const change = toChange(event);
-		if (inFlight.has(id)) {
-			const held = waiting.get(id);
-			waiting.set(id, held === undefined ? change : mergeChanges(held, change));
+		const held = waiting.get(id);
+		if (held !== undefined) {
+			held.push(change);
 			return;
 		}
 		applyChange(change);
@@ -238,8 +208,11 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 
 	const beginMutation = (ticketId: string) => {
 		inFlight.set(ticketId, (inFlight.get(ticketId) ?? 0) + 1);
+		if (!waiting.has(ticketId)) waiting.set(ticketId, []);
 	};
 
+	// The held events apply in version order. Two events at one version keep
+	// their arrival order, so an update and then a delete still delete.
 	const endMutation = (ticketId: string) => {
 		const remaining = inFlight.get(ticketId)! - 1;
 		if (remaining > 0) {
@@ -247,9 +220,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			return;
 		}
 		inFlight.delete(ticketId);
-		const held = waiting.get(ticketId);
+		const held = waiting.get(ticketId)!;
 		waiting.delete(ticketId);
-		if (held !== undefined) applyChange(held);
+		for (const change of held.sort((a, b) => a.summary.version - b.summary.version)) applyChange(change);
 	};
 
 	return { applyEvent, beginMutation, endMutation };

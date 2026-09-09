@@ -45,8 +45,10 @@ describe("applyEvent on ticket events", () => {
 
 	// A mutation writes its own response into the cache when it settles. A
 	// patch applied in between would be overwritten by that older response, so
-	// patches wait and only the highest version lands after settle.
-	test("applyEvent queues patches while a mutation is in flight and applies the highest version after settle", () => {
+	// patches wait. After settle the held events apply in version order, so
+	// the row ends at the highest version. Version 4 writes the three entries,
+	// then version 5 writes them again.
+	test("applyEvent holds patches while a mutation is in flight and applies them in version order after settle", () => {
 		const v3 = summaryAt(3);
 		const { queryClient, applier, setQueryData } = setup(seedTicketCaches(v3));
 		const v5 = summaryAt(5, { title: "Fifth" });
@@ -61,12 +63,14 @@ describe("applyEvent on ticket events", () => {
 		expect(cached(queryClient, listKey)).toEqual(listPage(v5));
 		expect(cached(queryClient, boardKey)).toEqual(boardPage(v5));
 		expect(cached(queryClient, detailKey)).toEqual(ticket(v5));
-		expect(setQueryData).toHaveBeenCalledTimes(3);
+		expect(setQueryData).toHaveBeenCalledTimes(6);
+		const listWrites = setQueryData.mock.calls.filter(([, data]) => "items" in (data as object));
+		expect(listWrites.map(([, data]) => (data as { items: { version: number }[] }).items[0]!.version)).toEqual([4, 5]);
 	});
 
-	// The held events fold into one. The highest version wins the row, and
-	// every field any of them named still counts. So a status change that a
-	// later title change supersedes still refetches the filtered lists.
+	// The held events apply one by one, so every field any of them named
+	// still counts. A status change that a later title change supersedes
+	// still refetches the filtered lists.
 	test("held events keep the fields of every event, so a superseded status change still invalidates", () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
 		applier.beginMutation(t1);

@@ -95,7 +95,7 @@ const ENTRY_NAMES = Object.keys(ENTRIES);
 // `textVersion` applied, until a refetch replaces the entry.
 type Model = { version: number; textVersion: number; text: string; stale: boolean };
 
-type Event = ReturnType<typeof updatedEvent> | ReturnType<typeof createdEvent>;
+type Event = { type: "ticket.created" | "ticket.updated"; summary: Summary; fields: string[]; batchId: string };
 
 const runSequence = (seed: number) => {
 	const random = createRandom(seed);

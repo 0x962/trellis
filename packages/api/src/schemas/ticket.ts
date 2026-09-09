@@ -60,7 +60,11 @@ export const TicketSchema = TicketSummarySchema.extend({
 	prs: z.array(LinkedPullRequestSchema),
 	attachments: z.array(AttachmentSchema),
 });
-export type Ticket = z.infer<typeof TicketSchema>;
+// `descriptionStale` lives only in a client cache. The live applier sets it
+// on a cached detail when an event names the description, because a
+// summary carries no text. A refetch replaces the whole entry, which drops
+// the flag. An editor saves only while the flag is absent.
+export type Ticket = z.infer<typeof TicketSchema> & { descriptionStale?: boolean };
 
 export const SortSchema = z.enum([
 	"updatedAt",
