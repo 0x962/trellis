@@ -98,16 +98,24 @@ const patchers: Record<string, (data: unknown, change: TicketChange) => unknown>
 	"tickets.get": (data, change) => patchDetail(data as Ticket, change),
 };
 
+// The procedure path of an oRPC key `[path, {input?, type?}]`, or undefined
+// for a key other code created. Such a key never holds a ticket.
+const pathName = (queryKey: QueryKey) => {
+	const path = queryKey[0];
+	return Array.isArray(path) ? path.join(".") : undefined;
+};
+
+const isInfinite = (queryKey: QueryKey) => (queryKey[1] as { type?: string } | undefined)?.type === "infinite";
+
+// True for a `tickets.get` key: `[["tickets", "get"], options]`.
+export const isDetail = (queryKey: QueryKey) => pathName(queryKey) === "tickets.get";
+
 // Returns the patched data for one cache entry, or undefined when the entry
-// does not change. An oRPC key is `[path, {input?, type?}]`; the QueryClient
-// also holds keys other code created, and those never hold a ticket.
+// does not change.
 export const patchTicketQuery = (queryKey: QueryKey, data: unknown, change: TicketChange) => {
-	const [path, options] = queryKey as [unknown, { type?: string } | undefined];
-	if (!Array.isArray(path)) return undefined;
-	const name = path.join(".");
-	if (name === "tickets.list" && options?.type === "infinite") {
-		return patchInfiniteList(data as InfiniteListOutput, change);
-	}
+	const name = pathName(queryKey);
+	if (name === undefined) return undefined;
+	if (name === "tickets.list" && isInfinite(queryKey)) return patchInfiniteList(data as InfiniteListOutput, change);
 	const patcher = patchers[name];
 	return patcher === undefined ? undefined : patcher(data, change);
 };
