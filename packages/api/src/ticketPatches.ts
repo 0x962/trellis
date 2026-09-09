@@ -118,6 +118,31 @@ const isInfinite = (queryKey: QueryKey) => (queryKey[1] as { type?: string } | u
 // True for a `tickets.get` key: `[["tickets", "get"], options]`.
 export const isDetail = (queryKey: QueryKey) => pathName(queryKey) === "tickets.get";
 
+const rowReaders: Record<string, (data: unknown) => TicketSummary[]> = {
+	"tickets.list": (data) => (data as ListOutput).items,
+	"tickets.board": (data) => (data as BoardOutput).columns.flatMap((column) => column.items),
+	"inbox.get": (data) => Object.values(data as Record<string, InboxSection>).flatMap((section) => section.items),
+	"search.query": (data) => (data as SearchOutput).tickets,
+	"tickets.get": (data) => [data as Ticket, ...(data as Ticket).children],
+};
+
+// True for a key whose data is one of the shapes that hold ticket rows.
+export const holdsTicketRows = (queryKey: QueryKey) => {
+	const name = pathName(queryKey);
+	return name !== undefined && name in rowReaders;
+};
+
+// The ticket rows one cache entry holds: a detail's own row and its
+// children, or the items of every page, column, or section.
+export const ticketRows = (queryKey: QueryKey, data: unknown): TicketSummary[] => {
+	const name = pathName(queryKey);
+	if (name === undefined) return [];
+	if (name === "tickets.list" && isInfinite(queryKey))
+		return (data as InfiniteListOutput).pages.flatMap((page) => page.items);
+	const reader = rowReaders[name];
+	return reader === undefined ? [] : reader(data);
+};
+
 // Returns the patched data for one cache entry, or undefined when the entry
 // does not change.
 export const patchTicketQuery = (queryKey: QueryKey, data: unknown, change: TicketChange) => {

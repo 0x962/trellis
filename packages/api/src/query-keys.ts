@@ -13,7 +13,8 @@ import {
 } from "./invalidationCoalescer.ts";
 import { realScheduler, type Scheduler } from "./scheduler.ts";
 import type { Ticket } from "./schemas/ticket.ts";
-import { isDetail, patchTicketQuery, type TicketChange } from "./ticketPatches.ts";
+import { createSettleCheck } from "./settleCheck.ts";
+import { holdsTicketRows, isDetail, patchTicketQuery, type TicketChange } from "./ticketPatches.ts";
 import { createTombstones } from "./tombstones.ts";
 
 export { INBOX_MAX_WAIT_MS, INBOX_TRAILING_MS, MAX_WAIT_MS, TRAILING_MS } from "./invalidationCoalescer.ts";
@@ -76,9 +77,10 @@ export type EventApplier = {
 // ticket. An entry takes the event's summary only when the event's version
 // is higher than the entry's own, and then its version equals the event's.
 // The compare is per entry, so an older event never overwrites a newer
-// field and never lowers a version. No other version bookkeeping exists.
-// A queued invalidation never blocks a patch, and neither does a refetch in
-// flight: the patch lands and the refetch's result replaces it. The detail
+// field and never lowers a version. A queued invalidation never blocks a
+// patch, and neither does a fetch in flight: the patch lands, and the
+// fetch's result replaces it. The settle check keeps the version patched
+// during a fetch and refetches when the result is older. The detail
 // holds the description, which a summary lacks. A description event moves
 // the detail to its version, sets `descriptionStale`, and queues the
 // detail's refetch. The refetch replaces the whole entry, which clears the
@@ -101,6 +103,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	const inFlight = new Map<string, number>();
 	const waiting = new Map<string, HeldChange[]>();
 	const tombstones = createTombstones(scheduler);
+	const settle = createSettleCheck(queryClient);
 
 	const enqueue = (matchers: Matcher[]) => {
 		const inboxMatchers = matchers.filter(isInboxMatcher);
@@ -116,25 +119,30 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 
 	// Returns the id of every cached parent whose `children` lost a row. One
 	// change walks the cache once, however many queries the cache holds. A
-	// query that was invalidated before the patch refetches once more after
-	// it, because `setQueryData` clears the invalidated flag. A query with
-	// a fetch in flight refetches once more too, whatever started the fetch.
-	// That fetch can bring rows read before the event's commit. A detail
-	// that took a description event refetches, so the text catches up.
+	// query with a fetch in flight, or with no data yet, gets the version
+	// recorded for the settle check. That check refetches when the result
+	// is older. A query that was invalidated before the patch refetches once
+	// more after it, because `setQueryData` clears the invalidated flag. A
+	// detail that took a description event refetches, so the text catches up.
 	const patchTicket = (change: TicketChange) => {
 		const parentsThatLostAChild: string[] = [];
-		const id = change.summary.id;
+		const { id, version } = change.summary;
 		const description = change.fields.includes("description");
 		for (const query of queryClient.getQueryCache().getAll()) {
 			const data = query.state.data;
-			if (data === undefined) continue;
+			const fetching = query.state.fetchStatus !== "idle";
+			if (data === undefined) {
+				if (fetching && holdsTicketRows(query.queryKey)) settle.record(query, id, version);
+				continue;
+			}
 			const detail = isDetail(query.queryKey);
 			const own = detail && (data as { id: unknown }).id === id;
 			const patched = patchTicketQuery(query.queryKey, data, change);
 			if (patched === undefined) continue;
-			const refetches = query.state.isInvalidated || query.state.fetchStatus === "fetching";
+			const invalidated = query.state.isInvalidated;
 			queryClient.setQueryData(query.queryKey, patched);
-			if (refetches || (own && description)) enqueue([forQuery(query)]);
+			if (fetching) settle.record(query, id, version);
+			else if (invalidated || (own && description)) enqueue([forQuery(query)]);
 			if (detail && childCount(patched) < childCount(data)) parentsThatLostAChild.push((data as { id: string }).id);
 		}
 		return parentsThatLostAChild;
