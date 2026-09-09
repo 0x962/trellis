@@ -8,6 +8,11 @@
 	"files": {
 		"includes": ["**", "!**/dist", "!**/.turbo", "!**/drizzle/meta", "!docs/design/mockup.html"]
 	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab",
@@ -52,6 +57,12 @@
 		}
 	},
 	"overrides": [
+		{
+			"includes": ["packages/ui/src/tokens.css"],
+			"formatter": {
+				"enabled": false
+			}
+		},
 		{
 			"includes": ["**/db/**"],
 			"linter": {
