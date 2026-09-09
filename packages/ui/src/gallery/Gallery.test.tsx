@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expectFocusRing, expectHitArea } from "../../test/classes";
 import { mockMatchMedia } from "../../test/media";
@@ -70,6 +70,8 @@ describe("Gallery", () => {
 		const handle = await screen.findByRole("button", { name: "Resize" });
 		expectHitArea(handle, "handle4");
 		expectFocusRing(handle);
+		await user.keyboard("{Escape}");
+		await waitFor(() => expect(screen.queryByRole("dialog", { name: "CDE-43" })).toBeNull());
 	});
 
 	test("the composition section reproduces the mockup rows with the real components", () => {

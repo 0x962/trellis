@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expectClasses } from "../../../test/classes";
 import { Sheet } from "./Sheet";
@@ -95,7 +95,12 @@ describe("Sheet", () => {
 		expect(
 			screen.getByText("Merge upstream 1.27").compareDocumentPosition(handle) & Node.DOCUMENT_POSITION_FOLLOWING,
 		).not.toBe(0);
-		await waitFor(() => expect(document.activeElement).toBe(close));
+		// Base UI moves the initial focus on the frame after a microtask, so the
+		// second frame sees it.
+		const frame = () => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+		await frame();
+		await frame();
+		expect(document.activeElement).toBe(close);
 		rerender(
 			<Sheet
 				open
