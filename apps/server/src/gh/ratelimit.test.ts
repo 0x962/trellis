@@ -5,8 +5,10 @@ import { ghStub } from "../../test/helpers/gh-stub.ts";
 import { intervalMultiplier, readRateLimit } from "./ratelimit.ts";
 import { createGhRunner } from "./run.ts";
 
-// `gh api rate_limit` reports the core budget. The poller multiplies its
-// intervals by 4 while the remaining fraction is under 20 percent.
+// `gh api rate_limit` reports one budget per resource. The poller spends
+// the graphql budget, and a diff fetch spends the core budget, so the reader
+// reports the lower fraction of the two. The poller multiplies its intervals
+// by 4 while that fraction is under 20 percent.
 const scratch = () => mkdtempSync(join(process.env.TRELLIS_HOME!, "gh-ratelimit-"));
 const restores: Array<() => void> = [];
 afterEach(() => {
@@ -18,7 +20,11 @@ const stub = (replies: Parameters<typeof ghStub>[1]) => {
 	return handle;
 };
 
-const budget = JSON.stringify({ resources: { core: { limit: 5000, remaining: 4000, reset: 1757400000 } } });
+const resources = {
+	core: { limit: 5000, remaining: 4000, reset: 1757400000 },
+	graphql: { limit: 5000, remaining: 4500, reset: 1757400300 },
+};
+const budget = JSON.stringify({ resources });
 
 describe("readRateLimit", () => {
 	test("reads gh api rate_limit and computes the remaining fraction", async () => {
@@ -37,6 +43,7 @@ describe("readRateLimit", () => {
 		const result = await reading;
 		expect(result).toMatchObject({
 			ok: true,
+			resource: "core",
 			limit: 5000,
 			remaining: 4000,
 			// 1757400000 s after the epoch, as an ISO string.
@@ -47,6 +54,22 @@ describe("readRateLimit", () => {
 		const reads = handle.spawns().filter((spawn) => spawn.args[0] === "api");
 		expect(reads).toHaveLength(1);
 		expect(reads[0]!.args).toEqual(["api", "rate_limit"]);
+	});
+
+	test("reports the graphql budget when it is the lower fraction", async () => {
+		const graphql = { limit: 5000, remaining: 100, reset: 1757400300 };
+		stub({
+			"api rate_limit": { stdout: JSON.stringify({ resources: { ...resources, graphql } }), stderr: "", exitCode: 0 },
+		});
+		expect(await readRateLimit(createGhRunner())).toMatchObject({
+			ok: true,
+			resource: "graphql",
+			limit: 5000,
+			remaining: 100,
+			resetAt: "2025-09-09T06:45:00.000Z",
+			fraction: 0.02,
+			multiplier: 4,
+		});
 	});
 
 	test("returns the run failure when gh cannot read the rate limit", async () => {
