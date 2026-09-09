@@ -1,0 +1,79 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"includes": ["**", "!**/dist", "!**/.turbo", "!**/drizzle/meta", "!docs/design/mockup.html"]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"lineWidth": 120
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"style": {
+				"noNonNullAssertion": "off",
+				"noRestrictedImports": {
+					"level": "error",
+					"options": {
+						"paths": {
+							"motion": "Import from motion/mini only. Animation is motion/mini and CSS transitions only.",
+							"framer-motion": "Import from motion/mini only. Animation is motion/mini and CSS transitions only.",
+							"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+						},
+						"patterns": [
+							{
+								"group": ["**/db/client"],
+								"message": "Only files under db/ import the client: every query takes tx first; a nested module-level db call inside a PGlite transaction deadlocks the server."
+							},
+							{
+								"group": ["@radix-ui/*"],
+								"message": "No Radix. Every visual primitive lives in packages/ui on top of Base UI."
+							}
+						]
+					}
+				}
+			}
+		}
+	},
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["**/db/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"motion": "Import from motion/mini only. Animation is motion/mini and CSS transitions only.",
+									"framer-motion": "Import from motion/mini only. Animation is motion/mini and CSS transitions only.",
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+								},
+								"patterns": [
+									{
+										"group": ["@radix-ui/*"],
+										"message": "No Radix. Every visual primitive lives in packages/ui on top of Base UI."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		}
+	]
+}

@@ -1,0 +1,29 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"globalPassThroughEnv": ["TRELLIS_HOME", "TRELLIS_PORT", "TRELLIS_REPO_CHECK_CHILD"],
+	"tasks": {
+		"dev": {
+			"cache": false,
+			"persistent": true
+		},
+		"build": {
+			"dependsOn": ["^build"],
+			"outputs": ["dist/**"]
+		},
+		"test": {},
+		"typecheck": {},
+		"lint": {},
+		"db:generate": {
+			"cache": false,
+			"outputs": ["drizzle/**"]
+		},
+		"perf": {
+			"cache": false
+		},
+		"//#lint": {},
+		"//#typecheck:repo": {},
+		"//#test:repo": {
+			"cache": false
+		}
+	}
+}

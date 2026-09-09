@@ -1,5 +1,32 @@
 {
+	"name": "trellis",
+	"private": true,
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"packageManager": "bun@1.3.13",
 	"scripts": {
-		"test": "bun test"
+		"dev": "turbo run dev --filter=@trellis/server --filter=@trellis/web",
+		"dev:all": "turbo run dev",
+		"build": "turbo run build",
+		"test": "turbo run test",
+		"test:repo": "bun test ./test",
+		"typecheck": "turbo run typecheck",
+		"typecheck:repo": "tsc --noEmit -p tsconfig.json",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"check": "turbo run lint typecheck test typecheck:repo test:repo",
+		"perf": "turbo run perf",
+		"db:generate": "turbo run db:generate --filter=@trellis/server",
+		"e2e": "bun run --cwd apps/web e2e",
+		"release": "changeset version && bun install && changeset tag"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.12",
+		"@changesets/cli": "3.0.2",
+		"@types/bun": "1.3.13",
+		"turbo": "2.10.12",
+		"typescript": "7.0.2"
 	}
 }
