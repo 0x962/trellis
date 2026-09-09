@@ -23,13 +23,15 @@
 					"level": "error",
 					"options": {
 						"paths": {
-							"motion": "Import from motion/mini only. Animation is motion/mini and CSS transitions only.",
-							"framer-motion": "Import from motion/mini only. Animation is motion/mini and CSS transitions only.",
 							"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
 						},
 						"patterns": [
 							{
-								"group": ["**/db/client"],
+								"group": ["motion", "motion/**", "!motion/mini", "framer-motion", "framer-motion/**"],
+								"message": "Import from motion/mini only. Animation is motion/mini and CSS transitions only."
+							},
+							{
+								"group": ["**/db/client", "**/db/client.*", "**/db/client/**"],
 								"message": "Only files under db/ import the client: every query takes tx first; a nested module-level db call inside a PGlite transaction deadlocks the server."
 							},
 							{
@@ -59,14 +61,257 @@
 							"level": "error",
 							"options": {
 								"paths": {
-									"motion": "Import from motion/mini only. Animation is motion/mini and CSS transitions only.",
-									"framer-motion": "Import from motion/mini only. Animation is motion/mini and CSS transitions only.",
 									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
 								},
 								"patterns": [
 									{
+										"group": ["motion", "motion/**", "!motion/mini", "framer-motion", "framer-motion/**"],
+										"message": "Import from motion/mini only. Animation is motion/mini and CSS transitions only."
+									},
+									{
 										"group": ["@radix-ui/*"],
 										"message": "No Radix. Every visual primitive lives in packages/ui on top of Base UI."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["packages/api/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+								},
+								"patterns": [
+									{
+										"group": ["motion", "motion/**", "!motion/mini", "framer-motion", "framer-motion/**"],
+										"message": "Import from motion/mini only. Animation is motion/mini and CSS transitions only."
+									},
+									{
+										"group": ["**/db/client", "**/db/client.*", "**/db/client/**"],
+										"message": "Only files under db/ import the client: every query takes tx first; a nested module-level db call inside a PGlite transaction deadlocks the server."
+									},
+									{
+										"group": ["@radix-ui/*"],
+										"message": "No Radix. Every visual primitive lives in packages/ui on top of Base UI."
+									},
+									{
+										"group": ["@trellis/**"],
+										"message": "Layers import downward only. api is imported by server, web, mobile, and cli. ui is imported by web only."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["packages/ui/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+								},
+								"patterns": [
+									{
+										"group": ["motion", "motion/**", "!motion/mini", "framer-motion", "framer-motion/**"],
+										"message": "Import from motion/mini only. Animation is motion/mini and CSS transitions only."
+									},
+									{
+										"group": ["**/db/client", "**/db/client.*", "**/db/client/**"],
+										"message": "Only files under db/ import the client: every query takes tx first; a nested module-level db call inside a PGlite transaction deadlocks the server."
+									},
+									{
+										"group": ["@radix-ui/*"],
+										"message": "No Radix. Every visual primitive lives in packages/ui on top of Base UI."
+									},
+									{
+										"group": ["@trellis/**"],
+										"message": "Layers import downward only. api is imported by server, web, mobile, and cli. ui is imported by web only."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["packages/cli/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+								},
+								"patterns": [
+									{
+										"group": ["motion", "motion/**", "!motion/mini", "framer-motion", "framer-motion/**"],
+										"message": "Import from motion/mini only. Animation is motion/mini and CSS transitions only."
+									},
+									{
+										"group": ["**/db/client", "**/db/client.*", "**/db/client/**"],
+										"message": "Only files under db/ import the client: every query takes tx first; a nested module-level db call inside a PGlite transaction deadlocks the server."
+									},
+									{
+										"group": ["@radix-ui/*"],
+										"message": "No Radix. Every visual primitive lives in packages/ui on top of Base UI."
+									},
+									{
+										"group": ["@trellis/**", "!@trellis/api", "!@trellis/api/**"],
+										"message": "Layers import downward only. api is imported by server, web, mobile, and cli. ui is imported by web only."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/server/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+								},
+								"patterns": [
+									{
+										"group": ["motion", "motion/**", "!motion/mini", "framer-motion", "framer-motion/**"],
+										"message": "Import from motion/mini only. Animation is motion/mini and CSS transitions only."
+									},
+									{
+										"group": ["**/db/client", "**/db/client.*", "**/db/client/**"],
+										"message": "Only files under db/ import the client: every query takes tx first; a nested module-level db call inside a PGlite transaction deadlocks the server."
+									},
+									{
+										"group": ["@radix-ui/*"],
+										"message": "No Radix. Every visual primitive lives in packages/ui on top of Base UI."
+									},
+									{
+										"group": ["@trellis/**", "!@trellis/api", "!@trellis/api/**"],
+										"message": "Layers import downward only. api is imported by server, web, mobile, and cli. ui is imported by web only."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/web/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+								},
+								"patterns": [
+									{
+										"group": ["motion", "motion/**", "!motion/mini", "framer-motion", "framer-motion/**"],
+										"message": "Import from motion/mini only. Animation is motion/mini and CSS transitions only."
+									},
+									{
+										"group": ["**/db/client", "**/db/client.*", "**/db/client/**"],
+										"message": "Only files under db/ import the client: every query takes tx first; a nested module-level db call inside a PGlite transaction deadlocks the server."
+									},
+									{
+										"group": ["@radix-ui/*"],
+										"message": "No Radix. Every visual primitive lives in packages/ui on top of Base UI."
+									},
+									{
+										"group": ["@trellis/**", "!@trellis/api", "!@trellis/api/**", "!@trellis/ui", "!@trellis/ui/**"],
+										"message": "Layers import downward only. api is imported by server, web, mobile, and cli. ui is imported by web only."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/mobile/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+								},
+								"patterns": [
+									{
+										"group": ["motion", "motion/**", "!motion/mini", "framer-motion", "framer-motion/**"],
+										"message": "Import from motion/mini only. Animation is motion/mini and CSS transitions only."
+									},
+									{
+										"group": ["**/db/client", "**/db/client.*", "**/db/client/**"],
+										"message": "Only files under db/ import the client: every query takes tx first; a nested module-level db call inside a PGlite transaction deadlocks the server."
+									},
+									{
+										"group": ["@radix-ui/*"],
+										"message": "No Radix. Every visual primitive lives in packages/ui on top of Base UI."
+									},
+									{
+										"group": ["@trellis/**", "!@trellis/api", "!@trellis/api/**"],
+										"message": "Layers import downward only. api is imported by server, web, mobile, and cli. ui is imported by web only."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/server/src/db/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+								},
+								"patterns": [
+									{
+										"group": ["motion", "motion/**", "!motion/mini", "framer-motion", "framer-motion/**"],
+										"message": "Import from motion/mini only. Animation is motion/mini and CSS transitions only."
+									},
+									{
+										"group": ["@radix-ui/*"],
+										"message": "No Radix. Every visual primitive lives in packages/ui on top of Base UI."
+									},
+									{
+										"group": ["@trellis/**", "!@trellis/api", "!@trellis/api/**"],
+										"message": "Layers import downward only. api is imported by server, web, mobile, and cli. ui is imported by web only."
 									}
 								]
 							}

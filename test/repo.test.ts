@@ -169,6 +169,30 @@ describe("root scaffold", () => {
 		expect(await text(".github/PULL_REQUEST_TEMPLATE.md")).not.toMatch(/^#{1,6} /m);
 	});
 
+	// Bun reads bunfig.toml from the current directory only. turbo runs `bun test`
+	// inside each workspace, so a workspace without its own preload starts with
+	// TRELLIS_HOME unset and its tests write to ~/.trellis.
+	test("every workspace bunfig.toml preloads the root test/preload.ts", async () => {
+		const workspaces = ["apps", "packages"].flatMap((dir) =>
+			readdirSync(join(root, dir))
+				.map((entry) => join(dir, entry))
+				.filter((workspace) => existsSync(join(root, workspace, "package.json"))),
+		);
+		for (const workspace of workspaces) {
+			const config = Bun.TOML.parse(await text(join(workspace, "bunfig.toml"))) as { test: { preload: string[] } };
+			expect(config.test.preload).toContain("../../test/preload.ts");
+		}
+	});
+
+	test("AGENTS.md and CONTRIBUTING.md state the workspace bunfig rule and the tx-first service signature", async () => {
+		const agents = await text("AGENTS.md");
+		const contributing = await text("CONTRIBUTING.md");
+		expect(agents).toContain('preload = ["../../test/preload.ts"]');
+		expect(contributing).toContain('preload = ["../../test/preload.ts"]');
+		expect(contributing).toContain("(tx, ctx, input) => result");
+		expect(contributing).not.toContain("(ctx, tx, input)");
+	});
+
 	test("apps and packages directories exist with a .gitkeep", () => {
 		for (const dir of ["apps", "packages"]) {
 			const entries = readdirSync(join(root, dir));

@@ -47,7 +47,7 @@ trellis is a local ticket tracker for agent-driven work. The plan is `docs/desig
 | perf | `apps/server/test/perf/`, `apps/web/scripts/size-budget.ts` | `check` at 10k rows, `perf` at 50k rows |
 | e2e | `apps/web/e2e/` | Playwright with a temp `TRELLIS_HOME` |
 
-Every service test ends with `assertStatusInvariant(tx)`. `test/preload.ts` gives every test run a fresh `TRELLIS_HOME`, so a test never touches `~/.trellis`.
+Every service test ends with `assertStatusInvariant(tx)`. `test/preload.ts` gives a test run a fresh `TRELLIS_HOME`, so a test never touches `~/.trellis`. Bun reads `bunfig.toml` from the current directory only, so every workspace ships a `bunfig.toml` with `[test]` and `preload = ["../../test/preload.ts"]`. A root test asserts it for every directory under `apps/` and `packages/` that holds a `package.json`.
 
 ## Review
 

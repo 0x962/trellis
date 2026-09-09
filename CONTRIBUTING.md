@@ -9,7 +9,7 @@ Read [AGENTS.md](AGENTS.md) first. It holds the repo rules. This file holds the 
 3. Run `bun run check` before every hand-off. It runs lint, typecheck, and every test.
 4. Run `bun run lint:fix` to apply the Biome fixes.
 
-`bun run test` runs the tests of every workspace through turbo. `bun run test:repo` runs the root tests in `test/`. Every test run gets a fresh `TRELLIS_HOME` from `test/preload.ts`.
+`bun run test` runs the tests of every workspace through turbo. `bun run test:repo` runs the root tests in `test/`. `test/preload.ts` gives a test run a fresh `TRELLIS_HOME`. Bun reads `bunfig.toml` from the current directory only, so every workspace ships a `bunfig.toml` with `[test]` and `preload = ["../../test/preload.ts"]`.
 
 ## Where things live
 
@@ -24,14 +24,14 @@ Read [AGENTS.md](AGENTS.md) first. It holds the repo rules. This file holds the 
 | `docs/design` | | the plan and the design documents; `plan.md` wins over every other file there |
 | `test` | | root tests that assert the repo configuration |
 
-The dependency graph is a star. `api` is imported by server, web, mobile, and cli. `ui` is imported by web only. Packages export TypeScript source and are side-effect free. Layers import downward only; Biome fails `lint` on a violation.
+The dependency graph is a star. `api` is imported by server, web, mobile, and cli. `ui` is imported by web only. Packages export TypeScript source and are side-effect free. Layers import downward only. A `biome.json` override per workspace directory refuses an upward `@trellis/*` import, so a violation fails `lint`.
 
 ## How to add a procedure
 
 1. Add the Zod schemas to `packages/api/src/schemas/<resource>.ts`.
 2. Add the route to `packages/api/src/contract/<resource>.ts`, with its errors from `errors.ts`.
 3. Write the failing tests: a unit test beside the service and a contract test in `apps/server/src/procedures/<resource>.test.ts`.
-4. Write the service in `apps/server/src/services/<resource>.ts`. The signature is `(ctx, tx, input) => result`.
+4. Write the service in `apps/server/src/services/<resource>.ts`. The signature is `(tx, ctx, input) => result`; `tx` is first.
 5. Implement the procedure in `apps/server/src/procedures/<resource>.ts`. It resolves refs, calls the service, and returns. It holds no logic.
 6. Add the CLI verb in `packages/cli/src/commands/<verb>.ts` and its smoke test in `packages/cli/test/`.
 
