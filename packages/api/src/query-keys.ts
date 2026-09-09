@@ -1,4 +1,4 @@
-import type { QueryClient } from "@tanstack/query-core";
+import type { Query, QueryClient } from "@tanstack/query-core";
 import { EventSchema, type TrellisEvent } from "./events.ts";
 import {
 	createInvalidationCoalescer,
@@ -34,6 +34,11 @@ export const membershipFields: ReadonlySet<string> = new Set([
 const parentFields: ReadonlySet<string> = new Set(["parent", "status", "completedAt"]);
 
 type TicketEvent = Extract<TrellisEvent, { type: "ticket.created" | "ticket.updated" | "ticket.deleted" }>;
+
+// How long a deleted ticket's id stays tombstoned. A create or update for
+// the id that arrives inside this window applies nothing. Such an event is
+// a straggler that the server emitted before the delete's commit.
+export const TOMBSTONE_MS = 60_000;
 
 // A ticket change with the event kind the cache reacts to.
 type HeldChange = TicketChange & { created: boolean };
@@ -75,7 +80,10 @@ export type EventApplier = {
 // for the rest, and each flush is one `invalidateQueries` call. While a
 // mutation is in flight for a ticket, its events wait. After the mutation
 // settles they apply in version order, so the mutation's own response
-// never overwrites a newer row.
+// never overwrites a newer row. A delete is final: every query that names
+// the ticket is cancelled and removed, so a fetch in flight never lands,
+// and the id is tombstoned for `TOMBSTONE_MS`. A create or update for a
+// tombstoned id applies nothing.
 export const createEventApplier = (queryClient: QueryClient, options: { scheduler?: Scheduler } = {}): EventApplier => {
 	const scheduler = options.scheduler ?? realScheduler;
 	const general = createInvalidationCoalescer(queryClient, scheduler);
@@ -85,6 +93,20 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	});
 	const inFlight = new Map<string, number>();
 	const waiting = new Map<string, HeldChange[]>();
+	// The time of each delete, by ticket id. An entry older than
+	// `TOMBSTONE_MS` is expired, and every delete prunes the expired ones.
+	const tombstones = new Map<string, number>();
+
+	const isTombstoned = (id: string) => {
+		const deletedAt = tombstones.get(id);
+		return deletedAt !== undefined && scheduler.now() - deletedAt < TOMBSTONE_MS;
+	};
+
+	const tombstone = (id: string) => {
+		const now = scheduler.now();
+		for (const [other, deletedAt] of tombstones) if (now - deletedAt >= TOMBSTONE_MS) tombstones.delete(other);
+		tombstones.set(id, now);
+	};
 
 	const enqueue = (matchers: Matcher[]) => {
 		const inboxMatchers = matchers.filter(isInboxMatcher);
@@ -96,6 +118,29 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	const invalidateAll = () => {
 		inbox.invalidateAll();
 		general.invalidateAll();
+	};
+
+	// Cancels and removes every query that names the ticket: a detail whose
+	// data carries the id, and any query whose input holds the ULID or the
+	// identifier. The cancel comes first, so a fetch in flight is dropped
+	// before its result can reach the cache. An input ref keeps the spelling
+	// the caller used, so the compare is upper-case.
+	const dropTicketQueries = (summary: TicketChange["summary"]) => {
+		const refs = new Set([summary.id, summary.identifier.toUpperCase()]);
+		const namesTicket = (query: Query) => {
+			const input = (query.queryKey[1] as { input?: Record<string, unknown> } | undefined)?.input;
+			const inInput =
+				input !== undefined &&
+				Object.values(input).some((value) => typeof value === "string" && refs.has(value.toUpperCase()));
+			return (
+				inInput || (isDetail(query.queryKey) && (query.state.data as { id?: unknown } | undefined)?.id === summary.id)
+			);
+		};
+		const targets = new Set(queryClient.getQueryCache().getAll().filter(namesTicket));
+		if (targets.size === 0) return;
+		const predicate = (query: Query) => targets.has(query);
+		void queryClient.cancelQueries({ predicate });
+		queryClient.removeQueries({ predicate });
 	};
 
 	// Returns the id of every cached parent whose `children` lost a row. One
@@ -113,10 +158,6 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			if (data === undefined) continue;
 			const detail = isDetail(query.queryKey);
 			const own = detail && (data as { id: unknown }).id === id;
-			if (change.deleted && own) {
-				queryClient.removeQueries({ queryKey: query.queryKey, exact: true });
-				continue;
-			}
 			const patched = patchTicketQuery(query.queryKey, data, change);
 			if (patched === undefined) continue;
 			const wasInvalidated = query.state.isInvalidated;
@@ -132,6 +173,12 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	// refetches on every change but a delete, which drops the ticket page.
 	const applyChange = (change: HeldChange) => {
 		const { summary, fields } = change;
+		if (change.deleted) {
+			tombstone(summary.id);
+			dropTicketQueries(summary);
+		} else if (isTombstoned(summary.id)) {
+			return;
+		}
 		const parentsThatLostAChild = patchTicket(change);
 		const membership = change.created || change.deleted;
 		if (membership || fields.some((field) => membershipFields.has(field))) enqueue(membershipMatchers);
