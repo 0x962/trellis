@@ -15,7 +15,7 @@ function LayoutProbe(on: { onBracket: () => void; onA: () => void; onModK: () =>
 	return null;
 }
 
-type Bindings = Record<"o" | "s" | "q" | "a" | "altA" | "modK" | "bracket", Mock<() => void>>;
+type Bindings = Record<"o" | "s" | "q" | "a" | "altA" | "modK" | "bracket" | "altBracket" | "altOne", Mock<() => void>>;
 
 function BindingProbe(on: Bindings) {
 	useHotkey("o", on.o);
@@ -25,6 +25,8 @@ function BindingProbe(on: Bindings) {
 	useHotkey("alt+a", on.altA);
 	useHotkey("mod+k", on.modK);
 	useHotkey("[", on.bracket);
+	useHotkey("alt+[", on.altBracket);
+	useHotkey("alt+1", on.altOne);
 	return null;
 }
 
@@ -36,6 +38,22 @@ const bindings = (): Bindings => ({
 	altA: mock(),
 	modK: mock(),
 	bracket: mock(),
+	altBracket: mock(),
+	altOne: mock(),
+});
+
+// Every counter of `bindings` at 0, except the ones in `hits`.
+const hits = (on: Partial<Record<keyof Bindings, number>>) => ({
+	o: 0,
+	s: 0,
+	q: 0,
+	a: 0,
+	altA: 0,
+	modK: 0,
+	bracket: 0,
+	altBracket: 0,
+	altOne: 0,
+	...on,
 });
 
 const counts = (on: Bindings) =>
@@ -155,16 +173,33 @@ describe("useHotkey", () => {
 	// A letter binding matches the character the layout produces whenever that
 	// character is a Latin letter. On Dvorak the physical S key produces "o";
 	// on AZERTY the physical A key produces "q". The physical key never wins
-	// over a Latin letter, so the "s" and "a" bindings stay quiet.
+	// over a Latin letter, so the "s" and "a" bindings stay quiet. Every
+	// counter is asserted, so no other binding fires on the side.
 	test("a Latin letter matches by character on Dvorak and AZERTY, never by physical key", () => {
 		const on = bindings();
 		render(<BindingProbe {...on} />);
 		fireEvent.keyDown(document.body, { key: "o", code: "KeyS" });
-		expect(counts(on)).toMatchObject({ o: 1, s: 0 });
+		expect(counts(on)).toEqual(hits({ o: 1 }));
 		fireEvent.keyDown(document.body, { key: "q", code: "KeyA" });
-		expect(counts(on)).toMatchObject({ q: 1, a: 0 });
+		expect(counts(on)).toEqual(hits({ o: 1, q: 1 }));
 		fireEvent.keyDown(document.body, { key: "S", code: "KeyO", shiftKey: true });
-		expect(counts(on)).toMatchObject({ o: 1, s: 0 });
+		expect(counts(on)).toEqual(hits({ o: 1, q: 1 }));
+	});
+
+	// An "alt+" binding needs Alt held whatever the key kind. A punctuation
+	// or digit binding without "alt+" accepts Alt either way, because Option
+	// produces "[" on a German Mac; the plain "[" binding fires beside "alt+[".
+	test('an "alt+" punctuation or digit chord needs Alt held, and the plain key accepts either', () => {
+		const on = bindings();
+		render(<BindingProbe {...on} />);
+		fireEvent.keyDown(document.body, { key: "[", code: "BracketLeft", altKey: true });
+		expect(counts(on)).toEqual(hits({ bracket: 1, altBracket: 1 }));
+		fireEvent.keyDown(document.body, { key: "[", code: "BracketLeft" });
+		expect(counts(on)).toEqual(hits({ bracket: 2, altBracket: 1 }));
+		fireEvent.keyDown(document.body, { key: "1", code: "Digit1", altKey: true });
+		expect(counts(on)).toEqual(hits({ bracket: 2, altBracket: 1, altOne: 1 }));
+		fireEvent.keyDown(document.body, { key: "1", code: "Digit1" });
+		expect(counts(on)).toEqual(hits({ bracket: 2, altBracket: 1, altOne: 1 }));
 	});
 
 	// The physical key decides only when the character is not a Latin letter,

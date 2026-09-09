@@ -26,10 +26,11 @@ const latin = (value: string) => /^[a-z]$/i.test(value);
 // A letter binding matches on `event.key`, the character the layout
 // produces, whenever that character is a Latin letter: Dvorak's "o" is
 // "o". When the character is not a Latin letter, the physical key decides
-// (`event.code`), so Cmd+K works on a Cyrillic layout. A letter or a named
-// key needs the Alt state of its binding: "a" needs Alt released and
-// "alt+a" needs Alt held. A punctuation key ignores Alt, because Option+5
-// on a German Mac produces "[".
+// (`event.code`), so Cmd+K works on a Cyrillic layout. An "alt+" binding
+// needs Alt held whatever the key kind. A letter or a named key without
+// "alt+" needs Alt released, so Alt+A, a text-entry chord on a Mac, fires
+// no plain "a". A punctuation or digit key without "alt+" accepts Alt
+// either way, because Option+5 on a German Mac produces "[".
 export function useHotkey(hotkey: Hotkey, handler: (event: KeyboardEvent) => void) {
 	useEffect(() => {
 		const parts = hotkey.split("+");
@@ -46,7 +47,8 @@ export function useHotkey(hotkey: Hotkey, handler: (event: KeyboardEvent) => voi
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (!matches(event)) return;
 			if ((event.metaKey || event.ctrlKey) !== mod) return;
-			if (!punctuation && event.altKey !== alt) return;
+			if (alt && !event.altKey) return;
+			if (!alt && !punctuation && event.altKey) return;
 			if (!punctuation && event.shiftKey !== shift) return;
 			if (!mod && editable(event.target)) return;
 			handler(event);
