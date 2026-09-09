@@ -16,10 +16,12 @@ describe("fonts.css", () => {
 		expect(fontsource.sort()).toEqual(
 			["@fontsource/jetbrains-mono/latin-400.css", "@fontsource/jetbrains-mono/latin-500.css"].sort(),
 		);
-		const inter = blocks(pieces)
+		const interFaces = blocks(pieces)
 			.filter((piece) => piece.prelude === "@font-face")
 			.map((piece) => piece.declarations)
-			.find((face) => face["font-family"] === '"Inter Variable"')!;
+			.filter((face) => face["font-family"] === '"Inter Variable"');
+		expect(interFaces).toHaveLength(1);
+		const inter = interFaces[0]!;
 		expect(inter.src).toBe(
 			'url("@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2-variations")',
 		);

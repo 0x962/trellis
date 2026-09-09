@@ -66,6 +66,7 @@ export function OverlaySections() {
 				<Sheet
 					open={sheetOpen}
 					onOpenChange={setSheetOpen}
+					modal={false}
 					title="CDE-43"
 					resizeHandle={
 						<button

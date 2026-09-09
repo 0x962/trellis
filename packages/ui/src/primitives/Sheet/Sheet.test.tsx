@@ -25,16 +25,28 @@ describe("Sheet", () => {
 		expect(onOpenChange.mock.calls[0]![0]).toBe(false);
 	});
 
+	// A Sheet without the prop is modal: it draws the scrim and marks the
+	// dialog modal. The ticket peek opts out with modal={false}.
+	test("modal by default: the scrim draws and aria-modal is true", () => {
+		render(
+			<Sheet open title="CDE-43" onOpenChange={() => {}}>
+				<p>Merge upstream 1.27</p>
+			</Sheet>,
+		);
+		expect(screen.getByRole("dialog", { name: "CDE-43" }).getAttribute("aria-modal")).toBe("true");
+		expect(document.querySelector(".bg-scrim")).not.toBeNull();
+	});
+
 	// The ticket peek is a non-modal dialog: the list behind it stays
 	// reachable, so j and k walk the list while the peek shows the ticket. A
 	// click or a focus move outside the sheet leaves it open.
-	test("non-modal by default: no scrim, aria-modal false, the page stays reachable, and an outside click leaves it open", async () => {
+	test("modal={false}: no scrim, aria-modal false, the page stays reachable, and an outside click leaves it open", async () => {
 		const user = userEvent.setup();
 		const onOpenChange = mock();
 		render(
 			<>
 				<button type="button">Row</button>
-				<Sheet open title="CDE-43" onOpenChange={onOpenChange}>
+				<Sheet open modal={false} title="CDE-43" onOpenChange={onOpenChange}>
 					<p>Merge upstream 1.27</p>
 				</Sheet>
 			</>,
@@ -90,9 +102,9 @@ describe("Sheet", () => {
 		expectClasses(screen.getByRole("button", { name: "Resize" }).parentElement!, "absolute inset-y-0 right-0");
 	});
 
-	test("modal renders the scrim and marks the dialog modal", () => {
+	test("modal={true} renders the scrim and marks the dialog modal", () => {
 		render(
-			<Sheet open modal title="CDE-43" onOpenChange={() => {}}>
+			<Sheet open modal={true} title="CDE-43" onOpenChange={() => {}}>
 				<p>Merge upstream 1.27</p>
 			</Sheet>,
 		);

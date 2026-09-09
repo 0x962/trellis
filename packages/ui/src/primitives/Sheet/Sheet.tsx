@@ -11,7 +11,9 @@ export type SheetProps = {
 	title: string;
 	side?: "left" | "right";
 	// A modal sheet draws a scrim, traps focus, and closes on a click outside.
-	// The default is non-modal: the page behind it stays reachable.
+	// The default is modal. The ticket peek passes false: the page behind it
+	// stays reachable and focusable, and only Escape or the close button
+	// closes it.
 	modal?: boolean;
 	// The panel width in px. A resizable peek passes the width it holds.
 	width?: number;
@@ -26,17 +28,18 @@ export type SheetProps = {
 // motion it fades in place. It is a dialog: Base UI moves focus inside when
 // it opens, Escape closes it, and focus returns to where it was.
 //
-// The peek is non-modal so that j and k walk the list behind it while the
+// The modal form is the Dialog behavior with the sheet's shape. The peek
+// passes modal={false} so that j and k walk the list behind it while the
 // panel shows the ticket. Base UI closes a non-modal dialog when a press or
 // a focus move lands outside it; `disablePointerDismissal` keeps the sheet
 // open through both, so only Escape, the close button, or the caller closes
-// it. The modal form is the Dialog behavior with the sheet's shape.
+// it.
 export function Sheet({
 	open,
 	onOpenChange,
 	title,
 	side = "right",
-	modal = false,
+	modal = true,
 	width = 720,
 	resizeHandle,
 	children,
