@@ -48,6 +48,10 @@ export class CliFailure extends Error {
 
 export const usageError = (message: string) => new CliFailure("USAGE", 2, message);
 
+// A ref the CLI resolves itself, against a list the server answered, and
+// that names no row. The line matches the server's NOT_FOUND line.
+export const notFound = (kind: string, ref: string) => new CliFailure("NOT_FOUND", 3, `No ${kind} matches ${ref}.`);
+
 export const unreachable = (url: string) =>
 	new CliFailure("UNREACHABLE", 5, `trellis server not running at ${url}; run "trellis install" or "bun dev"`);
 

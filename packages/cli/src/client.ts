@@ -1,3 +1,4 @@
+import { ORPCError } from "@orpc/client";
 import { createTrellisClient, type TrellisClient } from "@trellis/api/client";
 import cliPkg from "../package.json" with { type: "json" };
 import type { CliContext } from "./context.ts";
@@ -47,6 +48,15 @@ export const trellisFetch =
 		if (compareVersions(serverVersion, options.apiVersion) < 0) throw serverOlder(serverVersion, options.apiVersion);
 		return response;
 	};
+
+// The routes outside the RPC handler (`/api/events`, `/api/export`) answer
+// an error as JSON `{code, message, data}` with the error's HTTP status. The
+// body becomes the contract error, so it prints and exits the way an RPC
+// error does.
+export const throwErrorAnswer = async (response: Response): Promise<never> => {
+	const body = (await response.json()) as { code: string; message: string; data?: unknown };
+	throw new ORPCError(body.code, { message: body.message, data: body.data, status: response.status });
+};
 
 export const createClient = (options: ClientOptions): TrellisClient =>
 	createTrellisClient(options.url, options.actor, trellisFetch(options));

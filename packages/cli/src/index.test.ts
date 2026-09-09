@@ -105,7 +105,7 @@ describe("the root command", () => {
 		for (const argv of [
 			["edit", "CDE-42", "--description", "--as"],
 			["show", "CDE-42", "--url"],
-			["--as", "list"],
+			["list", "--as"],
 		]) {
 			const result = await runCli(argv, {
 				"tickets.update": ticket(),

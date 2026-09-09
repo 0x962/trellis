@@ -2,6 +2,7 @@ import type { CiState, ListQueryInput, Priority, StatusCategory } from "@trellis
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, splitList } from "../context.ts";
+import { usageError } from "../errors.ts";
 import { printListPages, ticketList } from "../output.ts";
 
 const units: Record<string, number> = { m: 60_000, h: 3_600_000, d: 86_400_000, w: 604_800_000 };
@@ -16,6 +17,8 @@ export const timeBound = (now: Date, value: string | undefined): string | undefi
 };
 
 const pageMax = 200;
+
+const positiveInteger = /^[1-9][0-9]*$/;
 
 export default defineCommand({
 	meta: { name: "list", description: "List tickets by the shared filter grammar" },
@@ -47,6 +50,9 @@ export default defineCommand({
 		const { args } = context;
 		const client = clientOf(ctx);
 		const now = ctx.deps.now();
+		if (args.all !== true && !positiveInteger.test(args.limit)) {
+			throw usageError(`--limit needs a positive integer, not "${args.limit}"`);
+		}
 		const want = args.all === true ? Number.POSITIVE_INFINITY : Number(args.limit);
 		const query: ListQueryInput = compact({
 			project: args.project,

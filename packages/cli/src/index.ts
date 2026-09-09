@@ -6,8 +6,10 @@ import apiPkg from "../../api/package.json" with { type: "json" };
 import cliPkg from "../package.json" with { type: "json" };
 import { type ActorResolution, actorHint, resolveActor } from "./actor.ts";
 import type { CliContext } from "./context.ts";
-import { CliFailure, exitCodeFor, formatError, formatFailure } from "./errors.ts";
+import { CliFailure, exitCodeFor, formatError, formatFailure, usageError } from "./errors.ts";
+import { checkFlags } from "./flags.ts";
 import { type Format, type Mode, stripAnsi } from "./output.ts";
+import { verbs } from "./verbs.ts";
 
 export type Stream = { write(text: string): void; isTTY: boolean };
 
@@ -39,46 +41,6 @@ const globalArgs = {
 	"no-color": { type: "boolean", description: "Print no ANSI escape sequences" },
 } satisfies ArgsDef;
 
-type Loader = () => Promise<CommandDef>;
-
-// One row per verb of the CLI table. `load` imports the verb's module on
-// dispatch, so `--help` and a stub load no command module.
-const verbs: Record<string, { description: string; load: Loader }> = {
-	projects: { description: "List, create, show, move, or set repos on projects", load: () => loadCommand("projects") },
-	statuses: { description: "List, add, edit, remove, or clear statuses", load: () => loadCommand("statuses") },
-	create: { description: "Create a ticket", load: () => loadCommand("create") },
-	show: { description: "Show one ticket", load: () => loadCommand("show") },
-	list: { description: "List tickets by the shared filter grammar", load: () => loadCommand("list") },
-	edit: { description: "Change ticket fields", load: () => loadCommand("edit") },
-	move: { description: "Move a ticket to a status", load: () => loadCommand("move") },
-	comment: { description: "Add a comment", load: () => loadCommand("comment") },
-	comments: { description: "List the comments of a ticket", load: () => loadCommand("comment", "comments") },
-	attach: { description: "Upload a file to a ticket", load: () => loadCommand("attach") },
-	attachments: { description: "List the attachments of a ticket", load: () => loadCommand("attach", "attachments") },
-	pr: { description: "Link, list, remove, refresh, or diff pull requests", load: () => loadCommand("pr") },
-	sub: { description: "Create a sub-ticket", load: () => loadCommand("sub") },
-	delete: { description: "Delete a ticket", load: () => loadCommand("delete") },
-	search: { description: "Search tickets and projects", load: () => loadCommand("search") },
-	activity: { description: "List the activity of a ticket", load: () => loadCommand("activity") },
-	brief: { description: "Print the markdown brief of a ticket", load: () => loadCommand("brief") },
-	inbox: { description: "Show what needs a human", load: () => loadCommand("inbox") },
-	watch: { description: "Print events as JSON lines", load: () => loadCommand("watch") },
-	open: { description: "Print or open the web URL of a ticket", load: () => loadCommand("open") },
-	whoami: { description: "Explain the actor resolution", load: () => loadCommand("whoami") },
-	instructions: { description: "Print the AGENTS.md block", load: () => loadCommand("instructions") },
-	status: { description: "Show server health", load: () => loadCommand("status") },
-	logs: { description: "Tail the server log", load: () => loadCommand("logs") },
-	serve: { description: "Run the server in the foreground", load: () => loadCommand("serve") },
-	install: { description: "Install the server as a launchd agent", load: () => loadCommand("install") },
-	uninstall: { description: "Remove the launchd agent", load: () => loadCommand("uninstall") },
-	backup: { description: "Write a backup archive", load: () => loadCommand("backup") },
-	restore: { description: "Restore a backup archive", load: () => loadCommand("restore") },
-	export: { description: "Stream every table as NDJSON", load: () => loadCommand("export") },
-};
-
-const loadCommand = async (file: string, name = "default"): Promise<CommandDef> =>
-	(await import(`./commands/${file}.ts`))[name] as CommandDef;
-
 const description = "A local ticket tracker for agent-driven work";
 
 export const main = defineCommand({
@@ -98,14 +60,21 @@ type Globals = {
 	rest: string[];
 };
 
-// Global flags parse before dispatch and in any position.
+// Global flags parse before dispatch and in any position. `--as` and
+// `--url` take one value. Either flag at the end of the line has none, and
+// that is a usage error: a missing value never falls back to the inferred
+// actor or the default URL.
 export const splitGlobals = (argv: string[]): Globals => {
 	const globals: Globals = { json: false, jsonl: false, quiet: false, noColor: false, help: false, rest: [] };
 	for (let index = 0; index < argv.length; index++) {
 		const arg = argv[index]!;
 		const equals = arg.indexOf("=");
 		const name = equals === -1 ? arg : arg.slice(0, equals);
-		const value = () => (equals === -1 ? argv[++index] : arg.slice(equals + 1));
+		const value = () => {
+			if (equals !== -1) return arg.slice(equals + 1);
+			if (index + 1 === argv.length) throw usageError(`${name} needs a value`);
+			return argv[++index];
+		};
 		if (name === "--json") globals.json = true;
 		else if (name === "--jsonl") globals.jsonl = true;
 		else if (name === "--quiet") globals.quiet = true;
@@ -152,7 +121,12 @@ const usageLine = (out: Stream, message: string) => {
 };
 
 export const run = async (argv: string[], deps: Deps): Promise<number> => {
-	const globals = splitGlobals(argv);
+	let globals: Globals;
+	try {
+		globals = splitGlobals(argv);
+	} catch (error) {
+		return report(error, deps.stderr, false);
+	}
 	const color = deps.stdout.isTTY && !globals.noColor && deps.env.NO_COLOR === undefined;
 	const mode: Mode = globals.quiet
 		? "quiet"
@@ -176,6 +150,7 @@ export const run = async (argv: string[], deps: Deps): Promise<number> => {
 	if (verb === undefined) return usageLine(deps.stderr, `unknown command ${verbName}; run trellis --help`);
 	let command = await verb.load();
 	let parent: CommandDef = { meta: { name: "trellis" } };
+	let usage = `trellis ${verbName}`;
 	let args = rest;
 	const subs = await subCommandsOf(command);
 	if (subs !== undefined) {
@@ -184,7 +159,8 @@ export const run = async (argv: string[], deps: Deps): Promise<number> => {
 			return usageLine(deps.stderr, `${verbName} needs one of ${Object.keys(subs).join(", ")}`);
 		}
 		if (sub !== undefined) {
-			parent = { meta: { name: `trellis ${verbName}`, description: verb.description } };
+			parent = { meta: { name: usage, description: verb.description } };
+			usage = `${usage} ${args[0]}`;
 			command = sub;
 			args = args.slice(1);
 		}
@@ -210,6 +186,7 @@ export const run = async (argv: string[], deps: Deps): Promise<number> => {
 		},
 	};
 	try {
+		checkFlags(args, (command.args ?? {}) as ArgsDef, usage);
 		const { result } = await runCommand(command, { rawArgs: args, data: ctx });
 		return typeof result === "number" ? result : 0;
 	} catch (error) {

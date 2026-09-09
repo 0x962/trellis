@@ -33,15 +33,28 @@ export async function* readSse(stream: ReadableStream<Uint8Array>): AsyncGenerat
 		return undefined;
 	};
 
-	for await (const chunk of stream) {
-		buffer += decoder.decode(chunk, { stream: true });
-		let match = lineBreak.exec(buffer);
-		while (match !== null) {
-			const line = buffer.slice(0, match.index);
-			buffer = buffer.slice(match.index + match[0].length);
+	// A CR at the end of the buffer may be the first byte of a CRLF whose LF
+	// is still in flight, so it waits for the next chunk. At the end of the
+	// stream no byte follows it, and it is a line break by itself.
+	const takeLine = (final: boolean): string | undefined => {
+		const match = lineBreak.exec(buffer);
+		if (match === null) return undefined;
+		if (match[0] === "\r" && match.index === buffer.length - 1 && !final) return undefined;
+		const line = buffer.slice(0, match.index);
+		buffer = buffer.slice(match.index + match[0].length);
+		return line;
+	};
+
+	function* drain(final: boolean) {
+		for (let line = takeLine(final); line !== undefined; line = takeLine(final)) {
 			const frame = readLine(line);
 			if (frame !== undefined) yield frame;
-			match = lineBreak.exec(buffer);
 		}
 	}
+
+	for await (const chunk of stream) {
+		buffer += decoder.decode(chunk, { stream: true });
+		yield* drain(false);
+	}
+	yield* drain(true);
 }

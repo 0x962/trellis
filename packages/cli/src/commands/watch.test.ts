@@ -48,17 +48,23 @@ const errorResponse = (status: number, body: unknown) =>
 	new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
 // A stream that carries `text` and then fails the way a dropped TCP
-// connection fails.
-const brokenResponse = (text: string) =>
-	new Response(
+// connection fails. The failure comes on the read after the text, so the
+// reader sees the text first.
+const brokenResponse = (text: string) => {
+	let pulls = 0;
+	return new Response(
 		new ReadableStream<Uint8Array>({
-			start(controller) {
-				controller.enqueue(new TextEncoder().encode(text));
+			pull(controller) {
+				if (pulls++ === 0) {
+					controller.enqueue(new TextEncoder().encode(text));
+					return;
+				}
 				controller.error(Object.assign(new Error("ECONNRESET"), { code: "ECONNRESET" }));
 			},
 		}),
 		{ status: 200, headers: { "content-type": "text/event-stream" } },
 	);
+};
 
 // Answers every connect with `answer` and fires the abort signal on the
 // fourth, so a `watch` that reconnects where it must exit still returns.

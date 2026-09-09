@@ -2,7 +2,7 @@ import type { ColorToken, Reviewer, Status, StatusCategory } from "@trellis/api"
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, toNumber } from "../context.ts";
-import { usageError } from "../errors.ts";
+import { notFound, usageError } from "../errors.ts";
 import { cell, json, type ListSpec, printList, printRecord, type RecordSpec } from "../output.ts";
 
 const statusList: ListSpec<Status> = {
@@ -38,7 +38,9 @@ const list = defineCommand({
 	async run(context) {
 		const ctx = contextOf(context);
 		const result = await clientOf(ctx).statuses.list({ project: context.args.project });
-		if (ctx.format.mode === "json" || ctx.format.mode === "jsonl") {
+		// `json` is the procedure output, which carries `inheritedFrom` beside
+		// the statuses. Every other mode prints one status per row.
+		if (ctx.format.mode === "json") {
 			ctx.out.write(json(result));
 			return;
 		}
@@ -77,11 +79,14 @@ const add = defineCommand({
 	},
 });
 
-// A status matches its ref by slug, by id, or by name.
-const matches = (status: Status, ref: string) =>
-	status.slug === ref.toLowerCase() ||
-	status.id === ref.toUpperCase() ||
-	status.name.toLowerCase() === ref.toLowerCase();
+// A status matches its ref by slug, by id, by name, or by category. The
+// list is in position order, so `category:<category>` names the first
+// status of that category, the way the server resolves the ref.
+const matches = (status: Status, ref: string) => {
+	const lower = ref.toLowerCase();
+	if (lower.startsWith("category:")) return status.category === lower.slice("category:".length);
+	return status.slug === lower || status.id === ref.toUpperCase() || status.name.toLowerCase() === lower;
+};
 
 const edit = defineCommand({
 	meta: { name: "edit", description: "Change status fields" },
@@ -115,7 +120,8 @@ const edit = defineCommand({
 		}
 		if (args.position === undefined) return;
 		const { statuses } = await client.statuses.list({ project: args.project });
-		const target = statuses.find((status) => matches(status, args.status))!;
+		const target = statuses.find((status) => matches(status, args.status));
+		if (target === undefined) throw notFound("status", args.status);
 		const order = statuses.filter((status) => status !== target).map((status) => status.slug);
 		order.splice(Number(args.position), 0, target.slug);
 		const result = await client.statuses.reorder({ project: args.project, statuses: order });
