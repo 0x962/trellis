@@ -429,7 +429,7 @@ PR row: state icon (open green, draft dashed gray, merged violet, closed red), `
 
 Actors: human = filled circle with initials; agent = rounded-square outline in the agent color with `⟡` and a mono chip `⟡ claude-code · agent`; live dot when the agent acted within 5 min; agent comments carry an agent-colored left border; `system` never shows as an actor. Clicking an actor filters the list.
 
-Table: active tickets fetched in full and grouped client-side by status in category order, rows sorted priority desc then updated desc; Done and Canceled collapsed and paged per group; columns priority, ID, title (with `↳ parent`, sub ring, clip, comment count), status, PR (icon + mini ribbon), project (when scoped), last actor, updated; inline status and priority popovers; `x` select, bulk bar (`updateMany`); Display popover for columns, density, group, sort; virtualized with fixed row heights.
+Table: active tickets fetched in full and grouped client-side by status in category order, rows sorted priority desc then updated desc; Done and Canceled collapsed and paged per group, rendered only when no status filter is active; columns priority, ID, title (with `↳ parent`, sub ring, clip, comment count), status, PR (icon + mini ribbon), project (when scoped), last actor, updated; inline status and priority popovers; `x` select, bulk bar (`updateMany`); Display popover for columns, density, group, sort; virtualized with fixed row heights.
 
 Kanban: `tickets.board`, pragmatic-drag-and-drop, columns by effective status in category order (category columns on `/all/board`), 100 cards per column then "show more"; card = ID, priority, two-line title, PR icon + mini ribbon, sub ring, clip, last actor + time; a failing-CI card gets a 2 px red top border; drop = `tickets.move`; in-column drag = manual order; WIP badge; collapsed columns; in-column quick add.
 
@@ -439,7 +439,7 @@ Cmd-K: This ticket, Selection, Create, Go to, View, Search results (top 6, 120 m
 
 Create: centered composer 640 px, title, description prefilled from `ticketTemplate`, chip row project/status/priority/parent, defaults from the current filters, `Cmd+Enter`, `Cmd+Shift+Enter` create and continue, draft in sessionStorage.
 
-Needs you (home): Review (reviewer human, oldest waiting first; `a` approve → lowest-position done, `r` send back → lowest-position started with a comment), Failing CI ("Re-run with agent" appends the failing check names), Stalled (started, `updated_at` older than the threshold), Done by agents today (collapsed). Approve animates the row out. Empty state: "Nothing needs you. 3 tickets in progress by agents."
+Needs you (home; the sidebar badge counts every section): Review (reviewer human, oldest waiting first; `a` approve → lowest-position done, `r` send back → lowest-position started with a comment), Failing CI ("Re-run with agent" appends the failing check names), Stalled (started, `updated_at` older than the threshold), Done by agents today (collapsed). Approve animates the row out. Empty state: "Nothing needs you. 3 tickets in progress by agents."
 
 Start with agent: primary button, copies `claude "$(trellis brief CDE-42)"` (template in settings), optional "also mark In Progress", dropdown for prompt only / brief markdown / CLI cheat-sheet.
 
