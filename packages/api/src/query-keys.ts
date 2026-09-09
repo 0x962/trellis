@@ -232,9 +232,10 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 				]);
 				return;
 			// A status rename or a reviewer change alters the `status` inside
-			// every cached summary and the Needs you sections without a ticket
-			// row change, and a project rename alters `project.path` the same
-			// way. So every query that holds a summary refetches.
+			// every cached summary and the Needs you sections. No ticket row
+			// changes, so no ticket event follows. A project rename alters
+			// `project.path` the same way. So every query that holds a summary
+			// refetches.
 			case "statuses.changed":
 			case "project.created":
 			case "project.updated":

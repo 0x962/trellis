@@ -169,8 +169,8 @@ describe("applyEvent on ticket events", () => {
 	});
 
 	// Patch first, always. A later event without the description patches the
-	// summary fields at its own version, and the stale flag stays set until
-	// a refetch replaces the entry. An invalidated detail takes the patch too.
+	// summary fields at its own version. The stale flag stays set until a
+	// refetch replaces the entry. An invalidated detail takes the patch too.
 	test("a detail with a stale description takes every later patch and keeps the flag", () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
 		applier.applyEvent(updatedEvent(summaryAt(4), ["description"]));
