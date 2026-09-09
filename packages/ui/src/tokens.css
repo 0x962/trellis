@@ -1,12 +1,13 @@
 /*
  * The palette is Pierre's, copied from docs/design/mockup.html. Every
- * component reads a color through a Tailwind utility (bg-surface, text-fg),
- * so a theme change is one attribute on <html>: data-theme="dark" or
+ * component reads a color through a Tailwind utility (bg-surface, text-fg).
+ * A theme change is therefore one attribute on <html>: data-theme="dark" or
  * data-theme="light". No attribute follows the system preference.
  *
  * The bare :root block is the light palette. The two dark blocks carry the
- * same values: the media block serves the system preference, the
- * data-theme block serves an explicit choice, and each has to win on its own.
+ * same values. The media block serves the system preference, and the
+ * data-theme block serves an explicit choice. Each block has to win on its
+ * own.
  * Dark mode has no visible shadow, so each shadow starts with a 1 px
  * strong-border ring.
  *
