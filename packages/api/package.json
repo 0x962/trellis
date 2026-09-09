@@ -1,0 +1,25 @@
+{
+	"name": "@trellis/api",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"sideEffects": false,
+	"exports": {
+		".": "./src/index.ts",
+		"./client": "./src/client.ts",
+		"./query-keys": "./src/query-keys.ts",
+		"./contract": "./src/contract/index.ts",
+		"./schemas": "./src/schemas/index.ts"
+	},
+	"scripts": {
+		"test": "bun test",
+		"typecheck": "tsc --noEmit -p tsconfig.json"
+	},
+	"dependencies": {
+		"@orpc/client": "1.15.0",
+		"@orpc/contract": "1.15.0",
+		"@orpc/tanstack-query": "1.15.0",
+		"@tanstack/query-core": "5.102.8",
+		"zod": "4.5.4"
+	}
+}

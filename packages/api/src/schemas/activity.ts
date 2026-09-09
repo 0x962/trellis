@@ -1,0 +1,45 @@
+import { z } from "zod";
+import { TicketRefStringSchema } from "../refs.ts";
+import { ActorRefSchema } from "./actor.ts";
+import { CommentSchema } from "./comment.ts";
+import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+
+// One audit row. `id` is the bigint identity, the cursor and the sort key.
+// A description row carries `meta.deltaChars` and no values; a status row
+// carries `{fromId, toId, fromCategory, toCategory}` in `meta`.
+export const ActivitySchema = z.object({
+	id: z.number().int().positive(),
+	batchId: UlidSchema,
+	rootId: UlidSchema,
+	projectId: UlidSchema,
+	ticketId: UlidSchema.nullable(),
+	actor: ActorRefSchema,
+	action: z.string().min(1),
+	field: z.string().nullable(),
+	fromValue: z.string().nullable(),
+	toValue: z.string().nullable(),
+	meta: z.record(z.string(), z.unknown()),
+	createdAt: IsoDateTimeSchema,
+});
+export type Activity = z.infer<typeof ActivitySchema>;
+
+// The ticket page reads comments and activity as one stream, newest first.
+export const TimelineItemSchema = z.discriminatedUnion("kind", [
+	CommentSchema.extend({ kind: z.literal("comment") }),
+	ActivitySchema.extend({ kind: z.literal("activity") }),
+]);
+export type TimelineItem = z.infer<typeof TimelineItemSchema>;
+
+// `before` is the cursor from the previous page.
+export const TimelineListInputSchema = z.strictObject({
+	ticket: TicketRefStringSchema,
+	before: z.string().optional(),
+	limit: z.coerce.number().int().min(1).max(100).default(100),
+});
+export type TimelineListInput = z.input<typeof TimelineListInputSchema>;
+
+export const TimelineListOutputSchema = z.object({
+	items: z.array(TimelineItemSchema),
+	nextCursor: z.string().nullable(),
+});
+export type TimelineListOutput = z.infer<typeof TimelineListOutputSchema>;

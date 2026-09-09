@@ -1,0 +1,40 @@
+import { z } from "zod";
+import { pickErrors } from "../errors.ts";
+import {
+	LinkedPullRequestSchema,
+	PullRequestDiffOutputSchema,
+	PullRequestIdInputSchema,
+	PullRequestLinkInputSchema,
+	PullRequestListInputSchema,
+	PullRequestSchema,
+	PullRequestUnlinkInputSchema,
+	PullRequestUnlinkOutputSchema,
+} from "../schemas/pullRequest.ts";
+import { base } from "./base.ts";
+
+export const pullRequests = {
+	list: base
+		.route({ method: "GET", path: "/tickets/{ticket}/prs", summary: "List the pull requests on a ticket" })
+		.input(PullRequestListInputSchema)
+		.output(z.array(LinkedPullRequestSchema)),
+	link: base
+		.errors(pickErrors(["INVALID_PR_URL", "GH_UNAVAILABLE", "PROJECT_ARCHIVED"]))
+		.route({ method: "POST", path: "/tickets/{ticket}/prs", summary: "Link a pull request by URL" })
+		.input(PullRequestLinkInputSchema)
+		.output(LinkedPullRequestSchema),
+	unlink: base
+		.errors(pickErrors(["PROJECT_ARCHIVED"]))
+		.route({ method: "DELETE", path: "/tickets/{ticket}/prs/{id}", summary: "Remove a pull request from a ticket" })
+		.input(PullRequestUnlinkInputSchema)
+		.output(PullRequestUnlinkOutputSchema),
+	refresh: base
+		.errors(pickErrors(["GH_UNAVAILABLE"]))
+		.route({ method: "POST", path: "/prs/{id}/refresh", summary: "Poll one pull request now" })
+		.input(PullRequestIdInputSchema)
+		.output(PullRequestSchema),
+	diff: base
+		.errors(pickErrors(["GH_UNAVAILABLE"]))
+		.route({ method: "GET", path: "/prs/{id}/diff", summary: "Read the diff, cut at 1 MB" })
+		.input(PullRequestIdInputSchema)
+		.output(PullRequestDiffOutputSchema),
+};
