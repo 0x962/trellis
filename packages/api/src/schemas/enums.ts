@@ -24,8 +24,15 @@ export type StoredActorKind = z.infer<typeof StoredActorKindSchema>;
 export const PrStateSchema = z.enum(["open", "closed", "merged"]);
 export type PrState = z.infer<typeof PrStateSchema>;
 
+// The CI state of one pull request, folded from its checks: any `fail` or
+// `cancel` check gives `fail`; else any `pending` gives `pending`; else any
+// `pass` gives `pass`; else `none`.
 export const CiStateSchema = z.enum(["none", "pending", "pass", "fail"]);
 export type CiState = z.infer<typeof CiStateSchema>;
+
+// The bucket gh reports for one check, kept verbatim in the checks snapshot.
+export const CheckBucketSchema = z.enum(["pass", "fail", "pending", "skipping", "cancel"]);
+export type CheckBucket = z.infer<typeof CheckBucketSchema>;
 
 export const ReviewStateSchema = z.enum(["none", "review_required", "approved", "changes_requested"]);
 export type ReviewState = z.infer<typeof ReviewStateSchema>;

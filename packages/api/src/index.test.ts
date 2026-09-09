@@ -37,3 +37,15 @@ test("the index re-exports every public symbol with no side effect on import", a
 		expect((api as Record<string, unknown>)[name], name).toBeDefined();
 	}
 });
+
+// `@tanstack/query-core` is a peer dependency for its types only. A value
+// import would load it in every runtime importer of the package, and only
+// the web app installs it.
+test("every import of @tanstack/query-core is a type import", async () => {
+	const valueImport = /^import\s+(?!type\s)[^;]*from\s+"@tanstack\/query-core"/m;
+	for (const file of new Bun.Glob("**/*.ts").scanSync({ cwd: import.meta.dir })) {
+		if (file.endsWith(".test.ts")) continue;
+		const source = await Bun.file(join(import.meta.dir, file)).text();
+		expect(valueImport.test(source), file).toBe(false);
+	}
+});

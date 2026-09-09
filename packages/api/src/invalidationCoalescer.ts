@@ -1,5 +1,5 @@
 import { generateOperationKey } from "@orpc/tanstack-query";
-import { partialMatchKey, type Query, type QueryClient } from "@tanstack/query-core";
+import type { Query, QueryClient } from "@tanstack/query-core";
 import type { Scheduler } from "./scheduler.ts";
 
 // A flush runs `trailingMs` after the last queued invalidation. It runs at
@@ -32,50 +32,65 @@ export const forTicket = (path: string[], id: string): Matcher => ({ path, ticke
 // data. A detail that a query opened by ULID matches on its input.
 export const ticketDetail = (id: string): Matcher[] => [
 	{ path: ["tickets", "get"], dataId: id },
-	byInput(["tickets", "get"], { ticket: id }),
+	forTicket(["tickets", "get"], id),
 ];
+
+// The matcher for one cached query: its own path and input. An oRPC key is
+// `[path, {input?, type?}]`, and the `type` is left out, so a query and its
+// infinite variant with the same input match together.
+export const forQuery = (query: Query): Matcher => ({
+	path: query.queryKey[0] as string[],
+	input: (query.queryKey[1] as { input?: Record<string, unknown> }).input,
+});
 
 const dataId = (query: Query) => (query.state.data as { id?: unknown } | undefined)?.id;
 
-const isDetail = (query: Query) => partialMatchKey(query.queryKey, generateOperationKey(["tickets", "get"]));
+// A ticket ref's canonical spelling is upper-case, for a ULID and for a
+// `KEY-n` identifier alike. A query key holds the ref as the URL or the
+// caller spelled it, so the input is upper-cased before every comparison.
+const inputTicket = (query: Query) => (query.queryKey[1] as { input: { ticket: string } }).input.ticket.toUpperCase();
+
+// The matcher key comes from the builder `@orpc/tanstack-query` uses for
+// every query key. So `findAll` on `[path, {input}]` gives the entries the
+// web app's `queryOptions` created, with a partial match on the input.
+const operationKey = (matcher: Matcher) =>
+	generateOperationKey(matcher.path, matcher.input === undefined ? {} : { input: matcher.input });
 
 // The identifier of every ticket whose detail the cache holds, by ULID. An
 // event names a ticket by ULID only. A sub-resource query keyed by the
 // identifier exists only while the cache holds the detail that opened it.
-const ticketIdentifiers = (queryClient: QueryClient) => {
+export const ticketIdentifiers = (queryClient: QueryClient) => {
 	const identifiers = new Map<string, string>();
-	for (const query of queryClient.getQueryCache().getAll()) {
+	for (const query of queryClient.getQueryCache().findAll({ queryKey: operationKey(family("tickets", "get")) })) {
 		const data = query.state.data as { id: string; identifier: string } | undefined;
-		if (data !== undefined && isDetail(query)) identifiers.set(data.id, data.identifier);
+		if (data !== undefined) identifiers.set(data.id, data.identifier);
 	}
 	return identifiers;
 };
 
-const inputTicket = (query: Query) =>
-	(query.queryKey[1] as { input?: { ticket?: unknown } } | undefined)?.input?.ticket;
-
-// The matcher key comes from the builder `@orpc/tanstack-query` uses for
-// every query key. So a partial match on `[path, {input}]` finds the entries
-// the web app's `queryOptions` created.
-const matches = (query: Query, matcher: Matcher, identifiers: Map<string, string>) => {
-	const key = generateOperationKey(matcher.path, matcher.input === undefined ? {} : { input: matcher.input });
-	if (!partialMatchKey(query.queryKey, key)) return false;
-	if (matcher.dataId !== undefined && dataId(query) !== matcher.dataId) return false;
-	if (matcher.ticket === undefined) return true;
-	const ticket = inputTicket(query);
-	return ticket === matcher.ticket || ticket === identifiers.get(matcher.ticket);
+const matchingQueries = (queryClient: QueryClient, matcher: Matcher, identifiers: Map<string, string>) => {
+	const queries = queryClient.getQueryCache().findAll({ queryKey: operationKey(matcher) });
+	if (matcher.dataId !== undefined) return queries.filter((query) => dataId(query) === matcher.dataId);
+	if (matcher.ticket === undefined) return queries;
+	const identifier = identifiers.get(matcher.ticket);
+	return queries.filter((query) => {
+		const ticket = inputTicket(query);
+		return ticket === matcher.ticket || ticket === identifier;
+	});
 };
 
 export type InvalidationCoalescer = {
 	enqueue: (matchers: Matcher[]) => void;
-	isPending: (query: Query) => boolean;
+	pendingQueries: (identifiers: Map<string, string>) => Set<Query>;
 	invalidateAll: () => void;
 };
 
-// Queued matchers flush as one `invalidateQueries` call. `isPending` tells
-// whether a query waits in the queue, so a patch does not land on a query
-// that is about to refetch. `invalidateAll` drops the queue, because a full
-// invalidation covers every queued family.
+// Queued matchers flush as one `invalidateQueries` call, and a flush that
+// covers no cached query makes no call. `pendingQueries` names every cached
+// query the queue covers, so a patch does not land on a query that is about
+// to refetch. It scans the cache once per queued matcher, so a caller builds
+// the identifier map once and asks once per event. `invalidateAll` drops the
+// queue, because a full invalidation covers every queued family.
 export const createInvalidationCoalescer = (
 	queryClient: QueryClient,
 	scheduler: Scheduler,
@@ -85,14 +100,15 @@ export const createInvalidationCoalescer = (
 	let timer: unknown;
 	let firstQueuedAt = 0;
 
+	const coveredQueries = (identifiers: Map<string, string>) =>
+		new Set([...pending.values()].flatMap((matcher) => matchingQueries(queryClient, matcher, identifiers)));
+
 	const flush = () => {
 		timer = undefined;
-		const matchers = [...pending.values()];
+		const targets = coveredQueries(ticketIdentifiers(queryClient));
 		pending.clear();
-		const identifiers = ticketIdentifiers(queryClient);
-		void queryClient.invalidateQueries({
-			predicate: (query) => matchers.some((matcher) => matches(query, matcher, identifiers)),
-		});
+		if (targets.size === 0) return;
+		void queryClient.invalidateQueries({ predicate: (query) => targets.has(query) });
 	};
 
 	const enqueue = (matchers: Matcher[]) => {
@@ -107,11 +123,8 @@ export const createInvalidationCoalescer = (
 		timer = scheduler.setTimeout(flush, flushAt - now);
 	};
 
-	const isPending = (query: Query) => {
-		if (pending.size === 0) return false;
-		const identifiers = ticketIdentifiers(queryClient);
-		return [...pending.values()].some((matcher) => matches(query, matcher, identifiers));
-	};
+	const pendingQueries = (identifiers: Map<string, string>) =>
+		pending.size === 0 ? new Set<Query>() : coveredQueries(identifiers);
 
 	const invalidateAll = () => {
 		if (timer !== undefined) scheduler.clearTimeout(timer);
@@ -120,5 +133,5 @@ export const createInvalidationCoalescer = (
 		void queryClient.invalidateQueries();
 	};
 
-	return { enqueue, isPending, invalidateAll };
+	return { enqueue, pendingQueries, invalidateAll };
 };

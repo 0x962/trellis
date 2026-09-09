@@ -3,11 +3,13 @@ import { EventSchema, type TrellisEvent } from "./events.ts";
 import {
 	createInvalidationCoalescer,
 	family,
+	forQuery,
 	forTicket,
 	INBOX_MAX_WAIT_MS,
 	INBOX_TRAILING_MS,
 	type Matcher,
 	ticketDetail,
+	ticketIdentifiers,
 } from "./invalidationCoalescer.ts";
 import { realScheduler, type Scheduler } from "./scheduler.ts";
 import { patchTicketQuery, type TicketChange } from "./ticketPatches.ts";
@@ -74,7 +76,10 @@ export type EventApplier = {
 // Invalidations queue in two coalescers, one for the inbox and one for the
 // rest, and each flush is one `invalidateQueries` call. A query that waits
 // for a refetch takes no patch. The refetch brings the whole row, and a
-// patch would clear the invalidated flag with old data still in the query. While
+// patch would clear the invalidated flag with old data still in the query.
+// A query whose refetch is already running refetches once more after the
+// event: that refetch may have read the rows before the event's commit, and
+// under `staleTime: Infinity` nothing else would repair the older row. While
 // a mutation is in flight for a ticket, its events wait, folded into one
 // change. They apply after the mutation settles, so the mutation's own
 // response never overwrites a newer row.
@@ -100,9 +105,14 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		general.invalidateAll();
 	};
 
-	// Returns the id of every cached parent whose `children` lost a row.
+	// Returns the id of every cached parent whose `children` lost a row. The
+	// identifier map and the pending sets are built once per change, so one
+	// change costs a fixed number of cache scans however many queries the
+	// cache holds.
 	const patchTicket = (change: TicketChange) => {
 		const parentsThatLostAChild: string[] = [];
+		const identifiers = ticketIdentifiers(queryClient);
+		const pending = new Set([...general.pendingQueries(identifiers), ...inbox.pendingQueries(identifiers)]);
 		for (const query of queryClient.getQueryCache().getAll()) {
 			const data = query.state.data;
 			if (data === undefined) continue;
@@ -111,15 +121,22 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 				queryClient.removeQueries({ queryKey: query.queryKey, exact: true });
 				continue;
 			}
-			if (query.state.isInvalidated || general.isPending(query) || inbox.isPending(query)) continue;
 			const patched = patchTicketQuery(query.queryKey, data, change);
 			if (patched === undefined) continue;
+			if (query.state.isInvalidated) {
+				enqueue([forQuery(query)]);
+				continue;
+			}
+			if (pending.has(query)) continue;
 			queryClient.setQueryData(query.queryKey, patched);
 			if (detail && childCount(patched) < childCount(data)) parentsThatLostAChild.push((data as { id: string }).id);
 		}
 		return parentsThatLostAChild;
 	};
 
+	// The server writes an activity row for every ticket change, and the
+	// timeline lists activity beside the comments. So the ticket's timeline
+	// refetches on every change but a delete, which drops the ticket page.
 	const applyChange = (change: HeldChange) => {
 		const { summary, fields } = change;
 		const parentsThatLostAChild = patchTicket(change);
@@ -130,6 +147,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		}
 		for (const id of parentsThatLostAChild) enqueue(ticketDetail(id));
 		if (fields.includes("description")) enqueue(ticketDetail(summary.id));
+		if (!change.deleted) enqueue([forTicket(["timeline", "list"], summary.id)]);
 	};
 
 	const applyTicketEvent = (event: TicketEvent) => {
@@ -173,18 +191,16 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 					family("inbox", "get"),
 				]);
 				return;
+			// A status rename or a reviewer change alters the `status` inside
+			// every cached summary and the Needs you sections without a ticket
+			// row change, and a project rename alters `project.path` the same
+			// way. So every query that holds a summary refetches.
 			case "statuses.changed":
 			case "project.created":
 			case "project.updated":
 			case "project.deleted":
 			case "project.moved":
-				enqueue([
-					family("statuses"),
-					family("projects"),
-					family("tickets", "list"),
-					family("tickets", "board"),
-					family("tickets", "counts"),
-				]);
+				enqueue([family("statuses"), family("projects"), family("tickets"), family("inbox", "get"), family("search")]);
 				return;
 			case "gh.status":
 				enqueue([family("system", "gh")]);

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import type { QueryClient } from "@tanstack/query-core";
 import {
 	boardKey,
@@ -10,6 +10,7 @@ import {
 	isInvalidated,
 	listKey,
 	listPage,
+	seedTicketCaches,
 	setup,
 	summaryAt,
 	updatedEvent,
@@ -131,6 +132,27 @@ describe("invalidation", () => {
 		expect(invalidateQueries).toHaveBeenCalledTimes(3);
 	});
 
+	// While an invalidation waits, every event asks which cached queries the
+	// queue covers. That answer comes from a fixed number of cache scans per
+	// event. A scan per cached query would cost O(queries^2) under a stream.
+	test("the number of cache scans one event costs does not grow with the number of cached queries", () => {
+		const scans = (count: number) => {
+			const { queryClient, applier } = setup((queryClient) => {
+				seedTicketCaches(summaryAt(3))(queryClient);
+				for (let index = 0; index < count; index += 1) {
+					const identifier = `CDE-${100 + index}`;
+					const other = summaryAt(3, { id: `${ulid.slice(0, 22)}${1000 + index}`, identifier, number: 100 + index });
+					queryClient.setQueryData(queryKey(["tickets", "get"], { ticket: identifier }), ticket(other));
+				}
+			});
+			applier.applyEvent(updatedEvent(summaryAt(4), ["status"]));
+			const getAll = spyOn(queryClient.getQueryCache(), "getAll");
+			applier.applyEvent(updatedEvent(summaryAt(5, { title: "Fifth" }), ["title"]));
+			return getAll.mock.calls.length;
+		};
+		expect(scans(40)).toBe(scans(10));
+	});
+
 	const prsKey = (id: string) => queryKey(["pullRequests", "list"], { ticket: id });
 	const attachmentsKey = (id: string) => queryKey(["attachments", "list"], { ticket: id });
 	const timelineKey = (id: string) => queryKey(["timeline", "list"], { ticket: id });
@@ -138,6 +160,11 @@ describe("invalidation", () => {
 	const projectsListKey = queryKey(["projects", "list"]);
 	const projectKey = queryKey(["projects", "get"], { project: "CDE" });
 	const ghKey = queryKey(["system", "gh"]);
+	const searchKey = queryKey(["search", "query"], { q: "first" });
+
+	// Every ref grammar is case-insensitive on input, so a query may be keyed
+	// by a lower-case ref that the server accepts.
+	const lowerT1 = t1.toLowerCase();
 
 	// The ticket page opens the detail by the identifier from the URL and its
 	// sub-resources by the same identifier. An event carries only the ULID, so
@@ -145,7 +172,9 @@ describe("invalidation", () => {
 	const seedResourceCaches = (queryClient: QueryClient) => {
 		queryClient.setQueryData(detailKey, ticket(summaryAt(3)));
 		queryClient.setQueryData(listKey, listPage(summaryAt(3)));
-		for (const id of [t1, t2, "CDE-42", "CDE-43"]) {
+		queryClient.setQueryData(inboxKey, { review: { items: [], total: 0 } });
+		queryClient.setQueryData(searchKey, { tickets: [summaryAt(3)], projects: [] });
+		for (const id of [t1, t2, "CDE-42", "CDE-43", "cde-42", lowerT1]) {
 			queryClient.setQueryData(prsKey(id), []);
 			queryClient.setQueryData(attachmentsKey(id), []);
 			queryClient.setQueryData(timelineKey(id), { items: [], nextCursor: null });
@@ -157,27 +186,47 @@ describe("invalidation", () => {
 		queryClient.setQueryData(healthKey, { ok: true });
 	};
 
+	// The server writes an activity row for every ticket change, and the
+	// timeline lists activity beside the comments. So a ticket event refetches
+	// the ticket's timeline, keyed by ULID or by identifier.
+	test("a ticket event invalidates the ticket's timeline and no other ticket's", () => {
+		const { queryClient, advanceTo, applier } = setup(seedResourceCaches);
+		applier.applyEvent(updatedEvent(summaryAt(4), ["priority"]));
+		advanceTo(1000);
+		for (const id of [t1, "CDE-42", "cde-42", lowerT1]) {
+			expect(isInvalidated(queryClient, timelineKey(id)), id).toBe(true);
+		}
+		for (const id of [t2, "CDE-43"]) {
+			expect(isInvalidated(queryClient, timelineKey(id)), id).toBe(false);
+		}
+		expect(isInvalidated(queryClient, attachmentsKey(t1))).toBe(false);
+		expect(isInvalidated(queryClient, prsKey(t1))).toBe(false);
+	});
+
 	test("non-ticket events invalidate the keys the plan lists for them", () => {
 		const cases = [
 			{
 				event: { type: "comment.created" as const, id: ulid, ticketId: t1 },
-				invalidated: [timelineKey(t1), timelineKey("CDE-42"), detailKey],
+				invalidated: [timelineKey(t1), timelineKey("CDE-42"), timelineKey("cde-42"), timelineKey(lowerT1), detailKey],
 				untouched: [timelineKey(t2), timelineKey("CDE-43"), attachmentsKey(t1), prsKey(t1), healthKey],
 			},
 			{
 				event: { type: "attachment.created" as const, id: ulid, ticketId: t1 },
-				invalidated: [attachmentsKey(t1), attachmentsKey("CDE-42"), detailKey],
+				invalidated: [attachmentsKey(t1), attachmentsKey("CDE-42"), attachmentsKey("cde-42"), detailKey],
 				untouched: [attachmentsKey(t2), attachmentsKey("CDE-43"), timelineKey(t1), prsKey(t1), healthKey],
 			},
 			{
 				event: { type: "pr.updated" as const, id: ulid, ticketIds: [t1], state: "open", ciState: "pass" },
-				invalidated: [prsKey(t1), prsKey("CDE-42"), detailKey, listKey],
+				invalidated: [prsKey(t1), prsKey("CDE-42"), prsKey(lowerT1), detailKey, listKey],
 				untouched: [prsKey(t2), prsKey("CDE-43"), attachmentsKey(t1), timelineKey(t1), healthKey],
 			},
+			// A status rename or a reviewer change alters the `status` inside
+			// every cached summary, and the Needs you sections, without a ticket
+			// row change. So every query that holds a summary refetches.
 			{
 				event: { type: "statuses.changed" as const, projectId },
-				invalidated: [statusesKey, projectsListKey, projectKey, listKey],
-				untouched: [ghKey, healthKey],
+				invalidated: [statusesKey, projectsListKey, projectKey, listKey, detailKey, inboxKey, searchKey],
+				untouched: [ghKey, healthKey, timelineKey(t1)],
 			},
 			{
 				event: { type: "gh.status" as const, ok: false, reason: "missing" },

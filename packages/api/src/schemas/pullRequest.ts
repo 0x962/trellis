@@ -1,16 +1,16 @@
 import { z } from "zod";
 import { TicketRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
-import { CiStateSchema, PrLinkSourceSchema, PrStateSchema, ReviewStateSchema } from "./enums.ts";
+import { CheckBucketSchema, CiStateSchema, PrLinkSourceSchema, PrStateSchema, ReviewStateSchema } from "./enums.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
-// One CI check on a pull request, in run order. `bucket` is the check's
-// contribution to `ciState`: a cancelled check counts as `fail`, a skipped or
-// neutral one as `none`.
+// One CI check on a pull request, sorted by workflow and name. `bucket` is
+// the bucket gh reported; `ciState` on the pull request folds the buckets,
+// where `cancel` counts as `fail` and `skipping` as nothing.
 export const CheckSchema = z.object({
 	name: z.string().min(1),
 	workflow: z.string().nullable(),
-	bucket: CiStateSchema,
+	bucket: CheckBucketSchema,
 	link: z.string().nullable(),
 });
 export type Check = z.infer<typeof CheckSchema>;
