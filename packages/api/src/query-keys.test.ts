@@ -141,35 +141,48 @@ describe("applyEvent on ticket events", () => {
 	});
 
 	// The description lives only on the detail and a summary event does not
-	// carry it. A detail that took the new version with the old text would let
-	// the next save pass the version check and overwrite the newer text.
-	test("a description event leaves the detail at its version and invalidates it", () => {
+	// carry it. The detail takes the event's version and keeps the old text,
+	// with `descriptionStale` set. The editor refuses to save while the flag
+	// is set, so the old text can never go back under the new version.
+	test("a description event patches the detail, marks its description stale, and invalidates it", () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
 		applier.applyEvent(updatedEvent(summaryAt(4), ["description"]));
 		expect(cached(queryClient, listKey)).toEqual(listPage(summaryAt(4)));
-		expect(cached(queryClient, detailKey)).toEqual(ticket(summaryAt(3)));
+		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...summaryAt(4), descriptionStale: true }));
 		advanceTo(2000);
 		expect(isInvalidated(queryClient, detailKey)).toBe(true);
 	});
 
-	// After a description event the detail waits for a refetch. A later event
-	// without the description patches the summary fields and must not give
-	// the old text a newer version, before the flush or after it. The refetch
-	// brings the whole row. After the flush the detail is invalidated, and an
-	// invalidated query takes no patch.
-	test("a detail that waits for its description keeps its version through later events", () => {
+	// A description event older than the cached detail applies nothing. The
+	// text the detail holds is at least as new as the event's, so the flag
+	// stays clear and no refetch is queued.
+	test("a stale description event leaves the detail untouched and queues no refetch", () => {
+		const { queryClient, advanceTo, applier, invalidateQueries } = setup(seedTicketCaches(summaryAt(3)));
+		applier.applyEvent(updatedEvent(summaryAt(2), ["description"]));
+		expect(cached(queryClient, detailKey)).toEqual(ticket(summaryAt(3)));
+		advanceTo(2000);
+		expect(invalidateQueries).not.toHaveBeenCalled();
+	});
+
+	// Patch first, always. A later event without the description patches the
+	// summary fields at its own version, and the stale flag stays set until
+	// a refetch replaces the entry. An invalidated detail takes the patch too.
+	test("a detail with a stale description takes every later patch and keeps the flag", () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
 		applier.applyEvent(updatedEvent(summaryAt(4), ["description"]));
 		advanceTo(100);
-		applier.applyEvent(updatedEvent(summaryAt(5, { title: "Fifth" }), ["title"]));
-		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...summaryAt(5, { title: "Fifth" }), version: 3 }));
-		expect(cached(queryClient, listKey)).toEqual(listPage(summaryAt(5, { title: "Fifth" })));
+		const v5 = summaryAt(5, { title: "Fifth" });
+		applier.applyEvent(updatedEvent(v5, ["title"]));
+		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...v5, descriptionStale: true }));
+		expect(cached(queryClient, listKey)).toEqual(listPage(v5));
 		advanceTo(2000);
 		expect(isInvalidated(queryClient, detailKey)).toBe(true);
-		applier.applyEvent(updatedEvent(summaryAt(6, { title: "Sixth" }), ["title"]));
-		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...summaryAt(5, { title: "Fifth" }), version: 3 }));
+		const v6 = summaryAt(6, { title: "Sixth" });
+		applier.applyEvent(updatedEvent(v6, ["title"]));
+		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...v6, descriptionStale: true }));
+		expect(cached(queryClient, listKey)).toEqual(listPage(v6));
+		advanceTo(4000);
 		expect(isInvalidated(queryClient, detailKey)).toBe(true);
-		expect(cached(queryClient, listKey)).toEqual(listPage(summaryAt(6, { title: "Sixth" })));
 	});
 });
 

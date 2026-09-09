@@ -30,17 +30,18 @@ describe("applyEvent during a refetch", () => {
 		return { queryFn, answer };
 	};
 
-	// A refetch that starts before an event can read the rows before the
-	// event's commit. The query then holds an older version under
-	// `staleTime: Infinity`, and nothing refetches it. So an event for a
-	// query that waits on a refetch makes that query refetch again.
-	test("an event that arrives during a refetch makes the query refetch again after the event", async () => {
+	// A query whose refetch is in flight takes the patch, and the refetch's
+	// result replaces it. That refetch can read the rows before the event's
+	// commit, and then the query holds an older version under
+	// `staleTime: Infinity`. So the query refetches once more after the event.
+	test("an event that arrives during a refetch patches the query and makes it refetch again", async () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
 		const { queryFn, answer } = observeList(queryClient);
 		applier.applyEvent(updatedEvent(summaryAt(4), ["status"]));
 		advanceTo(250);
 		expect(queryFn).toHaveBeenCalledTimes(1);
 		applier.applyEvent(updatedEvent(summaryAt(5, { title: "Fifth" }), ["title"]));
+		expect(cached(queryClient, listKey)).toEqual(listPage(summaryAt(5, { title: "Fifth" })));
 		await answer(0, listPage(summaryAt(4)));
 		expect(cached(queryClient, listKey)).toEqual(listPage(summaryAt(4)));
 		advanceTo(500);
@@ -66,22 +67,27 @@ describe("applyEvent during a refetch", () => {
 });
 
 describe("applyEvent on a detail that refetches for its description", () => {
-	// A detail that waits for its description takes no patch. A refetch that
-	// started before a later event can bring the text at the description's
-	// version and miss that event. So the detail refetches once more.
-	test("a title event during the detail's refetch makes the detail refetch again", async () => {
+	// A detail with a stale description takes the patch during its refetch.
+	// A refetch that started before a later event can bring the text at the
+	// description's version and miss that event. So the detail refetches
+	// once more, and the second result carries the text and the version.
+	test("a title event during the detail's refetch patches the detail and makes it refetch again", async () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
 		const answers: ((value: unknown) => void)[] = [];
 		const queryFn = mock(() => new Promise<unknown>((resolve) => answers.push(resolve)));
 		const observer = new QueryObserver(queryClient, { queryKey: detailKey, queryFn, staleTime: Infinity });
 		observer.subscribe(() => {});
 		applier.applyEvent(updatedEvent(summaryAt(4), ["description"]));
+		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...summaryAt(4), descriptionStale: true }));
 		advanceTo(250);
 		expect(queryFn).toHaveBeenCalledTimes(1);
 		applier.applyEvent(updatedEvent(summaryAt(5, { title: "Fifth" }), ["title"]));
-		expect(cached(queryClient, detailKey)).toEqual(ticket(summaryAt(3)));
+		expect(cached(queryClient, detailKey)).toEqual(
+			ticket({ ...summaryAt(5, { title: "Fifth" }), descriptionStale: true }),
+		);
 		answers[0]!(ticket({ ...summaryAt(4), description: "New text" }));
 		await queryClient.getQueryCache().find({ queryKey: detailKey, exact: true })!.promise;
+		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...summaryAt(4), description: "New text" }));
 		advanceTo(500);
 		expect(queryFn).toHaveBeenCalledTimes(2);
 		answers[1]!(ticket({ ...summaryAt(5, { title: "Fifth" }), description: "New text" }));
