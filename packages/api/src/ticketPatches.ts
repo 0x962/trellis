@@ -11,12 +11,15 @@ export type TicketChange = { summary: TicketSummary; fields: readonly string[]; 
 type InfiniteListOutput = { pages: ListOutput[]; pageParams: unknown[] };
 
 // Returns the patched array, or undefined when the array does not hold the
-// ticket or already holds a version at least as new.
-const patchItems = (items: TicketSummary[], { summary, deleted }: TicketChange) => {
+// ticket or already holds a version at least as new. A delete is final, so
+// it removes the row at any version. `left` says the row no longer belongs
+// in this array; a newer cached row outranks a stale `left`.
+const patchItems = (items: TicketSummary[], { summary, deleted }: TicketChange, left = false) => {
 	const index = items.findIndex((item) => item.id === summary.id);
 	if (index < 0) return undefined;
 	if (deleted) return items.toSpliced(index, 1);
 	if (summary.version <= items[index]!.version) return undefined;
+	if (left) return items.toSpliced(index, 1);
 	return items.with(index, summary);
 };
 
@@ -68,19 +71,18 @@ const patchSearch = (data: SearchOutput, change: TicketChange) => {
 	return tickets === undefined ? undefined : { ...data, tickets };
 };
 
-// A child row inside a parent's `children`. A deleted child and a child that
-// now names another parent leave the array; a newer version replaces the row.
+// A child row inside a parent's `children`. A child that now names another
+// parent leaves the array, and a newer version replaces the row.
 const patchChildren = (data: Ticket, change: TicketChange) => {
-	const left = change.deleted || change.summary.parent?.id !== data.id;
-	const children = patchItems(data.children, { ...change, deleted: left });
+	const children = patchItems(data.children, change, change.summary.parent?.id !== data.id);
 	return children === undefined ? undefined : { ...data, children };
 };
 
 // The detail keeps the fields the summary does not carry: description,
-// children, prs, attachments. A description change is not in the summary, so
-// the detail stays at its version and the applier refetches it; a detail that
-// took the new version with the old text would let the next save overwrite
-// the newer text.
+// children, prs, attachments. A description change is not in the summary.
+// So the detail stays at its version, and the applier refetches it. A detail
+// that took the new version with the old text would let the next save
+// overwrite the newer text.
 const patchDetail = (data: Ticket, change: TicketChange) => {
 	if (data.id !== change.summary.id) return patchChildren(data, change);
 	if (change.summary.version <= data.version) return undefined;

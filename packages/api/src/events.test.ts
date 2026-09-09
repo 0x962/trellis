@@ -32,8 +32,8 @@ describe("events", () => {
 
 	// EventSchema covers the SSE `event:` name as `type` and the `data:` body
 	// as the rest. The event id travels in the SSE `id:` line, so it is not a
-	// field here; `ready` carries it as `id` because a client learns the stream
-	// position from it. In `comment.*`, `attachment.*`, `pr.*`, and
+	// field here. `ready` carries it as `id`, because a client learns the
+	// stream position from it. In `comment.*`, `attachment.*`, `pr.*`, and
 	// `project.*`, `id` is the id of the resource.
 	test("event payload schemas accept the plan's shapes and reject a missing or wrong field", () => {
 		const events = [
@@ -67,5 +67,14 @@ describe("events", () => {
 			expect(EventIdSchema.safeParse(input).success, input).toBe(false);
 		}
 		expect(parseEventId(`${ulid}.42`)).toEqual({ bootId: ulid, seq: 42 });
+	});
+
+	// A sequence above 2^53 loses digits in a JavaScript number, so a client
+	// would resume from another position. Fifteen digits always fit.
+	test("an event sequence keeps every digit up to 15 digits and rejects a longer one", () => {
+		expect(parseEventId(`${ulid}.999999999999999`)).toEqual({ bootId: ulid, seq: 999999999999999 });
+		for (const input of [`${ulid}.9007199254740993`, `${ulid}.${"9".repeat(309)}`]) {
+			expect(EventIdSchema.safeParse(input).success, input).toBe(false);
+		}
 	});
 });

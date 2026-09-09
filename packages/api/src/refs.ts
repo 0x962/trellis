@@ -39,7 +39,9 @@ const defineRef = <T>(grammar: string, parse: (value: string) => T | undefined, 
 	};
 };
 
-const ticketIdentifierPattern = /^([A-Z][A-Z0-9]{1,9})-([1-9][0-9]*)$/i;
+// A ticket number has at most 10 digits. Every 10-digit number is below
+// 2^53, so `Number` keeps each digit and the canonical spelling round-trips.
+const ticketIdentifierPattern = /^([A-Z][A-Z0-9]{1,9})-([1-9][0-9]{0,9})$/i;
 
 const parseTicketRef = (value: string): TicketRef | undefined => {
 	if (isUlid(value)) return { kind: "ulid", id: value.toUpperCase() };

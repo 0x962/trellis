@@ -30,11 +30,26 @@ export type CiState = z.infer<typeof CiStateSchema>;
 export const ReviewStateSchema = z.enum(["none", "review_required", "approved", "changes_requested"]);
 export type ReviewState = z.infer<typeof ReviewStateSchema>;
 
-// How a pull request got onto a ticket: a person or an agent linked it, or
-// the auto-link scan found the ticket identifier in the PR.
+// How a pull request got onto a ticket. `manual`: a person or an agent
+// linked it. `auto`: the auto-link scan found the ticket identifier in the PR.
 export const PrLinkSourceSchema = z.enum(["manual", "auto"]);
 export type PrLinkSource = z.infer<typeof PrLinkSourceSchema>;
 
 // Why gh cannot serve a request.
 export const GhReasonSchema = z.enum(["missing", "unauthenticated", "error"]);
 export type GhReason = z.infer<typeof GhReasonSchema>;
+
+// The palette token names a status may take as its color. The web resolves
+// a token through the theme, so one name draws right in light and dark mode.
+// A raw color value has no dark variant, so the wire never carries one.
+export const ColorTokenSchema = z.enum([
+	"fg",
+	"fg-muted",
+	"fg-faint",
+	"accent",
+	"agent",
+	"success",
+	"warning",
+	"danger",
+]);
+export type ColorToken = z.infer<typeof ColorTokenSchema>;

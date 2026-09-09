@@ -54,8 +54,8 @@ export const ticket = (overrides: Record<string, unknown> = {}) => ({
 });
 
 // The query keys `@orpc/tanstack-query` builds for `queryOptions({ input })`
-// and `infiniteOptions({ input })`, from the library's own key builder, so a
-// fixture key always has the shape the web app's cache holds.
+// and `infiniteOptions({ input })`. The library's own key builder makes them,
+// so a fixture key always has the shape the web app's cache holds.
 export const queryKey = (path: string[], input?: unknown): unknown[] =>
 	generateOperationKey(path, { input, type: "query" });
 

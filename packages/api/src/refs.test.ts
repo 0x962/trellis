@@ -20,6 +20,16 @@ describe("TicketRefSchema", () => {
 			expect(TicketRefSchema.safeParse(input).success, input).toBe(false);
 		}
 	});
+
+	// A number above 2^53 loses digits in a JavaScript number, so the
+	// canonical spelling would name another ticket. Ten digits always fit.
+	test("TicketRef keeps every digit of a 10-digit number and rejects a longer one", () => {
+		expect(TicketRefSchema.parse("CDE-9999999999")).toEqual({ kind: "identifier", key: "CDE", number: 9999999999 });
+		expect(TicketRefSchema.canonicalize("cde-9999999999")).toBe("CDE-9999999999");
+		for (const input of ["CDE-9007199254740993", `CDE-${"9".repeat(309)}`]) {
+			expect(TicketRefSchema.safeParse(input).success, input).toBe(false);
+		}
+	});
 });
 
 describe("ProjectRefSchema", () => {

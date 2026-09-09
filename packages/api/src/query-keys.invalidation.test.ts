@@ -31,13 +31,19 @@ describe("invalidation", () => {
 
 	const membershipKeys = [filteredListKey, boardKey, countsKey, inboxKey];
 
-	// A patch keeps a row current, but a filtered list cannot know whether the
-	// row still belongs to it after a status, project, priority, parent, or
-	// completion change. Only those fields, and create or delete, refetch.
+	// A patch keeps a row current. A filtered list cannot know whether the row
+	// still belongs to it after a status, project, priority, parent, or
+	// completion change. Only those fields, and create or delete, refetch the
+	// lists. A description change refetches only the detail.
 	test("only membership-changing fields and create or delete events enqueue an invalidation", () => {
 		const cases = [
-			{ name: "status", event: updatedEvent(summaryAt(4), ["status"]), invalidates: true },
-			{ name: "title", event: updatedEvent(summaryAt(4), ["title"]), invalidates: false },
+			{ name: "status", event: updatedEvent(summaryAt(4), ["status"]), invalidates: true, detail: false },
+			{ name: "project", event: updatedEvent(summaryAt(4), ["project"]), invalidates: true, detail: false },
+			{ name: "priority", event: updatedEvent(summaryAt(4), ["priority"]), invalidates: true, detail: false },
+			{ name: "parent", event: updatedEvent(summaryAt(4), ["parent"]), invalidates: true, detail: false },
+			{ name: "completedAt", event: updatedEvent(summaryAt(4), ["completedAt"]), invalidates: true, detail: false },
+			{ name: "title", event: updatedEvent(summaryAt(4), ["title"]), invalidates: false, detail: false },
+			{ name: "description", event: updatedEvent(summaryAt(4), ["description"]), invalidates: false, detail: true },
 			{
 				name: "created",
 				event: {
@@ -47,9 +53,10 @@ describe("invalidation", () => {
 					batchId: ulid,
 				},
 				invalidates: true,
+				detail: false,
 			},
 		];
-		for (const { name, event, invalidates } of cases) {
+		for (const { name, event, invalidates, detail } of cases) {
 			const { queryClient, advanceTo, applier, invalidateQueries } = setup(seedMembershipCaches);
 			applier.applyEvent(event);
 			expect(invalidateQueries, `${name} fired at t=0`).not.toHaveBeenCalled();
@@ -57,15 +64,30 @@ describe("invalidation", () => {
 			for (const key of membershipKeys) {
 				expect(isInvalidated(queryClient, key), `${name} ${JSON.stringify(key[0])}`).toBe(invalidates);
 			}
-			expect(isInvalidated(queryClient, detailKey), `${name} detail`).toBe(false);
+			expect(isInvalidated(queryClient, detailKey), `${name} detail`).toBe(detail);
 			expect(isInvalidated(queryClient, healthKey), `${name} health`).toBe(false);
 		}
+	});
+
+	// The inbox is the Needs you page. Its query runs four sections, so it
+	// refetches on its own, slower timer.
+	test("the inbox invalidation debounces 1 s while the other membership keys flush at 250 ms", () => {
+		const { queryClient, advanceTo, applier } = setup(seedMembershipCaches);
+		applier.applyEvent(updatedEvent(summaryAt(4), ["status"]));
+		advanceTo(250);
+		for (const key of [filteredListKey, boardKey, countsKey]) {
+			expect(isInvalidated(queryClient, key), JSON.stringify(key[0])).toBe(true);
+		}
+		advanceTo(999);
+		expect(isInvalidated(queryClient, inboxKey)).toBe(false);
+		advanceTo(1000);
+		expect(isInvalidated(queryClient, inboxKey)).toBe(true);
 	});
 
 	// One flush is one `invalidateQueries` call that covers every queued key,
 	// so the call count is the flush count.
 	test("the coalescer folds three invalidations within 250 ms into one trailing call", () => {
-		const { advanceTo, applier, invalidateQueries } = setup(seedMembershipCaches);
+		const { queryClient, advanceTo, applier, invalidateQueries } = setup(seedMembershipCaches);
 		for (const [at, version] of [
 			[0, 4],
 			[100, 5],
@@ -78,12 +100,18 @@ describe("invalidation", () => {
 		expect(invalidateQueries).not.toHaveBeenCalled();
 		advanceTo(450);
 		expect(invalidateQueries).toHaveBeenCalledTimes(1);
-		advanceTo(5000);
+		expect(isInvalidated(queryClient, inboxKey)).toBe(false);
+		advanceTo(1199);
 		expect(invalidateQueries).toHaveBeenCalledTimes(1);
+		advanceTo(1200);
+		expect(invalidateQueries).toHaveBeenCalledTimes(2);
+		expect(isInvalidated(queryClient, inboxKey)).toBe(true);
+		advanceTo(5000);
+		expect(invalidateQueries).toHaveBeenCalledTimes(2);
 	});
 
 	test("the coalescer forces one invalidation at 1 s under a constant event stream", () => {
-		const { advanceTo, applier, invalidateQueries } = setup(seedMembershipCaches);
+		const { queryClient, advanceTo, applier, invalidateQueries } = setup(seedMembershipCaches);
 		for (let at = 0; at <= 1500; at += 100) {
 			advanceTo(at);
 			applier.applyEvent(updatedEvent(summaryAt(4 + at / 100), ["status"]));
@@ -93,8 +121,14 @@ describe("invalidation", () => {
 		expect(invalidateQueries).toHaveBeenCalledTimes(1);
 		advanceTo(1750);
 		expect(invalidateQueries).toHaveBeenCalledTimes(2);
-		advanceTo(5000);
+		advanceTo(2499);
 		expect(invalidateQueries).toHaveBeenCalledTimes(2);
+		expect(isInvalidated(queryClient, inboxKey)).toBe(false);
+		advanceTo(2500);
+		expect(invalidateQueries).toHaveBeenCalledTimes(3);
+		expect(isInvalidated(queryClient, inboxKey)).toBe(true);
+		advanceTo(5000);
+		expect(invalidateQueries).toHaveBeenCalledTimes(3);
 	});
 
 	const prsKey = (id: string) => queryKey(["pullRequests", "list"], { ticket: id });
@@ -105,10 +139,13 @@ describe("invalidation", () => {
 	const projectKey = queryKey(["projects", "get"], { project: "CDE" });
 	const ghKey = queryKey(["system", "gh"]);
 
+	// The ticket page opens the detail by the identifier from the URL and its
+	// sub-resources by the same identifier. An event carries only the ULID, so
+	// the applier reads the identifier from the cached detail.
 	const seedResourceCaches = (queryClient: QueryClient) => {
 		queryClient.setQueryData(detailKey, ticket(summaryAt(3)));
 		queryClient.setQueryData(listKey, listPage(summaryAt(3)));
-		for (const id of [t1, t2]) {
+		for (const id of [t1, t2, "CDE-42", "CDE-43"]) {
 			queryClient.setQueryData(prsKey(id), []);
 			queryClient.setQueryData(attachmentsKey(id), []);
 			queryClient.setQueryData(timelineKey(id), { items: [], nextCursor: null });
@@ -124,18 +161,18 @@ describe("invalidation", () => {
 		const cases = [
 			{
 				event: { type: "comment.created" as const, id: ulid, ticketId: t1 },
-				invalidated: [timelineKey(t1), detailKey],
-				untouched: [timelineKey(t2), attachmentsKey(t1), prsKey(t1), healthKey],
+				invalidated: [timelineKey(t1), timelineKey("CDE-42"), detailKey],
+				untouched: [timelineKey(t2), timelineKey("CDE-43"), attachmentsKey(t1), prsKey(t1), healthKey],
 			},
 			{
 				event: { type: "attachment.created" as const, id: ulid, ticketId: t1 },
-				invalidated: [attachmentsKey(t1), detailKey],
-				untouched: [attachmentsKey(t2), timelineKey(t1), prsKey(t1), healthKey],
+				invalidated: [attachmentsKey(t1), attachmentsKey("CDE-42"), detailKey],
+				untouched: [attachmentsKey(t2), attachmentsKey("CDE-43"), timelineKey(t1), prsKey(t1), healthKey],
 			},
 			{
 				event: { type: "pr.updated" as const, id: ulid, ticketIds: [t1], state: "open", ciState: "pass" },
-				invalidated: [prsKey(t1), detailKey, listKey],
-				untouched: [prsKey(t2), attachmentsKey(t1), timelineKey(t1), healthKey],
+				invalidated: [prsKey(t1), prsKey("CDE-42"), detailKey, listKey],
+				untouched: [prsKey(t2), prsKey("CDE-43"), attachmentsKey(t1), timelineKey(t1), healthKey],
 			},
 			{
 				event: { type: "statuses.changed" as const, projectId },

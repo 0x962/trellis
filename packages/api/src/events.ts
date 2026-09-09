@@ -31,8 +31,9 @@ export type EventName = (typeof eventNames)[number];
 
 // An event id is `<bootId>.<seq>`: the ULID minted at server boot and a
 // sequence that starts at 0 on every boot. A client that reconnects with an
-// id from another boot gets `reset`.
-const eventIdPattern = /^[0-7][0-9A-HJKMNP-TV-Z]{25}\.(0|[1-9][0-9]*)$/;
+// id from another boot gets `reset`. The sequence has at most 15 digits.
+// Every 15-digit number is below 2^53, so `Number` keeps each digit.
+const eventIdPattern = /^[0-7][0-9A-HJKMNP-TV-Z]{25}\.(0|[1-9][0-9]{0,14})$/;
 
 export const EventIdSchema = z.string().regex(eventIdPattern, "Expected an event id: <bootId ULID>.<seq>.");
 

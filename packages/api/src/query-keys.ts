@@ -1,15 +1,23 @@
 import type { QueryClient } from "@tanstack/query-core";
 import { EventSchema, type TrellisEvent } from "./events.ts";
-import { byInput, createInvalidationCoalescer, family, ticketDetail } from "./invalidationCoalescer.ts";
+import {
+	createInvalidationCoalescer,
+	family,
+	forTicket,
+	INBOX_MAX_WAIT_MS,
+	INBOX_TRAILING_MS,
+	type Matcher,
+	ticketDetail,
+} from "./invalidationCoalescer.ts";
 import { realScheduler, type Scheduler } from "./scheduler.ts";
 import { patchTicketQuery, type TicketChange } from "./ticketPatches.ts";
 
-export { MAX_WAIT_MS, TRAILING_MS } from "./invalidationCoalescer.ts";
+export { INBOX_MAX_WAIT_MS, INBOX_TRAILING_MS, MAX_WAIT_MS, TRAILING_MS } from "./invalidationCoalescer.ts";
 export { realScheduler, type Scheduler } from "./scheduler.ts";
 
-// A patch keeps a row current, but a filtered list cannot know whether the
-// row still belongs to it after one of these fields changes. Only these
-// fields, and a create or a delete, refetch the lists.
+// A patch keeps a row current. A filtered list cannot know whether the row
+// still belongs to it after one of these fields changes. Only these fields,
+// and a create or a delete, refetch the lists.
 export const membershipFields: ReadonlySet<string> = new Set([
 	"status",
 	"project",
@@ -19,6 +27,10 @@ export const membershipFields: ReadonlySet<string> = new Set([
 	"completedAt",
 	"position",
 ]);
+
+// A parent's `childDoneCount` and `children` change when a child completes
+// or moves. The parent row emits no event of its own, so its detail refetches.
+const parentFields: ReadonlySet<string> = new Set(["parent", "status", "completedAt"]);
 
 type TicketEvent = Extract<TrellisEvent, { type: "ticket.created" | "ticket.updated" | "ticket.deleted" }>;
 
@@ -32,6 +44,8 @@ const membershipMatchers = [
 	family("inbox", "get"),
 ];
 
+const isInboxMatcher = (matcher: Matcher) => matcher.path[0] === "inbox";
+
 const toChange = (event: TicketEvent): HeldChange => ({
 	summary: event.summary,
 	fields: event.fields,
@@ -39,8 +53,8 @@ const toChange = (event: TicketEvent): HeldChange => ({
 	created: event.type === "ticket.created",
 });
 
-// Two changes to one ticket fold into one: the highest version wins the row,
-// every named field stays named, and a delete or a create stays visible.
+// Two changes to one ticket fold into one. The highest version wins the row.
+// Every named field stays named, and a delete or a create stays visible.
 const mergeChanges = (held: HeldChange, next: HeldChange): HeldChange => ({
 	summary: next.summary.version >= held.summary.version ? next.summary : held.summary,
 	fields: [...new Set([...held.fields, ...next.fields])],
@@ -56,38 +70,65 @@ export type EventApplier = {
 
 // Patch first, invalidate rarely. Every `ticket.*` event patches each cached
 // list, board, inbox section, search result, and detail that holds the
-// ticket, and only when the incoming version is higher. Invalidations queue
-// in a coalescer and flush as one `invalidateQueries` call. While a mutation
-// is in flight for a ticket, its events wait, folded into one change, and
-// apply after the mutation settles, so the mutation's own response never
-// overwrites a newer row.
+// ticket. A patch lands only when the incoming version is higher.
+// Invalidations queue in two coalescers, one for the inbox and one for the
+// rest, and each flush is one `invalidateQueries` call. A query that waits
+// for a refetch takes no patch. The refetch brings the whole row, and a
+// patch would clear the invalidated flag with old data still in the query. While
+// a mutation is in flight for a ticket, its events wait, folded into one
+// change. They apply after the mutation settles, so the mutation's own
+// response never overwrites a newer row.
 export const createEventApplier = (queryClient: QueryClient, options: { scheduler?: Scheduler } = {}): EventApplier => {
 	const scheduler = options.scheduler ?? realScheduler;
-	const { enqueue, invalidateAll } = createInvalidationCoalescer(queryClient, scheduler);
+	const general = createInvalidationCoalescer(queryClient, scheduler);
+	const inbox = createInvalidationCoalescer(queryClient, scheduler, {
+		trailingMs: INBOX_TRAILING_MS,
+		maxWaitMs: INBOX_MAX_WAIT_MS,
+	});
 	const inFlight = new Map<string, number>();
 	const waiting = new Map<string, HeldChange>();
 
+	const enqueue = (matchers: Matcher[]) => {
+		const inboxMatchers = matchers.filter(isInboxMatcher);
+		const generalMatchers = matchers.filter((matcher) => !isInboxMatcher(matcher));
+		if (inboxMatchers.length > 0) inbox.enqueue(inboxMatchers);
+		if (generalMatchers.length > 0) general.enqueue(generalMatchers);
+	};
+
+	const invalidateAll = () => {
+		inbox.invalidateAll();
+		general.invalidateAll();
+	};
+
+	// Returns the id of every cached parent whose `children` lost a row.
 	const patchTicket = (change: TicketChange) => {
+		const parentsThatLostAChild: string[] = [];
 		for (const query of queryClient.getQueryCache().getAll()) {
 			const data = query.state.data;
 			if (data === undefined) continue;
-			if (change.deleted && (data as { id?: unknown }).id === change.summary.id && isDetail(query.queryKey)) {
+			const detail = isDetail(query.queryKey);
+			if (change.deleted && detail && (data as { id: unknown }).id === change.summary.id) {
 				queryClient.removeQueries({ queryKey: query.queryKey, exact: true });
 				continue;
 			}
+			if (query.state.isInvalidated || general.isPending(query) || inbox.isPending(query)) continue;
 			const patched = patchTicketQuery(query.queryKey, data, change);
-			if (patched !== undefined) queryClient.setQueryData(query.queryKey, patched);
+			if (patched === undefined) continue;
+			queryClient.setQueryData(query.queryKey, patched);
+			if (detail && childCount(patched) < childCount(data)) parentsThatLostAChild.push((data as { id: string }).id);
 		}
+		return parentsThatLostAChild;
 	};
 
-	// A create, a delete, and a parent change alter the parent's `children`
-	// and its child counts, so the parent's detail refetches.
 	const applyChange = (change: HeldChange) => {
 		const { summary, fields } = change;
-		patchTicket(change);
+		const parentsThatLostAChild = patchTicket(change);
 		const membership = change.created || change.deleted;
 		if (membership || fields.some((field) => membershipFields.has(field))) enqueue(membershipMatchers);
-		if ((membership || fields.includes("parent")) && summary.parent !== null) enqueue(ticketDetail(summary.parent.id));
+		if ((membership || fields.some((field) => parentFields.has(field))) && summary.parent !== null) {
+			enqueue(ticketDetail(summary.parent.id));
+		}
+		for (const id of parentsThatLostAChild) enqueue(ticketDetail(id));
 		if (fields.includes("description")) enqueue(ticketDetail(summary.id));
 	};
 
@@ -113,18 +154,18 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "comment.created":
 			case "comment.updated":
 			case "comment.deleted":
-				enqueue([byInput(["timeline", "list"], { ticket: event.ticketId }), ...ticketDetail(event.ticketId)]);
+				enqueue([forTicket(["timeline", "list"], event.ticketId), ...ticketDetail(event.ticketId)]);
 				return;
 			case "attachment.created":
 			case "attachment.deleted":
-				enqueue([byInput(["attachments", "list"], { ticket: event.ticketId }), ...ticketDetail(event.ticketId)]);
+				enqueue([forTicket(["attachments", "list"], event.ticketId), ...ticketDetail(event.ticketId)]);
 				return;
 			case "pr.linked":
 			case "pr.unlinked":
 			case "pr.updated":
 				enqueue([
 					...event.ticketIds.flatMap((ticketId) => [
-						byInput(["pullRequests", "list"], { ticket: ticketId }),
+						forTicket(["pullRequests", "list"], ticketId),
 						...ticketDetail(ticketId),
 					]),
 					family("tickets", "list"),
@@ -181,6 +222,8 @@ const isDetail = (queryKey: readonly unknown[]) => {
 	const path = queryKey[0];
 	return Array.isArray(path) && path.join(".") === "tickets.get";
 };
+
+const childCount = (detail: unknown) => (detail as { children: unknown[] }).children.length;
 
 // One applier per QueryClient, created on first use with real timers.
 const appliers = new WeakMap<QueryClient, EventApplier>();

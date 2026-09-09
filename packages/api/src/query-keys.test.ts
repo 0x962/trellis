@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { QueryClient } from "@tanstack/query-core";
 import {
 	boardKey,
 	boardPage,
@@ -15,6 +16,7 @@ import {
 	updatedEvent,
 } from "../test/applierHarness.ts";
 import { infiniteQueryKey, queryKey, t1, t2, ticket } from "../test/fixtures.ts";
+import { applyEvent, eventApplierFor } from "./query-keys.ts";
 
 describe("applyEvent on ticket events", () => {
 	test("applyEvent patches every cached list, board, and detail that holds the ticket when the incoming version is higher", () => {
@@ -63,8 +65,8 @@ describe("applyEvent on ticket events", () => {
 		expect(setQueryData).toHaveBeenCalledTimes(3);
 	});
 
-	// The held events fold into one: the highest version wins the row, and
-	// every field any of them named still counts, so a status change that a
+	// The held events fold into one. The highest version wins the row, and
+	// every field any of them named still counts. So a status change that a
 	// later title change supersedes still refetches the filtered lists.
 	test("held events keep the fields of every event, so a superseded status change still invalidates", () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
@@ -150,6 +152,42 @@ describe("applyEvent on ticket events", () => {
 		advanceTo(2000);
 		expect(isInvalidated(queryClient, detailKey)).toBe(true);
 	});
+
+	// After a description event the detail waits for a refetch. A later event
+	// without the description must not give the old text a newer version,
+	// before the flush or after it. The refetch brings the whole row.
+	test("a detail that waits for its description keeps its version through later events", () => {
+		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
+		applier.applyEvent(updatedEvent(summaryAt(4), ["description"]));
+		advanceTo(100);
+		applier.applyEvent(updatedEvent(summaryAt(5, { title: "Fifth" }), ["title"]));
+		expect(cached(queryClient, detailKey)).toEqual(ticket(summaryAt(3)));
+		expect(cached(queryClient, listKey)).toEqual(listPage(summaryAt(5, { title: "Fifth" })));
+		advanceTo(2000);
+		expect(isInvalidated(queryClient, detailKey)).toBe(true);
+		applier.applyEvent(updatedEvent(summaryAt(6, { title: "Sixth" }), ["title"]));
+		expect(cached(queryClient, detailKey)).toEqual(ticket(summaryAt(3)));
+		expect(isInvalidated(queryClient, detailKey)).toBe(true);
+		expect(cached(queryClient, listKey)).toEqual(listPage(summaryAt(6, { title: "Sixth" })));
+	});
+});
+
+describe("applyEvent with the shared applier", () => {
+	// The web app calls `applyEvent(event, queryClient)` from its SSE handler
+	// and `beginMutation` from its mutations. Both must reach one applier per
+	// QueryClient, or a held event lands during the mutation.
+	test("applyEvent uses the applier eventApplierFor returns, so a mutation holds its events", () => {
+		const queryClient = new QueryClient();
+		seedTicketCaches(summaryAt(3))(queryClient);
+		const applier = eventApplierFor(queryClient);
+		expect(eventApplierFor(queryClient)).toBe(applier);
+		applier.beginMutation(t1);
+		applyEvent(updatedEvent(summaryAt(5, { title: "Fifth" })), queryClient);
+		expect(cached(queryClient, detailKey)).toEqual(ticket(summaryAt(3)));
+		applier.endMutation(t1);
+		expect(cached(queryClient, detailKey)).toEqual(ticket(summaryAt(5, { title: "Fifth" })));
+		expect(cached(queryClient, listKey)).toEqual(listPage(summaryAt(5, { title: "Fifth" })));
+	});
 });
 
 describe("applyEvent on a parent's detail", () => {
@@ -196,5 +234,45 @@ describe("applyEvent on a parent's detail", () => {
 		expect((cached(queryClient, parentKey) as { children: unknown[] }).children).toEqual([]);
 		advanceTo(2000);
 		expect(isInvalidated(queryClient, otherParentKey)).toBe(true);
+		expect(isInvalidated(queryClient, parentKey)).toBe(true);
+	});
+
+	// The server bumps only the child's version, so nothing else repairs the
+	// old parent's `childCount`.
+	test("a child that loses its parent leaves the old parent's children and the old parent refetches", () => {
+		const { queryClient, advanceTo, applier } = setup((queryClient) => {
+			queryClient.setQueryData(parentKey, ticket({ ...summaryAt(3), childCount: 1, children: [child(3)] }));
+		});
+		applier.applyEvent(updatedEvent(child(4, { parent: null }), ["parent"]));
+		expect((cached(queryClient, parentKey) as { children: unknown[] }).children).toEqual([]);
+		advanceTo(2000);
+		expect(isInvalidated(queryClient, parentKey)).toBe(true);
+	});
+
+	// `childDoneCount` lives on the parent row and the parent emits no event of
+	// its own, so the parent's detail refetches when a child completes.
+	test("a child's status change patches the parent's children row and refetches the parent's counts", () => {
+		const { queryClient, advanceTo, applier } = setup((queryClient) => {
+			queryClient.setQueryData(parentKey, ticket({ ...summaryAt(3), childCount: 1, children: [child(3)] }));
+		});
+		const done = child(4, {
+			status: { ...child(4).status, category: "done" },
+			completedAt: "2026-09-09T11:00:00.000Z",
+		});
+		applier.applyEvent(updatedEvent(done, ["status", "completedAt"]));
+		expect((cached(queryClient, parentKey) as { children: unknown[] }).children).toEqual([done]);
+		advanceTo(2000);
+		expect(isInvalidated(queryClient, parentKey)).toBe(true);
+	});
+
+	// Events can arrive out of order across a reconnect. A parent change that
+	// is older than the cached child row must not remove that row.
+	test("a stale parent change leaves a newer child row in place", () => {
+		const { queryClient, applier, setQueryData } = setup((queryClient) => {
+			queryClient.setQueryData(parentKey, ticket({ ...summaryAt(3), childCount: 1, children: [child(5)] }));
+		});
+		applier.applyEvent(updatedEvent(child(4, { parent: null }), ["parent"]));
+		expect((cached(queryClient, parentKey) as { children: unknown[] }).children).toEqual([child(5)]);
+		expect(setQueryData).not.toHaveBeenCalled();
 	});
 });
