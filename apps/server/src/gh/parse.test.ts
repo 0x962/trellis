@@ -72,6 +72,19 @@ describe("check buckets", () => {
 			expect(CheckSchema.safeParse(row).success, row.name).toBe(true);
 		}
 	});
+
+	test("normalizeChecks gives a null link when the raw node omits its URL field", () => {
+		const { detailsUrl: _detailsUrl, ...runWithoutUrl } = checkRun("build", "COMPLETED", "SUCCESS");
+		const { targetUrl: _targetUrl, ...contextWithoutUrl } = statusContext("license/cla", "SUCCESS");
+		const normalized = normalizeChecks([runWithoutUrl, contextWithoutUrl]);
+		expect(normalized).toEqual([
+			{ name: "license/cla", workflow: null, bucket: "pass", link: null },
+			{ name: "build", workflow: "ci", bucket: "pass", link: null },
+		]);
+		for (const row of normalized) {
+			expect(CheckSchema.safeParse(row).success, row.name).toBe(true);
+		}
+	});
 });
 
 describe("deriveCiState", () => {
@@ -139,5 +152,16 @@ describe("findTicketIdentifiers", () => {
 		const first = findTicketIdentifiers(text);
 		expect(findTicketIdentifiers(text)).toEqual(first);
 		expect(first).toHaveLength(2);
+	});
+
+	test("auto-link finds every identifier after an outside exec moved the regex's lastIndex", () => {
+		TICKET_IDENTIFIER_PATTERN.exec("CDE-42");
+		expect(TICKET_IDENTIFIER_PATTERN.lastIndex).toBe(6);
+		expect(findTicketIdentifiers("CDE-42")).toEqual([{ key: "CDE", number: 42 }]);
+		TICKET_IDENTIFIER_PATTERN.exec("CDE-42 and cde-7");
+		expect(findTicketIdentifiers("CDE-42 and cde-7")).toEqual([
+			{ key: "CDE", number: 42 },
+			{ key: "CDE", number: 7 },
+		]);
 	});
 });
