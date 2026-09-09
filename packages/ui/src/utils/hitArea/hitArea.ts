@@ -8,7 +8,9 @@
 // The layer is positioned against the padding box, so a 1 px border sits
 // between the drawn edge and the layer's edge. The insets below are measured
 // from the padding box; the hit box in each comment adds them to the padding
-// box. The spacing token is 4 px, so `inset-1.75` is 7 px.
+// box. The spacing token is 4 px, so `inset-1.75` is 7 px. A control whose
+// drawn width follows its content gets a centered layer with a minimum size
+// instead, so the hit box no longer depends on the content.
 export const hitArea = {
 	// A 16 px box with no border: the Switch track and the Chip remove button.
 	// Fine: 6 px each side, 16 + 12 = 28. Coarse: 14 px, 16 + 28 = 44.
@@ -30,12 +32,13 @@ export const hitArea = {
 	// Fine: 0, the drawn box is 28. Coarse: 9 px, 26 + 18 = 44.
 	segment28: "relative before:absolute before:inset-x-0 before:inset-y-0 pointer-coarse:before:-inset-y-2.25",
 	// A Tab: 32 px tall with a 2 px bottom border, so the padding box is 30 px
-	// tall. The tab hugs its label, so the layer gives the width: 8 px each
-	// side, and tabs sit 16 px apart, so two layers never overlap. A one
-	// character label is 12 px wide with its padding, 12 + 16 = 28. On a
-	// coarse pointer the tab's own min-width gives 44 px.
-	// Fine height: 0, the drawn box is 32. Coarse height: 7 px, 30 + 14 = 44.
-	tab32: "relative before:absolute before:inset-y-0 before:-inset-x-2 pointer-coarse:before:-inset-y-1.75",
+	// tall, and as wide as its label. The layer is centered on the padding
+	// box, fills it, and keeps a minimum size of its own, so a label of any
+	// width gives the full hit box. Labels of 12 px or more keep the layers of
+	// two neighbouring tabs apart, because tabs sit 16 px apart.
+	// Fine: at least 28 x 28, so the hit box is 28 x 32. Coarse: 44 x 44.
+	tab32:
+		"relative before:absolute before:left-1/2 before:top-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:min-w-7 before:min-h-7 before:w-full before:h-full pointer-coarse:before:min-w-11 pointer-coarse:before:min-h-11",
 	// A Sheet resize handle: a 4 px wide strip with no border that fills the
 	// panel's height, so the layer grows in width only.
 	// Fine: 12 px each side, 4 + 24 = 28. Coarse: 20 px, 4 + 40 = 44.

@@ -32,15 +32,14 @@ describe("Tabs", () => {
 		expectClasses(screen.getByRole("tab", { name: "Comments" }), "text-fg-muted");
 	});
 
-	// A short label such as "All" is narrower than 28 px. On a fine pointer
-	// the layer alone gives the width, so the underline hugs the label. On a
-	// coarse pointer the tab's min-width gives 44 px and the layer the height.
+	// A short label such as "All" is narrower than 28 px. The layer keeps its
+	// own minimum size on every pointer, so the tab box carries no min-width
+	// and the underline hugs the label.
 	test("every tab reaches the 28 px and 44 px hit areas and hugs its label", () => {
 		render(<Tabs items={items} value="All" onValueChange={() => {}} />);
 		for (const tab of screen.getAllByRole("tab")) {
 			expectHitArea(tab, "tab32");
-			expectClasses(tab, "pointer-coarse:min-w-11 justify-center");
-			expect(Array.from(tab.classList).filter((name) => name.includes("min-w"))).toEqual(["pointer-coarse:min-w-11"]);
+			expect(Array.from(tab.classList).filter((name) => /^(pointer-coarse:)?min-w-/.test(name))).toEqual([]);
 		}
 	});
 
