@@ -81,6 +81,33 @@ describe("ticketList cursor", () => {
 		await expect(list({ projectIds: [rootId], limit: 2, cursor: tampered })).rejects.toBeInstanceOf(InvalidCursorError);
 	});
 
+	// A cursor is user input: JSON that is not the cursor object, or a sort
+	// value of the wrong type, is InvalidCursorError and never a database error.
+	test("a malformed cursor throws InvalidCursorError", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		await seedMany(rootId, statuses, 5);
+		const rejects = async (sort: Input["sort"], cursor: string) =>
+			expect(list({ projectIds: [rootId], sort, limit: 2, cursor })).rejects.toBeInstanceOf(InvalidCursorError);
+		await rejects("-updatedAt", encode({ v: 1 }));
+		await rejects("-updatedAt", Buffer.from("null").toString("base64url"));
+		await rejects("-updatedAt", Buffer.from("[1").toString("base64url"));
+		await rejects("-updatedAt", "not base64url at all");
+		const tamper = async (sort: Input["sort"], k: unknown[]) => {
+			const cursor = decode((await list({ projectIds: [rootId], sort, limit: 2 })).nextCursor!);
+			await rejects(sort, encode({ ...cursor, k }));
+		};
+		const first = decode((await list({ projectIds: [rootId], sort: "number", limit: 2 })).nextCursor!);
+		const id = (first.k as unknown[])[1];
+		await tamper("number", ["not-a-number", id]);
+		await tamper("number", [1.5, id]);
+		await tamper("-updatedAt", ["yesterday", id]);
+		await tamper("-updatedAt", [Date.now(), id]);
+		await tamper("position", ["1024", id]);
+		await tamper("status", [1, "2", id]);
+		await tamper("priority", [1, 7]);
+		await tamper("priority", [1]);
+	});
+
 	test("ticketList returns at most limit rows and a cursor when more exist", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
 		await seedMany(rootId, statuses, 300);

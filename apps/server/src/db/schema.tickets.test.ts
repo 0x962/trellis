@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { insertRow, navid, seedComment, seedProject, seedRoot, seedStatuses, seedTicket } from "../../test/fixtures";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
-import { checkNamed, FOREIGN_KEY, UNIQUE } from "../../test/helpers/errors.ts";
+import { checkNamed, FOREIGN_KEY, RESTRICT, UNIQUE } from "../../test/helpers/errors.ts";
 
 let h: TestDb;
 beforeAll(async () => {
@@ -82,16 +82,37 @@ describe("tickets", () => {
 		).rejects.toThrow(checkNamed("tickets_priority_check"));
 	});
 
+	// RESTRICT (confdeltype `r`) refuses the delete when it happens; NO ACTION
+	// (`a`) waits for the end of the statement.
+	test("the status, project, and parent foreign keys of tickets are RESTRICT", async () => {
+		const result = await h.db.execute(sql`
+			SELECT conname, confdeltype FROM pg_constraint
+			WHERE conrelid = 'tickets'::regclass AND contype = 'f' ORDER BY conname
+		`);
+		expect(result.rows).toEqual([
+			{ conname: "tickets_parent_fk", confdeltype: "r" },
+			{ conname: "tickets_project_fk", confdeltype: "r" },
+			{ conname: "tickets_status_id_statuses_id_fk", confdeltype: "r" },
+		]);
+	});
+
 	test("tickets block the delete of their status", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
 		await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo });
-		await expect(h.db.execute(sql`DELETE FROM statuses WHERE id = ${statuses.todo}`)).rejects.toThrow(FOREIGN_KEY);
+		await expect(h.db.execute(sql`DELETE FROM statuses WHERE id = ${statuses.todo}`)).rejects.toThrow(RESTRICT);
 	});
 
 	test("tickets block the delete of their project", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
 		await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo });
-		await expect(h.db.execute(sql`DELETE FROM projects WHERE id = ${rootId}`)).rejects.toThrow(FOREIGN_KEY);
+		await expect(h.db.execute(sql`DELETE FROM projects WHERE id = ${rootId}`)).rejects.toThrow(RESTRICT);
+	});
+
+	test("tickets block the delete of their parent", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const parent = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo });
+		await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, parentId: parent });
+		await expect(h.db.execute(sql`DELETE FROM tickets WHERE id = ${parent}`)).rejects.toThrow(RESTRICT);
 	});
 
 	// ts_rank weighs an A-weight lexeme above a B-weight one, so a title hit

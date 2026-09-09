@@ -3,4 +3,6 @@
 export const checkNamed = (name: string) => new RegExp(`violates check constraint "${name}"`);
 export const UNIQUE = /violates unique constraint/;
 export const FOREIGN_KEY = /violates foreign key constraint/;
+// A delete that a RESTRICT foreign key refuses names the setting.
+export const RESTRICT = /violates RESTRICT setting of foreign key constraint/;
 export const NOT_NULL = /violates not-null constraint/;

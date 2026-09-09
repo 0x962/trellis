@@ -80,26 +80,22 @@ describe("ticketList filters", () => {
 		expect(await ids({ projectIds: [rootId], q: "servic" })).toEqual([]);
 	});
 
+	// Each ticket gets three different dates, one per column, so a bound
+	// that reads the wrong column selects a different set.
 	test("ticketList treats updated, created, and completed as after bounds", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
-		const days = [new Date("2026-09-01T12:00:00Z"), new Date("2026-09-02T12:00:00Z"), new Date("2026-09-03T12:00:00Z")];
-		const tickets: string[] = [];
-		for (const day of days) {
-			tickets.push(
-				await seedTicket(h.db, {
-					projectId: rootId,
-					rootId,
-					statusId: statuses.done,
-					createdAt: day,
-					updatedAt: day,
-					completedAt: day,
-				}),
-			);
-		}
-		const middle = days[1]!.toISOString();
-		const later = sorted([tickets[1]!, tickets[2]!]);
-		expect(sorted(await ids({ projectIds: [rootId], updated: middle }))).toEqual(later);
-		expect(sorted(await ids({ projectIds: [rootId], created: middle }))).toEqual(later);
-		expect(sorted(await ids({ projectIds: [rootId], completed: middle }))).toEqual(later);
+		const day = (n: number) => new Date(`2026-09-0${n}T12:00:00Z`);
+		const seed = (createdAt: Date, updatedAt: Date, completedAt: Date) =>
+			seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.done, createdAt, updatedAt, completedAt });
+		const a = await seed(day(1), day(4), day(7));
+		const b = await seed(day(2), day(5), day(8));
+		const c = await seed(day(3), day(6), day(9));
+		const bound = (n: number) => day(n).toISOString();
+		expect(sorted(await ids({ projectIds: [rootId], created: bound(2) }))).toEqual(sorted([b, c]));
+		expect(sorted(await ids({ projectIds: [rootId], created: bound(4) }))).toEqual([]);
+		expect(sorted(await ids({ projectIds: [rootId], updated: bound(5) }))).toEqual(sorted([b, c]));
+		expect(sorted(await ids({ projectIds: [rootId], updated: bound(7) }))).toEqual([]);
+		expect(sorted(await ids({ projectIds: [rootId], completed: bound(8) }))).toEqual(sorted([b, c]));
+		expect(sorted(await ids({ projectIds: [rootId], completed: bound(1) }))).toEqual(sorted([a, b, c]));
 	});
 });

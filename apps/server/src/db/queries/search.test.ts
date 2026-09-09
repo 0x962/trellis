@@ -88,10 +88,52 @@ describe("search", () => {
 		expect(await ticketIds({ q: "servic" })).toEqual([ticket]);
 	});
 
+	// `on` is a stop word, so the text search path finds nothing; the trigram
+	// path would find `Log on` (word similarity 1) if it ran.
 	test("search skips trigram under 3 characters", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
 		await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, title: "AuthService refactor" });
+		await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, title: "Log on" });
 		expect(await ticketIds({ q: "se" })).toEqual([]);
+		expect(await ticketIds({ q: "on" })).toEqual([]);
+	});
+
+	// `billing` is not similar to `Other`, so only the text search over the
+	// description finds the second ticket. Weight A outranks weight B.
+	test("search finds a description hit and ranks it below a title hit", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const seed = (title: string, description = "") =>
+			seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, title, description });
+		const inDescription = await seed("Other", "billing broke");
+		const inTitle = await seed("Billing page");
+		expect(await ticketIds({ q: "billing" })).toEqual([inTitle, inDescription]);
+	});
+
+	// `flies` and `fly` stem to `fli`; their trigrams share 2 of 6, under the
+	// threshold 0.4. Only the text search path finds the ticket.
+	test("search matches a stemmed word that no trigram finds", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const ticket = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, title: "Fly wheel" });
+		expect(await ticketIds({ q: "flies" })).toEqual([ticket]);
+	});
+
+	// `OR` before the last token keeps its websearch meaning: either side matches.
+	test("search keeps OR before the prefixed last token", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const seed = (title: string) => seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, title });
+		const auth = await seed("Authentication flow");
+		const login = await seed("Login page");
+		await seed("Billing");
+		expect(sorted(await ticketIds({ q: "login OR auth" }))).toEqual(sorted([auth, login]));
+	});
+
+	// tickets.number is a 32-bit integer; a larger number matches no ticket
+	// and the text goes through the text search path.
+	test("search treats an identifier beyond the integer range as text", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, number: 42, title: "Login page" });
+		expect(await ticketIds({ q: "CDE-2147483648" })).toEqual([]);
+		expect(await ticketIds({ q: "CDE-99999999999999999999" })).toEqual([]);
 	});
 
 	test("search dedupes a ticket matched by both paths", async () => {
@@ -113,11 +155,20 @@ describe("search", () => {
 				await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, title: `Auth task ${i}` }),
 			);
 		}
-		await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, title: "Other", description: "auth" });
+		const described = await seedTicket(h.db, {
+			projectId: rootId,
+			rootId,
+			statusId: statuses.todo,
+			title: "Other",
+			description: "auth",
+		});
 		const page = await ticketIds({ q: "auth" });
 		expect(page).toHaveLength(20);
 		for (const id of page) expect(titled).toContain(id);
 		expect(await ticketIds({ q: "auth", limit: 5 })).toHaveLength(5);
+		const all = await ticketIds({ q: "auth", limit: 31 });
+		expect(all).toHaveLength(31);
+		expect(all.at(-1)).toBe(described);
 	});
 
 	test("search sets a local 200 ms statement timeout", async () => {

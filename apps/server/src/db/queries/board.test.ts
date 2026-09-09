@@ -60,6 +60,23 @@ describe("board", () => {
 		expect(shown.sort()).toEqual([...urgent].sort());
 	});
 
+	test("board honors the category and reviewer filters", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const seed = (statusId: string) => seedTicket(h.db, { projectId: rootId, rootId, statusId });
+		await seed(statuses.todo);
+		const started = await seed(statuses.started);
+		const human = await seed(statuses.humanReview);
+		await seed(statuses.agentReview);
+		const statusIds = columnsOf(statuses);
+		const shown = (columns: Awaited<ReturnType<typeof run>>["columns"]) =>
+			columns.flatMap((column) => column.items.map((item) => item.id)).sort();
+		const byCategory = await run({ projectIds: [rootId], statusIds, categories: ["started"] });
+		expect(byCategory.columns.map((column) => column.count)).toEqual([0, 1, 0, 0, 0, 0]);
+		expect(shown(byCategory.columns)).toEqual([started]);
+		const byReviewer = await run({ projectIds: [rootId], statusIds, reviewer: "human" });
+		expect(shown(byReviewer.columns)).toEqual([human]);
+	});
+
 	test("board runs as one query", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
 		await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo });
