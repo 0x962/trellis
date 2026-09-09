@@ -3,14 +3,15 @@ import type { Check, CheckBucket, CiState } from "@trellis/api";
 // The raw nodes `gh api graphql` returns for `statusCheckRollup { contexts }`.
 // A CheckRun comes from GitHub Actions or a checks app and carries its
 // workflow through checkSuite.workflowRun. A StatusContext comes from the
-// commit status API and has no workflow.
+// commit status API and has no workflow. A node can omit its URL field, and
+// the Check row then carries link null, so the row passes CheckSchema.
 
 export type RawCheckRun = {
 	__typename: "CheckRun";
 	name: string;
 	status: string;
 	conclusion: string | null;
-	detailsUrl: string | null;
+	detailsUrl?: string | null;
 	checkSuite: { workflowRun: { workflow: { name: string } } | null };
 };
 
@@ -18,7 +19,7 @@ export type RawStatusContext = {
 	__typename: "StatusContext";
 	context: string;
 	state: string;
-	targetUrl: string | null;
+	targetUrl?: string | null;
 };
 
 export type RawContext = RawCheckRun | RawStatusContext;
@@ -59,10 +60,10 @@ const toCheck = (node: RawContext): Check => {
 			name: node.name,
 			workflow: node.checkSuite.workflowRun?.workflow.name ?? null,
 			bucket: bucketForCheckRun(node),
-			link: node.detailsUrl,
+			link: node.detailsUrl ?? null,
 		};
 	}
-	return { name: node.context, workflow: null, bucket: bucketForStatusContext(node), link: node.targetUrl };
+	return { name: node.context, workflow: null, bucket: bucketForStatusContext(node), link: node.targetUrl ?? null };
 };
 
 const compareText = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
@@ -96,8 +97,10 @@ export const TICKET_IDENTIFIER_PATTERN = /\b([a-z][a-z0-9]{1,9})-(\d+)\b/gi;
 
 // Returns every distinct identifier in text order. The key comes out
 // uppercased, so `cde-42` and `CDE-42` are one entry. Ticket numbers start
-// at 1, so a match with number 0 is dropped.
+// at 1, so a match with number 0 is dropped. matchAll copies lastIndex from
+// a global regex, so the search starts from 0 whatever an outside exec left.
 export const findTicketIdentifiers = (text: string): TicketIdentifier[] => {
+	TICKET_IDENTIFIER_PATTERN.lastIndex = 0;
 	const seen = new Set<string>();
 	const found: TicketIdentifier[] = [];
 	for (const match of text.matchAll(TICKET_IDENTIFIER_PATTERN)) {
