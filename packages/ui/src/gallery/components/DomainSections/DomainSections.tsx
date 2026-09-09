@@ -15,6 +15,8 @@ const queued = ribbon(["pending", "pending", "pending", "pending"]);
 const skipped = ribbon(["pass", "pass", "skipping", "pass"]);
 // 40 checks with one failure: the gaps close and every segment stays visible.
 const crowded = ribbon(Array.from({ length: 40 }, (_, index) => (index === 19 ? "fail" : "pass")));
+// 80 checks with one failure: more checks than px, so the ribbon draws runs.
+const packed = ribbon(Array.from({ length: 80 }, (_, index) => (index === 39 ? "fail" : "pass")));
 
 // The trellis-specific marks in every variant.
 export function DomainSections() {
@@ -56,7 +58,7 @@ export function DomainSections() {
 					</span>
 				))}
 			</Section>
-			<Section name="CheckRibbon" note="full and mini; pass, fail, pending, skipping; 40 checks">
+			<Section name="CheckRibbon" note="full and mini; pass, fail, pending, skipping; 40 and 80 checks">
 				<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
 					<CheckRibbon checks={passing} /> 6 passing
 				</span>
@@ -80,6 +82,9 @@ export function DomainSections() {
 				</span>
 				<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
 					<CheckRibbon size="mini" checks={crowded} /> mini, 40 checks
+				</span>
+				<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
+					<CheckRibbon checks={packed} /> 80 checks, 1 failing
 				</span>
 			</Section>
 			<Section name="ActorChip" note="human; agent; agent live">
