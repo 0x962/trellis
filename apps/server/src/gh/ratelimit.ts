@@ -2,11 +2,12 @@ import type { GhFailure, GhRunner } from "./run.ts";
 
 // `gh api rate_limit` reports one budget per resource. GitHub charges a
 // `gh api graphql` call, and so every poller tick, to the graphql resource,
-// and a REST call such as a diff fetch to the core resource. The reader
-// reports the resource with the lower remaining fraction, so a drained
-// graphql budget slows the poller although core is full. The poller reads
-// it every 5 minutes and stretches every interval by `multiplier` while the
-// fraction is under 20 percent.
+// and a REST call such as a diff fetch to the core resource. Every host
+// reports core. GitHub.com also reports graphql. The reader compares the
+// budgets the body carries and reports the one with the lower remaining
+// fraction, so a drained graphql budget slows the poller although core is
+// full. The poller reads it every 5 minutes and stretches every interval by
+// `multiplier` while the fraction is under 20 percent.
 
 export type RateLimitResource = "core" | "graphql";
 
@@ -23,7 +24,7 @@ export type RateLimit = {
 export type RateLimitResult = RateLimit | GhFailure;
 
 type ResourceBudget = { limit: number; remaining: number; reset: number };
-type RateLimitBody = { resources: Record<RateLimitResource, ResourceBudget> };
+type RateLimitBody = { resources: { core: ResourceBudget; graphql?: ResourceBudget } };
 
 export const LOW_BUDGET_FRACTION = 0.2;
 export const LOW_BUDGET_MULTIPLIER = 4;
@@ -37,8 +38,9 @@ export const readRateLimit = async (runGh: GhRunner): Promise<RateLimitResult> =
 	const result = await runGh("poller", ["api", "rate_limit"]);
 	if (!result.ok) return result;
 	const { core, graphql } = (JSON.parse(result.stdout) as RateLimitBody).resources;
-	const resource: RateLimitResource = fractionOf(graphql) < fractionOf(core) ? "graphql" : "core";
-	const { limit, remaining, reset } = resource === "graphql" ? graphql : core;
+	const graphqlIsLower = graphql !== undefined && fractionOf(graphql) < fractionOf(core);
+	const resource: RateLimitResource = graphqlIsLower ? "graphql" : "core";
+	const { limit, remaining, reset } = graphqlIsLower ? graphql : core;
 	const fraction = remaining / limit;
 	return {
 		ok: true,

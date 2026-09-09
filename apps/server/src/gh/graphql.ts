@@ -22,8 +22,11 @@ export type RawPullRequest = {
 	commits: { nodes: Array<{ commit: { statusCheckRollup: { contexts: { nodes: RawContext[] } } | null } }> };
 };
 
-// GitHub sets a null alias when the repository is unknown, and a null
-// pullRequest when the number is unknown. `errors` names the alias in `path`.
+// GitHub sets a null alias when the repository is unknown, a null pullRequest
+// when the number is unknown, and a null node inside the alias when one field
+// fails. Every case adds an `errors` entry whose `path` starts with the alias.
+// An alias with an error entry holds partial data, so the mapper reports the
+// error and never reads that alias.
 export type PullRequestResponse = {
 	data: Record<string, { pullRequest: RawPullRequest | null } | null>;
 	errors?: Array<{ message: string; path?: Array<string | number> }>;
@@ -119,10 +122,9 @@ const toRow = (ref: PullRequestRef, raw: RawPullRequest): PullRequestRow => {
 export const mapPullRequestResponse = (refs: PullRequestRef[], response: PullRequestResponse): PullRequestResult[] =>
 	refs.map((ref, index) => {
 		const name = alias(index);
-		const raw = response.data[name]?.pullRequest ?? null;
-		if (raw !== null) return { ref, row: toRow(ref, raw) };
-		const error = response.errors!.find((entry) => entry.path?.[0] === name)!;
-		return { ref, error: error.message };
+		const error = response.errors?.find((entry) => entry.path?.[0] === name);
+		if (error !== undefined) return { ref, error: error.message };
+		return { ref, row: toRow(ref, response.data[name]!.pullRequest!) };
 	});
 
 // gh exits 1 when the response carries `errors`, and still prints the body
