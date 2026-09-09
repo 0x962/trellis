@@ -21,7 +21,7 @@ This plan was produced by two design agents (product, engineering) and corrected
 | API | oRPC contract-first (`@orpc/contract`, `server`, `client`, `openapi`, `tanstack-query`), Zod 4 | 1.15, 4.5 |
 | Database | PGlite + `pg_trgm` contrib, Drizzle ORM, drizzle-kit | 0.5.8, 0.45, 0.31 |
 | Web | React 19, Vite 8, TanStack Router, Query, Table v9, Virtual | current |
-| UI primitives | Base UI (`@base-ui-components/react` 1.0), Tailwind v4, own tokens in `packages/ui` | 1.0, 4.3 |
+| UI primitives | Base UI (`@base-ui/react`, the renamed successor of `@base-ui-components/react`), Tailwind v4, own tokens in `packages/ui` | 1.8, 4.3 |
 | Editor, palette, dnd, motion, toasts, icons | Tiptap 3, cmdk, `@atlaskit/pragmatic-drag-and-drop`, `motion/mini`, sonner, lucide-react | current |
 | Diff rendering on PR rows | `@pierre/diffs` | 1.4 |
 | Fonts | Inter Variable (`cv11`, `ss01`, `tnum`), JetBrains Mono, preloaded latin subsets | fontsource |
@@ -453,7 +453,7 @@ Tabs: Needs you, Search, Projects, Settings. Ticket is a stack push titled by ID
 
 ## UI system (`packages/ui`, full spec in `docs/design/ui-system.md`)
 
-No third-party styled components. Base UI gives behavior and accessibility; every visual is ours.
+No third-party styled components. Base UI (`@base-ui/react`) gives behavior and accessibility; every visual is ours.
 
 - Type: Inter Variable (`cv11 ss01`, `tnum` on IDs, counts, times), JetBrains Mono for chips, branches, code. Scale 11/12/13/14/16/20/24; weights 400/500/600.
 - Space 4 px base; radii 4/6/8/12; outer = inner + padding.
