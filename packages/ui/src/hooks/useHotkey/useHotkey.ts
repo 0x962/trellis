@@ -17,19 +17,26 @@ const editable = (target: EventTarget | null) =>
 // a ticket; a mod chord fires everywhere. A letter or a named key (Enter)
 // reads the same with Shift held, so the Shift state tells "p" from
 // "shift+p". A punctuation key such as "?" is itself the shifted form on many
-// layouts, so its Shift state is ignored. The grammar has no "alt", so a key
-// pressed with Alt held matches no binding: Alt+A is a text-entry chord on a
-// Mac, never the approval key.
+// layouts, so its Shift state is ignored.
+//
+// A binding matches on `event.key`, the character the layout produces. A
+// punctuation key that needs Option on a layout still matches: Option+5 on
+// a German Mac produces "[". A letter binding also matches on `event.code`,
+// the physical key, so Cmd+K works on a Cyrillic layout. The grammar has
+// no "alt", so a letter with Alt held matches no binding. Alt+A is a
+// text-entry chord on a Mac, never the approval key.
 export function useHotkey(hotkey: Hotkey, handler: (event: KeyboardEvent) => void) {
 	useEffect(() => {
 		const parts = hotkey.split("+");
 		const key = parts[parts.length - 1]!.toLowerCase();
 		const mod = parts.includes("mod");
 		const shift = parts.includes("shift");
-		const shiftMatters = key.length > 1 || /[a-z]/.test(key);
+		const letter = /^[a-z]$/.test(key);
+		const shiftMatters = key.length > 1 || letter;
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key.toLowerCase() !== key) return;
-			if (event.altKey) return;
+			if (letter && event.altKey) return;
+			const byCode = letter && event.code === `Key${key.toUpperCase()}`;
+			if (event.key.toLowerCase() !== key && !byCode) return;
 			if ((event.metaKey || event.ctrlKey) !== mod) return;
 			if (shiftMatters && event.shiftKey !== shift) return;
 			if (!mod && editable(event.target)) return;

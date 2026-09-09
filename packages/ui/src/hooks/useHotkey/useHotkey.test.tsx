@@ -8,6 +8,13 @@ function Probe({ onA, onModK }: { onA: () => void; onModK: () => void }) {
 	return <input aria-label="Title" />;
 }
 
+function LayoutProbe(on: { onBracket: () => void; onA: () => void; onModK: () => void }) {
+	useHotkey("[", on.onBracket);
+	useHotkey("a", on.onA);
+	useHotkey("mod+k", on.onModK);
+	return null;
+}
+
 type Handlers = Record<
 	"p" | "shiftP" | "modC" | "modShiftC" | "modEnter" | "modShiftEnter" | "question",
 	Mock<() => void>
@@ -59,16 +66,38 @@ describe("useHotkey", () => {
 		expect(calls()).toMatchObject({ question: 1 });
 	});
 
-	// The hotkey grammar has no "alt", so a key pressed with Alt held matches
-	// no binding. Alt+A is a text-entry chord on a Mac, never the approval key.
-	test("a key with Alt held matches no binding", () => {
+	// On a German Mac layout "[" is Option+5, so the event carries altKey with
+	// key "[". The binding matches on the character. The hotkey grammar has no
+	// "alt", so a letter with Alt held matches no binding. Alt+A is a
+	// text-entry chord on a Mac, never the approval key.
+	test('Option+5 on a German layout matches a "[" binding and Alt+letter chords match nothing', () => {
+		const onBracket = mock();
 		const onA = mock();
 		const onModK = mock();
-		render(<Probe onA={onA} onModK={onModK} />);
-		fireEvent.keyDown(document.body, { key: "a", altKey: true });
-		fireEvent.keyDown(document.body, { key: "k", metaKey: true, altKey: true });
+		render(<LayoutProbe onBracket={onBracket} onA={onA} onModK={onModK} />);
+		fireEvent.keyDown(document.body, { key: "[", code: "Digit5", altKey: true });
+		expect(onBracket).toHaveBeenCalledTimes(1);
+		fireEvent.keyDown(document.body, { key: "å", code: "KeyA", altKey: true });
+		fireEvent.keyDown(document.body, { key: "a", code: "KeyA", altKey: true });
+		fireEvent.keyDown(document.body, { key: "k", code: "KeyK", metaKey: true, altKey: true });
 		expect(onA).not.toHaveBeenCalled();
 		expect(onModK).not.toHaveBeenCalled();
+	});
+
+	// On a Cyrillic layout the physical K key produces "л", so a letter
+	// binding also matches on the key code. A punctuation binding matches on
+	// the character only: the physical "[" key produces "х" and matches nothing.
+	test("a letter binding matches the physical key on a non-Latin layout", () => {
+		const onBracket = mock();
+		const onA = mock();
+		const onModK = mock();
+		render(<LayoutProbe onBracket={onBracket} onA={onA} onModK={onModK} />);
+		fireEvent.keyDown(document.body, { key: "л", code: "KeyK", metaKey: true });
+		expect(onModK).toHaveBeenCalledTimes(1);
+		fireEvent.keyDown(document.body, { key: "ф", code: "KeyA" });
+		expect(onA).toHaveBeenCalledTimes(1);
+		fireEvent.keyDown(document.body, { key: "х", code: "BracketLeft" });
+		expect(onBracket).not.toHaveBeenCalled();
 	});
 
 	test("fires on the key, honors mod, ignores editable targets, cleans up", () => {
