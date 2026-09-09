@@ -69,6 +69,20 @@ describe("root scaffold", () => {
 		expect(scripts.check).toContain("test");
 	});
 
+	// plan.md: `check` runs lint, typecheck, test, the size budget, and the 10k
+	// perf suite. The two tasks belong to apps/web and apps/server. turbo refuses
+	// a task that turbo.json does not declare, so the root declares both.
+	test("check runs the size budget and the 10k perf suite through turbo", async () => {
+		const { scripts } = await json("package.json");
+		const { tasks } = await json("turbo.json");
+		for (const name of ["size-budget", "perf:10k"]) {
+			expect(scripts.check).toContain(name);
+			expect(tasks).toHaveProperty(name);
+		}
+		expect(tasks["size-budget"].dependsOn).toContain("build");
+		expect(tasks["perf:10k"].cache).toBe(false);
+	});
+
 	test("turbo.json declares dev as persistent and build with dist outputs", async () => {
 		const { tasks } = await json("turbo.json");
 		expect(tasks.dev.persistent).toBe(true);
@@ -193,12 +207,16 @@ describe("root scaffold", () => {
 		expect(contributing).not.toContain("(ctx, tx, input)");
 	});
 
-	test("apps and packages directories exist with a .gitkeep", () => {
+	// The root package.json lists `apps/*` and `packages/*` as workspaces, so an
+	// entry without a package.json is a directory bun cannot install.
+	test("apps and packages hold a .gitkeep and workspaces only", () => {
 		for (const dir of ["apps", "packages"]) {
 			const entries = readdirSync(join(root, dir));
 			expect(entries).toContain(".gitkeep");
-			expect(entries).not.toContain("api");
-			expect(entries).not.toContain("ui");
+			const workspaces = entries.filter((entry) => !entry.startsWith("."));
+			for (const workspace of workspaces) {
+				expect(existsSync(join(root, dir, workspace, "package.json"))).toBe(true);
+			}
 		}
 	});
 

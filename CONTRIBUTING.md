@@ -6,7 +6,7 @@ Read [AGENTS.md](AGENTS.md) first. It holds the repo rules. This file holds the 
 
 1. Run `bun install` once per clone.
 2. Run `bun run dev` to start the server on port 4521 and the web app on port 5173.
-3. Run `bun run check` before every hand-off. It runs lint, typecheck, and every test.
+3. Run `bun run check` before every hand-off. It runs lint, typecheck, every test, the web size budget, and the 10k perf suite. `apps/web` owns the `size-budget` script and `apps/server` owns the `perf:10k` script; turbo runs each where it exists.
 4. Run `bun run lint:fix` to apply the Biome fixes.
 
 `bun run test` runs the tests of every workspace through turbo. `bun run test:repo` runs the root tests in `test/`. `test/preload.ts` gives a test run a fresh `TRELLIS_HOME`. Bun reads `bunfig.toml` from the current directory only, so every workspace ships a `bunfig.toml` with `[test]` and `preload = ["../../test/preload.ts"]`.

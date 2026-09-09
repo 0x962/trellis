@@ -2,37 +2,85 @@ import { describe, expect, test } from "bun:test";
 import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-// The probe project lives under TRELLIS_HOME, outside this repo, so Biome
-// reads only the fixture files. The root biome.json is copied into the probe
-// root: Biome resolves the globs of an override against the directory that
-// holds the config file, so a config outside the probe matches no
-// `packages/*` or `apps/*` override.
+// A probe project lives under TRELLIS_HOME, outside this repo, so Biome reads
+// only the fixture files. The root biome.json is copied into the probe root:
+// Biome resolves the globs of an override against the directory that holds
+// the config file, so a config outside the probe matches no `packages/*` or
+// `apps/*` override. Each test gets its own probe, so the files of one test
+// never appear in the findings of another.
 const root = join(import.meta.dir, "..");
-const probe = join(process.env.TRELLIS_HOME as string, "biome-probe");
 
-type Diagnostic = { category: string; location: { path: string } };
-
-// Returns the set of "<file>:<rule>" pairs Biome reports for the probe project.
-// The probe is not a git repository, so the vcs integration is switched off.
-const lint = () => {
-	copyFileSync(join(root, "biome.json"), join(probe, "biome.json"));
-	const result = Bun.spawnSync(
-		[join(root, "node_modules/.bin/biome"), "lint", "--vcs-enabled=false", "--reporter=json", "."],
-		{ cwd: probe, stdout: "pipe", stderr: "pipe" },
-	);
-	const { diagnostics } = JSON.parse(result.stdout.toString()) as { diagnostics: Diagnostic[] };
-	return new Set(diagnostics.map((d) => `${d.location.path}:${d.category}`));
-};
-
-const write = (relativePath: string, source: string) => {
-	mkdirSync(join(probe, relativePath, ".."), { recursive: true });
-	writeFileSync(join(probe, relativePath), source);
-};
+type Diagnostic = { category: string; severity: string; location: { path: string } };
 
 const rule = "lint/style/noRestrictedImports";
 
+const createProbe = (name: string) => {
+	const dir = join(process.env.TRELLIS_HOME as string, `biome-probe-${name}`);
+	mkdirSync(dir, { recursive: true });
+	copyFileSync(join(root, "biome.json"), join(dir, "biome.json"));
+
+	const write = (relativePath: string, source: string) => {
+		mkdirSync(join(dir, relativePath, ".."), { recursive: true });
+		writeFileSync(join(dir, relativePath), source);
+	};
+
+	// Runs `biome lint` over the probe. `errors` holds "<file>:<rule>" for every
+	// diagnostic at severity error. A warning is not in the set: Biome exits 0 on
+	// a warning, so a rule at warn level never fails `bun run lint`. The probe is
+	// not a git repository, so the vcs integration is switched off.
+	const lint = () => {
+		const result = Bun.spawnSync(
+			[join(root, "node_modules/.bin/biome"), "lint", "--vcs-enabled=false", "--reporter=json", "."],
+			{ cwd: dir, stdout: "pipe", stderr: "pipe" },
+		);
+		const { diagnostics } = JSON.parse(result.stdout.toString()) as { diagnostics: Diagnostic[] };
+		const errors = new Set(
+			diagnostics.filter((d) => d.severity === "error").map((d) => `${d.location.path}:${d.category}`),
+		);
+		return { exitCode: result.exitCode, errors };
+	};
+
+	return { write, lint };
+};
+
+// One import per root restriction, keyed by the fixture name.
+const refused: Record<string, string> = {
+	motion: 'import { animate } from "motion";\nexport const a = animate;\n',
+	motionReact: 'import { motion } from "motion/react";\nexport const m = motion;\n',
+	framer: 'import { motion } from "framer-motion";\nexport const m = motion;\n',
+	radix: 'import { Dialog } from "@radix-ui/react-dialog";\nexport const d = Dialog;\n',
+	shadcn: 'import { cn } from "shadcn";\nexport const c = cn;\n',
+	client: 'import { db } from "../db/client";\nexport const t = db;\n',
+};
+
+// Every directory that biome.json gives its own noRestrictedImports override.
+// Biome replaces the options of a rule inside an override and does not merge
+// them with the root rule, so an override that omits one root pattern opens
+// that import for its whole directory.
+const overrideDirs = [
+	"packages/api",
+	"packages/ui",
+	"packages/cli",
+	"apps/server",
+	"apps/server/src/db",
+	"apps/web",
+	"apps/mobile",
+];
+
 describe("biome import rules", () => {
+	test("a probe with only allowed imports passes lint with exit 0", () => {
+		const { write, lint } = createProbe("clean");
+		write("src/db/client.ts", "export const db = 1;\n");
+		write("src/db/tx.ts", 'import { db } from "./client";\nexport const tx = db;\n');
+		write("src/ui/mini.ts", 'import { animate } from "motion/mini";\nexport const a = animate;\n');
+
+		const { exitCode, errors } = lint();
+		expect(errors).toBeEmpty();
+		expect(exitCode).toBe(0);
+	});
+
 	test("db/ files import the client; every other file, motion, radix, and shadcn are refused", () => {
+		const { write, lint } = createProbe("rules");
 		write("src/db/client.ts", "export const db = 1;\n");
 		write("src/db/tx.ts", 'import { db } from "./client";\nexport const tx = db;\n');
 		write("src/db/boot.ts", 'import { db } from "./client.ts";\nexport const boot = db;\n');
@@ -53,11 +101,12 @@ describe("biome import rules", () => {
 		write("src/ui/radix.ts", 'import { Dialog } from "@radix-ui/react-dialog";\nexport const d = Dialog;\n');
 		write("src/ui/shadcn.ts", 'import { cn } from "shadcn";\nexport const c = cn;\n');
 
-		const findings = lint();
-		expect(findings).not.toContain(`src/db/tx.ts:${rule}`);
-		expect(findings).not.toContain(`src/db/boot.ts:${rule}`);
-		expect(findings).not.toContain(`src/db/queries/list.ts:${rule}`);
-		expect(findings).not.toContain(`src/ui/mini.ts:${rule}`);
+		const { exitCode, errors } = lint();
+		expect(exitCode).not.toBe(0);
+		expect(errors).not.toContain(`src/db/tx.ts:${rule}`);
+		expect(errors).not.toContain(`src/db/boot.ts:${rule}`);
+		expect(errors).not.toContain(`src/db/queries/list.ts:${rule}`);
+		expect(errors).not.toContain(`src/ui/mini.ts:${rule}`);
 		for (const file of [
 			"src/services/tickets.ts",
 			"src/services/ext.ts",
@@ -74,11 +123,12 @@ describe("biome import rules", () => {
 			"src/ui/radix.ts",
 			"src/ui/shadcn.ts",
 		]) {
-			expect(findings).toContain(`${file}:${rule}`);
+			expect(errors).toContain(`${file}:${rule}`);
 		}
 	});
 
 	test("layers import downward only: api is imported by server, web, mobile, and cli; ui by web only", () => {
+		const { write, lint } = createProbe("layers");
 		const imports = (name: string) => `import { x } from "@trellis/${name}";\nexport const y = x;\n`;
 		write("packages/api/src/server.ts", imports("server"));
 		write("packages/api/src/ui.ts", imports("ui/tokens"));
@@ -99,7 +149,8 @@ describe("biome import rules", () => {
 		write("apps/mobile/src/api.ts", imports("api"));
 		write("apps/mobile/src/ui.ts", imports("ui"));
 
-		const findings = lint();
+		const { exitCode, errors } = lint();
+		expect(exitCode).not.toBe(0);
 		for (const file of [
 			"packages/cli/src/api.ts",
 			"apps/server/src/api.ts",
@@ -108,7 +159,7 @@ describe("biome import rules", () => {
 			"apps/web/src/ui.ts",
 			"apps/mobile/src/api.ts",
 		]) {
-			expect(findings).not.toContain(`${file}:${rule}`);
+			expect(errors).not.toContain(`${file}:${rule}`);
 		}
 		for (const file of [
 			"packages/api/src/server.ts",
@@ -123,7 +174,32 @@ describe("biome import rules", () => {
 			"apps/web/src/server.ts",
 			"apps/mobile/src/ui.ts",
 		]) {
-			expect(findings).toContain(`${file}:${rule}`);
+			expect(errors).toContain(`${file}:${rule}`);
+		}
+	});
+
+	test("every override directory refuses every root restriction", () => {
+		const { write, lint } = createProbe("overrides");
+		for (const dir of overrideDirs) {
+			for (const [name, source] of Object.entries(refused)) {
+				write(`${dir}/${name}.ts`, source);
+			}
+			write(`${dir}/mini.ts`, 'import { animate } from "motion/mini";\nexport const a = animate;\n');
+		}
+
+		const { exitCode, errors } = lint();
+		expect(exitCode).not.toBe(0);
+		for (const dir of overrideDirs) {
+			for (const name of Object.keys(refused)) {
+				// apps/server/src/db holds the client, so a file there imports it.
+				const allowed = dir === "apps/server/src/db" && name === "client";
+				if (allowed) {
+					expect(errors).not.toContain(`${dir}/${name}.ts:${rule}`);
+				} else {
+					expect(errors).toContain(`${dir}/${name}.ts:${rule}`);
+				}
+			}
+			expect(errors).not.toContain(`${dir}/mini.ts:${rule}`);
 		}
 	});
 });

@@ -11,7 +11,7 @@ bun install
 bun run check
 ```
 
-`bun run check` runs lint, typecheck, and every test. See [CONTRIBUTING.md](CONTRIBUTING.md) for the dev loop and [AGENTS.md](AGENTS.md) for the repo rules.
+`bun run check` runs lint, typecheck, every test, the web size budget, and the 10k perf suite. See [CONTRIBUTING.md](CONTRIBUTING.md) for the dev loop and [AGENTS.md](AGENTS.md) for the repo rules.
 
 ## License
 

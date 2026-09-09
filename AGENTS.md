@@ -6,7 +6,7 @@ trellis is a local ticket tracker for agent-driven work. The plan is `docs/desig
 
 - Every work item is test-driven. The spec states outcomes. An agent turns the outcomes into a failing test before any implementation. The builder makes the test pass and never deletes or weakens a test. A change without a test does not merge.
 - A test you believe is wrong goes back to the lead with the reason. Do not edit it.
-- Run `bun run check` before every hand-off and report its output. It runs lint, typecheck, and every test.
+- Run `bun run check` before every hand-off and report its output. It runs lint, typecheck, every test, the web size budget (`size-budget`), and the 10k perf suite (`perf:10k`).
 - Commit on small units. The commit subject states the user-visible result. The body ends with the `Claude-Session:` trailer.
 - Every PR description states what broke, what changed, and one verification sentence. No headers, no tables, no checklists.
 - Pin exact versions when you add a dependency. Prefer the current release on npm.

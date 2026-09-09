@@ -20,6 +20,12 @@
 		"perf": {
 			"cache": false
 		},
+		"perf:10k": {
+			"cache": false
+		},
+		"size-budget": {
+			"dependsOn": ["build"]
+		},
 		"//#lint": {},
 		"//#typecheck:repo": {},
 		"//#test:repo": {
