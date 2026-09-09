@@ -1,21 +1,19 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import type { ReactNode } from "react";
-import { cx } from "../../utils/cx";
-import { usePopupFocus } from "../hooks/usePopupFocus";
+import { cx } from "../../../../utils/cx";
+import { usePopupFocus } from "../../../hooks/usePopupFocus";
 
-export type DialogProps = {
+export type CommandDialogProps = {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	// The accessible name, shown as the heading.
-	title: string;
-	description?: string;
+	// A Command.
 	children: ReactNode;
 	className?: string;
 };
 
-// A modal over a scrim. Focus moves inside when it opens and stays inside
-// until it closes; Escape and a click on the scrim ask to close.
-export function Dialog({ open, onOpenChange, title, description, children, className }: DialogProps) {
+// The Cmd-K surface: a panel near the top of the window over a scrim, with
+// the Command inside. Escape and a click on the scrim close it.
+export function CommandDialog({ open, onOpenChange, children, className }: CommandDialogProps) {
 	const { onPopupMount, finalFocus } = usePopupFocus();
 	return (
 		<BaseDialog.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
@@ -26,18 +24,13 @@ export function Dialog({ open, onOpenChange, title, description, children, class
 					initialFocus={false}
 					finalFocus={finalFocus}
 					aria-modal="true"
+					aria-label="Command menu"
 					className={cx(
-						"fixed top-1/2 left-1/2 z-50 flex w-100 max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-lg border border-border bg-elevated p-4 text-base text-fg shadow-lg outline-none",
+						"fixed top-[20vh] left-1/2 z-50 w-140 max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-elevated shadow-lg outline-none",
 						"transition-[opacity,scale] duration-popover ease-out data-starting-style:scale-98 data-starting-style:opacity-0 data-ending-style:scale-98 data-ending-style:opacity-0",
 						className,
 					)}
 				>
-					<div className="flex flex-col gap-1">
-						<BaseDialog.Title className="text-md font-semibold text-fg">{title}</BaseDialog.Title>
-						{description && (
-							<BaseDialog.Description className="text-sm text-fg-muted">{description}</BaseDialog.Description>
-						)}
-					</div>
 					{children}
 				</BaseDialog.Popup>
 			</BaseDialog.Portal>

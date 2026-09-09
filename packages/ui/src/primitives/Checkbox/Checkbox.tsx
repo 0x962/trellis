@@ -1,0 +1,51 @@
+import { Checkbox as BaseCheckbox } from "@base-ui/react/checkbox";
+import { Field } from "@base-ui/react/field";
+import { Check, Minus } from "lucide-react";
+import { cx } from "../../utils/cx";
+
+export type CheckboxProps = {
+	label: string;
+	checked: boolean;
+	onCheckedChange: (checked: boolean) => void;
+	// A parent whose children are partly checked. It reads as "mixed".
+	indeterminate?: boolean;
+	disabled?: boolean;
+	className?: string;
+};
+
+// A 16 px box with its label. Space toggles it; so does a click on the label.
+export function Checkbox({
+	label,
+	checked,
+	onCheckedChange,
+	indeterminate = false,
+	disabled = false,
+	className,
+}: CheckboxProps) {
+	return (
+		<Field.Root
+			disabled={disabled}
+			className={cx(
+				"inline-flex items-center gap-2 text-base text-fg select-none",
+				disabled && "opacity-50",
+				className,
+			)}
+		>
+			<BaseCheckbox.Root
+				checked={checked}
+				indeterminate={indeterminate}
+				onCheckedChange={(next) => onCheckedChange(next)}
+				className={cx(
+					"inline-flex size-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-surface text-on-accent transition-colors duration-hover ease-out outline-none",
+					"data-checked:border-accent data-checked:bg-accent data-indeterminate:border-accent data-indeterminate:bg-accent",
+					"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+				)}
+			>
+				<BaseCheckbox.Indicator className="inline-flex size-3 data-unchecked:hidden *:size-full">
+					{indeterminate ? <Minus strokeWidth={3} /> : <Check strokeWidth={3} />}
+				</BaseCheckbox.Indicator>
+			</BaseCheckbox.Root>
+			<Field.Label>{label}</Field.Label>
+		</Field.Root>
+	);
+}
