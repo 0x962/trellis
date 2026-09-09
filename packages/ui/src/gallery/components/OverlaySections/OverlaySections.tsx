@@ -61,9 +61,20 @@ export function OverlaySections() {
 					</div>
 				</Dialog>
 			</Section>
-			<Section name="Sheet" note="slides in from the right in 240 ms">
+			<Section name="Sheet" note="non-modal 720 px peek with a resize handle; slides in from the right in 240 ms">
 				<Button onClick={() => setSheetOpen(true)}>Peek CDE-43</Button>
-				<Sheet open={sheetOpen} onOpenChange={setSheetOpen} title="CDE-43">
+				<Sheet
+					open={sheetOpen}
+					onOpenChange={setSheetOpen}
+					title="CDE-43"
+					resizeHandle={
+						<button
+							type="button"
+							aria-label="Resize"
+							className="h-full w-1 cursor-col-resize transition-colors duration-hover hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+						/>
+					}
+				>
 					<div className="flex flex-col gap-2 p-4">
 						<h3 className="text-xl font-semibold">Merge upstream 1.27 and keep every marked site</h3>
 						<p className="text-md text-fg-muted">The peek shows the ticket page without leaving the list.</p>

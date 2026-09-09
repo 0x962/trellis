@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expectClasses } from "../../../test/classes";
+import { expectClasses, expectHitArea } from "../../../test/classes";
 import { Select } from "./Select";
 
 const items = ["none", "low", "medium", "high", "urgent"].map((value) => ({ value, label: value }));
@@ -17,6 +17,15 @@ describe("Select", () => {
 		const trigger = screen.getByRole("combobox", { name: "Priority" });
 		expect(trigger.textContent).toContain("low");
 		expectClasses(trigger, "h-7 rounded-md border-border bg-surface");
+	});
+
+	// The trigger is 28 px tall with a 1 px border and at least 96 px wide.
+	// The layer reaches 44 px on a coarse pointer.
+	test("the trigger carries the hit-area layer", () => {
+		render(<Select label="Priority" items={items} value="low" onValueChange={() => {}} />);
+		const trigger = screen.getByRole("combobox", { name: "Priority" });
+		expectClasses(trigger, "min-w-24");
+		expectHitArea(trigger, "box28Bordered");
 	});
 
 	test("arrow keys move the highlight and Enter selects", async () => {

@@ -1,1 +1,1 @@
-export { type HitAreaSize, hitArea } from "./hitArea";
+export { type HitAreaKey, hitArea } from "./hitArea";

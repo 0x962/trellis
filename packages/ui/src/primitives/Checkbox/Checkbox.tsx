@@ -14,8 +14,9 @@ export type CheckboxProps = {
 	className?: string;
 };
 
-// A 16 px box with its label. Space toggles it; so does a click on the label.
-// The hit-area layer around the box reaches the 28 px and 44 px minimums.
+// A 16 px box with a 1 px border and its label. Space toggles it; so does a
+// click on the label. The hit-area layer around the box reaches the 28 px
+// and 44 px minimums.
 export function Checkbox({
 	label,
 	checked,
@@ -39,7 +40,7 @@ export function Checkbox({
 				onCheckedChange={(next) => onCheckedChange(next)}
 				className={cx(
 					"inline-flex size-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-surface text-on-accent transition-colors duration-hover ease-out",
-					hitArea[16],
+					hitArea.box16Bordered,
 					"data-checked:border-accent data-checked:bg-accent data-indeterminate:border-accent data-indeterminate:bg-accent",
 					"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 				)}

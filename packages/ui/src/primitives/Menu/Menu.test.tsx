@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expectClasses } from "../../../test/classes";
+import { expectClasses, expectHitArea } from "../../../test/classes";
 import { Menu } from "./Menu";
 
 const setup = () => {
@@ -32,6 +32,14 @@ describe("Menu", () => {
 		const items = screen.getAllByRole("menuitem");
 		expect(items.map((item) => item.textContent)).toEqual(["Edit", "Duplicate", "Delete"]);
 		expect(items[2]!.getAttribute("aria-disabled")).toBe("true");
+	});
+
+	// The default trigger is a 28 px square with a 1 px border. The layer
+	// reaches 44 px on a coarse pointer.
+	test("the default trigger carries the hit-area layer", () => {
+		const { trigger } = setup();
+		expectClasses(trigger, "size-7");
+		expectHitArea(trigger, "box28Bordered");
 	});
 
 	test("arrow keys move focus and Enter selects", async () => {

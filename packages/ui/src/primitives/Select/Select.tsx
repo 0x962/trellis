@@ -1,6 +1,7 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { Check, ChevronDown } from "lucide-react";
 import { cx } from "../../utils/cx";
+import { hitArea } from "../../utils/hitArea";
 import { popupMotion } from "../../utils/popupMotion";
 
 export type SelectItem<Value extends string> = {
@@ -18,8 +19,9 @@ export type SelectProps<Value extends string> = {
 	className?: string;
 };
 
-// A single-value picker. The trigger is a 28 px combobox; the list opens
-// under it and follows the arrow keys.
+// A single-value picker. The trigger is a 28 px combobox at least 96 px wide;
+// the hit-area layer reaches the 44 px minimum on a coarse pointer. The list
+// opens under it and follows the arrow keys.
 export function Select<Value extends string>({
 	label,
 	items,
@@ -40,6 +42,7 @@ export function Select<Value extends string>({
 				aria-disabled={disabled || undefined}
 				className={cx(
 					"inline-flex h-7 min-w-24 shrink-0 items-center justify-between gap-2 rounded-md border border-border bg-surface pr-1.5 pl-2 text-sm text-fg whitespace-nowrap select-none transition duration-hover ease-out",
+					hitArea.box28Bordered,
 					"hover:bg-bg hover:border-border-strong data-popup-open:bg-bg",
 					"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 					"disabled:opacity-50 disabled:pointer-events-none",

@@ -20,7 +20,8 @@ describe("Checkbox", () => {
 		expect(done.getAttribute("aria-checked")).toBe("false");
 		expectClasses(done, "size-4 rounded-sm border-border-strong data-checked:bg-accent");
 		expectFocusRing(done);
-		expectHitArea(done, 16);
+		// The box has a 1 px border, so the layer reaches 7 px past the padding box.
+		expectHitArea(done, "box16Bordered");
 		done.focus();
 		await user.keyboard(" ");
 		expect(onCheckedChange).toHaveBeenCalledTimes(1);

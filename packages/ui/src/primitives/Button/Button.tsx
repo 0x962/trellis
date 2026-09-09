@@ -26,18 +26,19 @@ const variants: Record<ButtonVariant, string> = {
 };
 
 const sizes: Record<ButtonSize, string> = {
-	md: `h-7 px-2.5 text-sm ${hitArea[28]}`,
-	sm: `h-6 px-2 text-xs ${hitArea[24]}`,
+	md: `h-7 px-2.5 text-sm ${hitArea.box28Bordered}`,
+	sm: `h-6 px-2 text-xs ${hitArea.box24Bordered}`,
 };
 
-// The text button, drawn 28 px tall at size md and 24 px at size sm. The
-// hit-area layer brings both sizes to the 28 px and 44 px minimums.
+// The text button, drawn 28 px tall at size md and 24 px at size sm, and at
+// least 28 px wide. The hit-area layer brings both sizes to the 28 px and
+// 44 px minimums in both axes.
 export function Button({ variant = "default", size = "md", icon, kbd, className, children, ...props }: ButtonProps) {
 	const onFill = variant === "primary" || variant === "danger";
 	return (
 		<BaseButton
 			className={cx(
-				"inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border font-medium whitespace-nowrap select-none transition duration-hover ease-out",
+				"inline-flex min-w-7 shrink-0 items-center justify-center gap-1.5 rounded-md border font-medium whitespace-nowrap select-none transition duration-hover ease-out",
 				"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 				"disabled:opacity-50 disabled:pointer-events-none",
 				variants[variant],

@@ -1,6 +1,7 @@
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { cx } from "../../utils/cx";
+import { hitArea } from "../../utils/hitArea";
 
 export type SegmentedOption<Value extends string> = {
 	value: Value;
@@ -17,7 +18,12 @@ export type SegmentedProps<Value extends string> = {
 };
 
 // A view switch, such as Table | Board. One option is always on; arrow keys
-// move it.
+// move it. Each item draws its own 1 px border, so the group clips nothing
+// and the hit-area layer of an item reaches above and below the group. An
+// item is at least 28 px wide, and 44 px on a coarse pointer, so the width
+// meets the minimum without a layer that would cover a neighbour. Base UI
+// renders a hidden input after each item, so the end items are found by
+// type, not by child position.
 export function Segmented<Value extends string>({
 	label,
 	options,
@@ -30,7 +36,7 @@ export function Segmented<Value extends string>({
 			aria-label={label}
 			value={value}
 			onValueChange={(next) => onValueChange(next as Value)}
-			className={cx("inline-flex shrink-0 overflow-hidden rounded-md border border-border bg-surface", className)}
+			className={cx("inline-flex shrink-0 rounded-md", className)}
 		>
 			{options.map((option) => (
 				<Radio.Root
@@ -38,9 +44,11 @@ export function Segmented<Value extends string>({
 					value={option.value}
 					className={(state) =>
 						cx(
-							"inline-flex h-6.5 cursor-default items-center px-2.5 text-sm leading-none whitespace-nowrap select-none transition-colors duration-hover ease-out",
+							"inline-flex h-7 min-w-7 cursor-default items-center justify-center border-y border-border px-2.5 text-sm leading-none whitespace-nowrap select-none transition-colors duration-hover ease-out pointer-coarse:min-w-11",
+							"first-of-type:rounded-l-md first-of-type:border-l last-of-type:rounded-r-md last-of-type:border-r",
+							hitArea.segment28,
 							"focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
-							state.checked ? "bg-bg text-fg" : "text-fg-muted hover:text-fg",
+							state.checked ? "bg-bg text-fg" : "bg-surface text-fg-muted hover:text-fg",
 						)
 					}
 				>

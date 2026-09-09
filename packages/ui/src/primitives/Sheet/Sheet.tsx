@@ -15,6 +15,9 @@ export type SheetProps = {
 	modal?: boolean;
 	// The panel width in px. A resizable peek passes the width it holds.
 	width?: number;
+	// The element a resizable peek drags to change its width. The Sheet places
+	// it on the edge that faces the page; the drag logic belongs to the caller.
+	resizeHandle?: ReactNode;
 	children: ReactNode;
 	className?: string;
 };
@@ -35,6 +38,7 @@ export function Sheet({
 	side = "right",
 	modal = false,
 	width = 720,
+	resizeHandle,
 	children,
 	className,
 }: SheetProps) {
@@ -50,7 +54,7 @@ export function Sheet({
 					<BaseDialog.Backdrop className="fixed inset-0 z-50 bg-scrim transition-opacity duration-peek ease-out data-starting-style:opacity-0 data-ending-style:opacity-0" />
 				)}
 				<BaseDialog.Popup
-					aria-modal={modal ? "true" : undefined}
+					aria-modal={modal ? "true" : "false"}
 					style={{ width }}
 					className={cx(
 						"fixed inset-y-0 z-50 flex max-w-full flex-col border-border bg-surface text-base text-fg shadow-lg outline-none",
@@ -62,6 +66,11 @@ export function Sheet({
 						className,
 					)}
 				>
+					{resizeHandle && (
+						<div className={cx("absolute inset-y-0 z-10 flex", side === "right" ? "left-0" : "right-0")}>
+							{resizeHandle}
+						</div>
+					)}
 					<header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-4">
 						<BaseDialog.Title className="flex-1 truncate font-mono text-sm text-fg-muted">{title}</BaseDialog.Title>
 						<BaseDialog.Close render={<IconButton label="Close" icon={<X />} />} />

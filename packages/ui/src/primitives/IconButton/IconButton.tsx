@@ -14,7 +14,7 @@ export type IconButtonProps = Omit<ComponentProps<typeof BaseButton>, "children"
 
 // A square button that shows one icon, drawn 28 px at size md and 24 px at
 // size sm. The hit-area layer brings both sizes to the 28 px and 44 px
-// minimums.
+// minimums in both axes.
 export function IconButton({ label, icon, size = "md", variant = "quiet", className, ...props }: IconButtonProps) {
 	return (
 		<BaseButton
@@ -26,7 +26,7 @@ export function IconButton({ label, icon, size = "md", variant = "quiet", classN
 				variant === "quiet"
 					? "border-transparent bg-transparent text-fg-muted hover:bg-bg hover:text-fg"
 					: "border-border bg-surface text-fg hover:bg-bg hover:border-border-strong",
-				size === "md" ? `size-7 ${hitArea[28]}` : `size-6 ${hitArea[24]}`,
+				size === "md" ? `size-7 ${hitArea.box28Bordered}` : `size-6 ${hitArea.box24Bordered}`,
 				className,
 			)}
 			{...props}

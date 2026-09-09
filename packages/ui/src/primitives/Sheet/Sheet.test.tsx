@@ -28,7 +28,7 @@ describe("Sheet", () => {
 	// The ticket peek is a non-modal dialog: the list behind it stays
 	// reachable, so j and k walk the list while the peek shows the ticket. A
 	// click or a focus move outside the sheet leaves it open.
-	test("non-modal by default: no scrim, no aria-modal, the page stays reachable, and an outside click leaves it open", async () => {
+	test("non-modal by default: no scrim, aria-modal false, the page stays reachable, and an outside click leaves it open", async () => {
 		const user = userEvent.setup();
 		const onOpenChange = mock();
 		render(
@@ -40,7 +40,7 @@ describe("Sheet", () => {
 			</>,
 		);
 		const panel = screen.getByRole("dialog", { name: "CDE-43" });
-		expect(panel.getAttribute("aria-modal")).toBeNull();
+		expect(panel.getAttribute("aria-modal")).toBe("false");
 		expect(document.querySelector(".bg-scrim")).toBeNull();
 		const row = screen.getByRole("button", { name: "Row" });
 		expect(row.closest("[aria-hidden='true']")).toBeNull();
@@ -62,6 +62,32 @@ describe("Sheet", () => {
 			</Sheet>,
 		);
 		expect(screen.getByRole("dialog", { name: "CDE-43" }).style.width).toBe("900px");
+	});
+
+	// The peek is resizable: the caller passes the handle element, and the
+	// Sheet places it on the edge that faces the page, inside the dialog.
+	test("resizeHandle renders on the page-facing edge of the panel", () => {
+		const { rerender } = render(
+			<Sheet open title="CDE-43" onOpenChange={() => {}} resizeHandle={<button type="button" aria-label="Resize" />}>
+				<p>Merge upstream 1.27</p>
+			</Sheet>,
+		);
+		const panel = screen.getByRole("dialog", { name: "CDE-43" });
+		const handle = screen.getByRole("button", { name: "Resize" });
+		expect(panel.contains(handle)).toBe(true);
+		expectClasses(handle.parentElement!, "absolute inset-y-0 left-0");
+		rerender(
+			<Sheet
+				open
+				side="left"
+				title="CDE-43"
+				onOpenChange={() => {}}
+				resizeHandle={<button type="button" aria-label="Resize" />}
+			>
+				<p>Merge upstream 1.27</p>
+			</Sheet>,
+		);
+		expectClasses(screen.getByRole("button", { name: "Resize" }).parentElement!, "absolute inset-y-0 right-0");
 	});
 
 	test("modal renders the scrim and marks the dialog modal", () => {

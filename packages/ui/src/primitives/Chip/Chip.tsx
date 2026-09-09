@@ -41,7 +41,7 @@ export function Chip({ icon, label, op = "is", value, onRemove, className }: Chi
 					onClick={onRemove}
 					className={cx(
 						"-mr-0.5 inline-flex size-4 items-center justify-center rounded-sm text-fg-faint transition duration-hover hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1",
-						hitArea[16],
+						hitArea.box16,
 					)}
 				>
 					<X className="size-3" />

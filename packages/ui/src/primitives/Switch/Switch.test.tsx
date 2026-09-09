@@ -33,7 +33,7 @@ describe("Switch", () => {
 		const sound = screen.getByRole("switch", { name: "Sound" });
 		expectClasses(sound, "h-4 w-7 rounded-xl bg-border-strong data-checked:bg-accent duration-hover");
 		expectFocusRing(sound);
-		expectHitArea(sound, 16);
+		expectHitArea(sound, "box16");
 		sound.focus();
 		await user.keyboard(" ");
 		expect(onCheckedChange).toHaveBeenLastCalledWith(true);

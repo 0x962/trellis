@@ -19,7 +19,7 @@ describe("Chip", () => {
 		// The glyph box is 16 px; the ::before layer extends the hit area by 6 px
 		// on every side to the 28 px desktop minimum.
 		expectClasses(remove, "size-4 relative before:absolute before:-inset-1.5");
-		expectHitArea(remove, 16);
+		expectHitArea(remove, "box16");
 		await user.click(remove);
 		expect(onRemove).toHaveBeenCalledTimes(1);
 

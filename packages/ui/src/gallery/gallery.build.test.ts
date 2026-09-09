@@ -31,5 +31,7 @@ describe("gallery", () => {
 		expect(css).toMatch(/--bg:\s*#f5f5f5/i);
 		expect(css).toContain("--color-bg");
 		expect(css).toContain("inter-latin-wght-normal");
+		expect(css).not.toContain("inter-cyrillic");
+		expect(css).not.toContain("inter-latin-ext");
 	}, 120_000);
 });

@@ -27,17 +27,20 @@ describe("Button", () => {
 		expectClasses(screen.getByRole("button", { name: "Small" }), "h-6 text-xs");
 	});
 
-	// Size md is drawn 28 px tall and size sm 24 px. Both reach 28 px on a
-	// desktop pointer and 44 px on a coarse pointer through the hit-area layer.
-	test("both sizes carry the hit-area layer", () => {
+	// Size md is drawn 28 px tall and size sm 24 px, both with a 1 px border
+	// and at least 28 px wide. Both reach 28 px on a desktop pointer and 44 px
+	// on a coarse pointer in both axes through the hit-area layer.
+	test("both sizes carry the hit-area layer and the 28 px min-width", () => {
 		render(
 			<>
 				<Button>Medium</Button>
 				<Button size="sm">Small</Button>
 			</>,
 		);
-		expectHitArea(screen.getByRole("button", { name: "Medium" }), 28);
-		expectHitArea(screen.getByRole("button", { name: "Small" }), 24);
+		expectHitArea(screen.getByRole("button", { name: "Medium" }), "box28Bordered");
+		expectHitArea(screen.getByRole("button", { name: "Small" }), "box24Bordered");
+		expectClasses(screen.getByRole("button", { name: "Medium" }), "min-w-7");
+		expectClasses(screen.getByRole("button", { name: "Small" }), "min-w-7");
 	});
 
 	test("Enter and Space activate the button", async () => {
