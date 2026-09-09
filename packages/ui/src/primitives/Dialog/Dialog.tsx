@@ -14,8 +14,9 @@ export type DialogProps = {
 };
 
 // A modal over a scrim. Base UI moves focus inside on the frame after it
-// opens, unless a child took focus first, keeps it inside until it closes,
-// and returns it to the opener. Escape and a click on the scrim ask to close.
+// opens, unless a child took focus first. Focus stays inside until it
+// closes, and returns to the opener. Escape and a click on the scrim ask to
+// close.
 export function Dialog({ open, onOpenChange, title, description, children, className }: DialogProps) {
 	return (
 		<BaseDialog.Root open={open} onOpenChange={(next) => onOpenChange(next)}>

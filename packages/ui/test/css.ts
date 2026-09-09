@@ -2,8 +2,8 @@ import { join } from "node:path";
 
 // One top-level piece of a stylesheet, in source order. A statement is an
 // at-rule without a body (`@import "x";`). A block keeps the declarations
-// written directly inside it and the blocks nested in it, so a `@media` rule
-// holds the `:root` rule it wraps as a child.
+// written directly inside it and the blocks nested in it. A `@media` rule
+// therefore holds the `:root` rule it wraps as a child.
 export type Piece = {
 	prelude: string;
 	statement: boolean;

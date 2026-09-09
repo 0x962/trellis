@@ -37,8 +37,8 @@ describe("Sheet", () => {
 		expect(document.querySelector(".bg-scrim")).not.toBeNull();
 	});
 
-	// The ticket peek is a non-modal dialog: the list behind it stays
-	// reachable, so j and k walk the list while the peek shows the ticket. A
+	// The ticket peek is a non-modal dialog, so the list behind it stays
+	// reachable. j and k walk the list while the peek shows the ticket. A
 	// click or a focus move outside the sheet leaves it open.
 	test("modal={false}: no scrim, aria-modal false, the page stays reachable, and an outside click leaves it open", async () => {
 		const user = userEvent.setup();

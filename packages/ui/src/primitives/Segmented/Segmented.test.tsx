@@ -47,7 +47,7 @@ describe("Segmented", () => {
 	});
 
 	// An item is 28 px tall with a 1 px border. The layer grows its height to
-	// 44 px on a coarse pointer; the min-width grows its drawn width to 28 px
+	// 44 px on a coarse pointer. The min-width grows its drawn width to 28 px
 	// and 44 px, so the layer never covers the item beside it.
 	test("every item carries the hit-area layer and the min-widths", () => {
 		render(

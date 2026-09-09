@@ -11,8 +11,8 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 // happy-dom's focus() ignores its options. Base UI returns focus to a
 // trigger after an outside click only when the browser reads
-// `focus({ preventScroll })`, and it detects that support through a getter
-// on the options object. Reading the option here makes happy-dom behave like
+// `focus({ preventScroll })`. It detects that support through a getter on
+// the options object. Reading the option here makes happy-dom behave like
 // every desktop browser.
 const focus = HTMLElement.prototype.focus;
 HTMLElement.prototype.focus = function (options?: FocusOptions) {

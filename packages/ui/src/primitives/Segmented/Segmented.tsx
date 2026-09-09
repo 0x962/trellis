@@ -18,9 +18,9 @@ export type SegmentedProps<Value extends string> = {
 };
 
 // A view switch, such as Table | Board. One option is always on; arrow keys
-// move it. Each item draws its own 1 px border, so the group clips nothing
-// and the hit-area layer of an item reaches above and below the group. An
-// item is at least 28 px wide, and 44 px on a coarse pointer, so the width
+// move it. Each item draws its own 1 px border, so the group clips nothing.
+// The hit-area layer of an item therefore reaches above and below the group.
+// An item is at least 28 px wide, and 44 px on a coarse pointer. The width
 // meets the minimum without a layer that would cover a neighbour. Base UI
 // renders a hidden input after each item, so the end items are found by
 // type, not by child position.

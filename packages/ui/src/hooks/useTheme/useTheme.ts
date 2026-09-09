@@ -30,7 +30,7 @@ const stamp = (mode: ThemeMode) => {
 // A theme switch is never animated. Every control carries a color transition
 // for hover, so data-theme-switch on <html> turns every transition off
 // (tokens.css) while the palette swaps. The attribute comes off two frames
-// later: the first frame paints the new palette, the second frame sees only
+// later. The first frame paints the new palette. The second frame sees only
 // the transition property change, so no control fades between themes.
 const setTheme = (next: ThemeMode) => {
 	const root = document.documentElement;
