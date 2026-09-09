@@ -21,8 +21,6 @@ export type Matcher = { path: string[]; input?: Record<string, unknown>; dataId?
 
 export const family = (...path: string[]): Matcher => ({ path });
 
-export const byInput = (path: string[], input: Record<string, unknown>): Matcher => ({ path, input });
-
 // A sub-resource query names its ticket in `input.ticket`. The ticket page
 // opens it by the identifier from the URL, and a list row opens it by ULID.
 // `forTicket` matches both spellings of one ticket.
@@ -81,16 +79,13 @@ const matchingQueries = (queryClient: QueryClient, matcher: Matcher, identifiers
 
 export type InvalidationCoalescer = {
 	enqueue: (matchers: Matcher[]) => void;
-	pendingQueries: (identifiers: Map<string, string>) => Set<Query>;
 	invalidateAll: () => void;
 };
 
 // Queued matchers flush as one `invalidateQueries` call, and a flush that
-// covers no cached query makes no call. `pendingQueries` names every cached
-// query the queue covers, so a patch does not land on a query that is about
-// to refetch. It scans the cache once per queued matcher, so a caller builds
-// the identifier map once and asks once per event. `invalidateAll` drops the
-// queue, because a full invalidation covers every queued family.
+// covers no cached query makes no call. The flush scans the cache once per
+// queued matcher. `invalidateAll` drops the queue, because a full
+// invalidation covers every queued family.
 export const createInvalidationCoalescer = (
 	queryClient: QueryClient,
 	scheduler: Scheduler,
@@ -100,12 +95,12 @@ export const createInvalidationCoalescer = (
 	let timer: unknown;
 	let firstQueuedAt = 0;
 
-	const coveredQueries = (identifiers: Map<string, string>) =>
-		new Set([...pending.values()].flatMap((matcher) => matchingQueries(queryClient, matcher, identifiers)));
-
 	const flush = () => {
 		timer = undefined;
-		const targets = coveredQueries(ticketIdentifiers(queryClient));
+		const identifiers = ticketIdentifiers(queryClient);
+		const targets = new Set(
+			[...pending.values()].flatMap((matcher) => matchingQueries(queryClient, matcher, identifiers)),
+		);
 		pending.clear();
 		if (targets.size === 0) return;
 		void queryClient.invalidateQueries({ predicate: (query) => targets.has(query) });
@@ -123,9 +118,6 @@ export const createInvalidationCoalescer = (
 		timer = scheduler.setTimeout(flush, flushAt - now);
 	};
 
-	const pendingQueries = (identifiers: Map<string, string>) =>
-		pending.size === 0 ? new Set<Query>() : coveredQueries(identifiers);
-
 	const invalidateAll = () => {
 		if (timer !== undefined) scheduler.clearTimeout(timer);
 		timer = undefined;
@@ -133,5 +125,5 @@ export const createInvalidationCoalescer = (
 		void queryClient.invalidateQueries();
 	};
 
-	return { enqueue, pendingQueries, invalidateAll };
+	return { enqueue, invalidateAll };
 };

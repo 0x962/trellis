@@ -3,6 +3,7 @@ import { type QueryClient, QueryObserver } from "@tanstack/query-core";
 import {
 	cached,
 	deletedEvent,
+	detailKey,
 	isInvalidated,
 	listKey,
 	listPage,
@@ -11,6 +12,7 @@ import {
 	summaryAt,
 	updatedEvent,
 } from "../test/applierHarness.ts";
+import { ticket } from "../test/fixtures.ts";
 
 describe("applyEvent during a refetch", () => {
 	// An active list whose queryFn answers only when the test says so. Each
@@ -60,5 +62,32 @@ describe("applyEvent during a refetch", () => {
 		expect(queryFn).toHaveBeenCalledTimes(2);
 		await answer(1, listPage());
 		expect(cached(queryClient, listKey)).toEqual(listPage());
+	});
+});
+
+describe("applyEvent on a detail that refetches for its description", () => {
+	// A detail that waits for its description takes no patch. A refetch that
+	// started before a later event can bring the text at the description's
+	// version and miss that event. So the detail refetches once more.
+	test("a title event during the detail's refetch makes the detail refetch again", async () => {
+		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
+		const answers: ((value: unknown) => void)[] = [];
+		const queryFn = mock(() => new Promise<unknown>((resolve) => answers.push(resolve)));
+		const observer = new QueryObserver(queryClient, { queryKey: detailKey, queryFn, staleTime: Infinity });
+		observer.subscribe(() => {});
+		applier.applyEvent(updatedEvent(summaryAt(4), ["description"]));
+		advanceTo(250);
+		expect(queryFn).toHaveBeenCalledTimes(1);
+		applier.applyEvent(updatedEvent(summaryAt(5, { title: "Fifth" }), ["title"]));
+		expect(cached(queryClient, detailKey)).toEqual(ticket(summaryAt(3)));
+		answers[0]!(ticket({ ...summaryAt(4), description: "New text" }));
+		await queryClient.getQueryCache().find({ queryKey: detailKey, exact: true })!.promise;
+		advanceTo(500);
+		expect(queryFn).toHaveBeenCalledTimes(2);
+		answers[1]!(ticket({ ...summaryAt(5, { title: "Fifth" }), description: "New text" }));
+		await queryClient.getQueryCache().find({ queryKey: detailKey, exact: true })!.promise;
+		expect(cached(queryClient, detailKey)).toEqual(
+			ticket({ ...summaryAt(5, { title: "Fifth" }), description: "New text" }),
+		);
 	});
 });

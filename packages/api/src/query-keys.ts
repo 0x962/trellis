@@ -9,7 +9,6 @@ import {
 	INBOX_TRAILING_MS,
 	type Matcher,
 	ticketDetail,
-	ticketIdentifiers,
 } from "./invalidationCoalescer.ts";
 import { realScheduler, type Scheduler } from "./scheduler.ts";
 import { patchTicketQuery, type TicketChange } from "./ticketPatches.ts";
@@ -72,17 +71,21 @@ export type EventApplier = {
 
 // Patch first, invalidate rarely. Every `ticket.*` event patches each cached
 // list, board, inbox section, search result, and detail that holds the
-// ticket. A patch lands only when the incoming version is higher.
-// Invalidations queue in two coalescers, one for the inbox and one for the
-// rest, and each flush is one `invalidateQueries` call. A query that waits
-// for a refetch takes no patch. The refetch brings the whole row, and a
-// patch would clear the invalidated flag with old data still in the query.
-// A query whose refetch is already running refetches once more after the
-// event: that refetch may have read the rows before the event's commit, and
-// under `staleTime: Infinity` nothing else would repair the older row. While
-// a mutation is in flight for a ticket, its events wait, folded into one
-// change. They apply after the mutation settles, so the mutation's own
-// response never overwrites a newer row.
+// ticket. A patch lands only when the incoming version is higher. A query
+// with a queued invalidation takes the patch too, and the invalidation still
+// fires. Invalidations queue in two coalescers, one for the inbox and one for
+// the rest, and each flush is one `invalidateQueries` call. A query whose
+// refetch is already running takes no patch and refetches once more after
+// the event: that refetch may have read the rows before the event's commit,
+// a patch would clear the invalidated flag with old data still in the query,
+// and under `staleTime: Infinity` nothing else would repair the older row.
+// The detail holds the description and a summary event does not carry it.
+// So after a description event the detail keeps its version until a refetch
+// brings a row at that version or newer, or the next save would pass the
+// version check and overwrite the newer text. While a mutation is in flight
+// for a ticket, its events wait, folded into one change. They apply after
+// the mutation settles, so the mutation's own response never overwrites a
+// newer row.
 export const createEventApplier = (queryClient: QueryClient, options: { scheduler?: Scheduler } = {}): EventApplier => {
 	const scheduler = options.scheduler ?? realScheduler;
 	const general = createInvalidationCoalescer(queryClient, scheduler);
@@ -92,6 +95,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	});
 	const inFlight = new Map<string, number>();
 	const waiting = new Map<string, HeldChange>();
+	// By ticket id: the version of the last description event. A cached
+	// detail below that version holds old text and takes no patch.
+	const descriptionVersions = new Map<string, number>();
 
 	const enqueue = (matchers: Matcher[]) => {
 		const inboxMatchers = matchers.filter(isInboxMatcher);
@@ -105,20 +111,35 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		general.invalidateAll();
 	};
 
-	// Returns the id of every cached parent whose `children` lost a row. The
-	// identifier map and the pending sets are built once per change, so one
-	// change costs a fixed number of cache scans however many queries the
-	// cache holds.
+	// True for the detail of the changed ticket while it waits for the text
+	// of a description event. A refetch that brings that version or a newer
+	// one ends the wait. A detail that waits refetches once more after every
+	// event, because a refetch that started before the event can bring the
+	// text at the description's version and miss the event.
+	const waitsForDescription = (id: string, data: unknown) => {
+		const version = descriptionVersions.get(id);
+		if (version === undefined || (data as { id: unknown }).id !== id) return false;
+		if ((data as { version: number }).version < version) return true;
+		descriptionVersions.delete(id);
+		return false;
+	};
+
+	// Returns the id of every cached parent whose `children` lost a row. One
+	// change walks the cache once, however many queries the cache holds.
 	const patchTicket = (change: TicketChange) => {
 		const parentsThatLostAChild: string[] = [];
-		const identifiers = ticketIdentifiers(queryClient);
-		const pending = new Set([...general.pendingQueries(identifiers), ...inbox.pendingQueries(identifiers)]);
+		const id = change.summary.id;
+		if (change.fields.includes("description")) descriptionVersions.set(id, change.summary.version);
 		for (const query of queryClient.getQueryCache().getAll()) {
 			const data = query.state.data;
 			if (data === undefined) continue;
 			const detail = isDetail(query.queryKey);
-			if (change.deleted && detail && (data as { id: unknown }).id === change.summary.id) {
+			if (change.deleted && detail && (data as { id: unknown }).id === id) {
 				queryClient.removeQueries({ queryKey: query.queryKey, exact: true });
+				continue;
+			}
+			if (detail && waitsForDescription(id, data)) {
+				enqueue([forQuery(query)]);
 				continue;
 			}
 			const patched = patchTicketQuery(query.queryKey, data, change);
@@ -127,7 +148,6 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 				enqueue([forQuery(query)]);
 				continue;
 			}
-			if (pending.has(query)) continue;
 			queryClient.setQueryData(query.queryKey, patched);
 			if (detail && childCount(patched) < childCount(data)) parentsThatLostAChild.push((data as { id: string }).id);
 		}
