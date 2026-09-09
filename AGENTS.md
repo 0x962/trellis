@@ -21,7 +21,7 @@ trellis is a local ticket tracker for agent-driven work. The plan is `docs/desig
 
 - Happy path only: no fallbacks, no retries, no defensive checks on internal inputs. Let an error crash at the failure point.
 - Reserve error handling for the system boundaries: user input, the gh binary, the network.
-- Every query and every service takes `tx` first. No module-level `db` outside `db/client.ts` and `db/tx.ts`. A nested query inside a PGlite transaction deadlocks the server. Biome fails `lint` on an import of `db/client` from outside `db/`.
+- `tx` first: every query takes `(tx, input)` and every service takes `(ctx, tx, input)`; a function that touches the database receives `tx` and never imports a module-level `db`. No module-level `db` outside `db/client.ts` and `db/tx.ts`. A nested query inside a PGlite transaction deadlocks the server. Biome fails `lint` on an import of `db/client` from outside `db/`.
 - Layers import downward only: `api` is imported by server, web, mobile, and cli; `ui` is imported by web only. Packages export TypeScript source and are side-effect free.
 - One folder per module or component: `Name/Name.ts(x)`, `Name/Name.test.ts(x)`, `Name/index.ts`. Used once: nest under the user's `components/`. Used twice: promote to the highest shared parent.
 - One exported component or service per file. A file over 300 lines gets split.

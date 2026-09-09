@@ -244,7 +244,7 @@ packages/cli/test/          smoke.test.ts (spawned server), perf.test.ts, actor.
 
 Rules that came out of the critiques and that a reviewer checks on every PR:
 
-- No module-level `db` outside `db/client.ts` and `db/tx.ts`; every query and service takes `tx` first (a nested query inside a PGlite transaction deadlocks the process). Enforced by a Biome `noRestrictedImports` rule and one test with a 2 s timeout.
+- No module-level `db` outside `db/client.ts` and `db/tx.ts`; `tx` first: every query takes `(tx, input)` and every service takes `(ctx, tx, input)`; nothing that touches the database imports a module-level `db` (a nested query inside a PGlite transaction deadlocks the process). Enforced by a Biome `noRestrictedImports` rule and one test with a 2 s timeout.
 - The DB worker keeps PGlite's synchronous WASM execution off the thread that serves HTTP, SSE, gh pipes, and uploads. Search requests carry a client id; a newer one drops a superseded one before it runs. Search has `SET LOCAL statement_timeout = 200`.
 - `withTx` queues events and flushes them after commit.
 - Shutdown: stop accepting → SSE `bye {reason}` → poller drain (5 s deadline) → worker close → exit 0.
