@@ -1,5 +1,5 @@
 import { mock, spyOn } from "bun:test";
-import { notifyManager, QueryClient, QueryObserver } from "@tanstack/query-core";
+import { InfiniteQueryObserver, notifyManager, QueryClient, QueryObserver } from "@tanstack/query-core";
 import { createEventApplier } from "../src/query-keys.ts";
 import { createFakeScheduler } from "./fakeScheduler.ts";
 import { queryKey, statusId, ticket, ticketSummary, ulid } from "./fixtures.ts";
@@ -89,4 +89,27 @@ export const observeQuery = (queryClient: QueryClient, key: unknown[]) => {
 		await new Promise((resolve) => setTimeout(resolve, 0));
 	};
 	return { queryFn, answer, observer, seen };
+};
+
+// An active infinite query whose queryFn answers only when the test says
+// so. A refetch fetches every cached page in turn, so one promise answers
+// one page, and the next page's call follows the answer after one timer
+// tick. The first page's param is null, and each later page's param is the
+// previous page's `nextCursor`.
+export const observeInfiniteQuery = (queryClient: QueryClient, key: unknown[]) => {
+	const answers: ((value: unknown) => void)[] = [];
+	const queryFn = mock(() => new Promise<unknown>((resolve) => answers.push(resolve)));
+	const observer = new InfiniteQueryObserver(queryClient, {
+		queryKey: key,
+		queryFn,
+		initialPageParam: null as string | null,
+		getNextPageParam: (lastPage: unknown) => (lastPage as { nextCursor: string | null }).nextCursor,
+		staleTime: Infinity,
+	});
+	observer.subscribe(() => {});
+	const answerPage = async (index: number, value: unknown) => {
+		answers[index]!(value);
+		await new Promise((resolve) => setTimeout(resolve, 0));
+	};
+	return { queryFn, answerPage, observer };
 };
