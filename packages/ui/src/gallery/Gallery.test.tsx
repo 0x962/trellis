@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { expectFocusRing, expectHitArea } from "../../test/classes";
 import { mockMatchMedia } from "../../test/media";
 import { Gallery } from "./Gallery";
 
@@ -58,6 +59,17 @@ describe("Gallery", () => {
 		expect(buttons.filter((button) => button.hasAttribute("disabled")).length).toBeGreaterThan(0);
 		expect(withClasses("h-6 text-xs").length).toBeGreaterThan(0);
 		expect(withClasses("h-7 text-sm").length).toBeGreaterThan(0);
+	});
+
+	// The peek's stand-in handle is a 4 px strip. It carries the hit-area
+	// layer and draws the accent ring, like every control.
+	test("the peek's resize handle reaches the hit-area minimums and draws the focus ring", async () => {
+		const user = userEvent.setup();
+		render(<Gallery />);
+		await user.click(screen.getByRole("button", { name: "Peek CDE-43" }));
+		const handle = await screen.findByRole("button", { name: "Resize" });
+		expectHitArea(handle, "handle4");
+		expectFocusRing(handle);
 	});
 
 	test("the composition section reproduces the mockup rows with the real components", () => {

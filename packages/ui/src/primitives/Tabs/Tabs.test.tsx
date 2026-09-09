@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { expectClasses, expectFocusRing } from "../../../test/classes";
+import { expectClasses, expectFocusRing, expectHitArea } from "../../../test/classes";
 import { Tabs } from "./Tabs";
 
 const items = [
@@ -30,6 +30,16 @@ describe("Tabs", () => {
 		expectClasses(all, "text-fg border-b-2 border-accent");
 		expectFocusRing(all);
 		expectClasses(screen.getByRole("tab", { name: "Comments" }), "text-fg-muted");
+	});
+
+	// A short label such as "All" is narrower than 28 px. The tab's min-width
+	// gives the width and the layer gives the height on a coarse pointer.
+	test("every tab reaches the 28 px and 44 px hit areas", () => {
+		render(<Tabs items={items} value="All" onValueChange={() => {}} />);
+		for (const tab of screen.getAllByRole("tab")) {
+			expectHitArea(tab, "tab32");
+			expectClasses(tab, "min-w-7 pointer-coarse:min-w-11 justify-center");
+		}
 	});
 
 	// Base UI renders the panel with tabindex="0", so Tab lands on it after

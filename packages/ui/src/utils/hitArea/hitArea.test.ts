@@ -5,20 +5,22 @@ import { compile } from "tailwindcss";
 import { blocks, packageRoot, parseCss, readSource } from "../../../test/css";
 import { type HitAreaKey, hitArea } from "./hitArea";
 
-// The drawn box each entry serves: the smallest border box in px, and the
-// border width that the layer's insets have to cross. A control with text
-// declares the smallest width its own min-width class allows.
-const geometry: Record<HitAreaKey, { width: number; height: number; border: number }> = {
-	box16: { width: 16, height: 16, border: 0 },
-	box16Bordered: { width: 16, height: 16, border: 1 },
-	box24Bordered: { width: 28, height: 24, border: 1 },
-	box28Bordered: { width: 28, height: 28, border: 1 },
-	segment28: { width: 28, height: 28, border: 1 },
+// The drawn box each entry serves: the smallest border box in px. `borderX`
+// and `borderY` are the border widths the layer's insets cross, added up
+// per axis. A control with text declares the smallest width its own
+// min-width class allows; `coarseWidth` is that width on a coarse pointer.
+// The resize handle fills the sheet, which fills the viewport, so 320 px
+// stands for the shortest viewport.
+type Geometry = { width: number; height: number; borderX: number; borderY: number; coarseWidth?: number };
+const geometry: Record<HitAreaKey, Geometry> = {
+	box16: { width: 16, height: 16, borderX: 0, borderY: 0 },
+	box16Bordered: { width: 16, height: 16, borderX: 2, borderY: 2 },
+	box24Bordered: { width: 28, height: 24, borderX: 2, borderY: 2 },
+	box28Bordered: { width: 28, height: 28, borderX: 2, borderY: 2 },
+	segment28: { width: 28, height: 28, borderX: 2, borderY: 2, coarseWidth: 44 },
+	tab32: { width: 28, height: 32, borderX: 0, borderY: 2, coarseWidth: 44 },
+	handle4: { width: 4, height: 320, borderX: 0, borderY: 0 },
 };
-
-// The drawn width a segment reaches on a coarse pointer through its own
-// min-width class; the layer grows its height only.
-const segmentCoarseWidth = 44;
 
 // How far the layer reaches past the padding box on each axis, in px.
 type Insets = { x: number; y: number };
@@ -48,7 +50,7 @@ const selector = (name: string) => {
 
 describe("hitArea", () => {
 	// happy-dom lays nothing out, so the probe reads the compiled rules and
-	// adds the insets to the drawn box the way a browser does: the layer is
+	// adds the insets to the drawn box the way a browser does. The layer is
 	// positioned against the padding box, so the border sits between the
 	// drawn edge and the layer's edge. The hit box is the larger of the drawn
 	// box and the layer.
@@ -73,7 +75,7 @@ describe("hitArea", () => {
 		const css = compiler.build(classes);
 		const measured: Record<string, { fine: string; coarse: string }> = {};
 		for (const [key, entry] of Object.entries(hitArea) as [HitAreaKey, string][]) {
-			const { width, height, border } = geometry[key];
+			const { width, height, borderX, borderY, coarseWidth = width } = geometry[key];
 			let fine: Insets = { x: 0, y: 0 };
 			let coarse: Insets = fine;
 			for (const name of entry.split(" ")) {
@@ -89,17 +91,17 @@ describe("hitArea", () => {
 				}
 			}
 			const box = (insets: Insets, drawnWidth: number) => ({
-				width: Math.max(drawnWidth, drawnWidth - 2 * border + 2 * insets.x),
-				height: Math.max(height, height - 2 * border + 2 * insets.y),
+				width: Math.max(drawnWidth, drawnWidth - borderX + 2 * insets.x),
+				height: Math.max(height, height - borderY + 2 * insets.y),
 			});
 			const fineBox = box(fine, width);
-			const coarseBox = box(coarse, key === "segment28" ? segmentCoarseWidth : width);
+			const coarseBox = box(coarse, coarseWidth);
 			measured[key] = {
 				fine: `${fineBox.width}x${fineBox.height}`,
 				coarse: `${coarseBox.width}x${coarseBox.height}`,
 			};
-			expect(`${key} fine ${measured[key].fine}`).toMatch(/ (2[89]|[3-9]\d)x(2[89]|[3-9]\d)$/);
-			expect(`${key} coarse ${measured[key].coarse}`).toMatch(/ (4[4-9]|[5-9]\d)x(4[4-9]|[5-9]\d)$/);
+			expect(`${key} fine ${measured[key].fine}`).toMatch(/ (2[89]|[3-9]\d|\d{3,})x(2[89]|[3-9]\d|\d{3,})$/);
+			expect(`${key} coarse ${measured[key].coarse}`).toMatch(/ (4[4-9]|[5-9]\d|\d{3,})x(4[4-9]|[5-9]\d|\d{3,})$/);
 		}
 		expect(css).toContain("@media (pointer: coarse)");
 	});

@@ -29,6 +29,15 @@ export const hitArea = {
 	// gives the width: 28 px on a fine pointer and 44 px on a coarse pointer.
 	// Fine: 0, the drawn box is 28. Coarse: 9 px, 26 + 18 = 44.
 	segment28: "relative before:absolute before:inset-x-0 before:inset-y-0 pointer-coarse:before:-inset-y-2.25",
+	// A Tab: 32 px tall with a 2 px bottom border, so the padding box is 30 px
+	// tall. The tab's own min-width gives the width: 28 px on a fine pointer
+	// and 44 px on a coarse pointer. Fine: 0, the drawn box is 32. Coarse:
+	// 7 px, 30 + 14 = 44.
+	tab32: "relative before:absolute before:inset-0 pointer-coarse:before:-inset-y-1.75",
+	// A Sheet resize handle: a 4 px wide strip with no border that fills the
+	// panel's height, so the layer grows in width only.
+	// Fine: 12 px each side, 4 + 24 = 28. Coarse: 20 px, 4 + 40 = 44.
+	handle4: "relative before:absolute before:inset-y-0 before:-inset-x-3 pointer-coarse:before:-inset-x-5",
 } as const;
 
 export type HitAreaKey = keyof typeof hitArea;

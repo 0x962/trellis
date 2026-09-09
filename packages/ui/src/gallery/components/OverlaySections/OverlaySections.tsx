@@ -9,6 +9,8 @@ import { Popover } from "../../../primitives/Popover";
 import { Sheet } from "../../../primitives/Sheet";
 import { Toaster, toast } from "../../../primitives/Toast";
 import { Tooltip } from "../../../primitives/Tooltip";
+import { cx } from "../../../utils/cx";
+import { hitArea } from "../../../utils/hitArea";
 import { Section } from "../Section";
 
 const commands = [
@@ -72,7 +74,11 @@ export function OverlaySections() {
 						<button
 							type="button"
 							aria-label="Resize"
-							className="h-full w-1 cursor-col-resize transition-colors duration-hover hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+							className={cx(
+								"h-full w-1 cursor-col-resize transition-colors duration-hover hover:bg-accent focus-visible:bg-accent",
+								"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+								hitArea.handle4,
+							)}
 						/>
 					}
 				>
