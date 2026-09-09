@@ -17,9 +17,13 @@ export type Row = Record<string, unknown>;
 
 // Inserts one row and returns it. A jsonb value arrives as an object and
 // leaves as an object; every other value is passed as a bound parameter.
+// An array value is JSON text: the sql tag expands a raw array into a
+// comma list, which is a syntax error for an empty array.
 export const insertRow = async (tx: Executor, table: string, row: Row) => {
 	const columns = Object.keys(row).map((column) => sql.identifier(column));
-	const values = Object.values(row).map((value) => sql`${value}`);
+	const values = Object.values(row).map((value) =>
+		Array.isArray(value) ? sql`${JSON.stringify(value)}::jsonb` : sql`${value}`,
+	);
 	const result = await tx.execute(
 		sql`INSERT INTO ${sql.identifier(table)} (${sql.join(columns, sql`, `)}) VALUES (${sql.join(values, sql`, `)}) RETURNING *`,
 	);
