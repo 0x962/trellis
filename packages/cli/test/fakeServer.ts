@@ -1,5 +1,5 @@
 import { StandardRPCJsonSerializer, StandardRPCSerializer } from "@orpc/client/standard";
-import { type ErrorCode, errors } from "@trellis/api";
+import { contract, type ErrorCode, errors } from "@trellis/api";
 import apiPkg from "../../api/package.json";
 
 // The api version a real server sends in `x-trellis-api-version`.
@@ -72,6 +72,28 @@ const decodeInput = async (request: Request): Promise<unknown> => {
 	return serializer.deserialize(await request.json());
 };
 
+type StandardSchema = {
+	validate: (input: unknown) => { issues?: ReadonlyArray<{ path?: unknown; message: string }> };
+};
+
+// The input schema the contract declares for a dotted procedure path, or
+// undefined for a procedure without an input (`system.health`).
+const inputSchemaOf = (path: string): StandardSchema | undefined => {
+	// biome-ignore lint/suspicious/noExplicitAny: the contract is walked by its dotted path.
+	const procedure = path.split(".").reduce((node: any, key) => node[key], contract);
+	return procedure["~orpc"].inputSchema?.["~standard"];
+};
+
+// An input the contract refuses fails the test at the fake, the way the real
+// server answers INPUT_VALIDATION_FAILED. A verb whose test passes here sends
+// what the server accepts.
+const assertValidInput = (path: string, input: unknown) => {
+	const result = inputSchemaOf(path)?.validate(input);
+	if (result === undefined || result.issues === undefined) return;
+	const detail = result.issues.map((issue) => `${JSON.stringify(issue.path ?? [])}: ${issue.message}`).join("; ");
+	throw new Error(`fake server: ${path} refuses the input: ${detail}`);
+};
+
 const encode = (body: unknown, status: number, headers: Record<string, string>) => {
 	const [json, meta] = jsonSerializer.serialize(body);
 	return new Response(JSON.stringify({ json, meta }), {
@@ -101,6 +123,7 @@ export const fakeServer = (routes: Routes = {}, options: FakeServerOptions = {})
 		const input = await decodeInput(request);
 		calls.push({ path, input, request });
 		if (!(path in routes)) throw new Error(`fake server: no route for ${path}`);
+		assertValidInput(path, input);
 		const route = routes[path];
 		const answer = typeof route === "function" ? await (route as Handler)(input, request) : route;
 		if (isRpcError(answer)) {

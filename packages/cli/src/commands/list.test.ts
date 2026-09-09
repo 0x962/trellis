@@ -100,6 +100,19 @@ describe("list", () => {
 		expect(stdoutAtRequest[1]).not.toContain("CDE-3");
 	});
 
+	// CLI-88: `--limit` is a count of rows, so anything but a positive integer
+	// is a usage error and no request goes out.
+	test("list refuses a limit that is not a positive integer", async () => {
+		for (const limit of ["wat", "0", "-1", "1.5", ""]) {
+			const result = await runCli(["list", "--limit", limit], { "tickets.list": { items: [], nextCursor: null } });
+			expect(result.code, limit).toBe(2);
+			expect(lines(result.stderr), limit).toHaveLength(1);
+			expect(result.stderr, limit).toContain("--limit");
+			expect(result.calls, limit).toEqual([]);
+			expect(result.stdout, limit).toBe("");
+		}
+	});
+
 	// CLI-90
 	test("list defaults to 50 rows sorted by -updatedAt", async () => {
 		const result = await runCli(

@@ -17,11 +17,22 @@ describe("statuses", () => {
 		expect(lines(quiet.stdout)).toEqual(["todo", "in-progress", "blocked"]);
 	});
 
+	// CLI-74: `--json` is the procedure output, which carries `inheritedFrom`
+	// beside the statuses. `--jsonl` is one status per line.
+	test("statuses list prints the set as JSON and one status per line as JSONL", async () => {
+		const json = await runCli(["statuses", "list", "CDE", "--json"], { "statuses.list": statusSet() });
+		expect(JSON.parse(json.stdout)).toEqual(statusSet());
+		const jsonl = await runCli(["statuses", "list", "CDE", "--jsonl"], { "statuses.list": statusSet() });
+		const rows = lines(jsonl.stdout);
+		expect(rows).toHaveLength(3);
+		expect(rows.map((row) => JSON.parse(row))).toEqual(statusSet().statuses);
+	});
+
 	// CLI-75
 	test("statuses add maps every flag", async () => {
 		const argv = [
 			...["statuses", "add", "CDE", "Blocked"],
-			...["--category", "started", "--reviewer", "agent", "--color", "#ff0000", "--position", "2", "--default"],
+			...["--category", "review", "--reviewer", "agent", "--color", "danger", "--position", "2", "--default"],
 		];
 		const result = await runCli(argv, { "statuses.create": status({ slug: "blocked", name: "Blocked" }) });
 		expect(result.code).toBe(0);
@@ -29,9 +40,9 @@ describe("statuses", () => {
 		expect(result.calls[0]!.input).toEqual({
 			project: "CDE",
 			name: "Blocked",
-			category: "started",
+			category: "review",
 			reviewer: "agent",
-			color: "#ff0000",
+			color: "danger",
 			position: 2,
 			isDefault: true,
 		});
@@ -41,7 +52,7 @@ describe("statuses", () => {
 	test("statuses edit maps its flags", async () => {
 		const argv = [
 			...["statuses", "edit", "CDE", "blocked"],
-			...["--name", "Stuck", "--color", "#00ff00", "--reviewer", "human", "--default"],
+			...["--name", "Stuck", "--color", "success", "--reviewer", "human", "--default"],
 		];
 		const result = await runCli(argv, { "statuses.update": status({ slug: "stuck", name: "Stuck" }) });
 		expect(result.code).toBe(0);
@@ -50,7 +61,7 @@ describe("statuses", () => {
 			project: "CDE",
 			status: "blocked",
 			name: "Stuck",
-			color: "#00ff00",
+			color: "success",
 			reviewer: "human",
 			isDefault: true,
 		});
@@ -77,6 +88,27 @@ describe("statuses", () => {
 			path: "statuses.reorder",
 			input: { project: "CDE", statuses: ["blocked", "todo", "in-progress"] },
 		});
+	});
+
+	// CLI-78: a `category:` ref names the first status of that category in
+	// the set, and a ref that matches no status is not found.
+	test("statuses edit --position takes a category ref and refuses an unknown ref", async () => {
+		const result = await runCli(["statuses", "edit", "CDE", "category:started", "--position", "0"], {
+			"statuses.list": statusSet(),
+			"statuses.reorder": statusSet(),
+		});
+		expect(result.code).toBe(0);
+		expect(result.calls[1]).toMatchObject({
+			path: "statuses.reorder",
+			input: { project: "CDE", statuses: ["in-progress", "todo", "blocked"] },
+		});
+
+		const missing = await runCli(["statuses", "edit", "CDE", "nope", "--position", "0"], {
+			"statuses.list": statusSet(),
+		});
+		expect(missing.code).toBe(3);
+		expect(missing.stderr).toBe("error: No status matches nope. (NOT_FOUND)\n");
+		expect(missing.calls.map((call) => call.path)).toEqual(["statuses.list"]);
 	});
 
 	// CLI-79

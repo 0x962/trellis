@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { lines, runCli } from "../test/deps.ts";
 import { rpcError } from "../test/fakeServer.ts";
-import { ticket, ticketSummary } from "../test/fixtures.ts";
+import { comment, ticket, ticketSummary } from "../test/fixtures.ts";
 import { main } from "./index.ts";
 
 const verbs = [
@@ -65,6 +65,57 @@ describe("the root command", () => {
 		expect(lines(result.stderr)).toHaveLength(1);
 		expect(result.stderr.toLowerCase()).toContain("title");
 		expect(result.calls).toEqual([]);
+	});
+
+	// CLI-08: a flag the command does not declare is a usage error, so a
+	// mistyped filter never widens a query to the whole backlog.
+	test("an unknown flag exits 2 with one stderr line and no request", async () => {
+		const cases = [
+			["list", "-p", "CDE"],
+			["list", "--stauts", "todo"],
+			["list", "--statis=todo"],
+			["show", "CDE-42", "--prz"],
+			["projects", "list", "--nope"],
+		];
+		for (const argv of cases) {
+			const result = await runCli(argv, { "tickets.list": listPage, "tickets.get": ticket(), "projects.list": [] });
+			expect(result.code, argv.join(" ")).toBe(2);
+			expect(lines(result.stderr), argv.join(" ")).toHaveLength(1);
+			expect(result.stderr, argv.join(" ")).toContain(argv.find((arg) => arg.startsWith("-"))!.split("=")[0]!);
+			expect(result.calls, argv.join(" ")).toEqual([]);
+		}
+	});
+
+	// CLI-08: a declared alias, a negated boolean, a value that starts with a
+	// dash, and everything after `--` pass the check.
+	test("declared flags, negations, dashed values, and -- pass the flag check", async () => {
+		const create = await runCli(["create", "-p", "CDE", "-t", "-dark-", "-d", "-"], { "tickets.create": ticket() });
+		expect(create.code).toBe(0);
+		expect(create.calls[0]!.input).toMatchObject({ project: "CDE", title: "-dark-", description: "" });
+		const negated = await runCli(["list", "--no-all"], { "tickets.list": listPage });
+		expect(negated.code).toBe(0);
+		const stopped = await runCli(["comment", "CDE-42", "--body", "hi", "--", "--x"], { "comments.create": comment() });
+		expect(stopped.code).toBe(0);
+		expect(stopped.calls[0]!.input).toMatchObject({ ticket: "CDE-42", body: "hi" });
+	});
+
+	// CLI-09: `--as` and `--url` take one value. Either flag at the end of
+	// the line has none, so the run is a usage error and no request goes out.
+	test("a trailing --as or --url exits 2 before any request", async () => {
+		for (const argv of [
+			["edit", "CDE-42", "--description", "--as"],
+			["show", "CDE-42", "--url"],
+			["--as", "list"],
+		]) {
+			const result = await runCli(argv, {
+				"tickets.update": ticket(),
+				"tickets.get": ticket(),
+				"tickets.list": listPage,
+			});
+			expect(result.code, argv.join(" ")).toBe(2);
+			expect(lines(result.stderr), argv.join(" ")).toHaveLength(1);
+			expect(result.calls, argv.join(" ")).toEqual([]);
+		}
 	});
 
 	// CLI-09

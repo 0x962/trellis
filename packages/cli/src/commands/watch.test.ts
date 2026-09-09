@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { lines, runCli } from "../../test/deps.ts";
 import { refusedFetch } from "../../test/fakeServer.ts";
-import { bootId, ticketSummary } from "../../test/fixtures.ts";
+import { bootId, commentId, prId, projectId, ticketId, ticketSummary } from "../../test/fixtures.ts";
 
 const frame = (id: string | null, event: string, data: unknown) =>
 	`${id === null ? "" : `id: ${id}\n`}event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
@@ -41,6 +41,38 @@ const eventsRoute = (answers: string[]) => {
 	};
 	return { raw, signal: controller.signal };
 };
+
+// A JSON answer with an error body, the way the events route refuses a
+// bad query.
+const errorResponse = (status: number, body: unknown) =>
+	new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+
+// A stream that carries `text` and then fails the way a dropped TCP
+// connection fails.
+const brokenResponse = (text: string) =>
+	new Response(
+		new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(new TextEncoder().encode(text));
+				controller.error(Object.assign(new Error("ECONNRESET"), { code: "ECONNRESET" }));
+			},
+		}),
+		{ status: 200, headers: { "content-type": "text/event-stream" } },
+	);
+
+// Answers every connect with `answer` and fires the abort signal on the
+// fourth, so a `watch` that reconnects where it must exit still returns.
+const boundedRoute = (answer: () => Response) => {
+	const controller = new AbortController();
+	let connects = 0;
+	const raw = () => {
+		if (++connects > 3) controller.abort();
+		return answer();
+	};
+	return { raw, signal: controller.signal };
+};
+
+const serverErrorBody = { code: "INTERNAL_SERVER_ERROR", message: "Internal server error" };
 
 const parsed = (stdout: string) => lines(stdout).map((line) => JSON.parse(line));
 
@@ -84,6 +116,34 @@ describe("watch", () => {
 		expect(events[2]).toMatchObject({ id: "A.3", type: "comment.created", ticketId: "x" });
 	});
 
+	// CLI-63: `id` is the frame id, which `--since` takes. The row id a
+	// payload carries prints as `<kind>Id`, so a line names both the event
+	// and the row it is about. The `ready` payload's id is the frame id.
+	test("watch keeps the row id of a payload beside the event id", async () => {
+		const stream =
+			ready("A.1") +
+			frame("A.2", "comment.created", { id: commentId, ticketId }) +
+			frame("A.3", "project.deleted", { id: projectId }) +
+			frame("A.4", "pr.updated", { id: prId, ticketIds: [ticketId], state: "open", ciState: "fail" }) +
+			frame("A.5", "statuses.changed", { projectId });
+		const route = eventsRoute([stream]);
+		const result = await runCli(["watch"], {}, { raw: route.raw, signal: route.signal });
+		expect(result.code).toBe(0);
+		const events = parsed(result.stdout);
+		expect(events[0]).toEqual({ id: "A.1", type: "ready", bootId, serverVersion: "0.0.0", apiVersion: "0.0.0" });
+		expect(events[1]).toEqual({ id: "A.2", type: "comment.created", commentId, ticketId });
+		expect(events[2]).toEqual({ id: "A.3", type: "project.deleted", projectId });
+		expect(events[3]).toEqual({
+			id: "A.4",
+			type: "pr.updated",
+			prId,
+			ticketIds: [ticketId],
+			state: "open",
+			ciState: "fail",
+		});
+		expect(events[4]).toEqual({ id: "A.5", type: "statuses.changed", projectId });
+	});
+
 	// CLI-64
 	test("watch reconnects with Last-Event-ID and backoff", async () => {
 		const route = eventsRoute([ready("A.8") + updated("A.9"), ""]);
@@ -107,6 +167,67 @@ describe("watch", () => {
 		const events = parsed(result.stdout);
 		expect(events.map((event) => event.type)).toEqual(["ready", "reset", "ready", "ticket.updated"]);
 		expect(events[1]).toMatchObject({ type: "reset", reason: "restart" });
+	});
+
+	// CLI-64: a stream that breaks mid-way is a stream that ended, so the
+	// next connect follows after the backoff.
+	test("watch reconnects when a stream breaks", async () => {
+		const controller = new AbortController();
+		let connects = 0;
+		const raw = () => {
+			if (connects++ === 0) return brokenResponse(ready("A.1"));
+			controller.abort();
+			return sseResponse("");
+		};
+		const result = await runCli(["watch"], {}, { raw, signal: controller.signal });
+		expect(result.code).toBe(0);
+		expect(result.stderr).toBe("");
+		expect(result.requests).toHaveLength(2);
+		expect(result.sleeps).toEqual([1000]);
+		expect(parsed(result.stdout).map((event) => event.type)).toEqual(["ready"]);
+	});
+
+	// CLI-64: only a connection that fails is retried. A server that answers
+	// with an older api on a reconnect exits 7, the same as on the first connect.
+	test("watch exits 7 when a reconnect meets an older server", async () => {
+		const controller = new AbortController();
+		let connects = 0;
+		const fetch = async (request: Request) => {
+			void request;
+			const first = connects++ === 0;
+			if (connects > 3) controller.abort();
+			const response = sseResponse(first ? ready("A.1") : "");
+			response.headers.set("x-trellis-api-version", first ? "1.2.0" : "1.1.0");
+			return response;
+		};
+		const result = await runCli(["watch"], {}, { fetch, apiVersion: "1.2.0", signal: controller.signal });
+		expect(result.code).toBe(7);
+		expect(connects).toBe(2);
+		expect(result.sleeps).toEqual([1000]);
+		expect(result.stderr).toEndWith(" (SERVER_OLDER)\n");
+		expect(parsed(result.stdout).map((event) => event.type)).toEqual(["ready"]);
+	});
+
+	// CLI-66: an error answer on the events route is the contract error it
+	// carries, with its exit code, and never a reconnect.
+	test("watch exits with the mapped code when the events route refuses", async () => {
+		const notFound = { code: "NOT_FOUND", message: "Not found.", data: { kind: "project", ref: "NOPE" } };
+		const route = boundedRoute(() => errorResponse(404, notFound));
+		const result = await runCli(["watch", "--project", "NOPE"], {}, route);
+		expect(result.code).toBe(3);
+		expect(result.stderr).toBe("error: No project matches NOPE. (NOT_FOUND)\n");
+		expect(result.stdout).toBe("");
+		expect(result.requests).toHaveLength(1);
+		expect(result.sleeps).toEqual([]);
+
+		const server = await runCli(
+			["watch"],
+			{},
+			boundedRoute(() => errorResponse(500, serverErrorBody)),
+		);
+		expect(server.code).toBe(1);
+		expect(server.stderr).toBe("error: Internal server error (INTERNAL_SERVER_ERROR)\n");
+		expect(server.stdout).toBe("");
 	});
 
 	// CLI-66

@@ -44,6 +44,14 @@ describe("readSse", () => {
 		expect(events).toEqual([{ id: "A.4", event: "ticket.updated", data: '{"identifier":"CDE-42"}' }]);
 	});
 
+	// CLI-60: a CR that ends one chunk and the LF that starts the next are one
+	// line break, so a chunk boundary inside CRLF never ends a frame early.
+	test("readSse keeps a CRLF split across chunks as one line break", async () => {
+		const events = await collect(streamOf('id: A.6\r\nevent: ticket.updated\r\ndata: {"a":\r', "\ndata: 1}\r\n\r\n"));
+		expect(events).toEqual([{ id: "A.6", event: "ticket.updated", data: '{"a":\n1}' }]);
+		expect(JSON.parse(events[0]!.data)).toEqual({ a: 1 });
+	});
+
 	// CLI-61
 	test("readSse carries the last event id forward", async () => {
 		const events = await collect(streamOf("id: A.5\nevent: ready\ndata: x\n\n", "event: ping\ndata: y\n\n"));

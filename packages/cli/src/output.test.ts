@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { ansiPattern } from "../test/ansi.ts";
-import { lines, runCli } from "../test/deps.ts";
+import { ansiPattern, stripAnsi } from "../test/ansi.ts";
+import { defaultEnv, lines, runCli } from "../test/deps.ts";
 import {
 	attachment,
 	attachmentId,
@@ -152,11 +152,24 @@ describe("quiet", () => {
 });
 
 describe("color", () => {
-	// CLI-49
+	// CLI-49: a heading is the one place a TTY gets an escape sequence, so
+	// `show --prs` on a TTY proves the flag, the pipe, and NO_COLOR each strip it.
 	test("--no-color and a pipe strip ANSI escapes", async () => {
 		const noColor = await runCli(["show", "CDE-42", "--no-color"], { "tickets.get": ticket() }, { tty: true });
 		expect(noColor.stdout).not.toMatch(ansiPattern);
 		const piped = await runCli(["list"], { "tickets.list": listPage }, { tty: false });
 		expect(piped.stdout).not.toMatch(ansiPattern);
+
+		const argv = ["show", "CDE-42", "--prs"];
+		const routes = { "tickets.get": ticket() };
+		const colored = await runCli(argv, routes, { tty: true });
+		expect(colored.stdout).toMatch(ansiPattern);
+		const flagged = await runCli([...argv, "--no-color"], routes, { tty: true });
+		expect(flagged.stdout).not.toMatch(ansiPattern);
+		expect(flagged.stdout).toBe(stripAnsi(colored.stdout));
+		const pipedHeading = await runCli(argv, routes, { tty: false });
+		expect(pipedHeading.stdout).not.toMatch(ansiPattern);
+		const env = await runCli(argv, routes, { tty: true, env: { ...defaultEnv, NO_COLOR: "1" } });
+		expect(env.stdout).not.toMatch(ansiPattern);
 	});
 });
