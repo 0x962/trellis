@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { type Check, ribbonGap, ribbonSegments, ribbonWidths, segmentWidth } from "./segments";
+import { type Check, type RibbonSegment, ribbonGap, ribbonSegments, ribbonWidths, segmentWidth } from "./segments";
 
 const check = (name: string, bucket: Check["bucket"]) => ({ name, bucket });
 const many = (count: number, failAt = -1): Check[] =>
@@ -12,6 +12,60 @@ const occupied = (size: "full" | "mini", checks: Check[]) => {
 	return (
 		segments.reduce((sum, segment) => sum + segment.width, 0) + (segments.length - 1) * ribbonGap(size, checks.length)
 	);
+};
+
+const hundredths = (segments: readonly RibbonSegment[]) =>
+	segments.reduce((sum, segment) => sum + Math.round(segment.width * 100), 0);
+
+const isPinned = (segment: RibbonSegment) => segment.bucket === "fail" || segment.bucket === "cancel";
+
+// The run length a segment stands for, read back from its tooltip.
+const runLength = (segment: RibbonSegment) => Number(segment.title.match(/^(\d+) checks:/)?.[1] ?? 1);
+
+// A mulberry32 generator, so a run of the suite repeats the same buckets.
+const seededBucket = (seed: number) => {
+	const buckets: Check["bucket"][] = ["pass", "fail", "cancel", "pending", "skipping"];
+	let state = seed;
+	return () => {
+		state = (state + 0x6d2b79f5) | 0;
+		let value = Math.imul(state ^ (state >>> 15), 1 | state);
+		value = (value + Math.imul(value ^ (value >>> 7), 61 | value)) ^ value;
+		return buckets[((value ^ (value >>> 14)) >>> 0) % buckets.length]!;
+	};
+};
+
+// A pinned run keeps 1 px while a free run still has width to give. When
+// every free run is at 0 and a pinned run is under 1 px, the exact shares
+// must show that the free runs could not pay. Each share is rounded to whole
+// hundredths, so a margin of two units per run covers the rounding.
+const expectPinnedMinimum = (label: string, size: "full" | "mini", segments: readonly RibbonSegment[]) => {
+	const count = segments.reduce((sum, segment) => sum + runLength(segment), 0);
+	const pinned = segments.filter(isPinned);
+	const free = segments.filter((segment) => !isPinned(segment));
+	if (count <= ribbonWidths[size] || pinned.length === 0) return;
+	if (free.some((segment) => segment.width > 0)) {
+		for (const segment of pinned) expect(`${label} ${segment.width}`).toMatch(/ ([1-9]\d*(\.\d+)?)$/);
+		return;
+	}
+	if (pinned.every((segment) => segment.width >= 1)) return;
+	const share = (segment: RibbonSegment) => (runLength(segment) * ribbonWidths[size] * 100) / count;
+	const need = pinned.reduce((sum, segment) => sum + Math.max(0, 100 - share(segment)), 0);
+	const supply = free.reduce((sum, segment) => sum + share(segment), 0);
+	expect(need).toBeGreaterThan(supply - 2 * segments.length);
+};
+
+// Two free runs of one length differ by at most 0.01 px.
+const expectEqualFreeRuns = (label: string, segments: readonly RibbonSegment[]) => {
+	const byLength = new Map<number, number[]>();
+	for (const segment of segments) {
+		if (isPinned(segment)) continue;
+		const widths = byLength.get(runLength(segment)) ?? [];
+		widths.push(Math.round(segment.width * 100));
+		byLength.set(runLength(segment), widths);
+	}
+	for (const [length, widths] of byLength) {
+		expect(`${label} length ${length} spread ${Math.max(...widths) - Math.min(...widths)}`).toMatch(/ spread [01]$/);
+	}
 };
 
 describe("segments", () => {
@@ -48,8 +102,8 @@ describe("segments", () => {
 			["pass", "40 checks: pass"],
 		]);
 		expect(segments[1]!.width).toBe(1);
-		expect(segments[0]!.width).toBe(31.1);
-		expect(segments[2]!.width).toBe(31.9);
+		expect(segments[0]!.width).toBe(31.2);
+		expect(segments[2]!.width).toBe(31.8);
 		expect(occupied("full", many(80, 39))).toBeCloseTo(64, 6);
 		expect(occupied("mini", many(40, 19))).toBeCloseTo(32, 6);
 		expect(occupied("mini", many(40))).toBeCloseTo(32, 6);
@@ -113,5 +167,58 @@ describe("segments", () => {
 		const segments = ribbonSegments("full", many(6));
 		expect(segments.map((segment) => segment.width)).toEqual([9, 9, 9, 9, 9, 9]);
 		expect(occupied("full", many(6))).toBe(64);
+	});
+
+	// 7 checks in a full ribbon share 52 px: 742 or 743 hundredths each, so
+	// the widths and the six 2 px gaps still add up to 64 px.
+	test("a check width is a whole number of hundredths that adds up to the box", () => {
+		const segments = ribbonSegments("full", many(7));
+		expect(segments.map((segment) => segment.width).sort()).toEqual([7.42, 7.43, 7.43, 7.43, 7.43, 7.43, 7.43]);
+		expect(hundredths(segments) + 6 * 2 * 100).toBe(6400);
+	});
+
+	// The widest free run pays each hundredth of a pinned rise, so three
+	// equal free runs stay within 0.01 px of each other.
+	test("the widest free run pays for a pinned rise", () => {
+		const checks = [
+			...many(20),
+			check("deploy", "fail"),
+			...many(20),
+			check("lint", "fail"),
+			...many(20),
+			check("e2e", "cancel"),
+		];
+		const widths = ribbonSegments("mini", checks).map((segment) => segment.width);
+		expect(widths).toEqual([9.66, 1, 9.67, 1, 9.67, 1]);
+	});
+
+	// Four families of check lists at every count up to 700, in both sizes.
+	// The widths come back as whole hundredths that add up to the box with
+	// the gaps. A pinned run keeps 1 px while a free run still has width to
+	// give. Equal free runs stay within 0.01 px of each other.
+	test("the widths keep the ribbon invariants at every count up to 700", () => {
+		const families: Record<string, (index: number) => Check["bucket"]> = {
+			"pass/pending": (index) => (index % 2 === 0 ? "pass" : "pending"),
+			"fail/cancel": (index) => (index % 2 === 0 ? "fail" : "cancel"),
+			"fail/pass": (index) => (index % 2 === 0 ? "fail" : "pass"),
+			random: seededBucket(0x5eed),
+		};
+		for (const size of ["full", "mini"] as const) {
+			for (const [family, bucketAt] of Object.entries(families)) {
+				for (let count = 1; count <= 700; count += 1) {
+					const checks = Array.from({ length: count }, (_, index) => check(`check ${index + 1}`, bucketAt(index)));
+					const label = `${size} ${family} ${count}`;
+					const segments = ribbonSegments(size, checks);
+					for (const segment of segments) {
+						expect(`${label} ${segment.width}`).not.toMatch(/ -/);
+						expect(segment.width * 100).toBeCloseTo(Math.round(segment.width * 100), 6);
+					}
+					const gaps = (segments.length - 1) * ribbonGap(size, count) * 100;
+					expect(`${label} ${hundredths(segments) + gaps}`).toBe(`${label} ${ribbonWidths[size] * 100}`);
+					expectPinnedMinimum(label, size, segments);
+					expectEqualFreeRuns(label, segments);
+				}
+			}
+		}
 	});
 });

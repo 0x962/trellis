@@ -30,8 +30,9 @@ export const ribbonGap = (size: RibbonSize, count: number) => {
 	return count <= 32 ? 1 : 0;
 };
 
-// The width in px of one segment when every check gets its own segment. That
-// holds up to one check per px of the box, so the width is at least 1 px.
+// The exact width in px of one segment when every check gets its own
+// segment. That holds up to one check per px of the box, so the width is at
+// least 1 px. The ribbon draws that width in whole hundredths of a px.
 export const segmentWidth = (size: RibbonSize, count: number) =>
 	(ribbonWidths[size] - (count - 1) * ribbonGap(size, count)) / count;
 
@@ -51,49 +52,73 @@ const runs = (checks: readonly Check[]) =>
 
 const total = (values: readonly number[]) => values.reduce((sum, value) => sum + value, 0);
 
-const round = (value: number) => Math.round(value * 100) / 100;
-
-// Rounds `widths` to 0.01 px so they still add up to `sum`. Rounding each
-// width alone drifts the total by up to 0.005 px per width; the widest
-// width takes the drift, and it is far wider than the drift.
-const settle = (widths: readonly number[], sum: number) => {
-	const rounded = widths.map(round);
-	const drift = round(sum - total(rounded));
-	const widest = rounded.indexOf(Math.max(...rounded));
-	rounded[widest] = round(rounded[widest]! + drift);
-	return rounded;
+// Splits `sum` whole units over `weights` in proportion, by the largest
+// remainder method. Every part is its exact share rounded down. The units
+// still missing go one each to the parts with the largest remainders. A tie
+// keeps weight order, so equal weights differ by at most one unit.
+const apportion = (sum: number, weights: readonly number[]) => {
+	const whole = total(weights);
+	const shares = weights.map((weight) => (weight * sum) / whole);
+	const parts = shares.map(Math.floor);
+	const order = shares
+		.map((share, index) => ({ index, remainder: share - parts[index]! }))
+		.sort((a, b) => b.remainder - a.remainder);
+	for (const { index } of order.slice(0, sum - total(parts))) parts[index]! += 1;
+	return parts;
 };
 
-// The px widths of the runs of a crowded ribbon, in run order. Every run
-// starts at its share of the box by length. A pinned run under 1 px rises
-// to 1 px, and the free runs pay the difference in proportion to their
-// length. When the free runs cannot pay, they drop to 0 and the pinned
-// runs shrink in proportion, so the widths always add up to the box.
-const runWidths = (box: number, count: number, merged: readonly Run[]) => {
-	const share = box / count;
-	const raised = merged.map((run) => (pinned(run.bucket) ? Math.max(1, run.length * share) : run.length * share));
-	const isFree = (index: number) => !pinned(merged[index]!.bucket);
-	const free = total(raised.filter((_, index) => isFree(index)));
-	const deficit = total(raised) - box;
-	if (free >= deficit) return raised.map((width, index) => (isFree(index) ? width - deficit * (width / free) : width));
-	const scale = box / (total(raised) - free);
-	return raised.map((width, index) => (isFree(index) ? 0 : width * scale));
+// The widths of the runs of a crowded ribbon in hundredths of a px, in run
+// order. Every run starts at its share of the box by length. A pinned run
+// under 100 rises to 100, and the widest free run pays each hundredth of
+// the rise. When the free runs cannot pay, they drop to 0 and the pinned
+// runs share the box in proportion. The widths always add up to the box.
+const runWidths = (box: number, merged: readonly Run[]) => {
+	const isPinned = (index: number) => pinned(merged[index]!.bucket);
+	const shares = apportion(
+		box * 100,
+		merged.map((run) => run.length),
+	);
+	const widths = shares.map((share, index) => (isPinned(index) ? Math.max(100, share) : share));
+	const supply = total(widths.filter((_, index) => !isPinned(index)));
+	const deficit = total(widths) - box * 100;
+	if (supply < deficit)
+		return apportion(
+			box * 100,
+			widths.map((width, index) => (isPinned(index) ? width : 0)),
+		);
+	for (let paid = 0; paid < deficit; paid += 1) {
+		let widest = -1;
+		widths.forEach((width, index) => {
+			if (!isPinned(index) && (widest < 0 || width > widths[widest]!)) widest = index;
+		});
+		widths[widest]! -= 1;
+	}
+	return widths;
 };
 
 // The segments of a ribbon, in check order. Up to one check per px of the
-// box, every check is a segment of one equal width. Above that, each run of
-// one bucket is a segment, sized by `runWidths` and rounded to 0.01 px.
+// box, every check is a segment of `segmentWidth`, drawn in whole hundredths
+// of a px that add up to the box. Above that, each run of one bucket is a
+// segment, sized by `runWidths`.
 export const ribbonSegments = (size: RibbonSize, checks: readonly Check[]): RibbonSegment[] => {
 	const box = ribbonWidths[size];
 	if (checks.length <= box) {
-		const width = segmentWidth(size, checks.length);
-		return checks.map((check) => ({ bucket: check.bucket, title: `${check.name}: ${check.bucket}`, width }));
+		const room = (box - (checks.length - 1) * ribbonGap(size, checks.length)) * 100;
+		const widths = apportion(
+			room,
+			checks.map(() => 1),
+		);
+		return checks.map((check, index) => ({
+			bucket: check.bucket,
+			title: `${check.name}: ${check.bucket}`,
+			width: widths[index]! / 100,
+		}));
 	}
 	const merged = runs(checks);
-	const widths = settle(runWidths(box, checks.length, merged), box);
+	const widths = runWidths(box, merged);
 	return merged.map((run, index) => ({
 		bucket: run.bucket,
 		title: run.length === 1 ? `${run.name}: ${run.bucket}` : `${run.length} checks: ${run.bucket}`,
-		width: widths[index]!,
+		width: widths[index]! / 100,
 	}));
 };
