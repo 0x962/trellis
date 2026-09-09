@@ -58,6 +58,8 @@ export const seedRoot = async (tx: Executor, key: string, overrides: Row = {}) =
 	return id;
 };
 
+// The name is never the slug, so a slug outside the grammar fails on the slug
+// CHECK alone. Postgres evaluates the CHECKs of a row in constraint name order.
 export const seedChild = async (tx: Executor, parentId: string, rootId: string, slug: string, overrides: Row = {}) => {
 	const id = ulid();
 	await insertRow(tx, "projects", {
@@ -66,7 +68,7 @@ export const seedChild = async (tx: Executor, parentId: string, rootId: string, 
 		root_id: rootId,
 		key: null,
 		slug,
-		name: slug,
+		name: `Project ${slug}`,
 		description: "",
 		ticket_template: "",
 		ticket_counter: 0,
@@ -82,8 +84,14 @@ export const seedChild = async (tx: Executor, parentId: string, rootId: string, 
 export const seedActor = (tx: Executor, actor: ActorRef) =>
 	insertRow(tx, "actors", { name: actor.name, kind: actor.kind, first_seen_at: now(), last_seen_at: now() });
 
+// The three actors every service writes. A second call in the same test
+// leaves the existing rows in place, so two seeded roots share them.
 export const seedActors = async (tx: Executor) => {
-	for (const actor of [navid, claude, system]) await seedActor(tx, actor);
+	for (const actor of [navid, claude, system]) {
+		await tx.execute(
+			sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at) VALUES (${actor.name}, ${actor.kind}, ${now()}, ${now()}) ON CONFLICT (name, kind) DO NOTHING`,
+		);
+	}
 };
 
 export const slugify = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
