@@ -139,6 +139,32 @@ describe("fetchPullRequests", () => {
 		expect(handle.spawns()).toHaveLength(bodies.length);
 	});
 
+	// GitHub can answer one alias with partial data: a null check node or a
+	// null rollup, with an error whose path points into that alias. The alias
+	// gets the error, and every other alias in the batch still gets a row.
+	test("reports a per-PR error for an alias whose check node is null", async () => {
+		const message = "Something went wrong while executing your query.";
+		const two = refs.slice(0, 2);
+		const pr1 = structuredClone(fixture.data.pr1);
+		pr1.pullRequest.commits.nodes[0].commit.statusCheckRollup.contexts.nodes = [null];
+		const body = {
+			data: { pr0: fixture.data.pr0, pr1 },
+			errors: [
+				{
+					message,
+					path: ["pr1", "pullRequest", "commits", "nodes", 0, "commit", "statusCheckRollup", "contexts", "nodes", 0],
+				},
+			],
+		};
+		stub({ "api graphql": { stdout: JSON.stringify(body), stderr: `gh: ${message}`, exitCode: 1 } });
+		const result = await fetchPullRequests(createGhRunner(), two);
+		expect(result).toMatchObject({ ok: true });
+		const results = (result as { results: unknown[] }).results;
+		expect(results).toHaveLength(2);
+		expect(results[0]).toHaveProperty("row");
+		expect(results[1]).toEqual({ ref: two[1]!, error: message });
+	});
+
 	// link and refresh fetch one PR on the interactive slot, so a user action
 	// never waits behind two in-flight poller batches.
 	test("fetches one PR on the interactive slot while both poller slots are busy", async () => {
@@ -245,6 +271,21 @@ describe("mapPullRequestResponse", () => {
 		pending.checks[0]!.bucket = "pending";
 		expect(contentHash(pending)).not.toBe(hash);
 		expect(contentHash({ ...fields, title: "Renamed" })).not.toBe(hash);
+	});
+
+	test("reports a per-PR error for an alias whose rollup is null under an error path", () => {
+		const message = "Something went wrong while executing your query.";
+		const two = refs.slice(0, 2);
+		const pr1 = structuredClone(fixture.data.pr1);
+		pr1.pullRequest.commits.nodes[0].commit.statusCheckRollup = null;
+		const response = {
+			data: { pr0: fixture.data.pr0, pr1 },
+			errors: [{ message, path: ["pr1", "pullRequest", "commits", "nodes", 0, "commit", "statusCheckRollup"] }],
+		};
+		const results = mapPullRequestResponse(two, response);
+		expect(results).toHaveLength(2);
+		expect(results[0]).toHaveProperty("row");
+		expect(results[1]).toEqual({ ref: two[1]!, error: message });
 	});
 
 	test("reports a per-PR error for an alias GitHub could not resolve", () => {

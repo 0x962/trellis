@@ -20,11 +20,13 @@ const stub = (replies: Parameters<typeof ghStub>[1]) => {
 	return handle;
 };
 
+// GitHub.com reports both budgets. A host can report core alone, so the
+// reader must accept a body whose resources hold only core.
+const budget = JSON.stringify({ resources: { core: { limit: 5000, remaining: 4000, reset: 1757400000 } } });
 const resources = {
 	core: { limit: 5000, remaining: 4000, reset: 1757400000 },
 	graphql: { limit: 5000, remaining: 4500, reset: 1757400300 },
 };
-const budget = JSON.stringify({ resources });
 
 describe("readRateLimit", () => {
 	test("reads gh api rate_limit and computes the remaining fraction", async () => {
@@ -54,6 +56,19 @@ describe("readRateLimit", () => {
 		const reads = handle.spawns().filter((spawn) => spawn.args[0] === "api");
 		expect(reads).toHaveLength(1);
 		expect(reads[0]!.args).toEqual(["api", "rate_limit"]);
+	});
+
+	test("reports core when the body carries both budgets and core is the lower fraction", async () => {
+		stub({ "api rate_limit": { stdout: JSON.stringify({ resources }), stderr: "", exitCode: 0 } });
+		expect(await readRateLimit(createGhRunner())).toMatchObject({
+			ok: true,
+			resource: "core",
+			limit: 5000,
+			remaining: 4000,
+			resetAt: "2025-09-09T06:40:00.000Z",
+			fraction: 0.8,
+			multiplier: 1,
+		});
 	});
 
 	test("reports the graphql budget when it is the lower fraction", async () => {
