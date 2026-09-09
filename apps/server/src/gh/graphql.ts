@@ -22,9 +22,10 @@ export type RawPullRequest = {
 	commits: { nodes: Array<{ commit: { statusCheckRollup: { contexts: { nodes: RawContext[] } } | null } }> };
 };
 
-// GitHub sets a null alias when the repository is unknown, a null pullRequest
-// when the number is unknown, and a null node inside the alias when one field
-// fails. Every case adds an `errors` entry whose `path` starts with the alias.
+// GitHub sets a null alias when the repository is unknown, and a null
+// pullRequest when the number is unknown. When one field fails, GitHub sets
+// a null node inside the alias. Every case adds an `errors` entry whose
+// `path` starts with the alias.
 // An alias with an error entry holds partial data, so the mapper reports the
 // error and never reads that alias.
 export type PullRequestResponse = {
@@ -129,11 +130,12 @@ export const mapPullRequestResponse = (refs: PullRequestRef[], response: PullReq
 
 // gh exits 1 when the response carries `errors`, and still prints the body
 // to stdout. A body whose `data` is an object maps per alias, so one unknown
-// PR number does not fail the other 49. A body without a data object (data
-// null under a rate limit, no data key under a query error, a REST style
-// message body under a 401 or 403) is a batch failure, and gh writes its
-// message to stderr, so the run failure carries it. A timed-out run can hold
-// a cut body, so it is never parsed.
+// PR number does not fail the other 49. A body without a data object is a
+// batch failure. A rate limit gives `data` null, a query error gives no
+// `data` key, and a 401 or 403 gives a REST style `message` body. gh writes
+// its message to stderr in each case, so the run failure carries it. A run
+// that timed out or lost its connection holds a cut body, which is not JSON,
+// so the run failure stands.
 //
 // The poller passes 50 refs on the poller slot. link and refresh pass one ref
 // on the interactive slot, so a user action never waits behind a tick.
@@ -144,8 +146,22 @@ export const fetchPullRequests = async (
 ): Promise<FetchPullRequestsResult> => {
 	const result = await runGh(slot, ["api", "graphql", "-f", `query=${buildPullRequestQuery(refs)}`]);
 	if (result.ok) return { ok: true, results: mapPullRequestResponse(refs, JSON.parse(result.stdout)) };
-	if (result.reason !== "error" || result.code === null || !result.stdout.startsWith("{")) return result;
-	const response = JSON.parse(result.stdout) as Partial<PullRequestResponse>;
-	if (typeof response.data !== "object" || response.data === null) return result;
-	return { ok: true, results: mapPullRequestResponse(refs, response as PullRequestResponse) };
+	if (result.reason !== "error") return result;
+	const response = parseFailureBody(result.stdout);
+	if (response === undefined) return result;
+	return { ok: true, results: mapPullRequestResponse(refs, response) };
+};
+
+// The body a failed gh run printed, when it is a JSON object with a data
+// object. Any other stdout, a cut body included, gives undefined.
+const parseFailureBody = (stdout: string): PullRequestResponse | undefined => {
+	let body: unknown;
+	try {
+		body = JSON.parse(stdout);
+	} catch {
+		return undefined;
+	}
+	const data = (body as Partial<PullRequestResponse> | null)?.data;
+	if (typeof data !== "object" || data === null) return undefined;
+	return body as PullRequestResponse;
 };

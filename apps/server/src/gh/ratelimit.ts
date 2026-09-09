@@ -1,11 +1,11 @@
 import type { GhFailure, GhRunner } from "./run.ts";
 
 // `gh api rate_limit` reports one budget per resource. GitHub charges a
-// `gh api graphql` call, and so every poller tick, to the graphql resource,
-// and a REST call such as a diff fetch to the core resource. Every host
+// `gh api graphql` call, and so every poller tick, to the graphql resource.
+// A REST call such as a diff fetch goes to the core resource. Every host
 // reports core. GitHub.com also reports graphql. The reader compares the
 // budgets the body carries and reports the one with the lower remaining
-// fraction, so a drained graphql budget slows the poller although core is
+// fraction. A drained graphql budget thus slows the poller although core is
 // full. The poller reads it every 5 minutes and stretches every interval by
 // `multiplier` while the fraction is under 20 percent.
 

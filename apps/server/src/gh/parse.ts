@@ -95,10 +95,16 @@ export type TicketIdentifier = { key: string; number: number };
 // any case. Branch names are lowercase (`cde-42-slug`), titles are not.
 export const TICKET_IDENTIFIER_PATTERN = /\b([a-z][a-z0-9]{1,9})-(\d+)\b/gi;
 
+// tickets.number is a Postgres int, so no ticket has a number above this.
+// An equality lookup on that column with a larger value errors in Postgres.
+export const MAX_TICKET_NUMBER = 2147483647;
+
 // Returns every distinct identifier in text order. The key comes out
-// uppercased, so `cde-42` and `CDE-42` are one entry. Ticket numbers start
-// at 1, so a match with number 0 is dropped. matchAll copies lastIndex from
-// a global regex, so the search starts from 0 whatever an outside exec left.
+// uppercased, so `cde-42` and `CDE-42` are one entry. Ticket numbers run
+// from 1 to MAX_TICKET_NUMBER, so a match outside that range is dropped.
+// A timestamp stamp such as run-1757400000000 never reaches the lookup.
+// matchAll copies lastIndex from a global regex, so the search starts from
+// 0 whatever an outside exec left.
 export const findTicketIdentifiers = (text: string): TicketIdentifier[] => {
 	TICKET_IDENTIFIER_PATTERN.lastIndex = 0;
 	const seen = new Set<string>();
@@ -107,7 +113,7 @@ export const findTicketIdentifiers = (text: string): TicketIdentifier[] => {
 		const key = match[1]!.toUpperCase();
 		const number = Number(match[2]);
 		const id = `${key}-${number}`;
-		if (number === 0 || seen.has(id)) continue;
+		if (number === 0 || number > MAX_TICKET_NUMBER || seen.has(id)) continue;
 		seen.add(id);
 		found.push({ key, number });
 	}
