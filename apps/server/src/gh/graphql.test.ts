@@ -87,6 +87,76 @@ describe("fetchPullRequests", () => {
 		expect(result).not.toHaveProperty("results");
 		expect(handle.spawns()).toHaveLength(1);
 	});
+
+	// gh exits 1 when the body carries `errors` and still prints the body to
+	// stdout. A body with `data` maps per alias, so one unknown PR number does
+	// not fail the other refs in the batch.
+	test("maps a per-PR error from an exit 1 body that carries data", async () => {
+		const message = "Could not resolve to a PullRequest with the number of 999.";
+		const four = refs.slice(0, 4);
+		const body = {
+			data: { pr0: fixture.data.pr0, pr1: fixture.data.pr1, pr2: fixture.data.pr2, pr3: { pullRequest: null } },
+			errors: [{ type: "NOT_FOUND", path: ["pr3", "pullRequest"], message }],
+		};
+		stub({ "api graphql": { stdout: JSON.stringify(body), stderr: `gh: ${message}`, exitCode: 1 } });
+		const result = await fetchPullRequests(createGhRunner(), four);
+		expect(result).toMatchObject({ ok: true });
+		const results = (result as { results: unknown[] }).results;
+		expect(results).toHaveLength(4);
+		expect(results[3]).toEqual({ ref: four[3]!, error: message });
+		for (const i of [0, 1, 2]) expect(results[i]).toHaveProperty("row");
+	});
+
+	// A whole-query rejection carries no usable `data`: GitHub sends `data`
+	// null for a rate limit or a 502, no `data` key for a query error, and a
+	// REST style `message` body for a 401 or 403. Each one is a batch failure.
+	test("returns the run failure for an exit 1 body without a data object", async () => {
+		const bodies: Array<[string, string]> = [
+			[
+				'{"data":null,"errors":[{"type":"RATE_LIMITED","message":"API rate limit exceeded"}]}',
+				"gh: API rate limit exceeded",
+			],
+			[
+				'{"errors":[{"path":["query","pr0","x"],"message":"Field \'x\' doesn\'t exist on type \'Repository\'"}]}',
+				"gh: Field 'x' doesn't exist on type 'Repository'",
+			],
+			[
+				'{"message":"Bad credentials","documentation_url":"https://docs.github.com/rest","status":"401"}',
+				"gh: Bad credentials (HTTP 401)",
+			],
+			[
+				'{"message":"API rate limit exceeded for user ID 1.","documentation_url":"https://docs.github.com/rest"}',
+				"gh: request failed (HTTP 403)",
+			],
+		];
+		const handle = stub({ "api graphql": { stdout: "", stderr: "", exitCode: 1 } });
+		for (const [stdout, stderr] of bodies) {
+			handle.reply("api graphql", { stdout, stderr, exitCode: 1 });
+			const result = await fetchPullRequests(createGhRunner(), refs.slice(0, 1));
+			expect(result, stderr).toMatchObject({ ok: false, reason: "error", code: 1, message: stderr, stdout });
+			expect(result, stderr).not.toHaveProperty("results");
+		}
+		expect(handle.spawns()).toHaveLength(bodies.length);
+	});
+
+	// link and refresh fetch one PR on the interactive slot, so a user action
+	// never waits behind two in-flight poller batches.
+	test("fetches one PR on the interactive slot while both poller slots are busy", async () => {
+		const handle = stub({
+			"auth status": { stdout: "ok", stderr: "", exitCode: 0, delayMs: 300 },
+			"api graphql": { stdout: JSON.stringify({ data: { pr0: fixture.data.pr7 } }), stderr: "", exitCode: 0 },
+		});
+		const runGh = createGhRunner();
+		const pollers = [runGh("poller", ["auth", "status"]), runGh("poller", ["auth", "status"])];
+		await Bun.sleep(100);
+		const fetching = fetchPullRequests(runGh, [refs[7]!], "interactive");
+		await Bun.sleep(100);
+		expect(handle.spawns()).toHaveLength(3);
+		const result = await fetching;
+		expect(result).toMatchObject({ ok: true });
+		expect((result as { results: unknown[] }).results).toHaveLength(1);
+		await Promise.all(pollers);
+	});
 });
 
 describe("mapPullRequestResponse", () => {
