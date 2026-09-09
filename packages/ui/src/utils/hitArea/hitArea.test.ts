@@ -9,6 +9,8 @@ import { type HitAreaKey, hitArea } from "./hitArea";
 // and `borderY` are the border widths the layer's insets cross, added up
 // per axis. A control with text declares the smallest width its own
 // min-width class allows; `coarseWidth` is that width on a coarse pointer.
+// A tab has no min-width on a fine pointer: its smallest width is a one
+// character label, 8 px at the 14 px size, plus 2 px padding each side.
 // The resize handle fills the sheet, which fills the viewport, so 320 px
 // stands for the shortest viewport.
 type Geometry = { width: number; height: number; borderX: number; borderY: number; coarseWidth?: number };
@@ -18,7 +20,7 @@ const geometry: Record<HitAreaKey, Geometry> = {
 	box24Bordered: { width: 28, height: 24, borderX: 2, borderY: 2 },
 	box28Bordered: { width: 28, height: 28, borderX: 2, borderY: 2 },
 	segment28: { width: 28, height: 28, borderX: 2, borderY: 2, coarseWidth: 44 },
-	tab32: { width: 28, height: 32, borderX: 0, borderY: 2, coarseWidth: 44 },
+	tab32: { width: 12, height: 32, borderX: 0, borderY: 2, coarseWidth: 44 },
 	handle4: { width: 4, height: 320, borderX: 0, borderY: 0 },
 };
 

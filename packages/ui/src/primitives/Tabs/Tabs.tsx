@@ -37,8 +37,10 @@ const step = <Value extends string>(items: readonly TabItem<Value>[], value: Val
 // Underlined tabs over one panel. Arrow keys, Home, and End move the
 // selection and skip a disabled tab. The panel is a keyboard stop (Base UI
 // renders it with tabindex="0"), so it draws the focus ring like a control.
-// A tab is at least 28 px wide, and 44 px on a coarse pointer, with the
-// label centered. The hit-area layer grows the height on a coarse pointer.
+// A tab hugs its label, so the underline is as wide as the text; the
+// hit-area layer reaches 8 px past each side. On a coarse pointer the tab
+// is at least 44 px wide with the label centered, and the layer grows the
+// height.
 export function Tabs<Value extends string>({ items, value, onValueChange, className }: TabsProps<Value>) {
 	const onKeyDown = (event: BaseUIEvent<KeyboardEvent<HTMLDivElement>>) => {
 		const next = step(items, value, event.key);
@@ -59,7 +61,7 @@ export function Tabs<Value extends string>({ items, value, onValueChange, classN
 						disabled={item.disabled}
 						className={(state) =>
 							cx(
-								"-mb-px flex h-8 min-w-7 items-center justify-center border-b-2 px-0.5 text-sm font-medium whitespace-nowrap select-none transition-colors duration-hover ease-out pointer-coarse:min-w-11",
+								"-mb-px flex h-8 items-center justify-center border-b-2 px-0.5 text-sm font-medium whitespace-nowrap select-none transition-colors duration-hover ease-out pointer-coarse:min-w-11",
 								hitArea.tab32,
 								"focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 focus-visible:rounded-sm",
 								state.active ? "border-accent text-fg" : "border-transparent text-fg-muted hover:text-fg",
