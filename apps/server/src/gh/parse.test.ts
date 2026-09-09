@@ -134,6 +134,23 @@ describe("findTicketIdentifiers", () => {
 		expect(findTicketIdentifiers("ABC-0-x")).toEqual([]);
 	});
 
+	// tickets.number is a Postgres int, so a number above 2147483647 names no
+	// ticket, and an equality lookup with that value errors in Postgres. A
+	// timestamp stamp such as run-1757400000000 must not reach the lookup.
+	test("auto-link drops a number above the Postgres int range", () => {
+		expect(findTicketIdentifiers("cde-2147483647")).toEqual([{ key: "CDE", number: 2147483647 }]);
+		for (const text of [
+			"backup-2147483648",
+			"run-1757400000000",
+			"Deploy build-20260909120000 to prod",
+			"CDE-9007199254740993",
+			`CDE-${"9".repeat(309)}`,
+		]) {
+			expect(findTicketIdentifiers(text), text).toEqual([]);
+		}
+		expect(findTicketIdentifiers("run-1757400000000 fixes CDE-42")).toEqual([{ key: "CDE", number: 42 }]);
+	});
+
 	test("auto-link regex rejects keys outside the grammar and unbounded numbers", () => {
 		for (const text of ["a-1", "abcdefghijk-1", "1ab-2", "cde-42abc", "cde_42"]) {
 			expect(findTicketIdentifiers(text), text).toEqual([]);
