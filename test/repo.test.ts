@@ -145,6 +145,13 @@ describe("root scaffold", () => {
 		expect(fixed[0].some((entry: string) => entry.startsWith("@trellis/"))).toBe(true);
 	});
 
+	// Every workspace is private. @changesets/cli defaults a private package to
+	// `version: false`, and then `bun run release` bumps nothing.
+	test(".changeset/config.json versions and tags private packages", async () => {
+		const { privatePackages } = await json(".changeset/config.json");
+		expect(privatePackages).toEqual({ version: true, tag: true });
+	});
+
 	test("AGENTS.md states the tx-first, STE, no-fallback, TDD, and design checklist rules under 120 lines", async () => {
 		const agents = await text("AGENTS.md");
 		expect(agents).toMatch(/`?tx`? first/);
