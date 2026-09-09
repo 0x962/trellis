@@ -16,7 +16,7 @@
 		"typecheck:repo": "tsc --noEmit -p tsconfig.json",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
-		"check": "turbo run lint typecheck test size-budget perf:10k typecheck:repo test:repo",
+		"check": "bun scripts/check.ts",
 		"perf": "turbo run perf",
 		"db:generate": "turbo run db:generate --filter=@trellis/server",
 		"e2e": "bun run --cwd apps/web e2e",

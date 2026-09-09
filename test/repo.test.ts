@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import bunfig from "../bunfig.toml";
+import { checkTasks } from "../scripts/check";
 
 // Each test reads one root file and checks the fields plan.md names for it.
 // A missing file throws ENOENT, so the failure names the file to create.
@@ -64,19 +65,19 @@ describe("root scaffold", () => {
 		]) {
 			expect(scripts).toHaveProperty(name);
 		}
-		expect(scripts.check).toContain("lint");
-		expect(scripts.check).toContain("typecheck");
-		expect(scripts.check).toContain("test");
+		expect(scripts.check).toBe("bun scripts/check.ts");
+		expect(checkTasks.full).toContain("lint");
+		expect(checkTasks.full).toContain("typecheck");
+		expect(checkTasks.full).toContain("test");
 	});
 
 	// plan.md: `check` runs lint, typecheck, test, the size budget, and the 10k
 	// perf suite. The two tasks belong to apps/web and apps/server. turbo refuses
 	// a task that turbo.json does not declare, so the root declares both.
 	test("check runs the size budget and the 10k perf suite through turbo", async () => {
-		const { scripts } = await json("package.json");
 		const { tasks } = await json("turbo.json");
 		for (const name of ["size-budget", "perf:10k"]) {
-			expect(scripts.check).toContain(name);
+			expect(checkTasks.full).toContain(name);
 			expect(tasks).toHaveProperty(name);
 		}
 		expect(tasks["size-budget"].dependsOn).toContain("build");
@@ -229,18 +230,30 @@ describe("root scaffold", () => {
 		}
 	});
 
-	// The child run inherits the marker and skips this test, so one `bun run check`
-	// starts at most one nested run.
-	test.skipIf(process.env.TRELLIS_REPO_CHECK_CHILD === "1")(
-		"bun run check exits 0 without recursing",
+	// The nested run runs lint and typecheck only, so every task with
+	// `cache: false` and the 10k perf suite run once per `bun run check`. The
+	// nested run skips this test, so a check that runs test:repo in nested mode
+	// cannot recurse without end.
+	test.skipIf(process.env.TRELLIS_CHECK_NESTED === "1")(
+		"bun run check exits 0, and the nested run covers lint and typecheck only",
 		() => {
-			const result = Bun.spawnSync(["bun", "run", "check"], {
+			const result = Bun.spawnSync(["bun", "run", "check", "--summarize"], {
 				cwd: root,
-				env: { ...process.env, TRELLIS_REPO_CHECK_CHILD: "1" },
-				stdout: "inherit",
-				stderr: "inherit",
+				env: { ...process.env, TRELLIS_CHECK_NESTED: "1" },
+				stdout: "pipe",
+				stderr: "pipe",
 			});
+			const output = result.stdout.toString() + result.stderr.toString();
+			if (result.exitCode !== 0) console.log(output);
 			expect(result.exitCode).toBe(0);
+			const summaryPath = /^Summary:\s+(.+\.json)$/m.exec(output)![1]!;
+			const summary = JSON.parse(readFileSync(summaryPath, "utf8")) as { tasks: Array<{ task: string }> };
+			const ran = summary.tasks.map((entry) => entry.task);
+			expect(ran).toContain("lint");
+			expect(ran).toContain("typecheck:repo");
+			for (const task of ["test", "size-budget", "perf:10k", "test:repo"]) {
+				expect(ran).not.toContain(task);
+			}
 		},
 		600_000,
 	);

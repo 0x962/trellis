@@ -23,6 +23,7 @@ Read [AGENTS.md](AGENTS.md) first. It holds the repo rules. This file holds the 
 | `apps/mobile` | `@trellis/mobile` | the Expo app |
 | `docs/design` | | the plan and the design documents; `plan.md` wins over every other file there |
 | `test` | | root tests that assert the repo configuration |
+| `scripts/check.ts` | | the `bun run check` runner; it hands the task list to turbo |
 
 The dependency graph is a star. `api` is imported by server, web, mobile, and cli. `ui` is imported by web only. Packages export TypeScript source and are side-effect free. Layers import downward only. A `biome.json` override per workspace directory refuses an upward `@trellis/*` import, so a violation fails `lint`.
 
