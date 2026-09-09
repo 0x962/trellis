@@ -1,0 +1,23 @@
+name: Bug
+description: Something in trellis does not do what the docs say.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: State what you did, what you expected, and what trellis did instead.
+    validations:
+      required: true
+  - type: textarea
+    id: status
+    attributes:
+      label: Output of `trellis status`
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Relevant lines from `~/.trellis/server.log`
+      render: shell

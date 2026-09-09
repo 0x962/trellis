@@ -1,0 +1,16 @@
+name: Feature
+description: Something trellis should do and does not.
+labels: [feature]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: The outcome
+      description: State what you want to happen, as a user, in one paragraph.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: What you do today
+      description: State the workaround, or that there is none.
