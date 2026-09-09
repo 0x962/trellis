@@ -35,7 +35,7 @@ export const ribbonGap = (size: RibbonSize, count: number) => {
 export const segmentWidth = (size: RibbonSize, count: number) =>
 	(ribbonWidths[size] - (count - 1) * ribbonGap(size, count)) / count;
 
-// A failed or canceled run keeps a 1 px minimum, so it never disappears.
+// A failed or canceled run is pinned: it takes 1 px before a free run takes any.
 const pinned = (bucket: CheckBucket) => bucket === "fail" || bucket === "cancel";
 
 type Run = { bucket: CheckBucket; name: string; length: number };
@@ -49,25 +49,51 @@ const runs = (checks: readonly Check[]) =>
 		return result;
 	}, []);
 
+const total = (values: readonly number[]) => values.reduce((sum, value) => sum + value, 0);
+
+const round = (value: number) => Math.round(value * 100) / 100;
+
+// Rounds `widths` to 0.01 px so they still add up to `sum`. Rounding each
+// width alone drifts the total by up to 0.005 px per width; the widest
+// width takes the drift, and it is far wider than the drift.
+const settle = (widths: readonly number[], sum: number) => {
+	const rounded = widths.map(round);
+	const drift = round(sum - total(rounded));
+	const widest = rounded.indexOf(Math.max(...rounded));
+	rounded[widest] = round(rounded[widest]! + drift);
+	return rounded;
+};
+
+// The px widths of the runs of a crowded ribbon, in run order. Every run
+// starts at its share of the box by length. A pinned run under 1 px rises
+// to 1 px, and the free runs pay the difference in proportion to their
+// length. When the free runs cannot pay, they drop to 0 and the pinned
+// runs shrink in proportion, so the widths always add up to the box.
+const runWidths = (box: number, count: number, merged: readonly Run[]) => {
+	const share = box / count;
+	const raised = merged.map((run) => (pinned(run.bucket) ? Math.max(1, run.length * share) : run.length * share));
+	const isFree = (index: number) => !pinned(merged[index]!.bucket);
+	const free = total(raised.filter((_, index) => isFree(index)));
+	const deficit = total(raised) - box;
+	if (free >= deficit) return raised.map((width, index) => (isFree(index) ? width - deficit * (width / free) : width));
+	const scale = box / (total(raised) - free);
+	return raised.map((width, index) => (isFree(index) ? 0 : width * scale));
+};
+
 // The segments of a ribbon, in check order. Up to one check per px of the
-// box, every check is a segment. Above that, each run of one bucket is a
-// segment. A run's width is its share of the box by length. A pinned run
-// keeps 1 px, and the other runs share the width that remains.
+// box, every check is a segment of one equal width. Above that, each run of
+// one bucket is a segment, sized by `runWidths` and rounded to 0.01 px.
 export const ribbonSegments = (size: RibbonSize, checks: readonly Check[]): RibbonSegment[] => {
 	const box = ribbonWidths[size];
 	if (checks.length <= box) {
 		const width = segmentWidth(size, checks.length);
 		return checks.map((check) => ({ bucket: check.bucket, title: `${check.name}: ${check.bucket}`, width }));
 	}
-	const share = box / checks.length;
-	const pinnedWidth = (run: Run) => Math.max(1, run.length * share);
 	const merged = runs(checks);
-	const free = merged.filter((run) => !pinned(run.bucket));
-	const freeWidth = box - merged.filter((run) => pinned(run.bucket)).reduce((sum, run) => sum + pinnedWidth(run), 0);
-	const freeLength = free.reduce((sum, run) => sum + run.length, 0);
-	return merged.map((run) => ({
+	const widths = settle(runWidths(box, checks.length, merged), box);
+	return merged.map((run, index) => ({
 		bucket: run.bucket,
 		title: run.length === 1 ? `${run.name}: ${run.bucket}` : `${run.length} checks: ${run.bucket}`,
-		width: pinned(run.bucket) ? pinnedWidth(run) : (run.length / freeLength) * freeWidth,
+		width: widths[index]!,
 	}));
 };

@@ -48,8 +48,8 @@ describe("segments", () => {
 			["pass", "40 checks: pass"],
 		]);
 		expect(segments[1]!.width).toBe(1);
-		expect(segments[0]!.width).toBeCloseTo((39 / 79) * 63, 6);
-		expect(segments[2]!.width).toBeCloseTo((40 / 79) * 63, 6);
+		expect(segments[0]!.width).toBe(31.1);
+		expect(segments[2]!.width).toBe(31.9);
 		expect(occupied("full", many(80, 39))).toBeCloseTo(64, 6);
 		expect(occupied("mini", many(40, 19))).toBeCloseTo(32, 6);
 		expect(occupied("mini", many(40))).toBeCloseTo(32, 6);
@@ -62,5 +62,56 @@ describe("segments", () => {
 		expect(segments.map((segment) => segment.bucket)).toEqual(["pass", "cancel", "pass"]);
 		expect(segments[1]!.width).toBe(1);
 		expect(occupied("full", checks)).toBeCloseTo(64, 6);
+	});
+
+	// A width is a px number with two decimals, so an inline style stays short.
+	test("a run width is rounded to 0.01 px", () => {
+		for (const segment of ribbonSegments("full", many(80, 39))) {
+			expect(segment.width * 100).toBeCloseTo(Math.round(segment.width * 100), 6);
+		}
+	});
+
+	// 80 checks, of which 79 fail and 1 is canceled: the pinned runs alone
+	// exceed the box once the cancel run rises to 1 px, and no free run can
+	// pay. The pinned runs shrink in proportion, so the ribbon still fits.
+	test("pinned runs that overfill the box shrink in proportion to fit it", () => {
+		const checks = [...many(79).map((item) => check(item.name, "fail")), check("deploy", "cancel")];
+		for (const size of ["full", "mini"] as const) {
+			const segments = ribbonSegments(size, checks);
+			expect(segments.map((segment) => segment.bucket)).toEqual(["fail", "cancel"]);
+			expect(occupied(size, checks)).toBeCloseTo(ribbonWidths[size], 6);
+			for (const segment of segments) expect(segment.width).toBeGreaterThan(0);
+		}
+	});
+
+	// 40 fail/pass pairs in a mini ribbon: 40 pinned runs at 1 px is 40 px in
+	// a 32 px box. The pass runs drop to 0 and the fail runs share the box.
+	test("free runs drop to 0 and never below when the pinned runs need the whole box", () => {
+		const checks = Array.from({ length: 80 }, (_, index) =>
+			check(`check ${index + 1}`, index % 2 === 0 ? "fail" : "pass"),
+		);
+		const segments = ribbonSegments("mini", checks);
+		expect(segments).toHaveLength(80);
+		expect(occupied("mini", checks)).toBeCloseTo(32, 6);
+		for (const segment of segments) {
+			if (segment.bucket === "pass") expect(segment.width).toBe(0);
+			else expect(segment.width).toBe(0.8);
+		}
+	});
+
+	test("one failure among 80 passes keeps a 1 px fail segment in both sizes", () => {
+		for (const size of ["full", "mini"] as const) {
+			const segments = ribbonSegments(size, many(80, 0));
+			expect(segments[0]!.bucket).toBe("fail");
+			expect(segments[0]!.width).toBe(1);
+			expect(segments[1]!.width).toBe(ribbonWidths[size] - 1);
+			expect(occupied(size, many(80, 0))).toBeCloseTo(ribbonWidths[size], 6);
+		}
+	});
+
+	test("6 checks in a full ribbon get equal widths that fill the box with the gaps", () => {
+		const segments = ribbonSegments("full", many(6));
+		expect(segments.map((segment) => segment.width)).toEqual([9, 9, 9, 9, 9, 9]);
+		expect(occupied("full", many(6))).toBe(64);
 	});
 });
