@@ -461,6 +461,7 @@ No third-party styled components. Base UI (`@base-ui/react`) gives behavior and 
 - Status by category: todo faint empty circle; started warning half ring (sub-ticket progress fills it); review accent dotted ring (agent variant carries `⟡`); done success filled check; canceled faint × with strikethrough. Priority: Linear bars in `fg-muted`; urgent a filled danger square with `!`.
 - Motion: 120 ms hover, 160 ms popover, 240 ms peek slide, 160 ms row enter, 200 ms approve sweep. Never animate re-sorts, text changes, counters, skeleton swaps, theme switch.
 - Focus: `:focus-visible` 2 px accent outline; rows and cards use an inset left bar.
+- Theme: dark is the default (Navid's call, 2026-09-09); `useTheme` starts at `dark` on first run and the inline head script stamps `data-theme="dark"` before first paint; light and system stay selectable in settings.
 - Primitives built once: Button, IconButton, Input, Textarea, Select, Popover, Menu, Dialog, Sheet, Tooltip, Toast, Tabs, Segmented, Checkbox, Switch, Badge, Chip, Avatar (human/agent), StatusIcon, PriorityIcon, CheckRibbon, Kbd, Skeleton, ScrollArea, Separator, EmptyState, Command. A `/_gallery` route renders all of them in both themes for the design reviewer.
 - Signature details: the check ribbon, agent chips with the live dot, the approve sweep, the Start-with-agent toast with the command in mono.
 
