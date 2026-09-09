@@ -1,5 +1,5 @@
-import { spyOn } from "bun:test";
-import { QueryClient } from "@tanstack/query-core";
+import { mock, spyOn } from "bun:test";
+import { notifyManager, QueryClient, QueryObserver } from "@tanstack/query-core";
 import { createEventApplier } from "../src/query-keys.ts";
 import { createFakeScheduler } from "./fakeScheduler.ts";
 import { queryKey, statusId, ticket, ticketSummary, ulid } from "./fixtures.ts";
@@ -46,6 +46,8 @@ export const listPage = (...items: Summary[]) => ({ items, nextCursor: null });
 
 export const boardPage = (...items: Summary[]) => ({ columns: [{ statusId, count: items.length, items }] });
 
+export const searchPage = (...tickets: Summary[]) => ({ tickets, projects: [] });
+
 export const isInvalidated = (queryClient: QueryClient, key: unknown[]) =>
 	queryClient.getQueryState(key)?.isInvalidated === true;
 
@@ -66,4 +68,25 @@ export const seedTicketCaches = (summary: Summary) => (queryClient: QueryClient)
 	queryClient.setQueryData(listKey, listPage(summary));
 	queryClient.setQueryData(boardKey, boardPage(summary));
 	queryClient.setQueryData(detailKey, ticket(summary));
+};
+
+// An active query whose queryFn answers only when the test says so. Each
+// call gets its own promise, so the test controls the order of the answers
+// against the events. `seen` holds every data value a React subscriber
+// renders. React ignores the value the listener gets and reads the
+// observer's current result after the batch, so the helper reads it the
+// same way. The listeners run on a timer of zero, so `answer` waits one
+// timer tick after the fetch's promise.
+export const observeQuery = (queryClient: QueryClient, key: unknown[]) => {
+	const answers: ((value: unknown) => void)[] = [];
+	const queryFn = mock(() => new Promise<unknown>((resolve) => answers.push(resolve)));
+	const observer = new QueryObserver(queryClient, { queryKey: key, queryFn, staleTime: Infinity });
+	const seen: unknown[] = [];
+	observer.subscribe(notifyManager.batchCalls(() => seen.push(observer.getCurrentResult().data)));
+	const answer = async (index: number, value: unknown) => {
+		answers[index]!(value);
+		await queryClient.getQueryCache().find({ queryKey: key, exact: true })!.promise;
+		await new Promise((resolve) => setTimeout(resolve, 0));
+	};
+	return { queryFn, answer, observer, seen };
 };

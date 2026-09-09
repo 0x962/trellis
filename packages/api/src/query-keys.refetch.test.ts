@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
-import { type QueryClient, QueryObserver } from "@tanstack/query-core";
+import { QueryObserver } from "@tanstack/query-core";
 import {
 	cached,
 	deletedEvent,
@@ -7,27 +7,13 @@ import {
 	isInvalidated,
 	listKey,
 	listPage,
+	observeQuery,
 	seedTicketCaches,
 	setup,
 	summaryAt,
 	updatedEvent,
 } from "../test/applierHarness.ts";
 import { ticket } from "../test/fixtures.ts";
-
-// An active list whose queryFn answers only when the test says so. Each
-// call gets its own promise, so the test controls the order of the
-// answers against the events.
-const observeList = (queryClient: QueryClient) => {
-	const answers: ((value: unknown) => void)[] = [];
-	const queryFn = mock(() => new Promise<unknown>((resolve) => answers.push(resolve)));
-	const observer = new QueryObserver(queryClient, { queryKey: listKey, queryFn, staleTime: Infinity });
-	observer.subscribe(() => {});
-	const answer = async (index: number, value: unknown) => {
-		answers[index]!(value);
-		await queryClient.getQueryCache().find({ queryKey: listKey, exact: true })!.promise;
-	};
-	return { queryFn, answer, observer };
-};
 
 describe("applyEvent during a refetch", () => {
 	// A query whose refetch is in flight takes the patch, and the refetch's
@@ -36,7 +22,7 @@ describe("applyEvent during a refetch", () => {
 	// `staleTime: Infinity`. So the query refetches once more after the event.
 	test("an event that arrives during a refetch patches the query and makes it refetch again", async () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
-		const { queryFn, answer } = observeList(queryClient);
+		const { queryFn, answer } = observeQuery(queryClient, listKey);
 		applier.applyEvent(updatedEvent(summaryAt(4), ["status"]));
 		advanceTo(250);
 		expect(queryFn).toHaveBeenCalledTimes(1);
@@ -53,7 +39,7 @@ describe("applyEvent during a refetch", () => {
 
 	test("a ticket.deleted that arrives during a refetch makes the list refetch again, so the row leaves", async () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
-		const { queryFn, answer } = observeList(queryClient);
+		const { queryFn, answer } = observeQuery(queryClient, listKey);
 		applier.applyEvent(updatedEvent(summaryAt(4), ["status"]));
 		advanceTo(250);
 		expect(queryFn).toHaveBeenCalledTimes(1);
@@ -71,7 +57,7 @@ describe("applyEvent during a refetch", () => {
 	// refetches once more, the same as after an invalidation.
 	test("an event during a refetch that an observer started makes the query refetch again", async () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
-		const { queryFn, answer, observer } = observeList(queryClient);
+		const { queryFn, answer, observer } = observeQuery(queryClient, listKey);
 		void observer.refetch();
 		expect(queryFn).toHaveBeenCalledTimes(1);
 		expect(isInvalidated(queryClient, listKey)).toBe(false);
@@ -96,7 +82,7 @@ describe("applyEvent on a query whose fetch settles later", () => {
 	// settle, so its next mount refetches.
 	test("a query that loses its observer during a refetch is invalidated at settle and refetches on its next mount", async () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
-		const { queryFn, answer, observer } = observeList(queryClient);
+		const { queryFn, answer, observer } = observeQuery(queryClient, listKey);
 		void observer.refetch();
 		const v5 = summaryAt(5, { title: "Fifth" });
 		applier.applyEvent(updatedEvent(v5, ["title"]));
