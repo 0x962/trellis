@@ -100,8 +100,10 @@ describe("root scaffold", () => {
 		expect(messages.get("**/db/client")).toContain("deadlocks the server");
 		expect(messages.get("motion")).toContain("motion/mini and CSS transitions only");
 		expect(messages.get("framer-motion")).toContain("motion/mini and CSS transitions only");
-		expect(messages.get("@radix-ui/*")).toBeString();
-		expect(messages.get("@radix-ui/*")).not.toBeEmpty();
+		for (const specifier of ["@radix-ui/*", "radix-ui", "radix-ui/**"]) {
+			expect(messages.get(specifier)).toBeString();
+			expect(messages.get(specifier)).not.toBeEmpty();
+		}
 		expect(messages.get("shadcn")).toBeString();
 		expect(messages.get("shadcn")).not.toBeEmpty();
 	});

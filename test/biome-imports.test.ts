@@ -49,6 +49,8 @@ const refused: Record<string, string> = {
 	motionReact: 'import { motion } from "motion/react";\nexport const m = motion;\n',
 	framer: 'import { motion } from "framer-motion";\nexport const m = motion;\n',
 	radix: 'import { Dialog } from "@radix-ui/react-dialog";\nexport const d = Dialog;\n',
+	radixUnified: 'import { Dialog } from "radix-ui";\nexport const d = Dialog;\n',
+	radixUnifiedPath: 'import { Dialog } from "radix-ui/internal";\nexport const d = Dialog;\n',
 	shadcn: 'import { cn } from "shadcn";\nexport const c = cn;\n',
 	client: 'import { db } from "../db/client";\nexport const t = db;\n',
 };
@@ -99,6 +101,8 @@ describe("biome import rules", () => {
 		write("src/ui/framerClient.ts", 'import { motion } from "framer-motion/client";\nexport const m = motion;\n');
 		write("src/ui/mini.ts", 'import { animate } from "motion/mini";\nexport const a = animate;\n');
 		write("src/ui/radix.ts", 'import { Dialog } from "@radix-ui/react-dialog";\nexport const d = Dialog;\n');
+		write("src/ui/radixUnified.ts", 'import { Dialog } from "radix-ui";\nexport const d = Dialog;\n');
+		write("src/ui/radixUnifiedPath.ts", 'import { Dialog } from "radix-ui/internal";\nexport const d = Dialog;\n');
 		write("src/ui/shadcn.ts", 'import { cn } from "shadcn";\nexport const c = cn;\n');
 
 		const { exitCode, errors } = lint();
@@ -121,6 +125,8 @@ describe("biome import rules", () => {
 			"src/ui/framerDom.ts",
 			"src/ui/framerClient.ts",
 			"src/ui/radix.ts",
+			"src/ui/radixUnified.ts",
+			"src/ui/radixUnifiedPath.ts",
 			"src/ui/shadcn.ts",
 		]) {
 			expect(errors).toContain(`${file}:${rule}`);
