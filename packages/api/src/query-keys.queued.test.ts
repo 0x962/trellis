@@ -82,17 +82,58 @@ describe("applyEvent while an invalidation waits", () => {
 	// After a description event, the detail keeps its version until a refetch
 	// brings the text, or the next save would pass the version check and
 	// overwrite the newer text. A refetch that brings the version resumes the
-	// patches.
+	// patches at the event's version.
 	test("a detail patches again once a refetch brings the version of the description event", () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
 		applier.applyEvent(updatedEvent(summaryAt(4), ["description"]));
 		advanceTo(100);
 		applier.applyEvent(updatedEvent(summaryAt(5, { title: "Fifth" }), ["title"]));
-		expect(cached(queryClient, detailKey)).toEqual(ticket(summaryAt(3)));
+		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...summaryAt(5, { title: "Fifth" }), version: 3 }));
 		advanceTo(2000);
 		queryClient.setQueryData(detailKey, ticket({ ...summaryAt(5, { title: "Fifth" }), description: "New text" }));
 		const v6 = summaryAt(6, { title: "Sixth" });
 		applier.applyEvent(updatedEvent(v6, ["title"]));
 		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...v6, description: "New text" }));
+	});
+
+	// Patch first, always, for the detail too. A detail below the version of
+	// the last description event holds old text. It takes every summary
+	// field and keeps its version, so a save from it fails the server's
+	// version check until a refetch brings the text.
+	test("a title event patches a detail that waits for its description and keeps its version", () => {
+		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
+		applier.applyEvent(updatedEvent(summaryAt(4), ["description"]));
+		advanceTo(100);
+		applier.applyEvent(updatedEvent(summaryAt(5, { title: "Fifth" }), ["title"]));
+		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...summaryAt(5, { title: "Fifth" }), version: 3 }));
+		expect(isInvalidated(queryClient, detailKey)).toBe(false);
+		advanceTo(2000);
+		expect(isInvalidated(queryClient, detailKey)).toBe(true);
+	});
+
+	// The cache can hold one ticket's detail under two keys: the identifier
+	// from the URL and the ULID from a list row. A mutation response refreshes
+	// one of them. The other still holds old text, so it keeps its version.
+	test("a second cached detail of the same ticket keeps its version after the first refreshes", () => {
+		const byUlidKey = queryKey(["tickets", "get"], { ticket: t1 });
+		const { queryClient, advanceTo, applier } = setup((queryClient) => {
+			seedTicketCaches(summaryAt(3))(queryClient);
+			queryClient.setQueryData(byUlidKey, ticket(summaryAt(3)));
+		});
+		applier.beginMutation(t1);
+		applier.applyEvent(updatedEvent(summaryAt(4), ["description"]));
+		queryClient.setQueryData(detailKey, ticket({ ...summaryAt(4), description: "New text" }));
+		applier.endMutation(t1);
+		advanceTo(100);
+		const v5 = summaryAt(5, { title: "Fifth" });
+		applier.applyEvent(updatedEvent(v5, ["title"]));
+		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...v5, description: "New text" }));
+		expect(cached(queryClient, byUlidKey)).toEqual(ticket({ ...v5, version: 3 }));
+		advanceTo(2000);
+		expect(isInvalidated(queryClient, byUlidKey)).toBe(true);
+		queryClient.setQueryData(byUlidKey, ticket({ ...v5, description: "New text" }));
+		const v6 = summaryAt(6, { title: "Sixth" });
+		applier.applyEvent(updatedEvent(v6, ["title"]));
+		expect(cached(queryClient, byUlidKey)).toEqual(ticket({ ...v6, description: "New text" }));
 	});
 });

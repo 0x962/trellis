@@ -80,13 +80,11 @@ const patchChildren = (data: Ticket, change: TicketChange) => {
 
 // The detail keeps the fields the summary does not carry: description,
 // children, prs, attachments. A description change is not in the summary.
-// So the detail stays at its version, and the applier refetches it. A detail
-// that took the new version with the old text would let the next save
-// overwrite the newer text.
+// The applier holds the detail's version after a description event and
+// refetches the detail, so the text and the version arrive together.
 const patchDetail = (data: Ticket, change: TicketChange) => {
 	if (data.id !== change.summary.id) return patchChildren(data, change);
 	if (change.summary.version <= data.version) return undefined;
-	if (change.fields.includes("description")) return undefined;
 	return { ...data, ...change.summary };
 };
 

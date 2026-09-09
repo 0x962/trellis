@@ -80,9 +80,10 @@ export type EventApplier = {
 // a patch would clear the invalidated flag with old data still in the query,
 // and under `staleTime: Infinity` nothing else would repair the older row.
 // The detail holds the description and a summary event does not carry it.
-// So after a description event the detail keeps its version until a refetch
-// brings a row at that version or newer, or the next save would pass the
-// version check and overwrite the newer text. While a mutation is in flight
+// So after a description event the detail takes every summary field but
+// keeps its version until a refetch brings a row at that version or newer.
+// A save from a detail with old text then fails the server's version check
+// instead of overwriting the newer text. While a mutation is in flight
 // for a ticket, its events wait, folded into one change. They apply after
 // the mutation settles, so the mutation's own response never overwrites a
 // newer row.
@@ -96,7 +97,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	const inFlight = new Map<string, number>();
 	const waiting = new Map<string, HeldChange>();
 	// By ticket id: the version of the last description event. A cached
-	// detail below that version holds old text and takes no patch.
+	// detail below that version holds old text.
 	const descriptionVersions = new Map<string, number>();
 
 	const enqueue = (matchers: Matcher[]) => {
@@ -111,21 +112,24 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		general.invalidateAll();
 	};
 
-	// True for the detail of the changed ticket while it waits for the text
-	// of a description event. A refetch that brings that version or a newer
-	// one ends the wait. A detail that waits refetches once more after every
-	// event, because a refetch that started before the event can bring the
-	// text at the description's version and miss the event.
-	const waitsForDescription = (id: string, data: unknown) => {
+	// True for one cached detail of the changed ticket while it holds old
+	// text: its version is below the last description event's version. The
+	// test is per cache entry, because the cache can hold one ticket's detail
+	// under the identifier key and under the ULID key, and a refetch brings
+	// the text to one entry at a time.
+	const holdsOldText = (id: string, data: unknown) => {
 		const version = descriptionVersions.get(id);
-		if (version === undefined || (data as { id: unknown }).id !== id) return false;
-		if ((data as { version: number }).version < version) return true;
-		descriptionVersions.delete(id);
-		return false;
+		return (
+			version !== undefined && (data as { id: unknown }).id === id && (data as { version: number }).version < version
+		);
 	};
 
 	// Returns the id of every cached parent whose `children` lost a row. One
-	// change walks the cache once, however many queries the cache holds.
+	// change walks the cache once, however many queries the cache holds. A
+	// detail with old text takes the patch at its own version, and refetches
+	// once more after every event, because a refetch that started before the
+	// event can bring the text at the description's version and miss the
+	// event.
 	const patchTicket = (change: TicketChange) => {
 		const parentsThatLostAChild: string[] = [];
 		const id = change.summary.id;
@@ -138,17 +142,15 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 				queryClient.removeQueries({ queryKey: query.queryKey, exact: true });
 				continue;
 			}
-			if (detail && waitsForDescription(id, data)) {
-				enqueue([forQuery(query)]);
-				continue;
-			}
 			const patched = patchTicketQuery(query.queryKey, data, change);
 			if (patched === undefined) continue;
-			if (query.state.isInvalidated) {
-				enqueue([forQuery(query)]);
-				continue;
-			}
-			queryClient.setQueryData(query.queryKey, patched);
+			const oldText = detail && holdsOldText(id, data);
+			if (oldText || query.state.isInvalidated) enqueue([forQuery(query)]);
+			if (query.state.isInvalidated) continue;
+			queryClient.setQueryData(
+				query.queryKey,
+				oldText ? { ...patched, version: (data as { version: number }).version } : patched,
+			);
 			if (detail && childCount(patched) < childCount(data)) parentsThatLostAChild.push((data as { id: string }).id);
 		}
 		return parentsThatLostAChild;

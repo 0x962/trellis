@@ -153,19 +153,21 @@ describe("applyEvent on ticket events", () => {
 	});
 
 	// After a description event the detail waits for a refetch. A later event
-	// without the description must not give the old text a newer version,
-	// before the flush or after it. The refetch brings the whole row.
+	// without the description patches the summary fields and must not give
+	// the old text a newer version, before the flush or after it. The refetch
+	// brings the whole row. After the flush the detail is invalidated, and an
+	// invalidated query takes no patch.
 	test("a detail that waits for its description keeps its version through later events", () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
 		applier.applyEvent(updatedEvent(summaryAt(4), ["description"]));
 		advanceTo(100);
 		applier.applyEvent(updatedEvent(summaryAt(5, { title: "Fifth" }), ["title"]));
-		expect(cached(queryClient, detailKey)).toEqual(ticket(summaryAt(3)));
+		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...summaryAt(5, { title: "Fifth" }), version: 3 }));
 		expect(cached(queryClient, listKey)).toEqual(listPage(summaryAt(5, { title: "Fifth" })));
 		advanceTo(2000);
 		expect(isInvalidated(queryClient, detailKey)).toBe(true);
 		applier.applyEvent(updatedEvent(summaryAt(6, { title: "Sixth" }), ["title"]));
-		expect(cached(queryClient, detailKey)).toEqual(ticket(summaryAt(3)));
+		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...summaryAt(5, { title: "Fifth" }), version: 3 }));
 		expect(isInvalidated(queryClient, detailKey)).toBe(true);
 		expect(cached(queryClient, listKey)).toEqual(listPage(summaryAt(6, { title: "Sixth" })));
 	});
