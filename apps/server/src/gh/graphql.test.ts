@@ -191,7 +191,7 @@ describe("mapPullRequestResponse", () => {
 		};
 		const results = mapPullRequestResponse(four, response);
 		expect(results).toHaveLength(4);
-		expect(results[3]).toEqual({ ref: four[3], error: message });
+		expect(results[3]).toEqual({ ref: four[3]!, error: message });
 		for (const i of [0, 1, 2]) {
 			expect(results[i]).toHaveProperty("ref", four[i]);
 			expect(results[i]).toHaveProperty("row");
