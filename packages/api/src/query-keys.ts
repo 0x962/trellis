@@ -80,9 +80,9 @@ export type EventApplier = {
 // for the rest, and each flush is one `invalidateQueries` call. While a
 // mutation is in flight for a ticket, its events wait. After the mutation
 // settles they apply in version order, so the mutation's own response
-// never overwrites a newer row. A delete is final: every query that names
-// the ticket is cancelled and removed, so a fetch in flight never lands,
-// and the id is tombstoned for `TOMBSTONE_MS`. A create or update for a
+// never overwrites a newer row. A delete is final. Every query that names
+// the ticket is cancelled and removed, so a fetch in flight never lands.
+// The id is tombstoned for `TOMBSTONE_MS`, and a create or update for a
 // tombstoned id applies nothing.
 export const createEventApplier = (queryClient: QueryClient, options: { scheduler?: Scheduler } = {}): EventApplier => {
 	const scheduler = options.scheduler ?? realScheduler;
@@ -120,9 +120,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		general.invalidateAll();
 	};
 
-	// Cancels and removes every query that names the ticket: a detail whose
-	// data carries the id, and any query whose input holds the ULID or the
-	// identifier. The cancel comes first, so a fetch in flight is dropped
+	// Cancels and removes every query that names the ticket. That is a detail
+	// whose data carries the id, and any query whose input holds the ULID or
+	// the identifier. The cancel comes first, so a fetch in flight is dropped
 	// before its result can reach the cache. An input ref keeps the spelling
 	// the caller used, so the compare is upper-case.
 	const dropTicketQueries = (summary: TicketChange["summary"]) => {

@@ -15,8 +15,8 @@ import {
 import { queryKey, t1, ticket } from "../test/fixtures.ts";
 
 // A fetch for a ticket that a `ticket.deleted` event names can still be in
-// flight. Its result must never land, or the deleted row comes back under
-// the detail key and the ticket page shows a ticket that no longer exists.
+// flight. Its result must never land. A result that lands puts the deleted
+// row back under the detail key, and the ticket page shows a dead ticket.
 describe("applyEvent on ticket.deleted with a fetch in flight", () => {
 	const byUlidKey = queryKey(["tickets", "get"], { ticket: t1 });
 	const timelineKey = queryKey(["timeline", "list"], { ticket: t1 });
