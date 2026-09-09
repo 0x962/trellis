@@ -2,7 +2,7 @@ import { describe, expect, mock, test } from "bun:test";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { expectClasses, expectFocusRing } from "../../../test/classes";
+import { expectClasses, expectFocusRing, expectHitArea } from "../../../test/classes";
 import { Switch } from "./Switch";
 
 function Controlled({ onCheckedChange }: { onCheckedChange: (checked: boolean) => void }) {
@@ -33,6 +33,7 @@ describe("Switch", () => {
 		const sound = screen.getByRole("switch", { name: "Sound" });
 		expectClasses(sound, "h-4 w-7 rounded-xl bg-border-strong data-checked:bg-accent duration-hover");
 		expectFocusRing(sound);
+		expectHitArea(sound, 16);
 		sound.focus();
 		await user.keyboard(" ");
 		expect(onCheckedChange).toHaveBeenLastCalledWith(true);

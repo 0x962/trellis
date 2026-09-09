@@ -1,6 +1,7 @@
 import { Field } from "@base-ui/react/field";
 import { Switch as BaseSwitch } from "@base-ui/react/switch";
 import { cx } from "../../utils/cx";
+import { hitArea } from "../../utils/hitArea";
 
 export type SwitchProps = {
 	label: string;
@@ -11,7 +12,8 @@ export type SwitchProps = {
 };
 
 // An on/off toggle with its label. Space and Enter flip it; so does a click
-// on the label.
+// on the label. The track is 28 by 16 px; the hit-area layer around it
+// reaches the 28 px and 44 px minimums.
 export function Switch({ label, checked, onCheckedChange, disabled = false, className }: SwitchProps) {
 	return (
 		<Field.Root
@@ -26,7 +28,8 @@ export function Switch({ label, checked, onCheckedChange, disabled = false, clas
 				checked={checked}
 				onCheckedChange={(next) => onCheckedChange(next)}
 				className={cx(
-					"relative inline-flex h-4 w-7 shrink-0 items-center rounded-xl bg-border-strong p-0.5 transition-colors duration-hover ease-out",
+					"inline-flex h-4 w-7 shrink-0 items-center rounded-xl bg-border-strong p-0.5 transition-colors duration-hover ease-out",
+					hitArea[16],
 					"data-checked:bg-accent",
 					"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 				)}

@@ -1,6 +1,7 @@
 import { Button as BaseButton } from "@base-ui/react/button";
 import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { cx } from "../../utils/cx";
+import { hitArea } from "../../utils/hitArea";
 import { Kbd } from "../Kbd";
 
 export type ButtonVariant = "primary" | "default" | "quiet" | "danger";
@@ -25,11 +26,12 @@ const variants: Record<ButtonVariant, string> = {
 };
 
 const sizes: Record<ButtonSize, string> = {
-	md: "h-7 px-2.5 text-sm",
-	sm: "h-6 px-2 text-xs",
+	md: `h-7 px-2.5 text-sm ${hitArea[28]}`,
+	sm: `h-6 px-2 text-xs ${hitArea[24]}`,
 };
 
-// The text button. A 28 px hit area at size md, 24 px at size sm.
+// The text button, drawn 28 px tall at size md and 24 px at size sm. The
+// hit-area layer brings both sizes to the 28 px and 44 px minimums.
 export function Button({ variant = "default", size = "md", icon, kbd, className, children, ...props }: ButtonProps) {
 	const onFill = variant === "primary" || variant === "danger";
 	return (

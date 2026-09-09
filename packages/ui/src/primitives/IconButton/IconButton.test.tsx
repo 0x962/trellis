@@ -2,7 +2,7 @@ import { describe, expect, mock, test } from "bun:test";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RefreshCw } from "lucide-react";
-import { expectClasses } from "../../../test/classes";
+import { expectClasses, expectHitArea } from "../../../test/classes";
 import { IconButton } from "./IconButton";
 
 describe("IconButton", () => {
@@ -24,5 +24,18 @@ describe("IconButton", () => {
 		expect(button.hasAttribute("disabled")).toBe(true);
 		await user.click(button);
 		expect(onClick).toHaveBeenCalledTimes(2);
+	});
+
+	// Size md is drawn 28 px square and size sm 24 px. Both reach 28 px on a
+	// desktop pointer and 44 px on a coarse pointer through the hit-area layer.
+	test("both sizes carry the hit-area layer", () => {
+		render(
+			<>
+				<IconButton label="Medium" icon={<RefreshCw />} />
+				<IconButton label="Small" size="sm" icon={<RefreshCw />} />
+			</>,
+		);
+		expectHitArea(screen.getByRole("button", { name: "Medium" }), 28);
+		expectHitArea(screen.getByRole("button", { name: "Small" }), 24);
 	});
 });

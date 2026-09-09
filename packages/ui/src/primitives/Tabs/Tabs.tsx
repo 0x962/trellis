@@ -34,7 +34,8 @@ const step = <Value extends string>(items: readonly TabItem<Value>[], value: Val
 };
 
 // Underlined tabs over one panel. Arrow keys, Home, and End move the
-// selection and skip a disabled tab.
+// selection and skip a disabled tab. The panel is a keyboard stop (Base UI
+// renders it with tabindex="0"), so it draws the focus ring like a control.
 export function Tabs<Value extends string>({ items, value, onValueChange, className }: TabsProps<Value>) {
 	const onKeyDown = (event: BaseUIEvent<KeyboardEvent<HTMLDivElement>>) => {
 		const next = step(items, value, event.key);
@@ -67,7 +68,11 @@ export function Tabs<Value extends string>({ items, value, onValueChange, classN
 				))}
 			</BaseTabs.List>
 			{items.map((item) => (
-				<BaseTabs.Panel key={item.value} value={item.value} className="pt-3 outline-none">
+				<BaseTabs.Panel
+					key={item.value}
+					value={item.value}
+					className="pt-3 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+				>
 					{item.content}
 				</BaseTabs.Panel>
 			))}

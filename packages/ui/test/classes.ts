@@ -1,4 +1,5 @@
 import { expect } from "bun:test";
+import { type HitAreaSize, hitArea } from "../src/utils/hitArea";
 
 // Asserts that `element` carries every class in the space-separated `classes`.
 // The failure lists only the missing names.
@@ -16,4 +17,10 @@ export const expectFocusRing = (element: Element) => {
 	expectClasses(element, "focus-visible:outline-2 focus-visible:outline-accent");
 	expect(element.classList.contains("outline-none")).toBe(false);
 	expect(element.classList.contains("outline-hidden")).toBe(false);
+};
+
+// Asserts that a control drawn `size` px tall carries the hit-area layer
+// that reaches the 28 px desktop and 44 px touch minimums.
+export const expectHitArea = (element: Element, size: HitAreaSize) => {
+	expectClasses(element, hitArea[size]);
 };

@@ -2,7 +2,7 @@ import { describe, expect, mock, test } from "bun:test";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Check } from "lucide-react";
-import { expectClasses } from "../../../test/classes";
+import { expectClasses, expectHitArea } from "../../../test/classes";
 import { Button } from "./Button";
 
 describe("Button", () => {
@@ -25,6 +25,19 @@ describe("Button", () => {
 		expectClasses(screen.getByRole("button", { name: "Quiet" }), "border-transparent text-fg-muted");
 		expectClasses(screen.getByRole("button", { name: "Danger" }), "bg-danger");
 		expectClasses(screen.getByRole("button", { name: "Small" }), "h-6 text-xs");
+	});
+
+	// Size md is drawn 28 px tall and size sm 24 px. Both reach 28 px on a
+	// desktop pointer and 44 px on a coarse pointer through the hit-area layer.
+	test("both sizes carry the hit-area layer", () => {
+		render(
+			<>
+				<Button>Medium</Button>
+				<Button size="sm">Small</Button>
+			</>,
+		);
+		expectHitArea(screen.getByRole("button", { name: "Medium" }), 28);
+		expectHitArea(screen.getByRole("button", { name: "Small" }), 24);
 	});
 
 	test("Enter and Space activate the button", async () => {

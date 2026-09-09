@@ -10,6 +10,11 @@ export type SheetProps = {
 	// The accessible name, shown in the header.
 	title: string;
 	side?: "left" | "right";
+	// A modal sheet draws a scrim, traps focus, and closes on a click outside.
+	// The default is non-modal: the page behind it stays reachable.
+	modal?: boolean;
+	// The panel width in px. A resizable peek passes the width it holds.
+	width?: number;
 	children: ReactNode;
 	className?: string;
 };
@@ -17,15 +22,38 @@ export type SheetProps = {
 // A panel that slides in from an edge, for the ticket peek. Under reduced
 // motion it fades in place. It is a dialog: Base UI moves focus inside when
 // it opens, Escape closes it, and focus returns to where it was.
-export function Sheet({ open, onOpenChange, title, side = "right", children, className }: SheetProps) {
+//
+// The peek is non-modal so that j and k walk the list behind it while the
+// panel shows the ticket. Base UI closes a non-modal dialog when a press or
+// a focus move lands outside it; `disablePointerDismissal` keeps the sheet
+// open through both, so only Escape, the close button, or the caller closes
+// it. The modal form is the Dialog behavior with the sheet's shape.
+export function Sheet({
+	open,
+	onOpenChange,
+	title,
+	side = "right",
+	modal = false,
+	width = 720,
+	children,
+	className,
+}: SheetProps) {
 	return (
-		<BaseDialog.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
+		<BaseDialog.Root
+			open={open}
+			onOpenChange={(next) => onOpenChange(next)}
+			modal={modal}
+			disablePointerDismissal={!modal}
+		>
 			<BaseDialog.Portal>
-				<BaseDialog.Backdrop className="fixed inset-0 z-50 bg-scrim transition-opacity duration-peek ease-out data-starting-style:opacity-0 data-ending-style:opacity-0" />
+				{modal && (
+					<BaseDialog.Backdrop className="fixed inset-0 z-50 bg-scrim transition-opacity duration-peek ease-out data-starting-style:opacity-0 data-ending-style:opacity-0" />
+				)}
 				<BaseDialog.Popup
-					aria-modal="true"
+					aria-modal={modal ? "true" : undefined}
+					style={{ width }}
 					className={cx(
-						"fixed inset-y-0 z-50 flex w-160 max-w-full flex-col border-border bg-surface text-base text-fg shadow-lg outline-none",
+						"fixed inset-y-0 z-50 flex max-w-full flex-col border-border bg-surface text-base text-fg shadow-lg outline-none",
 						"transition-transform duration-peek ease-out",
 						"motion-reduce:transition-opacity motion-reduce:data-starting-style:translate-x-0 motion-reduce:data-starting-style:opacity-0 motion-reduce:data-ending-style:translate-x-0 motion-reduce:data-ending-style:opacity-0",
 						side === "right"

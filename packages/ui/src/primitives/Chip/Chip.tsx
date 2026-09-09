@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import type { ReactElement } from "react";
 import { cx } from "../../utils/cx";
+import { hitArea } from "../../utils/hitArea";
 
 export type ChipProps = {
 	// A lucide icon element or a StatusIcon, shown at 14 px before the label.
@@ -32,14 +33,16 @@ export function Chip({ icon, label, op = "is", value, onRemove, className }: Chi
 			<span className="text-fg-faint">{op}</span>
 			<span className="font-medium text-fg">{value}</span>
 			{onRemove && (
-				// The glyph box is 16 px. The ::before layer reaches 6 px past it on
-				// every side, so the hit area is the 28 px desktop minimum while the
-				// chip stays 20 px tall.
+				// The glyph box is 16 px. The hit-area layer around it reaches the
+				// 28 px and 44 px minimums while the chip stays 20 px tall.
 				<button
 					type="button"
 					aria-label={`Remove ${label}`}
 					onClick={onRemove}
-					className="relative -mr-0.5 inline-flex size-4 items-center justify-center rounded-sm text-fg-faint transition duration-hover before:absolute before:-inset-1.5 hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1"
+					className={cx(
+						"-mr-0.5 inline-flex size-4 items-center justify-center rounded-sm text-fg-faint transition duration-hover hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1",
+						hitArea[16],
+					)}
 				>
 					<X className="size-3" />
 				</button>

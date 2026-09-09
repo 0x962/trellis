@@ -32,6 +32,15 @@ describe("Tabs", () => {
 		expectClasses(screen.getByRole("tab", { name: "Comments" }), "text-fg-muted");
 	});
 
+	// Base UI renders the panel with tabindex="0", so Tab lands on it after
+	// the tab strip. A stop with no ring is invisible to a keyboard user.
+	test("the panel is a keyboard stop that draws the focus ring", () => {
+		render(<Tabs items={items} value="All" onValueChange={() => {}} />);
+		const panel = screen.getByRole("tabpanel");
+		expect(panel.getAttribute("tabindex")).toBe("0");
+		expectFocusRing(panel);
+	});
+
 	test("arrow, Home, and End keys move the selection and skip a disabled tab", async () => {
 		const user = userEvent.setup();
 		render(<Controlled />);

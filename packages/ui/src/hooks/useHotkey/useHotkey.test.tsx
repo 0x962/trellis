@@ -59,6 +59,18 @@ describe("useHotkey", () => {
 		expect(calls()).toMatchObject({ question: 1 });
 	});
 
+	// The hotkey grammar has no "alt", so a key pressed with Alt held matches
+	// no binding. Alt+A is a text-entry chord on a Mac, never the approval key.
+	test("a key with Alt held matches no binding", () => {
+		const onA = mock();
+		const onModK = mock();
+		render(<Probe onA={onA} onModK={onModK} />);
+		fireEvent.keyDown(document.body, { key: "a", altKey: true });
+		fireEvent.keyDown(document.body, { key: "k", metaKey: true, altKey: true });
+		expect(onA).not.toHaveBeenCalled();
+		expect(onModK).not.toHaveBeenCalled();
+	});
+
 	test("fires on the key, honors mod, ignores editable targets, cleans up", () => {
 		const onA = mock();
 		const onModK = mock();

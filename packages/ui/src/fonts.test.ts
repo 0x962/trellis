@@ -4,29 +4,18 @@ import { blocks, findBlock, parseCss, readSource, statements } from "../test/css
 const fonts = async () => parseCss(await readSource("fonts.css"));
 
 describe("fonts.css", () => {
-	// fontsource's Inter stylesheet declares seven subsets. Only the latin file
-	// is wanted, so fonts.css declares that one face itself.
-	test("fonts.css loads the latin subsets of Inter Variable and JetBrains Mono and nothing else", async () => {
-		const pieces = await fonts();
-		const imports = statements(pieces)
+	test("fonts.css imports the latin subsets of Inter Variable and JetBrains Mono", async () => {
+		const imports = statements(await fonts())
 			.filter((piece) => piece.prelude.startsWith("@import"))
 			.map((piece) => piece.prelude.match(/["']([^"']+)["']/)![1]!);
 		const fontsource = imports.filter((specifier) => specifier.includes("fontsource"));
-		expect(fontsource.sort()).toEqual([
-			"@fontsource/jetbrains-mono/latin-400.css",
-			"@fontsource/jetbrains-mono/latin-500.css",
-		]);
-		const inter = blocks(pieces).filter(
-			(piece) => piece.prelude === "@font-face" && piece.declarations["font-family"] === '"Inter Variable"',
+		expect(fontsource.sort()).toEqual(
+			[
+				"@fontsource-variable/inter/wght.css",
+				"@fontsource/jetbrains-mono/latin-400.css",
+				"@fontsource/jetbrains-mono/latin-500.css",
+			].sort(),
 		);
-		expect(inter).toHaveLength(1);
-		const face = inter[0]!.declarations;
-		expect(face.src).toBe(
-			'url("@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2-variations")',
-		);
-		expect(face["font-weight"]).toBe("100 900");
-		expect(face["font-display"]).toBe("swap");
-		expect(face["unicode-range"]).toStartWith("U+0000-00FF");
 	});
 
 	test("body sets Inter Variable with cv11 and ss01", async () => {

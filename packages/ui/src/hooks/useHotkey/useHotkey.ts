@@ -17,7 +17,9 @@ const editable = (target: EventTarget | null) =>
 // a ticket; a mod chord fires everywhere. A letter or a named key (Enter)
 // reads the same with Shift held, so the Shift state tells "p" from
 // "shift+p". A punctuation key such as "?" is itself the shifted form on many
-// layouts, so its Shift state is ignored.
+// layouts, so its Shift state is ignored. The grammar has no "alt", so a key
+// pressed with Alt held matches no binding: Alt+A is a text-entry chord on a
+// Mac, never the approval key.
 export function useHotkey(hotkey: Hotkey, handler: (event: KeyboardEvent) => void) {
 	useEffect(() => {
 		const parts = hotkey.split("+");
@@ -27,6 +29,7 @@ export function useHotkey(hotkey: Hotkey, handler: (event: KeyboardEvent) => voi
 		const shiftMatters = key.length > 1 || /[a-z]/.test(key);
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.key.toLowerCase() !== key) return;
+			if (event.altKey) return;
 			if ((event.metaKey || event.ctrlKey) !== mod) return;
 			if (shiftMatters && event.shiftKey !== shift) return;
 			if (!mod && editable(event.target)) return;

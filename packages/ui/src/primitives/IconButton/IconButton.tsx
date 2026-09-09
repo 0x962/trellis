@@ -1,6 +1,7 @@
 import { Button as BaseButton } from "@base-ui/react/button";
 import type { ComponentProps, ReactElement } from "react";
 import { cx } from "../../utils/cx";
+import { hitArea } from "../../utils/hitArea";
 
 export type IconButtonProps = Omit<ComponentProps<typeof BaseButton>, "children" | "className"> & {
 	className?: string;
@@ -11,7 +12,9 @@ export type IconButtonProps = Omit<ComponentProps<typeof BaseButton>, "children"
 	variant?: "quiet" | "default";
 };
 
-// A square button that shows one icon. 28 px at size md, 24 px at size sm.
+// A square button that shows one icon, drawn 28 px at size md and 24 px at
+// size sm. The hit-area layer brings both sizes to the 28 px and 44 px
+// minimums.
 export function IconButton({ label, icon, size = "md", variant = "quiet", className, ...props }: IconButtonProps) {
 	return (
 		<BaseButton
@@ -23,7 +26,7 @@ export function IconButton({ label, icon, size = "md", variant = "quiet", classN
 				variant === "quiet"
 					? "border-transparent bg-transparent text-fg-muted hover:bg-bg hover:text-fg"
 					: "border-border bg-surface text-fg hover:bg-bg hover:border-border-strong",
-				size === "md" ? "size-7" : "size-6",
+				size === "md" ? `size-7 ${hitArea[28]}` : `size-6 ${hitArea[24]}`,
 				className,
 			)}
 			{...props}
