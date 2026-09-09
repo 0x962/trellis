@@ -1,0 +1,73 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { type StatusIds, seedProject, seedTicket } from "../../../test/fixtures";
+import { freshDb, type TestDb } from "../../../test/helpers/db.ts";
+import { countStatements } from "../../../test/helpers/statements.ts";
+import { board } from "./board.ts";
+
+let h: TestDb;
+beforeAll(async () => {
+	h = await freshDb();
+});
+beforeEach(() => h.reset());
+afterAll(() => h.close());
+
+type Input = Parameters<typeof board>[1];
+
+const run = (input: Input) => h.db.transaction((tx) => board(tx, input));
+
+// The column set comes from the cache's effective statuses in position order.
+const columnsOf = (statuses: StatusIds) => Object.values(statuses);
+
+describe("board", () => {
+	test("board returns one column per effective status including empty ones", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const filled = [statuses.todo, statuses.started, statuses.agentReview, statuses.humanReview, statuses.done];
+		for (const statusId of filled) await seedTicket(h.db, { projectId: rootId, rootId, statusId });
+		const { columns } = await run({ projectIds: [rootId], statusIds: columnsOf(statuses) });
+		expect(columns.map((column) => column.statusId)).toEqual(columnsOf(statuses));
+		expect(columns.map((column) => column.count)).toEqual([1, 1, 1, 1, 1, 0]);
+		expect(columns.at(-1)?.items).toEqual([]);
+	});
+
+	test("board caps items at 100 per column and counts the whole column", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const seeded: Array<{ id: string; position: number }> = [];
+		for (let i = 0; i < 130; i++) {
+			const position = (i % 13) * 1024;
+			const id = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.started, position });
+			seeded.push({ id, position });
+		}
+		const expected = seeded
+			.sort((a, b) => a.position - b.position || (a.id < b.id ? -1 : 1))
+			.map((row) => row.id)
+			.slice(0, 100);
+		const { columns } = await run({ projectIds: [rootId], statusIds: columnsOf(statuses) });
+		const column = columns.find((column) => column.statusId === statuses.started)!;
+		expect(column.count).toBe(130);
+		expect(column.items.map((item) => item.id)).toEqual(expected);
+	});
+
+	test("board honors the list filters", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const urgent: string[] = [];
+		for (const statusId of [statuses.todo, statuses.started, statuses.done]) {
+			urgent.push(await seedTicket(h.db, { projectId: rootId, rootId, statusId, priority: "urgent" }));
+			await seedTicket(h.db, { projectId: rootId, rootId, statusId, priority: "low" });
+		}
+		const { columns } = await run({ projectIds: [rootId], statusIds: columnsOf(statuses), priority: ["urgent"] });
+		expect(columns.reduce((sum, column) => sum + column.count, 0)).toBe(3);
+		const shown = columns.flatMap((column) => column.items.map((item) => item.id));
+		expect(shown.sort()).toEqual([...urgent].sort());
+	});
+
+	test("board runs as one query", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo });
+		await h.db.transaction(async (tx) => {
+			const statements = await countStatements(h.db.$client, () =>
+				board(tx, { projectIds: [rootId], statusIds: columnsOf(statuses) }),
+			);
+			expect(statements).toBe(1);
+		});
+	});
+});
