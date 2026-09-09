@@ -146,9 +146,10 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	// Returns the id of every cached parent whose `children` lost a row. One
 	// change walks the cache once, however many queries the cache holds. A
 	// query that was invalidated before the patch refetches once more after
-	// it. `setQueryData` clears the invalidated flag, and a refetch already
-	// running can bring rows read before the event's commit. A detail that
-	// took a description event refetches, so the text catches up.
+	// it, because `setQueryData` clears the invalidated flag. A query with
+	// a fetch in flight refetches once more too, whatever started the fetch.
+	// That fetch can bring rows read before the event's commit. A detail
+	// that took a description event refetches, so the text catches up.
 	const patchTicket = (change: TicketChange) => {
 		const parentsThatLostAChild: string[] = [];
 		const id = change.summary.id;
@@ -160,9 +161,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			const own = detail && (data as { id: unknown }).id === id;
 			const patched = patchTicketQuery(query.queryKey, data, change);
 			if (patched === undefined) continue;
-			const wasInvalidated = query.state.isInvalidated;
+			const refetches = query.state.isInvalidated || query.state.fetchStatus === "fetching";
 			queryClient.setQueryData(query.queryKey, patched);
-			if (wasInvalidated || (own && description)) enqueue([forQuery(query)]);
+			if (refetches || (own && description)) enqueue([forQuery(query)]);
 			if (detail && childCount(patched) < childCount(data)) parentsThatLostAChild.push((data as { id: string }).id);
 		}
 		return parentsThatLostAChild;
