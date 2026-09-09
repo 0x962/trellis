@@ -32,7 +32,7 @@ The dependency graph is a star. `api` is imported by server, web, mobile, and cl
 1. Add the Zod schemas to `packages/api/src/schemas/<resource>.ts`.
 2. Add the route to `packages/api/src/contract/<resource>.ts`, with its errors from `errors.ts`.
 3. Write the failing tests: a unit test beside the service and a contract test in `apps/server/src/procedures/<resource>.test.ts`.
-4. Write the service in `apps/server/src/services/<resource>.ts`. The signature is `(tx, ctx, input) => result`; `tx` is first.
+4. Write the service in `apps/server/src/services/<resource>.ts`. The signature is `(ctx, tx, input) => result`. The service takes `tx` as a parameter and never a module-level `db`.
 5. Implement the procedure in `apps/server/src/procedures/<resource>.ts`. It resolves refs, calls the service, and returns. It holds no logic.
 6. Add the CLI verb in `packages/cli/src/commands/<verb>.ts` and its smoke test in `packages/cli/test/`.
 

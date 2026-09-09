@@ -224,13 +224,14 @@ describe("root scaffold", () => {
 		}
 	});
 
-	test("AGENTS.md and CONTRIBUTING.md state the workspace bunfig rule and the tx-first service signature", async () => {
+	// plan.md "Code organization": a service is `(ctx, tx, input) => result`.
+	test("AGENTS.md and CONTRIBUTING.md state the workspace bunfig rule and the plan's service signature", async () => {
 		const agents = await text("AGENTS.md");
 		const contributing = await text("CONTRIBUTING.md");
 		expect(agents).toContain('preload = ["../../test/preload.ts"]');
 		expect(contributing).toContain('preload = ["../../test/preload.ts"]');
-		expect(contributing).toContain("(tx, ctx, input) => result");
-		expect(contributing).not.toContain("(ctx, tx, input)");
+		expect(contributing).toContain("(ctx, tx, input) => result");
+		expect(contributing).not.toContain("(tx, ctx, input)");
 	});
 
 	// The root package.json lists `apps/*` and `packages/*` as workspaces, so an
