@@ -93,8 +93,8 @@ export const observeQuery = (queryClient: QueryClient, key: unknown[]) => {
 
 // An active infinite query whose queryFn answers only when the test says
 // so. A refetch fetches every cached page in turn, so one promise answers
-// one page, and the next page's call follows the answer after one timer
-// tick. The first page's param is null, and each later page's param is the
+// one page. The next page's call follows the answer after one timer tick.
+// The first page's param is null, and each later page's param is the
 // previous page's `nextCursor`.
 export const observeInfiniteQuery = (queryClient: QueryClient, key: unknown[]) => {
 	const answers: ((value: unknown) => void)[] = [];

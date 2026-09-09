@@ -91,11 +91,12 @@ describe("applyEvent on a query whose fetch settles behind the events", () => {
 	});
 });
 
-// A result can hold one id in more than one place: a row per page of an
-// infinite list, a row per board column while a status change is in
-// flight, or a row per inbox section. The settle check compares every
-// row, so one row below the recorded version marks the query behind.
-describe("applyEvent on a query whose settled result holds one id at two versions", () => {
+// A result can hold one id in more than one place. An infinite list holds
+// a row per page. A board holds a row per column while a status change is
+// in flight. An inbox holds a row per section. The settle check compares
+// every row, so one row below the recorded version marks the query behind.
+// A deleted row leaves every place before the refetch.
+describe("applyEvent on a query whose settled result holds one id in two places", () => {
 	const infiniteListKey = infiniteQueryKey(["tickets", "list"], { project: "CDE" });
 	const status2 = "01J8Z6X4Q3M2K1H0G9F8E7D6S2";
 	const v5 = summaryAt(5, { title: "Fifth" });
@@ -165,6 +166,48 @@ describe("applyEvent on a query whose settled result holds one id at two version
 		await answer(1, twoSections([], [v5]));
 		expect(cached(queryClient, inboxKey)).toEqual(twoSections([], [v5]));
 		expect(isInvalidated(queryClient, inboxKey)).toBe(false);
+	});
+
+	// The refetch reads both sections before the delete's commit. The
+	// second copy has nothing left to patch, so the patch of the first copy
+	// stands and the result lands empty. The cache never shows the row.
+	test("an inbox whose two sections hold a deleted row after the delete refetches and never shows it", async () => {
+		const { queryClient, applier } = setup((queryClient) => {
+			queryClient.setQueryData(inboxKey, twoSections([summaryAt(3)], [summaryAt(3)]));
+		});
+		const { queryFn, answer, observer, seen } = observeQuery(queryClient, inboxKey);
+		void observer.refetch();
+		applier.applyEvent(deletedEvent(summaryAt(3)));
+		expect(cached(queryClient, inboxKey)).toEqual(twoSections([], []));
+		await answer(0, twoSections([summaryAt(3)], [summaryAt(3)]));
+		expect(cached(queryClient, inboxKey)).toEqual(twoSections([], []));
+		expect(queryFn).toHaveBeenCalledTimes(2);
+		await answer(1, twoSections([], []));
+		expect(isInvalidated(queryClient, inboxKey)).toBe(false);
+		const sectionIds = (data: unknown) =>
+			Object.values(data as Record<string, { items: { id: string }[] }>).flatMap((s) => s.items.map((row) => row.id));
+		expect(seen.flatMap(sectionIds)).not.toContain(t1);
+	});
+
+	test("an infinite list whose two pages hold a deleted row after the delete refetches and never shows it", async () => {
+		const page1 = (...rows: Summary[]) => ({ ...listPage(...rows), nextCursor: "c1" });
+		const { queryClient, applier } = setup((queryClient) => {
+			queryClient.setQueryData(infiniteListKey, {
+				pages: [page1(summaryAt(3)), listPage(summaryAt(3))],
+				pageParams: [null, "c1"],
+			});
+		});
+		const { queryFn, answerPage, observer } = observeInfiniteQuery(queryClient, infiniteListKey);
+		void observer.refetch();
+		applier.applyEvent(deletedEvent(summaryAt(3)));
+		await answerPage(0, page1(summaryAt(3)));
+		await answerPage(1, listPage(summaryAt(3)));
+		expect(cached(queryClient, infiniteListKey)).toEqual({ pages: [page1(), listPage()], pageParams: [null, "c1"] });
+		expect(queryFn).toHaveBeenCalledTimes(3);
+		await answerPage(2, page1());
+		await answerPage(3, listPage());
+		expect(cached(queryClient, infiniteListKey)).toEqual({ pages: [page1(), listPage()], pageParams: [null, "c1"] });
+		expect(isInvalidated(queryClient, infiniteListKey)).toBe(false);
 	});
 
 	// The check reads every item. A current last item never hides a
