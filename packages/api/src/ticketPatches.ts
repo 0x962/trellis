@@ -3,9 +3,16 @@ import type { InboxSection } from "./schemas/inbox.ts";
 import type { SearchOutput } from "./schemas/search.ts";
 import type { BoardOutput, ListOutput, Ticket, TicketSummary } from "./schemas/ticket.ts";
 
-// One ticket event as the cache sees it. `fields` names the ticket columns
-// the change touched; `deleted` is true for `ticket.deleted`.
-export type TicketChange = { summary: TicketSummary; fields: readonly string[]; deleted: boolean };
+// One ticket change as the cache sees it. `fields` names the ticket columns
+// the change touched; `deleted` is true for `ticket.deleted`. `detail` is
+// the whole ticket when the change is a mutation's response. It carries the
+// text, so it replaces the ticket's own detail entry.
+export type TicketChange = {
+	summary: TicketSummary;
+	fields: readonly string[];
+	deleted: boolean;
+	detail?: Ticket;
+};
 
 // An infinite query stores one list output per page.
 type InfiniteListOutput = { pages: ListOutput[]; pageParams: unknown[] };
@@ -85,6 +92,7 @@ const patchChildren = (data: Ticket, change: TicketChange) => {
 const patchDetail = (data: Ticket, change: TicketChange): Ticket | undefined => {
 	if (data.id !== change.summary.id) return patchChildren(data, change);
 	if (change.summary.version <= data.version) return undefined;
+	if (change.detail !== undefined) return change.detail;
 	const patched = { ...data, ...change.summary };
 	return change.fields.includes("description") ? { ...patched, descriptionStale: true } : patched;
 };

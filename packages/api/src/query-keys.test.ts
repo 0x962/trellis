@@ -16,6 +16,7 @@ import {
 } from "../test/applierHarness.ts";
 import { infiniteQueryKey, t1, t2, ticket } from "../test/fixtures.ts";
 import { applyEvent, eventApplierFor } from "./query-keys.ts";
+import type { Ticket } from "./schemas/ticket.ts";
 
 describe("applyEvent on ticket events", () => {
 	test("applyEvent patches every cached list, board, and detail that holds the ticket when the incoming version is higher", () => {
@@ -82,16 +83,40 @@ describe("applyEvent on ticket events", () => {
 		expect(isInvalidated(queryClient, listKey)).toBe(true);
 	});
 
-	test("a ticket.deleted held behind a mutation still removes the ticket after settle", () => {
+	// A delete is never held. The row leaves every cached entry while the
+	// mutation is still in flight, and the held update is dropped on settle.
+	test("a ticket.deleted during a mutation removes the ticket at once", () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
 		applier.beginMutation(t1);
 		applier.applyEvent(updatedEvent(summaryAt(4), ["title"]));
 		applier.applyEvent(deletedEvent(summaryAt(4)));
+		expect(cached(queryClient, listKey)).toEqual(listPage());
+		expect(queryClient.getQueryCache().find({ queryKey: detailKey, exact: true })).toBeUndefined();
 		applier.endMutation(t1);
 		advanceTo(2000);
 		expect(cached(queryClient, listKey)).toEqual(listPage());
 		expect(queryClient.getQueryCache().find({ queryKey: detailKey, exact: true })).toBeUndefined();
 		expect(isInvalidated(queryClient, listKey)).toBe(true);
+	});
+
+	// The mutation's response is the row at the version the server wrote.
+	// It goes into every cached entry that holds the ticket, and the own
+	// detail takes the whole response, text included. A held event below
+	// the response's version applies nothing; one above it applies after.
+	test("endMutation writes the mutation's result into every cached entry, then the held events above it", () => {
+		const { queryClient, applier } = setup((queryClient) => {
+			seedTicketCaches(summaryAt(3))(queryClient);
+			queryClient.setQueryData(detailKey, ticket({ ...summaryAt(3), descriptionStale: true }));
+		});
+		applier.beginMutation(t1);
+		applier.applyEvent(updatedEvent(summaryAt(4, { title: "Fourth" }), ["title"]));
+		applier.applyEvent(updatedEvent(summaryAt(6, { title: "Sixth" }), ["title"]));
+		applier.endMutation(t1, ticket({ ...summaryAt(5, { title: "Fifth" }), description: "Saved" }) as Ticket);
+		expect(cached(queryClient, listKey)).toEqual(listPage(summaryAt(6, { title: "Sixth" })));
+		expect(cached(queryClient, boardKey)).toEqual(boardPage(summaryAt(6, { title: "Sixth" })));
+		expect(cached(queryClient, detailKey)).toEqual(
+			ticket({ ...summaryAt(6, { title: "Sixth" }), description: "Saved" }),
+		);
 	});
 
 	test("a ticket.deleted event removes the ticket from lists and drops its detail", () => {

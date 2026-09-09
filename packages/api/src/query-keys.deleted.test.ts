@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { CancelledError, type QueryClient } from "@tanstack/query-core";
 import {
+	boardKey,
+	boardPage,
 	cached,
 	createdEvent,
 	deletedEvent,
@@ -13,6 +15,7 @@ import {
 	updatedEvent,
 } from "../test/applierHarness.ts";
 import { queryKey, t1, ticket } from "../test/fixtures.ts";
+import type { Ticket } from "./schemas/ticket.ts";
 
 // A fetch for a ticket that a `ticket.deleted` event names can still be in
 // flight. Its result must never land. A result that lands puts the deleted
@@ -79,6 +82,31 @@ describe("applyEvent on ticket.deleted with a fetch in flight", () => {
 		expect(cached(queryClient, detailKey)).toBeUndefined();
 		expect(cached(queryClient, listKey)).toEqual(listPage());
 		expect(queriesFor(queryClient, t1, "CDE-42")).toEqual([]);
+	});
+
+	// A delete is never held. A mutation for the ticket can be in flight,
+	// and its response can carry the row at a version above the delete's.
+	// The delete applies at once. On settle the response and every held
+	// event are dropped, so the row never comes back.
+	test("a ticket.deleted during a mutation applies at once, and the mutation's result is dropped on settle", async () => {
+		const { queryClient, advanceTo, applier } = setup((queryClient) => {
+			seedTicketCaches(summaryAt(3))(queryClient);
+			queryClient.setQueryData(timelineKey, { items: [], nextCursor: null });
+			queryClient.setQueryData(prsKey, []);
+		});
+		const { fetch, answer } = startFetch(queryClient, byUlidKey);
+		applier.beginMutation(t1);
+		applier.applyEvent(deletedEvent(summaryAt(4)));
+		expect(cached(queryClient, listKey)).toEqual(listPage());
+		expect(queriesFor(queryClient, t1, "CDE-42")).toEqual([]);
+		answer(ticket(summaryAt(3)));
+		await expect(fetch).rejects.toBeInstanceOf(CancelledError);
+		applier.applyEvent(updatedEvent(summaryAt(5, { title: "Fifth" }), ["title"]));
+		applier.endMutation(t1, ticket(summaryAt(6, { title: "Sixth" })) as Ticket);
+		advanceTo(5000);
+		expect(queriesFor(queryClient, t1, "CDE-42")).toEqual([]);
+		expect(cached(queryClient, listKey)).toEqual(listPage());
+		expect(cached(queryClient, boardKey)).toEqual(boardPage());
 	});
 });
 

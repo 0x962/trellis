@@ -12,6 +12,7 @@ import {
 	ticketDetail,
 } from "./invalidationCoalescer.ts";
 import { realScheduler, type Scheduler } from "./scheduler.ts";
+import type { Ticket } from "./schemas/ticket.ts";
 import { isDetail, patchTicketQuery, type TicketChange } from "./ticketPatches.ts";
 import { createTombstones } from "./tombstones.ts";
 
@@ -57,10 +58,17 @@ const toChange = (event: TicketEvent): HeldChange => ({
 	created: event.type === "ticket.created",
 });
 
+// A mutation's response names no fields. The event for the same write
+// carries them, and it arrives held or after the response.
+const toResultChange = (result: Ticket): HeldChange => {
+	const { description, children, prs, attachments, descriptionStale, ...summary } = result;
+	return { summary, fields: [], deleted: false, created: false, detail: result };
+};
+
 export type EventApplier = {
 	applyEvent: (event: unknown) => void;
 	beginMutation: (ticketId: string) => void;
-	endMutation: (ticketId: string) => void;
+	endMutation: (ticketId: string, result?: Ticket) => void;
 };
 
 // Patch first, invalidate rarely. A `ticket.*` event visits every cached
@@ -76,12 +84,13 @@ export type EventApplier = {
 // detail's refetch. The refetch replaces the whole entry, which clears the
 // flag. Invalidations queue in two coalescers, one for the inbox and one
 // for the rest, and each flush is one `invalidateQueries` call. While a
-// mutation is in flight for a ticket, its events wait. After the mutation
-// settles they apply in version order, so the mutation's own response
-// never overwrites a newer row. A delete is final. Every query that names
-// the ticket is cancelled and removed, so a fetch in flight never lands.
-// The id is tombstoned for `TOMBSTONE_MS`, and a create or update for a
-// tombstoned id applies nothing.
+// mutation is in flight for a ticket, its create and update events wait.
+// On settle the mutation's response goes in first, then the held events
+// in version order, so the response never overwrites a newer row. A
+// delete is final and never waits. Every query that names the ticket is
+// cancelled and removed, so a fetch in flight never lands. The id is
+// tombstoned for `TOMBSTONE_MS`. A create, an update, or a mutation
+// response for a tombstoned id applies nothing.
 export const createEventApplier = (queryClient: QueryClient, options: { scheduler?: Scheduler } = {}): EventApplier => {
 	const scheduler = options.scheduler ?? realScheduler;
 	const general = createInvalidationCoalescer(queryClient, scheduler);
@@ -153,10 +162,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	};
 
 	const applyTicketEvent = (event: TicketEvent) => {
-		const id = event.summary.id;
 		const change = toChange(event);
-		const held = waiting.get(id);
-		if (held !== undefined) {
+		const held = waiting.get(event.summary.id);
+		if (held !== undefined && !change.deleted) {
 			held.push(change);
 			return;
 		}
@@ -222,9 +230,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		if (!waiting.has(ticketId)) waiting.set(ticketId, []);
 	};
 
-	// The held events apply in version order. Two events at one version keep
-	// their arrival order, so an update and then a delete still delete.
-	const endMutation = (ticketId: string) => {
+	// The response goes in first, then the held events in version order. A
+	// held event at or below the response's version applies nothing.
+	const endMutation = (ticketId: string, result?: Ticket) => {
 		const remaining = inFlight.get(ticketId)! - 1;
 		if (remaining > 0) {
 			inFlight.set(ticketId, remaining);
@@ -233,6 +241,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		inFlight.delete(ticketId);
 		const held = waiting.get(ticketId)!;
 		waiting.delete(ticketId);
+		if (result !== undefined) applyChange(toResultChange(result));
 		for (const change of held.sort((a, b) => a.summary.version - b.summary.version)) applyChange(change);
 	};
 
