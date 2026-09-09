@@ -1,0 +1,17 @@
+@import "tailwindcss";
+@import "../src/tokens.css";
+@import "../src/fonts.css";
+
+/* Tailwind scans the components and the gallery for class names. */
+@source "../src";
+
+body {
+	background: var(--bg);
+	color: var(--fg);
+	font-size: 13px;
+	line-height: 20px;
+}
+
+svg {
+	display: block;
+}

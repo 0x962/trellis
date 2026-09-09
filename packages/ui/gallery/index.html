@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>trellis gallery</title>
+		<script>
+			// Stamp the stored theme before the first paint, so a dark page never
+			// flashes light. The key matches useTheme.
+			const theme = localStorage.getItem("trellis-theme");
+			if (theme === "dark" || theme === "light") document.documentElement.dataset.theme = theme;
+		</script>
+	</head>
+	<body>
+		<div id="root"></div>
+		<script type="module" src="./main.tsx"></script>
+	</body>
+</html>
