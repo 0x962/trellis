@@ -31,9 +31,13 @@ export type SheetProps = {
 // The modal form is the Dialog behavior with the sheet's shape. The peek
 // passes modal={false} so that j and k walk the list behind it while the
 // panel shows the ticket. Base UI closes a non-modal dialog when a press or
-// a focus move lands outside it; `disablePointerDismissal` keeps the sheet
-// open through both, so only Escape, the close button, or the caller closes
-// it.
+// a focus move lands outside it. `disablePointerDismissal` keeps the sheet
+// open through both. Only Escape, the close button, or the caller closes it.
+//
+// The resize handle renders after the header and the content. Base UI moves
+// initial focus onto the first tabbable element, so the focus lands on the
+// close button, never on the handle. The handle is positioned against the
+// panel, so its place in the DOM changes nothing on screen.
 export function Sheet({
 	open,
 	onOpenChange,
@@ -69,16 +73,16 @@ export function Sheet({
 						className,
 					)}
 				>
-					{resizeHandle && (
-						<div className={cx("absolute inset-y-0 z-10 flex", side === "right" ? "left-0" : "right-0")}>
-							{resizeHandle}
-						</div>
-					)}
 					<header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-4">
 						<BaseDialog.Title className="flex-1 truncate font-mono text-sm text-fg-muted">{title}</BaseDialog.Title>
 						<BaseDialog.Close render={<IconButton label="Close" icon={<X />} />} />
 					</header>
 					<div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+					{resizeHandle && (
+						<div className={cx("absolute inset-y-0 z-10 flex", side === "right" ? "left-0" : "right-0")}>
+							{resizeHandle}
+						</div>
+					)}
 				</BaseDialog.Popup>
 			</BaseDialog.Portal>
 		</BaseDialog.Root>

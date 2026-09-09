@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expectClasses } from "../../../test/classes";
 import { Sheet } from "./Sheet";
@@ -77,8 +77,10 @@ describe("Sheet", () => {
 	});
 
 	// The peek is resizable: the caller passes the handle element, and the
-	// Sheet places it on the edge that faces the page, inside the dialog.
-	test("resizeHandle renders on the page-facing edge of the panel", () => {
+	// Sheet places it on the edge that faces the page, inside the dialog. The
+	// handle comes after the header and the content in DOM order, so the
+	// initial focus lands on the close button, never on the handle.
+	test("resizeHandle renders on the page-facing edge, after the content, and initial focus skips it", async () => {
 		const { rerender } = render(
 			<Sheet open title="CDE-43" onOpenChange={() => {}} resizeHandle={<button type="button" aria-label="Resize" />}>
 				<p>Merge upstream 1.27</p>
@@ -86,8 +88,14 @@ describe("Sheet", () => {
 		);
 		const panel = screen.getByRole("dialog", { name: "CDE-43" });
 		const handle = screen.getByRole("button", { name: "Resize" });
+		const close = screen.getByRole("button", { name: "Close" });
 		expect(panel.contains(handle)).toBe(true);
 		expectClasses(handle.parentElement!, "absolute inset-y-0 left-0");
+		expect(close.compareDocumentPosition(handle) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+		expect(
+			screen.getByText("Merge upstream 1.27").compareDocumentPosition(handle) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).not.toBe(0);
+		await waitFor(() => expect(document.activeElement).toBe(close));
 		rerender(
 			<Sheet
 				open
