@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expectClasses } from "../../../test/classes";
+import { expectClasses, expectFocusRing } from "../../../test/classes";
 import { Checkbox } from "./Checkbox";
 
 describe("Checkbox", () => {
@@ -19,6 +19,7 @@ describe("Checkbox", () => {
 		const done = screen.getByRole("checkbox", { name: "Done" });
 		expect(done.getAttribute("aria-checked")).toBe("false");
 		expectClasses(done, "size-4 rounded-sm border-border-strong data-checked:bg-accent");
+		expectFocusRing(done);
 		done.focus();
 		await user.keyboard(" ");
 		expect(onCheckedChange).toHaveBeenCalledTimes(1);

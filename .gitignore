@@ -4,3 +4,5 @@ dist/
 .cache/
 *.log
 .DS_Store
+# Review agents write screenshots and measurements here; they never ship.
+.review/

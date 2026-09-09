@@ -55,7 +55,7 @@ export function Tabs<Value extends string>({ items, value, onValueChange, classN
 						disabled={item.disabled}
 						className={(state) =>
 							cx(
-								"-mb-px flex h-8 items-center border-b-2 px-0.5 text-sm font-medium whitespace-nowrap select-none transition-colors duration-hover ease-out outline-none",
+								"-mb-px flex h-8 items-center border-b-2 px-0.5 text-sm font-medium whitespace-nowrap select-none transition-colors duration-hover ease-out",
 								"focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 focus-visible:rounded-sm",
 								state.active ? "border-accent text-fg" : "border-transparent text-fg-muted hover:text-fg",
 								state.disabled && "opacity-50",

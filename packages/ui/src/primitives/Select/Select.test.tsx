@@ -27,6 +27,10 @@ describe("Select", () => {
 		trigger.focus();
 		await user.keyboard("{ArrowDown}");
 		const listbox = await screen.findByRole("listbox");
+		expectClasses(
+			listbox.parentElement!,
+			"motion-reduce:data-starting-style:scale-100 motion-reduce:data-ending-style:scale-100",
+		);
 		expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual(items.map((item) => item.label));
 		await waitFor(() => expect(listbox.querySelector("[data-highlighted]")).not.toBeNull());
 		const start = highlighted();

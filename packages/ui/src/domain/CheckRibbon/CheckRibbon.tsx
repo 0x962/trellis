@@ -22,7 +22,9 @@ const buckets: Record<CheckBucket, string> = {
 };
 
 // One segment per check, in order, colored by its bucket. A pending segment
-// shimmers until the check settles. No checks means no ribbon.
+// shimmers until the check settles. No checks means no ribbon. A segment is
+// keyed by its position: GitHub check names repeat (one job in two
+// workflows, a matrix re-run), and the position is what a segment stands for.
 export function CheckRibbon({ checks, size = "full", className }: CheckRibbonProps) {
 	if (checks.length === 0) return null;
 	const count = checks.length === 1 ? "1 check" : `${checks.length} checks`;
@@ -31,9 +33,10 @@ export function CheckRibbon({ checks, size = "full", className }: CheckRibbonPro
 			title={count}
 			className={cx("inline-flex shrink-0", size === "mini" ? "h-1.25 w-8 gap-px" : "h-1.5 w-16 gap-0.5", className)}
 		>
-			{checks.map((check) => (
+			{checks.map((check, index) => (
 				<i
-					key={check.name}
+					// biome-ignore lint/suspicious/noArrayIndexKey: the position is the segment's identity
+					key={index}
 					data-bucket={check.bucket}
 					title={`${check.name}: ${check.bucket}`}
 					className={cx("block flex-1 rounded-hairline", buckets[check.bucket])}

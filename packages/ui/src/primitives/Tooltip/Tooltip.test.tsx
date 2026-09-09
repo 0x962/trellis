@@ -24,6 +24,7 @@ describe("Tooltip", () => {
 		expect(hovered.textContent).toBe("Approve");
 		expect(trigger.getAttribute("aria-describedby")).toBe(hovered.id);
 		expectClasses(hovered, "bg-fg text-bg text-xs rounded-sm");
+		expectClasses(hovered, "motion-reduce:data-starting-style:scale-100 motion-reduce:data-ending-style:scale-100");
 		await user.unhover(trigger);
 		await user.click(screen.getByRole("button", { name: "Other" }));
 		await waitFor(() => expect(screen.queryByRole("tooltip")).toBeNull(), { timeout: 3000 });

@@ -13,6 +13,7 @@ const setup = () => {
 				<p>Display options</p>
 			</Popover>
 			<button type="button">Elsewhere</button>
+			<p>Nothing here</p>
 		</>,
 	);
 	return { user, trigger: screen.getByRole("button", { name: "Display" }) };
@@ -41,5 +42,28 @@ describe("Popover", () => {
 		await screen.findByRole("dialog");
 		await user.click(screen.getByRole("button", { name: "Elsewhere" }));
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	});
+
+	test("an outside click returns focus to the trigger unless it lands on a control", async () => {
+		const { user, trigger } = setup();
+		await user.click(trigger);
+		await screen.findByRole("dialog");
+		await user.click(screen.getByText("Nothing here"));
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		await waitFor(() => expect(document.activeElement).toBe(trigger));
+
+		await user.click(trigger);
+		await screen.findByRole("dialog");
+		const elsewhere = screen.getByRole("button", { name: "Elsewhere" });
+		await user.click(elsewhere);
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		await waitFor(() => expect(document.activeElement).toBe(elsewhere));
+	});
+
+	test("the popup fades under reduced motion instead of scaling", async () => {
+		const { user, trigger } = setup();
+		await user.click(trigger);
+		const popup = await screen.findByRole("dialog");
+		expectClasses(popup, "motion-reduce:data-starting-style:scale-100 motion-reduce:data-ending-style:scale-100");
 	});
 });

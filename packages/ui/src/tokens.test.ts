@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compile } from "tailwindcss";
-import { blocks, mockupStyle, packageRoot, paletteBlocks, parseCss, readSource } from "../test/css";
+import { blocks, findBlock, mockupStyle, packageRoot, paletteBlocks, parseCss, readSource } from "../test/css";
 
 const colorTokens = [
 	"--bg",
@@ -45,7 +45,32 @@ const theme = (pieces: ReturnType<typeof parseCss>) =>
 			.map((piece) => piece.declarations),
 	);
 
+// The `@theme` block that holds the motion tokens and the keyframes.
+const keyframes = (pieces: ReturnType<typeof parseCss>, name: string) =>
+	blocks(pieces)
+		.filter((piece) => piece.prelude.startsWith("@theme"))
+		.flatMap((piece) => piece.children)
+		.find((piece) => piece.prelude === `@keyframes ${name}`)!;
+
 describe("tokens.css", () => {
+	test("a theme switch turns every transition off through data-theme-switch on html", async () => {
+		const rule = findBlock(await tokens(), "[data-theme-switch] *");
+		expect(rule.declarations["transition-duration"]).toBe("0ms");
+	});
+
+	// The live dot on an agent avatar shrinks and dims. A skeleton line shares
+	// the animation but must keep its size, so the shrink reads a custom
+	// property that the pulse-in-place utility pins to 1.
+	test("pulse-live shrinks through --pulse-scale and pulse-in-place pins it to 1", async () => {
+		const pieces = await tokens();
+		const pulse = keyframes(pieces, "pulse-live");
+		const half = pulse.children.find((piece) => piece.prelude === "50%")!;
+		expect(half.declarations.transform).toBe("scale(var(--pulse-scale, 0.75))");
+		expect(half.declarations.opacity).toBe("0.6");
+		const still = findBlock(pieces, "@utility pulse-in-place");
+		expect(still.declarations["--pulse-scale"]).toBe("1");
+	});
+
 	test("bare :root declares every token before any media or data-theme block", async () => {
 		const pieces = await tokens();
 		const first = blocks(pieces)[0]!;

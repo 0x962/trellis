@@ -15,6 +15,11 @@ describe("Sheet", () => {
 		);
 		const panel = screen.getByRole("dialog", { name: "CDE-43" });
 		expectClasses(panel, "fixed inset-y-0 right-0 bg-surface border-l border-border duration-peek");
+		// The plan turns a slide into a fade under reduced motion.
+		expectClasses(
+			panel,
+			"motion-reduce:transition-opacity motion-reduce:data-starting-style:translate-x-0 motion-reduce:data-starting-style:opacity-0 motion-reduce:data-ending-style:translate-x-0 motion-reduce:data-ending-style:opacity-0",
+		);
 		await user.keyboard("{Escape}");
 		expect(onOpenChange).toHaveBeenCalledTimes(1);
 		expect(onOpenChange.mock.calls[0]![0]).toBe(false);

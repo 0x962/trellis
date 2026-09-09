@@ -14,7 +14,7 @@ export type ScrollAreaProps = {
 export function ScrollArea({ children, className }: ScrollAreaProps) {
 	return (
 		<BaseScrollArea.Root className={cx("relative", className)}>
-			<BaseScrollArea.Viewport className="size-full overflow-auto overscroll-contain outline-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2">
+			<BaseScrollArea.Viewport className="size-full overflow-auto overscroll-contain focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2">
 				{children}
 			</BaseScrollArea.Viewport>
 			<BaseScrollArea.Scrollbar

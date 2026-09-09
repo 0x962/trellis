@@ -33,6 +33,40 @@ describe("Command", () => {
 		expect(onSelect.mock.calls[0]![0]).toBe("TRL-4");
 	});
 
+	test("two items with one label stay two options and Enter picks the highlighted one", async () => {
+		const user = userEvent.setup();
+		const onSelect = mock();
+		render(
+			<Command
+				items={[
+					{ id: "CDE-1", label: "Fix flaky test" },
+					{ id: "TRL-4", label: "Fix flaky test" },
+				]}
+				onSelect={onSelect}
+			/>,
+		);
+		screen.getByRole("combobox").focus();
+		await user.keyboard("{ArrowDown}");
+		await waitFor(() =>
+			expect(screen.getAllByRole("option").map((option) => option.getAttribute("aria-selected"))).toEqual([
+				"false",
+				"true",
+			]),
+		);
+		await user.keyboard("{Enter}");
+		expect(onSelect.mock.calls).toEqual([["TRL-4"]]);
+	});
+
+	test("the label still matches the filter when the id is the value", async () => {
+		const user = userEvent.setup();
+		render(<Command items={[{ id: "CDE-1", label: "Poller", keywords: ["gh"] }]} onSelect={() => {}} />);
+		await user.type(screen.getByRole("combobox"), "poll");
+		await waitFor(() => expect(screen.getAllByRole("option")).toHaveLength(1));
+		await user.clear(screen.getByRole("combobox"));
+		await user.type(screen.getByRole("combobox"), "gh");
+		await waitFor(() => expect(screen.getAllByRole("option")).toHaveLength(1));
+	});
+
 	test("the command dialog closes on Escape", async () => {
 		const user = userEvent.setup();
 		const onOpenChange = mock();
@@ -44,6 +78,7 @@ describe("Command", () => {
 		const dialog = screen.getByRole("dialog");
 		expect(dialog.contains(screen.getByRole("combobox"))).toBe(true);
 		expectClasses(dialog, "bg-elevated rounded-lg shadow-lg border-border");
+		expectClasses(dialog, "motion-reduce:data-starting-style:scale-100 motion-reduce:data-ending-style:scale-100");
 		await user.keyboard("{Escape}");
 		expect(onOpenChange).toHaveBeenCalledTimes(1);
 		expect(onOpenChange.mock.calls[0]![0]).toBe(false);

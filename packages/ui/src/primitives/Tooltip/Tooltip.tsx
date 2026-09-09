@@ -1,6 +1,7 @@
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
 import { type ReactElement, type ReactNode, useId, useState } from "react";
 import { cx } from "../../utils/cx";
+import { popupMotion } from "../../utils/popupMotion";
 
 export type TooltipProps = {
 	content: ReactNode;
@@ -27,7 +28,8 @@ export function Tooltip({ content, children, side = "top", className }: TooltipP
 						role="tooltip"
 						className={cx(
 							"origin-(--transform-origin) rounded-sm bg-fg px-1.5 py-0.5 text-xs font-medium text-bg shadow-sm",
-							"transition-[opacity,scale] duration-hover ease-out data-starting-style:scale-98 data-starting-style:opacity-0 data-ending-style:scale-98 data-ending-style:opacity-0 data-instant:transition-none",
+							popupMotion,
+							"duration-hover data-instant:transition-none",
 							className,
 						)}
 					>

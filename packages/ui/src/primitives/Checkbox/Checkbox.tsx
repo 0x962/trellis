@@ -36,7 +36,7 @@ export function Checkbox({
 				indeterminate={indeterminate}
 				onCheckedChange={(next) => onCheckedChange(next)}
 				className={cx(
-					"inline-flex size-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-surface text-on-accent transition-colors duration-hover ease-out outline-none",
+					"inline-flex size-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-surface text-on-accent transition-colors duration-hover ease-out",
 					"data-checked:border-accent data-checked:bg-accent data-indeterminate:border-accent data-indeterminate:bg-accent",
 					"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 				)}

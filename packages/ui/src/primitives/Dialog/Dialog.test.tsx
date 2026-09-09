@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expectClasses } from "../../../test/classes";
 import { Button } from "../Button/Button";
@@ -26,6 +26,7 @@ describe("Dialog", () => {
 		expect(scrim).not.toBeNull();
 		expect(dialog.contains(scrim)).toBe(false);
 		expectClasses(dialog, "bg-elevated rounded-lg shadow-lg border-border duration-popover");
+		expectClasses(dialog, "motion-reduce:data-starting-style:scale-100 motion-reduce:data-ending-style:scale-100");
 	});
 
 	test("Escape requests close", async () => {
@@ -37,6 +38,8 @@ describe("Dialog", () => {
 
 	test("traps focus inside the dialog", async () => {
 		const { user, dialog } = setup();
+		// Base UI moves focus into the popup on the frame after it mounts.
+		await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
 		const focusable = dialog.querySelectorAll<HTMLElement>(
 			'button, [href], input, textarea, [tabindex]:not([tabindex="-1"])',
 		);
@@ -45,5 +48,18 @@ describe("Dialog", () => {
 		expect(document.activeElement).toBe(last);
 		await user.tab();
 		expect(document.activeElement).toBe(focusable[0]!);
+	});
+
+	test("a child that asks for focus keeps it past the initial focus", async () => {
+		render(
+			<Dialog open title="Rename" onOpenChange={() => {}}>
+				<Button>First</Button>
+				<input autoFocus aria-label="Name" />
+			</Dialog>,
+		);
+		const name = screen.getByRole("textbox", { name: "Name" });
+		expect(document.activeElement).toBe(name);
+		await new Promise((resolve) => setTimeout(resolve, 80));
+		expect(document.activeElement).toBe(name);
 	});
 });

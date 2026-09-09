@@ -4,10 +4,12 @@ import { cx } from "../../utils/cx";
 import { CommandDialog } from "./components/CommandDialog";
 
 export type CommandItem = {
-	// The value `onSelect` receives, such as a ticket identifier.
+	// The value `onSelect` receives, such as a ticket identifier. It is also
+	// the option's identity in the list, so two items with one label stay two
+	// options. The filter matches it.
 	id: string;
 	label: string;
-	// Extra words the filter matches. The default is the id.
+	// Extra words the filter matches, beside the id and the label.
 	keywords?: string[];
 	// Short mono text after the label, such as the identifier. It is drawn by
 	// CSS, so the option's text stays the label alone.
@@ -48,8 +50,8 @@ export function Command({
 				{items.map((item) => (
 					<Cmdk.Item
 						key={item.id}
-						value={item.label}
-						keywords={item.keywords ?? [item.id]}
+						value={item.id}
+						keywords={[item.label, ...(item.keywords ?? [])]}
 						onSelect={() => onSelect(item.id)}
 						data-hint={item.hint}
 						className={cx(

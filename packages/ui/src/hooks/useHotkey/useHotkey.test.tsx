@@ -1,4 +1,4 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, type Mock, mock, test } from "bun:test";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useHotkey } from "./useHotkey";
 
@@ -8,7 +8,57 @@ function Probe({ onA, onModK }: { onA: () => void; onModK: () => void }) {
 	return <input aria-label="Title" />;
 }
 
+type Handlers = Record<
+	"p" | "shiftP" | "modC" | "modShiftC" | "modEnter" | "modShiftEnter" | "question",
+	Mock<() => void>
+>;
+
+function ShiftProbe(on: Handlers) {
+	useHotkey("p", on.p);
+	useHotkey("shift+p", on.shiftP);
+	useHotkey("mod+c", on.modC);
+	useHotkey("mod+shift+c", on.modShiftC);
+	useHotkey("mod+enter", on.modEnter);
+	useHotkey("mod+shift+enter", on.modShiftEnter);
+	useHotkey("?", on.question);
+	return null;
+}
+
 describe("useHotkey", () => {
+	test("a shift chord and its plain key are two bindings", () => {
+		const on: Handlers = {
+			p: mock(),
+			shiftP: mock(),
+			modC: mock(),
+			modShiftC: mock(),
+			modEnter: mock(),
+			modShiftEnter: mock(),
+			question: mock(),
+		};
+		render(<ShiftProbe {...on} />);
+		const calls = () =>
+			Object.fromEntries(Object.entries(on).map(([name, handler]) => [name, handler.mock.calls.length]));
+
+		fireEvent.keyDown(document.body, { key: "P", shiftKey: true });
+		expect(calls()).toMatchObject({ p: 0, shiftP: 1 });
+		fireEvent.keyDown(document.body, { key: "p" });
+		expect(calls()).toMatchObject({ p: 1, shiftP: 1 });
+
+		fireEvent.keyDown(document.body, { key: "c", metaKey: true, shiftKey: true });
+		expect(calls()).toMatchObject({ modC: 0, modShiftC: 1 });
+		fireEvent.keyDown(document.body, { key: "c", metaKey: true });
+		expect(calls()).toMatchObject({ modC: 1, modShiftC: 1 });
+
+		fireEvent.keyDown(document.body, { key: "Enter", metaKey: true, shiftKey: true });
+		expect(calls()).toMatchObject({ modEnter: 0, modShiftEnter: 1 });
+		fireEvent.keyDown(document.body, { key: "Enter", ctrlKey: true });
+		expect(calls()).toMatchObject({ modEnter: 1, modShiftEnter: 1 });
+
+		// "?" is Shift+/ on a US keyboard. The key name carries the shift.
+		fireEvent.keyDown(document.body, { key: "?", shiftKey: true });
+		expect(calls()).toMatchObject({ question: 1 });
+	});
+
 	test("fires on the key, honors mod, ignores editable targets, cleans up", () => {
 		const onA = mock();
 		const onModK = mock();

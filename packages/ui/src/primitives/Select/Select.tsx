@@ -1,6 +1,7 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { Check, ChevronDown } from "lucide-react";
 import { cx } from "../../utils/cx";
+import { popupMotion } from "../../utils/popupMotion";
 
 export type SelectItem<Value extends string> = {
 	value: Value;
@@ -55,7 +56,8 @@ export function Select<Value extends string>({
 					<BaseSelect.Popup
 						className={cx(
 							"min-w-(--anchor-width) origin-(--transform-origin) rounded-lg border border-border bg-elevated p-1 shadow-md outline-none",
-							"transition-[opacity,scale] duration-popover ease-out data-starting-style:scale-98 data-starting-style:opacity-0 data-ending-style:scale-98 data-ending-style:opacity-0",
+							popupMotion,
+							"duration-popover",
 						)}
 					>
 						<BaseSelect.List className="max-h-(--available-height) overflow-y-auto">

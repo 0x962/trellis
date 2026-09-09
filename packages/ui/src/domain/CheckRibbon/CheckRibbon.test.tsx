@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import { render } from "@testing-library/react";
 import { expectClasses } from "../../../test/classes";
 import { CheckRibbon } from "./CheckRibbon";
@@ -43,5 +43,18 @@ describe("CheckRibbon", () => {
 		expect(mini.querySelectorAll("[data-bucket]")).toHaveLength(3);
 		const { container: empty } = render(<CheckRibbon checks={[]} />);
 		expect(empty.firstChild).toBeNull();
+	});
+
+	// GitHub check names repeat: a job named build in two workflows, a matrix
+	// re-run. React warns through console.error when two siblings share a key.
+	test("two checks with one name are two segments and raise no key warning", () => {
+		const error = spyOn(console, "error").mockImplementation(() => {});
+		const { container } = render(
+			<CheckRibbon checks={[check("build", "pass"), check("build", "fail"), check("lint", "pass")]} />,
+		);
+		const segments = Array.from(container.querySelectorAll("[data-bucket]"));
+		expect(segments.map((segment) => segment.getAttribute("data-bucket"))).toEqual(["pass", "fail", "pass"]);
+		expect(error).not.toHaveBeenCalled();
+		error.mockRestore();
 	});
 });

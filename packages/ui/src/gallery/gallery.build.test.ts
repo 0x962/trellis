@@ -30,5 +30,7 @@ describe("gallery", () => {
 		const css = await Bun.file(join(dist, links[0]!)).text();
 		expect(css).toMatch(/--bg:\s*#f5f5f5/i);
 		expect(css).toContain("--color-bg");
+		expect(css).toContain("inter-latin-wght-normal");
+		expect(css).not.toContain("inter-cyrillic");
 	}, 120_000);
 });

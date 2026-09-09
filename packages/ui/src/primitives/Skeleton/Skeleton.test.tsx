@@ -13,6 +13,7 @@ describe("Skeleton", () => {
 		expect(lines).toHaveLength(2);
 		for (const line of lines) {
 			expectClasses(line, "w-32 bg-border rounded-sm animate-pulse-live motion-reduce:animate-none");
+			expectClasses(line, "pulse-in-place");
 		}
 	});
 });

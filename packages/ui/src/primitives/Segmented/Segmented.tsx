@@ -38,7 +38,7 @@ export function Segmented<Value extends string>({
 					value={option.value}
 					className={(state) =>
 						cx(
-							"inline-flex h-6.5 cursor-default items-center px-2.5 text-sm leading-none whitespace-nowrap select-none transition-colors duration-hover ease-out outline-none",
+							"inline-flex h-6.5 cursor-default items-center px-2.5 text-sm leading-none whitespace-nowrap select-none transition-colors duration-hover ease-out",
 							"focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
 							state.checked ? "bg-bg text-fg" : "text-fg-muted hover:text-fg",
 						)

@@ -26,7 +26,7 @@ export function Switch({ label, checked, onCheckedChange, disabled = false, clas
 				checked={checked}
 				onCheckedChange={(next) => onCheckedChange(next)}
 				className={cx(
-					"relative inline-flex h-4 w-7 shrink-0 items-center rounded-xl bg-border-strong p-0.5 transition-colors duration-hover ease-out outline-none",
+					"relative inline-flex h-4 w-7 shrink-0 items-center rounded-xl bg-border-strong p-0.5 transition-colors duration-hover ease-out",
 					"data-checked:bg-accent",
 					"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 				)}

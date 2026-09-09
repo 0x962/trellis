@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expectClasses } from "../../../test/classes";
+import { expectClasses, expectFocusRing } from "../../../test/classes";
 import { Segmented } from "./Segmented";
 
 describe("Segmented", () => {
@@ -25,6 +25,7 @@ describe("Segmented", () => {
 		const board = screen.getByRole("radio", { name: "Board" });
 		expect(table.getAttribute("aria-checked")).toBe("true");
 		expectClasses(table, "bg-bg text-fg");
+		expectFocusRing(table);
 		expect(board.getAttribute("aria-checked")).toBe("false");
 		expectClasses(board, "text-fg-muted");
 		table.focus();

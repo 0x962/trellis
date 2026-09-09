@@ -32,11 +32,14 @@ export function Chip({ icon, label, op = "is", value, onRemove, className }: Chi
 			<span className="text-fg-faint">{op}</span>
 			<span className="font-medium text-fg">{value}</span>
 			{onRemove && (
+				// The glyph box is 16 px. The ::before layer reaches 6 px past it on
+				// every side, so the hit area is the 28 px desktop minimum while the
+				// chip stays 20 px tall.
 				<button
 					type="button"
 					aria-label={`Remove ${label}`}
 					onClick={onRemove}
-					className="-mr-0.5 inline-flex size-4 items-center justify-center rounded-sm text-fg-faint transition duration-hover hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1"
+					className="relative -mr-0.5 inline-flex size-4 items-center justify-center rounded-sm text-fg-faint transition duration-hover before:absolute before:-inset-1.5 hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1"
 				>
 					<X className="size-3" />
 				</button>

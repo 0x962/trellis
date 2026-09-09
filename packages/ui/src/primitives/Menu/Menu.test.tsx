@@ -1,6 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { expectClasses } from "../../../test/classes";
 import { Menu } from "./Menu";
 
 const setup = () => {
@@ -26,7 +27,8 @@ describe("Menu", () => {
 		const { user, trigger } = setup();
 		expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
 		await user.click(trigger);
-		await screen.findByRole("menu");
+		const menu = await screen.findByRole("menu");
+		expectClasses(menu, "motion-reduce:data-starting-style:scale-100 motion-reduce:data-ending-style:scale-100");
 		const items = screen.getAllByRole("menuitem");
 		expect(items.map((item) => item.textContent)).toEqual(["Edit", "Duplicate", "Delete"]);
 		expect(items[2]!.getAttribute("aria-disabled")).toBe("true");

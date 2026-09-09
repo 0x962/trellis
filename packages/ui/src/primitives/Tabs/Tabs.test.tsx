@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { expectClasses } from "../../../test/classes";
+import { expectClasses, expectFocusRing } from "../../../test/classes";
 import { Tabs } from "./Tabs";
 
 const items = [
@@ -28,6 +28,7 @@ describe("Tabs", () => {
 		const all = screen.getByRole("tab", { name: "All" });
 		expect(all.getAttribute("aria-selected")).toBe("true");
 		expectClasses(all, "text-fg border-b-2 border-accent");
+		expectFocusRing(all);
 		expectClasses(screen.getByRole("tab", { name: "Comments" }), "text-fg-muted");
 	});
 

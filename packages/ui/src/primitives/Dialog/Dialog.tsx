@@ -1,7 +1,7 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import type { ReactNode } from "react";
 import { cx } from "../../utils/cx";
-import { usePopupFocus } from "../hooks/usePopupFocus";
+import { popupMotion } from "../../utils/popupMotion";
 
 export type DialogProps = {
 	open: boolean;
@@ -13,22 +13,20 @@ export type DialogProps = {
 	className?: string;
 };
 
-// A modal over a scrim. Focus moves inside when it opens and stays inside
-// until it closes; Escape and a click on the scrim ask to close.
+// A modal over a scrim. Base UI moves focus inside on the frame after it
+// opens, unless a child took focus first, keeps it inside until it closes,
+// and returns it to the opener. Escape and a click on the scrim ask to close.
 export function Dialog({ open, onOpenChange, title, description, children, className }: DialogProps) {
-	const { onPopupMount, finalFocus } = usePopupFocus();
 	return (
 		<BaseDialog.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
 			<BaseDialog.Portal>
 				<BaseDialog.Backdrop className="fixed inset-0 z-50 bg-scrim transition-opacity duration-popover ease-out data-starting-style:opacity-0 data-ending-style:opacity-0" />
 				<BaseDialog.Popup
-					ref={onPopupMount}
-					initialFocus={false}
-					finalFocus={finalFocus}
 					aria-modal="true"
 					className={cx(
 						"fixed top-1/2 left-1/2 z-50 flex w-100 max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-lg border border-border bg-elevated p-4 text-base text-fg shadow-lg outline-none",
-						"transition-[opacity,scale] duration-popover ease-out data-starting-style:scale-98 data-starting-style:opacity-0 data-ending-style:scale-98 data-ending-style:opacity-0",
+						popupMotion,
+						"duration-popover",
 						className,
 					)}
 				>

@@ -2,6 +2,7 @@ import { Menu as BaseMenu } from "@base-ui/react/menu";
 import { MoreHorizontal } from "lucide-react";
 import type { ReactElement } from "react";
 import { cx } from "../../utils/cx";
+import { popupMotion } from "../../utils/popupMotion";
 import { Kbd } from "../Kbd";
 
 export type MenuItem = {
@@ -56,7 +57,8 @@ export function Menu({ label, items, trigger, align = "end", className }: MenuPr
 					<BaseMenu.Popup
 						className={cx(
 							"min-w-40 origin-(--transform-origin) rounded-lg border border-border bg-elevated p-1 shadow-md outline-none",
-							"transition-[opacity,scale] duration-popover ease-out data-starting-style:scale-98 data-starting-style:opacity-0 data-ending-style:scale-98 data-ending-style:opacity-0",
+							popupMotion,
+							"duration-popover",
 							className,
 						)}
 					>

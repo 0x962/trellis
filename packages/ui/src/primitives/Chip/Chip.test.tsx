@@ -15,7 +15,11 @@ describe("Chip", () => {
 		expect(chip.contains(label)).toBe(true);
 		expectClasses(chip, "h-5 rounded-sm border-border bg-surface text-xs text-fg-muted");
 		expectClasses(label, "text-fg font-medium");
-		await user.click(screen.getByRole("button", { name: "Remove Status" }));
+		const remove = screen.getByRole("button", { name: "Remove Status" });
+		// The glyph box is 16 px; the ::before layer extends the hit area by 6 px
+		// on every side to the 28 px desktop minimum.
+		expectClasses(remove, "size-4 relative before:absolute before:-inset-1.5");
+		await user.click(remove);
 		expect(onRemove).toHaveBeenCalledTimes(1);
 
 		rerender(<Chip icon={<Filter />} label="Status" value="In Progress" />);

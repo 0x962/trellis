@@ -1,6 +1,7 @@
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import type { ReactElement, ReactNode } from "react";
 import { cx } from "../../utils/cx";
+import { popupMotion } from "../../utils/popupMotion";
 
 export type PopoverProps = {
 	// The element that opens the popover, usually a Button. It receives the
@@ -15,7 +16,9 @@ export type PopoverProps = {
 };
 
 // A small panel anchored to its trigger, for options that do not need a
-// modal. Escape and an outside click close it; focus returns to the trigger.
+// modal. Escape and an outside click close it. Focus returns to the trigger,
+// unless the outside click landed on a control, which then keeps the focus
+// it took.
 export function Popover({
 	trigger,
 	children,
@@ -33,7 +36,8 @@ export function Popover({
 					<BasePopover.Popup
 						className={cx(
 							"origin-(--transform-origin) rounded-lg border border-border bg-elevated p-2 text-base text-fg shadow-md outline-none",
-							"transition-[opacity,scale] duration-popover ease-out data-starting-style:scale-98 data-starting-style:opacity-0 data-ending-style:scale-98 data-ending-style:opacity-0",
+							popupMotion,
+							"duration-popover",
 							className,
 						)}
 					>
