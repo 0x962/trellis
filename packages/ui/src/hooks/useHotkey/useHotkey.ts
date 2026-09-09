@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 
-// A hotkey is a key name with "mod+" and "shift+" before it as needed:
-// "p", "shift+p", "mod+k", "mod+shift+enter". `mod` is Command on a Mac and
-// Control elsewhere; both count, so one binding serves every platform.
+// A hotkey is a key name with "mod+", "alt+", and "shift+" before it as
+// needed: "p", "shift+p", "mod+k", "alt+a", "mod+shift+enter". `mod` is
+// Command on a Mac and Control elsewhere; both count, so one binding serves
+// every platform.
 export type Hotkey = string;
 
 const editable = (target: EventTarget | null) =>
@@ -12,6 +13,9 @@ const editable = (target: EventTarget | null) =>
 		target.tagName === "TEXTAREA" ||
 		target.tagName === "SELECT");
 
+// A single Latin letter, in either case.
+const latin = (value: string) => /^[a-z]$/i.test(value);
+
 // Runs `handler` on keydown of `hotkey` anywhere on the page. A key without
 // mod stays out of text fields, so typing "a" in the composer never approves
 // a ticket; a mod chord fires everywhere. A letter or a named key (Enter)
@@ -19,26 +23,31 @@ const editable = (target: EventTarget | null) =>
 // "shift+p". A punctuation key such as "?" is itself the shifted form on many
 // layouts, so its Shift state is ignored.
 //
-// A binding matches on `event.key`, the character the layout produces. A
-// punctuation key that needs Option on a layout still matches: Option+5 on
-// a German Mac produces "[". A letter binding also matches on `event.code`,
-// the physical key, so Cmd+K works on a Cyrillic layout. The grammar has
-// no "alt", so a letter with Alt held matches no binding. Alt+A is a
-// text-entry chord on a Mac, never the approval key.
+// A letter binding matches on `event.key`, the character the layout
+// produces, whenever that character is a Latin letter: Dvorak's "o" is
+// "o". When the character is not a Latin letter, the physical key decides
+// (`event.code`), so Cmd+K works on a Cyrillic layout. A letter or a named
+// key needs the Alt state of its binding: "a" needs Alt released and
+// "alt+a" needs Alt held. A punctuation key ignores Alt, because Option+5
+// on a German Mac produces "[".
 export function useHotkey(hotkey: Hotkey, handler: (event: KeyboardEvent) => void) {
 	useEffect(() => {
 		const parts = hotkey.split("+");
 		const key = parts[parts.length - 1]!.toLowerCase();
 		const mod = parts.includes("mod");
+		const alt = parts.includes("alt");
 		const shift = parts.includes("shift");
-		const letter = /^[a-z]$/.test(key);
-		const shiftMatters = key.length > 1 || letter;
+		const letter = latin(key);
+		const punctuation = key.length === 1 && !letter;
+		const matches = (event: KeyboardEvent) => {
+			if (letter && !latin(event.key)) return event.code === `Key${key.toUpperCase()}`;
+			return event.key.toLowerCase() === key;
+		};
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (letter && event.altKey) return;
-			const byCode = letter && event.code === `Key${key.toUpperCase()}`;
-			if (event.key.toLowerCase() !== key && !byCode) return;
+			if (!matches(event)) return;
 			if ((event.metaKey || event.ctrlKey) !== mod) return;
-			if (shiftMatters && event.shiftKey !== shift) return;
+			if (!punctuation && event.altKey !== alt) return;
+			if (!punctuation && event.shiftKey !== shift) return;
 			if (!mod && editable(event.target)) return;
 			handler(event);
 		};

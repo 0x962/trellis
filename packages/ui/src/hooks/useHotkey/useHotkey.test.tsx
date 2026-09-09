@@ -15,6 +15,32 @@ function LayoutProbe(on: { onBracket: () => void; onA: () => void; onModK: () =>
 	return null;
 }
 
+type Bindings = Record<"o" | "s" | "q" | "a" | "altA" | "modK" | "bracket", Mock<() => void>>;
+
+function BindingProbe(on: Bindings) {
+	useHotkey("o", on.o);
+	useHotkey("s", on.s);
+	useHotkey("q", on.q);
+	useHotkey("a", on.a);
+	useHotkey("alt+a", on.altA);
+	useHotkey("mod+k", on.modK);
+	useHotkey("[", on.bracket);
+	return null;
+}
+
+const bindings = (): Bindings => ({
+	o: mock(),
+	s: mock(),
+	q: mock(),
+	a: mock(),
+	altA: mock(),
+	modK: mock(),
+	bracket: mock(),
+});
+
+const counts = (on: Bindings) =>
+	Object.fromEntries(Object.entries(on).map(([name, handler]) => [name, handler.mock.calls.length]));
+
 type Handlers = Record<
 	"p" | "shiftP" | "modC" | "modShiftC" | "modEnter" | "modShiftEnter" | "question",
 	Mock<() => void>
@@ -67,10 +93,10 @@ describe("useHotkey", () => {
 	});
 
 	// On a German Mac layout "[" is Option+5, so the event carries altKey with
-	// key "[". The binding matches on the character. The hotkey grammar has no
-	// "alt", so a letter with Alt held matches no binding. Alt+A is a
-	// text-entry chord on a Mac, never the approval key.
-	test('Option+5 on a German layout matches a "[" binding and Alt+letter chords match nothing', () => {
+	// key "[". The binding matches on the character. A letter binding without
+	// "alt" needs Alt released, so Alt+A, a text-entry chord on a Mac, never
+	// approves a ticket.
+	test('Option+5 on a German layout matches a "[" binding and Alt+letter chords match no plain binding', () => {
 		const onBracket = mock();
 		const onA = mock();
 		const onModK = mock();
@@ -124,5 +150,44 @@ describe("useHotkey", () => {
 		fireEvent.keyDown(document.body, { key: "k", metaKey: true });
 		expect(onA).toHaveBeenCalledTimes(1);
 		expect(onModK).toHaveBeenCalledTimes(1);
+	});
+
+	// A letter binding matches the character the layout produces whenever that
+	// character is a Latin letter. On Dvorak the physical S key produces "o";
+	// on AZERTY the physical A key produces "q". The physical key never wins
+	// over a Latin letter, so the "s" and "a" bindings stay quiet.
+	test("a Latin letter matches by character on Dvorak and AZERTY, never by physical key", () => {
+		const on = bindings();
+		render(<BindingProbe {...on} />);
+		fireEvent.keyDown(document.body, { key: "o", code: "KeyS" });
+		expect(counts(on)).toMatchObject({ o: 1, s: 0 });
+		fireEvent.keyDown(document.body, { key: "q", code: "KeyA" });
+		expect(counts(on)).toMatchObject({ q: 1, a: 0 });
+		fireEvent.keyDown(document.body, { key: "S", code: "KeyO", shiftKey: true });
+		expect(counts(on)).toMatchObject({ o: 1, s: 0 });
+	});
+
+	// The physical key decides only when the character is not a Latin letter,
+	// so Cmd+K on a Cyrillic layout reaches the palette.
+	test("a non-Latin character falls back to the physical key", () => {
+		const on = bindings();
+		render(<BindingProbe {...on} />);
+		fireEvent.keyDown(document.body, { key: "л", code: "KeyK", metaKey: true });
+		expect(counts(on)).toMatchObject({ modK: 1 });
+		fireEvent.keyDown(document.body, { key: "[", code: "Digit5", altKey: true });
+		expect(counts(on)).toMatchObject({ bracket: 1, a: 0, altA: 0 });
+	});
+
+	// "alt+a" is a chord of its own: Alt held with the letter. The plain "a"
+	// binding needs Alt released, and the Alt chord needs Alt held.
+	test('an "alt+" chord fires with Alt held and a plain letter fires without it', () => {
+		const on = bindings();
+		render(<BindingProbe {...on} />);
+		fireEvent.keyDown(document.body, { key: "a", code: "KeyA", altKey: true });
+		expect(counts(on)).toMatchObject({ a: 0, altA: 1 });
+		fireEvent.keyDown(document.body, { key: "a", code: "KeyA" });
+		expect(counts(on)).toMatchObject({ a: 1, altA: 1 });
+		fireEvent.keyDown(document.body, { key: "å", code: "KeyA", altKey: true });
+		expect(counts(on)).toMatchObject({ a: 1, altA: 2 });
 	});
 });
