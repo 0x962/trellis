@@ -109,11 +109,21 @@ describe("root scaffold", () => {
 		expect(messages.get("shadcn")).not.toBeEmpty();
 	});
 
-	test("biome.json formats with tabs, enables recommended rules, and organizes imports", async () => {
+	// Biome 2.5 marks `rules.recommended` deprecated in favor of `rules.preset`.
+	// A deprecated field prints an info line on every lint run.
+	test("biome.json formats with tabs, uses the recommended preset, and organizes imports", async () => {
 		const biome = await json("biome.json");
 		expect(biome.formatter.indentStyle).toBe("tab");
-		expect(biome.linter.rules.recommended).toBe(true);
+		expect(biome.linter.rules.preset).toBe("recommended");
+		expect(biome.linter.rules).not.toHaveProperty("recommended");
 		expect(biome.assist.actions.source.organizeImports).toBe("on");
+	});
+
+	test("bun run lint prints no DEPRECATED diagnostic", () => {
+		const result = Bun.spawnSync(["bun", "run", "lint"], { cwd: root, stdout: "pipe", stderr: "pipe" });
+		const output = result.stdout.toString() + result.stderr.toString();
+		expect(output).not.toContain("DEPRECATED");
+		expect(result.exitCode).toBe(0);
 	});
 
 	test("tsconfig.base.json enables strict, verbatimModuleSyntax, and noUncheckedIndexedAccess", async () => {
