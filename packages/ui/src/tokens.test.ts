@@ -1,0 +1,175 @@
+import { describe, expect, test } from "bun:test";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { compile } from "tailwindcss";
+import { blocks, mockupStyle, packageRoot, paletteBlocks, parseCss, readSource } from "../test/css";
+
+const colorTokens = [
+	"--bg",
+	"--surface",
+	"--elevated",
+	"--border",
+	"--border-strong",
+	"--fg",
+	"--fg-muted",
+	"--fg-faint",
+	"--accent",
+	"--accent-soft",
+	"--agent",
+	"--agent-soft",
+	"--success",
+	"--success-soft",
+	"--warning",
+	"--warning-soft",
+	"--danger",
+	"--danger-soft",
+	"--scrim",
+];
+
+const shadowTokens = ["--shadow-sm", "--shadow-md", "--shadow-lg"];
+
+const fontTokens = ["--sans", "--mono"];
+
+// The dark blocks redefine the colors and shadows only. The font stacks and
+// `color-scheme` do not change with the theme.
+const themedTokens = [...colorTokens, ...shadowTokens];
+
+const tokens = async () => parseCss(await readSource("tokens.css"));
+
+// Every `@theme` block merged into one map. Tailwind reads them all.
+const theme = (pieces: ReturnType<typeof parseCss>) =>
+	Object.assign(
+		{},
+		...blocks(pieces)
+			.filter((piece) => piece.prelude.startsWith("@theme"))
+			.map((piece) => piece.declarations),
+	);
+
+describe("tokens.css", () => {
+	test("bare :root declares every token before any media or data-theme block", async () => {
+		const pieces = await tokens();
+		const first = blocks(pieces)[0]!;
+		expect(first.prelude).toBe(":root");
+		const missing = [...themedTokens, ...fontTokens].filter((name) => !(name in first.declarations));
+		expect(missing).toEqual([]);
+	});
+
+	test("both dark blocks redefine exactly the light color and shadow set with identical values", async () => {
+		const { darkMedia, darkStamp } = paletteBlocks(await tokens());
+		const redefined = (declarations: Record<string, string>) =>
+			Object.keys(declarations)
+				.filter((name) => name.startsWith("--"))
+				.sort();
+		expect(redefined(darkMedia.declarations)).toEqual([...themedTokens].sort());
+		expect(redefined(darkStamp.declarations)).toEqual([...themedTokens].sort());
+		for (const name of themedTokens) {
+			expect(darkMedia.declarations[name]).toBe(darkStamp.declarations[name]!);
+		}
+	});
+
+	test("palette and shadow values match the mockup verbatim in light and dark", async () => {
+		const ours = paletteBlocks(await tokens());
+		const theirs = paletteBlocks(await mockupStyle());
+		for (const block of ["light", "darkMedia", "darkStamp"] as const) {
+			for (const name of themedTokens) {
+				expect(`${block} ${name}: ${ours[block].declarations[name]}`).toBe(
+					`${block} ${name}: ${theirs[block].declarations[name]}`,
+				);
+			}
+		}
+		expect(ours.light.declarations["--bg"]).toBe("#F5F5F5");
+		expect(ours.light.declarations["--danger-soft"]).toBe("#FFE6E8");
+		expect(ours.darkStamp.declarations["--bg"]).toBe("#0A0A0A");
+		expect(ours.darkStamp.declarations["--danger-soft"]).toBe("#3A1517");
+		expect(ours.darkStamp.declarations["--shadow-sm"]).toBe("0 0 0 1px var(--border-strong)");
+		// The web font and its metric-matched fallback lead each stack (see
+		// fonts.test.ts). The generic tail after them is the mockup's own.
+		for (const name of fontTokens) {
+			const tail = (stack: string) => stack.split(",").slice(2).join(",").trim();
+			expect(tail(ours.light.declarations[name]!)).toBe(
+				theirs.light.declarations[name]!.split(",").slice(1).join(",").trim(),
+			);
+		}
+	});
+
+	test("@theme exposes every color, shadow, and font token to Tailwind", async () => {
+		const map = theme(await tokens());
+		for (const name of colorTokens) {
+			expect(map[`--color-${name.slice(2)}`]).toBe(`var(${name})`);
+		}
+		for (const name of shadowTokens) {
+			expect(map[name]).toBe(`var(${name})`);
+		}
+		expect(map["--font-sans"]).toBe("var(--sans)");
+		expect(map["--font-mono"]).toBe("var(--mono)");
+	});
+
+	test("Tailwind generates token utilities from @theme", async () => {
+		const source = await readSource("tokens.css");
+		const compiler = await compile(`@tailwind utilities;\n${source}`, {
+			base: join(packageRoot, "src"),
+			loadStylesheet: async (id, base) => {
+				const path = id.startsWith(".")
+					? join(base, id)
+					: fileURLToPath(import.meta.resolve(id === "tailwindcss" ? "tailwindcss/index.css" : id));
+				return { path, base: join(path, ".."), content: await Bun.file(path).text() };
+			},
+		});
+		const expected: Record<string, string[]> = {
+			"bg-surface": ["var(--color-surface)", "var(--surface)"],
+			"text-fg-muted": ["var(--color-fg-muted)", "var(--fg-muted)"],
+			"border-border": ["var(--color-border)", "var(--border)"],
+			"text-accent": ["var(--color-accent)", "var(--accent)"],
+			"text-agent": ["var(--color-agent)", "var(--agent)"],
+			"bg-accent-soft": ["var(--color-accent-soft)", "var(--accent-soft)"],
+			"shadow-md": ["var(--shadow-md)"],
+			"rounded-md": ["var(--radius-md)"],
+			"font-mono": ["var(--font-mono)", "var(--mono)"],
+		};
+		const css = compiler.build(Object.keys(expected));
+		for (const [candidate, references] of Object.entries(expected)) {
+			const rule = css.match(new RegExp(`\\.${candidate}\\s*\\{([^}]*)\\}`));
+			expect(`${candidate}: ${rule?.[1] ?? "no rule"}`).toMatch(
+				new RegExp(references.map((reference) => reference.replace(/[()]/g, "\\$&")).join("|")),
+			);
+		}
+	});
+
+	test("type scale, spacing base, and radii tokens carry the plan values", async () => {
+		const map = theme(await tokens());
+		const scale: Record<string, [string, string]> = {
+			xs: ["11px", "16px"],
+			sm: ["12px", "16px"],
+			base: ["13px", "20px"],
+			md: ["14px", "22px"],
+			lg: ["16px", "24px"],
+			xl: ["20px", "28px"],
+			"2xl": ["24px", "32px"],
+			kbd: ["10px", "14px"],
+			initials: ["9px", "12px"],
+		};
+		for (const [step, [size, lineHeight]] of Object.entries(scale)) {
+			expect(`${step} ${map[`--text-${step}`]}/${map[`--text-${step}--line-height`]}`).toBe(
+				`${step} ${size}/${lineHeight}`,
+			);
+		}
+		expect(map["--spacing"]).toBe("4px");
+		expect(map["--radius-sm"]).toBe("4px");
+		expect(map["--radius-md"]).toBe("6px");
+		expect(map["--radius-lg"]).toBe("8px");
+		expect(map["--radius-xl"]).toBe("12px");
+	});
+
+	test("motion duration and easing tokens carry the plan values", async () => {
+		const map = theme(await tokens());
+		expect(map["--duration-hover"]).toBe("120ms");
+		expect(map["--duration-popover"]).toBe("160ms");
+		expect(map["--duration-peek"]).toBe("240ms");
+		expect(map["--duration-row"]).toBe("160ms");
+		expect(map["--duration-sweep"]).toBe("200ms");
+		expect(map["--ease-out"]).toBeString();
+		expect(map["--ease-out"]).not.toBeEmpty();
+		expect(map["--ease-in-out"]).toBeString();
+		expect(map["--ease-in-out"]).not.toBeEmpty();
+	});
+});
