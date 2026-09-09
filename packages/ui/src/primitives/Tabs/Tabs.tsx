@@ -38,8 +38,8 @@ const step = <Value extends string>(items: readonly TabItem<Value>[], value: Val
 // selection and skip a disabled tab. The panel is a keyboard stop (Base UI
 // renders it with tabindex="0"), so it draws the focus ring like a control.
 // A tab hugs its label, so the underline is as wide as the text. The
-// hit-area layer is centered on the tab with a minimum size of its own, so
-// a short label still gives a 28 px hit box, and 44 px on a coarse pointer.
+// hit-area layer is centered on the tab with a minimum size of its own. A
+// short label still gives a 28 px hit box, and 44 px on a coarse pointer.
 export function Tabs<Value extends string>({ items, value, onValueChange, className }: TabsProps<Value>) {
 	const onKeyDown = (event: BaseUIEvent<KeyboardEvent<HTMLDivElement>>) => {
 		const next = step(items, value, event.key);

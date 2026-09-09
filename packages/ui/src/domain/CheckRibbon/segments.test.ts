@@ -35,9 +35,9 @@ const seededBucket = (seed: number) => {
 };
 
 // A pinned run keeps 1 px while a free run still has width to give. When
-// every free run is at 0 and a pinned run is under 1 px, the exact shares
-// must show that the free runs could not pay. Each share is rounded to whole
-// hundredths, so a margin of two units per run covers the rounding.
+// every free run is at 0 and a pinned run is under 1 px, the free runs
+// could not pay. The exact shares must show that. Each share is rounded to
+// whole hundredths, so a margin of two units per run covers the rounding.
 const expectPinnedMinimum = (label: string, size: "full" | "mini", segments: readonly RibbonSegment[]) => {
 	const count = segments.reduce((sum, segment) => sum + runLength(segment), 0);
 	const pinned = segments.filter(isPinned);
@@ -125,9 +125,9 @@ describe("segments", () => {
 		}
 	});
 
-	// 80 checks, of which 79 fail and 1 is canceled: the pinned runs alone
-	// exceed the box once the cancel run rises to 1 px, and no free run can
-	// pay. The pinned runs shrink in proportion, so the ribbon still fits.
+	// 80 checks, of which 79 fail and 1 is canceled. The pinned runs alone
+	// exceed the box once the cancel run rises to 1 px. No free run can pay.
+	// The pinned runs shrink in proportion, so the ribbon still fits.
 	test("pinned runs that overfill the box shrink in proportion to fit it", () => {
 		const checks = [...many(79).map((item) => check(item.name, "fail")), check("deploy", "cancel")];
 		for (const size of ["full", "mini"] as const) {
@@ -169,8 +169,8 @@ describe("segments", () => {
 		expect(occupied("full", many(6))).toBe(64);
 	});
 
-	// 7 checks in a full ribbon share 52 px: 742 or 743 hundredths each, so
-	// the widths and the six 2 px gaps still add up to 64 px.
+	// 7 checks in a full ribbon share 52 px, at 742 or 743 hundredths each.
+	// The widths and the six 2 px gaps still add up to 64 px.
 	test("a check width is a whole number of hundredths that adds up to the box", () => {
 		const segments = ribbonSegments("full", many(7));
 		expect(segments.map((segment) => segment.width).sort()).toEqual([7.42, 7.43, 7.43, 7.43, 7.43, 7.43, 7.43]);

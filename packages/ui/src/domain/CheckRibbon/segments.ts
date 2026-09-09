@@ -97,9 +97,9 @@ const runWidths = (box: number, merged: readonly Run[]) => {
 };
 
 // The segments of a ribbon, in check order. Up to one check per px of the
-// box, every check is a segment of `segmentWidth`, drawn in whole hundredths
-// of a px that add up to the box. Above that, each run of one bucket is a
-// segment, sized by `runWidths`.
+// box, every check is a segment of `segmentWidth`. Those widths are whole
+// hundredths of a px that add up to the box. Above that, each run of one
+// bucket is a segment, sized by `runWidths`.
 export const ribbonSegments = (size: RibbonSize, checks: readonly Check[]): RibbonSegment[] => {
 	const box = ribbonWidths[size];
 	if (checks.length <= box) {

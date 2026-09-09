@@ -188,7 +188,7 @@ describe("useHotkey", () => {
 
 	// An "alt+" binding needs Alt held whatever the key kind. A punctuation
 	// or digit binding without "alt+" accepts Alt either way, because Option
-	// produces "[" on a German Mac; the plain "[" binding fires beside "alt+[".
+	// produces "[" on a German Mac. The plain "[" binding fires beside "alt+[".
 	test('an "alt+" punctuation or digit chord needs Alt held, and the plain key accepts either', () => {
 		const on = bindings();
 		render(<BindingProbe {...on} />);
