@@ -1,6 +1,6 @@
 import type { Check, CiState, PrState, ReviewState } from "@trellis/api";
 import { deriveCiState, normalizeChecks, type RawContext } from "./parse.ts";
-import type { GhFailure, GhRunner } from "./run.ts";
+import type { GhFailure, GhRunner, GhSlot } from "./run.ts";
 
 // One `gh api graphql` request fetches up to 50 pull requests. Each ref gets
 // the alias prN, so the response maps back to refs[N] by index. The response
@@ -126,11 +126,24 @@ export const mapPullRequestResponse = (refs: PullRequestRef[], response: PullReq
 	});
 
 // gh exits 1 when the response carries `errors`, and still prints the body
-// to stdout. A body with `data` maps like a success, so one unknown PR
-// number does not fail the other 49.
-export const fetchPullRequests = async (runGh: GhRunner, refs: PullRequestRef[]): Promise<FetchPullRequestsResult> => {
-	const result = await runGh("poller", ["api", "graphql", "-f", `query=${buildPullRequestQuery(refs)}`]);
-	const body = result.ok ? result.stdout : result.reason === "error" ? result.stdout : "";
-	if (!result.ok && !body.startsWith("{")) return result;
-	return { ok: true, results: mapPullRequestResponse(refs, JSON.parse(body) as PullRequestResponse) };
+// to stdout. A body whose `data` is an object maps per alias, so one unknown
+// PR number does not fail the other 49. A body without a data object (data
+// null under a rate limit, no data key under a query error, a REST style
+// message body under a 401 or 403) is a batch failure, and gh writes its
+// message to stderr, so the run failure carries it. A timed-out run can hold
+// a cut body, so it is never parsed.
+//
+// The poller passes 50 refs on the poller slot. link and refresh pass one ref
+// on the interactive slot, so a user action never waits behind a tick.
+export const fetchPullRequests = async (
+	runGh: GhRunner,
+	refs: PullRequestRef[],
+	slot: GhSlot = "poller",
+): Promise<FetchPullRequestsResult> => {
+	const result = await runGh(slot, ["api", "graphql", "-f", `query=${buildPullRequestQuery(refs)}`]);
+	if (result.ok) return { ok: true, results: mapPullRequestResponse(refs, JSON.parse(result.stdout)) };
+	if (result.reason !== "error" || result.code === null || !result.stdout.startsWith("{")) return result;
+	const response = JSON.parse(result.stdout) as Partial<PullRequestResponse>;
+	if (typeof response.data !== "object" || response.data === null) return result;
+	return { ok: true, results: mapPullRequestResponse(refs, response as PullRequestResponse) };
 };
