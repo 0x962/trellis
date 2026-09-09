@@ -1,0 +1,63 @@
+<div class="app">
+  <!-- include: sidebar-needs.html -->
+  <div class="main">
+    <div class="topbar"><h1>Needs you <span class="pill accent">4</span></h1><span class="spacer"></span><span class="fetched"><i-svg name="refresh" size="13"></i-svg>Fetched 12s ago</span></div>
+    <div class="rows">
+      <div class="group"><span class="status st-review"><i-svg name="st-review" size="14"></i-svg></span>Review <span class="count">3</span><span class="hint"><span class="kbd">a</span> approve <span class="kbd">r</span> send back</span></div>
+      <div class="trow focus">
+        <span class="prio high"><i></i><i></i><i></i></span>
+        <span class="id">CDE-42</span>
+        <span class="title"><span class="t">Restore the fork pages after the upstream 1.27 merge</span><span class="subchip">↳ CDE-43</span><span class="badge"><i-svg name="msg" size="11"></i-svg>4</span></span>
+        <span class="status st-review"><i-svg name="st-review" size="14"></i-svg><span class="label">Human Review</span></span>
+        <span class="pr"><i-svg name="pr" size="14"></i-svg><span class="ribbon mini"><i class="pass"></i><i class="pass"></i><i class="pass"></i><i class="pass"></i></span></span>
+        <span class="avatar sm agent live"><i-svg name="bot" size="10"></i-svg></span>
+        <span class="when">2h</span>
+        <span class="actions"><span class="btn primary">Approve <span class="kbd onprimary">a</span></span><span class="btn">Send back <span class="kbd">r</span></span><span class="btn quiet icon"><i-svg name="ext" size="13"></i-svg></span></span>
+      </div>
+      <div class="trow">
+        <span class="prio medium"><i></i><i></i><i></i></span>
+        <span class="id">CDE-37</span>
+        <span class="title"><span class="t">Shell+ tabs survive an app restart</span><span class="badge"><i-svg name="msg" size="11"></i-svg>2</span></span>
+        <span class="status st-review"><i-svg name="st-review" size="14"></i-svg><span class="label">Human Review</span></span>
+        <span class="pr"><i-svg name="pr" size="14"></i-svg><span class="ribbon mini"><i class="pass"></i><i class="pass"></i><i class="pass"></i><i class="pass"></i></span></span>
+        <span class="avatar sm agent"><i-svg name="bot" size="10"></i-svg></span>
+        <span class="when">5h</span>
+      </div>
+      <div class="trow">
+        <span class="prio low"><i></i><i></i><i></i></span>
+        <span class="id">TRL-9</span>
+        <span class="title"><span class="t">PR polling: one batched GraphQL query or per-PR REST calls</span><span class="subchip">↳ TRL-4</span></span>
+        <span class="status st-review"><i-svg name="st-review" size="14"></i-svg><span class="label">Human Review</span></span>
+        <span class="pr"></span>
+        <span class="avatar sm agent"><i-svg name="bot" size="10"></i-svg></span>
+        <span class="when">1d</span>
+      </div>
+
+      <div class="group"><span style="color: var(--danger); display: inline-flex;"><i-svg name="x" size="14"></i-svg></span>Failing CI <span class="count">1</span></div>
+      <div class="trow">
+        <span class="prio urgent">!</span>
+        <span class="id">CDE-44</span>
+        <span class="title"><span class="t">Terminal pane loses scrollback on session handoff</span><span class="fails">typecheck (desktop)</span></span>
+        <span class="status st-started"><i-svg name="st-started" size="14"></i-svg><span class="label">In Progress</span></span>
+        <span class="pr"><i-svg name="pr" size="14"></i-svg><span class="ribbon mini"><i class="pass"></i><i class="fail"></i><i class="pass"></i><i class="pend"></i></span></span>
+        <span class="avatar sm agent live"><i-svg name="bot" size="10"></i-svg></span>
+        <span class="when">9m</span>
+        <span class="actions plain"><span class="btn"><i-svg name="play" size="12"></i-svg>Re-run with agent</span><span class="btn quiet"><i-svg name="ext" size="13"></i-svg>PR #121</span></span>
+      </div>
+
+      <div class="group"><span class="status st-started"><i-svg name="st-started" size="14"></i-svg></span>Stalled <span class="count">1</span><span class="hint">no activity for 24h</span></div>
+      <div class="trow">
+        <span class="prio medium"><i></i><i></i><i></i></span>
+        <span class="id">CDE-38</span>
+        <span class="title"><span class="t">Databases page: cancel button for long statements</span></span>
+        <span class="status st-started"><i-svg name="st-started" size="14"></i-svg><span class="label">In Progress</span></span>
+        <span class="pr"></span>
+        <span class="avatar sm agent"><i-svg name="bot" size="10"></i-svg></span>
+        <span class="when">2d</span>
+        <span class="actions plain"><span class="btn"><i-svg name="play" size="12"></i-svg>Start with agent</span><span class="btn quiet">Move to Todo</span></span>
+      </div>
+
+      <div class="group collapsed"><span class="status st-done"><i-svg name="st-done" size="14"></i-svg></span>Done by agents today <span class="count">6</span><span class="hint">Show 6 <i-svg name="chev" size="12"></i-svg></span></div>
+    </div>
+  </div>
+</div>
