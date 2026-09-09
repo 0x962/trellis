@@ -99,4 +99,35 @@ describe("gh slots", () => {
 		const outcome = await Promise.race([third, Bun.sleep(1000).then(() => "stuck")]);
 		expect(outcome).toEqual({ ok: true, code: 0, stdout: "{}", stderr: "" });
 	});
+
+	// Two failures of one kind fill both poller slots when that path leaks its
+	// slot, so a third call then never runs. One failure per kind cannot show
+	// this, because the other slot stays free.
+	test("two missing-binary calls release both poller slots", async () => {
+		stub({ "api graphql": { stdout: "{}", stderr: "", exitCode: 0 } });
+		const stubBin = process.env.TRELLIS_GH_BIN!;
+		process.env.TRELLIS_GH_BIN = join(scratch(), "missing-gh");
+		const missing = createGhRunner();
+		process.env.TRELLIS_GH_BIN = stubBin;
+		for (let i = 0; i < 2; i++) {
+			expect(await missing("poller", ["auth", "status"])).toMatchObject({ ok: false, reason: "missing" });
+		}
+		const third = createGhRunner()("poller", ["api", "graphql"]);
+		const outcome = await Promise.race([third, Bun.sleep(1000).then(() => "stuck")]);
+		expect(outcome).toEqual({ ok: true, code: 0, stdout: "{}", stderr: "" });
+	});
+
+	test("two timed-out calls release both poller slots", async () => {
+		stub({
+			"auth status": { stdout: "late", stderr: "", exitCode: 0, delayMs: 5000 },
+			"api graphql": { stdout: "{}", stderr: "", exitCode: 0 },
+		});
+		const short = createGhRunner({ timeoutMs: 100 });
+		for (let i = 0; i < 2; i++) {
+			expect(await short("poller", ["auth", "status"])).toMatchObject({ ok: false, reason: "error", code: null });
+		}
+		const third = createGhRunner()("poller", ["api", "graphql"]);
+		const outcome = await Promise.race([third, Bun.sleep(1000).then(() => "stuck")]);
+		expect(outcome).toEqual({ ok: true, code: 0, stdout: "{}", stderr: "" });
+	});
 });
