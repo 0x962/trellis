@@ -1,14 +1,63 @@
 import { afterAll } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { changedPaths, guardedPaths, snapshot } from "./homeGuard.ts";
+import { createRunRoot, RUN_ROOT_PREFIX, sweepDeadRoots } from "./runRoot.ts";
 
-// Every test run gets its own empty data home. A test that writes under
-// TRELLIS_HOME never touches ~/.trellis, and two runs never share a file.
-const home = mkdtempSync(join(tmpdir(), "trellis-test-"));
-process.env.TRELLIS_HOME = home;
-process.on("exit", () => rmSync(home, { recursive: true }));
+// Every test process gets one run root in the temp directory, and every home
+// of the run sits under it: HOME, the XDG dirs, and TRELLIS_HOME. Code that
+// finds a path through the user home then writes into the run root, never
+// into the home of the person who runs the tests or into ~/.trellis.
+//
+// bun test fires no "exit" event after a normal run, so the last afterAll
+// hook below removes the root. SIGINT and SIGTERM remove it and exit. A
+// SIGKILL leaves the root, and the sweep of the next run removes it.
+//
+// Bun reads HOME once, when the process starts, so os.homedir() still names
+// the real home after HOME changes. The wrapper below makes it read HOME. An
+// ESM import of node:os fixes its named exports before the wrapper is set,
+// so this file reads node:os through require only.
+const os = createRequire(import.meta.url)("node:os") as typeof import("node:os");
+sweepDeadRoots(os.tmpdir(), RUN_ROOT_PREFIX);
+const root = createRunRoot(os.tmpdir(), RUN_ROOT_PREFIX);
+const removeRoot = () => rmSync(root, { recursive: true, force: true });
+process.on("exit", removeRoot);
+for (const [signal, code] of [
+	["SIGINT", 130],
+	["SIGTERM", 143],
+] as const) {
+	process.on(signal, () => {
+		removeRoot();
+		process.exit(code);
+	});
+}
+
+const userHome = join(root, "home");
+const dirs = {
+	TRELLIS_TEST_ROOT: root,
+	HOME: userHome,
+	XDG_CONFIG_HOME: join(userHome, ".config"),
+	XDG_DATA_HOME: join(userHome, ".local", "share"),
+	XDG_CACHE_HOME: join(userHome, ".cache"),
+	XDG_STATE_HOME: join(userHome, ".local", "state"),
+	TRELLIS_HOME: join(root, "trellis"),
+};
+for (const [key, dir] of Object.entries(dirs)) {
+	mkdirSync(dir, { recursive: true });
+	process.env[key] = dir;
+}
+const home = dirs.TRELLIS_HOME;
+
+// This file runs before any test file loads, so a named import of homedir in
+// a test file also gets this wrapper.
+os.homedir = () => process.env.HOME!;
+
+// The real home comes from the user database and not from HOME, so a nested
+// test process guards the real home too. TRELLIS_TEST_GUARD_HOME moves the
+// guard to a temp directory, which test/home-guard.test.ts uses to prove it.
+const guarded = guardedPaths(process.env.TRELLIS_TEST_GUARD_HOME ?? os.userInfo().homedir);
+const before = snapshot(guarded);
 
 // A fake launchctl comes first on PATH in the test process and in every
 // process a test spawns. A real launchctl call loads a server agent that
@@ -69,7 +118,12 @@ for (const name of ["spawn", "spawnSync", "exec", "execSync", "execFile", "execF
 // bun test prints an error thrown in this hook and still exits 0, so the
 // hook sets the exit code itself.
 afterAll(() => {
-	if (!existsSync(marker)) return;
-	process.stderr.write(`error: a test spawned launchctl: ${readFileSync(marker, "utf8").trim()}\n`);
+	const failures: string[] = [];
+	if (existsSync(marker)) failures.push(`a test spawned launchctl: ${readFileSync(marker, "utf8").trim()}`);
+	const changed = changedPaths(before, snapshot(guarded));
+	if (changed.length > 0) failures.push(`a test wrote under the real home: ${changed.join(", ")}`);
+	removeRoot();
+	if (failures.length === 0) return;
+	for (const failure of failures) process.stderr.write(`error: ${failure}\n`);
 	process.exit(1);
 });
