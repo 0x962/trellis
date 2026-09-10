@@ -7,10 +7,10 @@ const longTitle =
 
 describe("features/table/Row", () => {
 	// Outcome 17
-	test("renders a comfortable row at a fixed 40 px height", () => {
+	test("renders a comfortable row at a fixed 36 px height", () => {
 		const { row } = mountRow(summary());
-		expect(row().style.height).toBe("40px");
-		expect(rowHeights.comfortable).toBe(40);
+		expect(row().style.height).toBe("36px");
+		expect(rowHeights.comfortable).toBe(36);
 	});
 
 	// Outcome 18
@@ -23,7 +23,7 @@ describe("features/table/Row", () => {
 	// Outcome 19. A title never wraps, so the rows below never move.
 	test("keeps the fixed height and truncates a long title", () => {
 		const { row, cell } = mountRow(summary({ title: longTitle }));
-		expect(row().style.height).toBe("40px");
+		expect(row().style.height).toBe("36px");
 		const title = cell("title");
 		expect(title.textContent).toContain("A much longer title");
 		const truncated = [title, ...title.querySelectorAll("*")].some((element) =>

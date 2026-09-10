@@ -1,14 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTable } from "@tanstack/react-table";
 import type { StatusSummary, TicketSummary } from "@trellis/api";
-import { toast } from "@trellis/ui";
 import { type MouseEvent, type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useScopeStatuses } from "../../../hooks/useScopeStatuses";
 import { useStableCallback } from "../../../hooks/useStableCallback";
 import { useApp } from "../../../lib/appContext";
-import { branchName } from "../../../lib/branchName";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { composerActions } from "../../composer/composerStore";
@@ -19,6 +17,7 @@ import { BulkBar } from "../BulkBar";
 import { buildColumns, type ColumnId, tableFeatureSet } from "../columns";
 import { useApplyChange } from "../hooks/useApplyChange";
 import { useCollapsedGroups } from "../hooks/useCollapsedGroups";
+import { useCopyTickets } from "../hooks/useCopyTickets";
 import { useRowSelection } from "../hooks/useRowSelection";
 import { useTableData } from "../hooks/useTableData";
 import { closedCategories, closedKey, useTableGroups } from "../hooks/useTableGroups";
@@ -27,10 +26,9 @@ import { useTicketMutations } from "../hooks/useTicketMutations";
 import type { EditField, RowChange } from "../Row";
 import { TableEmpty } from "../TableEmpty";
 import { TableFooter } from "../TableFooter";
-import { columnVisibility } from "../utils/columnVisibility";
+import { autoHide, columnVisibility } from "../utils/columnVisibility";
 import { flattenGroups } from "../utils/flattenGroups";
 import { CapBanner } from "./components/CapBanner";
-import { ColumnHeaderRow } from "./components/ColumnHeaderRow";
 import { TableBody } from "./components/TableBody";
 import { TableError } from "./components/TableError";
 
@@ -72,21 +70,6 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 	});
 	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? [];
 	const showProject = project === undefined || ((projectQuery.data?.children.length ?? 0) > 0 && view.scope !== "self");
-	const stored = useUiStore((state) => state.columnVisibility[routeKey]);
-	const visibility = useMemo(() => columnVisibility(stored, showProject), [stored, showProject]);
-	const table = useTable({
-		features: tableFeatureSet,
-		columns,
-		data: noTickets,
-		state: { columnVisibility: visibility },
-		onColumnVisibilityChange: (updater) => {
-			const next = typeof updater === "function" ? updater(visibility) : updater;
-			for (const [id, visible] of Object.entries(next)) {
-				if (visible !== visibility[id as ColumnId]) uiActions.setColumnVisible(routeKey, id, visible);
-			}
-		},
-	});
-	const columnIds = table.getVisibleLeafColumns().map((column) => column.id as ColumnId);
 
 	const statuses = useScopeStatuses(project);
 	const closedKeys = useMemo(
@@ -104,6 +87,24 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 	const tickets = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
 	const ids = useMemo(() => tickets.map((ticket) => ticket.id), [tickets]);
 	const byId = useMemo(() => new Map(tickets.map((ticket) => [ticket.id, ticket])), [tickets]);
+	const stored = useUiStore((state) => state.columnVisibility[routeKey]);
+	const visibility = useMemo(
+		() => autoHide(columnVisibility(stored, showProject), { group: view.group, rows: tickets }),
+		[stored, showProject, view.group, tickets],
+	);
+	const table = useTable({
+		features: tableFeatureSet,
+		columns,
+		data: noTickets,
+		state: { columnVisibility: visibility },
+		onColumnVisibilityChange: (updater) => {
+			const next = typeof updater === "function" ? updater(visibility) : updater;
+			for (const [id, visible] of Object.entries(next)) {
+				if (visible !== visibility[id as ColumnId]) uiActions.setColumnVisible(routeKey, id, visible);
+			}
+		},
+	});
+	const columnIds = table.getVisibleLeafColumns().map((column) => column.id as ColumnId);
 	const selection = useRowSelection({ ids });
 	const mutations = useTicketMutations();
 
@@ -155,26 +156,9 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		if (ticket !== undefined) onSearchChange({ ...search, peek: ticket.identifier });
 	});
 
-	const copy = useStableCallback(async (id: string, kind: CopyKind) => {
-		const ticket = byId.get(id)!;
-		const text =
-			kind === "id"
-				? ticket.identifier
-				: kind === "branch"
-					? branchName(ticket.identifier, ticket.title)
-					: `${window.location.origin}/t/${ticket.identifier}`;
-		await navigator.clipboard.writeText(text);
-		toast(`Copied ${text}`);
-	});
-
-	const copyIds = async () => {
-		await navigator.clipboard.writeText(
-			selectedTickets()
-				.map((ticket) => ticket.identifier)
-				.join("\n"),
-		);
-		toast(`Copied ${selection.count} IDs`);
-	};
+	const copier = useCopyTickets();
+	const copy = useStableCallback((id: string, kind: CopyKind) => void copier.copy(byId.get(id)!, kind));
+	const copyIds = () => void copier.copyIds(selectedTickets());
 
 	const confirmDelete = async () => {
 		const targets = (pendingDelete ?? []).map((id) => byId.get(id)).filter((ticket) => ticket !== undefined);
@@ -216,6 +200,7 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		openPage: (id) => onOpenPage(byId.get(id)!.identifier),
 		openComposer: () => openNew(),
 		copy,
+		copySelection: copyIds,
 		requestDelete: (targets) => setPendingDelete([...targets]),
 	});
 	useCommandContext(
@@ -228,21 +213,24 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		return <TableEmpty project={project} filtered={hasFilters(search)} q={view.q} onCreate={() => openNew()} />;
 	}
 
-	const closedVisible = data.closed !== null && view.group === "status";
+	const closedVisible = data.closed !== null && view.group === "status" && view.closed !== "hide";
 	const closedTotal = closedVisible
 		? closedCategories.reduce((sum, category) => sum + data.closed![category].count, 0)
 		: 0;
 	const loadedTotal = data.rows.length + closedTotal;
-	const total = data.allActiveLoaded ? loadedTotal : (data.total ?? loadedTotal);
+	// Under a grouping other than status the rows are the open tickets only,
+	// and the footer names the Done and Canceled tickets it leaves out. The
+	// server total counts them, so the open count subtracts them.
+	const hidden = data.closed !== null && !closedVisible ? data.closed.done.count + data.closed.canceled.count : 0;
+	const total = data.allActiveLoaded ? loadedTotal : (data.total ?? loadedTotal) - hidden;
 	const count = pendingDelete?.length ?? 0;
 	const deleteTitle =
 		count === 1 ? `Delete ${byId.get(pendingDelete![0]!)?.identifier ?? "the ticket"}?` : `Delete ${count} tickets?`;
 
 	return (
 		<PeekListProvider rows={peekRows}>
-			<div ref={root} className="flex min-h-0 flex-1 flex-col">
+			<div ref={root} data-ticket-table="" className="relative flex min-h-0 flex-1 flex-col">
 				{data.capped && <CapBanner onNarrow={focusFilter} />}
-				<ColumnHeaderRow columns={columnIds} />
 				<TableBody
 					items={items}
 					columns={columnIds}
@@ -263,26 +251,27 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 					onRowChange={onRowChange}
 					onToggleGroup={collapsed.toggle}
 					onCreateInGroup={openNew}
+					bottomRoom={selection.count > 0}
 				/>
-				<TableFooter total={total} selected={selection.count} sort={view.sort} />
-				{selection.count > 0 && (
-					<BulkBar
-						count={selection.count}
-						statuses={data.statuses}
-						projects={projects}
-						project={project}
-						onStatus={(status) => void applyChange(selectedTickets(), { status })}
-						onPriority={(priority) => void applyChange(selectedTickets(), { priority })}
-						onProject={(ref) => void applyChange(selectedTickets(), { project: ref })}
-						onParent={(parent) => void applyChange(selectedTickets(), { parent })}
-						onCopyIds={() => void copyIds()}
-						onDelete={() => setPendingDelete(selection.selected)}
-					/>
-				)}
+				<TableFooter total={total} hidden={hidden} sort={view.sort} />
+				<BulkBar
+					open={selection.count > 0}
+					count={selection.count}
+					statuses={data.statuses}
+					projects={projects}
+					project={project}
+					onStatus={(status) => void applyChange(selectedTickets(), { status })}
+					onPriority={(priority) => void applyChange(selectedTickets(), { priority })}
+					onProject={(ref) => void applyChange(selectedTickets(), { project: ref })}
+					onParent={(parent) => void applyChange(selectedTickets(), { parent })}
+					onCopyIds={copyIds}
+					onDelete={() => setPendingDelete(selection.selected)}
+					onClear={selection.clear}
+				/>
 				<ConfirmDialog
 					open={pendingDelete !== null}
 					title={deleteTitle}
-					description="A deleted ticket is gone. Its sub-tickets lose their parent."
+					description="trellis cannot restore a deleted ticket. Its sub-tickets stay and lose their parent."
 					confirmLabel="Delete"
 					danger
 					onConfirm={() => void confirmDelete()}

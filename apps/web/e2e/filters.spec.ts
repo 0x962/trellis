@@ -76,7 +76,10 @@ test("filters > Copy as CLI copies the trellis list command that returns the tab
 	await signIn(page, "/p/FLT?status=todo&priority=high");
 	await expect(chipOf(page, "status")).toBeVisible();
 	await expect.poll(() => rowIds(page)).toEqual(["FLT-1", "FLT-4"]);
-	await page.getByRole("button", { name: "Copy as CLI" }).click();
+	// Filter and Display are the only text buttons; the copy actions sit in
+	// the Share menu.
+	await page.getByRole("button", { name: "Share" }).click();
+	await page.getByRole("menuitem", { name: "Copy as CLI" }).click();
 	const command = await page.evaluate(() => navigator.clipboard.readText());
 	expect(command).toBe("trellis list --project FLT --status todo --priority high --sort -updatedAt");
 	const listed = runPasted<CliTicket[]>(command);

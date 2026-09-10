@@ -1,1 +1,1 @@
-export { DragIndicator } from "./DragIndicator";
+export { DragIndicator, type DragIndicatorProps } from "./DragIndicator";

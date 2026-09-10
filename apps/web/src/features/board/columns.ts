@@ -5,7 +5,7 @@ export const categoryOrder: StatusCategory[] = ["todo", "started", "review", "do
 
 const categoryNames: Record<StatusCategory, string> = {
 	todo: "Todo",
-	started: "In Progress",
+	started: "Started",
 	review: "Review",
 	done: "Done",
 	canceled: "Canceled",

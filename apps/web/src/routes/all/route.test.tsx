@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderApp } from "../../../test/renderWithProviders";
-import { columnHeaders, findGrid, grid, identifiers, inputs, resetUi, rowOf, rows } from "../../../test/table";
+import { findGrid, grid, identifiers, inputs, resetUi, rowOf, rows, visibleColumns } from "../../../test/table";
 import { tableViewport } from "../../../test/viewport";
 
 beforeEach(() => localStorage.clear());
@@ -16,6 +16,7 @@ describe("routes/all", () => {
 		const group = screen.getByRole("radiogroup", { name: "View" });
 		expect(within(group).getByRole("radio", { name: "Table" }).getAttribute("aria-checked")).toBe("true");
 		expect(within(group).getByRole("radio", { name: "Board" }).getAttribute("aria-checked")).toBe("false");
+		expect(within(screen.getAllByRole("banner")[0]!).getByRole("button", { name: /New ticket/ })).toBeDefined();
 		expect(document.querySelector("[data-filter-bar]")).not.toBeNull();
 		const { total } = await server.client.tickets.counts({});
 		const footer = document.querySelector("[data-list-footer]")!;
@@ -42,7 +43,7 @@ describe("routes/all: the table", () => {
 		await waitFor(() => expect(grid().getAttribute("aria-rowcount")).toBe("48"));
 		await waitFor(() => expect(rows().length).toBeGreaterThan(5));
 		for (const input of inputs(server, "tickets.list")) expect(input).not.toHaveProperty("project");
-		expect(columnHeaders()).toContain("project");
+		expect(visibleColumns()).toContain("project");
 		expect(document.querySelectorAll('[role="gridcell"][data-column="project"]').length).toBe(rows().length);
 		const keys = new Set(identifiers().map((identifier) => identifier!.split("-")[0]));
 		expect(keys.size).toBeGreaterThanOrEqual(2);

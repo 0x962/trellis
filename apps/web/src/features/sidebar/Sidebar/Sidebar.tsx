@@ -1,7 +1,11 @@
+import { lazy, Suspense, useState } from "react";
 import { useSidebarHotkey } from "../../../lib/sidebarHotkey";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
-import { MobileSidebar } from "./components/MobileSidebar";
 import { SidebarBody } from "./components/SidebarBody";
+
+// A desktop never opens the phone sheet, so its code stays out of the first
+// load of the app.
+const MobileSidebar = lazy(async () => ({ default: (await import("./components/MobileSidebar")).MobileSidebar }));
 
 // The 240 px sidebar. `[` collapses it; a collapsed sidebar is out of the
 // layout and out of the accessibility tree, and the topbar shows the button
@@ -9,6 +13,11 @@ import { SidebarBody } from "./components/SidebarBody";
 // same content opens in a sheet from the topbar.
 export function Sidebar() {
 	const collapsed = useUiStore((state) => state.sidebarCollapsed);
+	const mobileOpen = useUiStore((state) => state.mobileSidebarOpen);
+	// The sheet mounts on its first open and then stays mounted, so it can
+	// animate closed.
+	const [sheetMounted, setSheetMounted] = useState(false);
+	if (mobileOpen && !sheetMounted) setSheetMounted(true);
 	useSidebarHotkey();
 
 	return (
@@ -21,7 +30,11 @@ export function Sidebar() {
 			>
 				<SidebarBody onCollapse={uiActions.toggleSidebar} />
 			</aside>
-			<MobileSidebar />
+			{sheetMounted && (
+				<Suspense fallback={null}>
+					<MobileSidebar />
+				</Suspense>
+			)}
 		</>
 	);
 }

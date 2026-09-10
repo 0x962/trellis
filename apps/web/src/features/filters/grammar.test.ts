@@ -57,6 +57,14 @@ describe("features/filters/grammar", () => {
 		expect(parseSearch(Object.fromEntries(new URLSearchParams(serializeSearch(view))))).toEqual(view);
 	});
 
+	// FL-1. Show completed off writes closed=hide; any other value is dropped.
+	test("closed=hide round-trips, and any other value is dropped", () => {
+		const view = parseSearch({ closed: "hide", group: "priority" });
+		expect(view.closed).toBe("hide");
+		expect(serializeSearch(view)).toBe("group=priority&closed=hide");
+		expect(parseSearch({ closed: "show" })).not.toHaveProperty("closed");
+	});
+
 	// WS-44
 	test("every default serializes to nothing", () => {
 		expect(serializeSearch(parseSearch({}))).toBe("");

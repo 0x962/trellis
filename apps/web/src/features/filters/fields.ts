@@ -70,24 +70,24 @@ export const prLabels: Record<PrFilter, string> = {
 };
 
 export const ciLabels: Record<CiState, string> = {
-	pass: "passing",
-	fail: "failing",
+	pass: "passed",
+	fail: "failed",
 	pending: "pending",
 	none: "without checks",
 };
 
 export const timeLabels: Record<string, string> = {
-	"1h": "last hour",
-	"24h": "last 24 hours",
-	"7d": "last 7 days",
-	"30d": "last 30 days",
+	"1h": "the last hour",
+	"24h": "the last 24 hours",
+	"7d": "the last 7 days",
+	"30d": "the last 30 days",
 };
 
 export const actorLabels: Record<string, string> = { "@agent": "agents", "@human": "humans" };
 
 // The word between the field and its values.
 export const opLabel = (field: FilterField, negated: boolean) => {
-	if (field === "updated" || field === "created") return "after";
+	if (field === "updated" || field === "created") return "in";
 	return negated ? "is not" : "is";
 };
 

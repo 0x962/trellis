@@ -27,7 +27,7 @@ export const useTableGroups = ({ data, view, project, isCollapsed }: TableGroups
 		const active: TableGroup[] = groupRows(rows, { group: view.group, sort: view.sort, statuses, project }).map(
 			(group) => ({ ...group, count: group.rows.length, expanded: view.group === "none" || !isCollapsed(group.key) }),
 		);
-		if (closed === null || view.group !== "status") return active;
+		if (closed === null || view.group !== "status" || view.closed === "hide") return active;
 		const tail: TableGroup[] = [];
 		for (const category of closedCategories) {
 			const key = closedKey(statuses, category);
@@ -50,5 +50,5 @@ export const useTableGroups = ({ data, view, project, isCollapsed }: TableGroups
 			});
 		}
 		return [...active.filter((group) => !closedCategories.includes(group.category as ClosedCategory)), ...tail];
-	}, [rows, statuses, closed, view.group, view.sort, project, isCollapsed]);
+	}, [rows, statuses, closed, view.group, view.closed, view.sort, project, isCollapsed]);
 };

@@ -16,7 +16,7 @@ export type TableEmptyProps = {
 };
 
 const linkClass =
-	"inline-flex h-7 items-center rounded-md border border-border bg-surface px-2.5 text-sm font-medium text-fg transition duration-hover hover:bg-bg hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
+	"inline-flex h-8 items-center rounded-md border border-border bg-surface px-3 text-base font-medium text-fg transition duration-hover hover:bg-bg hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
 
 // What the table shows with no row: the first-ticket state of an empty
 // project, or the no-match state of a filter. The clear link drops every
@@ -36,8 +36,8 @@ export function TableEmpty({ project, filtered, q, onCreate }: TableEmptyProps) 
 		return (
 			<EmptyState
 				title={q === undefined ? "No tickets match" : `No tickets match '${q}'`}
-				description="Every filter above narrows the list."
-				className="flex-1 justify-center"
+				description="Clear the filters to see every ticket."
+				variant="page"
 				action={clear}
 			/>
 		);
@@ -50,10 +50,10 @@ export function TableEmpty({ project, filtered, q, onCreate }: TableEmptyProps) 
 			icon={<Inbox />}
 			title="No tickets yet"
 			description="Create the first one here or from a terminal."
-			className="flex-1 justify-center"
+			variant="page"
 			action={
 				<div className="flex flex-col items-center gap-3">
-					<Button variant="primary" onClick={onCreate}>
+					<Button variant="primary" size="md" onClick={onCreate}>
 						Create ticket
 					</Button>
 					<CliLine command={command} />

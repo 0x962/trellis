@@ -13,7 +13,7 @@ export function CapBanner({ onNarrow }: CapBannerProps) {
 			data-cap-banner=""
 			className="flex h-8 shrink-0 items-center gap-1 border-b border-border bg-warning-soft px-5 text-sm text-fg"
 		>
-			Showing the first {formatCount(rowCap)} tickets.
+			The list shows the first {formatCount(rowCap)} tickets.
 			{/* biome-ignore lint/a11y/useValidAnchor: The link moves focus to the table filter control. */}
 			<a
 				href="#filters"

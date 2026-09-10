@@ -3,9 +3,11 @@ import type { Status } from "@trellis/api";
 import { isCanonicalSearch } from "../../features/filters/canonical";
 import { FilterBar } from "../../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../features/filters/grammar";
+import { NewTicketButton } from "../../features/shell/NewTicketButton";
 import { Topbar } from "../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../features/shell/ViewSwitch";
 import { DisplayPopover } from "../../features/table/DisplayPopover";
+import { ListPending } from "../../features/table/ListPending";
 import { TicketTable } from "../../features/table/TicketTable";
 import { TicketPeek } from "../../features/ticket/TicketPeek";
 import { useScopeStatuses } from "../../hooks/useScopeStatuses";
@@ -33,6 +35,11 @@ export const Route = createFileRoute("/all")({
 		await context.queryClient.ensureQueryData(countsOptions(context, deps, statuses));
 	},
 	component: AllPage,
+	// A load over 300 ms shows the table's shape for at least 200 ms, so a
+	// fast load never flashes it.
+	pendingMs: 300,
+	pendingMinMs: 200,
+	pendingComponent: () => <ListPending view="table" title="All tickets" />,
 });
 
 function AllPage() {
@@ -52,8 +59,15 @@ function AllPage() {
 
 	return (
 		<>
-			<Topbar actions={<ViewSwitch value="table" onChange={switchView} />}>
-				<h1 className="text-md font-semibold text-fg">All tickets</h1>
+			<Topbar
+				actions={
+					<>
+						<ViewSwitch value="table" onChange={switchView} />
+						<NewTicketButton />
+					</>
+				}
+			>
+				<h1 className="text-lg font-semibold text-fg">All tickets</h1>
 			</Topbar>
 			<FilterBar
 				search={search}

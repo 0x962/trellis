@@ -17,9 +17,9 @@ export type RowPatch = Partial<Pick<TicketSummary, "status" | "priority" | "proj
 type UpdateFields = Omit<TicketUpdateInput, "ticket" | "expectedVersion">;
 type UpdateManyFields = Omit<TicketUpdateManyInput, "tickets">;
 
-// The action of a write as a phrase around its subject, for the rollback
-// toast. The subject is an identifier, as in "move CDE-51 to Agent Review",
-// or a count, as in "move 2 tickets to Agent Review".
+// The title of the rollback toast for a write, around its subject. The
+// subject is an identifier, as in "CDE-51 did not move to Agent Review.",
+// or a count, as in "2 tickets did not move to Agent Review.".
 export type Verb = (subject: string) => string;
 
 export type TicketMutations = {
@@ -82,7 +82,7 @@ export const useTicketMutations = (): TicketMutations => {
 				revert([current]);
 				const conflict = error instanceof ORPCError && error.code === "VERSION_CONFLICT";
 				applier.endMutation(current.id, conflict ? (error.data as { current: Ticket }).current : undefined);
-				fail(`Couldn't ${verb(current.identifier)}`, error, () => void update(current, fields, patch, verb));
+				fail(verb(current.identifier), error, () => void update(current, fields, patch, verb));
 			}
 		};
 
@@ -97,11 +97,7 @@ export const useTicketMutations = (): TicketMutations => {
 				for (const item of items) applySummary(item);
 			} catch (error) {
 				revert(originals);
-				fail(
-					`Couldn't ${verb(`${originals.length} tickets`)}`,
-					error,
-					() => void updateMany(originals, fields, patch, verb),
-				);
+				fail(verb(`${originals.length} tickets`), error, () => void updateMany(originals, fields, patch, verb));
 			}
 		};
 
@@ -110,7 +106,7 @@ export const useTicketMutations = (): TicketMutations => {
 				await client.tickets.delete({ ticket: ticket.identifier });
 				applySummary(ticket, true);
 			} catch (error) {
-				fail(`Couldn't delete ${ticket.identifier}`, error, () => void remove(ticket));
+				fail(`${ticket.identifier} is not deleted.`, error, () => void remove(ticket));
 			}
 		};
 
@@ -119,7 +115,7 @@ export const useTicketMutations = (): TicketMutations => {
 				await client.tickets.deleteMany({ tickets: tickets.map((ticket) => ticket.identifier) });
 				for (const ticket of tickets) applySummary(ticket, true);
 			} catch (error) {
-				fail(`Couldn't delete ${tickets.length} tickets`, error, () => void removeMany(tickets));
+				fail(`${tickets.length} tickets are not deleted.`, error, () => void removeMany(tickets));
 			}
 		};
 

@@ -1,5 +1,6 @@
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import type { ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
+import { cx, useMediaQuery } from "@trellis/ui";
 import {
 	type MouseEvent,
 	type RefObject,
@@ -14,7 +15,8 @@ import type { Density } from "../../../../../stores/uiStore";
 import type { ColumnId } from "../../../columns";
 import { GroupHeader, groupHeaderHeight } from "../../../GroupHeader";
 import type { RowSelection } from "../../../hooks/useRowSelection";
-import { type EditField, Row, type RowChange, rowHeights } from "../../../Row";
+import { type EditField, Row, type RowChange } from "../../../Row";
+import { phoneRowHeight, rowHeights } from "../../../rowHeights";
 import type { TableItem } from "../../../utils/flattenGroups";
 import { ShowMoreRow, showMoreHeight } from "../ShowMoreRow";
 import { TableSkeleton } from "../TableSkeleton";
@@ -42,10 +44,13 @@ export type TableBodyProps = {
 	onRowChange: (ticket: TicketSummary, change: RowChange) => void;
 	onToggleGroup: (key: string) => void;
 	onCreateInGroup: (status: StatusSummary) => void;
+	// True while the bulk bar shows. The list then gets 72 px of room under
+	// its last row, so that row can scroll clear of the bar.
+	bottomRoom: boolean;
 };
 
-const heightOf = (item: TableItem, density: Density) =>
-	item.kind === "header" ? groupHeaderHeight : item.kind === "more" ? showMoreHeight : rowHeights[density];
+const heightOf = (item: TableItem, rowHeight: number) =>
+	item.kind === "header" ? groupHeaderHeight : item.kind === "more" ? showMoreHeight : rowHeight;
 
 // The scroll container and the virtual list inside it. Every line has a
 // fixed height, so the spacer is the sum of the lines and never moves
@@ -70,8 +75,12 @@ export function TableBody({
 	onRowChange,
 	onToggleGroup,
 	onCreateInGroup,
+	bottomRoom,
 }: TableBodyProps) {
 	const viewport = useRef<HTMLDivElement>(null);
+	// Below 768 px every row is two lines, so the row height changes with it.
+	const phone = useMediaQuery("(max-width: 767px)");
+	const rowHeight = phone ? phoneRowHeight : rowHeights[density];
 	const [initialRect, setInitialRect] = useState({ width: 0, height: 0 });
 	useLayoutEffect(() => {
 		const { width, height } = viewport.current!.getBoundingClientRect();
@@ -86,7 +95,7 @@ export function TableBody({
 	const virtualizer = useVirtualizer({
 		count: items.length,
 		getScrollElement: () => viewport.current,
-		estimateSize: (index) => heightOf(items[index]!, density),
+		estimateSize: (index) => heightOf(items[index]!, rowHeight),
 		enabled: initialRect.height > 0,
 		initialRect,
 		observeElementRect: (instance, callback) => {
@@ -107,9 +116,9 @@ export function TableBody({
 		getItemKey: (index) => items[index]!.key,
 	});
 
-	// A density change resizes every line.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: the density is the trigger; the virtualizer is stable
-	useEffect(() => virtualizer.measure(), [density]);
+	// A density or a width change resizes every line.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the row height is the trigger; the virtualizer is stable
+	useEffect(() => virtualizer.measure(), [rowHeight]);
 
 	useEffect(() => {
 		const id = pendingFocus.current;
@@ -139,7 +148,7 @@ export function TableBody({
 			data-table-viewport=""
 			data-selecting={selection.count > 0 ? "" : undefined}
 			tabIndex={-1}
-			className="min-h-0 flex-1 overflow-auto outline-none [scrollbar-gutter:stable]"
+			className={cx("min-h-0 flex-1 overflow-auto outline-none [scrollbar-gutter:stable]", bottomRoom && "pb-18")}
 		>
 			{loading ? (
 				<TableSkeleton density={density} />
@@ -185,6 +194,7 @@ export function TableBody({
 								viewedProject={project}
 								top={virtual.start}
 								group={item.group.key}
+								phone={phone}
 								focused={ticket.id === focusedId}
 								selected={selection.isSelected(ticket.id)}
 								selecting={selection.count > 0}

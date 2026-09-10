@@ -9,19 +9,23 @@ import {
 	type Ticket,
 	type TicketSummary,
 } from "@trellis/api";
-import { Skeleton, toast } from "@trellis/ui";
+import { toast, useMediaQuery, useTheme } from "@trellis/ui";
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useApp } from "../../../lib/appContext";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
+import { composerActions } from "../../composer/composerStore";
 import { PeekListProvider } from "../../ticket/TicketPeek/providers/PeekListProvider";
 import { categoryColumns, moveInBoard, projectColumns } from "../columns";
 import { BoardColumn } from "../components/BoardColumn";
+import { BoardSkeleton } from "../components/BoardSkeleton";
 import { StatusChoice } from "../components/StatusChoice";
 import { useBoardAutoScroll, useBoardMonitor } from "../hooks/useBoardDnd";
 import type { BoardColumnModel, BoardMove } from "../types";
 import { boardSort } from "./constants";
+import { useDropMotion } from "./hooks/useDropMotion";
+import { columnWidth } from "./utils/columnWidth";
 
 export type BoardProps = {
 	projectRef?: string;
@@ -36,6 +40,10 @@ export type BoardProps = {
 type PendingChoice = BoardMove & { statuses: Status[] };
 
 const noCollapsedColumns: string[] = [];
+
+// The closed categories start as rails at the end of the board, so the open
+// columns get the width.
+const closedCategories = ["done", "canceled"];
 
 // The board has no card selection, so the palette's Selection section
 // stays empty on it.
@@ -61,6 +69,8 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 	const projectQuery = useQuery({ ...projectOptions, enabled: projectRef !== undefined });
 	const projectsQuery = useQuery({ ...projectsOptions, enabled: projectRef === undefined });
 	const collapsed = useUiStore((state) => state.collapsedGroups[storageKey] ?? noCollapsedColumns);
+	const well = useTheme().resolved === "light";
+	const phone = useMediaQuery("(max-width: 767px)");
 	// The card that last took the focus is the palette's This ticket.
 	const [focusedCard, setFocusedCard] = useState<string | null>(null);
 	useCommandContext(focusedCard, noSelection);
@@ -83,9 +93,9 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 	);
 
 	useEffect(() => {
-		const canceled = columns.find((column) => column.category === "canceled");
-		if (canceled !== undefined && useUiStore.getState().collapsedGroups[storageKey] === undefined) {
-			uiActions.setGroupCollapsed(storageKey, canceled.id, true);
+		if (useUiStore.getState().collapsedGroups[storageKey] !== undefined) return;
+		for (const column of columns) {
+			if (closedCategories.includes(column.category)) uiActions.setGroupCollapsed(storageKey, column.id, true);
 		}
 	}, [columns, storageKey]);
 
@@ -122,12 +132,18 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 			} catch (error) {
 				applier.endMutation(move.ticket.id);
 				context.queryClient.setQueryData(boardOptions.queryKey, snapshot);
-				const message =
-					error instanceof ORPCError && error.code === "VERSION_CONFLICT"
-						? "The ticket changed. The board restored its prior position."
-						: "The move failed. The board restored its prior position.";
-				announce(message);
-				toast.error(message);
+				const failed = `${move.ticket.identifier} did not move to ${move.column.name}.`;
+				if (error instanceof ORPCError && error.code === "VERSION_CONFLICT") {
+					const message = `${failed} Another actor changed the ticket first.`;
+					announce(message);
+					toast.error(message);
+					return;
+				}
+				announce(failed);
+				toast.error(failed, {
+					description: error instanceof Error ? error.message : String(error),
+					action: { label: "Retry", onClick: () => void runMove(move, chosen) },
+				});
 			}
 		},
 		[announce, boardOptions.queryKey, context.client.tickets, context.queryClient],
@@ -145,7 +161,15 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 
 	const ready = boardQuery.data !== undefined && (projectRef === undefined || projectQuery.data !== undefined);
 	useBoardAutoScroll(boardRef, ready);
-	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce);
+	const onDropped = useDropMotion(columns);
+	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce, onDropped);
+
+	const openComposer = (column: BoardColumnModel) => {
+		const status = column.statuses[0];
+		composerActions.open(
+			projectRef === undefined || status === undefined ? {} : { project: projectRef, status: status.slug },
+		);
+	};
 
 	const createTicket = async (column: BoardColumnModel, title: string) => {
 		const status = column.statuses[0];
@@ -216,17 +240,24 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 			const targetColumn = columns[columnIndex + (event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0)];
 			const targetIndex = index + (event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0);
 			const target = targetColumn?.items[Math.max(0, Math.min(targetIndex, targetColumn.items.length - 1))];
-			document.querySelector<HTMLElement>(`[data-ticket-id="${target?.id}"]`)?.focus();
+			const element = document.querySelector<HTMLElement>(`[data-ticket-id="${target?.id}"]`);
+			// The focus must not scroll the board, or the column headers leave
+			// their row. The card then scrolls only its own list.
+			element?.focus({ preventScroll: true });
+			element?.scrollIntoView({ block: "nearest" });
 		}
 	};
 
-	if (!ready) {
-		return <Skeleton className="m-4 h-24 w-75" />;
-	}
+	if (!ready) return <BoardSkeleton />;
+
+	// On a phone each open column is 85% of the window, and the strip snaps.
+	const width = phone
+		? "85vw"
+		: columnWidth(columns.length, columns.filter((column) => collapsed.includes(column.id)).length);
 
 	return (
 		<PeekListProvider rows={peekRows}>
-			<div ref={boardRef} data-board="" className="flex min-h-0 flex-1 snap-x gap-2 overflow-auto bg-bg p-4">
+			<div ref={boardRef} data-board="" className="flex min-h-0 flex-1 snap-x gap-3 overflow-x-auto p-4">
 				{columns.map((column) => (
 					<BoardColumn
 						key={column.id}
@@ -234,9 +265,12 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 						collapsed={collapsed.includes(column.id)}
 						showAllDone={showAllDone}
 						categoryMode={projectRef === undefined}
+						width={width}
+						well={well}
 						onToggle={() => uiActions.setGroupCollapsed(storageKey, column.id, !collapsed.includes(column.id))}
 						onShowAllDone={() => setShowAllDone(true)}
 						onCreate={(title) => createTicket(column, title)}
+						onFullComposer={() => openComposer(column)}
 						onShowMore={() => showMore(column)}
 						onOpenTicket={onOpenTicket}
 						onFocusTicket={setFocusedCard}

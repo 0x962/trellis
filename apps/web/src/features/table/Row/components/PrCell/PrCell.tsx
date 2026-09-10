@@ -22,18 +22,18 @@ const dots: Record<CiState, string> = {
 };
 
 const ciLabels: Record<CiState, string> = {
-	pass: "CI passing",
-	fail: "CI failing",
-	pending: "CI pending",
+	pass: "Checks passed",
+	fail: "Checks failed",
+	pending: "Checks pending",
 	none: "No checks",
 };
 
 // The badge carries counts, not the checks themselves, so the ribbon draws
-// one segment per counted check: the failing ones first.
+// one segment per counted check: the failed ones first.
 const checksOf = (pr: PrCellProps["pr"]): Check[] => [
-	...Array.from({ length: pr.fail }, () => ({ name: "failing", bucket: "fail" as const })),
-	...Array.from({ length: pr.pending }, () => ({ name: "pending", bucket: "pending" as const })),
-	...Array.from({ length: pr.pass }, () => ({ name: "passing", bucket: "pass" as const })),
+	...Array.from({ length: pr.fail }, () => ({ name: "1 check", bucket: "fail" as const })),
+	...Array.from({ length: pr.pending }, () => ({ name: "1 check", bucket: "pending" as const })),
+	...Array.from({ length: pr.pass }, () => ({ name: "1 check", bucket: "pass" as const })),
 ];
 
 // The PR state icon with the mini check ribbon. A compact row has no room

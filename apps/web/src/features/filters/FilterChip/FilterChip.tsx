@@ -48,6 +48,18 @@ const iconOf = (field: FilterField, values: string[], statuses: readonly StatusS
 	}
 };
 
+// The names a chip prints for its values. A status or a category chip names
+// the statuses of the scope, so it reads like the cells; one name shows once
+// even when several projects hold it.
+const namesOf = (field: FilterField, values: string[], statuses: readonly StatusSummary[]): string[] => {
+	if (field !== "category") return values.map((value) => valueLabel(field, value, statuses));
+	return [...new Set(statuses.filter((status) => values.includes(status.category)).map((status) => status.name))];
+};
+
+// Two names, then a count of the rest: "In Progress, Agent Review +1".
+const shortList = (names: string[]) =>
+	names.length > 2 ? `${names.slice(0, 2).join(", ")} +${names.length - 2}` : names.join(", ");
+
 // One active filter as a chip: the field, the operator, the values, and
 // the remove button. The operator flips between is and is not on a
 // negatable field; the values reopen the picker.
@@ -62,7 +74,7 @@ export function FilterChip({ field, view, statuses, onChange, onEdit }: FilterCh
 				icon={iconOf(field, values, statuses)}
 				label={label}
 				op={opLabel(field, negated)}
-				value={values.map((value) => valueLabel(field, value, statuses)).join(", ")}
+				value={shortList(namesOf(field, values, statuses))}
 				onOpClick={canNegate ? () => onChange(toggleNegation(view, field as NegatableField)) : undefined}
 				onValueClick={() => onEdit(field)}
 				onRemove={() => onChange(withoutField(view, field))}

@@ -23,8 +23,14 @@ export type GroupHeaderProps = {
 // The fixed height of a group header.
 export const groupHeaderHeight = 32;
 
-// The head of one group: the icon, the name, the count, and the plus
-// button. The name toggles the rows; a collapsed group offers "Show n".
+// The plus shows on header hover and on keyboard focus inside the header.
+// A touch screen has no hover, so there it always shows.
+const revealed =
+	"opacity-0 transition-opacity duration-hover group-hover/header:opacity-100 group-focus-within/header:opacity-100 [@media(hover:none)]:opacity-100";
+
+// The head of one group on the band: the chevron, the icon, the name, and
+// the count on the left; "Show n" and the plus on the right. The name
+// toggles the rows.
 export function GroupHeader({
 	group,
 	label,
@@ -45,33 +51,43 @@ export function GroupHeader({
 			aria-expanded={expanded}
 			style={{ height: `${groupHeaderHeight}px`, transform: top === undefined ? undefined : `translateY(${top}px)` }}
 			className={cx(
-				"flex w-full items-center gap-2 border-y border-border bg-bg px-5 text-base font-medium text-fg",
+				"group/header flex w-full items-center gap-2 border-y border-border bg-band px-5",
 				top === undefined ? "relative" : "absolute top-0 left-0",
 			)}
 		>
 			<button
 				type="button"
 				onClick={onToggle}
-				className="inline-flex h-7 min-w-7 items-center gap-2 rounded-md px-1 transition-colors duration-hover hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+				className="-ml-1 inline-flex h-7 min-w-7 items-center gap-2 rounded-md px-1 text-sm font-medium text-fg-muted transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 			>
-				<Chevron aria-hidden="true" className="size-3.5 text-fg-faint" />
+				<Chevron aria-hidden="true" className="size-3 text-fg-faint" />
 				{category !== undefined && <StatusIcon category={category} reviewer={status?.reviewer ?? undefined} />}
 				{label}
 			</button>
-			<span data-count="" className="font-normal text-fg-muted tabular">
+			<span data-count="" className="text-sm text-fg-faint tabular">
 				{formatCount(count)}
 			</span>
-			{onCreate && <IconButton size="sm" label={`New ticket in ${label}`} icon={<Plus />} onClick={onCreate} />}
-			{!expanded && (
-				<button
-					type="button"
-					onClick={onToggle}
-					className="ml-auto inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-sm font-normal text-fg-muted transition-colors duration-hover hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
-				>
-					Show {formatCount(count)}
-					<ChevronDown aria-hidden="true" className="size-3" />
-				</button>
-			)}
+			<span className="ml-auto flex items-center gap-1">
+				{!expanded && (
+					<button
+						type="button"
+						onClick={onToggle}
+						className="inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-sm text-fg-faint transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+					>
+						Show {formatCount(count)}
+						<ChevronDown aria-hidden="true" className="size-3" />
+					</button>
+				)}
+				{onCreate && (
+					<IconButton
+						size="sm"
+						label={`New ticket in ${label}`}
+						icon={<Plus />}
+						className={revealed}
+						onClick={onCreate}
+					/>
+				)}
+			</span>
 		</div>
 	);
 }

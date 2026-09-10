@@ -2,7 +2,6 @@ import { ORPCError } from "@orpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
-import { EmptyState } from "@trellis/ui";
 import { lazy, Suspense, useEffect } from "react";
 import { ManagerStatus } from "../../../features/agent/ManagerStatus";
 import { Board, boardSort } from "../../../features/board";
@@ -19,10 +18,12 @@ import {
 import { sortLabel } from "../../../features/filters/labels";
 import { Breadcrumb } from "../../../features/shell/Breadcrumb";
 import { ListFooter } from "../../../features/shell/ListFooter";
+import { NewTicketButton } from "../../../features/shell/NewTicketButton";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
 import { Topbar } from "../../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../../features/shell/ViewSwitch";
 import { DisplayPopover } from "../../../features/table/DisplayPopover";
+import { ListPending } from "../../../features/table/ListPending";
 import { TicketTable } from "../../../features/table/TicketTable";
 import { TicketPeek } from "../../../features/ticket/TicketPeek";
 import { type AppContext, useApp } from "../../../lib/appContext";
@@ -30,6 +31,7 @@ import { rememberList } from "../../../lib/lastList";
 import { parseProjectSplat, projectHref, projectSlashPath } from "../../../lib/projectPath";
 import { useUiStore } from "../../../stores/uiStore";
 import { ArchivedBanner } from "./components/ArchivedBanner";
+import { ProjectLoadError } from "./components/ProjectLoadError";
 import { ScopeChip } from "./components/ScopeChip";
 
 // The settings screen loads in its own chunk, so the list views never pay for it.
@@ -66,6 +68,11 @@ export const Route = createFileRoute("/p/$")({
 		}
 	},
 	component: ProjectPage,
+	// A load over 300 ms shows the shape of the project's view for at least
+	// 200 ms, so a fast load never flashes it.
+	pendingMs: 300,
+	pendingMinMs: 200,
+	pendingComponent: ProjectPending,
 	errorComponent: ProjectError,
 	notFoundComponent: ProjectMissing,
 });
@@ -127,6 +134,7 @@ function ProjectPage() {
 					<>
 						<ManagerStatus project={project} />
 						<ViewSwitch value={view} onChange={switchView} />
+						<NewTicketButton />
 					</>
 				}
 			>
@@ -183,6 +191,13 @@ function ProjectPage() {
 	);
 }
 
+// The table or the board skeleton, from the view the splat names.
+function ProjectPending() {
+	const params = useParams({ strict: false });
+	const { view } = parseProjectSplat(params._splat ?? "");
+	return <ListPending view={view === "board" ? "board" : "table"} />;
+}
+
 // A splat that is not a project path.
 function ProjectMissing() {
 	const params = useParams({ strict: false });
@@ -202,11 +217,5 @@ function ProjectError({ error }: ErrorComponentProps) {
 			</>
 		);
 	}
-	return (
-		<EmptyState
-			title="Something went wrong"
-			description={error instanceof Error ? error.message : String(error)}
-			className="flex-1 justify-center"
-		/>
-	);
+	return <ProjectLoadError error={error} />;
 }

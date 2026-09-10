@@ -45,10 +45,15 @@ describe("features/filters/FilterBar", () => {
 		const options = within(dialog)
 			.getAllByRole("option")
 			.map((entry) => entry.textContent?.trim());
-		expect(options.slice(0, 4)).toEqual(["Active", "Needs review", "Failing CI", "Touched by agents today"]);
-		await user.click(await option("Failing CI"));
+		expect(options.slice(0, 4)).toEqual([
+			"Active",
+			"Needs review",
+			"Failing checks",
+			"Updated by agents, last 24 hours",
+		]);
+		await user.click(await option("Failing checks"));
 		await waitFor(() => expect(router.state.location.searchStr).toBe("?ci=fail"));
-		await waitFor(() => expect(chipText("ci")).toBe("PR is failing"));
+		await waitFor(() => expect(chipText("ci")).toBe("PR is failed"));
 		expect(document.querySelectorAll("[data-filter-chip]")).toHaveLength(1);
 	});
 
@@ -67,16 +72,20 @@ describe("features/filters/FilterBar", () => {
 	});
 
 	// Outcome 81. The route drops the default sort from the URL; the command
-	// states it.
-	test("copies the CLI command and the link from the filter bar", async () => {
+	// states it. Filter and Display are the only text buttons, so the copy
+	// actions sit in the Share menu.
+	test("copies the CLI command and the link from the Share menu", async () => {
 		const user = userEvent.setup();
 		renderApp({ path: "/p/CDE?status=in-progress,agent-review&parent=none&ci=fail&sort=-updatedAt", actor: "navid" });
 		await findGrid();
-		await user.click(within(filterBar()).getByRole("button", { name: "Copy as CLI" }));
+		expect(within(filterBar()).queryByRole("button", { name: "Copy as CLI" })).toBeNull();
+		await user.click(within(filterBar()).getByRole("button", { name: "Share" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Copy as CLI" }));
 		expect(await navigator.clipboard.readText()).toBe(
 			"trellis list --project CDE --status in-progress,agent-review --parent none --ci fail --sort -updatedAt",
 		);
-		await user.click(within(filterBar()).getByRole("button", { name: "Copy link" }));
+		await user.click(within(filterBar()).getByRole("button", { name: "Share" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Copy link" }));
 		expect(await navigator.clipboard.readText()).toBe(
 			"http://trellis.local/p/CDE?status=in-progress,agent-review&parent=none&ci=fail",
 		);

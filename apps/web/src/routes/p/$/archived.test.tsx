@@ -31,8 +31,10 @@ describe("routes/p/$ archived", () => {
 		const server = await archivedServer();
 		renderApp({ path: "/p/MRG", actor: "navid", server });
 		expect(await screen.findByText(bannerText)).toBeDefined();
-		const status = (await screen.findAllByRole("button", { name: /^Status: / }))[0]!;
-		await user.click(status);
+		// The status grouping hides the status column; the priority cell is a
+		// write control on every row.
+		const priority = (await screen.findAllByRole("button", { name: "Change priority" }))[0]!;
+		await user.click(priority);
 		expect(screen.queryByRole("option")).toBeNull();
 		expect(callsTo(server, "tickets.update")).toHaveLength(0);
 	});

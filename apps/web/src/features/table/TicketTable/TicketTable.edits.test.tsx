@@ -9,8 +9,10 @@ import {
 	calls,
 	cellOf,
 	findGrid,
+	focusRow,
 	inputs,
 	listCalls,
+	press,
 	queryGroupHeader,
 	resetUi,
 	rowOf,
@@ -34,6 +36,21 @@ const pickFromCell = async (
 	name: RegExp | string,
 ) => {
 	await user.click(within(cellOf(identifier, column)).getByRole("button"));
+	const dialog = await screen.findByRole("dialog");
+	await user.click(within(dialog).getByRole("option", { name }));
+};
+
+// Opens a row's picker from its key. The status grouping hides the status
+// column and the project grouping hides the project column, so the key is
+// how those pickers open there.
+const pickWithKey = async (
+	user: ReturnType<typeof userEvent.setup>,
+	identifier: string,
+	key: string,
+	name: RegExp | string,
+) => {
+	focusRow(identifier);
+	press(key);
 	const dialog = await screen.findByRole("dialog");
 	await user.click(within(dialog).getByRole("option", { name }));
 };
@@ -62,8 +79,7 @@ describe("features/table/TicketTable: inline edits", () => {
 		await findGrid();
 		await waitFor(() => rowOf("CDE-51"));
 		expect(rowOf("CDE-51").getAttribute("data-group")).toBe("todo");
-		await pickFromCell(user, "CDE-51", "status", "In Progress");
-		expect(cellOf("CDE-51", "status").textContent).toContain("In Progress");
+		await pickWithKey(user, "CDE-51", "s", "In Progress");
 		expect(rowOf("CDE-51").getAttribute("data-group")).toBe("in-progress");
 		expect(slow.held()).toBe(1);
 		slow.release();
@@ -80,11 +96,10 @@ describe("features/table/TicketTable: inline edits", () => {
 		await findGrid();
 		await waitFor(() => rowOf("CDE-42"));
 		findTicket(server.state, "CDE-42")!.version += 7;
-		await pickFromCell(user, "CDE-42", "status", "In Progress");
+		await pickWithKey(user, "CDE-42", "s", "In Progress");
 		const toast = await toastWith(/CDE-42/);
 		expect(within(toast).getByRole("button", { name: "Retry" })).toBeDefined();
-		await waitFor(() => expect(cellOf("CDE-42", "status").textContent).toContain("Human Review"));
-		expect(rowOf("CDE-42").getAttribute("data-group")).toBe("human-review");
+		await waitFor(() => expect(rowOf("CDE-42").getAttribute("data-group")).toBe("human-review"));
 		expect(calls(server, "tickets.update")).toHaveLength(1);
 	});
 
@@ -130,7 +145,7 @@ describe("features/table/TicketTable: inline edits", () => {
 		await waitFor(() => rowOf("CDE-44"));
 		expect(rowOf("CDE-44").getAttribute("data-group")).toBe("CDE.web");
 		expect(queryGroupHeader("CDE.host")).toBeNull();
-		await pickFromCell(user, "CDE-44", "project", /host/);
+		await pickWithKey(user, "CDE-44", "m", /host/);
 		expect(rowOf("CDE-44").getAttribute("data-group")).toBe("CDE.host");
 		expect(queryGroupHeader("CDE.host")).not.toBeNull();
 		expect(slow.held()).toBe(1);

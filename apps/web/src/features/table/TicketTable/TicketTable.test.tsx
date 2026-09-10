@@ -4,7 +4,17 @@ import userEvent from "@testing-library/user-event";
 import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
 import { seedTickets } from "../../../../test/seedMany";
-import { findGrid, grid, groupHeader, groupRows, resetUi, rows, spacer, storedUi } from "../../../../test/table";
+import {
+	findGrid,
+	footer,
+	grid,
+	groupHeader,
+	groupRows,
+	resetUi,
+	rows,
+	spacer,
+	storedUi,
+} from "../../../../test/table";
 import { tableViewport } from "../../../../test/viewport";
 
 const installViewport = tableViewport(600);
@@ -77,7 +87,7 @@ describe("features/table/TicketTable", () => {
 		await waitFor(() => expect(grid().getAttribute("aria-rowcount")).toBe("1000"), { timeout: 15_000 });
 		expect(rows().length).toBeLessThan(60);
 		expect(rows().length).toBeGreaterThan(10);
-		expect(Number.parseFloat(spacer().style.height)).toBe(1000 * 40);
+		expect(Number.parseFloat(spacer().style.height)).toBe(1000 * 36);
 	}, 30_000);
 
 	// Outcome 21
@@ -90,5 +100,13 @@ describe("features/table/TicketTable", () => {
 		expect(rows().filter((row) => row.getAttribute("tabindex") === "0")).toHaveLength(1);
 		rows()[2]!.focus();
 		expect(rows().filter((row) => row.getAttribute("tabindex") === "0")).toEqual([rows()[2]!]);
+	});
+
+	// TB-1. A grouping other than status loads only the open tickets, so the
+	// footer states the completed ones it leaves out.
+	test("the footer names the completed tickets a priority grouping hides", async () => {
+		renderApp({ path: "/p/CDE?group=priority", actor: "navid" });
+		await findGrid();
+		await waitFor(() => expect(footer().textContent).toMatch(/\d+ open · \d+ completed hidden/));
 	});
 });

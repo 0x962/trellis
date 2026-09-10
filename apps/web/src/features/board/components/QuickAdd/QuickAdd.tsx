@@ -1,4 +1,4 @@
-import { Button, Input } from "@trellis/ui";
+import { Input } from "@trellis/ui";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 
@@ -21,15 +21,14 @@ export function QuickAdd({ columnName, onCreate, onFullComposer, open, onOpenCha
 
 	if (!active) {
 		return (
-			<Button
-				variant="quiet"
-				size="sm"
-				icon={<Plus />}
-				className="h-9 w-full justify-start border-dashed text-fg-muted"
+			<button
+				type="button"
 				onClick={() => setActive(true)}
+				className="flex h-8 w-full items-center gap-1.5 rounded-md border border-dashed border-border px-2.5 text-base text-fg-faint transition-colors duration-hover ease-out hover:border-border-strong hover:text-fg-muted focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
 			>
+				<Plus aria-hidden="true" className="size-3.5" />
 				New ticket
-			</Button>
+			</button>
 		);
 	}
 
@@ -55,10 +54,12 @@ export function QuickAdd({ columnName, onCreate, onFullComposer, open, onOpenCha
 					if (event.key === "Enter" && event.shiftKey) {
 						event.preventDefault();
 						onFullComposer(title);
+						setTitle("");
+						setActive(false);
 					}
 				}}
 			/>
-			<p className="mt-1 text-xs text-fg-muted">Enter creates. Shift+Enter opens the full composer. Esc cancels.</p>
+			<p className="mt-1 text-xs text-fg-faint">Enter creates the ticket. Shift+Enter opens New ticket. Esc cancels.</p>
 		</form>
 	);
 }
