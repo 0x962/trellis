@@ -1,7 +1,7 @@
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { ORPCError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
-import { ResponseHeadersPlugin } from "@orpc/server/plugins";
+import { BatchHandlerPlugin, ResponseHeadersPlugin } from "@orpc/server/plugins";
 import { errors } from "@trellis/api";
 import { type Context, Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -102,7 +102,12 @@ export const createApp = ({ config, log, transport, bus, runtime, clock = realCl
 	app.use("/rpc/attachments/upload", uploadLimit);
 
 	const plugins = [new ResponseHeadersPlugin<ProcedureContext>()];
-	const rpc = new RPCHandler<ProcedureContext>(router, { plugins });
+	// The web app sends the calls of one tick as a single POST to
+	// /rpc/__batch__. Without BatchHandlerPlugin that path has no route and
+	// every page that reads two queries at once fails with a 404.
+	const rpc = new RPCHandler<ProcedureContext>(router, {
+		plugins: [new BatchHandlerPlugin<ProcedureContext>(), ...plugins],
+	});
 	const api = new OpenAPIHandler<ProcedureContext>(router, { plugins });
 	const contextOf = (c: Context): ProcedureContext => ({
 		headers: c.req.raw.headers,
