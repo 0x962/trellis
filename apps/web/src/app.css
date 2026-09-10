@@ -60,6 +60,28 @@ svg {
 :is(.markdown, .comment-markdown) ol {
 	list-style: decimal;
 }
+/*
+ * A GFM task item shows its checkbox as the marker. marked renders the
+ * checkbox as the first child of the item; the Tiptap editor marks the item
+ * with data-type="taskItem" and puts the checkbox in a label.
+ */
+:is(.markdown, .comment-markdown) li:has(> input[type="checkbox"]),
+:is(.markdown, .comment-markdown) li[data-type="taskItem"] {
+	list-style: none;
+}
+:is(.markdown, .comment-markdown) li[data-type="taskItem"] {
+	display: flex;
+	gap: 8px;
+	align-items: baseline;
+}
+:is(.markdown, .comment-markdown) li:has(> input[type="checkbox"]) > input[type="checkbox"] {
+	margin-right: 8px;
+}
+/* A list that holds task items only needs no indent for a marker. */
+:is(.markdown, .comment-markdown) ul[data-type="taskList"],
+:is(.markdown, .comment-markdown) ul:not(:has(> li:not(:has(> input[type="checkbox"])))) {
+	padding-left: 0;
+}
 :is(.markdown, .comment-markdown) li + li {
 	margin-top: 4px;
 }
