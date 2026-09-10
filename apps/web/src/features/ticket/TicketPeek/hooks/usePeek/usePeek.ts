@@ -45,5 +45,14 @@ export const usePeek = () => {
 		target?.focus();
 	}, [navigate]);
 
-	return useMemo(() => ({ current, open, step, close }), [current, open, step, close]);
+	// Starts the detail read of a ticket a step can show next, and waits for
+	// nothing. A cached detail costs no request.
+	const prefetch = useCallback(
+		(identifier: string) => {
+			void load(identifier);
+		},
+		[load],
+	);
+
+	return useMemo(() => ({ current, open, step, close, prefetch }), [current, open, step, close, prefetch]);
 };
