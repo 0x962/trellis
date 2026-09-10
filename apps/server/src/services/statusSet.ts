@@ -34,7 +34,8 @@ export const assertFreeName = (others: Status[], name: string, slug: string) => 
 	if (others.some((status) => status.slug === slug)) throw fail("DUPLICATE", { field: "slug" });
 };
 
-export type StatusInsert = Omit<Status, "createdAt" | "updatedAt">;
+// The server builder adds `description` to the insert with its migration.
+export type StatusInsert = Omit<Status, "createdAt" | "updatedAt" | "description">;
 
 export const insertStatus = (ctx: ServiceCtx, tx: Tx, status: StatusInsert) =>
 	tx.execute(

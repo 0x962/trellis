@@ -62,6 +62,7 @@ export const statuses = {
 			reviewer: input.reviewer ?? null,
 			color: input.color ?? "fg-muted",
 			projectId: project.id,
+			description: input.description ?? "",
 			position: input.position ?? set.length,
 			wipLimit: input.wipLimit ?? null,
 			isDefault: input.isDefault ?? false,
@@ -78,6 +79,7 @@ export const statuses = {
 		const status = matchStatus(ownSet(state, project), input.status);
 		if (status === undefined) throw fail("NOT_FOUND", { kind: "status", ref: input.status });
 		if (input.name !== undefined) status.name = input.name;
+		if (input.description !== undefined) status.description = input.description;
 		if (input.color !== undefined) status.color = input.color;
 		if (input.reviewer !== undefined) status.reviewer = input.reviewer;
 		if (input.wipLimit !== undefined) status.wipLimit = input.wipLimit;

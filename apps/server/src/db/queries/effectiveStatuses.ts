@@ -26,6 +26,9 @@ export const statusColumns = sql`s.id, s.project_id, s.slug, s.name, s.category,
 export const toStatus = (row: RawStatus): StatusRow => ({
 	id: row.id,
 	projectId: row.project_id,
+	// The server builder reads s.description here after its migration adds
+	// the column.
+	description: "",
 	slug: row.slug,
 	name: row.name,
 	category: row.category,

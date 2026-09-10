@@ -10,6 +10,7 @@ const status = (name: string, category: Status["category"], position: number): S
 	reviewer: category === "review" ? "human" : null,
 	color: "fg-muted",
 	projectId: "01J8Z6X4Q3M2K1H0G9F8E7D6P1",
+	description: "",
 	position,
 	wipLimit: null,
 	isDefault: position === 0,

@@ -27,6 +27,8 @@ const exitCodes: Record<ErrorCode, number> = {
 	VERSION_CONFLICT: 4,
 	PAYLOAD_TOO_LARGE: 4,
 	GH_UNAVAILABLE: 6,
+	CONCURRENCY_LIMIT: 4,
+	RUNNER_UNAVAILABLE: 6,
 };
 
 // An error the contract does not declare comes from a crashed handler, so it
