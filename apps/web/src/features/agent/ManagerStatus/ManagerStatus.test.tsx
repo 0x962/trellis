@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import { createEventApplier } from "@trellis/api";
-import { addSession, updateSession } from "../../../../test/agents";
+import { addPing, addSession, updateSession } from "../../../../test/agents";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
@@ -82,5 +82,31 @@ describe("ManagerStatus", () => {
 		expect(await within(await status()).findByText("Running")).toBeDefined();
 		createEventApplier(queryClient).applyEvent(updateSession(server, manager.id, { state: "exited" }));
 		await waitFor(async () => expect(within(await status()).getByText("Exited")).toBeDefined());
+	});
+
+	// The heartbeat pings the manager while nothing changes, so the last ping
+	// says the manager is reachable even when the last batch is old.
+	test("shows the last ping beside the last batch", async () => {
+		const server = createFakeServer();
+		addSession(server, { role: "manager", lastWokenAt: ago(30 * minute) });
+		addPing(server, { at: ago(2 * minute) });
+		await mount(server);
+		const group = within(await status());
+		expect(await group.findByText("Last batch 30m ago")).toBeDefined();
+		expect(group.getByText("Last ping 2m ago")).toBeDefined();
+	});
+
+	test("a ping that restarted the manager says so, and no ping at all says so", async () => {
+		const restarted = createFakeServer();
+		addSession(restarted, { role: "manager" });
+		addPing(restarted, { at: ago(minute), restarted: true });
+		const view = await mount(restarted);
+		expect(await within(await status()).findByText("Last ping 1m ago, restarted")).toBeDefined();
+		view.unmount();
+
+		const quiet = createFakeServer();
+		addSession(quiet, { role: "manager" });
+		await mount(quiet);
+		expect(await within(await status()).findByText("No ping yet")).toBeDefined();
 	});
 });

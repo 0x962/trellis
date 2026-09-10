@@ -1,4 +1,4 @@
-import type { AgentProjectSettings, AgentSession } from "@trellis/api";
+import type { AgentPing, AgentProjectSettings, AgentSession } from "@trellis/api";
 import type { FakeServer } from "./fake-server";
 import { findTicket, isoNow, newId } from "./fake-server/state";
 
@@ -14,6 +14,7 @@ export const projectRow = (projectId: string, overrides: Partial<AgentProjectSet
 	baseBranch: "main",
 	maxConcurrent: 3,
 	removeWorkspaceOnDone: true,
+	heartbeatSeconds: 60,
 	...overrides,
 });
 
@@ -54,4 +55,17 @@ export const updateSession = (server: FakeServer, id: string, patch: Partial<Age
 	const session = { ...server.state.agentSessions.get(id)!, ...patch };
 	server.state.agentSessions.set(id, session);
 	return { type: "agents.session" as const, session };
+};
+
+// Stores one ping of the root project of `key`, newest last.
+export const addPing = (server: FakeServer, ping: Partial<AgentPing> = {}, key = "CDE"): AgentPing => {
+	const stored: AgentPing = {
+		id: server.state.agentPings.length + 1,
+		projectId: rootId(server, key),
+		at: isoNow(),
+		restarted: false,
+		...ping,
+	};
+	server.state.agentPings.push(stored);
+	return stored;
 };

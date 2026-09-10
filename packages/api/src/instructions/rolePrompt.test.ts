@@ -62,6 +62,20 @@ describe("the manager prompt", () => {
 		]);
 	});
 
+	// The heartbeat types PING on the project's interval, so the manager
+	// gets a turn while nothing changes. The five steps run in this order,
+	// and a manager with nothing to do writes nothing.
+	test("a PING runs the five checks in order and writes nothing when everything is in order", () => {
+		expectFragments(manager, [
+			'A message that is only "PING" is a heartbeat.',
+			"1. Read the inbox: trellis agents inbox --project CDE --json",
+			"2. List your agents: trellis agents status --project CDE --json",
+			"3. Restart or clean up an agent that died, and comment on its ticket when you do.",
+			"4. Read every ticket in a status whose description tells you to act, and act.",
+			"5. Answer nothing and write nothing when everything is in order.",
+		]);
+	});
+
 	test("comments on every transition and starts a reviewer at Agent Review", () => {
 		expectFragments(manager, [
 			"Comment on the ticket at every transition you make, so the human knows what happens.",

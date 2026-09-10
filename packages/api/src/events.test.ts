@@ -8,6 +8,7 @@ describe("events", () => {
 	test("the event name list matches the plan's Live updates section", () => {
 		expect([...eventNames].sort()).toEqual([
 			"agents.batch",
+			"agents.ping",
 			"agents.session",
 			"attachment.created",
 			"attachment.deleted",
@@ -72,6 +73,16 @@ describe("events", () => {
 		expect(EventSchema.safeParse({ type: "agents.batch", projectId, count: 10 }).success).toBe(true);
 		expect(EventSchema.safeParse({ type: "agents.batch", projectId, count: 0 }).success).toBe(false);
 		expect(EventSchema.safeParse({ type: "agents.batch", count: 1 }).success).toBe(false);
+	});
+
+	// `agents.ping` says the heartbeat reached the manager of `projectId`.
+	// `restarted` is true when the manager's terminal was gone and the runner
+	// started the manager again to deliver the PING.
+	test("an agents.ping payload names the project and whether the ping forced a restart", () => {
+		expect(EventSchema.safeParse({ type: "agents.ping", projectId, restarted: false }).success).toBe(true);
+		expect(EventSchema.safeParse({ type: "agents.ping", projectId, restarted: true }).success).toBe(true);
+		expect(EventSchema.safeParse({ type: "agents.ping", projectId }).success).toBe(false);
+		expect(EventSchema.safeParse({ type: "agents.ping", restarted: false }).success).toBe(false);
 	});
 
 	// The boot id is a ULID minted at server boot. A client that reconnects

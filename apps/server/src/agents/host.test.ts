@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
-import type { AgentSession, Project, TrellisEvent } from "@trellis/api";
+import type { AgentPing, AgentSession, Project, TrellisEvent } from "@trellis/api";
 import { createTestApp, type TestApp } from "../../test/helpers/app.ts";
 import { type FakeTimerClock, fakeTimerClock } from "../../test/helpers/clock.ts";
 import { flagOf, type SupersetStubHandle, supersetStub } from "../../test/helpers/superset-stub.ts";
@@ -47,7 +47,7 @@ const startHost = async () => {
 	return host;
 };
 
-const settingsFor = (project: Project, global: boolean) => ({
+const settingsFor = (project: Project, global: boolean, heartbeatSeconds: number | null = null) => ({
 	runner: "superset",
 	enabled: global,
 	projects: [
@@ -58,17 +58,20 @@ const settingsFor = (project: Project, global: boolean) => ({
 			baseBranch: "main",
 			maxConcurrent: 3,
 			removeWorkspaceOnDone: true,
+			heartbeatSeconds,
 		},
 	],
 });
 
-const enable = async (global = true) => {
+const enable = async (global = true, heartbeatSeconds: number | null = null) => {
 	const project = await t.seedProject();
 	await t.api("/api/projects/CDE/repos", { method: "PUT", body: { repos: [{ owner: "acme", repo: "web" }] } });
-	const put = await t.api("/api/agents/settings", { method: "PUT", body: settingsFor(project, global) });
+	const put = await t.api("/api/agents/settings", { method: "PUT", body: settingsFor(project, global, heartbeatSeconds) });
 	expect(put.status).toBe(200);
 	return project;
 };
+
+const pings = async (): Promise<AgentPing[]> => (await t.api("/api/agents/pings?project=CDE", { actor: null })).body.pings;
 
 const sessions = async (query = "project=CDE"): Promise<AgentSession[]> =>
 	(await t.api(`/api/agents/sessions?${query}`, { actor: null })).body.sessions;
@@ -228,5 +231,93 @@ describe("agents host", () => {
 		await clock.advance(10_000);
 		expect(sent()).toHaveLength(1);
 		expect(sent()[0]!.startsWith("trellis: 1 change in CDE")).toBe(true);
+	});
+});
+
+// The heartbeat types PING into the manager's terminal on the project's
+// interval, so a manager that is idle, stuck, or dead gets a turn while
+// nothing changes. Every ping writes one row that the Agents page reads.
+describe("agents heartbeat", () => {
+	test("the interval fires at the configured time and each ping writes a row", async () => {
+		const project = await enable(true, 60);
+		await startHost();
+		await clock.advance(59_000);
+		expect(sent()).toEqual([]);
+		await clock.advance(1_000);
+		expect(sent()).toEqual(["PING"]);
+		await clock.advance(60_000);
+		expect(sent()).toEqual(["PING", "PING"]);
+		expect((await pings()).map(({ projectId, restarted }) => ({ projectId, restarted }))).toEqual([
+			{ projectId: project.id, restarted: false },
+			{ projectId: project.id, restarted: false },
+		]);
+		expect(events.filter((event) => event.type === "agents.ping")).toHaveLength(2);
+	});
+
+	test("a batch resets the timer, so a manager that just answered gets no ping", async () => {
+		await enable(true, 60);
+		await startHost();
+		await clock.advance(50_000);
+		await t.createTicket({ project: "CDE", title: "Fix login" });
+		await clock.advance(10_000);
+		expect(sent()).toHaveLength(1);
+		expect(sent()[0]!.startsWith("trellis: 1 change in CDE")).toBe(true);
+		await clock.advance(59_000);
+		expect(sent()).toHaveLength(1);
+		await clock.advance(1_000);
+		expect(sent()[1]).toBe("PING");
+	});
+
+	// A dead terminal never gets typed into: text typed into a bare shell
+	// would run as a command. The runner starts the manager again with PING
+	// as its prompt, and the row records the restart.
+	test("a stopped manager is started again before the ping, and the row says the ping forced a restart", async () => {
+		await enable(true, 60);
+		await startHost();
+		const [manager] = await sessions();
+		const body = {
+			role: "manager",
+			project: "CDE",
+			workspaceId: manager!.workspaceId,
+			terminalId: manager!.terminalId,
+			claudeSessionId: "c-1",
+		};
+		expect((await t.api("/api/agents/register", { method: "POST", body, actor: MANAGER })).status).toBe(200);
+		stub.exit(manager!.terminalId!);
+		await clock.advance(60_000);
+		const [relaunch] = stub.callsOf("terminals create");
+		expect(flagOf(relaunch!, "--command")).toContain("--resume 'c-1'");
+		expect(flagOf(relaunch!, "--command")).toContain("PING");
+		expect((await pings()).map((ping) => ping.restarted)).toEqual([true]);
+		const [after] = await sessions();
+		expect(after).toMatchObject({ id: manager!.id, state: "running" });
+		expect(after!.terminalId).not.toBe(manager!.terminalId);
+	});
+
+	// A ping is not a batch, so it moves no cursor and sets no wake time.
+	test("a ping leaves lastWokenAt alone", async () => {
+		await enable(true, 60);
+		await startHost();
+		await clock.advance(60_000);
+		expect(sent()).toEqual(["PING"]);
+		expect((await sessions())[0]!.lastWokenAt).toBeNull();
+	});
+
+	test("no heartbeat runs while the interval is off or the project's manager is off", async () => {
+		const project = await enable(true, null);
+		await startHost();
+		await clock.advance(600_000);
+		expect(sent()).toEqual([]);
+		expect(await pings()).toEqual([]);
+
+		await t.api("/api/agents/settings", { method: "PUT", body: settingsFor(project, true, 15) });
+		await host.idle();
+		await clock.advance(15_000);
+		expect(sent()).toEqual(["PING"]);
+
+		await t.api("/api/agents/settings", { method: "PUT", body: settingsFor(project, false, 15) });
+		await host.idle();
+		await clock.advance(600_000);
+		expect(sent()).toHaveLength(1);
 	});
 });

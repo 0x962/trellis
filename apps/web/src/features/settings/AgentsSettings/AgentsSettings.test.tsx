@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AgentSettingsSetInput } from "@trellis/api";
 import { Toaster } from "@trellis/ui";
-import { projectRow, rootId } from "../../../../test/agents";
+import { enableAgents, projectRow, rootId } from "../../../../test/agents";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
@@ -146,6 +146,43 @@ describe("AgentsSettings", () => {
 		await commit(user, limit, "5");
 		await waitFor(() => expect(saves(server)).toHaveLength(1));
 		expect(lastSave(server).projects[0]!.maxConcurrent).toBe(5);
+	});
+
+	// The heartbeat types PING into the manager's terminal on this interval.
+	// The switch turns it off, which stores null.
+	test("the heartbeat seconds take a whole number from 15 to 3600 and the switch turns them off", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		render(server);
+		const group = within(await projectGroup("CDE"));
+		const seconds = group.getByRole("spinbutton", { name: "Ping seconds" });
+		expect((seconds as HTMLInputElement).value).toBe("60");
+		for (const value of ["14", "3601", "20.5"]) {
+			await commit(user, seconds, value);
+			expect(await screen.findByText("Enter a whole number from 15 to 3600.")).toBeDefined();
+		}
+		expect(saves(server)).toHaveLength(0);
+		await commit(user, seconds, "15");
+		await waitFor(() => expect(saves(server)).toHaveLength(1));
+		expect(lastSave(server).projects[0]!.heartbeatSeconds).toBe(15);
+
+		await user.click(group.getByRole("switch", { name: "Heartbeat" }));
+		await waitFor(() => expect(saves(server)).toHaveLength(2));
+		expect(lastSave(server).projects[0]!.heartbeatSeconds).toBeNull();
+	});
+
+	test("a heartbeat that is off disables the seconds field, and turning it on restores 60", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		await enableAgents(server, "CDE", { heartbeatSeconds: null });
+		render(server);
+		const group = within(await projectGroup("CDE"));
+		const toggle = await group.findByRole("switch", { name: "Heartbeat" });
+		await waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("false"));
+		expect((group.getByRole("spinbutton", { name: "Ping seconds" }) as HTMLInputElement).disabled).toBe(true);
+		await user.click(toggle);
+		await waitFor(() => expect(saves(server)).toHaveLength(2));
+		expect(lastSave(server).projects[0]!.heartbeatSeconds).toBe(60);
 	});
 
 	test("remove workspace when Done saves off", async () => {

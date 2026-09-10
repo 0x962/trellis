@@ -24,12 +24,14 @@ const TICKETS = [ulid(), ulid(), ulid(), ulid(), ulid(), ulid()];
 let bus: Bus;
 let clock: FakeTimerClock;
 let batches: Batch[];
+let pings: string[];
 let dispatcher: Dispatcher;
 
 beforeEach(() => {
 	bus = createBus({ bootId: ulid() });
 	clock = fakeTimerClock(new Date("2026-09-10T12:00:00.000Z"));
 	batches = [];
+	pings = [];
 	dispatcher = createDispatcher({
 		bus,
 		clock,
@@ -38,8 +40,11 @@ beforeEach(() => {
 		flush: (batch) => {
 			batches.push(batch);
 		},
+		ping: (projectId) => {
+			pings.push(projectId);
+		},
 	});
-	dispatcher.watch(CDE);
+	dispatcher.watch(CDE, null);
 });
 afterEach(() => dispatcher.stop());
 
@@ -168,7 +173,7 @@ describe("dispatcher relevance", () => {
 
 describe("dispatcher watch", () => {
 	test("each watched project batches on its own, and unwatch drops the queue and the timer", async () => {
-		dispatcher.watch(OPS);
+		dispatcher.watch(OPS, null);
 		change(1);
 		bus.emit(ticket(4, ["title"], { projectId: OPS }), NAVID);
 		expect(clock.timers()).toHaveLength(2);
@@ -191,5 +196,58 @@ describe("dispatcher watch", () => {
 		await clock.advance(10_000);
 		expect(batches).toEqual([]);
 		expect(dispatcher.watched()).toEqual([]);
+	});
+});
+
+// The heartbeat gives the manager a turn while nothing changes. The
+// interval comes from the project's settings, in milliseconds.
+describe("dispatcher heartbeat", () => {
+	const HEARTBEAT_MS = 60_000;
+
+	test("the heartbeat pings on the configured interval and keeps pinging", async () => {
+		dispatcher.watch(CDE, HEARTBEAT_MS);
+		await clock.advance(59_000);
+		expect(pings).toEqual([]);
+		await clock.advance(1_000);
+		expect(pings).toEqual([CDE]);
+		await clock.advance(120_000);
+		expect(pings).toEqual([CDE, CDE, CDE]);
+	});
+
+	test("a batch resets the heartbeat, so the manager gets no ping right after it answered", async () => {
+		dispatcher.watch(CDE, HEARTBEAT_MS);
+		await clock.advance(50_000);
+		change(1);
+		await clock.advance(10_000);
+		expect(batches).toHaveLength(1);
+		expect(pings).toEqual([]);
+		await clock.advance(49_000);
+		expect(pings).toEqual([]);
+		await clock.advance(1_000);
+		expect(pings).toEqual([CDE]);
+	});
+
+	test("a null interval arms no heartbeat, and a watch with a new interval replaces the old one", async () => {
+		await clock.advance(600_000);
+		expect(pings).toEqual([]);
+		dispatcher.watch(CDE, HEARTBEAT_MS);
+		dispatcher.watch(CDE, 15_000);
+		await clock.advance(15_000);
+		expect(pings).toEqual([CDE]);
+		dispatcher.watch(CDE, null);
+		await clock.advance(600_000);
+		expect(pings).toEqual([CDE]);
+	});
+
+	test("unwatch and stop clear the heartbeat", async () => {
+		dispatcher.watch(CDE, HEARTBEAT_MS);
+		dispatcher.watch(OPS, HEARTBEAT_MS);
+		dispatcher.unwatch(OPS);
+		await clock.advance(60_000);
+		expect(pings).toEqual([CDE]);
+		dispatcher.stop();
+		expect(clock.timers()).toEqual([]);
+		await clock.advance(600_000);
+		expect(pings).toEqual([CDE]);
 	});
 });

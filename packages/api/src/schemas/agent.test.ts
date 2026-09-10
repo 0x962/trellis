@@ -3,6 +3,8 @@ import { agentSession, projectId, t1, ticketSummary, ulid } from "../../test/fix
 import {
 	AgentInboxInputSchema,
 	AgentInboxOutputSchema,
+	AgentPingSchema,
+	AgentPingsInputSchema,
 	AgentRegisterInputSchema,
 	AgentSessionSchema,
 	AgentSessionsInputSchema,
@@ -169,6 +171,7 @@ describe("agent settings", () => {
 		baseBranch: "main",
 		maxConcurrent: 3,
 		removeWorkspaceOnDone: true,
+		heartbeatSeconds: 60,
 	};
 	const settings = { runner: "superset", enabled: true, projects: [project] };
 
@@ -182,8 +185,8 @@ describe("agent settings", () => {
 
 	// Three parallel builders and a removed workspace on Done are the plan's
 	// defaults, so a row that omits them gets them.
-	test("maxConcurrent defaults to 3 and removeWorkspaceOnDone to true", () => {
-		const { maxConcurrent: _, removeWorkspaceOnDone: __, ...bare } = project;
+	test("maxConcurrent defaults to 3, removeWorkspaceOnDone to true, and heartbeatSeconds to 60", () => {
+		const { maxConcurrent: _, removeWorkspaceOnDone: __, heartbeatSeconds: ___, ...bare } = project;
 		const parsed = AgentSettingsSetInputSchema.parse({ ...settings, projects: [bare] });
 		expect(parsed.projects[0]).toEqual(project);
 		for (const maxConcurrent of [0, -1, 1.5, 21]) {
@@ -192,10 +195,45 @@ describe("agent settings", () => {
 		}
 	});
 
+	// The heartbeat pings the manager every heartbeatSeconds. Null turns it
+	// off. 15 seconds is the shortest interval the plan allows.
+	test("heartbeatSeconds takes null and a whole number from 15 to 3600", () => {
+		for (const heartbeatSeconds of [null, 15, 60, 3600]) {
+			const input = { ...settings, projects: [{ ...project, heartbeatSeconds }] };
+			expect(ok(AgentSettingsSetInputSchema, input), String(heartbeatSeconds)).toBe(true);
+		}
+		for (const heartbeatSeconds of [0, 14, 3601, 15.5, -60]) {
+			const input = { ...settings, projects: [{ ...project, heartbeatSeconds }] };
+			expect(ok(AgentSettingsSetInputSchema, input), String(heartbeatSeconds)).toBe(false);
+		}
+	});
+
 	// A project has one manager, so it has one settings row.
 	test("the set input rejects a project listed twice and an unknown key", () => {
 		expect(ok(AgentSettingsSetInputSchema, { ...settings, projects: [project, project] })).toBe(false);
 		expect(ok(AgentSettingsSetInputSchema, { ...settings, model: "opus" })).toBe(false);
 		expect(ok(AgentSettingsSetInputSchema, { ...settings, projects: [{ ...project, model: "opus" }] })).toBe(false);
+	});
+});
+
+// One PING the heartbeat sent. The Agents page reads these rows, so the key
+// set is pinned like the session key set.
+describe("agent pings", () => {
+	const ping = { id: 7, projectId, at: "2026-09-10T10:02:00.000Z", restarted: false };
+
+	test("a ping row holds the id, the project, the time, and the restart flag", () => {
+		expect(Object.keys(AgentPingSchema.shape).sort()).toEqual(["at", "id", "projectId", "restarted"]);
+		expect(ok(AgentPingSchema, ping)).toBe(true);
+		expect(ok(AgentPingSchema, { ...ping, restarted: true })).toBe(true);
+		expect(ok(AgentPingSchema, { ...ping, at: "just now" })).toBe(false);
+		expect(ok(AgentPingSchema, { ...ping, restarted: null })).toBe(false);
+	});
+
+	test("agents.pings takes a project and a limit of 1 to 200, and defaults the limit to 50", () => {
+		expect(AgentPingsInputSchema.parse({ project: "CDE" }).limit).toBe(50);
+		expect(ok(AgentPingsInputSchema, { project: "CDE", limit: 200 })).toBe(true);
+		expect(ok(AgentPingsInputSchema, { project: "CDE", limit: 0 })).toBe(false);
+		expect(ok(AgentPingsInputSchema, { project: "CDE", limit: 201 })).toBe(false);
+		expect(ok(AgentPingsInputSchema, { limit: 10 })).toBe(false);
 	});
 });
