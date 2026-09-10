@@ -1,6 +1,7 @@
 import type { Comment, Ticket } from "@trellis/api";
-import { Button, Kbd, useHotkey } from "@trellis/ui";
-import { type KeyboardEvent, useRef, useState } from "react";
+import { Button, cx, IconButton, Kbd, Tooltip, useHotkey } from "@trellis/ui";
+import { Paperclip } from "lucide-react";
+import { type ChangeEvent, type FocusEvent, type KeyboardEvent, useRef, useState } from "react";
 import { readActor } from "../../../../../lib/actor";
 import { useApp } from "../../../../../lib/appContext";
 import { timelineOptions } from "../../../hooks/useTimeline";
@@ -9,16 +10,26 @@ import { prependTimeline, updateTimeline } from "../../utils/timelineCache";
 
 export type ComposerProps = {
 	ticket: Ticket;
+	// The peek pins the composer to the bottom of its scroll area.
+	pinned?: boolean;
+	// Uploads picked files to the ticket. Without it, the composer shows no
+	// Paperclip.
+	onAttachFiles?: (files: File[]) => void;
 };
 
-// The comment box pinned under the timeline. Cmd+Enter posts; the card
-// shows at once and takes the server's row when it lands. A failed post
-// removes the card and puts the words back. Shift+C focuses the box.
-export function Composer({ ticket }: ComposerProps) {
+// The comment box under the timeline. At rest it is one 40 px line. On
+// focus or with text it grows from 88 px to 320 px with no animation, and a
+// bottom bar shows the Paperclip and, with text, Comment. Cmd+Enter posts;
+// the card shows at once and takes the server's row when it lands. A failed
+// post removes the card and puts the words back. Shift+C focuses the box.
+export function Composer({ ticket, pinned = false, onAttachFiles }: ComposerProps) {
 	const { client, orpc, queryClient } = useApp();
 	const key = timelineOptions(orpc, ticket.identifier).queryKey;
 	const [text, setText] = useState("");
+	const [focused, setFocused] = useState(false);
 	const field = useRef<HTMLTextAreaElement>(null);
+	const picker = useRef<HTMLInputElement>(null);
+	const open = focused || text !== "";
 
 	useHotkey("shift+c", (event) => {
 		event.preventDefault();
@@ -47,7 +58,7 @@ export function Composer({ ticket }: ComposerProps) {
 		} catch (error) {
 			updateTimeline(queryClient, key, (items) => items.filter((item) => item.id !== temp.id));
 			setText(body);
-			failToast(`Couldn't comment on ${ticket.identifier}`, error, () => void post(body));
+			failToast(`The comment on ${ticket.identifier} is not saved.`, error, () => void post(body));
 		}
 	};
 
@@ -65,27 +76,66 @@ export function Composer({ ticket }: ComposerProps) {
 		}
 	};
 
+	// Focus that moves to the Paperclip or Comment stays inside the box, so
+	// the box stays open.
+	const onBlur = (event: FocusEvent<HTMLFieldSetElement>) => {
+		if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false);
+	};
+
+	const picked = (event: ChangeEvent<HTMLInputElement>) => {
+		onAttachFiles!([...event.target.files!]);
+		event.target.value = "";
+	};
+
 	return (
-		<div className="mt-3 flex flex-col gap-2 rounded-md border border-border bg-surface px-3 py-2 focus-within:border-border-strong">
-			<textarea
-				ref={field}
-				aria-label="Comment"
-				placeholder="Leave a comment. Markdown, paste an image to attach it."
-				rows={2}
-				value={text}
-				onChange={(event) => setText(event.target.value)}
-				onKeyDown={onKeyDown}
-				className="w-full resize-none bg-transparent text-base leading-5 text-fg outline-none placeholder:text-fg-faint"
-			/>
-			<div className="flex items-center justify-end gap-2">
-				<span className="flex items-center gap-1 text-xs text-fg-faint">
-					<Kbd>⌘</Kbd>
-					<Kbd>↵</Kbd>
-				</span>
-				<Button size="sm" variant="primary" onClick={submit} disabled={text.trim() === ""}>
-					Comment
-				</Button>
-			</div>
+		<div className={cx(pinned && "sticky bottom-0 z-10 border-t border-border bg-pane pt-2 pb-3")}>
+			<fieldset
+				aria-label="New comment"
+				onFocus={() => setFocused(true)}
+				onBlur={onBlur}
+				className={cx(
+					"flex rounded-md border border-border bg-surface px-3 transition-colors duration-hover ease-out",
+					open ? "flex-col gap-2 border-border-strong py-2" : "h-10 items-center gap-2",
+				)}
+			>
+				<textarea
+					ref={field}
+					aria-label="Comment"
+					placeholder="Write a comment in Markdown. Paste an image to attach it."
+					rows={1}
+					value={text}
+					onChange={(event) => setText(event.target.value)}
+					onKeyDown={onKeyDown}
+					className={cx(
+						"w-full resize-none bg-transparent text-base leading-5 text-fg outline-none placeholder:text-fg-faint",
+						open ? "min-h-[72px] max-h-[272px] overflow-y-auto [field-sizing:content]" : "h-5 overflow-hidden",
+					)}
+				/>
+				{open ? (
+					<div className="flex h-7 items-center gap-2">
+						{onAttachFiles !== undefined && (
+							<>
+								<input ref={picker} type="file" multiple className="hidden" onChange={picked} />
+								<Tooltip content="Attach a file">
+									<IconButton
+										label="Attach a file"
+										size="md"
+										icon={<Paperclip />}
+										onClick={() => picker.current!.click()}
+									/>
+								</Tooltip>
+							</>
+						)}
+						{text.trim() !== "" && (
+							<Button size="sm" variant="primary" className="ml-auto" onClick={submit}>
+								Comment
+							</Button>
+						)}
+					</div>
+				) : (
+					<Kbd className="shrink-0">⌘↵</Kbd>
+				)}
+			</fieldset>
 		</div>
 	);
 }

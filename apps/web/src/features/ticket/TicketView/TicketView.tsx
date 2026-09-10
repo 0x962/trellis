@@ -91,7 +91,7 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 					{(ticket.children.length > 0 || addingChild) && <SubTickets ticket={ticket} autoFocusAdd={addingChild} />}
 					<PullRequests ticket={ticket} initialPrs={ticket.prs} />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
-					<Timeline ticket={ticket} />
+					<Timeline ticket={ticket} pinned={peek} onAttachFiles={uploads.start} />
 				</div>
 			</div>
 			{drop.over && <DropOverlay identifier={ticket.identifier} />}

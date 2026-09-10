@@ -70,11 +70,10 @@ describe("features/ticket/components/ConflictNotice", () => {
 	test("a row with no last actor reads as another actor", async () => {
 		const server = serverAt17();
 		const current = { ...(await conflictAt18(server)), lastActor: null };
-		renderTicket(
-			"CDE-42",
-			() => <ConflictNotice current={current} onOverwrite={() => {}} onClose={() => {}} />,
-			{ path: "/t/CDE-42", server },
-		);
+		renderTicket("CDE-42", () => <ConflictNotice current={current} onOverwrite={() => {}} onClose={() => {}} />, {
+			path: "/t/CDE-42",
+			server,
+		});
 		expect((await screen.findByRole("alert")).textContent).toContain("Another actor changed this ticket.");
 	});
 });

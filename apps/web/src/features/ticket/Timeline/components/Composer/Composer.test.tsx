@@ -19,6 +19,21 @@ const text = (element: HTMLElement) =>
 	element instanceof HTMLTextAreaElement ? element.value : (element.textContent ?? "");
 
 describe("features/ticket/Timeline/components/Composer", () => {
+	// TK-7. At rest the composer is one line with the deck placeholder and no
+	// button. Comment shows once the field holds text.
+	test("Comment shows only when the field holds text", async () => {
+		const user = userEvent.setup();
+		mount();
+		const box = await composer();
+		expect(box.getAttribute("placeholder")).toBe("Write a comment in Markdown. Paste an image to attach it.");
+		expect(screen.queryByRole("button", { name: "Comment" })).toBeNull();
+		await user.click(box);
+		await user.keyboard("Looks right.");
+		expect(screen.getByRole("button", { name: "Comment" })).toBeDefined();
+		await user.clear(box);
+		expect(screen.queryByRole("button", { name: "Comment" })).toBeNull();
+	});
+
 	// WT-83
 	test("Cmd+Enter posts the comment optimistically", async () => {
 		const user = userEvent.setup();

@@ -110,7 +110,9 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 				{last !== null && <ActorChip name={last.name} kind={last.kind} live={isLiveActor(last)} compact />}
 				<span className={timeClass}>{compactRelativeTime(ticket.updatedAt)}</span>
 				{saveState !== "idle" && (
-					<span className="text-xs whitespace-nowrap text-fg-faint">{saveState === "saving" ? "Saving…" : "Saved"}</span>
+					<span className="text-xs whitespace-nowrap text-fg-faint">
+						{saveState === "saving" ? "Saving…" : "Saved"}
+					</span>
 				)}
 			</Row>
 		</>

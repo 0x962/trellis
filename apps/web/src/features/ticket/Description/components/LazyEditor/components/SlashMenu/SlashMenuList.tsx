@@ -13,7 +13,7 @@ export function SlashMenuList() {
 			style={{ left, top }}
 			className="fixed z-50 min-w-40 rounded-lg border border-border bg-elevated p-1 shadow-md"
 		>
-			{items.length === 0 && <div className="px-2 py-1.5 text-sm text-fg-muted">No block</div>}
+			{items.length === 0 && <div className="px-2 py-1.5 text-sm text-fg-muted">No block matches</div>}
 			{items.map((block, index) => (
 				<button
 					type="button"

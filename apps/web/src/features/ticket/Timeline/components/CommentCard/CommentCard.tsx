@@ -33,7 +33,7 @@ export function CommentCard({ comment, onEdited, onDeleted, formatClassName }: C
 			setEditing(false);
 			onEdited?.(updated);
 		} catch (error) {
-			failToast("Couldn't save the comment", error, () => void save());
+			failToast("The comment is not saved.", error, () => void save());
 		}
 	};
 
@@ -42,7 +42,7 @@ export function CommentCard({ comment, onEdited, onDeleted, formatClassName }: C
 			await client.comments.delete({ id: comment.id });
 			onDeleted?.(comment.id);
 		} catch (error) {
-			failToast("Couldn't delete the comment", error, () => void remove());
+			failToast("The comment is not deleted.", error, () => void remove());
 		}
 	};
 

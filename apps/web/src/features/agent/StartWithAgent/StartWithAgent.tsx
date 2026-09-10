@@ -61,8 +61,7 @@ export function StartWithAgent({ ticket }: StartWithAgentProps) {
 	};
 
 	// The command alone never moves the ticket, even when the box is checked.
-	const copyCommandOnly = async () =>
-		copyText(await agentCommand(), `Copied the command for ${ticket.identifier}`);
+	const copyCommandOnly = async () => copyText(await agentCommand(), `Copied the command for ${ticket.identifier}`);
 
 	useHotkey("mod+shift+a", (event) => {
 		event.preventDefault();
@@ -121,11 +120,7 @@ export function StartWithAgent({ ticket }: StartWithAgentProps) {
 						Copy CLI cheat-sheet
 					</Button>
 					<div className="mt-1 border-t border-border px-2 pt-2 pb-1">
-						<Checkbox
-							label={`Also move to ${startedName}`}
-							checked={markStarted}
-							onCheckedChange={toggleMarkStarted}
-						/>
+						<Checkbox label={`Also move to ${startedName}`} checked={markStarted} onCheckedChange={toggleMarkStarted} />
 					</div>
 				</div>
 			</Popover>
