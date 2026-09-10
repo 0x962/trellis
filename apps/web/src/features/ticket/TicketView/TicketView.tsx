@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { cx, EmptyState, TicketId } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { PullRequests } from "../../prs";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { Attachments } from "../Attachments";
 import { Description } from "../Description";
 import { Header } from "../Header";
 import { PropertiesRail } from "../PropertiesRail";
-import { PullRequests } from "../PullRequests";
 import { SubTickets } from "../SubTickets";
 import { Timeline } from "../Timeline";
 import { Title } from "../Title";
@@ -77,7 +77,7 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 				{peek && <PropertiesRail ticket={ticket} variant="peek" onAddSubTicket={() => setAddingChild(true)} />}
 				<Description key={ticket.identifier} ticket={ticket} />
 				{(ticket.children.length > 0 || addingChild) && <SubTickets ticket={ticket} autoFocusAdd={addingChild} />}
-				<PullRequests ticket={ticket} />
+				<PullRequests ticket={ticket} initialPrs={ticket.prs} />
 				<Attachments ticket={ticket} />
 				<Timeline ticket={ticket} />
 			</div>

@@ -78,6 +78,9 @@ export const createFakeServer = (options: FakeServerOptions = {}) => {
 	return {
 		app,
 		state,
+		// `updatePr` writes a pull request and sends its `pr.updated` event
+		// through this bus.
+		bus,
 		bootId,
 		calls,
 		client: clientAs("human:navid"),
