@@ -27,6 +27,7 @@ import { type AppContext, useApp } from "../../../lib/appContext";
 import { rememberList } from "../../../lib/lastList";
 import { parseProjectSplat, projectHref, projectSlashPath } from "../../../lib/projectPath";
 import { useUiStore } from "../../../stores/uiStore";
+import { ArchivedBanner } from "./components/ArchivedBanner";
 import { ScopeChip } from "./components/ScopeChip";
 
 // The settings screen loads in its own chunk, so the list views never pay for it.
@@ -108,11 +109,17 @@ function ProjectPage() {
 	const openTicket = (identifier: string) =>
 		navigate({ to: "/p/$", params: { _splat }, search: { ...search, peek: identifier } });
 
+	const archived = project.archivedAt !== null;
+
+	// The server refuses every write to an archived project. The disabled
+	// fieldset disables every control in the table and the board; the filters
+	// only read, so they stay outside it.
 	return (
 		<>
 			<Topbar actions={<ViewSwitch value={view} onChange={switchView} />}>
 				<Breadcrumb path={ref} current={project.name} />
 			</Topbar>
+			{archived && <ArchivedBanner project={project} />}
 			<FilterBar
 				project={ref}
 				search={search}
@@ -132,26 +139,28 @@ function ProjectPage() {
 			>
 				<ScopeChip path={ref} scope={full.scope} onToggle={toggleScope} />
 			</FilterBar>
-			{view === "board" ? (
-				<>
-					<div className="flex min-h-0 flex-1 flex-col">
-						<Board projectRef={ref} filters={toCountsQuery(full)} storageKey={ref} onOpenTicket={openTicket}>
-							<TicketPeek />
-						</Board>
-					</div>
-					<ListFooter total={counts?.total} sort={sortLabel(full.sort)} />
-				</>
-			) : (
-				<TicketTable
-					project={ref}
-					routeKey={routeKey}
-					search={search}
-					onSearchChange={setSearch}
-					onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
-				>
-					<TicketPeek />
-				</TicketTable>
-			)}
+			<fieldset disabled={archived} className="contents">
+				{view === "board" ? (
+					<>
+						<div className="flex min-h-0 flex-1 flex-col">
+							<Board projectRef={ref} filters={toCountsQuery(full)} storageKey={ref} onOpenTicket={openTicket}>
+								<TicketPeek />
+							</Board>
+						</div>
+						<ListFooter total={counts?.total} sort={sortLabel(full.sort)} />
+					</>
+				) : (
+					<TicketTable
+						project={ref}
+						routeKey={routeKey}
+						search={search}
+						onSearchChange={setSearch}
+						onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
+					>
+						<TicketPeek />
+					</TicketTable>
+				)}
+			</fieldset>
 		</>
 	);
 }

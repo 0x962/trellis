@@ -22,8 +22,12 @@ export type Actor = z.infer<typeof ActorSchema>;
 // The identity the web app starts with: `git config user.name` on the server
 // machine, else the OS user name. It goes into `x-trellis-actor`, which
 // takes only the client kinds.
+// `stored` is true when the settings hold the name, so a person chose it.
+// A false `stored` means the name is the operating-system user, a
+// suggestion for the setup form.
 export const DefaultActorSchema = z.object({
 	name: ActorNameSchema,
 	kind: ActorKindSchema,
+	stored: z.boolean().default(false),
 });
 export type DefaultActor = z.infer<typeof DefaultActorSchema>;

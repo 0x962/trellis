@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { userInfo } from "node:os";
 import { ActorSchema, DefaultActorSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { claude, navid, seedActor, system } from "../../test/fixtures";
@@ -115,6 +116,18 @@ describe("actors.list and actors.default", () => {
 				tx,
 			),
 		);
-		expect(DefaultActorSchema.parse(result)).toEqual({ name: "navid", kind: "human" });
+		expect(DefaultActorSchema.parse(result)).toEqual({ name: "navid", kind: "human", stored: true });
+	});
+
+	// A fresh browser adopts a stored name without the setup form. The
+	// operating-system user name is only a suggestion, so it is not stored.
+	test("the default actor is not stored until the settings hold a name", async () => {
+		const result = await h.read((tx) =>
+			actors.default(
+				h.ctx(() => {}, { actor: null }),
+				tx,
+			),
+		);
+		expect(DefaultActorSchema.parse(result)).toEqual({ name: userInfo().username, kind: "human", stored: false });
 	});
 });

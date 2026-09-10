@@ -6,8 +6,8 @@ import { ComposerHost } from "../features/composer/ComposerHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { ReconnectBanner } from "../features/shell/ReconnectBanner";
 import { Sidebar } from "../features/sidebar/Sidebar";
-import { hasActor } from "../lib/actor";
 import { type RouterContext, useApp } from "../lib/appContext";
+import { resolveActor } from "../lib/identity";
 
 // The two pages that render without the shell: the first run and the
 // design gallery.
@@ -16,19 +16,21 @@ const bare = (pathname: string) => pathname === "/setup" || pathname.startsWith(
 const linkClass =
 	"inline-flex h-7 items-center rounded-md border border-border bg-surface px-2.5 text-sm font-medium text-fg transition duration-hover hover:bg-bg hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
 
-// Every page but the bare two needs an identity and a project. Without an
-// identity the app opens the first run; without a project it opens the
-// project step of the same form. The settings come with the projects in
-// one batched request, because the palette reads the agent command
-// template on the first Cmd+K.
+// Every page but the bare two needs an identity and a project. The server
+// holds the identity, so only a server with no stored name and no project
+// opens the first run. Without a project the app opens the project step of
+// the same form. The settings come with the projects in one batched
+// request, because the palette reads the agent command template on the
+// first Cmd+K.
 export const Route = createRootRouteWithContext<RouterContext>()({
 	beforeLoad: async ({ context, location }) => {
 		if (bare(location.pathname)) return;
-		if (!hasActor()) throw redirect({ to: "/setup", replace: true });
-		const [projects] = await Promise.all([
+		const [projects, identity] = await Promise.all([
 			context.queryClient.fetchQuery(context.orpc.projects.list.queryOptions({ input: {} })),
+			context.queryClient.ensureQueryData(context.orpc.actors.default.queryOptions({})),
 			context.queryClient.ensureQueryData(context.orpc.settings.get.queryOptions()),
 		]);
+		if (!(await resolveActor(context, identity, projects.length))) throw redirect({ to: "/setup", replace: true });
 		if (projects.length === 0) throw redirect({ to: "/setup", search: { step: "project" }, replace: true });
 	},
 	component: RootComponent,

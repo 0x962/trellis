@@ -27,8 +27,9 @@ describe("actors", () => {
 			expect(Date.parse(actor.lastSeenAt)).toBeGreaterThan(0);
 		}
 		expect(fallback.status).toBe(200);
-		expect(Object.keys(fallback.body).sort()).toEqual(["kind", "name"]);
+		expect(Object.keys(fallback.body).sort()).toEqual(["kind", "name", "stored"]);
 		expect(fallback.body.kind).toBe("human");
 		expect(typeof fallback.body.name).toBe("string");
+		expect(fallback.body.stored).toBe(false);
 	});
 });
