@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createFakeServer, type FakeServer } from "../../../../../../test/fake-server";
+import { marginUp, restoreMargin } from "../../../../../../test/margin";
 import { mockMatchMedia } from "../../../../../../test/media";
 import { bucketsOf, firstPr, heightClass, patchPr, pillLabel, prRow, summaryOf } from "../../../../../../test/prs";
 import { renderWithProviders } from "../../../../../../test/renderWithProviders";
@@ -161,14 +162,19 @@ describe("PullRequestRow", () => {
 		expect(screen.queryByRole("button", { name: /#118/ })).toBeNull();
 	});
 
-	// margin is the review surface, so the row sends its diff there.
-	test("offers Show diff, which opens margin at the pull request URL in a new tab", async () => {
+	// margin is the review surface, so the row sends its diff there. The
+	// sheet holds the margin page, so the control opens no tab.
+	test("offers Show diff, which opens the margin page beside the ticket", async () => {
+		const user = userEvent.setup();
+		marginUp();
 		const server = createFakeServer();
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
-		const link = within(row).getByRole("link", { name: "Show diff" });
-		expect(link.getAttribute("href")).toBe(`http://margin.localhost/${pr.url}`);
-		expect(link.getAttribute("target")).toBe("_blank");
-		expect(link.getAttribute("rel")).toContain("noopener");
+		expect(within(row).queryByRole("link", { name: "Show diff" })).toBeNull();
+		await user.click(within(row).getByRole("button", { name: "Show diff" }));
+		const panel = await screen.findByRole("dialog", { name: `${pr.owner}/${pr.repo} #${pr.number}` });
+		const frame = await within(panel).findByTitle(`${pr.owner}/${pr.repo} #${pr.number} in margin`);
+		expect(frame.getAttribute("src")).toBe(`http://margin.localhost/${pr.url}`);
+		restoreMargin();
 	});
 });
