@@ -1,0 +1,1 @@
+export { attachmentMarkdown } from "./attachmentMarkdown";

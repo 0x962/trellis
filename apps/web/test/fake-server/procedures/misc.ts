@@ -33,34 +33,6 @@ export const system = {
 	backup: os.system.backup.handler(() => ({ path: "/tmp/trellis-fake-backup.tar.gz", bytes: 1024 })),
 };
 
-const requireAttachment = (state: Parameters<typeof requireTicket>[0], id: string) => {
-	const attachment = state.attachments.get(id);
-	if (attachment === undefined) throw fail("NOT_FOUND", { kind: "attachment", ref: id });
-	return attachment;
-};
-
-export const attachments = {
-	list: os.attachments.list.handler(({ context, input }) => {
-		const ticket = requireTicket(context.state, input.ticket);
-		return [...context.state.attachments.values()].filter((attachment) => attachment.ticketId === ticket.id);
-	}),
-	upload: os.attachments.upload.handler(() => {
-		throw new Error("The fake server does not store uploads.");
-	}),
-	get: os.attachments.get.handler(({ context, input }) => requireAttachment(context.state, input.id)),
-	delete: os.attachments.delete.handler(({ context, input }) => {
-		const attachment = requireAttachment(context.state, input.id);
-		context.state.attachments.delete(attachment.id);
-		const ticket = context.state.tickets.get(attachment.ticketId)!;
-		context.bus.emit(
-			"attachment.deleted",
-			{ id: attachment.id, ticketId: ticket.id },
-			{ ticketId: ticket.id, projectId: ticket.projectId },
-		);
-		return { deleted: attachment.id };
-	}),
-};
-
 export const pullRequests = {
 	list: os.pullRequests.list.handler(({ context, input }) =>
 		linkedPrs(context.state, requireTicket(context.state, input.ticket).id),
