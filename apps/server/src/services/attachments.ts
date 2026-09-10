@@ -2,6 +2,7 @@ import type { Attachment, AttachmentUploadOutput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { iso, rows } from "../db/queries/support.ts";
+import { ticketSummary } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
 import { finalize, gc, markLiveTempFile, tempPath } from "../storage/blobs.ts";
 import {
@@ -42,8 +43,25 @@ const INLINE_MIMES: ReadonlySet<string> = new Set([
 // type and the subtype decide, so the parameters are cut off first.
 export const isInlineMime = (mime: string) => INLINE_MIMES.has(mime.split(";")[0]!.trim().toLowerCase());
 
-export const contentDisposition = (filename: string, mime: string) =>
-	`${isInlineMime(mime) ? "inline" : "attachment"}; filename="${filename}"`;
+// A header value holds Latin-1 only, and Bun refuses any other value with a
+// 500. A filename of printable ASCII without `"` or `\` goes in `filename`
+// as it is. Any other filename gets an ASCII fallback in `filename`, with
+// `_` for each other character, and its exact UTF-8 form in `filename*`
+// (RFC 6266). A browser uses `filename*` when it is present.
+const PLAIN_FILENAME = /^[\x20-\x7e]*$/;
+const UNSAFE_IN_FALLBACK = /[^\x20-\x7e]|["\\]/g;
+
+// encodeURIComponent leaves `'()*` as they are, and RFC 5987 does not allow
+// them unencoded in `filename*`.
+const encodeRfc5987 = (value: string) =>
+	encodeURIComponent(value).replace(/['()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+
+export const contentDisposition = (filename: string, mime: string) => {
+	const disposition = isInlineMime(mime) ? "inline" : "attachment";
+	if (PLAIN_FILENAME.test(filename) && !/["\\]/.test(filename)) return `${disposition}; filename="${filename}"`;
+	const fallback = filename.replace(UNSAFE_IN_FALLBACK, "_");
+	return `${disposition}; filename="${fallback}"; filename*=UTF-8''${encodeRfc5987(filename)}`;
+};
 
 export const fileUrl = (id: string) => `/api/attachments/${id}/file`;
 
@@ -108,6 +126,29 @@ const storeFile = async (home: string, file: File) => {
 	return { sha256, size };
 };
 
+// The mime the row keeps: the type and the subtype, without parameters, as
+// in `text/plain`. The file route sets the charset itself. The multipart
+// parser gives an empty type to a part whose filename has no known
+// extension. Every read refuses an empty mime, so such a part is stored as
+// `application/octet-stream`, which downloads.
+const MIME_PATTERN = /^[\w.+-]+\/[\w.+-]+$/;
+
+const storedMime = (type: string) => {
+	const essence = type.split(";")[0]!.trim().toLowerCase();
+	return MIME_PATTERN.test(essence) ? essence : "application/octet-stream";
+};
+
+// An upload or a delete changes the ticket's `attachmentCount`, which the
+// ticket table and the board show. The ticket.updated event carries the new
+// summary, so every client patches the count in place.
+const emitCount = async (ctx: ServiceCtx, tx: Tx, ticketId: string) =>
+	ctx.emit({
+		type: "ticket.updated",
+		summary: await ticketSummary(tx, ticketId),
+		fields: ["attachmentCount"],
+		batchId: ulid(),
+	});
+
 export type UploadInput = { ticket: string; file: File; name?: string };
 
 export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promise<AttachmentUploadOutput> => {
@@ -118,9 +159,7 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promi
 	const at = ctx.now();
 	const id = ulid();
 	const filename = input.name ?? input.file.name;
-	// A browser sends `text/plain;charset=utf-8`. The row keeps the type and
-	// the subtype; the file route sets the charset itself.
-	const mime = input.file.type.split(";")[0]!.trim();
+	const mime = storedMime(input.file.type);
 	await touchActor(tx, ctx.actor, at);
 	await tx.execute(sql`
 		INSERT INTO attachments (id, ticket_id, filename, mime, size, sha256, actor_name, actor_kind, created_at)
@@ -131,7 +170,8 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promi
 	`);
 	await touchTicket(tx, { id: ticket.id, at, versionStep: 1 });
 	await writeActivity(ctx, tx, { ticket, action: "attachment.created", meta: { filename, attachmentId: id }, at });
-	ctx.emit({ type: "attachment.created", id, ticketId: ticket.id });
+	ctx.emit({ type: "attachment.created", id, ticketId: ticket.id, projectId: ticket.project_id });
+	await emitCount(ctx, tx, ticket.id);
 	const attachment: Attachment = {
 		id,
 		ticketId: ticket.id,
@@ -155,7 +195,9 @@ const findAttachment = async (tx: Tx, id: string): Promise<AttachmentRow> => {
 // True while any attachment row still names this hash. The check runs under
 // the file lock, so an upload of the same hash that is between its move and
 // its row is counted.
-const holdsSha = (ctx: ServiceCtx, sha256: string) => () =>
+type BlobCtx = Pick<ServiceCtx, "home" | "newTx">;
+
+const holdsSha = (ctx: BlobCtx, sha256: string) => () =>
 	ctx.newTx(async (tx) => {
 		const [row] = await rows<{ n: number }>(
 			tx,
@@ -166,7 +208,7 @@ const holdsSha = (ctx: ServiceCtx, sha256: string) => () =>
 
 // Removes the file of every hash whose last row went. The caller runs this
 // after the commit, so a rolled back delete never loses a file.
-export const gcAttachmentBlobs = async (ctx: ServiceCtx, shas: string[]) => {
+export const gcAttachmentBlobs = async (ctx: BlobCtx, shas: string[]) => {
 	const removed: string[] = [];
 	for (const sha256 of new Set(shas)) {
 		if (await gc(ctx.home, sha256, holdsSha(ctx, sha256))) removed.push(sha256);
@@ -179,6 +221,7 @@ export type IdInput = { id: string };
 export const remove = async (ctx: ServiceCtx, tx: Tx, input: IdInput) => {
 	const row = await findAttachment(tx, input.id);
 	const ticket = await resolveTicket(tx, row.ticket_id);
+	assertProjectActive(ticket);
 	const at = ctx.now();
 	await tx.execute(sql`DELETE FROM attachments WHERE id = ${row.id}`);
 	await touchTicket(tx, { id: ticket.id, at, versionStep: 1 });
@@ -188,7 +231,8 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, input: IdInput) => {
 		meta: { filename: row.filename, attachmentId: row.id },
 		at,
 	});
-	ctx.emit({ type: "attachment.deleted", id: row.id, ticketId: ticket.id });
+	ctx.emit({ type: "attachment.deleted", id: row.id, ticketId: ticket.id, projectId: ticket.project_id });
+	await emitCount(ctx, tx, ticket.id);
 	ctx.afterCommit(async () => {
 		await gcAttachmentBlobs(ctx, [row.sha256]);
 	});

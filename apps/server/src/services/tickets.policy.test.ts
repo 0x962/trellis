@@ -53,6 +53,37 @@ describe("agent policy", () => {
 		expect((await ticketRow(h.db, id))!.status_id).toBe(statuses.started);
 	});
 
+	test("an agent create in a done status throws AGENT_CANNOT_COMPLETE and writes no ticket", async () => {
+		const { statuses } = await seedProject(h.db);
+		const data = await expectErrorData(
+			h.as(claude)((ctx, tx) => tickets.create(ctx, tx, { project: "CDE", title: "Done at once", status: "done" })),
+			"AGENT_CANNOT_COMPLETE",
+		);
+		expect(data.status.id).toBe(statuses.done);
+		expect(await count(h.db, "tickets")).toBe(0);
+	});
+
+	test("force lets an agent create a ticket in a done status", async () => {
+		const { statuses } = await seedProject(h.db);
+		const { result: ticket } = await h.as(claude)((ctx, tx) =>
+			tickets.create(ctx, tx, { project: "CDE", title: "Done at once", status: "done", force: true }),
+		);
+		expect(ticket.status.id).toBe(statuses.done);
+		expect(ticket.completedAt).not.toBeNull();
+	});
+
+	test("an agent may create a ticket in a canceled status, and a human in a done status", async () => {
+		const { statuses } = await seedProject(h.db);
+		const { result: canceled } = await h.as(claude)((ctx, tx) =>
+			tickets.create(ctx, tx, { project: "CDE", title: "Dropped", status: "canceled" }),
+		);
+		const { result: done } = await h.as(navid)((ctx, tx) =>
+			tickets.create(ctx, tx, { project: "CDE", title: "Shipped", status: "done" }),
+		);
+		expect(canceled.status.id).toBe(statuses.canceled);
+		expect(done.status.id).toBe(statuses.done);
+	});
+
 	test("an agent may move a ticket to a canceled status", async () => {
 		const { statuses, id } = await seed();
 		const { result: ticket } = await move(claude, { ticket: id, status: "canceled" });

@@ -1,4 +1,4 @@
-import type { GhStatus } from "@trellis/api";
+import type { GhStatus, TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { Config } from "../config.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR } from "../context.ts";
@@ -6,6 +6,7 @@ import type { Bus } from "../events/bus.ts";
 import type { GhRunner } from "../gh/run.ts";
 import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs } from "../jobs.ts";
 import type { DbTiming } from "../serverTiming.ts";
+import { gcAttachmentBlobs } from "../services/attachments.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
@@ -64,7 +65,17 @@ export const createInlineTransport = ({
 	const actorCache = new Map<string, number>();
 	const inFlight = new Set<Promise<unknown>>();
 
-	const coreCtx = (ctx: RequestContext, emit: Emit) => ({ ...ctx, emit, cache, actorCache });
+	const newTx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
+
+	const coreCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => ({
+		...ctx,
+		emit,
+		cache,
+		actorCache,
+		dropBlobs: (shas: string[]) => {
+			tasks.push(() => gcAttachmentBlobs({ home: config.home, newTx }, shas).then(() => undefined));
+		},
+	});
 
 	// An `io` read never writes the actor, so a request without the header
 	// carries the system actor there.
@@ -84,17 +95,26 @@ export const createInlineTransport = ({
 		afterCommit: (task: () => Promise<void>) => {
 			tasks.push(task);
 		},
-		newTx: <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn),
+		newTx,
 		vacuum: () => createMaintenance(db).runNow(),
 	});
 
 	const buildCtx = (entry: ServiceEntry, ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) =>
-		entry.family === "core" ? coreCtx(ctx, emit) : ioCtx(ctx, emit, tasks);
+		entry.family === "core" ? coreCtx(ctx, emit, tasks) : ioCtx(ctx, emit, tasks);
 
-	// The commit comes first, then the work queued for after it, then the
-	// events. A throw rolls everything back and nothing reaches the bus.
-	const run = async (entry: ServiceEntry, ctx: RequestContext, input: unknown) => {
+	// A `prepare` step runs first, with no transaction open. The commit comes
+	// next, then the work queued for after it, then the events. A throw rolls
+	// everything back and nothing reaches the bus.
+	const run = async (entry: ServiceEntry, ctx: RequestContext, rawInput: unknown) => {
 		const tasks: Array<() => Promise<void>> = [];
+		const early: TrellisEvent[] = [];
+		const input =
+			"prepare" in entry
+				? await entry.prepare(
+						buildCtx(entry, ctx, (event) => void early.push(event), tasks),
+						rawInput,
+					)
+				: rawInput;
 		if ("stream" in entry) {
 			return pullStream((push) =>
 				withTx(db, async (tx, emit) => {
@@ -104,7 +124,7 @@ export const createInlineTransport = ({
 		}
 		const { result, events } = await withTx(db, (tx, emit) => entry.run(buildCtx(entry, ctx, emit, tasks), tx, input));
 		for (const task of tasks) await task();
-		for (const event of events) bus.emit(event);
+		for (const event of [...early, ...events]) bus.emit(event);
 		return result;
 	};
 

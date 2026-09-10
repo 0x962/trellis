@@ -88,7 +88,9 @@ describe("poller writes", () => {
 		const [row] = await prRows();
 		expect(row!.title).toBe("Fresh");
 		expect(row!.content_hash).not.toBe(contentHash(seededContent({ number: 13 })));
-		expect(p.events).toEqual([{ type: "pr.updated", id: pr, ticketIds: [ticket], state: "open", ciState: "none" }]);
+		expect(p.events).toEqual([
+			{ type: "pr.updated", id: pr, ticketIds: [ticket], projectIds: [rootId], state: "open", ciState: "none" },
+		]);
 		expect(await activityRows()).toEqual([]);
 		await handle.stop();
 	});

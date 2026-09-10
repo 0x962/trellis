@@ -61,6 +61,28 @@ describe("request id and cors", () => {
 		}
 	});
 
+	test("a request whose Host names another site answers 403 on a read and on a write", async () => {
+		const headers = { host: "attacker.example:4521" };
+
+		const read = await t.api("/api/tickets", { headers });
+		const write = await t.api("/api/tickets", { method: "POST", body: { project: "CDE", title: "Rebound" }, headers });
+		const rpc = await t.app.request("http://trellis.test/rpc/system/health", { method: "POST", headers });
+
+		expect(read.status).toBe(403);
+		expect(write.status).toBe(403);
+		expect(rpc.status).toBe(403);
+		expect((await t.api("/api/tickets", { headers: { host: "127.0.0.1:4521" } })).body.items).toHaveLength(0);
+	});
+
+	test("a request whose Host is a loopback name, a .localhost name, or an address is served", async () => {
+		const hosts = ["127.0.0.1:4521", "localhost:4521", "[::1]:4521", "trellis.localhost", "192.168.1.20:4521"];
+		for (const host of hosts) {
+			const response = await t.api("/api/tickets", { headers: { host } });
+
+			expect(response.status, host).toBe(200);
+		}
+	});
+
 	test("cors refuses an unknown origin", async () => {
 		const response = await t.api("/api/health", { headers: { origin: "https://evil.example" } });
 

@@ -41,6 +41,7 @@ export const warmWrites = async (db: Db, cache: ProjectCache) => {
 		emit: () => {},
 		cache,
 		actorCache: new Map<string, number>(),
+		dropBlobs: () => {},
 	};
 	const title = ticket.title === WARM_TITLE ? `${WARM_TITLE} again` : WARM_TITLE;
 	await db

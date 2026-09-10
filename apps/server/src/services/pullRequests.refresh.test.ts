@@ -13,7 +13,7 @@ import { assertStatusInvariant } from "../../test/invariants.ts";
 import { withTx } from "../db/tx.ts";
 import { contentHash } from "../gh/graphql.ts";
 import { createGhRunner } from "../gh/run.ts";
-import { diff, refresh } from "./pullRequests.ts";
+import { diff, prepareDiff, prepareRefresh, refresh } from "./pullRequests.ts";
 
 // refresh reads one pull request through gh and writes the row only when the
 // content hash changed. The fetch stamp moves on every call, so the poller
@@ -71,19 +71,20 @@ const seedLinked = async (overrides: Record<string, unknown>) => {
 	const ticket = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, number: 1 });
 	const pr = await seedPr(h.db, { number: 12 }, { updated_at: stamp, created_at: stamp, ...overrides });
 	await linkPr(h.db, ticket, pr);
-	return { ticket, pr };
+	return { rootId, ticket, pr };
 };
 
 const runRefresh = async (id: string) => {
 	const handle = testCtx({ db: h.db, home, gh: createGhRunner() });
 	const { delivered, sink } = eventSink();
-	const { result } = await withTx(h.db, (tx, emit) => refresh(withEmit(handle.ctx, emit), tx, { id }), sink);
+	const prepared = await prepareRefresh(handle.ctx, { id });
+	const { result } = await withTx(h.db, (tx, emit) => refresh(withEmit(handle.ctx, emit), tx, prepared), sink);
 	return { result, delivered };
 };
 
 describe("pullRequests.refresh", () => {
 	test("refresh writes the row when the content hash changes", async () => {
-		const { ticket, pr } = await seedLinked({ content_hash: "stale" });
+		const { rootId, ticket, pr } = await seedLinked({ content_hash: "stale" });
 		stub({
 			"api graphql": graphqlReply([
 				{ number: 12, title: "Add the board", url, state: "MERGED", checks: [checkRun("test", "SUCCESS", "ci")] },
@@ -96,7 +97,9 @@ describe("pullRequests.refresh", () => {
 		expect(row).toMatchObject({ title: "Add the board", state: "merged", ci_state: "pass" });
 		expect(row!.content_hash).not.toBe("stale");
 		expect(result).toMatchObject({ id: pr, title: "Add the board", state: "merged", ciState: "pass" });
-		expect(delivered).toEqual([{ type: "pr.updated", id: pr, ticketIds: [ticket], state: "merged", ciState: "pass" }]);
+		expect(delivered).toEqual([
+			{ type: "pr.updated", id: pr, ticketIds: [ticket], projectIds: [rootId], state: "merged", ciState: "pass" },
+		]);
 	});
 
 	test("refresh writes nothing when the content hash is the same", async () => {
@@ -141,7 +144,9 @@ describe("pullRequests.refresh", () => {
 		expect(refreshed.data).toEqual({ kind: "pullRequest", ref: id });
 
 		const ctx = testCtx({ db: h.db, home, gh: createGhRunner() }).ctx;
-		const diffed = await caught(h.db.transaction((tx) => diff(ctx, tx, { id })));
+		const diffed = await caught(
+			prepareDiff(ctx, { id }).then((prepared) => h.db.transaction((tx) => diff(ctx, tx, prepared))),
+		);
 		expect(diffed.code).toBe("NOT_FOUND");
 		expect(diffed.data).toEqual({ kind: "pullRequest", ref: id });
 		expect(handle.spawns()).toEqual([]);

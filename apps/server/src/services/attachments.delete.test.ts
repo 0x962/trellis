@@ -90,8 +90,25 @@ describe("attachments.remove", () => {
 		expect(existsSync(blobPath(home, sha))).toBe(true);
 	});
 
-	test("a delete emits attachment.deleted and moves the ticket", async () => {
+	test("a delete emits ticket.updated with the new attachment count", async () => {
 		const { ticket } = await seedOneTicket();
+		const uploaded = await runUpload("CDE-1", "one of two");
+		await runUpload("CDE-1", "two of two");
+		const handle = testCtx({ db: h.db, home });
+		const { delivered, sink } = eventSink();
+
+		await withTx(h.db, (tx, emit) => remove(withEmit(handle.ctx, emit), tx, { id: uploaded.attachment.id }), sink);
+
+		const updates = delivered.filter((event) => event.type === "ticket.updated");
+		expect(updates).toHaveLength(1);
+		const [update] = updates as Extract<TrellisEvent, { type: "ticket.updated" }>[];
+		expect(update!.summary.id).toBe(ticket);
+		expect(update!.summary.attachmentCount).toBe(1);
+		expect(update!.fields).toEqual(["attachmentCount"]);
+	});
+
+	test("a delete emits attachment.deleted and moves the ticket", async () => {
+		const { rootId, ticket } = await seedOneTicket();
 		const uploaded = await runUpload("CDE-1", "a row with an event");
 		const [before] = await rows("tickets");
 		const handle = testCtx({ db: h.db, home });
@@ -100,7 +117,7 @@ describe("attachments.remove", () => {
 		await withTx(h.db, (tx, emit) => remove(withEmit(handle.ctx, emit), tx, { id: uploaded.attachment.id }), sink);
 
 		const expected = [
-			{ type: "attachment.deleted", id: uploaded.attachment.id, ticketId: ticket },
+			{ type: "attachment.deleted", id: uploaded.attachment.id, ticketId: ticket, projectId: rootId },
 		] satisfies TrellisEvent[];
 		expect(delivered.filter((event) => event.type === "attachment.deleted")).toEqual(expected);
 		const [after] = await rows("tickets");

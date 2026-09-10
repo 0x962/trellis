@@ -29,6 +29,16 @@ export type EventsRouteOptions = {
 
 const DEFAULT_PING_SECONDS = 15;
 
+// `ping` is user input, and the interval timer fires for the life of the
+// connection. A value outside whole seconds from 5 to 120 is refused, so a
+// typo can never make the timer fire every millisecond.
+const pingSecondsOf = (value: string | undefined) => {
+	if (value === undefined) return DEFAULT_PING_SECONDS;
+	const seconds = /^\d+$/.test(value) ? Number(value) : Number.NaN;
+	if (!(seconds >= 5 && seconds <= 120)) throw invalidInput("ping", "Expected whole seconds from 5 to 120.");
+	return seconds;
+};
+
 const encoder = new TextEncoder();
 
 const frame = (type: string, data: unknown, id?: string) =>
@@ -75,8 +85,7 @@ export const createEventsRoute = ({ bus, runtime, transport, clock }: EventsRout
 		if (since !== undefined && !EventIdSchema.safeParse(since).success) {
 			throw invalidInput("since", "Expected an event id: <bootId ULID>.<seq>.");
 		}
-		const pingParam = c.req.query("ping");
-		const pingMs = (pingParam === undefined ? DEFAULT_PING_SECONDS : Number(pingParam)) * 1000;
+		const pingMs = pingSecondsOf(c.req.query("ping")) * 1000;
 		const filter = await filterOf(c);
 		let cleanup = () => {};
 

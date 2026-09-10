@@ -1,6 +1,15 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { seedProject, seedRoot, seedRootWithStatuses, seedStatus, seedTicket } from "../../test/fixtures";
+import {
+	type ActorRef,
+	claude,
+	navid,
+	seedProject,
+	seedRoot,
+	seedRootWithStatuses,
+	seedStatus,
+	seedTicket,
+} from "../../test/fixtures";
 import {
 	activityRows,
 	at,
@@ -52,6 +61,45 @@ const seedOnBlocked = async (count: number) => {
 	}
 	return { ...seeded, tickets };
 };
+
+describe("statuses.delete agent policy", () => {
+	const removeAs = (actor: ActorRef, input: { project: string; status: string; moveTo: string; force?: boolean }) =>
+		h.run((ctx, tx) => statuses.delete(ctx, tx, input), { actor });
+
+	test("an agent delete that moves tickets into a done status throws AGENT_CANNOT_COMPLETE", async () => {
+		const { blocked } = await seedOnBlocked(2);
+
+		await expectError(removeAs(claude, { project: "CDE", status: "blocked", moveTo: "done" }), "AGENT_CANNOT_COMPLETE");
+
+		expect((await ticketStatuses()).map((row) => row.status_id)).toEqual([blocked, blocked]);
+		expect(await statusIds((await h.one<{ id: string }>(sql`SELECT id FROM projects`)).id)).toContain(blocked);
+	});
+
+	test("force lets an agent move the tickets into a done status", async () => {
+		const { s } = await seedOnBlocked(2);
+
+		const result = await removeAs(claude, { project: "CDE", status: "blocked", moveTo: "done", force: true });
+
+		expect(result.moved).toBe(2);
+		expect((await ticketStatuses()).map((row) => row.status_id)).toEqual([s.done, s.done]);
+	});
+
+	test("an agent may move the tickets into a status outside the done category", async () => {
+		const { s } = await seedOnBlocked(1);
+
+		await removeAs(claude, { project: "CDE", status: "blocked", moveTo: "todo" });
+
+		expect((await ticketStatuses()).map((row) => row.status_id)).toEqual([s.todo]);
+	});
+
+	test("a human moves the tickets into a done status without force", async () => {
+		const { s } = await seedOnBlocked(1);
+
+		await removeAs(navid, { project: "CDE", status: "blocked", moveTo: "done" });
+
+		expect((await ticketStatuses()).map((row) => row.status_id)).toEqual([s.done]);
+	});
+});
 
 describe("statuses.delete", () => {
 	test("a status with no ticket deletes and moves nothing", async () => {

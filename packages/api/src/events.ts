@@ -54,17 +54,22 @@ export const TicketEventPayloadSchema = z.object({
 	batchId: UlidSchema,
 });
 
+// `ticketIds` are the tickets that link the pull request. `projectIds` are
+// the projects of those tickets, which a project-scoped event stream reads.
 export const PrEventPayloadSchema = z.object({
 	id: UlidSchema,
 	ticketIds: z.array(UlidSchema),
+	projectIds: z.array(UlidSchema).optional(),
 	state: PrStateSchema,
 	ciState: CiStateSchema,
 });
 
-// `id` is the comment or attachment id.
+// `id` is the comment or attachment id. `projectId` is the project of the
+// ticket, which a project-scoped event stream reads.
 export const TicketChildEventPayloadSchema = z.object({
 	id: UlidSchema,
 	ticketId: UlidSchema,
+	projectId: UlidSchema.optional(),
 });
 
 export const StatusesChangedPayloadSchema = z.object({

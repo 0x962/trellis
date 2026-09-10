@@ -74,6 +74,17 @@ describe("attach", () => {
 		expect(result.stderr).toContain(missing);
 		expect(result.calls).toEqual([]);
 	});
+
+	test("attach sends a filename with a double quote in the name field", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "trellis-attach-"));
+		const quoted = join(dir, 'say "hi".txt');
+		writeFileSync(quoted, "hi");
+
+		const result = await runCli(["attach", "CDE-42", quoted], { "attachments.upload": upload() });
+
+		expect(result.code).toBe(0);
+		expect((result.calls[0]!.input as UploadInput).name).toBe('say "hi".txt');
+	});
 });
 
 describe("attachments", () => {

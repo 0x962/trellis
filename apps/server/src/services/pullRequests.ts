@@ -3,9 +3,10 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { iso, rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
-import { fetchDiff } from "../gh/diff.ts";
-import { fetchPullRequests, type PullRequestRef, type PullRequestRow } from "../gh/graphql.ts";
+import { fetchPullRequests, type PullRequestRef, type PullRequestResult, type PullRequestRow } from "../gh/graphql.ts";
 import { parsePullRequestUrl } from "../gh/parse.ts";
+import type { PreparedDiff } from "./pullRequestDiff.ts";
+import { linkScope } from "./pullRequestScope.ts";
 import {
 	type ActorRef,
 	assertProjectActive,
@@ -23,17 +24,13 @@ import {
 // row carries who linked it and whether a person or the poller did. The last
 // link that goes takes the pull request row with it.
 //
-// link and refresh read one pull request through the same gh query the poller
-// runs for 50. link stores what it got, or the gh message when gh is away, so
-// a ticket keeps the link either way. refresh reports GH_UNAVAILABLE instead,
-// because the caller asked for fresh fields.
+// prepareLink and prepareRefresh read one pull request through the same gh
+// query the poller runs for 50, before the service transaction opens, so no
+// other call waits for gh. link stores what gh returned, or the gh message
+// when gh is away, so a ticket keeps the link either way. refresh reports
+// GH_UNAVAILABLE instead, because the caller asked for fresh fields.
 
-// The diff of one pull request, by pull request id, with the clock reading
-// of the gh call. A person who reopens a diff inside a minute spawns no
-// process.
-const DIFF_CACHE_MS = 60_000;
-const diffCache = new Map<string, { at: number; value: PullRequestDiffOutput }>();
-
+export { prepareDiff } from "./pullRequestDiff.ts";
 export { parsePullRequestUrl };
 
 type PrRow = {
@@ -103,14 +100,6 @@ const findRow = async (tx: Tx, id: string): Promise<PrRow> => {
 	return row;
 };
 
-const linkedTicketIds = async (tx: Tx, id: string) => {
-	const found = await rows<{ ticket_id: string }>(
-		tx,
-		sql`SELECT ticket_id FROM ticket_pull_requests WHERE pull_request_id = ${id} ORDER BY created_at, ticket_id`,
-	);
-	return found.map((row) => row.ticket_id);
-};
-
 // The fields gh returned, or the message it printed. A message is stored on
 // the row, so the web shows why the fields are stale.
 type Fetched = { row: PullRequestRow } | { error: string };
@@ -154,12 +143,23 @@ const writeUnfetched = (tx: Tx, at: Date, ref: PullRequestRef, url: string, erro
 
 export type LinkInput = { ticket: string; url: string; source?: LinkedPullRequest["source"] };
 
-export const link = async (ctx: ServiceCtx, tx: Tx, input: LinkInput): Promise<LinkedPullRequest> => {
+// The link input with the ref its URL names and what gh returned for it.
+export type PreparedLink = LinkInput & { ref: PullRequestRef; fetched: Fetched };
+
+// The URL and the ticket are checked before gh runs, so a refused link
+// spawns no process.
+export const prepareLink = async (ctx: ServiceCtx, input: LinkInput): Promise<PreparedLink> => {
 	const ref = parsePullRequestUrl(input.url);
 	if (ref === null) throw fail("INVALID_PR_URL");
+	await ctx.newTx(async (tx) => assertProjectActive(await resolveTicket(tx, input.ticket)));
+	return { ...input, ref, fetched: await fetchOne(ctx, ref) };
+};
+
+// The ticket is checked again, because it can change while gh runs.
+export const link = async (ctx: ServiceCtx, tx: Tx, input: PreparedLink): Promise<LinkedPullRequest> => {
+	const { ref, fetched } = input;
 	const ticket = await resolveTicket(tx, input.ticket);
 	assertProjectActive(ticket);
-	const fetched = await fetchOne(ctx, ref);
 	const at = ctx.now();
 	if ("row" in fetched) await writeFetched(tx, at, fetched.row);
 	else await writeUnfetched(tx, at, ref, input.url, fetched.error);
@@ -198,7 +198,7 @@ const announceLink = async (ctx: ServiceCtx, tx: Tx, input: { ticket: TicketRow;
 	ctx.emit({
 		type: "pr.linked",
 		id: input.row.id,
-		ticketIds: await linkedTicketIds(tx, input.row.id),
+		...(await linkScope(tx, input.row.id)),
 		state: input.row.state,
 		ciState: input.row.ci_state,
 	});
@@ -208,13 +208,14 @@ export type UnlinkInput = { ticket: string; id: string };
 
 export const unlink = async (ctx: ServiceCtx, tx: Tx, input: UnlinkInput) => {
 	const ticket = await resolveTicket(tx, input.ticket);
+	assertProjectActive(ticket);
 	const row = await findRow(tx, input.id);
 	const dropped = await tx.execute(sql`
 		DELETE FROM ticket_pull_requests WHERE ticket_id = ${ticket.id} AND pull_request_id = ${row.id} RETURNING ticket_id
 	`);
 	if (dropped.rows.length === 0) throw notFound("pullRequest", input.id);
-	const ticketIds = await linkedTicketIds(tx, row.id);
-	if (ticketIds.length === 0) await tx.execute(sql`DELETE FROM pull_requests WHERE id = ${row.id}`);
+	const scope = await linkScope(tx, row.id);
+	if (scope.ticketIds.length === 0) await tx.execute(sql`DELETE FROM pull_requests WHERE id = ${row.id}`);
 	const at = ctx.now();
 	await touchTicket(tx, { id: ticket.id, at, versionStep: 0 });
 	await writeActivity(ctx, tx, {
@@ -223,21 +224,29 @@ export const unlink = async (ctx: ServiceCtx, tx: Tx, input: UnlinkInput) => {
 		meta: { pullRequestId: row.id, url: row.url },
 		at,
 	});
-	ctx.emit({ type: "pr.unlinked", id: row.id, ticketIds, state: row.state, ciState: row.ci_state });
+	// The event names the ticket the link left too, so its viewers drop the pull request.
+	const ticketIds = [ticket.id, ...scope.ticketIds];
+	const projectIds = [...new Set([ticket.project_id, ...scope.projectIds])];
+	ctx.emit({ type: "pr.unlinked", id: row.id, ticketIds, projectIds, state: row.state, ciState: row.ci_state });
 	return { deleted: row.id };
 };
 
 export type IdInput = { id: string };
 
-export const refresh = async (ctx: ServiceCtx, tx: Tx, input: IdInput): Promise<PullRequest> => {
-	const row = await findRow(tx, input.id);
-	const result = await fetchPullRequests(
-		ctx.gh,
-		[{ owner: row.owner, repo: row.repo, number: row.number }],
-		"interactive",
-	);
+// The pull request id with the gh answer for it.
+export type PreparedRefresh = { id: string; first: PullRequestResult };
+
+export const prepareRefresh = async (ctx: ServiceCtx, input: IdInput): Promise<PreparedRefresh> => {
+	const row = await ctx.newTx((tx) => findRow(tx, input.id));
+	const ref = { owner: row.owner, repo: row.repo, number: row.number };
+	const result = await fetchPullRequests(ctx.gh, [ref], "interactive");
 	if (!result.ok) throw fail("GH_UNAVAILABLE", { reason: result.reason });
-	const first = result.results[0]!;
+	return { id: row.id, first: result.results[0]! };
+};
+
+export const refresh = async (ctx: ServiceCtx, tx: Tx, input: PreparedRefresh): Promise<PullRequest> => {
+	const row = await findRow(tx, input.id);
+	const { first } = input;
 	const at = ctx.now();
 	if (!("row" in first)) {
 		await tx.execute(
@@ -254,23 +263,18 @@ export const refresh = async (ctx: ServiceCtx, tx: Tx, input: IdInput): Promise<
 	ctx.emit({
 		type: "pr.updated",
 		id: fresh.id,
-		ticketIds: await linkedTicketIds(tx, fresh.id),
+		...(await linkScope(tx, fresh.id)),
 		state: fresh.state,
 		ciState: fresh.ci_state,
 	});
 	return toPullRequest(fresh);
 };
 
-export const diff = async (ctx: ServiceCtx, tx: Tx, input: IdInput): Promise<PullRequestDiffOutput> => {
-	const row = await findRow(tx, input.id);
-	const at = ctx.now().getTime();
-	const cached = diffCache.get(row.id);
-	if (cached !== undefined && at - cached.at < DIFF_CACHE_MS) return cached.value;
-	const result = await fetchDiff(ctx.gh, row.url);
-	if (!result.ok) throw fail("GH_UNAVAILABLE", { reason: result.reason });
-	const value = { diff: result.diff, truncated: result.truncated, url: result.url };
-	diffCache.set(row.id, { at, value });
-	return value;
+// prepareDiff read the diff from gh. The row is read again, so a pull
+// request that went while gh ran is NOT_FOUND.
+export const diff = async (ctx: ServiceCtx, tx: Tx, input: PreparedDiff): Promise<PullRequestDiffOutput> => {
+	await findRow(tx, input.id);
+	return input.value;
 };
 
 export type ListInput = { ticket: string };

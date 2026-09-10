@@ -30,6 +30,7 @@ export type ServiceCtx = {
 	emit: Emit;
 	cache: ProjectCache;
 	actorCache: Map<string, number>;
+	dropBlobs: (shas: string[]) => void;
 };
 
 export type CtxOptions = {
@@ -70,6 +71,8 @@ export const serviceHarness = async () => {
 		emit,
 		cache,
 		actorCache,
+		// The harness writes no blob files, so it has none to remove.
+		dropBlobs: () => {},
 	});
 
 	// Every service call leaves the status invariant intact: no ticket points

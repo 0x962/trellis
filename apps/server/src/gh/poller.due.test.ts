@@ -14,7 +14,7 @@ import {
 	seedLinkedPr,
 } from "../../test/helpers/poller.ts";
 import { withTx } from "../db/tx.ts";
-import { refresh } from "../services/pullRequests.ts";
+import { prepareRefresh, refresh } from "../services/pullRequests.ts";
 import * as poller from "./poller.ts";
 
 // The due selection keeps the poller off pull requests nobody watches: an
@@ -113,7 +113,8 @@ describe("poller due selection", () => {
 
 		const handle = testCtx({ db: h.db, home: freshHomeWithDirs(), gh: p.hook.gh, now: p.clock.now });
 		const { sink } = eventSink();
-		const { result } = await withTx(h.db, (tx, emit) => refresh(withEmit(handle.ctx, emit), tx, { id: pr }), sink);
+		const prepared = await prepareRefresh(handle.ctx, { id: pr });
+		const { result } = await withTx(h.db, (tx, emit) => refresh(withEmit(handle.ctx, emit), tx, prepared), sink);
 
 		expect(p.countOf("api graphql")).toBe(1);
 		expect(result.title).toBe("Fresh");

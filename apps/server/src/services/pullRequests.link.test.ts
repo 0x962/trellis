@@ -12,7 +12,7 @@ import { freshHomeWithDirs } from "../../test/helpers/home.ts";
 import { assertStatusInvariant } from "../../test/invariants.ts";
 import { withTx } from "../db/tx.ts";
 import { createGhRunner } from "../gh/run.ts";
-import { link } from "./pullRequests.ts";
+import { link, prepareLink } from "./pullRequests.ts";
 
 // link fetches the one pull request through gh and stores it. A second link
 // of the same URL on the same ticket answers with the row that is there. A
@@ -73,7 +73,8 @@ type LinkInput = { ticket: string; url: string; source?: "manual" | "auto" };
 const runLink = async (input: LinkInput, actor = navid) => {
 	const handle = testCtx({ db: h.db, home, gh: createGhRunner(), actor });
 	const { delivered, sink } = eventSink();
-	const { result } = await withTx(h.db, (tx, emit) => link(withEmit(handle.ctx, emit), tx, input), sink);
+	const prepared = await prepareLink(handle.ctx, input);
+	const { result } = await withTx(h.db, (tx, emit) => link(withEmit(handle.ctx, emit), tx, prepared), sink);
 	return { result, delivered };
 };
 
@@ -154,7 +155,7 @@ describe("pullRequests.link", () => {
 		const { result, delivered } = await runLink({ ticket: "CDE-1", url });
 
 		const expected = [
-			{ type: "pr.linked", id: result.id, ticketIds: [first], state: "open", ciState: "fail" },
+			{ type: "pr.linked", id: result.id, ticketIds: [first], projectIds: [rootId], state: "open", ciState: "fail" },
 		] satisfies TrellisEvent[];
 		expect(delivered.filter((event) => event.type === "pr.linked")).toEqual(expected);
 		const activity = await rows("activity");

@@ -91,4 +91,37 @@ describe("attachments", () => {
 		expect(await deleted.json()).toEqual({ deleted: png.body.attachment.id });
 		expect((await t.api("/api/tickets/CDE-1/attachments")).body).toHaveLength(1);
 	});
+
+	test("a file with no type is stored as application/octet-stream and the ticket still reads", async () => {
+		const response = await upload("CDE-1", new TextEncoder().encode("all:\n"), "Makefile", "");
+
+		expect(response.status).toBe(201);
+		expect(response.body.attachment).toMatchObject({ filename: "Makefile", mime: "application/octet-stream" });
+		const ticket = await t.api("/api/tickets/CDE-1");
+		const list = await t.api("/api/tickets/CDE-1/attachments");
+		expect(ticket.status).toBe(200);
+		expect(list.status).toBe(200);
+		expect(list.body[0]).toMatchObject({ filename: "Makefile", mime: "application/octet-stream" });
+	});
+
+	test("a filename with a double quote uploads and the ticket still reads", async () => {
+		const response = await upload("CDE-1", new TextEncoder().encode("hi"), 'say "hi".txt', "text/plain");
+
+		expect(response.status).toBe(201);
+		expect((await t.api("/api/tickets/CDE-1")).status).toBe(200);
+		expect((await t.api("/api/tickets/CDE-1/attachments")).status).toBe(200);
+	});
+
+	test("the name field keeps a filename with a double quote whole", async () => {
+		const form = new FormData();
+		form.set("file", new File([new TextEncoder().encode("hi")], "say hi.txt", { type: "text/plain" }));
+		form.set("name", 'say "hi".txt');
+
+		const response = await t.api("/api/tickets/CDE-1/attachments", { method: "POST", raw: form });
+
+		expect(response.status).toBe(201);
+		const list = await t.api("/api/tickets/CDE-1/attachments");
+		expect(list.status).toBe(200);
+		expect(list.body[0].filename).toBe('say "hi".txt');
+	});
 });

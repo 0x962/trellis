@@ -25,6 +25,14 @@ describe("create", () => {
 		expect(quiet.stdout).toBe("CDE-42\n");
 	});
 
+	test("create --force sends force, so an agent can create a ticket in a done status", async () => {
+		const result = await runCli(["create", "-p", "CDE", "-t", "T", "--status", "done", "--force"], {
+			"tickets.create": ticket(),
+		});
+		expect(result.code).toBe(0);
+		expect(result.calls[0]!.input).toEqual({ project: "CDE", title: "T", status: "done", force: true });
+	});
+
 	// CLI-82
 	test("create -d - reads the description from stdin", async () => {
 		const result = await runCli(

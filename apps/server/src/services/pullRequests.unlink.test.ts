@@ -54,9 +54,20 @@ const runUnlink = async (input: { ticket: string; id: string }) => {
 	return { result, delivered };
 };
 
+describe("pullRequests.unlink event scope", () => {
+	test("the pr.unlinked event names the ticket the last link left", async () => {
+		const { rootId, pr, ids } = await seedLinked(1);
+
+		const { delivered } = await runUnlink({ ticket: "CDE-1", id: pr });
+
+		const [event] = delivered.filter((entry) => entry.type === "pr.unlinked");
+		expect(event).toMatchObject({ ticketIds: [ids[0]!], projectIds: [rootId] });
+	});
+});
+
 describe("pullRequests.unlink", () => {
 	test("unlink keeps the row while another ticket links it", async () => {
-		const { pr, ids } = await seedLinked(2);
+		const { rootId, pr, ids } = await seedLinked(2);
 
 		const { result, delivered } = await runUnlink({ ticket: "CDE-1", id: pr });
 
@@ -65,7 +76,14 @@ describe("pullRequests.unlink", () => {
 		const links = await rows("ticket_pull_requests");
 		expect(links.map((row) => row.ticket_id)).toEqual([ids[1]!]);
 		const expected = [
-			{ type: "pr.unlinked", id: pr, ticketIds: [ids[1]!], state: "open", ciState: "pass" },
+			{
+				type: "pr.unlinked",
+				id: pr,
+				ticketIds: [ids[0]!, ids[1]!],
+				projectIds: [rootId],
+				state: "open",
+				ciState: "pass",
+			},
 		] satisfies TrellisEvent[];
 		expect(delivered.filter((event) => event.type === "pr.unlinked")).toEqual(expected);
 	});

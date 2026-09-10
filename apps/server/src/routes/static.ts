@@ -11,17 +11,28 @@ const missingDist = (webDist: string) =>
 
 const IMMUTABLE = "public, max-age=31536000, immutable";
 
+// The path is user input. A malformed percent escape names no file, so the
+// path gets the app shell: null here.
+const decodedPath = (url: string) => {
+	try {
+		return decodeURIComponent(new URL(url).pathname);
+	} catch (error) {
+		if (error instanceof URIError) return null;
+		throw error;
+	}
+};
+
 // Serves the web dist. A file under `/assets/` carries a content hash in
 // its name, so it never changes and caches for a year. Every other path
 // is the app shell, which caches nothing so a new build shows at once.
 export const staticRoute = (config: Config) => async (c: Context) => {
 	const index = join(config.webDist, "index.html");
 	if (!existsSync(index)) return c.html(missingDist(config.webDist));
-	const pathname = decodeURIComponent(new URL(c.req.url).pathname);
-	const target = resolve(config.webDist, `.${pathname}`);
-	if (pathname !== "/" && target.startsWith(config.webDist + sep)) {
+	const pathname = decodedPath(c.req.url);
+	if (pathname !== null && pathname !== "/") {
+		const target = resolve(config.webDist, `.${pathname}`);
 		const file = Bun.file(target);
-		if (await file.exists()) {
+		if (target.startsWith(config.webDist + sep) && (await file.exists())) {
 			const cache = pathname.startsWith("/assets/") ? IMMUTABLE : "no-cache";
 			return new Response(file, { headers: { "content-type": file.type, "cache-control": cache } });
 		}
