@@ -224,6 +224,25 @@ describe("root scaffold", () => {
 		}
 	});
 
+	// apps/server is the first app. turbo runs `bun test` inside it, so its
+	// bunfig.toml must carry the shared preload like every other workspace.
+	test("every workspace ships a bunfig.toml with the shared preload", async () => {
+		const server = await json("apps/server/package.json");
+		expect(server.name).toBe("@trellis/server");
+		expect(server.scripts.test).toBe("bun test");
+		const workspaces = ["apps", "packages"].flatMap((dir) =>
+			readdirSync(join(root, dir))
+				.map((entry) => join(dir, entry))
+				.filter((workspace) => existsSync(join(root, workspace, "package.json"))),
+		);
+		expect(workspaces).toContain("apps/server");
+		for (const workspace of workspaces) {
+			expect(existsSync(join(root, workspace, "bunfig.toml")), workspace).toBe(true);
+			const config = Bun.TOML.parse(await text(join(workspace, "bunfig.toml"))) as { test: { preload: string[] } };
+			expect(config.test.preload).toContain("../../test/preload.ts");
+		}
+	});
+
 	// plan.md "Code organization": a service is `(ctx, tx, input) => result`.
 	test("AGENTS.md and CONTRIBUTING.md state the workspace bunfig rule and the plan's service signature", async () => {
 		const agents = await text("AGENTS.md");
