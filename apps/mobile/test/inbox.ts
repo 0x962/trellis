@@ -71,16 +71,24 @@ const waitForStalled = async () => {
 	throw new Error("the seeded ticket never became stalled");
 };
 
+// The project survives the reset of each test, so one file waits for the
+// threshold once. The file after it finds the project and its row.
 const seedStalled = async () => {
 	if (stalledId !== undefined) return stalledId;
-	await seedProject(seeder, { key: stalledKey, name: "Platform" });
-	const ticket = await seedTicket(seeder, {
-		project: stalledKey,
-		title: stalledTitle,
-		status: "in-progress",
-		by: "agent",
-	});
-	stalledId = ticket.identifier;
+	const projects = await human.projects.list({});
+	if (projects.some((project) => project.key === stalledKey)) {
+		const page = await human.tickets.list({ project: stalledKey, limit: 1 });
+		stalledId = page.items[0]!.identifier;
+	} else {
+		await seedProject(seeder, { key: stalledKey, name: "Platform" });
+		const ticket = await seedTicket(seeder, {
+			project: stalledKey,
+			title: stalledTitle,
+			status: "in-progress",
+			by: "agent",
+		});
+		stalledId = ticket.identifier;
+	}
 	await waitForStalled();
 	return stalledId;
 };

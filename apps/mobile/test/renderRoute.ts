@@ -1,5 +1,5 @@
 import { jest } from "@jest/globals";
-import { renderRouter, screen } from "expo-router/testing-library";
+import { act, renderRouter, screen } from "expo-router/testing-library";
 import { appContext } from "./appContext";
 
 // Mounts the route tree the app ships at one URL, and hands back the route
@@ -16,6 +16,10 @@ import { appContext } from "./appContext";
 export const renderRoute = async (url: string) => {
 	const view = renderRouter(appContext(), { initialUrl: url });
 	await view;
+	// A query that settled during the mount notifies its component on a zero
+	// delay timer. The switch drops every fake timer that is still pending, so
+	// the zero delay ones run first.
+	await act(() => jest.advanceTimersByTimeAsync(0));
 	jest.useRealTimers();
 	return {
 		getPathname: () => view.getPathname(),

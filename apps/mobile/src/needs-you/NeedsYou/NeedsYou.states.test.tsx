@@ -1,12 +1,13 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { createMMKV } from "react-native-mmkv";
-import { connect, disconnect, holdCalls } from "../../../test/connect";
-import { callsTo, createFakeServer, serverHost } from "../../../test/fakeServer";
-import { bumpVersion, emptyInboxServer } from "../../../test/inboxServers";
+import { connect, disconnect } from "../../../test/connect";
+import { bumpVersion, type InboxData, seedInbox } from "../../../test/inbox";
 import { paintedColors } from "../../../test/paint";
+import type { Recorder } from "../../../test/record";
 import { renderNeedsYou, rowIdentifiers, testQueryClient } from "../../../test/renderNeedsYou";
 import { swipeLeft, swipeRight } from "../../../test/swipe";
+import { serverHost } from "../../../test/server";
 import { persistClient, restoreClient } from "../../lib/storage";
 import { tokens } from "../../theme/tokens";
 
@@ -16,17 +17,23 @@ const banner = "Offline, showing cached data";
 const unreachable = `Cannot reach ${serverHost}`;
 const headerPattern = /^(Review|Failing CI|Stalled|Done by agents today)$/;
 const store = createMMKV();
+
+let data: InboxData;
+let net: Recorder | undefined;
 let restoreFetch = () => {};
+
+const first = () => data.review[0]!;
 
 // Fills MMKV with the snapshot the app writes after one good inbox.get,
 // then takes the server away.
 const restoredCache = async () => {
-	restoreFetch = connect(createFakeServer());
+	net = connect();
 	const view = await renderNeedsYou();
-	await screen.findByTestId("inbox-row-CDE-42");
+	await screen.findByTestId(`inbox-row-${first()}`);
 	await persistClient(view.queryClient, store);
 	await view.unmount();
-	restoreFetch();
+	net.restore();
+	net = undefined;
 	restoreFetch = disconnect();
 	const queryClient = testQueryClient();
 	await restoreClient(queryClient, store);
@@ -41,18 +48,24 @@ const onlyPalette = () => {
 };
 
 describe("NeedsYou states", () => {
+	beforeEach(async () => {
+		data = await seedInbox({ stalled: false });
+	});
+
 	afterEach(() => {
 		restoreFetch();
+		restoreFetch = () => {};
+		net?.restore();
+		net = undefined;
 	});
 
 	// MI-40
 	test("pull to refresh refetches inbox.get once", async () => {
-		const server = createFakeServer();
-		restoreFetch = connect(server);
+		net = connect();
 		await renderNeedsYou();
-		await screen.findByTestId("inbox-row-CDE-42");
-		const fetches = callsTo(server, "inbox.get").length;
-		const hold = holdCalls("inbox.get");
+		await screen.findByTestId(`inbox-row-${first()}`);
+		const fetches = net.callsTo("inbox.get").length;
+		const hold = net.hold("inbox.get");
 		const list = () => screen.getByTestId("inbox-list");
 		const refreshing = () => (list().props.refreshControl as { props: { refreshing: boolean } }).props.refreshing;
 		expect(refreshing()).toBe(false);
@@ -61,12 +74,13 @@ describe("NeedsYou states", () => {
 		expect(refreshing()).toBe(true);
 		hold.release();
 		await waitFor(() => expect(refreshing()).toBe(false));
-		expect(callsTo(server, "inbox.get")).toHaveLength(fetches + 1);
+		expect(net.callsTo("inbox.get")).toHaveLength(fetches + 1);
 	});
 
 	// MI-41
 	test("the empty state states the exact sentence with the in-progress count", async () => {
-		restoreFetch = connect(await emptyInboxServer(3));
+		await seedInbox({ review: 0, failingCi: false, stalled: false, done: 0, inProgress: 3 });
+		net = connect();
 		await renderNeedsYou();
 		expect(await screen.findByText("Nothing needs you. 3 tickets in progress by agents.")).toBeOnTheScreen();
 		expect(screen.queryAllByRole("button", { name: headerPattern })).toHaveLength(0);
@@ -75,7 +89,8 @@ describe("NeedsYou states", () => {
 
 	// MI-42
 	test("the empty state uses the singular for one ticket in progress", async () => {
-		restoreFetch = connect(await emptyInboxServer(1));
+		await seedInbox({ review: 0, failingCi: false, stalled: false, done: 0, inProgress: 1 });
+		net = connect();
 		await renderNeedsYou();
 		expect(await screen.findByText("Nothing needs you. 1 ticket in progress by agents.")).toBeOnTheScreen();
 	});
@@ -84,8 +99,8 @@ describe("NeedsYou states", () => {
 	test("restored cache renders under the offline banner", async () => {
 		await renderNeedsYou(await restoredCache());
 		expect(await screen.findByText(banner)).toBeOnTheScreen();
-		expect(await screen.findByTestId("inbox-row-CDE-42")).toBeOnTheScreen();
-		expect(rowIdentifiers()).toEqual(["CDE-42", "CDE-37", "TRL-9", "CDE-44", "CDE-38"]);
+		expect(await screen.findByTestId(`inbox-row-${first()}`)).toBeOnTheScreen();
+		expect(rowIdentifiers()).toEqual([...data.review, data.failingCi]);
 	});
 
 	// MI-47
@@ -112,21 +127,20 @@ describe("NeedsYou states", () => {
 
 	// MI-59. The screen, the sheet, and the toast paint the dark palette only.
 	test("the screen paints only palette colors", async () => {
-		const server = createFakeServer();
-		restoreFetch = connect(server);
+		net = connect();
 		await renderNeedsYou();
-		await screen.findByTestId("inbox-row-CDE-42");
+		await screen.findByTestId(`inbox-row-${first()}`);
 		await fireEvent.press(screen.getByRole("button", { name: "Done by agents today" }));
-		await screen.findByTestId("inbox-row-CDE-48");
+		await screen.findByTestId(`inbox-row-${data.done[0]}`);
 		onlyPalette();
 
-		await act(() => swipeLeft("CDE-37"));
+		await act(() => swipeLeft(data.review[1]!));
 		await screen.findByPlaceholderText("What should change?");
 		onlyPalette();
 		await fireEvent.press(screen.getByRole("button", { name: "Cancel" }));
 
-		bumpVersion(server, "CDE-42");
-		await act(() => swipeRight("CDE-42"));
+		await bumpVersion(first());
+		await act(() => swipeRight(first()));
 		await screen.findByTestId("toast");
 		onlyPalette();
 	});
