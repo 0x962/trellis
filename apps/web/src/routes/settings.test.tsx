@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { themeStorageKey } from "@trellis/ui";
+import { createFakeServer } from "../../test/fake-server";
 import { mockMatchMedia } from "../../test/media";
 import { renderApp } from "../../test/renderWithProviders";
 
@@ -78,5 +79,84 @@ describe("routes/settings", () => {
 		await waitFor(() => expect(document.documentElement.getAttribute("data-theme")).toBe("light"));
 		expect(localStorage.getItem(themeStorageKey)).toBe("light");
 		expect(screen.getByRole("combobox", { name: "Theme" }).textContent).toBe("Light");
+	});
+});
+
+// The five blocks the settings page holds, and one save that replaces the
+// whole settings record.
+describe("settings route", () => {
+	// ST-01
+	test("renders the actor, theme, agent template, threshold, and gh blocks", async () => {
+		const { server } = renderApp({ path: "/settings", actor: "navid" });
+		expect(await screen.findByRole("textbox", { name: /your name/i })).toBeDefined();
+		expect(await screen.findByRole("combobox", { name: "Theme" })).toBeDefined();
+		expect(await screen.findByRole("textbox", { name: /start with agent/i })).toBeDefined();
+		expect(await screen.findByRole("spinbutton", { name: /stalled/i })).toBeDefined();
+		const gh = await server.client.system.gh();
+		expect(await screen.findByText(gh.message!)).toBeDefined();
+		expect(server.calls.some((call) => call.path.join(".") === "system.gh")).toBe(true);
+	});
+
+	// ST-02
+	test("loads every field from settings.get", async () => {
+		const server = createFakeServer();
+		await server.client.settings.set({
+			defaultActorName: "Navid",
+			startWithAgentTemplate: 'claude "{brief}"',
+			stalledHours: 24,
+		});
+		renderApp({ path: "/settings", actor: "navid", server });
+		await waitFor(async () =>
+			expect(((await screen.findByRole("textbox", { name: /your name/i })) as HTMLInputElement).value).toBe("Navid"),
+		);
+		expect(((await screen.findByRole("textbox", { name: /start with agent/i })) as HTMLTextAreaElement).value).toBe(
+			'claude "{brief}"',
+		);
+		expect(((await screen.findByRole("spinbutton", { name: /stalled/i })) as HTMLInputElement).value).toBe("24");
+	});
+
+	// ST-06. settings.set replaces the record, so one save carries every
+	// edit the page holds.
+	test("sends both edited fields in one replace", async () => {
+		const user = userEvent.setup();
+		const { server } = renderApp({ path: "/settings", actor: "navid" });
+		const template = (await screen.findByRole("textbox", { name: /start with agent/i })) as HTMLTextAreaElement;
+		await user.clear(template);
+		await user.type(template, 'codex exec "{{brief}"');
+		const name = await screen.findByRole("textbox", { name: /your name/i });
+		await user.clear(name);
+		await user.type(name, "Nav");
+		await user.tab();
+		const calls = await waitFor(() => {
+			const found = server.calls.filter((call) => call.path.join(".") === "settings.set");
+			expect(found).toHaveLength(1);
+			return found;
+		});
+		expect(calls[0]!.input).toEqual({
+			defaultActorName: "Nav",
+			startWithAgentTemplate: 'codex exec "{brief}"',
+			stalledHours: 24,
+		});
+	});
+
+	// ST-21. Every control is reachable in the order it is read.
+	test("reaches every control by keyboard in reading order", async () => {
+		const user = userEvent.setup();
+		renderApp({ path: "/settings", actor: "navid" });
+		const name = await screen.findByRole("textbox", { name: /your name/i });
+		const theme = await screen.findByRole("combobox", { name: "Theme" });
+		const template = await screen.findByRole("textbox", { name: /start with agent/i });
+		const threshold = await screen.findByRole("spinbutton", { name: /stalled/i });
+		const copy = await screen.findByRole("button", { name: /copy/i });
+		const wanted = [name, theme, template, threshold, copy];
+		const order: number[] = [];
+		name.focus();
+		for (let step = 0; step < 12 && order.length < wanted.length; step += 1) {
+			const index = wanted.indexOf(document.activeElement as HTMLElement);
+			if (index !== -1) order.push(index);
+			await user.tab();
+		}
+		expect(order).toEqual([0, 1, 2, 3, 4]);
+		expect(copy.getAttribute("class")).toContain("focus-visible:outline-accent");
 	});
 });

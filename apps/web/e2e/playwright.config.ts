@@ -26,6 +26,7 @@ export default defineConfig({
 			command: "bun run dev:fake",
 			url: `${fakeApiUrl}/api/health`,
 			cwd: web,
+			env: { TRELLIS_FAKE_GH: "unauthenticated" },
 			reuseExistingServer: false,
 		},
 		{
