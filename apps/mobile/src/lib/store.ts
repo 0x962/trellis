@@ -1,16 +1,7 @@
 import { createMMKV } from "react-native-mmkv";
 
-// The one MMKV instance of the app. Every persisted key is listed here, so a
-// test can seed the store and a reader never spells a key twice.
+// The one MMKV instance of the app. `keys` travels with it, so a reader
+// asks this module for the store and the name of the value it wants.
 export const store = createMMKV({ id: "trellis" });
 
-export const keys = {
-	serverUrl: "trellis-server-url",
-	actorName: "trellis-actor-name",
-	theme: "trellis-theme",
-	queryCache: "trellis-query-cache",
-} as const;
-
-// The `x-trellis-actor` value for a person. The mobile app always acts as a
-// human; agents reach the server through the CLI.
-export const actorHeader = (name: string) => `human:${name}`;
+export { keys } from "./keys";

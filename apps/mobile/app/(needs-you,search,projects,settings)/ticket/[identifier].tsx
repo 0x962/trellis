@@ -2,11 +2,11 @@ import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { EmptyState } from "../../src/components/EmptyState";
-import { getClient } from "../../src/lib/orpc";
-import { usePalette } from "../../src/theme/usePalette";
-import { TicketView } from "../../src/ticket/TicketView";
-import { ticketDetailQuery } from "../../src/ticket/ticketQueries";
+import { EmptyState } from "../../../src/components/EmptyState";
+import { getClient } from "../../../src/lib/orpc";
+import { usePalette } from "../../../src/theme/usePalette";
+import { TicketView } from "../../../src/ticket/TicketView";
+import { ticketDetailQuery } from "../../../src/ticket/ticketQueries";
 
 const styles = StyleSheet.create({
 	loading: { flex: 1, alignItems: "center", justifyContent: "center" },

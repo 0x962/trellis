@@ -5,10 +5,18 @@ import { useMMKVString } from "react-native-mmkv";
 import { Button } from "../src/components/Button";
 import { Field } from "../src/components/Field";
 import { KeyValueRow } from "../src/components/KeyValueRow";
-import { type ProbeResult, probeHealth, validateServerUrl } from "../src/lib/server";
-import { actorHeader, keys, store } from "../src/lib/store";
+import { queryClient } from "../src/lib/queryClient";
+import { actorHeader, type ProbeResult, probeHealth, validateActorName, validateServerUrl } from "../src/lib/server";
+import { keys, store } from "../src/lib/store";
 import { tokens } from "../src/theme/tokens";
 import { usePalette } from "../src/theme/usePalette";
+
+// A probe answer and the URL it asked. The person can edit the field while a
+// probe is in flight, so the answer counts only for the URL it asked.
+type Probe = { url: string; result: ProbeResult };
+
+// The name the probe sends while the Name field is empty.
+const anonymous = "setup";
 
 const failureMessage = (result: Exclude<ProbeResult, { ok: true }>) => {
 	if (result.kind === "timeout") return "Timed out after 3 s";
@@ -23,25 +31,29 @@ const styles = StyleSheet.create({
 });
 
 // Where the server is and who the person is. Save needs a probe that
-// succeeded for the URL in the field and a name. After Save the screen
-// returns to where it was opened from, or to the first tab on a fresh install.
+// succeeded for the URL in the field and a name the actor header grammar
+// takes. After Save the screen returns to where it was opened from, or to the
+// first tab on a fresh install.
 export default function SetupScreen() {
 	const [storedUrl, setStoredUrl] = useMMKVString(keys.serverUrl, store);
 	const [storedName, setStoredName] = useMMKVString(keys.actorName, store);
 	const [url, setUrl] = useState(storedUrl ?? "http://");
 	const [name, setName] = useState(storedName ?? "");
 	const [error, setError] = useState<string>();
-	const [probe, setProbe] = useState<ProbeResult>();
+	const [probe, setProbe] = useState<Probe>();
 	const [busy, setBusy] = useState(false);
-	const [saved, setSaved] = useState(false);
+	// How many times the person pressed Save. The screen leaves on a press
+	// that stored both values, so it counts the presses instead of holding a
+	// flag that stays true after the first one.
+	const [saves, setSaves] = useState(0);
 	const palette = usePalette();
 	const configured = Boolean(storedUrl) && Boolean(storedName);
 
 	useEffect(() => {
-		if (!saved || !configured) return;
+		if (saves === 0 || !configured) return;
 		if (router.canGoBack()) router.back();
 		else router.replace("/");
-	}, [saved, configured]);
+	}, [saves, configured]);
 
 	const changeUrl = (next: string) => {
 		setUrl(next);
@@ -49,27 +61,45 @@ export default function SetupScreen() {
 		setError(undefined);
 	};
 
+	const current = validateServerUrl(url);
+	const validName = validateActorName(name);
+	// The answer for the URL in the field. Another URL's answer shows nothing
+	// and approves nothing.
+	const answer = current.ok && probe?.url === current.url ? probe.result : undefined;
+	// The Name field holds a name the server refuses. An empty field is the
+	// start of the screen and carries no message.
+	const nameNote = name.trim() !== "" && !validName.ok ? validName.error : undefined;
+
 	const testConnection = async () => {
 		const valid = validateServerUrl(url);
 		if (!valid.ok) {
 			setError(valid.error);
 			return;
 		}
+		// The Name field carries the message for a name outside the grammar,
+		// so the press stops here and shows nothing new.
+		const actor = validateActorName(name.trim() === "" ? anonymous : name);
+		if (!actor.ok) return;
 		setError(undefined);
 		setBusy(true);
-		setProbe(await probeHealth(valid.url, actorHeader(name.trim() || "setup")));
+		const result = await probeHealth(valid.url, actorHeader(actor.name));
+		setProbe({ url: valid.url, result });
 		setBusy(false);
 	};
 
+	// The Save button is disabled until `canSave`, which needs both results
+	// below. The two checks give the compiler the URL and the name.
 	const save = () => {
-		const valid = validateServerUrl(url);
-		if (!valid.ok) return;
-		setStoredUrl(valid.url);
-		setStoredName(name.trim());
-		setSaved(true);
+		if (!current.ok || !validName.ok) return;
+		// The cache holds the other server's tickets. They are not rows of the
+		// server the person saves, so the app starts empty on it.
+		if (current.url !== storedUrl) queryClient.clear();
+		setStoredUrl(current.url);
+		setStoredName(validName.name);
+		setSaves((count) => count + 1);
 	};
 
-	const canSave = probe?.ok === true && name.trim().length > 0;
+	const canSave = answer?.ok === true && validName.ok;
 
 	return (
 		<ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
@@ -86,14 +116,14 @@ export default function SetupScreen() {
 			/>
 			<Button label={busy ? "Testing…" : "Test connection"} onPress={() => void testConnection()} disabled={busy} />
 			{error !== undefined && <Text style={[styles.message, { color: palette.danger }]}>{error}</Text>}
-			{probe !== undefined && !probe.ok && (
-				<Text style={[styles.message, { color: palette.danger }]}>{failureMessage(probe)}</Text>
+			{answer !== undefined && !answer.ok && (
+				<Text style={[styles.message, { color: palette.danger }]}>{failureMessage(answer)}</Text>
 			)}
-			{probe?.ok && (
+			{answer?.ok && (
 				<View style={[styles.card, { backgroundColor: palette.surface }]}>
-					<KeyValueRow label="Version" value={probe.version} mono />
-					<KeyValueRow label="Tickets" value={`${probe.ticketCount} tickets`} />
-					<KeyValueRow label="Server says you are" value={probe.actorName} />
+					<KeyValueRow label="Version" value={answer.version} mono />
+					<KeyValueRow label="Tickets" value={`${answer.ticketCount} tickets`} />
+					<KeyValueRow label="Server says you are" value={answer.actorName} />
 				</View>
 			)}
 			<Field
@@ -103,6 +133,7 @@ export default function SetupScreen() {
 				placeholder="navid"
 				autoCapitalize="none"
 				autoCorrect={false}
+				note={nameNote}
 			/>
 			<Button label="Save" onPress={save} disabled={!canSave} variant="primary" />
 		</ScrollView>

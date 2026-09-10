@@ -24,8 +24,13 @@ const listFiles = [
 
 // The screens and features that draw rows. A ScrollView here would keep
 // every row alive at once, so these files scroll through FlashList only.
-const rowDirs = ["src/features/projects/", "src/features/search/", "src/components/TicketRow/", "app/project/"];
-const rowScreens = ["app/(tabs)/projects.tsx", "app/(tabs)/search.tsx"];
+const rowDirs = [
+	"src/features/projects/",
+	"src/features/search/",
+	"src/components/TicketRow/",
+	"app/(projects)/project/",
+];
+const rowScreens = ["app/(projects)/projects.tsx", "app/(search)/search.tsx"];
 
 const drawsRows = (file: string) => rowScreens.includes(file) || rowDirs.some((dir) => file.startsWith(dir));
 

@@ -3,10 +3,9 @@ import {
 	type Persister,
 	persistQueryClientRestore,
 	persistQueryClientSave,
-	persistQueryClientSubscribe,
 } from "@tanstack/query-persist-client-core";
 import type { QueryClient } from "@tanstack/react-query";
-import { keys } from "./store";
+import { keys } from "./keys";
 
 // The part of MMKV the persister touches.
 export type CacheStore = {
@@ -45,6 +44,32 @@ export const persistClient = (queryClient: QueryClient, store: CacheStore) =>
 export const restoreClient = (queryClient: QueryClient, store: CacheStore) =>
 	persistQueryClientRestore({ queryClient, persister: createPersister(store), maxAge: persistOptions.maxAge });
 
-// Writes a snapshot after every cache change until the returned function runs.
-export const subscribePersist = (queryClient: QueryClient, store: CacheStore) =>
-	persistQueryClientSubscribe({ queryClient, persister: createPersister(store) });
+// The longest a cache change waits for its MMKV write.
+export const persistIntervalMs = 1_000;
+
+// Writes a snapshot of the whole cache one second after a change, and stops
+// when the returned function runs. One stream event patches many queries and
+// the cache fires an event for each patch, so a write per event would
+// serialize the whole cache dozens of times a second. The changes of a window
+// share the write that closes it, and that write carries the state at its end.
+export const subscribePersist = (queryClient: QueryClient, store: CacheStore) => {
+	const persister = createPersister(store);
+	let timer: ReturnType<typeof setTimeout> | undefined;
+
+	const schedule = () => {
+		if (timer !== undefined) return;
+		timer = setTimeout(() => {
+			timer = undefined;
+			void persistQueryClientSave({ queryClient, persister });
+		}, persistIntervalMs);
+	};
+
+	const queries = queryClient.getQueryCache().subscribe(schedule);
+	const mutations = queryClient.getMutationCache().subscribe(schedule);
+
+	return () => {
+		clearTimeout(timer);
+		queries();
+		mutations();
+	};
+};

@@ -1,6 +1,8 @@
 // A stand-in for react-native-sse. `instances` lists every stream the module
 // under test opened, oldest first. `emit` on one delivers a server event to
-// the listeners registered for that event name.
+// the listeners registered for that event name, `succeed` reports that the
+// socket is up, and `fail` reports the socket error the library sends when
+// the network drops.
 export type StreamEvent = {
 	type: string;
 	data: string | null;
@@ -8,7 +10,18 @@ export type StreamEvent = {
 	url: string;
 };
 
-type Listener = (event: StreamEvent) => void;
+// The library reports the XMLHttpRequest state with the socket error.
+// XMLHttpRequest.DONE is 4, the state of a request the network cut off.
+export type StreamErrorEvent = {
+	type: "error";
+	message: string;
+	xhrStatus: number;
+	xhrState: number;
+};
+
+export type StreamOpenEvent = { type: "open" };
+
+type Listener = (event: StreamEvent | StreamErrorEvent | StreamOpenEvent) => void;
 
 export type EventSourceOptions = {
 	method?: string;
@@ -62,12 +75,20 @@ export class MockEventSource {
 		else this.listeners.delete(type);
 	}
 
-	dispatch(type: string, event: StreamEvent) {
+	dispatch(type: string, event: StreamEvent | StreamErrorEvent | StreamOpenEvent) {
 		for (const listener of this.listeners.get(type) ?? []) listener(event);
 	}
 
-	emit(type: string, data: string | null) {
-		this.dispatch(type, { type, data, lastEventId: null, url: this.url });
+	emit(type: string, data: string | null, lastEventId: string | null = null) {
+		this.dispatch(type, { type, data, lastEventId, url: this.url });
+	}
+
+	succeed() {
+		this.dispatch("open", { type: "open" });
+	}
+
+	fail(xhrState: number) {
+		this.dispatch("error", { type: "error", message: "", xhrStatus: 0, xhrState });
 	}
 }
 

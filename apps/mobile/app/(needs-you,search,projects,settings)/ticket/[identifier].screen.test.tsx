@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
 import type { Status, StatusSummary, Ticket } from "@trellis/api";
 import { router } from "expo-router";
 import { act, renderRouter, screen, waitFor, within } from "expo-router/testing-library";
-import { appContext } from "../../test/appContext";
-import { type FakeApp, installFakeApp } from "../../test/fakeApp";
-import { ulid } from "../../test/fixtures";
-import { instances } from "../../test/mocks/react-native-sse";
+import { appContext } from "../../../test/appContext";
+import { type FakeApp, installFakeApp } from "../../../test/fakeApp";
+import { ulid } from "../../../test/fixtures";
+import { instances } from "../../../test/mocks/react-native-sse";
 
 let app: FakeApp;
 const tabs = ["Needs you", "Search", "Projects", "Settings"];

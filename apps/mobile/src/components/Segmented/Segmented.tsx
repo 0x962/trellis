@@ -13,7 +13,7 @@ export type SegmentedProps<T extends string> = {
 
 const styles = StyleSheet.create({
 	group: { flexDirection: "row", borderRadius: tokens.radius.md, borderWidth: layout.stroke, overflow: "hidden" },
-	option: { flex: 1, minHeight: tokens.space[8] + tokens.space[1], alignItems: "center", justifyContent: "center" },
+	option: { flex: 1, minHeight: layout.hit, alignItems: "center", justifyContent: "center" },
 	label: { fontSize: tokens.text.base, lineHeight: tokens.leading.base, fontWeight: "500" },
 });
 

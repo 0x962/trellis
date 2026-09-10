@@ -1,4 +1,5 @@
 import { beforeEach, jest } from "@jest/globals";
+import { AppState } from "react-native";
 import { queryClient } from "../src/lib/queryClient";
 import { notificationAsync } from "./mocks/expo-haptics";
 import { createMMKV } from "./mocks/react-native-mmkv";
@@ -21,7 +22,12 @@ jest.mock("expo-constants", () => {
 // to the three mocks, so this file and the module under test share one
 // instance of each. Every test starts from a fresh install: an empty store,
 // an empty query cache, no open stream, and no haptic fired.
+//
+// react-native reports no app state under jest. A phone is in the foreground
+// when a person opens the app, and the event stream opens in the foreground
+// only, so every test starts active.
 beforeEach(() => {
+	AppState.currentState = "active";
 	createMMKV().clearAll();
 	queryClient.clear();
 	resetEventSources();

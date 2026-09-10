@@ -1,4 +1,5 @@
 import {
+	ActorHeaderSchema,
 	CountsOutputSchema,
 	createTrellisClient,
 	DefaultActorSchema,
@@ -16,6 +17,21 @@ export const probeTimeoutMs = 3_000;
 
 const schemeError = "Start the URL with http:// or https://, for example http://192.168.1.20:4521.";
 const shapeError = "Write the URL as http://<host>:<port>.";
+const nameError = "Write the name with 1 to 64 printable ASCII characters and no colon.";
+
+// The `x-trellis-actor` value for a person. The mobile app always acts as a
+// human; agents reach the server through the CLI.
+export const actorHeader = (name: string) => `human:${name}`;
+
+// The person's name, trimmed, or the message the setup screen shows. The
+// typed client and the event stream both parse the header against the actor
+// grammar and throw on a name outside it, so a name is checked before it
+// reaches either.
+export const validateActorName = (input: string): { ok: true; name: string } | { ok: false; error: string } => {
+	const name = input.trim();
+	if (!ActorHeaderSchema.safeParse(actorHeader(name)).success) return { ok: false, error: nameError };
+	return { ok: true, name };
+};
 
 // A scheme, a host, an optional port, and an optional path. Hermes ships no
 // URL class, so the shape is a pattern.

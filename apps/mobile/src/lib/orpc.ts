@@ -1,6 +1,7 @@
 import { createTanstackQueryUtils, type RouterUtils } from "@orpc/tanstack-query";
 import { createTrellisClient, type TrellisClient } from "@trellis/api";
-import { actorHeader, keys, store } from "./store";
+import { actorHeader } from "./server";
+import { keys, store } from "./store";
 
 export type Orpc = RouterUtils<TrellisClient>;
 

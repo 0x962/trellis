@@ -34,10 +34,14 @@ const sourceFiles = () =>
 	);
 
 describe("scaffold", () => {
-	test("app.json and package.json carry the bundle id, dark portrait UI, and exact pins", async () => {
+	// `userInterfaceStyle` fixes the appearance iOS reports to the app.
+	// `automatic` lets `Appearance.getColorScheme()` follow the device, which
+	// the System option in Settings needs. The app paints dark on a fresh
+	// install through `useTheme`, not through this value.
+	test("app.json and package.json carry the bundle id, portrait device appearance, and exact pins", async () => {
 		const { expo } = await json("app.json");
 		expect(expo.ios.bundleIdentifier).toBe("co.nvdk.trellis");
-		expect(expo.userInterfaceStyle).toBe("dark");
+		expect(expo.userInterfaceStyle).toBe("automatic");
 		expect(expo.orientation).toBe("portrait");
 
 		const pkg = await json("package.json");

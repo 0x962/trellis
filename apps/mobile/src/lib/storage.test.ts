@@ -1,8 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, jest, test } from "bun:test";
 import { dehydrate, QueryClient } from "@tanstack/react-query";
-import { persistClient, persistOptions, restoreClient } from "./storage";
+import { keys } from "./keys";
+import { persistClient, persistIntervalMs, persistOptions, restoreClient, subscribePersist } from "./storage";
 
-const key = "trellis-query-cache";
+// `keys` names the MMKV keys and opens no native module, so this file runs
+// on its own without another file that replaces react-native-mmkv first.
+const key = keys.queryCache;
 const hour = 3_600_000;
 const limit = 5 * 1024 * 1024;
 
@@ -37,7 +40,15 @@ const age = (values: Map<string, string>, ms: number) => {
 	values.set(key, JSON.stringify({ ...snapshot, timestamp: Date.now() - ms }));
 };
 
+// The write runs inside a timer callback and returns a promise. This lets
+// that promise settle, so the store holds the snapshot before the count.
+const settle = () => new Promise((resolve) => process.nextTick(resolve));
+
 describe("query cache persistence", () => {
+	afterEach(() => {
+		jest.useRealTimers();
+	});
+
 	test("a cache under 5 MB round-trips through MMKV", async () => {
 		const source = seeded(page);
 		const { store, values } = memoryStore();
@@ -74,5 +85,55 @@ describe("query cache persistence", () => {
 		await restoreClient(kept, recent.store);
 		expect(kept.getQueryCache().getAll()).toHaveLength(1);
 		expect(kept.getQueryData<typeof page>(["tickets", "list", { project: "CDE" }])).toEqual(page);
+	});
+
+	// One stream event patches many queries, and the cache fires an event for
+	// each patch. A write per event would serialize the whole cache dozens of
+	// times a second, so the writes wait for the end of a one second window.
+	test("a burst of 50 patches in one second writes once", async () => {
+		jest.useFakeTimers();
+		const client = new QueryClient();
+		const { store, values, writes } = memoryStore();
+		const stop = subscribePersist(client, store);
+
+		for (let index = 0; index < 50; index += 1) client.setQueryData(["tickets", "list", { page: index }], page);
+		expect(writes()).toBe(0);
+
+		jest.advanceTimersByTime(persistIntervalMs);
+		await settle();
+		expect(writes()).toBe(1);
+		const snapshot = JSON.parse(values.get(key)!) as { clientState: { queries: unknown[] } };
+		expect(snapshot.clientState.queries).toHaveLength(50);
+
+		stop();
+	});
+
+	// The second window holds the state at its end, so a person who leaves the
+	// app one second after a change still finds that change in the snapshot.
+	test("a second burst writes once more, and the stopped subscription writes nothing", async () => {
+		jest.useFakeTimers();
+		const client = new QueryClient();
+		const { store, writes } = memoryStore();
+		const stop = subscribePersist(client, store);
+
+		client.setQueryData(["tickets", "list", {}], page);
+		jest.advanceTimersByTime(persistIntervalMs);
+		await settle();
+		expect(writes()).toBe(1);
+
+		for (let index = 0; index < 50; index += 1) client.setQueryData(["tickets", "get", index], page);
+		jest.advanceTimersByTime(persistIntervalMs);
+		await settle();
+		expect(writes()).toBe(2);
+
+		stop();
+		client.setQueryData(["tickets", "list", { after: "stop" }], page);
+		jest.advanceTimersByTime(persistIntervalMs * 10);
+		await settle();
+		expect(writes()).toBe(2);
+	});
+
+	test("one second is the window", () => {
+		expect(persistIntervalMs).toBe(1_000);
 	});
 });

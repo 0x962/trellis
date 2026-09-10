@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
+import { router } from "expo-router";
+import { act, fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { createMMKV } from "react-native-mmkv";
+import { queryClient } from "../src/lib/queryClient";
 import * as server from "../src/lib/server";
 import { appContext } from "../test/appContext";
 
@@ -21,6 +23,7 @@ const save = () => screen.getByRole("button", { name: "Save" });
 describe("the setup screen", () => {
 	beforeEach(() => {
 		probeHealth.mockReset();
+		queryClient.clear();
 	});
 
 	test("Test connection shows version, ticket count, and actor name, and Save stores both", async () => {
@@ -60,6 +63,96 @@ describe("the setup screen", () => {
 			expect(save()).toBeDisabled();
 		}
 		expect(probeHealth).toHaveBeenCalledTimes(cases.length);
+	});
+
+	// The client parses `human:<name>` before it builds a request and throws
+	// on a name outside the grammar. A throw inside Test connection would
+	// leave the button disabled and show nothing.
+	test("a name outside the actor grammar never reaches the probe and never saves", async () => {
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+		await renderRouter(appContext(), { initialUrl: "/setup" });
+		await typeUrl(url);
+		await typeName("navid:khan");
+		await testConnection();
+		expect(probeHealth).not.toHaveBeenCalled();
+		expect(await screen.findByText(/colon/)).toBeOnTheScreen();
+		expect(screen.getByText("Test connection")).toBeOnTheScreen();
+		expect(save()).toBeDisabled();
+
+		await typeName("navid");
+		await testConnection();
+		expect(await screen.findByText("12 tickets")).toBeOnTheScreen();
+		expect(save()).toBeEnabled();
+
+		await typeName("Zoë");
+		expect(save()).toBeDisabled();
+		await typeName("n".repeat(65));
+		expect(save()).toBeDisabled();
+		expect(store.getString("trellis-actor-name")).not.toBe("n".repeat(65));
+	});
+
+	// The person edits the URL while the first probe is still open. The
+	// answer belongs to the URL it asked, so it approves no other URL.
+	test("a probe that lands after the URL changes approves nothing", async () => {
+		const other = "http://10.0.0.9:4521";
+		let answer = (_result: Awaited<ReturnType<typeof server.probeHealth>>) => {};
+		probeHealth.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+		await renderRouter(appContext(), { initialUrl: "/setup" });
+		await typeUrl(url);
+		await typeName("navid");
+		await testConnection();
+		await typeUrl(other);
+		await act(async () => {
+			answer({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+		});
+		expect(screen.queryByText("12 tickets")).toBeNull();
+		expect(save()).toBeDisabled();
+		expect(probeHealth).toHaveBeenCalledTimes(1);
+	});
+
+	// Two servers hold two sets of tickets. The rows of the old one are not
+	// rows of the new one.
+	test("saving a different server drops the cached rows of the old one", async () => {
+		store.set("trellis-server-url", url);
+		store.set("trellis-actor-name", "navid");
+		queryClient.setQueryData(["tickets", "list", {}], { items: [{ identifier: "CDE-42" }] });
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 3, actorName: "navid" });
+		await renderRouter(appContext(), { initialUrl: "/setup" });
+		await typeUrl("http://10.0.0.9:4521");
+		await testConnection();
+		expect(await screen.findByText("3 tickets")).toBeOnTheScreen();
+		await fireEvent.press(save());
+		expect(store.getString("trellis-server-url")).toBe("http://10.0.0.9:4521");
+		expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
+	});
+
+	// Setup is a tab screen, so it stays mounted after the first Save takes
+	// the person back to where they came from. A person who opens Server
+	// again edits the same mounted screen, and the second Save must leave it
+	// the way the first one did.
+	test("a second save navigates back like the first", async () => {
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+		const back = jest.spyOn(router, "back").mockImplementation(() => {});
+		const canGoBack = jest.spyOn(router, "canGoBack").mockReturnValue(true);
+		await renderRouter(appContext(), { initialUrl: "/setup" });
+
+		await typeUrl(url);
+		await typeName("navid");
+		await testConnection();
+		expect(await screen.findByText("12 tickets")).toBeOnTheScreen();
+		await fireEvent.press(save());
+		await waitFor(() => expect(back).toHaveBeenCalledTimes(1));
+
+		const other = "http://10.0.0.9:4521";
+		await typeUrl(other);
+		await testConnection();
+		expect(await screen.findByText("12 tickets")).toBeOnTheScreen();
+		await fireEvent.press(save());
+		await waitFor(() => expect(back).toHaveBeenCalledTimes(2));
+		expect(store.getString("trellis-server-url")).toBe(other);
+
+		back.mockRestore();
+		canGoBack.mockRestore();
 	});
 
 	test("a URL without a scheme never reaches the probe", async () => {

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { renderRouter } from "expo-router/testing-library";
-import { appContext } from "../../test/appContext";
-import { callsTo, type FakeServer, inputsTo, startFakeServer, stopFakeServer } from "../../test/fakeServer";
+import { appContext } from "../../../test/appContext";
+import { callsTo, type FakeServer, inputsTo, startFakeServer, stopFakeServer } from "../../../test/fakeServer";
 
 // `renderRouter` returns a thenable. Await it once, and the route tree is
 // mounted; the object itself carries `getPathname`.
