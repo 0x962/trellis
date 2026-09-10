@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
 import { createFakeServer, type FakeServer } from "../../../../../test/fake-server";
@@ -97,6 +97,29 @@ describe("SendBackBox", () => {
 		expect(callsTo(server, "comments.create")).toHaveLength(0);
 		expect(callsTo(server, "tickets.move")).toHaveLength(0);
 		expect(document.activeElement).toBe(row);
+	});
+
+	// The comment is on the server when the move fails. The toast says so,
+	// its Retry sends only the move, and the box can send again.
+	test("a failed move after the comment posts shows a toast whose Retry sends only the move", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		const started = await statusOf(server, "CDE", "in-progress");
+		server.failNext("tickets.move", { code: "NOT_FOUND", data: { ref: "CDE-42" } });
+		render(server);
+		await focusRow("CDE-42");
+		await user.keyboard("r");
+		await user.type(await box(), "Fix the migration");
+		await user.keyboard("{Meta>}{Enter}{/Meta}");
+		const text = await screen.findByText(/comment posted/i);
+		const toast = text.closest("[data-sonner-toast]") as HTMLElement;
+		expect(toast.textContent).toMatch(/Couldn't move CDE-42/);
+		expect(callsTo(server, "comments.create")).toHaveLength(1);
+		expect((submit() as HTMLButtonElement).disabled).toBe(false);
+		await user.click(within(toast).getByRole("button", { name: "Retry" }));
+		await waitFor(() => expect(callsTo(server, "tickets.move")).toHaveLength(2));
+		expect(callsTo(server, "comments.create")).toHaveLength(1);
+		expect(lastCallTo(server, "tickets.move")!.input).toEqual({ ticket: "CDE-42", status: started.id });
 	});
 
 	// NY-29. The text is the person's work, so a failed post keeps it.
