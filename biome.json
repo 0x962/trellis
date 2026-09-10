@@ -301,7 +301,7 @@
 			}
 		},
 		{
-			"includes": ["apps/server/src/db/**"],
+			"includes": ["apps/server/src/db/**", "apps/server/test/helpers/**"],
 			"linter": {
 				"rules": {
 					"style": {
