@@ -8,6 +8,7 @@ import { formatCount } from "../../../lib/format";
 import { projectRefOfPathname, projectSlashPath } from "../../../lib/projectPath";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { ProjectKey } from "../../shell/ProjectKey";
+import { ProjectRowActions } from "../ProjectRowActions";
 
 type Row = { project: ProjectSummary; depth: number; children: ProjectSummary[]; open: boolean };
 
@@ -80,7 +81,7 @@ export function ProjectTree() {
 								activeOptions={{ exact: true, includeSearch: false }}
 								aria-current={active ? "page" : undefined}
 								className={cx(
-									"flex h-7 items-center gap-1.5 rounded-md pr-2 transition-colors duration-hover hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
+									"flex h-7 items-center gap-1.5 rounded-md pr-9 transition-colors duration-hover hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
 									indent[level],
 									active ? "bg-accent-soft text-fg" : "text-fg-muted",
 								)}
@@ -92,6 +93,9 @@ export function ProjectTree() {
 									{formatCount(project.openCount)}
 								</span>
 							</Link>
+							<span className="absolute top-0 right-0 z-10">
+								<ProjectRowActions project={project} />
+							</span>
 						</li>
 					);
 				})}
