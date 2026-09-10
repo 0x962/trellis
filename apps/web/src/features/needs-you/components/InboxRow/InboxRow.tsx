@@ -48,7 +48,9 @@ export function InboxRow({ ticket, actions, meta, panel, tabIndex = -1, sweeping
 			)}
 		>
 			<td className="flex min-w-0 flex-1 flex-col p-0">
-				<span className="flex h-10 shrink-0 items-center gap-3 px-5">
+				{/* Under 768 px the status, the pull request, and the last actor
+				are hidden, so the title keeps room to read. */}
+				<span className="flex h-10 shrink-0 items-center gap-3 px-5 max-md:gap-2 max-md:px-4">
 					<PriorityIcon priority={ticket.priority} />
 					<TicketId id={ticket.identifier} className="w-16" />
 					<span className="flex min-w-0 flex-1 items-center gap-2">
@@ -60,12 +62,12 @@ export function InboxRow({ ticket, actions, meta, panel, tabIndex = -1, sweeping
 						>
 							{ticket.title}
 						</Link>
-						{parent !== null && <span className="shrink-0 font-mono text-xs text-fg-faint">↳ {parent.identifier}</span>}
+						{parent !== null && <span className="shrink-0 font-mono text-xs text-fg-muted">↳ {parent.identifier}</span>}
 						{ticket.childCount > 0 && (
 							<span
 								data-sub-tickets=""
 								title="Sub-tickets done"
-								className="flex shrink-0 items-center gap-1 text-xs text-fg-faint tabular"
+								className="flex shrink-0 items-center gap-1 text-xs text-fg-muted tabular"
 							>
 								<StatusIcon
 									category="started"
@@ -79,7 +81,7 @@ export function InboxRow({ ticket, actions, meta, panel, tabIndex = -1, sweeping
 							<span
 								data-comment-count=""
 								title="Comments"
-								className="flex shrink-0 items-center gap-1 text-xs text-fg-faint tabular"
+								className="flex shrink-0 items-center gap-1 text-xs text-fg-muted tabular"
 							>
 								<MessageSquare className="size-2.75" aria-hidden="true" />
 								{ticket.commentCount}
@@ -87,11 +89,11 @@ export function InboxRow({ ticket, actions, meta, panel, tabIndex = -1, sweeping
 						)}
 						{meta}
 					</span>
-					<span className="flex w-36 shrink-0 items-center gap-1.5 text-sm text-fg-muted">
+					<span className="flex w-36 shrink-0 items-center gap-1.5 text-sm text-fg-muted max-md:hidden">
 						<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />
 						<span className="truncate">{status.name}</span>
 					</span>
-					<span className="flex w-16 shrink-0 items-center gap-1.5">
+					<span className="flex w-16 shrink-0 items-center gap-1.5 max-md:hidden">
 						{pr !== null && (
 							<span data-pr-state={pr.state} className="flex items-center gap-1.5 text-fg-faint">
 								<GitPullRequest className="size-3.5" aria-hidden="true" />
@@ -99,12 +101,12 @@ export function InboxRow({ ticket, actions, meta, panel, tabIndex = -1, sweeping
 							</span>
 						)}
 					</span>
-					<span className="flex w-10 shrink-0 justify-center">
+					<span className="flex w-10 shrink-0 justify-center max-md:hidden">
 						{lastActor !== null && lastActor.kind !== "system" && (
 							<Avatar kind={lastActor.kind} name={lastActor.name} />
 						)}
 					</span>
-					<span className="w-10 shrink-0 text-right text-sm text-fg-faint tabular">
+					<span className="w-10 shrink-0 text-right text-sm text-fg-muted tabular">
 						{compactRelativeTime(ticket.updatedAt)}
 					</span>
 					{actions !== undefined && (

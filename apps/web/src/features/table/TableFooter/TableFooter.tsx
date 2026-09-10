@@ -17,7 +17,7 @@ export function TableFooter({ total, selected, sort }: TableFooterProps) {
 		<div
 			data-table-footer=""
 			data-list-footer=""
-			className="flex h-7 shrink-0 items-center gap-4 border-t border-border px-5 text-xs text-fg-faint tabular"
+			className="flex h-7 shrink-0 items-center gap-4 border-t border-border px-5 text-xs text-fg-muted tabular"
 		>
 			<span>
 				{formatCount(total)} {total === 1 ? "ticket" : "tickets"}

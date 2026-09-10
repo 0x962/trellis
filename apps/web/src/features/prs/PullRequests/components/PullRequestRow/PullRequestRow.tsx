@@ -62,7 +62,7 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 						</span>
 					)}
 				</span>
-				<span className="flex min-w-0 items-center gap-2 text-xs text-fg-faint">
+				<span className="flex min-w-0 items-center gap-2 text-xs text-fg-muted">
 					<span className="flex min-w-0 items-center gap-1">
 						<span className="truncate font-mono">{pr.headRef}</span>
 						<span aria-hidden="true">→</span>

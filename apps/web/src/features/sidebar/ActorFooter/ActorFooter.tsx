@@ -8,8 +8,9 @@ import { useApp } from "../../../lib/appContext";
 import { saveActorName } from "../../../lib/identity";
 import { openShortcutHelp } from "../../command/ShortcutHelp";
 
+// 28 px on a mouse and 44 px on a touch screen, the two hit area minimums.
 const iconLinkClass =
-	"inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-fg-muted transition duration-hover hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
+	"inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-fg-muted transition duration-hover hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 pointer-coarse:size-11";
 
 // The bottom of the sidebar: who you are, the settings, and the keyboard
 // help. The actor chip opens a rename popover; Enter stores the new name on
@@ -53,7 +54,7 @@ export function ActorFooter() {
 			>
 				<form onSubmit={submit} className="flex w-56 flex-col gap-2">
 					<Input label="Name" value={draft} invalid={!valid} onChange={(event) => setDraft(event.target.value)} />
-					<p className="text-xs text-fg-faint">Every ticket you touch is attributed to this name.</p>
+					<p className="text-xs text-fg-muted">Every ticket you touch is attributed to this name.</p>
 					<Button type="submit" size="sm" variant="primary" disabled={!valid} className="self-end">
 						Rename
 					</Button>

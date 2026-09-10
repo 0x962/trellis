@@ -75,8 +75,10 @@ export function FilterBar({ project, search, onSearchChange, statuses, children,
 		<div
 			data-filter-bar=""
 			tabIndex={-1}
-			className="flex h-9 shrink-0 items-center gap-1.5 border-b border-border px-5 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+			className="flex h-9 shrink-0 items-center gap-1.5 border-b border-border px-5 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 max-md:overflow-x-auto max-md:px-4"
 		>
+			{/* Under 768 px the buttons show their icons alone, and chips that
+			still do not fit scroll inside the bar, never the page. */}
 			{children}
 			{active.map((field: FilterField) => (
 				<FilterChip
@@ -98,17 +100,27 @@ export function FilterBar({ project, search, onSearchChange, statuses, children,
 				stage={stage}
 				onStageChange={setStage}
 				trigger={
-					<Button variant="quiet" size="sm" icon={<ListFilter />} kbd="f" aria-label="Filter" data-filter-button="">
-						Filter
+					<Button
+						variant="quiet"
+						size="sm"
+						icon={<ListFilter />}
+						kbd="f"
+						aria-label="Filter"
+						data-filter-button=""
+						className="max-md:[&_kbd]:hidden"
+					>
+						<span className="max-md:sr-only">Filter</span>
 					</Button>
 				}
 			/>
+			{/* Under 768 px the two copy buttons show their icons alone; the
+			aria-label keeps their names. */}
 			<div className="ml-auto flex items-center gap-1">
-				<Button variant="quiet" size="sm" icon={<Copy />} onClick={copyCli}>
-					Copy as CLI
+				<Button variant="quiet" size="sm" icon={<Copy />} aria-label="Copy as CLI" onClick={copyCli}>
+					<span className="max-md:sr-only">Copy as CLI</span>
 				</Button>
-				<Button variant="quiet" size="sm" icon={<Link2 />} onClick={copyLink}>
-					Copy link
+				<Button variant="quiet" size="sm" icon={<Link2 />} aria-label="Copy link" onClick={copyLink}>
+					<span className="max-md:sr-only">Copy link</span>
 				</Button>
 				{actions}
 			</div>

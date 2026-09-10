@@ -101,7 +101,7 @@ export function Command({
 			className={cx(
 				"flex h-8 cursor-default items-center gap-2 rounded-sm pr-2 text-base text-fg outline-none select-none data-[selected=true]:bg-bg",
 				indents[Math.min(item.depth ?? 0, indents.length - 1)],
-				"after:ml-auto after:font-mono after:text-xs after:text-fg-faint after:content-[attr(data-hint)] after:tabular",
+				"after:ml-auto after:font-mono after:text-xs after:text-fg-muted after:content-[attr(data-hint)] after:tabular",
 			)}
 		>
 			{item.icon && <span className="inline-flex size-3.5 shrink-0 *:size-full">{item.icon}</span>}
@@ -139,7 +139,7 @@ export function Command({
 								{group.heading}
 							</span>
 						}
-						className="[&_[cmdk-group-heading]]:flex [&_[cmdk-group-heading]]:h-7 [&_[cmdk-group-heading]]:items-center [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-fg-faint"
+						className="[&_[cmdk-group-heading]]:flex [&_[cmdk-group-heading]]:h-7 [&_[cmdk-group-heading]]:items-center [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-fg-muted"
 					>
 						{group.items.map(option)}
 					</Cmdk.Group>

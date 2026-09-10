@@ -60,6 +60,36 @@ svg {
 :is(.markdown, .comment-markdown) ol {
 	list-style: decimal;
 }
+/*
+ * A GFM task item shows its checkbox as the marker. marked renders the
+ * checkbox as the first child of the item; the Tiptap editor marks the item
+ * with data-type="taskItem" and puts the checkbox in a label.
+ */
+:is(.markdown, .comment-markdown) li:has(> input[type="checkbox"]),
+:is(.markdown, .comment-markdown) li[data-type="taskItem"] {
+	list-style: none;
+}
+:is(.markdown, .comment-markdown) li[data-type="taskItem"] {
+	display: flex;
+	gap: 8px;
+	align-items: baseline;
+}
+:is(.markdown, .comment-markdown) li:has(> input[type="checkbox"]) > input[type="checkbox"] {
+	margin-right: 8px;
+}
+/*
+ * A list that holds a task item needs no indent for a marker. CSS forbids a
+ * :has() inside a :has(), and a browser drops a rule with an invalid
+ * selector, so no selector can say "every item is a task item". A plain
+ * item in such a list draws its bullet inside its own box instead.
+ */
+:is(.markdown, .comment-markdown) ul[data-type="taskList"],
+:is(.markdown, .comment-markdown) ul:has(> li > input[type="checkbox"]) {
+	padding-left: 0;
+}
+:is(.markdown, .comment-markdown) ul:has(> li > input[type="checkbox"]) > li:not(:has(> input[type="checkbox"])) {
+	list-style-position: inside;
+}
 :is(.markdown, .comment-markdown) li + li {
 	margin-top: 4px;
 }

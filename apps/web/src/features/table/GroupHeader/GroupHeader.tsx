@@ -58,7 +58,7 @@ export function GroupHeader({
 				{category !== undefined && <StatusIcon category={category} reviewer={status?.reviewer ?? undefined} />}
 				{label}
 			</button>
-			<span data-count="" className="font-normal text-fg-faint tabular">
+			<span data-count="" className="font-normal text-fg-muted tabular">
 				{formatCount(count)}
 			</span>
 			{onCreate && <IconButton size="sm" label={`New ticket in ${label}`} icon={<Plus />} onClick={onCreate} />}
@@ -66,7 +66,7 @@ export function GroupHeader({
 				<button
 					type="button"
 					onClick={onToggle}
-					className="ml-auto inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-sm font-normal text-fg-faint transition-colors duration-hover hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+					className="ml-auto inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-sm font-normal text-fg-muted transition-colors duration-hover hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 				>
 					Show {formatCount(count)}
 					<ChevronDown aria-hidden="true" className="size-3" />

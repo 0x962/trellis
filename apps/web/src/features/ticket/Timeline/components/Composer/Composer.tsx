@@ -78,7 +78,7 @@ export function Composer({ ticket }: ComposerProps) {
 				className="w-full resize-none bg-transparent text-base leading-5 text-fg outline-none placeholder:text-fg-faint"
 			/>
 			<div className="flex items-center justify-end gap-2">
-				<span className="flex items-center gap-1 text-xs text-fg-faint">
+				<span className="flex items-center gap-1 text-xs text-fg-muted">
 					<Kbd>⌘</Kbd>
 					<Kbd>↵</Kbd>
 				</span>

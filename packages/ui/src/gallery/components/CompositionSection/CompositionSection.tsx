@@ -79,7 +79,7 @@ export function CompositionSection() {
 						<PriorityIcon priority="urgent" />
 					</div>
 					<div className="line-clamp-2 text-base leading-4.5">Terminal pane loses scrollback on session handoff</div>
-					<div className="flex items-center gap-2.5 text-xs text-fg-faint">
+					<div className="flex items-center gap-2.5 text-xs text-fg-muted">
 						<GitPullRequest className="size-3.25 text-fg-muted" aria-hidden="true" />
 						<CheckRibbon size="mini" checks={cardChecks} />
 						<Badge icon={<MessageCircle />}>2</Badge>
@@ -125,9 +125,9 @@ export function CompositionSection() {
 							>
 								<Check className="size-3.25 text-success" strokeWidth={2.5} aria-hidden="true" />
 								<span>
-									{check.name} <span className="text-fg-faint">· CI</span>
+									{check.name} <span className="text-fg-muted">· CI</span>
 								</span>
-								<span className="text-fg-faint tabular">1m 12s</span>
+								<span className="text-fg-muted tabular">1m 12s</span>
 								<span className="text-fg-muted">Open</span>
 							</div>
 						))}

@@ -19,6 +19,10 @@ export type UiData = {
 };
 
 export type UiState = UiData & {
+	// Whether the sidebar sheet is open. A screen under 768 px shows the
+	// sidebar in a sheet. The value is not stored, so a reload starts closed.
+	sidebarSheetOpen: boolean;
+	setSidebarSheetOpen: (open: boolean) => void;
 	toggleSidebar: () => void;
 	setSidebarCollapsed: (collapsed: boolean) => void;
 	setDensity: (density: Density) => void;
@@ -82,6 +86,8 @@ export const createUiStore = () =>
 		persist(
 			(set) => ({
 				...defaults,
+				sidebarSheetOpen: false,
+				setSidebarSheetOpen: (open) => set({ sidebarSheetOpen: open }),
 				toggleSidebar: () => set(updates.toggleSidebar),
 				setSidebarCollapsed: (collapsed) => set(updates.setSidebarCollapsed(collapsed)),
 				setDensity: (density) => set(updates.setDensity(density)),
@@ -108,6 +114,7 @@ export const useUiStore = createUiStore();
 
 // The actions components call. Each one changes `useUiStore` itself.
 export const uiActions = {
+	setSidebarSheetOpen: (open: boolean) => useUiStore.setState({ sidebarSheetOpen: open }),
 	toggleSidebar: () => useUiStore.setState(updates.toggleSidebar),
 	setSidebarCollapsed: (collapsed: boolean) => useUiStore.setState(updates.setSidebarCollapsed(collapsed)),
 	setDensity: (density: Density) => useUiStore.setState(updates.setDensity(density)),

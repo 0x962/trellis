@@ -4,7 +4,7 @@ import { type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
 import { TicketPicker } from "../../pickers/TicketPicker";
-import { gridTemplate } from "../columns";
+import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden } from "../columns";
 import { PrCell } from "./components/PrCell";
 import { PriorityCell } from "./components/PriorityCell";
 import { ProjectCell } from "./components/ProjectCell";
@@ -153,12 +153,13 @@ export const Row = memo(function Row({
 			data-focused={focused ? "" : undefined}
 			data-selected={selected ? "" : undefined}
 			style={{
+				...gridStyle(columns),
 				height: `${rowHeights[density]}px`,
-				gridTemplateColumns: gridTemplate(columns),
 				transform: top === undefined ? undefined : `translateY(${top}px)`,
 			}}
 			className={cx(
-				"group/row absolute top-0 left-0 grid w-full items-center gap-3 border-b border-border px-5 outline-none transition-colors duration-hover",
+				"group/row absolute top-0 left-0 grid w-full items-center gap-3 border-b border-border px-5 outline-none transition-colors duration-hover max-md:gap-2 max-md:px-4",
+				gridColumnsClass,
 				density === "comfortable" ? "text-base" : "text-sm",
 				"before:absolute before:top-1 before:bottom-1 before:left-0 before:w-0.5 before:rounded-r-sm before:bg-accent before:opacity-0 before:content-['']",
 				"hover:bg-surface data-focused:bg-accent-soft/60 data-focused:before:opacity-100 data-selected:bg-accent-soft",
@@ -172,7 +173,12 @@ export const Row = memo(function Row({
 		>
 			{columns.map((column) => (
 				// biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order.
-				<div key={column} role="gridcell" data-column={column} className="flex min-w-0 items-center">
+				<div
+					key={column}
+					role="gridcell"
+					data-column={column}
+					className={cx("flex min-w-0 items-center", narrowHidden.includes(column as ColumnId) && "max-md:hidden")}
+				>
 					{cells[column]}
 				</div>
 			))}

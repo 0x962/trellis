@@ -14,7 +14,7 @@ const tones: Record<Tone, string> = {
 	danger: "bg-danger-soft text-danger",
 	warning: "bg-warning-soft text-warning",
 	success: "bg-success-soft text-success",
-	muted: "text-fg-faint",
+	muted: "text-fg-muted",
 };
 
 const shell = "inline-flex h-5 shrink-0 items-center gap-1.5 rounded-xl px-1.75 text-xs font-medium whitespace-nowrap";

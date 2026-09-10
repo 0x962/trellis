@@ -1,4 +1,4 @@
-import { Check, Play, RefreshCw } from "lucide-react";
+import { Check, ChevronDown, Play, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../primitives/Button";
 import { Checkbox } from "../../../primitives/Checkbox";
@@ -44,9 +44,23 @@ export function ControlSections() {
 					Small quiet
 				</Button>
 			</Section>
-			<Section name="IconButton" note="quiet and default; md and sm; disabled">
+			<Section name="Split button" note="primary Button and primary IconButton, joined">
+				<span className="inline-flex items-center gap-px">
+					<Button variant="primary" icon={<Play />} kbd="⌘⇧A" className="rounded-r-none">
+						Start with agent
+					</Button>
+					<IconButton
+						label="Start with agent options"
+						icon={<ChevronDown />}
+						variant="primary"
+						className="rounded-l-none"
+					/>
+				</span>
+			</Section>
+			<Section name="IconButton" note="quiet, default, and primary; md and sm; disabled">
 				<IconButton label="Refresh" icon={<RefreshCw />} />
 				<IconButton label="Refresh" icon={<RefreshCw />} variant="default" />
+				<IconButton label="Refresh" icon={<RefreshCw />} variant="primary" />
 				<IconButton label="Refresh" icon={<RefreshCw />} size="sm" />
 				<IconButton label="Refresh" icon={<RefreshCw />} disabled />
 			</Section>
