@@ -29,13 +29,12 @@ export type Runtime = {
 // before the first call. `close` waits for the calls in flight. The inline
 // implementation runs on the calling thread; the worker implementation
 // runs the same calls on a Worker and carries the same interface.
-// `startJobs` starts the poller and the maintenance timer in the thread that
-// owns the database. `stopJobs` stops them and must settle before `close`.
+// `start` with `jobs` also starts the poller and the maintenance timer in the
+// thread that owns the database. `close` then drains the poller first, for
+// up to 5 s, so no poller write runs after the database closes.
 export type ServiceTransport = {
 	call: (name: ServiceName, ctx: RequestContext, input: unknown) => Promise<unknown>;
-	start: () => Promise<TransportStart>;
-	startJobs: (options: JobsStart) => void;
-	stopJobs: () => Promise<void>;
+	start: (jobs?: JobsStart) => Promise<TransportStart>;
 	close: () => Promise<void>;
 };
 
@@ -110,21 +109,21 @@ export const createInlineTransport = ({
 		return promise;
 	};
 
-	const start = async () => {
+	let jobs: Jobs | null = null;
+	const start = async (options?: JobsStart) => {
 		await db.transaction((tx) => cache.rebuild(tx));
 		const found = await db.execute(sql`SELECT DISTINCT sha256 FROM attachments`);
+		if (options !== undefined) {
+			const clock = scaledClock(options.clockRate);
+			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });
+		}
 		return { applied, liveShas: found.rows.map((row) => row.sha256 as string) };
 	};
 
-	let jobs: Jobs;
-	const startJobs = ({ clockRate, log }: JobsStart) => {
-		jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log, clock: scaledClock(clockRate) });
-	};
-	const stopJobs = () => jobs.stop();
-
 	const close = async () => {
+		if (jobs !== null) await jobs.stop();
 		await Promise.allSettled([...inFlight]);
 	};
 
-	return { call, start, startJobs, stopJobs, close };
+	return { call, start, close };
 };

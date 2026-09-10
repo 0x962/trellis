@@ -40,7 +40,6 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 	const streams = new Map<number, StreamState>();
 	const ready = Promise.withResolvers<TransportStart>();
 	const closed = Promise.withResolvers<void>();
-	const jobsStopped = Promise.withResolvers<void>();
 	let jobsLog: JobsLog;
 	const fail = (error: unknown) => {
 		ready.reject(error);
@@ -91,10 +90,6 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			jobsLog(data.msg, data.fields);
 			return;
 		}
-		if (data.type === "jobsStopped") {
-			jobsStopped.resolve();
-			return;
-		}
 		if (data.type === "gh") {
 			void runtime.gh(data.slot, data.args).then((result) => send({ type: "ghResult", id: data.id, result }));
 			return;
@@ -136,10 +131,13 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 		closed.resolve();
 	};
 
-	const start = async () => {
+	// The jobs run on the worker, beside the database. Their log lines come
+	// back as messages, so they reach the one logger of the process.
+	const start = async (jobs?: JobsStart) => {
 		worker = new Worker(new URL("./worker.ts", import.meta.url).href, { name: "trellis-db" });
 		worker.onmessage = receive;
 		worker.onerror = (event) => fail(event.error);
+		if (jobs !== undefined) jobsLog = jobs.log;
 		send({
 			type: "start",
 			config,
@@ -149,6 +147,7 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 				ghBin: runtime.gh.bin,
 				ghTimeoutMs: runtime.gh.timeoutMs,
 			},
+			jobs: jobs === undefined ? null : { clockRate: jobs.clockRate },
 		});
 		return ready.promise;
 	};
@@ -174,6 +173,8 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 		return promise;
 	};
 
+	// The worker drains the poller before it closes the database. This side
+	// keeps answering gh relays until the worker says closed.
 	const close = async () => {
 		flush();
 		for (const id of streams.keys()) send({ type: "cancel", id });
@@ -183,16 +184,5 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 		worker.terminate();
 	};
 
-	// The jobs run on the worker, beside the database. Their log lines come
-	// back as messages, so they reach the one logger of the process.
-	const startJobs = ({ clockRate, log }: JobsStart) => {
-		jobsLog = log;
-		send({ type: "startJobs", clockRate });
-	};
-	const stopJobs = async () => {
-		send({ type: "stopJobs" });
-		await jobsStopped.promise;
-	};
-
-	return { call, start, startJobs, stopJobs, close };
+	return { call, start, close };
 };

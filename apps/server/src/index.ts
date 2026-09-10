@@ -40,8 +40,8 @@ const SHUTDOWN_DEADLINE_MS = 4000;
 type Fetch = (request: Request) => Response | Promise<Response>;
 
 // Boot: config, the data home lock, the port, the data home directories,
-// the gh check off the boot path, the database and its migrations, the blob
-// sweep, the app, then the poller and the maintenance timer.
+// the gh check off the boot path, the database and its migrations with the
+// poller and the maintenance timer beside it, the blob sweep, then the app.
 //
 // The lock and the port come before the database. Two PGlite instances on
 // one data directory corrupt it, so a second server on a held home, or a
@@ -91,14 +91,13 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		const transport = database
 			? createInlineTransport({ db: database.db, bus, config, runtime, applied: database.applied })
 			: createWorkerTransport({ bus, config, runtime });
-		const started = await transport.start();
+		const started = await transport.start({ clockRate: config.clockRate, log: (msg, fields) => log.info(msg, fields) });
 		log.info("migrate", { applied: started.applied });
 		const swept = await sweep(config.home, started.liveShas);
 		log.info("sweep", { removedBlobs: swept.removedBlobs.length, removedTemp: swept.removedTemp.length });
 		const { app, bye } = createApp({ config, log, transport, bus, runtime });
 		handler = app.fetch;
 		log.info("listening", { port: server.port, home: config.home, version: pkg.version });
-		transport.startJobs({ clockRate: config.clockRate, log: (msg, fields) => log.info(msg, fields) });
 		for (const hook of hooks) await hook.start();
 
 		let stopping = false;
@@ -111,7 +110,6 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			bye("shutdown");
 			await Promise.race([server.stop(), Bun.sleep(SHUTDOWN_DEADLINE_MS)]);
 			for (const hook of hooks) await hook.stop();
-			await transport.stopJobs();
 			await transport.close();
 			if (database) await database.close();
 			lock.release();
