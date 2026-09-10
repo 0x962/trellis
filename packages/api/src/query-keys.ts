@@ -255,7 +255,6 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 				return;
 			case "ready":
 			case "bye":
-			case "agents.batch":
 				return;
 		}
 	};
