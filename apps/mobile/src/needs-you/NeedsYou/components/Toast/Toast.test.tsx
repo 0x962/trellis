@@ -12,8 +12,7 @@ describe("Toast", () => {
 
 	// MI-34. An error toast lives 6 s; a success toast lives 3 s.
 	test("a toast shows its two lines, its action, and its own lifetime", async () => {
-		// The lifetime check steps time by hand, so the clock must not move on its own.
-		jest.useFakeTimers({ advanceTimers: false });
+		jest.useFakeTimers();
 		const onDismiss = jest.fn();
 		const onRetry = jest.fn();
 		const error = await render(

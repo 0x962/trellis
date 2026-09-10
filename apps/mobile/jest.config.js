@@ -47,8 +47,4 @@ module.exports = {
 		"^expo-haptics$": "<rootDir>/test/mocks/expo-haptics.ts",
 	},
 	setupFilesAfterEnv: ["<rootDir>/test/jest.setup.ts"],
-	// expo-router's renderRouter turns on fake timers. With this option those
-	// timers advance with the clock, so a real wait inside a test still ends.
-	// A test that steps time by hand asks for exact timers itself.
-	fakeTimers: { advanceTimers: true },
 };

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "@jest/globals";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { act, fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { appContext } from "../../../test/appContext";
 import { type FakeApp, installFakeApp } from "../../../test/fakeApp";
@@ -45,7 +45,7 @@ describe("the comment composer", () => {
 		await fireEvent.changeText(field(), "   ");
 		expect(send()).toBeDisabled();
 		await fireEvent.press(send());
-		await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+		await act(() => jest.advanceTimersByTimeAsync(50));
 		expect(app.callsTo("comments.create")).toHaveLength(0);
 	});
 });
