@@ -1,6 +1,6 @@
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
-import { Button, IconButton, Skeleton, useHotkey } from "@trellis/ui";
+import { IconButton, Skeleton, Tooltip, useHotkey } from "@trellis/ui";
 import { ArrowLeft, Copy, Maximize2, X } from "lucide-react";
 import { copyText } from "../../../lib/clipboard";
 import { lastListHref } from "../../../lib/lastList";
@@ -104,21 +104,26 @@ export function Header(props: HeaderProps) {
 						<ReviewActions ticket={ticket} />
 						<StartWithAgent ticket={ticket} />
 						<BriefCopy ticket={ticket} />
-						<Button
-							aria-label="Copy ID"
-							icon={<Copy />}
-							className="font-mono"
-							onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
-						>
-							{ticket.identifier}
-						</Button>
+						<Tooltip content="Copy ID ⌘C">
+							<IconButton
+								label="Copy ID"
+								size="md"
+								icon={<Copy />}
+								onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
+							/>
+						</Tooltip>
 						<MoreMenu ticket={ticket} />
 					</>
 				)}
 				{surface === "peek" && (
 					<>
-						<IconButton label="Expand to the full page" icon={<Maximize2 />} onClick={expand} />
-						<IconButton label="Close" icon={<X />} onClick={peek.close} />
+						<span aria-hidden="true" className="mx-1 h-4 w-px bg-border" />
+						<Tooltip content="Expand to the full page">
+							<IconButton label="Expand to the full page" size="md" icon={<Maximize2 />} onClick={expand} />
+						</Tooltip>
+						<Tooltip content="Close Esc">
+							<IconButton label="Close" size="md" icon={<X />} onClick={peek.close} />
+						</Tooltip>
 					</>
 				)}
 			</div>
