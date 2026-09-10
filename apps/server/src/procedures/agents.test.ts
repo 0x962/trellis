@@ -11,7 +11,10 @@ import { flagOf } from "../../test/helpers/superset-stub.ts";
 const a = agentsHarness();
 
 const inbox = async (limit?: number): Promise<AgentInboxOutput> => {
-	const response = await a.post("/api/agents/inbox", limit === undefined ? { project: a.key } : { project: a.key, limit });
+	const response = await a.post(
+		"/api/agents/inbox",
+		limit === undefined ? { project: a.key } : { project: a.key, limit },
+	);
 	expect(response.status).toBe(200);
 	return response.body as AgentInboxOutput;
 };
@@ -61,7 +64,11 @@ describe("agents procedures", () => {
 			terminalId: `t-b-${a.key}`,
 			claudeSessionId: "c",
 		};
-		const builder = await a.t.api("/api/agents/register", { method: "POST", body, actor: `agent:builder-${a.lower}-1` });
+		const builder = await a.t.api("/api/agents/register", {
+			method: "POST",
+			body,
+			actor: `agent:builder-${a.lower}-1`,
+		});
 		expect(builder.body).toMatchObject({ role: "builder", ticketId: ticket.id, title: a.ticket(1) });
 		expect(ids(await a.sessions(`project=${a.key}`))).toEqual([manager.id, builder.body.id]);
 		expect(ids(await a.sessions(`ticket=${a.ticket(1)}`))).toEqual([builder.body.id]);

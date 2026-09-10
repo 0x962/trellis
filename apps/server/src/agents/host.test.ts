@@ -51,7 +51,14 @@ const settingsFor = (project: Project, global: boolean) => ({
 	runner: "superset",
 	enabled: global,
 	projects: [
-		{ projectId: project.id, enabled: true, supersetProjectId: null, baseBranch: "main", maxConcurrent: 3, removeWorkspaceOnDone: true },
+		{
+			projectId: project.id,
+			enabled: true,
+			supersetProjectId: null,
+			baseBranch: "main",
+			maxConcurrent: 3,
+			removeWorkspaceOnDone: true,
+		},
 	],
 });
 
@@ -104,14 +111,38 @@ describe("agents host", () => {
 		await enable();
 		await t.createTicket({ project: "CDE", title: "One" });
 		stub.update((state) => {
-			state.workspaces.push({ id: "ws-b", name: "CDE-1", branch: "cde-1-one", projectId: "sp-web", baseBranch: "main", tag: "trellis-cde" });
-			for (const [terminalId, exited] of [["t-live", false], ["t-dead", true]] as const) {
-				state.terminals.push({ terminalId, workspaceId: "ws-b", label: "Terminal", title: "CDE-1", command: null, exited, sent: [] });
+			state.workspaces.push({
+				id: "ws-b",
+				name: "CDE-1",
+				branch: "cde-1-one",
+				projectId: "sp-web",
+				baseBranch: "main",
+				tag: "trellis-cde",
+			});
+			for (const [terminalId, exited] of [
+				["t-live", false],
+				["t-dead", true],
+			] as const) {
+				state.terminals.push({
+					terminalId,
+					workspaceId: "ws-b",
+					label: "Terminal",
+					title: "CDE-1",
+					command: null,
+					exited,
+					sent: [],
+				});
 			}
 		});
-		for (const [role, terminalId] of [["builder", "t-live"], ["reviewer", "t-dead"], ["reviewer", "t-gone"]]) {
+		for (const [role, terminalId] of [
+			["builder", "t-live"],
+			["reviewer", "t-dead"],
+			["reviewer", "t-gone"],
+		]) {
 			const body = { role, project: "CDE", ticket: "CDE-1", workspaceId: "ws-b", terminalId, claudeSessionId: "c" };
-			expect((await t.api("/api/agents/register", { method: "POST", body, actor: `agent:${role}-cde-1` })).status).toBe(200);
+			expect((await t.api("/api/agents/register", { method: "POST", body, actor: `agent:${role}-cde-1` })).status).toBe(
+				200,
+			);
 		}
 		await startHost();
 		const states = (await sessions("ticket=CDE-1")).map(({ terminalId, state }) => [terminalId, state]);
@@ -145,7 +176,13 @@ describe("agents host", () => {
 		await enable();
 		await startHost();
 		const [manager] = await sessions();
-		const body = { role: "manager", project: "CDE", workspaceId: manager!.workspaceId, terminalId: manager!.terminalId, claudeSessionId: "c-1" };
+		const body = {
+			role: "manager",
+			project: "CDE",
+			workspaceId: manager!.workspaceId,
+			terminalId: manager!.terminalId,
+			claudeSessionId: "c-1",
+		};
 		expect((await t.api("/api/agents/register", { method: "POST", body, actor: MANAGER })).status).toBe(200);
 		stub.exit(manager!.terminalId!);
 		await t.createTicket({ project: "CDE", title: "Fix login" });

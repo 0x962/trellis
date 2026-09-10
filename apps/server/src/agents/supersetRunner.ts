@@ -48,7 +48,10 @@ const spawnSuperset = async (bin: string, args: string[]) => {
 // Superset records a project's repository as a URL or as `owner/repo`, in
 // any letter case, with or without `.git`.
 const namesRepo = (recorded: string, { owner, repo }: RunnerRepo) => {
-	const plain = recorded.toLowerCase().replace(/\.git$/, "").replace(/\/+$/, "");
+	const plain = recorded
+		.toLowerCase()
+		.replace(/\.git$/, "")
+		.replace(/\/+$/, "");
 	const wanted = `${owner}/${repo}`;
 	return plain === wanted || plain.endsWith(`/${wanted}`) || plain.endsWith(`:${wanted}`);
 };
@@ -141,7 +144,16 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 		wake: async (session, text) => {
 			const tab = (await terminals(session.workspaceId)).find((found) => found.terminalId === session.terminalId);
 			if (tab !== undefined && !tab.exited) {
-				await run(["terminals", "send", "--workspace", session.workspaceId, "--terminal", session.terminalId, "--text", text]);
+				await run([
+					"terminals",
+					"send",
+					"--workspace",
+					session.workspaceId,
+					"--terminal",
+					session.terminalId,
+					"--text",
+					text,
+				]);
 				return { terminalId: session.terminalId, relaunched: false };
 			}
 			const command = managerCommand(session.project, session.claudeSessionId, text);

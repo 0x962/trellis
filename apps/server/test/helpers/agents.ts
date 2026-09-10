@@ -50,9 +50,7 @@ export const agentsHarness = () => {
 					tag: `trellis-${lower()}`,
 				},
 			],
-			terminals: [
-				{ ...tab(), label: "Terminal", title: `${key} manager`, command: null, exited: false, sent: [] },
-			],
+			terminals: [{ ...tab(), label: "Terminal", title: `${key} manager`, command: null, exited: false, sent: [] }],
 		});
 		events.length = 0;
 	});

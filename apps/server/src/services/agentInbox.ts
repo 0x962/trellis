@@ -1,7 +1,7 @@
 import {
 	type Activity,
-	type AgentInboxOutput,
 	AgentInboxInputSchema,
+	type AgentInboxOutput,
 	type Comment,
 	type StoredActorKind,
 } from "@trellis/api";

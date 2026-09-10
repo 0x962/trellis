@@ -117,7 +117,8 @@ if (key === "ws delete") {
 
 if (key === "terminals create") {
 	const workspaceId = flag("--workspace")!;
-	if (!state.workspaces.some((workspace) => workspace.id === workspaceId)) refuse(`Workspace not found: ${workspaceId}`);
+	if (!state.workspaces.some((workspace) => workspace.id === workspaceId))
+		refuse(`Workspace not found: ${workspaceId}`);
 	const terminal = addTerminal(workspaceId, flag("--command"));
 	answer({ terminalId: terminal.terminalId, workspaceId });
 }

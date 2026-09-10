@@ -121,7 +121,14 @@ describe("dispatcher relevance", () => {
 		bus.emit(ticket(1, ["title"], { projectId: CDE_WEB }), NAVID);
 		bus.emit(ticket(2, ["priority"]), REVIEWER);
 		bus.emit({ type: "attachment.created", id: ulid(), ticketId: TICKETS[2]!, projectId: CDE }, BUILDER);
-		bus.emit({ type: "pr.updated", id: ulid(), ticketIds: [TICKETS[1]!], projectIds: [CDE_WEB], state: "open", ciState: "fail" });
+		bus.emit({
+			type: "pr.updated",
+			id: ulid(),
+			ticketIds: [TICKETS[1]!],
+			projectIds: [CDE_WEB],
+			state: "open",
+			ciState: "fail",
+		});
 		// Not counted: another agent, another project, a project rename, the gh
 		// state, and the agents events trellis itself emits.
 		change(3, OTHER_AGENT);
@@ -139,8 +146,18 @@ describe("dispatcher relevance", () => {
 
 	test("a PR change names the ticket the dispatcher has seen, and a status set change names who made it", async () => {
 		change(1, OTHER_AGENT);
-		bus.emit({ type: "pr.linked", id: ulid(), ticketIds: [TICKETS[1]!], projectIds: [CDE], state: "open", ciState: "none" }, NAVID);
-		bus.emit({ type: "pr.updated", id: ulid(), ticketIds: [TICKETS[5]!], projectIds: [CDE], state: "merged", ciState: "pass" });
+		bus.emit(
+			{ type: "pr.linked", id: ulid(), ticketIds: [TICKETS[1]!], projectIds: [CDE], state: "open", ciState: "none" },
+			NAVID,
+		);
+		bus.emit({
+			type: "pr.updated",
+			id: ulid(),
+			ticketIds: [TICKETS[5]!],
+			projectIds: [CDE],
+			state: "merged",
+			ciState: "pass",
+		});
 		bus.emit({ type: "statuses.changed", projectId: CDE }, NAVID);
 		await clock.advance(10_000);
 		expect(batches[0]!.text).toBe(

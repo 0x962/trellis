@@ -177,7 +177,10 @@ export const createInlineTransport = ({
 			clock: options.clock,
 			log: options.log,
 			call: (name, input) => call(name, systemContext(), input),
-			projects: { scope: (projectId) => cache.resolveSubtree(projectId), path: (projectId) => pathOf(cache, projectId) },
+			projects: {
+				scope: (projectId) => cache.resolveSubtree(projectId),
+				path: (projectId) => pathOf(cache, projectId),
+			},
 		});
 		hooks.settingsChanged = () => void host.reload();
 		agents = host;
