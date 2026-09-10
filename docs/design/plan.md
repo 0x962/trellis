@@ -23,7 +23,6 @@ This plan was produced by two design agents (product, engineering) and corrected
 | Web | React 19, Vite 8, TanStack Router, Query, Table v9, Virtual | current |
 | UI primitives | Base UI (`@base-ui/react`, the renamed successor of `@base-ui-components/react`), Tailwind v4, own tokens in `packages/ui` | 1.8, 4.3 |
 | Editor, palette, dnd, motion, toasts, icons | Tiptap 3, cmdk, `@atlaskit/pragmatic-drag-and-drop`, `motion/mini`, sonner, lucide-react | current |
-| Diff rendering on PR rows | `@pierre/diffs` | 1.4 |
 | Fonts | Inter Variable (`cv11`, `ss01`, `tnum`), JetBrains Mono, preloaded latin subsets | fontsource |
 | Mobile | Expo 57, expo-router, React Native 0.87, NativeWind 4, FlashList v2, MMKV, `react-native-sse` | current |
 | CLI | `citty`, lazy subcommands, built bundle on install | 0.2 |
@@ -425,7 +424,7 @@ Ticket surfaces: side peek by default (`?peek=CDE-42`, 720 px, resizable, `j`/`k
 
 Ticket page: sticky header (breadcrumb `CDE › web › auth · CDE-12 Parent`, Start with agent ▾, Copy ID, … menu), ID + editable title, description (read-only markdown, Tiptap on `e` or click, markdown in/out, slash menu, autosave 800 ms with `expectedVersion`; a 412 shows "changed by agent:claude-code: reload or overwrite"), sub-tickets with a progress bar, PR rows, attachments, one interleaved timeline (`timeline.list`; comments as cards, activity as 32 px lines, same-actor runs within 5 min collapsed), composer pinned at the bottom. Properties rail 280 px: status, priority, project, parent, sub-tickets, branch (derived `cde-42-slug`, copy), created, updated.
 
-PR row: state icon (open green, draft dashed gray, merged violet, closed red), `o/r #123 Title`, the **check ribbon** (64×6 segmented bar, one segment per check in run order up to the box width in px, above that one segment per run of same-bucket checks with a 1 px minimum for a failing run; shimmer while pending), pill ✓ n · ✕ n · ○ n, review-state chip, branch → base, updated; expand to per-check rows (failing first, links); expand further to the diff rendered with `@pierre/diffs` from `pullRequests.diff`. A merged PR on a review-status ticket shows "PR merged, mark Done?".
+PR row: state icon (open green, draft dashed gray, merged violet, closed red), `o/r #123 Title`, the **check ribbon** (64×6 segmented bar, one segment per check in run order up to the box width in px, above that one segment per run of same-bucket checks with a 1 px minimum for a failing run; shimmer while pending), pill ✓ n · ✕ n · ○ n, review-state chip, branch → base, updated; expand to per-check rows (failing first, links); a Show diff control that opens `margin.localhost/<pr-url>` in a new tab (Navid, 2026-09-10: margin is the review surface on this machine, so trellis renders no diff of its own). A merged PR on a review-status ticket shows "PR merged, mark Done?".
 
 Actors: human = filled circle with initials; agent = rounded-square outline in the agent color with `⟡` and a mono chip `⟡ claude-code · agent`; live dot when the agent acted within 5 min; agent comments carry an agent-colored left border; `system` never shows as an actor. Clicking an actor filters the list.
 
