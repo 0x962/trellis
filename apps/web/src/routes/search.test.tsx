@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { renderApp } from "../../test/renderWithProviders";
 
 beforeEach(() => localStorage.clear());
@@ -18,5 +18,15 @@ describe("routes/search", () => {
 		});
 		expect(await screen.findByText(/3 tickets/)).toBeDefined();
 		expect(screen.getByText(/0 projects/)).toBeDefined();
+	});
+
+	test("the search route applies filter chips above the result table", async () => {
+		renderApp({ path: "/search?q=oauth&priority=high", actor: "navid" });
+		const bar = await screen.findByTestId("search-filters");
+		expect(within(bar).getByRole("button", { name: "Remove Priority" })).toBeDefined();
+		const grid = await screen.findByRole("grid", { name: "Search results" });
+		expect(within(grid).getByText("CDE-51")).toBeDefined();
+		expect(within(grid).queryByText("TRL-12")).toBeNull();
+		expect(within(grid).queryByText("MRG-3")).toBeNull();
 	});
 });

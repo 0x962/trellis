@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import { EmptyState } from "@trellis/ui";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Board } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
@@ -27,8 +27,12 @@ import { type AppContext, useApp } from "../../../lib/appContext";
 import { rememberList } from "../../../lib/lastList";
 import { parseProjectSplat, projectHref, projectSlashPath } from "../../../lib/projectPath";
 import { useUiStore } from "../../../stores/uiStore";
-import { ProjectSettingsView } from "./components/ProjectSettingsView";
 import { ScopeChip } from "./components/ScopeChip";
+
+// The settings screen loads in its own chunk, so the list views never pay for it.
+const ProjectSettingsPage = lazy(async () => ({
+	default: (await import("./components/ProjectSettingsPage")).ProjectSettingsPage,
+}));
 
 const projectOptions = (context: AppContext, ref: string) =>
 	context.orpc.projects.get.queryOptions({ input: { project: ref } });
@@ -48,11 +52,11 @@ export const Route = createFileRoute("/p/$")({
 	},
 	loaderDeps: ({ search }) => search,
 	loader: async ({ context, params, deps }) => {
-		const { ref } = parseProjectSplat(params._splat ?? "");
-		await Promise.all([
-			context.queryClient.ensureQueryData(projectOptions(context, ref)),
-			context.queryClient.ensureQueryData(countsOptions(context, ref, deps)),
-		]);
+		const { ref, view } = parseProjectSplat(params._splat ?? "");
+		await context.queryClient.ensureQueryData(projectOptions(context, ref));
+		if (view !== "settings") {
+			await context.queryClient.ensureQueryData(countsOptions(context, ref, deps));
+		}
 	},
 	component: ProjectPage,
 	errorComponent: ProjectError,
@@ -78,7 +82,17 @@ function ProjectPage() {
 
 	useEffect(() => rememberList(listHref), [listHref]);
 
-	if (view === "settings") return <ProjectSettingsView project={project} />;
+	if (view === "settings") {
+		return (
+			<Suspense
+				fallback={
+					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-muted">Loading settings…</div>
+				}
+			>
+				<ProjectSettingsPage project={project} />
+			</Suspense>
+		);
+	}
 
 	const setSearch = (next: Partial<View>) => navigate({ to: "/p/$", params: { _splat }, search: stripDefaults(next) });
 
