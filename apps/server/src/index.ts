@@ -71,7 +71,10 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		log.info("sweep", { removedBlobs: swept.removedBlobs.length, removedTemp: swept.removedTemp.length });
 		const { app, bye } = createApp({ config, log, transport, bus, runtime });
 
-		const server = Bun.serve({ port: config.port, hostname: "127.0.0.1", fetch: app.fetch });
+		// An event stream is silent between pings, 15 seconds apart by default.
+		// Bun closes a connection that is silent for `idleTimeout` seconds, so 0
+		// turns that timer off and the stream stays open.
+		const server = Bun.serve({ port: config.port, hostname: "127.0.0.1", idleTimeout: 0, fetch: app.fetch });
 		log.info("listening", { port: server.port, home: config.home, version: pkg.version });
 		for (const hook of hooks) await hook.start();
 

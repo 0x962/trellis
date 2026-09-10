@@ -87,6 +87,26 @@ describe("boot", () => {
 		expect(stub.spawns().map((spawn) => spawn.args.slice(0, 2).join(" "))).toEqual(["auth status"]);
 	});
 
+	// Bun closes a connection that is silent for 10 seconds by default. The
+	// first ping comes after 15 seconds, so a quiet stream must outlive that
+	// window and still deliver the next event on the same connection.
+	test("an event stream stays open through 12 silent seconds", async () => {
+		const server = start(freshHome());
+		const { url } = await server.listening();
+		const stream = readSse(await fetch(`${url}/api/events`));
+		expect((await stream.next()).event).toBe("ready");
+
+		await stream.idle(12_000);
+		await fetch(`${url}/api/projects`, {
+			method: "POST",
+			headers: { "content-type": "application/json", "x-trellis-actor": "human:navid" },
+			body: JSON.stringify({ key: "IDL", name: "Idle" }),
+		});
+		const event = await stream.next(2000);
+
+		expect(event.event).toBe("project.created");
+	}, 20_000);
+
 	test("a boot failure exits 1 with one line", async () => {
 		const home = freshHome();
 		mkdirSync(join(home, "db"), { recursive: true });
