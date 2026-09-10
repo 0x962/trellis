@@ -96,7 +96,7 @@ const removesWorkspace = async (tx: Tx, session: { role: string; ticketId: strin
 		sql`SELECT st.category FROM tickets t JOIN statuses st ON st.id = t.status_id WHERE t.id = ${session.ticketId}`,
 	);
 	const row = (await readAgentSettings(tx)).projects.find((found) => found.projectId === session.projectId);
-	return ["done", "canceled"].includes(ticket!.category) && row !== undefined && row.removeWorkspaceOnDone;
+	return ["done", "canceled"].includes(ticket!.category) && row?.removeWorkspaceOnDone === true;
 };
 
 // A stopped session stays as it is and the runner is not called.
