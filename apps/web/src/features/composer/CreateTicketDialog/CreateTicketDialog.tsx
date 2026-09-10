@@ -1,8 +1,9 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import type { Priority, Status, Ticket, TicketSummary } from "@trellis/api";
 import { Button, Dialog, Input, Kbd, toast, useHotkey } from "@trellis/ui";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
+import { failToast } from "../../ticket/utils/failToast";
 import { useApp } from "../../../lib/appContext";
 import { parseSearch, serializeSearch } from "../../filters/grammar";
 import { insertRow } from "../../table/utils/cacheRows";
@@ -38,6 +39,8 @@ export function CreateTicketDialog() {
 	const [projectMissing, setProjectMissing] = useState(false);
 	const [asking, setAsking] = useState(false);
 	const [editorKey, setEditorKey] = useState(0);
+	const [creating, setCreating] = useState(false);
+	const inFlight = useRef(false);
 
 	const chosenProject = project ?? defaults.project;
 	const chosenStatus = status ?? defaults.statuses.find((entry) => entry.slug === defaults.status);
@@ -54,22 +57,36 @@ export function CreateTicketDialog() {
 		}
 	};
 
+	// One create at a time. Two hotkey presses can land in one tick, before
+	// `creating` renders, so the ref holds the guard and the state disables
+	// the buttons. A refused create keeps the draft and the dialog open.
 	const create = async (stay: boolean) => {
 		const title = draft.title.trim();
 		if (chosenProject === undefined) {
 			setProjectMissing(true);
 			return;
 		}
-		if (title === "") return;
+		if (title === "" || inFlight.current) return;
 		const parentRef = parent === undefined ? defaults.parent : (parent?.identifier ?? undefined);
-		const ticket = await client.tickets.create({
-			project: chosenProject,
-			title,
-			status: chosenStatus?.slug,
-			priority: chosenPriority,
-			...(parentRef === undefined ? {} : { parent: parentRef }),
-			...(editing ? { description } : {}),
-		});
+		inFlight.current = true;
+		setCreating(true);
+		let ticket: Ticket;
+		try {
+			ticket = await client.tickets.create({
+				project: chosenProject,
+				title,
+				status: chosenStatus?.slug,
+				priority: chosenPriority,
+				...(parentRef === undefined ? {} : { parent: parentRef }),
+				...(editing ? { description } : {}),
+			});
+		} catch (error) {
+			failToast("Couldn't create the ticket", error, () => void create(stay));
+			return;
+		} finally {
+			inFlight.current = false;
+			setCreating(false);
+		}
 		insertRow(queryClient, summaryOf(ticket));
 		void queryClient.invalidateQueries({ queryKey: orpc.tickets.counts.key() });
 		void queryClient.invalidateQueries({ queryKey: orpc.projects.key() });
@@ -103,6 +120,7 @@ export function CreateTicketDialog() {
 				hideLabel
 				autoFocus
 				autoComplete="off"
+				maxLength={500}
 				placeholder="What needs to happen?"
 				value={draft.title}
 				onChange={(event) => setDraft({ ...draft, title: event.target.value })}
@@ -135,10 +153,10 @@ export function CreateTicketDialog() {
 				<Button variant="quiet" onClick={requestClose}>
 					Cancel
 				</Button>
-				<Button onClick={() => void create(true)}>
+				<Button disabled={creating} onClick={() => void create(true)}>
 					Create and add another <Kbd className="ml-1">⌘⇧↩</Kbd>
 				</Button>
-				<Button variant="primary" onClick={() => void create(false)} kbd="⌘↩">
+				<Button variant="primary" disabled={creating} onClick={() => void create(false)} kbd="⌘↩">
 					Create
 				</Button>
 			</div>
