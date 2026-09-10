@@ -48,7 +48,6 @@ export const warmWrites = async (db: Db, cache: ProjectCache) => {
 			await tickets.update(ctx, tx, { ticket: ticket.id, title });
 			await comments.create(ctx, tx, { ticket: ticket.id, body: WARM_TITLE });
 			await tickets.move(ctx, tx, { ticket: ticket.id, status: ticket.status_id });
-			await tickets.create(ctx, tx, { project: ticket.project_id, title: WARM_TITLE });
 			tx.rollback();
 		})
 		.catch((error: unknown) => {

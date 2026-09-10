@@ -76,6 +76,9 @@ test("start runs a ticket write and a comment write, then leaves no row and no e
 
 	expect(capture.texts.some((text) => /UPDATE tickets SET title/.test(text))).toBe(true);
 	expect(capture.texts.some((text) => /INSERT INTO comments/.test(text))).toBe(true);
+	// A create takes the next number from the root counter. A home whose
+	// counter lags its numbers must still boot, so start creates no ticket.
+	expect(capture.texts.some((text) => /INSERT INTO tickets/.test(text))).toBe(false);
 	expect(await state()).toEqual(before);
 	expect(events).toEqual([]);
 	const updated = (await booted.call("tickets.update", ctx(), { ticket: "CDE-1", title: "Second" })) as {
