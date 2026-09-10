@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { createTestApp, type TestApp } from "../../test/helpers/app.ts";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
 
@@ -18,6 +18,7 @@ beforeEach(async () => {
 	expect(web.status).toBe(201);
 });
 afterAll(() => h.close());
+afterEach(() => t.close());
 
 const slugs = (body: { statuses: Array<{ slug: string }> }) => body.statuses.map((status) => status.slug);
 

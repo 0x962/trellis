@@ -22,7 +22,8 @@ beforeEach(async () => {
 afterAll(() => h.close());
 
 const restores: Array<() => void> = [];
-afterEach(() => {
+afterEach(async () => {
+	await t.close();
 	for (const restore of restores.splice(0)) restore();
 });
 

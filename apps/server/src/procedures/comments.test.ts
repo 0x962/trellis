@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { createTestApp, type TestApp } from "../../test/helpers/app.ts";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
 
@@ -17,6 +17,7 @@ beforeEach(async () => {
 	await t.createTicket({ project: "CDE", title: "First" });
 });
 afterAll(() => h.close());
+afterEach(() => t.close());
 
 describe("comments", () => {
 	test("comments.create answers 201 with a Location header", async () => {

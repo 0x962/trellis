@@ -2,7 +2,7 @@ import { createTrellisClient, type GhStatus, type Project, type Ticket, type Tre
 import { ulid } from "ulid";
 import { createApp } from "../../src/app.ts";
 import { type Config, loadConfig } from "../../src/config.ts";
-import { createInlineTransport, type Runtime } from "../../src/db/transport.ts";
+import { createInlineTransport, createWorkerTransport, type Runtime } from "../../src/db/transport.ts";
 import { createBus } from "../../src/events/bus.ts";
 import { createGhRunner, type GhRunner } from "../../src/gh/run.ts";
 import { createLogger, type LogLevel, type LogRecord } from "../../src/log.ts";
@@ -64,7 +64,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		TRELLIS_MAX_UPLOAD_MB: String(options.maxUploadMb ?? 50),
 		TRELLIS_LOG_LEVEL: options.logLevel ?? "debug",
 		TRELLIS_WEB_DIST: options.webDist ?? `${home}/no-web-dist`,
-		TRELLIS_DB_INLINE: "true",
+		TRELLIS_DB_INLINE: process.env.TRELLIS_TEST_TRANSPORT === "worker" ? "false" : "true",
 	});
 	const records: LogRecord[] = [];
 	const log = createLogger({
@@ -86,7 +86,9 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		ghStatus: options.ghStatus ?? signedInGh,
 	};
 	const clock = fakeIntervalClock();
-	const transport = createInlineTransport({ db: h.db, bus, config, runtime });
+	const transport = config.dbInline
+		? createInlineTransport({ db: h.db, bus, config, runtime })
+		: createWorkerTransport({ bus, config, runtime });
 	await transport.start();
 	const { app, bye } = createApp({ config, log, transport, bus, runtime, clock });
 

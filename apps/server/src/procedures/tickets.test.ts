@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { CLAUDE, createTestApp, type TestApp } from "../../test/helpers/app.ts";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
 
@@ -17,6 +17,7 @@ beforeEach(async () => {
 	await t.seedProject("CDE");
 });
 afterAll(() => h.close());
+afterEach(() => t.close());
 
 // A ticket CDE-1 at version 3: one create and two title changes.
 const ticketAtVersionThree = async () => {
