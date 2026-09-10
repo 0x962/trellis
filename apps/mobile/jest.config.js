@@ -35,6 +35,13 @@ const { "\\.[jt]sx?$": babel, ...transform } = preset.transform;
 module.exports = {
 	preset: "jest-expo",
 	testMatch: ["<rootDir>/app/**/*.test.tsx", "<rootDir>/src/**/*.test.tsx"],
+	// One server serves the whole run, and its inbox, its project list, and
+	// its search span every project. So one file runs at a time, and each file
+	// drops the projects of the file before it.
+	globalSetup: "<rootDir>/test/globalSetup.ts",
+	globalTeardown: "<rootDir>/test/globalTeardown.ts",
+	maxWorkers: 1,
+	testTimeout: 30_000,
 	transform: { ...transform, "\\.m?[jt]sx?$": babel },
 	transformIgnorePatterns: [
 		`/node_modules/(?!(${transformed.join("|")}))`,
