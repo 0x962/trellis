@@ -98,7 +98,7 @@ describe("features/composer/CreateTicketDialog", () => {
 		const { title } = await open("/p/CDE", {}, server);
 		await user.type(title(), "Refused once");
 		await user.keyboard("{Meta>}{Enter}{/Meta}");
-		const toast = await toastWith(/Couldn't create/);
+		const toast = await toastWith(/The ticket did not save/);
 		expect(screen.getByRole("dialog", { name: /new ticket/i })).toBeDefined();
 		expect(title().value).toBe("Refused once");
 		await user.click(within(toast).getByRole("button", { name: "Retry" }));
@@ -164,7 +164,9 @@ describe("features/composer/CreateTicketDialog", () => {
 		await findGrid();
 		await user.keyboard("c");
 		const dialog = await screen.findByRole("dialog", { name: /new ticket/i });
-		await waitFor(() => expect(within(dialog).getByRole("button", { name: /^status/i }).textContent).toContain("In Progress"));
+		await waitFor(() =>
+			expect(within(dialog).getByRole("button", { name: /^status/i }).textContent).toContain("In Progress"),
+		);
 	});
 
 	// T7. A new project keeps the chosen status when it has that slug, and

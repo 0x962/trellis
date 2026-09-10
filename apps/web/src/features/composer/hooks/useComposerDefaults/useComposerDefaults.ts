@@ -36,7 +36,12 @@ export const defaultStatus = (statuses: readonly Status[]): Status | undefined =
 // status. A filter only narrows the list, so a status filter never seeds
 // it, and the project default applies. A single-valued priority filter
 // seeds the priority.
-export const composerDefaults = ({ project, statuses, view, groupStatus }: ComposerDefaultsInput): ComposerDefaults => ({
+export const composerDefaults = ({
+	project,
+	statuses,
+	view,
+	groupStatus,
+}: ComposerDefaultsInput): ComposerDefaults => ({
 	project,
 	status: groupStatus ?? defaultStatus(statuses)?.slug,
 	priority: single(view.priority, view.not?.includes("priority") ?? false) ?? "none",

@@ -1,6 +1,6 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import type { Priority, Ticket, TicketSummary } from "@trellis/api";
-import { Button, Dialog, Input, Kbd, toast, useHotkey } from "@trellis/ui";
+import { Button, Dialog, Switch, toast, useHotkey } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useApp } from "../../../lib/appContext";
@@ -11,6 +11,7 @@ import { composerActions, useComposerStore } from "../composerStore";
 import { defaultStatus, useComposerDefaults } from "../hooks/useComposerDefaults";
 import { useComposerDraft } from "../hooks/useComposerDraft";
 import { ChipRow } from "./components/ChipRow";
+import { ComposerHeader } from "./components/ComposerHeader";
 import { DescriptionField } from "./components/DescriptionField";
 
 const summaryOf = (ticket: Ticket): TicketSummary => {
@@ -23,7 +24,8 @@ const isList = (pathname: string) => pathname === "/all" || pathname.startsWith(
 
 // The quick composer, product.md 6.1: title, description from the
 // template, the chip row, Cmd+Enter to create, Cmd+Shift+Enter to create
-// and stay. The draft survives an Escape.
+// and stay. With Create more on, every create stays. The draft survives an
+// Escape.
 export function CreateTicketDialog() {
 	const options = useComposerStore((state) => state.options);
 	const { client, queryClient, orpc } = useApp();
@@ -42,6 +44,7 @@ export function CreateTicketDialog() {
 	const [asking, setAsking] = useState(false);
 	const [editorKey, setEditorKey] = useState(0);
 	const [creating, setCreating] = useState(false);
+	const [createMore, setCreateMore] = useState(false);
 	const inFlight = useRef(false);
 
 	const chosenProject = project ?? defaults.project;
@@ -84,7 +87,7 @@ export function CreateTicketDialog() {
 				...(editing ? { description } : {}),
 			});
 		} catch (error) {
-			failToast("Couldn't create the ticket", error, () => void create(stay));
+			failToast("The ticket did not save.", error, () => void create(stay));
 			return;
 		} finally {
 			inFlight.current = false;
@@ -113,21 +116,27 @@ export function CreateTicketDialog() {
 		}
 	};
 
-	useHotkey("mod+enter", () => void create(false));
+	useHotkey("mod+enter", () => void create(createMore));
 	useHotkey("mod+shift+enter", () => void create(true));
 
 	return (
-		<Dialog open onOpenChange={(next) => !next && requestClose()} title="New ticket" size="lg">
-			<Input
-				label="Title"
-				hideLabel
+		<Dialog
+			open
+			onOpenChange={(next) => !next && requestClose()}
+			title="New ticket"
+			header={<ComposerHeader project={chosenProject} onClose={requestClose} />}
+			size="lg"
+			className="rounded-xl"
+		>
+			<input
+				aria-label="Title"
 				autoFocus
 				autoComplete="off"
 				maxLength={500}
-				placeholder="What needs to happen?"
+				placeholder="Ticket title"
 				value={draft.title}
 				onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-				className="h-9 text-lg"
+				className="h-7 w-full bg-transparent text-xl font-semibold text-fg outline-none placeholder:text-fg-faint"
 			/>
 			<DescriptionField
 				key={editorKey}
@@ -149,14 +158,14 @@ export function CreateTicketDialog() {
 				onPriority={setPriority}
 				onParent={setParent}
 			/>
-			<div className="flex items-center justify-end gap-2">
-				<Button variant="quiet" onClick={requestClose}>
-					Cancel
-				</Button>
-				<Button disabled={creating} onClick={() => void create(true)}>
-					Create and add another <Kbd className="ml-1">⌘⇧↩</Kbd>
-				</Button>
-				<Button variant="primary" disabled={creating} onClick={() => void create(false)} kbd="⌘↩">
+			<div className="flex items-center justify-end gap-3 border-t border-border pt-3">
+				<Switch
+					label="Create more"
+					checked={createMore}
+					onCheckedChange={setCreateMore}
+					className="text-xs text-fg-muted"
+				/>
+				<Button variant="primary" size="md" disabled={creating} onClick={() => void create(createMore)} kbd="⌘↩">
 					Create
 				</Button>
 			</div>
@@ -164,7 +173,7 @@ export function CreateTicketDialog() {
 				open={asking}
 				modal={false}
 				title="Discard the draft?"
-				description="The title and the description are lost."
+				description="trellis deletes the title and the description."
 				confirmLabel="Discard"
 				danger
 				onConfirm={() => {
