@@ -22,6 +22,9 @@ const timingFiles: Record<string, string[]> = {
 		"test/perf/boot.perf.ts",
 		"test/perf/poller.perf.ts",
 		"test/perf/memory.perf.ts",
+		"test/perf/attachments.perf.ts",
+		"test/perf/concurrency.perf.ts",
+		"test/perf/backup.perf.ts",
 		"src/db/worker.drift.perf.ts",
 	],
 	"packages/cli": ["test/coldStart.perf.ts"],
@@ -43,6 +46,16 @@ describe("bun run check", () => {
 				expect(scripts["perf:10k"], `${workspace} perf:10k runs ${file}`).toContain(`./${file}`);
 				expect(testTaskRuns(file), `${workspace} test skips ${file}`).toBe(false);
 			}
+		}
+	});
+
+	// plan.md, Performance requirements: `bun run perf` runs the same suite
+	// against the 50k seed.
+	test("bun run perf runs every server timing file at 50k rows", async () => {
+		const scripts = await scriptsOf("apps/server");
+		expect(scripts.perf).toStartWith("TRELLIS_PERF_ROWS=50000 ");
+		for (const file of timingFiles["apps/server"]!) {
+			expect(scripts.perf, `apps/server perf runs ${file}`).toContain(`./${file}`);
 		}
 	});
 });

@@ -1,10 +1,13 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@playwright/test";
+import { createRunRoot, sweepDeadRoots } from "../../../test/runRoot.ts";
 import { ghReplies } from "./ghReplies";
+
+const ROOT_PREFIX = "trellis-e2e-";
 
 // The web workspace, where vite runs, and the server workspace.
 const web = fileURLToPath(new URL("..", import.meta.url));
@@ -24,9 +27,15 @@ const freePort = () =>
 // Playwright loads this file in the runner and again in every worker. The
 // runner picks the ports and the temp root once and stores them in the
 // environment, which every worker inherits, so all loads agree.
+//
+// The root name carries the pid of the runner. The runner removes its root
+// when it exits, and a new runner removes each root whose runner is dead.
 if (process.env.TRELLIS_E2E_ROOT === undefined) {
-	const root = mkdtempSync(join(tmpdir(), "trellis-e2e-"));
+	sweepDeadRoots(tmpdir(), ROOT_PREFIX);
+	const root = createRunRoot(tmpdir(), ROOT_PREFIX);
+	process.on("exit", () => rmSync(root, { recursive: true, force: true }));
 	mkdirSync(join(root, "gh"));
+	mkdirSync(join(root, "user"));
 	writeFileSync(join(root, "gh", "replies.json"), JSON.stringify(ghReplies));
 	process.env.TRELLIS_E2E_ROOT = root;
 	process.env.TRELLIS_E2E_API_PORT = await freePort();
@@ -60,9 +69,19 @@ export default defineConfig({
 		baseURL: webUrl,
 		trace: "retain-on-failure",
 	},
+	// A test tagged @timing measures milliseconds in a browser that shares the
+	// machine with every other process, so it gets one retry. The list
+	// reporter prints a retried test as flaky. No other test retries.
 	projects: [
 		{ name: "onboarding", testMatch: /onboarding\.spec\.ts$/ },
-		{ name: "flows", testIgnore: /onboarding\.spec\.ts$/, dependencies: ["onboarding"] },
+		{ name: "flows", testIgnore: /onboarding\.spec\.ts$/, grepInvert: /@timing/, dependencies: ["onboarding"] },
+		{
+			name: "timing",
+			testIgnore: /onboarding\.spec\.ts$/,
+			grep: /@timing/,
+			retries: 1,
+			dependencies: ["onboarding"],
+		},
 	],
 	webServer: [
 		{
@@ -70,6 +89,7 @@ export default defineConfig({
 			url: `${apiUrl}/api/health`,
 			cwd: server,
 			env: {
+				HOME: join(root, "user"),
 				TRELLIS_HOME: join(root, "home"),
 				TRELLIS_PORT: apiPort,
 				TRELLIS_GH_BIN: ghStub,

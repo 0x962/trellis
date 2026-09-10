@@ -38,7 +38,7 @@ export function TicketPeek() {
 	}, [current]);
 	useEffect(() => () => commandActions.setPeekTicket(null), []);
 
-	usePeekNavigation({ rows, current: current ?? "", onStep: peek.step });
+	usePeekNavigation({ rows, current: current ?? "", onStep: peek.step, onPrefetch: peek.prefetch });
 	useDetailRemoved(current, peek.close);
 	useHotkey(
 		"o",

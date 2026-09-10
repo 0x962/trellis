@@ -103,6 +103,25 @@ describe("system.backup", () => {
 		]);
 	});
 
+	// tar exits nonzero when the disk fills or the process gets a signal. The
+	// backup then fails, and the snapshot and the half-written archive go.
+	test("a backup whose tar fails removes its snapshot and writes no archive", async () => {
+		const originalSpawn = Bun.spawn;
+		const patched = Bun as { spawn: typeof Bun.spawn };
+		patched.spawn = ((command: string[], options?: unknown) => {
+			const failing = command[0] === "tar" ? ["sh", "-c", `touch "${command[2]}"; exit 2`] : command;
+			return originalSpawn(failing, options as never);
+		}) as typeof Bun.spawn;
+
+		try {
+			await expect(runBackup()).rejects.toThrow(/tar exited 2/);
+		} finally {
+			patched.spawn = originalSpawn;
+		}
+
+		expect(archives()).toEqual([]);
+	});
+
 	test("backup vacuums the busy tables once its transaction commits", async () => {
 		const vacuums = async () => {
 			const found = await db.execute(

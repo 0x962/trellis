@@ -1,6 +1,5 @@
 import { mkdirSync } from "node:fs";
 import { networkInterfaces } from "node:os";
-import type { GhStatus } from "@trellis/api";
 import { ulid } from "ulid";
 import pkg from "../package.json";
 import { createApp } from "./app.ts";
@@ -9,10 +8,11 @@ import { openDatabase } from "./db/open.ts";
 import { createInlineTransport, createWorkerTransport } from "./db/transport.ts";
 import { createBus } from "./events/bus.ts";
 import { createGhRunner } from "./gh/run.ts";
+import { createGhState } from "./ghState.ts";
 import { lockHome } from "./homeLock.ts";
 import { listenAddresses } from "./listen.ts";
 import { createLogger, createRotatingSink, type LogSink, stdoutSink, teeSink } from "./log.ts";
-import { checkGh } from "./services/system.ts";
+import { sweepBackups } from "./storage/backups.ts";
 import { sweep } from "./storage/blobs.ts";
 
 // Something that starts once the port is open and stops during the
@@ -78,23 +78,24 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		});
 		lock.setPort(server.port!);
 		for (const dir of [config.dbDir, config.tmpDir, config.backupsDir]) mkdirSync(dir, { recursive: true });
+		const leftovers = sweepBackups(config.backupsDir);
+		if (leftovers.length > 0) log.info("backup sweep", { removed: leftovers });
 
 		const gh = createGhRunner();
-		let ghState: GhStatus = { ok: false, user: null, reason: "error", message: "Not checked yet.", checkedAt: null };
-		void checkGh(gh, new Date()).then((status) => {
-			ghState = status;
+		const bootId = ulid();
+		const bus = createBus({ bootId });
+		const ghState = createGhState({ bus, gh, now: () => new Date() });
+		void ghState.check().then((status) => {
 			log.info("gh", { ok: status.ok, user: status.user, reason: status.reason });
 		});
 
-		const bootId = ulid();
-		const bus = createBus({ bootId });
 		// TRELLIS_PORT=0 lets the kernel pick the port, so `server.port` is the
 		// real port.
 		const runtime = {
 			version: pkg.version,
 			bootId,
 			gh,
-			ghStatus: () => ghState,
+			ghStatus: ghState.current,
 			addresses: async () => listenAddresses(config.host, server.port!, networkInterfaces()),
 		};
 		const database = config.dbInline ? await openDatabase(config.dbDir) : undefined;

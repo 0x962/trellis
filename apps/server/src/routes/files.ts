@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import type { Config } from "../config.ts";
 import type { RequestContext } from "../context.ts";
 import type { ServiceTransport } from "../db/transport.ts";
+import { createDbTiming, serverTimingHeader } from "../serverTiming.ts";
 import { contentDisposition } from "../services/attachments.ts";
 import { blobPath } from "../storage/blobs.ts";
 
@@ -14,10 +15,12 @@ export const filesRoute =
 	({ config, transport }: { config: Config; transport: ServiceTransport }) =>
 	async (c: Context) => {
 		const ctx: RequestContext = { actor: null, session: null, reqId: c.get("requestId"), now: new Date() };
-		const attachment = (await transport.call("attachments.get", ctx, { id: c.req.param("id") })) as Attachment;
+		const timing = createDbTiming();
+		const attachment = (await transport.call("attachments.get", ctx, { id: c.req.param("id") }, timing)) as Attachment;
 		const etag = `"${attachment.sha256}"`;
 		const headers: Record<string, string> = {
 			etag,
+			"server-timing": serverTimingHeader(timing),
 			"cache-control": "private, max-age=31536000, immutable",
 			"x-content-type-options": "nosniff",
 			"content-security-policy": "sandbox",

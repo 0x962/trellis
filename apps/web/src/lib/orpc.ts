@@ -28,10 +28,16 @@ export const createQueryClient = () =>
 		},
 	});
 
+// The reads that start at once, outside the batch. A ticket detail read
+// meets the ticket-open budget. A statuses read lands with it, so a review
+// key pressed the moment the Approve button shows never waits for a batch
+// of slower reads such as the timeline.
+const unbatched = new Set(["tickets.get", "statuses.list"]);
+
 // The typed client, the TanStack Query utils over it, and a QueryClient.
-// The batch link folds calls from one tick. A ticket detail read starts
-// immediately to meet the ticket-open budget. The actor header is read from
-// localStorage on every request, so a rename takes effect on the next call.
+// The batch link folds calls from one tick, except the reads above. The
+// actor header is read from localStorage on every request, so a rename
+// takes effect on the next call.
 export const createOrpc = (options: OrpcOptions = {}) => {
 	const fetch: FetchLike = options.fetch ?? ((request, init) => globalThis.fetch(request, init));
 	const baseUrl = options.baseUrl ?? window.location.origin;
@@ -40,7 +46,7 @@ export const createOrpc = (options: OrpcOptions = {}) => {
 			new BatchLinkPlugin({
 				groups: [{ condition: () => true, context: {} }],
 				mode: "buffered",
-				exclude: ({ path }) => path[0] === "tickets" && path[1] === "get",
+				exclude: ({ path }) => unbatched.has(path.join(".")),
 			}),
 		],
 	});

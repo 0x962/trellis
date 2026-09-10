@@ -7,6 +7,10 @@ on:
 
 jobs:
   check:
+    # `bun run check` runs the 10k perf suite. The budgets are for Navid's
+    # Mac, and a CI runner gets 2.5 times each budget.
+    env:
+      TRELLIS_PERF_FACTOR: "2.5"
     strategy:
       fail-fast: false
       matrix:

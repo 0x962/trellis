@@ -75,7 +75,7 @@ export const services = {
 	"settings.set": core("mutation", settings.set),
 	"system.health": io("read", system.health),
 	"system.gh": io("read", system.gh),
-	"system.backup": io("mutation", system.backup),
+	"system.snapshot": io("mutation", system.snapshot),
 	"system.export": { family: "io", kind: "read", stream: system.exportNdjson } as ServiceEntry,
 } satisfies Record<string, ServiceEntry>;
 

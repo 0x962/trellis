@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import type { RequestContext } from "../context.ts";
 import type { JobsLog } from "../jobs.ts";
+import type { DbTiming } from "../serverTiming.ts";
 import { type ServiceName, services } from "../services/registry.ts";
 import type { JobsStart, ServiceTransport, TransportStart, WorkerTransportOptions } from "./transport.ts";
 import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./worker.ts";
@@ -10,7 +11,8 @@ import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./w
 // batches the calls, relays gh spawns and log lines, and puts the events of
 // the worker on the bus of the HTTP process.
 
-type PendingCall = { resolve: (value: unknown) => void; reject: (error: unknown) => void };
+// `timing` gains the database time the worker reports with the answer.
+type PendingCall = { resolve: (value: unknown) => void; reject: (error: unknown) => void; timing?: DbTiming };
 
 type StreamState = {
 	controller: ReadableStreamDefaultController<Uint8Array>;
@@ -65,7 +67,9 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			return;
 		}
 		if (data.type === "result") {
-			pending.get(data.id)!.resolve(data.result);
+			const call = pending.get(data.id)!;
+			if (call.timing !== undefined) call.timing.ms += data.dbMs;
+			call.resolve(data.result);
 			pending.delete(data.id);
 			return;
 		}
@@ -77,7 +81,9 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 				stream.pulled?.();
 				streams.delete(data.id);
 			} else {
-				pending.get(data.id)!.reject(error);
+				const call = pending.get(data.id)!;
+				if (call.timing !== undefined) call.timing.ms += data.dbMs;
+				call.reject(error);
 				pending.delete(data.id);
 			}
 			return;
@@ -156,9 +162,9 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 		return ready.promise;
 	};
 
-	const call = (name: ServiceName, ctx: RequestContext, input: unknown) => {
+	const call = (name: ServiceName, ctx: RequestContext, input: unknown, timing?: DbTiming) => {
 		const id = nextId++;
-		const promise = new Promise<unknown>((resolve, reject) => pending.set(id, { resolve, reject }));
+		const promise = new Promise<unknown>((resolve, reject) => pending.set(id, { resolve, reject, timing }));
 		const entry = services[name];
 		outgoing.push({
 			type: "call",

@@ -12,7 +12,7 @@ export const counts = async (tx: Tx, input: CountsInput): Promise<CountsOutput> 
 	const found = await rows<{ status_id: string; n: number }>(
 		tx,
 		sql`SELECT t.status_id, count(*)::int AS n
-			FROM tickets t JOIN statuses s ON s.id = t.status_id
+			FROM tickets t
 			WHERE t.status_id = ANY(${textArray(input.statusIds)}) AND ${filterWhere(input)}
 			GROUP BY t.status_id`,
 	);
