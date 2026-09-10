@@ -7,7 +7,18 @@ import { join } from "node:path";
 // routes whatever URL escape a file name carries.
 const read = () => Bun.file(join(import.meta.dir, "routeTree.gen.ts")).text();
 
-const planRoutes = ["/", "/setup", "/settings", "/search", "/_gallery", "/needs-you", "/all", "/p/$", "/t/$identifier"];
+const planRoutes = [
+	"/",
+	"/setup",
+	"/settings",
+	"/search",
+	"/_gallery",
+	"/needs-you",
+	"/all",
+	"/all_/board",
+	"/p/$",
+	"/t/$identifier",
+];
 
 describe("routeTree.gen.ts", () => {
 	// WS-12. A `*.test.tsx` beside a route must never become a route, so the

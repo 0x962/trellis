@@ -26,6 +26,7 @@ export type UiState = UiData & {
 	// `defaults` names the groups a route collapses before its first toggle.
 	toggleGroup: (route: string, group: string, defaults?: string[]) => void;
 	setColumnVisible: (route: string, column: string, visible: boolean) => void;
+	setGroupCollapsed: (route: string, group: string, collapsed: boolean) => void;
 };
 
 const defaults: UiData = {
@@ -64,6 +65,13 @@ const updates = {
 				[route]: { ...state.columnVisibility[route], [column]: visible },
 			},
 		}),
+	setGroupCollapsed:
+		(route: string, group: string, collapsed: boolean) =>
+		(state: UiData): Partial<UiData> => {
+			const groups = state.collapsedGroups[route] ?? [];
+			const next = collapsed ? [...new Set([...groups, group])] : groups.filter((name) => name !== group);
+			return { collapsedGroups: { ...state.collapsedGroups, [route]: next } };
+		},
 };
 
 // The renderer-local preferences: the sidebar, the density, the collapsed
@@ -80,6 +88,7 @@ export const createUiStore = () =>
 				toggleProject: (id) => set(updates.toggleProject(id)),
 				toggleGroup: (route, group, defaults) => set(updates.toggleGroup(route, group, defaults)),
 				setColumnVisible: (route, column, visible) => set(updates.setColumnVisible(route, column, visible)),
+				setGroupCollapsed: (route, group, collapsed) => set(updates.setGroupCollapsed(route, group, collapsed)),
 			}),
 			{
 				name: uiStorageKey,
@@ -107,4 +116,6 @@ export const uiActions = {
 		useUiStore.setState(updates.toggleGroup(route, group, defaults)),
 	setColumnVisible: (route: string, column: string, visible: boolean) =>
 		useUiStore.setState(updates.setColumnVisible(route, column, visible)),
+	setGroupCollapsed: (route: string, group: string, collapsed: boolean) =>
+		useUiStore.setState(updates.setGroupCollapsed(route, group, collapsed)),
 };

@@ -1,8 +1,9 @@
 import { ORPCError } from "@orpc/client";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import { EmptyState } from "@trellis/ui";
 import { useEffect } from "react";
+import { Board } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
 import {
@@ -68,6 +69,8 @@ function ProjectPage() {
 	const project = useSuspenseQuery(projectOptions(context, ref)).data;
 	const full = viewOf(search);
 	const routeKey = projectHref(ref);
+	// The loader fills this cache entry, so the board footer reads it on the first paint.
+	const counts = useQuery(countsOptions(context, ref, search)).data;
 	// The list URL without the peek, so the full ticket page can link back
 	// to the list it came from.
 	const searchText = serializeSearch({ ...search, peek: undefined });
@@ -87,6 +90,9 @@ function ProjectPage() {
 		});
 
 	const toggleScope = () => setSearch({ ...search, scope: full.scope === "self" ? "subprojects" : "self" });
+
+	const openTicket = (identifier: string) =>
+		navigate({ to: "/p/$", params: { _splat }, search: { ...search, peek: identifier } });
 
 	return (
 		<>
@@ -114,10 +120,12 @@ function ProjectPage() {
 			</FilterBar>
 			{view === "board" ? (
 				<>
-					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-faint">
-						The board opens in a later milestone.
+					<div className="flex min-h-0 flex-1 flex-col">
+						<Board projectRef={ref} filters={toCountsQuery(full)} storageKey={ref} onOpenTicket={openTicket}>
+							<TicketPeek />
+						</Board>
 					</div>
-					<ListFooter total={undefined} sort={sortLabel(full.sort)} />
+					<ListFooter total={counts?.total} sort={sortLabel(full.sort)} />
 				</>
 			) : (
 				<TicketTable
