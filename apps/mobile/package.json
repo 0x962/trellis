@@ -12,6 +12,7 @@
 		"generate:tokens": "bun scripts/generate-tokens.ts"
 	},
 	"dependencies": {
+		"@expo/vector-icons": "15.1.1",
 		"@orpc/client": "1.15.0",
 		"@shopify/flash-list": "2.3.2",
 		"@tanstack/query-persist-client-core": "5.102.8",
@@ -25,8 +26,8 @@
 		"expo-router": "57.0.20",
 		"expo-status-bar": "57.0.1",
 		"nativewind": "4.2.6",
-		"react": "19.2.3",
-		"react-dom": "19.2.3",
+		"react": "19.2.8",
+		"react-dom": "19.2.8",
 		"react-native": "0.87.1",
 		"react-native-gesture-handler": "2.32.0",
 		"react-native-mmkv": "4.3.2",
