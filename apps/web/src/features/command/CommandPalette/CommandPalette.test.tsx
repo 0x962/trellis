@@ -94,6 +94,7 @@ describe("features/command/CommandPalette", () => {
 		input.focus();
 		press("k", { metaKey: true }, input);
 		expect(await screen.findByRole("dialog", { name: "Command menu" })).toBeDefined();
+		input.remove();
 	});
 
 	// CP-07. The field keeps the focus, so typing never stops; the active

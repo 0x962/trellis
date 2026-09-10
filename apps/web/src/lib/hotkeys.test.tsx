@@ -83,6 +83,7 @@ describe("lib/hotkeys", () => {
 		expect(onCompose).not.toHaveBeenCalled();
 		press("k", { metaKey: true }, input);
 		expect(onPalette).toHaveBeenCalledTimes(1);
+		input.remove();
 	});
 
 	// HK-08
