@@ -47,12 +47,12 @@ const vacuumCount = async () => {
 	return found.rows[0]!.n as number;
 };
 
-const setup = (gh: GhRunner) => {
+const setup = (gh: GhRunner, db: TestDb["db"] = h.db) => {
 	const clock = fakeTimerClock(BASE);
 	const bus = createBus({ bootId: ulid() });
 	const logs: Array<{ msg: string; fields?: Record<string, unknown> }> = [];
 	const jobs = startJobs({
-		db: h.db,
+		db,
 		gh,
 		bus,
 		log: (msg, fields) => void logs.push({ msg, fields }),
@@ -138,5 +138,50 @@ describe("stop", () => {
 
 		expect(clock.timers()).toEqual([]);
 		expect(await vacuumCount()).toBe(before);
+	});
+});
+
+// The jobs run on the database worker. A job that throws must not reject
+// into the worker, because an unhandled rejection stops the worker and the
+// server then answers no request.
+describe("a failed job", () => {
+	test("a poller tick that throws logs the error, and the next tick runs", async () => {
+		const calls: string[][] = [];
+		const throwingGh = Object.assign(
+			async (_slot: string, args: string[]): Promise<GhResult> => {
+				calls.push(args);
+				throw new Error("gh exploded");
+			},
+			{ bin: "gh", timeoutMs: 30_000 },
+		) as GhRunner;
+		const { clock, logs, jobs } = setup(throwingGh);
+
+		await clock.advance(10_000);
+		expect(logs.filter((line) => line.msg === "poller tick failed").map((line) => line.fields?.message)).toEqual([
+			"gh exploded",
+		]);
+
+		await clock.advance(10_000);
+		expect(calls).toHaveLength(2);
+		await jobs.stop();
+	});
+
+	test("a vacuum that throws logs the error, and the timer runs again", async () => {
+		const failingDb = {
+			execute: async () => {
+				throw new Error("disk full");
+			},
+		} as unknown as TestDb["db"];
+		const { clock, logs, jobs, writes } = setup(missingGh, failingDb);
+		writes(1001);
+
+		await clock.advance(MAINTENANCE_MS);
+		await clock.advance(MAINTENANCE_MS);
+
+		expect(logs.filter((line) => line.msg === "vacuum failed").map((line) => line.fields?.message)).toEqual([
+			"disk full",
+			"disk full",
+		]);
+		await jobs.stop();
 	});
 });

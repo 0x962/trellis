@@ -123,6 +123,21 @@ describe("poller rate limit", () => {
 		await handle.stop();
 	}, 30_000);
 
+	test("a rate_limit reply without a budget logs its raw text once and keeps the 1x cadence", async () => {
+		await seedProject(h.db);
+		const stdout = JSON.stringify({ resources: {} });
+		const p = harness({ "api rate_limit": { stdout, stderr: "", exitCode: 0 } });
+		const handle = poller.start(p.hook);
+
+		await p.clock.advance(660_000);
+
+		expect(p.countOf("api rate_limit")).toBe(2);
+		const unexpected = p.logs.filter((line) => line[0] === "gh rate_limit reply has an unexpected shape");
+		expect(unexpected).toEqual([["gh rate_limit reply has an unexpected shape", { stdout }]]);
+		expect(p.events.filter((event) => event.type === "gh.status")).toHaveLength(0);
+		await handle.stop();
+	}, 30_000);
+
 	test("a low budget multiplies the detection interval by 4", async () => {
 		const { rootId } = await seedProject(h.db);
 		await seedRepo(h.db, rootId, "acme", "web");
