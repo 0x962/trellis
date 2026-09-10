@@ -5,6 +5,7 @@ import { TicketRefStringSchema } from "@trellis/api";
 import { Avatar, Button, EmptyState, PriorityIcon, StatusIcon, TicketId, toast } from "@trellis/ui";
 import { Copy } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
+import { PullRequests } from "../../../features/prs";
 import { Breadcrumb } from "../../../features/shell/Breadcrumb";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
 import { Topbar } from "../../../features/shell/Topbar";
@@ -103,21 +104,7 @@ function TicketPage() {
 							</ul>
 						</section>
 					)}
-					{ticket.prs.length > 0 && (
-						<section className="mt-8">
-							<h2 className="text-sm font-medium text-fg-muted tabular">Pull requests · {ticket.prs.length}</h2>
-							<ul className="mt-2 flex flex-col gap-1">
-								{ticket.prs.map((pr) => (
-									<li key={pr.id} className="flex h-8 items-center gap-3 text-fg">
-										<span className="font-mono text-sm text-fg-muted">
-											{pr.owner}/{pr.repo} #{pr.number}
-										</span>
-										<span className="truncate">{pr.title}</span>
-									</li>
-								))}
-							</ul>
-						</section>
-					)}
+					<PullRequests ticket={ticket} />
 				</article>
 				<aside aria-label="Properties" className="w-70 shrink-0 border-l border-border px-5 py-6">
 					<dl className="flex flex-col gap-1">
