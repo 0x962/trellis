@@ -12,7 +12,10 @@ export const initCluster = async (dataDir: string) => {
 	if (existsSync(join(dataDir, "PG_VERSION"))) return;
 	const child = Bun.spawn([process.execPath, import.meta.path, dataDir], { stdout: "ignore", stderr: "pipe" });
 	const code = await child.exited;
-	if (code !== 0) throw new Error(`initdb in ${dataDir} exited ${code}: ${await new Response(child.stderr).text()}`);
+	if (code !== 0)
+		throw new Error(
+			`initdb did not create the database in ${dataDir} (exit code ${code}): ${await new Response(child.stderr).text()}`,
+		);
 };
 
 if (import.meta.main) {

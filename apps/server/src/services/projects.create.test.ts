@@ -115,6 +115,33 @@ describe("projects.create on a root", () => {
 	});
 });
 
+// Two active root projects never share a name, without letter case. An
+// archived root keeps its name but does not hold it. A sub-project name is
+// free, because a sub-project shows under its root.
+describe("projects.create root name", () => {
+	const createRoot = (key: string, name: string) => h.run((ctx, tx) => projects.create(ctx, tx, { key, name }));
+
+	test("a root name that an active root holds, in any letter case, throws DUPLICATE on the name field", async () => {
+		await createRoot("OPS", "Operations");
+		const error = await expectError(createRoot("OPX", "operations"), "DUPLICATE");
+		expect(error.data).toEqual({ field: "name" });
+		expect(await count(h.db, "projects")).toBe(1);
+	});
+
+	test("an archived root does not hold its name", async () => {
+		await createRoot("OPS", "Operations");
+		await h.run((ctx, tx) => projects.update(ctx, tx, { project: "OPS", archived: true }));
+		const created = await createRoot("OPX", "Operations");
+		expect(created.name).toBe("Operations");
+	});
+
+	test("a sub-project can take the name of a root", async () => {
+		await createRoot("OPS", "Operations");
+		const created = await h.run((ctx, tx) => projects.create(ctx, tx, { parent: "OPS", name: "Operations" }));
+		expect(created.name).toBe("Operations");
+	});
+});
+
 describe("projects.create on a sub-project", () => {
 	test("a sub-project seeds no status and inherits the root's set", async () => {
 		const { rootId, statuses } = await seedCde();

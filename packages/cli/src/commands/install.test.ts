@@ -93,9 +93,59 @@ describe("install", () => {
 		expect(result.code, result.stderr).toBe(0);
 		expect(launchctlCalls(result.commands)).toEqual([
 			["launchctl", "bootout", "gui/test/com.trellis.server"],
+			["launchctl", "print", "gui/test/com.trellis.server"],
 			["launchctl", "bootstrap", "gui/test", plist],
 		]);
 		expect(asked).toEqual(["/api/health"]);
+	});
+
+	// launchctl bootout returns before launchd removes the job. A bootstrap
+	// of the label while the job is still there fails with "Bootstrap failed:
+	// 5" and leaves the server stopped.
+	test("a job that stays loaded after bootout delays the bootstrap until launchctl print no longer finds it", async () => {
+		const { prefix, env, plist } = setup();
+		const calls: string[][] = [];
+		let prints = 0;
+		const run = async (args: string[]) => {
+			calls.push(args);
+			if (args[1] !== "print") return { code: 0, stderr: "" };
+			prints += 1;
+			return prints <= 2 ? { code: 0, stderr: "" } : { code: 113, stderr: "Could not find service" };
+		};
+		const fetch = async () => new Response("{}");
+		const result = await runCli(["install", "--prefix", prefix], {}, { env, launchdDomain: "gui/test", run, fetch });
+		expect(result.code, result.stderr).toBe(0);
+		expect(calls.filter((args) => args[0] === "launchctl")).toEqual([
+			["launchctl", "bootout", "gui/test/com.trellis.server"],
+			["launchctl", "print", "gui/test/com.trellis.server"],
+			["launchctl", "print", "gui/test/com.trellis.server"],
+			["launchctl", "print", "gui/test/com.trellis.server"],
+			["launchctl", "bootstrap", "gui/test", plist],
+		]);
+		expect(result.sleeps).toEqual([200, 200]);
+	});
+
+	test("a job that launchctl print still finds after 5 s fails as INSTALL_FAILED with no bootstrap", async () => {
+		const { prefix, env } = setup();
+		const calls: string[][] = [];
+		const run = async (args: string[]) => {
+			calls.push(args);
+			return { code: 0, stderr: "" };
+		};
+		const result = await runCli(["install", "--prefix", prefix], {}, { env, launchdDomain: "gui/test", run });
+		expect(result.code).toBe(1);
+		expect(result.stderr).toContain("gui/test/com.trellis.server");
+		expect(result.stderr).toContain("(INSTALL_FAILED)");
+		expect(calls.some((args) => args[1] === "bootstrap")).toBe(false);
+		expect(result.sleeps.reduce((sum, ms) => sum + ms, 0)).toBe(5000);
+	});
+
+	test("install prints no margin gateway hint", async () => {
+		const { prefix, env } = setup();
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
+		expect(result.code, result.stderr).toBe(0);
+		expect(result.stdout).not.toContain("margin");
+		expect(result.stdout).not.toContain("ROUTES");
 	});
 
 	// process.execPath names the versioned Homebrew Cellar directory, which a
@@ -165,10 +215,11 @@ describe("install", () => {
 
 	test("a failed bootstrap fails as INSTALL_FAILED with the launchctl message", async () => {
 		const { prefix, env } = setup();
-		const run = async (args: string[]) =>
-			args[1] === "bootstrap"
-				? { code: 5, stderr: "Bootstrap failed: 5: Input/output error" }
-				: { code: 0, stderr: "" };
+		const run = async (args: string[]) => {
+			if (args[1] === "bootstrap") return { code: 5, stderr: "Bootstrap failed: 5: Input/output error" };
+			if (args[1] === "print") return { code: 113, stderr: "Could not find service" };
+			return { code: 0, stderr: "" };
+		};
 		const result = await runCli(["install", "--prefix", prefix], {}, { env, launchdDomain: "gui/test", run });
 		expect(result.code).toBe(1);
 		expect(result.stderr).toContain("Bootstrap failed: 5: Input/output error");

@@ -50,13 +50,14 @@ const expandHome = (path: string) => (path.startsWith("~") ? join(homedir(), pat
 // error names the variable and the value.
 const numberOf = (name: string, value: string) => {
 	const parsed = Number(value);
-	if (value.trim() === "" || Number.isNaN(parsed)) throw new Error(`${name} must be a number, got "${value}".`);
+	if (value.trim() === "" || Number.isNaN(parsed))
+		throw new Error(`${name} must be a number. The value is "${value}".`);
 	return parsed;
 };
 
 const levelOf = (value: string): LogLevel => {
 	if (!LOG_LEVELS.includes(value as LogLevel)) {
-		throw new Error(`TRELLIS_LOG_LEVEL must be one of ${LOG_LEVELS.join(", ")}, got "${value}".`);
+		throw new Error(`TRELLIS_LOG_LEVEL must be one of ${LOG_LEVELS.join(", ")}. The value is "${value}".`);
 	}
 	return value as LogLevel;
 };

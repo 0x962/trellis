@@ -46,7 +46,9 @@ export const BATCH_SIZE = 50;
 // `rateReadAt` is the reading of the last budget read. `multiplier`
 // stretches every interval while the budget is low. `lastFetch` holds the
 // reading of the last fetch of each pull request, because a fetch that finds
-// the same content writes no row.
+// the same content writes no row. `rateShapeLogged` is true after the first
+// rate_limit reply without a budget, so a host that never sends one writes
+// one log line and not one every 5 minutes.
 type PollerState = {
 	ok: boolean;
 	reason: GhReason | null;
@@ -54,6 +56,7 @@ type PollerState = {
 	rateReadAt: number;
 	multiplier: number;
 	lowBudget: boolean;
+	rateShapeLogged: boolean;
 	detectAt: number | null;
 	lastFetch: Map<string, number>;
 	failingRepos: Map<string, string>;
@@ -84,11 +87,17 @@ const checkGh = async (hook: PollerHook, state: PollerState, atMs: number) => {
 
 // The budget is read at most once every 5 minutes. Under 20 percent
 // remaining every interval is multiplied by 4, and one gh.status event marks
-// the change into that state and the change back.
+// the change into that state and the change back. A reply without a budget
+// keeps the multiplier it finds. The log keeps the first 2000 characters of
+// that reply.
 const readBudget = async (hook: PollerHook, state: PollerState, atMs: number) => {
 	if (atMs - state.rateReadAt < RATE_LIMIT_MS) return;
 	state.rateReadAt = atMs;
 	const result = await readRateLimit(hook.gh);
+	if (!result.ok && result.reason === "shape" && !state.rateShapeLogged) {
+		state.rateShapeLogged = true;
+		hook.log("gh rate_limit reply has an unexpected shape", { stdout: result.stdout.slice(0, 2000) });
+	}
 	if (!result.ok) return;
 	state.multiplier = result.multiplier;
 	const low = result.multiplier > 1;
@@ -161,6 +170,7 @@ export const start = (hook: PollerHook): PollerHandle => {
 		rateReadAt: hook.now().getTime(),
 		multiplier: 1,
 		lowBudget: false,
+		rateShapeLogged: false,
 		detectAt: null,
 		lastFetch: new Map(),
 		failingRepos: new Map(),
@@ -171,13 +181,17 @@ export const start = (hook: PollerHook): PollerHandle => {
 
 	// A caller who ticks by hand while a tick runs waits for that tick. The
 	// running tick arms the next timer when it settles, so two ticks never
-	// overlap and the chain never doubles.
+	// overlap and the chain never doubles. The poller runs on the database
+	// worker, and a rejected tick there stops the worker. So a tick that
+	// throws writes one log line, and the next timer still arms.
 	const runTick = (): Promise<void> => {
 		if (running !== null) return running;
-		running = tick(hook, state).finally(() => {
-			running = null;
-			if (!stopped) arm();
-		});
+		running = tick(hook, state)
+			.catch((error: Error) => hook.log("poller tick failed", { message: error.message, stack: error.stack }))
+			.finally(() => {
+				running = null;
+				if (!stopped) arm();
+			});
 		return running;
 	};
 
