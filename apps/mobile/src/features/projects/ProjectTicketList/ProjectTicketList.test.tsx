@@ -22,7 +22,19 @@ const batchId = "01J8Z6X4Q3M2K1H0G9F8E7D6C5";
 const shown = () =>
 	screen.queryAllByTestId(/^ticket-row-/).map((row) => (row.props.testID as string).replace("ticket-row-", ""));
 
-const waitForRows = () => waitFor(() => expect(shown().length).toBeGreaterThan(0));
+// FlashList draws a first batch of rows, then fills the viewport on a later
+// layout pass. The wait ends when the list draws rows and the count holds for
+// three polls of waitFor in a row.
+const waitForRows = async () => {
+	const counts: number[] = [];
+	await waitFor(() => {
+		counts.push(shown().length);
+		const lastThree = counts.slice(-3);
+		expect(lastThree).toHaveLength(3);
+		expect(lastThree[0]).toBeGreaterThan(0);
+		expect(new Set(lastThree).size).toBe(1);
+	});
+};
 
 // The first page the list requests: the Active segment, sorted by Updated.
 const firstPage = () =>
