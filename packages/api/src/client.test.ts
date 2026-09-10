@@ -53,3 +53,38 @@ describe("createTrellisClient", () => {
 		expect(error.data.current).toEqual(current);
 	});
 });
+
+// WS-16. The web batches the calls of one tick with a BatchLinkPlugin. The
+// factory takes link plugins and keeps the two headers on every request.
+describe("createTrellisClient plugins", () => {
+	test("createTrellisClient accepts link plugins and keeps the actor and client headers", async () => {
+		const { BatchLinkPlugin } = await import("@orpc/client/plugins");
+		const { requests, fetchStub } = rpcStub({ ok: true });
+		const plugin = new BatchLinkPlugin({ groups: [{ condition: () => true, context: {} }] });
+		const client = createTrellisClient(baseUrl, "human:navid", fetchStub, { plugins: [plugin] });
+		// The stub answers with a plain RPC body, not a batch body, so the
+		// calls settle with an error. The request that went out is the proof.
+		await Promise.allSettled([client.system.health(), client.system.gh()]);
+		expect(requests).toHaveLength(1);
+		const request = requests[0]!;
+		expect(new URL(request.url).pathname).toBe("/rpc/__batch__");
+		expect(request.headers.get("x-trellis-actor")).toBe("human:navid");
+		expect(request.headers.get("x-trellis-client")).toMatch(/^api\/\d+\.\d+\.\d+$/);
+	});
+});
+
+// A function actor is read on every request, so a rename takes effect on
+// the next call, and no identity means no actor header.
+describe("createTrellisClient live actor", () => {
+	test("a function actor is read per request and null sends no actor header", async () => {
+		const { requests, fetchStub } = rpcStub({ ok: true });
+		let actor: string | null = null;
+		const client = createTrellisClient(baseUrl, () => actor, fetchStub);
+		await client.system.health();
+		expect(requests[0]!.headers.has("x-trellis-actor")).toBe(false);
+		expect(requests[0]!.headers.get("x-trellis-client")).toMatch(/^api\//);
+		actor = "human:nk";
+		await client.system.health();
+		expect(requests[1]!.headers.get("x-trellis-actor")).toBe("human:nk");
+	});
+});

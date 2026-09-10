@@ -6,7 +6,7 @@ export { TicketId, type TicketIdProps } from "./domain/TicketId";
 export { type Hotkey, useHotkey } from "./hooks/useHotkey";
 export { useMediaQuery } from "./hooks/useMediaQuery";
 export { useReducedMotion } from "./hooks/useReducedMotion";
-export { type ResolvedTheme, type ThemeMode, themeStorageKey, useTheme } from "./hooks/useTheme";
+export { type ResolvedTheme, setTheme, type ThemeMode, themeStorageKey, useTheme } from "./hooks/useTheme";
 export { type ActorKind, Avatar, type AvatarProps } from "./primitives/Avatar";
 export { Badge, type BadgeProps, type BadgeTone } from "./primitives/Badge";
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from "./primitives/Button";
