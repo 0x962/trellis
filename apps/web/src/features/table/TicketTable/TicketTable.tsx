@@ -26,10 +26,9 @@ import { useTicketMutations } from "../hooks/useTicketMutations";
 import type { EditField, RowChange } from "../Row";
 import { TableEmpty } from "../TableEmpty";
 import { TableFooter } from "../TableFooter";
-import { columnVisibility } from "../utils/columnVisibility";
+import { autoHide, columnVisibility } from "../utils/columnVisibility";
 import { flattenGroups } from "../utils/flattenGroups";
 import { CapBanner } from "./components/CapBanner";
-import { ColumnHeaderRow } from "./components/ColumnHeaderRow";
 import { TableBody } from "./components/TableBody";
 import { TableError } from "./components/TableError";
 
@@ -71,21 +70,6 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 	});
 	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? [];
 	const showProject = project === undefined || ((projectQuery.data?.children.length ?? 0) > 0 && view.scope !== "self");
-	const stored = useUiStore((state) => state.columnVisibility[routeKey]);
-	const visibility = useMemo(() => columnVisibility(stored, showProject), [stored, showProject]);
-	const table = useTable({
-		features: tableFeatureSet,
-		columns,
-		data: noTickets,
-		state: { columnVisibility: visibility },
-		onColumnVisibilityChange: (updater) => {
-			const next = typeof updater === "function" ? updater(visibility) : updater;
-			for (const [id, visible] of Object.entries(next)) {
-				if (visible !== visibility[id as ColumnId]) uiActions.setColumnVisible(routeKey, id, visible);
-			}
-		},
-	});
-	const columnIds = table.getVisibleLeafColumns().map((column) => column.id as ColumnId);
 
 	const statuses = useScopeStatuses(project);
 	const closedKeys = useMemo(
@@ -103,6 +87,24 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 	const tickets = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
 	const ids = useMemo(() => tickets.map((ticket) => ticket.id), [tickets]);
 	const byId = useMemo(() => new Map(tickets.map((ticket) => [ticket.id, ticket])), [tickets]);
+	const stored = useUiStore((state) => state.columnVisibility[routeKey]);
+	const visibility = useMemo(
+		() => autoHide(columnVisibility(stored, showProject), { group: view.group, rows: tickets }),
+		[stored, showProject, view.group, tickets],
+	);
+	const table = useTable({
+		features: tableFeatureSet,
+		columns,
+		data: noTickets,
+		state: { columnVisibility: visibility },
+		onColumnVisibilityChange: (updater) => {
+			const next = typeof updater === "function" ? updater(visibility) : updater;
+			for (const [id, visible] of Object.entries(next)) {
+				if (visible !== visibility[id as ColumnId]) uiActions.setColumnVisible(routeKey, id, visible);
+			}
+		},
+	});
+	const columnIds = table.getVisibleLeafColumns().map((column) => column.id as ColumnId);
 	const selection = useRowSelection({ ids });
 	const mutations = useTicketMutations();
 
@@ -225,7 +227,6 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		<PeekListProvider rows={peekRows}>
 			<div ref={root} data-ticket-table="" className="relative flex min-h-0 flex-1 flex-col">
 				{data.capped && <CapBanner onNarrow={focusFilter} />}
-				<ColumnHeaderRow columns={columnIds} />
 				<TableBody
 					items={items}
 					columns={columnIds}

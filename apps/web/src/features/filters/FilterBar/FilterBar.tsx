@@ -1,7 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
 import type { StatusSummary } from "@trellis/api";
-import { Button, toast, useHotkey } from "@trellis/ui";
-import { Copy, Link2, ListFilter } from "lucide-react";
+import { Button, IconButton, Menu, toast, useHotkey } from "@trellis/ui";
+import { Copy, Link2, ListFilter, Share2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toCli } from "../cli";
 import { FilterChip } from "../FilterChip";
@@ -18,15 +18,16 @@ export type FilterBarProps = {
 	statuses: readonly StatusSummary[];
 	// The scope chip of a project route, before the filter chips.
 	children?: ReactNode;
-	// The controls at the right end, after Copy as CLI and Copy link.
+	// The controls at the right end, before the Share menu.
 	actions?: ReactNode;
 };
 
 const fields: PickerStage = { kind: "fields" };
 
 // The bar under the topbar: one chip per active filter, the Filter button
-// with its picker, and the copy actions. `f` opens the picker; `g s`
-// focuses the button.
+// with its picker, the route's Display button, and the Share menu with the
+// copy actions. Filter and Display are the only text buttons. `f` opens
+// the picker; `g s` focuses the button.
 export function FilterBar({ project, search, onSearchChange, statuses, children, actions }: FilterBarProps) {
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
 	const [open, setOpen] = useState(false);
@@ -104,13 +105,15 @@ export function FilterBar({ project, search, onSearchChange, statuses, children,
 				}
 			/>
 			<div className="ml-auto flex items-center gap-1">
-				<Button variant="quiet" size="sm" icon={<Copy />} onClick={copyCli}>
-					Copy as CLI
-				</Button>
-				<Button variant="quiet" size="sm" icon={<Link2 />} onClick={copyLink}>
-					Copy link
-				</Button>
 				{actions}
+				<Menu
+					label="Share"
+					trigger={<IconButton label="Share" icon={<Share2 />} size="md" />}
+					items={[
+						{ label: "Copy as CLI", icon: <Copy />, onSelect: () => void copyCli() },
+						{ label: "Copy link", icon: <Link2 />, onSelect: () => void copyLink() },
+					]}
+				/>
 			</div>
 		</div>
 	);

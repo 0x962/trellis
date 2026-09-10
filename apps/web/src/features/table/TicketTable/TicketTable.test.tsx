@@ -77,7 +77,7 @@ describe("features/table/TicketTable", () => {
 		await waitFor(() => expect(grid().getAttribute("aria-rowcount")).toBe("1000"), { timeout: 15_000 });
 		expect(rows().length).toBeLessThan(60);
 		expect(rows().length).toBeGreaterThan(10);
-		expect(Number.parseFloat(spacer().style.height)).toBe(1000 * 40);
+		expect(Number.parseFloat(spacer().style.height)).toBe(1000 * 36);
 	}, 30_000);
 
 	// Outcome 21

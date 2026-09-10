@@ -1,5 +1,5 @@
 import type { TicketSummary } from "@trellis/api";
-import { Avatar, CheckRibbon, PriorityIcon, StatusIcon, TicketId } from "@trellis/ui";
+import { Avatar, CheckRibbon, PriorityIcon, StatusIcon } from "@trellis/ui";
 import { GitPullRequest, Paperclip } from "lucide-react";
 import { compactRelativeTime } from "../../../../lib/format";
 
@@ -28,7 +28,7 @@ export function CardContent({ ticket, showStatus = false }: CardContentProps) {
 	return (
 		<>
 			<div className="flex h-4 items-center justify-between">
-				<TicketId id={ticket.identifier} size="sm" className="text-fg-faint" />
+				<span className="font-mono text-xs whitespace-nowrap text-fg-faint tabular">{ticket.identifier}</span>
 				{ticket.priority !== "none" && <PriorityIcon priority={ticket.priority} />}
 			</div>
 			<p className="line-clamp-3 text-base font-medium text-fg">{ticket.title}</p>

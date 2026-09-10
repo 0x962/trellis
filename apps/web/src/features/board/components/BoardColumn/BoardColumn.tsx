@@ -99,6 +99,7 @@ export function BoardColumn({
 	return (
 		<section
 			ref={target}
+			data-category={column.category}
 			style={{ width }}
 			className={cx("flex min-h-0 shrink-0 snap-start flex-col rounded-lg", well && "bg-band")}
 		>

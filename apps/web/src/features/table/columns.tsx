@@ -53,7 +53,7 @@ export const columnWidths: Record<ColumnId, string> = {
 	id: "72px",
 	title: "minmax(0, 1fr)",
 	status: "140px",
-	pr: "96px",
+	pr: "72px",
 	project: "120px",
 	actor: "20px",
 	updated: "48px",

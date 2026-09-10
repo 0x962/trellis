@@ -7,6 +7,7 @@ import { FilterBar } from "../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../features/filters/grammar";
 import { sortLabel } from "../features/filters/labels";
 import { ListFooter } from "../features/shell/ListFooter";
+import { NewTicketButton } from "../features/shell/NewTicketButton";
 import { Topbar } from "../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../features/shell/ViewSwitch";
 import { TicketPeek } from "../features/ticket/TicketPeek";
@@ -56,8 +57,15 @@ function AllBoardPage() {
 
 	return (
 		<>
-			<Topbar actions={<ViewSwitch value="board" onChange={switchView} />}>
-				<h1 className="text-md font-semibold text-fg">All tickets</h1>
+			<Topbar
+				actions={
+					<>
+						<ViewSwitch value="board" onChange={switchView} />
+						<NewTicketButton />
+					</>
+				}
+			>
+				<h1 className="text-lg font-semibold text-fg">All tickets</h1>
 			</Topbar>
 			<FilterBar search={search} onSearchChange={setSearch} statuses={statuses} />
 			<Board filters={toCountsQuery(view, { statuses })} storageKey="all" onOpenTicket={openTicket}>

@@ -3,6 +3,7 @@ import type { Status } from "@trellis/api";
 import { isCanonicalSearch } from "../../features/filters/canonical";
 import { FilterBar } from "../../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../features/filters/grammar";
+import { NewTicketButton } from "../../features/shell/NewTicketButton";
 import { Topbar } from "../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../features/shell/ViewSwitch";
 import { DisplayPopover } from "../../features/table/DisplayPopover";
@@ -52,8 +53,15 @@ function AllPage() {
 
 	return (
 		<>
-			<Topbar actions={<ViewSwitch value="table" onChange={switchView} />}>
-				<h1 className="text-md font-semibold text-fg">All tickets</h1>
+			<Topbar
+				actions={
+					<>
+						<ViewSwitch value="table" onChange={switchView} />
+						<NewTicketButton />
+					</>
+				}
+			>
+				<h1 className="text-lg font-semibold text-fg">All tickets</h1>
 			</Topbar>
 			<FilterBar
 				search={search}

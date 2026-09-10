@@ -7,7 +7,6 @@ import { renderApp } from "../../../../test/renderWithProviders";
 import {
 	bulkBar,
 	calls,
-	cellOf,
 	findGrid,
 	footer,
 	grid,
@@ -152,14 +151,16 @@ describe("features/table/BulkBar", () => {
 			respond: serverError,
 		});
 		const { selected } = await selectFirst(3, failing.server);
-		const original = selected.map((identifier) => cellOf(identifier, "status").textContent);
+		// The status grouping hides the status column, so the row's group is
+		// its status.
+		const original = selected.map((identifier) => rowOf(identifier).getAttribute("data-group"));
 		await user.click(action("Status"));
 		await pickOption(user, "Done");
 		const toast = await toastWith(/retry/i);
 		expect(within(toast).getByRole("button", { name: "Retry" })).toBeDefined();
 		await waitFor(() => {
 			for (const [index, identifier] of selected.entries()) {
-				expect(cellOf(identifier, "status").textContent).toBe(original[index]!);
+				expect(rowOf(identifier).getAttribute("data-group")).toBe(original[index]!);
 			}
 		});
 		expect(within(screen.getByRole("status")).getAllByRole("button", { name: "Retry" })).toHaveLength(1);

@@ -72,7 +72,7 @@ describe("features/table/TicketTable: live events", () => {
 				);
 			}
 		});
-		for (const row of rows()) expect(row.style.height).toBe("40px");
+		for (const row of rows()) expect(row.style.height).toBe("36px");
 		expect(spacer().style.height).toBe(height);
 	});
 

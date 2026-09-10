@@ -43,14 +43,14 @@ describe("features/table/DisplayPopover", () => {
 		await findGrid();
 		await waitFor(() => rowOf("CDE-44"));
 		expect(cells("updated")).toHaveLength(0);
-		expect(cells("status").length).toBeGreaterThan(0);
+		expect(cells("id").length).toBeGreaterThan(0);
 	});
 
 	// Outcome 66. The default density stays out of the URL.
 	test("switches the density and writes it to the URL only when chosen", async () => {
 		const user = userEvent.setup();
 		const { popover, router } = await open(user);
-		expect(rows()[0]!.style.height).toBe("40px");
+		expect(rows()[0]!.style.height).toBe("36px");
 		expect(router.state.location.searchStr).toBe("?status=in-progress");
 		await user.click(radio(popover, "Density", "Compact"));
 		await waitFor(() => expect(rows()[0]!.style.height).toBe("32px"));

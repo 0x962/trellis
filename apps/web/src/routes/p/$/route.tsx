@@ -18,6 +18,7 @@ import {
 import { sortLabel } from "../../../features/filters/labels";
 import { Breadcrumb } from "../../../features/shell/Breadcrumb";
 import { ListFooter } from "../../../features/shell/ListFooter";
+import { NewTicketButton } from "../../../features/shell/NewTicketButton";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
 import { Topbar } from "../../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../../features/shell/ViewSwitch";
@@ -121,7 +122,14 @@ function ProjectPage() {
 	// only read, so they stay outside it.
 	return (
 		<>
-			<Topbar actions={<ViewSwitch value={view} onChange={switchView} />}>
+			<Topbar
+				actions={
+					<>
+						<ViewSwitch value={view} onChange={switchView} />
+						<NewTicketButton />
+					</>
+				}
+			>
 				<Breadcrumb path={ref} current={project.name} />
 			</Topbar>
 			{archived && <ArchivedBanner project={project} />}
