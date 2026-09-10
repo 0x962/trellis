@@ -1,13 +1,26 @@
-import type { AgentProjectSettings, AgentSession, AgentSettings } from "@trellis/api";
+import type { AgentProjectSettings, AgentSettings, AgentsOverview } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
+import type { CliContext } from "../context.ts";
 import { compact, contextOf } from "../context.ts";
 import { usageError } from "../errors.ts";
-import { json, printList, printRecord } from "../output.ts";
-import { sessionList, settingsRecord } from "./agentsOutput.ts";
+import { heading, json, printList, printRecord, renderTable } from "../output.ts";
+import { actionColumns, batchColumns, sessionColumns, sessionList, settingsRecord } from "./agentsOutput.ts";
+
+// A TTY gets one table per part of the overview, each under its count.
+const printOverview = (ctx: CliContext, overview: AgentsOverview) => {
+	const identifiers = new Map(overview.tickets.map((ticket) => [ticket.id, ticket.identifier]));
+	const { color } = ctx.format;
+	const part = <T>(title: string, rows: T[], columns: Parameters<typeof renderTable<T>>[1]) =>
+		ctx.out.write(`${heading(`${title} (${rows.length})`, color)}${renderTable(rows, columns)}\n`);
+	part("sessions", overview.sessions, sessionColumns);
+	part("actions", overview.actions, actionColumns(identifiers));
+	part("batches", overview.batches, batchColumns);
+};
 
 // `agents.sessions` takes one scope. Without a flag, the verb reads the
-// sessions of every project that has an agent settings row.
+// overview: every session, the last writes of the agents, and the batches
+// the dispatcher sent. The web reads the same answer on its Agents page.
 export const status = defineCommand({
 	meta: { name: "status", description: "List the agent sessions of a project, a ticket, or every project" },
 	args: {
@@ -19,14 +32,20 @@ export const status = defineCommand({
 		const { project, ticket } = context.args;
 		if (project !== undefined && ticket !== undefined) throw usageError("pass --project or --ticket, not both");
 		const client = clientOf(ctx);
-		const sessions: AgentSession[] = [];
-		if (project !== undefined || ticket !== undefined) {
-			sessions.push(...(await client.agents.sessions(compact({ project, ticket }))).sessions);
-		} else {
-			for (const row of (await client.agents.settings()).projects) {
-				sessions.push(...(await client.agents.sessions({ project: row.projectId })).sessions);
+		if (project === undefined && ticket === undefined) {
+			const overview = await client.agents.overview();
+			if (ctx.format.mode === "json") {
+				ctx.out.write(json(overview));
+				return;
 			}
+			if (ctx.format.mode === "table") {
+				printOverview(ctx, overview);
+				return;
+			}
+			printList(ctx.out, ctx.format, overview.sessions, sessionList);
+			return;
 		}
+		const { sessions } = await client.agents.sessions(compact({ project, ticket }));
 		if (ctx.format.mode === "json") {
 			ctx.out.write(json({ sessions }));
 			return;
