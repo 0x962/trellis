@@ -2,7 +2,6 @@ import { ORPCError } from "@orpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
-import { EmptyState } from "@trellis/ui";
 import { lazy, Suspense, useEffect } from "react";
 import { Board, boardSort } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
@@ -30,6 +29,7 @@ import { rememberList } from "../../../lib/lastList";
 import { parseProjectSplat, projectHref, projectSlashPath } from "../../../lib/projectPath";
 import { useUiStore } from "../../../stores/uiStore";
 import { ArchivedBanner } from "./components/ArchivedBanner";
+import { ProjectLoadError } from "./components/ProjectLoadError";
 import { ScopeChip } from "./components/ScopeChip";
 
 // The settings screen loads in its own chunk, so the list views never pay for it.
@@ -202,11 +202,5 @@ function ProjectError({ error }: ErrorComponentProps) {
 			</>
 		);
 	}
-	return (
-		<EmptyState
-			title="Something went wrong"
-			description={error instanceof Error ? error.message : String(error)}
-			className="flex-1 justify-center"
-		/>
-	);
+	return <ProjectLoadError error={error} />;
 }

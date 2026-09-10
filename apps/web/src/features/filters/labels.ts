@@ -6,13 +6,13 @@ const fields: Record<string, string> = {
 	priority: "priority",
 	number: "ID",
 	status: "status",
-	position: "position",
+	position: "manual order",
 };
 
 // The footer text for a sort. The default sort, `-updatedAt`, is the table's
 // own order: priority first, then the newest update.
 export const sortLabel = (sort: Sort): string => {
-	if (sort === "-updatedAt") return "Sorted by priority, then updated";
+	if (sort === "-updatedAt") return "Sorted by priority, then by the last update";
 	if (sort === "position") return "Manual order";
 	const ascending = !sort.startsWith("-");
 	const field = fields[sort.replace(/^-/, "")]!;

@@ -10,6 +10,6 @@ export type Preset = {
 export const presets: readonly Preset[] = [
 	{ label: "Active", view: { category: ["todo", "started", "review"] } },
 	{ label: "Needs review", view: { category: ["review"] } },
-	{ label: "Failing CI", view: { ci: ["fail"] } },
-	{ label: "Touched by agents today", view: { actor: "@agent", updated: "24h" } },
+	{ label: "Failing checks", view: { ci: ["fail"] } },
+	{ label: "Updated by agents, last 24 hours", view: { actor: "@agent", updated: "24h" } },
 ];

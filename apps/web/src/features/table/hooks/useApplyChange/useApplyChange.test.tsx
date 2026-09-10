@@ -25,30 +25,30 @@ const setup = async () => {
 
 describe("features/table/hooks/useApplyChange: the rollback toast", () => {
 	// The toast reads as a sentence: the verb, the ticket, then the target.
-	test("a failed move of one ticket says Couldn't move CDE-42 to the status", async () => {
+	test("a failed move of one ticket says CDE-42 did not move to the status", async () => {
 		const { server, review, tickets, apply } = await setup();
 		server.failNext("tickets.update", { code: "NOT_FOUND", data: { ref: "CDE-42" } });
 		await act(async () => {
 			await apply([tickets[0]!], { status: review });
 		});
-		expect(await screen.findByText(`Couldn't move CDE-42 to ${review.name}`)).toBeDefined();
+		expect(await screen.findByText(`CDE-42 did not move to ${review.name}.`)).toBeDefined();
 	});
 
-	test("a failed move of two tickets says Couldn't move 2 tickets to the status", async () => {
+	test("a failed move of two tickets says 2 tickets did not move to the status", async () => {
 		const { server, review, tickets, apply } = await setup();
 		server.failNext("tickets.updateMany", { code: "NOT_FOUND", data: { ref: "CDE-42" } });
 		await act(async () => {
 			await apply(tickets, { status: review });
 		});
-		expect(await screen.findByText(`Couldn't move 2 tickets to ${review.name}`)).toBeDefined();
+		expect(await screen.findByText(`2 tickets did not move to ${review.name}.`)).toBeDefined();
 	});
 
-	test("a failed priority change says Couldn't set the priority of CDE-42 to high", async () => {
+	test("a failed priority change says the priority of CDE-42 did not change to High", async () => {
 		const { server, tickets, apply } = await setup();
 		server.failNext("tickets.update", { code: "NOT_FOUND", data: { ref: "CDE-42" } });
 		await act(async () => {
 			await apply([tickets[0]!], { priority: "high" });
 		});
-		expect(await screen.findByText("Couldn't set the priority of CDE-42 to high")).toBeDefined();
+		expect(await screen.findByText("The priority of CDE-42 did not change to High.")).toBeDefined();
 	});
 });

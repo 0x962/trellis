@@ -45,10 +45,15 @@ describe("features/filters/FilterBar", () => {
 		const options = within(dialog)
 			.getAllByRole("option")
 			.map((entry) => entry.textContent?.trim());
-		expect(options.slice(0, 4)).toEqual(["Active", "Needs review", "Failing CI", "Touched by agents today"]);
-		await user.click(await option("Failing CI"));
+		expect(options.slice(0, 4)).toEqual([
+			"Active",
+			"Needs review",
+			"Failing checks",
+			"Updated by agents, last 24 hours",
+		]);
+		await user.click(await option("Failing checks"));
 		await waitFor(() => expect(router.state.location.searchStr).toBe("?ci=fail"));
-		await waitFor(() => expect(chipText("ci")).toBe("PR is failing"));
+		await waitFor(() => expect(chipText("ci")).toBe("PR is failed"));
 		expect(document.querySelectorAll("[data-filter-chip]")).toHaveLength(1);
 	});
 

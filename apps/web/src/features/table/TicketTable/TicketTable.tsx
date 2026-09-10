@@ -267,7 +267,7 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 				<ConfirmDialog
 					open={pendingDelete !== null}
 					title={deleteTitle}
-					description="A deleted ticket is gone. Its sub-tickets lose their parent."
+					description="trellis cannot restore a deleted ticket. Its sub-tickets stay and lose their parent."
 					confirmLabel="Delete"
 					danger
 					onConfirm={() => void confirmDelete()}
