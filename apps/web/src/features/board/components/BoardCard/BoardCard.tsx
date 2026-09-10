@@ -2,6 +2,7 @@ import type { TicketSummary } from "@trellis/api";
 import { Avatar, CheckRibbon, PriorityIcon, StatusIcon, TicketId } from "@trellis/ui";
 import { GitPullRequest, Paperclip } from "lucide-react";
 import { type KeyboardEvent, useCallback, useRef } from "react";
+import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
 import { compactRelativeTime } from "../../../../lib/format";
 import { useCardDnd } from "../../hooks/useBoardDnd";
 import { DragIndicator } from "../DragIndicator";
@@ -41,6 +42,7 @@ export function BoardCard({
 }: BoardCardProps) {
 	const ref = useRef<HTMLLIElement>(null);
 	const pickup = useCallback((message: string) => announce(message), [announce]);
+	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
 	const edge = useCardDnd(
 		ref,
 		{
@@ -53,6 +55,7 @@ export function BoardCard({
 			columnCount,
 		},
 		pickup,
+		readOnly,
 	);
 	const failing = ticket.pr?.state === "open" && ticket.pr.ciState === "fail";
 	const progress = ticket.childCount === 0 ? 0 : ticket.childDoneCount / ticket.childCount;

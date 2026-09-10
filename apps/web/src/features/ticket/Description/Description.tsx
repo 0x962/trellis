@@ -1,6 +1,7 @@
 import type { Ticket } from "@trellis/api";
 import { Button, useHotkey } from "@trellis/ui";
 import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
 import { conflictCurrent } from "../../../lib/conflict";
 import { ConflictNotice } from "../components/ConflictNotice";
@@ -60,7 +61,10 @@ export function Description({ ticket }: DescriptionProps) {
 		return editorChunk.release;
 	}, []);
 
+	// A ticket under an archived project takes no write, so `e` opens no editor.
+	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
 	useHotkey("e", (event) => {
+		if (readOnly) return;
 		event.preventDefault();
 		setEditing(true);
 	});

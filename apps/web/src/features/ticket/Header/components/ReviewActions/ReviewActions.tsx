@@ -1,6 +1,7 @@
 import type { Status, Ticket } from "@trellis/api";
 import { Button, Dialog, Textarea, useHotkey } from "@trellis/ui";
 import { useState } from "react";
+import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../../lib/appContext";
 import { lowestPositionStatus } from "../../../../../lib/statusPicks";
 import { useEnsureStatuses } from "../../../hooks/useStatuses";
@@ -21,7 +22,10 @@ export function ReviewActions({ ticket }: ReviewActionsProps) {
 	const ensureStatuses = useEnsureStatuses(ticket.project.path);
 	const [asking, setAsking] = useState(false);
 	const [reason, setReason] = useState("");
+	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
+	// A ticket under an archived project takes no write, so the keys do nothing.
 	const shown = ticket.status.category === "review" && ticket.status.reviewer === "human";
+	const keysOn = shown && !readOnly;
 
 	const moveTo = async (status: Status) => {
 		try {
@@ -44,10 +48,10 @@ export function ReviewActions({ ticket }: ReviewActionsProps) {
 	};
 
 	useHotkey("a", () => {
-		if (shown) void approve();
+		if (keysOn) void approve();
 	});
 	useHotkey("r", () => {
-		if (shown) setAsking(true);
+		if (keysOn) setAsking(true);
 	});
 
 	if (!shown) return null;

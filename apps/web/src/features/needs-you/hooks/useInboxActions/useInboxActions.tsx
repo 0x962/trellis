@@ -1,6 +1,7 @@
 import type { StatusCategory, TicketSummary } from "@trellis/api";
 import { toast, useReducedMotion } from "@trellis/ui";
 import { useRef, useState } from "react";
+import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../lib/appContext";
 import { dropInboxRow } from "../../utils/dropInboxRow";
 import { targetStatus } from "../../utils/targetStatus";
@@ -22,6 +23,7 @@ type Leaving = { ticket: TicketSummary; index: number };
 export const useInboxActions = () => {
 	const { client, orpc, queryClient, scheduler } = useApp();
 	const reduced = useReducedMotion();
+	const { isArchived, notice } = useArchivedProjects();
 	const [leaving, setLeaving] = useState<readonly Leaving[]>([]);
 	const timers = useRef(new Map<string, unknown>());
 	const inboxKey = orpc.inbox.get.queryKey({ input: inboxInput });
@@ -52,7 +54,16 @@ export const useInboxActions = () => {
 		stopSweep(id);
 	};
 
+	// The server refuses every write to a ticket under an archived project,
+	// so the row stays, no move is sent, and a toast names the project.
+	const refused = (ticket: TicketSummary) => {
+		if (!isArchived(ticket.project.path)) return false;
+		toast.error(notice(ticket.project.path));
+		return true;
+	};
+
 	const move = (ticket: TicketSummary, category: StatusCategory, index: number) => {
+		if (refused(ticket)) return;
 		const before = queryClient.getQueryData(inboxKey);
 		sweepOut(ticket, index);
 		void (async () => {
@@ -83,6 +94,7 @@ export const useInboxActions = () => {
 
 	return {
 		move,
+		refused,
 		sweepOut,
 		rowsWithLeaving,
 		isSweeping: (ticket: TicketSummary) => leaving.some((entry) => entry.ticket.id === ticket.id),

@@ -1,6 +1,7 @@
 import type { TicketSummary } from "@trellis/api";
 import { Kbd, StatusIcon, useHotkey } from "@trellis/ui";
 import { useState } from "react";
+import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
 import { useInbox } from "../../hooks/useInbox";
 import { useInboxActions } from "../../hooks/useInboxActions";
 import { useSectionOpen } from "../../hooks/useSectionOpen";
@@ -19,13 +20,16 @@ export function ReviewSection() {
 	const [focusedId, setFocusedId] = useState<string | null>(null);
 	const [sendBackId, setSendBackId] = useState<string | null>(null);
 	const [announcement, setAnnouncement] = useState("");
-	const { move, sweepOut, rowsWithLeaving, isSweeping } = useInboxActions();
+	const { move, refused, sweepOut, rowsWithLeaving, isSweeping } = useInboxActions();
+	const { isArchived } = useArchivedProjects();
 	const section = inbox.data?.review;
 	const items = section === undefined ? [] : section.items;
 
 	const focusedTicket = () => items.find((row) => row.identifier === focusedIdentifier()) ?? null;
 
+	// A refused approval keeps the row and the focus where they are.
 	const approve = (ticket: TicketSummary) => {
+		if (refused(ticket)) return;
 		focusRowAfter(ticket.identifier);
 		setAnnouncement(`${ticket.identifier} approved`);
 		move(ticket, "done", items.indexOf(ticket));
@@ -47,6 +51,7 @@ export function ReviewSection() {
 		const ticket = focusedTicket();
 		if (ticket === null) return;
 		event.preventDefault();
+		if (refused(ticket)) return;
 		setSendBackId(ticket.identifier);
 	});
 
@@ -70,7 +75,9 @@ export function ReviewSection() {
 				onRowActive={(ticket) => setFocusedId(ticket.identifier)}
 				isSweeping={isSweeping}
 				renderActions={(ticket) =>
-					ticket.identifier === (focusedId ?? items[0]?.identifier) && ticket.identifier !== sendBackId ? (
+					ticket.identifier === (focusedId ?? items[0]?.identifier) &&
+					ticket.identifier !== sendBackId &&
+					!isArchived(ticket.project.path) ? (
 						<ReviewActions
 							ticket={ticket}
 							onApprove={() => approve(ticket)}

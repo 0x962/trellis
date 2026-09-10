@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Priority, Status, TicketSummary } from "@trellis/api";
 import { Button, cx, PriorityIcon, StatusIcon } from "@trellis/ui";
 import { CornerDownRight, FolderOpen } from "lucide-react";
+import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../../lib/appContext";
 import { projectSlashPath } from "../../../../../lib/projectPath";
 import { PriorityPicker, priorityLabels } from "../../../../pickers/PriorityPicker";
@@ -40,7 +41,11 @@ export function ChipRow({
 	onParent,
 }: ChipRowProps) {
 	const { orpc } = useApp();
-	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? [];
+	const { isArchived } = useArchivedProjects();
+	// An archived project takes no new ticket, so the picker leaves it out.
+	const projects = (useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? []).filter(
+		(entry) => !isArchived(entry.path),
+	);
 	return (
 		<div className="flex flex-wrap items-center gap-1.5">
 			<ProjectPicker

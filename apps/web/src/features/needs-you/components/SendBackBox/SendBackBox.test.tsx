@@ -126,7 +126,9 @@ describe("SendBackBox", () => {
 	test("keeps the text and skips the move when the comment fails", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
-		await server.client.projects.update({ project: "CDE.web", archived: true });
+		// The server refuses the comment. An archived project would also
+		// refuse it, but the row of an archived ticket opens no box at all.
+		server.failNext("comments.create", { code: "PROJECT_ARCHIVED" });
 		render(server);
 		await focusRow("CDE-42");
 		await user.keyboard("r");
