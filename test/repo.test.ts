@@ -321,14 +321,22 @@ describe("root scaffold", () => {
 
 	// The root package.json lists `apps/*` and `packages/*` as workspaces, so an
 	// entry without a package.json is a directory bun cannot install.
-	test("apps and packages hold a .gitkeep and workspaces only", () => {
+	test("apps and packages hold workspaces only", () => {
 		for (const dir of ["apps", "packages"]) {
-			const entries = readdirSync(join(root, dir));
-			expect(entries).toContain(".gitkeep");
-			const workspaces = entries.filter((entry) => !entry.startsWith("."));
+			const workspaces = readdirSync(join(root, dir)).filter((entry) => !entry.startsWith("."));
+			expect(workspaces.length, dir).toBeGreaterThan(0);
 			for (const workspace of workspaces) {
 				expect(existsSync(join(root, dir, workspace, "package.json"))).toBe(true);
 			}
+		}
+	});
+
+	// A generated iOS or Android project, a local .env file, and a build cache
+	// never enter the history of a public repository.
+	test(".gitignore covers the generated mobile projects, env files, and build caches", async () => {
+		const lines = (await text(".gitignore")).split("\n");
+		for (const entry of ["apps/mobile/ios/", "apps/mobile/android/", ".env*", "*.tsbuildinfo", "playwright-report/"]) {
+			expect(lines, entry).toContain(entry);
 		}
 	});
 
