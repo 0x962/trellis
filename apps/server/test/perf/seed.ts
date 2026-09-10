@@ -93,7 +93,7 @@ const WORDS = sql.raw(
 
 // A deterministic database of `tickets` tickets: 3 roots x 8 projects, 10
 // activity rows and 2 comments per ticket, a 2 KB description, 40 open
-// pull requests on the first tickets, then ANALYZE. Every row derives from
+// pull requests on the first tickets, then VACUUM (ANALYZE). Every row derives from
 // its ticket number, so two seeds of the same size are equal. Every id is
 // 26 digits that pass the ULID schema of the API, so each answer passes its
 // output validation. The first digit names the table: 0 tickets,
@@ -174,7 +174,11 @@ export const perfSeed = async (db: Db, tickets: number): Promise<PerfRoot[]> => 
 		INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
 		SELECT '00' || lpad(n::text, 24, '0'), '2' || lpad(n::text, 25, '0'), 'manual', 'navid', 'human', now()
 		FROM generate_series(1, ${OPEN_PRS}) AS n`);
-	await db.execute(sql`ANALYZE`);
+	// A real home is vacuumed by the maintenance timer after 1000 writes, and
+	// the cached perf home by its build step. VACUUM sets the visibility map,
+	// which lets an index-only scan skip the table row. An unvacuumed seed
+	// measures a state a person never sits in for long.
+	await db.execute(sql`VACUUM (ANALYZE)`);
 	return roots;
 };
 
