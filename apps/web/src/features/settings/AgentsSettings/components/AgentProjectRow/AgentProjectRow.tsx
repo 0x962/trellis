@@ -2,6 +2,7 @@ import type { AgentProjectSettings, AgentRunnerProjectsOutput, ProjectSummary } 
 import { Checkbox, Input, Select, Switch } from "@trellis/ui";
 import { useState } from "react";
 import { useAgentSettings } from "../../hooks/useAgentSettings";
+import { ManagerInstructions } from "./components/ManagerInstructions";
 
 export type AgentProjectRowProps = {
 	project: ProjectSummary;
@@ -114,6 +115,7 @@ export function AgentProjectRow({ project, runner }: AgentProjectRowProps) {
 				className="cursor-pointer self-start"
 				onCheckedChange={(removeWorkspaceOnDone) => save({ removeWorkspaceOnDone })}
 			/>
+			<ManagerInstructions project={project} />
 			{[branchMessage, limitMessage].map(
 				(message) =>
 					message !== null && (
