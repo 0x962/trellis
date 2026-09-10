@@ -6,7 +6,7 @@
 	"scripts": {
 		"dev": "vite",
 		"dev:fake": "bun test/fake-server/serve.ts",
-		"build": "vite build",
+		"build": "NODE_ENV=production vite build",
 		"test": "bun test .test.",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"lint": "biome check .",
@@ -14,12 +14,16 @@
 		"size-budget": "bun scripts/size-budget.ts"
 	},
 	"dependencies": {
+		"@fontsource-variable/inter": "5.3.0",
+		"@fontsource/jetbrains-mono": "5.3.0",
 		"@orpc/client": "1.15.0",
 		"@orpc/tanstack-query": "1.15.0",
 		"@tanstack/react-query": "5.102.8",
 		"@tanstack/react-router": "1.170.33",
 		"@trellis/api": "workspace:*",
 		"@trellis/ui": "workspace:*",
+		"lucide-react": "1.43.0",
+		"marked": "18.0.12",
 		"react": "19.2.8",
 		"react-dom": "19.2.8",
 		"zustand": "5.0.15"

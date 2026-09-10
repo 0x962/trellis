@@ -1,1 +1,1 @@
-export {};
+export { ActorFooter } from "./ActorFooter";
