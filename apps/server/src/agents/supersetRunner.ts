@@ -5,11 +5,16 @@ import {
 	managerBranch,
 	managerWorkspaceName,
 	projectTag,
-	type RunnerProject,
 	restartText,
 	resumeCommand,
 } from "@trellis/api";
-import { matchRunnerProject, type Runner, runnerUnavailable, type TerminalState } from "./runner.ts";
+import {
+	matchRunnerProject,
+	type Runner,
+	type RunnerProjectRow,
+	runnerUnavailable,
+	type TerminalState,
+} from "./runner.ts";
 
 // The Runner over the `superset` command line (Superset 1.27). `bin` is
 // TRELLIS_SUPERSET_BIN or "superset" on PATH. `url` is the trellis server
@@ -18,11 +23,17 @@ import { matchRunnerProject, type Runner, runnerUnavailable, type TerminalState 
 // Superset runs each agent as the `--command` of a workspace or a
 // terminal, so the tab shows the name claude gets from `-n`.
 
+// A new workspace lists the terminal of `--command` with the label
+// "Command". A project with a setup script also gets a "Workspace Setup"
+// terminal, which Superset can list first and which exits when the script
+// ends.
 type WorkspaceAnswer = {
 	workspace: { id: string };
-	terminals: Array<{ terminalId: string }>;
+	terminals: Array<{ terminalId: string; label: string }>;
 	alreadyExists: boolean;
 };
+
+const COMMAND_LABEL = "Command";
 
 type WorkspaceInput = {
 	runnerProjectId: string;
@@ -36,7 +47,9 @@ type WorkspaceInput = {
 const isMissing = (error: unknown) => (error as { code?: string }).code === "ENOENT";
 
 // Resolves with stdout. A missing binary is the reason `missing`; a nonzero
-// exit is `error`, with what superset printed on stderr.
+// exit is `error`, with what superset printed on stderr. Superset prints some
+// errors as JSON on stdout and nothing on stderr, so an empty stderr gives
+// stdout instead.
 const spawnSuperset = async (bin: string, args: string[]) => {
 	let proc: ReturnType<typeof Bun.spawn>;
 	try {
@@ -50,8 +63,32 @@ const spawnSuperset = async (bin: string, args: string[]) => {
 		new Response(proc.stderr as ReadableStream).text(),
 		proc.exited,
 	]);
-	if (code !== 0) throw runnerUnavailable("error", `superset ${args.slice(0, 2).join(" ")}: ${stderr.trim()}`);
+	if (code !== 0) {
+		const printed = stderr.trim() === "" ? stdout.trim() : stderr.trim();
+		throw runnerUnavailable("error", `superset ${args.slice(0, 2).join(" ")}: ${printed}`);
+	}
 	return stdout;
+};
+
+const ORIGIN_HEAD = "refs/remotes/origin/";
+
+// The branch that origin/HEAD names in the checkout at `path`, as `git
+// clone` records it. A checkout without origin/HEAD is the reason `error`,
+// with what git printed.
+const branchAt = async (path: string) => {
+	const proc = Bun.spawn(["git", "-C", path, "symbolic-ref", `${ORIGIN_HEAD}HEAD`], {
+		env: process.env,
+		stdin: "ignore",
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+	const [stdout, stderr, code] = await Promise.all([
+		new Response(proc.stdout).text(),
+		new Response(proc.stderr).text(),
+		proc.exited,
+	]);
+	if (code !== 0) throw runnerUnavailable("error", `git symbolic-ref origin/HEAD in ${path}: ${stderr.trim()}`);
+	return stdout.trim().slice(ORIGIN_HEAD.length);
 };
 
 // One row of `superset projects list --json`. A project with no remote has
@@ -82,10 +119,14 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 			...["--tag", input.tag, "--command", input.command],
 		]);
 
-	// The tab that `answer` started, or in a workspace that already existed,
-	// its live tab named `title`, or else a new tab that runs `command`.
+	// The Command tab that `answer` started, or in a workspace that already
+	// existed, its live tab named `title`, or else a new tab that runs
+	// `command`.
 	const tabOf = async (answer: WorkspaceAnswer, title: string, command: string) => {
-		if (!answer.alreadyExists) return { terminalId: answer.terminals[0]!.terminalId, started: true };
+		if (!answer.alreadyExists) {
+			const tab = answer.terminals.find((terminal) => terminal.label === COMMAND_LABEL)!;
+			return { terminalId: tab.terminalId, started: true };
+		}
 		const live = (await terminals(answer.workspace.id)).find((tab) => !tab.exited && tab.title === title);
 		if (live !== undefined) return { terminalId: live.terminalId, started: false };
 		return { terminalId: await newTerminal(answer.workspace.id, command), started: true };
@@ -96,7 +137,7 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 			? agentLaunch({ role: "manager", project, url }).command
 			: resumeCommand({ project, sessionId: claudeSessionId, text, url });
 
-	const projects = async (): Promise<RunnerProject[]> =>
+	const projects = async (): Promise<RunnerProjectRow[]> =>
 		(await json<ListedProject[]>(["projects", "list"])).map(({ id, name, repo, path }) => ({
 			id,
 			name,
@@ -112,6 +153,14 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 			if (found === null) throw runnerUnavailable("unmapped");
 			return found;
 		},
+
+		defaultBranch: async (runnerProjectId) => {
+			const found = (await projects()).find((project) => project.id === runnerProjectId);
+			if (found === undefined) throw runnerUnavailable("unmapped", `no Superset project ${runnerProjectId}`);
+			return branchAt(found.path);
+		},
+
+		branchAt,
 
 		ensureManager: async (input) => {
 			const command = managerCommand(input.project, input.claudeSessionId, input.text ?? restartText(input.project));

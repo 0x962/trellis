@@ -5,15 +5,23 @@ import { AgentRunnerProjectsOutputSchema, RunnerProjectSchema } from "./agent.ts
 const ok = (schema: { safeParse: (value: unknown) => { success: boolean } }, value: unknown) =>
 	schema.safeParse(value).success;
 
-const project = { id: "sp-de", name: "de", repo: "canary-technologies-corp/de", path: "/Users/navid/projects/de" };
+const project = {
+	id: "sp-de",
+	name: "de",
+	repo: "canary-technologies-corp/de",
+	path: "/Users/navid/projects/de",
+	defaultBranch: "main",
+};
 
 describe("runner projects", () => {
-	// `superset projects list --json` gives these four fields per project. A
-	// project with no remote has no repo.
-	test("a runner project has the id, name, repo, and path of superset projects list", () => {
-		expect(Object.keys(RunnerProjectSchema.shape).sort()).toEqual(["id", "name", "path", "repo"]);
+	// `superset projects list --json` gives the id, name, repo, and path per
+	// project. A project with no remote has no repo. The server adds the
+	// default branch of the checkout at `path`, or null when git cannot read it.
+	test("a runner project has the id, name, repo, and path of superset projects list, and its default branch", () => {
+		expect(Object.keys(RunnerProjectSchema.shape).sort()).toEqual(["defaultBranch", "id", "name", "path", "repo"]);
 		expect(ok(RunnerProjectSchema, project)).toBe(true);
 		expect(ok(RunnerProjectSchema, { ...project, repo: null })).toBe(true);
+		expect(ok(RunnerProjectSchema, { ...project, defaultBranch: null })).toBe(true);
 		expect(ok(RunnerProjectSchema, { ...project, id: "" })).toBe(false);
 	});
 

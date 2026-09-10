@@ -111,7 +111,9 @@ export const services = {
 		prepare: agents.prepareRunnerProjects,
 		run: agents.runnerProjects,
 	} as ServiceEntry,
-	// The agents host runs these two at its start. They are not on the API.
+	"agents.retryManager": runner(agents.prepareRetry, agents.recordManager),
+	"agents.overview": { family: "agents", kind: "read", run: agents.overview } as ServiceEntry,
+	// The agents host runs these two. They are not on the API.
 	"agents.reconcile": runner(agents.prepareReconcile, agents.reconcile),
 	"agents.ensureManager": runner(agents.prepareManager, agents.recordManager),
 } satisfies Record<string, ServiceEntry>;

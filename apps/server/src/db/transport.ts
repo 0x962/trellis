@@ -1,4 +1,4 @@
-import type { GhStatus, TrellisEvent } from "@trellis/api";
+import type { AgentBatchRecord, GhStatus, TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { DispatcherClock } from "../agents/dispatcher.ts";
 import { type AgentsHost, createAgentsHost } from "../agents/host.ts";
@@ -112,9 +112,13 @@ export const createInlineTransport = ({
 	// The runner spawns the superset binary from the thread that owns the
 	// database, so a service reaches it the way it reaches the database.
 	// Before startAgents builds the agents host, a settings change has no
-	// host to tell, so `hooks.settingsChanged` does nothing.
+	// host to tell, so `hooks.settingsChanged` does nothing, and no batch
+	// went out.
 	const runner = createSupersetRunner({ bin: config.supersetBin, url: config.agentsUrl });
-	const hooks = { settingsChanged: (): void => undefined };
+	const hooks = {
+		settingsChanged: (): void => undefined,
+		batches: (): AgentBatchRecord[] => [],
+	};
 	const agentsCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => ({
 		...coreCtx(ctx, emit, tasks),
 		runner,
@@ -123,6 +127,7 @@ export const createInlineTransport = ({
 			tasks.push(task);
 		},
 		settingsChanged: () => hooks.settingsChanged(),
+		batches: () => hooks.batches(),
 	});
 
 	const buildCtx = (entry: ServiceEntry, ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => {
@@ -132,28 +137,37 @@ export const createInlineTransport = ({
 
 	// A `prepare` step runs first, with no transaction open. The commit comes
 	// next, then the work queued for after it, then the events. A throw rolls
-	// everything back and nothing reaches the bus.
+	// back the transaction of `run`, and none of its events reach the bus.
+	// The events of `prepare` describe writes that its own short transactions
+	// committed, so they reach the bus also when the call throws.
 	const run = async (entry: ServiceEntry, ctx: RequestContext, rawInput: unknown) => {
 		const tasks: Array<() => Promise<void>> = [];
 		const early: TrellisEvent[] = [];
-		const input =
-			"prepare" in entry
-				? await entry.prepare(
-						buildCtx(entry, ctx, (event) => void early.push(event), tasks),
-						rawInput,
-					)
-				: rawInput;
-		if ("stream" in entry) {
-			return pullStream((push) =>
-				withTx(db, async (tx, emit) => {
-					for await (const line of entry.stream(buildCtx(entry, ctx, emit, tasks), tx, input)) await push(line);
-				}).then(() => undefined),
+		try {
+			const input =
+				"prepare" in entry
+					? await entry.prepare(
+							buildCtx(entry, ctx, (event) => void early.push(event), tasks),
+							rawInput,
+						)
+					: rawInput;
+			if ("stream" in entry) {
+				return pullStream((push) =>
+					withTx(db, async (tx, emit) => {
+						for await (const line of entry.stream(buildCtx(entry, ctx, emit, tasks), tx, input)) await push(line);
+					}).then(() => undefined),
+				);
+			}
+			const { result, events } = await withTx(db, (tx, emit) =>
+				entry.run(buildCtx(entry, ctx, emit, tasks), tx, input),
 			);
+			for (const task of tasks) await task();
+			for (const event of [...early.splice(0), ...events]) bus.emit(event, ctx.actor);
+			return result;
+		} catch (error) {
+			for (const event of early) bus.emit(event, ctx.actor);
+			throw error;
 		}
-		const { result, events } = await withTx(db, (tx, emit) => entry.run(buildCtx(entry, ctx, emit, tasks), tx, input));
-		for (const task of tasks) await task();
-		for (const event of [...early, ...events]) bus.emit(event, ctx.actor);
-		return result;
 	};
 
 	// The time covers the transaction and the after-commit work, and counts
@@ -183,6 +197,7 @@ export const createInlineTransport = ({
 			},
 		});
 		hooks.settingsChanged = () => void host.reload();
+		hooks.batches = () => host.dispatcher.recent();
 		agents = host;
 		return host;
 	};
