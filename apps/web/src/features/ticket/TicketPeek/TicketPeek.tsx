@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Sheet, useHotkey, useMediaQuery } from "@trellis/ui";
 import { useEffect, useState } from "react";
+import { commandActions } from "../../command/commandStore";
 import { TicketView } from "../TicketView";
 import { ResizeHandle } from "./components/ResizeHandle";
 import { useDetailRemoved } from "./hooks/useDetailRemoved";
@@ -31,6 +32,11 @@ export function TicketPeek() {
 	useEffect(() => {
 		if (current !== undefined) setShown(current);
 	}, [current]);
+	// The command palette's This ticket section acts on the open peek.
+	useEffect(() => {
+		commandActions.setPeekTicket(current ?? null);
+	}, [current]);
+	useEffect(() => () => commandActions.setPeekTicket(null), []);
 
 	usePeekNavigation({ rows, current: current ?? "", onStep: peek.step });
 	useDetailRemoved(current, peek.close);

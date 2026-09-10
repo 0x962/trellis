@@ -18,6 +18,7 @@ import { BulkBar } from "../BulkBar";
 import { buildColumns, type ColumnId, tableFeatureSet } from "../columns";
 import { useApplyChange } from "../hooks/useApplyChange";
 import { useCollapsedGroups } from "../hooks/useCollapsedGroups";
+import { useCommandContext } from "../hooks/useCommandContext";
 import { useRowSelection } from "../hooks/useRowSelection";
 import { useTableData } from "../hooks/useTableData";
 import { closedCategories, closedKey, useTableGroups } from "../hooks/useTableGroups";
@@ -199,6 +200,10 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		copy,
 		requestDelete: (targets) => setPendingDelete([...targets]),
 	});
+	useCommandContext(
+		focusState === null ? null : (byId.get(focusState)?.identifier ?? null),
+		selection.selected.map((id) => byId.get(id)!.identifier),
+	);
 
 	if (data.total === 0 && (project === undefined || projectQuery.data?.parentId === null)) {
 		return <TableEmpty project={project} filtered={hasFilters(search)} q={view.q} onCreate={() => openNew()} />;
