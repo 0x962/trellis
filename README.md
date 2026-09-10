@@ -192,6 +192,12 @@ bunx expo run:ios
 
 The server listens on `127.0.0.1` by default, so a phone cannot reach it. Run `trellis install --host 0.0.0.0` to open it to your network (`trellis serve --host` and `TRELLIS_HOST` do the same). The server has no auth, so anyone on the network can reach it.
 
+The server answers a request only when its Host header names an IP address, `localhost`, a `*.localhost` name, or the `TRELLIS_HOST` name. A proxy keeps its own hostname in the Host header. To allow a proxy hostname, add it to `TRELLIS_ALLOWED_HOSTS`, a comma-separated list. `trellis install --allow-host <name>` and `trellis serve --allow-host <name>` set the list. Repeat the flag for each name. For Tailscale Serve, which forwards `https://<machine>.<tailnet>.ts.net` to `127.0.0.1:4521`:
+
+```sh
+trellis install --allow-host canary-jqv57w1hpl.tail4a5b4c.ts.net
+```
+
 To pair the phone, open Settings, then Server in the app. Tap Scan QR code and scan the code under Pair a phone in the web app settings. The app fills in the server URL and tests the connection. To pair by hand, type the server URL and tap Test connection. The app shows the server version and the ticket count. Type your name and tap Save.
 
 ## Data and backups

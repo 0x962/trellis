@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import { defineCommand } from "citty";
 import { type CliContext, contextOf } from "../context.ts";
 import { CliFailure } from "../errors.ts";
+import { repeatedFlag } from "../flags.ts";
 import { installationPaths } from "../installation.ts";
 
 const routeLine = "  trellis: 4521,";
@@ -16,11 +17,22 @@ const xml = (value: string) =>
 const hostEntry = (host: string | undefined) =>
 	host === undefined ? "" : `\t\t<key>TRELLIS_HOST</key>\n\t\t<string>${xml(host)}</string>\n`;
 
+// The server refuses a Host header that names a hostname it does not know.
+// Each --allow-host name, such as a Tailscale Serve hostname, passes that
+// check.
+const allowedHostsEntry = (names: string[]) =>
+	names.length === 0 ? "" : `\t\t<key>TRELLIS_ALLOWED_HOSTS</key>\n\t\t<string>${xml(names.join(","))}</string>\n`;
+
 // `bun` is the path that `which` finds on PATH, with no symlink resolved. A
 // Homebrew bun on PATH is a symlink that `brew upgrade` moves to the new
 // version. `process.execPath` names the versioned Cellar directory, which
 // the upgrade deletes, and the agent then has no program to run.
-const plistText = (paths: Paths, host: string | undefined, bun: string) => `<?xml version="1.0" encoding="UTF-8"?>
+const plistText = (
+	paths: Paths,
+	host: string | undefined,
+	allowedHosts: string[],
+	bun: string,
+) => `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -43,7 +55,7 @@ const plistText = (paths: Paths, host: string | undefined, bun: string) => `<?xm
 		<string>production</string>
 		<key>TRELLIS_WEB_DIST</key>
 		<string>${xml(paths.webDist)}</string>
-${hostEntry(host)}	</dict>
+${hostEntry(host)}${allowedHostsEntry(allowedHosts)}	</dict>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>KeepAlive</key>
@@ -96,6 +108,11 @@ export default defineCommand({
 			type: "string",
 			description: "Listen on this address; 0.0.0.0 lets a phone on the network reach the server, which has no auth",
 		},
+		"allow-host": {
+			type: "string",
+			description:
+				"Serve requests whose Host header names this hostname, such as a Tailscale Serve name; repeat for more",
+		},
 		// citty parses `--no-launchd` as launchd=false, so the flag carries its
 		// positive name and defaults to on.
 		launchd: {
@@ -116,7 +133,8 @@ export default defineCommand({
 		writeFileSync(paths.shim, `#!/bin/sh\nexec "${bun}" "${paths.cliEntry}" "$@"\n`);
 		chmodSync(paths.shim, 0o755);
 		mkdirSync(dirname(paths.plist), { recursive: true });
-		writeFileSync(paths.plist, plistText(paths, context.args.host, bun));
+		const allowedHosts = repeatedFlag(context.rawArgs, "allow-host");
+		writeFileSync(paths.plist, plistText(paths, context.args.host, allowedHosts, bun));
 
 		if (context.args.gateway === true) {
 			const added = addGateway(paths.gateway);
