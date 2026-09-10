@@ -12,6 +12,7 @@ import {
 	LIVE_STATES,
 	managerOf,
 	newSessionId,
+	reserveName,
 	selectSessions,
 } from "./agentSessions.ts";
 import { managedProject, readAgentSettings } from "./agentSettings.ts";
@@ -139,6 +140,7 @@ export const recordManager = async (ctx: AgentsCtx, tx: Tx, plan: ManagerPlan): 
 			workspaceId: null,
 			terminalId: null,
 			claudeSessionId: null,
+			name: await reserveName(tx, plan.projectId),
 			title: plan.title,
 			openUrl: null,
 			error: plan.outcome.error,
@@ -165,6 +167,7 @@ export const recordManager = async (ctx: AgentsCtx, tx: Tx, plan: ManagerPlan): 
 		workspaceId,
 		terminalId,
 		claudeSessionId: null,
+		name: await reserveName(tx, plan.projectId),
 		title: plan.title,
 		openUrl,
 	});

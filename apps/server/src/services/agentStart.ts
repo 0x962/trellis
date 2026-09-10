@@ -19,6 +19,7 @@ import {
 	insertSession,
 	LIVE_STATES,
 	newSessionId,
+	reserveName,
 	selectSessions,
 	toSession,
 } from "./agentSessions.ts";
@@ -84,6 +85,10 @@ const reserveBuilder = (ctx: AgentsCtx, ticketRef: string) =>
 			sql`s.ticket_id = ${ticket.id} AND s.role = 'builder' AND s.state = 'failed' AND s.workspace_id IS NULL`,
 		);
 		const id = failed === undefined ? newSessionId() : failed.id;
+		// A failed start holds no terminal, so another agent can take the
+		// name it held. The row takes a free name again here, which keeps
+		// two live agents of one project on two names.
+		const name = await reserveName(tx, managed.projectId);
 		if (failed === undefined) {
 			await insertSession(ctx, tx, {
 				id,
@@ -94,12 +99,14 @@ const reserveBuilder = (ctx: AgentsCtx, ticketRef: string) =>
 				workspaceId: null,
 				terminalId: null,
 				claudeSessionId: null,
+				name,
 				title: ticket.identifier,
 				openUrl: null,
 			});
 		} else {
 			await tx.execute(
-				sql`UPDATE agent_sessions SET state = 'starting', error = NULL, updated_at = ${ctx.now} WHERE id = ${id}`,
+				sql`UPDATE agent_sessions SET state = 'starting', error = NULL, name = ${name}, updated_at = ${ctx.now}
+					WHERE id = ${id}`,
 			);
 		}
 		return { id, ticket, managed, repos: await effectiveRepos(ctx, tx, managed.projectId) };
@@ -198,6 +205,7 @@ const recordFailedReviewer = async (ctx: AgentsCtx, tx: Tx, row: Omit<ReviewerPl
 		state: "failed",
 		terminalId: null,
 		claudeSessionId: null,
+		name: await reserveName(tx, row.projectId),
 		error,
 		...row,
 	});
@@ -206,6 +214,7 @@ const recordFailedReviewer = async (ctx: AgentsCtx, tx: Tx, row: Omit<ReviewerPl
 
 export const startReviewer = async (ctx: AgentsCtx, tx: Tx, plan: ReviewerPlan): Promise<AgentSession> => {
 	const id = newSessionId();
-	await insertSession(ctx, tx, { id, role: "reviewer", state: "starting", claudeSessionId: null, ...plan });
+	const name = await reserveName(tx, plan.projectId);
+	await insertSession(ctx, tx, { id, role: "reviewer", state: "starting", claudeSessionId: null, name, ...plan });
 	return announce(ctx, tx, id);
 };

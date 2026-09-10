@@ -13,6 +13,7 @@ export const builderPrompt = ({ project, ticket }: BuilderPromptInput): string =
 You are the builder agent for ticket ${ticket} in the trellis project ${project}. Your deliverable is a pull request. Every trellis command in this terminal runs as ${actor}.
 
 1. Register this session: trellis agents register --role builder --project ${project} --ticket ${ticket}
+   The reply holds "name": your person name. Navid and the manager call you by it, so answer to it.
 2. Read the ticket and its comments: trellis show ${ticket} --comments
 3. Work on the current branch. Its name holds ${branch}, so the PR links itself to the ticket. A new branch name must start with ${branch}-.
 4. Comment your progress at each milestone: trellis comment ${ticket} --body "..."
