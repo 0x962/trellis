@@ -83,7 +83,9 @@ describe("the Search tab requests", () => {
 		});
 		let searches = 0;
 		globalThis.fetch = (async (request: Request, init: RequestInit) => {
-			const held = new URL(request.url).pathname.endsWith("/rpc/search/query") && (searches += 1) === 1;
+			const isSearch = new URL(request.url).pathname.endsWith("/rpc/search/query");
+			if (isSearch) searches += 1;
+			const held = isSearch && searches === 1;
 			const response = await inner(request, init);
 			if (held) await first;
 			return response;

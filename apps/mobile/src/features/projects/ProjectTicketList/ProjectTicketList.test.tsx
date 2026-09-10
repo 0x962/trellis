@@ -77,7 +77,9 @@ describe("the ticket list", () => {
 
 		await fireEvent(screen.getByTestId("ticket-list"), "endReached");
 		// The next page request carries the cursor of the first page.
-		await waitFor(() => expect(net.callsTo("tickets.list").some((call) => "cursor" in (call.input as object))).toBe(true));
+		await waitFor(() =>
+			expect(net.callsTo("tickets.list").some((call) => "cursor" in (call.input as object))).toBe(true),
+		);
 		expect(shown()).toEqual(first);
 
 		await scrollToEnd();

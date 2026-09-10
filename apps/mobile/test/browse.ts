@@ -1,5 +1,5 @@
-import { human, seeder } from "./server";
-import { reset, type Seeder, seedProject, seedTicket } from "./seed";
+import { reset, seedProject, seedTicket } from "./seed";
+import { seeder } from "./server";
 
 // The projects and the tickets the browse screens read: the project tree, the
 // ticket list of one project, and the search results.

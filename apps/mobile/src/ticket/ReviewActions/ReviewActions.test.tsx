@@ -5,13 +5,7 @@ import type { Recorder } from "../../../test/record";
 import { renderRoute } from "../../../test/renderRoute";
 import { human, seeder } from "../../../test/server";
 import { settle } from "../../../test/settle";
-import {
-	agentReviewTitle,
-	seedTicketScreen,
-	startedTitle,
-	type TicketData,
-	title,
-} from "../../../test/ticket";
+import { agentReviewTitle, seedTicketScreen, startedTitle, type TicketData, title } from "../../../test/ticket";
 import { tokens } from "../../theme/tokens";
 
 let data: TicketData;

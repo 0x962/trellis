@@ -6,8 +6,8 @@ import { bumpVersion, type InboxData, seedInbox } from "../../../test/inbox";
 import { paintedColors } from "../../../test/paint";
 import type { Recorder } from "../../../test/record";
 import { renderNeedsYou, rowIdentifiers, testQueryClient } from "../../../test/renderNeedsYou";
-import { swipeLeft, swipeRight } from "../../../test/swipe";
 import { serverHost } from "../../../test/server";
+import { swipeLeft, swipeRight } from "../../../test/swipe";
 import { persistClient, restoreClient } from "../../lib/storage";
 import { tokens } from "../../theme/tokens";
 

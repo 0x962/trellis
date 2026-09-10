@@ -24,7 +24,7 @@ const children = [
 		id: id("T9"),
 		identifier: "CDE-49",
 		number: 49,
-		title: "Shell+ page: focus the new tab's terminal",
+		title: "Focus the terminal of a new tab",
 		status: done,
 	}),
 	ticketSummary({

@@ -30,9 +30,7 @@ const priorityRow = () => screen.getByRole("button", { name: "Priority" });
 // The `tickets.get` calls for the ticket on screen. The parent's detail is
 // another call.
 const detailCalls = () =>
-	net
-		.callsTo("tickets.get")
-		.filter((call) => (call.input as { ticket: string }).ticket.toUpperCase() === data.ticket);
+	net.callsTo("tickets.get").filter((call) => (call.input as { ticket: string }).ticket.toUpperCase() === data.ticket);
 
 // The summary a `ticket.updated` event carries, from the detail the server
 // holds, one version up.

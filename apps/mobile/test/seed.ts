@@ -75,9 +75,7 @@ export const seedComment = (seeder: Seeder, ticket: string, body: string, by: "h
 
 // A 1 by 1 PNG, so an attachment carries an image mime and real bytes.
 const pngBytes = Uint8Array.from(
-	atob(
-		"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-	),
+	atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="),
 	(character) => character.charCodeAt(0),
 );
 

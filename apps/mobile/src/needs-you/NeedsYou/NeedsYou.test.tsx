@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globa
 import { fireEvent, screen, waitFor, within } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
 import { connect } from "../../../test/connect";
-import { type InboxData, padReview, seedInbox, seeder } from "../../../test/inbox";
+import { type InboxData, padReview, seeder, seedInbox } from "../../../test/inbox";
 import { lastFlashListProps, resetFlashListRenders } from "../../../test/mocks/flash-list";
 import type { Recorder } from "../../../test/record";
 import { renderNeedsYou, rowIdentifiers, sectionHeader } from "../../../test/renderNeedsYou";

@@ -7,7 +7,7 @@ describe("attachment view", () => {
 	test("an image under 3 MB shows inline and every other file opens externally", () => {
 		const small = attachment({
 			id: id("A1"),
-			filename: "fork-pages-after-merge.png",
+			filename: "settings-pages.png",
 			mime: "image/png",
 			size: 184_320,
 		});

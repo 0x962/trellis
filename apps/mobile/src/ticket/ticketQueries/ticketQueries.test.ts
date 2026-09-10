@@ -2,8 +2,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:tes
 import { isDefinedError, safe } from "@orpc/client";
 import { generateOperationKey } from "@orpc/tanstack-query";
 import { errors } from "@trellis/api";
-import { seedTicketScreen, type TicketData } from "../../../test/ticket";
 import { createMobileApp, type MobileApp } from "../../../test/testApp";
+import { seedTicketScreen, type TicketData } from "../../../test/ticket";
 import { approve, sendBack, ticketDetailQuery } from "./ticketQueries";
 
 let app: MobileApp;

@@ -1,6 +1,6 @@
 import type { Inbox } from "@trellis/api";
+import { reset, seedPr, seedProject, seedTicket, setStalledHours } from "./seed";
 import { human, seeder } from "./server";
-import { reset, type Seeder, seedPr, seedProject, seedTicket, setStalledHours } from "./seed";
 
 // The Needs you sections, seeded through the real API. Every file that reads
 // the inbox seeds it here, because the inbox spans every project the server

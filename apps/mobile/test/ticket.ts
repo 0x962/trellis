@@ -1,14 +1,5 @@
 import type { LinkedPullRequest } from "@trellis/api";
-import {
-	type PrSeed,
-	reset,
-	type Seeder,
-	seedAttachment,
-	seedComment,
-	seedPr,
-	seedProject,
-	seedTicket,
-} from "./seed";
+import { type PrSeed, reset, type Seeder, seedAttachment, seedComment, seedPr, seedProject, seedTicket } from "./seed";
 
 // The one ticket the ticket screen tests open, with every section it draws:
 // a parent, three children, four comments, one pull request, and one image.
