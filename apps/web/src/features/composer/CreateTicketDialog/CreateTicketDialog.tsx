@@ -1,5 +1,5 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import type { Priority, Status, Ticket, TicketSummary } from "@trellis/api";
+import type { Priority, Ticket, TicketSummary } from "@trellis/api";
 import { Button, Dialog, Input, Kbd, toast, useHotkey } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
@@ -8,7 +8,7 @@ import { parseSearch, serializeSearch } from "../../filters/grammar";
 import { insertRow } from "../../table/utils/cacheRows";
 import { failToast } from "../../ticket/utils/failToast";
 import { composerActions, useComposerStore } from "../composerStore";
-import { useComposerDefaults } from "../hooks/useComposerDefaults";
+import { defaultStatus, useComposerDefaults } from "../hooks/useComposerDefaults";
 import { useComposerDraft } from "../hooks/useComposerDraft";
 import { ChipRow } from "./components/ChipRow";
 import { DescriptionField } from "./components/DescriptionField";
@@ -29,10 +29,12 @@ export function CreateTicketDialog() {
 	const { client, queryClient, orpc } = useApp();
 	const router = useRouter();
 	const location = useRouterState({ select: (state) => state.location });
-	const defaults = useComposerDefaults(options);
 	const { draft, setDraft, clearDraft } = useComposerDraft();
 	const [project, setProject] = useState<string | undefined>();
-	const [status, setStatus] = useState<Status | undefined>();
+	const defaults = useComposerDefaults(options, project);
+	// A status slug. A project change keeps it, so the ticket stays in a
+	// status of that name when the new project has one.
+	const [status, setStatus] = useState<string | undefined>();
 	const [priority, setPriority] = useState<Priority | undefined>();
 	const [parent, setParent] = useState<TicketSummary | null | undefined>();
 	const [editing, setEditing] = useState(draft.description !== "");
@@ -43,7 +45,8 @@ export function CreateTicketDialog() {
 	const inFlight = useRef(false);
 
 	const chosenProject = project ?? defaults.project;
-	const chosenStatus = status ?? defaults.statuses.find((entry) => entry.slug === defaults.status);
+	const bySlug = (slug: string | undefined) => defaults.statuses.find((entry) => entry.slug === slug);
+	const chosenStatus = bySlug(status ?? defaults.status) ?? defaultStatus(defaults.statuses);
 	const chosenPriority = priority ?? defaults.priority;
 	const description = draft.description === "" ? defaults.template : draft.description;
 	const dirty = draft.title.trim() !== "" || (draft.description !== "" && draft.description !== defaults.template);
@@ -141,11 +144,8 @@ export function CreateTicketDialog() {
 				priority={chosenPriority}
 				parent={parent ?? null}
 				parentRef={parent === undefined ? defaults.parent : undefined}
-				onProject={(ref) => {
-					setProject(ref);
-					setStatus(undefined);
-				}}
-				onStatus={setStatus}
+				onProject={setProject}
+				onStatus={(next) => setStatus(next.slug)}
 				onPriority={setPriority}
 				onParent={setParent}
 			/>

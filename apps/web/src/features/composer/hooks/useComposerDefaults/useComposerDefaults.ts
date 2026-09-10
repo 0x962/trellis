@@ -25,28 +25,29 @@ export type ComposerDefaults = {
 const single = <T>(values: readonly T[] | undefined, negated: boolean) =>
 	values !== undefined && values.length === 1 && !negated ? values[0] : undefined;
 
-// The chip values a new ticket starts with, product.md 6.2. A group's
-// status wins over the filter; a single-valued filter wins over the
-// project's default.
-export const composerDefaults = ({ project, statuses, view, groupStatus }: ComposerDefaultsInput): ComposerDefaults => {
-	const filtered = single(view.status, view.not?.includes("status") ?? false);
-	const known = statuses.find((status) => status.slug === filtered || status.id === filtered);
-	const fallback = [...statuses]
-		.filter((status) => status.category === "todo")
-		.sort((a, b) => a.position - b.position)[0];
-	return {
-		project,
-		status: groupStatus ?? known?.slug ?? fallback?.slug,
-		priority: single(view.priority, view.not?.includes("priority") ?? false) ?? "none",
-	};
-};
+// The status a new ticket in the project starts in: the status the project
+// marks as default, else its first Todo status.
+export const defaultStatus = (statuses: readonly Status[]): Status | undefined =>
+	statuses.find((status) => status.isDefault) ??
+	[...statuses].filter((status) => status.category === "todo").sort((a, b) => a.position - b.position)[0];
 
-// The defaults of the composer on the current page: the viewed project,
-// its statuses, and the URL's filters.
-export const useComposerDefaults = (options: ComposerOptions) => {
+// The chip values a new ticket starts with, product.md 6.2. Only a caller
+// that names a status on purpose (a group `+` or a board column) seeds the
+// status. A filter only narrows the list, so a status filter never seeds
+// it, and the project default applies. A single-valued priority filter
+// seeds the priority.
+export const composerDefaults = ({ project, statuses, view, groupStatus }: ComposerDefaultsInput): ComposerDefaults => ({
+	project,
+	status: groupStatus ?? defaultStatus(statuses)?.slug,
+	priority: single(view.priority, view.not?.includes("priority") ?? false) ?? "none",
+});
+
+// The defaults of the composer on the current page: the chosen project, or
+// else the viewed project, its statuses, and the URL's filters.
+export const useComposerDefaults = (options: ComposerOptions, chosenProject?: string) => {
 	const { orpc } = useApp();
 	const location = useRouterState({ select: (state) => state.location });
-	const project = options.project ?? projectRefOfPathname(location.pathname) ?? undefined;
+	const project = chosenProject ?? options.project ?? projectRefOfPathname(location.pathname) ?? undefined;
 	const detail = useQuery({
 		...orpc.projects.get.queryOptions({ input: { project: project ?? "" } }),
 		enabled: project !== undefined,

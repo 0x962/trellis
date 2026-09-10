@@ -114,13 +114,16 @@ describe("features/command/CommandPalette actions", () => {
 		expect(useComposerStore.getState().options.parent).toBe("CDE-42");
 	});
 
-	// PA-07. A ticket created from a filtered view lands in that view.
+	// PA-07. A ticket created from a view takes the view's project. A status
+	// filter does not seed the status (T7): the composer then uses the
+	// project default status.
 	test("New ticket opens the composer with the current view defaults", async () => {
 		await renderShell({ path: "/p/CDE?status=in-progress" });
 		await openPalette();
 		await pick(/New ticket/);
 		await waitFor(() => expect(useComposerStore.getState().open).toBe(true));
-		expect(useComposerStore.getState().options).toMatchObject({ project: "CDE", status: "in-progress" });
+		expect(useComposerStore.getState().options).toMatchObject({ project: "CDE" });
+		expect(useComposerStore.getState().options.status).toBeUndefined();
 	});
 
 	// PA-08
