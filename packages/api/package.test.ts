@@ -29,9 +29,14 @@ test("the package declares only the allowed dependencies and exports TypeScript 
 // A dependency's own peer dependency is not installed for it. An importer
 // that installs only this package's `dependencies` must get every peer a
 // dependency requires, so each one is declared here too.
+//
+// `Bun.resolveSync` finds the manifest the way an import from this directory
+// finds the package itself. The install puts a package either in
+// `packages/api/node_modules` or in the root `node_modules`, and the search
+// walks up through both.
 test("every peer dependency a declared dependency requires is a declared dependency", async () => {
 	for (const name of Object.keys(pkg.dependencies)) {
-		const manifest = (await Bun.file(join(import.meta.dir, "node_modules", name, "package.json")).json()) as {
+		const manifest = (await Bun.file(Bun.resolveSync(`${name}/package.json`, import.meta.dir)).json()) as {
 			peerDependencies?: Record<string, string>;
 			peerDependenciesMeta?: Record<string, { optional?: boolean }>;
 		};

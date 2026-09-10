@@ -32,7 +32,7 @@ mock.module("react-native", () => ({ AppState: appState }));
 mock.module("react-native-mmkv", () => mmkv);
 mock.module("react-native-sse", () => sse);
 
-const { startLive } = await import("./live");
+const { reconnectMs, startLive } = await import("./live");
 
 const store = mmkv.createMMKV();
 
@@ -55,6 +55,15 @@ describe("startLive", () => {
 		const stream = sse.instances[0]!;
 		expect(stream.url).toBe("http://h:4521/api/events?ping=25");
 		expect(stream.options.headers?.["x-trellis-actor"]).toBe("human:navid");
+		stop();
+	});
+
+	// react-native-sse waits `pollingInterval` before it dials again, and the
+	// default is 5 s. The mobile budget is a reconnect in 1 s or less.
+	test("the stream dials again 1 s after it drops", () => {
+		const stop = startLive(new QueryClient());
+		expect(reconnectMs).toBeLessThanOrEqual(1_000);
+		expect(sse.instances[0]!.options.pollingInterval).toBe(reconnectMs);
 		stop();
 	});
 

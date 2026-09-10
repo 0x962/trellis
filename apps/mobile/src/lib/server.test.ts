@@ -1,6 +1,6 @@
 import { describe, expect, jest, test } from "bun:test";
 import { StandardRPCJsonSerializer } from "@orpc/client/standard";
-import { probeHealth, reachability, recordProbe, validateServerUrl } from "./server";
+import { actorHeader, probeHealth, reachability, recordProbe, validateActorName, validateServerUrl } from "./server";
 
 const actor = "human:navid";
 const base = "http://192.168.1.20:4521";
@@ -53,6 +53,33 @@ describe("validateServerUrl", () => {
 			expect(result.error).toContain("https://");
 		}
 		expect(validateServerUrl("http://192.168.1.20:4521/")).toEqual({ ok: true, url: "http://192.168.1.20:4521" });
+	});
+});
+
+describe("validateActorName", () => {
+	// The actor header grammar takes 1 to 64 printable ASCII characters
+	// without a colon. `createTrellisClient` throws on anything else, so the
+	// setup screen must not send it a name it rejects.
+	test("rejects a name the actor header grammar rejects and trims the rest", () => {
+		for (const input of ["", "   ", "navid:khan", "Zoë", "line\nbreak", "n".repeat(65)]) {
+			const result = validateActorName(input);
+			expect(result.ok, input).toBe(false);
+			if (result.ok) throw new Error(`${input} validated`);
+			expect(result.error).toContain("colon");
+		}
+		expect(validateActorName("  navid  ")).toEqual({ ok: true, name: "navid" });
+		expect(validateActorName("n".repeat(64)).ok).toBe(true);
+	});
+
+	// The client parses the header before it builds a request. A name this
+	// module accepts never reaches that throw.
+	test("a name it accepts builds a client and a name it rejects throws there", async () => {
+		const { fetch } = rpcStub({ health, counts, default: defaultActor });
+		const accepted = validateActorName("navid khan");
+		expect(accepted.ok).toBe(true);
+		if (!accepted.ok) throw new Error("valid name rejected");
+		expect(await probeHealth(base, actorHeader(accepted.name), { fetch })).toEqual(success);
+		expect(probeHealth(base, actorHeader("navid:khan"), { fetch })).rejects.toThrow();
 	});
 });
 

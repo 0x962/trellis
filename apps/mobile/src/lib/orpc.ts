@@ -1,5 +1,6 @@
 import { createTrellisClient, type TrellisClient } from "@trellis/api";
-import { actorHeader, keys, store } from "./store";
+import { actorHeader } from "./server";
+import { keys, store } from "./store";
 
 let cached: { key: string; client: TrellisClient } | undefined;
 

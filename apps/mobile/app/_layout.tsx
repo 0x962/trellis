@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { JetBrainsMono_400Regular, useFonts } from "@expo-google-fonts/jetbrains-mono";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Tabs } from "expo-router/js-tabs";
 import { StatusBar } from "expo-status-bar";
@@ -15,38 +16,56 @@ import { useTheme } from "../src/theme/useTheme";
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
-// The routes a person reaches by a push. Their header carries a back control.
-const pushed = new Set(["ticket/[identifier]", "setup"]);
-
-const identifierOf = (params: object | undefined) => (params as { identifier?: string } | undefined)?.identifier ?? "";
-
-// The whole app is one tab navigator. The four tabs and the ticket route are
-// behind the guard: without a stored server URL and name, only the setup
-// screen exists, so the app shows setup until both are saved. The ticket and
-// setup routes are tab screens without a tab bar item.
+// The tab navigator of the app. Each tab is a group that holds its own stack,
+// so the four tabs render no header of their own. The setup screen sits
+// beside them without a tab bar item and carries its own header.
+//
+// The four tabs are behind the guard: without a stored server URL and name,
+// only the setup screen exists, so the app shows setup until both are saved.
 export default function RootLayout() {
 	const [url] = useMMKVString(keys.serverUrl, store);
 	const [name] = useMMKVString(keys.actorName, store);
 	const configured = Boolean(url) && Boolean(name);
 	const { resolved } = useTheme();
 	const palette = usePalette();
+	// Identifiers, branch names, and versions paint in JetBrains Mono. React
+	// Native draws a family it holds no file for in the system font, so the
+	// screens wait for the file.
+	const [fontLoaded] = useFonts({ [tokens.font.mono]: JetBrainsMono_400Regular });
 
 	// A tab's options. The accessibility label is the title itself, so a
 	// screen reader and a test both find the tab by its name.
-	const tab = (title: string, name: IconName) => ({
+	const tab = (title: string, icon: IconName) => ({
 		title,
 		tabBarAccessibilityLabel: title,
 		tabBarIcon: ({ focused, size }: { focused: boolean; size: number }) => (
-			<Ionicons name={name} size={size} color={focused ? palette.accent : palette.fgMuted} />
+			<Ionicons name={icon} size={size} color={focused ? palette.accent : palette.fgMuted} />
 		),
 	});
 
+	// The header of the setup screen. The tab navigator hands it the screen's
+	// own navigator, which knows whether a screen sits under this one.
+	const setupHeader = ({ navigation }: { navigation: { canGoBack: () => boolean; goBack: () => void } }) => (
+		<ScreenHeader title="Server" onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined} />
+	);
+
 	useEffect(() => {
-		void restoreClient(queryClient, store);
+		// The snapshot is as old as the last run of the app. Every query in it
+		// keeps its data until an event says otherwise, so the restore marks
+		// them all stale and the screens that mount them fetch once.
+		void restoreClient(queryClient, store).then(() => queryClient.invalidateQueries());
 		return subscribePersist(queryClient, store);
 	}, []);
 
-	useEffect(() => (configured ? startLive(queryClient) : undefined), [configured]);
+	// The stream reads the server URL and the name from the store when it
+	// opens. A change to either closes the open stream and opens one on the
+	// server the person saved.
+	useEffect(() => {
+		if (!url || !name) return;
+		return startLive(queryClient);
+	}, [url, name]);
+
+	if (!fontLoaded) return null;
 
 	return (
 		<QueryClientProvider client={queryClient}>
@@ -54,12 +73,7 @@ export default function RootLayout() {
 			<Tabs
 				backBehavior="history"
 				screenOptions={{
-					header: ({ route, options, navigation }) => (
-						<ScreenHeader
-							title={options.title ?? route.name}
-							onBack={pushed.has(route.name) && navigation.canGoBack() ? () => navigation.goBack() : undefined}
-						/>
-					),
+					headerShown: false,
 					sceneStyle: { backgroundColor: palette.bg },
 					tabBarActiveTintColor: palette.accent,
 					tabBarInactiveTintColor: palette.fgMuted,
@@ -68,20 +82,21 @@ export default function RootLayout() {
 				}}
 			>
 				<Tabs.Protected guard={configured}>
-					<Tabs.Screen name="(tabs)/index" options={tab("Needs you", "file-tray-outline")} />
-					<Tabs.Screen name="(tabs)/search" options={tab("Search", "search-outline")} />
-					<Tabs.Screen name="(tabs)/projects" options={tab("Projects", "folder-outline")} />
-					<Tabs.Screen name="(tabs)/settings" options={tab("Settings", "settings-outline")} />
-					<Tabs.Screen
-						name="ticket/[identifier]"
-						options={({ route }) => ({
-							title: identifierOf(route.params),
-							tabBarButton: () => null,
-							tabBarItemStyle: { display: "none" },
-						})}
-					/>
+					<Tabs.Screen name="(needs-you)" options={tab("Needs you", "file-tray-outline")} />
+					<Tabs.Screen name="(search)" options={tab("Search", "search-outline")} />
+					<Tabs.Screen name="(projects)" options={tab("Projects", "folder-outline")} />
+					<Tabs.Screen name="(settings)" options={tab("Settings", "settings-outline")} />
 				</Tabs.Protected>
-				<Tabs.Screen name="setup" options={{ title: "Server", href: null, tabBarStyle: { display: "none" } }} />
+				<Tabs.Screen
+					name="setup"
+					options={{
+						title: "Server",
+						href: null,
+						headerShown: true,
+						header: setupHeader,
+						tabBarStyle: { display: "none" },
+					}}
+				/>
 			</Tabs>
 		</QueryClientProvider>
 	);

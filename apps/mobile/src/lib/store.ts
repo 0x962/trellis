@@ -10,7 +10,3 @@ export const keys = {
 	theme: "trellis-theme",
 	queryCache: "trellis-query-cache",
 } as const;
-
-// The `x-trellis-actor` value for a person. The mobile app always acts as a
-// human; agents reach the server through the CLI.
-export const actorHeader = (name: string) => `human:${name}`;

@@ -2,11 +2,16 @@ import type { QueryClient } from "@tanstack/react-query";
 import { type EventName, eventApplierFor, eventNames } from "@trellis/api";
 import { AppState } from "react-native";
 import EventSource from "react-native-sse";
-import { actorHeader, keys, store } from "./store";
+import { actorHeader } from "./server";
+import { keys, store } from "./store";
 
 // The server sends a comment every this many seconds, so iOS never closes an
 // idle socket.
 export const pingSeconds = 25;
+
+// react-native-sse waits this many milliseconds before it dials the dropped
+// stream again. Its own default is 5 s, and the mobile budget is 1 s.
+export const reconnectMs = 1_000;
 
 // Opens the event stream of the stored server while the app is in the
 // foreground. Every event goes to the applier of `queryClient`, which patches
@@ -23,6 +28,7 @@ export const startLive = (queryClient: QueryClient) => {
 		const name = store.getString(keys.actorName)!;
 		stream = new EventSource<EventName>(`${url}/api/events?ping=${pingSeconds}`, {
 			headers: { "x-trellis-actor": actorHeader(name) },
+			pollingInterval: reconnectMs,
 		});
 		for (const type of eventNames) {
 			stream.addEventListener(type, (event) => {

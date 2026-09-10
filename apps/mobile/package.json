@@ -12,6 +12,7 @@
 		"generate:tokens": "bun scripts/generate-tokens.ts"
 	},
 	"dependencies": {
+		"@expo-google-fonts/jetbrains-mono": "0.4.1",
 		"@expo/vector-icons": "15.1.1",
 		"@orpc/client": "1.15.0",
 		"@shopify/flash-list": "2.3.2",
@@ -21,6 +22,7 @@
 		"expo": "57.0.21",
 		"expo-clipboard": "57.0.1",
 		"expo-constants": "57.0.17",
+		"expo-font": "57.0.3",
 		"expo-image": "57.0.4",
 		"expo-linking": "57.0.9",
 		"expo-router": "57.0.20",

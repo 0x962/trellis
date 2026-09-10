@@ -16,6 +16,7 @@
       "name": "@trellis/mobile",
       "version": "0.0.0",
       "dependencies": {
+        "@expo-google-fonts/jetbrains-mono": "0.4.1",
         "@expo/vector-icons": "15.1.1",
         "@orpc/client": "1.15.0",
         "@shopify/flash-list": "2.3.2",
@@ -25,6 +26,7 @@
         "expo": "57.0.21",
         "expo-clipboard": "57.0.1",
         "expo-constants": "57.0.17",
+        "expo-font": "57.0.3",
         "expo-image": "57.0.4",
         "expo-linking": "57.0.9",
         "expo-router": "57.0.20",
@@ -335,6 +337,8 @@
     "@clack/prompts": ["@clack/prompts@1.8.0", "", { "dependencies": { "@clack/core": "1.5.0", "fast-string-width": "^3.0.2", "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-PXzLZ8N34rxmuo4dJg3xtOXhcBse94qGjDqsteoEYrFrrZ5FSjIGwMAuOcv64ln8rHVBBD06XeVGr+/JX+plcA=="],
 
     "@egjs/hammerjs": ["@egjs/hammerjs@2.0.17", "", { "dependencies": { "@types/hammerjs": "^2.0.36" } }, "sha512-XQsZgjm2EcVUiZQf11UBJQfmZeEmOW8DpI1gsFeln6w0ae0ii4dMQEQ0kjl6DspdWX1aGY1/loyXnP0JS06e/A=="],
+
+    "@expo-google-fonts/jetbrains-mono": ["@expo-google-fonts/jetbrains-mono@0.4.1", "", {}, "sha512-CslACrtMOcRwoWXCO7OMEI+9w3fukWSoBtvNz46OqPoogEuuoY0tkDY1O8sFumk8t0pC6Cx0Xr95O0TOQhpkug=="],
 
     "@expo-google-fonts/material-symbols": ["@expo-google-fonts/material-symbols@0.4.46", "", {}, "sha512-iUs7THR195BR5MT8n07cOVSEjAGKqAT5pUX07Li4Am8qYBJBNAJh49ejTTB3cSyvpKWl9+mwrBqKkirzlBtZmQ=="],
 

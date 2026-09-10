@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { EmptyState } from "../../src/components/EmptyState";
+import { EmptyState } from "../../../src/components/EmptyState";
 
 export default function TicketScreen() {
 	const { identifier } = useLocalSearchParams<{ identifier: string }>();
