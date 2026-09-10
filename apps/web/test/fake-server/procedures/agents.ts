@@ -200,7 +200,13 @@ export const agents = {
 		}
 		return store(
 			context,
-			newSession({ projectId: root.id, ticketId: null, role: "manager", title: `${root.key} manager`, ...managerPlace }),
+			newSession({
+				projectId: root.id,
+				ticketId: null,
+				role: "manager",
+				title: `${root.key} manager`,
+				...managerPlace,
+			}),
 		);
 	}),
 	overview: os.agents.overview.handler(({ context }) => {
