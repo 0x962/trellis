@@ -1,4 +1,5 @@
 import { createFileRoute, redirect, useNavigate, useRouter } from "@tanstack/react-router";
+import type { Status } from "@trellis/api";
 import { isCanonicalSearch } from "../../features/filters/canonical";
 import { FilterBar } from "../../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../features/filters/grammar";
@@ -8,10 +9,13 @@ import { DisplayPopover } from "../../features/table/DisplayPopover";
 import { TicketTable } from "../../features/table/TicketTable";
 import { useScopeStatuses } from "../../hooks/useScopeStatuses";
 import type { AppContext } from "../../lib/appContext";
+import { loadScopeStatuses } from "../../lib/scopeStatuses";
 import { useUiStore } from "../../stores/uiStore";
 
-const countsOptions = (context: AppContext, search: Partial<View>) =>
-	context.orpc.tickets.counts.queryOptions({ input: toCountsQuery(viewOf(search)) });
+// A negated status goes out as the rest of `statuses`. The table's counts
+// query takes the same statuses, so the loader fills the entry it reads.
+const countsOptions = (context: AppContext, search: Partial<View>, statuses: readonly Status[]) =>
+	context.orpc.tickets.counts.queryOptions({ input: toCountsQuery(viewOf(search), { statuses }) });
 
 const routeKey = "/all";
 
@@ -23,7 +27,10 @@ export const Route = createFileRoute("/all")({
 		if (!isCanonicalSearch(location.searchStr, search)) throw redirect({ to: "/all", search, replace: true });
 	},
 	loaderDeps: ({ search }) => search,
-	loader: ({ context, deps }) => context.queryClient.ensureQueryData(countsOptions(context, deps)),
+	loader: async ({ context, deps }) => {
+		const statuses = await loadScopeStatuses(context);
+		await context.queryClient.ensureQueryData(countsOptions(context, deps, statuses));
+	},
 	component: AllPage,
 });
 

@@ -2,18 +2,12 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import type { Status } from "@trellis/api";
 import { useMemo } from "react";
 import { useApp } from "../../lib/appContext";
+import { combineStatuses } from "../../lib/scopeStatuses";
 
 const none: Status[] = [];
 
-const combineStatuses = (results: readonly { data?: { statuses: Status[] } }[]) => {
-	const bySlug = new Map<string, Status>();
-	for (const result of results) {
-		for (const status of result.data?.statuses ?? []) {
-			if (!bySlug.has(status.slug)) bySlug.set(status.slug, status);
-		}
-	}
-	return [...bySlug.values()];
-};
+const combineResults = (results: readonly { data?: { statuses: Status[] } }[]) =>
+	combineStatuses(results.map((result) => result.data?.statuses ?? none));
 
 // The statuses a list can filter by and group by. A project route takes
 // its project's effective set. /all takes every root's set, folded by
@@ -32,7 +26,7 @@ export const useScopeStatuses = (project?: string): Status[] => {
 	);
 	const statuses = useQueries({
 		queries: roots.map((root) => orpc.statuses.list.queryOptions({ input: { project: root } })),
-		combine: combineStatuses,
+		combine: combineResults,
 	});
 	return project === undefined ? statuses : (own.data?.statuses ?? none);
 };

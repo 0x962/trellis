@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import type { Status } from "@trellis/api";
 import { Board } from "../features/board";
 import { isCanonicalSearch } from "../features/filters/canonical";
 import { FilterBar } from "../features/filters/FilterBar";
@@ -12,9 +13,12 @@ import { TicketPeek } from "../features/ticket/TicketPeek";
 import { useScopeStatuses } from "../hooks/useScopeStatuses";
 import type { AppContext } from "../lib/appContext";
 import { useApp } from "../lib/appContext";
+import { loadScopeStatuses } from "../lib/scopeStatuses";
 
-const countsOptions = (context: AppContext, search: Partial<View>) =>
-	context.orpc.tickets.counts.queryOptions({ input: toCountsQuery(viewOf(search)) });
+// A negated status goes out as the rest of `statuses`. The page reads the
+// same statuses, so the loader fills the entry the footer reads.
+const countsOptions = (context: AppContext, search: Partial<View>, statuses: readonly Status[]) =>
+	context.orpc.tickets.counts.queryOptions({ input: toCountsQuery(viewOf(search), { statuses }) });
 
 // Every ticket across every project as a board with one column per status
 // category. The URL carries the view in the shared grammar, with no
@@ -27,7 +31,10 @@ export const Route = createFileRoute("/all_/board")({
 		}
 	},
 	loaderDeps: ({ search }) => search,
-	loader: ({ context, deps }) => context.queryClient.ensureQueryData(countsOptions(context, deps)),
+	loader: async ({ context, deps }) => {
+		const statuses = await loadScopeStatuses(context);
+		await context.queryClient.ensureQueryData(countsOptions(context, deps, statuses));
+	},
 	component: AllBoardPage,
 });
 
@@ -37,7 +44,7 @@ function AllBoardPage() {
 	const context = useApp();
 	const statuses = useScopeStatuses();
 	const view = viewOf(search);
-	const counts = useQuery(countsOptions(context, search)).data;
+	const counts = useQuery(countsOptions(context, search, statuses)).data;
 
 	const setSearch = (next: Partial<View>) => navigate({ to: "/all/board", search: stripDefaults(next) });
 
@@ -53,7 +60,7 @@ function AllBoardPage() {
 				<h1 className="text-md font-semibold text-fg">All tickets</h1>
 			</Topbar>
 			<FilterBar search={search} onSearchChange={setSearch} statuses={statuses} />
-			<Board filters={toCountsQuery(view)} storageKey="all" onOpenTicket={openTicket}>
+			<Board filters={toCountsQuery(view, { statuses })} storageKey="all" onOpenTicket={openTicket}>
 				<TicketPeek />
 			</Board>
 			<ListFooter total={counts?.total} sort={sortLabel(view.sort)} />

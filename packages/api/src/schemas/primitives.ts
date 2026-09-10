@@ -33,11 +33,12 @@ export const splitCommaList = (value: string) => (value === "" ? [] : value.spli
 
 // A list filter arrives as an array from a typed client and as one
 // comma-separated string from a URL or a CLI flag. Both forms parse to the
-// same array.
+// same array. A list with no item names no value to filter by, so the
+// schema rejects it and the request answers INPUT_VALIDATION_FAILED.
 export const commaList = <T extends z.ZodType>(item: T) =>
 	z.preprocess(
 		(value: string | z.input<T>[]) => (typeof value === "string" ? splitCommaList(value) : value),
-		z.array(item),
+		z.array(item).min(1),
 	);
 
 // A boolean query parameter arrives as the strings `true` or `false` from a
