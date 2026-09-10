@@ -13,6 +13,8 @@ import { buildAgentCommand } from "./utils/buildAgentCommand";
 
 export type StartWithAgentProps = {
 	ticket: Ticket;
+	// The phone layout stretches the control across the column.
+	fullWidth?: boolean;
 };
 
 // Whether a start also moves the ticket to the first started status.
@@ -26,7 +28,7 @@ const optionClass = "w-full justify-start";
 // the other copies: the command alone, the brief markdown, and the CLI
 // cheat-sheet. The two halves touch and share the primary fill, so they
 // read as one control.
-export function StartWithAgent({ ticket }: StartWithAgentProps) {
+export function StartWithAgent({ ticket, fullWidth = false }: StartWithAgentProps) {
 	const { orpc, queryClient } = useApp();
 	const { write } = useTicketWrite(ticket.identifier);
 	const ensureStatuses = useEnsureStatuses(ticket.project.path);
@@ -74,14 +76,14 @@ export function StartWithAgent({ ticket }: StartWithAgentProps) {
 	};
 
 	return (
-		<span className="inline-flex items-center">
+		<span className={cx("items-center", fullWidth ? "flex w-full" : "inline-flex")}>
 			<Tooltip content="Start with agent ⌘⇧A">
 				<Button
 					variant="primary"
 					size="sm"
 					aria-label="Start with agent"
 					icon={<Play />}
-					className="rounded-r-none"
+					className={cx("rounded-r-none", fullWidth && "flex-1")}
 					onClick={() => void start()}
 				>
 					Start with agent

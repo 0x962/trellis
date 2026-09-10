@@ -1,6 +1,6 @@
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
-import { IconButton, Skeleton, Tooltip, useHotkey } from "@trellis/ui";
+import { IconButton, Skeleton, TicketId, Tooltip, useHotkey, useMediaQuery } from "@trellis/ui";
 import { ArrowLeft, Copy, Maximize2, X } from "lucide-react";
 import { copyText } from "../../../lib/clipboard";
 import { lastListHref } from "../../../lib/lastList";
@@ -51,6 +51,9 @@ export function Header(props: HeaderProps) {
 	const parentSummary = useParentSummary(ticket?.parent?.identifier ?? null);
 	const identifier = ticket === undefined ? props.identifier : ticket.identifier;
 	const branch = ticket === undefined ? "" : branchName(ticket.identifier, titleSlug(ticket.title));
+	// Below 768 px the page header keeps Back, the ID, and the more menu. TicketView
+	// draws the review actions and Start with agent under the properties grid.
+	const phone = useMediaQuery("(max-width: 767px)") && surface === "page";
 
 	useHotkey("mod+c", (event) => {
 		if (ticket === undefined) return;
@@ -89,8 +92,14 @@ export function Header(props: HeaderProps) {
 					<ArrowLeft className="size-3.5" aria-hidden="true" />
 				</a>
 			)}
-			{ticket === undefined ? <Skeleton width="w-16" height="h-3" /> : <Breadcrumb path={ticket.project.path} />}
-			{ticket !== undefined && ticket.parent !== null && (
+			{ticket === undefined ? (
+				<Skeleton width="w-16" height="h-3" />
+			) : phone ? (
+				<TicketId id={ticket.identifier} />
+			) : (
+				<Breadcrumb path={ticket.project.path} />
+			)}
+			{ticket !== undefined && !phone && ticket.parent !== null && (
 				<>
 					<span aria-hidden="true" className="text-fg-faint">
 						·
@@ -101,17 +110,19 @@ export function Header(props: HeaderProps) {
 			<div className="ml-auto flex shrink-0 items-center gap-2">
 				{ticket !== undefined && (
 					<>
-						<ReviewActions ticket={ticket} />
-						<StartWithAgent ticket={ticket} />
+						{!phone && <ReviewActions ticket={ticket} />}
+						{!phone && <StartWithAgent ticket={ticket} />}
 						<BriefCopy ticket={ticket} />
-						<Tooltip content="Copy ID ⌘C">
-							<IconButton
-								label="Copy ID"
-								size="md"
-								icon={<Copy />}
-								onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
-							/>
-						</Tooltip>
+						{!phone && (
+							<Tooltip content="Copy ID ⌘C">
+								<IconButton
+									label="Copy ID"
+									size="md"
+									icon={<Copy />}
+									onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
+								/>
+							</Tooltip>
+						)}
 						<MoreMenu ticket={ticket} />
 					</>
 				)}

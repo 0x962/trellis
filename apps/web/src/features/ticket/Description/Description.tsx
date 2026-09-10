@@ -153,7 +153,7 @@ export function Description({ ticket }: DescriptionProps) {
 	};
 
 	const onClick = (event: MouseEvent) => {
-		if ((event.target as HTMLElement).closest("a") !== null) return;
+		if ((event.target as HTMLElement).closest("a, img") !== null) return;
 		setEditing(true);
 	};
 

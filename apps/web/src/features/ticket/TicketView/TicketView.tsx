@@ -3,12 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { cx, EmptyState, TicketId, useMediaQuery } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { StartWithAgent } from "../../agent/StartWithAgent";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
 import { useUploads } from "../../attachments/hooks/useUploads";
 import { PullRequests } from "../../prs";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { Description } from "../Description";
 import { Header } from "../Header";
+import { ReviewActions } from "../Header/components/ReviewActions";
 import { PropertiesRail } from "../PropertiesRail";
 import { SubTickets } from "../SubTickets";
 import { Timeline } from "../Timeline";
@@ -26,7 +28,8 @@ export type TicketViewProps = {
 // One ticket, as the page and the peek both draw it: the header, the ID,
 // the title, the description, the sub-tickets, the PRs, the attachments,
 // and the timeline, in one left-aligned column of 760 px of content. Below
-// 768 px the page folds the rail into the peek grid under the title. Every
+// 768 px the page folds the rail into the peek grid under the title, with
+// the review actions and Start with agent under the grid. Every
 // section reads the cached detail, so a live patch repaints it with no
 // refetch. The whole ticket is the one drop target: a dropped file uploads
 // to the ticket, and the attachments section shows its progress.
@@ -82,6 +85,12 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 				{inlineRail && (
 					<div className="mt-3">
 						<PropertiesRail ticket={ticket} variant="peek" onAddSubTicket={() => setAddingChild(true)} />
+					</div>
+				)}
+				{narrow && !peek && (
+					<div data-phone-actions="" className="mt-4 flex flex-col gap-2">
+						<ReviewActions ticket={ticket} />
+						<StartWithAgent ticket={ticket} fullWidth />
 					</div>
 				)}
 				<div className={inlineRail ? "mt-4" : "mt-3"}>

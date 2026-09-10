@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { dragFilesOver, dropFiles, fileOf, surfaceOf } from "../../../../test/attachments";
 import { createFakeServer } from "../../../../test/fake-server";
+import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import { fieldValue, renderTicket, settle } from "../../../../test/ticketHost";
 import { TicketView } from "./TicketView";
@@ -40,6 +41,30 @@ describe("features/ticket/TicketView", () => {
 		const rail = screen.getByLabelText("Properties");
 		expect(rail.tagName).toBe("ASIDE");
 		expect(within(rail).getByText("Human Review")).toBeDefined();
+	});
+
+	// MB-C. Below 768 px the rail folds into the grid under the title, the
+	// header keeps Back, the ID, and the more menu, and Start with agent goes
+	// full width under the grid.
+	test("a phone-width page folds the rail and moves Start with agent under the grid", async () => {
+		mockMatchMedia(true);
+		try {
+			page();
+			const header = await screen.findByLabelText("Ticket header");
+			expect(within(header).getByText("CDE-42")).toBeDefined();
+			expect(within(header).getByRole("link", { name: "Back to list" })).toBeDefined();
+			expect(within(header).getByRole("button", { name: "More actions" })).toBeDefined();
+			expect(within(header).queryByRole("button", { name: "Start with agent" })).toBeNull();
+			const grid = await screen.findByLabelText("Properties");
+			expect(grid.tagName).toBe("DL");
+			const start = screen.getByRole("button", { name: "Start with agent" });
+			expect(grid.compareDocumentPosition(start) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+			expect(start.closest("[data-phone-actions]")).not.toBeNull();
+		} finally {
+			// The mock is global to the test process, so the next file must not
+			// inherit a phone-width window.
+			mockMatchMedia(false);
+		}
 	});
 
 	// WT-108. A hover-revealed action on the PR row has a twin in the row's
