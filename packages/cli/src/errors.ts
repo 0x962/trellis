@@ -97,7 +97,10 @@ const detail = (code: string, message: string, data: Data): string => {
 		case "PAYLOAD_TOO_LARGE":
 			return `${message} The limit is ${data.maxBytes} bytes.`;
 		case "GH_UNAVAILABLE":
+		case "RUNNER_UNAVAILABLE":
 			return `${message} Reason: ${data.reason}.`;
+		case "CONCURRENCY_LIMIT":
+			return `${message} ${data.running} of ${data.limit} builders are running.`;
 		case "INPUT_VALIDATION_FAILED": {
 			const issues = data.issues as Array<{ path?: Array<string | number>; message: string }>;
 			return `${message} ${issues.map((issue) => `${(issue.path ?? []).join(".")}: ${issue.message}`).join("; ")}`;

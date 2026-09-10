@@ -1,7 +1,7 @@
 import type { ColorToken, Reviewer, Status, StatusCategory } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
-import { compact, contextOf, toNumber } from "../context.ts";
+import { type CliContext, compact, contextOf, readText, toNumber } from "../context.ts";
 import { notFound, usageError } from "../errors.ts";
 import { cell, json, type ListSpec, printList, printRecord, type RecordSpec } from "../output.ts";
 
@@ -28,9 +28,21 @@ const statusRecord: RecordSpec<Status> = {
 		{ name: "position", value: (row) => String(row.position) },
 		{ name: "wipLimit", value: (row) => cell(row.wipLimit) },
 		{ name: "default", value: (row) => (row.isDefault ? "yes" : "no") },
+		{ name: "description", value: (row) => cell(row.description) },
 	],
 	identifier: (row) => row.slug,
 };
+
+// The manager agent reads the description as its rule for the tickets in
+// the status. `-` reads the whole standard input, so a long markdown rule
+// comes from a file.
+const descriptionFlag = {
+	type: "string",
+	description: "The rule for the manager agent, in markdown; - reads standard input",
+} as const;
+
+const descriptionOf = (ctx: CliContext, value: string | undefined): Promise<string | undefined> =>
+	value === undefined ? Promise.resolve(undefined) : readText(ctx, value);
 
 const list = defineCommand({
 	meta: { name: "list", description: "Read the effective status set" },
@@ -55,6 +67,7 @@ const add = defineCommand({
 		name: { type: "positional", required: true, description: "Name" },
 		category: { type: "enum", options: ["todo", "started", "review", "done", "canceled"], required: true },
 		reviewer: { type: "enum", options: ["human", "agent"], description: "Who reviews, for a review status" },
+		description: descriptionFlag,
 		color: { type: "string", description: "Color token" },
 		position: { type: "string", description: "Position in the column order" },
 		"wip-limit": { type: "string", description: "Work in progress limit" },
@@ -69,6 +82,7 @@ const add = defineCommand({
 				name: args.name,
 				category: args.category as StatusCategory,
 				reviewer: args.reviewer as Reviewer | undefined,
+				description: await descriptionOf(ctx, args.description),
 				color: args.color as ColorToken | undefined,
 				position: toNumber(args.position),
 				wipLimit: toNumber(args["wip-limit"]),
@@ -97,6 +111,7 @@ const edit = defineCommand({
 		project: { type: "positional", required: true, description: "Project ref" },
 		status: { type: "positional", required: true, description: "Status ref" },
 		name: { type: "string", description: "New name" },
+		description: descriptionFlag,
 		color: { type: "string", description: "New color token" },
 		reviewer: { type: "enum", options: ["human", "agent"], description: "New reviewer" },
 		"wip-limit": { type: "string", description: "New work in progress limit" },
@@ -114,6 +129,7 @@ const edit = defineCommand({
 		const client = clientOf(ctx);
 		const fields = compact({
 			name: args.name,
+			description: await descriptionOf(ctx, args.description),
 			color: args.color as ColorToken | undefined,
 			reviewer: args.reviewer as Reviewer | undefined,
 			wipLimit: toNumber(args["wip-limit"]),
