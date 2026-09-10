@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { AgentSession } from "@trellis/api";
 import { agentsHarness } from "../../test/helpers/agents.ts";
+import { gitRepo } from "../../test/helpers/gitRepo.ts";
 
 // A start the runner refuses keeps its session row in the `failed` state
 // with the exit code and the whole stderr, so a person reads why without
@@ -104,6 +105,69 @@ describe("a failed builder start", () => {
 		expect(again.status).toBe(200);
 		expect(again.body).toMatchObject({ id: failed.id, state: "starting", failure: null });
 		expect(await a.sessions(`ticket=${a.ticket(1)}`)).toHaveLength(1);
+	});
+});
+
+// superset exits 0 and prints something that is not JSON, so the runner
+// throws a SyntaxError, not a refusal it declared. trellis has no reason to
+// show for that, and a row left in `starting` would count toward
+// maxConcurrent and answer every later start of its ticket.
+describe("a start that fails on an error the runner did not declare", () => {
+	const printGarbage = () =>
+		a.stub.update((state) => {
+			state.garbage = ["ws create"];
+		});
+
+	test("leaves no session row, so the ticket can start a builder again", async () => {
+		await a.enable({ maxConcurrent: 1 });
+		await a.t.createTicket({ project: a.key, title: "Fix login" });
+		printGarbage();
+		const refused = await start(a.ticket(1));
+		expect(refused.status).toBe(500);
+		expect(await a.sessions(`ticket=${a.ticket(1)}`)).toEqual([]);
+		a.stub.update((state) => {
+			state.garbage = [];
+		});
+		expect((await start(a.ticket(1))).status).toBe(200);
+	});
+});
+
+describe("stopping a failed session", () => {
+	test("sets the state to stopped and empties the reason", async () => {
+		await a.enable();
+		await a.t.createTicket({ project: a.key, title: "Fix login" });
+		failWs();
+		expect((await start(a.ticket(1))).status).toBe(503);
+		const failed = await only(`ticket=${a.ticket(1)}`);
+		const stopped = await a.post(`/api/agents/sessions/${failed.id}/stop`, {});
+		expect(stopped.status).toBe(200);
+		expect(stopped.body).toMatchObject({ id: failed.id, state: "stopped", failure: null });
+	});
+
+	// The stop of a builder whose ticket is done sweeps every other session of
+	// its workspace. A failed reviewer of the same ticket keeps that workspace
+	// id, so the sweep reaches it.
+	test("the workspace sweep reaches a failed reviewer and the builder stop still works", async () => {
+		await a.enable();
+		await a.t.createTicket({ project: a.key, title: "Fix login" });
+		const builder = await a.startBuilder(a.ticket(1));
+		failTerminals();
+		expect((await review(a.ticket(1))).status).toBe(503);
+		clearFailures();
+		const moved = await a.t.api(`/api/tickets/${a.ticket(1)}/move`, { method: "POST", body: { status: "done" } });
+		expect(moved.status).toBe(200);
+		const stopped = await a.post(`/api/agents/sessions/${builder.id}/stop`, {});
+		expect(stopped.status).toBe(200);
+		const states = (await a.sessions(`ticket=${a.ticket(1)}`)).map(({ role, state, failure }) => ({
+			role,
+			state,
+			failure,
+		}));
+		expect(states).toEqual([
+			{ role: "builder", state: "stopped", failure: null },
+			{ role: "reviewer", state: "stopped", failure: null },
+		]);
+		expect(a.stub.callsOf("ws delete")).toHaveLength(1);
 	});
 });
 
@@ -244,6 +308,22 @@ describe("agents.setSettings checks the runner before it saves", () => {
 		expect(refused.body.data.detail).toContain("master");
 		// The stored settings keep the branch that works.
 		expect((await a.t.api("/api/agents/settings", { actor: null })).body.projects[0].baseBranch).toBe("main");
+	});
+
+	// git reads a for-each-ref pattern without a glob as the start of a path,
+	// so a repository that holds m0/api must still answer that it has no m0.
+	test("refuses a base branch that only exists as the start of another branch name", async () => {
+		const project = await a.enable();
+		a.stub.update((state) => {
+			state.projects = [{ id: "sp-web", name: "web", repo: "acme/web", path: gitRepo(["main", "m0/api", "m0/ui"]) }];
+		});
+		const refused = await put(settings(project.id, { baseBranch: "m0" }));
+		expect(refused.status).toBe(409);
+		expect(refused.body).toMatchObject({
+			code: "AGENT_SETTINGS_UNUSABLE",
+			data: { projectId: project.id, reason: "branch" },
+		});
+		expect(refused.body.data.detail).toContain("m0");
 	});
 
 	test("refuses a Superset project id the runner does not list", async () => {

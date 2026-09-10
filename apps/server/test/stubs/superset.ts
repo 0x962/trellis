@@ -38,6 +38,9 @@ export type StubState = {
 	next: number;
 	// A command key such as "ws create" that exits 1 with this text on stderr.
 	failures: Record<string, string>;
+	// Command keys that exit 0 and print a line that is not JSON, as superset
+	// does when it writes a warning where the caller expects an answer.
+	garbage: string[];
 };
 
 const args = process.argv.slice(2);
@@ -85,6 +88,8 @@ const terminalsIn = (workspaceId: string) => state.terminals.filter((terminal) =
 
 const failure = state.failures[key];
 if (failure !== undefined) refuse(failure);
+
+if ((state.garbage ?? []).includes(key)) answer("warning: superset is updating\n");
 
 if (key === "projects list") answer(state.projects);
 

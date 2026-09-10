@@ -247,6 +247,33 @@ describe("agents host", () => {
 		expect(manager!.workspaceId).not.toBeNull();
 	});
 
+	// The workspace id and the terminal id are the only handle trellis has on
+	// a manager that runs. One refused start at a server restart may not take
+	// them, or every later batch and every stop reaches nothing.
+	test("a refused start leaves the row of a manager that still runs", async () => {
+		await enable();
+		await startHost();
+		const [before] = await sessions();
+		expect(before!.workspaceId).not.toBeNull();
+		expect(before!.terminalId).not.toBeNull();
+
+		host.stop();
+		stub.update((state) => {
+			state.failures["ws create"] = "fatal: invalid reference: main";
+		});
+		await startHost();
+		const [after] = await sessions();
+		expect(after).toMatchObject({
+			id: before!.id,
+			state: before!.state,
+			workspaceId: before!.workspaceId,
+			terminalId: before!.terminalId,
+			failure: null,
+		});
+		expect(stub.state().terminals).toHaveLength(1);
+		expect(logs.map((line) => line.msg)).toContain("agents manager");
+	});
+
 	// agents.retry on a failed manager runs the same start again. The
 	// manager row names its project by id, and prepareManager reads the
 	// project cache by id, so a retry must not turn that id into a path.

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createEventApplier } from "@trellis/api";
+import { Toaster } from "@trellis/ui";
 import { addSession, updateSession } from "../../../../test/agents";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
@@ -16,7 +17,13 @@ beforeEach(() => {
 
 const mount = async (server: FakeServer, ref = "CDE") => {
 	const project = await server.client.projects.get({ project: ref });
-	return renderWithProviders(<ManagerStatus project={project} />, { path: `/p/${ref}`, actor: "navid", server });
+	return renderWithProviders(
+		<>
+			<Toaster />
+			<ManagerStatus project={project} />
+		</>,
+		{ path: `/p/${ref}`, actor: "navid", server },
+	);
 };
 
 const status = () => screen.findByRole("group", { name: "Manager" });
@@ -99,6 +106,23 @@ describe("ManagerStatus", () => {
 		await user.click(group.getByRole("button", { name: "Retry" }));
 		await waitFor(() => expect(server.callsTo("agents.retry")).toHaveLength(1));
 		await waitFor(async () => expect(within(await status()).getByText("Starting")).toBeDefined());
+	});
+
+	// A manager retry answers with its row, not with an error, so the toast
+	// has to read that row before it says the agent started.
+	test("a manager retry the runner refuses again does not say the agent started", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		addSession(server, {
+			role: "manager",
+			state: "failed",
+			failure: { reason: "error", exitCode: 1, detail: "fatal: invalid reference: main" },
+		});
+		server.state.runnerDown = "error";
+		await mount(server);
+		await user.click(within(await status()).getByRole("button", { name: "Retry" }));
+		expect(await screen.findByText("Couldn't start the agent")).toBeDefined();
+		expect(screen.queryByText("Started the agent")).toBeNull();
 	});
 
 	test("follows an agents.session event", async () => {

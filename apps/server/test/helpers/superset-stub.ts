@@ -30,7 +30,7 @@ export type SupersetStubHandle = {
 
 const envKeys = ["TRELLIS_SUPERSET_STUB_STATE", "TRELLIS_SUPERSET_STUB_LOG"] as const;
 
-const empty = (): StubState => ({ projects: [], workspaces: [], terminals: [], next: 1, failures: {} });
+const empty = (): StubState => ({ projects: [], workspaces: [], terminals: [], next: 1, failures: {}, garbage: [] });
 
 export const supersetStub = (dir: string, initial: Partial<StubState> = {}): SupersetStubHandle => {
 	const saved = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));

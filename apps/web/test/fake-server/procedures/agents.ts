@@ -171,13 +171,16 @@ export const agents = {
 		if (context.state.runnerDown !== null) throw fail("RUNNER_UNAVAILABLE", runnerDown(context.state.runnerDown));
 		return store(context, { ...context.state.agentSessions.get(input.id)!, state: "stopped" });
 	}),
-	// A retry runs the same start again. A runner that is still down writes
-	// the new reason on the same row and answers with it.
+	// A retry runs the same start again. A builder retry and a reviewer retry
+	// answer with the error when the runner is still down. A manager retry
+	// writes the new reason on its row and answers with the row, as
+	// recordManager does on the server.
 	retry: os.agents.retry.handler(({ context, input }) => {
 		const session = context.state.agentSessions.get(input.id)!;
 		if (context.state.runnerDown !== null) {
 			const failure = runnerDown(context.state.runnerDown);
-			store(context, { ...session, state: "failed", failure });
+			const refused = store(context, { ...session, state: "failed", failure });
+			if (session.role === "manager") return refused;
 			throw fail("RUNNER_UNAVAILABLE", failure);
 		}
 		return store(context, { ...session, state: "starting", failure: null });

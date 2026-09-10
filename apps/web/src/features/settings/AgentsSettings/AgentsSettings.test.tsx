@@ -176,6 +176,20 @@ describe("AgentsSettings", () => {
 
 	// A manager that never started leaves its reason on its session row, and
 	// this block is where a person changes the setting that caused it.
+	// The Agents block and every project row call the same hook. A refusal a
+	// save raises in one of them must reach the row it names, so it cannot
+	// live in a useState that each call holds for itself.
+	test("a refusal from the global switch reaches the project row it names", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		const detail = "No Superset project holds acme/web. Pick a Superset project for it.";
+		server.state.agentSettings = { runner: "superset", enabled: false, projects: [projectRow(rootId(server))] };
+		server.state.agentSettingsRefusal = { projectId: rootId(server), reason: "unmapped", detail };
+		render(server);
+		await user.click(await screen.findByRole("switch", { name: "Turn on agents" }));
+		expect(await within(await projectGroup("CDE")).findByText(detail)).toBeDefined();
+	});
+
 	test("a failed manager states its reason in the project block", async () => {
 		const server = createFakeServer();
 		addSession(server, {
