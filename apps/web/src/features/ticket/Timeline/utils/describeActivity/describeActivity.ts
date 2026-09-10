@@ -1,4 +1,4 @@
-import type { Activity } from "@trellis/api";
+import { type Activity, activityActions } from "@trellis/api";
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
@@ -10,7 +10,7 @@ const prShort = (value: string) => {
 
 // One activity row as a verb phrase: "moved Todo → In Progress".
 export const describeActivity = (item: Activity): string => {
-	if (item.action === "created") return "created the ticket";
+	if (item.action === activityActions.created) return "created the ticket";
 	switch (item.field) {
 		case "status":
 			return `moved ${item.fromValue} → ${item.toValue}`;

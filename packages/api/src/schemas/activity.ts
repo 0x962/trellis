@@ -4,6 +4,14 @@ import { ActorRefSchema } from "./actor.ts";
 import { CommentSchema } from "./comment.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
+// The `action` of an activity row, as the server writes it. A client that
+// finds the create row of a ticket compares against `created`.
+export const activityActions = {
+	created: "ticket.created",
+	updated: "ticket.updated",
+	deleted: "ticket.deleted",
+} as const;
+
 // One audit row. `id` is the bigint identity, the cursor and the sort key.
 // A description row carries `meta.deltaChars` and no values; a status row
 // carries `{fromId, toId, fromCategory, toCategory}` in `meta`.

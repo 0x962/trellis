@@ -1,4 +1,4 @@
-import type { ActorRef, Ticket } from "@trellis/api";
+import { type ActorRef, activityActions, type Ticket } from "@trellis/api";
 import { ActorChip, Button, cx, IconButton } from "@trellis/ui";
 import { Copy } from "lucide-react";
 import { isLiveActor } from "../../../lib/actorLive";
@@ -56,7 +56,7 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 	const done = ticket.children.filter((child) => child.status.category === "done").length;
 	const created = timeline.data?.pages
 		.flatMap((page) => page.items)
-		.find((item) => item.kind === "activity" && item.action === "created");
+		.find((item) => item.kind === "activity" && item.action === activityActions.created);
 	const creator = visibleActor(created?.actor ?? null);
 	const last = visibleActor(ticket.lastActor);
 	const saveState = status.identifier === ticket.identifier ? status.state : "idle";
