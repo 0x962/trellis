@@ -4,26 +4,33 @@ import type { SearchQueryInput } from "@trellis/api";
 import { renderRouter } from "expo-router/testing-library";
 import { debounceMs } from "../../src/lib/useDebouncedValue";
 import { appContext } from "../../test/appContext";
-import { type FakeServer, inputsTo, startFakeServer, stopFakeServer } from "../../test/fakeServer";
+import { type BrowseData, seedBrowse } from "../../test/browse";
+import { connect } from "../../test/connect";
+import type { Recorder } from "../../test/record";
+import { renderRoute } from "../../test/renderRoute";
 
-let server: FakeServer;
+let data: BrowseData;
+let net: Recorder;
 
-beforeEach(() => {
-	server = startFakeServer();
+beforeEach(async () => {
+	data = await seedBrowse();
+	net = connect();
 });
 
 afterEach(() => {
 	jest.useRealTimers();
-	stopFakeServer(server);
+	net.restore();
 });
 
-// `renderRouter` returns a thenable. Await it once, and the route tree is
-// mounted; the object itself carries `getPathname`.
-const openSearch = () => renderRouter(appContext(), { initialUrl: "/search" });
+// The clock stays fake for a test that drives the debounce. Such a test reads
+// the requests the field sends and never an answer.
+const openSearchOnFakeClock = () => renderRouter(appContext(), { initialUrl: "/search" });
+
+const openSearch = () => renderRoute("/search");
 
 const field = () => screen.getByTestId("search-field");
 
-const queries = () => inputsTo(server, "search.query") as SearchQueryInput[];
+const queries = () => net.inputsTo("search.query") as SearchQueryInput[];
 
 // Types one character at a time, so every keystroke lands inside one window.
 const typeInWindow = async (text: string) => {
@@ -42,8 +49,7 @@ const settle = async () => {
 describe("the Search tab requests", () => {
 	test("typing inside the window sends one search request", async () => {
 		jest.useFakeTimers();
-		const view = openSearch();
-		await view;
+		await openSearchOnFakeClock();
 
 		await typeInWindow("oauth");
 		await settle();
@@ -54,8 +60,7 @@ describe("the Search tab requests", () => {
 
 	test("a pause between two bursts sends two search requests", async () => {
 		jest.useFakeTimers();
-		const view = openSearch();
-		await view;
+		await openSearchOnFakeClock();
 
 		await typeInWindow("oauth");
 		await settle();
@@ -69,39 +74,38 @@ describe("the Search tab requests", () => {
 	});
 
 	test("a superseded search never overwrites the newer results", async () => {
-		// The first response waits for `release`, so it lands after the second.
+		// The first search answer waits for `release`, so it lands after the
+		// second one.
 		const inner = globalThis.fetch;
-		let held: (() => void) | undefined;
+		let release = () => {};
 		const first = new Promise<void>((resolve) => {
-			held = resolve;
+			release = resolve;
 		});
-		let calls = 0;
+		let searches = 0;
 		globalThis.fetch = (async (request: Request, init: RequestInit) => {
-			calls += 1;
+			const held = new URL(request.url).pathname.endsWith("/rpc/search/query") && (searches += 1) === 1;
 			const response = await inner(request, init);
-			if (calls === 1) await first;
+			if (held) await first;
 			return response;
 		}) as unknown as typeof fetch;
 
-		const view = openSearch();
-		await view;
+		await openSearch();
 		await fireEvent.changeText(field(), "oauth");
 		// The debounce sends the first query before the second one starts.
 		await waitFor(() => expect(queries()).toHaveLength(1));
 		await fireEvent.changeText(field(), "terminal");
 
-		await waitFor(() => expect(screen.getByTestId("ticket-row-CDE-44")).toBeOnTheScreen());
-		held!();
+		await waitFor(() => expect(screen.getByTestId(`ticket-row-${data.terminal}`)).toBeOnTheScreen());
+		release();
 		await act(async () => {});
 
-		expect(screen.getByTestId("ticket-row-CDE-44")).toBeOnTheScreen();
-		expect(screen.queryByTestId("ticket-row-CDE-51")).toBeNull();
+		expect(screen.getByTestId(`ticket-row-${data.terminal}`)).toBeOnTheScreen();
+		expect(screen.queryByTestId(`ticket-row-${data.oauth[0]}`)).toBeNull();
 	});
 
 	test("clearing the field sends no request", async () => {
 		jest.useFakeTimers();
-		const view = openSearch();
-		await view;
+		await openSearchOnFakeClock();
 
 		await typeInWindow("oauth");
 		await settle();
@@ -114,8 +118,7 @@ describe("the Search tab requests", () => {
 	});
 
 	test("a search request carries no project scope", async () => {
-		const view = openSearch();
-		await view;
+		await openSearch();
 		await fireEvent.changeText(field(), "oauth");
 
 		await waitFor(() => expect(queries()).toHaveLength(1));

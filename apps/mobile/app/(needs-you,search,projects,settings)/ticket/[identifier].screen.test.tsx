@@ -69,7 +69,7 @@ describe("the ticket route", () => {
 	// O21.
 	test("renders every section of the ticket", async () => {
 		await openTicket();
-		expect(screen.getByRole("button", { name: "Approve" })).toBeOnTheScreen();
+		expect(await screen.findByRole("button", { name: "Approve" })).toBeOnTheScreen();
 		expect(screen.getByRole("button", { name: "Send back" })).toBeOnTheScreen();
 		expect(within(statusRow()).getByText("Human Review")).toBeOnTheScreen();
 		expect(within(priorityRow()).getByText("High")).toBeOnTheScreen();

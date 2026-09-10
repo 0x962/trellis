@@ -1,20 +1,23 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { applyEvent } from "@trellis/api";
-import { ticketSummary } from "../../../../../web/test/fake-server/summaries";
-import { failCalls } from "../../../../test/connect";
-import { callsTo, type FakeServer, serverHost, startFakeServer, stopFakeServer } from "../../../../test/fakeServer";
+import { type BrowseData, seedBrowse } from "../../../../test/browse";
+import { connect } from "../../../../test/connect";
+import type { Recorder } from "../../../../test/record";
 import { renderWithClient } from "../../../../test/renderWithClient";
+import { human, serverHost } from "../../../../test/server";
 import { queryClient } from "../../../lib/queryClient";
 import { ProjectTicketList } from "./ProjectTicketList";
 
-let server: FakeServer;
+let data: BrowseData;
+let net: Recorder;
 
-beforeEach(() => {
-	server = startFakeServer();
+beforeEach(async () => {
+	data = await seedBrowse();
+	net = connect();
 });
 
-afterEach(() => stopFakeServer(server));
+afterEach(() => net.restore());
 
 // A ULID for the batch every event carries.
 const batchId = "01J8Z6X4Q3M2K1H0G9F8E7D6C5";
@@ -39,7 +42,7 @@ const waitForRows = async () => {
 
 // The first page the list requests: the Active segment, sorted by Updated.
 const firstPage = () =>
-	server.client.tickets.list({ project: "CDE", category: ["todo", "started"], sort: "-updatedAt", limit: 25 });
+	human.tickets.list({ project: data.root, category: ["todo", "started"], sort: "-updatedAt", limit: 25 });
 
 // Scrolls the list past its last row, so FlashList draws the rows at the end.
 const scrollToEnd = () =>
@@ -51,21 +54,13 @@ const scrollToEnd = () =>
 		},
 	});
 
-const ticketRow = (identifier: string) => {
-	const number = Number(identifier.split("-")[1]);
-	const key = identifier.split("-")[0];
-	return [...server.state.tickets.values()].find(
-		(row) => row.number === number && server.state.projects.get(row.rootId)!.key === key,
-	)!;
-};
-
 describe("the ticket list", () => {
 	// The setup gives FlashList a 900 px viewport, so the list draws only the
 	// rows that fit. These rows are the top of the server's page, in order.
 	test("the list renders the server's page in the server's order", async () => {
 		const page = await firstPage();
 
-		renderWithClient(<ProjectTicketList project="CDE" />);
+		renderWithClient(<ProjectTicketList project={data.root} />);
 		await waitForRows();
 
 		const drawn = shown();
@@ -76,15 +71,13 @@ describe("the ticket list", () => {
 	// A row of the next page is drawn only after a scroll to the list end.
 	test("the next page appends below the rows already shown", async () => {
 		const pageOne = new Set((await firstPage()).items.map((item) => item.identifier));
-		renderWithClient(<ProjectTicketList project="CDE" />);
+		renderWithClient(<ProjectTicketList project={data.root} />);
 		await waitForRows();
 		const first = shown();
 
 		await fireEvent(screen.getByTestId("ticket-list"), "endReached");
 		// The next page request carries the cursor of the first page.
-		await waitFor(() =>
-			expect(callsTo(server, "tickets.list").some((call) => "cursor" in (call.input as object))).toBe(true),
-		);
+		await waitFor(() => expect(net.callsTo("tickets.list").some((call) => "cursor" in (call.input as object))).toBe(true));
 		expect(shown()).toEqual(first);
 
 		await scrollToEnd();
@@ -94,8 +87,8 @@ describe("the ticket list", () => {
 	});
 
 	test("a segment with no ticket shows an empty state", async () => {
-		// MRG holds no ticket in a review status.
-		renderWithClient(<ProjectTicketList project="MRG" />);
+		// The small root holds no ticket in a review status.
+		renderWithClient(<ProjectTicketList project={data.small} />);
 		await waitForRows();
 
 		await fireEvent.press(screen.getByLabelText("Review"));
@@ -105,8 +98,8 @@ describe("the ticket list", () => {
 
 	// A list the server did not send is not an empty list.
 	test("a failed list shows the unreachable server state, and Retry loads the list", async () => {
-		const restore = failCalls("tickets.list");
-		await renderWithClient(<ProjectTicketList project="CDE" />);
+		const restore = net.fail("tickets.list");
+		await renderWithClient(<ProjectTicketList project={data.root} />);
 		expect(await screen.findByText(`Cannot reach ${serverHost}`)).toBeOnTheScreen();
 		expect(screen.queryByText("No tickets here")).toBeNull();
 		restore();
@@ -116,7 +109,7 @@ describe("the ticket list", () => {
 	});
 
 	test("the controls start at Active and Updated", async () => {
-		renderWithClient(<ProjectTicketList project="CDE" />);
+		renderWithClient(<ProjectTicketList project={data.root} />);
 		await waitForRows();
 
 		expect(screen.getByLabelText("Active").props.accessibilityState).toMatchObject({ checked: true });
@@ -127,19 +120,16 @@ describe("the ticket list", () => {
 	});
 
 	test("a ticket event patches the row in place without a refetch", async () => {
-		const row = ticketRow("CDE-44");
-		row.version = 3;
+		const target = (await firstPage()).items[0]!;
 
-		renderWithClient(<ProjectTicketList project="CDE" />);
-		await waitFor(() => expect(screen.getByText(row.title)).toBeOnTheScreen());
-		expect(callsTo(server, "tickets.list")).toHaveLength(1);
+		renderWithClient(<ProjectTicketList project={data.root} />);
+		await waitFor(() => expect(screen.getByText(target.title)).toBeOnTheScreen());
+		expect(net.callsTo("tickets.list")).toHaveLength(1);
 
-		row.title = "Terminal pane keeps its scrollback on a session handoff";
-		row.version = 4;
-		const summary = ticketSummary(server.state, row);
+		const summary = { ...target, title: "The row title the event carries", version: target.version + 1 };
 		await act(() => applyEvent({ type: "ticket.updated", summary, fields: ["title"], batchId }, queryClient));
 
-		await waitFor(() => expect(screen.getByText(row.title)).toBeOnTheScreen());
-		expect(callsTo(server, "tickets.list")).toHaveLength(1);
+		await waitFor(() => expect(screen.getByText(summary.title)).toBeOnTheScreen());
+		expect(net.callsTo("tickets.list")).toHaveLength(1);
 	});
 });
