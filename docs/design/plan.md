@@ -228,7 +228,7 @@ packages/cli/src/
 ├── sse.ts                 minimal SSE reader for watch
 ├── instructions.md        imported as text
 └── commands/              one file per verb: projects.ts, statuses.ts, create.ts, show.ts, list.ts, edit.ts, move.ts, comment.ts, attach.ts, pr.ts, sub.ts, delete.ts, search.ts, activity.ts, brief.ts, inbox.ts, watch.ts, open.ts, whoami.ts, status.ts, logs.ts, serve.ts, install.ts, backup.ts, restore.ts, export.ts
-packages/cli/test/          smoke.test.ts (spawned server), perf.test.ts, actor.test.ts, output.test.ts
+packages/cli/test/          smoke.test.ts (spawned server), coldStart.perf.ts, actor.test.ts, output.test.ts
 ```
 
 ### Test taxonomy

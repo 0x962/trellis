@@ -6,10 +6,10 @@
 	"scripts": {
 		"dev": "bun --watch src/index.ts",
 		"start": "bun src/index.ts",
-		"test": "bun test --path-ignore-patterns 'test/perf/**' --path-ignore-patterns 'src/db/worker.drift.test.ts'",
+		"test": "bun test",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"db:generate": "drizzle-kit generate",
-		"perf:10k": "TRELLIS_PERF_ROWS=10000 bun test ./test/perf/list.perf.ts ./test/perf/search.perf.ts ./test/perf/boot.test.ts ./test/perf/poller.test.ts ./test/perf/memory.test.ts ./src/db/worker.drift.test.ts",
+		"perf:10k": "TRELLIS_PERF_ROWS=10000 bun test ./test/perf/list.perf.ts ./test/perf/search.perf.ts ./test/perf/boot.perf.ts ./test/perf/poller.perf.ts ./test/perf/memory.perf.ts ./src/db/worker.drift.perf.ts",
 		"perf": "TRELLIS_PERF_ROWS=50000 bun test ./test/perf/list.perf.ts ./test/perf/search.perf.ts"
 	},
 	"dependencies": {
