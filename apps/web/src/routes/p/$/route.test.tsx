@@ -144,6 +144,11 @@ describe("routes/p/$", () => {
 		const server = createFakeServer();
 		const root = [...server.state.projects.values()].find((project) => project.path === "CDE")!;
 		const own = [...server.state.statuses.values()].filter((status) => status.projectId === root.id);
+		const remaining = own[0]!;
+		const removed = new Set(own.slice(1).map((status) => status.id));
+		for (const ticket of server.state.tickets.values()) {
+			if (removed.has(ticket.statusId)) ticket.statusId = remaining.id;
+		}
 		for (const status of own.slice(1)) server.state.statuses.delete(status.id);
 		renderApp({ path: "/p/CDE/settings", actor: "navid", server });
 		await user.click(await screen.findByRole("button", { name: "Delete Todo" }));
