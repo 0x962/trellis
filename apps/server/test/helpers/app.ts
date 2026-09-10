@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { createTrellisClient, type GhStatus, type Project, type Ticket, type TrellisClient } from "@trellis/api";
 import { ulid } from "ulid";
 import { createApp } from "../../src/app.ts";
@@ -66,6 +67,8 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		TRELLIS_WEB_DIST: options.webDist ?? `${home}/no-web-dist`,
 		TRELLIS_DB_INLINE: process.env.TRELLIS_TEST_TRANSPORT === "worker" ? "false" : "true",
 	});
+	// The directories boot creates, so a backup of this home finds db/.
+	for (const dir of [config.dbDir, config.tmpDir, config.backupsDir]) mkdirSync(dir, { recursive: true });
 	const records: LogRecord[] = [];
 	const log = createLogger({
 		level: config.logLevel,

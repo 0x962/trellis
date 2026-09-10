@@ -1,10 +1,11 @@
-import { mkdirSync, readdirSync, rmSync, statSync, unlinkSync } from "node:fs";
+import { mkdirSync, readdirSync, renameSync, rmSync, statSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { BackupOutput, GhStatus, Health } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import type { GhRunner } from "../gh/run.ts";
+import { PARTIAL_SUFFIX, SNAPSHOT_PREFIX } from "../storage/backups.ts";
 import type { ServiceCtx } from "./support.ts";
 
 // The three answers a person needs about the running server: is it healthy,
@@ -70,6 +71,14 @@ const pruneArchives = (dir: string) => {
 // archive gets.
 export type Snapshot = { staging: string; path: string };
 
+// Runs a copy or an archive command and throws with its stderr when it
+// exits nonzero.
+const run = async (command: string[]) => {
+	const proc = Bun.spawn(command, { stdout: "ignore", stderr: "pipe" });
+	const [code, stderr] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
+	if (code !== 0) throw new Error(`${command[0]} exited ${code}: ${stderr.trim()}`);
+};
+
 // APFS and btrfs copy a file by reference, so a snapshot at 50k tickets
 // takes milliseconds and no disk. Another file system copies the bytes.
 const copyArgs = process.platform === "darwin" ? ["cp", "-cR"] : ["cp", "-R", "--reflink=auto"];
@@ -84,27 +93,32 @@ export const snapshot = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Prom
 	await tx.execute(sql`CHECKPOINT`);
 	const dir = join(ctx.home, "backups");
 	const stamp = stampOf(ctx.now());
-	const staging = join(dir, `snapshot-${stamp}`);
+	const staging = join(dir, `${SNAPSHOT_PREFIX}${stamp}`);
 	mkdirSync(staging, { recursive: true });
-	const proc = Bun.spawn([...copyArgs, join(ctx.home, "db"), join(ctx.home, "attachments"), staging], {
-		stdout: "pipe",
-		stderr: "pipe",
-	});
-	await proc.exited;
+	try {
+		await run([...copyArgs, join(ctx.home, "db"), join(ctx.home, "attachments"), staging]);
+	} catch (error) {
+		rmSync(staging, { recursive: true, force: true });
+		throw error;
+	}
 	return { staging, path: join(dir, `trellis-${stamp}.tar.gz`) };
 };
 
 // Compresses a snapshot into its archive, removes the snapshot, and keeps
 // the newest archives. It reads no database, so the HTTP process runs it and
 // no request waits for the compression. The archive is a data home again:
-// `db/` and `attachments/` at its root, so a restore is an extract.
+// `db/` and `attachments/` at its root, so a restore is an extract. tar
+// writes the `.partial` name, and only an archive tar finished gets the
+// final name. A failed tar leaves neither the snapshot nor the partial file.
 export const archive = async (taken: Snapshot): Promise<BackupOutput> => {
-	const proc = Bun.spawn(["tar", "-czf", taken.path, "-C", taken.staging, "db", "attachments"], {
-		stdout: "pipe",
-		stderr: "pipe",
-	});
-	await proc.exited;
-	rmSync(taken.staging, { recursive: true });
+	const partial = `${taken.path}${PARTIAL_SUFFIX}`;
+	try {
+		await run(["tar", "-czf", partial, "-C", taken.staging, "db", "attachments"]);
+		renameSync(partial, taken.path);
+	} finally {
+		rmSync(taken.staging, { recursive: true, force: true });
+		rmSync(partial, { force: true });
+	}
 	pruneArchives(dirname(taken.path));
 	return { path: taken.path, bytes: statSync(taken.path).size };
 };

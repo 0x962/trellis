@@ -12,6 +12,7 @@ import { createGhState } from "./ghState.ts";
 import { lockHome } from "./homeLock.ts";
 import { listenAddresses } from "./listen.ts";
 import { createLogger, createRotatingSink, type LogSink, stdoutSink, teeSink } from "./log.ts";
+import { sweepBackups } from "./storage/backups.ts";
 import { sweep } from "./storage/blobs.ts";
 
 // Something that starts once the port is open and stops during the
@@ -77,6 +78,8 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		});
 		lock.setPort(server.port!);
 		for (const dir of [config.dbDir, config.tmpDir, config.backupsDir]) mkdirSync(dir, { recursive: true });
+		const leftovers = sweepBackups(config.backupsDir);
+		if (leftovers.length > 0) log.info("backup sweep", { removed: leftovers });
 
 		const gh = createGhRunner();
 		const bootId = ulid();
