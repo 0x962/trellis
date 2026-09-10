@@ -1,6 +1,33 @@
 import { expect, test } from "bun:test";
-import { statusSummary } from "../../test/fixtures.ts";
-import { StatusCreateInputSchema, StatusSummarySchema, StatusUpdateInputSchema } from "./status.ts";
+import { projectId, statusSummary } from "../../test/fixtures.ts";
+import { StatusCreateInputSchema, StatusSchema, StatusSummarySchema, StatusUpdateInputSchema } from "./status.ts";
+
+// The description is the manager's rulebook for the status, in markdown.
+// A row that has none reads as the empty string, never as absent.
+test("a status carries a markdown description of at most 2000 characters, empty by default", () => {
+	const status = {
+		...statusSummary(),
+		projectId,
+		position: 1,
+		wipLimit: null,
+		isDefault: false,
+		createdAt: "2026-09-10T10:00:00.000Z",
+		updatedAt: "2026-09-10T10:00:00.000Z",
+	};
+	expect(StatusSchema.parse(status).description).toBe("");
+	const rulebook = "New work. **Read it**, ask in a comment when it is unclear, then start a builder.";
+	expect(StatusSchema.parse({ ...status, description: rulebook }).description).toBe(rulebook);
+	expect(StatusSchema.safeParse({ ...status, description: "x".repeat(2000) }).success).toBe(true);
+	expect(StatusSchema.safeParse({ ...status, description: "x".repeat(2001) }).success).toBe(false);
+
+	const create = { project: "CDE", name: "Deploy Queue", category: "started" };
+	expect(StatusCreateInputSchema.parse({ ...create, description: rulebook }).description).toBe(rulebook);
+	expect(StatusCreateInputSchema.safeParse({ ...create, description: "x".repeat(2001) }).success).toBe(false);
+	expect(StatusUpdateInputSchema.parse({ project: "CDE", status: "todo", description: "" }).description).toBe("");
+	expect(
+		StatusUpdateInputSchema.safeParse({ project: "CDE", status: "todo", description: "x".repeat(2001) }).success,
+	).toBe(false);
+});
 
 // `board` and `settings` are web routes under a project path, so only a
 // sub-project slug avoids them. A status named Settings gets the slug
