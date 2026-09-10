@@ -22,7 +22,8 @@ describe("features/ticket/TicketView", () => {
 	test("renders every section of the seeded CDE-42", async () => {
 		page();
 		const header = await screen.findByLabelText("Ticket header");
-		expect(within(header).getByText("CDE-42")).toBeDefined();
+		expect(within(header).queryByText("CDE-42")).toBeNull();
+		expect(screen.getAllByText("CDE-42").some((element) => element.closest("header, [aria-label='Ticket header']") === null)).toBe(true);
 		expect(within(header).getByRole("button", { name: "Start with agent" })).toBeDefined();
 		const field = screen.getByRole("textbox", { name: "Title" });
 		await waitFor(() => expect(fieldValue(field)).toBe("Restore the fork pages after the upstream 1.27 merge"));

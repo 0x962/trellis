@@ -55,7 +55,7 @@ describe("features/ticket/PropertiesRail", () => {
 		const server = createFakeServer();
 		const before = await server.client.tickets.get({ ticket: "CDE-42" });
 		const clock = createFakeScheduler();
-		renderTicket("CDE-42", (ticket) => <TicketView identifier={ticket.identifier} variant="page" />, {
+		const view = renderTicket("CDE-42", (ticket) => <TicketView identifier={ticket.identifier} variant="page" />, {
 			path: "/t/CDE-42",
 			server,
 			scheduler: clock.scheduler,
@@ -69,7 +69,25 @@ describe("features/ticket/PropertiesRail", () => {
 		await waitFor(() => expect(updates(server)).toHaveLength(1));
 		const element_ = await rail();
 		const saved = await within(element_).findByText("Saved");
-		expect(saved.parentElement!.textContent).toContain(String(before.version + 1));
+		expect(saved.closest("dd")).toBe(rowNow("Updated"));
+		const key = view.orpc.tickets.get.queryKey({ input: { ticket: "CDE-42" } });
+		await waitFor(() => expect(view.queryClient.getQueryData<Ticket>(key)!.version).toBe(before.version + 1));
+	});
+
+	// T3.8. The rail has three groups and no Version row.
+	test("the rail draws three groups and no Version row", async () => {
+		mount();
+		const element = await rail();
+		expect(within(element).queryByText("Version")).toBeNull();
+		expect(element.querySelectorAll("[data-rail-divider]")).toHaveLength(2);
+	});
+
+	// T3.8. With no sub-tickets, the row offers a new one and draws no ring.
+	test("a ticket with no sub-tickets shows New sub-ticket", async () => {
+		mount("CDE-47");
+		const value = await row("Sub-tickets");
+		await waitFor(() => expect(within(value).getByRole("button", { name: "New sub-ticket" })).toBeDefined());
+		expect(value.querySelector("svg circle")).toBeNull();
 	});
 
 	// WT-47
@@ -203,7 +221,7 @@ describe("features/ticket/PropertiesRail", () => {
 		const updated = await row("Updated");
 		expect(within(updated).getByRole("img", { name: "claude-code · agent" })).toBeDefined();
 		expect(within(updated).getByText("claude-code").className).toMatch(/\bfont-mono\b/);
-		expect(updated.textContent).toContain("· agent");
+		expect(updated.textContent).not.toContain("· agent");
 		expect(updated.textContent).toContain("4m");
 		expect(updated.querySelector("[data-live]")).not.toBeNull();
 	});

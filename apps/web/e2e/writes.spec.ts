@@ -15,7 +15,7 @@ test("writes > a sub-ticket added on the ticket page shows under its parent", as
 	await signIn(page, "/t/WRT-1");
 	const section = page.getByRole("region", { name: /Sub-tickets/ });
 	await expect(section.getByRole("button", { name: /WRT-2/ })).toBeVisible();
-	await section.getByRole("textbox", { name: "Add sub-ticket" }).fill("Record the export demo");
+	await section.getByRole("textbox", { name: "New sub-ticket" }).fill("Record the export demo");
 	await page.keyboard.press("Enter");
 	await expect(section.getByRole("button", { name: /Record the export demo/ })).toBeVisible();
 	await page.reload();

@@ -21,7 +21,8 @@ export type ConflictNoticeProps = {
 export function ConflictNotice({ current, onOverwrite, onClose }: ConflictNoticeProps) {
 	const { orpc, queryClient } = useApp();
 	const [confirming, setConfirming] = useState(false);
-	const actor = current.lastActor !== null && current.lastActor.kind !== "system" ? current.lastActor : null;
+	const last = current.lastActor;
+	const actor = last !== null && last.kind !== "system" ? { name: last.name, kind: last.kind, at: last.at } : null;
 	const reload = () => {
 		queryClient.setQueryData(orpc.tickets.get.queryKey({ input: { ticket: current.identifier } }), current);
 		onClose();

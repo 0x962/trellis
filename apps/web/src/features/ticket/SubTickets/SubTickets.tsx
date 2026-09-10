@@ -54,7 +54,7 @@ export function SubTickets({ ticket, autoFocusAdd = false }: SubTicketsProps) {
 			);
 		} catch (error) {
 			setDraft(title);
-			failToast(`Couldn't create a sub-ticket of ${ticket.identifier}`, error, () => void create(title));
+			failToast(`The sub-ticket of ${ticket.identifier} is not created.`, error, () => void create(title));
 		} finally {
 			setPending((rows) => rows.filter((row) => row.key !== key));
 		}
@@ -105,8 +105,8 @@ export function SubTickets({ ticket, autoFocusAdd = false }: SubTicketsProps) {
 				<div className="flex h-9 items-center px-3">
 					<input
 						ref={addField}
-						aria-label="Add sub-ticket"
-						placeholder="Add sub-ticket"
+						aria-label="New sub-ticket"
+						placeholder="New sub-ticket"
 						value={draft}
 						onChange={(event) => setDraft(event.target.value)}
 						onKeyDown={onKeyDown}

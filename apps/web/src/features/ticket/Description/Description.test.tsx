@@ -205,10 +205,10 @@ describe("features/ticket/Description", () => {
 			.clientAs("agent:claude-code")
 			.tickets.update({ ticket: "CDE-42", description: "Agent text v2" });
 		act(() => eventApplierFor(queryClient).applyEvent(updatedEvent(summaryOf(written), ["description"])));
-		expect(await screen.findByText("An agent changed the description. Reload to see it.")).toBeDefined();
+		expect(await screen.findByText("claude-code changed the description.")).toBeDefined();
 		await act(() => queryClient.refetchQueries({ queryKey: key }));
 		expect(queryClient.getQueryData<Ticket>(key)!.descriptionStale).toBeUndefined();
-		expect(screen.getByText("An agent changed the description. Reload to see it.")).toBeDefined();
+		expect(screen.getByText("claude-code changed the description.")).toBeDefined();
 		await user.click(element);
 		await user.keyboard(" Second human words.");
 		act(() => advanceTo(1000));

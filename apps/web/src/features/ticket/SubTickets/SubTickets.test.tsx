@@ -108,7 +108,7 @@ describe("features/ticket/SubTickets", () => {
 		const hold = server.holdNext("tickets.create");
 		mount("CDE-42", server);
 		const element = await section();
-		const input = within(element).getByRole("textbox", { name: "Add sub-ticket" });
+		const input = within(element).getByRole("textbox", { name: "New sub-ticket" });
 		await user.type(input, "Write the docs{Enter}");
 		await waitFor(() => expect(server.callsTo("tickets.create")).toHaveLength(1));
 		expect(within(element).getByText("Write the docs")).toBeDefined();
@@ -133,9 +133,9 @@ describe("features/ticket/SubTickets", () => {
 		const term = within(rail)
 			.getAllByRole("term")
 			.find((element) => element.textContent === "Sub-tickets")!;
-		await user.click(within(term.nextElementSibling as HTMLElement).getByRole("button", { name: "Add" }));
+		await user.click(within(term.nextElementSibling as HTMLElement).getByRole("button", { name: "New sub-ticket" }));
 		const element = await section();
-		const input = within(element).getByRole("textbox", { name: "Add sub-ticket" });
+		const input = within(element).getByRole("textbox", { name: "New sub-ticket" });
 		await waitFor(() => expect(document.activeElement).toBe(input));
 	});
 });

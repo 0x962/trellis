@@ -1,5 +1,6 @@
 import type { Ticket } from "@trellis/api";
-import { Button, useHotkey } from "@trellis/ui";
+import { Button, cx, useHotkey } from "@trellis/ui";
+import { RefreshCw } from "lucide-react";
 import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { conflictCurrent } from "../../../lib/conflict";
@@ -27,6 +28,11 @@ const baseOf = (row: Ticket): Base => ({
 	text: row.description,
 	version: row.descriptionStale === true ? row.version - 1 : row.version,
 });
+
+// The name of the last writer of the row, for the "changed the description"
+// banner. The system actor and a row with no actor read as another actor.
+const writerName = (row: Ticket) =>
+	row.lastActor === null || row.lastActor.kind === "system" ? "Another actor" : row.lastActor.name;
 
 // The description: formatted markdown until `e` or a click mounts the
 // editor. While the editor is open, every save sends the version of the
@@ -105,7 +111,7 @@ export function Description({ ticket }: DescriptionProps) {
 					setConflict({ current, markdown });
 					return;
 				}
-				failToast(`Couldn't save ${ticket.identifier}`, error, () => void save(markdown, force));
+				failToast(`The description of ${ticket.identifier} is not saved.`, error, () => void save(markdown, force));
 			}
 		},
 		[queryClient, key, write, setStatus, ticket.identifier],
@@ -154,12 +160,10 @@ export function Description({ ticket }: DescriptionProps) {
 	return (
 		<div className="flex flex-col gap-3">
 			{(ticket.descriptionStale === true || remoteChanged) && conflict === null && (
-				<div
-					role="alert"
-					className="flex min-h-9 items-center gap-2 rounded-md border border-warning bg-warning-soft px-3 py-1.5 text-sm text-fg"
-				>
-					<span className="flex-1">An agent changed the description. Reload to see it.</span>
-					<Button size="sm" onClick={() => void reload()}>
+				<div role="alert" className="flex h-9 items-center gap-2 rounded-md bg-warning-soft px-3 text-sm text-fg">
+					<RefreshCw aria-hidden="true" className="size-3.5 shrink-0 text-warning" />
+					<span className="min-w-0 flex-1 truncate">{writerName(ticket)} changed the description.</span>
+					<Button size="sm" variant="quiet" onClick={() => void reload()}>
 						Reload
 					</Button>
 				</div>
@@ -178,7 +182,14 @@ export function Description({ ticket }: DescriptionProps) {
 			) : (
 				// biome-ignore lint/a11y/noStaticElementInteractions: the `e` key is the keyboard route to the editor
 				// biome-ignore lint/a11y/useKeyWithClickEvents: the `e` key is the keyboard route to the editor
-				<div onClick={onClick} className="cursor-text">
+				<div
+					onClick={onClick}
+					className={cx(
+						"cursor-text",
+						ticket.description.trim() === "" &&
+							"-mx-2 min-h-24 rounded-md px-2 py-1.5 transition-colors duration-hover ease-out hover:bg-band",
+					)}
+				>
 					{ticket.description.trim() === "" ? (
 						<div className="markdown text-md">
 							<p className="text-fg-faint">Describe the work. Agents read this verbatim.</p>
