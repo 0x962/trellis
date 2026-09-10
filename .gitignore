@@ -6,3 +6,5 @@ dist/
 .DS_Store
 # Review agents write screenshots and measurements here; they never ship.
 .review/
+# Playwright writes traces and screenshots of failed specs here.
+test-results/

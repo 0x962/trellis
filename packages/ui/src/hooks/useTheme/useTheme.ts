@@ -32,7 +32,7 @@ const stamp = (mode: ThemeMode) => {
 // (tokens.css) while the palette swaps. The attribute comes off two frames
 // later. The first frame paints the new palette. The second frame sees only
 // the transition property change, so no control fades between themes.
-const setTheme = (next: ThemeMode) => {
+export const setTheme = (next: ThemeMode) => {
 	const root = document.documentElement;
 	localStorage.setItem(themeStorageKey, next);
 	root.setAttribute("data-theme-switch", "");

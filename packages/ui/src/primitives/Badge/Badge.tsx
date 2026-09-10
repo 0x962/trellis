@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { cx } from "../../utils/cx";
 
-export type BadgeTone = "ok" | "bad" | "wait" | "agent" | "neutral";
+export type BadgeTone = "ok" | "bad" | "wait" | "agent" | "accent" | "neutral";
 
 export type BadgeProps = {
 	tone?: BadgeTone;
@@ -16,6 +16,7 @@ const tones: Record<BadgeTone, string> = {
 	bad: "bg-danger-soft text-danger px-1.75",
 	wait: "bg-warning-soft text-warning px-1.75",
 	agent: "bg-agent-soft text-agent px-1.75",
+	accent: "bg-accent-soft text-accent px-1.75",
 	neutral: "text-fg-faint",
 };
 

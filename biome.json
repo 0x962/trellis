@@ -6,7 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!**/dist", "!**/.turbo", "!**/drizzle/meta", "!docs/design/mockup.html"]
+		"includes": ["**", "!**/dist", "!**/.turbo", "!**/drizzle/meta", "!**/routeTree.gen.ts", "!docs/design/mockup.html"]
 	},
 	"css": {
 		"parser": {

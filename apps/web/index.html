@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>trellis</title>
+		<script>
+			// Runs before any stylesheet or module loads, so the first paint
+			// carries the chosen theme. The key matches useTheme in @trellis/ui.
+			// A fresh profile starts dark and stores that choice, so the hook
+			// reads the same mode after mount. "system" stamps nothing: the
+			// prefers-color-scheme media query in tokens.css decides.
+			const stored = localStorage.getItem("trellis-theme");
+			const theme = stored === null ? "dark" : stored;
+			if (stored === null) localStorage.setItem("trellis-theme", theme);
+			if (theme === "dark" || theme === "light") document.documentElement.setAttribute("data-theme", theme);
+		</script>
+		<link
+			rel="preload"
+			as="font"
+			type="font/woff2"
+			crossorigin
+			href="/node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2"
+		/>
+		<link
+			rel="preload"
+			as="font"
+			type="font/woff2"
+			crossorigin
+			href="/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2"
+		/>
+		<link
+			rel="preload"
+			as="font"
+			type="font/woff2"
+			crossorigin
+			href="/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2"
+		/>
+	</head>
+	<body>
+		<div id="root"></div>
+		<script type="module" src="/src/main.tsx"></script>
+	</body>
+</html>

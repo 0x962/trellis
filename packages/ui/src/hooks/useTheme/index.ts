@@ -1,1 +1,1 @@
-export { type ResolvedTheme, type ThemeMode, themeStorageKey, useTheme } from "./useTheme";
+export { type ResolvedTheme, setTheme, type ThemeMode, themeStorageKey, useTheme } from "./useTheme";
