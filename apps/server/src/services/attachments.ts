@@ -2,6 +2,7 @@ import type { Attachment, AttachmentUploadOutput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { iso, rows } from "../db/queries/support.ts";
+import { ticketSummary } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
 import { finalize, gc, markLiveTempFile, tempPath } from "../storage/blobs.ts";
 import {
@@ -137,6 +138,17 @@ const storedMime = (type: string) => {
 	return MIME_PATTERN.test(essence) ? essence : "application/octet-stream";
 };
 
+// An upload or a delete changes the ticket's `attachmentCount`, which the
+// ticket table and the board show. The ticket.updated event carries the new
+// summary, so every client patches the count in place.
+const emitCount = async (ctx: ServiceCtx, tx: Tx, ticketId: string) =>
+	ctx.emit({
+		type: "ticket.updated",
+		summary: await ticketSummary(tx, ticketId),
+		fields: ["attachmentCount"],
+		batchId: ulid(),
+	});
+
 export type UploadInput = { ticket: string; file: File; name?: string };
 
 export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promise<AttachmentUploadOutput> => {
@@ -159,6 +171,7 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promi
 	await touchTicket(tx, { id: ticket.id, at, versionStep: 1 });
 	await writeActivity(ctx, tx, { ticket, action: "attachment.created", meta: { filename, attachmentId: id }, at });
 	ctx.emit({ type: "attachment.created", id, ticketId: ticket.id, projectId: ticket.project_id });
+	await emitCount(ctx, tx, ticket.id);
 	const attachment: Attachment = {
 		id,
 		ticketId: ticket.id,
@@ -217,6 +230,7 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, input: IdInput) => {
 		at,
 	});
 	ctx.emit({ type: "attachment.deleted", id: row.id, ticketId: ticket.id, projectId: ticket.project_id });
+	await emitCount(ctx, tx, ticket.id);
 	ctx.afterCommit(async () => {
 		await gcAttachmentBlobs(ctx, [row.sha256]);
 	});
