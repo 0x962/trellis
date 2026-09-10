@@ -1,6 +1,6 @@
 import type { Ticket } from "@trellis/api";
 import { cx } from "@trellis/ui";
-import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { type ClipboardEvent, type KeyboardEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { conflictCurrent } from "../../../lib/conflict";
 import { ConflictNotice } from "../components/ConflictNotice";
 import { useTicketWrite } from "../hooks/useTicketWrite";
@@ -15,14 +15,27 @@ export type TitleProps = {
 
 type Conflict = { current: Ticket; title: string };
 
-// The 24 px title as a single-line field. Enter and blur save it once with
-// the row's version; Escape puts the stored title back; an empty field
-// saves nothing. A 412 shows the conflict notice with the actor who won.
+// A title is one line of text. A pasted line break becomes a space.
+const oneLine = (text: string) => text.replace(/\s*[\r\n]+\s*/g, " ");
+
+// A browser without `field-sizing` keeps a textarea at its row count, so
+// the height follows the content by hand.
+const fitHeight = (element: HTMLTextAreaElement) => {
+	element.style.height = "auto";
+	element.style.height = `${element.scrollHeight}px`;
+};
+
+// The 24 px title. It wraps onto as many lines as it needs, so it is a
+// textarea, but it holds one line of text: Enter saves and adds no newline.
+// Enter and blur save it once with the row's version; Escape puts the
+// stored title back; an empty field saves nothing. The field draws no
+// border and no ring in any state, so the caret is the focus signal. A 412
+// shows the conflict notice with the actor who won.
 export function Title({ ticket, autoFocus = false, className }: TitleProps) {
 	const { write } = useTicketWrite(ticket.identifier);
 	const [text, setText] = useState(ticket.title);
 	const [conflict, setConflict] = useState<Conflict | null>(null);
-	const field = useRef<HTMLInputElement>(null);
+	const field = useRef<HTMLTextAreaElement>(null);
 	// The last text sent, so Enter followed by its blur saves once.
 	const sent = useRef<string | null>(null);
 	// Escape blurs the field; the blur that follows must save nothing.
@@ -33,8 +46,19 @@ export function Title({ ticket, autoFocus = false, className }: TitleProps) {
 		sent.current = null;
 	}, [ticket.title]);
 
+	useLayoutEffect(() => {
+		if (field.current !== null && text !== undefined) fitHeight(field.current);
+	}, [text]);
+
+	// The peek opens at the start of the title, also for a title longer
+	// than one line.
 	useEffect(() => {
-		if (autoFocus) field.current?.focus();
+		const element = field.current;
+		if (!autoFocus || element === null) return;
+		element.focus();
+		element.setSelectionRange(0, 0);
+		element.scrollTop = 0;
+		element.scrollLeft = 0;
 	}, [autoFocus]);
 
 	const save = async (title: string, expectedVersion: number | undefined) => {
@@ -47,7 +71,7 @@ export function Title({ ticket, autoFocus = false, className }: TitleProps) {
 				setConflict({ current, title });
 				return;
 			}
-			failToast(`Couldn't rename ${ticket.identifier}`, error, () => void save(title, expectedVersion));
+			failToast(`${ticket.identifier} did not get the new title.`, error, () => void save(title, expectedVersion));
 		}
 	};
 
@@ -66,7 +90,7 @@ export function Title({ ticket, autoFocus = false, className }: TitleProps) {
 		void save(title, ticket.version);
 	};
 
-	const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+	const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
 		if (event.key === "Enter") {
 			event.preventDefault();
 			commit();
@@ -79,17 +103,28 @@ export function Title({ ticket, autoFocus = false, className }: TitleProps) {
 		}
 	};
 
+	const onPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+		const pasted = event.clipboardData.getData("text/plain");
+		if (!/[\r\n]/.test(pasted)) return;
+		event.preventDefault();
+		const element = event.currentTarget;
+		const next = `${text.slice(0, element.selectionStart)}${oneLine(pasted)}${text.slice(element.selectionEnd)}`;
+		setText(next);
+	};
+
 	return (
 		<div className={cx("flex flex-col gap-2", className)}>
-			<input
+			<textarea
 				ref={field}
 				aria-label="Title"
 				data-peek-focus=""
+				rows={1}
 				value={text}
-				onChange={(event) => setText(event.target.value)}
+				onChange={(event) => setText(oneLine(event.target.value))}
 				onKeyDown={onKeyDown}
+				onPaste={onPaste}
 				onBlur={commit}
-				className="w-full rounded-sm border border-transparent bg-transparent text-2xl font-semibold tracking-tight text-fg outline-none transition duration-hover hover:border-border focus:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+				className="block w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-2xl font-semibold tracking-tight text-fg outline-none [field-sizing:content] focus:outline-none focus-visible:outline-none"
 			/>
 			{conflict !== null && (
 				<ConflictNotice

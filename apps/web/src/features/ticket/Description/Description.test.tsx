@@ -158,16 +158,17 @@ describe("features/ticket/Description", () => {
 		await user.keyboard(" Typed by navid.");
 		act(() => advanceTo(1000));
 		await waitFor(() => expect(server.callsTo("tickets.update")).toHaveLength(1));
-		const notice = await screen.findByText("changed by agent:claude-code: reload or overwrite");
+		const notice = await screen.findByText(/changed this ticket .*\. Your edit is not saved\./);
+		expect(notice.closest("[role=alert]")!.textContent).toContain("claude-code");
 		expect(notice.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-		expect(screen.getByRole("button", { name: "Reload" })).toBeDefined();
-		expect(screen.getByRole("button", { name: "Overwrite" })).toBeDefined();
+		expect(screen.getByRole("button", { name: "Use their version" })).toBeDefined();
+		expect(screen.getByRole("button", { name: "Keep mine" })).toBeDefined();
 		expect((await editor()).textContent).toContain("Typed by navid.");
 	});
 
-	// Overwrite sends the held text again with no version guard, so the
+	// Keep mine sends the held text again with no version guard, so the
 	// server takes the person's text over the other writer's text.
-	test("Overwrite sends tickets.update with no expectedVersion", async () => {
+	test("Keep mine sends tickets.update with no expectedVersion", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
 		await armConflict(server);
@@ -178,7 +179,8 @@ describe("features/ticket/Description", () => {
 		await user.click(element);
 		await user.keyboard(" Typed by navid.");
 		act(() => advanceTo(1000));
-		await user.click(await screen.findByRole("button", { name: "Overwrite" }));
+		await user.click(await screen.findByRole("button", { name: "Keep mine" }));
+		await user.click(await screen.findByRole("button", { name: "Replace" }));
 		await waitFor(() => expect(server.callsTo("tickets.update")).toHaveLength(2));
 		const input = server.callsTo("tickets.update")[1]!.input as { description: string; expectedVersion?: number };
 		expect(input.expectedVersion).toBeUndefined();
@@ -211,7 +213,7 @@ describe("features/ticket/Description", () => {
 		await user.keyboard(" Second human words.");
 		act(() => advanceTo(1000));
 		await waitFor(() => expect(server.callsTo("tickets.update")).toHaveLength(2));
-		expect(await screen.findByRole("button", { name: "Overwrite" })).toBeDefined();
+		expect(await screen.findByRole("button", { name: "Keep mine" })).toBeDefined();
 		expect(findTicket(server.state, "CDE-42")!.description).toBe("Agent text v2");
 	});
 });
