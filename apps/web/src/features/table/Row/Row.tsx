@@ -8,6 +8,7 @@ import { ProjectPicker } from "../../pickers/ProjectPicker";
 import { StatusPicker } from "../../pickers/StatusPicker";
 import { TicketPicker } from "../../pickers/TicketPicker";
 import { gridTemplate } from "../columns";
+import { PhoneRow } from "./components/PhoneRow";
 import { PrCell } from "./components/PrCell";
 import { PriorityCell } from "./components/PriorityCell";
 import { ProjectCell } from "./components/ProjectCell";
@@ -36,6 +37,9 @@ export type RowProps = {
 	top?: number;
 	// The group key, for the rows of a group.
 	group?: string;
+	// Below 768 px: two lines, priority, ID, status icon, and time over the
+	// title. The PR, actor, and project cells do not show.
+	phone?: boolean;
 	focused?: boolean;
 	selected?: boolean;
 	// True while any row is selected.
@@ -57,6 +61,8 @@ export type RowProps = {
 // number, so a row never changes the scroll height.
 export const rowHeights: Record<Density, number> = { comfortable: 36, compact: 32 };
 
+export { phoneRowHeight } from "./components/PhoneRow";
+
 const noStatuses: StatusSummary[] = [];
 
 // The empty button a picker opens from when the row has no cell for it.
@@ -75,6 +81,7 @@ export const Row = memo(function Row({
 	viewedProject,
 	top,
 	group,
+	phone = false,
 	focused = false,
 	selected = false,
 	selecting = false,
@@ -148,6 +155,22 @@ export const Row = memo(function Row({
 				</span>
 			),
 	};
+
+	if (phone) {
+		return (
+			<PhoneRow
+				ref={element}
+				ticket={ticket}
+				priority={cells.priority}
+				top={top}
+				group={group}
+				focused={focused}
+				selected={selected}
+				onFocus={onFocus}
+				onClick={onClick}
+			/>
+		);
+	}
 
 	return (
 		// biome-ignore lint/a11y/useSemanticElements lint/a11y/useKeyWithClickEvents: The virtual grid positions each row, and the table keyboard map provides every row action.

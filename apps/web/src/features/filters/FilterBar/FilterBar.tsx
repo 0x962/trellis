@@ -76,7 +76,7 @@ export function FilterBar({ project, search, onSearchChange, statuses, children,
 		<div
 			data-filter-bar=""
 			tabIndex={-1}
-			className="flex h-9 shrink-0 items-center gap-1.5 border-b border-border px-5 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+			className="flex h-9 shrink-0 items-center gap-1.5 border-b border-border px-5 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 max-md:overflow-x-auto max-md:px-4 max-md:*:shrink-0"
 		>
 			{children}
 			{active.map((field: FilterField) => (

@@ -9,7 +9,7 @@ import {
 	type Ticket,
 	type TicketSummary,
 } from "@trellis/api";
-import { toast, useTheme } from "@trellis/ui";
+import { toast, useMediaQuery, useTheme } from "@trellis/ui";
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useApp } from "../../../lib/appContext";
@@ -70,6 +70,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 	const projectsQuery = useQuery({ ...projectsOptions, enabled: projectRef === undefined });
 	const collapsed = useUiStore((state) => state.collapsedGroups[storageKey] ?? noCollapsedColumns);
 	const well = useTheme().resolved === "light";
+	const phone = useMediaQuery("(max-width: 767px)");
 	// The card that last took the focus is the palette's This ticket.
 	const [focusedCard, setFocusedCard] = useState<string | null>(null);
 	useCommandContext(focusedCard, noSelection);
@@ -249,7 +250,10 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 
 	if (!ready) return <BoardSkeleton />;
 
-	const width = columnWidth(columns.length, columns.filter((column) => collapsed.includes(column.id)).length);
+	// On a phone each open column is 85% of the window, and the strip snaps.
+	const width = phone
+		? "85vw"
+		: columnWidth(columns.length, columns.filter((column) => collapsed.includes(column.id)).length);
 
 	return (
 		<PeekListProvider rows={peekRows}>
