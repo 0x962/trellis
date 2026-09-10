@@ -13,8 +13,8 @@ import {
 	AgentStartBuilderInputSchema,
 	AgentStartReviewerInputSchema,
 	AgentStopInputSchema,
-	AgentWakeInputSchema,
 	AgentsOverviewSchema,
+	AgentWakeInputSchema,
 } from "../schemas/agent.ts";
 import { base } from "./base.ts";
 
