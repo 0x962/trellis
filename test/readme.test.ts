@@ -135,8 +135,9 @@ describe("README content", () => {
 		}
 	});
 
-	test("README names the gateway line, the actor header, and every CLI exit code", () => {
-		expect(readme).toContain("trellis: 4521,");
+	test("README names the gateway routes file, the actor header, and every CLI exit code", () => {
+		expect(readme).toContain("~/.config/localhost-gateway/routes.json");
+		expect(readme).toContain('"trellis": 4521');
 		expect(readme).toContain("trellis.localhost");
 		expect(readme).toContain("trellis instructions");
 		expect(readme).toContain("x-trellis-actor");
