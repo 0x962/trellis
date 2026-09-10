@@ -119,6 +119,33 @@ describe("files route", () => {
 		expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes);
 	});
 
+	test("a filename outside Latin-1 serves with an ASCII fallback and a UTF-8 filename*", async () => {
+		const names = ["Screenshot 2026-09-10 at 10.47.57\u202fAM.png", "résumé 日本.txt"];
+		for (const name of names) {
+			const { id } = await stored(name.endsWith(".png") ? "image/png" : "text/plain", name);
+
+			const response = await fetchFile(id);
+
+			expect(response.status, name).toBe(200);
+			const header = response.headers.get("content-disposition")!;
+			expect(header).toMatch(/^inline; filename="[\x20-\x7e]+"; filename\*=UTF-8''\S+$/);
+			expect(decodeURIComponent(header.split("filename*=UTF-8''")[1]!)).toBe(name);
+		}
+	});
+
+	test("a filename with a double quote or a backslash serves a well-formed header", async () => {
+		const name = 'say "hi" \\ bye.txt';
+		const { id } = await stored("text/plain", name);
+
+		const response = await fetchFile(id);
+
+		expect(response.status).toBe(200);
+		const header = response.headers.get("content-disposition")!;
+		const fallback = header.match(/filename="([^"]*)"/)![1]!;
+		expect(fallback).not.toMatch(/["\\]/);
+		expect(decodeURIComponent(header.split("filename*=UTF-8''")[1]!)).toBe(name);
+	});
+
 	test("an unknown attachment id answers 404", async () => {
 		const response = await fetchFile(ulid());
 
