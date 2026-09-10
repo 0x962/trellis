@@ -26,9 +26,10 @@ export type WorkerCall = {
 type WorkerRuntime = Pick<Runtime, "version" | "bootId"> & { ghBin: string; ghTimeoutMs: number };
 
 export type WorkerInput =
-	| { type: "start"; config: Config; runtime: WorkerRuntime }
+	| { type: "start"; config: Config; runtime: WorkerRuntime; jobs: { clockRate: number } | null }
 	| { type: "calls"; calls: WorkerCall[] }
 	| { type: "ghResult"; id: number; result: GhResult }
+	| { type: "addressesResult"; id: number; addresses: string[] }
 	| { type: "pull"; id: number }
 	| { type: "cancel"; id: number }
 	| { type: "close" };
@@ -49,9 +50,11 @@ export type WorkerOutput =
 	| { type: "error"; id: number; error: SerializedError }
 	| { type: "event"; event: TrellisEvent }
 	| { type: "gh"; id: number; slot: GhSlot; args: string[] }
+	| { type: "addresses"; id: number }
 	| { type: "stream"; id: number }
 	| { type: "chunk"; id: number; chunk: Uint8Array<ArrayBuffer> }
 	| { type: "streamEnd"; id: number }
+	| { type: "log"; msg: string; fields?: Record<string, unknown> }
 	| { type: "closed" };
 
 const ranks: Record<ServiceKind, number> = { mutation: 0, read: 1, search: 2 };
@@ -109,6 +112,10 @@ const superseded = (): SerializedError => ({ name: "AbortError", message: "A new
 const startHost = () => {
 	const queue = new ServiceQueue();
 	const ghCalls = new Map<number, (result: GhResult) => void>();
+	// The listen addresses live in the HTTP process, which alone knows the
+	// port. A service that reads them asks for them by id.
+	const addressCalls = new Map<number, (addresses: string[]) => void>();
+	let nextAddressId = 1;
 	const streams = new Map<
 		number,
 		{ reader: ReadableStreamDefaultReader<Uint8Array>; done: () => void; reads: Promise<void>; cancelled: boolean }
@@ -192,9 +199,21 @@ const startHost = () => {
 				) as GhRunner;
 				const bus = createBus({ bootId: data.runtime.bootId });
 				bus.subscribe(({ event }) => send({ type: "event", event }));
-				const runtime: Runtime = { ...data.runtime, gh, ghStatus: () => currentGhStatus };
+				const runtime: Runtime = {
+					...data.runtime,
+					gh,
+					ghStatus: () => currentGhStatus,
+					addresses: () =>
+						new Promise<string[]>((resolve) => {
+							const id = nextAddressId++;
+							addressCalls.set(id, resolve);
+							send({ type: "addresses", id });
+						}),
+				};
 				transport = createInlineTransport({ db: database.db, bus, config: data.config, runtime });
-				const started = await transport.start();
+				const jobs = data.jobs;
+				const log = (msg: string, fields?: Record<string, unknown>) => send({ type: "log", msg, fields });
+				const started = await transport.start(jobs === null ? undefined : { clockRate: jobs.clockRate, log });
 				send({ type: "ready", applied: database.applied, liveShas: started.liveShas });
 			})().catch((error) => send({ type: "startError", error: errorOf(error) }));
 			return;
@@ -210,6 +229,11 @@ const startHost = () => {
 		if (data.type === "ghResult") {
 			ghCalls.get(data.id)!(data.result);
 			ghCalls.delete(data.id);
+			return;
+		}
+		if (data.type === "addressesResult") {
+			addressCalls.get(data.id)!(data.addresses);
+			addressCalls.delete(data.id);
 			return;
 		}
 		if (data.type === "pull") {

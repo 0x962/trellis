@@ -50,6 +50,10 @@ export default defineConfig({
 	fullyParallel: false,
 	workers: 1,
 	retries: 0,
+	// A spec that stops making progress fails after 60 s with its trace. An
+	// assertion waits 5 s for the page to reach the state it expects.
+	timeout: 60_000,
+	expect: { timeout: 5_000 },
 	reporter: "list",
 	globalTeardown: "./teardown.ts",
 	use: {
@@ -71,6 +75,9 @@ export default defineConfig({
 				TRELLIS_GH_BIN: ghStub,
 				TRELLIS_GH_STUB_FILE: join(root, "gh", "replies.json"),
 				TRELLIS_GH_STUB_LOG: join(root, "gh", "spawns.log"),
+				// paint.spec.ts writes the production build here. The server
+				// looks for it on each request, so the build can come after boot.
+				TRELLIS_WEB_DIST: join(root, "dist"),
 			},
 			reuseExistingServer: false,
 		},

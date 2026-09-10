@@ -8,12 +8,19 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
 // files, the archives, and the rotating log.
 export type Config = {
 	home: string;
+	// The address the server binds. 127.0.0.1 keeps it on this machine; a
+	// network address or 0.0.0.0 lets a phone reach it, and the server has no
+	// auth.
+	host: string;
 	port: number;
 	maxUploadMb: number;
 	ghBin: string;
 	webDist: string;
 	logLevel: LogLevel;
 	dbInline: boolean;
+	// How many times faster than the wall clock the poller and the
+	// maintenance timer run. The server runs at 1; a test sets 100.
+	clockRate: number;
 	dbDir: string;
 	attachmentsDir: string;
 	tmpDir: string;
@@ -49,6 +56,7 @@ export const loadConfig = (env: Env): Config => {
 	const home = resolve(expandHome(env.TRELLIS_HOME ?? "~/.trellis"));
 	return {
 		home,
+		host: env.TRELLIS_HOST ?? "127.0.0.1",
 		port: env.TRELLIS_PORT === undefined ? 4521 : numberOf("TRELLIS_PORT", env.TRELLIS_PORT),
 		maxUploadMb:
 			env.TRELLIS_MAX_UPLOAD_MB === undefined ? 50 : numberOf("TRELLIS_MAX_UPLOAD_MB", env.TRELLIS_MAX_UPLOAD_MB),
@@ -56,6 +64,7 @@ export const loadConfig = (env: Env): Config => {
 		webDist: env.TRELLIS_WEB_DIST === undefined ? defaultWebDist : resolve(expandHome(env.TRELLIS_WEB_DIST)),
 		logLevel: env.TRELLIS_LOG_LEVEL === undefined ? "info" : levelOf(env.TRELLIS_LOG_LEVEL),
 		dbInline: env.TRELLIS_DB_INLINE === "true",
+		clockRate: env.TRELLIS_CLOCK_RATE === undefined ? 1 : numberOf("TRELLIS_CLOCK_RATE", env.TRELLIS_CLOCK_RATE),
 		dbDir: join(home, "db"),
 		attachmentsDir: join(home, "attachments"),
 		tmpDir: join(home, "attachments", "tmp"),

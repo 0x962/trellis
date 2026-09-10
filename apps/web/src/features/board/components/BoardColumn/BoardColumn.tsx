@@ -17,6 +17,7 @@ export type BoardColumnProps = {
 	onCreate: (title: string) => Promise<void>;
 	onShowMore: () => Promise<void>;
 	onOpenTicket: (identifier: string) => void;
+	onFocusTicket: (identifier: string) => void;
 	onCardKeyDown: (event: KeyboardEvent<HTMLElement>, column: BoardColumnModel, index: number) => void;
 	onAnnounce: (message: string) => void;
 };
@@ -33,6 +34,7 @@ export function BoardColumn({
 	onCreate,
 	onShowMore,
 	onOpenTicket,
+	onFocusTicket,
 	onCardKeyDown,
 	onAnnounce,
 }: BoardColumnProps) {
@@ -111,6 +113,7 @@ export function BoardColumn({
 					columnName={column.name}
 					columnCount={visible.length}
 					onOpen={() => onOpenTicket(ticket.identifier)}
+					onFocus={() => onFocusTicket(ticket.identifier)}
 					onKeyDown={(event) => onCardKeyDown(event, column, index)}
 					announce={onAnnounce}
 					showStatus={categoryMode}

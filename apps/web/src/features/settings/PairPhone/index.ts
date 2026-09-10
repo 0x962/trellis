@@ -1,0 +1,1 @@
+export { PairPhone } from "./PairPhone";

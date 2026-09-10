@@ -231,6 +231,7 @@ export const health = (overrides: Overrides = {}) => ({
 	apiVersion: "0.0.0",
 	bootId,
 	rss: 123_456_789,
+	addresses: ["http://127.0.0.1:4521"],
 	db: { ok: true, sizeBytes: 4_567_890 },
 	gh: ghOk(),
 	...overrides,

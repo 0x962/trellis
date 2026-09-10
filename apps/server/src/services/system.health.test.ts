@@ -54,4 +54,13 @@ describe("system.health", () => {
 
 		expect(result.gh).toEqual(downGh);
 	});
+
+	test("health lists the URLs the server listens on", async () => {
+		const addresses = ["http://192.168.1.20:4521", "http://127.0.0.1:4521"];
+		const handle = testCtx({ db: h.db, home, addresses: () => addresses });
+
+		const result = await h.db.transaction((tx) => health(handle.ctx, tx, {}));
+
+		expect(result.addresses).toEqual(addresses);
+	});
 });

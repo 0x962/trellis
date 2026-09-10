@@ -1,3 +1,5 @@
+import { mkdtempSync } from "node:fs";
+import { join } from "node:path";
 import type { Deps } from "../src/index.ts";
 import { run } from "../src/index.ts";
 import { apiVersion, type Call, type FakeServerOptions, fakeServer, type Routes } from "./fakeServer.ts";
@@ -39,6 +41,7 @@ export type RunOptions = FakeServerOptions & {
 	open?: (url: string) => void;
 	run?: Deps["run"];
 	launchdDomain?: string;
+	home?: string;
 };
 
 export type RunResult = {
@@ -93,6 +96,7 @@ export const makeDeps = (routes: Routes = {}, options: RunOptions = {}) => {
 				return { code: 0, stderr: "" };
 			}),
 		launchdDomain: options.launchdDomain ?? "gui/test",
+		home: options.home ?? mkdtempSync(join(process.env.TRELLIS_HOME!, "user-home-")),
 	};
 	return { deps, server, stdout: () => out, stderr: () => err, sleeps, commands };
 };

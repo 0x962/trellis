@@ -10,6 +10,13 @@ import { loadConfig } from "./config.ts";
 const repoWebDist = join(import.meta.dir, "..", "..", "web", "dist");
 
 describe("config", () => {
+	// A phone on the network reaches the server only through a non-loopback
+	// address, so TRELLIS_HOST opens it and the default keeps it on this machine.
+	test("the listen host is 127.0.0.1 unless TRELLIS_HOST names another", () => {
+		expect(loadConfig({}).host).toBe("127.0.0.1");
+		expect(loadConfig({ TRELLIS_HOST: "0.0.0.0" }).host).toBe("0.0.0.0");
+	});
+
 	test("config falls back to the documented defaults", () => {
 		const config = loadConfig({});
 
@@ -65,5 +72,11 @@ describe("config", () => {
 		expect(config.tmpDir).toBe("/var/data/trellis/attachments/tmp");
 		expect(config.backupsDir).toBe("/var/data/trellis/backups");
 		expect(config.logFile).toBe("/var/data/trellis/server.log");
+	});
+
+	test("the jobs clock runs at the wall clock rate unless TRELLIS_CLOCK_RATE names another", () => {
+		expect(loadConfig({}).clockRate).toBe(1);
+		expect(loadConfig({ TRELLIS_CLOCK_RATE: "100" }).clockRate).toBe(100);
+		expect(() => loadConfig({ TRELLIS_CLOCK_RATE: "fast" })).toThrow(/TRELLIS_CLOCK_RATE/);
 	});
 });

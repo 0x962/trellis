@@ -32,6 +32,7 @@ export const health = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promis
 		apiVersion: ctx.apiVersion,
 		bootId: ctx.bootId,
 		rss: process.memoryUsage.rss(),
+		addresses: await ctx.addresses(),
 		db: { ok: true, sizeBytes: Number(row!.bytes) },
 		gh: ctx.ghStatus(),
 	};
@@ -68,8 +69,10 @@ const pruneArchives = (dir: string) => {
 // CHECKPOINT writes every dirty page to the data directory first, so the
 // archive holds a database that opens without a replay. The archive is a data
 // home again: `db/` and `attachments/` at its root, so a restore is an
-// extract.
+// extract. PGlite runs no autovacuum, so the busy tables are vacuumed once
+// the transaction commits.
 export const backup = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promise<BackupOutput> => {
+	ctx.afterCommit(ctx.vacuum);
 	await tx.execute(sql`CHECKPOINT`);
 	const dir = join(ctx.home, "backups");
 	mkdirSync(dir, { recursive: true });

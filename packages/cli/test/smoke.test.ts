@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { graphqlReply } from "../../../apps/server/test/fixtures/graphql.ts";
 import { type SpawnedServer, spawnServer, stopServer } from "../../../apps/server/test/helpers/server.ts";
@@ -168,6 +168,29 @@ describe("the live CLI", () => {
 			});
 			expect(result.code).toBe(4);
 			expect(result.stderr).toContain("(SERVER_RUNNING)");
+		},
+		SMOKE_TIMEOUT_MS,
+	);
+
+	test(
+		"restore refuses while a server holds the data home, names its pid, and leaves the database alone",
+		async () => {
+			const home = tempDir("restore-held");
+			const started = await start(home);
+			const backup = await ok(started.url, ["backup"], started.env);
+			const archive = JSON.parse(backup.stdout).path as string;
+			const dbDir = join(home, "db");
+			const mtime = statSync(dbDir).mtimeMs;
+			const entries = readdirSync(dbDir).sort();
+
+			const result = await runProcess(["restore", archive, "--url", "http://127.0.0.1:9"], { TRELLIS_HOME: home });
+
+			expect(result.code).toBe(4);
+			expect(result.stderr).toContain(`pid ${started.server.proc.pid}`);
+			expect(result.stderr).toContain("(HOME_LOCKED)");
+			expect(statSync(dbDir).mtimeMs).toBe(mtime);
+			expect(readdirSync(dbDir).sort()).toEqual(entries);
+			expect((await fetch(`${started.url}/api/health`)).status).toBe(200);
 		},
 		SMOKE_TIMEOUT_MS,
 	);

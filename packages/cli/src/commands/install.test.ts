@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
-import { type CommandCall, defaultEnv, runCli } from "../../test/deps.ts";
+import { dirname, join } from "node:path";
+import { type CommandCall, defaultEnv, makeDeps, runCli } from "../../test/deps.ts";
 import { repoRoot } from "../../test/process.ts";
 
 const temp = (name: string) => mkdtempSync(join(process.env.TRELLIS_HOME!, `${name}-`));
@@ -44,6 +44,21 @@ describe("install", () => {
 		expect(text).not.toContain(join(homedir(), ".trellis"));
 	});
 
+	test("--host writes TRELLIS_HOST into the plist", async () => {
+		const { prefix, env, plist } = setup();
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd", "--host", "0.0.0.0"], {}, { env });
+		expect(result.code, result.stderr).toBe(0);
+		expect(readFileSync(plist, "utf8")).toContain("<key>TRELLIS_HOST</key>\n\t\t<string>0.0.0.0</string>");
+	});
+
+	// The server binds 127.0.0.1 when TRELLIS_HOST is unset.
+	test("without --host the plist sets no TRELLIS_HOST", async () => {
+		const { prefix, env, plist } = setup();
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
+		expect(result.code, result.stderr).toBe(0);
+		expect(readFileSync(plist, "utf8")).not.toContain("TRELLIS_HOST");
+	});
+
 	test("the web build runs through the injected runner in apps/web", async () => {
 		const { prefix, env } = setup();
 		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
@@ -64,6 +79,39 @@ describe("install", () => {
 			["launchctl", "bootstrap", "gui/test", plist],
 		]);
 		expect(asked).toEqual(["/api/health"]);
+	});
+
+	test("the plist runs the bun that runs the installer", async () => {
+		const { prefix, env, plist } = setup();
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
+		expect(result.code, result.stderr).toBe(0);
+		expect(readFileSync(plist, "utf8")).toContain(`<array>\n\t\t<string>${process.execPath}</string>`);
+	});
+
+	test("the test deps inject a user home under the TRELLIS_HOME of the test process", () => {
+		const { deps } = makeDeps();
+		expect(deps.home.startsWith(process.env.TRELLIS_HOME!)).toBe(true);
+		expect(deps.home).not.toBe(homedir());
+	});
+
+	test("without --prefix every install file lands under the injected home", async () => {
+		const home = temp("user");
+		const result = await runCli(["install", "--no-launchd"], {}, { env: defaultEnv, home });
+		expect(result.code, result.stderr).toBe(0);
+		const plist = join(home, "Library", "LaunchAgents", "com.trellis.server.plist");
+		expect(existsSync(plist)).toBe(true);
+		expect(existsSync(join(home, ".local", "bin", "trellis"))).toBe(true);
+		expect(readFileSync(plist, "utf8")).toContain(`<string>${join(home, ".trellis")}</string>`);
+	});
+
+	test("--gateway edits the margin gateway under the injected home", async () => {
+		const home = temp("user");
+		const gateway = join(home, "projects", "margin", "src", "gateway.ts");
+		mkdirSync(dirname(gateway), { recursive: true });
+		writeFileSync(gateway, "const ROUTES: Record<string, number> = {\n\tmargin: 4519,\n};\n");
+		const result = await runCli(["install", "--gateway", "--no-launchd"], {}, { env: defaultEnv, home });
+		expect(result.code, result.stderr).toBe(0);
+		expect(readFileSync(gateway, "utf8")).toContain("trellis: 4521,");
 	});
 
 	test("a failed bootstrap fails as INSTALL_FAILED with the launchctl message", async () => {

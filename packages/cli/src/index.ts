@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { userInfo } from "node:os";
+import { homedir, userInfo } from "node:os";
 import { ORPCError } from "@orpc/client";
 import { type ArgsDef, type CommandDef, defineCommand, renderUsage, runCommand } from "citty";
 import apiPkg from "../../api/package.json" with { type: "json" };
@@ -33,6 +33,10 @@ export type Deps = {
 	run: (args: string[], cwd?: string) => Promise<{ code: number; stderr: string }>;
 	// The launchd domain that install and uninstall address: `gui/<uid>`.
 	launchdDomain: string;
+	// The user home. install, uninstall, serve, and restore derive every path
+	// under it, so a test that injects a temporary home never writes the real
+	// LaunchAgents directory, the real shim, or the margin gateway.
+	home: string;
 };
 
 export const defaultUrl = "http://127.0.0.1:4521";
@@ -267,6 +271,7 @@ if (import.meta.main) {
 			return { code, stderr: stderr.trim() };
 		},
 		launchdDomain: `gui/${process.getuid!()}`,
+		home: homedir(),
 	};
 	const code = await run(process.argv.slice(2), deps);
 	process.stdout.write("", () => process.exit(code));

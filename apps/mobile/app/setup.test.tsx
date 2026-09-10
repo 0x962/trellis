@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { router } from "expo-router";
+import { extractExpoPathFromURL } from "expo-router/build/fork/extractPathFromURL";
 import { act, fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { createMMKV } from "react-native-mmkv";
 import { queryClient } from "../src/lib/queryClient";
 import * as server from "../src/lib/server";
 import { appContext } from "../test/appContext";
+import { scan } from "../test/mocks/expo-camera";
 
 jest.mock("../src/lib/server", () => ({
 	...jest.requireActual<typeof server>("../src/lib/server"),
@@ -14,6 +16,11 @@ jest.mock("../src/lib/server", () => ({
 const probeHealth = jest.mocked(server.probeHealth);
 const store = createMMKV();
 const url = "http://192.168.1.20:4521";
+// What the web settings page encodes in its QR code for that server.
+const pairLink = "trellis://pair?url=http%3A%2F%2F192.168.1.20%3A4521";
+// renderRouter takes a path, not a link. The app turns an opened link into a
+// path with expo-router's own extractExpoPathFromURL, so the test does too.
+const linkedPath = `/${extractExpoPathFromURL([], pairLink)}`;
 
 const typeUrl = (value: string) => fireEvent.changeText(screen.getByLabelText("Server URL"), value);
 const typeName = (value: string) => fireEvent.changeText(screen.getByLabelText("Name"), value);
@@ -160,6 +167,57 @@ describe("the setup screen", () => {
 
 		back.mockRestore();
 		canGoBack.mockRestore();
+	});
+
+	test("Scan QR code fills the URL from a pair link and runs the probe", async () => {
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+		await renderRouter(appContext(), { initialUrl: "/setup" });
+		await fireEvent.press(screen.getByRole("button", { name: "Scan QR code" }));
+		expect(screen.getByTestId("camera")).toBeOnTheScreen();
+
+		await act(async () => scan(pairLink));
+
+		expect(screen.getByLabelText("Server URL")).toHaveDisplayValue(url);
+		expect(probeHealth).toHaveBeenCalledTimes(1);
+		expect(probeHealth.mock.calls[0]?.[0]).toBe(url);
+		expect(await screen.findByText("12 tickets")).toBeOnTheScreen();
+		expect(screen.queryByTestId("camera")).toBeNull();
+	});
+
+	test("a QR code that is not a pair link fills nothing and never probes", async () => {
+		await renderRouter(appContext(), { initialUrl: "/setup" });
+		for (const code of [url, `otherapp://pair?url=${encodeURIComponent(url)}`, "trellis://pair?url=javascript%3A1"]) {
+			await fireEvent.press(screen.getByRole("button", { name: "Scan QR code" }));
+			await act(async () => scan(code));
+			expect(await screen.findByText("This QR code is not a trellis pair link.")).toBeOnTheScreen();
+			expect(screen.getByLabelText("Server URL")).toHaveDisplayValue("http://");
+		}
+		expect(probeHealth).not.toHaveBeenCalled();
+	});
+
+	test("the trellis://pair deep link opens setup with the URL filled and probes it", async () => {
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+		const view = renderRouter(appContext(), { initialUrl: linkedPath });
+		await view;
+
+		await waitFor(() => expect(view.getPathname()).toBe("/setup"));
+		expect(screen.getByLabelText("Server URL")).toHaveDisplayValue(url);
+		expect(await screen.findByText("12 tickets")).toBeOnTheScreen();
+		expect(probeHealth.mock.calls.map((call) => call[0])).toEqual([url]);
+	});
+
+	// A person who already set a server up opens a pair link for a new one.
+	test("the deep link reaches setup on an app that already has a server", async () => {
+		store.set("trellis-server-url", "http://10.0.0.9:4521");
+		store.set("trellis-actor-name", "navid");
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+		const view = renderRouter(appContext(), { initialUrl: linkedPath });
+		await view;
+
+		await waitFor(() => expect(view.getPathname()).toBe("/setup"));
+		expect(screen.getByLabelText("Server URL")).toHaveDisplayValue(url);
+		await fireEvent.press(await screen.findByRole("button", { name: "Save" }));
+		expect(store.getString("trellis-server-url")).toBe(url);
 	});
 
 	test("a URL without a scheme never reaches the probe", async () => {

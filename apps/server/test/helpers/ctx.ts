@@ -1,6 +1,7 @@
 import type { GhStatus, TrellisEvent } from "@trellis/api";
 import { ulid } from "ulid";
 import type { Db } from "../../src/db/client.ts";
+import { createMaintenance } from "../../src/db/maintenance.ts";
 import type { Emit, Tx } from "../../src/db/tx.ts";
 import type { GhRunner } from "../../src/gh/run.ts";
 
@@ -23,9 +24,11 @@ export type ServiceCtx = {
 	now: () => Date;
 	gh: GhRunner;
 	ghStatus: () => GhStatus;
+	addresses: () => Promise<string[]>;
 	emit: Emit;
 	afterCommit: (task: () => Promise<void>) => void;
 	newTx: <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
+	vacuum: () => Promise<void>;
 };
 
 export const navidCtxActor: ActorRef = { name: "navid", kind: "human" };
@@ -59,6 +62,7 @@ export type CtxOptions = {
 	actor?: ActorRef;
 	gh?: GhRunner;
 	ghStatus?: () => GhStatus;
+	addresses?: () => string[];
 	now?: () => Date;
 	maxUploadBytes?: number;
 };
@@ -76,11 +80,13 @@ export const testCtx = (options: CtxOptions): CtxHandle => {
 		now: options.now ?? (() => new Date()),
 		gh: options.gh ?? noGh,
 		ghStatus: options.ghStatus ?? signedInGh,
+		addresses: async () => (options.addresses ?? (() => ["http://127.0.0.1:4521"]))(),
 		emit: () => {},
 		afterCommit: (task) => {
 			tasks.push(task);
 		},
 		newTx: (fn) => options.db.transaction(fn),
+		vacuum: () => createMaintenance(options.db).runNow(),
 	};
 	return {
 		ctx,

@@ -1,10 +1,12 @@
-import { router } from "expo-router";
+import { parsePairLink } from "@trellis/api";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useMMKVString } from "react-native-mmkv";
 import { Button } from "../src/components/Button";
 import { Field } from "../src/components/Field";
 import { KeyValueRow } from "../src/components/KeyValueRow";
+import { QrScanner } from "../src/features/setup/QrScanner";
 import { queryClient } from "../src/lib/queryClient";
 import { actorHeader, type ProbeResult, probeHealth, validateActorName, validateServerUrl } from "../src/lib/server";
 import { keys, store } from "../src/lib/store";
@@ -18,6 +20,8 @@ type Probe = { url: string; result: ProbeResult };
 // The name the probe sends while the Name field is empty.
 const anonymous = "setup";
 
+const notPairLink = "This QR code is not a trellis pair link.";
+
 const failureMessage = (result: Exclude<ProbeResult, { ok: true }>) => {
 	if (result.kind === "timeout") return "Timed out after 3 s";
 	if (result.kind === "unreachable") return `Unreachable: ${result.detail}`;
@@ -30,18 +34,22 @@ const styles = StyleSheet.create({
 	card: { borderRadius: tokens.radius.lg, overflow: "hidden" },
 });
 
-// Where the server is and who the person is. Save needs a probe that
-// succeeded for the URL in the field and a name the actor header grammar
-// takes. After Save the screen returns to where it was opened from, or to the
-// first tab on a fresh install.
+// Where the server is and who the person is. The URL comes from the field,
+// from a scan of the QR code on the web settings page, or from the pair link
+// as the `url` parameter. A scan and a pair link fill the field and probe it.
+// Save needs a probe that succeeded for the URL in the field and a name the
+// actor header grammar takes. After Save the screen returns to where it was
+// opened from, or to the first tab on a fresh install.
 export default function SetupScreen() {
 	const [storedUrl, setStoredUrl] = useMMKVString(keys.serverUrl, store);
 	const [storedName, setStoredName] = useMMKVString(keys.actorName, store);
+	const { url: linkedUrl } = useLocalSearchParams<{ url?: string }>();
 	const [url, setUrl] = useState(storedUrl ?? "http://");
 	const [name, setName] = useState(storedName ?? "");
 	const [error, setError] = useState<string>();
 	const [probe, setProbe] = useState<Probe>();
 	const [busy, setBusy] = useState(false);
+	const [scanning, setScanning] = useState(false);
 	// How many times the person pressed Save. The screen leaves on a press
 	// that stored both values, so it counts the presses instead of holding a
 	// flag that stays true after the first one.
@@ -70,8 +78,8 @@ export default function SetupScreen() {
 	// start of the screen and carries no message.
 	const nameNote = name.trim() !== "" && !validName.ok ? validName.error : undefined;
 
-	const testConnection = async () => {
-		const valid = validateServerUrl(url);
+	const testConnection = async (target: string) => {
+		const valid = validateServerUrl(target);
 		if (!valid.ok) {
 			setError(valid.error);
 			return;
@@ -85,6 +93,30 @@ export default function SetupScreen() {
 		const result = await probeHealth(valid.url, actorHeader(actor.name));
 		setProbe({ url: valid.url, result });
 		setBusy(false);
+	};
+
+	const fill = (next: string) => {
+		changeUrl(next);
+		void testConnection(next);
+	};
+
+	// A pair link that opens the app, or a new one while this screen stays
+	// mounted, fills the field once per URL.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `fill` is a new function on every render, and the effect runs for a new URL only.
+	useEffect(() => {
+		if (linkedUrl !== undefined) fill(linkedUrl);
+	}, [linkedUrl]);
+
+	const openScanner = () => {
+		setError(undefined);
+		setScanning(true);
+	};
+
+	const scanned = (data: string) => {
+		setScanning(false);
+		const server = parsePairLink(data);
+		if (server === null) setError(notPairLink);
+		else fill(server);
 	};
 
 	// The Save button is disabled until `canSave`, which needs both results
@@ -112,9 +144,14 @@ export default function SetupScreen() {
 				autoCapitalize="none"
 				autoCorrect={false}
 				mono
-				note="The address the trellis server prints at start."
+				note="Scan the code under Pair a phone in the web settings, or type the address the server prints at start."
 			/>
-			<Button label={busy ? "Testing…" : "Test connection"} onPress={() => void testConnection()} disabled={busy} />
+			{scanning ? (
+				<QrScanner onScan={scanned} onCancel={() => setScanning(false)} />
+			) : (
+				<Button label="Scan QR code" onPress={openScanner} />
+			)}
+			<Button label={busy ? "Testing…" : "Test connection"} onPress={() => void testConnection(url)} disabled={busy} />
 			{error !== undefined && <Text style={[styles.message, { color: palette.danger }]}>{error}</Text>}
 			{answer !== undefined && !answer.ok && (
 				<Text style={[styles.message, { color: palette.danger }]}>{failureMessage(answer)}</Text>

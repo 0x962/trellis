@@ -1,24 +1,28 @@
-import { ORPCError } from "@orpc/server";
 import type { GhStatus } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { Config } from "../config.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR } from "../context.ts";
 import type { Bus } from "../events/bus.ts";
 import type { GhRunner } from "../gh/run.ts";
+import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs } from "../jobs.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
+import { createMaintenance } from "./maintenance.ts";
 import { pullStream } from "./pullStream.ts";
 import { type Emit, type Tx, withTx } from "./tx.ts";
-import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./worker.ts";
+
+export { createWorkerTransport } from "./workerTransport.ts";
 
 // The facts of the running process a service reports or uses: the package
-// version, the boot id, the gh runner, and the gh state the poller keeps.
+// version, the boot id, the gh runner, the gh state the poller keeps, and
+// the URLs the listener answers on.
 export type Runtime = {
 	version: string;
 	bootId: string;
 	gh: GhRunner;
 	ghStatus: () => GhStatus;
+	addresses: () => Promise<string[]>;
 };
 
 // How the HTTP process reaches the services. `call` runs one service in
@@ -27,13 +31,18 @@ export type Runtime = {
 // before the first call. `close` waits for the calls in flight. The inline
 // implementation runs on the calling thread; the worker implementation
 // runs the same calls on a Worker and carries the same interface.
+// `start` with `jobs` also starts the poller and the maintenance timer in the
+// thread that owns the database. `close` then drains the poller first, for
+// up to 5 s, so no poller write runs after the database closes.
 export type ServiceTransport = {
 	call: (name: ServiceName, ctx: RequestContext, input: unknown) => Promise<unknown>;
-	start: () => Promise<TransportStart>;
+	start: (jobs?: JobsStart) => Promise<TransportStart>;
 	close: () => Promise<void>;
 };
 
 export type TransportStart = { applied: number; liveShas: string[] };
+
+export type JobsStart = { clockRate: number; log: JobsLog };
 
 export type InlineTransportOptions = { db: Db; bus: Bus; config: Config; runtime: Runtime; applied?: number };
 
@@ -67,11 +76,13 @@ export const createInlineTransport = ({
 		now: () => ctx.now,
 		gh: runtime.gh,
 		ghStatus: runtime.ghStatus,
+		addresses: runtime.addresses,
 		emit,
 		afterCommit: (task: () => Promise<void>) => {
 			tasks.push(task);
 		},
 		newTx: <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn),
+		vacuum: () => createMaintenance(db).runNow(),
 	});
 
 	const buildCtx = (entry: ServiceEntry, ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) =>
@@ -101,180 +112,20 @@ export const createInlineTransport = ({
 		return promise;
 	};
 
-	const start = async () => {
+	let jobs: Jobs | null = null;
+	const start = async (options?: JobsStart) => {
 		await db.transaction((tx) => cache.rebuild(tx));
 		const found = await db.execute(sql`SELECT DISTINCT sha256 FROM attachments`);
+		if (options !== undefined) {
+			const clock = scaledClock(options.clockRate);
+			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });
+		}
 		return { applied, liveShas: found.rows.map((row) => row.sha256 as string) };
 	};
 
 	const close = async () => {
+		if (jobs !== null) await jobs.stop();
 		await Promise.allSettled([...inFlight]);
-	};
-
-	return { call, start, close };
-};
-
-type PendingCall = { resolve: (value: unknown) => void; reject: (error: unknown) => void };
-
-type StreamState = {
-	controller: ReadableStreamDefaultController<Uint8Array>;
-	pulled?: () => void;
-};
-
-const fromError = (error: SerializedError) => {
-	if (error.code !== undefined) {
-		return new ORPCError(error.code, {
-			defined: error.defined,
-			status: error.status,
-			message: error.message,
-			data: error.data,
-		});
-	}
-	const result = new Error(error.message);
-	result.name = error.name;
-	return result;
-};
-
-export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportOptions): ServiceTransport => {
-	let worker: Worker;
-	let nextId = 1;
-	let batchScheduled = false;
-	const outgoing: WorkerCall[] = [];
-	const pending = new Map<number, PendingCall>();
-	const streams = new Map<number, StreamState>();
-	const ready = Promise.withResolvers<TransportStart>();
-	const closed = Promise.withResolvers<void>();
-	const fail = (error: unknown) => {
-		ready.reject(error);
-		for (const call of pending.values()) call.reject(error);
-		pending.clear();
-		for (const stream of streams.values()) stream.controller.error(error);
-		streams.clear();
-	};
-
-	const send = (message: WorkerInput) => worker.postMessage(message);
-	const flush = () => {
-		batchScheduled = false;
-		if (outgoing.length > 0) send({ type: "calls", calls: outgoing.splice(0) });
-	};
-
-	const receive = ({ data }: MessageEvent<WorkerOutput>) => {
-		if (data.type === "ready") {
-			ready.resolve({ applied: data.applied, liveShas: data.liveShas });
-			return;
-		}
-		if (data.type === "startError") {
-			ready.reject(fromError(data.error));
-			return;
-		}
-		if (data.type === "result") {
-			pending.get(data.id)!.resolve(data.result);
-			pending.delete(data.id);
-			return;
-		}
-		if (data.type === "error") {
-			const error = fromError(data.error);
-			const stream = streams.get(data.id);
-			if (stream) {
-				stream.controller.error(error);
-				stream.pulled?.();
-				streams.delete(data.id);
-			} else {
-				pending.get(data.id)!.reject(error);
-				pending.delete(data.id);
-			}
-			return;
-		}
-		if (data.type === "event") {
-			bus.emit(data.event);
-			return;
-		}
-		if (data.type === "gh") {
-			void runtime.gh(data.slot, data.args).then((result) => send({ type: "ghResult", id: data.id, result }));
-			return;
-		}
-		if (data.type === "stream") {
-			const stream = new ReadableStream<Uint8Array>({
-				start(controller) {
-					streams.set(data.id, { controller });
-				},
-				pull() {
-					send({ type: "pull", id: data.id });
-					return new Promise<void>((resolve) => {
-						streams.get(data.id)!.pulled = resolve;
-					});
-				},
-				cancel() {
-					streams.delete(data.id);
-					send({ type: "cancel", id: data.id });
-				},
-			});
-			pending.get(data.id)!.resolve(stream);
-			pending.delete(data.id);
-			return;
-		}
-		if (data.type === "chunk") {
-			const stream = streams.get(data.id)!;
-			stream.controller.enqueue(data.chunk);
-			stream.pulled?.();
-			stream.pulled = undefined;
-			return;
-		}
-		if (data.type === "streamEnd") {
-			const stream = streams.get(data.id)!;
-			stream.controller.close();
-			stream.pulled?.();
-			streams.delete(data.id);
-			return;
-		}
-		closed.resolve();
-	};
-
-	const start = async () => {
-		worker = new Worker(new URL("./worker.ts", import.meta.url).href, { name: "trellis-db" });
-		worker.onmessage = receive;
-		worker.onerror = (event) => fail(event.error);
-		send({
-			type: "start",
-			config,
-			runtime: {
-				version: runtime.version,
-				bootId: runtime.bootId,
-				ghBin: runtime.gh.bin,
-				ghTimeoutMs: runtime.gh.timeoutMs,
-			},
-		});
-		return ready.promise;
-	};
-
-	const call = (name: ServiceName, ctx: RequestContext, input: unknown) => {
-		const id = nextId++;
-		const promise = new Promise<unknown>((resolve, reject) => pending.set(id, { resolve, reject }));
-		const entry = services[name];
-		outgoing.push({
-			type: "call",
-			id,
-			kind: entry.kind,
-			clientId: entry.kind === "search" ? (ctx.session ?? ctx.reqId) : undefined,
-			name,
-			ctx,
-			input,
-			ghStatus: runtime.ghStatus(),
-		});
-		if (!batchScheduled) {
-			batchScheduled = true;
-			queueMicrotask(flush);
-		}
-		return promise;
-	};
-
-	const close = async () => {
-		flush();
-		for (const id of streams.keys()) send({ type: "cancel", id });
-		streams.clear();
-		send({ type: "close" });
-		await closed.promise;
-		worker.terminate();
 	};
 
 	return { call, start, close };

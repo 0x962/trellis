@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { apiUrl } from "./env";
 
@@ -33,3 +35,21 @@ export const createTicket = (project: string, title: string, extra: string[] = [
 
 export const moveTicket = (ticket: string, status: string, actor?: string) =>
 	trellis<CliTicket>(["move", ticket, status], actor);
+
+// Runs a command line as a person pastes it into a shell. The `trellis` on
+// the PATH is a script in the temp root that runs the real CLI against the
+// test server with JSON output.
+export const runPasted = <T>(command: string): T => {
+	const bin = join(process.env.TRELLIS_E2E_ROOT!, "bin");
+	mkdirSync(bin, { recursive: true });
+	writeFileSync(
+		join(bin, "trellis"),
+		`#!/bin/sh\nexec bun "${entry}" --url "${apiUrl}" --as human:navid --json "$@"\n`,
+		{ mode: 0o755 },
+	);
+	const stdout = execFileSync("sh", ["-c", command], {
+		encoding: "utf8",
+		env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+	});
+	return JSON.parse(stdout) as T;
+};
