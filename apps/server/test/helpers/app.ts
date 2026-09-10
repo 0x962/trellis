@@ -90,7 +90,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 	await transport.start();
 	const { app, bye } = createApp({ config, log, transport, bus, runtime, clock });
 
-	const fetchThroughApp = (request: Request) => app.request(request);
+	const fetchThroughApp = (request: Request) => Promise.resolve(app.request(request));
 	const as = (actor: string): TrellisClient => createTrellisClient("http://trellis.test", actor, fetchThroughApp);
 
 	const api = async (path: string, call: ApiCall = {}): Promise<ApiResponse> => {

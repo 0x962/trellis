@@ -27,7 +27,7 @@ afterAll(() => h.close());
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
 
-const upload = (ticket: string, bytes: Uint8Array, name = "shot.png", type = "image/png") => {
+const upload = (ticket: string, bytes: Uint8Array<ArrayBuffer>, name = "shot.png", type = "image/png") => {
 	const form = new FormData();
 	form.set("file", new File([bytes], name, { type }));
 	return t.api(`/api/tickets/${ticket}/attachments`, { method: "POST", raw: form });

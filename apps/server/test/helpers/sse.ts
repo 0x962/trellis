@@ -90,7 +90,11 @@ export const openSse = async (app: Hono, path: string, headers: Record<string, s
 };
 
 // Parses the JSON body of one message.
-export const dataOf = <T = Record<string, unknown>>(message: SseMessage) => JSON.parse(message.data!) as T;
+export function dataOf(message: SseMessage): Record<string, unknown>;
+export function dataOf<T>(message: SseMessage): T;
+export function dataOf(message: SseMessage) {
+	return JSON.parse(message.data!);
+}
 
 // The next message that is not a ping comment.
 export const nextEvent = async (stream: SseReader, timeoutMs?: number) => {
