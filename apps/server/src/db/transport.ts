@@ -20,7 +20,7 @@ export type Runtime = {
 	bootId: string;
 	gh: GhRunner;
 	ghStatus: () => GhStatus;
-	addresses: () => string[];
+	addresses: () => Promise<string[]>;
 };
 
 // How the HTTP process reaches the services. `call` runs one service in
@@ -196,6 +196,10 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			void runtime.gh(data.slot, data.args).then((result) => send({ type: "ghResult", id: data.id, result }));
 			return;
 		}
+		if (data.type === "addresses") {
+			void runtime.addresses().then((addresses) => send({ type: "addressesResult", id: data.id, addresses }));
+			return;
+		}
 		if (data.type === "stream") {
 			const stream = new ReadableStream<Uint8Array>({
 				start(controller) {
@@ -263,7 +267,6 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			ctx,
 			input,
 			ghStatus: runtime.ghStatus(),
-			addresses: runtime.addresses(),
 		});
 		if (!batchScheduled) {
 			batchScheduled = true;

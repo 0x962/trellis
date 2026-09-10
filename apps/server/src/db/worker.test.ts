@@ -15,7 +15,6 @@ const call = (id: number, kind: WorkerCall["kind"], clientId?: string): WorkerCa
 	},
 	input: {},
 	ghStatus: { ok: true, user: "navid", reason: null, message: null, checkedAt: "2026-09-10T12:00:00.000Z" },
-	addresses: ["http://127.0.0.1:4521"],
 });
 
 describe("ServiceQueue", () => {

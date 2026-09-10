@@ -21,7 +21,6 @@ export type WorkerCall = {
 	ctx: RequestContext;
 	input: unknown;
 	ghStatus: GhStatus;
-	addresses: string[];
 };
 
 type WorkerRuntime = Pick<Runtime, "version" | "bootId"> & { ghBin: string; ghTimeoutMs: number };
@@ -30,6 +29,7 @@ export type WorkerInput =
 	| { type: "start"; config: Config; runtime: WorkerRuntime }
 	| { type: "calls"; calls: WorkerCall[] }
 	| { type: "ghResult"; id: number; result: GhResult }
+	| { type: "addressesResult"; id: number; addresses: string[] }
 	| { type: "pull"; id: number }
 	| { type: "cancel"; id: number }
 	| { type: "close" };
@@ -50,6 +50,7 @@ export type WorkerOutput =
 	| { type: "error"; id: number; error: SerializedError }
 	| { type: "event"; event: TrellisEvent }
 	| { type: "gh"; id: number; slot: GhSlot; args: string[] }
+	| { type: "addresses"; id: number }
 	| { type: "stream"; id: number }
 	| { type: "chunk"; id: number; chunk: Uint8Array<ArrayBuffer> }
 	| { type: "streamEnd"; id: number }
@@ -110,6 +111,10 @@ const superseded = (): SerializedError => ({ name: "AbortError", message: "A new
 const startHost = () => {
 	const queue = new ServiceQueue();
 	const ghCalls = new Map<number, (result: GhResult) => void>();
+	// The listen addresses live in the HTTP process, which alone knows the
+	// port. A service that reads them asks for them by id.
+	const addressCalls = new Map<number, (addresses: string[]) => void>();
+	let nextAddressId = 1;
 	const streams = new Map<
 		number,
 		{ reader: ReadableStreamDefaultReader<Uint8Array>; done: () => void; reads: Promise<void>; cancelled: boolean }
@@ -118,7 +123,6 @@ const startHost = () => {
 	let transport: ServiceTransport;
 	let database: Awaited<ReturnType<typeof openDatabase>>;
 	let currentGhStatus: GhStatus;
-	let currentAddresses: string[];
 	let draining = false;
 	let scheduled = false;
 	let closing = false;
@@ -139,7 +143,6 @@ const startHost = () => {
 
 	const run = async (call: WorkerCall) => {
 		currentGhStatus = call.ghStatus;
-		currentAddresses = call.addresses;
 		try {
 			const result = await transport.call(call.name, call.ctx, call.input);
 			if (result instanceof ReadableStream) await relayStream(call.id, result);
@@ -199,7 +202,12 @@ const startHost = () => {
 					...data.runtime,
 					gh,
 					ghStatus: () => currentGhStatus,
-					addresses: () => currentAddresses,
+					addresses: () =>
+						new Promise<string[]>((resolve) => {
+							const id = nextAddressId++;
+							addressCalls.set(id, resolve);
+							send({ type: "addresses", id });
+						}),
 				};
 				transport = createInlineTransport({ db: database.db, bus, config: data.config, runtime });
 				const started = await transport.start();
@@ -218,6 +226,11 @@ const startHost = () => {
 		if (data.type === "ghResult") {
 			ghCalls.get(data.id)!(data.result);
 			ghCalls.delete(data.id);
+			return;
+		}
+		if (data.type === "addressesResult") {
+			addressCalls.get(data.id)!(data.addresses);
+			addressCalls.delete(data.id);
 			return;
 		}
 		if (data.type === "pull") {

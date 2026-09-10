@@ -70,7 +70,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			bootId,
 			gh,
 			ghStatus: () => ghState,
-			addresses: () => listenAddresses(config.host, port, networkInterfaces()),
+			addresses: async () => listenAddresses(config.host, port, networkInterfaces()),
 		};
 		const database = config.dbInline ? await openDatabase(config.dbDir) : undefined;
 		const transport = database

@@ -23,7 +23,7 @@ export type ServiceCtx = {
 	now: () => Date;
 	gh: GhRunner;
 	ghStatus: () => GhStatus;
-	addresses: () => string[];
+	addresses: () => Promise<string[]>;
 	emit: Emit;
 	afterCommit: (task: () => Promise<void>) => void;
 	newTx: <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
@@ -78,7 +78,7 @@ export const testCtx = (options: CtxOptions): CtxHandle => {
 		now: options.now ?? (() => new Date()),
 		gh: options.gh ?? noGh,
 		ghStatus: options.ghStatus ?? signedInGh,
-		addresses: options.addresses ?? (() => ["http://127.0.0.1:4521"]),
+		addresses: async () => (options.addresses ?? (() => ["http://127.0.0.1:4521"]))(),
 		emit: () => {},
 		afterCommit: (task) => {
 			tasks.push(task);

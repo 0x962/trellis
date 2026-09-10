@@ -32,7 +32,7 @@ export const health = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promis
 		apiVersion: ctx.apiVersion,
 		bootId: ctx.bootId,
 		rss: process.memoryUsage.rss(),
-		addresses: ctx.addresses(),
+		addresses: await ctx.addresses(),
 		db: { ok: true, sizeBytes: Number(row!.bytes) },
 		gh: ctx.ghStatus(),
 	};

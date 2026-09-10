@@ -35,7 +35,7 @@ beforeEach(async () => {
 		bootId,
 		gh: noGh,
 		ghStatus: signedInGh,
-		addresses: () => ["http://127.0.0.1:4521"],
+		addresses: async () => ["http://127.0.0.1:4521"],
 	};
 	transport = createInlineTransport({ db: h.db, bus, config, runtime });
 	await transport.start();

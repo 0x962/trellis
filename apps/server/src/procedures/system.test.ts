@@ -26,7 +26,7 @@ describe("system", () => {
 			"rss",
 			"version",
 		]);
-		expect(response.body.addresses).toEqual(t.runtime.addresses());
+		expect(response.body.addresses).toEqual(await t.runtime.addresses());
 		expect(response.body.ok).toBe(true);
 		expect(response.body.version).toBe(t.runtime.version);
 		expect(response.body.apiVersion).toMatch(/\S+/);

@@ -84,7 +84,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		bootId,
 		gh: options.gh ?? createGhRunner(),
 		ghStatus: options.ghStatus ?? signedInGh,
-		addresses: () => ["http://192.168.1.20:4521", "http://127.0.0.1:4521"],
+		addresses: async () => ["http://192.168.1.20:4521", "http://127.0.0.1:4521"],
 	};
 	const clock = fakeIntervalClock();
 	const transport = config.dbInline
