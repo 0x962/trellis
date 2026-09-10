@@ -15,6 +15,7 @@ export default defineCommand({
 		priority: { type: "enum", options: [...priorities], description: "Priority" },
 		status: { type: "string", description: "Status ref; the project default when absent" },
 		parent: { type: "string", description: "Parent ticket ref" },
+		force: { type: "boolean", description: "Let an agent create a ticket in a done status" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
@@ -27,6 +28,7 @@ export default defineCommand({
 				priority: args.priority as Priority | undefined,
 				status: args.status,
 				parent: args.parent,
+				force: args.force === true ? true : undefined,
 			}),
 		);
 		printRecord(ctx.out, ctx.format, ticket, ticketRecord);

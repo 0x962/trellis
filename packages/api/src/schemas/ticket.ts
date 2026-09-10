@@ -160,6 +160,7 @@ export const TicketCreateInputSchema = z.strictObject({
 	priority: PrioritySchema.optional(),
 	status: StatusRefStringSchema.optional(),
 	parent: TicketRefStringSchema.optional(),
+	force: z.boolean().optional(),
 });
 export type TicketCreateInput = z.input<typeof TicketCreateInputSchema>;
 
