@@ -44,7 +44,7 @@ describe("CheckRibbon", () => {
 			"skipping",
 			"cancel",
 		]);
-		expect(segments[1]!.getAttribute("title")).toBe("typecheck: fail");
+		expect(segments[1]!.getAttribute("title")).toBe("typecheck: failed");
 		expectClasses(segments[0]!, "bg-success");
 		expectClasses(segments[1]!, "bg-danger");
 		expectClasses(segments[3]!, "ribbon-shimmer motion-reduce:animate-none");
@@ -104,7 +104,7 @@ describe("CheckRibbon", () => {
 			const failed = ribbon.querySelector<HTMLElement>("[data-bucket='fail']")!;
 			expectClasses(failed, "bg-danger shrink-0");
 			expect(failed.style.width).toBe("1px");
-			expect(failed.getAttribute("title")).toBe("check 20: fail");
+			expect(failed.getAttribute("title")).toBe("check 20: failed");
 			expect(ribbon.querySelectorAll("[data-bucket]")).toHaveLength(3);
 			for (const segment of Array.from(ribbon.querySelectorAll("[data-bucket]"))) {
 				expect(segment.classList.contains("min-w-px")).toBe(false);

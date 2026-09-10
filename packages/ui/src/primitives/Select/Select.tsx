@@ -44,7 +44,7 @@ export function Select<Value extends string>({
 					"inline-flex h-7 min-w-24 shrink-0 items-center justify-between gap-2 rounded-md border border-border bg-surface pr-1.5 pl-2 text-sm text-fg whitespace-nowrap select-none transition duration-hover ease-out",
 					hitArea.box28Bordered,
 					"hover:bg-bg hover:border-border-strong data-popup-open:bg-bg",
-					"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+					"outline-none focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft",
 					"disabled:opacity-50 disabled:pointer-events-none",
 					className,
 				)}
@@ -68,7 +68,7 @@ export function Select<Value extends string>({
 								<BaseSelect.Item
 									key={item.value}
 									value={item.value}
-									className="grid h-7 cursor-default grid-cols-[1rem_1fr] items-center gap-1.5 rounded-sm pr-3 pl-1.5 text-sm text-fg outline-none select-none data-highlighted:bg-bg"
+									className="grid h-7 grid-cols-[1rem_1fr] items-center gap-1.5 rounded-sm pr-3 pl-1.5 text-sm text-fg outline-none select-none data-highlighted:bg-bg"
 								>
 									<BaseSelect.ItemIndicator className="col-start-1 inline-flex size-3.5 text-fg-muted *:size-full">
 										<Check />

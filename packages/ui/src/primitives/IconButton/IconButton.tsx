@@ -2,6 +2,7 @@ import { Button as BaseButton } from "@base-ui/react/button";
 import type { ComponentProps, ReactElement } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
+import { buttonVariants, disabledLook } from "../Button/variants";
 
 export type IconButtonProps = Omit<ComponentProps<typeof BaseButton>, "children" | "className"> & {
 	className?: string;
@@ -9,11 +10,12 @@ export type IconButtonProps = Omit<ComponentProps<typeof BaseButton>, "children"
 	label: string;
 	icon: ReactElement;
 	size?: "sm" | "md";
-	variant?: "quiet" | "default";
+	variant?: "primary" | "default" | "quiet" | "danger";
 };
 
 // A square button that shows one icon, drawn 28 px at size md and 24 px at
-// size sm. The hit-area layer brings both sizes to the 28 px and 44 px
+// size sm. Size sm sits inside rows and headers; next to a Button in a bar
+// it is md. The hit-area layer brings both sizes to the 28 px and 44 px
 // minimums in both axes.
 export function IconButton({ label, icon, size = "md", variant = "quiet", className, ...props }: IconButtonProps) {
 	return (
@@ -22,10 +24,8 @@ export function IconButton({ label, icon, size = "md", variant = "quiet", classN
 			className={cx(
 				"inline-flex shrink-0 items-center justify-center rounded-md border select-none transition duration-hover ease-out",
 				"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
-				"disabled:opacity-50 disabled:pointer-events-none",
-				variant === "quiet"
-					? "border-transparent bg-transparent text-fg-muted hover:bg-bg hover:text-fg"
-					: "border-border bg-surface text-fg hover:bg-bg hover:border-border-strong",
+				buttonVariants[variant],
+				disabledLook(variant),
 				size === "md" ? `size-7 ${hitArea.box28Bordered}` : `size-6 ${hitArea.box24Bordered}`,
 				className,
 			)}

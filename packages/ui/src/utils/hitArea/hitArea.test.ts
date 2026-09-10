@@ -18,6 +18,7 @@ const geometry: Record<HitAreaKey, Geometry> = {
 	box16Bordered: { width: 16, height: 16, borderX: 2, borderY: 2 },
 	box24Bordered: { width: 28, height: 24, borderX: 2, borderY: 2 },
 	box28Bordered: { width: 28, height: 28, borderX: 2, borderY: 2 },
+	box32Bordered: { width: 28, height: 32, borderX: 2, borderY: 2 },
 	segment28: { width: 28, height: 28, borderX: 2, borderY: 2, coarseWidth: 44 },
 	tab32: { width: 3, height: 32, borderX: 0, borderY: 2 },
 	handle4: { width: 4, height: 320, borderX: 0, borderY: 0 },

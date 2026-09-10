@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
-import { Menu, type MenuItem, toast } from "@trellis/ui";
-import { Archive, ArchiveRestore, Copy, FolderPlus, Plus, Settings, Trash2 } from "lucide-react";
+import { IconButton, Menu, type MenuItem, toast } from "@trellis/ui";
+import { Archive, ArchiveRestore, Copy, FolderPlus, MoreHorizontal, Plus, Settings, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { composerActions } from "../../composer";
@@ -13,7 +13,8 @@ export type ProjectRowActionsProps = {
 	project: ProjectSummary;
 };
 
-// The row menu of a project in the sidebar. An archived project takes no
+// The row menu of a project in the sidebar: a 24 px button that fits the
+// row's trailing slot. An archived project takes no
 // new sub-project and no new ticket, so its menu offers only unarchive,
 // settings, and delete.
 export function ProjectRowActions({ project }: ProjectRowActionsProps) {
@@ -57,7 +58,11 @@ export function ProjectRowActions({ project }: ProjectRowActionsProps) {
 
 	return (
 		<>
-			<Menu label={`Actions for ${project.name}`} items={items} />
+			<Menu
+				label={`Actions for ${project.name}`}
+				items={items}
+				trigger={<IconButton size="sm" label={`Actions for ${project.name}`} icon={<MoreHorizontal />} />}
+			/>
 			<NewSubprojectDialog project={project} open={createOpen} onOpenChange={setCreateOpen} />
 			<DeleteProjectDialog project={project} open={deleteOpen} onOpenChange={setDeleteOpen} />
 		</>

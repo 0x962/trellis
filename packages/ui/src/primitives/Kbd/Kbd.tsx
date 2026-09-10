@@ -3,20 +3,19 @@ import { cx } from "../../utils/cx";
 
 export type KbdProps = {
 	children: ReactNode;
-	// `inverse` is for a Kbd on a saturated fill, such as a primary Button.
+	// Ignored. Every key cap has one style, on a fill or off it.
 	tone?: "default" | "inverse";
 	className?: string;
 };
 
-// A key cap: mono, 10 px, with a heavier bottom edge.
-export function Kbd({ children, tone = "default", className }: KbdProps) {
+// A key cap: 18 px tall, 11 px mono, on the surface with the strong border.
+// The cap keeps its own surface, so it reads the same inside a primary
+// button as it does in a menu.
+export function Kbd({ children, className }: KbdProps) {
 	return (
 		<kbd
 			className={cx(
-				"inline-flex items-center rounded-sm border border-b-2 px-1 font-mono text-kbd",
-				tone === "default"
-					? "border-border bg-surface text-fg-muted"
-					: "border-on-accent/40 bg-transparent text-on-accent",
+				"inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-sm border border-border-strong bg-surface px-1 font-mono text-xs leading-none text-fg-muted",
 				className,
 			)}
 		>

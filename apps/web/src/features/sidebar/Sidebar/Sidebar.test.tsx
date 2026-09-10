@@ -92,15 +92,42 @@ describe("features/sidebar/Sidebar", () => {
 	// signal.
 	test("the connection dot mirrors the live status with a label", async () => {
 		const { live } = renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", liveStatus: "live" });
-		const dot = within(aside()).getByLabelText("Connected");
+		const dot = within(aside()).getByLabelText("Online");
 		expect(dot.className).toMatch(/\bbg-success\b/);
 		act(() => live.status.set("reconnecting"));
 		expect(within(aside()).getByLabelText("Reconnecting").className).toMatch(/\bbg-warning\b/);
 		act(() => live.status.set("restarting"));
 		expect(within(aside()).getByLabelText("Reconnecting").className).toMatch(/\bbg-warning\b/);
 		act(() => live.status.set("down"));
-		expect(within(aside()).getByLabelText("Disconnected").className).toMatch(/\bbg-danger\b/);
-		expect(within(aside()).queryByLabelText("Connected")).toBeNull();
+		expect(within(aside()).getByLabelText("Offline").className).toMatch(/\bbg-danger\b/);
+		expect(within(aside()).queryByLabelText("Online")).toBeNull();
+	});
+
+	// SH-1. The header draws the trellis mark, the favicon drawing, and not
+	// a generic icon.
+	test("the header shows the trellis mark beside the name", async () => {
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
+		const mark = aside().querySelector('svg[viewBox="0 0 32 32"]')!;
+		expect(mark).not.toBeNull();
+		expect(mark.querySelector("rect")!.getAttribute("class")).toContain("fill-mark");
+		expect(aside().querySelector(".lucide-hash")).toBeNull();
+	});
+
+	// SH-2, SH-3, SH-4. The count is an 18 px accent pill, the Search row
+	// shows the key that opens search, and every nav icon is 16 px.
+	test("the nav rows show 16 px icons, the / key on Search, and the Needs you count as an 18 px pill", async () => {
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
+		const needsYou = await screen.findByRole("link", { name: /Needs you/ });
+		const badge = await within(needsYou).findByText(/^\d+$/);
+		for (const name of ["bg-accent-soft", "text-accent", "text-xs", "font-semibold", "h-4.5"]) {
+			expect(badge.classList.contains(name)).toBe(true);
+		}
+		const search = screen.getByRole("link", { name: /^Search/ });
+		expect(search.querySelector("kbd")!.textContent).toBe("/");
+		for (const name of [/Needs you/, /^Search/, /All tickets/]) {
+			const icon = screen.getByRole("link", { name }).querySelector("span[aria-hidden]")!;
+			expect(icon.classList.contains("size-4")).toBe(true);
+		}
 	});
 
 	// WS-97

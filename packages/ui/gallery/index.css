@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "../src/tokens.css";
 @import "../src/fonts.css";
+@import "../src/base.css";
 
 /* Tailwind scans the components and the gallery for class names. */
 @source "../src";

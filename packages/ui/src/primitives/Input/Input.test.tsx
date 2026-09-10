@@ -30,8 +30,18 @@ describe("Input", () => {
 		await user.type(input, "ab");
 		expect(onChange).toHaveBeenCalledTimes(2);
 		expect(onChange).toHaveBeenLastCalledWith("ab");
-		expectClasses(input, "h-7 rounded-md border-border bg-surface text-base");
-		expectClasses(input, "focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2");
+		expectClasses(input, "h-8 rounded-md border-border bg-surface text-base");
+		expectClasses(
+			input,
+			"outline-none focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft",
+		);
+	});
+
+	// The accent border and the soft ring mark the focus. An outline on top of
+	// the border would draw a second ring.
+	test("the focus draws no outline over the border", () => {
+		render(<Input label="Title" value="" onChange={() => {}} />);
+		expect(screen.getByRole("textbox", { name: "Title" }).className).not.toMatch(/focus-visible:outline-2/);
 	});
 
 	test("reflects disabled and invalid", () => {

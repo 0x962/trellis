@@ -1,4 +1,4 @@
-import { Check, Funnel, Inbox, MessageCircle, X } from "lucide-react";
+import { Check, Funnel, Inbox, MessageCircle, Paperclip, Plus, SearchX, X } from "lucide-react";
 import { StatusIcon } from "../../../domain/StatusIcon";
 import { Avatar } from "../../../primitives/Avatar";
 import { Badge } from "../../../primitives/Badge";
@@ -7,6 +7,7 @@ import { Chip } from "../../../primitives/Chip";
 import { EmptyState } from "../../../primitives/EmptyState";
 import { Kbd } from "../../../primitives/Kbd";
 import { ScrollArea } from "../../../primitives/ScrollArea";
+import { SectionHeader } from "../../../primitives/SectionHeader";
 import { Separator } from "../../../primitives/Separator";
 import { Skeleton } from "../../../primitives/Skeleton";
 import { Section } from "../Section";
@@ -48,13 +49,14 @@ export function DisplaySections() {
 				<Avatar kind="agent" name="claude-code" live />
 				<Avatar kind="human" name="navid" live />
 			</Section>
-			<Section name="Kbd" note="default; inverse on a fill">
+			<Section name="Kbd" note="one style, in a row and inside every button">
 				<Kbd>⌘K</Kbd>
 				<Kbd>a</Kbd>
 				<Kbd>↵</Kbd>
-				<span className="inline-flex h-7 items-center gap-1.5 rounded-md bg-accent px-2.5 text-sm font-medium text-on-accent">
-					New ticket <Kbd tone="inverse">c</Kbd>
-				</span>
+				<Button variant="primary" kbd="C">
+					New ticket
+				</Button>
+				<Button kbd="r">Send back</Button>
 			</Section>
 			<Section name="Skeleton" note="one line; three lines; a row" className="items-start">
 				<Skeleton width="w-32" />
@@ -84,14 +86,49 @@ export function DisplaySections() {
 					<span>Right</span>
 				</div>
 			</Section>
-			<Section name="EmptyState" note="icon, title, description, action" className="justify-center">
+			<Section name="EmptyState" note="section: inside a list; page: fills the pane" className="justify-center">
 				<EmptyState
 					icon={<Inbox />}
 					title="Nothing needs you"
-					description="Every review is done and every check is green."
+					description="Every review is done. Every check passed."
 					action={<Button>New ticket</Button>}
 					className="w-full"
 				/>
+				<div className="flex h-60 w-full flex-col rounded-md border border-border">
+					<EmptyState
+						variant="page"
+						icon={<SearchX />}
+						title="Page not found"
+						description="No page has this URL."
+						action={<Button size="md">Needs you</Button>}
+					/>
+				</div>
+			</Section>
+			<Section
+				name="SectionHeader"
+				note="title, count, and actions; an empty section is the row alone"
+				className="items-stretch"
+			>
+				<div className="flex w-120 flex-col gap-3">
+					<SectionHeader
+						title="Sub-tickets"
+						count="3/5"
+						actions={
+							<Button variant="quiet" icon={<Plus />}>
+								New sub-ticket
+							</Button>
+						}
+					/>
+					<SectionHeader
+						title="Attachments"
+						actions={
+							<Button variant="quiet" icon={<Paperclip />}>
+								Upload
+							</Button>
+						}
+					/>
+					<SectionHeader title="Timeline" count="14" actions={<span>updated 9h ago</span>} />
+				</div>
 			</Section>
 		</>
 	);
