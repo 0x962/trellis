@@ -5,6 +5,7 @@ import type { Comment } from "@trellis/api";
 import { ticketId } from "../../../../../../test/fixtures";
 import { renderWithProviders } from "../../../../../../test/renderWithProviders";
 import { ago, hour } from "../../../../../../test/ticketHost";
+import { compactRelativeTime } from "../../../../../lib/format";
 import { CommentCard } from "./CommentCard";
 
 beforeEach(() => localStorage.clear());
@@ -47,7 +48,7 @@ describe("features/ticket/Timeline/components/CommentCard", () => {
 		expect(within(card).getByText("navid")).toBeDefined();
 		const time = card.querySelector("time")!;
 		expect(time.getAttribute("datetime")).toBe(createdAt);
-		expect(time.textContent).toMatch(/ago|now/);
+		expect(time.textContent).toBe(compactRelativeTime(createdAt));
 		expect(time.getAttribute("title")).toMatch(/22:52|10:52/);
 		const body = card.querySelector(".markdown")!;
 		expect(body.querySelector("strong")!.textContent).toBe("1.27");

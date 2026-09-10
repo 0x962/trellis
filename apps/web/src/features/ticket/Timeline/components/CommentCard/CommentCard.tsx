@@ -4,9 +4,10 @@ import { useState } from "react";
 import { isLiveActor } from "../../../../../lib/actorLive";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
-import { relativeTime } from "../../../../../lib/format";
+import { compactRelativeTime } from "../../../../../lib/format";
 import { ReadOnlyMarkdown } from "../../../Description/components/ReadOnlyMarkdown";
 import { failToast } from "../../../utils/failToast";
+import { absoluteTime } from "../../utils/absoluteTime";
 
 export type CommentCardProps = {
 	comment: Comment;
@@ -16,9 +17,6 @@ export type CommentCardProps = {
 	onDeleted?: (id: string) => void;
 	formatClassName?: "markdown" | "comment-markdown";
 };
-
-const absoluteTime = (iso: string) =>
-	new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 
 // One comment: the actor, the relative time with the absolute time as its
 // title, the markdown body, and the menu. An agent's card carries the
@@ -70,7 +68,7 @@ export function CommentCard({ comment, onEdited, onDeleted, formatClassName }: C
 						title={absoluteTime(comment.createdAt)}
 						className="ml-auto text-fg-faint tabular"
 					>
-						{relativeTime(comment.createdAt)}
+						{compactRelativeTime(comment.createdAt)}
 					</time>
 					<Menu
 						label="Comment actions"

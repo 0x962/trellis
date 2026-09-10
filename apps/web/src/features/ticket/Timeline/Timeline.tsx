@@ -1,7 +1,8 @@
-import type { Comment, Ticket } from "@trellis/api";
-import { Button, Segmented } from "@trellis/ui";
+import type { Comment, Ticket, TimelineItem } from "@trellis/api";
+import { Button, cx } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { useStatuses } from "../hooks/useStatuses";
 import { timelineOptions, useTimeline } from "../hooks/useTimeline";
 import { ActivityLine } from "./components/ActivityLine";
 import { CommentCard } from "./components/CommentCard";
@@ -21,6 +22,10 @@ const filters = [
 	{ value: "comments", label: "Comments" },
 ] as const;
 
+// The server writes a `comment.created` activity row for each comment. The
+// comment card shows that event, so the row draws no line.
+const shownInStream = (item: TimelineItem) => item.kind === "comment" || item.action !== "comment.created";
+
 // Comments and activity as one stream, oldest first, with the composer
 // pinned under the newest item. The server pages newest first; an older
 // page goes above the rows on screen.
@@ -28,10 +33,16 @@ export function Timeline({ ticket }: TimelineProps) {
 	const { orpc, queryClient } = useApp();
 	const key = timelineOptions(orpc, ticket.identifier).queryKey;
 	const timeline = useTimeline(ticket.identifier);
+	const statuses = useStatuses(ticket.project.path);
 	const [filter, setFilter] = useState<Filter>("all");
-	const items = (timeline.data?.pages ?? []).flatMap((page) => page.items).reverse();
+	const items = (timeline.data?.pages ?? [])
+		.flatMap((page) => page.items)
+		.reverse()
+		.filter(shownInStream);
 	const shown = filter === "comments" ? items.filter((item) => item.kind === "comment") : items;
 	const entries = collapseRuns(shown);
+	const reviewer = (name: string) =>
+		statuses.find((status) => status.name === name)?.reviewer === "agent" ? ("agent" as const) : ("human" as const);
 
 	const onEdited = (comment: Comment) =>
 		updateTimeline(queryClient, key, (rows) =>
@@ -42,15 +53,24 @@ export function Timeline({ ticket }: TimelineProps) {
 
 	return (
 		<section aria-label="Timeline" className="flex flex-col gap-2">
-			<header className="flex h-7 items-center gap-2 text-base font-medium text-fg">
-				Timeline
-				<Segmented
-					label="Timeline filter"
-					options={filters}
-					value={filter}
-					onValueChange={setFilter}
-					className="ml-auto"
-				/>
+			<header className="flex h-7 items-center gap-2">
+				<h2 className="text-base font-medium text-fg">Timeline</h2>
+				<fieldset aria-label="Timeline filter" className="ml-auto flex items-center gap-3">
+					{filters.map((option) => (
+						<button
+							key={option.value}
+							type="button"
+							aria-pressed={filter === option.value}
+							onClick={() => setFilter(option.value)}
+							className={cx(
+								"h-7 rounded-sm text-sm transition-colors duration-hover ease-out focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+								filter === option.value ? "font-medium text-fg" : "text-fg-faint hover:text-fg-muted",
+							)}
+						>
+							{option.label}
+						</button>
+					))}
+				</fieldset>
 			</header>
 			{timeline.hasNextPage && (
 				<Button variant="quiet" size="sm" className="self-start" onClick={() => void timeline.fetchNextPage()}>
@@ -68,9 +88,9 @@ export function Timeline({ ticket }: TimelineProps) {
 							onDeleted={onDeleted}
 						/>
 					) : entry.items.length === 1 ? (
-						<ActivityLine key={entry.items[0]!.id} item={entry.items[0]!} />
+						<ActivityLine key={entry.items[0]!.id} item={entry.items[0]!} reviewer={reviewer} />
 					) : (
-						<RunLine key={entry.items[0]!.id} items={entry.items} />
+						<RunLine key={entry.items[0]!.id} items={entry.items} reviewer={reviewer} />
 					),
 				)}
 			</ul>
