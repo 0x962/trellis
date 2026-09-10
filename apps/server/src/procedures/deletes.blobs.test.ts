@@ -34,7 +34,7 @@ const upload = async (ticket: string, text: string) => {
 	return blobPath(t.home, sha256Of(bytes));
 };
 
-const blobInvariant = () => t.db.transaction((tx) => assertBlobInvariant(tx, t.home));
+const blobInvariant = () => t.serverTx((tx) => assertBlobInvariant(tx, t.home));
 
 describe("blob removal on delete", () => {
 	test("a ticket delete removes the blob that only its attachment named", async () => {

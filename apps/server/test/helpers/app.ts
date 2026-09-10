@@ -3,7 +3,9 @@ import { createTrellisClient, type GhStatus, type Project, type Ticket, type Tre
 import { ulid } from "ulid";
 import { createApp } from "../../src/app.ts";
 import { type Config, loadConfig } from "../../src/config.ts";
+import { openDb } from "../../src/db/client.ts";
 import { createInlineTransport, createWorkerTransport, type Runtime } from "../../src/db/transport.ts";
+import type { Tx } from "../../src/db/tx.ts";
 import { createBus } from "../../src/events/bus.ts";
 import { createGhRunner, type GhRunner } from "../../src/gh/run.ts";
 import { createLogger, type LogLevel, type LogRecord } from "../../src/log.ts";
@@ -128,9 +130,26 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		return response.body as Ticket;
 	};
 
+	let open = true;
 	const close = async () => {
+		if (!open) return;
+		open = false;
 		await transport.close();
 		if (owned) h.close();
+	};
+
+	// serverTx runs `fn` in a transaction on the database the server writes.
+	// The inline transport shares `h.db`. The worker transport holds its own
+	// database in `config.dbDir`, and PGlite lets one process open a data
+	// directory at a time, so serverTx closes the app before it opens that
+	// directory. A test calls serverTx last.
+	const serverTx = async <T>(fn: (tx: Tx) => Promise<T>) => {
+		if (config.dbInline) return h.db.transaction(fn);
+		await close();
+		const db = await openDb(config.dbDir);
+		const result = await db.transaction(fn);
+		await db.$client.close();
+		return result;
 	};
 
 	return {
@@ -142,6 +161,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		seedProject,
 		createTicket,
 		db: h.db,
+		serverTx,
 		home,
 		config,
 		bus,
