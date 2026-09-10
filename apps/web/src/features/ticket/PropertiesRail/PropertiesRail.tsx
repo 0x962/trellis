@@ -69,7 +69,7 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 				<span className="tabular">
 					{done} of {ticket.childCount}
 				</span>
-				<Button variant="quiet" size="sm" className="text-fg-faint" onClick={onAddSubTicket}>
+				<Button variant="quiet" size="sm" className="text-fg-muted" onClick={onAddSubTicket}>
 					Add
 				</Button>
 			</Row>
@@ -84,16 +84,16 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 			</Row>
 			<Row label="Created">
 				{creator !== null && <ActorChip name={creator.name} kind={creator.kind} />}
-				<span className="text-fg-faint tabular">· {compactRelativeTime(ticket.createdAt)}</span>
+				<span className="text-fg-muted tabular">· {compactRelativeTime(ticket.createdAt)}</span>
 			</Row>
 			<Row label="Updated">
 				{last !== null && <ActorChip name={last.name} kind={last.kind} live={isLiveActor(last)} />}
-				<span className="text-fg-faint tabular">· {compactRelativeTime(ticket.updatedAt)}</span>
+				<span className="text-fg-muted tabular">· {compactRelativeTime(ticket.updatedAt)}</span>
 			</Row>
 			<Row label="Version">
-				<span className="font-mono text-sm text-fg-faint tabular">{ticket.version}</span>
+				<span className="font-mono text-sm text-fg-muted tabular">{ticket.version}</span>
 				{saveState !== "idle" && (
-					<span className="text-xs text-fg-faint">{saveState === "saving" ? "Saving…" : "Saved"}</span>
+					<span className="text-xs text-fg-muted">{saveState === "saving" ? "Saving…" : "Saved"}</span>
 				)}
 			</Row>
 		</>

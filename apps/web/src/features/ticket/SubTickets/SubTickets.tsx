@@ -73,7 +73,7 @@ export function SubTickets({ ticket, autoFocusAdd = false }: SubTicketsProps) {
 		<section aria-label="Sub-tickets" className="flex flex-col gap-2">
 			<header className="flex h-7 items-center gap-2 text-base font-medium text-fg">
 				Sub-tickets
-				<span className="font-normal text-fg-faint tabular">
+				<span className="font-normal text-fg-muted tabular">
 					{done} of {total} done
 				</span>
 			</header>
@@ -145,7 +145,7 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 			<span className="flex w-5 shrink-0 justify-center">
 				{lastActor !== null && lastActor.kind !== "system" && <Avatar kind={lastActor.kind} name={lastActor.name} />}
 			</span>
-			<time dateTime={child.updatedAt} className="w-8 shrink-0 text-right text-sm text-fg-faint tabular">
+			<time dateTime={child.updatedAt} className="w-8 shrink-0 text-right text-sm text-fg-muted tabular">
 				{compactRelativeTime(child.updatedAt)}
 			</time>
 		</button>

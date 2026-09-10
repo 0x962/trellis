@@ -81,7 +81,7 @@ export function DisplayPopover({
 		>
 			<div className="flex flex-col gap-3">
 				<section className="flex flex-col gap-1.5">
-					<h3 className="text-xs font-medium text-fg-faint">Columns</h3>
+					<h3 className="text-xs font-medium text-fg-muted">Columns</h3>
 					<div className="grid grid-cols-2 gap-x-3 gap-y-1">
 						{hideable.map((id: ColumnId) => (
 							<Switch
@@ -94,11 +94,11 @@ export function DisplayPopover({
 					</div>
 				</section>
 				<section className="flex flex-col gap-1.5">
-					<h3 className="text-xs font-medium text-fg-faint">Density</h3>
+					<h3 className="text-xs font-medium text-fg-muted">Density</h3>
 					<Segmented label="Density" options={densities} value={density} onValueChange={setDensity} />
 				</section>
 				<section className="flex flex-col gap-1.5">
-					<h3 className="text-xs font-medium text-fg-faint">Group by</h3>
+					<h3 className="text-xs font-medium text-fg-muted">Group by</h3>
 					<Segmented
 						label="Group by"
 						options={groups}
@@ -107,7 +107,7 @@ export function DisplayPopover({
 					/>
 				</section>
 				<section className="flex flex-col gap-1.5">
-					<h3 className="text-xs font-medium text-fg-faint">Sort by</h3>
+					<h3 className="text-xs font-medium text-fg-muted">Sort by</h3>
 					<Segmented
 						label="Sort by"
 						options={sorts}

@@ -25,7 +25,7 @@ export function QuickAdd({ columnName, onCreate, onFullComposer, open, onOpenCha
 				variant="quiet"
 				size="sm"
 				icon={<Plus />}
-				className="h-9 w-full justify-start border-dashed text-fg-faint"
+				className="h-9 w-full justify-start border-dashed text-fg-muted"
 				onClick={() => setActive(true)}
 			>
 				New ticket
@@ -58,7 +58,7 @@ export function QuickAdd({ columnName, onCreate, onFullComposer, open, onOpenCha
 					}
 				}}
 			/>
-			<p className="mt-1 text-xs text-fg-faint">Enter creates. Shift+Enter opens the full composer. Esc cancels.</p>
+			<p className="mt-1 text-xs text-fg-muted">Enter creates. Shift+Enter opens the full composer. Esc cancels.</p>
 		</form>
 	);
 }

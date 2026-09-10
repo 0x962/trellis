@@ -20,7 +20,7 @@ export function ColumnHeaderRow({ columns }: ColumnHeaderRowProps) {
 			role="presentation"
 			style={gridStyle(columns)}
 			className={cx(
-				"grid h-8 shrink-0 items-center gap-3 border-b border-border px-5 text-xs font-medium text-fg-faint [scrollbar-gutter:stable] max-md:gap-2 max-md:px-4",
+				"grid h-8 shrink-0 items-center gap-3 border-b border-border px-5 text-xs font-medium text-fg-muted [scrollbar-gutter:stable] max-md:gap-2 max-md:px-4",
 				gridColumnsClass,
 			)}
 		>

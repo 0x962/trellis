@@ -60,7 +60,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 								</Link>
 							</td>
 							<td className="truncate pr-3">{project.name}</td>
-							<td className="w-40 pr-5 font-mono text-xs text-fg-faint">{projectSlashPath(project.path)}</td>
+							<td className="w-40 pr-5 font-mono text-xs text-fg-muted">{projectSlashPath(project.path)}</td>
 						</tr>
 					))}
 				</tbody>

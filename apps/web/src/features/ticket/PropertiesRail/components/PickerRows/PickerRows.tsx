@@ -177,7 +177,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 					trigger={
 						<Button variant="quiet" className={triggerClass}>
 							{ticket.parent === null ? (
-								<span className="text-fg-faint">None</span>
+								<span className="text-fg-muted">None</span>
 							) : (
 								<TicketId id={ticket.parent.identifier} />
 							)}

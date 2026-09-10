@@ -43,7 +43,7 @@ const rowMatches = (label: string, typed: string) => {
 
 const selectionHeading = (count: number) => (
 	<>
-		Selection <span className="text-fg-faint">{count === 1 ? "1 ticket" : `${count} tickets`}</span>
+		Selection <span className="text-fg-muted">{count === 1 ? "1 ticket" : `${count} tickets`}</span>
 	</>
 );
 

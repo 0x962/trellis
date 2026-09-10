@@ -24,7 +24,7 @@ export function SubprojectSettings({ project }: SubprojectSettingsProps) {
 								className="flex h-8 items-center justify-between rounded-md px-2 text-sm text-fg hover:bg-bg"
 							>
 								<span>{child.name}</span>
-								<span className="tabular text-xs text-fg-faint">{formatCount(child.openCount)} open</span>
+								<span className="tabular text-xs text-fg-muted">{formatCount(child.openCount)} open</span>
 							</Link>
 						</li>
 					))}

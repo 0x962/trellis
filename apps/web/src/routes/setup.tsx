@@ -47,7 +47,7 @@ function SetupPage() {
 						<Hash />
 					</span>
 					<span className="font-mono text-md font-medium text-fg">trellis</span>
-					<span className="ml-auto text-xs text-fg-faint tabular">Step {actor === null ? 1 : 2} of 2</span>
+					<span className="ml-auto text-xs text-fg-muted tabular">Step {actor === null ? 1 : 2} of 2</span>
 				</div>
 				{actor === null ? (
 					suggested.data !== undefined && (

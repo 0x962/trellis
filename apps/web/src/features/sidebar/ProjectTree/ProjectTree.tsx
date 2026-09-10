@@ -91,7 +91,7 @@ export function ProjectTree() {
 								<span aria-hidden="true" className="size-4 shrink-0" />
 								{depth === 0 && <ProjectKey projectKey={project.key} />}
 								<span className="truncate">{project.name}</span>
-								<span className={cx("ml-auto text-xs tabular", active ? "font-semibold text-accent" : "text-fg-faint")}>
+								<span className={cx("ml-auto text-xs tabular", active ? "font-semibold text-accent" : "text-fg-muted")}>
 									{formatCount(project.openCount)}
 								</span>
 							</Link>

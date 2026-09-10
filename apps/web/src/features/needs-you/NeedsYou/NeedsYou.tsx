@@ -39,7 +39,7 @@ export function NeedsYou() {
 			<Topbar
 				actions={
 					inbox.data !== undefined && (
-						<span className="flex items-center gap-1.5 text-sm text-fg-faint tabular">
+						<span className="flex items-center gap-1.5 text-sm text-fg-muted tabular">
 							<RefreshCw aria-hidden="true" className="size-3.25" />
 							Fetched {relativeTime(new Date(inbox.dataUpdatedAt).toISOString())}
 						</span>

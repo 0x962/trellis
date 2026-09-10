@@ -25,7 +25,7 @@ export function ScopeChip({ path, scope, onToggle }: ScopeChipProps) {
 				onClick={onToggle}
 				className={cx(
 					"rounded-sm px-0.5 transition-colors duration-hover hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1",
-					subprojects ? "text-fg-faint" : "font-medium text-fg",
+					subprojects ? "text-fg-muted" : "font-medium text-fg",
 				)}
 			>
 				{`in ${projectSlashPath(path)} ${subprojects ? "+ sub-projects" : "only"}`}

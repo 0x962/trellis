@@ -90,7 +90,7 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 						<li key={status.id} className="flex h-8 items-center gap-2 rounded-md border border-border bg-surface px-2">
 							<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />
 							<span>{status.name}</span>
-							<span className="ml-auto font-mono text-xs text-fg-faint">{status.slug}</span>
+							<span className="ml-auto font-mono text-xs text-fg-muted">{status.slug}</span>
 						</li>
 					))}
 				</ul>

@@ -109,7 +109,7 @@ export function Sidebar({ surface = "rail" }: SidebarProps) {
 			/>
 			<NavRow to="/search" icon={<Search />} label="Search" trailing={<Kbd>⌘K</Kbd>} />
 			<NavRow to="/all" icon={<List />} label="All tickets" />
-			<div className="flex items-center justify-between pt-3 pb-1 pl-2 text-xs tracking-wide text-fg-faint uppercase">
+			<div className="flex items-center justify-between pt-3 pb-1 pl-2 text-xs tracking-wide text-fg-muted uppercase">
 				<span>Projects</span>
 				<IconButton
 					size="sm"

@@ -84,7 +84,7 @@ export function BoardColumn({
 				<header className={`flex h-9 shrink-0 items-center gap-2 px-1 ${exceeded ? "text-warning" : "text-fg"}`}>
 					<StatusIcon category={column.category} reviewer={column.statuses[0]?.reviewer ?? undefined} />
 					<h2 className="text-base font-medium">{column.name}</h2>
-					<span className="text-sm text-fg-faint tabular">{count}</span>
+					<span className="text-sm text-fg-muted tabular">{count}</span>
 					{column.wipLimit !== null && <WipBadge count={column.count} limit={column.wipLimit} />}
 					<span className="ml-auto flex items-center gap-0.5">
 						<IconButton

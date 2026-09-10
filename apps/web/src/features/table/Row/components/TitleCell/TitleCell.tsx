@@ -21,7 +21,7 @@ export function TitleCell({ ticket }: TitleCellProps) {
 				<span
 					role="img"
 					aria-label={`Parent ${parent.identifier}`}
-					className="shrink-0 font-mono text-xs text-fg-faint"
+					className="shrink-0 font-mono text-xs text-fg-muted"
 				>
 					↳ {parent.identifier}
 				</span>
@@ -30,7 +30,7 @@ export function TitleCell({ ticket }: TitleCellProps) {
 				<span
 					role="img"
 					aria-label={`${childDoneCount} of ${childCount} sub-tickets done`}
-					className="inline-flex shrink-0 items-center gap-1 text-xs text-fg-faint tabular"
+					className="inline-flex shrink-0 items-center gap-1 text-xs text-fg-muted tabular"
 				>
 					<span
 						aria-hidden="true"
@@ -44,7 +44,7 @@ export function TitleCell({ ticket }: TitleCellProps) {
 				<span
 					role="img"
 					aria-label={plural(attachmentCount, "attachment")}
-					className="inline-flex shrink-0 items-center gap-0.5 text-xs text-fg-faint tabular"
+					className="inline-flex shrink-0 items-center gap-0.5 text-xs text-fg-muted tabular"
 				>
 					<Paperclip aria-hidden="true" className="size-2.75" />
 					{formatCount(attachmentCount)}
@@ -54,7 +54,7 @@ export function TitleCell({ ticket }: TitleCellProps) {
 				<span
 					role="img"
 					aria-label={plural(commentCount, "comment")}
-					className="inline-flex shrink-0 items-center gap-0.5 text-xs text-fg-faint tabular"
+					className="inline-flex shrink-0 items-center gap-0.5 text-xs text-fg-muted tabular"
 				>
 					<MessageSquare aria-hidden="true" className="size-2.75" />
 					{formatCount(commentCount)}

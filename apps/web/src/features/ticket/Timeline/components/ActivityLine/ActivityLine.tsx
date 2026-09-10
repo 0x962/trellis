@@ -18,7 +18,7 @@ export function ActivityLine({ item }: ActivityLineProps) {
 				<ActorChip name={actor.name} kind={actor.kind} live={isLiveActor({ kind: actor.kind, at: item.createdAt })} />
 			)}
 			<span className="min-w-0 truncate"> {describeActivity(item)}</span>
-			<time dateTime={item.createdAt} className="ml-auto shrink-0 text-fg-faint tabular">
+			<time dateTime={item.createdAt} className="ml-auto shrink-0 text-fg-muted tabular">
 				{compactRelativeTime(item.createdAt)}
 			</time>
 		</li>

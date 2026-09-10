@@ -68,7 +68,7 @@ export function CommentCard({ comment, onEdited, onDeleted, formatClassName }: C
 					<time
 						dateTime={comment.createdAt}
 						title={absoluteTime(comment.createdAt)}
-						className="ml-auto text-fg-faint tabular"
+						className="ml-auto text-fg-muted tabular"
 					>
 						{relativeTime(comment.createdAt)}
 					</time>

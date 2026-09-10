@@ -48,7 +48,7 @@ export function ActorFooter() {
 			>
 				<form onSubmit={submit} className="flex w-56 flex-col gap-2">
 					<Input label="Name" value={draft} invalid={!valid} onChange={(event) => setDraft(event.target.value)} />
-					<p className="text-xs text-fg-faint">Every ticket you touch is attributed to this name.</p>
+					<p className="text-xs text-fg-muted">Every ticket you touch is attributed to this name.</p>
 					<Button type="submit" size="sm" variant="primary" disabled={!valid} className="self-end">
 						Rename
 					</Button>

@@ -18,7 +18,7 @@ const tones: Record<CheckBucket, string> = {
 	pass: "text-success",
 	fail: "text-danger",
 	pending: "text-warning",
-	skipping: "text-fg-faint",
+	skipping: "text-fg-muted",
 	cancel: "text-danger",
 };
 
@@ -38,7 +38,7 @@ export function CheckRows({ checks }: CheckRowsProps) {
 						{check.name}
 					</span>{" "}
 					{check.workflow !== null && (
-						<span data-check-workflow="" className="shrink-0 font-mono text-xs text-fg-faint">
+						<span data-check-workflow="" className="shrink-0 font-mono text-xs text-fg-muted">
 							{check.workflow}
 						</span>
 					)}{" "}

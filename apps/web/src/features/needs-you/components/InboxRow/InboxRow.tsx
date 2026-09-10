@@ -62,12 +62,12 @@ export function InboxRow({ ticket, actions, meta, panel, tabIndex = -1, sweeping
 						>
 							{ticket.title}
 						</Link>
-						{parent !== null && <span className="shrink-0 font-mono text-xs text-fg-faint">↳ {parent.identifier}</span>}
+						{parent !== null && <span className="shrink-0 font-mono text-xs text-fg-muted">↳ {parent.identifier}</span>}
 						{ticket.childCount > 0 && (
 							<span
 								data-sub-tickets=""
 								title="Sub-tickets done"
-								className="flex shrink-0 items-center gap-1 text-xs text-fg-faint tabular"
+								className="flex shrink-0 items-center gap-1 text-xs text-fg-muted tabular"
 							>
 								<StatusIcon
 									category="started"
@@ -81,7 +81,7 @@ export function InboxRow({ ticket, actions, meta, panel, tabIndex = -1, sweeping
 							<span
 								data-comment-count=""
 								title="Comments"
-								className="flex shrink-0 items-center gap-1 text-xs text-fg-faint tabular"
+								className="flex shrink-0 items-center gap-1 text-xs text-fg-muted tabular"
 							>
 								<MessageSquare className="size-2.75" aria-hidden="true" />
 								{ticket.commentCount}
@@ -106,7 +106,7 @@ export function InboxRow({ ticket, actions, meta, panel, tabIndex = -1, sweeping
 							<Avatar kind={lastActor.kind} name={lastActor.name} />
 						)}
 					</span>
-					<span className="w-10 shrink-0 text-right text-sm text-fg-faint tabular">
+					<span className="w-10 shrink-0 text-right text-sm text-fg-muted tabular">
 						{compactRelativeTime(ticket.updatedAt)}
 					</span>
 					{actions !== undefined && (

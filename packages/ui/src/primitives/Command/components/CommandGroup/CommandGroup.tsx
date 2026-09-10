@@ -13,7 +13,7 @@ export function CommandGroup({ heading, children }: CommandGroupProps) {
 	return (
 		<Cmdk.Group
 			heading={heading}
-			className="mb-1 last:mb-0 [&_[cmdk-group-heading]]:flex [&_[cmdk-group-heading]]:h-7 [&_[cmdk-group-heading]]:items-center [&_[cmdk-group-heading]]:gap-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-fg-faint"
+			className="mb-1 last:mb-0 [&_[cmdk-group-heading]]:flex [&_[cmdk-group-heading]]:h-7 [&_[cmdk-group-heading]]:items-center [&_[cmdk-group-heading]]:gap-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-fg-muted"
 		>
 			{children}
 		</Cmdk.Group>
