@@ -29,6 +29,13 @@
       "when": 1788997454532,
       "tag": "0003_tickets_restrict",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789047283046,
+      "tag": "0004_read_indexes",
+      "breakpoints": true
     }
   ]
 }

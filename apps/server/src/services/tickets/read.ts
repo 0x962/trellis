@@ -11,8 +11,6 @@ import type { z } from "zod";
 import type { ServiceCtx } from "../../context.ts";
 import { board } from "../../db/queries/board.ts";
 import { counts } from "../../db/queries/counts.ts";
-import { effectiveStatuses } from "../../db/queries/effectiveStatuses.ts";
-import { subtreeIds } from "../../db/queries/subtree.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { TicketFilter } from "../../db/queries/ticketFilters.ts";
 import { ticketGet } from "../../db/queries/ticketGet.ts";
@@ -42,13 +40,17 @@ const statusIdsOf = async (tx: Tx, refs: string[]) => {
 };
 
 // The flat query grammar with every ref resolved to ids. `project` becomes
-// the subtree, or the one project when `subprojects` is false.
+// the subtree, or the one project when `subprojects` is false. The project
+// cache gives the subtree and the root with no statement. The root lets the
+// query use the partial indexes of tickets, which start with root_id.
 const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 	const filter: TicketFilter = {};
 	let projectId: string | null = null;
 	if (query.project !== undefined) {
-		projectId = (await resolveProject(ctx, tx, query.project)).id;
-		filter.projectIds = query.subprojects ? await subtreeIds(tx, projectId) : [projectId];
+		const project = await resolveProject(ctx, tx, query.project);
+		projectId = project.id;
+		filter.rootIds = [project.rootId];
+		filter.projectIds = query.subprojects ? ctx.cache.resolveSubtree(projectId) : [projectId];
 	}
 	if (query.status !== undefined) filter.statusIds = await statusIdsOf(tx, query.status);
 	if (query.category !== undefined) filter.categories = query.category;
@@ -68,9 +70,10 @@ const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 };
 
 // The columns of a board or a count: the effective statuses of the project,
-// or every status when the query names no project.
-const columnStatusIds = async (tx: Tx, projectId: string | null) => {
-	if (projectId !== null) return (await effectiveStatuses(tx, projectId)).map((status) => status.id);
+// or every status when the query names no project. The project cache holds
+// every status set, so a project's columns cost no statement.
+const columnStatusIds = async (ctx: ServiceCtx, tx: Tx, projectId: string | null) => {
+	if (projectId !== null) return ctx.cache.effectiveStatuses(projectId).statuses.map((status) => status.id);
 	const found = await rows<{ id: string }>(tx, sql`SELECT id FROM statuses ORDER BY position, id`);
 	return found.map((row) => row.id);
 };
@@ -91,8 +94,8 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
 // The columns of a board or a count, cut to the `status` filter when the
 // query names one. The column ids stand in for the status filter in the
 // query, so a status outside the filter gets no column and no count.
-const columnsOf = async (tx: Tx, projectId: string | null, filter: TicketFilter) => {
-	const columns = await columnStatusIds(tx, projectId);
+const columnsOf = async (ctx: ServiceCtx, tx: Tx, projectId: string | null, filter: TicketFilter) => {
+	const columns = await columnStatusIds(ctx, tx, projectId);
 	const wanted = filter.statusIds;
 	return wanted === undefined ? columns : columns.filter((id) => wanted.includes(id));
 };
@@ -100,13 +103,13 @@ const columnsOf = async (tx: Tx, projectId: string | null, filter: TicketFilter)
 export const boardOf = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
 	const query = BoardQuerySchema.parse(rawInput);
 	const { filter, projectId } = await toFilter(ctx, tx, query);
-	return board(tx, { ...filter, statusIds: await columnsOf(tx, projectId, filter) });
+	return board(tx, { ...filter, statusIds: await columnsOf(ctx, tx, projectId, filter) });
 };
 
 export const countsOf = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
 	const query = CountsQuerySchema.parse(rawInput);
 	const { filter, projectId } = await toFilter(ctx, tx, query);
-	return counts(tx, { ...filter, statusIds: await columnsOf(tx, projectId, filter) });
+	return counts(tx, { ...filter, statusIds: await columnsOf(ctx, tx, projectId, filter) });
 };
 
 export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Ticket> => {
