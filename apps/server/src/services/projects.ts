@@ -13,6 +13,7 @@ import { seedRootStatuses } from "./statusSet.ts";
 
 export { get } from "./projectRows.ts";
 export { delete } from "./projectsDelete.ts";
+export { list } from "./projectsList.ts";
 export { move } from "./projectsMove.ts";
 export { effectiveRepos, setRepos } from "./projectsRepos.ts";
 

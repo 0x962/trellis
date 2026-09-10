@@ -4,6 +4,7 @@ import type { BackupOutput, GhStatus, Health } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
+import type { GhRunner } from "../gh/run.ts";
 import type { ServiceCtx } from "./support.ts";
 
 // The three answers a person needs about the running server: is it healthy,
@@ -42,12 +43,14 @@ const ACCOUNT = /account (\S+)/;
 
 // A gh that is missing or signed out is an answer, not a failure: the web
 // shows a banner and the server keeps running.
-export const gh = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promise<GhStatus> => {
-	const result = await ctx.gh("interactive", ["auth", "status"]);
-	const checkedAt = ctx.now().toISOString();
+export const checkGh = async (runner: GhRunner, at: Date): Promise<GhStatus> => {
+	const result = await runner("interactive", ["auth", "status"]);
+	const checkedAt = at.toISOString();
 	if (!result.ok) return { ok: false, user: null, reason: result.reason, message: result.message, checkedAt };
 	return { ok: true, user: ACCOUNT.exec(result.stdout)?.[1] ?? null, reason: null, message: null, checkedAt };
 };
+
+export const gh = (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promise<GhStatus> => checkGh(ctx.gh, ctx.now());
 
 // `2026-09-09T10-00-00-000Z`: the ISO stamp with every colon and dot as a
 // dash, so the name is a file name on every platform and sorts by time.

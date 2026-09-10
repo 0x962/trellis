@@ -88,16 +88,25 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
 	}
 };
 
+// The columns of a board or a count, cut to the `status` filter when the
+// query names one. The column ids stand in for the status filter in the
+// query, so a status outside the filter gets no column and no count.
+const columnsOf = async (tx: Tx, projectId: string | null, filter: TicketFilter) => {
+	const columns = await columnStatusIds(tx, projectId);
+	const wanted = filter.statusIds;
+	return wanted === undefined ? columns : columns.filter((id) => wanted.includes(id));
+};
+
 export const boardOf = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
 	const query = BoardQuerySchema.parse(rawInput);
 	const { filter, projectId } = await toFilter(ctx, tx, query);
-	return board(tx, { ...filter, statusIds: await columnStatusIds(tx, projectId) });
+	return board(tx, { ...filter, statusIds: await columnsOf(tx, projectId, filter) });
 };
 
 export const countsOf = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
 	const query = CountsQuerySchema.parse(rawInput);
 	const { filter, projectId } = await toFilter(ctx, tx, query);
-	return counts(tx, { ...filter, statusIds: await columnStatusIds(tx, projectId) });
+	return counts(tx, { ...filter, statusIds: await columnsOf(tx, projectId, filter) });
 };
 
 export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Ticket> => {
