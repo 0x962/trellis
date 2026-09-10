@@ -4,7 +4,7 @@ import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, usePa
 import type { Status } from "@trellis/api";
 import { EmptyState } from "@trellis/ui";
 import { lazy, Suspense, useEffect } from "react";
-import { Board } from "../../../features/board";
+import { Board, boardSort } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
 import {
@@ -144,7 +144,7 @@ function ProjectPage() {
 							<TicketPeek />
 						</Board>
 					</div>
-					<ListFooter total={counts?.total} sort={sortLabel(full.sort)} />
+					<ListFooter total={counts?.total} sort={sortLabel(boardSort)} />
 				</>
 			) : (
 				<TicketTable

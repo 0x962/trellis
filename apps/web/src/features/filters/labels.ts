@@ -13,6 +13,7 @@ const fields: Record<string, string> = {
 // own order: priority first, then the newest update.
 export const sortLabel = (sort: Sort): string => {
 	if (sort === "-updatedAt") return "Sorted by priority, then updated";
+	if (sort === "position") return "Manual order";
 	const ascending = !sort.startsWith("-");
 	const field = fields[sort.replace(/^-/, "")]!;
 	const dated = field === "updated" || field === "created";

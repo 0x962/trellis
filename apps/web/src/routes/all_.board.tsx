@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
-import { Board } from "../features/board";
+import { Board, boardSort } from "../features/board";
 import { isCanonicalSearch } from "../features/filters/canonical";
 import { FilterBar } from "../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../features/filters/grammar";
@@ -63,7 +63,7 @@ function AllBoardPage() {
 			<Board filters={toCountsQuery(view, { statuses })} storageKey="all" onOpenTicket={openTicket}>
 				<TicketPeek />
 			</Board>
-			<ListFooter total={counts?.total} sort={sortLabel(view.sort)} />
+			<ListFooter total={counts?.total} sort={sortLabel(boardSort)} />
 		</>
 	);
 }
