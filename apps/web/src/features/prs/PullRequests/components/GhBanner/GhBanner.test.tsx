@@ -78,6 +78,16 @@ describe("PullRequests gh banner", () => {
 		}
 	});
 
+	// TK-5. Checks exist only on a linked PR, so a ticket with no PR shows
+	// no gh notice.
+	test("shows no gh notice on a ticket with no PR", async () => {
+		const server = createFakeServer();
+		withReason(server, "unauthenticated");
+		await renderSection(server, "CDE-47");
+		await screen.findByRole("button", { name: "Link PR" });
+		expect(document.querySelector("[data-gh-banner]")).toBeNull();
+	});
+
 	// PR-41. A missing gh hides no stored data.
 	test("keeps the stored rows visible under the banner", async () => {
 		const server = createFakeServer();

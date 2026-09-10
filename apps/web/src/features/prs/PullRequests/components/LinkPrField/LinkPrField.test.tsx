@@ -21,7 +21,13 @@ const renderSection = async (server: FakeServer, identifier: string) => {
 	return renderWithProviders(<PullRequests ticket={ticket} />, { path: `/t/${identifier}`, actor: "navid", server });
 };
 
-const field = async () => await screen.findByRole("textbox", { name: /link pr/i });
+// The field shows after a click on the Link PR button in the section header.
+const field = async () => {
+	const open = screen.queryByRole("textbox", { name: /link pr/i });
+	if (open !== null) return open;
+	await userEvent.setup().click(await screen.findByRole("button", { name: "Link PR" }));
+	return await screen.findByRole("textbox", { name: /link pr/i });
+};
 
 const submit = async () => await screen.findByRole("button", { name: /^link$/i });
 
@@ -91,8 +97,9 @@ describe("LinkPrField", () => {
 		const server = createFakeServer();
 		ghReady(server);
 		await renderSection(server, "CDE-47");
+		const input = await field();
 		expect((await submit()).hasAttribute("disabled")).toBe(true);
-		await user.type(await field(), url);
+		await user.type(input, url);
 		expect((await submit()).hasAttribute("disabled")).toBe(false);
 	});
 });

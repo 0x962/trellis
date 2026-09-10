@@ -28,7 +28,7 @@ describe("features/ticket/TicketView", () => {
 		const field = screen.getByRole("textbox", { name: "Title" });
 		await waitFor(() => expect(fieldValue(field)).toBe("Restore the fork pages after the upstream 1.27 merge"));
 		await waitFor(() => expect(document.querySelector(".markdown")!.textContent).toContain("1.27"));
-		for (const name of ["Sub-tickets", "Pull requests", "Attachments", "Timeline"]) {
+		for (const name of ["Sub-tickets", "PRs", "Attachments", "Timeline"]) {
 			expect(await screen.findByRole("region", { name: new RegExp(`^${name}`) })).toBeDefined();
 		}
 		expect(screen.getByRole("button", { name: /CDE-48/ })).toBeDefined();

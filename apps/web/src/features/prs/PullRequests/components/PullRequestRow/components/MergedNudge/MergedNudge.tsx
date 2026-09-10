@@ -29,9 +29,9 @@ export function MergedNudge({ ticket, pr }: MergedNudgeProps) {
 	if (pr.state !== "merged" || ticket.status.category !== "review") return null;
 	return (
 		<div data-merged-nudge="" className="flex h-8 items-center gap-3 rounded-md bg-agent-soft px-3 text-sm text-fg">
-			<span>PR merged, mark Done?</span>
+			<span>The PR is merged. Approve the ticket?</span>
 			<Button size="sm" disabled={markDone.isPending} onClick={() => markDone.mutate()}>
-				Mark Done
+				Approve
 			</Button>
 		</div>
 	);
