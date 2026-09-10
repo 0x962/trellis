@@ -5,6 +5,7 @@ import { Command, Kbd } from "@trellis/ui";
 import { type KeyboardEvent, useEffect, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { projectRefOfPathname } from "../../../../../lib/projectPath";
+import { currentPlatform, formatShortcut } from "../../../../../lib/shortcuts";
 import { commandActions, useCommandStore } from "../../../commandStore";
 import { useActionContext } from "../../../hooks/useActionContext";
 import { useCommandSearch } from "../../../hooks/useCommandSearch";
@@ -171,7 +172,10 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 					<Kbd>↵</Kbd> run
 				</span>
 				<span className="flex items-center gap-1.5">
-					<Kbd>⌘↵</Kbd> open full search
+					{formatShortcut("mod+enter", currentPlatform()).map((cap) => (
+						<Kbd key={cap}>{cap}</Kbd>
+					))}
+					open full search
 				</span>
 				<span className="ml-auto">
 					Type <span className="font-mono">CDE-12</span> to jump to a ticket
