@@ -1,1 +1,1 @@
-export { PhoneRow, type PhoneRowProps, phoneRowHeight } from "./PhoneRow";
+export { PhoneRow, type PhoneRowProps } from "./PhoneRow";

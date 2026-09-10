@@ -1,6 +1,6 @@
 import { Skeleton } from "@trellis/ui";
 import type { Density } from "../../../../../stores/uiStore";
-import { rowHeights } from "../../../Row";
+import { rowHeights } from "../../../rowHeights";
 
 export type TableSkeletonProps = {
 	density: Density;

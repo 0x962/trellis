@@ -2,9 +2,7 @@ import type { TicketSummary } from "@trellis/api";
 import { cx, StatusIcon } from "@trellis/ui";
 import type { MouseEvent, ReactNode, Ref } from "react";
 import { compactRelativeTime } from "../../../../../lib/format";
-
-// The row box below 768 px, where a row is two lines.
-export const phoneRowHeight = 56;
+import { phoneRowHeight } from "../../../rowHeights";
 
 export type PhoneRowProps = {
 	ref: Ref<HTMLDivElement>;

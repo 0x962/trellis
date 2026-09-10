@@ -57,11 +57,9 @@ export type RowProps = {
 	onChange?: (ticket: TicketSummary, change: RowChange) => void;
 };
 
-// The fixed row box per density. The virtualizer estimates with the same
-// number, so a row never changes the scroll height.
-export const rowHeights: Record<Density, number> = { comfortable: 36, compact: 32 };
+export { phoneRowHeight, rowHeights } from "../rowHeights";
 
-export { phoneRowHeight } from "./components/PhoneRow";
+import { rowHeights } from "../rowHeights";
 
 const noStatuses: StatusSummary[] = [];
 
