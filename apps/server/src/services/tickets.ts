@@ -4,3 +4,4 @@
 export { create } from "./tickets/create.ts";
 export { update, updateMany } from "./tickets/update.ts";
 export { move } from "./tickets/move.ts";
+export { delete, deleteMany } from "./tickets/remove.ts";
