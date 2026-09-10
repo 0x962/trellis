@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { router } from "expo-router";
+import { extractExpoPathFromURL } from "expo-router/build/fork/extractPathFromURL";
 import { act, fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { createMMKV } from "react-native-mmkv";
 import { queryClient } from "../src/lib/queryClient";
@@ -17,6 +18,9 @@ const store = createMMKV();
 const url = "http://192.168.1.20:4521";
 // What the web settings page encodes in its QR code for that server.
 const pairLink = "trellis://pair?url=http%3A%2F%2F192.168.1.20%3A4521";
+// renderRouter takes a path, not a link. The app turns an opened link into a
+// path with expo-router's own extractExpoPathFromURL, so the test does too.
+const linkedPath = `/${extractExpoPathFromURL([], pairLink)}`;
 
 const typeUrl = (value: string) => fireEvent.changeText(screen.getByLabelText("Server URL"), value);
 const typeName = (value: string) => fireEvent.changeText(screen.getByLabelText("Name"), value);
@@ -193,7 +197,7 @@ describe("the setup screen", () => {
 
 	test("the trellis://pair deep link opens setup with the URL filled and probes it", async () => {
 		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
-		const view = renderRouter(appContext(), { initialUrl: pairLink });
+		const view = renderRouter(appContext(), { initialUrl: linkedPath });
 		await view;
 
 		await waitFor(() => expect(view.getPathname()).toBe("/setup"));
@@ -207,7 +211,7 @@ describe("the setup screen", () => {
 		store.set("trellis-server-url", "http://10.0.0.9:4521");
 		store.set("trellis-actor-name", "navid");
 		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
-		const view = renderRouter(appContext(), { initialUrl: pairLink });
+		const view = renderRouter(appContext(), { initialUrl: linkedPath });
 		await view;
 
 		await waitFor(() => expect(view.getPathname()).toBe("/setup"));

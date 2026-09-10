@@ -117,7 +117,7 @@ export const createState = (): State => ({
 		message: "gh is not installed. Install it with `brew install gh` and run `gh auth login`.",
 		checkedAt: new Date().toISOString(),
 	},
-	addresses: ["http://127.0.0.1:4521"],
+	addresses: ["http://192.168.1.20:4521", "http://127.0.0.1:4521"],
 	nextActivityId: 1,
 });
 

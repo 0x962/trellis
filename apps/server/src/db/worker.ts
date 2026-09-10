@@ -21,6 +21,7 @@ export type WorkerCall = {
 	ctx: RequestContext;
 	input: unknown;
 	ghStatus: GhStatus;
+	addresses: string[];
 };
 
 type WorkerRuntime = Pick<Runtime, "version" | "bootId"> & { ghBin: string; ghTimeoutMs: number };
@@ -117,6 +118,7 @@ const startHost = () => {
 	let transport: ServiceTransport;
 	let database: Awaited<ReturnType<typeof openDatabase>>;
 	let currentGhStatus: GhStatus;
+	let currentAddresses: string[];
 	let draining = false;
 	let scheduled = false;
 	let closing = false;
@@ -137,6 +139,7 @@ const startHost = () => {
 
 	const run = async (call: WorkerCall) => {
 		currentGhStatus = call.ghStatus;
+		currentAddresses = call.addresses;
 		try {
 			const result = await transport.call(call.name, call.ctx, call.input);
 			if (result instanceof ReadableStream) await relayStream(call.id, result);
@@ -192,7 +195,12 @@ const startHost = () => {
 				) as GhRunner;
 				const bus = createBus({ bootId: data.runtime.bootId });
 				bus.subscribe(({ event }) => send({ type: "event", event }));
-				const runtime: Runtime = { ...data.runtime, gh, ghStatus: () => currentGhStatus };
+				const runtime: Runtime = {
+					...data.runtime,
+					gh,
+					ghStatus: () => currentGhStatus,
+					addresses: () => currentAddresses,
+				};
 				transport = createInlineTransport({ db: database.db, bus, config: data.config, runtime });
 				const started = await transport.start();
 				send({ type: "ready", applied: database.applied, liveShas: started.liveShas });

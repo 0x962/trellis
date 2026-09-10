@@ -19,7 +19,8 @@ type IconName = keyof typeof Ionicons.glyphMap;
 
 // The tab navigator of the app. Each tab is a group that holds its own stack,
 // so the four tabs render no header of their own. The setup screen sits
-// beside them without a tab bar item and carries its own header.
+// beside them without a tab bar item and carries its own header. The pair
+// route also has no tab bar item: it only sends a pair link on to setup.
 //
 // The four tabs are behind the guard: without a stored server URL and name,
 // only the setup screen exists, so the app shows setup until both are saved.
@@ -101,6 +102,7 @@ export default function RootLayout() {
 						tabBarStyle: { display: "none" },
 					}}
 				/>
+				<Tabs.Screen name="pair" options={{ href: null, tabBarStyle: { display: "none" } }} />
 			</Tabs>
 		</QueryClientProvider>
 	);

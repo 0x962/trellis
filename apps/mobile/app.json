@@ -11,6 +11,16 @@
 			"bundleIdentifier": "co.nvdk.trellis",
 			"supportsTablet": false
 		},
-		"plugins": ["expo-router"]
+		"plugins": [
+			"expo-router",
+			[
+				"expo-camera",
+				{
+					"cameraPermission": "trellis uses the camera to scan the pairing QR code on the web settings page.",
+					"microphonePermission": false,
+					"recordAudioAndroid": false
+				}
+			]
+		]
 	}
 }

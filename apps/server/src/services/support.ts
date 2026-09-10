@@ -26,6 +26,8 @@ export type ServiceCtx = {
 	now: () => Date;
 	gh: GhRunner;
 	ghStatus: () => GhStatus;
+	// Every URL the server answers on, network addresses first.
+	addresses: () => string[];
 	emit: Emit;
 	afterCommit: (task: () => Promise<void>) => void;
 	newTx: <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;

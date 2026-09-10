@@ -7,7 +7,14 @@ import { listenAddresses } from "./listen.ts";
 // machine, so the list names each one, the network addresses first.
 
 const v4 = (address: string, internal: boolean) =>
-	({ address, family: "IPv4", internal, netmask: "255.255.255.0", mac: "00:00:00:00:00:00", cidr: null }) as NetworkInterfaceInfo;
+	({
+		address,
+		family: "IPv4",
+		internal,
+		netmask: "255.255.255.0",
+		mac: "00:00:00:00:00:00",
+		cidr: null,
+	}) as NetworkInterfaceInfo;
 const v6 = (address: string, internal: boolean) =>
 	({
 		address,

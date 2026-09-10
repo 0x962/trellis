@@ -13,12 +13,14 @@ import { type Emit, type Tx, withTx } from "./tx.ts";
 import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./worker.ts";
 
 // The facts of the running process a service reports or uses: the package
-// version, the boot id, the gh runner, and the gh state the poller keeps.
+// version, the boot id, the gh runner, the gh state the poller keeps, and
+// the URLs the listener answers on.
 export type Runtime = {
 	version: string;
 	bootId: string;
 	gh: GhRunner;
 	ghStatus: () => GhStatus;
+	addresses: () => string[];
 };
 
 // How the HTTP process reaches the services. `call` runs one service in
@@ -67,6 +69,7 @@ export const createInlineTransport = ({
 		now: () => ctx.now,
 		gh: runtime.gh,
 		ghStatus: runtime.ghStatus,
+		addresses: runtime.addresses,
 		emit,
 		afterCommit: (task: () => Promise<void>) => {
 			tasks.push(task);
@@ -260,6 +263,7 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			ctx,
 			input,
 			ghStatus: runtime.ghStatus(),
+			addresses: runtime.addresses(),
 		});
 		if (!batchScheduled) {
 			batchScheduled = true;

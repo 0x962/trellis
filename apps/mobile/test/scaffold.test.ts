@@ -39,7 +39,8 @@ describe("scaffold", () => {
 	test("app.json configures expo-camera with a camera usage description and pins it", async () => {
 		const { expo } = await json("app.json");
 		const camera = (expo.plugins as unknown[]).find(
-			(plugin): plugin is [string, { cameraPermission: string }] => Array.isArray(plugin) && plugin[0] === "expo-camera",
+			(plugin): plugin is [string, { cameraPermission: string }] =>
+				Array.isArray(plugin) && plugin[0] === "expo-camera",
 		);
 		expect(camera?.[1].cameraPermission).toMatch(/\S{3,}/);
 		const { dependencies } = (await json("package.json")) as { dependencies: Record<string, string> };

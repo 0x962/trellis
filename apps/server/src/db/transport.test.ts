@@ -30,7 +30,13 @@ beforeEach(async () => {
 	received = [];
 	bus.subscribe((entry) => void received.push(entry.event));
 	const config = loadConfig({ TRELLIS_HOME: freshHomeWithDirs(), TRELLIS_DB_INLINE: "true" });
-	const runtime: Runtime = { version: "0.1.0-test", bootId, gh: noGh, ghStatus: signedInGh };
+	const runtime: Runtime = {
+		version: "0.1.0-test",
+		bootId,
+		gh: noGh,
+		ghStatus: signedInGh,
+		addresses: () => ["http://127.0.0.1:4521"],
+	};
 	transport = createInlineTransport({ db: h.db, bus, config, runtime });
 	await transport.start();
 });

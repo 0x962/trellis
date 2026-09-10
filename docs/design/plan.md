@@ -53,7 +53,7 @@ Dependency graph is a star: `api` is imported by server, web, mobile, cli (the C
 
 Root scripts: `dev` (server 4521 + Vite 5173 with `/api` and `/rpc` proxied), `dev:all` (adds mobile), `build`, `test`, `typecheck`, `lint`, `lint:fix`, `check` (lint, typecheck, test, size budget, 10k perf suite), `perf` (50k suite), `db:generate`, `e2e`, `release`.
 
-Data home `~/.trellis/` (`TRELLIS_HOME` override): `db/`, `attachments/`, `backups/`, `server.log` (rotating 10 MB × 5), `launchd.log`. Port 4521 (`TRELLIS_PORT`). Served at `http://trellis.localhost` by margin's gateway: one line `trellis: 4521,` in `ROUTES` at `~/projects/margin/src/gateway.ts`, then `launchctl kickstart -k gui/$UID/com.margin.gateway`.
+Data home `~/.trellis/` (`TRELLIS_HOME` override): `db/`, `attachments/`, `backups/`, `server.log` (rotating 10 MB × 5), `launchd.log`. Port 4521 (`TRELLIS_PORT`), host 127.0.0.1 (`TRELLIS_HOST`; `0.0.0.0` lets a phone on the network reach the server, which has no auth). Served at `http://trellis.localhost` by margin's gateway: one line `trellis: 4521,` in `ROUTES` at `~/projects/margin/src/gateway.ts`, then `launchctl kickstart -k gui/$UID/com.margin.gateway`.
 
 ## Domain rules
 
