@@ -70,7 +70,7 @@ export function StatusCreateForm({ project, onCreated, onCancel }: StatusCreateF
 					Cancel
 				</Button>
 				<Button type="submit" variant="primary">
-					Add status
+					Create status
 				</Button>
 			</div>
 		</form>

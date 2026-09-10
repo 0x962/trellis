@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
-import { errors } from "@trellis/api";
 import { Button, Input, Textarea } from "@trellis/ui";
+import { Lock } from "lucide-react";
 import { type FormEvent, useId, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
@@ -10,6 +10,11 @@ import { SettingsSection } from "../SettingsSection";
 export type ProjectDetailsFormProps = {
 	project: Project;
 };
+
+// After the first ticket, the key is part of every ticket ID, so the server
+// refuses a change of the key.
+const keyLockedHint = (key: string) =>
+	`Ticket IDs start with ${key}. The key cannot change after the project has a ticket.`;
 
 export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 	const { client, queryClient } = useApp();
@@ -48,7 +53,7 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 	const locked = project.ticketCounter > 0;
 	return (
 		<form onSubmit={(event) => void save(event)}>
-			<SettingsSection title="Project" hint="Set the name, path, description, and default ticket text.">
+			<SettingsSection title="Project" hint="Set the name, slug, description, and ticket template.">
 				<div className="grid gap-3 sm:grid-cols-2">
 					<Input label="Project name" value={name} onChange={(event) => setName(event.target.value)} />
 					<Input
@@ -67,8 +72,9 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 					className="max-w-28 font-mono uppercase"
 				/>
 				{locked && (
-					<p id={noticeId} className="text-sm text-warning">
-						{errors.KEY_LOCKED.message}
+					<p id={noticeId} className="flex items-center gap-1.5 text-sm text-fg-muted">
+						<Lock aria-hidden="true" className="size-3 shrink-0" />
+						{keyLockedHint(project.key)}
 					</p>
 				)}
 				<Textarea

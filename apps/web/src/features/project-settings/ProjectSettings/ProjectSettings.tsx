@@ -14,8 +14,8 @@ export type ProjectSettingsProps = {
 // and delete section stays usable.
 export function ProjectSettings({ project }: ProjectSettingsProps) {
 	return (
-		<div className="min-h-0 flex-1 overflow-y-auto px-5 md:px-8">
-			<div className="flex max-w-5xl flex-col">
+		<div className="min-h-0 flex-1 overflow-y-auto px-5">
+			<div className="mx-auto flex max-w-180 flex-col gap-8 py-8">
 				<fieldset disabled={project.archivedAt !== null} className="contents">
 					<ProjectDetailsForm project={project} />
 					<RepoSettings project={project} />
