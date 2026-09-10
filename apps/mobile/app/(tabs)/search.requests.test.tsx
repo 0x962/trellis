@@ -86,6 +86,8 @@ describe("the Search tab requests", () => {
 		const view = openSearch();
 		await view;
 		await fireEvent.changeText(field(), "oauth");
+		// The debounce sends the first query before the second one starts.
+		await waitFor(() => expect(queries()).toHaveLength(1));
 		await fireEvent.changeText(field(), "terminal");
 
 		await waitFor(() => expect(screen.getByTestId("ticket-row-CDE-44")).toBeOnTheScreen());
