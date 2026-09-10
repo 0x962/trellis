@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react-native";
 import { renderRouter } from "expo-router/testing-library";
 import { StyleSheet } from "react-native";
 import { recentSearchesKey } from "../../src/features/search/recentSearches";
@@ -74,7 +74,7 @@ describe("the Search tab", () => {
 
 		await waitFor(() => expect(shown()).toEqual(["CDE-51", "TRL-12", "MRG-3"]));
 		expect(screen.getByText("Refresh the OAuth token before the gh poller runs")).toBeOnTheScreen();
-		expect(screen.getByLabelText(/Todo/)).toBeTruthy();
+		expect(within(screen.getByTestId("ticket-row-CDE-51")).getByLabelText(/Todo/)).toBeTruthy();
 		for (const identifier of shown()) {
 			const style = StyleSheet.flatten(screen.getByTestId(`ticket-row-${identifier}`).props.style) as {
 				height?: number;
