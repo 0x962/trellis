@@ -17,8 +17,8 @@ TRELLIS_API_URL=http://127.0.0.1:4522 bun run --cwd apps/web dev
 ```
 
 Open `http://127.0.0.1:5173`.
-The fake server resets its data after each restart.
-Playwright starts both processes for the end-to-end suite.
+The fake server deletes its data when it restarts.
+For the end-to-end suite, Playwright starts both processes.
 
 Run a focused test while you change code.
 Run `bun run lint:fix` before the full check.
@@ -34,10 +34,10 @@ Run `bun run check --force` before each hand-off.
 | `apps/server` | `@trellis/server` | The Hono server, procedures, services, database worker, and GitHub poller. |
 | `apps/web` | `@trellis/web` | The React web app and its fake server. |
 | `apps/mobile` | `@trellis/mobile` | The Expo mobile app. |
-| `docs/design` | | The approved plan and supporting design documents. |
+| `docs/design` | | The approved plan and the design documents behind it. |
 | `test` | | Tests for repository configuration and public files. |
 
-The dependency graph forms a star around `@trellis/api`.
+The dependency graph is a star with `@trellis/api` at the center.
 Only `@trellis/web` imports `@trellis/ui`.
 Each package exports TypeScript source without side effects.
 
@@ -62,9 +62,9 @@ The preload gives each test run a temporary `TRELLIS_HOME`.
 ## TDD rule
 
 Start every change with a failing test for the specified outcome.
-Confirm that the test fails for the intended reason.
-Make the test pass without deletion or weaker assertions.
-Send a disputed test to the lead with the reason.
+Make sure that the test fails for the correct reason.
+Make the test pass. Do not delete the test or weaken its assertions.
+If you think a test is wrong, send it to the lead with the reason.
 
 ## Database migration
 
@@ -77,13 +77,13 @@ The check fails when schema generation changes `apps/server/drizzle/`.
 
 ## Review pass
 
-1. Read the complete diff and remove unrelated changes.
+1. Read the full diff and remove changes that are not part of the work.
 2. Run the focused tests again.
 3. Run `bun run check --force` at the repository root.
-4. Ask reviewers to refute the tests, correctness, and code quality.
-5. Give each finding a file, line, severity, claim, and evidence.
-6. Add a failing test for each missing case before the fix.
-7. Repeat the review until a pass has no findings.
+4. Ask reviewers to refute the tests, the correctness, and the code quality.
+5. Give each finding a file, a line, a severity, a claim, and evidence.
+6. For each missing case, add a failing test before the fix.
+7. Do the review again until a pass has no findings.
 
-Two reviewers must agree on a finding unless one reviewer marks it as a blocker.
-Do not merge from one reviewer only.
+A finding needs two reviewers who agree, unless one reviewer marks it as a blocker.
+Do not merge on the word of one reviewer.
