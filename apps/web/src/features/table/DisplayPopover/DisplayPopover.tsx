@@ -74,8 +74,8 @@ export function DisplayPopover({
 			align="end"
 			className="w-80 p-3"
 			trigger={
-				<Button variant="quiet" size="sm" icon={<SlidersHorizontal />}>
-					Display
+				<Button variant="quiet" size="sm" icon={<SlidersHorizontal />} aria-label="Display">
+					<span className="max-md:sr-only">Display</span>
 				</Button>
 			}
 		>

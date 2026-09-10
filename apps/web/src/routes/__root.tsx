@@ -6,6 +6,7 @@ import { ComposerHost } from "../features/composer/ComposerHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { ReconnectBanner } from "../features/shell/ReconnectBanner";
 import { Sidebar } from "../features/sidebar/Sidebar";
+import { SidebarSheet } from "../features/sidebar/SidebarSheet";
 import { hasActor } from "../lib/actor";
 import { type RouterContext, useApp } from "../lib/appContext";
 
@@ -55,6 +56,7 @@ function RootComponent() {
 	return (
 		<div className="flex h-full bg-bg text-fg">
 			<Sidebar />
+			<SidebarSheet />
 			<div className="flex min-w-0 flex-1 flex-col">
 				<ReconnectBanner live={live} scheduler={scheduler} />
 				<main className="flex min-h-0 min-w-0 flex-1 flex-col">

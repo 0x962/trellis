@@ -101,13 +101,20 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 
 	if (variant === "peek") {
 		return (
-			<dl aria-label="Properties" className="grid grid-cols-2 gap-x-6 gap-y-0.5">
+			<dl aria-label="Properties" className="grid grid-cols-2 gap-x-6 gap-y-0.5 max-md:grid-cols-1">
 				{rows}
 			</dl>
 		);
 	}
+	// Under 768 px the rail is a full-width block under the ticket body.
 	return (
-		<aside aria-label="Properties" className={cx("w-70 shrink-0 border-l border-border px-4 py-3")}>
+		<aside
+			aria-label="Properties"
+			className={cx(
+				"w-70 shrink-0 border-l border-border px-4 py-3",
+				"max-md:w-full max-md:border-t max-md:border-l-0",
+			)}
+		>
 			<dl className="flex flex-col gap-0.5">{rows}</dl>
 		</aside>
 	);

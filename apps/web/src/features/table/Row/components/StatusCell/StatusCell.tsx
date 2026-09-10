@@ -17,6 +17,8 @@ export type StatusCellProps = {
 };
 
 // The status icon and name, which open the picker on click or on `s`.
+// Under 768 px the name is for assistive tech only: the group header above
+// the rows names the status, and the title needs the room.
 export function StatusCell({ status, statuses, progress, open, onOpenChange, onPick, finalFocus }: StatusCellProps) {
 	return (
 		<StatusPicker
@@ -29,7 +31,7 @@ export function StatusCell({ status, statuses, progress, open, onOpenChange, onP
 			trigger={
 				<button type="button" aria-label={`Status: ${status.name}`} className={cellButtonClass}>
 					<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} progress={progress} />
-					<span className="truncate text-sm text-fg-muted">{status.name}</span>
+					<span className="truncate text-sm text-fg-muted max-md:sr-only">{status.name}</span>
 				</button>
 			}
 		/>

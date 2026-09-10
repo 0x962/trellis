@@ -6,8 +6,9 @@ import { type FormEvent, useState } from "react";
 import { setActorName, useActor } from "../../../lib/actor";
 import { openShortcutHelp } from "../../command/ShortcutHelp";
 
+// 28 px on a mouse and 44 px on a touch screen, the two hit area minimums.
 const iconLinkClass =
-	"inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-fg-muted transition duration-hover hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
+	"inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-fg-muted transition duration-hover hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 pointer-coarse:size-11";
 
 // The bottom of the sidebar: who you are, the settings, and the keyboard
 // help. The actor chip opens a rename popover; Enter stores the new name.

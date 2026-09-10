@@ -74,15 +74,16 @@ export function StartWithAgent({ ticket }: StartWithAgentProps) {
 
 	return (
 		<span className="inline-flex items-center gap-px">
+			{/* Under 768 px the button shows its icon alone; the aria-label keeps the name. */}
 			<Button
 				variant="primary"
 				aria-label="Start with agent"
 				icon={<Play />}
 				kbd="⌘⇧A"
-				className="rounded-r-none"
+				className="rounded-r-none max-md:[&_kbd]:hidden"
 				onClick={() => void start()}
 			>
-				Start with agent
+				<span className="max-md:sr-only">Start with agent</span>
 			</Button>
 			<Popover
 				open={open}
