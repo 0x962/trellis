@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { Priority, Status, Ticket } from "@trellis/api";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Button } from "../../components/Button";
 import { SectionHeader } from "../../components/SectionHeader";
 import { getClient } from "../../lib/orpc";
 import { keys, store } from "../../lib/store";
@@ -27,10 +28,10 @@ import {
 	statusesQuery,
 	statusInput,
 	ticketDetailQuery,
-	timelineQuery,
 	withPriority,
 	withStatus,
 } from "../ticketQueries";
+import { timelineOptions } from "../timelineCache";
 import { useTicketUpdate } from "../useTicketUpdate";
 
 export type TicketViewProps = {
@@ -52,11 +53,14 @@ const styles = StyleSheet.create({
 		paddingHorizontal: tokens.space[4],
 		paddingVertical: tokens.space[2],
 	},
+	earlier: { paddingHorizontal: tokens.space[4], paddingTop: tokens.space[2] },
 });
 
 // The loaded ticket: every section above the timeline as the list header,
 // the timeline rows, and the composer under them. The two sheets and the
-// review actions write through one `useTicketUpdate`.
+// review actions write through one `useTicketUpdate`. The timeline shows the
+// newest page first. While an older page exists, a Load earlier button under
+// the oldest item reads it.
 export function TicketView({ ticket }: TicketViewProps) {
 	const palette = usePalette();
 	// The screen sits under the stack header: the top inset plus
@@ -67,7 +71,8 @@ export function TicketView({ ticket }: TicketViewProps) {
 	const client = getClient();
 	const { identifier } = ticket;
 	const statuses = useQuery(statusesQuery(client, ticket.project.id)).data?.statuses ?? [];
-	const timeline = useQuery(timelineQuery(client, identifier));
+	const timeline = useInfiniteQuery(timelineOptions(identifier));
+	const items = timeline.data?.pages.flatMap((page) => page.items) ?? [];
 	const parent = useQuery({
 		...ticketDetailQuery(client, ticket.parent?.identifier ?? ""),
 		enabled: ticket.parent !== null,
@@ -112,6 +117,16 @@ export function TicketView({ ticket }: TicketViewProps) {
 		</View>
 	);
 
+	const footer = timeline.hasNextPage ? (
+		<View style={styles.earlier}>
+			<Button
+				label="Load earlier"
+				disabled={timeline.isFetchingNextPage}
+				onPress={() => void timeline.fetchNextPage()}
+			/>
+		</View>
+	) : undefined;
+
 	return (
 		<KeyboardAvoidingView
 			testID="ticket-screen"
@@ -122,7 +137,7 @@ export function TicketView({ ticket }: TicketViewProps) {
 			{message !== undefined && (
 				<Text style={[styles.message, { color: palette.danger, backgroundColor: palette.dangerSoft }]}>{message}</Text>
 			)}
-			<Timeline rows={timelineRows(timeline.data?.items ?? [])} header={header} />
+			<Timeline rows={timelineRows(items)} header={header} footer={footer} />
 			<Composer ticket={identifier} />
 			<StatusSheet
 				open={statusOpen}

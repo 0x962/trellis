@@ -1,5 +1,4 @@
 import { useQueryClient } from "@tanstack/react-query";
-import type { TimelineListOutput } from "@trellis/api";
 import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { Button } from "../../components/Button";
@@ -7,7 +6,8 @@ import { getClient } from "../../lib/orpc";
 import { layout } from "../../theme/layout";
 import { tokens } from "../../theme/tokens";
 import { usePalette } from "../../theme/usePalette";
-import { ticketDetailKey, timelineKey } from "../ticketQueries";
+import { ticketDetailKey } from "../ticketQueries";
+import { prependTimeline } from "../timelineCache";
 
 export type ComposerProps = {
 	// The identifier of the ticket the comment goes to.
@@ -51,8 +51,8 @@ const messageOf = (error: unknown) => (error instanceof Error ? error.message : 
 
 // The plain text field "Add a comment" and the Send button at the bottom of
 // the screen. Send is disabled while the field holds no text. A posted
-// comment goes to the top of the cached timeline page at once, and the
-// ticket detail refetches, because a comment bumps the ticket's version.
+// comment goes to the top of the newest cached timeline page at once, and
+// the ticket detail refetches, because a comment bumps the ticket's version.
 // A failed post keeps the text in the field and shows the server message
 // with Retry above the field.
 export function Composer({ ticket }: ComposerProps) {
@@ -70,9 +70,7 @@ export function Composer({ ticket }: ComposerProps) {
 		setFailure(undefined);
 		try {
 			const comment = await getClient().comments.create({ ticket, body });
-			queryClient.setQueryData<TimelineListOutput>(timelineKey(ticket), (page) =>
-				page === undefined ? page : { ...page, items: [{ kind: "comment", ...comment }, ...page.items] },
-			);
+			prependTimeline(queryClient, ticket, { kind: "comment", ...comment });
 			void queryClient.invalidateQueries({ queryKey: ticketDetailKey(ticket) });
 			setText("");
 		} catch (error) {
