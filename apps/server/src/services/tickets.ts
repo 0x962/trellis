@@ -3,3 +3,4 @@
 // batch id, and emits TicketSummary events on the transaction collector.
 export { create } from "./tickets/create.ts";
 export { update, updateMany } from "./tickets/update.ts";
+export { move } from "./tickets/move.ts";
