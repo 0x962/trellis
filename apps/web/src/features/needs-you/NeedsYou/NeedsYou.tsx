@@ -1,14 +1,19 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Badge, Button, EmptyState, useHotkey } from "@trellis/ui";
 import { RefreshCw } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { formatCount, relativeTime } from "../../../lib/format";
 import { Topbar } from "../../shell/Topbar";
+import { TicketPeek } from "../../ticket/TicketPeek";
+import { usePeek } from "../../ticket/TicketPeek/hooks/usePeek";
+import { PeekListProvider } from "../../ticket/TicketPeek/providers/PeekListProvider";
 import { DoneTodaySection } from "../components/DoneTodaySection";
 import { FailingCiSection } from "../components/FailingCiSection";
 import { NeedsYouEmpty } from "../components/NeedsYouEmpty";
 import { ReviewSection } from "../components/ReviewSection";
 import { StalledSection } from "../components/StalledSection";
 import { useInbox } from "../hooks/useInbox";
+import { useInboxPeekRows } from "../hooks/useInboxPeekRows";
 import { needsYouCount } from "../utils/needsYouCount";
 import { activeRowIdentifier, focusRowBy } from "../utils/rowFocus";
 import { InboxSkeleton } from "./components/InboxSkeleton";
@@ -22,6 +27,20 @@ export function NeedsYou() {
 	const inbox = useInbox();
 	const navigate = useNavigate();
 	const count = inbox.data === undefined ? 0 : needsYouCount(inbox.data);
+	const peekRows = useInboxPeekRows();
+	const shown = usePeek().current;
+
+	// When the peek closes, the focus goes to the row of the ticket that the
+	// peek showed last. Base UI returns the focus only to the element that had
+	// it before the peek opened, and a j or k step inside the peek shows a
+	// ticket other than that row. An approved row can be gone from the page.
+	const lastShown = useRef(shown);
+	useEffect(() => {
+		const closed = lastShown.current;
+		lastShown.current = shown;
+		if (closed === undefined || shown !== undefined) return;
+		document.querySelector<HTMLElement>(`[data-inbox-row="${closed}"]`)?.focus();
+	}, [shown]);
 
 	useHotkey("j", () => focusRowBy(1));
 	useHotkey("k", () => focusRowBy(-1));
@@ -35,7 +54,7 @@ export function NeedsYou() {
 	});
 
 	return (
-		<>
+		<PeekListProvider rows={peekRows}>
 			<Topbar
 				actions={
 					inbox.data !== undefined && (
@@ -73,6 +92,7 @@ export function NeedsYou() {
 						</>
 					))}
 			</div>
-		</>
+			<TicketPeek />
+		</PeekListProvider>
 	);
 }

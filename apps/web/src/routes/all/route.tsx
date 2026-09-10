@@ -6,6 +6,7 @@ import { Topbar } from "../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../features/shell/ViewSwitch";
 import { DisplayPopover } from "../../features/table/DisplayPopover";
 import { TicketTable } from "../../features/table/TicketTable";
+import { TicketPeek } from "../../features/ticket/TicketPeek";
 import { useScopeStatuses } from "../../hooks/useScopeStatuses";
 import type { AppContext } from "../../lib/appContext";
 import { useUiStore } from "../../stores/uiStore";
@@ -68,7 +69,9 @@ function AllPage() {
 				search={search}
 				onSearchChange={setSearch}
 				onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
-			/>
+			>
+				<TicketPeek />
+			</TicketTable>
 		</>
 	);
 }
