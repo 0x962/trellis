@@ -35,13 +35,14 @@ export const status = defineCommand({
 	},
 });
 
-// A project without a settings row gets the contract defaults. The base
-// branch is "main" until a person changes it in the web settings.
+// A project without a settings row gets the contract defaults. Without a
+// base branch, each agent starts from the default branch of the project's
+// Superset checkout.
 const defaultRow = (projectId: string): AgentProjectSettings => ({
 	projectId,
 	enabled: false,
 	supersetProjectId: null,
-	baseBranch: "main",
+	baseBranch: null,
 	maxConcurrent: 3,
 	removeWorkspaceOnDone: true,
 });

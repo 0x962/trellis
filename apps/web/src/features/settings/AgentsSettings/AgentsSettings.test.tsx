@@ -184,7 +184,10 @@ describe("AgentsSettings", () => {
 	test("the base branch shows the Superset project's default branch while the row has none, and a typed branch wins", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
-		server.state.runnerProjects = server.state.runnerProjects.map((project) => ({ ...project, defaultBranch: "master" }));
+		server.state.runnerProjects = server.state.runnerProjects.map((project) => ({
+			...project,
+			defaultBranch: "master",
+		}));
 		render(server);
 		const branch = within(await projectGroup("CDE")).getByRole("textbox", { name: "Base branch" }) as HTMLInputElement;
 		await waitFor(() => expect(branch.value).toBe("master"));

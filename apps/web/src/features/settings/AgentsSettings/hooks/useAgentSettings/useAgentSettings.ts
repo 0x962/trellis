@@ -4,12 +4,13 @@ import { toast } from "@trellis/ui";
 import { useApp } from "../../../../../lib/appContext";
 
 // The row a project reads before it has one: the manager off and the
-// contract defaults.
+// contract defaults. A row without a base branch starts each agent from the
+// default branch of the project's Superset checkout.
 export const defaultProjectSettings = (projectId: string): AgentProjectSettings => ({
 	projectId,
 	enabled: false,
 	supersetProjectId: null,
-	baseBranch: "main",
+	baseBranch: null,
 	maxConcurrent: 3,
 	removeWorkspaceOnDone: true,
 });
