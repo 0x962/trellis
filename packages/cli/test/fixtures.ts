@@ -117,6 +117,13 @@ export const repo = (repoName: string, overrides: Overrides = {}) => ({
 	...overrides,
 });
 
+export const trustedFolder = (path: string, overrides: Overrides = {}) => ({
+	id: repoId,
+	projectId,
+	path,
+	...overrides,
+});
+
 export const project = (overrides: Overrides = {}) => ({
 	...projectSummary(),
 	description: "The code project",
@@ -129,6 +136,7 @@ export const project = (overrides: Overrides = {}) => ({
 		projectSummary({ id: projectId2, path: "CDE.web", parentId: projectId, slug: "web", name: "Web", depth: 1 }),
 	],
 	repos: [repo("trellis")],
+	trustedFolders: [trustedFolder("/Users/navid/projects/trellis")],
 	statuses: statusSet().statuses,
 	statusesInheritedFrom: null,
 	...overrides,

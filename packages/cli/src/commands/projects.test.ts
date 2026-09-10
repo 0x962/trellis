@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { lines, runCli } from "../../test/deps.ts";
-import { project, projectSummary, repo } from "../../test/fixtures.ts";
+import { project, projectSummary, repo, trustedFolder } from "../../test/fixtures.ts";
 
 const listRows = [projectSummary(), projectSummary({ path: "CDE.web", slug: "web", name: "Web", depth: 1 })];
 
@@ -96,5 +96,35 @@ describe("projects", () => {
 				{ owner: "0x962", repo: "margin" },
 			],
 		});
+	});
+
+	// The folder trust list is the permission trellis has to skip the
+	// folder question of the agent command line.
+	test("projects trust reads the list, then replaces it with the adds and the removes", async () => {
+		const routes = {
+			"projects.get": project({ trustedFolders: [trustedFolder("/src/old"), trustedFolder("/src/keep")] }),
+			"projects.setTrustedFolders": [trustedFolder("/src/keep"), trustedFolder("/src/new")],
+		};
+		const result = await runCli(["projects", "trust", "CDE", "--add", "/src/new", "--remove", "/src/old"], routes);
+		expect(result.code).toBe(0);
+		expect(result.calls.map((call) => call.path)).toEqual(["projects.get", "projects.setTrustedFolders"]);
+		expect(result.calls[1]!.input).toEqual({ project: "CDE", paths: ["/src/keep", "/src/new"] });
+	});
+
+	test("projects trust without an add and a remove prints the list and writes nothing", async () => {
+		const routes = { "projects.get": project({ trustedFolders: [trustedFolder("/src/web")] }) };
+		const listed = await runCli(["projects", "trust", "CDE"], routes);
+		expect(listed.code).toBe(0);
+		expect(listed.calls.map((call) => call.path)).toEqual(["projects.get"]);
+		expect(listed.stdout).toContain("/src/web");
+
+		const flag = await runCli(["projects", "trust", "CDE", "--list"], routes);
+		expect(flag.calls.map((call) => call.path)).toEqual(["projects.get"]);
+	});
+
+	test("projects trust --list ignores an add", async () => {
+		const routes = { "projects.get": project({ trustedFolders: [trustedFolder("/src/web")] }) };
+		const result = await runCli(["projects", "trust", "CDE", "--list", "--add", "/src/other"], routes);
+		expect(result.calls.map((call) => call.path)).toEqual(["projects.get"]);
 	});
 });

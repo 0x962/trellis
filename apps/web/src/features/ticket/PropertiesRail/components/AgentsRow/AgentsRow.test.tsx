@@ -126,4 +126,34 @@ describe("AgentsRow", () => {
 		);
 		expect(await startButton()).not.toBeNull();
 	});
+
+	// A builder that meets the folder question of its agent command line
+	// sits at Starting forever. The row says so and offers the one action.
+	test("a blocked builder names the reason and one button starts it again", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		await enableAgents(server);
+		const builder = addSession(server, {
+			role: "builder",
+			state: "starting",
+			blocked: { reason: "folder-trust", path: "/src/web", detail: null, at: "2026-09-10T10:00:00.000Z" },
+		});
+		mount(server);
+		const alert = await screen.findByRole("alert");
+		expect(within(alert).getByText(/waits at the folder trust question/)).toBeDefined();
+
+		await user.click(within(alert).getByRole("button", { name: "Trust and start again" }));
+		await waitFor(() => {
+			const call = server.calls.filter((entry) => entry.path.join(".") === "agents.unblock").at(-1);
+			expect(call?.input).toEqual({ id: builder.id });
+		});
+	});
+
+	test("a builder that works shows no reason", async () => {
+		const server = createFakeServer();
+		addSession(server, { role: "builder" });
+		mount(server);
+		await items();
+		expect(screen.queryByRole("alert")).toBeNull();
+	});
 });

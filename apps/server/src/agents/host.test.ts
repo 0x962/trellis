@@ -118,6 +118,7 @@ describe("agents host", () => {
 				projectId: "sp-web",
 				baseBranch: "main",
 				tag: "trellis-cde",
+				worktreePath: "/superset/worktrees/ws-b",
 			});
 			for (const [terminalId, exited] of [
 				["t-live", false],
@@ -191,7 +192,7 @@ describe("agents host", () => {
 		expect(flagOf(relaunch!, "--command")).toContain("--resume 'c-1'");
 		expect(flagOf(relaunch!, "--command")).toContain(TEXT_START);
 		const [after] = await sessions();
-		expect(after).toMatchObject({ id: manager!.id, state: "running" });
+		expect(after).toMatchObject({ id: manager!.id, state: "starting" });
 		expect(after!.terminalId).not.toBe(manager!.terminalId);
 	});
 

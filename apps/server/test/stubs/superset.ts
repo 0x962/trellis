@@ -29,6 +29,9 @@ export type StubWorkspace = {
 	projectId: string;
 	baseBranch: string;
 	tag: string;
+	// Superset cuts a worktree outside the repo, under its own directory,
+	// so the stub reports a path outside every project path too.
+	worktreePath: string;
 };
 
 export type StubState = {
@@ -94,13 +97,15 @@ if (key === "ws create") {
 		const terminals = terminalsIn(existing.id).map(({ terminalId, label }) => ({ terminalId, label }));
 		answer({ workspace: existing, terminals, alreadyExists: true });
 	}
+	const id = newId("ws");
 	const workspace: StubWorkspace = {
-		id: newId("ws"),
+		id,
 		name: flag("--name")!,
 		branch: flag("--branch")!,
 		projectId: flag("--project")!,
 		baseBranch: flag("--base-branch")!,
 		tag: flag("--tag")!.toLowerCase(),
+		worktreePath: `/superset/worktrees/${id}`,
 	};
 	state.workspaces.push(workspace);
 	const terminal = addTerminal(workspace.id, flag("--command"));

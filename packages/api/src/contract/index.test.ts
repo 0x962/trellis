@@ -39,6 +39,7 @@ describe("contract", () => {
 			"agents.startBuilder POST /agents/builder",
 			"agents.startReviewer POST /agents/reviewer",
 			"agents.stop POST /agents/sessions/{id}/stop",
+			"agents.unblock POST /agents/sessions/{id}/unblock",
 			"agents.wake POST /agents/wake",
 			"attachments.delete DELETE /attachments/{id}",
 			"attachments.get GET /attachments/{id}",
@@ -55,6 +56,7 @@ describe("contract", () => {
 			"projects.list GET /projects",
 			"projects.move POST /projects/{project}/move",
 			"projects.setRepos PUT /projects/{project}/repos",
+			"projects.setTrustedFolders PUT /projects/{project}/trusted-folders",
 			"projects.update PATCH /projects/{project}",
 			"pullRequests.diff GET /prs/{id}/diff",
 			"pullRequests.link POST /tickets/{ticket}/prs",
@@ -85,7 +87,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(56);
+		expect(table).toHaveLength(58);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

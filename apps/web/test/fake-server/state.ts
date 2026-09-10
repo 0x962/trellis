@@ -16,6 +16,7 @@ import {
 	type Settings,
 	type Status,
 	StatusRefSchema,
+	type TrustedFolder,
 	ulidPattern,
 } from "@trellis/api";
 import { ulid } from "ulid";
@@ -44,6 +45,7 @@ export type ProjectRow = {
 	// it customizes one.
 	ownsStatuses: boolean;
 	repos: Repo[];
+	trustedFolders: TrustedFolder[];
 };
 
 export type LastActor = ActorRef & { at: string };

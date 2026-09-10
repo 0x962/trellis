@@ -48,6 +48,7 @@ export const agentsHarness = () => {
 					projectId: "sp-web",
 					baseBranch: "main",
 					tag: `trellis-${lower()}`,
+					worktreePath: `/superset/worktrees/${tab().workspaceId}`,
 				},
 			],
 			terminals: [{ ...tab(), label: "Terminal", title: `${key} manager`, command: null, exited: false, sent: [] }],

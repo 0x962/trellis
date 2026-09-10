@@ -50,6 +50,12 @@ const seedEveryTable = async () => {
 	const { rootId, statuses } = await seedProject(h.db);
 	const ticket = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, number: 1 });
 	await insertRow(h.db, "repos", { id: ulid(), project_id: rootId, owner: "acme", repo: "web" });
+	await insertRow(h.db, "trusted_folders", {
+		id: ulid(),
+		project_id: rootId,
+		path: "/src/web",
+		created_at: new Date(),
+	});
 	await seedComment(h.db, ticket, "a comment");
 	await seedAttachment(h.db, ticket);
 	const pr = await seedPr(h.db, { number: 12 });

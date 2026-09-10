@@ -1,3 +1,4 @@
+import { ulid } from "ulid";
 import { fail } from "../fail";
 import { os } from "../implementer";
 import { addChild, addRoot } from "../seeder";
@@ -114,5 +115,12 @@ export const projects = {
 		const project = requireProject(context.state, input.project);
 		project.repos = input.repos.map((repo) => ({ id: `${project.id}`, projectId: project.id, ...repo }));
 		return project.repos;
+	}),
+	setTrustedFolders: os.projects.setTrustedFolders.handler(({ context, input }) => {
+		const project = requireProject(context.state, input.project);
+		const paths = [...new Set(input.paths)].sort((a, b) => a.localeCompare(b));
+		project.trustedFolders = paths.map((path) => ({ id: ulid(), projectId: project.id, path }));
+		context.bus.emit("project.updated", { id: project.id }, { projectId: project.id });
+		return project.trustedFolders;
 	}),
 };

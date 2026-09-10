@@ -19,6 +19,7 @@ describe("agents contract", () => {
 			"startBuilder POST /agents/builder",
 			"startReviewer POST /agents/reviewer",
 			"stop POST /agents/sessions/{id}/stop",
+			"unblock POST /agents/sessions/{id}/unblock",
 			"wake POST /agents/wake",
 		]);
 	});
@@ -71,6 +72,7 @@ describe("agents contract", () => {
 			terminalId: null,
 			title: "CDE manager",
 			openUrl: null,
+			blocked: null,
 			lastWokenAt: null,
 			createdAt: "2026-09-10T10:00:00.000Z",
 		};
@@ -89,5 +91,13 @@ describe("agents contract", () => {
 		expect(await accepts(agents.setSettings["~orpc"].inputSchema, { enabled: false })).toBe(false);
 		expect(await accepts(agents.setSettings["~orpc"].outputSchema, settings)).toBe(true);
 		expect(await accepts(agents.settings["~orpc"].outputSchema, settings)).toBe(true);
+	});
+	// The unblock button trusts a folder and starts an agent, so it can hit
+	// the same refusals a start hits.
+	test("agents.unblock declares the refusals a start declares", () => {
+		const map = agents.unblock["~orpc"].errorMap;
+		expect(map).toHaveProperty("RUNNER_UNAVAILABLE");
+		expect(map).toHaveProperty("CONCURRENCY_LIMIT");
+		expect(map).toHaveProperty("PROJECT_ARCHIVED");
 	});
 });

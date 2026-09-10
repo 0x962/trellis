@@ -45,6 +45,10 @@ const dirs = {
 	XDG_DATA_HOME: join(userHome, ".local", "share"),
 	XDG_CACHE_HOME: join(userHome, ".cache"),
 	XDG_STATE_HOME: join(userHome, ".local", "state"),
+	// The Claude state file the folder trust seeder writes lives in this
+	// directory. The real machine points it at a live Claude install, so a
+	// test that seeds trust must never read the real value.
+	CLAUDE_CONFIG_DIR: join(userHome, ".claude"),
 	TRELLIS_HOME: join(root, "trellis"),
 };
 for (const [key, dir] of Object.entries(dirs)) {

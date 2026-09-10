@@ -20,3 +20,15 @@ test("every project write declares PROJECT_ARCHIVED", () => {
 		expect(projects[name]["~orpc"].errorMap, name).toHaveProperty("PROJECT_ARCHIVED");
 	}
 });
+
+// A trusted folder is an absolute path with no trailing slash. A relative
+// path or a path with a trailing slash would name a folder the runner
+// cannot resolve, so the schema refuses both.
+test("projects.setTrustedFolders takes absolute paths only", async () => {
+	const schema = projects.setTrustedFolders["~orpc"].inputSchema;
+	expect(await accepts(schema, { project: "CDE", paths: ["/Users/navid/projects/trellis"] })).toBe(true);
+	expect(await accepts(schema, { project: "CDE", paths: [] })).toBe(true);
+	expect(await accepts(schema, { project: "CDE", paths: ["projects/trellis"] })).toBe(false);
+	expect(await accepts(schema, { project: "CDE", paths: ["/Users/navid/"] })).toBe(false);
+	expect(await accepts(schema, { project: "CDE", paths: ["/"] })).toBe(false);
+});

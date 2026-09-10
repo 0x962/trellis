@@ -4,6 +4,8 @@ import "@atlaskit/pragmatic-drag-and-drop-unit-testing/dom-rect-polyfill";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { applyEvent } from "@trellis/api";
+import { Toaster } from "@trellis/ui";
+import { addSession } from "../../../../test/agents";
 import { createFakeServer } from "../../../../test/fake-server";
 import { findTicket, matchStatus } from "../../../../test/fake-server/state";
 import { ticketSummary } from "../../../../test/fake-server/summaries";
@@ -18,6 +20,17 @@ const renderBoard = (server = createFakeServer()) =>
 		actor: "navid",
 		server,
 	});
+
+// The board raises a toast, and the root shell holds the Toaster, so a
+// test of that toast mounts one beside the board.
+const renderBoardWithToaster = (server = createFakeServer()) =>
+	renderWithProviders(
+		<>
+			<Board projectRef="CDE" storageKey="CDE" onOpenTicket={() => {}} />
+			<Toaster />
+		</>,
+		{ path: "/p/CDE/board", actor: "navid", server },
+	);
 
 const column = (name: string) => screen.getByRole("list", { name: new RegExp(`^${name},`) });
 
@@ -109,6 +122,28 @@ describe("Board", () => {
 		expect(within(column("In Progress")).getByText("CDE-47")).toBeDefined();
 		await waitFor(() => expect(within(column("Todo")).getByText("CDE-47")).toBeDefined());
 		expect(await screen.findByText("The ticket changed. The board restored its prior position.")).toBeDefined();
+	});
+
+	// The board is the screen a person watches, so an agent that stops
+	// working reaches them there and not only in the settings.
+	test("an agent of the project that cannot work raises a toast that names the action", async () => {
+		const server = createFakeServer();
+		addSession(server, {
+			role: "builder",
+			state: "starting",
+			blocked: { reason: "folder-trust", path: "/src/web", detail: null, at: "2026-09-10T10:00:00.000Z" },
+		});
+		renderBoardWithToaster(server);
+		expect(await screen.findByText(/waits at the folder trust question/)).toBeDefined();
+		expect(await screen.findByText("Trust /src/web, then start the agent again.")).toBeDefined();
+	});
+
+	test("a project whose agents all work raises no toast", async () => {
+		const server = createFakeServer();
+		addSession(server, { role: "builder" });
+		renderBoardWithToaster(server);
+		await screen.findByText("CDE-47");
+		expect(screen.queryByText(/waits at the folder trust question/)).toBeNull();
 	});
 
 	test("a drop inside a column sends an anchor", async () => {

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createEventApplier } from "@trellis/api";
 import { addSession, updateSession } from "../../../../test/agents";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
@@ -82,5 +83,57 @@ describe("ManagerStatus", () => {
 		expect(await within(await status()).findByText("Running")).toBeDefined();
 		createEventApplier(queryClient).applyEvent(updateSession(server, manager.id, { state: "exited" }));
 		await waitFor(async () => expect(within(await status()).getByText("Exited")).toBeDefined());
+	});
+
+	// The manager once read Off while it waited at the folder question of
+	// its agent command line, and the person read nothing else.
+	test("a blocked manager names the reason and the action beside the badge", async () => {
+		const server = createFakeServer();
+		addSession(server, {
+			role: "manager",
+			state: "starting",
+			blocked: {
+				reason: "folder-trust",
+				path: "/Users/navid/projects/trellis",
+				detail: null,
+				at: "2026-09-10T10:00:00.000Z",
+			},
+		});
+		await mount(server);
+		const group = within(await status());
+		expect(await group.findByRole("alert")).toBeDefined();
+		expect(group.getByText(/waits at the folder trust question/)).toBeDefined();
+		expect(group.getByText("Trust /Users/navid/projects/trellis, then start the agent again.")).toBeDefined();
+	});
+
+	// One button trusts the folder and starts the agent again.
+	test("the blocked manager's button calls agents.unblock", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		const manager = addSession(server, {
+			role: "manager",
+			state: "starting",
+			blocked: { reason: "folder-trust", path: "/src/web", detail: null, at: "2026-09-10T10:00:00.000Z" },
+		});
+		await mount(server);
+		await user.click(await within(await status()).findByRole("button", { name: "Trust and start again" }));
+		await waitFor(() => {
+			const call = server.calls.filter((entry) => entry.path.join(".") === "agents.unblock").at(-1);
+			expect(call?.input).toEqual({ id: manager.id });
+		});
+	});
+
+	// A manager a person stopped needs no reason: they stopped it.
+	test("a stopped manager shows no reason", async () => {
+		const server = createFakeServer();
+		addSession(server, {
+			role: "manager",
+			state: "stopped",
+			blocked: { reason: "terminal-exited", path: null, detail: null, at: "2026-09-10T10:00:00.000Z" },
+		});
+		await mount(server);
+		const group = within(await status());
+		expect(await group.findByText("Off")).toBeDefined();
+		expect(group.queryByRole("alert")).toBeNull();
 	});
 });

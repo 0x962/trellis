@@ -20,6 +20,7 @@ const ok = (schema: { safeParse: (value: unknown) => { success: boolean } }, val
 describe("agent sessions", () => {
 	test("a session row has exactly the fields the dispatch plan lists", () => {
 		expect(Object.keys(AgentSessionSchema.shape).sort()).toEqual([
+			"blocked",
 			"createdAt",
 			"id",
 			"lastWokenAt",
@@ -62,8 +63,22 @@ describe("agent sessions", () => {
 			title: "CDE manager",
 		});
 		expect(ok(AgentSessionSchema, manager)).toBe(true);
+		expect(ok(AgentSessionSchema, agentSession({ blocked: undefined }))).toBe(false);
 		expect(ok(AgentSessionSchema, agentSession({ lastWokenAt: "2026-09-10T10:01:00.000Z" }))).toBe(true);
 		expect(ok(AgentSessionSchema, agentSession({ lastWokenAt: "yesterday" }))).toBe(false);
+	});
+
+	// A blocked session names the reason and, for the folder trust dialog,
+	// the folder a human trusts to clear it.
+	test("a blocked session carries a reason, an optional path, and a time", () => {
+		const at = "2026-09-10T10:02:00.000Z";
+		const trust = { reason: "folder-trust", path: "/Users/navid/projects/trellis", detail: null, at };
+		expect(ok(AgentSessionSchema, agentSession({ blocked: trust }))).toBe(true);
+		expect(ok(AgentSessionSchema, agentSession({ blocked: { ...trust, reason: "no-register", path: null } }))).toBe(
+			true,
+		);
+		expect(ok(AgentSessionSchema, agentSession({ blocked: { ...trust, reason: "bored" } }))).toBe(false);
+		expect(ok(AgentSessionSchema, agentSession({ blocked: { ...trust, at: "yesterday" } }))).toBe(false);
 	});
 
 	// `ticket` narrows to one ticket, `project` to one project. Both at once

@@ -6,6 +6,7 @@ import { agentLaunch, resumeCommand } from "@trellis/api";
 import { flagOf, type SupersetStubHandle, supersetStub } from "../../test/helpers/superset-stub.ts";
 import type { Runner } from "./runner.ts";
 import { createSupersetRunner } from "./supersetRunner.ts";
+import type { FolderTrust, SeedResult } from "./trust.ts";
 
 // The runner spawns the fake superset binary from test/stubs/superset.ts,
 // which records every argument list and keeps its workspaces and terminals
@@ -14,6 +15,18 @@ import { createSupersetRunner } from "./supersetRunner.ts";
 const url = "http://127.0.0.1:4521";
 let stub: SupersetStubHandle;
 let runner: Runner;
+let trusted: Set<string>;
+
+// The trust store in memory. The real one writes Claude's state file, and
+// src/agents/trust.test.ts covers that write.
+const fakeTrust = (seen: Set<string>): FolderTrust => ({
+	file: "(memory)",
+	trust: async (folder): Promise<SeedResult> => {
+		if (seen.has(folder)) return "already";
+		seen.add(folder);
+		return "seeded";
+	},
+});
 
 beforeEach(() => {
 	stub = supersetStub(mkdtempSync(join(process.env.TRELLIS_HOME!, "superset-")), {
@@ -22,12 +35,23 @@ beforeEach(() => {
 			{ id: "sp-api", name: "api", repo: "acme/api", path: "/src/api" },
 		],
 	});
-	runner = createSupersetRunner({ bin: stub.bin, url });
+	trusted = new Set<string>();
+	runner = createSupersetRunner({ bin: stub.bin, url, trust: fakeTrust(trusted) });
 });
 afterEach(() => stub.restore());
 
-const manager = { project: "CDE", runnerProjectId: "sp-web", baseBranch: "main", claudeSessionId: null };
-const builder = { project: "CDE", runnerProjectId: "sp-web", baseBranch: "main", ticket: "CDE-42", title: "Fix login" };
+// The repo root of sp-web is /src/web, so a start of a CDE agent seeds
+// that folder and reports no refusal.
+const roots = { trustedRoots: ["/src/web"] };
+const manager = { project: "CDE", runnerProjectId: "sp-web", baseBranch: "main", claudeSessionId: null, ...roots };
+const builder = {
+	project: "CDE",
+	runnerProjectId: "sp-web",
+	baseBranch: "main",
+	ticket: "CDE-42",
+	title: "Fix login",
+	...roots,
+};
 
 // The rejection of `promise` as the declared runner error, with its reason.
 const reasonOf = async (promise: Promise<unknown>) => {
@@ -73,6 +97,7 @@ describe("ensureManager", () => {
 			terminalId: stub.state().terminals[0]!.terminalId,
 			openUrl: `superset://workspace/${workspace.id}`,
 			started: true,
+			trust: { seeded: ["/src/web"], rootless: false },
 		});
 		expect(stub.terminal(started.terminalId).title).toBe("CDE manager");
 	});
@@ -80,7 +105,7 @@ describe("ensureManager", () => {
 	test("a second call finds the workspace by its branch and the live manager tab, and starts nothing", async () => {
 		const first = await runner.ensureManager(manager);
 		const second = await runner.ensureManager(manager);
-		expect(second).toEqual({ ...first, started: false });
+		expect(second).toEqual({ ...first, started: false, trust: { seeded: [], rootless: false } });
 		expect(stub.state().workspaces).toHaveLength(1);
 		expect(stub.state().terminals).toHaveLength(1);
 		expect(stub.callsOf("terminals create")).toEqual([]);
@@ -121,7 +146,7 @@ describe("startBuilder", () => {
 	test("a second start of the same ticket reuses the workspace and its live builder tab", async () => {
 		const first = await runner.startBuilder(builder);
 		const second = await runner.startBuilder(builder);
-		expect(second).toEqual(first);
+		expect(second).toEqual({ ...first, trust: { seeded: [], rootless: false } });
 		expect(stub.state().terminals).toHaveLength(1);
 	});
 
@@ -130,7 +155,11 @@ describe("startBuilder", () => {
 			state.failures["ws create"] = "Project not found: sp-web";
 		});
 		expect(await reasonOf(runner.startBuilder(builder))).toBe("error");
-		const absent = createSupersetRunner({ bin: join(process.env.TRELLIS_HOME!, "no-superset"), url });
+		const absent = createSupersetRunner({
+			bin: join(process.env.TRELLIS_HOME!, "no-superset"),
+			url,
+			trust: fakeTrust(new Set()),
+		});
 		expect(await reasonOf(absent.startBuilder(builder))).toBe("missing");
 	});
 });

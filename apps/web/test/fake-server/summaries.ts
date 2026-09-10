@@ -151,6 +151,7 @@ export const fullProject = (state: State, project: ProjectRow): Project => {
 		})),
 		children: childrenOf(state, project.id).map((child) => projectSummary(state, child)),
 		repos: project.repos,
+		trustedFolders: project.trustedFolders,
 		statuses,
 		statusesInheritedFrom: inheritedFrom,
 	};

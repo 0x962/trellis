@@ -17,6 +17,7 @@ export const agentSession = (overrides: Overrides = {}) => ({
 	terminalId: "term-1",
 	title: "CDE-42",
 	openUrl: "superset://workspace/ws-1",
+	blocked: null,
 	lastWokenAt: null,
 	createdAt: "2026-09-10T10:00:00.000Z",
 	...overrides,

@@ -76,9 +76,14 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		TRELLIS_DB_INLINE: process.env.TRELLIS_TEST_TRANSPORT === "worker" ? "false" : "true",
 		TRELLIS_ALLOWED_HOSTS: options.allowedHosts,
 		TRELLIS_SUPERSET_BIN: options.supersetBin ?? SUPERSET_STUB_BIN,
+		// The folder trust seeder writes the Claude state file this
+		// directory holds. Each app gets its own, so no test reads another
+		// test's trusted folders and none reaches the real Claude.
+		CLAUDE_CONFIG_DIR: `${home}/claude`,
 	});
 	// The directories boot creates, so a backup of this home finds db/.
 	for (const dir of [config.dbDir, config.tmpDir, config.backupsDir]) mkdirSync(dir, { recursive: true });
+	mkdirSync(`${home}/claude`, { recursive: true });
 	const records: LogRecord[] = [];
 	const log = createLogger({
 		level: config.logLevel,

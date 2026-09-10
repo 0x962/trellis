@@ -54,6 +54,7 @@ const newSession = (
 	runner: "superset",
 	state: "starting",
 	openUrl: `superset://workspace/${fields.workspaceId}`,
+	blocked: null,
 	lastWokenAt: null,
 	createdAt: isoNow(),
 	...fields,
@@ -165,6 +166,32 @@ export const agents = {
 	stop: os.agents.stop.handler(({ context, input }) => {
 		if (context.state.runnerDown !== null) throw fail("RUNNER_UNAVAILABLE", { reason: context.state.runnerDown });
 		return store(context, { ...context.state.agentSessions.get(input.id)!, state: "stopped" });
+	}),
+	// The blocked agent's action: it trusts the folder the session named
+	// and starts the agent again in a new session.
+	unblock: os.agents.unblock.handler(({ context, input }) => {
+		const { state } = context;
+		const session = state.agentSessions.get(input.id)!;
+		const project = state.projects.get(session.projectId)!;
+		requireRunner(state, project.rootId);
+		const path = session.blocked?.path ?? null;
+		if (path !== null && !project.trustedFolders.some((folder) => folder.path === path)) {
+			project.trustedFolders = [...project.trustedFolders, { id: newId(), projectId: project.id, path }];
+			context.bus.emit("project.updated", { id: project.id }, { projectId: project.id });
+		}
+		store(context, { ...session, state: "stopped", blocked: null });
+		if (session.role === "reviewer") return state.agentSessions.get(session.id)!;
+		return store(
+			context,
+			newSession({
+				projectId: session.projectId,
+				ticketId: session.ticketId,
+				role: session.role,
+				workspaceId: session.workspaceId,
+				terminalId: `term-${state.agentSessions.size + 1}`,
+				title: session.title,
+			}),
+		);
 	}),
 	wake: os.agents.wake.handler(({ context, input }) => {
 		const { state } = context;

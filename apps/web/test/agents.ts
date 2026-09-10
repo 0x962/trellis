@@ -41,6 +41,7 @@ export const addSession = (server: FakeServer, overrides: Partial<AgentSession> 
 		terminalId: "term-1",
 		title: titles[overrides.role],
 		openUrl: "superset://workspace/ws-1",
+		blocked: null,
 		lastWokenAt: null,
 		createdAt: isoNow(),
 		...overrides,

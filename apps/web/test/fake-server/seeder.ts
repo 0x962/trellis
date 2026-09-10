@@ -66,6 +66,7 @@ export const addRoot = (state: State, key: string, name: string, position: numbe
 		archivedAt: null,
 		ownsStatuses: true,
 		repos: [],
+		trustedFolders: [],
 	};
 	state.projects.set(id, project);
 	addDefaultStatuses(state, project, at);
@@ -99,6 +100,7 @@ export const addChild = (
 		archivedAt: null,
 		ownsStatuses: false,
 		repos: [],
+		trustedFolders: [],
 	};
 	state.projects.set(id, project);
 	return project;
