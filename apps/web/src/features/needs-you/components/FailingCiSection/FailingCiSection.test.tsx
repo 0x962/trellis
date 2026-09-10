@@ -33,7 +33,9 @@ const rerun = async (user: ReturnType<typeof userEvent.setup>) => {
 	await user.click(await waitForElement('[data-inbox-row="CDE-44"] button[data-rerun]'));
 };
 
-const expected = 'claude "$(trellis brief CDE-44)" fix the failing checks: typecheck (desktop)';
+// buildAgentCommand is the one builder of the command: `{brief}` becomes the
+// ID, and the appended text goes inside the quoted brief argument.
+const expected = 'claude "CDE-44 Fix the failed checks: typecheck (desktop)."';
 
 describe("FailingCiSection", () => {
 	// NY-30. The check names live on the pull request, not on the summary.
@@ -59,7 +61,7 @@ describe("FailingCiSection", () => {
 		mockClipboard();
 		render(await seeded());
 		await rerun(user);
-		expect(await screen.findByText("Copied — paste in your terminal")).toBeDefined();
+		expect(await screen.findByText("Copied the command. Paste it in a terminal.")).toBeDefined();
 		const command = await screen.findByText(expected);
 		expect(command.getAttribute("class")).toContain("font-mono");
 	});
@@ -72,7 +74,7 @@ describe("FailingCiSection", () => {
 		await rerun(user);
 		const command = await screen.findByText(expected);
 		expect(command.getAttribute("class")).toContain("select-all");
-		expect(screen.queryByText("Copied — paste in your terminal")).toBeNull();
+		expect(screen.queryByText("Copied the command. Paste it in a terminal.")).toBeNull();
 	});
 
 	// NY-36. Color alone never carries a failure.

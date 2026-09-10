@@ -41,13 +41,14 @@ describe("StalledSection", () => {
 	});
 
 	// NY-38. Nothing failed here, so the command carries no check clause.
+	// buildAgentCommand, the one builder, puts the ID in place of `{brief}`.
 	test("copies the plain agent command", async () => {
 		const user = userEvent.setup();
 		const clipboard = mockClipboard();
 		render(await seeded());
 		const row = await rowOf("CDE-38");
 		await user.click(row.querySelector<HTMLButtonElement>("button[data-start-with-agent]")!);
-		await waitFor(() => expect(clipboard.written).toEqual(['claude "$(trellis brief CDE-38)"']));
+		await waitFor(() => expect(clipboard.written).toEqual(['claude "CDE-38"']));
 	});
 
 	// NY-39. Back to Todo is how a dead agent session is given up.
