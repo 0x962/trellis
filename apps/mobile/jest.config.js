@@ -3,8 +3,9 @@
 const preset = require("jest-expo/jest-preset");
 
 // These packages ship untranspiled source, so babel transforms them. The
-// list is jest-expo's own plus NativeWind, its runtime, oRPC, FlashList, and
-// rou3, the ESM-only router the fake server's OpenAPI handler loads.
+// list is jest-expo's own plus NativeWind, its runtime, oRPC, FlashList,
+// rou3, the ESM-only router the fake server's OpenAPI handler loads, and the
+// markdown renderer, whose build keeps its JSX.
 const transformed = [
 	"react-native",
 	"@react-native",
@@ -22,6 +23,7 @@ const transformed = [
 	"@orpc",
 	"@shopify/flash-list",
 	"rou3",
+	"@ronradtke/react-native-markdown-display",
 ];
 
 // oRPC ships ESM in `.mjs` files only. Jest without `--experimental-vm-modules`
@@ -45,4 +47,7 @@ module.exports = {
 	// own jest setup answers them with a 400 by 900 box, so rows render.
 	setupFiles: [...preset.setupFiles, require.resolve("@shopify/flash-list/jestSetup")],
 	setupFilesAfterEnv: ["<rootDir>/test/jest.setup.ts"],
+	// expo-router's renderRouter turns on fake timers. With this option those
+	// timers advance with the clock, so a real wait inside a test still ends.
+	fakeTimers: { advanceTimers: true },
 };

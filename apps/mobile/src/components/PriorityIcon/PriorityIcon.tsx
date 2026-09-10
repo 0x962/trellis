@@ -35,6 +35,7 @@ export function PriorityIcon({ priority }: PriorityIconProps) {
 	if (priority === "urgent") {
 		return (
 			<View
+				accessible
 				accessibilityRole="image"
 				accessibilityLabel={label}
 				style={[styles.square, { backgroundColor: palette.danger }]}
@@ -45,7 +46,7 @@ export function PriorityIcon({ priority }: PriorityIconProps) {
 	}
 	const filled = filledBars[priority];
 	return (
-		<View accessibilityRole="image" accessibilityLabel={label} style={styles.bars}>
+		<View accessible accessibilityRole="image" accessibilityLabel={label} style={styles.bars}>
 			{barHeights.map((height, index) => (
 				<View
 					key={height}

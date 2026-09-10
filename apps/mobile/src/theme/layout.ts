@@ -3,6 +3,10 @@ export const layout = {
 	// The smallest hit area on a phone.
 	hit: 44,
 	header: 44,
+	// One activity line in a timeline.
+	activityRow: 32,
+	// The longest side of an inline attachment image.
+	attachmentImage: 240,
 	statusIcon: 16,
 	mark: 14,
 	avatar: 18,

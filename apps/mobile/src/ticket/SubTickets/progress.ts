@@ -8,6 +8,8 @@ export type SubTicketProgress = {
 };
 
 // Null for a ticket without children, so the screen hides the section.
-export const subTicketProgress = (_children: readonly TicketSummary[]): SubTicketProgress | null => {
-	throw new Error("subTicketProgress is not implemented");
+export const subTicketProgress = (children: readonly TicketSummary[]): SubTicketProgress | null => {
+	if (children.length === 0) return null;
+	const done = children.filter((child) => child.status.category === "done").length;
+	return { done, total: children.length, share: done / children.length };
 };
