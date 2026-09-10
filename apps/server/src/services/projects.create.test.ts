@@ -47,6 +47,29 @@ const seedCde = async () => {
 	return seeded;
 };
 
+// The default description of product.md section 6.3.
+const DEFAULT_TEMPLATE = "## Context\n\n## Acceptance criteria\n- [ ]\n\n## Out of scope\n";
+
+describe("projects.create ticket template", () => {
+	const templateOf = (id: string) =>
+		h.one<{ ticket_template: string }>(sql`SELECT ticket_template FROM projects WHERE id = ${id}`);
+
+	test("a root created with no ticket template gets the default template", async () => {
+		const project = await h.run((ctx, tx) => projects.create(ctx, tx, { key: "OPS", name: "Operations" }));
+
+		expect(project.ticketTemplate).toBe(DEFAULT_TEMPLATE);
+		expect((await templateOf(project.id)).ticket_template).toBe(DEFAULT_TEMPLATE);
+	});
+
+	test("a root created with a ticket template keeps that template", async () => {
+		const project = await h.run((ctx, tx) =>
+			projects.create(ctx, tx, { key: "OPS", name: "Operations", ticketTemplate: "## Steps\n" }),
+		);
+
+		expect((await templateOf(project.id)).ticket_template).toBe("## Steps\n");
+	});
+});
+
 describe("projects.create on a root", () => {
 	test("a root project takes its key, its own root id, and a zero counter", async () => {
 		const created = await h.run((ctx, tx) => projects.create(ctx, tx, { key: "CDE", name: "Code" }));
