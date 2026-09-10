@@ -12,6 +12,7 @@ export type BoardCardProps = {
 	columnName: string;
 	columnCount: number;
 	onOpen: () => void;
+	onFocus: () => void;
 	onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 	announce: (message: string) => void;
 	showStatus?: boolean;
@@ -33,6 +34,7 @@ export function BoardCard({
 	columnName,
 	columnCount,
 	onOpen,
+	onFocus,
 	onKeyDown,
 	announce,
 	showStatus = false,
@@ -65,6 +67,7 @@ export function BoardCard({
 			data-ticket-id={ticket.id}
 			data-ci={failing ? "failing" : undefined}
 			onClick={onOpen}
+			onFocus={onFocus}
 			onKeyDown={onKeyDown}
 			className={`relative flex h-24 shrink-0 cursor-grab flex-col rounded-md border border-border bg-surface p-3 text-base shadow-none transition-[box-shadow,border-color] duration-hover ease-out hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${failing ? "border-t-2 border-t-danger" : ""}`}
 		>

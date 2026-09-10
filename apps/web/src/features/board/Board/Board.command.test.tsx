@@ -20,7 +20,7 @@ const cardsIn = (name: string) =>
 	within(screen.getByRole("list", { name: new RegExp(`^${name},`) })).getAllByRole("listitem");
 
 // A card's accessible name starts with its identifier.
-const identifierOf = (card: HTMLElement) => card.getAttribute("aria-label")!.split(" ")[0];
+const identifierOf = (card: HTMLElement) => card.getAttribute("aria-label")!.split(" ")[0]!;
 
 const focusedTicket = () => useCommandStore.getState().focusedTicket;
 
