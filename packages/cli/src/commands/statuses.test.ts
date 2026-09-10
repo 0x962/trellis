@@ -157,6 +157,14 @@ describe("statuses", () => {
 		expect(inUse.stderr).toEndWith(" (STATUS_IN_USE)\n");
 	});
 
+	test("statuses rm --force sends force, so an agent can move the tickets into a done status", async () => {
+		const result = await runCli(["statuses", "rm", "CDE", "blocked", "--move-to", "done", "--force"], {
+			"statuses.delete": { deleted: status().id, moved: 2 },
+		});
+		expect(result.code).toBe(0);
+		expect(result.calls[0]!.input).toEqual({ project: "CDE", status: "blocked", moveTo: "done", force: true });
+	});
+
 	// CLI-80
 	test("statuses clear maps the project", async () => {
 		const result = await runCli(["statuses", "clear", "CDE.web"], {
