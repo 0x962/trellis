@@ -5,7 +5,16 @@ import { usePalette } from "../../theme/usePalette";
 
 export type FieldProps = Pick<
 	TextInputProps,
-	"value" | "onChangeText" | "placeholder" | "keyboardType" | "autoCapitalize" | "autoCorrect" | "autoComplete"
+	| "value"
+	| "onChangeText"
+	| "placeholder"
+	| "keyboardType"
+	| "autoCapitalize"
+	| "autoCorrect"
+	| "autoComplete"
+	| "testID"
+	| "returnKeyType"
+	| "onSubmitEditing"
 > & {
 	// The visible label; also the accessibility label of the input.
 	label: string;
