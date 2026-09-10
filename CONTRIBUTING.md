@@ -1,7 +1,7 @@
 # Contributing
 
 Read [AGENTS.md](AGENTS.md) first. It defines the repository rules.
-The [approved plan](docs/design/plan.md) defines the product.
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the stack, the domain rules, the schema, and the API.
 
 ## Development loop
 
@@ -34,7 +34,7 @@ Run `bun run check --force` before each hand-off.
 | `apps/server` | `@trellis/server` | The Hono server, procedures, services, database worker, and GitHub poller. |
 | `apps/web` | `@trellis/web` | The React web app and its fake server. |
 | `apps/mobile` | `@trellis/mobile` | The Expo mobile app. |
-| `docs/design` | | The approved plan and the design documents behind it. |
+| `docs` | | The architecture reference, the agent setup guide, and the images. |
 | `test` | | Tests for repository configuration and public files. |
 
 The dependency graph is a star with `@trellis/api` at the center.

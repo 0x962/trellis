@@ -21,7 +21,7 @@ const inbox = (totals: [number, number, number, number]): Inbox => ({
 const open: OpenSections = { review: true, failingCi: true, stalled: true, doneByAgentsToday: false };
 
 describe("inboxRows", () => {
-	// MI-17. The approved canvas pill shows 4 for the seeded inbox.
+	// MI-17. The approved pill shows 4 for the seeded inbox.
 	test("the badge count adds review and failing CI only", () => {
 		expect(badgeCount(inbox([3, 1, 1, 6]))).toBe(4);
 		expect(badgeCount(inbox([0, 0, 2, 6]))).toBe(0);

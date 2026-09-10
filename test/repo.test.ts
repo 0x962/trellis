@@ -5,7 +5,7 @@ import { join } from "node:path";
 import bunfig from "../bunfig.toml";
 import { checkTasks } from "../scripts/check";
 
-// Each test reads one root file and checks the fields plan.md names for it.
+// Each test reads one root file and checks the fields the repo needs in it.
 // A missing file throws ENOENT, so the failure names the file to create.
 const root = join(import.meta.dir, "..");
 
@@ -47,7 +47,7 @@ describe("root scaffold", () => {
 		expect(pkg.packageManager).toStartWith("bun@1.3");
 	});
 
-	test("package.json declares every root script from the plan", async () => {
+	test("package.json declares every root script", async () => {
 		const { scripts } = await json("package.json");
 		for (const name of [
 			"dev",
@@ -71,8 +71,8 @@ describe("root scaffold", () => {
 		expect(checkTasks.full).toContain("test");
 	});
 
-	// plan.md: `check` runs lint, typecheck, test, the size budget, and the 10k
-	// perf suite. The two tasks belong to apps/web and apps/server. turbo refuses
+	// `check` runs lint, typecheck, test, the size budget, and the 10k perf
+	// suite. The two tasks belong to apps/web and apps/server. turbo refuses
 	// a task that turbo.json does not declare, so the root declares both.
 	test("check runs the size budget and the 10k perf suite through turbo", async () => {
 		const { tasks } = await json("turbo.json");
@@ -95,7 +95,7 @@ describe("root scaffold", () => {
 		}
 	});
 
-	test("biome.json restricts db/client, motion, radix, and shadcn imports with the plan messages", async () => {
+	test("biome.json restricts db/client, motion, radix, and shadcn imports with the rule messages", async () => {
 		const messages = restrictedImportMessages(await json("biome.json"));
 		expect(messages.get("**/db/client")).toContain("every query takes tx first");
 		expect(messages.get("**/db/client")).toContain("deadlocks the server");
@@ -159,7 +159,7 @@ describe("root scaffold", () => {
 	test("the root docs, changelog, changeset config, and editorconfig exist", async () => {
 		const files = ["README.md", "CONTRIBUTING.md", "CHANGELOG.md", ".changeset/config.json", ".editorconfig"];
 		expect(files.filter((file) => !existsSync(join(root, file)))).toEqual([]);
-		expect(await text("README.md")).toContain("docs/design/plan.md");
+		expect(await text("README.md")).toContain("docs/ARCHITECTURE.md");
 		const { fixed } = await json(".changeset/config.json");
 		expect(fixed[0].some((entry: string) => entry.startsWith("@trellis/"))).toBe(true);
 	});
@@ -199,7 +199,7 @@ describe("root scaffold", () => {
 		expect(check.steps.some((step) => step.run?.includes("bun run check"))).toBe(true);
 	});
 
-	// plan.md, Database schema: CI fails on a non-empty
+	// ARCHITECTURE.md, Database schema: CI fails on a non-empty
 	// `git status --porcelain drizzle/` after `drizzle-kit generate`.
 	test("ci.yml regenerates the migrations and fails on a drizzle diff", async () => {
 		const ci = Bun.YAML.parse(await text(".github/workflows/ci.yml")) as {
@@ -210,7 +210,7 @@ describe("root scaffold", () => {
 		expect(runs.some((run) => run.includes("git status --porcelain apps/server/drizzle/"))).toBe(true);
 	});
 
-	// plan.md, Performance requirements: the 10k seed runs in `bun run check`
+	// ARCHITECTURE.md, Performance budgets: the 10k seed runs in `bun run check`
 	// and the 50k seed in `bun run perf`. turbo runs a task only in a
 	// workspace whose package.json defines the script, and reports success
 	// when none does.
@@ -266,8 +266,8 @@ describe("root scaffold", () => {
 		}
 	});
 
-	// plan.md "Code organization": a service is `(ctx, tx, input) => result`.
-	test("AGENTS.md and CONTRIBUTING.md state the workspace bunfig rule and the plan's service signature", async () => {
+	// ARCHITECTURE.md, Code organization: a service is `(ctx, tx, input) => result`.
+	test("AGENTS.md and CONTRIBUTING.md state the workspace bunfig rule and the service signature", async () => {
 		const agents = await text("AGENTS.md");
 		const contributing = await text("CONTRIBUTING.md");
 		expect(agents).toContain('preload = ["../../test/preload.ts"]');

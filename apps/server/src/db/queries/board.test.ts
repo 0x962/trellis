@@ -78,7 +78,7 @@ describe("board", () => {
 		expect(shown(byReviewer.columns)).toEqual([human]);
 	});
 
-	// plan.md: the board shows the first 100 by (position, id) and more come
+	// The board shows the first 100 by (position, id) and more come
 	// through `list` with `status=`. Both order equal positions the same way,
 	// so the list's first page is the board's column and its second page
 	// starts where the column stopped.

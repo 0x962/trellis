@@ -74,7 +74,7 @@ describe("Gallery", () => {
 		await waitFor(() => expect(screen.queryByRole("dialog", { name: "CDE-43" })).toBeNull());
 	});
 
-	test("the composition section reproduces the mockup rows with the real components", () => {
+	test("the composition section builds the product rows from the real components", () => {
 		render(<Gallery />);
 		const row = screen.getByTestId("needs-you-row");
 		expect(row.querySelector("[aria-label^='Priority:']")).not.toBeNull();

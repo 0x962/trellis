@@ -12,7 +12,7 @@ trellis is a local ticket tracker for work that humans give to coding agents. On
 
 Agents use the `trellis` CLI or the HTTP API. Each write records the name of the actor that made it. You use the web app, or the mobile app on your phone. The Needs you page shows the tickets that wait for a human: reviews, failing CI, and stalled work. An agent can move a ticket to review. Only a human can move a ticket to Done.
 
-The [approved plan](docs/design/plan.md) defines the v1 product.
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the stack, the domain rules, the schema, and the API.
 
 ## Install
 

@@ -4,7 +4,7 @@ import { expectClasses } from "../../../test/classes";
 import { Kbd } from "./Kbd";
 
 describe("Kbd", () => {
-	test("renders a kbd element with the mockup treatment", () => {
+	test("renders a kbd element with the key treatment", () => {
 		render(<Kbd>⌘K</Kbd>);
 		const kbd = screen.getByText("⌘K");
 		expect(kbd.tagName).toBe("KBD");

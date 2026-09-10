@@ -1,6 +1,6 @@
 # Repo rules for every agent
 
-trellis is a local ticket tracker for agent-driven work. The plan is `docs/design/plan.md`. Where any other document disagrees with the plan, the plan wins. Read this file before you write code.
+trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` describes the system. Read this file before you write code.
 
 ## Work
 

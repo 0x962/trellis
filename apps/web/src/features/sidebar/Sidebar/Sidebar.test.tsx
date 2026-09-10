@@ -17,7 +17,7 @@ const aside = () => document.querySelector<HTMLElement>('aside[aria-label="Sideb
 
 describe("features/sidebar/Sidebar", () => {
 	// WS-93. w-60 is 240 px on the 4 px spacing scale.
-	test("the sidebar renders the rows in the canvas order at 240 px", async () => {
+	test("the sidebar renders the rows in the approved order at 240 px", async () => {
 		renderWithProviders(<Sidebar />, { path: "/needs-you", actor: "navid" });
 		const element = aside();
 		expect(element.tagName).toBe("ASIDE");

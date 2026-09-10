@@ -4,8 +4,8 @@ import { TicketSchema } from "@trellis/api";
 import { createFakeServer } from "./index";
 
 describe("fake server tickets.get", () => {
-	// WS-117. CDE-42 is the ticket the canvas ticket page shows.
-	test("tickets.get returns the full canvas ticket and 404s an unknown identifier", async () => {
+	// WS-117. CDE-42 is the ticket the seeded ticket page shows.
+	test("tickets.get returns the full seeded ticket and 404s an unknown identifier", async () => {
 		const server = createFakeServer();
 		const ticket = TicketSchema.parse(await server.client.tickets.get({ ticket: "cde-42" }));
 		expect(ticket.identifier).toBe("CDE-42");

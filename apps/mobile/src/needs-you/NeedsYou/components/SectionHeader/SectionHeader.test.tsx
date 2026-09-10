@@ -6,7 +6,7 @@ import { SectionHeader } from "./SectionHeader";
 const header = (name: string) => screen.getByRole("button", { name });
 
 describe("SectionHeader", () => {
-	// MI-13. The approved canvas shows "swipe to act" on the Review header.
+	// MI-13. The approved design shows "swipe to act" on the Review header.
 	test("the review header carries the swipe hint", async () => {
 		await render(<SectionHeader name="Review" count={3} hint="swipe to act" open onToggle={() => {}} />);
 		expect(within(header("Review")).getByText("swipe to act")).toBeOnTheScreen();
