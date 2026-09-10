@@ -42,6 +42,7 @@ export type RunOptions = FakeServerOptions & {
 	run?: Deps["run"];
 	launchdDomain?: string;
 	home?: string;
+	which?: Deps["which"];
 };
 
 export type RunResult = {
@@ -97,6 +98,7 @@ export const makeDeps = (routes: Routes = {}, options: RunOptions = {}) => {
 			}),
 		launchdDomain: options.launchdDomain ?? "gui/test",
 		home: options.home ?? mkdtempSync(join(process.env.TRELLIS_HOME!, "user-home-")),
+		which: options.which ?? ((name: string) => join("/test/bin", name)),
 	};
 	return { deps, server, stdout: () => out, stderr: () => err, sleeps, commands };
 };

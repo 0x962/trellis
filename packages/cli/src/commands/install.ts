@@ -5,10 +5,6 @@ import { type CliContext, contextOf } from "../context.ts";
 import { CliFailure } from "../errors.ts";
 import { installationPaths } from "../installation.ts";
 
-// The agent runs the bun that runs the installer. Bun resolves symlinks in
-// `process.execPath`, so a Homebrew bun names its versioned Cellar
-// directory, and a bun upgrade needs a new install.
-const bun = process.execPath;
 const shimBun = "/opt/homebrew/bin/bun";
 const routeLine = "  trellis: 4521,";
 
@@ -21,7 +17,11 @@ const xml = (value: string) =>
 const hostEntry = (host: string | undefined) =>
 	host === undefined ? "" : `\t\t<key>TRELLIS_HOST</key>\n\t\t<string>${xml(host)}</string>\n`;
 
-const plistText = (paths: Paths, host: string | undefined) => `<?xml version="1.0" encoding="UTF-8"?>
+// `bun` is the path that `which` finds on PATH, with no symlink resolved. A
+// Homebrew bun on PATH is a symlink that `brew upgrade` moves to the new
+// version. `process.execPath` names the versioned Cellar directory, which
+// the upgrade deletes, and the agent then has no program to run.
+const plistText = (paths: Paths, host: string | undefined, bun: string) => `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -29,7 +29,7 @@ const plistText = (paths: Paths, host: string | undefined) => `<?xml version="1.
 	<string>com.trellis.server</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>${bun}</string>
+		<string>${xml(bun)}</string>
 		<string>${xml(paths.serverEntry)}</string>
 	</array>
 	<key>EnvironmentVariables</key>
@@ -108,12 +108,14 @@ export default defineCommand({
 	async run(context) {
 		const ctx = contextOf(context);
 		const paths = installationPaths(ctx.deps.env, ctx.deps.home, context.args.prefix);
+		const bun = ctx.deps.which("bun");
+		if (bun === null) throw new CliFailure("INSTALL_FAILED", 1, "bun is not on PATH");
 		await buildWeb(ctx, paths);
 		mkdirSync(dirname(paths.shim), { recursive: true });
 		writeFileSync(paths.shim, `#!/bin/sh\nexec ${shimBun} "${paths.cliEntry}" "$@"\n`);
 		chmodSync(paths.shim, 0o755);
 		mkdirSync(dirname(paths.plist), { recursive: true });
-		writeFileSync(paths.plist, plistText(paths, context.args.host));
+		writeFileSync(paths.plist, plistText(paths, context.args.host, bun));
 
 		if (context.args.gateway === true) {
 			const added = addGateway(paths.gateway);
