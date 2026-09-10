@@ -93,8 +93,8 @@ export function StartWithAgent({ ticket }: StartWithAgentProps) {
 					<IconButton
 						label="Start with agent options"
 						icon={<ChevronDown />}
-						variant="default"
-						className="rounded-l-none border-accent bg-accent text-on-accent hover:bg-accent hover:brightness-105"
+						variant="primary"
+						className="rounded-l-none"
 					/>
 				}
 			>
