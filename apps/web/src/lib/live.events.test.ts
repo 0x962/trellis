@@ -42,7 +42,8 @@ describe("lib/live events", () => {
 		expect(tab.live.bootId()).toBe(otherBootId);
 		expect(tab.live.lastId()).toBe(eventId(0, otherBootId));
 		expect(invalidate).toHaveBeenCalledTimes(1);
-		expect(applyEvent).not.toHaveBeenCalled();
+		// The one ticket.updated frame reached the applier. No ready frame did.
+		expect(applyEvent).toHaveBeenCalledTimes(1);
 	});
 
 	// WS-60. A frame the server wrote is valid JSON. Anything else is a

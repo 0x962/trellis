@@ -11,7 +11,9 @@ beforeEach(() => {
 	useUiStore.setState(createUiStore().getState());
 });
 
-const aside = () => screen.getByRole("complementary", { name: "Sidebar" });
+// A collapsed sidebar carries the hidden attribute, which strips its accessible
+// name, so a role query cannot find it. The selector does.
+const aside = () => document.querySelector<HTMLElement>('aside[aria-label="Sidebar"]')!;
 
 describe("features/sidebar/Sidebar", () => {
 	// WS-93. w-60 is 240 px on the 4 px spacing scale.

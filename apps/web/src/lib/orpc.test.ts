@@ -34,7 +34,9 @@ describe("lib/orpc", () => {
 	test("the query utils produce the keys applyEvent patches and the client never refetches by staleness", async () => {
 		setActorName("navid");
 		const key = orpc.tickets.get.queryOptions({ input: { ticket: "CDE-42" } }).queryKey;
-		expect(key).toEqual(generateOperationKey(["tickets", "get"], { input: { ticket: "CDE-42" }, type: "query" }));
+		expect<unknown>(key).toEqual(
+			generateOperationKey(["tickets", "get"], { input: { ticket: "CDE-42" }, type: "query" }),
+		);
 		const defaults = queryClient.getDefaultOptions().queries!;
 		expect(defaults.staleTime).toBe(Number.POSITIVE_INFINITY);
 		expect(defaults.retry).toBe(false);
@@ -43,7 +45,7 @@ describe("lib/orpc", () => {
 		expect(local.queryClient.getDefaultOptions().queries!.staleTime).toBe(Number.POSITIVE_INFINITY);
 		const projects = await local.queryClient.fetchQuery(local.orpc.projects.list.queryOptions({ input: {} }));
 		expect(projects.map((project) => project.path)).toContain("CDE");
-		expect(
+		expect<unknown>(
 			local.queryClient.getQueryData(generateOperationKey(["projects", "list"], { input: {}, type: "query" })),
 		).toBe(projects);
 	});
