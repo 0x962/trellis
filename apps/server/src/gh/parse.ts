@@ -1,4 +1,5 @@
 import type { Check, CheckBucket, CiState } from "@trellis/api";
+import type { PullRequestRef } from "./graphql.ts";
 
 // The raw nodes `gh api graphql` returns for `statusCheckRollup { contexts }`.
 // A CheckRun comes from GitHub Actions or a checks app and carries its
@@ -118,4 +119,17 @@ export const findTicketIdentifiers = (text: string): TicketIdentifier[] => {
 		found.push({ key, number });
 	}
 	return found;
+};
+
+// The pull request one GitHub url names. The path may carry more segments
+// (`/files`), a query, or a fragment, and the owner and the repository may
+// be spelled in any case.
+const PULL_URL = /^https?:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/pull\/([1-9][0-9]*)(?:[/?#]|$)/i;
+
+// The owner and the repository are case-insensitive on GitHub and lower case
+// in the database, so two spellings of one pull request are one row.
+export const parsePullRequestUrl = (url: string): PullRequestRef | null => {
+	const match = PULL_URL.exec(url);
+	if (match === null) return null;
+	return { owner: match[1]!.toLowerCase(), repo: match[2]!.toLowerCase(), number: Number(match[3]) };
 };

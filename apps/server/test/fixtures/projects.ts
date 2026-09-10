@@ -173,3 +173,8 @@ export const seedRootWithStatuses = async (tx: Executor, key: string) => {
 	const statuses = await seedStatuses(tx, rootId);
 	return { rootId, statuses };
 };
+
+// One declared repository on a project. detect lists the distinct pairs and
+// links a pull request only when the ticket's root tree declares its pair.
+export const seedRepo = (tx: Executor, projectId: string, owner: string, repo: string) =>
+	insertRow(tx, "repos", { id: ulid(), project_id: projectId, owner, repo });

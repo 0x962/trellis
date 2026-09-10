@@ -5,7 +5,7 @@ import { iso, rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fetchDiff } from "../gh/diff.ts";
 import { fetchPullRequests, type PullRequestRef, type PullRequestRow } from "../gh/graphql.ts";
-import { parsePullRequestUrl } from "./pullRequestUrl.ts";
+import { parsePullRequestUrl } from "../gh/parse.ts";
 import {
 	type ActorRef,
 	assertProjectActive,
@@ -34,7 +34,7 @@ import {
 const DIFF_CACHE_MS = 60_000;
 const diffCache = new Map<string, { at: number; value: PullRequestDiffOutput }>();
 
-export { parsePullRequestUrl } from "./pullRequestUrl.ts";
+export { parsePullRequestUrl };
 
 type PrRow = {
 	id: string;

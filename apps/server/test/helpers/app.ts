@@ -6,7 +6,7 @@ import { createInlineTransport, type Runtime } from "../../src/db/transport.ts";
 import { createBus } from "../../src/events/bus.ts";
 import { createGhRunner, type GhRunner } from "../../src/gh/run.ts";
 import { createLogger, type LogLevel, type LogRecord } from "../../src/log.ts";
-import { fakeClock } from "./clock.ts";
+import { fakeIntervalClock } from "./clock.ts";
 import { signedInGh } from "./ctx.ts";
 import { freshDb, type TestDb } from "./db.ts";
 import { freshHomeWithDirs } from "./home.ts";
@@ -85,7 +85,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		gh: options.gh ?? createGhRunner(),
 		ghStatus: options.ghStatus ?? signedInGh,
 	};
-	const clock = fakeClock();
+	const clock = fakeIntervalClock();
 	const transport = createInlineTransport({ db: h.db, bus, config, runtime });
 	await transport.start();
 	const { app, bye } = createApp({ config, log, transport, bus, runtime, clock });
