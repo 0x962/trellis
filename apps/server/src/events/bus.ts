@@ -100,7 +100,10 @@ export const createBus = ({ bootId }: { bootId: string }) => {
 		return ring.filter((entry) => entry.seq >= first && matches(entry.event, filter));
 	};
 
-	return { bootId, emit, subscribe, since };
+	// The id of the newest entry. Null until the first event of this boot.
+	const tip = () => ring.at(-1)?.id ?? null;
+
+	return { bootId, emit, subscribe, since, tip };
 };
 
 export type Bus = ReturnType<typeof createBus>;

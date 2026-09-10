@@ -5,6 +5,7 @@ import { iso, rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fetchDiff } from "../gh/diff.ts";
 import { fetchPullRequests, type PullRequestRef, type PullRequestRow } from "../gh/graphql.ts";
+import { parsePullRequestUrl } from "./pullRequestUrl.ts";
 import {
 	type ActorRef,
 	assertProjectActive,
@@ -33,15 +34,7 @@ import {
 const DIFF_CACHE_MS = 60_000;
 const diffCache = new Map<string, { at: number; value: PullRequestDiffOutput }>();
 
-const PULL_URL = /^https?:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/pull\/([1-9][0-9]*)(?:[/?#]|$)/i;
-
-// The owner and the repository are case-insensitive on GitHub and lower-case
-// in the database, so two spellings of one pull request are one row.
-export const parsePullRequestUrl = (url: string): PullRequestRef | null => {
-	const match = PULL_URL.exec(url);
-	if (match === null) return null;
-	return { owner: match[1]!.toLowerCase(), repo: match[2]!.toLowerCase(), number: Number(match[3]) };
-};
+export { parsePullRequestUrl } from "./pullRequestUrl.ts";
 
 type PrRow = {
 	id: string;
@@ -129,6 +122,8 @@ const fetchOne = async (ctx: ServiceCtx, ref: PullRequestRef): Promise<Fetched> 
 	return "row" in first ? { row: first.row } : { error: first.error };
 };
 
+// A row whose content hash matches the fetch is left as it is, so a second
+// link of one URL answers the same row, stamps included.
 const writeFetched = (tx: Tx, at: Date, row: PullRequestRow) =>
 	tx.execute(sql`
 	INSERT INTO pull_requests (
@@ -145,6 +140,7 @@ const writeFetched = (tx: Tx, at: Date, row: PullRequestRow) =>
 		merged_at = EXCLUDED.merged_at, closed_at = EXCLUDED.closed_at, checks = EXCLUDED.checks,
 		ci_state = EXCLUDED.ci_state, content_hash = EXCLUDED.content_hash, fetched_at = EXCLUDED.fetched_at,
 		fetch_error = NULL, updated_at = EXCLUDED.updated_at
+	WHERE pull_requests.content_hash IS DISTINCT FROM EXCLUDED.content_hash
 `);
 
 // A pull request gh could not answer for still gets its row, with the gh

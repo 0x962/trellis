@@ -118,11 +118,14 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promi
 	const at = ctx.now();
 	const id = ulid();
 	const filename = input.name ?? input.file.name;
+	// A browser sends `text/plain;charset=utf-8`. The row keeps the type and
+	// the subtype; the file route sets the charset itself.
+	const mime = input.file.type.split(";")[0]!.trim();
 	await touchActor(tx, ctx.actor, at);
 	await tx.execute(sql`
 		INSERT INTO attachments (id, ticket_id, filename, mime, size, sha256, actor_name, actor_kind, created_at)
 		VALUES (
-			${id}, ${ticket.id}, ${filename}, ${input.file.type}, ${stored.size}, ${stored.sha256},
+			${id}, ${ticket.id}, ${filename}, ${mime}, ${stored.size}, ${stored.sha256},
 			${ctx.actor.name}, ${ctx.actor.kind}, ${at}
 		)
 	`);
@@ -133,7 +136,7 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promi
 		id,
 		ticketId: ticket.id,
 		filename,
-		mime: input.file.type,
+		mime,
 		size: stored.size,
 		sha256: stored.sha256,
 		actor: ctx.actor,
