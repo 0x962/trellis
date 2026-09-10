@@ -92,8 +92,15 @@ describe("boot", () => {
 	// Bun closes a connection that is silent for 10 seconds by default. The
 	// first ping comes after 15 seconds, so a quiet stream must outlive that
 	// window and still deliver the next event on the same connection.
+	// The poller checks gh after 10 seconds. A signed-in gh stub keeps that
+	// check from sending a gh.status event into the silent stream.
 	test("an event stream stays open through 12 silent seconds", async () => {
-		const server = start(freshHome());
+		const home = freshHome();
+		const stub = ghStub(mkdtempSync(join(home, "gh-")), {
+			"auth status": { stdout: "Logged in to github.com account navid", stderr: "", exitCode: 0 },
+		});
+		restores.push(stub.restore);
+		const server = start(home);
 		const { url } = await server.listening();
 		const stream = readSse(await fetch(`${url}/api/events`));
 		expect((await stream.next()).event).toBe("ready");
