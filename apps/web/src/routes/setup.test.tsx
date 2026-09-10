@@ -82,7 +82,7 @@ describe("routes/setup", () => {
 		expect(call).toBeDefined();
 		expect(call!.input).toEqual({ key: "DOC", name: "Docs" });
 		expect(call!.actor).toBe("human:navid");
-		expect(await screen.findByText(/trellis new -p DOC "/)).toBeDefined();
+		expect(await screen.findByText(/trellis create -p DOC -t "/)).toBeDefined();
 		expect(screen.getByRole("complementary", { name: "Sidebar" })).toBeDefined();
 	});
 });
