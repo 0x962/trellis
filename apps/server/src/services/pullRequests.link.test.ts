@@ -153,9 +153,9 @@ describe("pullRequests.link", () => {
 
 		const { result, delivered } = await runLink({ ticket: "CDE-1", url });
 
-		const expected: TrellisEvent[] = [
+		const expected = [
 			{ type: "pr.linked", id: result.id, ticketIds: [first], state: "open", ciState: "fail" },
-		];
+		] satisfies TrellisEvent[];
 		expect(delivered.filter((event) => event.type === "pr.linked")).toEqual(expected);
 		const activity = await rows("activity");
 		expect(activity).toHaveLength(1);

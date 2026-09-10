@@ -84,13 +84,13 @@ const recordHashChunks = async (run: () => Promise<unknown>) => {
 // large multipart part can do.
 class OneChunkFile extends File {
 	constructor(
-		private readonly whole: Uint8Array,
+		private readonly whole: Uint8Array<ArrayBuffer>,
 		name: string,
 		type: string,
 	) {
 		super([whole], name, { type });
 	}
-	override stream(): ReadableStream<Uint8Array> {
+	override stream(): ReadableStream<Uint8Array<ArrayBuffer>> {
 		const whole = this.whole;
 		return new ReadableStream({
 			start(controller) {
@@ -182,7 +182,9 @@ describe("attachments.upload", () => {
 		const { result, delivered, insideCommit } = await runUpload({ ticket: "CDE-1", file: png("pixels") });
 
 		expect(insideCommit).toBe(0);
-		const expected: TrellisEvent[] = [{ type: "attachment.created", id: result.attachment.id, ticketId: ticket }];
+		const expected = [
+			{ type: "attachment.created", id: result.attachment.id, ticketId: ticket },
+		] satisfies TrellisEvent[];
 		expect(delivered.filter((event) => event.type === "attachment.created")).toEqual(expected);
 	});
 

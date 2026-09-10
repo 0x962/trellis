@@ -99,7 +99,9 @@ describe("attachments.remove", () => {
 
 		await withTx(h.db, (tx, emit) => remove(withEmit(handle.ctx, emit), tx, { id: uploaded.attachment.id }), sink);
 
-		const expected: TrellisEvent[] = [{ type: "attachment.deleted", id: uploaded.attachment.id, ticketId: ticket }];
+		const expected = [
+			{ type: "attachment.deleted", id: uploaded.attachment.id, ticketId: ticket },
+		] satisfies TrellisEvent[];
 		expect(delivered.filter((event) => event.type === "attachment.deleted")).toEqual(expected);
 		const [after] = await rows("tickets");
 		expect(after!.version).toBe((before!.version as number) + 1);

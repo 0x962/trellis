@@ -64,9 +64,9 @@ describe("pullRequests.unlink", () => {
 		expect(await count(h.db, "pull_requests")).toBe(1);
 		const links = await rows("ticket_pull_requests");
 		expect(links.map((row) => row.ticket_id)).toEqual([ids[1]!]);
-		const expected: TrellisEvent[] = [
+		const expected = [
 			{ type: "pr.unlinked", id: pr, ticketIds: [ids[1]!], state: "open", ciState: "pass" },
-		];
+		] satisfies TrellisEvent[];
 		expect(delivered.filter((event) => event.type === "pr.unlinked")).toEqual(expected);
 	});
 

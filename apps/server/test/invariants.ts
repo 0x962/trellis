@@ -1,5 +1,8 @@
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import type { Tx } from "../src/db/tx.ts";
+import { attachmentsDir, blobPath, TEMP_DIR } from "../src/storage/blobs.ts";
 
 // The status invariant: `tickets.status_id` belongs to owner(ticket.project),
 // the nearest ancestor-or-self of the ticket's project that owns statuses.
@@ -32,4 +35,20 @@ export const assertStatusInvariant = async (tx: Tx) => {
 	if (violations.length === 0) return;
 	const lines = violations.map((row) => `${row.identifier} points at status ${row.status_id}`);
 	throw new Error(`Status invariant violated: ${lines.join("; ")}`);
+};
+
+// The blob invariant: every attachment row has its file on disk, and every
+// file under `attachments` has at least one attachment row. The message
+// names each sha256 that breaks it, so a failing test says which file is
+// missing and which file is spare.
+export const assertBlobInvariant = async (tx: Tx, home: string) => {
+	const result = await tx.execute(sql`SELECT DISTINCT sha256 FROM attachments ORDER BY sha256`);
+	const rowShas = result.rows.map((row) => row.sha256 as string);
+	const missing = rowShas.filter((sha) => !existsSync(blobPath(home, sha)));
+	const stored = readdirSync(attachmentsDir(home), { withFileTypes: true })
+		.filter((entry) => entry.isDirectory() && entry.name !== TEMP_DIR)
+		.flatMap((entry) => readdirSync(join(attachmentsDir(home), entry.name)));
+	const spare = stored.filter((sha) => !rowShas.includes(sha)).sort();
+	if (missing.length === 0 && spare.length === 0) return;
+	throw new Error(`Blob invariant violated: no file for ${missing.join(", ")}; no row for ${spare.join(", ")}`);
 };
