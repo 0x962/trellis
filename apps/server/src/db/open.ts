@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { openDb } from "./client.ts";
+import { initCluster } from "./initCluster.ts";
 import { migrate } from "./migrate.ts";
 
 // The migration log lives in the `drizzle` schema, which the first
@@ -15,6 +16,7 @@ const migrationCount = async (db: Awaited<ReturnType<typeof openDb>>) => {
 // `applied` is the number of migrations this open ran. `liveShas` are the
 // hashes an attachment row still names, which the blob sweep keeps.
 export const openDatabase = async (dataDir: string) => {
+	await initCluster(dataDir);
 	const db = await openDb(dataDir);
 	const before = await migrationCount(db);
 	await migrate(db);
