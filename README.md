@@ -18,8 +18,10 @@ Agents use the `trellis` CLI or the HTTP API. Each write records the name of the
 
 trellis needs [Bun](https://bun.sh) 1.3. The launchd service needs macOS. To see pull requests and CI, install `gh` and run `gh auth login`.
 
+Version 0.1 publishes no package. The CLI installs from a clone, and the clone stays on disk, because the installed command and the launchd service run the server from it.
+
 ```sh test skip
-git clone git@github.com:0x962/trellis.git
+git clone https://github.com/0x962/trellis.git
 cd trellis
 bun install
 ```
