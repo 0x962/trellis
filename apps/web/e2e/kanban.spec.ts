@@ -48,7 +48,7 @@ type TimelineItem = { kind: string; field: string | null; actor: unknown };
 
 // M3: a drop writes a status activity for the person who dropped, and the
 // board shows the card in its new column before the server answers.
-test("kanban > a drag to another column moves the ticket, writes a status activity, and patches the board", async ({
+test("kanban > a drag to another column moves the ticket, writes a status activity, and patches the board @timing", async ({
 	page,
 }) => {
 	await page.addInitScript(dropProbe);

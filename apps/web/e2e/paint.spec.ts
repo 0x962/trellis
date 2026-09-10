@@ -77,7 +77,7 @@ test("paint > the first frame of a fresh profile carries the dark theme", async 
 });
 
 // Cold: a new browser profile with nothing cached.
-test("paint > a cold load paints within 300 ms and shows rows within 600 ms", async ({ page }) => {
+test("paint > a cold load paints within 300 ms and shows rows within 600 ms @timing", async ({ page }) => {
 	await page.addInitScript(probe);
 	await signIn(page, "about:blank");
 	const marks = await load(page);
@@ -89,7 +89,7 @@ test("paint > a cold load paints within 300 ms and shows rows within 600 ms", as
 
 // Warm: the same profile opens the table a second time, with the hashed
 // assets in the browser cache.
-test("paint > a warm load shows rows within 150 ms", async ({ page }) => {
+test("paint > a warm load shows rows within 150 ms @timing", async ({ page }) => {
 	await page.addInitScript(probe);
 	await signIn(page, "about:blank");
 	await load(page);
