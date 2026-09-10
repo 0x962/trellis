@@ -18,12 +18,11 @@ export type SearchResultsProps = {
 	children?: ReactNode;
 };
 
-// A result row is 36 px, as a table row is, and hovers on the band. In a
-// collapsed table the 1 px row line adds to the row box, so the row sets
-// 35 px.
-const rowClass = "h-[35px] border-b border-border text-fg transition-colors duration-hover ease-out hover:bg-band";
+// A result row is 36 px, as a table row is, and hovers on the band.
+const rowClass = "h-9 border-b border-border text-fg transition-colors duration-hover ease-out hover:bg-band";
+// The link takes no height of its own, so the row keeps its 36 px.
 const linkClass =
-	"inline-flex h-9 items-center focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
+	"inline-flex items-center rounded-sm focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
 
 // The tickets and the projects that match `q`, as display-only rows with the
 // table's cells: priority, ID, the title with each matched word marked, the
