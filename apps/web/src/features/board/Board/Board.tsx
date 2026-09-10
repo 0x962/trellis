@@ -120,7 +120,8 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 		[runMove],
 	);
 
-	useBoardAutoScroll(boardRef);
+	const ready = boardQuery.data !== undefined && (projectRef === undefined || projectQuery.data !== undefined);
+	useBoardAutoScroll(boardRef, ready);
 	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce);
 
 	const createTicket = async (column: BoardColumnModel, title: string) => {
@@ -196,7 +197,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 		}
 	};
 
-	if (boardQuery.data === undefined || (projectRef !== undefined && projectQuery.data === undefined)) {
+	if (!ready) {
 		return <Skeleton className="m-4 h-24 w-75" />;
 	}
 

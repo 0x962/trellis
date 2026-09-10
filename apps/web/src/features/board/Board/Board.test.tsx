@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, spyOn, test } from "bun:test";
 import "@atlaskit/pragmatic-drag-and-drop-unit-testing/drag-event-polyfill";
 import "@atlaskit/pragmatic-drag-and-drop-unit-testing/dom-rect-polyfill";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
@@ -39,11 +39,13 @@ const drop = (source: HTMLElement, target: HTMLElement, edge?: "top" | "bottom")
 describe("Board", () => {
 	test("the loading state mounts before auto-scroll attaches", async () => {
 		const userAgent = navigator.userAgent;
+		const warning = spyOn(console, "warn").mockImplementation(() => {});
 		Object.defineProperty(navigator, "userAgent", { configurable: true, value: "Chrome" });
 		try {
 			renderBoard();
 			expect(await screen.findByText("CDE-47")).toBeDefined();
 		} finally {
+			warning.mockRestore();
 			Object.defineProperty(navigator, "userAgent", { configurable: true, value: userAgent });
 		}
 	});

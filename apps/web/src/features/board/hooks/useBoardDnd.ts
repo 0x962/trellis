@@ -22,12 +22,13 @@ type TicketData = {
 
 const isTicketData = (data: Record<string | symbol, unknown>): data is TicketData => data.type === "ticket";
 
-export const useBoardAutoScroll = (ref: RefObject<HTMLElement | null>) => {
+export const useBoardAutoScroll = (ref: RefObject<HTMLElement | null>, enabled: boolean) => {
 	useEffect(() => {
+		if (!enabled) return;
 		if (navigator.userAgent.includes("HappyDOM")) return;
 		const element = ref.current!;
 		return autoScrollForElements({ element, getAllowedAxis: () => "all" });
-	}, [ref]);
+	}, [enabled, ref]);
 };
 
 export const useCardDnd = (
