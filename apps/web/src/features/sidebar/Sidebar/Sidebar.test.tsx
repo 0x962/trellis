@@ -15,6 +15,30 @@ beforeEach(() => {
 // name, so a role query cannot find it. The selector does.
 const aside = () => document.querySelector<HTMLElement>('aside[aria-label="Sidebar"]')!;
 
+describe("features/sidebar/Sidebar archived group", () => {
+	test("an archived project sits under a collapsed Archived group", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		await server.client.projects.update({ project: "MRG", archived: true });
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", server });
+		const tree = await screen.findByRole("navigation", { name: "Projects" });
+		await within(tree).findByRole("link", { name: /trellis/ });
+		expect(within(tree).queryByRole("link", { name: /margin/ })).toBeNull();
+		const toggle = await screen.findByRole("button", { name: /^Archived/ });
+		expect(toggle.getAttribute("aria-expanded")).toBe("false");
+		expect(screen.queryByRole("link", { name: /margin/ })).toBeNull();
+		await user.click(toggle);
+		expect(toggle.getAttribute("aria-expanded")).toBe("true");
+		expect(await screen.findByRole("link", { name: /margin/ })).toBeDefined();
+	});
+
+	test("no archived project shows no Archived group", async () => {
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
+		await within(await screen.findByRole("navigation", { name: "Projects" })).findByRole("link", { name: /trellis/ });
+		expect(screen.queryByRole("button", { name: /^Archived/ })).toBeNull();
+	});
+});
+
 describe("features/sidebar/Sidebar", () => {
 	// WS-93. w-60 is 240 px on the 4 px spacing scale.
 	test("the sidebar renders the rows in the canvas order at 240 px", async () => {

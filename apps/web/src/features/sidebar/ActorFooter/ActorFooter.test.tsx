@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createFakeServer } from "../../../../test/fake-server";
+import { lastCallTo } from "../../../../test/inbox";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import { ActorFooter } from "./ActorFooter";
 
@@ -34,5 +36,19 @@ describe("features/sidebar/ActorFooter", () => {
 		await waitFor(() => expect(screen.getByRole("button", { name: /^nk/ })).toBeDefined());
 		expect(screen.getByRole("img", { name: "nk" }).textContent).toBe("N");
 		await waitFor(() => expect(screen.queryByRole("textbox", { name: /name/i })).toBeNull());
+	});
+
+	// The server holds the name every browser starts with.
+	test("the rename popover saves the name to the server settings", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		const before = await server.client.settings.get();
+		renderWithProviders(<ActorFooter />, { path: "/all", actor: "navid", server });
+		await user.click(screen.getByRole("button", { name: /navid/ }));
+		const input = await screen.findByRole("textbox", { name: /name/i });
+		await user.clear(input);
+		await user.type(input, "nk{Enter}");
+		await waitFor(() => expect(server.state.settings.defaultActorName).toBe("nk"));
+		expect(lastCallTo(server, "settings.set")!.input).toEqual({ ...before, defaultActorName: "nk" });
 	});
 });

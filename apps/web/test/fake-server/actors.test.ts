@@ -16,8 +16,22 @@ describe("fake server actors", () => {
 			expect(Number.isNaN(Date.parse(actor.firstSeenAt))).toBe(false);
 			expect(actor.lastSeenAt >= actor.firstSeenAt).toBe(true);
 		}
-		expect(DefaultActorSchema.parse(await server.client.actors.default())).toEqual({ name: "navid", kind: "human" });
+		expect(DefaultActorSchema.parse(await server.client.actors.default())).toEqual({
+			name: "navid",
+			kind: "human",
+			stored: true,
+		});
 		const response = await server.app.request("/api/actors/default");
 		expect(response.status).toBe(200);
+	});
+
+	// The seeded server is a machine someone set up; the empty one is a first
+	// run, and a settings write stores the name.
+	test("actors.default is stored after a settings write", async () => {
+		const server = createFakeServer({ empty: true });
+		expect((await server.client.actors.default()).stored).toBe(false);
+		const settings = await server.client.settings.get();
+		await server.client.settings.set({ ...settings, defaultActorName: "nk" });
+		expect(await server.client.actors.default()).toEqual({ name: "nk", kind: "human", stored: true });
 	});
 });

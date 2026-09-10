@@ -25,9 +25,10 @@ describe("routes/__root", () => {
 		fireEvent.keyDown(document.body, { key: "Escape" });
 	});
 
-	// WS-66
+	// WS-66. A server with projects or a stored name has an identity, so only
+	// the empty server stands for "no identity".
 	test("no identity redirects to /setup", async () => {
-		const { router } = renderApp({ path: "/needs-you" });
+		const { router } = renderApp({ path: "/needs-you", server: createFakeServer({ empty: true }) });
 		await waitFor(() => expect(router.state.location.pathname).toBe("/setup"));
 		expect(await screen.findByRole("heading", { name: "What should we call you?" })).toBeDefined();
 		expect(screen.queryByRole("complementary", { name: "Sidebar" })).toBeNull();
