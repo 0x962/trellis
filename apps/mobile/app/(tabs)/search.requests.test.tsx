@@ -26,10 +26,10 @@ const field = () => screen.getByTestId("search-field");
 const queries = () => inputsTo(server, "search.query") as SearchQueryInput[];
 
 // Types one character at a time, so every keystroke lands inside one window.
-const typeInWindow = (text: string) => {
+const typeInWindow = async (text: string) => {
 	for (let length = 1; length <= text.length; length += 1) {
-		fireEvent.changeText(field(), text.slice(0, length));
-		act(() => jest.advanceTimersByTime(20));
+		await fireEvent.changeText(field(), text.slice(0, length));
+		await act(() => jest.advanceTimersByTime(20));
 	}
 };
 
@@ -45,7 +45,7 @@ describe("the Search tab requests", () => {
 		const view = openSearch();
 		await view;
 
-		typeInWindow("oauth");
+		await typeInWindow("oauth");
 		await settle();
 
 		await waitFor(() => expect(queries()).toHaveLength(1));
@@ -57,11 +57,11 @@ describe("the Search tab requests", () => {
 		const view = openSearch();
 		await view;
 
-		typeInWindow("oauth");
+		await typeInWindow("oauth");
 		await settle();
 		await waitFor(() => expect(queries()).toHaveLength(1));
 
-		fireEvent.changeText(field(), "oauth token");
+		await fireEvent.changeText(field(), "oauth token");
 		await settle();
 
 		await waitFor(() => expect(queries()).toHaveLength(2));
@@ -85,8 +85,8 @@ describe("the Search tab requests", () => {
 
 		const view = openSearch();
 		await view;
-		fireEvent.changeText(field(), "oauth");
-		fireEvent.changeText(field(), "terminal");
+		await fireEvent.changeText(field(), "oauth");
+		await fireEvent.changeText(field(), "terminal");
 
 		await waitFor(() => expect(screen.getByTestId("ticket-row-CDE-44")).toBeOnTheScreen());
 		held!();
@@ -101,11 +101,11 @@ describe("the Search tab requests", () => {
 		const view = openSearch();
 		await view;
 
-		typeInWindow("oauth");
+		await typeInWindow("oauth");
 		await settle();
 		await waitFor(() => expect(queries()).toHaveLength(1));
 
-		fireEvent.changeText(field(), "");
+		await fireEvent.changeText(field(), "");
 		await settle();
 		await settle();
 		expect(queries()).toHaveLength(1);
@@ -114,7 +114,7 @@ describe("the Search tab requests", () => {
 	test("a search request carries no project scope", async () => {
 		const view = openSearch();
 		await view;
-		fireEvent.changeText(field(), "oauth");
+		await fireEvent.changeText(field(), "oauth");
 
 		await waitFor(() => expect(queries()).toHaveLength(1));
 		expect(Object.keys(queries()[0]!).sort()).toEqual(["limit", "q"]);

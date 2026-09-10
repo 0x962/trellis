@@ -32,10 +32,10 @@ describe("the project route", () => {
 
 		// CDE-42 waits in Human Review, so the Review segment holds it.
 		await waitFor(() => expect(screen.getByLabelText("Review")).toBeOnTheScreen());
-		fireEvent.press(screen.getByLabelText("Review"));
+		await fireEvent.press(screen.getByLabelText("Review"));
 		await waitFor(() => expect(screen.getByTestId("ticket-row-CDE-42")).toBeOnTheScreen());
 
-		fireEvent.press(screen.getByTestId("ticket-row-CDE-42"));
+		await fireEvent.press(screen.getByTestId("ticket-row-CDE-42"));
 		await waitFor(() => expect(view.getPathname()).toBe("/ticket/CDE-42"));
 		expect(screen.getByRole("header", { name: "CDE-42" })).toBeOnTheScreen();
 	});

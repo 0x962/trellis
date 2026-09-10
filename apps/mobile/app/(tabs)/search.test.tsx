@@ -32,7 +32,7 @@ const shown = () =>
 	screen.queryAllByTestId(/^ticket-row-/).map((row) => (row.props.testID as string).replace("ticket-row-", ""));
 
 const search = async (text: string) => {
-	fireEvent.changeText(field(), text);
+	await fireEvent.changeText(field(), text);
 	await waitFor(() => expect(searches().length).toBeGreaterThan(0));
 };
 
@@ -52,7 +52,7 @@ describe("the Search tab", () => {
 		const view = openSearch();
 		await view;
 
-		fireEvent.press(screen.getByText("oauth"));
+		await fireEvent.press(screen.getByText("oauth"));
 		await waitFor(() => expect(searches()).toHaveLength(1));
 		expect(field().props.value).toBe("oauth");
 		expect((searches()[0]!.input as { q: string }).q).toBe("oauth");
@@ -89,7 +89,7 @@ describe("the Search tab", () => {
 		await search("oauth");
 
 		await waitFor(() => expect(screen.getByTestId("ticket-row-CDE-51")).toBeOnTheScreen());
-		fireEvent.press(screen.getByTestId("ticket-row-CDE-51"));
+		await fireEvent.press(screen.getByTestId("ticket-row-CDE-51"));
 		await waitFor(() => expect(view.getPathname()).toBe("/ticket/CDE-51"));
 	});
 
@@ -98,8 +98,8 @@ describe("the Search tab", () => {
 		const view = openSearch();
 		await view;
 
-		fireEvent.changeText(field(), "cde-42");
-		fireEvent(field(), "submitEditing");
+		await fireEvent.changeText(field(), "cde-42");
+		await fireEvent(field(), "submitEditing");
 		await act(async () => {
 			jest.advanceTimersByTime(debounceMs * 3);
 		});
@@ -112,9 +112,9 @@ describe("the Search tab", () => {
 		const view = openSearch();
 		await view;
 
-		fireEvent.changeText(field(), "CDE-4");
+		await fireEvent.changeText(field(), "CDE-4");
 		await waitFor(() => expect(searches()).toHaveLength(1));
-		fireEvent.changeText(field(), "CDE-42");
+		await fireEvent.changeText(field(), "CDE-42");
 		await waitFor(() => expect(searches()).toHaveLength(2));
 
 		expect(view.getPathname()).toBe("/search");

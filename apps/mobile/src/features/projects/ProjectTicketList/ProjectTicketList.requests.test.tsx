@@ -24,7 +24,7 @@ const rows = () => screen.queryAllByTestId(/^ticket-row-/);
 const waitForRows = () => waitFor(() => expect(rows().length).toBeGreaterThan(0));
 
 const endOfList = async () => {
-	fireEvent(screen.getByTestId("ticket-list"), "endReached");
+	await fireEvent(screen.getByTestId("ticket-list"), "endReached");
 	await act(async () => {});
 };
 
@@ -42,7 +42,7 @@ describe("the ticket list requests", () => {
 		renderWithClient(<ProjectTicketList project="CDE" />);
 		await waitForRows();
 
-		fireEvent.press(screen.getByLabelText("Review"));
+		await fireEvent.press(screen.getByLabelText("Review"));
 		await waitFor(() => expect(listInputs()).toHaveLength(2));
 		expect(lastInput().category).toEqual(["review"]);
 		expect(lastInput().cursor).toBeUndefined();
@@ -52,7 +52,7 @@ describe("the ticket list requests", () => {
 		renderWithClient(<ProjectTicketList project="CDE" />);
 		await waitForRows();
 
-		fireEvent.press(screen.getByLabelText("Done"));
+		await fireEvent.press(screen.getByLabelText("Done"));
 		await waitFor(() => expect(listInputs()).toHaveLength(2));
 		expect(lastInput().category).toEqual(["done", "canceled"]);
 	});
@@ -61,7 +61,7 @@ describe("the ticket list requests", () => {
 		renderWithClient(<ProjectTicketList project="CDE" />);
 		await waitForRows();
 
-		fireEvent.press(screen.getByLabelText("Priority"));
+		await fireEvent.press(screen.getByLabelText("Priority"));
 		await waitFor(() => expect(listInputs()).toHaveLength(2));
 		expect(lastInput().sort).toBe("priority");
 		expect(lastInput().cursor).toBeUndefined();
@@ -97,7 +97,7 @@ describe("the ticket list requests", () => {
 		await endOfList();
 		await waitFor(() => expect(listInputs()).toHaveLength(2));
 
-		fireEvent.press(screen.getByLabelText("Review"));
+		await fireEvent.press(screen.getByLabelText("Review"));
 		await waitFor(() => expect(listInputs()).toHaveLength(3));
 		expect(lastInput().cursor).toBeUndefined();
 	});

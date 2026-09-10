@@ -74,7 +74,7 @@ describe("ProjectTree", () => {
 	test("a press hands the pressed project path to onSelect", async () => {
 		const onSelect = jest.fn();
 		await render(<ProjectTree projects={seeded} onSelect={onSelect} />);
-		fireEvent.press(row("CDE.web"));
+		await fireEvent.press(row("CDE.web"));
 		expect(onSelect).toHaveBeenCalledWith("CDE.web");
 	});
 });

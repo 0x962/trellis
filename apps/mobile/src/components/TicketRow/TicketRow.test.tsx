@@ -75,7 +75,7 @@ describe("TicketRow", () => {
 	test("a press hands the ticket identifier to onPress", async () => {
 		const onPress = jest.fn();
 		await render(<TicketRow ticket={summary()} onPress={onPress} />);
-		fireEvent.press(screen.getByTestId("ticket-row"));
+		await fireEvent.press(screen.getByTestId("ticket-row"));
 		expect(onPress).toHaveBeenCalledWith("CDE-42");
 	});
 

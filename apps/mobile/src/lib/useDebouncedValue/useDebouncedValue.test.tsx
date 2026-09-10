@@ -22,13 +22,13 @@ describe("useDebouncedValue", () => {
 		const { rerender } = await render(<Probe value="" />);
 
 		for (const value of ["o", "oa", "oau", "oaut", "oauth"]) {
-			rerender(<Probe value={value} />);
-			act(() => jest.advanceTimersByTime(20));
+			await rerender(<Probe value={value} />);
+			await act(() => jest.advanceTimersByTime(20));
 		}
 		// 100 ms after the first keystroke, and 20 ms after the last one.
 		expect(new Set(emitted)).toEqual(new Set([""]));
 
-		act(() => jest.advanceTimersByTime(debounceMs));
+		await act(() => jest.advanceTimersByTime(debounceMs));
 		expect(emitted[emitted.length - 1]).toBe("oauth");
 		expect(new Set(emitted)).toEqual(new Set(["", "oauth"]));
 	});
@@ -36,11 +36,11 @@ describe("useDebouncedValue", () => {
 	test("an empty value emits without a wait", async () => {
 		jest.useFakeTimers();
 		const { rerender } = await render(<Probe value="" />);
-		rerender(<Probe value="oauth" />);
-		act(() => jest.advanceTimersByTime(debounceMs));
+		await rerender(<Probe value="oauth" />);
+		await act(() => jest.advanceTimersByTime(debounceMs));
 		expect(emitted[emitted.length - 1]).toBe("oauth");
 
-		rerender(<Probe value="" />);
+		await rerender(<Probe value="" />);
 		expect(emitted[emitted.length - 1]).toBe("");
 	});
 });

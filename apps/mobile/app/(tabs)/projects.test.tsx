@@ -53,7 +53,7 @@ describe("the Projects tab", () => {
 		await view;
 
 		await waitFor(() => expect(screen.getByTestId("project-row-CDE.web")).toBeOnTheScreen());
-		fireEvent.press(screen.getByTestId("project-row-CDE.web"));
+		await fireEvent.press(screen.getByTestId("project-row-CDE.web"));
 		await waitFor(() => expect(view.getPathname()).toBe("/project/CDE.web"));
 	});
 });

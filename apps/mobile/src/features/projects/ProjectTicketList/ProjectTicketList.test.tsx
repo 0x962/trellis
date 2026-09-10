@@ -52,7 +52,7 @@ describe("the ticket list", () => {
 		await waitForRows();
 		const first = shown();
 
-		fireEvent(screen.getByTestId("ticket-list"), "endReached");
+		await fireEvent(screen.getByTestId("ticket-list"), "endReached");
 		await waitFor(() => expect(shown().length).toBeGreaterThan(first.length));
 
 		const all = shown();
@@ -65,7 +65,7 @@ describe("the ticket list", () => {
 		renderWithClient(<ProjectTicketList project="MRG" />);
 		await waitForRows();
 
-		fireEvent.press(screen.getByLabelText("Review"));
+		await fireEvent.press(screen.getByLabelText("Review"));
 		await waitFor(() => expect(screen.getByText(/no tickets/i)).toBeOnTheScreen());
 		expect(shown()).toEqual([]);
 	});
@@ -92,7 +92,7 @@ describe("the ticket list", () => {
 		row.title = "Terminal pane keeps its scrollback on a session handoff";
 		row.version = 4;
 		const summary = ticketSummary(server.state, row);
-		act(() => applyEvent({ type: "ticket.updated", summary, fields: ["title"], batchId }, queryClient));
+		await act(() => applyEvent({ type: "ticket.updated", summary, fields: ["title"], batchId }, queryClient));
 
 		await waitFor(() => expect(screen.getByText(row.title)).toBeOnTheScreen());
 		expect(callsTo(server, "tickets.list")).toHaveLength(1);
