@@ -47,6 +47,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: StatusCreateInput):
 		id,
 		projectId: project.id,
 		name: input.name,
+		description: input.description ?? "",
 		slug,
 		category: input.category,
 		reviewer: input.reviewer ?? null,
@@ -86,6 +87,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: StatusUpdateInput):
 		sets.push(sql`slug = ${slug}`);
 		field("name", status.name, input.name, sql`name = ${input.name}`);
 	}
+	field("description", status.description, input.description, sql`description = ${input.description}`);
 	field("color", status.color, input.color, sql`color = ${input.color}`);
 	field("reviewer", status.reviewer, input.reviewer, sql`reviewer = ${input.reviewer}`);
 	field("wipLimit", status.wipLimit, input.wipLimit, sql`wip_limit = ${input.wipLimit}`);

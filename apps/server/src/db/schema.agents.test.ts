@@ -92,7 +92,7 @@ describe("agent_sessions", () => {
 
 describe("agent_cursors", () => {
 	test("each project has one cursor that starts at 0 and goes with the project", async () => {
-		const { rootId } = await ticketOf();
+		const { rootId } = await seedProject(h.db);
 		await insertRow(h.db, "agent_cursors", { project_id: rootId, updated_at: new Date() });
 		const found = await h.db.execute(sql`SELECT activity_id FROM agent_cursors WHERE project_id = ${rootId}`);
 		expect(found.rows).toEqual([{ activity_id: 0 }]);

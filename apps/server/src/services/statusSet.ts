@@ -34,14 +34,13 @@ export const assertFreeName = (others: Status[], name: string, slug: string) => 
 	if (others.some((status) => status.slug === slug)) throw fail("DUPLICATE", { field: "slug" });
 };
 
-// The server builder adds `description` to the insert with its migration.
-export type StatusInsert = Omit<Status, "createdAt" | "updatedAt" | "description">;
+export type StatusInsert = Omit<Status, "createdAt" | "updatedAt">;
 
 export const insertStatus = (ctx: ServiceCtx, tx: Tx, status: StatusInsert) =>
 	tx.execute(
-		sql`INSERT INTO statuses (id, project_id, name, slug, category, reviewer, color, position, wip_limit, is_default, created_at, updated_at)
-			VALUES (${status.id}, ${status.projectId}, ${status.name}, ${status.slug}, ${status.category}, ${status.reviewer},
-				${status.color}, ${status.position}, ${status.wipLimit}, ${status.isDefault}, ${ctx.now}, ${ctx.now})`,
+		sql`INSERT INTO statuses (id, project_id, name, description, slug, category, reviewer, color, position, wip_limit, is_default, created_at, updated_at)
+			VALUES (${status.id}, ${status.projectId}, ${status.name}, ${status.description}, ${status.slug}, ${status.category},
+				${status.reviewer}, ${status.color}, ${status.position}, ${status.wipLimit}, ${status.isDefault}, ${ctx.now}, ${ctx.now})`,
 	);
 
 // Gives an inheriting project its own copy of the effective set: new ids,
@@ -56,14 +55,60 @@ export const materialize = async (ctx: ServiceCtx, tx: Tx, projectId: string) =>
 };
 
 // The set every root starts with, in position order. Todo is the default;
-// the two review statuses name who reviews.
-const ROOT_SEED: Array<Pick<Status, "name" | "category" | "reviewer" | "color" | "isDefault">> = [
-	{ name: "Todo", category: "todo", reviewer: null, color: "fg-muted", isDefault: true },
-	{ name: "In Progress", category: "started", reviewer: null, color: "accent", isDefault: false },
-	{ name: "Agent Review", category: "review", reviewer: "agent", color: "agent", isDefault: false },
-	{ name: "Human Review", category: "review", reviewer: "human", color: "warning", isDefault: false },
-	{ name: "Done", category: "done", reviewer: null, color: "success", isDefault: false },
-	{ name: "Canceled", category: "canceled", reviewer: null, color: "fg-faint", isDefault: false },
+// the two review statuses name who reviews. Each description tells the
+// manager agent what to do with a ticket in that status. The migration
+// 0006_status_descriptions writes the same texts onto the statuses of a
+// database that existed before the descriptions, so a text change here
+// needs a new data migration for existing projects.
+const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "reviewer" | "color" | "isDefault">> = [
+	{
+		name: "Todo",
+		description: "New work. Read it, ask in a comment when it is unclear, then start a builder.",
+		category: "todo",
+		reviewer: null,
+		color: "fg-muted",
+		isDefault: true,
+	},
+	{
+		name: "In Progress",
+		description: "A builder works on this ticket. Forward each new comment to the builder.",
+		category: "started",
+		reviewer: null,
+		color: "accent",
+		isDefault: false,
+	},
+	{
+		name: "Agent Review",
+		description: "A builder opened a PR. Run a reviewer.",
+		category: "review",
+		reviewer: "agent",
+		color: "agent",
+		isDefault: false,
+	},
+	{
+		name: "Human Review",
+		description: "Waiting for Navid. Do nothing unless he comments.",
+		category: "review",
+		reviewer: "human",
+		color: "warning",
+		isDefault: false,
+	},
+	{
+		name: "Done",
+		description: "The work is complete. Close the builder's workspace.",
+		category: "done",
+		reviewer: null,
+		color: "success",
+		isDefault: false,
+	},
+	{
+		name: "Canceled",
+		description: "Nobody works on this ticket. Stop its builder and close its workspace.",
+		category: "canceled",
+		reviewer: null,
+		color: "fg-faint",
+		isDefault: false,
+	},
 ];
 
 export const seedRootStatuses = async (ctx: ServiceCtx, tx: Tx, projectId: string) => {

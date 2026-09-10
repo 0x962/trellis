@@ -61,6 +61,8 @@ export const repos = pgTable(
 
 // A review status names who reviews; every other category carries no
 // reviewer. One status per project is the default for a new ticket.
+// `description` is markdown that tells the manager agent what to do with a
+// ticket in this status.
 export const statuses = pgTable(
 	"statuses",
 	{
@@ -69,6 +71,7 @@ export const statuses = pgTable(
 			.notNull()
 			.references(() => projects.id, { onDelete: "cascade" }),
 		name: text().notNull(),
+		description: text().notNull().default(""),
 		slug: text().notNull(),
 		category: text().notNull(),
 		reviewer: text(),
@@ -88,5 +91,6 @@ export const statuses = pgTable(
 		check("statuses_reviewer_for_review", sql`(${t.category} = 'review') = (${t.reviewer} IS NOT NULL)`),
 		check("statuses_wip_limit_check", sql`${t.wipLimit} > 0`),
 		check("statuses_name_check", sql`length(${t.name}) BETWEEN 1 AND 40`),
+		check("statuses_description_check", sql`char_length(${t.description}) <= 2000`),
 	],
 );
