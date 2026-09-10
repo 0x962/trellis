@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { dehydrate, QueryClient } from "@tanstack/react-query";
+import { keys } from "./keys";
 import { persistClient, persistOptions, restoreClient } from "./storage";
 
-const key = "trellis-query-cache";
+// `keys` names the MMKV keys and opens no native module, so this file runs
+// on its own without another file that replaces react-native-mmkv first.
+const key = keys.queryCache;
 const hour = 3_600_000;
 const limit = 5 * 1024 * 1024;
 
