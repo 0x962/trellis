@@ -14,6 +14,10 @@ export type RowProps = {
 	meta?: ReactNode;
 	// The right edge, such as the time waiting.
 	trailing?: string;
+	// The height every row of one list paints, in px. FlashList recycles a
+	// row of a fixed height without a measure pass.
+	height?: number;
+	testID?: string;
 	onPress?: () => void;
 };
 
@@ -41,15 +45,16 @@ const styles = StyleSheet.create({
 
 // One list row: a fixed hit area of 44 px, the title on one line, the id in
 // mono. A fixed height keeps FlashList rows the same size.
-export function Row({ id, title, leading, meta, trailing, onPress }: RowProps) {
+export function Row({ id, title, leading, meta, trailing, height, testID, onPress }: RowProps) {
 	const palette = usePalette();
 	return (
 		<Pressable
 			accessibilityRole="button"
+			testID={testID}
 			onPress={onPress}
 			style={({ pressed }) => [
 				styles.row,
-				{ borderBottomColor: palette.border, backgroundColor: pressed ? palette.surface : palette.bg },
+				{ height, borderBottomColor: palette.border, backgroundColor: pressed ? palette.surface : palette.bg },
 			]}
 		>
 			{leading}

@@ -3,7 +3,7 @@ import { layout } from "../../theme/layout";
 import { tokens } from "../../theme/tokens";
 import { usePalette } from "../../theme/usePalette";
 
-export type ActorKind = "human" | "agent";
+export type ActorKind = "human" | "agent" | "system";
 
 export type ActorChipProps = {
 	name: string;
@@ -41,29 +41,28 @@ const styles = StyleSheet.create({
 	suffix: { fontSize: tokens.text.sm, lineHeight: tokens.leading.sm },
 });
 
-// An actor as it appears in a timeline or a row: the mark and the name. A
-// human is a circle with initials. An agent is a rounded square with the
-// glyph, and its name is mono and purple with an "· agent" suffix, so a human
-// and an agent never read alike.
+// A human has a circle with initials. An agent or the system has a square,
+// a mono name, and a suffix that identifies the stored kind.
 export function ActorChip({ name, kind, live = false }: ActorChipProps) {
 	const palette = usePalette();
-	const agent = kind === "agent";
+	const human = kind === "human";
+	const suffix = kind === "agent" ? "· agent" : "· system";
 	return (
 		<View style={styles.chip}>
 			<View
 				accessibilityRole="image"
-				accessibilityLabel={agent ? `${name} · agent` : name}
+				accessibilityLabel={human ? name : `${name} ${suffix}`}
 				style={[
 					styles.mark,
-					agent
-						? [styles.agent, { borderColor: palette.agent, backgroundColor: palette.agentSoft }]
-						: [styles.human, { backgroundColor: palette.fgMuted }],
+					human
+						? [styles.human, { backgroundColor: palette.fgMuted }]
+						: [styles.agent, { borderColor: palette.agent, backgroundColor: palette.agentSoft }],
 				]}
 			>
-				{agent ? (
-					<Text style={[styles.glyph, { color: palette.agent }]}>⟡</Text>
-				) : (
+				{human ? (
 					<Text style={[styles.initials, { color: palette.surface }]}>{initials(name)}</Text>
+				) : (
+					<Text style={[styles.glyph, { color: palette.agent }]}>⟡</Text>
 				)}
 				{live && (
 					<View
@@ -72,10 +71,10 @@ export function ActorChip({ name, kind, live = false }: ActorChipProps) {
 					/>
 				)}
 			</View>
-			<Text style={agent ? [styles.agentName, { color: palette.agent }] : [styles.humanName, { color: palette.fg }]}>
+			<Text style={human ? [styles.humanName, { color: palette.fg }] : [styles.agentName, { color: palette.agent }]}>
 				{name}
 			</Text>
-			{agent && <Text style={[styles.suffix, { color: palette.fgFaint }]}>· agent</Text>}
+			{!human && <Text style={[styles.suffix, { color: palette.fgFaint }]}>{suffix}</Text>}
 		</View>
 	);
 }

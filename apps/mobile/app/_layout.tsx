@@ -16,7 +16,7 @@ import { useTheme } from "../src/theme/useTheme";
 type IconName = keyof typeof Ionicons.glyphMap;
 
 // The routes a person reaches by a push. Their header carries a back control.
-const pushed = new Set(["ticket/[identifier]", "setup"]);
+const pushed = new Set(["ticket/[identifier]", "project/[ref]", "setup"]);
 
 const identifierOf = (params: object | undefined) => (params as { identifier?: string } | undefined)?.identifier ?? "";
 
@@ -72,6 +72,10 @@ export default function RootLayout() {
 					<Tabs.Screen name="(tabs)/search" options={tab("Search", "search-outline")} />
 					<Tabs.Screen name="(tabs)/projects" options={tab("Projects", "folder-outline")} />
 					<Tabs.Screen name="(tabs)/settings" options={tab("Settings", "settings-outline")} />
+					<Tabs.Screen
+						name="project/[ref]"
+						options={{ title: "", tabBarButton: () => null, tabBarItemStyle: { display: "none" } }}
+					/>
 					<Tabs.Screen
 						name="ticket/[identifier]"
 						options={({ route }) => ({

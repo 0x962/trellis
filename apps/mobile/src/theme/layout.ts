@@ -2,6 +2,10 @@
 export const layout = {
 	// The smallest hit area on a phone.
 	hit: 44,
+	// One project row of the tree. Every row of a FlashList is this tall.
+	treeRow: 44,
+	// One ticket row: the title on one line and the meta line under it.
+	ticketRow: 64,
 	header: 44,
 	statusIcon: 16,
 	mark: 14,
