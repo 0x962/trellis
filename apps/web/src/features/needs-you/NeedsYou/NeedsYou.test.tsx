@@ -97,8 +97,8 @@ describe("NeedsYou", () => {
 		expect(callsTo(server, "inbox.get")).toHaveLength(1);
 	});
 
-	// NY-05. The count is every section, and the time says how fresh the
-	// page is without a refetch.
+	// NY-05. The count is the distinct tickets of Review and Failing checks
+	// (D13), and the time says how fresh the page is without a refetch.
 	test("shows the live count and the fetched-ago time in the header", async () => {
 		const server = createFakeServer();
 		const inbox = await server.client.inbox.get({});
@@ -108,20 +108,20 @@ describe("NeedsYou", () => {
 		});
 		renderWithProviders(<NeedsYou />, { path: "/needs-you", actor: "navid", harness });
 		const heading = await screen.findByRole("heading", { name: /Needs you/ });
-		expect(within(heading).getByText("11")).toBeDefined();
+		expect(within(heading).getByText("4")).toBeDefined();
 		expect(await screen.findByText("Fetched 12s ago")).toBeDefined();
 	});
 
-	// NY-18. The badge counts every section, so it falls with the row.
+	// NY-18. An approved ticket leaves Review, so the badge falls with the row.
 	test("decrements the Needs you badge after an approval", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
 		renderApp({ path: "/needs-you", actor: "navid", server });
 		const link = await screen.findByRole("link", { name: /Needs you/ });
-		await waitFor(() => expect(within(link).getByText("11")).toBeDefined());
+		await waitFor(() => expect(within(link).getByText("4")).toBeDefined());
 		await focusRow("CDE-42");
 		await user.keyboard("a");
-		await waitFor(() => expect(within(link).getByText("10")).toBeDefined());
+		await waitFor(() => expect(within(link).getByText("3")).toBeDefined());
 	});
 
 	// NY-48. The line means nothing waits, not that nothing happened.

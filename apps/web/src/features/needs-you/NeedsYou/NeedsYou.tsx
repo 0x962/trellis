@@ -27,6 +27,11 @@ export function NeedsYou() {
 	const inbox = useInbox();
 	const navigate = useNavigate();
 	const count = inbox.data === undefined ? 0 : needsYouCount(inbox.data);
+	// The count leaves out Stalled and Done by agents today, but their rows
+	// still show. The empty state shows only when every section is empty.
+	const empty =
+		inbox.data !== undefined &&
+		Object.values(inbox.data).every((section: { total: number }) => section.total === 0);
 	const peekRows = useInboxPeekRows();
 	const shown = usePeek().current;
 
@@ -81,7 +86,7 @@ export function NeedsYou() {
 					/>
 				)}
 				{inbox.data !== undefined &&
-					(count === 0 ? (
+					(empty ? (
 						<NeedsYouEmpty />
 					) : (
 						<>

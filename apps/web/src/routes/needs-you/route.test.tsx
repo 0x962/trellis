@@ -8,12 +8,14 @@ import { renderApp } from "../../../test/renderWithProviders";
 beforeEach(() => localStorage.clear());
 
 describe("routes/needs-you", () => {
-	// WS-81. The count pill counts every section, the same number the sidebar
-	// badge shows (plan, Needs you). Done by agents today starts collapsed.
+	// WS-81. The count pill counts the distinct tickets of Review and Failing
+	// checks (D13), the same number the sidebar badge shows. The seed has 3
+	// in review and 1 other ticket with failed checks. Done by agents today
+	// starts collapsed.
 	test("Needs you renders the topbar count and the four section headers from inbox.get", async () => {
 		renderApp({ path: "/needs-you", actor: "navid" });
 		const heading = await screen.findByRole("heading", { name: /Needs you/ });
-		expect(within(heading).getByText("11")).toBeDefined();
+		expect(within(heading).getByText("4")).toBeDefined();
 		const sections = ["Review", "Failing CI", "Stalled", "Done by agents today"];
 		const counts = ["3", "1", "1", "6"];
 		for (const [index, name] of sections.entries()) {
