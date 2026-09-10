@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import { connect, disconnect } from "../../../../../test/connect";
-import { callsTo, createFakeServer, serverHost } from "../../../../../test/fakeServer";
-import { renderNeedsYou, sectionHeader } from "../../../../../test/renderNeedsYou";
+import { connect, disconnect } from "../../../test/connect";
+import { callsTo, createFakeServer, serverHost } from "../../../test/fakeServer";
+import { renderNeedsYou, sectionHeader } from "../../../test/renderNeedsYou";
 import { UnreachableServer } from "./UnreachableServer";
 
-jest.mock("@shopify/flash-list", () => require("../../../../../test/mocks/flash-list"));
+jest.mock("@shopify/flash-list", () => require("../../../test/mocks/flash-list"));
 
 let restoreFetch = () => {};
 

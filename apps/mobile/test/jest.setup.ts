@@ -1,4 +1,5 @@
-import { beforeEach, jest } from "@jest/globals";
+import { afterEach, beforeEach, jest } from "@jest/globals";
+import { realScheduler } from "@trellis/api";
 import { AppState } from "react-native";
 import { queryClient } from "../src/lib/queryClient";
 import { notificationAsync } from "./mocks/expo-haptics";
@@ -33,6 +34,32 @@ beforeEach(() => {
 	resetEventSources();
 	notificationAsync.mockClear();
 });
+
+// The event applier of @trellis/api waits on timers from `realScheduler`
+// before it refetches the queries an event touched, up to 4 s for the inbox.
+// A timer that is still pending when the last test of a file ends keeps the
+// jest worker alive, and jest kills the worker. This wrapper records every
+// pending timer and cancels it after each test. The applier reads
+// `realScheduler.setTimeout` at each call, so it uses the wrapper.
+const pendingTimers = new Set<unknown>();
+const { setTimeout: startTimer, clearTimeout: stopTimer } = realScheduler;
+realScheduler.setTimeout = (callback, delayMs) => {
+	const handle = startTimer(() => {
+		pendingTimers.delete(handle);
+		callback();
+	}, delayMs);
+	pendingTimers.add(handle);
+	return handle;
+};
+realScheduler.clearTimeout = (handle) => {
+	pendingTimers.delete(handle);
+	stopTimer(handle);
+};
+afterEach(() => {
+	for (const handle of pendingTimers) stopTimer(handle);
+	pendingTimers.clear();
+});
+
 // The gesture handler mocks its native module, so `fireGestureHandler`
 // drives a pan. FlashList measures a 400 by 900 viewport, so a list draws rows.
 require("react-native-gesture-handler/jestSetup");

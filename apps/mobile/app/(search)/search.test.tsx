@@ -67,6 +67,21 @@ describe("the Search tab", () => {
 		expect(JSON.parse(store.getString(recentSearchesKey)!)[0]).toBe("oauth");
 	});
 
+	// The field searches as the person types, so one query passes through
+	// several shorter queries on its way. They fill one slot, not eight.
+	test("the fragments of one typed query leave one recent search", async () => {
+		const view = openSearch();
+		await view;
+		await search("log");
+		await fireEvent.changeText(field(), "login");
+		await waitFor(() => expect(searches()).toHaveLength(2));
+		await fireEvent.changeText(field(), "login bug");
+		await waitFor(() => expect(searches()).toHaveLength(3));
+
+		await waitFor(() => expect(JSON.parse(store.getString(recentSearchesKey)!)[0]).toBe("login bug"));
+		expect(JSON.parse(store.getString(recentSearchesKey)!)).toEqual(["login bug"]);
+	});
+
 	test("search results render as fixed-height ticket rows", async () => {
 		const view = openSearch();
 		await view;

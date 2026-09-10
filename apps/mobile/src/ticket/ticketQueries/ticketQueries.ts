@@ -1,14 +1,6 @@
 import { generateOperationKey } from "@orpc/tanstack-query";
 import type { QueryKey } from "@tanstack/react-query";
-import type {
-	Priority,
-	Status,
-	StatusListOutput,
-	Ticket,
-	TicketUpdateInput,
-	TimelineListOutput,
-	TrellisClient,
-} from "@trellis/api";
+import type { Priority, Status, StatusListOutput, Ticket, TicketUpdateInput, TrellisClient } from "@trellis/api";
 import { approveTarget, sendBackTarget } from "../reviewTargets";
 
 export type Query<T> = {
@@ -21,9 +13,6 @@ export type Query<T> = {
 export const ticketDetailKey = (identifier: string): QueryKey =>
 	generateOperationKey(["tickets", "get"], { input: { ticket: identifier } });
 
-export const timelineKey = (identifier: string): QueryKey =>
-	generateOperationKey(["timeline", "list"], { input: { ticket: identifier } });
-
 export const statusesKey = (projectRef: string): QueryKey =>
 	generateOperationKey(["statuses", "list"], { input: { project: projectRef } });
 
@@ -32,11 +21,6 @@ export const statusesKey = (projectRef: string): QueryKey =>
 export const ticketDetailQuery = (client: TrellisClient, identifier: string): Query<Ticket> => ({
 	queryKey: ticketDetailKey(identifier),
 	queryFn: () => client.tickets.get({ ticket: identifier }),
-});
-
-export const timelineQuery = (client: TrellisClient, identifier: string): Query<TimelineListOutput> => ({
-	queryKey: timelineKey(identifier),
-	queryFn: () => client.timeline.list({ ticket: identifier }),
 });
 
 // The effective statuses of the ticket's project.

@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import type { Check, TicketSummary } from "@trellis/api";
 import { StyleSheet, Text } from "react-native";
 import { ActorChip } from "../../../../components/ActorChip";
