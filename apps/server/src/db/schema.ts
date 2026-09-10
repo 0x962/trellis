@@ -21,21 +21,21 @@ export * from "./tables/actors.ts";
 export * from "./tables/projects.ts";
 
 // drizzle-kit reads this file and every table it exports. Each table is
-// text plus a named CHECK where the wire has a closed set. Four things
-// drizzle-kit cannot render live in the migration 0002_constraints: the
-// UNIQUE NULLS NOT DISTINCT constraint on projects, the generated tsvector
-// columns on tickets and comments, and the trigram index on tickets.title.
+// text plus a named CHECK where the wire has a closed set. The migration
+// 0002_constraints holds what drizzle-kit cannot render: the UNIQUE NULLS
+// NOT DISTINCT constraint on projects, the generated tsvector columns on
+// tickets and comments, and the trigram index on tickets.title.
 
 // root_id repeats the project's root so the composite foreign keys keep a
 // ticket, its project, and its parent inside one root. The status foreign
 // key accepts any status; the owner rule is checked in the service. Each
-// foreign key refuses the delete of a row a ticket still points at
-// (NO ACTION, checked at the end of the statement).
-// The generated column `search` (title at weight A, description at weight B)
-// and its GIN index live in the migration 0002_constraints: drizzle-kit
-// renders no generated tsvector. The GIN index on title with gin_trgm_ops
-// lives in the migration 0002_constraints too: drizzle-kit renders no
-// operator class.
+// foreign key is RESTRICT: the delete of a row a ticket still points at
+// fails at once, inside the statement that deletes it.
+// The generated column `search` (title at weight A, description at weight
+// B) and its GIN index live in the migration 0002_constraints, because
+// drizzle-kit renders no generated tsvector. The GIN index on title with
+// gin_trgm_ops lives in the migration 0002_constraints too, because
+// drizzle-kit renders no operator class.
 export const tickets = pgTable(
 	"tickets",
 	{
@@ -48,7 +48,7 @@ export const tickets = pgTable(
 		priority: text().notNull().default("none"),
 		statusId: text("status_id")
 			.notNull()
-			.references(() => statuses.id),
+			.references(() => statuses.id, { onDelete: "restrict" }),
 		parentId: text("parent_id"),
 		position: doublePrecision().notNull(),
 		version: integer().notNull().default(1),
@@ -64,12 +64,12 @@ export const tickets = pgTable(
 			name: "tickets_project_fk",
 			columns: [t.projectId, t.rootId],
 			foreignColumns: [projects.id, projects.rootId],
-		}),
+		}).onDelete("restrict"),
 		foreignKey({
 			name: "tickets_parent_fk",
 			columns: [t.parentId, t.rootId],
 			foreignColumns: [t.id, t.rootId],
-		}),
+		}).onDelete("restrict"),
 		check("tickets_parent_not_self", sql`${t.parentId} <> ${t.id}`),
 		check("tickets_number_check", sql`${t.number} > 0`),
 		check("tickets_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 500`),
