@@ -3,9 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { cx, EmptyState, TicketId } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { AttachmentGrid } from "../../attachments/AttachmentGrid";
 import { PullRequests } from "../../prs";
 import { NotFoundState } from "../../shell/NotFoundState";
-import { Attachments } from "../Attachments";
 import { Description } from "../Description";
 import { Header } from "../Header";
 import { PropertiesRail } from "../PropertiesRail";
@@ -78,7 +78,7 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 				<Description key={ticket.identifier} ticket={ticket} />
 				{(ticket.children.length > 0 || addingChild) && <SubTickets ticket={ticket} autoFocusAdd={addingChild} />}
 				<PullRequests ticket={ticket} initialPrs={ticket.prs} />
-				<Attachments ticket={ticket} />
+				<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} />
 				<Timeline ticket={ticket} />
 			</div>
 			{drop.over && <DropOverlay identifier={ticket.identifier} />}

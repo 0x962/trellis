@@ -1,7 +1,8 @@
 import { os } from "./implementer";
+import { attachments } from "./procedures/attachments";
 import { comments, timeline } from "./procedures/comments";
 import { brief, inbox, search } from "./procedures/inbox";
-import { actors, attachments, settings, system } from "./procedures/misc";
+import { actors, settings, system } from "./procedures/misc";
 import { projects } from "./procedures/projects";
 import { pullRequests } from "./procedures/prs";
 import { statuses } from "./procedures/statuses";

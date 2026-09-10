@@ -1,4 +1,5 @@
 import type { ActorRef, CheckBucket, Priority, ReviewState } from "@trellis/api";
+import { seedAttachmentBytes } from "./seedAttachmentBytes";
 import { addActivity, newId, type ProjectRow, type State, statusesOf, type TicketRow } from "./state";
 
 export const minute = 60 * 1000;
@@ -276,20 +277,20 @@ export const createSeeder = (state: State, now: number) => {
 		at: number,
 	) => {
 		const id = newId();
+		const bytes = seedAttachmentBytes(mime, size);
+		const sha256 = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
 		state.attachments.set(id, {
 			id,
 			ticketId: row.id,
 			filename,
 			mime,
 			size,
-			sha256: id
-				.toLowerCase()
-				.replace(/[^0-9a-f]/g, "0")
-				.padEnd(64, "0"),
+			sha256,
 			actor: actors[actor],
 			createdAt: ago(at),
 			url: `/api/attachments/${id}/file`,
 		});
+		state.blobs.set(sha256, bytes);
 	};
 
 	return { ago, byNumber, addTicket, addStatusActivity, addFieldActivity, addComment, addPr, addAttachment };

@@ -20,6 +20,8 @@ export type BaseContext = {
 	ifMatch: number | null;
 	resHeaders: Headers;
 	versions: { server: string; api: string };
+	// The size cap on one upload, in bytes.
+	maxUploadBytes: number;
 };
 
 // Every procedure runs through this middleware. A mutation needs a valid

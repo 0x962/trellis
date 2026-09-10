@@ -90,6 +90,7 @@ describe("features/command/ShortcutHelp", () => {
 		expect(input.value).toBe("?");
 		expect(screen.queryByRole("dialog", { name: /Keyboard shortcuts/ })).toBeNull();
 		input.blur();
+		input.remove();
 		expect(await openHelp()).toBeDefined();
 	});
 });

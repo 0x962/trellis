@@ -5,6 +5,7 @@ import { createTrellisClient, type FetchLike } from "@trellis/api";
 import { Hono } from "hono";
 import { ulid } from "ulid";
 import { createEventBus } from "./events";
+import { serveAttachmentFile } from "./fileRoute";
 import { createHooks } from "./hooks";
 import type { BaseContext, Call } from "./implementer";
 import { router } from "./router";
@@ -18,7 +19,13 @@ export type FakeServerOptions = {
 	empty?: boolean;
 	// The interval of the `: ping` comment on the event stream.
 	pingMs?: number;
+	// The size cap on one upload. A larger file is refused with
+	// PAYLOAD_TOO_LARGE.
+	maxUploadBytes?: number;
 };
+
+// The default upload cap, the same 50 MB the server runs with.
+export const defaultMaxUploadBytes = 50 * 1024 * 1024;
 
 export const apiVersion = "1";
 export const serverVersion = "0.0.0-fake";
@@ -52,6 +59,7 @@ export const createFakeServer = (options: FakeServerOptions = {}) => {
 			ifMatch: ifMatch === null ? null : Number(ifMatch.replace(/"/g, "")),
 			resHeaders: new Headers({ "x-trellis-api-version": apiVersion }),
 			versions,
+			maxUploadBytes: options.maxUploadBytes ?? defaultMaxUploadBytes,
 		};
 	};
 
@@ -61,6 +69,7 @@ export const createFakeServer = (options: FakeServerOptions = {}) => {
 		c.header("x-trellis-api-version", apiVersion);
 	});
 	app.get("/api/events", (c) => bus.handle(c.req.raw));
+	app.get("/api/attachments/:id/file", (c) => serveAttachmentFile(state, c.req.param("id")));
 	app.use("/rpc/*", async (c, next) => {
 		const { matched, response } = await rpc.handle(c.req.raw, { prefix: "/rpc", context: contextOf(c.req.raw) });
 		if (matched) return response;
