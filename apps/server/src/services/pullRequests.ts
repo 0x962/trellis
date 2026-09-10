@@ -224,7 +224,10 @@ export const unlink = async (ctx: ServiceCtx, tx: Tx, input: UnlinkInput) => {
 		meta: { pullRequestId: row.id, url: row.url },
 		at,
 	});
-	ctx.emit({ type: "pr.unlinked", id: row.id, ...scope, state: row.state, ciState: row.ci_state });
+	// The event names the ticket the link left too, so its viewers drop the pull request.
+	const ticketIds = [ticket.id, ...scope.ticketIds];
+	const projectIds = [...new Set([ticket.project_id, ...scope.projectIds])];
+	ctx.emit({ type: "pr.unlinked", id: row.id, ticketIds, projectIds, state: row.state, ciState: row.ci_state });
 	return { deleted: row.id };
 };
 
