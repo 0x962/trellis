@@ -6,7 +6,9 @@ import { StyleSheet, View } from "react-native";
 import { EmptyState } from "../../../components/EmptyState";
 import { Segmented, type SegmentedOption } from "../../../components/Segmented";
 import { TicketRow } from "../../../components/TicketRow";
+import { UnreachableServer } from "../../../components/UnreachableServer";
 import { getQueries } from "../../../lib/orpc";
+import { keys, store } from "../../../lib/store";
 import { tokens } from "../../../theme/tokens";
 import { listQueryInput, type Segment, type SortValue } from "./listQuery";
 
@@ -32,9 +34,14 @@ const styles = StyleSheet.create({
 	list: { flex: 1 },
 });
 
+// The stored server without its scheme, as the unreachable state names it.
+const hostOf = (url: string) => url.replace(/^https?:\/\//, "");
+
 // One project's tickets: the segmented filter, the sort toggle, and the
 // pages the cursor reads. Each filter is its own query, so a change of the
 // filter starts at the first page and the cursor of the old filter is gone.
+// A first page the server did not send shows the unreachable state, not the
+// empty state.
 export function ProjectTicketList({ project }: ProjectTicketListProps) {
 	const [segment, setSegment] = useState<Segment>("active");
 	const [sort, setSort] = useState<SortValue>("updated");
@@ -49,6 +56,15 @@ export function ProjectTicketList({ project }: ProjectTicketListProps) {
 	const readNextPage = () => {
 		if (list.hasNextPage && !list.isFetchingNextPage) void list.fetchNextPage();
 	};
+	const empty = list.isPending ? null : list.isError ? (
+		<UnreachableServer
+			host={hostOf(store.getString(keys.serverUrl)!)}
+			onRetry={() => void list.refetch()}
+			onChangeServer={() => router.push("/setup")}
+		/>
+	) : (
+		<EmptyState title="No tickets here" hint="Another filter holds the rest of this project." />
+	);
 	return (
 		<View style={styles.page}>
 			<View style={styles.controls}>
@@ -56,9 +72,7 @@ export function ProjectTicketList({ project }: ProjectTicketListProps) {
 				<Segmented options={sorts} value={sort} onChange={setSort} />
 			</View>
 			{tickets.length === 0 ? (
-				list.isPending ? null : (
-					<EmptyState title="No tickets here" hint="Another filter holds the rest of this project." />
-				)
+				empty
 			) : (
 				<FlashList
 					testID="ticket-list"

@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
-import { Button } from "../../../../components/Button";
-import { tokens } from "../../../../theme/tokens";
-import { usePalette } from "../../../../theme/usePalette";
+import { tokens } from "../../theme/tokens";
+import { usePalette } from "../../theme/usePalette";
+import { Button } from "../Button";
 
 export type UnreachableServerProps = {
 	// The stored server without its scheme, such as 192.168.1.20:4521.
