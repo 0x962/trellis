@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Skeleton } from "@trellis/ui";
 import { marginOrigin, marginUrl } from "../../../../../../../utils/marginUrl";
 
 export type MarginFrameProps = {
@@ -26,9 +25,13 @@ const marginAnswers = async () => {
 //
 // margin runs as a service on this machine and it can be down. A frame of an
 // address that nothing answers shows the error page of the browser, which
-// names neither margin nor the address. So the question goes to margin
-// before the frame mounts, and a person who gets no page gets the address
-// instead.
+// names neither margin nor the address. So the frame goes up at once and the
+// message takes its place when the question above comes back with a failure.
+// The two answers arrive at very different speeds. Chromium holds an opaque
+// reply for seconds (3.7 s to 5.0 s against a live margin on this machine),
+// and it fails a request to a port that nothing listens on in about 2 ms. So
+// the frame waits for nothing, and the failure lands long before a person
+// reads the page.
 //
 // The answer lives in the query cache for as long as the frame stays
 // mounted. `gcTime: 0` drops it with the frame, so the next open asks margin
@@ -42,13 +45,6 @@ export function MarginFrame({ url, label }: MarginFrameProps) {
 		staleTime: 0,
 		gcTime: 0,
 	});
-
-	if (answers.isPending)
-		return (
-			<div data-margin-pending="" className="flex h-full items-center justify-center p-4">
-				<Skeleton width="w-64" />
-			</div>
-		);
 
 	if (answers.isError)
 		return (

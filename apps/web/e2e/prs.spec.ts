@@ -30,7 +30,7 @@ test("prs > Show diff frames the margin page beside the ticket", async ({ page }
 		route.fulfill({ contentType: "text/html", body: "<p>the margin page</p>" }),
 	);
 	await signIn(page, "/t/PRS-2");
-	await page.getByRole("button", { name: "Show diff" }).click();
+	await page.getByRole("button", { name: "Show diff", exact: true }).click();
 	const panel = page.getByRole("dialog", { name: "acme/web #7" });
 	await expect(panel).toBeVisible();
 	await expect(panel.locator("iframe")).toHaveAttribute("src", `http://margin.localhost/${failingPrUrl}`);
