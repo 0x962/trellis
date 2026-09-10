@@ -10,6 +10,12 @@ export const percentile95 = (samples: number[]) => {
 	return sorted[Math.ceil(sorted.length * 0.95) - 1] as number;
 };
 
+// The 99th percentile of `samples`, in the unit the samples carry.
+export const percentile99 = (samples: number[]) => {
+	const sorted = [...samples].sort((a, b) => a - b);
+	return sorted[Math.ceil(sorted.length * 0.99) - 1] as number;
+};
+
 // The 95th percentile of `runs` timed calls, in milliseconds, after three
 // untimed calls warm the plan cache. The budget table of plan.md is p95.
 export const p95 = async (fn: () => Promise<unknown>, runs = 50) => {
