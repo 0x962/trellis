@@ -5,6 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"test": "bun test",
+		"perf:10k": "bun test test/perf",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"db:generate": "drizzle-kit generate"
 	},
