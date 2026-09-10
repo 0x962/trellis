@@ -53,9 +53,7 @@ const iconOf = (field: FilterField, values: string[], statuses: readonly StatusS
 // even when several projects hold it.
 const namesOf = (field: FilterField, values: string[], statuses: readonly StatusSummary[]): string[] => {
 	if (field !== "category") return values.map((value) => valueLabel(field, value, statuses));
-	return [
-		...new Set(statuses.filter((status) => values.includes(status.category)).map((status) => status.name)),
-	];
+	return [...new Set(statuses.filter((status) => values.includes(status.category)).map((status) => status.name))];
 };
 
 // Two names, then a count of the rest: "In Progress, Agent Review +1".

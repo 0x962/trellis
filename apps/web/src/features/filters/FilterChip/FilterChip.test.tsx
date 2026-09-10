@@ -63,9 +63,7 @@ describe("features/filters/FilterChip", () => {
 		renderApp({ path: "/p/CDE?category=review", actor: "navid" });
 		await findGrid();
 		await waitFor(() => expect(chip("category")).not.toBeNull());
-		expect(chip("category")!.textContent!.replace(/\s+/g, " ").trim()).toBe(
-			"Status is Agent Review, Human Review",
-		);
+		expect(chip("category")!.textContent!.replace(/\s+/g, " ").trim()).toBe("Status is Agent Review, Human Review");
 	});
 
 	test("a chip with more than two values names two and counts the rest", async () => {
