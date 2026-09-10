@@ -116,7 +116,8 @@ if (key === "ws create") {
 		tag: flag("--tag")!.toLowerCase(),
 	};
 	state.workspaces.push(workspace);
-	const setup = state.setupTerminal === true ? [addTerminal(workspace.id, "./.superset/setup.sh", "Workspace Setup")] : [];
+	const setup =
+		state.setupTerminal === true ? [addTerminal(workspace.id, "./.superset/setup.sh", "Workspace Setup")] : [];
 	for (const terminal of setup) terminal.exited = true;
 	const terminal = addTerminal(workspace.id, flag("--command"), "Command");
 	const listed = [...setup, terminal].map(({ terminalId, label }) => ({ terminalId, label }));
