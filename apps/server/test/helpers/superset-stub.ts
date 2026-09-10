@@ -2,11 +2,12 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { StubState, StubTerminal } from "../stubs/superset.ts";
 
-// supersetStub gives each test its own state for test/stubs/superset.ts. It
-// sets TRELLIS_SUPERSET_STUB_STATE and TRELLIS_SUPERSET_STUB_LOG on
-// process.env, and the stub reads them at each spawn, so a runner built with
-// SUPERSET_STUB_BIN before the call uses the new state. restore() puts the
-// two variables back.
+// supersetStub gives a test file its own state for test/stubs/superset.ts.
+// It sets TRELLIS_SUPERSET_STUB_STATE and TRELLIS_SUPERSET_STUB_LOG on
+// process.env, and the stub reads them at each spawn. A database worker
+// copies process.env when it starts, so a file calls supersetStub before it
+// builds its app, and `reset` gives each test new state in the same files.
+// restore() puts the two variables back.
 
 export const SUPERSET_STUB_BIN = join(import.meta.dir, "..", "stubs", "superset.ts");
 
@@ -16,6 +17,9 @@ export type SupersetStubHandle = {
 	callsOf: (command: string) => string[][];
 	state: () => StubState;
 	update: (change: (state: StubState) => void) => void;
+	// New state and an empty call log. The id counter keeps counting, so a
+	// runner id stays unique across the tests of one file.
+	reset: (initial: Partial<StubState>) => void;
 	terminal: (terminalId: string) => StubTerminal;
 	exit: (terminalId: string) => void;
 	restore: () => void;
@@ -23,12 +27,13 @@ export type SupersetStubHandle = {
 
 const envKeys = ["TRELLIS_SUPERSET_STUB_STATE", "TRELLIS_SUPERSET_STUB_LOG"] as const;
 
+const empty = (): StubState => ({ projects: [], workspaces: [], terminals: [], next: 1, failures: {} });
+
 export const supersetStub = (dir: string, initial: Partial<StubState> = {}): SupersetStubHandle => {
 	const saved = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
 	const file = join(dir, "superset-state.json");
 	const log = join(dir, "superset-calls.log");
-	const empty: StubState = { projects: [], workspaces: [], terminals: [], next: 1, failures: {} };
-	writeFileSync(file, JSON.stringify({ ...empty, ...initial }));
+	writeFileSync(file, JSON.stringify({ ...empty(), ...initial }));
 	process.env.TRELLIS_SUPERSET_STUB_STATE = file;
 	process.env.TRELLIS_SUPERSET_STUB_LOG = log;
 
@@ -53,6 +58,10 @@ export const supersetStub = (dir: string, initial: Partial<StubState> = {}): Sup
 		callsOf: (command) => calls().filter((call) => `${call[0]} ${call[1]}` === command),
 		state,
 		update,
+		reset: (next) => {
+			writeFileSync(file, JSON.stringify({ ...empty(), ...next, next: state().next }));
+			rmSync(log, { force: true });
+		},
 		terminal: (terminalId) => state().terminals.find((terminal) => terminal.terminalId === terminalId)!,
 		exit: (terminalId) =>
 			update((current) => {
@@ -69,5 +78,5 @@ export const supersetStub = (dir: string, initial: Partial<StubState> = {}): Sup
 	};
 };
 
-// The arguments that follow `name` in one call.
+// The argument that follows `name` in one call.
 export const flagOf = (call: string[], name: string) => call[call.indexOf(name) + 1];

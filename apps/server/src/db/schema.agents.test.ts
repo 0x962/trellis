@@ -73,7 +73,13 @@ describe("agent_sessions", () => {
 		const { rootId, ticketId } = await ticketOf();
 		await session(rootId, { workspace_id: "ws-1", terminal_id: "t-1" });
 		await expect(
-			session(rootId, { role: "builder", ticket_id: ticketId, title: "CDE-1", workspace_id: "ws-1", terminal_id: "t-1" }),
+			session(rootId, {
+				role: "builder",
+				ticket_id: ticketId,
+				title: "CDE-1",
+				workspace_id: "ws-1",
+				terminal_id: "t-1",
+			}),
 		).rejects.toThrow(UNIQUE);
 		await session(rootId, { role: "builder", ticket_id: ticketId, title: "CDE-1", workspace_id: "ws-1" });
 	});

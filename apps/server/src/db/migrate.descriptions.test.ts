@@ -2,8 +2,8 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
-import { SEEDED_DESCRIPTIONS } from "../../test/fixtures/statusDescriptions.ts";
 import { seedActors, seedRoot, seedStatus, seedStatuses } from "../../test/fixtures";
+import { SEEDED_DESCRIPTIONS } from "../../test/fixtures/statusDescriptions.ts";
 import { openDb } from "./client.ts";
 import { migrate } from "./migrate.ts";
 

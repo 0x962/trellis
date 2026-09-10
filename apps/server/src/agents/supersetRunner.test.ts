@@ -43,7 +43,12 @@ const reasonOf = async (promise: Promise<unknown>) => {
 describe("projectFor", () => {
 	test("matches a declared repo to the Superset project whose repo names it, in any case and form", async () => {
 		expect(await runner.projectFor([{ owner: "acme", repo: "web" }])).toBe("sp-web");
-		expect(await runner.projectFor([{ owner: "other", repo: "x" }, { owner: "acme", repo: "api" }])).toBe("sp-api");
+		expect(
+			await runner.projectFor([
+				{ owner: "other", repo: "x" },
+				{ owner: "acme", repo: "api" },
+			]),
+		).toBe("sp-api");
 		expect(stub.callsOf("projects list")[0]).toEqual(["projects", "list", "--json"]);
 	});
 
@@ -103,7 +108,11 @@ describe("startBuilder", () => {
 			...["--branch", "cde-42-fix-login", "--skip-branch-prefix", "--base-branch", "main", "--tag", "trellis-cde"],
 			...["--command", launchCommand({ role: "builder", project: "CDE", ticket: "CDE-42", url }), "--json"],
 		]);
-		expect(stub.state().workspaces[0]).toMatchObject({ name: "CDE-42", tag: "trellis-cde", branch: "cde-42-fix-login" });
+		expect(stub.state().workspaces[0]).toMatchObject({
+			name: "CDE-42",
+			tag: "trellis-cde",
+			branch: "cde-42-fix-login",
+		});
 		expect(started.openUrl).toBe(`superset://workspace/${started.workspaceId}`);
 		const listed = await runner.terminals(started.workspaceId);
 		expect(listed).toEqual([{ terminalId: started.terminalId, exited: false, title: "CDE-42" }]);
@@ -130,7 +139,12 @@ describe("startReviewer", () => {
 	test("opens a tab named '<ticket> review' in the builder's workspace with the reviewer prompt", async () => {
 		const built = await runner.startBuilder(builder);
 		const prUrl = "https://github.com/acme/web/pull/7";
-		const reviewer = await runner.startReviewer({ project: "CDE", ticket: "CDE-42", prUrl, workspaceId: built.workspaceId });
+		const reviewer = await runner.startReviewer({
+			project: "CDE",
+			ticket: "CDE-42",
+			prUrl,
+			workspaceId: built.workspaceId,
+		});
 		const [create] = stub.callsOf("terminals create");
 		expect(create).toEqual([
 			...["terminals", "create", "--workspace", built.workspaceId],
@@ -143,7 +157,12 @@ describe("startReviewer", () => {
 describe("wake", () => {
 	test("types the text into a live terminal after it checks the terminal list", async () => {
 		const started = await runner.ensureManager(manager);
-		const session = { project: "CDE", workspaceId: started.workspaceId, terminalId: started.terminalId, claudeSessionId: null };
+		const session = {
+			project: "CDE",
+			workspaceId: started.workspaceId,
+			terminalId: started.terminalId,
+			claudeSessionId: null,
+		};
 		const woken = await runner.wake(session, "trellis: 2 changes in CDE");
 		expect(woken).toEqual({ terminalId: started.terminalId, relaunched: false });
 		const calls = stub.calls().map((call) => `${call[0]} ${call[1]}`);
@@ -158,7 +177,12 @@ describe("wake", () => {
 	test("never types into an exited terminal; it relaunches the manager resuming its session with the text", async () => {
 		const started = await runner.ensureManager(manager);
 		stub.exit(started.terminalId);
-		const session = { project: "CDE", workspaceId: started.workspaceId, terminalId: started.terminalId, claudeSessionId: "c-9" };
+		const session = {
+			project: "CDE",
+			workspaceId: started.workspaceId,
+			terminalId: started.terminalId,
+			claudeSessionId: "c-9",
+		};
 		const woken = await runner.wake(session, "trellis: 1 change in CDE");
 		expect(woken.relaunched).toBe(true);
 		expect(woken.terminalId).not.toBe(started.terminalId);
@@ -173,7 +197,12 @@ describe("wake", () => {
 		stub.update((state) => {
 			state.terminals = [];
 		});
-		const session = { project: "CDE", workspaceId: started.workspaceId, terminalId: started.terminalId, claudeSessionId: null };
+		const session = {
+			project: "CDE",
+			workspaceId: started.workspaceId,
+			terminalId: started.terminalId,
+			claudeSessionId: null,
+		};
 		const woken = await runner.wake(session, "trellis: 1 change in CDE");
 		expect(woken.relaunched).toBe(true);
 		const command = flagOf(stub.callsOf("terminals create")[0]!, "--command");
