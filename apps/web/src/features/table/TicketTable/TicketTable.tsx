@@ -26,6 +26,7 @@ import { type CopyKind, useTableHotkeys } from "../hooks/useTableHotkeys";
 import { useTicketMutations } from "../hooks/useTicketMutations";
 import type { EditField, RowChange } from "../Row";
 import { TableEmpty } from "../TableEmpty";
+import { TableError } from "./components/TableError";
 import { TableFooter } from "../TableFooter";
 import { columnVisibility } from "../utils/columnVisibility";
 import { flattenGroups } from "../utils/flattenGroups";
@@ -222,6 +223,7 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		selection.selected.map((id) => byId.get(id)!.identifier),
 	);
 
+	if (data.error !== null) return <TableError error={data.error} onRetry={data.retry} />;
 	if (data.total === 0 && (project === undefined || projectQuery.data?.parentId === null)) {
 		return <TableEmpty project={project} filtered={hasFilters(search)} q={view.q} onCreate={() => openNew()} />;
 	}
