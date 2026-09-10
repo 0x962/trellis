@@ -1,5 +1,6 @@
 import type { GhStatus, TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { createSupersetRunner } from "../agents/supersetRunner.ts";
 import type { Config } from "../config.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR } from "../context.ts";
 import type { Bus } from "../events/bus.ts";
@@ -99,8 +100,19 @@ export const createInlineTransport = ({
 		vacuum: () => createMaintenance(db).runNow(),
 	});
 
-	const buildCtx = (entry: ServiceEntry, ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) =>
-		entry.family === "core" ? coreCtx(ctx, emit, tasks) : ioCtx(ctx, emit, tasks);
+	// The runner spawns the superset binary from the thread that owns the
+	// database, so a service reaches it the way it reaches the database.
+	const runner = createSupersetRunner({ bin: config.supersetBin, url: config.agentsUrl });
+	const agentsCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => ({
+		...coreCtx(ctx, emit, tasks),
+		runner,
+		newTx,
+	});
+
+	const buildCtx = (entry: ServiceEntry, ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => {
+		if (entry.family === "core") return coreCtx(ctx, emit, tasks);
+		return entry.family === "agents" ? agentsCtx(ctx, emit, tasks) : ioCtx(ctx, emit, tasks);
+	};
 
 	// A `prepare` step runs first, with no transaction open. The commit comes
 	// next, then the work queued for after it, then the events. A throw rolls
