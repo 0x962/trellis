@@ -52,5 +52,7 @@ describe("agents procedures", () => {
 	todo(
 		"server builder: agents.runnerProjects lists the projects of superset projects list and matches each trellis project by its declared repo",
 	);
-	todo("server builder: agents.runnerProjects answers RUNNER_UNAVAILABLE missing when the superset binary does not exist");
+	todo(
+		"server builder: agents.runnerProjects answers RUNNER_UNAVAILABLE missing when the superset binary does not exist",
+	);
 });

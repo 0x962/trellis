@@ -87,10 +87,15 @@ describe("AgentsSettings", () => {
 	test("the Superset project picker lists the runner's projects and names the Auto match", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
-		await server.client.projects.setRepos({ project: "CDE", repos: [{ owner: "canary-technologies-corp", repo: "de" }] });
+		await server.client.projects.setRepos({
+			project: "CDE",
+			repos: [{ owner: "canary-technologies-corp", repo: "de" }],
+		});
 		render(server);
 		const trellis = within(await projectGroup("TRL"));
-		await waitFor(() => expect(trellis.getByRole("combobox", { name: "Superset project" }).textContent).toBe("Auto: no match"));
+		await waitFor(() =>
+			expect(trellis.getByRole("combobox", { name: "Superset project" }).textContent).toBe("Auto: no match"),
+		);
 		const picker = within(await projectGroup("CDE")).getByRole("combobox", { name: "Superset project" });
 		expect(picker.textContent).toBe("Auto: de");
 		await user.click(picker);

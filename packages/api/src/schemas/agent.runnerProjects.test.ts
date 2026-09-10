@@ -24,7 +24,10 @@ describe("runner projects", () => {
 		expect(ok(AgentRunnerProjectsOutputSchema, { projects: [project], matches })).toBe(true);
 		expect(ok(AgentRunnerProjectsOutputSchema, { projects: [project] })).toBe(false);
 		expect(
-			ok(AgentRunnerProjectsOutputSchema, { projects: [project], matches: [{ projectId: "CDE", runnerProjectId: "sp-de" }] }),
+			ok(AgentRunnerProjectsOutputSchema, {
+				projects: [project],
+				matches: [{ projectId: "CDE", runnerProjectId: "sp-de" }],
+			}),
 		).toBe(false);
 	});
 });

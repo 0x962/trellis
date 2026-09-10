@@ -71,7 +71,9 @@ describe("AgentsRow", () => {
 		await user.click(start);
 		await waitFor(() => expect(server.callsTo("agents.startBuilder")).toHaveLength(1));
 		expect(server.callsTo("agents.startBuilder")[0]!.input).toEqual({ ticket: "CDE-42" });
-		await waitFor(async () => expect((await items()).map((row) => row.textContent)).toEqual(["BuilderStartingOpen in Superset"]));
+		await waitFor(async () =>
+			expect((await items()).map((row) => row.textContent)).toEqual(["BuilderStartingOpen in Superset"]),
+		);
 		expect(await startButton()).toBeNull();
 	});
 
@@ -119,7 +121,9 @@ describe("AgentsRow", () => {
 		await items();
 		expect(await startButton()).toBeNull();
 		createEventApplier(queryClient).applyEvent(updateSession(server, builder.id, { state: "exited" }));
-		await waitFor(async () => expect((await items()).map((row) => row.textContent)).toEqual(["BuilderExitedOpen in Superset"]));
+		await waitFor(async () =>
+			expect((await items()).map((row) => row.textContent)).toEqual(["BuilderExitedOpen in Superset"]),
+		);
 		expect(await startButton()).not.toBeNull();
 	});
 });

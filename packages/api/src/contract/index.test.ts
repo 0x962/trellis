@@ -85,7 +85,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(55);
+		expect(table).toHaveLength(56);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

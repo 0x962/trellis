@@ -70,7 +70,10 @@ describe("fake server agents", () => {
 
 	test("agents.runnerProjects lists the runner's projects and matches a project by its repo", async () => {
 		const server = createFakeServer();
-		await server.client.projects.setRepos({ project: "CDE", repos: [{ owner: "canary-technologies-corp", repo: "de" }] });
+		await server.client.projects.setRepos({
+			project: "CDE",
+			repos: [{ owner: "canary-technologies-corp", repo: "de" }],
+		});
 		const result = AgentRunnerProjectsOutputSchema.parse(await server.client.agents.runnerProjects());
 		expect(result.projects.map((project) => project.name)).toEqual(["de", "trellis"]);
 		expect(result.matches).toEqual([{ projectId: rootId(server), runnerProjectId: "sp-de" }]);

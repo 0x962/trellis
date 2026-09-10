@@ -3,6 +3,7 @@ import {
 	AgentInboxInputSchema,
 	AgentInboxOutputSchema,
 	AgentRegisterInputSchema,
+	AgentRunnerProjectsOutputSchema,
 	AgentSessionSchema,
 	AgentSessionsInputSchema,
 	AgentSessionsOutputSchema,
@@ -57,6 +58,15 @@ export const agents = {
 	settings: base
 		.route({ method: "GET", path: "/agents/settings", summary: "Read the agent settings" })
 		.output(AgentSettingsSchema),
+	// The settings page fills its runner project picker from this list.
+	runnerProjects: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "GET",
+			path: "/agents/runner-projects",
+			summary: "List the projects the runner knows and the project each trellis project matches",
+		})
+		.output(AgentRunnerProjectsOutputSchema),
 	setSettings: base
 		.route({ method: "PUT", path: "/agents/settings", summary: "Replace the agent settings" })
 		.input(AgentSettingsSetInputSchema)
