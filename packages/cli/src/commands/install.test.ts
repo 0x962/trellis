@@ -81,11 +81,32 @@ describe("install", () => {
 		expect(asked).toEqual(["/api/health"]);
 	});
 
-	test("the plist runs the bun that runs the installer", async () => {
+	// process.execPath names the versioned Homebrew Cellar directory, which a
+	// brew upgrade deletes. The bun on PATH is a symlink that the upgrade
+	// moves to the new version, so the agent keeps a program to run.
+	test("the plist runs the stable bun path that which finds on PATH", async () => {
 		const { prefix, env, plist } = setup();
-		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
+		const asked: string[] = [];
+		const which = (name: string) => {
+			asked.push(name);
+			return "/stable/bin/bun";
+		};
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env, which });
 		expect(result.code, result.stderr).toBe(0);
-		expect(readFileSync(plist, "utf8")).toContain(`<array>\n\t\t<string>${process.execPath}</string>`);
+		expect(asked).toEqual(["bun"]);
+		const text = readFileSync(plist, "utf8");
+		expect(text).toContain("<array>\n\t\t<string>/stable/bin/bun</string>");
+		expect(text).toContain("<key>PATH</key>\n\t\t<string>/stable/bin:");
+		expect(text).not.toContain(process.execPath);
+	});
+
+	test("a bun that is not on PATH fails the install as INSTALL_FAILED", async () => {
+		const { prefix, env, plist } = setup();
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env, which: () => null });
+		expect(result.code).toBe(1);
+		expect(result.stderr).toContain("bun is not on PATH");
+		expect(result.stderr).toContain("(INSTALL_FAILED)");
+		expect(existsSync(plist)).toBe(false);
 	});
 
 	test("the test deps inject a user home under the TRELLIS_HOME of the test process", () => {
