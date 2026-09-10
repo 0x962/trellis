@@ -6,7 +6,7 @@ export default defineCommand({
 	meta: { name: "serve", description: "Run the server in the foreground" },
 	async run(context) {
 		const ctx = contextOf(context);
-		const paths = installationPaths(ctx.deps.env);
+		const paths = installationPaths(ctx.deps.env, ctx.deps.home);
 		const proc = Bun.spawn([process.execPath, paths.serverEntry], {
 			cwd: paths.repoRoot,
 			env: ctx.deps.env,

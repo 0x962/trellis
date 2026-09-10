@@ -17,7 +17,7 @@ export default defineCommand({
 	},
 	async run(context) {
 		const ctx = contextOf(context);
-		const paths = installationPaths(ctx.deps.env, context.args.prefix);
+		const paths = installationPaths(ctx.deps.env, ctx.deps.home, context.args.prefix);
 		// bootout fails when no agent is loaded, and uninstall still removes the files.
 		if (context.args.launchd)
 			await ctx.deps.run(["launchctl", "bootout", `${ctx.deps.launchdDomain}/com.trellis.server`]);
