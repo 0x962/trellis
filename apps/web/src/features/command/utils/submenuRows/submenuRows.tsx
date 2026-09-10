@@ -1,6 +1,6 @@
 import type { Status, TicketSummary } from "@trellis/api";
 import { PriorityIcon, StatusIcon } from "@trellis/ui";
-import { CornerUpLeft, Folder } from "lucide-react";
+import { CornerUpLeft } from "lucide-react";
 import {
 	bulkChangeStatus,
 	bulkMoveToProject,
@@ -12,7 +12,9 @@ import {
 } from "../../actions";
 import type { PaletteRow, RowDeps, Submenu } from "../../rows";
 import { priorityLabels } from "../../rows";
+import { projectRows } from "../projectRows";
 import { viewHref } from "../viewHref";
+import { gotoProjectRows } from "../viewRows";
 
 // The values a submenu offers. One ticket writes through tickets.update
 // and a selection writes through one tickets.updateMany call.
@@ -24,6 +26,7 @@ export const submenuHeadings: Record<Submenu["kind"], string> = {
 	parent: "Set parent",
 	sort: "Sort by",
 	group: "Group by",
+	goto: "Go to project",
 };
 
 export type SubmenuData = {
@@ -38,7 +41,7 @@ const sorts = [
 	{ value: "-createdAt", label: "Created" },
 	{ value: "priority", label: "Priority" },
 	{ value: "status", label: "Status" },
-	{ value: "-number", label: "Number" },
+	{ value: "-number", label: "ID" },
 	{ value: "position", label: "Manual order" },
 ] as const;
 
@@ -47,8 +50,8 @@ const groups = [
 	{ value: "priority", label: "Priority" },
 	{ value: "project", label: "Project" },
 	{ value: "parent", label: "Parent" },
-	{ value: "pr", label: "Pull request" },
-	{ value: "none", label: "No grouping" },
+	{ value: "pr", label: "PR" },
+	{ value: "none", label: "None" },
 ] as const;
 
 const writeTickets = (deps: RowDeps, tickets: string[], one: () => void, many: () => void) => () => {
@@ -87,19 +90,19 @@ export const submenuRows = (submenu: Submenu, deps: RowDeps, data: SubmenuData):
 		}));
 	}
 	if (submenu.kind === "project") {
-		return deps.projects.map((project) => ({
-			value: `project.${project.id}`,
-			label: project.path,
-			sub: project.name,
-			icon: <Folder />,
-			run: writeTickets(
-				deps,
-				submenu.tickets,
-				() => void moveToProject(action, submenu.tickets[0]!, project.path),
-				() => void bulkMoveToProject(action, submenu.tickets, project.path),
-			),
-		}));
+		return projectRows(
+			deps.projects,
+			(project) => `project.${project.id}`,
+			(project) =>
+				writeTickets(
+					deps,
+					submenu.tickets,
+					() => void moveToProject(action, submenu.tickets[0]!, project.path),
+					() => void bulkMoveToProject(action, submenu.tickets, project.path),
+				),
+		);
 	}
+	if (submenu.kind === "goto") return gotoProjectRows(deps);
 	if (submenu.kind === "parent") {
 		const none: PaletteRow = {
 			value: "parent.none",

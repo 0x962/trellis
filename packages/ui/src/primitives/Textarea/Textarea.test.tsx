@@ -15,7 +15,10 @@ describe("Textarea", () => {
 		await user.type(textarea, "hi");
 		expect(onChange).toHaveBeenCalledTimes(2);
 		expectClasses(textarea, "rounded-md border-border text-base leading-5");
-		expectClasses(textarea, "focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2");
+		expectClasses(
+			textarea,
+			"outline-none focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft",
+		);
 
 		rerender(<Textarea label="Comment" rows={3} onChange={onChange} disabled />);
 		expect(textarea.hasAttribute("disabled")).toBe(true);

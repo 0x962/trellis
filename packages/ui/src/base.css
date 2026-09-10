@@ -1,0 +1,57 @@
+/*
+ * The base layer of every trellis surface. The web app and the gallery
+ * import it after tokens.css.
+ *
+ * Tailwind's preflight gives a button `cursor: default`. The rules below
+ * give every enabled control the pointer, every disabled control
+ * not-allowed, and every text field the text cursor. A component never
+ * sets its own cursor, except a board card, which shows the grab hand.
+ * The rules are in the base layer, so a utility class on an element still
+ * wins over them.
+ */
+
+/* The ground of the trellis mark. It stays dark in both themes, as the favicon does. */
+@theme {
+	--color-mark: var(--mark);
+}
+
+@layer base {
+	:root {
+		--mark: #0a0a0a;
+	}
+
+	button:not(:disabled),
+	[role="button"]:not([aria-disabled="true"]),
+	[role="menuitem"]:not([aria-disabled="true"]),
+	[role="menuitemradio"]:not([aria-disabled="true"]),
+	[role="menuitemcheckbox"]:not([aria-disabled="true"]),
+	[role="option"]:not([aria-disabled="true"]),
+	[role="tab"]:not([aria-disabled="true"]),
+	[role="switch"]:not([aria-disabled="true"]),
+	[role="checkbox"]:not([aria-disabled="true"]),
+	[role="row"][data-href],
+	summary,
+	label[for],
+	select:not(:disabled),
+	a[href],
+	[data-card] {
+		cursor: pointer;
+	}
+
+	input:not([type]),
+	input[type="text"],
+	input[type="search"],
+	input[type="email"],
+	input[type="url"],
+	input[type="number"],
+	input[type="password"],
+	textarea,
+	[contenteditable="true"] {
+		cursor: text;
+	}
+
+	:disabled,
+	[aria-disabled="true"] {
+		cursor: not-allowed;
+	}
+}

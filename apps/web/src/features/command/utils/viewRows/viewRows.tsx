@@ -1,9 +1,7 @@
-import type { ProjectSummary } from "@trellis/api";
 import {
 	ArrowUpDown,
-	CornerDownRight,
 	Filter,
-	Folder,
+	FolderOpen,
 	FolderPlus,
 	Inbox,
 	LayoutGrid,
@@ -22,6 +20,7 @@ import { uiActions, useUiStore } from "../../../../stores/uiStore";
 import { composerActions } from "../../../composer";
 import { itemsOfSection } from "../../items";
 import { capsOf, type PaletteRow, type RowDeps } from "../../rows";
+import { projectRows } from "../projectRows";
 import { routeDefaults } from "../routeDefaults";
 
 // The Create, Go to, and View sections. Every row here moves the app or
@@ -29,7 +28,6 @@ import { routeDefaults } from "../routeDefaults";
 
 const icons: Record<string, ReactNode> = {
 	"create.ticket": <Plus />,
-	"create.subTicket": <CornerDownRight />,
 	"create.project": <FolderPlus />,
 	"create.subProject": <FolderPlus />,
 	"goto.needsYou": <Inbox />,
@@ -37,6 +35,7 @@ const icons: Record<string, ReactNode> = {
 	"goto.board": <LayoutGrid />,
 	"goto.table": <Table />,
 	"goto.settings": <Settings />,
+	"goto.project": <FolderOpen />,
 	"view.filter": <Filter />,
 	"view.sort": <ArrowUpDown />,
 	"view.group": <Rows3 />,
@@ -62,20 +61,14 @@ const rowsOf = (section: "create" | "goto" | "view", runs: Record<string, () => 
 		}));
 
 // The project form of the first run is the one place a project is made,
-// and a project's own settings page holds its sub-projects. New
-// sub-ticket needs a ticket in context; New sub-project needs a project
-// route.
+// and a project's own settings page holds its sub-projects, so New
+// sub-project needs a project route. New sub-ticket lives in This ticket.
 export const createRows = (deps: RowDeps): PaletteRow[] => {
 	const defaults = routeDefaults(deps.pathname, deps.search);
 	const runs: Record<string, () => void> = {
 		"create.ticket": run(deps, () => composerActions.open(defaults)),
 		"create.project": run(deps, () => deps.action.navigate("/setup?step=project")),
 	};
-	if (deps.identifier !== null) {
-		runs["create.subTicket"] = run(deps, () =>
-			composerActions.open({ ...defaults, parent: deps.identifier ?? undefined }),
-		);
-	}
 	if (deps.routeProject !== null) {
 		const project = deps.routeProject;
 		runs["create.subProject"] = run(deps, () => deps.action.navigate(projectHref(project, "settings")));
@@ -83,42 +76,31 @@ export const createRows = (deps: RowDeps): PaletteRow[] => {
 	return rowsOf("create", runs);
 };
 
-// The board and the table of the project the route names. Off a project
-// route there is no view to switch.
+// The fixed destinations, one row that opens the project list, and the
+// board and the table of the project the route names. Off a project route
+// there is no view to switch.
 export const gotoRows = (deps: RowDeps): PaletteRow[] => {
 	const runs: Record<string, () => void> = {
 		"goto.needsYou": run(deps, () => deps.action.navigate("/needs-you")),
 		"goto.all": run(deps, () => deps.action.navigate("/all")),
 		"goto.settings": run(deps, () => deps.action.navigate("/settings")),
+		"goto.project": () => deps.openSubmenu({ kind: "goto" }),
 	};
 	const project = deps.routeProject;
 	if (project !== null) {
 		runs["goto.board"] = run(deps, () => deps.action.navigate(projectHref(project, "board")));
 		runs["goto.table"] = run(deps, () => deps.action.navigate(projectHref(project, "table")));
 	}
-	const rows = rowsOf("goto", runs);
-	const byId = new Map(deps.projects.map((row) => [row.id, row]));
-	// The sidebar shows a project by its name under the names of its parents,
-	// so the row leads with that. The mono sub is the ref the CLI takes.
-	const namePath = (row: ProjectSummary): string => {
-		const parent = row.parentId === null ? undefined : byId.get(row.parentId);
-		return parent === undefined ? row.name : `${namePath(parent)} / ${row.name}`;
-	};
-	const projects = deps.projects.map((row) => ({
-		value: `goto.project.${row.id}`,
-		label: namePath(row),
-		sub: row.path,
-		mono: true,
-		icon: <Folder />,
-		keywords: [row.name, row.key],
-		run: run(deps, () => deps.action.navigate(projectHref(row.path, "table"))),
-	}));
-	// The destinations first, then every project, then the two views of the
-	// project the route names.
-	const views = rows.filter((row) => row.value === "goto.board" || row.value === "goto.table");
-	const places = rows.filter((row) => !views.includes(row));
-	return [...places, ...projects, ...views];
+	return rowsOf("goto", runs);
 };
+
+// Every project, as rows that open the project's table.
+export const gotoProjectRows = (deps: RowDeps): PaletteRow[] =>
+	projectRows(
+		deps.projects,
+		(project) => `goto.project.${project.id}`,
+		(project) => run(deps, () => deps.action.navigate(projectHref(project.path, "table"))),
+	);
 
 export const viewRows = (deps: RowDeps): PaletteRow[] => {
 	const runs: Record<string, () => void> = {

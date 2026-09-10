@@ -12,7 +12,7 @@ export const sectionHeadings: Record<PaletteSection, string> = {
 	create: "Create",
 	goto: "Go to",
 	view: "View",
-	results: "Search results",
+	results: "Tickets",
 };
 
 export type PaletteItemDef = {
@@ -30,7 +30,7 @@ export const paletteItems: readonly PaletteItemDef[] = [
 	{ id: "ticket.priority", label: "Set priority", section: "ticket", shortcutId: "listPriority", submenu: true },
 	{ id: "ticket.project", label: "Move to project", section: "ticket", shortcutId: "listProject", submenu: true },
 	{ id: "ticket.parent", label: "Set parent", section: "ticket", shortcutId: "listParent", submenu: true },
-	{ id: "ticket.subTicket", label: "Add sub-ticket", section: "ticket" },
+	{ id: "ticket.subTicket", label: "New sub-ticket", section: "ticket" },
 	{ id: "ticket.agent", label: "Start with agent", section: "ticket", shortcutId: "ticketStartAgent" },
 	{ id: "ticket.copyId", label: "Copy ID", section: "ticket", shortcutId: "ticketCopyId" },
 	{ id: "ticket.copyBranch", label: "Copy branch name", section: "ticket", shortcutId: "ticketCopyBranch" },
@@ -43,7 +43,6 @@ export const paletteItems: readonly PaletteItemDef[] = [
 	{ id: "selection.project", label: "Move to project", section: "selection", submenu: true },
 	{ id: "selection.delete", label: "Delete", section: "selection" },
 	{ id: "create.ticket", label: "New ticket", section: "create", shortcutId: "create" },
-	{ id: "create.subTicket", label: "New sub-ticket", section: "create" },
 	{ id: "create.project", label: "New project", section: "create" },
 	{ id: "create.subProject", label: "New sub-project", section: "create" },
 	{ id: "goto.needsYou", label: "Needs you", section: "goto", shortcutId: "gotoNeedsYou" },
@@ -51,12 +50,13 @@ export const paletteItems: readonly PaletteItemDef[] = [
 	{ id: "goto.board", label: "Board", section: "goto", shortcutId: "gotoBoard" },
 	{ id: "goto.table", label: "Table", section: "goto", shortcutId: "gotoTable" },
 	{ id: "goto.settings", label: "Settings", section: "goto" },
+	{ id: "goto.project", label: "Go to project…", section: "goto", shortcutId: "gotoProject", submenu: true },
 	{ id: "view.filter", label: "Filter by", section: "view", shortcutId: "gotoFilters" },
 	{ id: "view.sort", label: "Sort by", section: "view", submenu: true },
 	{ id: "view.group", label: "Group by", section: "view", submenu: true },
 	{ id: "view.density", label: "Toggle density", section: "view" },
 	{ id: "view.theme", label: "Toggle theme", section: "view", shortcutId: "toggleTheme" },
-	{ id: "view.sidebar", label: "Collapse sidebar", section: "view", shortcutId: "toggleSidebar" },
+	{ id: "view.sidebar", label: "Toggle sidebar", section: "view", shortcutId: "toggleSidebar" },
 ];
 
 export const itemsOfSection = (section: PaletteSection): PaletteItemDef[] =>

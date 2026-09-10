@@ -3,6 +3,7 @@ export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { type StatusCategory, StatusIcon, type StatusIconProps } from "./domain/StatusIcon";
 export { TicketId, type TicketIdProps } from "./domain/TicketId";
+export { TrellisMark, type TrellisMarkProps } from "./domain/TrellisMark";
 export { type Hotkey, useHotkey } from "./hooks/useHotkey";
 export { useMediaQuery } from "./hooks/useMediaQuery";
 export { useReducedMotion } from "./hooks/useReducedMotion";
@@ -30,6 +31,7 @@ export { Kbd, type KbdProps } from "./primitives/Kbd";
 export { Menu, type MenuItem, type MenuProps } from "./primitives/Menu";
 export { Popover, type PopoverProps } from "./primitives/Popover";
 export { ScrollArea, type ScrollAreaProps } from "./primitives/ScrollArea";
+export { SectionHeader, type SectionHeaderProps } from "./primitives/SectionHeader";
 export { Segmented, type SegmentedOption, type SegmentedProps } from "./primitives/Segmented";
 export { Select, type SelectItem, type SelectProps } from "./primitives/Select";
 export { Separator, type SeparatorProps } from "./primitives/Separator";

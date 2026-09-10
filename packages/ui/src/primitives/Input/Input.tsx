@@ -10,7 +10,8 @@ export type InputProps = Omit<ComponentProps<typeof BaseInput>, "id" | "classNam
 	invalid?: boolean;
 };
 
-// A single-line text field, 28 px tall.
+// A single-line text field, 32 px tall. The focus draws the accent border
+// and a soft ring outside it; the caret shows where the text goes.
 export function Input({ label, hideLabel = false, invalid = false, className, ...props }: InputProps) {
 	const id = useId();
 	return (
@@ -22,10 +23,10 @@ export function Input({ label, hideLabel = false, invalid = false, className, ..
 				id={id}
 				aria-invalid={invalid || undefined}
 				className={cx(
-					"h-7 w-full rounded-md border bg-surface px-2 text-base text-fg placeholder:text-fg-faint transition duration-hover ease-out",
-					"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
-					"disabled:opacity-50 disabled:pointer-events-none",
-					invalid ? "border-danger" : "border-border hover:border-border-strong",
+					"h-8 w-full rounded-md border bg-surface px-2.5 text-base text-fg placeholder:text-fg-faint outline-none transition duration-hover ease-out",
+					"focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft",
+					"disabled:opacity-50",
+					invalid ? "border-danger" : "border-border enabled:hover:border-border-strong",
 					className,
 				)}
 				{...props}

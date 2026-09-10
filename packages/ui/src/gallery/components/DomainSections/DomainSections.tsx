@@ -3,6 +3,7 @@ import { type Check, CheckRibbon } from "../../../domain/CheckRibbon";
 import { type Priority, PriorityIcon } from "../../../domain/PriorityIcon";
 import { StatusIcon } from "../../../domain/StatusIcon";
 import { TicketId } from "../../../domain/TicketId";
+import { TrellisMark } from "../../../domain/TrellisMark";
 import { Section } from "../Section";
 
 const priorities: Priority[] = ["none", "low", "medium", "high", "urgent"];
@@ -58,12 +59,12 @@ export function DomainSections() {
 					</span>
 				))}
 			</Section>
-			<Section name="CheckRibbon" note="full and mini; pass, fail, pending, skipping; 40 and 80 checks">
+			<Section name="CheckRibbon" note="full and mini; passed, failed, pending, skipped; 40 and 80 checks">
 				<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
-					<CheckRibbon checks={passing} /> 6 passing
+					<CheckRibbon checks={passing} /> 6 passed
 				</span>
 				<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
-					<CheckRibbon checks={mixed} /> 1 failing, 2 pending
+					<CheckRibbon checks={mixed} /> 1 failed, 2 pending
 				</span>
 				<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
 					<CheckRibbon checks={queued} /> queued
@@ -78,23 +79,28 @@ export function DomainSections() {
 					<CheckRibbon size="mini" checks={mixed} /> mini
 				</span>
 				<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
-					<CheckRibbon checks={crowded} /> 40 checks, 1 failing
+					<CheckRibbon checks={crowded} /> 40 checks, 1 failed
 				</span>
 				<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
 					<CheckRibbon size="mini" checks={crowded} /> mini, 40 checks
 				</span>
 				<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
-					<CheckRibbon checks={packed} /> 80 checks, 1 failing
+					<CheckRibbon checks={packed} /> 80 checks, 1 failed
 				</span>
 			</Section>
-			<Section name="ActorChip" note="human; agent; agent live">
+			<Section name="ActorChip" note="human; agent; agent live; compact">
 				<ActorChip name="navid" kind="human" />
 				<ActorChip name="codex" kind="agent" />
 				<ActorChip name="claude-code" kind="agent" live />
+				<ActorChip name="claude-code" kind="agent" compact />
 			</Section>
 			<Section name="TicketId" note="md in a row; sm on a card">
 				<TicketId id="CDE-43" />
 				<TicketId id="TRL-9" size="sm" />
+			</Section>
+			<Section name="TrellisMark" note="16 px in the sidebar; 32 px on the setup card; the favicon drawing">
+				<TrellisMark />
+				<TrellisMark className="size-8" label="trellis" />
 			</Section>
 		</>
 	);

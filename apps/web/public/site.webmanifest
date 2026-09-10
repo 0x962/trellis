@@ -1,0 +1,12 @@
+{
+	"name": "trellis",
+	"short_name": "trellis",
+	"icons": [
+		{ "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" },
+		{ "src": "/apple-touch-icon.png", "type": "image/png", "sizes": "180x180" }
+	],
+	"theme_color": "#0A0A0A",
+	"background_color": "#0A0A0A",
+	"display": "standalone",
+	"start_url": "/"
+}

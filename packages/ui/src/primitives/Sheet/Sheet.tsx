@@ -27,6 +27,11 @@ export type SheetProps = {
 	// The element a resizable peek drags to change its width. The Sheet places
 	// it on the edge that faces the page; the drag logic belongs to the caller.
 	resizeHandle?: ReactNode;
+	// The look of the header title. The default is the peek's mono ID.
+	titleClassName?: string;
+	// The slide duration: 240 ms for the peek, 160 ms for a menu sheet such
+	// as the phone sidebar.
+	motion?: "peek" | "popover";
 	children: ReactNode;
 	className?: string;
 };
@@ -55,6 +60,8 @@ export function Sheet({
 	bare = false,
 	initialFocus,
 	resizeHandle,
+	titleClassName = "font-mono text-sm text-fg-muted",
+	motion = "peek",
 	children,
 	className,
 }: SheetProps) {
@@ -76,7 +83,8 @@ export function Sheet({
 					style={{ width }}
 					className={cx(
 						"fixed inset-y-0 z-50 flex max-w-full flex-col border-border bg-surface text-base text-fg shadow-lg outline-none",
-						"transition-transform duration-peek ease-out",
+						"transition-transform ease-out",
+						motion === "peek" ? "duration-peek" : "duration-popover",
 						"motion-reduce:transition-opacity motion-reduce:data-starting-style:translate-x-0 motion-reduce:data-starting-style:opacity-0 motion-reduce:data-ending-style:translate-x-0 motion-reduce:data-ending-style:opacity-0",
 						side === "right"
 							? "right-0 border-l data-starting-style:translate-x-full data-ending-style:translate-x-full"
@@ -88,7 +96,7 @@ export function Sheet({
 						<BaseDialog.Title className="sr-only">{title}</BaseDialog.Title>
 					) : (
 						<header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-4">
-							<BaseDialog.Title className="flex-1 truncate font-mono text-sm text-fg-muted">{title}</BaseDialog.Title>
+							<BaseDialog.Title className={cx("flex-1 truncate", titleClassName)}>{title}</BaseDialog.Title>
 							<BaseDialog.Close render={<IconButton label="Close" icon={<X />} />} />
 						</header>
 					)}

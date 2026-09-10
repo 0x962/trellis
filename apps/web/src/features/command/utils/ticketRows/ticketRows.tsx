@@ -1,6 +1,8 @@
 import { PriorityIcon, StatusIcon } from "@trellis/ui";
 import { Copy, CornerDownRight, ExternalLink, FolderInput, GitPullRequest, Play, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
+import { projectSlashPath } from "../../../../lib/projectPath";
+import { buildAgentCommand } from "../../../agent/StartWithAgent/utils/buildAgentCommand";
 import { composerActions } from "../../../composer";
 import {
 	branchName,
@@ -45,11 +47,11 @@ export const ticketRows = (deps: RowDeps): PaletteRow[] => {
 	const identifier = deps.identifier!;
 	const { action, ticket } = deps;
 	const branch = ticket === undefined ? undefined : branchName(ticket);
-	const command = action.settings.startWithAgentTemplate.replace("{brief}", identifier);
+	const command = buildAgentCommand(action.settings.startWithAgentTemplate, identifier);
 	const subs: Record<string, string | undefined> = {
 		"ticket.status": ticket?.status.name,
 		"ticket.priority": ticket === undefined ? undefined : priorityLabels[ticket.priority],
-		"ticket.project": ticket?.project.path,
+		"ticket.project": ticket === undefined ? undefined : projectSlashPath(ticket.project.path),
 		"ticket.parent": ticket?.parent?.identifier,
 		"ticket.agent": command,
 		"ticket.copyId": identifier,

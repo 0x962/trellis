@@ -27,7 +27,7 @@ const search = async (query: string) => {
 	return { ...shell, user, clock };
 };
 
-const closed = () => screen.queryByRole("dialog", { name: "Command menu" });
+const closed = () => screen.queryByRole("dialog", { name: "Command palette" });
 
 beforeEach(() => {
 	localStorage.clear();
@@ -36,34 +36,64 @@ beforeEach(() => {
 });
 
 describe("features/command/CommandPalette search", () => {
-	// SR-06. The palette shows the top 6; the full list lives on /search.
-	test("the Search results section shows the top six", async () => {
+	// SR-06. The palette shows the top 5; the full list lives on /search.
+	test("the Tickets section shows the top five", async () => {
 		await search("page");
-		await waitFor(() => expect(sectionNames()).toContain("Search results"));
-		expect(itemsOf("Search results")).toHaveLength(6);
+		await waitFor(() => expect(sectionNames()).toContain("Tickets"));
+		expect(itemsOf("Tickets")).toHaveLength(5);
+	});
+
+	// T8. A ticket row reads like a list row: the status icon, the ID in
+	// faint mono, then the title.
+	test("a ticket row shows the status icon, the ID in faint mono, then the title", async () => {
+		await search("restor teh fork");
+		await waitFor(() => expect(sectionNames()).toContain("Tickets"));
+		const row = itemsOf("Tickets").find((option) => optionId(option) === "CDE-42")!;
+		expect(row.querySelector("svg[data-category]")).not.toBeNull();
+		const id = within(row).getByText("CDE-42");
+		for (const name of ["font-mono", "text-fg-faint"]) expect(id.classList.contains(name)).toBe(true);
+		const title = within(row).getByText(/Restore the fork pages/);
+		expect(id.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+	});
+
+	// A page with no peek opens a picked ticket on its own page.
+	test("on the ticket page and on Settings a picked ticket opens its page", async () => {
+		for (const path of ["/t/CDE-44", "/settings"]) {
+			const clock = createFakeScheduler();
+			const shell = await renderShell({ path, scheduler: clock.scheduler });
+			const user = userEvent.setup();
+			await openPalette();
+			await user.type(paletteInput(), "restor teh fork");
+			act(() => clock.advanceTo(200));
+			await waitFor(() => expect(sectionNames()).toContain("Tickets"));
+			const row = itemsOf("Tickets").find((option) => optionId(option) === "CDE-42")!;
+			await user.click(row);
+			await waitFor(() => expect(shell.router.state.location.pathname).toBe("/t/CDE-42"));
+			expect((shell.router.state.location.search as { peek?: string }).peek).toBeUndefined();
+			shell.unmount();
+			resetStores();
+		}
 	});
 
 	// SR-07
 	test("a typo finds the seeded title through search.query", async () => {
 		await search("restor teh fork");
-		await waitFor(() => expect(sectionNames()).toContain("Search results"));
-		expect(itemsOf("Search results").map(optionId)).toContain("CDE-42");
+		await waitFor(() => expect(sectionNames()).toContain("Tickets"));
+		expect(itemsOf("Tickets").map(optionId)).toContain("CDE-42");
 	});
 
-	// SR-08
-	test("Search results renders as the last section", async () => {
+	// SR-08, T8. The tickets come before the matched commands.
+	test("Tickets renders as the first section", async () => {
 		await search("page");
-		await waitFor(() => expect(sectionNames()).toContain("Search results"));
-		const names = sectionNames();
-		expect(names[names.length - 1]).toBe("Search results");
-		expect(names[names.length - 2]).toBe("View");
+		await waitFor(() => expect(sectionNames()).toContain("Tickets"));
+		expect(sectionNames()[0]).toBe("Tickets");
 	});
 
 	// SR-09
 	test("Enter on a result opens the peek", async () => {
 		const { router, user } = await search("page");
-		await waitFor(() => expect(sectionNames()).toContain("Search results"));
-		const first = itemsOf("Search results")[0]!;
+		await waitFor(() => expect(sectionNames()).toContain("Tickets"));
+		const first = itemsOf("Tickets")[0]!;
 		const identifier = optionId(first)!;
 		await user.click(first);
 		await waitFor(() => expect((router.state.location.search as { peek?: string }).peek).toBe(identifier));
@@ -74,7 +104,7 @@ describe("features/command/CommandPalette search", () => {
 	// the view on top.
 	test("Cmd+Enter opens the full search page for the query", async () => {
 		const { router, user } = await search("oauth");
-		await waitFor(() => expect(sectionNames()).toContain("Search results"));
+		await waitFor(() => expect(sectionNames()).toContain("Tickets"));
 		await user.keyboard("{ArrowDown}");
 		await user.keyboard("{Meta>}{Enter}{/Meta}");
 		await waitFor(() => expect(router.state.location.pathname).toBe("/search"));
@@ -112,6 +142,6 @@ describe("features/command/CommandPalette search", () => {
 	test("a query with no ticket keeps the command sections", async () => {
 		await search("density");
 		await waitFor(() => expect(within(section("View")).getAllByRole("option").length).toBeGreaterThan(0));
-		expect(sectionNames()).not.toContain("Search results");
+		expect(sectionNames()).not.toContain("Tickets");
 	});
 });

@@ -28,7 +28,7 @@ describe("routes/t/$identifier", () => {
 	// WS-90
 	test("an unknown ticket shows the 404 state with a search link", async () => {
 		renderApp({ path: "/t/CDE-999", actor: "navid" });
-		expect(await screen.findByText("CDE-999 doesn't exist")).toBeDefined();
+		expect(await screen.findByText("CDE-999 does not exist")).toBeDefined();
 		// The sidebar carries a Search link of its own, so the query stays inside main.
 		const link = within(screen.getByRole("main")).getByRole("link", { name: /search/i });
 		expect(link.getAttribute("href")).toBe("/search?q=CDE-999");

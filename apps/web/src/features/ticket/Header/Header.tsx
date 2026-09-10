@@ -81,10 +81,10 @@ export function Header(props: HeaderProps) {
 			the menu button that opens the sidebar sheet. */}
 			{surface === "page" && (
 				<IconButton
-					label="Open sidebar"
+					label="Open the sidebar"
 					icon={<Menu />}
 					className="-ml-2 md:hidden"
-					onClick={() => uiActions.setSidebarSheetOpen(true)}
+					onClick={() => uiActions.setMobileSidebarOpen(true)}
 				/>
 			)}
 			{ticket !== undefined && surface === "page" && (

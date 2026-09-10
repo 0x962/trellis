@@ -9,7 +9,7 @@ test.beforeAll(() => {
 	createTicket("CDE", "Merge upstream 1.27 and keep every marked site");
 });
 
-const palette = (page: Page) => page.getByRole("dialog", { name: "Command menu" });
+const palette = (page: Page) => page.getByRole("dialog", { name: "Command palette" });
 
 const openPalette = async (page: Page) => {
 	await page.keyboard.press("ControlOrMeta+k");
@@ -88,7 +88,9 @@ test("the help sheet opens over any route and closes on Escape", async ({ page }
 	await page.keyboard.press("?");
 	const sheet = page.getByRole("dialog", { name: /Keyboard shortcuts/ });
 	await expect(sheet).toBeVisible();
-	await expect(sheet.getByRole("listitem")).toHaveCount(42);
+	// The map holds 42 rows. Three actions have two keys each and print as
+	// one row, so the sheet shows 39.
+	await expect(sheet.getByRole("listitem")).toHaveCount(39);
 	await page.keyboard.press("Escape");
 	await expect(sheet).toBeHidden();
 });

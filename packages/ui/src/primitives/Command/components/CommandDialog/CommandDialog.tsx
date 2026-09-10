@@ -24,7 +24,7 @@ export function CommandDialog({ open, onOpenChange, children, finalFocus, classN
 				<BaseDialog.Popup
 					finalFocus={finalFocus}
 					aria-modal="true"
-					aria-label="Command menu"
+					aria-label="Command palette"
 					className={cx(
 						"fixed top-[20vh] left-1/2 z-50 w-140 max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-elevated shadow-lg outline-none",
 						popupMotion,
