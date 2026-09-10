@@ -5,6 +5,7 @@ import { createFakeServer, type FakeServer } from "../../../../../../test/fake-s
 import { mockMatchMedia } from "../../../../../../test/media";
 import { ghReady, summaryOf } from "../../../../../../test/prs";
 import { renderWithProviders } from "../../../../../../test/renderWithProviders";
+import { renderTicket } from "../../../../../../test/ticketHost";
 import { ghCopy } from "../../../../../lib/ghCopy";
 import { PullRequests } from "../../PullRequests";
 
@@ -85,5 +86,17 @@ describe("PullRequests gh banner", () => {
 		await banner();
 		await waitFor(() => expect(document.querySelectorAll("[data-pr-row]")).toHaveLength(1));
 		expect(document.body.textContent).toContain("#118");
+	});
+
+	// WT-71. A gh problem shows where the pull requests are. The toast outlet
+	// mounts beside the section and stays silent about gh.
+	test("shows a gh problem in the section and never as a toast", async () => {
+		const server = createFakeServer();
+		withReason(server, "unauthenticated");
+		renderTicket("CDE-42", (ticket) => <PullRequests ticket={ticket} />, { path: "/t/CDE-42", server });
+		const alert = await banner();
+		expect(alert.closest("section")).not.toBeNull();
+		await waitFor(() => expect(document.querySelectorAll("[data-pr-row]")).toHaveLength(1));
+		expect(within(screen.getByRole("status")).queryByText(/gh/)).toBeNull();
 	});
 });
