@@ -14,6 +14,7 @@ import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, us
 import { flushSync } from "react-dom";
 import { useApp } from "../../../lib/appContext";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { PeekListProvider } from "../../ticket/TicketPeek/providers/PeekListProvider";
 import { categoryColumns, moveInBoard, projectColumns } from "../columns";
 import { BoardColumn } from "../components/BoardColumn";
@@ -35,6 +36,10 @@ type PendingChoice = BoardMove & { statuses: Status[] };
 
 const noCollapsedColumns: string[] = [];
 
+// The board has no card selection, so the palette's Selection section
+// stays empty on it.
+const noSelection: string[] = [];
+
 const summaryOf = (ticket: Ticket): TicketSummary => {
 	const { description, children, prs, attachments, descriptionStale, ...summary } = ticket;
 	return summary;
@@ -55,6 +60,9 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 	const projectQuery = useQuery({ ...projectOptions, enabled: projectRef !== undefined });
 	const projectsQuery = useQuery({ ...projectsOptions, enabled: projectRef === undefined });
 	const collapsed = useUiStore((state) => state.collapsedGroups[storageKey] ?? noCollapsedColumns);
+	// The card that last took the focus is the palette's This ticket.
+	const [focusedCard, setFocusedCard] = useState<string | null>(null);
+	useCommandContext(focusedCard, noSelection);
 
 	const columns = useMemo(() => {
 		if (boardQuery.data === undefined) return [];
@@ -230,6 +238,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 						onCreate={(title) => createTicket(column, title)}
 						onShowMore={() => showMore(column)}
 						onOpenTicket={onOpenTicket}
+						onFocusTicket={setFocusedCard}
 						onCardKeyDown={keyDown}
 						onAnnounce={announce}
 					/>
