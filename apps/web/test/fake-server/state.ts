@@ -83,7 +83,7 @@ export type State = {
 	attachments: Map<string, Attachment>;
 	// The bytes of every stored attachment, keyed by the sha256 of the
 	// content. Two uploads of one file share one entry.
-	blobs: Map<string, Uint8Array>;
+	blobs: Map<string, Uint8Array<ArrayBuffer>>;
 	actors: Map<string, Actor>;
 	settings: Settings;
 	// What `system.gh` reports. A test sets it to drive the gh banner.

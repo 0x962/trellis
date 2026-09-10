@@ -5,6 +5,7 @@ import { TicketRefStringSchema } from "@trellis/api";
 import { Avatar, Button, EmptyState, PriorityIcon, StatusIcon, TicketId, toast } from "@trellis/ui";
 import { Copy } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
+import { AttachmentGrid } from "../../../features/attachments/AttachmentGrid";
 import { Breadcrumb } from "../../../features/shell/Breadcrumb";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
 import { Topbar } from "../../../features/shell/Topbar";
@@ -118,6 +119,7 @@ function TicketPage() {
 							</ul>
 						</section>
 					)}
+					<AttachmentGrid ticket={ticket.identifier} />
 				</article>
 				<aside aria-label="Properties" className="w-70 shrink-0 border-l border-border px-5 py-6">
 					<dl className="flex flex-col gap-1">
