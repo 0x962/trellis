@@ -10,10 +10,13 @@ import { fail } from "../errors.ts";
 // What an agents service receives: the core context, the runner, and
 // `newTx`. A `prepare` step runs with no transaction open, so it reads and
 // writes through `newTx` in short transactions of its own while the runner
-// works.
+// works. `afterCommit` queues work for after the commit, and
+// `settingsChanged` tells the agents host that the agent settings changed.
 export type AgentsCtx = ServiceCtx & {
 	runner: Runner;
 	newTx: <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
+	afterCommit: (task: () => Promise<void>) => void;
+	settingsChanged: () => void;
 };
 
 // The states in which an agent holds its terminal. A builder in one of them

@@ -1,13 +1,16 @@
 import type { GhStatus, TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import type { DispatcherClock } from "../agents/dispatcher.ts";
+import { type AgentsHost, createAgentsHost } from "../agents/host.ts";
 import { createSupersetRunner } from "../agents/supersetRunner.ts";
 import type { Config } from "../config.ts";
-import { API_VERSION, type RequestContext, SYSTEM_ACTOR } from "../context.ts";
+import { API_VERSION, type RequestContext, SYSTEM_ACTOR, systemContext } from "../context.ts";
 import type { Bus } from "../events/bus.ts";
 import type { GhRunner } from "../gh/run.ts";
 import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs } from "../jobs.ts";
 import type { DbTiming } from "../serverTiming.ts";
 import { gcAttachmentBlobs } from "../services/attachments.ts";
+import { pathOf } from "../services/refs.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
@@ -51,6 +54,12 @@ export type JobsStart = { clockRate: number; log: JobsLog };
 
 export type InlineTransportOptions = { db: Db; bus: Bus; config: Config; runtime: Runtime; applied?: number };
 
+export type AgentsStart = { clock: DispatcherClock; log: JobsLog };
+
+// `startAgents` builds the agents host in the thread that owns the
+// database. `start` with jobs calls it; a test calls it with a fake clock.
+export type InlineTransport = ServiceTransport & { startAgents: (options: AgentsStart) => AgentsHost };
+
 export type WorkerTransportOptions = { bus: Bus; config: Config; runtime: Runtime };
 
 const MB = 1024 * 1024;
@@ -61,7 +70,7 @@ export const createInlineTransport = ({
 	config,
 	runtime,
 	applied = 0,
-}: InlineTransportOptions): ServiceTransport => {
+}: InlineTransportOptions): InlineTransport => {
 	const cache = createCache();
 	const actorCache = new Map<string, number>();
 	const inFlight = new Set<Promise<unknown>>();
@@ -102,11 +111,18 @@ export const createInlineTransport = ({
 
 	// The runner spawns the superset binary from the thread that owns the
 	// database, so a service reaches it the way it reaches the database.
+	// Before startAgents builds the agents host, a settings change has no
+	// host to tell, so `hooks.settingsChanged` does nothing.
 	const runner = createSupersetRunner({ bin: config.supersetBin, url: config.agentsUrl });
+	const hooks = { settingsChanged: (): void => undefined };
 	const agentsCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => ({
 		...coreCtx(ctx, emit, tasks),
 		runner,
 		newTx,
+		afterCommit: (task: () => Promise<void>) => {
+			tasks.push(task);
+		},
+		settingsChanged: () => hooks.settingsChanged(),
 	});
 
 	const buildCtx = (entry: ServiceEntry, ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => {
@@ -152,6 +168,24 @@ export const createInlineTransport = ({
 		return promise;
 	};
 
+	// The agents host calls the services as the system actor, and reads the
+	// project tree from the cache the services keep.
+	let agents: AgentsHost | null = null;
+	const startAgents = (options: AgentsStart) => {
+		const host = createAgentsHost({
+			bus,
+			clock: options.clock,
+			log: options.log,
+			call: (name, input) => call(name, systemContext(), input),
+			projects: { scope: (projectId) => cache.resolveSubtree(projectId), path: (projectId) => pathOf(cache, projectId) },
+		});
+		hooks.settingsChanged = () => void host.reload();
+		agents = host;
+		return host;
+	};
+
+	// The agents host starts beside the jobs and does not hold up the boot:
+	// its first superset calls can take seconds.
 	let jobs: Jobs | null = null;
 	const start = async (options?: JobsStart) => {
 		await db.transaction((tx) => cache.rebuild(tx));
@@ -160,14 +194,16 @@ export const createInlineTransport = ({
 		if (options !== undefined) {
 			const clock = scaledClock(options.clockRate);
 			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });
+			void startAgents({ clock, log: options.log }).start();
 		}
 		return { applied, liveShas: found.rows.map((row) => row.sha256 as string) };
 	};
 
 	const close = async () => {
+		agents?.stop();
 		if (jobs !== null) await jobs.stop();
 		await Promise.allSettled([...inFlight]);
 	};
 
-	return { call, start, close };
+	return { call, start, close, startAgents };
 };

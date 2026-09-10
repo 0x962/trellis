@@ -5,6 +5,7 @@ import { requireActor, type ServiceCtx } from "../context.ts";
 import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail } from "../errors.ts";
+import type { AgentsCtx } from "./agentSessions.ts";
 import { chainOf } from "./refs.ts";
 
 // The agent settings live as one jsonb value under this key of the settings
@@ -24,8 +25,9 @@ export const get = (_ctx: ServiceCtx, tx: Tx) => readAgentSettings(tx);
 
 // A full replace. The schema fills the defaults of every project row, so
 // the stored value is the value `get` returns. A settings write is not
-// activity: no activity row and no event.
-export const set = async (ctx: ServiceCtx, tx: Tx, input: AgentSettingsSetInput): Promise<AgentSettings> => {
+// activity: no activity row and no event. After the commit the agents host
+// reads the new settings, so a project turned on gets its manager.
+export const set = async (ctx: AgentsCtx, tx: Tx, input: AgentSettingsSetInput): Promise<AgentSettings> => {
 	requireActor(ctx);
 	for (const row of input.projects) {
 		if (ctx.cache.get(row.projectId) === undefined) throw fail("NOT_FOUND", { kind: "project", ref: row.projectId });
@@ -34,6 +36,7 @@ export const set = async (ctx: ServiceCtx, tx: Tx, input: AgentSettingsSetInput)
 		sql`INSERT INTO settings (key, value, updated_at) VALUES (${KEY}, ${JSON.stringify(input)}::jsonb, ${ctx.now})
 			ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at`,
 	);
+	ctx.afterCommit(async () => ctx.settingsChanged());
 	return input as AgentSettings;
 };
 

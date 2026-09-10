@@ -1,9 +1,4 @@
-import type {
-	AgentProjectSettings,
-	AgentSession,
-	AgentStartBuilderInput,
-	AgentStartReviewerInput,
-} from "@trellis/api";
+import type { AgentProjectSettings, AgentSession, AgentStartBuilderInput, AgentStartReviewerInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { reviewerTitle } from "../agents/names.ts";
 import type { AgentPlace, RunnerRepo } from "../agents/runner.ts";
@@ -32,16 +27,20 @@ import { assertProjectActive, chainOf, pathOf, resolveTicket, type TicketRow } f
 // the same time cannot both pass the limit.
 
 // The repositories a project and its ancestors declare, nearest first.
-const effectiveRepos = async (ctx: ServiceCtx, tx: Tx, projectId: string): Promise<RunnerRepo[]> => {
+export const effectiveRepos = async (ctx: ServiceCtx, tx: Tx, projectId: string): Promise<RunnerRepo[]> => {
 	const chain = chainOf(ctx.cache, projectId).map((project) => project.id);
 	const found = await rows<{ project_id: string; owner: string; repo: string }>(
 		tx,
 		sql`SELECT project_id, owner, repo FROM repos WHERE project_id = ANY(${textArray(chain)}) ORDER BY owner, repo`,
 	);
-	return chain.flatMap((id) => found.filter((row) => row.project_id === id).map(({ owner, repo }) => ({ owner, repo })));
+	return chain.flatMap((id) =>
+		found.filter((row) => row.project_id === id).map(({ owner, repo }) => ({ owner, repo })),
+	);
 };
 
-const runnerProjectOf = (ctx: AgentsCtx, managed: AgentProjectSettings, repos: RunnerRepo[]) =>
+// The Superset project the settings name, or else the one that holds a
+// declared repo.
+export const runnerProjectOf = (ctx: AgentsCtx, managed: AgentProjectSettings, repos: RunnerRepo[]) =>
 	managed.supersetProjectId === null ? ctx.runner.projectFor(repos) : Promise.resolve(managed.supersetProjectId);
 
 type Reservation = { id: string; ticket: TicketRow; managed: AgentProjectSettings; repos: RunnerRepo[] };

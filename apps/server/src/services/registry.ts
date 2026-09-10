@@ -35,7 +35,8 @@ export type ServiceEntry =
 	| { family: "io"; kind: ServiceKind; run: Run }
 	| { family: "io"; kind: ServiceKind; prepare: Prepare; run: Run }
 	| { family: "io"; kind: ServiceKind; stream: Stream }
-	| { family: "agents"; kind: ServiceKind; prepare: Prepare; run: Run };
+	| { family: "agents"; kind: ServiceKind; prepare: Prepare; run: Run }
+	| { family: "agents"; kind: ServiceKind; run: Run };
 
 const core = (kind: ServiceKind, run: Run): ServiceEntry => ({ family: "core", kind, run });
 const io = (kind: ServiceKind, run: Run): ServiceEntry => ({ family: "io", kind, run });
@@ -103,7 +104,10 @@ export const services = {
 	"agents.stop": runner(agents.prepareStop, agents.stop),
 	"agents.wake": runner(agents.prepareWake, agents.wake),
 	"agents.settings": core("read", agents.settings),
-	"agents.setSettings": core("mutation", agents.setSettings),
+	"agents.setSettings": { family: "agents", kind: "mutation", run: agents.setSettings } as ServiceEntry,
+	// The agents host runs these two at its start. They are not on the API.
+	"agents.reconcile": runner(agents.prepareReconcile, agents.reconcile),
+	"agents.ensureManager": runner(agents.prepareManager, agents.recordManager),
 } satisfies Record<string, ServiceEntry>;
 
 export type ServiceName = keyof typeof services;
