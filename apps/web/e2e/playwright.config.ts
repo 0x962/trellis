@@ -71,6 +71,9 @@ export default defineConfig({
 				TRELLIS_GH_BIN: ghStub,
 				TRELLIS_GH_STUB_FILE: join(root, "gh", "replies.json"),
 				TRELLIS_GH_STUB_LOG: join(root, "gh", "spawns.log"),
+				// paint.spec.ts writes the production build here. The server
+				// looks for it on each request, so the build can come after boot.
+				TRELLIS_WEB_DIST: join(root, "dist"),
 			},
 			reuseExistingServer: false,
 		},
