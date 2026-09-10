@@ -108,6 +108,18 @@ const storeFile = async (home: string, file: File) => {
 	return { sha256, size };
 };
 
+// The mime the row keeps: the type and the subtype, without parameters, as
+// in `text/plain`. The file route sets the charset itself. The multipart
+// parser gives an empty type to a part whose filename has no known
+// extension. Every read refuses an empty mime, so such a part is stored as
+// `application/octet-stream`, which downloads.
+const MIME_PATTERN = /^[\w.+-]+\/[\w.+-]+$/;
+
+const storedMime = (type: string) => {
+	const essence = type.split(";")[0]!.trim().toLowerCase();
+	return MIME_PATTERN.test(essence) ? essence : "application/octet-stream";
+};
+
 export type UploadInput = { ticket: string; file: File; name?: string };
 
 export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promise<AttachmentUploadOutput> => {
@@ -118,9 +130,7 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promi
 	const at = ctx.now();
 	const id = ulid();
 	const filename = input.name ?? input.file.name;
-	// A browser sends `text/plain;charset=utf-8`. The row keeps the type and
-	// the subtype; the file route sets the charset itself.
-	const mime = input.file.type.split(";")[0]!.trim();
+	const mime = storedMime(input.file.type);
 	await touchActor(tx, ctx.actor, at);
 	await tx.execute(sql`
 		INSERT INTO attachments (id, ticket_id, filename, mime, size, sha256, actor_name, actor_kind, created_at)
