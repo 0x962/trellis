@@ -129,7 +129,13 @@ describe("tickets.counts and tickets.board", () => {
 		const todo = response.body.columns.find((column: { statusId: string }) => column.statusId === ids.todo);
 		expect(todo.count).toBe(150);
 		expect(todo.items).toHaveLength(100);
-		expect(identifiers(todo.items)).toEqual(Array.from({ length: 100 }, (_, i) => `CDE-${i + 1}`));
+		// The column keeps the 100 tickets that changed last. `list` with the
+		// board's sort orders a tie the same way, so it names the same 100 and
+		// then continues the column.
+		const page = await t.api("/api/tickets?project=CDE&status=todo&sort=-updatedAt&limit=100");
+		expect(identifiers(todo.items)).toEqual(identifiers(page.body.items));
+		expect(identifiers(todo.items)).toContain("CDE-150");
+		expect(identifiers(todo.items)).not.toContain("CDE-1");
 		expect(response.body.columns.map((column: { statusId: string }) => column.statusId)).toEqual(Object.values(ids));
 	});
 });
