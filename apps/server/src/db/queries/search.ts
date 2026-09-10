@@ -21,12 +21,14 @@ export const SEARCH_LIMIT = 20;
 export const SEARCH_TIMEOUT_MS = 200;
 
 // A ticket identifier typed into the box: the key and the number, in any
-// letter case.
+// letter case. tickets.number is a Postgres integer, so a larger number
+// names no ticket and the text goes through the text search path.
 const identifierPattern = /^([A-Za-z][A-Za-z0-9]{1,9})-([1-9][0-9]*)$/;
+const MAX_NUMBER = 2 ** 31 - 1;
 
 const exactTicket = async (tx: Tx, q: string, scope: ReturnType<typeof scopeOf>) => {
 	const match = identifierPattern.exec(q.trim());
-	if (match === null) return null;
+	if (match === null || Number(match[2]) > MAX_NUMBER) return null;
 	const found = await rows<{ id: string }>(
 		tx,
 		sql`SELECT t.id FROM tickets t JOIN projects root ON root.id = t.root_id
@@ -38,13 +40,14 @@ const exactTicket = async (tx: Tx, q: string, scope: ReturnType<typeof scopeOf>)
 const scopeOf = (projectIds: readonly string[] | undefined) => (alias: string) =>
 	projectIds ? sql`${sql.raw(alias)}.project_id = ANY(${textArray(projectIds)})` : sql`true`;
 
-// Full text over tickets and comments (grouped by ticket) ranked by
-// ts_rank, plus trigram matches on the title once the text is 3 characters
-// or longer: every word of the text must be similar to a word of the title
-// (`word <% title` at the threshold migrate sets), ranked by the word
-// similarity of the whole text. A ticket found twice keeps its best rank.
-// Text hits sort before similarity-only hits: a title or body match at any
-// weight beats a fuzzy title.
+// Two paths find tickets. The text search path matches tickets and
+// comments (grouped by ticket) and ranks them by ts_rank. The trigram path
+// runs once the text is 3 characters or longer. It matches a title when
+// every word of the text is similar to a word of the title (`word <% title`
+// at the threshold migrate sets). It ranks by the word similarity of the
+// whole text. A ticket found twice keeps its best rank. Text hits sort
+// before similarity-only hits: a title or body match at any weight beats a
+// fuzzy title.
 export const search = async (tx: Tx, input: SearchInput): Promise<SearchOutput> => {
 	const limit = input.limit ?? SEARCH_LIMIT;
 	const scope = scopeOf(input.projectIds);
