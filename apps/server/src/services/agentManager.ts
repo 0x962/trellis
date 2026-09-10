@@ -1,9 +1,19 @@
-import { type AgentSession, agentTitle, restartText } from "@trellis/api";
+import { type AgentFailure, type AgentSession, agentTitle, restartText } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { AgentPlace } from "../agents/runner.ts";
+import { runnerFailure } from "../agents/runner.ts";
 import { textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
-import { type AgentsCtx, announce, insertSession, LIVE_STATES, newSessionId, selectSessions } from "./agentSessions.ts";
+import {
+	type AgentsCtx,
+	announce,
+	clearedFailure,
+	failureColumns,
+	insertSession,
+	LIVE_STATES,
+	newSessionId,
+	selectSessions,
+} from "./agentSessions.ts";
 import { managedProject, readAgentSettings } from "./agentSettings.ts";
 import { effectiveRepos, runnerProjectOf } from "./agentStart.ts";
 import { managerOf } from "./agentWake.ts";
@@ -45,44 +55,87 @@ export type ManagerPlan = {
 	projectId: string;
 	managerId: string | null;
 	title: string;
-	place: AgentPlace & { started: boolean };
+	place: (AgentPlace & { started: boolean }) | null;
+	failure: AgentFailure | null;
 };
+
+// The newest manager row of a project that trellis did not stop. It holds
+// the Claude session, the terminal, and any earlier failure, so every start
+// of that project's manager writes this one row.
+export const managerRowOf = async (tx: Tx, projectId: string) =>
+	(await selectSessions(tx, sql`s.project_id = ${projectId} AND s.role = 'manager' AND s.state <> 'stopped'`)).at(-1);
 
 // The runner finds the manager workspace by its branch. A live manager tab
 // stays; an exited manager resumes its Claude session with the restart
-// text as its prompt; a project without a manager gets a new one.
+// text as its prompt; a project without a manager gets a new one. A start
+// the runner refuses comes back as `failure`, which the manager row then
+// carries, so the reason reaches the person who turned the manager on.
 export const prepareManager = async (ctx: AgentsCtx, input: { project: string }): Promise<ManagerPlan> => {
 	const found = await ctx.newTx(async (tx) => {
 		const managed = managedProject(ctx, await readAgentSettings(tx), input.project);
-		const manager = await managerOf(tx, managed.projectId);
-		return { managed, manager, repos: await effectiveRepos(ctx, tx, managed.projectId) };
+		return {
+			managed,
+			row: await managerRowOf(tx, managed.projectId),
+			resume: await managerOf(tx, managed.projectId),
+			repos: await effectiveRepos(ctx, tx, managed.projectId),
+		};
 	});
 	const project = pathOf(ctx.cache, found.managed.projectId);
-	const place = await ctx.runner.ensureManager({
-		project,
-		runnerProjectId: await runnerProjectOf(ctx, found.managed, found.repos),
-		baseBranch: found.managed.baseBranch,
-		claudeSessionId: found.manager === undefined ? null : found.manager.claudeSessionId,
-		text: restartText(project),
-	});
-	return {
+	const base = {
 		projectId: found.managed.projectId,
-		managerId: found.manager === undefined ? null : found.manager.id,
+		managerId: found.row === undefined ? null : found.row.id,
 		title: agentTitle({ role: "manager", project }),
-		place,
 	};
+	try {
+		const place = await ctx.runner.ensureManager({
+			project,
+			runnerProjectId: await runnerProjectOf(ctx, found.managed, found.repos),
+			baseBranch: found.managed.baseBranch,
+			claudeSessionId: found.resume === undefined ? null : found.resume.claudeSessionId,
+			text: restartText(project),
+		});
+		return { ...base, place, failure: null };
+	} catch (error) {
+		return { ...base, place: null, failure: runnerFailure(error) };
+	}
 };
 
 // A tab the runner started runs a new Claude process, which reports itself
 // through agents.register; until then it is `starting`. A tab the runner
-// found runs already.
+// found runs already. A refused start writes the reason on the same row and
+// drops the workspace and the terminal, because neither exists.
 export const recordManager = async (ctx: AgentsCtx, tx: Tx, plan: ManagerPlan): Promise<AgentSession> => {
-	const state = plan.place.started ? "starting" : "running";
-	const { workspaceId, terminalId, openUrl } = plan.place;
+	if (plan.failure !== null) {
+		if (plan.managerId !== null) {
+			await tx.execute(sql`
+				UPDATE agent_sessions SET workspace_id = NULL, terminal_id = NULL, open_url = NULL,
+					${failureColumns(plan.failure)}, updated_at = ${ctx.now}
+				WHERE id = ${plan.managerId}
+			`);
+			return announce(ctx, tx, plan.managerId);
+		}
+		const id = newSessionId();
+		await insertSession(ctx, tx, {
+			id,
+			projectId: plan.projectId,
+			ticketId: null,
+			role: "manager",
+			state: "failed",
+			workspaceId: null,
+			terminalId: null,
+			claudeSessionId: null,
+			title: plan.title,
+			openUrl: null,
+			failure: plan.failure,
+		});
+		return announce(ctx, tx, id);
+	}
+	const state = plan.place!.started ? "starting" : "running";
+	const { workspaceId, terminalId, openUrl } = plan.place!;
 	if (plan.managerId !== null) {
 		await tx.execute(sql`
 			UPDATE agent_sessions SET workspace_id = ${workspaceId}, terminal_id = ${terminalId}, open_url = ${openUrl},
-				state = ${state}, updated_at = ${ctx.now}
+				state = ${state}, ${clearedFailure}, updated_at = ${ctx.now}
 			WHERE id = ${plan.managerId}
 		`);
 		return announce(ctx, tx, plan.managerId);

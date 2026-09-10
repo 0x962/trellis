@@ -12,6 +12,7 @@ const looks: Record<AgentStateBadgeProps["state"], { label: string; tone: BadgeT
 	waiting: { label: "Waiting", tone: "accent" },
 	exited: { label: "Exited", tone: "bad" },
 	stopped: { label: "Stopped", tone: "neutral" },
+	failed: { label: "Failed", tone: "bad" },
 	off: { label: "Off", tone: "neutral" },
 };
 

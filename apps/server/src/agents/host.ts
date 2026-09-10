@@ -1,4 +1,4 @@
-import type { AgentSettings } from "@trellis/api";
+import type { AgentSession, AgentSettings } from "@trellis/api";
 import type { Bus } from "../events/bus.ts";
 import type { JobsLog } from "../jobs.ts";
 import type { ServiceName } from "../services/registry.ts";
@@ -16,7 +16,11 @@ import { type Batch, createDispatcher, type Dispatcher, type DispatcherClock } f
 // project turned off; its manager and its builders keep running.
 //
 // Start and reload run one at a time, in call order. A runner that fails
-// for one project is logged and the other projects go on.
+// for one project is logged and the other projects go on. A refused manager
+// start comes back as a session row that holds the reason, the exit code,
+// and the whole text the runner printed; the host writes all three to the
+// log, and the project stays watched so a person who fixes the cause needs
+// no restart.
 
 export type AgentsHostOptions = {
 	bus: Bus;
@@ -59,7 +63,11 @@ export const createAgentsHost = (options: AgentsHostOptions): AgentsHost => {
 			if (!wanted.includes(projectId)) dispatcher.unwatch(projectId);
 		}
 		for (const projectId of wanted.filter((id) => !dispatcher.watched().includes(id))) {
-			await options.call("agents.ensureManager", { project: projectId }).catch(failed("agents manager", { projectId }));
+			const started = await options
+				.call("agents.ensureManager", { project: projectId })
+				.catch(failed("agents manager", { projectId }));
+			const failure = (started as AgentSession | undefined)?.failure;
+			if (failure != null) options.log("agents manager", { projectId, ...failure });
 			dispatcher.watch(projectId);
 		}
 	};

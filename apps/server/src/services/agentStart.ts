@@ -1,4 +1,5 @@
 import {
+	type AgentFailure,
 	type AgentProjectSettings,
 	type AgentSession,
 	type AgentStartBuilderInput,
@@ -7,6 +8,7 @@ import {
 } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { AgentPlace, RunnerRepo } from "../agents/runner.ts";
+import { runnerFailure } from "../agents/runner.ts";
 import { requireActor, type ServiceCtx } from "../context.ts";
 import { rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
@@ -15,6 +17,8 @@ import { parsePullRequestUrl } from "../gh/parse.ts";
 import {
 	type AgentsCtx,
 	announce,
+	clearedFailure,
+	failureColumns,
 	insertSession,
 	LIVE_STATES,
 	newSessionId,
@@ -30,6 +34,11 @@ import { assertProjectActive, chainOf, pathOf, resolveTicket, type TicketRow } f
 // open. The last transaction records where the builder runs. The inserted
 // row counts toward the limit while the runner works, so two starts at
 // the same time cannot both pass the limit.
+//
+// A start the runner refuses writes the reason on the row it reserved and
+// leaves the row in the `failed` state, which no longer counts toward the
+// limit. The caller still gets the RUNNER_UNAVAILABLE error, so a CLI or a
+// web caller reads the reason at once and the row keeps it afterwards.
 
 // The repositories a project and its ancestors declare, nearest first.
 export const effectiveRepos = async (ctx: ServiceCtx, tx: Tx, projectId: string): Promise<RunnerRepo[]> => {
@@ -47,6 +56,13 @@ export const effectiveRepos = async (ctx: ServiceCtx, tx: Tx, projectId: string)
 // declared repo.
 export const runnerProjectOf = (ctx: AgentsCtx, managed: AgentProjectSettings, repos: RunnerRepo[]) =>
 	managed.supersetProjectId === null ? ctx.runner.projectFor(repos) : Promise.resolve(managed.supersetProjectId);
+
+// Writes the reason on the session row in a transaction of its own, so the
+// row keeps it after the caller's own call rolls back with the error.
+const recordFailure = (ctx: AgentsCtx, id: string, failure: AgentFailure) =>
+	ctx.newTx((tx) =>
+		tx.execute(sql`UPDATE agent_sessions SET ${failureColumns(failure)}, updated_at = ${ctx.now} WHERE id = ${id}`),
+	);
 
 type Reservation = { id: string; ticket: TicketRow; managed: AgentProjectSettings; repos: RunnerRepo[] };
 
@@ -70,6 +86,20 @@ const reserveBuilder = (ctx: AgentsCtx, ticketRef: string) =>
 		if (counted!.n >= managed.maxConcurrent) {
 			throw fail("CONCURRENCY_LIMIT", { limit: managed.maxConcurrent, running: counted!.n });
 		}
+		const repos = await effectiveRepos(ctx, tx, managed.projectId);
+		// The builder of this ticket whose last start the runner refused. Its
+		// row holds the reason until this start replaces it.
+		const [refused] = await selectSessions(
+			tx,
+			sql`s.ticket_id = ${ticket.id} AND s.role = 'builder' AND s.state = 'failed'`,
+		);
+		if (refused !== undefined) {
+			await tx.execute(sql`
+				UPDATE agent_sessions SET state = 'starting', ${clearedFailure}, updated_at = ${ctx.now}
+				WHERE id = ${refused.id}
+			`);
+			return { id: refused.id, ticket, managed, repos };
+		}
 		const id = newSessionId();
 		await insertSession(ctx, tx, {
 			id,
@@ -83,12 +113,13 @@ const reserveBuilder = (ctx: AgentsCtx, ticketRef: string) =>
 			title: ticket.identifier,
 			openUrl: null,
 		});
-		return { id, ticket, managed, repos: await effectiveRepos(ctx, tx, managed.projectId) };
+		return { id, ticket, managed, repos };
 	});
 
-// A second start of a ticket whose builder is live returns that builder.
-// When the runner fails, the reserved row goes, so it neither counts toward
-// the limit nor answers the next start.
+// A second start of a ticket whose builder is live returns that builder. A
+// start the runner refuses leaves the reserved row in the `failed` state
+// with the reason, and the next start of the same ticket takes that row
+// back.
 export const prepareBuilder = async (ctx: AgentsCtx, input: AgentStartBuilderInput): Promise<BuilderPlan> => {
 	requireActor(ctx);
 	const reserved = await reserveBuilder(ctx, input.ticket);
@@ -103,7 +134,7 @@ export const prepareBuilder = async (ctx: AgentsCtx, input: AgentStartBuilderInp
 		});
 		return { id: reserved.id, place };
 	} catch (error) {
-		await ctx.newTx((tx) => tx.execute(sql`DELETE FROM agent_sessions WHERE id = ${reserved.id}`));
+		await recordFailure(ctx, reserved.id, runnerFailure(error));
 		throw error;
 	}
 };
@@ -118,22 +149,35 @@ export const startBuilder = async (ctx: AgentsCtx, tx: Tx, plan: BuilderPlan): P
 	return announce(ctx, tx, plan.id);
 };
 
-export type ReviewerPlan = {
-	projectId: string;
-	ticketId: string;
-	title: string;
-	workspaceId: string;
-	terminalId: string;
-	openUrl: string | null;
-};
+export type ReviewerPlan = { id: string; terminalId: string };
 
 // A reviewer runs in the workspace of the ticket's newest builder that
-// trellis did not stop, so it reviews the checkout the builder pushed.
+// trellis did not stop, so it reviews the checkout the builder pushed. The
+// row is reserved first, as a builder start reserves its row, so a start
+// the runner refuses keeps the reason on that row.
 export const prepareReviewer = async (ctx: AgentsCtx, input: AgentStartReviewerInput): Promise<ReviewerPlan> => {
 	requireActor(ctx);
 	if (parsePullRequestUrl(input.prUrl) === null) throw fail("INVALID_PR_URL");
-	const found = await ctx.newTx(async (tx) => {
-		const ticket = await resolveTicket(ctx, tx, input.ticket);
+	const reserved = await reserveReviewer(ctx, input.ticket, input.prUrl);
+	try {
+		const { terminalId } = await ctx.runner.startReviewer({
+			project: reserved.project,
+			ticket: reserved.identifier,
+			prUrl: input.prUrl,
+			workspaceId: reserved.workspaceId,
+		});
+		return { id: reserved.id, terminalId };
+	} catch (error) {
+		await recordFailure(ctx, reserved.id, runnerFailure(error));
+		throw error;
+	}
+};
+
+type ReviewerReservation = { id: string; project: string; identifier: string; workspaceId: string };
+
+const reserveReviewer = (ctx: AgentsCtx, ticketRef: string, prUrl: string) =>
+	ctx.newTx(async (tx): Promise<ReviewerReservation> => {
+		const ticket = await resolveTicket(ctx, tx, ticketRef);
 		assertProjectActive(ctx, ticket.projectId);
 		const managed = managedProject(ctx, await readAgentSettings(tx), ticket.projectId);
 		const builders = await selectSessions(
@@ -142,26 +186,45 @@ export const prepareReviewer = async (ctx: AgentsCtx, input: AgentStartReviewerI
 		);
 		const builder = builders.at(-1);
 		if (builder === undefined) throw fail("NOT_FOUND", { kind: "builder", ref: ticket.identifier });
-		return { ticket, managed, workspaceId: builder.workspaceId!, openUrl: builder.openUrl };
+		// The reviewer of this ticket whose last start the runner refused. Its
+		// row holds the reason until this start replaces it.
+		const [refused] = await selectSessions(
+			tx,
+			sql`s.ticket_id = ${ticket.id} AND s.role = 'reviewer' AND s.state = 'failed'`,
+		);
+		const id = refused === undefined ? newSessionId() : refused.id;
+		if (refused === undefined) {
+			await insertSession(ctx, tx, {
+				id,
+				projectId: managed.projectId,
+				ticketId: ticket.id,
+				role: "reviewer",
+				state: "starting",
+				workspaceId: builder.workspaceId,
+				terminalId: null,
+				claudeSessionId: null,
+				title: agentTitle({ role: "reviewer", ticket: ticket.identifier }),
+				openUrl: builder.openUrl,
+				prUrl,
+			});
+		} else {
+			await tx.execute(sql`
+				UPDATE agent_sessions SET state = 'starting', workspace_id = ${builder.workspaceId},
+					open_url = ${builder.openUrl}, pr_url = ${prUrl}, ${clearedFailure}, updated_at = ${ctx.now}
+				WHERE id = ${id}
+			`);
+		}
+		return {
+			id,
+			project: pathOf(ctx.cache, managed.projectId),
+			identifier: ticket.identifier,
+			workspaceId: builder.workspaceId!,
+		};
 	});
-	const { terminalId } = await ctx.runner.startReviewer({
-		project: pathOf(ctx.cache, found.managed.projectId),
-		ticket: found.ticket.identifier,
-		prUrl: input.prUrl,
-		workspaceId: found.workspaceId,
-	});
-	return {
-		projectId: found.managed.projectId,
-		ticketId: found.ticket.id,
-		title: agentTitle({ role: "reviewer", ticket: found.ticket.identifier }),
-		workspaceId: found.workspaceId,
-		terminalId,
-		openUrl: found.openUrl,
-	};
-};
 
 export const startReviewer = async (ctx: AgentsCtx, tx: Tx, plan: ReviewerPlan): Promise<AgentSession> => {
-	const id = newSessionId();
-	await insertSession(ctx, tx, { id, role: "reviewer", state: "starting", claudeSessionId: null, ...plan });
-	return announce(ctx, tx, id);
+	await tx.execute(sql`
+		UPDATE agent_sessions SET terminal_id = ${plan.terminalId}, updated_at = ${ctx.now} WHERE id = ${plan.id}
+	`);
+	return announce(ctx, tx, plan.id);
 };

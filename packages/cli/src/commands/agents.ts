@@ -121,6 +121,18 @@ const review = defineCommand({
 	},
 });
 
+// A start the runner refused left its session in the `failed` state with
+// the reason on it. This runs the same start again.
+const retry = defineCommand({
+	meta: { name: "retry", description: "Start a failed agent again" },
+	args: { session: { type: "positional", required: true, description: "Session id" } },
+	async run(context) {
+		const ctx = contextOf(context);
+		const session = await clientOf(ctx).agents.retry({ id: context.args.session });
+		printRecord(ctx.out, ctx.format, session, sessionRecord);
+	},
+});
+
 const stop = defineCommand({
 	meta: { name: "stop", description: "Stop an agent session" },
 	args: { session: { type: "positional", required: true, description: "Session id" } },
@@ -133,5 +145,5 @@ const stop = defineCommand({
 
 export default defineCommand({
 	meta: { name: "agents", description: "Start, stop, and list agents; read the manager inbox" },
-	subCommands: { inbox, register, start, review, status, stop, on, off },
+	subCommands: { inbox, register, start, review, status, retry, stop, on, off },
 });

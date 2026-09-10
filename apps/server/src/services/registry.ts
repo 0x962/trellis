@@ -102,9 +102,10 @@ export const services = {
 	"agents.startBuilder": runner(agents.prepareBuilder, agents.startBuilder),
 	"agents.startReviewer": runner(agents.prepareReviewer, agents.startReviewer),
 	"agents.stop": runner(agents.prepareStop, agents.stop),
+	"agents.retry": runner(agents.prepareRetry, agents.retry),
 	"agents.wake": runner(agents.prepareWake, agents.wake),
 	"agents.settings": core("read", agents.settings),
-	"agents.setSettings": { family: "agents", kind: "mutation", run: agents.setSettings } as ServiceEntry,
+	"agents.setSettings": runner(agents.prepareSetSettings, agents.setSettings),
 	"agents.runnerProjects": {
 		family: "agents",
 		kind: "read",

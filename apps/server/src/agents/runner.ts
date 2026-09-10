@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import { errors, type RunnerProject, type RunnerReason } from "@trellis/api";
+import { type AgentFailure, errors, type RunnerProject, type RunnerReason } from "@trellis/api";
 
 // The program that starts, finds, wakes, and stops agents. Superset is the
 // only runner. Every id a runner hands back is opaque to trellis: the server
@@ -76,19 +76,32 @@ export type Runner = {
 	wake: (session: ManagerSession, text: string) => Promise<{ terminalId: string; relaunched: boolean }>;
 	isAlive: (ref: TerminalRef) => Promise<boolean>;
 	terminals: (workspaceId: string) => Promise<TerminalState[]>;
+	// True when the checkout of `project` holds `branch`. A workspace starts
+	// from the base branch, so a branch the checkout lacks stops the start.
+	hasBranch: (project: RunnerProject, branch: string) => Promise<boolean>;
 	stop: (ref: TerminalRef) => Promise<void>;
 	removeWorkspace: (workspaceId: string) => Promise<void>;
 	openUrl: (workspaceId: string) => Promise<string>;
 };
 
 // The declared RUNNER_UNAVAILABLE error. `detail` is what the runner
-// printed, appended to the message so the person who asked reads why.
-export const runnerUnavailable = (reason: RunnerReason, detail?: string) => {
+// printed, appended to the message so the person who asked reads why, and
+// carried whole in the payload so trellis can store it. `exitCode` is what
+// the runner process returned; a start that never ran a process has none.
+export const runnerUnavailable = (reason: RunnerReason, detail = "", exitCode: number | null = null) => {
 	const base = errors.RUNNER_UNAVAILABLE.message;
 	return new ORPCError("RUNNER_UNAVAILABLE", {
 		defined: true,
 		status: errors.RUNNER_UNAVAILABLE.status,
-		message: detail === undefined ? base : `${base} ${detail}`,
-		data: { reason },
+		message: detail === "" ? base : `${base} ${detail}`,
+		data: { reason, exitCode, detail },
 	});
+};
+
+// The payload of a RUNNER_UNAVAILABLE error, for the caller that stores it
+// on the session row. Any other error is a fault in trellis itself, so it
+// keeps going up.
+export const runnerFailure = (error: unknown): AgentFailure => {
+	if (error instanceof ORPCError && error.code === "RUNNER_UNAVAILABLE") return error.data as AgentFailure;
+	throw error;
 };

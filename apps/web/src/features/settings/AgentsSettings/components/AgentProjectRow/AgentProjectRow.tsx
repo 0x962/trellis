@@ -1,6 +1,9 @@
+import { useQuery } from "@tanstack/react-query";
 import type { AgentProjectSettings, AgentRunnerProjectsOutput, ProjectSummary } from "@trellis/api";
 import { Checkbox, Input, Select, Switch } from "@trellis/ui";
 import { useState } from "react";
+import { useApp } from "../../../../../lib/appContext";
+import { AgentFailure } from "../../../../agent/AgentFailure";
 import { useAgentSettings } from "../../hooks/useAgentSettings";
 
 export type AgentProjectRowProps = {
@@ -20,9 +23,13 @@ const maxBuilders = 20;
 
 // One root project's agent settings. The switch, the picker, and the
 // checkbox save at once. The two text fields save on blur and refuse a
-// value the contract refuses.
+// value the contract refuses. A save the runner refuses, and a manager
+// start the runner refused, both state the reason under the fields.
 export function AgentProjectRow({ project, runner }: AgentProjectRowProps) {
-	const { projectOf, saveProject } = useAgentSettings();
+	const { orpc } = useApp();
+	const { projectOf, saveProject, refusal } = useAgentSettings();
+	const sessions = useQuery(orpc.agents.sessions.queryOptions({ input: { project: project.path } })).data?.sessions;
+	const manager = (sessions ?? []).findLast((session) => session.role === "manager" && session.failure !== null);
 	const row = projectOf(project.id);
 	const [branch, setBranch] = useState<string | null>(null);
 	const [limit, setLimit] = useState<string | null>(null);
@@ -114,7 +121,8 @@ export function AgentProjectRow({ project, runner }: AgentProjectRowProps) {
 				className="cursor-pointer self-start"
 				onCheckedChange={(removeWorkspaceOnDone) => save({ removeWorkspaceOnDone })}
 			/>
-			{[branchMessage, limitMessage].map(
+			{manager !== undefined && <AgentFailure session={manager} />}
+			{[branchMessage, limitMessage, refusal?.projectId === project.id ? refusal.detail : null].map(
 				(message) =>
 					message !== null && (
 						<p key={message} className="text-sm text-danger">

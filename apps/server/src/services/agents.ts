@@ -18,8 +18,9 @@ import { pathOf, resolveProject, resolveTicket } from "./refs.ts";
 
 export { inbox } from "./agentInbox.ts";
 export { prepareManager, prepareReconcile, reconcile, recordManager } from "./agentManager.ts";
+export { prepareRetry, retry } from "./agentRetry.ts";
 export { prepareRunnerProjects, runnerProjects } from "./agentRunnerProjects.ts";
-export { get as settings, set as setSettings } from "./agentSettings.ts";
+export { get as settings, prepareSet as prepareSetSettings, set as setSettings } from "./agentSettings.ts";
 export { prepareBuilder, prepareReviewer, startBuilder, startReviewer } from "./agentStart.ts";
 export { prepareWake, wake } from "./agentWake.ts";
 

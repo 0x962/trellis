@@ -2,7 +2,7 @@ import type { ErrorMap } from "@orpc/contract";
 import { z } from "zod";
 import { actorHeaderGrammar } from "./refs.ts";
 import { GhReasonSchema, RunnerReasonSchema } from "./schemas/enums.ts";
-import { CountSchema } from "./schemas/primitives.ts";
+import { CountSchema, UlidSchema } from "./schemas/primitives.ts";
 import { StatusSummarySchema } from "./schemas/status.ts";
 import { TicketSchema } from "./schemas/ticket.ts";
 
@@ -118,6 +118,11 @@ export const errors = {
 		message: "The after or before ticket is not in the target column.",
 		data: z.undefined(),
 	},
+	AGENT_SETTINGS_UNUSABLE: {
+		status: 409,
+		message: "The runner cannot use the agent settings of this project.",
+		data: z.object({ projectId: UlidSchema, reason: RunnerReasonSchema, detail: z.string() }),
+	},
 	CONCURRENCY_LIMIT: {
 		status: 409,
 		message: "The project runs its maximum number of builders. Start this one when a builder finishes.",
@@ -141,7 +146,13 @@ export const errors = {
 	RUNNER_UNAVAILABLE: {
 		status: 503,
 		message: "The agent runner cannot serve the request.",
-		data: z.object({ reason: RunnerReasonSchema }),
+		data: z.object({
+			reason: RunnerReasonSchema,
+			// What the runner process returned, or null when trellis never ran it.
+			exitCode: z.number().int().nullable(),
+			// The whole text the runner printed on stderr.
+			detail: z.string(),
+		}),
 	},
 } satisfies ErrorMap;
 

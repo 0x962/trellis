@@ -13,10 +13,12 @@ const runners: { value: AgentRunner; label: string }[] = [{ value: "superset", l
 // The global agent switch, the runner, and one block per open root project.
 // A manager serves a root and every sub-project under it, so a sub-project
 // gets no block. The runner project list fills each block's picker; a
-// runner that cannot answer leaves each picker on Auto.
+// runner that cannot answer leaves each picker on Auto. Turning the switch
+// on checks every project it turns on, so a project the runner cannot serve
+// states the reason here instead of failing without a word.
 export function AgentsSettings() {
 	const { orpc } = useApp();
-	const { saved, save } = useAgentSettings();
+	const { saved, save, refusal } = useAgentSettings();
 	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} })).data;
 	const runner = useQuery({ ...orpc.agents.runnerProjects.queryOptions({}), retry: false });
 	if (saved === undefined || projects === undefined) return null;
@@ -51,6 +53,11 @@ export function AgentsSettings() {
 			{reason !== null && (
 				<p role="alert" className="text-sm text-danger">
 					{runnerReasonLine[reason]}
+				</p>
+			)}
+			{refusal !== null && (
+				<p role="alert" className="text-sm text-danger">
+					{refusal.detail}
 				</p>
 			)}
 			{roots.map((project) => (

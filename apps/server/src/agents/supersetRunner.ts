@@ -9,7 +9,8 @@ import {
 	restartText,
 	resumeCommand,
 } from "@trellis/api";
-import { matchRunnerProject, type Runner, runnerUnavailable, type TerminalState } from "./runner.ts";
+import { hasBranch } from "./git.ts";
+import { matchRunnerProject, type Runner, type RunnerRepo, runnerUnavailable, type TerminalState } from "./runner.ts";
 
 // The Runner over the `superset` command line (Superset 1.27). `bin` is
 // TRELLIS_SUPERSET_BIN or "superset" on PATH. `url` is the trellis server
@@ -36,7 +37,9 @@ type WorkspaceInput = {
 const isMissing = (error: unknown) => (error as { code?: string }).code === "ENOENT";
 
 // Resolves with stdout. A missing binary is the reason `missing`; a nonzero
-// exit is `error`, with what superset printed on stderr.
+// exit is `error`, with the exit code and the whole text superset printed on
+// stderr. That text is the only place superset says why, so it is kept
+// whole for the session row and the log.
 const spawnSuperset = async (bin: string, args: string[]) => {
 	let proc: ReturnType<typeof Bun.spawn>;
 	try {
@@ -50,13 +53,20 @@ const spawnSuperset = async (bin: string, args: string[]) => {
 		new Response(proc.stderr as ReadableStream).text(),
 		proc.exited,
 	]);
-	if (code !== 0) throw runnerUnavailable("error", `superset ${args.slice(0, 2).join(" ")}: ${stderr.trim()}`);
+	if (code !== 0) throw runnerUnavailable("error", stderr.trim(), code);
 	return stdout;
 };
 
 // One row of `superset projects list --json`. A project with no remote has
 // no repo.
 type ListedProject = { id: string; name: string; repo?: string | null; path: string };
+
+// What to tell the person when no Superset project holds any repository the
+// trellis project declares.
+const unmappedDetail = (repos: RunnerRepo[]) =>
+	repos.length === 0
+		? "The trellis project declares no repository, so no Superset project can match it."
+		: `No Superset project holds ${repos.map(({ owner, repo }) => `${owner}/${repo}`).join(" or ")}.`;
 
 export const createSupersetRunner = ({ bin, url }: { bin: string; url: string }): Runner => {
 	const run = (args: string[]) => spawnSuperset(bin, args);
@@ -109,9 +119,11 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 
 		projectFor: async (repos) => {
 			const found = matchRunnerProject(await projects(), repos);
-			if (found === null) throw runnerUnavailable("unmapped");
+			if (found === null) throw runnerUnavailable("unmapped", unmappedDetail(repos));
 			return found;
 		},
+
+		hasBranch: (project, branch) => hasBranch(project.path, branch),
 
 		ensureManager: async (input) => {
 			const command = managerCommand(input.project, input.claudeSessionId, input.text ?? restartText(input.project));

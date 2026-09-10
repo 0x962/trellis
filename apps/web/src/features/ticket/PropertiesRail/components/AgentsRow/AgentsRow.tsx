@@ -4,6 +4,7 @@ import type { AgentSession, RunnerReason } from "@trellis/api";
 import { Button, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
+import { AgentFailure } from "../../../../agent/AgentFailure";
 import { AgentStateBadge } from "../../../../agent/AgentStateBadge";
 import { OpenInSuperset } from "../../../../agent/OpenInSuperset";
 import { runnerReasonLine } from "../../../../agent/utils/runnerReasonLine";
@@ -33,7 +34,8 @@ const refusal = (error: unknown) => {
 };
 
 // The builder and reviewer sessions of one ticket, oldest first, each with
-// its state and a link into its Superset workspace. An agents.session event
+// its state and a link into its Superset workspace. A session whose start
+// the runner refused states why and offers a Retry. An agents.session event
 // refetches agents.sessions, so the states follow the runner live.
 export function AgentsRow({ identifier }: AgentsRowProps) {
 	const { client, orpc, queryClient } = useApp();
@@ -50,6 +52,9 @@ export function AgentsRow({ identifier }: AgentsRowProps) {
 			}));
 		} catch (error) {
 			toast.error("Couldn't start a builder", { description: refusal(error) });
+			// The refused start left its row in the failed state, and the error
+			// carries no row, so the list reads it again.
+			await queryClient.invalidateQueries({ queryKey: options.queryKey });
 		} finally {
 			setStarting(false);
 		}
@@ -67,10 +72,14 @@ export function AgentsRow({ identifier }: AgentsRowProps) {
 				) : (
 					<ul aria-label="Agent sessions" className="flex flex-col gap-1">
 						{ordered.map((session) => (
-							<li key={session.id} className="flex items-center gap-2">
+							<li key={session.id} className="flex min-w-0 flex-wrap items-center gap-2">
 								<span>{roleLabels[session.role]}</span>
 								<AgentStateBadge state={session.state} />
-								{session.openUrl !== null && <OpenInSuperset url={session.openUrl} />}
+								{session.failure === null ? (
+									session.openUrl !== null && <OpenInSuperset url={session.openUrl} />
+								) : (
+									<AgentFailure session={session} />
+								)}
 							</li>
 						))}
 					</ul>

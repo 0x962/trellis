@@ -3,6 +3,7 @@ import {
 	AgentInboxInputSchema,
 	AgentInboxOutputSchema,
 	AgentRegisterInputSchema,
+	AgentRetryInputSchema,
 	AgentRunnerProjectsOutputSchema,
 	AgentSessionSchema,
 	AgentSessionsInputSchema,
@@ -50,6 +51,13 @@ export const agents = {
 		.route({ method: "POST", path: "/agents/sessions/{id}/stop", summary: "Stop an agent session" })
 		.input(AgentStopInputSchema)
 		.output(AgentSessionSchema),
+	// A failed start left its session row behind, so the retry names that row
+	// and needs no other input.
+	retry: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE", "CONCURRENCY_LIMIT", "PROJECT_ARCHIVED"]))
+		.route({ method: "POST", path: "/agents/sessions/{id}/retry", summary: "Start a failed agent again" })
+		.input(AgentRetryInputSchema)
+		.output(AgentSessionSchema),
 	wake: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/agents/wake", summary: "Type a text into the manager's terminal" })
@@ -67,7 +75,10 @@ export const agents = {
 			summary: "List the projects the runner knows and the project each trellis project matches",
 		})
 		.output(AgentRunnerProjectsOutputSchema),
+	// With agents on, the runner must be able to serve every project the
+	// settings turn on, so the save checks each one first.
 	setSettings: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE", "AGENT_SETTINGS_UNUSABLE"]))
 		.route({ method: "PUT", path: "/agents/settings", summary: "Replace the agent settings" })
 		.input(AgentSettingsSetInputSchema)
 		.output(AgentSettingsSchema),

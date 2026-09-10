@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ProjectRefStringSchema, TicketRefStringSchema } from "../refs.ts";
 import { ActivitySchema } from "./activity.ts";
 import { CommentSchema } from "./comment.ts";
-import { AgentRoleSchema, AgentRunnerSchema, AgentStateSchema } from "./enums.ts";
+import { AgentRoleSchema, AgentRunnerSchema, AgentStateSchema, RunnerReasonSchema } from "./enums.ts";
 import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 import { TicketSummarySchema } from "./ticket.ts";
 
@@ -10,11 +10,22 @@ import { TicketSummarySchema } from "./ticket.ts";
 // trellis. The server stores it and gives it back to the runner unchanged.
 const RunnerIdSchema = z.string().min(1).max(200);
 
+// Why a start did not run. `exitCode` is what the runner process returned,
+// or null when trellis never ran it. `detail` is the whole text the runner
+// printed on stderr, which a person reads to fix the cause.
+export const AgentFailureSchema = z.object({
+	reason: RunnerReasonSchema,
+	exitCode: z.number().int().nullable(),
+	detail: z.string(),
+});
+export type AgentFailure = z.infer<typeof AgentFailureSchema>;
+
 // One agent that the runner started or that reported itself through
 // `agents.register`. `ticketId` is null for the manager. `workspaceId`,
 // `terminalId`, and `openUrl` are null until the runner reports them.
 // `openUrl` is the deep link that opens the workspace in Superset. `title`
-// is the tab name, for example "CDE-42 review".
+// is the tab name, for example "CDE-42 review". `failure` holds why the
+// runner refused the start; it is null unless the state is `failed`.
 export const AgentSessionSchema = z.object({
 	id: UlidSchema,
 	projectId: UlidSchema,
@@ -26,6 +37,7 @@ export const AgentSessionSchema = z.object({
 	terminalId: RunnerIdSchema.nullable(),
 	title: z.string().min(1).max(120),
 	openUrl: z.string().min(1).nullable(),
+	failure: AgentFailureSchema.nullable(),
 	lastWokenAt: IsoDateTimeSchema.nullable(),
 	createdAt: IsoDateTimeSchema,
 });
@@ -102,6 +114,13 @@ export type AgentStartReviewerInput = z.input<typeof AgentStartReviewerInputSche
 export const AgentStopInputSchema = z.strictObject({
 	id: UlidSchema,
 });
+
+// The session whose start is to run again. Only a session in the `failed`
+// state has a start to run again.
+export const AgentRetryInputSchema = z.strictObject({
+	id: UlidSchema,
+});
+export type AgentRetryInput = z.input<typeof AgentRetryInputSchema>;
 
 // The runner types `text` into the manager's terminal and presses Enter.
 export const AgentWakeInputSchema = z.strictObject({

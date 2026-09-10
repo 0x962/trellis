@@ -50,6 +50,13 @@
       "when": 1789067784401,
       "tag": "0006_status_descriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789077121383,
+      "tag": "0008_agent_failures",
+      "breakpoints": true
     }
   ]
 }

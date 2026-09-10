@@ -8,6 +8,7 @@ import {
 	PrStateSchema,
 	ReviewerSchema,
 	ReviewStateSchema,
+	RunnerReasonSchema,
 	StatusCategorySchema,
 	StoredActorKindSchema,
 } from "@trellis/api";
@@ -27,6 +28,7 @@ export const PR_LINK_SOURCES = PrLinkSourceSchema.options;
 export const AGENT_ROLES = AgentRoleSchema.options;
 export const AGENT_RUNNERS = AgentRunnerSchema.options;
 export const AGENT_STATES = AgentStateSchema.options;
+export const RUNNER_REASONS = RunnerReasonSchema.options;
 
 // A CHECK named `<table>_<column>_check` that keeps a column inside a closed
 // set. The options are inline literals: drizzle-kit copies the rendered SQL

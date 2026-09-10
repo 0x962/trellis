@@ -28,6 +28,7 @@ const exitCodes: Record<ErrorCode, number> = {
 	PAYLOAD_TOO_LARGE: 4,
 	GH_UNAVAILABLE: 6,
 	CONCURRENCY_LIMIT: 4,
+	AGENT_SETTINGS_UNUSABLE: 4,
 	RUNNER_UNAVAILABLE: 6,
 };
 
@@ -97,8 +98,13 @@ const detail = (code: string, message: string, data: Data): string => {
 		case "PAYLOAD_TOO_LARGE":
 			return `${message} The limit is ${data.maxBytes} bytes.`;
 		case "GH_UNAVAILABLE":
-		case "RUNNER_UNAVAILABLE":
 			return `${message} Reason: ${data.reason}.`;
+		// The runner's own text is the only place a `error` reason says what
+		// to fix, so the line carries it.
+		case "RUNNER_UNAVAILABLE":
+			return `${message} Reason: ${data.reason}.${data.detail === "" ? "" : ` ${data.detail}`}`;
+		case "AGENT_SETTINGS_UNUSABLE":
+			return `${message} ${data.detail}`;
 		case "CONCURRENCY_LIMIT":
 			return `${message} ${data.running} of ${data.limit} builders are running.`;
 		case "INPUT_VALIDATION_FAILED": {
