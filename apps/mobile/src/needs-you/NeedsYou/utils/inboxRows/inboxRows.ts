@@ -15,14 +15,17 @@ export type InboxItem =
 export const sectionOrder: readonly SectionKey[] = ["review", "failingCi", "stalled", "doneByAgentsToday"];
 
 // The tab badge: Review plus Failing CI, the two sections that need a person.
-export const badgeCount = (_inbox: Inbox): number => {
-	throw new Error("mobile-inbox: badgeCount is not implemented");
-};
+export const badgeCount = (inbox: Inbox): number => inbox.review.total + inbox.failingCi.total;
 
-export const isInboxEmpty = (_inbox: Inbox): boolean => {
-	throw new Error("mobile-inbox: isInboxEmpty is not implemented");
-};
+export const isInboxEmpty = (inbox: Inbox): boolean => sectionOrder.every((key) => inbox[key].total === 0);
 
-export const inboxRows = (_inbox: Inbox, _open: OpenSections): InboxItem[] => {
-	throw new Error("mobile-inbox: inboxRows is not implemented");
-};
+// The header of every section in order, each followed by its rows when the
+// section is open. A section holds at most 100 rows; its header carries the
+// whole total.
+export const inboxRows = (inbox: Inbox, open: OpenSections): InboxItem[] =>
+	sectionOrder.flatMap((key): InboxItem[] => {
+		const section = inbox[key];
+		const header: InboxItem = { type: "header", key, total: section.total };
+		if (!open[key]) return [header];
+		return [header, ...section.items.map((ticket): InboxItem => ({ type: "row", key, ticket }))];
+	});

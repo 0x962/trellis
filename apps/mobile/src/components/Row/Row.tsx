@@ -15,6 +15,9 @@ export type RowProps = {
 	// The right edge, such as the time waiting.
 	trailing?: string;
 	onPress?: () => void;
+	// A fixed height. A list of fixed-height rows never measures one.
+	height?: number;
+	testID?: string;
 };
 
 const styles = StyleSheet.create({
@@ -33,22 +36,25 @@ const styles = StyleSheet.create({
 		lineHeight: tokens.leading.sm,
 		fontVariant: ["tabular-nums"],
 	},
-	body: { flex: 1, gap: tokens.space.half },
+	body: { flex: 1, gap: tokens.space.half, justifyContent: "center" },
 	title: { fontSize: tokens.text.md, lineHeight: tokens.leading.md },
-	meta: { flexDirection: "row", alignItems: "center", gap: tokens.space[2] },
+	meta: { flexDirection: "row", alignItems: "center", gap: tokens.space[2], overflow: "hidden" },
 	trailing: { fontSize: tokens.text.sm, lineHeight: tokens.leading.sm, fontVariant: ["tabular-nums"] },
 });
 
 // One list row: a fixed hit area of 44 px, the title on one line, the id in
 // mono. A fixed height keeps FlashList rows the same size.
-export function Row({ id, title, leading, meta, trailing, onPress }: RowProps) {
+export function Row({ id, title, leading, meta, trailing, onPress, height, testID }: RowProps) {
 	const palette = usePalette();
 	return (
 		<Pressable
-			accessibilityRole="button"
+			accessible={onPress !== undefined}
+			accessibilityRole={onPress === undefined ? undefined : "button"}
+			testID={testID}
 			onPress={onPress}
 			style={({ pressed }) => [
 				styles.row,
+				height !== undefined && { height },
 				{ borderBottomColor: palette.border, backgroundColor: pressed ? palette.surface : palette.bg },
 			]}
 		>

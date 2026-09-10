@@ -1,0 +1,1 @@
+export { EmptyInbox } from "./EmptyInbox";

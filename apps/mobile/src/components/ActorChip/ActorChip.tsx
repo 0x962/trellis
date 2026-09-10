@@ -10,6 +10,10 @@ export type ActorChipProps = {
 	kind: ActorKind;
 	// A live actor has an active session; the mark shows the dot.
 	live?: boolean;
+	// On a dense row the mark and the name take the muted foreground, so the
+	// status mark keeps the one color on the line. The shape still tells a
+	// human from an agent.
+	muted?: boolean;
 };
 
 // "Navid Khan" gives NK; "navid" gives N.
@@ -45,9 +49,11 @@ const styles = StyleSheet.create({
 // human is a circle with initials. An agent is a rounded square with the
 // glyph, and its name is mono and purple with an "· agent" suffix, so a human
 // and an agent never read alike.
-export function ActorChip({ name, kind, live = false }: ActorChipProps) {
+export function ActorChip({ name, kind, live = false, muted = false }: ActorChipProps) {
 	const palette = usePalette();
 	const agent = kind === "agent";
+	const agentColor = muted ? palette.fgMuted : palette.agent;
+	const agentGround = muted ? palette.surface : palette.agentSoft;
 	return (
 		<View style={styles.chip}>
 			<View
@@ -56,12 +62,12 @@ export function ActorChip({ name, kind, live = false }: ActorChipProps) {
 				style={[
 					styles.mark,
 					agent
-						? [styles.agent, { borderColor: palette.agent, backgroundColor: palette.agentSoft }]
+						? [styles.agent, { borderColor: agentColor, backgroundColor: agentGround }]
 						: [styles.human, { backgroundColor: palette.fgMuted }],
 				]}
 			>
 				{agent ? (
-					<Text style={[styles.glyph, { color: palette.agent }]}>⟡</Text>
+					<Text style={[styles.glyph, { color: agentColor }]}>⟡</Text>
 				) : (
 					<Text style={[styles.initials, { color: palette.surface }]}>{initials(name)}</Text>
 				)}
@@ -72,7 +78,7 @@ export function ActorChip({ name, kind, live = false }: ActorChipProps) {
 					/>
 				)}
 			</View>
-			<Text style={agent ? [styles.agentName, { color: palette.agent }] : [styles.humanName, { color: palette.fg }]}>
+			<Text style={agent ? [styles.agentName, { color: agentColor }] : [styles.humanName, { color: palette.fg }]}>
 				{name}
 			</Text>
 			{agent && <Text style={[styles.suffix, { color: palette.fgFaint }]}>· agent</Text>}
