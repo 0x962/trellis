@@ -9,6 +9,7 @@ import {
 	calls,
 	cellOf,
 	findGrid,
+	footer,
 	grid,
 	identifiers,
 	inputs,
@@ -73,8 +74,8 @@ describe("features/table/BulkBar", () => {
 		expect(
 			within(bulkBar())
 				.getAllByRole("button")
-				.map((button) => button.textContent?.trim()),
-		).toEqual(actions);
+				.map((button) => button.textContent?.trim() || button.getAttribute("aria-label")),
+		).toEqual([...actions, "Clear selection"]);
 	});
 
 	// Outcome 59. One request is one batch on the server.
@@ -178,5 +179,59 @@ describe("features/table/BulkBar", () => {
 		press("Escape");
 		expect(queryBulkBar()).toBeNull();
 		for (const identifier of selected) expect(rowOf(identifier).getAttribute("aria-selected")).toBe("false");
+	});
+
+	// T4. The bar centers on the list column, so it never covers the sidebar.
+	test("sits inside the table column, not fixed to the window", async () => {
+		await selectFirst(1);
+		expect(bulkBar().className).toMatch(/\babsolute\b/);
+		expect(bulkBar().className).not.toMatch(/\bfixed\b/);
+		expect(bulkBar().closest("[data-ticket-table]")).not.toBeNull();
+	});
+
+	// T4. The bar holds the count, so the footer does not repeat it.
+	test("the footer drops the selected count while the bar shows", async () => {
+		await selectFirst(2);
+		expect(bulkBar().textContent).toContain("2 selected");
+		expect(footer().textContent).not.toMatch(/selected/);
+	});
+
+	test("the Clear selection button clears the selection", async () => {
+		const user = userEvent.setup();
+		const { selected } = await selectFirst(2);
+		await user.click(within(bulkBar()).getByRole("button", { name: "Clear selection" }));
+		expect(queryBulkBar()).toBeNull();
+		for (const identifier of selected) expect(rowOf(identifier).getAttribute("aria-selected")).toBe("false");
+	});
+
+	test("Cmd+C with a selection copies every selected ID", async () => {
+		const { selected } = await selectFirst(3);
+		press("c", { metaKey: true });
+		await waitFor(async () =>
+			expect((await navigator.clipboard.readText()).split("\n").sort()).toEqual([...selected].sort()),
+		);
+	});
+
+	test("Backspace with a selection asks to delete the whole selection", async () => {
+		await selectFirst(3);
+		press("Backspace");
+		expect(await screen.findByRole("dialog", { name: /delete 3 tickets/i })).toBeDefined();
+	});
+
+	// TB-2. The toast matches the count.
+	test("Copy IDs on one ticket says Copied 1 ID", async () => {
+		const user = userEvent.setup();
+		await selectFirst(1);
+		await user.click(action("Copy IDs"));
+		expect(await toastWith(/^Copied 1 ID$/)).toBeDefined();
+	});
+
+	// T4. Each action names its key in a Tooltip.
+	test("an action shows its key in a Tooltip on hover", async () => {
+		const user = userEvent.setup();
+		await selectFirst(1);
+		await user.hover(action("Status"));
+		const tooltip = await screen.findByRole("tooltip");
+		expect(tooltip.querySelector("kbd")?.textContent).toBe("s");
 	});
 });

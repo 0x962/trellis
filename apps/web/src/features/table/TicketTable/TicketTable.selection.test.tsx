@@ -44,7 +44,8 @@ describe("features/table/TicketTable: selection", () => {
 		rows()[0]!.focus();
 		press("a", { metaKey: true });
 		expect(bulkBar().textContent).toMatch(/1,000 selected/);
-		expect(footer().textContent).toMatch(/1,000 selected/);
+		// The bulk bar holds the count, so the footer does not repeat it.
+		expect(footer().textContent).not.toMatch(/selected/);
 		expect(selected().every(Boolean)).toBe(true);
 	}, 30_000);
 });

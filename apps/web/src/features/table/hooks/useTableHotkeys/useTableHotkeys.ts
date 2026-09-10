@@ -24,6 +24,8 @@ export type TableController = {
 	openPage: (id: string) => void;
 	openComposer: () => void;
 	copy: (id: string, kind: CopyKind) => void;
+	// Copies the IDs of the selection, one per line.
+	copySelection: () => void;
 	requestDelete: (ids: readonly string[]) => void;
 };
 
@@ -103,11 +105,19 @@ export const useTableHotkeys = (controller: TableController) => {
 	useHotkey("p", useStableCallback(withFocused((id) => controller.setEditing({ id, field: "priority" }))));
 	useHotkey("shift+p", useStableCallback(withFocused((id) => controller.setEditing({ id, field: "parent" }))));
 	useHotkey("m", useStableCallback(withFocused((id) => controller.setEditing({ id, field: "project" }))));
-	useHotkey("mod+c", useStableCallback(withFocused((id) => controller.copy(id, "id"))));
+	// With a selection, the copy key and the delete keys act on every
+	// selected row, as the bulk bar does.
+	useHotkey(
+		"mod+c",
+		useStableCallback(
+			withFocused((id) => (controller.selection.count > 0 ? controller.copySelection() : controller.copy(id, "id"))),
+		),
+	);
 	useHotkey("mod+shift+c", useStableCallback(withFocused((id) => controller.copy(id, "branch"))));
 	useHotkey("mod+.", useStableCallback(withFocused((id) => controller.copy(id, "link"))));
-	useHotkey("backspace", useStableCallback(withFocused((id) => controller.requestDelete([id]))));
-	useHotkey("delete", useStableCallback(withFocused((id) => controller.requestDelete([id]))));
+	const deleteTargets = (id: string) => (controller.selection.count > 0 ? controller.selection.selected : [id]);
+	useHotkey("backspace", useStableCallback(withFocused((id) => controller.requestDelete(deleteTargets(id)))));
+	useHotkey("delete", useStableCallback(withFocused((id) => controller.requestDelete(deleteTargets(id)))));
 
 	useHotkey(
 		"c",

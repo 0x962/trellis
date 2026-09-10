@@ -1,5 +1,6 @@
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import type { ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
+import { cx } from "@trellis/ui";
 import {
 	type MouseEvent,
 	type RefObject,
@@ -42,6 +43,9 @@ export type TableBodyProps = {
 	onRowChange: (ticket: TicketSummary, change: RowChange) => void;
 	onToggleGroup: (key: string) => void;
 	onCreateInGroup: (status: StatusSummary) => void;
+	// True while the bulk bar shows. The list then gets 72 px of room under
+	// its last row, so that row can scroll clear of the bar.
+	bottomRoom: boolean;
 };
 
 const heightOf = (item: TableItem, density: Density) =>
@@ -70,6 +74,7 @@ export function TableBody({
 	onRowChange,
 	onToggleGroup,
 	onCreateInGroup,
+	bottomRoom,
 }: TableBodyProps) {
 	const viewport = useRef<HTMLDivElement>(null);
 	const [initialRect, setInitialRect] = useState({ width: 0, height: 0 });
@@ -139,7 +144,7 @@ export function TableBody({
 			data-table-viewport=""
 			data-selecting={selection.count > 0 ? "" : undefined}
 			tabIndex={-1}
-			className="min-h-0 flex-1 overflow-auto outline-none [scrollbar-gutter:stable]"
+			className={cx("min-h-0 flex-1 overflow-auto outline-none [scrollbar-gutter:stable]", bottomRoom && "pb-18")}
 		>
 			{loading ? (
 				<TableSkeleton density={density} />

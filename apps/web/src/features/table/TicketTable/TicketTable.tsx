@@ -1,14 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTable } from "@tanstack/react-table";
 import type { StatusSummary, TicketSummary } from "@trellis/api";
-import { toast } from "@trellis/ui";
 import { type MouseEvent, type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useScopeStatuses } from "../../../hooks/useScopeStatuses";
 import { useStableCallback } from "../../../hooks/useStableCallback";
 import { useApp } from "../../../lib/appContext";
-import { branchName } from "../../../lib/branchName";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { composerActions } from "../../composer/composerStore";
@@ -19,6 +17,7 @@ import { BulkBar } from "../BulkBar";
 import { buildColumns, type ColumnId, tableFeatureSet } from "../columns";
 import { useApplyChange } from "../hooks/useApplyChange";
 import { useCollapsedGroups } from "../hooks/useCollapsedGroups";
+import { useCopyTickets } from "../hooks/useCopyTickets";
 import { useRowSelection } from "../hooks/useRowSelection";
 import { useTableData } from "../hooks/useTableData";
 import { closedCategories, closedKey, useTableGroups } from "../hooks/useTableGroups";
@@ -155,26 +154,9 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		if (ticket !== undefined) onSearchChange({ ...search, peek: ticket.identifier });
 	});
 
-	const copy = useStableCallback(async (id: string, kind: CopyKind) => {
-		const ticket = byId.get(id)!;
-		const text =
-			kind === "id"
-				? ticket.identifier
-				: kind === "branch"
-					? branchName(ticket.identifier, ticket.title)
-					: `${window.location.origin}/t/${ticket.identifier}`;
-		await navigator.clipboard.writeText(text);
-		toast(`Copied ${text}`);
-	});
-
-	const copyIds = async () => {
-		await navigator.clipboard.writeText(
-			selectedTickets()
-				.map((ticket) => ticket.identifier)
-				.join("\n"),
-		);
-		toast(`Copied ${selection.count} IDs`);
-	};
+	const copier = useCopyTickets();
+	const copy = useStableCallback((id: string, kind: CopyKind) => void copier.copy(byId.get(id)!, kind));
+	const copyIds = () => void copier.copyIds(selectedTickets());
 
 	const confirmDelete = async () => {
 		const targets = (pendingDelete ?? []).map((id) => byId.get(id)).filter((ticket) => ticket !== undefined);
@@ -216,6 +198,7 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		openPage: (id) => onOpenPage(byId.get(id)!.identifier),
 		openComposer: () => openNew(),
 		copy,
+		copySelection: copyIds,
 		requestDelete: (targets) => setPendingDelete([...targets]),
 	});
 	useCommandContext(
@@ -240,7 +223,7 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 
 	return (
 		<PeekListProvider rows={peekRows}>
-			<div ref={root} className="flex min-h-0 flex-1 flex-col">
+			<div ref={root} data-ticket-table="" className="relative flex min-h-0 flex-1 flex-col">
 				{data.capped && <CapBanner onNarrow={focusFilter} />}
 				<ColumnHeaderRow columns={columnIds} />
 				<TableBody
@@ -263,22 +246,23 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 					onRowChange={onRowChange}
 					onToggleGroup={collapsed.toggle}
 					onCreateInGroup={openNew}
+					bottomRoom={selection.count > 0}
 				/>
-				<TableFooter total={total} selected={selection.count} sort={view.sort} />
-				{selection.count > 0 && (
-					<BulkBar
-						count={selection.count}
-						statuses={data.statuses}
-						projects={projects}
-						project={project}
-						onStatus={(status) => void applyChange(selectedTickets(), { status })}
-						onPriority={(priority) => void applyChange(selectedTickets(), { priority })}
-						onProject={(ref) => void applyChange(selectedTickets(), { project: ref })}
-						onParent={(parent) => void applyChange(selectedTickets(), { parent })}
-						onCopyIds={() => void copyIds()}
-						onDelete={() => setPendingDelete(selection.selected)}
-					/>
-				)}
+				<TableFooter total={total} sort={view.sort} />
+				<BulkBar
+					open={selection.count > 0}
+					count={selection.count}
+					statuses={data.statuses}
+					projects={projects}
+					project={project}
+					onStatus={(status) => void applyChange(selectedTickets(), { status })}
+					onPriority={(priority) => void applyChange(selectedTickets(), { priority })}
+					onProject={(ref) => void applyChange(selectedTickets(), { project: ref })}
+					onParent={(parent) => void applyChange(selectedTickets(), { parent })}
+					onCopyIds={copyIds}
+					onDelete={() => setPendingDelete(selection.selected)}
+					onClear={selection.clear}
+				/>
 				<ConfirmDialog
 					open={pendingDelete !== null}
 					title={deleteTitle}
