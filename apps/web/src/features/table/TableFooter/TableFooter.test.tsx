@@ -21,4 +21,12 @@ describe("features/table/TableFooter", () => {
 		expect(text()).not.toMatch(/selected/);
 		expect(text()).toMatch(/sorted by created/i);
 	});
+
+	// TB-1. With Done and Canceled out of the view, the footer says how many
+	// completed tickets it leaves out.
+	test("names the open count and the completed tickets the view hides", () => {
+		render(<TableFooter total={48} hidden={10} sort="-updatedAt" />);
+		expect(text()).toMatch(/48 open · 10 completed hidden/);
+		expect(text()).not.toMatch(/48 tickets/);
+	});
 });
