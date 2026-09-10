@@ -21,21 +21,36 @@ export class InvalidCursorError extends Error {
 	}
 }
 
-// One sort field: the expressions the rows order by, how each one reads
-// back into a cursor, and the Postgres type a cursor value casts to.
-type SortField = { exprs: SQL[]; reads: SQL[]; casts: string[] };
+// One sort field. `exprs` are the expressions the rows order by, `reads`
+// how each one reads back into a cursor, and `keys` the cursor value
+// types.
+type SortField = { exprs: SQL[]; reads: SQL[]; keys: CursorKey[] };
+
+// A cursor value: the Postgres type it casts to and the test a value a
+// client hands back must pass before it reaches the database.
+type CursorKey = { cast: string; valid: (value: unknown) => boolean };
+
+const timestamptz: CursorKey = {
+	cast: "timestamptz",
+	valid: (value) => typeof value === "string" && Number.isFinite(Date.parse(value)),
+};
+const int: CursorKey = { cast: "int", valid: (value) => Number.isInteger(value) };
+const double: CursorKey = {
+	cast: "double precision",
+	valid: (value) => typeof value === "number" && Number.isFinite(value),
+};
 
 const fields: Record<string, SortField> = {
-	updatedAt: { exprs: [sql`t.updated_at`], reads: [iso(sql`t.updated_at`)], casts: ["timestamptz"] },
-	createdAt: { exprs: [sql`t.created_at`], reads: [iso(sql`t.created_at`)], casts: ["timestamptz"] },
-	priority: { exprs: [priorityRank(sql`t.priority`)], reads: [priorityRank(sql`t.priority`)], casts: ["int"] },
-	number: { exprs: [sql`t.number`], reads: [sql`t.number`], casts: ["int"] },
+	updatedAt: { exprs: [sql`t.updated_at`], reads: [iso(sql`t.updated_at`)], keys: [timestamptz] },
+	createdAt: { exprs: [sql`t.created_at`], reads: [iso(sql`t.created_at`)], keys: [timestamptz] },
+	priority: { exprs: [priorityRank(sql`t.priority`)], reads: [priorityRank(sql`t.priority`)], keys: [int] },
+	number: { exprs: [sql`t.number`], reads: [sql`t.number`], keys: [int] },
 	status: {
 		exprs: [categoryRank(sql`s.category`), sql`s.position`],
 		reads: [categoryRank(sql`s.category`), sql`s.position`],
-		casts: ["int", "int"],
+		keys: [int, int],
 	},
-	position: { exprs: [sql`t.position`], reads: [sql`t.position`], casts: ["double precision"] },
+	position: { exprs: [sql`t.position`], reads: [sql`t.position`], keys: [double] },
 };
 
 const parseSort = (sort: Sort) => {
@@ -53,24 +68,29 @@ const queryHash = (filter: TicketFilter, sort: Sort) =>
 		.slice(0, 8);
 
 // The cursor is `{v, h, k}`: the version, the hash of filter plus sort, and
-// the sort values plus the id of the last row of the page.
-const readCursor = (cursor: string, hash: string, keyLength: number): unknown[] => {
+// the sort values plus the id of the last row of the page. A cursor is user
+// input, so every part is checked before it reaches the database.
+const readCursor = (cursor: string, hash: string, field: SortField): unknown[] => {
 	let decoded: unknown;
 	try {
 		decoded = decodeCursor(cursor);
 	} catch {
 		throw new InvalidCursorError();
 	}
+	if (decoded === null || typeof decoded !== "object") throw new InvalidCursorError();
 	const value = decoded as { v?: unknown; h?: unknown; k?: unknown };
 	if (value.v !== CURSOR_VERSION || value.h !== hash) throw new InvalidCursorError();
-	if (!Array.isArray(value.k) || value.k.length !== keyLength) throw new InvalidCursorError();
-	return value.k;
+	const k: unknown[] = Array.isArray(value.k) ? value.k : [];
+	if (k.length !== field.keys.length + 1) throw new InvalidCursorError();
+	if (typeof k[field.keys.length] !== "string") throw new InvalidCursorError();
+	if (field.keys.some((key, i) => !key.valid(k[i]))) throw new InvalidCursorError();
+	return k;
 };
 
 // Rows after the cursor position: a later sort value, or the same sort
-// value and a smaller id, because every sort breaks ties by id descending.
+// value and a smaller id. Every sort breaks ties by id descending.
 const afterCursor = (field: SortField, descending: boolean, key: unknown[]) => {
-	const values = field.exprs.map((_, i) => sql`${key[i]}::${sql.raw(field.casts[i] as string)}`);
+	const values = field.keys.map((cursorKey, i) => sql`${key[i]}::${sql.raw(cursorKey.cast)}`);
 	const tuple = (parts: SQL[]) => sql`(${sql.join(parts, sql`, `)})`;
 	const op = descending ? sql`<` : sql`>`;
 	const id = key[field.exprs.length] as string;
@@ -89,8 +109,7 @@ export const ticketList = async (tx: Tx, input: TicketListInput): Promise<ListOu
 	const { sort = "-updatedAt", cursor, limit = 50, ...filter } = input;
 	const { field, descending } = parseSort(sort);
 	const hash = queryHash(filter, sort);
-	const keyLength = field.exprs.length + 1;
-	const start = cursor === undefined ? sql`true` : afterCursor(field, descending, readCursor(cursor, hash, keyLength));
+	const start = cursor === undefined ? sql`true` : afterCursor(field, descending, readCursor(cursor, hash, field));
 	const reads = field.reads.map((read, i) => sql`${read} AS ${sql.identifier(`k${i}`)}`);
 	const page = sql`page AS (
 		SELECT t.id, row_number() OVER (ORDER BY ${orderBy(field, descending)}) AS rn, ${sql.join(reads, sql`, `)}
