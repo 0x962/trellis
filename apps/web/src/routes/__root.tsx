@@ -35,8 +35,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 	notFoundComponent: PageNotFound,
 });
 
+// `location` changes when a navigation starts, but the outlet keeps the old
+// page until the new route has loaded. `resolvedLocation` is the page the
+// outlet shows, so the layout and the page always match. It is unset only
+// before the first load.
 function RootComponent() {
-	const pathname = useRouterState({ select: (state) => state.location.pathname });
+	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const { live, scheduler } = useApp();
 
 	if (bare(pathname)) {

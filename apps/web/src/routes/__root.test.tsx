@@ -42,6 +42,24 @@ describe("routes/__root", () => {
 		expect((router.state.location.search as { step?: string }).step).toBe("project");
 	});
 
+	// The URL changes when a navigation starts, and the outlet changes when
+	// the new route has loaded. The layout must follow the outlet, or the
+	// setup card shows inside the shell while the project page loads.
+	test("the setup card never renders inside the shell while the next page loads", async () => {
+		const { router, server } = renderApp({ path: "/setup?step=project", actor: "navid" });
+		const hold = server.holdNext("projects.get");
+		fireEvent.change(await screen.findByRole("textbox", { name: "Project name" }), { target: { value: "Held" } });
+		fireEvent.click(screen.getByRole("button", { name: "Create" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/p/HE"));
+
+		expect(screen.getByRole("heading", { name: "New project" })).toBeDefined();
+		expect(screen.queryByRole("complementary", { name: "Sidebar" })).toBeNull();
+
+		act(() => hold.release());
+		expect(await screen.findByRole("complementary", { name: "Sidebar" })).toBeDefined();
+		await waitFor(() => expect(screen.queryByRole("heading", { name: "New project" })).toBeNull());
+	});
+
 	// WS-68
 	test("a finished setup redirects /setup to /needs-you", async () => {
 		const { router } = renderApp({ path: "/setup", actor: "navid" });
