@@ -91,7 +91,12 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 		pathname,
 		search,
 		routeProject: projectRefOfPathname(pathname),
-		openSubmenu: onSubmenu,
+		// The typed words named the command, and a submenu filters its
+		// choices by the field, so the field starts empty there.
+		openSubmenu: (next) => {
+			setQuery("");
+			onSubmenu(next);
+		},
 		close: commandActions.close,
 	};
 

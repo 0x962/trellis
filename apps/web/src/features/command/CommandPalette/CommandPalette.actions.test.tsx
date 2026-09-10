@@ -3,7 +3,15 @@ import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
-import { openPalette, palette, renderShell, resetStores, section, sectionNames } from "../../../../test/palette";
+import {
+	openPalette,
+	palette,
+	paletteInput,
+	renderShell,
+	resetStores,
+	section,
+	sectionNames,
+} from "../../../../test/palette";
 import { useUiStore } from "../../../stores/uiStore";
 import { useComposerStore } from "../../composer";
 import { commandActions } from "../commandStore";
@@ -33,6 +41,17 @@ beforeEach(() => {
 });
 
 describe("features/command/CommandPalette actions", () => {
+	// A person types the command's name, then picks it. The typed words
+	// named the command, not a status, so the status list shows in full.
+	test("a command picked by its typed name opens its submenu with every choice", async () => {
+		await withTicket();
+		await user().type(paletteInput(), "Change status");
+		await pick(/Change status/);
+		await waitFor(() => expect(within(palette()).getByRole("option", { name: /Human Review/ })).toBeDefined());
+		expect(within(palette()).getByRole("option", { name: /In Progress/ })).toBeDefined();
+		expect(paletteInput().value).toBe("");
+	});
+
 	// PA-01. The call names the status by slug or by name, never by an
 	// opaque id.
 	test("Change status opens the status list and applies the pick through tickets.update", async () => {
