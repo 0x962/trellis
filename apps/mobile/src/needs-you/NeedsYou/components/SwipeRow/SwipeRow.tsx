@@ -86,11 +86,15 @@ export function SwipeRow({ identifier, children, onApprove, onSendBack, removing
 			.onUpdate((event) => follow(event.translationX))
 			.onEnd((event) => {
 				const next = sideOf(event.translationX);
-				if (next !== undefined && Math.abs(event.translationX) >= swipeThresholdPx) {
-					if (next === "right") actions.current.onApprove?.();
-					else actions.current.onSendBack?.();
+				const fired = next !== undefined && Math.abs(event.translationX) >= swipeThresholdPx;
+				// An approved row keeps its offset while it sweeps out of the list.
+				// A sent-back row slides back at once, because the person can
+				// still cancel the send-back sheet.
+				if (fired && next === "right") {
+					actions.current.onApprove?.();
 					return;
 				}
+				if (fired) actions.current.onSendBack?.();
 				settle();
 			});
 	}, [identifier, translateX]);
