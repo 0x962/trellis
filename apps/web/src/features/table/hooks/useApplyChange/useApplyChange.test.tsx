@@ -1,0 +1,54 @@
+import { describe, expect, test } from "bun:test";
+import { act, render, screen } from "@testing-library/react";
+import { Toaster } from "@trellis/ui";
+import { summaryOf } from "../../../../../test/events";
+import { createFakeServer } from "../../../../../test/fake-server";
+import { renderHookWithProviders } from "../../../../../test/renderHook";
+import { useTicketMutations } from "../useTicketMutations";
+import { useApplyChange } from "./useApplyChange";
+
+// The hook over the fake server, with the Toaster that shows its rollback
+// toasts, and two CDE tickets as the table holds them.
+const setup = async () => {
+	const server = createFakeServer();
+	const { statuses } = await server.client.statuses.list({ project: "CDE" });
+	const review = statuses.find((status) => status.slug === "agent-review")!;
+	const full = await Promise.all(["CDE-42", "CDE-43"].map((ticket) => server.client.tickets.get({ ticket })));
+	render(<Toaster />);
+	const hook = renderHookWithProviders(() => useApplyChange(useTicketMutations(), []), undefined, {
+		path: "/p/CDE",
+		actor: "navid",
+		server,
+	});
+	return { server, review, tickets: full.map((ticket) => summaryOf(ticket)), apply: hook.result.current };
+};
+
+describe("features/table/hooks/useApplyChange: the rollback toast", () => {
+	// The toast reads as a sentence: the verb, the ticket, then the target.
+	test("a failed move of one ticket says Couldn't move CDE-42 to the status", async () => {
+		const { server, review, tickets, apply } = await setup();
+		server.failNext("tickets.update", { code: "NOT_FOUND", data: { ref: "CDE-42" } });
+		await act(async () => {
+			await apply([tickets[0]!], { status: review });
+		});
+		expect(await screen.findByText(`Couldn't move CDE-42 to ${review.name}`)).toBeDefined();
+	});
+
+	test("a failed move of two tickets says Couldn't move 2 tickets to the status", async () => {
+		const { server, review, tickets, apply } = await setup();
+		server.failNext("tickets.updateMany", { code: "NOT_FOUND", data: { ref: "CDE-42" } });
+		await act(async () => {
+			await apply(tickets, { status: review });
+		});
+		expect(await screen.findByText(`Couldn't move 2 tickets to ${review.name}`)).toBeDefined();
+	});
+
+	test("a failed priority change says Couldn't set the priority of CDE-42 to high", async () => {
+		const { server, tickets, apply } = await setup();
+		server.failNext("tickets.update", { code: "NOT_FOUND", data: { ref: "CDE-42" } });
+		await act(async () => {
+			await apply([tickets[0]!], { priority: "high" });
+		});
+		expect(await screen.findByText("Couldn't set the priority of CDE-42 to high")).toBeDefined();
+	});
+});

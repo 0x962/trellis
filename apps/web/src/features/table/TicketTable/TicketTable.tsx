@@ -32,6 +32,7 @@ import { flattenGroups } from "../utils/flattenGroups";
 import { CapBanner } from "./components/CapBanner";
 import { ColumnHeaderRow } from "./components/ColumnHeaderRow";
 import { TableBody } from "./components/TableBody";
+import { TableError } from "./components/TableError";
 
 export type TicketTableProps = {
 	// The project ref of the route, or undefined on /all.
@@ -222,6 +223,7 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		selection.selected.map((id) => byId.get(id)!.identifier),
 	);
 
+	if (data.error !== null) return <TableError error={data.error} onRetry={data.retry} />;
 	if (data.total === 0 && (project === undefined || projectQuery.data?.parentId === null)) {
 		return <TableEmpty project={project} filtered={hasFilters(search)} q={view.q} onCreate={() => openNew()} />;
 	}

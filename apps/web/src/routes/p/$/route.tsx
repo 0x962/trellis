@@ -1,9 +1,10 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
+import type { Status } from "@trellis/api";
 import { EmptyState } from "@trellis/ui";
 import { lazy, Suspense, useEffect } from "react";
-import { Board } from "../../../features/board";
+import { Board, boardSort } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
 import {
@@ -38,8 +39,12 @@ const ProjectSettingsPage = lazy(async () => ({
 const projectOptions = (context: AppContext, ref: string) =>
 	context.orpc.projects.get.queryOptions({ input: { project: ref } });
 
-const countsOptions = (context: AppContext, ref: string, search: Partial<View>) =>
-	context.orpc.tickets.counts.queryOptions({ input: { project: ref, ...toCountsQuery(viewOf(search)) } });
+// A negated status goes out as the rest of `statuses`, so every counts
+// query of the route takes the project's statuses.
+const countsOptions = (context: AppContext, ref: string, search: Partial<View>, statuses: readonly Status[]) =>
+	context.orpc.tickets.counts.queryOptions({
+		input: { project: ref, ...toCountsQuery(viewOf(search), { statuses }) },
+	});
 
 // `/p/CDE`, `/p/CDE/board`, `/p/CDE/web/auth`, `/p/CDE/settings`. The splat
 // is `[key, ...slugs, view?]`; the URL keeps slashes and the API ref joins
@@ -54,9 +59,9 @@ export const Route = createFileRoute("/p/$")({
 	loaderDeps: ({ search }) => search,
 	loader: async ({ context, params, deps }) => {
 		const { ref, view } = parseProjectSplat(params._splat ?? "");
-		await context.queryClient.ensureQueryData(projectOptions(context, ref));
+		const project = await context.queryClient.ensureQueryData(projectOptions(context, ref));
 		if (view !== "settings") {
-			await context.queryClient.ensureQueryData(countsOptions(context, ref, deps));
+			await context.queryClient.ensureQueryData(countsOptions(context, ref, deps, project.statuses));
 		}
 	},
 	component: ProjectPage,
@@ -75,7 +80,7 @@ function ProjectPage() {
 	const full = viewOf(search);
 	const routeKey = projectHref(ref);
 	// The loader fills this cache entry, so the board footer reads it on the first paint.
-	const counts = useQuery(countsOptions(context, ref, search)).data;
+	const counts = useQuery(countsOptions(context, ref, search, project.statuses)).data;
 	// The list URL without the peek, so the full ticket page can link back
 	// to the list it came from.
 	const searchText = serializeSearch({ ...search, peek: undefined });
@@ -143,11 +148,16 @@ function ProjectPage() {
 				{view === "board" ? (
 					<>
 						<div className="flex min-h-0 flex-1 flex-col">
-							<Board projectRef={ref} filters={toCountsQuery(full)} storageKey={ref} onOpenTicket={openTicket}>
+							<Board
+								projectRef={ref}
+								filters={toCountsQuery(full, { statuses: project.statuses })}
+								storageKey={ref}
+								onOpenTicket={openTicket}
+							>
 								<TicketPeek />
 							</Board>
 						</div>
-						<ListFooter total={counts?.total} sort={sortLabel(full.sort)} />
+						<ListFooter total={counts?.total} sort={sortLabel(boardSort)} />
 					</>
 				) : (
 					<TicketTable

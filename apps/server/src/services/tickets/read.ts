@@ -64,6 +64,9 @@ const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 		filter.rootIds = [project.rootId];
 		filter.projectIds = query.subprojects ? ctx.cache.resolveSubtree(projectId) : [projectId];
 	}
+	// The query string `status=` parses to an empty list. That list names no
+	// status, and the status statement needs one ref at least.
+	if (query.status?.length === 0) throw invalidInput("status", "Name one status at least.");
 	if (query.status !== undefined) filter.statusIds = await statusIdsOf(ctx, tx, query.status, projectId);
 	if (query.category !== undefined) filter.categories = query.category;
 	if (query.reviewer !== undefined) filter.reviewer = query.reviewer;

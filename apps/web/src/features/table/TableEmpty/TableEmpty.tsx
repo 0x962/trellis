@@ -42,7 +42,9 @@ export function TableEmpty({ project, filtered, q, onCreate }: TableEmptyProps) 
 			/>
 		);
 	}
-	const path = project === undefined ? undefined : projectSlashPath(project);
+	// The CLI takes the dotted project ref and the title from -t. /all has
+	// no project, so its line names the flag with a placeholder value.
+	const command = `trellis create -p ${project ?? "<project>"} -t "First ticket"`;
 	return (
 		<EmptyState
 			icon={<Inbox />}
@@ -54,7 +56,7 @@ export function TableEmpty({ project, filtered, q, onCreate }: TableEmptyProps) 
 					<Button variant="primary" onClick={onCreate}>
 						Create ticket
 					</Button>
-					<CliLine command={`trellis new${path === undefined ? "" : ` -p ${path}`} "First ticket"`} />
+					<CliLine command={command} />
 				</div>
 			}
 		/>

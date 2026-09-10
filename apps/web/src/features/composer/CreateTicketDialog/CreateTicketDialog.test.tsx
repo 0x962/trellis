@@ -70,6 +70,49 @@ describe("features/composer/CreateTicketDialog", () => {
 		expect(created(server)[0]).toMatchObject({ project: "TRL", title: "Needs a home" });
 	});
 
+	// A second Cmd+Enter while the create is in flight must not create a
+	// second ticket, and Create is disabled until the answer arrives.
+	test("creates one ticket for two quick Cmd+Enter presses", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		const hold = server.holdNext("tickets.create");
+		const { dialog, title } = await open("/p/CDE", {}, server);
+		await user.type(title(), "Only once");
+		await user.keyboard("{Meta>}{Enter}{/Meta}");
+		await user.keyboard("{Meta>}{Enter}{/Meta}");
+		await waitFor(() => expect(calls(server, "tickets.create")).toHaveLength(1));
+		const create = within(dialog).getByRole("button", { name: /^Create ⌘↩$|^Create$/ }) as HTMLButtonElement;
+		expect(create.disabled).toBe(true);
+		hold.release();
+		await waitFor(() => expect(screen.queryByRole("dialog", { name: /new ticket/i })).toBeNull());
+		await sleep(50);
+		expect(calls(server, "tickets.create")).toHaveLength(1);
+	});
+
+	// A refused create keeps the draft and the dialog, and the toast offers
+	// a Retry that sends the create again.
+	test("a refused create shows a toast with Retry and keeps the draft", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		server.failNext("tickets.create", { code: "INPUT_VALIDATION_FAILED" });
+		const { title } = await open("/p/CDE", {}, server);
+		await user.type(title(), "Refused once");
+		await user.keyboard("{Meta>}{Enter}{/Meta}");
+		const toast = await toastWith(/Couldn't create/);
+		expect(screen.getByRole("dialog", { name: /new ticket/i })).toBeDefined();
+		expect(title().value).toBe("Refused once");
+		await user.click(within(toast).getByRole("button", { name: "Retry" }));
+		await waitFor(() => expect(calls(server, "tickets.create")).toHaveLength(2));
+		await waitFor(() => expect(screen.queryByRole("dialog", { name: /new ticket/i })).toBeNull());
+		expect(created(server)[1]).toMatchObject({ project: "CDE", title: "Refused once" });
+	});
+
+	// The server takes a title of 500 characters at most.
+	test("the title field takes 500 characters at most", async () => {
+		const { title } = await open("/p/CDE");
+		expect(title().maxLength).toBe(500);
+	});
+
 	// Outcome 95. The CDE counter stands at 52, so the next ticket is CDE-53.
 	test("creates with the filter defaults and closes on Cmd+Enter", async () => {
 		const user = userEvent.setup();

@@ -14,7 +14,7 @@ describe("features/table/TableEmpty", () => {
 			actor: "navid",
 		});
 		expect(screen.getByRole("heading", { name: /no tickets/i })).toBeDefined();
-		expect(screen.getByText('trellis new -p CDE "First ticket"')).toBeDefined();
+		expect(screen.getByText('trellis create -p CDE -t "First ticket"')).toBeDefined();
 		await user.click(screen.getByRole("button", { name: "Create ticket" }));
 		expect(onCreate).toHaveBeenCalledTimes(1);
 	});

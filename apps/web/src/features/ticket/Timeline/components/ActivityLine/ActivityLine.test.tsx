@@ -12,7 +12,7 @@ const moved: Activity = {
 	projectId,
 	ticketId,
 	actor: { name: "claude-code", kind: "agent" },
-	action: "changed",
+	action: "ticket.updated",
 	field: "status",
 	fromValue: "Todo",
 	toValue: "In Progress",

@@ -57,6 +57,20 @@ describe("attachments", () => {
 		expect(blobPath(t.home, sha)).toBe(join(t.home, "attachments", sha.slice(0, 2), sha));
 	});
 
+	// A file with no extension arrives from a browser with an empty type. The
+	// row needs a mime that the attachment schema accepts, so the answer and
+	// every later read of the ticket validate.
+	test("an upload with an empty type stores application/octet-stream", async () => {
+		const response = await upload("CDE-1", new TextEncoder().encode("plain notes"), "NOTES", "");
+
+		expect(response.status).toBe(201);
+		expect(response.body.attachment).toMatchObject({ filename: "NOTES", mime: "application/octet-stream" });
+		const list = await t.api("/api/tickets/CDE-1/attachments");
+		expect(list.status).toBe(200);
+		const file = await t.api(response.body.url);
+		expect(file.headers.get("content-type")).toStartWith("application/octet-stream");
+	});
+
 	test("a second upload of the same bytes reuses the one blob", async () => {
 		const first = await upload("CDE-1", PNG);
 		const second = await upload("CDE-2", PNG);

@@ -35,7 +35,7 @@ const commit = (context: Context, row: TicketRow, changes: Change[], created = f
 			projectId: row.projectId,
 			ticketId: row.id,
 			actor,
-			action: created ? "created" : "changed",
+			action: created ? "ticket.created" : "ticket.updated",
 			field: created ? null : change.field,
 			fromValue: change.from,
 			toValue: change.to,

@@ -2,6 +2,7 @@ import type { TicketSummary } from "@trellis/api";
 import { Button, Textarea, toast } from "@trellis/ui";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../lib/appContext";
+import { errorMessage } from "../../../../lib/conflict";
 import { targetStatus } from "../../utils/targetStatus";
 
 export type SendBackBoxProps = {
@@ -20,27 +21,52 @@ export function SendBackBox({ ticket, onClose, onSent }: SendBackBoxProps) {
 	const { client, orpc, queryClient } = useApp();
 	const [body, setBody] = useState("");
 	const [sending, setSending] = useState(false);
+	// True once the server holds the comment. A later send runs only the
+	// move, so the ticket never gets the same comment twice.
+	const posted = useRef(false);
 	const field = useRef<HTMLTextAreaElement>(null);
 
 	useEffect(() => {
 		field.current?.focus();
 	}, []);
 
+	// The comment is on the server when this runs. A failed move keeps the
+	// box open and ready, and the toast's Retry runs only the move.
+	const move = async () => {
+		setSending(true);
+		try {
+			const { statuses } = await queryClient.ensureQueryData(
+				orpc.statuses.list.queryOptions({ input: { project: ticket.project.id } }),
+			);
+			await client.tickets.move({ ticket: ticket.identifier, status: targetStatus(statuses, "started").id });
+		} catch (error) {
+			setSending(false);
+			toast.error(`Couldn't move ${ticket.identifier} back`, {
+				description: `The comment posted. ${errorMessage(error)}`,
+				duration: 6000,
+				action: { label: "Retry", onClick: () => void move() },
+			});
+			return;
+		}
+		onSent();
+	};
+
 	const send = async () => {
 		if (body.trim() === "" || sending) return;
+		if (posted.current) {
+			await move();
+			return;
+		}
 		setSending(true);
 		try {
 			await client.comments.create({ ticket: ticket.identifier, body });
 		} catch (error) {
 			setSending(false);
-			toast.error(`Couldn't send ${ticket.identifier} back`, { description: (error as Error).message });
+			toast.error(`Couldn't send ${ticket.identifier} back`, { description: errorMessage(error) });
 			return;
 		}
-		const { statuses } = await queryClient.ensureQueryData(
-			orpc.statuses.list.queryOptions({ input: { project: ticket.project.id } }),
-		);
-		await client.tickets.move({ ticket: ticket.identifier, status: targetStatus(statuses, "started").id });
-		onSent();
+		posted.current = true;
+		await move();
 	};
 
 	const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {

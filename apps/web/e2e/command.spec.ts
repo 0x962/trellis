@@ -17,6 +17,18 @@ const openPalette = async (page: Page) => {
 	return palette(page).getByRole("combobox");
 };
 
+// The palette field takes the focus some frames after Cmd+K. Keys typed at
+// once go into the query, and the `o` of the query opens no ticket.
+test("keys typed at once after Cmd+K fill the query and open no ticket", async ({ page }) => {
+	await signIn(page, "/p/CDE");
+	await expect(rowOf(page, "CDE-1")).toBeVisible();
+	await page.keyboard.press("j");
+	await page.keyboard.press("ControlOrMeta+k");
+	await page.keyboard.type("oauth");
+	await expect(palette(page).getByRole("combobox")).toHaveValue("oauth");
+	await expect(page).toHaveURL(/\/p\/CDE$/);
+});
+
 // E2E-04. Cmd+K, the identifier, Enter: the ticket page opens.
 test("typing an identifier jumps to that ticket", async ({ page }) => {
 	await signIn(page, "/p/CDE");

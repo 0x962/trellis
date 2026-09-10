@@ -235,7 +235,7 @@ Roving focus on rows; the focused row has a 2px inset accent ring on the left ed
 ### 3.7 Row count and empty states
 
 - Footer bar (28px, muted): `42 tickets · 3 selected` and the active sort as text. Group headers show per-group counts.
-- **No tickets in project**: illustration-free empty state with a title, a "Create ticket" button, and a copyable CLI line: `trellis new -p CDE "First ticket"`.
+- **No tickets in project**: illustration-free empty state with a title, a "Create ticket" button, and a copyable CLI line: `trellis create -p CDE -t "First ticket"`.
 - **No results for filters**: "No tickets match. [Clear filters]". If `q` is set: "No tickets match 'oauth'".
 - **Server unreachable**: handled globally (10.4), not per-table.
 
@@ -592,7 +592,7 @@ Never animates: table rows re-sorting on SSE updates (they jump; no FLIP, becaus
 
 ### 10.1 First-run onboarding
 
-`/setup`: two steps in one card. (1) Name. (2) First project: name field; key auto-suggested from the name (first letters of words, uppercased, 2–5 chars, unique; editable, validated live: `A–Z`, 2–5 chars). Below: "Tickets will be numbered `CDE-1`, `CDE-2` …". Create → land on `/p/CDE` with the project empty state, which includes the CLI install line and `trellis new -p CDE "…"`. A dismissible "Set up agents" card on Needs you links to Settings → Agents.
+`/setup`: two steps in one card. (1) Name. (2) First project: name field; key auto-suggested from the name (first letters of words, uppercased, 2–5 chars, unique; editable, validated live: `A–Z`, 2–5 chars). Below: "Tickets will be numbered `CDE-1`, `CDE-2` …". Create → land on `/p/CDE` with the project empty state, which includes the CLI install line and `trellis create -p CDE -t "…"`. A dismissible "Set up agents" card on Needs you links to Settings → Agents.
 
 ### 10.2 Skeletons vs spinners
 
@@ -647,7 +647,7 @@ SSE events are the reconciliation source: every mutation response and every even
 
 ## Appendix B — CLI touchpoints referenced
 
-`trellis brief <id>`, `trellis status <id> <slug>`, `trellis comment <id> "<md>"`, `trellis pr add <id> <url>`, `trellis new -p <path> "<title>"`, `trellis ls` with the URL filter grammar, `trellis show <id>`. Exit codes: 0 ok, 1 error, 2 not found, 3 refused (policy, e.g. agent → done).
+`trellis brief <id>`, `trellis status <id> <slug>`, `trellis comment <id> "<md>"`, `trellis pr add <id> <url>`, `trellis create -p <ref> -t "<title>"`, `trellis ls` with the URL filter grammar, `trellis show <id>`. Exit codes: 0 ok, 1 error, 2 not found, 3 refused (policy, e.g. agent → done).
 
 ---
 
