@@ -13,6 +13,7 @@ import { fakeIntervalClock } from "./clock.ts";
 import { signedInGh } from "./ctx.ts";
 import { freshDb, type TestDb } from "./db.ts";
 import { freshHomeWithDirs } from "./home.ts";
+import { SUPERSET_STUB_BIN } from "./superset-stub.ts";
 
 // createTestApp builds the HTTP app the way index.ts does, against an
 // in-memory database and a temporary data home, and hands back every part a
@@ -55,6 +56,9 @@ export type TestAppOptions = {
 	gh?: GhRunner;
 	ghStatus?: () => GhStatus;
 	version?: string;
+	// The superset binary the agents runner spawns. The default is the fake
+	// from test/stubs/superset.ts, so no test reaches the real superset.
+	supersetBin?: string;
 };
 
 export const createTestApp = async (options: TestAppOptions = {}) => {
@@ -68,6 +72,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		TRELLIS_LOG_LEVEL: options.logLevel ?? "debug",
 		TRELLIS_WEB_DIST: options.webDist ?? `${home}/no-web-dist`,
 		TRELLIS_DB_INLINE: process.env.TRELLIS_TEST_TRANSPORT === "worker" ? "false" : "true",
+		TRELLIS_SUPERSET_BIN: options.supersetBin ?? SUPERSET_STUB_BIN,
 	});
 	// The directories boot creates, so a backup of this home finds db/.
 	for (const dir of [config.dbDir, config.tmpDir, config.backupsDir]) mkdirSync(dir, { recursive: true });
