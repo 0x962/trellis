@@ -7,7 +7,8 @@ import { emptyLine } from "../../utils/emptyLine";
 const startedInput = { category: ["started" as const] };
 
 // The whole screen when nothing waits on a person. The line names what the
-// agents hold and links to the list of it.
+// agents hold and links to the list of it. With nothing in progress the
+// line names no tickets, so it has no link.
 export function NeedsYouEmpty() {
 	const { orpc } = useApp();
 	const counts = useQuery(orpc.tickets.counts.queryOptions({ input: startedInput }));
@@ -16,14 +17,19 @@ export function NeedsYouEmpty() {
 	return (
 		<div className="flex h-full items-center justify-center">
 			<p className="text-fg-muted">
-				{emptyLine(counts.data.total)}{" "}
-				<Link
-					to="/all"
-					search={{ category: ["started"] }}
-					className="text-accent underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-accent"
-				>
-					Show them
-				</Link>
+				{emptyLine(counts.data.total)}
+				{counts.data.total > 0 && (
+					<>
+						{" "}
+						<Link
+							to="/all"
+							search={{ category: ["started"] }}
+							className="text-accent underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-accent"
+						>
+							Show them
+						</Link>
+					</>
+				)}
 			</p>
 		</div>
 	);
