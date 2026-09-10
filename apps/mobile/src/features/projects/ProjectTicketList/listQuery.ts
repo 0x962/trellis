@@ -1,4 +1,4 @@
-import type { ListQueryInput, Sort, StatusCategory } from "@trellis/api";
+import { type ListQueryInput, ProjectRefSchema, type Sort, type StatusCategory } from "@trellis/api";
 
 // The three filters of the segmented control. Together they cover every
 // status category once, so a ticket sits under exactly one segment.
@@ -11,13 +11,17 @@ export type SortValue = "updated" | "priority";
 // through the same size.
 export const pageLimit = 25;
 
-export const categoryOf = (_segment: Segment): StatusCategory[] => {
-	throw new Error("categoryOf is not built yet.");
+const categories: Record<Segment, StatusCategory[]> = {
+	active: ["todo", "started"],
+	review: ["review"],
+	done: ["done", "canceled"],
 };
 
-export const sortOf = (_sort: SortValue): Sort => {
-	throw new Error("sortOf is not built yet.");
-};
+export const categoryOf = (segment: Segment): StatusCategory[] => categories[segment];
+
+const sorts: Record<SortValue, Sort> = { updated: "-updatedAt", priority: "priority" };
+
+export const sortOf = (sort: SortValue): Sort => sorts[sort];
 
 export type ListQueryArgs = {
 	// The canonical project path, such as CDE.web.
@@ -28,6 +32,13 @@ export type ListQueryArgs = {
 	cursor?: string;
 };
 
-export const listQueryInput = (_args: ListQueryArgs): ListQueryInput => {
-	throw new Error("listQueryInput is not built yet.");
-};
+// The `tickets.list` input for one page. The project ref arrives from a
+// route path, which a person can spell in any case, so it goes out in the
+// one spelling the server prints.
+export const listQueryInput = ({ project, segment, sort, cursor }: ListQueryArgs): ListQueryInput => ({
+	project: ProjectRefSchema.canonicalize(project),
+	category: categoryOf(segment),
+	sort: sortOf(sort),
+	limit: pageLimit,
+	...(cursor === undefined ? {} : { cursor }),
+});

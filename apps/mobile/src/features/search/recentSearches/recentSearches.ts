@@ -11,12 +11,14 @@ export type RecentStore = {
 };
 
 // The stored queries, newest first.
-export const readRecents = (_store: RecentStore): string[] => {
-	throw new Error("readRecents is not built yet.");
+export const readRecents = (store: RecentStore): string[] => {
+	const stored = store.getString(recentSearchesKey);
+	return stored === undefined ? [] : (JSON.parse(stored) as string[]);
 };
 
 // Puts one query at the front. A query already in the list moves to the
 // front and stays there once.
-export const pushRecent = (_store: RecentStore, _query: string): void => {
-	throw new Error("pushRecent is not built yet.");
+export const pushRecent = (store: RecentStore, query: string): void => {
+	const kept = readRecents(store).filter((recent) => recent !== query);
+	store.set(recentSearchesKey, JSON.stringify([query, ...kept].slice(0, maxRecentSearches)));
 };
