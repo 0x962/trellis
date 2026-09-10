@@ -27,7 +27,11 @@ for (const [signal, code] of [
 	["SIGINT", 130],
 	["SIGTERM", 143],
 ] as const) {
-	process.on(signal, () => {
+	// A real signal passes its name to the listener. A test that calls
+	// process.emit("SIGTERM") to drive a shutdown in the same process passes
+	// nothing, and the run must go on.
+	process.on(signal, (name?: string) => {
+		if (name === undefined) return;
 		removeRoot();
 		process.exit(code);
 	});
