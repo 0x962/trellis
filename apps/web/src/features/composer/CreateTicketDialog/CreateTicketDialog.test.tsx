@@ -1,0 +1,137 @@
+import { beforeEach, describe, expect, test } from "bun:test";
+import { act, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { createFakeServer } from "../../../../test/fake-server";
+import { renderApp } from "../../../../test/renderWithProviders";
+import { calls, findGrid, inputs, listCalls, queryRow, resetUi, rowOf, sleep, toastWith } from "../../../../test/table";
+import { tableViewport } from "../../../../test/viewport";
+import { type ComposerOptions, openComposer } from "../composerStore";
+
+const installViewport = tableViewport(800);
+
+beforeEach(() => {
+	resetUi();
+	installViewport();
+});
+
+const open = async (path: string, options: ComposerOptions = {}, server = createFakeServer()) => {
+	const app = renderApp({ path, actor: "navid", server });
+	await findGrid();
+	act(() => openComposer(options));
+	const dialog = await screen.findByRole("dialog", { name: /new ticket/i });
+	const chip = (name: RegExp) => within(dialog).getByRole("button", { name });
+	const title = () => within(dialog).getByRole("textbox", { name: /title/i }) as HTMLInputElement;
+	return { ...app, dialog, chip, title };
+};
+
+const created = (server: ReturnType<typeof createFakeServer>) => inputs(server, "tickets.create");
+
+describe("features/composer/CreateTicketDialog", () => {
+	// Outcome 89. w-160 is 640 px on the 4 px scale. The seed template
+	// starts with "## Goal", so the read-only view shows that heading.
+	test("opens at 640 px with the title focused and the template rendered read-only", async () => {
+		const { dialog, title } = await open("/p/CDE");
+		expect(dialog.className).toMatch(/\bw-160\b/);
+		await waitFor(() => expect(document.activeElement).toBe(title()));
+		expect(within(dialog).getByRole("heading", { name: "Goal" })).toBeDefined();
+		expect(dialog.querySelector(".ProseMirror")).toBeNull();
+	});
+
+	// Outcome 90
+	test("mounts the editor on the first focus of the description", async () => {
+		const user = userEvent.setup();
+		const { dialog } = await open("/p/CDE");
+		await user.click(within(dialog).getByRole("button", { name: /description/i }));
+		await waitFor(() => expect(dialog.querySelector('.ProseMirror[contenteditable="true"]')).not.toBeNull(), {
+			timeout: 5000,
+		});
+		expect(dialog.querySelector(".ProseMirror")!.textContent).toContain("Goal");
+	});
+
+	// Outcome 94
+	test("blocks the create on /all until a project is chosen", async () => {
+		const user = userEvent.setup();
+		const { server, chip, title } = await open("/all");
+		expect(chip(/^project/i).textContent).toMatch(/choose|pick|select/i);
+		expect(chip(/^project/i).textContent).not.toMatch(/CDE|TRL|MRG/);
+		await user.type(title(), "Needs a home");
+		await user.keyboard("{Meta>}{Enter}{/Meta}");
+		await sleep(50);
+		expect(calls(server, "tickets.create")).toHaveLength(0);
+		await user.click(chip(/^project/i));
+		await user.click(await screen.findByRole("option", { name: /TRL/ }));
+		await waitFor(() => expect(chip(/^project/i).textContent).toContain("TRL"));
+		await user.keyboard("{Meta>}{Enter}{/Meta}");
+		await waitFor(() => expect(calls(server, "tickets.create")).toHaveLength(1));
+		expect(created(server)[0]).toMatchObject({ project: "TRL", title: "Needs a home" });
+	});
+
+	// Outcome 95. The CDE counter stands at 52, so the next ticket is CDE-53.
+	test("creates with the filter defaults and closes on Cmd+Enter", async () => {
+		const user = userEvent.setup();
+		const { server, dialog, title } = await open("/p/CDE?status=in-progress&priority=high");
+		await user.type(title(), "Ship the table");
+		await user.keyboard("{Meta>}{Enter}{/Meta}");
+		await waitFor(() => expect(created(server)).toHaveLength(1));
+		expect(created(server)[0]).toMatchObject({
+			project: "CDE",
+			title: "Ship the table",
+			status: "in-progress",
+			priority: "high",
+		});
+		await waitFor(() => expect(dialog.isConnected).toBe(false));
+		const toast = await toastWith(/Created CDE-53/);
+		expect(within(toast).getByRole("button", { name: "Open" })).toBeDefined();
+	});
+
+	// Outcome 96
+	test("creates and keeps the dialog open on Cmd+Shift+Enter", async () => {
+		const user = userEvent.setup();
+		const { server, dialog, chip, title } = await open("/p/CDE?status=in-progress&priority=high");
+		const chips = () =>
+			[chip(/^project/i), chip(/^status/i), chip(/^priority/i), chip(/^parent/i)].map((c) => c.textContent);
+		const before = chips();
+		await user.type(title(), "First of many");
+		await user.keyboard("{Meta>}{Shift>}{Enter}{/Shift}{/Meta}");
+		await waitFor(() => expect(created(server)).toHaveLength(1));
+		expect(created(server)[0]).toMatchObject({ title: "First of many", status: "in-progress", priority: "high" });
+		expect(dialog.isConnected).toBe(true);
+		await waitFor(() => expect(title().value).toBe(""));
+		expect(chips()).toEqual(before);
+	});
+
+	// Outcome 97. In Progress is the group of the filter, so the new row
+	// lands there, and the response alone puts it in the cache.
+	test("puts the created ticket into the table without a refetch", async () => {
+		const user = userEvent.setup();
+		const { server, title } = await open("/p/CDE?status=in-progress");
+		const before = listCalls(server).length;
+		await user.type(title(), "Straight into the group");
+		await user.keyboard("{Meta>}{Enter}{/Meta}");
+		await waitFor(() => expect(created(server)).toHaveLength(1));
+		await waitFor(() => expect(queryRow("CDE-53")).not.toBeNull());
+		expect(rowOf("CDE-53").getAttribute("data-group")).toBe("in-progress");
+		await sleep(600);
+		expect(listCalls(server)).toHaveLength(before);
+	});
+
+	// Outcome 100
+	test("closes an empty composer without a question", async () => {
+		const user = userEvent.setup();
+		const { dialog } = await open("/p/CDE");
+		await user.keyboard("{Escape}");
+		await waitFor(() => expect(dialog.isConnected).toBe(false));
+		expect(screen.queryByRole("dialog", { name: /discard/i })).toBeNull();
+	});
+
+	// product.md 6.1: Esc asks to discard only when the composer holds text.
+	test("asks before it closes a composer with text", async () => {
+		const user = userEvent.setup();
+		const { dialog, title } = await open("/p/CDE");
+		await user.type(title(), "Half written");
+		await user.keyboard("{Escape}");
+		expect(await screen.findByRole("dialog", { name: /discard/i })).toBeDefined();
+		expect(dialog.isConnected).toBe(true);
+		expect(title().value).toBe("Half written");
+	});
+});

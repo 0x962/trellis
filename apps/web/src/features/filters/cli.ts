@@ -35,3 +35,12 @@ export const toCliCommand = (view: View, project?: string): string => {
 	}
 	return parts.join(" ");
 };
+
+// Skeleton for the web-table work item. cli.test.ts states the outcomes.
+export const toCli = (..._args: unknown[]): never => {
+	throw new Error("toCli is not implemented");
+};
+
+export const parseCli = (..._args: unknown[]): never => {
+	throw new Error("parseCli is not implemented");
+};

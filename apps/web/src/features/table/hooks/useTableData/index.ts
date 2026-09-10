@@ -1,0 +1,1 @@
+export { useTableData } from "./useTableData";

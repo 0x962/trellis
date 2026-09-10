@@ -16,10 +16,16 @@ import type { Density } from "../../stores/uiStore";
 export type Group = "none" | "status" | "priority" | "project" | "parent" | "pr";
 export type Scope = "subprojects" | "self";
 
+// The list fields a chip can negate. `not` names the fields whose value
+// set carries the leading `!` in the URL.
+export type NegatableField = "status" | "priority" | "project";
+
 // The view state of a list route: the shared list grammar plus the four
 // web-only fields. A time bound keeps the short form a person types (`7d`);
 // `toListQuery` turns it into an ISO instant.
 export type View = {
+	// A project chip: a project ref that narrows the list on /all.
+	project?: string;
 	status?: string[];
 	category?: z.infer<typeof StatusCategorySchema>[];
 	reviewer?: z.infer<typeof ReviewerSchema>;
@@ -38,6 +44,7 @@ export type View = {
 	peek?: string;
 	density: Density;
 	limit: number;
+	not?: NegatableField[];
 };
 
 export const viewDefaults = {

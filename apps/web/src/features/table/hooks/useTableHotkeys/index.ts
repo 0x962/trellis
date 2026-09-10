@@ -1,0 +1,1 @@
+export { useTableHotkeys } from "./useTableHotkeys";

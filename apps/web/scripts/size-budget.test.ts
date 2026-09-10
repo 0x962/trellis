@@ -19,6 +19,27 @@ const run = (args: string[], cwd = web) => {
 // chunk must hold none of them, and some lazy chunk must hold each.
 const routeMarkers = ["What should we call you?", "Settings saved", "Nothing needs you"];
 
+// The bulk bar's copy action is text only the table module carries. The
+// editor mounts on focus, so its code is a lazy chunk; ProseMirror's class
+// names are the marker every Tiptap build carries.
+const tableMarker = "Copy IDs";
+const editorMarker = "ProseMirror";
+
+// The entry chunk and every chunk index.html preloads, joined, and the rest.
+const splitChunks = async () => {
+	const document = parse(await Bun.file(join(dist, "index.html")).text());
+	const entry = document.querySelector('script[type="module"][src]')!.getAttribute("src")!.split("/").pop()!;
+	const preloads = [...document.querySelectorAll('link[rel="modulepreload"][href]')].map(
+		(link) => link.getAttribute("href")!.split("/").pop()!,
+	);
+	const initial = [entry, ...preloads];
+	const chunks = assetFiles().filter((name) => name.endsWith(".js"));
+	return {
+		initial: (await Promise.all(initial.map(readAsset))).join("\n"),
+		lazy: await Promise.all(chunks.filter((name) => !initial.includes(name)).map(readAsset)),
+	};
+};
+
 const parse = (html: string) => new DOMParser().parseFromString(html, "text/html");
 
 const assetFiles = () => readdirSync(join(dist, "assets"));
@@ -82,6 +103,20 @@ describe("bun run build", () => {
 		expect(budgets.initialJs).toBe(220 * 1024);
 		expect(budgets.fonts).toBe(160 * 1024);
 		expect(budgets.total).toBe(900 * 1024);
+	});
+
+	// Outcome 113. Runs on the build above.
+	test("keeps the table routes inside the initial JS budget with the editor in a lazy chunk", async () => {
+		expect(build.exitCode).toBe(0);
+		const report = measure(dist);
+		expect(report.initialJs).toBeLessThanOrEqual(budgets.initialJs);
+		const { initial, lazy } = await splitChunks();
+		expect(initial).not.toContain(editorMarker);
+		expect(lazy.some((source) => source.includes(editorMarker))).toBe(true);
+		expect(initial).not.toContain(tableMarker);
+		expect(lazy.some((source) => source.includes(tableMarker))).toBe(true);
+		const editorChunk = lazy.find((source) => source.includes(editorMarker))!;
+		expect(editorChunk).not.toContain(tableMarker);
 	});
 });
 

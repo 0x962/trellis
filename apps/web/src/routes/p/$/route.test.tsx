@@ -3,6 +3,18 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
+import {
+	filterBar,
+	findGrid,
+	footer,
+	groupHeaders,
+	inputs,
+	queryGroupHeader,
+	resetUi,
+	rowOf,
+	rows,
+} from "../../../../test/table";
+import { tableViewport } from "../../../../test/viewport";
 
 beforeEach(() => localStorage.clear());
 
@@ -70,5 +82,68 @@ describe("routes/p/$", () => {
 		expect(await screen.findByText('trellis new -p DOC "First ticket"')).toBeDefined();
 		expect(screen.getByRole("button", { name: "Create ticket" })).toBeDefined();
 		expect(screen.getByRole("heading", { name: /no tickets/i })).toBeDefined();
+	});
+});
+
+// The table on the project route. The viewport gives the virtualizer a
+// height, so rows mount.
+describe("routes/p/$: the table", () => {
+	const installViewport = tableViewport(800);
+
+	beforeEach(() => {
+		resetUi();
+		installViewport();
+	});
+
+	// Outcome 108
+	test("renders the ticket table for a project route", async () => {
+		const { server } = renderApp({ path: "/p/CDE", actor: "navid" });
+		await findGrid();
+		expect(filterBar()).not.toBeNull();
+		await waitFor(() => expect(rows().length).toBeGreaterThan(2));
+		expect(groupHeaders().length).toBeGreaterThan(1);
+		expect(footer()).not.toBeNull();
+		await waitFor(() => expect(footer().textContent).toMatch(/\d+ tickets/));
+		expect(inputs(server, "tickets.list")[0]).toMatchObject({ project: "CDE" });
+	});
+
+	// Outcome 109
+	test("maps the splat path to a dotted project ref", async () => {
+		const server = createFakeServer();
+		await server.client.projects.create({ parent: "CDE.web", name: "auth" });
+		const { router } = renderApp({ path: "/p/CDE/web/auth", actor: "navid", server });
+		await findGrid();
+		await waitFor(() => expect(inputs(server, "tickets.list").length).toBeGreaterThan(0));
+		expect(inputs(server, "tickets.list")[0]).toMatchObject({ project: "CDE.web.auth" });
+		expect(router.state.location.pathname).toBe("/p/CDE/web/auth");
+	});
+
+	// Outcome 110. The grid element is the same node before and after.
+	test("reruns the query on a filter change without remounting the table", async () => {
+		const user = userEvent.setup();
+		const { router, server } = renderApp({ path: "/p/CDE", actor: "navid" });
+		const table = await findGrid();
+		await waitFor(() => expect(rows().length).toBeGreaterThan(2));
+		const before = inputs(server, "tickets.list").length;
+		await user.click(within(filterBar()).getByRole("button", { name: "Filter" }));
+		await user.click(within(await screen.findByRole("dialog")).getByRole("option", { name: "Status" }));
+		await user.click(within(await screen.findByRole("dialog")).getByRole("option", { name: "In Progress" }));
+		await user.keyboard("{Escape}");
+		await waitFor(() => expect(router.state.location.searchStr).toBe("?status=in-progress"));
+		await waitFor(() => expect(inputs(server, "tickets.list").length).toBeGreaterThan(before));
+		expect(inputs(server, "tickets.list").at(-1)).toMatchObject({ project: "CDE", status: ["in-progress"] });
+		await waitFor(() => expect(queryGroupHeader("todo")).toBeNull());
+		expect(screen.getByRole("grid")).toBe(table);
+	});
+
+	// Outcome 112
+	test("keeps the table mounted and the row focused while the peek is open", async () => {
+		renderApp({ path: "/p/CDE?status=human-review&peek=CDE-42", actor: "navid" });
+		await findGrid();
+		await waitFor(() => rowOf("CDE-42"));
+		expect(rowOf("CDE-42").getAttribute("tabindex")).toBe("0");
+		expect(rowOf("CDE-42").hasAttribute("data-focused")).toBe(true);
+		expect(rowOf("CDE-37").getAttribute("tabindex")).toBe("-1");
+		expect(rowOf("CDE-37").hasAttribute("data-focused")).toBe(false);
 	});
 });
