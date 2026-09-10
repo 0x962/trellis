@@ -11,6 +11,22 @@ const statements = (css: string) =>
 		.map((line) => line.trim())
 		.filter((line) => line.startsWith("@"));
 
+// Whether a `:has(` opens while another `:has(` is still open. The stack
+// holds one entry per open parenthesis: true for a :has(), false for any
+// other.
+const nestsHas = (selector: string) => {
+	const open: boolean[] = [];
+	for (let index = 0; index < selector.length; index++) {
+		if (selector.startsWith(":has(", index)) {
+			if (open.includes(true)) return true;
+			open.push(true);
+			index += ":has".length;
+		} else if (selector[index] === "(") open.push(false);
+		else if (selector[index] === ")") open.pop();
+	}
+	return false;
+};
+
 describe("app.css", () => {
 	// WS-03. Tailwind emits only the classes it finds in scanned files. The
 	// primitives live in packages/ui, outside the web root, so app.css names
@@ -39,6 +55,10 @@ describe("app.css", () => {
 		expect(noBullet?.selector ?? "no rule").toContain('li[data-type="taskItem"]');
 		const noPadding = rules.find((rule) => /padding-left:\s*0/.test(rule.body));
 		expect(noPadding?.selector ?? "no rule").toContain('ul[data-type="taskList"]');
-		expect(noPadding?.selector ?? "no rule").toMatch(/ul:not\(:has\(> li:not\(/);
+		expect(noPadding?.selector ?? "no rule").toContain('ul:has(> li > input[type="checkbox"])');
+		// CSS forbids a :has() inside a :has(), and a browser drops the whole
+		// rule, every selector in its list included.
+		const nested = rules.filter((rule) => nestsHas(rule.selector));
+		expect(nested.map((rule) => rule.selector)).toEqual([]);
 	});
 });

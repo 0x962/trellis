@@ -77,10 +77,18 @@ svg {
 :is(.markdown, .comment-markdown) li:has(> input[type="checkbox"]) > input[type="checkbox"] {
 	margin-right: 8px;
 }
-/* A list that holds task items only needs no indent for a marker. */
+/*
+ * A list that holds a task item needs no indent for a marker. CSS forbids a
+ * :has() inside a :has(), and a browser drops a rule with an invalid
+ * selector, so no selector can say "every item is a task item". A plain
+ * item in such a list draws its bullet inside its own box instead.
+ */
 :is(.markdown, .comment-markdown) ul[data-type="taskList"],
-:is(.markdown, .comment-markdown) ul:not(:has(> li:not(:has(> input[type="checkbox"])))) {
+:is(.markdown, .comment-markdown) ul:has(> li > input[type="checkbox"]) {
 	padding-left: 0;
+}
+:is(.markdown, .comment-markdown) ul:has(> li > input[type="checkbox"]) > li:not(:has(> input[type="checkbox"])) {
+	list-style-position: inside;
 }
 :is(.markdown, .comment-markdown) li + li {
 	margin-top: 4px;
