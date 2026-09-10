@@ -254,6 +254,25 @@ describe("ping and bye", () => {
 		expect(ping.comment).toBe("ping");
 	});
 
+	test("a ping outside whole seconds from 5 to 120 answers INPUT_VALIDATION_FAILED", async () => {
+		for (const ping of ["abc", "0", "4", "121", "5.5", "", "-10"]) {
+			const response = await t.app.request(`http://trellis.test/api/events?ping=${ping}`);
+			if (response.status !== 400) await response.body?.cancel();
+
+			expect(response.status, ping).toBe(400);
+			expect((await response.json()).code, ping).toBe("INPUT_VALIDATION_FAILED");
+		}
+	});
+
+	test("a ping of 5 and a ping of 120 open the stream", async () => {
+		for (const ping of ["5", "120"]) {
+			const stream = await open(`?ping=${ping}`);
+
+			expect(stream.response.status, ping).toBe(200);
+			expect((await nextEvent(stream)).event).toBe("ready");
+		}
+	});
+
 	test("shutdown sends bye and closes the stream", async () => {
 		const stream = await open();
 		await nextEvent(stream);
