@@ -26,6 +26,17 @@ describe("IconButton", () => {
 		expect(onClick).toHaveBeenCalledTimes(2);
 	});
 
+	// The primary variant is the chevron half of a split button beside a
+	// primary Button, so it carries the same accent fill. cx joins classes
+	// with no merge, so the surface fill of the default variant must be absent.
+	test("the primary variant fills with the accent and carries no surface fill", () => {
+		render(<IconButton label="Options" icon={<RefreshCw />} variant="primary" />);
+		const button = screen.getByRole("button", { name: "Options" });
+		expectClasses(button, "bg-accent border-accent text-on-accent");
+		expect(button.classList.contains("bg-surface")).toBe(false);
+		expect(button.classList.contains("text-fg")).toBe(false);
+	});
+
 	// Size md is drawn 28 px square and size sm 24 px, both with a 1 px border.
 	// Both reach 28 px on a desktop pointer and 44 px on a coarse pointer in
 	// both axes through the hit-area layer.

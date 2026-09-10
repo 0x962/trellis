@@ -88,6 +88,17 @@ describe("features/agent/StartWithAgent", () => {
 		expect(checked(await checkbox())).toBe(true);
 	});
 
+	// The chevron is the second half of the primary split button, so it
+	// carries the accent fill and never the surface fill of a default button.
+	test("the options chevron carries the primary fill of the button beside it", async () => {
+		mount();
+		await start();
+		const chevron = options();
+		expect(chevron.classList.contains("bg-accent")).toBe(true);
+		expect(chevron.classList.contains("text-on-accent")).toBe(true);
+		expect(chevron.classList.contains("bg-surface")).toBe(false);
+	});
+
 	// WT-94
 	test("an unchecked box leaves the status alone", async () => {
 		const user = userEvent.setup();
