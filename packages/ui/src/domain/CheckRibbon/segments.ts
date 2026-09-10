@@ -8,10 +8,20 @@ export type Check = {
 
 export type RibbonSize = "full" | "mini";
 
+// The word a person reads for each bucket. A bucket name is GitHub's
+// identifier, and a tooltip never shows it raw.
+export const outcomeWords: Record<CheckBucket, string> = {
+	pass: "passed",
+	fail: "failed",
+	cancel: "canceled",
+	pending: "pending",
+	skipping: "skipped",
+};
+
 // One drawn piece of a ribbon: one check, or one run of checks in one bucket.
 export type RibbonSegment = {
 	bucket: CheckBucket;
-	// The tooltip: the check name and its bucket, or the run length and its bucket.
+	// The tooltip: the check name and its outcome, or the run length and its outcome.
 	title: string;
 	// The width in px. The widths and the gaps of one ribbon add up to the box width.
 	width: number;
@@ -110,7 +120,7 @@ export const ribbonSegments = (size: RibbonSize, checks: readonly Check[]): Ribb
 		);
 		return checks.map((check, index) => ({
 			bucket: check.bucket,
-			title: `${check.name}: ${check.bucket}`,
+			title: `${check.name}: ${outcomeWords[check.bucket]}`,
 			width: widths[index]! / 100,
 		}));
 	}
@@ -118,7 +128,10 @@ export const ribbonSegments = (size: RibbonSize, checks: readonly Check[]): Ribb
 	const widths = runWidths(box, merged);
 	return merged.map((run, index) => ({
 		bucket: run.bucket,
-		title: run.length === 1 ? `${run.name}: ${run.bucket}` : `${run.length} checks: ${run.bucket}`,
+		title:
+			run.length === 1
+				? `${run.name}: ${outcomeWords[run.bucket]}`
+				: `${run.length} checks: ${outcomeWords[run.bucket]}`,
 		width: widths[index]! / 100,
 	}));
 };

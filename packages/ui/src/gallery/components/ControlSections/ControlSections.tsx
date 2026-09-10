@@ -1,4 +1,4 @@
-import { Check, Play, RefreshCw } from "lucide-react";
+import { Check, Play, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../primitives/Button";
 import { Checkbox } from "../../../primitives/Checkbox";
@@ -10,6 +10,8 @@ import { Switch } from "../../../primitives/Switch";
 import { Tabs } from "../../../primitives/Tabs";
 import { Textarea } from "../../../primitives/Textarea";
 import { Section } from "../Section";
+
+const sizes = ["sm", "md"] as const;
 
 const priorities = ["none", "low", "medium", "high", "urgent"].map((value) => ({ value, label: value }));
 
@@ -24,31 +26,49 @@ export function ControlSections() {
 	const [tab, setTab] = useState("All");
 	return (
 		<>
-			<Section name="Button" note="primary, default, quiet, danger; md and sm; icon and kbd">
-				<Button variant="primary" kbd="a">
-					Approve
-				</Button>
-				<Button kbd="r">Send back</Button>
-				<Button variant="quiet">Move to Todo</Button>
-				<Button variant="danger">Delete</Button>
-				<Button disabled>Disabled</Button>
-				<Button variant="primary" icon={<Play />} kbd="⌘⇧A">
-					Start with agent
-				</Button>
-				<Button icon={<Check />}>Approved</Button>
-				<Button size="sm">Small</Button>
-				<Button size="sm" variant="primary">
-					Small primary
-				</Button>
-				<Button size="sm" variant="quiet">
-					Small quiet
-				</Button>
+			<Section name="Button" note="primary, default, quiet, danger, danger-soft; sm 28 px and md 32 px; icon and kbd">
+				{sizes.map((size) => (
+					<div key={size} className="flex flex-wrap items-center gap-2">
+						<Button size={size} variant="primary" kbd="a">
+							Approve
+						</Button>
+						<Button size={size} kbd="r">
+							Send back
+						</Button>
+						<Button size={size} variant="quiet">
+							Move to Todo
+						</Button>
+						<Button size={size} variant="danger">
+							Delete
+						</Button>
+						<Button size={size} variant="danger-soft">
+							Keep mine
+						</Button>
+						<Button size={size} variant="primary" disabled>
+							Create
+						</Button>
+						<Button size={size} disabled>
+							Disabled
+						</Button>
+						<Button size={size} variant="primary" icon={<Play />} kbd="⌘⇧A">
+							Start with agent
+						</Button>
+						<Button size={size} icon={<Check />}>
+							Approved
+						</Button>
+					</div>
+				))}
 			</Section>
-			<Section name="IconButton" note="quiet and default; md and sm; disabled">
-				<IconButton label="Refresh" icon={<RefreshCw />} />
-				<IconButton label="Refresh" icon={<RefreshCw />} variant="default" />
-				<IconButton label="Refresh" icon={<RefreshCw />} size="sm" />
-				<IconButton label="Refresh" icon={<RefreshCw />} disabled />
+			<Section name="IconButton" note="primary, default, quiet, danger; md and sm; disabled">
+				{sizes.map((size) => (
+					<div key={size} className="flex items-center gap-2">
+						<IconButton label="Refresh" icon={<RefreshCw />} size={size} variant="primary" />
+						<IconButton label="Refresh" icon={<RefreshCw />} size={size} variant="default" />
+						<IconButton label="Refresh" icon={<RefreshCw />} size={size} />
+						<IconButton label="Delete" icon={<Trash2 />} size={size} variant="danger" />
+						<IconButton label="Refresh" icon={<RefreshCw />} size={size} disabled />
+					</div>
+				))}
 			</Section>
 			<Section name="Input" note="labeled, hidden label, invalid, disabled" className="items-start">
 				<Input label="Title" value={title} onChange={(event) => setTitle(event.target.value)} className="w-80" />
@@ -60,7 +80,7 @@ export function ControlSections() {
 				<Textarea
 					label="Comment"
 					rows={3}
-					placeholder="Leave a comment…"
+					placeholder="Write a comment"
 					value={comment}
 					onChange={(event) => setComment(event.target.value)}
 					className="w-80"
@@ -93,7 +113,7 @@ export function ControlSections() {
 					onValueChange={setView}
 				/>
 			</Section>
-			<Section name="Tabs" note="a disabled tab is skipped" className="items-start">
+			<Section name="Tabs" note="the arrow keys skip a disabled tab" className="items-start">
 				<Tabs
 					items={[
 						{ value: "All", label: "All", content: <p className="text-fg-muted">Everything on the ticket.</p> },

@@ -87,7 +87,7 @@ describe("segments", () => {
 			for (let count = 1; count <= ribbonWidths[size]; count += 1) {
 				const segments = ribbonSegments(size, many(count, 0));
 				expect(segments).toHaveLength(count);
-				expect(segments[0]!.title).toBe("check 1: fail");
+				expect(segments[0]!.title).toBe("check 1: failed");
 				expect(`${size} ${count} ${segments[0]!.width}`).toMatch(/ ([1-9]\d*(\.\d+)?)$/);
 				expect(occupied(size, many(count))).toBeCloseTo(ribbonWidths[size], 6);
 			}
@@ -97,9 +97,9 @@ describe("segments", () => {
 	test("above one check per px, runs of one bucket are segments that fill the box", () => {
 		const segments = ribbonSegments("full", many(80, 39));
 		expect(segments.map((segment) => [segment.bucket, segment.title])).toEqual([
-			["pass", "39 checks: pass"],
-			["fail", "check 40: fail"],
-			["pass", "40 checks: pass"],
+			["pass", "39 checks: passed"],
+			["fail", "check 40: failed"],
+			["pass", "40 checks: passed"],
 		]);
 		expect(segments[1]!.width).toBe(1);
 		expect(segments[0]!.width).toBe(31.2);

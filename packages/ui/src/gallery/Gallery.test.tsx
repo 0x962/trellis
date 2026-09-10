@@ -29,10 +29,11 @@ const primitives = [
 	"ScrollArea",
 	"Separator",
 	"EmptyState",
+	"SectionHeader",
 	"Command",
 ];
 
-const domain = ["StatusIcon", "PriorityIcon", "CheckRibbon", "ActorChip", "TicketId"];
+const domain = ["StatusIcon", "PriorityIcon", "CheckRibbon", "ActorChip", "TicketId", "TrellisMark"];
 
 // The section a heading introduces: its closest `section` ancestor.
 const section = (name: string) => screen.getByRole("heading", { name }).closest("section")!;
@@ -57,7 +58,8 @@ describe("Gallery", () => {
 		expect(withClasses("border-transparent text-fg-muted").length).toBeGreaterThan(0);
 		expect(withClasses("bg-danger").length).toBeGreaterThan(0);
 		expect(buttons.filter((button) => button.hasAttribute("disabled")).length).toBeGreaterThan(0);
-		expect(withClasses("h-6 text-xs").length).toBeGreaterThan(0);
+		expect(withClasses("text-danger bg-surface").length).toBeGreaterThan(0);
+		expect(withClasses("h-8 text-base").length).toBeGreaterThan(0);
 		expect(withClasses("h-7 text-sm").length).toBeGreaterThan(0);
 	});
 
