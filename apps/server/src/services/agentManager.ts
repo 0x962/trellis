@@ -22,32 +22,40 @@ import { pathOf, resolveProject } from "./refs.ts";
 // reconcile and ensureManager as the system actor, and a person runs
 // retryManager through the API.
 
-export type ReconcilePlan = { exited: string[] };
+export type ReconcilePlan = { exited: string[]; running: string[] };
 
 // A session holds its terminal only while the runner lists that terminal as
-// running. The runner lists each workspace once.
+// running. The runner lists each workspace once. A tab that shows the
+// agent's name runs that agent, so a session that waits for the agent's
+// first word runs.
 export const prepareReconcile = async (ctx: AgentsCtx): Promise<ReconcilePlan> => {
 	const live = await ctx.newTx((tx) =>
 		selectSessions(tx, sql`s.state IN ${LIVE_STATES} AND s.workspace_id IS NOT NULL AND s.terminal_id IS NOT NULL`),
 	);
 	const exited: string[] = [];
+	const running: string[] = [];
 	for (const workspaceId of new Set(live.map((session) => session.workspaceId!))) {
 		const tabs = await ctx.runner.terminals(workspaceId);
 		for (const session of live.filter((found) => found.workspaceId === workspaceId)) {
 			const tab = tabs.find((found) => found.terminalId === session.terminalId);
 			if (tab === undefined || tab.exited) exited.push(session.id);
+			else if (session.state === "starting" && tab.title === session.title) running.push(session.id);
 		}
 	}
-	return { exited };
+	return { exited, running };
+};
+
+const setState = async (ctx: AgentsCtx, tx: Tx, state: AgentState, ids: string[]) => {
+	if (ids.length === 0) return;
+	await tx.execute(
+		sql`UPDATE agent_sessions SET state = ${state}, updated_at = ${ctx.now} WHERE id = ANY(${textArray(ids)})`,
+	);
+	for (const id of ids) await announce(ctx, tx, id);
 };
 
 export const reconcile = async (ctx: AgentsCtx, tx: Tx, plan: ReconcilePlan) => {
-	if (plan.exited.length > 0) {
-		await tx.execute(
-			sql`UPDATE agent_sessions SET state = 'exited', updated_at = ${ctx.now} WHERE id = ANY(${textArray(plan.exited)})`,
-		);
-	}
-	for (const id of plan.exited) await announce(ctx, tx, id);
+	await setState(ctx, tx, "exited", plan.exited);
+	await setState(ctx, tx, "running", plan.running);
 	return { exited: plan.exited.length };
 };
 

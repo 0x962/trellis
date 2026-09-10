@@ -166,8 +166,8 @@ describe("the base branch default", () => {
 		});
 		await a.enable();
 		const listed = (await a.t.api("/api/agents/runner-projects", { actor: null })).body;
-		expect(listed.projects.map((project: { id: string; defaultBranch: string | null }) => project.defaultBranch)).toEqual(
-			["develop", null],
-		);
+		expect(
+			listed.projects.map((project: { id: string; defaultBranch: string | null }) => project.defaultBranch),
+		).toEqual(["develop", null]);
 	});
 });

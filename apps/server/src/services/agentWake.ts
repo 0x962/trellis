@@ -26,7 +26,8 @@ export const prepareWake = async (ctx: AgentsCtx, input: AgentWakeInput): Promis
 		};
 	});
 	const { manager } = found;
-	if (manager === undefined) return { kind: "started", manager: await prepareManager(ctx, { project: found.projectId }) };
+	if (manager === undefined)
+		return { kind: "started", manager: await prepareManager(ctx, { project: found.projectId }) };
 	const woken = await ctx.runner.wake(
 		{
 			project: found.path,

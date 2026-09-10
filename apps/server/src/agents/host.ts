@@ -53,11 +53,14 @@ export const createAgentsHost = (options: AgentsHostOptions): AgentsHost => {
 	// The wake moves no cursor: a batch the runner refused stays in the inbox,
 	// and the next batch points the manager at it.
 	const flush = (batch: Batch) =>
-		options.call("agents.wake", { project: batch.projectId, text: batch.text }).then((session) => {
-			if (started(session as AgentSession)) {
-				options.bus.emit({ type: "agents.batch", projectId: batch.projectId, count: batch.count });
-			}
-		}, failed("agents wake", { projectId: batch.projectId }));
+		options.call("agents.wake", { project: batch.projectId, text: batch.text }).then(
+			(session) => {
+				if (started(session as AgentSession)) {
+					options.bus.emit({ type: "agents.batch", projectId: batch.projectId, count: batch.count });
+				}
+			},
+			failed("agents wake", { projectId: batch.projectId }),
+		);
 
 	const dispatcher = createDispatcher({ ...options.projects, bus: options.bus, clock: options.clock, flush });
 

@@ -124,11 +124,10 @@ export const prepareBuilder = async (ctx: AgentsCtx, input: AgentStartBuilderInp
 		});
 		return { id: reserved.id, place };
 	} catch (error) {
-		await ctx.newTx((tx) =>
-			isStartFailure(error)
-				? failSession(ctx, tx, reserved.id, error.message)
-				: tx.execute(sql`DELETE FROM agent_sessions WHERE id = ${reserved.id}`),
-		);
+		await ctx.newTx(async (tx) => {
+			if (isStartFailure(error)) await failSession(ctx, tx, reserved.id, error.message);
+			else await tx.execute(sql`DELETE FROM agent_sessions WHERE id = ${reserved.id}`);
+		});
 		throw error;
 	}
 };

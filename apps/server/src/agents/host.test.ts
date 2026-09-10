@@ -309,3 +309,23 @@ describe("agents host failures", () => {
 		]);
 	});
 });
+
+describe("agents host tabs", () => {
+	// A builder reports itself through agents.register. An agent that never
+	// registers still runs, and its tab shows its name, so the next start of
+	// the host reads it as running.
+	test("at start a starting session whose tab shows its name becomes running", async () => {
+		await enable();
+		await t.createTicket({ project: "CDE", title: "One" });
+		await startHost();
+		const started = await t.api("/api/agents/builder", { method: "POST", body: { ticket: "CDE-1" }, actor: MANAGER });
+		expect(started.body).toMatchObject({ title: "CDE-1", state: "starting" });
+		expect(stub.terminal(started.body.terminalId).title).toBe("CDE-1");
+
+		host.stop();
+		await startHost();
+		expect((await sessions("ticket=CDE-1")).map(({ id, state }) => ({ id, state }))).toEqual([
+			{ id: started.body.id, state: "running" },
+		]);
+	});
+});
