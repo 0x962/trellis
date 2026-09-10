@@ -4,6 +4,7 @@ import { connect } from "../../../test/connect";
 import { layoutOf, showKeyboard } from "../../../test/keyboard";
 import type { Recorder } from "../../../test/record";
 import { renderRoute } from "../../../test/renderRoute";
+import { seeder } from "../../../test/server";
 import { seedTicketScreen, type TicketData, title } from "../../../test/ticket";
 import { layout } from "../../theme/layout";
 
@@ -12,7 +13,7 @@ let net: Recorder;
 
 describe("the ticket screen and the keyboard", () => {
 	beforeEach(async () => {
-		data = await seedTicketScreen();
+		data = await seedTicketScreen(seeder);
 		net = connect();
 	});
 

@@ -1,5 +1,4 @@
 import type { LinkedPullRequest } from "@trellis/api";
-import { agent, human, setGhReply } from "./server";
 import {
 	type PrSeed,
 	reset,
@@ -13,8 +12,6 @@ import {
 
 // The one ticket the ticket screen tests open, with every section it draws:
 // a parent, three children, four comments, one pull request, and one image.
-
-export const seeder: Seeder = { human, agent, setGhReply };
 
 export const projectKey = "CDE";
 export const projectName = "Code";
@@ -54,8 +51,8 @@ export type TicketData = {
 	// The ticket every screen test opens.
 	ticket: string;
 	parent: string;
-	// The first of the three children, which the sub-ticket list names.
-	child: string;
+	// The three children, oldest first, two of them done.
+	children: string[];
 	// A ticket in a started status, and one a human never reviews.
 	started: string;
 	agentReview: string;
@@ -63,7 +60,7 @@ export type TicketData = {
 };
 
 // Seeds the project and the ticket on a server with nothing else on it.
-export const seedTicketScreen = async (): Promise<TicketData> => {
+export const seedTicketScreen = async (seeder: Seeder): Promise<TicketData> => {
 	await reset(seeder);
 	await seedProject(seeder, { key: projectKey, name: projectName, children: ["web"] });
 	const parent = await seedTicket(seeder, {
@@ -82,8 +79,8 @@ export const seedTicketScreen = async (): Promise<TicketData> => {
 	});
 	// Two moves, so the timeline carries the pair of status changes the
 	// ticket went through.
-	await agent.tickets.move({ ticket: ticket.identifier, status: "in-progress" });
-	await agent.tickets.move({ ticket: ticket.identifier, status: "human-review" });
+	await seeder.agent.tickets.move({ ticket: ticket.identifier, status: "in-progress" });
+	await seeder.agent.tickets.move({ ticket: ticket.identifier, status: "human-review" });
 
 	const children = [
 		{ title: "Keep the starred runs after a reload", status: "done" },
@@ -128,7 +125,7 @@ export const seedTicketScreen = async (): Promise<TicketData> => {
 		project: projectKey,
 		ticket: ticket.identifier,
 		parent: parent.identifier,
-		child: identifiers[0]!,
+		children: identifiers,
 		started: started.identifier,
 		agentReview: agentReview.identifier,
 		pr,

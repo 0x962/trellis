@@ -4,7 +4,7 @@ import { fireEvent, screen, waitFor, within } from "expo-router/testing-library"
 import { connect } from "../../../test/connect";
 import type { Recorder } from "../../../test/record";
 import { renderRoute } from "../../../test/renderRoute";
-import { human } from "../../../test/server";
+import { human, seeder } from "../../../test/server";
 import { seedTicketScreen, type TicketData, title } from "../../../test/ticket";
 
 let data: TicketData;
@@ -24,7 +24,7 @@ const openSheet = async () => {
 
 describe("the priority sheet", () => {
 	beforeEach(async () => {
-		data = await seedTicketScreen();
+		data = await seedTicketScreen(seeder);
 		net = connect();
 	});
 

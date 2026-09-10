@@ -5,6 +5,10 @@
 
 export type Call = { procedure: string; input: unknown };
 
+// The shape both the recorder and the fetch it forwards to answer. The
+// platform `fetch` carries more, and a test never calls that part.
+export type FetchFn = (input: Request | string | URL, init?: RequestInit) => Promise<Response>;
+
 // A hold on one procedure. `state.held` counts the requests that wait, so a
 // test reads the screen between a press and the response.
 export type Hold = { release: () => void; state: { held: number } };
@@ -57,7 +61,7 @@ const failure = () =>
 
 // `forward` answers every request the recorder passes on. `restore` puts back
 // the fetch the environment held before the call.
-export const recordFetch = (forward: typeof globalThis.fetch): Recorder => {
+export const recordFetch = (forward: FetchFn): Recorder => {
 	const previous = globalThis.fetch;
 	const calls: Call[] = [];
 	const holds = new Map<string, Hold>();

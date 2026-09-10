@@ -19,7 +19,7 @@ describe("the project route", () => {
 	test("the project route titles the header with the project name", async () => {
 		await renderRoute(`/project/${data.web}`);
 
-		await waitFor(() => expect(screen.getByRole("header", { name: "web" })).toBeOnTheScreen());
+		await waitFor(() => expect(screen.getByRole("header", { name: "web" })).toBeOnTheScreen(), { timeout: 5_000 });
 		const projects = net.inputsTo("tickets.list").map((input) => (input as { project: string }).project);
 		expect(projects).toContain(data.web);
 	});

@@ -3,7 +3,7 @@ import { fireEvent, screen, waitFor, within } from "expo-router/testing-library"
 import { connect } from "../../../test/connect";
 import type { Recorder } from "../../../test/record";
 import { renderRoute } from "../../../test/renderRoute";
-import { human } from "../../../test/server";
+import { human, seeder } from "../../../test/server";
 import { settle } from "../../../test/settle";
 import {
 	agentReviewTitle,
@@ -31,7 +31,7 @@ const sendBack = () => screen.queryByRole("button", { name: "Send back" });
 
 describe("the review actions", () => {
 	beforeEach(async () => {
-		data = await seedTicketScreen();
+		data = await seedTicketScreen(seeder);
 		net = connect();
 	});
 

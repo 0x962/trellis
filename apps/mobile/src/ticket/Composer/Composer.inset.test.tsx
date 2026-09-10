@@ -3,6 +3,7 @@ import { screen } from "expo-router/testing-library";
 import { connect } from "../../../test/connect";
 import type { Recorder } from "../../../test/record";
 import { renderRoute } from "../../../test/renderRoute";
+import { seeder } from "../../../test/server";
 import { seedTicketScreen, type TicketData, title } from "../../../test/ticket";
 import { tokens } from "../../theme/tokens";
 
@@ -20,7 +21,7 @@ let net: Recorder;
 
 describe("the composer above the tab bar", () => {
 	beforeEach(async () => {
-		data = await seedTicketScreen();
+		data = await seedTicketScreen(seeder);
 		net = connect();
 	});
 

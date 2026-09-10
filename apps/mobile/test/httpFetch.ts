@@ -1,4 +1,5 @@
 import { Agent, request as nodeRequest } from "node:http";
+import type { FetchFn } from "./record";
 
 // Every request closes its socket. A kept socket is an open handle, and Jest
 // waits on it after the last test.
@@ -17,7 +18,7 @@ const headersOf = (request: Request) => {
 	return headers;
 };
 
-export const httpFetch = async (input: Request | string | URL, init?: RequestInit): Promise<Response> => {
+export const httpFetch: FetchFn = async (input, init) => {
 	const request = input instanceof Request ? input : new Request(input, init);
 	const body = Buffer.from(await request.arrayBuffer());
 	const url = new URL(request.url);

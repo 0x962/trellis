@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor } from "expo-router/testing-library";
 import { connect } from "../../../test/connect";
 import type { Recorder } from "../../../test/record";
 import { renderRoute } from "../../../test/renderRoute";
+import { seeder } from "../../../test/server";
 import { settle } from "../../../test/settle";
 import { seedTicketScreen, type TicketData, title } from "../../../test/ticket";
 
@@ -21,7 +22,7 @@ const send = () => screen.getByRole("button", { name: "Send" });
 
 describe("the comment composer", () => {
 	beforeEach(async () => {
-		data = await seedTicketScreen();
+		data = await seedTicketScreen(seeder);
 		net = connect();
 	});
 

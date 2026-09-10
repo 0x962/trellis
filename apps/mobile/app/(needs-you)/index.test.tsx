@@ -23,7 +23,7 @@ describe("the Needs you tab", () => {
 	beforeEach(() => {
 		queryClient.clear();
 		queryClient.setDefaultOptions({
-			queries: { retry: false, staleTime: Number.POSITIVE_INFINITY, gcTime: 86_400_000 },
+			queries: { retry: false, staleTime: Number.POSITIVE_INFINITY, gcTime: Number.POSITIVE_INFINITY },
 		});
 	});
 

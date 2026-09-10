@@ -1,12 +1,12 @@
 import type { Inbox } from "@trellis/api";
-import { agent, human, setGhReply } from "./server";
+import { human, seeder } from "./server";
 import { reset, type Seeder, seedPr, seedProject, seedTicket, setStalledHours } from "./seed";
 
 // The Needs you sections, seeded through the real API. Every file that reads
 // the inbox seeds it here, because the inbox spans every project the server
 // holds.
 
-export const seeder: Seeder = { human, agent, setGhReply };
+export { seeder };
 
 // The stalled threshold the suite runs with: a started ticket counts as
 // stalled 5.4 seconds after its last change. A move inside a test never

@@ -8,8 +8,8 @@ import { instances } from "../../../test/mocks/react-native-sse";
 import type { Recorder } from "../../../test/record";
 import { renderRoute } from "../../../test/renderRoute";
 import { refreshPr } from "../../../test/seed";
-import { agent, human } from "../../../test/server";
-import { prSeed, seeder, seedTicketScreen, type TicketData, title } from "../../../test/ticket";
+import { agent, human, seeder } from "../../../test/server";
+import { prSeed, seedTicketScreen, type TicketData, title } from "../../../test/ticket";
 
 let data: TicketData;
 let net: Recorder;
@@ -60,7 +60,7 @@ const emit = async (type: string, payload: unknown) => {
 
 describe("the ticket route", () => {
 	beforeEach(async () => {
-		data = await seedTicketScreen();
+		data = await seedTicketScreen(seeder);
 		net = connect();
 	});
 
@@ -76,7 +76,7 @@ describe("the ticket route", () => {
 		expect(screen.getByText("CDE.web")).toBeOnTheScreen();
 		expect(screen.getByText(data.parent)).toBeOnTheScreen();
 		expect(screen.getByText(/The build upgrade dropped five settings pages/)).toBeOnTheScreen();
-		expect(screen.getByText(data.child)).toBeOnTheScreen();
+		expect(screen.getByText(data.children[0]!)).toBeOnTheScreen();
 		expect(screen.getByText("2 of 3")).toBeOnTheScreen();
 		expect(screen.getByText("acme/web #118")).toBeOnTheScreen();
 		expect(screen.getByLabelText("4 pass")).toBeOnTheScreen();

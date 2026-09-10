@@ -1,10 +1,10 @@
-import { agent, human, setGhReply } from "./server";
+import { human, seeder } from "./server";
 import { reset, type Seeder, seedProject, seedTicket } from "./seed";
 
 // The projects and the tickets the browse screens read: the project tree, the
 // ticket list of one project, and the search results.
 
-export const seeder: Seeder = { human, agent, setGhReply };
+export { seeder };
 
 export const rootKey = "CDE";
 export const rootName = "Code";

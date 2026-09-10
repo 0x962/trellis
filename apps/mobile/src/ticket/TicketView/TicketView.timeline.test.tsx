@@ -4,7 +4,7 @@ import { connect } from "../../../test/connect";
 import { renders } from "../../../test/mocks/flash-list";
 import type { Recorder } from "../../../test/record";
 import { renderRoute } from "../../../test/renderRoute";
-import { human } from "../../../test/server";
+import { human, seeder } from "../../../test/server";
 import { lastComment, seedTicketScreen, type TicketData, title } from "../../../test/ticket";
 import type { TimelineRow } from "../Timeline";
 
@@ -46,7 +46,7 @@ const olderPageCalls = () =>
 
 describe("the ticket timeline history", () => {
 	beforeEach(async () => {
-		data = await seedTicketScreen();
+		data = await seedTicketScreen(seeder);
 		net = connect();
 	});
 

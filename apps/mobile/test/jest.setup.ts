@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, jest } from "@jest/globals";
+import { afterAll, afterEach, beforeEach, jest } from "@jest/globals";
 import { realScheduler } from "@trellis/api";
 import { AppState } from "react-native";
 import { queryClient } from "../src/lib/queryClient";
@@ -31,6 +31,14 @@ beforeEach(() => {
 	AppState.currentState = "active";
 	createMMKV().clearAll();
 	queryClient.clear();
+	// A collected query arms a timer as long as the app's collection time, a
+	// day. Such a timer outlives the file and keeps the jest worker alive, so
+	// the cache of a test run never collects.
+	const defaults = queryClient.getDefaultOptions();
+	queryClient.setDefaultOptions({
+		...defaults,
+		queries: { ...defaults.queries, gcTime: Number.POSITIVE_INFINITY },
+	});
 	resetEventSources();
 	notificationAsync.mockClear();
 });
@@ -59,6 +67,11 @@ afterEach(() => {
 	for (const handle of pendingTimers) stopTimer(handle);
 	pendingTimers.clear();
 });
+
+// A query the cache holds arms a collection timer when its last observer
+// leaves, and the app collects after a day. That timer outlives the file and
+// keeps the jest worker alive, so the cache empties after the last unmount.
+afterAll(() => queryClient.clear());
 
 // The gesture handler mocks its native module, so `fireGestureHandler`
 // drives a pan. FlashList measures a 400 by 900 viewport, so a list draws rows.
