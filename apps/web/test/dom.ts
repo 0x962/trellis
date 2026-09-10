@@ -23,3 +23,9 @@ HTMLElement.prototype.focus = function (options?: FocusOptions) {
 	void options?.preventScroll;
 	focus.call(this);
 };
+
+Object.defineProperty(HTMLElement.prototype, Symbol.for("nodejs.util.inspect.custom"), {
+	value(this: HTMLElement) {
+		return this.outerHTML;
+	},
+});

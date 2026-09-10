@@ -10,17 +10,30 @@ import {
 } from "@tanstack/react-router";
 import { Button, EmptyState, toast } from "@trellis/ui";
 import { Copy } from "lucide-react";
+import { useEffect } from "react";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { toCliCommand } from "../../../features/filters/cli";
 import { FilterBar } from "../../../features/filters/FilterBar";
-import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../../features/filters/grammar";
+import {
+	parseSearch,
+	serializeSearch,
+	stripDefaults,
+	toCountsQuery,
+	toListQuery,
+	type View,
+	viewOf,
+} from "../../../features/filters/grammar";
 import { hasFilters, sortLabel } from "../../../features/filters/labels";
 import { Breadcrumb } from "../../../features/shell/Breadcrumb";
 import { ListFooter } from "../../../features/shell/ListFooter";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
 import { Topbar } from "../../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../../features/shell/ViewSwitch";
+import { TicketList } from "../../../features/ticket/TicketList";
+import { TicketPeek } from "../../../features/ticket/TicketPeek";
+import { PeekListProvider } from "../../../features/ticket/TicketPeek/providers/PeekListProvider";
 import { type AppContext, useApp } from "../../../lib/appContext";
+import { rememberList } from "../../../lib/lastList";
 import { parseProjectSplat, projectSlashPath } from "../../../lib/projectPath";
 import { ProjectEmptyState } from "./components/ProjectEmptyState";
 import { ProjectSettingsView } from "./components/ProjectSettingsView";
@@ -64,6 +77,14 @@ function ProjectPage() {
 	const project = useSuspenseQuery(projectOptions(context, ref)).data;
 	const counts = useQuery(countsOptions(context, ref, search)).data;
 	const full = viewOf(search);
+	const listQuery = toListQuery(full);
+	const list = useQuery(context.orpc.tickets.list.queryOptions({ input: { ...listQuery, project: ref, limit: 200 } }));
+	const rows = list.data?.items.map((ticket) => ({ identifier: ticket.identifier, visible: true })) ?? [];
+	const listSearch = { ...search, peek: undefined };
+	const searchText = serializeSearch(listSearch);
+	const listHref = `/p/${_splat}${searchText === "" ? "" : `?${searchText}`}`;
+
+	useEffect(() => rememberList(listHref), [listHref]);
 
 	if (view === "settings") return <ProjectSettingsView project={project} />;
 
@@ -106,33 +127,34 @@ function ProjectPage() {
 			>
 				<ScopeChip path={ref} scope={full.scope} onToggle={toggleScope} />
 			</FilterBar>
-			<div className="flex min-h-0 flex-1 flex-col">
-				{counts !== undefined && counts.total === 0 ? (
-					hasFilters(search) ? (
-						<EmptyState
-							title="No tickets match"
-							description="Every filter above narrows the list."
-							className="flex-1 justify-center"
-							action={
-								<Link
-									to="/p/$"
-									params={{ _splat }}
-									search={{}}
-									className="inline-flex h-7 items-center rounded-md border border-border bg-surface px-2.5 text-sm font-medium text-fg hover:bg-bg"
-								>
-									Clear filters
-								</Link>
-							}
-						/>
+			<PeekListProvider rows={rows}>
+				<div className="flex min-h-0 flex-1 flex-col">
+					{counts !== undefined && counts.total === 0 ? (
+						hasFilters(search) ? (
+							<EmptyState
+								title="No tickets match"
+								description="Every filter above narrows the list."
+								className="flex-1 justify-center"
+								action={
+									<Link
+										to="/p/$"
+										params={{ _splat }}
+										search={{}}
+										className="inline-flex h-7 items-center rounded-md border border-border bg-surface px-2.5 text-sm font-medium text-fg hover:bg-bg"
+									>
+										Clear filters
+									</Link>
+								}
+							/>
+						) : (
+							<ProjectEmptyState project={project} onCreate={createFirst} />
+						)
 					) : (
-						<ProjectEmptyState project={project} onCreate={createFirst} />
-					)
-				) : (
-					<div className="flex flex-1 items-center justify-center text-sm text-fg-faint">
-						{counts !== undefined && `${counts.total} tickets in the ${view}`}
-					</div>
-				)}
-			</div>
+						<TicketList tickets={list.data?.items ?? []} />
+					)}
+				</div>
+				<TicketPeek />
+			</PeekListProvider>
 			<ListFooter total={counts?.total} sort={sortLabel(full.sort)} />
 		</>
 	);

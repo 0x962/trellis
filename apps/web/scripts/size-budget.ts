@@ -6,12 +6,14 @@ import { gzipSync } from "node:zlib";
 // every chunk index.html preloads: what runs before the first route opens.
 export const budgets = {
 	initialJs: 220 * 1024,
+	tiptap: 200 * 1024,
 	fonts: 160 * 1024,
 	total: 900 * 1024,
 };
 
 export type Report = {
 	initialJs: number;
+	tiptap: number;
 	fonts: number;
 	total: number;
 	ok: boolean;
@@ -37,15 +39,20 @@ export const measure = (dist: string): Report => {
 	const asset = (url: string) => join(dist, url.replace(/^\//, ""));
 	const initialJs = [entry, ...preloads].reduce((sum, url) => sum + gzipSize(asset(url)), 0);
 	const assets = readdirSync(join(dist, "assets")).map((name) => join(dist, "assets", name));
+	const tiptap = assets
+		.filter((file) => file.endsWith(".js") && readFileSync(file).includes("ProseMirror"))
+		.reduce((sum, file) => sum + gzipSize(file), 0);
 	const fonts = assets.filter((file) => file.endsWith(".woff2")).reduce((sum, file) => sum + size(file), 0);
 	const total = assets.reduce((sum, file) => sum + size(file), 0) + gzipSize(join(dist, "index.html"));
 	const lines = [
 		line("initial js (gzip)", initialJs, budgets.initialJs),
+		line("tiptap (gzip)", tiptap, budgets.tiptap),
 		line("fonts", fonts, budgets.fonts),
 		line("total", total, budgets.total),
 	];
-	const ok = initialJs <= budgets.initialJs && fonts <= budgets.fonts && total <= budgets.total;
-	return { initialJs, fonts, total, ok, lines };
+	const ok =
+		initialJs <= budgets.initialJs && tiptap <= budgets.tiptap && fonts <= budgets.fonts && total <= budgets.total;
+	return { initialJs, tiptap, fonts, total, ok, lines };
 };
 
 if (import.meta.main) {

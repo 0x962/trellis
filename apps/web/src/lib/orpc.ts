@@ -24,14 +24,20 @@ export const createQueryClient = () =>
 	});
 
 // The typed client, the TanStack Query utils over it, and a QueryClient.
-// Every call made in one tick goes out as one batched request. The actor
-// header is read from localStorage on every request, so a rename takes
-// effect on the next call.
+// The batch link folds calls from one tick. A ticket detail read starts
+// immediately to meet the ticket-open budget. The actor header is read from
+// localStorage on every request, so a rename takes effect on the next call.
 export const createOrpc = (options: OrpcOptions = {}) => {
 	const fetch: FetchLike = options.fetch ?? ((request, init) => globalThis.fetch(request, init));
 	const baseUrl = options.baseUrl ?? window.location.origin;
 	const client = createTrellisClient(baseUrl, actorHeader, fetch, {
-		plugins: [new BatchLinkPlugin({ groups: [{ condition: () => true, context: {} }], mode: "buffered" })],
+		plugins: [
+			new BatchLinkPlugin({
+				groups: [{ condition: () => true, context: {} }],
+				mode: "buffered",
+				exclude: ({ path }) => path[0] === "tickets" && path[1] === "get",
+			}),
+		],
 	});
 	const orpc = createTanstackQueryUtils(client);
 	const queryClient = createQueryClient();
