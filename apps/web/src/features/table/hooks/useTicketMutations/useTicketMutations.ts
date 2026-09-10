@@ -17,15 +17,20 @@ export type RowPatch = Partial<Pick<TicketSummary, "status" | "priority" | "proj
 type UpdateFields = Omit<TicketUpdateInput, "ticket" | "expectedVersion">;
 type UpdateManyFields = Omit<TicketUpdateManyInput, "tickets">;
 
+// The action of a write as a phrase around its subject, for the rollback
+// toast. The subject is an identifier, as in "move CDE-51 to Agent Review",
+// or a count, as in "move 2 tickets to Agent Review".
+export type Verb = (subject: string) => string;
+
 export type TicketMutations = {
 	// One row, optimistic, conditional on the row's version.
-	update: (ticket: TicketSummary, fields: UpdateFields, patch: RowPatch, verb: string) => Promise<void>;
+	update: (ticket: TicketSummary, fields: UpdateFields, patch: RowPatch, verb: Verb) => Promise<void>;
 	// Many rows in one batch, optimistic.
 	updateMany: (
 		tickets: readonly TicketSummary[],
 		fields: UpdateManyFields,
 		patch: RowPatch,
-		verb: string,
+		verb: Verb,
 	) => Promise<void>;
 	remove: (ticket: TicketSummary) => Promise<void>;
 	removeMany: (tickets: readonly TicketSummary[]) => Promise<void>;
@@ -77,7 +82,7 @@ export const useTicketMutations = (): TicketMutations => {
 				revert([current]);
 				const conflict = error instanceof ORPCError && error.code === "VERSION_CONFLICT";
 				applier.endMutation(current.id, conflict ? (error.data as { current: Ticket }).current : undefined);
-				fail(`Couldn't ${verb} ${current.identifier}`, error, () => void update(current, fields, patch, verb));
+				fail(`Couldn't ${verb(current.identifier)}`, error, () => void update(current, fields, patch, verb));
 			}
 		};
 
@@ -93,7 +98,7 @@ export const useTicketMutations = (): TicketMutations => {
 			} catch (error) {
 				revert(originals);
 				fail(
-					`Couldn't ${verb} ${originals.length} tickets`,
+					`Couldn't ${verb(`${originals.length} tickets`)}`,
 					error,
 					() => void updateMany(originals, fields, patch, verb),
 				);
