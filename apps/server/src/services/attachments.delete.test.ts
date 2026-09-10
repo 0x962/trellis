@@ -91,7 +91,7 @@ describe("attachments.remove", () => {
 	});
 
 	test("a delete emits attachment.deleted and moves the ticket", async () => {
-		const { ticket } = await seedOneTicket();
+		const { rootId, ticket } = await seedOneTicket();
 		const uploaded = await runUpload("CDE-1", "a row with an event");
 		const [before] = await rows("tickets");
 		const handle = testCtx({ db: h.db, home });
@@ -100,7 +100,7 @@ describe("attachments.remove", () => {
 		await withTx(h.db, (tx, emit) => remove(withEmit(handle.ctx, emit), tx, { id: uploaded.attachment.id }), sink);
 
 		const expected = [
-			{ type: "attachment.deleted", id: uploaded.attachment.id, ticketId: ticket },
+			{ type: "attachment.deleted", id: uploaded.attachment.id, ticketId: ticket, projectId: rootId },
 		] satisfies TrellisEvent[];
 		expect(delivered.filter((event) => event.type === "attachment.deleted")).toEqual(expected);
 		const [after] = await rows("tickets");

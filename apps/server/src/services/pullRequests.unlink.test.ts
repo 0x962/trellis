@@ -56,7 +56,7 @@ const runUnlink = async (input: { ticket: string; id: string }) => {
 
 describe("pullRequests.unlink", () => {
 	test("unlink keeps the row while another ticket links it", async () => {
-		const { pr, ids } = await seedLinked(2);
+		const { rootId, pr, ids } = await seedLinked(2);
 
 		const { result, delivered } = await runUnlink({ ticket: "CDE-1", id: pr });
 
@@ -65,7 +65,7 @@ describe("pullRequests.unlink", () => {
 		const links = await rows("ticket_pull_requests");
 		expect(links.map((row) => row.ticket_id)).toEqual([ids[1]!]);
 		const expected = [
-			{ type: "pr.unlinked", id: pr, ticketIds: [ids[1]!], state: "open", ciState: "pass" },
+			{ type: "pr.unlinked", id: pr, ticketIds: [ids[1]!], projectIds: [rootId], state: "open", ciState: "pass" },
 		] satisfies TrellisEvent[];
 		expect(delivered.filter((event) => event.type === "pr.unlinked")).toEqual(expected);
 	});

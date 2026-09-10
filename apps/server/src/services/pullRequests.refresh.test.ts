@@ -71,7 +71,7 @@ const seedLinked = async (overrides: Record<string, unknown>) => {
 	const ticket = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, number: 1 });
 	const pr = await seedPr(h.db, { number: 12 }, { updated_at: stamp, created_at: stamp, ...overrides });
 	await linkPr(h.db, ticket, pr);
-	return { ticket, pr };
+	return { rootId, ticket, pr };
 };
 
 const runRefresh = async (id: string) => {
@@ -84,7 +84,7 @@ const runRefresh = async (id: string) => {
 
 describe("pullRequests.refresh", () => {
 	test("refresh writes the row when the content hash changes", async () => {
-		const { ticket, pr } = await seedLinked({ content_hash: "stale" });
+		const { rootId, ticket, pr } = await seedLinked({ content_hash: "stale" });
 		stub({
 			"api graphql": graphqlReply([
 				{ number: 12, title: "Add the board", url, state: "MERGED", checks: [checkRun("test", "SUCCESS", "ci")] },
@@ -97,7 +97,9 @@ describe("pullRequests.refresh", () => {
 		expect(row).toMatchObject({ title: "Add the board", state: "merged", ci_state: "pass" });
 		expect(row!.content_hash).not.toBe("stale");
 		expect(result).toMatchObject({ id: pr, title: "Add the board", state: "merged", ciState: "pass" });
-		expect(delivered).toEqual([{ type: "pr.updated", id: pr, ticketIds: [ticket], state: "merged", ciState: "pass" }]);
+		expect(delivered).toEqual([
+			{ type: "pr.updated", id: pr, ticketIds: [ticket], projectIds: [rootId], state: "merged", ciState: "pass" },
+		]);
 	});
 
 	test("refresh writes nothing when the content hash is the same", async () => {

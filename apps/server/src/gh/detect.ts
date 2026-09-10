@@ -98,6 +98,7 @@ const announce = async (tx: Tx, emit: Emit, input: AnnounceInput) => {
 		type: "pr.linked",
 		id: input.pr.id,
 		ticketIds: links.map((link) => link.ticket_id),
+		projectIds: [...new Set(links.map((link) => link.project_id))],
 		state: input.pr.state,
 		ciState: input.pr.ci_state,
 	});

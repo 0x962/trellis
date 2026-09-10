@@ -6,6 +6,7 @@ import type { Tx } from "../db/tx.ts";
 import { fetchPullRequests, type PullRequestRef, type PullRequestResult, type PullRequestRow } from "../gh/graphql.ts";
 import { parsePullRequestUrl } from "../gh/parse.ts";
 import type { PreparedDiff } from "./pullRequestDiff.ts";
+import { linkScope } from "./pullRequestScope.ts";
 import {
 	type ActorRef,
 	assertProjectActive,
@@ -97,14 +98,6 @@ const findRow = async (tx: Tx, id: string): Promise<PrRow> => {
 	const [row] = await rows<PrRow>(tx, sql`SELECT ${prColumns} FROM pull_requests p WHERE p.id = ${id}`);
 	if (row === undefined) throw notFound("pullRequest", id);
 	return row;
-};
-
-const linkedTicketIds = async (tx: Tx, id: string) => {
-	const found = await rows<{ ticket_id: string }>(
-		tx,
-		sql`SELECT ticket_id FROM ticket_pull_requests WHERE pull_request_id = ${id} ORDER BY created_at, ticket_id`,
-	);
-	return found.map((row) => row.ticket_id);
 };
 
 // The fields gh returned, or the message it printed. A message is stored on
@@ -205,7 +198,7 @@ const announceLink = async (ctx: ServiceCtx, tx: Tx, input: { ticket: TicketRow;
 	ctx.emit({
 		type: "pr.linked",
 		id: input.row.id,
-		ticketIds: await linkedTicketIds(tx, input.row.id),
+		...(await linkScope(tx, input.row.id)),
 		state: input.row.state,
 		ciState: input.row.ci_state,
 	});
@@ -221,8 +214,8 @@ export const unlink = async (ctx: ServiceCtx, tx: Tx, input: UnlinkInput) => {
 		DELETE FROM ticket_pull_requests WHERE ticket_id = ${ticket.id} AND pull_request_id = ${row.id} RETURNING ticket_id
 	`);
 	if (dropped.rows.length === 0) throw notFound("pullRequest", input.id);
-	const ticketIds = await linkedTicketIds(tx, row.id);
-	if (ticketIds.length === 0) await tx.execute(sql`DELETE FROM pull_requests WHERE id = ${row.id}`);
+	const scope = await linkScope(tx, row.id);
+	if (scope.ticketIds.length === 0) await tx.execute(sql`DELETE FROM pull_requests WHERE id = ${row.id}`);
 	const at = ctx.now();
 	await touchTicket(tx, { id: ticket.id, at, versionStep: 0 });
 	await writeActivity(ctx, tx, {
@@ -231,7 +224,7 @@ export const unlink = async (ctx: ServiceCtx, tx: Tx, input: UnlinkInput) => {
 		meta: { pullRequestId: row.id, url: row.url },
 		at,
 	});
-	ctx.emit({ type: "pr.unlinked", id: row.id, ticketIds, state: row.state, ciState: row.ci_state });
+	ctx.emit({ type: "pr.unlinked", id: row.id, ...scope, state: row.state, ciState: row.ci_state });
 	return { deleted: row.id };
 };
 
@@ -267,7 +260,7 @@ export const refresh = async (ctx: ServiceCtx, tx: Tx, input: PreparedRefresh): 
 	ctx.emit({
 		type: "pr.updated",
 		id: fresh.id,
-		ticketIds: await linkedTicketIds(tx, fresh.id),
+		...(await linkScope(tx, fresh.id)),
 		state: fresh.state,
 		ciState: fresh.ci_state,
 	});

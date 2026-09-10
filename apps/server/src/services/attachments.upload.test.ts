@@ -177,13 +177,13 @@ describe("attachments.upload", () => {
 	});
 
 	test("an upload emits attachment.created after the commit", async () => {
-		const { ticket } = await seedOneTicket();
+		const { rootId, ticket } = await seedOneTicket();
 
 		const { result, delivered, insideCommit } = await runUpload({ ticket: "CDE-1", file: png("pixels") });
 
 		expect(insideCommit).toBe(0);
 		const expected = [
-			{ type: "attachment.created", id: result.attachment.id, ticketId: ticket },
+			{ type: "attachment.created", id: result.attachment.id, ticketId: ticket, projectId: rootId },
 		] satisfies TrellisEvent[];
 		expect(delivered.filter((event) => event.type === "attachment.created")).toEqual(expected);
 	});

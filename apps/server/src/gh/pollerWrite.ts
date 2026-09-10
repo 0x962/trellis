@@ -132,10 +132,12 @@ export const writePolled = async (tx: Tx, emit: Emit, input: WriteInput) => {
 	}
 	await writeStateChanges(tx, input.at, input.written.filter(moved), links);
 	for (const entry of input.written) {
+		const linked = ticketsOf(links, entry.stored.id);
 		emit({
 			type: "pr.updated",
 			id: entry.stored.id,
-			ticketIds: ticketsOf(links, entry.stored.id).map((link) => link.ticket_id),
+			ticketIds: linked.map((link) => link.ticket_id),
+			projectIds: [...new Set(linked.map((link) => link.project_id))],
 			state: entry.row.state,
 			ciState: entry.row.ciState,
 		});

@@ -158,7 +158,7 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promi
 	`);
 	await touchTicket(tx, { id: ticket.id, at, versionStep: 1 });
 	await writeActivity(ctx, tx, { ticket, action: "attachment.created", meta: { filename, attachmentId: id }, at });
-	ctx.emit({ type: "attachment.created", id, ticketId: ticket.id });
+	ctx.emit({ type: "attachment.created", id, ticketId: ticket.id, projectId: ticket.project_id });
 	const attachment: Attachment = {
 		id,
 		ticketId: ticket.id,
@@ -216,7 +216,7 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, input: IdInput) => {
 		meta: { filename: row.filename, attachmentId: row.id },
 		at,
 	});
-	ctx.emit({ type: "attachment.deleted", id: row.id, ticketId: ticket.id });
+	ctx.emit({ type: "attachment.deleted", id: row.id, ticketId: ticket.id, projectId: ticket.project_id });
 	ctx.afterCommit(async () => {
 		await gcAttachmentBlobs(ctx, [row.sha256]);
 	});

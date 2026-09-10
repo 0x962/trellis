@@ -27,13 +27,13 @@ const scopeOf = (event: TrellisEvent): Scope => {
 		case "pr.linked":
 		case "pr.unlinked":
 		case "pr.updated":
-			return { projectIds: [], ticketIds: event.ticketIds };
+			return { projectIds: event.projectIds ?? [], ticketIds: event.ticketIds };
 		case "comment.created":
 		case "comment.updated":
 		case "comment.deleted":
 		case "attachment.created":
 		case "attachment.deleted":
-			return { projectIds: [], ticketIds: [event.ticketId] };
+			return { projectIds: event.projectId === undefined ? [] : [event.projectId], ticketIds: [event.ticketId] };
 		case "statuses.changed":
 			return { projectIds: [event.projectId], ticketIds: [] };
 		case "project.created":
