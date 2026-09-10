@@ -88,7 +88,9 @@ test("the help sheet opens over any route and closes on Escape", async ({ page }
 	await page.keyboard.press("?");
 	const sheet = page.getByRole("dialog", { name: /Keyboard shortcuts/ });
 	await expect(sheet).toBeVisible();
-	await expect(sheet.getByRole("listitem")).toHaveCount(42);
+	// The map holds 42 rows. Three actions have two keys each and print as
+	// one row, so the sheet shows 39.
+	await expect(sheet.getByRole("listitem")).toHaveCount(39);
 	await page.keyboard.press("Escape");
 	await expect(sheet).toBeHidden();
 });
