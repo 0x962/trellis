@@ -23,8 +23,8 @@ import { type ListView, ViewSwitch } from "../../../features/shell/ViewSwitch";
 import { type AppContext, useApp } from "../../../lib/appContext";
 import { parseProjectSplat, projectSlashPath } from "../../../lib/projectPath";
 import { ProjectEmptyState } from "./components/ProjectEmptyState";
-import { ProjectSettingsView } from "./components/ProjectSettingsView";
 import { ScopeChip } from "./components/ScopeChip";
+import { ProjectSettingsPage } from "./settings";
 
 const projectOptions = (context: AppContext, ref: string) =>
 	context.orpc.projects.get.queryOptions({ input: { project: ref } });
@@ -44,11 +44,11 @@ export const Route = createFileRoute("/p/$")({
 	},
 	loaderDeps: ({ search }) => search,
 	loader: async ({ context, params, deps }) => {
-		const { ref } = parseProjectSplat(params._splat ?? "");
-		await Promise.all([
-			context.queryClient.ensureQueryData(projectOptions(context, ref)),
-			context.queryClient.ensureQueryData(countsOptions(context, ref, deps)),
-		]);
+		const { ref, view } = parseProjectSplat(params._splat ?? "");
+		await context.queryClient.ensureQueryData(projectOptions(context, ref));
+		if (view !== "settings") {
+			await context.queryClient.ensureQueryData(countsOptions(context, ref, deps));
+		}
 	},
 	component: ProjectPage,
 	errorComponent: ProjectError,
@@ -65,7 +65,7 @@ function ProjectPage() {
 	const counts = useQuery(countsOptions(context, ref, search)).data;
 	const full = viewOf(search);
 
-	if (view === "settings") return <ProjectSettingsView project={project} />;
+	if (view === "settings") return <ProjectSettingsPage project={project} />;
 
 	const switchView = (next: ListView) =>
 		navigate({
