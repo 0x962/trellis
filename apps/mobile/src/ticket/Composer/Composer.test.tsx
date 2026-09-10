@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { act, fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { appContext } from "../../../test/appContext";
+import { failCalls } from "../../../test/connect";
 import { type FakeApp, installFakeApp } from "../../../test/fakeApp";
 
 // The composer posts through the typed client, so the tests run the whole
@@ -47,5 +48,23 @@ describe("the comment composer", () => {
 		await fireEvent.press(send());
 		await act(() => jest.advanceTimersByTimeAsync(50));
 		expect(app.callsTo("comments.create")).toHaveLength(0);
+	});
+
+	// A failed post leaves the text in the field, so the person loses nothing.
+	test("a failed post keeps the text editable and Retry posts it", async () => {
+		await openTicket();
+		const restore = failCalls("comments.create");
+		await fireEvent.changeText(field(), "Looks good");
+		await fireEvent.press(send());
+		expect(await screen.findByText("Cannot post the comment")).toBeOnTheScreen();
+		expect(field().props.value).toBe("Looks good");
+		expect(field().props.editable).toBe(true);
+		expect(send()).toBeEnabled();
+		restore();
+		await fireEvent.press(screen.getByRole("button", { name: "Retry" }));
+		await waitFor(() => expect(app.callsTo("comments.create")).toHaveLength(1));
+		expect(app.callsTo("comments.create")[0]!.input).toEqual({ ticket: "CDE-42", body: "Looks good" });
+		await waitFor(() => expect(field().props.value).toBe(""));
+		expect(screen.queryByText("Cannot post the comment")).toBeNull();
 	});
 });
