@@ -85,10 +85,12 @@ export const StatusReorderInputSchema = z.strictObject({
 
 // `moveTo` receives the tickets of the deleted status and must belong to the
 // same project.
+// `force` lets an agent move the tickets into a done status.
 export const StatusDeleteInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
 	status: StatusRefStringSchema,
 	moveTo: StatusRefStringSchema.optional(),
+	force: z.boolean().optional(),
 });
 
 export const StatusDeleteOutputSchema = z.object({
