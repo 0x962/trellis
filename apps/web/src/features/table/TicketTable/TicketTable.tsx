@@ -26,13 +26,13 @@ import { type CopyKind, useTableHotkeys } from "../hooks/useTableHotkeys";
 import { useTicketMutations } from "../hooks/useTicketMutations";
 import type { EditField, RowChange } from "../Row";
 import { TableEmpty } from "../TableEmpty";
-import { TableError } from "./components/TableError";
 import { TableFooter } from "../TableFooter";
 import { columnVisibility } from "../utils/columnVisibility";
 import { flattenGroups } from "../utils/flattenGroups";
 import { CapBanner } from "./components/CapBanner";
 import { ColumnHeaderRow } from "./components/ColumnHeaderRow";
 import { TableBody } from "./components/TableBody";
+import { TableError } from "./components/TableError";
 
 export type TicketTableProps = {
 	// The project ref of the route, or undefined on /all.

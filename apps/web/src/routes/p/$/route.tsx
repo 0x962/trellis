@@ -140,7 +140,12 @@ function ProjectPage() {
 			{view === "board" ? (
 				<>
 					<div className="flex min-h-0 flex-1 flex-col">
-						<Board projectRef={ref} filters={toCountsQuery(full, { statuses: project.statuses })} storageKey={ref} onOpenTicket={openTicket}>
+						<Board
+							projectRef={ref}
+							filters={toCountsQuery(full, { statuses: project.statuses })}
+							storageKey={ref}
+							onOpenTicket={openTicket}
+						>
 							<TicketPeek />
 						</Board>
 					</div>
