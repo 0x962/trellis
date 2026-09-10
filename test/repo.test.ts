@@ -183,6 +183,49 @@ describe("root scaffold", () => {
 		expect(agents.split("\n").length).toBeLessThan(120);
 	});
 
+	// The repository is public, so the contributor documents address a
+	// contributor and not one team. A named lead, a reviewer panel, and the
+	// session trailer of one agent runner have no meaning outside that team.
+	test("AGENTS.md and CONTRIBUTING.md name no lead, no reviewer panel, and no session trailer", async () => {
+		for (const path of ["AGENTS.md", "CONTRIBUTING.md"]) {
+			const document = await text(path);
+			expect(document, path).not.toMatch(/\blead\b/i);
+			expect(document, path).not.toMatch(/two reviewers/i);
+			expect(document, path).not.toMatch(/reviewer panel/i);
+			expect(document, path).not.toContain("Claude-Session");
+		}
+	});
+
+	// A contributor arrives from GitHub, so the entry documents point at the
+	// conduct rules, the security model, and the architecture reference.
+	test("CONTRIBUTING.md points at the code of conduct, the security model, and the architecture", async () => {
+		const contributing = await text("CONTRIBUTING.md");
+		for (const target of ["CODE_OF_CONDUCT.md", "SECURITY.md", "docs/ARCHITECTURE.md"]) {
+			expect(contributing, target).toContain(target);
+			expect(existsSync(join(root, target)), target).toBe(true);
+		}
+	});
+
+	// A vulnerability goes to a private advisory, so the public issue form
+	// never becomes the first report of one.
+	test("SECURITY.md and the issue template config route a vulnerability to a private advisory", async () => {
+		const advisory = "security/advisories/new";
+		expect(await text("SECURITY.md")).toContain(advisory);
+		const config = Bun.YAML.parse(await text(".github/ISSUE_TEMPLATE/config.yml")) as {
+			blank_issues_enabled: boolean;
+			contact_links: Array<{ name: string; url: string; about: string }>;
+		};
+		expect(config.blank_issues_enabled).toBe(false);
+		expect(config.contact_links.some((link) => link.url.includes(advisory))).toBe(true);
+	});
+
+	// An issue is public and a ticket title is not, so the bug form warns
+	// before it asks for the status output and the log lines.
+	test("the bug template tells a reporter to redact titles and paths", async () => {
+		const bug = await text(".github/ISSUE_TEMPLATE/bug.yml");
+		expect(bug.toLowerCase()).toContain("redact");
+	});
+
 	test("ci.yml runs bun run check on macOS and Ubuntu", async () => {
 		const ci = Bun.YAML.parse(await text(".github/workflows/ci.yml")) as {
 			jobs: {

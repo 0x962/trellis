@@ -2,6 +2,14 @@
 
 Read [AGENTS.md](AGENTS.md) first. It defines the repository rules.
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the stack, the domain rules, the schema, and the API.
+Read [SECURITY.md](SECURITY.md) before you change the server, the CORS list, or the file routes.
+This project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Before you start
+
+Open an issue before a large change, so nobody writes the same code twice.
+A bug fix with a failing test needs no issue.
+trellis needs [Bun](https://bun.sh) 1.3. Some suites need macOS, and CI runs them.
 
 ## Development loop
 
@@ -22,7 +30,7 @@ For the end-to-end suite, Playwright starts both processes.
 
 Run a focused test while you change code.
 Run `bun run lint:fix` before the full check.
-Run `bun run check --force` before each hand-off.
+Run `bun run check --force` before you open a pull request.
 
 ## Repository map
 
@@ -64,7 +72,7 @@ The preload gives each test run a temporary `TRELLIS_HOME`.
 Start every change with a failing test for the specified outcome.
 Make sure that the test fails for the correct reason.
 Make the test pass. Do not delete the test or weaken its assertions.
-If you think a test is wrong, send it to the lead with the reason.
+If you think a test is wrong, say so in the pull request and give the reason.
 
 ## Database migration
 
@@ -80,10 +88,15 @@ The check fails when schema generation changes `apps/server/drizzle/`.
 1. Read the full diff and remove changes that are not part of the work.
 2. Run the focused tests again.
 3. Run `bun run check --force` at the repository root.
-4. Ask reviewers to refute the tests, the correctness, and the code quality.
-5. Give each finding a file, a line, a severity, a claim, and evidence.
+4. Try to refute your own tests, your own correctness claim, and your own code quality.
+5. Give each finding a file, a line, a claim, and evidence.
 6. For each missing case, add a failing test before the fix.
 7. Do the review again until a pass has no findings.
 
-A finding needs two reviewers who agree, unless one reviewer marks it as a blocker.
-Do not merge on the word of one reviewer.
+## Pull request
+
+Write one commit per result that a user sees.
+State what broke, what changed, and one sentence about how you verified it.
+Use no headers, no tables, and no checklists.
+Add a changeset with `bunx changeset` when the change touches a published behavior.
+CI runs `bun run check` on macOS and Ubuntu, the Playwright suite on macOS, and the migration diff.

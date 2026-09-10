@@ -4,16 +4,16 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 
 ## Work
 
-- Every work item is test-driven. The spec states outcomes. An agent turns the outcomes into a failing test before any implementation. The builder makes the test pass and never deletes or weakens a test. A change without a test does not merge.
-- If you think a test is wrong, send it to the lead with the reason. Do not edit it.
-- Run `bun run check` before every hand-off and report its output. It runs lint, typecheck, every test, the web size budget (`size-budget`), and the 10k perf suite (`perf:10k`).
-- Make small commits. The commit subject states the result that a user sees. The body ends with the `Claude-Session:` trailer.
-- Every PR description states what broke, what changed, and one verification sentence. No headers, no tables, no checklists.
+- Every change is test-driven. Write a failing test for the outcome first. Make it pass. Never delete or weaken a test.
+- A change without a test does not merge.
+- Run `bun run check` before you open a pull request and report its output. It runs lint, typecheck, every test, the web size budget (`size-budget`), and the 10k perf suite (`perf:10k`).
+- Make small commits. The commit subject states the result that a user sees.
+- Every pull request description states what broke, what changed, and one verification sentence. No headers, no tables, no checklists.
 - Pin exact versions when you add a dependency. Prefer the current release on npm.
 
 ## Prose and comments
 
-- Write every sentence in ASD-STE100 Simplified Technical English (STE): one topic per sentence, active voice, simple present tense, 20 words or less per instruction, 25 words or less per description.
+- Write every sentence in ASD-STE100 Simplified Technical English (STE): one topic per sentence, active voice, simple present tense.
 - A comment states an invariant, a constraint, or a consequence for a reader with zero context. A comment never states a change history, an absence, or a contrast with a former version.
 - No em dashes. No emoji.
 
@@ -61,4 +61,4 @@ Every service test ends with `assertStatusInvariant(tx)`. `test/preload.ts` give
 
 ## Review
 
-A reviewer tries to refute the change first. A finding has a file, a line, a severity, a claim, and evidence. A finding goes to a fix agent when two reviewers agree on it, or when it is a blocker. A missing case becomes a failing test first. A change never merges on the word of one reviewer.
+Read the full diff before you open a pull request. Remove every change that is not part of the work. Try to refute your own change first. State each finding with a file, a line, a claim, and evidence. Turn a missing case into a failing test before you fix it.
