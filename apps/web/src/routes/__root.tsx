@@ -6,6 +6,8 @@ import { ComposerHost } from "../features/composer/ComposerHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { ReconnectBanner } from "../features/shell/ReconnectBanner";
 import { Sidebar } from "../features/sidebar/Sidebar";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { useFaviconBadge } from "../hooks/useFaviconBadge";
 import { type RouterContext, useApp } from "../lib/appContext";
 import { resolveActor } from "../lib/identity";
 
@@ -44,6 +46,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function RootComponent() {
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const { live, scheduler } = useApp();
+	useDocumentTitle(!bare(pathname));
+	useFaviconBadge(!bare(pathname));
 
 	if (bare(pathname)) {
 		return (
