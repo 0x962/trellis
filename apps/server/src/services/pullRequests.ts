@@ -5,6 +5,7 @@ import { iso, rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fetchDiff } from "../gh/diff.ts";
 import { fetchPullRequests, type PullRequestRef, type PullRequestRow } from "../gh/graphql.ts";
+import { parsePullRequestUrl } from "../gh/parse.ts";
 import {
 	type ActorRef,
 	assertProjectActive,
@@ -33,15 +34,7 @@ import {
 const DIFF_CACHE_MS = 60_000;
 const diffCache = new Map<string, { at: number; value: PullRequestDiffOutput }>();
 
-const PULL_URL = /^https?:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/pull\/([1-9][0-9]*)(?:[/?#]|$)/i;
-
-// The owner and the repository are case-insensitive on GitHub and lower-case
-// in the database, so two spellings of one pull request are one row.
-export const parsePullRequestUrl = (url: string): PullRequestRef | null => {
-	const match = PULL_URL.exec(url);
-	if (match === null) return null;
-	return { owner: match[1]!.toLowerCase(), repo: match[2]!.toLowerCase(), number: Number(match[3]) };
-};
+export { parsePullRequestUrl };
 
 type PrRow = {
 	id: string;
