@@ -30,19 +30,13 @@ bun packages/cli/src/index.ts install
 2. It writes the `trellis` command to `~/.local/bin/trellis`. Add `~/.local/bin` to your `PATH`.
 3. It writes the launchd agent `~/Library/LaunchAgents/com.trellis.server.plist`. The agent starts the server at login and starts it again after a crash.
 4. It loads the agent with `launchctl` and waits until `http://127.0.0.1:4521/api/health` answers.
-5. It prints the gateway line for `http://trellis.localhost`.
+5. It adds the `trellis` route to the gateway routes file and prints the server URL.
 
 `--no-launchd` writes the files and loads nothing. `trellis uninstall` removes the agent and the command.
 
 Agents need the Superset CLI. launchd gives the server a short `PATH`, so `trellis install` writes the full path of the `superset` on your `PATH` into the agent as `TRELLIS_SUPERSET_BIN`. `--superset-bin <path>` names another binary, and `trellis serve` takes the same flag.
 
-To serve trellis at `http://trellis.localhost`, add this line to `ROUTES` in `~/projects/margin/src/gateway.ts`:
-
-```ts
-trellis: 4521,
-```
-
-Then restart the gateway with `launchctl kickstart -k gui/$UID/com.margin.gateway`. `trellis install --gateway` adds the line and restarts the gateway for you.
+A gateway on port 80, such as margin's, serves `http://trellis.localhost` when it reads the routes file `~/.config/localhost-gateway/routes.json`. The file maps each `*.localhost` name to a port, as in `{ "trellis": 4521 }`. `trellis install` sets the `trellis` entry and keeps the others, and `trellis uninstall` removes it. When no gateway answers for `trellis.localhost`, install prints `http://127.0.0.1:4521` and the path of the routes file.
 
 To run the server in the foreground and not as a launchd agent, run it in its own terminal:
 

@@ -1,10 +1,11 @@
 import { existsSync, unlinkSync } from "node:fs";
 import { defineCommand } from "citty";
 import { contextOf } from "../context.ts";
+import { removeRoute } from "../gatewayRoutes.ts";
 import { installationPaths } from "../installation.ts";
 
 export default defineCommand({
-	meta: { name: "uninstall", description: "Remove the launchd agent and command shim" },
+	meta: { name: "uninstall", description: "Remove the launchd agent, the command shim, and the gateway route" },
 	args: {
 		prefix: { type: "string", description: "Remove install files under this test root" },
 		// citty parses `--no-launchd` as launchd=false, so the flag carries its
@@ -23,6 +24,7 @@ export default defineCommand({
 			await ctx.deps.run(["launchctl", "bootout", `${ctx.deps.launchdDomain}/com.trellis.server`]);
 		if (existsSync(paths.shim)) unlinkSync(paths.shim);
 		if (existsSync(paths.plist)) unlinkSync(paths.plist);
-		ctx.out.write("removed the trellis command and server agent\n");
+		removeRoute(paths.routes, "trellis");
+		ctx.out.write("removed the trellis command, the server agent, and the gateway route\n");
 	},
 });

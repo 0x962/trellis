@@ -451,7 +451,7 @@ Global flags: `--json`, `--quiet` (identifier/id only), `--as <kind:name|name>`,
 | `instructions` | `--project CDE` | prints the AGENTS.md block |
 | `status` | | server health, db size, gh status, poller stats |
 | `serve` | | runs the server in the foreground (what launchd runs) |
-| `install` / `uninstall` | `--gateway` `--no-launchd` | |
+| `install` / `uninstall` | `--no-launchd` `--superset-bin` | |
 | `backup [dest]` / `export` | `--json` (export is always JSON) | `trellis export > tickets.json` |
 | `restore <tarball>` | | refuses while the server is running |
 
@@ -552,8 +552,8 @@ apps/server/
 1. `bun run build` for `apps/web` (so 4521 serves the SPA).
 2. Writes `~/.local/bin/trellis`: `#!/bin/sh\nexec /opt/homebrew/bin/bun "<repo>/packages/cli/src/index.ts" "$@"` (repo path resolved from `import.meta.dir`), `chmod +x`, warns if `~/.local/bin` is not on PATH.
 3. Writes `~/Library/LaunchAgents/com.trellis.server.plist`: `ProgramArguments` `[/opt/homebrew/bin/bun, <repo>/apps/server/src/index.ts]`, `EnvironmentVariables` `{PATH: /opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin, HOME, NODE_ENV: production, TRELLIS_WEB_DIST: <repo>/apps/web/dist}`, `RunAtLoad`, `KeepAlive {SuccessfulExit: false}`, `ThrottleInterval 10`, `StandardOutPath`/`StandardErrorPath` = `~/.trellis/server.log`. Then `launchctl bootout gui/$UID/com.trellis.server` (ignore failure) and `launchctl bootstrap gui/$UID <plist>`.
-4. Gateway: with `--gateway`, reads `~/projects/margin/src/gateway.ts`, and if `ROUTES` lacks `trellis`, inserts `  trellis: 4521,` after the opening brace of `ROUTES` and says so; without the flag (default) it prints `add to ROUTES in ~/projects/margin/src/gateway.ts:  trellis: 4521,`. Default is print, not edit; another repo's file should not be modified silently. On Linux, step 3 writes a systemd user unit instead; the rest is identical.
-5. Waits for `/api/health`, prints the URLs and `trellis instructions`.
+4. Gateway: sets `"trellis": 4521` in `~/.config/localhost-gateway/routes.json` and keeps the other entries. It writes a temp file and renames it over the routes file. It never edits the source of another repo. On Linux, step 3 writes a systemd user unit instead; the rest is identical.
+5. Waits for `/api/health`, then sends `GET http://127.0.0.1:80/api/health` with the Host `trellis.localhost`. A 2xx answer prints `http://trellis.localhost`. Any other result prints `http://127.0.0.1:4521` and the path of the routes file.
 
 `trellis uninstall` reverses 2–3 and leaves `~/.trellis` alone.
 

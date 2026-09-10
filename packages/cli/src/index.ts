@@ -35,7 +35,7 @@ export type Deps = {
 	launchdDomain: string;
 	// The user home. install, uninstall, serve, and restore derive every path
 	// under it, so a test that injects a temporary home never writes the real
-	// LaunchAgents directory, the real shim, or the margin gateway.
+	// LaunchAgents directory, the real shim, or the real gateway routes file.
 	home: string;
 	// The path of a program on PATH, with no symlink resolved, or null when
 	// PATH has no such program. install names the bun and the superset it finds

@@ -53,7 +53,7 @@ Dependency graph is a star: `api` is imported by server, web, mobile, cli (the C
 
 Root scripts: `dev` (server 4521 + Vite 5173 with `/api` and `/rpc` proxied), `dev:all` (adds mobile), `build`, `test`, `typecheck`, `lint`, `lint:fix`, `check` (lint, typecheck, test, size budget, 10k perf suite), `perf` (50k suite), `db:generate`, `e2e`, `release`.
 
-Data home `~/.trellis/` (`TRELLIS_HOME` override): `db/`, `attachments/`, `backups/`, `server.log` (rotating 10 MB × 5), `launchd.log`. Port 4521 (`TRELLIS_PORT`), host 127.0.0.1 (`TRELLIS_HOST`; `0.0.0.0` lets a phone on the network reach the server, which has no auth). Served at `http://trellis.localhost` by margin's gateway: one line `trellis: 4521,` in `ROUTES` at `~/projects/margin/src/gateway.ts`, then `launchctl kickstart -k gui/$UID/com.margin.gateway`.
+Data home `~/.trellis/` (`TRELLIS_HOME` override): `db/`, `attachments/`, `backups/`, `server.log` (rotating 10 MB × 5), `launchd.log`. Port 4521 (`TRELLIS_PORT`), host 127.0.0.1 (`TRELLIS_HOST`; `0.0.0.0` lets a phone on the network reach the server, which has no auth). Served at `http://trellis.localhost` by the gateway on port 80 (margin's). The gateway reads `{ "trellis": 4521 }` from `~/.config/localhost-gateway/routes.json`. `trellis install` sets that entry and `trellis uninstall` removes it.
 
 ## Domain rules
 
@@ -410,7 +410,7 @@ Global flags: `--json`, `--jsonl`, `--quiet` (one identifier per line), `--as <k
 | `watch` | `--project --ticket --type --since` |
 | `open <ticket>` | prints `http://trellis.localhost/t/CDE-42`; `--browser` |
 | `whoami` / `instructions [--project]` / `status` / `logs` | |
-| `serve` / `install` / `uninstall` / `backup` / `restore` / `export` | `--gateway --no-launchd` |
+| `serve` / `install` / `uninstall` / `backup` / `restore` / `export` | `--no-launchd --superset-bin` |
 
 Actor resolution: `--as` → `TRELLIS_ACTOR` → kind `agent` only when `CLAUDECODE`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_SESSION_ID`, or `CODEX_*` is set (TTY state changes output format, never kind); agent names `claude-code`, `codex`, else `agent`; humans `git config user.name` (NFKD, diacritics stripped, one-time hint to set `TRELLIS_ACTOR`) else the OS user. `x-trellis-session` from `CLAUDE_CODE_SESSION_ID`, else `CLAUDE_SESSION_ID`. `whoami` prints the chain.
 
@@ -523,5 +523,5 @@ Repo rules for every agent (`AGENTS.md`): STE for prose and comments; happy path
 ## Open items for Navid
 
 - Sol: my agent tool selects `opus` and `fable` only. If Sol is reachable another way, say how.
-- The gateway edit in `~/projects/margin/src/gateway.ts` touches another repo; `trellis install` prints the line by default and edits only with `--gateway`. I add the line myself during M5.
+- trellis never edits the source of another repo. The gateway route lives in the shared file `~/.config/localhost-gateway/routes.json`, and `trellis install` changes only its `trellis` key.
 - Superset (CDE): the upstream merge in worktree `meadow-mass` is committed (`92e1e27f0`); lint fixes and the `golemapp-migration.ts` biome-ignore are uncommitted; tests not run. Parked until you say otherwise.

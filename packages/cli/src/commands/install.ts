@@ -1,12 +1,14 @@
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { defineCommand } from "citty";
 import { type CliContext, contextOf } from "../context.ts";
 import { CliFailure } from "../errors.ts";
 import { repeatedFlag } from "../flags.ts";
+import { setRoute } from "../gatewayRoutes.ts";
 import { installationPaths, supersetBin } from "../installation.ts";
 
-const routeLine = "  trellis: 4521,";
+// The plist sets no TRELLIS_PORT, so the launchd server listens on 4521.
+const serverPort = 4521;
 
 type Paths = ReturnType<typeof installationPaths>;
 
@@ -87,13 +89,17 @@ const buildWeb = async (ctx: CliContext, paths: Paths) => {
 	if (result.code !== 0) throw new CliFailure("INSTALL_FAILED", 1, result.stderr);
 };
 
-const addGateway = (path: string) => {
-	const text = readFileSync(path, "utf8");
-	if (text.includes(routeLine)) return false;
-	const next = text.replace(/(ROUTES[^=]*=\s*{)/, `$1\n${routeLine}`);
-	if (next === text) throw new CliFailure("INSTALL_FAILED", 1, `ROUTES object not found in ${path}`);
-	writeFileSync(path, next);
-	return true;
+// A gateway on port 80 that reads the routes file sends trellis.localhost to
+// the server. A gateway without that route answers with an error status, so
+// only a 2xx answer proves the route. The fetch fails when nothing listens on
+// port 80.
+const gatewayServes = async (ctx: CliContext) => {
+	const probe = new Request("http://127.0.0.1:80/api/health", { headers: { host: "trellis.localhost" } });
+	try {
+		return (await ctx.deps.fetch(probe, {})).ok;
+	} catch {
+		return false;
+	}
 };
 
 const waitForHealth = async (ctx: CliContext) => {
@@ -111,7 +117,6 @@ export default defineCommand({
 	meta: { name: "install", description: "Install the server as a launchd agent" },
 	args: {
 		prefix: { type: "string", description: "Write install files under this test root" },
-		gateway: { type: "boolean", description: "Add the trellis route to margin" },
 		host: {
 			type: "string",
 			description: "Listen on this address; 0.0.0.0 lets a phone on the network reach the server, which has no auth",
@@ -154,23 +159,20 @@ export default defineCommand({
 		const allowedHosts = repeatedFlag(context.rawArgs, "allow-host");
 		writeFileSync(paths.plist, plistText(paths, context.args.host, allowedHosts, bun, superset));
 
-		if (context.args.gateway === true) {
-			const added = addGateway(paths.gateway);
-			ctx.out.write(`${added ? "added" : "kept"} ${routeLine.trim()} in ${paths.gateway}\n`);
-		} else {
-			ctx.out.write(`add to ROUTES in ~/projects/margin/src/gateway.ts:\n${routeLine}\n`);
-		}
+		setRoute(paths.routes, "trellis", serverPort);
 
 		if (context.args.launchd) {
 			const domain = ctx.deps.launchdDomain;
 			await ctx.deps.run(["launchctl", "bootout", `${domain}/com.trellis.server`]);
 			const loaded = await ctx.deps.run(["launchctl", "bootstrap", domain, paths.plist]);
 			if (loaded.code !== 0) throw new CliFailure("INSTALL_FAILED", 1, loaded.stderr);
-			if (context.args.gateway === true) {
-				await ctx.deps.run(["launchctl", "kickstart", "-k", `${domain}/com.margin.gateway`]);
-			}
 			await waitForHealth(ctx);
-			ctx.out.write(`trellis: ${ctx.url}\n`);
+			if (await gatewayServes(ctx)) {
+				ctx.out.write("trellis: http://trellis.localhost\n");
+			} else {
+				ctx.out.write(`trellis: http://127.0.0.1:${serverPort}\n`);
+				ctx.out.write(`a gateway on port 80 serves http://trellis.localhost when it reads ${paths.routes}\n`);
+			}
 		}
 	},
 });
