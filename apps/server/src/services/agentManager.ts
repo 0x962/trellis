@@ -1,6 +1,6 @@
 import { type AgentRetryManagerInput, type AgentSession, type AgentState, agentTitle, restartText } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { type AgentPlace, isRunnerFailure } from "../agents/runner.ts";
+import { type AgentPlace, isStartFailure } from "../agents/runner.ts";
 import { requireActor } from "../context.ts";
 import { textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
@@ -98,7 +98,7 @@ export const prepareManager = async (ctx: AgentsCtx, input: { project: string })
 		});
 		return { ...plan, outcome: { place } };
 	} catch (error) {
-		if (!isRunnerFailure(error)) throw error;
+		if (!isStartFailure(error)) throw error;
 		return { ...plan, outcome: { error: error.message } };
 	}
 };

@@ -6,7 +6,7 @@ import {
 	agentTitle,
 } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { type AgentPlace, isRunnerFailure, type RunnerRepo } from "../agents/runner.ts";
+import { type AgentPlace, isStartFailure, type RunnerRepo } from "../agents/runner.ts";
 import { requireActor, type ServiceCtx } from "../context.ts";
 import { rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
@@ -106,8 +106,9 @@ const reserveBuilder = (ctx: AgentsCtx, ticketRef: string) =>
 	});
 
 // A second start of a ticket whose builder is live returns that builder.
-// When the runner fails, the reserved row becomes `failed`, so it no longer
-// counts toward the limit, and the caller still gets the runner's error.
+// When the runner refuses the start, the reserved row becomes `failed`, so
+// it no longer counts toward the limit, and the ticket shows the runner's
+// error. Any other failure takes the reserved row away.
 export const prepareBuilder = async (ctx: AgentsCtx, input: AgentStartBuilderInput): Promise<BuilderPlan> => {
 	requireActor(ctx);
 	const reserved = await reserveBuilder(ctx, input.ticket);
@@ -123,7 +124,11 @@ export const prepareBuilder = async (ctx: AgentsCtx, input: AgentStartBuilderInp
 		});
 		return { id: reserved.id, place };
 	} catch (error) {
-		if (isRunnerFailure(error)) await ctx.newTx((tx) => failSession(ctx, tx, reserved.id, error.message));
+		await ctx.newTx((tx) =>
+			isStartFailure(error)
+				? failSession(ctx, tx, reserved.id, error.message)
+				: tx.execute(sql`DELETE FROM agent_sessions WHERE id = ${reserved.id}`),
+		);
 		throw error;
 	}
 };
@@ -180,7 +185,7 @@ export const prepareReviewer = async (ctx: AgentsCtx, input: AgentStartReviewerI
 		});
 		return { ...row, terminalId };
 	} catch (error) {
-		if (isRunnerFailure(error)) await ctx.newTx((tx) => recordFailedReviewer(ctx, tx, row, error.message));
+		if (isStartFailure(error)) await ctx.newTx((tx) => recordFailedReviewer(ctx, tx, row, error.message));
 		throw error;
 	}
 };

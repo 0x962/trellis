@@ -88,7 +88,10 @@ describe("agents.runnerProjects", () => {
 		const other = await a.t.seedProject(`${a.key}X`);
 		const listed = await list();
 		expect(listed.status).toBe(200);
-		expect(listed.body.projects).toEqual([{ id: "sp-web", name: "web", repo: "acme/web", path: "/src/web" }]);
+		// The stub's path is no checkout, so git reads no default branch there.
+		expect(listed.body.projects).toEqual([
+			{ id: "sp-web", name: "web", repo: "acme/web", path: "/src/web", defaultBranch: null },
+		]);
 		expect(listed.body.matches).toContainEqual({ projectId: project.id, runnerProjectId: "sp-web" });
 		const matched = listed.body.matches.map((match: { projectId: string }) => match.projectId);
 		expect(matched).not.toContain(other.id);

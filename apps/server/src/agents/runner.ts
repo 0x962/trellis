@@ -94,6 +94,12 @@ export type Runner = {
 export const isRunnerFailure = (error: unknown): error is ORPCError<"RUNNER_UNAVAILABLE", { reason: RunnerReason }> =>
 	error instanceof ORPCError && error.code === "RUNNER_UNAVAILABLE";
 
+// True when the runner answered that it cannot start this agent. A runner
+// binary that is absent stops every agent of every project, so it belongs
+// to the installation and leaves no failed session behind.
+export const isStartFailure = (error: unknown): error is ORPCError<"RUNNER_UNAVAILABLE", { reason: RunnerReason }> =>
+	isRunnerFailure(error) && error.data.reason !== "missing";
+
 // The declared RUNNER_UNAVAILABLE error. `detail` is what the runner
 // printed, appended to the message so the person who asked reads why.
 export const runnerUnavailable = (reason: RunnerReason, detail?: string) => {

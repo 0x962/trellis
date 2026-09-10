@@ -34,11 +34,13 @@ export const sessions = async (ctx: ServiceCtx, tx: Tx, input: AgentSessionsInpu
 };
 
 // A running agent reports its terminal and its Claude session. One agent
-// keeps one row: the row of that terminal, or else the row of the same
-// agent in the same workspace, takes the terminal, the Claude session, and
-// the running state. Only an agent without a row gets a new one. A new
-// manager replaces the live manager of its project, which becomes `exited`,
-// because a project has one live manager.
+// keeps one row: the row of that terminal, or else the row that trellis
+// started for this agent in the same workspace and that no agent claimed,
+// takes the terminal, the Claude session, and the running state. A row with
+// a Claude session belongs to another agent process, so it stays. Only an
+// agent without a row gets a new one. A new manager replaces the live
+// manager of its project, which becomes `exited`, because a project has one
+// live manager.
 export const register = async (ctx: ServiceCtx, tx: Tx, input: AgentRegisterInput): Promise<AgentSession> => {
 	requireActor(ctx);
 	const project = await resolveProject(ctx, tx, input.project);
@@ -47,14 +49,15 @@ export const register = async (ctx: ServiceCtx, tx: Tx, input: AgentRegisterInpu
 		tx,
 		sql`s.workspace_id = ${input.workspaceId} AND s.terminal_id = ${input.terminalId}`,
 	);
-	const same = (
+	const unclaimed = (
 		await selectSessions(
 			tx,
 			sql`s.workspace_id = ${input.workspaceId} AND s.role = ${input.role} AND s.project_id = ${project.id}
-				AND ${ticket === null ? sql`s.ticket_id IS NULL` : sql`s.ticket_id = ${ticket.id}`} AND s.state <> 'stopped'`,
+				AND ${ticket === null ? sql`s.ticket_id IS NULL` : sql`s.ticket_id = ${ticket.id}`}
+				AND s.claude_session_id IS NULL AND s.state <> 'stopped'`,
 		)
 	).at(-1);
-	const mine = held ?? same;
+	const mine = held ?? unclaimed;
 	if (mine !== undefined) {
 		await tx.execute(sql`
 			UPDATE agent_sessions SET terminal_id = ${input.terminalId}, claude_session_id = ${input.claudeSessionId},
