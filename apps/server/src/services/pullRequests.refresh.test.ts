@@ -13,7 +13,7 @@ import { assertStatusInvariant } from "../../test/invariants.ts";
 import { withTx } from "../db/tx.ts";
 import { contentHash } from "../gh/graphql.ts";
 import { createGhRunner } from "../gh/run.ts";
-import { diff, refresh } from "./pullRequests.ts";
+import { diff, prepareDiff, prepareRefresh, refresh } from "./pullRequests.ts";
 
 // refresh reads one pull request through gh and writes the row only when the
 // content hash changed. The fetch stamp moves on every call, so the poller
@@ -77,7 +77,8 @@ const seedLinked = async (overrides: Record<string, unknown>) => {
 const runRefresh = async (id: string) => {
 	const handle = testCtx({ db: h.db, home, gh: createGhRunner() });
 	const { delivered, sink } = eventSink();
-	const { result } = await withTx(h.db, (tx, emit) => refresh(withEmit(handle.ctx, emit), tx, { id }), sink);
+	const prepared = await prepareRefresh(handle.ctx, { id });
+	const { result } = await withTx(h.db, (tx, emit) => refresh(withEmit(handle.ctx, emit), tx, prepared), sink);
 	return { result, delivered };
 };
 
@@ -141,7 +142,9 @@ describe("pullRequests.refresh", () => {
 		expect(refreshed.data).toEqual({ kind: "pullRequest", ref: id });
 
 		const ctx = testCtx({ db: h.db, home, gh: createGhRunner() }).ctx;
-		const diffed = await caught(h.db.transaction((tx) => diff(ctx, tx, { id })));
+		const diffed = await caught(
+			prepareDiff(ctx, { id }).then((prepared) => h.db.transaction((tx) => diff(ctx, tx, prepared))),
+		);
 		expect(diffed.code).toBe("NOT_FOUND");
 		expect(diffed.data).toEqual({ kind: "pullRequest", ref: id });
 		expect(handle.spawns()).toEqual([]);

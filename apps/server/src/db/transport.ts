@@ -1,4 +1,4 @@
-import type { GhStatus } from "@trellis/api";
+import type { GhStatus, TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { Config } from "../config.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR } from "../context.ts";
@@ -91,10 +91,19 @@ export const createInlineTransport = ({
 	const buildCtx = (entry: ServiceEntry, ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) =>
 		entry.family === "core" ? coreCtx(ctx, emit) : ioCtx(ctx, emit, tasks);
 
-	// The commit comes first, then the work queued for after it, then the
-	// events. A throw rolls everything back and nothing reaches the bus.
-	const run = async (entry: ServiceEntry, ctx: RequestContext, input: unknown) => {
+	// A `prepare` step runs first, with no transaction open. The commit comes
+	// next, then the work queued for after it, then the events. A throw rolls
+	// everything back and nothing reaches the bus.
+	const run = async (entry: ServiceEntry, ctx: RequestContext, rawInput: unknown) => {
 		const tasks: Array<() => Promise<void>> = [];
+		const early: TrellisEvent[] = [];
+		const input =
+			"prepare" in entry
+				? await entry.prepare(
+						buildCtx(entry, ctx, (event) => void early.push(event), tasks),
+						rawInput,
+					)
+				: rawInput;
 		if ("stream" in entry) {
 			return pullStream((push) =>
 				withTx(db, async (tx, emit) => {
@@ -104,7 +113,7 @@ export const createInlineTransport = ({
 		}
 		const { result, events } = await withTx(db, (tx, emit) => entry.run(buildCtx(entry, ctx, emit, tasks), tx, input));
 		for (const task of tasks) await task();
-		for (const event of events) bus.emit(event);
+		for (const event of [...early, ...events]) bus.emit(event);
 		return result;
 	};
 

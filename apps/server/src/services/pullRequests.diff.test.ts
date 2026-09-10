@@ -9,7 +9,7 @@ import { ghStub, type StubReply } from "../../test/helpers/gh-stub.ts";
 import { freshHomeWithDirs } from "../../test/helpers/home.ts";
 import { assertStatusInvariant } from "../../test/invariants.ts";
 import { createGhRunner, type GhRunner, type GhSlot } from "../gh/run.ts";
-import { diff } from "./pullRequests.ts";
+import { diff, prepareDiff } from "./pullRequests.ts";
 
 // diff runs `gh pr diff` on the interactive slot, cuts the text at 1 MB, and
 // keeps the answer for 60 seconds. A person who reopens a diff inside that
@@ -60,6 +60,13 @@ const seedOnePr = async (number: number) => {
 
 const patch = "diff --git a/one.ts b/one.ts\n+const one = 1;\n";
 
+// The two steps the transport runs: the gh read with no transaction open,
+// then the service in its transaction.
+const runDiff = async (ctx: Parameters<typeof prepareDiff>[0], id: string) => {
+	const prepared = await prepareDiff(ctx, { id });
+	return h.db.transaction((tx) => diff(ctx, tx, prepared));
+};
+
 describe("pullRequests.diff", () => {
 	test("diff returns the gh output for one pull request", async () => {
 		const { pr, url } = await seedOnePr(21);
@@ -67,7 +74,7 @@ describe("pullRequests.diff", () => {
 		const { wrapped, calls } = recording(createGhRunner());
 		const ctx = testCtx({ db: h.db, home, gh: wrapped }).ctx;
 
-		const result = await h.db.transaction((tx) => diff(ctx, tx, { id: pr }));
+		const result = await runDiff(ctx, pr);
 
 		expect(result).toEqual({ diff: patch, truncated: false, url });
 		expect(calls).toEqual([{ slot: "interactive", args: ["pr", "diff", url] }]);
@@ -78,7 +85,7 @@ describe("pullRequests.diff", () => {
 		stub({ "pr diff": { stdout: "x".repeat(1024 * 1024 + 100), stderr: "", exitCode: 0 } });
 		const ctx = testCtx({ db: h.db, home, gh: createGhRunner() }).ctx;
 
-		const result = await h.db.transaction((tx) => diff(ctx, tx, { id: pr }));
+		const result = await runDiff(ctx, pr);
 
 		expect(new TextEncoder().encode(result.diff).byteLength).toBe(1024 * 1024);
 		expect(result.truncated).toBe(true);
@@ -90,7 +97,7 @@ describe("pullRequests.diff", () => {
 		const handle = stub({ "pr diff": { stdout: patch, stderr: "", exitCode: 0 } });
 		let clock = Date.parse("2026-09-09T10:00:00Z");
 		const ctx = testCtx({ db: h.db, home, gh: createGhRunner(), now: () => new Date(clock) }).ctx;
-		const run = () => h.db.transaction((tx) => diff(ctx, tx, { id: pr }));
+		const run = () => runDiff(ctx, pr);
 
 		const first = await run();
 		clock += 59_000;
@@ -111,13 +118,13 @@ describe("pullRequests.diff", () => {
 		process.env.TRELLIS_GH_BIN = join(scratch, "no-gh-here");
 		const missingCtx = testCtx({ db: h.db, home, gh: createGhRunner() }).ctx;
 
-		const error = await caught(h.db.transaction((tx) => diff(missingCtx, tx, { id: pr })));
+		const error = await caught(runDiff(missingCtx, pr));
 		expect(error.code).toBe("GH_UNAVAILABLE");
 		expect(error.data).toEqual({ reason: "missing" });
 
 		process.env.TRELLIS_GH_BIN = join(import.meta.dir, "..", "..", "test", "stubs", "gh.ts");
 		const workingCtx = testCtx({ db: h.db, home, gh: createGhRunner() }).ctx;
-		const result = await h.db.transaction((tx) => diff(workingCtx, tx, { id: pr }));
+		const result = await runDiff(workingCtx, pr);
 		expect(result.diff).toBe(patch);
 	});
 });

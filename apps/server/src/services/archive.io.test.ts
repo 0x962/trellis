@@ -71,8 +71,13 @@ describe.each(["root", "project"] as const)("io writes under an archived %s", (a
 	test("a pull request link throws PROJECT_ARCHIVED", async () => {
 		await seedArchived(archive);
 
+		const ctx = testCtx({ db: h.db, home }).ctx;
+		const url = "https://github.com/acme/web/pull/13";
+
 		const error = await caught(
-			run((ctx, tx) => pullRequests.link(ctx, tx, { ticket: "CDE-1", url: "https://github.com/acme/web/pull/13" })),
+			pullRequests
+				.prepareLink(ctx, { ticket: "CDE-1", url })
+				.then((prepared) => run((ctx, tx) => pullRequests.link(ctx, tx, prepared))),
 		);
 
 		expect(error.code).toBe("PROJECT_ARCHIVED");
