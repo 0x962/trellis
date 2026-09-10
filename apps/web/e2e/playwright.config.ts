@@ -50,6 +50,10 @@ export default defineConfig({
 	fullyParallel: false,
 	workers: 1,
 	retries: 0,
+	// A spec that stops making progress fails after 60 s with its trace. An
+	// assertion waits 5 s for the page to reach the state it expects.
+	timeout: 60_000,
+	expect: { timeout: 5_000 },
 	reporter: "list",
 	globalTeardown: "./teardown.ts",
 	use: {
