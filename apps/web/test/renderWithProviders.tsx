@@ -19,7 +19,12 @@ export type ProviderOptions = {
 	// The connection status the shell sees. Live by default.
 	liveStatus?: LiveStatus;
 	scheduler?: Scheduler;
+	// A previous render's wiring. A second mount over it reads the cache the
+	// first one filled.
+	harness?: Harness;
 };
+
+export type Harness = ReturnType<typeof wire>;
 
 // A `Live` with a status the test sets and no connection of its own.
 const stubLive = (status: LiveStatus): Live => ({
@@ -41,12 +46,15 @@ const wire = (options: ProviderOptions) => {
 	return { server, client, orpc, queryClient, live, context, router };
 };
 
+// The wiring on its own, for a test that fills the cache before it renders.
+export const createHarness = (options: ProviderOptions) => wire(options);
+
 // Renders `ui` inside the providers the app mounts: a fresh QueryClient, a
 // trellis client over the fake server, and a memory-history router at
 // `path`. The router provides context to Links but renders no route, so
 // `ui` is what the test sees.
 export const renderWithProviders = (ui: ReactElement, options: ProviderOptions) => {
-	const wired = wire(options);
+	const wired = options.harness ?? wire(options);
 	const view = render(
 		<QueryClientProvider client={wired.queryClient}>
 			<AppProvider value={wired.context}>
@@ -59,7 +67,7 @@ export const renderWithProviders = (ui: ReactElement, options: ProviderOptions) 
 
 // Renders the whole app at `path`: the root shell and the matched route.
 export const renderApp = (options: ProviderOptions) => {
-	const wired = wire(options);
+	const wired = options.harness ?? wire(options);
 	const view = render(
 		<QueryClientProvider client={wired.queryClient}>
 			<AppProvider value={wired.context}>

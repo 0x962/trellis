@@ -4,6 +4,7 @@ import {
 	type ActorRef,
 	type Attachment,
 	type Comment,
+	type GhStatus,
 	type Priority,
 	type PrLinkSource,
 	type PullRequest,
@@ -82,6 +83,8 @@ export type State = {
 	attachments: Map<string, Attachment>;
 	actors: Map<string, Actor>;
 	settings: Settings;
+	// What `system.gh` reports. A test sets it to drive the gh banner.
+	gh: GhStatus;
 	nextActivityId: number;
 };
 
@@ -99,6 +102,13 @@ export const createState = (): State => ({
 		startWithAgentTemplate: 'claude "$(trellis brief {brief})"',
 		defaultActorName: "navid",
 		stalledHours: 24,
+	},
+	gh: {
+		ok: false,
+		user: null,
+		reason: "missing",
+		message: "gh is not installed. Install it with `brew install gh` and run `gh auth login`.",
+		checkedAt: new Date().toISOString(),
 	},
 	nextActivityId: 1,
 });
@@ -220,6 +230,11 @@ export const slugify = (name: string) =>
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-+|-+$/g, "");
+
+// Every mutation on an archived project is refused; a read still works.
+export const requireWritable = (state: State, projectId: string) => {
+	if (state.projects.get(projectId)!.archivedAt !== null) throw fail("PROJECT_ARCHIVED", undefined);
+};
 
 export const isOpen = (state: State, ticket: TicketRow) => {
 	const category = state.statuses.get(ticket.statusId)!.category;

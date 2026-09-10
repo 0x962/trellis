@@ -25,10 +25,36 @@ const assetFiles = () => readdirSync(join(dist, "assets"));
 
 const readAsset = (name: string) => Bun.file(join(dist, "assets", name)).text();
 
+// One build serves every describe in this file.
+let built: ReturnType<typeof run> | undefined;
+const buildOnce = () => {
+	built ??= run(["run", "build", "--outDir", dist, "--emptyOutDir"]);
+	return built;
+};
+
+// The entry chunk and every chunk index.html preloads, as source text.
+const initialSource = async () => {
+	const document = parse(await Bun.file(join(dist, "index.html")).text());
+	const entry = document.querySelector('script[type="module"][src]')!.getAttribute("src")!.split("/").pop()!;
+	const preloads = [...document.querySelectorAll('link[rel="modulepreload"][href]')].map(
+		(link) => link.getAttribute("href")!.split("/").pop()!,
+	);
+	const names = [entry, ...preloads];
+	return { names, source: (await Promise.all(names.map(readAsset))).join("\n") };
+};
+
+// The lazy chunk that holds `marker`, which is text only one route carries.
+const chunkWith = async (marker: string, exclude: string[]) => {
+	const names = assetFiles().filter((name) => name.endsWith(".js") && !exclude.includes(name));
+	const found: string[] = [];
+	for (const name of names) if ((await readAsset(name)).includes(marker)) found.push(name);
+	return found;
+};
+
 describe("bun run build", () => {
 	let build: ReturnType<typeof run>;
 	beforeAll(() => {
-		build = run(["run", "build", "--outDir", dist, "--emptyOutDir"]);
+		build = buildOnce();
 	}, 180_000);
 
 	// WS-13. Every route is a separate chunk: the initial JS carries the
@@ -110,5 +136,25 @@ describe("size-budget measure", () => {
 		const result = run(["scripts/size-budget.ts", dir]);
 		expect(result.exitCode).toBe(1);
 		expect(result.output).toMatch(/initial js/i);
+	});
+});
+
+describe("size-budget", () => {
+	beforeAll(buildOnce, 180_000);
+
+	// BUILD-01. Needs you and Settings each arrive as their own chunk, so
+	// neither one weighs on the first paint.
+	test("needs-you and settings stay inside the initial JS budget", async () => {
+		expect(buildOnce().exitCode).toBe(0);
+		const initial = await initialSource();
+		expect(initial.source).not.toContain("Done by agents today");
+		expect(initial.source).not.toContain("Settings saved");
+		const needsYou = await chunkWith("Done by agents today", initial.names);
+		const settings = await chunkWith("Settings saved", initial.names);
+		expect(needsYou).toHaveLength(1);
+		expect(settings).toHaveLength(1);
+		expect(needsYou[0]).not.toBe(settings[0]);
+		const report = measure(dist);
+		expect(report.initialJs).toBeLessThanOrEqual(budgets.initialJs);
 	});
 });

@@ -12,6 +12,8 @@ export type BaseContext = {
 	state: State;
 	bus: EventBus;
 	calls: Call[];
+	// One queued failure per procedure path, set by `failNext`.
+	failures: Map<string, Error>;
 	actorHeader: string | null;
 	// The `If-Match` version on a PATCH, mapped to expectedVersion.
 	ifMatch: number | null;
@@ -33,6 +35,12 @@ export const os = implement(contract)
 			actor = parsed.data;
 		}
 		context.calls.push({ path: [...path], input, actor: context.actorHeader });
+		const key = path.join(".");
+		const failure = context.failures.get(key);
+		if (failure !== undefined) {
+			context.failures.delete(key);
+			throw failure;
+		}
 		return next({ context: { actor } });
 	});
 

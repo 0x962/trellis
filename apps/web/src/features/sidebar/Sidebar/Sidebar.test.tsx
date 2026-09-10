@@ -31,12 +31,12 @@ describe("features/sidebar/Sidebar", () => {
 		expect(text.indexOf("Projects")).toBeGreaterThan(text.indexOf("All tickets"));
 	});
 
-	// WS-94. The badge is the sum of what a person must act on: reviews
-	// waiting and CI failures.
+	// WS-94. The badge counts every inbox section (plan, Needs you), so no row
+	// a person can act on stays out of the count.
 	test("the Needs you badge sums the review and failing CI totals", async () => {
 		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
 		const row = await screen.findByRole("link", { name: /Needs you/ });
-		const badge = await within(row).findByText("4");
+		const badge = await within(row).findByText("11");
 		expect(badge.className).toMatch(/\btabular\b/);
 		localStorage.clear();
 		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", server: createFakeServer({ empty: true }) });

@@ -1,7 +1,7 @@
 import type { TimelineItem } from "@trellis/api";
 import { fail } from "../fail";
 import { os } from "../implementer";
-import { isoNow, newId, requireTicket, touchActor } from "../state";
+import { isoNow, newId, requireTicket, requireWritable, touchActor } from "../state";
 
 // Comments and the timeline. A comment is user-visible activity, so the
 // ticket's version and updatedAt move with it.
@@ -18,6 +18,7 @@ export const comments = {
 	create: os.comments.create.handler(({ context, input }) => {
 		const { state, bus } = context;
 		const ticket = requireTicket(state, input.ticket);
+		requireWritable(state, ticket.projectId);
 		const at = isoNow();
 		const comment = {
 			id: newId(),

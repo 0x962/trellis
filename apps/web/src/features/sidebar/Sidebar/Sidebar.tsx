@@ -9,6 +9,7 @@ import { useLiveStatus } from "../../../lib/liveStatus";
 import { useSidebarHotkey } from "../../../lib/sidebarHotkey";
 import { toggleTheme, useTheme } from "../../../lib/theme";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { needsYouCount } from "../../needs-you/utils/needsYouCount";
 import { ActorFooter } from "../ActorFooter";
 import { ProjectTree } from "../ProjectTree";
 import { ConnectionDot } from "./components/ConnectionDot";
@@ -48,7 +49,7 @@ export function Sidebar() {
 	const navigate = useNavigate();
 	useSidebarHotkey();
 	const inbox = useQuery(orpc.inbox.get.queryOptions({ input: {} }));
-	const needsYou = inbox.data === undefined ? 0 : inbox.data.review.total + inbox.data.failingCi.total;
+	const needsYou = inbox.data === undefined ? 0 : needsYouCount(inbox.data);
 
 	return (
 		<aside
