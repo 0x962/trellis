@@ -1,6 +1,6 @@
 import type { Sort } from "@trellis/api";
-import { Button, Popover, Segmented, Switch } from "@trellis/ui";
-import { SlidersHorizontal } from "lucide-react";
+import { Button, cx, IconButton, Popover, Segmented, Select, Switch, Tooltip } from "@trellis/ui";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, SlidersHorizontal } from "lucide-react";
 import { type Density, uiActions, useUiStore } from "../../../stores/uiStore";
 import type { Group, View } from "../../filters/grammar";
 import { alwaysVisible, type ColumnId, columnLabels, columnOrder } from "../columns";
@@ -32,24 +32,24 @@ const groups = [
 	{ value: "pr", label: "PR" },
 ] as const;
 
-// One sort per field. The URL keeps the direction the field reads best in.
-const sorts = [
-	{ value: "-priority", label: "Priority" },
-	{ value: "-updatedAt", label: "Updated" },
-	{ value: "-createdAt", label: "Created" },
-	{ value: "status", label: "Status" },
-	{ value: "-number", label: "ID" },
+// One sort per field, and the direction each field reads best in. A new
+// field takes that direction; the direction button flips it.
+const sortFields = [
+	{ value: "priority", label: "Priority", descending: true },
+	{ value: "updatedAt", label: "Updated", descending: true },
+	{ value: "createdAt", label: "Created", descending: true },
+	{ value: "status", label: "Status", descending: false },
+	{ value: "number", label: "ID", descending: true },
 ] as const;
 
-type SortValue = (typeof sorts)[number]["value"];
+type SortField = (typeof sortFields)[number]["value"];
 
-const sortValue = (sort: Sort): SortValue =>
-	sorts.find((entry) => entry.value === sort)?.value ??
-	sorts.find((entry) => entry.value.replace(/^-/, "") === sort.replace(/^-/, ""))!.value;
+const overline = "text-xs font-medium tracking-[0.04em] text-fg-faint uppercase";
 
-// The Display popover: the columns, the density, the grouping, and the
-// sort. Columns and density are preferences of this machine; group and
-// sort are the URL, so a link carries them.
+// The Display popover: the columns as toggle chips, the grouping, the sort
+// and its direction, Show completed, and the density. Columns and density
+// are preferences of this machine; group, sort, and Show completed are the
+// URL, so a link carries them.
 export function DisplayPopover({
 	routeKey,
 	showProject,
@@ -62,58 +62,93 @@ export function DisplayPopover({
 	const stored = useUiStore((state) => state.columnVisibility[routeKey]);
 	const visibility = columnVisibility(stored, showProject);
 	const hideable = columnOrder.filter((id) => !alwaysVisible.includes(id));
+	const descending = sort.startsWith("-");
+	const field = sortFields.find((entry) => entry.value === sort.replace(/^-/, "")) ?? sortFields[1];
 
 	const setDensity = (next: Density) => {
 		uiActions.setDensity(next);
 		onSearchChange({ ...search, density: next });
 	};
+	const setSort = (next: SortField, nextDescending: boolean) =>
+		onSearchChange({ ...search, sort: `${nextDescending ? "-" : ""}${next}` as Sort });
 
 	return (
 		<Popover
 			label="Display"
 			align="end"
-			className="w-80 p-3"
+			className="w-75 p-3"
 			trigger={
-				<Button variant="quiet" size="sm" icon={<SlidersHorizontal />}>
+				<Button variant="quiet" icon={<SlidersHorizontal />}>
 					Display
 				</Button>
 			}
 		>
 			<div className="flex flex-col gap-3">
 				<section className="flex flex-col gap-1.5">
-					<h3 className="text-xs font-medium text-fg-faint">Columns</h3>
-					<div className="grid grid-cols-2 gap-x-3 gap-y-1">
-						{hideable.map((id: ColumnId) => (
-							<Switch
-								key={id}
-								label={columnLabels[id]}
-								checked={visibility[id] !== false}
-								onCheckedChange={(checked) => uiActions.setColumnVisible(routeKey, id, checked)}
-							/>
-						))}
+					<h3 className={overline}>Columns</h3>
+					<div className="flex flex-wrap gap-1.5">
+						{hideable.map((id: ColumnId) => {
+							const on = visibility[id] !== false;
+							return (
+								<button
+									key={id}
+									type="button"
+									aria-pressed={on}
+									onClick={() => uiActions.setColumnVisible(routeKey, id, !on)}
+									className={cx(
+										"h-6 rounded-full border px-2 text-sm transition-colors duration-hover ease-out focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+										on ? "border-accent bg-accent-soft text-fg" : "border-border text-fg-muted hover:text-fg",
+									)}
+								>
+									{columnLabels[id]}
+								</button>
+							);
+						})}
 					</div>
 				</section>
+				<div className="flex flex-col gap-1">
+					<div className="flex h-7 items-center justify-between gap-3">
+						<span className="text-sm text-fg-muted">Group by</span>
+						<Select
+							label="Group by"
+							items={groups}
+							value={group}
+							onValueChange={(next) => onSearchChange({ ...search, group: next })}
+						/>
+					</div>
+					<div className="flex h-7 items-center justify-between gap-3">
+						<span className="text-sm text-fg-muted">Sort by</span>
+						<span className="flex items-center gap-1">
+							<Select
+								label="Sort by"
+								items={sortFields}
+								value={field.value}
+								onValueChange={(next) => setSort(next, sortFields.find((entry) => entry.value === next)!.descending)}
+							/>
+							<Tooltip content={descending ? "Descending" : "Ascending"}>
+								<IconButton
+									size="sm"
+									label="Sort direction"
+									icon={descending ? <ArrowDownWideNarrow /> : <ArrowUpNarrowWide />}
+									onClick={() => setSort(field.value, !descending)}
+								/>
+							</Tooltip>
+						</span>
+					</div>
+					{/* The closed groups show only under the status grouping, so the
+					switch acts only there. */}
+					<div className="flex h-7 items-center">
+						<Switch
+							label="Show completed"
+							checked={search.closed !== "hide"}
+							disabled={group !== "status"}
+							onCheckedChange={(on) => onSearchChange({ ...search, closed: on ? undefined : "hide" })}
+						/>
+					</div>
+				</div>
 				<section className="flex flex-col gap-1.5">
-					<h3 className="text-xs font-medium text-fg-faint">Density</h3>
+					<h3 className={overline}>Density</h3>
 					<Segmented label="Density" options={densities} value={density} onValueChange={setDensity} />
-				</section>
-				<section className="flex flex-col gap-1.5">
-					<h3 className="text-xs font-medium text-fg-faint">Group by</h3>
-					<Segmented
-						label="Group by"
-						options={groups}
-						value={group}
-						onValueChange={(next) => onSearchChange({ ...search, group: next })}
-					/>
-				</section>
-				<section className="flex flex-col gap-1.5">
-					<h3 className="text-xs font-medium text-fg-faint">Sort by</h3>
-					<Segmented
-						label="Sort by"
-						options={sorts}
-						value={sortValue(sort)}
-						onValueChange={(next) => onSearchChange({ ...search, sort: next })}
-					/>
 				</section>
 			</div>
 		</Popover>

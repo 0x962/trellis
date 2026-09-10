@@ -213,7 +213,7 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		return <TableEmpty project={project} filtered={hasFilters(search)} q={view.q} onCreate={() => openNew()} />;
 	}
 
-	const closedVisible = data.closed !== null && view.group === "status";
+	const closedVisible = data.closed !== null && view.group === "status" && view.closed !== "hide";
 	const closedTotal = closedVisible
 		? closedCategories.reduce((sum, category) => sum + data.closed![category].count, 0)
 		: 0;
@@ -221,8 +221,7 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 	// Under a grouping other than status the rows are the open tickets only,
 	// and the footer names the Done and Canceled tickets it leaves out. The
 	// server total counts them, so the open count subtracts them.
-	const hidden =
-		data.closed !== null && !closedVisible ? data.closed.done.count + data.closed.canceled.count : 0;
+	const hidden = data.closed !== null && !closedVisible ? data.closed.done.count + data.closed.canceled.count : 0;
 	const total = data.allActiveLoaded ? loadedTotal : (data.total ?? loadedTotal) - hidden;
 	const count = pendingDelete?.length ?? 0;
 	const deleteTitle =

@@ -25,6 +25,7 @@ export const searchParamOrder = [
 	"completed",
 	"sort",
 	"group",
+	"closed",
 	"scope",
 	"peek",
 	"density",
