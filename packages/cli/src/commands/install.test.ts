@@ -1,28 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { type CommandCall, defaultEnv, makeDeps, runCli } from "../../test/deps.ts";
+import { defaultEnv, lines, makeDeps, runCli } from "../../test/deps.ts";
+import { launchctlCalls, setup, temp } from "../../test/installEnv.ts";
 import { cliEntry, repoRoot } from "../../test/process.ts";
-
-const temp = (name: string) => mkdtempSync(join(process.env.TRELLIS_HOME!, `${name}-`));
-
-// One run's data home and install root. Both sit under the TRELLIS_HOME of
-// the test process, so no path in a test plist reaches ~/.trellis.
-const setup = () => {
-	const dataHome = temp("data");
-	const prefix = temp("prefix");
-	return {
-		dataHome,
-		prefix,
-		env: { ...defaultEnv, TRELLIS_HOME: dataHome },
-		plist: join(prefix, "Library", "LaunchAgents", "com.trellis.server.plist"),
-		shim: join(prefix, ".local", "bin", "trellis"),
-	};
-};
-
-const launchctlCalls = (commands: CommandCall[]) =>
-	commands.map((call) => call.args).filter((args) => args[0] === "launchctl");
 
 describe("install", () => {
 	test("--no-launchd writes the shim and the plist and runs no launchctl", async () => {
@@ -86,7 +68,8 @@ describe("install", () => {
 		const { prefix, env, plist } = setup();
 		const asked: string[] = [];
 		const fetch = async (request: Request) => {
-			asked.push(new URL(request.url).pathname);
+			const url = new URL(request.url);
+			asked.push(`${url.host}${url.pathname}`);
 			return new Response("{}");
 		};
 		const result = await runCli(["install", "--prefix", prefix], {}, { env, launchdDomain: "gui/test", fetch });
@@ -96,7 +79,7 @@ describe("install", () => {
 			["launchctl", "print", "gui/test/com.trellis.server"],
 			["launchctl", "bootstrap", "gui/test", plist],
 		]);
-		expect(asked).toEqual(["/api/health"]);
+		expect(asked).toEqual(["127.0.0.1:4521/api/health", "127.0.0.1/api/health"]);
 	});
 
 	// launchctl bootout returns before launchd removes the job. A bootstrap
@@ -140,14 +123,6 @@ describe("install", () => {
 		expect(result.sleeps.reduce((sum, ms) => sum + ms, 0)).toBe(5000);
 	});
 
-	test("install prints no margin gateway hint", async () => {
-		const { prefix, env } = setup();
-		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
-		expect(result.code, result.stderr).toBe(0);
-		expect(result.stdout).not.toContain("margin");
-		expect(result.stdout).not.toContain("ROUTES");
-	});
-
 	// process.execPath names the versioned Homebrew Cellar directory, which a
 	// brew upgrade deletes. The bun on PATH is a symlink that the upgrade
 	// moves to the new version, so the agent keeps a program to run.
@@ -160,7 +135,7 @@ describe("install", () => {
 		};
 		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env, which });
 		expect(result.code, result.stderr).toBe(0);
-		expect(asked).toEqual(["bun"]);
+		expect(asked).toEqual(["bun", "superset"]);
 		const text = readFileSync(plist, "utf8");
 		expect(text).toContain("<array>\n\t\t<string>/stable/bin/bun</string>");
 		expect(text).toContain("<key>PATH</key>\n\t\t<string>/stable/bin:");
@@ -176,6 +151,53 @@ describe("install", () => {
 		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env, which });
 		expect(result.code, result.stderr).toBe(0);
 		expect(readFileSync(shim, "utf8")).toBe(`#!/bin/sh\nexec "/Users/me/.bun/bin/bun" "${cliEntry}" "$@"\n`);
+	});
+
+	// launchd starts the server with a PATH that holds only the bun directory
+	// and the system directories. The Superset CLI sits in ~/.superset/bin, so
+	// the plist names it by the path that `which` finds. That path is a
+	// symlink, and an update of the Superset CLI moves its target.
+	test("the plist names the superset path that which finds on PATH, with no symlink resolved", async () => {
+		const { prefix, env, plist } = setup();
+		const dir = temp("superset");
+		const target = join(dir, "superset-1.27");
+		const link = join(dir, "bin", "superset");
+		writeFileSync(target, "#!/bin/sh\n");
+		mkdirSync(dirname(link));
+		symlinkSync(target, link);
+		const which = (name: string) => (name === "superset" ? link : "/stable/bin/bun");
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env, which });
+		expect(result.code, result.stderr).toBe(0);
+		const text = readFileSync(plist, "utf8");
+		expect(text).toContain(`<key>TRELLIS_SUPERSET_BIN</key>\n\t\t<string>${link}</string>`);
+		expect(text).not.toContain(target);
+	});
+
+	test("without superset on PATH the plist sets no TRELLIS_SUPERSET_BIN and install prints one line about agents", async () => {
+		const { prefix, env, plist } = setup();
+		const which = (name: string) => (name === "bun" ? "/stable/bin/bun" : null);
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env, which });
+		expect(result.code, result.stderr).toBe(0);
+		expect(readFileSync(plist, "utf8")).not.toContain("TRELLIS_SUPERSET_BIN");
+		const warnings = lines(`${result.stdout}${result.stderr}`).filter((line) => line.includes("Superset CLI"));
+		expect(warnings).toHaveLength(1);
+		expect(warnings[0]).toContain("agents need the Superset CLI");
+	});
+
+	test("--superset-bin writes that path into the plist and skips the lookup", async () => {
+		const { prefix, env, plist } = setup();
+		const asked: string[] = [];
+		const which = (name: string) => {
+			asked.push(name);
+			return `/test/bin/${name}`;
+		};
+		const args = ["--superset-bin", "/opt/superset/bin/superset"];
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd", ...args], {}, { env, which });
+		expect(result.code, result.stderr).toBe(0);
+		expect(asked).toEqual(["bun"]);
+		expect(readFileSync(plist, "utf8")).toContain(
+			"<key>TRELLIS_SUPERSET_BIN</key>\n\t\t<string>/opt/superset/bin/superset</string>",
+		);
 	});
 
 	test("a bun that is not on PATH fails the install as INSTALL_FAILED", async () => {
@@ -201,16 +223,8 @@ describe("install", () => {
 		expect(existsSync(plist)).toBe(true);
 		expect(existsSync(join(home, ".local", "bin", "trellis"))).toBe(true);
 		expect(readFileSync(plist, "utf8")).toContain(`<string>${join(home, ".trellis")}</string>`);
-	});
-
-	test("--gateway edits the margin gateway under the injected home", async () => {
-		const home = temp("user");
-		const gateway = join(home, "projects", "margin", "src", "gateway.ts");
-		mkdirSync(dirname(gateway), { recursive: true });
-		writeFileSync(gateway, "const ROUTES: Record<string, number> = {\n\tmargin: 4519,\n};\n");
-		const result = await runCli(["install", "--gateway", "--no-launchd"], {}, { env: defaultEnv, home });
-		expect(result.code, result.stderr).toBe(0);
-		expect(readFileSync(gateway, "utf8")).toContain("trellis: 4521,");
+		const routes = join(home, ".config", "localhost-gateway", "routes.json");
+		expect(JSON.parse(readFileSync(routes, "utf8"))).toEqual({ trellis: 4521 });
 	});
 
 	test("a failed bootstrap fails as INSTALL_FAILED with the launchctl message", async () => {

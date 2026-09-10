@@ -11,6 +11,7 @@ export const guardedPaths = (home: string) => [
 	join(home, ".local", "bin"),
 	join(home, ".local", "bin", "trellis"),
 	join(home, "projects", "margin", "src", "gateway.ts"),
+	join(home, ".config", "localhost-gateway", "routes.json"),
 ];
 
 // The mtime of each path, or null when the path does not exist.

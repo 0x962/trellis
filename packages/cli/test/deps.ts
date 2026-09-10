@@ -22,10 +22,14 @@ import { apiVersion, type Call, type FakeServerOptions, fakeServer, type Routes 
 //   apiVersion             the api version the CLI was built against
 //   run(args, cwd)         runs a program; install and uninstall send launchctl and the web build through it
 //   launchdDomain          the launchd domain install and uninstall address, `gui/<uid>` in a real run
+//   spawn(args, options)   starts a program that shares the terminal; serve starts the server through it
 //
-// The default `run` records each call in `commands` and returns exit code 0,
-// so a test never starts a real program through the CLI.
+// The default `run` records each call in `commands` and returns exit code 0.
+// The default `spawn` records each call in `spawns` and exits 0 at once. So a
+// test never starts a real program through the CLI.
 export type CommandCall = { args: string[]; cwd?: string };
+
+export type SpawnCall = { args: string[]; cwd: string; env: Record<string, string | undefined> };
 
 export type RunOptions = FakeServerOptions & {
 	tty?: boolean;
@@ -43,6 +47,7 @@ export type RunOptions = FakeServerOptions & {
 	launchdDomain?: string;
 	home?: string;
 	which?: Deps["which"];
+	spawn?: Deps["spawn"];
 };
 
 export type RunResult = {
@@ -53,6 +58,7 @@ export type RunResult = {
 	requests: Request[];
 	sleeps: number[];
 	commands: CommandCall[];
+	spawns: SpawnCall[];
 };
 
 // Inside Claude Code by default, so the actor is `agent:claude-code` with
@@ -64,6 +70,7 @@ export const makeDeps = (routes: Routes = {}, options: RunOptions = {}) => {
 	let err = "";
 	const sleeps: number[] = [];
 	const commands: CommandCall[] = [];
+	const spawns: SpawnCall[] = [];
 	const server = fakeServer(routes, { serverApiVersion: options.serverApiVersion, raw: options.raw });
 	const deps: Deps = {
 		fetch: options.fetch ?? server.fetch,
@@ -103,12 +110,18 @@ export const makeDeps = (routes: Routes = {}, options: RunOptions = {}) => {
 		launchdDomain: options.launchdDomain ?? "gui/test",
 		home: options.home ?? mkdtempSync(join(process.env.TRELLIS_HOME!, "user-home-")),
 		which: options.which ?? ((name: string) => join("/test/bin", name)),
+		spawn:
+			options.spawn ??
+			((args, { cwd, env }) => {
+				spawns.push({ args, cwd, env });
+				return { exited: Promise.resolve(0), kill: () => {} };
+			}),
 	};
-	return { deps, server, stdout: () => out, stderr: () => err, sleeps, commands };
+	return { deps, server, stdout: () => out, stderr: () => err, sleeps, commands, spawns };
 };
 
 export const runCli = async (argv: string[], routes: Routes = {}, options: RunOptions = {}): Promise<RunResult> => {
-	const { deps, server, stdout, stderr, sleeps, commands } = makeDeps(routes, options);
+	const { deps, server, stdout, stderr, sleeps, commands, spawns } = makeDeps(routes, options);
 	const code = await run(argv, deps);
 	return {
 		code,
@@ -118,6 +131,7 @@ export const runCli = async (argv: string[], routes: Routes = {}, options: RunOp
 		requests: server.requests,
 		sleeps,
 		commands,
+		spawns,
 	};
 };
 

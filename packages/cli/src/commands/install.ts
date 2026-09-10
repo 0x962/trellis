@@ -1,12 +1,14 @@
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { defineCommand } from "citty";
 import { type CliContext, contextOf } from "../context.ts";
 import { CliFailure } from "../errors.ts";
 import { repeatedFlag } from "../flags.ts";
-import { installationPaths } from "../installation.ts";
+import { setRoute } from "../gatewayRoutes.ts";
+import { installationPaths, supersetBin } from "../installation.ts";
 
-const routeLine = "  trellis: 4521,";
+// The plist sets no TRELLIS_PORT, so the launchd server listens on 4521.
+const serverPort = 4521;
 
 type Paths = ReturnType<typeof installationPaths>;
 
@@ -23,6 +25,13 @@ const hostEntry = (host: string | undefined) =>
 const allowedHostsEntry = (names: string[]) =>
 	names.length === 0 ? "" : `\t\t<key>TRELLIS_ALLOWED_HOSTS</key>\n\t\t<string>${xml(names.join(","))}</string>\n`;
 
+// launchd gives the server a PATH that holds only the bun directory and the
+// system directories. The Superset CLI sits in ~/.superset/bin, outside that
+// PATH. Without this key the server spawns "superset" from PATH, and every
+// agents call fails as RUNNER_UNAVAILABLE.
+const supersetEntry = (bin: string | null) =>
+	bin === null ? "" : `\t\t<key>TRELLIS_SUPERSET_BIN</key>\n\t\t<string>${xml(bin)}</string>\n`;
+
 // `bun` is the path that `which` finds on PATH, with no symlink resolved. A
 // Homebrew bun on PATH is a symlink that `brew upgrade` moves to the new
 // version. `process.execPath` names the versioned Cellar directory, which
@@ -32,6 +41,7 @@ const plistText = (
 	host: string | undefined,
 	allowedHosts: string[],
 	bun: string,
+	superset: string | null,
 ) => `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -55,7 +65,7 @@ const plistText = (
 		<string>production</string>
 		<key>TRELLIS_WEB_DIST</key>
 		<string>${xml(paths.webDist)}</string>
-${hostEntry(host)}${allowedHostsEntry(allowedHosts)}	</dict>
+${supersetEntry(superset)}${hostEntry(host)}${allowedHostsEntry(allowedHosts)}	</dict>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>KeepAlive</key>
@@ -79,13 +89,17 @@ const buildWeb = async (ctx: CliContext, paths: Paths) => {
 	if (result.code !== 0) throw new CliFailure("INSTALL_FAILED", 1, result.stderr);
 };
 
-const addGateway = (path: string) => {
-	const text = readFileSync(path, "utf8");
-	if (text.includes(routeLine)) return false;
-	const next = text.replace(/(ROUTES[^=]*=\s*{)/, `$1\n${routeLine}`);
-	if (next === text) throw new CliFailure("INSTALL_FAILED", 1, `ROUTES object not found in ${path}`);
-	writeFileSync(path, next);
-	return true;
+// A gateway on port 80 that reads the routes file sends trellis.localhost to
+// the server. A gateway without that route answers with an error status, so
+// only a 2xx answer proves the route. The fetch fails when nothing listens on
+// port 80.
+const gatewayServes = async (ctx: CliContext) => {
+	const probe = new Request("http://127.0.0.1:80/api/health", { headers: { host: "trellis.localhost" } });
+	try {
+		return (await ctx.deps.fetch(probe, {})).ok;
+	} catch {
+		return false;
+	}
 };
 
 const waitForHealth = async (ctx: CliContext) => {
@@ -123,7 +137,6 @@ export default defineCommand({
 	meta: { name: "install", description: "Install the server as a launchd agent" },
 	args: {
 		prefix: { type: "string", description: "Write install files under this test root" },
-		gateway: { type: "boolean", description: "Add the trellis route to margin" },
 		host: {
 			type: "string",
 			description: "Listen on this address; 0.0.0.0 lets a phone on the network reach the server, which has no auth",
@@ -132,6 +145,10 @@ export default defineCommand({
 			type: "string",
 			description:
 				"Serve requests whose Host header names this hostname, such as a Tailscale Serve name; repeat for more",
+		},
+		"superset-bin": {
+			type: "string",
+			description: "Run agents with this superset binary; the default is the superset on PATH",
 		},
 		// citty parses `--no-launchd` as launchd=false, so the flag carries its
 		// positive name and defaults to on.
@@ -146,6 +163,12 @@ export default defineCommand({
 		const paths = installationPaths(ctx.deps.env, ctx.deps.home, context.args.prefix);
 		const bun = ctx.deps.which("bun");
 		if (bun === null) throw new CliFailure("INSTALL_FAILED", 1, "bun is not on PATH");
+		const superset = supersetBin(ctx.deps, context.args["superset-bin"]);
+		if (superset === null) {
+			ctx.err.write(
+				"superset is not on PATH: agents need the Superset CLI; install it or pass --superset-bin <path>, then run trellis install again\n",
+			);
+		}
 		await buildWeb(ctx, paths);
 		mkdirSync(dirname(paths.shim), { recursive: true });
 		// The shim and the plist run the same bun, so a machine that serves
@@ -154,12 +177,9 @@ export default defineCommand({
 		chmodSync(paths.shim, 0o755);
 		mkdirSync(dirname(paths.plist), { recursive: true });
 		const allowedHosts = repeatedFlag(context.rawArgs, "allow-host");
-		writeFileSync(paths.plist, plistText(paths, context.args.host, allowedHosts, bun));
+		writeFileSync(paths.plist, plistText(paths, context.args.host, allowedHosts, bun, superset));
 
-		if (context.args.gateway === true) {
-			const added = addGateway(paths.gateway);
-			ctx.out.write(`${added ? "added" : "kept"} ${routeLine.trim()} in ${paths.gateway}\n`);
-		}
+		setRoute(paths.routes, "trellis", serverPort);
 
 		if (context.args.launchd) {
 			const domain = ctx.deps.launchdDomain;
@@ -168,11 +188,13 @@ export default defineCommand({
 			await waitForUnload(ctx, service);
 			const loaded = await ctx.deps.run(["launchctl", "bootstrap", domain, paths.plist]);
 			if (loaded.code !== 0) throw new CliFailure("INSTALL_FAILED", 1, loaded.stderr);
-			if (context.args.gateway === true) {
-				await ctx.deps.run(["launchctl", "kickstart", "-k", `${domain}/com.margin.gateway`]);
-			}
 			await waitForHealth(ctx);
-			ctx.out.write(`trellis: ${ctx.url}\n`);
+			if (await gatewayServes(ctx)) {
+				ctx.out.write("trellis: http://trellis.localhost\n");
+			} else {
+				ctx.out.write(`trellis: http://127.0.0.1:${serverPort}\n`);
+				ctx.out.write(`a gateway on port 80 serves http://trellis.localhost when it reads ${paths.routes}\n`);
+			}
 		}
 	},
 });
