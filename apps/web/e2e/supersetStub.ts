@@ -1,22 +1,37 @@
-import { existsSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { StubState } from "../../server/test/stubs/superset.ts";
 
 // The Superset projects the stub knows at boot. Each repo matches the repo
-// that dispatch.spec.ts declares on the trellis project with the same key.
-export const supersetProjects = [
-	{ id: "sp-cde", name: "cde", repo: "acme/cde", path: "/work/cde" },
-	{ id: "sp-bat", name: "bat", repo: "acme/bat", path: "/work/bat" },
-];
+// that a spec declares on the trellis project with the same key. Each path
+// is a git checkout under the temp root of the run, so the server reads
+// its default branch, main.
+export const supersetProjects = (root: string) =>
+	["cde", "bat", "fail"].map((name) => ({
+		id: `sp-${name}`,
+		name,
+		repo: `acme/${name}`,
+		path: join(root, "repos", name),
+	}));
+
+// Makes each project checkout, with origin/HEAD naming main as `git clone`
+// leaves it.
+export const createCheckouts = (root: string) => {
+	for (const { path } of supersetProjects(root)) {
+		execFileSync("git", ["init", "-q", path]);
+		execFileSync("git", ["-C", path, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"]);
+	}
+};
 
 // The first state of stubs/superset.ts, which playwright.config.ts writes.
-export const initialSupersetState: StubState = {
-	projects: supersetProjects,
+export const initialSupersetState = (root: string): StubState => ({
+	projects: supersetProjects(root),
 	workspaces: [],
 	terminals: [],
 	next: 1,
 	failures: {},
-};
+});
 
 // The stub files sit in the temp root of the run.
 const dir = () => join(process.env.TRELLIS_E2E_ROOT!, "superset");
@@ -55,3 +70,28 @@ export const sentTo = (terminalId: string) =>
 	callsOf("terminals send")
 		.filter((call) => flagOf(call, "--terminal") === terminalId)
 		.map((call) => flagOf(call, "--text")!);
+
+// A pause of `ms` that blocks the thread, for the lock loop below.
+const pause = (ms: number) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+// Makes `superset <command>` exit 1 with `message` on stderr, or with null
+// answer again. The e2e stub runs one call at a time under the lock
+// directory beside the state file, so this edit takes the same lock.
+export const scriptFailure = (command: string, message: string | null) => {
+	const path = join(dir(), "state.json");
+	const lock = `${path}.lock`;
+	for (;;) {
+		try {
+			mkdirSync(lock);
+			break;
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+			pause(5);
+		}
+	}
+	const state = JSON.parse(readFileSync(path, "utf8")) as StubState;
+	if (message === null) delete state.failures[command];
+	else state.failures[command] = message;
+	writeFileSync(path, JSON.stringify(state));
+	rmSync(lock, { recursive: true });
+};

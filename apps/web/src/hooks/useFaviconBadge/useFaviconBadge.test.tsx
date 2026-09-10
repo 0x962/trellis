@@ -36,6 +36,7 @@ beforeEach(() => {
 afterEach(() => {
 	HTMLCanvasElement.prototype.getContext = original.getContext;
 	HTMLCanvasElement.prototype.toDataURL = original.toDataURL;
+	for (const link of document.head.querySelectorAll("link[rel~=icon]")) link.remove();
 });
 
 const icon = () => document.head.querySelector<HTMLLinkElement>('link[rel="icon"]')!;

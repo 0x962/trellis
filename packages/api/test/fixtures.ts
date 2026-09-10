@@ -57,6 +57,7 @@ export const agentSession = (overrides: Record<string, unknown> = {}) => ({
 	title: "CDE-42",
 	openUrl: "superset://workspace/ws-7f3a",
 	lastWokenAt: null,
+	error: null,
 	createdAt: "2026-09-10T10:00:00.000Z",
 	...overrides,
 });

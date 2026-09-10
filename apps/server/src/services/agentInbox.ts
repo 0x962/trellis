@@ -18,7 +18,7 @@ import { pathOf, resolveProject } from "./refs.ts";
 // The read and the cursor move share one transaction, so a wake message
 // that arrives twice returns the changes once.
 
-type RawActivity = {
+export type RawActivity = {
 	id: number;
 	batch_id: string;
 	root_id: string;
@@ -44,10 +44,10 @@ type RawComment = {
 	updated_at: string;
 };
 
-const activityColumns = sql`a.id, a.batch_id, a.root_id, a.project_id, a.ticket_id, a.actor_name, a.actor_kind,
+export const activityColumns = sql`a.id, a.batch_id, a.root_id, a.project_id, a.ticket_id, a.actor_name, a.actor_kind,
 	a.action, a.field, a.from_value, a.to_value, a.meta, ${iso(sql`a.created_at`)} AS created_at`;
 
-const toActivity = (row: RawActivity): Activity => ({
+export const toActivity = (row: RawActivity): Activity => ({
 	id: row.id,
 	batchId: row.batch_id,
 	rootId: row.root_id,

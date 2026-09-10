@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "@playwright/test";
 import { createRunRoot, sweepDeadRoots } from "../../../test/runRoot.ts";
 import { ghReplies } from "./ghReplies";
-import { initialSupersetState, supersetLogPath, supersetStatePath } from "./supersetStub";
+import { createCheckouts, initialSupersetState, supersetLogPath, supersetStatePath } from "./supersetStub";
 
 const ROOT_PREFIX = "trellis-e2e-";
 
@@ -40,7 +40,8 @@ if (process.env.TRELLIS_E2E_ROOT === undefined) {
 	mkdirSync(join(root, "user"));
 	writeFileSync(join(root, "gh", "replies.json"), JSON.stringify(ghReplies));
 	mkdirSync(join(root, "superset"));
-	writeFileSync(supersetStatePath(root), JSON.stringify(initialSupersetState));
+	createCheckouts(root);
+	writeFileSync(supersetStatePath(root), JSON.stringify(initialSupersetState(root)));
 	process.env.TRELLIS_E2E_ROOT = root;
 	process.env.TRELLIS_E2E_API_PORT = await freePort();
 	process.env.TRELLIS_E2E_WEB_PORT = await freePort();

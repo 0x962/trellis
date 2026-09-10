@@ -1,14 +1,24 @@
 import type { AgentRunnerProjectsOutput, RunnerProject } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { matchRunnerProject } from "../agents/runner.ts";
+import { isRunnerFailure, matchRunnerProject } from "../agents/runner.ts";
 import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import type { AgentsCtx } from "./agentSessions.ts";
 import { effectiveRepos } from "./agentStart.ts";
 
-// The runner call runs before the transaction opens, so the database stays
-// free while superset runs.
-export const prepareRunnerProjects = (ctx: AgentsCtx): Promise<RunnerProject[]> => ctx.runner.projects();
+// The runner calls run before the transaction opens, so the database stays
+// free while superset and git run. A checkout whose default branch git
+// cannot read lists it as null.
+export const prepareRunnerProjects = async (ctx: AgentsCtx): Promise<RunnerProject[]> => {
+	const branchOf = (path: string) =>
+		ctx.runner.branchAt(path).catch((error: unknown) => {
+			if (isRunnerFailure(error)) return null;
+			throw error;
+		});
+	return Promise.all(
+		(await ctx.runner.projects()).map(async (project) => ({ ...project, defaultBranch: await branchOf(project.path) })),
+	);
+};
 
 // A trellis project matches the runner project that holds the nearest of its
 // declared repos. A builder start and a manager start use the same rule

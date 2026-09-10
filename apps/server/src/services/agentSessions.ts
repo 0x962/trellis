@@ -1,4 +1,4 @@
-import type { AgentRole, AgentRunner, AgentSession, AgentState } from "@trellis/api";
+import type { AgentBatchRecord, AgentRole, AgentRunner, AgentSession, AgentState } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { monotonicFactory } from "ulid";
 import type { Runner } from "../agents/runner.ts";
@@ -12,11 +12,13 @@ import { fail } from "../errors.ts";
 // writes through `newTx` in short transactions of its own while the runner
 // works. `afterCommit` queues work for after the commit, and
 // `settingsChanged` tells the agents host that the agent settings changed.
+// `batches` gives the batches the dispatcher sent, newest first.
 export type AgentsCtx = ServiceCtx & {
 	runner: Runner;
 	newTx: <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
 	afterCommit: (task: () => Promise<void>) => void;
 	settingsChanged: () => void;
+	batches: () => AgentBatchRecord[];
 };
 
 // The states in which an agent holds its terminal. A builder in one of them
@@ -43,11 +45,12 @@ type RawSession = {
 	title: string;
 	open_url: string | null;
 	last_woken_at: string | null;
+	error: string | null;
 	created_at: string;
 };
 
 const columns = sql`s.id, s.project_id, s.ticket_id, s.role, s.runner, s.state, s.workspace_id, s.terminal_id,
-	s.claude_session_id, s.title, s.open_url, ${iso(sql`s.last_woken_at`)} AS last_woken_at,
+	s.claude_session_id, s.title, s.open_url, ${iso(sql`s.last_woken_at`)} AS last_woken_at, s.error,
 	${iso(sql`s.created_at`)} AS created_at`;
 
 const toRow = (raw: RawSession): SessionRow => ({
@@ -63,6 +66,7 @@ const toRow = (raw: RawSession): SessionRow => ({
 	title: raw.title,
 	openUrl: raw.open_url,
 	lastWokenAt: raw.last_woken_at,
+	error: raw.error,
 	createdAt: raw.created_at,
 });
 
@@ -78,6 +82,7 @@ export const toSession = (row: SessionRow): AgentSession => ({
 	title: row.title,
 	openUrl: row.openUrl,
 	lastWokenAt: row.lastWokenAt,
+	error: row.error,
 	createdAt: row.createdAt,
 });
 
@@ -104,15 +109,35 @@ export type SessionInsert = {
 	claudeSessionId: string | null;
 	title: string;
 	openUrl: string | null;
+	error?: string;
 };
 
 export const insertSession = (ctx: ServiceCtx, tx: Tx, row: SessionInsert) =>
 	tx.execute(sql`
 		INSERT INTO agent_sessions (id, project_id, ticket_id, role, runner, state, workspace_id, terminal_id,
-			claude_session_id, title, open_url, created_at, updated_at)
+			claude_session_id, title, open_url, error, created_at, updated_at)
 		VALUES (${row.id}, ${row.projectId}, ${row.ticketId}, ${row.role}, 'superset', ${row.state}, ${row.workspaceId},
-			${row.terminalId}, ${row.claudeSessionId}, ${row.title}, ${row.openUrl}, ${ctx.now}, ${ctx.now})
+			${row.terminalId}, ${row.claudeSessionId}, ${row.title}, ${row.openUrl}, ${row.error ?? null}, ${ctx.now}, ${ctx.now})
 	`);
+
+// The newest manager of a project that trellis did not stop and whose
+// terminal the runner reported.
+export const managerOf = async (tx: Tx, projectId: string) =>
+	(
+		await selectSessions(
+			tx,
+			sql`s.project_id = ${projectId} AND s.role = 'manager' AND s.state <> 'stopped'
+				AND s.workspace_id IS NOT NULL AND s.terminal_id IS NOT NULL`,
+		)
+	).at(-1);
+
+// Sets the session to `failed` with what the runner said, and announces it.
+export const failSession = async (ctx: ServiceCtx, tx: Tx, id: string, message: string) => {
+	await tx.execute(
+		sql`UPDATE agent_sessions SET state = 'failed', error = ${message}, updated_at = ${ctx.now} WHERE id = ${id}`,
+	);
+	return announce(ctx, tx, id);
+};
 
 // Reads the session as the transaction holds it, queues agents.session for
 // it, and returns it. Every write to a session ends here, so the web sees

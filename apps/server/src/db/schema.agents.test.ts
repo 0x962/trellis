@@ -109,3 +109,12 @@ describe("agent_cursors", () => {
 		expect(await count(h.db, "agent_cursors")).toBe(0);
 	});
 });
+
+describe("agent_sessions failures", () => {
+	test("a failed session keeps its error, and a failed manager stays outside the one-live-manager index", async () => {
+		const { rootId } = await ticketOf();
+		await session(rootId, { state: "failed", error: "superset ws create: fatal: invalid reference: main" });
+		await session(rootId, { state: "running" });
+		expect(await count(h.db, "agent_sessions")).toBe(2);
+	});
+});

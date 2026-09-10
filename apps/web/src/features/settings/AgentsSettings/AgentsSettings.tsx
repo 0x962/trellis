@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { AgentRunner, RunnerReason } from "@trellis/api";
 import { Select, Switch } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
+import { managerOf } from "../../agent/utils/managerOf";
 import { runnerReasonLine } from "../../agent/utils/runnerReasonLine";
 import { SettingsRow } from "../SettingsRow";
 import { AgentProjectRow } from "./components/AgentProjectRow";
@@ -10,7 +11,8 @@ import { useAgentSettings } from "./hooks/useAgentSettings";
 
 const runners: { value: AgentRunner; label: string }[] = [{ value: "superset", label: "Superset" }];
 
-// The global agent switch, the runner, and one block per open root project.
+// The global agent switch, the runner, and one block per open root project,
+// each with the state of its manager.
 // A manager serves a root and every sub-project under it, so a sub-project
 // gets no block. The runner project list fills each block's picker; a
 // runner that cannot answer leaves each picker on Auto.
@@ -19,6 +21,7 @@ export function AgentsSettings() {
 	const { saved, save } = useAgentSettings();
 	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} })).data;
 	const runner = useQuery({ ...orpc.agents.runnerProjects.queryOptions({}), retry: false });
+	const overview = useQuery(orpc.agents.overview.queryOptions({})).data;
 	if (saved === undefined || projects === undefined) return null;
 
 	const roots = projects.filter((project) => project.parentId === null && project.archivedAt === null);
@@ -53,7 +56,12 @@ export function AgentsSettings() {
 				</p>
 			)}
 			{roots.map((project) => (
-				<AgentProjectRow key={project.id} project={project} runner={runner.data} />
+				<AgentProjectRow
+					key={project.id}
+					project={project}
+					runner={runner.data}
+					manager={managerOf(overview?.sessions ?? [], project.id)}
+				/>
 			))}
 		</SettingsRow>
 	);

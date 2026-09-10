@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { agentSession, agentSettings, managerSession, projectSettings } from "../../test/agentFixtures.ts";
+import {
+	agentSession,
+	agentSettings,
+	agentsOverview,
+	managerSession,
+	projectSettings,
+} from "../../test/agentFixtures.ts";
 import { lines, runCli } from "../../test/deps.ts";
-import { project, projectId, projectId2 } from "../../test/fixtures.ts";
+import { project, projectId2 } from "../../test/fixtures.ts";
 
 describe("agents status", () => {
 	test("--project lists the sessions of the project", async () => {
@@ -27,19 +33,30 @@ describe("agents status", () => {
 		expect(JSON.parse(result.stdout)).toEqual(sessions);
 	});
 
-	test("without a scope it lists the sessions of every project in the agent settings", async () => {
-		const byProject: Record<string, unknown[]> = {
-			[projectId]: [managerSession()],
-			[projectId2]: [agentSession({ projectId: projectId2, title: "OPS-1" })],
-		};
-		const result = await runCli(["agents", "status", "--json"], {
-			"agents.settings": agentSettings(),
-			"agents.sessions": (input: { project: string }) => ({ sessions: byProject[input.project] }),
-		});
+	// The Activity page in the web reads the same overview.
+	test("without a scope it prints the overview as the procedure output", async () => {
+		const result = await runCli(["agents", "status", "--json"], { "agents.overview": agentsOverview() });
 		expect(result.code).toBe(0);
-		expect(result.calls.map((call) => call.path)).toEqual(["agents.settings", "agents.sessions", "agents.sessions"]);
-		expect(result.calls.slice(1).map((call) => call.input)).toEqual([{ project: projectId }, { project: projectId2 }]);
-		expect(JSON.parse(result.stdout)).toEqual({ sessions: [...byProject[projectId]!, ...byProject[projectId2]!] });
+		expect(result.calls.map((call) => call.path)).toEqual(["agents.overview"]);
+		expect(JSON.parse(result.stdout)).toEqual(agentsOverview());
+	});
+
+	test("without a scope on a TTY it prints the sessions with their errors, the agent actions, and the batches", async () => {
+		const result = await runCli(["agents", "status"], { "agents.overview": agentsOverview() }, { tty: true });
+		expect(result.code).toBe(0);
+		for (const fragment of [
+			"sessions (2)",
+			"CDE manager",
+			"failed",
+			"superset ws create: fatal: invalid reference: main",
+			"actions (1)",
+			"CDE-42",
+			"agent:manager-cde",
+			"batches (1)",
+			"trellis: 2 changes in CDE",
+		]) {
+			expect(result.stdout, fragment).toContain(fragment);
+		}
 	});
 
 	test("--project and --ticket together exit 2 and send nothing", async () => {

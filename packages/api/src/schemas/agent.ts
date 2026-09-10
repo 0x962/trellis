@@ -14,7 +14,9 @@ const RunnerIdSchema = z.string().min(1).max(200);
 // `agents.register`. `ticketId` is null for the manager. `workspaceId`,
 // `terminalId`, and `openUrl` are null until the runner reports them.
 // `openUrl` is the deep link that opens the workspace in Superset. `title`
-// is the tab name, for example "CDE-42 review".
+// is the tab name, for example "CDE-42 review". `error` is what the runner
+// said when it could not start the agent; it is null unless the state is
+// `failed`.
 export const AgentSessionSchema = z.object({
 	id: UlidSchema,
 	projectId: UlidSchema,
@@ -27,6 +29,7 @@ export const AgentSessionSchema = z.object({
 	title: z.string().min(1).max(120),
 	openUrl: z.string().min(1).nullable(),
 	lastWokenAt: IsoDateTimeSchema.nullable(),
+	error: z.string().min(1).nullable(),
 	createdAt: IsoDateTimeSchema,
 });
 export type AgentSession = z.infer<typeof AgentSessionSchema>;
@@ -111,14 +114,16 @@ export const AgentWakeInputSchema = z.strictObject({
 export type AgentWakeInput = z.input<typeof AgentWakeInputSchema>;
 
 // `supersetProjectId` null lets the server match the project's declared
-// repo to a Superset project. `maxConcurrent` caps the builders that run at
-// one time in the project. `removeWorkspaceOnDone` removes the builder's
-// workspace when its ticket is done; the branch stays either way.
+// repo to a Superset project. `baseBranch` null starts each agent from the
+// default branch of that Superset project's checkout. `maxConcurrent` caps
+// the tickets that have a live builder at one time in the project.
+// `removeWorkspaceOnDone` removes the builder's workspace when its ticket is
+// done; the branch stays either way.
 export const AgentProjectSettingsSchema = z.object({
 	projectId: UlidSchema,
 	enabled: z.boolean(),
 	supersetProjectId: RunnerIdSchema.nullable(),
-	baseBranch: z.string().min(1).max(255),
+	baseBranch: z.string().min(1).max(255).nullable().default(null),
 	maxConcurrent: z.number().int().min(1).max(20).default(3),
 	removeWorkspaceOnDone: z.boolean().default(true),
 });
@@ -126,11 +131,14 @@ export type AgentProjectSettings = z.infer<typeof AgentProjectSettingsSchema>;
 
 // One project the runner knows: for Superset, one row of
 // `superset projects list`. `repo` is null for a project with no remote.
+// `defaultBranch` is the branch origin/HEAD names in the checkout at `path`,
+// or null when git cannot read it.
 export const RunnerProjectSchema = z.object({
 	id: RunnerIdSchema,
 	name: z.string().min(1),
 	repo: z.string().min(1).nullable(),
 	path: z.string().min(1),
+	defaultBranch: z.string().min(1).nullable(),
 });
 export type RunnerProject = z.infer<typeof RunnerProjectSchema>;
 
@@ -142,6 +150,36 @@ export const AgentRunnerProjectsOutputSchema = z.object({
 	matches: z.array(z.object({ projectId: UlidSchema, runnerProjectId: RunnerIdSchema })),
 });
 export type AgentRunnerProjectsOutput = z.infer<typeof AgentRunnerProjectsOutputSchema>;
+
+// The runner starts the manager of `project` again: a failed or exited
+// manager starts in its own session row.
+export const AgentRetryManagerInputSchema = z.strictObject({
+	project: ProjectRefStringSchema,
+});
+export type AgentRetryManagerInput = z.input<typeof AgentRetryManagerInputSchema>;
+
+// One batch the dispatcher sent to a manager: when, to which project, how
+// many changes, and the text it typed into the manager's terminal.
+export const AgentBatchRecordSchema = z.object({
+	at: IsoDateTimeSchema,
+	projectId: UlidSchema,
+	count: z.number().int().positive(),
+	text: z.string().min(1),
+});
+export type AgentBatchRecord = z.infer<typeof AgentBatchRecordSchema>;
+
+// What the agents do, for the Activity page and `trellis agents status`.
+// `sessions` holds every session of every project. `actions` holds the last
+// 50 activity rows of the manager, builder, and reviewer agents, newest
+// first, and `tickets` the identifier of each ticket they name. `batches`
+// holds the last 20 batches since the server started, newest first.
+export const AgentsOverviewSchema = z.object({
+	sessions: z.array(AgentSessionSchema),
+	actions: z.array(ActivitySchema),
+	tickets: z.array(z.object({ id: UlidSchema, identifier: z.string().min(1) })),
+	batches: z.array(AgentBatchRecordSchema),
+});
+export type AgentsOverview = z.infer<typeof AgentsOverviewSchema>;
 
 // A project has one manager, so it has at most one settings row.
 const oneRowPerProject = (projects: Array<{ projectId: string }>) =>
