@@ -28,14 +28,14 @@ PgDatabase.prototype.execute = function execute(query) {
 // A bigint column arrives as a JavaScript number: every activity id stays
 // far below 2^53, and JSON cannot carry a BigInt.
 // `shared_buffers` is the Postgres page cache. It lives in the WebAssembly
-// memory and stays resident for the life of the process. The Postgres
-// default of 128 MB puts the idle server over its 350 MB budget. The
-// operating system file cache still holds the data files, so a list query
-// at 10k tickets keeps its latency at 16 MB.
+// memory and stays resident for the life of the process. At 16 MB the idle
+// server sits at its 350 MB budget after a first boot; 8 MB keeps it about
+// 7 MB under. The operating system file cache still holds the data files,
+// so the 10k perf suite keeps its latency budgets at 8 MB.
 export const openDb = async (dataDir: string) => {
 	const client = await PGlite.create({
 		dataDir: dataDir === ":memory:" ? "memory://" : dataDir,
-		startParams: [...PGlite.defaultStartParams, "-c", "shared_buffers=16MB"],
+		startParams: [...PGlite.defaultStartParams, "-c", "shared_buffers=8MB"],
 		extensions: { pg_trgm },
 		parsers: { [types.INT8]: (value: string) => Number(value) },
 	});
