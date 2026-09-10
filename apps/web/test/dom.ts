@@ -23,3 +23,20 @@ HTMLElement.prototype.focus = function (options?: FocusOptions) {
 	void options?.preventScroll;
 	focus.call(this);
 };
+
+// bun prints the received value when an expectation fails. A DOM node reaches
+// the React fiber graph, the query cache, and the window behind it, so
+// printing one costs about a second, and a `waitFor` that polls a failing
+// assertion spends its whole budget on the message. A node prints as its own
+// tag and attributes instead. Testing Library formats its own DOM output, so
+// a query failure still names the tree it searched.
+const inspect = Symbol.for("nodejs.util.inspect.custom");
+Object.defineProperty(Node.prototype, inspect, {
+	value(this: Node) {
+		if (!(this instanceof Element)) return this.nodeName;
+		const attributes = [...this.attributes].map((attribute) => ` ${attribute.name}="${attribute.value}"`).join("");
+		return `<${this.tagName.toLowerCase()}${attributes}>`;
+	},
+	configurable: true,
+	writable: true,
+});
