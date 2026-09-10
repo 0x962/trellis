@@ -42,8 +42,25 @@ const INLINE_MIMES: ReadonlySet<string> = new Set([
 // type and the subtype decide, so the parameters are cut off first.
 export const isInlineMime = (mime: string) => INLINE_MIMES.has(mime.split(";")[0]!.trim().toLowerCase());
 
-export const contentDisposition = (filename: string, mime: string) =>
-	`${isInlineMime(mime) ? "inline" : "attachment"}; filename="${filename}"`;
+// A header value holds Latin-1 only, and Bun refuses any other value with a
+// 500. A filename of printable ASCII without `"` or `\` goes in `filename`
+// as it is. Any other filename gets an ASCII fallback in `filename`, with
+// `_` for each other character, and its exact UTF-8 form in `filename*`
+// (RFC 6266). A browser uses `filename*` when it is present.
+const PLAIN_FILENAME = /^[\x20-\x7e]*$/;
+const UNSAFE_IN_FALLBACK = /[^\x20-\x7e]|["\\]/g;
+
+// encodeURIComponent leaves `'()*` as they are, and RFC 5987 does not allow
+// them unencoded in `filename*`.
+const encodeRfc5987 = (value: string) =>
+	encodeURIComponent(value).replace(/['()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+
+export const contentDisposition = (filename: string, mime: string) => {
+	const disposition = isInlineMime(mime) ? "inline" : "attachment";
+	if (PLAIN_FILENAME.test(filename) && !/["\\]/.test(filename)) return `${disposition}; filename="${filename}"`;
+	const fallback = filename.replace(UNSAFE_IN_FALLBACK, "_");
+	return `${disposition}; filename="${fallback}"; filename*=UTF-8''${encodeRfc5987(filename)}`;
+};
 
 export const fileUrl = (id: string) => `/api/attachments/${id}/file`;
 
