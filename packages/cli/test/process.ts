@@ -105,15 +105,18 @@ export const followLog = async (home: string, append: string) => {
 
 type StartedCliServer = {
 	proc: Subprocess<"ignore", "pipe", "pipe">;
+	port: number;
 	url: string;
 	stop: () => Promise<ProcessResult>;
 };
 
+// `args` follow `serve` on the command line, such as `--host ::1`.
 export const startCliServer = async (
 	home: string,
 	env: Record<string, string | undefined> = {},
+	args: string[] = [],
 ): Promise<StartedCliServer> => {
-	const proc = Bun.spawn(["bun", cliEntry, "serve"], {
+	const proc = Bun.spawn(["bun", cliEntry, "serve", ...args], {
 		cwd: cliDir,
 		env: processEnv({ TRELLIS_HOME: home, TRELLIS_PORT: "0", ...env }),
 		stdin: "ignore",
@@ -143,6 +146,7 @@ export const startCliServer = async (
 	]);
 	return {
 		proc,
+		port: started,
 		url: `http://127.0.0.1:${started}`,
 		stop: async () => {
 			proc.kill("SIGTERM");

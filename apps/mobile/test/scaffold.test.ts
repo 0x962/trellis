@@ -34,6 +34,19 @@ const sourceFiles = () =>
 	);
 
 describe("scaffold", () => {
+	// iOS stops an app that opens the camera without a usage description, and
+	// the expo-camera plugin writes that description from `cameraPermission`.
+	test("app.json configures expo-camera with a camera usage description and pins it", async () => {
+		const { expo } = await json("app.json");
+		const camera = (expo.plugins as unknown[]).find(
+			(plugin): plugin is [string, { cameraPermission: string }] => Array.isArray(plugin) && plugin[0] === "expo-camera",
+		);
+		expect(camera?.[1].cameraPermission).toMatch(/\S{3,}/);
+		const { dependencies } = (await json("package.json")) as { dependencies: Record<string, string> };
+		expect(dependencies["expo-camera"]).toMatch(exactPin);
+		expect(expo.scheme).toBe("trellis");
+	});
+
 	// `userInterfaceStyle` fixes the appearance iOS reports to the app.
 	// `automatic` lets `Appearance.getColorScheme()` follow the device, which
 	// the System option in Settings needs. The app paints dark on a fresh

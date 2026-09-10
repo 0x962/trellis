@@ -44,6 +44,21 @@ describe("install", () => {
 		expect(text).not.toContain(join(homedir(), ".trellis"));
 	});
 
+	test("--host writes TRELLIS_HOST into the plist", async () => {
+		const { prefix, env, plist } = setup();
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd", "--host", "0.0.0.0"], {}, { env });
+		expect(result.code, result.stderr).toBe(0);
+		expect(readFileSync(plist, "utf8")).toContain("<key>TRELLIS_HOST</key>\n\t\t<string>0.0.0.0</string>");
+	});
+
+	// The server binds 127.0.0.1 when TRELLIS_HOST is unset.
+	test("without --host the plist sets no TRELLIS_HOST", async () => {
+		const { prefix, env, plist } = setup();
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
+		expect(result.code, result.stderr).toBe(0);
+		expect(readFileSync(plist, "utf8")).not.toContain("TRELLIS_HOST");
+	});
+
 	test("the web build runs through the injected runner in apps/web", async () => {
 		const { prefix, env } = setup();
 		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });

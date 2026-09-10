@@ -16,7 +16,17 @@ describe("system", () => {
 		const response = await t.api("/api/health", { actor: null });
 
 		expect(response.status).toBe(200);
-		expect(Object.keys(response.body).sort()).toEqual(["apiVersion", "bootId", "db", "gh", "ok", "rss", "version"]);
+		expect(Object.keys(response.body).sort()).toEqual([
+			"addresses",
+			"apiVersion",
+			"bootId",
+			"db",
+			"gh",
+			"ok",
+			"rss",
+			"version",
+		]);
+		expect(response.body.addresses).toEqual(t.runtime.addresses());
 		expect(response.body.ok).toBe(true);
 		expect(response.body.version).toBe(t.runtime.version);
 		expect(response.body.apiVersion).toMatch(/\S+/);

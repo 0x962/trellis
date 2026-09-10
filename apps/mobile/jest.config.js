@@ -45,6 +45,7 @@ module.exports = {
 		"^react-native-mmkv$": "<rootDir>/test/mocks/react-native-mmkv.ts",
 		"^react-native-sse$": "<rootDir>/test/mocks/react-native-sse.ts",
 		"^expo-haptics$": "<rootDir>/test/mocks/expo-haptics.ts",
+		"^expo-camera$": "<rootDir>/test/mocks/expo-camera.tsx",
 	},
 	setupFilesAfterEnv: ["<rootDir>/test/jest.setup.ts"],
 };

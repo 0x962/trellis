@@ -10,6 +10,13 @@ import { loadConfig } from "./config.ts";
 const repoWebDist = join(import.meta.dir, "..", "..", "web", "dist");
 
 describe("config", () => {
+	// A phone on the network reaches the server only through a non-loopback
+	// address, so TRELLIS_HOST opens it and the default keeps it on this machine.
+	test("the listen host is 127.0.0.1 unless TRELLIS_HOST names another", () => {
+		expect(loadConfig({}).host).toBe("127.0.0.1");
+		expect(loadConfig({ TRELLIS_HOST: "0.0.0.0" }).host).toBe("0.0.0.0");
+	});
+
 	test("config falls back to the documented defaults", () => {
 		const config = loadConfig({});
 

@@ -29,6 +29,7 @@ const health = {
 	apiVersion: "1",
 	bootId: "01J8Z6X4Q3M2K1H0G9F8E7D6B0",
 	rss: 1,
+	addresses: ["http://192.168.1.20:4521"],
 	db: { ok: true, sizeBytes: 1 },
 	gh: { ok: false, user: null, reason: null, message: null, checkedAt: null },
 };
