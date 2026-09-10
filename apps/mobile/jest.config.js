@@ -3,7 +3,8 @@
 const preset = require("jest-expo/jest-preset");
 
 // These packages ship untranspiled source, so babel transforms them. The
-// list is jest-expo's own plus NativeWind, its runtime, and oRPC.
+// list is jest-expo's own plus NativeWind, its runtime, oRPC, FlashList, and
+// rou3, the ESM-only router the fake server's OpenAPI handler loads.
 const transformed = [
 	"react-native",
 	"@react-native",
@@ -19,6 +20,8 @@ const transformed = [
 	"nativewind",
 	"react-native-css-interop",
 	"@orpc",
+	"@shopify/flash-list",
+	"rou3",
 ];
 
 // oRPC ships ESM in `.mjs` files only. Jest without `--experimental-vm-modules`
@@ -38,5 +41,8 @@ module.exports = {
 		"^react-native-mmkv$": "<rootDir>/test/mocks/react-native-mmkv.ts",
 		"^react-native-sse$": "<rootDir>/test/mocks/react-native-sse.ts",
 	},
+	// FlashList measures its box through native layout calls. The package's
+	// own jest setup answers them with a 400 by 900 box, so rows render.
+	setupFiles: [...preset.setupFiles, require.resolve("@shopify/flash-list/jestSetup")],
 	setupFilesAfterEnv: ["<rootDir>/test/jest.setup.ts"],
 };

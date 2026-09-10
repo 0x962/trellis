@@ -40,6 +40,14 @@ describe("scaffold", () => {
 		}
 	});
 
+	// O57. The maintained fork of react-native-markdown-display renders the
+	// description and the comment bodies; 9.0.3 is the current release.
+	test("the markdown renderer is pinned to one exact version", async () => {
+		const { dependencies } = (await json("package.json")) as { dependencies: Record<string, string> };
+		expect(dependencies).toHaveProperty("@ronradtke/react-native-markdown-display");
+		expect(dependencies["@ronradtke/react-native-markdown-display"]).toMatch(exactPin);
+	});
+
 	test("babel, metro, bunfig, and scripts are wired for NativeWind and the two test runners", async () => {
 		const babel = require(join(root, "babel.config.js")) as (api: { cache: (flag: boolean) => void }) => {
 			presets: unknown[];
@@ -69,15 +77,19 @@ describe("scaffold", () => {
 		}
 		expect(long).toEqual([]);
 
-		const components = readdirSync(join(root, "src/components")).filter((entry) =>
-			statSync(join(root, "src/components", entry)).isDirectory(),
+		// O58. A folder under src/components or src/ticket holds a file of its
+		// own name (.tsx for a component, .ts for a module) and an index.ts.
+		const folders = ["src/components", "src/ticket"].flatMap((dir) =>
+			readdirSync(join(root, dir))
+				.filter((entry) => statSync(join(root, dir, entry)).isDirectory())
+				.map((entry) => join(dir, entry)),
 		);
-		expect(components.length).toBeGreaterThan(0);
-		const incomplete = components.filter(
-			(name) =>
-				!existsSync(join(root, "src/components", name, `${name}.tsx`)) ||
-				!existsSync(join(root, "src/components", name, "index.ts")),
-		);
+		expect(folders.length).toBeGreaterThan(0);
+		const incomplete = folders.filter((folder) => {
+			const name = folder.split("/").at(-1)!;
+			const own = existsSync(join(root, folder, `${name}.tsx`)) || existsSync(join(root, folder, `${name}.ts`));
+			return !own || !existsSync(join(root, folder, "index.ts"));
+		});
 		expect(incomplete).toEqual([]);
 	});
 });
