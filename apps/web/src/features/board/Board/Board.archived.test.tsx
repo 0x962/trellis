@@ -50,15 +50,14 @@ describe("Board of an archived project", () => {
 		expect(source.closest("ul")).not.toBe(target);
 	});
 
-	// Shift+Arrow moves a focused card from the keyboard. On an archived
-	// project it sends no move and says why.
-	test("Shift+ArrowDown on a card sends no move and names the project", async () => {
+	// `]` moves a focused card to the next column from the keyboard. On an
+	// archived project it sends no move and says why.
+	test("a bracket key on a card sends no move and names the project", async () => {
 		const server = archivedBoard();
 		await screen.findByRole("listitem", { name: /^CDE-47 / });
 		const focused = card("CDE-47");
 		focused.focus();
-		fireEvent.keyDown(focused, { key: "ArrowDown", shiftKey: true });
-		fireEvent.keyDown(focused, { key: "ArrowUp", shiftKey: true });
+		fireEvent.keyDown(focused, { key: "]" });
 		expect(await screen.findByText(notice)).toBeDefined();
 		await settle(50);
 		expect(moves(server)).toHaveLength(0);

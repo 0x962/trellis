@@ -43,10 +43,11 @@ const double: CursorKey = {
 	valid: (value) => typeof value === "number" && Number.isFinite(value),
 };
 
-// Every sort breaks ties by id descending, newest first. The position sort
-// is the board's order: a board column lists (position, id) ascending and
-// `list` with `status=` continues that column past 100 cards, so its
-// tiebreak follows the sort direction.
+// Every sort breaks ties by id descending, newest first. The default sort
+// is the board's order: a board column lists (updated_at, id) descending
+// and `list` with `status=` continues that column past 100 cards. The
+// position sort lists a column in its manual order, so its tiebreak follows
+// the sort direction.
 const fields: Record<string, SortField> = {
 	updatedAt: { exprs: [sql`t.updated_at`], reads: [iso(sql`t.updated_at`)], keys: [timestamptz], tie: "desc" },
 	createdAt: { exprs: [sql`t.created_at`], reads: [iso(sql`t.created_at`)], keys: [timestamptz], tie: "desc" },

@@ -7,13 +7,13 @@ beforeEach(() => localStorage.clear());
 const footer = () => document.querySelector("[data-list-footer]");
 
 describe("routes: the board footer", () => {
-	// A board shows its cards in their manual position order, so its footer
-	// names that order and not the table's sort.
-	test("the project board and the all-ticket board footers say Manual order", async () => {
+	// A board column lists the ticket that changed last at the top, so its
+	// footer names that order and not the table's sort.
+	test("the project board and the all-ticket board footers name the last update order", async () => {
 		for (const path of ["/p/CDE/board", "/all/board"]) {
 			const view = renderApp({ path, actor: "navid" });
-			await waitFor(() => expect(footer()?.textContent, path).toContain("Manual order"));
-			expect(footer()!.textContent, path).not.toContain("Sorted by");
+			await waitFor(() => expect(footer()?.textContent, path).toContain("Sorted by the last update"));
+			expect(footer()!.textContent, path).not.toContain("priority");
 			view.unmount();
 			localStorage.clear();
 		}

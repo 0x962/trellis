@@ -1,11 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
-import { Board, boardSort } from "../features/board";
+import { Board, boardSortLabel } from "../features/board";
 import { isCanonicalSearch } from "../features/filters/canonical";
 import { FilterBar } from "../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../features/filters/grammar";
-import { sortLabel } from "../features/filters/labels";
 import { ListFooter } from "../features/shell/ListFooter";
 import { NewTicketButton } from "../features/shell/NewTicketButton";
 import { Topbar } from "../features/shell/Topbar";
@@ -77,7 +76,7 @@ function AllBoardPage() {
 			<Board filters={toCountsQuery(view, { statuses })} storageKey="all" onOpenTicket={openTicket}>
 				<TicketPeek />
 			</Board>
-			<ListFooter total={counts?.total} sort={sortLabel(boardSort)} />
+			<ListFooter total={counts?.total} sort={boardSortLabel} />
 		</>
 	);
 }

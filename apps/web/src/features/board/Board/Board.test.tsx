@@ -9,6 +9,7 @@ import { findTicket, matchStatus } from "../../../../test/fake-server/state";
 import { ticketSummary } from "../../../../test/fake-server/summaries";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import { useUiStore } from "../../../stores/uiStore";
+import { useComposerStore } from "../../composer/composerStore";
 import { Board } from ".";
 
 // The UI store keeps the collapsed columns in memory, so each test starts
@@ -16,6 +17,7 @@ import { Board } from ".";
 beforeEach(() => {
 	localStorage.clear();
 	useUiStore.setState({ collapsedGroups: {} });
+	useComposerStore.setState({ open: false, options: {} });
 });
 
 const renderBoard = (server = createFakeServer()) =>
@@ -28,6 +30,11 @@ const renderBoard = (server = createFakeServer()) =>
 const column = (name: string) => screen.getByRole("list", { name: new RegExp(`^${name},`) });
 
 const card = (identifier: string) => screen.getByRole("listitem", { name: new RegExp(`^${identifier} `) });
+
+const identifiers = (list: HTMLElement) =>
+	within(list)
+		.getAllByRole("listitem")
+		.map((item) => item.getAttribute("aria-label")!.split(" ")[0]!);
 
 const drop = (source: HTMLElement, target: HTMLElement, edge?: "top" | "bottom") => {
 	const dataTransfer = new DataTransfer();
@@ -81,6 +88,24 @@ describe("Board", () => {
 		expect(badge.getAttribute("data-state")).toBe("warning");
 	});
 
+	// The board matches the sort field of the table: the ticket that changed
+	// last sits at the top of its column, and a tie breaks by id descending.
+	test("a column lists the last updated card first", async () => {
+		const server = createFakeServer();
+		renderBoard(server);
+		await screen.findByText("CDE-47");
+		const project = [...server.state.projects.values()].find((entry) => entry.path === "CDE")!;
+		const todo = [...server.state.statuses.values()].find(
+			(status) => status.projectId === project.id && status.slug === "todo",
+		)!;
+		const expected = [...server.state.tickets.values()]
+			.filter((row) => row.statusId === todo.id)
+			.sort((a, b) => (a.updatedAt === b.updatedAt ? (a.id < b.id ? 1 : -1) : a.updatedAt < b.updatedAt ? 1 : -1))
+			.map((row) => `${project.key}-${row.number}`);
+		expect(expected.length).toBeGreaterThan(1);
+		expect(identifiers(column("Todo"))).toEqual(expected);
+	});
+
 	test("a drop between columns patches the cache before one move response", async () => {
 		const server = createFakeServer();
 		let release = () => {};
@@ -120,21 +145,22 @@ describe("Board", () => {
 		).toBeDefined();
 	});
 
-	test("a drop inside a column sends an anchor", async () => {
+	// A column has no manual order, so a drop inside the card's own column
+	// takes no drop target and writes nothing.
+	test("a drop inside the card's own column changes nothing", async () => {
 		const server = createFakeServer();
 		renderBoard(server);
 		await screen.findByText("CDE-47");
-		drop(card("CDE-47"), card("CDE-39"), "bottom");
-		await waitFor(() => {
-			const move = server.calls.find((call) => call.path.join(".") === "tickets.move");
-			expect(move).toBeDefined();
-			const input = move!.input as Record<string, unknown>;
-			expect(input).toMatchObject({ ticket: "CDE-47", status: "todo" });
-			expect("after" in input || "before" in input).toBe(true);
-		});
+		const before = identifiers(column("Todo"));
+		drop(card("CDE-47"), card(before.find((identifier) => identifier !== "CDE-47")!), "bottom");
+		await waitFor(() =>
+			expect(screen.getByRole("status", { name: "Board drag status" }).textContent).toBe("Drop canceled"),
+		);
+		expect(server.calls.filter((call) => call.path.join(".") === "tickets.move")).toHaveLength(0);
+		expect(identifiers(column("Todo"))).toEqual(before);
 	});
 
-	test("brackets change columns and Shift with arrows reorders", async () => {
+	test("brackets change columns and Shift with an arrow only moves the focus", async () => {
 		const server = createFakeServer();
 		renderBoard(server);
 		const item = await screen.findByRole("listitem", { name: /^CDE-47 / });
@@ -148,13 +174,15 @@ describe("Board", () => {
 				),
 			).toBe(true),
 		);
+		const moves = server.calls.filter((call) => call.path.join(".") === "tickets.move").length;
 		const moved = card("CDE-47");
 		moved.focus();
+		const before = identifiers(column("In Progress"));
+		const below = before[before.indexOf("CDE-47") + 1]!;
 		fireEvent.keyDown(moved, { key: "ArrowDown", shiftKey: true });
-		await waitFor(() => {
-			const moves = server.calls.filter((call) => call.path.join(".") === "tickets.move");
-			expect(moves.at(-1)?.input).toMatchObject({ ticket: "CDE-47", status: "in-progress", after: "CDE-43" });
-		});
+		expect(document.activeElement).toBe(card(below));
+		expect(server.calls.filter((call) => call.path.join(".") === "tickets.move")).toHaveLength(moves);
+		expect(identifiers(column("In Progress"))).toEqual(before);
 	});
 
 	test("the live region announces pick up, move, and cancel", async () => {
@@ -212,19 +240,12 @@ describe("Board", () => {
 		expect(await screen.findByText("Old completed ticket")).toBeDefined();
 	});
 
-	test("quick add creates a ticket in the column status", async () => {
+	test("the column header plus opens New ticket in the project and the column status", async () => {
 		const server = createFakeServer();
 		renderBoard(server);
 		await userEvent.setup().click(await screen.findByRole("button", { name: "New ticket in Todo" }));
-		const input = screen.getByRole("textbox", { name: "New ticket title in Todo" });
-		await userEvent.setup().type(input, "A board ticket{Enter}");
-		await waitFor(() => {
-			const create = server.calls.find(
-				(call) =>
-					call.path.join(".") === "tickets.create" && (call.input as { title?: string }).title === "A board ticket",
-			);
-			expect(create?.input).toMatchObject({ project: "CDE", status: "todo" });
-		});
+		expect(useComposerStore.getState()).toMatchObject({ open: true, options: { project: "CDE", status: "todo" } });
+		expect(server.calls.filter((call) => call.path.join(".") === "tickets.create")).toHaveLength(0);
 	});
 
 	test("a ticket.updated event moves a card without a board refetch", async () => {

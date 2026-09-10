@@ -77,58 +77,74 @@ describe("Board drag", () => {
 		await waitFor(() => expect(card("CDE-47").getAttribute("data-dragging")).toBeNull());
 	});
 
-	test("over the empty part of a column, one line shows under the last card and the column has no tint", async () => {
+	test("over the empty part of another column, one line shows above its first card and the column has no tint", async () => {
 		renderBoard();
 		await screen.findByText("CDE-47");
 		const target = column("In Progress");
-		const last = identifiers(target).at(-1)!;
+		const first = identifiers(target)[0]!;
 		const dataTransfer = hover(card("CDE-47"), target);
 		await waitFor(() => expect(document.querySelectorAll("[data-drag-indicator]")).toHaveLength(1));
 		const line = document.querySelector<HTMLElement>("[data-drag-indicator]")!;
-		expect(line.closest("li")?.getAttribute("aria-label")?.split(" ")[0]).toBe(last);
-		expect(line.getAttribute("data-edge")).toBe("bottom");
+		expect(line.closest("li")?.getAttribute("aria-label")?.split(" ")[0]).toBe(first);
+		expect(line.getAttribute("data-edge")).toBe("top");
 		expect(target.closest("section")!.className).not.toMatch(/bg-accent/);
 		fireEvent.dragEnd(card("CDE-47"), { dataTransfer });
 	});
 
-	test("over a card, only the card's line shows", async () => {
+	// The card lands at the top of the column it enters, whatever card the
+	// pointer rests on, so one line shows and it shows there.
+	test("over the last card of another column, only the line above its first card shows", async () => {
 		renderBoard();
 		await screen.findByText("CDE-47");
-		const first = identifiers(column("In Progress"))[0]!;
-		const dataTransfer = hover(card("CDE-47"), card(first));
+		const shown = identifiers(column("In Progress"));
+		const dataTransfer = hover(card("CDE-47"), card(shown.at(-1)!));
 		await waitFor(() => expect(document.querySelectorAll("[data-drag-indicator]")).toHaveLength(1));
-		expect(card(first).querySelector("[data-drag-indicator]")).not.toBeNull();
+		expect(card(shown[0]!).querySelector("[data-drag-indicator]")).not.toBeNull();
 		fireEvent.dragEnd(card("CDE-47"), { dataTransfer });
 	});
 
-	test("entering a card draws its line at once, before the next dragover", async () => {
+	test("a card of the dragged card's own column takes no line", async () => {
 		renderBoard();
 		await screen.findByText("CDE-47");
-		const first = card(identifiers(column("In Progress"))[0]!);
+		const shown = identifiers(column("Todo"));
+		const other = shown.find((identifier) => identifier !== "CDE-47")!;
+		const dataTransfer = hover(card("CDE-47"), card(other));
+		await waitFor(() => expect(card("CDE-47").getAttribute("data-dragging")).toBe("true"));
+		expect(document.querySelectorAll("[data-drag-indicator]")).toHaveLength(0);
+		fireEvent.dragEnd(card("CDE-47"), { dataTransfer });
+	});
+
+	test("entering a card of another column draws the line at once, before the next dragover", async () => {
+		renderBoard();
+		await screen.findByText("CDE-47");
+		const shown = identifiers(column("In Progress"));
+		const last = card(shown.at(-1)!);
 		const dataTransfer = new DataTransfer();
 		dataTransfer.setDragImage = () => {};
-		document.elementFromPoint = () => first;
-		document.elementsFromPoint = () => [first];
+		document.elementFromPoint = () => last;
+		document.elementsFromPoint = () => [last];
 		fireEvent.dragStart(card("CDE-47"), { dataTransfer, clientX: 1, clientY: 10_000 });
-		fireEvent.dragEnter(first, { dataTransfer, clientX: 1, clientY: 10_000 });
-		await waitFor(() => expect(first.querySelector("[data-drag-indicator]")).not.toBeNull());
+		fireEvent.dragEnter(last, { dataTransfer, clientX: 1, clientY: 10_000 });
+		await waitFor(() => expect(card(shown[0]!).querySelector("[data-drag-indicator]")).not.toBeNull());
 		fireEvent.dragEnd(card("CDE-47"), { dataTransfer });
 	});
 
-	test("a drop on the empty part of a column puts the ticket after the last card", async () => {
+	test("a drop on another column moves the ticket there with no anchor and puts it at the top", async () => {
 		const server = createFakeServer();
 		renderBoard(server);
 		await screen.findByText("CDE-47");
 		const target = column("In Progress");
-		const last = identifiers(target).at(-1)!;
 		const dataTransfer = hover(card("CDE-47"), target);
 		fireEvent.drop(target, { dataTransfer, clientX: 1, clientY: 10_000 });
 		fireEvent.dragEnd(card("CDE-47"), { dataTransfer });
 		await waitFor(() => {
 			const move = server.calls.find((call) => call.path.join(".") === "tickets.move");
-			expect(move?.input).toMatchObject({ ticket: "CDE-47", status: "in-progress", after: last });
+			expect(move).toBeDefined();
+			const input = move!.input as Record<string, unknown>;
+			expect(input).toMatchObject({ ticket: "CDE-47", status: "in-progress" });
+			expect("after" in input || "before" in input).toBe(false);
 		});
-		expect(identifiers(column("In Progress")).at(-1)).toBe("CDE-47");
+		expect(identifiers(column("In Progress"))[0]).toBe("CDE-47");
 	});
 
 	test("the column header sits outside the list that scrolls", async () => {
@@ -155,11 +171,11 @@ describe("Board drag", () => {
 		}
 	});
 
-	test("Shift+Enter in quick add opens New ticket with the project and the column status", async () => {
+	test("the ghost row under the last card opens New ticket with the project and the column status", async () => {
 		renderBoard();
-		await userEvent.setup().click(await screen.findByRole("button", { name: "New ticket in Todo" }));
-		const input = screen.getByRole("textbox", { name: "New ticket title in Todo" });
-		await userEvent.setup().type(input, "Draft{Shift>}{Enter}{/Shift}");
+		await screen.findByText("CDE-47");
+		const ghost = within(column("Todo")).getByRole("button", { name: "New ticket" });
+		await userEvent.setup().click(ghost);
 		expect(useComposerStore.getState()).toMatchObject({ open: true, options: { project: "CDE", status: "todo" } });
 	});
 });
