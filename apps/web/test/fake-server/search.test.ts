@@ -21,4 +21,16 @@ describe("fake server search", () => {
 		const scoped = await server.client.search.query({ q: "oauth", project: "TRL" });
 		expect(scoped.tickets.map((item) => item.identifier)).toEqual(["TRL-12"]);
 	});
+
+	// WS-130. One wrong letter in a word still finds the row, the way the
+	// trigram half of the server query does.
+	test("search.query finds a title through a typo", async () => {
+		const server = createFakeServer();
+		const typo = await server.client.search.query({ q: "restor teh fork" });
+		expect(typo.tickets.map((item) => item.identifier)).toContain("CDE-42");
+		const exact = await server.client.search.query({ q: "restore the fork" });
+		expect(exact.tickets.map((item) => item.identifier)).toContain("CDE-42");
+		const nonsense = await server.client.search.query({ q: "zzzzqqq" });
+		expect(nonsense.tickets).toEqual([]);
+	});
 });
