@@ -25,11 +25,13 @@ const stub = (replies: Parameters<typeof ghStub>[1]) => {
 };
 
 const squash = (text: string) => text.replace(/\s+/g, " ").trim();
+// startedAt, event, and createdAt are the fields that rank two nodes of one
+// name, so the newest run wins in normalizeChecks.
 const selection =
 	"{ number title state isDraft url headRefName baseRefName mergedAt closedAt reviewDecision " +
 	"commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes { __typename " +
-	"... on CheckRun { name status conclusion detailsUrl checkSuite { workflowRun { workflow { name } } } } " +
-	"... on StatusContext { context state targetUrl } } } } } } } }";
+	"... on CheckRun { name status conclusion startedAt detailsUrl checkSuite { workflowRun { event workflow { name } } } } " +
+	"... on StatusContext { context state targetUrl createdAt } } } } } } } }";
 const count = (text: string, needle: string) => text.split(needle).length - 1;
 
 describe("buildPullRequestQuery", () => {
@@ -107,30 +109,38 @@ describe("fetchPullRequests", () => {
 	// null for a rate limit or a 502, and no `data` key for a query error. A
 	// 401 or a 403 gives a REST style `message` body. Each one is a batch
 	// failure.
+	// A rejected token gives an HTTP 401. That failure carries the
+	// unauthenticated reason, so the web shows the sign-in banner and not the
+	// error banner.
 	test("returns the run failure for an exit 1 body without a data object", async () => {
-		const bodies: Array<[string, string]> = [
+		const bodies: Array<[string, string, Record<string, unknown>]> = [
 			[
 				'{"data":null,"errors":[{"type":"RATE_LIMITED","message":"API rate limit exceeded"}]}',
 				"gh: API rate limit exceeded",
+				{ reason: "error", code: 1 },
 			],
 			[
 				'{"errors":[{"path":["query","pr0","x"],"message":"Field \'x\' doesn\'t exist on type \'Repository\'"}]}',
 				"gh: Field 'x' doesn't exist on type 'Repository'",
+				{ reason: "error", code: 1 },
 			],
 			[
 				'{"message":"Bad credentials","documentation_url":"https://docs.github.com/rest","status":"401"}',
 				"gh: Bad credentials (HTTP 401)",
+				{ reason: "unauthenticated" },
 			],
 			[
 				'{"message":"API rate limit exceeded for user ID 1.","documentation_url":"https://docs.github.com/rest"}',
 				"gh: request failed (HTTP 403)",
+				{ reason: "error", code: 1 },
 			],
 		];
 		const handle = stub({ "api graphql": { stdout: "", stderr: "", exitCode: 1 } });
-		for (const [stdout, stderr] of bodies) {
+		for (const [stdout, stderr, expected] of bodies) {
 			handle.reply("api graphql", { stdout, stderr, exitCode: 1 });
 			const result = await fetchPullRequests(createGhRunner(), refs.slice(0, 1));
-			expect(result, stderr).toMatchObject({ ok: false, reason: "error", code: 1, message: stderr, stdout });
+			const carries = expected.reason === "error" ? { stdout } : {};
+			expect(result, stderr).toMatchObject({ ok: false, message: stderr, ...expected, ...carries });
 			expect(result, stderr).not.toHaveProperty("results");
 		}
 		expect(handle.spawns()).toHaveLength(bodies.length);

@@ -14,8 +14,9 @@ export type GhSlot = "poller" | "interactive";
 
 export type GhSuccess = { ok: true; code: number; stdout: string; stderr: string };
 
-// `missing`: the binary is not on disk. `unauthenticated`: gh asks for
-// `gh auth login`. `error`: any other non-zero exit, or the timeout.
+// `missing`: the binary is not on disk. `unauthenticated`: nobody is signed
+// in, or GitHub rejected the stored token. `error`: any other non-zero exit,
+// or the timeout.
 export type GhFailure =
 	| { ok: false; reason: Extract<GhReason, "missing" | "unauthenticated">; message: string }
 	| { ok: false; reason: Extract<GhReason, "error">; message: string; code: number | null; stdout: string };
@@ -57,6 +58,12 @@ const slots: Record<GhSlot, Semaphore> = {
 
 const isMissing = (error: unknown) => (error as { code?: string }).code === "ENOENT";
 
+// gh names `gh auth login` when no host is signed in. When a stored token is
+// expired or revoked, gh instead prints the answer GitHub gave: HTTP 401 with
+// the text "Bad credentials". Both mean the person must sign in again, so
+// both give the unauthenticated reason and the same banner.
+const SIGN_IN_NEEDED = /gh auth login|HTTP 401|Bad credentials/;
+
 const spawnGh = async (bin: string, args: string[], timeoutMs: number): Promise<GhResult> => {
 	let proc: ReturnType<typeof Bun.spawn>;
 	try {
@@ -87,7 +94,7 @@ const spawnGh = async (bin: string, args: string[], timeoutMs: number): Promise<
 	}
 	if (code === 0) return { ok: true, code, stdout, stderr };
 	const message = stderr.trim();
-	if (message.includes("gh auth login")) return { ok: false, reason: "unauthenticated", message };
+	if (SIGN_IN_NEEDED.test(message)) return { ok: false, reason: "unauthenticated", message };
 	return { ok: false, reason: "error", message, code, stdout };
 };
 

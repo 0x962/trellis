@@ -64,6 +64,21 @@ describe("runGh", () => {
 		expect(result).toMatchObject({ ok: false, reason: "unauthenticated", message: notLoggedIn });
 	});
 
+	// gh prints "gh auth login" only when no host is signed in. A stored token
+	// that GitHub rejects gives an HTTP 401 with "Bad credentials" instead. Both
+	// mean the person must sign in again, so both give the unauthenticated
+	// reason and the one sign-in banner.
+	test("classifies an HTTP 401 from a rejected token as unauthenticated", async () => {
+		for (const stderr of [
+			"gh: Bad credentials (HTTP 401)",
+			"HTTP 401: Bad credentials (https://api.github.com/graphql)",
+		]) {
+			stub({ "api graphql": { stdout: "", stderr, exitCode: 1 } });
+			const result = await createGhRunner()("poller", ["api", "graphql"]);
+			expect(result, stderr).toEqual({ ok: false, reason: "unauthenticated", message: stderr });
+		}
+	});
+
 	test("classifies a non-zero exit with any other stderr as error and keeps the stderr as the message", async () => {
 		stub({ "api graphql": { stdout: "", stderr: "HTTP 502: Bad Gateway", exitCode: 1 } });
 		const result = await createGhRunner()("poller", ["api", "graphql"]);

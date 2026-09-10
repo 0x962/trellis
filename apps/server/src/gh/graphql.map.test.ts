@@ -60,6 +60,23 @@ describe("mapPullRequestResponse", () => {
 		]);
 	});
 
+	// GitHub keeps a re-run beside the run it replaces, so one response holds
+	// two nodes named test. The row keeps the newest node only, so ci_state
+	// follows the re-run and not the run it replaced.
+	test("keeps the newest of two runs of one name and reports the row once", () => {
+		const pr4 = structuredClone(fixture.data.pr4);
+		const nodes = pr4.pullRequest.commits.nodes[0].commit.statusCheckRollup.contexts.nodes;
+		nodes[0].startedAt = "2026-09-07T06:55:14Z";
+		nodes.push({ ...structuredClone(nodes[0]), conclusion: "FAILURE", startedAt: "2026-09-07T07:40:41Z" });
+		const results = mapPullRequestResponse(refs.slice(0, 5), { data: { ...fixture.data, pr4 } });
+		const row = rowOf(results, 4);
+		const checks = row.checks as Array<Record<string, unknown>>;
+		expect(checks.filter((entry) => entry.name === "test")).toEqual([
+			{ name: "test", workflow: "ci", bucket: "fail", link: "https://github.com/acme/ci/actions/runs/test" },
+		]);
+		expect(row.ciState).toBe("fail");
+	});
+
 	test("maps a StatusContext to a check with a null workflow", () => {
 		expect(rowOf(rows(), 7).checks).toEqual([
 			{ name: "license/cla", workflow: null, bucket: "pass", link: "https://x" },
