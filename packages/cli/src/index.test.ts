@@ -160,16 +160,6 @@ describe("the server url", () => {
 });
 
 describe("exit codes", () => {
-	// CLI-13
-	test("the server-process verbs are stubs that print not yet", async () => {
-		for (const verb of ["install", "uninstall", "serve", "backup", "restore", "logs"]) {
-			const result = await runCli([verb]);
-			expect(result.code, verb).toBe(0);
-			expect(result.stdout, verb).toBe(`${verb}: not yet\n`);
-			expect(result.calls, verb).toEqual([]);
-		}
-	});
-
 	// CLI-14: 0 ok, 1 server error, 2 usage, 3 not found, 4 refused or
 	// conflict, 5 unreachable, 6 gh unavailable, 7 client too old.
 	test("run returns the mapped exit code for a procedure error", async () => {

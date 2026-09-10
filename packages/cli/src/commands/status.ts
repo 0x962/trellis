@@ -24,7 +24,9 @@ export default defineCommand({
 	meta: { name: "status", description: "Show server health" },
 	async run(context) {
 		const ctx = contextOf(context);
-		const health = await clientOf(ctx).system.health();
-		printRecord(ctx.out, ctx.format, health, healthRecord);
+		const client = clientOf(ctx);
+		const health = await client.system.health();
+		const gh = await client.system.gh();
+		printRecord(ctx.out, ctx.format, { ...health, gh }, healthRecord);
 	},
 });

@@ -1,10 +1,27 @@
 import { defineCommand } from "citty";
 import { contextOf } from "../context.ts";
+import { installationPaths } from "../installation.ts";
 
-// The verb needs a live server process, which a later work item delivers.
 export default defineCommand({
-	meta: { name: "serve" },
-	run(context) {
-		contextOf(context).out.write("serve: not yet\n");
+	meta: { name: "serve", description: "Run the server in the foreground" },
+	async run(context) {
+		const ctx = contextOf(context);
+		const paths = installationPaths();
+		const proc = Bun.spawn([process.execPath, paths.serverEntry], {
+			cwd: paths.repoRoot,
+			env: ctx.deps.env,
+			stdin: "inherit",
+			stdout: "inherit",
+			stderr: "inherit",
+		});
+		const forward = (signal: NodeJS.Signals) => proc.kill(signal);
+		const term = () => forward("SIGTERM");
+		const interrupt = () => forward("SIGINT");
+		process.once("SIGTERM", term);
+		process.once("SIGINT", interrupt);
+		const code = await proc.exited;
+		process.off("SIGTERM", term);
+		process.off("SIGINT", interrupt);
+		return code;
 	},
 });
