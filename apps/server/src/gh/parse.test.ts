@@ -182,3 +182,86 @@ describe("findTicketIdentifiers", () => {
 		]);
 	});
 });
+
+// GitHub keeps a re-run beside the run it replaces on the same commit, so
+// contexts holds two nodes with one name. `gh pr checks` keys a CheckRun on
+// name, workflow, and event, keys a StatusContext on its context name, and
+// keeps the node with the latest start time. trellis keeps the same node, so
+// a failed first run does not hold ci_state at fail after the re-run passes.
+describe("duplicate contexts", () => {
+	const run = (
+		name: string,
+		conclusion: string,
+		startedAt: string,
+		options: { workflow?: string; event?: string; url?: string } = {},
+	) => ({
+		__typename: "CheckRun" as const,
+		name,
+		status: "COMPLETED",
+		conclusion,
+		startedAt,
+		detailsUrl: options.url ?? `https://ci/${name}`,
+		checkSuite: {
+			workflowRun: { event: options.event ?? "pull_request", workflow: { name: options.workflow ?? "ci" } },
+		},
+	});
+	const context = (state: string, createdAt: string, targetUrl: string) => ({
+		__typename: "StatusContext" as const,
+		context: "license/cla",
+		state,
+		createdAt,
+		targetUrl,
+	});
+	const failed = run("test", "FAILURE", "2026-09-07T06:55:14Z", { url: "https://ci/run/1" });
+	const passed = run("test", "SUCCESS", "2026-09-07T07:40:41Z", { url: "https://ci/run/2" });
+
+	test("keeps the newest of two runs with one name, workflow, and event", () => {
+		const normalized = normalizeChecks([failed, passed]);
+		expect(normalized).toEqual([{ name: "test", workflow: "ci", bucket: "pass", link: "https://ci/run/2" }]);
+		expect(deriveCiState(normalized)).toBe("pass");
+	});
+
+	test("keeps the newest run whatever order the nodes arrive in", () => {
+		const normalized = normalizeChecks([passed, failed]);
+		expect(normalized).toEqual([{ name: "test", workflow: "ci", bucket: "pass", link: "https://ci/run/2" }]);
+		expect(deriveCiState(normalized)).toBe("pass");
+	});
+
+	test("keeps a queued re-run over the completed run it replaces", () => {
+		const queued = { ...passed, status: "QUEUED", conclusion: null };
+		const normalized = normalizeChecks([failed, queued]);
+		expect(normalized).toEqual([{ name: "test", workflow: "ci", bucket: "pending", link: "https://ci/run/2" }]);
+		expect(deriveCiState(normalized)).toBe("pending");
+	});
+
+	test("keeps two runs of one name that ran on different events", () => {
+		const push = run("test", "FAILURE", "2026-09-07T07:00:00Z", { event: "push", url: "https://ci/run/3" });
+		expect(normalizeChecks([push, passed])).toEqual([
+			{ name: "test", workflow: "ci", bucket: "fail", link: "https://ci/run/3" },
+			{ name: "test", workflow: "ci", bucket: "pass", link: "https://ci/run/2" },
+		]);
+	});
+
+	test("keeps two runs of one name that belong to different workflows", () => {
+		const other = run("test", "FAILURE", "2026-09-07T07:00:00Z", { workflow: "nightly", url: "https://ci/run/4" });
+		expect(normalizeChecks([other, passed])).toEqual([
+			{ name: "test", workflow: "ci", bucket: "pass", link: "https://ci/run/2" },
+			{ name: "test", workflow: "nightly", bucket: "fail", link: "https://ci/run/4" },
+		]);
+	});
+
+	test("keeps the newest of two status contexts with one name", () => {
+		const normalized = normalizeChecks([
+			context("FAILURE", "2026-09-07T06:00:00Z", "https://status/1"),
+			context("SUCCESS", "2026-09-07T07:00:00Z", "https://status/2"),
+		]);
+		expect(normalized).toEqual([{ name: "license/cla", workflow: null, bucket: "pass", link: "https://status/2" }]);
+	});
+
+	test("keeps the node that carries a start time over one that omits it", () => {
+		const { startedAt: _startedAt, ...noStamp } = failed;
+		expect(normalizeChecks([passed, noStamp])).toEqual([
+			{ name: "test", workflow: "ci", bucket: "pass", link: "https://ci/run/2" },
+		]);
+	});
+});

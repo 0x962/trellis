@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { seedChild, seedProject, seedTicket } from "../../../test/fixtures";
+import { sql } from "drizzle-orm";
+import { seedChild, seedProject, seedRootWithStatuses, seedTicket } from "../../../test/fixtures";
 import { freshDb, type TestDb } from "../../../test/helpers/db.ts";
+import { filterWhere } from "./ticketFilters.ts";
 import { ticketList } from "./ticketList.ts";
 
 let h: TestDb;
@@ -78,6 +80,51 @@ describe("ticketList filters", () => {
 		await seed("Billing");
 		expect(sorted(await ids({ projectIds: [rootId], q: "auth" }))).toEqual(sorted([authentication, authService]));
 		expect(await ids({ projectIds: [rootId], q: "servic" })).toEqual([]);
+	});
+
+	// `OR` binds weaker than the space between words, so `login or billing`
+	// finds either title. A lowercase `or` is the same operator.
+	test("ticketList q keeps OR semantics before the prefixed last token", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const seed = (title: string) => seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, title });
+		const login = await seed("Login page");
+		const billing = await seed("Billing token");
+		await seed("Widget");
+		expect(sorted(await ids({ projectIds: [rootId], q: "login or billing" }))).toEqual(sorted([login, billing]));
+		expect(sorted(await ids({ projectIds: [rootId], q: "login OR billing token" }))).toEqual(sorted([login, billing]));
+	});
+
+	test("ticketList narrows to the roots of rootIds", async () => {
+		const cde = await seedProject(h.db, "CDE");
+		const ops = await seedRootWithStatuses(h.db, "OPS");
+		const inCde = await seedTicket(h.db, { projectId: cde.rootId, rootId: cde.rootId, statusId: cde.statuses.todo });
+		const inOps = await seedTicket(h.db, { projectId: ops.rootId, rootId: ops.rootId, statusId: ops.statuses.todo });
+		expect(await ids({ rootIds: [cde.rootId] })).toEqual([inCde]);
+		expect(await ids({ rootIds: [ops.rootId], projectIds: [ops.rootId] })).toEqual([inOps]);
+		expect(sorted(await ids({ rootIds: [cde.rootId, ops.rootId] }))).toEqual(sorted([inCde, inOps]));
+	});
+
+	// A ticket in a todo, started, or review status has no completed_at, so a
+	// filter on open categories only is a filter on `completed_at IS NULL`,
+	// and the default table query walks tickets_open_idx in updated_at order
+	// instead of sorting every ticket of the root.
+	test("an open category filter with a root walks the open partial index", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		for (const statusId of [statuses.todo, statuses.started, statuses.done]) {
+			await seedTicket(h.db, { projectId: rootId, rootId, statusId });
+		}
+		const explain = async (filter: Parameters<typeof filterWhere>[0]) =>
+			h.db.transaction(async (tx) => {
+				await tx.execute(sql`SET LOCAL enable_seqscan = off`);
+				const result = await tx.execute(
+					sql`EXPLAIN SELECT t.id FROM tickets t WHERE ${filterWhere(filter)} ORDER BY t.updated_at DESC LIMIT 50`,
+				);
+				return result.rows.map((row) => row["QUERY PLAN"] as string).join("\n");
+			});
+		const active = { rootIds: [rootId], projectIds: [rootId], categories: ["todo", "started", "review"] as const };
+		expect(await explain(active)).toContain("tickets_open_idx");
+		expect(await explain({ rootIds: [rootId], projectIds: [rootId] })).not.toContain("tickets_open_idx");
+		expect(await explain({ rootIds: [rootId], categories: ["todo", "done"] })).not.toContain("tickets_open_idx");
 	});
 
 	// Each ticket gets three different dates, one per column, so a bound

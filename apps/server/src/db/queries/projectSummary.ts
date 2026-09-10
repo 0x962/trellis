@@ -18,14 +18,14 @@ export type ProjectSummaryRow = {
 };
 
 // Every (ancestor, descendant) pair, a project paired with itself included,
-// so a count over a subtree is one join. The walk stops at depth 64.
+// so a count over a subtree is one join. The tree has no maximum depth; the
+// CYCLE clause ends the walk when a planted parent cycle repeats a project.
 const closureCte = sql`closure AS (
 	SELECT id AS anc, id AS des, 0 AS depth FROM projects
 	UNION ALL
 	SELECT closure.anc, p.id, closure.depth + 1
 	FROM projects p JOIN closure ON p.parent_id = closure.des
-	WHERE closure.depth < 64
-)`;
+) CYCLE des SET is_cycle USING cycle_path`;
 
 export const projectCtes = sql`${pathsCte}, ${closureCte}`;
 

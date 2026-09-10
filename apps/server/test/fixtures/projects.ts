@@ -178,3 +178,16 @@ export const seedRootWithStatuses = async (tx: Executor, key: string) => {
 // links a pull request only when the ticket's root tree declares its pair.
 export const seedRepo = (tx: Executor, projectId: string, owner: string, repo: string) =>
 	insertRow(tx, "repos", { id: ulid(), project_id: projectId, owner, repo });
+
+// A chain of `depth` projects under `rootId`, each the child of the one
+// before, none with statuses. Returns the ids from the first child to the
+// deepest.
+export const seedNested = async (tx: Executor, rootId: string, depth: number) => {
+	const ids: string[] = [];
+	let parentId = rootId;
+	for (let level = 1; level <= depth; level++) {
+		parentId = await seedChild(tx, parentId, rootId, `p${level}`);
+		ids.push(parentId);
+	}
+	return ids;
+};

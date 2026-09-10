@@ -14,7 +14,14 @@ import {
 import { realScheduler, type Scheduler } from "./scheduler.ts";
 import type { Ticket } from "./schemas/ticket.ts";
 import { createSettleCheck } from "./settleCheck.ts";
-import { holdsTicketRows, isCounts, isDetail, patchTicketQuery, type TicketChange } from "./ticketPatches.ts";
+import {
+	holdsTicketRow,
+	holdsTicketRows,
+	isCounts,
+	isDetail,
+	patchTicketQuery,
+	type TicketChange,
+} from "./ticketPatches.ts";
 import { createTombstones } from "./tombstones.ts";
 
 export { INBOX_MAX_WAIT_MS, INBOX_TRAILING_MS, MAX_WAIT_MS, TRAILING_MS } from "./invalidationCoalescer.ts";
@@ -43,11 +50,14 @@ type TicketEvent = Extract<TrellisEvent, { type: "ticket.created" | "ticket.upda
 // A ticket change with the event kind the cache reacts to.
 type HeldChange = TicketChange & { created: boolean };
 
+// The projects list carries `openCount` and `needsYouCount`, and no
+// project event follows a ticket change. So it refetches with the lists.
 const membershipMatchers = [
 	family("tickets", "list"),
 	family("tickets", "board"),
 	family("tickets", "counts"),
 	family("inbox", "get"),
+	family("projects", "list"),
 ];
 
 const isInboxMatcher = (matcher: Matcher) => matcher.path[0] === "inbox";
@@ -126,7 +136,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	// change walks the cache once, however many queries the cache holds. A
 	// query with a fetch in flight, or with no data yet, gets the change
 	// recorded for the settle check. The record says whether the query had
-	// no data or held the row. The check reads every row of the result. A
+	// no data or held the row. A change at the cached version patches
+	// nothing, so the row's presence decides, not the patch. The check
+	// reads every row of the result. A
 	// row below its recorded version, or an expected row the result lacks,
 	// makes the query refetch. A counts result holds no row, so a
 	// membership change is recorded and makes counts refetch at settle. A
@@ -149,7 +161,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			const detail = isDetail(query.queryKey);
 			const own = detail && (data as { id: unknown }).id === id;
 			const patched = patchTicketQuery(query.queryKey, data, change);
-			if (settles) settle.record(query, change, patched !== undefined);
+			if (settles) settle.record(query, change, holdsTicketRow(query.queryKey, data, id));
 			if (patched === undefined) continue;
 			const invalidated = query.state.isInvalidated;
 			queryClient.setQueryData(query.queryKey, patched);

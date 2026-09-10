@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { seedChild, seedRoot, seedStatuses } from "../../../test/fixtures";
+import { seedChild, seedNested, seedRoot, seedStatuses } from "../../../test/fixtures";
 import { freshDb, type TestDb } from "../../../test/helpers/db.ts";
 import { statusScope } from "./statusScope.ts";
 
@@ -23,6 +23,16 @@ describe("statusScope", () => {
 		await h.db.transaction(async (tx) => {
 			expect(sorted(await statusScope(tx, r))).toEqual(sorted([r, a]));
 			expect(sorted(await statusScope(tx, b))).toEqual(sorted([b, c]));
+		});
+	});
+
+	// The plan sets no maximum depth for the project tree.
+	test("statusScope follows a chain deeper than 64 projects", async () => {
+		const r = await seedRoot(h.db, "RRR");
+		const chain = await seedNested(h.db, r, 70);
+		await seedStatuses(h.db, r);
+		await h.db.transaction(async (tx) => {
+			expect(sorted(await statusScope(tx, r))).toEqual(sorted([r, ...chain]));
 		});
 	});
 

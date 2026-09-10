@@ -88,6 +88,9 @@ const matches = (status: Status, ref: string) => {
 	return status.slug === lower || status.id === ref.toUpperCase() || status.name.toLowerCase() === lower;
 };
 
+// A position is an index in the column order, so it is a whole number.
+const wholeNumber = /^(0|[1-9][0-9]*)$/;
+
 const edit = defineCommand({
 	meta: { name: "edit", description: "Change status fields" },
 	args: {
@@ -106,6 +109,8 @@ const edit = defineCommand({
 		const { args } = context;
 		if (args.category !== undefined)
 			throw usageError("the category of a status is immutable; add a new status instead");
+		if (args.position !== undefined && !wholeNumber.test(args.position))
+			throw usageError(`--position needs a whole number, not "${args.position}"`);
 		const client = clientOf(ctx);
 		const fields = compact({
 			name: args.name,
@@ -114,11 +119,17 @@ const edit = defineCommand({
 			wipLimit: toNumber(args["wip-limit"]),
 			isDefault: args.default === true ? true : undefined,
 		});
-		if (Object.keys(fields).length > 0) {
-			const status = await client.statuses.update({ project: args.project, status: args.status, ...fields });
-			printRecord(ctx.out, ctx.format, status, statusRecord);
+		const updated =
+			Object.keys(fields).length === 0
+				? undefined
+				: await client.statuses.update({ project: args.project, status: args.status, ...fields });
+		// One run prints one document. The reorder answer is the last state
+		// of the set and it carries the fields the update wrote, so a run that
+		// does both prints the set alone.
+		if (args.position === undefined) {
+			if (updated !== undefined) printRecord(ctx.out, ctx.format, updated, statusRecord);
+			return;
 		}
-		if (args.position === undefined) return;
 		const { statuses } = await client.statuses.list({ project: args.project });
 		const target = statuses.find((status) => matches(status, args.status));
 		if (target === undefined) throw notFound("status", args.status);

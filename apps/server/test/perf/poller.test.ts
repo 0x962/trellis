@@ -4,7 +4,7 @@ import * as poller from "../../src/gh/poller.ts";
 import { graphqlReply } from "../fixtures";
 import { freshDb, type TestDb } from "../helpers/db.ts";
 import { authReply, pollerHarness, spawnKey } from "../helpers/poller.ts";
-import { OPEN_PULL_REQUESTS, seedPerf } from "./seed.ts";
+import { OPEN_PULL_REQUESTS, seedPerf } from "./pollerSeed.ts";
 
 // One tick over the 10k seed spawns one gh process for its 40 due pull
 // requests and costs 250 ms of cpu or less, so a poller on a busy tree stays

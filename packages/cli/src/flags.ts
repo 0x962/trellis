@@ -10,19 +10,33 @@ const spellingsOf = (name: string, alias: string | string[] | undefined): string
 	return [name, camel(name), ...aliases];
 };
 
-// Refuses a flag the command does not declare. citty parses without strict
-// mode: an unknown flag lands in the parsed args as a stray key, and its
-// value becomes a positional. Without this check `list -p CDE` sends no
-// project and lists every ticket. A string or enum flag without `=` takes
-// the next token as its value, so a value that starts with a dash passes.
-// `--no-<name>` negates a boolean. Everything after `--` is positional.
-export const checkFlags = (rawArgs: string[], argsDef: ArgsDef, usage: string): void => {
-	const booleans = new Set<string>();
+// Every spelling of every flag of the command that takes a value. citty
+// reads the token after such a flag as its value, so the caller that splits
+// the global flags skips that token: `comment --body --help` sends the text
+// `--help` and prints no help.
+export const valuedSpellings = (argsDef: ArgsDef): Set<string> => {
 	const valued = new Set<string>();
 	for (const [name, def] of Object.entries(argsDef)) {
-		if (def.type === "positional") continue;
-		const target = def.type === "boolean" ? booleans : valued;
-		for (const spelling of spellingsOf(name, "alias" in def ? def.alias : undefined)) target.add(spelling);
+		if (def.type === "positional" || def.type === "boolean") continue;
+		for (const spelling of spellingsOf(name, "alias" in def ? def.alias : undefined)) valued.add(spelling);
+	}
+	return valued;
+};
+
+// Refuses a flag the command does not declare, and a flag that takes a value
+// and has none. citty parses without strict mode: an unknown flag lands in
+// the parsed args as a stray key, and its value becomes a positional.
+// Without this check `list -p CDE` sends no project and lists every ticket,
+// and `edit CDE-42 --description` sends an empty description that erases the
+// text on the ticket. A string or enum flag without `=` takes the next token
+// as its value, so a value that starts with a dash passes. `--no-<name>`
+// negates a boolean. Everything after `--` is positional.
+export const checkFlags = (rawArgs: string[], argsDef: ArgsDef, usage: string): void => {
+	const booleans = new Set<string>();
+	const valued = valuedSpellings(argsDef);
+	for (const [name, def] of Object.entries(argsDef)) {
+		if (def.type !== "boolean") continue;
+		for (const spelling of spellingsOf(name, "alias" in def ? def.alias : undefined)) booleans.add(spelling);
 	}
 	for (let index = 0; index < rawArgs.length; index++) {
 		const arg = rawArgs[index]!;
@@ -34,6 +48,8 @@ export const checkFlags = (rawArgs: string[], argsDef: ArgsDef, usage: string): 
 		if (flag.startsWith("--no-") && booleans.has(name.slice(3))) continue;
 		if (booleans.has(name)) continue;
 		if (!valued.has(name)) throw usageError(`unknown flag ${flag}; run ${usage} --help`);
-		if (equals === -1) index++;
+		if (equals !== -1) continue;
+		if (index + 1 === rawArgs.length) throw usageError(`${flag} needs a value; run ${usage} --help`);
+		index++;
 	}
 };

@@ -52,6 +52,13 @@ export const usageError = (message: string) => new CliFailure("USAGE", 2, messag
 // that names no row. The line matches the server's NOT_FOUND line.
 export const notFound = (kind: string, ref: string) => new CliFailure("NOT_FOUND", 3, `No ${kind} matches ${ref}.`);
 
+// A path the command line names and the process cannot open. The person
+// reads one line and fixes the path; a stack trace tells them nothing.
+export const fileNotFound = (path: string) => new CliFailure("NOT_FOUND", 3, `No file at ${path}.`);
+
+export const fileUnreadable = (path: string, reason: string) =>
+	new CliFailure("USAGE", 2, `cannot read ${path}: ${reason}`);
+
 export const unreachable = (url: string) =>
 	new CliFailure("UNREACHABLE", 5, `trellis server not running at ${url}; run "trellis install" or "bun dev"`);
 

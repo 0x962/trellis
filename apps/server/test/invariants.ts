@@ -7,7 +7,8 @@ import { attachmentsDir, blobPath, TEMP_DIR } from "../src/storage/blobs.ts";
 // The status invariant: `tickets.status_id` belongs to owner(ticket.project),
 // the nearest ancestor-or-self of the ticket's project that owns statuses.
 // One statement walks every ticket's project chain and reports the tickets
-// whose status lives elsewhere. The walk stops at depth 64.
+// whose status lives elsewhere. The tree has no maximum depth; the CYCLE
+// clause ends the walk when a planted parent cycle repeats a project.
 export const assertStatusInvariant = async (tx: Tx) => {
 	const result = await tx.execute(sql`
 		WITH RECURSIVE chain AS (
@@ -16,8 +17,7 @@ export const assertStatusInvariant = async (tx: Tx) => {
 			UNION ALL
 			SELECT chain.ticket_id, p.id, p.parent_id, chain.depth + 1
 			FROM chain JOIN projects p ON p.id = chain.parent_id
-			WHERE chain.depth < 64
-		), owner AS (
+		) CYCLE project_id SET is_cycle USING cycle_path, owner AS (
 			SELECT DISTINCT ON (ticket_id) ticket_id, project_id AS owner_id
 			FROM chain
 			WHERE EXISTS (SELECT 1 FROM statuses s WHERE s.project_id = chain.project_id)

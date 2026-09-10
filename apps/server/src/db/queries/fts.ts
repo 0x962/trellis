@@ -5,20 +5,27 @@ import { type SQL, sql } from "drizzle-orm";
 // separator that the text search parser splits on its own.
 const plainWord = /^[\p{L}\p{N}]+$/u;
 
+// The word websearch_to_tsquery reads as the OR operator, in any letter case.
+const isOr = (token: string) => token.toLowerCase() === "or";
+
 // The tsquery for a search box. Every leading token must match as a whole
 // lexeme and the last token matches as a prefix. So `login auth` finds
-// `Login authentication` while the person still types. An `OR` before the
-// last token keeps its websearch meaning: either side matches. When the last
-// token is not a plain word (`CDE-42`), the whole text goes through
-// websearch_to_tsquery, whose parser splits it the way the index did.
+// `Login authentication` while the person still types. `OR` binds weaker
+// than the space between words, as in websearch_to_tsquery, so the prefix
+// applies to the last AND group only: `login OR billing tok` is
+// `login | (billing & tok:*)`. When the last token is not a plain word
+// (`CDE-42`) or is `OR`, the whole text goes through websearch_to_tsquery,
+// whose parser splits it the way the index did.
 export const tsquery = (q: string): SQL => {
 	const tokens = q.trim().split(/\s+/).filter(Boolean);
 	const last = tokens.at(-1);
-	if (last === undefined || !plainWord.test(last)) return sql`websearch_to_tsquery('english', ${q})`;
+	if (last === undefined || !plainWord.test(last) || isOr(last)) {
+		return sql`websearch_to_tsquery('english', ${q})`;
+	}
 	const prefix = sql`to_tsquery('english', ${`${last}:*`})`;
-	if (tokens.length === 1) return prefix;
-	const leading = tokens.slice(0, -1);
-	const either = leading.at(-1) === "OR";
-	const text = (either ? leading.slice(0, -1) : leading).join(" ");
-	return sql`(websearch_to_tsquery('english', ${text}) ${either ? sql`||` : sql`&&`} ${prefix})`;
+	const lastOr = tokens.findLastIndex(isOr);
+	const head = lastOr === -1 ? [] : tokens.slice(0, lastOr);
+	const group = tokens.slice(lastOr + 1, -1);
+	const tail = group.length === 0 ? prefix : sql`(websearch_to_tsquery('english', ${group.join(" ")}) && ${prefix})`;
+	return head.length === 0 ? tail : sql`(websearch_to_tsquery('english', ${head.join(" ")}) || ${tail})`;
 };

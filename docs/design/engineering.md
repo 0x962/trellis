@@ -370,7 +370,7 @@ Services never emit mid-transaction. `db/tx.ts#withTx(fn)` hands `fn` a `tx` and
 
 Module `apps/server/src/gh/`: `run.ts` (spawn wrapper), `parse.ts` (JSON → normalized rows), `poller.ts` (loop), `detect.ts` (auto-link), `limit.ts` (semaphore).
 
-**`run.ts`**: `Bun.spawn([GH_BIN, ...args], { env: { ...process.env, GH_PROMPT_DISABLED: '1', NO_COLOR: '1' } })`, 30 s timeout, returns `{code, stdout, stderr}`. `GH_BIN = process.env.TRELLIS_GH_BIN ?? 'gh'`. Concurrency: a 3-slot semaphore around every spawn; the poller and `pullRequests.link`/`refresh` share it. ENOENT → gh status `missing`; stderr containing `gh auth login` → `unauthenticated`.
+**`run.ts`**: `Bun.spawn([GH_BIN, ...args], { env: { ...process.env, GH_PROMPT_DISABLED: '1', NO_COLOR: '1' } })`, 30 s timeout, returns `{code, stdout, stderr}`. `GH_BIN = process.env.TRELLIS_GH_BIN ?? 'gh'`. Concurrency: a 3-slot semaphore around every spawn; the poller and `pullRequests.link`/`refresh` share it. ENOENT → gh status `missing`; stderr containing `gh auth login`, `HTTP 401`, or `Bad credentials` → `unauthenticated` (an expired token gives the 401, not the login line).
 
 **Calls, verbatim**:
 

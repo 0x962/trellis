@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	boardKey,
+	boardPage,
 	cached,
 	createdEvent,
 	deletedEvent,
@@ -88,6 +89,72 @@ describe("applyEvent on a query whose fetch settles behind the events", () => {
 		expect(cached(queryClient, searchKey)).toEqual(searchPage());
 		expect(isInvalidated(queryClient, searchKey)).toBe(false);
 		expect(seen.flatMap(rowIds)).not.toContain(t1);
+	});
+});
+
+// A change at the cached version patches nothing, so the patch alone cannot
+// say whether the query held the row. The record reads the row's presence
+// instead. A cached row that the result lacks marks the query behind, at
+// the cached version as at a higher one.
+describe("applyEvent on a query whose fetch settles without a row the cache holds at the event's version", () => {
+	const v5 = summaryAt(5, { title: "Fifth" });
+
+	test("a list whose result lacks the row after an event at the cached version refetches", async () => {
+		const { queryClient, applier } = setup((queryClient) => {
+			queryClient.setQueryData(listKey, listPage(v5));
+		});
+		const { queryFn, answer, observer } = observeQuery(queryClient, listKey);
+		void observer.refetch();
+		applier.applyEvent(updatedEvent(v5, ["title"]));
+		await answer(0, listPage());
+		expect(queryFn).toHaveBeenCalledTimes(2);
+		await answer(1, listPage(v5));
+		expect(cached(queryClient, listKey)).toEqual(listPage(v5));
+		expect(isInvalidated(queryClient, listKey)).toBe(false);
+	});
+
+	test("a board whose result lacks the row after an event at the cached version refetches", async () => {
+		const { queryClient, applier } = setup((queryClient) => {
+			queryClient.setQueryData(boardKey, boardPage(v5));
+		});
+		const { queryFn, answer, observer } = observeQuery(queryClient, boardKey);
+		void observer.refetch();
+		applier.applyEvent(updatedEvent(v5, ["title"]));
+		await answer(0, boardPage());
+		expect(queryFn).toHaveBeenCalledTimes(2);
+		await answer(1, boardPage(v5));
+		expect(cached(queryClient, boardKey)).toEqual(boardPage(v5));
+		expect(isInvalidated(queryClient, boardKey)).toBe(false);
+	});
+
+	test("an inbox whose result lacks the row after an event at the cached version refetches", async () => {
+		const section = (...items: Summary[]) => ({ review: { items, total: items.length } });
+		const { queryClient, applier } = setup((queryClient) => {
+			queryClient.setQueryData(inboxKey, section(v5));
+		});
+		const { queryFn, answer, observer } = observeQuery(queryClient, inboxKey);
+		void observer.refetch();
+		applier.applyEvent(updatedEvent(v5, ["title"]));
+		await answer(0, section());
+		expect(queryFn).toHaveBeenCalledTimes(2);
+		await answer(1, section(v5));
+		expect(cached(queryClient, inboxKey)).toEqual(section(v5));
+		expect(isInvalidated(queryClient, inboxKey)).toBe(false);
+	});
+
+	test("a detail whose result lacks a child after an event at the cached version refetches", async () => {
+		const child = summaryAt(5, { id: t2, identifier: "CDE-43", number: 43, parent: { id: t1, identifier: "CDE-42" } });
+		const { queryClient, applier } = setup((queryClient) => {
+			queryClient.setQueryData(detailKey, ticket({ ...summaryAt(3), children: [child] }));
+		});
+		const { queryFn, answer, observer } = observeQuery(queryClient, detailKey);
+		void observer.refetch();
+		applier.applyEvent(updatedEvent(child, ["title"]));
+		await answer(0, ticket(summaryAt(3)));
+		expect(queryFn).toHaveBeenCalledTimes(2);
+		await answer(1, ticket({ ...summaryAt(3), children: [child] }));
+		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...summaryAt(3), children: [child] }));
+		expect(isInvalidated(queryClient, detailKey)).toBe(false);
 	});
 });
 
@@ -267,6 +334,29 @@ describe("applyEvent on a query whose cache lacks the row its fetch reads", () =
 		await answer(1, ticket({ ...summaryAt(3), children: [child(5)] }));
 		expect(cached(queryClient, detailKey)).toEqual(ticket({ ...summaryAt(3), children: [child(5)] }));
 		expect(isInvalidated(queryClient, detailKey)).toBe(false);
+	});
+
+	// A delete is final. A search is keyed by free text, so the delete
+	// never removes it and never invalidates it. When the refetch read the
+	// row before the delete's commit, the settle check is the only place
+	// that removes the row, and the search refetches.
+	test("a search whose cache lacked a deleted row that the result holds drops the row and refetches", async () => {
+		const searchKey = queryKey(["search", "query"], { q: "first" });
+		const rowIds = (data: unknown) => (data as { tickets: { id: string }[] }).tickets.map((row) => row.id);
+		const { queryClient, applier } = setup((queryClient) => {
+			queryClient.setQueryData(searchKey, searchPage(other(3)));
+		});
+		const { queryFn, answer, observer, seen } = observeQuery(queryClient, searchKey);
+		void observer.refetch();
+		applier.applyEvent(deletedEvent(summaryAt(4)));
+		expect(cached(queryClient, searchKey)).toEqual(searchPage(other(3)));
+		await answer(0, searchPage(other(3), summaryAt(4)));
+		expect(cached(queryClient, searchKey)).toEqual(searchPage(other(3)));
+		expect(queryFn).toHaveBeenCalledTimes(2);
+		await answer(1, searchPage(other(3)));
+		expect(cached(queryClient, searchKey)).toEqual(searchPage(other(3)));
+		expect(isInvalidated(queryClient, searchKey)).toBe(false);
+		expect(seen.flatMap(rowIds)).not.toContain(t1);
 	});
 
 	// A row absent from the cache and from the result does not belong to

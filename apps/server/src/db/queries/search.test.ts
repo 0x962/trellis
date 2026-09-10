@@ -1,6 +1,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { seedChild, seedComment, seedProject, seedRootWithStatuses, seedTicket } from "../../../test/fixtures";
+import {
+	seedChild,
+	seedComment,
+	seedNested,
+	seedProject,
+	seedRootWithStatuses,
+	seedTicket,
+} from "../../../test/fixtures";
 import { freshDb, type TestDb } from "../../../test/helpers/db.ts";
 import { search } from "./search.ts";
 
@@ -127,6 +134,21 @@ describe("search", () => {
 		expect(sorted(await ticketIds({ q: "login OR auth" }))).toEqual(sorted([auth, login]));
 	});
 
+	// `OR` binds weaker than the space between words, as in websearch_to_tsquery:
+	// `login OR billing token` is `login | (billing & token)`, so the prefix
+	// applies to the last AND group only. A lowercase `or` is the same operator.
+	test("search keeps OR semantics when the last group has several words", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const seed = (title: string) => seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, title });
+		const login = await seed("Login page");
+		const billing = await seed("Billing token");
+		await seed("Widget");
+		expect(sorted(await ticketIds({ q: "login OR billing token" }))).toEqual(sorted([login, billing]));
+		expect(sorted(await ticketIds({ q: "login OR billing tok" }))).toEqual(sorted([login, billing]));
+		expect(sorted(await ticketIds({ q: "login or billing" }))).toEqual(sorted([login, billing]));
+		expect(await ticketIds({ q: "page OR widget tok" })).toEqual([login]);
+	});
+
 	// tickets.number is a 32-bit integer; a larger number matches no ticket
 	// and the text goes through the text search path.
 	test("search treats an identifier beyond the integer range as text", async () => {
@@ -207,5 +229,18 @@ describe("search", () => {
 		await seedRootWithStatuses(h.db, "OPS");
 		const result = await run({ q: "auth" });
 		expect(sorted(result.projects.map((project) => project.id))).toEqual([auth]);
+	});
+
+	// The plan sets no maximum depth for the project tree, so a project 70
+	// levels down is found with its path and its depth.
+	test("search finds a project deeper than 64 levels", async () => {
+		const { rootId } = await seedProject(h.db, "CDE");
+		const chain = await seedNested(h.db, rootId, 70);
+		const deepest = chain.at(-1) as string;
+		await h.db.execute(sql`UPDATE projects SET name = 'Deep auth' WHERE id = ${deepest}`);
+		const result = await run({ q: "deep auth" });
+		expect(result.projects.map((project) => project.id)).toEqual([deepest]);
+		expect(result.projects[0]?.depth).toBe(70);
+		expect(result.projects[0]?.path).toBe(`CDE.${chain.map((_, i) => `p${i + 1}`).join(".")}`);
 	});
 });

@@ -34,7 +34,7 @@ export type RunOptions = FakeServerOptions & {
 	osUser?: string;
 	now?: string;
 	apiVersion?: string;
-	fetch?: (request: Request) => Promise<Response>;
+	fetch?: Deps["fetch"];
 	signal?: AbortSignal;
 	open?: (url: string) => void;
 	run?: Deps["run"];

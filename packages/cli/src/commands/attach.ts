@@ -4,6 +4,7 @@ import type { Attachment, AttachmentUploadOutput } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf } from "../context.ts";
+import { fileNotFound, fileUnreadable } from "../errors.ts";
 import { json, type ListSpec, printList } from "../output.ts";
 
 const attachmentList: ListSpec<Attachment> = {
@@ -18,6 +19,18 @@ const attachmentList: ListSpec<Attachment> = {
 
 const kilobytes = (bytes: number) => `${(bytes / 1024).toFixed(1)} KB`;
 
+// The file the command line names. The file system is a boundary: a path
+// the process cannot open ends the run with one line and no request.
+const fileAt = (path: string): File => {
+	try {
+		return new File([readFileSync(path)], basename(path));
+	} catch (error) {
+		const failure = error as NodeJS.ErrnoException;
+		if (failure.code === "ENOENT") throw fileNotFound(path);
+		throw fileUnreadable(path, failure.message);
+	}
+};
+
 const renderUpload = (result: AttachmentUploadOutput) =>
 	`Attached ${result.attachment.filename} (${kilobytes(result.attachment.size)}) -> ${result.url}\n${result.markdown}\n`;
 
@@ -31,7 +44,7 @@ export default defineCommand({
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
-		const file = new File([readFileSync(args.path)], basename(args.path));
+		const file = fileAt(args.path);
 		const result = await clientOf(ctx).attachments.upload(compact({ ticket: args.ticket, file, name: args.name }));
 		switch (ctx.format.mode) {
 			case "quiet":

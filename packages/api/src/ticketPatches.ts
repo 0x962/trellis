@@ -146,6 +146,11 @@ export const ticketRows = (queryKey: QueryKey, data: unknown): TicketSummary[] =
 	return reader === undefined ? [] : reader(data);
 };
 
+// True when the entry holds a row with the id: the detail's own row, one of
+// its children, or an item of a page, a column, or a section.
+export const holdsTicketRow = (queryKey: QueryKey, data: unknown, id: string) =>
+	ticketRows(queryKey, data).some((row) => row.id === id);
+
 // Returns the patched data for one cache entry, or undefined when the entry
 // does not change.
 export const patchTicketQuery = (queryKey: QueryKey, data: unknown, change: TicketChange) => {

@@ -4,6 +4,8 @@ import {
 	boardKey,
 	boardPage,
 	countsKey,
+	createdEvent,
+	deletedEvent,
 	detailKey,
 	healthKey,
 	inboxKey,
@@ -66,6 +68,34 @@ describe("invalidation", () => {
 				expect(isInvalidated(queryClient, key), `${name} ${JSON.stringify(key[0])}`).toBe(invalidates);
 			}
 			expect(isInvalidated(queryClient, detailKey), `${name} detail`).toBe(detail);
+			expect(isInvalidated(queryClient, healthKey), `${name} health`).toBe(false);
+		}
+	});
+
+	// The sidebar reads `openCount` and `needsYouCount` from the projects
+	// list. A create, a delete, or a membership change moves those counts,
+	// and no project event follows. A title change moves no count.
+	test("a create, a delete, or a membership change invalidates the projects list, and a title change does not", () => {
+		const projectsListKey = queryKey(["projects", "list"]);
+		const cases = [
+			{
+				name: "created",
+				event: createdEvent(summaryAt(1, { id: t2, identifier: "CDE-43", number: 43 })),
+				invalidates: true,
+			},
+			{ name: "deleted", event: deletedEvent(summaryAt(3)), invalidates: true },
+			{ name: "status", event: updatedEvent(summaryAt(4), ["status"]), invalidates: true },
+			{ name: "completedAt", event: updatedEvent(summaryAt(4), ["completedAt"]), invalidates: true },
+			{ name: "title", event: updatedEvent(summaryAt(4), ["title"]), invalidates: false },
+		];
+		for (const { name, event, invalidates } of cases) {
+			const { queryClient, advanceTo, applier } = setup((queryClient) => {
+				seedMembershipCaches(queryClient);
+				queryClient.setQueryData(projectsListKey, []);
+			});
+			applier.applyEvent(event);
+			advanceTo(1000);
+			expect(isInvalidated(queryClient, projectsListKey), name).toBe(invalidates);
 			expect(isInvalidated(queryClient, healthKey), `${name} health`).toBe(false);
 		}
 	});

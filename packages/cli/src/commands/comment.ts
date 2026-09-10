@@ -3,7 +3,7 @@ import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText, toNumber } from "../context.ts";
 import { cell, printList, printRecord, type RecordSpec } from "../output.ts";
-import { commentItems, commentList, renderComments } from "../timeline.ts";
+import { type CommentItem, commentItems, commentList, renderComments } from "../timeline.ts";
 
 const commentRecord: RecordSpec<Comment> = {
 	fields: [
@@ -39,8 +39,18 @@ export const comments = defineCommand({
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
-		const page = await clientOf(ctx).timeline.list(compact({ ticket: args.ticket, limit: toNumber(args.limit) }));
-		const items = commentItems(page.items);
+		const client = clientOf(ctx);
+		const query = compact({ ticket: args.ticket, limit: toNumber(args.limit) });
+		// The timeline holds comments and activity rows together, so a page
+		// can hold no comment at all. Every page follows the cursor of the
+		// answer before it, and the last page answers `nextCursor` null.
+		const items: CommentItem[] = [];
+		let before: string | undefined;
+		do {
+			const page = await client.timeline.list(compact({ ...query, before }));
+			items.push(...commentItems(page.items));
+			before = page.nextCursor ?? undefined;
+		} while (before !== undefined);
 		if (ctx.format.mode === "table") {
 			ctx.out.write(renderComments(items));
 			return;

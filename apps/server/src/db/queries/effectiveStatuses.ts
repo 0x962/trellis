@@ -38,16 +38,15 @@ export const toStatus = (row: RawStatus): StatusRow => ({
 	updatedAt: row.updated_at,
 });
 
-// The chain from a project up to its root, nearest first. The walk stops
-// at depth 64: the schema refuses parent_id = id and nothing else, so a
-// planted two-node cycle ends here instead of running forever.
+// The chain from a project up to its root, nearest first. The tree has no
+// maximum depth. The schema refuses parent_id = id and nothing else, so the
+// CYCLE clause ends the walk when a planted cycle repeats a project.
 const chainCte = (projectId: string) => sql`chain AS (
 	SELECT id, parent_id, 0 AS depth FROM projects WHERE id = ${projectId}
 	UNION ALL
 	SELECT p.id, p.parent_id, chain.depth + 1
 	FROM projects p JOIN chain ON p.id = chain.parent_id
-	WHERE chain.depth < 64
-)`;
+) CYCLE id SET is_cycle USING cycle_path`;
 
 const ownerSelect = sql`SELECT chain.id FROM chain
 	WHERE EXISTS (SELECT 1 FROM statuses s WHERE s.project_id = chain.id)

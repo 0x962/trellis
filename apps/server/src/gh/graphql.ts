@@ -5,6 +5,10 @@ import type { GhFailure, GhRunner, GhSlot } from "./run.ts";
 // One `gh api graphql` request fetches up to 50 pull requests. Each ref gets
 // the alias prN, so the response maps back to refs[N] by index. The response
 // carries no owner or repo, so the row takes both from the ref.
+//
+// The selection asks for the start time of every check node and for the event
+// that triggered a workflow run. normalizeChecks needs both to tell a re-run
+// from the run it replaces.
 
 export type PullRequestRef = { owner: string; repo: string; number: number };
 
@@ -62,8 +66,8 @@ const selection = `{
 	number title state isDraft url headRefName baseRefName mergedAt closedAt reviewDecision
 	commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
 		__typename
-		... on CheckRun { name status conclusion detailsUrl checkSuite { workflowRun { workflow { name } } } }
-		... on StatusContext { context state targetUrl }
+		... on CheckRun { name status conclusion startedAt detailsUrl checkSuite { workflowRun { event workflow { name } } } }
+		... on StatusContext { context state targetUrl createdAt }
 	} } } } } }
 }`;
 

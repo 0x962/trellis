@@ -1,83 +1,187 @@
 import { sql } from "drizzle-orm";
-import { linkPr, seedActors, seedChild, seedPr, seedRoot, seedStatuses, seedTicket } from "../fixtures";
-import type { TestDb } from "../helpers/db.ts";
+import { type StatusIds, seedActors, seedChild, seedRoot, seedStatuses } from "../fixtures";
+import { freshDb, type TestDb } from "../helpers/db.ts";
 
-// The deterministic seed the perf suite measures against: N tickets over 3
-// root projects with 8 projects each, every ticket with a 2 KB description,
-// and 40 open pull requests on tickets in a started status.
-//
-// The tickets go in one statement per project, because 10k single row
-// inserts cost more than the measurement that follows them. The 40 pull
-// request tickets are numbered from 100000, above every bulk number, so two
-// tickets in one root never share a number.
+type Db = TestDb["db"];
 
-const ROOT_KEYS = ["PRF", "OPS", "WEB"];
+// The number of tickets a perf run seeds. The scripts set it: `perf:10k`
+// seeds 10 000 inside `bun run check`, `perf` seeds 50 000. Unset, every
+// perf test skips.
+export const PERF_ROWS = Number(process.env.TRELLIS_PERF_ROWS ?? 0);
+
+// CI runs the same tests at 2.5 times the budget of Navid's Mac.
+export const BUDGET_FACTOR = process.env.CI ? 2.5 : 1;
+
+export type PerfRoot = { key: string; rootId: string; projectIds: string[]; statuses: StatusIds };
+
+const ROOT_KEYS = ["AAA", "BBB", "CCC"] as const;
 const PROJECTS_PER_ROOT = 8;
-const DESCRIPTION = "x".repeat(2048);
-const PR_TICKET_FIRST_NUMBER = 100_000;
-export const OPEN_PULL_REQUESTS = 40;
+const ACTIVITY_PER_TICKET = 10;
+const COMMENTS_PER_TICKET = 2;
+const OPEN_PRS = 40;
 
-export type PerfProject = { id: string; rootId: string; statusIds: string[]; startedId: string };
+// Sixty words the titles, descriptions, and comments draw from, so a search
+// for one word hits about one ticket in sixty.
+const WORDS = sql.raw(
+	`ARRAY[${[
+		"auth",
+		"billing",
+		"login",
+		"token",
+		"session",
+		"invoice",
+		"webhook",
+		"retry",
+		"queue",
+		"cache",
+		"index",
+		"schema",
+		"migration",
+		"deploy",
+		"rollback",
+		"canary",
+		"metric",
+		"alert",
+		"dashboard",
+		"report",
+		"export",
+		"import",
+		"upload",
+		"download",
+		"avatar",
+		"profile",
+		"settings",
+		"theme",
+		"keyboard",
+		"palette",
+		"search",
+		"filter",
+		"sort",
+		"cursor",
+		"page",
+		"board",
+		"column",
+		"card",
+		"drag",
+		"drop",
+		"comment",
+		"mention",
+		"notify",
+		"email",
+		"digest",
+		"poller",
+		"github",
+		"review",
+		"approve",
+		"merge",
+		"branch",
+		"commit",
+		"diff",
+		"check",
+		"workflow",
+		"runner",
+		"secret",
+		"config",
+		"flag",
+		"rollout",
+	]
+		.map((word) => `'${word}'`)
+		.join(", ")}]::text[]`,
+);
 
-const seedTree = async (db: TestDb["db"]): Promise<PerfProject[]> => {
+// A deterministic database of `tickets` tickets: 3 roots x 8 projects, 10
+// activity rows and 2 comments per ticket, a 2 KB description, 40 open
+// pull requests on the first tickets, then ANALYZE. Every row derives from
+// its ticket number, so two seeds of the same size are equal. Ids are
+// 26-character text like a ULID, in ticket order.
+export const perfSeed = async (db: Db, tickets: number): Promise<PerfRoot[]> => {
 	await seedActors(db);
-	const projects: PerfProject[] = [];
+	const roots: PerfRoot[] = [];
 	for (const key of ROOT_KEYS) {
 		const rootId = await seedRoot(db, key);
-		const statuses = await seedStatuses(db, rootId);
-		const statusIds = [statuses.todo, statuses.started, statuses.agentReview, statuses.humanReview, statuses.done];
-		projects.push({ id: rootId, rootId, statusIds, startedId: statuses.started });
-		for (let index = 1; index < PROJECTS_PER_ROOT; index++) {
-			const id = await seedChild(db, rootId, rootId, `p${index}`);
-			projects.push({ id, rootId, statusIds, startedId: statuses.started });
-		}
+		const projectIds = [rootId];
+		for (let i = 1; i < PROJECTS_PER_ROOT; i++) projectIds.push(await seedChild(db, rootId, rootId, `p${i}`));
+		roots.push({ key, rootId, projectIds, statuses: await seedStatuses(db, rootId) });
 	}
-	return projects;
+	const perRoot = Math.ceil(tickets / roots.length);
+	for (const [index, root] of roots.entries()) {
+		const projects = sql`${sql.param(root.projectIds)}::text[]`;
+		const statuses = sql`${sql.param(Object.values(root.statuses))}::text[]`;
+		const prefix = `T${index}`;
+		await db.execute(sql`
+			INSERT INTO tickets (id, project_id, root_id, number, title, description, priority, status_id, parent_id,
+				position, version, started_at, completed_at, created_at, updated_at)
+			SELECT
+				${prefix} || lpad(n::text, 24, '0'),
+				(${projects})[(n % ${PROJECTS_PER_ROOT}) + 1],
+				${root.rootId},
+				n,
+				(${WORDS})[(n % 60) + 1] || ' ' || (${WORDS})[((n * 7) % 60) + 1] || ' ' || (${WORDS})[((n * 13) % 60) + 1] || ' ' || n,
+				repeat((${WORDS})[((n * 3) % 60) + 1] || ' ' || (${WORDS})[((n * 11) % 60) + 1] || ' ', 190),
+				(ARRAY['none', 'urgent', 'high', 'medium', 'low'])[(n % 5) + 1],
+				(${statuses})[(n % 6) + 1],
+				NULL,
+				n * 1024,
+				1,
+				CASE WHEN n % 6 = 0 THEN NULL ELSE now() - (n % 100000) * interval '1 second' - interval '2 days' END,
+				CASE WHEN n % 6 IN (4, 5) THEN now() - (n % 100000) * interval '1 second' ELSE NULL END,
+				now() - (n % 100000) * interval '1 second' - interval '3 days',
+				now() - (n % 100000) * interval '1 second'
+			FROM generate_series(1, ${perRoot}) AS n`);
+	}
+	await db.execute(sql`
+		INSERT INTO activity (batch_id, root_id, project_id, ticket_id, actor_name, actor_kind, action, field,
+			from_value, to_value, meta, created_at)
+		SELECT
+			'B' || lpad(t.number::text, 20, '0') || lpad(i::text, 5, '0'),
+			t.root_id, t.project_id, t.id,
+			CASE WHEN i % 2 = 0 THEN 'navid' ELSE 'claude' END,
+			CASE WHEN i % 2 = 0 THEN 'human' ELSE 'agent' END,
+			CASE WHEN i = 1 THEN 'ticket.created' ELSE 'ticket.updated' END,
+			CASE WHEN i = 1 THEN NULL ELSE 'priority' END,
+			CASE WHEN i = 1 THEN NULL ELSE 'none' END,
+			CASE WHEN i = 1 THEN NULL ELSE 'high' END,
+			'{}'::jsonb,
+			t.created_at + i * interval '1 hour'
+		FROM tickets t, generate_series(1, ${ACTIVITY_PER_TICKET}) AS i`);
+	await db.execute(sql`
+		INSERT INTO comments (id, ticket_id, body, actor_name, actor_kind, created_at, updated_at)
+		SELECT
+			t.id || 'C' || i,
+			t.id,
+			(${WORDS})[((t.number * i * 17) % 60) + 1] || ' ' || (${WORDS})[((t.number + i) % 60) + 1] || ' broke on ' || t.number,
+			CASE WHEN i = 1 THEN 'claude' ELSE 'navid' END,
+			CASE WHEN i = 1 THEN 'agent' ELSE 'human' END,
+			t.created_at + interval '1 day',
+			t.created_at + interval '1 day'
+		FROM tickets t, generate_series(1, ${COMMENTS_PER_TICKET}) AS i`);
+	await db.execute(sql`
+		INSERT INTO pull_requests (id, owner, repo, number, url, title, state, is_draft, head_ref, base_ref, review_state,
+			checks, ci_state, created_at, updated_at)
+		SELECT
+			'PR' || lpad(n::text, 24, '0'), 'acme', 'web', n, 'https://github.com/acme/web/pull/' || n, 'PR ' || n,
+			'open', false, 'feature-' || n, 'main', 'none',
+			'[{"name":"ci","workflow":"CI","bucket":"pass","link":null}]'::jsonb,
+			CASE WHEN n % 4 = 0 THEN 'fail' ELSE 'pass' END,
+			now(), now()
+		FROM generate_series(1, ${OPEN_PRS}) AS n`);
+	await db.execute(sql`
+		INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
+		SELECT 'T0' || lpad(n::text, 24, '0'), 'PR' || lpad(n::text, 24, '0'), 'manual', 'navid', 'human', now()
+		FROM generate_series(1, ${OPEN_PRS}) AS n`);
+	await db.execute(sql`ANALYZE`);
+	return roots;
 };
 
-// `share` tickets in one project, numbered from `first` upwards, cycling the
-// five statuses so the due selection meets done tickets as well as started
-// ones. `idFrom` is the first counter the ids come from; a 26 character id
-// in the alphabet a ULID uses keeps every row the shape the others have.
-const seedTickets = (db: TestDb["db"], project: PerfProject, input: { first: number; share: number; idFrom: number }) =>
-	db.execute(sql`
-		INSERT INTO tickets (
-			id, project_id, root_id, number, title, description, priority, status_id,
-			parent_id, position, version, created_at, updated_at
-		)
-		SELECT
-			'01' || upper(lpad(to_hex(${input.idFrom}::int + g), 24, '0')),
-			${project.id}, ${project.rootId}, ${input.first}::int + g,
-			'Ticket ' || (${input.first}::int + g), ${DESCRIPTION}, 'none',
-			(ARRAY[${sql.join(
-				project.statusIds.map((id) => sql`${id}::text`),
-				sql`, `,
-			)}])[1 + (g % 5)],
-			NULL, (g * 1024)::double precision, 1, now(), now()
-		FROM generate_series(1, ${input.share}::int) g
-	`);
+let shared: Promise<{ db: Db; roots: PerfRoot[] }> | undefined;
 
-export type PerfSeed = { projects: PerfProject[]; pullRequests: string[] };
-
-export const seedPerf = async (db: TestDb["db"], input: { tickets: number }): Promise<PerfSeed> => {
-	const projects = await seedTree(db);
-	const share = Math.floor(input.tickets / projects.length);
-	for (const [index, project] of projects.entries()) {
-		const first = (index % PROJECTS_PER_ROOT) * share;
-		await seedTickets(db, project, { first, share, idFrom: index * share * PROJECTS_PER_ROOT + 1 });
-	}
-	const pullRequests: string[] = [];
-	for (let index = 0; index < OPEN_PULL_REQUESTS; index++) {
-		const project = projects[index % projects.length]!;
-		const ticket = await seedTicket(db, {
-			projectId: project.id,
-			rootId: project.rootId,
-			statusId: project.startedId,
-			number: PR_TICKET_FIRST_NUMBER + index,
-		});
-		const pr = await seedPr(db, { number: 1, repo: `r${index}` });
-		await linkPr(db, ticket, pr);
-		pullRequests.push(pr);
-	}
-	return { projects, pullRequests };
+// One seeded database for every perf file of a run. bun runs the files of
+// one `bun test` in one process with one module cache, so the seed runs
+// once. The instance lives until the process exits.
+export const perfDb = () => {
+	shared ??= (async () => {
+		const { db } = await freshDb();
+		return { db, roots: await perfSeed(db, PERF_ROWS) };
+	})();
+	return shared;
 };

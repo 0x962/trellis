@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { seedActivity, seedComment, seedProject, seedTicket } from "../../../test/fixtures";
 import { freshDb, type TestDb } from "../../../test/helpers/db.ts";
+import { InvalidCursorError } from "./support.ts";
 import { timeline } from "./timeline.ts";
 
 let h: TestDb;
@@ -84,5 +85,29 @@ describe("timeline", () => {
 		const second = (await run({ ticketId: ticket })).items.map(tag);
 		expect(first).toEqual([`comment:${comment}`, `activity:${activity}`]);
 		expect(second).toEqual(first);
+	});
+
+	// `before` is user input. Text that is not a cursor, a cursor of another
+	// shape, or a value the column type cannot hold is InvalidCursorError and
+	// never a JSON error, a TypeError, or a database error.
+	test("a malformed before cursor throws InvalidCursorError", async () => {
+		const { ticket } = await seedOneTicket();
+		await seedComment(h.db, ticket, "one", undefined, at(1));
+		const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
+		const rejects = (before: string) =>
+			expect(run({ ticketId: ticket, before })).rejects.toBeInstanceOf(InvalidCursorError);
+		const iso = "2026-09-08T10:00:02.000Z";
+		await rejects("not base64url at all");
+		await rejects(Buffer.from("[1").toString("base64url"));
+		await rejects(encode(null));
+		await rejects(encode({}));
+		await rejects(encode({ at: "yesterday", kind: 1, key: "x" }));
+		await rejects(encode({ at: "nope", kind: 1, key: "x" }));
+		await rejects(encode({ at: iso, kind: "a", key: "x" }));
+		await rejects(encode({ at: iso, kind: 2, key: "x" }));
+		await rejects(encode({ at: iso, kind: 1, key: 5 }));
+		await rejects(encode({ at: iso, kind: 1 }));
+		const valid = await run({ ticketId: ticket, before: encode({ at: iso, kind: 1, key: "zz" }) });
+		expect(valid.items).toHaveLength(1);
 	});
 });

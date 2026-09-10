@@ -12,14 +12,16 @@ export type RawCheckRun = {
 	name: string;
 	status: string;
 	conclusion: string | null;
+	startedAt?: string | null;
 	detailsUrl?: string | null;
-	checkSuite: { workflowRun: { workflow: { name: string } } | null };
+	checkSuite: { workflowRun: { event?: string | null; workflow: { name: string } } | null };
 };
 
 export type RawStatusContext = {
 	__typename: "StatusContext";
 	context: string;
 	state: string;
+	createdAt?: string | null;
 	targetUrl?: string | null;
 };
 
@@ -78,7 +80,40 @@ const compareChecks = (a: Check, b: Check) =>
 	compareText(a.bucket, b.bucket) ||
 	compareText(a.link ?? "", b.link ?? "");
 
-export const normalizeChecks = (nodes: RawContext[]): Check[] => nodes.map(toCheck).sort(compareChecks);
+// The time GitHub started the node. A node that carries no time sorts before
+// every node that carries one, so a re-run with a time always wins.
+const startedAtMs = (node: RawContext): number => {
+	const stamp = node.__typename === "CheckRun" ? node.startedAt : node.createdAt;
+	const parsed = Date.parse(stamp ?? "");
+	return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+// Two nodes with this same key are the same check. A CheckRun is one check
+// per name, workflow, and trigger event: the same workflow run on a push and
+// on a pull request gives two checks that both count. A StatusContext is one
+// check per context name. The key matches the one `gh pr checks` builds, so
+// the web shows the rows gh prints.
+const identity = (node: RawContext): string => {
+	if (node.__typename === "StatusContext") return `status\u0000${node.context}`;
+	const workflowRun = node.checkSuite.workflowRun;
+	return `run\u0000${node.name}\u0000${workflowRun?.workflow.name ?? ""}\u0000${workflowRun?.event ?? ""}`;
+};
+
+// GitHub keeps a re-run beside the run it replaces on the same commit, so
+// contexts can hold two nodes for one check. Only the node that started last
+// counts. Without this, a first run that failed holds ciState at fail after
+// the re-run passes.
+const latestPerCheck = (nodes: RawContext[]): RawContext[] => {
+	const latest = new Map<string, RawContext>();
+	for (const node of nodes) {
+		const key = identity(node);
+		const held = latest.get(key);
+		if (held === undefined || startedAtMs(node) > startedAtMs(held)) latest.set(key, node);
+	}
+	return [...latest.values()];
+};
+
+export const normalizeChecks = (nodes: RawContext[]): Check[] => latestPerCheck(nodes).map(toCheck).sort(compareChecks);
 
 // Any fail or cancel gives fail; else any pending gives pending; else any
 // pass gives pass; else none. A skipping check counts as nothing.
