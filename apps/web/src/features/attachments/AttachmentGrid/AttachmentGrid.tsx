@@ -5,7 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AttachmentBox } from "../AttachmentBox";
 import { DropTarget } from "../DropTarget";
-import { useUploads } from "../hooks/useUploads";
+import { type Uploads, useUploads } from "../hooks/useUploads";
 import { isThumbnailImage } from "../utils/isThumbnailImage";
 import { AttachmentActions } from "./components/AttachmentActions";
 import { AttachmentRow } from "./components/AttachmentRow";
@@ -16,17 +16,21 @@ export type AttachmentGridProps = {
 	// The attachments a cached ticket detail already holds. With them, the
 	// section paints at once while `attachments.list` loads.
 	initialAttachments?: Attachment[];
+	// The uploads of a surface that owns the drop target, such as the whole
+	// ticket view. With them, the section draws no drop overlay of its own.
+	uploads?: Uploads;
 };
 
 // The attachments section of a ticket surface: the drop target, the drop
 // box, the uploads in flight, the image thumbnails, and the file rows.
-export function AttachmentGrid({ ticket, initialAttachments }: AttachmentGridProps) {
+export function AttachmentGrid({ ticket, initialAttachments, uploads }: AttachmentGridProps) {
 	const { client, orpc, queryClient, scheduler } = useApp();
 	const list = useQuery({
 		...orpc.attachments.list.queryOptions({ input: { ticket } }),
 		initialData: initialAttachments,
 	}).data;
-	const uploadManager = useUploads(ticket);
+	const ownUploads = useUploads(ticket);
+	const uploadManager = uploads ?? ownUploads;
 	const [active, setActive] = useState<number | null>(null);
 	const focusTimers = useRef<unknown[]>([]);
 
@@ -79,8 +83,8 @@ export function AttachmentGrid({ ticket, initialAttachments }: AttachmentGridPro
 			scheduler.setTimeout(() => document.querySelector<HTMLElement>(`[data-thumbnail="${id}"]`)!.focus(), 200),
 		);
 	};
-	return (
-		<DropTarget identifier={ticket} onFiles={uploadManager.start}>
+	const body = (
+		<>
 			<div data-attachments="" className="flex flex-col gap-3">
 				<h2 className="text-sm font-medium text-fg-muted tabular">Attachments · {list.length}</h2>
 				{images.length > 0 && (
@@ -134,6 +138,18 @@ export function AttachmentGrid({ ticket, initialAttachments }: AttachmentGridPro
 					</div>
 				</Dialog>
 			)}
+		</>
+	);
+	if (uploads !== undefined) {
+		return (
+			<section aria-label={`Attachments for ${ticket}`} className="relative">
+				{body}
+			</section>
+		);
+	}
+	return (
+		<DropTarget identifier={ticket} onFiles={uploadManager.start}>
+			{body}
 		</DropTarget>
 	);
 }

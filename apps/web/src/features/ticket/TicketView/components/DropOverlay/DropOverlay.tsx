@@ -3,9 +3,9 @@ import { type DragEvent, useState } from "react";
 // Whether a drag carries files. A dragged text selection is not a drop.
 const carriesFiles = (event: DragEvent) => Array.from(event.dataTransfer.types).includes("Files");
 
-// The drag handlers of a drop surface and whether a drop is over it. The
-// upload itself lands in M5, so a drop closes the overlay and does nothing.
-export const useDropOverlay = () => {
+// The drag handlers of a drop surface and whether a drop is over it. A drop
+// that carries files hands every file to `onFiles`.
+export const useDropOverlay = (onFiles: (files: File[]) => void) => {
 	const [over, setOver] = useState(false);
 	return {
 		over,
@@ -26,6 +26,7 @@ export const useDropOverlay = () => {
 			onDrop: (event: DragEvent) => {
 				event.preventDefault();
 				setOver(false);
+				if (carriesFiles(event)) onFiles([...event.dataTransfer.files]);
 			},
 		},
 	};
