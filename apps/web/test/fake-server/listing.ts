@@ -37,6 +37,37 @@ export const textMatches = (row: { title: string; description: string }, q: stri
 	return tokens(q).every((needle) => words.some((word) => word.startsWith(needle)));
 };
 
+// The number of insertions, deletions, substitutions, and swaps of two
+// neighbours that turn `a` into `b`. It stops counting at 2, because every
+// caller asks for at most one edit.
+const editDistance = (a: string, b: string) => {
+	const rows: number[][] = [];
+	for (let i = 0; i <= a.length; i += 1) rows.push(new Array<number>(b.length + 1).fill(0));
+	for (let i = 0; i <= a.length; i += 1) rows[i]![0] = i;
+	for (let j = 0; j <= b.length; j += 1) rows[0]![j] = j;
+	for (let i = 1; i <= a.length; i += 1) {
+		for (let j = 1; j <= b.length; j += 1) {
+			const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+			let best = Math.min(rows[i - 1]![j]! + 1, rows[i]![j - 1]! + 1, rows[i - 1]![j - 1]! + cost);
+			if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+				best = Math.min(best, rows[i - 2]![j - 2]! + 1);
+			}
+			rows[i]![j] = best;
+		}
+	}
+	return rows[a.length]![b.length]!;
+};
+
+// A typed word finds a title word that one edit away: "teh" finds "the"
+// and "restor" finds "restore". A word of one or two letters matches by
+// prefix only, because one edit reaches too far from there.
+export const titleMatches = (title: string, q: string) => {
+	const words = tokens(title);
+	return tokens(q).every((needle) =>
+		words.some((word) => word.startsWith(needle) || (needle.length >= 3 && editDistance(needle, word) <= 1)),
+	);
+};
+
 const prMatches = (state: State, row: TicketRow, filter: NonNullable<ListQuery["pr"]>) => {
 	const prs = state.prLinks.filter((link) => link.ticketId === row.id).map((link) => state.prs.get(link.prId)!);
 	if (filter === "any") return prs.length > 0;
