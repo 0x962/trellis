@@ -37,6 +37,17 @@ const drop = (source: HTMLElement, target: HTMLElement, edge?: "top" | "bottom")
 };
 
 describe("Board", () => {
+	test("the loading state mounts before auto-scroll attaches", async () => {
+		const userAgent = navigator.userAgent;
+		Object.defineProperty(navigator, "userAgent", { configurable: true, value: "Chrome" });
+		try {
+			renderBoard();
+			expect(await screen.findByText("CDE-47")).toBeDefined();
+		} finally {
+			Object.defineProperty(navigator, "userAgent", { configurable: true, value: userAgent });
+		}
+	});
+
 	test("columns use category order and show counts and the WIP warning", async () => {
 		const server = createFakeServer();
 		const started = [...server.state.statuses.values()].find(
