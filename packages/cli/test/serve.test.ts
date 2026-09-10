@@ -27,6 +27,22 @@ describe("serve", () => {
 		await expect(fetch(`http://127.0.0.1:${server.port}/api/health`)).rejects.toThrow();
 	}, 30_000);
 
+	// A proxy such as Tailscale Serve reaches 127.0.0.1 and keeps its own
+	// hostname in the Host header.
+	test("serve --allow-host serves that Host name and still refuses another", async () => {
+		const server = await startCliServer(tempDir("serve-allow-host"), { TRELLIS_ALLOWED_HOSTS: undefined }, [
+			"--allow-host",
+			"phone.tail4a5b4c.ts.net",
+		]);
+		stops.push(server.stop);
+
+		const allowed = await fetch(`${server.url}/api/health`, { headers: { host: "phone.tail4a5b4c.ts.net" } });
+		const refused = await fetch(`${server.url}/api/health`, { headers: { host: "other.tail4a5b4c.ts.net" } });
+
+		expect(allowed.status).toBe(200);
+		expect(refused.status).toBe(403);
+	}, 30_000);
+
 	test("serve without --host binds 127.0.0.1", async () => {
 		const server = await startCliServer(tempDir("serve-default"), { TRELLIS_HOST: undefined });
 		stops.push(server.stop);
