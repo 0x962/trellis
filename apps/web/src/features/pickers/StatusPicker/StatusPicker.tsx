@@ -1,7 +1,9 @@
 import type { StatusSummary } from "@trellis/api";
 import { Command, Popover } from "@trellis/ui";
 import { type ReactElement, type RefObject, useRef, useState } from "react";
+import { pickerListClass } from "../pickerListClass";
 import { statusGroups } from "../statusGroups";
+import { keyPick } from "../utils/keyPick";
 
 export type StatusPickerProps<S extends StatusSummary> = {
 	statuses: readonly S[];
@@ -16,9 +18,9 @@ export type StatusPickerProps<S extends StatusSummary> = {
 	side?: "top" | "bottom";
 };
 
-// The status popover: one searchable list grouped by category. Enter
-// applies the highlighted status and closes; Escape closes and changes
-// nothing.
+// The status popover: one searchable list in category order. Enter
+// applies the highlighted status and closes; a number key picks its row
+// while the search is empty; Escape closes and changes nothing.
 export function StatusPicker<S extends StatusSummary>({
 	statuses,
 	value,
@@ -36,6 +38,17 @@ export function StatusPicker<S extends StatusSummary>({
 		setOwn(next);
 		onOpenChange?.(next);
 	};
+	const pick = (status: S) => {
+		setOpen(false);
+		onPick(status);
+	};
+	const groups = statusGroups(statuses, { current: value, picker: true });
+	// The rows in display order. The first 9 take the keys 1 to 9, the same
+	// numbers `statusGroups` draws on them.
+	const ordered = groups.flatMap((group) =>
+		group.items.map((item) => statuses.find((status) => status.id === item.id)!),
+	);
+	const picks = new Map(ordered.slice(0, 9).map((status, index) => [String(index + 1), () => pick(status)]));
 	return (
 		<Popover
 			trigger={trigger}
@@ -47,16 +60,16 @@ export function StatusPicker<S extends StatusSummary>({
 			side={side}
 			className="w-64 p-0"
 		>
-			<Command
-				inputRef={input}
-				label="Search statuses"
-				placeholder="Change status"
-				groups={statusGroups(statuses, { current: value })}
-				onSelect={(id) => {
-					setOpen(false);
-					onPick(statuses.find((status) => status.id === id)!);
-				}}
-			/>
+			<div onKeyDownCapture={keyPick(picks, input)}>
+				<Command
+					inputRef={input}
+					label="Search statuses"
+					placeholder="Change status"
+					groups={groups}
+					listClassName={pickerListClass}
+					onSelect={(id) => pick(statuses.find((status) => status.id === id)!)}
+				/>
+			</div>
 		</Popover>
 	);
 }

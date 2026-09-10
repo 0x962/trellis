@@ -29,17 +29,23 @@ const mount = async (user: ReturnType<typeof userEvent.setup>) => {
 };
 
 describe("features/pickers/StatusPicker", () => {
-	// Outcome 83
+	// Outcome 83. Spec PK-1: a category shows a heading only when 2 or more
+	// statuses share it. In the CDE set only Review does. Every option shows
+	// the icon of its own category, in category order.
 	test("groups the statuses by category in order", async () => {
 		const user = userEvent.setup();
 		const { dialog } = await mount(user);
 		const groups = [...dialog.querySelectorAll("[cmdk-group]")];
-		const headings = groups.map((group) => group.querySelector("[cmdk-group-heading]")?.textContent?.trim());
-		expect(headings).toEqual(["Todo", "Started", "Review", "Done", "Canceled"]);
-		const categories = ["todo", "started", "review", "done", "canceled"];
-		groups.forEach((group, index) => {
-			expect(group.querySelector(`svg[data-category="${categories[index]}"]`), categories[index]).not.toBeNull();
-		});
+		const headings = groups
+			.map((group) => group.querySelector("[cmdk-group-heading]")?.textContent?.trim())
+			.filter((heading) => heading !== undefined);
+		expect(headings).toEqual(["Review"]);
+		const categories = ["todo", "started", "review", "review", "done", "canceled"];
+		within(dialog)
+			.getAllByRole("option")
+			.forEach((option, index) => {
+				expect(option.querySelector(`svg[data-category="${categories[index]}"]`), categories[index]).not.toBeNull();
+			});
 		expect(
 			within(dialog)
 				.getAllByRole("option")

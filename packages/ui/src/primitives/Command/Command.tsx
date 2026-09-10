@@ -38,7 +38,8 @@ export type CommandItem = {
 };
 
 export type CommandGroup = {
-	heading: string;
+	// Without a heading, the group draws its items with no heading row.
+	heading?: string;
 	// A mark before the heading, such as the category icon.
 	icon?: ReactElement;
 	items: readonly CommandItem[];
@@ -62,6 +63,8 @@ export type CommandProps = {
 	onSearchChange?: (search: string) => void;
 	empty?: string;
 	className?: string;
+	// The height and padding of the scrolling list. `max-h-80` by default.
+	listClassName?: string;
 };
 
 const indents = ["pl-2", "pl-5", "pl-8", "pl-11"] as const;
@@ -84,6 +87,7 @@ export function Command({
 	onSearchChange,
 	empty = "No results.",
 	className,
+	listClassName,
 }: CommandProps) {
 	const option = (item: CommandItem) => (
 		<Cmdk.Item
@@ -123,23 +127,25 @@ export function Command({
 					className="h-full flex-1 bg-transparent text-md text-fg outline-none placeholder:text-fg-faint"
 				/>
 			</div>
-			<Cmdk.List className="max-h-80 overflow-y-auto p-1">
+			<Cmdk.List className={cx("overflow-y-auto p-1", listClassName ?? "max-h-80")}>
 				<Cmdk.Empty className="px-2 py-6 text-center text-sm text-fg-muted">{empty}</Cmdk.Empty>
 				{items.map(option)}
-				{groups.map((group) => (
+				{groups.map((group, index) => (
 					<Cmdk.Group
-						key={group.heading}
+						key={group.heading ?? `group-${index}`}
 						heading={
-							<span className="inline-flex items-center gap-1.5">
-								{group.icon && (
-									<span aria-hidden="true" className="inline-flex size-3 shrink-0 *:size-full">
-										{group.icon}
-									</span>
-								)}
-								{group.heading}
-							</span>
+							group.heading === undefined ? undefined : (
+								<span className="inline-flex items-center gap-1.5">
+									{group.icon && (
+										<span aria-hidden="true" className="inline-flex size-3 shrink-0 *:size-full">
+											{group.icon}
+										</span>
+									)}
+									{group.heading}
+								</span>
+							)
 						}
-						className="[&_[cmdk-group-heading]]:flex [&_[cmdk-group-heading]]:h-7 [&_[cmdk-group-heading]]:items-center [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-fg-faint"
+						className="[&_[cmdk-group-heading]]:flex [&_[cmdk-group-heading]]:h-7 [&_[cmdk-group-heading]]:items-center [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.04em] [&_[cmdk-group-heading]]:text-fg-faint"
 					>
 						{group.items.map(option)}
 					</Cmdk.Group>
