@@ -59,9 +59,14 @@ export const holdCalls = (procedure: string) => {
 };
 
 // Answers every request to one RPC procedure with a 500, so the client sees
-// an undefined error. The other requests pass through.
+// an undefined error. The other requests pass through. The returned
+// function puts back the fetch that ran before, so the next request to the
+// procedure reaches the server.
 export const failCalls = (procedure: string) => {
 	const forward = globalThis.fetch;
+	const restore = () => {
+		globalThis.fetch = forward;
+	};
 	globalThis.fetch = (async (input: Request, init?: RequestInit) => {
 		if (pathOf(input).endsWith(`/rpc/${procedure.replace(".", "/")}`)) {
 			return new Response(JSON.stringify({ json: { code: "INTERNAL_SERVER_ERROR", status: 500, message: "boom" } }), {
@@ -71,4 +76,5 @@ export const failCalls = (procedure: string) => {
 		}
 		return forward(input, init);
 	}) as unknown as typeof fetch;
+	return restore;
 };
