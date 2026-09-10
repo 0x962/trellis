@@ -42,15 +42,18 @@ export default function SetupScreen() {
 	const [error, setError] = useState<string>();
 	const [probe, setProbe] = useState<Probe>();
 	const [busy, setBusy] = useState(false);
-	const [saved, setSaved] = useState(false);
+	// How many times the person pressed Save. The screen leaves on a press
+	// that stored both values, so it counts the presses instead of holding a
+	// flag that stays true after the first one.
+	const [saves, setSaves] = useState(0);
 	const palette = usePalette();
 	const configured = Boolean(storedUrl) && Boolean(storedName);
 
 	useEffect(() => {
-		if (!saved || !configured) return;
+		if (saves === 0 || !configured) return;
 		if (router.canGoBack()) router.back();
 		else router.replace("/");
-	}, [saved, configured]);
+	}, [saves, configured]);
 
 	const changeUrl = (next: string) => {
 		setUrl(next);
@@ -93,7 +96,7 @@ export default function SetupScreen() {
 		if (current.url !== storedUrl) queryClient.clear();
 		setStoredUrl(current.url);
 		setStoredName(validName.name);
-		setSaved(true);
+		setSaves((count) => count + 1);
 	};
 
 	const canSave = answer?.ok === true && validName.ok;
