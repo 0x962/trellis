@@ -56,4 +56,22 @@ describe("features/filters/FilterChip", () => {
 		await waitFor(() => expect(router.state.location.searchStr).toBe(""));
 		expect(chip("status")).toBeNull();
 	});
+
+	// D17. A category chip names the statuses of the category in the scope,
+	// so it reads like the cells. After two names it counts the rest.
+	test("a category chip names its statuses", async () => {
+		renderApp({ path: "/p/CDE?category=review", actor: "navid" });
+		await findGrid();
+		await waitFor(() => expect(chip("category")).not.toBeNull());
+		expect(chip("category")!.textContent!.replace(/\s+/g, " ").trim()).toBe(
+			"Status is Agent Review, Human Review",
+		);
+	});
+
+	test("a chip with more than two values names two and counts the rest", async () => {
+		renderApp({ path: "/p/CDE?category=todo,started,review", actor: "navid" });
+		await findGrid();
+		await waitFor(() => expect(chip("category")).not.toBeNull());
+		expect(chip("category")!.textContent!.replace(/\s+/g, " ").trim()).toBe("Status is Todo, In Progress +2");
+	});
 });
