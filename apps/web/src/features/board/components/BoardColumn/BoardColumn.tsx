@@ -78,7 +78,10 @@ export function BoardColumn({
 			className={`flex w-75 shrink-0 snap-start flex-col gap-2 rounded-md p-1 transition-colors duration-hover ${over ? "bg-accent/4" : ""}`}
 		>
 			<li role="none" className="contents">
-				<header className={`flex h-9 items-center gap-2 px-1 ${exceeded ? "text-warning" : "text-fg"}`}>
+				{/* The column is a flex column that shrinks its children when its cards
+				overflow it. shrink-0 keeps the header 36 px tall in every column, so
+				the column names line up. */}
+				<header className={`flex h-9 shrink-0 items-center gap-2 px-1 ${exceeded ? "text-warning" : "text-fg"}`}>
 					<StatusIcon category={column.category} reviewer={column.statuses[0]?.reviewer ?? undefined} />
 					<h2 className="text-base font-medium">{column.name}</h2>
 					<span className="text-sm text-fg-faint tabular">{count}</span>
