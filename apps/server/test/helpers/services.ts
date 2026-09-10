@@ -1,11 +1,13 @@
-import { expect } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, expect } from "bun:test";
 import { ORPCError } from "@orpc/server";
 import { type ActorRef, type ErrorCode, errors, type TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import type { z } from "zod";
 import { createCache, type ProjectCache } from "../../src/db/cache.ts";
 import { iso } from "../../src/db/queries/support.ts";
 import { type Emit, type EventSink, type Tx, withTx } from "../../src/db/tx.ts";
 import { navid } from "../fixtures/projects.ts";
+import { assertStatusInvariant } from "../invariants.ts";
 import { freshDb } from "./db.ts";
 
 // The one instant every service test runs at. A service stamps every row of
@@ -70,6 +72,12 @@ export const serviceHarness = async () => {
 		actorCache,
 	});
 
+	// Every service call leaves the status invariant intact: no ticket points
+	// at a status outside owner(ticket.project). The check runs after the
+	// commit, so a service that repairs the invariant inside its own
+	// transaction passes.
+	const checkInvariant = () => h.db.transaction((tx) => assertStatusInvariant(tx));
+
 	// Runs `fn` in one transaction with a service context. The events reach
 	// `flushed` after the commit.
 	const run = async <T>(fn: (ctx: ServiceCtx, tx: Tx) => Promise<T>, options: CtxOptions = {}) => {
@@ -80,12 +88,20 @@ export const serviceHarness = async () => {
 				flushed.push(...events);
 			},
 		);
+		await checkInvariant();
 		return result;
 	};
 
 	// The same as `run` with the sink the test supplies.
-	const runWithSink = <T>(fn: (ctx: ServiceCtx, tx: Tx) => Promise<T>, sink: EventSink, options: CtxOptions = {}) =>
-		withTx(h.db, (tx, emit) => fn(ctx(emit, options), tx), sink);
+	const runWithSink = async <T>(
+		fn: (ctx: ServiceCtx, tx: Tx) => Promise<T>,
+		sink: EventSink,
+		options: CtxOptions = {},
+	) => {
+		const outcome = await withTx(h.db, (tx, emit) => fn(ctx(emit, options), tx), sink);
+		await checkInvariant();
+		return outcome;
+	};
 
 	// A read-only transaction for a query or an invariant check.
 	const read = <T>(fn: (tx: Tx) => Promise<T>) => h.db.transaction(fn);
@@ -132,11 +148,14 @@ export const expectError = async <C extends ErrorCode>(promise: Promise<unknown>
 	);
 	if (outcome.ok) throw new Error(`Expected ${code}, the call returned ${JSON.stringify(outcome.value)}.`);
 	if (!(outcome.error instanceof ORPCError)) throw outcome.error;
-	const error = outcome.error as ORPCError<C, Record<string, unknown>>;
+	const error = outcome.error as ORPCError<C, ErrorData<C>>;
 	expect(error.code).toBe(code);
 	expect(error.status).toBe(errors[code].status);
 	return error;
 };
+
+// The payload the contract declares for one error code.
+export type ErrorData<C extends ErrorCode> = z.infer<(typeof errors)[C]["data"]>;
 
 export const eventsOfType = (events: TrellisEvent[], type: TrellisEvent["type"]) =>
 	events.filter((event) => event.type === type);
@@ -169,3 +188,90 @@ export const activityRows = (h: Pick<Harness, "rows">) =>
 		sql`SELECT id, batch_id, root_id, project_id, ticket_id, actor_name, actor_kind, action, field,
 			from_value, to_value, meta, ${at("created_at")} FROM activity ORDER BY id`,
 	);
+
+export type Db = Harness["db"];
+
+export const query = async <T>(db: Db, statement: ReturnType<typeof sql>) => (await db.execute(statement)).rows as T[];
+
+// A timestamp column as epoch milliseconds, whatever form the driver hands
+// back: a Date for `SELECT *`, an ISO string for a column `iso` wrapped.
+export const millis = (value: unknown) => new Date(value as Date).getTime();
+
+export const distinct = <T>(values: T[]) => [...new Set(values)];
+
+// The `data` of the declared error a call rejects with, typed as the
+// contract declares it for that code.
+export const expectErrorData = async <C extends ErrorCode>(promise: Promise<unknown>, code: C) =>
+	(await expectError(promise, code)).data;
+
+// One ticket row as the table holds it, for a test that reads a column the
+// wire shape hides: `started_at`, `completed_at`, `parent_id`.
+export type TicketDbRow = {
+	id: string;
+	project_id: string;
+	root_id: string;
+	number: number;
+	title: string;
+	description: string;
+	priority: string;
+	status_id: string;
+	parent_id: string | null;
+	position: number;
+	version: number;
+	started_at: string | null;
+	completed_at: string | null;
+	created_at: string;
+	updated_at: string;
+};
+
+export const ticketRow = async (db: Db, id: string) =>
+	(await query<TicketDbRow>(db, sql`SELECT * FROM tickets WHERE id = ${id}`))[0];
+
+// Every activity row in id order, or the rows of one ticket. The columns
+// arrive as the table holds them, so a test reads `meta` and `batch_id`.
+export const activityOf = (db: Db, ticketId?: string) =>
+	query<ActivityRow>(
+		db,
+		ticketId === undefined
+			? sql`SELECT * FROM activity ORDER BY id`
+			: sql`SELECT * FROM activity WHERE ticket_id = ${ticketId} ORDER BY id`,
+	);
+
+// The rows a ticket delete leaves behind: project-level, with no ticket id.
+export const traceRows = (db: Db) =>
+	query<ActivityRow>(db, sql`SELECT * FROM activity WHERE ticket_id IS NULL ORDER BY id`);
+
+// The hooks a ticket service test file shares: one in-memory database per
+// file, an empty database before each test, and the status invariant after
+// each test. `as(actor)` runs one service call in one transaction as that
+// actor and returns the result with the events the commit queued. The
+// transaction rebuilds the project cache first, so the call sees the tree
+// the fixtures seeded.
+export const ticketHarness = () => {
+	let h: Harness;
+	beforeAll(async () => {
+		h = await serviceHarness();
+	});
+	beforeEach(() => h.reset());
+	afterEach(() => h.read((tx) => assertStatusInvariant(tx)));
+	afterAll(() => h.close());
+
+	const as =
+		(actor: ActorRef, sink?: EventSink) =>
+		<T>(fn: (ctx: ServiceCtx, tx: Tx) => Promise<T>) =>
+			withTx(
+				h.db,
+				async (tx, emit) => {
+					await h.cache.rebuild(tx);
+					return fn(h.ctx(emit, { actor, now: new Date() }), tx);
+				},
+				sink,
+			);
+
+	return {
+		get db() {
+			return h.db;
+		},
+		as,
+	};
+};

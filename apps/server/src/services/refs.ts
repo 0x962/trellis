@@ -24,11 +24,13 @@ export type TicketRow = {
 	projectId: string;
 	rootId: string;
 	number: number;
+	identifier: string;
 	title: string;
 	description: string;
 	priority: Priority;
 	statusId: string;
 	parentId: string | null;
+	parentIdentifier: string | null;
 	position: number;
 	version: number;
 	startedAt: string | null;
@@ -37,8 +39,11 @@ export type TicketRow = {
 	updatedAt: string;
 };
 
-const ticketColumns = sql`t.id, t.project_id AS "projectId", t.root_id AS "rootId", t.number, t.title, t.description,
-	t.priority, t.status_id AS "statusId", t.parent_id AS "parentId", t.position, t.version,
+const ticketColumns = sql`t.id, t.project_id AS "projectId", t.root_id AS "rootId", t.number,
+	root.key || '-' || t.number AS identifier, t.title, t.description,
+	t.priority, t.status_id AS "statusId", t.parent_id AS "parentId",
+	CASE WHEN par.id IS NULL THEN NULL ELSE root.key || '-' || par.number END AS "parentIdentifier",
+	t.position, t.version,
 	${iso(sql`t.started_at`)} AS "startedAt", ${iso(sql`t.completed_at`)} AS "completedAt",
 	${iso(sql`t.created_at`)} AS "createdAt", ${iso(sql`t.updated_at`)} AS "updatedAt"`;
 
@@ -52,7 +57,10 @@ export const resolveTicket = async (_ctx: ServiceCtx, tx: Tx, ref: string): Prom
 			: sql`root.key = ${parsed.data.key} AND t.number = ${parsed.data.number}`;
 	const found = await rows<TicketRow>(
 		tx,
-		sql`SELECT ${ticketColumns} FROM tickets t JOIN projects root ON root.id = t.root_id WHERE ${where}`,
+		sql`SELECT ${ticketColumns} FROM tickets t
+			JOIN projects root ON root.id = t.root_id
+			LEFT JOIN tickets par ON par.id = t.parent_id
+			WHERE ${where}`,
 	);
 	if (found.length === 0) throw fail("NOT_FOUND", { kind: "ticket", ref: canonical });
 	return found[0]!;
