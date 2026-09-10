@@ -18,6 +18,13 @@ import { apiVersion, type Call, type FakeServerOptions, fakeServer, type Routes 
 //   open(url)              the browser opener behind `open --browser`
 //   signal                 fires on SIGINT; `watch` stops on it
 //   apiVersion             the api version the CLI was built against
+//   run(args, cwd)         runs a program; install and uninstall send launchctl and the web build through it
+//   launchdDomain          the launchd domain install and uninstall address, `gui/<uid>` in a real run
+//
+// The default `run` records each call in `commands` and returns exit code 0,
+// so a test never starts a real program through the CLI.
+export type CommandCall = { args: string[]; cwd?: string };
+
 export type RunOptions = FakeServerOptions & {
 	tty?: boolean;
 	stderrTty?: boolean;
@@ -30,6 +37,8 @@ export type RunOptions = FakeServerOptions & {
 	fetch?: (request: Request) => Promise<Response>;
 	signal?: AbortSignal;
 	open?: (url: string) => void;
+	run?: Deps["run"];
+	launchdDomain?: string;
 };
 
 export type RunResult = {
@@ -39,6 +48,7 @@ export type RunResult = {
 	calls: Call[];
 	requests: Request[];
 	sleeps: number[];
+	commands: CommandCall[];
 };
 
 // Inside Claude Code by default, so the actor is `agent:claude-code` with
@@ -49,6 +59,7 @@ export const makeDeps = (routes: Routes = {}, options: RunOptions = {}) => {
 	let out = "";
 	let err = "";
 	const sleeps: number[] = [];
+	const commands: CommandCall[] = [];
 	const server = fakeServer(routes, { serverApiVersion: options.serverApiVersion, raw: options.raw });
 	const deps: Deps = {
 		fetch: options.fetch ?? server.fetch,
@@ -75,14 +86,29 @@ export const makeDeps = (routes: Routes = {}, options: RunOptions = {}) => {
 		open: options.open ?? (() => {}),
 		signal: options.signal ?? new AbortController().signal,
 		apiVersion: options.apiVersion ?? apiVersion,
+		run:
+			options.run ??
+			(async (args, cwd) => {
+				commands.push(cwd === undefined ? { args } : { args, cwd });
+				return { code: 0, stderr: "" };
+			}),
+		launchdDomain: options.launchdDomain ?? "gui/test",
 	};
-	return { deps, server, stdout: () => out, stderr: () => err, sleeps };
+	return { deps, server, stdout: () => out, stderr: () => err, sleeps, commands };
 };
 
 export const runCli = async (argv: string[], routes: Routes = {}, options: RunOptions = {}): Promise<RunResult> => {
-	const { deps, server, stdout, stderr, sleeps } = makeDeps(routes, options);
+	const { deps, server, stdout, stderr, sleeps, commands } = makeDeps(routes, options);
 	const code = await run(argv, deps);
-	return { code, stdout: stdout(), stderr: stderr(), calls: server.calls, requests: server.requests, sleeps };
+	return {
+		code,
+		stdout: stdout(),
+		stderr: stderr(),
+		calls: server.calls,
+		requests: server.requests,
+		sleeps,
+		commands,
+	};
 };
 
 // The lines of a stream, without the trailing newline.

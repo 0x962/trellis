@@ -28,6 +28,11 @@ export type Deps = {
 	open: (url: string) => void;
 	signal: AbortSignal;
 	apiVersion: string;
+	// Runs a program to its end. install and uninstall send launchctl and the
+	// web build through it, so a test records the calls and starts nothing.
+	run: (args: string[], cwd?: string) => Promise<{ code: number; stderr: string }>;
+	// The launchd domain that install and uninstall address: `gui/<uid>`.
+	launchdDomain: string;
 };
 
 export const defaultUrl = "http://127.0.0.1:4521";
@@ -229,6 +234,12 @@ if (import.meta.main) {
 		open: (url) => void Bun.spawn(["open", url]),
 		signal: controller.signal,
 		apiVersion: apiPkg.version,
+		run: async (args, cwd) => {
+			const proc = Bun.spawn(args, { cwd, stdin: "ignore", stdout: "ignore", stderr: "pipe" });
+			const [code, stderr] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
+			return { code, stderr: stderr.trim() };
+		},
+		launchdDomain: `gui/${process.getuid!()}`,
 	};
 	const code = await run(process.argv.slice(2), deps);
 	process.stdout.write("", () => process.exit(code));
