@@ -1,0 +1,131 @@
+import { beforeEach, describe, expect, test } from "bun:test";
+import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { createFakeServer } from "../../../../test/fake-server";
+import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { fieldValue, renderTicket, settle } from "../../../../test/ticketHost";
+import { TicketView } from "./TicketView";
+
+beforeEach(() => localStorage.clear());
+
+const skeletons = () => [...document.querySelectorAll<HTMLElement>('[aria-busy="true"]')];
+
+const page = (identifier = "CDE-42") =>
+	renderTicket(identifier, (ticket) => <TicketView identifier={ticket.identifier} variant="page" />, {
+		path: `/t/${identifier}`,
+	});
+
+describe("features/ticket/TicketView", () => {
+	// WT-16. The seeded CDE-42 has a parent, three children, one PR, one
+	// attachment, and a timeline, so every section renders.
+	test("renders every section of the seeded CDE-42", async () => {
+		page();
+		const header = await screen.findByLabelText("Ticket header");
+		expect(within(header).getByText("CDE-42")).toBeDefined();
+		expect(within(header).getByRole("button", { name: "Start with agent" })).toBeDefined();
+		const field = screen.getByRole("textbox", { name: "Title" });
+		await waitFor(() => expect(fieldValue(field)).toBe("Restore the fork pages after the upstream 1.27 merge"));
+		await waitFor(() => expect(document.querySelector(".markdown")!.textContent).toContain("1.27"));
+		for (const name of ["Sub-tickets", "Pull requests", "Attachments", "Timeline"]) {
+			expect(await screen.findByRole("region", { name: new RegExp(`^${name}`) })).toBeDefined();
+		}
+		expect(screen.getByRole("button", { name: /CDE-48/ })).toBeDefined();
+		expect(screen.getByRole("button", { name: /#118/ })).toBeDefined();
+		expect(screen.getByRole("img", { name: /fork-pages-after-merge\.png/ })).toBeDefined();
+		expect(await screen.findByRole("list", { name: "Timeline" })).toBeDefined();
+		const rail = screen.getByLabelText("Properties");
+		expect(rail.tagName).toBe("ASIDE");
+		expect(within(rail).getByText("Human Review")).toBeDefined();
+	});
+
+	// WT-108. A hover-revealed action on the PR row has a twin in the row's
+	// more menu, and Tab reaches that menu.
+	test("no ticket action is hover-only", async () => {
+		const user = userEvent.setup();
+		page();
+		const row = await screen.findByRole("button", { name: /#118/ });
+		const hoverActions = [...row.parentElement!.querySelectorAll<HTMLElement>('[class*="group-hover"]')]
+			.map((element) => element.getAttribute("aria-label") ?? element.textContent!.trim())
+			.filter((name) => name !== "");
+		expect(hoverActions.length).toBeGreaterThan(0);
+		row.focus();
+		let menuButton: HTMLElement | null = null;
+		for (let step = 0; step < 6 && menuButton === null; step++) {
+			await user.tab();
+			const active = document.activeElement as HTMLElement;
+			if (/actions/i.test(active.getAttribute("aria-label") ?? "")) menuButton = active;
+		}
+		expect(menuButton).not.toBeNull();
+		await user.keyboard("{Enter}");
+		const items = await screen.findAllByRole("menuitem");
+		const names = items.map((item) => item.textContent!.trim());
+		for (const name of hoverActions) expect(names).toContain(name);
+		for (const item of items) {
+			item.focus();
+			expect(document.activeElement).toBe(item);
+		}
+	});
+
+	// WT-110. A skeleton is shaped like the row it stands for: a PR row is
+	// 56 px (h-14), an activity line 32 px (h-8). A cached open paints at once.
+	test("shows skeletons cold and none on a cached open", async () => {
+		const server = createFakeServer();
+		const hold = server.holdNext("tickets.get");
+		setTimeout(hold.release, 400);
+		const cold = renderWithProviders(<TicketView identifier="CDE-42" variant="page" />, {
+			path: "/t/CDE-42",
+			actor: "navid",
+			server,
+		});
+		await waitFor(() => expect(skeletons().length).toBeGreaterThan(0));
+		const classes = skeletons().flatMap((root) => [...root.querySelectorAll("*")].map((el) => el.className));
+		expect(classes.some((name) => /\bh-14\b/.test(name))).toBe(true);
+		expect(classes.some((name) => /\bh-8\b/.test(name))).toBe(true);
+		await waitFor(() => expect(skeletons()).toHaveLength(0), { timeout: 2000 });
+		const key = cold.orpc.tickets.get.queryKey({ input: { ticket: "CDE-42" } });
+		const data = cold.queryClient.getQueryData(key);
+		cold.unmount();
+		let seen = 0;
+		const observer = new MutationObserver(() => {
+			seen += skeletons().length;
+		});
+		observer.observe(document.body, { subtree: true, childList: true });
+		renderWithProviders(<TicketView identifier="CDE-42" variant="page" />, {
+			path: "/t/CDE-42",
+			actor: "navid",
+			server,
+			prime: ({ queryClient }) => queryClient.setQueryData(key, data),
+		});
+		expect(skeletons()).toHaveLength(0);
+		await screen.findByLabelText("Ticket header");
+		await settle();
+		observer.disconnect();
+		expect(seen).toBe(0);
+	});
+
+	// WT-111. Fixed row heights: text length never changes a row.
+	test("keeps the fixed row heights of the spec", async () => {
+		const server = createFakeServer();
+		const long = await server.client.tickets.get({ ticket: "CDE-42" });
+		const link = server.state.prLinks.find((entry) => entry.ticketId === long.id)!;
+		server.state.prs.get(link.prId)!.title = "A pull request title that runs far past the width of the row ".repeat(4);
+		renderTicket("CDE-42", (ticket) => <TicketView identifier={ticket.identifier} variant="page" />, {
+			path: "/t/CDE-42",
+			server,
+		});
+		const prRow = await screen.findByRole("button", { name: /#118/ });
+		expect(prRow.closest(".h-14")).not.toBeNull();
+		const timeline = await screen.findByRole("list", { name: "Timeline" });
+		await waitFor(() => expect(timeline.querySelectorAll('[data-kind="activity"]').length).toBeGreaterThan(0));
+		for (const line of timeline.querySelectorAll<HTMLElement>('[data-kind="activity"]')) {
+			expect(line.className).toMatch(/\bh-8\b/);
+		}
+		const children = screen.getByRole("region", { name: /Sub-tickets/ });
+		const heights = new Set(
+			within(children)
+				.getAllByRole("button", { name: /CDE-\d+/ })
+				.map((row) => /\bh-\d+\b/.exec(row.className)?.[0]),
+		);
+		expect(heights.size).toBe(1);
+	});
+});

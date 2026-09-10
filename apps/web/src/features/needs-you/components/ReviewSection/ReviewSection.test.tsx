@@ -3,7 +3,6 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
 import { createFakeServer, type FakeServer } from "../../../../../test/fake-server";
-import { fail } from "../../../../../test/fake-server/fail";
 import { createFakeScheduler } from "../../../../../test/fakeScheduler";
 import {
 	addArchivedStatus,
@@ -165,7 +164,7 @@ describe("ReviewSection", () => {
 	test("restores the row and the count when the move fails", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
-		server.failNext("tickets.move", fail("STATUS_NOT_IN_PROJECT", { valid: [] }));
+		server.failNext("tickets.move", { code: "STATUS_NOT_IN_PROJECT", data: { valid: [] } });
 		render(server);
 		await focusRow("CDE-42");
 		await user.keyboard("a");

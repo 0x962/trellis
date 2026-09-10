@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { ReadOnlyMarkdown } from "../../../../ticket/ReadOnlyMarkdown";
+import { ReadOnlyMarkdown } from "../../../../ticket/Description/components/ReadOnlyMarkdown";
 
 const DescriptionEditor = lazy(() =>
 	import("../DescriptionEditor/DescriptionEditor").then((module) => ({ default: module.DescriptionEditor })),

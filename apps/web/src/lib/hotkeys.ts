@@ -169,8 +169,9 @@ export const useGlobalHotkeys = (options: GlobalHotkeyOptions): string | null =>
 		}, sequenceWindowMs);
 	});
 
-	// The second key is read in the capture phase, so a page binding never
-	// fires as the second half of a sequence.
+	// The second key is read on the window in the capture phase. That runs
+	// before every document listener, `useHotkey` included, so a page binding
+	// never fires as the second half of a sequence.
 	useEffect(() => {
 		if (pending === null) return;
 		const onKeyDown = (event: KeyboardEvent) => {
@@ -202,8 +203,8 @@ export const useGlobalHotkeys = (options: GlobalHotkeyOptions): string | null =>
 			event.stopPropagation();
 			action();
 		};
-		document.addEventListener("keydown", onKeyDown, true);
-		return () => document.removeEventListener("keydown", onKeyDown, true);
+		window.addEventListener("keydown", onKeyDown, true);
+		return () => window.removeEventListener("keydown", onKeyDown, true);
 	}, [pending, clear, navigate, onProjectPicker, pathname]);
 
 	useEffect(() => clear, [clear]);

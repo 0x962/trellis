@@ -2,9 +2,17 @@ import { ORPCError } from "@orpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import { EmptyState } from "@trellis/ui";
+import { useEffect } from "react";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
-import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../../features/filters/grammar";
+import {
+	parseSearch,
+	serializeSearch,
+	stripDefaults,
+	toCountsQuery,
+	type View,
+	viewOf,
+} from "../../../features/filters/grammar";
 import { sortLabel } from "../../../features/filters/labels";
 import { Breadcrumb } from "../../../features/shell/Breadcrumb";
 import { ListFooter } from "../../../features/shell/ListFooter";
@@ -13,7 +21,9 @@ import { Topbar } from "../../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../../features/shell/ViewSwitch";
 import { DisplayPopover } from "../../../features/table/DisplayPopover";
 import { TicketTable } from "../../../features/table/TicketTable";
+import { TicketPeek } from "../../../features/ticket/TicketPeek";
 import { type AppContext, useApp } from "../../../lib/appContext";
+import { rememberList } from "../../../lib/lastList";
 import { parseProjectSplat, projectHref, projectSlashPath } from "../../../lib/projectPath";
 import { useUiStore } from "../../../stores/uiStore";
 import { ProjectSettingsView } from "./components/ProjectSettingsView";
@@ -58,6 +68,12 @@ function ProjectPage() {
 	const project = useSuspenseQuery(projectOptions(context, ref)).data;
 	const full = viewOf(search);
 	const routeKey = projectHref(ref);
+	// The list URL without the peek, so the full ticket page can link back
+	// to the list it came from.
+	const searchText = serializeSearch({ ...search, peek: undefined });
+	const listHref = `/p/${_splat}${searchText === "" ? "" : `?${searchText}`}`;
+
+	useEffect(() => rememberList(listHref), [listHref]);
 
 	if (view === "settings") return <ProjectSettingsView project={project} />;
 
@@ -110,7 +126,9 @@ function ProjectPage() {
 					search={search}
 					onSearchChange={setSearch}
 					onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
-				/>
+				>
+					<TicketPeek />
+				</TicketTable>
 			)}
 		</>
 	);

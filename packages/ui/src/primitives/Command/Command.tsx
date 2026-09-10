@@ -91,6 +91,9 @@ export function Command({
 			value={item.id}
 			keywords={[item.label, ...(item.keywords ?? [])]}
 			onSelect={() => onSelect(item.id)}
+			// The label names the option, so an icon's own label never joins the
+			// name. An option with children takes its name from its content.
+			aria-label={item.children === undefined ? item.label : undefined}
 			data-hint={item.hint}
 			data-current={item.current ? "true" : undefined}
 			data-checked={item.checked === undefined ? undefined : String(item.checked)}

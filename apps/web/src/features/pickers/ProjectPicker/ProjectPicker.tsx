@@ -43,6 +43,11 @@ export type ProjectPickerProps = {
 	onOpenChange?: (open: boolean) => void;
 	finalFocus?: RefObject<HTMLElement | null>;
 	side?: "top" | "bottom";
+	// The server's reason for refusing the last pick, shown under the list.
+	error?: string | null;
+	// When true, a pick leaves the picker open. The caller closes it after
+	// the server accepts the move, so a refusal shows inside the picker.
+	keepOpenOnPick?: boolean;
 };
 
 // The project popover: the tree by depth, searchable by path.
@@ -55,6 +60,8 @@ export function ProjectPicker({
 	onOpenChange,
 	finalFocus,
 	side,
+	error,
+	keepOpenOnPick = false,
 }: ProjectPickerProps) {
 	const [own, setOwn] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
@@ -80,10 +87,15 @@ export function ProjectPicker({
 				placeholder="Move to project"
 				items={projectItems(projects, value)}
 				onSelect={(id) => {
-					setOpen(false);
+					if (!keepOpenOnPick) setOpen(false);
 					onPick(id);
 				}}
 			/>
+			{error !== undefined && error !== null && (
+				<p role="alert" className="m-1 rounded-sm bg-danger-soft px-2 py-1.5 text-sm text-danger">
+					{error}
+				</p>
+			)}
 		</Popover>
 	);
 }

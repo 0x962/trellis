@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { TicketSummary } from "@trellis/api";
-import { Command, type CommandItem, Popover } from "@trellis/ui";
+import { Command, type CommandItem, Popover, StatusIcon } from "@trellis/ui";
 import { type ReactElement, type RefObject, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 
@@ -69,6 +69,7 @@ export function TicketPicker({
 			id: ticket.identifier,
 			label: ticket.identifier,
 			current: ticket.identifier === value,
+			icon: <StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? undefined} />,
 			children: <span className="truncate text-fg-muted">{ticket.title}</span>,
 		})),
 		...(search.trim() === "" ? [{ id: noneId, label: "None", current: value === undefined }] : []),

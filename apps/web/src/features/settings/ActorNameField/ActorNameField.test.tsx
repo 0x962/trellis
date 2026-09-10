@@ -3,7 +3,6 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
-import { fail } from "../../../../test/fake-server/fail";
 import { callsTo, lastCallTo } from "../../../../test/inbox";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
@@ -73,7 +72,10 @@ describe("ActorNameField", () => {
 	test("restores the old value and toasts when the save fails", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
-		server.failNext("settings.set", fail("INPUT_VALIDATION_FAILED", { issues: [{ message: "The name is taken." }] }));
+		server.failNext("settings.set", {
+			code: "INPUT_VALIDATION_FAILED",
+			data: { issues: [{ message: "The name is taken." }] },
+		});
 		render(server);
 		const input = await saveName(user, "Nav");
 		expect(await screen.findByText("The input does not match the schema.")).toBeDefined();

@@ -5,6 +5,7 @@ import { createTrellisClient, type FetchLike } from "@trellis/api";
 import { Hono } from "hono";
 import { ulid } from "ulid";
 import { createEventBus } from "./events";
+import { createHooks } from "./hooks";
 import type { BaseContext, Call } from "./implementer";
 import { router } from "./router";
 import { createEmptyState, seedState } from "./seed";
@@ -36,7 +37,7 @@ export const createFakeServer = (options: FakeServerOptions = {}) => {
 	const versions = { server: serverVersion, api: apiVersion };
 	const bus = createEventBus(state, bootId, options.pingMs ?? 15_000, versions);
 	const calls: Call[] = [];
-	const failures = new Map<string, Error>();
+	const hooks = createHooks();
 	const rpc = new RPCHandler(router, { plugins: [new BatchHandlerPlugin(), new ResponseHeadersPlugin()] });
 	const api = new OpenAPIHandler(router, { plugins: [new ResponseHeadersPlugin()] });
 
@@ -46,7 +47,7 @@ export const createFakeServer = (options: FakeServerOptions = {}) => {
 			state,
 			bus,
 			calls,
-			failures,
+			hooks,
 			actorHeader: request.headers.get("x-trellis-actor"),
 			ifMatch: ifMatch === null ? null : Number(ifMatch.replace(/"/g, "")),
 			resHeaders: new Headers({ "x-trellis-api-version": apiVersion }),
@@ -82,10 +83,11 @@ export const createFakeServer = (options: FakeServerOptions = {}) => {
 		client: clientAs("human:navid"),
 		clientAs,
 		fetch,
-		// Makes the next call to `path` (such as "tickets.move") throw
-		// `error`. Build the error with `fail`, the way a procedure does.
-		failNext: (path: string, error: Error) => failures.set(path, error),
 		shutdown: () => bus.shutdown(),
+		failNext: hooks.failNext,
+		holdNext: hooks.holdNext,
+		// The calls to one procedure, by its dotted path.
+		callsTo: (path: string) => calls.filter((call) => call.path.join(".") === path),
 	};
 };
 

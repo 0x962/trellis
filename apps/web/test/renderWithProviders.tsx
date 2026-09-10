@@ -1,12 +1,12 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterContextProvider, RouterProvider } from "@tanstack/react-router";
 import { render, screen } from "@testing-library/react";
-import { realScheduler, type Scheduler } from "@trellis/api";
+import { realScheduler, type Scheduler, type TrellisClient } from "@trellis/api";
 import type { ReactElement } from "react";
 import { setActorName } from "../src/lib/actor";
 import { type AppContext, AppProvider } from "../src/lib/appContext";
 import { createStatusStore, type Live, type LiveStatus } from "../src/lib/live";
-import { createOrpc } from "../src/lib/orpc";
+import { createOrpc, type Orpc } from "../src/lib/orpc";
 import { createAppRouter } from "../src/router";
 import { createFakeServer, type FakeServer } from "./fake-server";
 
@@ -22,6 +22,9 @@ export type ProviderOptions = {
 	// A previous render's wiring. A second mount over it reads the cache the
 	// first one filled.
 	harness?: Harness;
+	// Runs before the first render with the fresh cache, so a test can seed
+	// an entry the component reads on its first paint.
+	prime?: (wired: { queryClient: QueryClient; orpc: Orpc; client: TrellisClient }) => void;
 };
 
 export type Harness = ReturnType<typeof wire>;
@@ -45,6 +48,7 @@ export const wire = (options: ProviderOptions) => {
 	const live = stubLive(options.liveStatus ?? "live");
 	const context: AppContext = { queryClient, orpc, client, live, scheduler: options.scheduler ?? realScheduler };
 	const router = createAppRouter(context, createMemoryHistory({ initialEntries: [options.path] }));
+	options.prime?.({ queryClient, orpc, client });
 	return { server, client, orpc, queryClient, live, context, router };
 };
 
