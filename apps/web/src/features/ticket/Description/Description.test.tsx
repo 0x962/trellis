@@ -163,4 +163,25 @@ describe("features/ticket/Description", () => {
 		expect(screen.getByRole("button", { name: "Overwrite" })).toBeDefined();
 		expect((await editor()).textContent).toContain("Typed by navid.");
 	});
+
+	// Overwrite sends the held text again with no version guard, so the
+	// server takes the person's text over the other writer's text.
+	test("Overwrite sends tickets.update with no expectedVersion", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		await armConflict(server);
+		const { advanceTo } = mount("CDE-42", server);
+		await rendered();
+		press("e");
+		const element = await editor();
+		await user.click(element);
+		await user.keyboard(" Typed by navid.");
+		act(() => advanceTo(1000));
+		await user.click(await screen.findByRole("button", { name: "Overwrite" }));
+		await waitFor(() => expect(server.callsTo("tickets.update")).toHaveLength(2));
+		const input = server.callsTo("tickets.update")[1]!.input as { description: string; expectedVersion?: number };
+		expect(input.expectedVersion).toBeUndefined();
+		expect(input.description).toContain("Typed by navid.");
+		expect(findTicket(server.state, "CDE-42")!.description).toContain("Typed by navid.");
+	});
 });
