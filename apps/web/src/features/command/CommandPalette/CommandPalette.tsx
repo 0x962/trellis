@@ -19,6 +19,9 @@ export function CommandPalette() {
 		if (!open) setSubmenu(null);
 	}, [open]);
 
+	// The palette lives with the shell that draws it.
+	useEffect(() => commandActions.reset, []);
+
 	// Escape and a click outside leave an open submenu first, and close the
 	// palette from the section list.
 	const onOpenChange = (next: boolean) => {

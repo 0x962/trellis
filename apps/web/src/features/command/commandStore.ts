@@ -60,6 +60,9 @@ export const commandActions = {
 		if (!useCommandStore.getState().open) rememberOpener();
 		set((state) => (state.open && state.mode === mode ? { open: false } : { open: true, mode }));
 	},
+	// The shell that draws the palette is gone, so nothing it held is
+	// still true.
+	reset: () => set({ ...initial }),
 	setFocusedTicket: (identifier: string | null) => set({ focusedTicket: identifier }),
 	setPeekTicket: (identifier: string | null) => set({ peekTicket: identifier }),
 	setSelection: (identifiers: string[]) => set({ selection: identifiers }),
