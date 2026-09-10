@@ -119,8 +119,10 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promi
 	const id = ulid();
 	const filename = input.name ?? input.file.name;
 	// A browser sends `text/plain;charset=utf-8`. The row keeps the type and
-	// the subtype; the file route sets the charset itself.
-	const mime = input.file.type.split(";")[0]!.trim();
+	// the subtype; the file route sets the charset itself. A file with no
+	// extension arrives with an empty type, and the attachment schema needs
+	// a mime, so the row stores the generic binary type.
+	const mime = input.file.type.split(";")[0]!.trim() || "application/octet-stream";
 	await touchActor(tx, ctx.actor, at);
 	await tx.execute(sql`
 		INSERT INTO attachments (id, ticket_id, filename, mime, size, sha256, actor_name, actor_kind, created_at)
