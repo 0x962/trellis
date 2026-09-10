@@ -9,6 +9,12 @@ const text = (relativePath: string) => Bun.file(join(root, relativePath)).text()
 
 const exactPin = /^\d+\.\d+\.\d+$/;
 
+// The folders directly under one directory, as paths from the workspace root.
+const moduleDirs = (dir: string) =>
+	readdirSync(join(root, dir))
+		.filter((entry) => statSync(join(root, dir, entry)).isDirectory())
+		.map((entry) => join(dir, entry));
+
 // Every .ts and .tsx file under the four source directories.
 const sourceFiles = () =>
 	["app", "src", "scripts", "test"].flatMap((dir) =>
@@ -69,15 +75,19 @@ describe("scaffold", () => {
 		}
 		expect(long).toEqual([]);
 
-		const components = readdirSync(join(root, "src/components")).filter((entry) =>
-			statSync(join(root, "src/components", entry)).isDirectory(),
-		);
-		expect(components.length).toBeGreaterThan(0);
-		const incomplete = components.filter(
-			(name) =>
-				!existsSync(join(root, "src/components", name, `${name}.tsx`)) ||
-				!existsSync(join(root, "src/components", name, "index.ts")),
-		);
+		const modules = [
+			...moduleDirs("src/components"),
+			...readdirSync(join(root, "src/features")).flatMap((area) => moduleDirs(join("src/features", area))),
+		];
+		expect(modules.length).toBeGreaterThan(0);
+		// A PascalCase folder holds a component; a camelCase folder holds a
+		// module. Either way the folder is named after its one file, and
+		// index.ts is what the rest of the app imports.
+		const incomplete = modules.filter((dir) => {
+			const name = dir.split("/").pop()!;
+			const entry = existsSync(join(root, dir, `${name}.tsx`)) || existsSync(join(root, dir, `${name}.ts`));
+			return !entry || !existsSync(join(root, dir, "index.ts"));
+		});
 		expect(incomplete).toEqual([]);
 	});
 });

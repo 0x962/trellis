@@ -19,6 +19,9 @@ const transformed = [
 	"nativewind",
 	"react-native-css-interop",
 	"@orpc",
+	"@shopify/flash-list",
+	"rou3",
+	"hono",
 ];
 
 // oRPC ships ESM in `.mjs` files only. Jest without `--experimental-vm-modules`
