@@ -122,7 +122,7 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 			)}
 			{!adding && !inherited && (
 				<Button icon={<Plus />} className="self-start" onClick={() => setAdding(true)}>
-					Add status
+					New status
 				</Button>
 			)}
 			{message !== null && (

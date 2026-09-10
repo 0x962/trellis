@@ -1,5 +1,5 @@
 import type { Ticket, TicketSummary } from "@trellis/api";
-import { Avatar, CheckRibbon, PriorityIcon, StatusIcon, TicketId } from "@trellis/ui";
+import { Avatar, CheckRibbon, PriorityIcon, SectionHeader, StatusIcon, TicketId } from "@trellis/ui";
 import { GitPullRequestArrow } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -18,16 +18,23 @@ type Pending = { key: number; title: string };
 
 const rowClass = "flex h-9 w-full items-center gap-3 border-b border-border px-3 text-base text-fg";
 
-// The check segments a child's PR badge stands for: the counts, in bucket order.
+// The check segments a child's PR badge stands for: the counts, in bucket
+// order. The summary holds no check names, so each segment reads "1 check".
 const badgeChecks = (pr: NonNullable<TicketSummary["pr"]>) => [
-	...Array.from({ length: pr.fail }, () => ({ name: "failing", bucket: "fail" as const })),
-	...Array.from({ length: pr.pending }, () => ({ name: "pending", bucket: "pending" as const })),
-	...Array.from({ length: pr.pass }, () => ({ name: "passing", bucket: "pass" as const })),
+	...Array.from({ length: pr.fail }, () => ({ name: "1 check", bucket: "fail" as const })),
+	...Array.from({ length: pr.pending }, () => ({ name: "1 check", bucket: "pending" as const })),
+	...Array.from({ length: pr.pass }, () => ({ name: "1 check", bucket: "pass" as const })),
 ];
 
-// The children of a ticket: a progress bar, one fixed-height row per child,
-// and an add field. A new child shows at once and takes its number when the
-// server answers.
+// The words for the folded check state of a child's PR.
+const ciLabels = { none: "none", pending: "pending", pass: "passed", fail: "failed" } as const;
+
+const prLabel = (pr: NonNullable<TicketSummary["pr"]>) =>
+	`${pr.state.charAt(0).toUpperCase()}${pr.state.slice(1)} PR, checks ${ciLabels[pr.ciState]}`;
+
+// The children of a ticket: the header with the done count, a progress bar,
+// one fixed-height row per child, and an add field. A new child shows at
+// once and takes its number when the server answers.
 export function SubTickets({ ticket, autoFocusAdd = false }: SubTicketsProps) {
 	const { client, orpc, queryClient } = useApp();
 	const open = useOpenTicket();
@@ -54,7 +61,7 @@ export function SubTickets({ ticket, autoFocusAdd = false }: SubTicketsProps) {
 			);
 		} catch (error) {
 			setDraft(title);
-			failToast(`Couldn't create a sub-ticket of ${ticket.identifier}`, error, () => void create(title));
+			failToast(`The sub-ticket of ${ticket.identifier} is not created.`, error, () => void create(title));
 		} finally {
 			setPending((rows) => rows.filter((row) => row.key !== key));
 		}
@@ -71,12 +78,7 @@ export function SubTickets({ ticket, autoFocusAdd = false }: SubTicketsProps) {
 
 	return (
 		<section aria-label="Sub-tickets" className="flex flex-col gap-2">
-			<header className="flex h-7 items-center gap-2 text-base font-medium text-fg">
-				Sub-tickets
-				<span className="font-normal text-fg-muted tabular">
-					{done} of {total} done
-				</span>
-			</header>
+			<SectionHeader title="Sub-tickets" count={`${done}/${total}`} />
 			<div className="overflow-hidden rounded-md border border-border">
 				<div
 					role="progressbar"
@@ -105,8 +107,8 @@ export function SubTickets({ ticket, autoFocusAdd = false }: SubTicketsProps) {
 				<div className="flex h-9 items-center px-3">
 					<input
 						ref={addField}
-						aria-label="Add sub-ticket"
-						placeholder="Add sub-ticket"
+						aria-label="New sub-ticket"
+						placeholder="New sub-ticket"
 						value={draft}
 						onChange={(event) => setDraft(event.target.value)}
 						onKeyDown={onKeyDown}
@@ -124,7 +126,7 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 		<button
 			type="button"
 			onClick={onOpen}
-			className={`${rowClass} text-left transition-colors duration-hover hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2`}
+			className={`${rowClass} text-left transition-colors duration-hover ease-out hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2`}
 		>
 			<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />
 			<TicketId id={child.identifier} className="w-16" />
@@ -132,11 +134,7 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 			<PriorityIcon priority={child.priority} />
 			<span className="flex w-16 shrink-0 items-center gap-1">
 				{pr !== null && (
-					<span
-						role="img"
-						aria-label={`${pr.state} pull request, CI ${pr.ciState}`}
-						className="inline-flex items-center gap-1 text-fg-muted"
-					>
+					<span role="img" aria-label={prLabel(pr)} className="inline-flex items-center gap-1 text-fg-muted">
 						<GitPullRequestArrow className="size-3.5" aria-hidden="true" />
 						<CheckRibbon size="mini" checks={badgeChecks(pr)} />
 					</span>

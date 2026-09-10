@@ -51,6 +51,17 @@ describe("timeline.list", () => {
 		expect(response.body).toHaveProperty("nextCursor");
 	});
 
+	// `before` is user input, so a bad cursor is a 400 with a code the client
+	// can read, as it is for tickets.list.
+	test("a bad before cursor answers 400 INVALID_CURSOR", async () => {
+		await seedEntries(1);
+
+		const response = await t.api("/api/tickets/CDE-1/timeline?before=not-a-cursor");
+
+		expect(response.status).toBe(400);
+		expect(response.body.code).toBe("INVALID_CURSOR");
+	});
+
 	test("timeline.list pages with the before cursor", async () => {
 		await seedEntries(150);
 

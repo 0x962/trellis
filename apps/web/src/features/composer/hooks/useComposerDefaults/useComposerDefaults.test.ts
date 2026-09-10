@@ -7,18 +7,20 @@ const server = createFakeServer();
 const { statuses } = await server.client.statuses.list({ project: "CDE" });
 
 describe("features/composer/hooks/useComposerDefaults", () => {
-	// Outcome 91
-	test("takes the status and priority from a single-valued filter", () => {
+	// Outcome 91, T7 (Navid 8). A filter narrows what the list shows. It does
+	// not say where a new ticket starts, so a status filter never seeds the
+	// status. A single-valued priority filter still seeds the priority.
+	test("takes the priority from a single-valued filter, and not the status", () => {
 		const view = viewOf({ status: ["agent-review"], priority: ["high"] });
 		expect(composerDefaults({ project: "CDE", statuses, view })).toEqual({
 			project: "CDE",
-			status: "agent-review",
+			status: "todo",
 			priority: "high",
 		});
 	});
 
-	// Outcome 92. Todo is the first todo-category status of the seed. A
-	// negated single value is not a single value either.
+	// Outcome 92. Todo is the default status of the seed. A negated single
+	// value is not a single value either.
 	test("falls back to the project default status when the filter is not single valued", () => {
 		const many = composerDefaults({
 			project: "CDE",
@@ -34,7 +36,14 @@ describe("features/composer/hooks/useComposerDefaults", () => {
 		expect(negated.status).toBe("todo");
 	});
 
-	// Outcome 93
+	// The project default is the status marked as default, whatever its
+	// category.
+	test("uses the status the project marks as default", () => {
+		const marked = statuses.map((status) => ({ ...status, isDefault: status.slug === "in-progress" }));
+		expect(composerDefaults({ project: "CDE", statuses: marked, view: viewOf({}) }).status).toBe("in-progress");
+	});
+
+	// Outcome 93. A group `+` or a board column names the status on purpose.
 	test("prefers the group's status when the composer opens from a group", () => {
 		const view = viewOf({ status: ["agent-review"] });
 		expect(composerDefaults({ project: "CDE", statuses, view, groupStatus: "in-progress" }).status).toBe("in-progress");

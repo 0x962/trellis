@@ -7,10 +7,10 @@ export type ConnectionDotProps = {
 
 const looks: Record<LiveStatus, { label: string; color: string }> = {
 	connecting: { label: "Connecting", color: "bg-fg-faint" },
-	live: { label: "Connected", color: "bg-success" },
+	live: { label: "Online", color: "bg-success" },
 	reconnecting: { label: "Reconnecting", color: "bg-warning" },
 	restarting: { label: "Reconnecting", color: "bg-warning" },
-	down: { label: "Disconnected", color: "bg-danger" },
+	down: { label: "Offline", color: "bg-danger" },
 };
 
 // The 7 px dot in the workspace row. Its label names the state, so the

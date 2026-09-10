@@ -38,7 +38,7 @@ describe("createGhState", () => {
 			ok: false,
 			user: null,
 			reason: "error",
-			message: "Not checked yet.",
+			message: "The server checks gh at startup. The check did not finish.",
 			checkedAt: null,
 		});
 	});

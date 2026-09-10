@@ -76,12 +76,15 @@ const startsClaude = command.includes("claude -n ");
 if (core.status === 0 && key === "ws create" && startsClaude) {
 	const answer = JSON.parse(core.stdout) as {
 		workspace: { id: string };
-		terminals: Array<{ terminalId: string }>;
+		terminals: Array<{ terminalId: string; label: string }>;
 		alreadyExists: boolean;
 	};
 	// A workspace that already exists runs no command, so no agent starts.
+	// The command runs in the terminal labeled Command; a setup script
+	// terminal can come before it.
 	if (!answer.alreadyExists) {
-		launch({ mode: "start", command, workspaceId: answer.workspace.id, terminalId: answer.terminals[0]!.terminalId });
+		const terminal = answer.terminals.find((candidate) => candidate.label === "Command")!;
+		launch({ mode: "start", command, workspaceId: answer.workspace.id, terminalId: terminal.terminalId });
 	}
 }
 

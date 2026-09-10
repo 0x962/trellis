@@ -4,6 +4,7 @@ import { setActorName } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
 import { rememberStoredName } from "../../../lib/identity";
 import { useSettingsDraft } from "../hooks/useSettingsDraft";
+import { SavedMark } from "../SavedMark";
 import { SettingsRow } from "../SettingsRow";
 
 // The name every write is attributed to. A save writes it to the settings,
@@ -13,6 +14,7 @@ export function ActorNameField() {
 	const app = useApp();
 	const { saved, draft, edit, save } = useSettingsDraft();
 	const [message, setMessage] = useState<string | null>(null);
+	const [savedAt, setSavedAt] = useState<number | null>(null);
 	if (saved === undefined) return null;
 	const value = draft.defaultActorName ?? saved.defaultActorName;
 
@@ -26,24 +28,29 @@ export function ActorNameField() {
 		if (name === saved.defaultActorName) return;
 		setActorName(name);
 		void save({ defaultActorName: name }).then((stored) => {
-			if (stored !== undefined) rememberStoredName(app, stored.defaultActorName);
+			if (stored === undefined) return;
+			rememberStoredName(app, stored.defaultActorName);
+			setSavedAt(Date.now());
 		});
 	};
 
 	return (
-		<SettingsRow label="Your name" hint="Every ticket you touch is attributed to this name.">
-			<Input
-				label="Your name"
-				hideLabel
-				value={value}
-				invalid={message !== null}
-				autoComplete="off"
-				spellCheck={false}
-				className="max-w-64"
-				onChange={(event) => edit({ defaultActorName: event.target.value })}
-				onBlur={commit}
-			/>
-			{message !== null && <p className="text-sm text-danger">{message}</p>}
+		<SettingsRow label="Your name" hint="trellis records this name as the actor of each change you make.">
+			<div className="flex items-center gap-3">
+				<Input
+					label="Your name"
+					hideLabel
+					value={value}
+					invalid={message !== null}
+					autoComplete="off"
+					spellCheck={false}
+					className="max-w-64"
+					onChange={(event) => edit({ defaultActorName: event.target.value })}
+					onBlur={commit}
+				/>
+				<SavedMark savedAt={savedAt} />
+			</div>
+			{message !== null && <p className="text-xs text-danger">{message}</p>}
 		</SettingsRow>
 	);
 }

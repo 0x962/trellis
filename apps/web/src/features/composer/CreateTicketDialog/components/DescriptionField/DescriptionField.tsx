@@ -13,12 +13,16 @@ export type DescriptionFieldProps = {
 	onChange: (markdown: string) => void;
 };
 
+// The writing area: no box, at least 120 px tall, and at most half the
+// screen before it scrolls. The text starts at the top left.
+const area = "max-h-[50vh] min-h-30 w-full overflow-y-auto text-left text-base text-fg";
+
 // The description: rendered read-only until it takes focus, then the
 // editor. The editor's chunk loads on that first focus.
 export function DescriptionField({ markdown, editing, onEdit, onChange }: DescriptionFieldProps) {
 	if (editing) {
 		return (
-			<div className="min-h-32 rounded-md border border-border bg-surface px-3 py-2 text-base">
+			<div className={area}>
 				<Suspense fallback={<ReadOnlyMarkdown markdown={markdown} />}>
 					<DescriptionEditor markdown={markdown} onChange={onChange} />
 				</Suspense>
@@ -31,7 +35,7 @@ export function DescriptionField({ markdown, editing, onEdit, onChange }: Descri
 			aria-label="Edit description"
 			onClick={onEdit}
 			onFocus={onEdit}
-			className="min-h-32 w-full rounded-md border border-border bg-surface px-3 py-2 text-left text-base transition-colors duration-hover hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+			className={`${area} flex flex-col justify-start rounded-sm focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2`}
 		>
 			{markdown.trim() === "" ? (
 				<span className="text-fg-faint">Add a description</span>

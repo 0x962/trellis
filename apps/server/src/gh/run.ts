@@ -74,7 +74,12 @@ const spawnGh = async (bin: string, args: string[], timeoutMs: number): Promise<
 			stderr: "pipe",
 		});
 	} catch (error) {
-		if (isMissing(error)) return { ok: false, reason: "missing", message: `gh binary not found: ${bin}` };
+		if (isMissing(error))
+			return {
+				ok: false,
+				reason: "missing",
+				message: `trellis did not find the gh binary at ${bin}. Install gh, or set TRELLIS_GH_BIN.`,
+			};
 		throw error;
 	}
 	let timedOut = false;
@@ -89,7 +94,7 @@ const spawnGh = async (bin: string, args: string[], timeoutMs: number): Promise<
 	]);
 	clearTimeout(timer);
 	if (timedOut) {
-		const message = `gh timeout after ${timeoutMs} ms: ${bin} ${args.join(" ")}`;
+		const message = `gh did not finish before the timeout of ${timeoutMs} ms: ${bin} ${args.join(" ")}`;
 		return { ok: false, reason: "error", message, code: null, stdout };
 	}
 	if (code === 0) return { ok: true, code, stdout, stderr };

@@ -3,8 +3,12 @@ import { Avatar, cx, TicketId } from "@trellis/ui";
 import { type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
+import { PriorityPicker } from "../../pickers/PriorityPicker";
+import { ProjectPicker } from "../../pickers/ProjectPicker";
+import { StatusPicker } from "../../pickers/StatusPicker";
 import { TicketPicker } from "../../pickers/TicketPicker";
 import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden } from "../columns";
+import { PhoneRow } from "./components/PhoneRow";
 import { PrCell } from "./components/PrCell";
 import { PriorityCell } from "./components/PriorityCell";
 import { ProjectCell } from "./components/ProjectCell";
@@ -33,6 +37,9 @@ export type RowProps = {
 	top?: number;
 	// The group key, for the rows of a group.
 	group?: string;
+	// Below 768 px: two lines, priority, ID, status icon, and time over the
+	// title. The PR, actor, and project cells do not show.
+	phone?: boolean;
 	focused?: boolean;
 	selected?: boolean;
 	// True while any row is selected.
@@ -50,11 +57,16 @@ export type RowProps = {
 	onChange?: (ticket: TicketSummary, change: RowChange) => void;
 };
 
-// The fixed row box per density. The virtualizer estimates with the same
-// number, so a row never changes the scroll height.
-export const rowHeights: Record<Density, number> = { comfortable: 40, compact: 32 };
+export { phoneRowHeight, rowHeights } from "../rowHeights";
+
+import { rowHeights } from "../rowHeights";
 
 const noStatuses: StatusSummary[] = [];
+
+// The empty button a picker opens from when the row has no cell for it.
+const anchor = (label: string) => (
+	<button type="button" tabIndex={-1} aria-label={label} className="absolute top-1/2 left-1/2" />
+);
 const noProjects: ProjectSummary[] = [];
 
 // One ticket as a grid row: the cells in column order, the roving tab stop,
@@ -67,6 +79,7 @@ export const Row = memo(function Row({
 	viewedProject,
 	top,
 	group,
+	phone = false,
 	focused = false,
 	selected = false,
 	selecting = false,
@@ -103,7 +116,7 @@ export const Row = memo(function Row({
 				finalFocus={element}
 			/>
 		),
-		id: <TicketId id={identifier} />,
+		id: <span className="font-mono text-sm whitespace-nowrap text-fg-faint tabular">{identifier}</span>,
 		title: <TitleCell ticket={ticket} />,
 		status: (
 			<StatusCell
@@ -141,6 +154,22 @@ export const Row = memo(function Row({
 			),
 	};
 
+	if (phone) {
+		return (
+			<PhoneRow
+				ref={element}
+				ticket={ticket}
+				priority={cells.priority}
+				top={top}
+				group={group}
+				focused={focused}
+				selected={selected}
+				onFocus={onFocus}
+				onClick={onClick}
+			/>
+		);
+	}
+
 	return (
 		// biome-ignore lint/a11y/useSemanticElements lint/a11y/useKeyWithClickEvents: The virtual grid positions each row, and the table keyboard map provides every row action.
 		<div
@@ -162,7 +191,7 @@ export const Row = memo(function Row({
 				gridColumnsClass,
 				density === "comfortable" ? "text-base" : "text-sm",
 				"before:absolute before:top-1 before:bottom-1 before:left-0 before:w-0.5 before:rounded-r-sm before:bg-accent before:opacity-0 before:content-['']",
-				"hover:bg-surface data-focused:bg-accent-soft/60 data-focused:before:opacity-100 data-selected:bg-accent-soft",
+				"hover:bg-band data-focused:bg-accent-soft/60 data-focused:before:opacity-100 data-selected:bg-accent-soft",
 				top === undefined && "relative",
 			)}
 			onFocus={(event) => {
@@ -182,6 +211,41 @@ export const Row = memo(function Row({
 					{cells[column]}
 				</div>
 			))}
+			{/* A picker whose column is hidden still opens from its key. It
+			anchors to an empty button in the middle of the row, as the parent
+			picker does. */}
+			{editing === "status" && !columns.includes("status") && (
+				<StatusPicker
+					statuses={statuses}
+					value={ticket.status.id}
+					open
+					onOpenChange={editingChange("status")}
+					onPick={(status) => change({ status })}
+					finalFocus={element}
+					trigger={anchor("Status")}
+				/>
+			)}
+			{editing === "priority" && !columns.includes("priority") && (
+				<PriorityPicker
+					value={ticket.priority}
+					open
+					onOpenChange={editingChange("priority")}
+					onPick={(priority) => change({ priority })}
+					finalFocus={element}
+					trigger={anchor("Priority")}
+				/>
+			)}
+			{editing === "project" && !columns.includes("project") && (
+				<ProjectPicker
+					projects={projects}
+					value={ticket.project.path}
+					open
+					onOpenChange={editingChange("project")}
+					onPick={(project) => change({ project })}
+					finalFocus={element}
+					trigger={anchor("Project")}
+				/>
+			)}
 			{editing === "parent" && (
 				<TicketPicker
 					project={ticket.project.key}
@@ -191,7 +255,7 @@ export const Row = memo(function Row({
 					onOpenChange={editingChange("parent")}
 					onPick={(parent) => change({ parent })}
 					finalFocus={element}
-					trigger={<button type="button" tabIndex={-1} aria-label="Parent" className="absolute top-1/2 left-1/2" />}
+					trigger={anchor("Parent")}
 				/>
 			)}
 		</div>

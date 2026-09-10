@@ -44,8 +44,12 @@ export const cellOf = (identifier: string, column: string) => {
 	return cell;
 };
 
-export const columnHeaders = () =>
-	[...document.querySelectorAll('[role="columnheader"]')].map((header) => header.getAttribute("data-column"));
+// The visible column ids, in order, read from the cells of the first row.
+// The table has no column-header row.
+export const visibleColumns = () =>
+	[...document.querySelector('[role="row"]')!.querySelectorAll('[role="gridcell"]')].map((cell) =>
+		cell.getAttribute("data-column"),
+	);
 
 export const groupHeaders = () => within(grid()).getAllByRole("rowgroup");
 

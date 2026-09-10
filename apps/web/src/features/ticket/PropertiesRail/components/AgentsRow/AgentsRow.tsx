@@ -1,12 +1,13 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
-import type { AgentSession, RunnerReason } from "@trellis/api";
+import type { AgentSession } from "@trellis/api";
 import { Button, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
+import { AgentFailure } from "../../../../agent/AgentFailure";
 import { AgentStateBadge } from "../../../../agent/AgentStateBadge";
 import { OpenInSuperset } from "../../../../agent/OpenInSuperset";
-import { runnerReasonLine } from "../../../../agent/utils/runnerReasonLine";
+import { runnerRefusal } from "../../../../agent/utils/runnerRefusal";
 import { Row } from "../Row";
 
 export type AgentsRowProps = {
@@ -26,10 +27,7 @@ const refusal = (error: unknown) => {
 		const { limit, running } = error.data as { limit: number; running: number };
 		return `Limit reached: ${running} of ${limit} builders run.`;
 	}
-	if (error instanceof ORPCError && error.code === "RUNNER_UNAVAILABLE") {
-		return runnerReasonLine[(error.data as { reason: RunnerReason }).reason];
-	}
-	return (error as Error).message;
+	return runnerRefusal(error);
 };
 
 // The builder and reviewer sessions of one ticket, oldest first, each with
@@ -67,16 +65,17 @@ export function AgentsRow({ identifier }: AgentsRowProps) {
 				) : (
 					<ul aria-label="Agent sessions" className="flex flex-col gap-1">
 						{ordered.map((session) => (
-							<li key={session.id} className="flex items-center gap-2">
+							<li key={session.id} className="flex min-w-0 items-center gap-2">
 								<span>{roleLabels[session.role]}</span>
 								<AgentStateBadge state={session.state} />
+								{session.state === "failed" && <AgentFailure id={session.id} error={session.error} />}
 								{session.openUrl !== null && <OpenInSuperset url={session.openUrl} />}
 							</li>
 						))}
 					</ul>
 				)}
 				{!building && (
-					<Button size="sm" className="cursor-pointer" disabled={starting} onClick={() => void start()}>
+					<Button size="sm" disabled={starting} onClick={() => void start()}>
 						Start builder
 					</Button>
 				)}

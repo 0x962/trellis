@@ -55,7 +55,7 @@ Example: \`GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=n
 
 ## Rules for agents
 
-An agent never moves a ticket to a done status; a human does that. An agent never deletes a ticket or a project. The server enforces both: 403 AGENT_CANNOT_COMPLETE and 403 AGENT_CANNOT_DELETE.
+An agent never moves a ticket to a done status without \`force\`. A human does that. An agent never deletes a ticket or a project without \`force\`. The server enforces both rules: 403 AGENT_CANNOT_COMPLETE and 403 AGENT_CANNOT_DELETE.
 
 ## Two calls
 
@@ -112,6 +112,7 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /agents/builder": { ticket: "CDE-42" },
 	"POST /agents/reviewer": { ticket: "CDE-42", prUrl: "https://github.com/acme/web/pull/12" },
 	"POST /agents/wake": { project: "CDE", text: "trellis: 2 changes in CDE. Run: trellis agents inbox --project CDE" },
+	"POST /agents/manager/retry": { project: "CDE" },
 	"PUT /agents/settings": {
 		runner: "superset",
 		enabled: true,

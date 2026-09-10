@@ -1,4 +1,4 @@
-import { projectId, projectId2, ticketId } from "./fixtures.ts";
+import { activity, projectId, projectId2, ticketId } from "./fixtures.ts";
 
 type Overrides = Record<string, unknown>;
 
@@ -18,6 +18,7 @@ export const agentSession = (overrides: Overrides = {}) => ({
 	title: "CDE-42",
 	openUrl: "superset://workspace/ws-1",
 	lastWokenAt: null,
+	error: null,
 	createdAt: "2026-09-10T10:00:00.000Z",
 	...overrides,
 });
@@ -25,11 +26,36 @@ export const agentSession = (overrides: Overrides = {}) => ({
 export const managerSession = (overrides: Overrides = {}) =>
 	agentSession({ id: sessionId2, ticketId: null, role: "manager", title: "CDE manager", ...overrides });
 
+// A manager whose start failed, a running builder, one manager action, and
+// one batch.
+export const agentsOverview = () => ({
+	sessions: [
+		managerSession({
+			state: "failed",
+			workspaceId: null,
+			terminalId: null,
+			openUrl: null,
+			error: "The agent runner cannot serve the request. superset ws create: fatal: invalid reference: main",
+		}),
+		agentSession(),
+	],
+	actions: [activity({ actor: { kind: "agent", name: "manager-cde" } })],
+	tickets: [{ id: ticketId, identifier: "CDE-42" }],
+	batches: [
+		{
+			at: "2026-09-10T10:00:00.000Z",
+			projectId,
+			count: 2,
+			text: "trellis: 2 changes in CDE (CDE-42 created by navid, CDE-42 commented by navid). Run: trellis agents inbox --project CDE",
+		},
+	],
+});
+
 export const projectSettings = (overrides: Overrides = {}) => ({
 	projectId,
 	enabled: true,
 	supersetProjectId: null,
-	baseBranch: "main",
+	baseBranch: null,
 	maxConcurrent: 3,
 	removeWorkspaceOnDone: true,
 	...overrides,

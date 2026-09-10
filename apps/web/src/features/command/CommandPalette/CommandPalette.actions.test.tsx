@@ -25,7 +25,7 @@ const pick = async (name: RegExp) => {
 
 const callsTo = (server: FakeServer, path: string) => server.calls.filter((call) => call.path.join(".") === path);
 
-const closed = () => screen.queryByRole("dialog", { name: "Command menu" });
+const closed = () => screen.queryByRole("dialog", { name: "Command palette" });
 
 const withTicket = async (identifier = "CDE-42", path = "/p/CDE") => {
 	const shell = await renderShell({ path });
@@ -107,20 +107,23 @@ describe("features/command/CommandPalette actions", () => {
 	});
 
 	// PA-06
-	test("Add sub-ticket opens the composer with the parent filled", async () => {
+	test("New sub-ticket opens the composer with the parent filled", async () => {
 		await withTicket();
-		await pick(/Add sub-ticket/);
+		await pick(/New sub-ticket/);
 		await waitFor(() => expect(useComposerStore.getState().open).toBe(true));
 		expect(useComposerStore.getState().options.parent).toBe("CDE-42");
 	});
 
-	// PA-07. A ticket created from a filtered view lands in that view.
+	// PA-07. A ticket created from a view takes the view's project. A status
+	// filter does not seed the status (T7): the composer then uses the
+	// project default status.
 	test("New ticket opens the composer with the current view defaults", async () => {
 		await renderShell({ path: "/p/CDE?status=in-progress" });
 		await openPalette();
 		await pick(/New ticket/);
 		await waitFor(() => expect(useComposerStore.getState().open).toBe(true));
-		expect(useComposerStore.getState().options).toMatchObject({ project: "CDE", status: "in-progress" });
+		expect(useComposerStore.getState().options).toMatchObject({ project: "CDE" });
+		expect(useComposerStore.getState().options.status).toBeUndefined();
 	});
 
 	// PA-08
@@ -133,11 +136,11 @@ describe("features/command/CommandPalette actions", () => {
 	});
 
 	// PA-09
-	test("Collapse sidebar toggles the interface store", async () => {
+	test("Toggle sidebar toggles the interface store", async () => {
 		await renderShell();
 		expect(useUiStore.getState().sidebarCollapsed).toBe(false);
 		await openPalette();
-		await pick(/Collapse sidebar/);
+		await pick(/Toggle sidebar/);
 		await waitFor(() => expect(useUiStore.getState().sidebarCollapsed).toBe(true));
 	});
 
@@ -156,7 +159,9 @@ describe("features/command/CommandPalette actions", () => {
 		await server.client.projects.create({ parent: "CDE.web", name: "auth" });
 		const { router } = await renderShell({ server });
 		await openPalette();
-		await pick(/CDE\.web\.auth/);
+		await pick(/Go to project…/);
+		await waitFor(() => expect(within(palette()).getByRole("option", { name: /CDE\/web\/auth/ })).toBeDefined());
+		await pick(/CDE\/web\/auth/);
 		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE/web/auth"));
 	});
 

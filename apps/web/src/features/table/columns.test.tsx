@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { waitFor, within } from "@testing-library/react";
 import { renderApp } from "../../../test/renderWithProviders";
 import { ago, mountRow, summary } from "../../../test/row";
-import { cellOf, columnHeaders, findGrid, resetUi, rowOf } from "../../../test/table";
+import { cellOf, findGrid, resetUi, rowOf, visibleColumns } from "../../../test/table";
 import { tableViewport } from "../../../test/viewport";
 
 const installViewport = tableViewport(800);
@@ -14,18 +14,38 @@ beforeEach(() => {
 
 const minute = 60_000;
 
-const namedColumns = () => columnHeaders().filter((column) => column !== "select");
+const namedColumns = () => visibleColumns().filter((column) => column !== "select");
 
 const tabular = (cell: HTMLElement) =>
 	[cell, ...cell.querySelectorAll("*")].some((element) => /\btabular\b/.test(element.className));
 
 describe("features/table/columns", () => {
-	// Outcome 22. TRL has no sub-project.
-	test("renders the default column set without the project column", async () => {
+	// Outcome 22. TRL has no sub-project and no PR, and the default grouping
+	// is by status, so the status, project, and PR columns do not repeat
+	// what every row already shows.
+	test("renders the default column set without the status, project, or PR column", async () => {
 		renderApp({ path: "/p/TRL", actor: "navid" });
 		await findGrid();
-		await waitFor(() => expect(columnHeaders().length).toBeGreaterThan(0));
-		expect(namedColumns()).toEqual(["priority", "id", "title", "status", "pr", "actor", "updated"]);
+		await waitFor(() => expect(visibleColumns().length).toBeGreaterThan(0));
+		expect(namedColumns()).toEqual(["priority", "id", "title", "actor", "updated"]);
+	});
+
+	// T2. Sort and columns live in Display, so the table has no header row.
+	test("renders no column-header row", async () => {
+		renderApp({ path: "/p/CDE", actor: "navid" });
+		await findGrid();
+		await waitFor(() => rowOf("CDE-47"));
+		expect(document.querySelectorAll('[role="columnheader"]')).toHaveLength(0);
+	});
+
+	// T2. Across projects, the cell shows the key and the last path segment.
+	test("shows the project key and the last path segment on /all", async () => {
+		renderApp({ path: "/all?status=in-progress,agent-review,human-review", actor: "navid" });
+		await findGrid();
+		await waitFor(() => rowOf("CDE-42"));
+		expect(within(cellOf("CDE-42", "project")).getByText("CDE")).toBeDefined();
+		expect(within(cellOf("CDE-42", "project")).getByText("web")).toBeDefined();
+		expect(cellOf("CDE-43", "project").textContent!.trim()).toBe("CDE");
 	});
 
 	// Outcome 23. CDE-43 sits in CDE itself, CDE-42 in CDE.web, CDE-45 in CDE.host.
@@ -33,7 +53,7 @@ describe("features/table/columns", () => {
 		renderApp({ path: "/p/CDE?status=in-progress,agent-review,human-review", actor: "navid" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-45"));
-		expect(namedColumns()).toEqual(["priority", "id", "title", "status", "pr", "project", "actor", "updated"]);
+		expect(namedColumns()).toEqual(["priority", "id", "title", "pr", "project", "actor", "updated"]);
 		expect(cellOf("CDE-42", "project").textContent!.trim()).toBe("web");
 		expect(cellOf("CDE-45", "project").textContent!.trim()).toBe("host");
 		expect(cellOf("CDE-43", "project").textContent!.trim()).toBe("");

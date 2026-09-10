@@ -13,12 +13,12 @@ describe("features/filters/presets", () => {
 		expect(presets.map((preset) => preset.label)).toEqual([
 			"Active",
 			"Needs review",
-			"Failing CI",
-			"Touched by agents today",
+			"Failing checks",
+			"Updated by agents, last 24 hours",
 		]);
 		expect(viewOfPreset("Active")).toEqual({ category: ["todo", "started", "review"] });
 		expect(viewOfPreset("Needs review")).toEqual({ category: ["review"] });
-		expect(viewOfPreset("Failing CI")).toEqual({ ci: ["fail"] });
-		expect(viewOfPreset("Touched by agents today")).toEqual({ actor: "@agent", updated: "24h" });
+		expect(viewOfPreset("Failing checks")).toEqual({ ci: ["fail"] });
+		expect(viewOfPreset("Updated by agents, last 24 hours")).toEqual({ actor: "@agent", updated: "24h" });
 	});
 });

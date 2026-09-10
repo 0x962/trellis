@@ -42,6 +42,9 @@ export type View = {
 	completed?: string;
 	sort: z.infer<typeof SortSchema>;
 	group: Group;
+	// "hide" drops the Done and Canceled groups from a status grouping. The
+	// URL carries it only when set, so a view shows them by default.
+	closed?: "hide";
 	scope: Scope;
 	peek?: string;
 	density: Density;
@@ -146,6 +149,7 @@ export const parseSearch = (params: Record<string, unknown>): View => {
 		completed: timeBound(raw.completed),
 		sort: single(raw.sort, SortSchema) ?? viewDefaults.sort,
 		group: oneOf<Group>(raw.group, groups) ?? viewDefaults.group,
+		closed: raw.closed === "hide" ? "hide" : undefined,
 		scope: oneOf<Scope>(raw.scope, scopes) ?? viewDefaults.scope,
 		peek: single(raw.peek, TicketRefStringSchema),
 		density: oneOf<Density>(raw.density, densities) ?? viewDefaults.density,

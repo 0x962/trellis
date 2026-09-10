@@ -9,7 +9,7 @@ test.beforeAll(() => {
 	createTicket("CDE", "Merge upstream 1.27 and keep every marked site");
 });
 
-const palette = (page: Page) => page.getByRole("dialog", { name: "Command menu" });
+const palette = (page: Page) => page.getByRole("dialog", { name: "Command palette" });
 
 const openPalette = async (page: Page) => {
 	await page.keyboard.press("ControlOrMeta+k");
@@ -54,10 +54,12 @@ test("a typo in the palette finds the ticket and opens the peek", async ({ page 
 });
 
 // E2E-02. CDE-2 starts in Todo; the palette moves it to In Progress and the
-// row shows the new status in place.
+// row takes the new status in place. The table groups by status, so a row
+// states its status as its group and draws no status cell.
 test("Change status from the palette updates the row in place", async ({ page }) => {
 	await signIn(page, "/p/CDE");
 	const row = rowOf(page, "CDE-2");
+	await expect(row).toHaveAttribute("data-group", "todo");
 	await row.getByText("Merge upstream 1.27", { exact: false }).click();
 	const input = await openPalette(page);
 	await input.fill("Change status");
@@ -68,7 +70,7 @@ test("Change status from the palette updates the row in place", async ({ page })
 		.getByRole("option", { name: /In Progress/ })
 		.click();
 	await expect(palette(page)).toBeHidden();
-	await expect(row).toContainText("In Progress");
+	await expect(row).toHaveAttribute("data-group", "in-progress");
 });
 
 // E2E-03
@@ -88,7 +90,9 @@ test("the help sheet opens over any route and closes on Escape", async ({ page }
 	await page.keyboard.press("?");
 	const sheet = page.getByRole("dialog", { name: /Keyboard shortcuts/ });
 	await expect(sheet).toBeVisible();
-	await expect(sheet.getByRole("listitem")).toHaveCount(42);
+	// The map holds 42 rows. Three actions have two keys each and print as
+	// one row, so the sheet shows 39.
+	await expect(sheet.getByRole("listitem")).toHaveCount(39);
 	await page.keyboard.press("Escape");
 	await expect(sheet).toBeHidden();
 });

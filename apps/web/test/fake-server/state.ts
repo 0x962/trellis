@@ -2,6 +2,7 @@ import {
 	type Activity,
 	type Actor,
 	type ActorRef,
+	type AgentBatchRecord,
 	type AgentSession,
 	type AgentSettings,
 	type Attachment,
@@ -107,6 +108,8 @@ export type State = {
 	runnerProjects: RunnerProject[];
 	// While set, every runner call answers RUNNER_UNAVAILABLE with this reason.
 	runnerDown: RunnerReason | null;
+	// The batches the dispatcher sent, oldest first. A test pushes to it.
+	agentBatches: AgentBatchRecord[];
 };
 
 export const createState = (): State => ({
@@ -139,10 +142,23 @@ export const createState = (): State => ({
 	agentSettings: { runner: "superset", enabled: false, projects: [] },
 	agentCursors: new Map(),
 	runnerProjects: [
-		{ id: "sp-de", name: "de", repo: "canary-technologies-corp/de", path: "/Users/navid/projects/de" },
-		{ id: "sp-trellis", name: "trellis", repo: "0x962/trellis", path: "/Users/navid/projects/trellis" },
+		{
+			id: "sp-de",
+			name: "de",
+			repo: "canary-technologies-corp/de",
+			path: "/Users/navid/projects/de",
+			defaultBranch: "main",
+		},
+		{
+			id: "sp-trellis",
+			name: "trellis",
+			repo: "0x962/trellis",
+			path: "/Users/navid/projects/trellis",
+			defaultBranch: "main",
+		},
 	],
 	runnerDown: null,
+	agentBatches: [],
 });
 
 export const newId = () => ulid();

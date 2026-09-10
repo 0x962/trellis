@@ -16,7 +16,7 @@ const mount = (identifier = "CDE-42", server: FakeServer = createFakeServer()) =
 
 const start = () => screen.findByRole("button", { name: "Start with agent" });
 const options = () => screen.getByRole("button", { name: "Start with agent options" });
-const checkbox = () => screen.findByRole("checkbox", { name: "Also mark In Progress" });
+const checkbox = () => screen.findByRole("checkbox", { name: "Also move to In Progress" });
 
 // A dropdown action is a menu item or a button; either takes focus.
 const action = (name: string) =>
@@ -34,10 +34,10 @@ describe("features/agent/StartWithAgent", () => {
 		mount();
 		await user.click(await start());
 		await waitFor(async () => expect(await navigator.clipboard.readText()).toBe(command));
-		expect(await screen.findByText("Copied. Paste in your terminal.")).toBeDefined();
-		const pre = await screen.findByText(command);
-		expect(pre.tagName).toBe("PRE");
-		expect(pre.className).toMatch(/\bfont-mono\b/);
+		expect(await screen.findByText("Copied the command. Paste it in a terminal.")).toBeDefined();
+		const line = await screen.findByText(command);
+		expect(line.className).toMatch(/\bfont-mono\b/);
+		expect(line.className).toMatch(/\btruncate\b/);
 	});
 
 	// WT-90
@@ -47,7 +47,7 @@ describe("features/agent/StartWithAgent", () => {
 		await start();
 		mod("a", { shiftKey: true });
 		await waitFor(async () => expect(await navigator.clipboard.readText()).toBe(command));
-		expect(await screen.findByText("Copied. Paste in your terminal.")).toBeDefined();
+		expect(await screen.findByText("Copied the command. Paste it in a terminal.")).toBeDefined();
 	});
 
 	// WT-92
@@ -56,7 +56,7 @@ describe("features/agent/StartWithAgent", () => {
 		mount();
 		await start();
 		await user.click(options());
-		for (const name of ["Copy command", "Copy prompt only", "Copy brief as markdown", "Copy CLI cheat-sheet"]) {
+		for (const name of ["Copy command", "Copy command only", "Copy brief as markdown", "Copy CLI cheat-sheet"]) {
 			const item = await waitFor(() => action(name));
 			item.focus();
 			expect(document.activeElement).toBe(item);

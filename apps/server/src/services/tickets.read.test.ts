@@ -102,14 +102,20 @@ describe("tickets.list", () => {
 });
 
 describe("tickets.board and tickets.counts", () => {
+	// A fixed base time, so a seeded update time never depends on the clock.
+	const START = Date.parse("2026-01-01T00:00:00.000Z");
+
 	// Two tickets in Todo, two in In Progress, one in Done, none elsewhere.
+	// Todo takes its newer ticket last and In Progress takes its newer
+	// ticket first, so the column order follows the update time and not the
+	// insert order.
 	const seedSpread = async () => {
 		const { rootId, statuses } = await seedProject(h.db);
-		const seed = (statusId: string, position: number) =>
-			seedTicket(h.db, { projectId: rootId, rootId, statusId, position });
-		const todo = [await seed(statuses.todo, 2048), await seed(statuses.todo, 1024)];
-		const started = [await seed(statuses.started, 1024), await seed(statuses.started, 2048)];
-		const done = [await seed(statuses.done, 1024)];
+		const seed = (statusId: string, minutes: number) =>
+			seedTicket(h.db, { projectId: rootId, rootId, statusId, updatedAt: new Date(START + minutes * 60_000) });
+		const todo = [await seed(statuses.todo, 1), await seed(statuses.todo, 2)];
+		const started = [await seed(statuses.started, 2), await seed(statuses.started, 1)];
+		const done = [await seed(statuses.done, 1)];
 		return { rootId, statuses, todo, started, done };
 	};
 

@@ -14,7 +14,13 @@ export type GhStateOptions = { bus: Bus; gh: GhRunner; now: () => Date };
 // one. The poller also sends { ok: true } when the rate limit budget
 // changes. That event changes nothing while gh is ready.
 export const createGhState = ({ bus, gh, now }: GhStateOptions) => {
-	let status: GhStatus = { ok: false, user: null, reason: "error", message: "Not checked yet.", checkedAt: null };
+	let status: GhStatus = {
+		ok: false,
+		user: null,
+		reason: "error",
+		message: "The server checks gh at startup. The check did not finish.",
+		checkedAt: null,
+	};
 
 	const check = async () => {
 		status = await checkGh(gh, now());

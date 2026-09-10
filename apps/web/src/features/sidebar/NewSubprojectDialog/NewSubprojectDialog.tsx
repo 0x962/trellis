@@ -34,7 +34,7 @@ export function NewSubprojectDialog({ project, open, onOpenChange }: NewSubproje
 			open={open}
 			onOpenChange={onOpenChange}
 			title={`New sub-project under ${project.name}`}
-			description="Create a nested project that shares this root key."
+			description="Create a sub-project. It shares the key of the root project."
 		>
 			<form className="flex flex-col gap-3" onSubmit={(event) => void create(event)}>
 				<Input label="Project name" value={name} onChange={(event) => setName(event.target.value)} autoFocus />
@@ -44,11 +44,11 @@ export function NewSubprojectDialog({ project, open, onOpenChange }: NewSubproje
 						{message}
 					</p>
 				)}
-				<div className="flex justify-end gap-2">
-					<Button type="button" variant="quiet" onClick={() => onOpenChange(false)}>
+				<div className="flex justify-end gap-2 max-md:*:flex-1">
+					<Button type="button" size="md" variant="quiet" onClick={() => onOpenChange(false)}>
 						Cancel
 					</Button>
-					<Button type="submit" variant="primary">
+					<Button type="submit" size="md" variant="primary">
 						Create sub-project
 					</Button>
 				</div>

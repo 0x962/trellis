@@ -10,14 +10,16 @@ import { ActivityLine } from "../ActivityLine";
 export type RunLineProps = {
 	// Two or more activity rows by one actor within five minutes, oldest first.
 	items: readonly Activity[];
+	// Who reviews in the status with this name, for the opened rows.
+	reviewer?: (statusName: string) => "human" | "agent";
 };
 
 // A run of changes as one line with the count. A click opens the rows.
-export function RunLine({ items }: RunLineProps) {
+export function RunLine({ items, reviewer }: RunLineProps) {
 	const [open, setOpen] = useState(false);
 	const last = items[items.length - 1]!;
 	const actor = last.actor;
-	if (open) return items.map((item) => <ActivityLine key={item.id} item={item} />);
+	if (open) return items.map((item) => <ActivityLine key={item.id} item={item} reviewer={reviewer} />);
 	const Chevron = open ? ChevronDown : ChevronRight;
 	return (
 		<li data-kind="activity" className="flex h-8 items-center gap-2 text-sm text-fg-muted">

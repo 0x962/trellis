@@ -48,6 +48,15 @@ describe("features/ticket/Header", () => {
 		expect(await screen.findByText(/Copied/)).toBeDefined();
 	});
 
+	// T3. The ID shows above the title, so the Copy ID button draws only
+	// its icon, and the Start with agent button carries no Kbd.
+	test("Copy ID is an icon button and Start with agent has no Kbd", async () => {
+		mountPage();
+		const element = await header();
+		expect(within(element).getByRole("button", { name: "Copy ID" }).textContent!.trim()).toBe("");
+		expect(within(element).getByRole("button", { name: "Start with agent" }).querySelector("kbd")).toBeNull();
+	});
+
 	// WT-22. Arrow keys walk the items in order; each one takes focus.
 	test("the more menu lists every ticket action and takes the keyboard", async () => {
 		const user = userEvent.setup();

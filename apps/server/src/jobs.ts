@@ -95,13 +95,23 @@ export const startJobs = ({ db, gh, bus, log, clock }: JobsOptions): Jobs => {
 	let running: Promise<void> = Promise.resolve();
 	let stopped = false;
 
+	// The timer runs on the database worker, and a rejected vacuum there stops
+	// the worker. So a vacuum that throws writes one log line, and the timer
+	// arms again. The writes stay pending, so the next run tries again.
 	const vacuum = () => {
 		timer = null;
 		const writes = maintenance.pendingWrites;
-		running = maintenance.tick().then(() => {
-			if (writes > VACUUM_AFTER_WRITES) log("vacuum", { writes });
-			if (!stopped) arm();
-		});
+		running = maintenance
+			.tick()
+			.then(
+				() => {
+					if (writes > VACUUM_AFTER_WRITES) log("vacuum", { writes });
+				},
+				(error: Error) => log("vacuum failed", { message: error.message, stack: error.stack }),
+			)
+			.then(() => {
+				if (!stopped) arm();
+			});
 		return running;
 	};
 	const arm = () => {

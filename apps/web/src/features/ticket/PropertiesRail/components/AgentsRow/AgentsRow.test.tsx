@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createEventApplier } from "@trellis/api";
-import { addSession, enableAgents, updateSession } from "../../../../../../test/agents";
+import { addSession, enableAgents, failedSession, startReason, updateSession } from "../../../../../../test/agents";
 import { createFakeServer, type FakeServer } from "../../../../../../test/fake-server";
 import { findTicket } from "../../../../../../test/fake-server/state";
 import { mockMatchMedia } from "../../../../../../test/media";
@@ -67,7 +67,10 @@ describe("AgentsRow", () => {
 		mount(server);
 		expect(await within(await agentsRow()).findByText("None")).toBeDefined();
 		const start = (await startButton())!;
-		expect(start.className).toContain("cursor-pointer");
+		// The base layer of @trellis/ui sets the pointer cursor on every
+		// enabled button, so the control has to be a button element.
+		expect(start.tagName).toBe("BUTTON");
+		expect(start.hasAttribute("disabled")).toBe(false);
 		await user.click(start);
 		await waitFor(() => expect(server.callsTo("agents.startBuilder")).toHaveLength(1));
 		expect(server.callsTo("agents.startBuilder")[0]!.input).toEqual({ ticket: "CDE-42" });
@@ -124,6 +127,17 @@ describe("AgentsRow", () => {
 		await waitFor(async () =>
 			expect((await items()).map((row) => row.textContent)).toEqual(["BuilderExitedOpen in Superset"]),
 		);
+		expect(await startButton()).not.toBeNull();
+	});
+
+	test("a failed builder shows Failed with its short reason and a link to the full error, and Start builder stays", async () => {
+		const server = createFakeServer();
+		const failed = failedSession(server, "builder");
+		mount(server);
+		const [row] = await items();
+		expect(within(row!).getByText("Failed")).toBeDefined();
+		expect(within(row!).getByText(startReason)).toBeDefined();
+		expect(within(row!).getByRole("link", { name: "Details" }).getAttribute("href")).toBe(`/agents#${failed.id}`);
 		expect(await startButton()).not.toBeNull();
 	});
 });

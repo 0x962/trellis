@@ -34,18 +34,17 @@ export const tickets = {
 		}));
 		return { total: rows.length, byStatus };
 	}),
+	// A column lists the ticket that changed last at the top, and `list` with
+	// `status=` continues the column in the same order.
 	board: os.tickets.board.handler(({ context, input }) => {
 		const { state } = context;
-		const rows = sortTickets(state, filterTickets(state, input, scopeProject(state, input.project)), "position");
+		const rows = sortTickets(state, filterTickets(state, input, scopeProject(state, input.project)), "-updatedAt");
 		const columns = columnStatuses(state, input.project).map((status) => {
 			const column = rows.filter((row) => row.statusId === status.id);
 			return {
 				statusId: status.id,
 				count: column.length,
-				items: column
-					.sort((a, b) => a.position - b.position || (a.id < b.id ? -1 : 1))
-					.slice(0, 100)
-					.map((row) => ticketSummary(state, row)),
+				items: column.slice(0, 100).map((row) => ticketSummary(state, row)),
 			};
 		});
 		return { columns };

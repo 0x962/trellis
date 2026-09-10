@@ -6,7 +6,14 @@ import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail, invalidInput } from "../errors.ts";
 import { changeSet } from "./changeSet.ts";
-import { assertKeyFree, assertSlugFree, projectActivity, projectRow, projectView } from "./projectRows.ts";
+import {
+	assertKeyFree,
+	assertRootNameFree,
+	assertSlugFree,
+	projectActivity,
+	projectRow,
+	projectView,
+} from "./projectRows.ts";
 import { assertProjectActive, pathOf, resolveProject } from "./refs.ts";
 import { deriveSlug } from "./slug.ts";
 import { seedRootStatuses } from "./statusSet.ts";
@@ -40,8 +47,10 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput)
 	if (parent !== null) assertProjectActive(ctx, parent.id);
 	const key = parent === null ? (input.key as string) : null;
 	const slug = parent === null ? (key as string).toLowerCase() : (input.slug ?? deriveSlug(input.name));
-	if (parent === null) await assertKeyFree(tx, key as string);
-	else await assertSlugFree(tx, parent.id, slug, null);
+	if (parent === null) {
+		await assertKeyFree(tx, key as string);
+		await assertRootNameFree(tx, input.name, null);
+	} else await assertSlugFree(tx, parent.id, slug, null);
 	const position = await nextPosition(tx, parent?.id ?? null);
 	const template = input.ticketTemplate ?? (parent === null ? DEFAULT_TICKET_TEMPLATE : "");
 	await tx.execute(
@@ -61,22 +70,30 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput)
 // Writes one activity row per field that changes and nothing for a field
 // sent back with its value. `archived: false` is the one change an archived
 // project accepts. A key change is free until the first ticket is numbered.
+// A root that gets a new name or comes back from the archive must not take
+// the name of another active root.
 export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput): Promise<Project> => {
 	requireActor(ctx);
 	const project = await resolveProject(ctx, tx, input.project);
 	if (input.archived !== false) assertProjectActive(ctx, project.id);
 	const row = await projectRow(tx, project.id);
+	const renamed = input.name !== undefined && input.name !== row.name;
+	const restored = input.archived === false && row.archived_at !== null;
+	if (project.parentId === null && (renamed || restored))
+		await assertRootNameFree(tx, input.name ?? row.name, project.id);
 	const { sets, changes, field } = changeSet();
 	field("name", row.name, input.name, sql`name = ${input.name}`);
 	field("description", row.description, input.description, sql`description = ${input.description}`);
 	field("ticketTemplate", row.ticket_template, input.ticketTemplate, sql`ticket_template = ${input.ticketTemplate}`);
 	if (input.slug !== undefined && input.slug !== project.slug) {
-		if (project.parentId === null) throw invalidInput("slug", "A root takes its slug from its key.");
+		if (project.parentId === null)
+			throw invalidInput("slug", "A root project takes its slug from its key. Change the key instead.");
 		await assertSlugFree(tx, project.parentId, input.slug, project.id);
 		field("slug", project.slug, input.slug, sql`slug = ${input.slug}`);
 	}
 	if (input.key !== undefined && input.key !== project.key) {
-		if (project.parentId !== null) throw invalidInput("key", "Only a root project has a key.");
+		if (project.parentId !== null)
+			throw invalidInput("key", "Only a root project has a key. Do not send key for a sub-project.");
 		if (row.ticket_counter > 0) throw fail("KEY_LOCKED");
 		await assertKeyFree(tx, input.key);
 		sets.push(sql`slug = ${input.key.toLowerCase()}`);

@@ -1,4 +1,4 @@
-import { Button, Input } from "@trellis/ui";
+import { Button, Input, TicketId } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { suggestKey } from "../../../lib/projectKey";
 
@@ -15,7 +15,8 @@ export type ProjectStepProps = {
 const keyPattern = /^[A-Z][A-Z0-9]{1,4}$/;
 
 // Step 2 of the first run, and the form behind "New project" later. The key
-// follows the name until the person edits it. Every edit is validated live.
+// follows the name until the person edits it. Every edit is validated live,
+// and a valid key shows the first ticket ID it gives.
 export function ProjectStep({ taken, takenNames, onCreate }: ProjectStepProps) {
 	const [name, setName] = useState("");
 	const [editedKey, setEditedKey] = useState<string | null>(null);
@@ -25,14 +26,13 @@ export function ProjectStep({ taken, takenNames, onCreate }: ProjectStepProps) {
 		? `A project named ${trimmed} exists.`
 		: null;
 	const key = editedKey ?? (trimmed === "" ? "" : suggestKey(name, taken));
-	const isTaken = taken.includes(key);
 	const keyError =
 		key === ""
 			? null
 			: !keyPattern.test(key)
 				? "A key is 2 to 5 characters: a letter, then letters or digits."
-				: isTaken
-					? `${key} is taken.`
+				: taken.includes(key)
+					? `Another project uses the key ${key}.`
 					: null;
 	const ready = trimmed !== "" && nameError === null && key !== "" && keyError === null && !pending;
 
@@ -45,11 +45,11 @@ export function ProjectStep({ taken, takenNames, onCreate }: ProjectStepProps) {
 	return (
 		<form onSubmit={submit} className="flex flex-col gap-5">
 			<div className="flex flex-col gap-1">
-				<h1 className="text-xl font-semibold text-fg">
+				<h1 className="text-lg font-semibold text-fg">
 					{taken.length === 0 ? "Create your first project" : "New project"}
 				</h1>
-				<p className="text-fg-muted">
-					A project owns a key. Every ticket in it and under it is numbered with that key.
+				<p className="text-sm text-fg-muted">
+					A project has a key. Each ticket ID in the project and its sub-projects starts with that key.
 				</p>
 			</div>
 			<div className="flex flex-col gap-1">
@@ -62,7 +62,7 @@ export function ProjectStep({ taken, takenNames, onCreate }: ProjectStepProps) {
 					spellCheck={false}
 					onChange={(event) => setName(event.target.value)}
 				/>
-				{nameError !== null && <p className="text-sm text-danger">{nameError}</p>}
+				{nameError !== null && <p className="text-xs text-danger">{nameError}</p>}
 			</div>
 			<div className="flex flex-col gap-1">
 				<Input
@@ -75,16 +75,17 @@ export function ProjectStep({ taken, takenNames, onCreate }: ProjectStepProps) {
 					onChange={(event) => setEditedKey(event.target.value.toUpperCase())}
 				/>
 				{keyError !== null ? (
-					<p className="text-sm text-danger">{keyError}</p>
+					<p className="text-xs text-danger">{keyError}</p>
+				) : key === "" ? (
+					<p className="text-xs text-fg-muted">trellis takes the key from the name. You can edit the key.</p>
 				) : (
-					<p className="text-sm text-fg-muted">
-						{key === ""
-							? "The key comes from the name. Edit it if you like."
-							: `Tickets will be numbered ${key}-1, ${key}-2 …`}
+					<p data-key-preview="" className="flex items-center gap-1.5 text-xs text-fg-muted">
+						The first ticket ID is
+						<TicketId id={`${key}-1`} className="rounded-sm border border-border bg-surface px-1" />
 					</p>
 				)}
 			</div>
-			<Button type="submit" variant="primary" disabled={!ready} className="self-end">
+			<Button type="submit" variant="primary" size="md" kbd="↵" disabled={!ready} className="w-full">
 				Create
 			</Button>
 		</form>

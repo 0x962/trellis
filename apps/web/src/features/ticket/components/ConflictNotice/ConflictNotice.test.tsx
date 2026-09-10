@@ -30,9 +30,12 @@ describe("features/ticket/components/ConflictNotice", () => {
 			),
 			{ path: "/t/CDE-42", server },
 		);
-		await screen.findByText("changed by agent:claude-code: reload or overwrite");
+		const notice = await screen.findByRole("alert");
+		expect(notice.textContent).toContain("claude-code");
+		expect(notice.textContent).toContain("changed this ticket 1h ago. Your edit is not saved.");
+		expect(notice.textContent).not.toContain("agent:claude-code");
 		const gets = server.callsTo("tickets.get").length;
-		await user.click(screen.getByRole("button", { name: "Reload" }));
+		await user.click(screen.getByRole("button", { name: "Use their version" }));
 		const key = orpc.tickets.get.queryKey({ input: { ticket: "CDE-42" } });
 		await waitFor(() => expect(queryClient.getQueryData<Ticket>(key)!.version).toBe(18));
 		await waitFor(() => expect(fieldValue(field())).toBe("Restore the fork pages (agent edit)"));
@@ -41,8 +44,9 @@ describe("features/ticket/components/ConflictNotice", () => {
 		expect(server.callsTo("tickets.get")).toHaveLength(gets);
 	});
 
-	// WT-31. Overwrite is the same write with the version guard removed.
-	test("Overwrite resends the write without expectedVersion", async () => {
+	// WT-31. Keep mine is the same write with the version guard removed. It
+	// replaces the other actor's edit, so it asks first.
+	test("Keep mine resends the write without expectedVersion", async () => {
 		const user = userEvent.setup();
 		const server = serverAt17();
 		server.failNext("tickets.update", { code: "VERSION_CONFLICT", data: { current: await conflictAt18(server) } });
@@ -51,11 +55,25 @@ describe("features/ticket/components/ConflictNotice", () => {
 		await waitFor(() => expect(fieldValue(element)).toContain("Restore the fork pages"));
 		await user.clear(element);
 		await user.type(element, "Restore every fork page{Enter}");
-		await user.click(await screen.findByRole("button", { name: "Overwrite" }));
+		await user.click(await screen.findByRole("button", { name: "Keep mine" }));
+		expect(await screen.findByText("Replace claude-code's edit?")).toBeDefined();
+		expect(server.callsTo("tickets.update")).toHaveLength(1);
+		await user.click(screen.getByRole("button", { name: "Replace" }));
 		await waitFor(() => expect(server.callsTo("tickets.update")).toHaveLength(2));
 		const retry = server.callsTo("tickets.update")[1]!.input as Record<string, unknown>;
 		expect(retry.title).toBe("Restore every fork page");
 		expect(retry).not.toHaveProperty("expectedVersion");
-		await waitFor(() => expect(screen.queryByText(/reload or overwrite/)).toBeNull());
+		await waitFor(() => expect(screen.queryByText(/Your edit is not saved/)).toBeNull());
+	});
+
+	// A row with no last actor still names who changed it in words.
+	test("a row with no last actor reads as another actor", async () => {
+		const server = serverAt17();
+		const current = { ...(await conflictAt18(server)), lastActor: null };
+		renderTicket("CDE-42", () => <ConflictNotice current={current} onOverwrite={() => {}} onClose={() => {}} />, {
+			path: "/t/CDE-42",
+			server,
+		});
+		expect((await screen.findByRole("alert")).textContent).toContain("Another actor changed this ticket.");
 	});
 });

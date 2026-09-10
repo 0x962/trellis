@@ -13,10 +13,14 @@ export type TableErrorProps = {
 export function TableError({ error, onRetry }: TableErrorProps) {
 	return (
 		<EmptyState
-			title="Couldn't load the tickets"
+			title="The tickets did not load."
 			description={errorMessage(error)}
-			className="flex-1 justify-center"
-			action={<Button onClick={onRetry}>Retry</Button>}
+			variant="page"
+			action={
+				<Button size="md" onClick={onRetry}>
+					Retry
+				</Button>
+			}
 		/>
 	);
 }

@@ -59,6 +59,7 @@ describe("the manager prompt", () => {
 			"Never start a second builder for a ticket that has one.",
 			"CONCURRENCY_LIMIT",
 			'comment "Queued: <n> builders are running." once',
+			"On every wake, try each queued ticket in Todo again, until it starts.",
 		]);
 	});
 

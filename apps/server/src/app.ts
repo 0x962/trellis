@@ -167,7 +167,13 @@ export const createApp = ({ config, log, transport, bus, runtime, clock = realCl
 		if (error instanceof ORPCError) return c.json(orpcBody(error), error.status as ContentfulStatusCode);
 		log.error("unhandled", { reqId: c.get("requestId"), path: c.req.path, message: (error as Error).message });
 		return c.json(
-			{ defined: false, code: "INTERNAL_SERVER_ERROR", status: 500, message: "Internal server error" },
+			{
+				defined: false,
+				code: "INTERNAL_SERVER_ERROR",
+				status: 500,
+				message:
+					"The server failed on this request. Find the cause in server.log with the x-request-id of this response.",
+			},
 			500,
 		);
 	});

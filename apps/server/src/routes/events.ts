@@ -83,7 +83,7 @@ export const createEventsRoute = ({ bus, runtime, transport, clock }: EventsRout
 	const handler = async (c: Context) => {
 		const since = c.req.header("last-event-id") ?? c.req.query("since");
 		if (since !== undefined && !EventIdSchema.safeParse(since).success) {
-			throw invalidInput("since", "Expected an event id: <bootId ULID>.<seq>.");
+			throw invalidInput("since", "The event id must be <bootId ULID>.<seq>.");
 		}
 		const pingMs = pingSecondsOf(c.req.query("ping")) * 1000;
 		const filter = await filterOf(c);

@@ -100,6 +100,37 @@ describe("readRateLimit", () => {
 		expect(result).not.toHaveProperty("remaining");
 		expect(result).not.toHaveProperty("multiplier");
 	});
+
+	// The reply comes from gh, outside trellis. A reply the reader cannot use
+	// is a result, not an exception, so the poller that asked keeps running.
+	test("a body whose resources hold no budget returns the shape failure with the raw reply", async () => {
+		const stdout = JSON.stringify({ resources: {} });
+		stub({ "api rate_limit": { stdout, stderr: "", exitCode: 0 } });
+		expect(await readRateLimit(createGhRunner())).toEqual({ ok: false, reason: "shape", stdout });
+	});
+
+	test("a reply that is not JSON returns the shape failure with the raw reply", async () => {
+		stub({ "api rate_limit": { stdout: "<html>502</html>", stderr: "", exitCode: 0 } });
+		expect(await readRateLimit(createGhRunner())).toEqual({ ok: false, reason: "shape", stdout: "<html>502</html>" });
+	});
+
+	test("a budget with a limit of zero is not a budget", async () => {
+		const stdout = JSON.stringify({ resources: { core: { limit: 0, remaining: 0, reset: 1757400000 } } });
+		stub({ "api rate_limit": { stdout, stderr: "", exitCode: 0 } });
+		expect(await readRateLimit(createGhRunner())).toEqual({ ok: false, reason: "shape", stdout });
+	});
+
+	test("a body with graphql and no core reports the graphql budget", async () => {
+		const stdout = JSON.stringify({ resources: { graphql: resources.graphql } });
+		stub({ "api rate_limit": { stdout, stderr: "", exitCode: 0 } });
+		expect(await readRateLimit(createGhRunner())).toMatchObject({
+			ok: true,
+			resource: "graphql",
+			remaining: 4500,
+			fraction: 0.9,
+			multiplier: 1,
+		});
+	});
 });
 
 describe("intervalMultiplier", () => {

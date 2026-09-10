@@ -1,0 +1,65 @@
+import { beforeEach, describe, expect, test } from "bun:test";
+import "@atlaskit/pragmatic-drag-and-drop-unit-testing/drag-event-polyfill";
+import "@atlaskit/pragmatic-drag-and-drop-unit-testing/dom-rect-polyfill";
+import { fireEvent, screen } from "@testing-library/react";
+import { Toaster } from "@trellis/ui";
+import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
+import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { settle } from "../../../../test/ticketHost";
+import { Board } from ".";
+
+beforeEach(() => localStorage.clear());
+
+const notice = "CDE is archived. Unarchive the project to change it.";
+
+const archivedBoard = () => {
+	const server = createFakeServer();
+	[...server.state.projects.values()].find((entry) => entry.path === "CDE")!.archivedAt = new Date().toISOString();
+	renderWithProviders(
+		<>
+			<Board projectRef="CDE" storageKey="CDE" onOpenTicket={() => {}} />
+			<Toaster />
+		</>,
+		{ path: "/p/CDE/board", actor: "navid", server },
+	);
+	return server;
+};
+
+const moves = (server: FakeServer) => server.calls.filter((call) => call.path.join(".") === "tickets.move");
+
+const card = (identifier: string) => screen.getByRole("listitem", { name: new RegExp(`^${identifier} `) });
+
+describe("Board of an archived project", () => {
+	// The server refuses every write to a ticket under an archived project.
+	// A drop sends no move, and a toast names the project.
+	test("a drop onto another column sends no move", async () => {
+		const server = archivedBoard();
+		const source = await screen.findByRole("listitem", { name: /^CDE-47 / });
+		const target = screen.getAllByRole("list").find((list) => !list.contains(source))!;
+		const dataTransfer = new DataTransfer();
+		dataTransfer.setDragImage = () => {};
+		document.elementFromPoint = () => target;
+		document.elementsFromPoint = () => [target];
+		fireEvent.dragStart(source, { dataTransfer, clientX: 1, clientY: 10_000 });
+		fireEvent.dragEnter(target, { dataTransfer, clientX: 1, clientY: 10_000 });
+		fireEvent.dragOver(target, { dataTransfer, clientX: 1, clientY: 10_000 });
+		fireEvent.drop(target, { dataTransfer, clientX: 1, clientY: 10_000 });
+		fireEvent.dragEnd(source, { dataTransfer, clientX: 1, clientY: 10_000 });
+		await settle(50);
+		expect(moves(server)).toHaveLength(0);
+		expect(source.closest("ul")).not.toBe(target);
+	});
+
+	// `]` moves a focused card to the next column from the keyboard. On an
+	// archived project it sends no move and says why.
+	test("a bracket key on a card sends no move and names the project", async () => {
+		const server = archivedBoard();
+		await screen.findByRole("listitem", { name: /^CDE-47 / });
+		const focused = card("CDE-47");
+		focused.focus();
+		fireEvent.keyDown(focused, { key: "]" });
+		expect(await screen.findByText(notice)).toBeDefined();
+		await settle(50);
+		expect(moves(server)).toHaveLength(0);
+	});
+});

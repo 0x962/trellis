@@ -21,6 +21,7 @@ describe("agent sessions", () => {
 	test("a session row has exactly the fields the dispatch plan lists", () => {
 		expect(Object.keys(AgentSessionSchema.shape).sort()).toEqual([
 			"createdAt",
+			"error",
 			"id",
 			"lastWokenAt",
 			"openUrl",
@@ -178,6 +179,9 @@ describe("agent settings", () => {
 		expect(ok(AgentSettingsSchema, { ...settings, runner: "codex" })).toBe(false);
 		expect(ok(AgentSettingsSchema, { ...settings, projects: [{ ...project, supersetProjectId: null }] })).toBe(true);
 		expect(ok(AgentSettingsSchema, { ...settings, projects: [{ ...project, baseBranch: "" }] })).toBe(false);
+		// A null base branch starts each agent from the default branch of the
+		// Superset project's checkout.
+		expect(ok(AgentSettingsSchema, { ...settings, projects: [{ ...project, baseBranch: null }] })).toBe(true);
 	});
 
 	// Three parallel builders and a removed workspace on Done are the plan's

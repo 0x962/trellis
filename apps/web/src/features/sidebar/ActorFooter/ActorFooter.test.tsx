@@ -23,6 +23,28 @@ describe("features/sidebar/ActorFooter", () => {
 		expect(screen.getByRole("button", { name: "Keyboard shortcuts" })).toBeDefined();
 	});
 
+	// SH-5. Checks and PR states need gh, so the Settings link carries a
+	// warning dot while gh does not answer as a signed-in user.
+	test("the Settings link shows a warning dot while gh is not signed in", async () => {
+		const server = createFakeServer();
+		server.state.gh = { ok: false, user: null, reason: "unauthenticated", message: null, checkedAt: null };
+		renderWithProviders(<ActorFooter />, { path: "/all", actor: "navid", server });
+		const settings = screen.getByRole("link", { name: "Settings" });
+		await waitFor(() => expect(settings.querySelector("[data-gh-warning]")).not.toBeNull());
+		const dot = settings.querySelector("[data-gh-warning]")!;
+		for (const name of ["size-1.5", "rounded-full", "bg-warning"]) expect(dot.classList.contains(name)).toBe(true);
+		const description = document.getElementById(settings.getAttribute("aria-describedby")!)!;
+		expect(description.textContent).toBe("gh is not signed in.");
+	});
+
+	test("the Settings link shows no dot while gh is signed in", async () => {
+		const server = createFakeServer();
+		server.state.gh = { ok: true, user: "navid-k", reason: null, message: null, checkedAt: null };
+		const { queryClient, orpc } = renderWithProviders(<ActorFooter />, { path: "/all", actor: "navid", server });
+		await waitFor(() => expect(queryClient.getQueryData(orpc.system.gh.queryKey({}))).toBeDefined());
+		expect(screen.getByRole("link", { name: "Settings" }).querySelector("[data-gh-warning]")).toBeNull();
+	});
+
 	// WS-104. The rename lives in a popover on the chip; Enter submits.
 	test("the rename popover updates the identity", async () => {
 		const user = userEvent.setup();

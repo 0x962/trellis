@@ -22,7 +22,7 @@ const renderActions = async (server: FakeServer) => {
 // Opens the menu from the keyboard. The trigger takes focus and Enter opens it.
 const openMenu = async () => {
 	const user = userEvent.setup();
-	const trigger = await screen.findByRole("button", { name: "Pull request actions" });
+	const trigger = await screen.findByRole("button", { name: "PR actions" });
 	trigger.focus();
 	await user.keyboard("{Enter}");
 	return user;
@@ -41,7 +41,7 @@ describe("PrActions", () => {
 		await renderActions(createFakeServer());
 		await openMenu();
 		const items = await screen.findAllByRole("menuitem");
-		expect(items.map((item) => item.textContent!.trim())).toEqual(["Open on GitHub", "Copy link", "Refresh", "Unlink"]);
+		expect(items.map((item) => item.textContent!.trim())).toEqual(["Open on GitHub", "Copy link", "Refresh", "Remove"]);
 	});
 
 	test("Open on GitHub opens the pull request in a new tab", async () => {
@@ -68,10 +68,10 @@ describe("PrActions", () => {
 		expect(callsTo(server, "pullRequests.refresh")[0]!.input).toEqual({ id: pr.id });
 	});
 
-	test("Unlink removes the pull request from this ticket", async () => {
+	test("Remove removes the pull request from this ticket", async () => {
 		const server = createFakeServer();
 		const { ticket, pr } = await renderActions(server);
-		await runItem("Unlink");
+		await runItem("Remove");
 		await waitFor(() => expect(callsTo(server, "pullRequests.unlink")).toHaveLength(1));
 		expect(callsTo(server, "pullRequests.unlink")[0]!.input).toEqual({ ticket: ticket.id, id: pr.id });
 		expect(server.state.prLinks.some((link) => link.ticketId === ticket.id && link.prId === pr.id)).toBe(false);

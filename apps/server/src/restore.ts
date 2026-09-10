@@ -35,7 +35,10 @@ export const restoreHome = async (home: string, archive: string, now = new Date(
 	mkdirSync(staged, { recursive: true });
 	const tar = Bun.spawn(["tar", "-xzf", archive, "-C", staged], { stdin: "ignore", stdout: "ignore", stderr: "pipe" });
 	const code = await tar.exited;
-	if (code !== 0) throw new Error(`tar exited ${code}: ${(await new Response(tar.stderr).text()).trim()}`);
+	if (code !== 0)
+		throw new Error(
+			`tar did not extract the archive (exit code ${code}): ${(await new Response(tar.stderr).text()).trim()}`,
+		);
 	const stagedLock = lockHome(staged, "restore", null);
 	const database = await openDatabase(join(staged, "db"));
 	await createMaintenance(database.db).runNow();

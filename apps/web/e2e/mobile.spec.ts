@@ -63,8 +63,8 @@ test("the sidebar starts closed and the menu button opens it over the page", asy
 	await signIn(page, "/p/MOB");
 	await expect(rowOf(page, "MOB-1")).toBeVisible();
 	await expect(page.getByRole("complementary", { name: "Sidebar" })).toBeHidden();
-	await page.getByRole("button", { name: "Open sidebar" }).click();
-	const sheet = page.getByRole("dialog", { name: "Sidebar" });
+	await page.getByRole("button", { name: "Open the sidebar" }).click();
+	const sheet = page.getByRole("dialog", { name: "Navigation" });
 	await expect(sheet).toBeVisible();
 	await sheet.getByRole("link", { name: "All tickets" }).click();
 	await expect(page).toHaveURL(/\/all$/);
@@ -75,8 +75,8 @@ test("the sidebar starts closed and the menu button opens it over the page", asy
 test("the ticket page opens the sidebar from its header", async ({ page }) => {
 	await signIn(page, "/t/MOB-1");
 	await expect(page.getByRole("textbox", { name: "Title" })).toBeVisible();
-	await page.getByRole("button", { name: "Open sidebar" }).click();
-	await expect(page.getByRole("dialog", { name: "Sidebar" })).toBeVisible();
+	await page.getByRole("button", { name: "Open the sidebar" }).click();
+	await expect(page.getByRole("dialog", { name: "Navigation" })).toBeVisible();
 });
 
 // The table drops the Project, PR, and Last actor columns, so the title
@@ -90,14 +90,16 @@ test("the table gives the title a third of the row", async ({ page }) => {
 	expect(box.width).toBeGreaterThanOrEqual(130);
 });
 
-// The properties rail stacks under the ticket body at the full width.
-test("the ticket page stacks the properties under the body", async ({ page }) => {
+// The properties fold into a grid under the title. The grid spans the
+// ticket column, which keeps a 16 px gutter on each side of the 390 px page.
+test("the ticket page stacks the properties under the title", async ({ page }) => {
 	await signIn(page, "/t/MOB-1");
 	await expect(page.getByRole("textbox", { name: "Title" })).toBeVisible();
-	const rail = (await page.getByRole("complementary", { name: "Properties" }).boundingBox())!;
+	const rail = (await page.getByLabel("Properties", { exact: true }).boundingBox())!;
 	const title = (await page.getByRole("textbox", { name: "Title" }).boundingBox())!;
-	expect(rail.x).toBeLessThanOrEqual(1);
-	expect(rail.width).toBeGreaterThanOrEqual(388);
+	expect(rail.x).toBeLessThanOrEqual(17);
+	expect(rail.width).toBeGreaterThanOrEqual(356);
+	expect(rail.x + rail.width).toBeLessThanOrEqual(390);
 	expect(rail.y).toBeGreaterThan(title.y);
 });
 
@@ -108,8 +110,8 @@ test.describe("on a touch screen", () => {
 	test("every sidebar row is at least 44 px tall", async ({ page }) => {
 		await signIn(page, "/p/MOB");
 		await expect(rowOf(page, "MOB-1")).toBeVisible();
-		await page.getByRole("button", { name: "Open sidebar" }).tap();
-		const sheet = page.getByRole("dialog", { name: "Sidebar" });
+		await page.getByRole("button", { name: "Open the sidebar" }).tap();
+		const sheet = page.getByRole("dialog", { name: "Navigation" });
 		await expect(sheet.getByRole("link", { name: "All tickets" })).toBeVisible();
 		const heights = await sheet
 			.getByRole("link")

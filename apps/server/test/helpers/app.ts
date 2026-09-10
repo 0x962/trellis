@@ -125,8 +125,10 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 	};
 
 	// A root project with its six seeded statuses, created through the API so
-	// the project cache holds it.
-	const seedProject = async (key = "CDE", name = "Code"): Promise<Project> => {
+	// the project cache holds it. The name defaults to the key, because the
+	// server refuses a second active root project with a name it already
+	// holds, and one test app seeds one project per key.
+	const seedProject = async (key = "CDE", name = key): Promise<Project> => {
 		const response = await api("/api/projects", { method: "POST", body: { key, name } });
 		if (response.status !== 201) throw new Error(`seedProject: ${response.status} ${JSON.stringify(response.body)}`);
 		return response.body as Project;

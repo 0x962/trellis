@@ -1,14 +1,17 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { cx, EmptyState, TicketId } from "@trellis/ui";
+import { cx, EmptyState, TicketId, useMediaQuery } from "@trellis/ui";
 import { useEffect, useState } from "react";
+import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
+import { StartWithAgent } from "../../agent/StartWithAgent";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
 import { useUploads } from "../../attachments/hooks/useUploads";
 import { PullRequests } from "../../prs";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { Description } from "../Description";
 import { Header } from "../Header";
+import { ReviewActions } from "../Header/components/ReviewActions";
 import { PropertiesRail } from "../PropertiesRail";
 import { SubTickets } from "../SubTickets";
 import { Timeline } from "../Timeline";
@@ -23,18 +26,22 @@ export type TicketViewProps = {
 	variant: "page" | "peek";
 };
 
-// One ticket, as the page and the peek both draw it: the header, the
-// title, the description, the sub-tickets, the pull requests, the
-// attachments, and the timeline. Every section reads the cached detail,
-// so a live patch repaints it with no refetch. The whole ticket is the one
-// drop target: a dropped file uploads to the ticket, and the attachments
-// section shows its progress.
+// One ticket, as the page and the peek both draw it: the header, the ID,
+// the title, the description, the sub-tickets, the PRs, the attachments,
+// and the timeline, in one left-aligned column of 760 px of content. Below
+// 768 px the page folds the rail into the peek grid under the title, with
+// the review actions and Start with agent under the grid. Every
+// section reads the cached detail, so a live patch repaints it with no
+// refetch. The whole ticket is the one drop target: a dropped file uploads
+// to the ticket, and the attachments section shows its progress.
 export function TicketView({ identifier, variant }: TicketViewProps) {
 	const { orpc } = useApp();
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
 	const [addingChild, setAddingChild] = useState(false);
 	const uploads = useUploads(identifier);
 	const drop = useDropOverlay(uploads.start);
+	const narrow = useMediaQuery("(max-width: 767px)");
+	const { isArchived, notice } = useArchivedProjects();
 
 	useEffect(() => setAddingChild(false), []);
 	useEffect(() => {
@@ -49,9 +56,7 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 		if (query.error instanceof ORPCError && query.error.code === "NOT_FOUND") {
 			return <NotFoundState ref={identifier} searchFor={identifier} />;
 		}
-		return (
-			<EmptyState title="Something went wrong" description={query.error.message} className="flex-1 justify-center" />
-		);
+		return <EmptyState variant="page" title={`${identifier} did not load.`} description={query.error.message} />;
 	}
 	if (query.data === undefined) {
 		if (variant === "peek") {
@@ -66,38 +71,66 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 	}
 	const ticket = query.data;
 	const peek = variant === "peek";
+	const inlineRail = peek || narrow;
+	const readOnly = isArchived(ticket.project.path);
 
+	// The server refuses every write to a ticket under an archived project.
+	// A disabled fieldset disables every control inside it, so the page and
+	// the peek show the ticket read-only. The edit keys read `readOnly` too.
 	const main = (
 		<article
 			{...drop.handlers}
-			className={cx(
-				"relative flex min-w-0 flex-1 flex-col",
-				!peek && "min-h-0 overflow-y-auto max-md:flex-none max-md:overflow-visible",
-			)}
+			className={cx("relative flex min-w-0 flex-1 flex-col", !peek && "min-h-0 overflow-y-auto")}
 		>
 			<Header ticket={ticket} surface={variant} />
-			<div className="flex max-w-202 flex-col gap-7 px-12 py-5 max-md:px-4">
+			{readOnly && (
+				<p className="flex h-9 shrink-0 items-center bg-warning-soft px-12 text-sm font-medium text-warning max-md:px-4">
+					{notice(ticket.project.path)}
+				</p>
+			)}
+			<div className="flex max-w-[856px] flex-col px-12 pt-8 pb-12 max-md:px-4">
 				<div className="flex flex-col gap-1">
 					<TicketId id={ticket.identifier} />
 					<Title key={ticket.identifier} ticket={ticket} autoFocus={peek} />
 				</div>
-				{peek && <PropertiesRail ticket={ticket} variant="peek" onAddSubTicket={() => setAddingChild(true)} />}
-				<Description key={ticket.identifier} ticket={ticket} />
-				{(ticket.children.length > 0 || addingChild) && <SubTickets ticket={ticket} autoFocusAdd={addingChild} />}
-				<PullRequests ticket={ticket} initialPrs={ticket.prs} />
-				<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
-				<Timeline ticket={ticket} />
+				{inlineRail && (
+					<div className="mt-3">
+						<PropertiesRail ticket={ticket} variant="peek" onAddSubTicket={() => setAddingChild(true)} />
+					</div>
+				)}
+				{narrow && !peek && (
+					<div data-phone-actions="" className="mt-4 flex flex-col gap-2">
+						<ReviewActions ticket={ticket} />
+						<StartWithAgent ticket={ticket} fullWidth />
+					</div>
+				)}
+				<div className={inlineRail ? "mt-4" : "mt-3"}>
+					<Description key={ticket.identifier} ticket={ticket} />
+				</div>
+				<div className="mt-8 flex flex-col gap-8">
+					{(ticket.children.length > 0 || addingChild) && <SubTickets ticket={ticket} autoFocusAdd={addingChild} />}
+					<PullRequests ticket={ticket} initialPrs={ticket.prs} />
+					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
+					<Timeline ticket={ticket} pinned={peek} onAttachFiles={uploads.start} />
+				</div>
 			</div>
 			{drop.over && <DropOverlay identifier={ticket.identifier} />}
 		</article>
 	);
 
-	if (peek) return main;
-	// Under 768 px the rail stacks under the body, and this box scrolls both.
+	if (inlineRail) {
+		return (
+			<fieldset disabled={readOnly} className="contents">
+				{main}
+			</fieldset>
+		);
+	}
 	return (
-		<div className="flex min-h-0 flex-1 max-md:flex-col max-md:overflow-y-auto">
-			{main}
-			<PropertiesRail ticket={ticket} variant="page" onAddSubTicket={() => setAddingChild(true)} />
-		</div>
+		<fieldset disabled={readOnly} className="contents">
+			<div className="flex min-h-0 flex-1">
+				{main}
+				<PropertiesRail ticket={ticket} variant="page" onAddSubTicket={() => setAddingChild(true)} />
+			</div>
+		</fieldset>
 	);
 }

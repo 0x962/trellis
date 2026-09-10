@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { preloadOnIdle } from "../../../lib/preloadOnIdle";
-import { commandActions, contextTicket, useCommandStore } from "../commandStore";
+import { commandActions, useCommandStore } from "../commandStore";
 import { useContextTicket } from "../hooks/useContextTicket";
+import { usePaletteTicket } from "../hooks/usePaletteTicket";
 import { usePaletteTypeahead } from "../hooks/usePaletteTypeahead";
 import { paletteTypeahead } from "../typeahead";
 
@@ -22,7 +23,7 @@ const PaletteDialog = lazy(() => loadPaletteDialog().then((module) => ({ default
 // no field took.
 export function CommandPalette() {
 	const open = useCommandStore((state) => state.open);
-	const identifier = useCommandStore(contextTicket);
+	const identifier = usePaletteTicket();
 	const context = useContextTicket(identifier);
 	const [mounted, setMounted] = useState(open);
 	if (open && !mounted) setMounted(true);

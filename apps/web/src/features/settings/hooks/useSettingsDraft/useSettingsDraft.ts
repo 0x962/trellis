@@ -34,7 +34,8 @@ export const useSettingsDraft = () => {
 		queryClient.setQueryData(draftKey, (current: Partial<Settings> | undefined) => ({ ...current, ...patch }));
 
 	// Writes the saved record with the draft and `patch` on top. Returns the
-	// stored settings, or undefined when the server refused the write.
+	// stored settings, or undefined when the server refused the write. The
+	// field that saved shows its own Saved mark, so a save raises no toast.
 	const save = async (patch: Partial<Settings>) => {
 		const sent: Settings = { ...saved!, ...queryClient.getQueryData<Partial<Settings>>(draftKey), ...patch };
 		const settle = () =>
@@ -43,11 +44,10 @@ export const useSettingsDraft = () => {
 			const stored = await client.settings.set(sent);
 			queryClient.setQueryData(savedKey, stored);
 			settle();
-			toast.success("Settings saved");
 			return stored;
 		} catch (error) {
 			settle();
-			toast.error("Couldn't save the settings", {
+			toast.error("The settings did not save.", {
 				description: (error as Error).message,
 				action: { label: "Retry", onClick: () => void save(patch) },
 			});

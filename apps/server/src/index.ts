@@ -65,7 +65,8 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 
 	const run = async () => {
 		const lock = lockHome(config.home, "server", config.port);
-		let handler: Fetch = () => new Response("trellis is starting", { status: 503 });
+		let handler: Fetch = () =>
+			new Response("The trellis server is not ready. Try again in a few seconds.", { status: 503 });
 
 		// An event stream is silent between pings, 15 seconds apart by default.
 		// Bun closes a connection that is silent for `idleTimeout` seconds, so 0

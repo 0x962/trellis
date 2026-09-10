@@ -12,6 +12,6 @@ test("settings on a loopback server shows the command that pairs a phone", async
 	const row = page.locator("[data-settings-row]", { hasText: "Pair a phone" });
 
 	await expect(row.getByText("trellis install --host 0.0.0.0")).toBeVisible();
-	await expect(row.getByText(/no auth/i)).toBeVisible();
+	await expect(row.getByText(/no sign-in/i)).toBeVisible();
 	await expect(row.getByRole("img", { name: /QR code/i })).toHaveCount(0);
 });

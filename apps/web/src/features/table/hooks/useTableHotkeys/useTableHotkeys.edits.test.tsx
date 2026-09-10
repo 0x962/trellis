@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createFakeServer } from "../../../../../test/fake-server";
 import { renderApp } from "../../../../../test/renderWithProviders";
-import { calls, cellOf, findGrid, focusRow, inputs, press, queryRow, resetUi, rowOf } from "../../../../../test/table";
+import { calls, findGrid, focusRow, inputs, press, queryRow, resetUi, rowOf } from "../../../../../test/table";
 import { tableViewport } from "../../../../../test/viewport";
 
 const installViewport = tableViewport(800);
@@ -28,9 +28,13 @@ const pick = async (user: ReturnType<typeof userEvent.setup>, name: RegExp | str
 	await user.click(within(dialog).getByRole("option", { name }));
 };
 
-// The cell whose trigger anchors the open popover.
+// The open trigger of a row's popover: the button in the column's cell, or,
+// when the grouping hides that column, the row's anchor button that carries
+// the column's name.
 const openTrigger = (identifier: string, column: string) =>
-	cellOf(identifier, column).querySelector("[data-popup-open]");
+	rowOf(identifier).querySelector(
+		`[data-column="${column}"] [data-popup-open], [aria-label="${column[0]!.toUpperCase()}${column.slice(1)}"][data-popup-open]`,
+	);
 
 describe("features/table/hooks/useTableHotkeys: edits", () => {
 	// Outcome 43

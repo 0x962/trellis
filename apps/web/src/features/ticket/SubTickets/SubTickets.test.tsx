@@ -59,7 +59,8 @@ describe("features/ticket/SubTickets", () => {
 	test("shows the done count and the matching progress fill", async () => {
 		mount();
 		const element = await section();
-		expect(element.textContent).toContain("2 of 3 done");
+		expect(element.textContent).toContain("2/3");
+		expect(element.textContent).not.toContain("·");
 		const bar = within(element).getByRole("progressbar");
 		expect(bar.getAttribute("aria-valuenow")).toBe("2");
 		expect(bar.getAttribute("aria-valuemax")).toBe("3");
@@ -85,7 +86,7 @@ describe("features/ticket/SubTickets", () => {
 		expect(within(last).getByText("CDE-50").className).toMatch(/\bfont-mono\b/);
 		expect(last.textContent).toContain("Terminals page: rename a tab on double click");
 		expect(within(last).getByRole("img", { name: "Priority: low" })).toBeDefined();
-		expect(within(last).getByLabelText(/pull request/i)).toBeDefined();
+		expect(within(last).getByLabelText(/ PR, checks /)).toBeDefined();
 		const first = within(element).getByRole("button", { name: /CDE-48/ });
 		expect(first.querySelector('svg[data-category="done"]')).not.toBeNull();
 	});
@@ -108,7 +109,7 @@ describe("features/ticket/SubTickets", () => {
 		const hold = server.holdNext("tickets.create");
 		mount("CDE-42", server);
 		const element = await section();
-		const input = within(element).getByRole("textbox", { name: "Add sub-ticket" });
+		const input = within(element).getByRole("textbox", { name: "New sub-ticket" });
 		await user.type(input, "Write the docs{Enter}");
 		await waitFor(() => expect(server.callsTo("tickets.create")).toHaveLength(1));
 		expect(within(element).getByText("Write the docs")).toBeDefined();
@@ -133,9 +134,9 @@ describe("features/ticket/SubTickets", () => {
 		const term = within(rail)
 			.getAllByRole("term")
 			.find((element) => element.textContent === "Sub-tickets")!;
-		await user.click(within(term.nextElementSibling as HTMLElement).getByRole("button", { name: "Add" }));
+		await user.click(within(term.nextElementSibling as HTMLElement).getByRole("button", { name: "New sub-ticket" }));
 		const element = await section();
-		const input = within(element).getByRole("textbox", { name: "Add sub-ticket" });
+		const input = within(element).getByRole("textbox", { name: "New sub-ticket" });
 		await waitFor(() => expect(document.activeElement).toBe(input));
 	});
 });

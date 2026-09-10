@@ -1,0 +1,1 @@
+export { columnWidth } from "./columnWidth";

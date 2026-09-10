@@ -7,6 +7,8 @@ import "./app.css";
 import { type AppContext, AppProvider } from "./lib/appContext";
 import { createLive } from "./lib/live";
 import { client, orpc, queryClient } from "./lib/orpc";
+import { preloadOnIdle } from "./lib/preloadOnIdle";
+import { preloadRouteChunks } from "./lib/preloadRouteChunks";
 import { createAppRouter } from "./router";
 
 // The browser's own locks, channel, and EventSource. One tab per origin
@@ -22,6 +24,7 @@ live.start();
 
 const context: AppContext = { queryClient, orpc, client, live, scheduler: realScheduler };
 const router = createAppRouter(context);
+preloadOnIdle(() => preloadRouteChunks(router));
 
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>

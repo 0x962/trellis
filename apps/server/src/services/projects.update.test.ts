@@ -123,6 +123,36 @@ describe("projects.update fields", () => {
 	});
 });
 
+describe("projects.update root name", () => {
+	const createRoot = (key: string, name: string) => h.run((ctx, tx) => projects.create(ctx, tx, { key, name }));
+
+	test("a rename to the name of another active root, in any letter case, throws DUPLICATE on the name field", async () => {
+		await createRoot("OPS", "Operations");
+		await createRoot("WEB", "Web");
+		const error = await expectError(update({ project: "WEB", name: "OPERATIONS" }), "DUPLICATE");
+		expect(error.data).toEqual({ field: "name" });
+	});
+
+	test("a root can change the letter case of its own name", async () => {
+		await createRoot("OPS", "Operations");
+		expect((await update({ project: "OPS", name: "OPERATIONS" })).name).toBe("OPERATIONS");
+	});
+
+	test("a restore of an archived root whose name an active root holds throws DUPLICATE on the name field", async () => {
+		await createRoot("OPS", "Operations");
+		await update({ project: "OPS", archived: true });
+		await createRoot("OPX", "Operations");
+		const error = await expectError(update({ project: "OPS", archived: false }), "DUPLICATE");
+		expect(error.data).toEqual({ field: "name" });
+	});
+
+	test("a sub-project can take the name of a root", async () => {
+		await seedTree();
+		await createRoot("OPS", "Operations");
+		expect((await update({ project: "CDE.web", name: "Operations" })).name).toBe("Operations");
+	});
+});
+
 describe("projects.update key", () => {
 	test("a key change is free while the ticket counter is zero", async () => {
 		const { cde } = await seedTree();

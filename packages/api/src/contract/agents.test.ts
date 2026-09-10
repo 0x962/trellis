@@ -11,7 +11,9 @@ describe("agents contract", () => {
 			.sort();
 		expect(table).toEqual([
 			"inbox POST /agents/inbox",
+			"overview GET /agents/overview",
 			"register POST /agents/register",
+			"retryManager POST /agents/manager/retry",
 			"runnerProjects GET /agents/runner-projects",
 			"sessions GET /agents/sessions",
 			"setSettings PUT /agents/settings",
@@ -26,7 +28,7 @@ describe("agents contract", () => {
 	// Every procedure that calls the runner can find it missing or turned
 	// off. A builder start can also hit the per-project limit.
 	test("each runner call declares RUNNER_UNAVAILABLE and a builder start declares CONCURRENCY_LIMIT", () => {
-		for (const name of ["startBuilder", "startReviewer", "stop", "wake", "runnerProjects"] as const) {
+		for (const name of ["startBuilder", "startReviewer", "stop", "wake", "runnerProjects", "retryManager"] as const) {
 			expect(agents[name]["~orpc"].errorMap, name).toHaveProperty("RUNNER_UNAVAILABLE");
 		}
 		expect(agents.startBuilder["~orpc"].errorMap).toHaveProperty("CONCURRENCY_LIMIT");
@@ -72,13 +74,37 @@ describe("agents contract", () => {
 			title: "CDE manager",
 			openUrl: null,
 			lastWokenAt: null,
+			error: null,
 			createdAt: "2026-09-10T10:00:00.000Z",
 		};
 		expect(await accepts(agents.sessions["~orpc"].outputSchema, { sessions: [row] })).toBe(true);
 		expect(await accepts(agents.sessions["~orpc"].outputSchema, [row])).toBe(false);
-		for (const name of ["register", "startBuilder", "startReviewer", "stop", "wake"] as const) {
+		for (const name of ["register", "startBuilder", "startReviewer", "stop", "wake", "retryManager"] as const) {
 			expect(await accepts(agents[name]["~orpc"].outputSchema, row), name).toBe(true);
 		}
+		const failed = { ...row, state: "failed", error: "superset ws create: fatal: invalid reference: main" };
+		expect(await accepts(agents.retryManager["~orpc"].outputSchema, failed)).toBe(true);
+	});
+
+	// The Activity page reads one answer: every session, the last agent
+	// actions with the identifiers of their tickets, and the recent batches.
+	test("overview returns the sessions, the agent actions, their tickets, and the recent batches", async () => {
+		const overview = {
+			sessions: [],
+			actions: [],
+			tickets: [{ id: "01J8Z6X4Q3M2K1H0G9F8E7D6C5", identifier: "CDE-42" }],
+			batches: [
+				{
+					at: "2026-09-10T10:00:00.000Z",
+					projectId: "01J8Z6X4Q3M2K1H0G9F8E7D6P1",
+					count: 2,
+					text: "trellis: 2 changes in CDE (CDE-42 created by navid). Run: trellis agents inbox --project CDE",
+				},
+			],
+		};
+		expect(await accepts(agents.overview["~orpc"].outputSchema, overview)).toBe(true);
+		expect(await accepts(agents.retryManager["~orpc"].inputSchema, { project: "CDE" })).toBe(true);
+		expect(await accepts(agents.retryManager["~orpc"].inputSchema, {})).toBe(false);
 	});
 
 	// The settings are a full replace, like `settings.set`. The PUT body and

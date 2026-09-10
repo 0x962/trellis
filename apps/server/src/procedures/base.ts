@@ -74,10 +74,14 @@ export const withIfMatch = <T extends { expectedVersion?: number }>(context: Pro
 	const header = context.headers.get("if-match");
 	if (header === null) return input;
 	const match = IF_MATCH.exec(header);
-	if (match === null) throw invalidInput("If-Match", 'Expected If-Match: "<version>".');
+	if (match === null)
+		throw invalidInput("If-Match", 'If-Match must be the ticket version in quotes, for example If-Match: "3".');
 	const version = Number(match[1]);
 	if (input.expectedVersion !== undefined && input.expectedVersion !== version) {
-		throw invalidInput("expectedVersion", "If-Match and expectedVersion disagree.");
+		throw invalidInput(
+			"expectedVersion",
+			"If-Match and expectedVersion have different versions. Send one of them, or send the same version in both.",
+		);
 	}
 	return { ...input, expectedVersion: version };
 };

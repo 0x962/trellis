@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Priority, Status, Ticket } from "@trellis/api";
 import { Button, PriorityIcon, StatusIcon, TicketId, useHotkey } from "@trellis/ui";
 import { useEffect, useState } from "react";
+import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../../lib/appContext";
 import { projectSlashPath } from "../../../../../lib/projectPath";
 import { PriorityPicker, priorityLabels } from "../../../../pickers/PriorityPicker";
@@ -45,11 +46,17 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 	const setOpen = usePickerStore((state) => state.setOpen);
 	const [projectError, setProjectError] = useState<string | null>(null);
 
+	// A ticket under an archived project takes no write, so its keys open no picker.
+	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
+	const openByKey = (kind: PickerKind) => () => {
+		if (!readOnly) setOpen(kind);
+	};
+
 	useEffect(() => () => setOpen(null), [setOpen]);
-	useHotkey("s", () => setOpen("status"));
-	useHotkey("p", () => setOpen("priority"));
-	useHotkey("shift+p", () => setOpen("parent"));
-	useHotkey("m", () => setOpen("project"));
+	useHotkey("s", openByKey("status"));
+	useHotkey("p", openByKey("priority"));
+	useHotkey("shift+p", openByKey("parent"));
+	useHotkey("m", openByKey("project"));
 
 	const openChange = (kind: PickerKind) => (next: boolean) => setOpen(next ? kind : null);
 
@@ -60,7 +67,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 				optimistic: (row) => ({ ...row, status: summaryOf(status) }),
 			});
 		} catch (error) {
-			failToast(`Couldn't move ${ticket.identifier} to ${status.name}`, error, () => void pickStatus(status));
+			failToast(`${ticket.identifier} did not move to ${status.name}.`, error, () => void pickStatus(status));
 		}
 	};
 
@@ -72,7 +79,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 			});
 		} catch (error) {
 			failToast(
-				`Couldn't set ${ticket.identifier} to ${priorityLabels[priority]}`,
+				`The priority of ${ticket.identifier} did not change to ${priorityLabels[priority]}.`,
 				error,
 				() => void pickPriority(priority),
 			);
@@ -95,7 +102,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 			}
 			setOpen(null);
 			failToast(
-				`Couldn't move ${ticket.identifier} to ${projectSlashPath(project.path)}`,
+				`${ticket.identifier} did not move to ${projectSlashPath(project.path)}.`,
 				error,
 				() => void pickProject(ref),
 			);
@@ -111,7 +118,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 				{ optimistic: (row) => ({ ...row, parent }) },
 			);
 		} catch (error) {
-			failToast(`Couldn't set the parent of ${ticket.identifier}`, error, () => void pickParent(parent));
+			failToast(`The parent of ${ticket.identifier} did not change.`, error, () => void pickParent(parent));
 		}
 	};
 

@@ -88,7 +88,7 @@ Ids are ULIDs (`text`) except `activity.id`. Timestamps `timestamptz`, ISO strin
 
 Numbering: `UPDATE projects SET ticket_counter = ticket_counter + 1 WHERE id = $root AND parent_id IS NULL RETURNING ticket_counter` (throw on zero rows), then insert, one transaction. A test asserts 50 concurrent creates give 50 consecutive numbers.
 
-Kanban position: new = max + 1024; move = midpoint of the neighbors; renumber the column in steps of 1024 by raw SQL when `next - prev < 1`. Sort and keyset by `(position, id)`.
+Ticket position: new = max + 1024; move = midpoint of the neighbors; renumber the column in steps of 1024 by raw SQL when `next - prev < 1`. The `position` sort keysets by `(position, id)`. The board reads no position.
 
 Migrations: `0000_extensions` created with `drizzle-kit generate --custom` (so the journal has it), body `CREATE EXTENSION IF NOT EXISTS pg_trgm`; `pg_trgm` passed to the `PGlite` constructor; `0001_init` generated. Applied at boot in one transaction, then `ANALYZE`, then `SET pg_trgm.word_similarity_threshold = 0.4`. CI fails on a non-empty `git status --porcelain drizzle/` after `drizzle-kit generate`. `VACUUM (ANALYZE)` on tickets, activity, comments every 10 min when more than 1000 writes happened, and after backup and restore (PGlite has no autovacuum).
 
@@ -277,7 +277,7 @@ Ref grammars (case-insensitive in, canonical out):
 | statuses.clear | DELETE /api/projects/{project}/statuses | sub-projects only; ROOT_STATUSES on a root |
 | tickets.list | GET /api/tickets | flat query grammar below; `{items: TicketSummary[], nextCursor}`; no total |
 | tickets.counts | GET /api/tickets/counts | same filters; `{total, byStatus: [{statusId, count}]}` |
-| tickets.board | GET /api/tickets/board?project= | one query: `{columns: [{statusId, count, items: first 100 by (position, id)}]}`; more via `list` with `status=` |
+| tickets.board | GET /api/tickets/board?project= | one query: `{columns: [{statusId, count, items: first 100 by (updatedAt, id) descending}]}`; more via `list` with `status=` |
 | tickets.get | GET /api/tickets/{ticket} | full ticket + project, status, parent, children, prs, attachments, commentCount, version |
 | tickets.create | POST /api/tickets | project, title, description?, priority?, status?, parent?; 201 + Location |
 | tickets.update | PATCH /api/tickets/{ticket} | title, description, priority, status, parent (ref or null), project, expectedVersion?; `If-Match` maps to expectedVersion |
@@ -432,7 +432,7 @@ Actors: human = filled circle with initials; agent = rounded-square outline in t
 
 Table: active tickets fetched in full and grouped client-side by status in category order, rows sorted priority desc then updated desc; Done and Canceled collapsed and paged per group, rendered only when no status filter is active; columns priority, ID, title (with `↳ parent`, sub ring, clip, comment count), status, PR (icon + mini ribbon), project (when scoped), last actor, updated; inline status and priority popovers; `x` select, bulk bar (`updateMany`); Display popover for columns, density, group, sort; virtualized with fixed row heights.
 
-Kanban: `tickets.board`, pragmatic-drag-and-drop, columns by effective status in category order (category columns on `/all/board`), 100 cards per column then "show more"; card = ID, priority, two-line title, PR icon + mini ribbon, sub ring, clip, last actor + time; a failing-CI card gets a 2 px red top border; drop = `tickets.move`; in-column drag = manual order; WIP badge; collapsed columns; in-column quick add.
+Kanban: `tickets.board`, pragmatic-drag-and-drop, columns by effective status in category order (category columns on `/all/board`), each column listing the last updated ticket first, 100 cards per column then "show more"; card = ID, priority, two-line title, PR icon + mini ribbon, sub ring, clip, last actor + time; a failing-CI card gets a 2 px red top border; drop = `tickets.move`; WIP badge; collapsed columns; the column plus and the ghost row open the composer.
 
 Filters: Linear-style chips over the shared grammar; presets Active, Needs review, Failing CI, Touched by agents today. No saved views in v1.
 

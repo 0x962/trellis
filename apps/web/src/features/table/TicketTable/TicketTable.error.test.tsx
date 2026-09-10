@@ -21,11 +21,11 @@ describe("features/table/TicketTable: a failed load", () => {
 		const server = createFakeServer();
 		server.failNext("tickets.list", { code: "NOT_FOUND", data: { ref: "CDE" } });
 		renderApp({ path: "/p/CDE", actor: "navid", server });
-		expect(await screen.findByText("Couldn't load the tickets")).toBeDefined();
+		expect(await screen.findByText("The tickets did not load.")).toBeDefined();
 		expect(screen.getByText(/No row matches the ref/)).toBeDefined();
 		await user.click(screen.getByRole("button", { name: "Retry" }));
 		await findGrid();
 		await waitFor(() => expect(rows().length).toBeGreaterThan(0));
-		expect(screen.queryByText("Couldn't load the tickets")).toBeNull();
+		expect(screen.queryByText("The tickets did not load.")).toBeNull();
 	});
 });

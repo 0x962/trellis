@@ -44,8 +44,8 @@ describe("MergedNudge", () => {
 		patchPr(server, (await firstPr(server, "CDE-42")).id, merged);
 		await renderRow(server, "CDE-42");
 		await waitFor(() => expect(nudge()).not.toBeNull());
-		expect(nudge()!.textContent).toContain("PR merged, mark Done?");
-		expect(await screen.findByRole("button", { name: /mark done/i })).toBeDefined();
+		expect(nudge()!.textContent).toContain("The PR is merged. Approve the ticket?");
+		expect(await screen.findByRole("button", { name: /^approve$/i })).toBeDefined();
 	});
 
 	// PR-48. CDE-44 is still in progress, so the work is not up for review.
@@ -76,7 +76,7 @@ describe("MergedNudge", () => {
 		patchPr(server, (await firstPr(server, "CDE-42")).id, merged);
 		const done = await statusOf(server, "CDE", "done");
 		await renderRow(server, "CDE-42");
-		await user.click(await screen.findByRole("button", { name: /mark done/i }));
+		await user.click(await screen.findByRole("button", { name: /^approve$/i }));
 		await waitFor(() => expect(lastCallTo(server, "tickets.move")).toBeDefined());
 		expect(lastCallTo(server, "tickets.move")!.input).toEqual({ ticket: "CDE-42", status: done.id });
 	});
@@ -97,7 +97,7 @@ describe("MergedNudge", () => {
 		const server = createFakeServer();
 		patchPr(server, (await firstPr(server, "CDE-42")).id, merged);
 		const first = await renderRow(server, "CDE-42");
-		await user.click(await screen.findByRole("button", { name: /mark done/i }));
+		await user.click(await screen.findByRole("button", { name: /^approve$/i }));
 		await waitFor(() => expect(lastCallTo(server, "tickets.move")).toBeDefined());
 		const moved = await summaryOf(server, "CDE-42");
 		expect(moved.status.category).toBe("done");

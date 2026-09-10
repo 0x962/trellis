@@ -3,6 +3,7 @@ import {
 	AgentInboxInputSchema,
 	AgentInboxOutputSchema,
 	AgentRegisterInputSchema,
+	AgentRetryManagerInputSchema,
 	AgentRunnerProjectsOutputSchema,
 	AgentSessionSchema,
 	AgentSessionsInputSchema,
@@ -12,6 +13,7 @@ import {
 	AgentStartBuilderInputSchema,
 	AgentStartReviewerInputSchema,
 	AgentStopInputSchema,
+	AgentsOverviewSchema,
 	AgentWakeInputSchema,
 } from "../schemas/agent.ts";
 import { base } from "./base.ts";
@@ -55,6 +57,20 @@ export const agents = {
 		.route({ method: "POST", path: "/agents/wake", summary: "Type a text into the manager's terminal" })
 		.input(AgentWakeInputSchema)
 		.output(AgentSessionSchema),
+	// A start that fails answers the session in state `failed` with the
+	// runner's message, so the caller reads why.
+	retryManager: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({ method: "POST", path: "/agents/manager/retry", summary: "Start the manager of a project again" })
+		.input(AgentRetryManagerInputSchema)
+		.output(AgentSessionSchema),
+	overview: base
+		.route({
+			method: "GET",
+			path: "/agents/overview",
+			summary: "List every agent session, the last agent actions, and the recent batches",
+		})
+		.output(AgentsOverviewSchema),
 	settings: base
 		.route({ method: "GET", path: "/agents/settings", summary: "Read the agent settings" })
 		.output(AgentSettingsSchema),

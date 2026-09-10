@@ -12,16 +12,18 @@ test.beforeAll(() => {
 });
 
 // A flex column shrinks its children when its content overflows. A header
-// that shrinks puts the column name higher than in the other columns.
+// that shrinks puts the column name higher than in the other columns. Each
+// column is a section with its header and a card list that scrolls, so the
+// overflow shows on the Todo list.
 test("every column name sits at the same height when one column overflows", async ({ page }) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await signIn(page, "/p/BRD/board");
 	await expect(cardOf(columnOf(page, "Todo"), "BRD-1")).toBeVisible();
 	await expect(cardOf(columnOf(page, "In Progress"), "BRD-17")).toBeVisible();
-	const board = page.locator("[data-board]");
-	expect(await board.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+	const todo = columnOf(page, "Todo");
+	expect(await todo.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
 	const names = await page
-		.locator("ul[data-category] h2")
+		.locator("section[data-category] h2")
 		.evaluateAll((headings) =>
 			headings.map((heading) => `${heading.textContent} ${Math.round(heading.getBoundingClientRect().top)}`),
 		);

@@ -18,14 +18,18 @@ export const hitArea = {
 	// A 16 px box with a 1 px border: the Checkbox. The padding box is 14 px.
 	// Fine: 7 px each side, 14 + 14 = 28. Coarse: 15 px, 14 + 30 = 44.
 	box16Bordered: "relative before:absolute before:-inset-1.75 pointer-coarse:before:-inset-3.75",
-	// A 24 px tall box with a 1 px border: Button sm and IconButton sm. The
+	// A 24 px tall box with a 1 px border: IconButton sm. The
 	// padding box is 22 px tall and at least 22 px wide.
 	// Fine: 3 px each side, 22 + 6 = 28. Coarse: 11 px, 22 + 22 = 44.
 	box24Bordered: "relative before:absolute before:-inset-0.75 pointer-coarse:before:-inset-2.75",
-	// A 28 px tall box with a 1 px border: Button md, IconButton md, the Select
+	// A 28 px tall box with a 1 px border: Button sm, IconButton md, the Select
 	// trigger, and the Menu trigger. The padding box is 26 px tall and at least
 	// 26 px wide. Fine: 0, the drawn box is 28. Coarse: 9 px, 26 + 18 = 44.
 	box28Bordered: "relative before:absolute before:inset-0 pointer-coarse:before:-inset-2.25",
+	// A 32 px tall box with a 1 px border: Button md. The padding box is 30 px
+	// tall and at least 26 px wide. Fine: 0, the drawn box is 28 x 32.
+	// Coarse: 9 px, 26 + 18 = 44 wide and 30 + 18 = 48 tall.
+	box32Bordered: "relative before:absolute before:inset-0 pointer-coarse:before:-inset-2.25",
 	// A Segmented item: 28 px tall with a 1 px border, pressed against its
 	// neighbours, so the layer grows in height only. The item's own min-width
 	// gives the width: 28 px on a fine pointer and 44 px on a coarse pointer.

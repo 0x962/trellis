@@ -193,3 +193,17 @@ describe("dispatcher watch", () => {
 		expect(dispatcher.watched()).toEqual([]);
 	});
 });
+
+describe("dispatcher recent batches", () => {
+	test("keeps the last 20 batches, newest first, with the time, the project, the count, and the pointer text", async () => {
+		for (let n = 1; n <= 21; n++) {
+			change(1);
+			await clock.advance(10_000);
+		}
+		const recent = dispatcher.recent();
+		expect(recent).toHaveLength(20);
+		expect(recent[0]).toEqual({ at: clock.now().toISOString(), projectId: CDE, count: 1, text: batches.at(-1)!.text });
+		const times = recent.map((batch) => batch.at);
+		expect(times).toEqual([...times].sort().reverse());
+	});
+});

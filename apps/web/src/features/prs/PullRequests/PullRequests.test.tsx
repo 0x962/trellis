@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { callsTo, gatedServer, ghReady, heightClass, linkPrCopy, prsOf, summaryOf } from "../../../../test/prs";
@@ -32,7 +33,8 @@ describe("PullRequests", () => {
 		await renderSection(server, "CDE-42");
 		await waitFor(() => expect(rowIds()).toEqual(listed.map((pr) => pr.id)));
 		const header = document.querySelector("[data-prs-header]")!;
-		expect(header.textContent).toContain("Pull requests");
+		expect(header.textContent).toContain("PRs");
+		expect(header.textContent).not.toContain("·");
 		expect(header.textContent).toContain("2");
 	});
 
@@ -47,12 +49,24 @@ describe("PullRequests", () => {
 	});
 
 	// PR-59
+	// TK-4. An empty section is its header row with Link PR on the right.
+	// The button turns into the field; Escape turns it back.
 	test("shows the empty state and the Link PR field for a ticket without a pull request", async () => {
+		const user = userEvent.setup();
 		const server = createFakeServer();
 		ghReady(server);
 		await renderSection(server, "CDE-47");
-		expect(await screen.findByText("No pull request is linked to this ticket.")).toBeDefined();
-		expect(await screen.findByRole("textbox", { name: /link pr/i })).toBeDefined();
+		const header = await waitFor(() => document.querySelector<HTMLElement>("[data-prs-header]")!);
+		const button = await within(header).findByRole("button", { name: "Link PR" });
+		expect(screen.queryByRole("textbox", { name: /link pr/i })).toBeNull();
+		expect(document.querySelector("[data-prs-empty]")).toBeNull();
+		await user.click(button);
+		const field = await screen.findByRole("textbox", { name: /link pr/i });
+		expect(field.getAttribute("placeholder")).toBe("github.com/owner/repo/pull/123");
+		expect(document.activeElement).toBe(field);
+		await user.keyboard("{Escape}");
+		expect(await within(header).findByRole("button", { name: "Link PR" })).toBeDefined();
+		expect(screen.queryByRole("textbox", { name: /link pr/i })).toBeNull();
 		expect(rowIds()).toHaveLength(0);
 	});
 
@@ -87,6 +101,7 @@ describe("PullRequests", () => {
 		await waitFor(() => expect(rowIds()).toHaveLength(1));
 		const row = document.querySelector("[data-pr-row]")!;
 		expect(banner.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeGreaterThan(0);
+		await userEvent.setup().click(await screen.findByRole("button", { name: "Link PR" }));
 		expect(await screen.findByRole("textbox", { name: /link pr/i })).toBeDefined();
 	});
 });

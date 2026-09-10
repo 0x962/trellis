@@ -113,6 +113,26 @@ const waitForHealth = async (ctx: CliContext) => {
 	throw new CliFailure("UNREACHABLE", 5, `trellis server not running at ${ctx.url}`);
 };
 
+// launchctl bootout returns before launchd removes the job. A bootstrap of
+// the label while launchd still holds the job fails with "Bootstrap failed:
+// 5" and leaves the server stopped. launchctl print exits with a code that is
+// not 0 when launchd holds no job with the label.
+const UNLOAD_POLL_MS = 200;
+const UNLOAD_WAIT_MS = 5000;
+
+const waitForUnload = async (ctx: CliContext, service: string) => {
+	for (let waited = 0; waited < UNLOAD_WAIT_MS; waited += UNLOAD_POLL_MS) {
+		const found = await ctx.deps.run(["launchctl", "print", service]);
+		if (found.code !== 0) return;
+		await ctx.deps.sleep(UNLOAD_POLL_MS);
+	}
+	throw new CliFailure(
+		"INSTALL_FAILED",
+		1,
+		`launchd did not remove ${service} in 5 s. Run launchctl bootout ${service}, then run trellis install again.`,
+	);
+};
+
 export default defineCommand({
 	meta: { name: "install", description: "Install the server as a launchd agent" },
 	args: {
@@ -163,7 +183,9 @@ export default defineCommand({
 
 		if (context.args.launchd) {
 			const domain = ctx.deps.launchdDomain;
-			await ctx.deps.run(["launchctl", "bootout", `${domain}/com.trellis.server`]);
+			const service = `${domain}/com.trellis.server`;
+			await ctx.deps.run(["launchctl", "bootout", service]);
+			await waitForUnload(ctx, service);
 			const loaded = await ctx.deps.run(["launchctl", "bootstrap", domain, paths.plist]);
 			if (loaded.code !== 0) throw new CliFailure("INSTALL_FAILED", 1, loaded.stderr);
 			await waitForHealth(ctx);

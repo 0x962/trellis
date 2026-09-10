@@ -98,7 +98,7 @@ describe("features/composer/CreateTicketDialog", () => {
 		const { title } = await open("/p/CDE", {}, server);
 		await user.type(title(), "Refused once");
 		await user.keyboard("{Meta>}{Enter}{/Meta}");
-		const toast = await toastWith(/Couldn't create/);
+		const toast = await toastWith(/The ticket did not save/);
 		expect(screen.getByRole("dialog", { name: /new ticket/i })).toBeDefined();
 		expect(title().value).toBe("Refused once");
 		await user.click(within(toast).getByRole("button", { name: "Retry" }));
@@ -114,7 +114,9 @@ describe("features/composer/CreateTicketDialog", () => {
 	});
 
 	// Outcome 95. The CDE counter stands at 52, so the next ticket is CDE-53.
-	test("creates with the filter defaults and closes on Cmd+Enter", async () => {
+	// A status filter does not seed the status (T7): the ticket starts in the
+	// project default, Todo. The single priority filter seeds the priority.
+	test("creates with the view defaults and closes on Cmd+Enter", async () => {
 		const user = userEvent.setup();
 		const { server, dialog, title } = await open("/p/CDE?status=in-progress&priority=high");
 		await user.type(title(), "Ship the table");
@@ -123,7 +125,7 @@ describe("features/composer/CreateTicketDialog", () => {
 		expect(created(server)[0]).toMatchObject({
 			project: "CDE",
 			title: "Ship the table",
-			status: "in-progress",
+			status: "todo",
 			priority: "high",
 		});
 		await waitFor(() => expect(dialog.isConnected).toBe(false));
@@ -134,7 +136,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// Outcome 96
 	test("creates and keeps the dialog open on Cmd+Shift+Enter", async () => {
 		const user = userEvent.setup();
-		const { server, dialog, chip, title } = await open("/p/CDE?status=in-progress&priority=high");
+		const { server, dialog, chip, title } = await open("/p/CDE?priority=high", { status: "in-progress" });
 		const chips = () =>
 			[chip(/^project/i), chip(/^status/i), chip(/^priority/i), chip(/^parent/i)].map((c) => c.textContent);
 		const before = chips();
@@ -147,11 +149,56 @@ describe("features/composer/CreateTicketDialog", () => {
 		expect(chips()).toEqual(before);
 	});
 
-	// Outcome 97. In Progress is the group of the filter, so the new row
-	// lands there, and the response alone puts it in the cache.
+	// T7 (Navid 8). `c` in a view filtered to Human Review opens with the
+	// project default status. The test marks In Progress as the default, so
+	// the chip proves that the default flag decides, not the filter.
+	test("c in a filtered view opens with the project default status", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		const { statuses } = await server.client.statuses.list({ project: "CDE" });
+		const started = statuses.find((status) => status.slug === "in-progress")!;
+		const todo = statuses.find((status) => status.slug === "todo")!;
+		await server.client.statuses.update({ project: "CDE", status: todo.id, isDefault: false });
+		await server.client.statuses.update({ project: "CDE", status: started.id, isDefault: true });
+		renderApp({ path: "/p/CDE?status=human-review", actor: "navid", server });
+		await findGrid();
+		await user.keyboard("c");
+		const dialog = await screen.findByRole("dialog", { name: /new ticket/i });
+		await waitFor(() =>
+			expect(within(dialog).getByRole("button", { name: /^status/i }).textContent).toContain("In Progress"),
+		);
+	});
+
+	// T7. A new project keeps the chosen status when it has that slug, and
+	// takes its own default status when it does not. MRG loses Agent Review
+	// here, so the move to MRG falls back to MRG's default, Todo.
+	test("a project change keeps the status slug when the new project has it", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		const mrg = (await server.client.statuses.list({ project: "MRG" })).statuses;
+		const review = mrg.find((status) => status.slug === "agent-review")!;
+		const todo = mrg.find((status) => status.slug === "todo")!;
+		await server.client.statuses.delete({ project: "MRG", status: review.id, moveTo: todo.id });
+		const { chip, title } = await open("/p/CDE", { status: "agent-review" }, server);
+		await waitFor(() => expect(chip(/^status/i).textContent).toContain("Agent Review"));
+		await user.click(chip(/^project/i));
+		await user.click(await screen.findByRole("option", { name: /TRL/ }));
+		await waitFor(() => expect(chip(/^project/i).textContent).toContain("TRL"));
+		await waitFor(() => expect(chip(/^status/i).textContent).toContain("Agent Review"));
+		await user.click(chip(/^project/i));
+		await user.click(await screen.findByRole("option", { name: /MRG/ }));
+		await waitFor(() => expect(chip(/^status/i).textContent).toContain("Todo"));
+		await user.type(title(), "Lands in margin");
+		await user.keyboard("{Meta>}{Enter}{/Meta}");
+		await waitFor(() => expect(created(server)).toHaveLength(1));
+		expect(created(server)[0]).toMatchObject({ project: "MRG", status: "todo" });
+	});
+
+	// Outcome 97. In Progress is the group the composer opened from, so the
+	// new row lands there, and the response alone puts it in the cache.
 	test("puts the created ticket into the table without a refetch", async () => {
 		const user = userEvent.setup();
-		const { server, title } = await open("/p/CDE?status=in-progress");
+		const { server, title } = await open("/p/CDE?status=in-progress", { status: "in-progress" });
 		const before = listCalls(server).length;
 		await user.type(title(), "Straight into the group");
 		await user.keyboard("{Meta>}{Enter}{/Meta}");

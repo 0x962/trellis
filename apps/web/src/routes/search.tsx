@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Chip, EmptyState, Input } from "@trellis/ui";
+import { Chip, EmptyState, Kbd } from "@trellis/ui";
 import { Search } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useId, useState } from "react";
 import { parseSearch, stripDefaults, type View } from "../features/filters/grammar";
+import { useKeyboardFocusRing } from "../features/search/hooks/useKeyboardFocusRing";
 import { SearchResults } from "../features/search/SearchResults";
 import { Topbar } from "../features/shell/Topbar";
 import { TicketPeek } from "../features/ticket/TicketPeek";
@@ -21,11 +22,19 @@ export const Route = createFileRoute("/search")({
 	component: SearchPage,
 });
 
+// The field is the page's main control: 40 px tall, up to 720 px wide, in
+// a 64 px band. The accent border and ring show only for a keyboard focus,
+// so the autofocus on arrival draws no ring.
+const fieldClass =
+	"h-10 w-full rounded-md border border-border bg-surface pr-10 pl-9 text-md text-fg outline-none transition-colors duration-hover ease-out placeholder:text-fg-faint hover:border-border-strong data-ring:border-accent data-ring:ring-3 data-ring:ring-accent-soft [&::-webkit-search-cancel-button]:hidden";
+
 function SearchPage() {
 	const search = Route.useSearch();
 	const { q } = search;
 	const navigate = useNavigate();
 	const [draft, setDraft] = useState(q ?? "");
+	const id = useId();
+	const focusRing = useKeyboardFocusRing();
 
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
@@ -40,21 +49,34 @@ function SearchPage() {
 	return (
 		<>
 			<Topbar>
-				<h1 className="text-md font-semibold text-fg">Search</h1>
+				<h1 className="text-lg font-semibold text-fg">Search</h1>
 			</Topbar>
-			<form onSubmit={submit} className="flex h-12 shrink-0 items-center border-b border-border px-5">
-				<Input
-					type="search"
-					label="Search"
-					hideLabel
-					placeholder="Search tickets and projects"
-					value={draft}
-					autoFocus
-					autoComplete="off"
-					className="max-w-md"
-					onChange={(event) => setDraft(event.target.value)}
-				/>
-			</form>
+			<div className="flex h-16 shrink-0 items-center border-b border-border px-5">
+				<form onSubmit={submit} className="relative w-full max-w-180">
+					<label htmlFor={id} className="sr-only">
+						Search
+					</label>
+					<Search
+						aria-hidden="true"
+						className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-faint"
+					/>
+					<input
+						id={id}
+						type="search"
+						placeholder="Search tickets and projects"
+						value={draft}
+						// biome-ignore lint/a11y/noAutofocus: The field is the one control of the search page.
+						autoFocus
+						autoComplete="off"
+						data-ring={focusRing.ring ? "" : undefined}
+						onFocus={focusRing.onFocus}
+						onBlur={focusRing.onBlur}
+						onChange={(event) => setDraft(event.target.value)}
+						className={fieldClass}
+					/>
+					{draft === "" && <Kbd className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2">/</Kbd>}
+				</form>
+			</div>
 			{/* The search box owns `q`, so the chip row holds the other filters only. */}
 			{search.priority !== undefined && (
 				<div
@@ -64,13 +86,14 @@ function SearchPage() {
 					<Chip label="Priority" op="in" value={search.priority.join(", ")} onRemove={() => remove("priority")} />
 				</div>
 			)}
-			<div className="min-h-0 flex-1 overflow-y-auto">
+			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 				{q === undefined ? (
 					<>
 						<EmptyState
+							variant="page"
 							icon={<Search />}
 							title="Search tickets and projects"
-							description="A ticket identifier such as CDE-42 opens the ticket. A word matches titles, descriptions, and project names."
+							description="A ticket ID such as CDE-42 opens the ticket. A word matches ticket titles, descriptions, and project names."
 						/>
 						<TicketPeek />
 					</>

@@ -33,7 +33,9 @@ describe("routes/p/$", () => {
 			const view = renderApp({ path, actor: "navid", server });
 			const name = await screen.findByRole("textbox", { name: "Project name" });
 			expect((name as HTMLInputElement).value, path).toBe(project.name);
-			expect(screen.getByRole("heading", { name: `${project.path} settings` }), path).toBeDefined();
+			// Spec PS-1: the title is the breadcrumb of the project names.
+			const crumbs = [...project.ancestors.map((ancestor) => ancestor.name), project.name, "Settings"].join(" › ");
+			expect(screen.getByRole("heading", { name: crumbs }), path).toBeDefined();
 			view.unmount();
 			localStorage.clear();
 		}
@@ -42,7 +44,7 @@ describe("routes/p/$", () => {
 	// WS-84
 	test("the project route resolves the splat, shows the breadcrumb, and 404s an unknown path", async () => {
 		const missing = renderApp({ path: "/p/CDE/web/auth/board", actor: "navid" });
-		expect(await screen.findByText("CDE.web.auth doesn't exist")).toBeDefined();
+		expect(await screen.findByText("CDE.web.auth does not exist")).toBeDefined();
 		missing.unmount();
 
 		localStorage.clear();
@@ -85,7 +87,7 @@ describe("routes/p/$", () => {
 		expect(await screen.findByText("Inherited from CDE")).toBeDefined();
 		await user.click(screen.getByRole("button", { name: "Customize" }));
 		await user.type(screen.getByRole("textbox", { name: "Status name" }), "Ready");
-		await user.click(screen.getByRole("button", { name: "Add status" }));
+		await user.click(screen.getByRole("button", { name: "Create status" }));
 		await waitFor(() => {
 			const call = server.calls.find((entry) => entry.path.join(".") === "statuses.create");
 			expect(call?.input).toMatchObject({ project: "CDE.web", name: "Ready", category: "todo" });
@@ -158,7 +160,10 @@ describe("routes/p/$", () => {
 		await user.click(await screen.findByRole("button", { name: "Delete In Progress" }));
 		const dialog = await screen.findByRole("dialog", { name: "Delete In Progress?" });
 		await user.click(within(dialog).getByRole("button", { name: "Delete status" }));
-		expect(await within(dialog).findByText(`${count} tickets use this status. Select a replacement.`)).toBeDefined();
+		const uses = count === 1 ? "ticket uses" : "tickets use";
+		expect(
+			await within(dialog).findByText(`${count} ${uses} this status. Select a status to move them to.`),
+		).toBeDefined();
 		const calls = server.calls.filter((entry) => entry.path.join(".") === "statuses.delete");
 		expect(calls[0]!.input).toEqual({ project: "CDE", status: source.id });
 		await user.click(within(dialog).getByRole("combobox", { name: "Move tickets to" }));
@@ -192,7 +197,8 @@ describe("routes/p/$", () => {
 		renderApp({ path: "/p/CDE/settings", actor: "navid" });
 		const key = (await screen.findByRole("textbox", { name: "Key" })) as HTMLInputElement;
 		expect(key.readOnly).toBe(true);
-		expect(screen.getByText(errors.KEY_LOCKED.message)).toBeDefined();
+		// Spec PS-2: a quiet hint with a lock says why the key is read-only.
+		expect(screen.getByText(/The key cannot change after the project has a ticket\./)).toBeDefined();
 	});
 
 	test("repositories add and remove through projects.setRepos", async () => {
@@ -245,8 +251,9 @@ describe("routes/p/$", () => {
 
 	// WS-87
 	test("the project settings view renders its placeholder chrome", async () => {
-		renderApp({ path: "/p/CDE/settings", actor: "navid" });
-		expect(await screen.findByRole("heading", { name: "CDE settings" })).toBeDefined();
+		const { server } = renderApp({ path: "/p/CDE/settings", actor: "navid" });
+		const project = await server.client.projects.get({ project: "CDE" });
+		expect(await screen.findByRole("heading", { name: `${project.name} › Settings` })).toBeDefined();
 		const main = screen.getByRole("main");
 		expect(main.textContent).toMatch(/statuses/i);
 		expect(main.textContent).toMatch(/sub-projects/i);

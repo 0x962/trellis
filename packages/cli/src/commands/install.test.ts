@@ -1,38 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import {
-	existsSync,
-	mkdirSync,
-	mkdtempSync,
-	readdirSync,
-	readFileSync,
-	statSync,
-	symlinkSync,
-	writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { type CommandCall, defaultEnv, lines, makeDeps, runCli } from "../../test/deps.ts";
+import { defaultEnv, lines, makeDeps, runCli } from "../../test/deps.ts";
+import { launchctlCalls, setup, temp } from "../../test/installEnv.ts";
 import { cliEntry, repoRoot } from "../../test/process.ts";
-
-const temp = (name: string) => mkdtempSync(join(process.env.TRELLIS_HOME!, `${name}-`));
-
-// One run's data home and install root. Both sit under the TRELLIS_HOME of
-// the test process, so no path in a test plist reaches ~/.trellis.
-const setup = () => {
-	const dataHome = temp("data");
-	const prefix = temp("prefix");
-	return {
-		dataHome,
-		prefix,
-		env: { ...defaultEnv, TRELLIS_HOME: dataHome },
-		plist: join(prefix, "Library", "LaunchAgents", "com.trellis.server.plist"),
-		shim: join(prefix, ".local", "bin", "trellis"),
-		routes: join(prefix, ".config", "localhost-gateway", "routes.json"),
-	};
-};
-
-const launchctlCalls = (commands: CommandCall[]) =>
-	commands.map((call) => call.args).filter((args) => args[0] === "launchctl");
 
 describe("install", () => {
 	test("--no-launchd writes the shim and the plist and runs no launchctl", async () => {
@@ -104,74 +76,51 @@ describe("install", () => {
 		expect(result.code, result.stderr).toBe(0);
 		expect(launchctlCalls(result.commands)).toEqual([
 			["launchctl", "bootout", "gui/test/com.trellis.server"],
+			["launchctl", "print", "gui/test/com.trellis.server"],
 			["launchctl", "bootstrap", "gui/test", plist],
 		]);
 		expect(asked).toEqual(["127.0.0.1:4521/api/health", "127.0.0.1/api/health"]);
 	});
 
-	// A gateway on port 80 reads the routes file and sends each *.localhost
-	// name to its port. The launchd server listens on 4521.
-	test("install creates the gateway routes file with the trellis route when the file is missing", async () => {
-		const { prefix, env, routes } = setup();
-		expect(existsSync(routes)).toBe(false);
-		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
+	// launchctl bootout returns before launchd removes the job. A bootstrap
+	// of the label while the job is still there fails with "Bootstrap failed:
+	// 5" and leaves the server stopped.
+	test("a job that stays loaded after bootout delays the bootstrap until launchctl print no longer finds it", async () => {
+		const { prefix, env, plist } = setup();
+		const calls: string[][] = [];
+		let prints = 0;
+		const run = async (args: string[]) => {
+			calls.push(args);
+			if (args[1] !== "print") return { code: 0, stderr: "" };
+			prints += 1;
+			return prints <= 2 ? { code: 0, stderr: "" } : { code: 113, stderr: "Could not find service" };
+		};
+		const fetch = async () => new Response("{}");
+		const result = await runCli(["install", "--prefix", prefix], {}, { env, launchdDomain: "gui/test", run, fetch });
 		expect(result.code, result.stderr).toBe(0);
-		expect(JSON.parse(readFileSync(routes, "utf8"))).toEqual({ trellis: 4521 });
+		expect(calls.filter((args) => args[0] === "launchctl")).toEqual([
+			["launchctl", "bootout", "gui/test/com.trellis.server"],
+			["launchctl", "print", "gui/test/com.trellis.server"],
+			["launchctl", "print", "gui/test/com.trellis.server"],
+			["launchctl", "print", "gui/test/com.trellis.server"],
+			["launchctl", "bootstrap", "gui/test", plist],
+		]);
+		expect(result.sleeps).toEqual([200, 200]);
 	});
 
-	test("install keeps the other routes and replaces the trellis route", async () => {
-		const { prefix, env, routes } = setup();
-		mkdirSync(dirname(routes), { recursive: true });
-		writeFileSync(routes, JSON.stringify({ margin: 4519, trellis: 9999, dots: 4520 }));
-		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
-		expect(result.code, result.stderr).toBe(0);
-		expect(JSON.parse(readFileSync(routes, "utf8"))).toEqual({ margin: 4519, trellis: 4521, dots: 4520 });
-	});
-
-	// A gateway can read the routes file at any moment. A rename swaps in the
-	// new file in one step, so a reader never sees a partial file.
-	test("install replaces the routes file with a rename and leaves no temp file", async () => {
-		const { prefix, env, routes } = setup();
-		mkdirSync(dirname(routes), { recursive: true });
-		writeFileSync(routes, JSON.stringify({ margin: 4519 }));
-		const before = statSync(routes).ino;
-		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
-		expect(result.code, result.stderr).toBe(0);
-		expect(statSync(routes).ino).not.toBe(before);
-		expect(readdirSync(dirname(routes))).toEqual(["routes.json"]);
-	});
-
-	// A 2xx answer on port 80 to a request with the Host trellis.localhost
-	// proves that a gateway sends that name to the server.
-	test("install prints http://trellis.localhost when the port-80 gateway answers for trellis.localhost", async () => {
+	test("a job that launchctl print still finds after 5 s fails as INSTALL_FAILED with no bootstrap", async () => {
 		const { prefix, env } = setup();
-		const probes: Array<{ url: string; host: string | null }> = [];
-		const fetch = async (request: Request) => {
-			probes.push({ url: request.url, host: request.headers.get("host") });
-			return new Response("{}");
+		const calls: string[][] = [];
+		const run = async (args: string[]) => {
+			calls.push(args);
+			return { code: 0, stderr: "" };
 		};
-		const result = await runCli(["install", "--prefix", prefix], {}, { env, fetch });
-		expect(result.code, result.stderr).toBe(0);
-		expect(probes).toContainEqual({ url: "http://127.0.0.1/api/health", host: "trellis.localhost" });
-		expect(lines(result.stdout)).toContain("trellis: http://trellis.localhost");
-		expect(result.stdout).not.toContain("127.0.0.1:4521");
-	});
-
-	test("without a port-80 gateway for trellis.localhost install prints the 127.0.0.1 URL and names the routes file", async () => {
-		const refused = () => {
-			throw new TypeError("Unable to connect");
-		};
-		const noRoute = () => new Response("no route", { status: 502 });
-		for (const gateway of [refused, noRoute]) {
-			const { prefix, env, routes } = setup();
-			const fetch = async (request: Request) => (new URL(request.url).port === "" ? gateway() : new Response("{}"));
-			const result = await runCli(["install", "--prefix", prefix], {}, { env, fetch });
-			expect(result.code, result.stderr).toBe(0);
-			const out = lines(result.stdout);
-			expect(out).toContain("trellis: http://127.0.0.1:4521");
-			expect(out).not.toContain("trellis: http://trellis.localhost");
-			expect(out.filter((line) => line.includes(routes))).toHaveLength(1);
-		}
+		const result = await runCli(["install", "--prefix", prefix], {}, { env, launchdDomain: "gui/test", run });
+		expect(result.code).toBe(1);
+		expect(result.stderr).toContain("gui/test/com.trellis.server");
+		expect(result.stderr).toContain("(INSTALL_FAILED)");
+		expect(calls.some((args) => args[1] === "bootstrap")).toBe(false);
+		expect(result.sleeps.reduce((sum, ms) => sum + ms, 0)).toBe(5000);
 	});
 
 	// process.execPath names the versioned Homebrew Cellar directory, which a
@@ -278,29 +227,13 @@ describe("install", () => {
 		expect(JSON.parse(readFileSync(routes, "utf8"))).toEqual({ trellis: 4521 });
 	});
 
-	// The margin gateway source belongs to another repository. The trellis
-	// route lives in the routes file of the gateway.
-	test("install leaves the margin gateway source untouched and refuses --gateway", async () => {
-		const home = temp("user");
-		const gateway = join(home, "projects", "margin", "src", "gateway.ts");
-		mkdirSync(dirname(gateway), { recursive: true });
-		const source = "const ROUTES: Record<string, number> = {\n\tmargin: 4519,\n};\n";
-		writeFileSync(gateway, source);
-		const result = await runCli(["install", "--no-launchd"], {}, { env: defaultEnv, home });
-		expect(result.code, result.stderr).toBe(0);
-		expect(readFileSync(gateway, "utf8")).toBe(source);
-		const refused = await runCli(["install", "--gateway", "--no-launchd"], {}, { env: defaultEnv, home });
-		expect(refused.code).toBe(2);
-		expect(refused.stderr).toContain("unknown flag --gateway");
-		expect(readFileSync(gateway, "utf8")).toBe(source);
-	});
-
 	test("a failed bootstrap fails as INSTALL_FAILED with the launchctl message", async () => {
 		const { prefix, env } = setup();
-		const run = async (args: string[]) =>
-			args[1] === "bootstrap"
-				? { code: 5, stderr: "Bootstrap failed: 5: Input/output error" }
-				: { code: 0, stderr: "" };
+		const run = async (args: string[]) => {
+			if (args[1] === "bootstrap") return { code: 5, stderr: "Bootstrap failed: 5: Input/output error" };
+			if (args[1] === "print") return { code: 113, stderr: "Could not find service" };
+			return { code: 0, stderr: "" };
+		};
 		const result = await runCli(["install", "--prefix", prefix], {}, { env, launchdDomain: "gui/test", run });
 		expect(result.code).toBe(1);
 		expect(result.stderr).toContain("Bootstrap failed: 5: Input/output error");

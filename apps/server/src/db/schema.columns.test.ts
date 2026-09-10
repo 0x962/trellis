@@ -73,6 +73,8 @@ describe("indexes", () => {
 
 		const tickets = await indexDefinitions("tickets");
 		expectIndex(tickets, /USING btree \(project_id, status_id, position\)/);
+		expectIndex(tickets, /USING btree \(status_id, position, id, project_id, root_id\)/);
+		expectIndex(tickets, /USING btree \(status_id, updated_at DESC.*, id DESC.*, project_id, root_id\)/);
 		expectIndex(tickets, /USING btree \(parent_id\)/);
 		expectIndex(tickets, /USING btree \(root_id, updated_at DESC\) WHERE \(completed_at IS NULL\)/);
 		expectIndex(tickets, /USING btree \(root_id, completed_at DESC\) WHERE \(completed_at IS NOT NULL\)/);

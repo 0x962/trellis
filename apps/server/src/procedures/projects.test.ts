@@ -120,6 +120,20 @@ describe("projects mutations", () => {
 		expect(neither.body.code).toBe("INPUT_VALIDATION_FAILED");
 	});
 
+	test("projects.create and projects.update answer 409 DUPLICATE on name for a name an active root holds", async () => {
+		await t.seedProject("CDE", "Code");
+		await t.seedProject("OPS", "Operations");
+
+		const created = await t.api("/api/projects", { method: "POST", body: { key: "COD", name: "code" } });
+		const renamed = await t.api("/api/projects/OPS", { method: "PATCH", body: { name: "CODE" } });
+
+		for (const response of [created, renamed]) {
+			expect(response.status).toBe(409);
+			expect(response.body.code).toBe("DUPLICATE");
+			expect(response.body.data).toEqual({ field: "name" });
+		}
+	});
+
 	test("projects.update answers 200 with the changed project", async () => {
 		await t.seedProject("CDE");
 
