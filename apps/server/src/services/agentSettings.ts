@@ -47,6 +47,11 @@ const runnerProjectFor = async (
 // manager of a project starts as soon as the save commits. A project that
 // is off starts nothing, so it needs no runner and no check; that also
 // leaves a way to turn agents off while the runner is down.
+//
+// Only a checkout that answers can refuse the base branch. The runner also
+// lists projects whose checkout this machine cannot read, and trellis knows
+// no branch for those, so the save goes through. A start that then fails
+// records what superset printed on the session row.
 export const prepareSet = async (ctx: AgentsCtx, input: AgentSettingsSetInput): Promise<AgentSettingsSetInput> => {
 	requireActor(ctx);
 	for (const row of input.projects) {
@@ -57,7 +62,7 @@ export const prepareSet = async (ctx: AgentsCtx, input: AgentSettingsSetInput): 
 	const projects = await ctx.runner.projects();
 	for (const row of turnedOn) {
 		const project = await runnerProjectFor(ctx, projects, row);
-		if (await ctx.runner.hasBranch(project, row.baseBranch)) continue;
+		if ((await ctx.runner.branchState(project, row.baseBranch)) !== "absent") continue;
 		throw fail("AGENT_SETTINGS_UNUSABLE", {
 			projectId: row.projectId,
 			reason: "branch",

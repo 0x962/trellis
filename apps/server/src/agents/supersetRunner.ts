@@ -9,7 +9,7 @@ import {
 	restartText,
 	resumeCommand,
 } from "@trellis/api";
-import { hasBranch } from "./git.ts";
+import { branchState } from "./git.ts";
 import { matchRunnerProject, type Runner, type RunnerRepo, runnerUnavailable, type TerminalState } from "./runner.ts";
 
 // The Runner over the `superset` command line (Superset 1.27). `bin` is
@@ -123,7 +123,7 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 			return found;
 		},
 
-		hasBranch: (project, branch) => hasBranch(project.path, branch),
+		branchState: (project, branch) => branchState(project.path, branch),
 
 		ensureManager: async (input) => {
 			const command = managerCommand(input.project, input.claudeSessionId, input.text ?? restartText(input.project));

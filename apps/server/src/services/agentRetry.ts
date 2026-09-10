@@ -12,7 +12,6 @@ import {
 	startBuilder,
 	startReviewer,
 } from "./agentStart.ts";
-import { pathOf } from "./refs.ts";
 
 // `agents.retry` runs the start of a failed session again. It calls the
 // same prepare step the first start called, so a second refusal writes the
@@ -29,8 +28,10 @@ export const prepareRetry = async (ctx: AgentsCtx, input: AgentRetryInput): Prom
 	requireActor(ctx);
 	const session = await ctx.newTx((tx) => sessionById(tx, input.id));
 	if (session.state !== "failed") throw fail("NOT_FOUND", { kind: "failedAgent", ref: input.id });
+	// prepareManager reads its `project` through the project cache, which
+	// holds ids, so the row's own project id goes in unchanged.
 	if (session.role === "manager") {
-		return { role: "manager", plan: await prepareManager(ctx, { project: pathOf(ctx.cache, session.projectId) }) };
+		return { role: "manager", plan: await prepareManager(ctx, { project: session.projectId }) };
 	}
 	// resolveTicket takes the ticket id as well as an identifier such as
 	// "CDE-42", so the start services take the id the row already holds.

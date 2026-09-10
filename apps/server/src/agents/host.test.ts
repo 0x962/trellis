@@ -247,6 +247,31 @@ describe("agents host", () => {
 		expect(manager!.workspaceId).not.toBeNull();
 	});
 
+	// agents.retry on a failed manager runs the same start again. The
+	// manager row names its project by id, and prepareManager reads the
+	// project cache by id, so a retry must not turn that id into a path.
+	test("agents.retry starts a failed manager again", async () => {
+		await enable();
+		stub.update((state) => {
+			state.failures["ws create"] = "fatal: invalid reference: main";
+		});
+		await startHost();
+		const [failed] = await sessions();
+		expect(failed).toMatchObject({ role: "manager", state: "failed" });
+		stub.update((state) => {
+			state.failures = {};
+		});
+		const again = await t.api(`/api/agents/sessions/${failed!.id}/retry`, {
+			method: "POST",
+			body: {},
+			actor: MANAGER,
+		});
+		expect(again.status).toBe(200);
+		expect(again.body).toMatchObject({ id: failed!.id, role: "manager", state: "starting", failure: null });
+		expect(again.body.workspaceId).not.toBeNull();
+		expect(await sessions()).toHaveLength(1);
+	});
+
 	test("a wake the runner refuses is logged and emits no batch; the next batch wakes the manager", async () => {
 		await enable();
 		await startHost();

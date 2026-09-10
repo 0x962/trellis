@@ -277,15 +277,17 @@ describe("agents.setSettings checks the runner before it saves", () => {
 		});
 	});
 
-	test("answers RUNNER_UNAVAILABLE error when the Superset project path is no git repository", async () => {
+	// Superset lists projects whose checkout this machine cannot read: a
+	// project on another host, or one nobody has cloned here yet. trellis
+	// knows no branch for those, so the save goes through.
+	test("saves when this machine cannot read the Superset project checkout", async () => {
 		const project = await a.enable();
 		a.stub.update((state) => {
 			state.projects = [{ id: "sp-web", name: "web", repo: "acme/web", path: "/nowhere/at/all" }];
 		});
-		const refused = await put(settings(project.id));
-		expect(refused.status).toBe(503);
-		expect(refused.body).toMatchObject({ code: "RUNNER_UNAVAILABLE", data: { reason: "error" } });
-		expect(refused.body.data.detail).toContain("/nowhere/at/all");
+		const saved = await put(settings(project.id, { baseBranch: "anything" }));
+		expect(saved.status).toBe(200);
+		expect((await stored()).projects[0].baseBranch).toBe("anything");
 	});
 
 	test("runs no runner command while agents are off, or while every project row is off", async () => {

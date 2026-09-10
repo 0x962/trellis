@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { type AgentFailure, errors, type RunnerProject, type RunnerReason } from "@trellis/api";
+import type { BranchAnswer } from "./git.ts";
 
 // The program that starts, finds, wakes, and stops agents. Superset is the
 // only runner. Every id a runner hands back is opaque to trellis: the server
@@ -76,9 +77,10 @@ export type Runner = {
 	wake: (session: ManagerSession, text: string) => Promise<{ terminalId: string; relaunched: boolean }>;
 	isAlive: (ref: TerminalRef) => Promise<boolean>;
 	terminals: (workspaceId: string) => Promise<TerminalState[]>;
-	// True when the checkout of `project` holds `branch`. A workspace starts
+	// Whether the checkout of `project` holds `branch`. A workspace starts
 	// from the base branch, so a branch the checkout lacks stops the start.
-	hasBranch: (project: RunnerProject, branch: string) => Promise<boolean>;
+	// A checkout this machine cannot read answers `unreadable`.
+	branchState: (project: RunnerProject, branch: string) => Promise<BranchAnswer>;
 	stop: (ref: TerminalRef) => Promise<void>;
 	removeWorkspace: (workspaceId: string) => Promise<void>;
 	openUrl: (workspaceId: string) => Promise<string>;
