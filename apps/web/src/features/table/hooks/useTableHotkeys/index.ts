@@ -1,1 +1,1 @@
-export { useTableHotkeys } from "./useTableHotkeys";
+export { type CopyKind, type TableController, useTableHotkeys } from "./useTableHotkeys";

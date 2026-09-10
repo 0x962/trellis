@@ -1,1 +1,1 @@
-export { Row, type RowProps, rowHeights } from "./Row";
+export { type EditField, Row, type RowChange, type RowProps, rowHeights } from "./Row";

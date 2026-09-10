@@ -47,8 +47,8 @@ describe("features/table/TicketTable: live events", () => {
 		const { server, queryClient } = renderApp({ path: review, actor: "navid" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-42"));
-		const before = listCalls(server).length;
 		const summary = await summaryOf(server, "CDE-42");
+		const before = listCalls(server).length;
 		act(() =>
 			applyEvent(updated({ ...summary, version: summary.version + 1, title: "Fixed title" }, ["title"]), queryClient),
 		);

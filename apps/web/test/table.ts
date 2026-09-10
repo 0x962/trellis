@@ -1,4 +1,6 @@
 import { fireEvent, screen, within } from "@testing-library/react";
+import { toast } from "@trellis/ui";
+import { closeComposer } from "../src/features/composer/composerStore";
 import { createUiStore, useUiStore } from "../src/stores/uiStore";
 import type { FakeServer } from "./fake-server";
 
@@ -101,6 +103,8 @@ export const storedUi = () => JSON.parse(localStorage.getItem("trellis-ui") ?? "
 export const resetUi = () => {
 	localStorage.clear();
 	sessionStorage.clear();
+	toast.dismiss();
+	closeComposer();
 	useUiStore.setState(createUiStore().getState());
 };
 
