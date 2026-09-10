@@ -5,7 +5,7 @@ import type { ServiceCtx } from "../context.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail, invalidInput } from "../errors.ts";
 import { changeSet } from "./changeSet.ts";
-import { resolveMutableProject, resolveStatus, toSummary } from "./refs.ts";
+import { resolveMutableProject, resolveProject, resolveStatus, toSummary } from "./refs.ts";
 import { deriveSlug } from "./slug.ts";
 import {
 	assertFreeName,
@@ -123,4 +123,12 @@ export const reorder = async (ctx: ServiceCtx, tx: Tx, input: StatusReorderInput
 	emitStatusesChanged(ctx, effective.ownerId);
 	const after = ctx.cache.effectiveStatuses(project.id);
 	return { statuses: after.statuses, inheritedFrom: after.ownerId === project.id ? null : after.ownerId };
+};
+
+// The set a project works with: its own, or the owner's, with the owner
+// named when it is another project.
+export const list = async (ctx: ServiceCtx, tx: Tx, input: { project: string }): Promise<StatusListOutput> => {
+	const project = await resolveProject(ctx, tx, input.project);
+	const effective = ctx.cache.effectiveStatuses(project.id);
+	return { statuses: effective.statuses, inheritedFrom: effective.ownerId === project.id ? null : effective.ownerId };
 };
