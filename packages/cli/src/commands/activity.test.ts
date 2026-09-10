@@ -26,11 +26,18 @@ describe("activity", () => {
 		expect(result.stdout).not.toContain("Body A");
 	});
 
-	// CLI-109: the contract has no project activity procedure.
-	test("activity --project is a stub until the contract has a route", async () => {
+	// CLI-109: the contract has no project activity procedure. An agent must
+	// read a refusal, never an exit 0 with no activity.
+	test("activity --project exits 2 with a usage error until the contract has a route", async () => {
 		const result = await runCli(["activity", "--project", "CDE"]);
-		expect(result.code).toBe(0);
-		expect(result.stdout).toBe("activity --project: not yet\n");
+		expect(result.code).toBe(2);
+		expect(result.stdout).toBe("");
+		expect(result.stderr).toContain("--project");
 		expect(result.calls).toEqual([]);
+
+		const help = await runCli(["activity", "--help"]);
+		expect(help.code).toBe(0);
+		expect(help.stdout).toContain("activity");
+		expect(help.stdout).not.toContain("--project");
 	});
 });
