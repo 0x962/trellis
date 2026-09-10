@@ -95,8 +95,15 @@ export const createEventsRoute = ({ bus, runtime, transport, clock }: EventsRout
 						for (const entry of replay) send(entry);
 					}
 				}
-				const tip = bus.tip() ?? `${bus.bootId}.0`;
-				write(frame("ready", { id: tip, bootId: bus.bootId, serverVersion: runtime.version, apiVersion: API_VERSION }));
+				// `ready` carries the newest event id as its frame id, so a
+				// reconnect or a `--since` from it replays the next event. Before
+				// the first event of this boot the frame has no id: the id
+				// `<bootId>.0` names the first event, and a replay after it skips
+				// that event.
+				const newest = bus.tip();
+				const tip = newest ?? `${bus.bootId}.0`;
+				const ready = { id: tip, bootId: bus.bootId, serverVersion: runtime.version, apiVersion: API_VERSION };
+				write(frame("ready", ready, newest ?? undefined));
 				const unsubscribe = bus.subscribe(send, filter);
 				const timer = clock.setInterval(() => write(": ping\n\n"), pingMs);
 				const connection = {
