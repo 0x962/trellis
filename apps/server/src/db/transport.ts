@@ -1,4 +1,6 @@
+import { ORPCError } from "@orpc/server";
 import type { GhStatus } from "@trellis/api";
+import { sql } from "drizzle-orm";
 import type { Config } from "../config.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR } from "../context.ts";
 import type { Bus } from "../events/bus.ts";
@@ -6,7 +8,9 @@ import type { GhRunner } from "../gh/run.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
+import { pullStream } from "./pullStream.ts";
 import { type Emit, type Tx, withTx } from "./tx.ts";
+import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./worker.ts";
 
 // The facts of the running process a service reports or uses: the package
 // version, the boot id, the gh runner, and the gh state the poller keeps.
@@ -25,77 +29,25 @@ export type Runtime = {
 // runs the same calls on a Worker and carries the same interface.
 export type ServiceTransport = {
 	call: (name: ServiceName, ctx: RequestContext, input: unknown) => Promise<unknown>;
-	start: () => Promise<void>;
+	start: () => Promise<TransportStart>;
 	close: () => Promise<void>;
 };
 
-export type InlineTransportOptions = { db: Db; bus: Bus; config: Config; runtime: Runtime };
+export type TransportStart = { applied: number; liveShas: string[] };
+
+export type InlineTransportOptions = { db: Db; bus: Bus; config: Config; runtime: Runtime; applied?: number };
+
+export type WorkerTransportOptions = { bus: Bus; config: Config; runtime: Runtime };
 
 const MB = 1024 * 1024;
 
-const encoder = new TextEncoder();
-
-// The bytes a stream holds for a reader that has not caught up. Below it
-// the producer runs free; above it the producer waits for the next pull.
-const STREAM_BUFFER_BYTES = 8 * MB;
-
-// A stream fed by a producer that runs inside one transaction. The
-// producer starts on the first pull and runs ahead of the reader by up to
-// STREAM_BUFFER_BYTES, so a small export finishes at once and frees the
-// database, and a large one never holds more than the buffer in memory.
-// A cancel makes the pending `push` throw, so the transaction behind it
-// rolls back.
-const pullStream = (produce: (push: (chunk: string) => Promise<void>) => Promise<void>) => {
-	let started = false;
-	let cancelled = false;
-	let onPull: (() => void) | null = null;
-	let onChunk: (() => void) | null = null;
-	const settle = () => {
-		onChunk?.();
-		onChunk = null;
-	};
-	return new ReadableStream<Uint8Array>(
-		{
-			pull(controller) {
-				return new Promise<void>((resolve) => {
-					onChunk = resolve;
-					if (started) {
-						onPull?.();
-						onPull = null;
-						return;
-					}
-					started = true;
-					const push = async (chunk: string) => {
-						controller.enqueue(encoder.encode(chunk));
-						settle();
-						if ((controller.desiredSize ?? 0) > 0) return;
-						await new Promise<void>((next) => {
-							onPull = next;
-						});
-						if (cancelled) throw new Error("The stream was cancelled before the producer finished.");
-					};
-					produce(push).then(
-						() => {
-							if (!cancelled) controller.close();
-							settle();
-						},
-						(error: unknown) => {
-							if (!cancelled) controller.error(error);
-							settle();
-						},
-					);
-				});
-			},
-			cancel() {
-				cancelled = true;
-				onPull?.();
-			},
-		},
-		new ByteLengthQueuingStrategy({ highWaterMark: STREAM_BUFFER_BYTES }),
-	);
-};
-
-export const createInlineTransport = ({ db, bus, config, runtime }: InlineTransportOptions): ServiceTransport => {
+export const createInlineTransport = ({
+	db,
+	bus,
+	config,
+	runtime,
+	applied = 0,
+}: InlineTransportOptions): ServiceTransport => {
 	const cache = createCache();
 	const actorCache = new Map<string, number>();
 	const inFlight = new Set<Promise<unknown>>();
@@ -151,10 +103,178 @@ export const createInlineTransport = ({ db, bus, config, runtime }: InlineTransp
 
 	const start = async () => {
 		await db.transaction((tx) => cache.rebuild(tx));
+		const found = await db.execute(sql`SELECT DISTINCT sha256 FROM attachments`);
+		return { applied, liveShas: found.rows.map((row) => row.sha256 as string) };
 	};
 
 	const close = async () => {
 		await Promise.allSettled([...inFlight]);
+	};
+
+	return { call, start, close };
+};
+
+type PendingCall = { resolve: (value: unknown) => void; reject: (error: unknown) => void };
+
+type StreamState = {
+	controller: ReadableStreamDefaultController<Uint8Array>;
+	pulled?: () => void;
+};
+
+const fromError = (error: SerializedError) => {
+	if (error.code !== undefined) {
+		return new ORPCError(error.code, {
+			defined: error.defined,
+			status: error.status,
+			message: error.message,
+			data: error.data,
+		});
+	}
+	const result = new Error(error.message);
+	result.name = error.name;
+	return result;
+};
+
+export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportOptions): ServiceTransport => {
+	let worker: Worker;
+	let nextId = 1;
+	let batchScheduled = false;
+	const outgoing: WorkerCall[] = [];
+	const pending = new Map<number, PendingCall>();
+	const streams = new Map<number, StreamState>();
+	const ready = Promise.withResolvers<TransportStart>();
+	const closed = Promise.withResolvers<void>();
+	const fail = (error: unknown) => {
+		ready.reject(error);
+		for (const call of pending.values()) call.reject(error);
+		pending.clear();
+		for (const stream of streams.values()) stream.controller.error(error);
+		streams.clear();
+	};
+
+	const send = (message: WorkerInput) => worker.postMessage(message);
+	const flush = () => {
+		batchScheduled = false;
+		if (outgoing.length > 0) send({ type: "calls", calls: outgoing.splice(0) });
+	};
+
+	const receive = ({ data }: MessageEvent<WorkerOutput>) => {
+		if (data.type === "ready") {
+			ready.resolve({ applied: data.applied, liveShas: data.liveShas });
+			return;
+		}
+		if (data.type === "startError") {
+			ready.reject(fromError(data.error));
+			return;
+		}
+		if (data.type === "result") {
+			pending.get(data.id)!.resolve(data.result);
+			pending.delete(data.id);
+			return;
+		}
+		if (data.type === "error") {
+			const error = fromError(data.error);
+			const stream = streams.get(data.id);
+			if (stream) {
+				stream.controller.error(error);
+				stream.pulled?.();
+				streams.delete(data.id);
+			} else {
+				pending.get(data.id)!.reject(error);
+				pending.delete(data.id);
+			}
+			return;
+		}
+		if (data.type === "event") {
+			bus.emit(data.event);
+			return;
+		}
+		if (data.type === "gh") {
+			void runtime.gh(data.slot, data.args).then((result) => send({ type: "ghResult", id: data.id, result }));
+			return;
+		}
+		if (data.type === "stream") {
+			const stream = new ReadableStream<Uint8Array>({
+				start(controller) {
+					streams.set(data.id, { controller });
+				},
+				pull() {
+					send({ type: "pull", id: data.id });
+					return new Promise<void>((resolve) => {
+						streams.get(data.id)!.pulled = resolve;
+					});
+				},
+				cancel() {
+					streams.delete(data.id);
+					send({ type: "cancel", id: data.id });
+				},
+			});
+			pending.get(data.id)!.resolve(stream);
+			pending.delete(data.id);
+			return;
+		}
+		if (data.type === "chunk") {
+			const stream = streams.get(data.id)!;
+			stream.controller.enqueue(data.chunk);
+			stream.pulled?.();
+			stream.pulled = undefined;
+			return;
+		}
+		if (data.type === "streamEnd") {
+			const stream = streams.get(data.id)!;
+			stream.controller.close();
+			stream.pulled?.();
+			streams.delete(data.id);
+			return;
+		}
+		closed.resolve();
+	};
+
+	const start = async () => {
+		worker = new Worker(new URL("./worker.ts", import.meta.url).href, { name: "trellis-db" });
+		worker.onmessage = receive;
+		worker.onerror = (event) => fail(event.error);
+		send({
+			type: "start",
+			config,
+			runtime: {
+				version: runtime.version,
+				bootId: runtime.bootId,
+				ghBin: runtime.gh.bin,
+				ghTimeoutMs: runtime.gh.timeoutMs,
+			},
+		});
+		return ready.promise;
+	};
+
+	const call = (name: ServiceName, ctx: RequestContext, input: unknown) => {
+		const id = nextId++;
+		const promise = new Promise<unknown>((resolve, reject) => pending.set(id, { resolve, reject }));
+		const entry = services[name];
+		outgoing.push({
+			type: "call",
+			id,
+			kind: entry.kind,
+			clientId: entry.kind === "search" ? (ctx.session ?? ctx.reqId) : undefined,
+			name,
+			ctx,
+			input,
+			ghStatus: runtime.ghStatus(),
+		});
+		if (!batchScheduled) {
+			batchScheduled = true;
+			queueMicrotask(flush);
+		}
+		return promise;
+	};
+
+	const close = async () => {
+		flush();
+		for (const id of streams.keys()) send({ type: "cancel", id });
+		streams.clear();
+		send({ type: "close" });
+		await closed.promise;
+		worker.terminate();
 	};
 
 	return { call, start, close };
