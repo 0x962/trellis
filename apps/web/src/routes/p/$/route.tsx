@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { Button, EmptyState, toast } from "@trellis/ui";
 import { Copy } from "lucide-react";
+import { Board } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { toCliCommand } from "../../../features/filters/cli";
 import { FilterBar } from "../../../features/filters/FilterBar";
@@ -92,6 +93,9 @@ function ProjectPage() {
 		await navigate({ to: "/t/$identifier", params: { identifier: ticket.identifier } });
 	};
 
+	const openTicket = (identifier: string) =>
+		navigate({ to: "/p/$", params: { _splat }, search: { ...search, peek: identifier } });
+
 	return (
 		<>
 			<Topbar actions={<ViewSwitch value={view} onChange={switchView} />}>
@@ -107,7 +111,9 @@ function ProjectPage() {
 				<ScopeChip path={ref} scope={full.scope} onToggle={toggleScope} />
 			</FilterBar>
 			<div className="flex min-h-0 flex-1 flex-col">
-				{counts !== undefined && counts.total === 0 ? (
+				{view === "board" ? (
+					<Board projectRef={ref} filters={toCountsQuery(full)} storageKey={ref} onOpenTicket={openTicket} />
+				) : counts !== undefined && counts.total === 0 ? (
 					hasFilters(search) ? (
 						<EmptyState
 							title="No tickets match"

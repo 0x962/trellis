@@ -1,5 +1,5 @@
 import type { Status } from "@trellis/api";
-import { Button, StatusIcon } from "@trellis/ui";
+import { Button, Popover, StatusIcon } from "@trellis/ui";
 
 export type StatusChoiceProps = {
 	statuses: Status[];
@@ -9,10 +9,18 @@ export type StatusChoiceProps = {
 
 export function StatusChoice({ statuses, onChoose, onCancel }: StatusChoiceProps) {
 	return (
-		<div
-			role="dialog"
-			aria-label="Choose a status"
-			className="fixed top-12 left-1/2 z-50 flex w-60 -translate-x-1/2 flex-col gap-1 rounded-lg border border-border bg-elevated p-2 shadow-md"
+		<Popover
+			open
+			onOpenChange={(open) => {
+				if (!open) onCancel();
+			}}
+			align="center"
+			className="flex w-60 flex-col gap-1"
+			trigger={
+				<Button aria-label="Status options" className="fixed top-12 left-1/2 size-px -translate-x-1/2 opacity-0">
+					Status options
+				</Button>
+			}
 		>
 			<p className="px-2 py-1 text-sm font-medium text-fg">Choose a status</p>
 			{statuses.map((status) => (
@@ -29,6 +37,6 @@ export function StatusChoice({ statuses, onChoose, onCancel }: StatusChoiceProps
 			<Button variant="quiet" size="sm" onClick={onCancel}>
 				Cancel
 			</Button>
-		</div>
+		</Popover>
 	);
 }

@@ -5,6 +5,7 @@ import {
 	type BoardQueryInput,
 	eventApplierFor,
 	type Status,
+	type StatusSummary,
 	type Ticket,
 	type TicketSummary,
 } from "@trellis/api";
@@ -45,8 +46,10 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 	const announce = useCallback((message: string) => flushSync(() => setAnnouncement(message)), []);
 	const boardOptions = context.orpc.tickets.board.queryOptions({ input: { ...filters, project: projectRef } });
 	const projectOptions = context.orpc.projects.get.queryOptions({ input: { project: projectRef ?? "CDE" } });
+	const projectsOptions = context.orpc.projects.list.queryOptions({ input: {} });
 	const boardQuery = useQuery(boardOptions);
 	const projectQuery = useQuery({ ...projectOptions, enabled: projectRef !== undefined });
+	const projectsQuery = useQuery({ ...projectsOptions, enabled: projectRef === undefined });
 	const collapsed = useUiStore((state) => state.collapsedGroups[storageKey] ?? noCollapsedColumns);
 
 	const columns = useMemo(() => {
@@ -65,11 +68,18 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 
 	const runMove = useCallback(
 		async (move: BoardMove, chosen?: Status) => {
-			const status = chosen ?? move.column.statuses[0]!;
+			const status = chosen ?? move.column.statuses[0];
+			const statusRef = status?.slug ?? `category:${move.column.category}`;
+			const summary: StatusSummary = status ?? {
+				...move.ticket.status,
+				name: move.column.name,
+				slug: statusRef,
+				category: move.column.category,
+			};
 			const snapshot = context.queryClient.getQueryData<BoardOutput>(boardOptions.queryKey)!;
 			context.queryClient.setQueryData(
 				boardOptions.queryKey,
-				moveInBoard(snapshot, move.ticket, status, move.after, move.before),
+				moveInBoard(snapshot, move.ticket, summary, move.after, move.before),
 			);
 			const destination = move.column.items.findIndex((ticket) => ticket.id === (move.after ?? move.before)?.id);
 			announce(
@@ -80,7 +90,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 			try {
 				const result = await context.client.tickets.move({
 					ticket: move.ticket.identifier,
-					status: status.slug,
+					status: statusRef,
 					...(move.after === undefined ? {} : { after: move.after.identifier }),
 					...(move.before === undefined ? {} : { before: move.before.identifier }),
 					expectedVersion: move.ticket.version,
@@ -114,18 +124,24 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce);
 
 	const createTicket = async (column: BoardColumnModel, title: string) => {
-		const status = column.statuses[0]!;
-		const project = projectRef ?? column.items[0]!.project.path;
-		const result = await context.client.tickets.create({ project, status: status.slug, title });
+		const status = column.statuses[0];
+		const project = projectRef ?? column.items[0]?.project.path ?? projectsQuery.data![0]!.path;
+		const result = await context.client.tickets.create({
+			project,
+			status: status?.slug ?? `category:${column.category}`,
+			title,
+		});
 		const current = context.queryClient.getQueryData<BoardOutput>(boardOptions.queryKey)!;
-		context.queryClient.setQueryData(boardOptions.queryKey, moveInBoard(current, summaryOf(result), status));
+		context.queryClient.setQueryData(boardOptions.queryKey, moveInBoard(current, summaryOf(result), result.status));
 	};
 
 	const showMore = async (column: BoardColumnModel) => {
 		const input = {
 			...filters,
 			project: projectRef,
-			status: column.statuses.map((status) => status.slug),
+			...(projectRef === undefined
+				? { category: [column.category] }
+				: { status: column.statuses.map((status) => status.slug) }),
 			sort: "position" as const,
 			limit: 100,
 		};
@@ -211,7 +227,8 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 				<StatusChoice
 					statuses={pendingChoice.statuses}
 					onChoose={(status) => {
-						void runMove(pendingChoice, status);
+						const target = columns.find((column) => column.statuses.some((candidate) => candidate.id === status.id));
+						void runMove({ ...pendingChoice, column: target ?? pendingChoice.column }, status);
 						setPendingChoice(null);
 					}}
 					onCancel={() => setPendingChoice(null)}

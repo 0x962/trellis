@@ -16,6 +16,7 @@ import { Route as NeedsYouRouteRouteImport } from './routes/needs-you/route'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SetupRouteImport } from './routes/setup'
+import { Route as AllBoardRouteImport } from './routes/all_.board'
 import { Route as PSplatRouteRouteImport } from './routes/p/$/route'
 import { Route as TIdentifierRouteRouteImport } from './routes/t/$identifier/route'
 
@@ -54,6 +55,11 @@ const SetupRoute = SetupRouteImport.update({
   path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AllBoardRoute = AllBoardRouteImport.update({
+  id: '/all_/board',
+  path: '/all/board',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PSplatRouteRoute = PSplatRouteRouteImport.update({
   id: '/p/$',
   path: '/p/$',
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
+  '/all/board': typeof AllBoardRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
+  '/all/board': typeof AllBoardRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
+  '/all_/board': typeof AllBoardRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
+    | '/all/board'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
+    | '/all/board'
   id:
     | '__root__'
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
+    | '/all_/board'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +157,7 @@ export interface RootRouteChildren {
   SetupRoute: typeof SetupRoute
   PSplatRouteRoute: typeof PSplatRouteRoute
   TIdentifierRouteRoute: typeof TIdentifierRouteRoute
+  AllBoardRoute: typeof AllBoardRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/all_/board': {
+      id: '/all_/board'
+      path: '/all/board'
+      fullPath: '/all/board'
+      preLoaderRoute: typeof AllBoardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/p/$': {
       id: '/p/$'
       path: '/p/$'
@@ -225,6 +245,7 @@ const rootRouteChildren: RootRouteChildren = {
   SetupRoute: SetupRoute,
   PSplatRouteRoute: PSplatRouteRoute,
   TIdentifierRouteRoute: TIdentifierRouteRoute,
+  AllBoardRoute: AllBoardRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

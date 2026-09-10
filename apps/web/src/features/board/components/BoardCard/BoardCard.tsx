@@ -64,7 +64,7 @@ export function BoardCard({
 			data-card=""
 			data-ticket-id={ticket.id}
 			data-ci={failing ? "failing" : undefined}
-			onDoubleClick={onOpen}
+			onClick={onOpen}
 			onKeyDown={onKeyDown}
 			className={`relative flex h-24 shrink-0 cursor-grab flex-col rounded-md border border-border bg-surface p-3 text-base shadow-none transition-[box-shadow,border-color] duration-hover ease-out hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${failing ? "border-t-2 border-t-danger" : ""}`}
 		>

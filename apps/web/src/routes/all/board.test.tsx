@@ -11,12 +11,8 @@ describe("routes/all/board", () => {
 		const { router } = renderApp({ path: "/all/board", actor: "navid" });
 		expect(await screen.findByRole("heading", { name: "All tickets" })).toBeDefined();
 		const group = screen.getByRole("radiogroup", { name: "View" });
-		expect(
-			within(group).getByRole("radio", { name: "Board" }).getAttribute("aria-checked"),
-		).toBe("true");
-		await waitFor(() =>
-			expect(document.querySelectorAll("[data-board] > [data-category]")).toHaveLength(5),
-		);
+		expect(within(group).getByRole("radio", { name: "Board" }).getAttribute("aria-checked")).toBe("true");
+		await waitFor(() => expect(document.querySelectorAll("[data-board] > [data-category]")).toHaveLength(5));
 		await user.click(within(group).getByRole("radio", { name: "Table" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/all"));
 	});
