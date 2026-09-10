@@ -27,37 +27,83 @@ export type ActionContext = {
 // The fields a branch name needs.
 export type ActionTicket = { identifier: string; title: string };
 
-export const changeStatus = async (_context: ActionContext, _ticket: string, _status: string): Promise<void> => {};
+// The server is a boundary. A refused write says so and offers the same
+// call again, so nothing is lost between the palette and the database.
+const write = async (context: ActionContext, message: string, call: () => Promise<unknown>): Promise<void> => {
+	try {
+		await call();
+	} catch {
+		context.notify(message, { retry: () => void write(context, message, call) });
+	}
+};
 
-export const setPriority = async (_context: ActionContext, _ticket: string, _priority: Priority): Promise<void> => {};
+export const changeStatus = async (context: ActionContext, ticket: string, status: string): Promise<void> =>
+	write(context, "The status did not change.", () => context.client.tickets.update({ ticket, status }));
 
-export const moveToProject = async (_context: ActionContext, _ticket: string, _project: string): Promise<void> => {};
+export const setPriority = async (context: ActionContext, ticket: string, priority: Priority): Promise<void> =>
+	write(context, "The priority did not change.", () => context.client.tickets.update({ ticket, priority }));
 
-export const setParent = async (_context: ActionContext, _ticket: string, _parent: string | null): Promise<void> => {};
+export const moveToProject = async (context: ActionContext, ticket: string, project: string): Promise<void> =>
+	write(context, "The ticket did not move.", () => context.client.tickets.update({ ticket, project }));
 
-export const deleteTicket = async (_context: ActionContext, _ticket: string): Promise<void> => {};
+export const setParent = async (context: ActionContext, ticket: string, parent: string | null): Promise<void> =>
+	write(context, "The parent did not change.", () => context.client.tickets.update({ ticket, parent }));
 
-export const bulkChangeStatus = async (
-	_context: ActionContext,
-	_tickets: string[],
-	_status: string,
-): Promise<void> => {};
+export const deleteTicket = async (context: ActionContext, ticket: string): Promise<void> => {
+	if (!(await context.confirm(`Delete ${ticket}?`))) return;
+	await write(context, "The ticket was not deleted.", () => context.client.tickets.delete({ ticket }));
+};
 
-export const bulkDelete = async (_context: ActionContext, _tickets: string[]): Promise<void> => {};
+export const bulkChangeStatus = async (context: ActionContext, tickets: string[], status: string): Promise<void> =>
+	write(context, "The status did not change.", () => context.client.tickets.updateMany({ tickets, status }));
 
-export const copyId = async (_context: ActionContext, _ticket: string): Promise<void> => {};
+export const bulkSetPriority = async (context: ActionContext, tickets: string[], priority: Priority): Promise<void> =>
+	write(context, "The priority did not change.", () => context.client.tickets.updateMany({ tickets, priority }));
+
+export const bulkMoveToProject = async (context: ActionContext, tickets: string[], project: string): Promise<void> =>
+	write(context, "The tickets did not move.", () => context.client.tickets.updateMany({ tickets, project }));
+
+export const bulkDelete = async (context: ActionContext, tickets: string[]): Promise<void> => {
+	if (!(await context.confirm(`Delete ${tickets.length} tickets?`))) return;
+	await write(context, "The tickets were not deleted.", () => context.client.tickets.deleteMany({ tickets }));
+};
+
+export const copyId = async (context: ActionContext, ticket: string): Promise<void> => {
+	await context.copy(ticket);
+	context.notify("Copied the identifier.");
+};
 
 // `CDE-42` and `Restore the fork pages!` give `cde-42-restore-the-fork-pages`.
-export const branchName = (_ticket: ActionTicket): string => "";
+export const branchName = (ticket: ActionTicket): string => {
+	const slug = ticket.title
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-|-$/g, "");
+	return `${ticket.identifier.toLowerCase()}-${slug}`;
+};
 
-export const copyBranchName = async (_context: ActionContext, _ticket: ActionTicket): Promise<void> => {};
+export const copyBranchName = async (context: ActionContext, ticket: ActionTicket): Promise<void> => {
+	await context.copy(branchName(ticket));
+	context.notify("Copied the branch name.");
+};
 
-export const copyLink = async (_context: ActionContext, _ticket: string): Promise<void> => {};
+export const copyLink = async (context: ActionContext, ticket: string): Promise<void> => {
+	await context.copy(`${context.origin}/t/${ticket}`);
+	context.notify("Copied the link.");
+};
 
 // Copies the command from `settings.startWithAgentTemplate`, with `{brief}`
 // replaced by the identifier.
-export const startWithAgent = async (_context: ActionContext, _ticket: string): Promise<void> => {};
+export const startWithAgent = async (context: ActionContext, ticket: string): Promise<void> => {
+	const command = context.settings.startWithAgentTemplate.replace("{brief}", ticket);
+	await context.copy(command);
+	context.notify("Copied. Paste in your terminal.", { command });
+};
 
-export const copyAgentBrief = async (_context: ActionContext, _ticket: string): Promise<void> => {};
+export const copyAgentBrief = async (context: ActionContext, ticket: string): Promise<void> => {
+	const brief = await context.client.brief.get({ ticket });
+	await context.copy(brief.markdown);
+	context.notify("Copied the agent brief.");
+};
 
-export const openPullRequest = (_context: ActionContext, _url: string): void => {};
+export const openPullRequest = (context: ActionContext, url: string): void => context.openUrl(url);

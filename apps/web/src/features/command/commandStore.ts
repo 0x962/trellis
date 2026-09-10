@@ -32,17 +32,26 @@ const initial: CommandState = {
 
 export const useCommandStore = create<CommandState>()(() => ({ ...initial }));
 
+const set = useCommandStore.setState;
+
 export const commandActions = {
-	open: (_mode: CommandMode) => {},
-	close: () => {},
-	setFocusedTicket: (_identifier: string | null) => {},
-	setPeekTicket: (_identifier: string | null) => {},
-	setSelection: (_identifiers: string[]) => {},
+	open: (mode: CommandMode) => set({ open: true, mode }),
+	close: () => set({ open: false }),
+	// One key opens and closes the palette, so a second press of it lands
+	// here while the palette is open.
+	toggle: (mode: CommandMode) =>
+		set((state) => (state.open && state.mode === mode ? { open: false } : { open: true, mode })),
+	setFocusedTicket: (identifier: string | null) => set({ focusedTicket: identifier }),
+	setPeekTicket: (identifier: string | null) => set({ peekTicket: identifier }),
+	setSelection: (identifiers: string[]) => set({ selection: identifiers }),
 	// The route the app moved to. A new route drops the ticket context and
 	// the selection.
-	setRoute: (_pathname: string) => {},
+	setRoute: (pathname: string) =>
+		set((state) =>
+			state.pathname === pathname ? {} : { pathname, focusedTicket: null, peekTicket: null, selection: [] },
+		),
 };
 
 // The ticket the This ticket section acts on. The peek wins over the
 // focused row, because the peek is the closer surface.
-export const contextTicket = (_state: CommandState): string | null => null;
+export const contextTicket = (state: CommandState): string | null => state.peekTicket ?? state.focusedTicket;

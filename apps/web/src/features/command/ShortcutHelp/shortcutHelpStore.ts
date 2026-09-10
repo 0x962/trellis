@@ -6,6 +6,6 @@ type ShortcutHelpState = { open: boolean };
 // button, and the sheet itself read and write this one value.
 export const useShortcutHelpStore = create<ShortcutHelpState>()(() => ({ open: false }));
 
-export const openShortcutHelp = () => {};
+export const openShortcutHelp = () => useShortcutHelpStore.setState({ open: true });
 
-export const closeShortcutHelp = () => {};
+export const closeShortcutHelp = () => useShortcutHelpStore.setState({ open: false });

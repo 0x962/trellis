@@ -21,6 +21,6 @@ export type ComposerState = {
 export const useComposerStore = create<ComposerState>()(() => ({ open: false, defaults: {} }));
 
 export const composerActions = {
-	open: (_defaults: ComposerDefaults) => {},
-	close: () => {},
+	open: (defaults: ComposerDefaults) => useComposerStore.setState({ open: true, defaults }),
+	close: () => useComposerStore.setState({ open: false, defaults: {} }),
 };
