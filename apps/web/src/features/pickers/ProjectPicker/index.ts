@@ -1,1 +1,1 @@
-export { ProjectPicker } from "./ProjectPicker";
+export { ProjectPicker, projectItems } from "./ProjectPicker";

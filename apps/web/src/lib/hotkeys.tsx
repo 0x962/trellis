@@ -32,7 +32,8 @@ const viewHref = (pathname: string, view: "board" | "table") => {
 	return projectHref(parseProjectSplat(pathname.slice(3)).ref, view);
 };
 
-// The global keys: the `g` sequences, `[`, mod+\, and `?`. A pending
+// The global keys: the `g` sequences, `[`, mod+\, and `?`. `g s` focuses
+// the Filter button of the list's filter bar, or the bar itself. A pending
 // sequence shows a "g…" hint bottom-left, read to a screen reader as a
 // status. The second key is read in the capture phase, so a page's own
 // single-letter binding never fires as the second half of a sequence.
@@ -75,7 +76,11 @@ export function HotkeyScope({
 				h: () => navigate("/needs-you"),
 				a: () => navigate("/all"),
 				p: onProjectPicker,
-				s: () => document.querySelector<HTMLElement>("[data-filter-bar]")?.focus(),
+				s: () =>
+					(
+						document.querySelector<HTMLElement>("[data-filter-bar] [data-filter-button]") ??
+						document.querySelector<HTMLElement>("[data-filter-bar]")
+					)?.focus(),
 				b: () => {
 					const href = viewHref(pathname, "board");
 					if (href !== null) navigate(href);

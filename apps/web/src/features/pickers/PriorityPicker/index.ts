@@ -1,1 +1,1 @@
-export { PriorityPicker } from "./PriorityPicker";
+export { PriorityPicker, priorityItems, priorityLabels } from "./PriorityPicker";

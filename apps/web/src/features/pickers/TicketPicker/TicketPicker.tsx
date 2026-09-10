@@ -71,7 +71,7 @@ export function TicketPicker({
 			current: ticket.identifier === value,
 			children: <span className="truncate text-fg-muted">{ticket.title}</span>,
 		})),
-		{ id: noneId, label: "None", current: value === undefined },
+		...(search.trim() === "" ? [{ id: noneId, label: "None", current: value === undefined }] : []),
 	];
 
 	return (

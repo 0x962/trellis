@@ -46,7 +46,16 @@ export type ProjectPickerProps = {
 };
 
 // The project popover: the tree by depth, searchable by path.
-export function ProjectPicker({ projects, value, onPick, trigger, open, onOpenChange, finalFocus, side }: ProjectPickerProps) {
+export function ProjectPicker({
+	projects,
+	value,
+	onPick,
+	trigger,
+	open,
+	onOpenChange,
+	finalFocus,
+	side,
+}: ProjectPickerProps) {
 	const [own, setOwn] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
 	const isOpen = open ?? own;

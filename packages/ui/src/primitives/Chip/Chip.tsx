@@ -54,14 +54,14 @@ export function Chip({
 					{icon}
 				</span>
 			)}
-			<span className="font-medium text-fg">{label}</span>
+			<span className="font-medium text-fg">{label}</span>{" "}
 			{onOpClick ? (
 				<button type="button" onClick={onOpClick} className={cx("text-fg-faint", partClass)}>
 					{op}
 				</button>
 			) : (
 				<span className="text-fg-faint">{op}</span>
-			)}
+			)}{" "}
 			{onValueClick ? (
 				<button type="button" onClick={onValueClick} className={cx("font-medium text-fg", partClass)}>
 					{value}

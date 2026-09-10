@@ -1,1 +1,1 @@
-export { Command, type CommandItem, type CommandProps } from "./Command";
+export { Command, type CommandGroup, type CommandItem, type CommandProps } from "./Command";

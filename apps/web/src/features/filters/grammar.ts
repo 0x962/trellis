@@ -12,6 +12,7 @@ import {
 	TicketRefStringSchema,
 } from "@trellis/api";
 import type { z } from "zod";
+import { searchParamOrder } from "../../lib/searchParams";
 import type { Density } from "../../stores/uiStore";
 
 export type Group = "none" | "status" | "priority" | "project" | "parent" | "pr";
@@ -58,28 +59,6 @@ export const viewDefaults = {
 
 // The order the params take in a URL: the API grammar first, then the
 // web-only fields.
-const order: (keyof View)[] = [
-	"project",
-	"status",
-	"category",
-	"reviewer",
-	"priority",
-	"parent",
-	"pr",
-	"ci",
-	"actor",
-	"q",
-	"updated",
-	"created",
-	"completed",
-	"sort",
-	"group",
-	"scope",
-	"peek",
-	"density",
-	"limit",
-];
-
 const relativePattern = /^(\d+)([hd])$/;
 
 const groups: ReadonlySet<string> = new Set(["none", "status", "priority", "project", "parent", "pr"]);
@@ -191,7 +170,7 @@ export const stripDefaults = <T extends ViewInput>(view: T): Partial<T> => {
 export const serializeSearch = (view: ViewInput): string => {
 	const stripped = stripDefaults(view);
 	const not = stripped.not ?? [];
-	return order
+	return searchParamOrder
 		.filter((key) => stripped[key] !== undefined)
 		.map((key) => {
 			const value = stripped[key];
@@ -233,8 +212,7 @@ export const toListQuery = (view: View, options: ListQueryOptions = {}): ListQue
 	const statusSlugs = (options.statuses ?? []).map((status) => status.slug);
 	const query: ListQueryInput = {
 		project: isNegated(view, "project") ? undefined : view.project,
-		status:
-			view.status !== undefined && isNegated(view, "status") ? complement(statusSlugs, view.status) : view.status,
+		status: view.status !== undefined && isNegated(view, "status") ? complement(statusSlugs, view.status) : view.status,
 		category: view.category,
 		reviewer: view.reviewer,
 		priority:

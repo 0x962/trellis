@@ -1,15 +1,76 @@
-import type { ReactNode } from "react";
+import { useRouterState } from "@tanstack/react-router";
+import type { StatusSummary } from "@trellis/api";
+import { Button, toast, useHotkey } from "@trellis/ui";
+import { Copy, Link2, ListFilter } from "lucide-react";
+import { type ReactNode, useState } from "react";
+import { toCli } from "../cli";
+import { FilterChip } from "../FilterChip";
+import { chipFields, type FilterField } from "../fields";
+import { serializeSearch, stripDefaults, toListQuery, type View, viewOf } from "../grammar";
+import { FilterPicker, type PickerStage } from "./components/FilterPicker";
 
 export type FilterBarProps = {
-	// The chips: the scope chip, then one chip per active filter.
+	// The project ref of the route, or undefined on /all.
+	project?: string;
+	search: Partial<View>;
+	onSearchChange: (next: Partial<View>) => void;
+	// The statuses of the scope: the status values and the chip names.
+	statuses: readonly StatusSummary[];
+	// The scope chip of a project route, before the filter chips.
 	children?: ReactNode;
-	// The controls on the right: Copy as CLI, Display.
+	// The controls at the right end, after Copy as CLI and Copy link.
 	actions?: ReactNode;
 };
 
-// The row of filter chips under the topbar. `g s` focuses it through
-// `data-filter-bar`.
-export function FilterBar({ children, actions }: FilterBarProps) {
+const fields: PickerStage = { kind: "fields" };
+
+// The bar under the topbar: one chip per active filter, the Filter button
+// with its picker, and the copy actions. `f` opens the picker; `g s`
+// focuses the button.
+export function FilterBar({ project, search, onSearchChange, statuses, children, actions }: FilterBarProps) {
+	const pathname = useRouterState({ select: (state) => state.location.pathname });
+	const [open, setOpen] = useState(false);
+	const [stage, setStage] = useState<PickerStage>(fields);
+	const view = viewOf(search);
+	const active = chipFields.filter((field) => view[field] !== undefined);
+
+	const change = (next: View) => onSearchChange(stripDefaults(next));
+
+	const openAt = (next: PickerStage) => {
+		setStage(next);
+		setOpen(true);
+	};
+
+	const onOpenChange = (next: boolean) => {
+		setOpen(next);
+		if (!next) setStage(fields);
+	};
+
+	useHotkey("f", (event) => {
+		if (document.activeElement?.closest('[role="dialog"]') !== null) return;
+		event.preventDefault();
+		openAt(fields);
+	});
+
+	const query = {
+		...toListQuery(view, { statuses }),
+		updated: view.updated,
+		created: view.created,
+		completed: view.completed,
+	};
+	for (const key of ["updated", "created", "completed"] as const) if (query[key] === undefined) delete query[key];
+
+	const copyCli = async () => {
+		await navigator.clipboard.writeText(toCli(project === undefined ? query : { project, ...query }));
+		toast("Copied the CLI command");
+	};
+
+	const copyLink = async () => {
+		const search = serializeSearch(view);
+		await navigator.clipboard.writeText(`${window.location.origin}${pathname}${search === "" ? "" : `?${search}`}`);
+		toast("Copied the link");
+	};
+
 	return (
 		<div
 			data-filter-bar=""
@@ -17,7 +78,40 @@ export function FilterBar({ children, actions }: FilterBarProps) {
 			className="flex h-9 shrink-0 items-center gap-1.5 border-b border-border px-5 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 		>
 			{children}
-			{actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
+			{active.map((field: FilterField) => (
+				<FilterChip
+					key={field}
+					field={field}
+					view={view}
+					statuses={statuses}
+					onChange={change}
+					onEdit={(target) => openAt({ kind: "values", field: target })}
+				/>
+			))}
+			<FilterPicker
+				view={view}
+				statuses={statuses}
+				project={project}
+				onChange={change}
+				open={open}
+				onOpenChange={onOpenChange}
+				stage={stage}
+				onStageChange={setStage}
+				trigger={
+					<Button variant="quiet" size="sm" icon={<ListFilter />} kbd="f" aria-label="Filter" data-filter-button="">
+						Filter
+					</Button>
+				}
+			/>
+			<div className="ml-auto flex items-center gap-1">
+				<Button variant="quiet" size="sm" icon={<Copy />} onClick={copyCli}>
+					Copy as CLI
+				</Button>
+				<Button variant="quiet" size="sm" icon={<Link2 />} onClick={copyLink}>
+					Copy link
+				</Button>
+				{actions}
+			</div>
 		</div>
 	);
 }
