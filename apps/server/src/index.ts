@@ -8,12 +8,13 @@ import { openDatabase } from "./db/open.ts";
 import { createInlineTransport, createWorkerTransport } from "./db/transport.ts";
 import { createBus } from "./events/bus.ts";
 import { createGhRunner } from "./gh/run.ts";
+import { lockHome } from "./homeLock.ts";
 import { createLogger, createRotatingSink, type LogSink, stdoutSink, teeSink } from "./log.ts";
 import { checkGh } from "./services/system.ts";
 import { sweep } from "./storage/blobs.ts";
 
 // Something that starts once the port is open and stops during the
-// shutdown: the poller, the maintenance timer.
+// shutdown, before the poller drains.
 export type StartHook = {
 	name: string;
 	start: () => void | Promise<void>;
@@ -36,14 +37,24 @@ const SHUTDOWN_GRACE_MS = 100;
 // A request in flight when the listener closes gets this long to finish.
 const SHUTDOWN_DEADLINE_MS = 4000;
 
-// Boot: config, the data home directories, the gh check off the boot path,
-// the database and its migrations, the blob sweep, then listen. SIGTERM
-// says bye on every stream, stops accepting, waits for the requests in
-// flight, stops the hooks, closes the database, and exits 0. A second
-// signal exits at once. A boot failure logs one line and exits 1.
+type Fetch = (request: Request) => Response | Promise<Response>;
+
+// Boot: config, the data home lock, the port, the data home directories,
+// the gh check off the boot path, the database and its migrations, the blob
+// sweep, the app, then the poller and the maintenance timer.
+//
+// The lock and the port come before the database. Two PGlite instances on
+// one data directory corrupt it, so a second server on a held home, or a
+// server whose port is taken, exits 1 before it opens the database. The
+// listener answers 503 until the app is ready.
+//
+// SIGTERM says bye on every stream, stops accepting, waits for the requests
+// in flight, stops the hooks, drains the poller for up to 5 s, closes the
+// database, and exits 0. A second signal exits at once. A boot failure logs
+// one line and exits 1.
 export const boot = async ({ env = process.env, hooks = [], exit = process.exit, sink }: BootOptions = {}) => {
 	const config = loadConfig(env);
-	for (const dir of [config.dbDir, config.tmpDir, config.backupsDir]) mkdirSync(dir, { recursive: true });
+	mkdirSync(config.home, { recursive: true });
 	const log = createLogger({
 		level: config.logLevel,
 		sink: sink ?? teeSink([stdoutSink(), createRotatingSink({ path: config.logFile, maxBytes: 10 * MB, maxFiles: 5 })]),
@@ -51,6 +62,21 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 	});
 
 	const run = async () => {
+		const lock = lockHome(config.home, "server", config.port);
+		let handler: Fetch = () => new Response("trellis is starting", { status: 503 });
+
+		// An event stream is silent between pings, 15 seconds apart by default.
+		// Bun closes a connection that is silent for `idleTimeout` seconds, so 0
+		// turns that timer off and the stream stays open.
+		const server = Bun.serve({
+			port: config.port,
+			hostname: "127.0.0.1",
+			idleTimeout: 0,
+			fetch: (request) => handler(request),
+		});
+		lock.setPort(server.port!);
+		for (const dir of [config.dbDir, config.tmpDir, config.backupsDir]) mkdirSync(dir, { recursive: true });
+
 		const gh = createGhRunner();
 		let ghState: GhStatus = { ok: false, user: null, reason: "error", message: "Not checked yet.", checkedAt: null };
 		void checkGh(gh, new Date()).then((status) => {
@@ -70,12 +96,9 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		const swept = await sweep(config.home, started.liveShas);
 		log.info("sweep", { removedBlobs: swept.removedBlobs.length, removedTemp: swept.removedTemp.length });
 		const { app, bye } = createApp({ config, log, transport, bus, runtime });
-
-		// An event stream is silent between pings, 15 seconds apart by default.
-		// Bun closes a connection that is silent for `idleTimeout` seconds, so 0
-		// turns that timer off and the stream stays open.
-		const server = Bun.serve({ port: config.port, hostname: "127.0.0.1", idleTimeout: 0, fetch: app.fetch });
+		handler = app.fetch;
 		log.info("listening", { port: server.port, home: config.home, version: pkg.version });
+		transport.startJobs({ clockRate: config.clockRate, log: (msg, fields) => log.info(msg, fields) });
 		for (const hook of hooks) await hook.start();
 
 		let stopping = false;
@@ -88,8 +111,10 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			bye("shutdown");
 			await Promise.race([server.stop(), Bun.sleep(SHUTDOWN_DEADLINE_MS)]);
 			for (const hook of hooks) await hook.stop();
+			await transport.stopJobs();
 			await transport.close();
 			if (database) await database.close();
+			lock.release();
 			log.info("closed", { bootId });
 			log.close();
 			detach();

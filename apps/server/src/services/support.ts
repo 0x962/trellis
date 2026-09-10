@@ -11,7 +11,9 @@ import type { GhRunner } from "../gh/run.ts";
 // that the sink receives after the commit. `afterCommit` queues work that
 // runs once the commit succeeded, which is where an attachment file is
 // removed. `newTx` opens a further transaction for that work, because the
-// service transaction is closed by then.
+// service transaction is closed by then. `vacuum` runs VACUUM (ANALYZE) on
+// the busy tables. VACUUM cannot run inside a transaction, so a service
+// queues it with `afterCommit`.
 
 export type ActorRef = { name: string; kind: "human" | "agent" | "system" };
 
@@ -29,6 +31,7 @@ export type ServiceCtx = {
 	emit: Emit;
 	afterCommit: (task: () => Promise<void>) => void;
 	newTx: <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
+	vacuum: () => Promise<void>;
 };
 
 export type { TrellisEvent };

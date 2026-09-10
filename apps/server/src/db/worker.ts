@@ -31,6 +31,8 @@ export type WorkerInput =
 	| { type: "ghResult"; id: number; result: GhResult }
 	| { type: "pull"; id: number }
 	| { type: "cancel"; id: number }
+	| { type: "startJobs"; clockRate: number }
+	| { type: "stopJobs" }
 	| { type: "close" };
 
 export type SerializedError = {
@@ -52,6 +54,8 @@ export type WorkerOutput =
 	| { type: "stream"; id: number }
 	| { type: "chunk"; id: number; chunk: Uint8Array<ArrayBuffer> }
 	| { type: "streamEnd"; id: number }
+	| { type: "log"; msg: string; fields?: Record<string, unknown> }
+	| { type: "jobsStopped" }
 	| { type: "closed" };
 
 const ranks: Record<ServiceKind, number> = { mutation: 0, read: 1, search: 2 };
@@ -197,6 +201,14 @@ const startHost = () => {
 				const started = await transport.start();
 				send({ type: "ready", applied: database.applied, liveShas: started.liveShas });
 			})().catch((error) => send({ type: "startError", error: errorOf(error) }));
+			return;
+		}
+		if (data.type === "startJobs") {
+			transport.startJobs({ clockRate: data.clockRate, log: (msg, fields) => send({ type: "log", msg, fields }) });
+			return;
+		}
+		if (data.type === "stopJobs") {
+			void transport.stopJobs().then(() => send({ type: "jobsStopped" }));
 			return;
 		}
 		if (data.type === "calls") {
