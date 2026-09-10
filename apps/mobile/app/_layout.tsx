@@ -9,6 +9,7 @@ import { startLive } from "../src/lib/live";
 import { queryClient } from "../src/lib/queryClient";
 import { restoreClient, subscribePersist } from "../src/lib/storage";
 import { keys, store } from "../src/lib/store";
+import { useInboxBadge } from "../src/needs-you/NeedsYou/hooks/useInboxBadge";
 import { tokens } from "../src/theme/tokens";
 import { usePalette } from "../src/theme/usePalette";
 import { useTheme } from "../src/theme/useTheme";
@@ -30,12 +31,15 @@ export default function RootLayout() {
 	const configured = Boolean(url) && Boolean(name);
 	const { resolved } = useTheme();
 	const palette = usePalette();
+	const badge = useInboxBadge(queryClient);
 
 	// A tab's options. The accessibility label is the title itself, so a
 	// screen reader and a test both find the tab by its name.
-	const tab = (title: string, name: IconName) => ({
+	const tab = (title: string, name: IconName, tabBarBadge?: number) => ({
 		title,
 		tabBarAccessibilityLabel: title,
+		tabBarBadge,
+		tabBarBadgeStyle: { backgroundColor: palette.danger, color: tokens.onAccent, fontSize: tokens.text.xs },
 		tabBarIcon: ({ focused, size }: { focused: boolean; size: number }) => (
 			<Ionicons name={name} size={size} color={focused ? palette.accent : palette.fgMuted} />
 		),
@@ -68,7 +72,7 @@ export default function RootLayout() {
 				}}
 			>
 				<Tabs.Protected guard={configured}>
-					<Tabs.Screen name="(tabs)/index" options={tab("Needs you", "file-tray-outline")} />
+					<Tabs.Screen name="(tabs)/index" options={tab("Needs you", "file-tray-outline", badge)} />
 					<Tabs.Screen name="(tabs)/search" options={tab("Search", "search-outline")} />
 					<Tabs.Screen name="(tabs)/projects" options={tab("Projects", "folder-outline")} />
 					<Tabs.Screen name="(tabs)/settings" options={tab("Settings", "settings-outline")} />
