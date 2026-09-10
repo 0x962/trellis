@@ -199,6 +199,29 @@ describe("root scaffold", () => {
 		expect(check.steps.some((step) => step.run?.includes("bun run check"))).toBe(true);
 	});
 
+	// plan.md, Database schema: CI fails on a non-empty
+	// `git status --porcelain drizzle/` after `drizzle-kit generate`.
+	test("ci.yml regenerates the migrations and fails on a drizzle diff", async () => {
+		const ci = Bun.YAML.parse(await text(".github/workflows/ci.yml")) as {
+			jobs: Record<string, { steps: Array<{ run?: string }> }>;
+		};
+		const runs = ci.jobs["drizzle-diff"]!.steps.map((step) => step.run ?? "");
+		expect(runs).toContain("bun run db:generate");
+		expect(runs.some((run) => run.includes("git status --porcelain apps/server/drizzle/"))).toBe(true);
+	});
+
+	// plan.md, Performance requirements: the 10k seed runs in `bun run check`
+	// and the 50k seed in `bun run perf`. turbo runs a task only in a
+	// workspace whose package.json defines the script, and reports success
+	// when none does.
+	test("apps/server defines the perf:10k and perf scripts over test/perf", async () => {
+		const { scripts } = await json("apps/server/package.json");
+		expect(scripts["perf:10k"]).toContain("TRELLIS_PERF_ROWS=10000");
+		expect(scripts["perf:10k"]).toContain("test/perf/");
+		expect(scripts.perf).toContain("TRELLIS_PERF_ROWS=50000");
+		expect(existsSync(join(root, "apps/server/test/perf/seed.ts"))).toBe(true);
+	});
+
 	test("issue templates exist and the PR template has no headers", async () => {
 		const files = [
 			".github/ISSUE_TEMPLATE/bug.yml",
@@ -219,6 +242,25 @@ describe("root scaffold", () => {
 				.filter((workspace) => existsSync(join(root, workspace, "package.json"))),
 		);
 		for (const workspace of workspaces) {
+			const config = Bun.TOML.parse(await text(join(workspace, "bunfig.toml"))) as { test: { preload: string[] } };
+			expect(config.test.preload).toContain("../../test/preload.ts");
+		}
+	});
+
+	// apps/server is the first app. turbo runs `bun test` inside it, so its
+	// bunfig.toml must carry the shared preload like every other workspace.
+	test("every workspace ships a bunfig.toml with the shared preload", async () => {
+		const server = await json("apps/server/package.json");
+		expect(server.name).toBe("@trellis/server");
+		expect(server.scripts.test).toBe("bun test");
+		const workspaces = ["apps", "packages"].flatMap((dir) =>
+			readdirSync(join(root, dir))
+				.map((entry) => join(dir, entry))
+				.filter((workspace) => existsSync(join(root, workspace, "package.json"))),
+		);
+		expect(workspaces).toContain("apps/server");
+		for (const workspace of workspaces) {
+			expect(existsSync(join(root, workspace, "bunfig.toml")), workspace).toBe(true);
 			const config = Bun.TOML.parse(await text(join(workspace, "bunfig.toml"))) as { test: { preload: string[] } };
 			expect(config.test.preload).toContain("../../test/preload.ts");
 		}

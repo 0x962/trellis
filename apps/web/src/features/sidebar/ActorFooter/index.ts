@@ -1,0 +1,1 @@
+export { ActorFooter } from "./ActorFooter";

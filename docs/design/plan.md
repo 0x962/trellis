@@ -182,10 +182,12 @@ apps/web/src/
 │   ├── setup.tsx  settings.tsx  search.tsx  _gallery.tsx
 │   ├── needs-you/         route.tsx + components/ (ReviewSection/, FailingCiSection/, StalledSection/, DoneTodaySection/)
 │   ├── all/               route.tsx, board.tsx
-│   ├── p/$/               route.tsx (splat parser, search schema), board.tsx, settings.tsx
+│   ├── p/$/               route.tsx (splat parser, search schema), board.tsx, components/ProjectSettingsPage/ (lazy chunk)
 │   └── t/$identifier/     route.tsx (full page)
 ├── features/              screen-level modules, each with components/, hooks/, utils/ co-located
-│   ├── ticket/            TicketView (shared by peek and page), Header/, Title/, Description/ (ReadOnlyMarkdown, LazyEditor), PropertiesRail/, SubTickets/, PullRequests/ (PrRow/, CheckRows/, DiffPanel/), Attachments/, Timeline/ (CommentCard/, ActivityLine/, Composer/)
+│   ├── ticket/            TicketView (shared by peek and page), Header/, Title/, Description/ (ReadOnlyMarkdown, LazyEditor), PropertiesRail/, SubTickets/, Timeline/ (CommentCard/, ActivityLine/, Composer/); TicketView owns the one drop target
+│   ├── prs/               PullRequests (GhBanner/, LinkPrField/, RefreshControl/, PullRequestRow/ (PrStateIcon/, CheckCountPill/, CheckRows/, OpenInMargin/ (Show diff opens margin), PrActions/, MergedNudge/))
+│   ├── attachments/       AttachmentGrid (AttachmentRow/, AttachmentActions/, lightbox), AttachmentBox/, DropTarget/, UploadProgress/, hooks/useUploads
 │   ├── table/             TicketTable, columns.tsx, GroupHeader/, Row/, BulkBar/, DisplayPopover/, hooks/useTableData (two-tier loading)
 │   ├── board/             Board, Column/, Card/, hooks/useBoardDnd, useBoardData
 │   ├── filters/           FilterBar, FilterChip/, grammar.ts (URL ⇄ query ⇄ CLI), presets.ts
@@ -226,7 +228,7 @@ packages/cli/src/
 ├── sse.ts                 minimal SSE reader for watch
 ├── instructions.md        imported as text
 └── commands/              one file per verb: projects.ts, statuses.ts, create.ts, show.ts, list.ts, edit.ts, move.ts, comment.ts, attach.ts, pr.ts, sub.ts, delete.ts, search.ts, activity.ts, brief.ts, inbox.ts, watch.ts, open.ts, whoami.ts, status.ts, logs.ts, serve.ts, install.ts, backup.ts, restore.ts, export.ts
-packages/cli/test/          smoke.test.ts (spawned server), perf.test.ts, actor.test.ts, output.test.ts
+packages/cli/test/          smoke.test.ts (spawned server), coldStart.perf.ts, actor.test.ts, output.test.ts
 ```
 
 ### Test taxonomy
@@ -338,7 +340,7 @@ Web: one EventSource per origin. The tab holding `navigator.locks("trellis-sse")
 
 ## PR and CI polling (`apps/server/src/gh/`)
 
-One `gh api graphql` request per 50 PRs, aliased `repository(owner, name) { pullRequest(number) { number title state isDraft url headRefName baseRefName mergedAt closedAt reviewDecision commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes { ... on CheckRun { name status conclusion detailsUrl checkSuite { workflowRun { workflow { name } } } } ... on StatusContext { context state targetUrl } } } } } } } } }`. One process per tick regardless of PR count. `link` and `refresh` use the same query for one PR. Rows are written only when a content hash changes.
+One `gh api graphql` request per 50 PRs, aliased `repository(owner, name) { pullRequest(number) { number title state isDraft url headRefName baseRefName mergedAt closedAt reviewDecision commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes { ... on CheckRun { name status conclusion startedAt detailsUrl checkSuite { workflowRun { event workflow { name } } } } ... on StatusContext { context state targetUrl createdAt } } } } } } } } }`. One process per tick regardless of PR count. `link` and `refresh` use the same query for one PR. Rows are written only when a content hash changes. GitHub keeps a re-run beside the run it replaces, so `normalizeChecks` keeps one node per name, workflow, and event (a StatusContext per context name) and takes the node that started last, as `gh pr checks` does.
 
 Cadence: pending checks 30 s; open, not pending 120 s; merged or closed within a day 10 min; never for PRs on done or canceled tickets or older closed PRs. `gh api rate_limit` every 5 min; under 20% remaining, intervals × 4 and a `gh.status` event. Slots: 2 poller, 1 interactive (diff, refresh, link). gh missing or unauthenticated: recheck every 60 s, one log line per state change, a banner in the web and one line in the CLI, no crash loop.
 

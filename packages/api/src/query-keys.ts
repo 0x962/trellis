@@ -14,7 +14,14 @@ import {
 import { realScheduler, type Scheduler } from "./scheduler.ts";
 import type { Ticket } from "./schemas/ticket.ts";
 import { createSettleCheck } from "./settleCheck.ts";
-import { holdsTicketRows, isDetail, patchTicketQuery, type TicketChange } from "./ticketPatches.ts";
+import {
+	holdsTicketRow,
+	holdsTicketRows,
+	isCounts,
+	isDetail,
+	patchTicketQuery,
+	type TicketChange,
+} from "./ticketPatches.ts";
 import { createTombstones } from "./tombstones.ts";
 
 export { INBOX_MAX_WAIT_MS, INBOX_TRAILING_MS, MAX_WAIT_MS, TRAILING_MS } from "./invalidationCoalescer.ts";
@@ -43,14 +50,21 @@ type TicketEvent = Extract<TrellisEvent, { type: "ticket.created" | "ticket.upda
 // A ticket change with the event kind the cache reacts to.
 type HeldChange = TicketChange & { created: boolean };
 
+// The projects list carries `openCount` and `needsYouCount`, and no
+// project event follows a ticket change. So it refetches with the lists.
 const membershipMatchers = [
 	family("tickets", "list"),
 	family("tickets", "board"),
 	family("tickets", "counts"),
 	family("inbox", "get"),
+	family("projects", "list"),
 ];
 
 const isInboxMatcher = (matcher: Matcher) => matcher.path[0] === "inbox";
+
+// True when the change can move a ticket into or out of a filtered list.
+const changesMembership = (change: HeldChange) =>
+	change.created || change.deleted || change.fields.some((field) => membershipFields.has(field));
 
 const toChange = (event: TicketEvent): HeldChange => ({
 	summary: event.summary,
@@ -121,29 +135,33 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	// Returns the id of every cached parent whose `children` lost a row. One
 	// change walks the cache once, however many queries the cache holds. A
 	// query with a fetch in flight, or with no data yet, gets the change
-	// recorded for the settle check. That check compares every row of the
-	// result with the record, and a query whose rows are behind refetches.
-	// A delete is recorded for every such query, because the result can
-	// hold the deleted row. A query that was invalidated before the patch refetches once
-	// more after it, because `setQueryData` clears the invalidated flag. A
-	// detail that took a description event refetches, so the text catches up.
-	const patchTicket = (change: TicketChange) => {
+	// recorded for the settle check. The record says whether the query had
+	// no data or held the row. A change at the cached version patches
+	// nothing, so the row's presence decides, not the patch. The check
+	// reads every row of the result. A
+	// row below its recorded version, or an expected row the result lacks,
+	// makes the query refetch. A counts result holds no row, so a
+	// membership change is recorded and makes counts refetch at settle. A
+	// query that was invalidated before the patch refetches once more after
+	// it, because `setQueryData` clears the invalidated flag. A detail that
+	// took a description event refetches, so the text catches up.
+	const patchTicket = (change: HeldChange) => {
 		const parentsThatLostAChild: string[] = [];
 		const { id } = change.summary;
 		const description = change.fields.includes("description");
+		const membership = changesMembership(change);
 		for (const query of queryClient.getQueryCache().getAll()) {
 			const data = query.state.data;
 			const fetching = query.state.fetchStatus !== "idle";
+			const settles = fetching && (holdsTicketRows(query.queryKey) || (isCounts(query.queryKey) && membership));
 			if (data === undefined) {
-				if (fetching && holdsTicketRows(query.queryKey)) settle.record(query, change);
+				if (settles) settle.record(query, change, true);
 				continue;
 			}
 			const detail = isDetail(query.queryKey);
 			const own = detail && (data as { id: unknown }).id === id;
 			const patched = patchTicketQuery(query.queryKey, data, change);
-			if (fetching && (patched !== undefined || (change.deleted && holdsTicketRows(query.queryKey)))) {
-				settle.record(query, change);
-			}
+			if (settles) settle.record(query, change, holdsTicketRow(query.queryKey, data, id));
 			if (patched === undefined) continue;
 			const invalidated = query.state.isInvalidated;
 			queryClient.setQueryData(query.queryKey, patched);
@@ -166,7 +184,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		}
 		const parentsThatLostAChild = patchTicket(change);
 		const membership = change.created || change.deleted;
-		if (membership || fields.some((field) => membershipFields.has(field))) enqueue(membershipMatchers);
+		if (changesMembership(change)) enqueue(membershipMatchers);
 		if ((membership || fields.some((field) => parentFields.has(field))) && summary.parent !== null) {
 			enqueue(ticketDetail(summary.parent.id));
 		}

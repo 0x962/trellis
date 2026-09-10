@@ -6,7 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!**/dist", "!**/.turbo", "!**/drizzle/meta", "!docs/design/mockup.html"]
+		"includes": ["**", "!**/dist", "!**/.turbo", "!**/drizzle/meta", "!**/routeTree.gen.ts", "!docs/design/mockup.html"]
 	},
 	"css": {
 		"parser": {
@@ -61,6 +61,16 @@
 			"includes": ["packages/ui/src/tokens.css"],
 			"formatter": {
 				"enabled": false
+			}
+		},
+		{
+			"includes": ["apps/mobile/global.css"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noUnknownAtRules": "off"
+					}
+				}
 			}
 		},
 		{
@@ -301,7 +311,7 @@
 			}
 		},
 		{
-			"includes": ["apps/server/src/db/**"],
+			"includes": ["apps/server/src/db/**", "apps/server/test/helpers/**"],
 			"linter": {
 				"rules": {
 					"style": {
@@ -327,6 +337,16 @@
 								]
 							}
 						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/server/src/services/**"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noUnusedFunctionParameters": "off"
 					}
 				}
 			}

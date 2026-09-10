@@ -1,0 +1,16 @@
+{
+	"expo": {
+		"name": "trellis",
+		"slug": "trellis",
+		"version": "0.1.0",
+		"scheme": "trellis",
+		"orientation": "portrait",
+		"userInterfaceStyle": "automatic",
+		"newArchEnabled": true,
+		"ios": {
+			"bundleIdentifier": "co.nvdk.trellis",
+			"supportsTablet": false
+		},
+		"plugins": ["expo-router"]
+	}
+}

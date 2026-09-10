@@ -6,6 +6,10 @@ import { useEffect } from "react";
 // every platform.
 export type Hotkey = string;
 
+export type HotkeyOptions = {
+	allowInInput?: boolean;
+};
+
 const editable = (target: EventTarget | null) =>
 	target instanceof HTMLElement &&
 	(target.isContentEditable ||
@@ -17,8 +21,8 @@ const editable = (target: EventTarget | null) =>
 const latin = (value: string) => /^[a-z]$/i.test(value);
 
 // Runs `handler` on keydown of `hotkey` anywhere on the page. A key without
-// mod stays out of text fields, so typing "a" in the composer never approves
-// a ticket; a mod chord fires everywhere. A letter or a named key (Enter)
+// mod stays out of text fields unless `allowInInput` is true. A mod chord
+// fires everywhere. A letter or a named key (Enter)
 // reads the same with Shift held, so the Shift state tells "p" from
 // "shift+p". A punctuation key such as "?" is itself the shifted form on many
 // layouts, so its Shift state is ignored.
@@ -31,7 +35,7 @@ const latin = (value: string) => /^[a-z]$/i.test(value);
 // "alt+" needs Alt released, so Alt+A, a text-entry chord on a Mac, fires
 // no plain "a". A punctuation or digit key without "alt+" accepts Alt
 // either way, because Option+5 on a German Mac produces "[".
-export function useHotkey(hotkey: Hotkey, handler: (event: KeyboardEvent) => void) {
+export function useHotkey(hotkey: Hotkey, handler: (event: KeyboardEvent) => void, options: HotkeyOptions = {}) {
 	useEffect(() => {
 		const parts = hotkey.split("+");
 		const key = parts[parts.length - 1]!.toLowerCase();
@@ -50,10 +54,10 @@ export function useHotkey(hotkey: Hotkey, handler: (event: KeyboardEvent) => voi
 			if (alt && !event.altKey) return;
 			if (!alt && !punctuation && event.altKey) return;
 			if (!punctuation && event.shiftKey !== shift) return;
-			if (!mod && editable(event.target)) return;
+			if (!mod && !options.allowInInput && editable(event.target)) return;
 			handler(event);
 		};
-		document.addEventListener("keydown", onKeyDown);
-		return () => document.removeEventListener("keydown", onKeyDown);
-	}, [hotkey, handler]);
+		document.addEventListener("keydown", onKeyDown, { capture: true });
+		return () => document.removeEventListener("keydown", onKeyDown, { capture: true });
+	}, [hotkey, handler, options.allowInInput]);
 }

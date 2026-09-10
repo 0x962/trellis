@@ -1,0 +1,1 @@
+export { GlobalHotkeys } from "./GlobalHotkeys";

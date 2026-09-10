@@ -118,6 +118,9 @@ const isInfinite = (queryKey: QueryKey) => (queryKey[1] as { type?: string } | u
 // True for a `tickets.get` key: `[["tickets", "get"], options]`.
 export const isDetail = (queryKey: QueryKey) => pathName(queryKey) === "tickets.get";
 
+// True for a `tickets.counts` key. A counts result holds no ticket row.
+export const isCounts = (queryKey: QueryKey) => pathName(queryKey) === "tickets.counts";
+
 const rowReaders: Record<string, (data: unknown) => TicketSummary[]> = {
 	"tickets.list": (data) => (data as ListOutput).items,
 	"tickets.board": (data) => (data as BoardOutput).columns.flatMap((column) => column.items),
@@ -142,6 +145,11 @@ export const ticketRows = (queryKey: QueryKey, data: unknown): TicketSummary[] =
 	const reader = rowReaders[name];
 	return reader === undefined ? [] : reader(data);
 };
+
+// True when the entry holds a row with the id: the detail's own row, one of
+// its children, or an item of a page, a column, or a section.
+export const holdsTicketRow = (queryKey: QueryKey, data: unknown, id: string) =>
+	ticketRows(queryKey, data).some((row) => row.id === id);
 
 // Returns the patched data for one cache entry, or undefined when the entry
 // does not change.

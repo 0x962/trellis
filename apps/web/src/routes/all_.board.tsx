@@ -1,0 +1,62 @@
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { Board } from "../features/board";
+import { isCanonicalSearch } from "../features/filters/canonical";
+import { FilterBar } from "../features/filters/FilterBar";
+import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../features/filters/grammar";
+import { sortLabel } from "../features/filters/labels";
+import { ListFooter } from "../features/shell/ListFooter";
+import { Topbar } from "../features/shell/Topbar";
+import { type ListView, ViewSwitch } from "../features/shell/ViewSwitch";
+import { TicketPeek } from "../features/ticket/TicketPeek";
+import { useScopeStatuses } from "../hooks/useScopeStatuses";
+import type { AppContext } from "../lib/appContext";
+import { useApp } from "../lib/appContext";
+
+const countsOptions = (context: AppContext, search: Partial<View>) =>
+	context.orpc.tickets.counts.queryOptions({ input: toCountsQuery(viewOf(search)) });
+
+// Every ticket across every project as a board with one column per status
+// category. The URL carries the view in the shared grammar, with no
+// default written.
+export const Route = createFileRoute("/all_/board")({
+	validateSearch: (search: Record<string, unknown>) => stripDefaults(parseSearch(search)),
+	beforeLoad: ({ location, search }) => {
+		if (!isCanonicalSearch(location.searchStr, search)) {
+			throw redirect({ to: "/all/board", search, replace: true });
+		}
+	},
+	loaderDeps: ({ search }) => search,
+	loader: ({ context, deps }) => context.queryClient.ensureQueryData(countsOptions(context, deps)),
+	component: AllBoardPage,
+});
+
+function AllBoardPage() {
+	const search = Route.useSearch();
+	const navigate = useNavigate();
+	const context = useApp();
+	const statuses = useScopeStatuses();
+	const view = viewOf(search);
+	const counts = useQuery(countsOptions(context, search)).data;
+
+	const setSearch = (next: Partial<View>) => navigate({ to: "/all/board", search: stripDefaults(next) });
+
+	const switchView = (next: ListView) => {
+		if (next === "table") void navigate({ to: "/all", search });
+	};
+
+	const openTicket = (identifier: string) => navigate({ to: "/all/board", search: { ...search, peek: identifier } });
+
+	return (
+		<>
+			<Topbar actions={<ViewSwitch value="board" onChange={switchView} />}>
+				<h1 className="text-md font-semibold text-fg">All tickets</h1>
+			</Topbar>
+			<FilterBar search={search} onSearchChange={setSearch} statuses={statuses} />
+			<Board filters={toCountsQuery(view)} storageKey="all" onOpenTicket={openTicket}>
+				<TicketPeek />
+			</Board>
+			<ListFooter total={counts?.total} sort={sortLabel(view.sort)} />
+		</>
+	);
+}

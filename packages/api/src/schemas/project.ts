@@ -84,8 +84,11 @@ export const ProjectCreateInputSchema = z
 	);
 export type ProjectCreateInput = z.input<typeof ProjectCreateInputSchema>;
 
+// `key` applies to a root and only while its ticket counter is zero; `slug`
+// applies to a sub-project, whose slug is its path segment.
 export const ProjectUpdateInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
+	key: KeySchema.optional(),
 	name: ProjectNameSchema.optional(),
 	slug: SlugSchema.optional(),
 	description: z.string().optional(),

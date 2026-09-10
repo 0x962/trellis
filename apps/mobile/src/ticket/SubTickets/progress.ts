@@ -1,0 +1,15 @@
+import type { TicketSummary } from "@trellis/api";
+
+// The numbers behind the sub-ticket bar. `share` is `done / total`, 0 to 1.
+export type SubTicketProgress = {
+	done: number;
+	total: number;
+	share: number;
+};
+
+// Null for a ticket without children, so the screen hides the section.
+export const subTicketProgress = (children: readonly TicketSummary[]): SubTicketProgress | null => {
+	if (children.length === 0) return null;
+	const done = children.filter((child) => child.status.category === "done").length;
+	return { done, total: children.length, share: done / children.length };
+};

@@ -6,13 +6,22 @@ export { TicketId, type TicketIdProps } from "./domain/TicketId";
 export { type Hotkey, useHotkey } from "./hooks/useHotkey";
 export { useMediaQuery } from "./hooks/useMediaQuery";
 export { useReducedMotion } from "./hooks/useReducedMotion";
-export { type ResolvedTheme, type ThemeMode, themeStorageKey, useTheme } from "./hooks/useTheme";
+export { type ResolvedTheme, setTheme, type ThemeMode, themeStorageKey, useTheme } from "./hooks/useTheme";
 export { type ActorKind, Avatar, type AvatarProps } from "./primitives/Avatar";
 export { Badge, type BadgeProps, type BadgeTone } from "./primitives/Badge";
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from "./primitives/Button";
 export { Checkbox, type CheckboxProps } from "./primitives/Checkbox";
 export { Chip, type ChipProps } from "./primitives/Chip";
-export { Command, type CommandItem, type CommandProps } from "./primitives/Command";
+export {
+	Command,
+	type CommandFieldProps,
+	type CommandGroup,
+	type CommandGroupProps,
+	type CommandItem,
+	type CommandProps,
+	type CommandRootProps,
+	type CommandRowProps,
+} from "./primitives/Command";
 export { Dialog, type DialogProps } from "./primitives/Dialog";
 export { EmptyState, type EmptyStateProps } from "./primitives/EmptyState";
 export { IconButton, type IconButtonProps } from "./primitives/IconButton";

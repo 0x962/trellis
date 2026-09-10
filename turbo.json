@@ -1,6 +1,6 @@
 {
 	"$schema": "https://turbo.build/schema.json",
-	"globalPassThroughEnv": ["TRELLIS_HOME", "TRELLIS_PORT", "TRELLIS_CHECK_NESTED"],
+	"globalPassThroughEnv": ["TRELLIS_*"],
 	"tasks": {
 		"dev": {
 			"cache": false,

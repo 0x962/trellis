@@ -1,6 +1,6 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { cx } from "../../utils/cx";
 import { IconButton } from "../IconButton";
 
@@ -15,8 +15,15 @@ export type SheetProps = {
 	// stays reachable and focusable, and only Escape or the close button
 	// closes it.
 	modal?: boolean;
-	// The panel width in px. A resizable peek passes the width it holds.
-	width?: number;
+	// The panel width: a number in px, or a CSS width such as "100%". A
+	// resizable peek passes the width it holds.
+	width?: number | string;
+	// A bare sheet draws no header of its own. The title stays in the DOM
+	// for assistive tech, and the caller draws the visible header.
+	bare?: boolean;
+	// The element that takes focus when the sheet opens. Base UI's own
+	// rule, the first tabbable element, applies when this is absent.
+	initialFocus?: ComponentProps<typeof BaseDialog.Popup>["initialFocus"];
 	// The element a resizable peek drags to change its width. The Sheet places
 	// it on the edge that faces the page; the drag logic belongs to the caller.
 	resizeHandle?: ReactNode;
@@ -45,6 +52,8 @@ export function Sheet({
 	side = "right",
 	modal = true,
 	width = 720,
+	bare = false,
+	initialFocus,
 	resizeHandle,
 	children,
 	className,
@@ -61,7 +70,9 @@ export function Sheet({
 					<BaseDialog.Backdrop className="fixed inset-0 z-50 bg-scrim transition-opacity duration-peek ease-out data-starting-style:opacity-0 data-ending-style:opacity-0" />
 				)}
 				<BaseDialog.Popup
+					aria-label={title}
 					aria-modal={modal ? "true" : "false"}
+					initialFocus={initialFocus}
 					style={{ width }}
 					className={cx(
 						"fixed inset-y-0 z-50 flex max-w-full flex-col border-border bg-surface text-base text-fg shadow-lg outline-none",
@@ -73,10 +84,14 @@ export function Sheet({
 						className,
 					)}
 				>
-					<header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-4">
-						<BaseDialog.Title className="flex-1 truncate font-mono text-sm text-fg-muted">{title}</BaseDialog.Title>
-						<BaseDialog.Close render={<IconButton label="Close" icon={<X />} />} />
-					</header>
+					{bare ? (
+						<BaseDialog.Title className="sr-only">{title}</BaseDialog.Title>
+					) : (
+						<header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-4">
+							<BaseDialog.Title className="flex-1 truncate font-mono text-sm text-fg-muted">{title}</BaseDialog.Title>
+							<BaseDialog.Close render={<IconButton label="Close" icon={<X />} />} />
+						</header>
+					)}
 					<div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
 					{resizeHandle && (
 						<div className={cx("absolute inset-y-0 z-10 flex", side === "right" ? "left-0" : "right-0")}>

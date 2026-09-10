@@ -1,0 +1,1 @@
+export { isThumbnailImage } from "./isThumbnailImage";

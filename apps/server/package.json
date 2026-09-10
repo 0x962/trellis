@@ -1,0 +1,31 @@
+{
+	"name": "@trellis/server",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun --watch src/index.ts",
+		"start": "bun src/index.ts",
+		"test": "bun test",
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"db:generate": "drizzle-kit generate",
+		"perf:10k": "TRELLIS_PERF_ROWS=10000 bun test ./test/perf/list.perf.ts ./test/perf/search.perf.ts ./test/perf/boot.perf.ts ./test/perf/poller.perf.ts ./test/perf/memory.perf.ts ./src/db/worker.drift.perf.ts",
+		"perf": "TRELLIS_PERF_ROWS=50000 bun test ./test/perf/list.perf.ts ./test/perf/search.perf.ts"
+	},
+	"dependencies": {
+		"@electric-sql/pglite": "0.5.8",
+		"@orpc/contract": "1.15.0",
+		"@orpc/openapi": "1.15.0",
+		"@orpc/server": "1.15.0",
+		"@orpc/zod": "1.15.0",
+		"@trellis/api": "workspace:*",
+		"drizzle-kit": "0.31.10",
+		"drizzle-orm": "0.45.2",
+		"hono": "4.13.7",
+		"ulid": "3.0.2",
+		"zod": "4.5.4"
+	},
+	"devDependencies": {
+		"@orpc/client": "1.15.0"
+	}
+}

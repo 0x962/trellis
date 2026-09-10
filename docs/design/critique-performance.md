@@ -6,7 +6,7 @@ Budgets are for Navid's Mac (Apple Silicon) against a seeded DB. CI enforces the
 
 | # | Metric | Target | How measured | Enforcing test |
 |---|---|---|---|---|
-| 1 | Cold boot to first request | `/api/health` = 200 (after migrations, `ANALYZE`, ready) <= 1.5 s warm data dir; <= 3.5 s first run (initdb + `pg_trgm`) | Spawn server, poll health with 10 ms interval, wall clock | `apps/server/test/perf/boot.test.ts` |
+| 1 | Cold boot to first request | `/api/health` = 200 (after migrations, `ANALYZE`, ready) <= 1.5 s warm data dir; <= 3.5 s first run (initdb + `pg_trgm`) | Spawn server, poll health with 10 ms interval, wall clock | `apps/server/test/perf/boot.perf.ts` |
 | 2 | `tickets.list` p95 (default table query: 5-project subtree, status filter, active only, sort priority desc, updated desc, limit 50, no total) | 1k: 5 ms; 10k: 10 ms; 50k: 20 ms. With `filter.q` (FTS, no trigram) at 50k: 40 ms | `Server-Timing: db;dur=` header, 200 runs, p95 | `apps/server/test/perf/list.test.ts` |
 | 2b | `tickets.board` (all active columns, <= 100 cards per column) and `tickets.counts` (per-status counts, same filters) at 50k | 30 ms each | same | same file |
 | 3 | `search.query` p95 at 50k | 40 ms (websearch + trigram, limit 20); `KEY-n` path 3 ms | same | `apps/server/test/perf/search.test.ts` |
@@ -15,14 +15,14 @@ Budgets are for Navid's Mac (Apple Silicon) against a seeded DB. CI enforces the
 | 6 | Ticket open | Peek from cache: summary fields <= 50 ms, full body <= 100 ms; cold: <= 250 ms to full content; `j`/`k` step <= 50 ms | Playwright `performance.now()` between keypress and `[data-loaded]` | `apps/web/e2e/peek.spec.ts` |
 | 7 | Web bundle | Initial route JS (shell + table) <= 220 KB gz; Tiptap chunk <= 200 KB gz lazy; diff chunk <= 350 KB gz lazy; total <= 900 KB gz; fonts <= 160 KB (2 latin files) | `vite build` manifest sizes | `apps/web/scripts/size-budget.ts` run in `check` |
 | 7b | First paint | FCP <= 300 ms; list rows painted <= 600 ms cold (empty HTTP cache), <= 150 ms warm | Playwright `performance.getEntriesByType('paint')` | `apps/web/e2e/paint.spec.ts` |
-| 8 | Server memory at 50k | RSS <= 350 MB idle; <= 550 MB peak during backup or a 50 MB upload | `rss` in `/api/health` | `apps/server/test/perf/memory.test.ts` |
+| 8 | Server memory at 50k | RSS <= 350 MB idle; <= 550 MB peak during backup or a 50 MB upload | `rss` in `/api/health` | `apps/server/test/perf/memory.perf.ts` |
 | 9 | Poller cost per tick | <= 1 `gh` process per 50 due PRs plus 1 per declared repo per auto-link tick; <= 250 ms CPU per tick; <= 1,200 GitHub requests/hour with 20 pending PRs; interactive `gh pr diff` <= 2 s | Stub `gh` counts spawns and records args; `process.cpuUsage()` around `tick()` | `apps/server/test/gh/poller.perf.test.ts` |
 | 10 | Attachment upload | 50 MB <= 1.0 s end to end (>= 50 MB/s); event-loop stall during upload <= 50 ms; serve 50 MB <= 300 ms | `fetch` timing; a 10 ms `setInterval` drift probe in the server test process | `apps/server/test/perf/attachments.test.ts` |
-| 11 | CLI cold start | `trellis --help` <= 60 ms; `trellis list --json` <= 150 ms wall p95 including the round trip (built bundle); <= 300 ms from source | 20 spawns, p95 | `packages/cli/test/perf.test.ts` |
+| 11 | CLI cold start | `trellis --help` <= 60 ms; `trellis list --json` <= 150 ms wall p95 including the round trip (built bundle); <= 300 ms from source | 20 spawns, p95 | `packages/cli/test/coldStart.perf.ts` |
 | 12 | Mobile list scroll | 500-row list >= 55 fps on iPhone 12 / Pixel 5 class; cold open with persisted cache <= 1.5 s to first rows; SSE reconnect on foreground <= 1 s | Manual, Expo perf monitor, recorded in the M6 review verdict | Design constraints enforced by review (FlashList, fixed heights, summaries only); no automated gate in v1 |
 | 13 | Log growth | <= 60 MB total on disk, ever | Rotating sink 10 MB x 5 files; GET requests not logged at `info` | `apps/server/test/log.test.ts` (rotation at size) |
 | 14 | Backup at 50k | Hold (no queries served) <= 1.5 s; archive <= 150 MB; total <= 15 s | Timed `POST /api/backup` on the 50k seed | `apps/server/test/perf/backup.test.ts` |
-| 15 | Boot migrations | <= 100 ms when nothing to apply; each new migration logs its duration | Timer around migrator | part of `boot.test.ts` |
+| 15 | Boot migrations | <= 100 ms when nothing to apply; each new migration logs its duration | Timer around migrator | part of `boot.perf.ts` |
 | 16 | Mutation p95 (`tickets.update`, `create`, `move`, `comments.create`) under 5 concurrent agents | <= 15 ms server time each; 20 writes/s sustained with list p95 still under target 2 | Parallel `fetch` loop against the seeded server | `apps/server/test/perf/concurrency.test.ts` |
 
 ## 2. Problems, ranked

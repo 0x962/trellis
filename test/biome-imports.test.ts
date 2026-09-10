@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 // A probe project lives under TRELLIS_HOME, outside this repo, so Biome reads
@@ -40,7 +40,7 @@ const createProbe = (name: string) => {
 		return { exitCode: result.exitCode, errors };
 	};
 
-	return { write, lint };
+	return { dir, write, lint };
 };
 
 // One import per root restriction, keyed by the fixture name.
@@ -65,9 +65,13 @@ const overrideDirs = [
 	"packages/cli",
 	"apps/server",
 	"apps/server/src/db",
+	"apps/server/test/helpers",
 	"apps/web",
 	"apps/mobile",
 ];
+
+// The directories whose files may import db/client.
+const clientImporters = ["apps/server/src/db", "apps/server/test/helpers"];
 
 describe("biome import rules", () => {
 	test("a probe with only allowed imports passes lint with exit 0", () => {
@@ -197,8 +201,9 @@ describe("biome import rules", () => {
 		expect(exitCode).not.toBe(0);
 		for (const dir of overrideDirs) {
 			for (const name of Object.keys(refused)) {
-				// apps/server/src/db holds the client, so a file there imports it.
-				const allowed = dir === "apps/server/src/db" && name === "client";
+				// apps/server/src/db holds the client, so a file there imports it. The
+				// test helpers open the database every test file runs against.
+				const allowed = clientImporters.includes(dir) && name === "client";
 				if (allowed) {
 					expect(errors).not.toContain(`${dir}/${name}.ts:${rule}`);
 				} else {
@@ -207,5 +212,37 @@ describe("biome import rules", () => {
 			}
 			expect(errors).not.toContain(`${dir}/mini.ts:${rule}`);
 		}
+	});
+
+	// The probe root mirrors the repo's own layout under the copied biome.json,
+	// so the `apps/server/**` and `apps/server/src/db/**` overrides apply to the
+	// same relative paths they match in the repo. `biome check` is the command
+	// `bun run lint` runs. Nothing is written inside the repo: `bun run check`
+	// runs lint and this test at the same time over the same tree.
+	test("biome refuses an import of db/client from outside db/", () => {
+		const { write, dir } = createProbe("committed");
+		write("apps/server/src/db/client.ts", "export const openDb = 1;\n");
+		write(
+			"apps/server/src/services/probe.ts",
+			'import { openDb } from "../db/client.ts";\n\nexport const probe = openDb;\n',
+		);
+		write("apps/server/src/db/probe.ts", 'import { openDb } from "./client.ts";\n\nexport const probe = openDb;\n');
+		const check = (file: string) => {
+			const result = Bun.spawnSync([join(root, "node_modules/.bin/biome"), "check", "--vcs-enabled=false", file], {
+				cwd: dir,
+				stdout: "pipe",
+				stderr: "pipe",
+			});
+			return { exitCode: result.exitCode, output: result.stdout.toString() + result.stderr.toString() };
+		};
+		const bad = check("apps/server/src/services/probe.ts");
+		expect(bad.exitCode).not.toBe(0);
+		expect(bad.output).toContain("noRestrictedImports");
+		expect(bad.output).toContain("deadlocks the server");
+		const good = check("apps/server/src/db/probe.ts");
+		expect(good.output).not.toContain("noRestrictedImports");
+		expect(good.exitCode).toBe(0);
+		expect(existsSync(join(root, "apps/server/src/services/probe.ts"))).toBe(false);
+		expect(existsSync(join(root, "apps/server/src/db/probe.ts"))).toBe(false);
 	});
 });

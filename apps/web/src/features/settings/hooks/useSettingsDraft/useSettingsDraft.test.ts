@@ -1,0 +1,54 @@
+import { beforeEach, describe, expect, test } from "bun:test";
+import { act, waitFor } from "@testing-library/react";
+import { createFakeServer } from "../../../../../test/fake-server";
+import { interceptFetch } from "../../../../../test/interceptFetch";
+import { mockMatchMedia } from "../../../../../test/media";
+import { renderHookWithProviders } from "../../../../../test/renderHook";
+import { useSettingsDraft } from "./useSettingsDraft";
+
+beforeEach(() => {
+	localStorage.clear();
+	mockMatchMedia(false);
+});
+
+describe("useSettingsDraft", () => {
+	// The name field saves on blur, and a person types the next field while
+	// that save runs. The save that returns keeps every edit it did not carry.
+	test("a save keeps the edits made while it was in flight", async () => {
+		const held = interceptFetch(createFakeServer(), { match: (text) => text.includes("settings/set") });
+		const view = renderHookWithProviders(() => useSettingsDraft(), undefined, {
+			path: "/settings",
+			actor: "navid",
+			server: held.server,
+		});
+		await waitFor(() => expect(view.result.current.saved).toBeDefined());
+
+		act(() => void view.result.current.edit({ defaultActorName: "Nav" }));
+		let saving: Promise<unknown> = Promise.resolve();
+		act(() => {
+			saving = view.result.current.save({ defaultActorName: "Nav" });
+		});
+		await waitFor(() => expect(held.held()).toBe(1));
+		act(() => void view.result.current.edit({ startWithAgentTemplate: 'codex exec "{brief}"' }));
+		await act(async () => {
+			held.release();
+			await saving;
+		});
+
+		expect(view.result.current.saved?.defaultActorName).toBe("Nav");
+		expect(view.result.current.draft.defaultActorName).toBeUndefined();
+		expect(view.result.current.draft.startWithAgentTemplate).toBe('codex exec "{brief}"');
+
+		let second: Promise<unknown> = Promise.resolve();
+		act(() => {
+			second = view.result.current.save({});
+		});
+		await waitFor(() => expect(held.held()).toBe(1));
+		await act(async () => {
+			held.release();
+			await second;
+		});
+		expect(view.result.current.saved?.startWithAgentTemplate).toBe('codex exec "{brief}"');
+		expect(view.result.current.draft).toEqual({});
+	});
+});
