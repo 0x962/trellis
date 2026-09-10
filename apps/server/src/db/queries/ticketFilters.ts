@@ -59,15 +59,17 @@ const actorClause = (actor: string) => {
 	) last WHERE last.actor_name = ${name} AND ${kindTest})`;
 };
 
-// The WHERE clause of a ticket query over the aliases `t` (tickets) and `s`
-// (the ticket's status). `q` matches the FTS column only; the trigram path
-// belongs to search.
+// The ticket's status, for the category and reviewer clauses.
+const statusWhere = (test: SQL) => sql`EXISTS (SELECT 1 FROM statuses fs WHERE fs.id = t.status_id AND ${test})`;
+
+// The WHERE clause of a ticket query over the alias `t` (tickets). `q`
+// matches the FTS column only; the trigram path belongs to search.
 export const filterWhere = (filter: TicketFilter): SQL => {
 	const clauses: SQL[] = [sql`true`];
 	if (filter.projectIds) clauses.push(sql`t.project_id = ANY(${textArray(filter.projectIds)})`);
 	if (filter.statusIds) clauses.push(sql`t.status_id = ANY(${textArray(filter.statusIds)})`);
-	if (filter.categories) clauses.push(sql`s.category = ANY(${textArray(filter.categories)})`);
-	if (filter.reviewer) clauses.push(sql`s.reviewer = ${filter.reviewer}`);
+	if (filter.categories) clauses.push(statusWhere(sql`fs.category = ANY(${textArray(filter.categories)})`));
+	if (filter.reviewer) clauses.push(statusWhere(sql`fs.reviewer = ${filter.reviewer}`));
 	if (filter.priority) clauses.push(sql`t.priority = ANY(${textArray(filter.priority)})`);
 	if (filter.parent === "none") clauses.push(sql`t.parent_id IS NULL`);
 	else if (filter.parent) clauses.push(sql`t.parent_id = ${filter.parent}`);

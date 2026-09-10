@@ -11,17 +11,21 @@ export type BoardInput = TicketFilter & { statusIds: readonly string[] };
 
 export const BOARD_COLUMN_LIMIT = 100;
 
-// One statement: every ticket of the filter is ranked inside its column by
-// (position, id) and counted per column; only the first 100 of each column
-// become summary rows. A column without tickets reads count 0.
+// One statement. Each column aggregates its tickets in one index scan: the
+// count, and the first 100 ids by (position, id). A column without tickets
+// reads count 0. `page` is MATERIALIZED so the planner looks each id up by
+// primary key. An inlined `page` makes the planner scan every ticket.
 export const board = async (tx: Tx, input: BoardInput): Promise<BoardOutput> => {
-	const page = sql`ranked AS (
-		SELECT t.id, t.status_id,
-			row_number() OVER (PARTITION BY t.status_id ORDER BY t.position, t.id) AS rn,
-			count(*) OVER (PARTITION BY t.status_id)::int AS total
-		FROM tickets t JOIN statuses s ON s.id = t.status_id
-		WHERE t.status_id = ANY(${textArray(input.statusIds)}) AND ${filterWhere(input)}
-	), page AS (SELECT id, status_id, rn, total FROM ranked WHERE rn <= ${BOARD_COLUMN_LIMIT})`;
+	const page = sql`page AS MATERIALIZED (
+		SELECT u.id, col.status_id, u.rn::int AS rn, agg.total
+		FROM unnest(${textArray(input.statusIds)}) AS col(status_id)
+		CROSS JOIN LATERAL (
+			SELECT count(*)::int AS total,
+				(array_agg(t.id ORDER BY t.position, t.id))[1:${sql.raw(String(BOARD_COLUMN_LIMIT))}] AS ids
+			FROM tickets t WHERE t.status_id = col.status_id AND ${filterWhere(input)}
+		) agg
+		CROSS JOIN LATERAL unnest(agg.ids) WITH ORDINALITY AS u(id, rn)
+	)`;
 	const found = await rows<SummaryRow & { total: number }>(
 		tx,
 		summaryStatement(page, sql`, page.total`, sql`page.status_id, page.rn`),
