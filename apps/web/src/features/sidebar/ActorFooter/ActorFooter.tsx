@@ -1,17 +1,21 @@
 import { Link } from "@tanstack/react-router";
 import { ActorHeaderSchema } from "@trellis/api";
-import { Avatar, Button, IconButton, Input, Popover } from "@trellis/ui";
+import { Avatar, Button, IconButton, Input, Popover, toast } from "@trellis/ui";
 import { CircleHelp, Settings } from "lucide-react";
 import { type FormEvent, useState } from "react";
-import { setActorName, useActor } from "../../../lib/actor";
+import { useActor } from "../../../lib/actor";
+import { useApp } from "../../../lib/appContext";
+import { saveActorName } from "../../../lib/identity";
 import { openShortcutHelp } from "../../command/ShortcutHelp";
 
 const iconLinkClass =
 	"inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-fg-muted transition duration-hover hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
 
 // The bottom of the sidebar: who you are, the settings, and the keyboard
-// help. The actor chip opens a rename popover; Enter stores the new name.
+// help. The actor chip opens a rename popover; Enter stores the new name on
+// the server and in this browser.
 export function ActorFooter() {
+	const app = useApp();
 	const actor = useActor()!;
 	const [open, setOpen] = useState(false);
 	const [draft, setDraft] = useState(actor.name);
@@ -24,7 +28,9 @@ export function ActorFooter() {
 
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
-		setActorName(draft.trim());
+		saveActorName(app, draft.trim()).catch((error: Error) =>
+			toast.error("Couldn't save the name", { description: error.message }),
+		);
 		setOpen(false);
 	};
 

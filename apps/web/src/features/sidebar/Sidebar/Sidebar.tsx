@@ -11,6 +11,7 @@ import { toggleTheme, useTheme } from "../../../lib/theme";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { needsYouCount } from "../../needs-you/utils/needsYouCount";
 import { ActorFooter } from "../ActorFooter";
+import { ArchivedProjects } from "../ArchivedProjects";
 import { ProjectTree } from "../ProjectTree";
 import { ConnectionDot } from "./components/ConnectionDot";
 
@@ -93,6 +94,7 @@ export function Sidebar() {
 			</div>
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<ProjectTree />
+				<ArchivedProjects />
 			</div>
 			<ActorFooter />
 		</aside>

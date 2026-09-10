@@ -85,6 +85,7 @@ export const createEmptyState = (now: number): State => {
 
 export const seedState = (now: number): State => {
 	const state = createEmptyState(now);
+	state.defaultActorStored = true;
 	const at = new Date(now - 30 * day).toISOString();
 	const cde = addRoot(state, "CDE", "Superset CDE", 0, at);
 	const web = addChild(state, cde, "web", "web", 0, at);

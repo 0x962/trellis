@@ -1,12 +1,16 @@
 import { Input } from "@trellis/ui";
 import { useState } from "react";
 import { setActorName } from "../../../lib/actor";
+import { useApp } from "../../../lib/appContext";
+import { rememberStoredName } from "../../../lib/identity";
 import { useSettingsDraft } from "../hooks/useSettingsDraft";
 import { SettingsRow } from "../SettingsRow";
 
-// The name every write is attributed to. A save writes it to the settings and
-// stores it as the web actor, so the next request carries it.
+// The name every write is attributed to. A save writes it to the settings,
+// which every browser reads, and stores it as the web actor, so the next
+// request carries it.
 export function ActorNameField() {
+	const app = useApp();
 	const { saved, draft, edit, save } = useSettingsDraft();
 	const [message, setMessage] = useState<string | null>(null);
 	if (saved === undefined) return null;
@@ -21,7 +25,9 @@ export function ActorNameField() {
 		setMessage(null);
 		if (name === saved.defaultActorName) return;
 		setActorName(name);
-		void save({ defaultActorName: name });
+		void save({ defaultActorName: name }).then((stored) => {
+			if (stored !== undefined) rememberStoredName(app, stored.defaultActorName);
+		});
 	};
 
 	return (

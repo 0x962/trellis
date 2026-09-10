@@ -5,6 +5,9 @@ import { suggestKey } from "../../../lib/projectKey";
 export type ProjectStepProps = {
 	// The keys already in use.
 	taken: readonly string[];
+	// The names of the root projects. A new root takes none of them, compared
+	// without case.
+	takenNames: readonly string[];
 	onCreate: (input: { key: string; name: string }) => Promise<void>;
 };
 
@@ -13,11 +16,15 @@ const keyPattern = /^[A-Z][A-Z0-9]{1,4}$/;
 
 // Step 2 of the first run, and the form behind "New project" later. The key
 // follows the name until the person edits it. Every edit is validated live.
-export function ProjectStep({ taken, onCreate }: ProjectStepProps) {
+export function ProjectStep({ taken, takenNames, onCreate }: ProjectStepProps) {
 	const [name, setName] = useState("");
 	const [editedKey, setEditedKey] = useState<string | null>(null);
 	const [pending, setPending] = useState(false);
-	const key = editedKey ?? (name.trim() === "" ? "" : suggestKey(name, taken));
+	const trimmed = name.trim();
+	const nameError = takenNames.some((taken) => taken.toLowerCase() === trimmed.toLowerCase())
+		? `A project named ${trimmed} exists.`
+		: null;
+	const key = editedKey ?? (trimmed === "" ? "" : suggestKey(name, taken));
 	const isTaken = taken.includes(key);
 	const keyError =
 		key === ""
@@ -27,12 +34,12 @@ export function ProjectStep({ taken, onCreate }: ProjectStepProps) {
 				: isTaken
 					? `${key} is taken.`
 					: null;
-	const ready = name.trim() !== "" && key !== "" && keyError === null && !pending;
+	const ready = trimmed !== "" && nameError === null && key !== "" && keyError === null && !pending;
 
 	const submit = async (event: FormEvent) => {
 		event.preventDefault();
 		setPending(true);
-		await onCreate({ key, name: name.trim() });
+		await onCreate({ key, name: trimmed });
 	};
 
 	return (
@@ -45,14 +52,18 @@ export function ProjectStep({ taken, onCreate }: ProjectStepProps) {
 					A project owns a key. Every ticket in it and under it is numbered with that key.
 				</p>
 			</div>
-			<Input
-				label="Project name"
-				value={name}
-				autoFocus
-				autoComplete="off"
-				spellCheck={false}
-				onChange={(event) => setName(event.target.value)}
-			/>
+			<div className="flex flex-col gap-1">
+				<Input
+					label="Project name"
+					value={name}
+					invalid={nameError !== null}
+					autoFocus
+					autoComplete="off"
+					spellCheck={false}
+					onChange={(event) => setName(event.target.value)}
+				/>
+				{nameError !== null && <p className="text-sm text-danger">{nameError}</p>}
+			</div>
 			<div className="flex flex-col gap-1">
 				<Input
 					label="Key"
