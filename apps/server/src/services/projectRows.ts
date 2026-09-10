@@ -75,6 +75,18 @@ export const assertKeyFree = async (tx: Tx, key: string) => {
 	if (found.length > 0) throw fail("DUPLICATE", { field: "key" });
 };
 
+// Two active root projects never share a name, compared without letter case.
+// An archived root does not hold its name. `exceptId` is the root that the
+// caller renames or restores, so a root never collides with its own name.
+export const assertRootNameFree = async (tx: Tx, name: string, exceptId: string | null) => {
+	const found = await rows<{ id: string }>(
+		tx,
+		sql`SELECT id FROM projects WHERE parent_id IS NULL AND archived_at IS NULL
+			AND lower(name) = lower(${name}) AND id IS DISTINCT FROM ${exceptId}`,
+	);
+	if (found.length > 0) throw fail("DUPLICATE", { field: "name" });
+};
+
 // One project-level activity batch: `ticket_id` null, the project and its root.
 export const projectActivity = (ctx: ServiceCtx, tx: Tx, projectId: string, action: string, changes: Change[]) =>
 	record(ctx, tx, { rootId: ctx.cache.get(projectId).rootId, projectId, ticketId: null, action, changes });
