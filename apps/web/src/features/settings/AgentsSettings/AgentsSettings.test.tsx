@@ -71,6 +71,15 @@ describe("AgentsSettings", () => {
 		expect(screen.getAllByRole("group")).toHaveLength(roots.length);
 	});
 
+	// The manager prompt reaches a manager as command text, so the block of
+	// its project is the one place a human can read it.
+	test("each project block opens the manager instructions", async () => {
+		const server = createFakeServer();
+		render(server);
+		expect(within(await projectGroup("CDE")).getByRole("button", { name: "Manager instructions" })).toBeDefined();
+		expect(within(await projectGroup("TRL")).getByRole("button", { name: "Manager instructions" })).toBeDefined();
+	});
+
 	test("turning a manager on saves the project row with the defaults", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
