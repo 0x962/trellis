@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { checkRun, graphqlReply } from "../../test/fixtures";
 import { createTestApp, type TestApp } from "../../test/helpers/app.ts";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
-import { ghStub, type StubReply } from "../../test/helpers/gh-stub.ts";
+import { type GhStubHandle, ghStub, type StubReply } from "../../test/helpers/gh-stub.ts";
 import { createGhRunner } from "../gh/run.ts";
 
 // The pull request procedures over /api against the gh stub: an idempotent
@@ -43,6 +43,48 @@ const appWithGh = async (replies: Record<string, StubReply>) => {
 };
 
 const link = (prUrl = url) => t.api("/api/tickets/CDE-1/prs", { method: "POST", body: { url: prUrl } });
+
+// Starts `call`, waits until the gh stub logs its spawn, and returns the
+// time in ms a ticket list takes while that gh process still runs.
+const readDuringGh = async (handle: GhStubHandle, call: () => Promise<unknown>) => {
+	const pending = call();
+	while (handle.spawns().length === 0) await Bun.sleep(10);
+	const started = performance.now();
+	const list = await t.api("/api/tickets?limit=5");
+	const ms = performance.now() - started;
+	expect(list.status).toBe(200);
+	await pending;
+	return ms;
+};
+
+describe("gh outside the transaction", () => {
+	test("a ticket read completes while a slow gh call of a link runs", async () => {
+		const handle = await appWithGh({ "api graphql": { ...reply(), delayMs: 2000 } });
+
+		const ms = await readDuringGh(handle, () => link());
+
+		expect(ms).toBeLessThan(1000);
+		expect((await t.api("/api/tickets/CDE-1/prs")).body).toHaveLength(1);
+	});
+
+	test("a ticket read completes while a slow gh call of a refresh runs", async () => {
+		const handle = await appWithGh({ "api graphql": reply() });
+		const linked = await link();
+		handle.reply("api graphql", { ...reply(), delayMs: 2000 });
+		const before = handle.spawns().length;
+		const refresh = () => t.api(`/api/prs/${linked.body.id}/refresh`, { method: "POST" });
+
+		const pending = refresh();
+		while (handle.spawns().length === before) await Bun.sleep(10);
+		const started = performance.now();
+		const list = await t.api("/api/tickets?limit=5");
+		const ms = performance.now() - started;
+		await pending;
+
+		expect(list.status).toBe(200);
+		expect(ms).toBeLessThan(1000);
+	});
+});
 
 describe("pullRequests", () => {
 	test("pullRequests.link is idempotent", async () => {
