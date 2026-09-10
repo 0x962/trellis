@@ -218,6 +218,19 @@ To pair the phone:
 
 To pair without the QR code, type the server URL and tap Test connection. The app shows the server version and the ticket count.
 
+## Security model
+
+trellis is a single-user tool for one machine.
+
+- The server binds `127.0.0.1` by default, so only this machine reaches it.
+- The server has no authentication.
+- The header `x-trellis-actor` records who made a write. It is a label, not authentication.
+- CORS allows the development origins only, so a page on another origin cannot read the API.
+- `--host 0.0.0.0` puts the tickets, the attachments, the backups, and the export on your network.
+- trellis reads GitHub through the `gh` binary and its local login. trellis stores no token.
+
+Read [SECURITY.md](SECURITY.md) for the full model and for how to report a vulnerability.
+
 ## Data and backups
 
 trellis keeps all data in `~/.trellis`. To use a different directory, set `TRELLIS_HOME`. To use a port other than 4521, set `TRELLIS_PORT`.
