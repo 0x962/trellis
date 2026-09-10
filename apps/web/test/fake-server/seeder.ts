@@ -1,4 +1,5 @@
 import type { ActorRef, CheckBucket, Priority, ReviewState } from "@trellis/api";
+import { seedAttachmentBytes } from "./seedAttachmentBytes";
 import { addActivity, newId, type ProjectRow, type State, statusesOf, type TicketRow } from "./state";
 
 export const minute = 60 * 1000;
@@ -276,7 +277,7 @@ export const createSeeder = (state: State, now: number) => {
 		at: number,
 	) => {
 		const id = newId();
-		const bytes = new TextEncoder().encode("a".repeat(size));
+		const bytes = seedAttachmentBytes(mime, size);
 		const sha256 = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
 		state.attachments.set(id, {
 			id,
