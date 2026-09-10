@@ -28,6 +28,24 @@ describe("lib/orpc", () => {
 		expect(requests[0]!.headers.get("x-trellis-client")).toMatch(/^api\//);
 	});
 
+	// A review key pressed the moment the Approve button shows needs the
+	// statuses of the ticket's project. The statuses read leaves at once, as
+	// the ticket detail read does, so it never waits for a batch of slower
+	// reads such as the timeline.
+	test("a statuses read leaves at once and never waits in a batch", async () => {
+		setActorName("navid");
+		const server = createFakeServer();
+		const paths: string[] = [];
+		const { client } = createOrpc({
+			fetch: (request, init) => {
+				paths.push(new URL(request.url).pathname);
+				return server.app.request(request, init);
+			},
+		});
+		await Promise.all([client.statuses.list({ project: "CDE" }), client.projects.list({}), client.inbox.get({})]);
+		expect(paths.sort()).toEqual(["/rpc/__batch__", "/rpc/statuses/list"]);
+	});
+
 	// WS-18. applyEvent patches the cache under the keys the tanstack utils
 	// build, so the app must query through those utils. SSE keeps every
 	// entity current, so a query never goes stale by time and never retries.
