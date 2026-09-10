@@ -10,18 +10,21 @@ const h = ticketHarness();
 
 describe("status invariant across the service tests", () => {
 	test("every service test ends with the status invariant intact", async () => {
-		// Every service test gets its database from `serviceHarness` or from
-		// `ticketHarness`, and both run `assertStatusInvariant` after every
-		// service call. A file that opened its own database would skip that
-		// check, so no file in this directory calls `freshDb` or `openDb`.
-		// This file names both functions to look for them, so it skips itself.
+		// Every service test that writes rows proves the status invariant after
+		// the writes. `serviceHarness` and `ticketHarness` run
+		// `assertStatusInvariant` for the files that take their database from
+		// them. A file that opens its own database with `freshDb`, `openDb`, or
+		// `diskDb` runs the check itself, so it names `assertStatusInvariant`.
+		// This file names all four functions to look for them, so it skips
+		// itself.
 		const files = readdirSync(import.meta.dir).filter((file) => file.endsWith(".test.ts") && file !== import.meta.file);
-		const ownDatabase = files.filter((file) => {
+		const unchecked = files.filter((file) => {
 			const source = readFileSync(join(import.meta.dir, file), "utf8");
-			return source.includes("freshDb(") || source.includes("openDb(");
+			const ownDatabase = source.includes("freshDb(") || source.includes("openDb(") || source.includes("diskDb(");
+			return ownDatabase && !source.includes("assertStatusInvariant");
 		});
 		expect(files.length).toBeGreaterThan(1);
-		expect(ownDatabase).toEqual([]);
+		expect(unchecked).toEqual([]);
 
 		// The moves that touch the invariant, run in sequence, leave every
 		// ticket on a status of owner(ticket.project).
