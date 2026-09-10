@@ -1,36 +1,33 @@
-import { createRootRouteWithContext, Link, Outlet, redirect, useRouter, useRouterState } from "@tanstack/react-router";
+import { createRootRouteWithContext, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { EmptyState, Toaster } from "@trellis/ui";
-import { useCallback } from "react";
+import { CommandPalette } from "../features/command/CommandPalette";
+import { ShortcutHelp } from "../features/command/ShortcutHelp";
+import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { ReconnectBanner } from "../features/shell/ReconnectBanner";
-import { openShortcuts, ShortcutsDialog } from "../features/shell/ShortcutsDialog";
 import { Sidebar } from "../features/sidebar/Sidebar";
 import { hasActor } from "../lib/actor";
 import { type RouterContext, useApp } from "../lib/appContext";
-import { HotkeyScope } from "../lib/hotkeys";
-import { uiActions } from "../stores/uiStore";
 
 // The two pages that render without the shell: the first run and the
 // design gallery.
 const bare = (pathname: string) => pathname === "/setup" || pathname.startsWith("/_gallery");
-
-// `g p`: the sidebar's project tree is the project picker until the
-// command palette exists. A collapsed sidebar opens first.
-const focusProjectTree = () => {
-	uiActions.setSidebarCollapsed(false);
-	requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-project-tree] a")?.focus());
-};
 
 const linkClass =
 	"inline-flex h-7 items-center rounded-md border border-border bg-surface px-2.5 text-sm font-medium text-fg transition duration-hover hover:bg-bg hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
 
 // Every page but the bare two needs an identity and a project. Without an
 // identity the app opens the first run; without a project it opens the
-// project step of the same form.
+// project step of the same form. The settings come with the projects in
+// one batched request, because the palette reads the agent command
+// template on the first Cmd+K.
 export const Route = createRootRouteWithContext<RouterContext>()({
 	beforeLoad: async ({ context, location }) => {
 		if (bare(location.pathname)) return;
 		if (!hasActor()) throw redirect({ to: "/setup", replace: true });
-		const projects = await context.queryClient.fetchQuery(context.orpc.projects.list.queryOptions({ input: {} }));
+		const [projects] = await Promise.all([
+			context.queryClient.fetchQuery(context.orpc.projects.list.queryOptions({ input: {} })),
+			context.queryClient.ensureQueryData(context.orpc.settings.get.queryOptions()),
+		]);
 		if (projects.length === 0) throw redirect({ to: "/setup", search: { step: "project" }, replace: true });
 	},
 	component: RootComponent,
@@ -39,9 +36,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent() {
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
-	const router = useRouter();
 	const { live, scheduler } = useApp();
-	const navigate = useCallback((href: string) => void router.navigate({ href }), [router]);
 
 	if (bare(pathname)) {
 		return (
@@ -62,14 +57,9 @@ function RootComponent() {
 				</main>
 			</div>
 			<div data-command-palette="" hidden />
-			<HotkeyScope
-				navigate={navigate}
-				pathname={pathname}
-				onProjectPicker={focusProjectTree}
-				onHelp={openShortcuts}
-				scheduler={scheduler}
-			/>
-			<ShortcutsDialog />
+			<GlobalHotkeys />
+			<CommandPalette />
+			<ShortcutHelp />
 			<Toaster />
 		</div>
 	);

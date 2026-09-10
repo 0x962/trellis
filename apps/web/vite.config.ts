@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
@@ -21,6 +22,11 @@ export const createConfig = (env: Record<string, string | undefined>): UserConfi
 	const target = env.TRELLIS_API_URL ?? defaultApiUrl;
 	return {
 		plugins: [tanstackRouter(routerPluginOptions), react(), tailwindcss()],
+		resolve: {
+			// cmdk pulls a whole second overlay library for a dialog this app
+			// never renders. See src/lib/emptyRadixDialog.ts.
+			alias: { "@radix-ui/react-dialog": fileURLToPath(new URL("./src/lib/emptyRadixDialog.ts", import.meta.url)) },
+		},
 		server: {
 			// One address for the browser, the proxy, and Playwright.
 			host: "127.0.0.1",

@@ -1,5 +1,5 @@
 import { os } from "../implementer";
-import { textMatches } from "../listing";
+import { textMatches, titleMatches } from "../listing";
 import {
 	identifierOf,
 	isOpen,
@@ -112,10 +112,14 @@ export const search = {
 		const exact = identifierPattern.test(q)
 			? rows.find((row) => identifierOf(state, row) === q.toUpperCase())
 			: undefined;
-		const matches = rows
-			.filter((row) => row !== exact && textMatches(row, q))
-			.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
-		const tickets = [...(exact === undefined ? [] : [exact]), ...matches].slice(0, input.limit);
+		const byWord = (order: number) => (a: TicketRow, b: TicketRow) => (a.updatedAt < b.updatedAt ? order : -order);
+		// The identifier first, then the rows whose text holds every typed
+		// word, then the rows a typo reaches.
+		const matches = rows.filter((row) => row !== exact && textMatches(row, q)).sort(byWord(1));
+		const near = rows
+			.filter((row) => row !== exact && !matches.includes(row) && titleMatches(row.title, q))
+			.sort(byWord(1));
+		const tickets = [...(exact === undefined ? [] : [exact]), ...matches, ...near].slice(0, input.limit);
 		const needle = q.toLowerCase();
 		const projects = projectsInOrder(state).filter(
 			(row) =>

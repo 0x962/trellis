@@ -2,6 +2,13 @@ import { Command as Cmdk } from "cmdk";
 import { Search } from "lucide-react";
 import { cx } from "../../utils/cx";
 import { CommandDialog } from "./components/CommandDialog";
+import { CommandEmpty } from "./components/CommandEmpty";
+import { CommandField } from "./components/CommandField";
+import { CommandFooter } from "./components/CommandFooter";
+import { CommandGroup } from "./components/CommandGroup";
+import { CommandList } from "./components/CommandList";
+import { CommandRoot } from "./components/CommandRoot";
+import { CommandRow, commandRowClass } from "./components/CommandRow";
 
 export type CommandItem = {
 	// The value `onSelect` receives, such as a ticket identifier. It is also
@@ -55,7 +62,7 @@ export function Command({
 						onSelect={() => onSelect(item.id)}
 						data-hint={item.hint}
 						className={cx(
-							"flex h-8 cursor-default items-center gap-2 rounded-sm px-2 text-base text-fg outline-none select-none data-[selected=true]:bg-bg",
+							commandRowClass,
 							"after:ml-auto after:font-mono after:text-xs after:text-fg-faint after:content-[attr(data-hint)] after:tabular",
 						)}
 					>
@@ -67,4 +74,12 @@ export function Command({
 	);
 }
 
+// The composed form: a palette builds its own field, groups, and rows.
 Command.Dialog = CommandDialog;
+Command.Root = CommandRoot;
+Command.Field = CommandField;
+Command.List = CommandList;
+Command.Group = CommandGroup;
+Command.Row = CommandRow;
+Command.Footer = CommandFooter;
+Command.Empty = CommandEmpty;
