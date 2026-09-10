@@ -1,4 +1,5 @@
 import { mkdirSync } from "node:fs";
+import { networkInterfaces } from "node:os";
 import type { GhStatus } from "@trellis/api";
 import { ulid } from "ulid";
 import pkg from "../package.json";
@@ -9,6 +10,7 @@ import { createInlineTransport, createWorkerTransport } from "./db/transport.ts"
 import { createBus } from "./events/bus.ts";
 import { createGhRunner } from "./gh/run.ts";
 import { lockHome } from "./homeLock.ts";
+import { listenAddresses } from "./listen.ts";
 import { createLogger, createRotatingSink, type LogSink, stdoutSink, teeSink } from "./log.ts";
 import { checkGh } from "./services/system.ts";
 import { sweep } from "./storage/blobs.ts";
@@ -70,7 +72,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		// turns that timer off and the stream stays open.
 		const server = Bun.serve({
 			port: config.port,
-			hostname: "127.0.0.1",
+			hostname: config.host,
 			idleTimeout: 0,
 			fetch: (request) => handler(request),
 		});
@@ -86,7 +88,15 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 
 		const bootId = ulid();
 		const bus = createBus({ bootId });
-		const runtime = { version: pkg.version, bootId, gh, ghStatus: () => ghState };
+		// TRELLIS_PORT=0 lets the kernel pick the port, so `server.port` is the
+		// real port.
+		const runtime = {
+			version: pkg.version,
+			bootId,
+			gh,
+			ghStatus: () => ghState,
+			addresses: async () => listenAddresses(config.host, server.port!, networkInterfaces()),
+		};
 		const database = config.dbInline ? await openDatabase(config.dbDir) : undefined;
 		const transport = database
 			? createInlineTransport({ db: database.db, bus, config, runtime, applied: database.applied })
@@ -97,7 +107,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		log.info("sweep", { removedBlobs: swept.removedBlobs.length, removedTemp: swept.removedTemp.length });
 		const { app, bye } = createApp({ config, log, transport, bus, runtime });
 		handler = app.fetch;
-		log.info("listening", { port: server.port, home: config.home, version: pkg.version });
+		log.info("listening", { host: config.host, port: server.port, home: config.home, version: pkg.version });
 		for (const hook of hooks) await hook.start();
 
 		let stopping = false;

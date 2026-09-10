@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { networkInterfaces } from "node:os";
 import { join } from "node:path";
 import { ghStub } from "../test/helpers/gh-stub.ts";
 import { freshHome } from "../test/helpers/home.ts";
 import { type SpawnedServer, spawnServer, stopServer } from "../test/helpers/server.ts";
 import { readSse } from "../test/helpers/sse.ts";
 import { boot, type StartHook } from "./index.ts";
+import { listenAddresses } from "./listen.ts";
 
 // The boot sequence: config, the data home directories, the blob sweep, the
 // database and its migrations, the gh check off the boot path, then listen.
@@ -121,6 +123,50 @@ describe("boot", () => {
 		const lines = [...server.stderr, ...server.records.filter((record) => record.level === "error").map((r) => r.msg)];
 		expect(lines).toHaveLength(1);
 		expect(lines[0]).toMatch(/PG_VERSION|db|database|PGlite/i);
+	});
+});
+
+// The server binds TRELLIS_HOST, and system.health names every URL it
+// answers on. `::1` proves the bind: that listener refuses 127.0.0.1 on every
+// machine, and the default listener refuses `::1`.
+describe("the listen host", () => {
+	const healthAt = async (url: string) => (await fetch(`${url}/api/health`)).json() as Promise<{ addresses: string[] }>;
+
+	test("the server binds 127.0.0.1 by default and health lists that one address", async () => {
+		const server = start(freshHome());
+		const { port } = await server.listening();
+
+		const body = await healthAt(`http://127.0.0.1:${port}`);
+
+		expect(body.addresses).toEqual([`http://127.0.0.1:${port}`]);
+		await expect(fetch(`http://[::1]:${port}/api/health`)).rejects.toThrow();
+	});
+
+	test("TRELLIS_HOST moves the listener, and health lists its address", async () => {
+		const server = spawnServer({ home: freshHome(), env: { TRELLIS_HOST: "::1" } });
+		servers.push(server);
+		const { port } = await server.listening();
+
+		const body = await healthAt(`http://[::1]:${port}`);
+
+		expect(body.addresses).toEqual([`http://[::1]:${port}`]);
+		await expect(fetch(`http://127.0.0.1:${port}/api/health`)).rejects.toThrow();
+		expect(server.records.find((record) => record.msg === "listening")).toMatchObject({ host: "::1", port });
+	});
+
+	// A VPN tunnel address is listed but refuses a connection from this machine,
+	// so the test reaches the first listed address and the loopback one. The
+	// first one is the primary network address when the machine has one.
+	test("TRELLIS_HOST=0.0.0.0 lists every IPv4 address and answers on the first and on loopback", async () => {
+		const server = spawnServer({ home: freshHome(), env: { TRELLIS_HOST: "0.0.0.0" } });
+		servers.push(server);
+		const { port } = await server.listening();
+
+		const body = await healthAt(`http://127.0.0.1:${port}`);
+
+		expect(body.addresses).toEqual(listenAddresses("0.0.0.0", port, networkInterfaces()));
+		expect(body.addresses).toContain(`http://127.0.0.1:${port}`);
+		expect((await fetch(`${body.addresses[0]}/api/health`)).status).toBe(200);
 	});
 });
 

@@ -18,7 +18,13 @@ const startWorker = async () => {
 	const bootId = ulid();
 	const bus = createBus({ bootId });
 	const config = loadConfig({ TRELLIS_HOME: freshHomeWithDirs() });
-	const runtime: Runtime = { version: "0.1.0-test", bootId, gh: noGh, ghStatus: signedInGh };
+	const runtime: Runtime = {
+		version: "0.1.0-test",
+		bootId,
+		gh: noGh,
+		ghStatus: signedInGh,
+		addresses: async () => ["http://127.0.0.1:4521"],
+	};
 	const transport = createWorkerTransport({ bus, config, runtime });
 	transports.push(transport);
 	await transport.start();

@@ -94,6 +94,10 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			void runtime.gh(data.slot, data.args).then((result) => send({ type: "ghResult", id: data.id, result }));
 			return;
 		}
+		if (data.type === "addresses") {
+			void runtime.addresses().then((addresses) => send({ type: "addressesResult", id: data.id, addresses }));
+			return;
+		}
 		if (data.type === "stream") {
 			const stream = new ReadableStream<Uint8Array>({
 				start(controller) {

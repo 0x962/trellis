@@ -4,12 +4,19 @@ import { installationPaths } from "../installation.ts";
 
 export default defineCommand({
 	meta: { name: "serve", description: "Run the server in the foreground" },
+	args: {
+		host: {
+			type: "string",
+			description: "Listen on this address; 0.0.0.0 lets a phone on the network reach the server, which has no auth",
+		},
+	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const paths = installationPaths(ctx.deps.env, ctx.deps.home);
+		const host = context.args.host;
 		const proc = Bun.spawn([process.execPath, paths.serverEntry], {
 			cwd: paths.repoRoot,
-			env: ctx.deps.env,
+			env: host === undefined ? ctx.deps.env : { ...ctx.deps.env, TRELLIS_HOST: host },
 			stdin: "inherit",
 			stdout: "inherit",
 			stderr: "inherit",

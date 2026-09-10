@@ -126,6 +126,9 @@
 	--color-danger-soft: var(--danger-soft);
 	--color-scrim: var(--scrim);
 	--color-on-accent: var(--on-accent);
+	/* A camera reads a QR code as dark modules on a light ground, so these two stay fixed in both themes. */
+	--color-qr-ink: #0A0A0A;
+	--color-qr-paper: #FFFFFF;
 	--color-transparent: transparent;
 	--color-current: currentColor;
 

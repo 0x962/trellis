@@ -17,7 +17,11 @@ type Paths = ReturnType<typeof installationPaths>;
 const xml = (value: string) =>
 	value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 
-const plistText = (paths: Paths) => `<?xml version="1.0" encoding="UTF-8"?>
+// The server binds 127.0.0.1 when the plist sets no TRELLIS_HOST.
+const hostEntry = (host: string | undefined) =>
+	host === undefined ? "" : `\t\t<key>TRELLIS_HOST</key>\n\t\t<string>${xml(host)}</string>\n`;
+
+const plistText = (paths: Paths, host: string | undefined) => `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -40,7 +44,7 @@ const plistText = (paths: Paths) => `<?xml version="1.0" encoding="UTF-8"?>
 		<string>production</string>
 		<key>TRELLIS_WEB_DIST</key>
 		<string>${xml(paths.webDist)}</string>
-	</dict>
+${hostEntry(host)}	</dict>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>KeepAlive</key>
@@ -89,6 +93,10 @@ export default defineCommand({
 	args: {
 		prefix: { type: "string", description: "Write install files under this test root" },
 		gateway: { type: "boolean", description: "Add the trellis route to margin" },
+		host: {
+			type: "string",
+			description: "Listen on this address; 0.0.0.0 lets a phone on the network reach the server, which has no auth",
+		},
 		// citty parses `--no-launchd` as launchd=false, so the flag carries its
 		// positive name and defaults to on.
 		launchd: {
@@ -105,7 +113,7 @@ export default defineCommand({
 		writeFileSync(paths.shim, `#!/bin/sh\nexec ${shimBun} "${paths.cliEntry}" "$@"\n`);
 		chmodSync(paths.shim, 0o755);
 		mkdirSync(dirname(paths.plist), { recursive: true });
-		writeFileSync(paths.plist, plistText(paths));
+		writeFileSync(paths.plist, plistText(paths, context.args.host));
 
 		if (context.args.gateway === true) {
 			const added = addGateway(paths.gateway);

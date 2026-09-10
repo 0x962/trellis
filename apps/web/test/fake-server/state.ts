@@ -88,6 +88,9 @@ export type State = {
 	settings: Settings;
 	// What `system.gh` reports. A test sets it to drive the gh banner.
 	gh: GhStatus;
+	// The URLs `system.health` lists. A test sets it to drive the Pair a
+	// phone section.
+	addresses: string[];
 	nextActivityId: number;
 };
 
@@ -114,6 +117,7 @@ export const createState = (): State => ({
 		message: "gh is not installed. Install it with `brew install gh` and run `gh auth login`.",
 		checkedAt: new Date().toISOString(),
 	},
+	addresses: ["http://192.168.1.20:4521", "http://127.0.0.1:4521"],
 	nextActivityId: 1,
 });
 

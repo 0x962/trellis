@@ -8,6 +8,10 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
 // files, the archives, and the rotating log.
 export type Config = {
 	home: string;
+	// The address the server binds. 127.0.0.1 keeps it on this machine; a
+	// network address or 0.0.0.0 lets a phone reach it, and the server has no
+	// auth.
+	host: string;
 	port: number;
 	maxUploadMb: number;
 	ghBin: string;
@@ -52,6 +56,7 @@ export const loadConfig = (env: Env): Config => {
 	const home = resolve(expandHome(env.TRELLIS_HOME ?? "~/.trellis"));
 	return {
 		home,
+		host: env.TRELLIS_HOST ?? "127.0.0.1",
 		port: env.TRELLIS_PORT === undefined ? 4521 : numberOf("TRELLIS_PORT", env.TRELLIS_PORT),
 		maxUploadMb:
 			env.TRELLIS_MAX_UPLOAD_MB === undefined ? 50 : numberOf("TRELLIS_MAX_UPLOAD_MB", env.TRELLIS_MAX_UPLOAD_MB),

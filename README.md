@@ -107,6 +107,13 @@ The local server owns all database access and sends live updates through server-
 
 trellis stores its database, attachments, backups, and logs under `~/.trellis`.
 Set `TRELLIS_HOME` to use a different directory.
+
+## Pair a phone
+
+The server listens on `127.0.0.1`, so a phone cannot reach it.
+Run `trellis install --host 0.0.0.0` to open it to your network (`trellis serve --host` and `TRELLIS_HOST` do the same).
+The server has no auth, so anyone on the network can reach it.
+Then open Settings in the web app and scan the code under Pair a phone with the trellis phone app.
 Run `trellis backup [dest]` to create a consistent archive while the server stays available.
 The server keeps the ten newest default backups.
 

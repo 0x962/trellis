@@ -19,6 +19,9 @@ export const HealthSchema = z.object({
 	apiVersion: z.string(),
 	bootId: UlidSchema,
 	rss: CountSchema,
+	// Every URL the server answers on, network addresses first. A phone can
+	// reach only an address that is not loopback.
+	addresses: z.array(z.string()),
 	db: z.object({
 		ok: z.boolean(),
 		sizeBytes: CountSchema,

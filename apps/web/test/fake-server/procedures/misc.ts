@@ -23,6 +23,7 @@ export const system = {
 		apiVersion: context.versions.api,
 		bootId: context.bus.bootId,
 		rss: 64 * 1024 * 1024,
+		addresses: context.state.addresses,
 		db: { ok: true, sizeBytes: 8 * 1024 * 1024 },
 		gh: context.state.gh,
 	})),
