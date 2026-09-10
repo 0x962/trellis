@@ -6,7 +6,7 @@ import {
 	persistQueryClientSubscribe,
 } from "@tanstack/query-persist-client-core";
 import type { QueryClient } from "@tanstack/react-query";
-import { keys } from "./store";
+import { keys } from "./keys";
 
 // The part of MMKV the persister touches.
 export type CacheStore = {
