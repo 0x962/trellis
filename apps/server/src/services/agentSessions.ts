@@ -1,4 +1,11 @@
-import type { AgentBatchRecord, AgentRole, AgentRunner, AgentSession, AgentState } from "@trellis/api";
+import {
+	type AgentBatchRecord,
+	type AgentRole,
+	type AgentRunner,
+	type AgentSession,
+	type AgentState,
+	pickAgentPersonName,
+} from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { monotonicFactory } from "ulid";
 import type { Runner } from "../agents/runner.ts";
@@ -42,6 +49,7 @@ type RawSession = {
 	workspace_id: string | null;
 	terminal_id: string | null;
 	claude_session_id: string | null;
+	name: string;
 	title: string;
 	open_url: string | null;
 	last_woken_at: string | null;
@@ -50,7 +58,7 @@ type RawSession = {
 };
 
 const columns = sql`s.id, s.project_id, s.ticket_id, s.role, s.runner, s.state, s.workspace_id, s.terminal_id,
-	s.claude_session_id, s.title, s.open_url, ${iso(sql`s.last_woken_at`)} AS last_woken_at, s.error,
+	s.claude_session_id, s.name, s.title, s.open_url, ${iso(sql`s.last_woken_at`)} AS last_woken_at, s.error,
 	${iso(sql`s.created_at`)} AS created_at`;
 
 const toRow = (raw: RawSession): SessionRow => ({
@@ -63,6 +71,7 @@ const toRow = (raw: RawSession): SessionRow => ({
 	workspaceId: raw.workspace_id,
 	terminalId: raw.terminal_id,
 	claudeSessionId: raw.claude_session_id,
+	name: raw.name,
 	title: raw.title,
 	openUrl: raw.open_url,
 	lastWokenAt: raw.last_woken_at,
@@ -79,6 +88,7 @@ export const toSession = (row: SessionRow): AgentSession => ({
 	state: row.state,
 	workspaceId: row.workspaceId,
 	terminalId: row.terminalId,
+	name: row.name,
 	title: row.title,
 	openUrl: row.openUrl,
 	lastWokenAt: row.lastWokenAt,
@@ -98,6 +108,18 @@ export const sessionById = async (tx: Tx, id: string) => {
 	return found;
 };
 
+// The person name for a new agent of `projectId`. A person calls a running
+// agent by its name, so the answer is none of the names that the live
+// agents of the project hold. The read and the insert of the name belong
+// to one transaction, so two starts at the same time take two names.
+export const reserveName = async (tx: Tx, projectId: string): Promise<string> => {
+	const taken = await rows<{ name: string }>(
+		tx,
+		sql`SELECT name FROM agent_sessions WHERE project_id = ${projectId} AND state IN ${LIVE_STATES}`,
+	);
+	return pickAgentPersonName(taken.map((row) => row.name));
+};
+
 export type SessionInsert = {
 	id: string;
 	projectId: string;
@@ -107,6 +129,7 @@ export type SessionInsert = {
 	workspaceId: string | null;
 	terminalId: string | null;
 	claudeSessionId: string | null;
+	name: string;
 	title: string;
 	openUrl: string | null;
 	error?: string;
@@ -115,9 +138,10 @@ export type SessionInsert = {
 export const insertSession = (ctx: ServiceCtx, tx: Tx, row: SessionInsert) =>
 	tx.execute(sql`
 		INSERT INTO agent_sessions (id, project_id, ticket_id, role, runner, state, workspace_id, terminal_id,
-			claude_session_id, title, open_url, error, created_at, updated_at)
+			claude_session_id, name, title, open_url, error, created_at, updated_at)
 		VALUES (${row.id}, ${row.projectId}, ${row.ticketId}, ${row.role}, 'superset', ${row.state}, ${row.workspaceId},
-			${row.terminalId}, ${row.claudeSessionId}, ${row.title}, ${row.openUrl}, ${row.error ?? null}, ${ctx.now}, ${ctx.now})
+			${row.terminalId}, ${row.claudeSessionId}, ${row.name}, ${row.title}, ${row.openUrl}, ${row.error ?? null},
+			${ctx.now}, ${ctx.now})
 	`);
 
 // The newest manager of a project that trellis did not stop and whose

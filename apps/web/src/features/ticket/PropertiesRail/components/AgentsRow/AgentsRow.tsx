@@ -31,8 +31,10 @@ const refusal = (error: unknown) => {
 };
 
 // The builder and reviewer sessions of one ticket, oldest first, each with
-// its state and a link into its Superset workspace. An agents.session event
-// refetches agents.sessions, so the states follow the runner live.
+// its person name, its role, its state, and a link into its Superset
+// workspace. A person calls an agent by the name, so the name leads the
+// item. An agents.session event refetches agents.sessions, so the states
+// follow the runner live.
 export function AgentsRow({ identifier }: AgentsRowProps) {
 	const { client, orpc, queryClient } = useApp();
 	const options = orpc.agents.sessions.queryOptions({ input: { ticket: identifier } });
@@ -66,7 +68,8 @@ export function AgentsRow({ identifier }: AgentsRowProps) {
 					<ul aria-label="Agent sessions" className="flex flex-col gap-1">
 						{ordered.map((session) => (
 							<li key={session.id} className="flex min-w-0 items-center gap-2">
-								<span>{roleLabels[session.role]}</span>
+								<span>{session.name}</span>
+								<span className="text-fg-muted">{roleLabels[session.role]}</span>
 								<AgentStateBadge state={session.state} />
 								{session.state === "failed" && <AgentFailure id={session.id} error={session.error} />}
 								{session.openUrl !== null && <OpenInSuperset url={session.openUrl} />}

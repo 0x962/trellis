@@ -11,6 +11,10 @@ import { projects } from "./projects.ts";
 // that trellis stores and gives back to the runner unchanged.
 // `claude_session_id` is what the runner resumes an exited agent from.
 // `error` holds what the runner said when it could not start the agent.
+// `name` is the person name a human and a manager call the agent by, such
+// as "Kenji". It stays with the row for the life of the agent, so a
+// resumed session keeps its name. Two live agents of one project hold two
+// names, which reserveName gives them.
 export const agentSessions = pgTable(
 	"agent_sessions",
 	{
@@ -25,6 +29,7 @@ export const agentSessions = pgTable(
 		workspaceId: text("workspace_id"),
 		terminalId: text("terminal_id"),
 		claudeSessionId: text("claude_session_id"),
+		name: text().notNull(),
 		title: text().notNull(),
 		openUrl: text("open_url"),
 		lastWokenAt: at("last_woken_at"),
@@ -36,6 +41,7 @@ export const agentSessions = pgTable(
 		checkIn(t.role, AGENT_ROLES),
 		checkIn(t.runner, AGENT_RUNNERS),
 		checkIn(t.state, AGENT_STATES),
+		check("agent_sessions_name_check", sql`char_length(${t.name}) BETWEEN 1 AND 40`),
 		check("agent_sessions_title_check", sql`char_length(${t.title}) BETWEEN 1 AND 120`),
 		check("agent_sessions_ticket_check", sql`(${t.role} = 'manager') = (${t.ticketId} IS NULL)`),
 		index("agent_sessions_project_id_role_state_idx").on(t.projectId, t.role, t.state),
