@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTable } from "@tanstack/react-table";
 import type { StatusSummary, TicketSummary } from "@trellis/api";
 import { toast } from "@trellis/ui";
-import { type MouseEvent, type ReactNode, useMemo, useRef, useState } from "react";
+import { type MouseEvent, type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useScopeStatuses } from "../../../hooks/useScopeStatuses";
@@ -117,6 +117,23 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 	const blur = useStableCallback(() => {
 		if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
 	});
+
+	// When the peek closes, the focus goes to the row of the ticket that the
+	// peek showed last. Base UI returns the focus only to the element that had
+	// it before the peek opened, and a j or k step just before Escape can make
+	// it skip that return and leave the focus on the page body.
+	// The row can already hold the table focus state, so `focus` can cause no
+	// render. TableBody focuses the row in a passive effect of this same
+	// commit, and that effect runs after this layout effect sets
+	// `pendingFocus`.
+	const lastPeek = useRef(view.peek);
+	useLayoutEffect(() => {
+		const closed = lastPeek.current;
+		lastPeek.current = view.peek;
+		if (closed === undefined || view.peek !== undefined) return;
+		const ticket = tickets.find((row) => row.identifier === closed);
+		if (ticket !== undefined) focus(ticket.id);
+	}, [view.peek, tickets, focus]);
 
 	const applyChange = useApplyChange(mutations, projects);
 	// The rows the peek walks with j and k, in display order. A row in a

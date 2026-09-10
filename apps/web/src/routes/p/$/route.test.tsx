@@ -325,4 +325,38 @@ describe("routes/p/$: the table", () => {
 		expect(rowOf("CDE-37").getAttribute("tabindex")).toBe("-1");
 		expect(rowOf("CDE-37").hasAttribute("data-focused")).toBe(false);
 	});
+
+	// The peek opens here from the URL, so no element had the focus before
+	// it opened. Escape still puts the focus on the row of the ticket that
+	// the peek shows after a j step.
+	test("Escape closes the peek with the focus on the row of the ticket it shows", async () => {
+		const user = userEvent.setup();
+		const { router } = renderApp({ path: "/p/CDE?status=human-review&peek=CDE-42", actor: "navid" });
+		await findGrid();
+		await screen.findByRole("dialog", { name: "CDE-42" });
+		await user.keyboard("j");
+		await waitFor(() => expect(router.state.location.search).not.toMatchObject({ peek: "CDE-42" }));
+		const shown = (router.state.location.search as { peek: string }).peek;
+		await screen.findByRole("dialog", { name: shown });
+		await user.keyboard("{Escape}");
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		expect(router.state.location.search).not.toHaveProperty("peek");
+		await waitFor(() => expect(document.activeElement).toBe(rowOf(shown)));
+	});
+
+	// The row of the shown ticket already has the table focus when the peek
+	// closes, so the close changes no focus state of the table.
+	test("Escape closes the peek with the focus on its row when that row had the focus before", async () => {
+		const user = userEvent.setup();
+		const { router } = renderApp({ path: "/p/CDE?status=human-review&peek=CDE-42", actor: "navid" });
+		await findGrid();
+		const panel = await screen.findByRole("dialog", { name: "CDE-42" });
+		await waitFor(() => rowOf("CDE-42"));
+		rowOf("CDE-42").focus();
+		within(panel).getByRole("textbox", { name: "Title" }).focus();
+		await user.keyboard("{Escape}");
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		expect(router.state.location.search).not.toHaveProperty("peek");
+		await waitFor(() => expect(document.activeElement).toBe(rowOf("CDE-42")));
+	});
 });
