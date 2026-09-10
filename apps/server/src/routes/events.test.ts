@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { ReadyPayloadSchema, TicketEventPayloadSchema } from "@trellis/api";
 import { ulid } from "ulid";
-import { commentEvent, graphqlReply, ticketEvent } from "../../test/fixtures";
+import { commentEvent, graphqlReply, linkPr, seedPr, ticketEvent } from "../../test/fixtures";
 import { createTestApp, type TestApp } from "../../test/helpers/app.ts";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
 import { ghStub } from "../../test/helpers/gh-stub.ts";
@@ -213,6 +213,27 @@ describe("filters", () => {
 		} finally {
 			handle.restore();
 		}
+	});
+
+	test("a ticket stream receives the pr.unlinked of its ticket while another ticket keeps the link", async () => {
+		const first = await t.createTicket({ project: "CDE", title: "One" });
+		const second = await t.createTicket({ project: "CDE", title: "Two" });
+		const pr = await seedPr(t.db, { number: 12 });
+		await linkPr(t.db, first.id, pr);
+		await linkPr(t.db, second.id, pr);
+		const watching = await open("?ticket=CDE-1");
+		const other = await open("?ticket=CDE-2");
+		await nextEvent(watching);
+		await nextEvent(other);
+
+		const response = await t.api(`/api/tickets/CDE-1/prs/${pr}`, { method: "DELETE" });
+		const seen = await nextEvent(watching);
+		const seenByOther = await nextEvent(other);
+
+		expect(response.status).toBe(200);
+		expect(seen.event).toBe("pr.unlinked");
+		expect(dataOf<{ ticketIds: string[] }>(seen).ticketIds).toContain(first.id);
+		expect(seenByOther.event).toBe("pr.unlinked");
 	});
 
 	test("the ticket filter scopes the stream to one ticket", async () => {
