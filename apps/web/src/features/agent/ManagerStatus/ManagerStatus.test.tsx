@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
-import { createEventApplier } from "@trellis/api";
 import userEvent from "@testing-library/user-event";
+import { createEventApplier } from "@trellis/api";
 import { addSession, enableAgents, failedSession, startReason, updateSession } from "../../../../test/agents";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
