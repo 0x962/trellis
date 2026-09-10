@@ -49,7 +49,7 @@ const run = (deps: RowDeps, action: () => void) => () => {
 	action();
 };
 
-const rowsOf = (deps: RowDeps, section: "create" | "goto" | "view", runs: Record<string, () => void>): PaletteRow[] =>
+const rowsOf = (section: "create" | "goto" | "view", runs: Record<string, () => void>): PaletteRow[] =>
 	itemsOfSection(section)
 		.filter((item) => runs[item.id] !== undefined)
 		.map((item) => ({
@@ -79,7 +79,7 @@ export const createRows = (deps: RowDeps): PaletteRow[] => {
 		const project = deps.routeProject;
 		runs["create.subProject"] = run(deps, () => deps.action.navigate(projectHref(project, "settings")));
 	}
-	return rowsOf(deps, "create", runs);
+	return rowsOf("create", runs);
 };
 
 // The board and the table of the project the route names. Off a project
@@ -95,7 +95,7 @@ export const gotoRows = (deps: RowDeps): PaletteRow[] => {
 		runs["goto.board"] = run(deps, () => deps.action.navigate(projectHref(project, "board")));
 		runs["goto.table"] = run(deps, () => deps.action.navigate(projectHref(project, "table")));
 	}
-	const rows = rowsOf(deps, "goto", runs);
+	const rows = rowsOf("goto", runs);
 	const projects = deps.projects.map((row) => ({
 		value: `goto.project.${row.id}`,
 		label: row.path,
@@ -122,5 +122,5 @@ export const viewRows = (deps: RowDeps): PaletteRow[] => {
 		"view.theme": run(deps, toggleTheme),
 		"view.sidebar": run(deps, uiActions.toggleSidebar),
 	};
-	return rowsOf(deps, "view", runs);
+	return rowsOf("view", runs);
 };
