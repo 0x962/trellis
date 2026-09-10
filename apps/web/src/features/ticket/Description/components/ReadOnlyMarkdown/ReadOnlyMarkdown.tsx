@@ -1,5 +1,5 @@
 import { cx, Dialog } from "@trellis/ui";
-import { type MouseEvent, useState } from "react";
+import { type MouseEvent, useMemo, useState } from "react";
 import { renderMarkdown } from "../../../../../lib/markdown";
 
 export type ReadOnlyMarkdownProps = {
@@ -19,6 +19,12 @@ const imageClass = "[&_img]:max-w-full [&_img]:cursor-zoom-in [&_img]:rounded-md
 export function ReadOnlyMarkdown({ markdown, className, formatClassName = "markdown" }: ReadOnlyMarkdownProps) {
 	const [shown, setShown] = useState<Shown | null>(null);
 
+	// React writes the inner HTML again whenever the object under
+	// `dangerouslySetInnerHTML` is a new one, which replaces every rendered
+	// node. One object per text keeps the nodes across a repaint, so a
+	// selection holds and an image keeps its pixels.
+	const html = useMemo(() => ({ __html: renderMarkdown(markdown) }), [markdown]);
+
 	const onClick = (event: MouseEvent) => {
 		const target = event.target as HTMLElement;
 		if (!(target instanceof HTMLImageElement)) return;
@@ -34,7 +40,7 @@ export function ReadOnlyMarkdown({ markdown, className, formatClassName = "markd
 				onClick={onClick}
 				className={cx(formatClassName, imageClass, className)}
 				// biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown sanitizes the HTML it returns.
-				dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
+				dangerouslySetInnerHTML={html}
 			/>
 			{shown !== null && (
 				<Dialog open title={shown.alt} onOpenChange={(open) => !open && setShown(null)} className="w-auto max-w-full">

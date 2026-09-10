@@ -8,26 +8,28 @@ test.beforeAll(() => {
 
 // The browser and the server share the wall clock, so a `Date.now()` stamp
 // in the page compares with the server's `updatedAt`. The observer stamps
-// the first mutation after which the watched row shows the status.
-const rowProbe = (identifier: string, status: string) => `(() => {
+// the first mutation after which the watched row carries the status. The
+// table groups by status, so a row states its status as its group and
+// draws no status cell.
+const rowProbe = (identifier: string, group: string) => `(() => {
 	window.__patchedAt = 0;
 	new MutationObserver(() => {
 		if (window.__patchedAt !== 0) return;
-		const row = document.querySelector('[role="row"][data-identifier="${identifier}"]');
-		if (row !== null && row.textContent.includes("${status}")) window.__patchedAt = Date.now();
-	}).observe(document, { subtree: true, childList: true, characterData: true });
+		const row = document.querySelector('[role="row"][data-identifier="${identifier}"][data-group="${group}"]');
+		if (row !== null) window.__patchedAt = Date.now();
+	}).observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
 })();`;
 
 // M2: a `trellis move` from the CLI patches the open table row. The event
 // time is the `updatedAt` the move commits, which the event summary carries.
 test("live > a trellis move from the CLI patches the open table row within 500 ms @timing", async ({ page }) => {
 	const ticket = createTicket("LIV", `Watch the row ${Date.now()}`);
-	await page.addInitScript(rowProbe(ticket.identifier, "In Progress"));
+	await page.addInitScript(rowProbe(ticket.identifier, "in-progress"));
 	await signIn(page, "/p/LIV");
 	const row = page.locator(`[role="row"][data-identifier="${ticket.identifier}"]`);
-	await expect(row).toContainText("Todo");
+	await expect(row).toHaveAttribute("data-group", "todo");
 	const moved = moveTicket(ticket.identifier, "in-progress");
-	await expect(row).toContainText("In Progress");
+	await expect(row).toHaveAttribute("data-group", "in-progress");
 	const patchedAt = await page.evaluate(() => (window as unknown as { __patchedAt: number }).__patchedAt);
 	const gap = patchedAt - Date.parse(moved.updatedAt);
 	test.info().annotations.push({ type: "row patch after the event", description: `${gap} ms` });

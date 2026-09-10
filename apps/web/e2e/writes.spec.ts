@@ -35,9 +35,9 @@ test("writes > a comment posted on the ticket page shows in the timeline and sur
 
 test("writes > a status added in project settings shows in the status list", async ({ page }) => {
 	await signIn(page, "/p/STS/settings");
-	await page.getByRole("button", { name: "Add status" }).click();
+	await page.getByRole("button", { name: "New status" }).click();
 	await page.getByRole("textbox", { name: "Status name" }).fill("Security Review");
-	await page.getByRole("button", { name: "Add status" }).click();
+	await page.getByRole("button", { name: "Create status" }).click();
 	await expect(page.getByRole("listitem").filter({ hasText: "Security Review" })).toBeVisible();
 	await page.reload();
 	await expect(page.getByRole("listitem").filter({ hasText: "Security Review" })).toBeVisible();
