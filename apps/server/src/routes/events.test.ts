@@ -1,11 +1,15 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { mkdtempSync } from "node:fs";
+import { join } from "node:path";
 import { ReadyPayloadSchema, TicketEventPayloadSchema } from "@trellis/api";
 import { ulid } from "ulid";
-import { commentEvent, ticketEvent } from "../../test/fixtures";
+import { commentEvent, graphqlReply, ticketEvent } from "../../test/fixtures";
 import { createTestApp, type TestApp } from "../../test/helpers/app.ts";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
+import { ghStub } from "../../test/helpers/gh-stub.ts";
 import { dataOf, nextEvent, openSse, type SseReader } from "../../test/helpers/sse.ts";
 import type { BusEntry } from "../events/bus.ts";
+import { createGhRunner } from "../gh/run.ts";
 
 // GET /api/events is the SSE stream. On connect it replays from `since` or
 // `Last-Event-ID`, or sends `reset` when it cannot, then `ready`. Every bus
@@ -165,6 +169,50 @@ describe("filters", () => {
 		expect(message.event).toBe("ticket.updated");
 		expect(dataOf<{ summary: { identifier: string } }>(message).summary.identifier).toBe("OPS-1");
 		expect(await stream.idle(100)).toBe(true);
+	});
+
+	test("the project filter passes the comment and attachment events of its project only", async () => {
+		const other = await t.seedProject("OPS", "Operations");
+		await t.createTicket({ project: "CDE", title: "Mine" });
+		await t.createTicket({ project: "OPS", title: "Other" });
+		const stream = await open(`?project=${other.key}&types=comment.*,attachment.*`);
+		await nextEvent(stream);
+
+		await t.api("/api/tickets/CDE-1/comments", { method: "POST", body: { body: "Not for OPS" } });
+		await t.api("/api/tickets/OPS-1/comments", { method: "POST", body: { body: "For OPS" } });
+		const form = new FormData();
+		form.set("file", new File([new TextEncoder().encode("notes")], "notes.txt", { type: "text/plain" }));
+		await t.api("/api/tickets/OPS-1/attachments", { method: "POST", raw: form });
+		const comment = await nextEvent(stream);
+		const attachment = await nextEvent(stream);
+
+		expect(comment.event).toBe("comment.created");
+		expect(attachment.event).toBe("attachment.created");
+		const opsTicket = (await t.api("/api/tickets/OPS-1")).body.id;
+		expect(dataOf<{ ticketId: string }>(comment).ticketId).toBe(opsTicket);
+		expect(await stream.idle(100)).toBe(true);
+	});
+
+	test("the project filter passes the pull request events of its tickets", async () => {
+		const handle = ghStub(mkdtempSync(join(process.env.TRELLIS_HOME!, "gh-events-")), {
+			"api graphql": graphqlReply([{ number: 12, url: "https://github.com/acme/web/pull/12" }]),
+		});
+		try {
+			await t.close();
+			t = await createTestApp({ db: h, gh: createGhRunner() });
+			const other = await t.seedProject("OPS", "Operations");
+			await t.createTicket({ project: "OPS", title: "Other" });
+			const stream = await open(`?project=${other.key}&types=pr.*`);
+			await nextEvent(stream);
+
+			const url = "https://github.com/acme/web/pull/12";
+			await t.api("/api/tickets/OPS-1/prs", { method: "POST", body: { url } });
+			const message = await nextEvent(stream);
+
+			expect(message.event).toBe("pr.linked");
+		} finally {
+			handle.restore();
+		}
 	});
 
 	test("the ticket filter scopes the stream to one ticket", async () => {
