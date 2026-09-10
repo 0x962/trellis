@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { dropFiles, fileOf, surfaceOf } from "../../../../../test/attachments";
-import { createFakeServer, type FakeServer } from "../../../../../test/fake-server";
+import { createFakeServer } from "../../../../../test/fake-server";
 import { callsTo, gatedServer } from "../../../../../test/inbox";
 import { renderWithProviders } from "../../../../../test/renderWithProviders";
 import { AttachmentGrid } from "../../AttachmentGrid";
