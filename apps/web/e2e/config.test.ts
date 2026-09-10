@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import config from "./playwright.config";
@@ -80,6 +80,20 @@ describe("playwright.config", () => {
 		expect(run.exitCode, run.stderr.toString()).toBe(0);
 		expect(readdirSync(parent)).toEqual([]);
 	}, 30_000);
+
+	// The agents runner never starts the real superset or Claude in the suite.
+	// The stub and its files sit in the temp root, so each run starts with no
+	// workspace and no terminal.
+	test("the server spawns the superset stub, and the stub state and call log sit in the temp root", () => {
+		const root = process.env.TRELLIS_E2E_ROOT!;
+		const env = servers().find((entry) => entry.command.includes("src/index.ts"))!.env!;
+		expect(env.TRELLIS_SUPERSET_BIN).toBe(resolve(import.meta.dir, "stubs/superset.ts"));
+		expect(env.TRELLIS_SUPERSET_STUB_STATE!.startsWith(`${root}/`)).toBe(true);
+		expect(env.TRELLIS_SUPERSET_STUB_LOG!.startsWith(`${root}/`)).toBe(true);
+		const state = JSON.parse(readFileSync(env.TRELLIS_SUPERSET_STUB_STATE!, "utf8"));
+		expect(state.workspaces).toEqual([]);
+		expect(state.terminals).toEqual([]);
+	});
 
 	// The first-run flow needs a server with no project, so onboarding runs
 	// before every spec that seeds one.

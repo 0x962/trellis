@@ -1,1 +1,1 @@
-export { approve, sendBack } from "./approve";
+export { approve, type SendBackProgress, sendBack } from "./approve";

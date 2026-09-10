@@ -15,6 +15,11 @@ const StatusSlugSchema = z
 // `color` is a token name from packages/ui, never a raw color value.
 const ColorSchema = ColorTokenSchema;
 
+// Markdown that tells the manager agent what to do with a ticket in this
+// status. The manager reads every description of the set at start and on
+// `statuses.changed`, so a new status needs no code change.
+const StatusDescriptionSchema = z.string().max(2000);
+
 // The status fields every ticket row carries.
 export const StatusSummarySchema = z.object({
 	id: UlidSchema,
@@ -28,6 +33,7 @@ export type StatusSummary = z.infer<typeof StatusSummarySchema>;
 
 export const StatusSchema = StatusSummarySchema.extend({
 	projectId: UlidSchema,
+	description: StatusDescriptionSchema.default(""),
 	position: z.number().int(),
 	wipLimit: z.number().int().positive().nullable(),
 	isDefault: z.boolean(),
@@ -58,6 +64,7 @@ export const StatusCreateInputSchema = z
 		name: StatusNameSchema,
 		category: StatusCategorySchema,
 		reviewer: ReviewerSchema.optional(),
+		description: StatusDescriptionSchema.optional(),
 		color: ColorSchema.optional(),
 		position: z.number().int().optional(),
 		wipLimit: z.number().int().positive().optional(),
@@ -71,6 +78,7 @@ export const StatusUpdateInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
 	status: StatusRefStringSchema,
 	name: StatusNameSchema.optional(),
+	description: StatusDescriptionSchema.optional(),
 	color: ColorSchema.optional(),
 	reviewer: ReviewerSchema.optional(),
 	wipLimit: z.number().int().positive().nullable().optional(),

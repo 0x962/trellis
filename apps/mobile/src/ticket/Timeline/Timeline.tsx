@@ -11,6 +11,9 @@ export type TimelineProps = {
 	// The sections above the timeline: the title, the grid, the description,
 	// the sub-tickets, the pull requests, and the attachments.
 	header: ReactElement;
+	// The row under the oldest item, such as the control that reads the next
+	// older page.
+	footer?: ReactElement;
 };
 
 const styles = StyleSheet.create({
@@ -25,7 +28,7 @@ const renderRow = ({ item }: { item: TimelineRow }) =>
 // `testID="comment-<id>"` with a left border in the actor's color. An
 // activity row is a 32 px line under `testID="activity-row"`; a run
 // expands on press into one `testID="activity-line"` per item.
-export function Timeline({ rows, header }: TimelineProps) {
+export function Timeline({ rows, header, footer }: TimelineProps) {
 	return (
 		<FlashList
 			testID="ticket-timeline"
@@ -34,6 +37,7 @@ export function Timeline({ rows, header }: TimelineProps) {
 			getItemType={(row) => row.kind}
 			renderItem={renderRow}
 			ListHeaderComponent={header}
+			ListFooterComponent={footer}
 			contentContainerStyle={styles.content}
 			keyboardShouldPersistTaps="handled"
 			keyboardDismissMode="on-drag"

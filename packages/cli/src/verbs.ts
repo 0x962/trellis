@@ -89,8 +89,12 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		load: () => import("./commands/whoami.ts").then((m) => command(m.default)),
 	},
 	instructions: {
-		description: "Print the AGENTS.md block",
+		description: "Print the AGENTS.md block or the prompt of an agent role",
 		load: () => import("./commands/instructions.ts").then((m) => command(m.default)),
+	},
+	agents: {
+		description: "Start, stop, and list agents; read the manager inbox",
+		load: () => import("./commands/agents.ts").then((m) => command(m.default)),
 	},
 	status: {
 		description: "Show server health",

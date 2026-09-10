@@ -142,4 +142,55 @@ describe("NeedsYou swipes", () => {
 		expect(row("CDE-42")).not.toBeNull();
 		expect(reviewCount("3")).toBeOnTheScreen();
 	});
+
+	// The row slides back to its place when the person cancels, so the red
+	// reveal behind it is gone.
+	test("Cancel on the send-back sheet puts the row back with no reveal", async () => {
+		await renderSeeded();
+		await act(() => swipeLeft("CDE-42"));
+		await fireEvent.press(await screen.findByRole("button", { name: "Cancel" }));
+		await waitFor(() => expect(screen.queryByPlaceholderText(prompt)).toBeNull());
+		await waitFor(() => expect(screen.queryByText("Send back")).toBeNull());
+		expect(row("CDE-42")).not.toBeNull();
+		expect(writes(server)).toHaveLength(0);
+	});
+
+	// The comment is on the server once it posts, so a Retry after a failed
+	// move sends the move only.
+	test("a failed move after the comment offers Retry, which moves the ticket without a second comment", async () => {
+		await renderSeeded();
+		const restore = failCalls("tickets.move");
+		await act(() => swipeLeft("CDE-42"));
+		await fireEvent.changeText(await screen.findByPlaceholderText(prompt), "Fix the failing typecheck");
+		await fireEvent.press(screen.getByRole("button", { name: "Send back" }));
+		const toast = await screen.findByTestId("toast");
+		expect(within(toast).getByText("Cannot send back CDE-42")).toBeOnTheScreen();
+		expect(callsTo(server, "comments.create")).toHaveLength(1);
+		await waitFor(() => expect(row("CDE-42")).not.toBeNull());
+		restore();
+		await fireEvent.press(within(toast).getByRole("button", { name: "Retry" }));
+		await waitFor(() => expect(callsTo(server, "tickets.move")).toHaveLength(1));
+		expect(moveInput(0).status).toBe("category:started");
+		expect(callsTo(server, "comments.create")).toHaveLength(1);
+		await waitFor(() => expect(row("CDE-42")).toBeNull());
+		expect(reviewCount("2")).toBeOnTheScreen();
+	});
+
+	// The sheet is closed when the write fails, so the Retry holds the comment.
+	test("a failed comment offers Retry, which posts the same comment and moves the ticket", async () => {
+		await renderSeeded();
+		const restore = failCalls("comments.create");
+		await act(() => swipeLeft("CDE-42"));
+		await fireEvent.changeText(await screen.findByPlaceholderText(prompt), "Fix the failing typecheck");
+		await fireEvent.press(screen.getByRole("button", { name: "Send back" }));
+		const toast = await screen.findByTestId("toast");
+		restore();
+		await fireEvent.press(within(toast).getByRole("button", { name: "Retry" }));
+		await waitFor(() => expect(callsTo(server, "tickets.move")).toHaveLength(1));
+		const comments = callsTo(server, "comments.create");
+		expect(comments).toHaveLength(1);
+		expect((comments[0]!.input as { body: string }).body).toBe("Fix the failing typecheck");
+		expect(moveInput(0).status).toBe("category:started");
+		await waitFor(() => expect(row("CDE-42")).toBeNull());
+	});
 });

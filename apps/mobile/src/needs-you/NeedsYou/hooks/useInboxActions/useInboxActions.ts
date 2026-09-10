@@ -4,7 +4,7 @@ import { eventApplierFor, type Ticket, type TicketSummary } from "@trellis/api";
 import * as Haptics from "expo-haptics";
 import { useCallback, useRef, useState } from "react";
 import { getClient } from "../../../../lib/orpc";
-import { approve, sendBack } from "../../utils/approve";
+import { approve, type SendBackProgress, sendBack } from "../../utils/approve";
 import { type DroppedRow, dropInboxRow, restoreInboxRow } from "../../utils/inboxCache";
 
 export type ToastState = {
@@ -110,17 +110,37 @@ export const useInboxActions = (): InboxActions => {
 		[run],
 	);
 
+	// The sheet is closed while the write runs, so the Retry of the toast
+	// holds the comment. `progress` is shared by every run of one send back,
+	// so a Retry after a posted comment sends the move only.
+	const sendBackRow = useCallback(
+		(ticket: TicketSummary, comment: string, progress: SendBackProgress) => {
+			void run(
+				ticket,
+				() => sendBack(getClient(), ticket, comment, progress),
+				(current) => ({
+					tone: "error",
+					title: `Cannot send back ${ticket.identifier}`,
+					action: {
+						label: "Retry",
+						onPress: () => {
+							setToast(undefined);
+							sendBackRow(current, comment, progress);
+						},
+					},
+				}),
+			);
+		},
+		[run],
+	);
+
 	const submitSendBack = useCallback(
 		(comment: string) => {
 			const ticket = sendBackFor!;
 			setSendBackFor(undefined);
-			void run(
-				ticket,
-				() => sendBack(getClient(), ticket, comment),
-				() => ({ tone: "error", title: `Cannot send back ${ticket.identifier}` }),
-			);
+			sendBackRow(ticket, comment, { posted: false });
 		},
-		[run, sendBackFor],
+		[sendBackRow, sendBackFor],
 	);
 
 	const onRowRemoved = useCallback(

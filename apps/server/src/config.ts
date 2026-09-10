@@ -25,6 +25,11 @@ export type Config = {
 	// How many times faster than the wall clock the poller and the
 	// maintenance timer run. The server runs at 1; a test sets 100.
 	clockRate: number;
+	// The superset binary the agents runner spawns.
+	supersetBin: string;
+	// The trellis URL the agents talk to. It names this machine, because
+	// the runner starts every agent on this machine.
+	agentsUrl: string;
 	dbDir: string;
 	attachmentsDir: string;
 	tmpDir: string;
@@ -70,13 +75,20 @@ const hostnamesOf = (value: string) =>
 			return new URL(`http://${entry}`).hostname;
 		});
 
+// A server bound to every address answers on the loopback address too.
+const agentsHost = (host: string) => (host === "0.0.0.0" ? "127.0.0.1" : host);
+
 export const loadConfig = (env: Env): Config => {
 	const home = resolve(expandHome(env.TRELLIS_HOME ?? "~/.trellis"));
+	const host = env.TRELLIS_HOST ?? "127.0.0.1";
+	const port = env.TRELLIS_PORT === undefined ? 4521 : numberOf("TRELLIS_PORT", env.TRELLIS_PORT);
 	return {
 		home,
-		host: env.TRELLIS_HOST ?? "127.0.0.1",
+		host,
 		allowedHosts: env.TRELLIS_ALLOWED_HOSTS === undefined ? [] : hostnamesOf(env.TRELLIS_ALLOWED_HOSTS),
-		port: env.TRELLIS_PORT === undefined ? 4521 : numberOf("TRELLIS_PORT", env.TRELLIS_PORT),
+		port,
+		supersetBin: env.TRELLIS_SUPERSET_BIN ?? "superset",
+		agentsUrl: `http://${agentsHost(host)}:${port}`,
 		maxUploadMb:
 			env.TRELLIS_MAX_UPLOAD_MB === undefined ? 50 : numberOf("TRELLIS_MAX_UPLOAD_MB", env.TRELLIS_MAX_UPLOAD_MB),
 		ghBin: env.TRELLIS_GH_BIN ?? "gh",

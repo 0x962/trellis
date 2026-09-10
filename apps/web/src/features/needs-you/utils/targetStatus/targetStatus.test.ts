@@ -12,6 +12,7 @@ const status = (name: string, category: StatusCategory, position: number): Statu
 	reviewer: category === "review" ? "human" : null,
 	color: "fg-muted",
 	projectId,
+	description: "",
 	position,
 	wipLimit: null,
 	isDefault: false,

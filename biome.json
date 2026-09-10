@@ -28,7 +28,8 @@
 					"level": "error",
 					"options": {
 						"paths": {
-							"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+							"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI.",
+							"@expo/vector-icons": "Import one icon set, such as @expo/vector-icons/Ionicons. The barrel bundles the font of every icon set into the app."
 						},
 						"patterns": [
 							{
@@ -82,7 +83,8 @@
 							"level": "error",
 							"options": {
 								"paths": {
-									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI.",
+									"@expo/vector-icons": "Import one icon set, such as @expo/vector-icons/Ionicons. The barrel bundles the font of every icon set into the app."
 								},
 								"patterns": [
 									{
@@ -109,7 +111,8 @@
 							"level": "error",
 							"options": {
 								"paths": {
-									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI.",
+									"@expo/vector-icons": "Import one icon set, such as @expo/vector-icons/Ionicons. The barrel bundles the font of every icon set into the app."
 								},
 								"patterns": [
 									{
@@ -144,7 +147,8 @@
 							"level": "error",
 							"options": {
 								"paths": {
-									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI.",
+									"@expo/vector-icons": "Import one icon set, such as @expo/vector-icons/Ionicons. The barrel bundles the font of every icon set into the app."
 								},
 								"patterns": [
 									{
@@ -179,7 +183,8 @@
 							"level": "error",
 							"options": {
 								"paths": {
-									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI.",
+									"@expo/vector-icons": "Import one icon set, such as @expo/vector-icons/Ionicons. The barrel bundles the font of every icon set into the app."
 								},
 								"patterns": [
 									{
@@ -214,7 +219,8 @@
 							"level": "error",
 							"options": {
 								"paths": {
-									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI.",
+									"@expo/vector-icons": "Import one icon set, such as @expo/vector-icons/Ionicons. The barrel bundles the font of every icon set into the app."
 								},
 								"patterns": [
 									{
@@ -249,7 +255,8 @@
 							"level": "error",
 							"options": {
 								"paths": {
-									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI.",
+									"@expo/vector-icons": "Import one icon set, such as @expo/vector-icons/Ionicons. The barrel bundles the font of every icon set into the app."
 								},
 								"patterns": [
 									{
@@ -284,7 +291,8 @@
 							"level": "error",
 							"options": {
 								"paths": {
-									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI.",
+									"@expo/vector-icons": "Import one icon set, such as @expo/vector-icons/Ionicons. The barrel bundles the font of every icon set into the app."
 								},
 								"patterns": [
 									{
@@ -319,7 +327,8 @@
 							"level": "error",
 							"options": {
 								"paths": {
-									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI."
+									"shadcn": "No shadcn. Every visual primitive lives in packages/ui on top of Base UI.",
+									"@expo/vector-icons": "Import one icon set, such as @expo/vector-icons/Ionicons. The barrel bundles the font of every icon set into the app."
 								},
 								"patterns": [
 									{

@@ -1,7 +1,7 @@
 import type { ErrorMap } from "@orpc/contract";
 import { z } from "zod";
 import { actorHeaderGrammar } from "./refs.ts";
-import { GhReasonSchema } from "./schemas/enums.ts";
+import { GhReasonSchema, RunnerReasonSchema } from "./schemas/enums.ts";
 import { CountSchema } from "./schemas/primitives.ts";
 import { StatusSummarySchema } from "./schemas/status.ts";
 import { TicketSchema } from "./schemas/ticket.ts";
@@ -118,6 +118,11 @@ export const errors = {
 		message: "The after or before ticket is not in the target column.",
 		data: z.undefined(),
 	},
+	CONCURRENCY_LIMIT: {
+		status: 409,
+		message: "The project runs its maximum number of builders. Start this one when a builder finishes.",
+		data: z.object({ limit: z.number().int().positive(), running: CountSchema }),
+	},
 	VERSION_CONFLICT: {
 		status: 412,
 		message: "The ticket changed since the version you sent.",
@@ -132,6 +137,11 @@ export const errors = {
 		status: 503,
 		message: "gh cannot serve the request.",
 		data: z.object({ reason: GhReasonSchema }),
+	},
+	RUNNER_UNAVAILABLE: {
+		status: 503,
+		message: "The agent runner cannot serve the request.",
+		data: z.object({ reason: RunnerReasonSchema }),
 	},
 } satisfies ErrorMap;
 

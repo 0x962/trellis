@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { applyEvent } from "@trellis/api";
 import { ticketSummary } from "../../../../../web/test/fake-server/summaries";
-import { callsTo, type FakeServer, startFakeServer, stopFakeServer } from "../../../../test/fakeServer";
+import { failCalls } from "../../../../test/connect";
+import { callsTo, type FakeServer, serverHost, startFakeServer, stopFakeServer } from "../../../../test/fakeServer";
 import { renderWithClient } from "../../../../test/renderWithClient";
 import { queryClient } from "../../../lib/queryClient";
 import { ProjectTicketList } from "./ProjectTicketList";
@@ -100,6 +101,18 @@ describe("the ticket list", () => {
 		await fireEvent.press(screen.getByLabelText("Review"));
 		await waitFor(() => expect(screen.getByText(/no tickets/i)).toBeOnTheScreen());
 		expect(shown()).toEqual([]);
+	});
+
+	// A list the server did not send is not an empty list.
+	test("a failed list shows the unreachable server state, and Retry loads the list", async () => {
+		const restore = failCalls("tickets.list");
+		await renderWithClient(<ProjectTicketList project="CDE" />);
+		expect(await screen.findByText(`Cannot reach ${serverHost}`)).toBeOnTheScreen();
+		expect(screen.queryByText("No tickets here")).toBeNull();
+		restore();
+		await fireEvent.press(screen.getByRole("button", { name: "Retry" }));
+		await waitForRows();
+		expect(screen.queryByText(`Cannot reach ${serverHost}`)).toBeNull();
 	});
 
 	test("the controls start at Active and Updated", async () => {

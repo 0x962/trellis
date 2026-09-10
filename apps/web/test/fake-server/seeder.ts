@@ -36,6 +36,7 @@ export const addDefaultStatuses = (state: State, root: ProjectRow, at: string) =
 			reviewer,
 			color,
 			projectId: root.id,
+			description: "",
 			position,
 			wipLimit: null,
 			isDefault,
@@ -296,5 +297,4 @@ export const createSeeder = (state: State, now: number) => {
 
 	return { ago, byNumber, addTicket, addStatusActivity, addFieldActivity, addComment, addPr, addAttachment };
 };
-
 export type Seeder = ReturnType<typeof createSeeder>;
