@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title description">
+	<title id="title">trellis architecture</title>
+	<desc id="description">The web, mobile, and CLI clients use shared API contracts to reach one local server and its database worker.</desc>
+	<defs>
+		<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+			<path d="M 0 0 L 10 5 L 0 10 z" fill="#7468d4" />
+		</marker>
+		<style>
+			.title { font: 700 28px Inter, system-ui, sans-serif; fill: #202024; }
+			.heading { font: 700 17px Inter, system-ui, sans-serif; fill: #202024; }
+			.label { font: 600 15px Inter, system-ui, sans-serif; fill: #202024; }
+			.note { font: 400 13px Inter, system-ui, sans-serif; fill: #68666f; }
+			.box { fill: #ffffff; stroke: #cbc8d8; stroke-width: 2; }
+			.shared { fill: #f3f1ff; stroke: #7468d4; stroke-width: 2; }
+			.server { fill: #f9f8fb; stroke: #55515f; stroke-width: 2; }
+			.data { fill: #eef8f3; stroke: #388365; stroke-width: 2; }
+			.flow { fill: none; stroke: #7468d4; stroke-width: 2.5; marker-end: url(#arrow); }
+			.return { fill: none; stroke: #388365; stroke-width: 2; stroke-dasharray: 7 6; marker-end: url(#arrow); }
+		</style>
+	</defs>
+	<rect width="1200" height="720" rx="24" fill="#f7f6f9" />
+	<text x="60" y="62" class="title">trellis runs on one machine</text>
+	<text x="60" y="90" class="note">Shared contracts connect each client to one server and one data directory.</text>
+
+	<text x="60" y="142" class="heading">Clients</text>
+	<rect x="60" y="164" width="250" height="96" rx="16" class="box" />
+	<text x="86" y="205" class="label">Web app</text>
+	<text x="86" y="230" class="note">React, router, live cache</text>
+	<rect x="350" y="164" width="250" height="96" rx="16" class="box" />
+	<text x="376" y="205" class="label">CLI</text>
+	<text x="376" y="230" class="note">Commands and JSON output</text>
+	<rect x="640" y="164" width="250" height="96" rx="16" class="box" />
+	<text x="666" y="205" class="label">Mobile app</text>
+	<text x="666" y="230" class="note">Expo client</text>
+	<text x="60" y="324" class="heading">Shared packages</text>
+	<rect x="60" y="346" width="250" height="84" rx="16" class="shared" />
+	<text x="86" y="380" class="label">@trellis/ui</text>
+	<text x="86" y="405" class="note">Web tokens and primitives</text>
+	<rect x="350" y="346" width="540" height="84" rx="16" class="shared" />
+	<text x="376" y="380" class="label">@trellis/api</text>
+	<text x="376" y="405" class="note">Schemas, oRPC contract, client, events, and query keys</text>
+
+	<text x="60" y="494" class="heading">Local service</text>
+	<rect x="160" y="516" width="300" height="116" rx="16" class="server" />
+	<text x="186" y="556" class="label">Hono and oRPC server</text>
+	<text x="186" y="581" class="note">Procedures, SSE, and file routes</text>
+	<text x="186" y="606" class="note">Port 4521</text>
+	<rect x="500" y="516" width="250" height="116" rx="16" class="server" />
+	<text x="526" y="556" class="label">Database worker</text>
+	<text x="526" y="581" class="note">Services and queries</text>
+	<text x="526" y="606" class="note">One database owner</text>
+	<rect x="790" y="516" width="350" height="116" rx="16" class="data" />
+	<text x="816" y="556" class="label">~/.trellis</text>
+	<text x="816" y="581" class="note">PGlite, attachments, backups, logs</text>
+	<text x="816" y="606" class="note">TRELLIS_HOME changes this location</text>
+
+	<path d="M 185 260 L 185 346" class="flow" />
+	<path d="M 260 260 L 260 303 L 500 303 L 500 346" class="flow" />
+	<path d="M 475 260 L 475 346" class="flow" />
+	<path d="M 765 260 L 765 346" class="flow" />
+	<path d="M 620 430 L 620 470 L 310 470 L 310 516" class="flow" />
+	<path d="M 460 574 L 500 574" class="flow" />
+	<path d="M 750 574 L 790 574" class="flow" />
+	<path d="M 265 516 L 265 470 L 80 470 L 80 212 L 60 212" class="return" />
+	<text x="90" y="450" class="note">Server-sent events</text>
+</svg>

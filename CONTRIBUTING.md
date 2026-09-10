@@ -1,49 +1,89 @@
 # Contributing
 
-Read [AGENTS.md](AGENTS.md) first. It holds the repo rules. This file holds the workflow.
+Read [AGENTS.md](AGENTS.md) first. It defines the repository rules.
+The [approved plan](docs/design/plan.md) defines the product.
 
-## Dev loop
+## Development loop
 
-1. Run `bun install` once per clone.
-2. Run `bun run dev` to start the server on port 4521 and the web app on port 5173.
-3. Run `bun run check` before every hand-off. It runs lint, typecheck, every test, the web size budget, and the 10k perf suite. `apps/web` owns the `size-budget` script and `apps/server` owns the `perf:10k` script; turbo runs each where it exists.
-4. Run `bun run lint:fix` to apply the Biome fixes.
+Run the fake server and the web app in separate terminals.
 
-`bun run test` runs the tests of every workspace through turbo. `bun run test:repo` runs the root tests in `test/`. `test/preload.ts` gives a test run a fresh `TRELLIS_HOME`. Bun reads `bunfig.toml` from the current directory only, so every workspace ships a `bunfig.toml` with `[test]` and `preload = ["../../test/preload.ts"]`.
+```sh
+bun install
+bun run --cwd apps/web dev:fake
+```
 
-## Where things live
+```sh
+TRELLIS_API_URL=http://127.0.0.1:4522 bun run --cwd apps/web dev
+```
 
-| Path | Package | Holds |
+Open `http://127.0.0.1:5173`.
+The fake server resets its data after each restart.
+Playwright starts both processes for the end-to-end suite.
+
+Run a focused test while you change code.
+Run `bun run lint:fix` before the full check.
+Run `bun run check --force` before each hand-off.
+
+## Repository map
+
+| Path | Package | Purpose |
 |---|---|---|
-| `packages/api` | `@trellis/api` | Zod schemas, refs, errors, the oRPC contract, the client factory, event types, query keys |
-| `packages/ui` | `@trellis/ui` | design tokens, Base UI wrappers, every visual primitive |
-| `packages/cli` | `@trellis/cli` | the `trellis` command, HTTP only |
-| `apps/server` | `@trellis/server` | Hono, oRPC handlers, the DB worker (PGlite, Drizzle, services), the gh poller |
-| `apps/web` | `@trellis/web` | the React SPA |
-| `apps/mobile` | `@trellis/mobile` | the Expo app |
-| `docs/design` | | the plan and the design documents; `plan.md` wins over every other file there |
-| `test` | | root tests that assert the repo configuration |
-| `scripts/check.ts` | | the `bun run check` runner; it hands the task list to turbo |
+| `packages/api` | `@trellis/api` | Schemas, refs, errors, contracts, clients, events, and query keys. |
+| `packages/ui` | `@trellis/ui` | Design tokens, Base UI wrappers, and visual primitives. |
+| `packages/cli` | `@trellis/cli` | The `trellis` command and HTTP client. |
+| `apps/server` | `@trellis/server` | The Hono server, procedures, services, database worker, and GitHub poller. |
+| `apps/web` | `@trellis/web` | The React web app and its fake server. |
+| `apps/mobile` | `@trellis/mobile` | The Expo mobile app. |
+| `docs/design` | | The approved plan and supporting design documents. |
+| `test` | | Tests for repository configuration and public files. |
 
-The dependency graph is a star. `api` is imported by server, web, mobile, and cli. `ui` is imported by web only. Packages export TypeScript source and are side-effect free. Layers import downward only. A `biome.json` override per workspace directory refuses an upward `@trellis/*` import, so a violation fails `lint`.
+The dependency graph forms a star around `@trellis/api`.
+Only `@trellis/web` imports `@trellis/ui`.
+Each package exports TypeScript source without side effects.
 
-## How to add a procedure
+## Add a procedure
 
-1. Add the Zod schemas to `packages/api/src/schemas/<resource>.ts`.
-2. Add the route to `packages/api/src/contract/<resource>.ts`, with its errors from `errors.ts`.
-3. Write the failing tests: a unit test beside the service and a contract test in `apps/server/src/procedures/<resource>.test.ts`.
-4. Write the service in `apps/server/src/services/<resource>.ts`. The signature is `(ctx, tx, input) => result`. The service takes `tx` as a parameter and never a module-level `db`.
-5. Implement the procedure in `apps/server/src/procedures/<resource>.ts`. It resolves refs, calls the service, and returns. It holds no logic.
-6. Add the CLI verb in `packages/cli/src/commands/<verb>.ts` and its smoke test in `packages/cli/test/`.
+1. Add the resource schemas under `packages/api/src/schemas/`.
+2. Add the oRPC contract under `packages/api/src/contract/`.
+3. Write a failing unit test beside the service.
+4. Write a failing contract test beside the server procedure.
+5. Add the service under `apps/server/src/services/` with the `(ctx, tx, input) => result` signature.
+6. Add the procedure under `apps/server/src/procedures/`.
+7. Add the CLI verb under `packages/cli/src/commands/`.
+8. Add a CLI smoke test under `packages/cli/test/`.
 
-## Migration workflow
+The procedure resolves refs, calls the service, and returns the result.
+The service receives `tx` and never imports a module-level database client.
+End every service test with `assertStatusInvariant(tx)`.
+
+Each workspace has a `bunfig.toml` file with `[test]` and `preload = ["../../test/preload.ts"]`.
+The preload gives each test run a temporary `TRELLIS_HOME`.
+
+## TDD rule
+
+Start every change with a failing test for the specified outcome.
+Confirm that the test fails for the intended reason.
+Make the test pass without deletion or weaker assertions.
+Send a disputed test to the lead with the reason.
+
+## Database migration
 
 1. Change `apps/server/src/db/schema.ts`.
-2. Run `bun run db:generate`. It runs `drizzle-kit generate` and writes the SQL into `apps/server/drizzle/`.
+2. Run `bun run db:generate`.
 3. Commit the generated SQL and the `meta/` directory with the schema change.
 
-Never edit a generated migration by hand. CI runs `drizzle-kit generate` and fails on a non-empty `git status --porcelain apps/server/drizzle/`.
+Do not edit a generated migration.
+The check fails when schema generation changes `apps/server/drizzle/`.
 
-## The TDD rule
+## Review pass
 
-Every change starts with a failing test. The builder makes the test pass and does not weaken it. A change without a test does not merge.
+1. Read the complete diff and remove unrelated changes.
+2. Run the focused tests again.
+3. Run `bun run check --force` at the repository root.
+4. Ask reviewers to refute the tests, correctness, and code quality.
+5. Give each finding a file, line, severity, claim, and evidence.
+6. Add a failing test for each missing case before the fix.
+7. Repeat the review until a pass has no findings.
+
+Two reviewers must agree on a finding unless one reviewer marks it as a blocker.
+Do not merge from one reviewer only.
