@@ -1,5 +1,3 @@
-export {};
-
 // The seed the fake server starts with. It is the data the design canvas
 // shows, so a screenshot of the shell over the fake server matches the
 // approved screens. The contract tests under test/fake-server assert
@@ -61,13 +59,40 @@ export {};
 //            human-review, low, parent TRL-4; claude-code 1 day; in Human Review for 6 h.
 //   TRL      TRL-4 "PR and CI polling" in-progress, medium; navid 20 h.
 //   TRL      TRL-12 "OAuth device flow for the CLI sign-in" todo, urgent.
-//   TRL      TRL-7, TRL-8 done today by claude-code.
-//   MRG      MRG-3 "Handle the oauth redirect on the review page" todo, medium.
-// Every other row is a filler: todo, or done or canceled more than a day ago.
-// Filler numbers for CDE are 1 to 34 and 52. CDE-33 and CDE-34 are
-// children of CDE-43, done today by codex. No filler sits in a started
-// or review status, so the inbox holds only the named rows:
-//   review 3: CDE-42, CDE-37, TRL-9 (oldest waiting first)
-//   failingCi 1: CDE-44
-//   stalled 1: CDE-38
-//   doneByAgentsToday 6: CDE-48, CDE-49, CDE-33, CDE-34, TRL-7, TRL-8
+import { addChild, addRoot, claude, codex, createSeeder, day, hour, minute, navid } from "./seeder";
+import { seedFillers } from "./seedFillers";
+import { seedNamed } from "./seedNamed";
+import { createState, type ProjectRow, type State, touchActor } from "./state";
+
+export type Roots = { cde: ProjectRow; web: ProjectRow; host: ProjectRow; trl: ProjectRow; mrg: ProjectRow };
+
+const seedActors = (state: State, now: number) => {
+	const ago = (ms: number) => new Date(now - ms).toISOString();
+	touchActor(state, navid, ago(30 * day));
+	touchActor(state, claude, ago(28 * day));
+	touchActor(state, codex, ago(20 * day));
+	state.actors.get("human:navid")!.lastSeenAt = ago(41 * minute);
+	state.actors.get("agent:claude-code")!.lastSeenAt = ago(9 * minute);
+	state.actors.get("agent:codex")!.lastSeenAt = ago(5 * hour);
+};
+
+// Only the actors and the settings. The setup flow starts here.
+export const createEmptyState = (now: number): State => {
+	const state = createState();
+	seedActors(state, now);
+	return state;
+};
+
+export const seedState = (now: number): State => {
+	const state = createEmptyState(now);
+	const at = new Date(now - 30 * day).toISOString();
+	const cde = addRoot(state, "CDE", "Superset CDE", 0, at);
+	const web = addChild(state, cde, "web", "web", 0, at);
+	const host = addChild(state, cde, "host", "host", 1, at);
+	const trl = addRoot(state, "TRL", "trellis", 1, at);
+	const mrg = addRoot(state, "MRG", "margin", 2, at);
+	const seeder = createSeeder(state, now);
+	seedNamed(seeder, { cde, web, host, trl, mrg });
+	seedFillers(seeder, { cde, web, host, trl, mrg });
+	return state;
+};
