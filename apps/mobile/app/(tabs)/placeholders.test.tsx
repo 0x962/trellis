@@ -8,7 +8,6 @@ const realFetch = globalThis.fetch;
 
 // Each placeholder tab: its URL, its header title, and its empty state.
 const screens: Array<[string, string, string]> = [
-	["/", "Needs you", "Nothing needs you"],
 	["/search", "Search", "No recent searches"],
 	["/projects", "Projects", "No projects yet"],
 ];

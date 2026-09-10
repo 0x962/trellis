@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const root = join(import.meta.dir, "..");
@@ -8,6 +8,16 @@ const json = (relativePath: string) => Bun.file(join(root, relativePath)).json()
 const text = (relativePath: string) => Bun.file(join(root, relativePath)).text();
 
 const exactPin = /^\d+\.\d+\.\d+$/;
+
+// Every component folder under a `components/` directory, or a feature
+// folder such as src/needs-you/NeedsYou, holds `Name.tsx` and `index.ts`.
+const componentDirs = (dir: string): string[] =>
+	readdirSync(join(root, dir), { withFileTypes: true }).flatMap((entry) => {
+		if (!entry.isDirectory()) return [];
+		const path = join(dir, entry.name);
+		const own = /^[A-Z]/.test(entry.name) ? [path] : [];
+		return [...own, ...componentDirs(path)];
+	});
 
 // Every .ts and .tsx file under the four source directories.
 const sourceFiles = () =>
@@ -35,7 +45,7 @@ describe("scaffold", () => {
 		expect(versions["react-native"]).toStartWith("0.87.");
 		expect(versions.nativewind).toStartWith("4.");
 		expect(versions["@shopify/flash-list"]).toStartWith("2.");
-		for (const name of ["react-native-mmkv", "react-native-sse", "expo-image"]) {
+		for (const name of ["react-native-mmkv", "react-native-sse", "expo-image", "expo-haptics"]) {
 			expect(versions).toHaveProperty(name);
 		}
 	});
@@ -69,14 +79,13 @@ describe("scaffold", () => {
 		}
 		expect(long).toEqual([]);
 
-		const components = readdirSync(join(root, "src/components")).filter((entry) =>
-			statSync(join(root, "src/components", entry)).isDirectory(),
-		);
+		const components = componentDirs("src");
 		expect(components.length).toBeGreaterThan(0);
+		expect(components).toContain("src/needs-you/NeedsYou");
+		expect(components).toContain("src/needs-you/NeedsYou/components/InboxRow");
 		const incomplete = components.filter(
-			(name) =>
-				!existsSync(join(root, "src/components", name, `${name}.tsx`)) ||
-				!existsSync(join(root, "src/components", name, "index.ts")),
+			(path) =>
+				!existsSync(join(root, path, `${path.split("/").pop()}.tsx`)) || !existsSync(join(root, path, "index.ts")),
 		);
 		expect(incomplete).toEqual([]);
 	});
