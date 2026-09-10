@@ -62,3 +62,7 @@ export const systemContext = (): RequestContext => ({
 	reqId: ulid(),
 	now: new Date(),
 });
+
+// The major version of the API contract. It travels in `x-trellis-api-version`
+// and in the health answer. A change within one version only adds fields.
+export const API_VERSION = "1";
