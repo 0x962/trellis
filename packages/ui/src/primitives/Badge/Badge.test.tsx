@@ -27,4 +27,14 @@ describe("Badge", () => {
 			expectClasses(badge, "h-5 rounded-xl text-xs font-medium tabular");
 		}
 	});
+
+	// A count in a nav row is an 18 px pill in the semibold weight.
+	test("size sm is an 18 px pill in the semibold weight", () => {
+		render(
+			<Badge tone="accent" size="sm">
+				3
+			</Badge>,
+		);
+		expectClasses(screen.getByText("3"), "h-4.5 rounded-xl text-xs font-semibold tabular bg-accent-soft text-accent");
+	});
 });

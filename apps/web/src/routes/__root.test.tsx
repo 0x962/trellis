@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { createFakeServer } from "../../test/fake-server";
 import { createFakeScheduler } from "../../test/fakeScheduler";
 import { mockMatchMedia } from "../../test/media";
@@ -17,7 +17,7 @@ describe("routes/__root", () => {
 		expect(await screen.findByRole("heading", { name: /Needs you/ })).toBeDefined();
 		const sidebar = screen.getByRole("complementary", { name: "Sidebar" });
 		expect(sidebar.tagName).toBe("ASIDE");
-		expect(screen.getByLabelText("Connected")).toBeDefined();
+		expect(screen.getByLabelText("Online")).toBeDefined();
 		expect(document.querySelector('section[aria-label^="Notifications"]')).not.toBeNull();
 		expect(document.querySelector("[data-command-palette]")).not.toBeNull();
 		fireEvent.keyDown(document.body, { key: "g" });
@@ -59,6 +59,24 @@ describe("routes/__root", () => {
 		act(() => hold.release());
 		expect(await screen.findByRole("complementary", { name: "Sidebar" })).toBeDefined();
 		await waitFor(() => expect(screen.queryByRole("heading", { name: "New project" })).toBeNull());
+	});
+
+	// ER-3. The URL changes when a navigation starts. The sidebar marks the
+	// page the outlet shows, so the highlight never runs ahead of the page.
+	test("the sidebar keeps the shown page highlighted while the next page loads", async () => {
+		const { router, server } = renderApp({ path: "/needs-you", actor: "navid" });
+		const sidebar = await screen.findByRole("complementary", { name: "Sidebar" });
+		const needsYou = within(sidebar).getByRole("link", { name: /Needs you/ });
+		const all = within(sidebar).getByRole("link", { name: /All tickets/ });
+		await waitFor(() => expect(needsYou.className).toMatch(/\bbg-accent-soft\b/));
+		const hold = server.holdNext("tickets.counts");
+		fireEvent.click(all);
+		await waitFor(() => expect(router.state.location.pathname).toBe("/all"));
+		expect(needsYou.className).toMatch(/\bbg-accent-soft\b/);
+		expect(all.className).not.toMatch(/\bbg-accent-soft\b/);
+		act(() => hold.release());
+		await waitFor(() => expect(all.className).toMatch(/\bbg-accent-soft\b/));
+		expect(needsYou.className).not.toMatch(/\bbg-accent-soft\b/);
 	});
 
 	// WS-68
