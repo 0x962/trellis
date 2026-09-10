@@ -16,7 +16,8 @@ export type ManagerInstructionsProps = {
 // file and the status descriptions of that moment. This dialog builds the
 // text from the same two inputs, so it shows what a start makes now. The
 // statuses query waits for the open, so a settings page with many projects
-// reads no statuses until a human asks for one.
+// reads no statuses until a human asks for one. The query client asks
+// again for nothing, so a refused read needs the Retry button here.
 export function ManagerInstructions({ project }: ManagerInstructionsProps) {
 	const { orpc } = useApp();
 	const [open, setOpen] = useState(false);
@@ -41,8 +42,19 @@ export function ManagerInstructions({ project }: ManagerInstructionsProps) {
 				title="Manager instructions"
 				description="A manager started now receives this text. A running manager received the text of its own start."
 			>
-				<ScrollArea className="h-96 rounded-md border border-border bg-surface">
-					{prompt === null ? (
+				<ScrollArea
+					label="Manager instructions"
+					busy={prompt === null && !statuses.isError}
+					className="h-96 min-h-0 rounded-md border border-border bg-surface"
+				>
+					{statuses.isError ? (
+						<div className="flex flex-col items-start gap-2 p-3">
+							<p role="alert" className="text-sm text-danger">
+								The statuses of the project did not load.
+							</p>
+							<Button onClick={() => void statuses.refetch()}>Retry</Button>
+						</div>
+					) : prompt === null ? (
 						<Skeleton className="m-3" lines={14} />
 					) : (
 						<pre className="p-3 font-mono text-xs whitespace-pre-wrap text-fg">{prompt}</pre>

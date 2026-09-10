@@ -85,4 +85,12 @@ describe("Dialog", () => {
 		await new Promise((resolve) => setTimeout(resolve, 80));
 		expect(document.activeElement).toBe(name);
 	});
+
+	// The popup sits at the middle of the screen and grows with its content.
+	// Without a cap, a popup taller than the screen puts its title and its
+	// buttons past both edges, and no scrollbar brings them back.
+	test("the popup stays inside the screen and scrolls its own content", () => {
+		const { dialog } = setup();
+		expectClasses(dialog, "max-h-[calc(100dvh-2rem)] overflow-y-auto");
+	});
 });
