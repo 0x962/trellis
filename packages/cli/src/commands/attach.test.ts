@@ -63,6 +63,17 @@ describe("attach", () => {
 		const quiet = await runCli(["attach", "CDE-42", path, "--quiet"], { "attachments.upload": upload() });
 		expect(quiet.stdout).toBe(`${attachmentId}\n`);
 	});
+
+	// CLI-97: the path comes from the command line. A file that is not there
+	// prints one stderr line, not a stack trace, and sends no request.
+	test("attach reports a missing file as one line", async () => {
+		const missing = join(mkdtempSync(join(tmpdir(), "trellis-attach-")), "nope.png");
+		const result = await runCli(["attach", "CDE-42", missing], { "attachments.upload": upload() });
+		expect(result.code).toBe(3);
+		expect(lines(result.stderr)).toHaveLength(1);
+		expect(result.stderr).toContain(missing);
+		expect(result.calls).toEqual([]);
+	});
 });
 
 describe("attachments", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { ansiPattern, stripAnsi } from "../test/ansi.ts";
-import { defaultEnv, lines, runCli } from "../test/deps.ts";
+import { defaultEnv, lines, makeDeps, runCli } from "../test/deps.ts";
 import {
 	attachment,
 	attachmentId,
@@ -15,6 +15,7 @@ import {
 	ticketSummary,
 	timeline,
 } from "../test/fixtures.ts";
+import { run } from "./index.ts";
 import { type Format, printList, printRecord, ticketList, ticketRecord } from "./output.ts";
 
 // `Format` is `{ mode, color }`: `mode` is table (a TTY), json, jsonl, or
@@ -102,6 +103,29 @@ describe("json", () => {
 		expect(Array.isArray(parsed)).toBe(true);
 		expect(parsed).toHaveLength(100);
 		expect(result.stdout).not.toContain("nextCursor");
+	});
+
+	// CLI-44: the array streams. Each page reaches stdout before the request
+	// for the page after it, so a long list prints while it loads.
+	test("--json writes every page before the next request", async () => {
+		const pages: Record<string, unknown> = {
+			first: { items: ticketPage(2), nextCursor: "c1" },
+			c1: { items: ticketPage(2, 2), nextCursor: null },
+		};
+		const printedAtRequest: string[] = [];
+		let printed = () => "";
+		const harness = makeDeps({
+			"tickets.list": (input: { cursor?: string }) => {
+				printedAtRequest.push(printed());
+				return pages[input.cursor ?? "first"];
+			},
+		});
+		printed = harness.stdout;
+		const code = await run(["list", "--all"], harness.deps);
+		expect(code).toBe(0);
+		expect(printedAtRequest[0]).toBe("");
+		expect(printedAtRequest[1]).toStartWith("[");
+		expect(JSON.parse(harness.stdout())).toHaveLength(4);
 	});
 
 	// CLI-45

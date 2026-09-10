@@ -111,6 +111,36 @@ describe("statuses", () => {
 		expect(missing.calls.map((call) => call.path)).toEqual(["statuses.list"]);
 	});
 
+	// CLI-78: a run prints one document. With a field flag and `--position`
+	// the reordered set is the last state, and it carries the new name.
+	test("statuses edit with a field and --position prints one JSON document", async () => {
+		const result = await runCli(
+			["statuses", "edit", "CDE", "blocked", "--name", "Stuck", "--position", "0", "--json"],
+			{
+				"statuses.update": status({ slug: "blocked", name: "Stuck" }),
+				"statuses.list": statusSet(),
+				"statuses.reorder": statusSet(),
+			},
+		);
+		expect(result.code).toBe(0);
+		expect(result.calls.map((call) => call.path)).toEqual(["statuses.update", "statuses.list", "statuses.reorder"]);
+		expect(JSON.parse(result.stdout)).toEqual(statusSet().statuses);
+	});
+
+	// CLI-78: the position is an index in the column order. A value that is
+	// not a whole number stops the run, and no reorder writes the wrong order.
+	test("statuses edit refuses a --position that is not a whole number", async () => {
+		for (const value of ["abc", "1.5", "-1", ""]) {
+			const result = await runCli(["statuses", "edit", "CDE", "blocked", "--position", value], {
+				"statuses.list": statusSet(),
+				"statuses.reorder": statusSet(),
+			});
+			expect(result.code, value).toBe(2);
+			expect(lines(result.stderr), value).toHaveLength(1);
+			expect(result.calls, value).toEqual([]);
+		}
+	});
+
 	// CLI-79
 	test("statuses rm maps --move-to", async () => {
 		const result = await runCli(["statuses", "rm", "CDE", "blocked", "--move-to", "todo"], {

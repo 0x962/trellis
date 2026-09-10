@@ -7,7 +7,7 @@ import cliPkg from "../package.json" with { type: "json" };
 import { type ActorResolution, actorHint, resolveActor } from "./actor.ts";
 import type { CliContext } from "./context.ts";
 import { CliFailure, exitCodeFor, formatError, formatFailure, usageError } from "./errors.ts";
-import { checkFlags } from "./flags.ts";
+import { checkFlags, valuedSpellings } from "./flags.ts";
 import { type Format, type Mode, stripAnsi } from "./output.ts";
 import { verbs } from "./verbs.ts";
 
@@ -16,7 +16,7 @@ export type Stream = { write(text: string): void; isTTY: boolean };
 // Every effect of a run goes through here, so a test injects the server,
 // the streams, the environment, the clock, and the git and OS lookups.
 export type Deps = {
-	fetch: (request: Request, init: { redirect?: Request["redirect"] }) => Promise<Response>;
+	fetch: (request: Request, init: { redirect?: Request["redirect"]; signal?: AbortSignal }) => Promise<Response>;
 	env: Record<string, string | undefined>;
 	stdout: Stream;
 	stderr: Stream;
@@ -64,10 +64,21 @@ type Globals = {
 // `--url` take one value. Either flag at the end of the line has none, and
 // that is a usage error: a missing value never falls back to the inferred
 // actor or the default URL.
-export const splitGlobals = (argv: string[]): Globals => {
+//
+// `valued` names every spelling of every flag of the command that takes a
+// value. The token after one of those flags is that value, so it stays in
+// `rest`: `comment CDE-42 --body --help` writes the comment `--help`. The
+// caller knows the command only after it reads the verb name out of `rest`,
+// so it splits twice: once with no names, and once with the command's own.
+// `--` and every token after it stay in `rest` as well.
+export const splitGlobals = (argv: string[], valued: Set<string> = new Set()): Globals => {
 	const globals: Globals = { json: false, jsonl: false, quiet: false, noColor: false, help: false, rest: [] };
 	for (let index = 0; index < argv.length; index++) {
 		const arg = argv[index]!;
+		if (arg === "--") {
+			globals.rest.push(...argv.slice(index));
+			return globals;
+		}
 		const equals = arg.indexOf("=");
 		const name = equals === -1 ? arg : arg.slice(0, equals);
 		const value = () => {
@@ -75,7 +86,10 @@ export const splitGlobals = (argv: string[]): Globals => {
 			if (index + 1 === argv.length) throw usageError(`${name} needs a value`);
 			return argv[++index];
 		};
-		if (name === "--json") globals.json = true;
+		const isFlag = arg.startsWith("-") && arg !== "-";
+		if (isFlag && equals === -1 && index + 1 < argv.length && valued.has(name.replace(/^--?/, ""))) {
+			globals.rest.push(arg, argv[++index]!);
+		} else if (name === "--json") globals.json = true;
 		else if (name === "--jsonl") globals.jsonl = true;
 		else if (name === "--quiet") globals.quiet = true;
 		else if (name === "--no-color") globals.noColor = true;
@@ -127,16 +141,6 @@ export const run = async (argv: string[], deps: Deps): Promise<number> => {
 	} catch (error) {
 		return report(error, deps.stderr, false);
 	}
-	const color = deps.stdout.isTTY && !globals.noColor && deps.env.NO_COLOR === undefined;
-	const mode: Mode = globals.quiet
-		? "quiet"
-		: globals.jsonl
-			? "jsonl"
-			: globals.json || !deps.stdout.isTTY
-				? "json"
-				: "table";
-	const format: Format = { mode, color };
-	const tint = (text: string) => (color ? text : stripAnsi(text));
 	const [verbName, ...rest] = globals.rest;
 	if (verbName === undefined) {
 		if (globals.help) {
@@ -151,20 +155,39 @@ export const run = async (argv: string[], deps: Deps): Promise<number> => {
 	let command = await verb.load();
 	let parent: CommandDef = { meta: { name: "trellis" } };
 	let usage = `trellis ${verbName}`;
-	let args = rest;
+	// The tokens of `argv` that name the verb and its subverb. The command
+	// takes everything after them.
+	let named = 1;
 	const subs = await subCommandsOf(command);
 	if (subs !== undefined) {
-		const sub = args[0] === undefined ? undefined : subs[args[0]];
+		const subName = rest[0];
+		const sub = subName === undefined ? undefined : subs[subName];
 		if (sub === undefined && !globals.help) {
 			return usageLine(deps.stderr, `${verbName} needs one of ${Object.keys(subs).join(", ")}`);
 		}
 		if (sub !== undefined) {
 			parent = { meta: { name: usage, description: verb.description } };
-			usage = `${usage} ${args[0]}`;
+			usage = `${usage} ${subName}`;
 			command = sub;
-			args = args.slice(1);
+			named = 2;
 		}
 	}
+	// The command is known, so its own flags are known. Split again: a global
+	// flag spelling that follows one of them is its value, not a global flag.
+	// This split reads fewer tokens as global flags than the first one, so it
+	// raises no usage error the first one did not already raise.
+	globals = splitGlobals(argv, valuedSpellings((command.args ?? {}) as ArgsDef));
+	const args = globals.rest.slice(named);
+	const color = deps.stdout.isTTY && !globals.noColor && deps.env.NO_COLOR === undefined;
+	const mode: Mode = globals.quiet
+		? "quiet"
+		: globals.jsonl
+			? "jsonl"
+			: globals.json || !deps.stdout.isTTY
+				? "json"
+				: "table";
+	const format: Format = { mode, color };
+	const tint = (text: string) => (color ? text : stripAnsi(text));
 	if (globals.help) {
 		deps.stdout.write(`${tint(await renderUsage(command, parent))}\n`);
 		return 0;
@@ -190,6 +213,10 @@ export const run = async (argv: string[], deps: Deps): Promise<number> => {
 		const { result } = await runCommand(command, { rawArgs: args, data: ctx });
 		return typeof result === "number" ? result : 0;
 	} catch (error) {
+		// Ctrl-C aborts every request in flight. The person who pressed it
+		// knows why the run stopped, so it stops with the shell's code for an
+		// interrupt and writes no line.
+		if (deps.signal.aborted) return 130;
 		return report(error, deps.stderr, color);
 	}
 };

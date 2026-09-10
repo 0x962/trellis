@@ -2,7 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { lines, runCli } from "../test/deps.ts";
 import { rpcError } from "../test/fakeServer.ts";
-import { comment, ticket, ticketSummary } from "../test/fixtures.ts";
+import { comment, statusSummary, ticket, ticketSummary } from "../test/fixtures.ts";
+import type { Deps } from "./index.ts";
 import { main } from "./index.ts";
 
 const verbs = [
@@ -118,6 +119,42 @@ describe("the root command", () => {
 		}
 	});
 
+	// CLI-08: a flag that takes a value and stands at the end of the line has
+	// none. The run stops before the request, so `edit --description` never
+	// writes an empty description over a written one.
+	test("a flag without its value exits 2 before any request", async () => {
+		for (const argv of [
+			["edit", "CDE-42", "--description"],
+			["list", "--project"],
+			["statuses", "edit", "CDE", "blocked", "--name"],
+		]) {
+			const result = await runCli(argv, {
+				"tickets.update": ticket(),
+				"tickets.list": listPage,
+				"statuses.update": statusSummary(),
+			});
+			expect(result.code, argv.join(" ")).toBe(2);
+			expect(lines(result.stderr), argv.join(" ")).toHaveLength(1);
+			expect(result.calls, argv.join(" ")).toEqual([]);
+		}
+	});
+
+	// CLI-09: `--` ends the global flags. Every token after it is a value or
+	// a positional, so `search -- --help` searches for the text `--help`.
+	test("-- ends the global flags", async () => {
+		const result = await runCli(["search", "--", "--help"], { "search.query": { tickets: [], projects: [] } });
+		expect(result.code).toBe(0);
+		expect(result.calls[0]).toMatchObject({ path: "search.query", input: { q: "--help" } });
+	});
+
+	// CLI-09: a global flag spelling that follows a flag of the command is
+	// that flag's value, so the comment carries the text `--help`.
+	test("a global flag spelling passes through as the value of a command flag", async () => {
+		const result = await runCli(["comment", "CDE-42", "--body", "--help"], { "comments.create": comment() });
+		expect(result.code).toBe(0);
+		expect(result.calls[0]).toMatchObject({ path: "comments.create", input: { ticket: "CDE-42", body: "--help" } });
+	});
+
 	// CLI-09
 	test("global flags work before and after the verb", async () => {
 		const before = await runCli(["--json", "list", "--project", "CDE"], { "tickets.list": listPage }, { tty: true });
@@ -178,6 +215,21 @@ describe("exit codes", () => {
 		});
 		expect(result.code).toBe(3);
 		expect(lines(result.stderr)).toHaveLength(1);
+	});
+
+	// CLI-14: every request carries the abort signal, so one interrupt ends a
+	// verb whose answer never arrives. The run exits 130 and prints nothing.
+	test("one interrupt stops a verb whose request hangs", async () => {
+		const controller = new AbortController();
+		const hang: Deps["fetch"] = (_request, init) =>
+			new Promise<Response>((_resolve, reject) => {
+				init.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+				setTimeout(() => controller.abort(), 5);
+			});
+		const running = runCli(["show", "CDE-1"], {}, { fetch: hang, signal: controller.signal });
+		void running.catch(() => {});
+		const outcome = await Promise.race([running, Bun.sleep(500).then(() => "still running" as const)]);
+		expect(outcome).toMatchObject({ code: 130, stdout: "", stderr: "" });
 	});
 
 	// CLI-14: the entrypoint hands the value of `run` to process.exit. Port 1

@@ -10,6 +10,9 @@ export type ClientOptions = {
 	actor: string;
 	session?: string | undefined;
 	fetch: Deps["fetch"];
+	// Fires on Ctrl-C. Every request carries it, so one interrupt ends the
+	// request in flight instead of leaving the process waiting for an answer.
+	signal: AbortSignal;
 	apiVersion: string;
 };
 
@@ -39,7 +42,7 @@ export const trellisFetch =
 		if (options.session !== undefined) request.headers.set("x-trellis-session", options.session);
 		let response: Response;
 		try {
-			response = await options.fetch(request, init);
+			response = await options.fetch(request, { ...init, signal: options.signal });
 		} catch {
 			throw unreachable(options.url);
 		}
@@ -68,6 +71,7 @@ export const clientOptions = (ctx: CliContext): ClientOptions => {
 		actor: actor.actor,
 		session: actor.session ?? undefined,
 		fetch: ctx.deps.fetch,
+		signal: ctx.deps.signal,
 		apiVersion: ctx.deps.apiVersion,
 	};
 };

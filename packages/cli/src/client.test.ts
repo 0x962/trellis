@@ -10,8 +10,16 @@ import { createClient } from "./client.ts";
 // server's `x-trellis-api-version` on every answer.
 const url = "http://127.0.0.1:4521";
 
+// `signal` fires on Ctrl-C and never fires in a test.
 const client = (server: ReturnType<typeof fakeServer>, session?: string, version = apiVersion) =>
-	createClient({ url, actor: "agent:claude-code", session, fetch: server.fetch, apiVersion: version });
+	createClient({
+		url,
+		actor: "agent:claude-code",
+		session,
+		fetch: server.fetch,
+		signal: new AbortController().signal,
+		apiVersion: version,
+	});
 
 describe("headers", () => {
 	// CLI-33

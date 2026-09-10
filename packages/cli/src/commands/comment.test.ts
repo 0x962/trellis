@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { runCli } from "../../test/deps.ts";
-import { comment, commentId, timeline } from "../../test/fixtures.ts";
+import { activity, comment, commentId, timeline } from "../../test/fixtures.ts";
 
 describe("comment", () => {
 	// CLI-95
@@ -40,5 +40,20 @@ describe("comments", () => {
 		expect(result.stdout).toContain("Body B");
 		expect(result.stdout.indexOf("Body A")).toBeLessThan(result.stdout.indexOf("Body B"));
 		expect(result.stdout).not.toContain("human-review");
+	});
+
+	// CLI-96: the timeline pages. A page of activity rows can hold no comment
+	// at all, so every page follows the cursor of the answer before it.
+	test("comments reads every timeline page", async () => {
+		const first = { items: [activity({ id: 9 })], nextCursor: "t1" };
+		const second = { items: [comment()], nextCursor: null };
+		const result = await runCli(
+			["comments", "CDE-42"],
+			{ "timeline.list": (input: { before?: string }) => (input.before === undefined ? first : second) },
+			{ tty: true },
+		);
+		expect(result.code).toBe(0);
+		expect(result.calls.map((call) => (call.input as { before?: string }).before)).toEqual([undefined, "t1"]);
+		expect(result.stdout).toContain("Body A");
 	});
 });

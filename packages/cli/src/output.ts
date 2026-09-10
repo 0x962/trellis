@@ -69,22 +69,36 @@ export const printList = <T>(out: Writer, format: Format, rows: T[], spec: ListS
 	}
 };
 
-// A paged list prints page by page under `jsonl` and `quiet`, so a reader
-// sees rows before the next request goes out. A table needs every row for
-// its widths and a JSON array is one value, so those wait for the last page.
+// A paged list prints page by page, so a reader sees rows before the next
+// request goes out. `json` writes the one array as it grows: an opening
+// bracket with the first row, a comma before every row after it, and the
+// closing bracket when the last page is in. The bytes are the bytes of
+// `JSON.stringify(everyRow)`. A table needs every row to size its columns,
+// so a table waits for the last page.
 export const printListPages = async <T>(
 	out: Writer,
 	format: Format,
 	pages: AsyncIterable<T[]>,
 	spec: ListSpec<T>,
 ): Promise<void> => {
-	if (format.mode === "jsonl" || format.mode === "quiet") {
+	if (format.mode === "table") {
+		const rows: T[] = [];
+		for await (const page of pages) rows.push(...page);
+		printList(out, format, rows, spec);
+		return;
+	}
+	if (format.mode !== "json") {
 		for await (const page of pages) printList(out, format, page, spec);
 		return;
 	}
-	const rows: T[] = [];
-	for await (const page of pages) rows.push(...page);
-	printList(out, format, rows, spec);
+	let written = 0;
+	for await (const page of pages) {
+		for (const row of page) {
+			out.write(`${written === 0 ? "[" : ","}${JSON.stringify(row)}`);
+			written++;
+		}
+	}
+	out.write(written === 0 ? "[]\n" : "]\n");
 };
 
 export const printRecord = <T>(out: Writer, format: Format, row: T, spec: RecordSpec<T>): void => {
