@@ -94,6 +94,10 @@ export const makeDeps = (routes: Routes = {}, options: RunOptions = {}) => {
 			options.run ??
 			(async (args, cwd) => {
 				commands.push(cwd === undefined ? { args } : { args, cwd });
+				// launchctl print exits 113 when launchd holds no job with the
+				// label. The default runner thus reports the job gone right after
+				// bootout.
+				if (args[0] === "launchctl" && args[1] === "print") return { code: 113, stderr: "Could not find service" };
 				return { code: 0, stderr: "" };
 			}),
 		launchdDomain: options.launchdDomain ?? "gui/test",

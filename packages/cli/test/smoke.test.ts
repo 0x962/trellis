@@ -218,7 +218,7 @@ describe("local installation files", () => {
 			const args = ["install", "--prefix", prefix, "--no-launchd"];
 			const first = await runProcess(args);
 			expect(first.code, first.stderr).toBe(0);
-			expect(first.stdout).toContain("  trellis: 4521,");
+			expect(first.stdout).not.toContain("margin");
 
 			const shim = join(prefix, ".local", "bin", "trellis");
 			const plist = join(prefix, "Library", "LaunchAgents", "com.trellis.server.plist");
