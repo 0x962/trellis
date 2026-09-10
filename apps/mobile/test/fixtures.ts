@@ -68,6 +68,7 @@ export const status = (overrides: Partial<Status> = {}): Status => ({
 	reviewer: null,
 	color: "warning",
 	projectId,
+	description: "",
 	position: 100,
 	wipLimit: null,
 	isDefault: false,

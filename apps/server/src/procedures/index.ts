@@ -1,3 +1,4 @@
+import { agents } from "./agents.ts";
 import { attachments } from "./attachments.ts";
 import { os } from "./base.ts";
 import { comments } from "./comments.ts";
@@ -25,4 +26,5 @@ export const router = os.router({
 	actors,
 	settings,
 	system,
+	agents,
 });

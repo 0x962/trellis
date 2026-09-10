@@ -10,6 +10,7 @@ type RawStatus = {
 	project_id: string;
 	slug: string;
 	name: string;
+	description: string;
 	category: Status["category"];
 	reviewer: Status["reviewer"];
 	color: Status["color"];
@@ -20,12 +21,13 @@ type RawStatus = {
 	updated_at: string;
 };
 
-export const statusColumns = sql`s.id, s.project_id, s.slug, s.name, s.category, s.reviewer, s.color,
+export const statusColumns = sql`s.id, s.project_id, s.slug, s.name, s.description, s.category, s.reviewer, s.color,
 	s.position, s.wip_limit, s.is_default, ${iso(sql`s.created_at`)} AS created_at, ${iso(sql`s.updated_at`)} AS updated_at`;
 
 export const toStatus = (row: RawStatus): StatusRow => ({
 	id: row.id,
 	projectId: row.project_id,
+	description: row.description,
 	slug: row.slug,
 	name: row.name,
 	category: row.category,

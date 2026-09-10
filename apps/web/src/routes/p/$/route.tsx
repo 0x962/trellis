@@ -4,6 +4,7 @@ import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, usePa
 import type { Status } from "@trellis/api";
 import { EmptyState } from "@trellis/ui";
 import { lazy, Suspense, useEffect } from "react";
+import { ManagerStatus } from "../../../features/agent/ManagerStatus";
 import { Board, boardSort } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
@@ -121,7 +122,14 @@ function ProjectPage() {
 	// only read, so they stay outside it.
 	return (
 		<>
-			<Topbar actions={<ViewSwitch value={view} onChange={switchView} />}>
+			<Topbar
+				actions={
+					<>
+						<ManagerStatus project={project} />
+						<ViewSwitch value={view} onChange={switchView} />
+					</>
+				}
+			>
 				<Breadcrumb path={ref} current={project.name} />
 			</Topbar>
 			{archived && <ArchivedBanner project={project} />}

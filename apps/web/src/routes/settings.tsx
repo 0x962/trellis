@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ActorNameField } from "../features/settings/ActorNameField";
+import { AgentsSettings } from "../features/settings/AgentsSettings";
 import { AgentTemplateField } from "../features/settings/AgentTemplateField";
 import { GhBanner } from "../features/settings/GhBanner";
 import { PairPhone } from "../features/settings/PairPhone";
@@ -8,8 +9,9 @@ import { ThemeField } from "../features/settings/ThemeField";
 import { Topbar } from "../features/shell/Topbar";
 
 // Who you are, how the app looks, what Start with agent copies, when a ticket
-// counts as stalled, whether gh is available, and how a phone reaches the
-// server.
+// counts as stalled, whether gh is available, how a phone reaches the
+// server, and how the agents run. The Agents block loads its own data, so
+// it sits last and its arrival moves no other block.
 export const Route = createFileRoute("/settings")({
 	loader: ({ context }) =>
 		Promise.all([
@@ -34,6 +36,7 @@ function SettingsPage() {
 					<StalledThresholdField />
 					<GhBanner />
 					<PairPhone />
+					<AgentsSettings />
 				</div>
 			</div>
 		</>

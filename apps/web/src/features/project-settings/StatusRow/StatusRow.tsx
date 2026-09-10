@@ -3,6 +3,7 @@ import { Button, Checkbox, IconButton, Input, Select, StatusIcon } from "@trelli
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { StatusDescriptionField } from "../StatusDescriptionField";
 
 export type StatusRowProps = {
 	project: string;
@@ -101,6 +102,7 @@ export function StatusRow({ project, status, index, count, onChanged, onMove, on
 					onChange={(event) => setWipLimit(event.target.value)}
 				/>
 			</div>
+			<StatusDescriptionField project={project} status={status} />
 			<div className="flex items-center justify-between gap-3">
 				<Checkbox label={`Default status ${status.name}`} checked={isDefault} onCheckedChange={setIsDefault} />
 				<Button size="sm" onClick={() => void save()}>

@@ -57,6 +57,7 @@ export const categoryColumns = (data: BoardOutput): BoardColumnModel[] => {
 			statuses: [...statuses.values()].map((status, position) => ({
 				...status,
 				projectId: items.find((ticket) => ticket.status.id === status.id)!.project.id,
+				description: "",
 				position,
 				wipLimit: null,
 				isDefault: false,

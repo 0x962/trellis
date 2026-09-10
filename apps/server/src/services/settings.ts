@@ -2,7 +2,7 @@ import { userInfo } from "node:os";
 import type { Settings, SettingsSetInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { requireActor, type ServiceCtx } from "../context.ts";
-import { rows } from "../db/queries/support.ts";
+import { rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 
 // The value of every key the table does not hold. `{brief}` in the template
@@ -16,9 +16,13 @@ export const defaults = (): Settings => ({
 const KEYS = ["startWithAgentTemplate", "defaultActorName", "stalledHours"] as const satisfies (keyof Settings)[];
 
 // One row per key with a jsonb value; a key the table lacks reads as its
-// default.
+// default. The table holds other keys too, such as the agent settings, so
+// the read names its three keys.
 export const get = async (_ctx: ServiceCtx, tx: Tx): Promise<Settings> => {
-	const stored = await rows<{ key: string; value: unknown }>(tx, sql`SELECT key, value FROM settings`);
+	const stored = await rows<{ key: string; value: unknown }>(
+		tx,
+		sql`SELECT key, value FROM settings WHERE key = ANY(${textArray(KEYS)})`,
+	);
 	const result: Record<string, unknown> = { ...defaults() };
 	for (const row of stored) result[row.key] = row.value;
 	return result as Settings;
