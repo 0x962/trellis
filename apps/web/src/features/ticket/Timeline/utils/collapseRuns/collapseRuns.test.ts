@@ -21,7 +21,7 @@ const activity = (actor: Actor, clock: string, field = "status"): TimelineItem =
 	projectId,
 	ticketId,
 	actor,
-	action: "changed",
+	action: "ticket.updated",
 	field,
 	fromValue: "Todo",
 	toValue: "In Progress",

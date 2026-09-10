@@ -25,7 +25,7 @@ const runOfThree = (server: FakeServer) => {
 		projectId: ticket.projectId,
 		ticketId: ticket.id,
 		actor: { name: "claude-code", kind: "agent" as const },
-		action: "changed",
+		action: "ticket.updated",
 	};
 	addActivity(server.state, {
 		...base,
