@@ -1,16 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { EmptyState, Input } from "@trellis/ui";
+import { Chip, EmptyState, Input } from "@trellis/ui";
 import { Search } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { FilterBar } from "../features/filters/FilterBar";
+import { parseSearch, stripDefaults, type View } from "../features/filters/grammar";
 import { SearchResults } from "../features/search/SearchResults";
 import { Topbar } from "../features/shell/Topbar";
 
-type SearchParams = { q?: string };
-
 // Full search results. `q` lives in the URL, so a search is a link.
 export const Route = createFileRoute("/search")({
-	validateSearch: (search: Record<string, unknown>): SearchParams =>
-		typeof search.q === "string" && search.q !== "" ? { q: search.q } : {},
+	validateSearch: (search: Record<string, unknown>) => stripDefaults(parseSearch(search)),
 	loaderDeps: ({ search }) => ({ q: search.q }),
 	loader: async ({ context, deps }) => {
 		if (deps.q !== undefined) {
@@ -21,14 +20,19 @@ export const Route = createFileRoute("/search")({
 });
 
 function SearchPage() {
-	const { q } = Route.useSearch();
+	const search = Route.useSearch();
+	const { q } = search;
 	const navigate = useNavigate();
 	const [draft, setDraft] = useState(q ?? "");
 
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
 		const next = draft.trim();
-		void navigate({ to: "/search", search: next === "" ? {} : { q: next } });
+		void navigate({ to: "/search", search: { ...search, q: next === "" ? undefined : next } });
+	};
+
+	const remove = (field: keyof View) => {
+		void navigate({ to: "/search", search: { ...search, [field]: undefined } });
 	};
 
 	return (
@@ -49,6 +53,13 @@ function SearchPage() {
 					onChange={(event) => setDraft(event.target.value)}
 				/>
 			</form>
+			<div data-testid="search-filters">
+				<FilterBar>
+					{search.priority !== undefined && (
+						<Chip label="Priority" op="in" value={search.priority.join(", ")} onRemove={() => remove("priority")} />
+					)}
+				</FilterBar>
+			</div>
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				{q === undefined ? (
 					<EmptyState
@@ -57,7 +68,7 @@ function SearchPage() {
 						description="A ticket identifier such as CDE-42 opens the ticket. A word matches titles, descriptions, and project names."
 					/>
 				) : (
-					<SearchResults q={q} />
+					<SearchResults q={q} filters={search} />
 				)}
 			</div>
 		</>
