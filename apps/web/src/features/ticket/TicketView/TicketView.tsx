@@ -3,12 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { cx, EmptyState, TicketId } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { AttachmentGrid } from "../../attachments/AttachmentGrid";
+import { useUploads } from "../../attachments/hooks/useUploads";
+import { PullRequests } from "../../prs";
 import { NotFoundState } from "../../shell/NotFoundState";
-import { Attachments } from "../Attachments";
 import { Description } from "../Description";
 import { Header } from "../Header";
 import { PropertiesRail } from "../PropertiesRail";
-import { PullRequests } from "../PullRequests";
 import { SubTickets } from "../SubTickets";
 import { Timeline } from "../Timeline";
 import { Title } from "../Title";
@@ -25,12 +26,15 @@ export type TicketViewProps = {
 // One ticket, as the page and the peek both draw it: the header, the
 // title, the description, the sub-tickets, the pull requests, the
 // attachments, and the timeline. Every section reads the cached detail,
-// so a live patch repaints it with no refetch.
+// so a live patch repaints it with no refetch. The whole ticket is the one
+// drop target: a dropped file uploads to the ticket, and the attachments
+// section shows its progress.
 export function TicketView({ identifier, variant }: TicketViewProps) {
 	const { orpc } = useApp();
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
 	const [addingChild, setAddingChild] = useState(false);
-	const drop = useDropOverlay();
+	const uploads = useUploads(identifier);
+	const drop = useDropOverlay(uploads.start);
 
 	useEffect(() => setAddingChild(false), []);
 	useEffect(() => {
@@ -77,8 +81,8 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 				{peek && <PropertiesRail ticket={ticket} variant="peek" onAddSubTicket={() => setAddingChild(true)} />}
 				<Description key={ticket.identifier} ticket={ticket} />
 				{(ticket.children.length > 0 || addingChild) && <SubTickets ticket={ticket} autoFocusAdd={addingChild} />}
-				<PullRequests ticket={ticket} />
-				<Attachments ticket={ticket} />
+				<PullRequests ticket={ticket} initialPrs={ticket.prs} />
+				<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
 				<Timeline ticket={ticket} />
 			</div>
 			{drop.over && <DropOverlay identifier={ticket.identifier} />}

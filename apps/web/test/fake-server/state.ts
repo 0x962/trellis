@@ -81,6 +81,9 @@ export type State = {
 	prs: Map<string, PullRequest>;
 	prLinks: PrLink[];
 	attachments: Map<string, Attachment>;
+	// The bytes of every stored attachment, keyed by the sha256 of the
+	// content. Two uploads of one file share one entry.
+	blobs: Map<string, Uint8Array<ArrayBuffer>>;
 	actors: Map<string, Actor>;
 	settings: Settings;
 	// What `system.gh` reports. A test sets it to drive the gh banner.
@@ -97,6 +100,7 @@ export const createState = (): State => ({
 	prs: new Map(),
 	prLinks: [],
 	attachments: new Map(),
+	blobs: new Map(),
 	actors: new Map(),
 	settings: {
 		startWithAgentTemplate: 'claude "$(trellis brief {brief})"',

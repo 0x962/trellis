@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { dragFilesOver, dropFiles, fileOf, surfaceOf } from "../../../../test/attachments";
 import { createFakeServer } from "../../../../test/fake-server";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import { fieldValue, renderTicket, settle } from "../../../../test/ticketHost";
@@ -128,4 +129,26 @@ describe("features/ticket/TicketView", () => {
 		);
 		expect(heights.size).toBe(1);
 	});
+
+	// WT-75. The whole ticket is one drop target, on the page and in the peek.
+	// One overlay names the ticket, and a drop uploads the files to it.
+	test("a drop anywhere on the ticket uploads the files to that ticket", async () => {
+		for (const variant of ["page", "peek"] as const) {
+			const view = renderTicket("CDE-42", (ticket) => <TicketView identifier={ticket.identifier} variant={variant} />, {
+				path: "/t/CDE-42",
+			});
+			const surface = await screen.findByRole("article");
+			fireEvent.dragEnter(surface, { dataTransfer: filesTransfer() });
+			expect(await screen.findByText("Drop to attach to CDE-42")).toBeDefined();
+			dragFilesOver(await surfaceOf());
+			expect(screen.getAllByText(/Drop to attach to CDE-42/), variant).toHaveLength(1);
+			dropFiles(surface, [fileOf("trace.txt", "text/plain", 64)]);
+			await waitFor(() => expect(screen.queryByText(/Drop to attach to CDE-42/)).toBeNull());
+			await waitFor(() => expect(view.server.callsTo("attachments.upload"), variant).toHaveLength(1));
+			expect(view.server.callsTo("attachments.upload")[0]!.input, variant).toMatchObject({ ticket: "CDE-42" });
+			view.unmount();
+		}
+	});
 });
+
+const filesTransfer = () => ({ types: ["Files"], files: [], items: [] });

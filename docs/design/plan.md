@@ -182,10 +182,12 @@ apps/web/src/
 │   ├── setup.tsx  settings.tsx  search.tsx  _gallery.tsx
 │   ├── needs-you/         route.tsx + components/ (ReviewSection/, FailingCiSection/, StalledSection/, DoneTodaySection/)
 │   ├── all/               route.tsx, board.tsx
-│   ├── p/$/               route.tsx (splat parser, search schema), board.tsx, settings.tsx
+│   ├── p/$/               route.tsx (splat parser, search schema), board.tsx, components/ProjectSettingsPage/ (lazy chunk)
 │   └── t/$identifier/     route.tsx (full page)
 ├── features/              screen-level modules, each with components/, hooks/, utils/ co-located
-│   ├── ticket/            TicketView (shared by peek and page), Header/, Title/, Description/ (ReadOnlyMarkdown, LazyEditor), PropertiesRail/, SubTickets/, PullRequests/ (PrRow/, CheckRows/, DiffPanel/), Attachments/, Timeline/ (CommentCard/, ActivityLine/, Composer/)
+│   ├── ticket/            TicketView (shared by peek and page), Header/, Title/, Description/ (ReadOnlyMarkdown, LazyEditor), PropertiesRail/, SubTickets/, Timeline/ (CommentCard/, ActivityLine/, Composer/); TicketView owns the one drop target
+│   ├── prs/               PullRequests (GhBanner/, LinkPrField/, RefreshControl/, PullRequestRow/ (PrStateIcon/, CheckCountPill/, CheckRows/, OpenInMargin/ (Show diff opens margin), PrActions/, MergedNudge/))
+│   ├── attachments/       AttachmentGrid (AttachmentRow/, AttachmentActions/, lightbox), AttachmentBox/, DropTarget/, UploadProgress/, hooks/useUploads
 │   ├── table/             TicketTable, columns.tsx, GroupHeader/, Row/, BulkBar/, DisplayPopover/, hooks/useTableData (two-tier loading)
 │   ├── board/             Board, Column/, Card/, hooks/useBoardDnd, useBoardData
 │   ├── filters/           FilterBar, FilterChip/, grammar.ts (URL ⇄ query ⇄ CLI), presets.ts
