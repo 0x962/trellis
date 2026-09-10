@@ -1,3 +1,4 @@
+import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 import { createTrellisClient, type TrellisClient } from "@trellis/api";
 import { actorHeader, keys, store } from "./store";
 
@@ -18,3 +19,6 @@ export const getClient = (): TrellisClient => {
 	}
 	return cached.client;
 };
+
+// These helpers use the current client configuration for query keys and hook options.
+export const getQueries = () => createTanstackQueryUtils(getClient());
