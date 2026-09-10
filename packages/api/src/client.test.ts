@@ -72,3 +72,19 @@ describe("createTrellisClient plugins", () => {
 		expect(request.headers.get("x-trellis-client")).toMatch(/^api\/\d+\.\d+\.\d+$/);
 	});
 });
+
+// A function actor is read on every request, so a rename takes effect on
+// the next call, and no identity means no actor header.
+describe("createTrellisClient live actor", () => {
+	test("a function actor is read per request and null sends no actor header", async () => {
+		const { requests, fetchStub } = rpcStub({ ok: true });
+		let actor: string | null = null;
+		const client = createTrellisClient(baseUrl, () => actor, fetchStub);
+		await client.system.health();
+		expect(requests[0]!.headers.has("x-trellis-actor")).toBe(false);
+		expect(requests[0]!.headers.get("x-trellis-client")).toMatch(/^api\//);
+		actor = "human:nk";
+		await client.system.health();
+		expect(requests[1]!.headers.get("x-trellis-actor")).toBe("human:nk");
+	});
+});
