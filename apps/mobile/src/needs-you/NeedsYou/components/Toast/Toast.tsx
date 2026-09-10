@@ -39,7 +39,13 @@ const styles = StyleSheet.create({
 
 // One line over the tab bar that names what happened. The toast dismisses
 // itself after its lifetime. The action leaves the dismissal to its owner.
-export function Toast({ title, detail, tone, action, onDismiss }: ToastProps) {
+// A new tone, title, or detail is a new toast: the key mounts a new
+// `ToastCard`, so its timer starts again at the full lifetime.
+export function Toast(props: ToastProps) {
+	return <ToastCard key={`${props.tone}\n${props.title}\n${props.detail ?? ""}`} {...props} />;
+}
+
+function ToastCard({ title, detail, tone, action, onDismiss }: ToastProps) {
 	const palette = usePalette();
 	const dismiss = useRef(onDismiss);
 	dismiss.current = onDismiss;
