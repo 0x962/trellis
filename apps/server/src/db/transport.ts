@@ -5,6 +5,7 @@ import { API_VERSION, type RequestContext, SYSTEM_ACTOR } from "../context.ts";
 import type { Bus } from "../events/bus.ts";
 import type { GhRunner } from "../gh/run.ts";
 import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs } from "../jobs.ts";
+import type { DbTiming } from "../serverTiming.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
@@ -34,8 +35,9 @@ export type Runtime = {
 // `start` with `jobs` also starts the poller and the maintenance timer in the
 // thread that owns the database. `close` then drains the poller first, for
 // up to 5 s, so no poller write runs after the database closes.
+// `timing` gains the database time of the call before the call settles.
 export type ServiceTransport = {
-	call: (name: ServiceName, ctx: RequestContext, input: unknown) => Promise<unknown>;
+	call: (name: ServiceName, ctx: RequestContext, input: unknown, timing?: DbTiming) => Promise<unknown>;
 	start: (jobs?: JobsStart) => Promise<TransportStart>;
 	close: () => Promise<void>;
 };
@@ -105,8 +107,13 @@ export const createInlineTransport = ({
 		return result;
 	};
 
-	const call = (name: ServiceName, ctx: RequestContext, input: unknown) => {
-		const promise = run(services[name], ctx, input);
+	// The time covers the transaction and the after-commit work, and counts
+	// for a call that rejects as well.
+	const call = (name: ServiceName, ctx: RequestContext, input: unknown, timing?: DbTiming) => {
+		const started = performance.now();
+		const promise = run(services[name], ctx, input).finally(() => {
+			if (timing !== undefined) timing.ms += performance.now() - started;
+		});
 		inFlight.add(promise);
 		promise.finally(() => inFlight.delete(promise)).catch(() => undefined);
 		return promise;

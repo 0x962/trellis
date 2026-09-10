@@ -46,8 +46,8 @@ export type SerializedError = {
 export type WorkerOutput =
 	| { type: "ready"; applied: number; liveShas: string[] }
 	| { type: "startError"; error: SerializedError }
-	| { type: "result"; id: number; result: unknown }
-	| { type: "error"; id: number; error: SerializedError }
+	| { type: "result"; id: number; result: unknown; dbMs: number }
+	| { type: "error"; id: number; error: SerializedError; dbMs: number }
 	| { type: "event"; event: TrellisEvent }
 	| { type: "gh"; id: number; slot: GhSlot; args: string[] }
 	| { type: "addresses"; id: number }
@@ -144,12 +144,13 @@ const startHost = () => {
 
 	const run = async (call: WorkerCall) => {
 		currentGhStatus = call.ghStatus;
+		const timing = { ms: 0 };
 		try {
-			const result = await transport.call(call.name, call.ctx, call.input);
+			const result = await transport.call(call.name, call.ctx, call.input, timing);
 			if (result instanceof ReadableStream) await relayStream(call.id, result);
-			else send({ type: "result", id: call.id, result });
+			else send({ type: "result", id: call.id, result, dbMs: timing.ms });
 		} catch (error) {
-			send({ type: "error", id: call.id, error: errorOf(error) });
+			send({ type: "error", id: call.id, error: errorOf(error), dbMs: timing.ms });
 		}
 	};
 
@@ -221,7 +222,7 @@ const startHost = () => {
 		if (data.type === "calls") {
 			for (const call of data.calls) {
 				const dropped = queue.push(call);
-				if (dropped) send({ type: "error", id: dropped.id, error: superseded() });
+				if (dropped) send({ type: "error", id: dropped.id, error: superseded(), dbMs: 0 });
 			}
 			schedule();
 			return;
