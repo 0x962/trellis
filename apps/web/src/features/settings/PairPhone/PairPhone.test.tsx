@@ -46,7 +46,7 @@ const decode = (svg: Element) => {
 };
 
 describe("Pair a phone", () => {
-	test("a server on loopback shows the command that opens it and the no-auth warning, and no QR code", async () => {
+	test("a server on loopback shows the command that opens it and the no-sign-in caution, and no QR code", async () => {
 		const server = createFakeServer();
 		server.state.addresses = ["http://127.0.0.1:4521"];
 		renderApp({ path: "/settings", actor: "navid", server });
@@ -54,7 +54,7 @@ describe("Pair a phone", () => {
 		const row = await pairRow();
 
 		expect(row.textContent).toContain(command);
-		expect(row.textContent).toMatch(/no auth/i);
+		expect(row.textContent).toMatch(/no sign-in/i);
 		expect(row.textContent).toMatch(/anyone on the network/i);
 		expect(row.querySelector("svg[role='img']")).toBeNull();
 	});

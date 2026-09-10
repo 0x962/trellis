@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { SectionHeader } from "@trellis/ui";
+import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
 import { AgentTemplateField } from "../features/settings/AgentTemplateField";
 import { GhBanner } from "../features/settings/GhBanner";
@@ -20,20 +22,61 @@ export const Route = createFileRoute("/settings")({
 	component: SettingsPage,
 });
 
+type SettingsSection = {
+	// The anchor of the section, such as /settings#agents.
+	id: string;
+	title: string;
+	rows: ReactNode;
+};
+
+// The groups of the page, top to bottom. A new group is one more entry.
+const sections: SettingsSection[] = [
+	{
+		id: "account",
+		title: "Account",
+		rows: (
+			<>
+				<ActorNameField />
+				<ThemeField />
+			</>
+		),
+	},
+	{
+		id: "agents",
+		title: "Agents",
+		rows: (
+			<>
+				<AgentTemplateField />
+				<StalledThresholdField />
+			</>
+		),
+	},
+	{
+		id: "integrations",
+		title: "Integrations",
+		rows: (
+			<>
+				<GhBanner />
+				<PairPhone />
+			</>
+		),
+	},
+];
+
 function SettingsPage() {
 	return (
 		<>
 			<Topbar>
-				<h1 className="text-md font-semibold text-fg">Settings</h1>
+				<h1 className="text-lg font-semibold text-fg">Settings</h1>
 			</Topbar>
-			<div className="min-h-0 flex-1 overflow-y-auto px-8">
-				<div className="flex max-w-3xl flex-col">
-					<ActorNameField />
-					<ThemeField />
-					<AgentTemplateField />
-					<StalledThresholdField />
-					<GhBanner />
-					<PairPhone />
+			<div className="min-h-0 flex-1 overflow-y-auto px-5">
+				<div className="mx-auto flex max-w-160 flex-col gap-8 py-8">
+					{sections.map((section) => (
+						<section key={section.id} id={section.id} aria-label={section.title}>
+							<SectionHeader title={section.title} className="border-b border-border" />
+							<div className="flex flex-col divide-y divide-border">{section.rows}</div>
+						</section>
+					))}
 				</div>
 			</div>
 		</>

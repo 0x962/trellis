@@ -17,7 +17,7 @@ const run = (args: string[], cwd = web) => {
 
 // One string per route that only that route's module carries. The root
 // chunk must hold none of them, and some lazy chunk must hold each.
-const routeMarkers = ["What should we call you?", "Settings saved", "Nothing needs you"];
+const routeMarkers = ["What should we call you?", "Pair a phone", "Nothing needs you"];
 
 // The bulk bar's copy action is text only the table module carries. The
 // editor mounts on focus, so its code is a lazy chunk; ProseMirror's class
