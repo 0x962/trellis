@@ -6,6 +6,7 @@ import type { Tx } from "../db/tx.ts";
 import {
 	type AgentsCtx,
 	announce,
+	clearedFailure,
 	insertSession,
 	LIVE_STATES,
 	newSessionId,
@@ -101,6 +102,12 @@ const removesWorkspace = async (tx: Tx, session: { role: string; ticketId: strin
 	return ["done", "canceled"].includes(ticket!.category) && row?.removeWorkspaceOnDone === true;
 };
 
+// A stop empties the three failure columns with the state, because the
+// database pairs a reason with the `failed` state and a stopped row is not
+// failed. The workspace sweep below reaches a failed row as well, so a stop
+// that leaves the reason behind would abort that whole transaction after
+// the runner already deleted the workspace.
+
 // A stopped session stays as it is and the runner is not called.
 export const prepareStop = async (ctx: AgentsCtx, input: { id: string }): Promise<StopPlan> => {
 	requireActor(ctx);
@@ -128,7 +135,8 @@ export const stop = async (ctx: AgentsCtx, tx: Tx, plan: StopPlan): Promise<Agen
 					)
 				).map((row) => row.id);
 	await tx.execute(
-		sql`UPDATE agent_sessions SET state = 'stopped', updated_at = ${ctx.now} WHERE id = ANY(${textArray([plan.id, ...others])})`,
+		sql`UPDATE agent_sessions SET state = 'stopped', ${clearedFailure}, updated_at = ${ctx.now}
+			WHERE id = ANY(${textArray([plan.id, ...others])})`,
 	);
 	for (const id of others) await announce(ctx, tx, id);
 	return announce(ctx, tx, plan.id);

@@ -24,6 +24,10 @@ export function AgentsSettings() {
 	if (saved === undefined || projects === undefined) return null;
 
 	const roots = projects.filter((project) => project.parentId === null && project.archivedAt === null);
+	// The block of the project a refusal names states it under that project's
+	// own fields. A refusal that names a project with no block on this page
+	// has nowhere else to go, so it reads here.
+	const orphanRefusal = refusal !== null && !roots.some((project) => project.id === refusal.projectId) ? refusal : null;
 	const reason =
 		runner.error instanceof ORPCError && runner.error.code === "RUNNER_UNAVAILABLE"
 			? (runner.error.data as { reason: RunnerReason }).reason
@@ -55,9 +59,9 @@ export function AgentsSettings() {
 					{runnerReasonLine[reason]}
 				</p>
 			)}
-			{refusal !== null && (
+			{orphanRefusal !== null && (
 				<p role="alert" className="text-sm text-danger">
-					{refusal.detail}
+					{orphanRefusal.detail}
 				</p>
 			)}
 			{roots.map((project) => (

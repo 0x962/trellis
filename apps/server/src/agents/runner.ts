@@ -101,9 +101,8 @@ export const runnerUnavailable = (reason: RunnerReason, detail = "", exitCode: n
 };
 
 // The payload of a RUNNER_UNAVAILABLE error, for the caller that stores it
-// on the session row. Any other error is a fault in trellis itself, so it
-// keeps going up.
-export const runnerFailure = (error: unknown): AgentFailure => {
-	if (error instanceof ORPCError && error.code === "RUNNER_UNAVAILABLE") return error.data as AgentFailure;
-	throw error;
-};
+// on the session row, or null when the error is anything else. An error the
+// runner did not declare is a fault in trellis itself, and the caller
+// decides what to do with the row before it lets that error go up.
+export const asRunnerFailure = (error: unknown): AgentFailure | null =>
+	error instanceof ORPCError && error.code === "RUNNER_UNAVAILABLE" ? (error.data as AgentFailure) : null;

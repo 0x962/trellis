@@ -1,5 +1,4 @@
 import {
-	type AgentFailure,
 	type AgentProjectSettings,
 	type AgentSession,
 	type AgentStartBuilderInput,
@@ -8,7 +7,7 @@ import {
 } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { AgentPlace, RunnerRepo } from "../agents/runner.ts";
-import { runnerFailure } from "../agents/runner.ts";
+import { asRunnerFailure } from "../agents/runner.ts";
 import { requireActor, type ServiceCtx } from "../context.ts";
 import { rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
@@ -57,12 +56,25 @@ export const effectiveRepos = async (ctx: ServiceCtx, tx: Tx, projectId: string)
 export const runnerProjectOf = (ctx: AgentsCtx, managed: AgentProjectSettings, repos: RunnerRepo[]) =>
 	managed.supersetProjectId === null ? ctx.runner.projectFor(repos) : Promise.resolve(managed.supersetProjectId);
 
-// Writes the reason on the session row in a transaction of its own, so the
-// row keeps it after the caller's own call rolls back with the error.
-const recordFailure = (ctx: AgentsCtx, id: string, failure: AgentFailure) =>
-	ctx.newTx((tx) =>
+// Settles the reserved row of a start that did not run, in a transaction of
+// its own, so the row is settled after the caller's own call rolls back with
+// the error.
+//
+// A refusal the runner declared stays on the row as its reason, and the next
+// start of the same ticket takes that row back. Any other error is a fault
+// in trellis, and trellis has no reason to show, so the row goes. A row left
+// in `starting` would count toward maxConcurrent for the life of the
+// project and answer every later start of its ticket.
+const settleReservation = async (ctx: AgentsCtx, id: string, error: unknown) => {
+	const failure = asRunnerFailure(error);
+	if (failure === null) {
+		await ctx.newTx((tx) => tx.execute(sql`DELETE FROM agent_sessions WHERE id = ${id}`));
+		return;
+	}
+	await ctx.newTx((tx) =>
 		tx.execute(sql`UPDATE agent_sessions SET ${failureColumns(failure)}, updated_at = ${ctx.now} WHERE id = ${id}`),
 	);
+};
 
 type Reservation = { id: string; ticket: TicketRow; managed: AgentProjectSettings; repos: RunnerRepo[] };
 
@@ -134,7 +146,7 @@ export const prepareBuilder = async (ctx: AgentsCtx, input: AgentStartBuilderInp
 		});
 		return { id: reserved.id, place };
 	} catch (error) {
-		await recordFailure(ctx, reserved.id, runnerFailure(error));
+		await settleReservation(ctx, reserved.id, error);
 		throw error;
 	}
 };
@@ -168,7 +180,7 @@ export const prepareReviewer = async (ctx: AgentsCtx, input: AgentStartReviewerI
 		});
 		return { id: reserved.id, terminalId };
 	} catch (error) {
-		await recordFailure(ctx, reserved.id, runnerFailure(error));
+		await settleReservation(ctx, reserved.id, error);
 		throw error;
 	}
 };

@@ -2,7 +2,6 @@ import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import type { AgentProjectSettings, AgentSettings, RunnerReason } from "@trellis/api";
 import { toast } from "@trellis/ui";
-import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 
 // The row a project reads before it has one: the manager off and the
@@ -23,6 +22,13 @@ export type SettingsRefusal = { projectId: string; reason: RunnerReason; detail:
 const refusalOf = (error: unknown): SettingsRefusal | null =>
 	error instanceof ORPCError && error.code === "AGENT_SETTINGS_UNUSABLE" ? (error.data as SettingsRefusal) : null;
 
+// The Agents block and each of its project rows call this hook, and a save
+// from any of them must reach every one. The refusal therefore lives in the
+// query cache, which all of them read, and not in a useState that each call
+// would hold for itself. The key carries no request: nothing fetches it, and
+// every write goes through setQueryData.
+export const settingsRefusalKey = ["ui", "agentSettingsRefusal"] as const;
+
 // `agents.setSettings` replaces the whole record, so each save sends the
 // cached record with one change on top. The cache takes the change at once,
 // the response replaces it, and a refused save reads the stored record again.
@@ -32,7 +38,16 @@ export const useAgentSettings = () => {
 	const { client, orpc, queryClient } = useApp();
 	const key = orpc.agents.settings.queryKey({});
 	const saved = useQuery(orpc.agents.settings.queryOptions({})).data;
-	const [refusal, setRefusal] = useState<SettingsRefusal | null>(null);
+	const refusal =
+		useQuery({
+			queryKey: settingsRefusalKey,
+			queryFn: () => null,
+			enabled: false,
+			initialData: null as SettingsRefusal | null,
+			staleTime: Number.POSITIVE_INFINITY,
+			gcTime: Number.POSITIVE_INFINITY,
+		}).data ?? null;
+	const setRefusal = (next: SettingsRefusal | null) => queryClient.setQueryData(settingsRefusalKey, next);
 
 	const save = async (change: (current: AgentSettings) => AgentSettings): Promise<void> => {
 		const next = change(queryClient.getQueryData<AgentSettings>(key)!);

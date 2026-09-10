@@ -15,12 +15,13 @@ export type AgentFailureProps = {
 // them.
 const firstLine = (detail: string) => detail.trim().split("\n")[0] ?? "";
 
-// What a refused retry says. The reason line names the fix, and the runner's
-// own first line says what it printed.
+// What a refusal says. The reason line names the fix, and the runner's own
+// first line says what it printed.
+const reasonLine = (failure: Failure) => `${runnerReasonLine[failure.reason]} ${firstLine(failure.detail)}`.trim();
+
 const refusal = (error: unknown) => {
 	if (!(error instanceof ORPCError) || error.code !== "RUNNER_UNAVAILABLE") return (error as Error).message;
-	const failure = error.data as Failure;
-	return `${runnerReasonLine[failure.reason]} ${firstLine(failure.detail)}`.trim();
+	return reasonLine(error.data as Failure);
 };
 
 // Why the runner refused a start, with the whole text one click away and a
@@ -34,11 +35,15 @@ export function AgentFailure({ session }: AgentFailureProps) {
 	const failure = session.failure!;
 	const printed = firstLine(failure.detail);
 
+	// A builder retry and a reviewer retry answer with the error. A manager
+	// retry answers with its session row, which carries the new reason when
+	// the runner refused it again, so the answer is read before the toast.
 	const run = async () => {
 		setRetrying(true);
 		try {
-			await client.agents.retry({ id: session.id });
-			toast.success("Started the agent");
+			const started = await client.agents.retry({ id: session.id });
+			if (started.failure === null) toast.success("Started the agent");
+			else toast.error("Couldn't start the agent", { description: reasonLine(started.failure) });
 		} catch (error) {
 			toast.error("Couldn't start the agent", { description: refusal(error) });
 		} finally {

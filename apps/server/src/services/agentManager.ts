@@ -1,7 +1,7 @@
 import { type AgentFailure, type AgentSession, agentTitle, restartText } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { AgentPlace } from "../agents/runner.ts";
-import { runnerFailure } from "../agents/runner.ts";
+import { asRunnerFailure, runnerUnavailable } from "../agents/runner.ts";
 import { textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import {
@@ -23,6 +23,11 @@ import { pathOf } from "./refs.ts";
 // Neither is on the API.
 
 export type ReconcilePlan = { exited: string[] };
+
+// The states in which a manager row still names an agent that runs. A row in
+// one of them keeps its workspace id and its terminal id through a refused
+// start.
+const LIVE_MANAGER_STATES = new Set(["starting", "running", "waiting"]);
 
 // A session holds its terminal only while the runner lists that terminal as
 // running. The runner lists each workspace once.
@@ -54,6 +59,11 @@ export const reconcile = async (ctx: AgentsCtx, tx: Tx, plan: ReconcilePlan) => 
 export type ManagerPlan = {
 	projectId: string;
 	managerId: string | null;
+	// True when the row `managerId` names still holds a terminal the runner
+	// reported and has not ended. A refused start may not overwrite such a
+	// row: the agent it names keeps running, and the workspace id and the
+	// terminal id are the only handle trellis has on it.
+	managerLive: boolean;
 	title: string;
 	place: (AgentPlace & { started: boolean }) | null;
 	failure: AgentFailure | null;
@@ -81,9 +91,12 @@ export const prepareManager = async (ctx: AgentsCtx, input: { project: string })
 		};
 	});
 	const project = pathOf(ctx.cache, found.managed.projectId);
+	const row = found.row;
 	const base = {
 		projectId: found.managed.projectId,
-		managerId: found.row === undefined ? null : found.row.id,
+		managerId: row === undefined ? null : row.id,
+		managerLive:
+			row !== undefined && row.workspaceId !== null && row.terminalId !== null && LIVE_MANAGER_STATES.has(row.state),
 		title: agentTitle({ role: "manager", project }),
 	};
 	try {
@@ -96,16 +109,24 @@ export const prepareManager = async (ctx: AgentsCtx, input: { project: string })
 		});
 		return { ...base, place, failure: null };
 	} catch (error) {
-		return { ...base, place: null, failure: runnerFailure(error) };
+		const failure = asRunnerFailure(error);
+		if (failure === null) throw error;
+		return { ...base, place: null, failure };
 	}
 };
 
 // A tab the runner started runs a new Claude process, which reports itself
 // through agents.register; until then it is `starting`. A tab the runner
-// found runs already. A refused start writes the reason on the same row and
-// drops the workspace and the terminal, because neither exists.
+// found runs already.
+//
+// A refused start writes the reason on the manager row and drops the
+// workspace and the terminal, because neither exists. A project whose
+// manager still holds a terminal keeps that row untouched and the caller
+// gets the refusal as an error, so one runner error at a server restart
+// cannot take the handle on a manager that runs.
 export const recordManager = async (ctx: AgentsCtx, tx: Tx, plan: ManagerPlan): Promise<AgentSession> => {
 	if (plan.failure !== null) {
+		if (plan.managerLive) throw runnerUnavailable(plan.failure.reason, plan.failure.detail, plan.failure.exitCode);
 		if (plan.managerId !== null) {
 			await tx.execute(sql`
 				UPDATE agent_sessions SET workspace_id = NULL, terminal_id = NULL, open_url = NULL,
