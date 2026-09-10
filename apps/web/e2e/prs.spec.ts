@@ -22,3 +22,20 @@ test("prs > a linked pull request shows its row, and its parent shows the failin
 	const children = page.getByRole("region", { name: /Sub-tickets/ });
 	await expect(children.getByLabel(/ PR, checks failed/)).toBeVisible();
 });
+
+// The route below answers as margin, so the test needs no margin on this
+// machine and no network.
+test("prs > Show diff frames the margin page beside the ticket", async ({ page }) => {
+	await page.route(/^http:\/\/margin\.localhost\//, (route) =>
+		route.fulfill({ contentType: "text/html", body: "<p>the margin page</p>" }),
+	);
+	await signIn(page, "/t/PRS-2");
+	await page.getByRole("button", { name: "Show diff" }).click();
+	const panel = page.getByRole("dialog", { name: "acme/web #7" });
+	await expect(panel).toBeVisible();
+	await expect(panel.locator("iframe")).toHaveAttribute("src", `http://margin.localhost/${failingPrUrl}`);
+	await expect(panel.frameLocator("iframe").getByText("the margin page")).toBeVisible();
+	expect((await panel.boundingBox())?.width).toBe(1240);
+	await panel.getByRole("button", { name: "Close" }).click();
+	await expect(panel).toBeHidden();
+});
