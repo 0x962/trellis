@@ -5,7 +5,11 @@ import { type CliContext, contextOf } from "../context.ts";
 import { CliFailure } from "../errors.ts";
 import { installationPaths } from "../installation.ts";
 
-const bun = "/opt/homebrew/bin/bun";
+// The agent runs the bun that runs the installer. Bun resolves symlinks in
+// `process.execPath`, so a Homebrew bun names its versioned Cellar
+// directory, and a bun upgrade needs a new install.
+const bun = process.execPath;
+const shimBun = "/opt/homebrew/bin/bun";
 const routeLine = "  trellis: 4521,";
 
 type Paths = ReturnType<typeof installationPaths>;
@@ -27,7 +31,7 @@ const plistText = (paths: Paths) => `<?xml version="1.0" encoding="UTF-8"?>
 	<key>EnvironmentVariables</key>
 	<dict>
 		<key>PATH</key>
-		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+		<string>${xml(dirname(bun))}:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
 		<key>HOME</key>
 		<string>${xml(paths.userHome)}</string>
 		<key>TRELLIS_HOME</key>
@@ -95,10 +99,10 @@ export default defineCommand({
 	},
 	async run(context) {
 		const ctx = contextOf(context);
-		const paths = installationPaths(ctx.deps.env, context.args.prefix);
+		const paths = installationPaths(ctx.deps.env, ctx.deps.home, context.args.prefix);
 		await buildWeb(ctx, paths);
 		mkdirSync(dirname(paths.shim), { recursive: true });
-		writeFileSync(paths.shim, `#!/bin/sh\nexec ${bun} "${paths.cliEntry}" "$@"\n`);
+		writeFileSync(paths.shim, `#!/bin/sh\nexec ${shimBun} "${paths.cliEntry}" "$@"\n`);
 		chmodSync(paths.shim, 0o755);
 		mkdirSync(dirname(paths.plist), { recursive: true });
 		writeFileSync(paths.plist, plistText(paths));

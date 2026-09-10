@@ -103,6 +103,23 @@ describe("system.backup", () => {
 		]);
 	});
 
+	test("backup vacuums the busy tables once its transaction commits", async () => {
+		const vacuums = async () => {
+			const found = await db.execute(
+				sql`SELECT vacuum_count::int AS n FROM pg_stat_user_tables WHERE relname = 'tickets'`,
+			);
+			return found.rows[0]!.n as number;
+		};
+		const before = await vacuums();
+		const handle = testCtx({ db, home });
+
+		await db.transaction((tx) => backup(handle.ctx, tx, {}));
+		expect(await vacuums()).toBe(before);
+		await handle.runAfterCommit();
+
+		expect(await vacuums()).toBe(before + 1);
+	});
+
 	test("a restore of the archive reproduces the rows and the blobs", async () => {
 		const { rootId, statuses } = await seedProject(db);
 		const ticket = await seedTicket(db, { projectId: rootId, rootId, statusId: statuses.todo, number: 1 });

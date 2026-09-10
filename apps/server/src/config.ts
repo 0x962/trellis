@@ -14,6 +14,9 @@ export type Config = {
 	webDist: string;
 	logLevel: LogLevel;
 	dbInline: boolean;
+	// How many times faster than the wall clock the poller and the
+	// maintenance timer run. The server runs at 1; a test sets 100.
+	clockRate: number;
 	dbDir: string;
 	attachmentsDir: string;
 	tmpDir: string;
@@ -56,6 +59,7 @@ export const loadConfig = (env: Env): Config => {
 		webDist: env.TRELLIS_WEB_DIST === undefined ? defaultWebDist : resolve(expandHome(env.TRELLIS_WEB_DIST)),
 		logLevel: env.TRELLIS_LOG_LEVEL === undefined ? "info" : levelOf(env.TRELLIS_LOG_LEVEL),
 		dbInline: env.TRELLIS_DB_INLINE === "true",
+		clockRate: env.TRELLIS_CLOCK_RATE === undefined ? 1 : numberOf("TRELLIS_CLOCK_RATE", env.TRELLIS_CLOCK_RATE),
 		dbDir: join(home, "db"),
 		attachmentsDir: join(home, "attachments"),
 		tmpDir: join(home, "attachments", "tmp"),

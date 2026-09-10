@@ -26,7 +26,7 @@ export type WorkerCall = {
 type WorkerRuntime = Pick<Runtime, "version" | "bootId"> & { ghBin: string; ghTimeoutMs: number };
 
 export type WorkerInput =
-	| { type: "start"; config: Config; runtime: WorkerRuntime }
+	| { type: "start"; config: Config; runtime: WorkerRuntime; jobs: { clockRate: number } | null }
 	| { type: "calls"; calls: WorkerCall[] }
 	| { type: "ghResult"; id: number; result: GhResult }
 	| { type: "pull"; id: number }
@@ -52,6 +52,7 @@ export type WorkerOutput =
 	| { type: "stream"; id: number }
 	| { type: "chunk"; id: number; chunk: Uint8Array<ArrayBuffer> }
 	| { type: "streamEnd"; id: number }
+	| { type: "log"; msg: string; fields?: Record<string, unknown> }
 	| { type: "closed" };
 
 const ranks: Record<ServiceKind, number> = { mutation: 0, read: 1, search: 2 };
@@ -194,7 +195,9 @@ const startHost = () => {
 				bus.subscribe(({ event }) => send({ type: "event", event }));
 				const runtime: Runtime = { ...data.runtime, gh, ghStatus: () => currentGhStatus };
 				transport = createInlineTransport({ db: database.db, bus, config: data.config, runtime });
-				const started = await transport.start();
+				const jobs = data.jobs;
+				const log = (msg: string, fields?: Record<string, unknown>) => send({ type: "log", msg, fields });
+				const started = await transport.start(jobs === null ? undefined : { clockRate: jobs.clockRate, log });
 				send({ type: "ready", applied: database.applied, liveShas: started.liveShas });
 			})().catch((error) => send({ type: "startError", error: errorOf(error) }));
 			return;

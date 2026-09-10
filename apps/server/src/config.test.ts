@@ -66,4 +66,10 @@ describe("config", () => {
 		expect(config.backupsDir).toBe("/var/data/trellis/backups");
 		expect(config.logFile).toBe("/var/data/trellis/server.log");
 	});
+
+	test("the jobs clock runs at the wall clock rate unless TRELLIS_CLOCK_RATE names another", () => {
+		expect(loadConfig({}).clockRate).toBe(1);
+		expect(loadConfig({ TRELLIS_CLOCK_RATE: "100" }).clockRate).toBe(100);
+		expect(() => loadConfig({ TRELLIS_CLOCK_RATE: "fast" })).toThrow(/TRELLIS_CLOCK_RATE/);
+	});
 });
