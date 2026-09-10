@@ -9,6 +9,7 @@ import { DragIndicator } from "../DragIndicator";
 export type BoardCardProps = {
 	ticket: TicketSummary;
 	index: number;
+	columnId: string;
 	columnName: string;
 	columnCount: number;
 	onOpen: () => void;
@@ -16,14 +17,15 @@ export type BoardCardProps = {
 	onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 	announce: (message: string) => void;
 	showStatus?: boolean;
-	// Draws the drop line under this card while the pointer is over the
-	// empty part of its column.
-	dropAfter?: boolean;
+	// Draws the drop line above this card while a card from another column
+	// hangs over this one's column.
+	dropBefore?: boolean;
 };
 
 export function BoardCard({
 	ticket,
 	index,
+	columnId,
 	columnName,
 	columnCount,
 	onOpen,
@@ -31,16 +33,16 @@ export function BoardCard({
 	onKeyDown,
 	announce,
 	showStatus = false,
-	dropAfter = false,
+	dropBefore = false,
 }: BoardCardProps) {
 	const ref = useRef<HTMLLIElement>(null);
 	const pickup = useCallback((message: string) => announce(message), [announce]);
 	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
-	const { closestEdge, dragging } = useCardDnd(
+	const { dragging } = useCardDnd(
 		ref,
 		{
 			ticketId: ticket.id,
-			statusId: ticket.status.id,
+			columnId,
 			identifier: ticket.identifier,
 			title: ticket.title,
 			index,
@@ -52,7 +54,6 @@ export function BoardCard({
 		readOnly,
 	);
 	const failing = ticket.pr?.state === "open" && ticket.pr.ciState === "fail";
-	const edge = closestEdge ?? (dropAfter ? "bottom" : null);
 
 	return (
 		<li
@@ -74,7 +75,7 @@ export function BoardCard({
 				failing && "border-t-2 border-t-danger",
 			)}
 		>
-			{edge !== null && <DragIndicator edge={edge} />}
+			{dropBefore && <DragIndicator />}
 			<CardContent ticket={ticket} showStatus={showStatus} />
 		</li>
 	);

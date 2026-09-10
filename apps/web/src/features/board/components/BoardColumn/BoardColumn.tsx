@@ -123,7 +123,7 @@ export function BoardColumn({
 			>
 				{over && visible.length === 0 && (
 					<li role="none" className="relative h-0">
-						<DragIndicator edge="top" />
+						<DragIndicator />
 					</li>
 				)}
 				{visible.map((ticket, index) => (
@@ -131,6 +131,7 @@ export function BoardColumn({
 						key={ticket.id}
 						ticket={ticket}
 						index={index}
+						columnId={column.id}
 						columnName={column.name}
 						columnCount={visible.length}
 						onOpen={() => onOpenTicket(ticket.identifier)}
@@ -138,7 +139,7 @@ export function BoardColumn({
 						onKeyDown={(event) => onCardKeyDown(event, column, index)}
 						announce={onAnnounce}
 						showStatus={categoryMode}
-						dropAfter={over && index === visible.length - 1}
+						dropBefore={over && index === 0}
 					/>
 				))}
 				{visible.length < column.count && column.category !== "done" && (

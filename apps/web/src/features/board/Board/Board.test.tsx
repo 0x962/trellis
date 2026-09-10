@@ -145,21 +145,22 @@ describe("Board", () => {
 		).toBeDefined();
 	});
 
-	test("a drop inside a column sends an anchor", async () => {
+	// A column has no manual order, so a drop inside the card's own column
+	// takes no drop target and writes nothing.
+	test("a drop inside the card's own column changes nothing", async () => {
 		const server = createFakeServer();
 		renderBoard(server);
 		await screen.findByText("CDE-47");
-		drop(card("CDE-47"), card("CDE-39"), "bottom");
-		await waitFor(() => {
-			const move = server.calls.find((call) => call.path.join(".") === "tickets.move");
-			expect(move).toBeDefined();
-			const input = move!.input as Record<string, unknown>;
-			expect(input).toMatchObject({ ticket: "CDE-47", status: "todo" });
-			expect("after" in input || "before" in input).toBe(true);
-		});
+		const before = identifiers(column("Todo"));
+		drop(card("CDE-47"), card(before.find((identifier) => identifier !== "CDE-47")!), "bottom");
+		await waitFor(() =>
+			expect(screen.getByRole("status", { name: "Board drag status" }).textContent).toBe("Drop canceled"),
+		);
+		expect(server.calls.filter((call) => call.path.join(".") === "tickets.move")).toHaveLength(0);
+		expect(identifiers(column("Todo"))).toEqual(before);
 	});
 
-	test("brackets change columns and Shift with arrows reorders", async () => {
+	test("brackets change columns and Shift with an arrow only moves the focus", async () => {
 		const server = createFakeServer();
 		renderBoard(server);
 		const item = await screen.findByRole("listitem", { name: /^CDE-47 / });
@@ -173,15 +174,15 @@ describe("Board", () => {
 				),
 			).toBe(true),
 		);
+		const moves = server.calls.filter((call) => call.path.join(".") === "tickets.move").length;
 		const moved = card("CDE-47");
 		moved.focus();
-		const shown = identifiers(column("In Progress"));
-		const below = shown[shown.indexOf("CDE-47") + 1]!;
+		const before = identifiers(column("In Progress"));
+		const below = before[before.indexOf("CDE-47") + 1]!;
 		fireEvent.keyDown(moved, { key: "ArrowDown", shiftKey: true });
-		await waitFor(() => {
-			const moves = server.calls.filter((call) => call.path.join(".") === "tickets.move");
-			expect(moves.at(-1)?.input).toMatchObject({ ticket: "CDE-47", status: "in-progress", after: below });
-		});
+		expect(document.activeElement).toBe(card(below));
+		expect(server.calls.filter((call) => call.path.join(".") === "tickets.move")).toHaveLength(moves);
+		expect(identifiers(column("In Progress"))).toEqual(before);
 	});
 
 	test("the live region announces pick up, move, and cancel", async () => {

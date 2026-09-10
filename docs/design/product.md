@@ -272,8 +272,8 @@ login (2 lines max, then ellipsis)
 ### 4.3 Drag rules
 
 - Drag a card between columns = status change with the current human actor; optimistic; the activity entry reads `○ Navid moved In Progress → Human Review`.
-- Drag within a column = manual reorder, persisted as `board_position` per (ticket, status). Manual order is the default board sort; choosing any other sort in Display disables reordering (drop indicator does not appear within column; the card snaps to its sorted place).
-- Drop indicator: a 2px accent line between cards; the target column gets a 4% tint. The dragged card renders as a lightweight preview (title + ID only) at 0.9 opacity; the source slot shows a dashed placeholder.
+- A column takes no manual order. It lists the ticket that changed last at the top, and it breaks a tie by id descending. A drop inside the card's own column changes nothing, and the column shows no drop indicator.
+- Drop indicator: a 2px accent line above the first card of the column the pointer enters, because the card lands there; the target column gets a 4% tint. The dragged card renders as a lightweight preview (title + ID only) at 0.9 opacity; the source slot shows a dashed placeholder.
 - Dropping onto a collapsed column is allowed (column expands on hover after 400ms).
 - Category columns on `/all/board`: dropping picks the **first** status of that category in the ticket's project; if there are multiple, a small popover asks which.
 - Multi-drag: not in v1. Bulk status changes are done from the table.
@@ -284,7 +284,7 @@ login (2 lines max, then ellipsis)
 
 ### 4.5 Keyboard on the board
 
-Arrow keys move focus across cards and columns; `Enter` peek; `s` opens the status popover (this is the accessible equivalent of dragging); `[`/`]` move the focused card to the previous/next column (status change), `Shift+↑/↓` reorders within the column.
+Arrow keys move focus across cards and columns; `Enter` peek; `s` opens the status popover (this is the accessible equivalent of dragging); `[`/`]` move the focused card to the previous/next column (status change).
 
 ---
 

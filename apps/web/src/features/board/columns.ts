@@ -71,22 +71,16 @@ export const categoryColumns = (data: BoardOutput): BoardColumnModel[] => {
 	});
 };
 
-export const moveInBoard = (
-	data: BoardOutput,
-	ticket: TicketSummary,
-	targetStatus: StatusSummary,
-	after?: TicketSummary,
-	before?: TicketSummary,
-): BoardOutput => {
+// The board after a status change. The server stamps the ticket, and a
+// column lists the last updated ticket first, so the card takes the head of
+// its new column.
+export const moveInBoard = (data: BoardOutput, ticket: TicketSummary, targetStatus: StatusSummary): BoardOutput => {
 	const columns = data.columns.map((column) => {
 		const without = column.items.filter((item) => item.id !== ticket.id);
 		const lost = column.items.length - without.length;
 		if (column.statusId !== targetStatus.id) return { ...column, items: without, count: column.count - lost };
 		const moved = { ...ticket, status: targetStatus };
-		const anchor = after ?? before;
-		const index = anchor === undefined ? 0 : without.findIndex((item) => item.id === anchor.id);
-		const at = anchor === undefined ? index : index + (after === undefined ? 0 : 1);
-		return { ...column, items: without.toSpliced(at, 0, moved), count: column.count + (lost === 0 ? 1 : 0) };
+		return { ...column, items: [moved, ...without], count: column.count + (lost === 0 ? 1 : 0) };
 	});
 	return { columns };
 };

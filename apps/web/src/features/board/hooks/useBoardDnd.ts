@@ -6,7 +6,6 @@ import {
 import { preserveOffsetOnSource } from "@atlaskit/pragmatic-drag-and-drop/element/preserve-offset-on-source";
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
-import { attachClosestEdge, extractClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import type { TicketSummary } from "@trellis/api";
 import { createElement, type RefObject, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
@@ -17,7 +16,8 @@ import type { BoardColumnModel, BoardMove } from "../types";
 type TicketData = {
 	type: "ticket";
 	ticketId: string;
-	statusId: string;
+	// The column the card sits in. A column refuses a card it already holds.
+	columnId: string;
 	identifier: string;
 	title: string;
 	index: number;
@@ -26,11 +26,6 @@ type TicketData = {
 };
 
 const isTicketData = (data: Record<string | symbol, unknown>): data is TicketData => data.type === "ticket";
-
-const edgeOf = (data: Record<string | symbol, unknown>) => {
-	const edge = extractClosestEdge(data);
-	return edge === "top" || edge === "bottom" ? edge : null;
-};
 
 export const useBoardAutoScroll = (ref: RefObject<HTMLElement | null>, enabled: boolean) => {
 	useEffect(() => {
@@ -42,8 +37,6 @@ export const useBoardAutoScroll = (ref: RefObject<HTMLElement | null>, enabled: 
 };
 
 export type CardDndState = {
-	// The edge of this card where a hovered drop lands.
-	closestEdge: "top" | "bottom" | null;
 	// True from the start of this card's drag to its drop.
 	dragging: boolean;
 };
@@ -56,87 +49,70 @@ export const useCardDnd = (
 	// True for a ticket under an archived project.
 	readOnly = false,
 ): CardDndState => {
-	const [closestEdge, setClosestEdge] = useState<"top" | "bottom" | null>(null);
 	const [dragging, setDragging] = useState(false);
-	const { ticketId, statusId, identifier, title, index, columnName, columnCount } = input;
+	const { ticketId, columnId, identifier, title, index, columnName, columnCount } = input;
 	const { ticket, showStatus } = preview;
 	useEffect(() => {
 		const element = ref.current!;
-		return combineCleanups(
-			draggable({
-				element,
-				// A ticket under an archived project takes no move, so no drag starts.
-				canDrag: () => !readOnly,
-				getInitialData: () => ({
-					type: "ticket",
-					ticketId,
-					statusId,
-					identifier,
-					title,
-					index,
-					columnName,
-					columnCount,
-				}),
-				// The drag library writes inline styles on `container` that clear
-				// its fill, border, and padding. The preview therefore draws its
-				// own card in a child element. The render is synchronous, because
-				// the browser takes the snapshot as soon as `render` returns.
-				onGenerateDragPreview: ({ nativeSetDragImage, location }) => {
-					setCustomNativeDragPreview({
-						nativeSetDragImage,
-						getOffset: preserveOffsetOnSource({ element, input: location.current.input }),
-						render: ({ container }) => {
-							const mount = document.createElement("div");
-							container.appendChild(mount);
-							const root = createRoot(mount);
-							const width = element.getBoundingClientRect().width;
-							flushSync(() => root.render(createElement(CardPreview, { ticket, width, showStatus })));
-							return () => root.unmount();
-						},
-					});
-				},
-				onDragStart: () => {
-					setDragging(true);
-					announce(`${identifier} picked up from ${columnName}, position ${index + 1} of ${columnCount}`);
-				},
-				onDrop: () => setDragging(false),
+		return draggable({
+			element,
+			// A ticket under an archived project takes no move, so no drag starts.
+			canDrag: () => !readOnly,
+			getInitialData: () => ({
+				type: "ticket",
+				ticketId,
+				columnId,
+				identifier,
+				title,
+				index,
+				columnName,
+				columnCount,
 			}),
-			dropTargetForElements({
-				element,
-				canDrop: ({ source }) => isTicketData(source.data),
-				getData: ({ input: pointer }) =>
-					attachClosestEdge(
-						{ type: "card", ticketId, statusId },
-						{ element, input: pointer, allowedEdges: ["top", "bottom"] },
-					),
-				// The line shows on enter as well as on each drag update. A browser
-				// can hold the next update while the pointer rests, and the
-				// column's own line goes away as soon as a card is under the pointer.
-				onDragEnter: ({ self }) => setClosestEdge(edgeOf(self.data)),
-				onDrag: ({ self }) => setClosestEdge(edgeOf(self.data)),
-				onDragLeave: () => setClosestEdge(null),
-				onDrop: () => setClosestEdge(null),
-			}),
-		);
+			// The drag library writes inline styles on `container` that clear
+			// its fill, border, and padding. The preview therefore draws its
+			// own card in a child element. The render is synchronous, because
+			// the browser takes the snapshot as soon as `render` returns.
+			onGenerateDragPreview: ({ nativeSetDragImage, location }) => {
+				setCustomNativeDragPreview({
+					nativeSetDragImage,
+					getOffset: preserveOffsetOnSource({ element, input: location.current.input }),
+					render: ({ container }) => {
+						const mount = document.createElement("div");
+						container.appendChild(mount);
+						const root = createRoot(mount);
+						const width = element.getBoundingClientRect().width;
+						flushSync(() => root.render(createElement(CardPreview, { ticket, width, showStatus })));
+						return () => root.unmount();
+					},
+				});
+			},
+			onDragStart: () => {
+				setDragging(true);
+				announce(`${identifier} picked up from ${columnName}, position ${index + 1} of ${columnCount}`);
+			},
+			onDrop: () => setDragging(false),
+		});
 	}, [
 		announce,
 		columnCount,
+		columnId,
 		columnName,
 		identifier,
 		index,
 		readOnly,
 		ref,
-		statusId,
 		ticketId,
 		title,
 		ticket,
 		showStatus,
 	]);
-	return { closestEdge, dragging };
+	return { dragging };
 };
 
-// `over` is true while the pointer is over the column but over no card:
-// the drop then lands after the last card.
+// `over` is true while a card from another column hangs over this column.
+// The card lands at the top of the column, so the column marks that one
+// place. A column refuses a card it already holds, so a drag inside a
+// column marks nothing.
 export const useColumnDnd = (
 	ref: RefObject<HTMLElement | null>,
 	column: BoardColumnModel,
@@ -149,12 +125,12 @@ export const useColumnDnd = (
 		let timer: ReturnType<typeof setTimeout> | undefined;
 		return dropTargetForElements({
 			element,
-			canDrop: ({ source }) => isTicketData(source.data),
+			canDrop: ({ source }) => isTicketData(source.data) && source.data.columnId !== column.id,
 			getData: () => ({ type: "column", columnId: column.id }),
 			onDragEnter: () => {
+				setOver(true);
 				if (collapsed) timer = setTimeout(expand, 400);
 			},
-			onDrag: ({ location }) => setOver(location.current.dropTargets[0]?.data.type === "column"),
 			onDragLeave: () => {
 				setOver(false);
 				if (timer !== undefined) clearTimeout(timer);
@@ -166,14 +142,6 @@ export const useColumnDnd = (
 		});
 	}, [collapsed, column.id, expand, ref]);
 	return over;
-};
-
-// The card a drop on the empty part of a column lands after: the last card
-// of the column's one status. A column with several statuses gets no
-// anchor, because the server orders a ticket only among its own status.
-const lastCardOf = (column: BoardColumnModel, ticket: TicketSummary) => {
-	const only = column.statuses.length === 1 ? column.statuses[0]!.id : null;
-	return column.items.filter((item) => item.id !== ticket.id && item.status.id === only).at(-1);
 };
 
 export const useBoardMonitor = (
@@ -196,29 +164,18 @@ export const useBoardMonitor = (
 				},
 				onDrop: ({ source, location }) => {
 					const data = source.data as TicketData;
-					const ticket = columns.flatMap((column) => column.items).find((item) => item.id === data.ticketId)!;
 					const target = location.current.dropTargets[0];
+					// A card's own column refuses it, so a drop there ends with no
+					// target and leaves the board as it was.
 					if (target === undefined) {
 						announce("Drop canceled");
 						return;
 					}
-					const columnId = target.data.type === "card" ? target.data.statusId : target.data.columnId;
-					const column = columns.find(
-						(entry) => entry.id === columnId || entry.statuses.some((status) => status.id === columnId),
-					)!;
-					const anchor =
-						target.data.type === "card"
-							? column.items.find((item) => item.id === target.data.ticketId)
-							: lastCardOf(column, ticket);
-					const edge = target.data.type === "card" ? extractClosestEdge(target.data) : "bottom";
+					const ticket = columns.flatMap((column) => column.items).find((item) => item.id === data.ticketId)!;
+					const column = columns.find((entry) => entry.id === target.data.columnId)!;
 					onDropped(ticket.id, source.element.getBoundingClientRect());
-					const move: BoardMove = {
-						ticket,
-						column,
-						...(anchor === undefined || edge === "bottom" ? {} : { before: anchor }),
-						...(anchor === undefined || edge !== "bottom" ? {} : { after: anchor }),
-					};
-					if (column.statuses.length > 1 && !column.statuses.some((status) => status.id === ticket.status.id)) {
+					const move: BoardMove = { ticket, column };
+					if (column.statuses.length > 1) {
 						onChooseStatus(move);
 						return;
 					}
@@ -228,9 +185,3 @@ export const useBoardMonitor = (
 		[announce, columns, onChooseStatus, onMove, onDropped],
 	);
 };
-
-const combineCleanups =
-	(...cleanups: (() => void)[]) =>
-	() => {
-		for (const cleanup of cleanups) cleanup();
-	};

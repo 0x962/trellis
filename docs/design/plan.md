@@ -88,7 +88,7 @@ Ids are ULIDs (`text`) except `activity.id`. Timestamps `timestamptz`, ISO strin
 
 Numbering: `UPDATE projects SET ticket_counter = ticket_counter + 1 WHERE id = $root AND parent_id IS NULL RETURNING ticket_counter` (throw on zero rows), then insert, one transaction. A test asserts 50 concurrent creates give 50 consecutive numbers.
 
-Kanban position: new = max + 1024; move = midpoint of the neighbors; renumber the column in steps of 1024 by raw SQL when `next - prev < 1`. Sort and keyset by `(position, id)`.
+Ticket position: new = max + 1024; move = midpoint of the neighbors; renumber the column in steps of 1024 by raw SQL when `next - prev < 1`. The `position` sort keysets by `(position, id)`. The board reads no position.
 
 Migrations: `0000_extensions` created with `drizzle-kit generate --custom` (so the journal has it), body `CREATE EXTENSION IF NOT EXISTS pg_trgm`; `pg_trgm` passed to the `PGlite` constructor; `0001_init` generated. Applied at boot in one transaction, then `ANALYZE`, then `SET pg_trgm.word_similarity_threshold = 0.4`. CI fails on a non-empty `git status --porcelain drizzle/` after `drizzle-kit generate`. `VACUUM (ANALYZE)` on tickets, activity, comments every 10 min when more than 1000 writes happened, and after backup and restore (PGlite has no autovacuum).
 

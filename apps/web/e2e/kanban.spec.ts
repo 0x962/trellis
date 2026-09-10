@@ -70,33 +70,47 @@ test("kanban > a drag to another column moves the ticket, writes a status activi
 	expect(gap).toBeLessThanOrEqual(16);
 });
 
-// The last card goes above the first. The server keeps the order, so the
-// CLI and a reload both read it back.
-test("kanban > an in-column reorder persists after a reload", async ({ page }) => {
+// A column takes no manual order. A drop inside the card's own column
+// therefore writes nothing, and a reload reads the same order back.
+test("kanban > a drop inside the same column changes nothing", async ({ page }) => {
 	const { key, ids } = seedBoard([
-		"Reorder the Todo column once",
-		"Reorder the Todo column twice",
-		"Reorder the Todo column three times",
-		"Move this card to the top of Todo",
+		"Hold the Todo order once",
+		"Hold the Todo order twice",
+		"Hold the Todo order three times",
+		"Drop this card inside Todo",
 	]);
 	await signIn(page, `/p/${key}/board`);
 	const todo = columnOf(page, "Todo");
 	for (const id of ids) await expect(cardOf(todo, id)).toBeVisible();
 	const before = await cardOrder(todo);
 	const last = before[before.length - 1]!;
+	const versionBefore = trellis<CliTicket>(["show", last]).version;
 	await cardOf(todo, last).dragTo(cardOf(todo, before[0]!), { targetPosition: { x: 24, y: 4 } });
-	const expected = [last, ...before.slice(0, -1)];
-	await expect.poll(() => cardOrder(todo)).toEqual(expected);
-	await expect
-		.poll(() =>
-			trellis<CliTicket[]>(["list", "--project", key, "--status", "todo", "--sort", "position"]).map(
-				(ticket) => ticket.identifier,
-			),
-		)
-		.toEqual(expected);
+	await expect.poll(() => cardOrder(todo)).toEqual(before);
+	expect(trellis<CliTicket>(["show", last]).version).toBe(versionBefore);
 	await page.reload();
 	await expect(cardOf(columnOf(page, "Todo"), last)).toBeVisible();
-	expect(await cardOrder(columnOf(page, "Todo"))).toEqual(expected);
+	expect(await cardOrder(columnOf(page, "Todo"))).toEqual(before);
+});
+
+// The CLI touches the oldest card. The column lists the last updated
+// ticket first, so a reload puts that card at the top.
+test("kanban > a column lists the last updated card first", async ({ page }) => {
+	const { key, ids } = seedBoard([
+		"Sort the Todo column once",
+		"Sort the Todo column twice",
+		"Sort the Todo column three times",
+	]);
+	await signIn(page, `/p/${key}/board`);
+	const todo = columnOf(page, "Todo");
+	for (const id of ids) await expect(cardOf(todo, id)).toBeVisible();
+	const before = await cardOrder(todo);
+	expect(before).toEqual([...ids].reverse());
+	const oldest = before[before.length - 1]!;
+	trellis(["edit", oldest, "--title", `Sort the Todo column again ${Date.now()}`]);
+	await page.reload();
+	await expect(cardOf(columnOf(page, "Todo"), oldest)).toBeVisible();
+	expect(await cardOrder(columnOf(page, "Todo"))).toEqual([oldest, ...before.slice(0, -1)]);
 });
 
 // The page gets no event stream, so the board keeps the version it

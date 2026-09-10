@@ -88,8 +88,9 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 
 	const runMove = useCallback(
 		async (move: BoardMove, chosen?: Status) => {
-			// A drop and a Shift+Arrow key both end here. The server refuses a
-			// move of a ticket under an archived project, so none is sent.
+			// A drop, a bracket key, and the status picker all end here. The
+			// server refuses a move of a ticket under an archived project, so
+			// none is sent.
 			if (isArchived(move.ticket.project.path)) {
 				const message = notice(move.ticket.project.path);
 				announce(message);
@@ -105,22 +106,14 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 				category: move.column.category,
 			};
 			const snapshot = context.queryClient.getQueryData<BoardOutput>(boardOptions.queryKey)!;
-			context.queryClient.setQueryData(
-				boardOptions.queryKey,
-				moveInBoard(snapshot, move.ticket, summary, move.after, move.before),
-			);
-			const destination = move.column.items.findIndex((ticket) => ticket.id === (move.after ?? move.before)?.id);
-			announce(
-				`Moved to ${move.column.name}, position ${destination < 0 ? 1 : destination + (move.after === undefined ? 1 : 2)} of ${move.column.items.length}`,
-			);
+			context.queryClient.setQueryData(boardOptions.queryKey, moveInBoard(snapshot, move.ticket, summary));
+			announce(`Moved to ${move.column.name}, position 1 of ${move.column.items.length + 1}`);
 			const applier = eventApplierFor(context.queryClient);
 			applier.beginMutation(move.ticket.id);
 			try {
 				const result = await context.client.tickets.move({
 					ticket: move.ticket.identifier,
 					status: statusRef,
-					...(move.after === undefined ? {} : { after: move.after.identifier }),
-					...(move.before === undefined ? {} : { before: move.before.identifier }),
 					expectedVersion: move.ticket.version,
 				});
 				applier.endMutation(move.ticket.id, result);
@@ -207,14 +200,6 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 			const at = columns.indexOf(column) + (event.key === "[" ? -1 : 1);
 			const target = columns[at];
 			if (target !== undefined) chooseOrMove({ ticket, column: target });
-			return;
-		}
-		if (event.shiftKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
-			event.preventDefault();
-			const target = column.items[index + (event.key === "ArrowUp" ? -1 : 1)];
-			if (target !== undefined) {
-				void runMove({ ticket, column, ...(event.key === "ArrowUp" ? { before: target } : { after: target }) });
-			}
 			return;
 		}
 		if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
