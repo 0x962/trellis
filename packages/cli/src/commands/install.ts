@@ -4,7 +4,7 @@ import { defineCommand } from "citty";
 import { type CliContext, contextOf } from "../context.ts";
 import { CliFailure } from "../errors.ts";
 import { repeatedFlag } from "../flags.ts";
-import { installationPaths } from "../installation.ts";
+import { installationPaths, supersetBin } from "../installation.ts";
 
 const routeLine = "  trellis: 4521,";
 
@@ -23,6 +23,13 @@ const hostEntry = (host: string | undefined) =>
 const allowedHostsEntry = (names: string[]) =>
 	names.length === 0 ? "" : `\t\t<key>TRELLIS_ALLOWED_HOSTS</key>\n\t\t<string>${xml(names.join(","))}</string>\n`;
 
+// launchd gives the server a PATH that holds only the bun directory and the
+// system directories. The Superset CLI sits in ~/.superset/bin, outside that
+// PATH. Without this key the server spawns "superset" from PATH, and every
+// agents call fails as RUNNER_UNAVAILABLE.
+const supersetEntry = (bin: string | null) =>
+	bin === null ? "" : `\t\t<key>TRELLIS_SUPERSET_BIN</key>\n\t\t<string>${xml(bin)}</string>\n`;
+
 // `bun` is the path that `which` finds on PATH, with no symlink resolved. A
 // Homebrew bun on PATH is a symlink that `brew upgrade` moves to the new
 // version. `process.execPath` names the versioned Cellar directory, which
@@ -32,6 +39,7 @@ const plistText = (
 	host: string | undefined,
 	allowedHosts: string[],
 	bun: string,
+	superset: string | null,
 ) => `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -55,7 +63,7 @@ const plistText = (
 		<string>production</string>
 		<key>TRELLIS_WEB_DIST</key>
 		<string>${xml(paths.webDist)}</string>
-${hostEntry(host)}${allowedHostsEntry(allowedHosts)}	</dict>
+${supersetEntry(superset)}${hostEntry(host)}${allowedHostsEntry(allowedHosts)}	</dict>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>KeepAlive</key>
@@ -113,6 +121,10 @@ export default defineCommand({
 			description:
 				"Serve requests whose Host header names this hostname, such as a Tailscale Serve name; repeat for more",
 		},
+		"superset-bin": {
+			type: "string",
+			description: "Run agents with this superset binary; the default is the superset on PATH",
+		},
 		// citty parses `--no-launchd` as launchd=false, so the flag carries its
 		// positive name and defaults to on.
 		launchd: {
@@ -126,6 +138,12 @@ export default defineCommand({
 		const paths = installationPaths(ctx.deps.env, ctx.deps.home, context.args.prefix);
 		const bun = ctx.deps.which("bun");
 		if (bun === null) throw new CliFailure("INSTALL_FAILED", 1, "bun is not on PATH");
+		const superset = supersetBin(ctx.deps, context.args["superset-bin"]);
+		if (superset === null) {
+			ctx.err.write(
+				"superset is not on PATH: agents need the Superset CLI; install it or pass --superset-bin <path>, then run trellis install again\n",
+			);
+		}
 		await buildWeb(ctx, paths);
 		mkdirSync(dirname(paths.shim), { recursive: true });
 		// The shim and the plist run the same bun, so a machine that serves
@@ -134,7 +152,7 @@ export default defineCommand({
 		chmodSync(paths.shim, 0o755);
 		mkdirSync(dirname(paths.plist), { recursive: true });
 		const allowedHosts = repeatedFlag(context.rawArgs, "allow-host");
-		writeFileSync(paths.plist, plistText(paths, context.args.host, allowedHosts, bun));
+		writeFileSync(paths.plist, plistText(paths, context.args.host, allowedHosts, bun, superset));
 
 		if (context.args.gateway === true) {
 			const added = addGateway(paths.gateway);

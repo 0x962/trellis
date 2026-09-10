@@ -38,8 +38,15 @@ export type Deps = {
 	// LaunchAgents directory, the real shim, or the margin gateway.
 	home: string;
 	// The path of a program on PATH, with no symlink resolved, or null when
-	// PATH has no such program. install names the bun it finds here.
+	// PATH has no such program. install names the bun and the superset it finds
+	// here.
 	which: (name: string) => string | null;
+	// Starts a program that shares the terminal of the CLI. serve starts the
+	// server through it, so a test records the call and starts nothing.
+	spawn: (
+		args: string[],
+		options: { cwd: string; env: Record<string, string | undefined> },
+	) => { exited: Promise<number>; kill: (signal: NodeJS.Signals) => void };
 };
 
 export const defaultUrl = "http://127.0.0.1:4521";
@@ -276,6 +283,8 @@ if (import.meta.main) {
 		launchdDomain: `gui/${process.getuid!()}`,
 		home: homedir(),
 		which: (name) => Bun.which(name),
+		spawn: (args, { cwd, env }) =>
+			Bun.spawn(args, { cwd, env, stdin: "inherit", stdout: "inherit", stderr: "inherit" }),
 	};
 	const code = await run(process.argv.slice(2), deps);
 	process.stdout.write("", () => process.exit(code));

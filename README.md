@@ -34,6 +34,8 @@ bun packages/cli/src/index.ts install
 
 `--no-launchd` writes the files and loads nothing. `trellis uninstall` removes the agent and the command.
 
+Agents need the Superset CLI. launchd gives the server a short `PATH`, so `trellis install` writes the full path of the `superset` on your `PATH` into the agent as `TRELLIS_SUPERSET_BIN`. `--superset-bin <path>` names another binary, and `trellis serve` takes the same flag.
+
 To serve trellis at `http://trellis.localhost`, add this line to `ROUTES` in `~/projects/margin/src/gateway.ts`:
 
 ```ts
