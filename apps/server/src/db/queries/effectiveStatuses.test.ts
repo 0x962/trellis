@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { seedChild, seedRoot, seedStatuses } from "../../../test/fixtures";
+import { seedChild, seedNested, seedRoot, seedStatuses } from "../../../test/fixtures";
 import { freshDb, type TestDb } from "../../../test/helpers/db.ts";
 import { effectiveStatuses, ownerOf } from "./effectiveStatuses.ts";
 
@@ -39,6 +39,20 @@ describe("effective statuses", () => {
 			expect(await ownerOf(tx, c)).toBe(a);
 			expect(await ownerOf(tx, a)).toBe(a);
 			expect(await ownerOf(tx, r)).toBe(r);
+		});
+	});
+
+	// The plan sets no maximum depth for the project tree, so the deepest
+	// project of a 70-level chain still inherits the root's statuses.
+	test("owner is found above a chain deeper than 64 projects", async () => {
+		const r = await seedRoot(h.db, "RRR");
+		const chain = await seedNested(h.db, r, 70);
+		const statuses = await seedStatuses(h.db, r);
+		const deepest = chain.at(-1) as string;
+		await h.db.transaction(async (tx) => {
+			expect(await ownerOf(tx, deepest)).toBe(r);
+			const rows = await effectiveStatuses(tx, deepest);
+			expect(rows.map((row) => row.id)).toEqual(Object.values(statuses));
 		});
 	});
 

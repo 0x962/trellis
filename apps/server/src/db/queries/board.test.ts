@@ -3,6 +3,7 @@ import { type StatusIds, seedProject, seedTicket } from "../../../test/fixtures"
 import { freshDb, type TestDb } from "../../../test/helpers/db.ts";
 import { countStatements } from "../../../test/helpers/statements.ts";
 import { board } from "./board.ts";
+import { ticketList } from "./ticketList.ts";
 
 let h: TestDb;
 beforeAll(async () => {
@@ -75,6 +76,30 @@ describe("board", () => {
 		expect(shown(byCategory.columns)).toEqual([started]);
 		const byReviewer = await run({ projectIds: [rootId], statusIds, reviewer: "human" });
 		expect(shown(byReviewer.columns)).toEqual([human]);
+	});
+
+	// plan.md: the board shows the first 100 by (position, id) and more come
+	// through `list` with `status=`. Both order equal positions the same way,
+	// so the list's first page is the board's column and its second page
+	// starts where the column stopped.
+	test("board and list agree on the order of equal positions", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const seeded: string[] = [];
+		for (let i = 0; i < 101; i++) {
+			seeded.push(await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.started, position: 1024 }));
+		}
+		const { columns } = await run({ projectIds: [rootId], statusIds: columnsOf(statuses) });
+		const column = columns.find((column) => column.statusId === statuses.started)!;
+		const shown = column.items.map((item) => item.id);
+		const list = (cursor?: string) =>
+			h.db.transaction((tx) =>
+				ticketList(tx, { projectIds: [rootId], statusIds: [statuses.started], sort: "position", limit: 100, cursor }),
+			);
+		const first = await list();
+		expect(first.items.map((item) => item.id)).toEqual(shown);
+		const second = await list(first.nextCursor!);
+		expect(second.items.map((item) => item.id)).toEqual(seeded.filter((id) => !shown.includes(id)));
+		expect(second.nextCursor).toBeNull();
 	});
 
 	test("board runs as one query", async () => {

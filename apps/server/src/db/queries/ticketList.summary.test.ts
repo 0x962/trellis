@@ -7,6 +7,7 @@ import {
 	seedAttachment,
 	seedChild,
 	seedComment,
+	seedNested,
 	seedPr,
 	seedProject,
 	seedTicket,
@@ -26,6 +27,19 @@ type Input = Parameters<typeof ticketList>[1];
 const list = (input: Input) => h.db.transaction((tx) => ticketList(tx, input));
 
 describe("ticketList summary rows", () => {
+	// The plan sets no maximum depth for the project tree, so a ticket 70
+	// levels down lists with its whole path and the root's status.
+	test("ticketList lists a ticket in a project deeper than 64 levels", async () => {
+		const { rootId, statuses } = await seedProject(h.db, "CDE");
+		const chain = await seedNested(h.db, rootId, 70);
+		const deepest = chain.at(-1) as string;
+		const ticket = await seedTicket(h.db, { projectId: deepest, rootId, statusId: statuses.todo, number: 7 });
+		const page = await list({ projectIds: [deepest] });
+		expect(page.items.map((item) => item.id)).toEqual([ticket]);
+		expect(page.items[0]?.identifier).toBe("CDE-7");
+		expect(page.items[0]?.project.path).toBe(`CDE.${chain.map((_, i) => `p${i + 1}`).join(".")}`);
+	});
+
 	test("ticketList never returns description or search", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
 		await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, description: "d".repeat(2048) });

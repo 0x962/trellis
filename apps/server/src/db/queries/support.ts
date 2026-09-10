@@ -41,15 +41,15 @@ export const ciRank = (column: SQL) => sql`array_position(${literalArray(CI_WORS
 
 export const prStateRank = (column: SQL) => sql`array_position(${literalArray(PR_STATE_WORST_FIRST)}, ${column})`;
 
-// The dotted path of every project (`CDE.web.auth`) and its depth. The
-// walk stops at depth 64, so a planted parent cycle ends the query.
+// The dotted path of every project (`CDE.web.auth`) and its depth. The tree
+// has no maximum depth. The schema refuses parent_id = id and nothing else,
+// so the CYCLE clause ends the walk when a planted cycle repeats a project.
 export const pathsCte = sql`paths AS (
 	SELECT id, key AS path, 0 AS depth FROM projects WHERE parent_id IS NULL
 	UNION ALL
 	SELECT p.id, paths.path || '.' || p.slug, paths.depth + 1
 	FROM projects p JOIN paths ON p.parent_id = paths.id
-	WHERE paths.depth < 64
-)`;
+) CYCLE id SET is_cycle USING cycle_path`;
 
 export const rows = async <T>(tx: Tx, query: SQL) => {
 	const result = await tx.execute(query);
@@ -57,7 +57,35 @@ export const rows = async <T>(tx: Tx, query: SQL) => {
 };
 
 // A base64url JSON cursor. A cursor a client hands back is user input, so
-// the caller checks what it decodes.
+// the caller checks what it decodes and throws InvalidCursorError on any
+// part that is not the shape and range it wrote.
 export const encodeCursor = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
 
 export const decodeCursor = (cursor: string): unknown => JSON.parse(Buffer.from(cursor, "base64url").toString());
+
+// A cursor that belongs to another filter, another sort, another cursor
+// version, or no query at all.
+export class InvalidCursorError extends Error {
+	constructor() {
+		super("The cursor does not belong to this query.");
+		this.name = "InvalidCursorError";
+	}
+}
+
+// The timestamp form `iso` writes: a four-digit year from 0001, a real
+// calendar day, milliseconds, and Z. Postgres has no year 0000. Postgres
+// rejects a day that does not exist. JavaScript rolls such a day into the
+// next month, so the round trip through Date catches it.
+const isoTimestamp = /^(\d{4})-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+export const isIsoTimestamp = (value: unknown): value is string => {
+	if (typeof value !== "string") return false;
+	const match = isoTimestamp.exec(value);
+	if (match === null || match[1] === "0000") return false;
+	const time = Date.parse(value);
+	return Number.isFinite(time) && new Date(time).toISOString() === value;
+};
+
+// A value the Postgres `int` (int4) column type holds.
+export const isInt4 = (value: unknown): value is number =>
+	Number.isInteger(value) && (value as number) >= -(2 ** 31) && (value as number) <= 2 ** 31 - 1;

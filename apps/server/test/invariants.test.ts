@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { seedChild, seedProject, seedRootWithStatuses, seedTicket } from "./fixtures";
+import { seedChild, seedNested, seedProject, seedRootWithStatuses, seedTicket } from "./fixtures";
 import { freshDb, type TestDb } from "./helpers/db.ts";
 import { countStatements } from "./helpers/statements.ts";
 import { assertStatusInvariant } from "./invariants.ts";
@@ -36,6 +36,15 @@ describe("assertStatusInvariant", () => {
 		const run = h.db.transaction((tx) => assertStatusInvariant(tx));
 		await expect(run).rejects.toThrow(/CDE-77/);
 		await expect(run).rejects.toThrow(ops.statuses.todo);
+	});
+
+	// The plan sets no maximum depth for the project tree, so a ticket 70
+	// levels down with the root's status is a valid assignment.
+	test("assertStatusInvariant accepts a ticket deeper than 64 levels", async () => {
+		const { rootId, statuses } = await seedProject(h.db, "CDE");
+		const chain = await seedNested(h.db, rootId, 70);
+		await seedTicket(h.db, { projectId: chain.at(-1) as string, rootId, statusId: statuses.todo });
+		await h.db.transaction((tx) => assertStatusInvariant(tx));
 	});
 
 	test("assertStatusInvariant is one statement", async () => {

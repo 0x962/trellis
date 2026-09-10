@@ -1,7 +1,7 @@
 import type { StoredActorKind, TimelineItem, TimelineListOutput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { Tx } from "../tx.ts";
-import { decodeCursor, encodeCursor, iso, rows } from "./support.ts";
+import { decodeCursor, encodeCursor, InvalidCursorError, isIsoTimestamp, iso, rows } from "./support.ts";
 
 export type TimelineInput = { ticketId: string; before?: string; limit?: number };
 
@@ -43,7 +43,24 @@ const stream = (ticketId: string) => sql`
 		a.batch_id, a.root_id, a.project_id, a.action, a.field, a.from_value, a.to_value, a.meta
 	FROM activity a WHERE a.ticket_id = ${ticketId}`;
 
+// The last row of the previous page: its created_at as `iso` writes it, its
+// kind_rank (0 activity, 1 comment), and its sort_key.
 type Cursor = { at: string; kind: number; key: string };
+
+// A cursor is user input, so every part is checked before it reaches the
+// database.
+const readCursor = (before: string): Cursor => {
+	let decoded: unknown;
+	try {
+		decoded = decodeCursor(before);
+	} catch {
+		throw new InvalidCursorError();
+	}
+	if (decoded === null || typeof decoded !== "object") throw new InvalidCursorError();
+	const { at, kind, key } = decoded as { at?: unknown; kind?: unknown; key?: unknown };
+	if (!isIsoTimestamp(at) || (kind !== 0 && kind !== 1) || typeof key !== "string") throw new InvalidCursorError();
+	return { at, kind, key };
+};
 
 const afterCursor = (cursor: Cursor) =>
 	sql`(created_at, kind_rank, sort_key) < (${cursor.at}::timestamptz, ${cursor.kind}::int, ${cursor.key})`;
@@ -82,7 +99,7 @@ const toItem = (row: RawItem): TimelineItem => {
 // `before` is the cursor of the previous page and names the last row shown.
 export const timeline = async (tx: Tx, input: TimelineInput): Promise<TimelineListOutput> => {
 	const limit = input.limit ?? TIMELINE_PAGE;
-	const start = input.before === undefined ? sql`true` : afterCursor(decodeCursor(input.before) as Cursor);
+	const start = input.before === undefined ? sql`true` : afterCursor(readCursor(input.before));
 	const found = await rows<RawItem>(
 		tx,
 		sql`SELECT kind, kind_rank, sort_key, id, ticket_id, body, actor_name, actor_kind,

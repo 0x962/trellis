@@ -6,7 +6,9 @@
 	"scripts": {
 		"test": "bun test",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
-		"db:generate": "drizzle-kit generate"
+		"db:generate": "drizzle-kit generate",
+		"perf:10k": "TRELLIS_PERF_ROWS=10000 bun test ./test/perf/list.perf.ts ./test/perf/search.perf.ts",
+		"perf": "TRELLIS_PERF_ROWS=50000 bun test ./test/perf/list.perf.ts ./test/perf/search.perf.ts"
 	},
 	"dependencies": {
 		"@electric-sql/pglite": "0.5.8",

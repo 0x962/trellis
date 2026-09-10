@@ -4,10 +4,13 @@ import { tsquery } from "./fts.ts";
 import { ciRank, textArray } from "./support.ts";
 
 // The flat filter grammar of tickets.list, with every ref already resolved
-// to an id. `parent` is a ticket id or `none` for top-level tickets.
+// to an id. `rootIds` holds the roots of `projectIds`. The caller reads
+// them from the project cache. The partial indexes of tickets start with
+// root_id. `parent` is a ticket id or `none` for top-level tickets.
 // `actor` is `kind:name` or a bare name and matches the last actor.
 // `updated`, `created`, and `completed` are ISO "after" bounds.
 export type TicketFilter = {
+	rootIds?: readonly string[];
 	projectIds?: readonly string[];
 	statusIds?: readonly string[];
 	categories?: readonly StatusCategory[];
@@ -62,13 +65,26 @@ const actorClause = (actor: string) => {
 // The ticket's status, for the category and reviewer clauses.
 const statusWhere = (test: SQL) => sql`EXISTS (SELECT 1 FROM statuses fs WHERE fs.id = t.status_id AND ${test})`;
 
+// The categories whose tickets have no completed_at: a ticket gets
+// completed_at on entering done or canceled and loses it on leaving.
+const OPEN_CATEGORIES: readonly StatusCategory[] = ["todo", "started", "review"];
+
 // The WHERE clause of a ticket query over the alias `t` (tickets). `q`
-// matches the FTS column only; the trigram path belongs to search.
+// matches the FTS column only; the trigram path belongs to search. A
+// category filter within the open categories adds `completed_at IS NULL`,
+// the predicate of tickets_open_idx, so the default table query walks that
+// index in updated_at order.
 export const filterWhere = (filter: TicketFilter): SQL => {
 	const clauses: SQL[] = [sql`true`];
+	if (filter.rootIds) clauses.push(sql`t.root_id = ANY(${textArray(filter.rootIds)})`);
 	if (filter.projectIds) clauses.push(sql`t.project_id = ANY(${textArray(filter.projectIds)})`);
 	if (filter.statusIds) clauses.push(sql`t.status_id = ANY(${textArray(filter.statusIds)})`);
-	if (filter.categories) clauses.push(statusWhere(sql`fs.category = ANY(${textArray(filter.categories)})`));
+	if (filter.categories) {
+		clauses.push(statusWhere(sql`fs.category = ANY(${textArray(filter.categories)})`));
+		if (filter.categories.every((category) => OPEN_CATEGORIES.includes(category))) {
+			clauses.push(sql`t.completed_at IS NULL`);
+		}
+	}
 	if (filter.reviewer) clauses.push(statusWhere(sql`fs.reviewer = ${filter.reviewer}`));
 	if (filter.priority) clauses.push(sql`t.priority = ANY(${textArray(filter.priority)})`);
 	if (filter.parent === "none") clauses.push(sql`t.parent_id IS NULL`);
@@ -85,6 +101,7 @@ export const filterWhere = (filter: TicketFilter): SQL => {
 
 // The filter fields in a fixed order, for the hash a cursor is bound to.
 export const filterKey = (filter: TicketFilter) => [
+	filter.rootIds ?? null,
 	filter.projectIds ?? null,
 	filter.statusIds ?? null,
 	filter.categories ?? null,

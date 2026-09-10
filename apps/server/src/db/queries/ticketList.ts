@@ -2,9 +2,21 @@ import { createHash } from "node:crypto";
 import type { ListOutput, Sort } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import type { Tx } from "../tx.ts";
-import { categoryRank, decodeCursor, encodeCursor, iso, priorityRank, rows } from "./support.ts";
+import {
+	categoryRank,
+	decodeCursor,
+	encodeCursor,
+	InvalidCursorError,
+	isInt4,
+	isIsoTimestamp,
+	iso,
+	priorityRank,
+	rows,
+} from "./support.ts";
 import { filterKey, filterWhere, type TicketFilter } from "./ticketFilters.ts";
 import { type SummaryRow, summaryStatement, toSummary } from "./ticketSummary.ts";
+
+export { InvalidCursorError } from "./support.ts";
 
 export type TicketListInput = TicketFilter & {
 	sort?: Sort;
@@ -12,46 +24,49 @@ export type TicketListInput = TicketFilter & {
 	limit?: number;
 };
 
-// A cursor that belongs to another filter, another sort, another cursor
-// version, or no query at all.
-export class InvalidCursorError extends Error {
-	constructor() {
-		super("The cursor does not belong to this query.");
-		this.name = "InvalidCursorError";
-	}
-}
-
 // One sort field. `exprs` are the expressions the rows order by, `reads`
 // how each one reads back into a cursor, and `keys` the cursor value
-// types.
-type SortField = { exprs: SQL[]; reads: SQL[]; keys: CursorKey[] };
+// types. `tie` says how two rows with equal sort values order by id:
+// `desc` always, or `sort` for the direction of the sort itself.
+type SortField = { exprs: SQL[]; reads: SQL[]; keys: CursorKey[]; tie: "desc" | "sort" };
 
 // A cursor value: the Postgres type it casts to and the test a value a
-// client hands back must pass before it reaches the database.
+// client hands back must pass before it reaches the database. The test
+// covers the type and its range, so a value that passes casts without an
+// error.
 type CursorKey = { cast: string; valid: (value: unknown) => boolean };
 
-const timestamptz: CursorKey = {
-	cast: "timestamptz",
-	valid: (value) => typeof value === "string" && Number.isFinite(Date.parse(value)),
-};
-const int: CursorKey = { cast: "int", valid: (value) => Number.isInteger(value) };
+const timestamptz: CursorKey = { cast: "timestamptz", valid: isIsoTimestamp };
+const int: CursorKey = { cast: "int", valid: isInt4 };
 const double: CursorKey = {
 	cast: "double precision",
 	valid: (value) => typeof value === "number" && Number.isFinite(value),
 };
 
+// Every sort breaks ties by id descending, newest first. The position sort
+// is the board's order: a board column lists (position, id) ascending and
+// `list` with `status=` continues that column past 100 cards, so its
+// tiebreak follows the sort direction.
 const fields: Record<string, SortField> = {
-	updatedAt: { exprs: [sql`t.updated_at`], reads: [iso(sql`t.updated_at`)], keys: [timestamptz] },
-	createdAt: { exprs: [sql`t.created_at`], reads: [iso(sql`t.created_at`)], keys: [timestamptz] },
-	priority: { exprs: [priorityRank(sql`t.priority`)], reads: [priorityRank(sql`t.priority`)], keys: [int] },
-	number: { exprs: [sql`t.number`], reads: [sql`t.number`], keys: [int] },
+	updatedAt: { exprs: [sql`t.updated_at`], reads: [iso(sql`t.updated_at`)], keys: [timestamptz], tie: "desc" },
+	createdAt: { exprs: [sql`t.created_at`], reads: [iso(sql`t.created_at`)], keys: [timestamptz], tie: "desc" },
+	priority: {
+		exprs: [priorityRank(sql`t.priority`)],
+		reads: [priorityRank(sql`t.priority`)],
+		keys: [int],
+		tie: "desc",
+	},
+	number: { exprs: [sql`t.number`], reads: [sql`t.number`], keys: [int], tie: "desc" },
 	status: {
 		exprs: [categoryRank(sql`s.category`), sql`s.position`],
 		reads: [categoryRank(sql`s.category`), sql`s.position`],
 		keys: [int, int],
+		tie: "desc",
 	},
-	position: { exprs: [sql`t.position`], reads: [sql`t.position`], keys: [double] },
+	position: { exprs: [sql`t.position`], reads: [sql`t.position`], keys: [double], tie: "sort" },
 };
+
+const idDescending = (field: SortField, descending: boolean) => field.tie === "desc" || descending;
 
 const parseSort = (sort: Sort) => {
 	const descending = sort.startsWith("-");
@@ -88,19 +103,21 @@ const readCursor = (cursor: string, hash: string, field: SortField): unknown[] =
 };
 
 // Rows after the cursor position: a later sort value, or the same sort
-// value and a smaller id. Every sort breaks ties by id descending.
+// value and an id past the cursor's in the tiebreak order.
 const afterCursor = (field: SortField, descending: boolean, key: unknown[]) => {
 	const values = field.keys.map((cursorKey, i) => sql`${key[i]}::${sql.raw(cursorKey.cast)}`);
 	const tuple = (parts: SQL[]) => sql`(${sql.join(parts, sql`, `)})`;
 	const op = descending ? sql`<` : sql`>`;
+	const idOp = idDescending(field, descending) ? sql`<` : sql`>`;
 	const id = key[field.exprs.length] as string;
-	return sql`(${tuple(field.exprs)} ${op} ${tuple(values)} OR (${tuple(field.exprs)} = ${tuple(values)} AND t.id < ${id}))`;
+	return sql`(${tuple(field.exprs)} ${op} ${tuple(values)} OR (${tuple(field.exprs)} = ${tuple(values)} AND t.id ${idOp} ${id}))`;
 };
 
 const orderBy = (field: SortField, descending: boolean) => {
 	const direction = descending ? sql`DESC` : sql`ASC`;
 	const keys = field.exprs.map((expr) => sql`${expr} ${direction}`);
-	return sql.join([...keys, sql`t.id DESC`], sql`, `);
+	const tie = idDescending(field, descending) ? sql`t.id DESC` : sql`t.id ASC`;
+	return sql.join([...keys, tie], sql`, `);
 };
 
 // The page of summaries for the flat filter grammar. `limit` is 1 to 200.

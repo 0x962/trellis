@@ -108,6 +108,30 @@ describe("ticketList cursor", () => {
 		await tamper("priority", [1]);
 	});
 
+	// A sort value of the right JavaScript type can still fall outside the
+	// Postgres column type: an integer past int4, a year Postgres has no
+	// calendar for, a day that does not exist. Each is InvalidCursorError.
+	test("a cursor value outside the column type throws InvalidCursorError", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		await seedMany(rootId, statuses, 5);
+		const tamper = async (sort: Input["sort"], k: unknown[]) => {
+			const cursor = decode((await list({ projectIds: [rootId], sort, limit: 2 })).nextCursor!);
+			await expect(
+				list({ projectIds: [rootId], sort, limit: 2, cursor: encode({ ...cursor, k }) }),
+			).rejects.toBeInstanceOf(InvalidCursorError);
+		};
+		const first = decode((await list({ projectIds: [rootId], sort: "number", limit: 2 })).nextCursor!);
+		const id = (first.k as unknown[])[1];
+		await tamper("number", [2 ** 31, id]);
+		await tamper("number", [2 ** 40, id]);
+		await tamper("number", [-(2 ** 31) - 1, id]);
+		await tamper("status", [2 ** 40, 1, id]);
+		await tamper("-updatedAt", ["+275760-09-13T00:00:00.000Z", id]);
+		await tamper("-updatedAt", ["0000-01-01T00:00:00.000Z", id]);
+		await tamper("-updatedAt", ["2026-02-30T00:00:00.000Z", id]);
+		await tamper("-updatedAt", ["2026-09-08T10:00:00Z", id]);
+	});
+
 	test("ticketList returns at most limit rows and a cursor when more exist", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
 		await seedMany(rootId, statuses, 300);
