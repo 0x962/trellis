@@ -27,6 +27,8 @@ export type SheetProps = {
 	// The element a resizable peek drags to change its width. The Sheet places
 	// it on the edge that faces the page; the drag logic belongs to the caller.
 	resizeHandle?: ReactNode;
+	// The look of the header title. The default is the peek's mono ID.
+	titleClassName?: string;
 	children: ReactNode;
 	className?: string;
 };
@@ -55,6 +57,7 @@ export function Sheet({
 	bare = false,
 	initialFocus,
 	resizeHandle,
+	titleClassName = "font-mono text-sm text-fg-muted",
 	children,
 	className,
 }: SheetProps) {
@@ -88,7 +91,7 @@ export function Sheet({
 						<BaseDialog.Title className="sr-only">{title}</BaseDialog.Title>
 					) : (
 						<header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-4">
-							<BaseDialog.Title className="flex-1 truncate font-mono text-sm text-fg-muted">{title}</BaseDialog.Title>
+							<BaseDialog.Title className={cx("flex-1 truncate", titleClassName)}>{title}</BaseDialog.Title>
 							<BaseDialog.Close render={<IconButton label="Close" icon={<X />} />} />
 						</header>
 					)}
