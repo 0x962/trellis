@@ -12,6 +12,7 @@ describe("errors", () => {
 			["ACTOR_REQUIRED", 400],
 			["AGENT_CANNOT_COMPLETE", 403],
 			["AGENT_CANNOT_DELETE", 403],
+			["AGENT_SETTINGS_UNUSABLE", 409],
 			["CONCURRENCY_LIMIT", 409],
 			["CROSS_ROOT_MOVE", 409],
 			["DUPLICATE", 409],
@@ -58,11 +59,22 @@ describe("errors", () => {
 	// The manager reads `reason` to decide between a retry, a comment, and a
 	// wait. `running` against `limit` is what the queued comment quotes.
 	test("the runner errors carry a closed reason and the limit with the running count", () => {
-		for (const reason of ["missing", "disabled", "unmapped", "error"]) {
-			expect(errors.RUNNER_UNAVAILABLE.data.safeParse({ reason }).success, reason).toBe(true);
+		for (const reason of ["missing", "disabled", "unmapped", "branch", "error"]) {
+			const data = { reason, exitCode: null, detail: "" };
+			expect(errors.RUNNER_UNAVAILABLE.data.safeParse(data).success, reason).toBe(true);
 		}
-		expect(errors.RUNNER_UNAVAILABLE.data.safeParse({ reason: "busy" }).success).toBe(false);
+		// The exit code and the text the runner printed reach the person who asked.
+		const printed = { reason: "error", exitCode: 1, detail: "fatal: invalid reference: main" };
+		expect(errors.RUNNER_UNAVAILABLE.data.safeParse(printed).success).toBe(true);
+		expect(errors.RUNNER_UNAVAILABLE.data.safeParse({ reason: "busy", exitCode: null, detail: "" }).success).toBe(
+			false,
+		);
+		expect(errors.RUNNER_UNAVAILABLE.data.safeParse({ reason: "error" }).success).toBe(false);
 		expect(errors.RUNNER_UNAVAILABLE.data.safeParse({}).success).toBe(false);
+		// A settings save that the runner cannot serve names the project it refuses.
+		const unusable = { projectId: "01J8Z6X4Q3M2K1H0G9F8E7D6C5", reason: "branch", detail: "no branch master" };
+		expect(errors.AGENT_SETTINGS_UNUSABLE.data.safeParse(unusable).success).toBe(true);
+		expect(errors.AGENT_SETTINGS_UNUSABLE.data.safeParse({ reason: "branch", detail: "" }).success).toBe(false);
 		expect(errors.CONCURRENCY_LIMIT.data.safeParse({ limit: 3, running: 3 }).success).toBe(true);
 		expect(errors.CONCURRENCY_LIMIT.data.safeParse({ limit: 0, running: 0 }).success).toBe(false);
 		expect(errors.CONCURRENCY_LIMIT.data.safeParse({ limit: 3 }).success).toBe(false);

@@ -114,6 +114,47 @@ describe("AgentsRow", () => {
 		expect(await screen.findByText("Agents are off. Turn them on in Settings.")).toBeDefined();
 	});
 
+	test("a failed builder states the reason, offers Retry, and shows the runner's whole text", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		await enableAgents(server);
+		addSession(server, {
+			role: "builder",
+			state: "failed",
+			failure: { reason: "error", exitCode: 1, detail: "fatal: invalid reference: main\nrun `git branch`" },
+		});
+		mount(server);
+		const row = (await items())[0]!;
+		expect(row.textContent).toContain("Failed");
+		expect(row.textContent).toContain("Superset refused the start.");
+		expect(row.textContent).toContain("fatal: invalid reference: main");
+
+		await user.click(within(row).getByRole("button", { name: "Details" }));
+		const dialog = await screen.findByRole("dialog");
+		expect(dialog.textContent).toContain("Superset exited 1.");
+		expect(dialog.textContent).toContain("run `git branch`");
+		await user.keyboard("{Escape}");
+
+		await user.click(within(row).getByRole("button", { name: "Retry" }));
+		await waitFor(() => expect(server.callsTo("agents.retry")).toHaveLength(1));
+		await waitFor(async () =>
+			expect((await items()).map((item) => item.textContent)).toEqual(["BuilderStartingOpen in Superset"]),
+		);
+	});
+
+	test("a builder that never started still offers Start builder", async () => {
+		const server = createFakeServer();
+		addSession(server, {
+			role: "builder",
+			state: "failed",
+			failure: { reason: "missing", exitCode: null, detail: "" },
+		});
+		mount(server);
+		const row = (await items())[0]!;
+		expect(row.textContent).toContain("trellis cannot find the Superset CLI.");
+		expect(await startButton()).not.toBeNull();
+	});
+
 	test("follows an agents.session event", async () => {
 		const server = createFakeServer();
 		const builder = addSession(server, { role: "builder" });

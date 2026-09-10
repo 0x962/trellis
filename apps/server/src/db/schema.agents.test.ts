@@ -29,6 +29,10 @@ const session = (projectId: string, overrides: Row = {}) =>
 		claude_session_id: null,
 		title: "CDE manager",
 		open_url: null,
+		pr_url: null,
+		failure_reason: null,
+		failure_exit_code: null,
+		failure_detail: null,
 		last_woken_at: null,
 		created_at: new Date(),
 		updated_at: new Date(),
@@ -61,12 +65,40 @@ describe("agent_sessions", () => {
 		await expect(session(rootId, { title: "x".repeat(121) })).rejects.toThrow(checkNamed("agent_sessions_title_check"));
 	});
 
-	test("a project has one live manager; exited and stopped managers do not count", async () => {
+	test("a project has one live manager; exited, stopped, and failed managers do not count", async () => {
 		const { rootId } = await ticketOf();
 		await session(rootId, { state: "exited" });
 		await session(rootId, { state: "stopped" });
+		await session(rootId, { state: "failed", failure_reason: "error", failure_detail: "boom" });
 		await session(rootId, { state: "running" });
 		await expect(session(rootId, { state: "starting" })).rejects.toThrow(UNIQUE);
+	});
+
+	test("a failed session carries a reason, and a session in any other state carries none", async () => {
+		const { rootId } = await ticketOf();
+		await expect(session(rootId, { state: "failed" })).rejects.toThrow(checkNamed("agent_sessions_failure_check"));
+		await expect(session(rootId, { failure_reason: "error", failure_detail: "boom" })).rejects.toThrow(
+			checkNamed("agent_sessions_failure_check"),
+		);
+		await expect(
+			session(rootId, { state: "failed", failure_reason: "melted", failure_detail: "boom" }),
+		).rejects.toThrow(checkNamed("agent_sessions_failure_reason_check"));
+		await session(rootId, { state: "failed", failure_reason: "missing", failure_detail: "no superset" });
+		expect(await count(h.db, "agent_sessions")).toBe(1);
+	});
+
+	test("only a reviewer names a pull request", async () => {
+		const { rootId, ticketId } = await ticketOf();
+		await expect(session(rootId, { pr_url: "https://github.com/acme/web/pull/7" })).rejects.toThrow(
+			checkNamed("agent_sessions_pr_url_check"),
+		);
+		await session(rootId, {
+			role: "reviewer",
+			ticket_id: ticketId,
+			title: "CDE-1 review",
+			pr_url: "https://github.com/acme/web/pull/7",
+		});
+		expect(await count(h.db, "agent_sessions")).toBe(1);
 	});
 
 	test("one terminal holds one session", async () => {

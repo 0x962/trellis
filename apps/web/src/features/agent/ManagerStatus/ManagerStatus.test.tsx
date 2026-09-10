@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createEventApplier } from "@trellis/api";
 import { addSession, updateSession } from "../../../../test/agents";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
@@ -73,6 +74,31 @@ describe("ManagerStatus", () => {
 		addSession(server, { role: "manager" });
 		await mount(server, "CDE.web");
 		expect(await within(await status()).findByText("Running")).toBeDefined();
+	});
+
+	// A manager the runner refused to start reads Failed, not Off, so the
+	// header never hides a refusal.
+	test("a failed manager states the reason, offers Retry, and shows the runner's whole text", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		addSession(server, {
+			role: "manager",
+			state: "failed",
+			failure: { reason: "branch", exitCode: 1, detail: "fatal: invalid reference: main\nthe repo has master" },
+		});
+		await mount(server);
+		const group = within(await status());
+		expect(await group.findByText("Failed")).toBeDefined();
+		expect((await status()).textContent).toContain("The base branch is not in the Superset project's repository.");
+		expect(group.queryByRole("link", { name: "Open in Superset" })).toBeNull();
+
+		await user.click(group.getByRole("button", { name: "Details" }));
+		expect((await screen.findByRole("dialog")).textContent).toContain("the repo has master");
+		await user.keyboard("{Escape}");
+
+		await user.click(group.getByRole("button", { name: "Retry" }));
+		await waitFor(() => expect(server.callsTo("agents.retry")).toHaveLength(1));
+		await waitFor(async () => expect(within(await status()).getByText("Starting")).toBeDefined());
 	});
 
 	test("follows an agents.session event", async () => {

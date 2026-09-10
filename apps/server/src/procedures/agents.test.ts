@@ -187,7 +187,7 @@ describe("agents procedures", () => {
 		const refused = await a.post("/api/agents/builder", { ticket: a.ticket(1) });
 		expect(refused.status).toBe(503);
 		expect(refused.body).toMatchObject({ code: "RUNNER_UNAVAILABLE", data: { reason: "missing" } });
-		expect(await a.sessions(`project=${a.key}`)).toEqual([]);
+		expect(await a.sessions(`project=${a.key}`)).toMatchObject([{ state: "failed", failure: { reason: "missing" } }]);
 	});
 
 	test("server builder: agents.startReviewer opens a reviewer terminal in the builder's workspace and answers INVALID_PR_URL for another URL", async () => {

@@ -21,6 +21,7 @@ describe("agent sessions", () => {
 	test("a session row has exactly the fields the dispatch plan lists", () => {
 		expect(Object.keys(AgentSessionSchema.shape).sort()).toEqual([
 			"createdAt",
+			"failure",
 			"id",
 			"lastWokenAt",
 			"openUrl",
@@ -35,18 +36,31 @@ describe("agent sessions", () => {
 		]);
 	});
 
-	test("a session takes the three roles, the five states, and the superset runner only", () => {
+	test("a session takes the three roles, the six states, and the superset runner only", () => {
 		expect(ok(AgentSessionSchema, agentSession())).toBe(true);
 		for (const role of ["manager", "builder", "reviewer"]) {
 			expect(ok(AgentSessionSchema, agentSession({ role })), role).toBe(true);
 		}
-		for (const state of ["starting", "running", "waiting", "exited", "stopped"]) {
+		for (const state of ["starting", "running", "waiting", "exited", "stopped", "failed"]) {
 			expect(ok(AgentSessionSchema, agentSession({ state })), state).toBe(true);
 		}
 		expect(ok(AgentSessionSchema, agentSession({ role: "lead" }))).toBe(false);
 		expect(ok(AgentSessionSchema, agentSession({ state: "done" }))).toBe(false);
 		expect(ok(AgentSessionSchema, agentSession({ runner: "codex" }))).toBe(false);
 		expect(ok(AgentSessionSchema, agentSession({ title: "" }))).toBe(false);
+	});
+
+	// A start the runner refused holds the reason, the exit code, and the
+	// whole text the runner printed.
+	test("a failed session carries a reason, an exit code that may be null, and the runner's text", () => {
+		const failed = (failure: unknown) => agentSession({ state: "failed", failure });
+		expect(ok(AgentSessionSchema, failed({ reason: "error", exitCode: 1, detail: "fatal: no such branch" }))).toBe(
+			true,
+		);
+		expect(ok(AgentSessionSchema, failed({ reason: "missing", exitCode: null, detail: "" }))).toBe(true);
+		expect(ok(AgentSessionSchema, failed({ reason: "branch", exitCode: null, detail: "no main" }))).toBe(true);
+		expect(ok(AgentSessionSchema, failed({ reason: "melted", exitCode: null, detail: "" }))).toBe(false);
+		expect(ok(AgentSessionSchema, failed({ reason: "error", detail: "" }))).toBe(false);
 	});
 
 	// A manager has no ticket, and a session that is still starting has no

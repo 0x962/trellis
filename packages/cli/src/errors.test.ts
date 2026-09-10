@@ -34,6 +34,7 @@ const expected: Record<string, number> = {
 	PAYLOAD_TOO_LARGE: 4,
 	GH_UNAVAILABLE: 6,
 	CONCURRENCY_LIMIT: 4,
+	AGENT_SETTINGS_UNUSABLE: 4,
 	RUNNER_UNAVAILABLE: 6,
 };
 

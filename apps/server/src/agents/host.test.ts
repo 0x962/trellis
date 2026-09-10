@@ -4,6 +4,7 @@ import { join } from "node:path";
 import type { AgentSession, Project, TrellisEvent } from "@trellis/api";
 import { createTestApp, type TestApp } from "../../test/helpers/app.ts";
 import { type FakeTimerClock, fakeTimerClock } from "../../test/helpers/clock.ts";
+import { gitRepo } from "../../test/helpers/gitRepo.ts";
 import { flagOf, type SupersetStubHandle, supersetStub } from "../../test/helpers/superset-stub.ts";
 import type { InlineTransport } from "../db/transport.ts";
 import type { AgentsHost } from "./host.ts";
@@ -22,12 +23,14 @@ let t: TestApp;
 let stub: SupersetStubHandle;
 let clock: FakeTimerClock;
 let host: AgentsHost;
-let logs: string[];
+let logs: Array<{ msg: string; fields?: Record<string, unknown> }>;
+let repoPath: string;
 const events: TrellisEvent[] = [];
 
 beforeEach(async () => {
+	repoPath = gitRepo();
 	stub = supersetStub(mkdtempSync(join(process.env.TRELLIS_HOME!, "superset-")), {
-		projects: [{ id: "sp-web", name: "web", repo: "acme/web", path: "/src/web" }],
+		projects: [{ id: "sp-web", name: "web", repo: "acme/web", path: repoPath }],
 	});
 	t = await createTestApp({ supersetBin: stub.bin });
 	clock = fakeTimerClock(new Date("2026-09-10T12:00:00.000Z"));
@@ -42,7 +45,7 @@ afterEach(async () => {
 });
 
 const startHost = async () => {
-	host = (t.transport as InlineTransport).startAgents({ clock, log: (msg) => void logs.push(msg) });
+	host = (t.transport as InlineTransport).startAgents({ clock, log: (msg, fields) => void logs.push({ msg, fields }) });
 	await host.start();
 	return host;
 };
@@ -211,6 +214,39 @@ describe("agents host", () => {
 		expect(stub.callsOf("terminals send")).toEqual([]);
 	});
 
+	test("a manager start the runner refuses leaves one failed session that holds the exit code and the whole stderr", async () => {
+		const project = await enable();
+		stub.update((state) => {
+			state.failures["ws create"] = "fatal: invalid reference: main";
+		});
+		await startHost();
+		const failure = { reason: "error", exitCode: 1, detail: "fatal: invalid reference: main" };
+		expect(await sessions()).toMatchObject([
+			{ projectId: project.id, role: "manager", state: "failed", title: "CDE manager", failure },
+		]);
+		expect(logs).toContainEqual({ msg: "agents manager", fields: { projectId: project.id, ...failure } });
+		// The project is watched, so the person who fixes the cause needs no restart.
+		expect(host.dispatcher.watched()).toEqual([project.id]);
+
+		// A second start of the same project writes the new reason on the same row.
+		stub.update((state) => {
+			state.failures["ws create"] = "Project not found: sp-web";
+		});
+		host.stop();
+		await startHost();
+		expect(await sessions()).toMatchObject([{ state: "failed", failure: { detail: "Project not found: sp-web" } }]);
+
+		// A start that works clears the failure and keeps the row.
+		stub.update((state) => {
+			state.failures = {};
+		});
+		host.stop();
+		await startHost();
+		const [manager] = await sessions();
+		expect(manager).toMatchObject({ state: "starting", failure: null });
+		expect(manager!.workspaceId).not.toBeNull();
+	});
+
 	test("a wake the runner refuses is logged and emits no batch; the next batch wakes the manager", async () => {
 		await enable();
 		await startHost();
@@ -219,7 +255,7 @@ describe("agents host", () => {
 		});
 		await t.createTicket({ project: "CDE", title: "Fix login" });
 		await clock.advance(10_000);
-		expect(logs).toContain("agents wake");
+		expect(logs.map((line) => line.msg)).toContain("agents wake");
 		expect(events.filter((event) => event.type === "agents.batch")).toEqual([]);
 		stub.update((state) => {
 			delete state.failures["terminals list"];

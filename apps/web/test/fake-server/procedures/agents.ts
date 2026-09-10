@@ -1,4 +1,4 @@
-import type { AgentRole, AgentSession, AgentState } from "@trellis/api";
+import type { AgentRole, AgentSession, AgentState, RunnerReason } from "@trellis/api";
 import { fail } from "../fail";
 import { type Context, os } from "../implementer";
 import {
@@ -28,13 +28,17 @@ const sessionsOf = (state: State) => [...state.agentSessions.values()].sort(byCr
 const liveSession = (state: State, role: AgentRole, match: (session: AgentSession) => boolean) =>
 	sessionsOf(state).find((session) => session.role === role && isLive(session) && match(session));
 
+// The RUNNER_UNAVAILABLE payload the real server sends. The fake runner
+// prints nothing, so it carries no exit code and no text.
+const runnerDown = (reason: RunnerReason) => ({ reason, exitCode: null, detail: "" });
+
 // A runner call fails first on a runner that is down, then on agents or
 // the root's manager being off. It returns the root's settings row.
 const requireRunner = (state: State, rootId: string) => {
-	if (state.runnerDown !== null) throw fail("RUNNER_UNAVAILABLE", { reason: state.runnerDown });
+	if (state.runnerDown !== null) throw fail("RUNNER_UNAVAILABLE", runnerDown(state.runnerDown));
 	const row = state.agentSettings.projects.find((project) => project.projectId === rootId);
 	if (!state.agentSettings.enabled || row === undefined || !row.enabled) {
-		throw fail("RUNNER_UNAVAILABLE", { reason: "disabled" });
+		throw fail("RUNNER_UNAVAILABLE", runnerDown("disabled"));
 	}
 	return row;
 };
@@ -54,6 +58,7 @@ const newSession = (
 	runner: "superset",
 	state: "starting",
 	openUrl: `superset://workspace/${fields.workspaceId}`,
+	failure: null,
 	lastWokenAt: null,
 	createdAt: isoNow(),
 	...fields,
@@ -163,8 +168,19 @@ export const agents = {
 		);
 	}),
 	stop: os.agents.stop.handler(({ context, input }) => {
-		if (context.state.runnerDown !== null) throw fail("RUNNER_UNAVAILABLE", { reason: context.state.runnerDown });
+		if (context.state.runnerDown !== null) throw fail("RUNNER_UNAVAILABLE", runnerDown(context.state.runnerDown));
 		return store(context, { ...context.state.agentSessions.get(input.id)!, state: "stopped" });
+	}),
+	// A retry runs the same start again. A runner that is still down writes
+	// the new reason on the same row and answers with it.
+	retry: os.agents.retry.handler(({ context, input }) => {
+		const session = context.state.agentSessions.get(input.id)!;
+		if (context.state.runnerDown !== null) {
+			const failure = runnerDown(context.state.runnerDown);
+			store(context, { ...session, state: "failed", failure });
+			throw fail("RUNNER_UNAVAILABLE", failure);
+		}
+		return store(context, { ...session, state: "starting", failure: null });
 	}),
 	wake: os.agents.wake.handler(({ context, input }) => {
 		const { state } = context;
@@ -174,15 +190,24 @@ export const agents = {
 		return store(context, { ...manager, lastWokenAt: isoNow() });
 	}),
 	settings: os.agents.settings.handler(({ context }) => context.state.agentSettings),
+	// The server checks the runner before it stores a settings record that
+	// turns a project on. `agentSettingsRefusal` stands in for a check that
+	// refuses; a record that turns nothing on runs no check.
 	setSettings: os.agents.setSettings.handler(({ context, input }) => {
-		context.state.agentSettings = input;
+		const { state } = context;
+		const turnedOn = input.enabled ? input.projects.filter((row) => row.enabled) : [];
+		if (turnedOn.length > 0) {
+			if (state.runnerDown !== null) throw fail("RUNNER_UNAVAILABLE", runnerDown(state.runnerDown));
+			if (state.agentSettingsRefusal !== null) throw fail("AGENT_SETTINGS_UNUSABLE", state.agentSettingsRefusal);
+		}
+		state.agentSettings = input;
 		return input;
 	}),
 	// A trellis project matches a runner project whose repo is one of the
 	// project's declared `owner/repo` pairs.
 	runnerProjects: os.agents.runnerProjects.handler(({ context }) => {
 		const { state } = context;
-		if (state.runnerDown !== null) throw fail("RUNNER_UNAVAILABLE", { reason: state.runnerDown });
+		if (state.runnerDown !== null) throw fail("RUNNER_UNAVAILABLE", runnerDown(state.runnerDown));
 		const roots = [...state.projects.values()].filter((project) => project.parentId === null);
 		return {
 			projects: state.runnerProjects,

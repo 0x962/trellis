@@ -3,6 +3,7 @@ import { chmodSync, copyFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { AgentSession, AgentSettingsSetInput, Project, TrellisEvent } from "@trellis/api";
 import { createTestApp, type TestApp } from "./app.ts";
+import { gitRepo } from "./gitRepo.ts";
 import { SUPERSET_STUB_BIN, type SupersetStubHandle, supersetStub } from "./superset-stub.ts";
 
 // The hooks an agents contract test file shares. The file gets one app, so
@@ -19,6 +20,7 @@ export const agentsHarness = () => {
 	let t: TestApp;
 	let stub: SupersetStubHandle;
 	let bin: string;
+	let repoPath: string;
 	let count = 0;
 	let key = "";
 	const events: TrellisEvent[] = [];
@@ -30,6 +32,7 @@ export const agentsHarness = () => {
 		const dir = mkdtempSync(join(process.env.TRELLIS_HOME!, "superset-"));
 		bin = join(dir, "superset");
 		stub = supersetStub(dir);
+		repoPath = gitRepo(["main", "develop"]);
 		t = await createTestApp({ supersetBin: bin });
 		t.bus.subscribe(({ event }) => void events.push(event));
 	});
@@ -39,7 +42,7 @@ export const agentsHarness = () => {
 		copyFileSync(SUPERSET_STUB_BIN, bin);
 		chmodSync(bin, 0o755);
 		stub.reset({
-			projects: [{ id: "sp-web", name: "web", repo: "acme/web", path: "/src/web" }],
+			projects: [{ id: "sp-web", name: "web", repo: "acme/web", path: repoPath }],
 			workspaces: [
 				{
 					id: tab().workspaceId,
@@ -135,6 +138,10 @@ export const agentsHarness = () => {
 		},
 		get tab() {
 			return tab();
+		},
+		// The checkout the fake Superset project "sp-web" holds.
+		get repoPath() {
+			return repoPath;
 		},
 		// The identifier of ticket number `n` of the test project.
 		ticket: (n: number) => `${key}-${n}`,

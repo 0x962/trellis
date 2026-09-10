@@ -107,6 +107,9 @@ export type State = {
 	runnerProjects: RunnerProject[];
 	// While set, every runner call answers RUNNER_UNAVAILABLE with this reason.
 	runnerDown: RunnerReason | null;
+	// While set, a setSettings that turns a project on answers
+	// AGENT_SETTINGS_UNUSABLE with this payload.
+	agentSettingsRefusal: { projectId: string; reason: RunnerReason; detail: string } | null;
 };
 
 export const createState = (): State => ({
@@ -143,6 +146,7 @@ export const createState = (): State => ({
 		{ id: "sp-trellis", name: "trellis", repo: "0x962/trellis", path: "/Users/navid/projects/trellis" },
 	],
 	runnerDown: null,
+	agentSettingsRefusal: null,
 });
 
 export const newId = () => ulid();

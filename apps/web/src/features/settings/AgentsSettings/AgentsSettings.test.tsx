@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AgentSettingsSetInput } from "@trellis/api";
 import { Toaster } from "@trellis/ui";
-import { projectRow, rootId } from "../../../../test/agents";
+import { addSession, projectRow, rootId } from "../../../../test/agents";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
@@ -157,6 +157,36 @@ describe("AgentsSettings", () => {
 		await user.click(remove);
 		await waitFor(() => expect(saves(server)).toHaveLength(1));
 		expect(lastSave(server).projects[0]!.removeWorkspaceOnDone).toBe(false);
+	});
+
+	// The manager of a project starts as soon as the save commits, so a
+	// project the runner cannot serve says so at save time and names the fix.
+	test("a save the runner refuses states the reason under the project it names", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		const detail = "The repository of the Superset project trellis has no branch develop. Enter a branch it has.";
+		server.state.agentSettings = { runner: "superset", enabled: true, projects: [] };
+		server.state.agentSettingsRefusal = { projectId: rootId(server), reason: "branch", detail };
+		render(server);
+		const group = await projectGroup("CDE");
+		await user.click(within(group).getByRole("switch", { name: "Manager" }));
+		expect(await within(group).findByText(detail)).toBeDefined();
+		expect(server.state.agentSettings.projects).toEqual([]);
+	});
+
+	// A manager that never started leaves its reason on its session row, and
+	// this block is where a person changes the setting that caused it.
+	test("a failed manager states its reason in the project block", async () => {
+		const server = createFakeServer();
+		addSession(server, {
+			role: "manager",
+			state: "failed",
+			failure: { reason: "unmapped", exitCode: null, detail: "No Superset project holds 0x962/trellis." },
+		});
+		render(server);
+		const group = within(await projectGroup("CDE"));
+		expect(await group.findByText(/No Superset project matches this project/)).toBeDefined();
+		expect(group.getByRole("button", { name: "Retry" })).toBeDefined();
 	});
 
 	test("a refused save shows a toast with Retry and restores the stored value", async () => {

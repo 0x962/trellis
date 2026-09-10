@@ -12,6 +12,7 @@ describe("agents contract", () => {
 		expect(table).toEqual([
 			"inbox POST /agents/inbox",
 			"register POST /agents/register",
+			"retry POST /agents/sessions/{id}/retry",
 			"runnerProjects GET /agents/runner-projects",
 			"sessions GET /agents/sessions",
 			"setSettings PUT /agents/settings",
@@ -26,15 +27,26 @@ describe("agents contract", () => {
 	// Every procedure that calls the runner can find it missing or turned
 	// off. A builder start can also hit the per-project limit.
 	test("each runner call declares RUNNER_UNAVAILABLE and a builder start declares CONCURRENCY_LIMIT", () => {
-		for (const name of ["startBuilder", "startReviewer", "stop", "wake", "runnerProjects"] as const) {
+		for (const name of [
+			"startBuilder",
+			"startReviewer",
+			"stop",
+			"wake",
+			"runnerProjects",
+			"retry",
+			"setSettings",
+		] as const) {
 			expect(agents[name]["~orpc"].errorMap, name).toHaveProperty("RUNNER_UNAVAILABLE");
 		}
-		expect(agents.startBuilder["~orpc"].errorMap).toHaveProperty("CONCURRENCY_LIMIT");
+		for (const name of ["startBuilder", "retry"] as const) {
+			expect(agents[name]["~orpc"].errorMap, name).toHaveProperty("CONCURRENCY_LIMIT");
+		}
+		expect(agents.setSettings["~orpc"].errorMap).toHaveProperty("AGENT_SETTINGS_UNUSABLE");
 		expect(agents.startReviewer["~orpc"].errorMap).toHaveProperty("INVALID_PR_URL");
 		for (const name of ["startBuilder", "startReviewer"] as const) {
 			expect(agents[name]["~orpc"].errorMap, name).toHaveProperty("PROJECT_ARCHIVED");
 		}
-		for (const name of ["sessions", "inbox", "register", "settings", "setSettings"] as const) {
+		for (const name of ["sessions", "inbox", "register", "settings"] as const) {
 			expect(agents[name]["~orpc"].errorMap, name).not.toHaveProperty("RUNNER_UNAVAILABLE");
 		}
 	});
@@ -71,12 +83,13 @@ describe("agents contract", () => {
 			terminalId: null,
 			title: "CDE manager",
 			openUrl: null,
+			failure: null,
 			lastWokenAt: null,
 			createdAt: "2026-09-10T10:00:00.000Z",
 		};
 		expect(await accepts(agents.sessions["~orpc"].outputSchema, { sessions: [row] })).toBe(true);
 		expect(await accepts(agents.sessions["~orpc"].outputSchema, [row])).toBe(false);
-		for (const name of ["register", "startBuilder", "startReviewer", "stop", "wake"] as const) {
+		for (const name of ["register", "startBuilder", "startReviewer", "stop", "wake", "retry"] as const) {
 			expect(await accepts(agents[name]["~orpc"].outputSchema, row), name).toBe(true);
 		}
 	});

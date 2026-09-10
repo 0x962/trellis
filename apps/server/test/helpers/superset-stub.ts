@@ -20,6 +20,9 @@ export type SupersetStubHandle = {
 	// New state and an empty call log. The id counter keeps counting, so a
 	// runner id stays unique across the tests of one file.
 	reset: (initial: Partial<StubState>) => void;
+	// Empties the call log and leaves the state, so a test asserts only the
+	// calls that follow its setup.
+	clearCalls: () => void;
 	terminal: (terminalId: string) => StubTerminal;
 	exit: (terminalId: string) => void;
 	restore: () => void;
@@ -62,6 +65,7 @@ export const supersetStub = (dir: string, initial: Partial<StubState> = {}): Sup
 			writeFileSync(file, JSON.stringify({ ...empty(), ...next, next: state().next }));
 			rmSync(log, { force: true });
 		},
+		clearCalls: () => rmSync(log, { force: true }),
 		terminal: (terminalId) => state().terminals.find((terminal) => terminal.terminalId === terminalId)!,
 		exit: (terminalId) =>
 			update((current) => {

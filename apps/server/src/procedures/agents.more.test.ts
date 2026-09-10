@@ -17,7 +17,7 @@ describe("agents.startBuilder refusals", () => {
 		await a.enable();
 		await a.t.createTicket({ project: a.key, title: "Fix login" });
 		a.stub.update((state) => {
-			state.projects = [{ id: "sp-other", name: "other", repo: "acme/other", path: "/src/other" }];
+			state.projects = [{ id: "sp-other", name: "other", repo: "acme/other", path: a.repoPath }];
 		});
 		const refused = await start(a.ticket(1));
 		expect(refused.status).toBe(503);
@@ -26,8 +26,12 @@ describe("agents.startBuilder refusals", () => {
 	});
 
 	test("a Superset project id in the settings wins over the repo match", async () => {
+		a.stub.update((state) => {
+			state.projects.push({ id: "sp-chosen", name: "chosen", repo: "acme/chosen", path: a.repoPath });
+		});
 		await a.enable({ supersetProjectId: "sp-chosen" });
 		await a.t.createTicket({ project: a.key, title: "Fix login" });
+		a.stub.clearCalls();
 		expect((await start(a.ticket(1))).status).toBe(200);
 		expect(a.stub.callsOf("projects list")).toEqual([]);
 		expect(a.stub.state().workspaces.at(-1)!.projectId).toBe("sp-chosen");
@@ -38,13 +42,14 @@ describe("agents.startBuilder refusals", () => {
 		await a.t.createTicket({ project: a.key, title: "Fix login" });
 		const archived = await a.t.api(`/api/projects/${a.key}`, { method: "PATCH", body: { archived: true } });
 		expect(archived.status).toBe(200);
+		a.stub.clearCalls();
 		const refused = await start(a.ticket(1));
 		expect(refused.status).toBe(409);
 		expect(refused.body.code).toBe("PROJECT_ARCHIVED");
 		expect(a.stub.calls()).toEqual([]);
 	});
 
-	test("a runner error answers RUNNER_UNAVAILABLE error, leaves no session, and does not count toward the limit", async () => {
+	test("a runner error answers RUNNER_UNAVAILABLE error and does not count toward the limit", async () => {
 		await a.enable({ maxConcurrent: 1 });
 		await a.t.createTicket({ project: a.key, title: "Fix login" });
 		a.stub.update((state) => {
@@ -54,7 +59,7 @@ describe("agents.startBuilder refusals", () => {
 		expect(refused.status).toBe(503);
 		expect(refused.body).toMatchObject({ code: "RUNNER_UNAVAILABLE", data: { reason: "error" } });
 		expect(refused.body.message).toContain("Project not found: sp-web");
-		expect(await a.sessions(`project=${a.key}`)).toEqual([]);
+		expect(await a.sessions(`project=${a.key}`)).toMatchObject([{ state: "failed" }]);
 		a.stub.update((state) => {
 			delete state.failures["ws create"];
 		});
@@ -81,7 +86,7 @@ describe("agents.runnerProjects", () => {
 		const other = await a.t.seedProject(`${a.key}X`);
 		const listed = await list();
 		expect(listed.status).toBe(200);
-		expect(listed.body.projects).toEqual([{ id: "sp-web", name: "web", repo: "acme/web", path: "/src/web" }]);
+		expect(listed.body.projects).toEqual([{ id: "sp-web", name: "web", repo: "acme/web", path: a.repoPath }]);
 		expect(listed.body.matches).toContainEqual({ projectId: project.id, runnerProjectId: "sp-web" });
 		const matched = listed.body.matches.map((match: { projectId: string }) => match.projectId);
 		expect(matched).not.toContain(other.id);
