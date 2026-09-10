@@ -102,18 +102,44 @@ describe("tokens.css", () => {
 				);
 			}
 		}
-		expect(ours.light.declarations["--bg"]).toBe("#F5F5F5");
+		expect(ours.light.declarations["--bg"]).toBe("#FFFFFF");
 		expect(ours.light.declarations["--danger-soft"]).toBe("#FFE6E8");
-		expect(ours.darkStamp.declarations["--bg"]).toBe("#0A0A0A");
+		expect(ours.darkStamp.declarations["--bg"]).toBe("#070707");
 		expect(ours.darkStamp.declarations["--danger-soft"]).toBe("#3A1517");
 		expect(ours.darkStamp.declarations["--shadow-sm"]).toBe("0 0 0 1px var(--border-strong)");
-		// The web font and its metric-matched fallback lead each stack (see
-		// fonts.test.ts). The generic tail after them is the mockup's own.
+		// The mockup names BerkeleyMono and JetBrains Mono, and tokens.css
+		// inserts the metric-matched "JetBrains Mono Fallback" between the
+		// second entry and the generic tail (see fonts.test.ts).
 		for (const name of fontTokens) {
-			const tail = (stack: string) => stack.split(",").slice(2).join(",").trim();
-			expect(tail(ours.light.declarations[name]!)).toBe(
-				theirs.light.declarations[name]!.split(",").slice(1).join(",").trim(),
-			);
+			const tail = (stack: string, from: number) => stack.split(",").slice(from).join(",").trim();
+			expect(tail(ours.light.declarations[name]!, 3)).toBe(tail(theirs.light.declarations[name]!, 2));
+		}
+	});
+
+	/*
+	 * Every neutral comes from one seed grey mixed with black or white in
+	 * sRGB, the way code.storage builds its own ramp. The seed is
+	 * lab(59.312% 1.0058 -3.62585), which is #8E8E95, and it is --fg-faint
+	 * itself in both themes. A step name keeps the same position in the ramp
+	 * in light and in dark, so --surface sits one step off the page ground in
+	 * both.
+	 */
+	test("the neutral ramp carries the code.storage greys", async () => {
+		const ours = paletteBlocks(await tokens());
+		const ramp: Record<string, [string, string]> = {
+			"--bg": ["#FFFFFF", "#070707"],
+			"--surface": ["#F7F7F8", "#151516"],
+			"--elevated": ["#F5F5F5", "#1C1C1E"],
+			"--border": ["#E8E8EA", "#242425"],
+			"--border-strong": ["#DDDDDF", "#323234"],
+			"--fg": ["#070707", "#E8E8EA"],
+			"--fg-muted": ["#646468", "#BBBBBF"],
+			"--fg-faint": ["#8E8E95", "#8E8E95"],
+		};
+		for (const [name, [light, dark]] of Object.entries(ramp)) {
+			expect(`${name} light ${ours.light.declarations[name]}`).toBe(`${name} light ${light}`);
+			expect(`${name} dark ${ours.darkStamp.declarations[name]}`).toBe(`${name} dark ${dark}`);
+			expect(`${name} media ${ours.darkMedia.declarations[name]}`).toBe(`${name} media ${dark}`);
 		}
 	});
 

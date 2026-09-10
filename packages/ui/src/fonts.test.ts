@@ -3,37 +3,43 @@ import { blocks, findBlock, parseCss, readSource, statements } from "../test/css
 
 const fonts = async () => parseCss(await readSource("fonts.css"));
 
+// The three entries every font stack in this repo starts with, in order.
+const head = ['"BerkeleyMono"', '"JetBrains Mono"', '"JetBrains Mono Fallback"'];
+
 describe("fonts.css", () => {
-	// The fontsource Inter stylesheet declares seven script subsets. Only the
-	// latin file is declared here, as a face of our own with the latin
-	// unicode-range, so no other subset enters the bundle.
-	test("fonts.css imports the latin JetBrains Mono files and declares the latin Inter Variable face", async () => {
+	// The interface, the identifiers, and the code all use one typeface, so
+	// the stylesheet declares the three weights the components ask for: 400,
+	// 500 through font-medium, and 600 through font-semibold.
+	test("fonts.css imports the latin JetBrains Mono files for weights 400, 500, and 600", async () => {
 		const pieces = await fonts();
 		const imports = statements(pieces)
 			.filter((piece) => piece.prelude.startsWith("@import"))
 			.map((piece) => piece.prelude.match(/["']([^"']+)["']/)![1]!);
 		const fontsource = imports.filter((specifier) => specifier.includes("fontsource"));
 		expect(fontsource.sort()).toEqual(
-			["@fontsource/jetbrains-mono/latin-400.css", "@fontsource/jetbrains-mono/latin-500.css"].sort(),
+			[
+				"@fontsource/jetbrains-mono/latin-400.css",
+				"@fontsource/jetbrains-mono/latin-500.css",
+				"@fontsource/jetbrains-mono/latin-600.css",
+			].sort(),
 		);
-		const interFaces = blocks(pieces)
-			.filter((piece) => piece.prelude === "@font-face")
-			.map((piece) => piece.declarations)
-			.filter((face) => face["font-family"] === '"Inter Variable"');
-		expect(interFaces).toHaveLength(1);
-		const inter = interFaces[0]!;
-		expect(inter.src).toBe(
-			'url("@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2-variations")',
-		);
-		expect(inter["font-weight"]).toBe("100 900");
-		expect(inter["font-display"]).toBe("swap");
-		expect(inter["unicode-range"]).toStartWith("U+0000-00FF,");
 	});
 
-	test("body sets Inter Variable with cv11 and ss01", async () => {
+	// BerkeleyMono is licensed per machine, so the repo ships no file for it
+	// and declares no face. A machine with the font installed picks it up
+	// from the stack; every other machine falls through to JetBrains Mono.
+	test("the only declared face is the JetBrains Mono metric-matched fallback", async () => {
+		const faces = blocks(await fonts())
+			.filter((piece) => piece.prelude === "@font-face")
+			.map((piece) => piece.declarations);
+		expect(faces.map((face) => face["font-family"])).toEqual(['"JetBrains Mono Fallback"']);
+	});
+
+	test("body sets the mono stack and no OpenType feature", async () => {
 		const body = findBlock(await fonts(), "body");
-		expect(body.declarations["font-family"]).toStartWith('"Inter Variable"');
-		expect(body.declarations["font-feature-settings"]).toBe('"cv11", "ss01"');
+		expect(body.declarations["font-family"]).toStartWith(head.join(", "));
+		// cv11 and ss01 are Inter features. JetBrains Mono has neither.
+		expect(body.declarations["font-feature-settings"]).toBe("normal");
 		expect(body.declarations["-webkit-font-smoothing"]).toBe("antialiased");
 	});
 
@@ -46,27 +52,27 @@ describe("fonts.css", () => {
 		expect(mono.declarations["font-feature-settings"]).toBe("normal");
 	});
 
-	test("metric-matched fallback faces exist and sit in the stacks", async () => {
+	test("the metric-matched fallback face exists and both stacks lead with the same three entries", async () => {
 		const faces = blocks(await fonts())
 			.filter((piece) => piece.prelude === "@font-face")
 			.map((piece) => piece.declarations);
-		const byFamily = (family: string) => faces.find((face) => face["font-family"] === `"${family}"`)!;
-		const inter = byFamily("Inter Fallback");
-		expect(inter.src).toBe("local(Arial)");
+		const mono = faces.find((face) => face["font-family"] === '"JetBrains Mono Fallback"')!;
 		// Chromium matches local() by the full name or the PostScript name only.
-		const mono = byFamily("JetBrains Mono Fallback");
 		expect(mono.src).toBe('local("Menlo Regular"), local("Menlo-Regular"), local("SF Mono Regular")');
-		for (const face of [inter, mono]) {
-			for (const property of ["size-adjust", "ascent-override", "descent-override", "line-gap-override"]) {
-				expect(face[property]).toMatch(/^\d+(\.\d+)?%$/);
-			}
+		for (const property of ["size-adjust", "ascent-override", "descent-override", "line-gap-override"]) {
+			expect(mono[property]).toMatch(/^\d+(\.\d+)?%$/);
 		}
 		const root = findBlock(parseCss(await readSource("tokens.css")), ":root");
 		const families = (stack: string) => stack.split(",").map((entry) => entry.trim());
-		expect(families(root.declarations["--sans"]!).slice(0, 2)).toEqual(['"Inter Variable"', '"Inter Fallback"']);
-		expect(families(root.declarations["--mono"]!).slice(0, 2)).toEqual([
-			'"JetBrains Mono"',
-			'"JetBrains Mono Fallback"',
-		]);
+		expect(families(root.declarations["--sans"]!).slice(0, 3)).toEqual(head);
+		expect(families(root.declarations["--mono"]!).slice(0, 3)).toEqual(head);
+	});
+
+	// code.storage sets its whole interface in one typeface, so --sans and
+	// --mono hold the same stack. A component keeps its font-mono class and
+	// renders the same face as the text around it.
+	test("--sans and --mono hold the same stack", async () => {
+		const root = findBlock(parseCss(await readSource("tokens.css")), ":root");
+		expect(root.declarations["--sans"]).toBe(root.declarations["--mono"]!);
 	});
 });
