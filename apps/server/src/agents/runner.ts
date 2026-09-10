@@ -19,10 +19,14 @@ const namesRepo = (recorded: string, { owner, repo }: RunnerRepo) => {
 	return plain === wanted || plain.endsWith(`/${wanted}`) || plain.endsWith(`:${wanted}`);
 };
 
+// One row of the runner's project list. The default branch comes from the
+// checkout at `path`, which the runner reads only on request.
+export type RunnerProjectRow = Omit<RunnerProject, "defaultBranch">;
+
 // The id of the runner project that holds the first of `repos` that any
 // runner project holds, or null. `repos` comes nearest project first, so a
 // sub-project's own repo wins over its parent's.
-export const matchRunnerProject = (projects: RunnerProject[], repos: RunnerRepo[]): string | null => {
+export const matchRunnerProject = (projects: RunnerProjectRow[], repos: RunnerRepo[]): string | null => {
 	for (const repo of repos) {
 		const found = projects.find((project) => project.repo !== null && namesRepo(project.repo, repo));
 		if (found !== undefined) return found.id;
@@ -62,10 +66,14 @@ export type ReviewerStart = { project: string; ticket: string; prUrl: string; wo
 export type ManagerSession = TerminalRef & { project: string; claudeSessionId: string | null };
 
 export type Runner = {
-	// The runner project that holds one of `repos`, in the order given.
 	// Every project the runner knows, for the settings page picker.
-	projects: () => Promise<RunnerProject[]>;
+	projects: () => Promise<RunnerProjectRow[]>;
+	// The runner project that holds one of `repos`, in the order given.
 	projectFor: (repos: RunnerRepo[]) => Promise<string>;
+	// The branch origin/HEAD names in the checkout of a runner project, or
+	// in the checkout at `path`.
+	defaultBranch: (runnerProjectId: string) => Promise<string>;
+	branchAt: (path: string) => Promise<string>;
 	// `started` is false when a live manager tab already ran in the workspace.
 	ensureManager: (input: ManagerStart) => Promise<AgentPlace & { started: boolean }>;
 	startBuilder: (input: BuilderStart) => Promise<AgentPlace>;
@@ -80,6 +88,11 @@ export type Runner = {
 	removeWorkspace: (workspaceId: string) => Promise<void>;
 	openUrl: (workspaceId: string) => Promise<string>;
 };
+
+// True for the declared RUNNER_UNAVAILABLE error, the one way a runner call
+// fails. A caller that records a failed start catches only this error.
+export const isRunnerFailure = (error: unknown): error is ORPCError<"RUNNER_UNAVAILABLE", { reason: RunnerReason }> =>
+	error instanceof ORPCError && error.code === "RUNNER_UNAVAILABLE";
 
 // The declared RUNNER_UNAVAILABLE error. `detail` is what the runner
 // printed, appended to the message so the person who asked reads why.

@@ -40,7 +40,7 @@ ${rules}
 - Start a builder for every ticket in Todo: trellis agents start <ticket>
 - Before you start one, read the agents of the ticket: trellis agents status --ticket <ticket> --json
 - After the start, move the ticket to In Progress: trellis move <ticket> in-progress
-- When trellis agents start fails with CONCURRENCY_LIMIT (exit code 4), the project runs its maximum number of builders. Leave the ticket in Todo and comment "Queued: <n> builders are running." once. Start the ticket when a builder finishes.
+- When trellis agents start fails with CONCURRENCY_LIMIT (exit code 4), the project runs its maximum number of builders. Leave the ticket in Todo and comment "Queued: <n> builders are running." once. On every wake, try each queued ticket in Todo again, until it starts.
 
 ## Comments
 Comment on the ticket at every transition you make, so the human knows what happens. Use: trellis comment <ticket> --body "Started builder in Superset workspace <ticket>."

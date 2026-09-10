@@ -17,7 +17,8 @@ import { readAgentSettings } from "./agentSettings.ts";
 import { pathOf, resolveProject, resolveTicket } from "./refs.ts";
 
 export { inbox } from "./agentInbox.ts";
-export { prepareManager, prepareReconcile, reconcile, recordManager } from "./agentManager.ts";
+export { prepareManager, prepareReconcile, prepareRetry, reconcile, recordManager } from "./agentManager.ts";
+export { overview } from "./agentOverview.ts";
 export { prepareRunnerProjects, runnerProjects } from "./agentRunnerProjects.ts";
 export { get as settings, set as setSettings } from "./agentSettings.ts";
 export { prepareBuilder, prepareReviewer, startBuilder, startReviewer } from "./agentStart.ts";
@@ -32,10 +33,12 @@ export const sessions = async (ctx: ServiceCtx, tx: Tx, input: AgentSessionsInpu
 	return { sessions: (await selectSessions(tx, where)).map(toSession) };
 };
 
-// A running agent reports its terminal and its Claude session. The row of
-// that terminal takes the new Claude session; a terminal without a row gets
-// a new one. A new manager replaces the live manager of its project, which
-// becomes `exited`, because a project has one live manager.
+// A running agent reports its terminal and its Claude session. One agent
+// keeps one row: the row of that terminal, or else the row of the same
+// agent in the same workspace, takes the terminal, the Claude session, and
+// the running state. Only an agent without a row gets a new one. A new
+// manager replaces the live manager of its project, which becomes `exited`,
+// because a project has one live manager.
 export const register = async (ctx: ServiceCtx, tx: Tx, input: AgentRegisterInput): Promise<AgentSession> => {
 	requireActor(ctx);
 	const project = await resolveProject(ctx, tx, input.project);
@@ -44,12 +47,21 @@ export const register = async (ctx: ServiceCtx, tx: Tx, input: AgentRegisterInpu
 		tx,
 		sql`s.workspace_id = ${input.workspaceId} AND s.terminal_id = ${input.terminalId}`,
 	);
-	if (held !== undefined) {
+	const same = (
+		await selectSessions(
+			tx,
+			sql`s.workspace_id = ${input.workspaceId} AND s.role = ${input.role} AND s.project_id = ${project.id}
+				AND ${ticket === null ? sql`s.ticket_id IS NULL` : sql`s.ticket_id = ${ticket.id}`} AND s.state <> 'stopped'`,
+		)
+	).at(-1);
+	const mine = held ?? same;
+	if (mine !== undefined) {
 		await tx.execute(sql`
-			UPDATE agent_sessions SET claude_session_id = ${input.claudeSessionId}, state = 'running', updated_at = ${ctx.now}
-			WHERE id = ${held.id}
+			UPDATE agent_sessions SET terminal_id = ${input.terminalId}, claude_session_id = ${input.claudeSessionId},
+				state = 'running', error = NULL, updated_at = ${ctx.now}
+			WHERE id = ${mine.id}
 		`);
-		return announce(ctx, tx, held.id);
+		return announce(ctx, tx, mine.id);
 	}
 	const replaced =
 		input.role === "manager"

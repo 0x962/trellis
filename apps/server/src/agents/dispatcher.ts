@@ -1,4 +1,4 @@
-import { type ActorRef, agentActorName, type TrellisEvent } from "@trellis/api";
+import { type ActorRef, type AgentBatchRecord, agentActorName, type TrellisEvent } from "@trellis/api";
 import { type Bus, type BusEntry, matches } from "../events/bus.ts";
 
 // The dispatcher queues, per watched project, the changes its manager must
@@ -16,7 +16,11 @@ export const BATCH_MAX = 10;
 // The pointer names this many changes and counts the rest.
 const NAMED_MAX = 3;
 
+// `recent` keeps this many batches, across every project.
+export const RECENT_MAX = 20;
+
 export type DispatcherClock = {
+	now: () => Date;
 	setTimer: (fn: () => unknown, ms: number) => number;
 	clearTimer: (id: number) => void;
 };
@@ -33,11 +37,14 @@ export type DispatcherOptions = {
 	flush: (batch: Batch) => void | Promise<void>;
 };
 
+// `recent` gives the last RECENT_MAX batches since the dispatcher started,
+// newest first. They live in memory only, so a restart empties the list.
 export type Dispatcher = {
 	watch: (projectId: string) => void;
 	unwatch: (projectId: string) => void;
 	stop: () => void;
 	watched: () => string[];
+	recent: () => AgentBatchRecord[];
 };
 
 type Change = { event: TrellisEvent; actor: ActorRef | null };
@@ -130,6 +137,7 @@ export const pointerText = (path: string, items: string[]) => {
 export const createDispatcher = (options: DispatcherOptions): Dispatcher => {
 	const watches = new Map<string, { changes: Change[]; timer: number | null }>();
 	const names = new Map<string, string>();
+	const sent: AgentBatchRecord[] = [];
 
 	const clear = (watch: { timer: number | null }) => {
 		if (watch.timer !== null) options.clock.clearTimer(watch.timer);
@@ -140,7 +148,10 @@ export const createDispatcher = (options: DispatcherOptions): Dispatcher => {
 		const watch = watches.get(projectId)!;
 		clear(watch);
 		const items = watch.changes.splice(0).map((change) => describe(change, names));
-		return options.flush({ projectId, count: items.length, text: pointerText(options.path(projectId), items) });
+		const batch = { projectId, count: items.length, text: pointerText(options.path(projectId), items) };
+		sent.unshift({ at: options.clock.now().toISOString(), ...batch });
+		sent.splice(RECENT_MAX);
+		return options.flush(batch);
 	};
 
 	const queue = (projectId: string, change: Change) => {
@@ -185,5 +196,6 @@ export const createDispatcher = (options: DispatcherOptions): Dispatcher => {
 			unsubscribe();
 		},
 		watched: () => [...watches.keys()],
+		recent: () => [...sent],
 	};
 };

@@ -10,6 +10,7 @@ import { projects } from "./projects.ts";
 // reviewer name the one ticket they work. The runner ids are opaque text
 // that trellis stores and gives back to the runner unchanged.
 // `claude_session_id` is what the runner resumes an exited agent from.
+// `error` holds what the runner said when it could not start the agent.
 export const agentSessions = pgTable(
 	"agent_sessions",
 	{
@@ -27,6 +28,7 @@ export const agentSessions = pgTable(
 		title: text().notNull(),
 		openUrl: text("open_url"),
 		lastWokenAt: at("last_woken_at"),
+		error: text(),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
 	},
@@ -38,11 +40,11 @@ export const agentSessions = pgTable(
 		check("agent_sessions_ticket_check", sql`(${t.role} = 'manager') = (${t.ticketId} IS NULL)`),
 		index("agent_sessions_project_id_role_state_idx").on(t.projectId, t.role, t.state),
 		index("agent_sessions_ticket_id_idx").on(t.ticketId),
-		// A project has one live manager. An exited or stopped manager stays
-		// as history, so it is outside the index.
+		// A project has one live manager. An exited, stopped, or failed
+		// manager holds no terminal, so it is outside the index.
 		uniqueIndex("agent_sessions_live_manager_idx")
 			.on(t.projectId)
-			.where(sql`${t.role} = 'manager' AND ${t.state} NOT IN ('exited', 'stopped')`),
+			.where(sql`${t.role} = 'manager' AND ${t.state} NOT IN ('exited', 'stopped', 'failed')`),
 		// agents.register finds the row of a running agent by its terminal.
 		uniqueIndex("agent_sessions_terminal_idx")
 			.on(t.workspaceId, t.terminalId)

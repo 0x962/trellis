@@ -1,4 +1,4 @@
-import type { AgentSettings } from "@trellis/api";
+import type { AgentSession, AgentSettings } from "@trellis/api";
 import type { Bus } from "../events/bus.ts";
 import type { JobsLog } from "../jobs.ts";
 import type { ServiceName } from "../services/registry.ts";
@@ -11,12 +11,15 @@ import { type Batch, createDispatcher, type Dispatcher, type DispatcherClock } f
 //
 // Nothing runs while the global switch of the agent settings is off. At
 // start the host marks the sessions whose terminal is gone, starts the
-// manager of each enabled project, and watches those projects. A settings
-// change starts the manager of a project turned on and stops watching a
-// project turned off; its manager and its builders keep running.
+// manager of each enabled project, and watches those projects. Every
+// settings change starts the manager of each enabled project again, so a
+// fix in the settings recovers a failed manager, and stops watching a
+// project turned off; its manager and its builders keep running. A wake
+// for a project without a manager starts one.
 //
-// Start and reload run one at a time, in call order. A runner that fails
-// for one project is logged and the other projects go on.
+// Start and reload run one at a time, in call order. A manager the runner
+// cannot start comes back as a failed session; the host logs what the
+// runner said, and the other projects go on.
 
 export type AgentsHostOptions = {
 	bus: Bus;
@@ -39,15 +42,22 @@ export const createAgentsHost = (options: AgentsHostOptions): AgentsHost => {
 	const failed = (msg: string, fields: Record<string, unknown>) => (error: unknown) =>
 		options.log(msg, { ...fields, message: (error as Error).message });
 
+	// True when the manager runs; a failed start is logged with the runner's
+	// message.
+	const started = (session: AgentSession) => {
+		if (session.state !== "failed") return true;
+		options.log("agents manager failed", { projectId: session.projectId, error: session.error });
+		return false;
+	};
+
 	// The wake moves no cursor: a batch the runner refused stays in the inbox,
 	// and the next batch points the manager at it.
 	const flush = (batch: Batch) =>
-		options
-			.call("agents.wake", { project: batch.projectId, text: batch.text })
-			.then(
-				() => void options.bus.emit({ type: "agents.batch", projectId: batch.projectId, count: batch.count }),
-				failed("agents wake", { projectId: batch.projectId }),
-			);
+		options.call("agents.wake", { project: batch.projectId, text: batch.text }).then((session) => {
+			if (started(session as AgentSession)) {
+				options.bus.emit({ type: "agents.batch", projectId: batch.projectId, count: batch.count });
+			}
+		}, failed("agents wake", { projectId: batch.projectId }));
 
 	const dispatcher = createDispatcher({ ...options.projects, bus: options.bus, clock: options.clock, flush });
 
@@ -58,8 +68,11 @@ export const createAgentsHost = (options: AgentsHostOptions): AgentsHost => {
 		for (const projectId of dispatcher.watched()) {
 			if (!wanted.includes(projectId)) dispatcher.unwatch(projectId);
 		}
-		for (const projectId of wanted.filter((id) => !dispatcher.watched().includes(id))) {
-			await options.call("agents.ensureManager", { project: projectId }).catch(failed("agents manager", { projectId }));
+		for (const projectId of wanted) {
+			const session = await options
+				.call("agents.ensureManager", { project: projectId })
+				.catch(failed("agents manager", { projectId }));
+			if (session !== undefined) started(session as AgentSession);
 			dispatcher.watch(projectId);
 		}
 	};

@@ -58,8 +58,9 @@ export type AgentRunner = z.infer<typeof AgentRunnerSchema>;
 // `starting`: the runner was asked and has not reported the terminal.
 // `running`: the agent works a turn. `waiting`: the agent is idle at its
 // prompt. `exited`: the agent process ended by itself. `stopped`: trellis
-// stopped it.
-export const AgentStateSchema = z.enum(["starting", "running", "waiting", "exited", "stopped"]);
+// stopped it. `failed`: the runner could not start the agent; the session's
+// `error` holds what the runner said.
+export const AgentStateSchema = z.enum(["starting", "running", "waiting", "exited", "stopped", "failed"]);
 export type AgentState = z.infer<typeof AgentStateSchema>;
 
 // Why the runner cannot serve a request. `missing`: the runner binary is
