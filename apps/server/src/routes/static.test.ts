@@ -43,6 +43,16 @@ describe("static route", () => {
 		expect(await response.text()).toContain('<div id="root">');
 	});
 
+	test("a path with a malformed percent escape falls back to index.html", async () => {
+		for (const path of ["/%E0%A4%A", "/t/%", "/assets/%ZZ.js"]) {
+			const response = await get(withDist, path);
+
+			expect(response.status, path).toBe(200);
+			expect(response.headers.get("content-type"), path).toContain("text/html");
+			expect(await response.text(), path).toContain('<div id="root">');
+		}
+	});
+
 	test("an app route falls back to index.html", async () => {
 		const response = await get(withDist, "/t/CDE-42");
 
