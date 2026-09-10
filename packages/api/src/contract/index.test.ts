@@ -32,6 +32,7 @@ describe("contract", () => {
 			"actors.list GET /actors",
 			"agents.inbox POST /agents/inbox",
 			"agents.register POST /agents/register",
+			"agents.runnerProjects GET /agents/runner-projects",
 			"agents.sessions GET /agents/sessions",
 			"agents.setSettings PUT /agents/settings",
 			"agents.settings GET /agents/settings",

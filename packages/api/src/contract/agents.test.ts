@@ -5,13 +5,14 @@ import { agents } from "./agents.ts";
 describe("agents contract", () => {
 	// The inbox advances the stored cursor, so it is a write. A GET could be
 	// retried or prefetched and then skip events for the manager.
-	test("every agents write is a non-GET route under /agents and the two reads are GET", () => {
+	test("every agents write is a non-GET route under /agents and every read is GET", () => {
 		const table = Object.entries(agents)
 			.map(([name, procedure]) => `${name} ${procedure["~orpc"].route.method} ${procedure["~orpc"].route.path}`)
 			.sort();
 		expect(table).toEqual([
 			"inbox POST /agents/inbox",
 			"register POST /agents/register",
+			"runnerProjects GET /agents/runner-projects",
 			"sessions GET /agents/sessions",
 			"setSettings PUT /agents/settings",
 			"settings GET /agents/settings",
@@ -25,7 +26,7 @@ describe("agents contract", () => {
 	// Every procedure that calls the runner can find it missing or turned
 	// off. A builder start can also hit the per-project limit.
 	test("each runner call declares RUNNER_UNAVAILABLE and a builder start declares CONCURRENCY_LIMIT", () => {
-		for (const name of ["startBuilder", "startReviewer", "stop", "wake"] as const) {
+		for (const name of ["startBuilder", "startReviewer", "stop", "wake", "runnerProjects"] as const) {
 			expect(agents[name]["~orpc"].errorMap, name).toHaveProperty("RUNNER_UNAVAILABLE");
 		}
 		expect(agents.startBuilder["~orpc"].errorMap).toHaveProperty("CONCURRENCY_LIMIT");
