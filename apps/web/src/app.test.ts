@@ -24,4 +24,21 @@ describe("app.css", () => {
 		expect(source).toBeString();
 		expect(source).toMatch(/packages\/ui\/src/);
 	});
+
+	// A GFM task item shows its checkbox as the marker. marked renders the
+	// checkbox as the first child of the item, and the Tiptap editor marks
+	// the item with data-type="taskItem". Either form draws no bullet.
+	test("a task list item draws no bullet and a list of task items has no left padding", async () => {
+		const css = (await read()).replace(/\/\*[\s\S]*?\*\//g, "");
+		const rules = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)].map(([, selector, body]) => ({
+			selector: selector!.trim(),
+			body: body!,
+		}));
+		const noBullet = rules.find((rule) => /list-style:\s*none/.test(rule.body));
+		expect(noBullet?.selector ?? "no rule").toContain('li:has(> input[type="checkbox"])');
+		expect(noBullet?.selector ?? "no rule").toContain('li[data-type="taskItem"]');
+		const noPadding = rules.find((rule) => /padding-left:\s*0/.test(rule.body));
+		expect(noPadding?.selector ?? "no rule").toContain('ul[data-type="taskList"]');
+		expect(noPadding?.selector ?? "no rule").toMatch(/ul:not\(:has\(> li:not\(/);
+	});
 });
