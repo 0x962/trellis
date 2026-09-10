@@ -160,7 +160,11 @@ export const seedProject = async (tx: Executor, key = "CDE") => {
 	return { rootId, statuses };
 };
 
-export const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000);
+// Every call measures from the instant this module loaded, so two calls
+// with the same argument give the same instant and a test compares them.
+const loadedAt = Date.now();
+
+export const hoursAgo = (hours: number) => new Date(loadedAt - hours * 3_600_000);
 
 // A further root with its six statuses, for a database whose actors are
 // already seeded.

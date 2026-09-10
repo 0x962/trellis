@@ -90,7 +90,10 @@ export const serviceHarness = async () => {
 	// A read-only transaction for a query or an invariant check.
 	const read = <T>(fn: (tx: Tx) => Promise<T>) => h.db.transaction(fn);
 
-	const rows = async <T = Record<string, unknown>>(query: ReturnType<typeof sql>) => {
+	// A row is what the driver returns. A test that reads a column names its
+	// type through `T`, or compares the value against a typed one.
+	// biome-ignore lint/suspicious/noExplicitAny: an untyped row must compare against any column type.
+	const rows = async <T = Record<string, any>>(query: ReturnType<typeof sql>) => {
 		const result = await h.db.execute(query);
 		return result.rows as T[];
 	};
