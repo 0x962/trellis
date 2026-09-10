@@ -412,7 +412,7 @@ Global flags: `--json`, `--jsonl`, `--quiet` (one identifier per line), `--as <k
 | `whoami` / `instructions [--project]` / `status` / `logs` | |
 | `serve` / `install` / `uninstall` / `backup` / `restore` / `export` | `--gateway --no-launchd` |
 
-Actor resolution: `--as` → `TRELLIS_ACTOR` → kind `agent` only when `CLAUDECODE`, `CLAUDE_SESSION_ID`, or `CODEX_*` is set (TTY state changes output format, never kind); agent names `claude-code`, `codex`, else `agent`; humans `git config user.name` (NFKD, diacritics stripped, one-time hint to set `TRELLIS_ACTOR`) else the OS user. `x-trellis-session` from `CLAUDE_SESSION_ID`. `whoami` prints the chain.
+Actor resolution: `--as` → `TRELLIS_ACTOR` → kind `agent` only when `CLAUDECODE`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_SESSION_ID`, or `CODEX_*` is set (TTY state changes output format, never kind); agent names `claude-code`, `codex`, else `agent`; humans `git config user.name` (NFKD, diacritics stripped, one-time hint to set `TRELLIS_ACTOR`) else the OS user. `x-trellis-session` from `CLAUDE_CODE_SESSION_ID`, else `CLAUDE_SESSION_ID`. `whoami` prints the chain.
 
 Output: TTY → aligned text; non-TTY or `--json` → the procedure output (lists follow cursors up to `--limit`, default 50, `--all` for everything, streamed page by page). Errors: one stderr line `error: <message> (<CODE>)`. Exit codes: 0 ok, 1 server error, 2 usage, 3 not found, 4 refused or conflict, 5 unreachable (message names `trellis install` and `bun dev`), 6 gh unavailable, 7 client too old.
 

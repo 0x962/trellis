@@ -27,6 +27,7 @@ export const stepNames = [
 	"--as",
 	"TRELLIS_ACTOR",
 	"CLAUDECODE",
+	"CLAUDE_CODE_SESSION_ID",
 	"CLAUDE_SESSION_ID",
 	"CODEX_*",
 	"git config user.name",
@@ -78,7 +79,11 @@ const present = (value: string | undefined): string | undefined =>
 export const resolveActor = (input: ActorInput): ActorResolution => {
 	const env = input.env;
 	const claudeCode = present(env.CLAUDECODE);
-	const session = present(env.CLAUDE_SESSION_ID);
+	// Claude Code exports CLAUDE_CODE_SESSION_ID. CLAUDE_SESSION_ID is the
+	// name a hand-set environment uses. The first one set is the session.
+	const codeSession = present(env.CLAUDE_CODE_SESSION_ID);
+	const plainSession = present(env.CLAUDE_SESSION_ID);
+	const session = codeSession ?? plainSession;
 	const trellisActor = present(env.TRELLIS_ACTOR);
 	const codexKey = Object.keys(env).find((key) => key.startsWith("CODEX_") && present(env[key]) !== undefined);
 	const inferredKind: ActorKind =
@@ -90,7 +95,8 @@ export const resolveActor = (input: ActorInput): ActorResolution => {
 		"--as": input.as ?? null,
 		TRELLIS_ACTOR: trellisActor ?? null,
 		CLAUDECODE: claudeCode ?? null,
-		CLAUDE_SESSION_ID: session ?? null,
+		CLAUDE_CODE_SESSION_ID: codeSession ?? null,
+		CLAUDE_SESSION_ID: plainSession ?? null,
 		"CODEX_*": codexKey ?? null,
 		"git config user.name": null,
 		"OS user": null,
@@ -107,7 +113,8 @@ export const resolveActor = (input: ActorInput): ActorResolution => {
 	if (input.as !== undefined) take("--as", parseExplicit(input.as, "--as"));
 	else if (trellisActor !== undefined) take("TRELLIS_ACTOR", parseExplicit(trellisActor, "TRELLIS_ACTOR"));
 	else if (claudeCode !== undefined) take("CLAUDECODE", { kind: "agent", name: "claude-code" });
-	else if (session !== undefined) take("CLAUDE_SESSION_ID", { kind: "agent", name: "claude-code" });
+	else if (codeSession !== undefined) take("CLAUDE_CODE_SESSION_ID", { kind: "agent", name: "claude-code" });
+	else if (plainSession !== undefined) take("CLAUDE_SESSION_ID", { kind: "agent", name: "claude-code" });
 	else if (codexKey !== undefined) take("CODEX_*", { kind: "agent", name: "codex" });
 
 	kind ??= inferredKind;
