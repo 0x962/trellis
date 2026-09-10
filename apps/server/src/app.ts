@@ -69,9 +69,10 @@ const deleteWithQuery = (request: Request) => {
 };
 
 // The middleware chain: request id, the request log line and the api
-// version header, the Host check, cors, the body limit on the two upload paths, the RPC
-// handler at /rpc, the OpenAPI handler at /api, the plain routes, a JSON
-// 404 under the two mounts, and the web app for everything else.
+// version header, the Host check, cors, the body limit on the two upload
+// paths, the RPC handler at /rpc, the OpenAPI handler at /api, the plain
+// routes, a JSON 404 under the two mounts, and the web app for everything
+// else.
 export const createApp = ({ config, log, transport, bus, runtime, clock = realClock }: AppOptions) => {
 	const app = new Hono();
 	const events = createEventsRoute({ bus, runtime, transport, clock });
