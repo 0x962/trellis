@@ -86,12 +86,14 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	field("description", row.description, input.description, sql`description = ${input.description}`);
 	field("ticketTemplate", row.ticket_template, input.ticketTemplate, sql`ticket_template = ${input.ticketTemplate}`);
 	if (input.slug !== undefined && input.slug !== project.slug) {
-		if (project.parentId === null) throw invalidInput("slug", "A root takes its slug from its key.");
+		if (project.parentId === null)
+			throw invalidInput("slug", "A root project takes its slug from its key. Change the key instead.");
 		await assertSlugFree(tx, project.parentId, input.slug, project.id);
 		field("slug", project.slug, input.slug, sql`slug = ${input.slug}`);
 	}
 	if (input.key !== undefined && input.key !== project.key) {
-		if (project.parentId !== null) throw invalidInput("key", "Only a root project has a key.");
+		if (project.parentId !== null)
+			throw invalidInput("key", "Only a root project has a key. Do not send key for a sub-project.");
 		if (row.ticket_counter > 0) throw fail("KEY_LOCKED");
 		await assertKeyFree(tx, input.key);
 		sets.push(sql`slug = ${input.key.toLowerCase()}`);

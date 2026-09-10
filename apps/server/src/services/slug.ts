@@ -9,6 +9,10 @@ export const deriveSlug = (name: string) => {
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-+|-+$/g, "");
-	if (slug === "") throw invalidInput("slug", "The name gives no slug. Use at least one letter or digit.");
+	if (slug === "")
+		throw invalidInput(
+			"slug",
+			"trellis cannot create a slug from the name. Use at least one letter or digit in the name.",
+		);
 	return slug;
 };

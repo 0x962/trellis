@@ -42,7 +42,7 @@ const flockOf = (): Flock => {
 
 const describe = (home: string, holder: HomeLockHolder) => {
 	const port = holder.port === null ? "" : ` on port ${holder.port}`;
-	return `${home} is in use by the trellis ${holder.role} with pid ${holder.pid}${port}. Stop that process first.`;
+	return `The trellis ${holder.role} with pid ${holder.pid}${port} uses ${home}. Stop that process first.`;
 };
 
 export class HomeLockedError extends Error {
