@@ -17,8 +17,15 @@ const drag = (identifier: string, to: number, end: boolean) => {
 };
 
 // A finger that rests `px` to the right or the left and has not lifted.
-export const holdRight = (identifier: string, px = longDragPx) => drag(identifier, px, false);
-export const holdLeft = (identifier: string, px = longDragPx) => drag(identifier, -px, false);
+const hold = (identifier: string, to: number) => {
+	const pan = getByGestureTestId(`swipe-${identifier}`);
+	const event = { translationX: to } as never;
+	pan.handlers.onStart?.(event);
+	pan.handlers.onUpdate?.(event);
+};
+
+export const holdRight = (identifier: string, px = longDragPx) => hold(identifier, px);
+export const holdLeft = (identifier: string, px = longDragPx) => hold(identifier, -px);
 
 // A complete swipe past the threshold.
 export const swipeRight = (identifier: string, px = longDragPx) => drag(identifier, px, true);
