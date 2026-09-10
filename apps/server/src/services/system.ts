@@ -1,5 +1,5 @@
-import { mkdirSync, readdirSync, statSync, unlinkSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, readdirSync, rmSync, statSync, unlinkSync } from "node:fs";
+import { dirname, join } from "node:path";
 import type { BackupOutput, GhStatus, Health } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { rows } from "../db/queries/support.ts";
@@ -66,25 +66,52 @@ const pruneArchives = (dir: string) => {
 	for (const archive of archives.slice(KEEP_ARCHIVES)) unlinkSync(join(dir, archive.name));
 };
 
+// A copy of `db/` and `attachments/` under `backups/`, and the path its
+// archive gets.
+export type Snapshot = { staging: string; path: string };
+
+// APFS and btrfs copy a file by reference, so a snapshot at 50k tickets
+// takes milliseconds and no disk. Another file system copies the bytes.
+const copyArgs = process.platform === "darwin" ? ["cp", "-cR"] : ["cp", "-R", "--reflink=auto"];
+
 // CHECKPOINT writes every dirty page to the data directory first, so the
-// archive holds a database that opens without a replay. The archive is a data
-// home again: `db/` and `attachments/` at its root, so a restore is an
-// extract. PGlite runs no autovacuum, so the busy tables are vacuumed once
-// the transaction commits.
-export const backup = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promise<BackupOutput> => {
+// snapshot holds a database that opens without a replay. The database
+// worker runs nothing else until this returns, so the database files and the
+// blobs in the snapshot agree. PGlite runs no autovacuum, so the busy tables
+// are vacuumed once the transaction commits.
+export const snapshot = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promise<Snapshot> => {
 	ctx.afterCommit(ctx.vacuum);
 	await tx.execute(sql`CHECKPOINT`);
 	const dir = join(ctx.home, "backups");
-	mkdirSync(dir, { recursive: true });
-	const path = join(dir, `trellis-${stampOf(ctx.now())}.tar.gz`);
-	const proc = Bun.spawn(["tar", "-czf", path, "-C", ctx.home, "db", "attachments"], {
+	const stamp = stampOf(ctx.now());
+	const staging = join(dir, `snapshot-${stamp}`);
+	mkdirSync(staging, { recursive: true });
+	const proc = Bun.spawn([...copyArgs, join(ctx.home, "db"), join(ctx.home, "attachments"), staging], {
 		stdout: "pipe",
 		stderr: "pipe",
 	});
 	await proc.exited;
-	pruneArchives(dir);
-	return { path, bytes: statSync(path).size };
+	return { staging, path: join(dir, `trellis-${stamp}.tar.gz`) };
 };
+
+// Compresses a snapshot into its archive, removes the snapshot, and keeps
+// the newest archives. It reads no database, so the HTTP process runs it and
+// no request waits for the compression. The archive is a data home again:
+// `db/` and `attachments/` at its root, so a restore is an extract.
+export const archive = async (taken: Snapshot): Promise<BackupOutput> => {
+	const proc = Bun.spawn(["tar", "-czf", taken.path, "-C", taken.staging, "db", "attachments"], {
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+	await proc.exited;
+	rmSync(taken.staging, { recursive: true });
+	pruneArchives(dirname(taken.path));
+	return { path: taken.path, bytes: statSync(taken.path).size };
+};
+
+// A whole backup in one call: the snapshot, then its archive.
+export const backup = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promise<BackupOutput> =>
+	archive(await snapshot(ctx, tx, input));
 
 // The columns a row of this table is ordered and paged by, in key order.
 const primaryKeys = async (tx: Tx) => {
