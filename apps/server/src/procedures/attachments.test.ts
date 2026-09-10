@@ -1,7 +1,6 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { sql } from "drizzle-orm";
 import { createTestApp, type TestApp } from "../../test/helpers/app.ts";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
 import { sha256Of } from "../../test/helpers/home.ts";
@@ -24,6 +23,7 @@ beforeEach(async () => {
 	await t.createTicket({ project: "CDE", title: "Second" });
 });
 afterAll(() => h.close());
+afterEach(() => t.close());
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
 
@@ -65,8 +65,8 @@ describe("attachments", () => {
 		expect(second.status).toBe(201);
 		expect(second.body.attachment.id).not.toBe(first.body.attachment.id);
 		expect(second.body.attachment.sha256).toBe(first.body.attachment.sha256);
-		const rows = await h.db.execute(sql`SELECT ticket_id, sha256 FROM attachments ORDER BY created_at`);
-		expect(rows.rows).toHaveLength(2);
+		expect((await t.api("/api/tickets/CDE-1/attachments")).body).toHaveLength(1);
+		expect((await t.api("/api/tickets/CDE-2/attachments")).body).toHaveLength(1);
 		expect(blobFiles()).toEqual([first.body.attachment.sha256]);
 	});
 

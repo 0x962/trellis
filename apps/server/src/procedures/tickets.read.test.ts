@@ -1,6 +1,5 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { TicketSchema, TicketSummarySchema } from "@trellis/api";
-import { seedTicket } from "../../test/fixtures";
 import { createTestApp, statusIds, type TestApp } from "../../test/helpers/app.ts";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
 
@@ -17,6 +16,7 @@ beforeEach(async () => {
 	t = await createTestApp({ db: h });
 });
 afterAll(() => h.close());
+afterEach(() => t.close());
 
 const identifiers = (items: Array<{ identifier: string }>) => items.map((item) => item.identifier);
 
@@ -108,7 +108,7 @@ describe("tickets.counts and tickets.board", () => {
 		const project = await t.seedProject("CDE");
 		const ids = statusIds(project);
 		for (let n = 1; n <= 150; n += 1) {
-			await seedTicket(h.db, { projectId: project.id, rootId: project.id, statusId: ids.todo, number: n });
+			await t.createTicket({ project: "CDE", title: `Ticket ${n}` });
 		}
 
 		const response = await t.api("/api/tickets/board?project=CDE");
@@ -125,15 +125,14 @@ describe("tickets.counts and tickets.board", () => {
 
 describe("tickets.get", () => {
 	test("tickets.get resolves a case-insensitive identifier and a ULID", async () => {
-		const project = await t.seedProject("CDE");
-		const ids = statusIds(project);
+		await t.seedProject("CDE");
 		for (let n = 1; n <= 41; n += 1) {
-			await seedTicket(h.db, { projectId: project.id, rootId: project.id, statusId: ids.todo, number: n });
+			await t.createTicket({ project: "CDE", title: `Ticket ${n}` });
 		}
-		const ulid = await seedTicket(h.db, { projectId: project.id, rootId: project.id, statusId: ids.todo, number: 42 });
+		const ticket = await t.createTicket({ project: "CDE", title: "Ticket 42" });
 
 		const byIdentifier = await t.api("/api/tickets/cde-42");
-		const byUlid = await t.api(`/api/tickets/${ulid}`);
+		const byUlid = await t.api(`/api/tickets/${ticket.id}`);
 
 		expect(byIdentifier.status).toBe(200);
 		expect(byUlid.body).toEqual(byIdentifier.body);

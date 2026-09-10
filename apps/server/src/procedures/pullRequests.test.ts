@@ -22,7 +22,8 @@ beforeEach(async () => {
 afterAll(() => h.close());
 
 const restores: Array<() => void> = [];
-afterEach(() => {
+afterEach(async () => {
+	await t.close();
 	for (const restore of restores.splice(0)) restore();
 });
 
@@ -113,7 +114,7 @@ describe("pullRequests", () => {
 		await appWithGh({ "api graphql": reply() });
 		const linked = await link();
 		process.env.TRELLIS_GH_BIN = join(process.env.TRELLIS_HOME!, "no-such-gh");
-		t = await createTestApp({ db: h, gh: createGhRunner() });
+		t.runtime.gh = createGhRunner();
 
 		const response = await t.api(`/api/prs/${linked.body.id}/refresh`, { method: "POST" });
 

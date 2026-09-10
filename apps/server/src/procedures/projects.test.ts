@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { createTestApp, type TestApp } from "../../test/helpers/app.ts";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
 
@@ -16,6 +16,7 @@ beforeEach(async () => {
 	t = await createTestApp({ db: h });
 });
 afterAll(() => h.close());
+afterEach(() => t.close());
 
 const SUMMARY_KEYS = [
 	"id",

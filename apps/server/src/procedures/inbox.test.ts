@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { seedTicket } from "../../test/fixtures";
-import { CLAUDE, createTestApp, statusIds, type TestApp } from "../../test/helpers/app.ts";
+import { CLAUDE, createTestApp, type TestApp } from "../../test/helpers/app.ts";
 
 // GET /api/inbox answers the four Needs you sections, each with at most 100
 // items and the whole count.
@@ -8,11 +7,7 @@ import { CLAUDE, createTestApp, statusIds, type TestApp } from "../../test/helpe
 let t: TestApp;
 beforeAll(async () => {
 	t = await createTestApp();
-	const project = await t.seedProject("CDE");
-	const ids = statusIds(project);
-	for (let n = 1; n <= 120; n += 1) {
-		await seedTicket(t.db, { projectId: project.id, rootId: project.id, statusId: ids.humanReview });
-	}
+	await t.seedProject("CDE");
 	await t.createTicket({ project: "CDE", title: "Done by an agent", status: "in-progress" }, CLAUDE);
 	const done = await t.api("/api/tickets/CDE-1/move", {
 		method: "POST",
@@ -20,6 +15,9 @@ beforeAll(async () => {
 		actor: CLAUDE,
 	});
 	expect(done.status).toBe(200);
+	for (let n = 1; n <= 120; n += 1) {
+		await t.createTicket({ project: "CDE", title: `Review ${n}`, status: "human-review" });
+	}
 });
 afterAll(() => t.close());
 

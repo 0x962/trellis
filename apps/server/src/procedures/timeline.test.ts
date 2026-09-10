@@ -1,5 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { seedActivity, seedComment } from "../../test/fixtures";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { createTestApp, type TestApp } from "../../test/helpers/app.ts";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
 
@@ -16,30 +15,19 @@ beforeEach(async () => {
 	t = await createTestApp({ db: h });
 });
 afterAll(() => h.close());
+afterEach(() => t.close());
 
 type Item = { kind: "comment" | "activity"; id: string | number; createdAt: string };
 
-const at = (minutes: number) => new Date(Date.UTC(2026, 8, 9, 12, minutes));
-
 // One ticket with `count` entries: comments and activity rows in turns,
-// one minute apart.
+// with each request complete before the next request starts.
 const seedEntries = async (count: number) => {
-	const project = await t.seedProject("CDE");
+	await t.seedProject("CDE");
 	const ticket = await t.createTicket({ project: "CDE", title: "Busy" });
 	for (let i = 0; i < count; i += 1) {
-		if (i % 2 === 0) await seedComment(h.db, ticket.id, `comment ${i}`, undefined, at(i));
-		else {
-			await seedActivity(h.db, {
-				rootId: project.id,
-				projectId: project.id,
-				ticketId: ticket.id,
-				action: "ticket.updated",
-				field: "title",
-				fromValue: `t${i - 1}`,
-				toValue: `t${i}`,
-				createdAt: at(i),
-			});
-		}
+		if (i % 2 === 0) {
+			await t.api("/api/tickets/CDE-1/comments", { method: "POST", body: { body: `comment ${i}` } });
+		} else await t.api("/api/tickets/CDE-1", { method: "PATCH", body: { title: `title ${i}` } });
 	}
 	return ticket;
 };
