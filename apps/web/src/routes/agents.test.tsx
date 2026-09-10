@@ -44,7 +44,7 @@ describe("routes/agents", () => {
 		const actions = within(screen.getByRole("list", { name: "Agent actions" }));
 		expect(actions.getAllByRole("listitem")).toHaveLength(1);
 		expect(actions.getByText("CDE-42")).toBeDefined();
-		expect(actions.getByText(/moved Todo → In Progress/)).toBeDefined();
+		expect(actions.getByText(/moved the ticket from Todo to In Progress/)).toBeDefined();
 
 		const batches = within(screen.getByRole("list", { name: "Batches" }));
 		expect(batches.getByText(batchText)).toBeDefined();
