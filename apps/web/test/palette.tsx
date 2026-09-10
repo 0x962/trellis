@@ -47,12 +47,12 @@ export const renderShell = async (options: ShellOptions = {}) => {
 export const press = (key: string, init: KeyboardEventInit = {}, target: Element = document.body) =>
 	fireEvent.keyDown(target, { key, ...init });
 
-export const palette = () => screen.getByRole("dialog", { name: "Command menu" });
+export const palette = () => screen.getByRole("dialog", { name: "Command palette" });
 
 // Presses Cmd+K and returns the panel.
 export const openPalette = async () => {
 	press("k", { metaKey: true });
-	return await screen.findByRole("dialog", { name: "Command menu" });
+	return await screen.findByRole("dialog", { name: "Command palette" });
 };
 
 export const paletteInput = () => within(palette()).getByRole("combobox") as HTMLInputElement;

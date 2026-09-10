@@ -1,4 +1,5 @@
 import type { Priority, Settings, TrellisClient } from "@trellis/api";
+import { buildAgentCommand } from "../agent/StartWithAgent/utils/buildAgentCommand";
 
 // Every palette action. Each one takes the page's own context, so the
 // actor header of the page reaches the server and the effects stay
@@ -51,7 +52,7 @@ export const setParent = async (context: ActionContext, ticket: string, parent: 
 
 export const deleteTicket = async (context: ActionContext, ticket: string): Promise<void> => {
 	if (!(await context.confirm(`Delete ${ticket}?`))) return;
-	await write(context, "The ticket was not deleted.", () => context.client.tickets.delete({ ticket }));
+	await write(context, `${ticket} is not deleted.`, () => context.client.tickets.delete({ ticket }));
 };
 
 export const bulkChangeStatus = async (context: ActionContext, tickets: string[], status: string): Promise<void> =>
@@ -65,12 +66,12 @@ export const bulkMoveToProject = async (context: ActionContext, tickets: string[
 
 export const bulkDelete = async (context: ActionContext, tickets: string[]): Promise<void> => {
 	if (!(await context.confirm(`Delete ${tickets.length} tickets?`))) return;
-	await write(context, "The tickets were not deleted.", () => context.client.tickets.deleteMany({ tickets }));
+	await write(context, "The tickets are not deleted.", () => context.client.tickets.deleteMany({ tickets }));
 };
 
 export const copyId = async (context: ActionContext, ticket: string): Promise<void> => {
 	await context.copy(ticket);
-	context.notify("Copied the identifier.");
+	context.notify("Copied the ID.");
 };
 
 // `CDE-42` and `Restore the fork pages!` give `cde-42-restore-the-fork-pages`.
@@ -92,12 +93,13 @@ export const copyLink = async (context: ActionContext, ticket: string): Promise<
 	context.notify("Copied the link.");
 };
 
-// Copies the command from `settings.startWithAgentTemplate`, with `{brief}`
-// replaced by the identifier.
+// Copies the command from `settings.startWithAgentTemplate`. The one agent
+// command builder writes it, so the palette and the ticket page copy the
+// same text.
 export const startWithAgent = async (context: ActionContext, ticket: string): Promise<void> => {
-	const command = context.settings.startWithAgentTemplate.replace("{brief}", ticket);
+	const command = buildAgentCommand(context.settings.startWithAgentTemplate, ticket);
 	await context.copy(command);
-	context.notify("Copied. Paste in your terminal.", { command });
+	context.notify("Copied the command. Paste it in a terminal.", { command });
 };
 
 export const copyAgentBrief = async (context: ActionContext, ticket: string): Promise<void> => {

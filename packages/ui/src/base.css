@@ -10,12 +10,16 @@
  * wins over them.
  */
 
+/* The ground of the trellis mark. It stays dark in both themes, as the favicon does. */
 @theme {
-	/* The ground of the trellis mark. It stays dark in both themes, as the favicon does. */
-	--color-mark: #0a0a0a;
+	--color-mark: var(--mark);
 }
 
 @layer base {
+	:root {
+		--mark: #0a0a0a;
+	}
+
 	button:not(:disabled),
 	[role="button"]:not([aria-disabled="true"]),
 	[role="menuitem"]:not([aria-disabled="true"]),

@@ -1,0 +1,1 @@
+export { usePaletteTicket } from "./usePaletteTicket";

@@ -9,7 +9,7 @@ test.beforeAll(() => {
 	createTicket("CDE", "Merge upstream 1.27 and keep every marked site");
 });
 
-const palette = (page: Page) => page.getByRole("dialog", { name: "Command menu" });
+const palette = (page: Page) => page.getByRole("dialog", { name: "Command palette" });
 
 const openPalette = async (page: Page) => {
 	await page.keyboard.press("ControlOrMeta+k");

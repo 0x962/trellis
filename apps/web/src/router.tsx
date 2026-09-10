@@ -1,4 +1,5 @@
 import { createRouter, type RouterHistory } from "@tanstack/react-router";
+import { RouteError } from "./features/shell/RouteError";
 import type { RouterContext } from "./lib/appContext";
 import { parseSearchString, stringifySearchObject } from "./lib/searchParams";
 import { routeTree } from "./routeTree.gen";
@@ -16,6 +17,12 @@ export const createAppRouter = (context: RouterContext, history?: RouterHistory)
 		// A route sees only the search fields its own validateSearch returned, so a
 		// default the URL carries is gone after validation and the URL is rewritten.
 		search: { strict: true },
+		// A route with a pending component shows it after 300 ms of loading,
+		// and keeps it 200 ms at least, so a fast load never flashes it.
+		defaultPendingMs: 300,
+		defaultPendingMinMs: 200,
+		// A page whose load failed says why inside the shell.
+		defaultErrorComponent: RouteError,
 		defaultPreload: "intent",
 		defaultPreloadStaleTime: 0,
 		scrollRestoration: true,

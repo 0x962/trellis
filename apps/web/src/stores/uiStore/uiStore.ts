@@ -19,6 +19,10 @@ export type UiData = {
 };
 
 export type UiState = UiData & {
+	// The sidebar sheet on a phone. It is never stored, so a reload opens
+	// the page with the sheet closed.
+	mobileSidebarOpen: boolean;
+	setMobileSidebarOpen: (open: boolean) => void;
 	toggleSidebar: () => void;
 	setSidebarCollapsed: (collapsed: boolean) => void;
 	setDensity: (density: Density) => void;
@@ -82,6 +86,8 @@ export const createUiStore = () =>
 		persist(
 			(set) => ({
 				...defaults,
+				mobileSidebarOpen: false,
+				setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
 				toggleSidebar: () => set(updates.toggleSidebar),
 				setSidebarCollapsed: (collapsed) => set(updates.setSidebarCollapsed(collapsed)),
 				setDensity: (density) => set(updates.setDensity(density)),
@@ -108,6 +114,7 @@ export const useUiStore = createUiStore();
 
 // The actions components call. Each one changes `useUiStore` itself.
 export const uiActions = {
+	setMobileSidebarOpen: (open: boolean) => useUiStore.setState({ mobileSidebarOpen: open }),
 	toggleSidebar: () => useUiStore.setState(updates.toggleSidebar),
 	setSidebarCollapsed: (collapsed: boolean) => useUiStore.setState(updates.setSidebarCollapsed(collapsed)),
 	setDensity: (density: Density) => useUiStore.setState(updates.setDensity(density)),

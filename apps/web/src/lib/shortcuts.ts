@@ -15,7 +15,8 @@ export type Shortcut = {
 	// `mod` is Command on a Mac and Control elsewhere.
 	keys: string;
 	scope: ShortcutScope;
-	// The line the help sheet prints.
+	// The line the help sheet prints. Rows of one scope with the same label
+	// are one action, and the sheet prints them as one row with every key.
 	label: string;
 };
 
@@ -32,13 +33,18 @@ export const shortcuts: readonly Shortcut[] = [
 	{ id: "gotoBoard", keys: "g b", scope: "global", label: "Switch to the board" },
 	{ id: "gotoTable", keys: "g t", scope: "global", label: "Switch to the table" },
 	{ id: "gotoFilters", keys: "g s", scope: "global", label: "Focus the filter bar" },
-	{ id: "toggleSidebar", keys: "[", scope: "global", label: "Collapse or open the sidebar" },
+	{ id: "toggleSidebar", keys: "[", scope: "global", label: "Collapse or expand the sidebar" },
 	{ id: "toggleTheme", keys: "mod+\\", scope: "global", label: "Switch between dark and light" },
-	{ id: "escape", keys: "escape", scope: "global", label: "Close the popover, then the peek, then the selection" },
-	{ id: "listDown", keys: "j", scope: "list", label: "Move to the next row" },
+	{
+		id: "escape",
+		keys: "escape",
+		scope: "global",
+		label: "Close the popover, then the peek, then clear the selection",
+	},
+	{ id: "listDown", keys: "j", scope: "list", label: "Move to the row below" },
 	{ id: "listUp", keys: "k", scope: "list", label: "Move to the row above" },
 	{ id: "listArrowUp", keys: "up", scope: "list", label: "Move to the row above" },
-	{ id: "listArrowDown", keys: "down", scope: "list", label: "Move to the next row" },
+	{ id: "listArrowDown", keys: "down", scope: "list", label: "Move to the row below" },
 	{ id: "listPeek", keys: "enter", scope: "list", label: "Open the peek" },
 	{ id: "listPeekSpace", keys: "space", scope: "list", label: "Open the peek" },
 	{ id: "listOpen", keys: "o", scope: "list", label: "Open the full page" },
@@ -50,20 +56,20 @@ export const shortcuts: readonly Shortcut[] = [
 	{ id: "listParent", keys: "shift+p", scope: "list", label: "Set the parent" },
 	{ id: "listProject", keys: "m", scope: "list", label: "Move to a project" },
 	{ id: "listDelete", keys: "backspace", scope: "list", label: "Delete the ticket" },
-	{ id: "listGroups", keys: "1-9", scope: "list", label: "Collapse or open the nth group" },
-	{ id: "boardPrevious", keys: "[", scope: "board", label: "Move the card to the column on the left" },
-	{ id: "boardNext", keys: "]", scope: "board", label: "Move the card to the column on the right" },
+	{ id: "listGroups", keys: "1-9", scope: "list", label: "Collapse or expand a group (1 to 9)" },
+	{ id: "boardPrevious", keys: "[", scope: "board", label: "Move the ticket to the column on the left" },
+	{ id: "boardNext", keys: "]", scope: "board", label: "Move the ticket to the column on the right" },
 	{ id: "ticketApprove", keys: "a", scope: "ticket", label: "Approve the ticket" },
 	{ id: "ticketSendBack", keys: "r", scope: "ticket", label: "Send the ticket back" },
 	{ id: "ticketEdit", keys: "e", scope: "ticket", label: "Edit the description" },
 	{ id: "ticketComment", keys: "shift+c", scope: "ticket", label: "Focus the comment box" },
-	{ id: "ticketCopyId", keys: "mod+c", scope: "ticket", label: "Copy the identifier" },
+	{ id: "ticketCopyId", keys: "mod+c", scope: "ticket", label: "Copy the ID" },
 	{ id: "ticketCopyBranch", keys: "mod+shift+c", scope: "ticket", label: "Copy the branch name" },
 	{ id: "ticketCopyLink", keys: "mod+.", scope: "ticket", label: "Copy the link" },
 	{ id: "ticketStartAgent", keys: "mod+shift+a", scope: "ticket", label: "Start with an agent" },
 	{ id: "ticketCopyBrief", keys: "mod+shift+b", scope: "ticket", label: "Copy the agent brief" },
 	{ id: "composerSubmit", keys: "mod+enter", scope: "composer", label: "Submit the form" },
-	{ id: "composerSubmitAgain", keys: "mod+shift+enter", scope: "composer", label: "Create and start another" },
+	{ id: "composerSubmitAgain", keys: "mod+shift+enter", scope: "composer", label: "Create and keep the form open" },
 ];
 
 export const shortcutById = (id: string): Shortcut | undefined => shortcuts.find((shortcut) => shortcut.id === id);
