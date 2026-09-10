@@ -38,7 +38,13 @@ const remove = async (ctx: ServiceCtx, tx: Tx, input: ProjectDeleteInput): Promi
 		sql`UPDATE tickets SET parent_id = NULL
 			WHERE parent_id IN (SELECT id FROM tickets WHERE project_id = ANY(${scope}))`,
 	);
+	const blobs = await rows<{ sha256: string }>(
+		tx,
+		sql`SELECT DISTINCT a.sha256 FROM attachments a JOIN tickets t ON t.id = a.ticket_id
+			WHERE t.project_id = ANY(${scope})`,
+	);
 	await tx.execute(sql`DELETE FROM tickets WHERE project_id = ANY(${scope})`);
+	ctx.dropBlobs(blobs.map((blob) => blob.sha256));
 	await tx.execute(
 		sql`DELETE FROM pull_requests pr
 			WHERE NOT EXISTS (SELECT 1 FROM ticket_pull_requests l WHERE l.pull_request_id = pr.id)`,

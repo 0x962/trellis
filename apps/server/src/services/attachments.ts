@@ -195,7 +195,9 @@ const findAttachment = async (tx: Tx, id: string): Promise<AttachmentRow> => {
 // True while any attachment row still names this hash. The check runs under
 // the file lock, so an upload of the same hash that is between its move and
 // its row is counted.
-const holdsSha = (ctx: ServiceCtx, sha256: string) => () =>
+type BlobCtx = Pick<ServiceCtx, "home" | "newTx">;
+
+const holdsSha = (ctx: BlobCtx, sha256: string) => () =>
 	ctx.newTx(async (tx) => {
 		const [row] = await rows<{ n: number }>(
 			tx,
@@ -206,7 +208,7 @@ const holdsSha = (ctx: ServiceCtx, sha256: string) => () =>
 
 // Removes the file of every hash whose last row went. The caller runs this
 // after the commit, so a rolled back delete never loses a file.
-export const gcAttachmentBlobs = async (ctx: ServiceCtx, shas: string[]) => {
+export const gcAttachmentBlobs = async (ctx: BlobCtx, shas: string[]) => {
 	const removed: string[] = [];
 	for (const sha256 of new Set(shas)) {
 		if (await gc(ctx.home, sha256, holdsSha(ctx, sha256))) removed.push(sha256);

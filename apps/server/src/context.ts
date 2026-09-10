@@ -22,11 +22,14 @@ export type RequestContext = {
 // The request context plus the process state a service needs. `emit` is the
 // event collector of the open transaction. `cache` is the project tree with
 // the status sets. `actorCache` maps `kind:name` to the last instant the
-// actor row was written.
+// actor row was written. `dropBlobs` queues the blob files of these hashes
+// for removal after the commit. A file that an attachment row still names
+// stays, and a rolled back transaction removes no file.
 export type ServiceCtx = RequestContext & {
 	emit: Emit;
 	cache: ProjectCache;
 	actorCache: Map<string, number>;
+	dropBlobs: (shas: string[]) => void;
 };
 
 export type CreateContextInput = {
