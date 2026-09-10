@@ -1,6 +1,6 @@
 # Changelog
 
-Releases are cut with changesets. `bun run release` writes the versions and this file.
+`bun run release` uses changesets to write the versions and this file.
 
 ## 0.1.0
 
@@ -10,7 +10,7 @@ The first release. It comes from the changeset `.changeset/first-release.md`.
 - Web: Needs you, the ticket table, the kanban board, the side peek, the ticket page, Cmd-K, filters, search, status settings, and dark and light themes.
 - CLI: the `trellis` command for every procedure, with JSON output, actor resolution, and fixed exit codes.
 - Agents: `trellis instructions`, the `x-trellis-actor` header, and the rule that an agent never moves a ticket to Done.
-- Pull requests: auto-link by identifier, batched gh polling, the check ribbon, and the Failing CI section.
+- Pull requests: links by identifier, gh polling in batches, the check ribbon, and the Failing CI section.
 - Attachments, `trellis backup`, `trellis restore`, `trellis export`, and `trellis install` with a launchd agent.
 - Mobile: the Expo app with Needs you, search, projects, the ticket screen, and swipe to approve.
-- Repository: workspaces, turbo, Biome, TypeScript, CI with the e2e and drizzle-diff jobs, and the repo rules in AGENTS.md.
+- Repository: workspaces, turbo, Biome, TypeScript, CI with the e2e and drizzle-diff jobs, and the repository rules in AGENTS.md.
