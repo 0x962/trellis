@@ -19,6 +19,14 @@ const run = (command: string[]) => {
 	return { exitCode: result.exitCode, output };
 };
 
+// The component suite takes seconds, so it runs once and two tests read the
+// same result.
+let suite: ReturnType<typeof run> | undefined;
+const componentSuite = () => {
+	suite ??= run(["bun", "run", "test:native"]);
+	return suite;
+};
+
 const componentTests = (dir: string) =>
 	readdirSync(join(root, dir), { recursive: true, encoding: "utf8" })
 		.filter((entry) => entry.endsWith(".test.tsx"))
@@ -39,10 +47,16 @@ describe("build", () => {
 	}, 600_000);
 
 	test("the jest-expo component suite exits 0", () => {
-		const { exitCode, output } = run(["bun", "run", "test:native"]);
+		const { exitCode, output } = componentSuite();
 		expect(exitCode).toBe(0);
 		const files = [...componentTests("app"), ...componentTests("src")];
 		expect(files.length).toBeGreaterThan(0);
 		for (const file of files) expect(output).toContain(`PASS ${file}`);
+	}, 600_000);
+
+	// Jest prints this line when it has to kill a worker that still holds a
+	// timer or a socket after its last test.
+	test("the jest-expo component suite leaves no handle open", () => {
+		expect(componentSuite().output).not.toContain("failed to exit gracefully");
 	}, 600_000);
 });
