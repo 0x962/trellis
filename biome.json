@@ -330,6 +330,16 @@
 					}
 				}
 			}
+		},
+		{
+			"includes": ["apps/server/src/services/**"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noUnusedFunctionParameters": "off"
+					}
+				}
+			}
 		}
 	]
 }
