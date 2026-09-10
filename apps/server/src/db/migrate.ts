@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { migrate as runMigrations } from "drizzle-orm/pglite/migrator";
 import type { Db } from "./client.ts";
+import { prepareSearch, WORD_SIMILARITY_THRESHOLD } from "./queries/search.ts";
 
 const defaultDir = join(import.meta.dir, "../../drizzle");
 
@@ -14,24 +15,20 @@ const migrationCount = async (db: Db) => {
 	return counted.rows[0]!.n as number;
 };
 
-// `word <% title` holds when the word similarity of the word and the title
-// is at least this value. A search that compares word_similarity itself
-// uses the same value.
-export const WORD_SIMILARITY_THRESHOLD = 0.4;
-
 // Applies every pending migration in one transaction, so a failing statement
 // leaves the schema as it was before the boot, and returns how many it
 // applied. ANALYZE gives the planner statistics for the new schema. It runs
 // only when a migration applied: the statistics stay in the database across
 // restarts, and an ANALYZE of 50k tickets grows the WebAssembly heap by about
-// 100 MB for the life of the process. The trigram threshold is a session
-// setting, and the instance is one session, so it holds until the process
-// ends.
+// 100 MB for the life of the process. The trigram threshold and the KEY-n
+// search functions belong to the session, and the instance is one session,
+// so they hold until the process ends.
 export const migrate = async (db: Db, migrationsFolder = defaultDir) => {
 	const before = await migrationCount(db);
 	await runMigrations(db, { migrationsFolder });
 	const applied = (await migrationCount(db)) - before;
 	if (applied > 0) await db.execute(sql`ANALYZE`);
 	await db.execute(sql`SET pg_trgm.word_similarity_threshold = ${sql.raw(String(WORD_SIMILARITY_THRESHOLD))}`);
+	await prepareSearch(db);
 	return applied;
 };

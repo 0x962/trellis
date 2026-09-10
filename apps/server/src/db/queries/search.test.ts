@@ -250,6 +250,23 @@ describe("search", () => {
 		expect(await ticketIds({ q: "auth", projectIds: [cde.rootId] })).toEqual([inCde]);
 	});
 
+	test("search narrows a KEY-n text to the project subtree", async () => {
+		const cde = await seedProject(h.db, "CDE");
+		const web = await seedChild(h.db, cde.rootId, cde.rootId, "web");
+		const ops = await seedRootWithStatuses(h.db, "OPS");
+		const inWeb = { projectId: web, rootId: cde.rootId, statusId: cde.statuses.todo };
+		const ticket42 = await seedTicket(h.db, { ...inWeb, number: 42, title: "Login" });
+		const followUp = await seedTicket(h.db, { ...inWeb, title: "CDE-42 follow up" });
+		await seedTicket(h.db, {
+			projectId: cde.rootId,
+			rootId: cde.rootId,
+			statusId: cde.statuses.todo,
+			title: "CDE-42 notes",
+		});
+		expect(await ticketIds({ q: "CDE-42", projectIds: [web] })).toEqual([ticket42, followUp]);
+		expect(await ticketIds({ q: "CDE-42", projectIds: [ops.rootId] })).toEqual([]);
+	});
+
 	test("search returns matching projects beside tickets", async () => {
 		const { rootId: cde } = await seedProject(h.db, "CDE");
 		const web = await seedChild(h.db, cde, cde, "web");

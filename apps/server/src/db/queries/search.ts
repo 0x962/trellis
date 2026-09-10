@@ -1,6 +1,7 @@
 import type { SearchOutput } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
-import { WORD_SIMILARITY_THRESHOLD } from "../migrate.ts";
+import { PgDialect } from "drizzle-orm/pg-core";
+import type { Db } from "../client.ts";
 import type { Tx } from "../tx.ts";
 import { tsquery } from "./fts.ts";
 import {
@@ -21,6 +22,11 @@ export const SEARCH_LIMIT = 20;
 // instead of holding the one connection.
 export const SEARCH_TIMEOUT_MS = 200;
 
+// `word <% title` holds when the word similarity of the word and the title
+// is at least this value. migrate sets it for the session. A search that
+// compares word_similarity itself uses the same value.
+export const WORD_SIMILARITY_THRESHOLD = 0.4;
+
 // A ticket identifier typed into the box: the key and the number, in any
 // letter case. tickets.number is a Postgres integer, so a larger number
 // names no ticket and the text goes through the text search path.
@@ -35,10 +41,12 @@ const identifierOf = (q: string) => {
 
 type Scope = (alias: string) => SQL;
 
-const scopeOf =
-	(projectIds: readonly string[] | undefined): Scope =>
+// `ids` is a text[] value of project ids. Without it, every project is in
+// scope.
+const scopeIn =
+	(ids: SQL | undefined): Scope =>
 	(alias) =>
-		projectIds ? sql`${sql.raw(alias)}.project_id = ANY(${textArray(projectIds)})` : sql`true`;
+		ids === undefined ? sql`true` : sql`${sql.raw(alias)}.project_id = ANY(${ids})`;
 
 // The text search hits: tickets by the `search` column and comments grouped
 // by ticket, each ranked by ts_rank. `sim` is the column list a ticket row
@@ -66,19 +74,18 @@ const similarityOf = (q: string, words: string[]) => {
 	return sql`CASE WHEN ${sql.join(tests, sql` AND `)} THEN word_similarity(${q}, t.title) END`;
 };
 
+type IdentifierArgs = { key: SQL; number: SQL; q: SQL; limit: SQL; scope: Scope; narrowed: boolean };
+
 // A KEY-n text: the exact ticket first, then the text hits for the same
-// text. The exact lookup and the text search are one statement.
-const identifierPage = (
-	q: string,
-	id: { key: string; number: number },
-	scope: Scope,
-	narrowed: boolean,
-	limit: number,
-) => sql`
+// text. The exact lookup and the text search are one statement. A KEY-n
+// text holds a hyphen, and tsquery() sends every text with a hyphen in its
+// last word through websearch_to_tsquery, so the statement calls it
+// directly.
+const identifierPage = ({ key, number, q, limit, scope, narrowed }: IdentifierArgs) => sql`
 	exact AS (
 		SELECT t.id FROM tickets t JOIN projects root ON root.id = t.root_id
-		WHERE root.key = ${id.key} AND t.number = ${id.number} AND ${scope("t")}
-	), query AS (SELECT ${tsquery(q)} AS ts), hits AS (${textHits(scope, narrowed, sql`NULL::real AS sim`)}), ranked AS (
+		WHERE root.key = ${key} AND t.number = ${number} AND ${scope("t")}
+	), query AS (SELECT websearch_to_tsquery('english', ${q}) AS ts), hits AS (${textHits(scope, narrowed, sql`NULL::real AS sim`)}), ranked AS (
 		SELECT id, row_number() OVER (ORDER BY max(rank) DESC, id DESC) AS rn
 		FROM hits WHERE id NOT IN (SELECT id FROM exact)
 		GROUP BY id
@@ -89,6 +96,49 @@ const identifierPage = (
 		UNION ALL
 		SELECT id, rn FROM ranked
 	)`;
+
+// A KEY-n search must answer in 3 ms. Postgres plans a statement again on
+// every call, and the plan of the KEY-n statement costs more time than its
+// run. Postgres keeps the plan of a statement inside a PL/pgSQL function
+// for the session, so the KEY-n statement lives in a session function. The
+// SET clause gives the statements of that function a generic plan, which
+// does not depend on the values, so Postgres plans the statement once per
+// session. The same setting for the whole session would also give every
+// other statement a generic plan, and a generic plan cannot use the value of
+// a parameter to choose an index.
+const identifierFunction = (narrowed: boolean) => (narrowed ? "search_identifier_in" : "search_identifier");
+
+// The row type that both functions return: the summary columns of a page.
+const SEARCH_ROW = "search_row";
+
+// Creates the row type and the two KEY-n functions for this session. They
+// are temporary objects, so every PGlite instance creates its own after its
+// migrations. The functions take the key, the number, the text, and the
+// limit, and the narrowed function also takes the project ids as a text[].
+export const prepareSearch = async (db: Db) => {
+	const dialect = new PgDialect();
+	const emptyPage = sql`page AS (SELECT NULL::text AS id, 0::bigint AS rn WHERE false)`;
+	await db.execute(
+		sql`CREATE OR REPLACE TEMP VIEW ${sql.raw(SEARCH_ROW)} AS ${summaryStatement(emptyPage, sql``, sql`page.rn`)}`,
+	);
+	for (const narrowed of [false, true]) {
+		const page = identifierPage({
+			key: sql.raw("$1"),
+			number: sql.raw("$2"),
+			q: sql.raw("$3"),
+			limit: sql.raw("$4"),
+			scope: scopeIn(narrowed ? sql.raw("$5") : undefined),
+			narrowed,
+		});
+		const body = dialect.sqlToQuery(summaryStatement(page, sql``, sql`page.rn`)).sql;
+		const args = narrowed ? "text, int, text, int, text[]" : "text, int, text, int";
+		await db.execute(
+			sql.raw(`CREATE OR REPLACE FUNCTION pg_temp.${identifierFunction(narrowed)}(${args})
+				RETURNS SETOF ${SEARCH_ROW} LANGUAGE plpgsql SET plan_cache_mode = force_generic_plan
+				AS $body$ BEGIN RETURN QUERY ${body}; END $body$`),
+		);
+	}
+};
 
 // Every other text. A ticket matches the trigram path when every word of
 // the text is similar to a word of the title (`word <% title` at the
@@ -153,14 +203,20 @@ const projectsMatching = async (tx: Tx, q: string, projectIds: readonly string[]
 // holds no projects and no trigram hits.
 export const search = async (tx: Tx, input: SearchInput): Promise<SearchOutput> => {
 	const limit = input.limit ?? SEARCH_LIMIT;
-	const scope = scopeOf(input.projectIds);
+	const ids = input.projectIds === undefined ? undefined : textArray(input.projectIds);
+	const narrowed = ids !== undefined;
 	const q = input.q.trim();
 	await tx.execute(sql`SET LOCAL statement_timeout = ${sql.raw(String(SEARCH_TIMEOUT_MS))}`);
 	const id = identifierOf(q);
-	const narrowed = input.projectIds !== undefined;
-	const page = id === null ? textPage(q, scope, narrowed, limit) : identifierPage(q, id, scope, narrowed, limit);
+	if (id !== null) {
+		const scope = narrowed ? sql`, ${ids}` : sql``;
+		const found = await rows<SummaryRow>(
+			tx,
+			sql`SELECT * FROM pg_temp.${sql.raw(identifierFunction(narrowed))}(${id.key}, ${id.number}, ${q}, ${limit}${scope})`,
+		);
+		return { tickets: found.map(toSummary), projects: [] };
+	}
+	const page = textPage(q, scopeIn(ids), narrowed, limit);
 	const found = await rows<SummaryRow>(tx, summaryStatement(page, sql``, sql`page.rn`));
-	const tickets = found.map(toSummary);
-	if (id !== null) return { tickets, projects: [] };
-	return { tickets, projects: await projectsMatching(tx, q, input.projectIds, limit) };
+	return { tickets: found.map(toSummary), projects: await projectsMatching(tx, q, input.projectIds, limit) };
 };
