@@ -76,6 +76,9 @@ export function Description({ ticket }: DescriptionProps) {
 
 	const overwrite = async () => {
 		const held = conflict!;
+		// `save` reads conflictRef.current before the next render, so the ref
+		// clears here, or the save sees the conflict and sends nothing.
+		conflictRef.current = null;
 		setConflict(null);
 		await save(held.markdown, undefined);
 	};
