@@ -2,28 +2,36 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test
 import { createTrellisClient } from "@trellis/api";
 import { freshHome } from "../helpers/home.ts";
 import { type SpawnedServer, spawnServer, stopServer } from "../helpers/server.ts";
+import { memoryOf } from "./footprint.ts";
 import { report } from "./measure.ts";
 import { type PerfServer, startPerfServer } from "./perfServer.ts";
 import { READ_MIX } from "./queries.ts";
 import { PERF_ROWS } from "./seed.ts";
 
-// The memory budgets from plan.md: the server holds 350 MB or less of
-// resident memory while it waits for requests, and 550 MB or less at its
-// peak. A first boot on an empty home creates the database cluster, so the
-// first test covers the costliest boot.
+// The memory budgets from plan.md: the server holds 350 MB or less while it
+// waits for requests, and 550 MB or less at its peak. The measure is the
+// physical footprint on macOS and the resident size on Linux (footprint.ts).
+// Each test prints the resident size beside it. A first boot on an empty
+// home creates the database cluster, so the first test covers the costliest
+// boot.
 
-const MB = 1024 * 1024;
-const IDLE_RSS_BUDGET = 350 * MB;
-const IDLE_RSS_BUDGET_MB = 350;
-const PEAK_RSS_BUDGET_MB = 550;
+const IDLE_BUDGET_MB = 350;
+const PEAK_BUDGET_MB = 550;
 
-// The resident size is flat from about 2 seconds after listening.
+// The memory is flat from about 2 seconds after listening.
 const SETTLE_MS = 3000;
 
-// The reads of one person's busy hour. rss grew over the first 300 of these
-// and then stayed high, so the load runs well past that point.
+// The reads of one person's busy hour. Memory grew over the first 300 of
+// these and then stayed high, so the load runs well past that point.
 const QUERIES = 1400;
 const SAMPLE_EVERY = 50;
+
+// Prints the footprint and the resident size, and returns the footprint.
+const measure = async (metric: string, pid: number, budget: number) => {
+	const { rss, footprint } = await memoryOf(pid);
+	report(`${metric} rss`, rss, budget, "MB");
+	return report(`${metric} footprint`, footprint, budget, "MB");
+};
 
 const servers: SpawnedServer[] = [];
 afterEach(async () => {
@@ -32,16 +40,16 @@ afterEach(async () => {
 
 describe("memory budget", () => {
 	test(
-		"a first boot on an empty home idles at 350 MB rss or less",
+		"a first boot on an empty home idles at 350 MB or less",
 		async () => {
 			const server = spawnServer({ home: freshHome() });
 			servers.push(server);
-			const { url } = await server.listening();
+			await server.listening();
 			await Bun.sleep(SETTLE_MS);
 
-			const health = (await (await fetch(`${url}/api/health`)).json()) as { rss: number };
+			const footprint = await measure("first boot idle", server.proc.pid, IDLE_BUDGET_MB);
 
-			expect(health.rss).toBeLessThanOrEqual(IDLE_RSS_BUDGET);
+			expect(footprint).toBeLessThanOrEqual(IDLE_BUDGET_MB);
 		},
 		{ timeout: 30_000 },
 	);
@@ -51,41 +59,47 @@ describe("memory budget", () => {
 // peak under load, then idle again after the load.
 describe.skipIf(PERF_ROWS === 0)(`memory budget at ${PERF_ROWS} rows`, () => {
 	let server: PerfServer;
+	let pid: number;
 	beforeAll(async () => {
 		server = await startPerfServer();
+		pid = server.process.proc.pid;
 	}, 600_000);
 	afterAll(() => server.stop());
 
 	test(
-		"the server on the seeded home idles at 350 MB rss or less",
+		"the server on the seeded home idles at 350 MB or less",
 		async () => {
 			await Bun.sleep(SETTLE_MS);
-			const rss = await server.rssMb();
-			expect(report("idle rss", rss, IDLE_RSS_BUDGET_MB, "MB")).toBeLessThanOrEqual(IDLE_RSS_BUDGET_MB);
+			expect(await measure("idle", pid, IDLE_BUDGET_MB)).toBeLessThanOrEqual(IDLE_BUDGET_MB);
 		},
 		{ timeout: 30_000 },
 	);
 
 	test(
-		`rss peaks at 550 MB or less through ${QUERIES} list and search queries`,
+		`memory peaks at 550 MB or less through ${QUERIES} list and search queries`,
 		async () => {
 			const client = createTrellisClient(server.url, "agent:perf");
-			let peak = 0;
+			let peakFootprint = 0;
+			let peakRss = 0;
 			for (let i = 1; i <= QUERIES; i++) {
 				await READ_MIX[i % READ_MIX.length]!(client);
-				if (i % SAMPLE_EVERY === 0) peak = Math.max(peak, await server.rssMb());
+				if (i % SAMPLE_EVERY === 0) {
+					const { rss, footprint } = await memoryOf(pid);
+					peakFootprint = Math.max(peakFootprint, footprint);
+					peakRss = Math.max(peakRss, rss);
+				}
 			}
-			expect(report("peak rss", peak, PEAK_RSS_BUDGET_MB, "MB")).toBeLessThanOrEqual(PEAK_RSS_BUDGET_MB);
+			report("peak rss", peakRss, PEAK_BUDGET_MB, "MB");
+			expect(report("peak footprint", peakFootprint, PEAK_BUDGET_MB, "MB")).toBeLessThanOrEqual(PEAK_BUDGET_MB);
 		},
 		{ timeout: 600_000 },
 	);
 
 	test(
-		"after the queries the server idles at 350 MB rss or less again",
+		"after the queries the server idles at 350 MB or less again",
 		async () => {
 			await Bun.sleep(SETTLE_MS);
-			const rss = await server.rssMb();
-			expect(report("idle rss after use", rss, IDLE_RSS_BUDGET_MB, "MB")).toBeLessThanOrEqual(IDLE_RSS_BUDGET_MB);
+			expect(await measure("idle after use", pid, IDLE_BUDGET_MB)).toBeLessThanOrEqual(IDLE_BUDGET_MB);
 		},
 		{ timeout: 30_000 },
 	);
