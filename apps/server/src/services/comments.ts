@@ -15,6 +15,7 @@ import { ticketSummary } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail } from "../errors.ts";
 import { record } from "./activity.ts";
+import { upsert } from "./actors.ts";
 import { assertProjectActive, resolveTicket, type TicketRow } from "./refs.ts";
 
 type RawComment = {
@@ -80,6 +81,9 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const actor = requireActor(ctx);
 	const batchId = ulid();
 	const id = ulid();
+	// The comment row names its actor, and a foreign key needs the actor row
+	// first. The comment can be the first write of a new actor.
+	await upsert(ctx, tx, actor);
 	await tx.execute(
 		sql`INSERT INTO comments (id, ticket_id, body, actor_name, actor_kind, created_at, updated_at)
 			VALUES (${id}, ${row.id}, ${input.body}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,

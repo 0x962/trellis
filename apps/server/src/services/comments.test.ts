@@ -46,6 +46,21 @@ describe("comments", () => {
 		expect(row.version).toBe(2);
 	});
 
+	// The comment row names its actor, and the actors table must hold that
+	// actor before the comment row. A new agent can make a comment its first
+	// write.
+	test("a comment can be the first write of a new actor", async () => {
+		const { id } = await seed();
+		const fresh: ActorRef = { kind: "agent", name: "fresh-agent" };
+		const { result: comment } = await create(fresh, { ticket: id, body: "First words." });
+		expect(comment).toMatchObject({ body: "First words.", actor: { name: "fresh-agent", kind: "agent" } });
+		const found = await query<{ name: string }>(
+			h.db,
+			sql`SELECT name FROM actors WHERE name = 'fresh-agent' AND kind = 'agent'`,
+		);
+		expect(found).toHaveLength(1);
+	});
+
 	test("comments.create emits comment.created and ticket.updated", async () => {
 		const { id } = await seed();
 		const { result: comment, events } = await create(navid, { ticket: id, body: "Hello" });
