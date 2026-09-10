@@ -1,6 +1,7 @@
 import { createRootRouteWithContext, Link, Outlet, redirect, useRouter, useRouterState } from "@tanstack/react-router";
 import { EmptyState, Toaster } from "@trellis/ui";
 import { useCallback } from "react";
+import { ComposerHost } from "../features/composer/ComposerHost";
 import { ReconnectBanner } from "../features/shell/ReconnectBanner";
 import { openShortcuts, ShortcutsDialog } from "../features/shell/ShortcutsDialog";
 import { Sidebar } from "../features/sidebar/Sidebar";
@@ -70,6 +71,7 @@ function RootComponent() {
 				scheduler={scheduler}
 			/>
 			<ShortcutsDialog />
+			<ComposerHost />
 			<Toaster />
 		</div>
 	);
