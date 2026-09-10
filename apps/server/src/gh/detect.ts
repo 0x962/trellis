@@ -34,10 +34,27 @@ type FreshPr = { id: string; ref: PullRequestRef };
 
 const declaredRepos = (tx: Tx) => rows<RepoPair>(tx, sql`SELECT DISTINCT owner, repo FROM repos ORDER BY owner, repo`);
 
-const listOpen = async (gh: GhRunner, pair: RepoPair): Promise<ListedPullRequest[] | null> => {
-	const result = await gh("poller", ["pr", "list", "--repo", `${pair.owner}/${pair.repo}`, ...LIST_ARGS]);
-	if (!result.ok) return null;
-	return JSON.parse(result.stdout) as ListedPullRequest[];
+// The open pull requests of one repository. `stop` is true when gh is
+// missing or signed out, which fails every repository alike. `error` is the
+// gh message of a failure that belongs to this repository alone, such as a
+// renamed or private repository.
+const listOpen = async (gh: GhRunner, name: string) => {
+	const result = await gh("poller", ["pr", "list", "--repo", name, ...LIST_ARGS]);
+	if (result.ok) return { stop: false, error: null, listed: JSON.parse(result.stdout) as ListedPullRequest[] };
+	return { stop: result.reason !== "error", error: result.message, listed: [] };
+};
+
+// `failing` maps each failing repository to its gh message and lives
+// across runs, so the log gets one line when a repository starts failing,
+// when its message changes, and when it answers again.
+const noteRepo = (hook: PollerHook, failing: Map<string, string>, name: string, error: string | null) => {
+	if (error === null) {
+		if (failing.delete(name)) hook.log("detect", { repo: name, ok: true });
+		return;
+	}
+	if (failing.get(name) === error) return;
+	failing.set(name, error);
+	hook.log("detect", { repo: name, ok: false, message: error });
 };
 
 // The ticket the identifier names, when the ticket's root project tree
@@ -164,13 +181,19 @@ const fetchFresh = async (hook: PollerHook, at: Date, entry: FreshPr) => {
 	);
 };
 
-export const run = async (hook: PollerHook) => {
+// A repository whose list fails is skipped, so it never stops auto-link
+// for the repositories after it. A gh that is missing or signed out ends
+// the run.
+export const run = async (hook: PollerHook, failing = new Map<string, string>()) => {
 	const at = hook.now();
 	const { result: pairs } = await withTx(hook.db, (tx) => declaredRepos(tx));
 	const fresh: FreshPr[] = [];
 	for (const pair of pairs) {
-		const listed = await listOpen(hook.gh, pair);
-		if (listed === null) return;
+		const name = `${pair.owner}/${pair.repo}`;
+		const { stop, error, listed } = await listOpen(hook.gh, name);
+		if (stop) return;
+		noteRepo(hook, failing, name, error);
+		if (error !== null) continue;
 		const { result } = await withTx(hook.db, (tx, emit) => linkListed(tx, emit, { at, listed }), hook.sink);
 		fresh.push(...result);
 	}
