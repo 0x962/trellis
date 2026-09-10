@@ -22,6 +22,7 @@ import { NotFoundState } from "../../../features/shell/NotFoundState";
 import { Topbar } from "../../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../../features/shell/ViewSwitch";
 import { DisplayPopover } from "../../../features/table/DisplayPopover";
+import { ListPending } from "../../../features/table/ListPending";
 import { TicketTable } from "../../../features/table/TicketTable";
 import { TicketPeek } from "../../../features/ticket/TicketPeek";
 import { type AppContext, useApp } from "../../../lib/appContext";
@@ -66,6 +67,11 @@ export const Route = createFileRoute("/p/$")({
 		}
 	},
 	component: ProjectPage,
+	// A load over 300 ms shows the shape of the project's view for at least
+	// 200 ms, so a fast load never flashes it.
+	pendingMs: 300,
+	pendingMinMs: 200,
+	pendingComponent: ProjectPending,
 	errorComponent: ProjectError,
 	notFoundComponent: ProjectMissing,
 });
@@ -181,6 +187,13 @@ function ProjectPage() {
 			</fieldset>
 		</>
 	);
+}
+
+// The table or the board skeleton, from the view the splat names.
+function ProjectPending() {
+	const params = useParams({ strict: false });
+	const { view } = parseProjectSplat(params._splat ?? "");
+	return <ListPending view={view === "board" ? "board" : "table"} />;
 }
 
 // A splat that is not a project path.

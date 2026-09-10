@@ -7,6 +7,7 @@ import { FilterBar } from "../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../features/filters/grammar";
 import { sortLabel } from "../features/filters/labels";
 import { ListFooter } from "../features/shell/ListFooter";
+import { ListPending } from "../features/table/ListPending";
 import { NewTicketButton } from "../features/shell/NewTicketButton";
 import { Topbar } from "../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../features/shell/ViewSwitch";
@@ -37,6 +38,11 @@ export const Route = createFileRoute("/all_/board")({
 		await context.queryClient.ensureQueryData(countsOptions(context, deps, statuses));
 	},
 	component: AllBoardPage,
+	// A load over 300 ms shows the board's shape for at least 200 ms, so a
+	// fast load never flashes it.
+	pendingMs: 300,
+	pendingMinMs: 200,
+	pendingComponent: () => <ListPending view="board" title="All tickets" />,
 });
 
 function AllBoardPage() {
