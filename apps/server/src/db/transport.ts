@@ -136,7 +136,7 @@ export const createInlineTransport = ({
 		}
 		const { result, events } = await withTx(db, (tx, emit) => entry.run(buildCtx(entry, ctx, emit, tasks), tx, input));
 		for (const task of tasks) await task();
-		for (const event of [...early, ...events]) bus.emit(event);
+		for (const event of [...early, ...events]) bus.emit(event, ctx.actor);
 		return result;
 	};
 
