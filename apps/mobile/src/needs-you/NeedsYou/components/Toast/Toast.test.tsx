@@ -50,4 +50,24 @@ describe("Toast", () => {
 		});
 		expect(onDone).toHaveBeenCalledTimes(1);
 	});
+
+	// The screen keeps one Toast mounted, so a second toast of the same tone
+	// arrives as new props on the same component.
+	test("a toast that replaces another lives its own whole lifetime", async () => {
+		jest.useFakeTimers();
+		const onDismiss = jest.fn();
+		const view = await render(<Toast tone="error" title={title} detail={detail} onDismiss={onDismiss} />);
+		await act(async () => {
+			jest.advanceTimersByTime(4_000);
+		});
+		await view.rerender(<Toast tone="error" title="Cannot send back CDE-43" detail={detail} onDismiss={onDismiss} />);
+		await act(async () => {
+			jest.advanceTimersByTime(5_999);
+		});
+		expect(onDismiss).not.toHaveBeenCalled();
+		await act(async () => {
+			jest.advanceTimersByTime(1);
+		});
+		expect(onDismiss).toHaveBeenCalledTimes(1);
+	});
 });
