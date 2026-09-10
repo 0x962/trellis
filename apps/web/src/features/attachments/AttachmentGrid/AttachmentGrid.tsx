@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Attachment } from "@trellis/api";
-import { Dialog } from "@trellis/ui";
+import { Dialog, SectionHeader } from "@trellis/ui";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AttachmentBox } from "../AttachmentBox";
 import { DropTarget } from "../DropTarget";
 import { type Uploads, useUploads } from "../hooks/useUploads";
+import { UploadProgress } from "../UploadProgress";
 import { isThumbnailImage } from "../utils/isThumbnailImage";
 import { AttachmentActions } from "./components/AttachmentActions";
 import { AttachmentRow } from "./components/AttachmentRow";
@@ -21,8 +22,9 @@ export type AttachmentGridProps = {
 	uploads?: Uploads;
 };
 
-// The attachments section of a ticket surface: the drop target, the drop
-// box, the uploads in flight, the image thumbnails, and the file rows.
+// The attachments section of a ticket surface: the header, the uploads in
+// flight, the image thumbnails, and the file rows. With no image, Upload
+// sits in the header. With images, the thumbnail grid ends in the add tile.
 export function AttachmentGrid({ ticket, initialAttachments, uploads }: AttachmentGridProps) {
 	const { client, orpc, queryClient, scheduler } = useApp();
 	const list = useQuery({
@@ -85,8 +87,15 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 	};
 	const body = (
 		<>
-			<div data-attachments="" className="flex flex-col gap-3">
-				<h2 className="text-sm font-medium text-fg-muted tabular">Attachments · {list.length}</h2>
+			<div data-attachments="" className="flex flex-col gap-2">
+				<SectionHeader
+					title="Attachments"
+					count={list.length > 0 ? list.length : undefined}
+					actions={images.length === 0 ? <AttachmentBox ticket={ticket} uploads={uploadManager} compact /> : undefined}
+				/>
+				{uploadManager.uploads.map((upload) => (
+					<UploadProgress key={upload.id} upload={upload} showName={false} onDismiss={uploadManager.dismiss} />
+				))}
 				{images.length > 0 && (
 					<div className="flex flex-wrap gap-2">
 						{images.map((attachment, index) => (
@@ -114,6 +123,7 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 								</div>
 							</div>
 						))}
+						<AttachmentBox ticket={ticket} uploads={uploadManager} />
 					</div>
 				)}
 				{files.map((attachment) => (
@@ -124,7 +134,6 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 						onRename={(name) => rename(attachment, name)}
 					/>
 				))}
-				<AttachmentBox ticket={ticket} uploads={uploadManager} />
 			</div>
 			{shown !== null && (
 				<Dialog

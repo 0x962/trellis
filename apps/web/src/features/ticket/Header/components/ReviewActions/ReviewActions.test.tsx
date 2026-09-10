@@ -68,7 +68,7 @@ describe("features/ticket/Header/components/ReviewActions", () => {
 		mount("CDE-42", server);
 		await screen.findByRole("button", { name: /Send back/ });
 		press("r");
-		const box = await screen.findByRole("textbox", { name: "What should change?" });
+		const box = await screen.findByRole("textbox", { name: "Reason to send back" });
 		await user.type(box, "Rerun the tests");
 		await user.click(screen.getByRole("button", { name: /^Send back$/ }));
 		await waitFor(() => expect(server.callsTo("comments.create")).toHaveLength(1));
@@ -84,10 +84,10 @@ describe("features/ticket/Header/components/ReviewActions", () => {
 		mount("CDE-42", server);
 		await screen.findByRole("button", { name: /Send back/ });
 		press("r");
-		const box = await screen.findByRole("textbox", { name: "What should change?" });
+		const box = await screen.findByRole("textbox", { name: "Reason to send back" });
 		await user.type(box, "Half a thought");
 		await user.click(screen.getByRole("button", { name: "Cancel" }));
-		await waitFor(() => expect(screen.queryByRole("textbox", { name: "What should change?" })).toBeNull());
+		await waitFor(() => expect(screen.queryByRole("textbox", { name: "Reason to send back" })).toBeNull());
 		await settle();
 		expect(server.callsTo("comments.create")).toHaveLength(0);
 		expect(moves(server)).toHaveLength(0);

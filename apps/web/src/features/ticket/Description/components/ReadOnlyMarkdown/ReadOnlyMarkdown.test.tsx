@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ReadOnlyMarkdown } from "./ReadOnlyMarkdown";
 
 const markdown = [
@@ -37,5 +38,18 @@ describe("features/ticket/Description/components/ReadOnlyMarkdown", () => {
 		expect(screen.queryByRole("textbox")).toBeNull();
 		expect(container.querySelector("[contenteditable]")).toBeNull();
 		expect(container.querySelector(".ProseMirror")).toBeNull();
+	});
+
+	// TK-9. A pasted image points at its attachment file on this server. It
+	// renders, and a click opens it large in a lightbox.
+	test("an attachment image renders and opens in a lightbox", async () => {
+		const user = userEvent.setup();
+		const src = "/api/attachments/01J0000000000000000000000A/file";
+		render(<ReadOnlyMarkdown markdown={`![trace.png](${src})`} />);
+		const image = screen.getByRole("img", { name: "trace.png" });
+		expect(image.getAttribute("src")).toBe(src);
+		await user.click(image);
+		const dialog = await screen.findByRole("dialog", { name: "trace.png" });
+		expect(within(dialog).getByRole("img", { name: "trace.png" }).getAttribute("src")).toBe(src);
 	});
 });

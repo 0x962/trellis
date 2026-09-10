@@ -22,13 +22,13 @@ describe("features/agent/StartWithAgent: copy targets", () => {
 	// The prompt is the claude command the settings template builds. It
 	// needs no brief read, and it never moves the ticket, even with the
 	// box checked.
-	test("Copy prompt only copies the claude command from the settings template", async () => {
+	test("Copy command only copies the claude command from the settings template", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
 		server.state.settings.startWithAgentTemplate = 'claude --model opus "$(trellis brief {brief})"';
 		localStorage.setItem(markStartedKey, "1");
 		mount(server);
-		await pick(user, "Copy prompt only");
+		await pick(user, "Copy command only");
 		await waitFor(async () => expect(await clipboard()).toBe('claude --model opus "$(trellis brief CDE-42)"'));
 		await settle();
 		expect(server.callsTo("brief.get")).toHaveLength(0);

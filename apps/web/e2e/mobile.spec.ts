@@ -90,14 +90,16 @@ test("the table gives the title a third of the row", async ({ page }) => {
 	expect(box.width).toBeGreaterThanOrEqual(130);
 });
 
-// The properties rail stacks under the ticket body at the full width.
-test("the ticket page stacks the properties under the body", async ({ page }) => {
+// The properties fold into a grid under the title. The grid spans the
+// ticket column, which keeps a 16 px gutter on each side of the 390 px page.
+test("the ticket page stacks the properties under the title", async ({ page }) => {
 	await signIn(page, "/t/MOB-1");
 	await expect(page.getByRole("textbox", { name: "Title" })).toBeVisible();
-	const rail = (await page.getByRole("complementary", { name: "Properties" }).boundingBox())!;
+	const rail = (await page.getByLabel("Properties", { exact: true }).boundingBox())!;
 	const title = (await page.getByRole("textbox", { name: "Title" }).boundingBox())!;
-	expect(rail.x).toBeLessThanOrEqual(1);
-	expect(rail.width).toBeGreaterThanOrEqual(388);
+	expect(rail.x).toBeLessThanOrEqual(17);
+	expect(rail.width).toBeGreaterThanOrEqual(356);
+	expect(rail.x + rail.width).toBeLessThanOrEqual(390);
 	expect(rail.y).toBeGreaterThan(title.y);
 });
 

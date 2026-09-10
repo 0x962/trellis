@@ -20,5 +20,5 @@ test("prs > a linked pull request shows its row, and its parent shows the failin
 	await expect(row).toContainText("#7");
 	await page.goto("/t/PRS-1");
 	const children = page.getByRole("region", { name: /Sub-tickets/ });
-	await expect(children.getByLabel(/pull request, CI fail/i)).toBeVisible();
+	await expect(children.getByLabel(/ PR, checks failed/)).toBeVisible();
 });

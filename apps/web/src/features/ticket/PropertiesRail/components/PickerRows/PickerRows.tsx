@@ -60,7 +60,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 				optimistic: (row) => ({ ...row, status: summaryOf(status) }),
 			});
 		} catch (error) {
-			failToast(`Couldn't move ${ticket.identifier} to ${status.name}`, error, () => void pickStatus(status));
+			failToast(`${ticket.identifier} did not move to ${status.name}.`, error, () => void pickStatus(status));
 		}
 	};
 
@@ -72,7 +72,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 			});
 		} catch (error) {
 			failToast(
-				`Couldn't set ${ticket.identifier} to ${priorityLabels[priority]}`,
+				`The priority of ${ticket.identifier} did not change to ${priorityLabels[priority]}.`,
 				error,
 				() => void pickPriority(priority),
 			);
@@ -95,7 +95,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 			}
 			setOpen(null);
 			failToast(
-				`Couldn't move ${ticket.identifier} to ${projectSlashPath(project.path)}`,
+				`${ticket.identifier} did not move to ${projectSlashPath(project.path)}.`,
 				error,
 				() => void pickProject(ref),
 			);
@@ -111,7 +111,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 				{ optimistic: (row) => ({ ...row, parent }) },
 			);
 		} catch (error) {
-			failToast(`Couldn't set the parent of ${ticket.identifier}`, error, () => void pickParent(parent));
+			failToast(`The parent of ${ticket.identifier} did not change.`, error, () => void pickParent(parent));
 		}
 	};
 

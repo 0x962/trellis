@@ -131,4 +131,29 @@ describe("AttachmentGrid", () => {
 		expect(thumbnailsOf()).toHaveLength(0);
 		expect(surface.querySelector("[data-attachment-box]")).not.toBeNull();
 	});
+
+	// TK-6. An empty section is its header row, with Upload on the right.
+	test("a ticket with no attachment shows the header and an Upload button", async () => {
+		const server = createFakeServer();
+		renderGrid(server, "CDE-51");
+		const surface = await surfaceOf();
+		const upload = within(surface).getByRole("button", { name: "Upload" });
+		expect(upload.hasAttribute("data-attachment-box")).toBe(true);
+		expect(within(surface).getByRole("heading", { name: "Attachments" })).toBeDefined();
+		expect(surface.textContent).not.toContain("·");
+		expect(surface.textContent).not.toContain("Drop files or click to upload");
+	});
+
+	// TK-6. The thumbnails end in a 96 px dashed tile that adds a file.
+	test("the thumbnail grid ends in an add tile", async () => {
+		const server = createFakeServer();
+		renderGrid(server, "CDE-47");
+		await surfaceOf();
+		await screen.findByRole("button", { name: /rename-flow\.png/ });
+		const tile = document.querySelector<HTMLElement>("[data-attachment-box]")!;
+		expect(tile.parentElement!.lastElementChild).toBe(tile);
+		expect(tile.parentElement!.querySelector("[data-thumbnail]")).not.toBeNull();
+		expect(tile.getAttribute("class")).toMatch(/(^|\s)size-24(\s|$)/);
+		expect(tile.getAttribute("class")).toContain("border-dashed");
+	});
 });

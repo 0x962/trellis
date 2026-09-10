@@ -29,7 +29,7 @@ export function ReviewActions({ ticket }: ReviewActionsProps) {
 				optimistic: (row) => ({ ...row, status: { ...status } }),
 			});
 		} catch (error) {
-			failToast(`Couldn't move ${ticket.identifier} to ${status.name}`, error, () => void moveTo(status));
+			failToast(`${ticket.identifier} did not move to ${status.name}.`, error, () => void moveTo(status));
 		}
 	};
 
@@ -63,10 +63,10 @@ export function ReviewActions({ ticket }: ReviewActionsProps) {
 				open={asking}
 				onOpenChange={setAsking}
 				title={`Send ${ticket.identifier} back`}
-				description="The comment goes on the ticket, and the ticket returns to work."
+				description="trellis saves the comment on the ticket and moves the ticket to the first started status."
 			>
 				<Textarea
-					label="What should change?"
+					label="Reason to send back"
 					rows={4}
 					autoFocus
 					value={reason}

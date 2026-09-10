@@ -64,6 +64,40 @@ describe("features/ticket/Title", () => {
 		expect(updates(server)).toHaveLength(1);
 	});
 
+	// T3.5. A long title wraps onto more lines, so the field is a textarea.
+	test("the title is a textarea that wraps", async () => {
+		mount();
+		const element = await ready();
+		expect(element.tagName).toBe("TEXTAREA");
+		expect(element.getAttribute("rows")).toBe("1");
+		expect(element.className).toMatch(/\bresize-none\b/);
+	});
+
+	// T3.5. A title is one line of text: Enter saves, and adds no newline.
+	test("Enter adds no newline to the title", async () => {
+		const user = userEvent.setup();
+		const { server } = mount();
+		const element = await ready();
+		await user.click(element);
+		await user.keyboard("{End} again{Enter}");
+		await waitFor(() => expect(updates(server)).toHaveLength(1));
+		expect((updates(server)[0]!.input as { title: string }).title).toBe(`${stored} again`);
+		expect(fieldValue(field())).not.toContain("\n");
+	});
+
+	// T3.5. A pasted block of lines becomes one line of the title.
+	test("a paste strips the newlines", async () => {
+		const user = userEvent.setup();
+		const { server } = mount();
+		const element = await ready();
+		await user.clear(element);
+		await user.paste("Restore the\nfork pages\r\nnow");
+		expect(fieldValue(field())).toBe("Restore the fork pages now");
+		await user.keyboard("{Enter}");
+		await waitFor(() => expect(updates(server)).toHaveLength(1));
+		expect((updates(server)[0]!.input as { title: string }).title).toBe("Restore the fork pages now");
+	});
+
 	// WT-28
 	test("an empty title does not reach the server", async () => {
 		const user = userEvent.setup();
@@ -85,8 +119,9 @@ describe("features/ticket/Title", () => {
 		const element = await ready();
 		await user.clear(element);
 		await user.type(element, "Restore every fork page{Enter}");
-		expect(await screen.findByText("changed by agent:claude-code: reload or overwrite")).toBeDefined();
-		expect(screen.getByRole("button", { name: "Reload" })).toBeDefined();
-		expect(screen.getByRole("button", { name: "Overwrite" })).toBeDefined();
+		expect((await screen.findByRole("alert")).textContent).toContain("claude-code");
+		expect(screen.getByRole("alert").textContent).toContain("changed this ticket 1h ago. Your edit is not saved.");
+		expect(screen.getByRole("button", { name: "Use their version" })).toBeDefined();
+		expect(screen.getByRole("button", { name: "Keep mine" })).toBeDefined();
 	});
 });

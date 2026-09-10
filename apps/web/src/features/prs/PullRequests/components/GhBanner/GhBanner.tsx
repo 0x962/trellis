@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle } from "lucide-react";
 import { useApp } from "../../../../../lib/appContext";
-import { ghConsequence, ghCopy } from "../../../../../lib/ghCopy";
+import { ghCopy } from "../../../../../lib/ghCopy";
+import { CliLine } from "../../../../shell/CliLine";
 
-// What `system.gh` reports, in the words of the shared gh copy module. A
-// working gh shows nothing.
+// What `system.gh` reports, as one 32 px row in the words of the shared gh
+// copy module, with the command that fixes it. A working gh shows nothing.
 export function GhBanner() {
 	const { orpc } = useApp();
 	const gh = useQuery(orpc.system.gh.queryOptions({})).data;
@@ -11,18 +13,10 @@ export function GhBanner() {
 
 	const copy = ghCopy[gh.reason ?? "error"];
 	return (
-		<div
-			data-gh-banner=""
-			role="alert"
-			className="flex flex-col gap-1 rounded-md border border-border bg-surface px-3 py-2"
-		>
-			<p className="text-sm text-fg">{copy.line}</p>
-			<p className="text-sm text-fg-muted">{ghConsequence}</p>
-			{copy.command !== null && (
-				<code className="self-start rounded-sm border border-border bg-bg px-2 py-1 font-mono text-xs text-fg-muted">
-					{copy.command}
-				</code>
-			)}
+		<div data-gh-banner="" role="alert" className="flex min-h-8 flex-wrap items-center gap-2">
+			<AlertTriangle aria-hidden="true" className="size-3.5 shrink-0 text-warning" />
+			<span className="text-sm text-fg-muted">{copy.line}</span>
+			{copy.command !== null && <CliLine command={copy.command} />}
 		</div>
 	);
 }

@@ -41,14 +41,23 @@ const runOfThree = (server: FakeServer) => {
 		toValue: "high",
 		createdAt: ago(2 * minute),
 	});
+	// The server writes a PR link with no field and the URL in `meta`.
 	addActivity(server.state, {
 		...base,
-		field: "pr",
+		action: "pr.linked",
+		field: null,
 		fromValue: null,
-		toValue: "canary-technologies-corp/de#118",
+		toValue: null,
+		meta: { url: "https://github.com/canary-technologies-corp/de/pull/118" },
 		createdAt: ago(minute),
 	});
 };
+
+// The text of every activity line, with the whitespace collapsed.
+const lineTexts = (element: HTMLElement) =>
+	items(element)
+		.filter((item) => item.getAttribute("data-kind") === "activity")
+		.map((item) => item.textContent!.replace(/\s+/g, " "));
 
 describe("features/ticket/Timeline", () => {
 	// WT-76. The server answers newest first. The page paints oldest first,
@@ -80,14 +89,41 @@ describe("features/ticket/Timeline", () => {
 		runOfThree(server);
 		mount("CDE-45", server);
 		const element = await list();
-		const summary = await within(element).findByText(/changed status, priority, and linked de #118/);
+		const summary = await within(element).findByText(/changed the status and priority, and linked the PR de #118/);
 		const line = summary.closest<HTMLElement>("[data-kind]")!;
 		expect(line.textContent).toContain("3 changes");
-		expect(within(element).queryByText(/moved Todo → In Progress/)).toBeNull();
+		expect(lineTexts(element).some((text) => text.includes("moved the ticket from Todo to In Progress"))).toBe(false);
 		await user.click(within(line).getByRole("button", { name: /3 changes/ }));
-		await waitFor(() => expect(within(element).getByText(/moved Todo → In Progress/)).toBeDefined());
-		expect(within(element).getByText(/set priority High/)).toBeDefined();
-		expect(within(element).getByText(/linked de #118/)).toBeDefined();
+		await waitFor(() =>
+			expect(lineTexts(element).some((text) => text.includes("moved the ticket from Todo to In Progress"))).toBe(true),
+		);
+		expect(within(element).getByText(/set the priority to High/)).toBeDefined();
+		expect(within(element).getByText(/linked the PR de #118/)).toBeDefined();
+	});
+
+	// TK-1. The server writes a `comment.created` row beside each comment.
+	// The comment card already shows the event, so the row draws no line.
+	test("a comment's own activity row draws no line beside the card", async () => {
+		const server = createFakeServer();
+		const ticket = findTicket(server.state, "CDE-45")!;
+		const posted = await server.client.comments.create({ ticket: "CDE-45", body: "Tests are green now." });
+		addActivity(server.state, {
+			rootId: ticket.rootId,
+			projectId: ticket.projectId,
+			ticketId: ticket.id,
+			actor: { name: "navid", kind: "human" },
+			action: "comment.created",
+			field: null,
+			fromValue: null,
+			toValue: null,
+			meta: { commentId: posted.id },
+			createdAt: posted.createdAt,
+		});
+		mount("CDE-45", server);
+		const element = await list();
+		await within(element).findByText("Tests are green now.");
+		expect(lineTexts(element).some((text) => text.includes("changed the ticket"))).toBe(false);
+		expect(lineTexts(element).some((text) => text.includes("comment"))).toBe(false);
 	});
 
 	// WT-86
@@ -96,7 +132,8 @@ describe("features/ticket/Timeline", () => {
 		mount("CDE-42", createFakeServer());
 		const element = await list();
 		await waitFor(() => expect(kinds(element)).toContain("activity"));
-		await user.click(screen.getByRole("radio", { name: "Comments" }));
+		await user.click(screen.getByRole("button", { name: "Comments" }));
+		expect(screen.getByRole("button", { name: "Comments" }).getAttribute("aria-pressed")).toBe("true");
 		await waitFor(() => expect(kinds(element)).not.toContain("activity"));
 		expect(kinds(element).filter((kind) => kind === "comment")).toHaveLength(4);
 	});

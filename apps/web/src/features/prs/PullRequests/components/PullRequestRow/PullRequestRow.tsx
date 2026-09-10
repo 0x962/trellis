@@ -1,5 +1,5 @@
 import type { LinkedPullRequest, ReviewState, TicketSummary } from "@trellis/api";
-import { ActorChip, CheckRibbon, cx, IconButton } from "@trellis/ui";
+import { ActorChip, CheckRibbon, cx, IconButton, Tooltip } from "@trellis/ui";
 import { ExternalLink } from "lucide-react";
 import { relativeTime, tabularClass } from "../../../../../lib/format";
 import { useExpandedPr } from "../../../hooks/useExpandedPr";
@@ -43,11 +43,9 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 			<PrStateIcon state={pr.state} isDraft={pr.isDraft} />
 			<span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
 				<span className="flex min-w-0 items-center gap-2">
-					<span className="max-w-48 shrink-0 truncate font-mono text-sm text-fg-muted">
-						{pr.owner}/{pr.repo}
-					</span>
+					<span className="min-w-0 truncate text-base font-medium text-fg">{pr.title}</span>
 					<span className={cx("shrink-0 font-mono text-sm text-fg-muted", tabularClass)}>#{pr.number}</span>
-					<span className="min-w-0 flex-1 truncate text-fg">{pr.title}</span>
+					<span className="ml-auto" />
 					<CheckRibbon checks={pr.checks} />
 					<CheckCountPill checks={pr.checks} />
 					{reviewLabel !== null && (
@@ -62,16 +60,26 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 						</span>
 					)}
 				</span>
-				<span className="flex min-w-0 items-center gap-2 text-xs text-fg-muted">
+				<span className="flex min-w-0 items-center gap-2 text-sm text-fg-faint">
+					<Tooltip content={`${pr.owner}/${pr.repo}`}>
+						<span data-pr-repo="" className="shrink-0 font-mono">
+							<span className="sr-only">{pr.owner}/</span>
+							{pr.repo}
+						</span>
+					</Tooltip>
 					<span className="flex min-w-0 items-center gap-1">
 						<span className="truncate font-mono">{pr.headRef}</span>
 						<span aria-hidden="true">→</span>
 						<span className="shrink-0 font-mono">{pr.baseRef}</span>
 					</span>
-					<span className={cx("shrink-0", tabularClass)}>{relativeTime(pr.updatedAt)}</span>
+					<span className={cx("shrink-0 whitespace-nowrap", tabularClass)}>updated {relativeTime(pr.updatedAt)}</span>
 					{pr.fetchError !== null && (
-						<span data-pr-stale="" title={pr.fetchError} className={cx("shrink-0 text-warning", tabularClass)}>
-							Stale, fetched {relativeTime(pr.fetchedAt!)}
+						<span
+							data-pr-stale=""
+							title={pr.fetchError}
+							className={cx("shrink-0 whitespace-nowrap text-warning", tabularClass)}
+						>
+							Fetch failed. Last fetch {relativeTime(pr.fetchedAt!)}
 						</span>
 					)}
 					{pr.linkedBy.kind !== "system" && <ActorChip name={pr.linkedBy.name} kind={pr.linkedBy.kind} />}

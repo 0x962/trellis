@@ -1,4 +1,5 @@
-import { cx } from "@trellis/ui";
+import { cx, Dialog } from "@trellis/ui";
+import { type MouseEvent, useState } from "react";
 import { renderMarkdown } from "../../../../../lib/markdown";
 
 export type ReadOnlyMarkdownProps = {
@@ -7,14 +8,39 @@ export type ReadOnlyMarkdownProps = {
 	formatClassName?: "markdown" | "comment-markdown";
 };
 
+type Shown = { src: string; alt: string };
+
+const imageClass = "[&_img]:max-w-full [&_img]:cursor-zoom-in [&_img]:rounded-md [&_img]:border [&_img]:border-border";
+
 // A description or a comment as formatted text. `renderMarkdown` strips
-// every script, event handler, and unsafe URL before the HTML is set.
+// every script, event handler, and unsafe URL before the HTML is set. An
+// image, such as a pasted attachment, fits the column and opens large in a
+// lightbox on click.
 export function ReadOnlyMarkdown({ markdown, className, formatClassName = "markdown" }: ReadOnlyMarkdownProps) {
+	const [shown, setShown] = useState<Shown | null>(null);
+
+	const onClick = (event: MouseEvent) => {
+		const target = event.target as HTMLElement;
+		if (!(target instanceof HTMLImageElement)) return;
+		event.stopPropagation();
+		setShown({ src: target.getAttribute("src") ?? "", alt: target.alt });
+	};
+
 	return (
-		<div
-			className={cx(formatClassName, className)}
-			// biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown sanitizes the HTML it returns.
-			dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
-		/>
+		<>
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: the lightbox is a larger view of an image the text already shows */}
+			{/* biome-ignore lint/a11y/useKeyWithClickEvents: the lightbox is a larger view of an image the text already shows */}
+			<div
+				onClick={onClick}
+				className={cx(formatClassName, imageClass, className)}
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown sanitizes the HTML it returns.
+				dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
+			/>
+			{shown !== null && (
+				<Dialog open title={shown.alt} onOpenChange={(open) => !open && setShown(null)} className="w-auto max-w-full">
+					<img src={shown.src} alt={shown.alt} className="max-h-[80vh] max-w-full rounded-md object-contain" />
+				</Dialog>
+			)}
+		</>
 	);
 }

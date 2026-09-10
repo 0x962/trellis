@@ -27,9 +27,9 @@ function TicketError({ error }: ErrorComponentProps) {
 	}
 	return (
 		<EmptyState
-			title="Something went wrong"
+			variant="page"
+			title="The ticket did not load."
 			description={error instanceof Error ? error.message : String(error)}
-			className="flex-1 justify-center"
 		/>
 	);
 }

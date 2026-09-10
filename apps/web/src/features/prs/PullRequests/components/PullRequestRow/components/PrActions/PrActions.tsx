@@ -8,7 +8,7 @@ export type PrActionsProps = {
 	pr: LinkedPullRequest;
 };
 
-// The actions menu of one pull request. It repeats the hover-only GitHub
+// The actions menu of one PR. It repeats the hover-only GitHub
 // button of the row, so the keyboard reaches every row action.
 export function PrActions({ ticket, pr }: PrActionsProps) {
 	const { client, orpc, queryClient } = useApp();
@@ -26,12 +26,12 @@ export function PrActions({ ticket, pr }: PrActionsProps) {
 
 	return (
 		<Menu
-			label="Pull request actions"
+			label="PR actions"
 			items={[
 				{ label: "Open on GitHub", onSelect: () => window.open(pr.url, "_blank", "noopener") },
-				{ label: "Copy link", onSelect: () => void copyText(pr.url, "Copied the pull request link") },
+				{ label: "Copy link", onSelect: () => void copyText(pr.url, "Copied the PR link") },
 				{ label: "Refresh", onSelect: () => void refresh() },
-				{ label: "Unlink", onSelect: () => void unlink(), danger: true },
+				{ label: "Remove", onSelect: () => void unlink(), danger: true },
 			]}
 		/>
 	);

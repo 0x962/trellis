@@ -91,7 +91,7 @@ describe("RefreshControl", () => {
 		const server = createFakeServer();
 		ghReady(server);
 		await renderSection(server, "CDE-47");
-		await screen.findByRole("textbox", { name: /link pr/i });
+		await screen.findByRole("button", { name: "Link PR" });
 		expect(header().textContent).not.toContain("Fetched");
 		expect(screen.queryByRole("button", { name: /refresh/i })).toBeNull();
 	});
