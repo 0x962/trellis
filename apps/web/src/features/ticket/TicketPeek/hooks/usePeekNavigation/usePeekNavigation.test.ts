@@ -54,4 +54,17 @@ describe("features/ticket/TicketPeek/hooks/usePeekNavigation", () => {
 		press("j");
 		expect(last).not.toHaveBeenCalled();
 	});
+
+	// WT-15. A j or k step shows a ticket whose detail is already cached, so
+	// the step never waits for the network. The rows a person can see on each
+	// side of the shown row load while the peek shows it.
+	test("loads the visible rows on each side of the shown row", () => {
+		const rows = [visible("CDE-1"), hidden("CDE-2"), visible("CDE-3"), visible("CDE-4"), visible("CDE-5")];
+		const onPrefetch = mock((_identifier: string) => {});
+		renderHook(() => usePeekNavigation({ rows, current: "CDE-3", onStep: () => {}, onPrefetch }));
+		expect(onPrefetch.mock.calls.map(([identifier]) => identifier).sort()).toEqual(["CDE-1", "CDE-4"]);
+		const atEnd = mock((_identifier: string) => {});
+		renderHook(() => usePeekNavigation({ rows, current: "CDE-5", onStep: () => {}, onPrefetch: atEnd }));
+		expect(atEnd.mock.calls.map(([identifier]) => identifier)).toEqual(["CDE-4"]);
+	});
 });

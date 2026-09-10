@@ -9,8 +9,10 @@ type Db = TestDb["db"];
 // perf test skips.
 export const PERF_ROWS = Number(process.env.TRELLIS_PERF_ROWS ?? 0);
 
-// CI runs the same tests at 2.5 times the budget of Navid's Mac.
-export const BUDGET_FACTOR = process.env.CI ? 2.5 : 1;
+// The budgets of plan.md are for Navid's Mac. CI sets
+// TRELLIS_PERF_FACTOR=2.5 and runs the same tests at 2.5 times each budget.
+// turbo passes every TRELLIS_* variable to a task, and filters out `CI`.
+export const BUDGET_FACTOR = Number(process.env.TRELLIS_PERF_FACTOR ?? 1);
 
 export type PerfRoot = { key: string; rootId: string; projectIds: string[]; statuses: StatusIds };
 
@@ -91,9 +93,12 @@ const WORDS = sql.raw(
 
 // A deterministic database of `tickets` tickets: 3 roots x 8 projects, 10
 // activity rows and 2 comments per ticket, a 2 KB description, 40 open
-// pull requests on the first tickets, then ANALYZE. Every row derives from
-// its ticket number, so two seeds of the same size are equal. Ids are
-// 26-character text like a ULID, in ticket order.
+// pull requests on the first tickets, then VACUUM (ANALYZE). Every row derives from
+// its ticket number, so two seeds of the same size are equal. Every id is
+// 26 digits that pass the ULID schema of the API, so each answer passes its
+// output validation. The first digit names the table: 0 tickets,
+// 1 comments, 2 pull requests, 3 activity batches. The second digit of a
+// ticket id is the index of its root.
 export const perfSeed = async (db: Db, tickets: number): Promise<PerfRoot[]> => {
 	await seedActors(db);
 	const roots: PerfRoot[] = [];
@@ -107,7 +112,7 @@ export const perfSeed = async (db: Db, tickets: number): Promise<PerfRoot[]> => 
 	for (const [index, root] of roots.entries()) {
 		const projects = sql`${sql.param(root.projectIds)}::text[]`;
 		const statuses = sql`${sql.param(Object.values(root.statuses))}::text[]`;
-		const prefix = `T${index}`;
+		const prefix = `0${index}`;
 		await db.execute(sql`
 			INSERT INTO tickets (id, project_id, root_id, number, title, description, priority, status_id, parent_id,
 				position, version, started_at, completed_at, created_at, updated_at)
@@ -133,7 +138,7 @@ export const perfSeed = async (db: Db, tickets: number): Promise<PerfRoot[]> => 
 		INSERT INTO activity (batch_id, root_id, project_id, ticket_id, actor_name, actor_kind, action, field,
 			from_value, to_value, meta, created_at)
 		SELECT
-			'B' || lpad(t.number::text, 20, '0') || lpad(i::text, 5, '0'),
+			'3' || substr(t.id, 2, 1) || lpad(t.number::text, 19, '0') || lpad(i::text, 5, '0'),
 			t.root_id, t.project_id, t.id,
 			CASE WHEN i % 2 = 0 THEN 'navid' ELSE 'claude' END,
 			CASE WHEN i % 2 = 0 THEN 'human' ELSE 'agent' END,
@@ -147,7 +152,7 @@ export const perfSeed = async (db: Db, tickets: number): Promise<PerfRoot[]> => 
 	await db.execute(sql`
 		INSERT INTO comments (id, ticket_id, body, actor_name, actor_kind, created_at, updated_at)
 		SELECT
-			t.id || 'C' || i,
+			'1' || substr(t.id, 2, 1) || lpad(t.number::text, 23, '0') || i,
 			t.id,
 			(${WORDS})[((t.number * i * 17) % 60) + 1] || ' ' || (${WORDS})[((t.number + i) % 60) + 1] || ' broke on ' || t.number,
 			CASE WHEN i = 1 THEN 'claude' ELSE 'navid' END,
@@ -159,7 +164,7 @@ export const perfSeed = async (db: Db, tickets: number): Promise<PerfRoot[]> => 
 		INSERT INTO pull_requests (id, owner, repo, number, url, title, state, is_draft, head_ref, base_ref, review_state,
 			checks, ci_state, created_at, updated_at)
 		SELECT
-			'PR' || lpad(n::text, 24, '0'), 'acme', 'web', n, 'https://github.com/acme/web/pull/' || n, 'PR ' || n,
+			'2' || lpad(n::text, 25, '0'), 'acme', 'web', n, 'https://github.com/acme/web/pull/' || n, 'PR ' || n,
 			'open', false, 'feature-' || n, 'main', 'none',
 			'[{"name":"ci","workflow":"CI","bucket":"pass","link":null}]'::jsonb,
 			CASE WHEN n % 4 = 0 THEN 'fail' ELSE 'pass' END,
@@ -167,9 +172,13 @@ export const perfSeed = async (db: Db, tickets: number): Promise<PerfRoot[]> => 
 		FROM generate_series(1, ${OPEN_PRS}) AS n`);
 	await db.execute(sql`
 		INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		SELECT 'T0' || lpad(n::text, 24, '0'), 'PR' || lpad(n::text, 24, '0'), 'manual', 'navid', 'human', now()
+		SELECT '00' || lpad(n::text, 24, '0'), '2' || lpad(n::text, 25, '0'), 'manual', 'navid', 'human', now()
 		FROM generate_series(1, ${OPEN_PRS}) AS n`);
-	await db.execute(sql`ANALYZE`);
+	// A real home is vacuumed by the maintenance timer after 1000 writes, and
+	// the cached perf home by its build step. VACUUM sets the visibility map,
+	// which lets an index-only scan skip the table row. An unvacuumed seed
+	// measures a state a person never sits in for long.
+	await db.execute(sql`VACUUM (ANALYZE)`);
 	return roots;
 };
 

@@ -1,0 +1,2 @@
+CREATE INDEX "activity_ticket_id_created_at_id_idx" ON "activity" USING btree ("ticket_id","created_at" DESC NULLS FIRST,"id" DESC NULLS FIRST);--> statement-breakpoint
+CREATE INDEX "tickets_status_id_position_id_idx" ON "tickets" USING btree ("status_id","position","id","project_id","root_id");

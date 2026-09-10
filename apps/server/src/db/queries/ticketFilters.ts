@@ -62,6 +62,12 @@ const actorClause = (actor: string) => {
 	) last WHERE last.actor_name = ${name} AND ${kindTest})`;
 };
 
+// The planner walks a partial index in its key order only under `root_id =`.
+// Under `root_id = ANY(...)` it reads every open ticket of the root and sorts
+// them, even for one root. So one root gets the equality.
+const rootClause = (rootIds: readonly string[]) =>
+	rootIds.length === 1 ? sql`t.root_id = ${rootIds[0]}` : sql`t.root_id = ANY(${textArray(rootIds)})`;
+
 // The ticket's status, for the category and reviewer clauses.
 const statusWhere = (test: SQL) => sql`EXISTS (SELECT 1 FROM statuses fs WHERE fs.id = t.status_id AND ${test})`;
 
@@ -76,7 +82,7 @@ const OPEN_CATEGORIES: readonly StatusCategory[] = ["todo", "started", "review"]
 // index in updated_at order.
 export const filterWhere = (filter: TicketFilter): SQL => {
 	const clauses: SQL[] = [sql`true`];
-	if (filter.rootIds) clauses.push(sql`t.root_id = ANY(${textArray(filter.rootIds)})`);
+	if (filter.rootIds) clauses.push(rootClause(filter.rootIds));
 	if (filter.projectIds) clauses.push(sql`t.project_id = ANY(${textArray(filter.projectIds)})`);
 	if (filter.statusIds) clauses.push(sql`t.status_id = ANY(${textArray(filter.statusIds)})`);
 	if (filter.categories) {

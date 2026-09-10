@@ -75,6 +75,10 @@ export const tickets = pgTable(
 		check("tickets_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 500`),
 		checkIn(t.priority, PRIORITIES),
 		index("tickets_project_id_status_id_position_idx").on(t.projectId, t.statusId, t.position),
+		// A board column reads its tickets in (position, id) order and filters
+		// them by project and root. Every column it reads is in this index, so
+		// the column is read from the index alone, with no table row.
+		index("tickets_status_id_position_id_idx").on(t.statusId, t.position, t.id, t.projectId, t.rootId),
 		index("tickets_parent_id_idx").on(t.parentId),
 		index("tickets_open_idx").on(t.rootId, t.updatedAt.desc().nullsFirst()).where(sql`${t.completedAt} IS NULL`),
 		index("tickets_completed_idx")
@@ -221,6 +225,13 @@ export const activity = pgTable(
 			sql`${t.field} <> 'description' OR (${t.fromValue} IS NULL AND ${t.toValue} IS NULL)`,
 		),
 		index("activity_ticket_id_id_idx").on(t.ticketId, t.id),
+		// The last actor of a ticket is its newest row by (created_at, id). This
+		// index finds that row with one index entry.
+		index("activity_ticket_id_created_at_id_idx").on(
+			t.ticketId,
+			t.createdAt.desc().nullsFirst(),
+			t.id.desc().nullsFirst(),
+		),
 		index("activity_root_id_id_idx").on(t.rootId, t.id),
 		index("activity_project_id_id_idx").on(t.projectId, t.id),
 		index("activity_created_at_idx").on(t.createdAt),

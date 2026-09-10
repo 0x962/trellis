@@ -9,8 +9,8 @@
 		"test": "bun test",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"db:generate": "drizzle-kit generate",
-		"perf:10k": "TRELLIS_PERF_ROWS=10000 bun test ./test/perf/list.perf.ts ./test/perf/search.perf.ts ./test/perf/boot.perf.ts ./test/perf/poller.perf.ts ./test/perf/memory.perf.ts ./src/db/worker.drift.perf.ts",
-		"perf": "TRELLIS_PERF_ROWS=50000 bun test ./test/perf/list.perf.ts ./test/perf/search.perf.ts"
+		"perf:10k": "TRELLIS_PERF_ROWS=10000 bun test ./test/perf/list.perf.ts ./test/perf/search.perf.ts ./test/perf/boot.perf.ts ./test/perf/poller.perf.ts ./test/perf/memory.perf.ts ./test/perf/attachments.perf.ts ./test/perf/concurrency.perf.ts ./test/perf/backup.perf.ts ./src/db/worker.drift.perf.ts",
+		"perf": "TRELLIS_PERF_ROWS=50000 bun test ./test/perf/list.perf.ts ./test/perf/search.perf.ts ./test/perf/boot.perf.ts ./test/perf/poller.perf.ts ./test/perf/memory.perf.ts ./test/perf/attachments.perf.ts ./test/perf/concurrency.perf.ts ./test/perf/backup.perf.ts ./src/db/worker.drift.perf.ts"
 	},
 	"dependencies": {
 		"@electric-sql/pglite": "0.5.8",

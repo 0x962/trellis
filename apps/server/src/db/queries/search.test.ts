@@ -9,6 +9,7 @@ import {
 	seedTicket,
 } from "../../../test/fixtures";
 import { freshDb, type TestDb } from "../../../test/helpers/db.ts";
+import { captureStatements } from "../../../test/helpers/statements.ts";
 import { search } from "./search.ts";
 
 let h: TestDb;
@@ -47,6 +48,33 @@ describe("search", () => {
 			expect(ids[0]).toBe(ticket42);
 			expect(ids.slice(1)).toEqual([followUp]);
 		}
+	});
+
+	// A KEY-n text names a ticket. The answer is that ticket and the text
+	// hits, found with the statement timeout and one statement. The trigram
+	// path and the project list do not run for it.
+	test("search answers a KEY-n text with one statement and no projects", async () => {
+		const { rootId, statuses } = await seedProject(h.db, "CDE");
+		await seedChild(h.db, rootId, rootId, "cde-42-launch", { name: "CDE-42 launch" });
+		const ticket42 = await seedTicket(h.db, {
+			projectId: rootId,
+			rootId,
+			statusId: statuses.todo,
+			number: 42,
+			title: "Login",
+		});
+		const { result, statements } = await h.db.transaction(async (tx) => {
+			const capture = captureStatements(h.db.$client);
+			try {
+				return { result: await search(tx, { q: "CDE-42" }), statements: capture.texts };
+			} finally {
+				capture.restore();
+			}
+		});
+		expect(result.tickets.map((row) => row.id)).toEqual([ticket42]);
+		expect(result.projects).toEqual([]);
+		expect(statements).toHaveLength(2);
+		expect(statements[0]).toContain("SET LOCAL statement_timeout");
 	});
 
 	test("search finds authentication from auth by prefix", async () => {
@@ -220,6 +248,23 @@ describe("search", () => {
 			title: "Authentication",
 		});
 		expect(await ticketIds({ q: "auth", projectIds: [cde.rootId] })).toEqual([inCde]);
+	});
+
+	test("search narrows a KEY-n text to the project subtree", async () => {
+		const cde = await seedProject(h.db, "CDE");
+		const web = await seedChild(h.db, cde.rootId, cde.rootId, "web");
+		const ops = await seedRootWithStatuses(h.db, "OPS");
+		const inWeb = { projectId: web, rootId: cde.rootId, statusId: cde.statuses.todo };
+		const ticket42 = await seedTicket(h.db, { ...inWeb, number: 42, title: "Login" });
+		const followUp = await seedTicket(h.db, { ...inWeb, title: "CDE-42 follow up" });
+		await seedTicket(h.db, {
+			projectId: cde.rootId,
+			rootId: cde.rootId,
+			statusId: cde.statuses.todo,
+			title: "CDE-42 notes",
+		});
+		expect(await ticketIds({ q: "CDE-42", projectIds: [web] })).toEqual([ticket42, followUp]);
+		expect(await ticketIds({ q: "CDE-42", projectIds: [ops.rootId] })).toEqual([]);
 	});
 
 	test("search returns matching projects beside tickets", async () => {

@@ -101,7 +101,7 @@ const marks = (page: Page) => page.evaluate(() => (window as unknown as { __peek
 
 // WT-15. From a warm list cache: the summary within 50 ms, the body within
 // 100 ms, and every j step within 50 ms.
-test("peek open and j step stay inside the budget", async ({ page }) => {
+test("peek open and j step stay inside the budget @timing", async ({ page }) => {
 	await page.addInitScript(probe);
 	await signIn(page, "/p/PEK");
 	await expect(rowOf(page, "PEK-3")).toBeVisible();

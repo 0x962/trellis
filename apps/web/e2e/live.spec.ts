@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Response, test } from "@playwright/test";
 import { createTicket, ensureProject, moveTicket } from "./cli";
 import { signIn } from "./support";
 
@@ -20,7 +20,7 @@ const rowProbe = (identifier: string, status: string) => `(() => {
 
 // M2: a `trellis move` from the CLI patches the open table row. The event
 // time is the `updatedAt` the move commits, which the event summary carries.
-test("live > a trellis move from the CLI patches the open table row within 500 ms", async ({ page }) => {
+test("live > a trellis move from the CLI patches the open table row within 500 ms @timing", async ({ page }) => {
 	const ticket = createTicket("LIV", `Watch the row ${Date.now()}`);
 	await page.addInitScript(rowProbe(ticket.identifier, "In Progress"));
 	await signIn(page, "/p/LIV");
@@ -48,11 +48,17 @@ const railProbe = `(() => {
 	}).observe(document, { subtree: true, childList: true, characterData: true });
 })();`;
 
+// The answer to the tickets.move call. The batch link can fold the call
+// into a batch request, so the path is looked for in the request body too.
+const MOVE_PATH = "/rpc/tickets/move";
+const isMove = (response: Response) =>
+	response.ok() && (response.url().includes(MOVE_PATH) || (response.request().postData() ?? "").includes(MOVE_PATH));
+
 // WT-107. The ticket waits in Human Review. Tab two approves it with `a`;
 // tab one sees Done within 100 ms of the commit. The commit time is read
 // when the move request settles, so the measured gap is never longer than
 // the real one.
-test("live > a ticket change in one tab repaints the ticket page in another inside the budget", async ({
+test("live > a ticket change in one tab repaints the ticket page in another inside the budget @timing", async ({
 	page,
 	context,
 }) => {
@@ -66,7 +72,7 @@ test("live > a ticket change in one tab repaints the ticket page in another insi
 	const other = await context.newPage();
 	await signIn(other, `/t/${ticket.identifier}`);
 	await expect(other.getByRole("button", { name: /Approve/ })).toBeVisible();
-	const settled = other.waitForResponse((response) => /\/rpc\//.test(response.url()) && response.ok());
+	const settled = other.waitForResponse(isMove);
 	await other.keyboard.press("a");
 	await settled;
 	const committedAt = Date.now();

@@ -3,17 +3,20 @@ import { ActorHeaderSchema, type ActorRef, actorHeaderGrammar, contract } from "
 import type { RequestContext } from "../context.ts";
 import type { ServiceTransport } from "../db/transport.ts";
 import { fail, invalidInput } from "../errors.ts";
+import type { DbTiming } from "../serverTiming.ts";
 import type { ServiceName } from "../services/registry.ts";
 
 // What the HTTP layer hands every procedure. `actor` is null until the
 // actor middleware parses the header, which it does on every procedure
 // whose route method is not GET. `resHeaders` comes from the response
-// headers plugin; a create sets `Location` on it.
+// headers plugin; a create sets `Location` on it. `timing` belongs to the
+// HTTP request, so every procedure of a batch adds to the same one.
 export type ProcedureContext = {
 	headers: Headers;
 	reqId: string;
 	transport: ServiceTransport;
 	actor: ActorRef | null;
+	timing: DbTiming;
 	resHeaders?: Headers;
 };
 
@@ -56,7 +59,7 @@ export const call = <T>(context: ProcedureContext, name: ServiceName, input: unk
 		reqId: context.reqId,
 		now: new Date(),
 	};
-	return context.transport.call(name, ctx, input) as Promise<T>;
+	return context.transport.call(name, ctx, input, context.timing) as Promise<T>;
 };
 
 export const setLocation = (context: ProcedureContext, path: string) => {

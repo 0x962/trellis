@@ -69,9 +69,19 @@ export default defineConfig({
 		baseURL: webUrl,
 		trace: "retain-on-failure",
 	},
+	// A test tagged @timing measures milliseconds in a browser that shares the
+	// machine with every other process, so it gets one retry. The list
+	// reporter prints a retried test as flaky. No other test retries.
 	projects: [
 		{ name: "onboarding", testMatch: /onboarding\.spec\.ts$/ },
-		{ name: "flows", testIgnore: /onboarding\.spec\.ts$/, dependencies: ["onboarding"] },
+		{ name: "flows", testIgnore: /onboarding\.spec\.ts$/, grepInvert: /@timing/, dependencies: ["onboarding"] },
+		{
+			name: "timing",
+			testIgnore: /onboarding\.spec\.ts$/,
+			grep: /@timing/,
+			retries: 1,
+			dependencies: ["onboarding"],
+		},
 	],
 	webServer: [
 		{

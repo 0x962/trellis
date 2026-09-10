@@ -6,7 +6,7 @@ const root = join(import.meta.dir, "..");
 const text = (path: string) => readFileSync(join(root, path), "utf8");
 
 type Step = { uses?: string; run?: string; "working-directory"?: string };
-type Job = { "runs-on": string; if?: string; steps: Step[] };
+type Job = { "runs-on": string; if?: string; env?: Record<string, string>; steps: Step[] };
 
 const jobs = () => (Bun.YAML.parse(text(".github/workflows/ci.yml")) as { jobs: Record<string, Job> }).jobs;
 
@@ -20,6 +20,15 @@ describe("ci.yml", () => {
 		expect(runs).toContain("bun install --frozen-lockfile");
 		expect(runs.some((run) => run.includes("playwright install") && run.includes("chromium"))).toBe(true);
 		expect(runs).toContain("bun run e2e");
+	});
+
+	// plan.md, Performance requirements: CI enforces the perf tests at 2.5
+	// times the budget of Navid's Mac. turbo passes TRELLIS_* variables to a
+	// task and filters out `CI`, so the factor has its own variable.
+	test("the check job runs the perf suite at 2.5 times the budget", () => {
+		const check = jobs().check!;
+		expect(check.env?.TRELLIS_PERF_FACTOR).toBe("2.5");
+		expect(check.steps.map((step) => step.run ?? "")).toContain("bun run check");
 	});
 
 	// plan.md, Database schema: CI fails when `drizzle-kit generate` leaves a

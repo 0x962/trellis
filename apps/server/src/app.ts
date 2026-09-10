@@ -19,6 +19,7 @@ import { type Clock, createEventsRoute, realClock } from "./routes/events.ts";
 import { exportRoute } from "./routes/export.ts";
 import { filesRoute } from "./routes/files.ts";
 import { staticRoute } from "./routes/static.ts";
+import { createDbTiming, serverTimingHeader } from "./serverTiming.ts";
 
 export type AppOptions = {
 	config: Config;
@@ -114,15 +115,24 @@ export const createApp = ({ config, log, transport, bus, runtime, clock = realCl
 		reqId: c.get("requestId"),
 		transport,
 		actor: null,
+		timing: createDbTiming(),
 	});
+	// Every procedure response carries the database time of its request. A
+	// request that fails before any service call reports 0.
+	const timed = (response: Response, context: ProcedureContext) => {
+		response.headers.set("server-timing", serverTimingHeader(context.timing));
+		return response;
+	};
 	app.use("/rpc/*", async (c, next) => {
-		const result = await rpc.handle(c.req.raw, { prefix: "/rpc", context: contextOf(c) });
-		if (result.matched) return result.response;
+		const context = contextOf(c);
+		const result = await rpc.handle(c.req.raw, { prefix: "/rpc", context });
+		if (result.matched) return timed(result.response, context);
 		await next();
 	});
 	app.use("/api/*", async (c, next) => {
-		const result = await api.handle(deleteWithQuery(c.req.raw), { prefix: "/api", context: contextOf(c) });
-		if (result.matched) return result.response;
+		const context = contextOf(c);
+		const result = await api.handle(deleteWithQuery(c.req.raw), { prefix: "/api", context });
+		if (result.matched) return timed(result.response, context);
 		await next();
 	});
 
