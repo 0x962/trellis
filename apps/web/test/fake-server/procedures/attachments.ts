@@ -1,6 +1,6 @@
 import { fail } from "../fail";
 import { os } from "../implementer";
-import { requireTicket, type State } from "../state";
+import { isoNow, newId, requireTicket, type State } from "../state";
 
 const requireAttachment = (state: State, id: string) => {
 	const attachment = state.attachments.get(id);
@@ -13,8 +13,36 @@ export const attachments = {
 		const ticket = requireTicket(context.state, input.ticket);
 		return [...context.state.attachments.values()].filter((attachment) => attachment.ticketId === ticket.id);
 	}),
-	upload: os.attachments.upload.handler(() => {
-		throw new Error("The fake server does not store uploads.");
+	upload: os.attachments.upload.handler(async ({ context, input }) => {
+		if (input.file.size > context.maxUploadBytes) {
+			throw fail("PAYLOAD_TOO_LARGE", { maxBytes: context.maxUploadBytes });
+		}
+		const ticket = requireTicket(context.state, input.ticket);
+		const bytes = new Uint8Array(await input.file.arrayBuffer());
+		const sha256 = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+		const id = newId();
+		const filename = input.name ?? input.file.name;
+		const url = `/api/attachments/${id}/file`;
+		const attachment = {
+			id,
+			ticketId: ticket.id,
+			filename,
+			mime: input.file.type,
+			size: input.file.size,
+			sha256,
+			actor: context.actor!,
+			createdAt: isoNow(),
+			url,
+		};
+		context.state.blobs.set(sha256, bytes);
+		context.state.attachments.set(id, attachment);
+		context.bus.emit(
+			"attachment.created",
+			{ id, ticketId: ticket.id },
+			{ ticketId: ticket.id, projectId: ticket.projectId },
+		);
+		const markdown = input.file.type.startsWith("image/") ? `![${filename}](${url})` : `[${filename}](${url})`;
+		return { attachment, url, markdown };
 	}),
 	get: os.attachments.get.handler(({ context, input }) => requireAttachment(context.state, input.id)),
 	delete: os.attachments.delete.handler(({ context, input }) => {
