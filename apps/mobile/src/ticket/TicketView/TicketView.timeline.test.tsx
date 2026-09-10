@@ -1,7 +1,11 @@
-import { beforeEach, describe, expect, test } from "@jest/globals";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { appContext } from "../../../test/appContext";
 import { type FakeApp, installFakeApp } from "../../../test/fakeApp";
+import { renders } from "../../../test/mocks/flash-list";
+import type { TimelineRow } from "../Timeline";
+
+jest.mock("@shopify/flash-list", () => require("../../../test/mocks/flash-list"));
 
 let app: FakeApp;
 
@@ -26,6 +30,13 @@ const scrollToEnd = () =>
 		},
 	});
 
+// The comment bodies the timeline list holds, read from the props of its
+// last render, because jest draws only the rows in the first viewport.
+const timelineComments = () =>
+	(renders.filter((props) => props.testID === "ticket-timeline").at(-1)!.data as readonly TimelineRow[]).flatMap(
+		(row) => (row.kind === "comment" ? [row.comment.body] : []),
+	);
+
 const olderPageCalls = () =>
 	app.callsTo("timeline.list").filter((call) => (call.input as { before?: string }).before !== undefined);
 
@@ -42,11 +53,12 @@ describe("the ticket timeline history", () => {
 		}
 		await openTicket();
 		await scrollToEnd();
-		expect(screen.queryByText(oldComment)).toBeNull();
+		expect(timelineComments()).not.toContain(oldComment);
 		await fireEvent.press(await screen.findByRole("button", { name: "Load earlier" }));
 		await waitFor(() => expect(olderPageCalls()).toHaveLength(1));
-		await scrollToEnd();
-		expect(await screen.findByText(oldComment)).toBeOnTheScreen();
+		await waitFor(() => expect(timelineComments()).toContain(oldComment));
+		expect(timelineComments()).toContain("Note 1");
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Load earlier" })).toBeNull());
 	});
 
 	test("a timeline that fits on one page offers no Load earlier", async () => {
