@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import type { Attachment } from "@trellis/api";
 import { Image } from "expo-image";
 import { useState } from "react";
