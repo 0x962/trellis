@@ -1,4 +1,4 @@
-import type { AgentRole, AgentSession, AgentState } from "@trellis/api";
+import { type AgentRole, type AgentSession, type AgentState, pickAgentPersonName } from "@trellis/api";
 import { fail } from "../fail";
 import { type Context, os } from "../implementer";
 import {
@@ -46,13 +46,26 @@ const store = (context: Context, session: AgentSession) => {
 	return session;
 };
 
+// The person name a new agent takes, which is none of the names the live
+// agents of its project hold, as the server gives it. The search starts at
+// the head of the pool, so a test reads the same name on every run.
+const freeName = (state: State, projectId: string) =>
+	pickAgentPersonName(
+		sessionsOf(state)
+			.filter((session) => session.projectId === projectId && isLive(session))
+			.map((session) => session.name),
+		() => 0,
+	);
+
 const newSession = (
+	state: State,
 	fields: Pick<AgentSession, "projectId" | "ticketId" | "role" | "workspaceId" | "terminalId" | "title"> &
 		Partial<AgentSession>,
 ): AgentSession => ({
 	id: newId(),
 	runner: "superset",
 	state: "starting",
+	name: freeName(state, fields.projectId),
 	openUrl: `superset://workspace/${fields.workspaceId}`,
 	lastWokenAt: null,
 	error: null,
@@ -115,7 +128,7 @@ export const agents = {
 		const titles = { manager: `${root.key} manager`, builder: identifier, reviewer: `${identifier} review` };
 		return store(
 			context,
-			newSession({
+			newSession(state, {
 				projectId: root.id,
 				ticketId: ticket?.id ?? null,
 				role: input.role,
@@ -140,7 +153,7 @@ export const agents = {
 		const identifier = identifierOf(state, ticket);
 		return store(
 			context,
-			newSession({
+			newSession(state, {
 				projectId: ticket.rootId,
 				ticketId: ticket.id,
 				role: "builder",
@@ -159,7 +172,7 @@ export const agents = {
 		const builder = liveSession(state, "builder", (session) => session.ticketId === ticket.id)!;
 		return store(
 			context,
-			newSession({
+			newSession(state, {
 				projectId: ticket.rootId,
 				ticketId: ticket.id,
 				role: "reviewer",
@@ -200,7 +213,7 @@ export const agents = {
 		}
 		return store(
 			context,
-			newSession({
+			newSession(state, {
 				projectId: root.id,
 				ticketId: null,
 				role: "manager",
