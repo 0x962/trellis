@@ -28,7 +28,10 @@ export function CommandRow({ value, label, keywords, sub, mono, keys, icon, onSe
 	return (
 		<Cmdk.Item value={value} keywords={[label, ...(keywords ?? [])]} onSelect={onSelect} className={commandRowClass}>
 			{icon && (
-				<span className="inline-flex size-3.5 shrink-0 items-center justify-center text-fg-muted *:size-full">
+				<span
+					aria-hidden="true"
+					className="inline-flex size-3.5 shrink-0 items-center justify-center text-fg-muted *:size-full"
+				>
 					{icon}
 				</span>
 			)}

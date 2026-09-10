@@ -29,6 +29,17 @@ const placeholders = {
 	projects: "Go to a project",
 };
 
+// A row answers the typed text when every typed word starts a word of its
+// label: "toggle the" names Toggle theme.
+const rowMatches = (label: string, typed: string) => {
+	if (typed === "") return false;
+	const words = label.toLowerCase().split(/[^a-z0-9]+/);
+	return typed
+		.toLowerCase()
+		.split(/\s+/)
+		.every((needle) => words.some((word) => word.startsWith(needle)));
+};
+
 const selectionHeading = (count: number) => (
 	<>
 		Selection <span className="text-fg-faint">{count === 1 ? "1 ticket" : `${count} tickets`}</span>
@@ -70,12 +81,6 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 	// searches tickets.
 	const results = useCommandSearch(submenu === null && mode !== "projects" ? query : "");
 
-	// The jump row is the first row and the active one, because a typed
-	// identifier is an answer, not a filter.
-	useEffect(() => {
-		if (results.jump !== null) setValue(results.jump);
-	}, [results.jump]);
-
 	const deps: RowDeps = {
 		action,
 		ticket,
@@ -111,10 +116,19 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 	}
 
 	const typed = query.trim();
-	const matchesRow = groups.some((group) =>
-		group.rows.some((row) => row.label.toLowerCase().includes(typed.toLowerCase())),
-	);
-	const nothing = typed !== "" && results.jump === null && results.tickets.length === 0 && !matchesRow;
+	const named = groups
+		.filter((group) => group.id !== "results")
+		.flatMap((group) => group.rows)
+		.find((row) => rowMatches(row.label, typed));
+	// What Enter runs: the ticket an identifier names, then a command the
+	// typed words name, then the closest ticket. An arrow key moves on from
+	// here, and the next keystroke answers again.
+	const best = typed === "" ? undefined : (results.jump ?? named?.value ?? results.tickets[0]?.identifier);
+	const nothing = typed !== "" && best === undefined;
+
+	useEffect(() => {
+		if (best !== undefined) setValue(best);
+	}, [best]);
 
 	const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
 		if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) return;
