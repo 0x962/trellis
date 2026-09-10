@@ -5,6 +5,14 @@ import config from "./drizzle.config.ts";
 
 const root = import.meta.dir;
 
+// The drizzle-kit binary, found the way `bun run db:generate` finds it. The
+// isolated linker puts it in this package's node_modules/.bin, and the
+// hoisted linker puts it in the repository root's node_modules/.bin.
+const drizzleKit = () =>
+	Bun.which("drizzle-kit", {
+		PATH: [join(root, "node_modules/.bin"), join(root, "../../node_modules/.bin")].join(":"),
+	})!;
+
 type Journal = { entries: Array<{ tag: string }> };
 
 const readJournal = (dir: string) => JSON.parse(readFileSync(join(dir, "meta/_journal.json"), "utf8")) as Journal;
@@ -33,7 +41,7 @@ describe("drizzle-kit configuration", () => {
 		cpSync(join(root, "drizzle"), copy, { recursive: true });
 		const result = Bun.spawnSync(
 			[
-				join(root, "node_modules/.bin/drizzle-kit"),
+				drizzleKit(),
 				"generate",
 				"--dialect",
 				config.dialect,
