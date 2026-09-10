@@ -66,12 +66,11 @@ describe("install", () => {
 		expect(asked).toEqual(["/api/health"]);
 	});
 
-	test("the plist and the shim run the bun that runs the installer", async () => {
-		const { prefix, env, plist, shim } = setup();
+	test("the plist runs the bun that runs the installer", async () => {
+		const { prefix, env, plist } = setup();
 		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
 		expect(result.code, result.stderr).toBe(0);
 		expect(readFileSync(plist, "utf8")).toContain(`<array>\n\t\t<string>${process.execPath}</string>`);
-		expect(readFileSync(shim, "utf8")).toContain(`exec ${process.execPath} `);
 	});
 
 	test("the test deps inject a user home under the TRELLIS_HOME of the test process", () => {

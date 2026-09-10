@@ -99,14 +99,15 @@ describe("the data home lock", () => {
 describe("the port", () => {
 	test("a port conflict exits 1 before the database opens", async () => {
 		const blocker = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: () => new Response("taken") });
+		const port = String(blocker.port);
 		const home = freshHome();
 
-		const server = start(home, { TRELLIS_PORT: String(blocker.port) });
+		const server = start(home, { TRELLIS_PORT: port });
 		const code = await server.exited();
 		blocker.stop(true);
 
 		expect(code).toBe(1);
-		expect(failureText(server)).toContain(String(blocker.port));
+		expect(failureText(server)).toContain(port);
 		expect(server.records.find((record) => record.msg === "migrate")).toBeUndefined();
 		expect(existsSync(join(home, "db", "PG_VERSION"))).toBe(false);
 	});

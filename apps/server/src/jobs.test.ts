@@ -58,8 +58,10 @@ const setup = (gh: GhRunner) => {
 		log: (msg, fields) => void logs.push({ msg, fields }),
 		clock,
 	});
+	// A `statuses.changed` event stands for one committed write. A `gh.status`
+	// event writes no row, and the poller emits one on its first tick.
 	const writes = (count: number) => {
-		const event: TrellisEvent = { type: "gh.status", ok: true };
+		const event: TrellisEvent = { type: "statuses.changed", projectId: ulid() };
 		for (let index = 0; index < count; index++) bus.emit(event);
 	};
 	return { clock, bus, logs, jobs, writes };
