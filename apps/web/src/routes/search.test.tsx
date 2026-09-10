@@ -19,7 +19,37 @@ describe("routes/search", () => {
 			expect(call!.input).toEqual({ q: "oauth" });
 		});
 		expect(await screen.findByText(/3 tickets/)).toBeDefined();
-		expect(screen.getByText(/0 projects/)).toBeDefined();
+		// T10. The project count shows only when a project matches.
+		expect(screen.queryByText(/projects?/)).toBeNull();
+	});
+
+	// T10. The `/` hint shows while the field is empty.
+	test("the empty field shows the / key, and typing hides it", async () => {
+		const user = userEvent.setup();
+		renderApp({ path: "/search", actor: "navid" });
+		const input = (await screen.findByRole("searchbox")) as HTMLInputElement;
+		const field = input.closest("form")!;
+		expect(field.querySelector("kbd")?.textContent).toBe("/");
+		await user.type(input, "oauth");
+		expect(field.querySelector("kbd")).toBeNull();
+	});
+
+	// SR-1. The glossary word for a ticket code is ID.
+	test("the empty state names a ticket ID", async () => {
+		renderApp({ path: "/search", actor: "navid" });
+		expect(
+			await screen.findByText(
+				"A ticket ID such as CDE-42 opens the ticket. A word matches ticket titles, descriptions, and project names.",
+			),
+		).toBeDefined();
+	});
+
+	// T10. Each matched term in a result title is marked.
+	test("marks the matched term in each result title", async () => {
+		renderApp({ path: "/search?q=oauth", actor: "navid" });
+		const grid = await screen.findByRole("grid", { name: "Search results" });
+		await waitFor(() => expect(grid.querySelectorAll("mark").length).toBeGreaterThan(0));
+		for (const mark of grid.querySelectorAll("mark")) expect(mark.textContent!.toLowerCase()).toBe("oauth");
 	});
 
 	test("the search route applies filter chips above the result table", async () => {
