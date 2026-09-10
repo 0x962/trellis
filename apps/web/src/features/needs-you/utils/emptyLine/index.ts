@@ -1,1 +1,1 @@
-export { emptyLine } from "./emptyLine";
+export { emptyLine, startedLine } from "./emptyLine";

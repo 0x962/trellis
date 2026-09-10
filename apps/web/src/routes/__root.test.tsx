@@ -30,7 +30,7 @@ describe("routes/__root", () => {
 	test("no identity redirects to /setup", async () => {
 		const { router } = renderApp({ path: "/needs-you", server: createFakeServer({ empty: true }) });
 		await waitFor(() => expect(router.state.location.pathname).toBe("/setup"));
-		expect(await screen.findByRole("heading", { name: "What should we call you?" })).toBeDefined();
+		expect(await screen.findByRole("heading", { name: "Enter your name" })).toBeDefined();
 		expect(screen.queryByRole("complementary", { name: "Sidebar" })).toBeNull();
 	});
 
@@ -50,7 +50,7 @@ describe("routes/__root", () => {
 		const { router, server } = renderApp({ path: "/setup?step=project", actor: "navid" });
 		const hold = server.holdNext("projects.get");
 		fireEvent.change(await screen.findByRole("textbox", { name: "Project name" }), { target: { value: "Held" } });
-		fireEvent.click(screen.getByRole("button", { name: "Create" }));
+		fireEvent.click(screen.getByRole("button", { name: /^Create/ }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/p/HE"));
 
 		expect(screen.getByRole("heading", { name: "New project" })).toBeDefined();

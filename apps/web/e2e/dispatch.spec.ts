@@ -119,7 +119,7 @@ test("dispatch > a web ticket goes to a builder, a clean review, and Human Revie
 	const row = page.locator(`[data-inbox-row="${identifier}"]`).filter({ hasText: "Send back" });
 	await row.focus();
 	await page.keyboard.press("r");
-	await page.getByRole("textbox", { name: /What should change/i }).fill(sendBack);
+	await page.getByRole("textbox", { name: /Reason to send back/i }).fill(sendBack);
 	await page.keyboard.press("ControlOrMeta+Enter");
 	await expect(row).toHaveCount(0);
 

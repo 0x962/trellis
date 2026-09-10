@@ -32,7 +32,7 @@ export function AgentsSettings() {
 			<Switch
 				label="Turn on agents"
 				checked={saved.enabled}
-				className="cursor-pointer self-start"
+				className="self-start"
 				onCheckedChange={(enabled) => void save((current) => ({ ...current, enabled }))}
 			/>
 			<p className="text-sm text-fg-muted">Off: no manager wakes and no builder starts. Running builders continue.</p>
@@ -44,7 +44,6 @@ export function AgentsSettings() {
 					label="Runner"
 					items={runners}
 					value={saved.runner}
-					className="cursor-pointer"
 					onValueChange={(next) => void save((current) => ({ ...current, runner: next }))}
 				/>
 			</div>

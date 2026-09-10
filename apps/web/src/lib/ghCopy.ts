@@ -1,7 +1,7 @@
 import type { GhReason } from "@trellis/api";
 
 // What to say and what to run for each reason gh cannot answer. The settings
-// page and the pull request section read this table, so the two surfaces
+// page and the PR section read this table, so the two surfaces
 // never word one failure in two ways. An error the server could not name
 // carries the server's own message and no command.
 export const ghCopy: Record<GhReason, { line: string; command: string | null }> = {
@@ -11,4 +11,4 @@ export const ghCopy: Record<GhReason, { line: string; command: string | null }> 
 };
 
 // What a gh failure costs the reader, said once for every surface.
-export const ghConsequence = "Pull request checks stay empty until gh answers.";
+export const ghConsequence = "PR checks stay empty until gh answers.";

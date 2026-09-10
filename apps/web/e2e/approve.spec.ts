@@ -53,7 +53,8 @@ test("approve > clears ten review rows with ten a presses", async ({ page }) => 
 	await expect(rows).toHaveCount(before + 10);
 	await rows.first().focus();
 	for (let press = 0; press < before + 10; press += 1) await page.keyboard.press("a");
-	await expect(page.getByText("Nothing needs you.")).toBeVisible();
+	// The empty page states the fact as its heading (spec D14).
+	await expect(page.getByRole("heading", { name: "Nothing needs you" })).toBeVisible();
 	const sidebar = page.getByRole("complementary", { name: "Sidebar" });
 	await expect(sidebar.getByRole("link", { name: /Needs you/ })).not.toContainText(/\d/);
 	for (const identifier of created) expect(await statusOf(identifier)).toBe("Done");
@@ -66,7 +67,7 @@ test("approve > send back posts the comment and moves the ticket", async ({ page
 	const row = rowIn(page, identifier!);
 	await row.focus();
 	await page.keyboard.press("r");
-	const box = page.getByRole("textbox", { name: /What should change/i });
+	const box = page.getByRole("textbox", { name: /Reason to send back/i });
 	await box.fill("Fix the migration");
 	await page.keyboard.press("ControlOrMeta+Enter");
 	await expect(row).toHaveCount(0);

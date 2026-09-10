@@ -12,6 +12,7 @@ import {
 import { toast, useMediaQuery, useTheme } from "@trellis/ui";
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
@@ -62,6 +63,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 	const [pendingChoice, setPendingChoice] = useState<PendingChoice | null>(null);
 	const [cursors, setCursors] = useState<Record<string, string | null>>({});
 	const announce = useCallback((message: string) => flushSync(() => setAnnouncement(message)), []);
+	const { isArchived, notice } = useArchivedProjects();
 	const boardOptions = context.orpc.tickets.board.queryOptions({ input: { ...filters, project: projectRef } });
 	const projectOptions = context.orpc.projects.get.queryOptions({ input: { project: projectRef ?? "CDE" } });
 	const projectsOptions = context.orpc.projects.list.queryOptions({ input: {} });
@@ -101,6 +103,14 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 
 	const runMove = useCallback(
 		async (move: BoardMove, chosen?: Status) => {
+			// A drop and a Shift+Arrow key both end here. The server refuses a
+			// move of a ticket under an archived project, so none is sent.
+			if (isArchived(move.ticket.project.path)) {
+				const message = notice(move.ticket.project.path);
+				announce(message);
+				toast.error(message);
+				return;
+			}
 			const status = chosen ?? move.column.statuses[0];
 			const statusRef = status?.slug ?? `category:${move.column.category}`;
 			const summary: StatusSummary = status ?? {
@@ -146,7 +156,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 				});
 			}
 		},
-		[announce, boardOptions.queryKey, context.client.tickets, context.queryClient],
+		[announce, boardOptions.queryKey, context.client.tickets, context.queryClient, isArchived, notice],
 	);
 
 	const chooseOrMove = useCallback(

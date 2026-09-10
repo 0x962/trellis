@@ -55,12 +55,12 @@ describe("features/sidebar/Sidebar", () => {
 		expect(text.indexOf("Projects")).toBeGreaterThan(text.indexOf("All tickets"));
 	});
 
-	// WS-94. The badge counts every inbox section (plan, Needs you), so no row
-	// a person can act on stays out of the count.
+	// WS-94. The badge counts the distinct tickets of Review and Failing checks
+	// (D13): 3 in review and 1 other ticket with failed checks in the seed.
 	test("the Needs you badge sums the review and failing CI totals", async () => {
 		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
 		const row = await screen.findByRole("link", { name: /Needs you/ });
-		const badge = await within(row).findByText("11");
+		const badge = await within(row).findByText("4");
 		expect(badge.className).toMatch(/\btabular\b/);
 		localStorage.clear();
 		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", server: createFakeServer({ empty: true }) });

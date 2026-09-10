@@ -76,7 +76,7 @@ export function AgentsRow({ identifier }: AgentsRowProps) {
 					</ul>
 				)}
 				{!building && (
-					<Button size="sm" className="cursor-pointer" disabled={starting} onClick={() => void start()}>
+					<Button size="sm" disabled={starting} onClick={() => void start()}>
 						Start builder
 					</Button>
 				)}

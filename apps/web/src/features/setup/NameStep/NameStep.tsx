@@ -28,8 +28,10 @@ export function NameStep({ suggested, onDone }: NameStepProps) {
 	return (
 		<form onSubmit={(event) => void submit(event)} className="flex flex-col gap-5">
 			<div className="flex flex-col gap-1">
-				<h1 className="text-xl font-semibold text-fg">What should we call you?</h1>
-				<p className="text-fg-muted">Every ticket you touch is attributed to this name. Agents sign with their own.</p>
+				<h1 className="text-lg font-semibold text-fg">Enter your name</h1>
+				<p className="text-sm text-fg-muted">
+					trellis records this name as the actor of each change you make. Agents use their own names.
+				</p>
 			</div>
 			<Input
 				label="Your name"
@@ -39,7 +41,7 @@ export function NameStep({ suggested, onDone }: NameStepProps) {
 				spellCheck={false}
 				onChange={(event) => setName(event.target.value)}
 			/>
-			<Button type="submit" variant="primary" disabled={!valid || pending} className="self-end">
+			<Button type="submit" variant="primary" size="md" kbd="↵" disabled={!valid || pending} className="w-full">
 				Continue
 			</Button>
 		</form>

@@ -41,7 +41,9 @@ export function StatusDeleteDialog({ project, status, statuses, onDeleted, onClo
 		} catch (error) {
 			if (error instanceof ORPCError && error.code === "STATUS_IN_USE") {
 				const count = (error.data as { count: number }).count;
-				setMessage(`${count} tickets use this status. Select a replacement.`);
+				setMessage(
+					`${count} ${count === 1 ? "ticket uses" : "tickets use"} this status. Select a status to move them to.`,
+				);
 				setMoveTo(alternatives[0]!.value);
 				return;
 			}
@@ -57,7 +59,7 @@ export function StatusDeleteDialog({ project, status, statuses, onDeleted, onClo
 		<ConfirmActionDialog
 			open={status !== null}
 			title={`Delete ${status?.name ?? "status"}?`}
-			description="This action removes the status from the project."
+			description="trellis deletes the status from the project."
 			confirmLabel="Delete status"
 			danger
 			onConfirm={() => void remove()}

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { themeStorageKey } from "@trellis/ui";
 import { createFakeServer } from "../../test/fake-server";
@@ -50,7 +50,7 @@ describe("routes/settings", () => {
 	});
 
 	// WS-79
-	test("saving the template calls settings.set", async () => {
+	test("a blur on the template calls settings.set", async () => {
 		const user = userEvent.setup();
 		const { server } = renderApp({ path: "/settings", actor: "navid" });
 		const before = await server.client.settings.get();
@@ -58,7 +58,8 @@ describe("routes/settings", () => {
 		await waitFor(() => expect(template.value).toBe(before.startWithAgentTemplate));
 		await user.clear(template);
 		await user.type(template, 'codex "$(trellis brief {{brief})"');
-		await user.click(screen.getByRole("button", { name: "Save" }));
+		// Spec ST-4: the field saves on blur. It has no Save button.
+		await user.tab();
 		const call = await waitFor(() => {
 			const found = server.calls.find((entry) => entry.path.join(".") === "settings.set");
 			expect(found).toBeDefined();
@@ -66,7 +67,7 @@ describe("routes/settings", () => {
 		});
 		expect(call.input).toEqual({ ...before, startWithAgentTemplate: 'codex "$(trellis brief {brief})"' });
 		expect((await server.client.settings.get()).startWithAgentTemplate).toBe('codex "$(trellis brief {brief})"');
-		expect(await screen.findByText("Settings saved")).toBeDefined();
+		expect(await within(template.closest("[data-settings-row]") as HTMLElement).findByText("Saved")).toBeDefined();
 	});
 
 	// WS-80
@@ -115,9 +116,10 @@ describe("settings route", () => {
 		expect(((await screen.findByRole("spinbutton", { name: /stalled/i })) as HTMLInputElement).value).toBe("24");
 	});
 
-	// ST-06. settings.set replaces the record, so one save carries every
-	// edit the page holds.
-	test("sends both edited fields in one replace", async () => {
+	// ST-06. settings.set replaces the whole record. Each field saves on its own
+	// blur (spec ST-4), so the template saves first, and the name save then
+	// carries both edits. No replace drops the edit of another field.
+	test("each blur sends one full replace, and the last one holds both edits", async () => {
 		const user = userEvent.setup();
 		const { server } = renderApp({ path: "/settings", actor: "navid" });
 		const template = (await screen.findByRole("textbox", { name: /start with agent/i })) as HTMLTextAreaElement;
@@ -129,10 +131,10 @@ describe("settings route", () => {
 		await user.tab();
 		const calls = await waitFor(() => {
 			const found = server.calls.filter((call) => call.path.join(".") === "settings.set");
-			expect(found).toHaveLength(1);
+			expect(found).toHaveLength(2);
 			return found;
 		});
-		expect(calls[0]!.input).toEqual({
+		expect(calls[1]!.input).toEqual({
 			defaultActorName: "Nav",
 			startWithAgentTemplate: 'codex exec "{brief}"',
 			stalledHours: 24,

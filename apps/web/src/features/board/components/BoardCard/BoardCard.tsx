@@ -1,6 +1,7 @@
 import type { TicketSummary } from "@trellis/api";
 import { cx } from "@trellis/ui";
 import { type KeyboardEvent, useCallback, useRef } from "react";
+import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
 import { useCardDnd } from "../../hooks/useBoardDnd";
 import { CardContent } from "../CardContent";
 import { DragIndicator } from "../DragIndicator";
@@ -34,6 +35,7 @@ export function BoardCard({
 }: BoardCardProps) {
 	const ref = useRef<HTMLLIElement>(null);
 	const pickup = useCallback((message: string) => announce(message), [announce]);
+	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
 	const { closestEdge, dragging } = useCardDnd(
 		ref,
 		{
@@ -47,6 +49,7 @@ export function BoardCard({
 		},
 		pickup,
 		{ ticket, showStatus },
+		readOnly,
 	);
 	const failing = ticket.pr?.state === "open" && ticket.pr.ciState === "fail";
 	const edge = closestEdge ?? (dropAfter ? "bottom" : null);

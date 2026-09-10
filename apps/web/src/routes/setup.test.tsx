@@ -12,10 +12,10 @@ describe("routes/setup", () => {
 	test("setup step 1 asks for a name prefilled from actors.default", async () => {
 		const user = userEvent.setup();
 		renderApp({ path: "/setup", server: createFakeServer({ empty: true }) });
-		expect(await screen.findByRole("heading", { name: "What should we call you?" })).toBeDefined();
+		expect(await screen.findByRole("heading", { name: "Enter your name" })).toBeDefined();
 		const input = await screen.findByDisplayValue("navid");
 		expect(document.activeElement).toBe(input);
-		const submit = screen.getByRole("button", { name: "Continue" });
+		const submit = screen.getByRole("button", { name: /^Continue/ });
 		expect(submit.hasAttribute("disabled")).toBe(false);
 		await user.clear(input);
 		expect(submit.hasAttribute("disabled")).toBe(true);
@@ -31,7 +31,7 @@ describe("routes/setup", () => {
 		await user.type(input, "navid{Enter}");
 		expect(localStorage.getItem("trellis.actor")).toBe('{"name":"navid","kind":"human"}');
 		expect(await screen.findByRole("heading", { name: "Create your first project" })).toBeDefined();
-		expect(screen.queryByRole("heading", { name: "What should we call you?" })).toBeNull();
+		expect(screen.queryByRole("heading", { name: "Enter your name" })).toBeNull();
 		expect(router.state.location.pathname).toBe("/setup");
 	});
 
@@ -45,8 +45,9 @@ describe("routes/setup", () => {
 		const key = screen.getByRole("textbox", { name: /key/i }) as HTMLInputElement;
 		await waitFor(() => expect(key.value).toMatch(/^[A-Z][A-Z0-9]{1,4}$/));
 		expect(["CDE", "TRL", "MRG"]).not.toContain(key.value);
-		expect(screen.getByText(`Tickets will be numbered ${key.value}-1, ${key.value}-2 …`)).toBeDefined();
-		const create = screen.getByRole("button", { name: "Create" });
+		// Spec SU-2: a live chip shows the first ticket ID of the key.
+		expect(document.querySelector("[data-key-preview]")?.textContent).toContain(`${key.value}-1`);
+		const create = screen.getByRole("button", { name: /^Create/ });
 		expect(create.hasAttribute("disabled")).toBe(false);
 		await user.clear(key);
 		await user.type(key, "c");
@@ -60,7 +61,7 @@ describe("routes/setup", () => {
 		await user.clear(key);
 		await user.type(key, "CDE");
 		expect(create.hasAttribute("disabled")).toBe(true);
-		expect(screen.getByText(/taken/i)).toBeDefined();
+		expect(screen.getByText("Another project uses the key CDE.")).toBeDefined();
 		await user.clear(key);
 		await user.type(key, "CDX");
 		expect(create.hasAttribute("disabled")).toBe(false);
@@ -77,7 +78,7 @@ describe("routes/setup", () => {
 		await waitFor(() => expect(key.value).toBe("DO"));
 		await user.clear(key);
 		await user.type(key, "DOC");
-		await user.click(screen.getByRole("button", { name: "Create" }));
+		await user.click(screen.getByRole("button", { name: /^Create/ }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/p/DOC"));
 		const call = server.calls.find((entry) => entry.path.join(".") === "projects.create");
 		expect(call).toBeDefined();
@@ -112,7 +113,7 @@ describe("routes/setup", () => {
 			server.state.defaultActorStored = stored;
 			const view = renderApp({ path: "/setup", server });
 			await waitFor(() => expect(view.router.state.location.pathname, String(stored)).toBe("/needs-you"));
-			expect(screen.queryByRole("heading", { name: "What should we call you?" })).toBeNull();
+			expect(screen.queryByRole("heading", { name: "Enter your name" })).toBeNull();
 			expect(screen.queryByRole("heading", { name: "Create your first project" })).toBeNull();
 			expect(screen.queryByRole("heading", { name: "New project" })).toBeNull();
 			expect(localStorage.getItem("trellis.actor")).toBe('{"name":"navid","kind":"human"}');
@@ -126,7 +127,7 @@ describe("routes/setup", () => {
 		const user = userEvent.setup();
 		const { server } = renderApp({ path: "/setup?step=project", actor: "navid" });
 		const name = await screen.findByRole("textbox", { name: /project name/i });
-		const create = screen.getByRole("button", { name: "Create" });
+		const create = screen.getByRole("button", { name: /^Create/ });
 		await user.type(name, "Trellis");
 		expect(create.hasAttribute("disabled")).toBe(true);
 		expect(name.getAttribute("aria-invalid")).toBe("true");

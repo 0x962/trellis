@@ -71,7 +71,7 @@ export function AgentProjectRow({ project, runner }: AgentProjectRowProps) {
 				<Switch
 					label="Manager"
 					checked={row.enabled}
-					className="ml-auto cursor-pointer"
+					className="ml-auto"
 					onCheckedChange={(enabled) => save({ enabled })}
 				/>
 			</div>
@@ -84,7 +84,6 @@ export function AgentProjectRow({ project, runner }: AgentProjectRowProps) {
 						label="Superset project"
 						items={items}
 						value={row.supersetProjectId ?? autoValue}
-						className="cursor-pointer"
 						onValueChange={(value) => save({ supersetProjectId: value === autoValue ? null : value })}
 					/>
 				</div>
@@ -111,7 +110,7 @@ export function AgentProjectRow({ project, runner }: AgentProjectRowProps) {
 			<Checkbox
 				label="Remove workspace when Done"
 				checked={row.removeWorkspaceOnDone}
-				className="cursor-pointer self-start"
+				className="self-start"
 				onCheckedChange={(removeWorkspaceOnDone) => save({ removeWorkspaceOnDone })}
 			/>
 			{[branchMessage, limitMessage].map(

@@ -53,6 +53,8 @@ export const useCardDnd = (
 	input: Omit<TicketData, "type">,
 	announce: (message: string) => void,
 	preview: { ticket: TicketSummary; showStatus: boolean },
+	// True for a ticket under an archived project.
+	readOnly = false,
 ): CardDndState => {
 	const [closestEdge, setClosestEdge] = useState<"top" | "bottom" | null>(null);
 	const [dragging, setDragging] = useState(false);
@@ -63,6 +65,8 @@ export const useCardDnd = (
 		return combineCleanups(
 			draggable({
 				element,
+				// A ticket under an archived project takes no move, so no drag starts.
+				canDrag: () => !readOnly,
 				getInitialData: () => ({
 					type: "ticket",
 					ticketId,
@@ -114,7 +118,20 @@ export const useCardDnd = (
 				onDrop: () => setClosestEdge(null),
 			}),
 		);
-	}, [announce, columnCount, columnName, identifier, index, ref, statusId, ticketId, title, ticket, showStatus]);
+	}, [
+		announce,
+		columnCount,
+		columnName,
+		identifier,
+		index,
+		readOnly,
+		ref,
+		statusId,
+		ticketId,
+		title,
+		ticket,
+		showStatus,
+	]);
 	return { closestEdge, dragging };
 };
 

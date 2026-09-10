@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { cx, EmptyState, TicketId, useMediaQuery } from "@trellis/ui";
 import { useEffect, useState } from "react";
+import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
 import { StartWithAgent } from "../../agent/StartWithAgent";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
@@ -40,6 +41,7 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 	const uploads = useUploads(identifier);
 	const drop = useDropOverlay(uploads.start);
 	const narrow = useMediaQuery("(max-width: 767px)");
+	const { isArchived, notice } = useArchivedProjects();
 
 	useEffect(() => setAddingChild(false), []);
 	useEffect(() => {
@@ -70,13 +72,22 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 	const ticket = query.data;
 	const peek = variant === "peek";
 	const inlineRail = peek || narrow;
+	const readOnly = isArchived(ticket.project.path);
 
+	// The server refuses every write to a ticket under an archived project.
+	// A disabled fieldset disables every control inside it, so the page and
+	// the peek show the ticket read-only. The edit keys read `readOnly` too.
 	const main = (
 		<article
 			{...drop.handlers}
 			className={cx("relative flex min-w-0 flex-1 flex-col", !peek && "min-h-0 overflow-y-auto")}
 		>
 			<Header ticket={ticket} surface={variant} />
+			{readOnly && (
+				<p className="flex h-9 shrink-0 items-center bg-warning-soft px-12 text-sm font-medium text-warning max-md:px-4">
+					{notice(ticket.project.path)}
+				</p>
+			)}
 			<div className="flex max-w-[856px] flex-col px-12 pt-8 pb-12 max-md:px-4">
 				<div className="flex flex-col gap-1">
 					<TicketId id={ticket.identifier} />
@@ -107,11 +118,19 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 		</article>
 	);
 
-	if (inlineRail) return main;
+	if (inlineRail) {
+		return (
+			<fieldset disabled={readOnly} className="contents">
+				{main}
+			</fieldset>
+		);
+	}
 	return (
-		<div className="flex min-h-0 flex-1">
-			{main}
-			<PropertiesRail ticket={ticket} variant="page" onAddSubTicket={() => setAddingChild(true)} />
-		</div>
+		<fieldset disabled={readOnly} className="contents">
+			<div className="flex min-h-0 flex-1">
+				{main}
+				<PropertiesRail ticket={ticket} variant="page" onAddSubTicket={() => setAddingChild(true)} />
+			</div>
+		</fieldset>
 	);
 }

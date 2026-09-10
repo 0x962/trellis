@@ -1,24 +1,52 @@
 import { describe, expect, test } from "bun:test";
-import type { Inbox } from "@trellis/api";
+import type { Inbox, TicketSummary } from "@trellis/api";
+import { ticketSummary } from "../../../../../test/fixtures";
 import { needsYouCount } from "./needsYouCount";
 
-// Only the totals matter here, so every section carries an empty item list.
-const inbox = (review: number, failingCi: number, stalled: number, doneByAgentsToday: number): Inbox => ({
-	review: { items: [], total: review },
-	failingCi: { items: [], total: failingCi },
-	stalled: { items: [], total: stalled },
-	doneByAgentsToday: { items: [], total: doneByAgentsToday },
+const row = (identifier: string) => ticketSummary({ id: `id-${identifier}`, identifier }) as TicketSummary;
+
+// A section whose `total` is the number of rows it carries, unless the test
+// names a larger total for a paged section.
+const section = (identifiers: string[], total = identifiers.length) => ({ items: identifiers.map(row), total });
+
+const inbox = (parts: Partial<Record<keyof Inbox, ReturnType<typeof section>>>): Inbox => ({
+	review: section([]),
+	failingCi: section([]),
+	stalled: section([]),
+	doneByAgentsToday: section([]),
+	...parts,
 });
 
 describe("needsYouCount", () => {
-	// NY-49. The badge counts every section, so a row a person can act on is
-	// never hidden from the count.
-	test("sums every section total", () => {
-		expect(needsYouCount(inbox(3, 1, 1, 6))).toBe(11);
+	// D13. Only Review and Failing checks ask a person to act, so Stalled and
+	// Done by agents today do not count.
+	test("counts the Review and Failing checks sections only", () => {
+		const count = needsYouCount(
+			inbox({
+				review: section(["CDE-1", "CDE-2", "CDE-3"]),
+				failingCi: section(["CDE-4"]),
+				stalled: section(["CDE-5"]),
+				doneByAgentsToday: section(["CDE-6", "CDE-7"]),
+			}),
+		);
+		expect(count).toBe(4);
+	});
+
+	// A ticket in review with failed checks is in both sections. It counts once.
+	test("counts a ticket that is in both sections once", () => {
+		const count = needsYouCount(inbox({ review: section(["CDE-1", "CDE-5"]), failingCi: section(["CDE-5", "CDE-9"]) }));
+		expect(count).toBe(3);
+	});
+
+	// A section holds at most 100 rows, so the totals carry the count and the
+	// loaded rows give the overlap.
+	test("counts from the totals of a paged section and subtracts the loaded overlap", () => {
+		const count = needsYouCount(inbox({ review: section(["CDE-1", "CDE-5"], 150), failingCi: section(["CDE-5"], 2) }));
+		expect(count).toBe(151);
 	});
 
 	// NY-50
 	test("returns zero for an empty inbox", () => {
-		expect(needsYouCount(inbox(0, 0, 0, 0))).toBe(0);
+		expect(needsYouCount(inbox({}))).toBe(0);
 	});
 });

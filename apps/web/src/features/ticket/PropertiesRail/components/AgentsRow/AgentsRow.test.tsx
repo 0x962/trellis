@@ -67,7 +67,10 @@ describe("AgentsRow", () => {
 		mount(server);
 		expect(await within(await agentsRow()).findByText("None")).toBeDefined();
 		const start = (await startButton())!;
-		expect(start.className).toContain("cursor-pointer");
+		// The base layer of @trellis/ui sets the pointer cursor on every
+		// enabled button, so the control has to be a button element.
+		expect(start.tagName).toBe("BUTTON");
+		expect(start.hasAttribute("disabled")).toBe(false);
 		await user.click(start);
 		await waitFor(() => expect(server.callsTo("agents.startBuilder")).toHaveLength(1));
 		expect(server.callsTo("agents.startBuilder")[0]!.input).toEqual({ ticket: "CDE-42" });

@@ -41,7 +41,7 @@ describe("GhBanner", () => {
 		render(withGh({ ok: false, user: null, reason: "missing", message: null }));
 		const banner = await screen.findByRole("alert");
 		expect(banner.textContent).toContain("trellis cannot find the GitHub CLI");
-		expect(banner.textContent).toContain("Pull request checks stay empty");
+		expect(banner.textContent).toContain("PR checks stay empty");
 		const command = await screen.findByText("brew install gh");
 		expect(command.getAttribute("class")).toContain("font-mono");
 		expect(await screen.findByRole("button", { name: /copy/i })).toBeDefined();
@@ -52,7 +52,7 @@ describe("GhBanner", () => {
 		render(withGh({ ok: false, user: null, reason: "unauthenticated", message: null }));
 		const banner = await screen.findByRole("alert");
 		expect(banner.textContent).toContain("gh is not signed in");
-		expect(banner.textContent).toContain("Pull request checks stay empty");
+		expect(banner.textContent).toContain("PR checks stay empty");
 		const command = await screen.findByText("gh auth login");
 		expect(command.getAttribute("class")).toContain("font-mono");
 		expect(await screen.findByRole("button", { name: /copy/i })).toBeDefined();

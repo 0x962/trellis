@@ -17,7 +17,7 @@ const run = (args: string[], cwd = web) => {
 
 // One string per route that only that route's module carries. The root
 // chunk must hold none of them, and some lazy chunk must hold each.
-const routeMarkers = ["What should we call you?", "Settings saved", "Nothing needs you"];
+const routeMarkers = ["Enter your name", "Pair a phone", "Nothing needs you"];
 
 // The bulk bar's copy action is text only the table module carries. The
 // editor mounts on focus, so its code is a lazy chunk; ProseMirror's class
@@ -234,9 +234,9 @@ describe("size-budget", () => {
 		expect(buildOnce().exitCode).toBe(0);
 		const initial = await initialSource();
 		expect(initial.source).not.toContain("Done by agents today");
-		expect(initial.source).not.toContain("Settings saved");
+		expect(initial.source).not.toContain("Pair a phone");
 		const needsYou = await chunkWith("Done by agents today", initial.names);
-		const settings = await chunkWith("Settings saved", initial.names);
+		const settings = await chunkWith("Pair a phone", initial.names);
 		expect(needsYou).toHaveLength(1);
 		expect(settings).toHaveLength(1);
 		expect(needsYou[0]).not.toBe(settings[0]);

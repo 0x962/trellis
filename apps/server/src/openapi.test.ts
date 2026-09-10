@@ -97,6 +97,14 @@ describe("info description", () => {
 		expect(description).toMatch(/never[^.\n]*delete/i);
 	});
 
+	// errors.ts lets an agent pass force past both rules. The text states the
+	// rule the server enforces, force included.
+	test("the agent rules name force for the done move and for the delete", () => {
+		const description = document.info.description ?? "";
+		expect(description).toMatch(/agent never moves a ticket to a done status without `force`/i);
+		expect(description).toMatch(/agent never deletes a ticket or a project without `force`/i);
+	});
+
 	test("the info description carries both curl forms", () => {
 		const description = document.info.description ?? "";
 		const curls = description.split(/\n(?=[^\n]*\bcurl\b)/).filter((block) => /\bcurl\b/.test(block));

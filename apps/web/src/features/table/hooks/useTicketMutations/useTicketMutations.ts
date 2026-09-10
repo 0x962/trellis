@@ -8,6 +8,7 @@ import {
 } from "@trellis/api";
 import { toast } from "@trellis/ui";
 import { useMemo } from "react";
+import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../lib/appContext";
 import { patchRows, readRow } from "../../utils/cacheRows";
 
@@ -47,9 +48,20 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
 // the old row back and offers a retry.
 export const useTicketMutations = (): TicketMutations => {
 	const { client, queryClient } = useApp();
+	const { isArchived, notice } = useArchivedProjects();
 
 	return useMemo(() => {
 		const applier = eventApplierFor(queryClient);
+
+		// The server refuses every write to a ticket under an archived
+		// project. A list such as All tickets holds such tickets, so every
+		// write checks its rows first. It sends nothing and names the project.
+		const refused = (tickets: readonly TicketSummary[]) => {
+			const archived = tickets.find((ticket) => isArchived(ticket.project.path));
+			if (archived === undefined) return false;
+			toast.error(notice(archived.project.path), { duration: 6000 });
+			return true;
+		};
 
 		const applySummary = (summary: TicketSummary, deleted = false) =>
 			applier.applyEvent({
@@ -68,6 +80,7 @@ export const useTicketMutations = (): TicketMutations => {
 			toast.error(title, { description: message(error), duration: 6000, action: { label: "Retry", onClick: retry } });
 
 		const update: TicketMutations["update"] = async (ticket, fields, patch, verb) => {
+			if (refused([ticket])) return;
 			const current = readRow(queryClient, ticket.id) ?? ticket;
 			patchRows(queryClient, new Set([current.id]), (row) => ({ ...row, ...patch }));
 			applier.beginMutation(current.id);
@@ -87,6 +100,7 @@ export const useTicketMutations = (): TicketMutations => {
 		};
 
 		const updateMany: TicketMutations["updateMany"] = async (tickets, fields, patch, verb) => {
+			if (refused(tickets)) return;
 			const originals = tickets.map((ticket) => readRow(queryClient, ticket.id) ?? ticket);
 			patchRows(queryClient, new Set(originals.map((row) => row.id)), (row) => ({ ...row, ...patch }));
 			try {
@@ -102,6 +116,7 @@ export const useTicketMutations = (): TicketMutations => {
 		};
 
 		const remove: TicketMutations["remove"] = async (ticket) => {
+			if (refused([ticket])) return;
 			try {
 				await client.tickets.delete({ ticket: ticket.identifier });
 				applySummary(ticket, true);
@@ -111,6 +126,7 @@ export const useTicketMutations = (): TicketMutations => {
 		};
 
 		const removeMany: TicketMutations["removeMany"] = async (tickets) => {
+			if (refused(tickets)) return;
 			try {
 				await client.tickets.deleteMany({ tickets: tickets.map((ticket) => ticket.identifier) });
 				for (const ticket of tickets) applySummary(ticket, true);
@@ -120,5 +136,5 @@ export const useTicketMutations = (): TicketMutations => {
 		};
 
 		return { update, updateMany, remove, removeMany };
-	}, [client, queryClient]);
+	}, [client, queryClient, isArchived, notice]);
 };

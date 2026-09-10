@@ -58,7 +58,8 @@ describe("ReviewSection", () => {
 			await user.tab();
 			names.push(document.activeElement?.textContent ?? "");
 		}
-		expect(names).toEqual(["Approve", "Send back", "Open PR"]);
+		// Approve and Send back carry the key caps of a and r.
+		expect(names).toEqual(["Approve a", "Send back r", "Open PR"]);
 	});
 
 	// NY-10. TRL-9 carries no pull request, so it offers no Open PR.
@@ -168,7 +169,7 @@ describe("ReviewSection", () => {
 		render(server);
 		await focusRow("CDE-42");
 		await user.keyboard("a");
-		expect(await screen.findByText("Couldn't move CDE-42 to Done")).toBeDefined();
+		expect(await screen.findByText("CDE-42 did not move to Done.")).toBeDefined();
 		expect(await screen.findByText("The status is not in the ticket's effective status set.")).toBeDefined();
 		expect(await screen.findByRole("button", { name: "Retry" })).toBeDefined();
 		await waitFor(() => expect(screen.queryByText("CDE-42")).not.toBeNull());
@@ -182,7 +183,7 @@ describe("ReviewSection", () => {
 		render(server);
 		await focusRow("CDE-42");
 		await user.keyboard("r");
-		const box = await screen.findByRole("textbox", { name: /What should change/i });
+		const box = await screen.findByRole("textbox", { name: /Reason to send back/i });
 		await user.type(box, "a");
 		expect((box as HTMLTextAreaElement).value).toBe("a");
 		expect(lastCallTo(server, "tickets.move")).toBeUndefined();
@@ -205,7 +206,7 @@ describe("ReviewSection", () => {
 		render(server);
 		await focusRow("CDE-42");
 		await user.keyboard("r");
-		const box = await screen.findByRole("textbox", { name: /What should change/i });
+		const box = await screen.findByRole("textbox", { name: /Reason to send back/i });
 		await user.type(box, "Fix the migration");
 		await user.keyboard("{Meta>}{Enter}{/Meta}");
 		await waitFor(() => expect(screen.queryByText("CDE-42")).toBeNull());
