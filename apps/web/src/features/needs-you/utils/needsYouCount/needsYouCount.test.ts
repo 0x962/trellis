@@ -34,9 +34,7 @@ describe("needsYouCount", () => {
 
 	// A ticket in review with failed checks is in both sections. It counts once.
 	test("counts a ticket that is in both sections once", () => {
-		const count = needsYouCount(
-			inbox({ review: section(["CDE-1", "CDE-5"]), failingCi: section(["CDE-5", "CDE-9"]) }),
-		);
+		const count = needsYouCount(inbox({ review: section(["CDE-1", "CDE-5"]), failingCi: section(["CDE-5", "CDE-9"]) }));
 		expect(count).toBe(3);
 	});
 

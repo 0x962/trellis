@@ -1,7 +1,7 @@
 import type { TicketSummary } from "@trellis/api";
 import { CircleX } from "lucide-react";
-import { useTicketPrs } from "../../../../hooks/useTicketPrs";
-import { failingChecks } from "../../../../utils/failingChecks";
+import { useTicketPrs } from "../../hooks/useTicketPrs";
+import { failingChecks } from "../../utils/failingChecks";
 
 // The names of the checks that failed on the ticket's open pull request. The
 // mark carries an icon and the names beside the color, so the failure reads

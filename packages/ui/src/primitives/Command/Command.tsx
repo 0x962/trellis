@@ -35,6 +35,9 @@ export type CommandItem = {
 	depth?: number;
 	// Extra content after the label, such as an identifier the text must carry.
 	children?: ReactNode;
+	// Decoration at the end of the row, such as a check or a key cap. It is
+	// hidden from assistive tech, so the label alone names the option.
+	trailing?: ReactNode;
 };
 
 export type CommandGroup = {
@@ -112,6 +115,7 @@ export function Command({
 			{item.label}
 			{item.children}
 			{item.checked && <Check aria-hidden="true" className="size-3.5 shrink-0 text-accent" />}
+			{item.trailing}
 		</Cmdk.Item>
 	);
 	return (

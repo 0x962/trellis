@@ -50,7 +50,7 @@ export const statusGroups = (statuses: readonly StatusSummary[], options: Status
 						current,
 						checked: options.checked === undefined ? undefined : options.checked.includes(status.id),
 						...(picker
-							? { children: createElement(RowMarks, { current, keyLabel: key > lastKey ? undefined : String(key) }) }
+							? { trailing: createElement(RowMarks, { current, keyLabel: key > lastKey ? undefined : String(key) }) }
 							: {}),
 					};
 				}),

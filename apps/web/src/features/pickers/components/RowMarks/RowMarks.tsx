@@ -7,7 +7,8 @@ export type RowMarksProps = {
 	// The key that picks the row, such as "1".
 	keyLabel?: string;
 	// True when the row also shows a hint on its right edge. The marks then
-	// follow the hint.
+	// follow the hint. The option always draws a hint box, empty or not, so
+	// the marks take the last place in the row either way.
 	afterHint?: boolean;
 };
 
@@ -19,7 +20,7 @@ export function RowMarks({ current, keyLabel, afterHint = false }: RowMarksProps
 	return (
 		<span
 			aria-hidden="true"
-			className={cx("flex shrink-0 items-center gap-2", afterHint ? "order-last ml-2" : "ml-auto")}
+			className={cx("flex shrink-0 items-center gap-2", afterHint ? "order-last ml-2" : "order-last ml-auto")}
 		>
 			{current && <Check data-current-mark="" className="size-3.5 text-fg-muted" />}
 			{keyLabel !== undefined && (

@@ -18,7 +18,10 @@ export function StartCard({ projectKey, onDismiss }: StartCardProps) {
 			aria-label="Start"
 			className="relative flex w-120 max-w-full flex-col items-start gap-3 rounded-lg border border-border bg-surface p-4 text-left"
 		>
-			<IconButton variant="quiet" label="Dismiss" icon={<X />} onClick={onDismiss} className="absolute top-2 right-2" />
+			{/* IconButton sets its own position for its hit area, so a wrapper holds the corner. */}
+			<span className="absolute top-2 right-2">
+				<IconButton variant="quiet" label="Dismiss" icon={<X />} onClick={onDismiss} />
+			</span>
 			<Button variant="primary" size="md" kbd="c" onClick={() => composerActions.open({ project: projectKey })}>
 				Create a ticket
 			</Button>

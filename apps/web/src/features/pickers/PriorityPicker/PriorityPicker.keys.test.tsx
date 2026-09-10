@@ -35,6 +35,16 @@ describe("features/pickers/PriorityPicker keys and marks", () => {
 		]);
 	});
 
+	// The marks are decoration. The option's name is its label alone, so a
+	// screen reader says "High" and a query by name finds the option.
+	test("each option is named by its label alone", async () => {
+		const user = userEvent.setup();
+		const { dialog } = await mount(user);
+		for (const name of ["None", "Urgent", "High", "Medium", "Low"]) {
+			expect(within(dialog).getByRole("option", { name })).toBeDefined();
+		}
+	});
+
 	test("a number key picks its priority", async () => {
 		const user = userEvent.setup();
 		const { onPick } = await mount(user);

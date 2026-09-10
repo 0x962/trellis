@@ -6,6 +6,7 @@ import { useInbox } from "../../hooks/useInbox";
 import { useInboxActions } from "../../hooks/useInboxActions";
 import { useSectionOpen } from "../../hooks/useSectionOpen";
 import { focusedIdentifier, focusRowAfter } from "../../utils/rowFocus";
+import { FailingChecks } from "../FailingChecks";
 import { InboxSection } from "../InboxSection";
 import { SendBackBox } from "../SendBackBox";
 import { ReviewActions } from "./components/ReviewActions";
@@ -72,6 +73,11 @@ export function ReviewSection() {
 				focusedId={focusedId}
 				onRowActive={(ticket) => setFocusedId(ticket.identifier)}
 				isSweeping={isSweeping}
+				// A ticket in review with failed checks shows here only, so its row
+				// carries the failed-check chip that Failing checks would show.
+				renderMeta={(ticket) =>
+					ticket.pr !== null && ticket.pr.fail > 0 ? <FailingChecks ticket={ticket} /> : undefined
+				}
 				renderActions={(ticket) =>
 					ticket.identifier !== sendBackId && !isArchived(ticket.project.path) ? (
 						<ReviewActions
