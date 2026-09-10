@@ -53,11 +53,13 @@ export function OverlaySections() {
 					open={dialogOpen}
 					onOpenChange={setDialogOpen}
 					title="Delete ticket"
-					description="This cannot be undone."
+					description="trellis cannot restore a deleted ticket."
 				>
-					<div className="flex justify-end gap-2">
-						<Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-						<Button variant="danger" onClick={() => setDialogOpen(false)}>
+					<div className="flex justify-end gap-2 max-md:*:flex-1">
+						<Button size="md" onClick={() => setDialogOpen(false)}>
+							Cancel
+						</Button>
+						<Button size="md" variant="danger" onClick={() => setDialogOpen(false)}>
 							Delete
 						</Button>
 					</div>
@@ -84,7 +86,7 @@ export function OverlaySections() {
 				>
 					<div className="flex flex-col gap-2 p-4">
 						<h3 className="text-xl font-semibold">Merge upstream 1.27 and keep every marked site</h3>
-						<p className="text-md text-fg-muted">The peek shows the ticket page without leaving the list.</p>
+						<p className="text-md text-fg-muted">The peek shows the ticket page over the list.</p>
 					</div>
 				</Sheet>
 			</Section>
@@ -99,11 +101,14 @@ export function OverlaySections() {
 			<Section name="Toast" note="plain, success, error, and the Start-with-agent command">
 				<Button onClick={() => toast("Saved")}>Plain</Button>
 				<Button onClick={() => toast.success("Approved CDE-42")}>Success</Button>
-				<Button onClick={() => toast.error("gh is signed out")}>Error</Button>
+				<Button onClick={() => toast.error("gh is not signed in. Run gh auth login.")}>Error</Button>
 				<Button
 					variant="primary"
 					onClick={() =>
-						toast.command({ title: "Copied. Paste in your terminal.", command: 'claude "$(trellis brief CDE-42)"' })
+						toast.command({
+							title: "Copied the command. Paste it in a terminal.",
+							command: 'claude "$(trellis brief CDE-42)"',
+						})
 					}
 				>
 					Start with agent

@@ -5,24 +5,35 @@ export type EmptyStateProps = {
 	// A lucide icon element, shown at 24 px above the title.
 	icon?: ReactElement;
 	title: string;
-	description?: string;
-	// A Button, shown under the description.
+	description?: ReactNode;
+	// A Button, shown under the description. A page-level action is md.
 	action?: ReactNode;
+	// `section` sits inside a list. `page` fills the pane and holds the
+	// block near 35% of its height.
+	variant?: "section" | "page";
 	className?: string;
 };
 
-// What a list shows when it has nothing to show.
-export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
+// What a list or a page shows when it has nothing to show: the fact, then
+// the action, if one exists.
+export function EmptyState({ icon, title, description, action, variant = "section", className }: EmptyStateProps) {
+	const page = variant === "page";
 	return (
-		<div className={cx("flex flex-col items-center gap-1.5 px-5 py-10 text-center text-fg-muted", className)}>
+		<div
+			className={cx(
+				"flex flex-col items-center gap-1.5 px-5 text-center text-fg-muted",
+				page ? "flex-1 justify-center pb-[15vh]" : "py-10",
+				className,
+			)}
+		>
 			{icon && (
 				<span aria-hidden="true" className="mb-1 inline-flex size-6 text-fg-faint *:size-full">
 					{icon}
 				</span>
 			)}
-			<h3 className="text-md font-medium text-fg">{title}</h3>
-			{description && <p className="max-w-xs text-sm text-fg-muted">{description}</p>}
-			{action && <div className="mt-2">{action}</div>}
+			<h3 className={cx("text-md text-fg", page ? "font-semibold" : "font-medium")}>{title}</h3>
+			{description && <p className={cx("text-sm text-fg-muted", page ? "max-w-sm" : "max-w-xs")}>{description}</p>}
+			{action && <div className={cx(page ? "mt-3" : "mt-2")}>{action}</div>}
 		</div>
 	);
 }

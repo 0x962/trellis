@@ -15,7 +15,8 @@ export type ConfirmDialogProps = {
 };
 
 // A question with two answers. Escape and the scrim cancel; focus returns
-// to the element that opened it.
+// to the element that opened it. Below 768 px the dialog is a bottom sheet
+// and the two buttons share its width.
 export function ConfirmDialog({
 	open,
 	title,
@@ -34,9 +35,11 @@ export function ConfirmDialog({
 			title={title}
 			description={description}
 		>
-			<div className="flex justify-end gap-2">
-				<Button onClick={onCancel}>Cancel</Button>
-				<Button variant={danger ? "danger" : "primary"} onClick={onConfirm}>
+			<div className="flex justify-end gap-2 max-md:*:flex-1">
+				<Button size="md" onClick={onCancel}>
+					Cancel
+				</Button>
+				<Button size="md" variant={danger ? "danger" : "primary"} onClick={onConfirm}>
 					{confirmLabel}
 				</Button>
 			</div>
