@@ -25,7 +25,9 @@ test("needs-you > Re-run with agent copies the command with the check names", as
 	const row = page.locator('[data-inbox-row="NYO-1"]');
 	await row.locator("button[data-rerun]").click();
 	const copied = await page.evaluate(() => navigator.clipboard.readText());
-	expect(copied).toBe('claude "$(trellis brief NYO-1)" fix the failing checks: typecheck (desktop)');
+	// buildAgentCommand is the one builder: `{brief}` becomes the ID, and the
+	// failed check names go inside the quoted brief.
+	expect(copied).toBe('claude "NYO-1 Fix the failed checks: typecheck (desktop)."');
 });
 
 // E2E-04. The settings live on the server, so a reload shows them again.
@@ -36,12 +38,12 @@ test("needs-you > settings persist across a reload and the gh banner matches the
 	await name.fill("Nav");
 	const template = page.getByRole("textbox", { name: /start with agent/i });
 	await template.fill('codex exec "{brief}"');
-	// The name saves on blur as well, so the reload waits for the save that
+	// Every field saves on blur, so the reload waits for the save that
 	// carries the new template.
 	const saved = page.waitForResponse(
 		(response) => response.url().includes("settings/set") && (response.request().postData() ?? "").includes("codex"),
 	);
-	await page.getByRole("button", { name: "Save" }).click();
+	await page.keyboard.press("Tab");
 	await saved;
 	await page.reload();
 	await expect(page.getByRole("textbox", { name: /your name/i })).toHaveValue("Nav");
