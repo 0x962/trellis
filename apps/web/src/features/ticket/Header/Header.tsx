@@ -1,9 +1,10 @@
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
 import { Button, IconButton, Skeleton, useHotkey } from "@trellis/ui";
-import { ArrowLeft, Copy, Maximize2, X } from "lucide-react";
+import { ArrowLeft, Copy, Maximize2, Menu, X } from "lucide-react";
 import { copyText } from "../../../lib/clipboard";
 import { lastListHref } from "../../../lib/lastList";
+import { uiActions } from "../../../stores/uiStore";
 import { BriefCopy } from "../../agent/BriefCopy";
 import { StartWithAgent } from "../../agent/StartWithAgent";
 import { Breadcrumb } from "../../shell/Breadcrumb";
@@ -76,6 +77,16 @@ export function Header(props: HeaderProps) {
 			aria-label="Ticket header"
 			className="sticky top-0 z-10 flex h-11 shrink-0 items-center gap-2 border-b border-border bg-surface px-4"
 		>
+			{/* The ticket page has no Topbar, so under 768 px its header carries
+			the menu button that opens the sidebar sheet. */}
+			{surface === "page" && (
+				<IconButton
+					label="Open sidebar"
+					icon={<Menu />}
+					className="-ml-2 md:hidden"
+					onClick={() => uiActions.setSidebarSheetOpen(true)}
+				/>
+			)}
 			{ticket !== undefined && surface === "page" && (
 				<a
 					href={back}
@@ -84,7 +95,7 @@ export function Header(props: HeaderProps) {
 						event.preventDefault();
 						void router.navigate({ href: back });
 					}}
-					className="-ml-2 inline-flex size-7 shrink-0 items-center justify-center rounded-md text-fg-muted hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
+					className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-fg-muted hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent md:-ml-2"
 				>
 					<ArrowLeft className="size-3.5" aria-hidden="true" />
 				</a>
@@ -104,10 +115,12 @@ export function Header(props: HeaderProps) {
 						<ReviewActions ticket={ticket} />
 						<StartWithAgent ticket={ticket} />
 						<BriefCopy ticket={ticket} />
+						{/* Under 768 px the More menu and the palette copy the ID, so the
+						button leaves its room to the primary action. */}
 						<Button
 							aria-label="Copy ID"
 							icon={<Copy />}
-							className="font-mono"
+							className="font-mono max-md:hidden"
 							onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
 						>
 							{ticket.identifier}

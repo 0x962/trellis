@@ -4,7 +4,7 @@ import type { Config } from "../config.ts";
 import type { RequestContext } from "../context.ts";
 import { createBus } from "../events/bus.ts";
 import type { GhResult, GhRunner, GhSlot } from "../gh/run.ts";
-import type { ServiceKind, ServiceName } from "../services/registry.ts";
+import { type ServiceKind, type ServiceName, services } from "../services/registry.ts";
 import { openDb } from "./client.ts";
 import { migrate } from "./migrate.ts";
 import { openDatabase } from "./open.ts";
@@ -154,10 +154,17 @@ const startHost = () => {
 		}
 	};
 
+	// A call with a `prepare` step spends most of its time in gh, outside the
+	// database. It runs beside the queue, so the next call does not wait for
+	// gh. Its own transaction still waits for the database like any other.
 	const drain = async () => {
 		if (draining) return;
 		draining = true;
-		while (queue.size > 0) await run(queue.shift()!);
+		while (queue.size > 0) {
+			const call = queue.shift()!;
+			if ("prepare" in services[call.name]) void run(call);
+			else await run(call);
+		}
 		draining = false;
 		if (closing) await finish();
 	};

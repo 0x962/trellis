@@ -19,15 +19,28 @@ import * as timeline from "./timeline.ts";
 type Run = (ctx: any, tx: Tx, input: any) => Promise<unknown>;
 // biome-ignore lint/suspicious/noExplicitAny: same as Run, for a service that yields lines.
 type Stream = (ctx: any, tx: Tx, input: any) => AsyncGenerator<string>;
+// `prepare` does the slow work outside the database, such as a gh call,
+// before the transaction of `run` opens. Its result is the input of `run`.
+// It reads the database through `ctx.newTx`, in short transactions of its
+// own, so other calls use the database while gh runs.
+// biome-ignore lint/suspicious/noExplicitAny: same as Run, with no transaction.
+type Prepare = (ctx: any, input: any) => Promise<unknown>;
 
 export type ServiceKind = "mutation" | "read" | "search";
 export type ServiceEntry =
 	| { family: "core"; kind: ServiceKind; run: Run }
 	| { family: "io"; kind: ServiceKind; run: Run }
+	| { family: "io"; kind: ServiceKind; prepare: Prepare; run: Run }
 	| { family: "io"; kind: ServiceKind; stream: Stream };
 
 const core = (kind: ServiceKind, run: Run): ServiceEntry => ({ family: "core", kind, run });
 const io = (kind: ServiceKind, run: Run): ServiceEntry => ({ family: "io", kind, run });
+const prepared = (kind: ServiceKind, prepare: Prepare, run: Run): ServiceEntry => ({
+	family: "io",
+	kind,
+	prepare,
+	run,
+});
 
 export const services = {
 	"projects.list": core("read", projects.list),
@@ -62,10 +75,10 @@ export const services = {
 	"attachments.get": io("read", attachments.get),
 	"attachments.delete": io("mutation", attachments.remove),
 	"pullRequests.list": io("read", pullRequests.list),
-	"pullRequests.link": io("mutation", pullRequests.link),
+	"pullRequests.link": prepared("mutation", pullRequests.prepareLink, pullRequests.link),
 	"pullRequests.unlink": io("mutation", pullRequests.unlink),
-	"pullRequests.refresh": io("mutation", pullRequests.refresh),
-	"pullRequests.diff": io("read", pullRequests.diff),
+	"pullRequests.refresh": prepared("mutation", pullRequests.prepareRefresh, pullRequests.refresh),
+	"pullRequests.diff": prepared("read", pullRequests.prepareDiff, pullRequests.diff),
 	"search.query": core("search", search.query),
 	"inbox.get": core("read", inbox.get),
 	"brief.get": core("read", brief.get),

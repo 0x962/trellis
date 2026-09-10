@@ -1,8 +1,18 @@
 import { expect, test } from "@playwright/test";
-import { put } from "./api";
+import { get, put } from "./api";
 import { createTicket, ensureProject, trellis } from "./cli";
 import { failingPrUrl } from "./ghReplies";
 import { signIn } from "./support";
+
+// Both tests change the server settings, and every spec shares one server.
+// Each test puts back the settings it found, so a later spec starts from them.
+let before: unknown;
+test.beforeEach(async () => {
+	before = await get("/settings");
+});
+test.afterEach(async () => {
+	await put("/settings", before);
+});
 
 // NYO-1 links the stubbed pull request, whose `typecheck (desktop)` check
 // fails, so the ticket shows in the Failing CI section.

@@ -17,18 +17,39 @@ export type DescriptionProps = {
 
 type Conflict = { current: Ticket; markdown: string };
 
+// The server text that the open editor started from, and its version.
+type Base = { text: string; version: number };
+
+// A row marked `descriptionStale` holds the old text at the new version.
+// That text belongs to an older version, so its base takes the version
+// before the row's, and a save from it meets the 412.
+const baseOf = (row: Ticket): Base => ({
+	text: row.description,
+	version: row.descriptionStale === true ? row.version - 1 : row.version,
+});
+
 // The description: formatted markdown until `e` or a click mounts the
-// editor. The editor autosaves with the row's version. While the cached
-// row is marked stale, a save is refused and Reload brings the server text.
-// A 412 keeps the typed text and shows the conflict notice above it.
+// editor. While the editor is open, every save sends the version of the
+// base, the server text the editor started from. So a description that
+// another writer changed meets a 412, and the typed text never overwrites
+// it. A change to another field of the row moves the base to the row's new
+// version, because the text under the editor is still the server's text.
+// While the cached row is marked stale, a save is refused. The notice
+// stays until the person reloads or overwrites, also after a refetch
+// clears the stale mark. A 412 keeps the typed text and shows the conflict
+// notice above it.
 export function Description({ ticket }: DescriptionProps) {
 	const { queryClient, scheduler } = useApp();
 	const { key, write } = useTicketWrite(ticket.identifier);
 	const setStatus = useSaveStatusStore((state) => state.set);
 	const [editing, setEditing] = useState(false);
 	const [conflict, setConflict] = useState<Conflict | null>(null);
+	const [remoteChanged, setRemoteChanged] = useState(false);
 	const conflictRef = useRef<Conflict | null>(null);
 	conflictRef.current = conflict;
+	const latest = useRef(ticket);
+	latest.current = ticket;
+	const base = useRef<Base | null>(null);
 	const editor = useRef<EditorHandle | null>(null);
 
 	// The chunk loads while the page idles, so the first `e` is instant. The
@@ -44,15 +65,38 @@ export function Description({ ticket }: DescriptionProps) {
 		setEditing(true);
 	});
 
+	// A row whose description equals the base text moves the base to the
+	// row's version. A stale row, or a row with other text, means another
+	// writer changed the description.
+	useEffect(() => {
+		if (!editing || base.current === null) return;
+		if (ticket.descriptionStale === true || ticket.description !== base.current.text) {
+			setRemoteChanged(true);
+			return;
+		}
+		base.current = { text: ticket.description, version: ticket.version };
+	}, [editing, ticket.description, ticket.version, ticket.descriptionStale]);
+
+	// `force` sends no version: Overwrite puts the typed text over the
+	// server's text. A save that is not forced waits while the row is stale
+	// or the conflict notice is open.
 	const save = useCallback(
-		async (markdown: string, expectedVersion: number | undefined) => {
+		async (markdown: string, force: boolean) => {
 			const cached = queryClient.getQueryData<Ticket>(key)!;
-			if (cached.descriptionStale === true || conflictRef.current !== null) return;
+			if (!force && (cached.descriptionStale === true || conflictRef.current !== null)) return;
+			const expectedVersion = force ? undefined : base.current!.version;
 			setStatus(ticket.identifier, "saving");
 			try {
-				await write((client) =>
-					client.tickets.update({ ticket: ticket.identifier, description: markdown, expectedVersion }),
-				);
+				await write(async (client) => {
+					const result = await client.tickets.update({
+						ticket: ticket.identifier,
+						description: markdown,
+						expectedVersion,
+					});
+					base.current = baseOf(result);
+					return result;
+				});
+				setRemoteChanged(false);
 				setStatus(ticket.identifier, "saved");
 			} catch (error) {
 				setStatus(ticket.identifier, "idle");
@@ -61,28 +105,45 @@ export function Description({ ticket }: DescriptionProps) {
 					setConflict({ current, markdown });
 					return;
 				}
-				failToast(`Couldn't save ${ticket.identifier}`, error, () => void save(markdown, expectedVersion));
+				failToast(`Couldn't save ${ticket.identifier}`, error, () => void save(markdown, force));
 			}
 		},
 		[queryClient, key, write, setStatus, ticket.identifier],
 	);
 
-	const autosave = useDescriptionAutosave({ ticket, save, scheduler });
+	// The autosave hook passes the row's version. A save sends the base
+	// version, so the hook's version is not read.
+	const autosaveSave = useCallback((markdown: string) => save(markdown, false), [save]);
+	const autosave = useDescriptionAutosave({ ticket, save: autosaveSave, scheduler });
+
+	// Puts the server's text into the editor and makes it the base.
+	const rebase = (row: Ticket) => {
+		editor.current?.setContent(row.description);
+		base.current = baseOf(row);
+		setRemoteChanged(false);
+	};
 
 	const reload = async () => {
 		await queryClient.refetchQueries({ queryKey: key });
-		editor.current?.setContent(queryClient.getQueryData<Ticket>(key)!.description);
+		rebase(queryClient.getQueryData<Ticket>(key)!);
 	};
 
 	const overwrite = async () => {
 		const held = conflict!;
 		setConflict(null);
-		await save(held.markdown, undefined);
+		await save(held.markdown, true);
 	};
 
 	const closeConflict = () => {
-		editor.current?.setContent(conflict!.current.description);
+		rebase(conflict!.current);
 		setConflict(null);
+	};
+
+	// The editor loaded the text of the row it mounted with.
+	const onReady = (handle: EditorHandle) => {
+		editor.current = handle;
+		base.current = baseOf(latest.current);
+		setRemoteChanged(latest.current.descriptionStale === true);
 	};
 
 	const onClick = (event: MouseEvent) => {
@@ -92,7 +153,7 @@ export function Description({ ticket }: DescriptionProps) {
 
 	return (
 		<div className="flex flex-col gap-3">
-			{ticket.descriptionStale === true && (
+			{(ticket.descriptionStale === true || remoteChanged) && conflict === null && (
 				<div
 					role="alert"
 					className="flex min-h-9 items-center gap-2 rounded-md border border-warning bg-warning-soft px-3 py-1.5 text-sm text-fg"
@@ -112,9 +173,7 @@ export function Description({ ticket }: DescriptionProps) {
 					contentKey={ticket.identifier}
 					onChange={autosave.onChange}
 					onBlur={autosave.onBlur}
-					onReady={(handle) => {
-						editor.current = handle;
-					}}
+					onReady={onReady}
 				/>
 			) : (
 				// biome-ignore lint/a11y/noStaticElementInteractions: the `e` key is the keyboard route to the editor

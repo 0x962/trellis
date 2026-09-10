@@ -104,6 +104,17 @@ describe("tickets.counts and tickets.board", () => {
 		);
 	});
 
+	// A status list with no item names no ticket. The request is wrong, so
+	// the answer is a 400 and not a 500.
+	test("an empty status list answers INPUT_VALIDATION_FAILED", async () => {
+		await seedFour();
+		for (const path of ["/api/tickets/counts?project=CDE&status=", "/api/tickets?project=CDE&status="]) {
+			const response = await t.api(path);
+			expect(response.status, path).toBe(400);
+			expect(response.body.code, path).toBe("INPUT_VALIDATION_FAILED");
+		}
+	});
+
 	test("tickets.board caps a column at 100 items and reports the full count", async () => {
 		const project = await t.seedProject("CDE");
 		const ids = statusIds(project);

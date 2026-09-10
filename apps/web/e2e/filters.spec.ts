@@ -55,6 +55,20 @@ test("filters > chips write the URL, a reload keeps them, and a removed chip dro
 	await expect.poll(() => rowIds(page)).toEqual(["FLT-1", "FLT-3", "FLT-4", "FLT-5"]);
 });
 
+// A negated status stays negated when the page loads from the URL and when
+// a second filter navigates, because the router validates the typed view
+// again. FLT-2 is the one ticket outside Todo, and it is High.
+test("filters > a status=!todo URL shows the tickets outside Todo and keeps the negation", async ({ page }) => {
+	await signIn(page, "/p/FLT?status=!todo");
+	await expect(chipOf(page, "status")).toContainText("is not");
+	await expect.poll(() => rowIds(page)).toEqual(["FLT-2"]);
+	await addFilter(page, "Priority", "High");
+	await expect(page).toHaveURL(/[?&]status=!todo(&|$)/);
+	await expect(page).toHaveURL(/[?&]priority=high(&|$)/);
+	await expect(chipOf(page, "status")).toContainText("is not");
+	await expect.poll(() => rowIds(page)).toEqual(["FLT-2"]);
+});
+
 // M3: "Copy as CLI" copies a `trellis list` command, and that command,
 // pasted into a shell, returns the tickets the table shows. The command
 // always names the sort, as features/filters/cli.test.ts states.

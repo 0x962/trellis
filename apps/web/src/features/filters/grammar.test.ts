@@ -176,6 +176,20 @@ describe("features/filters/grammar: the table's filter grammar", () => {
 		expect(serializeSearch(plain)).toBe("priority=none");
 	});
 
+	// The router validates a typed search again on every redirect and
+	// navigate. A second parse must keep the negation of each field.
+	test("parseSearch of a parsed negated view returns the same view", () => {
+		for (const raw of [
+			{ status: "!todo" },
+			{ status: "!todo,done", priority: "!none" },
+			{ project: "!CDE.web" },
+			{ project: "!CDE.web", status: "!in-progress", priority: "high" },
+		]) {
+			const once = parseSearch(raw);
+			expect(parseSearch(once as unknown as Record<string, unknown>), JSON.stringify(raw)).toEqual(once);
+		}
+	});
+
 	// Outcome 72
 	test("translates the relative time windows to ISO bounds and back", () => {
 		const view = parseSearch({ updated: "7d", created: "24h" });

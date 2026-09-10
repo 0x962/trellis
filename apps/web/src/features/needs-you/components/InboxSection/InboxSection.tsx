@@ -70,9 +70,9 @@ export function InboxSection({
 					</span>
 				)}
 				{name}
-				<span className="font-normal text-fg-faint tabular">{formatCount(total)}</span>
+				<span className="font-normal text-fg-muted tabular">{formatCount(total)}</span>
 				{hint !== undefined && (
-					<span className="ml-auto flex items-center gap-1.5 text-sm font-normal text-fg-faint">{hint}</span>
+					<span className="ml-auto flex items-center gap-1.5 text-sm font-normal text-fg-muted">{hint}</span>
 				)}
 			</button>
 			{open && (

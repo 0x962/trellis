@@ -1,11 +1,23 @@
 import type { Locator, Page } from "@playwright/test";
+import { get, put } from "./api";
+
+const actorName = "navid";
+
+type Settings = { startWithAgentTemplate: string; defaultActorName: string; stalledHours: number };
 
 // The localStorage key and value the setup name step writes
 // (src/lib/actor.ts). The init script runs before any page script, so the
 // root route sees an actor and never redirects to /setup.
-const actorScript = `localStorage.setItem("trellis.actor", JSON.stringify({ name: "navid", kind: "human" }));`;
+const actorScript = `localStorage.setItem("trellis.actor", JSON.stringify({ name: "${actorName}", kind: "human" }));`;
 
+// All specs share one server. The app replaces the browser's name with the
+// server's `defaultActorName` (resolveActor in src/lib/identity.ts), so
+// signIn stores the same name on the server. A spec that renamed the actor
+// then cannot change the name that a later spec acts as. PUT /settings
+// replaces the whole record, so the write keeps every other setting.
 export const signIn = async (page: Page, path: string) => {
+	const settings = await get<Settings>("/settings");
+	await put("/settings", { ...settings, defaultActorName: actorName });
 	await page.addInitScript(actorScript);
 	await page.goto(path);
 };

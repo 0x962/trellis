@@ -1,4 +1,4 @@
-import type { ActorRef, Ticket } from "@trellis/api";
+import { type ActorRef, activityActions, type Ticket } from "@trellis/api";
 import { ActorChip, Button, cx, IconButton } from "@trellis/ui";
 import { Copy } from "lucide-react";
 import { isLiveActor } from "../../../lib/actorLive";
@@ -56,7 +56,7 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 	const done = ticket.children.filter((child) => child.status.category === "done").length;
 	const created = timeline.data?.pages
 		.flatMap((page) => page.items)
-		.find((item) => item.kind === "activity" && item.action === "created");
+		.find((item) => item.kind === "activity" && item.action === activityActions.created);
 	const creator = visibleActor(created?.actor ?? null);
 	const last = visibleActor(ticket.lastActor);
 	const saveState = status.identifier === ticket.identifier ? status.state : "idle";
@@ -69,7 +69,7 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 				<span className="tabular">
 					{done} of {ticket.childCount}
 				</span>
-				<Button variant="quiet" size="sm" className="text-fg-faint" onClick={onAddSubTicket}>
+				<Button variant="quiet" size="sm" className="text-fg-muted" onClick={onAddSubTicket}>
 					Add
 				</Button>
 			</Row>
@@ -84,16 +84,16 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 			</Row>
 			<Row label="Created">
 				{creator !== null && <ActorChip name={creator.name} kind={creator.kind} />}
-				<span className="text-fg-faint tabular">· {compactRelativeTime(ticket.createdAt)}</span>
+				<span className="text-fg-muted tabular">· {compactRelativeTime(ticket.createdAt)}</span>
 			</Row>
 			<Row label="Updated">
 				{last !== null && <ActorChip name={last.name} kind={last.kind} live={isLiveActor(last)} />}
-				<span className="text-fg-faint tabular">· {compactRelativeTime(ticket.updatedAt)}</span>
+				<span className="text-fg-muted tabular">· {compactRelativeTime(ticket.updatedAt)}</span>
 			</Row>
 			<Row label="Version">
-				<span className="font-mono text-sm text-fg-faint tabular">{ticket.version}</span>
+				<span className="font-mono text-sm text-fg-muted tabular">{ticket.version}</span>
 				{saveState !== "idle" && (
-					<span className="text-xs text-fg-faint">{saveState === "saving" ? "Saving…" : "Saved"}</span>
+					<span className="text-xs text-fg-muted">{saveState === "saving" ? "Saving…" : "Saved"}</span>
 				)}
 			</Row>
 		</>
@@ -101,13 +101,20 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 
 	if (variant === "peek") {
 		return (
-			<dl aria-label="Properties" className="grid grid-cols-2 gap-x-6 gap-y-0.5">
+			<dl aria-label="Properties" className="grid grid-cols-2 gap-x-6 gap-y-0.5 max-md:grid-cols-1">
 				{rows}
 			</dl>
 		);
 	}
+	// Under 768 px the rail is a full-width block under the ticket body.
 	return (
-		<aside aria-label="Properties" className={cx("w-70 shrink-0 border-l border-border px-4 py-3")}>
+		<aside
+			aria-label="Properties"
+			className={cx(
+				"w-70 shrink-0 border-l border-border px-4 py-3",
+				"max-md:w-full max-md:border-t max-md:border-l-0",
+			)}
+		>
 			<dl className="flex flex-col gap-0.5">{rows}</dl>
 		</aside>
 	);

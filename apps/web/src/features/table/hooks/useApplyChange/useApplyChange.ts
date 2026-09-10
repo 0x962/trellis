@@ -1,7 +1,7 @@
 import type { ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
 import { useStableCallback } from "../../../../hooks/useStableCallback";
 import type { RowChange } from "../../Row";
-import type { useTicketMutations } from "../useTicketMutations";
+import type { useTicketMutations, Verb } from "../useTicketMutations";
 
 type Mutations = ReturnType<typeof useTicketMutations>;
 
@@ -22,25 +22,28 @@ export const useApplyChange = (mutations: Mutations, projects: readonly ProjectS
 		const many = targets.length > 1;
 		if ("status" in change) {
 			const status = summaryOf(change.status);
+			const verb: Verb = (subject) => `move ${subject} to ${status.name}`;
 			return many
-				? mutations.updateMany(targets, { status: status.id }, { status }, `move to ${status.name}`)
-				: mutations.update(targets[0]!, { status: status.id }, { status }, `move to ${status.name}`);
+				? mutations.updateMany(targets, { status: status.id }, { status }, verb)
+				: mutations.update(targets[0]!, { status: status.id }, { status }, verb);
 		}
 		if ("priority" in change) {
-			const label = `set priority to ${change.priority}`;
+			const verb: Verb = (subject) => `set the priority of ${subject} to ${change.priority}`;
 			return many
-				? mutations.updateMany(targets, { priority: change.priority }, { priority: change.priority }, label)
-				: mutations.update(targets[0]!, { priority: change.priority }, { priority: change.priority }, label);
+				? mutations.updateMany(targets, { priority: change.priority }, { priority: change.priority }, verb)
+				: mutations.update(targets[0]!, { priority: change.priority }, { priority: change.priority }, verb);
 		}
 		if ("project" in change) {
 			const target = projects.find((entry) => entry.path === change.project);
 			const patch = target === undefined ? {} : { project: { id: target.id, key: target.key, path: target.path } };
+			const verb: Verb = (subject) => `move ${subject} to ${change.project}`;
 			return many
-				? mutations.updateMany(targets, { project: change.project }, patch, `move to ${change.project}`)
-				: mutations.update(targets[0]!, { project: change.project }, patch, `move to ${change.project}`);
+				? mutations.updateMany(targets, { project: change.project }, patch, verb)
+				: mutations.update(targets[0]!, { project: change.project }, patch, verb);
 		}
 		const parent = change.parent === null ? null : { id: change.parent.id, identifier: change.parent.identifier };
+		const verb: Verb = (subject) => `set the parent of ${subject}`;
 		return many
-			? mutations.updateMany(targets, { parent: parent?.identifier ?? null }, { parent }, "set the parent of")
-			: mutations.update(targets[0]!, { parent: parent?.identifier ?? null }, { parent }, "set the parent of");
+			? mutations.updateMany(targets, { parent: parent?.identifier ?? null }, { parent }, verb)
+			: mutations.update(targets[0]!, { parent: parent?.identifier ?? null }, { parent }, verb);
 	});

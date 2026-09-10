@@ -70,10 +70,13 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 	const main = (
 		<article
 			{...drop.handlers}
-			className={cx("relative flex min-w-0 flex-1 flex-col", !peek && "min-h-0 overflow-y-auto")}
+			className={cx(
+				"relative flex min-w-0 flex-1 flex-col",
+				!peek && "min-h-0 overflow-y-auto max-md:flex-none max-md:overflow-visible",
+			)}
 		>
 			<Header ticket={ticket} surface={variant} />
-			<div className="flex max-w-202 flex-col gap-7 px-12 py-5">
+			<div className="flex max-w-202 flex-col gap-7 px-12 py-5 max-md:px-4">
 				<div className="flex flex-col gap-1">
 					<TicketId id={ticket.identifier} />
 					<Title key={ticket.identifier} ticket={ticket} autoFocus={peek} />
@@ -90,8 +93,9 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 	);
 
 	if (peek) return main;
+	// Under 768 px the rail stacks under the body, and this box scrolls both.
 	return (
-		<div className="flex min-h-0 flex-1">
+		<div className="flex min-h-0 flex-1 max-md:flex-col max-md:overflow-y-auto">
 			{main}
 			<PropertiesRail ticket={ticket} variant="page" onAddSubTicket={() => setAddingChild(true)} />
 		</div>

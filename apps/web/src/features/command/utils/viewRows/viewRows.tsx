@@ -1,3 +1,4 @@
+import type { ProjectSummary } from "@trellis/api";
 import {
 	ArrowUpDown,
 	CornerDownRight,
@@ -96,10 +97,18 @@ export const gotoRows = (deps: RowDeps): PaletteRow[] => {
 		runs["goto.table"] = run(deps, () => deps.action.navigate(projectHref(project, "table")));
 	}
 	const rows = rowsOf("goto", runs);
+	const byId = new Map(deps.projects.map((row) => [row.id, row]));
+	// The sidebar shows a project by its name under the names of its parents,
+	// so the row leads with that. The mono sub is the ref the CLI takes.
+	const namePath = (row: ProjectSummary): string => {
+		const parent = row.parentId === null ? undefined : byId.get(row.parentId);
+		return parent === undefined ? row.name : `${namePath(parent)} / ${row.name}`;
+	};
 	const projects = deps.projects.map((row) => ({
 		value: `goto.project.${row.id}`,
-		label: row.path,
-		sub: row.name,
+		label: namePath(row),
+		sub: row.path,
+		mono: true,
 		icon: <Folder />,
 		keywords: [row.name, row.key],
 		run: run(deps, () => deps.action.navigate(projectHref(row.path, "table"))),

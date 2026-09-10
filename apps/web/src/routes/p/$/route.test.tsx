@@ -258,7 +258,7 @@ describe("routes/p/$", () => {
 		const server = createFakeServer();
 		await server.client.projects.create({ key: "DOC", name: "Docs" });
 		renderApp({ path: "/p/DOC", actor: "navid", server });
-		expect(await screen.findByText('trellis new -p DOC "First ticket"')).toBeDefined();
+		expect(await screen.findByText('trellis create -p DOC -t "First ticket"')).toBeDefined();
 		expect(screen.getByRole("button", { name: "Create ticket" })).toBeDefined();
 		expect(screen.getByRole("heading", { name: /no tickets/i })).toBeDefined();
 	});

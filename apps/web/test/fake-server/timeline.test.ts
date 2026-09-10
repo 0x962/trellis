@@ -18,7 +18,7 @@ describe("fake server timeline", () => {
 		const ticket = await server.client.tickets.get({ ticket: "CDE-42" });
 		expect(all.items.every((item) => item.ticketId === ticket.id)).toBe(true);
 		const actions = all.items.filter((item) => item.kind === "activity").map((item) => item.action);
-		expect(actions).toContain("created");
+		expect(actions).toContain("ticket.created");
 		expect(all.items.some((item) => item.kind === "activity" && item.field === "status")).toBe(true);
 
 		const first = TimelineListOutputSchema.parse(await server.client.timeline.list({ ticket: "CDE-42", limit: 4 }));

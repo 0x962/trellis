@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { preloadOnIdle } from "../../../lib/preloadOnIdle";
 import { commandActions, contextTicket, useCommandStore } from "../commandStore";
 import { useContextTicket } from "../hooks/useContextTicket";
+import { usePaletteTypeahead } from "../hooks/usePaletteTypeahead";
+import { paletteTypeahead } from "../typeahead";
 
 // The dialog holds cmdk, the row builders, and the search. It is a lazy
 // chunk, so the entry chunk carries only this host.
@@ -15,7 +17,9 @@ const PaletteDialog = lazy(() => loadPaletteDialog().then((module) => ({ default
 //
 // The dialog mounts on the first open and stays mounted, so each close
 // runs its exit transition. Its chunk loads when the browser is idle, so
-// the first Cmd+K does not wait on the network.
+// the first Cmd+K does not wait on the network. The keys typed before the
+// field holds the focus go to the query, and a close drops the keys that
+// no field took.
 export function CommandPalette() {
 	const open = useCommandStore((state) => state.open);
 	const identifier = useCommandStore(contextTicket);
@@ -23,7 +27,13 @@ export function CommandPalette() {
 	const [mounted, setMounted] = useState(open);
 	if (open && !mounted) setMounted(true);
 
+	usePaletteTypeahead();
+
 	useEffect(() => preloadOnIdle(loadPaletteDialog), []);
+
+	useEffect(() => {
+		if (!open) paletteTypeahead.clear();
+	}, [open]);
 
 	// The palette lives with the shell that draws it.
 	useEffect(() => commandActions.reset, []);

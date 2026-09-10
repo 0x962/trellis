@@ -74,6 +74,24 @@ describe("connect", () => {
 		expect(payload.summary.identifier).toBe("CDE-1");
 	});
 
+	// `trellis watch` prints the frame id, and an agent passes it to
+	// `--since`. So `ready` carries the newest event id as its frame id, and
+	// a replay from that id starts at the next event.
+	test("ready carries the newest event id as its frame id", async () => {
+		const entries = await threeEvents();
+		const stream = await open();
+
+		const ready = await nextEvent(stream);
+
+		expect(ready.event).toBe("ready");
+		expect(ready.id).toBe(entries[2]!.id);
+		const ticket = await t.createTicket({ project: "CDE", title: "After ready" });
+		const replay = await open(`?since=${ready.id}`);
+		const next = await nextEvent(replay);
+		expect(next.event).toBe("ticket.created");
+		expect(TicketEventPayloadSchema.parse(dataOf(next)).summary.id).toBe(ticket.id);
+	});
+
 	test("the events route needs no actor header", async () => {
 		const stream = await open();
 

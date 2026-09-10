@@ -56,6 +56,7 @@ type PollerState = {
 	lowBudget: boolean;
 	detectAt: number | null;
 	lastFetch: Map<string, number>;
+	failingRepos: Map<string, string>;
 };
 
 // One gh.status event and one log line per change. A state that holds writes
@@ -140,7 +141,7 @@ const pollDue = async (hook: PollerHook, state: PollerState, at: Date) => {
 const detectDue = async (hook: PollerHook, state: PollerState, atMs: number) => {
 	if (state.detectAt !== null && atMs - state.detectAt < DETECT_MS * state.multiplier) return;
 	state.detectAt = atMs;
-	await detect(hook);
+	await detect(hook, state.failingRepos);
 };
 
 const tick = async (hook: PollerHook, state: PollerState) => {
@@ -162,6 +163,7 @@ export const start = (hook: PollerHook): PollerHandle => {
 		lowBudget: false,
 		detectAt: null,
 		lastFetch: new Map(),
+		failingRepos: new Map(),
 	};
 	let running: Promise<void> | null = null;
 	let timer: number | null = null;

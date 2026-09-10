@@ -28,7 +28,7 @@ export function ShortcutSheet({ open }: ShortcutSheetProps) {
 			<div className="flex flex-col gap-5 px-4 py-4">
 				{scopesInOrder().map((scope) => (
 					<section key={scope} aria-label={scopeNames[scope]} className="flex flex-col gap-1">
-						<h3 className="h-6 text-sm text-fg-faint">{scopeNames[scope]}</h3>
+						<h3 className="h-6 text-sm text-fg-muted">{scopeNames[scope]}</h3>
 						<ul className="flex flex-col">
 							{shortcuts
 								.filter((shortcut) => shortcut.scope === scope)

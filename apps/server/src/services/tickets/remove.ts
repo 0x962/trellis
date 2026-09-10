@@ -8,6 +8,7 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { z } from "zod";
 import type { ServiceCtx } from "../../context.ts";
+import { rows } from "../../db/queries/support.ts";
 import { ticketSummary } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { record } from "../activity.ts";
@@ -21,8 +22,13 @@ import { assertAgentMayDelete } from "./rules.ts";
 // in `meta`, because `ticket_id` can no longer point at it.
 const deleteOne = async (ctx: ServiceCtx, tx: Tx, batchId: string, row: TicketRow) => {
 	const summary = await ticketSummary(tx, row.id);
+	const blobs = await rows<{ sha256: string }>(
+		tx,
+		sql`SELECT DISTINCT sha256 FROM attachments WHERE ticket_id = ${row.id}`,
+	);
 	await tx.execute(sql`UPDATE tickets SET parent_id = NULL, version = version + 1 WHERE parent_id = ${row.id}`);
 	await tx.execute(sql`DELETE FROM tickets WHERE id = ${row.id}`);
+	ctx.dropBlobs(blobs.map((blob) => blob.sha256));
 	await tx.execute(
 		sql`DELETE FROM pull_requests p
 			WHERE NOT EXISTS (SELECT 1 FROM ticket_pull_requests l WHERE l.pull_request_id = p.id)`,

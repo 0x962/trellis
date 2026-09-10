@@ -1,5 +1,6 @@
 import { columnVisibilityFeature, createColumnHelper, tableFeatures } from "@tanstack/react-table";
 import type { TicketSummary } from "@trellis/api";
+import type { CSSProperties } from "react";
 
 export type ColumnId =
 	| "select"
@@ -83,3 +84,24 @@ export const buildColumns = () =>
 
 // The `grid-template-columns` of a row and of the header.
 export const gridTemplate = (ids: readonly string[]) => ids.map((id) => columnWidths[id as ColumnId]).join(" ");
+
+// The columns a screen under 768 px hides, so the title keeps room to read.
+export const narrowHidden: readonly ColumnId[] = ["pr", "project", "actor"];
+
+// Under 768 px the status cell shows its icon alone, in its 28 px button.
+const narrowWidths: Partial<Record<ColumnId, string>> = { status: "28px" };
+
+// The tracks of a row and of the header as two custom properties, one for
+// 768 px and up and one for a narrower screen. `gridColumnsClass` picks one
+// with a media query. A cell in `narrowHidden` is `display: none` under
+// 768 px, so the narrow set has no track for it.
+export const gridStyle = (ids: readonly string[]) =>
+	({
+		"--grid-wide": gridTemplate(ids),
+		"--grid-narrow": ids
+			.filter((id) => !narrowHidden.includes(id as ColumnId))
+			.map((id) => narrowWidths[id as ColumnId] ?? columnWidths[id as ColumnId])
+			.join(" "),
+	}) as CSSProperties;
+
+export const gridColumnsClass = "grid-cols-(--grid-wide) max-md:grid-cols-(--grid-narrow)";

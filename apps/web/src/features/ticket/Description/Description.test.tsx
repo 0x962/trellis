@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Ticket } from "@trellis/api";
+import { eventApplierFor, type Ticket } from "@trellis/api";
+import { summaryOf, updatedEvent } from "../../../../test/events";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { findTicket } from "../../../../test/fake-server/state";
 import { createFakeScheduler } from "../../../../test/fakeScheduler";
@@ -162,5 +163,55 @@ describe("features/ticket/Description", () => {
 		expect(screen.getByRole("button", { name: "Reload" })).toBeDefined();
 		expect(screen.getByRole("button", { name: "Overwrite" })).toBeDefined();
 		expect((await editor()).textContent).toContain("Typed by navid.");
+	});
+
+	// Overwrite sends the held text again with no version guard, so the
+	// server takes the person's text over the other writer's text.
+	test("Overwrite sends tickets.update with no expectedVersion", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		await armConflict(server);
+		const { advanceTo } = mount("CDE-42", server);
+		await rendered();
+		press("e");
+		const element = await editor();
+		await user.click(element);
+		await user.keyboard(" Typed by navid.");
+		act(() => advanceTo(1000));
+		await user.click(await screen.findByRole("button", { name: "Overwrite" }));
+		await waitFor(() => expect(server.callsTo("tickets.update")).toHaveLength(2));
+		const input = server.callsTo("tickets.update")[1]!.input as { description: string; expectedVersion?: number };
+		expect(input.expectedVersion).toBeUndefined();
+		expect(input.description).toContain("Typed by navid.");
+		expect(findTicket(server.state, "CDE-42")!.description).toContain("Typed by navid.");
+	});
+
+	// An agent rewrites the description while the editor is open. The
+	// refetch after the event clears descriptionStale, and the editor still
+	// holds the old text. The notice stays, and the next save meets the 412
+	// and leaves the agent's text on the server.
+	test("an open editor never overwrites a description an agent wrote while it was open", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		const { queryClient, orpc, advanceTo } = mount("CDE-42", server);
+		const key = orpc.tickets.get.queryKey({ input: { ticket: "CDE-42" } });
+		await rendered();
+		press("e");
+		const element = await editor();
+		await user.click(element);
+		const written = await server
+			.clientAs("agent:claude-code")
+			.tickets.update({ ticket: "CDE-42", description: "Agent text v2" });
+		act(() => eventApplierFor(queryClient).applyEvent(updatedEvent(summaryOf(written), ["description"])));
+		expect(await screen.findByText("An agent changed the description. Reload to see it.")).toBeDefined();
+		await act(() => queryClient.refetchQueries({ queryKey: key }));
+		expect(queryClient.getQueryData<Ticket>(key)!.descriptionStale).toBeUndefined();
+		expect(screen.getByText("An agent changed the description. Reload to see it.")).toBeDefined();
+		await user.click(element);
+		await user.keyboard(" Second human words.");
+		act(() => advanceTo(1000));
+		await waitFor(() => expect(server.callsTo("tickets.update")).toHaveLength(2));
+		expect(await screen.findByRole("button", { name: "Overwrite" })).toBeDefined();
+		expect(findTicket(server.state, "CDE-42")!.description).toBe("Agent text v2");
 	});
 });

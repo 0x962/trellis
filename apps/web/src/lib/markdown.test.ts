@@ -15,6 +15,17 @@ describe("lib/markdown", () => {
 		expect(body.querySelector("script")).toBeNull();
 	});
 
+	// An image pasted into a description or a comment is an attachment. Its
+	// markdown names the server's relative file URL, so the image keeps it.
+	test("renderMarkdown keeps the src of an attachment image and drops other relative sources", () => {
+		const id = "01J9ZK3Q8V2M4N6P7R8S9T0V1W";
+		const body = parse(renderMarkdown(`![board.png](/api/attachments/${id}/file)\n\n![x](/etc/passwd)`));
+		const [attachment, other] = [...body.querySelectorAll("img")];
+		expect(attachment!.getAttribute("src")).toBe(`/api/attachments/${id}/file`);
+		expect(attachment!.getAttribute("alt")).toBe("board.png");
+		expect(other!.hasAttribute("src")).toBe(false);
+	});
+
 	// WS-35. Descriptions and comments come from agents and from curl, so
 	// the read-only view renders nothing that runs.
 	test("renderMarkdown strips scripts, event handlers, and javascript: links", () => {

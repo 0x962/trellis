@@ -176,14 +176,27 @@ describe("attachments.upload", () => {
 		);
 	});
 
-	test("an upload emits attachment.created after the commit", async () => {
+	test("an upload emits ticket.updated with the new attachment count", async () => {
 		const { ticket } = await seedOneTicket();
+
+		const { delivered } = await runUpload({ ticket: "CDE-1", file: png("pixels") });
+
+		const updates = delivered.filter((event) => event.type === "ticket.updated");
+		expect(updates).toHaveLength(1);
+		const [update] = updates as Extract<TrellisEvent, { type: "ticket.updated" }>[];
+		expect(update!.summary.id).toBe(ticket);
+		expect(update!.summary.attachmentCount).toBe(1);
+		expect(update!.fields).toEqual(["attachmentCount"]);
+	});
+
+	test("an upload emits attachment.created after the commit", async () => {
+		const { rootId, ticket } = await seedOneTicket();
 
 		const { result, delivered, insideCommit } = await runUpload({ ticket: "CDE-1", file: png("pixels") });
 
 		expect(insideCommit).toBe(0);
 		const expected = [
-			{ type: "attachment.created", id: result.attachment.id, ticketId: ticket },
+			{ type: "attachment.created", id: result.attachment.id, ticketId: ticket, projectId: rootId },
 		] satisfies TrellisEvent[];
 		expect(delivered.filter((event) => event.type === "attachment.created")).toEqual(expected);
 	});

@@ -10,6 +10,7 @@ import { commandActions, useCommandStore } from "../../../commandStore";
 import { useActionContext } from "../../../hooks/useActionContext";
 import { useCommandSearch } from "../../../hooks/useCommandSearch";
 import type { PaletteGroup, PaletteRow, RowDeps, Submenu } from "../../../rows";
+import { paletteTypeahead } from "../../../typeahead";
 import { jumpRow, resultRows } from "../../../utils/resultRows";
 import { submenuHeadings } from "../../../utils/submenuRows";
 import { selectionRows, ticketRows } from "../../../utils/ticketRows";
@@ -43,7 +44,7 @@ const rowMatches = (label: string, typed: string) => {
 
 const selectionHeading = (count: number) => (
 	<>
-		Selection <span className="text-fg-faint">{count === 1 ? "1 ticket" : `${count} tickets`}</span>
+		Selection <span className="text-fg-muted">{count === 1 ? "1 ticket" : `${count} tickets`}</span>
 	</>
 );
 
@@ -77,6 +78,9 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 	const projects = useSuspenseQuery(orpc.projects.list.queryOptions({ input: {} })).data;
 	const [query, setQuery] = useState("");
 	const [value, setValue] = useState("");
+
+	// The keys typed between Cmd+K and the focus of the field join the query.
+	useEffect(() => paletteTypeahead.attach(setQuery), []);
 
 	// A submenu and the project picker list their own values, so neither
 	// searches tickets.
@@ -120,6 +124,13 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 	if (submenu === null && results.tickets.length > 0) {
 		groups.push({ id: "results", heading: "Search results", rows: resultRows(results.tickets, deps) });
 	}
+
+	// The footer hint names a root key that exists: the key of the ticket in
+	// context, then the root of the route's project, then the first root.
+	const hintKey =
+		identifier?.split("-")[0] ??
+		deps.routeProject?.split(".")[0] ??
+		projects.filter((row) => row.depth === 0).sort((a, b) => a.position - b.position)[0]!.key;
 
 	const typed = query.trim();
 	const named = groups
@@ -183,7 +194,7 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 					open full search
 				</span>
 				<span className="ml-auto">
-					Type <span className="font-mono">CDE-12</span> to jump to a ticket
+					Type <span className="font-mono">{hintKey}-12</span> to jump to a ticket
 				</span>
 			</Command.Footer>
 		</Command.Root>

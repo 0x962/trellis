@@ -10,7 +10,7 @@ import { freshHomeWithDirs } from "../../test/helpers/home.ts";
 import { assertStatusInvariant } from "../../test/invariants.ts";
 import { withTx } from "../db/tx.ts";
 import { createGhRunner } from "../gh/run.ts";
-import { link, parsePullRequestUrl } from "./pullRequests.ts";
+import { link, parsePullRequestUrl, prepareLink } from "./pullRequests.ts";
 
 // A pull request URL names the owner, the repository, and the number. Any
 // other GitHub URL is INVALID_PR_URL, and the service refuses it before it
@@ -65,7 +65,11 @@ describe("link with a URL that is not a pull request", () => {
 
 		for (const url of urls) {
 			expect(parsePullRequestUrl(url)).toBeNull();
-			const error = await caught(withTx(h.db, (tx, emit) => link(withEmit(ctx, emit), tx, { ticket: "CDE-1", url })));
+			const error = await caught(
+				prepareLink(ctx, { ticket: "CDE-1", url }).then((prepared) =>
+					withTx(h.db, (tx, emit) => link(withEmit(ctx, emit), tx, prepared)),
+				),
+			);
 			expect(error.code).toBe("INVALID_PR_URL");
 		}
 

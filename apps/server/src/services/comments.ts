@@ -89,7 +89,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 			VALUES (${id}, ${row.id}, ${input.body}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
 	);
 	await record(ctx, tx, activityFor(row, "comment.created", batchId, id));
-	ctx.emit({ type: "comment.created", id, ticketId: row.id });
+	ctx.emit({ type: "comment.created", id, ticketId: row.id, projectId: row.projectId });
 	await bumpTicket(ctx, tx, batchId, row, true);
 	return commentById(tx, id);
 };
@@ -101,7 +101,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const batchId = ulid();
 	await tx.execute(sql`UPDATE comments SET body = ${input.body}, updated_at = ${ctx.now} WHERE id = ${comment.id}`);
 	await record(ctx, tx, activityFor(row, "comment.updated", batchId, comment.id));
-	ctx.emit({ type: "comment.updated", id: comment.id, ticketId: row.id });
+	ctx.emit({ type: "comment.updated", id: comment.id, ticketId: row.id, projectId: row.projectId });
 	return commentById(tx, comment.id);
 };
 
@@ -116,7 +116,7 @@ const remove = async (
 	const batchId = ulid();
 	await tx.execute(sql`DELETE FROM comments WHERE id = ${comment.id}`);
 	await record(ctx, tx, activityFor(row, "comment.deleted", batchId, comment.id));
-	ctx.emit({ type: "comment.deleted", id: comment.id, ticketId: row.id });
+	ctx.emit({ type: "comment.deleted", id: comment.id, ticketId: row.id, projectId: row.projectId });
 	await bumpTicket(ctx, tx, batchId, row, false);
 	return { deleted: comment.id };
 };

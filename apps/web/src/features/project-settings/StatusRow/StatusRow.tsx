@@ -61,7 +61,7 @@ export function StatusRow({ project, status, index, count, onChanged, onMove, on
 		<li className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-3">
 			<div className="flex items-center gap-2">
 				<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />
-				<span className="font-mono text-xs text-fg-faint">{status.category}</span>
+				<span className="font-mono text-xs text-fg-muted">{status.category}</span>
 				<div className="ml-auto flex items-center gap-1">
 					<IconButton
 						size="sm"

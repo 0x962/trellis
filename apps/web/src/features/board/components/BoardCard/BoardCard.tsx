@@ -77,7 +77,7 @@ export function BoardCard({
 				{ticket.priority !== "none" && <PriorityIcon priority={ticket.priority} />}
 			</div>
 			<p className="mt-1 line-clamp-2 min-h-10 text-base font-medium text-fg">{ticket.title}</p>
-			<div className="mt-auto flex min-w-0 items-center gap-1.5 text-xs text-fg-faint tabular">
+			<div className="mt-auto flex min-w-0 items-center gap-1.5 text-xs text-fg-muted tabular">
 				{ticket.pr !== null && (
 					<>
 						<GitPullRequest aria-label={`${ticket.pr.state} pull request`} className="size-3.25 shrink-0" />

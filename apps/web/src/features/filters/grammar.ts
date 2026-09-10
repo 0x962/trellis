@@ -105,15 +105,22 @@ const text = (value: Raw) => (typeof value !== "string" || value === "" ? undefi
 const negatable: NegatableField[] = ["status", "priority", "project"];
 
 // A leading `!` on a negatable field's value negates the whole set. The
-// value comes back without it.
+// value comes back without it. A typed view from a Link, a navigate, or a
+// redirect names the negated fields in `not`, and the router parses that
+// view again. So a field in an incoming `not` array stays negated, and a
+// second parse returns the view of the first parse.
 const splitNegation = (raw: Record<string, Raw>) => {
 	const values: Record<string, Raw> = { ...raw };
+	const typed = Array.isArray(raw.not) ? raw.not : [];
 	const not: NegatableField[] = [];
 	for (const field of negatable) {
 		const value = raw[field];
-		if (typeof value !== "string" || !value.startsWith("!")) continue;
-		values[field] = value.slice(1);
-		not.push(field);
+		if (typeof value === "string" && value.startsWith("!")) {
+			values[field] = value.slice(1);
+			not.push(field);
+		} else if (typed.includes(field)) {
+			not.push(field);
+		}
 	}
 	return { values, not };
 };

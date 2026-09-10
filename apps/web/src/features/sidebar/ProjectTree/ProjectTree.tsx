@@ -66,7 +66,7 @@ export function ProjectTree() {
 					return (
 						<li key={project.id} className="relative">
 							{children.length > 0 && (
-								<span className={cx("absolute top-0.5 z-10", chevronLeft[level])}>
+								<span className={cx("absolute top-0.5 z-10 pointer-coarse:top-2.5", chevronLeft[level])}>
 									<IconButton
 										size="sm"
 										label={`${open ? "Collapse" : "Expand"} ${project.name}`}
@@ -83,7 +83,7 @@ export function ProjectTree() {
 								activeOptions={{ exact: true, includeSearch: false }}
 								aria-current={active ? "page" : undefined}
 								className={cx(
-									"flex h-7 items-center gap-1.5 rounded-md pr-9 transition-colors duration-hover hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
+									"flex h-7 items-center gap-1.5 rounded-md pr-9 transition-colors duration-hover hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11",
 									indent[level],
 									active ? "bg-accent-soft text-fg" : "text-fg-muted",
 								)}
@@ -91,11 +91,13 @@ export function ProjectTree() {
 								<span aria-hidden="true" className="size-4 shrink-0" />
 								{depth === 0 && <ProjectKey projectKey={project.key} />}
 								<span className="truncate">{project.name}</span>
-								<span className={cx("ml-auto text-xs tabular", active ? "font-semibold text-accent" : "text-fg-faint")}>
+								<span className={cx("ml-auto text-xs tabular", active ? "font-semibold text-accent" : "text-fg-muted")}>
 									{formatCount(project.openCount)}
 								</span>
 							</Link>
-							<span className="absolute top-0 right-0 z-10">
+							{/* A row is 44 px tall on a touch screen, so the 28 px menu button
+							moves down 8 px to stay centered. */}
+							<span className="absolute top-0 right-0 z-10 pointer-coarse:top-2">
 								<Suspense fallback={null}>
 									<ProjectRowActions project={project} />
 								</Suspense>

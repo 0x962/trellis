@@ -31,6 +31,11 @@ const fileAt = (path: string): File => {
 	}
 };
 
+// The server's multipart parser cuts a filename at a double quote or a line
+// break. Such a name also travels in the `name` field, which the server
+// stores in place of the multipart filename.
+const CUT_BY_MULTIPART = /["\r\n]/;
+
 const renderUpload = (result: AttachmentUploadOutput) =>
 	`Attached ${result.attachment.filename} (${kilobytes(result.attachment.size)}) -> ${result.url}\n${result.markdown}\n`;
 
@@ -45,7 +50,8 @@ export default defineCommand({
 		const ctx = contextOf(context);
 		const { args } = context;
 		const file = fileAt(args.path);
-		const result = await clientOf(ctx).attachments.upload(compact({ ticket: args.ticket, file, name: args.name }));
+		const name = args.name ?? (CUT_BY_MULTIPART.test(file.name) ? file.name : undefined);
+		const result = await clientOf(ctx).attachments.upload(compact({ ticket: args.ticket, file, name }));
 		switch (ctx.format.mode) {
 			case "quiet":
 				ctx.out.write(`${result.attachment.id}\n`);

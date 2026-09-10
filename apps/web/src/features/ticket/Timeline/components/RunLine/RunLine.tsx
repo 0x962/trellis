@@ -29,12 +29,12 @@ export function RunLine({ items }: RunLineProps) {
 				type="button"
 				aria-expanded={open}
 				onClick={() => setOpen(true)}
-				className="inline-flex h-6 shrink-0 items-center gap-0.5 rounded-sm px-1 text-xs text-fg-faint hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
+				className="inline-flex h-6 shrink-0 items-center gap-0.5 rounded-sm px-1 text-xs text-fg-muted hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
 			>
 				<Chevron className="size-3" aria-hidden="true" />
 				{items.length} changes
 			</button>
-			<time dateTime={last.createdAt} className="ml-auto shrink-0 text-fg-faint tabular">
+			<time dateTime={last.createdAt} className="ml-auto shrink-0 text-fg-muted tabular">
 				{compactRelativeTime(last.createdAt)}
 			</time>
 		</li>

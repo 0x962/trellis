@@ -29,6 +29,10 @@ const nextPosition = async (tx: Tx, parentId: string | null) => {
 	return found[0]!.n;
 };
 
+// The description a new ticket of a new root starts with, from product.md
+// section 6.3. A sub-project starts with an empty template.
+export const DEFAULT_TICKET_TEMPLATE = "## Context\n\n## Acceptance criteria\n- [ ]\n\n## Out of scope\n";
+
 export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput): Promise<Project> => {
 	requireActor(ctx);
 	const id = ulid();
@@ -39,10 +43,11 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput)
 	if (parent === null) await assertKeyFree(tx, key as string);
 	else await assertSlugFree(tx, parent.id, slug, null);
 	const position = await nextPosition(tx, parent?.id ?? null);
+	const template = input.ticketTemplate ?? (parent === null ? DEFAULT_TICKET_TEMPLATE : "");
 	await tx.execute(
 		sql`INSERT INTO projects (id, parent_id, root_id, key, slug, name, description, ticket_template, ticket_counter, position, archived_at, created_at, updated_at)
 			VALUES (${id}, ${parent?.id ?? null}, ${parent?.rootId ?? id}, ${key}, ${slug}, ${input.name},
-				${input.description ?? ""}, ${input.ticketTemplate ?? ""}, 0, ${position}, NULL, ${ctx.now}, ${ctx.now})`,
+				${input.description ?? ""}, ${template}, 0, ${position}, NULL, ${ctx.now}, ${ctx.now})`,
 	);
 	if (parent === null) await seedRootStatuses(ctx, tx, id);
 	await ctx.cache.rebuild(tx);

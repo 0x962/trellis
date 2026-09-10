@@ -21,6 +21,7 @@ import { BoardColumn } from "../components/BoardColumn";
 import { StatusChoice } from "../components/StatusChoice";
 import { useBoardAutoScroll, useBoardMonitor } from "../hooks/useBoardDnd";
 import type { BoardColumnModel, BoardMove } from "../types";
+import { boardSort } from "./constants";
 
 export type BoardProps = {
 	projectRef?: string;
@@ -165,7 +166,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 			...(projectRef === undefined
 				? { category: [column.category] }
 				: { status: column.statuses.map((status) => status.slug) }),
-			sort: "position" as const,
+			sort: boardSort,
 			limit: 100,
 		};
 		let cursor = cursors[column.id];

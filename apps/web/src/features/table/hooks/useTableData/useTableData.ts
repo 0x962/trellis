@@ -34,6 +34,11 @@ export type TableData = {
 	allActiveLoaded: boolean;
 	// True until the first page arrives.
 	loading: boolean;
+	// The failure of the active pass, or null. It stays set while a retry
+	// is in flight and clears when a page arrives.
+	error: Error | null;
+	// Runs the active pass again after a failure.
+	retry: () => void;
 	// The Done and Canceled groups, or null while a status filter names
 	// the groups the table shows.
 	closed: Record<ClosedCategory, ClosedGroupData> | null;
@@ -117,6 +122,8 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 		capped,
 		allActiveLoaded: active.data !== undefined && !active.hasNextPage,
 		loading: active.isPending,
+		error: active.error,
+		retry: () => void active.refetch(),
 		closed: filtered ? null : { done, canceled },
 		statuses,
 		total: counts.data?.total,

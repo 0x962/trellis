@@ -165,7 +165,7 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 | `trellis sub` | Create a sub-ticket. |
 | `trellis delete` | Delete a ticket. |
 | `trellis search` | Search tickets. |
-| `trellis activity` | List ticket or project activity. |
+| `trellis activity` | List ticket activity. |
 | `trellis brief` | Print an agent brief. |
 | `trellis inbox` | Show work that needs a human. |
 | `trellis watch` | Stream events. |

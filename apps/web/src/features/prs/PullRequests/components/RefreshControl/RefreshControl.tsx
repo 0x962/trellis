@@ -40,7 +40,7 @@ export function RefreshControl({ ticket, prs }: RefreshControlProps) {
 	if (fetchedAt === null) return null;
 	return (
 		<span className="flex items-center gap-2">
-			<span className={cx("text-sm text-fg-faint", tabularClass)}>Fetched {relativeTime(fetchedAt)}</span>
+			<span className={cx("text-sm text-fg-muted", tabularClass)}>Fetched {relativeTime(fetchedAt)}</span>
 			<Button
 				size="sm"
 				variant="quiet"

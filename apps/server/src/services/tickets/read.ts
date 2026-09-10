@@ -6,7 +6,7 @@ import {
 	type Ticket,
 	TicketGetInputSchema,
 } from "@trellis/api";
-import { type SQL, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { ServiceCtx } from "../../context.ts";
 import { board } from "../../db/queries/board.ts";
@@ -16,27 +16,39 @@ import type { TicketFilter } from "../../db/queries/ticketFilters.ts";
 import { ticketGet } from "../../db/queries/ticketGet.ts";
 import { InvalidCursorError, ticketList } from "../../db/queries/ticketList.ts";
 import type { Tx } from "../../db/tx.ts";
-import { fail } from "../../errors.ts";
-import { resolveProject, resolveTicket } from "../refs.ts";
+import { fail, invalidInput } from "../../errors.ts";
+import { resolveProject, resolveTicket, toSummary } from "../refs.ts";
 
 type Query = z.infer<typeof BoardQuerySchema>;
 
-// The status ids a list of status refs names, across every status set. A
-// ref that names nothing narrows the list to no rows, which is the answer
-// for a status that does not exist.
-const statusIdsOf = async (tx: Tx, refs: string[]) => {
-	const tests: SQL[] = refs.map((ref) => {
-		const parsed = StatusRefSchema.parse(ref);
-		if (parsed.kind === "ulid") return sql`s.id = ${parsed.id}`;
-		if (parsed.kind === "category") return sql`s.category = ${parsed.category}`;
-		const value = parsed.value.toLowerCase();
-		return sql`(s.slug = ${value} OR lower(s.name) = ${value})`;
+type StatusLike = { id: string; slug: string; name: string; category: string };
+
+// True when a status ref names this status. `category:x` names every status
+// of that category, because a list filter keeps all of them.
+const namesStatus = (status: StatusLike, ref: z.infer<typeof StatusRefSchema>) => {
+	if (ref.kind === "ulid") return status.id === ref.id;
+	if (ref.kind === "category") return status.category === ref.category;
+	const value = ref.value.toLowerCase();
+	return status.slug === value || status.name.toLowerCase() === value;
+};
+
+// The status ids a list of status refs names. With a project, every ref
+// must name a status of the project's effective set, as a create or a move
+// requires. Without one, every ref must name a status of some set. A ref
+// that names nothing is refused, so a typo never reads as an empty list.
+const statusIdsOf = async (ctx: ServiceCtx, tx: Tx, refs: string[], projectId: string | null) => {
+	const candidates: StatusLike[] =
+		projectId === null
+			? await rows<StatusLike>(tx, sql`SELECT id, slug, name, category FROM statuses ORDER BY position, id`)
+			: ctx.cache.effectiveStatuses(projectId).statuses;
+	const ids = refs.flatMap((raw) => {
+		const parsed = StatusRefSchema.safeParse(raw);
+		const found = parsed.success ? candidates.filter((status) => namesStatus(status, parsed.data)) : [];
+		if (found.length > 0) return found.map((status) => status.id);
+		if (projectId === null) throw invalidInput("status", `No status matches "${raw}".`);
+		throw fail("STATUS_NOT_IN_PROJECT", { valid: ctx.cache.effectiveStatuses(projectId).statuses.map(toSummary) });
 	});
-	const found = await rows<{ id: string }>(
-		tx,
-		sql`SELECT s.id FROM statuses s WHERE ${sql.join(tests, sql` OR `)} ORDER BY s.position, s.id`,
-	);
-	return found.map((row) => row.id);
+	return [...new Set(ids)];
 };
 
 // The flat query grammar with every ref resolved to ids. `project` becomes
@@ -52,7 +64,10 @@ const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 		filter.rootIds = [project.rootId];
 		filter.projectIds = query.subprojects ? ctx.cache.resolveSubtree(projectId) : [projectId];
 	}
-	if (query.status !== undefined) filter.statusIds = await statusIdsOf(tx, query.status);
+	// The query string `status=` parses to an empty list. That list names no
+	// status, and the status statement needs one ref at least.
+	if (query.status?.length === 0) throw invalidInput("status", "Name one status at least.");
+	if (query.status !== undefined) filter.statusIds = await statusIdsOf(ctx, tx, query.status, projectId);
 	if (query.category !== undefined) filter.categories = query.category;
 	if (query.reviewer !== undefined) filter.reviewer = query.reviewer;
 	if (query.priority !== undefined) filter.priority = query.priority;

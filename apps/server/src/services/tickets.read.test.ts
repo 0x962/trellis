@@ -9,6 +9,7 @@ import {
 	seedComment,
 	seedPr,
 	seedProject,
+	seedStatus,
 	seedTicket,
 } from "../../test/fixtures";
 import { expectErrorData, ticketHarness } from "../../test/helpers/services.ts";
@@ -30,6 +31,42 @@ const seedTree = async () => {
 	const web = [await seed(webId, 3), await seed(webId, 1)];
 	return { rootId, statuses, webId, root, web };
 };
+
+describe("tickets.list status refs", () => {
+	test("a status ref outside the project's statuses throws STATUS_NOT_IN_PROJECT", async () => {
+		await seedTree();
+
+		const data = await expectErrorData(list({ project: "CDE", status: "in-progres" }), "STATUS_NOT_IN_PROJECT");
+
+		expect(data.valid.map((status) => status.slug)).toContain("in-progress");
+	});
+
+	test("a status ref of another project's set throws STATUS_NOT_IN_PROJECT", async () => {
+		await seedTree();
+		const other = await seedProject(h.db, "OPS");
+		await seedStatus(h.db, { projectId: other.rootId, name: "Shipped", category: "done", position: 6 });
+
+		await expectErrorData(list({ project: "CDE", status: "shipped" }), "STATUS_NOT_IN_PROJECT");
+	});
+
+	test("a status ref that names no status anywhere throws INPUT_VALIDATION_FAILED", async () => {
+		await seedTree();
+
+		const data = await expectErrorData(list({ status: "nosuch" }), "INPUT_VALIDATION_FAILED");
+
+		expect(data.issues[0]!.path).toEqual(["status"]);
+	});
+
+	test("a known status ref still narrows the list with and without a project", async () => {
+		const { root, web } = await seedTree();
+
+		const { result: scoped } = await list({ project: "CDE", status: "todo" });
+		const { result: everywhere } = await list({ status: "todo,category:done" });
+
+		expect(scoped.items).toHaveLength(root.length + web.length);
+		expect(everywhere.items).toHaveLength(root.length + web.length);
+	});
+});
 
 describe("tickets.list", () => {
 	test("list resolves the project ref to the subtree", async () => {

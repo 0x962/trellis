@@ -27,7 +27,7 @@ export function GhBanner() {
 				<div className="flex items-center gap-2">
 					<Badge tone="ok">Ready</Badge>
 					<span className="text-sm text-fg-muted">gh is ready as {gh.user}</span>
-					{gh.checkedAt !== null && <span className="text-sm text-fg-faint">Checked {relativeTime(gh.checkedAt)}</span>}
+					{gh.checkedAt !== null && <span className="text-sm text-fg-muted">Checked {relativeTime(gh.checkedAt)}</span>}
 				</div>
 			) : (
 				<div role="alert" className="flex flex-col gap-2 rounded-md border border-border bg-surface p-3">

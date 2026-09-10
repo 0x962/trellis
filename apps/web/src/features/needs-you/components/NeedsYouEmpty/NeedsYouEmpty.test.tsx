@@ -34,4 +34,14 @@ describe("NeedsYouEmpty", () => {
 		const line = await findByText(/Nothing needs you\./);
 		expect(within(line).getByRole("link").getAttribute("href")).toBe("/all?category=started");
 	});
+
+	// With no ticket in progress the line names nothing, so a link to "them"
+	// has nothing to point at.
+	test("shows no link when no ticket is in progress", async () => {
+		const server = createFakeServer({ empty: true });
+		await server.client.projects.create({ key: "DOC", name: "Docs" });
+		const { findByText } = renderWithProviders(<NeedsYouEmpty />, { path: "/needs-you", actor: "navid", server });
+		const line = await findByText("Nothing needs you.");
+		expect(within(line).queryByRole("link")).toBeNull();
+	});
 });
