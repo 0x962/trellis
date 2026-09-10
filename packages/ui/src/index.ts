@@ -12,7 +12,7 @@ export { Badge, type BadgeProps, type BadgeTone } from "./primitives/Badge";
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from "./primitives/Button";
 export { Checkbox, type CheckboxProps } from "./primitives/Checkbox";
 export { Chip, type ChipProps } from "./primitives/Chip";
-export { Command, type CommandItem, type CommandProps } from "./primitives/Command";
+export { Command, type CommandGroup, type CommandItem, type CommandProps } from "./primitives/Command";
 export { Dialog, type DialogProps } from "./primitives/Dialog";
 export { EmptyState, type EmptyStateProps } from "./primitives/EmptyState";
 export { IconButton, type IconButtonProps } from "./primitives/IconButton";
