@@ -1,4 +1,80 @@
-// Skeleton for the web-table work item. The tests beside it state the outcomes.
-export function ProjectPicker(_props: Record<string, unknown>) {
-	return null;
+import type { ProjectSummary } from "@trellis/api";
+import { Command, type CommandItem, Popover } from "@trellis/ui";
+import { type ReactElement, type RefObject, useRef, useState } from "react";
+import { projectSlashPath } from "../../../lib/projectPath";
+
+const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.position;
+
+// The projects in tree order: roots by position, then each root's subtree
+// depth first. The option id is the dotted ref; the hint is the slash path.
+export const projectItems = (projects: readonly ProjectSummary[], current?: string): CommandItem[] => {
+	const children = new Map<string | null, ProjectSummary[]>();
+	for (const project of projects) {
+		const list = children.get(project.parentId) ?? [];
+		list.push(project);
+		children.set(project.parentId, list);
+	}
+	const items: CommandItem[] = [];
+	const walk = (parentId: string | null, depth: number) => {
+		for (const project of (children.get(parentId) ?? []).sort(byPosition)) {
+			const path = projectSlashPath(project.path);
+			items.push({
+				id: project.path,
+				label: depth === 0 ? project.key : project.name,
+				keywords: [path, project.name, project.key],
+				hint: path,
+				depth,
+				current: project.path === current,
+			});
+			walk(project.id, depth + 1);
+		}
+	};
+	walk(null, 0);
+	return items;
+};
+
+export type ProjectPickerProps = {
+	projects: readonly ProjectSummary[];
+	// The current project ref.
+	value?: string;
+	onPick: (ref: string) => void;
+	trigger: ReactElement;
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
+	finalFocus?: RefObject<HTMLElement | null>;
+	side?: "top" | "bottom";
+};
+
+// The project popover: the tree by depth, searchable by path.
+export function ProjectPicker({ projects, value, onPick, trigger, open, onOpenChange, finalFocus, side }: ProjectPickerProps) {
+	const [own, setOwn] = useState(false);
+	const input = useRef<HTMLInputElement>(null);
+	const isOpen = open ?? own;
+	const setOpen = (next: boolean) => {
+		setOwn(next);
+		onOpenChange?.(next);
+	};
+	return (
+		<Popover
+			trigger={trigger}
+			label="Project"
+			open={isOpen}
+			onOpenChange={setOpen}
+			initialFocus={input}
+			finalFocus={finalFocus}
+			side={side}
+			className="w-72 p-0"
+		>
+			<Command
+				inputRef={input}
+				label="Search projects"
+				placeholder="Move to project"
+				items={projectItems(projects, value)}
+				onSelect={(id) => {
+					setOpen(false);
+					onPick(id);
+				}}
+			/>
+		</Popover>
+	);
 }
