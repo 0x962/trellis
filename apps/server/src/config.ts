@@ -12,6 +12,10 @@ export type Config = {
 	// network address or 0.0.0.0 lets a phone reach it, and the server has no
 	// auth.
 	host: string;
+	// Lowercase hostnames with no port. The Host check serves them beside
+	// `host`, so a proxy that keeps its own hostname in the Host header, such
+	// as Tailscale Serve, reaches the server.
+	allowedHosts: string[];
 	port: number;
 	maxUploadMb: number;
 	ghBin: string;
@@ -52,11 +56,26 @@ const levelOf = (value: string): LogLevel => {
 	return value as LogLevel;
 };
 
+// TRELLIS_ALLOWED_HOSTS is a comma-separated list. The URL parser gives
+// each entry in lowercase and drops a port after it.
+const hostnamesOf = (value: string) =>
+	value
+		.split(",")
+		.map((entry) => entry.trim())
+		.filter((entry) => entry !== "")
+		.map((entry) => {
+			if (!URL.canParse(`http://${entry}`)) {
+				throw new Error(`TRELLIS_ALLOWED_HOSTS must list hostnames, got "${entry}".`);
+			}
+			return new URL(`http://${entry}`).hostname;
+		});
+
 export const loadConfig = (env: Env): Config => {
 	const home = resolve(expandHome(env.TRELLIS_HOME ?? "~/.trellis"));
 	return {
 		home,
 		host: env.TRELLIS_HOST ?? "127.0.0.1",
+		allowedHosts: env.TRELLIS_ALLOWED_HOSTS === undefined ? [] : hostnamesOf(env.TRELLIS_ALLOWED_HOSTS),
 		port: env.TRELLIS_PORT === undefined ? 4521 : numberOf("TRELLIS_PORT", env.TRELLIS_PORT),
 		maxUploadMb:
 			env.TRELLIS_MAX_UPLOAD_MB === undefined ? 50 : numberOf("TRELLIS_MAX_UPLOAD_MB", env.TRELLIS_MAX_UPLOAD_MB),

@@ -17,6 +17,15 @@ describe("config", () => {
 		expect(loadConfig({ TRELLIS_HOST: "0.0.0.0" }).host).toBe("0.0.0.0");
 	});
 
+	// A proxy such as Tailscale Serve keeps its own hostname in the Host
+	// header, so the Host check needs that name.
+	test("TRELLIS_ALLOWED_HOSTS gives lowercase hostnames with no port, and none when unset", () => {
+		expect(loadConfig({}).allowedHosts).toEqual([]);
+		expect(
+			loadConfig({ TRELLIS_ALLOWED_HOSTS: "Canary-JQV57W1HPL.tail4a5b4c.ts.net, other.example:8443" }).allowedHosts,
+		).toEqual(["canary-jqv57w1hpl.tail4a5b4c.ts.net", "other.example"]);
+	});
+
 	test("config falls back to the documented defaults", () => {
 		const config = loadConfig({});
 
