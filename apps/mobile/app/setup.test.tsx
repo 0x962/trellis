@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { router } from "expo-router";
 import { act, fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { createMMKV } from "react-native-mmkv";
 import { queryClient } from "../src/lib/queryClient";
@@ -123,6 +124,35 @@ describe("the setup screen", () => {
 		await fireEvent.press(save());
 		expect(store.getString("trellis-server-url")).toBe("http://10.0.0.9:4521");
 		expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
+	});
+
+	// Setup is a tab screen, so it stays mounted after the first Save takes
+	// the person back to where they came from. A person who opens Server
+	// again edits the same mounted screen, and the second Save must leave it
+	// the way the first one did.
+	test("a second save navigates back like the first", async () => {
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+		const back = jest.spyOn(router, "back").mockImplementation(() => {});
+		const canGoBack = jest.spyOn(router, "canGoBack").mockReturnValue(true);
+		await renderRouter(appContext(), { initialUrl: "/setup" });
+
+		await typeUrl(url);
+		await typeName("navid");
+		await testConnection();
+		expect(await screen.findByText("12 tickets")).toBeOnTheScreen();
+		await fireEvent.press(save());
+		await waitFor(() => expect(back).toHaveBeenCalledTimes(1));
+
+		const other = "http://10.0.0.9:4521";
+		await typeUrl(other);
+		await testConnection();
+		expect(await screen.findByText("12 tickets")).toBeOnTheScreen();
+		await fireEvent.press(save());
+		await waitFor(() => expect(back).toHaveBeenCalledTimes(2));
+		expect(store.getString("trellis-server-url")).toBe(other);
+
+		back.mockRestore();
+		canGoBack.mockRestore();
 	});
 
 	test("a URL without a scheme never reaches the probe", async () => {
