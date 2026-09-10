@@ -2,9 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import type { Priority, Status, Ticket } from "@trellis/api";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SectionHeader } from "../../components/SectionHeader";
 import { getClient } from "../../lib/orpc";
 import { keys, store } from "../../lib/store";
+import { layout } from "../../theme/layout";
 import { tokens } from "../../theme/tokens";
 import { usePalette } from "../../theme/usePalette";
 import { Attachments } from "../Attachments";
@@ -57,6 +59,11 @@ const styles = StyleSheet.create({
 // review actions write through one `useTicketUpdate`.
 export function TicketView({ ticket }: TicketViewProps) {
 	const palette = usePalette();
+	// The screen sits under the stack header: the top inset plus
+	// `layout.header`. KeyboardAvoidingView measures its frame inside the
+	// screen and the keyboard inside the window, so it needs this offset to
+	// pad the composer fully above the keyboard.
+	const { top } = useSafeAreaInsets();
 	const client = getClient();
 	const { identifier } = ticket;
 	const statuses = useQuery(statusesQuery(client, ticket.project.id)).data?.statuses ?? [];
@@ -106,7 +113,12 @@ export function TicketView({ ticket }: TicketViewProps) {
 	);
 
 	return (
-		<KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.screen}>
+		<KeyboardAvoidingView
+			testID="ticket-screen"
+			behavior={Platform.OS === "ios" ? "padding" : undefined}
+			keyboardVerticalOffset={top + layout.header}
+			style={styles.screen}
+		>
 			{message !== undefined && (
 				<Text style={[styles.message, { color: palette.danger, backgroundColor: palette.dangerSoft }]}>{message}</Text>
 			)}
