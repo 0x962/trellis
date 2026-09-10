@@ -11,6 +11,7 @@ describe("agents contract", () => {
 			.sort();
 		expect(table).toEqual([
 			"inbox POST /agents/inbox",
+			"pings GET /agents/pings",
 			"register POST /agents/register",
 			"runnerProjects GET /agents/runner-projects",
 			"sessions GET /agents/sessions",

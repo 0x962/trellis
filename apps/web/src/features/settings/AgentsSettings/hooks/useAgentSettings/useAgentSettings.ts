@@ -12,6 +12,7 @@ export const defaultProjectSettings = (projectId: string): AgentProjectSettings 
 	baseBranch: "main",
 	maxConcurrent: 3,
 	removeWorkspaceOnDone: true,
+	heartbeatSeconds: 60,
 });
 
 // `agents.setSettings` replaces the whole record, so each save sends the

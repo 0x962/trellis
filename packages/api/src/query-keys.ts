@@ -15,6 +15,17 @@ import { realScheduler, type Scheduler } from "./scheduler.ts";
 import type { Ticket } from "./schemas/ticket.ts";
 import { createSettleCheck } from "./settleCheck.ts";
 import {
+	changesMembership,
+	childCount,
+	type HeldChange,
+	isInboxMatcher,
+	membershipMatchers,
+	parentFields,
+	type TicketEvent,
+	toChange,
+	toResultChange,
+} from "./ticketChanges.ts";
+import {
 	holdsTicketRow,
 	holdsTicketRows,
 	isCounts,
@@ -26,59 +37,8 @@ import { createTombstones } from "./tombstones.ts";
 
 export { INBOX_MAX_WAIT_MS, INBOX_TRAILING_MS, MAX_WAIT_MS, TRAILING_MS } from "./invalidationCoalescer.ts";
 export { realScheduler, type Scheduler } from "./scheduler.ts";
+export { membershipFields } from "./ticketChanges.ts";
 export { TOMBSTONE_MS } from "./tombstones.ts";
-
-// A patch keeps a row current. A filtered list cannot know whether the row
-// still belongs to it after one of these fields changes. Only these fields,
-// and a create or a delete, refetch the lists.
-export const membershipFields: ReadonlySet<string> = new Set([
-	"status",
-	"project",
-	"priority",
-	"parent",
-	"completed",
-	"completedAt",
-	"position",
-]);
-
-// A parent's `childDoneCount` and `children` change when a child completes
-// or moves. The parent row emits no event of its own, so its detail refetches.
-const parentFields: ReadonlySet<string> = new Set(["parent", "status", "completedAt"]);
-
-type TicketEvent = Extract<TrellisEvent, { type: "ticket.created" | "ticket.updated" | "ticket.deleted" }>;
-
-// A ticket change with the event kind the cache reacts to.
-type HeldChange = TicketChange & { created: boolean };
-
-// The projects list carries `openCount` and `needsYouCount`, and no
-// project event follows a ticket change. So it refetches with the lists.
-const membershipMatchers = [
-	family("tickets", "list"),
-	family("tickets", "board"),
-	family("tickets", "counts"),
-	family("inbox", "get"),
-	family("projects", "list"),
-];
-
-const isInboxMatcher = (matcher: Matcher) => matcher.path[0] === "inbox";
-
-// True when the change can move a ticket into or out of a filtered list.
-const changesMembership = (change: HeldChange) =>
-	change.created || change.deleted || change.fields.some((field) => membershipFields.has(field));
-
-const toChange = (event: TicketEvent): HeldChange => ({
-	summary: event.summary,
-	fields: event.fields,
-	deleted: event.type === "ticket.deleted",
-	created: event.type === "ticket.created",
-});
-
-// A mutation's response names no fields. The event for the same write
-// carries them, and it arrives held or after the response.
-const toResultChange = (result: Ticket): HeldChange => {
-	const { description, children, prs, attachments, descriptionStale, ...summary } = result;
-	return { summary, fields: [], deleted: false, created: false, detail: result };
-};
 
 export type EventApplier = {
 	applyEvent: (event: unknown) => void;
@@ -250,6 +210,12 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "agents.session":
 				enqueue([family("agents", "sessions")]);
 				return;
+			// The project header lists the pings of one project. A ping that
+			// restarted the manager writes the session row too, and that change
+			// arrives as its own agents.session event.
+			case "agents.ping":
+				enqueue([family("agents", "pings")]);
+				return;
 			case "reset":
 				invalidateAll();
 				return;
@@ -281,8 +247,6 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 
 	return { applyEvent, beginMutation, endMutation };
 };
-
-const childCount = (detail: unknown) => (detail as { children: unknown[] }).children.length;
 
 // One applier per QueryClient, created on first use with real timers.
 const appliers = new WeakMap<QueryClient, EventApplier>();

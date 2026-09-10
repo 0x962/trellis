@@ -173,6 +173,13 @@ export const agents = {
 		const manager = liveSession(state, "manager", (session) => session.projectId === root.id)!;
 		return store(context, { ...manager, lastWokenAt: isoNow() });
 	}),
+	// Newest first, like the server's own read.
+	pings: os.agents.pings.handler(({ context, input }) => {
+		const { state } = context;
+		const root = rootOf(state, requireProject(state, input.project));
+		const found = state.agentPings.filter((ping) => ping.projectId === root.id);
+		return { pings: found.slice(-input.limit).reverse() };
+	}),
 	settings: os.agents.settings.handler(({ context }) => context.state.agentSettings),
 	setSettings: os.agents.setSettings.handler(({ context, input }) => {
 		context.state.agentSettings = input;

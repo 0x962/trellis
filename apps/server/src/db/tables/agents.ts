@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, check, index, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigint, boolean, check, index, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { AGENT_ROLES, AGENT_RUNNERS, AGENT_STATES, checkIn } from "../enums.ts";
 import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
@@ -60,3 +60,21 @@ export const agentCursors = pgTable("agent_cursors", {
 	activityId: bigint("activity_id", { mode: "number" }).notNull().default(0),
 	updatedAt: at("updated_at").notNull(),
 });
+
+// One row per PING the heartbeat sent to a project's manager. `restarted`
+// is true when the manager's terminal was gone, so the runner started the
+// manager again to deliver the PING. The identity id rises with the write
+// order, so it is the sort key. Each insert deletes the rows of that
+// project below the newest 200, so the table never grows.
+export const agentPings = pgTable(
+	"agent_pings",
+	{
+		id: bigint({ mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "cascade" }),
+		at: at("at").notNull(),
+		restarted: boolean().notNull(),
+	},
+	(t) => [index("agent_pings_project_id_id_idx").on(t.projectId, t.id.desc().nullsFirst())],
+);

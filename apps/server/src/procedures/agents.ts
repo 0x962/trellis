@@ -8,6 +8,7 @@ export const agents = os.agents.router({
 	startReviewer: os.agents.startReviewer.handler(({ context, input }) => call(context, "agents.startReviewer", input)),
 	stop: os.agents.stop.handler(({ context, input }) => call(context, "agents.stop", input)),
 	wake: os.agents.wake.handler(({ context, input }) => call(context, "agents.wake", input)),
+	pings: os.agents.pings.handler(({ context, input }) => call(context, "agents.pings", input)),
 	settings: os.agents.settings.handler(({ context }) => call(context, "agents.settings", undefined)),
 	setSettings: os.agents.setSettings.handler(({ context, input }) => call(context, "agents.setSettings", input)),
 	runnerProjects: os.agents.runnerProjects.handler(({ context }) => call(context, "agents.runnerProjects", undefined)),

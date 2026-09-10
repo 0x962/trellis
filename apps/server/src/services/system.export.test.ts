@@ -67,6 +67,7 @@ const seedEveryTable = async () => {
 		updated_at: new Date(),
 	});
 	await insertRow(h.db, "agent_cursors", { project_id: rootId, activity_id: 1, updated_at: new Date() });
+	await insertRow(h.db, "agent_pings", { project_id: rootId, at: new Date(), restarted: false });
 	return { rootId, ticket };
 };
 

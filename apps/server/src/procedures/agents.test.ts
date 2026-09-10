@@ -258,6 +258,7 @@ describe("agents procedures", () => {
 			baseBranch: "develop",
 			maxConcurrent: 5,
 			removeWorkspaceOnDone: true,
+			heartbeatSeconds: 60,
 		};
 		const expected = { runner: "superset", enabled: true, projects: [row] };
 		expect((await a.t.api("/api/agents/settings", { actor: null })).body).toEqual(expected);

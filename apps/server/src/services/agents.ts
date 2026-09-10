@@ -18,6 +18,7 @@ import { pathOf, resolveProject, resolveTicket } from "./refs.ts";
 
 export { inbox } from "./agentInbox.ts";
 export { prepareManager, prepareReconcile, reconcile, recordManager } from "./agentManager.ts";
+export { ping, pings, preparePing } from "./agentPing.ts";
 export { prepareRunnerProjects, runnerProjects } from "./agentRunnerProjects.ts";
 export { get as settings, set as setSettings } from "./agentSettings.ts";
 export { prepareBuilder, prepareReviewer, startBuilder, startReviewer } from "./agentStart.ts";

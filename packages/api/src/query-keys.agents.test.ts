@@ -39,7 +39,16 @@ test("agents.batch invalidates no query", () => {
 	const { queryClient, advanceTo, applier } = setup(seed);
 	applier.applyEvent({ type: "agents.batch", projectId, count: 7 });
 	advanceTo(1000);
-	for (const key of [projectSessionsKey, ticketSessionsKey, settingsKey, pingsKey, listKey, detailKey, inboxKey, healthKey]) {
+	for (const key of [
+		projectSessionsKey,
+		ticketSessionsKey,
+		settingsKey,
+		pingsKey,
+		listKey,
+		detailKey,
+		inboxKey,
+		healthKey,
+	]) {
 		expect(isInvalidated(queryClient, key), JSON.stringify(key)).toBe(false);
 	}
 });

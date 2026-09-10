@@ -214,14 +214,16 @@ describe("dispatcher heartbeat", () => {
 		expect(pings).toEqual([CDE, CDE, CDE]);
 	});
 
+	// The batch goes out at 55 s, five seconds before the first ping was due.
+	// The next ping is then 60 s after the batch, at 115 s.
 	test("a batch resets the heartbeat, so the manager gets no ping right after it answered", async () => {
 		dispatcher.watch(CDE, HEARTBEAT_MS);
-		await clock.advance(50_000);
+		await clock.advance(45_000);
 		change(1);
 		await clock.advance(10_000);
 		expect(batches).toHaveLength(1);
 		expect(pings).toEqual([]);
-		await clock.advance(49_000);
+		await clock.advance(59_000);
 		expect(pings).toEqual([]);
 		await clock.advance(1_000);
 		expect(pings).toEqual([CDE]);

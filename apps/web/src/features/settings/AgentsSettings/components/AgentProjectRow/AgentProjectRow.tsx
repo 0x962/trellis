@@ -18,16 +18,24 @@ const autoValue = "auto";
 const minBuilders = 1;
 const maxBuilders = 20;
 
-// One root project's agent settings. The switch, the picker, and the
-// checkbox save at once. The two text fields save on blur and refuse a
+// The contract bounds of `heartbeatSeconds`, and the interval the switch
+// stores when it turns the heartbeat back on.
+const minSeconds = 15;
+const maxSeconds = 3600;
+const defaultSeconds = 60;
+
+// One root project's agent settings. The two switches, the picker, and the
+// checkbox save at once. The three text fields save on blur and refuse a
 // value the contract refuses.
 export function AgentProjectRow({ project, runner }: AgentProjectRowProps) {
 	const { projectOf, saveProject } = useAgentSettings();
 	const row = projectOf(project.id);
 	const [branch, setBranch] = useState<string | null>(null);
 	const [limit, setLimit] = useState<string | null>(null);
+	const [seconds, setSeconds] = useState<string | null>(null);
 	const [branchMessage, setBranchMessage] = useState<string | null>(null);
 	const [limitMessage, setLimitMessage] = useState<string | null>(null);
+	const [secondsMessage, setSecondsMessage] = useState<string | null>(null);
 	const save = (patch: Partial<AgentProjectSettings>) => void saveProject(project.id, patch);
 
 	const matchId = runner?.matches.find((match) => match.projectId === project.id)?.runnerProjectId;
@@ -58,6 +66,22 @@ export function AgentProjectRow({ project, runner }: AgentProjectRowProps) {
 		setLimitMessage(null);
 		setLimit(null);
 		if (value !== row.maxConcurrent) save({ maxConcurrent: value });
+	};
+
+	// A heartbeat that is off stores null, so the field keeps showing the
+	// interval the switch puts back.
+	const heartbeatOn = row.heartbeatSeconds !== null;
+	const shownSeconds = seconds ?? String(row.heartbeatSeconds ?? defaultSeconds);
+
+	const commitSeconds = () => {
+		const value = Number(shownSeconds);
+		if (!Number.isInteger(value) || value < minSeconds || value > maxSeconds) {
+			setSecondsMessage(`Enter a whole number from ${minSeconds} to ${maxSeconds}.`);
+			return;
+		}
+		setSecondsMessage(null);
+		setSeconds(null);
+		if (value !== row.heartbeatSeconds) save({ heartbeatSeconds: value });
 	};
 
 	return (
@@ -108,13 +132,33 @@ export function AgentProjectRow({ project, runner }: AgentProjectRowProps) {
 					onBlur={commitLimit}
 				/>
 			</div>
+			<div className="flex items-center gap-3">
+				<Switch
+					label="Heartbeat"
+					checked={heartbeatOn}
+					className="cursor-pointer"
+					onCheckedChange={(on) => save({ heartbeatSeconds: on ? Number(shownSeconds) : null })}
+				/>
+				<Input
+					label="Ping seconds"
+					type="number"
+					min={minSeconds}
+					max={maxSeconds}
+					disabled={!heartbeatOn}
+					value={shownSeconds}
+					invalid={secondsMessage !== null}
+					className="tabular"
+					onChange={(event) => setSeconds(event.target.value)}
+					onBlur={commitSeconds}
+				/>
+			</div>
 			<Checkbox
 				label="Remove workspace when Done"
 				checked={row.removeWorkspaceOnDone}
 				className="cursor-pointer self-start"
 				onCheckedChange={(removeWorkspaceOnDone) => save({ removeWorkspaceOnDone })}
 			/>
-			{[branchMessage, limitMessage].map(
+			{[branchMessage, limitMessage, secondsMessage].map(
 				(message) =>
 					message !== null && (
 						<p key={message} className="text-sm text-danger">

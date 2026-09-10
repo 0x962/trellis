@@ -25,6 +25,7 @@ const tables = [
 	"settings",
 	"agent_sessions",
 	"agent_cursors",
+	"agent_pings",
 ];
 
 const closers: Array<() => Promise<void>> = [];

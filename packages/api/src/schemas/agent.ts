@@ -114,6 +114,8 @@ export type AgentWakeInput = z.input<typeof AgentWakeInputSchema>;
 // repo to a Superset project. `maxConcurrent` caps the builders that run at
 // one time in the project. `removeWorkspaceOnDone` removes the builder's
 // workspace when its ticket is done; the branch stays either way.
+// `heartbeatSeconds` is the interval at which the server types PING into
+// the manager's terminal; null turns the heartbeat off.
 export const AgentProjectSettingsSchema = z.object({
 	projectId: UlidSchema,
 	enabled: z.boolean(),
@@ -121,8 +123,31 @@ export const AgentProjectSettingsSchema = z.object({
 	baseBranch: z.string().min(1).max(255),
 	maxConcurrent: z.number().int().min(1).max(20).default(3),
 	removeWorkspaceOnDone: z.boolean().default(true),
+	heartbeatSeconds: z.number().int().min(15).max(3600).nullable().default(60),
 });
 export type AgentProjectSettings = z.infer<typeof AgentProjectSettingsSchema>;
+
+// One PING the heartbeat sent to a project's manager. `restarted` is true
+// when the manager's terminal was gone, so the runner started the manager
+// again to deliver the PING. `id` rises with the write order.
+export const AgentPingSchema = z.object({
+	id: CountSchema,
+	projectId: UlidSchema,
+	at: IsoDateTimeSchema,
+	restarted: z.boolean(),
+});
+export type AgentPing = z.infer<typeof AgentPingSchema>;
+
+// The newest pings of a project, newest first. The table holds 200 rows per
+// project, so the limit stops there.
+export const AgentPingsInputSchema = z.strictObject({
+	project: ProjectRefStringSchema,
+	limit: z.number().int().min(1).max(200).default(50),
+});
+export type AgentPingsInput = z.input<typeof AgentPingsInputSchema>;
+
+export const AgentPingsOutputSchema = z.object({ pings: z.array(AgentPingSchema) });
+export type AgentPingsOutput = z.infer<typeof AgentPingsOutputSchema>;
 
 // One project the runner knows: for Superset, one row of
 // `superset projects list`. `repo` is null for a project with no remote.

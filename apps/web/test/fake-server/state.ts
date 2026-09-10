@@ -2,6 +2,7 @@ import {
 	type Activity,
 	type Actor,
 	type ActorRef,
+	type AgentPing,
 	type AgentSession,
 	type AgentSettings,
 	type Attachment,
@@ -101,6 +102,8 @@ export type State = {
 	nextActivityId: number;
 	agentSessions: Map<string, AgentSession>;
 	agentSettings: AgentSettings;
+	// The heartbeat pings of every project, oldest first.
+	agentPings: AgentPing[];
 	// The id of the last activity row each root's manager read, by root id.
 	agentCursors: Map<string, number>;
 	// What `superset projects list` gives.
@@ -137,6 +140,7 @@ export const createState = (): State => ({
 	nextActivityId: 1,
 	agentSessions: new Map(),
 	agentSettings: { runner: "superset", enabled: false, projects: [] },
+	agentPings: [],
 	agentCursors: new Map(),
 	runnerProjects: [
 		{ id: "sp-de", name: "de", repo: "canary-technologies-corp/de", path: "/Users/navid/projects/de" },

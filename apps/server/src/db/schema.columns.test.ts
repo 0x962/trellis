@@ -44,13 +44,17 @@ const expectIndex = (definitions: string[], pattern: RegExp) => {
 describe("column types", () => {
 	test("column types follow the schema table", async () => {
 		const rows = await columns();
+		// activity and agent_pings sort and page by a rising identity id; every
+		// other table keys on a ULID.
 		for (const row of rows.filter((row) => row.column_name === "id")) {
-			if (row.table_name === "activity") continue;
+			if (row.table_name === "activity" || row.table_name === "agent_pings") continue;
 			expect(`${row.table_name}.id ${row.data_type}`).toBe(`${row.table_name}.id text`);
 		}
-		const activityId = column(rows, "activity", "id");
-		expect(activityId.data_type).toBe("bigint");
-		expect(activityId.identity_generation).toBe("ALWAYS");
+		for (const table of ["activity", "agent_pings"]) {
+			const identity = column(rows, table, "id");
+			expect(`${table} ${identity.data_type}`).toBe(`${table} bigint`);
+			expect(`${table} ${identity.identity_generation}`).toBe(`${table} ALWAYS`);
+		}
 		for (const row of rows.filter((row) => row.column_name.endsWith("_at"))) {
 			expect(`${row.table_name}.${row.column_name} ${row.data_type}`).toBe(
 				`${row.table_name}.${row.column_name} timestamp with time zone`,

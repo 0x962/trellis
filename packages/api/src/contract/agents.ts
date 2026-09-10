@@ -2,6 +2,8 @@ import { pickErrors } from "../errors.ts";
 import {
 	AgentInboxInputSchema,
 	AgentInboxOutputSchema,
+	AgentPingsInputSchema,
+	AgentPingsOutputSchema,
 	AgentRegisterInputSchema,
 	AgentRunnerProjectsOutputSchema,
 	AgentSessionSchema,
@@ -55,6 +57,11 @@ export const agents = {
 		.route({ method: "POST", path: "/agents/wake", summary: "Type a text into the manager's terminal" })
 		.input(AgentWakeInputSchema)
 		.output(AgentSessionSchema),
+	// The project header reads the pings of the project's manager.
+	pings: base
+		.route({ method: "GET", path: "/agents/pings", summary: "List the newest heartbeat pings of a project" })
+		.input(AgentPingsInputSchema)
+		.output(AgentPingsOutputSchema),
 	settings: base
 		.route({ method: "GET", path: "/agents/settings", summary: "Read the agent settings" })
 		.output(AgentSettingsSchema),

@@ -32,6 +32,16 @@ A message that starts with "trellis:" is a wake. After every wake, read the inbo
 Run it again while "more" is true. The inbox holds the changes since your last read, a summary of each ticket they name, and the new comment bodies. A wake with no new changes does no harm.
 When the statuses of the project change, read the status descriptions again.
 
+## PING
+A message that is only "PING" is a heartbeat. It says nothing changed; it gives you a turn. On a PING, run these steps in order:
+1. Read the inbox: trellis agents inbox --project ${project} --json
+   Act on anything new.
+2. List your agents: trellis agents status --project ${project} --json
+   Check that every ticket that should have a builder has a live one.
+3. Restart or clean up an agent that died, and comment on its ticket when you do.
+4. Read every ticket in a status whose description tells you to act, and act.
+5. Answer nothing and write nothing when everything is in order.
+
 ## Status descriptions
 Follow the description of a status as the rule for every ticket in that status.
 ${rules}

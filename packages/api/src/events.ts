@@ -26,6 +26,7 @@ export const eventNames = [
 	"gh.status",
 	"agents.session",
 	"agents.batch",
+	"agents.ping",
 	"reset",
 	"ready",
 	"bye",
@@ -101,6 +102,14 @@ export const AgentBatchPayloadSchema = z.object({
 	count: z.number().int().positive(),
 });
 
+// The heartbeat typed PING into the terminal of the manager of `projectId`.
+// `restarted` is true when that terminal was gone, so the runner started the
+// manager again to deliver the PING.
+export const AgentPingPayloadSchema = z.object({
+	projectId: UlidSchema,
+	restarted: z.boolean(),
+});
+
 // `restart`: the id came from another boot. `gap`: the id fell below the
 // ring buffer floor. Either way the client invalidates every query.
 export const ResetPayloadSchema = z.object({
@@ -144,6 +153,7 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("gh.status", GhStatusPayloadSchema),
 	typed("agents.session", AgentSessionEventPayloadSchema),
 	typed("agents.batch", AgentBatchPayloadSchema),
+	typed("agents.ping", AgentPingPayloadSchema),
 	typed("reset", ResetPayloadSchema),
 	typed("ready", ReadyPayloadSchema),
 	typed("bye", ByePayloadSchema),

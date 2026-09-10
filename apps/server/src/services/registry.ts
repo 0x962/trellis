@@ -103,6 +103,7 @@ export const services = {
 	"agents.startReviewer": runner(agents.prepareReviewer, agents.startReviewer),
 	"agents.stop": runner(agents.prepareStop, agents.stop),
 	"agents.wake": runner(agents.prepareWake, agents.wake),
+	"agents.pings": core("read", agents.pings),
 	"agents.settings": core("read", agents.settings),
 	"agents.setSettings": { family: "agents", kind: "mutation", run: agents.setSettings } as ServiceEntry,
 	"agents.runnerProjects": {
@@ -114,6 +115,7 @@ export const services = {
 	// The agents host runs these two at its start. They are not on the API.
 	"agents.reconcile": runner(agents.prepareReconcile, agents.reconcile),
 	"agents.ensureManager": runner(agents.prepareManager, agents.recordManager),
+	"agents.ping": runner(agents.preparePing, agents.ping),
 } satisfies Record<string, ServiceEntry>;
 
 export type ServiceName = keyof typeof services;

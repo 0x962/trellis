@@ -9,6 +9,11 @@ import { type Bus, type BusEntry, matches } from "../events/bus.ts";
 // A batch goes out QUIET_MS after its last change, the timer restarting on
 // each change, or at once when BATCH_MAX changes wait. A steady stream of
 // edits therefore goes out in batches of BATCH_MAX.
+//
+// A watched project also gets a heartbeat: `ping` runs every
+// `heartbeatMs`, so an idle, stuck, or dead manager gets a turn while
+// nothing changes. A batch restarts that timer, so a manager that just
+// answered a batch is not pinged right after it.
 
 export const QUIET_MS = 10_000;
 export const BATCH_MAX = 10;
@@ -31,10 +36,14 @@ export type DispatcherOptions = {
 	scope: (projectId: string) => string[];
 	path: (projectId: string) => string;
 	flush: (batch: Batch) => void | Promise<void>;
+	ping: (projectId: string) => void | Promise<void>;
 };
 
 export type Dispatcher = {
-	watch: (projectId: string) => void;
+	// `heartbeatMs` null turns the heartbeat of that project off. A second
+	// watch of a project the dispatcher already watches keeps its queue and
+	// arms the heartbeat again with the new interval.
+	watch: (projectId: string, heartbeatMs: number | null) => void;
 	unwatch: (projectId: string) => void;
 	stop: () => void;
 	watched: () => string[];
@@ -127,8 +136,10 @@ export const pointerText = (path: string, items: string[]) => {
 	return `trellis: ${items.length} ${noun} in ${path} (${shown}${rest}). Run: trellis agents inbox --project ${path}`;
 };
 
+type Watch = { changes: Change[]; timer: number | null; heartbeatMs: number | null; heartbeat: number | null };
+
 export const createDispatcher = (options: DispatcherOptions): Dispatcher => {
-	const watches = new Map<string, { changes: Change[]; timer: number | null }>();
+	const watches = new Map<string, Watch>();
 	const names = new Map<string, string>();
 
 	const clear = (watch: { timer: number | null }) => {
@@ -136,9 +147,24 @@ export const createDispatcher = (options: DispatcherOptions): Dispatcher => {
 		watch.timer = null;
 	};
 
+	// Arms the next ping of `projectId`, or clears the heartbeat when the
+	// project's interval is off.
+	const arm = (projectId: string) => {
+		const watch = watches.get(projectId)!;
+		if (watch.heartbeat !== null) options.clock.clearTimer(watch.heartbeat);
+		watch.heartbeat =
+			watch.heartbeatMs === null ? null : options.clock.setTimer(() => beat(projectId), watch.heartbeatMs);
+	};
+
+	const beat = async (projectId: string) => {
+		await options.ping(projectId);
+		if (watches.has(projectId)) arm(projectId);
+	};
+
 	const flush = (projectId: string) => {
 		const watch = watches.get(projectId)!;
 		clear(watch);
+		arm(projectId);
 		const items = watch.changes.splice(0).map((change) => describe(change, names));
 		return options.flush({ projectId, count: items.length, text: pointerText(options.path(projectId), items) });
 	};
@@ -169,18 +195,30 @@ export const createDispatcher = (options: DispatcherOptions): Dispatcher => {
 
 	const unsubscribe = options.bus.subscribe(receive);
 
+	const stopHeartbeat = (watch: Watch) => {
+		if (watch.heartbeat !== null) options.clock.clearTimer(watch.heartbeat);
+		watch.heartbeat = null;
+	};
+
 	return {
-		watch: (projectId) => {
-			if (!watches.has(projectId)) watches.set(projectId, { changes: [], timer: null });
+		watch: (projectId, heartbeatMs) => {
+			const watch = watches.get(projectId) ?? { changes: [], timer: null, heartbeatMs, heartbeat: null };
+			watch.heartbeatMs = heartbeatMs;
+			watches.set(projectId, watch);
+			arm(projectId);
 		},
 		unwatch: (projectId) => {
 			const watch = watches.get(projectId);
 			if (watch === undefined) return;
 			clear(watch);
+			stopHeartbeat(watch);
 			watches.delete(projectId);
 		},
 		stop: () => {
-			for (const watch of watches.values()) clear(watch);
+			for (const watch of watches.values()) {
+				clear(watch);
+				stopHeartbeat(watch);
+			}
 			watches.clear();
 			unsubscribe();
 		},
