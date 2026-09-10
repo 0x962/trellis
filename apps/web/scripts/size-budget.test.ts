@@ -19,7 +19,23 @@ const run = (args: string[], cwd = web) => {
 // chunk must hold none of them, and some lazy chunk must hold each.
 const routeMarkers = ["What should we call you?", "Settings saved", "Nothing needs you"];
 
+// A string every ProseMirror build carries: the editor's own class name.
+const tiptapMarker = "ProseMirror";
+
+// The editor placeholder: a string only the ticket surfaces carry.
+const ticketMarker = "Describe the work. Agents read this verbatim.";
+
 const parse = (html: string) => new DOMParser().parseFromString(html, "text/html");
+
+// The chunk names index.html loads before any route: the entry and its
+// module preloads.
+const initialChunks = (document: Document) => {
+	const entry = document.querySelector('script[type="module"][src]')!.getAttribute("src")!.split("/").pop()!;
+	const preloads = [...document.querySelectorAll('link[rel="modulepreload"][href]')].map(
+		(link) => link.getAttribute("href")!.split("/").pop()!,
+	);
+	return [entry, ...preloads];
+};
 
 const assetFiles = () => readdirSync(join(dist, "assets"));
 
@@ -82,6 +98,44 @@ describe("bun run build", () => {
 		expect(budgets.initialJs).toBe(220 * 1024);
 		expect(budgets.fonts).toBe(160 * 1024);
 		expect(budgets.total).toBe(900 * 1024);
+	});
+
+	// WT-112. The ticket surfaces are built and lazy: some lazy chunk
+	// carries the editor placeholder, no initial chunk carries it or the
+	// editor, and the initial JS stays inside the budget.
+	test("the initial chunk excludes Tiptap and stays in budget", async () => {
+		expect(build.exitCode).toBe(0);
+		const document = parse(await Bun.file(join(dist, "index.html")).text());
+		const initial = initialChunks(document);
+		for (const name of initial) {
+			const source = await readAsset(name);
+			expect(source, name).not.toContain(tiptapMarker);
+			expect(source, name).not.toContain(ticketMarker);
+		}
+		const lazy = assetFiles().filter((name) => name.endsWith(".js") && !initial.includes(name));
+		const sources = await Promise.all(lazy.map(readAsset));
+		expect(sources.some((source) => source.includes(ticketMarker))).toBe(true);
+		const report = measure(dist);
+		expect(report.initialJs).toBeLessThanOrEqual(budgets.initialJs);
+		expect(report.lines.some((line) => /^ok\s+initial js/.test(line))).toBe(true);
+	});
+
+	// WT-113. The plan's budget table: Tiptap 200 KB gzipped, lazy. The
+	// script measures the lazy chunks that carry the editor and prints a
+	// line for them.
+	test("the Tiptap chunk stays in budget", async () => {
+		expect(build.exitCode).toBe(0);
+		const document = parse(await Bun.file(join(dist, "index.html")).text());
+		const initial = initialChunks(document);
+		const lazy = assetFiles().filter((name) => name.endsWith(".js") && !initial.includes(name));
+		const editorChunks: string[] = [];
+		for (const name of lazy) if ((await readAsset(name)).includes(tiptapMarker)) editorChunks.push(name);
+		expect(editorChunks.length).toBeGreaterThan(0);
+		expect(budgets.tiptap).toBe(200 * 1024);
+		const report = measure(dist);
+		expect(report.tiptap).toBeGreaterThan(0);
+		expect(report.tiptap).toBeLessThanOrEqual(budgets.tiptap);
+		expect(report.lines.some((line) => /tiptap.*\d+(\.\d+)? kb/i.test(line))).toBe(true);
 	});
 });
 

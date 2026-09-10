@@ -1,16 +1,19 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { fieldValue } from "../../../../test/ticketHost";
 
 beforeEach(() => localStorage.clear());
 
 describe("routes/t/$identifier", () => {
 	// WS-89. The URL may carry any case; the API call and the page use the
-	// canonical identifier.
+	// canonical identifier. The title is the editable field of the ticket
+	// surfaces (WT-25), so the page carries it as a textbox.
 	test("the ticket page loads by canonical identifier and shows the header chrome", async () => {
 		const { server } = renderApp({ path: "/t/cde-42", actor: "navid" });
 		const title = "Restore the fork pages after the upstream 1.27 merge";
-		expect(await screen.findByRole("heading", { name: title })).toBeDefined();
+		const field = await screen.findByRole("textbox", { name: "Title" });
+		await waitFor(() => expect(fieldValue(field)).toBe(title));
 		const call = server.calls.find((entry) => entry.path.join(".") === "tickets.get");
 		expect(call!.input).toEqual({ ticket: "CDE-42" });
 		const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });

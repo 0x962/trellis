@@ -1,17 +1,11 @@
 import { fail } from "../fail";
 import { os } from "../implementer";
-import { isoNow, requireTicket } from "../state";
+import { isoNow, requireTicket, type State } from "../state";
 import { linkedPrs } from "../summaries";
 
-// gh is never present on the fake server, so the settings page can show
-// the missing state.
-const ghStatus = () => ({
-	ok: false,
-	user: null,
-	reason: "missing" as const,
-	message: "gh is not installed. Install it with `brew install gh` and run `gh auth login`.",
-	checkedAt: isoNow(),
-});
+// The gh status the state holds, stamped with the time of the read. The
+// seed says gh is missing, so the settings page shows the missing state.
+const ghStatus = (state: State) => ({ ...state.gh, checkedAt: isoNow() });
 
 export const actors = {
 	list: os.actors.list.handler(({ context }) => [...context.state.actors.values()]),
@@ -37,9 +31,9 @@ export const system = {
 		bootId: context.bus.bootId,
 		rss: 64 * 1024 * 1024,
 		db: { ok: true, sizeBytes: 8 * 1024 * 1024 },
-		gh: ghStatus(),
+		gh: ghStatus(context.state),
 	})),
-	gh: os.system.gh.handler(() => ghStatus()),
+	gh: os.system.gh.handler(({ context }) => ghStatus(context.state)),
 	backup: os.system.backup.handler(() => ({ path: "/tmp/trellis-fake-backup.tar.gz", bytes: 1024 })),
 };
 

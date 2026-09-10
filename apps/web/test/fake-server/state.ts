@@ -4,6 +4,7 @@ import {
 	type ActorRef,
 	type Attachment,
 	type Comment,
+	type GhStatus,
 	type Priority,
 	type PrLinkSource,
 	type PullRequest,
@@ -82,6 +83,9 @@ export type State = {
 	attachments: Map<string, Attachment>;
 	actors: Map<string, Actor>;
 	settings: Settings;
+	// What `system.gh` and the `gh` field of `system.health` report. A test
+	// sets it to show the unauthenticated notice.
+	gh: GhStatus;
 	nextActivityId: number;
 };
 
@@ -99,6 +103,13 @@ export const createState = (): State => ({
 		startWithAgentTemplate: 'claude "$(trellis brief {brief})"',
 		defaultActorName: "navid",
 		stalledHours: 24,
+	},
+	gh: {
+		ok: false,
+		user: null,
+		reason: "missing",
+		message: "gh is not installed. Install it with `brew install gh` and run `gh auth login`.",
+		checkedAt: new Date(0).toISOString(),
 	},
 	nextActivityId: 1,
 });
