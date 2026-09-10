@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 // A probe project lives under TRELLIS_HOME, outside this repo, so Biome reads
 // only the fixture files. The root biome.json is copied into the probe root:
@@ -65,9 +65,13 @@ const overrideDirs = [
 	"packages/cli",
 	"apps/server",
 	"apps/server/src/db",
+	"apps/server/test/helpers",
 	"apps/web",
 	"apps/mobile",
 ];
+
+// The directories whose files may import db/client.
+const clientImporters = ["apps/server/src/db", "apps/server/test/helpers"];
 
 describe("biome import rules", () => {
 	test("a probe with only allowed imports passes lint with exit 0", () => {
@@ -197,8 +201,9 @@ describe("biome import rules", () => {
 		expect(exitCode).not.toBe(0);
 		for (const dir of overrideDirs) {
 			for (const name of Object.keys(refused)) {
-				// apps/server/src/db holds the client, so a file there imports it.
-				const allowed = dir === "apps/server/src/db" && name === "client";
+				// apps/server/src/db holds the client, so a file there imports it. The
+				// test helpers open the database every test file runs against.
+				const allowed = clientImporters.includes(dir) && name === "client";
 				if (allowed) {
 					expect(errors).not.toContain(`${dir}/${name}.ts:${rule}`);
 				} else {
@@ -206,6 +211,38 @@ describe("biome import rules", () => {
 				}
 			}
 			expect(errors).not.toContain(`${dir}/mini.ts:${rule}`);
+		}
+	});
+
+	// The probe files sit in the real package, so the rule is checked against
+	// the committed biome.json and its overrides, not a copy.
+	test("biome refuses an import of db/client from outside db/", () => {
+		const refused = join(root, "apps/server/src/services/probe.ts");
+		const allowed = join(root, "apps/server/src/db/probe.ts");
+		const servicesExisted = existsSync(dirname(refused));
+		mkdirSync(dirname(refused), { recursive: true });
+		writeFileSync(refused, 'import { openDb } from "../db/client.ts";\n\nexport const probe = openDb;\n');
+		writeFileSync(allowed, 'import { openDb } from "./client.ts";\n\nexport const probe = openDb;\n');
+		const check = (file: string) => {
+			const result = Bun.spawnSync([join(root, "node_modules/.bin/biome"), "check", file], {
+				cwd: root,
+				stdout: "pipe",
+				stderr: "pipe",
+			});
+			return { exitCode: result.exitCode, output: result.stdout.toString() + result.stderr.toString() };
+		};
+		try {
+			const bad = check(refused);
+			expect(bad.exitCode).not.toBe(0);
+			expect(bad.output).toContain("noRestrictedImports");
+			expect(bad.output).toContain("deadlocks the server");
+			const good = check(allowed);
+			expect(good.output).not.toContain("noRestrictedImports");
+			expect(good.exitCode).toBe(0);
+		} finally {
+			rmSync(allowed);
+			if (servicesExisted) rmSync(refused);
+			else rmSync(dirname(refused), { recursive: true });
 		}
 	});
 });

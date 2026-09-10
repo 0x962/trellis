@@ -118,6 +118,9 @@ const isInfinite = (queryKey: QueryKey) => (queryKey[1] as { type?: string } | u
 // True for a `tickets.get` key: `[["tickets", "get"], options]`.
 export const isDetail = (queryKey: QueryKey) => pathName(queryKey) === "tickets.get";
 
+// True for a `tickets.counts` key. A counts result holds no ticket row.
+export const isCounts = (queryKey: QueryKey) => pathName(queryKey) === "tickets.counts";
+
 const rowReaders: Record<string, (data: unknown) => TicketSummary[]> = {
 	"tickets.list": (data) => (data as ListOutput).items,
 	"tickets.board": (data) => (data as BoardOutput).columns.flatMap((column) => column.items),

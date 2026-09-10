@@ -1,0 +1,18 @@
+{
+	"name": "@trellis/cli",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"bin": {
+		"trellis": "./src/index.ts"
+	},
+	"scripts": {
+		"test": "bun test",
+		"typecheck": "tsc --noEmit -p tsconfig.json"
+	},
+	"dependencies": {
+		"@orpc/client": "1.15.0",
+		"@trellis/api": "workspace:*",
+		"citty": "0.2.2"
+	}
+}

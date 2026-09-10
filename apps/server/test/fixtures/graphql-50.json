@@ -1,0 +1,2691 @@
+{
+	"data": {
+		"pr0": {
+			"pullRequest": {
+				"number": 100,
+				"title": "PR 100 in web",
+				"state": "OPEN",
+				"isDraft": true,
+				"url": "https://github.com/acme/web/pull/100",
+				"headRefName": "cde-42-slug",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": null,
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr1": {
+			"pullRequest": {
+				"number": 101,
+				"title": "PR 101 in web",
+				"state": "MERGED",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/101",
+				"headRefName": "feature-1",
+				"baseRefName": "main",
+				"mergedAt": "2026-09-08T10:00:00Z",
+				"closedAt": "2026-09-08T10:00:00Z",
+				"reviewDecision": "APPROVED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr2": {
+			"pullRequest": {
+				"number": 102,
+				"title": "PR 102 in web",
+				"state": "CLOSED",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/102",
+				"headRefName": "feature-2",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": "2026-09-07T09:00:00Z",
+				"reviewDecision": "CHANGES_REQUESTED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": []
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr3": {
+			"pullRequest": {
+				"number": 103,
+				"title": "PR 103 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/103",
+				"headRefName": "feature-3",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "REVIEW_REQUIRED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "IN_PROGRESS",
+												"conclusion": null,
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr4": {
+			"pullRequest": {
+				"number": 104,
+				"title": "PR 104 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/104",
+				"headRefName": "feature-4",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": null,
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "lint",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/lint",
+												"checkSuite": {
+													"workflowRun": null
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "a",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/a",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "deploy"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr5": {
+			"pullRequest": {
+				"number": 105,
+				"title": "PR 105 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/105",
+				"headRefName": "feature-5",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "REVIEW_REQUIRED",
+				"commits": {
+					"nodes": []
+				}
+			}
+		},
+		"pr6": {
+			"pullRequest": {
+				"number": 106,
+				"title": "PR 106 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/106",
+				"headRefName": "feature-6",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "APPROVED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": null
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr7": {
+			"pullRequest": {
+				"number": 107,
+				"title": "PR 107 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/107",
+				"headRefName": "feature-7",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "CHANGES_REQUESTED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "StatusContext",
+												"context": "license/cla",
+												"state": "SUCCESS",
+												"targetUrl": "https://x"
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr8": {
+			"pullRequest": {
+				"number": 108,
+				"title": "PR 108 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/108",
+				"headRefName": "feature-8",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": null,
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "FAILURE",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr9": {
+			"pullRequest": {
+				"number": 109,
+				"title": "PR 109 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/109",
+				"headRefName": "feature-9",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "REVIEW_REQUIRED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr10": {
+			"pullRequest": {
+				"number": 110,
+				"title": "PR 110 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/110",
+				"headRefName": "feature-10",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "APPROVED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr11": {
+			"pullRequest": {
+				"number": 111,
+				"title": "PR 111 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/111",
+				"headRefName": "feature-11",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "CHANGES_REQUESTED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr12": {
+			"pullRequest": {
+				"number": 112,
+				"title": "PR 112 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/112",
+				"headRefName": "feature-12",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": null,
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr13": {
+			"pullRequest": {
+				"number": 113,
+				"title": "PR 113 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/113",
+				"headRefName": "feature-13",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "REVIEW_REQUIRED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr14": {
+			"pullRequest": {
+				"number": 114,
+				"title": "PR 114 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/114",
+				"headRefName": "feature-14",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "APPROVED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr15": {
+			"pullRequest": {
+				"number": 115,
+				"title": "PR 115 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/115",
+				"headRefName": "feature-15",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "CHANGES_REQUESTED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr16": {
+			"pullRequest": {
+				"number": 116,
+				"title": "PR 116 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/116",
+				"headRefName": "feature-16",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": null,
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr17": {
+			"pullRequest": {
+				"number": 117,
+				"title": "PR 117 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/117",
+				"headRefName": "feature-17",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "REVIEW_REQUIRED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr18": {
+			"pullRequest": {
+				"number": 118,
+				"title": "PR 118 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/118",
+				"headRefName": "feature-18",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "APPROVED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr19": {
+			"pullRequest": {
+				"number": 119,
+				"title": "PR 119 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/119",
+				"headRefName": "feature-19",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "CHANGES_REQUESTED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr20": {
+			"pullRequest": {
+				"number": 120,
+				"title": "PR 120 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/120",
+				"headRefName": "feature-20",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": null,
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr21": {
+			"pullRequest": {
+				"number": 121,
+				"title": "PR 121 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/121",
+				"headRefName": "feature-21",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "REVIEW_REQUIRED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr22": {
+			"pullRequest": {
+				"number": 122,
+				"title": "PR 122 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/122",
+				"headRefName": "feature-22",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "APPROVED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr23": {
+			"pullRequest": {
+				"number": 123,
+				"title": "PR 123 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/123",
+				"headRefName": "feature-23",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "CHANGES_REQUESTED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr24": {
+			"pullRequest": {
+				"number": 124,
+				"title": "PR 124 in web",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/web/pull/124",
+				"headRefName": "feature-24",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": null,
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr25": {
+			"pullRequest": {
+				"number": 125,
+				"title": "PR 125 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/125",
+				"headRefName": "feature-25",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "REVIEW_REQUIRED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr26": {
+			"pullRequest": {
+				"number": 126,
+				"title": "PR 126 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/126",
+				"headRefName": "feature-26",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "APPROVED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr27": {
+			"pullRequest": {
+				"number": 127,
+				"title": "PR 127 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/127",
+				"headRefName": "feature-27",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "CHANGES_REQUESTED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr28": {
+			"pullRequest": {
+				"number": 128,
+				"title": "PR 128 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/128",
+				"headRefName": "feature-28",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": null,
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr29": {
+			"pullRequest": {
+				"number": 129,
+				"title": "PR 129 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/129",
+				"headRefName": "feature-29",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "REVIEW_REQUIRED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr30": {
+			"pullRequest": {
+				"number": 130,
+				"title": "PR 130 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/130",
+				"headRefName": "feature-30",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "APPROVED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr31": {
+			"pullRequest": {
+				"number": 131,
+				"title": "PR 131 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/131",
+				"headRefName": "feature-31",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "CHANGES_REQUESTED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr32": {
+			"pullRequest": {
+				"number": 132,
+				"title": "PR 132 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/132",
+				"headRefName": "feature-32",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": null,
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr33": {
+			"pullRequest": {
+				"number": 133,
+				"title": "PR 133 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/133",
+				"headRefName": "feature-33",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "REVIEW_REQUIRED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr34": {
+			"pullRequest": {
+				"number": 134,
+				"title": "PR 134 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/134",
+				"headRefName": "feature-34",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "APPROVED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr35": {
+			"pullRequest": {
+				"number": 135,
+				"title": "PR 135 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/135",
+				"headRefName": "feature-35",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "CHANGES_REQUESTED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr36": {
+			"pullRequest": {
+				"number": 136,
+				"title": "PR 136 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/136",
+				"headRefName": "feature-36",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": null,
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr37": {
+			"pullRequest": {
+				"number": 137,
+				"title": "PR 137 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/137",
+				"headRefName": "feature-37",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "REVIEW_REQUIRED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr38": {
+			"pullRequest": {
+				"number": 138,
+				"title": "PR 138 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/138",
+				"headRefName": "feature-38",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "APPROVED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr39": {
+			"pullRequest": {
+				"number": 139,
+				"title": "PR 139 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/139",
+				"headRefName": "feature-39",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "CHANGES_REQUESTED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr40": {
+			"pullRequest": {
+				"number": 140,
+				"title": "PR 140 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/140",
+				"headRefName": "feature-40",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": null,
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr41": {
+			"pullRequest": {
+				"number": 141,
+				"title": "PR 141 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/141",
+				"headRefName": "feature-41",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "REVIEW_REQUIRED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr42": {
+			"pullRequest": {
+				"number": 142,
+				"title": "PR 142 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/142",
+				"headRefName": "feature-42",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "APPROVED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr43": {
+			"pullRequest": {
+				"number": 143,
+				"title": "PR 143 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/143",
+				"headRefName": "feature-43",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "CHANGES_REQUESTED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr44": {
+			"pullRequest": {
+				"number": 144,
+				"title": "PR 144 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/144",
+				"headRefName": "feature-44",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": null,
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr45": {
+			"pullRequest": {
+				"number": 145,
+				"title": "PR 145 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/145",
+				"headRefName": "feature-45",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "REVIEW_REQUIRED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr46": {
+			"pullRequest": {
+				"number": 146,
+				"title": "PR 146 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/146",
+				"headRefName": "feature-46",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "APPROVED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr47": {
+			"pullRequest": {
+				"number": 147,
+				"title": "PR 147 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/147",
+				"headRefName": "feature-47",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "CHANGES_REQUESTED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr48": {
+			"pullRequest": {
+				"number": 148,
+				"title": "PR 148 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/148",
+				"headRefName": "feature-48",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": null,
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"pr49": {
+			"pullRequest": {
+				"number": 149,
+				"title": "PR 149 in api",
+				"state": "OPEN",
+				"isDraft": false,
+				"url": "https://github.com/acme/api/pull/149",
+				"headRefName": "feature-49",
+				"baseRefName": "main",
+				"mergedAt": null,
+				"closedAt": null,
+				"reviewDecision": "REVIEW_REQUIRED",
+				"commits": {
+					"nodes": [
+						{
+							"commit": {
+								"statusCheckRollup": {
+									"contexts": {
+										"nodes": [
+											{
+												"__typename": "CheckRun",
+												"name": "build",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/build",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											},
+											{
+												"__typename": "CheckRun",
+												"name": "test",
+												"status": "COMPLETED",
+												"conclusion": "SUCCESS",
+												"detailsUrl": "https://github.com/acme/ci/actions/runs/test",
+												"checkSuite": {
+													"workflowRun": {
+														"workflow": {
+															"name": "ci"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		}
+	}
+}
