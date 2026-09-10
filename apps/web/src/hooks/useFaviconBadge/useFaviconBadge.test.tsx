@@ -25,7 +25,7 @@ beforeEach(() => {
 	HTMLCanvasElement.prototype.getContext = (() =>
 		new Proxy({}, { get: (_target, name) => record(String(name)), set: () => true })) as never;
 	HTMLCanvasElement.prototype.toDataURL = () => "data:image/png;base64,badge";
-	document.head.querySelectorAll("link[rel~=icon]").forEach((link) => link.remove());
+	for (const link of document.head.querySelectorAll("link[rel~=icon]")) link.remove();
 	const link = document.createElement("link");
 	link.rel = "icon";
 	link.type = "image/svg+xml";

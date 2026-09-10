@@ -11,10 +11,11 @@ import { useActionContext } from "../../../hooks/useActionContext";
 import { useCommandSearch } from "../../../hooks/useCommandSearch";
 import type { PaletteGroup, PaletteRow, RowDeps, Submenu } from "../../../rows";
 import { paletteTypeahead } from "../../../typeahead";
+import { drawRows } from "../../../utils/drawRows";
 import { jumpRow, resultRows } from "../../../utils/resultRows";
 import { submenuHeadings } from "../../../utils/submenuRows";
 import { selectionRows, ticketRows } from "../../../utils/ticketRows";
-import { createRows, gotoRows, viewRows } from "../../../utils/viewRows";
+import { createRows, gotoProjectRows, gotoRows, viewRows } from "../../../utils/viewRows";
 import { SubmenuGroup } from "../SubmenuGroup";
 
 export type PalettePanelProps = {
@@ -31,16 +32,19 @@ const placeholders = {
 	projects: "Go to a project",
 };
 
-// A row answers the typed text when every typed word starts a word of its
-// label: "toggle the" names Toggle theme.
-const rowMatches = (label: string, typed: string) => {
-	if (typed === "") return false;
-	const words = label.toLowerCase().split(/[^a-z0-9]+/);
+// A text answers the typed words when every typed word starts a word of
+// it: "toggle the" names Toggle theme.
+const textMatches = (text: string, typed: string) => {
+	const words = text.toLowerCase().split(/[^a-z0-9]+/);
 	return typed
 		.toLowerCase()
 		.split(/\s+/)
 		.every((needle) => words.some((word) => word.startsWith(needle)));
 };
+
+// A row answers the typed words through its label or one of its keywords.
+const rowMatches = (row: PaletteRow, typed: string) =>
+	typed !== "" && [row.label, ...(row.keywords ?? [])].some((text) => textMatches(text, typed));
 
 const selectionHeading = (count: number) => (
 	<>
@@ -48,26 +52,15 @@ const selectionHeading = (count: number) => (
 	</>
 );
 
-// cmdk moves an option in the DOM when it ranks the list, so every option
-// stays a direct child of its group.
-const drawRows = (rows: PaletteRow[]) =>
-	rows.map((row) => (
-		<Command.Row
-			key={row.value}
-			value={row.value}
-			label={row.label}
-			sub={row.sub}
-			mono={row.mono}
-			keys={row.keys}
-			icon={row.icon}
-			keywords={row.keywords}
-			onSelect={row.run}
-		/>
-	));
-
 // The panel of the palette: the field, the sections for the context under
 // it, and the results of the typed query. It mounts when the palette
 // opens, so every keystroke it holds is gone the next time.
+//
+// With no query, the panel lists This ticket, Selection, Create, Go to,
+// and View. With a query, it lists the jump row, the matching tickets, the
+// matching commands, and the matching projects, and a group with no match
+// hides. The panel filters the rows itself: cmdk's own filter ranks the
+// groups by score and would move the tickets away from the top.
 export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: PalettePanelProps) {
 	const { orpc } = useApp();
 	const mode = useCommandStore((state) => state.mode);
@@ -85,6 +78,7 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 	// A submenu and the project picker list their own values, so neither
 	// searches tickets.
 	const results = useCommandSearch(submenu === null && mode !== "projects" ? query : "");
+	const typed = query.trim();
 
 	const deps: RowDeps = {
 		action,
@@ -104,37 +98,45 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 		close: commandActions.close,
 	};
 
-	const groups: PaletteGroup[] = [];
+	const commands: PaletteGroup[] = [];
 	if (submenu === null && mode === "commands") {
-		if (identifier !== null) groups.push({ id: "ticket", heading: "This ticket", rows: ticketRows(deps) });
+		if (identifier !== null) commands.push({ id: "ticket", heading: "This ticket", rows: ticketRows(deps) });
 		if (selection.length > 0) {
-			groups.push({ id: "selection", heading: selectionHeading(selection.length), rows: selectionRows(deps) });
+			commands.push({ id: "selection", heading: selectionHeading(selection.length), rows: selectionRows(deps) });
 		}
-		groups.push({ id: "create", heading: "Create", rows: createRows(deps) });
-		groups.push({ id: "goto", heading: "Go to", rows: gotoRows(deps) });
-		groups.push({ id: "view", heading: "View", rows: viewRows(deps) });
-	}
-	if (submenu === null && mode === "projects") {
-		groups.push({
-			id: "goto",
-			heading: "Go to",
-			rows: gotoRows(deps).filter((row) => row.value.startsWith("goto.project.")),
-		});
-	}
-	if (submenu === null && results.tickets.length > 0) {
-		groups.push({ id: "results", heading: "Search results", rows: resultRows(results.tickets, deps) });
+		commands.push({ id: "create", heading: "Create", rows: createRows(deps) });
+		commands.push({ id: "goto", heading: "Go to", rows: gotoRows(deps) });
+		commands.push({ id: "view", heading: "View", rows: viewRows(deps) });
 	}
 
-	const typed = query.trim();
+	const groups: PaletteGroup[] = [];
+	if (submenu === null && mode === "projects") {
+		groups.push({ id: "projects", heading: submenuHeadings.goto, rows: gotoProjectRows(deps) });
+	} else if (submenu === null && typed === "") {
+		groups.push(...commands);
+	} else if (submenu === null) {
+		if (results.tickets.length > 0) {
+			groups.push({ id: "results", heading: "Tickets", rows: resultRows(results.tickets, deps) });
+		}
+		for (const group of commands) {
+			const rows = group.rows.filter((row) => rowMatches(row, typed));
+			if (rows.length > 0) groups.push({ ...group, rows });
+		}
+		if (mode === "commands") {
+			const matched = gotoProjectRows(deps).filter((row) => rowMatches(row, typed));
+			if (matched.length > 0) groups.push({ id: "projects", heading: "Projects", rows: matched });
+		}
+	}
+
 	const named = groups
 		.filter((group) => group.id !== "results")
 		.flatMap((group) => group.rows)
-		.find((row) => rowMatches(row.label, typed));
-	// What Enter runs: the ticket an identifier names, then a command the
-	// typed words name, then the closest ticket. An arrow key moves on from
-	// here, and the next keystroke answers again.
+		.find((row) => rowMatches(row, typed));
+	// What Enter runs: the ticket an ID names, then a command the typed
+	// words name, then the closest ticket. An arrow key moves on from here,
+	// and the next keystroke answers again.
 	const best = typed === "" ? undefined : (results.jump ?? named?.value ?? results.tickets[0]?.identifier);
-	const nothing = typed !== "" && best === undefined;
+	const nothing = typed !== "" && submenu === null && results.jump === null && groups.length === 0;
 
 	useEffect(() => {
 		if (best !== undefined) setValue(best);
@@ -149,7 +151,7 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 
 	return (
 		<Command.Root
-			label="Command menu"
+			label="Command palette"
 			value={value}
 			onValueChange={setValue}
 			shouldFilter={submenu !== null}
@@ -186,8 +188,8 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 					))}
 					open full search
 				</span>
-				<span className="ml-auto">
-					Type <span className="font-mono">CDE-12</span> to jump to a ticket
+				<span className="ml-auto" title="Type an ID such as CDE-12 to open the ticket">
+					Type an ID such as <span className="font-mono">CDE-12</span> to open the ticket
 				</span>
 			</Command.Footer>
 		</Command.Root>

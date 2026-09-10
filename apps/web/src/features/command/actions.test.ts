@@ -165,6 +165,18 @@ describe("features/command/actions", () => {
 		expect(harness.clipboard).toEqual([command]);
 		expect(harness.notify).toHaveBeenCalledTimes(1);
 		expect(harness.notify.mock.calls[0]![1]?.command).toBe(command);
+		expect(harness.notify.mock.calls[0]![0]).toBe("Copied the command. Paste it in a terminal.");
+	});
+
+	// CK-2. The palette builds the command with the one builder, so every
+	// `{brief}` in the template becomes the ID, as on the ticket page.
+	test("startWithAgent replaces every {brief} in the template", async () => {
+		const context = {
+			...harness.context,
+			settings: { ...harness.context.settings, startWithAgentTemplate: "a {brief} b {brief}" },
+		};
+		await startWithAgent(context, "CDE-42");
+		expect(harness.clipboard).toEqual(["a CDE-42 b CDE-42"]);
 	});
 
 	// AC-14

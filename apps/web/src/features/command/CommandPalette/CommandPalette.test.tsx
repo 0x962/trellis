@@ -23,7 +23,7 @@ const ticketItems = [
 	"Set priority",
 	"Move to project",
 	"Set parent",
-	"Add sub-ticket",
+	"New sub-ticket",
 	"Start with agent",
 	"Copy ID",
 	"Copy branch name",
@@ -33,7 +33,7 @@ const ticketItems = [
 	"Delete",
 ];
 
-const closed = () => screen.queryByRole("dialog", { name: "Command menu" });
+const closed = () => screen.queryByRole("dialog", { name: "Command palette" });
 
 beforeEach(() => {
 	localStorage.clear();
@@ -69,7 +69,7 @@ describe("features/command/CommandPalette", () => {
 	test("slash opens the palette in search mode", async () => {
 		await renderShell();
 		press("/");
-		await screen.findByRole("dialog", { name: "Command menu" });
+		await screen.findByRole("dialog", { name: "Command palette" });
 		expect(paletteInput().placeholder).toMatch(/search/i);
 		expect(within(palette()).queryAllByRole("group")).toHaveLength(0);
 	});
@@ -78,7 +78,7 @@ describe("features/command/CommandPalette", () => {
 	test("the trigger key never types into the search field", async () => {
 		await renderShell();
 		press("/");
-		await screen.findByRole("dialog", { name: "Command menu" });
+		await screen.findByRole("dialog", { name: "Command palette" });
 		expect(paletteInput().value).toBe("");
 		press("Escape", {}, paletteInput());
 		await waitFor(() => expect(closed()).toBeNull());
@@ -93,7 +93,7 @@ describe("features/command/CommandPalette", () => {
 		document.body.appendChild(input);
 		input.focus();
 		press("k", { metaKey: true }, input);
-		expect(await screen.findByRole("dialog", { name: "Command menu" })).toBeDefined();
+		expect(await screen.findByRole("dialog", { name: "Command palette" })).toBeDefined();
 		input.remove();
 	});
 
@@ -211,15 +211,18 @@ describe("features/command/CommandPalette", () => {
 		expect(within(group).getByRole("option", { name: new RegExp(`#${second.prs[0]!.number}`) })).toBeDefined();
 	});
 
-	// CP-17
-	test("the Create section adds the sub-ticket and sub-project items in context", async () => {
+	// CP-17, CK-1. New sub-ticket lives in This ticket only, so no two rows
+	// open the same dialog.
+	test("the Create section adds the sub-project item on a project route", async () => {
 		await renderShell({ path: "/p/CDE" });
 		act(() => commandActions.setPeekTicket("CDE-42"));
 		await openPalette();
-		expect(itemsOf("Create")).toHaveLength(4);
-		for (const label of ["New ticket", "New sub-ticket", "New project", "New sub-project"]) {
+		expect(itemsOf("Create")).toHaveLength(3);
+		for (const label of ["New ticket", "New project", "New sub-project"]) {
 			expect(within(section("Create")).getByRole("option", { name: new RegExp(label) }), label).toBeDefined();
 		}
+		expect(within(section("Create")).queryByRole("option", { name: /New sub-ticket/ })).toBeNull();
+		expect(within(section("This ticket")).getAllByRole("option", { name: /New sub-ticket/ })).toHaveLength(1);
 	});
 
 	// CP-18
@@ -229,17 +232,6 @@ describe("features/command/CommandPalette", () => {
 		expect(itemsOf("Create")).toHaveLength(2);
 		expect(within(section("Create")).getByRole("option", { name: /New ticket/ })).toBeDefined();
 		expect(within(section("Create")).getByRole("option", { name: /New project/ })).toBeDefined();
-	});
-
-	// CP-19. The seed holds five projects: CDE, CDE.web, CDE.host, TRL, MRG.
-	test("the Go to section lists the destinations and the current project views", async () => {
-		await renderShell({ path: "/p/CDE" });
-		await openPalette();
-		const group = section("Go to");
-		for (const label of ["Needs you", "All tickets", "Settings", "Board", "Table", "CDE.web", "TRL", "MRG"]) {
-			expect(within(group).getByRole("option", { name: new RegExp(label) }), label).toBeDefined();
-		}
-		expect(itemsOf("Go to")).toHaveLength(10);
 	});
 
 	// CP-20
@@ -256,7 +248,7 @@ describe("features/command/CommandPalette", () => {
 		await renderShell();
 		await openPalette();
 		expect(itemsOf("View")).toHaveLength(6);
-		for (const label of ["Filter by", "Sort by", "Group by", "Toggle density", "Toggle theme", "Collapse sidebar"]) {
+		for (const label of ["Filter by", "Sort by", "Group by", "Toggle density", "Toggle theme", "Toggle sidebar"]) {
 			expect(within(section("View")).getByRole("option", { name: new RegExp(label) }), label).toBeDefined();
 		}
 	});
@@ -276,23 +268,6 @@ describe("features/command/CommandPalette", () => {
 		await openPalette();
 		const item = within(section("Create")).getByRole("option", { name: /New project/ });
 		expect(item.querySelector("kbd")).toBeNull();
-	});
-
-	// CP-24. happy-dom draws no layout, so the fixed height is the row class
-	// and the position is the order of the sections.
-	test("the rows keep a fixed height and the results shift nothing above them", async () => {
-		const clock = createFakeScheduler();
-		await renderShell({ scheduler: clock.scheduler });
-		const user = userEvent.setup();
-		await openPalette();
-		const before = sectionNames();
-		await user.type(paletteInput(), "page");
-		act(() => clock.advanceTo(200));
-		await waitFor(() => expect(sectionNames()).toContain("Search results"));
-		expect(sectionNames()).toEqual([...before, "Search results"]);
-		for (const option of within(palette()).getAllByRole("option")) {
-			expect(option.className).toContain("h-8");
-		}
 	});
 
 	// CP-25

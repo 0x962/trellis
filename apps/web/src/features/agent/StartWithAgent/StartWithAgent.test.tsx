@@ -35,9 +35,9 @@ describe("features/agent/StartWithAgent", () => {
 		await user.click(await start());
 		await waitFor(async () => expect(await navigator.clipboard.readText()).toBe(command));
 		expect(await screen.findByText("Copied. Paste in your terminal.")).toBeDefined();
-		const pre = await screen.findByText(command);
-		expect(pre.tagName).toBe("PRE");
-		expect(pre.className).toMatch(/\bfont-mono\b/);
+		const line = await screen.findByText(command);
+		expect(line.className).toMatch(/\bfont-mono\b/);
+		expect(line.className).toMatch(/\btruncate\b/);
 	});
 
 	// WT-90

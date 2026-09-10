@@ -7,6 +7,9 @@ import { ComposerHost } from "../features/composer/ComposerHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { linkButtonClass } from "../features/shell/linkButtonClass";
 import { ReconnectBanner } from "../features/shell/ReconnectBanner";
+import { RouteError } from "../features/shell/RouteError";
+import { RouteProgress } from "../features/shell/RouteProgress";
+import { ShellFrame } from "../features/shell/ShellFrame";
 import { Sidebar } from "../features/sidebar/Sidebar";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { useFaviconBadge } from "../hooks/useFaviconBadge";
@@ -36,6 +39,18 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 	},
 	component: RootComponent,
 	notFoundComponent: PageNotFound,
+	// A cold load that waits on the server paints the empty shell. The root
+	// needs its own Suspense boundary for that, because a root route has
+	// none by default.
+	wrapInSuspense: true,
+	pendingComponent: ShellFrame,
+	// The root load fails when the server does not answer. The error shows
+	// inside the empty shell, so the whole app never turns white.
+	errorComponent: ({ error }) => (
+		<ShellFrame>
+			<RouteError error={error} />
+		</ShellFrame>
+	),
 });
 
 // `location` changes when a navigation starts, but the outlet keeps the old
@@ -62,6 +77,7 @@ function RootComponent() {
 			<Sidebar />
 			<div className="relative flex min-w-0 flex-1 flex-col">
 				<ReconnectBanner live={live} scheduler={scheduler} />
+				<RouteProgress />
 				<main className="flex min-h-0 min-w-0 flex-1 flex-col bg-pane">
 					<Outlet />
 				</main>
