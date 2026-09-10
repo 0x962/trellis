@@ -4,19 +4,22 @@ const fields: Record<string, string> = {
 	updatedAt: "updated",
 	createdAt: "created",
 	priority: "priority",
-	number: "number",
+	number: "ID",
 	status: "status",
 	position: "position",
 };
 
-// The footer text for a sort: "Sorted by updated", "Sorted by priority, ascending".
+// The footer text for a sort. The default sort, `-updatedAt`, is the table's
+// own order: priority first, then the newest update.
 export const sortLabel = (sort: Sort): string => {
+	if (sort === "-updatedAt") return "Sorted by priority, then updated";
 	const ascending = !sort.startsWith("-");
 	const field = fields[sort.replace(/^-/, "")]!;
-	return `Sorted by ${field}${ascending && field !== "priority" ? ", oldest first" : ""}`;
+	const dated = field === "updated" || field === "created";
+	return `Sorted by ${field}${ascending && dated ? ", oldest first" : ""}`;
 };
 
-const filterKeys = [
+export const filterKeys = [
 	"status",
 	"category",
 	"reviewer",
@@ -33,4 +36,4 @@ const filterKeys = [
 
 // True when the URL narrows the list beyond the scope.
 export const hasFilters = (search: Record<string, unknown>): boolean =>
-	filterKeys.some((key) => search[key] !== undefined);
+	filterKeys.some((key) => search[key] !== undefined) || search.project !== undefined;

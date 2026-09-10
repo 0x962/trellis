@@ -3,9 +3,9 @@ import { createFileRoute, redirect, useNavigate, useRouter } from "@tanstack/rea
 import { Button, toast } from "@trellis/ui";
 import { Copy } from "lucide-react";
 import { isCanonicalSearch } from "../../features/filters/canonical";
-import { toCliCommand } from "../../features/filters/cli";
+import { toCli } from "../../features/filters/cli";
 import { FilterBar } from "../../features/filters/FilterBar";
-import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../features/filters/grammar";
+import { parseSearch, stripDefaults, toCountsQuery, toListQuery, type View, viewOf } from "../../features/filters/grammar";
 import { sortLabel } from "../../features/filters/labels";
 import { ListFooter } from "../../features/shell/ListFooter";
 import { Topbar } from "../../features/shell/Topbar";
@@ -42,7 +42,7 @@ function AllPage() {
 	};
 
 	const copyCli = async () => {
-		await navigator.clipboard.writeText(toCliCommand(view));
+		await navigator.clipboard.writeText(toCli(toListQuery(view)));
 		toast("Copied the CLI command");
 	};
 

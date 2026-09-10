@@ -1,46 +1,64 @@
-import { stripDefaults, type View } from "./grammar";
+import type { ListQueryInput } from "@trellis/api";
 
-// A flag per list field. The value is the URL value: a comma list stays a
-// comma list, a relative time bound stays `7d`.
-const flags: Partial<Record<keyof View, string>> = {
-	status: "--status",
-	category: "--category",
-	reviewer: "--reviewer",
-	priority: "--priority",
-	parent: "--parent",
-	pr: "--pr",
-	ci: "--ci",
-	actor: "--actor",
-	q: "--q",
-	updated: "--updated",
-	created: "--created",
-	completed: "--completed",
-	sort: "--sort",
-	limit: "--limit",
-};
+type Flag = { key: keyof ListQueryInput; flag: string; list?: boolean };
+
+// One flag per list field, in the order the command prints them. A list
+// field is a comma list on the command line, as in the URL.
+const flags: readonly Flag[] = [
+	{ key: "project", flag: "--project" },
+	{ key: "status", flag: "--status", list: true },
+	{ key: "category", flag: "--category", list: true },
+	{ key: "reviewer", flag: "--reviewer" },
+	{ key: "priority", flag: "--priority", list: true },
+	{ key: "parent", flag: "--parent" },
+	{ key: "pr", flag: "--pr" },
+	{ key: "ci", flag: "--ci", list: true },
+	{ key: "actor", flag: "--actor" },
+	{ key: "q", flag: "--q" },
+	{ key: "updated", flag: "--updated" },
+	{ key: "created", flag: "--created" },
+	{ key: "completed", flag: "--completed" },
+	{ key: "sort", flag: "--sort" },
+	{ key: "limit", flag: "--limit" },
+];
+
+const noSubprojects = "--no-subprojects";
 
 const quote = (value: string) => (/[\s"]/.test(value) ? `"${value.replace(/"/g, '\\"')}"` : value);
 
-// The `trellis list` command that returns the same rows as the view.
-// `project` is the API ref of the project route, or undefined on /all.
-export const toCliCommand = (view: View, project?: string): string => {
+// The `trellis list` command that returns the rows of a query.
+export const toCli = (query: ListQueryInput): string => {
 	const parts = ["trellis", "list"];
-	if (project !== undefined) parts.push("-p", project);
-	if (view.scope === "self") parts.push("--no-subprojects");
-	const stripped = stripDefaults(view);
-	for (const [key, flag] of Object.entries(flags) as [keyof View, string][]) {
-		const value = stripped[key];
+	for (const { key, flag, list } of flags) {
+		const value = query[key];
 		if (value === undefined) continue;
-		parts.push(flag, quote(Array.isArray(value) ? value.join(",") : String(value)));
+		const text = list && Array.isArray(value) ? value.join(",") : String(value);
+		parts.push(flag, quote(text));
 	}
+	if (query.subprojects === false) parts.push(noSubprojects);
 	return parts.join(" ");
 };
 
-// Skeleton for the web-table work item. cli.test.ts states the outcomes.
-export const toCli = (..._args: unknown[]): never => {
-	throw new Error("toCli is not implemented");
-};
+// The words of a command line. A double-quoted word keeps its spaces.
+const words = (command: string) =>
+	[...command.matchAll(/"((?:[^"\\]|\\.)*)"|(\S+)/g)].map((match) =>
+		match[1] === undefined ? match[2]! : match[1].replace(/\\"/g, '"'),
+	);
 
-export const parseCli = (..._args: unknown[]): never => {
-	throw new Error("parseCli is not implemented");
+// The query of a `trellis list` command, as `toCli` printed it.
+export const parseCli = (command: string): ListQueryInput => {
+	const query: Record<string, unknown> = {};
+	const tokens = words(command).slice(2);
+	for (let index = 0; index < tokens.length; index += 1) {
+		const token = tokens[index]!;
+		if (token === noSubprojects) {
+			query.subprojects = false;
+			continue;
+		}
+		const entry = flags.find((flag) => flag.flag === token)!;
+		index += 1;
+		const value = tokens[index]!;
+		query[entry.key] = entry.list ? value.split(",") : entry.key === "limit" ? Number(value) : value;
+	}
+	return query as ListQueryInput;
 };

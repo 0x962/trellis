@@ -11,9 +11,16 @@ import {
 import { Button, EmptyState, toast } from "@trellis/ui";
 import { Copy } from "lucide-react";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
-import { toCliCommand } from "../../../features/filters/cli";
+import { toCli } from "../../../features/filters/cli";
 import { FilterBar } from "../../../features/filters/FilterBar";
-import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../../features/filters/grammar";
+import {
+	parseSearch,
+	stripDefaults,
+	toCountsQuery,
+	toListQuery,
+	type View,
+	viewOf,
+} from "../../../features/filters/grammar";
 import { hasFilters, sortLabel } from "../../../features/filters/labels";
 import { Breadcrumb } from "../../../features/shell/Breadcrumb";
 import { ListFooter } from "../../../features/shell/ListFooter";
@@ -82,7 +89,7 @@ function ProjectPage() {
 		});
 
 	const copyCli = async () => {
-		await navigator.clipboard.writeText(toCliCommand(full, ref));
+		await navigator.clipboard.writeText(toCli({ project: ref, ...toListQuery(full) }));
 		toast("Copied the CLI command");
 	};
 

@@ -4,6 +4,7 @@ import {
 	ListQuerySchema,
 	PrFilterSchema,
 	PrioritySchema,
+	ProjectRefStringSchema,
 	ReviewerSchema,
 	SortSchema,
 	StatusCategorySchema,
@@ -58,6 +59,7 @@ export const viewDefaults = {
 // The order the params take in a URL: the API grammar first, then the
 // web-only fields.
 const order: (keyof View)[] = [
+	"project",
 	"status",
 	"category",
 	"reviewer",
@@ -121,12 +123,29 @@ const timeBound = (value: Raw) => {
 
 const text = (value: Raw) => (typeof value !== "string" || value === "" ? undefined : value);
 
+const negatable: NegatableField[] = ["status", "priority", "project"];
+
+// A leading `!` on a negatable field's value negates the whole set. The
+// value comes back without it.
+const splitNegation = (raw: Record<string, Raw>) => {
+	const values: Record<string, Raw> = { ...raw };
+	const not: NegatableField[] = [];
+	for (const field of negatable) {
+		const value = raw[field];
+		if (typeof value !== "string" || !value.startsWith("!")) continue;
+		values[field] = value.slice(1);
+		not.push(field);
+	}
+	return { values, not };
+};
+
 // Reads the raw URL params into a view. An invalid value is dropped and
 // the field takes its default, so a hand-edited URL never crashes a route.
 export const parseSearch = (params: Record<string, unknown>): View => {
-	const raw = params as Record<string, Raw>;
+	const { values: raw, not } = splitNegation(params as Record<string, Raw>);
 	const limit = Number(raw.limit);
 	const view: View = {
+		project: single(raw.project, ProjectRefStringSchema),
 		status: list(raw.status, StatusRefStringSchema),
 		category: list(raw.category, StatusCategorySchema),
 		reviewer: single(raw.reviewer, ReviewerSchema),
@@ -149,6 +168,8 @@ export const parseSearch = (params: Record<string, unknown>): View => {
 	for (const key of Object.keys(view) as (keyof View)[]) {
 		if (view[key] === undefined) delete view[key];
 	}
+	const kept = not.filter((field) => view[field] !== undefined);
+	if (kept.length > 0) view.not = kept;
 	return view;
 };
 
@@ -169,11 +190,13 @@ export const stripDefaults = <T extends ViewInput>(view: T): Partial<T> => {
 // never written, so `/p/CDE` stays clean.
 export const serializeSearch = (view: ViewInput): string => {
 	const stripped = stripDefaults(view);
+	const not = stripped.not ?? [];
 	return order
 		.filter((key) => stripped[key] !== undefined)
 		.map((key) => {
 			const value = stripped[key];
-			return `${key}=${Array.isArray(value) ? value.join(",") : String(value)}`;
+			const bang = not.includes(key as NegatableField) ? "!" : "";
+			return `${key}=${bang}${Array.isArray(value) ? value.join(",") : String(value)}`;
 		})
 		.join("&");
 };
@@ -189,15 +212,35 @@ const toInstant = (value: string | undefined, now: Date) => {
 	return new Date(now.getTime() - hours * hourMs).toISOString();
 };
 
+export type ListQueryOptions = {
+	now?: Date;
+	// The statuses of the scope. A negated status set goes out as the rest
+	// of this list, because the API grammar has no negation.
+	statuses?: readonly { slug: string }[];
+};
+
+// The values of `all` that are not in `set`.
+const complement = <T extends string>(all: readonly T[], set: readonly string[]) =>
+	all.filter((value) => !set.includes(value));
+
+const isNegated = (view: View, field: NegatableField) => view.not?.includes(field) ?? false;
+
 // The `tickets.list` input of a view. Only set fields go out, so the URL,
-// the request, and the CLI flags name the same filters.
-export const toListQuery = (view: View, options: { now?: Date } = {}): ListQueryInput => {
+// the request, and the CLI flags name the same filters. A negated project
+// has no API form and stays out of the query.
+export const toListQuery = (view: View, options: ListQueryOptions = {}): ListQueryInput => {
 	const now = options.now ?? new Date();
+	const statusSlugs = (options.statuses ?? []).map((status) => status.slug);
 	const query: ListQueryInput = {
-		status: view.status,
+		project: isNegated(view, "project") ? undefined : view.project,
+		status:
+			view.status !== undefined && isNegated(view, "status") ? complement(statusSlugs, view.status) : view.status,
 		category: view.category,
 		reviewer: view.reviewer,
-		priority: view.priority,
+		priority:
+			view.priority !== undefined && isNegated(view, "priority")
+				? complement(PrioritySchema.options, view.priority)
+				: view.priority,
 		parent: view.parent,
 		pr: view.pr,
 		ci: view.ci,
@@ -218,7 +261,7 @@ export const toListQuery = (view: View, options: { now?: Date } = {}): ListQuery
 
 // The `tickets.counts` and `tickets.board` input: the filters without
 // the order and the page size.
-export const toCountsQuery = (view: View, options: { now?: Date } = {}) => {
+export const toCountsQuery = (view: View, options: ListQueryOptions = {}) => {
 	const { sort, limit, cursor, ...filters } = toListQuery(view, options);
 	return filters;
 };

@@ -6,5 +6,10 @@ export type Preset = {
 	view: Partial<View>;
 };
 
-// Skeleton for the web-table work item. presets.test.ts states the outcomes.
-export const presets: readonly Preset[] = [];
+// The first section of the filter picker, in this order.
+export const presets: readonly Preset[] = [
+	{ label: "Active", view: { category: ["todo", "started", "review"] } },
+	{ label: "Needs review", view: { category: ["review"] } },
+	{ label: "Failing CI", view: { ci: ["fail"] } },
+	{ label: "Touched by agents today", view: { actor: "@agent", updated: "24h" } },
+];
