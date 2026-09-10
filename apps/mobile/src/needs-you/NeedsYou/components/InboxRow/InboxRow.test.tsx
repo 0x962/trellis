@@ -19,7 +19,7 @@ const humanReview = {
 	category: "review",
 	reviewer: "human",
 	color: "accent",
-};
+} as const;
 
 // CDE-42 as the seeded inbox lists it: in Human Review, four passing
 // checks, last touched by the agent claude two hours ago.

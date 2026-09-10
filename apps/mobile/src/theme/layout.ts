@@ -7,6 +7,10 @@ export const layout = {
 	// One ticket row: the title on one line and the meta line under it.
 	ticketRow: 64,
 	header: 44,
+	// One activity line in a timeline.
+	activityRow: 32,
+	// The longest side of an inline attachment image.
+	attachmentImage: 240,
 	statusIcon: 16,
 	mark: 14,
 	avatar: 18,

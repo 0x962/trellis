@@ -46,7 +46,7 @@ export function StatusIcon({ category, reviewer = "human", progress, label }: St
 	const filled = category === "done";
 	return (
 		<View
-			accessible={label !== undefined}
+			accessible={Boolean(label)}
 			accessibilityRole={label ? "image" : undefined}
 			accessibilityLabel={label}
 			accessibilityElementsHidden={!label}

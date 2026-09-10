@@ -36,6 +36,8 @@ export const startLive = (queryClient: QueryClient) => {
 		stream = undefined;
 	};
 
+	// The stream runs in the foreground only. React Native reports "unknown" until
+	// the first state change on some launches, and that state opens the stream.
 	if (AppState.currentState !== "background" && AppState.currentState !== "inactive") open();
 
 	const subscription = AppState.addEventListener("change", (state) => {

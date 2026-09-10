@@ -1,4 +1,5 @@
 import { beforeEach, jest } from "@jest/globals";
+import { queryClient } from "../src/lib/queryClient";
 import { notificationAsync } from "./mocks/expo-haptics";
 import { createMMKV } from "./mocks/react-native-mmkv";
 import { resetEventSources } from "./mocks/react-native-sse";
@@ -19,9 +20,10 @@ jest.mock("expo-constants", () => {
 // jest.config.js maps react-native-mmkv, react-native-sse, and expo-haptics
 // to the three mocks, so this file and the module under test share one
 // instance of each. Every test starts from a fresh install: an empty store,
-// no open stream, and no haptic fired.
+// an empty query cache, no open stream, and no haptic fired.
 beforeEach(() => {
 	createMMKV().clearAll();
+	queryClient.clear();
 	resetEventSources();
 	notificationAsync.mockClear();
 });
