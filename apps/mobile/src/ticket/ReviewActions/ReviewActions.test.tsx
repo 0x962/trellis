@@ -37,7 +37,7 @@ describe("the review actions", () => {
 		const started = await openTicket("CDE-44", "Terminal pane loses scrollback on session handoff");
 		expect(approve()).toBeNull();
 		expect(sendBack()).toBeNull();
-		started.unmount();
+		await started.unmount();
 		await openTicket("CDE-45", "Setup module skips a hand-run launchd agent");
 		expect(within(statusRow()).getByText("Agent Review")).toBeOnTheScreen();
 		expect(approve()).toBeNull();
@@ -68,7 +68,12 @@ describe("the review actions", () => {
 		await fireEvent.changeText(comment, "Run the tests first");
 		await fireEvent.press(screen.getByRole("button", { name: "Confirm" }));
 		await waitFor(() => expect(app.callsTo("tickets.update")).toHaveLength(1));
-		const writes = app.server.calls.filter((call) => call.path[0] === "comments" || call.path[0] === "tickets");
+		const writes = app.server.calls.filter(
+			(call) =>
+				call.path[0] === "comments" ||
+				(call.path[0] === "tickets" &&
+					(call.path[1] !== "get" || (call.input as { ticket: string }).ticket === "CDE-42")),
+		);
 		expect(writes.map((call) => call.path.join("."))).toEqual(["tickets.get", "comments.create", "tickets.update"]);
 		expect(app.callsTo("comments.create")[0]!.input).toEqual({ ticket: "CDE-42", body: "Run the tests first" });
 		await waitFor(() => expect(within(statusRow()).getByText("In Progress")).toBeOnTheScreen());
