@@ -19,7 +19,7 @@ describe("features/command/CommandPalette: keys typed at once", () => {
 		await findGrid();
 		press("k", { metaKey: true });
 		for (const key of "oauth") press(key);
-		await screen.findByRole("dialog", { name: "Command menu" });
+		await screen.findByRole("dialog", { name: "Command palette" });
 		await waitFor(() => expect(paletteInput().value).toBe("oauth"));
 		expect(router.state.location.pathname).toBe("/p/CDE");
 	});

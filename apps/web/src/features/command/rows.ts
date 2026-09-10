@@ -15,6 +15,10 @@ export type PaletteRow = {
 	// Muted text after the label: the current status, a project path.
 	sub?: string;
 	mono?: boolean;
+	// Faint mono text before the label, such as a ticket ID.
+	prefix?: string;
+	// A node before the label in place of the icon, such as a key badge.
+	leading?: ReactNode;
 	keys?: string[];
 	icon?: ReactNode;
 	keywords?: string[];
@@ -34,7 +38,8 @@ export type Submenu =
 	| { kind: "project"; tickets: string[] }
 	| { kind: "parent"; ticket: string; project: string }
 	| { kind: "sort" }
-	| { kind: "group" };
+	| { kind: "group" }
+	| { kind: "goto" };
 
 export type RowDeps = {
 	action: ActionContext;

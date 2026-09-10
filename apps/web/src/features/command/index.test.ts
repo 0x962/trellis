@@ -30,7 +30,7 @@ const initialSource = async () => {
 
 // Strings only the palette ships: the dialog name, a section heading, and a
 // View row. The dialog name also sits in the shared Command chunk.
-const commandMarkers = ["Command menu", "Search results", "Toggle density"];
+const commandMarkers = ["Command palette", "Type an ID such as", "Toggle density"];
 
 // The field placeholder. Only the palette body chunk carries it.
 const paletteBodyMarker = "Type a command or search tickets";

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Command } from "@trellis/ui";
 import { useApp } from "../../../../../lib/appContext";
 import type { RowDeps, Submenu } from "../../../rows";
+import { drawRows } from "../../../utils/drawRows";
 import { submenuHeadings, submenuRows } from "../../../utils/submenuRows";
 
 export type SubmenuGroupProps = {
@@ -27,20 +28,5 @@ export function SubmenuGroup({ submenu, deps }: SubmenuGroupProps) {
 		statuses: statuses.data?.statuses ?? [],
 		tickets: tickets.data?.items ?? [],
 	});
-	return (
-		<Command.Group heading={submenuHeadings[submenu.kind]}>
-			{rows.map((row) => (
-				<Command.Row
-					key={row.value}
-					value={row.value}
-					label={row.label}
-					sub={row.sub}
-					mono={row.mono}
-					icon={row.icon}
-					keywords={row.keywords}
-					onSelect={row.run}
-				/>
-			))}
-		</Command.Group>
-	);
+	return <Command.Group heading={submenuHeadings[submenu.kind]}>{drawRows(rows)}</Command.Group>;
 }

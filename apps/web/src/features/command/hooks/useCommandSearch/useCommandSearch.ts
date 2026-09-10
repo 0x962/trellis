@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "../../../../lib/appContext";
 
 export type CommandSearch = {
-	// The top 6 tickets for the query.
+	// The top 5 tickets for the query.
 	tickets: TicketSummary[];
 	// The identifier the query spells, or null. The match is local, so the
 	// jump item needs no request.
@@ -15,7 +15,7 @@ export type CommandSearch = {
 export const searchDebounceMs = 120;
 
 // How many tickets the palette shows. The full list lives on /search.
-const topResults = 6;
+const topResults = 5;
 
 const empty: TicketSummary[] = [];
 
