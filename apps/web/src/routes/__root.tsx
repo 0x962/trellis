@@ -1,25 +1,16 @@
-import { createRootRouteWithContext, Link, Outlet, redirect, useRouter, useRouterState } from "@tanstack/react-router";
+import { createRootRouteWithContext, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { EmptyState, Toaster } from "@trellis/ui";
-import { useCallback } from "react";
 import { CommandPalette } from "../features/command/CommandPalette";
-import { openShortcutHelp, ShortcutHelp } from "../features/command/ShortcutHelp";
+import { ShortcutHelp } from "../features/command/ShortcutHelp";
+import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { ReconnectBanner } from "../features/shell/ReconnectBanner";
 import { Sidebar } from "../features/sidebar/Sidebar";
 import { hasActor } from "../lib/actor";
 import { type RouterContext, useApp } from "../lib/appContext";
-import { HotkeyScope } from "../lib/hotkeyScope";
-import { uiActions } from "../stores/uiStore";
 
 // The two pages that render without the shell: the first run and the
 // design gallery.
 const bare = (pathname: string) => pathname === "/setup" || pathname.startsWith("/_gallery");
-
-// `g p`: the sidebar's project tree is the project picker until the
-// command palette exists. A collapsed sidebar opens first.
-const focusProjectTree = () => {
-	uiActions.setSidebarCollapsed(false);
-	requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-project-tree] a")?.focus());
-};
 
 const linkClass =
 	"inline-flex h-7 items-center rounded-md border border-border bg-surface px-2.5 text-sm font-medium text-fg transition duration-hover hover:bg-bg hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
@@ -40,9 +31,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent() {
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
-	const router = useRouter();
 	const { live, scheduler } = useApp();
-	const navigate = useCallback((href: string) => void router.navigate({ href }), [router]);
 
 	if (bare(pathname)) {
 		return (
@@ -63,13 +52,7 @@ function RootComponent() {
 				</main>
 			</div>
 			<div data-command-palette="" hidden />
-			<HotkeyScope
-				navigate={navigate}
-				pathname={pathname}
-				onProjectPicker={focusProjectTree}
-				onHelp={openShortcutHelp}
-				scheduler={scheduler}
-			/>
+			<GlobalHotkeys />
 			<CommandPalette />
 			<ShortcutHelp />
 			<Toaster />
