@@ -234,9 +234,9 @@ describe("size-budget", () => {
 		expect(buildOnce().exitCode).toBe(0);
 		const initial = await initialSource();
 		expect(initial.source).not.toContain("Done by agents today");
-		expect(initial.source).not.toContain("Settings saved");
+		expect(initial.source).not.toContain("Pair a phone");
 		const needsYou = await chunkWith("Done by agents today", initial.names);
-		const settings = await chunkWith("Settings saved", initial.names);
+		const settings = await chunkWith("Pair a phone", initial.names);
 		expect(needsYou).toHaveLength(1);
 		expect(settings).toHaveLength(1);
 		expect(needsYou[0]).not.toBe(settings[0]);
