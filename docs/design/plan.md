@@ -432,7 +432,7 @@ Actors: human = filled circle with initials; agent = rounded-square outline in t
 
 Table: active tickets fetched in full and grouped client-side by status in category order, rows sorted priority desc then updated desc; Done and Canceled collapsed and paged per group, rendered only when no status filter is active; columns priority, ID, title (with `↳ parent`, sub ring, clip, comment count), status, PR (icon + mini ribbon), project (when scoped), last actor, updated; inline status and priority popovers; `x` select, bulk bar (`updateMany`); Display popover for columns, density, group, sort; virtualized with fixed row heights.
 
-Kanban: `tickets.board`, pragmatic-drag-and-drop, columns by effective status in category order (category columns on `/all/board`), 100 cards per column then "show more"; card = ID, priority, two-line title, PR icon + mini ribbon, sub ring, clip, last actor + time; a failing-CI card gets a 2 px red top border; drop = `tickets.move`; in-column drag = manual order; WIP badge; collapsed columns; in-column quick add.
+Kanban: `tickets.board`, pragmatic-drag-and-drop, columns by effective status in category order (category columns on `/all/board`), 100 cards per column then "show more"; card = ID, priority, two-line title, PR icon + mini ribbon, sub ring, clip, last actor + time; a failing-CI card gets a 2 px red top border; drop = `tickets.move`; WIP badge; collapsed columns; the column plus and the ghost row open the composer.
 
 Filters: Linear-style chips over the shared grammar; presets Active, Needs review, Failing CI, Touched by agents today. No saved views in v1.
 

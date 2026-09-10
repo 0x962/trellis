@@ -9,6 +9,7 @@ import { findTicket, matchStatus } from "../../../../test/fake-server/state";
 import { ticketSummary } from "../../../../test/fake-server/summaries";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import { useUiStore } from "../../../stores/uiStore";
+import { useComposerStore } from "../../composer/composerStore";
 import { Board } from ".";
 
 // The UI store keeps the collapsed columns in memory, so each test starts
@@ -16,6 +17,7 @@ import { Board } from ".";
 beforeEach(() => {
 	localStorage.clear();
 	useUiStore.setState({ collapsedGroups: {} });
+	useComposerStore.setState({ open: false, options: {} });
 });
 
 const renderBoard = (server = createFakeServer()) =>
@@ -212,19 +214,12 @@ describe("Board", () => {
 		expect(await screen.findByText("Old completed ticket")).toBeDefined();
 	});
 
-	test("quick add creates a ticket in the column status", async () => {
+	test("the column header plus opens New ticket in the project and the column status", async () => {
 		const server = createFakeServer();
 		renderBoard(server);
 		await userEvent.setup().click(await screen.findByRole("button", { name: "New ticket in Todo" }));
-		const input = screen.getByRole("textbox", { name: "New ticket title in Todo" });
-		await userEvent.setup().type(input, "A board ticket{Enter}");
-		await waitFor(() => {
-			const create = server.calls.find(
-				(call) =>
-					call.path.join(".") === "tickets.create" && (call.input as { title?: string }).title === "A board ticket",
-			);
-			expect(create?.input).toMatchObject({ project: "CDE", status: "todo" });
-		});
+		expect(useComposerStore.getState()).toMatchObject({ open: true, options: { project: "CDE", status: "todo" } });
+		expect(server.calls.filter((call) => call.path.join(".") === "tickets.create")).toHaveLength(0);
 	});
 
 	test("a ticket.updated event moves a card without a board refetch", async () => {

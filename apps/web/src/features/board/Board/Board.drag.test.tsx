@@ -155,11 +155,11 @@ describe("Board drag", () => {
 		}
 	});
 
-	test("Shift+Enter in quick add opens New ticket with the project and the column status", async () => {
+	test("the ghost row under the last card opens New ticket with the project and the column status", async () => {
 		renderBoard();
-		await userEvent.setup().click(await screen.findByRole("button", { name: "New ticket in Todo" }));
-		const input = screen.getByRole("textbox", { name: "New ticket title in Todo" });
-		await userEvent.setup().type(input, "Draft{Shift>}{Enter}{/Shift}");
+		await screen.findByText("CDE-47");
+		const ghost = within(column("Todo")).getByRole("button", { name: "New ticket" });
+		await userEvent.setup().click(ghost);
 		expect(useComposerStore.getState()).toMatchObject({ open: true, options: { project: "CDE", status: "todo" } });
 	});
 });

@@ -278,9 +278,9 @@ login (2 lines max, then ellipsis)
 - Category columns on `/all/board`: dropping picks the **first** status of that category in the ticket's project; if there are multiple, a small popover asks which.
 - Multi-drag: not in v1. Bulk status changes are done from the table.
 
-### 4.4 Adding a ticket in-column
+### 4.4 Adding a ticket from a column
 
-`+` in the column header (adds at top) or the ghost "+ New ticket" row at the bottom (adds at bottom) turns into an inline card: single-line title input, `Enter` creates (project = current, status = column), a fresh input appears for the next one; `Shift+Enter` opens the full composer pre-filled; `Esc` cancels. New cards animate in (fade + 4px rise, 160ms).
+`+` in the column header and the ghost "+ New ticket" row at the bottom both open the full composer. The composer takes the project of the page and the status of the column. `c` opens the same composer. The board creates no ticket from a field on the column.
 
 ### 4.5 Keyboard on the board
 

@@ -1,11 +1,10 @@
 import { Button, cx, IconButton, Menu, StatusIcon } from "@trellis/ui";
 import { ChevronRight, MoreHorizontal, Plus } from "lucide-react";
-import { type KeyboardEvent, useCallback, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useRef } from "react";
 import { useBoardAutoScroll, useColumnDnd } from "../../hooks/useBoardDnd";
 import type { BoardColumnModel } from "../../types";
 import { BoardCard } from "../BoardCard";
 import { DragIndicator } from "../DragIndicator";
-import { QuickAdd } from "../QuickAdd";
 import { WipBadge } from "../WipBadge";
 
 export type BoardColumnProps = {
@@ -20,9 +19,8 @@ export type BoardColumnProps = {
 	well: boolean;
 	onToggle: () => void;
 	onShowAllDone: () => void;
-	onCreate: (title: string) => Promise<void>;
-	// Opens New ticket with the column's status and the typed title.
-	onFullComposer: (title: string) => void;
+	// Opens the New ticket form with the project and the column's status.
+	onNewTicket: () => void;
 	onShowMore: () => Promise<void>;
 	onOpenTicket: (identifier: string) => void;
 	onFocusTicket: (identifier: string) => void;
@@ -48,8 +46,7 @@ export function BoardColumn({
 	well,
 	onToggle,
 	onShowAllDone,
-	onCreate,
-	onFullComposer,
+	onNewTicket,
 	onShowMore,
 	onOpenTicket,
 	onFocusTicket,
@@ -63,7 +60,6 @@ export function BoardColumn({
 	}, [collapsed, onToggle]);
 	const over = useColumnDnd(target, column, collapsed, expand);
 	useBoardAutoScroll(list, !collapsed);
-	const [quickAdd, setQuickAdd] = useState(false);
 	const visible =
 		column.category === "done" && !showAllDone
 			? column.items.filter((ticket) => ticket.completedAt !== null && Date.parse(ticket.completedAt) >= cutoff())
@@ -111,12 +107,7 @@ export function BoardColumn({
 				<span className="text-sm text-fg-faint tabular">{count}</span>
 				{column.wipLimit !== null && <WipBadge count={column.count} limit={column.wipLimit} />}
 				<span className={cx("ml-auto flex items-center gap-0.5", revealed)}>
-					<IconButton
-						label={`New ticket in ${column.name}`}
-						icon={<Plus />}
-						size="sm"
-						onClick={() => setQuickAdd(true)}
-					/>
+					<IconButton label={`New ticket in ${column.name}`} icon={<Plus />} size="sm" onClick={onNewTicket} />
 					<Menu
 						label={`${column.name} actions`}
 						trigger={<IconButton label={`${column.name} actions`} icon={<MoreHorizontal />} size="sm" />}
@@ -130,17 +121,6 @@ export function BoardColumn({
 				data-category={column.category}
 				className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-1"
 			>
-				{quickAdd && (
-					<li role="none">
-						<QuickAdd
-							columnName={column.name}
-							onCreate={onCreate}
-							onFullComposer={onFullComposer}
-							open
-							onOpenChange={setQuickAdd}
-						/>
-					</li>
-				)}
 				{over && visible.length === 0 && (
 					<li role="none" className="relative h-0">
 						<DragIndicator edge="top" />
@@ -176,7 +156,14 @@ export function BoardColumn({
 					</li>
 				)}
 				<li role="none">
-					<QuickAdd columnName={column.name} onCreate={onCreate} onFullComposer={onFullComposer} />
+					<button
+						type="button"
+						onClick={onNewTicket}
+						className="flex h-8 w-full items-center gap-1.5 rounded-md border border-dashed border-border px-2.5 text-base text-fg-faint transition-colors duration-hover ease-out hover:border-border-strong hover:text-fg-muted focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+					>
+						<Plus aria-hidden="true" className="size-3.5" />
+						New ticket
+					</button>
 				</li>
 			</ul>
 		</section>

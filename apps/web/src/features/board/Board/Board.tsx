@@ -1,14 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
-import {
-	type BoardOutput,
-	type BoardQueryInput,
-	eventApplierFor,
-	type Status,
-	type StatusSummary,
-	type Ticket,
-	type TicketSummary,
-} from "@trellis/api";
+import { type BoardOutput, type BoardQueryInput, eventApplierFor, type Status, type StatusSummary } from "@trellis/api";
 import { toast, useMediaQuery, useTheme } from "@trellis/ui";
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -50,11 +42,6 @@ const closedCategories = ["done", "canceled"];
 // stays empty on it.
 const noSelection: string[] = [];
 
-const summaryOf = (ticket: Ticket): TicketSummary => {
-	const { description, children, prs, attachments, descriptionStale, ...summary } = ticket;
-	return summary;
-};
-
 export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, children }: BoardProps) {
 	const context = useApp();
 	const boardRef = useRef<HTMLDivElement>(null);
@@ -66,10 +53,8 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 	const { isArchived, notice } = useArchivedProjects();
 	const boardOptions = context.orpc.tickets.board.queryOptions({ input: { ...filters, project: projectRef } });
 	const projectOptions = context.orpc.projects.get.queryOptions({ input: { project: projectRef ?? "CDE" } });
-	const projectsOptions = context.orpc.projects.list.queryOptions({ input: {} });
 	const boardQuery = useQuery(boardOptions);
 	const projectQuery = useQuery({ ...projectOptions, enabled: projectRef !== undefined });
-	const projectsQuery = useQuery({ ...projectsOptions, enabled: projectRef === undefined });
 	const collapsed = useUiStore((state) => state.collapsedGroups[storageKey] ?? noCollapsedColumns);
 	const well = useTheme().resolved === "light";
 	const phone = useMediaQuery("(max-width: 767px)");
@@ -181,18 +166,6 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 		);
 	};
 
-	const createTicket = async (column: BoardColumnModel, title: string) => {
-		const status = column.statuses[0];
-		const project = projectRef ?? column.items[0]?.project.path ?? projectsQuery.data![0]!.path;
-		const result = await context.client.tickets.create({
-			project,
-			status: status?.slug ?? `category:${column.category}`,
-			title,
-		});
-		const current = context.queryClient.getQueryData<BoardOutput>(boardOptions.queryKey)!;
-		context.queryClient.setQueryData(boardOptions.queryKey, moveInBoard(current, summaryOf(result), result.status));
-	};
-
 	const showMore = async (column: BoardColumnModel) => {
 		const input = {
 			...filters,
@@ -279,8 +252,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 						well={well}
 						onToggle={() => uiActions.setGroupCollapsed(storageKey, column.id, !collapsed.includes(column.id))}
 						onShowAllDone={() => setShowAllDone(true)}
-						onCreate={(title) => createTicket(column, title)}
-						onFullComposer={() => openComposer(column)}
+						onNewTicket={() => openComposer(column)}
 						onShowMore={() => showMore(column)}
 						onOpenTicket={onOpenTicket}
 						onFocusTicket={setFocusedCard}
