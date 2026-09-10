@@ -1,5 +1,6 @@
 import { afterAll } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -39,6 +40,31 @@ Object.assign(Bun, {
 	spawn: (...args: unknown[]) => spawn(...withEnv(args)),
 	spawnSync: (...args: unknown[]) => spawnSync(...withEnv(args)),
 });
+
+// node:child_process has the same gap. This file runs before any test file
+// loads, so a named import of these functions also gets the wrappers. Each
+// wrapper adds process.env to the options of a call, or adds an options
+// object when the call passes none. exec and execSync take the options
+// second. The others take them third when the second argument is an
+// argument array, and second when it is not.
+const childProcess = createRequire(import.meta.url)("node:child_process") as Record<string, Spawn>;
+const optionsIndex = (name: string, args: unknown[]) =>
+	name === "exec" || name === "execSync" ? 1 : Array.isArray(args[1]) ? 2 : 1;
+for (const name of ["spawn", "spawnSync", "exec", "execSync", "execFile", "execFileSync", "fork"]) {
+	const original = childProcess[name]!;
+	const wrapper = (...args: unknown[]) => {
+		const at = optionsIndex(name, args);
+		const given = args[at];
+		const next = [...args];
+		if (given !== null && typeof given === "object") next[at] = { env: process.env, ...given };
+		else next.splice(at, 0, { env: process.env });
+		return original(...next);
+	};
+	// util.promisify reads a custom symbol on exec and execFile, so the
+	// wrapper carries every property of the original.
+	Object.defineProperties(wrapper, Object.getOwnPropertyDescriptors(original));
+	childProcess[name] = wrapper;
+}
 
 // bun test prints an error thrown in this hook and still exits 0, so the
 // hook sets the exit code itself.
