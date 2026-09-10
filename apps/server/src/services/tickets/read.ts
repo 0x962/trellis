@@ -16,7 +16,7 @@ import type { TicketFilter } from "../../db/queries/ticketFilters.ts";
 import { ticketGet } from "../../db/queries/ticketGet.ts";
 import { InvalidCursorError, ticketList } from "../../db/queries/ticketList.ts";
 import type { Tx } from "../../db/tx.ts";
-import { fail } from "../../errors.ts";
+import { fail, invalidInput } from "../../errors.ts";
 import { resolveProject, resolveTicket } from "../refs.ts";
 
 type Query = z.infer<typeof BoardQuerySchema>;
@@ -52,6 +52,9 @@ const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 		filter.rootIds = [project.rootId];
 		filter.projectIds = query.subprojects ? ctx.cache.resolveSubtree(projectId) : [projectId];
 	}
+	// The query string `status=` parses to an empty list. That list names no
+	// status, and the status statement needs one ref at least.
+	if (query.status?.length === 0) throw invalidInput("status", "Name one status at least.");
 	if (query.status !== undefined) filter.statusIds = await statusIdsOf(tx, query.status);
 	if (query.category !== undefined) filter.categories = query.category;
 	if (query.reviewer !== undefined) filter.reviewer = query.reviewer;
