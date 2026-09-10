@@ -86,6 +86,9 @@ export type State = {
 	blobs: Map<string, Uint8Array<ArrayBuffer>>;
 	actors: Map<string, Actor>;
 	settings: Settings;
+	// True once the settings hold `defaultActorName`, as on a machine someone
+	// set up. `actors.default` reports it as `stored`.
+	defaultActorStored: boolean;
 	// What `system.gh` reports. A test sets it to drive the gh banner.
 	gh: GhStatus;
 	// The URLs `system.health` lists. A test sets it to drive the Pair a
@@ -110,6 +113,7 @@ export const createState = (): State => ({
 		defaultActorName: "navid",
 		stalledHours: 24,
 	},
+	defaultActorStored: false,
 	gh: {
 		ok: false,
 		user: null,

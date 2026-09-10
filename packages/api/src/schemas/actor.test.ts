@@ -10,3 +10,18 @@ test("a stored actor ref accepts the system kind and the default actor does not"
 	expect(ActorRefSchema.safeParse({ name: "navid", kind: "robot" }).success).toBe(false);
 	expect(DefaultActorSchema.safeParse({ name: "trellis", kind: "system" }).success).toBe(false);
 });
+
+// `stored` tells the web whether a person chose the name. A server that
+// predates the field sends none, and that reads as not chosen.
+test("the default actor says whether the settings hold the name", () => {
+	expect(DefaultActorSchema.parse({ name: "navid", kind: "human", stored: true })).toEqual({
+		name: "navid",
+		kind: "human",
+		stored: true,
+	});
+	expect(DefaultActorSchema.parse({ name: "navid", kind: "human" })).toEqual({
+		name: "navid",
+		kind: "human",
+		stored: false,
+	});
+});

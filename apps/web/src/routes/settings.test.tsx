@@ -139,6 +139,28 @@ describe("settings route", () => {
 		});
 	});
 
+	// The name lives on the server, so a rename in one browser is the name
+	// a second browser, with nothing in localStorage, starts with.
+	test("shows the stored name, and a rename reaches a second browser", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		await server.client.settings.set({ ...(await server.client.settings.get()), defaultActorName: "Navid" });
+		const first = renderApp({ path: "/settings", server });
+		const name = (await screen.findByRole("textbox", { name: /your name/i })) as HTMLInputElement;
+		await waitFor(() => expect(name.value).toBe("Navid"));
+		await user.clear(name);
+		await user.type(name, "nk");
+		await user.tab();
+		await waitFor(() => expect(server.state.settings.defaultActorName).toBe("nk"));
+		first.unmount();
+		localStorage.clear();
+
+		const second = renderApp({ path: "/needs-you", server });
+		await waitFor(() => expect(second.router.state.location.pathname).toBe("/needs-you"));
+		expect(await screen.findByRole("button", { name: /^nk/ })).toBeDefined();
+		expect(JSON.parse(localStorage.getItem("trellis.actor")!)).toEqual({ name: "nk", kind: "human" });
+	});
+
 	// ST-21. Every control is reachable in the order it is read.
 	test("reaches every control by keyboard in reading order", async () => {
 		const user = userEvent.setup();

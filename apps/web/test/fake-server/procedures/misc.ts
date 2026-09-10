@@ -5,6 +5,7 @@ export const actors = {
 	default: os.actors.default.handler(({ context }) => ({
 		name: context.state.settings.defaultActorName,
 		kind: "human" as const,
+		stored: context.state.defaultActorStored,
 	})),
 };
 
@@ -12,6 +13,7 @@ export const settings = {
 	get: os.settings.get.handler(({ context }) => context.state.settings),
 	set: os.settings.set.handler(({ context, input }) => {
 		context.state.settings = { ...input };
+		context.state.defaultActorStored = true;
 		return context.state.settings;
 	}),
 };

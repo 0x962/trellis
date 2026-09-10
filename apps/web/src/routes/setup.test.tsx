@@ -2,15 +2,16 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createFakeServer } from "../../test/fake-server";
+import { callsTo } from "../../test/inbox";
 import { renderApp } from "../../test/renderWithProviders";
 
 beforeEach(() => localStorage.clear());
 
 describe("routes/setup", () => {
-	// WS-72
+	// WS-72. Only a first-run server shows the name step.
 	test("setup step 1 asks for a name prefilled from actors.default", async () => {
 		const user = userEvent.setup();
-		renderApp({ path: "/setup" });
+		renderApp({ path: "/setup", server: createFakeServer({ empty: true }) });
 		expect(await screen.findByRole("heading", { name: "What should we call you?" })).toBeDefined();
 		const input = await screen.findByDisplayValue("navid");
 		expect(document.activeElement).toBe(input);
@@ -84,5 +85,54 @@ describe("routes/setup", () => {
 		expect(call!.actor).toBe("human:navid");
 		expect(await screen.findByText(/trellis new -p DOC "/)).toBeDefined();
 		expect(screen.getByRole("complementary", { name: "Sidebar" })).toBeDefined();
+	});
+
+	// The server name is the identity every browser reads, so the name step
+	// writes it there as well as to the browser copy.
+	test("the name step pre-fills defaultActorName and saves the name to the server", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer({ empty: true });
+		server.state.settings.defaultActorName = "navidkhan";
+		renderApp({ path: "/setup", server });
+		const input = await screen.findByDisplayValue("navidkhan");
+		await user.clear(input);
+		await user.type(input, "navid{Enter}");
+		expect(await screen.findByRole("heading", { name: "Create your first project" })).toBeDefined();
+		const call = server.callsTo("settings.set").at(-1)!;
+		expect(call.input).toMatchObject({ defaultActorName: "navid" });
+		expect(call.actor).toBe("human:navid");
+		expect(server.state.settings.defaultActorName).toBe("navid");
+		expect(await server.client.actors.default()).toEqual({ name: "navid", kind: "human", stored: true });
+		expect(localStorage.getItem("trellis.actor")).toBe('{"name":"navid","kind":"human"}');
+	});
+
+	test("with projects on the server, /setup never asks for a name or a first project", async () => {
+		for (const stored of [true, false]) {
+			const server = createFakeServer();
+			server.state.defaultActorStored = stored;
+			const view = renderApp({ path: "/setup", server });
+			await waitFor(() => expect(view.router.state.location.pathname, String(stored)).toBe("/needs-you"));
+			expect(screen.queryByRole("heading", { name: "What should we call you?" })).toBeNull();
+			expect(screen.queryByRole("heading", { name: "Create your first project" })).toBeNull();
+			expect(screen.queryByRole("heading", { name: "New project" })).toBeNull();
+			expect(localStorage.getItem("trellis.actor")).toBe('{"name":"navid","kind":"human"}');
+			view.unmount();
+			localStorage.clear();
+		}
+	});
+
+	// Two setups once made two projects both named "Operator".
+	test("the project step refuses a name another root project has", async () => {
+		const user = userEvent.setup();
+		const { server } = renderApp({ path: "/setup?step=project", actor: "navid" });
+		const name = await screen.findByRole("textbox", { name: /project name/i });
+		const create = screen.getByRole("button", { name: "Create" });
+		await user.type(name, "Trellis");
+		expect(create.hasAttribute("disabled")).toBe(true);
+		expect(name.getAttribute("aria-invalid")).toBe("true");
+		expect(screen.getByText("A project named Trellis exists.")).toBeDefined();
+		await user.type(name, " two");
+		expect(create.hasAttribute("disabled")).toBe(false);
+		expect(callsTo(server, "projects.create")).toHaveLength(0);
 	});
 });
