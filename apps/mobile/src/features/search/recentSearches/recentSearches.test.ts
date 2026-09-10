@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { maxRecentSearches, pushRecent, readRecents, recentSearchesKey } from "./recentSearches";
+import { maxRecentSearches, pushRecent, readRecents, recentSearchesKey, replaceRecent } from "./recentSearches";
 
 // A stand-in for MMKV that records every key the module names.
 const memoryStore = (seed: Record<string, string> = {}) => {
@@ -32,6 +32,14 @@ describe("recent searches", () => {
 		const { store } = memoryStore({ [recentSearchesKey]: JSON.stringify(["scrollback", "terminal", "oauth"]) });
 		pushRecent(store, "oauth");
 		expect(readRecents(store)).toEqual(["oauth", "scrollback", "terminal"]);
+	});
+
+	test("a query replaces the earlier query of its typing session and keeps the others", () => {
+		const { store } = memoryStore({ [recentSearchesKey]: JSON.stringify(["terminal", "oauth"]) });
+		replaceRecent(store, undefined, "log");
+		replaceRecent(store, "log", "login");
+		replaceRecent(store, "login", "login bug");
+		expect(readRecents(store)).toEqual(["login bug", "terminal", "oauth"]);
 	});
 
 	test("the recents list stays at its cap", () => {
