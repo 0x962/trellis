@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { fail } from "../fail";
 import { os } from "../implementer";
 import { isoNow, newId, requireTicket, type State } from "../state";
@@ -19,7 +20,8 @@ export const attachments = {
 		}
 		const ticket = requireTicket(context.state, input.ticket);
 		const bytes = new Uint8Array(await input.file.arrayBuffer());
-		const sha256 = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+		// The mobile Jest suite runs this procedure under Node, which has no Bun global.
+		const sha256 = createHash("sha256").update(bytes).digest("hex");
 		const id = newId();
 		const filename = input.name ?? input.file.name;
 		const url = `/api/attachments/${id}/file`;

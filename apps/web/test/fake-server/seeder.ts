@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { ActorRef, CheckBucket, Priority, ReviewState } from "@trellis/api";
 import { seedAttachmentBytes } from "./seedAttachmentBytes";
 import { addActivity, newId, type ProjectRow, type State, statusesOf, type TicketRow } from "./state";
@@ -278,7 +279,7 @@ export const createSeeder = (state: State, now: number) => {
 	) => {
 		const id = newId();
 		const bytes = seedAttachmentBytes(mime, size);
-		const sha256 = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+		const sha256 = createHash("sha256").update(bytes).digest("hex");
 		state.attachments.set(id, {
 			id,
 			ticketId: row.id,
