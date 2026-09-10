@@ -1,4 +1,8 @@
-import { request as nodeRequest } from "node:http";
+import { Agent, request as nodeRequest } from "node:http";
+
+// Every request closes its socket. A kept socket is an open handle, and Jest
+// waits on it after the last test.
+const agent = new Agent({ keepAlive: false });
 
 // A fetch over node:http. The Jest environment installs the React Native
 // fetch, which needs a native module and reaches no socket, so every request
@@ -20,6 +24,7 @@ export const httpFetch = async (input: Request | string | URL, init?: RequestIni
 	return new Promise<Response>((resolve, reject) => {
 		const outgoing = nodeRequest(
 			{
+				agent,
 				protocol: url.protocol,
 				hostname: url.hostname,
 				port: url.port,

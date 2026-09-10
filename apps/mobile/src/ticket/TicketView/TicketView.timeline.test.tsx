@@ -1,22 +1,26 @@
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
-import { appContext } from "../../../test/appContext";
-import { type FakeApp, installFakeApp } from "../../../test/fakeApp";
+import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { fireEvent, screen, waitFor } from "expo-router/testing-library";
+import { connect } from "../../../test/connect";
 import { renders } from "../../../test/mocks/flash-list";
+import type { Recorder } from "../../../test/record";
+import { renderRoute } from "../../../test/renderRoute";
+import { human } from "../../../test/server";
+import { lastComment, seedTicketScreen, type TicketData, title } from "../../../test/ticket";
 import type { TimelineRow } from "../Timeline";
 
 jest.mock("@shopify/flash-list", () => require("../../../test/mocks/flash-list"));
 
-let app: FakeApp;
+let data: TicketData;
+let net: Recorder;
 
-// One timeline page holds at most 100 items, newest first.
+// One timeline page holds at most 100 items, newest first. A comment adds
+// its own activity line, so 50 comments fill one page.
 const pageSize = 100;
-
-const oldComment = "Typecheck and tests are green on the PR. Ready for a look.";
+const notes = pageSize / 2;
 
 const openTicket = async () => {
-	await renderRouter(appContext(), { initialUrl: "/ticket/CDE-42" });
-	await screen.findByText("Restore the fork pages after the upstream 1.27 merge");
+	await renderRoute(`/ticket/${data.ticket}`);
+	await screen.findByText(title);
 };
 
 // FlashList draws the rows that fit in its viewport. A scroll past the last
@@ -38,32 +42,36 @@ const timelineComments = () =>
 	);
 
 const olderPageCalls = () =>
-	app.callsTo("timeline.list").filter((call) => (call.input as { before?: string }).before !== undefined);
+	net.callsTo("timeline.list").filter((call) => (call.input as { before?: string }).before !== undefined);
 
 describe("the ticket timeline history", () => {
-	beforeEach(() => {
-		app = installFakeApp();
+	beforeEach(async () => {
+		data = await seedTicketScreen();
+		net = connect();
 	});
 
-	// A full first page pushes the seeded comments of CDE-42 to the second
-	// page. The list names the missing history and reads it on request.
+	afterEach(() => net.restore());
+
+	// A first page of notes pushes the seeded comments and the activity of the
+	// ticket to the second page. The list names the missing history and reads
+	// it on request.
 	test("Load earlier reads the next timeline page and shows the older items", async () => {
-		for (let n = 1; n <= pageSize + 1; n += 1) {
-			await app.server.client.comments.create({ ticket: "CDE-42", body: `Note ${n}` });
+		for (let n = 1; n <= notes; n += 1) {
+			await human.comments.create({ ticket: data.ticket, body: `Note ${n}` });
 		}
 		await openTicket();
 		await scrollToEnd();
-		expect(timelineComments()).not.toContain(oldComment);
+		expect(timelineComments()).not.toContain(lastComment);
 		await fireEvent.press(await screen.findByRole("button", { name: "Load earlier" }));
 		await waitFor(() => expect(olderPageCalls()).toHaveLength(1));
-		await waitFor(() => expect(timelineComments()).toContain(oldComment));
+		await waitFor(() => expect(timelineComments()).toContain(lastComment));
 		expect(timelineComments()).toContain("Note 1");
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Load earlier" })).toBeNull());
 	});
 
 	test("a timeline that fits on one page offers no Load earlier", async () => {
 		await openTicket();
-		expect(await screen.findByText(oldComment)).toBeOnTheScreen();
+		expect(await screen.findByText(lastComment)).toBeOnTheScreen();
 		await scrollToEnd();
 		expect(screen.queryByRole("button", { name: "Load earlier" })).toBeNull();
 	});

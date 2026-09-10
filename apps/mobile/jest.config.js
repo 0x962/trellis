@@ -42,6 +42,10 @@ module.exports = {
 	globalTeardown: "<rootDir>/test/globalTeardown.ts",
 	maxWorkers: 1,
 	testTimeout: 30_000,
+	// globalTeardown stops the server, and the run is over. A socket or a
+	// timer a screen left behind then keeps the worker alive, so Jest exits on
+	// its own.
+	forceExit: true,
 	transform: { ...transform, "\\.m?[jt]sx?$": babel },
 	transformIgnorePatterns: [
 		`/node_modules/(?!(${transformed.join("|")}))`,
