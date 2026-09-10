@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseSearch, serializeSearch, toListQuery } from "./grammar";
+import { parseSearch, serializeSearch, toListQuery, type View } from "./grammar";
 
 const now = new Date("2026-09-09T12:00:00.000Z");
 
@@ -7,7 +7,13 @@ const dayMs = 24 * 60 * 60 * 1000;
 
 // The defaults of the view fields. `parseSearch` fills them, and
 // `serializeSearch` writes none of them.
-const defaults = { sort: "-updatedAt", group: "status", scope: "subprojects", density: "comfortable", limit: 50 };
+const defaults = {
+	sort: "-updatedAt",
+	group: "status",
+	scope: "subprojects",
+	density: "comfortable",
+	limit: 50,
+} satisfies Partial<View>;
 
 describe("features/filters/grammar", () => {
 	// WS-42. The URL grammar is the API grammar: comma lists become arrays

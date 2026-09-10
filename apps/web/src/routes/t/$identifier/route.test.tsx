@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { renderApp } from "../../../../test/renderWithProviders";
 
 beforeEach(() => localStorage.clear());
@@ -26,7 +26,8 @@ describe("routes/t/$identifier", () => {
 	test("an unknown ticket shows the 404 state with a search link", async () => {
 		renderApp({ path: "/t/CDE-999", actor: "navid" });
 		expect(await screen.findByText("CDE-999 doesn't exist")).toBeDefined();
-		const link = screen.getByRole("link", { name: /search/i });
+		// The sidebar carries a Search link of its own, so the query stays inside main.
+		const link = within(screen.getByRole("main")).getByRole("link", { name: /search/i });
 		expect(link.getAttribute("href")).toBe("/search?q=CDE-999");
 	});
 });

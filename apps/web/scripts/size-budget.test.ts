@@ -4,7 +4,11 @@ import { join } from "node:path";
 import { budgets, measure } from "./size-budget";
 
 const web = join(import.meta.dir, "..");
-const dist = join(web, "dist");
+
+// The build under test writes to its own directory. The size-budget turbo
+// task reads `dist` while this file runs, and a shared directory would hand
+// it a half-written build.
+const dist = join(process.env.TRELLIS_HOME!, "size-budget-build");
 
 const run = (args: string[], cwd = web) => {
 	const result = Bun.spawnSync(["bun", ...args], { cwd, stdout: "pipe", stderr: "pipe" });
@@ -24,7 +28,7 @@ const readAsset = (name: string) => Bun.file(join(dist, "assets", name)).text();
 describe("bun run build", () => {
 	let build: ReturnType<typeof run>;
 	beforeAll(() => {
-		build = run(["run", "build"]);
+		build = run(["run", "build", "--outDir", dist, "--emptyOutDir"]);
 	}, 180_000);
 
 	// WS-13. Every route is a separate chunk: the initial JS carries the
@@ -69,7 +73,7 @@ describe("bun run build", () => {
 	// total 900 KB. The script prints one line per budget and the total.
 	test("the size budget passes on the built shell and reports every budget line", () => {
 		expect(build.exitCode).toBe(0);
-		const result = run(["run", "size-budget"]);
+		const result = run(["run", "size-budget", dist]);
 		if (result.exitCode !== 0) console.log(result.output);
 		expect(result.exitCode).toBe(0);
 		expect(result.output).toMatch(/initial js.*\d+(\.\d+)? kb/i);
