@@ -12,6 +12,7 @@ import type { Config } from "./config.ts";
 import { API_VERSION } from "./context.ts";
 import type { Runtime, ServiceTransport } from "./db/transport.ts";
 import type { Bus } from "./events/bus.ts";
+import { isAllowedHost } from "./hostCheck.ts";
 import type { Logger } from "./log.ts";
 import { type ProcedureContext, router } from "./procedures/index.ts";
 import { docsRoutes } from "./routes/docs.ts";
@@ -35,6 +36,9 @@ export type AppOptions = {
 const DEV_ORIGINS = ["http://localhost:5173", "http://trellis.localhost"];
 
 const MB = 1024 * 1024;
+
+const HOST_REFUSED =
+	"The Host header names a hostname this server does not serve. Use 127.0.0.1, localhost, or the TRELLIS_HOST name.";
 
 // The wire shape of every error, the same one the oRPC handlers write.
 const errorBody = (code: keyof typeof errors, data?: unknown) => ({
@@ -65,7 +69,7 @@ const deleteWithQuery = (request: Request) => {
 };
 
 // The middleware chain: request id, the request log line and the api
-// version header, cors, the body limit on the two upload paths, the RPC
+// version header, the Host check, cors, the body limit on the two upload paths, the RPC
 // handler at /rpc, the OpenAPI handler at /api, the plain routes, a JSON
 // 404 under the two mounts, and the web app for everything else.
 export const createApp = ({ config, log, transport, bus, runtime, clock = realClock }: AppOptions) => {
@@ -90,6 +94,16 @@ export const createApp = ({ config, log, transport, bus, runtime, clock = realCl
 		};
 		if (c.req.method === "GET") log.debug("request", line);
 		else log.info("request", line);
+	});
+
+	// Every HTTP/1.1 request carries a Host header. A request built inside
+	// the process with `app.request` may carry none, and it is served.
+	app.use(async (c, next) => {
+		const host = c.req.header("host");
+		if (host !== undefined && !isAllowedHost(host, config.host)) {
+			return c.json({ defined: false, code: "FORBIDDEN", status: 403, message: HOST_REFUSED }, 403);
+		}
+		await next();
 	});
 
 	app.use(cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) }));
