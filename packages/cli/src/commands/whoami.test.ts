@@ -5,6 +5,7 @@ const stepNames = [
 	"--as",
 	"TRELLIS_ACTOR",
 	"CLAUDECODE",
+	"CLAUDE_CODE_SESSION_ID",
 	"CLAUDE_SESSION_ID",
 	"CODEX_*",
 	"git config user.name",
@@ -57,5 +58,20 @@ describe("whoami", () => {
 		});
 		expect(parsed.steps.map((step: { step: string }) => step.step)).toEqual(stepNames);
 		expect(parsed.steps.filter((step: { applied: boolean }) => step.applied).length).toBeGreaterThanOrEqual(1);
+	});
+
+	// A Claude Code shell sets CLAUDECODE and CLAUDE_CODE_SESSION_ID and no
+	// CLAUDE_SESSION_ID.
+	test("whoami shows the session of a Claude Code shell", async () => {
+		const env = { CLAUDECODE: "1", CLAUDE_CODE_SESSION_ID: "session_code" };
+		const result = await runCli(["whoami", "--json"], {}, { env });
+		expect(result.code).toBe(0);
+		const parsed = JSON.parse(result.stdout);
+		expect(parsed.session).toBe("session_code");
+		const step = parsed.steps.find((entry: { step: string }) => entry.step === "CLAUDE_CODE_SESSION_ID");
+		expect(step).toEqual({ step: "CLAUDE_CODE_SESSION_ID", applied: false, value: "session_code" });
+
+		const table = await runCli(["whoami"], {}, { env, tty: true });
+		expect(lines(table.stdout).at(-1)).toContain("session_code");
 	});
 });

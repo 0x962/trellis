@@ -62,6 +62,22 @@ describe("the chain", () => {
 		expect(result.session).toBe("session_abc");
 	});
 
+	// Claude Code exports CLAUDE_CODE_SESSION_ID, so activity.meta.session
+	// tells two concurrent Claude Code runs apart.
+	test("CLAUDE_CODE_SESSION_ID marks an agent and carries the session", () => {
+		const result = resolve({ env: { CLAUDE_CODE_SESSION_ID: "session_code" } });
+		expect(result.actor).toBe("agent:claude-code");
+		expect(result.source).toBe("CLAUDE_CODE_SESSION_ID");
+		expect(result.session).toBe("session_code");
+	});
+
+	test("CLAUDE_CODE_SESSION_ID wins over CLAUDE_SESSION_ID for the session", () => {
+		const env = { CLAUDECODE: "1", CLAUDE_CODE_SESSION_ID: "session_code", CLAUDE_SESSION_ID: "session_abc" };
+		const result = resolve({ env });
+		expect(result.source).toBe("CLAUDECODE");
+		expect(result.session).toBe("session_code");
+	});
+
 	// CLI-22
 	test("a CODEX_ variable marks an agent named codex", () => {
 		expect(resolve({ env: { CODEX_THREAD_ID: "t1" } }).actor).toBe("agent:codex");

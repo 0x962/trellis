@@ -5,7 +5,6 @@ import { type CliContext, contextOf } from "../context.ts";
 import { CliFailure } from "../errors.ts";
 import { installationPaths } from "../installation.ts";
 
-const shimBun = "/opt/homebrew/bin/bun";
 const routeLine = "  trellis: 4521,";
 
 type Paths = ReturnType<typeof installationPaths>;
@@ -112,7 +111,9 @@ export default defineCommand({
 		if (bun === null) throw new CliFailure("INSTALL_FAILED", 1, "bun is not on PATH");
 		await buildWeb(ctx, paths);
 		mkdirSync(dirname(paths.shim), { recursive: true });
-		writeFileSync(paths.shim, `#!/bin/sh\nexec ${shimBun} "${paths.cliEntry}" "$@"\n`);
+		// The shim and the plist run the same bun, so a machine that serves
+		// trellis also runs every `trellis` command.
+		writeFileSync(paths.shim, `#!/bin/sh\nexec "${bun}" "${paths.cliEntry}" "$@"\n`);
 		chmodSync(paths.shim, 0o755);
 		mkdirSync(dirname(paths.plist), { recursive: true });
 		writeFileSync(paths.plist, plistText(paths, context.args.host, bun));

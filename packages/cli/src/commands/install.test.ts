@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSy
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { type CommandCall, defaultEnv, makeDeps, runCli } from "../../test/deps.ts";
-import { repoRoot } from "../../test/process.ts";
+import { cliEntry, repoRoot } from "../../test/process.ts";
 
 const temp = (name: string) => mkdtempSync(join(process.env.TRELLIS_HOME!, `${name}-`));
 
@@ -98,6 +98,17 @@ describe("install", () => {
 		expect(text).toContain("<array>\n\t\t<string>/stable/bin/bun</string>");
 		expect(text).toContain("<key>PATH</key>\n\t\t<string>/stable/bin:");
 		expect(text).not.toContain(process.execPath);
+	});
+
+	// A bun from the bun.sh installer sits in ~/.bun/bin, and an Intel
+	// Homebrew bun in /usr/local/bin. The shim runs the bun that the plist
+	// runs, so every `trellis` command finds a program on each machine.
+	test("the shim runs the bun that which finds on PATH", async () => {
+		const { prefix, env, shim } = setup();
+		const which = () => "/Users/me/.bun/bin/bun";
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env, which });
+		expect(result.code, result.stderr).toBe(0);
+		expect(readFileSync(shim, "utf8")).toBe(`#!/bin/sh\nexec "/Users/me/.bun/bin/bun" "${cliEntry}" "$@"\n`);
 	});
 
 	test("a bun that is not on PATH fails the install as INSTALL_FAILED", async () => {
