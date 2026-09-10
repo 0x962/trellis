@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import config from "./playwright.config";
 
 type WebServer = { command: string; cwd?: string; url?: string; env?: Record<string, string> };
@@ -51,6 +51,35 @@ describe("playwright.config", () => {
 		expect(vite!.url).toBe(config.use!.baseURL);
 		expect(config.use?.storageState).toBeUndefined();
 	});
+
+	// The pid in the name lets the next run remove a root whose runner died.
+	// The server resolves `~` paths through HOME, so HOME sits in the root too.
+	test("the temp root carries the runner pid and holds the HOME of the server", () => {
+		const root = process.env.TRELLIS_E2E_ROOT!;
+		expect(basename(root).startsWith(`trellis-e2e-${process.pid}-`)).toBe(true);
+		const server = servers().find((entry) => entry.command.includes("src/index.ts"))!;
+		expect(server.env!.HOME!.startsWith(`${root}/`)).toBe(true);
+	});
+
+	// A fresh load of the config in a runner removes the root of a dead
+	// runner, and the runner removes its own root when it exits.
+	test("a runner removes the root of a dead runner at load and its own root at exit", () => {
+		const parent = mkdtempSync(join(process.env.TRELLIS_HOME!, "e2e-tmp-"));
+		const deadPid = Bun.spawnSync(["true"]).pid;
+		mkdirSync(join(parent, `trellis-e2e-${deadPid}-aaaaaa`, "home"), { recursive: true });
+		const env: Record<string, string | undefined> = { ...process.env, TMPDIR: parent };
+		delete env.TRELLIS_E2E_ROOT;
+		const run = Bun.spawnSync(
+			["bun", "-e", `await import(${JSON.stringify(join(import.meta.dir, "playwright.config.ts"))})`],
+			{
+				env,
+				stdout: "pipe",
+				stderr: "pipe",
+			},
+		);
+		expect(run.exitCode, run.stderr.toString()).toBe(0);
+		expect(readdirSync(parent)).toEqual([]);
+	}, 30_000);
 
 	// The first-run flow needs a server with no project, so onboarding runs
 	// before every spec that seeds one.

@@ -37,6 +37,9 @@ export type Deps = {
 	// under it, so a test that injects a temporary home never writes the real
 	// LaunchAgents directory, the real shim, or the margin gateway.
 	home: string;
+	// The path of a program on PATH, with no symlink resolved, or null when
+	// PATH has no such program. install names the bun it finds here.
+	which: (name: string) => string | null;
 };
 
 export const defaultUrl = "http://127.0.0.1:4521";
@@ -272,6 +275,7 @@ if (import.meta.main) {
 		},
 		launchdDomain: `gui/${process.getuid!()}`,
 		home: homedir(),
+		which: (name) => Bun.which(name),
 	};
 	const code = await run(process.argv.slice(2), deps);
 	process.stdout.write("", () => process.exit(code));
