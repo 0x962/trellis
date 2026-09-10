@@ -4,7 +4,7 @@ import { Avatar, Button, IconButton, Input, Popover } from "@trellis/ui";
 import { CircleHelp, Settings } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { setActorName, useActor } from "../../../lib/actor";
-import { openShortcuts } from "../../shell/ShortcutsDialog";
+import { openShortcutHelp } from "../../command/ShortcutHelp";
 
 const iconLinkClass =
 	"inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-fg-muted transition duration-hover hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
@@ -58,7 +58,7 @@ export function ActorFooter() {
 					<Settings />
 				</span>
 			</Link>
-			<IconButton label="Keyboard shortcuts" icon={<CircleHelp />} onClick={openShortcuts} />
+			<IconButton label="Keyboard shortcuts" icon={<CircleHelp />} onClick={openShortcutHelp} />
 		</div>
 	);
 }

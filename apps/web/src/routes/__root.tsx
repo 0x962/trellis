@@ -1,12 +1,13 @@
 import { createRootRouteWithContext, Link, Outlet, redirect, useRouter, useRouterState } from "@tanstack/react-router";
 import { EmptyState, Toaster } from "@trellis/ui";
 import { useCallback } from "react";
+import { CommandPalette } from "../features/command/CommandPalette";
+import { openShortcutHelp, ShortcutHelp } from "../features/command/ShortcutHelp";
 import { ReconnectBanner } from "../features/shell/ReconnectBanner";
-import { openShortcuts, ShortcutsDialog } from "../features/shell/ShortcutsDialog";
 import { Sidebar } from "../features/sidebar/Sidebar";
 import { hasActor } from "../lib/actor";
 import { type RouterContext, useApp } from "../lib/appContext";
-import { HotkeyScope } from "../lib/hotkeys";
+import { HotkeyScope } from "../lib/hotkeyScope";
 import { uiActions } from "../stores/uiStore";
 
 // The two pages that render without the shell: the first run and the
@@ -66,10 +67,11 @@ function RootComponent() {
 				navigate={navigate}
 				pathname={pathname}
 				onProjectPicker={focusProjectTree}
-				onHelp={openShortcuts}
+				onHelp={openShortcutHelp}
 				scheduler={scheduler}
 			/>
-			<ShortcutsDialog />
+			<CommandPalette />
+			<ShortcutHelp />
 			<Toaster />
 		</div>
 	);
