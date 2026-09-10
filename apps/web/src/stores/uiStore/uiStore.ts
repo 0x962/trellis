@@ -21,6 +21,7 @@ export type UiState = UiData & {
 	setDensity: (density: Density) => void;
 	toggleProject: (id: string) => void;
 	toggleGroup: (route: string, group: string) => void;
+	setGroupCollapsed: (route: string, group: string, collapsed: boolean) => void;
 };
 
 const defaults: UiData = {
@@ -50,6 +51,13 @@ const updates = {
 			const next = groups.includes(group) ? groups.filter((name) => name !== group) : [...groups, group];
 			return { collapsedGroups: { ...state.collapsedGroups, [route]: next } };
 		},
+	setGroupCollapsed:
+		(route: string, group: string, collapsed: boolean) =>
+		(state: UiData): Partial<UiData> => {
+			const groups = state.collapsedGroups[route] ?? [];
+			const next = collapsed ? [...new Set([...groups, group])] : groups.filter((name) => name !== group);
+			return { collapsedGroups: { ...state.collapsedGroups, [route]: next } };
+		},
 };
 
 // The renderer-local preferences: the sidebar, the density, the collapsed
@@ -65,6 +73,7 @@ export const createUiStore = () =>
 				setDensity: (density) => set(updates.setDensity(density)),
 				toggleProject: (id) => set(updates.toggleProject(id)),
 				toggleGroup: (route, group) => set(updates.toggleGroup(route, group)),
+				setGroupCollapsed: (route, group, collapsed) => set(updates.setGroupCollapsed(route, group, collapsed)),
 			}),
 			{
 				name: uiStorageKey,
@@ -88,4 +97,6 @@ export const uiActions = {
 	setDensity: (density: Density) => useUiStore.setState(updates.setDensity(density)),
 	toggleProject: (id: string) => useUiStore.setState(updates.toggleProject(id)),
 	toggleGroup: (route: string, group: string) => useUiStore.setState(updates.toggleGroup(route, group)),
+	setGroupCollapsed: (route: string, group: string, collapsed: boolean) =>
+		useUiStore.setState(updates.setGroupCollapsed(route, group, collapsed)),
 };
