@@ -20,3 +20,23 @@ export const countStatements = async (client: PGlite, fn: () => Promise<unknown>
 	}
 	return count;
 };
+
+// Records the text of every statement PGlite runs, in order. A test reads
+// the list to prove that one statement ran before another action started.
+// The Parse and Query messages carry the SQL text, so a search over the
+// decoded message finds it.
+export const captureStatements = (client: PGlite) => {
+	const original = client.execProtocolStream.bind(client);
+	const texts: string[] = [];
+	const spy: typeof client.execProtocolStream = async (message, options) => {
+		if (message[0] === 0x50 || message[0] === 0x51) texts.push(new TextDecoder().decode(message));
+		return original(message, options);
+	};
+	Object.defineProperty(client, "execProtocolStream", { value: spy, configurable: true, writable: true });
+	return {
+		texts,
+		restore: () => {
+			Reflect.deleteProperty(client, "execProtocolStream");
+		},
+	};
+};

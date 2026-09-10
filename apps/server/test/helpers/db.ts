@@ -26,3 +26,14 @@ export const freshDb = async () => {
 
 	return { db, reset, close };
 };
+
+export type DiskDb = Awaited<ReturnType<typeof diskDb>>;
+
+// A migrated database in a directory on disk. A backup archives that
+// directory, so the test that reads an archive needs the files, not the
+// in-memory instance.
+export const diskDb = async (dataDir: string) => {
+	const db = await openDb(dataDir);
+	await migrate(db);
+	return { db, close: () => db.$client.close() };
+};
