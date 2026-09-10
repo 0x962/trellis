@@ -47,17 +47,18 @@ describe("features/sidebar/Sidebar", () => {
 	test("[ and the toggle button collapse and restore the sidebar", async () => {
 		const user = userEvent.setup();
 		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
-		await within(aside()).findByText("Superset CDE");
+		const sidebar = aside();
+		await within(sidebar).findByText("Superset CDE");
 		fireEvent.keyDown(document.body, { key: "[" });
 		expect(useUiStore.getState().sidebarCollapsed).toBe(true);
-		expect(aside().getAttribute("aria-hidden")).toBe("true");
-		expect(aside().hidden || /\bw-0\b/.test(aside().className)).toBe(true);
+		expect(sidebar.getAttribute("aria-hidden")).toBe("true");
+		expect(sidebar.hidden || /\bw-0\b/.test(sidebar.className)).toBe(true);
 		fireEvent.keyDown(document.body, { key: "[" });
 		expect(useUiStore.getState().sidebarCollapsed).toBe(false);
-		expect(aside().getAttribute("aria-hidden")).not.toBe("true");
-		await user.click(within(aside()).getByRole("button", { name: "Collapse sidebar" }));
+		expect(sidebar.getAttribute("aria-hidden")).not.toBe("true");
+		await user.click(within(sidebar).getByRole("button", { name: "Collapse sidebar" }));
 		expect(useUiStore.getState().sidebarCollapsed).toBe(true);
-		expect(aside().getAttribute("aria-hidden")).toBe("true");
+		expect(sidebar.getAttribute("aria-hidden")).toBe("true");
 		fireEvent.keyDown(document.body, { key: "[" });
 		expect(useUiStore.getState().sidebarCollapsed).toBe(false);
 	});

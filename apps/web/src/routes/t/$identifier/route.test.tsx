@@ -26,7 +26,7 @@ describe("routes/t/$identifier", () => {
 	test("an unknown ticket shows the 404 state with a search link", async () => {
 		renderApp({ path: "/t/CDE-999", actor: "navid" });
 		expect(await screen.findByText("CDE-999 doesn't exist")).toBeDefined();
-		const link = screen.getByRole("link", { name: /search/i });
+		const link = screen.getByRole("link", { name: /^Search for CDE-999$/i });
 		expect(link.getAttribute("href")).toBe("/search?q=CDE-999");
 	});
 });

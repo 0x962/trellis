@@ -34,17 +34,18 @@ describe("lib/orpc", () => {
 	test("the query utils produce the keys applyEvent patches and the client never refetches by staleness", async () => {
 		setActorName("navid");
 		const key = orpc.tickets.get.queryOptions({ input: { ticket: "CDE-42" } }).queryKey;
-		expect(key).toEqual(generateOperationKey(["tickets", "get"], { input: { ticket: "CDE-42" }, type: "query" }));
+		expect([...key]).toEqual([
+			...generateOperationKey(["tickets", "get"], { input: { ticket: "CDE-42" }, type: "query" }),
+		]);
 		const defaults = queryClient.getDefaultOptions().queries!;
 		expect(defaults.staleTime).toBe(Number.POSITIVE_INFINITY);
 		expect(defaults.retry).toBe(false);
 		const server = createFakeServer();
 		const local = createOrpc({ fetch: (request, init) => server.app.request(request, init) });
 		expect(local.queryClient.getDefaultOptions().queries!.staleTime).toBe(Number.POSITIVE_INFINITY);
-		const projects = await local.queryClient.fetchQuery(local.orpc.projects.list.queryOptions({ input: {} }));
+		const options = local.orpc.projects.list.queryOptions({ input: {} });
+		const projects = await local.queryClient.fetchQuery(options);
 		expect(projects.map((project) => project.path)).toContain("CDE");
-		expect(
-			local.queryClient.getQueryData(generateOperationKey(["projects", "list"], { input: {}, type: "query" })),
-		).toBe(projects);
+		expect(local.queryClient.getQueryCache().find({ queryKey: options.queryKey })?.state.data).toBe(projects);
 	});
 });
