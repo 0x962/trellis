@@ -185,7 +185,7 @@ export const Row = memo(function Row({
 					onOpenChange={editingChange("parent")}
 					onPick={(parent) => change({ parent })}
 					finalFocus={element}
-					trigger={<span className="absolute top-1/2 left-1/2" />}
+					trigger={<button type="button" tabIndex={-1} aria-label="Parent" className="absolute top-1/2 left-1/2" />}
 				/>
 			)}
 		</div>
