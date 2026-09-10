@@ -12,5 +12,15 @@ export const toggleSidebarOnce = (event: KeyboardEvent) => {
 	uiActions.toggleSidebar();
 };
 
-// `[` collapses and restores the sidebar.
-export const useSidebarHotkey = () => useHotkey("[", toggleSidebarOnce);
+// A focused board card moves one column to the left on `[`. A keydown from
+// inside the board (`data-board`) belongs to the board, so the sidebar
+// ignores it.
+const fromBoard = (event: KeyboardEvent) =>
+	event.target instanceof Element && event.target.closest("[data-board]") !== null;
+
+// `[` collapses and restores the sidebar, except on a keydown from a board.
+export const useSidebarHotkey = () =>
+	useHotkey("[", (event) => {
+		if (fromBoard(event)) return;
+		toggleSidebarOnce(event);
+	});
