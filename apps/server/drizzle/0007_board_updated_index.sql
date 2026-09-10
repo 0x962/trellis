@@ -1,0 +1,1 @@
+CREATE INDEX "tickets_status_id_updated_at_id_idx" ON "tickets" USING btree ("status_id","updated_at" DESC NULLS FIRST,"id" DESC NULLS FIRST,"project_id","root_id");

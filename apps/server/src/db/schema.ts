@@ -76,10 +76,20 @@ export const tickets = pgTable(
 		check("tickets_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 500`),
 		checkIn(t.priority, PRIORITIES),
 		index("tickets_project_id_status_id_position_idx").on(t.projectId, t.statusId, t.position),
-		// A board column reads its tickets in (position, id) order and filters
-		// them by project and root. Every column it reads is in this index, so
-		// the column is read from the index alone, with no table row.
+		// The `position` sort reads a status in (position, id) order and
+		// filters it by project and root. Every column it reads is in this
+		// index, so it is read from the index alone, with no table row.
 		index("tickets_status_id_position_id_idx").on(t.statusId, t.position, t.id, t.projectId, t.rootId),
+		// A board column reads its tickets in (updated_at desc, id desc) order
+		// and filters them by project and root. Every column it reads is in
+		// this index, so the column is read from the index alone.
+		index("tickets_status_id_updated_at_id_idx").on(
+			t.statusId,
+			t.updatedAt.desc().nullsFirst(),
+			t.id.desc().nullsFirst(),
+			t.projectId,
+			t.rootId,
+		),
 		index("tickets_parent_id_idx").on(t.parentId),
 		index("tickets_open_idx").on(t.rootId, t.updatedAt.desc().nullsFirst()).where(sql`${t.completedAt} IS NULL`),
 		index("tickets_completed_idx")

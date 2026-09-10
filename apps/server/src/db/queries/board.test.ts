@@ -19,6 +19,10 @@ const run = (input: Input) => h.db.transaction((tx) => board(tx, input));
 // The column set comes from the cache's effective statuses in position order.
 const columnsOf = (statuses: StatusIds) => Object.values(statuses);
 
+// A fixed base time, so a seeded update time never depends on the clock.
+const START = Date.parse("2026-01-01T00:00:00.000Z");
+const at = (minutes: number) => new Date(START + minutes * 60_000);
+
 describe("board", () => {
 	test("board returns one column per effective status including empty ones", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
@@ -30,16 +34,37 @@ describe("board", () => {
 		expect(columns.at(-1)?.items).toEqual([]);
 	});
 
+	// A column lists the ticket that changed last at the top. Two tickets
+	// that changed at the same time order by id, the newest id first.
+	test("board lists a column by the last update, newest first, and breaks a tie by id descending", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const seed = (minutes: number) =>
+			seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, updatedAt: at(minutes) });
+		const oldest = await seed(0);
+		const tieFirst = await seed(5);
+		const tieSecond = await seed(5);
+		const newest = await seed(9);
+		const { columns } = await run({ projectIds: [rootId], statusIds: columnsOf(statuses) });
+		const column = columns.find((column) => column.statusId === statuses.todo)!;
+		const tied = [tieFirst, tieSecond].sort((a, b) => (a < b ? 1 : -1));
+		expect(column.items.map((item) => item.id)).toEqual([newest, ...tied, oldest]);
+	});
+
 	test("board caps items at 100 per column and counts the whole column", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
-		const seeded: Array<{ id: string; position: number }> = [];
+		const seeded: Array<{ id: string; minutes: number }> = [];
 		for (let i = 0; i < 130; i++) {
-			const position = (i % 13) * 1024;
-			const id = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.started, position });
-			seeded.push({ id, position });
+			const minutes = i % 13;
+			const id = await seedTicket(h.db, {
+				projectId: rootId,
+				rootId,
+				statusId: statuses.started,
+				updatedAt: at(minutes),
+			});
+			seeded.push({ id, minutes });
 		}
 		const expected = seeded
-			.sort((a, b) => a.position - b.position || (a.id < b.id ? -1 : 1))
+			.sort((a, b) => b.minutes - a.minutes || (a.id < b.id ? 1 : -1))
 			.map((row) => row.id)
 			.slice(0, 100);
 		const { columns } = await run({ projectIds: [rootId], statusIds: columnsOf(statuses) });
@@ -78,22 +103,22 @@ describe("board", () => {
 		expect(shown(byReviewer.columns)).toEqual([human]);
 	});
 
-	// plan.md: the board shows the first 100 by (position, id) and more come
-	// through `list` with `status=`. Both order equal positions the same way,
-	// so the list's first page is the board's column and its second page
-	// starts where the column stopped.
-	test("board and list agree on the order of equal positions", async () => {
+	// plan.md: the board shows the first 100 by (updated_at desc, id desc) and
+	// more come through `list` with `status=`. Both order equal update times
+	// the same way, so the list's first page is the board's column and its
+	// second page starts where the column stopped.
+	test("board and list agree on the order of equal update times", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
 		const seeded: string[] = [];
 		for (let i = 0; i < 101; i++) {
-			seeded.push(await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.started, position: 1024 }));
+			seeded.push(await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.started, updatedAt: at(0) }));
 		}
 		const { columns } = await run({ projectIds: [rootId], statusIds: columnsOf(statuses) });
 		const column = columns.find((column) => column.statusId === statuses.started)!;
 		const shown = column.items.map((item) => item.id);
 		const list = (cursor?: string) =>
 			h.db.transaction((tx) =>
-				ticketList(tx, { projectIds: [rootId], statusIds: [statuses.started], sort: "position", limit: 100, cursor }),
+				ticketList(tx, { projectIds: [rootId], statusIds: [statuses.started], sort: "-updatedAt", limit: 100, cursor }),
 			);
 		const first = await list();
 		expect(first.items.map((item) => item.id)).toEqual(shown);

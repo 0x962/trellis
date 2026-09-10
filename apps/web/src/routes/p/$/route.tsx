@@ -4,7 +4,7 @@ import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, usePa
 import type { Status } from "@trellis/api";
 import { lazy, Suspense, useEffect } from "react";
 import { ManagerStatus } from "../../../features/agent/ManagerStatus";
-import { Board, boardSort } from "../../../features/board";
+import { Board, boardSortLabel } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
 import {
@@ -15,7 +15,6 @@ import {
 	type View,
 	viewOf,
 } from "../../../features/filters/grammar";
-import { sortLabel } from "../../../features/filters/labels";
 import { Breadcrumb } from "../../../features/shell/Breadcrumb";
 import { ListFooter } from "../../../features/shell/ListFooter";
 import { NewTicketButton } from "../../../features/shell/NewTicketButton";
@@ -173,7 +172,7 @@ function ProjectPage() {
 								<TicketPeek />
 							</Board>
 						</div>
-						<ListFooter total={counts?.total} sort={sortLabel(boardSort)} />
+						<ListFooter total={counts?.total} sort={boardSortLabel} />
 					</>
 				) : (
 					<TicketTable

@@ -12,7 +12,8 @@ export type BoardInput = TicketFilter & { statusIds: readonly string[] };
 export const BOARD_COLUMN_LIMIT = 100;
 
 // One statement. Each column aggregates its tickets in one index scan: the
-// count, and the first 100 ids by (position, id). A column without tickets
+// count, and the first 100 ids by (updated_at desc, id desc), so the ticket
+// that changed last sits at the top of the column. A column without tickets
 // reads count 0. `page` is MATERIALIZED so the planner looks each id up by
 // primary key. An inlined `page` makes the planner scan every ticket.
 export const board = async (tx: Tx, input: BoardInput): Promise<BoardOutput> => {
@@ -21,7 +22,7 @@ export const board = async (tx: Tx, input: BoardInput): Promise<BoardOutput> => 
 		FROM unnest(${textArray(input.statusIds)}) AS col(status_id)
 		CROSS JOIN LATERAL (
 			SELECT count(*)::int AS total,
-				(array_agg(t.id ORDER BY t.position, t.id))[1:${sql.raw(String(BOARD_COLUMN_LIMIT))}] AS ids
+				(array_agg(t.id ORDER BY t.updated_at DESC, t.id DESC))[1:${sql.raw(String(BOARD_COLUMN_LIMIT))}] AS ids
 			FROM tickets t WHERE t.status_id = col.status_id AND ${filterWhere(input)}
 		) agg
 		CROSS JOIN LATERAL unnest(agg.ids) WITH ORDINALITY AS u(id, rn)

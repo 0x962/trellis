@@ -4,7 +4,7 @@ import { createFakeServer } from "./index";
 
 describe("fake server tickets.board and tickets.counts", () => {
 	// WS-116. One column per effective status in status order, items by
-	// (position, id), at most 100 per column. The counts agree.
+	// (updatedAt, id) descending, at most 100 per column. The counts agree.
 	test("board and counts agree with each other and with the status order", async () => {
 		const server = createFakeServer();
 		const project = await server.client.projects.get({ project: "CDE" });
@@ -26,7 +26,9 @@ describe("fake server tickets.board and tickets.counts", () => {
 			expect(counts.byStatus.find((row) => row.statusId === column.statusId)!.count).toBe(column.count);
 			expect(column.items.length).toBeLessThanOrEqual(100);
 			expect(column.items.length).toBe(Math.min(column.count, 100));
-			const ordered = [...column.items].sort((a, b) => a.position - b.position || (a.id < b.id ? -1 : 1));
+			const ordered = [...column.items].sort((a, b) =>
+				a.updatedAt === b.updatedAt ? (a.id < b.id ? 1 : -1) : a.updatedAt < b.updatedAt ? 1 : -1,
+			);
 			expect(column.items.map((item) => item.id)).toEqual(ordered.map((item) => item.id));
 			expect(column.items.every((item) => item.status.id === column.statusId)).toBe(true);
 		}

@@ -31,6 +31,11 @@ const column = (name: string) => screen.getByRole("list", { name: new RegExp(`^$
 
 const card = (identifier: string) => screen.getByRole("listitem", { name: new RegExp(`^${identifier} `) });
 
+const identifiers = (list: HTMLElement) =>
+	within(list)
+		.getAllByRole("listitem")
+		.map((item) => item.getAttribute("aria-label")!.split(" ")[0]!);
+
 const drop = (source: HTMLElement, target: HTMLElement, edge?: "top" | "bottom") => {
 	const dataTransfer = new DataTransfer();
 	dataTransfer.setDragImage = () => {};
@@ -81,6 +86,24 @@ describe("Board", () => {
 		// The WIP badge sits in the column header, above the list that scrolls.
 		const badge = within(column("In Progress").closest("section")!).getByText("4/3");
 		expect(badge.getAttribute("data-state")).toBe("warning");
+	});
+
+	// The board matches the sort field of the table: the ticket that changed
+	// last sits at the top of its column, and a tie breaks by id descending.
+	test("a column lists the last updated card first", async () => {
+		const server = createFakeServer();
+		renderBoard(server);
+		await screen.findByText("CDE-47");
+		const project = [...server.state.projects.values()].find((entry) => entry.path === "CDE")!;
+		const todo = [...server.state.statuses.values()].find(
+			(status) => status.projectId === project.id && status.slug === "todo",
+		)!;
+		const expected = [...server.state.tickets.values()]
+			.filter((row) => row.statusId === todo.id)
+			.sort((a, b) => (a.updatedAt === b.updatedAt ? (a.id < b.id ? 1 : -1) : a.updatedAt < b.updatedAt ? 1 : -1))
+			.map((row) => `${project.key}-${row.number}`);
+		expect(expected.length).toBeGreaterThan(1);
+		expect(identifiers(column("Todo"))).toEqual(expected);
 	});
 
 	test("a drop between columns patches the cache before one move response", async () => {
@@ -152,10 +175,12 @@ describe("Board", () => {
 		);
 		const moved = card("CDE-47");
 		moved.focus();
+		const shown = identifiers(column("In Progress"));
+		const below = shown[shown.indexOf("CDE-47") + 1]!;
 		fireEvent.keyDown(moved, { key: "ArrowDown", shiftKey: true });
 		await waitFor(() => {
 			const moves = server.calls.filter((call) => call.path.join(".") === "tickets.move");
-			expect(moves.at(-1)?.input).toMatchObject({ ticket: "CDE-47", status: "in-progress", after: "CDE-43" });
+			expect(moves.at(-1)?.input).toMatchObject({ ticket: "CDE-47", status: "in-progress", after: below });
 		});
 	});
 
