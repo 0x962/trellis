@@ -123,7 +123,14 @@ describe("the setup screen", () => {
 		expect(await screen.findByText("3 tickets")).toBeOnTheScreen();
 		await fireEvent.press(save());
 		expect(store.getString("trellis-server-url")).toBe("http://10.0.0.9:4521");
-		expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
+		// The screens can mount queries for the new server after Save. None of
+		// them may hold a row of the old server.
+		const oldRows = queryClient
+			.getQueryCache()
+			.getAll()
+			.filter((query) => JSON.stringify(query.state.data ?? null).includes("CDE-42"));
+		expect(queryClient.getQueryData(["tickets", "list", {}])).toBeUndefined();
+		expect(oldRows).toEqual([]);
 	});
 
 	// Setup is a tab screen, so it stays mounted after the first Save takes

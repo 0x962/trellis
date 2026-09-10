@@ -69,8 +69,10 @@ describe("the app shell", () => {
 		await persistClient(snapshot, store);
 
 		await renderRouter(appContext(), { initialUrl: "/" });
-		await waitFor(() => expect(queryClient.getQueryCache().getAll()).toHaveLength(1));
-		await waitFor(() => expect(queryClient.getQueryCache().getAll()[0]!.state.isInvalidated).toBe(true));
+		// The screens mount queries of their own after the restore, so the test
+		// finds the restored query by its key and not by the cache size.
+		await waitFor(() => expect(queryClient.getQueryState(["tickets", "list", {}])?.isInvalidated).toBe(true));
+		expect(queryClient.getQueryData(["tickets", "list", {}])).toEqual({ items: [{ identifier: "CDE-42" }] });
 	});
 
 	test("shows the setup screen when no URL is stored", async () => {
