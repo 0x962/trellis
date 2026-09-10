@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { graphqlReply } from "../../../apps/server/test/fixtures/graphql.ts";
-import { spawnServer, stopServer, type SpawnedServer } from "../../../apps/server/test/helpers/server.ts";
-import { cliEntry, followLog, processEnv, repoRoot, runProcess, startCliServer, watchOne } from "./process.ts";
+import { type SpawnedServer, spawnServer, stopServer } from "../../../apps/server/test/helpers/server.ts";
+import { cliEntry, followLog, repoRoot, runProcess, startCliServer, watchOne } from "./process.ts";
 
 const servers: SpawnedServer[] = [];
 
@@ -92,10 +92,7 @@ describe("the live CLI", () => {
 		await ok(url, ["projects", "create", "--key", "CDE", "--name", "Code"], env);
 		await ok(url, ["create", "-p", "CDE", "-t", "First"], env);
 
-		const refused = await runProcess(
-			["move", "CDE-1", "Done", "--url", url, "--as", "agent:smoke"],
-			env,
-		);
+		const refused = await runProcess(["move", "CDE-1", "Done", "--url", url, "--as", "agent:smoke"], env);
 		expect(refused.code).toBe(4);
 		expect(refused.stderr).toContain("(AGENT_CANNOT_COMPLETE)");
 

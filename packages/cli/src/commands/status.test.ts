@@ -5,11 +5,7 @@ import { bootId, health } from "../../test/fixtures.ts";
 describe("status", () => {
 	// CLI-117
 	test("status prints server health", async () => {
-		const tty = await runCli(
-			["status"],
-			{ "system.health": health(), "system.gh": health().gh },
-			{ tty: true },
-		);
+		const tty = await runCli(["status"], { "system.health": health(), "system.gh": health().gh }, { tty: true });
 		expect(tty.code).toBe(0);
 		expect(tty.calls.map((call) => call.path)).toEqual(["system.health", "system.gh"]);
 		for (const key of ["ok", "version", "apiVersion", "bootId", "rss", "db", "gh"]) {
