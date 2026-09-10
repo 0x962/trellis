@@ -8,9 +8,15 @@ import { createFakeServer } from "../../../../test/fake-server";
 import { findTicket, matchStatus } from "../../../../test/fake-server/state";
 import { ticketSummary } from "../../../../test/fake-server/summaries";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { useUiStore } from "../../../stores/uiStore";
 import { Board } from ".";
 
-beforeEach(() => localStorage.clear());
+// The UI store keeps the collapsed columns in memory, so each test starts
+// with none stored and gets the board's default rails.
+beforeEach(() => {
+	localStorage.clear();
+	useUiStore.setState({ collapsedGroups: {} });
+});
 
 const renderBoard = (server = createFakeServer()) =>
 	renderWithProviders(<Board projectRef="CDE" storageKey="CDE" onOpenTicket={() => {}} />, {
@@ -70,7 +76,8 @@ describe("Board", () => {
 			"canceled",
 		]);
 		expect(column("Todo").getAttribute("aria-label")).toBe("Todo, 23 tickets");
-		const badge = within(column("In Progress")).getByText("4/3");
+		// The WIP badge sits in the column header, above the list that scrolls.
+		const badge = within(column("In Progress").closest("section")!).getByText("4/3");
 		expect(badge.getAttribute("data-state")).toBe("warning");
 	});
 
@@ -108,7 +115,9 @@ describe("Board", () => {
 		drop(card("CDE-47"), column("In Progress"));
 		expect(within(column("In Progress")).getByText("CDE-47")).toBeDefined();
 		await waitFor(() => expect(within(column("Todo")).getByText("CDE-47")).toBeDefined());
-		expect(await screen.findByText("The ticket changed. The board restored its prior position.")).toBeDefined();
+		expect(
+			await screen.findByText("CDE-47 did not move to In Progress. Another actor changed the ticket first."),
+		).toBeDefined();
 	});
 
 	test("a drop inside a column sends an anchor", async () => {
@@ -180,7 +189,9 @@ describe("Board", () => {
 	test("a collapsed column stays collapsed after a remount", async () => {
 		const server = createFakeServer();
 		const first = renderBoard(server);
-		await userEvent.setup().click(await screen.findByRole("button", { name: "Collapse Todo" }));
+		const user = userEvent.setup();
+		await user.click(await screen.findByRole("button", { name: "Todo actions" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Collapse" }));
 		expect(screen.getByRole("button", { name: "Expand Todo" })).toBeDefined();
 		first.unmount();
 		renderBoard(server);
@@ -193,16 +204,18 @@ describe("Board", () => {
 		await server.client.tickets.move({ ticket: created.identifier, status: "done" });
 		findTicket(server.state, created.identifier)!.completedAt = new Date(Date.now() - 31 * 86_400_000).toISOString();
 		renderBoard(server);
+		// Done starts as a rail at the end of the board.
+		await userEvent.setup().click(await screen.findByRole("button", { name: "Expand Done" }));
 		await screen.findByRole("list", { name: /^Done,/ });
 		expect(screen.queryByText("Old completed ticket")).toBeNull();
-		await userEvent.setup().click(screen.getByRole("button", { name: "Show all done" }));
+		await userEvent.setup().click(screen.getByRole("button", { name: "Show all done tickets" }));
 		expect(await screen.findByText("Old completed ticket")).toBeDefined();
 	});
 
 	test("quick add creates a ticket in the column status", async () => {
 		const server = createFakeServer();
 		renderBoard(server);
-		await userEvent.setup().click(await screen.findByRole("button", { name: "Add ticket to Todo" }));
+		await userEvent.setup().click(await screen.findByRole("button", { name: "New ticket in Todo" }));
 		const input = screen.getByRole("textbox", { name: "New ticket title in Todo" });
 		await userEvent.setup().type(input, "A board ticket{Enter}");
 		await waitFor(() => {
