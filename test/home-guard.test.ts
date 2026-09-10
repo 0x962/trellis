@@ -10,8 +10,8 @@ const root = process.env.TRELLIS_TEST_ROOT!;
 const inside = (path: string) => path.startsWith(`${root}/`);
 
 // A test process that resolves a path through the user home must reach a
-// temp directory, never the LaunchAgents directory, the shim, or the margin
-// gateway of the person who runs the tests.
+// temp directory, never the LaunchAgents directory, the shim, the margin
+// gateway, or the gateway routes file of the person who runs the tests.
 describe("the test home", () => {
 	test("HOME, os.homedir(), Bun.env.HOME, the XDG dirs, and TRELLIS_HOME point inside the run root", () => {
 		expect(inside(homedir())).toBe(true);
@@ -34,13 +34,14 @@ describe("the test home", () => {
 });
 
 describe("the real home guard", () => {
-	test("guardedPaths names the LaunchAgents directory, the shim directory, and the margin gateway", () => {
+	test("guardedPaths names the LaunchAgents directory, the shim directory, the margin gateway, and the gateway routes file", () => {
 		expect(guardedPaths("/Users/someone")).toEqual([
 			"/Users/someone/Library/LaunchAgents",
 			"/Users/someone/Library/LaunchAgents/com.trellis.server.plist",
 			"/Users/someone/.local/bin",
 			"/Users/someone/.local/bin/trellis",
 			"/Users/someone/projects/margin/src/gateway.ts",
+			"/Users/someone/.config/localhost-gateway/routes.json",
 		]);
 	});
 

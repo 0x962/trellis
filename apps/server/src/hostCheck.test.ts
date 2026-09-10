@@ -29,4 +29,13 @@ describe("isAllowedHost", () => {
 		}
 		expect(isAllowedHost("attacker.example", config)).toBe(false);
 	});
+
+	// `trellis install` registers trellis.localhost with the gateway on port
+	// 80. The gateway keeps that name in the Host header.
+	test("trellis.localhost is served with the default host and no allowedHosts", () => {
+		const config = { host: "127.0.0.1", allowedHosts: [] };
+
+		expect(isAllowedHost("trellis.localhost", config)).toBe(true);
+		expect(isAllowedHost("trellis.localhost:80", config)).toBe(true);
+	});
 });

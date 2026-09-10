@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { defaultEnv, runCli } from "../../test/deps.ts";
 
 const temp = (name: string) => mkdtempSync(join(process.env.TRELLIS_HOME!, `${name}-`));
@@ -19,6 +19,7 @@ const installed = async () => {
 		env,
 		plist: join(prefix, "Library", "LaunchAgents", "com.trellis.server.plist"),
 		shim: join(prefix, ".local", "bin", "trellis"),
+		routes: join(prefix, ".config", "localhost-gateway", "routes.json"),
 	};
 };
 
@@ -38,5 +39,22 @@ describe("uninstall", () => {
 		const result = await runCli(["uninstall", "--prefix", prefix], {}, { env, launchdDomain: "gui/test" });
 		expect(result.code, result.stderr).toBe(0);
 		expect(result.commands).toEqual([{ args: ["launchctl", "bootout", "gui/test/com.trellis.server"] }]);
+	});
+
+	test("uninstall removes the trellis route from the gateway routes file and keeps the other routes", async () => {
+		const { prefix, env, routes } = await installed();
+		mkdirSync(dirname(routes), { recursive: true });
+		writeFileSync(routes, JSON.stringify({ margin: 4519, trellis: 4521 }));
+		const result = await runCli(["uninstall", "--prefix", prefix, "--no-launchd"], {}, { env });
+		expect(result.code, result.stderr).toBe(0);
+		expect(JSON.parse(readFileSync(routes, "utf8"))).toEqual({ margin: 4519 });
+	});
+
+	test("uninstall writes no routes file when none exists", async () => {
+		const { prefix, env, routes } = await installed();
+		rmSync(routes, { force: true });
+		const result = await runCli(["uninstall", "--prefix", prefix, "--no-launchd"], {}, { env });
+		expect(result.code, result.stderr).toBe(0);
+		expect(existsSync(routes)).toBe(false);
 	});
 });
