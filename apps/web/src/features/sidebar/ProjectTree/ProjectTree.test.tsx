@@ -2,13 +2,16 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createFakeServer } from "../../../../test/fake-server";
+import { mockClipboard } from "../../../../test/inbox";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import { createUiStore, useUiStore } from "../../../stores/uiStore";
+import { useComposerStore } from "../../composer";
 import { ProjectTree } from "./ProjectTree";
 
 beforeEach(() => {
 	localStorage.clear();
 	useUiStore.setState(createUiStore().getState());
+	useComposerStore.setState({ open: false, defaults: {} });
 });
 
 const rootRow = (name: string) => screen.getByRole("link", { name: new RegExp(name) });
@@ -124,5 +127,39 @@ describe("features/sidebar/ProjectTree", () => {
 		for (const row of screen.getAllByRole("link")) {
 			expect(row.className).toMatch(/\bh-7\b/);
 		}
+	});
+
+	test("the project row menu opens tickets, settings, and the CLI filter", async () => {
+		const user = userEvent.setup();
+		const clipboard = mockClipboard();
+		const { router } = renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid" });
+		const actions = await screen.findByRole("button", { name: "Actions for web" });
+		await user.click(actions);
+		for (const label of ["New sub-project", "New ticket", "Settings", "Copy CLI filter"]) {
+			expect(screen.getByRole("menuitem", { name: label })).toBeDefined();
+		}
+		await user.click(screen.getByRole("menuitem", { name: "New ticket" }));
+		expect(useComposerStore.getState()).toEqual({ open: true, defaults: { project: "CDE.web" } });
+		await user.click(actions);
+		await user.click(screen.getByRole("menuitem", { name: "Copy CLI filter" }));
+		expect(clipboard.written).toEqual(["trellis list -p CDE.web"]);
+		await user.click(actions);
+		await user.click(screen.getByRole("menuitem", { name: "Settings" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE/web/settings"));
+	});
+
+	test("New sub-project creates a child under the selected row", async () => {
+		const user = userEvent.setup();
+		const { server } = renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid" });
+		await user.click(await screen.findByRole("button", { name: "Actions for web" }));
+		await user.click(screen.getByRole("menuitem", { name: "New sub-project" }));
+		const dialog = await screen.findByRole("dialog", { name: "New sub-project under web" });
+		await user.type(within(dialog).getByRole("textbox", { name: "Project name" }), "API");
+		await user.type(within(dialog).getByRole("textbox", { name: "Slug" }), "api");
+		await user.click(within(dialog).getByRole("button", { name: "Create sub-project" }));
+		await waitFor(() => {
+			const call = server.calls.find((entry) => entry.path.join(".") === "projects.create");
+			expect(call?.input).toEqual({ parent: "CDE.web", name: "API", slug: "api" });
+		});
 	});
 });
