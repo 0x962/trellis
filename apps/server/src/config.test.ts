@@ -74,6 +74,21 @@ describe("config", () => {
 		expect(config.logFile).toBe("/var/data/trellis/server.log");
 	});
 
+	test("the agents runner spawns superset on PATH unless TRELLIS_SUPERSET_BIN names another binary", () => {
+		expect(loadConfig({}).supersetBin).toBe("superset");
+		expect(loadConfig({ TRELLIS_SUPERSET_BIN: "/opt/superset/bin/superset" }).supersetBin).toBe(
+			"/opt/superset/bin/superset",
+		);
+	});
+
+	// The agents reach the server at this URL. A server that listens on every
+	// address still answers on the loopback address.
+	test("the agents URL is the loopback address and the port of the server", () => {
+		expect(loadConfig({}).agentsUrl).toBe("http://127.0.0.1:4521");
+		expect(loadConfig({ TRELLIS_HOST: "0.0.0.0", TRELLIS_PORT: "4600" }).agentsUrl).toBe("http://127.0.0.1:4600");
+		expect(loadConfig({ TRELLIS_HOST: "192.168.1.20" }).agentsUrl).toBe("http://192.168.1.20:4521");
+	});
+
 	test("the jobs clock runs at the wall clock rate unless TRELLIS_CLOCK_RATE names another", () => {
 		expect(loadConfig({}).clockRate).toBe(1);
 		expect(loadConfig({ TRELLIS_CLOCK_RATE: "100" }).clockRate).toBe(100);

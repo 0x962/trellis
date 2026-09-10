@@ -23,6 +23,8 @@ const tables = [
 	"activity",
 	"actors",
 	"settings",
+	"agent_sessions",
+	"agent_cursors",
 ];
 
 const closers: Array<() => Promise<void>> = [];

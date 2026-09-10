@@ -9,7 +9,7 @@ import { freshHomeWithDirs } from "../../test/helpers/home.ts";
 import { loadConfig } from "../config.ts";
 import type { RequestContext } from "../context.ts";
 import { createBus } from "../events/bus.ts";
-import { createInlineTransport, type Runtime, type ServiceTransport } from "./transport.ts";
+import { createInlineTransport, type InlineTransport, type Runtime, type ServiceTransport } from "./transport.ts";
 
 // The inline transport runs a service on the calling thread: one withTx per
 // call, the events flushed to the bus after the commit. It implements the
@@ -17,7 +17,7 @@ import { createInlineTransport, type Runtime, type ServiceTransport } from "./tr
 // picks one by config.dbInline and the app never knows which it got.
 
 let h: TestDb;
-let transport: ServiceTransport;
+let transport: InlineTransport;
 let received: TrellisEvent[];
 let bus: ReturnType<typeof createBus>;
 beforeAll(async () => {
@@ -111,13 +111,16 @@ describe("inline transport", () => {
 		expect(received).toEqual([]);
 	});
 
+	// The inline transport is a ServiceTransport plus `startAgents`, which
+	// builds the agents host in the thread that owns the database.
 	test("the inline transport implements the whole ServiceTransport interface", () => {
 		const checked: ServiceTransport = transport;
 
 		expect(typeof checked.call).toBe("function");
 		expect(typeof checked.start).toBe("function");
 		expect(typeof checked.close).toBe("function");
-		expect(Object.keys(checked).sort()).toEqual(["call", "close", "start"]);
+		expect(typeof transport.startAgents).toBe("function");
+		expect(Object.keys(checked).sort()).toEqual(["call", "close", "start", "startAgents"]);
 	});
 
 	test("a service query through the given tx never deadlocks", async () => {

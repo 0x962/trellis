@@ -1,10 +1,8 @@
 #!/usr/bin/env bun
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 
-// This script answers each superset call of the e2e suite. superset.ts, which
-// TRELLIS_SUPERSET_BIN names, runs it once per call and adds the simulated
-// agents. It holds the same answers as apps/server/test/stubs/superset.ts.
-// It keeps the workspaces and terminals it made in the
+// This script stands in for the superset binary in tests. TRELLIS_SUPERSET_BIN
+// points the runner at it. It keeps the workspaces and terminals it made in the
 // JSON file TRELLIS_SUPERSET_STUB_STATE, so a later spawn sees what an earlier
 // spawn made. Every spawn appends its argument list as one JSON line to
 // TRELLIS_SUPERSET_STUB_LOG before it answers.

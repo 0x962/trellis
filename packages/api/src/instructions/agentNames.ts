@@ -16,3 +16,32 @@ export const agentActorName = (name: AgentName): string =>
 
 // The `x-trellis-actor` value: "agent:builder-cde-42".
 export const agentActor = (name: AgentName): string => `agent:${agentActorName(name)}`;
+
+// The Superset workspace of a project's manager: "CDE · manager".
+export const managerWorkspaceName = (project: string): string => `${project} · manager`;
+
+// A project path as one lowercase word: "CDE.web" gives "cde-web".
+const pathWord = (project: string) => project.toLowerCase().replaceAll(".", "-");
+
+// Superset lowercases tags and groups the workspaces of one tag in one
+// sidebar folder, so each trellis project gets one folder.
+export const projectTag = (project: string): string => `trellis-${pathWord(project)}`;
+
+// `superset ws create` answers alreadyExists for a branch that a workspace
+// already holds. The manager has a branch of its own, so a second start
+// finds the first workspace.
+export const managerBranch = (project: string): string => `trellis-${pathWord(project)}-manager`;
+
+const BRANCH_SLUG_MAX = 40;
+
+// The auto-link scan finds the lowercase identifier in the branch name, so
+// the builder's PR attaches to its ticket.
+export const builderBranch = (ticket: string, title: string): string => {
+	const slug = title
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+/, "")
+		.slice(0, BRANCH_SLUG_MAX)
+		.replace(/-+$/, "");
+	return slug === "" ? ticket.toLowerCase() : `${ticket.toLowerCase()}-${slug}`;
+};

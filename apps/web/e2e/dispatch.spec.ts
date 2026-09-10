@@ -113,8 +113,10 @@ test("dispatch > a web ticket goes to a builder, a clean review, and Human Revie
 	// The person sends the ticket back with a comment from Needs you.
 	const wakesBefore = sentTo(managerTab.terminalId).length;
 	const sendBack = "Rename the flag to --dry-run and keep the old name as an alias";
+	// The linked PR has a failing check, so the ticket is in the Failing CI
+	// section too. Only the row in the review section has Send back.
 	await page.goto("/needs-you");
-	const row = page.locator(`[data-inbox-row="${identifier}"]`);
+	const row = page.locator(`[data-inbox-row="${identifier}"]`).filter({ hasText: "Send back" });
 	await row.focus();
 	await page.keyboard.press("r");
 	await page.getByRole("textbox", { name: /What should change/i }).fill(sendBack);

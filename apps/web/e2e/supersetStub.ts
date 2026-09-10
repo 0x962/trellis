@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { StubState } from "./stubs/supersetCore";
+import type { StubState } from "../../server/test/stubs/superset.ts";
 
 // The Superset projects the stub knows at boot. Each repo matches the repo
 // that dispatch.spec.ts declares on the trellis project with the same key.

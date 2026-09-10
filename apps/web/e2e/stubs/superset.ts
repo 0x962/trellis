@@ -2,11 +2,12 @@
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, openSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { StubState } from "./supersetCore.ts";
+import type { StubState } from "../../../server/test/stubs/superset.ts";
 
 // This script stands in for the superset binary in the e2e suite.
-// TRELLIS_SUPERSET_BIN points the server at it. supersetCore.ts records each
-// call in TRELLIS_SUPERSET_STUB_LOG and keeps the workspaces and terminals in
+// TRELLIS_SUPERSET_BIN points the server at it. The server's stub
+// (apps/server/test/stubs/superset.ts), the core, records each call in
+// TRELLIS_SUPERSET_STUB_LOG and keeps the workspaces and terminals in
 // TRELLIS_SUPERSET_STUB_STATE. This script adds the agents: a workspace or a
 // terminal whose command starts `claude -n` starts a simulated agent
 // (agent.ts), and text sent to a manager terminal gives the simulated
@@ -41,7 +42,8 @@ const acquire = () => {
 };
 
 acquire();
-const core = spawnSync(process.execPath, [join(import.meta.dir, "supersetCore.ts"), ...args], { encoding: "utf8" });
+const coreStub = join(import.meta.dir, "..", "..", "..", "server", "test", "stubs", "superset.ts");
+const core = spawnSync(process.execPath, [coreStub, ...args], { encoding: "utf8" });
 const state = JSON.parse(readFileSync(statePath, "utf8")) as StubState;
 rmSync(lock, { recursive: true });
 process.stdout.write(core.stdout);

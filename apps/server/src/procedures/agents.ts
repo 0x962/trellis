@@ -1,22 +1,14 @@
-import { os } from "./base.ts";
-
-// Every handler throws until the agents services exist; the server builder
-// replaces each one with a `call` into its service. The actor middleware
-// runs first, so a write without x-trellis-actor still answers
-// ACTOR_REQUIRED.
-const pending = (name: string) => () => {
-	throw new Error(`${name} has no service.`);
-};
+import { call, os } from "./base.ts";
 
 export const agents = os.agents.router({
-	sessions: os.agents.sessions.handler(pending("agents.sessions")),
-	inbox: os.agents.inbox.handler(pending("agents.inbox")),
-	register: os.agents.register.handler(pending("agents.register")),
-	startBuilder: os.agents.startBuilder.handler(pending("agents.startBuilder")),
-	startReviewer: os.agents.startReviewer.handler(pending("agents.startReviewer")),
-	stop: os.agents.stop.handler(pending("agents.stop")),
-	wake: os.agents.wake.handler(pending("agents.wake")),
-	settings: os.agents.settings.handler(pending("agents.settings")),
-	setSettings: os.agents.setSettings.handler(pending("agents.setSettings")),
-	runnerProjects: os.agents.runnerProjects.handler(pending("agents.runnerProjects")),
+	sessions: os.agents.sessions.handler(({ context, input }) => call(context, "agents.sessions", input)),
+	inbox: os.agents.inbox.handler(({ context, input }) => call(context, "agents.inbox", input)),
+	register: os.agents.register.handler(({ context, input }) => call(context, "agents.register", input)),
+	startBuilder: os.agents.startBuilder.handler(({ context, input }) => call(context, "agents.startBuilder", input)),
+	startReviewer: os.agents.startReviewer.handler(({ context, input }) => call(context, "agents.startReviewer", input)),
+	stop: os.agents.stop.handler(({ context, input }) => call(context, "agents.stop", input)),
+	wake: os.agents.wake.handler(({ context, input }) => call(context, "agents.wake", input)),
+	settings: os.agents.settings.handler(({ context }) => call(context, "agents.settings", undefined)),
+	setSettings: os.agents.setSettings.handler(({ context, input }) => call(context, "agents.setSettings", input)),
+	runnerProjects: os.agents.runnerProjects.handler(({ context }) => call(context, "agents.runnerProjects", undefined)),
 });
