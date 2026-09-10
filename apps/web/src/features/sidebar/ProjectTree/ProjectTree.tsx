@@ -3,12 +3,14 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { cx, IconButton } from "@trellis/ui";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { lazy, Suspense } from "react";
 import { useApp } from "../../../lib/appContext";
 import { formatCount } from "../../../lib/format";
 import { projectRefOfPathname, projectSlashPath } from "../../../lib/projectPath";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { ProjectKey } from "../../shell/ProjectKey";
-import { ProjectRowActions } from "../ProjectRowActions";
+
+const ProjectRowActions = lazy(async () => ({ default: (await import("../ProjectRowActions")).ProjectRowActions }));
 
 type Row = { project: ProjectSummary; depth: number; children: ProjectSummary[]; open: boolean };
 
@@ -94,7 +96,9 @@ export function ProjectTree() {
 								</span>
 							</Link>
 							<span className="absolute top-0 right-0 z-10">
-								<ProjectRowActions project={project} />
+								<Suspense fallback={null}>
+									<ProjectRowActions project={project} />
+								</Suspense>
 							</span>
 						</li>
 					);

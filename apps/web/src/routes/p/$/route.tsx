@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { Button, EmptyState, toast } from "@trellis/ui";
 import { Copy } from "lucide-react";
+import { lazy, Suspense } from "react";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { toCliCommand } from "../../../features/filters/cli";
 import { FilterBar } from "../../../features/filters/FilterBar";
@@ -24,7 +25,8 @@ import { type AppContext, useApp } from "../../../lib/appContext";
 import { parseProjectSplat, projectSlashPath } from "../../../lib/projectPath";
 import { ProjectEmptyState } from "./components/ProjectEmptyState";
 import { ScopeChip } from "./components/ScopeChip";
-import { ProjectSettingsPage } from "./settings";
+
+const ProjectSettingsPage = lazy(async () => ({ default: (await import("./settings")).ProjectSettingsPage }));
 
 const projectOptions = (context: AppContext, ref: string) =>
 	context.orpc.projects.get.queryOptions({ input: { project: ref } });
@@ -65,7 +67,17 @@ function ProjectPage() {
 	const counts = useQuery(countsOptions(context, ref, search)).data;
 	const full = viewOf(search);
 
-	if (view === "settings") return <ProjectSettingsPage project={project} />;
+	if (view === "settings") {
+		return (
+			<Suspense
+				fallback={
+					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-muted">Loading settings…</div>
+				}
+			>
+				<ProjectSettingsPage project={project} />
+			</Suspense>
+		);
+	}
 
 	const switchView = (next: ListView) =>
 		navigate({
