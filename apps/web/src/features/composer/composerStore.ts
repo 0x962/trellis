@@ -1,9 +1,11 @@
 import type { Priority } from "@trellis/api";
 import { create } from "zustand";
 
-// The values the quick composer opens with. The palette fills them from
-// the route and from the ticket in context.
-export type ComposerDefaults = {
+// What the caller that opens the quick composer already knows. The palette
+// fills it from the route and from the ticket in context; a table group
+// header fills the status. The dialog resolves the rest with
+// `useComposerDefaults`.
+export type ComposerOptions = {
 	// A project ref, `CDE.web`.
 	project?: string;
 	// A status ref, `in-progress`.
@@ -15,12 +17,14 @@ export type ComposerDefaults = {
 
 export type ComposerState = {
 	open: boolean;
-	defaults: ComposerDefaults;
+	options: ComposerOptions;
 };
 
-export const useComposerStore = create<ComposerState>()(() => ({ open: false, defaults: {} }));
+// Whether the composer is open, and what opened it. The dialog mounts from
+// the root shell, so any page opens it.
+export const useComposerStore = create<ComposerState>()(() => ({ open: false, options: {} }));
 
 export const composerActions = {
-	open: (defaults: ComposerDefaults) => useComposerStore.setState({ open: true, defaults }),
-	close: () => useComposerStore.setState({ open: false, defaults: {} }),
+	open: (options: ComposerOptions = {}) => useComposerStore.setState({ open: true, options }),
+	close: () => useComposerStore.setState({ open: false, options: {} }),
 };

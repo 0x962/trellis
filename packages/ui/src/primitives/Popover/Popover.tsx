@@ -1,5 +1,5 @@
 import { Popover as BasePopover } from "@base-ui/react/popover";
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode, RefObject } from "react";
 import { cx } from "../../utils/cx";
 import { popupMotion } from "../../utils/popupMotion";
 
@@ -8,10 +8,18 @@ export type PopoverProps = {
 	// trigger's click handler and aria attributes.
 	trigger: ReactElement;
 	children: ReactNode;
+	// The accessible name of the panel.
+	label?: string;
 	side?: "top" | "bottom" | "left" | "right";
 	align?: "start" | "center" | "end";
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
+	// The element that takes focus when the panel opens. Without it, the
+	// panel itself takes focus unless a child took it first.
+	initialFocus?: RefObject<HTMLElement | null>;
+	// The element that takes focus when the panel closes. Without it, the
+	// trigger takes it back.
+	finalFocus?: RefObject<HTMLElement | null>;
 	className?: string;
 };
 
@@ -22,10 +30,13 @@ export type PopoverProps = {
 export function Popover({
 	trigger,
 	children,
+	label,
 	side = "bottom",
 	align = "start",
 	open,
 	onOpenChange,
+	initialFocus,
+	finalFocus,
 	className,
 }: PopoverProps) {
 	return (
@@ -34,6 +45,9 @@ export function Popover({
 			<BasePopover.Portal>
 				<BasePopover.Positioner side={side} align={align} sideOffset={6} className="z-50 outline-none">
 					<BasePopover.Popup
+						aria-label={label}
+						initialFocus={initialFocus}
+						finalFocus={finalFocus}
 						className={cx(
 							"origin-(--transform-origin) rounded-lg border border-border bg-elevated p-2 text-base text-fg shadow-md outline-none",
 							popupMotion,

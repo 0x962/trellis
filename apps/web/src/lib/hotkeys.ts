@@ -8,7 +8,9 @@ import { toggleTheme } from "./theme";
 // The keyboard map at work. `useGlobalHotkeys` binds every row of
 // `shortcuts` whose scope is global. Every other row is delegated: the
 // focused surface registers its handlers with `useHotkeyTarget`, and the
-// innermost registered target receives the key.
+// innermost registered target receives the key. `g s` focuses the Filter
+// button of the list's filter bar, or the bar itself when the page draws
+// no button.
 
 // A second key arrives within this window after `g`, or the sequence is
 // dropped.
@@ -180,7 +182,11 @@ export const useGlobalHotkeys = (options: GlobalHotkeyOptions): string | null =>
 				h: () => navigate("/needs-you"),
 				a: () => navigate("/all"),
 				p: onProjectPicker,
-				s: () => document.querySelector<HTMLElement>("[data-filter-bar]")?.focus(),
+				s: () =>
+					(
+						document.querySelector<HTMLElement>("[data-filter-bar] [data-filter-button]") ??
+						document.querySelector<HTMLElement>("[data-filter-bar]")
+					)?.focus(),
 				b: () => {
 					const href = viewHref(pathname, "board");
 					if (href !== null) navigate(href);

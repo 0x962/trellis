@@ -1,43 +1,37 @@
-import { Command } from "@trellis/ui";
-import { useEffect, useState } from "react";
-import { commandActions, contextTicket, paletteOpener, useCommandStore } from "../commandStore";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { preloadOnIdle } from "../../../lib/preloadOnIdle";
+import { commandActions, contextTicket, useCommandStore } from "../commandStore";
 import { useContextTicket } from "../hooks/useContextTicket";
-import type { Submenu } from "../rows";
-import { PalettePanel } from "./components/PalettePanel";
+
+// The dialog holds cmdk, the row builders, and the search. It is a lazy
+// chunk, so the entry chunk carries only this host.
+const loadPaletteDialog = () => import("./components/PaletteDialog");
+const PaletteDialog = lazy(() => loadPaletteDialog().then((module) => ({ default: module.PaletteDialog })));
 
 // The Cmd-K surface. It draws the sections for the context under it, runs
 // the search, and calls the same procedures the pages call. The ticket in
 // context is read while the palette is closed, and the panel waits for
 // that read, so the first frame it draws is the whole This ticket section.
+//
+// The dialog mounts on the first open and stays mounted, so each close
+// runs its exit transition. Its chunk loads when the browser is idle, so
+// the first Cmd+K does not wait on the network.
 export function CommandPalette() {
 	const open = useCommandStore((state) => state.open);
 	const identifier = useCommandStore(contextTicket);
 	const context = useContextTicket(identifier);
-	const [submenu, setSubmenu] = useState<Submenu | null>(null);
+	const [mounted, setMounted] = useState(open);
+	if (open && !mounted) setMounted(true);
 
-	useEffect(() => {
-		if (!open) setSubmenu(null);
-	}, [open]);
+	useEffect(() => preloadOnIdle(loadPaletteDialog), []);
 
 	// The palette lives with the shell that draws it.
 	useEffect(() => commandActions.reset, []);
 
-	// Escape and a click outside leave an open submenu first, and close the
-	// palette from the section list.
-	const onOpenChange = (next: boolean) => {
-		if (next) return;
-		if (submenu !== null) {
-			setSubmenu(null);
-			return;
-		}
-		commandActions.close();
-	};
-
+	if (!mounted) return null;
 	return (
-		<Command.Dialog open={open && context.ready} onOpenChange={onOpenChange} finalFocus={paletteOpener}>
-			{open && (
-				<PalettePanel identifier={identifier} ticket={context.ticket} submenu={submenu} onSubmenu={setSubmenu} />
-			)}
-		</Command.Dialog>
+		<Suspense fallback={null}>
+			<PaletteDialog open={open} ready={context.ready} identifier={identifier} ticket={context.ticket} />
+		</Suspense>
 	);
 }

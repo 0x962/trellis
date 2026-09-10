@@ -26,7 +26,7 @@ export const resetStores = () => {
 		peekTicket: null,
 		selection: [],
 	});
-	useComposerStore.setState({ open: false, defaults: {} });
+	useComposerStore.setState({ open: false, options: {} });
 	useShortcutHelpStore.setState({ open: false });
 	useUiStore.setState(createUiStore().getState());
 };

@@ -15,6 +15,7 @@ export { Chip, type ChipProps } from "./primitives/Chip";
 export {
 	Command,
 	type CommandFieldProps,
+	type CommandGroup,
 	type CommandGroupProps,
 	type CommandItem,
 	type CommandProps,

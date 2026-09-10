@@ -9,10 +9,13 @@ export const uiStorageKey = "trellis-ui";
 export type UiData = {
 	sidebarCollapsed: boolean;
 	density: Density;
-	// The collapsed group names per route: `{"/p/CDE": ["done"]}`.
+	// The collapsed group names per route: `{"/p/CDE": ["done"]}`. A route
+	// with no entry collapses its Done and Canceled groups.
 	collapsedGroups: Record<string, string[]>;
 	// A project row is expanded unless this holds `false` for its id.
 	expandedProjects: Record<string, boolean>;
+	// The table columns a route hides or shows: `{"/p/CDE": {updated: false}}`.
+	columnVisibility: Record<string, Record<string, boolean>>;
 };
 
 export type UiState = UiData & {
@@ -20,7 +23,9 @@ export type UiState = UiData & {
 	setSidebarCollapsed: (collapsed: boolean) => void;
 	setDensity: (density: Density) => void;
 	toggleProject: (id: string) => void;
-	toggleGroup: (route: string, group: string) => void;
+	// `defaults` names the groups a route collapses before its first toggle.
+	toggleGroup: (route: string, group: string, defaults?: string[]) => void;
+	setColumnVisible: (route: string, column: string, visible: boolean) => void;
 };
 
 const defaults: UiData = {
@@ -28,6 +33,7 @@ const defaults: UiData = {
 	density: "comfortable",
 	collapsedGroups: {},
 	expandedProjects: {},
+	columnVisibility: {},
 };
 
 // Every change as a pure function of the data. A store action and the
@@ -44,12 +50,20 @@ const updates = {
 			expandedProjects: { ...state.expandedProjects, [id]: !(state.expandedProjects[id] ?? true) },
 		}),
 	toggleGroup:
-		(route: string, group: string) =>
+		(route: string, group: string, defaults: string[] = []) =>
 		(state: UiData): Partial<UiData> => {
-			const groups = state.collapsedGroups[route] ?? [];
+			const groups = state.collapsedGroups[route] ?? defaults;
 			const next = groups.includes(group) ? groups.filter((name) => name !== group) : [...groups, group];
 			return { collapsedGroups: { ...state.collapsedGroups, [route]: next } };
 		},
+	setColumnVisible:
+		(route: string, column: string, visible: boolean) =>
+		(state: UiData): Partial<UiData> => ({
+			columnVisibility: {
+				...state.columnVisibility,
+				[route]: { ...state.columnVisibility[route], [column]: visible },
+			},
+		}),
 };
 
 // The renderer-local preferences: the sidebar, the density, the collapsed
@@ -64,7 +78,8 @@ export const createUiStore = () =>
 				setSidebarCollapsed: (collapsed) => set(updates.setSidebarCollapsed(collapsed)),
 				setDensity: (density) => set(updates.setDensity(density)),
 				toggleProject: (id) => set(updates.toggleProject(id)),
-				toggleGroup: (route, group) => set(updates.toggleGroup(route, group)),
+				toggleGroup: (route, group, defaults) => set(updates.toggleGroup(route, group, defaults)),
+				setColumnVisible: (route, column, visible) => set(updates.setColumnVisible(route, column, visible)),
 			}),
 			{
 				name: uiStorageKey,
@@ -74,6 +89,7 @@ export const createUiStore = () =>
 					density: state.density,
 					collapsedGroups: state.collapsedGroups,
 					expandedProjects: state.expandedProjects,
+					columnVisibility: state.columnVisibility,
 				}),
 			},
 		),
@@ -87,5 +103,8 @@ export const uiActions = {
 	setSidebarCollapsed: (collapsed: boolean) => useUiStore.setState(updates.setSidebarCollapsed(collapsed)),
 	setDensity: (density: Density) => useUiStore.setState(updates.setDensity(density)),
 	toggleProject: (id: string) => useUiStore.setState(updates.toggleProject(id)),
-	toggleGroup: (route: string, group: string) => useUiStore.setState(updates.toggleGroup(route, group)),
+	toggleGroup: (route: string, group: string, defaults?: string[]) =>
+		useUiStore.setState(updates.toggleGroup(route, group, defaults)),
+	setColumnVisible: (route: string, column: string, visible: boolean) =>
+		useUiStore.setState(updates.setColumnVisible(route, column, visible)),
 };

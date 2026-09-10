@@ -106,3 +106,83 @@ describe("features/filters/grammar", () => {
 		expect(parseSearch({ status: "", limit: "abc", group: "nope" })).toEqual(defaults);
 	});
 });
+
+// The plan's example URL: identical on the API, the web, and the CLI.
+const exampleParams = { status: "in-progress,agent-review", parent: "none", ci: "fail", sort: "-updatedAt" };
+
+// Serializes a view and parses the result, as a shared link would.
+const roundTrip = (view: View) => parseSearch(Object.fromEntries(new URLSearchParams(serializeSearch(view))));
+
+describe("features/filters/grammar: the table's filter grammar", () => {
+	// Outcome 68
+	test("parses the plan's example URL into the tickets.list query", () => {
+		const view = parseSearch(exampleParams);
+		expect(view.status).toEqual(["in-progress", "agent-review"]);
+		expect(view.parent).toBe("none");
+		expect(view.ci).toEqual(["fail"]);
+		expect(view.sort).toBe("-updatedAt");
+		expect(toListQuery(view, { now })).toEqual({
+			status: ["in-progress", "agent-review"],
+			parent: "none",
+			ci: ["fail"],
+			sort: "-updatedAt",
+		});
+	});
+
+	// Outcome 69. `sort=-updatedAt` is the default, so the URL never carries it.
+	test("serializes the query back to the same URL without defaults", () => {
+		const url = serializeSearch(parseSearch(exampleParams));
+		expect(url).toBe("status=in-progress,agent-review&parent=none&ci=fail");
+		expect(url).not.toContain("sort=");
+		expect(url).not.toContain("group=");
+		expect(url).not.toContain("scope=");
+	});
+
+	// Outcome 70. `project` is a chip that narrows /all; `scope` says whether
+	// its sub-projects count.
+	test("round trips every filter field through the URL", () => {
+		const view: View = {
+			project: "CDE.web",
+			status: ["in-progress", "agent-review"],
+			priority: ["high", "urgent"],
+			parent: "none",
+			pr: "open",
+			ci: ["fail", "pending"],
+			updated: "7d",
+			created: "24h",
+			actor: "agent:claude-code",
+			q: "oauth",
+			sort: "-createdAt",
+			group: "priority",
+			scope: "subprojects",
+			peek: "CDE-42",
+			density: "compact",
+			limit: 100,
+		};
+		expect(roundTrip(view)).toEqual(view);
+		expect(roundTrip({ ...view, scope: "self" })).toEqual({ ...view, scope: "self" });
+		expect(serializeSearch(view)).toContain("project=CDE.web");
+	});
+
+	// Outcome 71. `not` names the fields whose set carries the leading `!`.
+	test("keeps the is not negation through a round trip", () => {
+		const view = parseSearch({ priority: "!none" });
+		expect(view.priority).toEqual(["none"]);
+		expect(view.not).toEqual(["priority"]);
+		expect(serializeSearch(view)).toBe("priority=!none");
+		expect(roundTrip(view)).toEqual(view);
+		const plain = parseSearch({ priority: "none" });
+		expect(plain.not).toBeUndefined();
+		expect(serializeSearch(plain)).toBe("priority=none");
+	});
+
+	// Outcome 72
+	test("translates the relative time windows to ISO bounds and back", () => {
+		const view = parseSearch({ updated: "7d", created: "24h" });
+		const query = toListQuery(view, { now });
+		expect(query.updated).toBe(new Date(now.getTime() - 7 * dayMs).toISOString());
+		expect(query.created).toBe(new Date(now.getTime() - dayMs).toISOString());
+		expect(serializeSearch(view)).toBe("updated=7d&created=24h");
+		expect(roundTrip(view)).toEqual(view);
+	});
+});

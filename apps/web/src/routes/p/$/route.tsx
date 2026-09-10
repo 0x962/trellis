@@ -1,28 +1,21 @@
 import { ORPCError } from "@orpc/client";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import {
-	createFileRoute,
-	type ErrorComponentProps,
-	Link,
-	redirect,
-	useNavigate,
-	useParams,
-} from "@tanstack/react-router";
-import { Button, EmptyState, toast } from "@trellis/ui";
-import { Copy } from "lucide-react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
+import { EmptyState } from "@trellis/ui";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
-import { toCliCommand } from "../../../features/filters/cli";
 import { FilterBar } from "../../../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../../features/filters/grammar";
-import { hasFilters, sortLabel } from "../../../features/filters/labels";
+import { sortLabel } from "../../../features/filters/labels";
 import { Breadcrumb } from "../../../features/shell/Breadcrumb";
 import { ListFooter } from "../../../features/shell/ListFooter";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
 import { Topbar } from "../../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../../features/shell/ViewSwitch";
+import { DisplayPopover } from "../../../features/table/DisplayPopover";
+import { TicketTable } from "../../../features/table/TicketTable";
 import { type AppContext, useApp } from "../../../lib/appContext";
-import { parseProjectSplat, projectSlashPath } from "../../../lib/projectPath";
-import { ProjectEmptyState } from "./components/ProjectEmptyState";
+import { parseProjectSplat, projectHref, projectSlashPath } from "../../../lib/projectPath";
+import { useUiStore } from "../../../stores/uiStore";
 import { ProjectSettingsView } from "./components/ProjectSettingsView";
 import { ScopeChip } from "./components/ScopeChip";
 
@@ -60,12 +53,15 @@ function ProjectPage() {
 	const search = Route.useSearch();
 	const navigate = useNavigate();
 	const context = useApp();
+	const storedDensity = useUiStore((state) => state.density);
 	const { ref, view } = parseProjectSplat(_splat);
 	const project = useSuspenseQuery(projectOptions(context, ref)).data;
-	const counts = useQuery(countsOptions(context, ref, search)).data;
 	const full = viewOf(search);
+	const routeKey = projectHref(ref);
 
 	if (view === "settings") return <ProjectSettingsView project={project} />;
+
+	const setSearch = (next: Partial<View>) => navigate({ to: "/p/$", params: { _splat }, search: stripDefaults(next) });
 
 	const switchView = (next: ListView) =>
 		navigate({
@@ -74,23 +70,7 @@ function ProjectPage() {
 			search,
 		});
 
-	const toggleScope = () =>
-		navigate({
-			to: "/p/$",
-			params: { _splat },
-			search: { ...search, scope: full.scope === "self" ? undefined : "self" },
-		});
-
-	const copyCli = async () => {
-		await navigator.clipboard.writeText(toCliCommand(full, ref));
-		toast("Copied the CLI command");
-	};
-
-	const createFirst = async (title: string) => {
-		const ticket = await context.client.tickets.create({ project: ref, title });
-		await context.queryClient.invalidateQueries();
-		await navigate({ to: "/t/$identifier", params: { identifier: ticket.identifier } });
-	};
+	const toggleScope = () => setSearch({ ...search, scope: full.scope === "self" ? "subprojects" : "self" });
 
 	return (
 		<>
@@ -98,42 +78,40 @@ function ProjectPage() {
 				<Breadcrumb path={ref} current={project.name} />
 			</Topbar>
 			<FilterBar
+				project={ref}
+				search={search}
+				onSearchChange={setSearch}
+				statuses={project.statuses}
 				actions={
-					<Button variant="quiet" size="sm" icon={<Copy />} onClick={copyCli}>
-						Copy as CLI
-					</Button>
+					<DisplayPopover
+						routeKey={routeKey}
+						showProject={project.children.length > 0 && full.scope !== "self"}
+						search={search}
+						onSearchChange={setSearch}
+						density={search.density ?? storedDensity}
+						group={full.group}
+						sort={full.sort}
+					/>
 				}
 			>
 				<ScopeChip path={ref} scope={full.scope} onToggle={toggleScope} />
 			</FilterBar>
-			<div className="flex min-h-0 flex-1 flex-col">
-				{counts !== undefined && counts.total === 0 ? (
-					hasFilters(search) ? (
-						<EmptyState
-							title="No tickets match"
-							description="Every filter above narrows the list."
-							className="flex-1 justify-center"
-							action={
-								<Link
-									to="/p/$"
-									params={{ _splat }}
-									search={{}}
-									className="inline-flex h-7 items-center rounded-md border border-border bg-surface px-2.5 text-sm font-medium text-fg hover:bg-bg"
-								>
-									Clear filters
-								</Link>
-							}
-						/>
-					) : (
-						<ProjectEmptyState project={project} onCreate={createFirst} />
-					)
-				) : (
-					<div className="flex flex-1 items-center justify-center text-sm text-fg-faint">
-						{counts !== undefined && `${counts.total} tickets in the ${view}`}
+			{view === "board" ? (
+				<>
+					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-faint">
+						The board opens in a later milestone.
 					</div>
-				)}
-			</div>
-			<ListFooter total={counts?.total} sort={sortLabel(full.sort)} />
+					<ListFooter total={undefined} sort={sortLabel(full.sort)} />
+				</>
+			) : (
+				<TicketTable
+					project={ref}
+					routeKey={routeKey}
+					search={search}
+					onSearchChange={setSearch}
+					onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
+				/>
+			)}
 		</>
 	);
 }

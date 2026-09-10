@@ -36,7 +36,9 @@ const stubLive = (status: LiveStatus): Live => ({
 	bootId: () => null,
 });
 
-const wire = (options: ProviderOptions) => {
+// The providers' parts for one test: the fake server, the clients, the
+// live stub, and a memory-history router at `path`.
+export const wire = (options: ProviderOptions) => {
 	if (options.actor !== undefined) setActorName(options.actor);
 	const server = options.server ?? createFakeServer();
 	const { client, orpc, queryClient } = createOrpc({ fetch: server.fetch });

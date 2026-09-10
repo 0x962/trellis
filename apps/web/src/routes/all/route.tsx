@@ -1,20 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate, useRouter } from "@tanstack/react-router";
-import { Button, toast } from "@trellis/ui";
-import { Copy } from "lucide-react";
 import { isCanonicalSearch } from "../../features/filters/canonical";
-import { toCliCommand } from "../../features/filters/cli";
 import { FilterBar } from "../../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../features/filters/grammar";
-import { sortLabel } from "../../features/filters/labels";
-import { ListFooter } from "../../features/shell/ListFooter";
 import { Topbar } from "../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../features/shell/ViewSwitch";
+import { DisplayPopover } from "../../features/table/DisplayPopover";
+import { TicketTable } from "../../features/table/TicketTable";
+import { useScopeStatuses } from "../../hooks/useScopeStatuses";
 import type { AppContext } from "../../lib/appContext";
-import { useApp } from "../../lib/appContext";
+import { useUiStore } from "../../stores/uiStore";
 
 const countsOptions = (context: AppContext, search: Partial<View>) =>
 	context.orpc.tickets.counts.queryOptions({ input: toCountsQuery(viewOf(search)) });
+
+const routeKey = "/all";
 
 // Every ticket across every project. The URL carries the view in the
 // shared grammar, with no default written.
@@ -32,18 +31,15 @@ function AllPage() {
 	const search = Route.useSearch();
 	const navigate = useNavigate();
 	const router = useRouter();
-	const context = useApp();
-	const view = viewOf(search);
-	const counts = useQuery(countsOptions(context, search)).data;
+	const storedDensity = useUiStore((state) => state.density);
+	const statuses = useScopeStatuses();
+	const full = viewOf(search);
+
+	const setSearch = (next: Partial<View>) => navigate({ to: "/all", search: stripDefaults(next) });
 
 	const switchView = (next: ListView) => {
 		if (next === "board") void router.navigate({ href: "/all/board" });
 		else void navigate({ to: "/all", search });
-	};
-
-	const copyCli = async () => {
-		await navigator.clipboard.writeText(toCliCommand(view));
-		toast("Copied the CLI command");
 	};
 
 	return (
@@ -52,16 +48,27 @@ function AllPage() {
 				<h1 className="text-md font-semibold text-fg">All tickets</h1>
 			</Topbar>
 			<FilterBar
+				search={search}
+				onSearchChange={setSearch}
+				statuses={statuses}
 				actions={
-					<Button variant="quiet" size="sm" icon={<Copy />} onClick={copyCli}>
-						Copy as CLI
-					</Button>
+					<DisplayPopover
+						routeKey={routeKey}
+						showProject
+						search={search}
+						onSearchChange={setSearch}
+						density={search.density ?? storedDensity}
+						group={full.group}
+						sort={full.sort}
+					/>
 				}
 			/>
-			<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-faint">
-				{counts !== undefined && `${counts.total} tickets across every project`}
-			</div>
-			<ListFooter total={counts?.total} sort={sortLabel(view.sort)} />
+			<TicketTable
+				routeKey={routeKey}
+				search={search}
+				onSearchChange={setSearch}
+				onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
+			/>
 		</>
 	);
 }

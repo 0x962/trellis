@@ -1,1 +1,1 @@
-export { type ComposerDefaults, type ComposerState, composerActions, useComposerStore } from "./composerStore";
+export { type ComposerOptions, type ComposerState, composerActions, useComposerStore } from "./composerStore";

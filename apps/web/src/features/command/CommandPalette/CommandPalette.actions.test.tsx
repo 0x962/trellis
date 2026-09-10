@@ -92,7 +92,7 @@ describe("features/command/CommandPalette actions", () => {
 		await withTicket();
 		await pick(/Add sub-ticket/);
 		await waitFor(() => expect(useComposerStore.getState().open).toBe(true));
-		expect(useComposerStore.getState().defaults.parent).toBe("CDE-42");
+		expect(useComposerStore.getState().options.parent).toBe("CDE-42");
 	});
 
 	// PA-07. A ticket created from a filtered view lands in that view.
@@ -101,7 +101,7 @@ describe("features/command/CommandPalette actions", () => {
 		await openPalette();
 		await pick(/New ticket/);
 		await waitFor(() => expect(useComposerStore.getState().open).toBe(true));
-		expect(useComposerStore.getState().defaults).toMatchObject({ project: "CDE", status: "in-progress" });
+		expect(useComposerStore.getState().options).toMatchObject({ project: "CDE", status: "in-progress" });
 	});
 
 	// PA-08

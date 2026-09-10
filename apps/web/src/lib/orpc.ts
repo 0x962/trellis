@@ -1,6 +1,6 @@
 import { BatchLinkPlugin } from "@orpc/client/plugins";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
-import { QueryClient } from "@tanstack/react-query";
+import { notifyManager, QueryClient } from "@tanstack/react-query";
 import { createTrellisClient, type FetchLike } from "@trellis/api";
 import { actorHeader } from "./actor";
 
@@ -12,6 +12,11 @@ export type OrpcOptions = {
 	// origin.
 	baseUrl?: string;
 };
+
+// A cache write reaches its observers in the same call. A live patch or
+// an optimistic write then repaints in the same task, so a row never lags
+// its cache by a timer.
+notifyManager.setScheduler((callback) => callback());
 
 // SSE keeps every cached entity current, so a query never refetches by
 // age and never retries on its own.

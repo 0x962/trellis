@@ -1,0 +1,124 @@
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import type { ListQueryInput, Status, StatusCategory, TicketSummary } from "@trellis/api";
+import { useEffect, useMemo } from "react";
+import { useScopeStatuses } from "../../../../hooks/useScopeStatuses";
+import { useApp } from "../../../../lib/appContext";
+import { toCountsQuery, type View } from "../../../filters/grammar";
+import { activeInput, closedInput, closedSlugs, hasStatusFilter, rowCap } from "../../utils/listQuery";
+
+export type ClosedCategory = "done" | "canceled";
+
+export type ClosedGroupData = {
+	rows: TicketSummary[];
+	hasMore: boolean;
+	loadMore: () => void;
+	loading: boolean;
+	// The server's count for the category, from `tickets.counts`.
+	count: number;
+};
+
+export type TableDataOptions = {
+	// The project ref of the route, or undefined on /all.
+	project?: string;
+	view: View;
+	// The closed categories whose groups are open. Each loads on its own.
+	expanded: readonly ClosedCategory[];
+};
+
+export type TableData = {
+	// The active rows, every page so far, in server order.
+	rows: TicketSummary[];
+	// True when the active pass stopped at the cap with more on the server.
+	capped: boolean;
+	// True when the active pass reached its final page.
+	allActiveLoaded: boolean;
+	// True until the first page arrives.
+	loading: boolean;
+	// The Done and Canceled groups, or null while a status filter names
+	// the groups the table shows.
+	closed: Record<ClosedCategory, ClosedGroupData> | null;
+	statuses: Status[];
+	// The total under the same filters, or undefined until it arrives.
+	total: number | undefined;
+};
+
+const noRows: TicketSummary[] = [];
+
+const withCursor = (input: ListQueryInput, cursor: string | undefined): ListQueryInput =>
+	cursor === undefined ? input : { ...input, cursor };
+
+// The two-tier load. The active pass reads the open categories in 200-row
+// pages until the cursor runs out or the cap is reached. A closed group
+// reads its own pages of 50 once its header expands. Every page lives
+// under `tickets.list` keys, so a live patch and a mutation response reach
+// every row.
+export const useTableData = ({ project, view, expanded }: TableDataOptions): TableData => {
+	const { orpc } = useApp();
+	const statuses = useScopeStatuses(project);
+	const filtered = hasStatusFilter(view);
+	// A negated status set is the rest of the scope's statuses, so the pass
+	// waits for them.
+	const ready = !(view.not?.includes("status") && statuses.length === 0);
+
+	const active = useInfiniteQuery({
+		...orpc.tickets.list.infiniteOptions({
+			input: (cursor: string | undefined) => withCursor(activeInput(project, view, statuses), cursor),
+			initialPageParam: undefined as string | undefined,
+			getNextPageParam: (last) => last.nextCursor ?? undefined,
+		}),
+		enabled: ready,
+	});
+	const rows = useMemo(() => active.data?.pages.flatMap((page) => page.items) ?? noRows, [active.data]);
+	const capped = rows.length >= rowCap && active.hasNextPage;
+
+	useEffect(() => {
+		if (!active.hasNextPage || active.isFetchingNextPage || rows.length >= rowCap) return;
+		void active.fetchNextPage();
+	}, [active.hasNextPage, active.isFetchingNextPage, active.fetchNextPage, rows.length]);
+
+	const counts = useQuery(
+		orpc.tickets.counts.queryOptions({
+			input:
+				project === undefined ? toCountsQuery(view, { statuses }) : { project, ...toCountsQuery(view, { statuses }) },
+		}),
+	);
+
+	const countOf = (category: StatusCategory) => {
+		const ids = new Set(statuses.filter((status) => status.category === category).map((status) => status.id));
+		return (counts.data?.byStatus ?? [])
+			.filter((entry) => ids.has(entry.statusId))
+			.reduce((sum, entry) => sum + entry.count, 0);
+	};
+
+	const closedGroup = (category: ClosedCategory): ClosedGroupData => {
+		const enabled = !filtered && expanded.includes(category) && closedSlugs(statuses, category).length > 0;
+		// biome-ignore lint/correctness/useHookAtTopLevel: the two categories call this in a fixed order on every render.
+		const query = useInfiniteQuery({
+			...orpc.tickets.list.infiniteOptions({
+				input: (cursor: string | undefined) => withCursor(closedInput(project, view, statuses, category), cursor),
+				initialPageParam: undefined as string | undefined,
+				getNextPageParam: (last) => last.nextCursor ?? undefined,
+			}),
+			enabled,
+		});
+		return {
+			rows: enabled ? (query.data?.pages.flatMap((page) => page.items) ?? noRows) : noRows,
+			hasMore: enabled && query.hasNextPage,
+			loadMore: () => void query.fetchNextPage(),
+			loading: query.isFetching,
+			count: countOf(category),
+		};
+	};
+	const done = closedGroup("done");
+	const canceled = closedGroup("canceled");
+
+	return {
+		rows,
+		capped,
+		allActiveLoaded: active.data !== undefined && !active.hasNextPage,
+		loading: active.isPending,
+		closed: filtered ? null : { done, canceled },
+		statuses,
+		total: counts.data?.total,
+	};
+};
