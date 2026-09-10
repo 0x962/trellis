@@ -124,6 +124,25 @@ export const AgentProjectSettingsSchema = z.object({
 });
 export type AgentProjectSettings = z.infer<typeof AgentProjectSettingsSchema>;
 
+// One project the runner knows: for Superset, one row of
+// `superset projects list`. `repo` is null for a project with no remote.
+export const RunnerProjectSchema = z.object({
+	id: RunnerIdSchema,
+	name: z.string().min(1),
+	repo: z.string().min(1).nullable(),
+	path: z.string().min(1),
+});
+export type RunnerProject = z.infer<typeof RunnerProjectSchema>;
+
+// `matches` has one entry for each trellis project whose declared repo
+// matches a runner project. The runner uses that project while the
+// project's `supersetProjectId` is null.
+export const AgentRunnerProjectsOutputSchema = z.object({
+	projects: z.array(RunnerProjectSchema),
+	matches: z.array(z.object({ projectId: UlidSchema, runnerProjectId: RunnerIdSchema })),
+});
+export type AgentRunnerProjectsOutput = z.infer<typeof AgentRunnerProjectsOutputSchema>;
+
 // A project has one manager, so it has at most one settings row.
 const oneRowPerProject = (projects: Array<{ projectId: string }>) =>
 	new Set(projects.map((project) => project.projectId)).size === projects.length;

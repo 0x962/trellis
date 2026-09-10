@@ -6,7 +6,7 @@ import { identifierOf, isoNow, newId, requireTicket, requireWritable, type State
 import { linkedPrs } from "../summaries";
 
 // The one URL shape gh accepts: the owner, the repository, and the number.
-const prUrl = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/([1-9][0-9]*)$/;
+export const prUrl = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/([1-9][0-9]*)$/;
 
 // Link and refresh calls fail while gh is missing or signed out.
 const requireGh = (state: State) => {

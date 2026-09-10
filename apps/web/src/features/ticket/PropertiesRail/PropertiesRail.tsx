@@ -6,6 +6,7 @@ import { copyText } from "../../../lib/clipboard";
 import { compactRelativeTime } from "../../../lib/format";
 import { useTimeline } from "../hooks/useTimeline";
 import { useSaveStatusStore } from "../stores/saveStatusStore";
+import { AgentsRow } from "./components/AgentsRow";
 import { PickerRows } from "./components/PickerRows";
 import { Row } from "./components/Row";
 import { branchName, titleSlug } from "./utils/branchName";
@@ -45,8 +46,8 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
 	);
 }
 
-// The properties of a ticket: eight rows in a fixed order, then the
-// version with the save state. Created shows the actor of the `created`
+// The properties of a ticket: eight rows in a fixed order, the agent
+// sessions, then the version with the save state. Created shows the actor of the `created`
 // activity row; Updated shows the last actor with the live dot while an
 // agent is at work.
 export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRailProps) {
@@ -90,6 +91,7 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 				{last !== null && <ActorChip name={last.name} kind={last.kind} live={isLiveActor(last)} />}
 				<span className="text-fg-faint tabular">· {compactRelativeTime(ticket.updatedAt)}</span>
 			</Row>
+			<AgentsRow identifier={ticket.identifier} />
 			<Row label="Version">
 				<span className="font-mono text-sm text-fg-faint tabular">{ticket.version}</span>
 				{saveState !== "idle" && (

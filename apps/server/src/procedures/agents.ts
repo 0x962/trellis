@@ -18,4 +18,5 @@ export const agents = os.agents.router({
 	wake: os.agents.wake.handler(pending("agents.wake")),
 	settings: os.agents.settings.handler(pending("agents.settings")),
 	setSettings: os.agents.setSettings.handler(pending("agents.setSettings")),
+	runnerProjects: os.agents.runnerProjects.handler(pending("agents.runnerProjects")),
 });

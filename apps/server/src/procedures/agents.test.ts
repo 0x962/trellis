@@ -49,4 +49,10 @@ describe("agents procedures", () => {
 		"server builder: agents.settings returns runner superset, enabled false, and no projects before the first setSettings",
 	);
 	todo("server builder: agents.setSettings replaces the settings and agents.settings returns them");
+	todo(
+		"server builder: agents.runnerProjects lists the projects of superset projects list and matches each trellis project by its declared repo",
+	);
+	todo(
+		"server builder: agents.runnerProjects answers RUNNER_UNAVAILABLE missing when the superset binary does not exist",
+	);
 });
