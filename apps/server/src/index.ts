@@ -5,7 +5,7 @@ import pkg from "../package.json";
 import { createApp } from "./app.ts";
 import { type Env, loadConfig } from "./config.ts";
 import { openDatabase } from "./db/open.ts";
-import { createInlineTransport } from "./db/transport.ts";
+import { createInlineTransport, createWorkerTransport } from "./db/transport.ts";
 import { createBus } from "./events/bus.ts";
 import { createGhRunner } from "./gh/run.ts";
 import { createLogger, createRotatingSink, type LogSink, stdoutSink, teeSink } from "./log.ts";
@@ -58,16 +58,17 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			log.info("gh", { ok: status.ok, user: status.user, reason: status.reason });
 		});
 
-		const database = await openDatabase(config.dbDir);
-		log.info("migrate", { applied: database.applied });
-		const swept = await sweep(config.home, await database.liveShas());
-		log.info("sweep", { removedBlobs: swept.removedBlobs.length, removedTemp: swept.removedTemp.length });
-
 		const bootId = ulid();
 		const bus = createBus({ bootId });
 		const runtime = { version: pkg.version, bootId, gh, ghStatus: () => ghState };
-		const transport = createInlineTransport({ db: database.db, bus, config, runtime });
-		await transport.start();
+		const database = config.dbInline ? await openDatabase(config.dbDir) : undefined;
+		const transport = database
+			? createInlineTransport({ db: database.db, bus, config, runtime, applied: database.applied })
+			: createWorkerTransport({ bus, config, runtime });
+		const started = await transport.start();
+		log.info("migrate", { applied: started.applied });
+		const swept = await sweep(config.home, started.liveShas);
+		log.info("sweep", { removedBlobs: swept.removedBlobs.length, removedTemp: swept.removedTemp.length });
 		const { app, bye } = createApp({ config, log, transport, bus, runtime });
 
 		const server = Bun.serve({ port: config.port, hostname: "127.0.0.1", fetch: app.fetch });
@@ -85,7 +86,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			await Promise.race([server.stop(), Bun.sleep(SHUTDOWN_DEADLINE_MS)]);
 			for (const hook of hooks) await hook.stop();
 			await transport.close();
-			await database.close();
+			if (database) await database.close();
 			log.info("closed", { bootId });
 			log.close();
 			detach();
