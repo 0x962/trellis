@@ -16,6 +16,7 @@ export { delete } from "./projectsDelete.ts";
 export { list } from "./projectsList.ts";
 export { move } from "./projectsMove.ts";
 export { effectiveRepos, setRepos } from "./projectsRepos.ts";
+export { setTrustedFolders } from "./projectsTrustedFolders.ts";
 
 // Projects form a tree. A root has a key and the ticket counter of its tree.
 // A sub-project has a parent in the same root and a slug, which is its path

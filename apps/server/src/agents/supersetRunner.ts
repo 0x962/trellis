@@ -10,6 +10,7 @@ import {
 	resumeCommand,
 } from "@trellis/api";
 import { matchRunnerProject, type Runner, runnerUnavailable, type TerminalState } from "./runner.ts";
+import { type FolderTrust, isTrusted, type SeedReport, seedFolders } from "./trust.ts";
 
 // The Runner over the `superset` command line (Superset 1.27). `bin` is
 // TRELLIS_SUPERSET_BIN or "superset" on PATH. `url` is the trellis server
@@ -17,9 +18,16 @@ import { matchRunnerProject, type Runner, runnerUnavailable, type TerminalState 
 //
 // Superset runs each agent as the `--command` of a workspace or a
 // terminal, so the tab shows the name claude gets from `-n`.
+//
+// Claude asks about folder trust before it reads its prompt, so a start
+// seeds the trust first. It seeds the trusted roots of the project, which
+// hold the repo root of the runner project. Claude treats a repo root as
+// the trust domain of every git worktree cut from that repo, so a
+// worktree that sits outside every root still runs. A start also seeds
+// the workspace worktree when a trusted root covers that folder.
 
 type WorkspaceAnswer = {
-	workspace: { id: string };
+	workspace: { id: string; worktreePath?: string | null };
 	terminals: Array<{ terminalId: string }>;
 	alreadyExists: boolean;
 };
@@ -58,7 +66,9 @@ const spawnSuperset = async (bin: string, args: string[]) => {
 // no repo.
 type ListedProject = { id: string; name: string; repo?: string | null; path: string };
 
-export const createSupersetRunner = ({ bin, url }: { bin: string; url: string }): Runner => {
+export type SupersetRunnerOptions = { bin: string; url: string; trust: FolderTrust };
+
+export const createSupersetRunner = ({ bin, url, trust }: SupersetRunnerOptions): Runner => {
 	const run = (args: string[]) => spawnSuperset(bin, args);
 	const json = async <T>(args: string[]) => JSON.parse(await run([...args, "--json"])) as T;
 
@@ -104,6 +114,19 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 			path,
 		}));
 
+	// Every folder the project trusts, before the workspace runs its
+	// command. A project with no trusted folder gets a rootless report and
+	// no write.
+	const seedRoots = (roots: string[]): Promise<SeedReport> => seedFolders(trust, roots, roots);
+
+	// The workspace's own worktree, when a trusted root covers it.
+	const seedWorktree = async (report: SeedReport, answer: WorkspaceAnswer, roots: string[]) => {
+		const worktree = answer.workspace.worktreePath;
+		if (typeof worktree !== "string" || !isTrusted(worktree, roots)) return report;
+		if ((await trust.trust(worktree)) === "seeded") report.seeded.push(worktree);
+		return report;
+	};
+
 	return {
 		projects,
 
@@ -115,6 +138,7 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 
 		ensureManager: async (input) => {
 			const command = managerCommand(input.project, input.claudeSessionId, input.text ?? restartText(input.project));
+			const trusted = await seedRoots(input.trustedRoots);
 			const answer = await createWorkspace({
 				runnerProjectId: input.runnerProjectId,
 				name: managerWorkspaceName(input.project),
@@ -124,11 +148,13 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 				command,
 			});
 			const tab = await tabOf(answer, agentTitle({ role: "manager", project: input.project }), command);
-			return { workspaceId: answer.workspace.id, ...tab, openUrl: await openUrl(answer.workspace.id) };
+			const report = await seedWorktree(trusted, answer, input.trustedRoots);
+			return { workspaceId: answer.workspace.id, ...tab, trust: report, openUrl: await openUrl(answer.workspace.id) };
 		},
 
 		startBuilder: async (input) => {
 			const command = agentLaunch({ role: "builder", project: input.project, ticket: input.ticket, url }).command;
+			const trusted = await seedRoots(input.trustedRoots);
 			const answer = await createWorkspace({
 				runnerProjectId: input.runnerProjectId,
 				name: input.ticket,
@@ -138,7 +164,13 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 				command,
 			});
 			const { terminalId } = await tabOf(answer, input.ticket, command);
-			return { workspaceId: answer.workspace.id, terminalId, openUrl: await openUrl(answer.workspace.id) };
+			const report = await seedWorktree(trusted, answer, input.trustedRoots);
+			return {
+				workspaceId: answer.workspace.id,
+				terminalId,
+				trust: report,
+				openUrl: await openUrl(answer.workspace.id),
+			};
 		},
 
 		startReviewer: async (input) => {

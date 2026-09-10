@@ -13,4 +13,7 @@ export const projects = os.projects.router({
 	move: os.projects.move.handler(({ context, input }) => call(context, "projects.move", input)),
 	delete: os.projects.delete.handler(({ context, input }) => call(context, "projects.delete", input)),
 	setRepos: os.projects.setRepos.handler(({ context, input }) => call(context, "projects.setRepos", input)),
+	setTrustedFolders: os.projects.setTrustedFolders.handler(({ context, input }) =>
+		call(context, "projects.setTrustedFolders", input),
+	),
 });

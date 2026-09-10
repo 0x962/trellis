@@ -1,3 +1,4 @@
+export * from "./agentBlocked.ts";
 export * from "./client.ts";
 export * from "./contract/index.ts";
 export * from "./errors.ts";

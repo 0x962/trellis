@@ -56,6 +56,7 @@ export const services = {
 	"projects.move": core("mutation", projects.move),
 	"projects.delete": core("mutation", projects.delete),
 	"projects.setRepos": core("mutation", projects.setRepos),
+	"projects.setTrustedFolders": core("mutation", projects.setTrustedFolders),
 	"statuses.list": core("read", statuses.list),
 	"statuses.create": core("mutation", statuses.create),
 	"statuses.update": core("mutation", statuses.update),
@@ -102,6 +103,7 @@ export const services = {
 	"agents.startBuilder": runner(agents.prepareBuilder, agents.startBuilder),
 	"agents.startReviewer": runner(agents.prepareReviewer, agents.startReviewer),
 	"agents.stop": runner(agents.prepareStop, agents.stop),
+	"agents.unblock": runner(agents.prepareUnblock, agents.unblock),
 	"agents.wake": runner(agents.prepareWake, agents.wake),
 	"agents.settings": core("read", agents.settings),
 	"agents.setSettings": { family: "agents", kind: "mutation", run: agents.setSettings } as ServiceEntry,
@@ -111,9 +113,11 @@ export const services = {
 		prepare: agents.prepareRunnerProjects,
 		run: agents.runnerProjects,
 	} as ServiceEntry,
-	// The agents host runs these two at its start. They are not on the API.
+	// The agents host runs these three itself. They are not on the API.
 	"agents.reconcile": runner(agents.prepareReconcile, agents.reconcile),
 	"agents.ensureManager": runner(agents.prepareManager, agents.recordManager),
+	"agents.stalled": runner(agents.prepareStalled, agents.stalled),
+	"agents.trustBackfill": runner(agents.prepareTrustBackfill, agents.trustBackfill),
 } satisfies Record<string, ServiceEntry>;
 
 export type ServiceName = keyof typeof services;

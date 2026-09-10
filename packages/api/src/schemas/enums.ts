@@ -62,6 +62,15 @@ export type AgentRunner = z.infer<typeof AgentRunnerSchema>;
 export const AgentStateSchema = z.enum(["starting", "running", "waiting", "exited", "stopped"]);
 export type AgentState = z.infer<typeof AgentStateSchema>;
 
+// Why an agent cannot do its work. `folder-trust`: the folder the agent
+// runs in is outside every trusted root, so the agent CLI asks whether the
+// folder is trusted and waits for an answer. `runner-error`: the runner
+// refused to start the agent. `terminal-exited`: the terminal that ran the
+// agent is gone. `no-register`: the agent started and never called
+// agents.register, so it sits at a prompt.
+export const AgentBlockedReasonSchema = z.enum(["folder-trust", "runner-error", "terminal-exited", "no-register"]);
+export type AgentBlockedReason = z.infer<typeof AgentBlockedReasonSchema>;
+
 // Why the runner cannot serve a request. `missing`: the runner binary is
 // not found. `disabled`: the global or the project switch in the agent
 // settings is off. `unmapped`: no runner project matches the trellis

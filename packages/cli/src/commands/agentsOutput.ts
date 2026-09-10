@@ -1,12 +1,24 @@
 import type { AgentSession, AgentSettings } from "@trellis/api";
 import { cell, type ListSpec, type RecordSpec } from "../output.ts";
 
+// Why an agent does nothing. An agent that works has no reason at all.
+// The long form adds the folder a person trusts, or what the runner
+// printed, so one line carries the next step.
+const blockedCell = (row: AgentSession) => row.blocked?.reason ?? null;
+
+const blockedText = ({ blocked }: AgentSession) => {
+	if (blocked === null) return null;
+	if (blocked.path !== null) return `${blocked.reason} ${blocked.path}`;
+	return blocked.detail === null ? blocked.reason : `${blocked.reason}: ${blocked.detail}`;
+};
+
 // The title comes first: it is the tab name a person sees in Superset.
 export const sessionList: ListSpec<AgentSession> = {
 	columns: [
 		{ name: "title", value: (row) => row.title },
 		{ name: "role", value: (row) => row.role },
 		{ name: "state", value: (row) => row.state },
+		{ name: "blocked", value: (row) => cell(blockedCell(row)) },
 		{ name: "workspace", value: (row) => cell(row.workspaceId) },
 		{ name: "lastWoken", value: (row) => cell(row.lastWokenAt) },
 		{ name: "id", value: (row) => row.id },
@@ -24,6 +36,7 @@ export const sessionRecord: RecordSpec<AgentSession> = {
 		{ name: "workspace", value: (row) => cell(row.workspaceId) },
 		{ name: "terminal", value: (row) => cell(row.terminalId) },
 		{ name: "open", value: (row) => cell(row.openUrl) },
+		{ name: "blocked", value: (row) => cell(blockedText(row)) },
 		{ name: "lastWoken", value: (row) => cell(row.lastWokenAt) },
 		{ name: "created", value: (row) => row.createdAt },
 	],

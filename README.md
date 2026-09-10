@@ -139,6 +139,7 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 | `trellis projects show` | Show a project. |
 | `trellis projects move` | Move a project. |
 | `trellis projects repos` | Manage project repositories. |
+| `trellis projects trust` | Manage the trusted folders of a project. |
 | `trellis statuses list` | List statuses. |
 | `trellis statuses add` | Add a status. |
 | `trellis statuses edit` | Edit a status. |

@@ -15,6 +15,8 @@ import { parsePullRequestUrl } from "../gh/parse.ts";
 import {
 	type AgentsCtx,
 	announce,
+	blockSession,
+	clearBlock,
 	insertSession,
 	LIVE_STATES,
 	newSessionId,
@@ -22,6 +24,7 @@ import {
 	toSession,
 } from "./agentSessions.ts";
 import { managedProject, readAgentSettings } from "./agentSettings.ts";
+import { effectiveTrustedRoots } from "./projectsTrustedFolders.ts";
 import { assertProjectActive, chainOf, pathOf, resolveTicket, type TicketRow } from "./refs.ts";
 
 // A builder start runs in three steps. The first transaction checks the
@@ -48,9 +51,15 @@ export const effectiveRepos = async (ctx: ServiceCtx, tx: Tx, projectId: string)
 export const runnerProjectOf = (ctx: AgentsCtx, managed: AgentProjectSettings, repos: RunnerRepo[]) =>
 	managed.supersetProjectId === null ? ctx.runner.projectFor(repos) : Promise.resolve(managed.supersetProjectId);
 
-type Reservation = { id: string; ticket: TicketRow; managed: AgentProjectSettings; repos: RunnerRepo[] };
+type Reservation = {
+	id: string;
+	ticket: TicketRow;
+	managed: AgentProjectSettings;
+	repos: RunnerRepo[];
+	trustedRoots: string[];
+};
 
-export type BuilderPlan = { existing: AgentSession } | { id: string; place: AgentPlace };
+export type BuilderPlan = { existing: AgentSession } | { id: string; place: AgentPlace; rootless: boolean };
 
 const reserveBuilder = (ctx: AgentsCtx, ticketRef: string) =>
 	ctx.newTx(async (tx): Promise<Reservation | { existing: AgentSession }> => {
@@ -83,7 +92,13 @@ const reserveBuilder = (ctx: AgentsCtx, ticketRef: string) =>
 			title: ticket.identifier,
 			openUrl: null,
 		});
-		return { id, ticket, managed, repos: await effectiveRepos(ctx, tx, managed.projectId) };
+		return {
+			id,
+			ticket,
+			managed,
+			repos: await effectiveRepos(ctx, tx, managed.projectId),
+			trustedRoots: await effectiveTrustedRoots(ctx, tx, managed.projectId),
+		};
 	});
 
 // A second start of a ticket whose builder is live returns that builder.
@@ -100,14 +115,19 @@ export const prepareBuilder = async (ctx: AgentsCtx, input: AgentStartBuilderInp
 			baseBranch: reserved.managed.baseBranch,
 			ticket: reserved.ticket.identifier,
 			title: reserved.ticket.title,
+			trustedRoots: reserved.trustedRoots,
 		});
-		return { id: reserved.id, place };
+		return { id: reserved.id, place, rootless: place.trust.rootless };
 	} catch (error) {
 		await ctx.newTx((tx) => tx.execute(sql`DELETE FROM agent_sessions WHERE id = ${reserved.id}`));
 		throw error;
 	}
 };
 
+// A builder of a project with no trusted folder still gets its
+// workspace, and Claude then waits at the trust dialog. The session
+// records that, so the web says what to add instead of showing a badge
+// that reads Starting forever.
 export const startBuilder = async (ctx: AgentsCtx, tx: Tx, plan: BuilderPlan): Promise<AgentSession> => {
 	if ("existing" in plan) return plan.existing;
 	await tx.execute(sql`
@@ -115,6 +135,8 @@ export const startBuilder = async (ctx: AgentsCtx, tx: Tx, plan: BuilderPlan): P
 			open_url = ${plan.place.openUrl}, updated_at = ${ctx.now}
 		WHERE id = ${plan.id}
 	`);
+	if (plan.rootless) await blockSession(ctx, tx, plan.id, { reason: "folder-trust" });
+	else await clearBlock(ctx, tx, plan.id);
 	return announce(ctx, tx, plan.id);
 };
 

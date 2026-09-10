@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { claudeStateFile } from "./agents/trust.ts";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -27,6 +28,9 @@ export type Config = {
 	clockRate: number;
 	// The superset binary the agents runner spawns.
 	supersetBin: string;
+	// The Claude state file that holds the folder trust. The agents runner
+	// writes the trust of a folder here before it starts an agent there.
+	claudeStateFile: string;
 	// The trellis URL the agents talk to. It names this machine, because
 	// the runner starts every agent on this machine.
 	agentsUrl: string;
@@ -88,6 +92,7 @@ export const loadConfig = (env: Env): Config => {
 		allowedHosts: env.TRELLIS_ALLOWED_HOSTS === undefined ? [] : hostnamesOf(env.TRELLIS_ALLOWED_HOSTS),
 		port,
 		supersetBin: env.TRELLIS_SUPERSET_BIN ?? "superset",
+		claudeStateFile: claudeStateFile(env),
 		agentsUrl: `http://${agentsHost(host)}:${port}`,
 		maxUploadMb:
 			env.TRELLIS_MAX_UPLOAD_MB === undefined ? 50 : numberOf("TRELLIS_MAX_UPLOAD_MB", env.TRELLIS_MAX_UPLOAD_MB),

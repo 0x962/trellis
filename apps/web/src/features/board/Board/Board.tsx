@@ -14,6 +14,7 @@ import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, us
 import { flushSync } from "react-dom";
 import { useApp } from "../../../lib/appContext";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { useBlockedToast } from "../../agent/hooks/useBlockedToast";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { PeekListProvider } from "../../ticket/TicketPeek/providers/PeekListProvider";
 import { categoryColumns, moveInBoard, projectColumns } from "../columns";
@@ -58,6 +59,9 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 	const projectOptions = context.orpc.projects.get.queryOptions({ input: { project: projectRef ?? "CDE" } });
 	const projectsOptions = context.orpc.projects.list.queryOptions({ input: {} });
 	const boardQuery = useQuery(boardOptions);
+	// An agent of this project that stops working reaches the person here,
+	// because the board is the screen they watch.
+	useBlockedToast(projectRef);
 	const projectQuery = useQuery({ ...projectOptions, enabled: projectRef !== undefined });
 	const projectsQuery = useQuery({ ...projectsOptions, enabled: projectRef === undefined });
 	const collapsed = useUiStore((state) => state.collapsedGroups[storageKey] ?? noCollapsedColumns);

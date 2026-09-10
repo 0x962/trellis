@@ -1,6 +1,7 @@
 import type { AgentProjectSettings, AgentRunnerProjectsOutput, ProjectSummary } from "@trellis/api";
 import { Checkbox, Input, Select, Switch } from "@trellis/ui";
 import { useState } from "react";
+import { BlockedAgents } from "../../../../agent/BlockedAgents";
 import { useAgentSettings } from "../../hooks/useAgentSettings";
 
 export type AgentProjectRowProps = {
@@ -20,7 +21,9 @@ const maxBuilders = 20;
 
 // One root project's agent settings. The switch, the picker, and the
 // checkbox save at once. The two text fields save on blur and refuse a
-// value the contract refuses.
+// value the contract refuses. Under them the block lists every agent of
+// the project that cannot work, so this page answers "why is nothing
+// happening" without a second screen.
 export function AgentProjectRow({ project, runner }: AgentProjectRowProps) {
 	const { projectOf, saveProject } = useAgentSettings();
 	const row = projectOf(project.id);
@@ -114,6 +117,7 @@ export function AgentProjectRow({ project, runner }: AgentProjectRowProps) {
 				className="cursor-pointer self-start"
 				onCheckedChange={(removeWorkspaceOnDone) => save({ removeWorkspaceOnDone })}
 			/>
+			<BlockedAgents project={project.path} />
 			{[branchMessage, limitMessage].map(
 				(message) =>
 					message !== null && (

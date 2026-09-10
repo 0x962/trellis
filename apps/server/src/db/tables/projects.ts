@@ -59,6 +59,26 @@ export const repos = pgTable(
 	],
 );
 
+// One folder trellis may mark as trusted for the agents of a project,
+// before it starts one. A folder inside a listed path inherits the trust,
+// so a worktree under a listed repo root needs no row of its own. A path
+// is absolute and carries no trailing slash.
+export const trustedFolders = pgTable(
+	"trusted_folders",
+	{
+		id: text().primaryKey(),
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "cascade" }),
+		path: text().notNull(),
+		createdAt: at("created_at").notNull(),
+	},
+	(t) => [
+		unique("trusted_folders_project_id_path_unique").on(t.projectId, t.path),
+		check("trusted_folders_path_check", sql`${t.path} ~ '^/[^/]+(/[^/]+)*$' AND length(${t.path}) <= 1000`),
+	],
+);
+
 // A review status names who reviews; every other category carries no
 // reviewer. One status per project is the default for a new ticket.
 // `description` is markdown that tells the manager agent what to do with a

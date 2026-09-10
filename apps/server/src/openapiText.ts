@@ -76,6 +76,7 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"PATCH /projects/{project}": { name: "Code, renamed", description: "The desktop app." },
 	"POST /projects/{project}/move": { parent: "CDE", after: "CDE.web" },
 	"PUT /projects/{project}/repos": { repos: [{ owner: "acme", repo: "web" }] },
+	"PUT /projects/{project}/trusted-folders": { paths: ["/Users/navid/projects/trellis"] },
 	"POST /projects/{project}/statuses": { name: "Blocked", category: "started", color: "amber" },
 	"PATCH /projects/{project}/statuses/{status}": { name: "Doing" },
 	"PUT /projects/{project}/statuses/order": {

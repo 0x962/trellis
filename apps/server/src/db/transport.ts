@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import type { DispatcherClock } from "../agents/dispatcher.ts";
 import { type AgentsHost, createAgentsHost } from "../agents/host.ts";
 import { createSupersetRunner } from "../agents/supersetRunner.ts";
+import { createFolderTrust } from "../agents/trust.ts";
 import type { Config } from "../config.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR, systemContext } from "../context.ts";
 import type { Bus } from "../events/bus.ts";
@@ -113,7 +114,11 @@ export const createInlineTransport = ({
 	// database, so a service reaches it the way it reaches the database.
 	// Before startAgents builds the agents host, a settings change has no
 	// host to tell, so `hooks.settingsChanged` does nothing.
-	const runner = createSupersetRunner({ bin: config.supersetBin, url: config.agentsUrl });
+	const runner = createSupersetRunner({
+		bin: config.supersetBin,
+		url: config.agentsUrl,
+		trust: createFolderTrust(config.claudeStateFile),
+	});
 	const hooks = { settingsChanged: (): void => undefined };
 	const agentsCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => ({
 		...coreCtx(ctx, emit, tasks),

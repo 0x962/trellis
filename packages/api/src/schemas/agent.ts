@@ -2,13 +2,24 @@ import { z } from "zod";
 import { ProjectRefStringSchema, TicketRefStringSchema } from "../refs.ts";
 import { ActivitySchema } from "./activity.ts";
 import { CommentSchema } from "./comment.ts";
-import { AgentRoleSchema, AgentRunnerSchema, AgentStateSchema } from "./enums.ts";
+import { AgentBlockedReasonSchema, AgentRoleSchema, AgentRunnerSchema, AgentStateSchema } from "./enums.ts";
 import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 import { TicketSummarySchema } from "./ticket.ts";
 
 // A runner id (a Superset project, workspace, or terminal) is opaque to
 // trellis. The server stores it and gives it back to the runner unchanged.
 const RunnerIdSchema = z.string().min(1).max(200);
+
+// Why one agent cannot do its work, and what a human does about it.
+// `path` is the folder to trust when the reason is `folder-trust`, and
+// null for every other reason. `detail` is what the runner printed.
+export const AgentBlockedSchema = z.object({
+	reason: AgentBlockedReasonSchema,
+	path: z.string().min(1).max(1000).nullable(),
+	detail: z.string().min(1).max(2000).nullable(),
+	at: IsoDateTimeSchema,
+});
+export type AgentBlocked = z.infer<typeof AgentBlockedSchema>;
 
 // One agent that the runner started or that reported itself through
 // `agents.register`. `ticketId` is null for the manager. `workspaceId`,
@@ -26,6 +37,7 @@ export const AgentSessionSchema = z.object({
 	terminalId: RunnerIdSchema.nullable(),
 	title: z.string().min(1).max(120),
 	openUrl: z.string().min(1).nullable(),
+	blocked: AgentBlockedSchema.nullable(),
 	lastWokenAt: IsoDateTimeSchema.nullable(),
 	createdAt: IsoDateTimeSchema,
 });
@@ -102,6 +114,13 @@ export type AgentStartReviewerInput = z.input<typeof AgentStartReviewerInputSche
 export const AgentStopInputSchema = z.strictObject({
 	id: UlidSchema,
 });
+
+// The one action a blocked agent offers. trellis adds the agent's recorded
+// folder to the trusted folders of its project and starts the agent again.
+export const AgentUnblockInputSchema = z.strictObject({
+	id: UlidSchema,
+});
+export type AgentUnblockInput = z.input<typeof AgentUnblockInputSchema>;
 
 // The runner types `text` into the manager's terminal and presses Enter.
 export const AgentWakeInputSchema = z.strictObject({

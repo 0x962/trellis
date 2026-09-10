@@ -37,6 +37,26 @@ export const RepoSchema = z.object({
 });
 export type Repo = z.infer<typeof RepoSchema>;
 
+// An absolute folder path with no trailing slash and no empty segment. A
+// trusted folder is a real directory on the machine that runs the agents,
+// so the grammar takes the POSIX form the runner reports.
+export const folderPathPattern = /^\/[^/\0]+(\/[^/\0]+)*$/;
+
+export const FolderPathSchema = z
+	.string()
+	.max(1000)
+	.regex(folderPathPattern, "Expected an absolute folder path without a trailing slash.");
+
+// One folder trellis may mark as trusted for the agents of a project. A
+// folder inside one of these roots inherits the trust, so a ticket's
+// worktree under a trusted repo root needs no row of its own.
+export const TrustedFolderSchema = z.object({
+	id: UlidSchema,
+	projectId: UlidSchema,
+	path: FolderPathSchema,
+});
+export type TrustedFolder = z.infer<typeof TrustedFolderSchema>;
+
 const AncestorSchema = ProjectLinkSchema.extend({
 	slug: SlugSchema,
 	name: ProjectNameSchema,
@@ -53,6 +73,7 @@ export const ProjectSchema = ProjectSummarySchema.extend({
 	ancestors: z.array(AncestorSchema),
 	children: z.array(ProjectSummarySchema),
 	repos: z.array(RepoSchema),
+	trustedFolders: z.array(TrustedFolderSchema),
 	statuses: z.array(StatusSchema),
 	statusesInheritedFrom: UlidSchema.nullable(),
 });
@@ -126,3 +147,12 @@ export const ProjectSetReposInputSchema = z.strictObject({
 	repos: z.array(RepoInputSchema),
 });
 export type ProjectSetReposInput = z.input<typeof ProjectSetReposInputSchema>;
+
+// A full replace, like `projects.setRepos`. The rows of the ancestors stay
+// as they are: the effective roots of a project are its own rows and its
+// ancestors' rows together.
+export const ProjectSetTrustedFoldersInputSchema = z.strictObject({
+	project: ProjectRefStringSchema,
+	paths: z.array(FolderPathSchema),
+});
+export type ProjectSetTrustedFoldersInput = z.input<typeof ProjectSetTrustedFoldersInputSchema>;

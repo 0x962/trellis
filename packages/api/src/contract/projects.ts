@@ -9,9 +9,11 @@ import {
 	ProjectMoveInputSchema,
 	ProjectSchema,
 	ProjectSetReposInputSchema,
+	ProjectSetTrustedFoldersInputSchema,
 	ProjectSummarySchema,
 	ProjectUpdateInputSchema,
 	RepoSchema,
+	TrustedFolderSchema,
 } from "../schemas/project.ts";
 import { base } from "./base.ts";
 
@@ -49,4 +51,13 @@ export const projects = {
 		.route({ method: "PUT", path: "/projects/{project}/repos", summary: "Replace the repos the poller scans" })
 		.input(ProjectSetReposInputSchema)
 		.output(z.array(RepoSchema)),
+	setTrustedFolders: base
+		.errors(pickErrors(["PROJECT_ARCHIVED"]))
+		.route({
+			method: "PUT",
+			path: "/projects/{project}/trusted-folders",
+			summary: "Replace the folders trellis may mark as trusted for this project",
+		})
+		.input(ProjectSetTrustedFoldersInputSchema)
+		.output(z.array(TrustedFolderSchema)),
 };

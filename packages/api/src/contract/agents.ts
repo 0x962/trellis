@@ -12,6 +12,7 @@ import {
 	AgentStartBuilderInputSchema,
 	AgentStartReviewerInputSchema,
 	AgentStopInputSchema,
+	AgentUnblockInputSchema,
 	AgentWakeInputSchema,
 } from "../schemas/agent.ts";
 import { base } from "./base.ts";
@@ -49,6 +50,17 @@ export const agents = {
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/agents/sessions/{id}/stop", summary: "Stop an agent session" })
 		.input(AgentStopInputSchema)
+		.output(AgentSessionSchema),
+	// The blocked agent's own action. It trusts the folder the session
+	// recorded and starts the agent again, so a human needs one click.
+	unblock: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE", "CONCURRENCY_LIMIT", "PROJECT_ARCHIVED"]))
+		.route({
+			method: "POST",
+			path: "/agents/sessions/{id}/unblock",
+			summary: "Trust the folder and start the agent again",
+		})
+		.input(AgentUnblockInputSchema)
 		.output(AgentSessionSchema),
 	wake: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))

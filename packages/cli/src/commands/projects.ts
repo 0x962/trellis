@@ -1,4 +1,4 @@
-import type { Project, ProjectSummary, Repo } from "@trellis/api";
+import type { Project, ProjectSummary, Repo, TrustedFolder } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, noneToNull, splitList } from "../context.ts";
@@ -26,12 +26,21 @@ const projectRecord: RecordSpec<Project> = {
 		{ name: "ancestors", value: (row) => cell(row.ancestors.map((ancestor) => ancestor.path).join(", ")) },
 		{ name: "children", value: (row) => cell(row.children.map((child) => child.path).join(", ")) },
 		{ name: "repos", value: (row) => cell(row.repos.map(repoName).join(", ")) },
+		{ name: "trustedFolders", value: (row) => cell(row.trustedFolders.map((folder) => folder.path).join(", ")) },
 		{ name: "statuses", value: (row) => cell(row.statuses.map((status) => status.slug).join(", ")) },
 		{ name: "statusesInheritedFrom", value: (row) => cell(row.statusesInheritedFrom) },
 		{ name: "open", value: (row) => String(row.openCount) },
 		{ name: "needsYou", value: (row) => String(row.needsYouCount) },
 		{ name: "ticketCounter", value: (row) => String(row.ticketCounter) },
 		{ name: "archived", value: (row) => cell(row.archivedAt) },
+	],
+	identifier: (row) => row.path,
+};
+
+const trustedFolderList: ListSpec<TrustedFolder> = {
+	columns: [
+		{ name: "path", value: (row) => row.path },
+		{ name: "id", value: (row) => row.id },
 	],
 	identifier: (row) => row.path,
 };
@@ -131,7 +140,38 @@ const repos = defineCommand({
 	},
 });
 
+// The folders trellis may mark as trusted for the agents of a project.
+// The server takes the whole list, so the verb reads it, applies the adds
+// and the removes, and writes it back. Without an add and without a
+// remove it prints the list.
+const trust = defineCommand({
+	meta: { name: "trust", description: "Add, remove, or list the trusted folders of a project" },
+	args: {
+		project: { type: "positional", required: true, description: "Project ref" },
+		add: { type: "string", description: "Absolute folder path to add, comma-separated" },
+		remove: { type: "string", description: "Absolute folder path to remove, comma-separated" },
+		list: { type: "boolean", description: "Print the list and change nothing" },
+	},
+	async run(context) {
+		const ctx = contextOf(context);
+		const { args } = context;
+		const client = clientOf(ctx);
+		const current = await client.projects.get({ project: args.project });
+		const adds = splitList(args.add) ?? [];
+		const removes = splitList(args.remove) ?? [];
+		if (args.list === true || (adds.length === 0 && removes.length === 0)) {
+			printList(ctx.out, ctx.format, current.trustedFolders, trustedFolderList);
+			return;
+		}
+		const set = new Set(current.trustedFolders.map((folder) => folder.path));
+		for (const path of removes) set.delete(path);
+		for (const path of adds) set.add(path);
+		const rows = await client.projects.setTrustedFolders({ project: args.project, paths: [...set] });
+		printList(ctx.out, ctx.format, rows, trustedFolderList);
+	},
+});
+
 export default defineCommand({
-	meta: { name: "projects", description: "List, create, show, move, or set repos on projects" },
-	subCommands: { list, create, show, move, repos },
+	meta: { name: "projects", description: "List, create, show, move, set repos, or trust folders on projects" },
+	subCommands: { list, create, show, move, repos, trust },
 });

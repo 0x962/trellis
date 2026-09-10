@@ -1,4 +1,5 @@
 import {
+	AgentBlockedReasonSchema,
 	AgentRoleSchema,
 	AgentRunnerSchema,
 	AgentStateSchema,
@@ -27,6 +28,7 @@ export const PR_LINK_SOURCES = PrLinkSourceSchema.options;
 export const AGENT_ROLES = AgentRoleSchema.options;
 export const AGENT_RUNNERS = AgentRunnerSchema.options;
 export const AGENT_STATES = AgentStateSchema.options;
+export const AGENT_BLOCKED_REASONS = AgentBlockedReasonSchema.options;
 
 // A CHECK named `<table>_<column>_check` that keeps a column inside a closed
 // set. The options are inline literals: drizzle-kit copies the rendered SQL

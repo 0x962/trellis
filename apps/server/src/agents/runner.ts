@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { errors, type RunnerProject, type RunnerReason } from "@trellis/api";
+import type { SeedReport } from "./trust.ts";
 
 // The program that starts, finds, wakes, and stops agents. Superset is the
 // only runner. Every id a runner hands back is opaque to trellis: the server
@@ -38,10 +39,15 @@ export type TerminalRef = { workspaceId: string; terminalId: string };
 
 export type TerminalState = { terminalId: string; exited: boolean; title: string };
 
+// The folders a project lets trellis mark as trusted for its agents. The
+// runner seeds the folder its agent starts in, and it refuses a folder
+// that sits outside every one of these roots.
+export type Trusted = { trustedRoots: string[] };
+
 // `project` is the trellis project path, such as "CDE". `claudeSessionId`
 // is the Claude session a manager registered; the runner resumes it when
 // the manager exited, with `text` as the next prompt.
-export type ManagerStart = {
+export type ManagerStart = Trusted & {
 	project: string;
 	runnerProjectId: string;
 	baseBranch: string;
@@ -49,7 +55,7 @@ export type ManagerStart = {
 	text?: string;
 };
 
-export type BuilderStart = {
+export type BuilderStart = Trusted & {
 	project: string;
 	runnerProjectId: string;
 	baseBranch: string;
@@ -67,8 +73,9 @@ export type Runner = {
 	projects: () => Promise<RunnerProject[]>;
 	projectFor: (repos: RunnerRepo[]) => Promise<string>;
 	// `started` is false when a live manager tab already ran in the workspace.
-	ensureManager: (input: ManagerStart) => Promise<AgentPlace & { started: boolean }>;
-	startBuilder: (input: BuilderStart) => Promise<AgentPlace>;
+	// `trust` names the folders the start seeded and the folders it refused.
+	ensureManager: (input: ManagerStart) => Promise<AgentPlace & { started: boolean; trust: SeedReport }>;
+	startBuilder: (input: BuilderStart) => Promise<AgentPlace & { trust: SeedReport }>;
 	startReviewer: (input: ReviewerStart) => Promise<{ terminalId: string }>;
 	// Types `text` into the manager's terminal. A manager whose terminal
 	// exited or closed starts again in a new terminal; `relaunched` is then

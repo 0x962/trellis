@@ -1,4 +1,4 @@
-import type { AgentRole, AgentRunner, AgentSession, AgentState } from "@trellis/api";
+import type { AgentBlockedReason, AgentRole, AgentRunner, AgentSession, AgentState } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { monotonicFactory } from "ulid";
 import type { Runner } from "../agents/runner.ts";
@@ -42,12 +42,17 @@ type RawSession = {
 	claude_session_id: string | null;
 	title: string;
 	open_url: string | null;
+	blocked_reason: AgentBlockedReason | null;
+	blocked_path: string | null;
+	blocked_detail: string | null;
+	blocked_at: string | null;
 	last_woken_at: string | null;
 	created_at: string;
 };
 
 const columns = sql`s.id, s.project_id, s.ticket_id, s.role, s.runner, s.state, s.workspace_id, s.terminal_id,
-	s.claude_session_id, s.title, s.open_url, ${iso(sql`s.last_woken_at`)} AS last_woken_at,
+	s.claude_session_id, s.title, s.open_url, s.blocked_reason, s.blocked_path, s.blocked_detail,
+	${iso(sql`s.blocked_at`)} AS blocked_at, ${iso(sql`s.last_woken_at`)} AS last_woken_at,
 	${iso(sql`s.created_at`)} AS created_at`;
 
 const toRow = (raw: RawSession): SessionRow => ({
@@ -62,6 +67,10 @@ const toRow = (raw: RawSession): SessionRow => ({
 	claudeSessionId: raw.claude_session_id,
 	title: raw.title,
 	openUrl: raw.open_url,
+	blocked:
+		raw.blocked_reason === null
+			? null
+			: { reason: raw.blocked_reason, path: raw.blocked_path, detail: raw.blocked_detail, at: raw.blocked_at! },
 	lastWokenAt: raw.last_woken_at,
 	createdAt: raw.created_at,
 });
@@ -77,6 +86,7 @@ export const toSession = (row: SessionRow): AgentSession => ({
 	terminalId: row.terminalId,
 	title: row.title,
 	openUrl: row.openUrl,
+	blocked: row.blocked,
 	lastWokenAt: row.lastWokenAt,
 	createdAt: row.createdAt,
 });
@@ -112,6 +122,28 @@ export const insertSession = (ctx: ServiceCtx, tx: Tx, row: SessionInsert) =>
 			claude_session_id, title, open_url, created_at, updated_at)
 		VALUES (${row.id}, ${row.projectId}, ${row.ticketId}, ${row.role}, 'superset', ${row.state}, ${row.workspaceId},
 			${row.terminalId}, ${row.claudeSessionId}, ${row.title}, ${row.openUrl}, ${ctx.now}, ${ctx.now})
+	`);
+
+// What stops one agent from working. `path` is the folder a human trusts
+// to clear a `folder-trust` block, and null for every other reason.
+export type Block = { reason: AgentBlockedReason; path?: string; detail?: string };
+
+// Records why one agent cannot work. The web reads it from the session and
+// offers the one action that clears it.
+export const blockSession = (ctx: ServiceCtx, tx: Tx, id: string, block: Block) =>
+	tx.execute(sql`
+		UPDATE agent_sessions SET blocked_reason = ${block.reason}, blocked_path = ${block.path ?? null},
+			blocked_detail = ${block.detail ?? null}, blocked_at = ${ctx.now}, updated_at = ${ctx.now}
+		WHERE id = ${id}
+	`);
+
+// Clears the block of one agent. Every start and every register runs it,
+// so a session that works again shows nothing.
+export const clearBlock = (ctx: ServiceCtx, tx: Tx, id: string) =>
+	tx.execute(sql`
+		UPDATE agent_sessions SET blocked_reason = NULL, blocked_path = NULL, blocked_detail = NULL, blocked_at = NULL,
+			updated_at = ${ctx.now}
+		WHERE id = ${id} AND blocked_reason IS NOT NULL
 	`);
 
 // Reads the session as the transaction holds it, queues agents.session for

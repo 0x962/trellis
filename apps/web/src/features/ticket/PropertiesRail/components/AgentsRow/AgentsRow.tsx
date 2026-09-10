@@ -5,6 +5,7 @@ import { Button, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { AgentStateBadge } from "../../../../agent/AgentStateBadge";
+import { BlockedNotice } from "../../../../agent/BlockedNotice";
 import { OpenInSuperset } from "../../../../agent/OpenInSuperset";
 import { runnerReasonLine } from "../../../../agent/utils/runnerReasonLine";
 import { Row } from "../Row";
@@ -35,6 +36,9 @@ const refusal = (error: unknown) => {
 // The builder and reviewer sessions of one ticket, oldest first, each with
 // its state and a link into its Superset workspace. An agents.session event
 // refetches agents.sessions, so the states follow the runner live.
+//
+// An agent that cannot work carries the reason and the one action that
+// clears it, so a badge never reads Starting with nothing behind it.
 export function AgentsRow({ identifier }: AgentsRowProps) {
 	const { client, orpc, queryClient } = useApp();
 	const options = orpc.agents.sessions.queryOptions({ input: { ticket: identifier } });
@@ -67,10 +71,13 @@ export function AgentsRow({ identifier }: AgentsRowProps) {
 				) : (
 					<ul aria-label="Agent sessions" className="flex flex-col gap-1">
 						{ordered.map((session) => (
-							<li key={session.id} className="flex items-center gap-2">
-								<span>{roleLabels[session.role]}</span>
-								<AgentStateBadge state={session.state} />
-								{session.openUrl !== null && <OpenInSuperset url={session.openUrl} />}
+							<li key={session.id} className="flex flex-col gap-1">
+								<div className="flex items-center gap-2">
+									<span>{roleLabels[session.role]}</span>
+									<AgentStateBadge state={session.state} />
+									{session.openUrl !== null && <OpenInSuperset url={session.openUrl} />}
+								</div>
+								{session.state !== "stopped" && session.blocked !== null && <BlockedNotice session={session} />}
 							</li>
 						))}
 					</ul>

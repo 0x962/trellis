@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { bigint, check, index, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
-import { AGENT_ROLES, AGENT_RUNNERS, AGENT_STATES, checkIn } from "../enums.ts";
+import { AGENT_BLOCKED_REASONS, AGENT_ROLES, AGENT_RUNNERS, AGENT_STATES, checkIn } from "../enums.ts";
 import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
 import { projects } from "./projects.ts";
@@ -26,6 +26,10 @@ export const agentSessions = pgTable(
 		claudeSessionId: text("claude_session_id"),
 		title: text().notNull(),
 		openUrl: text("open_url"),
+		blockedReason: text("blocked_reason"),
+		blockedPath: text("blocked_path"),
+		blockedDetail: text("blocked_detail"),
+		blockedAt: at("blocked_at"),
 		lastWokenAt: at("last_woken_at"),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
@@ -34,8 +38,14 @@ export const agentSessions = pgTable(
 		checkIn(t.role, AGENT_ROLES),
 		checkIn(t.runner, AGENT_RUNNERS),
 		checkIn(t.state, AGENT_STATES),
+		checkIn(t.blockedReason, AGENT_BLOCKED_REASONS),
 		check("agent_sessions_title_check", sql`char_length(${t.title}) BETWEEN 1 AND 120`),
 		check("agent_sessions_ticket_check", sql`(${t.role} = 'manager') = (${t.ticketId} IS NULL)`),
+		// The four blocked columns describe one block, so they arrive and go
+		// together. Only a `folder-trust` block names a folder to trust.
+		check("agent_sessions_blocked_at_check", sql`(${t.blockedReason} IS NULL) = (${t.blockedAt} IS NULL)`),
+		check("agent_sessions_blocked_path_check", sql`${t.blockedPath} IS NULL OR ${t.blockedReason} = 'folder-trust'`),
+		check("agent_sessions_blocked_detail_check", sql`${t.blockedReason} IS NOT NULL OR ${t.blockedDetail} IS NULL`),
 		index("agent_sessions_project_id_role_state_idx").on(t.projectId, t.role, t.state),
 		index("agent_sessions_ticket_id_idx").on(t.ticketId),
 		// A project has one live manager. An exited or stopped manager stays

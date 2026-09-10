@@ -17,6 +17,14 @@ import { type Batch, createDispatcher, type Dispatcher, type DispatcherClock } f
 //
 // Start and reload run one at a time, in call order. A runner that fails
 // for one project is logged and the other projects go on.
+//
+// A watchdog runs every WATCHDOG_MS. An agent that holds a terminal and
+// never called agents.register waits for an answer it will not get, such
+// as the folder trust dialog. The watchdog writes that reason onto the
+// session, so the person reads it instead of a badge that says Starting.
+
+// How often the watchdog looks for an agent that never registered.
+export const WATCHDOG_MS = 60_000;
 
 export type AgentsHostOptions = {
 	bus: Bus;
@@ -53,7 +61,21 @@ export const createAgentsHost = (options: AgentsHostOptions): AgentsHost => {
 
 	const settings = () => options.call("agents.settings", undefined) as Promise<AgentSettings>;
 
+	let watchdog: number | null = null;
+	// The returned promise lets a test with a fake clock wait for the sweep
+	// the timer started.
+	const sweep = (): Promise<unknown> =>
+		options
+			.call("agents.stalled", {})
+			.catch(failed("agents watchdog", {}))
+			.finally(() => {
+				if (watchdog !== null) watchdog = options.clock.setTimer(sweep, WATCHDOG_MS);
+			});
+
 	const sync = async (current: AgentSettings) => {
+		// A project that just gained a runner project gets that repo root as
+		// its first trusted folder, so its agents skip the trust dialog.
+		if (current.enabled) await options.call("agents.trustBackfill", {}).catch(failed("agents trusted roots", {}));
 		const wanted = current.enabled ? current.projects.filter((row) => row.enabled).map((row) => row.projectId) : [];
 		for (const projectId of dispatcher.watched()) {
 			if (!wanted.includes(projectId)) dispatcher.unwatch(projectId);
@@ -77,10 +99,15 @@ export const createAgentsHost = (options: AgentsHostOptions): AgentsHost => {
 				if (!current.enabled) return;
 				await options.call("agents.reconcile", {}).catch(failed("agents reconcile", {}));
 				await sync(current);
+				watchdog = options.clock.setTimer(sweep, WATCHDOG_MS);
 			}),
 		reload: () => serial(async () => sync(await settings())),
 		idle: () => chain,
-		stop: () => dispatcher.stop(),
+		stop: () => {
+			if (watchdog !== null) options.clock.clearTimer(watchdog);
+			watchdog = null;
+			dispatcher.stop();
+		},
 		dispatcher,
 	};
 };

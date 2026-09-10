@@ -13,6 +13,7 @@ import type { Tx } from "../db/tx.ts";
 import { fail } from "../errors.ts";
 import { type Change, record } from "./activity.ts";
 import { repoRows } from "./projectsRepos.ts";
+import { trustedFolderRows } from "./projectsTrustedFolders.ts";
 import { chainOf, pathOf, resolveProject } from "./refs.ts";
 
 // The row reads and the small writes the project services share. Every
@@ -86,6 +87,7 @@ export const projectView = async (ctx: ServiceCtx, tx: Tx, projectId: string): P
 	const row = await projectRow(tx, projectId);
 	const children = await childSummaries(tx, projectId);
 	const repos = await repoRows(tx, [projectId]);
+	const trustedFolders = await trustedFolderRows(tx, [projectId]);
 	const ancestors = chainOf(ctx.cache, projectId)
 		.slice(1)
 		.reverse()
@@ -107,6 +109,7 @@ export const projectView = async (ctx: ServiceCtx, tx: Tx, projectId: string): P
 		ancestors,
 		children,
 		repos,
+		trustedFolders,
 		statuses: effective.statuses,
 		statusesInheritedFrom: effective.ownerId === projectId ? null : effective.ownerId,
 	};

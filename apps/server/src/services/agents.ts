@@ -6,6 +6,7 @@ import type { Tx } from "../db/tx.ts";
 import {
 	type AgentsCtx,
 	announce,
+	clearBlock,
 	insertSession,
 	LIVE_STATES,
 	newSessionId,
@@ -16,11 +17,14 @@ import {
 import { readAgentSettings } from "./agentSettings.ts";
 import { pathOf, resolveProject, resolveTicket } from "./refs.ts";
 
+export { prepareUnblock, unblock } from "./agentBlocked.ts";
 export { inbox } from "./agentInbox.ts";
 export { prepareManager, prepareReconcile, reconcile, recordManager } from "./agentManager.ts";
 export { prepareRunnerProjects, runnerProjects } from "./agentRunnerProjects.ts";
 export { get as settings, set as setSettings } from "./agentSettings.ts";
+export { prepareStalled, stalled } from "./agentStalled.ts";
 export { prepareBuilder, prepareReviewer, startBuilder, startReviewer } from "./agentStart.ts";
+export { prepareTrustBackfill, trustBackfill } from "./agentTrustBackfill.ts";
 export { prepareWake, wake } from "./agentWake.ts";
 
 // The sessions of one project, or of one ticket, oldest first.
@@ -49,6 +53,9 @@ export const register = async (ctx: ServiceCtx, tx: Tx, input: AgentRegisterInpu
 			UPDATE agent_sessions SET claude_session_id = ${input.claudeSessionId}, state = 'running', updated_at = ${ctx.now}
 			WHERE id = ${held.id}
 		`);
+		// The agent runs its first turn, so whatever stopped it before is
+		// over and the web shows no reason any more.
+		await clearBlock(ctx, tx, held.id);
 		return announce(ctx, tx, held.id);
 	}
 	const replaced =

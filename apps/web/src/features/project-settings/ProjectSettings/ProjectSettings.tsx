@@ -4,6 +4,7 @@ import { ProjectLifecycle } from "../ProjectLifecycle";
 import { RepoSettings } from "../RepoSettings";
 import { StatusSettings } from "../StatusSettings";
 import { SubprojectSettings } from "../SubprojectSettings";
+import { TrustedFolderSettings } from "../TrustedFolderSettings";
 
 export type ProjectSettingsProps = {
 	project: Project;
@@ -19,6 +20,7 @@ export function ProjectSettings({ project }: ProjectSettingsProps) {
 				<fieldset disabled={project.archivedAt !== null} className="contents">
 					<ProjectDetailsForm project={project} />
 					<RepoSettings project={project} />
+					<TrustedFolderSettings project={project} />
 					<StatusSettings project={project} />
 					<SubprojectSettings project={project} />
 				</fieldset>
