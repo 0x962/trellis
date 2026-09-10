@@ -34,13 +34,32 @@ export const useCommandStore = create<CommandState>()(() => ({ ...initial }));
 
 const set = useCommandStore.setState;
 
+// The element that held the focus when the palette opened. The dialog
+// gives the focus back to it, so a table row keeps its place.
+export const paletteOpener: { current: HTMLElement | null } = { current: null };
+
+const rememberOpener = () => {
+	const active = document.activeElement;
+	paletteOpener.current = active instanceof HTMLElement && active !== document.body ? active : null;
+};
+
 export const commandActions = {
-	open: (mode: CommandMode) => set({ open: true, mode }),
-	close: () => set({ open: false }),
+	open: (mode: CommandMode) => {
+		rememberOpener();
+		set({ open: true, mode });
+	},
+	// The focus goes back at once, so the row the palette covered keeps
+	// the keyboard before the panel finishes its exit.
+	close: () => {
+		set({ open: false });
+		paletteOpener.current?.focus();
+	},
 	// One key opens and closes the palette, so a second press of it lands
 	// here while the palette is open.
-	toggle: (mode: CommandMode) =>
-		set((state) => (state.open && state.mode === mode ? { open: false } : { open: true, mode })),
+	toggle: (mode: CommandMode) => {
+		if (!useCommandStore.getState().open) rememberOpener();
+		set((state) => (state.open && state.mode === mode ? { open: false } : { open: true, mode }));
+	},
 	setFocusedTicket: (identifier: string | null) => set({ focusedTicket: identifier }),
 	setPeekTicket: (identifier: string | null) => set({ peekTicket: identifier }),
 	setSelection: (identifiers: string[]) => set({ selection: identifiers }),

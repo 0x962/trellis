@@ -1,0 +1,1 @@
+export { viewHref } from "./viewHref";

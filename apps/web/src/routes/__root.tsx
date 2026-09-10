@@ -17,12 +17,17 @@ const linkClass =
 
 // Every page but the bare two needs an identity and a project. Without an
 // identity the app opens the first run; without a project it opens the
-// project step of the same form.
+// project step of the same form. The settings come with the projects in
+// one batched request, because the palette reads the agent command
+// template on the first Cmd+K.
 export const Route = createRootRouteWithContext<RouterContext>()({
 	beforeLoad: async ({ context, location }) => {
 		if (bare(location.pathname)) return;
 		if (!hasActor()) throw redirect({ to: "/setup", replace: true });
-		const projects = await context.queryClient.fetchQuery(context.orpc.projects.list.queryOptions({ input: {} }));
+		const [projects] = await Promise.all([
+			context.queryClient.fetchQuery(context.orpc.projects.list.queryOptions({ input: {} })),
+			context.queryClient.ensureQueryData(context.orpc.settings.get.queryOptions()),
+		]);
 		if (projects.length === 0) throw redirect({ to: "/setup", search: { step: "project" }, replace: true });
 	},
 	component: RootComponent,
