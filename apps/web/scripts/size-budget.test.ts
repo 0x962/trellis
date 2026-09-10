@@ -105,9 +105,10 @@ describe("bun run build", () => {
 			(link) => link.getAttribute("href") ?? "",
 		);
 		expect(preloads).toHaveLength(3);
-		expect(preloads.some((href) => /inter-latin-wght-normal/.test(href))).toBe(true);
+		expect(preloads.some((href) => /inter/.test(href))).toBe(false);
 		expect(preloads.some((href) => /jetbrains-mono-latin-400/.test(href))).toBe(true);
 		expect(preloads.some((href) => /jetbrains-mono-latin-500/.test(href))).toBe(true);
+		expect(preloads.some((href) => /jetbrains-mono-latin-600/.test(href))).toBe(true);
 		const entry = document.querySelector('script[type="module"][src]')!.getAttribute("src")!;
 		const entryName = entry.split("/").pop()!;
 		const chunks = assetFiles().filter((name) => name.endsWith(".js"));
