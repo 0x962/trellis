@@ -5,8 +5,11 @@ import { type FormEvent, useState } from "react";
 import { parseSearch, stripDefaults, type View } from "../features/filters/grammar";
 import { SearchResults } from "../features/search/SearchResults";
 import { Topbar } from "../features/shell/Topbar";
+import { TicketPeek } from "../features/ticket/TicketPeek";
 
-// Full search results. `q` lives in the URL, so a search is a link.
+// Full search results. `q` lives in the URL, so a search is a link. The
+// command palette opens a ticket in a peek over the page it is on, so the
+// page mounts the peek with and without a query.
 export const Route = createFileRoute("/search")({
 	validateSearch: (search: Record<string, unknown>) => stripDefaults(parseSearch(search)),
 	loaderDeps: ({ search }) => ({ q: search.q }),
@@ -63,13 +66,18 @@ function SearchPage() {
 			)}
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				{q === undefined ? (
-					<EmptyState
-						icon={<Search />}
-						title="Search tickets and projects"
-						description="A ticket identifier such as CDE-42 opens the ticket. A word matches titles, descriptions, and project names."
-					/>
+					<>
+						<EmptyState
+							icon={<Search />}
+							title="Search tickets and projects"
+							description="A ticket identifier such as CDE-42 opens the ticket. A word matches titles, descriptions, and project names."
+						/>
+						<TicketPeek />
+					</>
 				) : (
-					<SearchResults q={q} filters={search} />
+					<SearchResults q={q} filters={search}>
+						<TicketPeek />
+					</SearchResults>
 				)}
 			</div>
 		</>
