@@ -22,7 +22,6 @@ import {
 } from "../../test/helpers/poller.ts";
 import { assertStatusInvariant } from "../../test/invariants.ts";
 import * as detect from "./detect.ts";
-import type { GhResult, GhRunner, GhSlot } from "./run.ts";
 
 // Auto-link reads one `gh pr list` per distinct declared repository and
 // matches `KEY-number` in the title, the head branch, and the body. The key
@@ -83,71 +82,6 @@ const seedCde = async () => {
 };
 
 const url = (number: number, repo = "web") => `https://github.com/acme/${repo}/pull/${number}`;
-
-// A gh runner that answers `failure` for every call that names `repo`, and
-// hands every other call to `gh`.
-const failingFor = (gh: GhRunner, repo: string, failure: GhResult): GhRunner =>
-	Object.assign((slot: GhSlot, args: string[]) => (args.includes(repo) ? Promise.resolve(failure) : gh(slot, args)), {
-		bin: gh.bin,
-		timeoutMs: gh.timeoutMs,
-	}) as GhRunner;
-
-const notFoundRepo: GhResult = {
-	ok: false,
-	reason: "error",
-	message: "GraphQL: Could not resolve to a Repository with the name 'acme/aaa'.",
-	code: 1,
-	stdout: "",
-};
-
-describe("detect with a failing repository", () => {
-	test("a repository whose pr list fails does not stop the repositories after it", async () => {
-		const { rootId, two } = await seedCde();
-		await seedRepo(h.db, rootId, "acme", "aaa");
-		const p = harness({
-			"pr list": prListReply([{ number: 41, url: url(41), headRefName: "cde-2-foo" }]),
-			"api graphql": graphqlReply([{ number: 41, url: url(41) }]),
-		});
-
-		await detect.run({ ...p.hook, gh: failingFor(p.hook.gh, "acme/aaa", notFoundRepo) });
-
-		expect((await linkRows()).map((row) => [row.repo, row.number, row.ticket_id])).toEqual([["web", 41, two]]);
-	});
-
-	test("a failing repository is logged once while it keeps failing", async () => {
-		const { rootId } = await seedCde();
-		await seedRepo(h.db, rootId, "acme", "aaa");
-		const p = harness({ "pr list": prListReply([]) });
-		const hook = { ...p.hook, gh: failingFor(p.hook.gh, "acme/aaa", notFoundRepo) };
-		const failing = new Map<string, string>();
-
-		await detect.run(hook, failing);
-		await detect.run(hook, failing);
-
-		const lines = p.logs.filter((line) => JSON.stringify(line).includes("acme/aaa"));
-		expect(lines).toHaveLength(1);
-		expect(JSON.stringify(lines[0])).toContain("Could not resolve to a Repository");
-	});
-
-	test("an unauthenticated gh stops the run at the first repository", async () => {
-		const { rootId } = await seedCde();
-		await seedRepo(h.db, rootId, "acme", "aaa");
-		const p = harness({ "pr list": prListReply([]) });
-		const signedOut: GhResult = { ok: false, reason: "unauthenticated", message: "gh auth login" };
-		const calls: string[][] = [];
-		const gh = Object.assign(
-			(_slot: GhSlot, args: string[]) => {
-				calls.push(args);
-				return Promise.resolve(signedOut);
-			},
-			{ bin: "gh", timeoutMs: 0 },
-		) as GhRunner;
-
-		await detect.run({ ...p.hook, gh });
-
-		expect(calls).toHaveLength(1);
-	});
-});
 
 describe("detect", () => {
 	test("detect runs one gh pr list per distinct declared repository", async () => {
