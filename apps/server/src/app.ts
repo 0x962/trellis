@@ -38,7 +38,7 @@ const DEV_ORIGINS = ["http://localhost:5173", "http://trellis.localhost"];
 const MB = 1024 * 1024;
 
 const HOST_REFUSED =
-	"The Host header names a hostname this server does not serve. Use 127.0.0.1, localhost, or the TRELLIS_HOST name.";
+	"The Host header names a hostname this server does not serve. Use 127.0.0.1, localhost, or the TRELLIS_HOST name. To allow a proxy hostname, add it to TRELLIS_ALLOWED_HOSTS.";
 
 // The wire shape of every error, the same one the oRPC handlers write.
 const errorBody = (code: keyof typeof errors, data?: unknown) => ({
@@ -101,7 +101,7 @@ export const createApp = ({ config, log, transport, bus, runtime, clock = realCl
 	// the process with `app.request` may carry none, and it is served.
 	app.use(async (c, next) => {
 		const host = c.req.header("host");
-		if (host !== undefined && !isAllowedHost(host, config.host)) {
+		if (host !== undefined && !isAllowedHost(host, config)) {
 			return c.json({ defined: false, code: "FORBIDDEN", status: 403, message: HOST_REFUSED }, 403);
 		}
 		await next();

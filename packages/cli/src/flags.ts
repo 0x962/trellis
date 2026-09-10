@@ -10,6 +10,23 @@ const spellingsOf = (name: string, alias: string | string[] | undefined): string
 	return [name, camel(name), ...aliases];
 };
 
+// Every value of a flag that the caller may repeat, in order. citty keeps
+// only the last value of a repeated flag, so this reads the raw arguments.
+// `--name value` and `--name=value` both count. Everything after `--` is
+// positional.
+export const repeatedFlag = (rawArgs: string[], name: string): string[] => {
+	const spellings = new Set(spellingsOf(name, undefined).map((spelling) => `--${spelling}`));
+	const values: string[] = [];
+	for (let index = 0; index < rawArgs.length; index++) {
+		const arg = rawArgs[index]!;
+		if (arg === "--") break;
+		const equals = arg.indexOf("=");
+		if (equals !== -1 && spellings.has(arg.slice(0, equals))) values.push(arg.slice(equals + 1));
+		else if (spellings.has(arg)) values.push(rawArgs[++index]!);
+	}
+	return values;
+};
+
 // Every spelling of every flag of the command that takes a value. citty
 // reads the token after such a flag as its value, so the caller that splits
 // the global flags skips that token: `comment --body --help` sends the text

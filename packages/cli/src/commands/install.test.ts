@@ -59,6 +59,23 @@ describe("install", () => {
 		expect(readFileSync(plist, "utf8")).not.toContain("TRELLIS_HOST");
 	});
 
+	test("each --allow-host joins TRELLIS_ALLOWED_HOSTS in the plist", async () => {
+		const { prefix, env, plist } = setup();
+		const args = ["--allow-host", "canary-jqv57w1hpl.tail4a5b4c.ts.net", "--allow-host", "mac.example"];
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd", ...args], {}, { env });
+		expect(result.code, result.stderr).toBe(0);
+		expect(readFileSync(plist, "utf8")).toContain(
+			"<key>TRELLIS_ALLOWED_HOSTS</key>\n\t\t<string>canary-jqv57w1hpl.tail4a5b4c.ts.net,mac.example</string>",
+		);
+	});
+
+	test("without --allow-host the plist sets no TRELLIS_ALLOWED_HOSTS", async () => {
+		const { prefix, env, plist } = setup();
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
+		expect(result.code, result.stderr).toBe(0);
+		expect(readFileSync(plist, "utf8")).not.toContain("TRELLIS_ALLOWED_HOSTS");
+	});
+
 	test("the web build runs through the injected runner in apps/web", async () => {
 		const { prefix, env } = setup();
 		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });

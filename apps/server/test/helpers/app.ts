@@ -55,6 +55,8 @@ export type TestAppOptions = {
 	gh?: GhRunner;
 	ghStatus?: () => GhStatus;
 	version?: string;
+	// The TRELLIS_ALLOWED_HOSTS value, a comma-separated hostname list.
+	allowedHosts?: string;
 };
 
 export const createTestApp = async (options: TestAppOptions = {}) => {
@@ -68,6 +70,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		TRELLIS_LOG_LEVEL: options.logLevel ?? "debug",
 		TRELLIS_WEB_DIST: options.webDist ?? `${home}/no-web-dist`,
 		TRELLIS_DB_INLINE: process.env.TRELLIS_TEST_TRANSPORT === "worker" ? "false" : "true",
+		TRELLIS_ALLOWED_HOSTS: options.allowedHosts,
 	});
 	// The directories boot creates, so a backup of this home finds db/.
 	for (const dir of [config.dbDir, config.tmpDir, config.backupsDir]) mkdirSync(dir, { recursive: true });
