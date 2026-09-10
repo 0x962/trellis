@@ -1,5 +1,6 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createMMKV } from "react-native-mmkv";
-import { createFakeServer, type FakeServer } from "../../web/test/fake-server";
+import { type Call, createFakeServer, type FakeServer } from "../../web/test/fake-server";
 
 export const serverUrl = "http://h:4521";
 
@@ -17,6 +18,15 @@ export type FakeApp = {
 
 export const installFakeApp = (): FakeApp => {
 	const server = createFakeServer();
+	const requestScope = new AsyncLocalStorage<boolean>();
+	const appCalls = new Set<Call>();
+	const recordCall = server.calls.push.bind(server.calls);
+	server.calls.push = (...calls) => {
+		if (requestScope.getStore() === true) {
+			for (const call of calls) appCalls.add(call);
+		}
+		return recordCall(...calls);
+	};
 	const store = createMMKV();
 	store.set("trellis-server-url", serverUrl);
 	store.set("trellis-actor-name", "navid");
@@ -25,7 +35,7 @@ export const installFakeApp = (): FakeApp => {
 		const request = input instanceof Request ? input : new Request(input, init);
 		const held = holds.get(new URL(request.url).pathname);
 		if (held !== undefined) await held;
-		return server.app.request(request);
+		return requestScope.run(true, () => server.app.request(request));
 	}) as typeof fetch;
 	const hold = (procedure: string) => {
 		const path = `/rpc/${procedure.replaceAll(".", "/")}`;
@@ -41,6 +51,6 @@ export const installFakeApp = (): FakeApp => {
 			release();
 		};
 	};
-	const callsTo = (procedure: string) => server.calls.filter((call) => call.path.join(".") === procedure);
+	const callsTo = (procedure: string) => [...appCalls].filter((call) => call.path.join(".") === procedure);
 	return { server, hold, callsTo };
 };

@@ -1,4 +1,5 @@
 import { beforeEach, jest } from "@jest/globals";
+import { queryClient } from "../src/lib/queryClient";
 import { createMMKV } from "./mocks/react-native-mmkv";
 import { resetEventSources } from "./mocks/react-native-sse";
 
@@ -17,8 +18,10 @@ jest.mock("expo-constants", () => {
 
 // jest.config.js maps react-native-mmkv and react-native-sse to the two
 // mocks, so this file and the module under test share one instance of each.
-// Every test starts from a fresh install: an empty store and no open stream.
+// Every test starts from a fresh install: an empty store, an empty query
+// cache, and no open stream.
 beforeEach(() => {
 	createMMKV().clearAll();
+	queryClient.clear();
 	resetEventSources();
 });
