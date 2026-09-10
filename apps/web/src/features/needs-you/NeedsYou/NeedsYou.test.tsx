@@ -142,8 +142,11 @@ describe("NeedsYou", () => {
 		const server = createFakeServer();
 		const { queryClient } = render(server);
 		await rowOf("CDE-42");
-		const before = callsTo(server, "inbox.get").length;
 		const summary = (await server.client.inbox.get({})).review.items.find((item) => item.identifier === "CDE-42")!;
+		// The test reads the seed through the same server as the page, and
+		// the server counts that read too. The count starts after every
+		// setup read, so only the calls after the event decide the result.
+		const before = callsTo(server, "inbox.get").length;
 		const applier = createEventApplier(queryClient);
 		applier.applyEvent({
 			type: "ticket.updated",
@@ -152,6 +155,7 @@ describe("NeedsYou", () => {
 			batchId: "01J8Z6X4Q3M2K1H0G9F8E7D6C5",
 		});
 		await screen.findByText("Restore the fork pages, again");
+		// The event carries the new title, so the page reads no new inbox.
 		expect(callsTo(server, "inbox.get")).toHaveLength(before);
 	});
 

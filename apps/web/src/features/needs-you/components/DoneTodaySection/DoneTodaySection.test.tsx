@@ -52,9 +52,12 @@ describe("DoneTodaySection", () => {
 	test("reopens a row into the lowest-position todo status", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
-		const todo = await statusOf(server, "CDE", "todo");
 		const inbox = await server.client.inbox.get({});
-		const identifier = inbox.doneByAgentsToday.items[0]!.identifier;
+		const item = inbox.doneByAgentsToday.items[0]!;
+		const identifier = item.identifier;
+		// A reopen keeps the ticket in its own project. Todo is the
+		// lowest-position status of the todo category in every seeded project.
+		const todo = await statusOf(server, item.project.id, "todo");
 		render(server);
 		await user.click(await header());
 		const row = await rowOf(identifier);
