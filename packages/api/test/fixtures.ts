@@ -54,6 +54,7 @@ export const agentSession = (overrides: Record<string, unknown> = {}) => ({
 	state: "running",
 	workspaceId: "ws-7f3a",
 	terminalId: "term-1",
+	name: "Kenji",
 	title: "CDE-42",
 	openUrl: "superset://workspace/ws-7f3a",
 	lastWokenAt: null,

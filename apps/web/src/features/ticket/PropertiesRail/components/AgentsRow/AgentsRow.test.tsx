@@ -40,7 +40,7 @@ describe("AgentsRow", () => {
 		expect(order.indexOf("Agents")).toBe(order.indexOf("Updated") + 1);
 	});
 
-	test("lists the builder and the reviewer with their states and Open in Superset", async () => {
+	test("lists the builder and the reviewer with their names, their states, and Open in Superset", async () => {
 		const server = createFakeServer();
 		addSession(server, { role: "builder", createdAt: new Date(Date.now() - 10 * minute).toISOString() });
 		addSession(server, {
@@ -52,8 +52,8 @@ describe("AgentsRow", () => {
 		mount(server);
 		const rows = await items();
 		expect(rows.map((row) => row.textContent)).toEqual([
-			"BuilderRunningOpen in Superset",
-			"ReviewerWaitingOpen in Superset",
+			"KenjiBuilderRunningOpen in Superset",
+			"NadiaReviewerWaitingOpen in Superset",
 		]);
 		expect(within(rows[1]!).getByRole("link", { name: "Open in Superset" }).getAttribute("href")).toBe(
 			"superset://workspace/ws-1?terminal=term-2",
@@ -75,7 +75,8 @@ describe("AgentsRow", () => {
 		await waitFor(() => expect(server.callsTo("agents.startBuilder")).toHaveLength(1));
 		expect(server.callsTo("agents.startBuilder")[0]!.input).toEqual({ ticket: "CDE-42" });
 		await waitFor(async () =>
-			expect((await items()).map((row) => row.textContent)).toEqual(["BuilderStartingOpen in Superset"]),
+			// The fake server hands a new agent the first free name of the pool.
+			expect((await items()).map((row) => row.textContent)).toEqual(["AaravBuilderStartingOpen in Superset"]),
 		);
 		expect(await startButton()).toBeNull();
 	});
@@ -125,7 +126,7 @@ describe("AgentsRow", () => {
 		expect(await startButton()).toBeNull();
 		createEventApplier(queryClient).applyEvent(updateSession(server, builder.id, { state: "exited" }));
 		await waitFor(async () =>
-			expect((await items()).map((row) => row.textContent)).toEqual(["BuilderExitedOpen in Superset"]),
+			expect((await items()).map((row) => row.textContent)).toEqual(["KenjiBuilderExitedOpen in Superset"]),
 		);
 		expect(await startButton()).not.toBeNull();
 	});
