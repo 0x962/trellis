@@ -1,7 +1,10 @@
 import { expect, test } from "bun:test";
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import pkg from "./package.json";
+
+const require = createRequire(import.meta.url);
 
 // The contract package is imported by every other workspace, so it carries
 // only the schema, client, and query cache libraries. An exact version
@@ -31,7 +34,7 @@ test("the package declares only the allowed dependencies and exports TypeScript 
 // dependency requires, so each one is declared here too.
 test("every peer dependency a declared dependency requires is a declared dependency", async () => {
 	for (const name of Object.keys(pkg.dependencies)) {
-		const manifest = (await Bun.file(join(import.meta.dir, "node_modules", name, "package.json")).json()) as {
+		const manifest = (await Bun.file(require.resolve(`${name}/package.json`)).json()) as {
 			peerDependencies?: Record<string, string>;
 			peerDependenciesMeta?: Record<string, { optional?: boolean }>;
 		};

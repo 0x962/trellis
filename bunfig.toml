@@ -1,2 +1,8 @@
 [test]
 preload = ["./test/preload.ts"]
+
+# Every Expo tool (metro, jest-expo, the autolinker) resolves one copy of each
+# package from node_modules. The isolated linker makes one copy of expo per
+# peer set, and jest-expo's mocks then miss the copy expo-router loads.
+[install]
+linker = "hoisted"
