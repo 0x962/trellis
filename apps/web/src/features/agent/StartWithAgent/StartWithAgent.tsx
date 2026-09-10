@@ -23,7 +23,8 @@ const optionClass = "w-full justify-start";
 // The primary action of a ticket: it copies the shell command that starts
 // an agent on it and shows the command in the toast. With the box checked
 // the ticket moves to the lowest started status at the same time. The
-// dropdown holds the other copies.
+// dropdown holds the other copies: the prompt alone, the brief markdown,
+// and the CLI cheat-sheet.
 export function StartWithAgent({ ticket }: StartWithAgentProps) {
 	const { orpc, queryClient } = useApp();
 	const { write } = useTicketWrite(ticket.identifier);
@@ -45,13 +46,21 @@ export function StartWithAgent({ ticket }: StartWithAgentProps) {
 	};
 
 	// The template may not be here yet when the chord fires on a fresh page.
-	const start = async () => {
+	const agentCommand = async () => {
 		const { startWithAgentTemplate } = await queryClient.ensureQueryData(orpc.settings.get.queryOptions({}));
-		const command = buildAgentCommand(startWithAgentTemplate, ticket.identifier);
+		return buildAgentCommand(startWithAgentTemplate, ticket.identifier);
+	};
+
+	const start = async () => {
+		const command = await agentCommand();
 		await navigator.clipboard.writeText(command);
 		toast.command({ title: "Copied. Paste in your terminal.", command }, { id: "start-with-agent" });
 		if (markStarted) await moveToStarted();
 	};
+
+	// The prompt is the claude command alone. It never moves the ticket, even
+	// when the box is checked.
+	const copyPrompt = async () => copyText(await agentCommand(), `Copied the prompt for ${ticket.identifier}`);
 
 	useHotkey("mod+shift+a", (event) => {
 		event.preventDefault();
@@ -93,7 +102,7 @@ export function StartWithAgent({ ticket }: StartWithAgentProps) {
 					<Button variant="quiet" className={optionClass} onClick={() => void start()}>
 						Copy command
 					</Button>
-					<Button variant="quiet" className={optionClass} onClick={() => void copyBrief()}>
+					<Button variant="quiet" className={optionClass} onClick={() => void copyPrompt()}>
 						Copy prompt only
 					</Button>
 					<Button variant="quiet" className={optionClass} onClick={() => void copyBrief()}>
