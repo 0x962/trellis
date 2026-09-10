@@ -1,0 +1,1 @@
+export { useContextTicket } from "./useContextTicket";

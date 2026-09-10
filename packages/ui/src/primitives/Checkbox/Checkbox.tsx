@@ -6,12 +6,16 @@ import { hitArea } from "../../utils/hitArea";
 
 export type CheckboxProps = {
 	label: string;
+	// The label is read to assistive tech only.
+	hideLabel?: boolean;
 	checked: boolean;
 	onCheckedChange: (checked: boolean) => void;
 	// A parent whose children are partly checked. It reads as "mixed".
 	indeterminate?: boolean;
 	disabled?: boolean;
 	className?: string;
+	// Classes on the box itself, such as a hover-revealed opacity.
+	boxClassName?: string;
 };
 
 // A 16 px box with a 1 px border and its label. Space toggles it; so does a
@@ -19,11 +23,13 @@ export type CheckboxProps = {
 // and 44 px minimums.
 export function Checkbox({
 	label,
+	hideLabel = false,
 	checked,
 	onCheckedChange,
 	indeterminate = false,
 	disabled = false,
 	className,
+	boxClassName,
 }: CheckboxProps) {
 	return (
 		<Field.Root
@@ -43,13 +49,14 @@ export function Checkbox({
 					hitArea.box16Bordered,
 					"data-checked:border-accent data-checked:bg-accent data-indeterminate:border-accent data-indeterminate:bg-accent",
 					"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+					boxClassName,
 				)}
 			>
 				<BaseCheckbox.Indicator className="inline-flex size-3 data-unchecked:hidden *:size-full">
 					{indeterminate ? <Minus strokeWidth={3} /> : <Check strokeWidth={3} />}
 				</BaseCheckbox.Indicator>
 			</BaseCheckbox.Root>
-			<Field.Label>{label}</Field.Label>
+			<Field.Label className={cx(hideLabel && "sr-only")}>{label}</Field.Label>
 		</Field.Root>
 	);
 }

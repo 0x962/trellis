@@ -1,0 +1,115 @@
+@import "tailwindcss";
+@import "@trellis/ui/tokens.css";
+@import "@trellis/ui/fonts.css";
+
+/* Tailwind emits only the classes it finds in scanned files. The primitives live in packages/ui, outside this root. */
+@source "../../../packages/ui/src";
+
+html,
+body,
+#root {
+	height: 100%;
+}
+
+body {
+	background: var(--bg);
+	color: var(--fg);
+	font-size: 13px;
+	line-height: 20px;
+}
+
+svg {
+	display: block;
+}
+
+/*
+ * Read-only markdown: a description or a comment rendered by renderMarkdown.
+ * The scale is the token scale; the colors are the tokens.
+ */
+:is(.markdown, .comment-markdown) {
+	color: var(--fg);
+	overflow-wrap: anywhere;
+}
+:is(.markdown, .comment-markdown) > * + * {
+	margin-top: 12px;
+}
+:is(.markdown, .comment-markdown) h1,
+:is(.markdown, .comment-markdown) h2,
+:is(.markdown, .comment-markdown) h3,
+:is(.markdown, .comment-markdown) h4 {
+	font-weight: 600;
+	line-height: 1.3;
+}
+:is(.markdown, .comment-markdown) h1 {
+	font-size: 20px;
+}
+:is(.markdown, .comment-markdown) h2 {
+	font-size: 16px;
+}
+:is(.markdown, .comment-markdown) h3,
+:is(.markdown, .comment-markdown) h4 {
+	font-size: 14px;
+}
+:is(.markdown, .comment-markdown) ul,
+:is(.markdown, .comment-markdown) ol {
+	padding-left: 24px;
+}
+:is(.markdown, .comment-markdown) ul {
+	list-style: disc;
+}
+:is(.markdown, .comment-markdown) ol {
+	list-style: decimal;
+}
+:is(.markdown, .comment-markdown) li + li {
+	margin-top: 4px;
+}
+:is(.markdown, .comment-markdown) a {
+	color: var(--accent);
+	text-underline-offset: 2px;
+}
+:is(.markdown, .comment-markdown) a:hover {
+	text-decoration: underline;
+}
+:is(.markdown, .comment-markdown) code {
+	font-family: var(--mono);
+	font-size: 12px;
+	background: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 1px 4px;
+}
+:is(.markdown, .comment-markdown) pre {
+	background: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 12px;
+	overflow-x: auto;
+}
+:is(.markdown, .comment-markdown) pre code {
+	border: 0;
+	padding: 0;
+	background: transparent;
+}
+:is(.markdown, .comment-markdown) blockquote {
+	border-left: 2px solid var(--border-strong);
+	padding-left: 12px;
+	color: var(--fg-muted);
+}
+:is(.markdown, .comment-markdown) hr {
+	border: 0;
+	border-top: 1px solid var(--border);
+}
+:is(.markdown, .comment-markdown) table {
+	border-collapse: collapse;
+	font-size: 12px;
+}
+:is(.markdown, .comment-markdown) th,
+:is(.markdown, .comment-markdown) td {
+	border: 1px solid var(--border);
+	padding: 4px 8px;
+	text-align: left;
+}
+:is(.markdown, .comment-markdown) img {
+	max-width: 100%;
+	border-radius: 6px;
+}

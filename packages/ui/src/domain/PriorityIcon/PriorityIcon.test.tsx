@@ -29,8 +29,10 @@ describe("PriorityIcon", () => {
 	test("urgent renders the filled danger square", () => {
 		render(<PriorityIcon priority="urgent" />);
 		const icon = screen.getByLabelText("Priority: urgent");
-		expect(icon.children).toHaveLength(0);
-		expect(icon.textContent).toBe("!");
-		expectClasses(icon, "size-3.5 rounded-sm bg-danger font-bold");
+		// The mark is a drawn path, so an option that holds the icon keeps its
+		// label as its whole text.
+		expect(icon.querySelector("svg path")).not.toBeNull();
+		expect(icon.textContent).toBe("");
+		expectClasses(icon, "size-3.5 rounded-sm bg-danger");
 	});
 });
