@@ -1,13 +1,14 @@
-import { createFakeServer, type FakeServer, type FakeServerOptions } from "../../web/test/fake-server";
+import { type Call, createFakeServer, type FakeServer, type FakeServerOptions } from "../../web/test/fake-server";
 import { queryClient } from "../src/lib/queryClient";
 import { keys, store } from "../src/lib/store";
 
-export type { FakeServer } from "../../web/test/fake-server";
+export { createFakeServer, type FakeServer } from "../../web/test/fake-server";
 
-// The URL the app stores for the fake server. The Hono app reads the path
-// only, so no socket opens.
-export const serverUrl = "http://trellis.local";
-
+// The stored server. The URL never reaches a socket: `startFakeServer` and
+// `connect` in ./connect.ts route the global fetch into the fake server's
+// Hono app, which reads the path only.
+export const serverUrl = "http://192.168.1.20:4521";
+export const serverHost = "192.168.1.20:4521";
 export const actorName = "navid";
 
 const realFetch = globalThis.fetch;
@@ -31,9 +32,22 @@ export const stopFakeServer = (server: FakeServer) => {
 	queryClient.clear();
 };
 
-// The recorded calls to one procedure, such as "tickets.list".
-export const callsTo = (server: FakeServer, path: string) =>
-	server.calls.filter((call) => call.path.join(".") === path);
+// The recorded calls to one procedure, such as "tickets.move".
+export const callsTo = (server: FakeServer, procedure: string): Call[] =>
+	server.calls.filter((call) => call.path.join(".") === procedure);
 
 // The inputs of those calls, as the client sent them.
-export const inputsTo = (server: FakeServer, path: string) => callsTo(server, path).map((call) => call.input);
+export const inputsTo = (server: FakeServer, procedure: string) => callsTo(server, procedure).map((call) => call.input);
+
+// The procedures a read of the Needs you screen may call. Every other call
+// is a write.
+const reads = new Set([
+	"inbox.get",
+	"settings.get",
+	"pullRequests.list",
+	"tickets.counts",
+	"tickets.get",
+	"system.health",
+]);
+
+export const writes = (server: FakeServer): Call[] => server.calls.filter((call) => !reads.has(call.path.join(".")));

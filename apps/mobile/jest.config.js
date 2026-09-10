@@ -22,6 +22,7 @@ const transformed = [
 	"@shopify/flash-list",
 	"rou3",
 	"hono",
+	"ulid",
 ];
 
 // oRPC ships ESM in `.mjs` files only. Jest without `--experimental-vm-modules`
@@ -40,6 +41,7 @@ module.exports = {
 	moduleNameMapper: {
 		"^react-native-mmkv$": "<rootDir>/test/mocks/react-native-mmkv.ts",
 		"^react-native-sse$": "<rootDir>/test/mocks/react-native-sse.ts",
+		"^expo-haptics$": "<rootDir>/test/mocks/expo-haptics.ts",
 	},
 	setupFilesAfterEnv: ["<rootDir>/test/jest.setup.ts"],
 };

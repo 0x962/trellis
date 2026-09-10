@@ -14,11 +14,12 @@ export type RowProps = {
 	meta?: ReactNode;
 	// The right edge, such as the time waiting.
 	trailing?: string;
+	// A row without onPress is not a button, so a screen reader skips it.
+	onPress?: () => void;
 	// The height every row of one list paints, in px. FlashList recycles a
 	// row of a fixed height without a measure pass.
 	height?: number;
 	testID?: string;
-	onPress?: () => void;
 };
 
 const styles = StyleSheet.create({
@@ -37,24 +38,26 @@ const styles = StyleSheet.create({
 		lineHeight: tokens.leading.sm,
 		fontVariant: ["tabular-nums"],
 	},
-	body: { flex: 1, gap: tokens.space.half },
+	body: { flex: 1, gap: tokens.space.half, justifyContent: "center" },
 	title: { fontSize: tokens.text.md, lineHeight: tokens.leading.md },
-	meta: { flexDirection: "row", alignItems: "center", gap: tokens.space[2] },
+	meta: { flexDirection: "row", alignItems: "center", gap: tokens.space[2], overflow: "hidden" },
 	trailing: { fontSize: tokens.text.sm, lineHeight: tokens.leading.sm, fontVariant: ["tabular-nums"] },
 });
 
 // One list row: a fixed hit area of 44 px, the title on one line, the id in
 // mono. A fixed height keeps FlashList rows the same size.
-export function Row({ id, title, leading, meta, trailing, height, testID, onPress }: RowProps) {
+export function Row({ id, title, leading, meta, trailing, onPress, height, testID }: RowProps) {
 	const palette = usePalette();
 	return (
 		<Pressable
-			accessibilityRole="button"
+			accessible={onPress !== undefined}
+			accessibilityRole={onPress === undefined ? undefined : "button"}
 			testID={testID}
 			onPress={onPress}
 			style={({ pressed }) => [
 				styles.row,
-				{ height, borderBottomColor: palette.border, backgroundColor: pressed ? palette.surface : palette.bg },
+				height !== undefined && { height },
+				{ borderBottomColor: palette.border, backgroundColor: pressed ? palette.surface : palette.bg },
 			]}
 		>
 			{leading}

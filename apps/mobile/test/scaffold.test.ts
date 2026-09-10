@@ -15,6 +15,16 @@ const moduleDirs = (dir: string) =>
 		.filter((entry) => statSync(join(root, dir, entry)).isDirectory())
 		.map((entry) => join(dir, entry));
 
+// Every component folder under a `components/` directory, or a feature
+// folder such as src/needs-you/NeedsYou, holds `Name.tsx` and `index.ts`.
+const componentDirs = (dir: string): string[] =>
+	readdirSync(join(root, dir), { withFileTypes: true }).flatMap((entry) => {
+		if (!entry.isDirectory()) return [];
+		const path = join(dir, entry.name);
+		const own = /^[A-Z]/.test(entry.name) ? [path] : [];
+		return [...own, ...componentDirs(path)];
+	});
+
 // Every .ts and .tsx file under the four source directories.
 const sourceFiles = () =>
 	["app", "src", "scripts", "test"].flatMap((dir) =>
@@ -41,7 +51,7 @@ describe("scaffold", () => {
 		expect(versions["react-native"]).toStartWith("0.87.");
 		expect(versions.nativewind).toStartWith("4.");
 		expect(versions["@shopify/flash-list"]).toStartWith("2.");
-		for (const name of ["react-native-mmkv", "react-native-sse", "expo-image"]) {
+		for (const name of ["react-native-mmkv", "react-native-sse", "expo-image", "expo-haptics"]) {
 			expect(versions).toHaveProperty(name);
 		}
 	});
@@ -83,11 +93,21 @@ describe("scaffold", () => {
 		// A PascalCase folder holds a component; a camelCase folder holds a
 		// module. Either way the folder is named after its one file, and
 		// index.ts is what the rest of the app imports.
-		const incomplete = modules.filter((dir) => {
+		const incompleteModules = modules.filter((dir) => {
 			const name = dir.split("/").pop()!;
 			const entry = existsSync(join(root, dir, `${name}.tsx`)) || existsSync(join(root, dir, `${name}.ts`));
 			return !entry || !existsSync(join(root, dir, "index.ts"));
 		});
-		expect(incomplete).toEqual([]);
+		expect(incompleteModules).toEqual([]);
+
+		const components = componentDirs("src");
+		expect(components.length).toBeGreaterThan(0);
+		expect(components).toContain("src/needs-you/NeedsYou");
+		expect(components).toContain("src/needs-you/NeedsYou/components/InboxRow");
+		const incompleteComponents = components.filter(
+			(path) =>
+				!existsSync(join(root, path, `${path.split("/").pop()}.tsx`)) || !existsSync(join(root, path, "index.ts")),
+		);
+		expect(incompleteComponents).toEqual([]);
 	});
 });

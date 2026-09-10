@@ -36,7 +36,7 @@ export const startLive = (queryClient: QueryClient) => {
 		stream = undefined;
 	};
 
-	if (AppState.currentState === "active") open();
+	if (AppState.currentState !== "background" && AppState.currentState !== "inactive") open();
 
 	const subscription = AppState.addEventListener("change", (state) => {
 		if (state === "active") {

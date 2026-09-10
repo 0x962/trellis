@@ -1,8 +1,10 @@
-import { createTanstackQueryUtils } from "@orpc/tanstack-query";
+import { createTanstackQueryUtils, type RouterUtils } from "@orpc/tanstack-query";
 import { createTrellisClient, type TrellisClient } from "@trellis/api";
 import { actorHeader, keys, store } from "./store";
 
-let cached: { key: string; client: TrellisClient } | undefined;
+export type Orpc = RouterUtils<TrellisClient>;
+
+let cached: { key: string; client: TrellisClient; orpc: Orpc } | undefined;
 
 // The typed client for the stored server URL and name. One client lives per
 // (URL, name) pair. A change to either key in MMKV makes the next call build
@@ -12,13 +14,20 @@ export const getClient = (): TrellisClient => {
 	const name = store.getString(keys.actorName)!;
 	const key = `${url}\n${name}`;
 	if (cached?.key !== key) {
-		cached = {
-			key,
-			client: createTrellisClient(url, actorHeader(name), (request, init) => globalThis.fetch(request, init)),
-		};
+		const client = createTrellisClient(url, actorHeader(name), (request, init) => globalThis.fetch(request, init));
+		cached = { key, client, orpc: createTanstackQueryUtils(client) };
 	}
 	return cached.client;
 };
 
-// These helpers use the current client configuration for query keys and hook options.
-export const getQueries = () => createTanstackQueryUtils(getClient());
+// The TanStack Query utils over the same client. Every query key they build
+// is an oRPC key, `[path, {input, type}]`, which is the shape the live
+// applier patches and invalidates.
+export const getOrpc = (): Orpc => {
+	getClient();
+	return cached!.orpc;
+};
+
+// The browse screens call this name. It returns the same cached utils as
+// getOrpc, so every screen builds the same query keys.
+export const getQueries = getOrpc;

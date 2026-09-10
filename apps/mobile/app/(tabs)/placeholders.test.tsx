@@ -6,10 +6,11 @@ import { appContext } from "../../test/appContext";
 const store = createMMKV();
 const realFetch = globalThis.fetch;
 
-// The placeholder tab: its URL, its header title, and its empty state.
-const screens: Array<[string, string, string]> = [["/", "Needs you", "Nothing needs you"]];
+// Each screen that still shows a placeholder: its URL, its header title, and
+// its empty state. The ticket screen is the one placeholder left.
+const screens: Array<[string, string, string]> = [["/ticket/CDE-42", "CDE-42", "The ticket screen is not built yet."]];
 
-describe("the placeholder tabs", () => {
+describe("the placeholder screens", () => {
 	beforeEach(() => {
 		store.set("trellis-server-url", "http://h:4521");
 		store.set("trellis-actor-name", "navid");
@@ -20,7 +21,7 @@ describe("the placeholder tabs", () => {
 		globalThis.fetch = realFetch;
 	});
 
-	test("the placeholder tabs render the chrome and an empty state", async () => {
+	test("the placeholder screens render the chrome and an empty state", async () => {
 		for (const [url, title, empty] of screens) {
 			const view = renderRouter(appContext(), { initialUrl: url });
 			const rendered = await view;
