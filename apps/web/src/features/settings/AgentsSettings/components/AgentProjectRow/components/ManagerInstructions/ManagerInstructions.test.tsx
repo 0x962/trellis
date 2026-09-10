@@ -63,7 +63,7 @@ describe("ManagerInstructions", () => {
 		);
 	});
 
-	test("the settings page reads the statuses when the dialog opens", async () => {
+	test("the component reads the statuses on the open and not before", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
 		await mount(server);
@@ -71,6 +71,44 @@ describe("ManagerInstructions", () => {
 		expect(server.callsTo("statuses.list")).toHaveLength(0);
 		await open(user);
 		await waitFor(() => expect(server.callsTo("statuses.list")).toHaveLength(1));
+	});
+
+	// The query client retries nothing, so one refused read is final for
+	// that open. Retry asks again.
+	test("a refused statuses read shows a message, and Retry loads the text", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		await mount(server);
+		server.failNext("statuses.list", { code: "NOT_FOUND", data: { kind: "project", ref: "CDE" } });
+		await open(user);
+		expect((await screen.findByRole("alert")).textContent).toBe("The statuses of the project did not load.");
+		expect((await screen.findByRole("button", { name: "Copy" })).hasAttribute("disabled")).toBe(true);
+		await user.click(await screen.findByRole("button", { name: "Retry" }));
+		await waitFor(async () => expect(screen.getByRole("dialog").textContent).toContain(await printed(server, "CDE")));
+	});
+
+	// Skeleton hides itself from a screen reader and leaves the region to
+	// say that it waits.
+	test("the box says it is busy until the text arrives", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		await mount(server);
+		const hold = server.holdNext("statuses.list");
+		await open(user);
+		const box = await screen.findByRole("region", { name: "Manager instructions" });
+		expect(box.getAttribute("aria-busy")).toBe("true");
+		hold.release();
+		await waitFor(() => expect(box.getAttribute("aria-busy")).toBe("false"));
+	});
+
+	// The dialog caps its own height, so the box gives its height back and
+	// the title and Copy stay on a short screen.
+	test("the box shrinks with the dialog", async () => {
+		const user = userEvent.setup();
+		await mount(createFakeServer());
+		await open(user);
+		const box = await screen.findByRole("region", { name: "Manager instructions" });
+		expect(box.classList.contains("min-h-0")).toBe(true);
 	});
 
 	test("Copy writes the prompt to the clipboard", async () => {
