@@ -20,6 +20,17 @@ const png = () => fileOf("shot.png", "image/png", 64);
 const svg = () => fileOf("logo.svg", "image/svg+xml", 64);
 
 describe("fake attachment file route", () => {
+	test("serves valid bytes for a seeded PNG", async () => {
+		const server = createFakeServer();
+		const attachment = [...server.state.attachments.values()].find(
+			(candidate) => candidate.filename === "rename-flow.png",
+		)!;
+		const response = await readFile(server, attachment.id);
+		const bytes = new Uint8Array(await response.arrayBuffer());
+		expect([...bytes.slice(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+		expect(bytes.byteLength).toBe(attachment.size);
+	});
+
 	// OUT-08
 	test("serves an allowlisted PNG inline with its bytes", async () => {
 		const server = createFakeServer();
