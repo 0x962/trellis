@@ -1,0 +1,57 @@
+import type { ProjectDeleteOutputSchema } from "@trellis/api";
+import { sql } from "drizzle-orm";
+import type { z } from "zod";
+import type { ServiceCtx } from "../context.ts";
+import { rows, textArray } from "../db/queries/support.ts";
+import type { Tx } from "../db/tx.ts";
+import { fail } from "../errors.ts";
+import { projectActivity } from "./projectRows.ts";
+import { pathOf, resolveMutableProject } from "./refs.ts";
+
+type ProjectDeleteOutput = z.infer<typeof ProjectDeleteOutputSchema>;
+
+export type ProjectDeleteInput = { project: string; force?: boolean };
+
+// A hard delete. Without `force` the subtree holds no ticket and no
+// sub-project. With `force` every project and ticket below goes too, and
+// their comments, attachments, links, and activity go with them through the
+// foreign keys. A human deletes without force; an agent needs force. One
+// activity row on the parent keeps the trace; a root leaves none, because
+// its rows are gone with it.
+const remove = async (ctx: ServiceCtx, tx: Tx, input: ProjectDeleteInput): Promise<ProjectDeleteOutput> => {
+	const project = await resolveMutableProject(ctx, tx, input.project);
+	const force = input.force ?? false;
+	if (ctx.actor?.kind === "agent" && !force) throw fail("AGENT_CANNOT_DELETE");
+	const subtree = ctx.cache.resolveSubtree(project.id);
+	const scope = textArray(subtree);
+	const counted = await rows<{ n: number }>(
+		tx,
+		sql`SELECT count(*)::int AS n FROM tickets WHERE project_id = ANY(${scope})`,
+	);
+	const tickets = counted[0]!.n;
+	const projects = subtree.length - 1;
+	if (!force && (tickets > 0 || projects > 0)) throw fail("PROJECT_NOT_EMPTY", { tickets, projects });
+	const path = pathOf(ctx.cache, project.id);
+	// A ticket outside the subtree may name a deleted ticket as its parent,
+	// and the parent foreign key refuses the delete while it does.
+	await tx.execute(
+		sql`UPDATE tickets SET parent_id = NULL
+			WHERE parent_id IN (SELECT id FROM tickets WHERE project_id = ANY(${scope}))`,
+	);
+	await tx.execute(sql`DELETE FROM tickets WHERE project_id = ANY(${scope})`);
+	await tx.execute(
+		sql`DELETE FROM pull_requests pr
+			WHERE NOT EXISTS (SELECT 1 FROM ticket_pull_requests l WHERE l.pull_request_id = pr.id)`,
+	);
+	await tx.execute(sql`DELETE FROM projects WHERE id = ANY(${scope})`);
+	if (project.parentId !== null) {
+		await projectActivity(ctx, tx, project.parentId, "project.deleted", [
+			{ field: null, from: null, to: null, meta: { path, name: project.name, id: project.id, tickets, projects } },
+		]);
+	}
+	await ctx.cache.rebuild(tx);
+	ctx.emit({ type: "project.deleted", id: project.id });
+	return { deleted: path };
+};
+
+export { remove as delete };
