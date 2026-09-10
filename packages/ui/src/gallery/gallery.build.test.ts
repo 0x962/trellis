@@ -28,7 +28,9 @@ describe("gallery", () => {
 		const links = Array.from(html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g), (match) => match[1]!);
 		expect(links).toHaveLength(1);
 		const css = await Bun.file(join(dist, links[0]!)).text();
-		expect(css).toMatch(/--bg:\s*#ffffff/i);
+		// lightningcss shortens #FFFFFF to #fff, and leaves #070707 alone.
+		expect(css).toMatch(/--bg:\s*#fff\b/i);
+		expect(css).toMatch(/--bg:\s*#070707\b/i);
 		expect(css).toContain("--color-bg");
 		expect(css).toContain("jetbrains-mono-latin-400-normal");
 		expect(css).toContain("jetbrains-mono-latin-600-normal");

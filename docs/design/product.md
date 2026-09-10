@@ -506,7 +506,7 @@ Notifications: **none in v1.** The app has no push infrastructure and a local se
 
 ### 9.1 Type
 
-Inter variable (`font-feature-settings: "cv11", "ss01"` for single-storey a and open digits; `tnum` on IDs, counts, times). Monospace: JetBrains Mono for agent chips, branch names, code, CLI snippets.
+One typeface carries the whole interface, as code.storage does: BerkeleyMono where the machine holds the licence, and JetBrains Mono everywhere else (`font-feature-settings: normal`; `tnum` on IDs, counts, times). Agent chips, branch names, code, and CLI snippets take the same face through the `mono` utility.
 
 | Token | Size / line | Use |
 |---|---|---|

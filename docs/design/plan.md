@@ -23,7 +23,7 @@ This plan was produced by two design agents (product, engineering) and corrected
 | Web | React 19, Vite 8, TanStack Router, Query, Table v9, Virtual | current |
 | UI primitives | Base UI (`@base-ui/react`, the renamed successor of `@base-ui-components/react`), Tailwind v4, own tokens in `packages/ui` | 1.8, 4.3 |
 | Editor, palette, dnd, motion, toasts, icons | Tiptap 3, cmdk, `@atlaskit/pragmatic-drag-and-drop`, `motion/mini`, sonner, lucide-react | current |
-| Fonts | Inter Variable (`cv11`, `ss01`, `tnum`), JetBrains Mono, preloaded latin subsets | fontsource |
+| Fonts | BerkeleyMono where the machine holds the licence, else JetBrains Mono (`tnum`), preloaded latin subsets 400/500/600 | fontsource |
 | Mobile | Expo 57, expo-router, React Native 0.87, NativeWind 4, FlashList v2, MMKV, `react-native-sse` | current |
 | CLI | `citty`, lazy subcommands, built bundle on install | 0.2 |
 | E2E, perf | Playwright (Chromium), a seeded perf suite | current |
@@ -161,7 +161,7 @@ Data flow for one mutation: `procedures/tickets.ts#move` → `services/tickets.t
 ```
 packages/ui/src/
 ├── tokens.css             @theme tokens for light and dark, type scale, spacing, radii, motion durations
-├── fonts.css              Inter Variable and JetBrains Mono faces with metric-matched fallbacks
+├── fonts.css              JetBrains Mono latin 400/500/600 with a metric-matched fallback
 ├── index.ts
 ├── primitives/            one folder per primitive: Button/, IconButton/, Input/, Textarea/, Select/, Popover/, Menu/, Dialog/, Sheet/, Tooltip/, Toast/, Tabs/, Segmented/, Checkbox/, Switch/, Badge/, Chip/, Avatar/, Kbd/, Skeleton/, ScrollArea/, Separator/, EmptyState/, Command/
 ├── domain/                StatusIcon/, PriorityIcon/, CheckRibbon/, ActorChip/, TicketId/ (trellis-specific visuals used on every surface)
@@ -456,9 +456,9 @@ Tabs: Needs you, Search, Projects, Settings. Ticket is a stack push titled by ID
 
 No third-party styled components. Base UI (`@base-ui/react`) gives behavior and accessibility; every visual is ours.
 
-- Type: Inter Variable (`cv11 ss01`, `tnum` on IDs, counts, times), JetBrains Mono for chips, branches, code. Scale 11/12/13/14/16/20/24; weights 400/500/600.
+- Type: one typeface for the whole interface, as code.storage does. BerkeleyMono leads the stack and is licensed per machine; JetBrains Mono is the shipped fallback. `tnum` on IDs, counts, times. No OpenType feature. Scale 11/12/13/14/16/20/24; weights 400/500/600.
 - Space 4 px base; radii 4/6/8/12; outer = inner + padding.
-- Tokens are Pierre's palette (Navid's call, 2026-09-08; values verbatim from `@pierre/theme` 2.0.0 and `@pierre/diffs` 1.4.1), light / dark: `bg #F5F5F5/#0A0A0A`, `surface #FFFFFF/#111111`, `elevated #FFFFFF/#171717`, `border #E5E5E5/#1F1F1F`, `border-strong #D4D4D4/#2A2A2A`, `fg #0A0A0A/#FAFAFA`, `fg-muted #737373/#A3A3A3`, `fg-faint #A3A3A3/#737373`, `accent #009FFF` (both), `accent-soft #DFEBFF/#19283C`, `agent #693ACF/#9D6AFB` (Pierre's syntax purple), `agent-soft #EFE8FB/#24183F`, `success #0DBE4E/#5ECC71`, `warning #D5A910/#FFD452`, `danger #FF2E3F/#FF6762`, `scrim`. True neutral greys, no hue bias. Dark mode swaps shadows for a 1 px strong border. The diff view uses `pierre-light` / `pierre-dark` so code and chrome share one palette.
+- The neutrals are code.storage's (Navid's call, 2026-09-10, TRL-10; values read from the live site). One seed grey, `lab(59.312% 1.0058 -3.62585)` (#8E8E95), mixed in sRGB with white or black gives every step. Light / dark: `bg #FFFFFF/#070707`, `surface #F7F7F8/#151516`, `elevated #F5F5F5/#1C1C1E`, `border #E8E8EA/#242425`, `border-strong #DDDDDF/#323234`, `fg #070707/#E8E8EA`, `fg-muted #646468/#BBBBBF`, `fg-faint #8E8E95` (both). A step keeps its ramp position across the two themes, so a card sits one step off the page ground in light and in dark. The accents stay Pierre's: `accent #009FFF` (both), `accent-soft #DFEBFF/#19283C`, `agent #693ACF/#9D6AFB` (Pierre's syntax purple), `agent-soft #EFE8FB/#24183F`, `success #0DBE4E/#5ECC71`, `warning #D5A910/#FFD452`, `danger #FF2E3F/#FF6762`, `scrim`. Dark mode swaps shadows for a 1 px strong border. The diff view uses `pierre-light` / `pierre-dark` so code and chrome share one palette.
 - Status by category: todo faint empty circle; started warning half ring (sub-ticket progress fills it); review accent dotted ring (agent variant carries `⟡`); done success filled check; canceled faint × with strikethrough. Priority: Linear bars in `fg-muted`; urgent a filled danger square with `!`.
 - Motion: 120 ms hover, 160 ms popover, 240 ms peek slide, 160 ms row enter, 200 ms approve sweep. Never animate re-sorts, text changes, counters, skeleton swaps, theme switch.
 - Focus: `:focus-visible` 2 px accent outline; rows and cards use an inset left bar.
