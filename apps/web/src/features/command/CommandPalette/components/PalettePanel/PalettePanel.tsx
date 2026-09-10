@@ -10,6 +10,7 @@ import { commandActions, useCommandStore } from "../../../commandStore";
 import { useActionContext } from "../../../hooks/useActionContext";
 import { useCommandSearch } from "../../../hooks/useCommandSearch";
 import type { PaletteGroup, PaletteRow, RowDeps, Submenu } from "../../../rows";
+import { paletteTypeahead } from "../../../typeahead";
 import { jumpRow, resultRows } from "../../../utils/resultRows";
 import { submenuHeadings } from "../../../utils/submenuRows";
 import { selectionRows, ticketRows } from "../../../utils/ticketRows";
@@ -77,6 +78,9 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 	const projects = useSuspenseQuery(orpc.projects.list.queryOptions({ input: {} })).data;
 	const [query, setQuery] = useState("");
 	const [value, setValue] = useState("");
+
+	// The keys typed between Cmd+K and the focus of the field join the query.
+	useEffect(() => paletteTypeahead.attach(setQuery), []);
 
 	// A submenu and the project picker list their own values, so neither
 	// searches tickets.
