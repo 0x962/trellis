@@ -2,7 +2,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { TimelineListOutput } from "@trellis/api";
 import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../../components/Button";
 import { getClient } from "../../lib/orpc";
 import { layout } from "../../theme/layout";
@@ -16,7 +15,9 @@ export type ComposerProps = {
 };
 
 const styles = StyleSheet.create({
-	composer: { borderTopWidth: layout.stroke },
+	// The tab bar stays under a pushed ticket and holds the bottom safe-area
+	// inset, so the composer adds only its own spacing.
+	composer: { borderTopWidth: layout.stroke, paddingBottom: tokens.space[2] },
 	failure: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -56,7 +57,6 @@ const messageOf = (error: unknown) => (error instanceof Error ? error.message : 
 // with Retry above the field.
 export function Composer({ ticket }: ComposerProps) {
 	const palette = usePalette();
-	const { bottom } = useSafeAreaInsets();
 	const queryClient = useQueryClient();
 	const [text, setText] = useState("");
 	const [busy, setBusy] = useState(false);
@@ -82,12 +82,7 @@ export function Composer({ ticket }: ComposerProps) {
 	};
 
 	return (
-		<View
-			style={[
-				styles.composer,
-				{ backgroundColor: palette.bg, borderTopColor: palette.border, paddingBottom: bottom + tokens.space[2] },
-			]}
-		>
+		<View testID="composer" style={[styles.composer, { backgroundColor: palette.bg, borderTopColor: palette.border }]}>
 			{failure !== undefined && (
 				<View style={[styles.failure, { backgroundColor: palette.dangerSoft }]}>
 					<View style={styles.lines}>
