@@ -45,8 +45,9 @@ export const fail = (code: ErrorCode, data?: unknown) =>
 
 export const notFound = (kind: string, ref: string) => fail("NOT_FOUND", { kind, ref });
 
-// A ticket with the project it sits in. `archivedAt` is the archive stamp of
-// that project, which every write refuses.
+// A ticket with the project it sits in. `archived_at` is the newest archive
+// stamp on that project and its ancestors, so it is set when the project or
+// any ancestor is archived. Every write refuses such a ticket.
 export type TicketRow = {
 	id: string;
 	project_id: string;
@@ -55,7 +56,8 @@ export type TicketRow = {
 };
 
 // Accepts a ULID or the `KEY-n` identifier. The number lives on the ticket
-// and the key on the root project, so the identifier form joins both.
+// and the key on the root project, so the identifier form joins both. The
+// recursive query walks from the ticket's project up the parent links.
 export const resolveTicket = async (tx: Tx, ref: string): Promise<TicketRow> => {
 	const parsed = TicketRefSchema.parse(ref);
 	const match =
@@ -63,10 +65,17 @@ export const resolveTicket = async (tx: Tx, ref: string): Promise<TicketRow> => 
 	const [row] = await rows<TicketRow>(
 		tx,
 		sql`
-			SELECT t.id, t.project_id, t.root_id, p.archived_at
+			SELECT t.id, t.project_id, t.root_id, chain.archived_at
 			FROM tickets t
-			JOIN projects p ON p.id = t.project_id
 			JOIN projects root ON root.id = t.root_id
+			CROSS JOIN LATERAL (
+				WITH RECURSIVE up AS (
+					SELECT p.id, p.parent_id, p.archived_at FROM projects p WHERE p.id = t.project_id
+					UNION ALL
+					SELECT p.id, p.parent_id, p.archived_at FROM projects p JOIN up ON p.id = up.parent_id
+				)
+				SELECT max(up.archived_at) AS archived_at FROM up
+			) chain
 			WHERE ${match}
 		`,
 	);

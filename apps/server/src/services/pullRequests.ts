@@ -208,6 +208,7 @@ export type UnlinkInput = { ticket: string; id: string };
 
 export const unlink = async (ctx: ServiceCtx, tx: Tx, input: UnlinkInput) => {
 	const ticket = await resolveTicket(tx, input.ticket);
+	assertProjectActive(ticket);
 	const row = await findRow(tx, input.id);
 	const dropped = await tx.execute(sql`
 		DELETE FROM ticket_pull_requests WHERE ticket_id = ${ticket.id} AND pull_request_id = ${row.id} RETURNING ticket_id

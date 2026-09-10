@@ -206,6 +206,7 @@ export type IdInput = { id: string };
 export const remove = async (ctx: ServiceCtx, tx: Tx, input: IdInput) => {
 	const row = await findAttachment(tx, input.id);
 	const ticket = await resolveTicket(tx, row.ticket_id);
+	assertProjectActive(ticket);
 	const at = ctx.now();
 	await tx.execute(sql`DELETE FROM attachments WHERE id = ${row.id}`);
 	await touchTicket(tx, { id: ticket.id, at, versionStep: 1 });
