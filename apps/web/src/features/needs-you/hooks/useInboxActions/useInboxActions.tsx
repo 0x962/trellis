@@ -76,7 +76,7 @@ export const useInboxActions = () => {
 			} catch (error) {
 				cancelSweep(ticket.id);
 				queryClient.setQueryData(inboxKey, before);
-				toast.error(`Couldn't move ${ticket.identifier} to ${target.name}`, {
+				toast.error(`${ticket.identifier} did not move to ${target.name}.`, {
 					description: (error as Error).message,
 					action: { label: "Retry", onClick: () => move(ticket, category, index) },
 				});

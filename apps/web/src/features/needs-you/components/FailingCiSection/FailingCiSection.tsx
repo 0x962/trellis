@@ -18,7 +18,7 @@ export function FailingCiSection() {
 
 	return (
 		<InboxSection
-			name="Failing CI"
+			name="Failing checks"
 			total={section.total}
 			icon={<X className="text-danger" />}
 			open={open}

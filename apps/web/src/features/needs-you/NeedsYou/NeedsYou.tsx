@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Badge, Button, EmptyState, useHotkey } from "@trellis/ui";
-import { RefreshCw } from "lucide-react";
+import { Button, EmptyState, Tooltip, useHotkey } from "@trellis/ui";
+import { WifiOff } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { formatCount, relativeTime } from "../../../lib/format";
 import { Topbar } from "../../shell/Topbar";
@@ -14,6 +14,7 @@ import { ReviewSection } from "../components/ReviewSection";
 import { StalledSection } from "../components/StalledSection";
 import { useInbox } from "../hooks/useInbox";
 import { useInboxPeekRows } from "../hooks/useInboxPeekRows";
+import { ActiveRowProvider } from "../providers/ActiveRowProvider";
 import { needsYouCount } from "../utils/needsYouCount";
 import { activeRowIdentifier, focusRowBy } from "../utils/rowFocus";
 import { InboxSkeleton } from "./components/InboxSkeleton";
@@ -30,8 +31,13 @@ export function NeedsYou() {
 	// The count leaves out Stalled and Done by agents today, but their rows
 	// still show. The empty state shows only when every section is empty.
 	const empty =
-		inbox.data !== undefined &&
-		Object.values(inbox.data).every((section: { total: number }) => section.total === 0);
+		inbox.data !== undefined && Object.values(inbox.data).every((section: { total: number }) => section.total === 0);
+	const identifiers =
+		inbox.data === undefined
+			? []
+			: [inbox.data.review, inbox.data.failingCi, inbox.data.stalled, inbox.data.doneByAgentsToday].flatMap((section) =>
+					section.items.map((item) => item.identifier),
+				);
 	const peekRows = useInboxPeekRows();
 	const shown = usePeek().current;
 
@@ -60,41 +66,43 @@ export function NeedsYou() {
 
 	return (
 		<PeekListProvider rows={peekRows}>
-			<Topbar
-				actions={
-					inbox.data !== undefined && (
-						<span className="flex items-center gap-1.5 text-sm text-fg-faint tabular">
-							<RefreshCw aria-hidden="true" className="size-3.25" />
-							Fetched {relativeTime(new Date(inbox.dataUpdatedAt).toISOString())}
-						</span>
-					)
-				}
-			>
-				<h1 className="flex items-center gap-2 text-md font-semibold text-fg">
+			<Topbar>
+				<h1 className="flex items-center gap-2 text-lg font-semibold text-fg">
 					Needs you
-					{count > 0 && <Badge tone="accent">{formatCount(count)}</Badge>}
+					{inbox.data !== undefined && (
+						<Tooltip content={`Fetched ${relativeTime(new Date(inbox.dataUpdatedAt).toISOString())}`}>
+							<span data-needs-you-count="" className="font-normal text-fg-faint tabular">
+								{formatCount(count)}
+							</span>
+						</Tooltip>
+					)}
 				</h1>
 			</Topbar>
-			<div className="min-h-0 flex-1 overflow-y-auto">
+			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 				{inbox.isPending && <InboxSkeleton />}
 				{inbox.isError && (
 					<EmptyState
-						title="Could not load Needs you"
-						description="The server did not answer."
-						action={<Button onClick={() => void inbox.refetch()}>Retry</Button>}
-						className="justify-center"
+						variant="page"
+						icon={<WifiOff />}
+						title="Needs you did not load"
+						description={`${inbox.error.message}. Make sure that the server runs, then select Retry.`}
+						action={
+							<Button size="md" onClick={() => void inbox.refetch()}>
+								Retry
+							</Button>
+						}
 					/>
 				)}
 				{inbox.data !== undefined &&
 					(empty ? (
 						<NeedsYouEmpty />
 					) : (
-						<>
+						<ActiveRowProvider identifiers={identifiers}>
 							<ReviewSection />
 							<FailingCiSection />
 							<StalledSection />
 							<DoneTodaySection />
-						</>
+						</ActiveRowProvider>
 					))}
 			</div>
 			<TicketPeek />

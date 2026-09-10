@@ -66,7 +66,7 @@ test("approve > send back posts the comment and moves the ticket", async ({ page
 	const row = rowIn(page, identifier!);
 	await row.focus();
 	await page.keyboard.press("r");
-	const box = page.getByRole("textbox", { name: /What should change/i });
+	const box = page.getByRole("textbox", { name: /Reason to send back/i });
 	await box.fill("Fix the migration");
 	await page.keyboard.press("ControlOrMeta+Enter");
 	await expect(row).toHaveCount(0);

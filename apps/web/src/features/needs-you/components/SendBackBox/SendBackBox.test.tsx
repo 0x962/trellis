@@ -25,19 +25,22 @@ const render = (server: FakeServer) =>
 		{ path: "/needs-you", actor: "navid", server },
 	);
 
-const box = () => screen.findByRole("textbox", { name: /What should change/i });
+const box = () => screen.findByRole("textbox", { name: /Reason to send back/i });
 
-const submit = () => screen.getByRole("button", { name: /Send back|Submit/ });
+// The submit button of the open box. Every review row also shows a Send
+// back button, so the helper looks inside the box only.
+const submit = () =>
+	within(screen.getByRole("group", { name: /^Send back / })).getByRole("button", { name: /^Send back/ });
 
 describe("SendBackBox", () => {
 	// NY-23. The prompt is the question, and the caret is already in the box.
-	test("opens on r with the What should change prompt and takes focus", async () => {
+	test("opens on r with the Reason to send back label and takes focus", async () => {
 		const user = userEvent.setup();
 		render(createFakeServer());
 		await focusRow("CDE-42");
 		await user.keyboard("r");
 		const field = await box();
-		expect(screen.getByText("What should change?")).toBeDefined();
+		expect(screen.getByText("Reason to send back")).toBeDefined();
 		expect(document.activeElement).toBe(field);
 	});
 
@@ -93,7 +96,7 @@ describe("SendBackBox", () => {
 		await user.keyboard("r");
 		await user.type(await box(), "Fix the migration");
 		await user.keyboard("{Escape}");
-		await waitFor(() => expect(screen.queryByRole("textbox", { name: /What should change/i })).toBeNull());
+		await waitFor(() => expect(screen.queryByRole("textbox", { name: /Reason to send back/i })).toBeNull());
 		expect(callsTo(server, "comments.create")).toHaveLength(0);
 		expect(callsTo(server, "tickets.move")).toHaveLength(0);
 		expect(document.activeElement).toBe(row);
@@ -113,7 +116,7 @@ describe("SendBackBox", () => {
 		await user.keyboard("{Meta>}{Enter}{/Meta}");
 		const text = await screen.findByText(/comment posted/i);
 		const toast = text.closest("[data-sonner-toast]") as HTMLElement;
-		expect(toast.textContent).toMatch(/Couldn't move CDE-42/);
+		expect(toast.textContent).toMatch(/CDE-42 did not move back/);
 		expect(callsTo(server, "comments.create")).toHaveLength(1);
 		expect((submit() as HTMLButtonElement).disabled).toBe(false);
 		await user.click(within(toast).getByRole("button", { name: "Retry" }));

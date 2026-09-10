@@ -34,14 +34,15 @@ export function SendBackBox({ ticket, onClose, onSent }: SendBackBoxProps) {
 	// box open and ready, and the toast's Retry runs only the move.
 	const move = async () => {
 		setSending(true);
+		const { statuses } = await queryClient.ensureQueryData(
+			orpc.statuses.list.queryOptions({ input: { project: ticket.project.id } }),
+		);
+		const target = targetStatus(statuses, "started");
 		try {
-			const { statuses } = await queryClient.ensureQueryData(
-				orpc.statuses.list.queryOptions({ input: { project: ticket.project.id } }),
-			);
-			await client.tickets.move({ ticket: ticket.identifier, status: targetStatus(statuses, "started").id });
+			await client.tickets.move({ ticket: ticket.identifier, status: target.id });
 		} catch (error) {
 			setSending(false);
-			toast.error(`Couldn't move ${ticket.identifier} back`, {
+			toast.error(`${ticket.identifier} did not move back to ${target.name}.`, {
 				description: `The comment posted. ${errorMessage(error)}`,
 				duration: 6000,
 				action: { label: "Retry", onClick: () => void move() },
@@ -62,7 +63,7 @@ export function SendBackBox({ ticket, onClose, onSent }: SendBackBoxProps) {
 			await client.comments.create({ ticket: ticket.identifier, body });
 		} catch (error) {
 			setSending(false);
-			toast.error(`Couldn't send ${ticket.identifier} back`, { description: errorMessage(error) });
+			toast.error(`The comment on ${ticket.identifier} did not save.`, { description: errorMessage(error) });
 			return;
 		}
 		posted.current = true;
@@ -82,10 +83,13 @@ export function SendBackBox({ ticket, onClose, onSent }: SendBackBoxProps) {
 	};
 
 	return (
-		<div className="flex flex-col gap-2 border-t border-border bg-surface px-5 py-3">
+		<fieldset
+			aria-label={`Send back ${ticket.identifier}`}
+			className="flex flex-col gap-2 border-t border-border bg-surface px-5 py-3"
+		>
 			<Textarea
 				ref={field}
-				label="What should change?"
+				label="Reason to send back"
 				rows={3}
 				value={body}
 				spellCheck={false}
@@ -100,6 +104,6 @@ export function SendBackBox({ ticket, onClose, onSent }: SendBackBoxProps) {
 					Cancel
 				</Button>
 			</div>
-		</div>
+		</fieldset>
 	);
 }

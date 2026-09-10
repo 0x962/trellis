@@ -15,7 +15,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const sections = ["Review", "Failing CI", "Stalled", "Done by agents today"];
+const sections = ["Review", "Failing checks", "Stalled", "Done by agents today"];
 
 // The height class an element carries. happy-dom runs no layout, so the
 // class that sets the height is what a test can compare.
@@ -90,7 +90,7 @@ describe("NeedsYou", () => {
 		const user = userEvent.setup();
 		const server = flakyServer(createFakeServer(), 1);
 		render(server);
-		expect(await screen.findByText(/Could not load/i)).toBeDefined();
+		expect(await screen.findByText(/did not load/i)).toBeDefined();
 		const retry = await screen.findByRole("button", { name: "Retry" });
 		await user.click(retry);
 		await screen.findByRole("button", { name: /^Review/ });
@@ -108,8 +108,10 @@ describe("NeedsYou", () => {
 		});
 		renderWithProviders(<NeedsYou />, { path: "/needs-you", actor: "navid", harness });
 		const heading = await screen.findByRole("heading", { name: /Needs you/ });
-		expect(within(heading).getByText("4")).toBeDefined();
-		expect(await screen.findByText("Fetched 12s ago")).toBeDefined();
+		const count = within(heading).getByText("4");
+		// Spec NY-3: the fetched time is the tooltip of the count.
+		await userEvent.setup().hover(count);
+		expect(await screen.findByText("Fetched 12s ago", undefined, { timeout: 3000 })).toBeDefined();
 	});
 
 	// NY-18. An approved ticket leaves Review, so the badge falls with the row.

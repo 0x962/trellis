@@ -16,7 +16,7 @@ describe("routes/needs-you", () => {
 		renderApp({ path: "/needs-you", actor: "navid" });
 		const heading = await screen.findByRole("heading", { name: /Needs you/ });
 		expect(within(heading).getByText("4")).toBeDefined();
-		const sections = ["Review", "Failing CI", "Stalled", "Done by agents today"];
+		const sections = ["Review", "Failing checks", "Stalled", "Done by agents today"];
 		const counts = ["3", "1", "1", "6"];
 		for (const [index, name] of sections.entries()) {
 			const button = await screen.findByRole("button", { name: new RegExp(`^${name}`) });
@@ -41,10 +41,13 @@ describe("routes/needs-you", () => {
 			0, 0, 0, 0,
 		]);
 		renderApp({ path: "/needs-you", actor: "navid", server });
-		const line = await screen.findByText("Nothing needs you. 3 tickets in progress by agents.");
+		// Spec D14: the heading states the fact, and the line counts every
+		// started ticket, human or agent.
+		expect(await screen.findByRole("heading", { name: "Nothing needs you" })).toBeDefined();
+		const line = await screen.findByText(/^3 tickets are in progress\./);
 		const link = within(line).getByRole("link");
 		expect(link.getAttribute("href")).toBe("/all?category=started");
-		for (const name of ["Review", "Failing CI", "Stalled", "Done by agents today"]) {
+		for (const name of ["Review", "Failing checks", "Stalled", "Done by agents today"]) {
 			expect(screen.queryByRole("button", { name: new RegExp(`^${name}`) })).toBeNull();
 		}
 	});

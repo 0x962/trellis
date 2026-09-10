@@ -1,5 +1,5 @@
 import type { TicketSummary } from "@trellis/api";
-import { Kbd, StatusIcon, useHotkey } from "@trellis/ui";
+import { StatusIcon, useHotkey } from "@trellis/ui";
 import { useState } from "react";
 import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
 import { useInbox } from "../../hooks/useInbox";
@@ -63,11 +63,9 @@ export function ReviewSection() {
 				name="Review"
 				total={section.total}
 				icon={<StatusIcon category="review" />}
-				hint={
-					<>
-						<Kbd>a</Kbd> approve <Kbd>r</Kbd> send back
-					</>
-				}
+				// A section of one status repeats it on every row, so the column
+				// shows only when the rows mix statuses.
+				showStatus={new Set(items.map((row) => row.status.id)).size > 1}
 				open={open}
 				onToggle={toggle}
 				rows={rowsWithLeaving(items)}
@@ -75,9 +73,7 @@ export function ReviewSection() {
 				onRowActive={(ticket) => setFocusedId(ticket.identifier)}
 				isSweeping={isSweeping}
 				renderActions={(ticket) =>
-					ticket.identifier === (focusedId ?? items[0]?.identifier) &&
-					ticket.identifier !== sendBackId &&
-					!isArchived(ticket.project.path) ? (
+					ticket.identifier !== sendBackId && !isArchived(ticket.project.path) ? (
 						<ReviewActions
 							ticket={ticket}
 							onApprove={() => approve(ticket)}
