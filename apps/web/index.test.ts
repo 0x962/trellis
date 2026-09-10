@@ -93,6 +93,34 @@ describe("index.html", () => {
 		}
 	});
 
+	// SH-1. The tab shows the trellis mark. A browser that reads SVG icons
+	// takes the SVG; the others take the 32 px PNG; a phone home screen takes
+	// the 180 px PNG and the manifest. Vite copies public/ to the root of
+	// dist, so every href must name a file in public/.
+	test("the head links the favicon, the PNG fallbacks, and the manifest, and each file exists", async () => {
+		const document = await parse();
+		const href = (selector: string) => document.head.querySelector(selector)?.getAttribute("href");
+		expect(href('link[rel="icon"][type="image/svg+xml"]')).toBe("/favicon.svg");
+		expect(href('link[rel="icon"][type="image/png"][sizes="32x32"]')).toBe("/favicon-32.png");
+		expect(href('link[rel="apple-touch-icon"][sizes="180x180"]')).toBe("/apple-touch-icon.png");
+		expect(href('link[rel="manifest"]')).toBe("/site.webmanifest");
+		expect(document.head.querySelector('meta[name="theme-color"]')?.getAttribute("content")).toBe("#0A0A0A");
+		for (const name of ["favicon.svg", "favicon-32.png", "apple-touch-icon.png", "site.webmanifest"]) {
+			expect(await Bun.file(join(import.meta.dir, "public", name)).exists()).toBe(true);
+		}
+		const png = (name: string) => Bun.file(join(import.meta.dir, "public", name)).bytes();
+		const width = (bytes: Uint8Array) => new DataView(bytes.buffer).getUint32(16);
+		expect(width(await png("favicon-32.png"))).toBe(32);
+		expect(width(await png("apple-touch-icon.png"))).toBe(180);
+		const manifest = await Bun.file(join(import.meta.dir, "public", "site.webmanifest")).json();
+		expect(manifest.name).toBe("trellis");
+		expect(manifest.theme_color).toBe("#0A0A0A");
+		expect(manifest.background_color).toBe("#0A0A0A");
+		const svg = await Bun.file(join(import.meta.dir, "public", "favicon.svg")).text();
+		expect(svg).toContain('viewBox="0 0 32 32"');
+		expect(svg).toContain('rx="7"');
+	});
+
 	// WS-09
 	test("index.html mounts src/main.tsx into #root", async () => {
 		const document = await parse();

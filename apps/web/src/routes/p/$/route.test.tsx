@@ -42,7 +42,7 @@ describe("routes/p/$", () => {
 	// WS-84
 	test("the project route resolves the splat, shows the breadcrumb, and 404s an unknown path", async () => {
 		const missing = renderApp({ path: "/p/CDE/web/auth/board", actor: "navid" });
-		expect(await screen.findByText("CDE.web.auth doesn't exist")).toBeDefined();
+		expect(await screen.findByText("CDE.web.auth does not exist")).toBeDefined();
 		missing.unmount();
 
 		localStorage.clear();

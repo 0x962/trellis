@@ -14,7 +14,7 @@ test.beforeAll(() => {
 test("an unknown identifier shows the not-found line and a search link", async ({ page }) => {
 	await signIn(page, "/t/TKT-999");
 	const main = page.getByRole("main");
-	await expect(main.getByText("TKT-999 doesn't exist")).toBeVisible();
+	await expect(main.getByText("TKT-999 does not exist")).toBeVisible();
 	const link = main.getByRole("link", { name: /search/i });
 	await expect(link).toHaveAttribute("href", "/search?q=TKT-999");
 });

@@ -10,7 +10,7 @@ const setup = () => {
 	const onOpenChange = mock();
 	render(
 		<Dialog open title="Delete ticket" onOpenChange={onOpenChange}>
-			<p>This cannot be undone.</p>
+			<p>trellis cannot restore a deleted ticket.</p>
 			<Button>Cancel</Button>
 			<Button variant="danger">Delete</Button>
 		</Dialog>,
@@ -48,6 +48,29 @@ describe("Dialog", () => {
 		expect(document.activeElement).toBe(last);
 		await user.tab();
 		expect(document.activeElement).toBe(focusable[0]!);
+	});
+
+	// A caller that draws its own header row keeps the title as the
+	// accessible name, so a screen reader still hears the dialog's name.
+	test("a header replaces the visible title and the title stays the accessible name", () => {
+		render(
+			<Dialog open title="New ticket" header={<span>CDE › New ticket</span>} onOpenChange={() => {}}>
+				<p>Body</p>
+			</Dialog>,
+		);
+		const dialog = screen.getByRole("dialog", { name: "New ticket" });
+		expect(dialog.textContent).toContain("CDE › New ticket");
+		const title = screen.getByText("New ticket", { selector: "h2" });
+		expectClasses(title, "sr-only");
+	});
+
+	// One breakpoint: below 768 px the dialog is a sheet on the bottom edge.
+	test("below 768 px the dialog is a bottom sheet", () => {
+		const { dialog } = setup();
+		expectClasses(
+			dialog,
+			"max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:w-full max-md:max-w-full max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-t-xl max-md:rounded-b-none max-md:max-h-[90dvh]",
+		);
 	});
 
 	test("a child that asks for focus keeps it past the initial focus", async () => {

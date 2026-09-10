@@ -70,7 +70,7 @@ export function Menu({ label, items, trigger, align = "end", className }: MenuPr
 								disabled={item.disabled}
 								onClick={item.onSelect}
 								className={cx(
-									"flex h-7 cursor-default items-center gap-2 rounded-sm px-2 text-sm outline-none select-none",
+									"flex h-7 items-center gap-2 rounded-sm px-2 text-sm outline-none select-none",
 									item.danger ? "text-danger data-highlighted:bg-danger-soft" : "text-fg data-highlighted:bg-bg",
 									"data-disabled:opacity-50",
 								)}

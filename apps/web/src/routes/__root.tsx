@@ -1,20 +1,21 @@
 import { createRootRouteWithContext, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { EmptyState, Toaster } from "@trellis/ui";
+import { MapPinOff } from "lucide-react";
 import { CommandPalette } from "../features/command/CommandPalette";
 import { ShortcutHelp } from "../features/command/ShortcutHelp";
 import { ComposerHost } from "../features/composer/ComposerHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
+import { linkButtonClass } from "../features/shell/linkButtonClass";
 import { ReconnectBanner } from "../features/shell/ReconnectBanner";
 import { Sidebar } from "../features/sidebar/Sidebar";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { useFaviconBadge } from "../hooks/useFaviconBadge";
 import { type RouterContext, useApp } from "../lib/appContext";
 import { resolveActor } from "../lib/identity";
 
 // The two pages that render without the shell: the first run and the
 // design gallery.
 const bare = (pathname: string) => pathname === "/setup" || pathname.startsWith("/_gallery");
-
-const linkClass =
-	"inline-flex h-7 items-center rounded-md border border-border bg-surface px-2.5 text-sm font-medium text-fg transition duration-hover hover:bg-bg hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
 
 // Every page but the bare two needs an identity and a project. The server
 // holds the identity, so only a server with no stored name and no project
@@ -44,6 +45,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function RootComponent() {
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const { live, scheduler } = useApp();
+	useDocumentTitle(!bare(pathname));
+	useFaviconBadge(!bare(pathname));
 
 	if (bare(pathname)) {
 		return (
@@ -57,9 +60,9 @@ function RootComponent() {
 	return (
 		<div className="flex h-full bg-bg text-fg">
 			<Sidebar />
-			<div className="flex min-w-0 flex-1 flex-col">
+			<div className="relative flex min-w-0 flex-1 flex-col">
 				<ReconnectBanner live={live} scheduler={scheduler} />
-				<main className="flex min-h-0 min-w-0 flex-1 flex-col">
+				<main className="flex min-h-0 min-w-0 flex-1 flex-col bg-pane">
 					<Outlet />
 				</main>
 			</div>
@@ -76,14 +79,15 @@ function RootComponent() {
 function PageNotFound() {
 	return (
 		<EmptyState
+			variant="page"
+			icon={<MapPinOff />}
 			title="Page not found"
-			description="Nothing lives at this address."
+			description="No page has this URL."
 			action={
-				<Link to="/needs-you" className={linkClass}>
+				<Link to="/needs-you" className={linkButtonClass}>
 					Needs you
 				</Link>
 			}
-			className="flex-1 justify-center"
 		/>
 	);
 }

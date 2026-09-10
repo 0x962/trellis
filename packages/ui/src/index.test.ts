@@ -29,12 +29,14 @@ const names = [
 	"ScrollArea",
 	"Separator",
 	"EmptyState",
+	"SectionHeader",
 	"Command",
 	"StatusIcon",
 	"PriorityIcon",
 	"CheckRibbon",
 	"ActorChip",
 	"TicketId",
+	"TrellisMark",
 	"useTheme",
 	"useReducedMotion",
 	"useHotkey",
@@ -52,6 +54,7 @@ describe("@trellis/ui", () => {
 		expect(exports["."]).toBe("./src/index.ts");
 		expect(exports["./tokens.css"]).toBe("./src/tokens.css");
 		expect(exports["./fonts.css"]).toBe("./src/fonts.css");
+		expect(exports["./base.css"]).toBe("./src/base.css");
 		for (const target of Object.values(exports) as string[]) {
 			expect(existsSync(join(packageRoot, target))).toBe(true);
 		}

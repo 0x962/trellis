@@ -24,4 +24,12 @@ describe("ActorChip", () => {
 		rerender(<ActorChip name="claude-code" kind="agent" />);
 		expect(container.querySelector("[data-live]")).toBeNull();
 	});
+
+	// A narrow rail row has no room for the suffix. The mono purple name
+	// still tells an agent from a human.
+	test("compact drops the agent suffix and keeps the mono name", () => {
+		const { container } = render(<ActorChip name="claude-code" kind="agent" compact />);
+		expect(container.textContent).not.toContain("· agent");
+		expectClasses(screen.getByText("claude-code"), "font-mono text-sm text-agent");
+	});
 });

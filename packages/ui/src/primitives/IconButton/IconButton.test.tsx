@@ -39,4 +39,21 @@ describe("IconButton", () => {
 		expectHitArea(screen.getByRole("button", { name: "Medium" }), "box28Bordered");
 		expectHitArea(screen.getByRole("button", { name: "Small" }), "box24Bordered");
 	});
+
+	// An IconButton next to a Button in a split control takes the same fill,
+	// so a caller never paints a variant through className.
+	test("the variants match the Button variant set", () => {
+		render(
+			<>
+				<IconButton label="Primary" variant="primary" icon={<RefreshCw />} />
+				<IconButton label="Default" variant="default" icon={<RefreshCw />} />
+				<IconButton label="Quiet" icon={<RefreshCw />} />
+				<IconButton label="Danger" variant="danger" icon={<RefreshCw />} />
+			</>,
+		);
+		expectClasses(screen.getByRole("button", { name: "Primary" }), "bg-accent border-accent text-on-accent");
+		expectClasses(screen.getByRole("button", { name: "Default" }), "bg-surface border-border text-fg");
+		expectClasses(screen.getByRole("button", { name: "Quiet" }), "bg-transparent border-transparent text-fg-muted");
+		expectClasses(screen.getByRole("button", { name: "Danger" }), "bg-danger border-danger text-on-accent");
+	});
 });
