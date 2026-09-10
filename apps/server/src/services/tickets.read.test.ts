@@ -35,14 +35,14 @@ describe("tickets.list", () => {
 	test("list resolves the project ref to the subtree", async () => {
 		const { root, web } = await seedTree();
 		const { result: page } = await list({ project: "CDE", limit: 3 });
-		expect(page.items.map((item) => item.id)).toEqual([web[1], root[1], web[0]]);
+		expect(page.items.map((item) => item.id)).toEqual([web[1]!, root[1]!, web[0]!]);
 		expect(typeof page.nextCursor).toBe("string");
 	});
 
 	test("list with subprojects false narrows to one project", async () => {
 		const { root } = await seedTree();
 		const { result: page } = await list({ project: "CDE", subprojects: false });
-		expect(page.items.map((item) => item.id)).toEqual([root[1], root[0]]);
+		expect(page.items.map((item) => item.id)).toEqual([root[1]!, root[0]!]);
 		expect(page.nextCursor).toBeNull();
 	});
 
@@ -83,7 +83,7 @@ describe("tickets.board and tickets.counts", () => {
 		);
 		expect(board.columns.map((column) => column.statusId)).toEqual(Object.values(statuses));
 		expect(board.columns.map((column) => column.count)).toEqual([2, 2, 0, 0, 1, 0]);
-		expect(board.columns[0]!.items.map((item) => item.id)).toEqual([todo[1], todo[0]]);
+		expect(board.columns[0]!.items.map((item) => item.id)).toEqual([todo[1]!, todo[0]!]);
 		expect(board.columns[1]!.items.map((item) => item.id)).toEqual(started);
 		expect(board.columns[4]!.items.map((item) => item.id)).toEqual(done);
 	});

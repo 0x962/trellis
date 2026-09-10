@@ -141,7 +141,7 @@ describe("tickets.create", () => {
 		const { result: ticket } = await create({ status: "done" });
 		const row = (await ticketRow(h.db, ticket.id))!;
 		expect(at(row.completed_at)).toBeGreaterThanOrEqual(before);
-		expect(ticket.completedAt).toBe(row.completed_at!.toISOString());
+		expect(ticket.completedAt).toBe(new Date(row.completed_at!).toISOString());
 	});
 
 	test("create writes one ticket.created activity row with a batch id", async () => {

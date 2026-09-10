@@ -9,15 +9,21 @@ const h = serviceHarness();
 const move = (input: Record<string, unknown>) => h.as(navid)((ctx, tx) => tickets.move(ctx, tx, input));
 
 // A root with its six statuses, tickets a, b, c in In Progress at the
-// positions given, and ticket x in Todo at 1024.
-const seed = async (positions = [1024, 2048, 3072], xOverrides: Record<string, unknown> = {}) => {
+// positions given, and ticket x in Todo at 1024. `xSeed` sets the fixture
+// fields of x; `xColumns` sets columns the fixture holds fixed, such as
+// `version`.
+const seed = async (
+	positions = [1024, 2048, 3072],
+	xSeed: Record<string, unknown> = {},
+	xColumns: Record<string, unknown> = {},
+) => {
 	const { rootId, statuses } = await seedProject(h.db);
 	const base = { projectId: rootId, rootId };
 	const column: string[] = [];
 	for (const position of positions) {
 		column.push(await seedTicket(h.db, { ...base, statusId: statuses.started, position }));
 	}
-	const x = await seedTicket(h.db, { ...base, statusId: statuses.todo, position: 1024, ...xOverrides });
+	const x = await seedTicket(h.db, { ...base, statusId: statuses.todo, position: 1024, ...xSeed }, xColumns);
 	return { rootId, statuses, column, x };
 };
 
@@ -107,7 +113,7 @@ describe("tickets.move", () => {
 	});
 
 	test("a move with a stale expectedVersion throws VERSION_CONFLICT", async () => {
-		const { statuses, x } = await seed([1024, 2048, 3072], { version: 3 });
+		const { statuses, x } = await seed([1024, 2048, 3072], {}, { version: 3 });
 		const data = await expectError(move({ ticket: x, status: "in-progress", expectedVersion: 2 }), "VERSION_CONFLICT");
 		expect(data.current).toMatchObject({ id: x, version: 3 });
 		expect((await ticketRow(h.db, x))!).toMatchObject({ status_id: statuses.todo, position: 1024, version: 3 });

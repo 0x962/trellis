@@ -38,7 +38,7 @@ describe("tickets.update", () => {
 		expect(row.title).toBe("Beta");
 		expect(row.version).toBe(2);
 		expect(at(row.updated_at)).toBeGreaterThan(hoursAgo(1).getTime());
-		expect(ticket).toMatchObject({ id, title: "Beta", version: 2, updatedAt: row.updated_at.toISOString() });
+		expect(ticket).toMatchObject({ id, title: "Beta", version: 2, updatedAt: new Date(row.updated_at).toISOString() });
 	});
 
 	test("update sets started_at on the first move out of todo", async () => {
