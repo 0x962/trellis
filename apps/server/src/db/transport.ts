@@ -12,6 +12,7 @@ import type { Db } from "./client.ts";
 import { createMaintenance } from "./maintenance.ts";
 import { pullStream } from "./pullStream.ts";
 import { type Emit, type Tx, withTx } from "./tx.ts";
+import { warmWrites } from "./warmWrites.ts";
 
 export { createWorkerTransport } from "./workerTransport.ts";
 
@@ -122,6 +123,7 @@ export const createInlineTransport = ({
 	let jobs: Jobs | null = null;
 	const start = async (options?: JobsStart) => {
 		await db.transaction((tx) => cache.rebuild(tx));
+		await warmWrites(db, cache);
 		const found = await db.execute(sql`SELECT DISTINCT sha256 FROM attachments`);
 		if (options !== undefined) {
 			const clock = scaledClock(options.clockRate);
