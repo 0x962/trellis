@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import { createEventApplier } from "@trellis/api";
-import { addSession, updateSession } from "../../../../test/agents";
+import userEvent from "@testing-library/user-event";
+import { addSession, enableAgents, failedSession, startReason, updateSession } from "../../../../test/agents";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
@@ -82,5 +83,30 @@ describe("ManagerStatus", () => {
 		expect(await within(await status()).findByText("Running")).toBeDefined();
 		createEventApplier(queryClient).applyEvent(updateSession(server, manager.id, { state: "exited" }));
 		await waitFor(async () => expect(within(await status()).getByText("Exited")).toBeDefined());
+	});
+
+	test("a failed manager reads Manager failed with the short reason and links the full error", async () => {
+		const server = createFakeServer();
+		const failed = failedSession(server, "manager");
+		await mount(server);
+		const group = within(await status());
+		expect(await group.findByText(`Manager failed: ${startReason}`)).toBeDefined();
+		expect(group.getByRole("link", { name: "Details" }).getAttribute("href")).toBe(`/agents#${failed.id}`);
+		expect(group.queryByText("Off")).toBeNull();
+	});
+
+	test("Retry starts the failed manager again, and the header follows it", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		await enableAgents(server);
+		failedSession(server, "manager");
+		await mount(server);
+		const group = within(await status());
+		await user.click(await group.findByRole("button", { name: "Retry" }));
+		await waitFor(() =>
+			expect(server.callsTo("agents.retryManager").map((call) => call.input)).toEqual([{ project: "CDE" }]),
+		);
+		expect(await group.findByText("Starting")).toBeDefined();
+		expect(group.queryByText(/Manager failed/)).toBeNull();
 	});
 });

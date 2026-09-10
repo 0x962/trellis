@@ -38,6 +38,13 @@ export type StubState = {
 	next: number;
 	// A command key such as "ws create" that exits 1 with this text on stderr.
 	failures: Record<string, string>;
+	// A command key that exits 1 with this text on stdout and nothing on
+	// stderr, as superset does for an error it prints as JSON.
+	stdoutFailures?: Record<string, string>;
+	// When true, `ws create` also runs the workspace setup script in a
+	// terminal of its own, listed before the command terminal, as Superset
+	// does for a project with a setup script. That terminal exits at once.
+	setupTerminal?: boolean;
 };
 
 const args = process.argv.slice(2);
@@ -65,12 +72,12 @@ const refuse = (message: string) => {
 
 const newId = (prefix: string) => `${prefix}-${state.next++}`;
 
-const addTerminal = (workspaceId: string, command: string | null) => {
+const addTerminal = (workspaceId: string, command: string | null, label = "Terminal") => {
 	const title = command === null ? "" : (/-n '([^']*)'/.exec(command)?.[1] ?? "");
 	const terminal: StubTerminal = {
 		terminalId: newId("t"),
 		workspaceId,
-		label: "Terminal",
+		label,
 		title,
 		command,
 		exited: false,
@@ -85,6 +92,12 @@ const terminalsIn = (workspaceId: string) => state.terminals.filter((terminal) =
 
 const failure = state.failures[key];
 if (failure !== undefined) refuse(failure);
+
+const stdoutFailure = state.stdoutFailures?.[key];
+if (stdoutFailure !== undefined) {
+	process.stdout.write(stdoutFailure);
+	process.exit(1);
+}
 
 if (key === "projects list") answer(state.projects);
 
@@ -103,8 +116,11 @@ if (key === "ws create") {
 		tag: flag("--tag")!.toLowerCase(),
 	};
 	state.workspaces.push(workspace);
-	const terminal = addTerminal(workspace.id, flag("--command"));
-	answer({ workspace, terminals: [{ terminalId: terminal.terminalId, label: terminal.label }], alreadyExists: false });
+	const setup = state.setupTerminal === true ? [addTerminal(workspace.id, "./.superset/setup.sh", "Workspace Setup")] : [];
+	for (const terminal of setup) terminal.exited = true;
+	const terminal = addTerminal(workspace.id, flag("--command"), "Command");
+	const listed = [...setup, terminal].map(({ terminalId, label }) => ({ terminalId, label }));
+	answer({ workspace, terminals: listed, alreadyExists: false });
 }
 
 if (key === "ws open") answer(`superset://workspace/${args[2]}\n`);

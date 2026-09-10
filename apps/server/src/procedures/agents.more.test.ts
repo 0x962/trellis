@@ -44,7 +44,7 @@ describe("agents.startBuilder refusals", () => {
 		expect(a.stub.calls()).toEqual([]);
 	});
 
-	test("a runner error answers RUNNER_UNAVAILABLE error, leaves no session, and does not count toward the limit", async () => {
+	test("a runner error answers RUNNER_UNAVAILABLE error, keeps a failed builder with the message, and does not count toward the limit", async () => {
 		await a.enable({ maxConcurrent: 1 });
 		await a.t.createTicket({ project: a.key, title: "Fix login" });
 		a.stub.update((state) => {
@@ -54,11 +54,18 @@ describe("agents.startBuilder refusals", () => {
 		expect(refused.status).toBe(503);
 		expect(refused.body).toMatchObject({ code: "RUNNER_UNAVAILABLE", data: { reason: "error" } });
 		expect(refused.body.message).toContain("Project not found: sp-web");
-		expect(await a.sessions(`project=${a.key}`)).toEqual([]);
+		const [failed] = await a.sessions(`project=${a.key}`);
+		expect(failed).toMatchObject({ role: "builder", state: "failed", workspaceId: null });
+		expect(failed!.error).toContain("Project not found: sp-web");
+		expect(a.sessionEvents().map((session) => session.state)).toEqual(["failed"]);
 		a.stub.update((state) => {
 			delete state.failures["ws create"];
 		});
 		expect((await start(a.ticket(1))).status).toBe(200);
+		const after = await a.sessions(`project=${a.key}`);
+		expect(after.map(({ id, state, error }) => ({ id, state, error }))).toEqual([
+			{ id: failed!.id, state: "starting", error: null },
+		]);
 	});
 
 	test("answers NOT_FOUND for a reviewer of a ticket without a builder workspace", async () => {

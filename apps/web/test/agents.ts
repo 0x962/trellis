@@ -42,12 +42,33 @@ export const addSession = (server: FakeServer, overrides: Partial<AgentSession> 
 		title: titles[overrides.role],
 		openUrl: "superset://workspace/ws-1",
 		lastWokenAt: null,
+		error: null,
 		createdAt: isoNow(),
 		...overrides,
 	};
 	server.state.agentSessions.set(session.id, session);
 	return session;
 };
+
+// The message the server stores when `superset ws create` refuses a base
+// branch that the repository does not have.
+export const startError =
+	"The agent runner cannot serve the request. superset ws create: fatal: invalid reference: main";
+
+// The short reason the web shows for `startError`.
+export const startReason = "superset ws create: fatal: invalid reference: main";
+
+// A manager or a builder whose start failed before the runner made a
+// workspace.
+export const failedSession = (server: FakeServer, role: "manager" | "builder") =>
+	addSession(server, {
+		role,
+		state: "failed",
+		workspaceId: null,
+		terminalId: null,
+		openUrl: null,
+		error: startError,
+	});
 
 // Changes one stored session and returns the event the server sends for it.
 export const updateSession = (server: FakeServer, id: string, patch: Partial<AgentSession>) => {

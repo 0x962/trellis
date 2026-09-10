@@ -3,6 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { ORPCError } from "@orpc/server";
 import { agentLaunch, resumeCommand } from "@trellis/api";
+import { gitRepo } from "../../test/helpers/gitRepo.ts";
 import { flagOf, type SupersetStubHandle, supersetStub } from "../../test/helpers/superset-stub.ts";
 import type { Runner } from "./runner.ts";
 import { createSupersetRunner } from "./supersetRunner.ts";
@@ -233,5 +234,58 @@ describe("isAlive, stop, removeWorkspace", () => {
 		await runner.removeWorkspace(started.workspaceId);
 		expect(stub.callsOf("ws delete")[0]).toEqual(["ws", "delete", started.workspaceId, "--local"]);
 		expect(stub.state().workspaces).toEqual([]);
+	});
+});
+
+describe("the agent's terminal", () => {
+	// For a project with a setup script, Superset lists the setup terminal
+	// first. That terminal exits when the script ends, so an agent recorded
+	// there reads as exited and gets a second Claude.
+	test("ensureManager and startBuilder take the Command terminal, never the Workspace Setup terminal", async () => {
+		stub.update((state) => {
+			state.setupTerminal = true;
+		});
+		const started = await runner.ensureManager(manager);
+		expect(stub.terminal(started.terminalId)).toMatchObject({ label: "Command", title: "CDE manager" });
+		const built = await runner.startBuilder(builder);
+		expect(stub.terminal(built.terminalId)).toMatchObject({ label: "Command", title: "CDE-42" });
+		expect(stub.state().terminals.filter((tab) => tab.label === "Workspace Setup")).toHaveLength(2);
+	});
+});
+
+describe("runner errors", () => {
+	test("an error superset prints on stdout reaches the message when stderr is empty", async () => {
+		stub.update((state) => {
+			state.stdoutFailures = { "ws create": '{"error":"fatal: invalid reference: main"}' };
+		});
+		const error = await runner.ensureManager(manager).then(
+			() => null,
+			(caught: unknown) => caught as Error,
+		);
+		expect(error!.message).toContain("superset ws create: ");
+		expect(error!.message).toContain("fatal: invalid reference: main");
+	});
+});
+
+describe("defaultBranch", () => {
+	test("reads origin/HEAD in the checkout of the Superset project, without refs/remotes/origin/", async () => {
+		const path = gitRepo("master");
+		stub.update((state) => {
+			state.projects[0]!.path = path;
+		});
+		expect(await runner.defaultBranch("sp-web")).toBe("master");
+	});
+
+	test("a checkout without origin/HEAD answers RUNNER_UNAVAILABLE error with the path in the message", async () => {
+		const path = gitRepo(null);
+		stub.update((state) => {
+			state.projects[0]!.path = path;
+		});
+		expect(await reasonOf(runner.defaultBranch("sp-web"))).toBe("error");
+		const error = await runner.defaultBranch("sp-web").then(
+			() => null,
+			(caught: unknown) => caught as Error,
+		);
+		expect(error!.message).toContain(path);
 	});
 });

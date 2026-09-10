@@ -55,9 +55,17 @@ const newSession = (
 	state: "starting",
 	openUrl: `superset://workspace/${fields.workspaceId}`,
 	lastWokenAt: null,
+	error: null,
 	createdAt: isoNow(),
 	...fields,
 });
+
+// A row written by a manager, a builder, or a reviewer that trellis runs.
+const isAgentAction = (row: State["activity"][number]) =>
+	row.actor.kind === "agent" && /^(manager|builder|reviewer)-/.test(row.actor.name);
+
+// The runner place of every manager the fake starts.
+const managerPlace = { workspaceId: "ws-manager", terminalId: "term-manager" };
 
 // The manager writes as `agent:manager-<key>`, and its own rows never reach
 // its inbox.
@@ -172,6 +180,42 @@ export const agents = {
 		requireRunner(state, root.id);
 		const manager = liveSession(state, "manager", (session) => session.projectId === root.id)!;
 		return store(context, { ...manager, lastWokenAt: isoNow() });
+	}),
+	// A failed or exited manager starts again in its own row.
+	retryManager: os.agents.retryManager.handler(({ context, input }) => {
+		const { state } = context;
+		const root = rootOf(state, requireProject(state, input.project));
+		requireRunner(state, root.id);
+		const manager = sessionsOf(state)
+			.filter((session) => session.projectId === root.id && session.role === "manager" && session.state !== "stopped")
+			.at(-1);
+		if (manager !== undefined) {
+			return store(context, {
+				...manager,
+				...managerPlace,
+				openUrl: `superset://workspace/${managerPlace.workspaceId}`,
+				state: "starting",
+				error: null,
+			});
+		}
+		return store(
+			context,
+			newSession({ projectId: root.id, ticketId: null, role: "manager", title: `${root.key} manager`, ...managerPlace }),
+		);
+	}),
+	overview: os.agents.overview.handler(({ context }) => {
+		const { state } = context;
+		const actions = state.activity
+			.filter(isAgentAction)
+			.sort((a, b) => b.id - a.id)
+			.slice(0, 50);
+		const ticketIds = new Set(actions.flatMap((row) => (row.ticketId === null ? [] : [row.ticketId])));
+		return {
+			sessions: sessionsOf(state),
+			actions,
+			tickets: [...ticketIds].map((id) => ({ id, identifier: identifierOf(state, state.tickets.get(id)!) })),
+			batches: [...state.agentBatches].sort((a, b) => b.at.localeCompare(a.at)),
+		};
 	}),
 	settings: os.agents.settings.handler(({ context }) => context.state.agentSettings),
 	setSettings: os.agents.setSettings.handler(({ context, input }) => {

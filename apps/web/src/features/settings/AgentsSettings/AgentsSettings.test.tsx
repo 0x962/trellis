@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AgentSettingsSetInput } from "@trellis/api";
 import { Toaster } from "@trellis/ui";
-import { projectRow, rootId } from "../../../../test/agents";
+import { failedSession, projectRow, rootId, startReason } from "../../../../test/agents";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
@@ -170,5 +170,28 @@ describe("AgentsSettings", () => {
 		expect(screen.getByRole("button", { name: "Retry" })).toBeDefined();
 		await waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("false"));
 		expect(server.state.agentSettings.enabled).toBe(false);
+	});
+
+	test("each project block shows its manager state beside the switch, and a failed manager its reason", async () => {
+		const server = createFakeServer();
+		failedSession(server, "manager");
+		render(server);
+		const group = within(await projectGroup("CDE"));
+		expect(await group.findByText("Failed")).toBeDefined();
+		expect(group.getByText(startReason)).toBeDefined();
+	});
+
+	test("the base branch shows the Superset project's default branch while the row has none, and a typed branch wins", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		server.state.runnerProjects = server.state.runnerProjects.map((project) => ({ ...project, defaultBranch: "master" }));
+		render(server);
+		const branch = within(await projectGroup("CDE")).getByRole("textbox", { name: "Base branch" }) as HTMLInputElement;
+		await waitFor(() => expect(branch.value).toBe("master"));
+		await user.click(branch);
+		await user.tab();
+		expect(saves(server)).toHaveLength(0);
+		await commit(user, branch, "develop");
+		await waitFor(() => expect(lastSave(server).projects[0]!.baseBranch).toBe("develop"));
 	});
 });

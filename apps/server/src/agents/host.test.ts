@@ -23,6 +23,7 @@ let stub: SupersetStubHandle;
 let clock: FakeTimerClock;
 let host: AgentsHost;
 let logs: string[];
+let logged: Array<{ msg: string; fields: Record<string, unknown> | undefined }>;
 const events: TrellisEvent[] = [];
 
 beforeEach(async () => {
@@ -32,6 +33,7 @@ beforeEach(async () => {
 	t = await createTestApp({ supersetBin: stub.bin });
 	clock = fakeTimerClock(new Date("2026-09-10T12:00:00.000Z"));
 	logs = [];
+	logged = [];
 	events.length = 0;
 	t.bus.subscribe(({ event }) => void events.push(event));
 });
@@ -42,7 +44,11 @@ afterEach(async () => {
 });
 
 const startHost = async () => {
-	host = (t.transport as InlineTransport).startAgents({ clock, log: (msg) => void logs.push(msg) });
+	const log = (msg: string, fields?: Record<string, unknown>) => {
+		logs.push(msg);
+		logged.push({ msg, fields });
+	};
+	host = (t.transport as InlineTransport).startAgents({ clock, log });
 	await host.start();
 	return host;
 };
@@ -228,5 +234,78 @@ describe("agents host", () => {
 		await clock.advance(10_000);
 		expect(sent()).toHaveLength(1);
 		expect(sent()[0]!.startsWith("trellis: 1 change in CDE")).toBe(true);
+	});
+});
+
+const failStart = () =>
+	stub.update((state) => {
+		state.failures["ws create"] = "fatal: invalid reference: main";
+	});
+
+const clearFailures = () =>
+	stub.update((state) => {
+		state.failures = {};
+	});
+
+describe("agents host failures", () => {
+	test("a manager start that fails keeps a failed manager with the superset message, logs it, and emits agents.session", async () => {
+		failStart();
+		const project = await enable();
+		await startHost();
+		const [manager] = await sessions();
+		expect(manager).toMatchObject({ projectId: project.id, role: "manager", state: "failed", workspaceId: null });
+		expect(manager!.error).toContain("superset ws create: fatal: invalid reference: main");
+		const line = logged.find((entry) => entry.msg === "agents manager failed");
+		expect(String(line?.fields?.error)).toContain("fatal: invalid reference: main");
+		const emitted = events.flatMap((event) => (event.type === "agents.session" ? [event.session.state] : []));
+		expect(emitted).toEqual(["failed"]);
+		expect(host.dispatcher.watched()).toEqual([project.id]);
+	});
+
+	test("a batch for a project without a running manager starts the manager once, and a second failure updates the failed row", async () => {
+		failStart();
+		await enable();
+		await startHost();
+		await t.createTicket({ project: "CDE", title: "Fix login" });
+		await clock.advance(10_000);
+		expect(stub.callsOf("ws create")).toHaveLength(2);
+		expect((await sessions()).map(({ state }) => state)).toEqual(["failed"]);
+		expect(JSON.stringify(logged)).not.toContain("No row matches");
+		expect(events.filter((event) => event.type === "agents.batch")).toEqual([]);
+	});
+
+	test("after the fix, the next batch starts the manager in the failed row", async () => {
+		failStart();
+		await enable();
+		await startHost();
+		const [failed] = await sessions();
+		clearFailures();
+		await t.createTicket({ project: "CDE", title: "Fix login" });
+		await clock.advance(10_000);
+		const all = await sessions();
+		expect(all).toHaveLength(1);
+		expect(all[0]).toMatchObject({ id: failed!.id, state: "starting", error: null });
+		expect(all[0]!.workspaceId).not.toBeNull();
+	});
+
+	test("every settings save starts the manager of each enabled project, so a save after a fix recovers", async () => {
+		failStart();
+		const project = await enable();
+		await startHost();
+		clearFailures();
+		await t.api("/api/agents/settings", { method: "PUT", body: settingsFor(project, true) });
+		await host.idle();
+		expect((await sessions()).map(({ state }) => state)).toEqual(["starting"]);
+	});
+
+	test("agents.overview lists the batches the dispatcher sent", async () => {
+		const project = await enable();
+		await startHost();
+		await t.createTicket({ project: "CDE", title: "Fix login" });
+		await clock.advance(10_000);
+		const overview = (await t.api("/api/agents/overview", { actor: null })).body;
+		expect(overview.batches).toEqual([
+			{ at: clock.now().toISOString(), projectId: project.id, count: 1, text: sent()[0] },
+		]);
 	});
 });
