@@ -174,6 +174,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		clock,
 		records,
 		runtime,
+		transport,
 		close,
 	};
 };
