@@ -24,6 +24,20 @@ const shown = () =>
 
 const waitForRows = () => waitFor(() => expect(shown().length).toBeGreaterThan(0));
 
+// The first page the list requests: the Active segment, sorted by Updated.
+const firstPage = () =>
+	server.client.tickets.list({ project: "CDE", category: ["todo", "started"], sort: "-updatedAt", limit: 25 });
+
+// Scrolls the list past its last row, so FlashList draws the rows at the end.
+const scrollToEnd = () =>
+	fireEvent.scroll(screen.getByTestId("ticket-list"), {
+		nativeEvent: {
+			contentOffset: { x: 0, y: 10_000 },
+			contentSize: { width: 400, height: 10_000 },
+			layoutMeasurement: { width: 400, height: 900 },
+		},
+	});
+
 const ticketRow = (identifier: string) => {
 	const number = Number(identifier.split("-")[1]);
 	const key = identifier.split("-")[0];
@@ -33,30 +47,36 @@ const ticketRow = (identifier: string) => {
 };
 
 describe("the ticket list", () => {
+	// The setup gives FlashList a 900 px viewport, so the list draws only the
+	// rows that fit. These rows are the top of the server's page, in order.
 	test("the list renders the server's page in the server's order", async () => {
-		const page = await server.client.tickets.list({
-			project: "CDE",
-			category: ["todo", "started"],
-			sort: "-updatedAt",
-			limit: 25,
-		});
+		const page = await firstPage();
 
 		renderWithClient(<ProjectTicketList project="CDE" />);
 		await waitForRows();
 
-		expect(shown()).toEqual(page.items.map((item) => item.identifier));
+		const drawn = shown();
+		expect(drawn.length).toBeLessThan(page.items.length);
+		expect(drawn).toEqual(page.items.slice(0, drawn.length).map((item) => item.identifier));
 	});
 
+	// A row of the next page is drawn only after a scroll to the list end.
 	test("the next page appends below the rows already shown", async () => {
+		const pageOne = new Set((await firstPage()).items.map((item) => item.identifier));
 		renderWithClient(<ProjectTicketList project="CDE" />);
 		await waitForRows();
 		const first = shown();
 
 		await fireEvent(screen.getByTestId("ticket-list"), "endReached");
-		await waitFor(() => expect(shown().length).toBeGreaterThan(first.length));
+		// The next page request carries the cursor of the first page.
+		await waitFor(() =>
+			expect(callsTo(server, "tickets.list").some((call) => "cursor" in (call.input as object))).toBe(true),
+		);
+		expect(shown()).toEqual(first);
 
+		await scrollToEnd();
+		await waitFor(() => expect(shown().some((identifier) => !pageOne.has(identifier))).toBe(true));
 		const all = shown();
-		expect(all.slice(0, first.length)).toEqual(first);
 		expect(new Set(all).size).toBe(all.length);
 	});
 
