@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	statSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { graphqlReply } from "../../../apps/server/test/fixtures/graphql.ts";
 import { type SpawnedServer, spawnServer, stopServer } from "../../../apps/server/test/helpers/server.ts";
@@ -215,23 +224,29 @@ describe("local installation files", () => {
 		"install writes the shim and plist idempotently",
 		async () => {
 			const prefix = tempDir("install-prefix");
+			// The first bun on PATH is a link outside Homebrew, the way the
+			// bun.sh installer puts bun in ~/.bun/bin.
+			const binDir = tempDir("bun-bin");
+			symlinkSync(process.execPath, join(binDir, "bun"));
+			const env = { PATH: `${binDir}:${process.env.PATH}` };
+			const shimText = `#!/bin/sh\nexec "${join(binDir, "bun")}" "${cliEntry}" "$@"\n`;
 			const args = ["install", "--prefix", prefix, "--no-launchd"];
-			const first = await runProcess(args);
+			const first = await runProcess(args, env);
 			expect(first.code, first.stderr).toBe(0);
 			expect(first.stdout).toContain("  trellis: 4521,");
 
 			const shim = join(prefix, ".local", "bin", "trellis");
 			const plist = join(prefix, "Library", "LaunchAgents", "com.trellis.server.plist");
-			expect(readFileSync(shim, "utf8")).toBe(`#!/bin/sh\nexec /opt/homebrew/bin/bun "${cliEntry}" "$@"\n`);
+			expect(readFileSync(shim, "utf8")).toBe(shimText);
 			expect(statSync(shim).mode & 0o111).not.toBe(0);
 			const plistText = readFileSync(plist, "utf8");
 			for (const value of ["RunAtLoad", "KeepAlive", "SuccessfulExit", "ThrottleInterval", "TRELLIS_WEB_DIST"]) {
 				expect(plistText).toContain(value);
 			}
 
-			const second = await runProcess(args);
+			const second = await runProcess(args, env);
 			expect(second.code, second.stderr).toBe(0);
-			expect(readFileSync(shim, "utf8")).toBe(`#!/bin/sh\nexec /opt/homebrew/bin/bun "${cliEntry}" "$@"\n`);
+			expect(readFileSync(shim, "utf8")).toBe(shimText);
 			expect(readFileSync(plist, "utf8")).toBe(plistText);
 		},
 		SMOKE_TIMEOUT_MS,
