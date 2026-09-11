@@ -98,6 +98,21 @@ describe("config", () => {
 		expect(loadConfig({ TRELLIS_HOST: "192.168.1.20" }).agentsUrl).toBe("http://192.168.1.20:4521");
 	});
 
+	// A brief link and a `trellis open` URL leave the browser, so they need an
+	// origin a reader can type. The gateway that serves another name is
+	// optional, and TRELLIS_PUBLIC_URL names it.
+	test("the public URL is the loopback address and the port until TRELLIS_PUBLIC_URL names another", () => {
+		expect(loadConfig({}).publicUrl).toBe("http://127.0.0.1:4521");
+		expect(loadConfig({ TRELLIS_PORT: "4600" }).publicUrl).toBe("http://127.0.0.1:4600");
+		expect(loadConfig({ TRELLIS_HOST: "0.0.0.0" }).publicUrl).toBe("http://127.0.0.1:4521");
+		expect(loadConfig({ TRELLIS_PUBLIC_URL: "http://trellis.example" }).publicUrl).toBe("http://trellis.example");
+	});
+
+	// `${publicUrl}/t/CDE-1` would hold two slashes after a trailing one.
+	test("the public URL drops a trailing slash", () => {
+		expect(loadConfig({ TRELLIS_PUBLIC_URL: "http://trellis.example/" }).publicUrl).toBe("http://trellis.example");
+	});
+
 	test("the jobs clock runs at the wall clock rate unless TRELLIS_CLOCK_RATE names another", () => {
 		expect(loadConfig({}).clockRate).toBe(1);
 		expect(loadConfig({ TRELLIS_CLOCK_RATE: "100" }).clockRate).toBe(100);

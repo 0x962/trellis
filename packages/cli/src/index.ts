@@ -51,6 +51,12 @@ export type Deps = {
 
 export const defaultUrl = "http://127.0.0.1:4521";
 
+// The origin of a ticket URL. TRELLIS_PUBLIC_URL names it when a gateway or a
+// proxy serves the server under another name; otherwise the server URL serves
+// the web app too. A trailing slash would double the slash in the path.
+export const publicOrigin = (env: Record<string, string | undefined>, url: string): string =>
+	(env.TRELLIS_PUBLIC_URL ?? url).replace(/\/+$/, "");
+
 const globalArgs = {
 	json: { type: "boolean", description: "Print the procedure output as JSON" },
 	jsonl: { type: "boolean", description: "Print one JSON object per line" },
@@ -218,6 +224,7 @@ export const run = async (argv: string[], deps: Deps): Promise<number> => {
 		format,
 		flags: { json: globals.json, jsonl: globals.jsonl, quiet: globals.quiet },
 		url: globals.url ?? deps.env.TRELLIS_URL ?? defaultUrl,
+		publicUrl: publicOrigin(deps.env, globals.url ?? deps.env.TRELLIS_URL ?? defaultUrl),
 		out: deps.stdout,
 		err: deps.stderr,
 		actor: () => {

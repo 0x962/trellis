@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { runCli } from "../../test/deps.ts";
+import { defaultEnv, runCli } from "../../test/deps.ts";
 
-const webUrl = "http://trellis.localhost/t/CDE-42";
+const webUrl = "http://127.0.0.1:4521/t/CDE-42";
 
 describe("open", () => {
 	// CLI-112
@@ -21,5 +21,14 @@ describe("open", () => {
 		expect(result.code).toBe(0);
 		expect(opened).toEqual([webUrl]);
 		expect(result.stdout).toBe(`${webUrl}\n`);
+	});
+
+	// A gateway or a proxy serves trellis under another name, and the ticket
+	// URL an agent pastes must name that one.
+	test("TRELLIS_PUBLIC_URL names the origin of the printed url", async () => {
+		const env = { ...defaultEnv, TRELLIS_PUBLIC_URL: "http://trellis.example/" };
+		const result = await runCli(["open", "cde-42"], {}, { env });
+		expect(result.code).toBe(0);
+		expect(result.stdout).toBe("http://trellis.example/t/CDE-42\n");
 	});
 });

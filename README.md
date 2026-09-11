@@ -54,7 +54,7 @@ trellis serve
 
 ## Daily use
 
-Open `http://trellis.localhost`. Without the gateway, open `http://127.0.0.1:4521`. On the first visit, the setup page asks for your name and your first project.
+Open `http://127.0.0.1:4521`. With the optional gateway, open `http://trellis.localhost`. On the first visit, the setup page asks for your name and your first project.
 
 Create a project and a ticket from the CLI:
 
@@ -119,7 +119,7 @@ Every write sends the header `x-trellis-actor: <human|agent>:<name>`. The CLI se
 
 ## Ticket workflow (trellis)
 
-Tickets live in trellis, a local tracker at http://trellis.localhost. Use the `trellis` CLI. When you pipe its output, it prints JSON.
+Tickets live in trellis, a local tracker at http://127.0.0.1:4521. Use the `trellis` CLI. When you pipe its output, it prints JSON.
 Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `TRELLIS_ACTOR=agent:<name>`.
 
 1. Pick work:        trellis list --project TRL --status todo
@@ -246,6 +246,8 @@ Read [SECURITY.md](SECURITY.md) for the full model and for how to report a vulne
 ## Data and backups
 
 trellis keeps all data in `~/.trellis`. To use a different directory, set `TRELLIS_HOME`. To use a port other than 4521, set `TRELLIS_PORT`.
+
+`trellis open` and every link in an agent brief start with `http://127.0.0.1:<port>`. When a gateway or a proxy serves trellis under another name, set `TRELLIS_PUBLIC_URL` to that origin, for example `TRELLIS_PUBLIC_URL=http://trellis.localhost`. The CLI reads the same variable.
 
 | Path | Content |
 |---|---|

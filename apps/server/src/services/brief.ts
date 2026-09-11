@@ -10,9 +10,9 @@ import { resolveTicket } from "./refs.ts";
 // keeps a stable order, so two reads of the same state give the same bytes
 // and an agent can parse the sections.
 
-// The origin the localhost gateway serves trellis at. Every link in a brief is
-// absolute, because the agent reads it outside a browser.
-export const BASE_URL = "http://trellis.localhost";
+// Every link in a brief is absolute, because the agent reads it outside a
+// browser. `ctx.publicUrl` carries the origin, which TRELLIS_PUBLIC_URL sets
+// and which defaults to the loopback address and the port of the server.
 
 export const BRIEF_COMMENT_LIMIT = 10;
 
@@ -52,7 +52,7 @@ export const branchName = (identifier: string, title: string) => {
 	return slug === "" ? identifier.toLowerCase() : `${identifier.toLowerCase()}-${slug}`;
 };
 
-const header = (ticket: Ticket, parentTitle: string | null) => {
+const header = (ticket: Ticket, parentTitle: string | null, publicUrl: string) => {
 	const lines = [
 		`# ${ticket.identifier}: ${ticket.title}`,
 		"",
@@ -62,7 +62,7 @@ const header = (ticket: Ticket, parentTitle: string | null) => {
 	];
 	if (ticket.parent !== null) lines.push(`- Parent: ${ticket.parent.identifier} ${parentTitle}`);
 	lines.push(`- Branch: ${branchName(ticket.identifier, ticket.title)}`);
-	lines.push(`- URL: ${BASE_URL}/t/${ticket.identifier}`);
+	lines.push(`- URL: ${publicUrl}/t/${ticket.identifier}`);
 	return lines;
 };
 
@@ -86,10 +86,10 @@ const pullRequests = (ticket: Ticket) => {
 	return lines;
 };
 
-const attachments = (ticket: Ticket) =>
+const attachments = (ticket: Ticket, publicUrl: string) =>
 	ticket.attachments.length === 0
 		? []
-		: ["## Attachments", "", ...ticket.attachments.map((file) => `- ${file.filename}: ${BASE_URL}${file.url}`)];
+		: ["## Attachments", "", ...ticket.attachments.map((file) => `- ${file.filename}: ${publicUrl}${file.url}`)];
 
 // One list item per comment; a body of several lines is indented under it.
 const comments = (list: BriefComment[]) => {
@@ -137,11 +137,11 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 					}
 				).title;
 	const markdown = sections([
-		header(ticket, parentTitle),
+		header(ticket, parentTitle, ctx.publicUrl),
 		["## Description", "", ticket.description],
 		subTickets(ticket),
 		pullRequests(ticket),
-		attachments(ticket),
+		attachments(ticket, ctx.publicUrl),
 		comments(await lastComments(tx, row.id)),
 		protocol(ticket.identifier),
 	]).join("\n\n");

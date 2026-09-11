@@ -25,11 +25,14 @@ export type RequestContext = {
 // actor row was written. `dropBlobs` queues the blob files of these hashes
 // for removal after the commit. A file that an attachment row still names
 // stays, and a rolled back transaction removes no file.
+// `publicUrl` is the origin of every absolute link a service writes, because
+// an agent reads a brief outside a browser.
 export type ServiceCtx = RequestContext & {
 	emit: Emit;
 	cache: ProjectCache;
 	actorCache: Map<string, number>;
 	dropBlobs: (shas: string[]) => void;
+	publicUrl: string;
 };
 
 export type CreateContextInput = {

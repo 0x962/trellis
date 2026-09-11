@@ -85,6 +85,7 @@ export const createInlineTransport = ({
 		dropBlobs: (shas: string[]) => {
 			tasks.push(() => gcAttachmentBlobs({ home: config.home, newTx }, shas).then(() => undefined));
 		},
+		publicUrl: config.publicUrl,
 	});
 
 	// An `io` read never writes the actor, so a request without the header

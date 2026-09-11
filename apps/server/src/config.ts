@@ -30,6 +30,11 @@ export type Config = {
 	// The trellis URL the agents talk to. It names this machine, because
 	// the runner starts every agent on this machine.
 	agentsUrl: string;
+	// The origin trellis puts in a link that leaves the browser: a ticket URL
+	// from `trellis open` and every link in an agent brief. It has no trailing
+	// slash. Set TRELLIS_PUBLIC_URL when a gateway or a proxy serves trellis
+	// under another name.
+	publicUrl: string;
 	dbDir: string;
 	attachmentsDir: string;
 	tmpDir: string;
@@ -79,6 +84,9 @@ const hostnamesOf = (value: string) =>
 // A server bound to every address answers on the loopback address too.
 const agentsHost = (host: string) => (host === "0.0.0.0" ? "127.0.0.1" : host);
 
+// A trailing slash would double the slash in `${publicUrl}/t/KEY-1`.
+const originOf = (value: string) => value.replace(/\/+$/, "");
+
 export const loadConfig = (env: Env): Config => {
 	const home = resolve(expandHome(env.TRELLIS_HOME ?? "~/.trellis"));
 	const host = env.TRELLIS_HOST ?? "127.0.0.1";
@@ -89,6 +97,8 @@ export const loadConfig = (env: Env): Config => {
 		allowedHosts: env.TRELLIS_ALLOWED_HOSTS === undefined ? [] : hostnamesOf(env.TRELLIS_ALLOWED_HOSTS),
 		port,
 		agentsUrl: `http://${agentsHost(host)}:${port}`,
+		publicUrl:
+			env.TRELLIS_PUBLIC_URL === undefined ? `http://${agentsHost(host)}:${port}` : originOf(env.TRELLIS_PUBLIC_URL),
 		maxUploadMb:
 			env.TRELLIS_MAX_UPLOAD_MB === undefined ? 50 : numberOf("TRELLIS_MAX_UPLOAD_MB", env.TRELLIS_MAX_UPLOAD_MB),
 		ghBin: env.TRELLIS_GH_BIN ?? "gh",

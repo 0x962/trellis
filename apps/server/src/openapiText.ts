@@ -6,10 +6,9 @@ export const ACTOR_HEADER_DESCRIPTION =
 
 export const ACTOR_HEADER_EXAMPLE = "agent:claude-code";
 
-export const SERVERS = [
-	{ url: "http://127.0.0.1:4521/api", description: "The local server" },
-	{ url: "http://trellis.localhost/api", description: "The same server through the localhost gateway" },
-];
+// The default address of the local server. A gateway or a proxy in front of it
+// serves the same API under the name TRELLIS_PUBLIC_URL carries.
+export const SERVERS = [{ url: "http://127.0.0.1:4521/api", description: "The local server" }];
 
 export const TAGS = [
 	{ name: "personas", description: "Saved personas. Each persona has a name and an instruction." },
@@ -107,7 +106,7 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /tickets/{ticket}/attachments": { file: "<the file bytes as one multipart part named file>", name: "shot.png" },
 	"POST /tickets/{ticket}/prs": { url: "https://github.com/acme/web/pull/12" },
 	"PUT /settings": {
-		defaultActorName: "navid",
+		defaultActorName: "dana",
 		stalledHours: 24,
 		diffUrlTemplate: "{url}/files",
 	},

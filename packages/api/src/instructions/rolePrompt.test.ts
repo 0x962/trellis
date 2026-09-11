@@ -117,12 +117,11 @@ describe("the builder prompt", () => {
 });
 
 describe("the reviewer prompt", () => {
-	test("runs /code-review on the PR and posts findings to margin, never GitHub", () => {
+	test("runs /code-review on the PR and posts every finding to the ticket, never GitHub", () => {
 		expectFragments(reviewer, [
 			"agent:reviewer-cde-42",
 			`/code-review ${pr}`,
-			"command -v margin",
-			`margin add ${pr} --path <file> --line <n> --author reviewer-cde-42 --body`,
+			"each with its file and its line number",
 			"Never post a finding as a GitHub comment.",
 		]);
 	});
