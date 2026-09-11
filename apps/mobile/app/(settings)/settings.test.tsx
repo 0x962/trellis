@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import * as Clipboard from "expo-clipboard";
 import { fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
-import { createMMKV } from "react-native-mmkv";
+import { store } from "../../src/lib/store";
 import { appContext } from "../../test/appContext";
 
 jest.mock("expo-clipboard", () => ({ setStringAsync: jest.fn(async () => true) }));
@@ -13,7 +13,6 @@ jest.mock("expo-constants", () => {
 	return { __esModule: true, ...actual, default: { ...actual.default, expoConfig: { version: "0.1.0" } } };
 });
 
-const store = createMMKV();
 const setStringAsync = jest.mocked(Clipboard.setStringAsync);
 
 const theme = (label: string) => screen.getByRole("radio", { name: label });

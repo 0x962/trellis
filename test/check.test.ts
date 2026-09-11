@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkTasks } from "../scripts/check";
 
@@ -31,10 +32,31 @@ const timingFiles: Record<string, string[]> = {
 };
 
 describe("bun run check", () => {
-	test("perf:10k runs alone after the parallel tasks", () => {
-		expect(checkTasks.full).toContain("perf:10k");
-		expect(checkTasks.serial).toEqual(["perf:10k"]);
-		expect(checkTasks.parallel).toEqual(checkTasks.full.filter((task) => task !== "perf:10k"));
+	test("check covers functional checks and leaves performance tests opt-in", async () => {
+		expect(checkTasks.full).toEqual(["lint", "typecheck", "test", "size-budget", "typecheck:repo", "test:repo"]);
+		const scripts = await scriptsOf(".");
+		expect(scripts["perf:10k"]).toBe("turbo run perf:10k --concurrency=1");
+	});
+
+	test("check forwards flags and the task exit code without a performance run", () => {
+		const bin = mkdtempSync(join(tmpdir(), "trellis-check-"));
+		writeFileSync(join(bin, "turbo"), `#!/bin/sh\nprintf '%s\\n' "$@"\nexit 7\n`, { mode: 0o755 });
+		const result = Bun.spawnSync([process.execPath, join(root, "scripts/check.ts"), "--force"], {
+			env: { ...process.env, PATH: bin, TRELLIS_CHECK_NESTED: "" },
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		expect(result.stdout.toString().trim().split("\n")).toEqual([
+			"run",
+			"lint",
+			"typecheck",
+			"test",
+			"size-budget",
+			"typecheck:repo",
+			"test:repo",
+			"--force",
+		]);
+		expect(result.exitCode).toBe(7);
 	});
 
 	test("every timing file runs in perf:10k and never in the test task of its workspace", async () => {

@@ -18,7 +18,11 @@ const byAction: Record<string, (item: Activity) => string> = {
 	"pr.unlinked": (item) => `removed the PR ${prShort(metaText(item, "url"))}`,
 	"attachment.created": (item) => `attached ${metaText(item, "filename")}`,
 	"attachment.deleted": (item) => `removed ${metaText(item, "filename")}`,
-	"comment.updated": () => "edited a comment",
+	"comment.updated": (item) => {
+		if (item.meta.resolved === true) return "resolved a comment thread";
+		if (item.meta.resolved === false) return "reopened a comment thread";
+		return "edited a comment";
+	},
 	"comment.deleted": () => "deleted a comment",
 };
 

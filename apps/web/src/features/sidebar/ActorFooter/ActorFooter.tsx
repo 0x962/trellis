@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ActorHeaderSchema } from "@trellis/api";
 import { Avatar, Button, IconButton, Input, Popover, toast } from "@trellis/ui";
-import { Bot, CircleHelp, Settings } from "lucide-react";
+import { CircleHelp, Settings } from "lucide-react";
 import { type FormEvent, useId, useState } from "react";
 import { useActor } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
@@ -14,7 +14,7 @@ import { openShortcutHelp } from "../../command/ShortcutHelp";
 const iconLinkClass =
 	"relative inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-fg-muted transition duration-hover ease-out hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 pointer-coarse:size-11";
 
-// The bottom of the sidebar: who you are, the settings, the agents, and the
+// The bottom of the sidebar: who you are, the settings, and the
 // keyboard help. The actor chip opens a rename popover; Enter stores the new name on
 // the server and in this browser.
 //
@@ -90,18 +90,13 @@ export function ActorFooter() {
 						<span
 							data-gh-warning=""
 							aria-hidden="true"
-							className="absolute top-1 right-1 size-1.5 rounded-full bg-warning"
+							className="absolute top-1 right-1 size-1.5 rounded-sm bg-warning"
 						/>
 						<span id={warningId} className="sr-only">
 							{ghCopy[gh.reason ?? "error"].line}
 						</span>
 					</>
 				)}
-			</Link>
-			<Link to="/agents" aria-label="Agents" className={iconLinkClass}>
-				<span aria-hidden="true" className="inline-flex size-3.5 *:size-full">
-					<Bot />
-				</span>
 			</Link>
 			<IconButton label="Keyboard shortcuts" icon={<CircleHelp />} onClick={openShortcutHelp} />
 		</div>

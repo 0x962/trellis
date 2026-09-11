@@ -184,12 +184,12 @@
 	--spacing: 4px;
 
 	--radius-*: initial;
-	--radius-sm: 4px;
-	--radius-md: 6px;
-	--radius-lg: 8px;
-	--radius-xl: 12px;
-	/* A hairline rounding for a 3 px priority bar and a ribbon segment. */
-	--radius-hairline: 1px;
+	--radius-sm: 0px;
+	--radius-md: 0px;
+	--radius-lg: 0px;
+	--radius-xl: 0px;
+	--radius-hairline: 0px;
+	--border-width-hairline: 1px;
 
 	--duration-hover: 120ms;
 	--duration-popover: 160ms;
@@ -228,6 +228,10 @@
 			background-position: -200% 0;
 		}
 	}
+}
+
+@utility min-w-peek {
+	min-width: 45vw;
 }
 
 /* Tailwind has no theme namespace for durations, so each one is a utility. */

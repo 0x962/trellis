@@ -54,16 +54,12 @@ export const materialize = async (ctx: ServiceCtx, tx: Tx, projectId: string) =>
 	await remapScope(ctx, tx, { projectId, toOwnerId: projectId });
 };
 
-// The set every root starts with, in position order. Todo is the default;
-// the two review statuses name who reviews. Each description tells the
-// manager agent what to do with a ticket in that status. The migration
-// 0006_status_descriptions writes the same texts onto the statuses of a
-// database that existed before the descriptions, so a text change here
-// needs a new data migration for existing projects.
+// Each root starts with these statuses in this order. Todo is the default.
+// The review statuses identify the reviewer. Each description explains the work in that status.
 const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "reviewer" | "color" | "isDefault">> = [
 	{
 		name: "Todo",
-		description: "New work. Read it, ask in a comment when it is unclear, then start a builder.",
+		description: "Work awaits its start. Clarify the requirements before work starts.",
 		category: "todo",
 		reviewer: null,
 		color: "fg-muted",
@@ -71,7 +67,7 @@ const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "revie
 	},
 	{
 		name: "In Progress",
-		description: "A builder works on this ticket. Forward each new comment to the builder.",
+		description: "Work on this ticket is in progress.",
 		category: "started",
 		reviewer: null,
 		color: "accent",
@@ -79,7 +75,7 @@ const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "revie
 	},
 	{
 		name: "Agent Review",
-		description: "A builder opened a PR. Run a reviewer.",
+		description: "The pull request awaits an agent review.",
 		category: "review",
 		reviewer: "agent",
 		color: "agent",
@@ -87,7 +83,7 @@ const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "revie
 	},
 	{
 		name: "Human Review",
-		description: "Waiting for the human reviewer. Do nothing unless they comment.",
+		description: "The pull request awaits a human review.",
 		category: "review",
 		reviewer: "human",
 		color: "warning",
@@ -95,7 +91,7 @@ const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "revie
 	},
 	{
 		name: "Done",
-		description: "The work is complete. Close the builder's workspace.",
+		description: "The work is complete.",
 		category: "done",
 		reviewer: null,
 		color: "success",
@@ -103,7 +99,7 @@ const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "revie
 	},
 	{
 		name: "Canceled",
-		description: "Nobody works on this ticket. Stop its builder and close its workspace.",
+		description: "Work on this ticket is canceled.",
 		category: "canceled",
 		reviewer: null,
 		color: "fg-faint",

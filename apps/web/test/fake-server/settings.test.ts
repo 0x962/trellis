@@ -7,7 +7,6 @@ describe("fake server settings", () => {
 	test("settings round-trip through set and get", async () => {
 		const server = createFakeServer();
 		const settings = SettingsSchema.parse(await server.client.settings.get());
-		expect(settings.startWithAgentTemplate).toContain("{brief}");
 		expect(settings.stalledHours).toBe(24);
 		expect(settings.defaultActorName).toBe("navid");
 		const changed = await server.client.settings.set({ ...settings, stalledHours: 48 });

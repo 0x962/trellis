@@ -13,6 +13,8 @@ const exitCodes: Record<ErrorCode, number> = {
 	AGENT_CANNOT_DELETE: 4,
 	NOT_FOUND: 3,
 	DUPLICATE: 4,
+	COMMENT_HAS_REPLIES: 4,
+	COMMENT_PARENT_MISMATCH: 4,
 	KEY_LOCKED: 4,
 	STATUS_NOT_IN_PROJECT: 4,
 	STATUS_IN_USE: 4,
@@ -27,8 +29,6 @@ const exitCodes: Record<ErrorCode, number> = {
 	VERSION_CONFLICT: 4,
 	PAYLOAD_TOO_LARGE: 4,
 	GH_UNAVAILABLE: 6,
-	CONCURRENCY_LIMIT: 4,
-	RUNNER_UNAVAILABLE: 6,
 };
 
 // An error the contract does not declare comes from a crashed handler, so it
@@ -97,10 +97,7 @@ const detail = (code: string, message: string, data: Data): string => {
 		case "PAYLOAD_TOO_LARGE":
 			return `${message} The limit is ${data.maxBytes} bytes.`;
 		case "GH_UNAVAILABLE":
-		case "RUNNER_UNAVAILABLE":
 			return `${message} Reason: ${data.reason}.`;
-		case "CONCURRENCY_LIMIT":
-			return `${message} ${data.running} of ${data.limit} builders are running.`;
 		case "INPUT_VALIDATION_FAILED": {
 			const issues = data.issues as Array<{ path?: Array<string | number>; message: string }>;
 			return `${message} ${issues.map((issue) => `${(issue.path ?? []).join(".")}: ${issue.message}`).join("; ")}`;

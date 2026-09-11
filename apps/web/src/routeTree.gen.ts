@@ -11,12 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GalleryRouteImport } from './routes/[_]gallery'
-import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AllRouteRouteImport } from './routes/all/route'
 import { Route as NeedsYouRouteRouteImport } from './routes/needs-you/route'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SetupRouteImport } from './routes/setup'
+import { Route as AiPersonasRouteImport } from './routes/ai.personas'
 import { Route as AllTableRouteImport } from './routes/all_.table'
 import { Route as PSplatRouteRouteImport } from './routes/p/$/route'
 import { Route as TIdentifierRouteRouteImport } from './routes/t/$identifier/route'
@@ -29,11 +29,6 @@ const IndexRoute = IndexRouteImport.update({
 const GalleryRoute = GalleryRouteImport.update({
   id: '/_gallery',
   path: '/_gallery',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgentsRoute = AgentsRouteImport.update({
-  id: '/agents',
-  path: '/agents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AllRouteRoute = AllRouteRouteImport.update({
@@ -61,6 +56,11 @@ const SetupRoute = SetupRouteImport.update({
   path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AiPersonasRoute = AiPersonasRouteImport.update({
+  id: '/ai/personas',
+  path: '/ai/personas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AllTableRoute = AllTableRouteImport.update({
   id: '/all_/table',
   path: '/all/table',
@@ -82,12 +82,12 @@ export interface FileRoutesByFullPath {
   '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
-  '/agents': typeof AgentsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
+  '/ai/personas': typeof AiPersonasRoute
   '/all/table': typeof AllTableRoute
 }
 export interface FileRoutesByTo {
@@ -95,12 +95,12 @@ export interface FileRoutesByTo {
   '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
-  '/agents': typeof AgentsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
+  '/ai/personas': typeof AiPersonasRoute
   '/all/table': typeof AllTableRoute
 }
 export interface FileRoutesById {
@@ -109,12 +109,12 @@ export interface FileRoutesById {
   '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
-  '/agents': typeof AgentsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
+  '/ai/personas': typeof AiPersonasRoute
   '/all_/table': typeof AllTableRoute
 }
 export interface FileRouteTypes {
@@ -124,12 +124,12 @@ export interface FileRouteTypes {
     | '/all'
     | '/needs-you'
     | '/_gallery'
-    | '/agents'
     | '/search'
     | '/settings'
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
+    | '/ai/personas'
     | '/all/table'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -137,12 +137,12 @@ export interface FileRouteTypes {
     | '/all'
     | '/needs-you'
     | '/_gallery'
-    | '/agents'
     | '/search'
     | '/settings'
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
+    | '/ai/personas'
     | '/all/table'
   id:
     | '__root__'
@@ -150,12 +150,12 @@ export interface FileRouteTypes {
     | '/all'
     | '/needs-you'
     | '/_gallery'
-    | '/agents'
     | '/search'
     | '/settings'
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
+    | '/ai/personas'
     | '/all_/table'
   fileRoutesById: FileRoutesById
 }
@@ -164,12 +164,12 @@ export interface RootRouteChildren {
   AllRouteRoute: typeof AllRouteRoute
   NeedsYouRouteRoute: typeof NeedsYouRouteRoute
   GalleryRoute: typeof GalleryRoute
-  AgentsRoute: typeof AgentsRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SetupRoute: typeof SetupRoute
   PSplatRouteRoute: typeof PSplatRouteRoute
   TIdentifierRouteRoute: typeof TIdentifierRouteRoute
+  AiPersonasRoute: typeof AiPersonasRoute
   AllTableRoute: typeof AllTableRoute
 }
 
@@ -187,13 +187,6 @@ declare module '@tanstack/react-router' {
       path: '/_gallery'
       fullPath: '/_gallery'
       preLoaderRoute: typeof GalleryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agents': {
-      id: '/agents'
-      path: '/agents'
-      fullPath: '/agents'
-      preLoaderRoute: typeof AgentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/all': {
@@ -231,6 +224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ai/personas': {
+      id: '/ai/personas'
+      path: '/ai/personas'
+      fullPath: '/ai/personas'
+      preLoaderRoute: typeof AiPersonasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/all_/table': {
       id: '/all_/table'
       path: '/all/table'
@@ -260,12 +260,12 @@ const rootRouteChildren: RootRouteChildren = {
   AllRouteRoute: AllRouteRoute,
   NeedsYouRouteRoute: NeedsYouRouteRoute,
   GalleryRoute: GalleryRoute,
-  AgentsRoute: AgentsRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SetupRoute: SetupRoute,
   PSplatRouteRoute: PSplatRouteRoute,
   TIdentifierRouteRoute: TIdentifierRouteRoute,
+  AiPersonasRoute: AiPersonasRoute,
   AllTableRoute: AllTableRoute,
 }
 export const routeTree = rootRouteImport

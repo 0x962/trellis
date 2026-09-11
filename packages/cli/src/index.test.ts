@@ -16,6 +16,7 @@ const verbs = [
 	"move",
 	"comment",
 	"comments",
+	"thread",
 	"attach",
 	"attachments",
 	"pr",
@@ -37,7 +38,6 @@ const verbs = [
 	"backup",
 	"restore",
 	"export",
-	"agents",
 ];
 
 const listPage = { items: [ticketSummary()], nextCursor: null };

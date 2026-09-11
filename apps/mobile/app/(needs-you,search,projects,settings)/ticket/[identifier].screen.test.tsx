@@ -1,23 +1,25 @@
-import { beforeEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import type { Status, StatusSummary, Ticket } from "@trellis/api";
 import { router } from "expo-router";
-import { act, renderRouter, screen, waitFor, within } from "expo-router/testing-library";
-import { appContext } from "../../../test/appContext";
-import { type FakeApp, installFakeApp } from "../../../test/fakeApp";
+import { act, screen, waitFor, within } from "expo-router/testing-library";
+import { connect } from "../../../test/connect";
 import { ulid } from "../../../test/fixtures";
 import { instances } from "../../../test/mocks/react-native-sse";
+import type { Recorder } from "../../../test/record";
+import { renderRoute } from "../../../test/renderRoute";
+import { refreshPr } from "../../../test/seed";
+import { agent, human, seeder } from "../../../test/server";
+import { prSeed, seedTicketScreen, type TicketData, title } from "../../../test/ticket";
 
-let app: FakeApp;
+let data: TicketData;
+let net: Recorder;
 const tabs = ["Needs you", "Search", "Projects", "Settings"];
 
 // The tab item's role is `button` on iOS and `tab` elsewhere.
 const tabRole = /^(button|tab)$/;
 
-const title = "Restore the fork pages after the upstream 1.27 merge";
-
-const openTicket = async (identifier = "CDE-42") => {
-	const view = renderRouter(appContext(), { initialUrl: `/ticket/${identifier}` });
-	await view;
+const openTicket = async (identifier = data.ticket) => {
+	const view = await renderRoute(`/ticket/${identifier}`);
 	await screen.findByText(title);
 	return view;
 };
@@ -25,9 +27,10 @@ const openTicket = async (identifier = "CDE-42") => {
 const statusRow = () => screen.getByRole("button", { name: "Status" });
 const priorityRow = () => screen.getByRole("button", { name: "Priority" });
 
-// The `tickets.get` calls for CDE-42. The parent's detail is another call.
+// The `tickets.get` calls for the ticket on screen. The parent's detail is
+// another call.
 const detailCalls = () =>
-	app.callsTo("tickets.get").filter((call) => (call.input as { ticket: string }).ticket.toUpperCase() === "CDE-42");
+	net.callsTo("tickets.get").filter((call) => (call.input as { ticket: string }).ticket.toUpperCase() === data.ticket);
 
 // The summary a `ticket.updated` event carries, from the detail the server
 // holds, one version up.
@@ -46,31 +49,34 @@ const statusSummary = ({ id, slug, name, category, reviewer, color }: Status): S
 });
 
 // Delivers one server event over the open stream, the way the server does.
-const emit = async (type: string, data: unknown) => {
+const emit = async (type: string, payload: unknown) => {
 	const stream = instances.at(-1)!;
 	await act(async () => {
-		stream.emit(type, JSON.stringify(data));
+		stream.emit(type, JSON.stringify(payload));
 	});
 };
 
 describe("the ticket route", () => {
-	beforeEach(() => {
-		app = installFakeApp();
+	beforeEach(async () => {
+		data = await seedTicketScreen(seeder);
+		net = connect();
 	});
 
+	afterEach(() => net.restore());
+
 	// O21.
-	test("renders every section of CDE-42", async () => {
+	test("renders every section of the ticket", async () => {
 		await openTicket();
-		expect(screen.getByRole("button", { name: "Approve" })).toBeOnTheScreen();
+		expect(await screen.findByRole("button", { name: "Approve" })).toBeOnTheScreen();
 		expect(screen.getByRole("button", { name: "Send back" })).toBeOnTheScreen();
 		expect(within(statusRow()).getByText("Human Review")).toBeOnTheScreen();
 		expect(within(priorityRow()).getByText("High")).toBeOnTheScreen();
 		expect(screen.getByText("CDE.web")).toBeOnTheScreen();
-		expect(screen.getByText("CDE-43")).toBeOnTheScreen();
-		expect(screen.getByText(/The upstream 1\.27 merge dropped the five fork pages/)).toBeOnTheScreen();
-		expect(screen.getByText("CDE-48")).toBeOnTheScreen();
+		expect(screen.getByText(data.parent)).toBeOnTheScreen();
+		expect(screen.getByText(/The build upgrade dropped five settings pages/)).toBeOnTheScreen();
+		expect(screen.getByText(data.children[0]!)).toBeOnTheScreen();
 		expect(screen.getByText("2 of 3")).toBeOnTheScreen();
-		expect(screen.getByText("canary-technologies-corp/de #118")).toBeOnTheScreen();
+		expect(screen.getByText("acme/web #118")).toBeOnTheScreen();
 		expect(screen.getByLabelText("4 pass")).toBeOnTheScreen();
 		expect(screen.getByTestId("attachment-image")).toBeOnTheScreen();
 		expect(await screen.findByText("Typecheck and tests are green on the PR. Ready for a look.")).toBeOnTheScreen();
@@ -86,7 +92,7 @@ describe("the ticket route", () => {
 		const list = screen.getByTestId("ticket-timeline");
 		expect(list.type).toBe("RCTScrollView");
 		expect(within(list).getByText(title)).toBeOnTheScreen();
-		expect(within(list).getByText("canary-technologies-corp/de #118")).toBeOnTheScreen();
+		expect(within(list).getByText("acme/web #118")).toBeOnTheScreen();
 		const rows = within(list).getAllByTestId("activity-row");
 		expect(rows.length).toBeGreaterThan(0);
 		for (const row of rows) expect(row).toHaveStyle({ height: 32 });
@@ -94,8 +100,8 @@ describe("the ticket route", () => {
 
 	// O23. The event patches the cached detail; nothing refetches it.
 	test("a ticket.updated event patches the header without a second fetch", async () => {
-		const detail = await app.server.client.tickets.get({ ticket: "CDE-42" });
-		const { statuses } = await app.server.client.statuses.list({ project: detail.project.id });
+		const detail = await human.tickets.get({ ticket: data.ticket });
+		const { statuses } = await human.statuses.list({ project: detail.project.id });
 		const inProgress = statuses.find((status) => status.slug === "in-progress")!;
 		await openTicket();
 		expect(detailCalls()).toHaveLength(1);
@@ -105,50 +111,49 @@ describe("the ticket route", () => {
 		expect(within(priorityRow()).getByText("Urgent")).toBeOnTheScreen();
 		// The applier refetches the timeline after a ticket event, so a second
 		// timeline call proves the coalescer flushed while the detail stayed.
-		await waitFor(() => expect(app.callsTo("timeline.list").length).toBeGreaterThan(1), { timeout: 2_000 });
+		await waitFor(() => expect(net.callsTo("timeline.list").length).toBeGreaterThan(1), { timeout: 2_000 });
 		expect(detailCalls()).toHaveLength(1);
 	});
 
 	// O24.
 	test("a description event shows the text updating hint until the refetch", async () => {
-		const detail = await app.server.client.tickets.get({ ticket: "CDE-42" });
+		const detail = await human.tickets.get({ ticket: data.ticket });
 		await openTicket();
 		await emit("ticket.updated", { summary: summaryOf(detail), fields: ["description"], batchId: ulid });
 		expect(await screen.findByText("Text updating")).toBeOnTheScreen();
-		expect(screen.getByText(/The upstream 1\.27 merge dropped the five fork pages/)).toBeOnTheScreen();
+		expect(screen.getByText(/The build upgrade dropped five settings pages/)).toBeOnTheScreen();
 		await waitFor(() => expect(screen.queryByText("Text updating")).toBeNull(), { timeout: 2_000 });
 		expect(detailCalls()).toHaveLength(2);
-		expect(screen.getByText(/The upstream 1\.27 merge dropped the five fork pages/)).toBeOnTheScreen();
+		expect(screen.getByText(/The build upgrade dropped five settings pages/)).toBeOnTheScreen();
 	});
 
 	// O25.
 	test("a comment.created event adds the comment to the timeline", async () => {
-		const detail = await app.server.client.tickets.get({ ticket: "CDE-42" });
+		const detail = await human.tickets.get({ ticket: data.ticket });
 		await openTicket();
 		await screen.findByText("Typecheck and tests are green on the PR. Ready for a look.");
-		const comment = await app.server
-			.clientAs("agent:claude-code")
-			.comments.create({ ticket: "CDE-42", body: "New from the stream" });
+		const comment = await agent.comments.create({ ticket: data.ticket, body: "New from the stream" });
 		await emit("comment.created", { id: comment.id, ticketId: detail.id });
 		expect(await screen.findByText("New from the stream", {}, { timeout: 2_000 })).toBeOnTheScreen();
 	});
 
 	// O26.
 	test("a pr.updated event refreshes the check counts on the card", async () => {
-		const detail = await app.server.client.tickets.get({ ticket: "CDE-42" });
+		const detail = await human.tickets.get({ ticket: data.ticket });
 		await openTicket();
 		expect(screen.getByLabelText("4 pass")).toBeOnTheScreen();
-		const pr = [...app.server.state.prs.values()].find((row) => row.number === 118)!;
-		pr.checks[1]!.bucket = "fail";
-		pr.ciState = "fail";
-		await emit("pr.updated", { id: pr.id, ticketIds: [detail.id], state: "open", ciState: "fail" });
+		const checks = prSeed.checks.map((check, index) =>
+			index === 1 ? { ...check, conclusion: "FAILURE" as const } : check,
+		);
+		await refreshPr(seeder, data.pr.id, { ...prSeed, checks });
+		await emit("pr.updated", { id: data.pr.id, ticketIds: [detail.id], state: "open", ciState: "fail" });
 		expect(await screen.findByLabelText("3 pass · 1 fail", {}, { timeout: 2_000 })).toBeOnTheScreen();
 		expect(screen.queryByLabelText("4 pass")).toBeNull();
 	});
 
 	// O27.
 	test("an unknown identifier says the ticket does not exist", async () => {
-		await renderRouter(appContext(), { initialUrl: "/ticket/CDE-999" });
+		await renderRoute("/ticket/CDE-999");
 		expect(await screen.findByText(/CDE-999 does not exist/)).toBeOnTheScreen();
 		expect(screen.queryByLabelText("Add a comment")).toBeNull();
 	});
@@ -156,14 +161,13 @@ describe("the ticket route", () => {
 	// O28. The ticket is a push over the tab the person came from: the header
 	// carries the identifier and a back control, and the tab bar stays.
 	test("the ticket route pushes a stack screen titled by the identifier", async () => {
-		const view = renderRouter(appContext(), { initialUrl: "/" });
-		await view;
+		const view = await renderRoute("/");
 		await act(async () => {
-			router.push("/ticket/CDE-42");
+			router.push(`/ticket/${data.ticket}`);
 		});
-		expect(view.getPathname()).toBe("/ticket/CDE-42");
+		expect(view.getPathname()).toBe(`/ticket/${data.ticket}`);
 		expect(router.canGoBack()).toBe(true);
-		expect(screen.getByRole("header", { name: "CDE-42" })).toBeOnTheScreen();
+		expect(screen.getByRole("header", { name: data.ticket })).toBeOnTheScreen();
 		expect(screen.getByLabelText(/back/i)).toBeOnTheScreen();
 		for (const label of tabs) {
 			expect(screen.getByRole(tabRole, { name: label })).toBeOnTheScreen();

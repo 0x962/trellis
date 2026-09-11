@@ -11,7 +11,7 @@ const renderRow = (props: Partial<SwipeRowProps> = {}) =>
 	render(
 		<GestureHandlerRootView>
 			<SwipeRow identifier="CDE-42" {...props}>
-				<Text>Restore the fork pages</Text>
+				<Text>Restore the settings pages</Text>
 			</SwipeRow>
 		</GestureHandlerRootView>,
 	);
@@ -61,7 +61,7 @@ describe("SwipeRow", () => {
 		await act(() => swipeLeft("CDE-42"));
 		expect(screen.queryByText("Approve")).toBeNull();
 		expect(screen.queryByText("Send back")).toBeNull();
-		expect(screen.getByText("Restore the fork pages")).toBeOnTheScreen();
+		expect(screen.getByText("Restore the settings pages")).toBeOnTheScreen();
 	});
 
 	// MI-31. The sweep is 200 ms; reduce motion makes it instant.

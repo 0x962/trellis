@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react-native";
 import { ticket } from "../../../test/fixtures";
 import { PropertyGrid } from "./PropertyGrid";
 
-const parentTitle = "Merge upstream 1.27 and keep every marked site";
+const parentTitle = "Update the shared build configuration";
 
 describe("PropertyGrid", () => {
 	// O29. CDE-42 as the ticket screen shows it.

@@ -9,6 +9,24 @@ const text = (relativePath: string) => Bun.file(join(root, relativePath)).text()
 
 const exactPin = /^\d+\.\d+\.\d+$/;
 
+// Where bun put one dependency: beside the workspace when a version conflict
+// nested it, at the root of the monorepo otherwise.
+const packageDir = (name: string) => {
+	const nested = join(root, "node_modules", name);
+	return existsSync(nested) ? nested : join(root, "..", "..", "node_modules", name);
+};
+
+// A package ships native code when it carries a podspec, an Expo module
+// config, or an ios or android directory. Such a package needs a binary that
+// the app was built with, and Expo Go is a binary nobody rebuilds.
+const shipsNativeCode = (name: string) => {
+	const dir = packageDir(name);
+	if (!existsSync(dir)) return false;
+	if (existsSync(join(dir, "expo-module.config.json"))) return true;
+	if (readdirSync(dir).some((entry) => entry.endsWith(".podspec"))) return true;
+	return existsSync(join(dir, "ios")) || existsSync(join(dir, "android"));
+};
+
 // The folders directly under one directory, as paths from the workspace root.
 const moduleDirs = (dir: string) =>
 	readdirSync(join(root, dir))
@@ -66,12 +84,48 @@ describe("scaffold", () => {
 		);
 		expect(loose).toEqual([]);
 		expect(versions.expo).toStartWith("57.");
-		expect(versions["react-native"]).toStartWith("0.87.");
 		expect(versions.nativewind).toStartWith("4.");
 		expect(versions["@shopify/flash-list"]).toStartWith("2.");
-		for (const name of ["react-native-mmkv", "react-native-sse", "expo-image", "expo-haptics"]) {
+		for (const name of ["expo-sqlite", "react-native-sse", "expo-image", "expo-haptics"]) {
 			expect(versions).toHaveProperty(name);
 		}
+	});
+
+	// Expo Go is one prebuilt binary per SDK. It holds the native code of the
+	// modules that expo's bundledNativeModules.json names and nothing else, so
+	// a dependency with native code of its own has to sit in that list at a
+	// version the list takes. A dependency outside the list has no binary in
+	// Expo Go, and the app crashes the moment it calls into that module.
+	//
+	// `expo` itself names the SDK instead of a module in it, and the test
+	// above pins it to 57, the SDK the installed Expo Go builds hold.
+	test("every dependency with native code is a module Expo Go ships, at a version it ships", async () => {
+		const { dependencies } = (await json("package.json")) as { dependencies: Record<string, string> };
+		const bundled = (await json("../../node_modules/expo/bundledNativeModules.json")) as Record<string, string>;
+		const native = Object.entries(dependencies).filter(([name]) => name !== "expo" && shipsNativeCode(name));
+		expect(native.length).toBeGreaterThan(5);
+		const unshipped = native.filter(([name]) => !(name in bundled)).map(([name, version]) => `${name}@${version}`);
+		expect(unshipped).toEqual([]);
+		const mismatched = native
+			.filter(([name, version]) => !Bun.semver.satisfies(version, bundled[name]!))
+			.map(([name, version]) => `${name}@${version} wants ${bundled[name]}`);
+		expect(mismatched).toEqual([]);
+	});
+
+	// The app keeps the server URL, the name, the theme, and the query cache
+	// in expo-sqlite/kv-store, whose synchronous API Expo Go ships. A Nitro
+	// module such as react-native-mmkv has no binary in Expo Go.
+	test("the key-value store is expo-sqlite and no Nitro module is a dependency", async () => {
+		const pkg = await json("package.json");
+		const versions = { ...pkg.dependencies, ...pkg.devDependencies } as Record<string, string>;
+		expect(versions["expo-sqlite"]).toMatch(exactPin);
+		for (const name of ["react-native-mmkv", "react-native-nitro-modules"]) {
+			expect(versions).not.toHaveProperty(name);
+		}
+		const files = sourceFiles();
+		const sources = await Promise.all(files.map((file) => text(file)));
+		const banned = /(from|require\()\s*"react-native-(mmkv|nitro-modules)"/;
+		expect(files.filter((_, index) => banned.test(sources[index]!))).toEqual([]);
 	});
 
 	// O57. The maintained fork of react-native-markdown-display renders the

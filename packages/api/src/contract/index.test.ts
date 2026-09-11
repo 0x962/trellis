@@ -30,18 +30,6 @@ describe("contract", () => {
 		expect(table).toEqual([
 			"actors.default GET /actors/default",
 			"actors.list GET /actors",
-			"agents.inbox POST /agents/inbox",
-			"agents.overview GET /agents/overview",
-			"agents.register POST /agents/register",
-			"agents.retryManager POST /agents/manager/retry",
-			"agents.runnerProjects GET /agents/runner-projects",
-			"agents.sessions GET /agents/sessions",
-			"agents.setSettings PUT /agents/settings",
-			"agents.settings GET /agents/settings",
-			"agents.startBuilder POST /agents/builder",
-			"agents.startReviewer POST /agents/reviewer",
-			"agents.stop POST /agents/sessions/{id}/stop",
-			"agents.wake POST /agents/wake",
 			"attachments.delete DELETE /attachments/{id}",
 			"attachments.get GET /attachments/{id}",
 			"attachments.list GET /tickets/{ticket}/attachments",
@@ -49,8 +37,13 @@ describe("contract", () => {
 			"brief.get GET /tickets/{ticket}/brief",
 			"comments.create POST /tickets/{ticket}/comments",
 			"comments.delete DELETE /comments/{id}",
+			"comments.resolve POST /comments/{id}/resolve",
+			"comments.thread GET /comments/{id}/thread",
 			"comments.update PATCH /comments/{id}",
 			"inbox.get GET /inbox",
+			"personas.create POST /personas",
+			"personas.list GET /personas",
+			"personas.update PATCH /personas/{id}",
 			"projects.create POST /projects",
 			"projects.delete DELETE /projects/{project}",
 			"projects.get GET /projects/{project}",
@@ -87,7 +80,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(58);
+		expect(table).toHaveLength(51);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

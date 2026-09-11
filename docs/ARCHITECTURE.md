@@ -52,6 +52,13 @@ five files. The port is 4521 (`TRELLIS_PORT`) and the host is `127.0.0.1`
 
 ## Domain rules
 
+Personas are local records shared across projects. Each persona has a name and
+an instruction. The AI section of the sidebar opens the Personas page, with
+forms to create and edit these records. The API exposes `personas.list`,
+`personas.create`, and `personas.update`. The `personas.changed` event
+invalidates the cached persona list after a committed mutation.
+The [Personas spec](design/personas.md) defines the fields and outcomes.
+
 - Projects form a tree. A root has a key (`^[A-Z][A-Z0-9]{1,9}$`) and a ticket counter. Tickets are `KEY-n` across the whole tree.
 - Ticket numbers are never reused. A delete leaves a gap. A key is immutable once the counter is above zero (`KEY_LOCKED`).
 - Nothing moves across roots: no ticket, no parent, no sub-project (`CROSS_ROOT_MOVE`). A ticket or a project cannot be its own ancestor (`PARENT_CYCLE`).
@@ -338,9 +345,9 @@ superseded one on both sides.
 The budgets are for the reference machine against a deterministic seed in
 `apps/server/test/perf/seed.ts`. The seed writes N tickets across 3 roots and 8
 projects per root, with 10 activity rows and 2 comments per ticket, 2 KB
-descriptions, and 40 open pull requests. `bun run check` runs the 10k seed, and
-`bun run perf` runs the 50k seed. `TRELLIS_PERF_FACTOR` scales every budget, and
-CI sets 2.5.
+descriptions, and 40 open pull requests. `bun run perf:10k` runs the 10k seed, and
+`bun run perf` runs the 50k seed. Performance tests are optional.
+`TRELLIS_PERF_FACTOR` scales every budget.
 
 | metric | target | test |
 |---|---|---|
@@ -429,7 +436,7 @@ size budget script is in `apps/web/scripts/`.
 | contract | `apps/server/src/procedures/*.test.ts` | `bun test`, an oRPC client over `app.request` |
 | component | beside the component, `*.test.tsx` | `bun test`, Testing Library, happy-dom |
 | CLI smoke | `packages/cli/test/` | `bun test`, a spawned server on a random port |
-| perf | `apps/server/test/perf/`, `apps/web/scripts/size-budget.ts` | `check` at 10k rows, `perf` at 50k rows |
+| perf | `apps/server/test/perf/`, `apps/web/scripts/size-budget.ts` | optional `perf:10k` at 10k rows, `perf` at 50k rows |
 | end to end | `apps/web/e2e/` | Playwright with a temporary `TRELLIS_HOME` |
 
 Every service test ends with `assertStatusInvariant(tx)`. `test/preload.ts`
@@ -442,7 +449,7 @@ is no shadcn and no Radix.
 
 - Type: Inter Variable with `cv11` and `ss01`, and `tnum` on ids, counts, and times. JetBrains Mono serves chips, branches, and code.
 - The type scale is 11, 12, 13, 14, 16, 20, and 24 px. The weights are 400, 500, and 600.
-- Spacing has a 4 px base. The radii are 4, 6, 8, and 12 px.
+- Spacing has a 4 px base. Controls and surfaces have square corners, including avatars, badges, and switch thumbs.
 - The tokens carry a light and a dark palette in `tokens.css`. Dark is the default, and an inline head script stamps `data-theme` before the first paint.
 - Dark mode swaps every shadow for a 1 px strong border.
 - Status by category: todo is a faint empty circle, started is a warning half ring, review is an accent dotted ring, done is a success filled check, and canceled is a faint cross.

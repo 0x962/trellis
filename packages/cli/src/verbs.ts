@@ -43,6 +43,10 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "List the comments of a ticket",
 		load: () => import("./commands/comment.ts").then((m) => command(m.comments)),
 	},
+	thread: {
+		description: "Show, resolve, or reopen a comment thread",
+		load: () => import("./commands/thread.ts").then((m) => command(m.default)),
+	},
 	attach: {
 		description: "Upload a file to a ticket",
 		load: () => import("./commands/attach.ts").then((m) => command(m.default)),
@@ -89,12 +93,8 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		load: () => import("./commands/whoami.ts").then((m) => command(m.default)),
 	},
 	instructions: {
-		description: "Print the AGENTS.md block or the prompt of an agent role",
+		description: "Print the AGENTS.md block",
 		load: () => import("./commands/instructions.ts").then((m) => command(m.default)),
-	},
-	agents: {
-		description: "Start, stop, and list agents; read the manager inbox",
-		load: () => import("./commands/agents.ts").then((m) => command(m.default)),
 	},
 	status: {
 		description: "Show server health",

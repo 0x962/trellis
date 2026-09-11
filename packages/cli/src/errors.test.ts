@@ -19,6 +19,8 @@ const expected: Record<string, number> = {
 	AGENT_CANNOT_DELETE: 4,
 	NOT_FOUND: 3,
 	DUPLICATE: 4,
+	COMMENT_HAS_REPLIES: 4,
+	COMMENT_PARENT_MISMATCH: 4,
 	KEY_LOCKED: 4,
 	STATUS_NOT_IN_PROJECT: 4,
 	STATUS_IN_USE: 4,
@@ -33,8 +35,6 @@ const expected: Record<string, number> = {
 	VERSION_CONFLICT: 4,
 	PAYLOAD_TOO_LARGE: 4,
 	GH_UNAVAILABLE: 6,
-	CONCURRENCY_LIMIT: 4,
-	RUNNER_UNAVAILABLE: 6,
 };
 
 const declared = (code: keyof typeof errors, data?: unknown, message = errors[code].message) =>

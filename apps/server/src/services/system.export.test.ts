@@ -56,17 +56,13 @@ const seedEveryTable = async () => {
 	await linkPr(h.db, ticket, pr, navid);
 	await seedActivity(h.db, { rootId, projectId: rootId, ticketId: ticket });
 	await insertRow(h.db, "settings", { key: "actor.default", value: { name: "navid" }, updated_at: new Date() });
-	await insertRow(h.db, "agent_sessions", {
+	await insertRow(h.db, "personas", {
 		id: ulid(),
-		project_id: rootId,
-		role: "manager",
-		runner: "superset",
-		state: "running",
-		title: "CDE manager",
+		name: "Reviewer",
+		instruction: "Read the diff.\nReport defects with evidence.",
 		created_at: new Date(),
 		updated_at: new Date(),
 	});
-	await insertRow(h.db, "agent_cursors", { project_id: rootId, activity_id: 1, updated_at: new Date() });
 	return { rootId, ticket };
 };
 
@@ -120,6 +116,12 @@ describe("system.exportNdjson", () => {
 		const streamed = new Set(lines.slice(1).map((line) => line.table));
 		expect(tables.length).toBeGreaterThan(0);
 		for (const table of tables) expect(streamed).toContain(table);
+		const personas = lines.filter((line) => line.table === "personas");
+		expect(personas).toHaveLength(1);
+		expect(personas[0]!.row).toMatchObject({
+			name: "Reviewer",
+			instruction: "Read the diff.\nReport defects with evidence.",
+		});
 	});
 
 	test("the export carries the ticket identifier and the attachment url", async () => {

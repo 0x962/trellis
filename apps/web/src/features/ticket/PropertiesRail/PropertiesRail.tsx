@@ -6,7 +6,6 @@ import { copyText } from "../../../lib/clipboard";
 import { compactRelativeTime } from "../../../lib/format";
 import { useTimeline } from "../hooks/useTimeline";
 import { useSaveStatusStore } from "../stores/saveStatusStore";
-import { AgentsRow } from "./components/AgentsRow";
 import { PickerRows } from "./components/PickerRows";
 import { Row } from "./components/Row";
 import { branchName, titleSlug } from "./utils/branchName";
@@ -53,9 +52,8 @@ function Divider() {
 }
 
 // The properties of a ticket. The page rail has three groups: the four
-// picker rows, then Sub-tickets and Branch, then Created, Updated, and the
-// agent sessions. The peek grid has the same rows in the same order and
-// shows Sub-tickets only when the ticket has one. Created shows the actor of
+// picker rows, then Sub-tickets and Branch, then Created and Updated.
+// The peek groups Branch and timestamps under Details. Created shows the actor of
 // the `ticket.created` activity row. Updated shows the last actor, with the
 // live dot while an agent is at work, and the save state of the description.
 export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRailProps) {
@@ -116,17 +114,28 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 					</span>
 				)}
 			</Row>
-			<AgentsRow identifier={ticket.identifier} />
 		</>
 	);
 
 	if (variant === "peek") {
 		return (
-			<dl aria-label="Properties" className="grid grid-cols-2 gap-x-6 gap-y-0.5">
+			<dl aria-label="Properties" className="grid grid-cols-2 gap-x-6 gap-y-1 max-sm:grid-cols-1">
 				<PickerRows ticket={ticket} />
-				{ticket.childCount > 0 && subTickets}
-				{branchRow}
-				{times}
+				<div className="col-span-full min-w-0 mt-1">
+					<dt className="sr-only">Additional properties</dt>
+					<dd>
+						<details className="group">
+							<summary className="w-fit cursor-pointer rounded-sm py-1 text-sm text-fg-muted hover:text-fg focus-visible:outline-2 focus-visible:outline-accent">
+								Details
+							</summary>
+							<dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 max-sm:grid-cols-1">
+								{ticket.childCount > 0 && subTickets}
+								{branchRow}
+								{times}
+							</dl>
+						</details>
+					</dd>
+				</div>
 			</dl>
 		);
 	}

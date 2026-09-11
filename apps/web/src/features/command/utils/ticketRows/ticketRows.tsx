@@ -1,8 +1,7 @@
 import { PriorityIcon, StatusIcon } from "@trellis/ui";
-import { Copy, CornerDownRight, ExternalLink, FolderInput, GitPullRequest, Play, Trash2 } from "lucide-react";
+import { Copy, CornerDownRight, ExternalLink, FolderInput, GitPullRequest, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { projectSlashPath } from "../../../../lib/projectPath";
-import { buildAgentCommand } from "../../../agent/StartWithAgent/utils/buildAgentCommand";
 import { composerActions } from "../../../composer";
 import {
 	branchName,
@@ -13,7 +12,6 @@ import {
 	copyLink,
 	deleteTicket,
 	openPullRequest,
-	startWithAgent,
 } from "../../actions";
 import { itemsOfSection } from "../../items";
 import { capsOf, type PaletteRow, priorityLabels, type RowDeps, statusProject } from "../../rows";
@@ -25,7 +23,6 @@ const icons: Record<string, ReactNode> = {
 	"ticket.project": <FolderInput />,
 	"ticket.parent": <CornerDownRight />,
 	"ticket.subTicket": <CornerDownRight />,
-	"ticket.agent": <Play />,
 	"ticket.copyId": <Copy />,
 	"ticket.copyBranch": <Copy />,
 	"ticket.copyBrief": <Copy />,
@@ -47,17 +44,15 @@ export const ticketRows = (deps: RowDeps): PaletteRow[] => {
 	const identifier = deps.identifier!;
 	const { action, ticket } = deps;
 	const branch = ticket === undefined ? undefined : branchName(ticket);
-	const command = buildAgentCommand(action.settings.startWithAgentTemplate, identifier);
 	const subs: Record<string, string | undefined> = {
 		"ticket.status": ticket?.status.name,
 		"ticket.priority": ticket === undefined ? undefined : priorityLabels[ticket.priority],
 		"ticket.project": ticket === undefined ? undefined : projectSlashPath(ticket.project.path),
 		"ticket.parent": ticket?.parent?.identifier,
-		"ticket.agent": command,
 		"ticket.copyId": identifier,
 		"ticket.copyBranch": branch,
 	};
-	const mono = new Set(["ticket.agent", "ticket.copyId", "ticket.copyBranch"]);
+	const mono = new Set(["ticket.copyId", "ticket.copyBranch"]);
 	// The branch name needs the title. A palette opened before the ticket
 	// answered reads it here.
 	const copyBranch = async () => {
@@ -70,7 +65,6 @@ export const ticketRows = (deps: RowDeps): PaletteRow[] => {
 		"ticket.project": () => deps.openSubmenu({ kind: "project", tickets: [identifier] }),
 		"ticket.parent": () => deps.openSubmenu({ kind: "parent", ticket: identifier, project: statusProject(deps) }),
 		"ticket.subTicket": run(deps, () => composerActions.open({ parent: identifier, project: ticket?.project.path })),
-		"ticket.agent": run(deps, () => void startWithAgent(action, identifier)),
 		"ticket.copyId": run(deps, () => void copyId(action, identifier)),
 		"ticket.copyBranch": run(deps, () => void copyBranch()),
 		"ticket.copyBrief": run(deps, () => void copyAgentBrief(action, identifier)),

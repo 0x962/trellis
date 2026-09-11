@@ -6,6 +6,21 @@ import { openEvents, parseData } from "./sse";
 const actorHeaders = { "content-type": "application/json", "x-trellis-actor": "human:navid" };
 
 describe("fake server comments", () => {
+	test("threads group replies and retain their resolution state", async () => {
+		const server = createFakeServer();
+		const root = await server.client.comments.create({ ticket: "CDE-42", body: "A question" });
+		const reply = await server.client.comments.create({ ticket: "CDE-42", parentId: root.id, body: "An answer" });
+		server.state.comments.get(reply.id)!.createdAt = new Date(Date.now() - 1000).toISOString();
+		const second = await server.client.comments.create({ ticket: "CDE-42", parentId: reply.id, body: "A follow-up" });
+		expect(second.parentId).toBe(root.id);
+		expect((await server.client.comments.thread({ id: reply.id })).replies.map((item) => item.id)).toEqual([
+			reply.id,
+			second.id,
+		]);
+		expect((await server.client.comments.resolve({ id: reply.id, resolved: true })).resolvedAt).toBeString();
+		expect((await server.client.comments.resolve({ id: root.id, resolved: false })).resolvedAt).toBeNull();
+	});
+
 	// WS-125. A comment is user-visible activity, so the ticket's version
 	// and updatedAt move with it.
 	test("comment writes keep the count and emit their events", async () => {

@@ -1,4 +1,4 @@
-import { Skeleton } from "@trellis/ui";
+import { cx, Skeleton } from "@trellis/ui";
 
 export type TicketSkeletonProps = {
 	variant: "page" | "peek";
@@ -10,7 +10,12 @@ export type TicketSkeletonProps = {
 // the gaps match TicketView, so the swap moves nothing.
 export function TicketSkeleton({ variant }: TicketSkeletonProps) {
 	const main = (
-		<div className="flex max-w-[856px] flex-col px-12 pt-8 pb-12 max-md:px-4">
+		<div
+			className={cx(
+				"flex min-w-0 flex-col pt-6 pb-8 max-md:px-4",
+				variant === "peek" ? "w-full px-6" : "max-w-[856px] px-12",
+			)}
+		>
 			<Skeleton width="w-16" height="h-3" />
 			<Skeleton width="w-3/4" height="h-8" className="mt-1" />
 			<Skeleton lines={6} width="w-2/3" className="mt-3" />

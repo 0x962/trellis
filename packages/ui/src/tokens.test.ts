@@ -116,7 +116,25 @@ const keyframes = (pieces: ReturnType<typeof parseCss>, name: string) =>
 		.flatMap((piece) => piece.children)
 		.find((piece) => piece.prelude === `@keyframes ${name}`)!;
 
+const compileTokens = async () => {
+	const source = await readSource("tokens.css");
+	return compile(`@tailwind utilities;\n${source}`, {
+		base: join(packageRoot, "src"),
+		loadStylesheet: async (id, base) => {
+			const path = id.startsWith(".")
+				? join(base, id)
+				: fileURLToPath(import.meta.resolve(id === "tailwindcss" ? "tailwindcss/index.css" : id));
+			return { path, base: join(path, ".."), content: await Bun.file(path).text() };
+		},
+	});
+};
+
 describe("tokens.css", () => {
+	test("the peek minimum width uses 45 percent of the viewport", async () => {
+		const rule = findBlock(await tokens(), "@utility min-w-peek");
+		expect(rule.declarations["min-width"]).toBe("45vw");
+	});
+
 	test("a theme switch turns every transition off through data-theme-switch on html", async () => {
 		const rule = findBlock(await tokens(), "[data-theme-switch] *");
 		expect(rule.declarations["transition-duration"]).toBe("0ms");
@@ -216,16 +234,7 @@ describe("tokens.css", () => {
 	});
 
 	test("Tailwind generates token utilities from @theme", async () => {
-		const source = await readSource("tokens.css");
-		const compiler = await compile(`@tailwind utilities;\n${source}`, {
-			base: join(packageRoot, "src"),
-			loadStylesheet: async (id, base) => {
-				const path = id.startsWith(".")
-					? join(base, id)
-					: fileURLToPath(import.meta.resolve(id === "tailwindcss" ? "tailwindcss/index.css" : id));
-				return { path, base: join(path, ".."), content: await Bun.file(path).text() };
-			},
-		});
+		const compiler = await compileTokens();
 		const expected: Record<string, string[]> = {
 			"bg-surface": ["var(--color-surface)", "var(--surface)"],
 			"text-fg-muted": ["var(--color-fg-muted)", "var(--fg-muted)"],
@@ -246,7 +255,7 @@ describe("tokens.css", () => {
 		}
 	});
 
-	test("type scale, spacing base, and radii tokens carry the plan values", async () => {
+	test("type scale and spacing keep their values with square corners", async () => {
 		const map = theme(await tokens());
 		const scale: Record<string, [string, string]> = {
 			xs: ["11px", "16px"],
@@ -265,10 +274,35 @@ describe("tokens.css", () => {
 			);
 		}
 		expect(map["--spacing"]).toBe("4px");
-		expect(map["--radius-sm"]).toBe("4px");
-		expect(map["--radius-md"]).toBe("6px");
-		expect(map["--radius-lg"]).toBe("8px");
-		expect(map["--radius-xl"]).toBe("12px");
+		expect(map["--radius-sm"]).toBe("0px");
+		expect(map["--radius-md"]).toBe("0px");
+		expect(map["--radius-lg"]).toBe("0px");
+		expect(map["--radius-xl"]).toBe("0px");
+	});
+
+	test("every supported radius utility produces square corners, including directional utilities", async () => {
+		const compiler = await compileTokens();
+		const candidates = [
+			"rounded-sm",
+			"rounded-md",
+			"rounded-lg",
+			"rounded-xl",
+			"rounded-hairline",
+			"rounded-r-sm",
+			"rounded-t-xl",
+		];
+		const pieces = parseCss(compiler.build(candidates));
+		const map = theme(await tokens());
+		for (const candidate of candidates) {
+			const rule = findBlock(pieces, `.${candidate}`);
+			expect(rule, candidate).toBeDefined();
+			const radii = Object.entries(rule.declarations).filter(([property]) => /^border-.*radius$/.test(property));
+			expect(radii.length, candidate).toBeGreaterThan(0);
+			for (const [property, value] of radii) {
+				const resolved = value.replace(/var\((--[\w-]+)\)/g, (_, name: string) => map[name]);
+				expect(resolved, `${candidate} ${property}`).toMatch(/^0(?:px)?$/);
+			}
+		}
 	});
 
 	test("motion duration and easing tokens carry the plan values", async () => {

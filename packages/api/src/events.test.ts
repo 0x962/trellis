@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { agentSession, bootId, projectId, t1, ticketSummary, ulid } from "../test/fixtures.ts";
+import { bootId, projectId, t1, ticketSummary, ulid } from "../test/fixtures.ts";
 import { EventIdSchema, EventSchema, eventNames, parseEventId } from "./events.ts";
 
 const eventId = `${bootId}.7`;
@@ -7,8 +7,6 @@ const eventId = `${bootId}.7`;
 describe("events", () => {
 	test("the event name list matches the plan's Live updates section", () => {
 		expect([...eventNames].sort()).toEqual([
-			"agents.batch",
-			"agents.session",
 			"attachment.created",
 			"attachment.deleted",
 			"bye",
@@ -16,6 +14,7 @@ describe("events", () => {
 			"comment.deleted",
 			"comment.updated",
 			"gh.status",
+			"personas.changed",
 			"pr.linked",
 			"pr.unlinked",
 			"pr.updated",
@@ -60,20 +59,6 @@ describe("events", () => {
 		).toBe(false);
 	});
 
-	// `agents.session` carries the whole session row, so a client patches the
-	// Agents row without a read. `agents.batch` counts the events one wake
-	// delivered to the manager of `projectId`.
-	test("agents event payloads carry one session or a project with a positive count", () => {
-		expect(EventSchema.safeParse({ type: "agents.session", session: agentSession() }).success).toBe(true);
-		expect(EventSchema.safeParse({ type: "agents.session", session: agentSession({ state: "done" }) }).success).toBe(
-			false,
-		);
-		expect(EventSchema.safeParse({ type: "agents.session" }).success).toBe(false);
-		expect(EventSchema.safeParse({ type: "agents.batch", projectId, count: 10 }).success).toBe(true);
-		expect(EventSchema.safeParse({ type: "agents.batch", projectId, count: 0 }).success).toBe(false);
-		expect(EventSchema.safeParse({ type: "agents.batch", count: 1 }).success).toBe(false);
-	});
-
 	// The boot id is a ULID minted at server boot. A client that reconnects
 	// with an id from another boot gets `reset`, so the id must round-trip
 	// exactly: upper-case, one dot, a non-negative sequence.
@@ -93,4 +78,9 @@ describe("events", () => {
 			expect(EventIdSchema.safeParse(input).success, input).toBe(false);
 		}
 	});
+});
+
+test("comment events preserve thread identifiers and the resolution state", () => {
+	const event = { type: "comment.updated", id: ulid, ticketId: t1, parentId: null, threadId: ulid, resolved: true };
+	expect(EventSchema.parse(event)).toEqual(event);
 });

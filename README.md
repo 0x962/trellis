@@ -42,8 +42,6 @@ bun packages/cli/src/index.ts install
 
 `--no-launchd` writes the files and loads nothing. `trellis uninstall` removes the agent and the command.
 
-Agents need the Superset CLI. launchd gives the server a short `PATH`, so `trellis install` writes the full path of the `superset` on your `PATH` into the agent as `TRELLIS_SUPERSET_BIN`. `--superset-bin <path>` names another binary, and `trellis serve` takes the same flag.
-
 A gateway on port 80, such as [margin](https://github.com/0x962/margin), serves `http://trellis.localhost` when it reads the routes file `~/.config/localhost-gateway/routes.json`. The file maps each `*.localhost` name to a port, as in `{ "trellis": 4521 }`. `trellis install` sets the `trellis` entry and keeps the others, and `trellis uninstall` removes it. When no gateway answers for `trellis.localhost`, install prints `http://127.0.0.1:4521` and the path of the routes file.
 
 To run the server in the foreground and not as a launchd agent, run this command in a separate terminal:
@@ -274,9 +272,10 @@ bun run dev
 
 | Command | What it runs |
 |---|---|
-| `bun run check` | Lint, typecheck, every test, the web size budget, and the perf suite at 10k rows. Add `--force` to skip the turbo cache. |
+| `bun run check` | Lint, typecheck, functional tests, and the web size budget. Add `--force` to skip the turbo cache. |
 | `bun run e2e` | The Playwright suite against the real server and vite on free ports. Run `bunx playwright install chromium` in `apps/web` one time. |
-| `bun run perf` | The perf suite at 50k rows. |
+| `bun run perf:10k` | Optional performance tests at 10k rows, one workspace at a time. |
+| `bun run perf` | Optional performance tests at 50k rows. |
 | `bun run db:generate` | The Drizzle migrations for a change to `apps/server/src/db/schema.ts`. |
 | `bun run --cwd apps/mobile test:native` | The mobile Jest suite. |
 

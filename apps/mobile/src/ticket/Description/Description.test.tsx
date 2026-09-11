@@ -11,7 +11,7 @@ describe("Description", () => {
 	test("renders the markdown heading, the code span, and the task list", async () => {
 		await render(<Description markdown={markdown} />);
 		expect(screen.getByText("Acceptance")).toBeOnTheScreen();
-		expect(screen.getByText('grep -rn "CDE FORK"')).toBeOnTheScreen();
+		expect(screen.getByText('grep -rn "KEEP SITE"')).toBeOnTheScreen();
 		expect(screen.getByText("The five routes render")).toBeOnTheScreen();
 		expect(screen.getByText("The desktop typecheck is green")).toBeOnTheScreen();
 		const items = screen.getAllByRole("checkbox");

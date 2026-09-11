@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import { blocks, parseCss, readSource } from "../../../packages/ui/test/css";
 
 const read = () => Bun.file(join(import.meta.dir, "app.css")).text();
 
@@ -92,4 +93,23 @@ describe("app.css", () => {
 		expect(css).toContain("--color-pane: var(--pane)");
 		expect(css).toContain("--color-band: var(--band)");
 	});
+});
+
+test("markdown code, images, and editor content use square corners", async () => {
+	const pieces = parseCss(await Bun.file(new URL("./app.css", import.meta.url)).text());
+	const tokens = Object.assign(
+		{},
+		...blocks(parseCss(await readSource("tokens.css")))
+			.filter((piece) => piece.prelude.startsWith("@theme"))
+			.map((piece) => piece.declarations),
+	);
+	const violations: string[] = [];
+	for (const rule of blocks(pieces)) {
+		for (const [property, value] of Object.entries(rule.declarations)) {
+			if (!/^border-.*radius$/.test(property)) continue;
+			const resolved = value.replace(/var\((--[\w-]+)\)/g, (_, name: string) => tokens[name]);
+			if (!/^0(?:px)?$/.test(resolved)) violations.push(`${rule.prelude}: ${property}: ${value}`);
+		}
+	}
+	expect(violations).toEqual([]);
 });

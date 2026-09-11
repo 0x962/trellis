@@ -20,6 +20,8 @@ const at2252 = () => {
 const comment = (overrides: Partial<Comment>): Comment => ({
 	id: "01J8Z6X4Q3M2K1H0G9F8E7D6C1",
 	ticketId,
+	parentId: null,
+	resolvedAt: null,
 	body: "Merged upstream **1.27**. Every keep-marker survived.",
 	actor: { name: "claude-code", kind: "agent" },
 	createdAt: ago(hour),
@@ -61,19 +63,35 @@ describe("features/ticket/Timeline/components/CommentCard", () => {
 		}
 	});
 
-	// WT-78. Who said what stays legible at speed: the agent card has the
-	// agent-colored left border, the human card the neutral one.
-	test("an agent comment carries the agent border", () => {
+	test("comments use plain bodies with compact actor names", () => {
 		mount([
 			comment({ id: "01J8Z6X4Q3M2K1H0G9F8E7D6C1" }),
 			comment({ id: "01J8Z6X4Q3M2K1H0G9F8E7D6C2", actor: { name: "navid", kind: "human" } }),
 		]);
 		const cards = screen.getAllByRole("article");
 		expect(cards).toHaveLength(2);
-		expect(cards[0]!.className).toMatch(/\bborder-l/);
-		expect(cards[0]!.className).toMatch(/\bborder-l-agent\b|\bborder-agent\b/);
-		expect(cards[1]!.className).toMatch(/\bborder-l/);
-		expect(cards[1]!.className).toMatch(/\bborder-l-border\b|\bborder-border\b/);
-		expect(cards[1]!.className).not.toMatch(/border-agent/);
+		for (const card of cards) {
+			expect(card.className).not.toMatch(/\bborder|\brounded/);
+		}
+		expect(screen.queryByText("· agent")).toBeNull();
+	});
+
+	test("long comments fold until the reader expands them", async () => {
+		const user = userEvent.setup();
+		mount([comment({ body: "A detailed progress report. ".repeat(50) })]);
+		const button = screen.getByRole("button", { name: "Show more" });
+		expect(button.getAttribute("aria-expanded")).toBe("false");
+		const body = document.getElementById(button.getAttribute("aria-controls")!)!;
+		expect(body.className).toContain("max-h-60");
+		await user.click(button);
+		expect(screen.getByRole("button", { name: "Show less" }).getAttribute("aria-expanded")).toBe("true");
+		expect(body.className).not.toContain("max-h-60");
+		await user.click(screen.getByRole("button", { name: "Show less" }));
+		expect(body.className).toContain("max-h-60");
+	});
+
+	test("short comments show their full body without an expand control", () => {
+		mount([comment({})]);
+		expect(screen.queryByRole("button", { name: "Show more" })).toBeNull();
 	});
 });

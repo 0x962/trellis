@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { AgentSessionSchema } from "./schemas/agent.ts";
 import { CiStateSchema, GhReasonSchema, PrStateSchema } from "./schemas/enums.ts";
 import { UlidSchema } from "./schemas/primitives.ts";
 import { TicketSummarySchema } from "./schemas/ticket.ts";
@@ -24,8 +23,7 @@ export const eventNames = [
 	"project.deleted",
 	"project.moved",
 	"gh.status",
-	"agents.session",
-	"agents.batch",
+	"personas.changed",
 	"reset",
 	"ready",
 	"bye",
@@ -75,6 +73,12 @@ export const TicketChildEventPayloadSchema = z.object({
 	projectId: UlidSchema.optional(),
 });
 
+export const CommentEventPayloadSchema = TicketChildEventPayloadSchema.extend({
+	parentId: UlidSchema.nullable().optional(),
+	threadId: UlidSchema.optional(),
+	resolved: z.boolean().optional(),
+});
+
 export const StatusesChangedPayloadSchema = z.object({
 	projectId: UlidSchema,
 });
@@ -83,22 +87,14 @@ export const ProjectEventPayloadSchema = z.object({
 	id: UlidSchema,
 });
 
+export const PersonasChangedPayloadSchema = z.object({
+	id: UlidSchema,
+});
+
 // `reason` is present when `ok` is false.
 export const GhStatusPayloadSchema = z.object({
 	ok: z.boolean(),
 	reason: GhReasonSchema.optional(),
-});
-
-// A session row after any change to it: a start, a register, a state
-// change, a wake, or a stop.
-export const AgentSessionEventPayloadSchema = z.object({
-	session: AgentSessionSchema,
-});
-
-// The dispatcher woke the manager of `projectId` for `count` queued changes.
-export const AgentBatchPayloadSchema = z.object({
-	projectId: UlidSchema,
-	count: z.number().int().positive(),
 });
 
 // `restart`: the id came from another boot. `gap`: the id fell below the
@@ -131,9 +127,9 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("pr.linked", PrEventPayloadSchema),
 	typed("pr.unlinked", PrEventPayloadSchema),
 	typed("pr.updated", PrEventPayloadSchema),
-	typed("comment.created", TicketChildEventPayloadSchema),
-	typed("comment.updated", TicketChildEventPayloadSchema),
-	typed("comment.deleted", TicketChildEventPayloadSchema),
+	typed("comment.created", CommentEventPayloadSchema),
+	typed("comment.updated", CommentEventPayloadSchema),
+	typed("comment.deleted", CommentEventPayloadSchema),
 	typed("attachment.created", TicketChildEventPayloadSchema),
 	typed("attachment.deleted", TicketChildEventPayloadSchema),
 	typed("statuses.changed", StatusesChangedPayloadSchema),
@@ -142,8 +138,7 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("project.deleted", ProjectEventPayloadSchema),
 	typed("project.moved", ProjectEventPayloadSchema),
 	typed("gh.status", GhStatusPayloadSchema),
-	typed("agents.session", AgentSessionEventPayloadSchema),
-	typed("agents.batch", AgentBatchPayloadSchema),
+	typed("personas.changed", PersonasChangedPayloadSchema),
 	typed("reset", ResetPayloadSchema),
 	typed("ready", ReadyPayloadSchema),
 	typed("bye", ByePayloadSchema),
