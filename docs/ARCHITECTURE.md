@@ -52,6 +52,12 @@ five files. The port is 4521 (`TRELLIS_PORT`) and the host is `127.0.0.1`
 
 ## Domain rules
 
+Personas are local records shared across projects. Each persona has a name and
+an instruction. The AI section of the sidebar opens the Personas page, with
+forms to create and edit these records. The API exposes `personas.list`,
+`personas.create`, and `personas.update`. The `personas.changed` event
+invalidates the cached persona list after a committed mutation.
+
 - Projects form a tree. A root has a key (`^[A-Z][A-Z0-9]{1,9}$`) and a ticket counter. Tickets are `KEY-n` across the whole tree.
 - Ticket numbers are never reused. A delete leaves a gap. A key is immutable once the counter is above zero (`KEY_LOCKED`).
 - Nothing moves across roots: no ticket, no parent, no sub-project (`CROSS_ROOT_MOVE`). A ticket or a project cannot be its own ancestor (`PARENT_CYCLE`).
