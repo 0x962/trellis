@@ -68,7 +68,7 @@ The [Personas spec](design/personas.md) defines the fields and outcomes.
 - The remap matches on name and category first, then on the lowest-position status of the same category, then on the default status of the owner.
 - Every status-to-status move is legal. A WIP limit is advisory. The `category` of a status is immutable after creation.
 - `started_at` is set once, when a ticket leaves todo. `completed_at` is set when a ticket enters done or canceled, and cleared when it leaves.
-- Priority is none, urgent, high, medium, or low. There are no labels and no assignees.
+- Priority is none, urgent, high, medium, or low. There are no labels. A ticket can have one active agent from a persona.
 - Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is printable ASCII without a colon, 1 to 64 characters.
 - A missing header is `ACTOR_REQUIRED` and a malformed one is `ACTOR_INVALID`. A GET ignores the header. The header rejects the kind `system`, which trellis reserves for `system:trellis`.
 - The optional header `x-trellis-session` is stored in `activity.meta.session`. trellis stores the name and the kind of an actor, and nothing else.
@@ -78,6 +78,12 @@ The [Personas spec](design/personas.md) defines the fields and outcomes.
 - `updated_at` moves only on user-visible activity: a ticket field, a comment, an attachment, or a pull request link. A reorder, a remap, and a poller CI change raise `version` only.
 - A delete is a hard delete. A ticket delete nulls the `parent_id` of its children, then cascades comments, attachments, pull request links, and activity. The blob collector then removes unused files.
 - A project delete needs an empty subtree or `force`.
+
+Agents use persona snapshots. `agentRuns` exposes start, list, stop, refresh, send, and output.
+The Agents page uses cards grouped by kind. The ticket rail opens an assignment slideout.
+Settings stores the launch-command template. The default opens a Superset terminal.
+Custom commands run in private tmux sessions that survive a Trellis restart.
+The [agent spec](design/persona-agents.md) defines the behavior.
 
 ## Database schema
 

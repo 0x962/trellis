@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { DEFAULT_AGENT_LAUNCH_COMMAND } from "@trellis/api";
 import { themeStorageKey } from "@trellis/ui";
 import { createFakeServer } from "../../test/fake-server";
 import { mockMatchMedia } from "../../test/media";
@@ -133,6 +134,7 @@ describe("settings route", () => {
 			return found;
 		});
 		expect(calls[1]!.input).toEqual({
+			agentLaunchCommand: DEFAULT_AGENT_LAUNCH_COMMAND,
 			defaultActorName: "Nav",
 			diffUrlTemplate: "http://margin.localhost/{url}",
 			stalledHours: 24,

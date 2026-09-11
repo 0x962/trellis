@@ -221,7 +221,7 @@ export const prepareRefresh = async (ctx: Ctx, input: { id: string }) => {
 			? managedTerminal(ctx.home).exited(run.id)
 			: runner.exited(run.workspaceId!, run.terminalId!),
 	);
-	if (!exited.ok) await recordError(ctx, run.id, exited.error, "running");
+	if (!exited.ok) await recordError(ctx, run.id, exited.error, run.state);
 	else
 		await ctx.newTx((tx) =>
 			tx.execute(
