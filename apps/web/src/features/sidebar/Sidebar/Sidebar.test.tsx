@@ -170,6 +170,24 @@ describe("features/sidebar/Sidebar", () => {
 	});
 });
 
+describe("features/sidebar/Sidebar AI section", () => {
+	// TRL-41. The AI section used to sit inside the project tree scroller, so
+	// a tree taller than the sidebar pushed the Personas link out of the clip
+	// box. Only the tree scrolls now, so the link keeps its place.
+	test("the Personas link sits outside the scrolling project region", async () => {
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "dana" });
+		const personas = await screen.findByRole("link", { name: "Personas" });
+		expect(personas.getAttribute("href")).toBe("/ai/personas");
+		const scroller = aside().querySelector(".overflow-y-auto")!;
+		expect(scroller.querySelector('[data-project-tree=""]')).not.toBeNull();
+		expect(scroller.contains(personas)).toBe(false);
+		// The scroller takes the spare height, so the AI section and the footer
+		// keep theirs.
+		expect(scroller.className).toMatch(/\bflex-1\b/);
+		expect(personas.closest("nav")!.className).toMatch(/\bshrink-0\b/);
+	});
+});
+
 describe("features/sidebar/Sidebar agents link", () => {
 	test("the footer links the Agents page right after Settings", async () => {
 		renderWithProviders(<Sidebar />, { path: "/all", actor: "dana" });

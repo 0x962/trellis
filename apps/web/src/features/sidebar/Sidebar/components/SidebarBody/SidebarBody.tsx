@@ -49,8 +49,13 @@ export type SidebarBodyProps = {
 };
 
 // What the sidebar holds: the workspace row, the three fixed destinations,
-// the project tree, and the actor footer. The desktop aside and the phone
-// sheet both draw it.
+// the project tree, the AI section, and the actor footer. The desktop aside
+// and the phone sheet both draw it.
+//
+// The project tree is the one region that scrolls, and it takes the spare
+// height. The AI section and the footer sit after it and keep their place,
+// so the Personas link stays inside the viewport whatever the tree height
+// (TRL-41).
 //
 // The highlight follows the page the outlet shows. A navigation changes the
 // URL at once but keeps the old page until the new one loads, so the
@@ -98,11 +103,11 @@ export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 				</div>
 				<ProjectTree />
 				<ArchivedProjects />
-				<nav aria-label="AI" className="mt-5">
-					<h2 className="sidebar-section">AI</h2>
-					<NavRow to="/ai/personas" icon={<UserRound />} label="Personas" active={isActive(pathname, "/ai/personas")} />
-				</nav>
 			</div>
+			<nav aria-label="AI" className="mt-4 shrink-0">
+				<h2 className="sidebar-section">AI</h2>
+				<NavRow to="/ai/personas" icon={<UserRound />} label="Personas" active={isActive(pathname, "/ai/personas")} />
+			</nav>
 			<div className="mt-auto shrink-0">
 				<ConnectionPanel status={status} />
 				<ActorFooter />
