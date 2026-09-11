@@ -8,7 +8,7 @@ import { StatusIcon } from "../StatusIcon";
 import { Row } from "./Row";
 
 const title =
-	"Restore the fork pages after the upstream 1.27 merge, then rebuild the desktop app and reinstall it over the daily build";
+	"Restore the five settings pages the upgrade dropped, then rebuild the desktop app and reinstall it over the daily build";
 
 const textStyle = (element: { props: { style?: unknown } }) =>
 	StyleSheet.flatten(element.props.style as never) as { fontFamily?: string };
@@ -24,8 +24,8 @@ describe("Row and Chip", () => {
 		expect(screen.getByText("2h")).toBeOnTheScreen();
 		await unmount();
 
-		await render(<Chip mono>cde-42-restore-fork-pages</Chip>);
-		expect(textStyle(screen.getByText("cde-42-restore-fork-pages")).fontFamily).toBe(tokens.font.mono);
+		await render(<Chip mono>cde-42-restore-settings-pages</Chip>);
+		expect(textStyle(screen.getByText("cde-42-restore-settings-pages")).fontFamily).toBe(tokens.font.mono);
 		const colors = paintedColors(screen.toJSON());
 		expect(colors.size).toBeGreaterThan(0);
 		const palette = new Set(Object.values(tokens.dark));
