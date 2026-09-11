@@ -1,0 +1,12 @@
+import type { AgentRun } from "@trellis/api";
+
+const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+export const launchCommand = (input: { run: AgentRun; url: string; context: string }) => {
+	const { run, url, context } = input;
+	const actor = `agent:${run.id}`;
+	const prompt = `${run.instruction}\n\n# Assignment\n\nYour name is ${run.name}. Your Trellis actor is ${actor}.\nTrellis URL: ${url}\nPersona: ${run.personaName} (${run.kind})\n\n${context}\n\nUse TRELLIS_URL and TRELLIS_ACTOR for every Trellis command. Read the repository's AGENTS.md before work.\n`;
+	return {
+		prompt,
+		command: `exec env TRELLIS_URL=${quote(url)} TRELLIS_ACTOR=${quote(actor)} claude -n ${quote(run.name)} ${quote(prompt)}`,
+	};
+};

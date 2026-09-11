@@ -4,6 +4,7 @@ import { Copy, Plus } from "lucide-react";
 import { isLiveActor } from "../../../lib/actorLive";
 import { copyText } from "../../../lib/clipboard";
 import { compactRelativeTime } from "../../../lib/format";
+import { TicketAgent } from "../../agents/TicketAgent";
 import { useTimeline } from "../hooks/useTimeline";
 import { useSaveStatusStore } from "../stores/saveStatusStore";
 import { PickerRows } from "./components/PickerRows";
@@ -121,6 +122,9 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 		return (
 			<dl aria-label="Properties" className="grid grid-cols-2 gap-x-6 gap-y-1 max-sm:grid-cols-1">
 				<PickerRows ticket={ticket} />
+				<div className="col-span-full">
+					<TicketAgent ticket={ticket.identifier} disabled={ticket.completedAt !== null} />
+				</div>
 				<div className="col-span-full min-w-0 mt-1">
 					<dt className="sr-only">Additional properties</dt>
 					<dd>
@@ -143,6 +147,9 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 		<aside aria-label="Properties" className="w-70 shrink-0 border-l border-border px-4 py-3">
 			<dl className="flex flex-col gap-0.5">
 				<PickerRows ticket={ticket} />
+				<div className="col-span-full">
+					<TicketAgent ticket={ticket.identifier} disabled={ticket.completedAt !== null} />
+				</div>
 			</dl>
 			<Divider />
 			<dl className="flex flex-col gap-0.5">

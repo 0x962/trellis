@@ -8,9 +8,10 @@ export type EntityCardProps = {
 	icon?: ReactNode;
 	footer?: ReactNode;
 	onEdit: () => void;
+	editLabel?: string;
 };
 
-export function EntityCard({ title, description, icon, footer, onEdit }: EntityCardProps) {
+export function EntityCard({ title, description, icon, footer, onEdit, editLabel }: EntityCardProps) {
 	return (
 		<article
 			aria-label={title}
@@ -26,7 +27,7 @@ export function EntityCard({ title, description, icon, footer, onEdit }: EntityC
 					</span>
 				)}
 				<h3 className="min-w-0 flex-1 break-words pt-1 text-md font-medium text-fg">{title}</h3>
-				<IconButton label={`Edit ${title}`} icon={<Pencil />} onClick={onEdit} />
+				<IconButton label={editLabel ?? `Edit ${title}`} icon={<Pencil />} onClick={onEdit} />
 			</div>
 			<p className="line-clamp-4 min-h-20 whitespace-pre-wrap break-words text-sm leading-5 text-fg-muted">
 				{description}

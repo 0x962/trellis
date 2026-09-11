@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Badge, cx, IconButton, Kbd, TrellisMark } from "@trellis/ui";
-import { Inbox, List, Moon, PanelLeftClose, Plus, Search, Sun, UserRound } from "lucide-react";
+import { Bot, Inbox, List, Moon, PanelLeftClose, Plus, Search, Sun, UserRound } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { formatCount } from "../../../../../lib/format";
@@ -18,7 +18,7 @@ import { ConnectionDot } from "../ConnectionDot";
 const rowClass =
 	"flex h-7 items-center gap-2 rounded-md px-2 text-fg-muted transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11";
 
-type NavTarget = "/needs-you" | "/search" | "/all" | "/ai/personas";
+type NavTarget = "/needs-you" | "/search" | "/all" | "/ai/personas" | "/ai/agents";
 
 type NavRowProps = { to: NavTarget; icon: ReactElement; label: string; active: boolean; trailing?: ReactNode };
 
@@ -118,6 +118,7 @@ export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 				<nav aria-label="AI">
 					<div className="pt-3 pb-1 pl-2 text-xs font-medium tracking-[0.04em] text-fg-faint uppercase">AI</div>
 					<NavRow to="/ai/personas" icon={<UserRound />} label="Personas" active={isActive(pathname, "/ai/personas")} />
+					<NavRow to="/ai/agents" icon={<Bot />} label="Agents" active={isActive(pathname, "/ai/agents")} />
 				</nav>
 			</div>
 			<ActorFooter />

@@ -1,6 +1,6 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import type { Priority, Ticket, TicketSummary } from "@trellis/api";
-import { Button, Dialog, Switch, toast, useHotkey } from "@trellis/ui";
+import { Button, Sheet, Switch, toast, useHotkey } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useApp } from "../../../lib/appContext";
@@ -46,6 +46,7 @@ export function CreateTicketDialog() {
 	const [creating, setCreating] = useState(false);
 	const [createMore, setCreateMore] = useState(false);
 	const inFlight = useRef(false);
+	const titleRef = useRef<HTMLInputElement>(null);
 
 	const chosenProject = project ?? defaults.project;
 	const bySlug = (slug: string | undefined) => defaults.statuses.find((entry) => entry.slug === slug);
@@ -120,54 +121,62 @@ export function CreateTicketDialog() {
 	useHotkey("mod+shift+enter", () => void create(true));
 
 	return (
-		<Dialog
+		<Sheet
 			open
 			onOpenChange={(next) => !next && requestClose()}
 			title="New ticket"
-			header={<ComposerHeader project={chosenProject} onClose={requestClose} />}
-			size="lg"
-			className="rounded-xl"
+			bare
+			width={640}
+			initialFocus={titleRef}
+			className="w-160"
 		>
-			<input
-				aria-label="Title"
-				autoFocus
-				autoComplete="off"
-				maxLength={500}
-				placeholder="Ticket title"
-				value={draft.title}
-				onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-				className="h-7 w-full bg-transparent text-xl font-semibold text-fg outline-none placeholder:text-fg-faint"
-			/>
-			<DescriptionField
-				key={editorKey}
-				markdown={description}
-				editing={editing}
-				onEdit={() => setEditing(true)}
-				onChange={(markdown) => setDraft({ ...draft, description: markdown })}
-			/>
-			<ChipRow
-				project={chosenProject}
-				projectMissing={projectMissing && chosenProject === undefined}
-				statuses={defaults.statuses}
-				status={chosenStatus}
-				priority={chosenPriority}
-				parent={parent ?? null}
-				parentRef={parent === undefined ? defaults.parent : undefined}
-				onProject={setProject}
-				onStatus={(next) => setStatus(next.slug)}
-				onPriority={setPriority}
-				onParent={setParent}
-			/>
-			<div className="flex items-center justify-end gap-3 border-t border-border pt-3">
-				<Switch
-					label="Create more"
-					checked={createMore}
-					onCheckedChange={setCreateMore}
-					className="text-xs text-fg-muted"
-				/>
-				<Button variant="primary" size="md" disabled={creating} onClick={() => void create(createMore)} kbd="⌘↩">
-					Create
-				</Button>
+			<div className="flex min-h-full flex-col">
+				<div className="border-b border-border p-4">
+					<ComposerHeader project={chosenProject} onClose={requestClose} />
+				</div>
+				<div className="flex flex-1 flex-col gap-4 p-6 max-md:p-4">
+					<input
+						ref={titleRef}
+						aria-label="Title"
+						autoComplete="off"
+						maxLength={500}
+						placeholder="Ticket title"
+						value={draft.title}
+						onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+						className="h-7 w-full bg-transparent text-xl font-semibold text-fg outline-none placeholder:text-fg-faint"
+					/>
+					<DescriptionField
+						key={editorKey}
+						markdown={description}
+						editing={editing}
+						onEdit={() => setEditing(true)}
+						onChange={(markdown) => setDraft({ ...draft, description: markdown })}
+					/>
+					<ChipRow
+						project={chosenProject}
+						projectMissing={projectMissing && chosenProject === undefined}
+						statuses={defaults.statuses}
+						status={chosenStatus}
+						priority={chosenPriority}
+						parent={parent ?? null}
+						parentRef={parent === undefined ? defaults.parent : undefined}
+						onProject={setProject}
+						onStatus={(next) => setStatus(next.slug)}
+						onPriority={setPriority}
+						onParent={setParent}
+					/>
+				</div>
+				<div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-border bg-surface p-4">
+					<Switch
+						label="Create more"
+						checked={createMore}
+						onCheckedChange={setCreateMore}
+						className="text-xs text-fg-muted"
+					/>
+					<Button variant="primary" size="md" disabled={creating} onClick={() => void create(createMore)} kbd="⌘↩">
+						Create
+					</Button>
+				</div>
 			</div>
 			<ConfirmDialog
 				open={asking}
@@ -183,6 +192,6 @@ export function CreateTicketDialog() {
 				}}
 				onCancel={() => setAsking(false)}
 			/>
-		</Dialog>
+		</Sheet>
 	);
 }

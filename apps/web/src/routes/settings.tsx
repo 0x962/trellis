@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SectionHeader } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
+import { AgentLaunchField } from "../features/settings/AgentLaunchField";
 import { DiffTemplateField } from "../features/settings/DiffTemplateField";
 import { GhBanner } from "../features/settings/GhBanner";
 import { PairPhone } from "../features/settings/PairPhone";
@@ -41,7 +42,12 @@ const sections: SettingsSection[] = [
 	{
 		id: "agents",
 		title: "Agents",
-		rows: <StalledThresholdField />,
+		rows: (
+			<>
+				<AgentLaunchField />
+				<StalledThresholdField />
+			</>
+		),
 	},
 	{
 		id: "integrations",

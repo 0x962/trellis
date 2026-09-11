@@ -63,6 +63,20 @@ const seedEveryTable = async () => {
 		created_at: new Date(),
 		updated_at: new Date(),
 	});
+	await insertRow(h.db, "agent_runs", {
+		id: ulid(),
+		name: "Ada Finch",
+		persona_name: "Reviewer",
+		kind: "reviewer",
+		instruction: "Read the diff.",
+		project_id: rootId,
+		project_path: "CDE",
+		ticket_id: ticket,
+		ticket_identifier: "CDE-1",
+		state: "exited",
+		created_at: new Date(),
+		updated_at: new Date(),
+	});
 	return { rootId, ticket };
 };
 
