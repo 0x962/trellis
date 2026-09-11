@@ -526,23 +526,25 @@ Weights: 400 body, 500 UI labels and titles, 600 headings. Never 700.
 
 ### 9.3 Color tokens (semantic)
 
+`packages/ui/src/tokens.css` holds these values, and `docs/design/mockup.html` is the source it copies.
+
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `bg` | `#FAFAFA` | `#0E0E11` | App background |
-| `surface` | `#FFFFFF` | `#141418` | Sidebar, cards, rows |
-| `elevated` | `#FFFFFF` + shadow | `#1B1B21` | Popovers, dialogs, peek |
-| `border` | `#E6E6EA` | `#26262E` | Hairlines |
-| `border-strong` | `#D0D0D6` | `#33333D` | Inputs, focused rows |
-| `fg` | `#121215` | `#EDEDF0` | Primary text |
-| `fg-muted` | `#6B6B76` | `#9A9AA6` | Secondary text, IDs |
-| `fg-faint` | `#A0A0AA` | `#5E5E6A` | Placeholders, disabled |
-| `accent` | `#5B5BD6` | `#7C7CF0` | Focus ring, selection, links, primary buttons |
-| `accent-soft` | `#EEEEFB` | `#22224A` | Selected row tint |
-| `agent` | `#7C3AED` | `#A78BFA` | Agent chips, agent comment border |
-| `agent-soft` | `#F3EEFF` | `#2A1F47` | Agent chip background |
-| `success` | `#16A34A` | `#4ADE80` | Passing checks, done |
-| `warning` | `#D97706` | `#FBBF24` | Pending, WIP over limit, reconnecting |
-| `danger` | `#DC2626` | `#F87171` | Failing checks, urgent, destructive |
+| `bg` | `#FFFFFF` | `#070707` | App background |
+| `surface` | `#F7F7F8` | `#151516` | Sidebar, cards, rows |
+| `elevated` | `#F5F5F5` + shadow | `#1C1C1E` | Popovers, dialogs, peek |
+| `border` | `#E8E8EA` | `#242425` | Hairlines |
+| `border-strong` | `#DDDDDF` | `#323234` | Inputs, focused rows |
+| `fg` | `#070707` | `#E8E8EA` | Primary text |
+| `fg-muted` | `#646468` | `#BBBBBF` | Secondary text, IDs |
+| `fg-faint` | `#8E8E95` | `#8E8E95` | Placeholders, disabled |
+| `accent` | `#009FFF` | `#009FFF` | Focus ring, selection, links, primary buttons |
+| `accent-soft` | `#DFEBFF` | `#19283C` | Selected row tint |
+| `agent` | `#693ACF` | `#9D6AFB` | Agent chips, agent comment border |
+| `agent-soft` | `#EFE8FB` | `#24183F` | Agent chip background |
+| `success` | `#0DBE4E` | `#5ECC71` | Passing checks, done |
+| `warning` | `#D5A910` | `#FFD452` | Pending, WIP over limit, reconnecting |
+| `danger` | `#FF2E3F` | `#FF6762` | Failing checks, urgent, destructive |
 | `scrim` | `rgba(0,0,0,.4)` | `rgba(0,0,0,.6)` | Dialog backdrop |
 
 Shadows: `sm` (rows hover) `0 1px 2px rgba(0,0,0,.06)`, `md` (popovers) `0 4px 12px rgba(0,0,0,.10)`, `lg` (peek, dialogs) `0 12px 32px rgba(0,0,0,.16)`; in dark mode shadows are replaced by a 1px `border-strong` plus a subtler shadow.
