@@ -21,11 +21,16 @@ test.beforeAll(() => {
 	trellis(["pr", "add", "NYO-1", failingPrUrl]);
 });
 
-test("needs-you > failed checks leave the page empty", async ({ page }) => {
+// TRL-27. A failed check puts the ticket in the Failing checks section, and
+// the row opens the ticket page.
+test("needs-you > a failed check lists the ticket and the row opens it", async ({ page }) => {
 	await signIn(page, "/needs-you");
-	const row = page.locator('[data-inbox-row="NYO-1"]');
 	await expect(page.getByRole("heading", { name: "Needs you", exact: true })).toBeVisible();
-	await expect(row).toHaveCount(0);
+	const row = page.locator('[data-inbox-row="NYO-1"]');
+	await expect(row).toBeVisible();
+	await expect(page.getByRole("region", { name: "Failing checks" })).toContainText("Fix the desktop typecheck");
+	await row.click();
+	await expect(page).toHaveURL(/\/t\/NYO-1$/);
 });
 
 // E2E-04. The settings live on the server, so a reload shows them again.
