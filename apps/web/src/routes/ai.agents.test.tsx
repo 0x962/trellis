@@ -76,9 +76,14 @@ test("a rejected start retains the selected persona and displays the error", asy
 	await user.click(await screen.findByRole("button", { name: "New agent" }));
 	const picker = within(await screen.findByRole("dialog", { name: "Assign a persona" }));
 	await user.type(picker.getByRole("combobox", { name: "Search personas" }), "Builder");
-	server.failNext("agentRuns.start", { code: "DUPLICATE", data: { field: "active agent" } });
+	server.failNext("agentRuns.start", {
+		code: "INPUT_VALIDATION_FAILED",
+		data: { issues: [{ message: "Add a repository to the project before you start an agent.", path: ["project"] }] },
+	});
 	await user.click(await picker.findByRole("option", { name: "Builder" }));
-	expect((await picker.findByRole("alert")).textContent).toContain("Could not start the agent");
+	expect((await picker.findByRole("alert")).textContent).toBe(
+		"Could not start the agent. Add a repository to the project before you start an agent.",
+	);
 	expect((picker.getByRole("combobox", { name: "Search personas" }) as HTMLInputElement).value).toBe("Builder");
 	expect(picker.getByRole("option", { name: "Builder" })).toBeDefined();
 });
