@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Badge, cx, IconButton, Kbd } from "@trellis/ui";
-import { Hash, Inbox, List, Moon, PanelLeftClose, Plus, Search, Sun, X } from "lucide-react";
+import { Hash, Inbox, List, Moon, PanelLeftClose, Plus, Search, Sun, UserRound, X } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
 import { formatCount } from "../../../lib/format";
@@ -21,7 +21,12 @@ const rowClass =
 	"flex h-7 items-center gap-2 rounded-md px-2 text-fg-muted transition-colors duration-hover hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11";
 const activeRowClass = "bg-accent-soft text-fg";
 
-type NavRowProps = { to: "/needs-you" | "/search" | "/all"; icon: ReactElement; label: string; trailing?: ReactNode };
+type NavRowProps = {
+	to: "/needs-you" | "/search" | "/all" | "/ai/personas";
+	icon: ReactElement;
+	label: string;
+	trailing?: ReactNode;
+};
 
 function NavRow({ to, icon, label, trailing }: NavRowProps) {
 	return (
@@ -122,6 +127,10 @@ export function Sidebar({ surface = "rail" }: SidebarProps) {
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<ProjectTree />
 				<ArchivedProjects />
+				<nav aria-label="AI">
+					<div className="pt-3 pb-1 pl-2 text-xs tracking-wide text-fg-muted uppercase">AI</div>
+					<NavRow to="/ai/personas" icon={<UserRound />} label="Personas" />
+				</nav>
 			</div>
 			<ActorFooter />
 		</aside>
