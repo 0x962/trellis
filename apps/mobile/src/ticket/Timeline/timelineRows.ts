@@ -37,9 +37,13 @@ const joins = (row: TimelineRow | undefined, item: Activity): row is ActivityRow
 
 const label = (items: Activity[]) => (items.length === 1 ? describeActivity(items[0]!) : describeRun(items));
 
+// The server writes a `comment.created` activity row beside every comment.
+// The comment card already shows that event, so the row draws no line.
+const shown = (item: TimelineItem) => item.kind === "comment" || item.action !== "comment.created";
+
 // Turns one page of `timeline.list`, newest first, into rows oldest first.
 export const timelineRows = (items: readonly TimelineItem[]): TimelineRow[] => {
-	const oldestFirst = [...items].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+	const oldestFirst = items.filter(shown).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
 	const rows: TimelineRow[] = [];
 	for (const item of oldestFirst) {
 		if (item.kind === "comment") {

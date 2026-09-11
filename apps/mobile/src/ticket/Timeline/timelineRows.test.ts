@@ -50,6 +50,29 @@ describe("timelineRows", () => {
 		expect(row.label).toContain("parent");
 	});
 
+	// The server writes one `comment.created` row per comment. Without the
+	// filter every comment card carries a bare activity line above it.
+	test("drops the comment.created row the comment card already shows", () => {
+		const page = [
+			commentItem({ id: id("C1"), actor: dana, createdAt: at(hour) }),
+			activityItem({
+				id: 3,
+				actor: dana,
+				action: "comment.created",
+				field: null,
+				fromValue: null,
+				toValue: null,
+				meta: { commentId: id("C1"), parentId: null, threadId: id("C1") },
+				createdAt: at(hour),
+			}),
+			activityItem({ id: 2, actor: dana, field: "status", createdAt: at(2 * hour) }),
+		];
+		const rows = timelineRows(page);
+		expect(rows.map((row) => row.kind)).toEqual(["activity", "comment"]);
+		const activityRow = rows[0]!;
+		expect(activityRow.kind === "activity" && activityRow.items.map((item) => item.id)).toEqual([2]);
+	});
+
 	// O14. Three pairs of activity rows, each split another way.
 	test("a comment, another actor, or a longer gap breaks a run", () => {
 		const byComment = [

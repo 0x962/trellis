@@ -1,12 +1,13 @@
-import type {
-	Activity,
-	Attachment,
-	Comment,
-	LinkedPullRequest,
-	Status,
-	Ticket,
-	TicketSummary,
-	TimelineItem,
+import {
+	type Activity,
+	type Attachment,
+	activityActions,
+	type Comment,
+	type LinkedPullRequest,
+	type Status,
+	type Ticket,
+	type TicketSummary,
+	type TimelineItem,
 } from "@trellis/api";
 
 // Wire-shaped fixtures. Every id is a Crockford base32 ULID, the id format
@@ -131,7 +132,7 @@ export const activity = (overrides: Partial<Activity> = {}): Activity => ({
 	projectId,
 	ticketId,
 	actor: claude,
-	action: "changed",
+	action: activityActions.updated,
 	field: "status",
 	fromValue: "Todo",
 	toValue: "In Progress",
