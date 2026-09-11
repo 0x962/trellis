@@ -47,6 +47,7 @@ export const services = {
 	"personas.list": core("read", personas.list),
 	"personas.create": core("mutation", personas.create),
 	"personas.update": core("mutation", personas.update),
+	"personas.delete": core("mutation", personas.remove),
 	"projects.list": core("read", projects.list),
 	"projects.get": core("read", projects.get),
 	"projects.create": core("mutation", projects.create),

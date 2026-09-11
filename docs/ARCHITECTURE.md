@@ -53,9 +53,9 @@ five files. The port is 4521 (`TRELLIS_PORT`) and the host is `127.0.0.1`
 ## Domain rules
 
 Personas are local records shared across projects. Each persona has a name and
-an instruction. The AI section of the sidebar opens the Personas page, with
-forms to create and edit these records. The API exposes `personas.list`,
-`personas.create`, and `personas.update`. The `personas.changed` event
+an instruction, and a kind: builder, reviewer, or manager. The AI section of the sidebar opens the Personas page, with
+cards grouped by kind and slideouts to create, edit, and delete these records. The API exposes `personas.list`,
+`personas.create`, `personas.update`, and `personas.delete`. The `personas.changed` event
 invalidates the cached persona list after a committed mutation.
 The [Personas spec](design/personas.md) defines the fields and outcomes.
 

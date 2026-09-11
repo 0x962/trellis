@@ -1,0 +1,2 @@
+ALTER TABLE "personas" ADD COLUMN "kind" text DEFAULT 'reviewer' NOT NULL;--> statement-breakpoint
+ALTER TABLE "personas" ADD CONSTRAINT "personas_kind_check" CHECK ("personas"."kind" IN ('builder', 'reviewer', 'manager'));
