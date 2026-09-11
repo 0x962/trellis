@@ -13,9 +13,12 @@ export type SubprojectSettingsProps = {
 // sub-project.
 export function SubprojectSettings({ project }: SubprojectSettingsProps) {
 	return (
-		<SettingsSection title="Sub-projects" hint="Each sub-project shares the key and uses the statuses of its parent.">
+		<SettingsSection
+			title="Subprojects"
+			hint="Organize related work into subprojects. Each shares the project key and inherits statuses unless customized."
+		>
 			{project.children.length === 0 ? (
-				<p className="text-sm text-fg-muted">No sub-projects.</p>
+				<p className="text-sm text-fg-muted">No subprojects. Use the project menu in the sidebar to add one.</p>
 			) : (
 				<ul className="flex flex-col">
 					{project.children.map((child) => (

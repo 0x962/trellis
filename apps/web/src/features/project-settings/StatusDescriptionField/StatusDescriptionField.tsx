@@ -66,7 +66,8 @@ export function StatusDescriptionField({ project, status }: StatusDescriptionFie
 	return (
 		<div className="flex flex-col gap-1">
 			<Textarea
-				label={`Description for ${status.name}`}
+				label="Description"
+				aria-label={`Description for ${status.name}`}
 				rows={3}
 				maxLength={maxLength}
 				value={value}

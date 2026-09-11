@@ -23,7 +23,6 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 	const [name, setName] = useState(project.name);
 	const [slug, setSlug] = useState(project.slug);
 	const [description, setDescription] = useState(project.description);
-	const [ticketTemplate, setTicketTemplate] = useState(project.ticketTemplate);
 	const [message, setMessage] = useState<string | null>(null);
 
 	const save = async (event: FormEvent) => {
@@ -34,7 +33,6 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 				name: name.trim(),
 				...(project.parentId === null ? {} : { slug }),
 				description,
-				ticketTemplate,
 			});
 			setMessage("Project saved.");
 			await queryClient.invalidateQueries();
@@ -53,45 +51,43 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 	const locked = project.ticketCounter > 0;
 	return (
 		<form onSubmit={(event) => void save(event)}>
-			<SettingsSection title="Project" hint="Set the name, slug, description, and ticket template.">
-				<div className="grid gap-3 sm:grid-cols-2">
-					<Input label="Project name" value={name} onChange={(event) => setName(event.target.value)} />
+			<SettingsSection title="General" hint="Name this project and describe the work it contains.">
+				<div className="project-settings-group">
+					<h3 className="project-settings-group-title">Project identity</h3>
+					<div className="grid gap-4 sm:grid-cols-2">
+						<Input label="Project name" value={name} onChange={(event) => setName(event.target.value)} />
+						<Input
+							label="Slug"
+							value={slug}
+							readOnly={project.parentId === null}
+							disabled={project.parentId === null}
+							onChange={(event) => setSlug(event.target.value)}
+						/>
+					</div>
 					<Input
-						label="Slug"
-						value={slug}
-						readOnly={project.parentId === null}
-						disabled={project.parentId === null}
-						onChange={(event) => setSlug(event.target.value)}
+						label="Key"
+						value={project.key}
+						readOnly
+						aria-describedby={locked ? noticeId : undefined}
+						className="max-w-28 font-mono uppercase"
+					/>
+					{locked && (
+						<p id={noticeId} className="flex items-center gap-1.5 text-sm text-fg-muted">
+							<Lock aria-hidden="true" className="size-3 shrink-0" />
+							{keyLockedHint(project.key)}
+						</p>
+					)}
+				</div>
+				<div className="project-settings-group">
+					<h3 className="project-settings-group-title">About this project</h3>
+					<Textarea
+						label="Description"
+						rows={3}
+						value={description}
+						onChange={(event) => setDescription(event.target.value)}
 					/>
 				</div>
-				<Input
-					label="Key"
-					value={project.key}
-					readOnly
-					aria-describedby={locked ? noticeId : undefined}
-					className="max-w-28 font-mono uppercase"
-				/>
-				{locked && (
-					<p id={noticeId} className="flex items-center gap-1.5 text-sm text-fg-muted">
-						<Lock aria-hidden="true" className="size-3 shrink-0" />
-						{keyLockedHint(project.key)}
-					</p>
-				)}
-				<Textarea
-					label="Description"
-					rows={3}
-					value={description}
-					onChange={(event) => setDescription(event.target.value)}
-				/>
-				<Textarea
-					label="Ticket template"
-					rows={5}
-					value={ticketTemplate}
-					className="font-mono text-sm"
-					onFocus={(event) => event.currentTarget.select()}
-					onChange={(event) => setTicketTemplate(event.target.value)}
-				/>
-				<div className="flex items-center gap-3">
+				<div className="project-settings-save">
 					<Button type="submit" variant="primary">
 						Save project
 					</Button>

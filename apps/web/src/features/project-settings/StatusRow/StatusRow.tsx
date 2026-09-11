@@ -59,10 +59,11 @@ export function StatusRow({ project, status, index, count, onChanged, onMove, on
 	};
 
 	return (
-		<li className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-3">
+		<li className="flex flex-col gap-4 border border-border bg-surface p-4">
 			<div className="flex items-center gap-2">
 				<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />
-				<span className="font-mono text-xs text-fg-muted">{status.category}</span>
+				<h3 className="text-md font-medium text-fg">{status.name}</h3>
+				<span className="text-xs text-fg-muted">{status.category}</span>
 				<div className="ml-auto flex items-center gap-1">
 					<IconButton
 						size="sm"
@@ -81,21 +82,42 @@ export function StatusRow({ project, status, index, count, onChanged, onMove, on
 					<IconButton size="sm" label={`Delete ${status.name}`} icon={<Trash2 />} onClick={() => onDelete(status)} />
 				</div>
 			</div>
-			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-				<Input label={`Name for ${status.name}`} value={name} onChange={(event) => setName(event.target.value)} />
-				<Select label={`Color for ${status.name}`} items={colors} value={color} onValueChange={setColor} />
-				{status.category === "review" ? (
+			<div className="grid items-end gap-3 sm:grid-cols-2">
+				<Input
+					label="Name"
+					aria-label={`Name for ${status.name}`}
+					value={name}
+					onChange={(event) => setName(event.target.value)}
+				/>
+				<div className="flex flex-col gap-1">
+					<span aria-hidden="true" className="text-sm text-fg-muted">
+						Color
+					</span>
 					<Select
-						label={`Reviewer for ${status.name}`}
-						items={reviewers}
-						value={reviewer}
-						onValueChange={setReviewer}
+						label={`Color for ${status.name}`}
+						items={colors}
+						value={color}
+						onValueChange={setColor}
+						className="h-8"
 					/>
-				) : (
-					<div />
+				</div>
+				{status.category === "review" && (
+					<div className="flex flex-col gap-1">
+						<span aria-hidden="true" className="text-sm text-fg-muted">
+							Reviewer
+						</span>
+						<Select
+							label={`Reviewer for ${status.name}`}
+							items={reviewers}
+							value={reviewer}
+							onValueChange={setReviewer}
+							className="h-8"
+						/>
+					</div>
 				)}
 				<Input
-					label={`WIP limit for ${status.name}`}
+					label="Work in progress limit"
+					aria-label={`WIP limit for ${status.name}`}
 					type="number"
 					min={1}
 					value={wipLimit}
