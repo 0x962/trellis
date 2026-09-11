@@ -4,7 +4,12 @@ import { ulid } from "ulid";
 import { createApp } from "../../src/app.ts";
 import { type Config, loadConfig } from "../../src/config.ts";
 import { openDb } from "../../src/db/client.ts";
-import { createInlineTransport, createWorkerTransport, type Runtime } from "../../src/db/transport.ts";
+import {
+	createInlineTransport,
+	createWorkerTransport,
+	type Runtime,
+	type ServiceTransport,
+} from "../../src/db/transport.ts";
 import type { Tx } from "../../src/db/tx.ts";
 import { createBus } from "../../src/events/bus.ts";
 import { createGhRunner, type GhRunner } from "../../src/gh/run.ts";
@@ -61,12 +66,22 @@ export type TestAppOptions = {
 	// The superset binary the agents runner spawns. The default is the fake
 	// from test/stubs/superset.ts, so no test reaches the real superset.
 	supersetBin?: string;
+	// The data home. A caller that shares one home across several apps reuses
+	// the attachment blobs it already wrote there.
+	home?: string;
+	// The URLs `system.health` lists.
+	addresses?: () => Promise<string[]>;
+	bootId?: string;
+	// Wraps the transport every procedure calls. The wrapper sees the service
+	// name, the request context, and the input of every call, so a test
+	// records the calls, delays one, or fails one.
+	wrapTransport?: (inner: ServiceTransport) => ServiceTransport;
 };
 
 export const createTestApp = async (options: TestAppOptions = {}) => {
 	const owned = options.db === undefined;
 	const h = options.db ?? (await freshDb());
-	const home = freshHomeWithDirs();
+	const home = options.home ?? freshHomeWithDirs();
 	const config: Config = loadConfig({
 		TRELLIS_HOME: home,
 		TRELLIS_PORT: "0",
@@ -90,20 +105,21 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		},
 		env: {},
 	});
-	const bootId = ulid();
+	const bootId = options.bootId ?? ulid();
 	const bus = createBus({ bootId });
 	const runtime: Runtime = {
 		version: options.version ?? "0.1.0-test",
 		bootId,
 		gh: options.gh ?? createGhRunner(),
 		ghStatus: options.ghStatus ?? signedInGh,
-		addresses: async () => ["http://192.168.1.20:4521", "http://127.0.0.1:4521"],
+		addresses: options.addresses ?? (async () => ["http://192.168.1.20:4521", "http://127.0.0.1:4521"]),
 	};
 	const clock = fakeIntervalClock();
-	const transport = config.dbInline
+	const inner = config.dbInline
 		? createInlineTransport({ db: h.db, bus, config, runtime })
 		: createWorkerTransport({ bus, config, runtime });
-	await transport.start();
+	await inner.start();
+	const transport = options.wrapTransport === undefined ? inner : options.wrapTransport(inner);
 	const { app, bye } = createApp({ config, log, transport, bus, runtime, clock });
 
 	const fetchThroughApp = (request: Request) => Promise.resolve(app.request(request));
@@ -144,7 +160,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 	const close = async () => {
 		if (!open) return;
 		open = false;
-		await transport.close();
+		await inner.close();
 		if (owned) h.close();
 	};
 
@@ -179,7 +195,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		clock,
 		records,
 		runtime,
-		transport,
+		transport: inner,
 		close,
 	};
 };
