@@ -1,10 +1,10 @@
-// The MMKV key that holds the recent searches, as one JSON array of strings.
+// The store key that holds the recent searches, as one JSON array of strings.
 export const recentSearchesKey = "trellis-recent-searches";
 
 // The number of queries the list keeps. An older query drops off the end.
 export const maxRecentSearches = 8;
 
-// The part of MMKV this module touches.
+// The part of the store this module touches.
 export type RecentStore = {
 	getString: (key: string) => string | undefined;
 	set: (key: string, value: string) => void;

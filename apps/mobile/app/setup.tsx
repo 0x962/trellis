@@ -2,14 +2,14 @@ import { parsePairLink } from "@trellis/api";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { useMMKVString } from "react-native-mmkv";
 import { Button } from "../src/components/Button";
 import { Field } from "../src/components/Field";
 import { KeyValueRow } from "../src/components/KeyValueRow";
 import { QrScanner } from "../src/features/setup/QrScanner";
 import { queryClient } from "../src/lib/queryClient";
 import { actorHeader, type ProbeResult, probeHealth, validateActorName, validateServerUrl } from "../src/lib/server";
-import { keys, store } from "../src/lib/store";
+import { keys } from "../src/lib/store";
+import { useStoredString } from "../src/lib/useStoredString";
 import { tokens } from "../src/theme/tokens";
 import { usePalette } from "../src/theme/usePalette";
 
@@ -41,8 +41,8 @@ const styles = StyleSheet.create({
 // actor header grammar takes. After Save the screen returns to where it was
 // opened from, or to the first tab on a fresh install.
 export default function SetupScreen() {
-	const [storedUrl, setStoredUrl] = useMMKVString(keys.serverUrl, store);
-	const [storedName, setStoredName] = useMMKVString(keys.actorName, store);
+	const [storedUrl, setStoredUrl] = useStoredString(keys.serverUrl);
+	const [storedName, setStoredName] = useStoredString(keys.actorName);
 	const { url: linkedUrl } = useLocalSearchParams<{ url?: string }>();
 	const [url, setUrl] = useState(storedUrl ?? "http://");
 	const [name, setName] = useState(storedName ?? "");

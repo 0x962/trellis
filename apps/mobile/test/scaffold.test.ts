@@ -96,10 +96,13 @@ describe("scaffold", () => {
 	// a dependency with native code of its own has to sit in that list at a
 	// version the list takes. A dependency outside the list has no binary in
 	// Expo Go, and the app crashes the moment it calls into that module.
+	//
+	// `expo` itself names the SDK instead of a module in it, and the test
+	// above pins it to 57, the SDK the installed Expo Go builds hold.
 	test("every dependency with native code is a module Expo Go ships, at a version it ships", async () => {
 		const { dependencies } = (await json("package.json")) as { dependencies: Record<string, string> };
 		const bundled = (await json("../../node_modules/expo/bundledNativeModules.json")) as Record<string, string>;
-		const native = Object.entries(dependencies).filter(([name]) => shipsNativeCode(name));
+		const native = Object.entries(dependencies).filter(([name]) => name !== "expo" && shipsNativeCode(name));
 		expect(native.length).toBeGreaterThan(5);
 		const unshipped = native.filter(([name]) => !(name in bundled)).map(([name, version]) => `${name}@${version}`);
 		expect(unshipped).toEqual([]);
