@@ -29,6 +29,7 @@ export const ticketSummary = (overrides: Record<string, unknown> = {}) => ({
 	status: statusSummary(),
 	project: { id: projectId, key: "CDE", path: "CDE" },
 	parent: null,
+	ancestors: [],
 	childCount: 0,
 	childDoneCount: 0,
 	commentCount: 0,

@@ -68,6 +68,15 @@ export const childrenOfTicket = (state: State, ticketId: string) =>
 export const ticketSummary = (state: State, row: TicketRow): TicketSummary => {
 	const project = state.projects.get(row.projectId)!;
 	const parent = row.parentId === null ? null : state.tickets.get(row.parentId)!;
+	// Every ticket above this one, the top of the tree first.
+	const ancestors: string[] = [];
+	for (
+		let above = parent;
+		above !== null;
+		above = above.parentId === null ? null : state.tickets.get(above.parentId)!
+	) {
+		ancestors.unshift(identifierOf(state, above));
+	}
 	const children = childrenOfTicket(state, row.id);
 	return {
 		id: row.id,
@@ -78,6 +87,7 @@ export const ticketSummary = (state: State, row: TicketRow): TicketSummary => {
 		status: statusSummary(state.statuses.get(row.statusId)!),
 		project: { id: project.id, key: project.key, path: project.path },
 		parent: parent === null ? null : { id: parent.id, identifier: identifierOf(state, parent) },
+		ancestors,
 		childCount: children.length,
 		childDoneCount: children.filter((child) => state.statuses.get(child.statusId)!.category === "done").length,
 		commentCount: [...state.comments.values()].filter((comment) => comment.ticketId === row.id).length,

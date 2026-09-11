@@ -25,6 +25,7 @@ const summary = (overrides: Partial<TicketSummary> = {}): TicketSummary => ({
 	},
 	project: { id: id("D6P1"), key: "CDE", path: "CDE.web" },
 	parent: null,
+	ancestors: [],
 	childCount: 0,
 	childDoneCount: 0,
 	commentCount: 4,
