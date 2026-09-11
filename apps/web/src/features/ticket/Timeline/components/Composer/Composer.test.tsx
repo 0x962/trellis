@@ -25,7 +25,7 @@ describe("features/ticket/Timeline/components/Composer", () => {
 		const user = userEvent.setup();
 		mount();
 		const box = await composer();
-		expect(box.getAttribute("placeholder")).toBe("Write a comment in Markdown. Paste an image to attach it.");
+		expect(box.getAttribute("placeholder")).toBe("Write a comment…");
 		expect(screen.queryByRole("button", { name: "Comment" })).toBeNull();
 		await user.click(box);
 		await user.keyboard("Looks right.");

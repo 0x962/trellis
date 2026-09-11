@@ -24,7 +24,12 @@ export function RunLine({ items, reviewer }: RunLineProps) {
 	return (
 		<li data-kind="activity" className="flex h-8 items-center gap-2 text-sm text-fg-muted">
 			{actor.kind !== "system" && (
-				<ActorChip name={actor.name} kind={actor.kind} live={isLiveActor({ kind: actor.kind, at: last.createdAt })} />
+				<ActorChip
+					compact
+					name={actor.name}
+					kind={actor.kind}
+					live={isLiveActor({ kind: actor.kind, at: last.createdAt })}
+				/>
 			)}
 			<span className="min-w-0 truncate"> {describeRun(items)}</span>
 			<button

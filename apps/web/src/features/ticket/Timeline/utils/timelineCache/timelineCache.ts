@@ -15,10 +15,12 @@ export const updateTimeline = (
 	);
 };
 
-// Puts one item at the head of the newest page.
+// A live refetch can include a comment before its create response arrives.
+// Preserve that row and its page when the response supplies the same comment.
 export const prependTimeline = (queryClient: QueryClient, key: QueryKey, item: TimelineListOutput["items"][number]) => {
 	queryClient.setQueryData<Pages>(key, (data) =>
-		data === undefined
+		data === undefined ||
+		data.pages.some((page) => page.items.some((row) => row.kind === item.kind && row.id === item.id))
 			? data
 			: {
 					...data,

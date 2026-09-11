@@ -60,17 +60,22 @@ const lineTexts = (element: HTMLElement) =>
 		.map((item) => item.textContent!.replace(/\s+/g, " "));
 
 describe("features/ticket/Timeline", () => {
-	// WT-76. The server answers newest first. The page paints oldest first,
-	// and the newest item is the last thing before the composer.
-	test("renders the timeline oldest first under the newest item", async () => {
+	// The API pages newest first. Each section shows its items oldest first.
+	test("renders activity above comments with each section oldest first", async () => {
 		const server = createFakeServer();
 		const page = await server.client.timeline.list({ ticket: "CDE-42" });
 		expect(page.items[0]!.createdAt > page.items[page.items.length - 1]!.createdAt).toBe(true);
 		mount("CDE-42", server);
 		const element = await list();
+		await userEvent.setup().click(await screen.findByRole("button", { name: "Show all activity" }));
 		await waitFor(() => expect(items(element)).toHaveLength(page.items.length));
-		const stamps = items(element).map((item) => item.querySelector("time")!.getAttribute("datetime")!);
-		expect(stamps).toEqual([...stamps].sort());
+		const activity = within(element).getByRole("list", { name: "Activity" });
+		const comments = within(element).getByRole("list", { name: "Comments" });
+		expect(activity.compareDocumentPosition(comments) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+		for (const section of [activity, comments]) {
+			const stamps = items(section).map((item) => item.querySelector("time")!.getAttribute("datetime")!);
+			expect(stamps).toEqual([...stamps].sort());
+		}
 		const newest = items(element)[items(element).length - 1]!;
 		expect(newest.textContent).toContain("Typecheck and tests are green on the PR.");
 		const composer = screen.getByRole("textbox", { name: "Comment" });
@@ -126,16 +131,38 @@ describe("features/ticket/Timeline", () => {
 		expect(lineTexts(element).some((text) => text.includes("comment"))).toBe(false);
 	});
 
-	// WT-86
-	test("the Comments toggle hides the activity lines", async () => {
+	test("shows the last three activity entries and expands the older activity", async () => {
 		const user = userEvent.setup();
-		mount("CDE-42", createFakeServer());
+		const server = createFakeServer();
+		const ticket = findTicket(server.state, "CDE-45")!;
+		server.state.activity = server.state.activity.filter((item) => item.ticketId !== ticket.id);
+		for (let index = 0; index < 5; index++) {
+			addActivity(server.state, {
+				rootId: ticket.rootId,
+				projectId: ticket.projectId,
+				ticketId: ticket.id,
+				actor: { name: "navid", kind: "human" },
+				action: "ticket.updated",
+				field: "title",
+				fromValue: `Title ${index}`,
+				toValue: `Title ${index + 1}`,
+				createdAt: ago((5 - index) * minute),
+			});
+		}
+		mount("CDE-45", server);
 		const element = await list();
-		await waitFor(() => expect(kinds(element)).toContain("activity"));
-		await user.click(screen.getByRole("button", { name: "Comments" }));
-		expect(screen.getByRole("button", { name: "Comments" }).getAttribute("aria-pressed")).toBe("true");
-		await waitFor(() => expect(kinds(element)).not.toContain("activity"));
-		expect(kinds(element).filter((kind) => kind === "comment")).toHaveLength(4);
+		await waitFor(() => expect(lineTexts(element)).toHaveLength(3));
+		const stamps = items(element).map((item) => item.querySelector("time")!.dateTime);
+		expect(stamps).toEqual(
+			server.state.activity
+				.filter((item) => item.ticketId === ticket.id)
+				.slice(-3)
+				.map((item) => item.createdAt),
+		);
+		await user.click(screen.getByRole("button", { name: "Show all activity" }));
+		expect(lineTexts(element)).toHaveLength(5);
+		await user.click(screen.getByRole("button", { name: "Show less activity" }));
+		expect(lineTexts(element)).toHaveLength(3);
 	});
 
 	// WT-87. The stream loads newest first; the older page prepends once.

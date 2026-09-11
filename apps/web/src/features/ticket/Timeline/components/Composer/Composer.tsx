@@ -44,6 +44,8 @@ export function Composer({ ticket, pinned = false, onAttachFiles }: ComposerProp
 			kind: "comment",
 			id: `pending-${Date.now()}`,
 			ticketId: ticket.id,
+			parentId: null,
+			resolvedAt: null,
 			body,
 			actor: { name: actor.name, kind: actor.kind },
 			createdAt: now,
@@ -101,7 +103,7 @@ export function Composer({ ticket, pinned = false, onAttachFiles }: ComposerProp
 				<textarea
 					ref={field}
 					aria-label="Comment"
-					placeholder="Write a comment in Markdown. Paste an image to attach it."
+					placeholder="Write a comment…"
 					rows={1}
 					value={text}
 					onChange={(event) => setText(event.target.value)}

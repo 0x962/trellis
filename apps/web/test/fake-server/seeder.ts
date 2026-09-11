@@ -221,6 +221,8 @@ export const createSeeder = (state: State, now: number) => {
 		state.comments.set(id, {
 			id,
 			ticketId: row.id,
+			parentId: null,
+			resolvedAt: null,
 			body,
 			actor: actors[actor],
 			createdAt: ago(at),
