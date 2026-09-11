@@ -34,6 +34,14 @@ describe("features/ticket/Timeline/components/Composer", () => {
 		expect(screen.queryByRole("button", { name: "Comment" })).toBeNull();
 	});
 
+	test("the pinned composer does not add a different background band", async () => {
+		mount();
+		const box = await composer();
+		const wrapper = box.closest("fieldset")!.parentElement!;
+		expect(wrapper.className).not.toMatch(/\bbg-pane\b/);
+		expect(box.closest("fieldset")!.className).toMatch(/\bbg-surface\b/);
+	});
+
 	// WT-83
 	test("Cmd+Enter posts the comment optimistically", async () => {
 		const user = userEvent.setup();

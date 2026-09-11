@@ -21,18 +21,14 @@ import { TicketSkeleton } from "./components/TicketSkeleton";
 export type TicketViewProps = {
 	// The canonical identifier, `CDE-42`.
 	identifier: string;
-	// The page draws the 280 px rail; the peek folds it under the title.
+	// The page and the peek draw the 280 px rail. A phone folds it under the title.
 	variant: "page" | "peek";
 };
 
-// One ticket, as the page and the peek both draw it: the header, the ID,
-// the title, the description, the sub-tickets, the PRs, the attachments,
-// and the timeline. The peek content fills the panel. Below
-// 768 px the page folds the rail into the peek grid under the title, with
-// the review actions under the grid. Every
-// section reads the cached detail, so a live patch repaints it with no
-// refetch. The whole ticket is the one drop target: a dropped file uploads
-// to the ticket, and the attachments section shows its progress.
+// The page and the peek show the same ticket sections and right property rail.
+// Below 768 px, the property rail becomes a grid under the title.
+// Every section reads the cached detail, so a live patch updates the full view.
+// The ticket surface accepts dropped files and shows their upload progress.
 export function TicketView({ identifier, variant }: TicketViewProps) {
 	const { orpc } = useApp();
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
@@ -70,7 +66,7 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 	}
 	const ticket = query.data;
 	const peek = variant === "peek";
-	const inlineRail = peek || narrow;
+	const inlineRail = narrow;
 	const readOnly = isArchived(ticket.project.path);
 
 	// The server refuses every write to a ticket under an archived project.
@@ -89,10 +85,13 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 			)}
 			<div
 				data-ticket-content=""
-				className={cx("flex min-w-0 flex-col pt-6 pb-8 max-md:px-4", peek ? "w-full px-6" : "max-w-[856px] px-12")}
+				className={cx(
+					"flex min-w-0 flex-col pt-6 pb-8 max-md:px-4",
+					peek ? "w-full max-w-[856px] px-8" : "max-w-[856px] px-12",
+				)}
 			>
 				<div className="flex flex-col gap-1">
-					<TicketId id={ticket.identifier} />
+					{!peek && <TicketId id={ticket.identifier} />}
 					<Title key={ticket.identifier} ticket={ticket} autoFocus={peek} />
 				</div>
 				{inlineRail && (

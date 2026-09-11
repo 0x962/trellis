@@ -10,11 +10,10 @@ export type SheetProps = {
 	// The accessible name, shown in the header.
 	title: string;
 	side?: "left" | "right";
-	// A modal sheet draws a scrim, traps focus, and closes on a click outside.
-	// The default is modal. The ticket peek passes false: the page behind it
-	// stays reachable and focusable, and only Escape or the close button
-	// closes it.
+	// A modal sheet draws a scrim and traps focus. A non-modal sheet keeps the page reachable.
 	modal?: boolean;
+	// An outside click closes a non-modal sheet when this value is true.
+	dismissOnOutside?: boolean;
 	// The panel width: a number in px, or a CSS width such as "100%". A
 	// resizable peek passes the width it holds.
 	width?: number | string;
@@ -40,11 +39,8 @@ export type SheetProps = {
 // motion it fades in place. It is a dialog: Base UI moves focus inside when
 // it opens, Escape closes it, and focus returns to where it was.
 //
-// The modal form is the Dialog behavior with the sheet's shape. The peek
-// passes modal={false} so that j and k walk the list behind it while the
-// panel shows the ticket. Base UI closes a non-modal dialog when a press or
-// a focus move lands outside it. `disablePointerDismissal` keeps the sheet
-// open through both. Only Escape, the close button, or the caller closes it.
+// A non-modal sheet lets keyboard shortcuts act on the page behind it.
+// `dismissOnOutside` controls whether an outside pointer press closes it.
 //
 // The resize handle renders after the header and the content. Base UI moves
 // initial focus onto the first tabbable element, so the focus lands on the
@@ -56,6 +52,7 @@ export function Sheet({
 	title,
 	side = "right",
 	modal = true,
+	dismissOnOutside = false,
 	width = 720,
 	bare = false,
 	initialFocus,
@@ -70,7 +67,7 @@ export function Sheet({
 			open={open}
 			onOpenChange={(next) => onOpenChange(next)}
 			modal={modal}
-			disablePointerDismissal={!modal}
+			disablePointerDismissal={!modal && !dismissOnOutside}
 		>
 			<BaseDialog.Portal>
 				{modal && (

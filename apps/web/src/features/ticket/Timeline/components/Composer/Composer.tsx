@@ -90,7 +90,7 @@ export function Composer({ ticket, pinned = false, onAttachFiles }: ComposerProp
 	};
 
 	return (
-		<div className={cx(pinned && "sticky bottom-0 z-10 border-t border-border bg-pane pt-2 pb-3")}>
+		<div className={cx(pinned && "sticky bottom-0 z-10 border-t border-border pt-2 pb-3")}>
 			<fieldset
 				aria-label="New comment"
 				onFocus={() => setFocused(true)}

@@ -16,9 +16,9 @@ export const defaultPeekWidth = 720;
 const readWidth = () => Number(localStorage.getItem(peekWidthStorageKey) ?? defaultPeekWidth);
 
 // The side peek: a non-modal sheet over the list, opened by the `peek`
-// search param. j and k walk the list, o opens the full page, Escape
-// closes. The width is dragged and remembered; under 1100 px the peek
-// fills the window. A delete of the shown ticket closes it.
+// search param. j and k walk the list, and o opens the full page. Escape,
+// an outside click, or a delete of the shown ticket closes the peek. The
+// width stays in local storage. Under 1100 px, the peek fills the window.
 export function TicketPeek() {
 	const peek = usePeek();
 	const rows = usePeekList();
@@ -64,6 +64,7 @@ export function TicketPeek() {
 			}}
 			title={shown}
 			modal={false}
+			dismissOnOutside
 			bare
 			className="min-w-peek"
 			width={narrow ? "100%" : width}

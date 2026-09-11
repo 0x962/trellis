@@ -231,7 +231,7 @@
 }
 
 @utility min-w-peek {
-	min-width: 45vw;
+	min-width: 60vw;
 }
 
 /* Tailwind has no theme namespace for durations, so each one is a utility. */

@@ -1,6 +1,6 @@
 import type { Comment } from "@trellis/api";
 import { ActorChip, Button, cx, Menu, type MenuItem, Textarea } from "@trellis/ui";
-import { useId, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { isLiveActor } from "../../../../../lib/actorLive";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
@@ -19,6 +19,8 @@ export type CommentCardProps = {
 	formatClassName?: "markdown" | "comment-markdown";
 	actions?: readonly MenuItem[];
 	className?: string;
+	threadSurface?: boolean;
+	children?: ReactNode;
 };
 
 // The timestamp exposes the absolute time in its title.
@@ -30,6 +32,8 @@ export function CommentCard({
 	formatClassName,
 	actions = [],
 	className,
+	threadSurface = false,
+	children,
 }: CommentCardProps) {
 	const { client } = useApp();
 	const [editing, setEditing] = useState(false);
@@ -57,10 +61,51 @@ export function CommentCard({
 		}
 	};
 
+	const body = editing ? (
+		<div className="flex flex-col gap-2 pb-3">
+			<Textarea
+				label="Edit comment"
+				hideLabel
+				rows={4}
+				value={draft}
+				onChange={(event) => setDraft(event.target.value)}
+			/>
+			<div className="flex justify-end gap-2">
+				<Button size="sm" variant="quiet" onClick={() => setEditing(false)}>
+					Cancel
+				</Button>
+				<Button size="sm" variant="primary" onClick={() => void save()}>
+					Save
+				</Button>
+			</div>
+		</div>
+	) : (
+		<>
+			<div id={bodyId} className={cx("text-base", long && !expanded && "max-h-60 overflow-hidden")}>
+				<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
+			</div>
+			{long && (
+				<Button
+					size="sm"
+					variant="quiet"
+					aria-controls={bodyId}
+					aria-expanded={expanded}
+					onClick={() => setExpanded(!expanded)}
+				>
+					{expanded ? "Show less" : "Show more"}
+				</Button>
+			)}
+		</>
+	);
+
 	return (
 		<li>
-			<article aria-label={`Comment by ${comment.actor.name}`} data-kind="comment" className={cx("py-3", className)}>
-				<header className="flex h-8 items-center gap-2 text-sm">
+			<article
+				aria-label={`Comment by ${comment.actor.name}`}
+				data-kind="comment"
+				className={cx("relative", !threadSurface && "py-3", className)}
+			>
+				<header className="relative flex h-8 items-center gap-2 text-sm">
 					{showActor && comment.actor.kind !== "system" && (
 						<ActorChip
 							compact
@@ -84,41 +129,18 @@ export function CommentCard({
 						/>
 					</div>
 				</header>
-				{editing ? (
-					<div className="flex flex-col gap-2 pb-3">
-						<Textarea
-							label="Edit comment"
-							hideLabel
-							rows={4}
-							value={draft}
-							onChange={(event) => setDraft(event.target.value)}
-						/>
-						<div className="flex justify-end gap-2">
-							<Button size="sm" variant="quiet" onClick={() => setEditing(false)}>
-								Cancel
-							</Button>
-							<Button size="sm" variant="primary" onClick={() => void save()}>
-								Save
-							</Button>
+				{threadSurface ? (
+					<div
+						data-thread-surface=""
+						className="relative ml-8 before:absolute before:top-0 before:right-full before:h-px before:w-6 before:bg-border"
+					>
+						<div className="overflow-hidden rounded-md border border-border bg-surface shadow-sm">
+							<div className="px-4 pt-3 pb-4">{body}</div>
+							{children}
 						</div>
 					</div>
 				) : (
-					<>
-						<div id={bodyId} className={cx("text-base", long && !expanded && "max-h-60 overflow-hidden")}>
-							<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
-						</div>
-						{long && (
-							<Button
-								size="sm"
-								variant="quiet"
-								aria-controls={bodyId}
-								aria-expanded={expanded}
-								onClick={() => setExpanded(!expanded)}
-							>
-								{expanded ? "Show less" : "Show more"}
-							</Button>
-						)}
-					</>
+					body
 				)}
 			</article>
 		</li>
