@@ -63,32 +63,32 @@ describe("features/ticket/TicketView", () => {
 		}
 	});
 
-	// WT-108. A hover-revealed action on the PR row has a twin in the row's
-	// more menu, and Tab reaches that menu.
+	// WT-108. Every hover-revealed action on the PR card has a focus twin, and
+	// Tab stops on each one in card order, so the keyboard reaches every
+	// action the pointer reaches.
 	test("no ticket action is hover-only", async () => {
 		const user = userEvent.setup();
 		page();
-		const row = await screen.findByRole("button", { name: /#118/ });
-		const hoverActions = [...row.parentElement!.querySelectorAll<HTMLElement>('[class*="group-hover"]')]
-			.map((element) => element.getAttribute("aria-label") ?? element.textContent!.trim())
-			.filter((name) => name !== "");
+		const section = await screen.findByRole("region", { name: /^PRs/ });
+		const card = await waitFor(() => {
+			const found = section.querySelector<HTMLElement>("[data-pr-row]");
+			if (found === null) throw new Error("The PRs section holds no card.");
+			return found;
+		});
+		const hoverActions = [...card.querySelectorAll<HTMLElement>('[class*="group-hover:opacity-100"]')];
 		expect(hoverActions.length).toBeGreaterThan(0);
-		row.focus();
-		let menuButton: HTMLElement | null = null;
-		for (let step = 0; step < 6 && menuButton === null; step++) {
+		for (const action of hoverActions) expect(action.className).toMatch(/focus-visible:opacity-100/);
+		const names = hoverActions.map((action) => action.getAttribute("aria-label"));
+		// The diff link leads the card, so a Tab from it walks the controls
+		// that follow it on the card.
+		(await within(card).findByRole("link")).focus();
+		const reached: (string | null)[] = [];
+		for (let step = 0; step < 6 && reached.length < hoverActions.length; step++) {
 			await user.tab();
 			const active = document.activeElement as HTMLElement;
-			if (/actions/i.test(active.getAttribute("aria-label") ?? "")) menuButton = active;
+			if (hoverActions.includes(active)) reached.push(active.getAttribute("aria-label"));
 		}
-		expect(menuButton).not.toBeNull();
-		await user.keyboard("{Enter}");
-		const items = await screen.findAllByRole("menuitem");
-		const names = items.map((item) => item.textContent!.trim());
-		for (const name of hoverActions) expect(names).toContain(name);
-		for (const item of items) {
-			item.focus();
-			expect(document.activeElement).toBe(item);
-		}
+		expect(reached).toEqual(names);
 	});
 
 	// WT-110. A skeleton is shaped like the row it stands for: a PR row is

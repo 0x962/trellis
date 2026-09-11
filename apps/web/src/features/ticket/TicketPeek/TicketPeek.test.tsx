@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
 import { press } from "../../../../test/keyboard";
 import { mockMatchMedia } from "../../../../test/media";
+import { checkList, firstPr, updatePr } from "../../../../test/prs";
 import { type ProviderOptions, renderWithProviders } from "../../../../test/renderWithProviders";
 import { addActivity, patchTicket } from "../../../../test/rows";
 import { ago, fieldValue, frames, minute, settle } from "../../../../test/ticketHost";
@@ -224,11 +225,25 @@ describe("features/ticket/TicketPeek", () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe("/t/CDE-42"));
 	});
 
-	// WT-109. CDE-43 has four pending checks; its last actor is set live.
-	// happy-dom has no CSS engine, so the classes are the evidence.
+	// WT-109. The peek of CDE-43 carries the three animations of the panel.
+	// The sheet slides, the check ribbon of the child row shimmers on four
+	// pending checks, and the live dot of an activity line pulses. happy-dom
+	// has no CSS engine, so the classes are the evidence.
 	test("reduced motion drops the slide, the shimmer, and the pulse", async () => {
 		mockMatchMedia(true);
 		const { server } = mount("/p/CDE/table");
+		// CDE-42 is a child of CDE-43, so the peek draws the check ribbon of
+		// its pull request on the child row. Four pending checks give four
+		// shimmering segments.
+		const child = await firstPr(server, "CDE-42");
+		await updatePr(server, child.id, {
+			checks: checkList(
+				["lint", "pending"],
+				["typecheck (desktop)", "pending"],
+				["test (host-service)", "pending"],
+				["build (macos-arm64)", "pending"],
+			),
+		});
 		await addActivity(server, {
 			ticket: "CDE-43",
 			actor: { name: "claude-code", kind: "agent" },
@@ -248,6 +263,12 @@ describe("features/ticket/TicketPeek", () => {
 		}
 		// The live dot rides on the activity lines now, and Avatar pins its
 		// reduced-motion class.
+		const dot = await waitFor(() => {
+			const found = panel.querySelector<HTMLElement>("[data-live]");
+			if (found === null) throw new Error("The peek shows no live dot.");
+			return found;
+		});
+		expect(dot.className).toMatch(/motion-reduce:animate-none/);
 		await settle();
 	});
 });
