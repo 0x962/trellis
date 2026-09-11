@@ -22,7 +22,7 @@ export function PersonasPage() {
 					</Button>
 				}
 			>
-				<h1 className="text-md font-semibold text-fg">Personas</h1>
+				<h1 className="text-lg font-semibold text-fg">Personas</h1>
 			</Topbar>
 			<div className="min-h-0 flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
 				<div className="flex max-w-7xl flex-col gap-6">

@@ -45,7 +45,7 @@ export function Breadcrumb({ path, current }: BreadcrumbProps) {
 						{linked.length > 0 && <Separator />}
 						<li className="flex min-w-0 items-center gap-2">
 							{segments.length === 1 && <ProjectKey projectKey={own} />}
-							<h1 className="truncate text-md font-semibold text-fg">{current}</h1>
+							<h1 className="truncate text-lg font-semibold text-fg">{current}</h1>
 						</li>
 					</>
 				)}
