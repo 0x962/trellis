@@ -1,0 +1,61 @@
+import { describe, expect, test } from "bun:test";
+import { CommentSchema } from "@trellis/api";
+import { createFakeServer } from "./index";
+import { openEvents, parseData } from "./sse";
+
+const actorHeaders = { "content-type": "application/json", "x-trellis-actor": "human:navid" };
+
+describe("fake server comments", () => {
+	// WS-125. A comment is user-visible activity, so the ticket's version
+	// and updatedAt move with it.
+	test("comment writes keep the count and emit their events", async () => {
+		const server = createFakeServer();
+		const before = await server.client.tickets.get({ ticket: "CDE-42" });
+		const stream = await openEvents(server.app);
+		await stream.nextEvent();
+		// The server may emit a ticket.updated for the count beside each
+		// comment event, so the reader skips to the event under test.
+		const frameOf = async (type: string) => {
+			for (;;) {
+				const frame = await stream.nextEvent();
+				if (frame === null || frame.event === type) return frame;
+			}
+		};
+		const response = await server.app.request("/api/tickets/CDE-42/comments", {
+			method: "POST",
+			headers: actorHeaders,
+			body: JSON.stringify({ body: "ok" }),
+		});
+		expect(response.status).toBe(201);
+		const comment = CommentSchema.parse(await response.json());
+		expect(response.headers.get("location")).toBe(`/api/comments/${comment.id}`);
+		expect(comment.ticketId).toBe(before.id);
+		expect(comment.body).toBe("ok");
+		expect(comment.actor).toEqual({ name: "navid", kind: "human" });
+		const created = await frameOf("comment.created");
+		expect(created!.event).toBe("comment.created");
+		expect(parseData<object>(created)).toEqual({ id: comment.id, ticketId: before.id });
+		const after = await server.client.tickets.get({ ticket: "CDE-42" });
+		expect(after.commentCount).toBe(before.commentCount + 1);
+		expect(after.version).toBe(before.version + 1);
+
+		const updated = await server.client.comments.update({ id: comment.id, body: "edited" });
+		expect(updated.body).toBe("edited");
+		expect(updated.updatedAt >= comment.updatedAt).toBe(true);
+		const updatedFrame = await frameOf("comment.updated");
+		expect(updatedFrame!.event).toBe("comment.updated");
+		expect(parseData<object>(updatedFrame)).toEqual({ id: comment.id, ticketId: before.id });
+
+		const deleteResponse = await server.app.request(`/api/comments/${comment.id}`, {
+			method: "DELETE",
+			headers: { "x-trellis-actor": "human:navid" },
+		});
+		expect(deleteResponse.status).toBe(200);
+		expect(await deleteResponse.json()).toEqual({ deleted: comment.id });
+		const deletedFrame = await frameOf("comment.deleted");
+		expect(deletedFrame!.event).toBe("comment.deleted");
+		expect(parseData<object>(deletedFrame)).toEqual({ id: comment.id, ticketId: before.id });
+		stream.close();
+		expect((await server.client.tickets.get({ ticket: "CDE-42" })).commentCount).toBe(before.commentCount);
+	});
+});

@@ -1,8 +1,8 @@
-import { type Call, createFakeServer, type FakeServer, type FakeServerOptions } from "../../web/test/fake-server";
 import { queryClient } from "../src/lib/queryClient";
 import { keys, store } from "../src/lib/store";
+import { type Call, createFakeServer, type FakeServer, type FakeServerOptions } from "./fake-server";
 
-export { createFakeServer, type FakeServer } from "../../web/test/fake-server";
+export { createFakeServer, type FakeServer } from "./fake-server";
 
 // The stored server. The URL never reaches a socket: `startFakeServer` and
 // `connect` in ./connect.ts route the global fetch into the fake server's

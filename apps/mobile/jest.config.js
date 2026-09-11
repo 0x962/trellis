@@ -4,8 +4,8 @@ const preset = require("jest-expo/jest-preset");
 
 // These packages ship untranspiled source, so babel transforms them. The
 // list is jest-expo's own plus NativeWind, its runtime, oRPC, FlashList, the
-// fake server's ESM-only packages (rou3, hono, ulid), and the markdown
-// renderer, whose build keeps its JSX.
+// ESM-only packages of the mobile test server (rou3, hono, ulid), and the
+// markdown renderer, whose build keeps its JSX.
 const transformed = [
 	"react-native",
 	"@react-native",

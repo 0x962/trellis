@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createMMKV } from "react-native-mmkv";
-import { type Call, createFakeServer, type FakeServer } from "../../web/test/fake-server";
+import { type Call, createFakeServer, type FakeServer } from "./fake-server";
 
 export const serverUrl = "http://h:4521";
 

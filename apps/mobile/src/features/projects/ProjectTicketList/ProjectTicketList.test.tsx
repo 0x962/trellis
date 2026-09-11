@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { applyEvent } from "@trellis/api";
-import { ticketSummary } from "../../../../../web/test/fake-server/summaries";
 import { failCalls } from "../../../../test/connect";
+import { ticketSummary } from "../../../../test/fake-server/summaries";
 import { callsTo, type FakeServer, serverHost, startFakeServer, stopFakeServer } from "../../../../test/fakeServer";
 import { renderWithClient } from "../../../../test/renderWithClient";
 import { queryClient } from "../../../lib/queryClient";

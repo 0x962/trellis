@@ -12,8 +12,7 @@ export const routerPluginOptions = {
 	routeFileIgnorePattern: "\\.test\\.|^components$",
 } as const;
 
-// The API the dev server proxies to. `bun run dev:fake` serves the fake
-// server on 4522; the real server listens on 4521.
+// The API the dev server proxies to. The server listens on 4521.
 const defaultApiUrl = "http://127.0.0.1:4521";
 
 // The page and the API share one origin through the proxy, so the actor

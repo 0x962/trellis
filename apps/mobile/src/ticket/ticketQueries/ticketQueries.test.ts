@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { isDefinedError, safe } from "@orpc/client";
 import { generateOperationKey } from "@orpc/tanstack-query";
 import { errors } from "@trellis/api";
-import { createFakeServer } from "../../../../web/test/fake-server";
+import { createFakeServer } from "../../../test/fake-server";
 import { approve, sendBack, ticketDetailQuery } from "./ticketQueries";
 
 // The effective statuses of a ticket's project, through the client.

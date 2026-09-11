@@ -5,19 +5,17 @@ The [approved plan](docs/design/plan.md) defines the product.
 
 ## Development loop
 
-Run the fake server and the web app in separate terminals.
+`bun run dev` starts the server on 4521 and the web app on 5173.
 
 ```sh
 bun install
-bun run --cwd apps/web dev:fake
-```
-
-```sh
-TRELLIS_API_URL=http://127.0.0.1:4522 bun run --cwd apps/web dev
+TRELLIS_HOME=$(mktemp -d) bun run dev
 ```
 
 Open `http://127.0.0.1:5173`.
-The fake server resets its data after each restart.
+A temporary `TRELLIS_HOME` keeps the loop away from your own data, and each
+run starts from an empty database. Drop the variable to work against
+`~/.trellis`.
 Playwright starts both processes for the end-to-end suite.
 
 Run a focused test while you change code.
@@ -32,7 +30,7 @@ Run `bun run check --force` before each hand-off.
 | `packages/ui` | `@trellis/ui` | Design tokens, Base UI wrappers, and visual primitives. |
 | `packages/cli` | `@trellis/cli` | The `trellis` command and HTTP client. |
 | `apps/server` | `@trellis/server` | The Hono server, procedures, services, database worker, and GitHub poller. |
-| `apps/web` | `@trellis/web` | The React web app and its fake server. |
+| `apps/web` | `@trellis/web` | The React web app. |
 | `apps/mobile` | `@trellis/mobile` | The Expo mobile app. |
 | `docs/design` | | The approved plan and supporting design documents. |
 | `test` | | Tests for repository configuration and public files. |
