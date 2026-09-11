@@ -23,9 +23,12 @@ describe("features/ticket/Header", () => {
 		expect(crumbs.textContent!.replace(/\s+/g, " ")).toMatch(/CDE\s*›\s*web/);
 		expect(within(crumbs).getByRole("link", { name: "CDE" }).getAttribute("href")).toBe("/p/CDE");
 		expect(within(crumbs).getByRole("link", { name: "web" }).getAttribute("href")).toBe("/p/CDE/web");
-		const chip = within(element).getByRole("button", { name: /CDE-43/ });
-		expect(chip.textContent).toContain("Merge upstream 1.27");
-		expect(chip.querySelector(".truncate")).not.toBeNull();
+		// The chip is the trail that leads here: each identifier opens that
+		// ticket, and the title of the parent closes the trail.
+		const trail = within(element).getByLabelText("Parent trail");
+		expect(within(trail).getByRole("button", { name: "CDE-43" })).toBeDefined();
+		expect(trail.textContent).toContain("Merge upstream 1.27");
+		expect(trail.querySelector(".truncate")).not.toBeNull();
 	});
 
 	// WT-20. A peek stays a peek: the parent opens in the same surface.
@@ -55,6 +58,15 @@ describe("features/ticket/Header", () => {
 		await user.click(within(await header()).getByRole("button", { name: "Copy ID" }));
 		await waitFor(async () => expect(await navigator.clipboard.readText()).toBe("CDE-42"));
 		expect(await screen.findByText(/Copied/)).toBeDefined();
+	});
+
+	// The branch name is derived, not shown, so an icon beside Copy ID hands
+	// it over without a row of its own.
+	test("Copy branch name writes the derived branch to the clipboard", async () => {
+		const user = userEvent.setup();
+		mountPage();
+		await user.click(within(await header()).getByRole("button", { name: "Copy branch name" }));
+		await waitFor(async () => expect(await navigator.clipboard.readText()).toBe("cde-42-restore-fork-pages"));
 	});
 
 	// The title area already shows the ticket ID, so Copy ID needs only an icon.

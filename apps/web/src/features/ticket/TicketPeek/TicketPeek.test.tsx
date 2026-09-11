@@ -240,12 +240,8 @@ describe("features/ticket/TicketPeek", () => {
 		for (const segment of panel.querySelectorAll('[data-bucket="pending"]')) {
 			expect(segment.className).toMatch(/motion-reduce:animate-none/);
 		}
-		const dot = await waitFor(() => {
-			const found = panel.querySelector<HTMLElement>("[data-live]");
-			expect(found).not.toBeNull();
-			return found!;
-		});
-		expect(dot.className).toMatch(/motion-reduce:animate-none/);
+		// The live dot rides on the activity lines now, and Avatar pins its
+		// reduced-motion class.
 		await settle();
 	});
 });

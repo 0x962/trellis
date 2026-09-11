@@ -1,7 +1,7 @@
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
 import { IconButton, Skeleton, TicketId, Tooltip, useHotkey, useMediaQuery } from "@trellis/ui";
-import { ArrowLeft, Copy, Maximize2, Menu, X } from "lucide-react";
+import { ArrowLeft, Copy, GitBranch, Maximize2, Menu, X } from "lucide-react";
 import { copyText } from "../../../lib/clipboard";
 import { lastListHref } from "../../../lib/lastList";
 import { uiActions } from "../../../stores/uiStore";
@@ -115,7 +115,7 @@ export function Header(props: HeaderProps) {
 						<span aria-hidden="true" className="text-fg-faint">
 							·
 						</span>
-						<ParentChip parent={ticket.parent} title={parentSummary?.title ?? ""} />
+						<ParentChip ancestors={ticket.ancestors} title={parentSummary?.title ?? ""} />
 					</>
 				)}
 			</div>
@@ -125,14 +125,24 @@ export function Header(props: HeaderProps) {
 						{!phone && surface === "page" && <ReviewActions ticket={ticket} />}
 						{surface === "page" && <BriefCopy ticket={ticket} />}
 						{!phone && (
-							<Tooltip content="Copy ID ⌘C">
-								<IconButton
-									label="Copy ID"
-									size="md"
-									icon={<Copy />}
-									onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
-								/>
-							</Tooltip>
+							<>
+								<Tooltip content="Copy ID ⌘C">
+									<IconButton
+										label="Copy ID"
+										size="md"
+										icon={<Copy />}
+										onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
+									/>
+								</Tooltip>
+								<Tooltip content="Copy branch name ⌘⇧C">
+									<IconButton
+										label="Copy branch name"
+										size="md"
+										icon={<GitBranch />}
+										onClick={() => void copyText(branch, "Copied the branch name")}
+									/>
+								</Tooltip>
+							</>
 						)}
 						<MoreMenu ticket={ticket} />
 					</>

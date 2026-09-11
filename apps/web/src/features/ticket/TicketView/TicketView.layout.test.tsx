@@ -54,12 +54,14 @@ test("the peek keeps review actions in a separate row from navigation", async ()
 	expect(actions.contains(approve)).toBe(true);
 });
 
-test("the peek shows all properties in the right rail", async () => {
+// The rail holds the pickers alone. The branch copies from the header, the
+// sub-tickets have their own section, and the times read in the activity.
+test("the peek rail holds the picker rows and nothing else", async () => {
 	mountPeek();
 	const properties = await screen.findByLabelText("Properties");
 	expect(within(properties).getByText("Status")).toBeDefined();
 	expect(within(properties).getByText("Priority")).toBeDefined();
-	expect(within(properties).getByText("Branch")).toBeDefined();
-	expect(within(properties).getByText("Created")).toBeDefined();
-	expect(within(properties).getByRole("button", { name: "Copy branch name" })).toBeDefined();
+	expect(within(properties).queryByText("Branch")).toBeNull();
+	expect(within(properties).queryByText("Created")).toBeNull();
+	expect(within(properties).queryByText("Sub-tickets")).toBeNull();
 });

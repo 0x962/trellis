@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { cx, EmptyState, TicketId, useMediaQuery } from "@trellis/ui";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
@@ -32,13 +32,11 @@ export type TicketViewProps = {
 export function TicketView({ identifier, variant }: TicketViewProps) {
 	const { orpc } = useApp();
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
-	const [addingChild, setAddingChild] = useState(false);
 	const uploads = useUploads(identifier);
 	const drop = useDropOverlay(uploads.start);
 	const narrow = useMediaQuery("(max-width: 767px)");
 	const { isArchived, notice } = useArchivedProjects();
 
-	useEffect(() => setAddingChild(false), []);
 	useEffect(() => {
 		if (variant !== "page" || query.data === undefined) return;
 		document.title = `${query.data.identifier} · ${query.data.title}`;
@@ -87,7 +85,7 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 				</div>
 				{inlineRail && (
 					<div className="mt-3">
-						<PropertiesRail ticket={ticket} variant="peek" onAddSubTicket={() => setAddingChild(true)} />
+						<PropertiesRail ticket={ticket} variant="peek" />
 					</div>
 				)}
 				{(peek || narrow) && (
@@ -103,7 +101,7 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 					<Description key={ticket.identifier} ticket={ticket} />
 				</div>
 				<div className="mt-8 flex flex-col gap-8">
-					{(ticket.children.length > 0 || addingChild) && <SubTickets ticket={ticket} autoFocusAdd={addingChild} />}
+					<SubTickets ticket={ticket} />
 					<PullRequests ticket={ticket} initialPrs={ticket.prs} />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
 					<Timeline ticket={ticket} pinned={peek} onAttachFiles={uploads.start} />
@@ -126,7 +124,7 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 				) : (
 					<div data-ticket-columns="" className="flex min-h-0 flex-1">
 						{main}
-						<PropertiesRail ticket={ticket} variant="page" onAddSubTicket={() => setAddingChild(true)} />
+						<PropertiesRail ticket={ticket} variant="page" />
 					</div>
 				)}
 				{drop.over && <DropOverlay identifier={ticket.identifier} />}
