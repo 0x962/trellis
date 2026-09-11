@@ -39,9 +39,14 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 		save(project.repos.filter((entry) => entry.owner !== owner || entry.repo !== repo));
 
 	return (
-		<SettingsSection title="Repositories" hint="The GitHub poller scans these repositories for ticket links.">
+		<SettingsSection
+			title="Repositories"
+			hint="Connect GitHub repositories to find pull requests that reference project tickets."
+		>
 			{project.repos.length === 0 ? (
-				<p className="text-sm text-fg-muted">No repositories.</p>
+				<p className="text-sm text-fg-muted">
+					No repositories connected. Add a repository to link its pull requests to tickets.
+				</p>
 			) : (
 				<ul className="flex flex-col gap-1">
 					{project.repos.map((repo) => (
@@ -62,7 +67,7 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 					))}
 				</ul>
 			)}
-			<form onSubmit={(event) => void add(event)} className="flex items-end gap-2">
+			<form onSubmit={(event) => void add(event)} className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
 				<Input
 					label="Repository"
 					placeholder="owner/repository"

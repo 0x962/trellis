@@ -68,7 +68,6 @@ describe("routes/p/$", () => {
 		await user.clear(slug);
 		await user.type(slug, "web-platform");
 		await user.type(screen.getByRole("textbox", { name: "Description" }), "Browser product work");
-		await user.type(screen.getByRole("textbox", { name: "Ticket template" }), "## Outcome");
 		await user.click(screen.getByRole("button", { name: "Save project" }));
 		await waitFor(() => {
 			const call = server.calls.find((entry) => entry.path.join(".") === "projects.update");
@@ -77,14 +76,13 @@ describe("routes/p/$", () => {
 				name: "Web platform",
 				slug: "web-platform",
 				description: "Browser product work",
-				ticketTemplate: "## Outcome",
 			});
 		});
 	});
 
 	test("Customize copies inherited statuses and Clear restores inheritance", async () => {
 		const user = userEvent.setup();
-		const { server } = renderApp({ path: "/p/CDE/web/settings", actor: "navid" });
+		const { server } = renderApp({ path: "/p/CDE/web/settings#statuses", actor: "navid" });
 		expect(await screen.findByText("Inherited from CDE")).toBeDefined();
 		await user.click(screen.getByRole("button", { name: "Customize" }));
 		await user.type(screen.getByRole("textbox", { name: "Status name" }), "Ready");
@@ -111,7 +109,7 @@ describe("routes/p/$", () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
 		const initial = await server.client.statuses.list({ project: "CDE" });
-		renderApp({ path: "/p/CDE/settings", actor: "navid", server });
+		renderApp({ path: "/p/CDE/settings#statuses", actor: "navid", server });
 		await user.click(await screen.findByRole("button", { name: "Move Todo down" }));
 		const expected = [
 			initial.statuses[1]!.id,
@@ -126,7 +124,7 @@ describe("routes/p/$", () => {
 
 	test("status fields save the token color, reviewer, WIP limit, and default", async () => {
 		const user = userEvent.setup();
-		const { server } = renderApp({ path: "/p/CDE/settings", actor: "navid" });
+		const { server } = renderApp({ path: "/p/CDE/settings#statuses", actor: "navid" });
 		const name = await screen.findByRole("textbox", { name: "Name for Agent Review" });
 		await user.clear(name);
 		await user.type(name, "Quality review");
@@ -157,7 +155,7 @@ describe("routes/p/$", () => {
 		const source = statuses.find((status) => status.slug === "in-progress")!;
 		const target = statuses.find((status) => status.slug === "todo")!;
 		const count = [...server.state.tickets.values()].filter((ticket) => ticket.statusId === source.id).length;
-		renderApp({ path: "/p/CDE/settings", actor: "navid", server });
+		renderApp({ path: "/p/CDE/settings#statuses", actor: "navid", server });
 		await user.click(await screen.findByRole("button", { name: "Delete In Progress" }));
 		const dialog = await screen.findByRole("dialog", { name: "Delete In Progress?" });
 		await user.click(within(dialog).getByRole("button", { name: "Delete status" }));
@@ -187,7 +185,7 @@ describe("routes/p/$", () => {
 			if (removed.has(ticket.statusId)) ticket.statusId = remaining.id;
 		}
 		for (const status of own.slice(1)) server.state.statuses.delete(status.id);
-		renderApp({ path: "/p/CDE/settings", actor: "navid", server });
+		renderApp({ path: "/p/CDE/settings#statuses", actor: "navid", server });
 		await user.click(await screen.findByRole("button", { name: "Delete Todo" }));
 		const dialog = await screen.findByRole("dialog", { name: "Delete Todo?" });
 		await user.click(within(dialog).getByRole("button", { name: "Delete status" }));
@@ -204,7 +202,7 @@ describe("routes/p/$", () => {
 
 	test("repositories add and remove through projects.setRepos", async () => {
 		const user = userEvent.setup();
-		const { server } = renderApp({ path: "/p/CDE/web/settings", actor: "navid" });
+		const { server } = renderApp({ path: "/p/CDE/web/settings#repositories", actor: "navid" });
 		const repository = await screen.findByRole("textbox", { name: "Repository" });
 		await user.type(repository, "openai/codex");
 		await user.click(screen.getByRole("button", { name: "Add repository" }));
@@ -257,7 +255,7 @@ describe("routes/p/$", () => {
 		expect(await screen.findByRole("heading", { name: `${project.name} › Settings` })).toBeDefined();
 		const main = screen.getByRole("main");
 		expect(main.textContent).toMatch(/statuses/i);
-		expect(main.textContent).toMatch(/sub-projects/i);
+		expect(main.textContent).toMatch(/subprojects/i);
 		expect(main.textContent).toMatch(/\bkey\b/i);
 	});
 

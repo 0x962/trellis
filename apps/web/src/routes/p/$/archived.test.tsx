@@ -58,6 +58,7 @@ describe("routes/p/$ archived", () => {
 		expect(await screen.findByText(bannerText)).toBeDefined();
 		await user.click(await screen.findByRole("button", { name: "Save project" }));
 		expect(callsTo(server, "projects.update")).toHaveLength(1);
+		await user.click(screen.getByRole("link", { name: "Archive and delete" }));
 		expect(screen.getByRole("button", { name: "Unarchive project" })).toBeDefined();
 		expect(screen.queryByRole("button", { name: "Archive project" })).toBeNull();
 	});

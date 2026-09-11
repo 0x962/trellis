@@ -1,0 +1,56 @@
+@utility project-settings-layout {
+	@apply flex min-h-0 flex-1 flex-col overflow-y-auto bg-bg lg:flex-row lg:overflow-hidden;
+}
+@utility project-settings-nav {
+	@apply shrink-0 border-b border-border p-4 lg:w-52 lg:overflow-y-auto lg:border-r lg:border-b-0 lg:py-7;
+}
+@utility project-settings-nav-title {
+	@apply mb-3 px-2 text-sm font-semibold text-fg;
+}
+@utility project-settings-nav-list {
+	@apply grid grid-cols-2 gap-1 lg:flex lg:flex-col;
+}
+@utility project-settings-nav-link {
+	@apply flex min-h-9 items-center gap-2.5 px-2 text-sm text-fg-muted hover:bg-band hover:text-fg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent pointer-coarse:min-h-11;
+	&[aria-current="page"] {
+		@apply bg-surface font-medium text-fg;
+	}
+}
+@utility project-settings-content {
+	@apply min-w-0 flex-1 px-5 py-7 sm:px-8 lg:overflow-y-auto lg:px-10 lg:py-10;
+}
+@utility project-settings-page {
+	@apply mx-auto max-w-180;
+}
+@utility project-settings-section {
+	@apply flex min-w-0 flex-col gap-7;
+}
+@utility project-settings-heading {
+	@apply flex items-start justify-between gap-4 border-b border-border pb-6;
+}
+@utility project-settings-fields {
+	@apply flex min-w-0 flex-col gap-5;
+}
+@utility project-settings-group {
+	@apply flex min-w-0 flex-col gap-4;
+}
+@utility project-settings-group-title {
+	@apply text-md font-medium text-fg;
+}
+@utility project-settings-save {
+	@apply flex flex-wrap items-center gap-3 border-t border-border pt-5;
+}
+@utility project-settings-action-row {
+	@apply flex flex-col items-start gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between;
+}
+@utility project-settings-action-copy {
+	@apply flex max-w-100 flex-col gap-2;
+}
+
+@layer components {
+	@media (pointer: coarse) {
+		.project-settings-layout :is(input, button, [role="combobox"]) {
+			@apply min-h-11;
+		}
+	}
+}
