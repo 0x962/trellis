@@ -3,7 +3,7 @@ import { isAllowedHost } from "./hostCheck.ts";
 
 // Tailscale Serve proxies https://<machine>.<tailnet>.ts.net to 127.0.0.1 and
 // keeps that hostname in the Host header, so the server must serve it.
-const TAILNET = "canary-jqv57w1hpl.tail4a5b4c.ts.net";
+const TAILNET = "my-laptop.tail1a2b3c.ts.net";
 
 describe("isAllowedHost", () => {
 	test("a hostname in allowedHosts is served, whatever its case and port", () => {

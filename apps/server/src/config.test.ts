@@ -22,8 +22,8 @@ describe("config", () => {
 	test("TRELLIS_ALLOWED_HOSTS gives lowercase hostnames with no port, and none when unset", () => {
 		expect(loadConfig({}).allowedHosts).toEqual([]);
 		expect(
-			loadConfig({ TRELLIS_ALLOWED_HOSTS: "Canary-JQV57W1HPL.tail4a5b4c.ts.net, other.example:8443" }).allowedHosts,
-		).toEqual(["canary-jqv57w1hpl.tail4a5b4c.ts.net", "other.example"]);
+			loadConfig({ TRELLIS_ALLOWED_HOSTS: "My-Laptop.tail1a2b3c.ts.net, other.example:8443" }).allowedHosts,
+		).toEqual(["my-laptop.tail1a2b3c.ts.net", "other.example"]);
 	});
 
 	test("config falls back to the documented defaults", () => {
