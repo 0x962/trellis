@@ -30,17 +30,28 @@ const shadowTokens = ["--shadow-sm", "--shadow-md", "--shadow-lg"];
 
 const fontTokens = ["--sans", "--mono"];
 
+// BerkeleyMono leads both stacks. A machine without it falls back to the
+// bundled JetBrains Mono, and "JetBrains Mono Fallback" is the
+// metric-matched face that holds the layout until the web font loads (see
+// fonts.test.ts).
+const fontStacks: Record<string, string> = {
+	"--sans":
+		'"BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+	"--mono":
+		'"BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+};
+
 // The approved palette, one value per themed token. tokens.css is the only
 // place these values exist, so this table is what pins them.
 const lightPalette: Record<string, string> = {
-	"--bg": "#F5F5F5",
-	"--surface": "#FFFFFF",
-	"--elevated": "#FFFFFF",
-	"--border": "#E5E5E5",
-	"--border-strong": "#D4D4D4",
-	"--fg": "#0A0A0A",
-	"--fg-muted": "#737373",
-	"--fg-faint": "#A3A3A3",
+	"--bg": "#FFFFFF",
+	"--surface": "#F7F7F8",
+	"--elevated": "#F5F5F5",
+	"--border": "#E8E8EA",
+	"--border-strong": "#DDDDDF",
+	"--fg": "#070707",
+	"--fg-muted": "#646468",
+	"--fg-faint": "#8E8E95",
 	"--accent": "#009FFF",
 	"--accent-soft": "#DFEBFF",
 	"--agent": "#693ACF",
@@ -59,14 +70,14 @@ const lightPalette: Record<string, string> = {
 
 // Dark has no visible shadow, so each shadow starts with a strong-border ring.
 const darkPalette: Record<string, string> = {
-	"--bg": "#0A0A0A",
-	"--surface": "#111111",
-	"--elevated": "#171717",
-	"--border": "#1F1F1F",
-	"--border-strong": "#2A2A2A",
-	"--fg": "#FAFAFA",
-	"--fg-muted": "#A3A3A3",
-	"--fg-faint": "#737373",
+	"--bg": "#070707",
+	"--surface": "#151516",
+	"--elevated": "#1C1C1E",
+	"--border": "#242425",
+	"--border-strong": "#323234",
+	"--fg": "#E8E8EA",
+	"--fg-muted": "#BBBBBF",
+	"--fg-faint": "#8E8E95",
 	"--accent": "#009FFF",
 	"--accent-soft": "#19283C",
 	"--agent": "#9D6AFB",
@@ -81,12 +92,6 @@ const darkPalette: Record<string, string> = {
 	"--shadow-sm": "0 0 0 1px var(--border-strong)",
 	"--shadow-md": "0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4)",
 	"--shadow-lg": "0 0 0 1px var(--border-strong), 0 12px 32px rgba(0,0,0,.5)",
-};
-
-const fontStacks: Record<string, string> = {
-	"--sans":
-		'"Inter Variable", "Inter Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-	"--mono": '"JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
 };
 
 // The dark blocks redefine the colors and shadows only. The font stacks and
@@ -161,10 +166,40 @@ describe("tokens.css", () => {
 				expect(`${block} ${name}: ${ours[block].declarations[name]}`).toBe(`${block} ${name}: ${value}`);
 			}
 		}
-		// The web font and its metric-matched fallback lead each stack (see
-		// fonts.test.ts). The generic families follow them.
+		expect(ours.light.declarations["--bg"]).toBe("#FFFFFF");
+		expect(ours.light.declarations["--danger-soft"]).toBe("#FFE6E8");
+		expect(ours.darkStamp.declarations["--bg"]).toBe("#070707");
+		expect(ours.darkStamp.declarations["--danger-soft"]).toBe("#3A1517");
+		expect(ours.darkStamp.declarations["--shadow-sm"]).toBe("0 0 0 1px var(--border-strong)");
 		for (const [name, stack] of Object.entries(fontStacks)) {
 			expect(`${name}: ${ours.light.declarations[name]}`).toBe(`${name}: ${stack}`);
+		}
+	});
+
+	/*
+	 * Every neutral comes from one seed grey mixed with black or white in
+	 * sRGB, the way code.storage builds its own ramp. The seed is
+	 * lab(59.312% 1.0058 -3.62585), which is #8E8E95, and it is --fg-faint
+	 * itself in both themes. A step name keeps the same position in the ramp
+	 * in light and in dark, so --surface sits one step off the page ground in
+	 * both.
+	 */
+	test("the neutral ramp carries the code.storage greys", async () => {
+		const ours = paletteBlocks(await tokens());
+		const ramp: Record<string, [string, string]> = {
+			"--bg": ["#FFFFFF", "#070707"],
+			"--surface": ["#F7F7F8", "#151516"],
+			"--elevated": ["#F5F5F5", "#1C1C1E"],
+			"--border": ["#E8E8EA", "#242425"],
+			"--border-strong": ["#DDDDDF", "#323234"],
+			"--fg": ["#070707", "#E8E8EA"],
+			"--fg-muted": ["#646468", "#BBBBBF"],
+			"--fg-faint": ["#8E8E95", "#8E8E95"],
+		};
+		for (const [name, [light, dark]] of Object.entries(ramp)) {
+			expect(`${name} light ${ours.light.declarations[name]}`).toBe(`${name} light ${light}`);
+			expect(`${name} dark ${ours.darkStamp.declarations[name]}`).toBe(`${name} dark ${dark}`);
+			expect(`${name} media ${ours.darkMedia.declarations[name]}`).toBe(`${name} media ${dark}`);
 		}
 	});
 
