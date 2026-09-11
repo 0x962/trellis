@@ -56,6 +56,13 @@ const seedEveryTable = async () => {
 	await linkPr(h.db, ticket, pr, navid);
 	await seedActivity(h.db, { rootId, projectId: rootId, ticketId: ticket });
 	await insertRow(h.db, "settings", { key: "actor.default", value: { name: "navid" }, updated_at: new Date() });
+	await insertRow(h.db, "personas", {
+		id: ulid(),
+		name: "Reviewer",
+		instruction: "Read the diff.\nReport defects with evidence.",
+		created_at: new Date(),
+		updated_at: new Date(),
+	});
 	return { rootId, ticket };
 };
 

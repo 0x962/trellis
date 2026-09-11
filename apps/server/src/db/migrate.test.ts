@@ -25,6 +25,7 @@ const tables = [
 	"activity",
 	"actors",
 	"settings",
+	"personas",
 ];
 
 const closers: Array<() => Promise<void>> = [];
