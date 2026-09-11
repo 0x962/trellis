@@ -5,6 +5,7 @@ import { useApp } from "../../../lib/appContext";
 
 export type StatusCreateFormProps = {
 	project: string;
+	initialCategory?: StatusCategory;
 	onCreated: () => Promise<void>;
 	onCancel: () => void;
 };
@@ -22,10 +23,10 @@ const reviewers: { value: Reviewer; label: string }[] = [
 	{ value: "human", label: "Human" },
 ];
 
-export function StatusCreateForm({ project, onCreated, onCancel }: StatusCreateFormProps) {
+export function StatusCreateForm({ project, initialCategory = "todo", onCreated, onCancel }: StatusCreateFormProps) {
 	const { client } = useApp();
 	const [name, setName] = useState("");
-	const [category, setCategory] = useState<StatusCategory>("todo");
+	const [category, setCategory] = useState<StatusCategory>(initialCategory);
 	const [reviewer, setReviewer] = useState<Reviewer>("agent");
 	const [message, setMessage] = useState<string | null>(null);
 
@@ -49,10 +50,7 @@ export function StatusCreateForm({ project, onCreated, onCancel }: StatusCreateF
 	};
 
 	return (
-		<form
-			onSubmit={(event) => void submit(event)}
-			className="flex flex-col gap-3 rounded-lg border border-border bg-bg p-3"
-		>
+		<form onSubmit={(event) => void submit(event)} className="status-create-form">
 			<div className="grid gap-3 sm:grid-cols-2">
 				<Input label="Status name" value={name} autoFocus onChange={(event) => setName(event.target.value)} />
 				<Select label="Category" items={categories} value={category} onValueChange={setCategory} />
