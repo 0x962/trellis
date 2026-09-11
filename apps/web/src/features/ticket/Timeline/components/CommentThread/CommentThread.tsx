@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Comment, CommentThread as ThreadData } from "@trellis/api";
-import { Button, Textarea } from "@trellis/ui";
+import { Avatar, Button, IconButton } from "@trellis/ui";
+import { ArrowUp, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
+import { useActor } from "../../../../../lib/actor";
 import { useApp } from "../../../../../lib/appContext";
 import { failToast } from "../../../utils/failToast";
 import { CommentCard } from "../CommentCard";
@@ -10,7 +12,6 @@ type CommentThreadProps = {
 	id: string;
 	identifier: string;
 	comments: Comment[];
-	showActor: boolean;
 	onEdited: (comment: Comment) => void;
 	onDeleted: (id: string) => void;
 	onCreated: (comment: Comment) => void;
@@ -18,15 +19,7 @@ type CommentThreadProps = {
 
 // A reply can appear on a newer timeline page than its root. The thread query
 // supplies the root and every reply until the loaded pages include the root.
-export function CommentThread({
-	id,
-	identifier,
-	comments,
-	showActor,
-	onEdited,
-	onDeleted,
-	onCreated,
-}: CommentThreadProps) {
+export function CommentThread({ id, identifier, comments, onEdited, onDeleted, onCreated }: CommentThreadProps) {
 	const { client, orpc, queryClient } = useApp();
 	const loadedRoot = comments.find((comment) => comment.id === id);
 	const options = orpc.comments.thread.queryOptions({ input: { id } });
@@ -59,7 +52,7 @@ export function CommentThread({
 	const root = loadedRoot ?? thread.data?.root;
 	const replies =
 		loadedRoot === undefined ? (thread.data?.replies ?? []) : comments.filter((comment) => comment.id !== id);
-	const [replyOpen, setReplyOpen] = useState(false);
+	const actor = useActor()!;
 	const [draft, setDraft] = useState("");
 	const [posting, setPosting] = useState(false);
 	const [expandedResolved, setExpandedResolved] = useState(false);
@@ -67,7 +60,7 @@ export function CommentThread({
 
 	if (root === undefined)
 		return (
-			<li className="py-3 text-sm text-fg-muted">
+			<li data-stream-entry="comment" className="py-3 text-sm text-fg-muted">
 				{thread.isError ? "The thread could not load." : "Loading thread…"}
 			</li>
 		);
@@ -84,7 +77,6 @@ export function CommentThread({
 			);
 			onCreated(reply);
 			setDraft("");
-			setReplyOpen(false);
 		} catch (error) {
 			failToast("The reply is not saved.", error, () => void post());
 		}
@@ -104,86 +96,86 @@ export function CommentThread({
 	};
 
 	return (
-		<li>
+		<li data-stream-entry="comment">
 			{resolved && (
 				<Button
 					size="sm"
-					variant="quiet"
+					variant="default"
+					className="w-full justify-start"
 					aria-expanded={expandedResolved}
 					onClick={() => setExpandedResolved(!expandedResolved)}
 				>
+					<CheckCircle2 aria-hidden="true" />
 					Resolved thread · {replies.length} {replies.length === 1 ? "reply" : "replies"}
 				</Button>
 			)}
 			{(!resolved || expandedResolved) && (
-				<>
-					<ul>
+				<fieldset
+					aria-label={`Thread started by ${root.actor.name}`}
+					className="overflow-hidden rounded-md border border-border bg-surface shadow-sm"
+				>
+					<ul aria-label="Thread comment">
 						<CommentCard
 							comment={root}
-							showActor={showActor || resolved}
 							formatClassName="comment-markdown"
 							onEdited={edit}
 							onDeleted={remove}
+							className="px-4 pt-2 pb-4"
+							actions={[
+								{
+									label: resolved ? "Reopen thread" : "Resolve thread",
+									disabled: resolving,
+									onSelect: () => void resolve(),
+								},
+							]}
 						/>
 					</ul>
 					{replies.length > 0 && (
-						<ul aria-label="Replies" className="pl-6">
-							{replies.map((reply, index) => (
+						<ul aria-label="Replies" className="divide-y divide-border border-t border-border">
+							{replies.map((reply) => (
 								<CommentCard
 									key={reply.id}
 									comment={reply}
-									showActor={
-										index === 0 ||
-										replies[index - 1]!.actor.name !== reply.actor.name ||
-										replies[index - 1]!.actor.kind !== reply.actor.kind
-									}
 									formatClassName="comment-markdown"
 									onEdited={edit}
 									onDeleted={remove}
+									className="px-4 pt-2 pb-4"
 								/>
 							))}
 						</ul>
 					)}
-					<div className="flex items-center gap-2 pb-2">
-						<Button size="sm" variant="quiet" onClick={() => setReplyOpen(true)}>
-							Reply
-						</Button>
-						<Button size="sm" variant="quiet" disabled={resolving} onClick={() => void resolve()}>
-							{resolved ? "Reopen thread" : "Resolve thread"}
-						</Button>
-					</div>
-					{replyOpen && (
-						<div className="flex flex-col gap-2 pb-3 pl-6">
-							<Textarea
-								label="Reply"
-								hideLabel
-								placeholder="Write a reply…"
-								value={draft}
-								onChange={(event) => setDraft(event.target.value)}
-								rows={3}
-								onKeyDown={(event) => {
-									if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && draft.trim() !== "" && !posting) {
-										event.preventDefault();
-										void post();
-									}
-								}}
-							/>
-							<div className="flex justify-end gap-2">
-								<Button size="sm" variant="quiet" onClick={() => setReplyOpen(false)}>
-									Cancel
-								</Button>
-								<Button
-									size="sm"
-									variant="primary"
-									disabled={posting || draft.trim() === ""}
-									onClick={() => void post()}
-								>
-									Post reply
-								</Button>
-							</div>
-						</div>
-					)}
-				</>
+					<form
+						aria-label="Leave a reply"
+						className="flex min-h-11 items-end gap-2 border-t border-border bg-bg px-4 py-2 focus-within:bg-surface"
+						onSubmit={(event) => {
+							event.preventDefault();
+							if (draft.trim() !== "" && !posting) void post();
+						}}
+					>
+						<Avatar name={actor.name} kind={actor.kind} className="mb-1.5" />
+						<textarea
+							aria-label="Reply"
+							placeholder="Leave a reply…"
+							value={draft}
+							onChange={(event) => setDraft(event.target.value)}
+							rows={1}
+							className="min-h-7 max-h-40 min-w-0 flex-1 resize-none bg-transparent py-1 text-base leading-5 text-fg outline-none placeholder:text-fg-faint [field-sizing:content] focus-visible:outline-2 focus-visible:outline-accent"
+							onKeyDown={(event) => {
+								if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && draft.trim() !== "" && !posting) {
+									event.preventDefault();
+									void post();
+								}
+							}}
+						/>
+						<IconButton
+							label="Post reply"
+							icon={<ArrowUp />}
+							variant="primary"
+							disabled={posting || draft.trim() === ""}
+							type="submit"
+						/>
+					</form>
+				</fieldset>
 			)}
 		</li>
 	);

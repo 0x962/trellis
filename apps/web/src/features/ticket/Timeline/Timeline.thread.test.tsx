@@ -24,7 +24,6 @@ describe("features/ticket/Timeline threads", () => {
 		const { server, ticket, root, mount } = await setup();
 		mount();
 		await screen.findByText(root.body);
-		await user.click(screen.getByRole("button", { name: "Reply" }));
 		await user.type(screen.getByRole("textbox", { name: "Reply" }), "The layout is ready.");
 		await user.click(screen.getByRole("button", { name: "Post reply" }));
 		const replies = await screen.findByRole("list", { name: "Replies" });
@@ -43,14 +42,16 @@ describe("features/ticket/Timeline threads", () => {
 		await server.client.comments.create({ ticket: ticket.identifier, parentId: root.id, body: "The layout is ready." });
 		mount();
 		await screen.findByText(root.body);
-		await user.click(screen.getByRole("button", { name: "Resolve thread" }));
+		await user.click(screen.getAllByRole("button", { name: "Comment actions" })[0]!);
+		await user.click(await screen.findByRole("menuitem", { name: "Resolve thread" }));
 		const resolved = await screen.findByRole("button", { name: /Resolved thread/ });
 		expect(resolved.getAttribute("aria-expanded")).toBe("false");
 		expect(screen.queryByText("The layout is ready.")).toBeNull();
 		await user.click(resolved);
 		await screen.findByText("The layout is ready.");
-		await user.click(screen.getByRole("button", { name: "Reopen thread" }));
-		await screen.findByRole("button", { name: "Resolve thread" });
+		await user.click(screen.getAllByRole("button", { name: "Comment actions" })[0]!);
+		await user.click(await screen.findByRole("menuitem", { name: "Reopen thread" }));
+		await screen.findByRole("textbox", { name: "Reply" });
 		expect(server.state.comments.get(root.id)!.resolvedAt).toBeNull();
 	});
 
@@ -77,7 +78,7 @@ describe("features/ticket/Timeline threads", () => {
 		await user.click(within(replies).getByRole("button", { name: "Comment actions" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
 		await waitFor(() =>
-			expect(within(screen.getByRole("list", { name: "Comments" })).queryByText("The final reply.")).toBeNull(),
+			expect(within(screen.getByRole("list", { name: "Activity" })).queryByText("The final reply.")).toBeNull(),
 		);
 		expect(server.state.comments.has(reply.id)).toBe(false);
 		expect(screen.getByText(root.body)).toBeDefined();
@@ -88,7 +89,6 @@ describe("features/ticket/Timeline threads", () => {
 		const { server, root, mount } = await setup();
 		mount();
 		await screen.findByText(root.body);
-		await user.click(screen.getByRole("button", { name: "Reply" }));
 		await user.type(screen.getByRole("textbox", { name: "Reply" }), "Keep this draft.");
 		server.failNext("comments.create", { code: "PROJECT_ARCHIVED" });
 		await user.click(screen.getByRole("button", { name: "Post reply" }));
@@ -96,14 +96,16 @@ describe("features/ticket/Timeline threads", () => {
 		expect((screen.getByRole("textbox", { name: "Reply" }) as HTMLTextAreaElement).value).toBe("Keep this draft.");
 	});
 
-	test("consecutive comments keep the author accessible without a repeated name", async () => {
+	test("each comment keeps its author and thread boundary visible", async () => {
 		const { server, ticket, root, mount } = await setup();
 		await server.client.comments.create({ ticket: ticket.identifier, body: "A second note." });
 		mount();
 		await screen.findByText(root.body);
-		const comments = screen.getByRole("list", { name: "Comments" });
-		expect(within(comments).getAllByText("navid")).toHaveLength(1);
-		expect(within(comments).getAllByRole("article", { name: "Comment by navid" })).toHaveLength(2);
+		const activity = screen.getByRole("list", { name: "Activity" });
+		const comments = within(activity).getAllByRole("article", { name: "Comment by navid" });
+		expect(comments).toHaveLength(2);
+		for (const comment of comments) expect(within(comment).getByText("navid")).toBeDefined();
+		expect(within(activity).getAllByRole("group", { name: /Thread started by navid/ })).toHaveLength(2);
 	});
 
 	test("a page with replies fetches the root and complete thread once", async () => {
@@ -127,10 +129,12 @@ describe("features/ticket/Timeline threads", () => {
 		}
 		mount();
 		await screen.findByText(root.body);
-		await user.click(screen.getByRole("button", { name: "Resolve thread" }));
+		await user.click(screen.getAllByRole("button", { name: "Comment actions" })[0]!);
+		await user.click(await screen.findByRole("menuitem", { name: "Resolve thread" }));
 		await user.click(await screen.findByRole("button", { name: /Resolved thread/ }));
-		await user.click(screen.getByRole("button", { name: "Reopen thread" }));
-		await screen.findByRole("button", { name: "Resolve thread" });
+		await user.click(screen.getAllByRole("button", { name: "Comment actions" })[0]!);
+		await user.click(await screen.findByRole("menuitem", { name: "Reopen thread" }));
+		await screen.findByRole("textbox", { name: "Reply" });
 		expect(server.state.comments.get(root.id)!.resolvedAt).toBeNull();
 	});
 

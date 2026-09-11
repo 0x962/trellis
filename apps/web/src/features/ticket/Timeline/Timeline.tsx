@@ -34,8 +34,6 @@ export function Timeline({ ticket, pinned = false, onAttachFiles }: TimelineProp
 		.flatMap((page) => page.items)
 		.reverse()
 		.filter(shownInStream);
-	const activity = collapseRuns(items).filter((entry) => entry.kind === "activity");
-	const shownActivity = expandedActivity ? activity : activity.slice(-3);
 	const comments = items.filter((item) => item.kind === "comment");
 	const threads = new Map<string, Comment[]>();
 	for (const comment of comments) {
@@ -44,7 +42,22 @@ export function Timeline({ ticket, pinned = false, onAttachFiles }: TimelineProp
 		if (group === undefined) threads.set(rootId, [comment]);
 		else group.push(comment);
 	}
-	const threadEntries = [...threads];
+	const seenThreads = new Set<string>();
+	const streamItems = items.filter((item) => {
+		if (item.kind === "activity") return true;
+		const rootId = item.parentId ?? item.id;
+		if (seenThreads.has(rootId)) return false;
+		seenThreads.add(rootId);
+		return true;
+	});
+	const stream = collapseRuns(streamItems);
+	const activityCount = stream.filter((entry) => entry.kind === "activity").length;
+	let activityIndex = 0;
+	const shownStream = stream.filter((entry) => {
+		if (entry.kind === "comment") return true;
+		activityIndex += 1;
+		return expandedActivity || activityIndex > activityCount - 3;
+	});
 	const reviewer = (name: string) =>
 		statuses.find((status) => status.name === name)?.reviewer === "agent" ? ("agent" as const) : ("human" as const);
 
@@ -62,12 +75,12 @@ export function Timeline({ ticket, pinned = false, onAttachFiles }: TimelineProp
 					Load older
 				</Button>
 			)}
-			<ul aria-label="Timeline" className="flex flex-col gap-6">
+			<ul aria-label="Timeline">
 				<li>
 					<SectionHeader
 						title="Activity"
 						actions={
-							activity.length > 3 && (
+							activityCount > 3 && (
 								<Button
 									variant="quiet"
 									size="sm"
@@ -79,38 +92,31 @@ export function Timeline({ ticket, pinned = false, onAttachFiles }: TimelineProp
 							)
 						}
 					/>
-					<ul aria-label="Activity" className="flex flex-col">
-						{shownActivity.map((entry) =>
-							entry.items.length === 1 ? (
-								<ActivityLine key={entry.items[0]!.id} item={entry.items[0]!} reviewer={reviewer} />
-							) : (
-								<RunLine key={entry.items[0]!.id} items={entry.items} reviewer={reviewer} />
-							),
-						)}
-					</ul>
-				</li>
-				<li>
-					<SectionHeader title="Comments" count={comments.length} />
-					<ul aria-label="Comments" className="flex flex-col">
-						{threadEntries.map(([id, rows], index) => (
-							<CommentThread
-								key={id}
-								id={id}
-								identifier={ticket.identifier}
-								comments={rows}
-								showActor={
-									index === 0 ||
-									rows[0]!.parentId !== null ||
-									threadEntries[index - 1]![1][0]!.parentId !== null ||
-									threadEntries[index - 1]![1][0]!.resolvedAt !== null ||
-									threadEntries[index - 1]![1].at(-1)!.actor.name !== rows[0]!.actor.name ||
-									threadEntries[index - 1]![1].at(-1)!.actor.kind !== rows[0]!.actor.kind
-								}
-								onEdited={onEdited}
-								onDeleted={onDeleted}
-								onCreated={(comment) => prependTimeline(queryClient, key, { kind: "comment", ...comment })}
-							/>
-						))}
+					<ul
+						aria-label="Activity"
+						className="relative flex flex-col gap-3 before:absolute before:top-4 before:bottom-4 before:left-2 before:w-px before:bg-border"
+					>
+						{shownStream.map((entry) => {
+							if (entry.kind === "activity") {
+								return entry.items.length === 1 ? (
+									<ActivityLine key={entry.items[0]!.id} item={entry.items[0]!} reviewer={reviewer} />
+								) : (
+									<RunLine key={entry.items[0]!.id} items={entry.items} reviewer={reviewer} />
+								);
+							}
+							const id = entry.item.parentId ?? entry.item.id;
+							return (
+								<CommentThread
+									key={id}
+									id={id}
+									identifier={ticket.identifier}
+									comments={threads.get(id)!}
+									onEdited={onEdited}
+									onDeleted={onDeleted}
+									onCreated={(comment) => prependTimeline(queryClient, key, { kind: "comment", ...comment })}
+								/>
+							);
+						})}
 					</ul>
 				</li>
 			</ul>

@@ -1,6 +1,6 @@
-import type { Activity, TimelineItem } from "@trellis/api";
+import type { Activity, Comment, TimelineItem } from "@trellis/api";
 
-export type TimelineEntry = { kind: "comment"; item: TimelineItem } | { kind: "activity"; items: Activity[] };
+export type TimelineEntry = { kind: "comment"; item: Comment } | { kind: "activity"; items: Activity[] };
 
 // Activity by one actor inside this window reads as one line.
 export const runWindowMs = 5 * 60 * 1000;

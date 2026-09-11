@@ -1,5 +1,5 @@
 import type { Comment } from "@trellis/api";
-import { ActorChip, Button, cx, Menu, Textarea } from "@trellis/ui";
+import { ActorChip, Button, cx, Menu, type MenuItem, Textarea } from "@trellis/ui";
 import { useId, useState } from "react";
 import { isLiveActor } from "../../../../../lib/actorLive";
 import { useApp } from "../../../../../lib/appContext";
@@ -17,10 +17,20 @@ export type CommentCardProps = {
 	onEdited?: (comment: Comment) => void;
 	onDeleted?: (id: string) => void;
 	formatClassName?: "markdown" | "comment-markdown";
+	actions?: readonly MenuItem[];
+	className?: string;
 };
 
 // The timestamp exposes the absolute time in its title.
-export function CommentCard({ comment, showActor = true, onEdited, onDeleted, formatClassName }: CommentCardProps) {
+export function CommentCard({
+	comment,
+	showActor = true,
+	onEdited,
+	onDeleted,
+	formatClassName,
+	actions = [],
+	className,
+}: CommentCardProps) {
 	const { client } = useApp();
 	const [editing, setEditing] = useState(false);
 	const [draft, setDraft] = useState(comment.body);
@@ -49,7 +59,7 @@ export function CommentCard({ comment, showActor = true, onEdited, onDeleted, fo
 
 	return (
 		<li>
-			<article aria-label={`Comment by ${comment.actor.name}`} data-kind="comment" className="py-3">
+			<article aria-label={`Comment by ${comment.actor.name}`} data-kind="comment" className={cx("py-3", className)}>
 				<header className="flex h-8 items-center gap-2 text-sm">
 					{showActor && comment.actor.kind !== "system" && (
 						<ActorChip
@@ -59,21 +69,20 @@ export function CommentCard({ comment, showActor = true, onEdited, onDeleted, fo
 							live={isLiveActor({ kind: comment.actor.kind, at: comment.createdAt })}
 						/>
 					)}
-					<time
-						dateTime={comment.createdAt}
-						title={absoluteTime(comment.createdAt)}
-						className="ml-auto text-fg-muted tabular"
-					>
+					<time dateTime={comment.createdAt} title={absoluteTime(comment.createdAt)} className="text-fg-muted tabular">
 						{compactRelativeTime(comment.createdAt)}
 					</time>
-					<Menu
-						label="Comment actions"
-						items={[
-							{ label: "Edit", onSelect: () => setEditing(true) },
-							{ label: "Copy markdown", onSelect: () => void copyText(comment.body, "Copied the comment") },
-							{ label: "Delete", onSelect: () => void remove(), danger: true },
-						]}
-					/>
+					<div className="ml-auto">
+						<Menu
+							label="Comment actions"
+							items={[
+								...actions,
+								{ label: "Edit", onSelect: () => setEditing(true) },
+								{ label: "Copy markdown", onSelect: () => void copyText(comment.body, "Copied the comment") },
+								{ label: "Delete", onSelect: () => void remove(), danger: true },
+							]}
+						/>
+					</div>
 				</header>
 				{editing ? (
 					<div className="flex flex-col gap-2 pb-3">
