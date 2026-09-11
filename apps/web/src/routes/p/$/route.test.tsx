@@ -80,7 +80,7 @@ describe("routes/p/$", () => {
 		});
 	});
 
-	test("Customize copies inherited statuses and Clear restores inheritance", async () => {
+	test("Customize copies inherited statuses and the inherited action restores them", async () => {
 		const user = userEvent.setup();
 		const { server } = renderApp({ path: "/p/CDE/web/settings#statuses", actor: "navid" });
 		expect(await screen.findByText("Inherited from CDE")).toBeDefined();
@@ -92,30 +92,35 @@ describe("routes/p/$", () => {
 			expect(call?.input).toMatchObject({ project: "CDE.web", name: "Ready", category: "todo" });
 		});
 		expect(await screen.findByText("This project owns its statuses.")).toBeDefined();
-		expect(screen.getByDisplayValue("Ready")).toBeDefined();
-		expect(screen.getByDisplayValue("Todo")).toBeDefined();
-		await user.click(screen.getByRole("button", { name: "Clear" }));
-		const dialog = await screen.findByRole("dialog", { name: "Clear statuses?" });
-		await user.click(within(dialog).getByRole("button", { name: "Clear statuses" }));
+		expect(screen.getByText("Ready")).toBeDefined();
+		expect(screen.getAllByText("Todo").length).toBeGreaterThan(0);
+		await user.click(screen.getByRole("button", { name: "Use inherited statuses" }));
+		const dialog = await screen.findByRole("dialog", { name: "Use inherited statuses?" });
+		await user.click(within(dialog).getByRole("button", { name: "Use inherited statuses" }));
 		await waitFor(() => {
 			const call = server.calls.find((entry) => entry.path.join(".") === "statuses.clear");
 			expect(call?.input).toEqual({ project: "CDE.web" });
 		});
 		expect(await screen.findByText("Inherited from CDE")).toBeDefined();
-		expect(screen.queryByDisplayValue("Ready")).toBeNull();
+		expect(screen.queryByText("Ready")).toBeNull();
 	});
 
 	test("a status reorder sends the full order", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
+		await server.client.statuses.create({ project: "CDE", name: "Ready", category: "todo" });
 		const initial = await server.client.statuses.list({ project: "CDE" });
 		renderApp({ path: "/p/CDE/settings#statuses", actor: "navid", server });
-		await user.click(await screen.findByRole("button", { name: "Move Todo down" }));
-		const expected = [
-			initial.statuses[1]!.id,
-			initial.statuses[0]!.id,
-			...initial.statuses.slice(2).map((status) => status.id),
-		];
+		await user.click(await screen.findByRole("button", { name: "Actions for In Progress" }));
+		expect(screen.getByRole("menuitem", { name: "Move up" }).hasAttribute("data-disabled")).toBe(true);
+		await user.keyboard("{Escape}");
+		await user.click(await screen.findByRole("button", { name: "Actions for Todo" }));
+		await user.click(screen.getByRole("menuitem", { name: "Move down" }));
+		const expected = initial.statuses.map((status) => status.id);
+		const todoIndex = initial.statuses.findIndex((status) => status.slug === "todo");
+		const readyId = initial.statuses.find((status) => status.slug === "ready")!.id;
+		const [todoId] = expected.splice(todoIndex, 1);
+		expected.splice(expected.indexOf(readyId) + 1, 0, todoId!);
 		await waitFor(() => {
 			const call = server.calls.find((entry) => entry.path.join(".") === "statuses.reorder");
 			expect(call?.input).toEqual({ project: "CDE", statuses: expected });
@@ -125,7 +130,10 @@ describe("routes/p/$", () => {
 	test("status fields save the token color, reviewer, WIP limit, and default", async () => {
 		const user = userEvent.setup();
 		const { server } = renderApp({ path: "/p/CDE/settings#statuses", actor: "navid" });
-		const name = await screen.findByRole("textbox", { name: "Name for Agent Review" });
+		expect(screen.queryByRole("textbox", { name: "Name for Agent Review" })).toBeNull();
+		await user.click(await screen.findByRole("button", { name: "Actions for Agent Review" }));
+		await user.click(screen.getByRole("menuitem", { name: "Edit" }));
+		const name = screen.getByRole("textbox", { name: "Name for Agent Review" });
 		await user.clear(name);
 		await user.type(name, "Quality review");
 		await user.click(screen.getByRole("combobox", { name: "Color for Agent Review" }));
@@ -133,8 +141,8 @@ describe("routes/p/$", () => {
 		await user.click(screen.getByRole("combobox", { name: "Reviewer for Agent Review" }));
 		await user.click(screen.getByRole("option", { name: "Human" }));
 		await user.type(screen.getByRole("spinbutton", { name: "WIP limit for Agent Review" }), "3");
-		await user.click(screen.getByRole("checkbox", { name: "Default status Agent Review" }));
-		await user.click(screen.getByRole("button", { name: "Save Agent Review" }));
+		await user.click(screen.getByRole("checkbox", { name: "Default status" }));
+		await user.click(screen.getByRole("button", { name: "Save status" }));
 		await waitFor(() => {
 			const call = server.calls.find((entry) => entry.path.join(".") === "statuses.update");
 			expect(call?.input).toMatchObject({
@@ -148,6 +156,48 @@ describe("routes/p/$", () => {
 		});
 	});
 
+	test("statuses show category groups, ticket counts, descriptions, and the default status", async () => {
+		const server = createFakeServer();
+		const statuses = (await server.client.statuses.list({ project: "CDE" })).statuses;
+		const todo = statuses.find((status) => status.slug === "todo")!;
+		server.state.statuses.get(todo.id)!.description = "Work that has not started.";
+		const count = [...server.state.tickets.values()].filter((ticket) => ticket.statusId === todo.id).length;
+		renderApp({ path: "/p/CDE/settings#statuses", actor: "navid", server });
+		const heading = await screen.findByRole("heading", { name: "Todo" });
+		const section = screen.getByRole("region", { name: "Statuses" });
+		const row = screen.getByRole("button", { name: "Actions for Todo" }).closest("li")!;
+		expect(heading).toBeDefined();
+		expect(within(section).getByRole("heading", { name: "Started" })).toBeDefined();
+		expect(within(section).getByRole("heading", { name: "Review" })).toBeDefined();
+		expect(within(row).getByText("Work that has not started.")).toBeDefined();
+		expect(within(row).getByText(`${count} ${count === 1 ? "ticket" : "tickets"}`)).toBeDefined();
+		expect(within(section).getByText("Default", { selector: "span" })).toBeDefined();
+	});
+
+	test("a status menu can make the status the default", async () => {
+		const user = userEvent.setup();
+		const { server } = renderApp({ path: "/p/CDE/settings#statuses", actor: "navid" });
+		await user.click(await screen.findByRole("button", { name: "Actions for In Progress" }));
+		await user.click(screen.getByRole("menuitem", { name: "Make default" }));
+		await waitFor(() => {
+			const call = server.calls.filter((entry) => entry.path.join(".") === "statuses.update").at(-1);
+			expect(call?.input).toMatchObject({ project: "CDE", status: expect.any(String), isDefault: true });
+		});
+	});
+
+	test("a category add action starts a status in that category", async () => {
+		const user = userEvent.setup();
+		const { server } = renderApp({ path: "/p/CDE/settings#statuses", actor: "navid" });
+		await user.click(await screen.findByRole("button", { name: "Add a status to Review" }));
+		expect(screen.getByRole("combobox", { name: "Category" }).textContent).toBe("Review");
+		await user.type(screen.getByRole("textbox", { name: "Status name" }), "Security review");
+		await user.click(screen.getByRole("button", { name: "Create status" }));
+		await waitFor(() => {
+			const call = server.calls.filter((entry) => entry.path.join(".") === "statuses.create").at(-1);
+			expect(call?.input).toMatchObject({ project: "CDE", name: "Security review", category: "review" });
+		});
+	});
+
 	test("deleting a used status shows its ticket count and requires moveTo", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
@@ -156,7 +206,8 @@ describe("routes/p/$", () => {
 		const target = statuses.find((status) => status.slug === "todo")!;
 		const count = [...server.state.tickets.values()].filter((ticket) => ticket.statusId === source.id).length;
 		renderApp({ path: "/p/CDE/settings#statuses", actor: "navid", server });
-		await user.click(await screen.findByRole("button", { name: "Delete In Progress" }));
+		await user.click(await screen.findByRole("button", { name: "Actions for In Progress" }));
+		await user.click(screen.getByRole("menuitem", { name: "Delete" }));
 		const dialog = await screen.findByRole("dialog", { name: "Delete In Progress?" });
 		await user.click(within(dialog).getByRole("button", { name: "Delete status" }));
 		const uses = count === 1 ? "ticket uses" : "tickets use";
@@ -186,7 +237,8 @@ describe("routes/p/$", () => {
 		}
 		for (const status of own.slice(1)) server.state.statuses.delete(status.id);
 		renderApp({ path: "/p/CDE/settings#statuses", actor: "navid", server });
-		await user.click(await screen.findByRole("button", { name: "Delete Todo" }));
+		await user.click(await screen.findByRole("button", { name: "Actions for Todo" }));
+		await user.click(screen.getByRole("menuitem", { name: "Delete" }));
 		const dialog = await screen.findByRole("dialog", { name: "Delete Todo?" });
 		await user.click(within(dialog).getByRole("button", { name: "Delete status" }));
 		expect(await within(dialog).findByText(errors.LAST_STATUS.message)).toBeDefined();
