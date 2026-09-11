@@ -132,17 +132,29 @@ const writeSeedBlobs = async (home: string, rows: unknown[]) => {
 // and not inside one server.
 let chain: Promise<unknown> = Promise.resolve();
 
-// The servers this test built. Each one is closed after the test, which
-// drains the calls still in flight, so a rejection of one test never lands
-// on the next.
-const open: TestApp[] = [];
+// The servers this test built. Each one closes after the test, which drains
+// the calls still in flight. A closed server then refuses every further
+// request, so a write a page left on a timer never reaches the database the
+// next test seeded.
+type Live = { app: TestApp; closed: boolean };
+
+const open: Live[] = [];
 
 afterEach(async () => {
-	for (const app of open.splice(0)) await app.close();
+	for (const live of open.splice(0)) {
+		live.closed = true;
+		await live.app.close();
+	}
 	// A request the page left in flight settles here, so its answer never
 	// reaches the next test.
 	await new Promise((resolve) => setTimeout(resolve, 0));
 });
+
+const CLOSED = () =>
+	new Response(
+		'{"json":{"defined":false,"code":"SERVICE_UNAVAILABLE","status":503,"message":"The test server is closed."}}',
+		{ status: 503, headers: { "content-type": "application/json" } },
+	);
 
 // The process state one server reports: what gh says and what URLs the
 // listener answers on. A test changes either after the build, and the next
@@ -150,6 +162,12 @@ afterEach(async () => {
 type GhHolder = { status: GhStatus; addresses: string[] };
 
 const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh: GhHolder) => {
+	// A server of an earlier test is closed first, so no write of its own is
+	// still on the way to the database this build is about to empty.
+	for (const live of open.splice(0)) {
+		live.closed = true;
+		await live.app.close();
+	}
 	const h = await sharedDb();
 	const snapshot = await seedSnapshot();
 	// The gh runner reads TRELLIS_GH_BIN when it is built, and the stub reads
@@ -189,10 +207,11 @@ const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh
 		await app.transport.start();
 		await seedDoneToday(app.transport);
 	}
-	open.push(app);
+	const live: Live = { app, closed: false };
+	open.push(live);
 	if (options.prepare !== undefined) await options.prepare(app.client);
 	calls.length = 0;
-	return { app, stub, superset, supersetBin, ghBin };
+	return { app, live, stub, superset, supersetBin, ghBin };
 };
 
 export type TestServer = ReturnType<typeof createTestServer>;
@@ -218,7 +237,8 @@ export const createTestServer = (options: TestServerOptions = {}) => {
 		const headers = new Headers(request.headers);
 		headers.set("x-request-id", reqId);
 		actorOfRequest.set(reqId, request.headers.get("x-trellis-actor"));
-		const { app } = await ready;
+		const { app, live } = await ready;
+		if (live.closed) return CLOSED();
 		return app.app.request(new Request(request, { headers }), init);
 	};
 	const clientAs = (actor: string): TrellisClient => createTrellisClient(origin, actor, fetch);

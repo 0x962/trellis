@@ -79,7 +79,14 @@ describe("features/table/hooks/useTableData", () => {
 		const view = parseSearch({ status: "in-progress,agent-review", parent: "none", ci: "fail", sort: "-updatedAt" });
 		const { result } = mount(server, view);
 		await waitFor(() => expect(listCalls(server).length).toBeGreaterThan(0));
-		expect(inputs(server, "tickets.list")[0]).toEqual({ project: "CDE", ...toListQuery(view), limit: 200 });
+		// The server parses the query before the service sees it, so the
+		// default of `subprojects` travels with it.
+		expect(inputs(server, "tickets.list")[0]).toEqual({
+			project: "CDE",
+			...toListQuery(view),
+			subprojects: true,
+			limit: 200,
+		});
 		await waitFor(() =>
 			expect(result.current.rows.map((row: { identifier: string }) => row.identifier)).toEqual(["CDE-44"]),
 		);

@@ -18,8 +18,9 @@ const aside = () => document.querySelector<HTMLElement>('aside[aria-label="Sideb
 describe("features/sidebar/Sidebar archived group", () => {
 	test("an archived project sits under a collapsed Archived group", async () => {
 		const user = userEvent.setup();
-		const server = createTestServer();
-		await server.client.projects.update({ project: "MRG", archived: true });
+		const server = createTestServer({
+			prepare: async (client) => void (await client.projects.update({ project: "MRG", archived: true })),
+		});
 		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", server });
 		const tree = await screen.findByRole("navigation", { name: "Projects" });
 		await within(tree).findByRole("link", { name: /trellis/ });

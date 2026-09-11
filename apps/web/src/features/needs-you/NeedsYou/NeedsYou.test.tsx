@@ -186,15 +186,15 @@ describe("NeedsYou", () => {
 		const user = userEvent.setup();
 		render(createTestServer());
 		await user.click(await screen.findByRole("button", { name: /^Stalled/ }));
-		await focusRow("CDE-42");
+		await focusRow("TRL-9");
 		const walked: (string | null)[] = [];
 		for (let step = 0; step < 4; step += 1) {
 			await user.keyboard("j");
 			walked.push((document.activeElement as HTMLElement).getAttribute("data-inbox-row"));
 		}
-		expect(walked).toEqual(["CDE-37", "TRL-9", "CDE-44", "CDE-44"]);
+		expect(walked).toEqual(["CDE-37", "CDE-42", "CDE-44", "CDE-44"]);
 		await user.keyboard("k");
-		expect((document.activeElement as HTMLElement).getAttribute("data-inbox-row")).toBe("TRL-9");
+		expect((document.activeElement as HTMLElement).getAttribute("data-inbox-row")).toBe("CDE-42");
 	});
 
 	// NY-54
