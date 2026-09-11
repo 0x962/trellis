@@ -1,7 +1,7 @@
 import type { Ticket, TicketSummary } from "@trellis/api";
 import { Avatar, CheckRibbon, PriorityIcon, SectionHeader, StatusIcon, TicketId } from "@trellis/ui";
 import { GitPullRequestArrow } from "lucide-react";
-import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { compactRelativeTime } from "../../../lib/format";
 import { useOpenTicket } from "../hooks/useOpenTicket";
@@ -10,8 +10,6 @@ import { summaryOf } from "../utils/summaryOf";
 
 export type SubTicketsProps = {
 	ticket: Ticket;
-	// The add field takes focus on mount, for the rail's Add.
-	autoFocusAdd?: boolean;
 };
 
 type Pending = { key: number; title: string };
@@ -35,7 +33,7 @@ const prLabel = (pr: NonNullable<TicketSummary["pr"]>) =>
 // The children of a ticket: the header with the done count, a progress bar,
 // one fixed-height row per child, and an add field. A new child shows at
 // once and takes its number when the server answers.
-export function SubTickets({ ticket, autoFocusAdd = false }: SubTicketsProps) {
+export function SubTickets({ ticket }: SubTicketsProps) {
 	const { client, orpc, queryClient } = useApp();
 	const open = useOpenTicket();
 	const [pending, setPending] = useState<Pending[]>([]);
@@ -44,10 +42,6 @@ export function SubTickets({ ticket, autoFocusAdd = false }: SubTicketsProps) {
 	const done = ticket.children.filter((child) => child.status.category === "done").length;
 	const total = ticket.children.length;
 	const fill = total === 0 ? 0 : (done / total) * 100;
-
-	useEffect(() => {
-		if (autoFocusAdd) addField.current?.focus();
-	}, [autoFocusAdd]);
 
 	const create = async (title: string) => {
 		const key = Date.now() + Math.random();

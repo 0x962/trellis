@@ -1,6 +1,5 @@
 import type { Comment, Ticket, TimelineItem } from "@trellis/api";
 import { Button, SectionHeader } from "@trellis/ui";
-import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { useStatuses } from "../hooks/useStatuses";
 import { timelineOptions, useTimeline } from "../hooks/useTimeline";
@@ -29,7 +28,6 @@ export function Timeline({ ticket, pinned = false, onAttachFiles }: TimelineProp
 	const key = timelineOptions(orpc, ticket.identifier).queryKey;
 	const timeline = useTimeline(ticket.identifier);
 	const statuses = useStatuses(ticket.project.path);
-	const [expandedActivity, setExpandedActivity] = useState(false);
 	const items = (timeline.data?.pages ?? [])
 		.flatMap((page) => page.items)
 		.reverse()
@@ -50,14 +48,7 @@ export function Timeline({ ticket, pinned = false, onAttachFiles }: TimelineProp
 		seenThreads.add(rootId);
 		return true;
 	});
-	const stream = collapseRuns(streamItems);
-	const activityCount = stream.filter((entry) => entry.kind === "activity").length;
-	let activityIndex = 0;
-	const shownStream = stream.filter((entry) => {
-		if (entry.kind === "comment") return true;
-		activityIndex += 1;
-		return expandedActivity || activityIndex > activityCount - 3;
-	});
+	const shownStream = collapseRuns(streamItems);
 	const reviewer = (name: string) =>
 		statuses.find((status) => status.name === name)?.reviewer === "agent" ? ("agent" as const) : ("human" as const);
 
@@ -77,21 +68,7 @@ export function Timeline({ ticket, pinned = false, onAttachFiles }: TimelineProp
 			)}
 			<ul aria-label="Timeline">
 				<li>
-					<SectionHeader
-						title="Activity"
-						actions={
-							activityCount > 3 && (
-								<Button
-									variant="quiet"
-									size="sm"
-									onClick={() => setExpandedActivity(!expandedActivity)}
-									aria-expanded={expandedActivity}
-								>
-									{expandedActivity ? "Show less activity" : "Show all activity"}
-								</Button>
-							)
-						}
-					/>
+					<SectionHeader title="Activity" />
 					<ul
 						aria-label="Activity"
 						className="relative flex flex-col gap-3 before:absolute before:top-4 before:bottom-4 before:left-2 before:w-px before:bg-border"

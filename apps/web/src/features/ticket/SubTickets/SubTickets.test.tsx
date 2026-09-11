@@ -5,7 +5,7 @@ import type { PullRequest } from "@trellis/api";
 import { ulid } from "ulid";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { findTicket } from "../../../../test/fake-server/state";
-import { ago, hour, renderTicket, settle } from "../../../../test/ticketHost";
+import { ago, hour, renderTicket } from "../../../../test/ticketHost";
 import { TicketView } from "../TicketView";
 import { SubTickets } from "./SubTickets";
 
@@ -122,21 +122,13 @@ describe("features/ticket/SubTickets", () => {
 		await waitFor(() => expect(within(element).getByRole("button", { name: /CDE-\d+.*Write the docs/ })).toBeDefined());
 	});
 
-	// WT-62. CDE-47 has no children: the section waits for Add in the rail.
-	test("the section appears only with children or on Add", async () => {
-		const user = userEvent.setup();
+	// The section is always there, so a ticket with no children still offers
+	// the field that makes the first one.
+	test("a ticket with no children still shows the section and its add field", async () => {
 		renderTicket("CDE-47", (ticket) => <TicketView identifier={ticket.identifier} variant="page" />, {
 			path: "/t/CDE-47",
 		});
-		const rail = await screen.findByLabelText("Properties");
-		await settle();
-		expect(screen.queryByRole("region", { name: /Sub-tickets/ })).toBeNull();
-		const term = within(rail)
-			.getAllByRole("term")
-			.find((element) => element.textContent === "Sub-tickets")!;
-		await user.click(within(term.nextElementSibling as HTMLElement).getByRole("button", { name: "New sub-ticket" }));
 		const element = await section();
-		const input = within(element).getByRole("textbox", { name: "New sub-ticket" });
-		await waitFor(() => expect(document.activeElement).toBe(input));
+		expect(within(element).getByRole("textbox", { name: "New sub-ticket" })).toBeDefined();
 	});
 });
