@@ -90,7 +90,7 @@ export function ActorFooter() {
 						<span
 							data-gh-warning=""
 							aria-hidden="true"
-							className="absolute top-1 right-1 size-1.5 rounded-full bg-warning"
+							className="absolute top-1 right-1 size-1.5 rounded-sm bg-warning"
 						/>
 						<span id={warningId} className="sr-only">
 							{ghCopy[gh.reason ?? "error"].line}

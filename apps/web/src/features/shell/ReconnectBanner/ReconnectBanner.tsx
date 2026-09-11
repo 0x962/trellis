@@ -51,12 +51,12 @@ export function ReconnectBanner({ live, scheduler }: ReconnectBannerProps) {
 		<div
 			role="status"
 			className={cx(
-				"absolute top-2.5 left-1/2 z-20 flex h-6 -translate-x-1/2 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium whitespace-nowrap shadow-sm",
+				"absolute top-2.5 left-1/2 z-20 flex h-6 -translate-x-1/2 items-center gap-1.5 rounded-sm px-2.5 text-xs font-medium whitespace-nowrap shadow-sm",
 				message.tone,
 			)}
 		>
 			{message.pulse && (
-				<span data-pulse="" aria-hidden="true" className="size-1.5 rounded-full bg-current animate-pulse-live" />
+				<span data-pulse="" aria-hidden="true" className="size-1.5 rounded-sm bg-current animate-pulse-live" />
 			)}
 			{message.text}
 		</div>

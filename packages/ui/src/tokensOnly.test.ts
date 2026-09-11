@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
-import { packageRoot, repoRoot } from "../test/css";
+import { packageRoot } from "../test/css";
+
+const repoRoot = join(packageRoot, "../..");
 
 // Every component file under these two directories. Test files are excluded:
 // they assert on classes and never paint anything.

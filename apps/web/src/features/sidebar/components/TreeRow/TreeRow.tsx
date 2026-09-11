@@ -71,7 +71,7 @@ export function TreeRow({ project, depth, active, expander, archived = false }: 
 					{project.depth === 0 ? (
 						<ProjectKey projectKey={project.key} />
 					) : (
-						<span aria-hidden="true" className="size-1.5 rounded-full bg-fg-faint" />
+						<span aria-hidden="true" className="size-1.5 rounded-sm bg-fg-faint" />
 					)}
 				</span>
 				<span className="min-w-0 flex-1 truncate">{project.name}</span>
