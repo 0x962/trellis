@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { Status, TicketSummary } from "@trellis/api";
-import { createFakeServer } from "../../../../../test/fake-server";
 import { ticketSummary } from "../../../../../test/fixtures";
+import { createTestServer } from "../../../../../test/server";
 import { groupRows } from "./groupRows";
 
-const server = createFakeServer();
+const server = createTestServer();
 const { statuses } = await server.client.statuses.list({ project: "CDE" });
 
 const summaryOf = ({ id, slug, name, category, reviewer, color }: Status) => ({

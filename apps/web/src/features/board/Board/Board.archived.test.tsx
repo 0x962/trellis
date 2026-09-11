@@ -3,8 +3,8 @@ import "@atlaskit/pragmatic-drag-and-drop-unit-testing/drag-event-polyfill";
 import "@atlaskit/pragmatic-drag-and-drop-unit-testing/dom-rect-polyfill";
 import { fireEvent, screen } from "@testing-library/react";
 import { Toaster } from "@trellis/ui";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { settle } from "../../../../test/ticketHost";
 import { Board } from ".";
 
@@ -13,7 +13,7 @@ beforeEach(() => localStorage.clear());
 const notice = "CDE is archived. Unarchive the project to change it.";
 
 const archivedBoard = () => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	[...server.state.projects.values()].find((entry) => entry.path === "CDE")!.archivedAt = new Date().toISOString();
 	renderWithProviders(
 		<>
@@ -25,7 +25,7 @@ const archivedBoard = () => {
 	return server;
 };
 
-const moves = (server: FakeServer) => server.calls.filter((call) => call.path.join(".") === "tickets.move");
+const moves = (server: TestServer) => server.calls.filter((call) => call.path.join(".") === "tickets.move");
 
 const card = (identifier: string) => screen.getByRole("listitem", { name: new RegExp(`^${identifier} `) });
 

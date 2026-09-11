@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { act, waitFor } from "@testing-library/react";
 import type { FetchLike } from "@trellis/api";
 import { useState } from "react";
-import { createFakeServer, type FakeServer } from "../../../../../test/fake-server";
 import { createFakeScheduler } from "../../../../../test/fakeScheduler";
 import { mockMatchMedia } from "../../../../../test/media";
 import { renderWithProviders } from "../../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../../test/server";
 import { useCommandSearch } from "./useCommandSearch";
 
 let setQuery: (query: string) => void = () => {};
@@ -23,21 +23,21 @@ function Probe() {
 	);
 }
 
-const searchCalls = (server: FakeServer) => server.calls.filter((call) => call.path.join(".") === "search.query");
+const searchCalls = (server: TestServer) => server.calls.filter((call) => call.path.join(".") === "search.query");
 
 // A fetch that holds every response until the test releases it, so a test
 // can answer two searches out of order.
-const gated = (server: FakeServer) => {
+const gated = (server: TestServer) => {
 	const releases: (() => void)[] = [];
 	const fetch: FetchLike = async (request, init) => {
 		const response = await server.fetch(request, init);
 		await new Promise<void>((resolve) => releases.push(resolve));
 		return response;
 	};
-	return { server: { ...server, fetch } as FakeServer, releases };
+	return { server: { ...server, fetch } as TestServer, releases };
 };
 
-const renderProbe = (server: FakeServer = createFakeServer()) => {
+const renderProbe = (server: TestServer = createTestServer()) => {
 	const clock = createFakeScheduler();
 	const view = renderWithProviders(<Probe />, {
 		path: "/p/CDE",
@@ -85,7 +85,7 @@ describe("features/command/useCommandSearch", () => {
 
 	// SR-02
 	test("a superseded search response never renders", async () => {
-		const gate = gated(createFakeServer());
+		const gate = gated(createTestServer());
 		const probe = renderProbe(gate.server);
 		type(probe, "oauth");
 		act(() => probe.advanceTo(200));

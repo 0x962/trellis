@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { calls, findGrid, focusRow, resetUi, rowOf, sleep, toastWith } from "../../../../test/table";
 import { tableViewport } from "../../../../test/viewport";
 
@@ -20,7 +20,7 @@ describe("features/table/TicketTable with a ticket of an archived project", () =
 	// refuses a write to them, so the table sends none and says why.
 	test("a priority change on the row sends no write and names the project", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		[...server.state.projects.values()].find((entry) => entry.path === "CDE")!.archivedAt = new Date().toISOString();
 		renderApp({ path: "/all?status=human-review", actor: "navid", server });
 		await findGrid();

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import { createEventApplier, type GhStatus } from "@trellis/api";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { GhBanner } from "./GhBanner";
 
 beforeEach(() => {
@@ -20,12 +20,12 @@ const ready: GhStatus = {
 };
 
 const withGh = (status: Partial<GhStatus>) => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	server.state.gh = { ...server.state.gh, ...status };
 	return server;
 };
 
-const render = (server: FakeServer) => renderWithProviders(<GhBanner />, { path: "/settings", actor: "navid", server });
+const render = (server: TestServer) => renderWithProviders(<GhBanner />, { path: "/settings", actor: "navid", server });
 
 describe("GhBanner", () => {
 	// ST-16. A working gh needs no banner, only the state.

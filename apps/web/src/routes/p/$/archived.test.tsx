@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { callsTo, lastCallTo } from "../../../../test/inbox";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { tableViewport } from "../../../../test/viewport";
 
 beforeEach(() => {
@@ -17,7 +17,7 @@ const installViewport = tableViewport();
 const bannerText = "This project is archived. It is read-only.";
 
 const archivedServer = async () => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	await server.client.projects.update({ project: "MRG", archived: true });
 	return server;
 };

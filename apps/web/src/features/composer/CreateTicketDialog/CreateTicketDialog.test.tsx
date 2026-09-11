@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { calls, findGrid, inputs, listCalls, queryRow, resetUi, rowOf, sleep, toastWith } from "../../../../test/table";
 import { tableViewport } from "../../../../test/viewport";
 import { type ComposerOptions, composerActions } from "../composerStore";
@@ -18,7 +18,7 @@ beforeEach(() => {
 // file, so an open composer would trap the keys of the next file's app.
 afterEach(() => act(resetUi));
 
-const open = async (path: string, options: ComposerOptions = {}, server = createFakeServer()) => {
+const open = async (path: string, options: ComposerOptions = {}, server = createTestServer()) => {
 	const app = renderApp({ path, actor: "navid", server });
 	await findGrid();
 	act(() => composerActions.open(options));
@@ -28,7 +28,7 @@ const open = async (path: string, options: ComposerOptions = {}, server = create
 	return { ...app, dialog, chip, title };
 };
 
-const created = (server: ReturnType<typeof createFakeServer>) => inputs(server, "tickets.create");
+const created = (server: ReturnType<typeof createTestServer>) => inputs(server, "tickets.create");
 
 describe("features/composer/CreateTicketDialog", () => {
 	// Outcome 89. w-160 is 640 px on the 4 px scale. The seed template
@@ -74,7 +74,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// second ticket, and Create is disabled until the answer arrives.
 	test("creates one ticket for two quick Cmd+Enter presses", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const hold = server.holdNext("tickets.create");
 		const { dialog, title } = await open("/p/CDE", {}, server);
 		await user.type(title(), "Only once");
@@ -93,7 +93,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// a Retry that sends the create again.
 	test("a refused create shows a toast with Retry and keeps the draft", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.failNext("tickets.create", { code: "INPUT_VALIDATION_FAILED" });
 		const { title } = await open("/p/CDE", {}, server);
 		await user.type(title(), "Refused once");
@@ -154,7 +154,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// the chip proves that the default flag decides, not the filter.
 	test("c in a filtered view opens with the project default status", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { statuses } = await server.client.statuses.list({ project: "CDE" });
 		const started = statuses.find((status) => status.slug === "in-progress")!;
 		const todo = statuses.find((status) => status.slug === "todo")!;
@@ -174,7 +174,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// here, so the move to MRG falls back to MRG's default, Todo.
 	test("a project change keeps the status slug when the new project has it", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const mrg = (await server.client.statuses.list({ project: "MRG" })).statuses;
 		const review = mrg.find((status) => status.slug === "agent-review")!;
 		const todo = mrg.find((status) => status.slug === "todo")!;

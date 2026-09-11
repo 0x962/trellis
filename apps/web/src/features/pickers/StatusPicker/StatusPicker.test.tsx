@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { StatusPicker } from "./StatusPicker";
 
-const server = createFakeServer();
+const server = createTestServer();
 const { statuses } = await server.client.statuses.list({ project: "CDE" });
 
 beforeEach(() => localStorage.clear());

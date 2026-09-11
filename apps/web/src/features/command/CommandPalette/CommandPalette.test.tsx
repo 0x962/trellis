@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { createFakeScheduler } from "../../../../test/fakeScheduler";
 import { mockMatchMedia } from "../../../../test/media";
 import {
@@ -16,6 +15,7 @@ import {
 	section,
 	sectionNames,
 } from "../../../../test/palette";
+import { createTestServer } from "../../../../test/server";
 import { commandActions } from "../commandStore";
 
 const ticketItems = [
@@ -193,7 +193,7 @@ describe("features/command/CommandPalette", () => {
 	// CP-16. The seed links PR 118 to CDE-42; the test links PR 121 to it
 	// as a second one.
 	test("one Open PR item appears per linked pull request", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const first = await server.client.tickets.get({ ticket: "CDE-42" });
 		const second = await server.client.tickets.get({ ticket: "CDE-44" });
 		server.state.prLinks.push({

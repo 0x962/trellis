@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../../../test/fake-server";
 import { createFakeScheduler } from "../../../../../../test/fakeScheduler";
 import { captureIdle } from "../../../../../../test/idle";
 import { press } from "../../../../../../test/keyboard";
+import { createTestServer, type TestServer } from "../../../../../../test/server";
 import { renderTicket } from "../../../../../../test/ticketHost";
 import { Description } from "../../Description";
 import { editorChunk } from "./LazyEditor";
@@ -24,7 +24,7 @@ const editor = () => screen.findByRole("textbox", { name: "Description" });
 
 // The editor mounts inside the Description, which owns the `e` key and the
 // read-only view it replaces.
-const mount = (identifier: string, server: FakeServer) => {
+const mount = (identifier: string, server: TestServer) => {
 	const clock = createFakeScheduler();
 	const view = renderTicket(identifier, (ticket) => <Description ticket={ticket} />, {
 		path: `/t/${identifier}`,
@@ -34,7 +34,7 @@ const mount = (identifier: string, server: FakeServer) => {
 	return { ...view, ...clock };
 };
 
-const blank = (server: FakeServer) =>
+const blank = (server: TestServer) =>
 	server.client.tickets.create({ project: "CDE.web", title: "Blank page", description: "" });
 
 const opened = async () => {
@@ -47,7 +47,7 @@ const opened = async () => {
 describe("features/ticket/Description/components/LazyEditor", () => {
 	// WT-36. Tiptap draws a placeholder from the attribute on the empty block.
 	test("an empty description shows the agent placeholder", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const ticket = await blank(server);
 		mount(ticket.identifier, server);
 		await waitFor(() => expect(document.querySelector(".markdown")).not.toBeNull());
@@ -60,7 +60,7 @@ describe("features/ticket/Description/components/LazyEditor", () => {
 	// WT-44. One Tiptap instance serves every ticket: a second open sets its
 	// content and never builds a second editor.
 	test("reuses one editor instance across tickets", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const first = mount("CDE-42", server);
 		await waitFor(() => expect(document.querySelector(".markdown")).not.toBeNull());
 		const before = editorChunk.instances();
@@ -80,7 +80,7 @@ describe("features/ticket/Description/components/LazyEditor", () => {
 	// the markdown save carries.
 	test("the slash menu inserts a code block", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const ticket = await blank(server);
 		const { advanceTo } = mount(ticket.identifier, server);
 		await waitFor(() => expect(document.querySelector(".markdown")).not.toBeNull());

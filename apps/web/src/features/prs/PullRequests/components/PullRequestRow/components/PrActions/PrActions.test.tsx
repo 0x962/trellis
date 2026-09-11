@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../../../../../test/media";
 import { callsTo, firstPr, ghReady, summaryOf } from "../../../../../../../../test/prs";
 import { renderWithProviders } from "../../../../../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../../../../../test/server";
 import { PrActions } from "./PrActions";
 
 beforeEach(() => {
@@ -12,7 +12,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const renderActions = async (server: FakeServer) => {
+const renderActions = async (server: TestServer) => {
 	const ticket = await summaryOf(server, "CDE-42");
 	const pr = await firstPr(server, "CDE-42");
 	renderWithProviders(<PrActions ticket={ticket} pr={pr} />, { path: "/t/CDE-42", actor: "navid", server });
@@ -38,7 +38,7 @@ const runItem = async (label: string) => {
 
 describe("PrActions", () => {
 	test("opens by keyboard and lists every row action", async () => {
-		await renderActions(createFakeServer());
+		await renderActions(createTestServer());
 		await openMenu();
 		const items = await screen.findAllByRole("menuitem");
 		expect(items.map((item) => item.textContent!.trim())).toEqual(["Open on GitHub", "Copy link", "Refresh", "Remove"]);
@@ -46,21 +46,21 @@ describe("PrActions", () => {
 
 	test("Open on GitHub opens the pull request in a new tab", async () => {
 		const open = spyOn(window, "open").mockImplementation(() => null);
-		const { pr } = await renderActions(createFakeServer());
+		const { pr } = await renderActions(createTestServer());
 		await runItem("Open on GitHub");
 		expect(open).toHaveBeenCalledWith(pr.url, "_blank", "noopener");
 		open.mockRestore();
 	});
 
 	test("Copy link writes the pull request URL to the clipboard", async () => {
-		const { pr } = await renderActions(createFakeServer());
+		const { pr } = await renderActions(createTestServer());
 		await runItem("Copy link");
 		await waitFor(async () => expect(await navigator.clipboard.readText()).toBe(pr.url));
 	});
 
 	// The seed reports gh as missing, and a refresh needs gh.
 	test("Refresh refreshes this pull request", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		ghReady(server);
 		const { pr } = await renderActions(server);
 		await runItem("Refresh");
@@ -69,7 +69,7 @@ describe("PrActions", () => {
 	});
 
 	test("Remove removes the pull request from this ticket", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { ticket, pr } = await renderActions(server);
 		await runItem("Remove");
 		await waitFor(() => expect(callsTo(server, "pullRequests.unlink")).toHaveLength(1));

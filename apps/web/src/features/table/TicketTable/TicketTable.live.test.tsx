@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, waitFor } from "@testing-library/react";
 import { applyEvent, type TicketSummary } from "@trellis/api";
-import type { FakeServer } from "../../../../test/fake-server";
 import { batchId } from "../../../../test/fixtures";
 import { renderApp } from "../../../../test/renderWithProviders";
+import type { TestServer } from "../../../../test/server";
 import {
 	bulkBar,
 	cellOf,
@@ -32,7 +32,7 @@ beforeEach(() => {
 // Human Review: CDE-42, then CDE-37.
 const review = "/p/CDE?status=human-review";
 
-const summaryOf = async (server: FakeServer, identifier: string) => {
+const summaryOf = async (server: TestServer, identifier: string) => {
 	const { items } = await server.client.tickets.list({ project: "CDE", limit: 200 });
 	return items.find((item) => item.identifier === identifier)!;
 };

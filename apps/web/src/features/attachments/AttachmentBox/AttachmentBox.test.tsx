@@ -2,15 +2,15 @@ import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { dragFilesOver, fileOf } from "../../../../test/attachments";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { callsTo } from "../../../../test/inbox";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { DropTarget } from "../DropTarget";
 import { AttachmentBox } from "./AttachmentBox";
 
 beforeEach(() => localStorage.clear());
 
-const renderBox = (server: FakeServer = createFakeServer()) =>
+const renderBox = (server: TestServer = createTestServer()) =>
 	renderWithProviders(<AttachmentBox ticket="CDE-42" />, { path: "/t/CDE-42", actor: "navid", server });
 
 const boxOf = async () =>

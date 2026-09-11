@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { createFakeServer, type FakeServer } from "../../test/fake-server";
 import { createFakeScheduler } from "../../test/fakeScheduler";
 import { mockMatchMedia } from "../../test/media";
 import { renderApp } from "../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../test/server";
 
 beforeEach(() => {
 	localStorage.clear();
@@ -13,10 +13,10 @@ beforeEach(() => {
 // A server that stops answering on `stop()`: every request then fails the
 // way a browser fetch fails when nothing listens on the port.
 const stoppable = () => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	const real = server.fetch;
 	let down = false;
-	const wrapped: FakeServer = {
+	const wrapped: TestServer = {
 		...server,
 		fetch: (request, init) => (down ? Promise.reject(new TypeError("Failed to fetch")) : real(request, init)),
 	};
@@ -29,7 +29,7 @@ describe("routes/__root loading and errors", () => {
 	// ER-1. A cold load that waits on the server paints the shell frame
 	// after 300 ms, not a blank page.
 	test("a slow cold load paints the shell frame, then the app", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const hold = server.holdNext("projects.list");
 		renderApp({ path: "/needs-you", actor: "navid", server });
 		const frame = await waitFor(

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../../../../../test/media";
 import {
 	addArchivedStatus,
@@ -14,6 +13,7 @@ import {
 	summaryOf,
 } from "../../../../../../../../test/prs";
 import { renderWithProviders } from "../../../../../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../../../../../test/server";
 import { PullRequestRow } from "../../PullRequestRow";
 
 beforeEach(() => {
@@ -26,7 +26,7 @@ const merged = { state: "merged" as const, mergedAt: new Date(Date.now() - 60_00
 
 const nudge = () => document.querySelector("[data-merged-nudge]");
 
-const renderRow = async (server: FakeServer, identifier: string) => {
+const renderRow = async (server: TestServer, identifier: string) => {
 	const ticket = await summaryOf(server, identifier);
 	const pr = await firstPr(server, identifier);
 	const view = renderWithProviders(<PullRequestRow ticket={ticket} pr={pr} />, {
@@ -40,7 +40,7 @@ const renderRow = async (server: FakeServer, identifier: string) => {
 describe("MergedNudge", () => {
 	// PR-47. CDE-42 waits in Human Review, a review-category status.
 	test("offers the merged nudge on a review status", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		patchPr(server, (await firstPr(server, "CDE-42")).id, merged);
 		await renderRow(server, "CDE-42");
 		await waitFor(() => expect(nudge()).not.toBeNull());
@@ -50,7 +50,7 @@ describe("MergedNudge", () => {
 
 	// PR-48. CDE-44 is still in progress, so the work is not up for review.
 	test("shows no nudge outside a review status", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		patchPr(server, (await firstPr(server, "CDE-44")).id, merged);
 		const { ticket, pr } = await renderRow(server, "CDE-44");
 		expect(ticket.status.category).toBe("started");
@@ -60,7 +60,7 @@ describe("MergedNudge", () => {
 
 	// PR-49
 	test("shows no nudge while the pull request is open", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { pr } = await renderRow(server, "CDE-42");
 		expect(pr.state).toBe("open");
 		await prRow(pr.id);
@@ -71,7 +71,7 @@ describe("MergedNudge", () => {
 	// nudge lands on Done.
 	test("moves the ticket to the lowest-position done status", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await addArchivedStatus(server);
 		patchPr(server, (await firstPr(server, "CDE-42")).id, merged);
 		const done = await statusOf(server, "CDE", "done");
@@ -83,7 +83,7 @@ describe("MergedNudge", () => {
 
 	// PR-51. v1 has no automatic transition; the person decides.
 	test("writes nothing until the person clicks the button", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		patchPr(server, (await firstPr(server, "CDE-42")).id, merged);
 		await renderRow(server, "CDE-42");
 		await waitFor(() => expect(nudge()).not.toBeNull());
@@ -94,7 +94,7 @@ describe("MergedNudge", () => {
 	// PR-52
 	test("drops the nudge after the ticket reaches Done", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		patchPr(server, (await firstPr(server, "CDE-42")).id, merged);
 		const first = await renderRow(server, "CDE-42");
 		await user.click(await screen.findByRole("button", { name: /^approve$/i }));

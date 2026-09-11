@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { errors } from "@trellis/api";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import {
 	filterBar,
 	findGrid,
@@ -28,7 +28,7 @@ describe("routes/p/$", () => {
 			["/p/CDE/web/settings", "CDE.web"],
 		] as const;
 		for (const [path, ref] of cases) {
-			const server = createFakeServer();
+			const server = createTestServer();
 			const project = await server.client.projects.get({ project: ref });
 			const view = renderApp({ path, actor: "navid", server });
 			const name = await screen.findByRole("textbox", { name: "Project name" });
@@ -108,7 +108,7 @@ describe("routes/p/$", () => {
 
 	test("a status reorder sends the full order", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const initial = await server.client.statuses.list({ project: "CDE" });
 		renderApp({ path: "/p/CDE/settings", actor: "navid", server });
 		await user.click(await screen.findByRole("button", { name: "Move Todo down" }));
@@ -151,7 +151,7 @@ describe("routes/p/$", () => {
 
 	test("deleting a used status shows its ticket count and requires moveTo", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const statuses = (await server.client.statuses.list({ project: "CDE" })).statuses;
 		const source = statuses.find((status) => status.slug === "in-progress")!;
 		const target = statuses.find((status) => status.slug === "todo")!;
@@ -177,7 +177,7 @@ describe("routes/p/$", () => {
 
 	test("deleting the last status shows LAST_STATUS inline", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const root = [...server.state.projects.values()].find((project) => project.path === "CDE")!;
 		const own = [...server.state.statuses.values()].filter((status) => status.projectId === root.id);
 		const remaining = own[0]!;
@@ -262,7 +262,7 @@ describe("routes/p/$", () => {
 
 	// WS-88. The CLI line is the fastest way to a first ticket.
 	test("an empty project shows the CLI empty state", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		await server.client.projects.create({ key: "DOC", name: "Docs" });
 		renderApp({ path: "/p/DOC", actor: "navid", server });
 		expect(await screen.findByText('trellis create -p DOC -t "First ticket"')).toBeDefined();
@@ -295,7 +295,7 @@ describe("routes/p/$: the table", () => {
 
 	// Outcome 109
 	test("maps the splat path to a dotted project ref", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		await server.client.projects.create({ parent: "CDE.web", name: "auth" });
 		const { router } = renderApp({ path: "/p/CDE/web/auth", actor: "navid", server });
 		await findGrid();

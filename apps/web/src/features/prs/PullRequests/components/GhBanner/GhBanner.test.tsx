@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import type { GhReason } from "@trellis/api";
-import { createFakeServer, type FakeServer } from "../../../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../../../test/media";
 import { ghReady, summaryOf } from "../../../../../../test/prs";
 import { renderWithProviders } from "../../../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../../../test/server";
 import { renderTicket } from "../../../../../../test/ticketHost";
 import { ghCopy } from "../../../../../lib/ghCopy";
 import { PullRequests } from "../../PullRequests";
@@ -15,11 +15,11 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const withReason = (server: FakeServer, reason: GhReason) => {
+const withReason = (server: TestServer, reason: GhReason) => {
 	server.state.gh = { ok: false, user: null, reason, message: null, checkedAt: new Date().toISOString() };
 };
 
-const renderSection = async (server: FakeServer, identifier: string) => {
+const renderSection = async (server: TestServer, identifier: string) => {
 	const ticket = await summaryOf(server, identifier);
 	return renderWithProviders(<PullRequests ticket={ticket} />, { path: `/t/${identifier}`, actor: "navid", server });
 };
@@ -34,7 +34,7 @@ const banner = async () =>
 describe("PullRequests gh banner", () => {
 	// PR-37
 	test("shows the missing-gh copy with the install command", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		withReason(server, "missing");
 		await renderSection(server, "CDE-42");
 		const alert = await banner();
@@ -46,7 +46,7 @@ describe("PullRequests gh banner", () => {
 
 	// PR-38
 	test("shows the unauthenticated copy with the login command", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		withReason(server, "unauthenticated");
 		await renderSection(server, "CDE-42");
 		const alert = await banner();
@@ -57,7 +57,7 @@ describe("PullRequests gh banner", () => {
 
 	// PR-39
 	test("shows no banner while gh answers", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		ghReady(server);
 		await renderSection(server, "CDE-42");
 		await screen.findByText(/#118/);
@@ -68,7 +68,7 @@ describe("PullRequests gh banner", () => {
 	// never word one failure in two ways.
 	test("takes every line from the shared gh copy module", async () => {
 		for (const reason of ["missing", "unauthenticated"] as const) {
-			const server = createFakeServer();
+			const server = createTestServer();
 			withReason(server, reason);
 			const view = await renderSection(server, "CDE-42");
 			const alert = await banner();
@@ -81,7 +81,7 @@ describe("PullRequests gh banner", () => {
 	// TK-5. Checks exist only on a linked PR, so a ticket with no PR shows
 	// no gh notice.
 	test("shows no gh notice on a ticket with no PR", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		withReason(server, "unauthenticated");
 		await renderSection(server, "CDE-47");
 		await screen.findByRole("button", { name: "Link PR" });
@@ -90,7 +90,7 @@ describe("PullRequests gh banner", () => {
 
 	// PR-41. A missing gh hides no stored data.
 	test("keeps the stored rows visible under the banner", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		withReason(server, "missing");
 		await renderSection(server, "CDE-42");
 		await banner();
@@ -101,7 +101,7 @@ describe("PullRequests gh banner", () => {
 	// WT-71. A gh problem shows where the pull requests are. The toast outlet
 	// mounts beside the section and stays silent about gh.
 	test("shows a gh problem in the section and never as a toast", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		withReason(server, "unauthenticated");
 		renderTicket("CDE-42", (ticket) => <PullRequests ticket={ticket} />, { path: "/t/CDE-42", server });
 		const alert = await banner();

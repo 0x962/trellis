@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
 import { seedTickets } from "../../../../test/seedMany";
+import { createTestServer } from "../../../../test/server";
 import { findGrid, groupCount, groupHeader, groupRows, resetUi, rowOf } from "../../../../test/table";
 import { tableViewport } from "../../../../test/viewport";
 
@@ -20,7 +20,7 @@ const path = "/p/CDE?status=in-progress";
 describe("features/table/GroupHeader", () => {
 	// Outcome 28. 8 seeded rows and the 4 of the seed make 12.
 	test("shows the status icon, name, count, and the create button", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		seedTickets(server, { project: "CDE", count: 8, status: "in-progress" });
 		renderApp({ path, actor: "navid", server });
 		await findGrid();

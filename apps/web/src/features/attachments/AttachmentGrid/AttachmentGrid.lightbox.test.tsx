@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { addAttachment, surfaceOf, thumbnailsOf } from "../../../../test/attachments";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { AttachmentGrid } from "./AttachmentGrid";
 
 beforeEach(() => localStorage.clear());
@@ -11,11 +11,11 @@ beforeEach(() => localStorage.clear());
 // CDE-51 carries no attachment in the seed, so each test states its own set.
 const ticket = "CDE-51";
 
-const renderGrid = (server: FakeServer) =>
+const renderGrid = (server: TestServer) =>
 	renderWithProviders(<AttachmentGrid ticket={ticket} />, { path: `/t/${ticket}`, actor: "navid", server });
 
 const withImages = (names: string[], extras: Array<[string, string]> = []) => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	const images = names.map((name) => addAttachment(server, ticket, name, "image/png"));
 	for (const [name, mime] of extras) addAttachment(server, ticket, name, mime);
 	renderGrid(server);

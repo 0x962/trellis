@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Ticket } from "@trellis/api";
-import { createFakeServer, type FakeServer } from "../../../../../../test/fake-server";
 import { press } from "../../../../../../test/keyboard";
+import { createTestServer, type TestServer } from "../../../../../../test/server";
 import { renderTicket, settle, statusOf } from "../../../../../../test/ticketHost";
 import { ReviewActions } from "./ReviewActions";
 
@@ -13,7 +13,7 @@ beforeEach(() => localStorage.clear());
 // placed before In Progress. Approve and Send back pick the lowest
 // position of each category, so the new ones are the targets.
 const withLowerStatuses = async () => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	await server.client.statuses.create({ project: "CDE", name: "Shipped", category: "done" });
 	await server.client.statuses.create({ project: "CDE", name: "Queued", category: "started" });
 	await server.client.statuses.reorder({
@@ -23,15 +23,15 @@ const withLowerStatuses = async () => {
 	return server;
 };
 
-const mount = (identifier: string, server: FakeServer) =>
+const mount = (identifier: string, server: TestServer) =>
 	renderTicket(identifier, (ticket) => <ReviewActions ticket={ticket} />, { path: `/t/${identifier}`, server });
 
-const moves = (server: FakeServer) => server.callsTo("tickets.move");
+const moves = (server: TestServer) => server.callsTo("tickets.move");
 
 describe("features/ticket/Header/components/ReviewActions", () => {
 	// WT-96. CDE-42 sits in Human Review, whose reviewer is human.
 	test("a human-reviewer status shows Approve and Send back", async () => {
-		mount("CDE-42", createFakeServer());
+		mount("CDE-42", createTestServer());
 		const approve = await screen.findByRole("button", { name: /Approve/ });
 		const sendBack = screen.getByRole("button", { name: /Send back/ });
 		expect(approve.textContent).toMatch(/\ba\b/);
@@ -41,7 +41,7 @@ describe("features/ticket/Header/components/ReviewActions", () => {
 	// WT-97. CDE-45 sits in Agent Review; CDE-44 sits in In Progress.
 	test("an agent-reviewer or non-review status hides the pair", async () => {
 		for (const identifier of ["CDE-45", "CDE-44"]) {
-			const server = createFakeServer();
+			const server = createTestServer();
 			const view = mount(identifier, server);
 			await waitFor(() => expect(server.callsTo("tickets.get")).toHaveLength(1));
 			await settle();
@@ -80,7 +80,7 @@ describe("features/ticket/Header/components/ReviewActions", () => {
 	// WT-100
 	test("a cancelled Send back changes nothing", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		mount("CDE-42", server);
 		await screen.findByRole("button", { name: /Send back/ });
 		press("r");
@@ -98,7 +98,7 @@ describe("features/ticket/Header/components/ReviewActions", () => {
 	// WT-101. The hold keeps the move pending; the failure lands on release.
 	test("a failed Approve rolls back and toasts with Retry", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const hold = server.holdNext("tickets.move");
 		server.failNext("tickets.move", { code: "PROJECT_ARCHIVED" });
 		const { queryClient, orpc } = mount("CDE-42", server);

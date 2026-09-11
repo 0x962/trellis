@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen } from "@testing-library/react";
 import jsQR from "jsqr";
-import { createFakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 
 // The Pair a phone row of the settings page. A server that listens on a
 // network address shows a QR code of the pair link; a server on loopback only
@@ -47,7 +47,7 @@ const decode = (svg: Element) => {
 
 describe("Pair a phone", () => {
 	test("a server on loopback shows the command that opens it and the no-sign-in caution, and no QR code", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.state.addresses = ["http://127.0.0.1:4521"];
 		renderApp({ path: "/settings", actor: "navid", server });
 
@@ -60,7 +60,7 @@ describe("Pair a phone", () => {
 	});
 
 	test("a server on a network address shows a QR code of the exact pair link and the URL", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.state.addresses = ["http://127.0.0.1:4521", lan, "http://10.0.0.9:4521"];
 		renderApp({ path: "/settings", actor: "navid", server });
 

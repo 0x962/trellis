@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { renderTicket, settle } from "../../../../test/ticketHost";
 import { markStartedKey, StartWithAgent } from "./StartWithAgent";
 
 beforeEach(() => localStorage.clear());
 
-const mount = (server: FakeServer) =>
+const mount = (server: TestServer) =>
 	renderTicket("CDE-42", (ticket) => <StartWithAgent ticket={ticket} />, { path: "/t/CDE-42", server });
 
 // Opens the dropdown and clicks one of its copy actions.
@@ -24,7 +24,7 @@ describe("features/agent/StartWithAgent: copy targets", () => {
 	// box checked.
 	test("Copy command only copies the claude command from the settings template", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.state.settings.startWithAgentTemplate = 'claude --model opus "$(trellis brief {brief})"';
 		localStorage.setItem(markStartedKey, "1");
 		mount(server);
@@ -38,7 +38,7 @@ describe("features/agent/StartWithAgent: copy targets", () => {
 	// The brief is the markdown `trellis brief CDE-42` prints.
 	test("Copy brief as markdown copies the brief markdown", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		mount(server);
 		await pick(user, "Copy brief as markdown");
 		await waitFor(async () => expect(await clipboard()).toStartWith("# CDE-42"));

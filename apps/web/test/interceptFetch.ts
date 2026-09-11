@@ -1,5 +1,5 @@
 import type { FetchLike } from "@trellis/api";
-import type { FakeServer } from "./fake-server";
+import type { TestServer } from "./server/index.ts";
 
 export type InterceptOptions = {
 	// Matches a request by its URL and body text. A batch body names every
@@ -10,9 +10,9 @@ export type InterceptOptions = {
 	respond?: () => Response;
 };
 
-// A fake server whose fetch holds or fails the requests `match` selects.
+// A test server whose fetch holds or fails the requests `match` selects.
 // `held()` counts the requests that wait.
-export const interceptFetch = (server: FakeServer, options: InterceptOptions) => {
+export const interceptFetch = (server: TestServer, options: InterceptOptions) => {
 	const waiting: Array<() => void> = [];
 	const fetch: FetchLike = async (request, init) => {
 		const text = `${request.url}\n${await request.clone().text()}`;
@@ -24,7 +24,7 @@ export const interceptFetch = (server: FakeServer, options: InterceptOptions) =>
 	const release = () => {
 		for (const resolve of waiting.splice(0)) resolve();
 	};
-	return { server: { ...server, fetch } as FakeServer, release, held: () => waiting.length };
+	return { server: { ...server, fetch } as TestServer, release, held: () => waiting.length };
 };
 
 // A plain 500 with a text body. The client reports it as an unknown error.

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { QueryClient } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react";
-import { createFakeServer } from "./fake-server";
 import { renderApp, renderWithProviders } from "./renderWithProviders";
+import { createTestServer } from "./server";
 
 beforeEach(() => localStorage.clear());
 
@@ -32,7 +32,7 @@ describe("renderWithProviders", () => {
 	// WS-64. A server with projects or a stored name has an identity, so only
 	// the empty server shows that the harness stored none.
 	test("renderWithProviders starts without an identity when actor is omitted", async () => {
-		const result = renderApp({ path: "/needs-you", server: createFakeServer({ empty: true }) });
+		const result = renderApp({ path: "/needs-you", server: createTestServer({ empty: true }) });
 		expect(localStorage.getItem("trellis.actor")).toBeNull();
 		await waitFor(() => expect(result.router.state.location.pathname).toBe("/setup"));
 	});

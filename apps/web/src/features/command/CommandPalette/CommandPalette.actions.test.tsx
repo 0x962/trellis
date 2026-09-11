@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import {
 	openPalette,
@@ -12,6 +11,7 @@ import {
 	section,
 	sectionNames,
 } from "../../../../test/palette";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { useUiStore } from "../../../stores/uiStore";
 import { useComposerStore } from "../../composer";
 import { commandActions } from "../commandStore";
@@ -23,7 +23,7 @@ const pick = async (name: RegExp) => {
 	await user().click(option);
 };
 
-const callsTo = (server: FakeServer, path: string) => server.calls.filter((call) => call.path.join(".") === path);
+const callsTo = (server: TestServer, path: string) => server.calls.filter((call) => call.path.join(".") === path);
 
 const closed = () => screen.queryByRole("dialog", { name: "Command palette" });
 
@@ -155,7 +155,7 @@ describe("features/command/CommandPalette actions", () => {
 
 	// PA-11
 	test("a Go to project item navigates to the project route", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		await server.client.projects.create({ parent: "CDE.web", name: "auth" });
 		const { router } = await renderShell({ server });
 		await openPalette();

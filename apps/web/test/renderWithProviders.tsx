@@ -8,14 +8,14 @@ import { type AppContext, AppProvider } from "../src/lib/appContext";
 import { createStatusStore, type Live, type LiveStatus } from "../src/lib/live";
 import { createOrpc, type Orpc } from "../src/lib/orpc";
 import { createAppRouter } from "../src/router";
-import { createFakeServer, type FakeServer } from "./fake-server";
+import { createTestServer, type TestServer } from "./server/index.ts";
 
 export type ProviderOptions = {
 	// The URL the router starts at, with its search string.
 	path: string;
 	// The stored identity. Omitted, the test starts as a first run.
 	actor?: string;
-	server?: FakeServer;
+	server?: TestServer;
 	// The connection status the shell sees. Live by default.
 	liveStatus?: LiveStatus;
 	scheduler?: Scheduler;
@@ -39,11 +39,11 @@ const stubLive = (status: LiveStatus): Live => ({
 	bootId: () => null,
 });
 
-// The providers' parts for one test: the fake server, the clients, the
-// live stub, and a memory-history router at `path`.
+// The providers' parts for one test: the server, the clients, the live
+// stub, and a memory-history router at `path`.
 export const wire = (options: ProviderOptions) => {
 	if (options.actor !== undefined) setActorName(options.actor);
-	const server = options.server ?? createFakeServer();
+	const server = options.server ?? createTestServer();
 	const { client, orpc, queryClient } = createOrpc({ fetch: server.fetch });
 	const live = stubLive(options.liveStatus ?? "live");
 	const context: AppContext = { queryClient, orpc, client, live, scheduler: options.scheduler ?? realScheduler };
@@ -56,7 +56,7 @@ export const wire = (options: ProviderOptions) => {
 export const createHarness = (options: ProviderOptions) => wire(options);
 
 // Renders `ui` inside the providers the app mounts: a fresh QueryClient, a
-// trellis client over the fake server, and a memory-history router at
+// trellis client over the test server, and a memory-history router at
 // `path`. The router provides context to Links but renders no route, so
 // `ui` is what the test sees.
 export const renderWithProviders = (ui: ReactElement, options: ProviderOptions) => {

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../test/fake-server";
 import { focusRow, rowOf } from "../../../test/inbox";
 import { renderApp } from "../../../test/renderWithProviders";
+import { createTestServer } from "../../../test/server";
 
 beforeEach(() => localStorage.clear());
 
@@ -29,7 +29,7 @@ describe("routes/needs-you", () => {
 	// WS-82. Three started tickets whose last actor is an agent, and nothing
 	// waiting on a person.
 	test("the Needs you empty state names the agents' in-progress count", async () => {
-		const server = createFakeServer({ empty: true });
+		const server = createTestServer({ empty: true });
 		await server.client.projects.create({ key: "DOC", name: "Docs" });
 		const agent = server.clientAs("agent:claude-code");
 		for (const title of ["one", "two", "three"]) {

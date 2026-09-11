@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { createFakeServer } from "../../../../../test/fake-server";
+import { createTestServer } from "../../../../../test/server";
 import { viewOf } from "../../../filters/grammar";
 import { composerDefaults } from "./useComposerDefaults";
 
-const server = createFakeServer();
+const server = createTestServer();
 const { statuses } = await server.client.statuses.list({ project: "CDE" });
 
 describe("features/composer/hooks/useComposerDefaults", () => {

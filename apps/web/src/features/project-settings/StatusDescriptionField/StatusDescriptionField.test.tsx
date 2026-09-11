@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { createFakeScheduler } from "../../../../test/fakeScheduler";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { StatusSettings } from "../StatusSettings";
 
 beforeEach(() => {
@@ -12,7 +12,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const mount = async (server: FakeServer, ref = "CDE", scheduler = createFakeScheduler().scheduler) => {
+const mount = async (server: TestServer, ref = "CDE", scheduler = createFakeScheduler().scheduler) => {
 	const project = await server.client.projects.get({ project: ref });
 	return renderWithProviders(<StatusSettings project={project} />, {
 		path: `/p/${ref}/settings`,
@@ -25,12 +25,12 @@ const mount = async (server: FakeServer, ref = "CDE", scheduler = createFakeSche
 const field = async (name: string) =>
 	(await screen.findByRole("textbox", { name: `Description for ${name}` })) as HTMLTextAreaElement;
 
-const todoOf = async (server: FakeServer) =>
+const todoOf = async (server: TestServer) =>
 	(await server.client.statuses.list({ project: "CDE" })).statuses.find((status) => status.slug === "todo")!;
 
 describe("StatusDescriptionField", () => {
 	test("shows the stored description under each status", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const todo = await todoOf(server);
 		await server.client.statuses.update({ project: "CDE", status: todo.id, description: "Start a builder." });
 		await mount(server);
@@ -44,7 +44,7 @@ describe("StatusDescriptionField", () => {
 	// saves once, and the write carries the description alone.
 	test("saves 800 ms after the last keystroke, once, with the description only", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const todo = await todoOf(server);
 		const clock = createFakeScheduler();
 		await mount(server, "CDE", clock.scheduler);
@@ -64,7 +64,7 @@ describe("StatusDescriptionField", () => {
 
 	test("saves at once on blur", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await mount(server);
 		await user.type(await field("Agent Review"), "Run a reviewer.");
 		await user.tab();
@@ -73,7 +73,7 @@ describe("StatusDescriptionField", () => {
 
 	test("holds up to 2000 characters and shows the count", async () => {
 		const user = userEvent.setup();
-		await mount(createFakeServer());
+		await mount(createTestServer());
 		const todo = await field("Todo");
 		expect(todo.getAttribute("maxLength")).toBe("2000");
 		await user.type(todo, "abc");
@@ -82,7 +82,7 @@ describe("StatusDescriptionField", () => {
 
 	test("a refused save shows the reason", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.failNext("statuses.update", { code: "NOT_FOUND", data: { kind: "status", ref: "todo" } });
 		await mount(server);
 		await user.type(await field("Todo"), "x");
@@ -92,7 +92,7 @@ describe("StatusDescriptionField", () => {
 
 	// An inherited set belongs to an ancestor, so it is edited there.
 	test("an inherited status set shows no description field", async () => {
-		await mount(createFakeServer(), "CDE.web");
+		await mount(createTestServer(), "CDE.web");
 		await screen.findByText(/Inherited from/);
 		expect(screen.queryAllByRole("textbox", { name: /^Description for/ })).toHaveLength(0);
 	});

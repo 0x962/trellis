@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
-import { createFakeServer, type FakeServer } from "../../../test/fake-server";
 import { renderApp } from "../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../test/server";
 import { settle } from "../../../test/ticketHost";
 
 beforeEach(() => localStorage.clear());
 
 // The status lists that the reads of a route sent to the server.
-const statusInputs = (server: FakeServer) =>
+const statusInputs = (server: TestServer) =>
 	["tickets.counts", "tickets.list", "tickets.board"]
 		.flatMap((path) => server.callsTo(path))
 		.map((call) => (call.input as { status?: string[] }).status)
@@ -18,7 +18,7 @@ describe("routes/all: a negated status", () => {
 	// of every root's statuses, and the server answers 400 for an empty list.
 	test("the table and the board send the rest of the statuses for status=!todo", async () => {
 		for (const path of ["/all?status=!todo", "/all/board?status=!todo"]) {
-			const server = createFakeServer();
+			const server = createTestServer();
 			const view = renderApp({ path, actor: "navid", server });
 			await screen.findByRole("heading", { name: "All tickets" });
 			await waitFor(() => expect(server.callsTo("tickets.counts").length, path).toBeGreaterThan(0));

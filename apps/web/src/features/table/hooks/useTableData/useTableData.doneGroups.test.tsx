@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { waitFor } from "@testing-library/react";
 import type { ListQueryInput } from "@trellis/api";
-import { createFakeServer, type FakeServer } from "../../../../../test/fake-server";
 import { renderHookWithProviders } from "../../../../../test/renderHook";
 import { renderApp } from "../../../../../test/renderWithProviders";
 import { seedTickets } from "../../../../../test/seedMany";
+import { createTestServer, type TestServer } from "../../../../../test/server";
 import { findGrid, inputs, queryGroupHeader, sleep } from "../../../../../test/table";
 import { tableViewport } from "../../../../../test/viewport";
 import { parseSearch, type View, viewOf } from "../../../filters/grammar";
@@ -14,7 +14,7 @@ type Closed = "done" | "canceled";
 
 const installViewport = tableViewport(800);
 
-const mount = (server: FakeServer, view: View = viewOf({}), expanded: Closed[] = []) =>
+const mount = (server: TestServer, view: View = viewOf({}), expanded: Closed[] = []) =>
 	renderHookWithProviders(
 		(input: { expanded: Closed[] }) => useTableData({ project: "CDE", view, expanded: input.expanded }),
 		{ expanded },
@@ -22,7 +22,7 @@ const mount = (server: FakeServer, view: View = viewOf({}), expanded: Closed[] =
 	);
 
 // The list requests that ask for one closed status.
-const requestsFor = (server: FakeServer, slug: Closed) =>
+const requestsFor = (server: TestServer, slug: Closed) =>
 	inputs(server, "tickets.list").filter((input) => (input.status as string[] | undefined)?.includes(slug));
 
 beforeEach(() => {
@@ -34,7 +34,7 @@ beforeEach(() => {
 describe("features/table/hooks/useTableData: the Done and Canceled groups", () => {
 	// Outcome 5. 15 seeded rows and the 19 of the seed make 34.
 	test("loads the Done group's first page only when the group expands", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		seedTickets(server, { project: "CDE", count: 15, status: "done" });
 		const { result, rerender } = mount(server);
 		await waitFor(() => expect(result.current.rows).toHaveLength(31));
@@ -56,7 +56,7 @@ describe("features/table/hooks/useTableData: the Done and Canceled groups", () =
 	// Outcome 6. 41 seeded rows and the 19 of the seed make 60: one page of
 	// 50, then 10 more.
 	test("pages the Done group with its own cursor", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		seedTickets(server, { project: "CDE", count: 41, status: "done" });
 		const { result } = mount(server, viewOf({}), ["done"]);
 		await waitFor(() => expect(result.current.closed!.done.rows).toHaveLength(50), { timeout: 10_000 });
@@ -75,7 +75,7 @@ describe("features/table/hooks/useTableData: the Done and Canceled groups", () =
 	// Outcome 7. A status filter names every group the table shows, so the
 	// two closed groups have no place and no request.
 	test("hides the Done and Canceled groups while a status filter is active", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const view = parseSearch({ status: "in-progress" });
 		const { result } = mount(server, view, ["done", "canceled"]);
 		await waitFor(() => expect(result.current.rows).toHaveLength(4));

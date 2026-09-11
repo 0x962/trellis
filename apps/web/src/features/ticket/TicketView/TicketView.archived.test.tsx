@@ -1,19 +1,19 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
+import { createTestServer } from "../../../../test/server";
 import { renderTicket, settle } from "../../../../test/ticketHost";
 import { TicketView } from "./TicketView";
 
 beforeEach(() => localStorage.clear());
 
 const archivedServer = () => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	[...server.state.projects.values()].find((entry) => entry.path === "CDE")!.archivedAt = new Date().toISOString();
 	return server;
 };
 
-const page = (server: ReturnType<typeof createFakeServer>) =>
+const page = (server: ReturnType<typeof createTestServer>) =>
 	renderTicket("CDE-42", (ticket) => <TicketView identifier={ticket.identifier} variant="page" />, {
 		path: "/t/CDE-42",
 		server,

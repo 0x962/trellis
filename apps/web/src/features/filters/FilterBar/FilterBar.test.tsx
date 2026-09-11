@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { chip, filterBar, findGrid, inputs, press, resetUi } from "../../../../test/table";
 import { tableViewport } from "../../../../test/viewport";
 
@@ -60,7 +60,7 @@ describe("features/filters/FilterBar", () => {
 	// Outcome 80
 	test("toggles the sub-projects scope from the project chip", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await server.client.projects.create({ parent: "CDE.web", name: "auth" });
 		const { router } = renderApp({ path: "/p/CDE/web?scope=self", actor: "navid", server });
 		await findGrid();

@@ -2,8 +2,8 @@ import { describe, expect, mock, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { TicketSummary } from "@trellis/api";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { TicketPicker } from "./TicketPicker";
 
 const optionTexts = (dialog: HTMLElement) =>
@@ -15,7 +15,7 @@ describe("features/pickers/TicketPicker", () => {
 	// Outcome 87. The seed holds one OAuth ticket, CDE-51.
 	test("finds a ticket by identifier and by title, and clears the parent", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const onPick = mock((_ticket: TicketSummary | null) => {});
 		renderWithProviders(
 			<TicketPicker project="CDE" value="CDE-43" onPick={onPick} trigger={<button type="button">Parent</button>} />,

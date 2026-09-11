@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { lastCallTo } from "../../../../test/inbox";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { ActorFooter } from "./ActorFooter";
 
 beforeEach(() => localStorage.clear());
@@ -26,7 +26,7 @@ describe("features/sidebar/ActorFooter", () => {
 	// SH-5. Checks and PR states need gh, so the Settings link carries a
 	// warning dot while gh does not answer as a signed-in user.
 	test("the Settings link shows a warning dot while gh is not signed in", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.state.gh = { ok: false, user: null, reason: "unauthenticated", message: null, checkedAt: null };
 		renderWithProviders(<ActorFooter />, { path: "/all", actor: "navid", server });
 		const settings = screen.getByRole("link", { name: "Settings" });
@@ -38,7 +38,7 @@ describe("features/sidebar/ActorFooter", () => {
 	});
 
 	test("the Settings link shows no dot while gh is signed in", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.state.gh = { ok: true, user: "navid-k", reason: null, message: null, checkedAt: null };
 		const { queryClient, orpc } = renderWithProviders(<ActorFooter />, { path: "/all", actor: "navid", server });
 		await waitFor(() => expect(queryClient.getQueryData(orpc.system.gh.queryKey({}))).toBeDefined());
@@ -63,7 +63,7 @@ describe("features/sidebar/ActorFooter", () => {
 	// The server holds the name every browser starts with.
 	test("the rename popover saves the name to the server settings", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const before = await server.client.settings.get();
 		renderWithProviders(<ActorFooter />, { path: "/all", actor: "navid", server });
 		await user.click(screen.getByRole("button", { name: /navid/ }));

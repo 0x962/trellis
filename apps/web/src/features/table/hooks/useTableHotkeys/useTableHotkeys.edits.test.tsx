@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../../test/fake-server";
 import { renderApp } from "../../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../../test/server";
 import { calls, findGrid, focusRow, inputs, press, queryRow, resetUi, rowOf } from "../../../../../test/table";
 import { tableViewport } from "../../../../../test/viewport";
 
@@ -17,7 +17,7 @@ beforeEach(() => {
 const path = "/p/CDE?status=in-progress,agent-review";
 
 const ready = async () => {
-	const app = renderApp({ path, actor: "navid", server: createFakeServer() });
+	const app = renderApp({ path, actor: "navid", server: createTestServer() });
 	await findGrid();
 	await waitFor(() => rowOf("CDE-44"));
 	return app;

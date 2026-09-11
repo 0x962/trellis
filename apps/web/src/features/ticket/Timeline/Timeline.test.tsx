@@ -2,15 +2,15 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createEventApplier } from "@trellis/api";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
-import { addActivity, findTicket } from "../../../../test/fake-server/state";
 import { createFakeScheduler } from "../../../../test/fakeScheduler";
+import { addActivity, ticketId } from "../../../../test/rows";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { ago, minute, renderTicket } from "../../../../test/ticketHost";
 import { Timeline } from "./Timeline";
 
 beforeEach(() => localStorage.clear());
 
-const mount = (identifier: string, server: FakeServer) =>
+const mount = (identifier: string, server: TestServer) =>
 	renderTicket(identifier, (ticket) => <Timeline ticket={ticket} />, { path: `/t/${identifier}`, server });
 
 const list = () => screen.findByRole("list", { name: "Timeline" });
@@ -18,23 +18,20 @@ const items = (element: HTMLElement) => [...element.querySelectorAll<HTMLElement
 const kinds = (element: HTMLElement) => items(element).map((item) => item.getAttribute("data-kind"));
 
 // Three activity rows by claude-code, one minute apart, on CDE-45.
-const runOfThree = (server: FakeServer) => {
-	const ticket = findTicket(server.state, "CDE-45")!;
+const runOfThree = async (server: TestServer) => {
 	const base = {
-		rootId: ticket.rootId,
-		projectId: ticket.projectId,
-		ticketId: ticket.id,
+		ticket: "CDE-45",
 		actor: { name: "claude-code", kind: "agent" as const },
 		action: "ticket.updated",
 	};
-	addActivity(server.state, {
+	await addActivity(server, {
 		...base,
 		field: "status",
 		fromValue: "Todo",
 		toValue: "In Progress",
 		createdAt: ago(3 * minute),
 	});
-	addActivity(server.state, {
+	await addActivity(server, {
 		...base,
 		field: "priority",
 		fromValue: "medium",
@@ -42,12 +39,9 @@ const runOfThree = (server: FakeServer) => {
 		createdAt: ago(2 * minute),
 	});
 	// The server writes a PR link with no field and the URL in `meta`.
-	addActivity(server.state, {
+	await addActivity(server, {
 		...base,
 		action: "pr.linked",
-		field: null,
-		fromValue: null,
-		toValue: null,
 		meta: { url: "https://github.com/canary-technologies-corp/de/pull/118" },
 		createdAt: ago(minute),
 	});
@@ -63,7 +57,7 @@ describe("features/ticket/Timeline", () => {
 	// WT-76. The server answers newest first. The page paints oldest first,
 	// and the newest item is the last thing before the composer.
 	test("renders the timeline oldest first under the newest item", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const page = await server.client.timeline.list({ ticket: "CDE-42" });
 		expect(page.items[0]!.createdAt > page.items[page.items.length - 1]!.createdAt).toBe(true);
 		mount("CDE-42", server);
@@ -85,8 +79,8 @@ describe("features/ticket/Timeline", () => {
 	// line; the line opens to the three rows.
 	test("collapses a same-actor run and expands it on click", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
-		runOfThree(server);
+		const server = createTestServer();
+		await runOfThree(server);
 		mount("CDE-45", server);
 		const element = await list();
 		const summary = await within(element).findByText(/changed the status and priority, and linked the PR de #118/);
@@ -104,18 +98,12 @@ describe("features/ticket/Timeline", () => {
 	// TK-1. The server writes a `comment.created` row beside each comment.
 	// The comment card already shows the event, so the row draws no line.
 	test("a comment's own activity row draws no line beside the card", async () => {
-		const server = createFakeServer();
-		const ticket = findTicket(server.state, "CDE-45")!;
+		const server = createTestServer();
 		const posted = await server.client.comments.create({ ticket: "CDE-45", body: "Tests are green now." });
-		addActivity(server.state, {
-			rootId: ticket.rootId,
-			projectId: ticket.projectId,
-			ticketId: ticket.id,
+		await addActivity(server, {
+			ticket: "CDE-45",
 			actor: { name: "navid", kind: "human" },
 			action: "comment.created",
-			field: null,
-			fromValue: null,
-			toValue: null,
 			meta: { commentId: posted.id },
 			createdAt: posted.createdAt,
 		});
@@ -129,7 +117,7 @@ describe("features/ticket/Timeline", () => {
 	// WT-86
 	test("the Comments toggle hides the activity lines", async () => {
 		const user = userEvent.setup();
-		mount("CDE-42", createFakeServer());
+		mount("CDE-42", createTestServer());
 		const element = await list();
 		await waitFor(() => expect(kinds(element)).toContain("activity"));
 		await user.click(screen.getByRole("button", { name: "Comments" }));
@@ -141,7 +129,7 @@ describe("features/ticket/Timeline", () => {
 	// WT-87. The stream loads newest first; the older page prepends once.
 	test("Load older pages the timeline with the cursor", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const ticket = await server.client.tickets.create({ project: "CDE", title: "Long thread" });
 		for (let index = 0; index < 105; index++) {
 			await server.client.comments.create({ ticket: ticket.identifier, body: `Comment ${index}` });
@@ -165,19 +153,19 @@ describe("features/ticket/Timeline", () => {
 	// `timeline.list` for this ticket brings the card. The fake clock drives
 	// the coalescer.
 	test("a comment event refreshes only this ticket's timeline", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { queryClient } = mount("CDE-42", server);
 		const element = await list();
 		await waitFor(() => expect(kinds(element).filter((kind) => kind === "comment")).toHaveLength(4));
 		const clock = createFakeScheduler();
 		const applier = createEventApplier(queryClient, { scheduler: clock.scheduler });
-		const ticket = findTicket(server.state, "CDE-42")!;
+		const id = await ticketId(server, "CDE-42");
 		const posted = await server.clientAs("agent:claude-code").comments.create({
 			ticket: "CDE-42",
 			body: "Tests are green now.",
 		});
 		const lists = server.callsTo("timeline.list");
-		act(() => applier.applyEvent({ type: "comment.created", id: posted.id, ticketId: ticket.id }));
+		act(() => applier.applyEvent({ type: "comment.created", id: posted.id, ticketId: id }));
 		act(() => clock.advanceTo(1000));
 		await waitFor(() => expect(within(element).getByText("Tests are green now.")).toBeDefined());
 		const fetched = server.callsTo("timeline.list").slice(lists.length);

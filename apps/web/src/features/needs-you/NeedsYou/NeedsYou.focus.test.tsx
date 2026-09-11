@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { fireEvent, waitFor } from "@testing-library/react";
 import { Toaster } from "@trellis/ui";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { rowOf } from "../../../../test/inbox";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { NeedsYou } from "./NeedsYou";
 
 beforeEach(() => {
@@ -12,7 +12,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const render = (server: FakeServer) =>
+const render = (server: TestServer) =>
 	renderWithProviders(
 		<>
 			<Toaster />
@@ -28,7 +28,7 @@ describe("NeedsYou active row", () => {
 	// the first section that has rows. It shows its actions, and the page
 	// takes no focus from the person.
 	test("the first row of the first non-empty section is active on open, and nothing takes focus", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const inbox = await server.client.inbox.get({});
 		const before = document.activeElement;
 		render(server);
@@ -41,7 +41,7 @@ describe("NeedsYou active row", () => {
 	// The pointer or the focus on another row moves the active row there,
 	// across the section borders. One row is active at a time.
 	test("the pointer on a row in another section makes that row the only active row", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const inbox = await server.client.inbox.get({});
 		render(server);
 		await rowOf(inbox.review.items[0]!.identifier);

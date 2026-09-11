@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
-import { createFakeServer, type FakeServer } from "../../../../../test/fake-server";
 import { lastCallTo, mockClipboard, rowOf, setTemplate, statusOf } from "../../../../../test/inbox";
 import { mockMatchMedia } from "../../../../../test/media";
 import { renderWithProviders } from "../../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../../test/server";
 import { StalledSection } from "./StalledSection";
 
 beforeEach(() => {
@@ -13,7 +13,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const render = (server: FakeServer) =>
+const render = (server: TestServer) =>
 	renderWithProviders(
 		<>
 			<Toaster />
@@ -24,7 +24,7 @@ const render = (server: FakeServer) =>
 
 // The seed leaves CDE-38 in progress and quiet for two days.
 const seeded = async () => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	await setTemplate(server, 'claude "{brief}"');
 	return server;
 };

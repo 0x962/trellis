@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mod } from "../../../../test/keyboard";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { renderTicket, settle, statusOf } from "../../../../test/ticketHost";
 import { StartWithAgent } from "./StartWithAgent";
 
@@ -11,7 +11,7 @@ beforeEach(() => localStorage.clear());
 // The seed's settings template is `claude "$(trellis brief {brief})"`.
 const command = 'claude "$(trellis brief CDE-42)"';
 
-const mount = (identifier = "CDE-42", server: FakeServer = createFakeServer()) =>
+const mount = (identifier = "CDE-42", server: TestServer = createTestServer()) =>
 	renderTicket(identifier, (ticket) => <StartWithAgent ticket={ticket} />, { path: `/t/${identifier}`, server });
 
 const start = () => screen.findByRole("button", { name: "Start with agent" });
@@ -67,7 +67,7 @@ describe("features/agent/StartWithAgent", () => {
 	// the choice survives a remount on another ticket.
 	test("also mark In Progress moves the ticket and is remembered", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const first = mount("CDE-42", server);
 		await start();
 		await user.click(options());
@@ -102,7 +102,7 @@ describe("features/agent/StartWithAgent", () => {
 	// WT-94
 	test("an unchecked box leaves the status alone", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		mount("CDE-42", server);
 		await user.click(await start());
 		await waitFor(async () => expect(await navigator.clipboard.readText()).toBe(command));

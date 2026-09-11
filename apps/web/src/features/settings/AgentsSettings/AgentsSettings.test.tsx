@@ -4,9 +4,9 @@ import userEvent from "@testing-library/user-event";
 import type { AgentSettingsSetInput } from "@trellis/api";
 import { Toaster } from "@trellis/ui";
 import { failedSession, projectRow, rootId, startReason } from "../../../../test/agents";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { AgentsSettings } from "./AgentsSettings";
 
 beforeEach(() => {
@@ -14,7 +14,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const render = (server: FakeServer) =>
+const render = (server: TestServer) =>
 	renderWithProviders(
 		<>
 			<Toaster />
@@ -26,8 +26,8 @@ const render = (server: FakeServer) =>
 // The block of one root project, named by its key and its name.
 const projectGroup = (key: string) => screen.findByRole("group", { name: new RegExp(`^${key} `) });
 
-const saves = (server: FakeServer) => server.callsTo("agents.setSettings");
-const lastSave = (server: FakeServer) => saves(server).at(-1)!.input as AgentSettingsSetInput;
+const saves = (server: TestServer) => server.callsTo("agents.setSettings");
+const lastSave = (server: TestServer) => saves(server).at(-1)!.input as AgentSettingsSetInput;
 
 const commit = async (user: ReturnType<typeof userEvent.setup>, field: HTMLElement, value: string) => {
 	await user.clear(field);
@@ -38,7 +38,7 @@ const commit = async (user: ReturnType<typeof userEvent.setup>, field: HTMLEleme
 describe("AgentsSettings", () => {
 	test("the switch turns agents on with one full replace", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		const toggle = await screen.findByRole("switch", { name: "Turn on agents" });
 		expect(toggle.getAttribute("aria-checked")).toBe("false");
@@ -51,7 +51,7 @@ describe("AgentsSettings", () => {
 
 	test("the runner select offers Superset only", async () => {
 		const user = userEvent.setup();
-		render(createFakeServer());
+		render(createTestServer());
 		const runner = await screen.findByRole("combobox", { name: "Runner" });
 		expect(runner.textContent).toBe("Superset");
 		await user.click(runner);
@@ -62,7 +62,7 @@ describe("AgentsSettings", () => {
 	// A manager serves a root and every sub-project under it, so only roots
 	// get a block. An archived project takes no writes, so it gets none.
 	test("shows one block per open root project", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		const roots = [...server.state.projects.values()].filter(
 			(project) => project.parentId === null && project.archivedAt === null,
@@ -73,7 +73,7 @@ describe("AgentsSettings", () => {
 
 	test("turning a manager on saves the project row with the defaults", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		await user.click(within(await projectGroup("CDE")).getByRole("switch", { name: "Manager" }));
 		await waitFor(() => expect(saves(server)).toHaveLength(1));
@@ -86,7 +86,7 @@ describe("AgentsSettings", () => {
 
 	test("the Superset project picker lists the runner's projects and names the Auto match", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await server.client.projects.setRepos({
 			project: "CDE",
 			repos: [{ owner: "canary-technologies-corp", repo: "de" }],
@@ -109,7 +109,7 @@ describe("AgentsSettings", () => {
 	});
 
 	test("a missing Superset CLI shows the reason and leaves Auto", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.state.runnerDown = "missing";
 		render(server);
 		expect(await screen.findByText("trellis cannot find the Superset CLI.")).toBeDefined();
@@ -119,7 +119,7 @@ describe("AgentsSettings", () => {
 
 	test("the base branch saves on blur and refuses an empty name", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		const branch = within(await projectGroup("CDE")).getByRole("textbox", { name: "Base branch" });
 		expect((branch as HTMLInputElement).value).toBe("main");
@@ -134,7 +134,7 @@ describe("AgentsSettings", () => {
 
 	test("max builders takes a whole number from 1 to 20", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		const limit = within(await projectGroup("CDE")).getByRole("spinbutton", { name: "Max builders" });
 		expect((limit as HTMLInputElement).value).toBe("3");
@@ -150,7 +150,7 @@ describe("AgentsSettings", () => {
 
 	test("remove workspace when Done saves off", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		const remove = within(await projectGroup("CDE")).getByRole("checkbox", { name: "Remove workspace when Done" });
 		expect(remove.getAttribute("aria-checked")).toBe("true");
@@ -161,7 +161,7 @@ describe("AgentsSettings", () => {
 
 	test("a refused save shows a toast with Retry and restores the stored value", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.failNext("agents.setSettings", { code: "INPUT_VALIDATION_FAILED", data: { issues: [] } });
 		render(server);
 		const toggle = await screen.findByRole("switch", { name: "Turn on agents" });
@@ -173,7 +173,7 @@ describe("AgentsSettings", () => {
 	});
 
 	test("each project block shows its manager state beside the switch, and a failed manager its reason", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		failedSession(server, "manager");
 		render(server);
 		const group = within(await projectGroup("CDE"));
@@ -183,7 +183,7 @@ describe("AgentsSettings", () => {
 
 	test("the base branch shows the Superset project's default branch while the row has none, and a typed branch wins", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.state.runnerProjects = server.state.runnerProjects.map((project) => ({
 			...project,
 			defaultBranch: "master",

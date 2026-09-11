@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../../test/fake-server";
 import { renderWithProviders } from "../../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../../test/server";
 import { settle } from "../../../../../test/ticketHost";
 import { NeedsYouEmpty } from "./NeedsYouEmpty";
 
@@ -11,7 +11,7 @@ beforeEach(() => localStorage.clear());
 // A server with nothing waiting on a person and three tickets an agent
 // started.
 const withStartedTickets = async () => {
-	const server = createFakeServer({ empty: true });
+	const server = createTestServer({ empty: true });
 	await server.client.projects.create({ key: "DOC", name: "Docs" });
 	const agent = server.clientAs("agent:claude-code");
 	for (const title of ["one", "two", "three"]) {
@@ -23,12 +23,12 @@ const withStartedTickets = async () => {
 
 // A new home: one project and no ticket.
 const newHome = async () => {
-	const server = createFakeServer({ empty: true });
+	const server = createTestServer({ empty: true });
 	await server.client.projects.create({ key: "DOC", name: "Docs" });
 	return server;
 };
 
-const render = (server: ReturnType<typeof createFakeServer>) =>
+const render = (server: ReturnType<typeof createTestServer>) =>
 	renderWithProviders(<NeedsYouEmpty />, { path: "/needs-you", actor: "navid", server });
 
 describe("NeedsYouEmpty", () => {
@@ -91,7 +91,7 @@ describe("NeedsYouEmpty", () => {
 	// With no ticket in progress the line names nothing, so a link to "them"
 	// has nothing to point at.
 	test("shows the heading and a line with no link when no ticket is in progress", async () => {
-		const server = createFakeServer({ empty: true });
+		const server = createTestServer({ empty: true });
 		await server.client.projects.create({ key: "DOC", name: "Docs" });
 		const { findByRole, findByText } = renderWithProviders(<NeedsYouEmpty />, {
 			path: "/needs-you",

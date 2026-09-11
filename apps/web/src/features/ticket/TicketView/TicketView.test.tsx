@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { dragFilesOver, dropFiles, fileOf, surfaceOf } from "../../../../test/attachments";
-import { createFakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { fieldValue, renderTicket, settle } from "../../../../test/ticketHost";
 import { TicketView } from "./TicketView";
 
@@ -98,7 +98,7 @@ describe("features/ticket/TicketView", () => {
 	// WT-110. A skeleton is shaped like the row it stands for: a PR row is
 	// 56 px (h-14), an activity line 32 px (h-8). A cached open paints at once.
 	test("shows skeletons cold and none on a cached open", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const hold = server.holdNext("tickets.get");
 		setTimeout(hold.release, 400);
 		const cold = renderWithProviders(<TicketView identifier="CDE-42" variant="page" />, {
@@ -134,7 +134,7 @@ describe("features/ticket/TicketView", () => {
 
 	// WT-111. Fixed row heights: text length never changes a row.
 	test("keeps the fixed row heights of the spec", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const long = await server.client.tickets.get({ ticket: "CDE-42" });
 		const link = server.state.prLinks.find((entry) => entry.ticketId === long.id)!;
 		server.state.prs.get(link.prId)!.title = "A pull request title that runs far past the width of the row ".repeat(4);

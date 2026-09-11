@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
-import { findTicket } from "../../../../test/fake-server/state";
 import { interceptFetch } from "../../../../test/interceptFetch";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { patchTicket, ticketRow } from "../../../../test/rows";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import {
 	calls,
 	cellOf,
@@ -67,7 +67,7 @@ const cachedRows = (queryClient: {
 			return data?.pages?.flatMap((page) => page.items) ?? data?.items ?? [];
 		}) as { identifier: string; version: number; priority: string }[];
 
-const held = (server: FakeServer = createFakeServer()) =>
+const held = (server: TestServer = createTestServer()) =>
 	interceptFetch(server, { match: (text) => text.includes("tickets/update") });
 
 describe("features/table/TicketTable: inline edits", () => {
@@ -91,11 +91,11 @@ describe("features/table/TicketTable: inline edits", () => {
 	// conditional write fails with 412.
 	test("rolls the row back and names the ticket in the toast on a 412", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderApp({ path: "/p/CDE?status=human-review", actor: "navid", server });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-42"));
-		findTicket(server.state, "CDE-42")!.version += 7;
+		await patchTicket(server, "CDE-42", { version: (await ticketRow(server, "CDE-42")).version + 7 });
 		await pickWithKey(user, "CDE-42", "s", "In Progress");
 		const toast = await toastWith(/CDE-42/);
 		expect(within(toast).getByRole("button", { name: "Retry" })).toBeDefined();

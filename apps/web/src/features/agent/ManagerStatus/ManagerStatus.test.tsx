@@ -3,9 +3,9 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createEventApplier } from "@trellis/api";
 import { addSession, enableAgents, failedSession, startReason, updateSession } from "../../../../test/agents";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { ago, minute } from "../../../../test/ticketHost";
 import { ManagerStatus } from "./ManagerStatus";
 
@@ -14,7 +14,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const mount = async (server: FakeServer, ref = "CDE") => {
+const mount = async (server: TestServer, ref = "CDE") => {
 	const project = await server.client.projects.get({ project: ref });
 	return renderWithProviders(<ManagerStatus project={project} />, { path: `/p/${ref}`, actor: "navid", server });
 };
@@ -23,14 +23,14 @@ const status = () => screen.findByRole("group", { name: "Manager" });
 
 describe("ManagerStatus", () => {
 	test("shows Off when the project has no manager", async () => {
-		await mount(createFakeServer());
+		await mount(createTestServer());
 		const group = within(await status());
 		expect(await group.findByText("Off")).toBeDefined();
 		expect(group.queryByRole("link")).toBeNull();
 	});
 
 	test("shows a running manager, its last batch time, and Open in Superset", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		addSession(server, { role: "manager", lastWokenAt: ago(3 * minute), openUrl: "superset://workspace/ws-m" });
 		await mount(server);
 		const group = within(await status());
@@ -47,7 +47,7 @@ describe("ManagerStatus", () => {
 			["waiting", "Waiting"],
 			["exited", "Exited"],
 		] as const) {
-			const server = createFakeServer();
+			const server = createTestServer();
 			addSession(server, { role: "manager", state });
 			const view = await mount(server);
 			expect(await within(await status()).findByText(label)).toBeDefined();
@@ -56,13 +56,13 @@ describe("ManagerStatus", () => {
 	});
 
 	test("a stopped manager reads Off, and a manager with no batch says so", async () => {
-		const stopped = createFakeServer();
+		const stopped = createTestServer();
 		addSession(stopped, { role: "manager", state: "stopped" });
 		const view = await mount(stopped);
 		expect(await within(await status()).findByText("Off")).toBeDefined();
 		view.unmount();
 
-		const fresh = createFakeServer();
+		const fresh = createTestServer();
 		addSession(fresh, { role: "manager" });
 		await mount(fresh);
 		expect(await within(await status()).findByText("No batch yet")).toBeDefined();
@@ -70,14 +70,14 @@ describe("ManagerStatus", () => {
 
 	// One manager serves the whole tree, so a sub-project shows its root's.
 	test("a sub-project shows the manager of its root", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		addSession(server, { role: "manager" });
 		await mount(server, "CDE.web");
 		expect(await within(await status()).findByText("Running")).toBeDefined();
 	});
 
 	test("follows an agents.session event", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const manager = addSession(server, { role: "manager" });
 		const { queryClient } = await mount(server);
 		expect(await within(await status()).findByText("Running")).toBeDefined();
@@ -86,7 +86,7 @@ describe("ManagerStatus", () => {
 	});
 
 	test("a failed manager reads Manager failed with the short reason and links the full error", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const failed = failedSession(server, "manager");
 		await mount(server);
 		const group = within(await status());
@@ -97,7 +97,7 @@ describe("ManagerStatus", () => {
 
 	test("Retry starts the failed manager again, and the header follows it", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await enableAgents(server);
 		failedSession(server, "manager");
 		await mount(server);

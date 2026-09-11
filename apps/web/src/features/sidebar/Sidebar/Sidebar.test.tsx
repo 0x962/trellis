@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { createUiStore, useUiStore } from "../../../stores/uiStore";
 import { Sidebar } from "./Sidebar";
 
@@ -18,7 +18,7 @@ const aside = () => document.querySelector<HTMLElement>('aside[aria-label="Sideb
 describe("features/sidebar/Sidebar archived group", () => {
 	test("an archived project sits under a collapsed Archived group", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await server.client.projects.update({ project: "MRG", archived: true });
 		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", server });
 		const tree = await screen.findByRole("navigation", { name: "Projects" });
@@ -63,7 +63,7 @@ describe("features/sidebar/Sidebar", () => {
 		const badge = await within(row).findByText("4");
 		expect(badge.className).toMatch(/\btabular\b/);
 		localStorage.clear();
-		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", server: createFakeServer({ empty: true }) });
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", server: createTestServer({ empty: true }) });
 		const rows = await screen.findAllByRole("link", { name: /Needs you/ });
 		const empty = rows[rows.length - 1]!;
 		await waitFor(() => expect(within(empty).queryByText(/^\d+$/)).toBeNull());

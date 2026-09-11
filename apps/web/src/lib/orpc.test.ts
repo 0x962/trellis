@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { generateOperationKey } from "@orpc/tanstack-query";
-import { createFakeServer } from "../../test/fake-server";
+import { createTestServer } from "../../test/server";
 import { setActorName } from "./actor";
 import { createOrpc, orpc, queryClient } from "./orpc";
 
@@ -11,7 +11,7 @@ describe("lib/orpc", () => {
 	// request. The fake server answers batches like the real one.
 	test("two calls in one tick go out as one batched request with the actor header", async () => {
 		setActorName("navid");
-		const server = createFakeServer();
+		const server = createTestServer();
 		const requests: Request[] = [];
 		const { client } = createOrpc({
 			fetch: (request, init) => {
@@ -34,7 +34,7 @@ describe("lib/orpc", () => {
 	// reads such as the timeline.
 	test("a statuses read leaves at once and never waits in a batch", async () => {
 		setActorName("navid");
-		const server = createFakeServer();
+		const server = createTestServer();
 		const paths: string[] = [];
 		const { client } = createOrpc({
 			fetch: (request, init) => {
@@ -58,7 +58,7 @@ describe("lib/orpc", () => {
 		const defaults = queryClient.getDefaultOptions().queries!;
 		expect(defaults.staleTime).toBe(Number.POSITIVE_INFINITY);
 		expect(defaults.retry).toBe(false);
-		const server = createFakeServer();
+		const server = createTestServer();
 		const local = createOrpc({ fetch: (request, init) => server.app.request(request, init) });
 		expect(local.queryClient.getDefaultOptions().queries!.staleTime).toBe(Number.POSITIVE_INFINITY);
 		const projects = await local.queryClient.fetchQuery(local.orpc.projects.list.queryOptions({ input: {} }));

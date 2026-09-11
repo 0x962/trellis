@@ -3,9 +3,9 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
 import type { ReactElement } from "react";
-import { createFakeServer, type FakeServer } from "../../../test/fake-server";
 import { mockMatchMedia } from "../../../test/media";
 import { renderWithProviders } from "../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../test/server";
 import { settle } from "../../../test/ticketHost";
 import { ActorNameField } from "./ActorNameField";
 import { AgentTemplateField } from "./AgentTemplateField";
@@ -16,7 +16,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const render = (field: ReactElement, server: FakeServer) =>
+const render = (field: ReactElement, server: TestServer) =>
 	renderWithProviders(
 		<>
 			<Toaster />
@@ -25,7 +25,7 @@ const render = (field: ReactElement, server: FakeServer) =>
 		{ path: "/settings", actor: "navid", server },
 	);
 
-const saves = (server: FakeServer) => server.calls.filter((call) => call.path.join(".") === "settings.set");
+const saves = (server: TestServer) => server.calls.filter((call) => call.path.join(".") === "settings.set");
 
 // The row of a field: the element that holds the field and its Saved mark.
 const rowOf = (field: HTMLElement) => field.closest("[data-settings-row]") as HTMLElement;
@@ -35,7 +35,7 @@ const rowOf = (field: HTMLElement) => field.closest("[data-settings-row]") as HT
 describe("settings autosave", () => {
 	test("the agent template has no Save button and saves on blur", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(<AgentTemplateField />, server);
 		const field = await screen.findByRole("textbox", { name: /start with agent/i });
 		expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
@@ -53,7 +53,7 @@ describe("settings autosave", () => {
 
 	test("the name shows Saved after its save", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(<ActorNameField />, server);
 		const field = await screen.findByRole("textbox", { name: "Your name" });
 		await user.clear(field);
@@ -66,7 +66,7 @@ describe("settings autosave", () => {
 
 	test("the stalled hours show Saved after their save", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(<StalledThresholdField />, server);
 		const field = await screen.findByRole("spinbutton", { name: /stalled after/i });
 		await user.clear(field);
@@ -80,7 +80,7 @@ describe("settings autosave", () => {
 	// A blur with no change sends nothing and claims nothing.
 	test("a blur with no change saves nothing", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(<AgentTemplateField />, server);
 		const field = await screen.findByRole("textbox", { name: /start with agent/i });
 		await user.click(field);

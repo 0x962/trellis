@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { recordingServer, restoreFetch, rowsOf, surfaceOf } from "../../../../test/attachments";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { callsTo, mockClipboard } from "../../../../test/inbox";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { AttachmentGrid } from "./AttachmentGrid";
 
 beforeEach(() => localStorage.clear());
@@ -13,7 +13,7 @@ afterEach(restoreFetch);
 // CDE-47 carries rename-flow.png and notes.md in the seed.
 const ticket = "CDE-47";
 
-const renderGrid = (server: FakeServer) =>
+const renderGrid = (server: TestServer) =>
 	renderWithProviders(<AttachmentGrid ticket={ticket} />, { path: `/t/${ticket}`, actor: "navid", server });
 
 const triggerFor = (filename: string) => screen.getByRole("button", { name: `Actions for ${filename}` });
@@ -25,7 +25,7 @@ const openMenu = async (user: ReturnType<typeof userEvent.setup>, filename: stri
 	return trigger;
 };
 
-const attachmentNamed = async (server: FakeServer, filename: string) => {
+const attachmentNamed = async (server: TestServer, filename: string) => {
 	const list = await server.client.attachments.list({ ticket });
 	return list.find((row) => row.filename === filename)!;
 };
@@ -36,7 +36,7 @@ describe("row menu", () => {
 	// OUT-43
 	test("holds Copy markdown link, Rename, and Delete", async () => {
 		const user = userEvent.setup();
-		renderGrid(createFakeServer());
+		renderGrid(createTestServer());
 		await surfaceOf();
 		await waitFor(() => expect(rowNamed("notes.md")).toBeDefined());
 		await openMenu(user, "notes.md");
@@ -52,7 +52,7 @@ describe("row menu", () => {
 	test("Copy markdown link writes the markdown of the file url", async () => {
 		const user = userEvent.setup();
 		const clipboard = mockClipboard();
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderGrid(server);
 		await surfaceOf();
 		await waitFor(() => expect(rowNamed("notes.md")).toBeDefined());
@@ -65,7 +65,7 @@ describe("row menu", () => {
 	// OUT-46
 	test("Rename opens an inline field seeded with the current name", async () => {
 		const user = userEvent.setup();
-		renderGrid(createFakeServer());
+		renderGrid(createTestServer());
 		await surfaceOf();
 		await waitFor(() => expect(rowNamed("notes.md")).toBeDefined());
 		await openMenu(user, "notes.md");
@@ -80,7 +80,7 @@ describe("row menu", () => {
 	// OUT-47
 	test("Escape cancels the rename and returns focus to the trigger", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderGrid(server);
 		await surfaceOf();
 		await waitFor(() => expect(rowNamed("notes.md")).toBeDefined());
@@ -98,7 +98,7 @@ describe("row menu", () => {
 	// back, uploads them under the new name, and deletes the old row.
 	test("Rename replaces the file under the new name and leaves one row", async () => {
 		const user = userEvent.setup();
-		const recorder = recordingServer(createFakeServer());
+		const recorder = recordingServer(createTestServer());
 		renderGrid(recorder.server);
 		await surfaceOf();
 		await waitFor(() => expect(rowNamed("notes.md")).toBeDefined());
@@ -122,7 +122,7 @@ describe("row menu", () => {
 	// OUT-49
 	test("Delete removes the row and calls attachments.delete", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderGrid(server);
 		await surfaceOf();
 		await waitFor(() => expect(rowNamed("notes.md")).toBeDefined());
@@ -139,7 +139,7 @@ describe("row menu", () => {
 	// OUT-51
 	test("Escape closes the menu and returns focus to the trigger", async () => {
 		const user = userEvent.setup();
-		renderGrid(createFakeServer());
+		renderGrid(createTestServer());
 		await surfaceOf();
 		await waitFor(() => expect(rowNamed("notes.md")).toBeDefined());
 		const trigger = await openMenu(user, "notes.md");

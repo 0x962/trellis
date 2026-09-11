@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { lastCallTo } from "../../../../test/inbox";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { formatCount } from "../../../lib/format";
 
 beforeEach(() => {
@@ -12,7 +12,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const ticketsUnder = (server: FakeServer, key: string) => {
+const ticketsUnder = (server: TestServer, key: string) => {
 	const root = [...server.state.projects.values()].find((project) => project.path === key)!;
 	return [...server.state.tickets.values()].filter((ticket) => ticket.rootId === root.id).length;
 };
@@ -40,7 +40,7 @@ describe("features/project-settings/ProjectLifecycle", () => {
 	// count and waits for the key before it sends `force`.
 	test("delete states the ticket count, takes the typed key, and sends force", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const count = ticketsUnder(server, "TRL");
 		expect(count).toBeGreaterThan(1);
 		const { router } = renderApp({ path: "/p/TRL/settings", actor: "navid", server });
@@ -63,7 +63,7 @@ describe("features/project-settings/ProjectLifecycle", () => {
 
 	test("delete of an empty project asks once and sends projects.delete without force", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await server.client.projects.create({ key: "EMP", name: "Empty" });
 		const { router } = renderApp({ path: "/p/EMP/settings", actor: "navid", server });
 		await user.click(await screen.findByRole("button", { name: "Delete project…" }));

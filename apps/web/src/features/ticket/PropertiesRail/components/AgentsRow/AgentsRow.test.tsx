@@ -3,9 +3,9 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createEventApplier } from "@trellis/api";
 import { addSession, enableAgents, failedSession, startReason, updateSession } from "../../../../../../test/agents";
-import { createFakeServer, type FakeServer } from "../../../../../../test/fake-server";
-import { findTicket } from "../../../../../../test/fake-server/state";
 import { mockMatchMedia } from "../../../../../../test/media";
+import { ticketId } from "../../../../../../test/rows";
+import { createTestServer, type TestServer } from "../../../../../../test/server";
 import { minute, renderTicket } from "../../../../../../test/ticketHost";
 import { PropertiesRail } from "../../PropertiesRail";
 
@@ -14,7 +14,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const mount = (server: FakeServer) =>
+const mount = (server: TestServer) =>
 	renderTicket("CDE-42", (ticket) => <PropertiesRail ticket={ticket} variant="page" />, { server });
 
 const terms = async () =>
@@ -34,14 +34,14 @@ const startButton = async () => within(await agentsRow()).queryByRole("button", 
 
 describe("AgentsRow", () => {
 	test("the rail shows the Agents row right after Updated", async () => {
-		mount(createFakeServer());
+		mount(createTestServer());
 		await agentsRow();
 		const order = await terms();
 		expect(order.indexOf("Agents")).toBe(order.indexOf("Updated") + 1);
 	});
 
 	test("lists the builder and the reviewer with their states and Open in Superset", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		addSession(server, { role: "builder", createdAt: new Date(Date.now() - 10 * minute).toISOString() });
 		addSession(server, {
 			role: "reviewer",
@@ -62,7 +62,7 @@ describe("AgentsRow", () => {
 
 	test("offers Start builder when no builder runs, and starts one", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await enableAgents(server);
 		mount(server);
 		expect(await within(await agentsRow()).findByText("None")).toBeDefined();
@@ -82,7 +82,7 @@ describe("AgentsRow", () => {
 
 	test("hides Start builder while a builder starts, runs, or waits", async () => {
 		for (const state of ["starting", "running", "waiting"] as const) {
-			const server = createFakeServer();
+			const server = createTestServer();
 			addSession(server, { role: "builder", state });
 			const view = mount(server);
 			await items();
@@ -92,7 +92,7 @@ describe("AgentsRow", () => {
 	});
 
 	test("offers Start builder again after the builder exited", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		addSession(server, { role: "builder", state: "exited" });
 		mount(server);
 		await items();
@@ -101,9 +101,9 @@ describe("AgentsRow", () => {
 
 	test("a refused start names the builder limit", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await enableAgents(server, "CDE", { maxConcurrent: 1 });
-		addSession(server, { role: "builder", ticketId: findTicket(server.state, "CDE-44")!.id, title: "CDE-44" });
+		await addSession(server, { role: "builder", ticketId: await ticketId(server, "CDE-44"), title: "CDE-44" });
 		mount(server);
 		await user.click((await startButton())!);
 		expect(await screen.findByText("Limit reached: 1 of 1 builders run.")).toBeDefined();
@@ -111,14 +111,14 @@ describe("AgentsRow", () => {
 
 	test("a start with agents off names the setting", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		mount(server);
 		await user.click((await startButton())!);
 		expect(await screen.findByText("Agents are off. Turn them on in Settings.")).toBeDefined();
 	});
 
 	test("follows an agents.session event", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const builder = addSession(server, { role: "builder" });
 		const { queryClient } = mount(server);
 		await items();
@@ -131,7 +131,7 @@ describe("AgentsRow", () => {
 	});
 
 	test("a failed builder shows Failed with its short reason and a link to the full error, and Start builder stays", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const failed = failedSession(server, "builder");
 		mount(server);
 		const [row] = await items();

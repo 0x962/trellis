@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../../../test/media";
 import { callsTo, ghReady, lastCallTo, summaryOf } from "../../../../../../test/prs";
 import { renderWithProviders } from "../../../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../../../test/server";
 import { ghCopy } from "../../../../../lib/ghCopy";
 import { PullRequests } from "../../PullRequests";
 
@@ -16,7 +16,7 @@ beforeEach(() => {
 
 const url = "https://github.com/canary-technologies-corp/de/pull/900";
 
-const renderSection = async (server: FakeServer, identifier: string) => {
+const renderSection = async (server: TestServer, identifier: string) => {
 	const ticket = await summaryOf(server, identifier);
 	return renderWithProviders(<PullRequests ticket={ticket} />, { path: `/t/${identifier}`, actor: "navid", server });
 };
@@ -39,7 +39,7 @@ describe("LinkPrField", () => {
 	// PR-32
 	test("links a pasted pull request URL and shows the new row", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		ghReady(server);
 		await renderSection(server, "CDE-47");
 		await user.type(await field(), url);
@@ -53,7 +53,7 @@ describe("LinkPrField", () => {
 	// PR-33. The next paste needs no click.
 	test("clears the field after a successful link", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		ghReady(server);
 		await renderSection(server, "CDE-47");
 		const input = await field();
@@ -66,7 +66,7 @@ describe("LinkPrField", () => {
 	// PR-34
 	test("shows INVALID_PR_URL inline and keeps the typed text", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		ghReady(server);
 		await renderSection(server, "CDE-47");
 		const input = await field();
@@ -82,7 +82,7 @@ describe("LinkPrField", () => {
 	// PR-35. The seed reports gh as missing.
 	test("shows GH_UNAVAILABLE inline when gh cannot answer", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await renderSection(server, "CDE-47");
 		await user.type(await field(), url);
 		await user.click(await submit());
@@ -94,7 +94,7 @@ describe("LinkPrField", () => {
 	// PR-36
 	test("disables the submit until the field holds a URL", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		ghReady(server);
 		await renderSection(server, "CDE-47");
 		const input = await field();

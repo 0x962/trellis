@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
-import { createFakeServer, type FakeServer } from "../../../../../test/fake-server";
 import { createFakeScheduler } from "../../../../../test/fakeScheduler";
 import {
 	addArchivedStatus,
@@ -15,6 +14,7 @@ import {
 } from "../../../../../test/inbox";
 import { mockMatchMedia } from "../../../../../test/media";
 import { renderWithProviders } from "../../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../../test/server";
 import { ReviewSection } from "./ReviewSection";
 
 beforeEach(() => {
@@ -22,7 +22,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const render = (server: FakeServer, extras: { scheduler?: ReturnType<typeof createFakeScheduler>["scheduler"] } = {}) =>
+const render = (server: TestServer, extras: { scheduler?: ReturnType<typeof createFakeScheduler>["scheduler"] } = {}) =>
 	renderWithProviders(
 		<>
 			<Toaster />
@@ -40,7 +40,7 @@ describe("ReviewSection", () => {
 	// NY-06. The server sorts by time in status. The client renders what it
 	// is given, so the two never disagree.
 	test("keeps the server order, oldest waiting first", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const inbox = await server.client.inbox.get({});
 		render(server);
 		await screen.findByText(inbox.review.items[0]!.identifier);
@@ -50,7 +50,7 @@ describe("ReviewSection", () => {
 	// NY-09. Nothing on the row is hover-only.
 	test("exposes Approve, Send back, and Open PR to the keyboard on the focused row", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		await focusRow("CDE-42");
 		const names: string[] = [];
@@ -64,7 +64,7 @@ describe("ReviewSection", () => {
 
 	// NY-10. TRL-9 carries no pull request, so it offers no Open PR.
 	test("shows Open PR only for a row with a pull request", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const [pr] = await server.client.pullRequests.list({ ticket: "CDE-42" });
 		render(server);
 		await rowOf("CDE-42");
@@ -78,7 +78,7 @@ describe("ReviewSection", () => {
 	// approval lands on Done.
 	test("approves the focused row into the lowest-position done status", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await addArchivedStatus(server);
 		const done = await statusOf(server, "CDE", "done");
 		render(server);
@@ -91,7 +91,7 @@ describe("ReviewSection", () => {
 	// NY-14
 	test("the Approve button sends the same move as a", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		await focusRow("CDE-42");
 		await user.keyboard("a");
@@ -106,7 +106,7 @@ describe("ReviewSection", () => {
 	// NY-15. The count ticks down with the row, not with the response.
 	test("removes the approved row and ticks the section count down at once", async () => {
 		const user = userEvent.setup();
-		const gate = gatedServer(createFakeServer());
+		const gate = gatedServer(createTestServer());
 		const { queryClient, orpc } = render(gate.server);
 		await focusRow("CDE-42");
 		expect(reviewCount()).toContain("3");
@@ -124,7 +124,7 @@ describe("ReviewSection", () => {
 	test("sweeps the approved row out over 200 ms", async () => {
 		const user = userEvent.setup();
 		const clock = createFakeScheduler();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server, { scheduler: clock.scheduler });
 		const row = await focusRow("CDE-42");
 		await user.keyboard("a");
@@ -141,7 +141,7 @@ describe("ReviewSection", () => {
 		mockMatchMedia(true);
 		const user = userEvent.setup();
 		const clock = createFakeScheduler();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server, { scheduler: clock.scheduler });
 		await focusRow("CDE-42");
 		await user.keyboard("a");
@@ -152,7 +152,7 @@ describe("ReviewSection", () => {
 	// NY-19. The next row takes the focus, so ten approvals need ten keys.
 	test("moves focus to the next row after an approval", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		await focusRow("CDE-42");
 		await user.keyboard("a");
@@ -164,7 +164,7 @@ describe("ReviewSection", () => {
 	// and the target.
 	test("restores the row and the count when the move fails", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.failNext("tickets.move", { code: "STATUS_NOT_IN_PROJECT", data: { valid: [] } });
 		render(server);
 		await focusRow("CDE-42");
@@ -179,7 +179,7 @@ describe("ReviewSection", () => {
 	// NY-21. `a` is a row key, not a text key.
 	test("does not approve while the comment box has focus", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		await focusRow("CDE-42");
 		await user.keyboard("r");
@@ -192,7 +192,7 @@ describe("ReviewSection", () => {
 	// NY-22
 	test("announces the approval in a live region", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderWithProviders(<ReviewSection />, { path: "/needs-you", actor: "navid", server });
 		await focusRow("CDE-42");
 		await user.keyboard("a");
@@ -202,7 +202,7 @@ describe("ReviewSection", () => {
 	// NY-28. A send back clears the row the same way an approval does.
 	test("sweeps the row out and ticks the count down after a send back", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		await focusRow("CDE-42");
 		await user.keyboard("r");

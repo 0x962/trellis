@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { findGrid, resetUi, sleep, toastWith } from "../../../../test/table";
 import { tableViewport } from "../../../../test/viewport";
 import { composerActions } from "../composerStore";
@@ -16,7 +16,7 @@ beforeEach(() => {
 
 afterEach(() => act(resetUi));
 
-const archive = (server: ReturnType<typeof createFakeServer>, path: string) => {
+const archive = (server: ReturnType<typeof createTestServer>, path: string) => {
 	[...server.state.projects.values()].find((entry) => entry.path === path)!.archivedAt = new Date().toISOString();
 };
 
@@ -26,7 +26,7 @@ describe("features/composer/CreateTicketDialog on an archived project", () => {
 	// An archived project takes no new ticket. The composer does not open,
 	// and a toast names the project and the way out.
 	test("c on the page of an archived project opens no composer", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		archive(server, "TRL");
 		renderApp({ path: "/p/TRL", actor: "navid", server });
 		await findGrid();
@@ -39,7 +39,7 @@ describe("features/composer/CreateTicketDialog on an archived project", () => {
 	// The project picker offers only the projects that take a new ticket.
 	test("the project picker leaves out every archived project", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		archive(server, "TRL");
 		renderApp({ path: "/all", actor: "navid", server });
 		await findGrid();

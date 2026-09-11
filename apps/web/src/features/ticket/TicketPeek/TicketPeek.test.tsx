@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
-import { findTicket } from "../../../../test/fake-server/state";
 import { press } from "../../../../test/keyboard";
 import { mockMatchMedia } from "../../../../test/media";
 import { type ProviderOptions, renderWithProviders } from "../../../../test/renderWithProviders";
+import { addActivity, patchTicket } from "../../../../test/rows";
 import { ago, fieldValue, frames, minute, settle } from "../../../../test/ticketHost";
 import { usePeek } from "./hooks/usePeek";
 import { PeekListProvider } from "./providers/PeekListProvider";
@@ -185,8 +185,14 @@ describe("features/ticket/TicketPeek", () => {
 	test("reduced motion drops the slide, the shimmer, and the pulse", async () => {
 		mockMatchMedia(true);
 		const { server } = mount("/p/CDE");
-		const ticket = findTicket(server.state, "CDE-43")!;
-		ticket.lastActor = { name: "claude-code", kind: "agent", at: ago(2 * minute) };
+		await addActivity(server, {
+			ticket: "CDE-43",
+			actor: { name: "claude-code", kind: "agent" },
+			action: "ticket.updated",
+			field: "title",
+			createdAt: ago(2 * minute),
+		});
+		await patchTicket(server, "CDE-43", { updatedAt: ago(2 * minute) });
 		const user = userEvent.setup();
 		await user.click(row("CDE-43"));
 		const panel = await peek("CDE-43");

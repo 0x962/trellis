@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../test/fake-server";
 import { renderApp } from "../../test/renderWithProviders";
+import { createTestServer } from "../../test/server";
 
 beforeEach(() => localStorage.clear());
 
@@ -67,7 +67,7 @@ describe("routes/search", () => {
 	// k inside the peek walk the results in the order the page lists them.
 	test("the search route opens the peek from the URL, and j and k walk the results", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { tickets } = await server.client.search.query({ q: "oauth" });
 		const [first, second] = tickets.map((ticket) => ticket.identifier);
 		const { router } = renderApp({ path: `/search?q=oauth&peek=${first}`, actor: "navid", server });

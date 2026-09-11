@@ -1,12 +1,11 @@
 import { fireEvent, waitFor } from "@testing-library/react";
 import type { Attachment } from "@trellis/api";
 import { ulid } from "ulid";
-import type { FakeServer } from "./fake-server";
-import { findTicket } from "./fake-server/state";
+import type { TestServer } from "./server/index.ts";
 
 // Helpers for the attachments tests: files of an exact size, drag and drop
-// events, rows written straight into the fake server, and a server that
-// records every request the page makes.
+// events, rows uploaded through the server, and a server that records every
+// request the page makes.
 
 // A file of exactly `size` bytes. The content is one repeated character, so
 // two files of one size hold the same bytes and the same hash.
@@ -62,28 +61,19 @@ export const attachmentOf = (overrides: Partial<Attachment> = {}): Attachment =>
 	};
 };
 
-// Writes one attachment row into the fake server, the way the seed does.
-// The grid reads it back through attachments.list.
-export const addAttachment = (
-	server: FakeServer,
+// Uploads one file to `ticket`, the way a drop on the page does. The grid
+// reads it back through attachments.list. The bytes are one repeated
+// character, so two files of one size share one blob, as two uploads of one
+// file do.
+export const addAttachment = async (
+	server: TestServer,
 	ticket: string,
 	filename: string,
 	mime: string,
 	size = 1024,
-): Attachment => {
-	const id = ulid();
-	const attachment: Attachment = {
-		id,
-		ticketId: findTicket(server.state, ticket)!.id,
-		filename,
-		mime,
-		size,
-		sha256: fakeSha(id),
-		actor: { name: "navid", kind: "human" },
-		createdAt: new Date().toISOString(),
-		url: `/api/attachments/${id}/file`,
-	};
-	server.state.attachments.set(id, attachment);
+): Promise<Attachment> => {
+	const file = new File(["a".repeat(size)], filename, { type: mime });
+	const { attachment } = await server.client.attachments.upload({ ticket, file });
 	return attachment;
 };
 
@@ -98,19 +88,19 @@ const logOf = (request: Request): RequestLog => ({
 
 const originalFetch = globalThis.fetch;
 
-// A fake server that records every request. The page reads attachment bytes
+// A test server that records every request. The page reads attachment bytes
 // with a plain GET, so `globalThis.fetch` goes to the same app as the oRPC
 // client does.
-export const recordingServer = (server: FakeServer) => {
+export const recordingServer = (server: TestServer) => {
 	const requests: RequestLog[] = [];
-	const fetch: FakeServer["fetch"] = (request, init) => {
+	const fetch: TestServer["fetch"] = (request, init) => {
 		requests.push(logOf(request));
 		return server.fetch(request, init);
 	};
 	globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
 		const request = new Request(input, init);
 		requests.push(logOf(request));
-		return server.app.request(request);
+		return server.request(request);
 	}) as typeof globalThis.fetch;
 	return { server: { ...server, fetch }, requests };
 };

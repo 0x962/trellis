@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, waitFor } from "@testing-library/react";
-import { createFakeServer } from "../../../test/fake-server";
 import { mockMatchMedia } from "../../../test/media";
 import { renderApp } from "../../../test/renderWithProviders";
+import { createTestServer } from "../../../test/server";
 import { needsYouCount } from "../../features/needs-you/utils/needsYouCount";
 import { badgeLabel } from "./useFaviconBadge";
 
@@ -51,7 +51,7 @@ describe("hooks/useFaviconBadge", () => {
 
 	// The tab icon follows the same inbox query as the sidebar badge.
 	test("the favicon carries the Needs you count and returns to the plain mark at 0", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const count = needsYouCount(await server.client.inbox.get({}));
 		expect(count).toBeGreaterThan(0);
 		const { queryClient, orpc } = renderApp({ path: "/all", actor: "navid", server });
@@ -59,7 +59,7 @@ describe("hooks/useFaviconBadge", () => {
 		expect(icon().type).toBe("image/png");
 		const label = badgeLabel(count)!;
 		if (label !== "") expect(drawn.some((call) => call.startsWith(`fillText:${label},`))).toBe(true);
-		const empty = await createFakeServer({ empty: true }).client.inbox.get({});
+		const empty = await createTestServer({ empty: true }).client.inbox.get({});
 		act(() => queryClient.setQueryData(orpc.inbox.get.queryKey({ input: {} }), empty));
 		await waitFor(() => expect(icon().getAttribute("href")).toBe("/favicon.svg"));
 		expect(icon().type).toBe("image/svg+xml");

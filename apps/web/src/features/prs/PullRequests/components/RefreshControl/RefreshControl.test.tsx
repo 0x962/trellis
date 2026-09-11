@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../../../test/media";
 import { callsTo, firstPr, ghReady, linkPrCopy, patchPr, prsOf, summaryOf } from "../../../../../../test/prs";
 import { renderWithProviders } from "../../../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../../../test/server";
 import { ghCopy } from "../../../../../lib/ghCopy";
 import { PullRequests } from "../../PullRequests";
 
@@ -16,13 +16,13 @@ beforeEach(() => {
 
 const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
 
-const renderSection = async (server: FakeServer, identifier: string) => {
+const renderSection = async (server: TestServer, identifier: string) => {
 	const ticket = await summaryOf(server, identifier);
 	return renderWithProviders(<PullRequests ticket={ticket} />, { path: `/t/${identifier}`, actor: "navid", server });
 };
 
 // The seeded pull request fetched 40 s ago, beside an older second one.
-const twoFetches = async (server: FakeServer) => {
+const twoFetches = async (server: TestServer) => {
 	patchPr(server, (await firstPr(server, "CDE-42")).id, { fetchedAt: ago(40_000) });
 	await linkPrCopy(server, "CDE-42", { number: 122, fetchedAt: ago(10 * 60_000) });
 };
@@ -34,7 +34,7 @@ const header = () => document.querySelector("[data-prs-header]")!;
 describe("RefreshControl", () => {
 	// PR-42
 	test("reads the fetch age from the newest fetched pull request", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		await twoFetches(server);
 		await renderSection(server, "CDE-42");
 		await waitFor(() => expect(header().textContent).toContain("Fetched 40s ago"));
@@ -43,7 +43,7 @@ describe("RefreshControl", () => {
 	// PR-43
 	test("refreshes every listed pull request on one click", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		ghReady(server);
 		await twoFetches(server);
 		const listed = await prsOf(server, "CDE-42");
@@ -58,7 +58,7 @@ describe("RefreshControl", () => {
 	// PR-44
 	test("moves the fetch age to just now after a refresh", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		ghReady(server);
 		await twoFetches(server);
 		await renderSection(server, "CDE-42");
@@ -70,7 +70,7 @@ describe("RefreshControl", () => {
 	// PR-45. The seed reports gh as missing.
 	test("shows GH_UNAVAILABLE inline and keeps the rows after a failed refresh", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await twoFetches(server);
 		await renderSection(server, "CDE-42");
 		await waitFor(() => expect(document.querySelectorAll("[data-pr-row]")).toHaveLength(2));
@@ -88,7 +88,7 @@ describe("RefreshControl", () => {
 
 	// PR-46. Nothing was fetched, so there is no age to state.
 	test("hides the fetch age when the ticket has no pull request", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		ghReady(server);
 		await renderSection(server, "CDE-47");
 		await screen.findByRole("button", { name: "Link PR" });

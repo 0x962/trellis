@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
-import { createFakeServer, type FakeServer } from "../../../../../test/fake-server";
 import { lastCallTo, rowOf, statusOf } from "../../../../../test/inbox";
 import { mockMatchMedia } from "../../../../../test/media";
 import { renderWithProviders } from "../../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../../test/server";
 import { DoneTodaySection } from "./DoneTodaySection";
 
 beforeEach(() => {
@@ -13,7 +13,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const render = (server: FakeServer) =>
+const render = (server: TestServer) =>
 	renderWithProviders(
 		<>
 			<Toaster />
@@ -27,7 +27,7 @@ const header = () => screen.findByRole("button", { name: /^Done by agents today/
 describe("DoneTodaySection", () => {
 	// NY-40. The section is awareness, not work, so it stays out of the way.
 	test("starts collapsed and offers Show 6", async () => {
-		render(createFakeServer());
+		render(createTestServer());
 		const control = await header();
 		expect(control.getAttribute("aria-expanded")).toBe("false");
 		expect(control.textContent).toContain("6");
@@ -38,7 +38,7 @@ describe("DoneTodaySection", () => {
 	// NY-41. The choice outlives the render, so a page visit keeps it.
 	test("keeps the expanded state across a remount", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const first = render(server);
 		await user.click(await header());
 		await waitFor(() => expect(screen.getAllByRole("row").length).toBe(6));
@@ -51,7 +51,7 @@ describe("DoneTodaySection", () => {
 	// NY-42. An agent finished it; a person can put it back.
 	test("reopens a row into the lowest-position todo status", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const inbox = await server.client.inbox.get({});
 		const item = inbox.doneByAgentsToday.items[0]!;
 		const identifier = item.identifier;

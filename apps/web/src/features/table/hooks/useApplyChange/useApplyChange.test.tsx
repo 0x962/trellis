@@ -2,15 +2,15 @@ import { describe, expect, test } from "bun:test";
 import { act, render, screen } from "@testing-library/react";
 import { Toaster } from "@trellis/ui";
 import { summaryOf } from "../../../../../test/events";
-import { createFakeServer } from "../../../../../test/fake-server";
 import { renderHookWithProviders } from "../../../../../test/renderHook";
+import { createTestServer } from "../../../../../test/server";
 import { useTicketMutations } from "../useTicketMutations";
 import { useApplyChange } from "./useApplyChange";
 
 // The hook over the fake server, with the Toaster that shows its rollback
 // toasts, and two CDE tickets as the table holds them.
 const setup = async () => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	const { statuses } = await server.client.statuses.list({ project: "CDE" });
 	const review = statuses.find((status) => status.slug === "agent-review")!;
 	const full = await Promise.all(["CDE-42", "CDE-43"].map((ticket) => server.client.tickets.get({ ticket })));

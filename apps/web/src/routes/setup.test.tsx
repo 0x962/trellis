@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../test/fake-server";
 import { callsTo } from "../../test/inbox";
 import { renderApp } from "../../test/renderWithProviders";
+import { createTestServer } from "../../test/server";
 
 beforeEach(() => localStorage.clear());
 
@@ -11,7 +11,7 @@ describe("routes/setup", () => {
 	// WS-72. Only a first-run server shows the name step.
 	test("setup step 1 asks for a name prefilled from actors.default", async () => {
 		const user = userEvent.setup();
-		renderApp({ path: "/setup", server: createFakeServer({ empty: true }) });
+		renderApp({ path: "/setup", server: createTestServer({ empty: true }) });
 		expect(await screen.findByRole("heading", { name: "Enter your name" })).toBeDefined();
 		const input = await screen.findByDisplayValue("navid");
 		expect(document.activeElement).toBe(input);
@@ -25,7 +25,7 @@ describe("routes/setup", () => {
 	// WS-73
 	test("Continue stores the identity and advances to the project step", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/setup", server: createFakeServer({ empty: true }) });
+		const { router } = renderApp({ path: "/setup", server: createTestServer({ empty: true }) });
 		const input = await screen.findByDisplayValue("navid");
 		await user.clear(input);
 		await user.type(input, "navid{Enter}");
@@ -70,7 +70,7 @@ describe("routes/setup", () => {
 	// WS-76
 	test("creating the first project lands on its empty table", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer({ empty: true });
+		const server = createTestServer({ empty: true });
 		const { router } = renderApp({ path: "/setup", actor: "navid", server });
 		const name = await screen.findByRole("textbox", { name: /project name/i });
 		await user.type(name, "Docs");
@@ -92,7 +92,7 @@ describe("routes/setup", () => {
 	// writes it there as well as to the browser copy.
 	test("the name step pre-fills defaultActorName and saves the name to the server", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer({ empty: true });
+		const server = createTestServer({ empty: true });
 		server.state.settings.defaultActorName = "navidkhan";
 		renderApp({ path: "/setup", server });
 		const input = await screen.findByDisplayValue("navidkhan");
@@ -109,7 +109,7 @@ describe("routes/setup", () => {
 
 	test("with projects on the server, /setup never asks for a name or a first project", async () => {
 		for (const stored of [true, false]) {
-			const server = createFakeServer();
+			const server = createTestServer();
 			server.state.defaultActorStored = stored;
 			const view = renderApp({ path: "/setup", server });
 			await waitFor(() => expect(view.router.state.location.pathname, String(stored)).toBe("/needs-you"));

@@ -4,13 +4,13 @@ import { useCommandStore } from "../src/features/command/commandStore";
 import { useShortcutHelpStore } from "../src/features/command/ShortcutHelp";
 import { useComposerStore } from "../src/features/composer";
 import { createUiStore, useUiStore } from "../src/stores/uiStore";
-import type { FakeServer } from "./fake-server";
 import { renderApp } from "./renderWithProviders";
+import type { TestServer } from "./server/index.ts";
 
 export type ShellOptions = {
 	// The URL the app starts at. The project table by default.
 	path?: string;
-	server?: FakeServer;
+	server?: TestServer;
 	scheduler?: Scheduler;
 };
 
@@ -31,7 +31,7 @@ export const resetStores = () => {
 	useUiStore.setState(createUiStore().getState());
 };
 
-// Renders the whole app over the seeded fake server with an identity, and
+// Renders the whole app over the seeded server with an identity, and
 // waits for the shell to paint.
 export const renderShell = async (options: ShellOptions = {}) => {
 	const wired = renderApp({

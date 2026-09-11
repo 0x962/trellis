@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import { Toaster } from "@trellis/ui";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { rowOf } from "../../../../test/inbox";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { NeedsYou } from "./NeedsYou";
 
 beforeEach(() => {
@@ -12,7 +12,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const render = (server: FakeServer) =>
+const render = (server: TestServer) =>
 	renderWithProviders(
 		<>
 			<Toaster />
@@ -26,7 +26,7 @@ describe("NeedsYou with a ticket in Review and in Failing checks", () => {
 	// checks shows once, in Review, with its failed-check chip. Failing
 	// checks leaves it out of its rows and its count.
 	test("the ticket shows once, in Review, with the failed-check chip", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		// The seed has no ticket in both sections, so the test moves the first
 		// ticket with failed checks into Human Review.
 		const seeded = await server.client.inbox.get({});

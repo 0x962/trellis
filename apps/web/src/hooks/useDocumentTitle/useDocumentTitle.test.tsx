@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { waitFor } from "@testing-library/react";
-import { createFakeServer } from "../../../test/fake-server";
 import { mockMatchMedia } from "../../../test/media";
 import { renderApp } from "../../../test/renderWithProviders";
+import { createTestServer } from "../../../test/server";
 import { needsYouCount } from "../../features/needs-you/utils/needsYouCount";
 import { documentTitle } from "./useDocumentTitle";
 
@@ -28,7 +28,7 @@ describe("hooks/useDocumentTitle", () => {
 
 	// Each route sets its tab title. The ticket page sets its own title.
 	test("the shell sets the tab title of the page it shows", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const count = needsYouCount(await server.client.inbox.get({}));
 		const { router } = renderApp({ path: "/needs-you", actor: "navid", server });
 		await waitFor(() => expect(document.title).toBe(`Needs you (${count}) · trellis`));

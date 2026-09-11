@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../../../test/media";
 import { bucketsOf, firstPr, heightClass, patchPr, pillLabel, prRow, summaryOf } from "../../../../../../test/prs";
 import { renderWithProviders } from "../../../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../../../test/server";
 import { PullRequestRow } from "./PullRequestRow";
 
 beforeEach(() => {
@@ -13,7 +13,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const renderRow = async (server: FakeServer, identifier: string) => {
+const renderRow = async (server: TestServer, identifier: string) => {
 	const ticket = await summaryOf(server, identifier);
 	const pr = await firstPr(server, identifier);
 	const view = renderWithProviders(<PullRequestRow ticket={ticket} pr={pr} />, {
@@ -29,7 +29,7 @@ const headerOf = (row: HTMLElement) => within(row).getByRole("button", { name: /
 describe("PullRequestRow", () => {
 	// PR-01
 	test("renders the repo, the number, the title, the branch pair, the update time, and the linking actor", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
 		const text = (row.textContent ?? "").replace(/\s+/g, " ");
@@ -47,7 +47,7 @@ describe("PullRequestRow", () => {
 
 	// PR-02. The ribbon is the ui package's own; the row adds no bar.
 	test("draws the full check ribbon from the ui package, one segment per check", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
 		expect(bucketsOf(row)).toEqual(pr.checks.map((check) => check.bucket));
@@ -58,7 +58,7 @@ describe("PullRequestRow", () => {
 
 	// PR-03
 	test("shows the pass, fail, and pending counts in one pill", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { pr } = await renderRow(server, "CDE-44");
 		const row = await prRow(pr.id);
 		expect(row.querySelectorAll("[data-check-pill]")).toHaveLength(1);
@@ -68,7 +68,7 @@ describe("PullRequestRow", () => {
 
 	// PR-04
 	test("shows the review-state chip for an approved pull request", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
 		expect(row.querySelector("[data-review-chip]")!.textContent).toBe("Approved");
@@ -76,7 +76,7 @@ describe("PullRequestRow", () => {
 
 	// PR-05
 	test("hides the review-state chip when gh reports no review", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { pr } = await renderRow(server, "CDE-45");
 		const row = await prRow(pr.id);
 		expect(pr.reviewState).toBe("none");
@@ -85,7 +85,7 @@ describe("PullRequestRow", () => {
 
 	// PR-06. A row that gains a check pushes nothing below it.
 	test("keeps the row at a fixed height of 56 px", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		patchPr(server, (await firstPr(server, "CDE-45")).id, { checks: [], ciState: "none" });
 		const withChecks = await firstPr(server, "CDE-42");
 		const without = await firstPr(server, "CDE-45");
@@ -105,7 +105,7 @@ describe("PullRequestRow", () => {
 	// PR-07. A failed poll leaves the stored fields on the page and says how
 	// old they are.
 	test("keeps the stored fields and marks the row stale after a failed poll", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		patchPr(server, (await firstPr(server, "CDE-42")).id, { fetchError: "gh exited with code 1." });
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
@@ -118,7 +118,7 @@ describe("PullRequestRow", () => {
 	// PR-08
 	test("expands to the per-check rows by click and by Enter", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
 		const header = headerOf(row);
@@ -138,7 +138,7 @@ describe("PullRequestRow", () => {
 	// PR-09
 	test("remembers the expanded pull request in the session", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const first = await renderRow(server, "CDE-42");
 		await user.click(headerOf(await prRow(first.pr.id)));
 		expect(sessionStorage.getItem("prs-expanded")).toContain(first.pr.id);
@@ -151,7 +151,7 @@ describe("PullRequestRow", () => {
 
 	// PR-10. A pull request without checks has nothing to expand.
 	test("drops the ribbon and the expand control for a pull request without checks", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		patchPr(server, (await firstPr(server, "CDE-42")).id, { checks: [], ciState: "none" });
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
@@ -163,7 +163,7 @@ describe("PullRequestRow", () => {
 
 	// margin is the review surface, so the row sends its diff there.
 	test("offers Show diff, which opens margin at the pull request URL in a new tab", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
 		const link = within(row).getByRole("link", { name: "Show diff" });

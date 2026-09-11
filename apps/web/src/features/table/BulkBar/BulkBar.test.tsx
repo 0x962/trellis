@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { interceptFetch, serverError } from "../../../../test/interceptFetch";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import {
 	bulkBar,
 	calls,
@@ -33,7 +33,7 @@ beforeEach(() => {
 const actions = ["Status", "Priority", "Move to project", "Set parent", "Copy IDs", "Delete"];
 
 // Selects the first `count` rows of the Todo group on /p/CDE with the keyboard.
-const selectFirst = async (count: number, server: FakeServer = createFakeServer()) => {
+const selectFirst = async (count: number, server: TestServer = createTestServer()) => {
 	const app = renderApp({ path: "/p/CDE", actor: "navid", server });
 	await findGrid();
 	await waitFor(() => expect(rows().length).toBeGreaterThanOrEqual(count));
@@ -46,7 +46,7 @@ const selectFirst = async (count: number, server: FakeServer = createFakeServer(
 
 const action = (name: string) => within(bulkBar()).getByRole("button", { name });
 
-const many = (server: FakeServer) => inputs(server, "tickets.updateMany");
+const many = (server: TestServer) => inputs(server, "tickets.updateMany");
 
 const pickOption = async (user: ReturnType<typeof userEvent.setup>, name: RegExp | string) => {
 	const dialog = await screen.findByRole("dialog");
@@ -115,7 +115,7 @@ describe("features/table/BulkBar", () => {
 	// Outcome 61. Two tickets in a project of their own.
 	test("copies the selected IDs one per line", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer({ empty: true });
+		const server = createTestServer({ empty: true });
 		await server.client.projects.create({ key: "CDE", name: "Superset CDE" });
 		await server.client.tickets.create({ project: "CDE", title: "First" });
 		await server.client.tickets.create({ project: "CDE", title: "Second" });
@@ -146,7 +146,7 @@ describe("features/table/BulkBar", () => {
 	// Outcome 63
 	test("rolls every row back and toasts once when the batch fails", async () => {
 		const user = userEvent.setup();
-		const failing = interceptFetch(createFakeServer(), {
+		const failing = interceptFetch(createTestServer(), {
 			match: (text) => text.includes("tickets/updateMany"),
 			respond: serverError,
 		});

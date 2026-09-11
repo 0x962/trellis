@@ -10,9 +10,9 @@ import {
 	surfaceOf,
 	thumbnailsOf,
 } from "../../../../test/attachments";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { callsTo } from "../../../../test/inbox";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { AttachmentGrid } from "./AttachmentGrid";
 
 beforeEach(() => localStorage.clear());
@@ -20,7 +20,7 @@ afterEach(restoreFetch);
 
 const oneMegabyte = 1024 * 1024;
 
-const renderGrid = (server: FakeServer, ticket = "CDE-42") =>
+const renderGrid = (server: TestServer, ticket = "CDE-42") =>
 	renderWithProviders(<AttachmentGrid ticket={ticket} />, { path: `/t/${ticket}`, actor: "navid", server });
 
 const rowNamed = (name: string) => rowsOf().find((row) => row.textContent?.includes(name));
@@ -29,7 +29,7 @@ describe("AttachmentGrid", () => {
 	// OUT-18. The bytes go out as multipart, so a large file never becomes
 	// a base64 string in a JSON body.
 	test("a dropped file posts multipart to attachments.upload and appears with its size", async () => {
-		const recorder = recordingServer(createFakeServer());
+		const recorder = recordingServer(createTestServer());
 		renderGrid(recorder.server);
 		const surface = await surfaceOf();
 		dropFiles(surface, [fileOf("notes.txt", "text/plain", 2048)]);
@@ -42,7 +42,7 @@ describe("AttachmentGrid", () => {
 
 	// OUT-19
 	test("uploads every file of one drop", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderGrid(server);
 		const surface = await surfaceOf();
 		dropFiles(surface, [fileOf("notes.txt", "text/plain", 2048), fileOf("plan.md", "text/markdown", 1024)]);
@@ -54,7 +54,7 @@ describe("AttachmentGrid", () => {
 	// OUT-20. A ticket carries the work of several actors, so a row states
 	// who added the file and when.
 	test("shows the uploading actor and the time on the new row", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderGrid(server);
 		const surface = await surfaceOf();
 		dropFiles(surface, [fileOf("notes.txt", "text/plain", 2048)]);
@@ -67,7 +67,7 @@ describe("AttachmentGrid", () => {
 	// OUT-28. The limit is the server's, so the message states the number
 	// the server sent and never a copy in the page.
 	test("a file over the cap shows PAYLOAD_TOO_LARGE inline with the limit in megabytes", async () => {
-		const server = createFakeServer({ maxUploadBytes: oneMegabyte });
+		const server = createTestServer({ maxUploadBytes: oneMegabyte });
 		renderGrid(server);
 		const surface = await surfaceOf();
 		const before = rowsOf().length;
@@ -80,7 +80,7 @@ describe("AttachmentGrid", () => {
 
 	// OUT-29
 	test("keeps uploading the other files of a drop that holds one oversized file", async () => {
-		const server = createFakeServer({ maxUploadBytes: oneMegabyte });
+		const server = createTestServer({ maxUploadBytes: oneMegabyte });
 		renderGrid(server);
 		const surface = await surfaceOf();
 		dropFiles(surface, [
@@ -96,7 +96,7 @@ describe("AttachmentGrid", () => {
 	// OUT-30
 	test("Dismiss removes the inline upload error", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer({ maxUploadBytes: oneMegabyte });
+		const server = createTestServer({ maxUploadBytes: oneMegabyte });
 		renderGrid(server);
 		const surface = await surfaceOf();
 		dropFiles(surface, [
@@ -112,7 +112,7 @@ describe("AttachmentGrid", () => {
 
 	// OUT-31. An image reads faster as a picture than as a file name.
 	test("renders images as 96 px thumbnails and other files as rows", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderGrid(server, "CDE-47");
 		await surfaceOf();
 		const thumbnail = await screen.findByRole("button", { name: /rename-flow\.png/ });
@@ -124,7 +124,7 @@ describe("AttachmentGrid", () => {
 
 	// OUT-36
 	test("shows the drop box alone when the ticket has no attachment", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderGrid(server, "CDE-51");
 		const surface = await surfaceOf();
 		expect(rowsOf()).toHaveLength(0);
@@ -134,7 +134,7 @@ describe("AttachmentGrid", () => {
 
 	// TK-6. An empty section is its header row, with Upload on the right.
 	test("a ticket with no attachment shows the header and an Upload button", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderGrid(server, "CDE-51");
 		const surface = await surfaceOf();
 		const upload = within(surface).getByRole("button", { name: "Upload" });
@@ -146,7 +146,7 @@ describe("AttachmentGrid", () => {
 
 	// TK-6. The thumbnails end in a 96 px dashed tile that adds a file.
 	test("the thumbnail grid ends in an add tile", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderGrid(server, "CDE-47");
 		await surfaceOf();
 		await screen.findByRole("button", { name: /rename-flow\.png/ });

@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
-import { createFakeServer, type FakeServer } from "../../../../../test/fake-server";
 import { callsTo, focusRow, lastCallTo, rowOf, statusOf } from "../../../../../test/inbox";
 import { mockMatchMedia } from "../../../../../test/media";
 import { renderWithProviders } from "../../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../../test/server";
 import { ReviewSection } from "../ReviewSection";
 
 // The box opens on a review row, so every test drives it through the
@@ -16,7 +16,7 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const render = (server: FakeServer) =>
+const render = (server: TestServer) =>
 	renderWithProviders(
 		<>
 			<Toaster />
@@ -36,7 +36,7 @@ describe("SendBackBox", () => {
 	// NY-23. The prompt is the question, and the caret is already in the box.
 	test("opens on r with the Reason to send back label and takes focus", async () => {
 		const user = userEvent.setup();
-		render(createFakeServer());
+		render(createTestServer());
 		await focusRow("CDE-42");
 		await user.keyboard("r");
 		const field = await box();
@@ -47,7 +47,7 @@ describe("SendBackBox", () => {
 	// NY-24
 	test("opens from the Send back button", async () => {
 		const user = userEvent.setup();
-		render(createFakeServer());
+		render(createTestServer());
 		const row = await rowOf("CDE-42");
 		await user.click(row.querySelector<HTMLButtonElement>("button[data-send-back]")!);
 		expect(await box()).toBeDefined();
@@ -56,7 +56,7 @@ describe("SendBackBox", () => {
 	// NY-25. A send back with no comment tells the agent nothing.
 	test("keeps the submit disabled while the body is empty", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		await focusRow("CDE-42");
 		await user.keyboard("r");
@@ -71,7 +71,7 @@ describe("SendBackBox", () => {
 	// reads why it came back.
 	test("posts the comment and then moves to the lowest-position started status", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const started = await statusOf(server, "CDE", "in-progress");
 		render(server);
 		await focusRow("CDE-42");
@@ -90,7 +90,7 @@ describe("SendBackBox", () => {
 	// NY-27. Escape is the way out, and it writes nothing.
 	test("closes on Escape without writing anything", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		const row = await focusRow("CDE-42");
 		await user.keyboard("r");
@@ -106,7 +106,7 @@ describe("SendBackBox", () => {
 	// its Retry sends only the move, and the box can send again.
 	test("a failed move after the comment posts shows a toast whose Retry sends only the move", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const started = await statusOf(server, "CDE", "in-progress");
 		server.failNext("tickets.move", { code: "NOT_FOUND", data: { ref: "CDE-42" } });
 		render(server);
@@ -128,7 +128,7 @@ describe("SendBackBox", () => {
 	// NY-29. The text is the person's work, so a failed post keeps it.
 	test("keeps the text and skips the move when the comment fails", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		// The server refuses the comment. An archived project would also
 		// refuse it, but the row of an archived ticket opens no box at all.
 		server.failNext("comments.create", { code: "PROJECT_ARCHIVED" });

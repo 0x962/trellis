@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
-import { createFakeServer, type FakeServer } from "../../../../../test/fake-server";
 import { focusRow, rowOf } from "../../../../../test/inbox";
 import { mockMatchMedia } from "../../../../../test/media";
 import { renderWithProviders } from "../../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../../test/server";
 import { settle } from "../../../../../test/ticketHost";
 import { ReviewSection } from "./ReviewSection";
 
@@ -15,12 +15,12 @@ beforeEach(() => {
 });
 
 const archivedServer = () => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	[...server.state.projects.values()].find((entry) => entry.path === "CDE")!.archivedAt = new Date().toISOString();
 	return server;
 };
 
-const render = (server: FakeServer) =>
+const render = (server: TestServer) =>
 	renderWithProviders(
 		<>
 			<Toaster />
@@ -29,7 +29,7 @@ const render = (server: FakeServer) =>
 		{ path: "/needs-you", actor: "navid", server },
 	);
 
-const moves = (server: FakeServer) => server.calls.filter((call) => call.path.join(".") === "tickets.move");
+const moves = (server: TestServer) => server.calls.filter((call) => call.path.join(".") === "tickets.move");
 
 describe("ReviewSection with a ticket of an archived project", () => {
 	// The server refuses every write to a ticket under an archived project.

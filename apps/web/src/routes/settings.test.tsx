@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { themeStorageKey } from "@trellis/ui";
-import { createFakeServer } from "../../test/fake-server";
 import { mockMatchMedia } from "../../test/media";
 import { renderApp } from "../../test/renderWithProviders";
+import { createTestServer } from "../../test/server";
 
 beforeEach(() => {
 	localStorage.clear();
@@ -100,7 +100,7 @@ describe("settings route", () => {
 
 	// ST-02
 	test("loads every field from settings.get", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		await server.client.settings.set({
 			defaultActorName: "Navid",
 			startWithAgentTemplate: 'claude "{brief}"',
@@ -145,7 +145,7 @@ describe("settings route", () => {
 	// a second browser, with nothing in localStorage, starts with.
 	test("shows the stored name, and a rename reaches a second browser", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await server.client.settings.set({ ...(await server.client.settings.get()), defaultActorName: "Navid" });
 		const first = renderApp({ path: "/settings", server });
 		const name = (await screen.findByRole("textbox", { name: /your name/i })) as HTMLInputElement;

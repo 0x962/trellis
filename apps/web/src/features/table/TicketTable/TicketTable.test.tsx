@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
 import { seedTickets } from "../../../../test/seedMany";
+import { createTestServer } from "../../../../test/server";
 import {
 	findGrid,
 	footer,
@@ -30,7 +30,7 @@ const banner = () => document.querySelector<HTMLElement>("[data-cap-banner]");
 describe("features/table/TicketTable", () => {
 	// Outcome 3. 2369 seeded rows and the 31 of the seed make 2400.
 	test("shows the cap banner above the rows when the list is capped", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		seedTickets(server, { project: "CDE", count: 2369 });
 		renderApp({ path: "/p/CDE", actor: "navid", server });
 		await findGrid();
@@ -80,7 +80,7 @@ describe("features/table/TicketTable", () => {
 	// Outcome 20. 969 seeded rows and the 31 of the seed make 1000. Without
 	// groups there is no header, so the spacer is the rows alone.
 	test("virtualizes 1000 rows and sizes the scroller from the fixed row height", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		seedTickets(server, { project: "CDE", count: 969 });
 		renderApp({ path: "/p/CDE?group=none", actor: "navid", server });
 		await findGrid();

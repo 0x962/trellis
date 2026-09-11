@@ -3,11 +3,11 @@ import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { eventApplierFor, type Ticket } from "@trellis/api";
 import { summaryOf, updatedEvent } from "../../../../test/events";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
-import { findTicket } from "../../../../test/fake-server/state";
 import { createFakeScheduler } from "../../../../test/fakeScheduler";
 import { captureIdle } from "../../../../test/idle";
 import { press } from "../../../../test/keyboard";
+import { ticketRow } from "../../../../test/rows";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { ago, hour, renderTicket, settle } from "../../../../test/ticketHost";
 import { editorChunk } from "./components/LazyEditor";
 import { Description } from "./Description";
@@ -24,7 +24,7 @@ afterEach(() => idle.restore());
 const editor = () => screen.findByRole("textbox", { name: "Description" });
 const rendered = () => waitFor(() => expect(document.querySelector(".markdown")).not.toBeNull());
 
-const mount = (identifier: string, server: FakeServer = createFakeServer()) => {
+const mount = (identifier: string, server: TestServer = createTestServer()) => {
 	const clock = createFakeScheduler();
 	const view = renderTicket(identifier, (ticket) => <Description ticket={ticket} />, {
 		path: `/t/${identifier}`,
@@ -35,7 +35,7 @@ const mount = (identifier: string, server: FakeServer = createFakeServer()) => {
 };
 
 // A 412 whose current row names the agent.
-const armConflict = async (server: FakeServer) => {
+const armConflict = async (server: TestServer) => {
 	const current = await server.client.tickets.get({ ticket: "CDE-42" });
 	server.failNext("tickets.update", {
 		code: "VERSION_CONFLICT",
@@ -85,7 +85,7 @@ describe("features/ticket/Description", () => {
 	// read it. A save now would overwrite that work.
 	test("refuses to save while descriptionStale is true", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { queryClient, orpc, advanceTo } = mount("CDE-42", server);
 		await rendered();
 		press("e");
@@ -106,7 +106,7 @@ describe("features/ticket/Description", () => {
 	// autosave reaches the server.
 	test("Reload clears descriptionStale and saving works again", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { queryClient, orpc, advanceTo } = mount("CDE-42", server);
 		const key = orpc.tickets.get.queryKey({ input: { ticket: "CDE-42" } });
 		await rendered();
@@ -114,7 +114,10 @@ describe("features/ticket/Description", () => {
 			queryClient.setQueryData<Ticket>(key, (data) => ({ ...data!, descriptionStale: true }));
 		});
 		const reload = await screen.findByRole("button", { name: "Reload" });
-		findTicket(server.state, "CDE-42")!.description = "The agent rewrote this.";
+		await server.clientAs("agent:claude-code").tickets.update({
+			ticket: "CDE-42",
+			description: "The agent rewrote this.",
+		});
 		await user.click(reload);
 		await waitFor(() => expect(document.querySelector(".markdown")!.textContent).toContain("The agent rewrote this."));
 		expect(queryClient.getQueryData<Ticket>(key)!.descriptionStale).toBeUndefined();
@@ -148,7 +151,7 @@ describe("features/ticket/Description", () => {
 	// WT-46. A 412 keeps what the person typed; the notice names the agent.
 	test("a 412 on the description shows the conflict notice and keeps the text", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await armConflict(server);
 		const { advanceTo } = mount("CDE-42", server);
 		await rendered();
@@ -170,7 +173,7 @@ describe("features/ticket/Description", () => {
 	// server takes the person's text over the other writer's text.
 	test("Keep mine sends tickets.update with no expectedVersion", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await armConflict(server);
 		const { advanceTo } = mount("CDE-42", server);
 		await rendered();
@@ -185,7 +188,7 @@ describe("features/ticket/Description", () => {
 		const input = server.callsTo("tickets.update")[1]!.input as { description: string; expectedVersion?: number };
 		expect(input.expectedVersion).toBeUndefined();
 		expect(input.description).toContain("Typed by navid.");
-		expect(findTicket(server.state, "CDE-42")!.description).toContain("Typed by navid.");
+		expect((await ticketRow(server, "CDE-42")).description).toContain("Typed by navid.");
 	});
 
 	// An agent rewrites the description while the editor is open. The
@@ -194,7 +197,7 @@ describe("features/ticket/Description", () => {
 	// and leaves the agent's text on the server.
 	test("an open editor never overwrites a description an agent wrote while it was open", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { queryClient, orpc, advanceTo } = mount("CDE-42", server);
 		const key = orpc.tickets.get.queryKey({ input: { ticket: "CDE-42" } });
 		await rendered();
@@ -214,6 +217,6 @@ describe("features/ticket/Description", () => {
 		act(() => advanceTo(1000));
 		await waitFor(() => expect(server.callsTo("tickets.update")).toHaveLength(2));
 		expect(await screen.findByRole("button", { name: "Keep mine" })).toBeDefined();
-		expect(findTicket(server.state, "CDE-42")!.description).toBe("Agent text v2");
+		expect((await ticketRow(server, "CDE-42")).description).toBe("Agent text v2");
 	});
 });

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { mockClipboard } from "../../../../test/inbox";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { createUiStore, useUiStore } from "../../../stores/uiStore";
 import { useComposerStore } from "../../composer";
 import { ProjectTree } from "./ProjectTree";
@@ -129,7 +129,7 @@ describe("features/sidebar/ProjectTree", () => {
 	// navigates and the tree still toggles from the keyboard.
 	test("expansion toggles from the chevron and persists", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const cde = (await server.client.projects.list({})).find((project) => project.path === "CDE")!;
 		useUiStore.setState({ expandedProjects: { [cde.id]: false } });
 		const first = renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid", server });
@@ -151,7 +151,7 @@ describe("features/sidebar/ProjectTree", () => {
 
 	// WS-100
 	test("the active project row is marked and its ancestors open", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const cde = (await server.client.projects.list({})).find((project) => project.path === "CDE")!;
 		useUiStore.setState({ expandedProjects: { [cde.id]: false } });
 		renderWithProviders(<ProjectTree />, { path: "/p/CDE/web", actor: "navid", server });
@@ -182,7 +182,7 @@ describe("features/sidebar/ProjectTree", () => {
 	// WS-102. A refetch replaces numbers in place. No skeleton and no row
 	// height change, so the sidebar never jumps while counts update.
 	test("counts update in place without a skeleton", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { queryClient, orpc } = renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid", server });
 		const web = await screen.findByRole("link", { name: /^web/ });
 		expect(within(web).getByText("12")).toBeDefined();

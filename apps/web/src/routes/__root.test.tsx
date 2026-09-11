@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { createFakeServer } from "../../test/fake-server";
 import { createFakeScheduler } from "../../test/fakeScheduler";
 import { mockMatchMedia } from "../../test/media";
 import { renderApp } from "../../test/renderWithProviders";
+import { createTestServer } from "../../test/server";
 
 beforeEach(() => {
 	localStorage.clear();
@@ -28,7 +28,7 @@ describe("routes/__root", () => {
 	// WS-66. A server with projects or a stored name has an identity, so only
 	// the empty server stands for "no identity".
 	test("no identity redirects to /setup", async () => {
-		const { router } = renderApp({ path: "/needs-you", server: createFakeServer({ empty: true }) });
+		const { router } = renderApp({ path: "/needs-you", server: createTestServer({ empty: true }) });
 		await waitFor(() => expect(router.state.location.pathname).toBe("/setup"));
 		expect(await screen.findByRole("heading", { name: "Enter your name" })).toBeDefined();
 		expect(screen.queryByRole("complementary", { name: "Sidebar" })).toBeNull();
@@ -37,7 +37,7 @@ describe("routes/__root", () => {
 	// WS-67. An identity without a project lands on the project step. The
 	// step is a search param, so the same form serves a later new project.
 	test("no project redirects to /setup step 2", async () => {
-		const { router } = renderApp({ path: "/all", actor: "navid", server: createFakeServer({ empty: true }) });
+		const { router } = renderApp({ path: "/all", actor: "navid", server: createTestServer({ empty: true }) });
 		await waitFor(() => expect(router.state.location.pathname).toBe("/setup"));
 		expect(await screen.findByRole("heading", { name: "Create your first project" })).toBeDefined();
 		expect((router.state.location.search as { step?: string }).step).toBe("project");

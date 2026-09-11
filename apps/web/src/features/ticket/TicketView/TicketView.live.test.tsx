@@ -3,10 +3,10 @@ import { act, screen, waitFor, within } from "@testing-library/react";
 import { applyEvent, type Ticket } from "@trellis/api";
 import { Toaster } from "@trellis/ui";
 import { deletedEvent, summaryOf, updatedEvent } from "../../../../test/events";
-import { createFakeServer } from "../../../../test/fake-server";
-import { findTicket } from "../../../../test/fake-server/state";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { patchTicket } from "../../../../test/rows";
+import { createTestServer } from "../../../../test/server";
 import { fieldValue, renderTicket, settle } from "../../../../test/ticketHost";
 import { TicketPeek } from "../TicketPeek";
 import { PeekListProvider } from "../TicketPeek/providers/PeekListProvider";
@@ -19,8 +19,8 @@ beforeEach(() => {
 
 // The page for CDE-42 at version 17, with the detail in the cache.
 const page = async () => {
-	const server = createFakeServer();
-	findTicket(server.state, "CDE-42")!.version = 17;
+	const server = createTestServer();
+	await patchTicket(server, "CDE-42", { version: 17 });
 	const view = renderTicket("CDE-42", (ticket) => <TicketView identifier={ticket.identifier} variant="page" />, {
 		path: "/t/CDE-42",
 		server,
@@ -32,7 +32,7 @@ const page = async () => {
 	return { ...view, server, key, cached };
 };
 
-const statusNamed = (server: ReturnType<typeof createFakeServer>, name: string) => {
+const statusNamed = (server: ReturnType<typeof createTestServer>, name: string) => {
 	const status = [...server.state.statuses.values()].find((entry) => entry.name === name)!;
 	return {
 		id: status.id,
@@ -92,9 +92,11 @@ describe("features/ticket/TicketView live", () => {
 		const { server, queryClient, cached } = await page();
 		const before = cached();
 		const gets = server.callsTo("tickets.get").length;
-		const row = findTicket(server.state, "CDE-42")!;
-		row.description = "The agent rewrote this.";
-		row.version = 18;
+		await server.clientAs("agent:claude-code").tickets.update({
+			ticket: "CDE-42",
+			description: "The agent rewrote this.",
+		});
+		await patchTicket(server, "CDE-42", { version: 18 });
 		const summary = { ...summaryOf(before as unknown as Record<string, unknown>), version: 18 };
 		act(() => applyEvent(updatedEvent(summary, ["description"]), queryClient));
 		expect(document.querySelector(".markdown")!.textContent).toContain("1.27");
@@ -108,7 +110,7 @@ describe("features/ticket/TicketView live", () => {
 
 	// WT-106
 	test("a delete event closes the peek", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { router, queryClient } = renderWithProviders(
 			<PeekListProvider rows={[{ identifier: "CDE-42", visible: true }]}>
 				<TicketPeek />

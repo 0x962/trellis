@@ -1,15 +1,17 @@
-import { mkdirSync } from "node:fs";
+import { mkdirSync, mkdtempSync } from "node:fs";
 import { dirname } from "node:path";
 import { createTrellisClient, type FetchLike, type GhStatus, type TrellisClient } from "@trellis/api";
 import type { RequestContext } from "../../../server/src/context.ts";
-import type { ServiceTransport } from "../../../server/src/db/transport.ts";
+import type { InlineTransport, ServiceTransport } from "../../../server/src/db/transport.ts";
 import { fail } from "../../../server/src/errors.ts";
 import { blobPath } from "../../../server/src/storage/blobs.ts";
-import { createTestApp, type TestApp } from "../../../server/test/helpers/app.ts";
+import { createTestApp } from "../../../server/test/helpers/app.ts";
+import { fakeTimerClock } from "../../../server/test/helpers/clock.ts";
+import { ghStub } from "../../../server/test/helpers/gh-stub.ts";
 import { seedSnapshot } from "./cache.ts";
 import { sharedDb } from "./db.ts";
 import { createHooks, type Hooks } from "./hooks.ts";
-import { attachmentBytes } from "./seed/support.ts";
+import { attachmentBytes, type PrSpec, prReplyBody } from "./seed/support.ts";
 import { seedDoneToday } from "./seed/today.ts";
 import { restore } from "./snapshot.ts";
 
@@ -30,6 +32,10 @@ export type TestServerOptions = {
 	// The URLs `system.health` lists.
 	addresses?: string[];
 	maxUploadBytes?: number;
+	// Writes a test needs before the first render, through the same client the
+	// page uses. The calls it makes are not recorded, so a test still counts
+	// the calls its own render made.
+	prepare?: (client: TrellisClient) => Promise<void>;
 };
 
 export const defaultMaxUploadBytes = 50 * 1024 * 1024;
@@ -79,18 +85,25 @@ const writeSeedBlobs = async (home: string, rows: unknown[]) => {
 // and not inside one server.
 let chain: Promise<unknown> = Promise.resolve();
 
-const open = new Set<TestApp>();
+// The gh state one server reports. A test changes it after the build, and
+// the next `system.gh` read answers with the new value.
+type GhHolder = { status: GhStatus };
 
-const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks) => {
+const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh: GhHolder) => {
 	const h = await sharedDb();
 	const snapshot = await seedSnapshot();
+	// The gh runner reads TRELLIS_GH_BIN when it is built, so the stub is
+	// installed around the build and taken out after it. The app keeps the
+	// binary it read, and the replies file stays under its own directory.
+	const stub = ghStub(mkdtempSync(`${process.env.TRELLIS_HOME}/gh-`), {});
 	const app = await createTestApp({
 		db: h,
 		maxUploadMb: (options.maxUploadBytes ?? defaultMaxUploadBytes) / (1024 * 1024),
-		ghStatus: () => options.gh ?? missingGh,
+		ghStatus: () => gh.status,
 		addresses: async () => options.addresses ?? ["http://192.168.1.20:4521", "http://127.0.0.1:4521"],
 		wrapTransport: (inner) => recording(inner, calls, hooks),
 	});
+	stub.restore();
 	if (options.empty === true) {
 		await restore(h.db, { tables: {}, nextActivityId: 1 });
 		await app.transport.start();
@@ -101,8 +114,9 @@ const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks) =>
 		await app.transport.start();
 		await seedDoneToday(app.transport);
 	}
-	open.add(app);
-	return app;
+	if (options.prepare !== undefined) await options.prepare(app.client);
+	calls.length = 0;
+	return { app, stub };
 };
 
 export type TestServer = ReturnType<typeof createTestServer>;
@@ -112,12 +126,13 @@ export type TestServer = ReturnType<typeof createTestServer>;
 export const createTestServer = (options: TestServerOptions = {}) => {
 	const calls: Call[] = [];
 	const hooks = createHooks();
-	const ready = chain.then(() => build(options, calls, hooks));
+	const gh: GhHolder = { status: options.gh ?? missingGh };
+	const ready = chain.then(() => build(options, calls, hooks, gh));
 	chain = ready;
 	// A build that fails reaches the test through the first call; this keeps
 	// the process from reporting an unhandled rejection first.
 	ready.catch(() => undefined);
-	const fetch: FetchLike = async (request, init) => (await ready).app.request(request, init);
+	const fetch: FetchLike = async (request, init) => (await ready).app.app.request(request, init);
 	const clientAs = (actor: string): TrellisClient => createTrellisClient(origin, actor, fetch);
 	return {
 		ready,
@@ -125,24 +140,35 @@ export const createTestServer = (options: TestServerOptions = {}) => {
 		client: clientAs("human:navid"),
 		clientAs,
 		calls,
+		// What `system.gh` reports from the next read on.
+		setGh: (status: GhStatus) => {
+			gh.status = status;
+		},
 		failNext: hooks.failNext,
 		holdNext: hooks.holdNext,
 		// The calls to one service, by its dotted name.
 		callsTo: (path: string) => calls.filter((call) => call.path.join(".") === path),
 		// The event bus the server emits on, for a test that drives a live frame.
-		bus: async () => (await ready).bus,
-		bootId: async () => (await ready).bootId,
-		request: async (input: Request | string, init?: RequestInit) => (await ready).app.request(input, init),
+		bus: async () => (await ready).app.bus,
+		bootId: async () => (await ready).app.bootId,
+		home: async () => (await ready).app.home,
+		request: async (input: Request | string, init?: RequestInit) => (await ready).app.app.request(input, init),
+		// The agents host, on a clock the test moves. It watches every enabled
+		// project, batches the changes it sees, and wakes the managers.
+		startAgents: async () => {
+			const { app } = await ready;
+			const clock = fakeTimerClock(new Date());
+			const host = (app.transport as InlineTransport).startAgents({ clock, log: () => {} });
+			await host.start();
+			return { host, clock };
+		},
+		// The answer the gh stub gives the next pull request fetch.
+		armPr: async (pr: PrSpec) => {
+			const { stub } = await ready;
+			stub.reply("api graphql", { stdout: JSON.stringify(prReplyBody(pr)), stderr: "", exitCode: 0 });
+		},
 		shutdown: async () => {
-			await (await ready).bye("shutdown");
+			await (await ready).app.bye("shutdown");
 		},
 	};
-};
-
-// Closes every server this test file built. The preloaded cleanup file calls
-// it after each test.
-export const closeTestServers = async () => {
-	const apps = [...open];
-	open.clear();
-	for (const app of apps) await app.close();
 };

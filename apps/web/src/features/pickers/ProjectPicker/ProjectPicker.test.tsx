@@ -1,12 +1,12 @@
 import { describe, expect, mock, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { ProjectPicker } from "./ProjectPicker";
 
 // Three roots: CDE with web (and web/auth) and host, TRL, and MRG.
-const server = createFakeServer();
+const server = createTestServer();
 await server.client.projects.create({ parent: "CDE.web", name: "auth" });
 const projects = await server.client.projects.list({});
 

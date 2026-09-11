@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, waitFor } from "@testing-library/react";
-import { createFakeServer } from "../../../../../test/fake-server";
 import { interceptFetch } from "../../../../../test/interceptFetch";
 import { mockMatchMedia } from "../../../../../test/media";
 import { renderHookWithProviders } from "../../../../../test/renderHook";
+import { createTestServer } from "../../../../../test/server";
 import { useSettingsDraft } from "./useSettingsDraft";
 
 beforeEach(() => {
@@ -15,7 +15,7 @@ describe("useSettingsDraft", () => {
 	// The name field saves on blur, and a person types the next field while
 	// that save runs. The save that returns keeps every edit it did not carry.
 	test("a save keeps the edits made while it was in flight", async () => {
-		const held = interceptFetch(createFakeServer(), { match: (text) => text.includes("settings/set") });
+		const held = interceptFetch(createTestServer(), { match: (text) => text.includes("settings/set") });
 		const view = renderHookWithProviders(() => useSettingsDraft(), undefined, {
 			path: "/settings",
 			actor: "navid",
