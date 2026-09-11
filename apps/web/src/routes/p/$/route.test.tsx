@@ -228,7 +228,7 @@ describe("routes/p/$", () => {
 		const group = await screen.findByRole("radiogroup", { name: "View" });
 		expect(within(group).getByRole("radio", { name: "Board" }).getAttribute("aria-checked")).toBe("true");
 		await user.click(within(group).getByRole("radio", { name: "Table" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE/table"));
 		expect(router.state.location.searchStr).toBe("");
 		await user.click(within(group).getByRole("radio", { name: "Board" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE"));

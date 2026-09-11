@@ -39,6 +39,10 @@ export const TicketSummarySchema = z.object({
 	status: StatusSummarySchema,
 	project: ProjectLinkSchema,
 	parent: z.object({ id: UlidSchema, identifier: IdentifierSchema }).nullable(),
+	// Every ticket above this one, the top of the tree first and the parent
+	// last. Empty for a ticket with no parent. A board card draws it as the
+	// trail that leads to the ticket.
+	ancestors: z.array(IdentifierSchema),
 	childCount: CountSchema,
 	childDoneCount: CountSchema,
 	commentCount: CountSchema,

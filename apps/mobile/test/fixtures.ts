@@ -46,6 +46,7 @@ export const ticketSummary = (overrides: Partial<TicketSummary> = {}): TicketSum
 	},
 	project: { id: projectId, key: "CDE", path: "CDE" },
 	parent: null,
+	ancestors: [],
 	childCount: 0,
 	childDoneCount: 0,
 	commentCount: 0,

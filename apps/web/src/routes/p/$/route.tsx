@@ -118,7 +118,7 @@ function ProjectPage() {
 	const switchView = (next: ListView) =>
 		navigate({
 			to: "/p/$",
-			params: { _splat: `${projectSlashPath(ref)}${next === "table" ? "" : "/board"}` },
+			params: { _splat: `${projectSlashPath(ref)}${next === "table" ? "/table" : ""}` },
 			search,
 		});
 

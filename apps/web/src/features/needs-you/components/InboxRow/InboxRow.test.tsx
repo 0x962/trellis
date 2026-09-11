@@ -52,7 +52,14 @@ describe("InboxRow", () => {
 		const richRow = rich.container.querySelector("[data-inbox-row]");
 		expect(richRow).not.toBeNull();
 		const bare = row(
-			ticketSummary({ identifier: "CDE-51", parent: null, childCount: 0, commentCount: 0, pr: null }) as TicketSummary,
+			ticketSummary({
+				identifier: "CDE-51",
+				parent: null,
+				ancestors: [],
+				childCount: 0,
+				commentCount: 0,
+				pr: null,
+			}) as TicketSummary,
 		);
 		const bareRow = bare.container.querySelector("[data-inbox-row]");
 		expect(heightClass(richRow!)).toBeDefined();

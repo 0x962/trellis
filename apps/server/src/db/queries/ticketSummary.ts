@@ -19,6 +19,7 @@ export type SummaryRow = {
 	project_path: string;
 	parent_id: string | null;
 	parent_identifier: string | null;
+	ancestors: string[] | null;
 	child_count: number;
 	child_done_count: number;
 	comment_count: number;
@@ -55,6 +56,7 @@ export const summaryColumns = sql`
 	t.project_id, root.key AS project_key, pp.path AS project_path,
 	par.id AS parent_id,
 	CASE WHEN par.id IS NULL THEN NULL ELSE root.key || '-' || par.number END AS parent_identifier,
+	anc.identifiers AS ancestors,
 	(SELECT count(*)::int FROM tickets c WHERE c.parent_id = t.id) AS child_count,
 	(SELECT count(*)::int FROM tickets c JOIN statuses cs ON cs.id = c.status_id
 		WHERE c.parent_id = t.id AND cs.category = 'done') AS child_done_count,
@@ -85,6 +87,15 @@ export const summaryJoins = sql`
 		WHERE l.ticket_id = t.id
 	) pr ON true
 	LEFT JOIN LATERAL (
+		WITH RECURSIVE chain AS (
+			SELECT a.id, a.parent_id, a.number, 1 AS depth FROM tickets a WHERE a.id = t.parent_id
+			UNION ALL
+			SELECT a.id, a.parent_id, a.number, chain.depth + 1
+			FROM tickets a JOIN chain ON a.id = chain.parent_id
+		)
+		SELECT array_agg(root.key || '-' || chain.number ORDER BY chain.depth DESC) AS identifiers FROM chain
+	) anc ON true
+	LEFT JOIN LATERAL (
 		SELECT a.actor_name, a.actor_kind, a.created_at FROM activity a
 		WHERE a.ticket_id = t.id ORDER BY a.created_at DESC, a.id DESC LIMIT 1
 	) la ON true`;
@@ -110,6 +121,7 @@ export const toSummary = (row: SummaryRow): TicketSummary => ({
 	},
 	project: { id: row.project_id, key: row.project_key, path: row.project_path },
 	parent: row.parent_id === null ? null : { id: row.parent_id, identifier: row.parent_identifier as string },
+	ancestors: row.ancestors ?? [],
 	childCount: row.child_count,
 	childDoneCount: row.child_done_count,
 	commentCount: row.comment_count,
