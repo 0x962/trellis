@@ -11,13 +11,9 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const ready: GhStatus = {
-	ok: true,
-	user: "octocat",
-	reason: null,
-	message: null,
-	checkedAt: new Date(Date.now() - 30_000).toISOString(),
-};
+// The server runs `gh auth status` for every read, so the check time it
+// reports is the instant of the request.
+const ready: GhStatus = { ok: true, user: "octocat", reason: null, message: null, checkedAt: null };
 
 const missing: GhStatus = {
 	ok: false,
@@ -36,7 +32,7 @@ describe("GhBanner", () => {
 	test("shows the ready state with the user and the check time", async () => {
 		render(withGh(ready));
 		expect(await screen.findByText(/octocat/)).toBeDefined();
-		expect(await screen.findByText(/30s ago/)).toBeDefined();
+		expect(await screen.findByText(/just now/)).toBeDefined();
 		expect(screen.queryByRole("alert")).toBeNull();
 	});
 

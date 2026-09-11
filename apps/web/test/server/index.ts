@@ -1,9 +1,11 @@
 import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createTrellisClient, type FetchLike, type GhStatus, type TrellisClient } from "@trellis/api";
+import { ulid } from "ulid";
 import type { RequestContext } from "../../../server/src/context.ts";
 import type { InlineTransport, ServiceTransport } from "../../../server/src/db/transport.ts";
 import { fail } from "../../../server/src/errors.ts";
+import { createGhRunner, type GhResult, type GhRunner } from "../../../server/src/gh/run.ts";
 import { blobPath } from "../../../server/src/storage/blobs.ts";
 import { createTestApp } from "../../../server/test/helpers/app.ts";
 import { fakeTimerClock } from "../../../server/test/helpers/clock.ts";
@@ -54,11 +56,42 @@ const missingGh: GhStatus = {
 	ok: false,
 	user: null,
 	reason: "missing",
-	message: "gh is not installed. Install it with `brew install gh` and run `gh auth login`.",
-	checkedAt: new Date().toISOString(),
+	message: "trellis did not find the gh binary. Install gh, or set TRELLIS_GH_BIN.",
+	checkedAt: null,
 };
 
-const actorHeader = (ctx: RequestContext) => (ctx.actor === null ? null : `${ctx.actor.kind}:${ctx.actor.name}`);
+// What `gh auth status` answers for the state a test set. The server reads
+// the state from that one command, so a test sets the state and the real
+// service turns it into the banner.
+const authResult = (status: GhStatus): GhResult =>
+	status.ok
+		? {
+				ok: true,
+				code: 0,
+				stdout: `github.com\n  Logged in to github.com account ${status.user} (keyring)\n`,
+				stderr: "",
+			}
+		: status.reason === "error"
+			? { ok: false, reason: "error", message: status.message ?? "gh did not answer.", code: 1, stdout: "" }
+			: { ok: false, reason: status.reason ?? "error", message: status.message ?? "" };
+
+// The runner the app spawns, with `auth status` answered in the process. A
+// pull request fetch still reaches the gh stub, so a poll and a refresh run
+// the real command path.
+const ghRunner = (inner: GhRunner, gh: GhHolder): GhRunner =>
+	Object.assign(
+		(slot: Parameters<GhRunner>[0], args: string[]) =>
+			args[0] === "auth" && args[1] === "status" ? Promise.resolve(authResult(gh.status)) : inner(slot, args),
+		{ bin: inner.bin, timeoutMs: inner.timeoutMs },
+	);
+
+// The `x-trellis-actor` header of the request one call belongs to, by the
+// request id the fetch wrapper set. A read carries no actor in its service
+// context, and a test still proves which identity the client sent.
+const actorOfRequest = new Map<string, string | null>();
+
+const actorHeader = (ctx: RequestContext) =>
+	actorOfRequest.get(ctx.reqId) ?? (ctx.actor === null ? null : `${ctx.actor.kind}:${ctx.actor.name}`);
 
 // Records every service call, then applies the hooks a test armed: an armed
 // hold delays the call until the test releases it, and an armed failure
@@ -114,6 +147,7 @@ const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh
 	const app = await createTestApp({
 		db: h,
 		supersetBin,
+		gh: ghRunner(createGhRunner(), gh),
 		maxUploadMb: (options.maxUploadBytes ?? defaultMaxUploadBytes) / (1024 * 1024),
 		ghStatus: () => gh.status,
 		addresses: async () => gh.addresses,
@@ -150,7 +184,16 @@ export const createTestServer = (options: TestServerOptions = {}) => {
 	// A build that fails reaches the test through the first call; this keeps
 	// the process from reporting an unhandled rejection first.
 	ready.catch(() => undefined);
-	const fetch: FetchLike = async (request, init) => (await ready).app.app.request(request, init);
+	// Every request carries a request id, so the calls it makes are recorded
+	// with the identity the client sent.
+	const fetch: FetchLike = async (request, init) => {
+		const reqId = ulid();
+		const headers = new Headers(request.headers);
+		headers.set("x-request-id", reqId);
+		actorOfRequest.set(reqId, request.headers.get("x-trellis-actor"));
+		const { app } = await ready;
+		return app.app.request(new Request(request, { headers }), init);
+	};
 	const clientAs = (actor: string): TrellisClient => createTrellisClient(origin, actor, fetch);
 	return {
 		ready,

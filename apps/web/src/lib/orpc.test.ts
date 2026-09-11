@@ -16,7 +16,7 @@ describe("lib/orpc", () => {
 		const { client } = createOrpc({
 			fetch: (request, init) => {
 				requests.push(request.clone());
-				return server.app.request(request, init);
+				return server.request(request, init);
 			},
 		});
 		const [projects, inbox] = await Promise.all([client.projects.list({}), client.inbox.get({})]);
@@ -39,7 +39,7 @@ describe("lib/orpc", () => {
 		const { client } = createOrpc({
 			fetch: (request, init) => {
 				paths.push(new URL(request.url).pathname);
-				return server.app.request(request, init);
+				return server.request(request, init);
 			},
 		});
 		await Promise.all([client.statuses.list({ project: "CDE" }), client.projects.list({}), client.inbox.get({})]);
@@ -59,7 +59,7 @@ describe("lib/orpc", () => {
 		expect(defaults.staleTime).toBe(Number.POSITIVE_INFINITY);
 		expect(defaults.retry).toBe(false);
 		const server = createTestServer();
-		const local = createOrpc({ fetch: (request, init) => server.app.request(request, init) });
+		const local = createOrpc({ fetch: (request, init) => server.request(request, init) });
 		expect(local.queryClient.getDefaultOptions().queries!.staleTime).toBe(Number.POSITIVE_INFINITY);
 		const projects = await local.queryClient.fetchQuery(local.orpc.projects.list.queryOptions({ input: {} }));
 		expect(projects.map((project) => project.path)).toContain("CDE");
