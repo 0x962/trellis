@@ -244,6 +244,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "gh.status":
 				enqueue([family("system", "gh")]);
 				return;
+			case "personas.changed":
+				enqueue([family("personas", "list")]);
+				return;
 			case "reset":
 				invalidateAll();
 				return;

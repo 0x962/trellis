@@ -5,6 +5,7 @@ export * from "./brief.ts";
 export * from "./comment.ts";
 export * from "./enums.ts";
 export * from "./inbox.ts";
+export * from "./persona.ts";
 export * from "./primitives.ts";
 export * from "./project.ts";
 export * from "./pullRequest.ts";

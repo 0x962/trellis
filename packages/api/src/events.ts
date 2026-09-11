@@ -23,6 +23,7 @@ export const eventNames = [
 	"project.deleted",
 	"project.moved",
 	"gh.status",
+	"personas.changed",
 	"reset",
 	"ready",
 	"bye",
@@ -86,6 +87,10 @@ export const ProjectEventPayloadSchema = z.object({
 	id: UlidSchema,
 });
 
+export const PersonasChangedPayloadSchema = z.object({
+	id: UlidSchema,
+});
+
 // `reason` is present when `ok` is false.
 export const GhStatusPayloadSchema = z.object({
 	ok: z.boolean(),
@@ -133,6 +138,7 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("project.deleted", ProjectEventPayloadSchema),
 	typed("project.moved", ProjectEventPayloadSchema),
 	typed("gh.status", GhStatusPayloadSchema),
+	typed("personas.changed", PersonasChangedPayloadSchema),
 	typed("reset", ResetPayloadSchema),
 	typed("ready", ReadyPayloadSchema),
 	typed("bye", ByePayloadSchema),

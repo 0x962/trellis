@@ -5,6 +5,7 @@ import {
 	type Attachment,
 	type Comment,
 	type GhStatus,
+	type Persona,
 	type Priority,
 	type PrLinkSource,
 	type PullRequest,
@@ -73,6 +74,7 @@ export type PrLink = {
 };
 
 export type State = {
+	personas: Map<string, Persona>;
 	projects: Map<string, ProjectRow>;
 	statuses: Map<string, Status>;
 	tickets: Map<string, TicketRow>;
@@ -98,6 +100,7 @@ export type State = {
 };
 
 export const createState = (): State => ({
+	personas: new Map(),
 	projects: new Map(),
 	statuses: new Map(),
 	tickets: new Map(),

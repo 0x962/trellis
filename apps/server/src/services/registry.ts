@@ -4,6 +4,7 @@ import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
 import * as comments from "./comments.ts";
 import * as inbox from "./inbox.ts";
+import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
 import * as search from "./search.ts";
@@ -43,6 +44,9 @@ const prepared = (kind: ServiceKind, prepare: Prepare, run: Run): ServiceEntry =
 });
 
 export const services = {
+	"personas.list": core("read", personas.list),
+	"personas.create": core("mutation", personas.create),
+	"personas.update": core("mutation", personas.update),
 	"projects.list": core("read", projects.list),
 	"projects.get": core("read", projects.get),
 	"projects.create": core("mutation", projects.create),

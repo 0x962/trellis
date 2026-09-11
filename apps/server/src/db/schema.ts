@@ -18,6 +18,7 @@ import { actorColumns, actorFk, at } from "./tables/actors.ts";
 import { projects, statuses } from "./tables/projects.ts";
 
 export * from "./tables/actors.ts";
+export * from "./tables/personas.ts";
 export * from "./tables/projects.ts";
 
 // drizzle-kit reads this file and every table it exports. Each table is

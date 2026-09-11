@@ -41,6 +41,9 @@ describe("contract", () => {
 			"comments.thread GET /comments/{id}/thread",
 			"comments.update PATCH /comments/{id}",
 			"inbox.get GET /inbox",
+			"personas.create POST /personas",
+			"personas.list GET /personas",
+			"personas.update PATCH /personas/{id}",
 			"projects.create POST /projects",
 			"projects.delete DELETE /projects/{project}",
 			"projects.get GET /projects/{project}",
@@ -77,7 +80,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(48);
+		expect(table).toHaveLength(51);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

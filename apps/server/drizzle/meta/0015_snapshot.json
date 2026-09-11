@@ -1,6 +1,6 @@
 {
-  "id": "84b93f7a-e4be-44aa-a4f7-7f9b4363a617",
-  "prevId": "ef84f973-e8bc-45dd-be8a-1ed05d29441c",
+  "id": "43afaf6f-ba93-4ec6-b8b4-933bb4ee2f48",
+  "prevId": "84b93f7a-e4be-44aa-a4f7-7f9b4363a617",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -435,6 +435,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "actor_name": {
           "name": "actor_name",
           "type": "text",
@@ -461,6 +473,21 @@
         }
       },
       "indexes": {
+        "comments_parent_id_idx": {
+          "name": "comments_parent_id_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "comments_ticket_id_created_at_idx": {
           "name": "comments_ticket_id_created_at_idx",
           "columns": [
@@ -511,12 +538,44 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "comments_parent_fk": {
+          "name": "comments_parent_fk",
+          "tableFrom": "comments",
+          "tableTo": "comments",
+          "columnsFrom": [
+            "parent_id",
+            "ticket_id"
+          ],
+          "columnsTo": [
+            "id",
+            "ticket_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "comments_id_ticket_id_unique": {
+          "name": "comments_id_ticket_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "ticket_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {
+        "comments_parent_check": {
+          "name": "comments_parent_check",
+          "value": "\"comments\".\"parent_id\" <> \"comments\".\"id\""
+        },
+        "comments_resolved_root_check": {
+          "name": "comments_resolved_root_check",
+          "value": "\"comments\".\"parent_id\" IS NULL OR \"comments\".\"resolved_at\" IS NULL"
+        },
         "comments_body_check": {
           "name": "comments_body_check",
           "value": "length(\"comments\".\"body\") BETWEEN 1 AND 200000"
