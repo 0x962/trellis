@@ -11,6 +11,9 @@ export type DialogProps = {
 	// A row the caller draws in place of the heading, such as a project
 	// chip and a close button. The title then stays for assistive tech only.
 	header?: ReactNode;
+	// A bare dialog draws no heading block at all. The title stays in the
+	// DOM for assistive tech, and the caller draws every visible part.
+	bare?: boolean;
 	description?: string;
 	children: ReactNode;
 	modal?: boolean | "trap-focus";
@@ -38,6 +41,7 @@ export function Dialog({
 	onOpenChange,
 	title,
 	header,
+	bare = false,
 	description,
 	children,
 	modal = true,
@@ -61,19 +65,22 @@ export function Dialog({
 						className,
 					)}
 				>
-					<div className="flex flex-col gap-1">
-						{header === undefined ? (
-							<BaseDialog.Title className="text-md font-semibold text-fg">{title}</BaseDialog.Title>
-						) : (
-							<>
-								<BaseDialog.Title className="sr-only">{title}</BaseDialog.Title>
-								{header}
-							</>
-						)}
-						{description && (
-							<BaseDialog.Description className="text-sm text-fg-muted">{description}</BaseDialog.Description>
-						)}
-					</div>
+					{bare && <BaseDialog.Title className="sr-only">{title}</BaseDialog.Title>}
+					{!bare && (
+						<div className="flex flex-col gap-1">
+							{header === undefined ? (
+								<BaseDialog.Title className="text-md font-semibold text-fg">{title}</BaseDialog.Title>
+							) : (
+								<>
+									<BaseDialog.Title className="sr-only">{title}</BaseDialog.Title>
+									{header}
+								</>
+							)}
+							{description && (
+								<BaseDialog.Description className="text-sm text-fg-muted">{description}</BaseDialog.Description>
+							)}
+						</div>
+					)}
 					{children}
 				</BaseDialog.Popup>
 			</BaseDialog.Portal>

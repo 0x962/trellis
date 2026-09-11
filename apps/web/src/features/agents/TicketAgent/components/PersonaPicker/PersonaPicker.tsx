@@ -1,3 +1,4 @@
+import { ORPCError } from "@orpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Button, Command, type CommandGroup, Popover } from "@trellis/ui";
@@ -54,7 +55,11 @@ export function PersonaPicker({ ticket, disabled }: { ticket: string; disabled: 
 	];
 	const loading = personas.isPending || history.isPending;
 	const loadError = personas.error ?? history.error;
-	const error = start.error?.message ?? (start.data?.state === "failed" ? start.data.error : null);
+	const startError =
+		start.error instanceof ORPCError && start.error.code === "INPUT_VALIDATION_FAILED"
+			? (start.error.data as { issues: { message: string }[] }).issues[0]!.message
+			: start.error?.message;
+	const error = startError ?? (start.data?.state === "failed" ? start.data.error : null);
 	return (
 		<Popover
 			label="Assign a persona"
