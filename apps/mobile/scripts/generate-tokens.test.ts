@@ -50,7 +50,9 @@ describe("generate-tokens", () => {
 		expect(tokens.dark.bg).toBe("#0A0A0A");
 		expect(tokens.light.accent).toBe("#009FFF");
 		expect(tokens.dark.accent).toBe("#009FFF");
-		expect(Object.values(tokens.radius)).toEqual([4, 6, 8, 12]);
+		expect(tokens.radius).toMatchObject({ sm: 0, md: 0, lg: 0, xl: 0 });
+		expect(Object.values(tokens.radius).every((radius) => radius === 0)).toBe(true);
+		expect(tokens.hairline).toBe(1);
 		expect(Object.values(tokens.text)).toEqual([11, 12, 13, 14, 16, 20, 24]);
 		expect(typeof tokens.font.sans).toBe("string");
 		expect(typeof tokens.font.mono).toBe("string");

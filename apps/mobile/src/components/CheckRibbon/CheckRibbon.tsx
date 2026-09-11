@@ -49,7 +49,7 @@ export function CheckRibbon({ checks, size = "full" }: CheckRibbonProps) {
 					style={{
 						width: segment.width,
 						height: "100%",
-						borderRadius: tokens.hairline,
+						borderRadius: tokens.radius.hairline,
 						backgroundColor: palette[buckets[segment.bucket]],
 					}}
 				/>

@@ -88,8 +88,8 @@ ${palette(dark)}
 	micro: { ${numbers(omit(sizes, scaleSteps))} },
 	// Half of the 4 px base, for a 2 px gap.
 	space: { half: ${spacingBase / 2}, ${numbers(space)} },
-	radius: { ${numbers(omit(radii, ["hairline"]))} },
-	hairline: ${radii.hairline!},
+	radius: { ${numbers(radii)} },
+	hairline: ${pxScale("border-width").hairline!},
 };
 
 export type ColorToken = keyof typeof tokens.light;

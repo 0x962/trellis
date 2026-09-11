@@ -50,7 +50,7 @@ export function PrCell({ pr, density }: PrCellProps) {
 					data-ci-dot={pr.ciState}
 					role="img"
 					aria-label={ciLabels[pr.ciState]}
-					className={cx("size-1.5 shrink-0 rounded-full", dots[pr.ciState])}
+					className={cx("size-1.5 shrink-0 rounded-sm", dots[pr.ciState])}
 				/>
 			)}
 		</span>
