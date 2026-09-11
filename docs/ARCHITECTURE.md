@@ -80,7 +80,7 @@ The [Personas spec](design/personas.md) defines the fields and outcomes.
 - A project delete needs an empty subtree or `force`.
 
 Agents use persona snapshots. `agentRuns` exposes start, list, stop, refresh, send, and output.
-The Agents page uses cards grouped by kind. The ticket rail opens an assignment slideout.
+The ticket rail opens a searchable persona picker, with frequent personas first. Each project has a Manager page with its persona, concurrency, directory, repositories, and manager controls.
 Settings stores the launch-command template. The default opens a Superset terminal.
 Custom commands run in private tmux sessions that survive a Trellis restart.
 The [agent spec](design/persona-agents.md) defines the behavior.

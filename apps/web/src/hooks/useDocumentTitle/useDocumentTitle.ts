@@ -12,6 +12,7 @@ const pageName = (pathname: string): string | null => {
 	if (pathname.startsWith("/p/")) {
 		const { ref, view } = parseProjectSplat(pathname.slice(3));
 		const path = ref.split(".").join(" › ");
+		if (view === "manager") return `${path} › Manager`;
 		return view === "settings" ? `${path} › Settings` : path;
 	}
 	return null;

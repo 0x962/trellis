@@ -77,6 +77,13 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	const project = await resolveProject(ctx, tx, input.project);
 	if (input.archived !== false) assertProjectActive(ctx, project.id);
 	const row = await projectRow(tx, project.id);
+	if (input.managerConfig?.personaId != null) {
+		const [persona] = await rows<{ kind: string }>(
+			tx,
+			sql`SELECT kind FROM personas WHERE id = ${input.managerConfig.personaId}`,
+		);
+		if (persona?.kind !== "manager") throw invalidInput("managerConfig.personaId", "Select a manager persona.");
+	}
 	const renamed = input.name !== undefined && input.name !== row.name;
 	const restored = input.archived === false && row.archived_at !== null;
 	if (project.parentId === null && (renamed || restored))
@@ -85,6 +92,16 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	field("name", row.name, input.name, sql`name = ${input.name}`);
 	field("description", row.description, input.description, sql`description = ${input.description}`);
 	field("ticketTemplate", row.ticket_template, input.ticketTemplate, sql`ticket_template = ${input.ticketTemplate}`);
+	field(
+		"managerConfig",
+		JSON.stringify({
+			personaId: row.manager_config.personaId,
+			concurrency: row.manager_config.concurrency,
+			directory: row.manager_config.directory,
+		}),
+		input.managerConfig === undefined ? undefined : JSON.stringify(input.managerConfig),
+		sql`manager_config = ${JSON.stringify(input.managerConfig)}::jsonb`,
+	);
 	if (input.slug !== undefined && input.slug !== project.slug) {
 		if (project.parentId === null)
 			throw invalidInput("slug", "A root project takes its slug from its key. Change the key instead.");

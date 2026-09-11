@@ -149,6 +149,7 @@ export const fullProject = (state: State, project: ProjectRow): Project => {
 		...projectSummary(state, project),
 		description: project.description,
 		ticketTemplate: project.ticketTemplate,
+		managerConfig: project.managerConfig,
 		ticketCounter: project.ticketCounter,
 		createdAt: project.createdAt,
 		updatedAt: project.updatedAt,

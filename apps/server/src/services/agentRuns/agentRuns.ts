@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentRun, AgentRunListInput, AgentRunStartInput, Persona } from "@trellis/api";
 import { DEFAULT_AGENT_LAUNCH_COMMAND } from "@trellis/api";
@@ -16,6 +16,7 @@ import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
+import { projectRow } from "../projectRows.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveProject, resolveTicket } from "../refs.ts";
 import { get as getSettings } from "../settings.ts";
 import type { ServiceCtx } from "../support.ts";
@@ -62,6 +63,14 @@ const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
 	const project = await resolveMutableProject(ctx, tx, ticket?.projectId ?? input.project!);
 	assertProjectActive(ctx, project.id);
 	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
+	const config = (await projectRow(tx, project.id)).manager_config;
+	if (ticket !== null) {
+		const [active] = await rows<{ count: number }>(
+			tx,
+			sql`SELECT count(*)::int AS count FROM agent_runs WHERE project_id = ${project.id} AND kind <> 'manager' AND state IN ('starting', 'running', 'interrupted')`,
+		);
+		if (active!.count >= config.concurrency) throw fail("DUPLICATE", { field: "project concurrency limit" });
+	}
 	const projectPath = pathOf(ctx.cache, project.id);
 	const ids = chainOf(ctx.cache, project.id).map((item) => item.id);
 	const repos = await rows<{ owner: string; repo: string }>(
@@ -88,7 +97,8 @@ const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
 	return {
 		run,
 		repos,
-		context: `${context}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}`,
+		config,
+		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || "Use the agent workspace."}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}`,
 	};
 };
 
@@ -100,13 +110,15 @@ const recordError = (ctx: Ctx, id: string, error: string, state: AgentRun["state
 	);
 
 export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
-	const { run, repos, context } = await ctx.newTx((tx) => reserve(ctx.core, tx, input));
+	const { run, repos, context, config } = await ctx.newTx((tx) => reserve(ctx.core, tx, input));
 	ctx.emit({ type: "agent-runs.changed", id: run.id });
 	const runner = superset(ctx.supersetBin);
 	const settings = await ctx.newTx((tx) => getSettings(ctx.core, tx));
 	const template = settings.agentLaunchCommand ?? DEFAULT_AGENT_LAUNCH_COMMAND;
 	const tracksSuperset = template.includes("{{superset}}");
 	const project = await attempt(async () => {
+		if (run.kind === "manager" && config.directory && !(await stat(config.directory)).isDirectory())
+			throw new Error(`Not a directory: ${config.directory}`);
 		if (!template.includes("{{projectId}}")) return "";
 		const projects = await runner.projects();
 		const matches = projects.filter((project) =>
@@ -121,10 +133,18 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 		await recordError(ctx, run.id, project.error, "failed");
 		return { id: run.id };
 	}
-	const launch = launchCommand({ run, url: ctx.localUrl, context });
-	const workDir = join(ctx.home, "agents", run.id, "work");
+	const launch = launchCommand({
+		run,
+		url: ctx.localUrl,
+		context,
+		directory: run.kind === "manager" ? config.directory : "",
+	});
+	const workDir =
+		run.kind === "manager" && config.directory ? config.directory : join(ctx.home, "agents", run.id, "work");
 	const command = expandLaunchTemplate(template, {
 		workDir,
+		projectDir: config.directory,
+		concurrency: String(config.concurrency),
 		superset: ctx.supersetBin,
 		projectId: project.value,
 		project: run.projectPath,
@@ -138,7 +158,9 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 		agentCommand: launch.command,
 	});
 	await ctx.newTx((tx) =>
-		tx.execute(sql`UPDATE agent_runs SET runtime = ${tracksSuperset ? "superset" : "tmux"} WHERE id = ${run.id}`),
+		tx.execute(
+			sql`UPDATE agent_runs SET runtime = ${tracksSuperset ? "superset" : "tmux"}, workspace_id = ${tracksSuperset ? null : workDir} WHERE id = ${run.id}`,
+		),
 	);
 	const launched = await attempt(() =>
 		tracksSuperset
@@ -213,7 +235,7 @@ export const prepareRefresh = async (ctx: Ctx, input: { id: string }) => {
 	if (run.state === "interrupted" && run.runtime === "tmux")
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET terminal_id = ${run.id}, workspace_id = ${join(ctx.home, "agents", run.id, "work")} WHERE id = ${run.id}`,
+				sql`UPDATE agent_runs SET terminal_id = ${run.id}, workspace_id = COALESCE(workspace_id, ${join(ctx.home, "agents", run.id, "work")}) WHERE id = ${run.id}`,
 			),
 		);
 	const exited = await attempt(() =>
