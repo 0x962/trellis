@@ -27,9 +27,10 @@ describe("agents.startBuilder refusals", () => {
 
 	test("a Superset project id in the settings wins over the repo match", async () => {
 		await a.enable({ supersetProjectId: "sp-chosen" });
+		expect(a.stub.callsOf("projects list")).toHaveLength(1);
 		await a.t.createTicket({ project: a.key, title: "Fix login" });
 		expect((await start(a.ticket(1))).status).toBe(200);
-		expect(a.stub.callsOf("projects list")).toEqual([]);
+		expect(a.stub.callsOf("projects list")).toHaveLength(1);
 		expect(a.stub.state().workspaces.at(-1)!.projectId).toBe("sp-chosen");
 	});
 
