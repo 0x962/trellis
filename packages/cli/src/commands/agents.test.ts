@@ -1,160 +1,122 @@
 import { describe, expect, test } from "bun:test";
-import { agentSession, managerSession, sessionId } from "../../test/agentFixtures.ts";
 import { lines, runCli } from "../../test/deps.ts";
 import { rpcError } from "../../test/fakeServer.ts";
-import { activity, comment, ticketSummary } from "../../test/fixtures.ts";
+import { agentRun, agentRunId, persona, personaId, personaId2 } from "../../test/fixtures.ts";
 
-const pr = "https://github.com/o/r/pull/7";
-
-const inboxAnswer = () => ({
-	events: [activity()],
-	tickets: [ticketSummary()],
-	comments: [comment()],
-	cursor: 7,
-	more: false,
-});
-
-describe("agents inbox", () => {
-	test("reads the inbox of the project and prints the procedure output as JSON", async () => {
-		const result = await runCli(["agents", "inbox", "--project", "CDE", "--json"], {
-			"agents.inbox": inboxAnswer(),
-		});
-		expect(result.code).toBe(0);
-		expect(result.calls.map((call) => call.input)).toEqual([{ project: "CDE" }]);
-		expect(result.calls[0]!.path).toBe("agents.inbox");
-		expect(JSON.parse(result.stdout)).toEqual(inboxAnswer());
-	});
-
-	test("on a TTY it prints each event with its ticket, each comment body, and the cursor", async () => {
+describe("agents list", () => {
+	// CLI-124
+	test("agents list passes the ticket and the project filters", async () => {
 		const result = await runCli(
-			["agents", "inbox", "--project", "CDE"],
-			{ "agents.inbox": inboxAnswer() },
+			["agents", "list", "--ticket", "CDE-42"],
+			{ "agentRuns.list": [agentRun()] },
 			{ tty: true },
 		);
 		expect(result.code).toBe(0);
-		for (const fragment of ["CDE-42", "ticket.moved", "human:dana", "todo -> human-review", "Body A", "cursor 7"]) {
-			expect(result.stdout, fragment).toContain(fragment);
-		}
-	});
+		expect(result.calls[0]).toMatchObject({ path: "agentRuns.list", input: { ticket: "CDE-42" } });
+		const [header, ...rows] = lines(result.stdout);
+		const names = header!
+			.trim()
+			.split(/\s{2,}/)
+			.map((name) => name.toLowerCase());
+		for (const name of ["id", "name", "kind", "persona", "state", "ticket"]) expect(names, name).toContain(name);
+		expect(rows[0]).toContain("Iris Brooks");
+		expect(rows[0]).toContain("running");
 
-	test("without --project it exits 2 and sends nothing", async () => {
-		const result = await runCli(["agents", "inbox"]);
-		expect(result.code).toBe(2);
-		expect(lines(result.stderr)).toHaveLength(1);
-		expect(result.stderr).toContain("--project");
-		expect(result.calls).toEqual([]);
-	});
-});
+		const project = await runCli(["agents", "list", "--project", "CDE"], { "agentRuns.list": [] });
+		expect(project.calls[0]!.input).toEqual({ project: "CDE" });
 
-describe("agents register", () => {
-	const superset = {
-		CLAUDECODE: "1",
-		SUPERSET_WORKSPACE_ID: "ws-env",
-		SUPERSET_TERMINAL_ID: "term-env",
-		CLAUDE_CODE_SESSION_ID: "claude-env",
-	};
-
-	test("reads the workspace, the terminal, and the Claude session from the environment", async () => {
-		const result = await runCli(
-			["agents", "register", "--role", "manager", "--project", "CDE"],
-			{ "agents.register": managerSession() },
-			{ env: superset },
-		);
-		expect(result.code).toBe(0);
-		expect(result.calls[0]).toMatchObject({ path: "agents.register" });
-		expect(result.calls[0]!.input).toEqual({
-			role: "manager",
-			project: "CDE",
-			workspaceId: "ws-env",
-			terminalId: "term-env",
-			claudeSessionId: "claude-env",
-		});
-	});
-
-	test("flags win over the environment and a builder names its ticket", async () => {
-		const argv = [
-			...["agents", "register", "--role", "builder", "--project", "CDE", "--ticket", "CDE-42"],
-			...["--workspace", "ws-flag", "--terminal", "term-flag", "--claude-session", "claude-flag"],
-		];
-		const result = await runCli(argv, { "agents.register": agentSession() }, { env: superset });
-		expect(result.code).toBe(0);
-		expect(result.calls[0]!.input).toEqual({
-			role: "builder",
-			project: "CDE",
-			ticket: "CDE-42",
-			workspaceId: "ws-flag",
-			terminalId: "term-flag",
-			claudeSessionId: "claude-flag",
-		});
-	});
-
-	test("outside Superset without flags it exits 2, names the variable, and sends nothing", async () => {
-		const result = await runCli(["agents", "register", "--role", "manager", "--project", "CDE"]);
-		expect(result.code).toBe(2);
-		expect(lines(result.stderr)).toHaveLength(1);
-		expect(result.stderr).toContain("SUPERSET_WORKSPACE_ID");
-		expect(result.calls).toEqual([]);
+		const all = await runCli(["agents", "list"], { "agentRuns.list": [] });
+		expect(all.calls[0]!.input).toEqual({});
 	});
 });
 
 describe("agents start", () => {
-	test("starts a builder for the ticket and prints the session", async () => {
-		const result = await runCli(["agents", "start", "CDE-42", "--json"], { "agents.startBuilder": agentSession() });
-		expect(result.code).toBe(0);
-		expect(result.calls[0]).toMatchObject({ path: "agents.startBuilder", input: { ticket: "CDE-42" } });
-		expect(JSON.parse(result.stdout)).toEqual(agentSession());
+	// CLI-125: the start route takes a persona id, so the verb reads the
+	// persona list and matches the ref there first.
+	test("agents start resolves the persona by id and by name", async () => {
+		const byId = await runCli(["agents", "start", personaId, "--ticket", "CDE-42"], {
+			"personas.list": [persona()],
+			"agentRuns.start": agentRun(),
+		});
+		expect(byId.code).toBe(0);
+		expect(byId.calls.map((call) => call.path)).toEqual(["personas.list", "agentRuns.start"]);
+		expect(byId.calls[1]!.input).toEqual({ personaId, ticket: "CDE-42" });
+
+		const byName = await runCli(["agents", "start", "Trellis Manager", "--project", "CDE"], {
+			"personas.list": [persona(), persona({ id: personaId2, name: "Trellis Manager", kind: "manager" })],
+			"agentRuns.start": agentRun({ kind: "manager", ticketId: null, ticketIdentifier: null }),
+		});
+		expect(byName.code).toBe(0);
+		expect(byName.calls.map((call) => call.path)).toEqual(["personas.list", "agentRuns.start"]);
+		expect(byName.calls[1]!.input).toEqual({ personaId: personaId2, project: "CDE" });
+
+		const missing = await runCli(["agents", "start", "Nobody", "--ticket", "CDE-42"], { "personas.list": [persona()] });
+		expect(missing.code).toBe(3);
+		expect(missing.calls.map((call) => call.path)).toEqual(["personas.list"]);
 	});
 
-	test("at the limit it exits 4 with one line that states the limit", async () => {
-		const result = await runCli(["agents", "start", "CDE-43"], {
-			"agents.startBuilder": rpcError("CONCURRENCY_LIMIT", { limit: 3, running: 3 }),
-		});
-		expect(result.code).toBe(4);
-		expect(lines(result.stderr)).toHaveLength(1);
-		expect(result.stderr).toContain("3 of 3 builders are running.");
-		expect(result.stderr).toEndWith(" (CONCURRENCY_LIMIT)\n");
-	});
-
-	test("without a runner it exits 6 with one line that states the reason", async () => {
-		const result = await runCli(["agents", "start", "CDE-42"], {
-			"agents.startBuilder": rpcError("RUNNER_UNAVAILABLE", { reason: "unmapped" }),
-		});
+	// CLI-126: the row is stored before the terminal comes up, so a failed
+	// start answers a row. The verb prints it and signals the failure.
+	test("agents start exits 6 when the terminal does not come up", async () => {
+		const row = agentRun({ state: "failed", error: "no Superset project matches the repositories", url: null });
+		const result = await runCli(
+			["agents", "start", personaId, "--ticket", "CDE-42"],
+			{ "personas.list": [persona()], "agentRuns.start": row },
+			{ tty: true },
+		);
 		expect(result.code).toBe(6);
+		expect(result.stdout).toContain("failed");
 		expect(lines(result.stderr)).toHaveLength(1);
-		expect(result.stderr).toContain("Reason: unmapped.");
-		expect(result.stderr).toEndWith(" (RUNNER_UNAVAILABLE)\n");
-	});
-});
+		expect(result.stderr).toContain("no Superset project matches the repositories");
 
-describe("agents review", () => {
-	test("starts a reviewer for the ticket and the PR", async () => {
-		const reviewer = agentSession({ role: "reviewer", title: "CDE-42 review" });
-		const result = await runCli(["agents", "review", "CDE-42", "--pr", pr], { "agents.startReviewer": reviewer });
-		expect(result.code).toBe(0);
-		expect(result.calls[0]).toMatchObject({ path: "agents.startReviewer", input: { ticket: "CDE-42", prUrl: pr } });
-
-		const invalid = await runCli(["agents", "review", "CDE-42", "--pr", "https://example.com"], {
-			"agents.startReviewer": rpcError("INVALID_PR_URL"),
+		const busy = await runCli(["agents", "start", personaId, "--ticket", "CDE-42"], {
+			"personas.list": [persona()],
+			"agentRuns.start": rpcError("DUPLICATE", { field: "project concurrency limit" }),
 		});
-		expect(invalid.code).toBe(4);
-		expect(invalid.stderr).toEndWith(" (INVALID_PR_URL)\n");
-	});
-
-	test("without --pr it exits 2 and sends nothing", async () => {
-		const result = await runCli(["agents", "review", "CDE-42"]);
-		expect(result.code).toBe(2);
-		expect(lines(result.stderr)).toHaveLength(1);
-		expect(result.stderr).toContain("--pr");
-		expect(result.calls).toEqual([]);
+		expect(busy.code).toBe(4);
+		expect(busy.stderr).toEndWith(" (DUPLICATE)\n");
 	});
 });
 
-describe("agents stop", () => {
-	test("stops the session by its id and prints it", async () => {
-		const stopped = agentSession({ state: "stopped" });
-		const result = await runCli(["agents", "stop", sessionId, "--json"], { "agents.stop": stopped });
-		expect(result.code).toBe(0);
-		expect(result.calls[0]).toMatchObject({ path: "agents.stop", input: { id: sessionId } });
-		expect(JSON.parse(result.stdout)).toEqual(stopped);
+describe("agents refresh, stop, send, and output", () => {
+	// CLI-127
+	test("the id verbs map their args and print the row", async () => {
+		const refresh = await runCli(["agents", "refresh", agentRunId], { "agentRuns.refresh": agentRun() });
+		expect(refresh.code).toBe(0);
+		expect(refresh.calls[0]).toMatchObject({ path: "agentRuns.refresh", input: { id: agentRunId } });
+
+		const stop = await runCli(["agents", "stop", agentRunId], { "agentRuns.stop": agentRun({ state: "stopped" }) });
+		expect(stop.code).toBe(0);
+		expect(stop.calls[0]).toMatchObject({ path: "agentRuns.stop", input: { id: agentRunId } });
+		expect(JSON.parse(stop.stdout)).toMatchObject({ state: "stopped" });
+
+		const send = await runCli(["agents", "send", agentRunId, "--text", "CI is red"], {
+			"agentRuns.send": agentRun(),
+		});
+		expect(send.code).toBe(0);
+		expect(send.calls[0]!.input).toEqual({ id: agentRunId, text: "CI is red" });
+
+		const piped = await runCli(
+			["agents", "send", agentRunId, "--text", "-"],
+			{ "agentRuns.send": agentRun() },
+			{ stdin: "the whole review" },
+		);
+		expect(piped.calls[0]!.input).toEqual({ id: agentRunId, text: "the whole review" });
+	});
+
+	// CLI-128: the terminal text goes into a manager's context, so it prints
+	// verbatim on a TTY and on a pipe alike.
+	test("agents output prints the text and --json wraps it", async () => {
+		const text = "$ bun test\n1 pass\n";
+		const tty = await runCli(["agents", "output", agentRunId], { "agentRuns.output": { text } }, { tty: true });
+		expect(tty.code).toBe(0);
+		expect(tty.calls[0]).toMatchObject({ path: "agentRuns.output", input: { id: agentRunId } });
+		expect(tty.stdout).toBe(text);
+
+		const piped = await runCli(["agents", "output", agentRunId], { "agentRuns.output": { text } });
+		expect(piped.stdout).toBe(text);
+
+		const asJson = await runCli(["agents", "output", agentRunId, "--json"], { "agentRuns.output": { text } });
+		expect(JSON.parse(asJson.stdout)).toEqual({ text });
 	});
 });

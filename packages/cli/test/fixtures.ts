@@ -14,6 +14,9 @@ export const attachmentId = "01J8Z6X4Q3M2K1H0G9F8E7D6A1";
 export const prId = "01J8Z6X4Q3M2K1H0G9F8E7D6R1";
 export const repoId = "01J8Z6X4Q3M2K1H0G9F8E7D6E1";
 export const bootId = "01J8Z6X4Q3M2K1H0G9F8E7D6B0";
+export const personaId = "01J8Z6X4Q3M2K1H0G9F8E7D6N1";
+export const personaId2 = "01J8Z6X4Q3M2K1H0G9F8E7D6N2";
+export const agentRunId = "01J8Z6X4Q3M2K1H0G9F8E7D6G1";
 
 type Overrides = Record<string, unknown>;
 
@@ -242,4 +245,36 @@ export const inbox = () => ({
 	failingCi: { items: [ticketSummary({ id: ticketId2, identifier: "CDE-43", number: 43 })], total: 1 },
 	stalled: { items: [], total: 0 },
 	doneByAgentsToday: { items: [ticketSummary({ identifier: "CDE-44", number: 44 })], total: 5 },
+});
+
+export const persona = (overrides: Overrides = {}) => ({
+	id: personaId,
+	name: "Feature Builder",
+	kind: "builder",
+	instruction: "Build the ticket.\nOpen a pull request.",
+	createdAt: "2026-09-09T10:00:00.000Z",
+	updatedAt: "2026-09-09T10:00:00.000Z",
+	...overrides,
+});
+
+export const agentRun = (overrides: Overrides = {}) => ({
+	id: agentRunId,
+	name: "Iris Brooks",
+	runtime: "superset",
+	personaId,
+	personaName: "Feature Builder",
+	kind: "builder",
+	instruction: "Build the ticket.",
+	projectId,
+	projectPath: "CDE",
+	ticketId,
+	ticketIdentifier: "CDE-42",
+	state: "running",
+	workspaceId: "ws-1",
+	terminalId: "term-1",
+	url: "https://superset.localhost/ws-1",
+	error: null,
+	createdAt: "2026-09-09T10:00:00.000Z",
+	updatedAt: "2026-09-09T10:05:00.000Z",
+	...overrides,
 });
