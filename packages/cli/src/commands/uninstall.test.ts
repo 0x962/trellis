@@ -44,10 +44,10 @@ describe("uninstall", () => {
 	test("uninstall removes the trellis route from the gateway routes file and keeps the other routes", async () => {
 		const { prefix, env, routes } = await installed();
 		mkdirSync(dirname(routes), { recursive: true });
-		writeFileSync(routes, JSON.stringify({ margin: 4519, trellis: 4521 }));
+		writeFileSync(routes, JSON.stringify({ docs: 4519, trellis: 4521 }));
 		const result = await runCli(["uninstall", "--prefix", prefix, "--no-launchd"], {}, { env });
 		expect(result.code, result.stderr).toBe(0);
-		expect(JSON.parse(readFileSync(routes, "utf8"))).toEqual({ margin: 4519 });
+		expect(JSON.parse(readFileSync(routes, "utf8"))).toEqual({ docs: 4519 });
 	});
 
 	test("uninstall writes no routes file when none exists", async () => {
