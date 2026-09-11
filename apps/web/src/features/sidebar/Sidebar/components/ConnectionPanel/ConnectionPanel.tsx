@@ -27,7 +27,7 @@ export function ConnectionPanel({ status }: ConnectionPanelProps) {
 			aria-label="Server connection"
 			className="mb-2 flex items-start gap-2 rounded-md border border-border bg-elevated px-2 py-1.5"
 		>
-			<span className={cx("mt-1.25 inline-block size-1.75 shrink-0 rounded-full", look.dot)} />
+			<span className={cx("mt-1.25 inline-block size-1.75 shrink-0 rounded-sm", look.dot)} />
 			<span className="min-w-0">
 				<span className="block text-sm text-fg">{look.label}</span>
 				<span className="block text-xs text-fg-muted">{look.detail}</span>

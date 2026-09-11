@@ -16,7 +16,9 @@ describe("ActorChip", () => {
 	test("agent actor shows the mono name, the agent suffix, and the live dot only when live", () => {
 		const { container, rerender } = render(<ActorChip name="claude-code" kind="agent" live />);
 		const avatar = screen.getByLabelText("claude-code · agent");
-		expect(avatar.querySelector("svg[data-glyph=bot]")).not.toBeNull();
+		// The agent mark is the picture its name picks, not a glyph.
+		expect(avatar.querySelector("svg")).toBeNull();
+		expect(avatar.getAttribute("style")).toContain("radial-gradient");
 		expect(avatar.querySelector("[data-live]")).not.toBeNull();
 		expectClasses(screen.getByText("claude-code"), "font-mono text-sm text-agent");
 		expectClasses(screen.getByText("· agent"), "text-fg-faint");
