@@ -60,6 +60,11 @@ test("server builder: migration 0021 names every project that holds the slug, ro
 	const failed = migrate(db, journalUntil("many", true));
 	await expect(failed).rejects.toThrow("CDE.table");
 	await expect(failed).rejects.toThrow("TABLE");
+	// openDatabase runs this migration before the server builds its app, so
+	// no API answers while the message stands. It must name SQL, and it must
+	// not name an app action for either kind of project.
+	await expect(failed).rejects.toThrow("UPDATE on its projects row");
+	await expect(failed).rejects.toThrow("the server does not start until the slug is free");
 	await db.$client.close();
 }, 120_000);
 
