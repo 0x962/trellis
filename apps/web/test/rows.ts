@@ -124,17 +124,6 @@ export const clearStoredActorName = async (server: TestServer) => {
 
 export const storedActorName = async (server: TestServer) => (await server.client.settings.get()).defaultActorName;
 
-// Writes one settings key without a `settings.set` call, so a test that
-// counts the writes the page made still counts its own.
-export const setSetting = async (server: TestServer, key: string, value: unknown) => {
-	await server.ready;
-	const { db } = await sharedDb();
-	await db.execute(sql`
-		INSERT INTO settings (key, value, updated_at) VALUES (${key}, ${JSON.stringify(value)}::jsonb, now())
-		ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()
-	`);
-};
-
 // Archives `ref` through the service, so every write under it is refused.
 export const archiveProject = async (server: TestServer, ref: string) => {
 	await server.client.projects.update({ project: ref, archived: true });

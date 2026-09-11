@@ -52,12 +52,18 @@ const origin = "http://trellis.local";
 const GH_STUB_BIN = join(import.meta.dir, "..", "..", "..", "server", "test", "stubs", "gh.ts");
 
 // The Superset projects `agents.runnerProjects` lists. The runner reads the
-// default branch of each one with `git symbolic-ref` in its checkout, so
-// each path is a real repository whose origin/HEAD names `main`.
-const runnerProjects = () => [
-	{ id: "sp-de", name: "de", repo: "canary-technologies-corp/de", path: gitRepo("main") },
-	{ id: "sp-trellis", name: "trellis", repo: "0x962/trellis", path: gitRepo("main") },
-];
+// default branch of each one with `git symbolic-ref` in its checkout, so each
+// path is a real repository whose origin/HEAD names `main`. The two
+// repositories are made once and every server of the process shares them.
+let repos: Array<{ id: string; name: string; repo: string; path: string }> | undefined;
+
+const runnerProjects = () => {
+	repos ??= [
+		{ id: "sp-de", name: "de", repo: "canary-technologies-corp/de", path: gitRepo("main") },
+		{ id: "sp-trellis", name: "trellis", repo: "0x962/trellis", path: gitRepo("main") },
+	];
+	return repos;
+};
 
 const missingGh: GhStatus = {
 	ok: false,
@@ -277,16 +283,10 @@ export const createTestServer = (options: TestServerOptions = {}) => {
 		// The default branch the runner reads from each Superset project's
 		// checkout, which is what `git symbolic-ref origin/HEAD` names.
 		setRunnerBranch: async (branch: string) => {
-			for (const project of (await ready).superset.state().projects) {
-				Bun.spawnSync([
-					"git",
-					"-C",
-					project.path,
-					"symbolic-ref",
-					"refs/remotes/origin/HEAD",
-					`refs/remotes/origin/${branch}`,
-				]);
-			}
+			const { superset } = await ready;
+			superset.update((state) => {
+				state.projects = state.projects.map((project) => ({ ...project, path: gitRepo(branch) }));
+			});
 		},
 		// The state of the fake superset the agents runner spawns.
 		superset: async () => (await ready).superset,
