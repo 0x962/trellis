@@ -3,7 +3,6 @@ import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
 import { lazy, Suspense, useEffect } from "react";
-import { ManagerStatus } from "../../../features/agent/ManagerStatus";
 import { Board, boardSortLabel } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
@@ -72,7 +71,14 @@ export const Route = createFileRoute("/p/$")({
 	loader: async ({ context, params, deps }) => {
 		const { ref, view } = parseProjectSplat(params._splat ?? "");
 		const project = await context.queryClient.ensureQueryData(projectOptions(context, ref));
-		if (view !== "settings" && view !== "manager") {
+		if (view === "manager") {
+			// The Manager page opens with the persona picker filled, so the
+			// route waits for the personas. A prefetch keeps a failed read out
+			// of the route: the picker then opens empty and says so.
+			await context.queryClient.prefetchQuery(context.orpc.personas.list.queryOptions({ input: {} }));
+			return;
+		}
+		if (view !== "settings") {
 			await context.queryClient.ensureQueryData(countsOptions(context, ref, deps, project.statuses));
 		}
 	},
@@ -143,7 +149,6 @@ function ProjectPage() {
 			<Topbar
 				actions={
 					<>
-						<ManagerStatus project={project} />
 						<ViewSwitch value={view} onChange={switchView} />
 						<NewTicketButton />
 					</>

@@ -23,6 +23,7 @@ export {
 	type CommandRootProps,
 	type CommandRowProps,
 } from "./primitives/Command";
+export { ConfirmDialog, type ConfirmDialogProps } from "./primitives/ConfirmDialog";
 export { Dialog, type DialogProps } from "./primitives/Dialog";
 export { EmptyState, type EmptyStateProps } from "./primitives/EmptyState";
 export { EntityCard, type EntityCardProps } from "./primitives/EntityCard";
@@ -38,6 +39,7 @@ export { Select, type SelectItem, type SelectProps } from "./primitives/Select";
 export { Separator, type SeparatorProps } from "./primitives/Separator";
 export { Sheet, type SheetProps } from "./primitives/Sheet";
 export { Skeleton, type SkeletonProps } from "./primitives/Skeleton";
+export { Spinner, type SpinnerProps } from "./primitives/Spinner";
 export { Switch, type SwitchProps } from "./primitives/Switch";
 export { type TabItem, Tabs, type TabsProps } from "./primitives/Tabs";
 export { Textarea, type TextareaProps } from "./primitives/Textarea";

@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Project, Status, StatusCategory } from "@trellis/api";
-import { Button, IconButton, Skeleton } from "@trellis/ui";
+import { Button, ConfirmDialog, IconButton, Skeleton } from "@trellis/ui";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { ConfirmActionDialog } from "../ConfirmActionDialog";
 import { SettingsSection } from "../SettingsSection";
 import { StatusCreateForm } from "../StatusCreateForm";
 import { StatusDeleteDialog } from "../StatusDeleteDialog";
@@ -197,7 +196,7 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 				onDeleted={refresh}
 				onClose={() => setDeleting(null)}
 			/>
-			<ConfirmActionDialog
+			<ConfirmDialog
 				open={clearOpen}
 				title="Use inherited statuses?"
 				description="Tickets move to the inherited status set."

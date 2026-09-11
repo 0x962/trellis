@@ -10,6 +10,7 @@ import {
 	assertKeyFree,
 	assertRootNameFree,
 	assertSlugFree,
+	managerConfigOf,
 	projectActivity,
 	projectRow,
 	projectView,
@@ -94,11 +95,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	field("ticketTemplate", row.ticket_template, input.ticketTemplate, sql`ticket_template = ${input.ticketTemplate}`);
 	field(
 		"managerConfig",
-		JSON.stringify({
-			personaId: row.manager_config.personaId,
-			concurrency: row.manager_config.concurrency,
-			directory: row.manager_config.directory,
-		}),
+		JSON.stringify(managerConfigOf(row)),
 		input.managerConfig === undefined ? undefined : JSON.stringify(input.managerConfig),
 		sql`manager_config = ${JSON.stringify(input.managerConfig)}::jsonb`,
 	);

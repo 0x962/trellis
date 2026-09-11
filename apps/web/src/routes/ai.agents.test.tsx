@@ -42,6 +42,9 @@ test("the project Manager page saves its setup and starts its configured persona
 	const user = userEvent.setup();
 	renderApp({ path: "/p/CDE/settings/manager", actor: "dana", server });
 	await screen.findByRole("heading", { name: "Cloud Desktop › Manager" });
+	// The host picker reads `superset hosts list`, which spawns a process.
+	// The form is driven after that read lands.
+	await waitFor(() => expect(server.callsTo("agents.runnerHosts")).toHaveLength(1));
 	await user.click(screen.getByRole("combobox", { name: "Manager persona" }));
 	await user.click(await screen.findByRole("option", { name: "Trellis Manager" }));
 	await user.clear(screen.getByRole("spinbutton", { name: "Concurrency" }));
@@ -54,6 +57,8 @@ test("the project Manager page saves its setup and starts its configured persona
 			personaId: manager.id,
 			concurrency: 2,
 			directory: "/tmp/project",
+			enabled: true,
+			supersetHostId: null,
 		}),
 	);
 	expect(screen.queryByRole("button", { name: "Save manager settings" })).toBeNull();
@@ -126,7 +131,7 @@ test("a project's Manager page accepts a GitHub URL and keeps a refused setup dr
 	server.failNext("projects.update", { code: "PROJECT_ARCHIVED" });
 	server.setDirectory("/tmp/draft");
 	await user.click(screen.getByRole("textbox", { name: "Project directory" }));
-	expect((await screen.findByRole("alert")).textContent).toContain("Could not save manager settings");
+	expect(await screen.findByText("Could not save the manager settings")).toBeDefined();
 	expect(screen.getByRole("textbox", { name: "Project directory" })).toHaveProperty("value", "/tmp/draft");
 });
 
@@ -209,7 +214,7 @@ test("invalid concurrency stays visible without a save and a folder error permit
 	await waitFor(() => expect(server.callsTo("projects.update")).toHaveLength(1));
 	server.failNext("system.chooseDirectory", { code: "NOT_FOUND" });
 	await user.click(screen.getByRole("textbox", { name: "Project directory" }));
-	expect((await screen.findByRole("alert")).textContent).toContain("Could not open the folder selector.");
+	expect(await screen.findByText("Could not open the folder selector")).toBeDefined();
 	server.setDirectory("/tmp/selected");
 	await user.click(screen.getByRole("textbox", { name: "Project directory" }));
 	await waitFor(async () =>
@@ -219,4 +224,32 @@ test("invalid concurrency stays visible without a save and a folder error permit
 	await waitFor(async () =>
 		expect((await server.client.projects.get({ project: "TRL" })).managerConfig?.directory).toBe(""),
 	);
+});
+
+test("the Manager page turns the project's agents off and picks the machine that runs them", async () => {
+	const server = createTestServer();
+	const user = userEvent.setup();
+	renderApp({ path: "/p/TRL/settings/manager", actor: "dana", server });
+	const host = await screen.findByRole("combobox", { name: "Superset host" });
+	expect(host.textContent).toBe("This machine");
+	await user.click(host);
+	// The picker fills from `superset hosts list`, which spawns a process.
+	await waitFor(() => expect(screen.getAllByRole("option")).toHaveLength(2));
+	const options = screen.getAllByRole("option");
+	expect(options.map((option) => option.textContent)).toEqual(["This machine", "Mac mini"]);
+	await user.click(options[1]!);
+	await waitFor(async () =>
+		expect((await server.client.projects.get({ project: "TRL" })).managerConfig?.supersetHostId).toBe("host-mini"),
+	);
+	const toggle = screen.getByRole("switch", { name: "Turn on agents" });
+	expect(toggle.getAttribute("aria-checked")).toBe("true");
+	await user.click(toggle);
+	await waitFor(async () =>
+		expect((await server.client.projects.get({ project: "TRL" })).managerConfig?.enabled).toBe(false),
+	);
+	await user.click(
+		within(screen.getByRole("navigation", { name: "Manager settings" })).getByRole("link", { name: "Manager" }),
+	);
+	expect(screen.getByRole("button", { name: "Start manager" })).toHaveProperty("disabled", true);
+	expect(screen.getByText("Turn on agents in General before you start the manager.")).toBeDefined();
 });

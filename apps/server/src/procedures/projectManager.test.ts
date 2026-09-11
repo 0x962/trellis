@@ -30,7 +30,7 @@ afterEach(async () => {
 const configure = (managerConfig: unknown) => t.api("/api/projects/RUN", { method: "PATCH", body: { managerConfig } });
 
 test("project manager settings persist and enter the manager launch context", async () => {
-	const config = { personaId: manager, concurrency: 2, directory: dir };
+	const config = { personaId: manager, concurrency: 2, directory: dir, enabled: true, supersetHostId: null };
 	const saved = await configure(config);
 	expect(saved.status).toBe(200);
 	expect(saved.body.managerConfig).toEqual(config);

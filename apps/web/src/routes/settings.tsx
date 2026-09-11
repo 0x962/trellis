@@ -3,7 +3,6 @@ import { Bot, Plug, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
 import { AgentLaunchField } from "../features/settings/AgentLaunchField";
-import { AgentsSettings } from "../features/settings/AgentsSettings";
 import { DiffTemplateField } from "../features/settings/DiffTemplateField";
 import { GhBanner } from "../features/settings/GhBanner";
 import { PairPhone } from "../features/settings/PairPhone";
@@ -12,9 +11,10 @@ import { ThemeField } from "../features/settings/ThemeField";
 import { Topbar } from "../features/shell/Topbar";
 
 // Who you are, how the app looks, when a ticket counts as stalled, whether gh
-// is available, which viewer shows a diff, how a phone reaches the server, and
-// how the manager agents run. The Agent manager section loads its own data, so
-// it sits last and its arrival moves no other section.
+// is available, which viewer shows a diff, and how a phone reaches the server.
+// Each setting here holds for the whole machine. A setting that belongs to one
+// project, such as its manager persona, its Superset host, and its agent
+// switch, lives on that project's Manager page.
 export const Route = createFileRoute("/settings")({
 	loader: ({ context }) =>
 		Promise.all([
@@ -49,7 +49,7 @@ const sections: SettingsSection[] = [
 	{
 		id: "agents",
 		title: "Agents",
-		hint: "Choose how trellis starts agents and when it marks a ticket as stalled.",
+		hint: "Choose the command that starts every agent and when a ticket counts as stalled. Each project sets its own manager on its Manager page.",
 		icon: Bot,
 		rows: (
 			<>
@@ -70,13 +70,6 @@ const sections: SettingsSection[] = [
 				<PairPhone />
 			</>
 		),
-	},
-	{
-		id: "manager",
-		title: "Agent manager",
-		hint: "Give each project a manager agent and point it at a Superset project.",
-		icon: Bot,
-		rows: <AgentsSettings />,
 	},
 ];
 

@@ -5,7 +5,8 @@ import { type RunnerHostId, type RunnerHostRow, runnerUnavailable } from "./runn
 // that runs the trellis server.
 
 // One row of `superset hosts list --json`. Superset 1.28 prints `online` as
-// "yes" or "no"; an older or a newer build may print a boolean.
+// "yes", "no", or "local"; an older or a newer build may print a boolean.
+// "local" names the machine that runs Superset itself, which answers now.
 type ListedHost = { id: string; name: string; online: boolean | string };
 
 // `ws create` and `ws delete` want a target either way, so a project
@@ -23,7 +24,7 @@ export const hostCalls = (json: <T>(args: string[]) => Promise<T>) => {
 		(await json<ListedHost[]>(["hosts", "list"])).map(({ id, name, online }) => ({
 			id,
 			name,
-			online: online === true || online === "yes",
+			online: online === true || online === "yes" || online === "local",
 		}));
 
 	// An agent runs only on a host that answers now. A host that went away or
