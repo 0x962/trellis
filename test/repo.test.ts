@@ -175,7 +175,9 @@ describe("root scaffold", () => {
 		expect(agents).toMatch(/failing test/i);
 		expect(agents).toMatch(/without a test does not merge/i);
 		expect(agents).toContain("design checklist");
-		expect(agents).toContain("bun run check");
+		expect(agents).toContain("Assess the risk of each change");
+		expect(agents).toContain("Treat the full `bun run check` command as optional");
+		expect(agents).not.toContain("Run `bun run check` once");
 		expect(agents.split("\n").length).toBeLessThan(120);
 	});
 
