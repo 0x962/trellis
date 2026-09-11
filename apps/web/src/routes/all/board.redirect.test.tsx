@@ -10,12 +10,12 @@ beforeEach(() => localStorage.clear());
 // tests hold /all to the same rule.
 describe("routes/all: an older /all/board link", () => {
 	test("/all/board lands on /all", async () => {
-		const { router } = renderApp({ path: "/all/board", actor: "navid" });
+		const { router } = renderApp({ path: "/all/board", actor: "dana" });
 		await waitFor(() => expect(router.state.location.pathname).toBe("/all"));
 	});
 
 	test("/all/board keeps the filters of the link", async () => {
-		const { router } = renderApp({ path: "/all/board?status=todo", actor: "navid" });
+		const { router } = renderApp({ path: "/all/board?status=todo", actor: "dana" });
 		await waitFor(() => expect(router.state.location.pathname).toBe("/all"));
 		expect(router.state.location.searchStr).toBe("?status=todo");
 	});
