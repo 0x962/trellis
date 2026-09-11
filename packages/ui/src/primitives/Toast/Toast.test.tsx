@@ -33,12 +33,12 @@ describe("Toast", () => {
 		expect(toastDurations).toEqual({ plain: 3000, success: 3000, error: 6000 });
 	});
 
-	test("the Start-with-agent toast shows the command in mono", async () => {
+	test("the command toast shows the command in mono", async () => {
 		render(<Toaster />);
 		act(() => {
-			toast.command({ title: "Started with claude-code", command: "trellis move CDE-1 in-progress" });
+			toast.command({ title: "Copied the command", command: "trellis move CDE-1 in-progress" });
 		});
-		const title = await screen.findByText("Started with claude-code");
+		const title = await screen.findByText("Copied the command");
 		const shell = title.closest("[data-sonner-toast]")!;
 		expect(shell.querySelector("svg.text-success")).not.toBeNull();
 		expectClasses(title, "text-sm font-medium");

@@ -14,7 +14,7 @@ beforeEach(() => {
 
 describe("routes/settings", () => {
 	// WS-77
-	test("settings shows the actor, the theme, the agent template, and the gh status", async () => {
+	test("settings shows the actor, the theme, the diff template, and the gh status", async () => {
 		const { server } = renderApp({ path: "/settings", actor: "navid" });
 		expect(await screen.findByRole("heading", { name: "Settings" })).toBeDefined();
 		const name = (await screen.findByRole("textbox", { name: /your name/i })) as HTMLInputElement;
@@ -22,8 +22,8 @@ describe("routes/settings", () => {
 		const theme = screen.getByRole("combobox", { name: "Theme" });
 		expect(theme.textContent).toBe("Dark");
 		const settings = await server.client.settings.get();
-		const template = (await screen.findByRole("textbox", { name: /start with agent/i })) as HTMLTextAreaElement;
-		expect(template.value).toBe(settings.startWithAgentTemplate);
+		const template = (await screen.findByRole("textbox", { name: /diff url template/i })) as HTMLInputElement;
+		expect(template.value).toBe(settings.diffUrlTemplate);
 		const health = await server.client.system.health();
 		const github = screen.getByText("GitHub").closest("[data-settings-row]")!;
 		expect(github).not.toBeNull();
@@ -54,10 +54,10 @@ describe("routes/settings", () => {
 		const user = userEvent.setup();
 		const { server } = renderApp({ path: "/settings", actor: "navid" });
 		const before = await server.client.settings.get();
-		const template = (await screen.findByRole("textbox", { name: /start with agent/i })) as HTMLTextAreaElement;
-		await waitFor(() => expect(template.value).toBe(before.startWithAgentTemplate));
+		const template = (await screen.findByRole("textbox", { name: /diff url template/i })) as HTMLInputElement;
+		await waitFor(() => expect(template.value).toBe(before.diffUrlTemplate));
 		await user.clear(template);
-		await user.type(template, 'codex "$(trellis brief {{brief})"');
+		await user.type(template, "http://margin.localhost/{{url}");
 		// Spec ST-4: the field saves on blur. It has no Save button.
 		await user.tab();
 		const call = await waitFor(() => {
@@ -65,8 +65,8 @@ describe("routes/settings", () => {
 			expect(found).toBeDefined();
 			return found!;
 		});
-		expect(call.input).toEqual({ ...before, startWithAgentTemplate: 'codex "$(trellis brief {brief})"' });
-		expect((await server.client.settings.get()).startWithAgentTemplate).toBe('codex "$(trellis brief {brief})"');
+		expect(call.input).toEqual({ ...before, diffUrlTemplate: "http://margin.localhost/{url}" });
+		expect((await server.client.settings.get()).diffUrlTemplate).toBe("http://margin.localhost/{url}");
 		expect(await within(template.closest("[data-settings-row]") as HTMLElement).findByText("Saved")).toBeDefined();
 	});
 
@@ -83,15 +83,13 @@ describe("routes/settings", () => {
 	});
 });
 
-// The five blocks the settings page holds, and one save that replaces the
-// whole settings record.
 describe("settings route", () => {
 	// ST-01
-	test("renders the actor, theme, agent template, threshold, and gh blocks", async () => {
+	test("renders the actor, theme, diff template, threshold, and gh blocks", async () => {
 		const { server } = renderApp({ path: "/settings", actor: "navid" });
 		expect(await screen.findByRole("textbox", { name: /your name/i })).toBeDefined();
 		expect(await screen.findByRole("combobox", { name: "Theme" })).toBeDefined();
-		expect(await screen.findByRole("textbox", { name: /start with agent/i })).toBeDefined();
+		expect(await screen.findByRole("textbox", { name: /diff url template/i })).toBeDefined();
 		expect(await screen.findByRole("spinbutton", { name: /stalled/i })).toBeDefined();
 		const gh = await server.client.system.gh();
 		expect(await screen.findByText(gh.message!)).toBeDefined();
@@ -103,7 +101,6 @@ describe("settings route", () => {
 		const server = createFakeServer();
 		await server.client.settings.set({
 			defaultActorName: "Navid",
-			startWithAgentTemplate: 'claude "{brief}"',
 			stalledHours: 24,
 			diffUrlTemplate: "{url}/files",
 		});
@@ -111,8 +108,8 @@ describe("settings route", () => {
 		await waitFor(async () =>
 			expect(((await screen.findByRole("textbox", { name: /your name/i })) as HTMLInputElement).value).toBe("Navid"),
 		);
-		expect(((await screen.findByRole("textbox", { name: /start with agent/i })) as HTMLTextAreaElement).value).toBe(
-			'claude "{brief}"',
+		expect(((await screen.findByRole("textbox", { name: /diff url template/i })) as HTMLInputElement).value).toBe(
+			"{url}/files",
 		);
 		expect(((await screen.findByRole("spinbutton", { name: /stalled/i })) as HTMLInputElement).value).toBe("24");
 	});
@@ -123,9 +120,9 @@ describe("settings route", () => {
 	test("each blur sends one full replace, and the last one holds both edits", async () => {
 		const user = userEvent.setup();
 		const { server } = renderApp({ path: "/settings", actor: "navid" });
-		const template = (await screen.findByRole("textbox", { name: /start with agent/i })) as HTMLTextAreaElement;
+		const template = (await screen.findByRole("textbox", { name: /diff url template/i })) as HTMLInputElement;
 		await user.clear(template);
-		await user.type(template, 'codex exec "{{brief}"');
+		await user.type(template, "http://margin.localhost/{{url}");
 		const name = await screen.findByRole("textbox", { name: /your name/i });
 		await user.clear(name);
 		await user.type(name, "Nav");
@@ -137,9 +134,8 @@ describe("settings route", () => {
 		});
 		expect(calls[1]!.input).toEqual({
 			defaultActorName: "Nav",
-			startWithAgentTemplate: 'codex exec "{brief}"',
+			diffUrlTemplate: "http://margin.localhost/{url}",
 			stalledHours: 24,
-			diffUrlTemplate: "{url}/files",
 		});
 	});
 
@@ -171,10 +167,10 @@ describe("settings route", () => {
 		renderApp({ path: "/settings", actor: "navid" });
 		const name = await screen.findByRole("textbox", { name: /your name/i });
 		const theme = await screen.findByRole("combobox", { name: "Theme" });
-		const template = await screen.findByRole("textbox", { name: /start with agent/i });
+		const template = await screen.findByRole("textbox", { name: /diff url template/i });
 		const threshold = await screen.findByRole("spinbutton", { name: /stalled/i });
 		const copy = await screen.findByRole("button", { name: /copy/i });
-		const wanted = [name, theme, template, threshold, copy];
+		const wanted = [name, theme, threshold, copy, template];
 		const order: number[] = [];
 		name.focus();
 		for (let step = 0; step < 12 && order.length < wanted.length; step += 1) {

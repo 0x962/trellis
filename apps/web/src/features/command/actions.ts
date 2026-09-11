@@ -1,20 +1,16 @@
-import type { Priority, Settings, TrellisClient } from "@trellis/api";
-import { buildAgentCommand } from "../agent/StartWithAgent/utils/buildAgentCommand";
+import type { Priority, TrellisClient } from "@trellis/api";
 
 // Every palette action. Each one takes the page's own context, so the
 // actor header of the page reaches the server and the effects stay
 // replaceable in a test.
 
 export type NotifyOptions = {
-	// The text a Start-with-agent message shows in mono.
-	command?: string;
 	// Runs the same call again.
 	retry?: () => void;
 };
 
 export type ActionContext = {
 	client: TrellisClient;
-	settings: Settings;
 	// The page origin a copied link starts with.
 	origin: string;
 	copy: (text: string) => Promise<void>;
@@ -91,15 +87,6 @@ export const copyBranchName = async (context: ActionContext, ticket: ActionTicke
 export const copyLink = async (context: ActionContext, ticket: string): Promise<void> => {
 	await context.copy(`${context.origin}/t/${ticket}`);
 	context.notify("Copied the link.");
-};
-
-// Copies the command from `settings.startWithAgentTemplate`. The one agent
-// command builder writes it, so the palette and the ticket page copy the
-// same text.
-export const startWithAgent = async (context: ActionContext, ticket: string): Promise<void> => {
-	const command = buildAgentCommand(context.settings.startWithAgentTemplate, ticket);
-	await context.copy(command);
-	context.notify("Copied the command. Paste it in a terminal.", { command });
 };
 
 export const copyAgentBrief = async (context: ActionContext, ticket: string): Promise<void> => {

@@ -28,14 +28,13 @@ test("the peek body fills the panel with equal compact side padding", async () =
 
 test("the peek keeps review actions in a separate row from navigation", async () => {
 	mountPeek();
-	const start = await screen.findByRole("button", { name: "Start with agent" });
+	const approve = await screen.findByRole("button", { name: /^Approve/ });
 	const header = screen.getByLabelText("Ticket header");
-	expect(header.contains(start)).toBe(false);
+	expect(header.contains(approve)).toBe(false);
 	expect(within(header).getByRole("button", { name: "Close" })).toBeDefined();
 	expect(within(header).getByRole("button", { name: "Expand to the full page" })).toBeDefined();
 	const actions = screen.getByRole("group", { name: "Ticket actions" });
-	expect(actions.contains(start)).toBe(true);
-	expect(within(actions).getByRole("button", { name: /^Approve/ })).toBeDefined();
+	expect(actions.contains(approve)).toBe(true);
 });
 
 test("the peek groups secondary properties behind a details disclosure", async () => {

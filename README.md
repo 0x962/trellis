@@ -272,9 +272,10 @@ bun run dev
 
 | Command | What it runs |
 |---|---|
-| `bun run check` | Lint, typecheck, every test, the web size budget, and the perf suite at 10k rows. Add `--force` to skip the turbo cache. |
+| `bun run check` | Lint, typecheck, functional tests, and the web size budget. Add `--force` to skip the turbo cache. |
 | `bun run e2e` | The Playwright suite against the real server and vite on free ports. Run `bunx playwright install chromium` in `apps/web` one time. |
-| `bun run perf` | The perf suite at 50k rows. |
+| `bun run perf:10k` | Optional performance tests at 10k rows, one workspace at a time. |
+| `bun run perf` | Optional performance tests at 50k rows. |
 | `bun run db:generate` | The Drizzle migrations for a change to `apps/server/src/db/schema.ts`. |
 | `bun run --cwd apps/mobile test:native` | The mobile Jest suite. |
 

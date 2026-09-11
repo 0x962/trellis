@@ -4,7 +4,6 @@ import { cx, EmptyState, TicketId, useMediaQuery } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
-import { StartWithAgent } from "../../agent/StartWithAgent";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
 import { useUploads } from "../../attachments/hooks/useUploads";
 import { PullRequests } from "../../prs";
@@ -30,7 +29,7 @@ export type TicketViewProps = {
 // the title, the description, the sub-tickets, the PRs, the attachments,
 // and the timeline. The peek content fills the panel. Below
 // 768 px the page folds the rail into the peek grid under the title, with
-// the review actions and Start with agent under the grid. Every
+// the review actions under the grid. Every
 // section reads the cached detail, so a live patch repaints it with no
 // refetch. The whole ticket is the one drop target: a dropped file uploads
 // to the ticket, and the attachments section shows its progress.
@@ -108,7 +107,6 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 						className="mt-4 flex flex-wrap items-center gap-2"
 					>
 						<ReviewActions ticket={ticket} />
-						<StartWithAgent ticket={ticket} fullWidth={narrow} />
 					</fieldset>
 				)}
 				<div className={inlineRail ? "mt-4" : "mt-3"}>

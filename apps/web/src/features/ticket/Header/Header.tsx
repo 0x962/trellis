@@ -6,7 +6,6 @@ import { copyText } from "../../../lib/clipboard";
 import { lastListHref } from "../../../lib/lastList";
 import { uiActions } from "../../../stores/uiStore";
 import { BriefCopy } from "../../agent/BriefCopy";
-import { StartWithAgent } from "../../agent/StartWithAgent";
 import { Breadcrumb } from "../../shell/Breadcrumb";
 import { useParentSummary } from "../hooks/useParentSummary";
 import { branchName, titleSlug } from "../PropertiesRail/utils/branchName";
@@ -53,7 +52,7 @@ export function Header(props: HeaderProps) {
 	const identifier = ticket === undefined ? props.identifier : ticket.identifier;
 	const branch = ticket === undefined ? "" : branchName(ticket.identifier, titleSlug(ticket.title));
 	// Below 768 px the page header keeps Back, the ID, and the more menu. TicketView
-	// draws the review actions and Start with agent under the properties grid.
+	// draws the review actions under the properties grid.
 	const phone = useMediaQuery("(max-width: 767px)") && surface === "page";
 
 	useHotkey("mod+c", (event) => {
@@ -124,7 +123,6 @@ export function Header(props: HeaderProps) {
 				{ticket !== undefined && (
 					<>
 						{!phone && surface === "page" && <ReviewActions ticket={ticket} />}
-						{!phone && surface === "page" && <StartWithAgent ticket={ticket} />}
 						{surface === "page" && <BriefCopy ticket={ticket} />}
 						{!phone && (
 							<Tooltip content="Copy ID ⌘C">

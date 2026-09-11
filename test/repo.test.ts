@@ -71,15 +71,11 @@ describe("root scaffold", () => {
 		expect(checkTasks.full).toContain("test");
 	});
 
-	// `check` runs lint, typecheck, test, the size budget, and the 10k perf
-	// suite. The two tasks belong to apps/web and apps/server. turbo refuses
-	// a task that turbo.json does not declare, so the root declares both.
-	test("check runs the size budget and the 10k perf suite through turbo", async () => {
+	test("check runs the size budget and performance tasks remain available", async () => {
 		const { tasks } = await json("turbo.json");
-		for (const name of ["size-budget", "perf:10k"]) {
-			expect(checkTasks.full).toContain(name);
-			expect(tasks).toHaveProperty(name);
-		}
+		expect(checkTasks.full).toContain("size-budget");
+		expect(checkTasks.full).not.toContain("perf:10k");
+		for (const name of ["size-budget", "perf:10k"]) expect(tasks).toHaveProperty(name);
 		expect(tasks["size-budget"].dependsOn).toContain("build");
 		expect(tasks["perf:10k"].cache).toBe(false);
 	});
@@ -253,7 +249,7 @@ describe("root scaffold", () => {
 		expect(runs.some((run) => run.includes("git status --porcelain apps/server/drizzle/"))).toBe(true);
 	});
 
-	// ARCHITECTURE.md, Performance budgets: the 10k seed runs in `bun run check`
+	// ARCHITECTURE.md, Performance budgets: the 10k seed runs in `bun run perf:10k`
 	// and the 50k seed in `bun run perf`. turbo runs a task only in a
 	// workspace whose package.json defines the script, and reports success
 	// when none does.
@@ -340,10 +336,8 @@ describe("root scaffold", () => {
 		}
 	});
 
-	// The nested run runs lint and typecheck only, so every task with
-	// `cache: false` and the 10k perf suite run once per `bun run check`. The
-	// nested run skips this test, so a check that runs test:repo in nested mode
-	// cannot recurse without end.
+	// The nested check covers lint and types. It excludes test:repo because
+	// test:repo would call this test again without end.
 	test.skipIf(process.env.TRELLIS_CHECK_NESTED === "1")(
 		"bun run check exits 0, and the nested run covers lint and typecheck only",
 		() => {

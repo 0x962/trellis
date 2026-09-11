@@ -98,7 +98,7 @@ export function OverlaySections() {
 					<IconButton label="Copy link" icon={<Copy />} />
 				</Tooltip>
 			</Section>
-			<Section name="Toast" note="plain, success, error, and the Start-with-agent command">
+			<Section name="Toast" note="plain, success, error, and a copied command">
 				<Button onClick={() => toast("Saved")}>Plain</Button>
 				<Button onClick={() => toast.success("Approved CDE-42")}>Success</Button>
 				<Button onClick={() => toast.error("gh is not signed in. Run gh auth login.")}>Error</Button>
@@ -107,11 +107,11 @@ export function OverlaySections() {
 					onClick={() =>
 						toast.command({
 							title: "Copied the command. Paste it in a terminal.",
-							command: 'claude "$(trellis brief CDE-42)"',
+							command: "trellis brief CDE-42",
 						})
 					}
 				>
-					Start with agent
+					Command
 				</Button>
 				<Toaster />
 			</Section>

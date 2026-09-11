@@ -338,9 +338,9 @@ superseded one on both sides.
 The budgets are for the reference machine against a deterministic seed in
 `apps/server/test/perf/seed.ts`. The seed writes N tickets across 3 roots and 8
 projects per root, with 10 activity rows and 2 comments per ticket, 2 KB
-descriptions, and 40 open pull requests. `bun run check` runs the 10k seed, and
-`bun run perf` runs the 50k seed. `TRELLIS_PERF_FACTOR` scales every budget, and
-CI sets 2.5.
+descriptions, and 40 open pull requests. `bun run perf:10k` runs the 10k seed, and
+`bun run perf` runs the 50k seed. Performance tests are optional.
+`TRELLIS_PERF_FACTOR` scales every budget.
 
 | metric | target | test |
 |---|---|---|
@@ -429,7 +429,7 @@ size budget script is in `apps/web/scripts/`.
 | contract | `apps/server/src/procedures/*.test.ts` | `bun test`, an oRPC client over `app.request` |
 | component | beside the component, `*.test.tsx` | `bun test`, Testing Library, happy-dom |
 | CLI smoke | `packages/cli/test/` | `bun test`, a spawned server on a random port |
-| perf | `apps/server/test/perf/`, `apps/web/scripts/size-budget.ts` | `check` at 10k rows, `perf` at 50k rows |
+| perf | `apps/server/test/perf/`, `apps/web/scripts/size-budget.ts` | optional `perf:10k` at 10k rows, `perf` at 50k rows |
 | end to end | `apps/web/e2e/` | Playwright with a temporary `TRELLIS_HOME` |
 
 Every service test ends with `assertStatusInvariant(tx)`. `test/preload.ts`
