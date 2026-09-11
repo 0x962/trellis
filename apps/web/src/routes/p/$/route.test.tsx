@@ -54,7 +54,8 @@ describe("routes/p/$", () => {
 		expect(within(crumbs).getByRole("link", { name: "CDE" }).getAttribute("href")).toBe("/p/CDE");
 		const group = screen.getByRole("radiogroup", { name: "View" });
 		expect(within(group).getByRole("radio", { name: "Table" }).getAttribute("aria-checked")).toBe("true");
-		expect(screen.getByText("in CDE/web + sub-projects")).toBeDefined();
+		// The reach of the list lives in the filter picker now, not in a chip.
+		expect(screen.queryByText(/sub-projects/)).toBeNull();
 	});
 
 	test("project settings save the editable project fields", async () => {

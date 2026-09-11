@@ -1,5 +1,5 @@
 import type { Sort } from "@trellis/api";
-import { Button, cx, IconButton, Popover, Segmented, Select, Switch, Tooltip } from "@trellis/ui";
+import { cx, IconButton, Popover, Segmented, Select, Switch, Tooltip } from "@trellis/ui";
 import { ArrowDownWideNarrow, ArrowUpNarrowWide, SlidersHorizontal } from "lucide-react";
 import { type Density, uiActions, useUiStore } from "../../../stores/uiStore";
 import type { Group, View } from "../../filters/grammar";
@@ -77,11 +77,7 @@ export function DisplayPopover({
 			label="Display"
 			align="end"
 			className="w-75 p-3"
-			trigger={
-				<Button variant="quiet" icon={<SlidersHorizontal />} aria-label="Display">
-					<span className="max-md:sr-only">Display</span>
-				</Button>
-			}
+			trigger={<IconButton label="Display" icon={<SlidersHorizontal />} size="md" />}
 		>
 			<div className="flex flex-col gap-3">
 				<section className="flex flex-col gap-1.5">
