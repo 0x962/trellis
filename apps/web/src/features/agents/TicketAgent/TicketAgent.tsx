@@ -4,7 +4,6 @@ import { Avatar, Button } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentRunSheet } from "../AgentRunSheet";
-import { AgentSessions } from "./components/AgentSessions";
 import { PersonaPicker } from "./components/PersonaPicker";
 
 // True while an agent still holds the ticket: it starts up, it works, or it
@@ -16,8 +15,9 @@ const atWork = (run: AgentRun) => run.state === "starting" || run.state === "run
 // dropped surnames still carry two words, so the row takes the first one.
 const shortName = (name: string) => name.split(" ")[0]!;
 
-// The agent side of a ticket, under one heading: the runs the manager
-// started, the persona picker, and the builder and reviewer sessions.
+// The agent side of a ticket, under one heading: the agent runs of the
+// ticket and the persona picker that starts another one. One list and one
+// start control, both on the agent_runs path.
 export function TicketAgent({ ticket, disabled = false }: { ticket: string; disabled?: boolean }) {
 	const { orpc } = useApp();
 	const query = useQuery(orpc.agentRuns.list.queryOptions({ input: { ticket }, retry: false }));
@@ -64,7 +64,6 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 					<PersonaPicker ticket={ticket} disabled={disabled} />
 				</>
 			)}
-			<AgentSessions identifier={ticket} />
 			{open && <AgentRunSheet run={open} onClose={() => setOpenId(null)} />}
 		</section>
 	);

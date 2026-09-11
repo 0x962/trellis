@@ -21,6 +21,8 @@ const human = "human:dana";
 
 type Listed = { items: { identifier: string; title: string; status: { slug: string } }[] };
 
+type Sessions = { sessions: { role: string; state: string }[] };
+
 // command.spec.ts seeds CDE with Todo tickets. The manager starts a builder
 // for every Todo ticket, so the seeds are canceled before the manager starts,
 // and the only Todo ticket is the one this spec creates.
@@ -92,9 +94,16 @@ test("dispatch > a web ticket goes to a builder, a clean review, and Human Revie
 	expect(sentTo(managerTab.terminalId)).toHaveLength(1);
 	const builderTab = tabOf(identifier)!;
 
-	// The ticket page lists the builder.
+	// The server holds the builder session. TRL-40 took the legacy session
+	// list off the ticket rail, which now lists agent runs only, so the
+	// manager's builder is read from the server here.
+	await expect
+		.poll(() => get<Sessions>(`/agents/sessions?ticket=${identifier}`).then((found) => found.sessions), {
+			timeout: AGENT_MS,
+		})
+		.toContainEqual(expect.objectContaining({ role: "builder" }));
 	await page.goto(`/t/${identifier}`);
-	await expect(page.getByRole("list", { name: "Agent sessions" })).toContainText("Builder");
+	await expect(page.getByRole("region", { name: "Agent assignment" })).toBeVisible();
 
 	// The builder links its pull request and moves the ticket to Agent Review.
 	await expect.poll(() => statusOf(identifier), { timeout: AGENT_MS }).toBe("Agent Review");
