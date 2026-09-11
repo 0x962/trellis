@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { setProjectAgents } from "./agentSettings";
 import { get, statusOf } from "./api";
 import { createTicket, ensureProject, moveTicket, trellis } from "./cli";
 import { failingPrUrl } from "./ghReplies";
@@ -144,7 +145,10 @@ test("dispatch > 12 quick edits wake the manager twice: 10 at once, then 2 after
 	// the simulated manager reads each batch and adds no event of its own.
 	const ticket = createTicket("BAT", `Batch target ${Date.now()}`);
 	moveTicket(ticket.identifier, "human-review", human);
-	trellis(["agents", "on", "--project", "BAT"], human);
+	// The first test left the global switch on in the web settings. This
+	// test turns the BAT manager on over the settings route, which is what
+	// that page writes.
+	await setProjectAgents("BAT", true);
 	await expect.poll(() => tabOf("BAT manager"), { timeout: AGENT_MS }).toBeDefined();
 	const managerTab = tabOf("BAT manager")!;
 	const before = sentTo(managerTab.terminalId).length;

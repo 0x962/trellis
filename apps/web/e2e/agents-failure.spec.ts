@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { setAgents, setProjectAgents } from "./agentSettings";
 import { ensureProject, trellis } from "./cli";
 import { scriptFailure, tabOf } from "./supersetStub";
 import { signIn } from "./support";
@@ -16,6 +17,16 @@ const refusal = "fatal: invalid reference: main";
 // its superset calls spawns the stub.
 const START_MS = 10_000;
 
+// The scripted failure and the two switches live in the run's temp root and
+// in the server, which every later spec shares. A failed assertion leaves
+// the test body early, so the cleanup runs here and refuses `ws create` for
+// this spec alone.
+test.afterEach(async () => {
+	scriptFailure("ws create", null);
+	await setProjectAgents("FAIL", false);
+	await setAgents(false);
+});
+
 test("agents > a failed manager start shows Manager failed with the reason, and Retry starts it after the fix", async ({
 	page,
 }) => {
@@ -23,8 +34,8 @@ test("agents > a failed manager start shows Manager failed with the reason, and 
 	ensureProject("FAIL", "Failing");
 	trellis(["projects", "repos", "FAIL", "--add", "acme/fail"], human);
 	scriptFailure("ws create", refusal);
-	trellis(["agents", "on"], human);
-	trellis(["agents", "on", "--project", "FAIL"], human);
+	await setAgents(true);
+	await setProjectAgents("FAIL", true);
 
 	await signIn(page, "/p/FAIL");
 	const manager = page.getByRole("group", { name: "Manager" });
@@ -41,7 +52,4 @@ test("agents > a failed manager start shows Manager failed with the reason, and 
 	await manager.getByRole("button", { name: "Retry" }).click();
 	await expect(manager).toBeHidden({ timeout: START_MS });
 	await expect.poll(() => tabOf("FAIL manager"), { timeout: START_MS }).toBeDefined();
-
-	trellis(["agents", "off", "--project", "FAIL"], human);
-	trellis(["agents", "off"], human);
 });
