@@ -35,8 +35,10 @@ const fontTokens = ["--sans", "--mono"];
 // metric-matched face that holds the layout until the web font loads (see
 // fonts.test.ts).
 const fontStacks: Record<string, string> = {
-	"--sans": '"BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-	"--mono": '"BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+	"--sans":
+		'"BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+	"--mono":
+		'"BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
 };
 
 // The approved palette, one value per themed token. tokens.css is the only
