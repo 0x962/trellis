@@ -5,23 +5,16 @@ import { requireActor, type ServiceCtx } from "../context.ts";
 import { rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 
-// The value of every key the table does not hold. `{brief}` in the agent
-// template stands for the ticket brief the Start-with-agent button inserts.
+// The value of every key the table does not hold.
 // `{url}` in the diff template stands for the URL of the pull request, so
 // the default opens the Files changed tab of that pull request on GitHub.
 export const defaults = (): Settings => ({
-	startWithAgentTemplate: 'claude "$(trellis brief {brief})"',
 	defaultActorName: userInfo().username,
 	stalledHours: 24,
 	diffUrlTemplate: "{url}/files",
 });
 
-const KEYS = [
-	"startWithAgentTemplate",
-	"defaultActorName",
-	"stalledHours",
-	"diffUrlTemplate",
-] as const satisfies (keyof Settings)[];
+const KEYS = ["defaultActorName", "stalledHours", "diffUrlTemplate"] as const satisfies (keyof Settings)[];
 
 // One row per key with a jsonb value; a key the table lacks reads as its
 // default. The read selects the keys in KEYS.

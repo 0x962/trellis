@@ -66,7 +66,6 @@ export const shortcuts: readonly Shortcut[] = [
 	{ id: "ticketCopyId", keys: "mod+c", scope: "ticket", label: "Copy the ID" },
 	{ id: "ticketCopyBranch", keys: "mod+shift+c", scope: "ticket", label: "Copy the branch name" },
 	{ id: "ticketCopyLink", keys: "mod+.", scope: "ticket", label: "Copy the link" },
-	{ id: "ticketStartAgent", keys: "mod+shift+a", scope: "ticket", label: "Start with an agent" },
 	{ id: "ticketCopyBrief", keys: "mod+shift+b", scope: "ticket", label: "Copy the agent brief" },
 	{ id: "composerSubmit", keys: "mod+enter", scope: "composer", label: "Submit the form" },
 	{ id: "composerSubmitAgain", keys: "mod+shift+enter", scope: "composer", label: "Create and keep the form open" },

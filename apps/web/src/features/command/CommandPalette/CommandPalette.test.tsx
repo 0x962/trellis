@@ -24,7 +24,6 @@ const ticketItems = [
 	"Move to project",
 	"Set parent",
 	"New sub-ticket",
-	"Start with agent",
 	"Copy ID",
 	"Copy branch name",
 	"Copy agent brief",
