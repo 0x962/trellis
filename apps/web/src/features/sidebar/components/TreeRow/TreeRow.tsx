@@ -9,7 +9,7 @@ const ProjectRowActions = lazy(async () => ({ default: (await import("../../Proj
 
 export type TreeRowProps = {
 	project: ProjectSummary;
-	// The level in the tree. Each level indents the row 20 px.
+	// The level in the tree. Each level indents the row 16 px.
 	depth: number;
 	// The chevron of a row with children.
 	expander?: { open: boolean; onToggle: () => void };
@@ -17,31 +17,31 @@ export type TreeRowProps = {
 	archived?: boolean;
 };
 
-// The row padding per level: 8 px, then 20 px more for each level.
-const indent = ["pl-2", "pl-7", "pl-12", "pl-17"] as const;
+// The row padding per level: 4 px, then 16 px more for each level. The
+// chevron sits inside that padding, so a row with children and a row
+// without one start their icon at the same place.
+const indent = ["pl-1", "pl-5", "pl-9", "pl-13"] as const;
 
-// The disclosure button is beside the link so expansion does not navigate.
-// The trailing slot reserves space for the menu on hover and focus.
+// The chevron leads the row, before the folder, the way a file tree reads.
+// It is a button beside the link, so opening a project never navigates. The
+// trailing slot reserves space for the menu on hover and focus.
 export function TreeRow({ project, depth, expander, archived = false }: TreeRowProps) {
 	return (
 		<li
 			className={cx(
-				"group/row relative flex h-8 items-center rounded-md pr-1 transition-colors duration-hover ease-out hover:bg-surface pointer-coarse:h-11",
+				"group/row sidebar-row relative hover:bg-surface",
 				indent[Math.min(depth, indent.length - 1)],
 				archived ? "text-fg-faint" : "font-medium text-fg",
 			)}
 		>
-			<span
-				data-slot="disclosure"
-				className="absolute right-7 pointer-coarse:right-12 flex w-7 pointer-coarse:w-11 shrink-0 items-center justify-center"
-			>
+			<span data-slot="disclosure" className="flex size-5 shrink-0 items-center justify-center">
 				{expander && (
 					<button
 						type="button"
 						aria-label={`${expander.open ? "Collapse" : "Expand"} ${project.name}`}
 						aria-expanded={expander.open}
 						onClick={expander.onToggle}
-						className="relative inline-flex size-7 items-center justify-center rounded-sm text-fg-faint transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1 pointer-coarse:size-11"
+						className="inline-flex size-5 cursor-pointer items-center justify-center rounded-sm text-fg-faint transition-colors duration-hover ease-out hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1"
 					>
 						<span aria-hidden="true" className="inline-flex size-3 *:size-full">
 							{expander.open ? <ChevronDown /> : <ChevronRight />}
@@ -53,7 +53,7 @@ export function TreeRow({ project, depth, expander, archived = false }: TreeRowP
 				to="/p/$"
 				params={{ _splat: projectSlashPath(project.path) }}
 				activeOptions={{ exact: true, includeSearch: false }}
-				className="flex h-8 min-w-0 flex-1 items-center rounded-md transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11"
+				className="flex h-7 min-w-0 flex-1 items-center rounded-md transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11"
 			>
 				<span data-slot="leading" className="sidebar-leading">
 					{project.depth === 0 ? (
@@ -62,11 +62,7 @@ export function TreeRow({ project, depth, expander, archived = false }: TreeRowP
 						<span aria-hidden="true" className="size-1.5 rounded-sm bg-fg-faint" />
 					)}
 				</span>
-				<span
-					data-slot="label"
-					title={project.name}
-					className={cx("sidebar-label", expander && "mr-7 pointer-coarse:mr-11")}
-				>
+				<span data-slot="label" title={project.name} className="sidebar-label">
 					{project.name}
 				</span>
 				<span data-slot="trailing" className="sidebar-trailing" aria-hidden="true" />
