@@ -41,7 +41,7 @@ const icon = () => document.head.querySelector<HTMLLinkElement>('link[rel="icon"
 
 test("the favicon stays plain when review tickets exist", async () => {
 	const server = createTestServer();
-	renderApp({ path: "/needs-you", actor: "navid", server });
+	renderApp({ path: "/needs-you", actor: "dana", server });
 	await screen.findByRole("heading", { name: "Needs you" });
 	expect(icon().getAttribute("href")).toBe("/favicon.svg");
 	expect(icon().type).toBe("image/svg+xml");

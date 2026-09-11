@@ -17,7 +17,7 @@ const WAKE_MS = BATCH_MS + 3_000;
 // A simulated agent acts at once, but each of its trellis calls spawns the CLI.
 const AGENT_MS = 10_000;
 
-const human = "human:navid";
+const human = "human:dana";
 
 type Listed = { items: { identifier: string; title: string; status: { slug: string } }[] };
 

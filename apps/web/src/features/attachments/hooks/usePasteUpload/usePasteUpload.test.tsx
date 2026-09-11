@@ -24,7 +24,7 @@ function Composer({ ticket }: { ticket: string }) {
 }
 
 const renderComposer = (server: TestServer, ticket = "CDE-42") => {
-	renderWithProviders(<Composer ticket={ticket} />, { path: `/t/${ticket}`, actor: "navid", server });
+	renderWithProviders(<Composer ticket={ticket} />, { path: `/t/${ticket}`, actor: "dana", server });
 	return screen.getByLabelText("Body") as HTMLTextAreaElement;
 };
 

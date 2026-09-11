@@ -17,7 +17,7 @@ describe("features/board/Board: the sidebar key", () => {
 	// same press must not collapse the sidebar too.
 	test("[ on a focused card moves the card and leaves the sidebar open", async () => {
 		const server = createTestServer();
-		renderApp({ path: "/p/CDE/board", actor: "navid", server });
+		renderApp({ path: "/p/CDE/board", actor: "dana", server });
 		const item = await screen.findByRole("listitem", { name: /^CDE-47 / });
 		fireEvent.keyDown(item, { key: "]" });
 		await waitFor(() => expect(server.callsTo("tickets.move")).toHaveLength(1));

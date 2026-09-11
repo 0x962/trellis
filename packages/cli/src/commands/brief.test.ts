@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { runCli } from "../../test/deps.ts";
 
 const brief = () => ({
-	markdown: "# CDE-42 Dark mode\n\nBody text\n\n## Comments\n\n- navid: Body A\n",
+	markdown: "# CDE-42 Dark mode\n\nBody text\n\n## Comments\n\n- dana: Body A\n",
 	generatedAt: "2026-09-09T12:00:00.000Z",
 });
 

@@ -93,7 +93,7 @@ describe("attachments", () => {
 		const one = await t.api(`/api/attachments/${text.body.attachment.id}`);
 		const deleted = await t.app.request(`http://trellis.test/api/attachments/${png.body.attachment.id}`, {
 			method: "DELETE",
-			headers: { "x-trellis-actor": "human:navid" },
+			headers: { "x-trellis-actor": "human:dana" },
 		});
 
 		expect(list.status).toBe(200);

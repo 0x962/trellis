@@ -106,7 +106,7 @@ describe("service modules", () => {
 				record(ctx, tx, { rootId: cde, projectId: cde, ticketId: null, action: "project.updated", changes: [] }),
 			"settings.set": (ctx, tx) =>
 				settings.set(ctx, tx, {
-					defaultActorName: "navid",
+					defaultActorName: "dana",
 					stalledHours: 24,
 					diffUrlTemplate: "{url}/files",
 				}),

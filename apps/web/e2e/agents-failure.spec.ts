@@ -9,7 +9,7 @@ import { signIn } from "./support";
 // does not have. The header carries the failure alone, so a manager that
 // starts leaves the header empty and the Agents page holds its state.
 
-const human = "human:navid";
+const human = "human:dana";
 const refusal = "fatal: invalid reference: main";
 
 // The server starts the manager a moment after the settings save; each of

@@ -11,7 +11,7 @@ import { AttachmentBox } from "./AttachmentBox";
 beforeEach(() => localStorage.clear());
 
 const renderBox = (server: TestServer = createTestServer()) =>
-	renderWithProviders(<AttachmentBox ticket="CDE-42" />, { path: "/t/CDE-42", actor: "navid", server });
+	renderWithProviders(<AttachmentBox ticket="CDE-42" />, { path: "/t/CDE-42", actor: "dana", server });
 
 const boxOf = async () =>
 	await waitFor(() => {
@@ -64,7 +64,7 @@ describe("AttachmentBox", () => {
 			<DropTarget identifier="CDE-42" onFiles={() => {}}>
 				<AttachmentBox ticket="CDE-42" />
 			</DropTarget>,
-			{ path: "/t/CDE-42", actor: "navid" },
+			{ path: "/t/CDE-42", actor: "dana" },
 		);
 		const box = await boxOf();
 		dragFilesOver(box);

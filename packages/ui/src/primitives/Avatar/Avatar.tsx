@@ -12,7 +12,7 @@ export type AvatarProps = {
 	className?: string;
 };
 
-// "Navid Khan" gives NK; "navid" gives N.
+// "Dana Lee" gives DL; "dana" gives D.
 const initials = (name: string) =>
 	name
 		.split(/\s+/)

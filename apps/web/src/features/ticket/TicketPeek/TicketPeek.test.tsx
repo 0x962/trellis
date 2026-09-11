@@ -39,7 +39,7 @@ const mount = (path: string, options: Partial<ProviderOptions> = {}) =>
 			<TicketPeek />
 			<Toaster />
 		</PeekListProvider>,
-		{ path, actor: "navid", ...options },
+		{ path, actor: "dana", ...options },
 	);
 
 const peek = (identifier = "CDE-42") => screen.findByRole("dialog", { name: identifier });

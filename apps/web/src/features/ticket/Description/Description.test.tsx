@@ -155,7 +155,7 @@ describe("features/ticket/Description", () => {
 		press("e");
 		const element = await editor();
 		await user.click(element);
-		await user.keyboard(" Typed by navid.");
+		await user.keyboard(" Typed by dana.");
 		act(() => advanceTo(1000));
 		await waitFor(() => expect(server.callsTo("tickets.update")).toHaveLength(1));
 		const notice = await screen.findByText(/changed this ticket .*\. Your edit is not saved\./);
@@ -163,7 +163,7 @@ describe("features/ticket/Description", () => {
 		expect(notice.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
 		expect(screen.getByRole("button", { name: "Use their version" })).toBeDefined();
 		expect(screen.getByRole("button", { name: "Keep mine" })).toBeDefined();
-		expect((await editor()).textContent).toContain("Typed by navid.");
+		expect((await editor()).textContent).toContain("Typed by dana.");
 	});
 
 	// Keep mine sends the held text again with no version guard, so the
@@ -177,15 +177,15 @@ describe("features/ticket/Description", () => {
 		press("e");
 		const element = await editor();
 		await user.click(element);
-		await user.keyboard(" Typed by navid.");
+		await user.keyboard(" Typed by dana.");
 		act(() => advanceTo(1000));
 		await user.click(await screen.findByRole("button", { name: "Keep mine" }));
 		await user.click(await screen.findByRole("button", { name: "Replace" }));
 		await waitFor(() => expect(server.callsTo("tickets.update")).toHaveLength(2));
 		const input = server.callsTo("tickets.update")[1]!.input as { description: string; expectedVersion?: number };
 		expect(input.expectedVersion).toBeUndefined();
-		expect(input.description).toContain("Typed by navid.");
-		expect((await ticketRow(server, "CDE-42")).description).toContain("Typed by navid.");
+		expect(input.description).toContain("Typed by dana.");
+		expect((await ticketRow(server, "CDE-42")).description).toContain("Typed by dana.");
 	});
 
 	// An agent rewrites the description while the editor is open. The

@@ -19,7 +19,7 @@ describe("routes/p/$: a negated status", () => {
 	test("the table and the board send the rest of the statuses for status=!todo", async () => {
 		for (const path of ["/p/CDE/table?status=!todo", "/p/CDE/board?status=!todo"]) {
 			const server = createTestServer();
-			const view = renderApp({ path, actor: "navid", server });
+			const view = renderApp({ path, actor: "dana", server });
 			await screen.findByRole("radiogroup", { name: "View" });
 			await waitFor(() => expect(server.callsTo("tickets.counts").length, path).toBeGreaterThan(0));
 			await settle(100);

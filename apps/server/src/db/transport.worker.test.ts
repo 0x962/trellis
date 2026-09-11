@@ -32,7 +32,7 @@ const startWorker = async () => {
 };
 
 const ctx = (): RequestContext => ({
-	actor: { kind: "human", name: "navid" },
+	actor: { kind: "human", name: "dana" },
 	session: "web-tab",
 	reqId: ulid(),
 	now: new Date(),

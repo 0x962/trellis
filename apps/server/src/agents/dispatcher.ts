@@ -85,7 +85,7 @@ const relevant = ({ event, actor }: Change, manager: string) => {
 	return actor.kind === "human" || isBuilderOrReviewer(actor);
 };
 
-// One change in words, such as "CDE-42 commented by navid". `names` maps a
+// One change in words, such as "CDE-42 commented by dana". `names` maps a
 // ticket id to the identifier of the last ticket event that named it.
 const describe = ({ event, actor }: Change, names: Map<string, string>) => {
 	const by = `by ${actor === null ? "trellis" : actor.name}`;

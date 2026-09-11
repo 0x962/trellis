@@ -15,7 +15,7 @@ beforeEach(() => {
 
 const mount = async (server: TestServer, ref = "CDE") => {
 	const project = await server.client.projects.get({ project: ref });
-	return renderWithProviders(<ManagerStatus project={project} />, { path: `/p/${ref}`, actor: "navid", server });
+	return renderWithProviders(<ManagerStatus project={project} />, { path: `/p/${ref}`, actor: "dana", server });
 };
 
 const status = () => screen.findByRole("group", { name: "Manager" });

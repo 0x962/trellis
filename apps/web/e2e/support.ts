@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import { get, put } from "./api";
 
-const actorName = "navid";
+const actorName = "dana";
 
 type Settings = { defaultActorName: string; stalledHours: number };
 

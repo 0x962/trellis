@@ -7,7 +7,7 @@ import type { Seeder } from "./seed";
 // its URL and its gh reply file into these two variables.
 export const serverUrl = process.env.TRELLIS_TEST_SERVER_URL!;
 export const serverHost = new URL(serverUrl).host;
-export const actorName = "navid";
+export const actorName = "dana";
 
 // The fetch that reaches the socket. A test replaces globalThis.fetch to
 // record the calls of the screen it renders, so every seed holds this one and

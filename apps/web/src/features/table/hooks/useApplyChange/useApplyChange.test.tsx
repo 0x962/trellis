@@ -17,7 +17,7 @@ const setup = async () => {
 	render(<Toaster />);
 	const hook = renderHookWithProviders(() => useApplyChange(useTicketMutations(), []), undefined, {
 		path: "/p/CDE",
-		actor: "navid",
+		actor: "dana",
 		server,
 	});
 	return { server, review, tickets: full.map((ticket) => summaryOf(ticket)), apply: hook.result.current };

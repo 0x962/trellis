@@ -41,7 +41,7 @@ const renderProbe = (server: TestServer = createTestServer()) => {
 	const clock = createFakeScheduler();
 	const view = renderWithProviders(<Probe />, {
 		path: "/p/CDE/table",
-		actor: "navid",
+		actor: "dana",
 		server,
 		scheduler: clock.scheduler,
 	});

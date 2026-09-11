@@ -29,7 +29,7 @@ const started = "/p/CDE/table?status=in-progress";
 const review = "/p/CDE/table?status=human-review";
 
 const ready = async (path: string, first: string, server: TestServer = createTestServer()) => {
-	const app = renderApp({ path, actor: "navid", server });
+	const app = renderApp({ path, actor: "dana", server });
 	await findGrid();
 	await waitFor(() => rowOf(first));
 	return app;

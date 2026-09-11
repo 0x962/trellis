@@ -35,7 +35,7 @@ describe("useUploads", () => {
 	// never a row the page kept beside it.
 	test("invalidates the attachments list of the ticket after an upload", async () => {
 		const server = createTestServer();
-		renderWithProviders(<AttachmentGrid ticket="CDE-42" />, { path: "/t/CDE-42", actor: "navid", server });
+		renderWithProviders(<AttachmentGrid ticket="CDE-42" />, { path: "/t/CDE-42", actor: "dana", server });
 		const surface = await surfaceOf();
 		await waitFor(() => expect(callsTo(server, "attachments.list")).toHaveLength(1));
 		dropFiles(surface, [fileOf("notes.txt", "text/plain", 2048)]);
@@ -51,7 +51,7 @@ describe("useUploads", () => {
 		const files = [fileOf("notes.txt", "text/plain", 100), fileOf("plan.md", "text/markdown", 400)];
 		renderWithProviders(<UploadsProbe ticket="CDE-42" files={files} />, {
 			path: "/t/CDE-42",
-			actor: "navid",
+			actor: "dana",
 			server: gate.server,
 		});
 		gate.hold();

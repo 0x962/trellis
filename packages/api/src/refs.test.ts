@@ -85,10 +85,10 @@ describe("StatusRefSchema", () => {
 describe("ActorHeaderSchema", () => {
 	test("ActorHeader accepts human and agent names up to 64 chars", () => {
 		const longName = "x".repeat(64);
-		expect(ActorHeaderSchema.parse("human:Navid")).toEqual({ kind: "human", name: "Navid" });
+		expect(ActorHeaderSchema.parse("human:Dana")).toEqual({ kind: "human", name: "Dana" });
 		expect(ActorHeaderSchema.parse("agent:claude-code")).toEqual({ kind: "agent", name: "claude-code" });
 		expect(ActorHeaderSchema.parse(`agent:${longName}`)).toEqual({ kind: "agent", name: longName });
-		for (const input of ["human:Navid", "agent:claude-code", `agent:${longName}`]) {
+		for (const input of ["human:Dana", "agent:claude-code", `agent:${longName}`]) {
 			expect(ActorHeaderSchema.canonicalize(input)).toBe(input);
 		}
 	});
@@ -99,7 +99,7 @@ describe("ActorHeaderSchema", () => {
 			"system:x",
 			"human:a:b",
 			"human:",
-			"Human:navid",
+			"Human:dana",
 			`agent:${"x".repeat(65)}`,
 			"agent:na\tme",
 			"agent:ñ",

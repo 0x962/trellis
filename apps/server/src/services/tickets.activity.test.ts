@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	type ActorRef,
 	claude,
-	navid,
+	dana,
 	seedActivity,
 	seedProject,
 	seedTicket,
@@ -43,7 +43,7 @@ const descriptionRows = async (id: string) => (await activityOf(h.db, id)).filte
 describe("tickets.update activity", () => {
 	test("update writes one activity row per changed field under one batch id", async () => {
 		const { id } = await seed();
-		await update(navid, { ticket: id, title: "Beta", priority: "high", status: "in-progress" });
+		await update(dana, { ticket: id, title: "Beta", priority: "high", status: "in-progress" });
 		const rows = await activityOf(h.db, id);
 		expect(rows).toHaveLength(3);
 		expect(rows.map((row) => row.field).sort()).toEqual(["priority", "status", "title"]);
@@ -53,7 +53,7 @@ describe("tickets.update activity", () => {
 	test("update with unchanged values writes no activity and no version bump", async () => {
 		const { id } = await seed({ priority: "high" });
 		const before = (await ticketRow(h.db, id))!;
-		await update(navid, { ticket: id, title: "Alpha", priority: "high" });
+		await update(dana, { ticket: id, title: "Alpha", priority: "high" });
 		const after = (await ticketRow(h.db, id))!;
 		expect(await activityOf(h.db, id)).toHaveLength(0);
 		expect(after.version).toBe(1);
@@ -62,14 +62,14 @@ describe("tickets.update activity", () => {
 
 	test("a title activity row carries the old and the new text", async () => {
 		const { id } = await seed();
-		await update(navid, { ticket: id, title: "Beta" });
+		await update(dana, { ticket: id, title: "Beta" });
 		const [row] = await activityOf(h.db, id);
 		expect(row).toMatchObject({ action: "ticket.updated", field: "title", from_value: "Alpha", to_value: "Beta" });
 	});
 
 	test("a description activity row carries no text and reports deltaChars", async () => {
 		const { id } = await seed({ description: "0123456789" });
-		await update(navid, { ticket: id, description: "x".repeat(30) });
+		await update(dana, { ticket: id, description: "x".repeat(30) });
 		const [row] = await descriptionRows(id);
 		expect(row).toMatchObject({ field: "description", from_value: null, to_value: null });
 		expect(row!.meta.deltaChars).toBe(20);
@@ -88,10 +88,10 @@ describe("tickets.update activity", () => {
 	test("a description change by another actor inside 5 minutes writes its own row", async () => {
 		const { id, rootId } = await seed({ description: "first" });
 		await seedDescriptionRow(rootId, id, claude, 2);
-		await update(navid, { ticket: id, description: "second" });
+		await update(dana, { ticket: id, description: "second" });
 		const rows = await descriptionRows(id);
 		expect(rows).toHaveLength(2);
-		expect(rows[1]).toMatchObject({ actor_name: "navid", actor_kind: "human" });
+		expect(rows[1]).toMatchObject({ actor_name: "dana", actor_kind: "human" });
 	});
 
 	test("a description change by the same actor after 5 minutes writes a row", async () => {
@@ -103,7 +103,7 @@ describe("tickets.update activity", () => {
 
 	test("a status activity row carries the names and the ids and categories in meta", async () => {
 		const { id, statuses } = await seed();
-		await update(navid, { ticket: id, status: "in-progress" });
+		await update(dana, { ticket: id, status: "in-progress" });
 		const [row] = await activityOf(h.db, id);
 		expect(row).toMatchObject({ field: "status", from_value: "Todo", to_value: "In Progress" });
 		expect(row!.meta).toEqual({
@@ -117,8 +117,8 @@ describe("tickets.update activity", () => {
 	test("a parent activity row carries the identifiers and a cleared parent", async () => {
 		const { id, rootId, statuses } = await seed();
 		await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, number: 3 });
-		await update(navid, { ticket: id, parent: "CDE-3" });
-		await update(navid, { ticket: id, parent: null });
+		await update(dana, { ticket: id, parent: "CDE-3" });
+		await update(dana, { ticket: id, parent: null });
 		const rows = (await activityOf(h.db, id)).filter((row) => row.field === "parent");
 		expect(rows).toHaveLength(2);
 		expect(rows[0]).toMatchObject({ from_value: null, to_value: "CDE-3" });

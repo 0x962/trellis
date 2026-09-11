@@ -28,9 +28,9 @@ describe("routes/agents", () => {
 			createdAt: isoNow(),
 		};
 		await addActivity(server, { ...row, actor: { kind: "agent", name: "manager-cde" } });
-		await addActivity(server, { ...row, actor: { kind: "human", name: "navid" } });
+		await addActivity(server, { ...row, actor: { kind: "human", name: "dana" } });
 
-		renderApp({ path: "/agents", actor: "navid", server });
+		renderApp({ path: "/agents", actor: "dana", server });
 		expect(await screen.findByRole("heading", { name: "Agents", level: 1 })).toBeDefined();
 		const sessions = within(await screen.findByRole("region", { name: "CDE sessions" }));
 		expect(sessions.getByText(startError)).toBeDefined();
@@ -71,7 +71,7 @@ describe("routes/agents", () => {
 		await server.client.tickets.create({ project: "CDE", title: "A change the manager hears about" });
 		await clock.advance(QUIET_MS);
 
-		renderApp({ path: "/agents", actor: "navid", server });
+		renderApp({ path: "/agents", actor: "dana", server });
 		const batches = within(await screen.findByRole("list", { name: "Batches" }));
 		expect((await batches.findAllByRole("listitem")).length).toBeGreaterThan(0);
 		expect(batches.getByText(/1 change in CDE/)).toBeDefined();
@@ -79,7 +79,7 @@ describe("routes/agents", () => {
 	});
 
 	test("with no agents each section says so", async () => {
-		renderApp({ path: "/agents", actor: "navid", server: createTestServer() });
+		renderApp({ path: "/agents", actor: "dana", server: createTestServer() });
 		expect(await screen.findByText("No agent sessions yet.")).toBeDefined();
 		expect(screen.getByText("No agent actions yet.")).toBeDefined();
 		expect(screen.getByText("No batches since the server started.")).toBeDefined();

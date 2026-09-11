@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
-	navid,
+	dana,
 	seedChild,
 	seedProject,
 	seedRootWithStatuses,
@@ -15,7 +15,7 @@ import * as tickets from "./tickets.ts";
 const h = ticketHarness();
 
 const moveTo = (id: string, project: string) =>
-	h.as(navid)((ctx, tx) => tickets.update(ctx, tx, { ticket: id, project }));
+	h.as(dana)((ctx, tx) => tickets.update(ctx, tx, { ticket: id, project }));
 
 // A root with its six statuses, a sub-project `web`, and one ticket in the
 // root's In Progress.

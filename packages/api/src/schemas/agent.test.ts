@@ -118,7 +118,7 @@ describe("agents.inbox", () => {
 		rootId: projectId,
 		projectId,
 		ticketId: t1,
-		actor: { name: "navid", kind: "human" },
+		actor: { name: "dana", kind: "human" },
 		action: "ticket.updated",
 		field: "priority",
 		fromValue: "low",
@@ -130,7 +130,7 @@ describe("agents.inbox", () => {
 		id: ulid,
 		ticketId: t1,
 		body: "Use the new client.",
-		actor: { name: "navid", kind: "human" },
+		actor: { name: "dana", kind: "human" },
 		createdAt: "2026-09-10T10:00:00.000Z",
 		updatedAt: "2026-09-10T10:00:00.000Z",
 	};

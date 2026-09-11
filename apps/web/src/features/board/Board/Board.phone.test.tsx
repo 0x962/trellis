@@ -24,7 +24,7 @@ describe("Board: phone width", () => {
 	test("an open column is 85vw wide and snaps", async () => {
 		renderWithProviders(<Board projectRef="CDE" storageKey="CDE" onOpenTicket={() => {}} />, {
 			path: "/p/CDE/board",
-			actor: "navid",
+			actor: "dana",
 		});
 		const list = await screen.findByRole("list", { name: /^Todo,/ });
 		const column = list.closest("section")!;

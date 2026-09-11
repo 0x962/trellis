@@ -1,5 +1,5 @@
 import { ulid } from "ulid";
-import { type ActorRef, type Executor, insertRow, navid, type Row } from "./projects.ts";
+import { type ActorRef, dana, type Executor, insertRow, type Row } from "./projects.ts";
 
 const now = () => new Date();
 
@@ -51,7 +51,7 @@ export const seedComment = async (
 	tx: Executor,
 	ticketId: string,
 	body: string,
-	actor: ActorRef = navid,
+	actor: ActorRef = dana,
 	createdAt: Date = now(),
 ) => {
 	const id = ulid();
@@ -86,8 +86,8 @@ export const seedActivity = async (tx: Executor, seed: ActivitySeed) => {
 		root_id: seed.rootId,
 		project_id: seed.projectId,
 		ticket_id: seed.ticketId ?? null,
-		actor_name: (seed.actor ?? navid).name,
-		actor_kind: (seed.actor ?? navid).kind,
+		actor_name: (seed.actor ?? dana).name,
+		actor_kind: (seed.actor ?? dana).kind,
 		action: seed.action ?? "ticket.updated",
 		field: seed.field ?? null,
 		from_value: seed.fromValue ?? null,

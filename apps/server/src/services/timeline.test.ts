@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { TimelineListInputSchema } from "@trellis/api";
-import { navid, seedActivity, seedComment, seedProject, seedTicket } from "../../test/fixtures";
+import { dana, seedActivity, seedComment, seedProject, seedTicket } from "../../test/fixtures";
 import { expectErrorData, ticketHarness } from "../../test/helpers/services.ts";
 import * as timeline from "./timeline.ts";
 
 const h = ticketHarness();
 
 const list = (input: Record<string, unknown>) =>
-	h.as(navid)((ctx, tx) => timeline.list(ctx, tx, TimelineListInputSchema.parse(input)));
+	h.as(dana)((ctx, tx) => timeline.list(ctx, tx, TimelineListInputSchema.parse(input)));
 
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000);
 
@@ -21,7 +21,7 @@ const seed = async () => {
 describe("timeline.list", () => {
 	test("timeline merges comments and activity newest first", async () => {
 		const { rootId, id } = await seed();
-		for (const minutes of [30, 20, 10]) await seedComment(h.db, id, `at ${minutes}`, navid, minutesAgo(minutes));
+		for (const minutes of [30, 20, 10]) await seedComment(h.db, id, `at ${minutes}`, dana, minutesAgo(minutes));
 		for (const minutes of [25, 15, 5, 3, 1]) {
 			await seedActivity(h.db, {
 				rootId,

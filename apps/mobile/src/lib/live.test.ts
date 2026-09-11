@@ -42,7 +42,7 @@ describe("startLive", () => {
 	beforeEach(() => {
 		store.clearAll();
 		store.set("trellis-server-url", "http://h:4521");
-		store.set("trellis-actor-name", "navid");
+		store.set("trellis-actor-name", "dana");
 		sse.resetEventSources();
 		appState.currentState = "active";
 		appState.listeners = [];
@@ -57,7 +57,7 @@ describe("startLive", () => {
 		expect(sse.instances).toHaveLength(1);
 		const stream = sse.instances[0]!;
 		expect(stream.url).toBe("http://h:4521/api/events?ping=25");
-		expect(stream.options.headers?.["x-trellis-actor"]).toBe("human:navid");
+		expect(stream.options.headers?.["x-trellis-actor"]).toBe("human:dana");
 		stop();
 	});
 
@@ -124,7 +124,7 @@ describe("startLive", () => {
 		sse.instances[0]!.fail(4);
 		jest.advanceTimersByTime(reconnectMs);
 		expect(sse.instances[1]!.options.headers?.["Last-Event-ID"]).toBe(`${ulid}.7`);
-		expect(sse.instances[1]!.options.headers?.["x-trellis-actor"]).toBe("human:navid");
+		expect(sse.instances[1]!.options.headers?.["x-trellis-actor"]).toBe("human:dana");
 		stop();
 	});
 

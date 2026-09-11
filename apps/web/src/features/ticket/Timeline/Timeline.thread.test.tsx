@@ -103,10 +103,10 @@ describe("features/ticket/Timeline threads", () => {
 		mount();
 		await screen.findByText(root.body);
 		const activity = screen.getByRole("list", { name: "Activity" });
-		const comments = within(activity).getAllByRole("article", { name: "Comment by navid" });
+		const comments = within(activity).getAllByRole("article", { name: "Comment by dana" });
 		expect(comments).toHaveLength(2);
-		for (const comment of comments) expect(within(comment).getByText("navid")).toBeDefined();
-		expect(within(activity).getAllByRole("group", { name: /Thread started by navid/ })).toHaveLength(2);
+		for (const comment of comments) expect(within(comment).getByText("dana")).toBeDefined();
+		expect(within(activity).getAllByRole("group", { name: /Thread started by dana/ })).toHaveLength(2);
 	});
 
 	test("the root actor stays on the timeline and the comment surface starts beside it", async () => {
@@ -115,7 +115,7 @@ describe("features/ticket/Timeline threads", () => {
 		const body = await screen.findByText(root.body);
 		const comment = body.closest<HTMLElement>("article")!;
 		const surface = comment.querySelector<HTMLElement>("[data-thread-surface]")!;
-		const actor = within(comment).getByText("navid");
+		const actor = within(comment).getByText("dana");
 		expect(surface).not.toBeNull();
 		expect(surface.className).toMatch(/\bml-8\b/);
 		expect(surface.className).toMatch(/before:-top-4/);

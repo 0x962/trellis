@@ -56,7 +56,7 @@ export const attachmentOf = (overrides: Partial<Attachment> = {}): Attachment =>
 		mime: "text/markdown",
 		size: 2048,
 		sha256: fakeSha(id),
-		actor: { name: "navid", kind: "human" },
+		actor: { name: "dana", kind: "human" },
 		createdAt: new Date().toISOString(),
 		url: `/api/attachments/${id}/file`,
 		...overrides,

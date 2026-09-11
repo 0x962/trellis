@@ -99,7 +99,7 @@ describe("agents contract", () => {
 					at: "2026-09-10T10:00:00.000Z",
 					projectId: "01J8Z6X4Q3M2K1H0G9F8E7D6P1",
 					count: 2,
-					text: "trellis: 2 changes in CDE (CDE-42 created by navid). Run: trellis agents inbox --project CDE",
+					text: "trellis: 2 changes in CDE (CDE-42 created by dana). Run: trellis agents inbox --project CDE",
 				},
 			],
 		};

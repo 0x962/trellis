@@ -102,7 +102,7 @@ describe("the agent restore migration", () => {
 		expect(await descriptionsByName(db)).toEqual(SEEDED_DESCRIPTIONS);
 	});
 
-	// Navid's database ran 0013, so 0020 must run there. A database that
+	// A database that ran 0013 must run 0020 too. A database that
 	// stopped before 0013 still holds the tables and the rows, and 0020 must
 	// keep both.
 	test("keeps the rows and the descriptions of a database that never ran the removal", async () => {

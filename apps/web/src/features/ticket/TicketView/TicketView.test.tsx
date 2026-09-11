@@ -99,7 +99,7 @@ describe("features/ticket/TicketView", () => {
 		setTimeout(hold.release, 400);
 		const cold = renderWithProviders(<TicketView identifier="CDE-42" variant="page" />, {
 			path: "/t/CDE-42",
-			actor: "navid",
+			actor: "dana",
 			server,
 		});
 		await waitFor(() => expect(skeletons().length).toBeGreaterThan(0));
@@ -117,7 +117,7 @@ describe("features/ticket/TicketView", () => {
 		observer.observe(document.body, { subtree: true, childList: true });
 		renderWithProviders(<TicketView identifier="CDE-42" variant="page" />, {
 			path: "/t/CDE-42",
-			actor: "navid",
+			actor: "dana",
 			server,
 			prime: ({ queryClient }) => queryClient.setQueryData(key, data),
 		});

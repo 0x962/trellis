@@ -35,7 +35,7 @@ const run = () => {
 	return h.db.transaction((tx) => gh(ctx, tx, {}));
 };
 
-const signedIn = "github.com\n  ✓ Logged in to github.com account navid (keyring)\n  - Token scopes: 'repo'\n";
+const signedIn = "github.com\n  ✓ Logged in to github.com account dana (keyring)\n  - Token scopes: 'repo'\n";
 
 describe("system.gh", () => {
 	test("the gh status reports the signed in user", async () => {
@@ -44,7 +44,7 @@ describe("system.gh", () => {
 		const result = await run();
 
 		expect(result.ok).toBe(true);
-		expect(result.user).toBe("navid");
+		expect(result.user).toBe("dana");
 		expect(result.reason).toBeNull();
 		expect(Date.parse(result.checkedAt!)).toBeGreaterThan(0);
 	});

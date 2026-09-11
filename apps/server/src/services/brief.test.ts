@@ -3,8 +3,8 @@ import { IsoDateTimeSchema } from "@trellis/api";
 import {
 	claude,
 	count,
+	dana,
 	linkPr,
-	navid,
 	seedAttachment,
 	seedChild,
 	seedComment,
@@ -17,7 +17,7 @@ import * as brief from "./brief.ts";
 
 const h = ticketHarness();
 
-const get = (ticket: string) => h.as(navid)((ctx, tx) => brief.get(ctx, tx, { ticket }));
+const get = (ticket: string) => h.as(dana)((ctx, tx) => brief.get(ctx, tx, { ticket }));
 
 // Every markdown heading line, in order.
 const headings = (markdown: string) => markdown.split("\n").filter((line) => /^#{1,6} /.test(line));
@@ -115,7 +115,7 @@ describe("brief.get", () => {
 	test("the brief holds the last 10 comments newest last", async () => {
 		const { id } = await seed();
 		for (let i = 1; i <= 12; i += 1) {
-			const actor = i % 2 === 0 ? claude : navid;
+			const actor = i % 2 === 0 ? claude : dana;
 			await seedComment(
 				h.db,
 				id,
@@ -129,7 +129,7 @@ describe("brief.get", () => {
 		expect(result.markdown).not.toContain("note-02");
 		for (let i = 3; i <= 12; i += 1) expect(result.markdown).toContain(`note-${String(i).padStart(2, "0")}`);
 		expect(result.markdown.indexOf("note-03")).toBeLessThan(result.markdown.indexOf("note-12"));
-		for (const text of ["navid", "human", "claude", "agent"]) expect(result.markdown).toContain(text);
+		for (const text of ["dana", "human", "claude", "agent"]) expect(result.markdown).toContain(text);
 	});
 
 	test("the brief omits the empty sections", async () => {

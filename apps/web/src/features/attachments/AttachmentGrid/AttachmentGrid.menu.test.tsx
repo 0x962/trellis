@@ -14,7 +14,7 @@ afterEach(restoreFetch);
 const ticket = "CDE-47";
 
 const renderGrid = (server: TestServer) =>
-	renderWithProviders(<AttachmentGrid ticket={ticket} />, { path: `/t/${ticket}`, actor: "navid", server });
+	renderWithProviders(<AttachmentGrid ticket={ticket} />, { path: `/t/${ticket}`, actor: "dana", server });
 
 const triggerFor = (filename: string) => screen.getByRole("button", { name: `Actions for ${filename}` });
 

@@ -22,7 +22,7 @@ describe("features/table/GroupHeader", () => {
 	test("shows the status icon, name, count, and the create button", async () => {
 		const server = createTestServer();
 		await seedTickets(server, { project: "CDE", count: 8, status: "in-progress" });
-		renderApp({ path, actor: "navid", server });
+		renderApp({ path, actor: "dana", server });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-44"));
 		const header = groupHeader("in-progress");
@@ -35,7 +35,7 @@ describe("features/table/GroupHeader", () => {
 	// Outcome 29
 	test("opens the composer with the group's status", async () => {
 		const user = userEvent.setup();
-		renderApp({ path, actor: "navid" });
+		renderApp({ path, actor: "dana" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-44"));
 		await user.click(within(groupHeader("in-progress")).getByRole("button", { name: "New ticket in In Progress" }));
@@ -46,7 +46,7 @@ describe("features/table/GroupHeader", () => {
 	// Outcome 30
 	test("toggles the group open and closed from the header", async () => {
 		const user = userEvent.setup();
-		renderApp({ path, actor: "navid" });
+		renderApp({ path, actor: "dana" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-44"));
 		expect(groupRows("in-progress")).toHaveLength(4);

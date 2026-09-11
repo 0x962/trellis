@@ -21,7 +21,7 @@ afterEach(restoreFetch);
 const oneMegabyte = 1024 * 1024;
 
 const renderGrid = (server: TestServer, ticket = "CDE-42") =>
-	renderWithProviders(<AttachmentGrid ticket={ticket} />, { path: `/t/${ticket}`, actor: "navid", server });
+	renderWithProviders(<AttachmentGrid ticket={ticket} />, { path: `/t/${ticket}`, actor: "dana", server });
 
 const rowNamed = (name: string) => rowsOf().find((row) => row.textContent?.includes(name));
 
@@ -60,7 +60,7 @@ describe("AttachmentGrid", () => {
 		dropFiles(surface, [fileOf("notes.txt", "text/plain", 2048)]);
 		await screen.findByText("notes.txt");
 		const row = rowNamed("notes.txt")!;
-		expect(within(row).getByText("navid")).toBeDefined();
+		expect(within(row).getByText("dana")).toBeDefined();
 		expect(within(row).getByText("just now")).toBeDefined();
 	});
 

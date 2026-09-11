@@ -1,5 +1,5 @@
 import { ulid } from "ulid";
-import { type ActorRef, type Executor, insertRow, navid, type Row } from "./projects.ts";
+import { type ActorRef, dana, type Executor, insertRow, type Row } from "./projects.ts";
 
 const now = () => new Date();
 
@@ -48,7 +48,7 @@ export const linkPr = (
 	tx: Executor,
 	ticketId: string,
 	pullRequestId: string,
-	actor: ActorRef = navid,
+	actor: ActorRef = dana,
 	source = "manual",
 ) =>
 	insertRow(tx, "ticket_pull_requests", {
@@ -60,7 +60,7 @@ export const linkPr = (
 		created_at: now(),
 	});
 
-export const seedAttachment = async (tx: Executor, ticketId: string, overrides: Row = {}, actor: ActorRef = navid) => {
+export const seedAttachment = async (tx: Executor, ticketId: string, overrides: Row = {}, actor: ActorRef = dana) => {
 	const id = ulid();
 	await insertRow(tx, "attachments", {
 		id,

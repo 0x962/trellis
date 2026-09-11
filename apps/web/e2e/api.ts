@@ -3,7 +3,7 @@ import { apiUrl } from "./env";
 // The specs read the real server over its OpenAPI routes, so a spec checks
 // a result without clicking through the UI.
 
-const headers = { "content-type": "application/json", "x-trellis-actor": "human:navid" };
+const headers = { "content-type": "application/json", "x-trellis-actor": "human:dana" };
 
 export const get = async <T>(path: string): Promise<T> => {
 	const response = await fetch(`${apiUrl}/api${path}`);

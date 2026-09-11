@@ -26,7 +26,7 @@ describe("UploadProgress", () => {
 	test("shows a determinate bar with the sent percentage", () => {
 		renderWithProviders(<UploadProgress upload={running} onDismiss={() => {}} />, {
 			path: "/t/CDE-42",
-			actor: "navid",
+			actor: "dana",
 		});
 		const bar = screen.getByRole("progressbar");
 		expect(bar.getAttribute("aria-valuemin")).toBe("0");
@@ -39,7 +39,7 @@ describe("UploadProgress", () => {
 	// must swap one for the other and never show both.
 	test("drops the bar when the upload settles and leaves one row", async () => {
 		const gate = gatedServer(createTestServer());
-		renderWithProviders(<AttachmentGrid ticket="CDE-42" />, { path: "/t/CDE-42", actor: "navid", server: gate.server });
+		renderWithProviders(<AttachmentGrid ticket="CDE-42" />, { path: "/t/CDE-42", actor: "dana", server: gate.server });
 		const surface = await surfaceOf();
 		gate.hold();
 		dropFiles(surface, [fileOf("notes.txt", "text/plain", 2048)]);
@@ -53,7 +53,7 @@ describe("UploadProgress", () => {
 	test("replaces the bar with the inline error of a failed upload", () => {
 		renderWithProviders(<UploadProgress upload={refused} onDismiss={() => {}} />, {
 			path: "/t/CDE-42",
-			actor: "navid",
+			actor: "dana",
 		});
 		expect(screen.queryByRole("progressbar")).toBeNull();
 		const alert = screen.getByRole("alert");

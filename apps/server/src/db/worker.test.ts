@@ -14,7 +14,7 @@ const call = (id: number, kind: WorkerCall["kind"], clientId?: string): WorkerCa
 		now: new Date("2026-09-10T12:00:00.000Z"),
 	},
 	input: {},
-	ghStatus: { ok: true, user: "navid", reason: null, message: null, checkedAt: "2026-09-10T12:00:00.000Z" },
+	ghStatus: { ok: true, user: "dana", reason: null, message: null, checkedAt: "2026-09-10T12:00:00.000Z" },
 });
 
 describe("ServiceQueue", () => {

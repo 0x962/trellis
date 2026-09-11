@@ -33,30 +33,30 @@ describe("the setup screen", () => {
 	});
 
 	test("Test connection shows version, ticket count, and actor name, and Save stores both", async () => {
-		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "dana" });
 		const view = renderRouter(appContext(), { initialUrl: "/setup" });
 		await view;
 		await typeUrl(url);
 		await testConnection();
 		expect(await screen.findByText(/0\.1\.0/)).toBeOnTheScreen();
 		expect(screen.getByText("12 tickets")).toBeOnTheScreen();
-		expect(screen.getByText("navid")).toBeOnTheScreen();
+		expect(screen.getByText("dana")).toBeOnTheScreen();
 		expect(probeHealth).toHaveBeenCalledTimes(1);
 		expect(probeHealth.mock.calls[0]?.[0]).toBe(url);
 		expect(save()).toBeDisabled();
 
-		await typeName("navid");
+		await typeName("dana");
 		expect(save()).toBeEnabled();
 		await fireEvent.press(save());
 		expect(store.getString("trellis-server-url")).toBe(url);
-		expect(store.getString("trellis-actor-name")).toBe("navid");
+		expect(store.getString("trellis-actor-name")).toBe("dana");
 		await waitFor(() => expect(view.getPathname()).toBe("/"));
 	});
 
 	test("a failed probe shows the specific error and keeps Save disabled", async () => {
 		await renderRouter(appContext(), { initialUrl: "/setup" });
 		await typeUrl(url);
-		await typeName("navid");
+		await typeName("dana");
 		const cases: Array<[Awaited<ReturnType<typeof server.probeHealth>>, string | RegExp]> = [
 			[{ ok: false, kind: "timeout" }, "Timed out after 3 s"],
 			[{ ok: false, kind: "unreachable", detail: "fetch failed: ECONNREFUSED" }, /ECONNREFUSED/],
@@ -75,17 +75,17 @@ describe("the setup screen", () => {
 	// on a name outside the grammar. A throw inside Test connection would
 	// leave the button disabled and show nothing.
 	test("a name outside the actor grammar never reaches the probe and never saves", async () => {
-		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "dana" });
 		await renderRouter(appContext(), { initialUrl: "/setup" });
 		await typeUrl(url);
-		await typeName("navid:khan");
+		await typeName("dana:lee");
 		await testConnection();
 		expect(probeHealth).not.toHaveBeenCalled();
 		expect(await screen.findByText(/colon/)).toBeOnTheScreen();
 		expect(screen.getByText("Test connection")).toBeOnTheScreen();
 		expect(save()).toBeDisabled();
 
-		await typeName("navid");
+		await typeName("dana");
 		await testConnection();
 		expect(await screen.findByText("12 tickets")).toBeOnTheScreen();
 		expect(save()).toBeEnabled();
@@ -105,11 +105,11 @@ describe("the setup screen", () => {
 		probeHealth.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
 		await renderRouter(appContext(), { initialUrl: "/setup" });
 		await typeUrl(url);
-		await typeName("navid");
+		await typeName("dana");
 		await testConnection();
 		await typeUrl(other);
 		await act(async () => {
-			answer({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+			answer({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "dana" });
 		});
 		expect(screen.queryByText("12 tickets")).toBeNull();
 		expect(save()).toBeDisabled();
@@ -120,9 +120,9 @@ describe("the setup screen", () => {
 	// rows of the new one.
 	test("saving a different server drops the cached rows of the old one", async () => {
 		store.set("trellis-server-url", url);
-		store.set("trellis-actor-name", "navid");
+		store.set("trellis-actor-name", "dana");
 		queryClient.setQueryData(["tickets", "list", {}], { items: [{ identifier: "CDE-42" }] });
-		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 3, actorName: "navid" });
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 3, actorName: "dana" });
 		await renderRouter(appContext(), { initialUrl: "/setup" });
 		await typeUrl("http://10.0.0.9:4521");
 		await testConnection();
@@ -144,13 +144,13 @@ describe("the setup screen", () => {
 	// again edits the same mounted screen, and the second Save must leave it
 	// the way the first one did.
 	test("a second save navigates back like the first", async () => {
-		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "dana" });
 		const back = jest.spyOn(router, "back").mockImplementation(() => {});
 		const canGoBack = jest.spyOn(router, "canGoBack").mockReturnValue(true);
 		await renderRouter(appContext(), { initialUrl: "/setup" });
 
 		await typeUrl(url);
-		await typeName("navid");
+		await typeName("dana");
 		await testConnection();
 		expect(await screen.findByText("12 tickets")).toBeOnTheScreen();
 		await fireEvent.press(save());
@@ -169,7 +169,7 @@ describe("the setup screen", () => {
 	});
 
 	test("Scan QR code fills the URL from a pair link and runs the probe", async () => {
-		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "dana" });
 		await renderRouter(appContext(), { initialUrl: "/setup" });
 		await fireEvent.press(screen.getByRole("button", { name: "Scan QR code" }));
 		expect(screen.getByTestId("camera")).toBeOnTheScreen();
@@ -195,7 +195,7 @@ describe("the setup screen", () => {
 	});
 
 	test("the trellis://pair deep link opens setup with the URL filled and probes it", async () => {
-		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "dana" });
 		const view = renderRouter(appContext(), { initialUrl: linkedPath });
 		await view;
 
@@ -208,8 +208,8 @@ describe("the setup screen", () => {
 	// A person who already set a server up opens a pair link for a new one.
 	test("the deep link reaches setup on an app that already has a server", async () => {
 		store.set("trellis-server-url", "http://10.0.0.9:4521");
-		store.set("trellis-actor-name", "navid");
-		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" });
+		store.set("trellis-actor-name", "dana");
+		probeHealth.mockResolvedValue({ ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "dana" });
 		const view = renderRouter(appContext(), { initialUrl: linkedPath });
 		await view;
 

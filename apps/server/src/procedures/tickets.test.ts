@@ -153,7 +153,7 @@ describe("tickets.delete and the agent rules", () => {
 
 		const response = await t.app.request("http://trellis.test/api/tickets/CDE-42", {
 			method: "DELETE",
-			headers: { "x-trellis-actor": "human:navid" },
+			headers: { "x-trellis-actor": "human:dana" },
 		});
 
 		expect(response.status).toBe(200);

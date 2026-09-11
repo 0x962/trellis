@@ -6,7 +6,7 @@ const comment = {
 	id,
 	ticketId: id,
 	body: "Question",
-	actor: { name: "navid", kind: "human" },
+	actor: { name: "dana", kind: "human" },
 	createdAt: "2026-09-10T12:00:00.000Z",
 	updatedAt: "2026-09-10T12:00:00.000Z",
 };

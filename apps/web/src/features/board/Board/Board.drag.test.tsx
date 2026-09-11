@@ -16,7 +16,7 @@ beforeEach(() => {
 const renderBoard = (server = createTestServer()) =>
 	renderWithProviders(<Board projectRef="CDE" storageKey="CDE" onOpenTicket={() => {}} />, {
 		path: "/p/CDE/board",
-		actor: "navid",
+		actor: "dana",
 		server,
 	});
 

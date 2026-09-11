@@ -21,7 +21,7 @@ const archivedBoard = async () => {
 			<Board projectRef="CDE" storageKey="CDE" onOpenTicket={() => {}} />
 			<Toaster />
 		</>,
-		{ path: "/p/CDE/board", actor: "navid", server },
+		{ path: "/p/CDE/board", actor: "dana", server },
 	);
 	return server;
 };

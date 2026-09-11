@@ -36,9 +36,9 @@ test("health.gh turns signed out after a poller tick reports a sign-out, with no
 	servers.push(server);
 	const { url } = await server.listening();
 	await server.waitFor("gh");
-	expect((await healthOf(url)).gh).toMatchObject({ ok: true, user: "navid" });
+	expect((await healthOf(url)).gh).toMatchObject({ ok: true, user: "dana" });
 
-	const client = createTrellisClient(url, "human:navid");
+	const client = createTrellisClient(url, "human:dana");
 	await client.projects.create({ key: "CDE", name: "Code" });
 	await client.tickets.create({ project: "CDE", title: "First" });
 	await client.pullRequests.link({ ticket: "CDE-1", url: "https://github.com/acme/web/pull/12" });

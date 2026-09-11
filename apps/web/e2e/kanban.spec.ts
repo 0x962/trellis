@@ -61,7 +61,7 @@ test("kanban > a drag to another column moves the ticket, writes a status activi
 	const timeline = await get<{ items: TimelineItem[] }>(`/tickets/${id}/timeline`);
 	const statusRows = timeline.items.filter((item) => item.kind === "activity" && item.field === "status");
 	expect(statusRows).toHaveLength(1);
-	expect(JSON.stringify(statusRows[0]!.actor)).toContain("navid");
+	expect(JSON.stringify(statusRows[0]!.actor)).toContain("dana");
 	const marks = await page.evaluate(() => (window as unknown as { __drop: DropMarks }).__drop);
 	const gap = marks.movedAt - marks.droppedAt;
 	test.info().annotations.push({ type: "optimistic paint after the drop", description: `${gap.toFixed(1)} ms` });

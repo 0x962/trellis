@@ -5,8 +5,8 @@ import {
 	type ActorRef,
 	claude,
 	count,
+	dana,
 	hoursAgo,
-	navid,
 	seedActors,
 	seedComment,
 	seedProject,
@@ -63,7 +63,7 @@ describe("comments", () => {
 
 	test("comments.create emits comment.created and ticket.updated", async () => {
 		const { id } = await seed();
-		const { result: comment, events } = await create(navid, { ticket: id, body: "Hello" });
+		const { result: comment, events } = await create(dana, { ticket: id, body: "Hello" });
 		expect(events.map((event) => event.type).sort()).toEqual(["comment.created", "ticket.updated"]);
 		const created = events.find((event) => event.type === "comment.created");
 		expect(created).toMatchObject({ id: comment.id, ticketId: id });
@@ -73,18 +73,18 @@ describe("comments", () => {
 
 	test("comments.create writes the comment.created activity row", async () => {
 		const { id } = await seed();
-		const { result: comment } = await create(navid, { ticket: id, body: "Hello" });
+		const { result: comment } = await create(dana, { ticket: id, body: "Hello" });
 		const rows = await activityOf(h.db, id);
 		expect(rows).toHaveLength(1);
-		expect(rows[0]).toMatchObject({ action: "comment.created", actor_name: "navid", actor_kind: "human" });
+		expect(rows[0]).toMatchObject({ action: "comment.created", actor_name: "dana", actor_kind: "human" });
 		expect(rows[0]!.batch_id).toMatch(ulidPattern);
 		expect(rows[0]!.meta).toMatchObject({ commentId: comment.id });
 	});
 
 	test("comments.update rewrites the body and writes activity", async () => {
 		const { id } = await seed();
-		const commentId = await seedComment(h.db, id, "Draft", navid, hoursAgo(1));
-		const { result: comment, events } = await h.as(navid)((ctx, tx) =>
+		const commentId = await seedComment(h.db, id, "Draft", dana, hoursAgo(1));
+		const { result: comment, events } = await h.as(dana)((ctx, tx) =>
 			comments.update(ctx, tx, { id: commentId, body: "Final" }),
 		);
 		expect(comment).toMatchObject({ id: commentId, body: "Final" });
@@ -100,7 +100,7 @@ describe("comments", () => {
 		const { id } = await seed();
 		const gone = await seedComment(h.db, id, "one");
 		await seedComment(h.db, id, "two");
-		const { result, events } = await h.as(navid)((ctx, tx) => comments.delete(ctx, tx, { id: gone }));
+		const { result, events } = await h.as(dana)((ctx, tx) => comments.delete(ctx, tx, { id: gone }));
 		expect(result).toEqual({ deleted: gone });
 		expect(await count(h.db, "comments")).toBe(1);
 		const rows = await activityOf(h.db, id);
@@ -115,13 +115,13 @@ describe("comments", () => {
 		const rootId = await seedRoot(h.db, "ARC", { archived_at: new Date() });
 		const statuses = await seedStatuses(h.db, rootId);
 		const id = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo });
-		await expectErrorData(create(navid, { ticket: id, body: "Hello" }), "PROJECT_ARCHIVED");
+		await expectErrorData(create(dana, { ticket: id, body: "Hello" }), "PROJECT_ARCHIVED");
 		expect(await count(h.db, "comments")).toBe(0);
 	});
 
 	test("comments.create with an unknown ticket throws NOT_FOUND", async () => {
 		await seed();
-		const data = await expectErrorData(create(navid, { ticket: "CDE-999", body: "Hello" }), "NOT_FOUND");
+		const data = await expectErrorData(create(dana, { ticket: "CDE-999", body: "Hello" }), "NOT_FOUND");
 		expect(data).toEqual({ kind: "ticket", ref: "CDE-999" });
 	});
 
@@ -129,7 +129,7 @@ describe("comments", () => {
 		await seed();
 		const missing = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
 		const data = await expectErrorData(
-			h.as(navid)((ctx, tx) => comments.update(ctx, tx, { id: missing, body: "Hello" })),
+			h.as(dana)((ctx, tx) => comments.update(ctx, tx, { id: missing, body: "Hello" })),
 			"NOT_FOUND",
 		);
 		expect(data).toEqual({ kind: "comment", ref: missing });

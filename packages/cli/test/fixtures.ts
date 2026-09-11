@@ -17,7 +17,7 @@ export const bootId = "01J8Z6X4Q3M2K1H0G9F8E7D6B0";
 
 type Overrides = Record<string, unknown>;
 
-export const actor = { name: "navid", kind: "human" };
+export const actor = { name: "dana", kind: "human" };
 
 export const statusSummary = (overrides: Overrides = {}) => ({
 	id: statusId,

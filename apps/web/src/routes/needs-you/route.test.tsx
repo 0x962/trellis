@@ -9,7 +9,7 @@ beforeEach(() => localStorage.clear());
 for (const path of ["/needs-you", "/needs-you?peek=CDE-42"]) {
 	test(`${path} stays empty with review tickets and ignores ticket shortcuts`, async () => {
 		const server = createTestServer();
-		renderApp({ path, actor: "navid", server });
+		renderApp({ path, actor: "dana", server });
 		const heading = await screen.findByRole("heading", { name: "Needs you" });
 		expect(heading.textContent).toBe("Needs you");
 		expect(document.querySelector("[data-inbox-row]")).toBeNull();

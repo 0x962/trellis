@@ -35,7 +35,7 @@ import { SUPERSET_STUB_BIN } from "./superset-stub.ts";
 // `transport.start()` loads the project cache; the worker transport spawns
 // its thread there instead.
 
-export const NAVID = "human:navid";
+export const DANA = "human:dana";
 export const CLAUDE = "agent:claude-code";
 
 export type ApiCall = {
@@ -138,7 +138,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 
 	const api = async (path: string, call: ApiCall = {}): Promise<ApiResponse> => {
 		const headers = new Headers(call.headers);
-		const actor = call.actor === undefined ? NAVID : call.actor;
+		const actor = call.actor === undefined ? DANA : call.actor;
 		if (actor !== null) headers.set("x-trellis-actor", actor);
 		let body: BodyInit | undefined = call.raw;
 		if (call.body !== undefined) {
@@ -161,7 +161,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		return response.body as Project;
 	};
 
-	const createTicket = async (input: Record<string, unknown>, actor: string = NAVID): Promise<Ticket> => {
+	const createTicket = async (input: Record<string, unknown>, actor: string = DANA): Promise<Ticket> => {
 		const response = await api("/api/tickets", { method: "POST", body: input, actor });
 		if (response.status !== 201) throw new Error(`createTicket: ${response.status} ${JSON.stringify(response.body)}`);
 		return response.body as Ticket;
@@ -194,7 +194,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		bye,
 		api,
 		as,
-		client: as(NAVID),
+		client: as(DANA),
 		seedProject,
 		createTicket,
 		db: h.db,

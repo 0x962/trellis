@@ -38,7 +38,7 @@ export const resetStores = () => {
 export const renderShell = async (options: ShellOptions = {}) => {
 	const wired = renderApp({
 		path: options.path ?? "/p/CDE/table",
-		actor: "navid",
+		actor: "dana",
 		server: options.server,
 		scheduler: options.scheduler,
 	});

@@ -1,9 +1,9 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import {
+	dana,
 	graphqlReply,
 	linkPr,
-	navid,
 	seedActivity,
 	seedChild,
 	seedPr,
@@ -161,7 +161,7 @@ describe("detect", () => {
 	test("detect never links a pull request twice", async () => {
 		const { rootId, two } = await seedCde();
 		const pr = await seedPr(h.db, { number: 45 });
-		await linkPr(h.db, two, pr, navid, "manual");
+		await linkPr(h.db, two, pr, dana, "manual");
 		await seedActivity(h.db, { rootId, projectId: rootId, ticketId: two, action: "pr.linked" });
 		const p = harness({ "pr list": prListReply([{ number: 45, url: url(45), headRefName: "cde-2-foo" }]) });
 
@@ -169,7 +169,7 @@ describe("detect", () => {
 
 		const links = await linkRows();
 		expect(links).toHaveLength(1);
-		expect(links[0]).toMatchObject({ source: "manual", actor_name: "navid", actor_kind: "human" });
+		expect(links[0]).toMatchObject({ source: "manual", actor_name: "dana", actor_kind: "human" });
 		const linked = await h.db.execute(sql`SELECT count(*)::int AS n FROM activity WHERE action = 'pr.linked'`);
 		expect(linked.rows[0]!.n).toBe(1);
 	});

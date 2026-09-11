@@ -11,7 +11,7 @@ describe("hooks/useArchivedProjects", () => {
 		await archiveProject(server, "CDE");
 		const { result } = renderHookWithProviders(() => useArchivedProjects(), undefined, {
 			path: "/all",
-			actor: "navid",
+			actor: "dana",
 			server,
 		});
 		await waitFor(() => expect(result.current.isArchived("CDE")).toBe(true));
@@ -24,7 +24,7 @@ describe("hooks/useArchivedProjects", () => {
 	test("the notice names the archived project and the way out", async () => {
 		const { result } = renderHookWithProviders(() => useArchivedProjects(), undefined, {
 			path: "/all",
-			actor: "navid",
+			actor: "dana",
 		});
 		expect(result.current.notice("CDE.web")).toBe("CDE/web is archived. Unarchive the project to change it.");
 	});

@@ -24,7 +24,7 @@ test("frequent personas come first once, search finds the rest, and Escape start
 		await server.client.agentRuns.stop({ id: run.id });
 	}
 	const user = userEvent.setup();
-	renderApp({ path: "/t/CDE-42", actor: "navid", server });
+	renderApp({ path: "/t/CDE-42", actor: "dana", server });
 	const trigger = await screen.findByRole("button", { name: "New agent" });
 	expect(trigger.querySelector(":scope > span")!.classList.contains("justify-start")).toBe(true);
 	await user.click(trigger);
@@ -51,7 +51,7 @@ test("a pending assignment accepts only one persona selection", async () => {
 	await server.client.personas.create({ name: "Builder", kind: "builder", instruction: "Build." });
 	const hold = server.holdNext("agentRuns.start");
 	const user = userEvent.setup();
-	renderApp({ path: "/t/CDE-42", actor: "navid", server });
+	renderApp({ path: "/t/CDE-42", actor: "dana", server });
 	await user.click(await screen.findByRole("button", { name: "New agent" }));
 	const picker = within(await screen.findByRole("dialog", { name: "Assign a persona" }));
 	const option = await picker.findByRole("option", { name: "Builder" });

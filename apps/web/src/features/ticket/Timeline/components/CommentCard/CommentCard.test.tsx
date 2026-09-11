@@ -36,7 +36,7 @@ const mount = (rows: Comment[]) =>
 				<CommentCard key={row.id} comment={row} />
 			))}
 		</ul>,
-		{ path: "/t/CDE-42", actor: "navid" },
+		{ path: "/t/CDE-42", actor: "dana" },
 	);
 
 describe("features/ticket/Timeline/components/CommentCard", () => {
@@ -44,10 +44,10 @@ describe("features/ticket/Timeline/components/CommentCard", () => {
 	test("renders a comment card with its actor, time, body, and menu", async () => {
 		const user = userEvent.setup();
 		const createdAt = at2252();
-		mount([comment({ actor: { name: "navid", kind: "human" }, createdAt })]);
+		mount([comment({ actor: { name: "dana", kind: "human" }, createdAt })]);
 		const card = screen.getByRole("article");
-		expect(within(card).getByRole("img", { name: "navid" })).toBeDefined();
-		expect(within(card).getByText("navid")).toBeDefined();
+		expect(within(card).getByRole("img", { name: "dana" })).toBeDefined();
+		expect(within(card).getByText("dana")).toBeDefined();
 		const time = card.querySelector("time")!;
 		expect(time.getAttribute("datetime")).toBe(createdAt);
 		expect(time.textContent).toBe(compactRelativeTime(createdAt));
@@ -66,7 +66,7 @@ describe("features/ticket/Timeline/components/CommentCard", () => {
 	test("comments use plain bodies with compact actor names", () => {
 		mount([
 			comment({ id: "01J8Z6X4Q3M2K1H0G9F8E7D6C1" }),
-			comment({ id: "01J8Z6X4Q3M2K1H0G9F8E7D6C2", actor: { name: "navid", kind: "human" } }),
+			comment({ id: "01J8Z6X4Q3M2K1H0G9F8E7D6C2", actor: { name: "dana", kind: "human" } }),
 		]);
 		const cards = screen.getAllByRole("article");
 		expect(cards).toHaveLength(2);

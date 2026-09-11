@@ -12,7 +12,7 @@ beforeEach(() => localStorage.clear());
 const ticket = "CDE-51";
 
 const renderGrid = (server: TestServer) =>
-	renderWithProviders(<AttachmentGrid ticket={ticket} />, { path: `/t/${ticket}`, actor: "navid", server });
+	renderWithProviders(<AttachmentGrid ticket={ticket} />, { path: `/t/${ticket}`, actor: "dana", server });
 
 const withImages = async (names: string[], extras: Array<[string, string]> = []) => {
 	const server = createTestServer();

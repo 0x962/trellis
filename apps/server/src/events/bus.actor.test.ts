@@ -14,10 +14,10 @@ describe("bus actor", () => {
 		bus.subscribe((entry) => {
 			seen.push({ type: entry.event.type, actor: entry.actor });
 		});
-		bus.emit(ticketEvent("ticket.updated"), { kind: "human", name: "navid" });
+		bus.emit(ticketEvent("ticket.updated"), { kind: "human", name: "dana" });
 		bus.emit({ type: "pr.updated", id: ulid(), ticketIds: [ulid()], state: "open", ciState: "pass" });
 		expect(seen).toEqual([
-			{ type: "ticket.updated", actor: { kind: "human", name: "navid" } },
+			{ type: "ticket.updated", actor: { kind: "human", name: "dana" } },
 			{ type: "pr.updated", actor: null },
 		]);
 	});
@@ -25,8 +25,8 @@ describe("bus actor", () => {
 	test("a replay from the ring keeps the actor", () => {
 		const bus = createBus({ bootId: ulid() });
 		const first = bus.emit(ticketEvent("ticket.created"), { kind: "agent", name: "builder-cde-1" });
-		bus.emit(ticketEvent("ticket.updated"), { kind: "human", name: "navid" });
+		bus.emit(ticketEvent("ticket.updated"), { kind: "human", name: "dana" });
 		const replay = bus.since(first.id)!;
-		expect(replay.map((entry) => entry.actor)).toEqual([{ kind: "human", name: "navid" }]);
+		expect(replay.map((entry) => entry.actor)).toEqual([{ kind: "human", name: "dana" }]);
 	});
 });

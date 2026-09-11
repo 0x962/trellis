@@ -17,7 +17,7 @@ beforeEach(() => {
 const path = "/p/CDE/table?status=in-progress,agent-review";
 
 const ready = async () => {
-	const app = renderApp({ path, actor: "navid", server: createTestServer() });
+	const app = renderApp({ path, actor: "dana", server: createTestServer() });
 	await findGrid();
 	await waitFor(() => rowOf("CDE-44"));
 	return app;

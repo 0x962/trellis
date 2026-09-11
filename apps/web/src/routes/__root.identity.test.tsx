@@ -38,7 +38,7 @@ describe("routes/__root identity", () => {
 	test("a server name replaces a stale name in the browser", async () => {
 		const server = createTestServer();
 		await storeName(server, "nkhan");
-		const { router } = renderApp({ path: "/needs-you", actor: "navid", server });
+		const { router } = renderApp({ path: "/needs-you", actor: "dana", server });
 		await waitFor(() => expect(router.state.location.pathname).toBe("/needs-you"));
 		await waitFor(() => expect(cached().name).toBe("nkhan"));
 		expect(await screen.findByRole("button", { name: /^nkhan/ })).toBeDefined();
@@ -50,11 +50,11 @@ describe("routes/__root identity", () => {
 	test("a name cached before the server stored one is saved to the server", async () => {
 		const server = createTestServer();
 		await clearStoredActorName(server);
-		const { router } = renderApp({ path: "/needs-you", actor: "navid", server });
+		const { router } = renderApp({ path: "/needs-you", actor: "dana", server });
 		await waitFor(() => expect(router.state.location.pathname).toBe("/needs-you"));
-		await waitFor(() => expect(lastCallTo(server, "settings.set")?.input).toMatchObject({ defaultActorName: "navid" }));
-		expect(await storedActorName(server)).toBe("navid");
-		expect(cached().name).toBe("navid");
+		await waitFor(() => expect(lastCallTo(server, "settings.set")?.input).toMatchObject({ defaultActorName: "dana" }));
+		expect(await storedActorName(server)).toBe("dana");
+		expect(cached().name).toBe("dana");
 	});
 
 	test("with projects and no stored name, a fresh browser adopts and stores the server default", async () => {

@@ -28,7 +28,7 @@ describe("hooks/useDocumentTitle", () => {
 	// Each route sets its tab title. The ticket page sets its own title.
 	test("the shell sets the tab title of the page it shows", async () => {
 		const server = createTestServer();
-		const { router } = renderApp({ path: "/needs-you", actor: "navid", server });
+		const { router } = renderApp({ path: "/needs-you", actor: "dana", server });
 		await waitFor(() => expect(document.title).toBe("Needs you · trellis"));
 		await router.navigate({ to: "/all" });
 		await waitFor(() => expect(document.title).toBe("All tickets · trellis"));

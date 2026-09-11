@@ -12,7 +12,7 @@ afterAll(() => t.close());
 describe("settings", () => {
 	test("settings round-trip through PUT and GET", async () => {
 		const settings = {
-			defaultActorName: "navid",
+			defaultActorName: "dana",
 			stalledHours: 12,
 			diffUrlTemplate: "{url}/files",
 			agentLaunchCommand: "{{superset}} ws create --project {{projectId}} --name {{name}}",

@@ -20,7 +20,7 @@ const mount = async (server: TestServer, ref = "CDE") => {
 	const project = await server.client.projects.get({ project: ref });
 	return renderWithProviders(<StatusSettings project={project} />, {
 		path: `/p/${ref}/settings`,
-		actor: "navid",
+		actor: "dana",
 		server,
 	});
 };

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { ActivitySchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { claude, navid, seedActivity, seedProject, seedRoot, seedStatuses, seedTicket } from "../../test/fixtures";
+import { claude, dana, seedActivity, seedProject, seedRoot, seedStatuses, seedTicket } from "../../test/fixtures";
 import {
 	type ActivityRow,
 	activityRows,
@@ -76,7 +76,7 @@ describe("activity.record rows", () => {
 		expect(rows[0]!.batch_id).toMatch(ULID);
 		expect(rows[1]!.batch_id).toBe(rows[0]!.batch_id);
 		for (const row of rows) {
-			expect({ name: row.actor_name, kind: row.actor_kind }).toEqual(navid);
+			expect({ name: row.actor_name, kind: row.actor_kind }).toEqual(dana);
 			expect(row.created_at).toBe(NOW.toISOString());
 			expect(row.ticket_id).toBe(ticket);
 			expect(row.action).toBe("ticket.updated");
@@ -147,7 +147,7 @@ describe("activity.record rows", () => {
 });
 
 describe("activity.record description bursts", () => {
-	// One description row written `minutes` ago by navid for the ticket.
+	// One description row written `minutes` ago by dana for the ticket.
 	const seedBurst = async (minutes: number) => {
 		const { cde, ticket } = await seedCde();
 		await seedActivity(h.db, {
@@ -161,7 +161,7 @@ describe("activity.record description bursts", () => {
 		return { cde, ticket };
 	};
 
-	const writeDescription = (cde: string, ticket: string, actor = navid) =>
+	const writeDescription = (cde: string, ticket: string, actor = dana) =>
 		write(
 			{
 				rootId: cde,

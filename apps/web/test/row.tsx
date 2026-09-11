@@ -14,7 +14,7 @@ export const summary = (overrides: Record<string, unknown> = {}) => ticketSummar
 export const mountRow = (ticket: TicketSummary, density: "comfortable" | "compact" = "comfortable") => {
 	const view = renderWithProviders(
 		<Row ticket={ticket} density={density} columns={[...columns]} viewedProject="CDE" />,
-		{ path: "/p/CDE", actor: "navid" },
+		{ path: "/p/CDE", actor: "dana" },
 	);
 	const row = () => {
 		const element = document.querySelector<HTMLElement>('[role="row"]');

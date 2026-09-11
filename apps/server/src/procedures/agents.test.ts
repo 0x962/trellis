@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Activity, AgentInboxOutput } from "@trellis/api";
 import { agentsHarness } from "../../test/helpers/agents.ts";
-import { createTestApp, NAVID } from "../../test/helpers/app.ts";
+import { createTestApp, DANA } from "../../test/helpers/app.ts";
 import { flagOf } from "../../test/helpers/superset-stub.ts";
 
 // The agents procedures over app.request. The runner in these tests is the
@@ -19,7 +19,7 @@ const inbox = async (limit?: number): Promise<AgentInboxOutput> => {
 	return response.body as AgentInboxOutput;
 };
 
-const comment = (ticket: string, body: string, actor = NAVID) =>
+const comment = (ticket: string, body: string, actor = DANA) =>
 	a.t.api(`/api/tickets/${ticket}/comments`, { method: "POST", body: { body }, actor });
 
 const actorsOf = (events: Activity[]) => [...new Set(events.map((event) => `${event.actor.kind}:${event.actor.name}`))];
@@ -82,7 +82,7 @@ describe("agents procedures", () => {
 		const read = await inbox();
 		expect(read.events.length).toBeGreaterThanOrEqual(2);
 		expect(read.events.every((event) => event.id > before.cursor)).toBe(true);
-		expect(actorsOf(read.events)).toEqual(["human:navid"]);
+		expect(actorsOf(read.events)).toEqual(["human:dana"]);
 		expect(read.events.map((event) => event.action)).toContain("comment.created");
 		expect(read.tickets.map((summary) => summary.id)).toEqual([ticket.id]);
 		expect(read.comments.map((found) => found.body)).toEqual(["Body A"]);
@@ -99,10 +99,10 @@ describe("agents procedures", () => {
 		await a.t.createTicket({ project: a.key, title: "Fix login" });
 		await inbox();
 		await comment(a.ticket(1), "Manager note", a.manager);
-		await comment(a.ticket(1), "Navid note");
+		await comment(a.ticket(1), "Dana note");
 		const read = await inbox();
-		expect(actorsOf(read.events)).toEqual(["human:navid"]);
-		expect(read.comments.map((found) => found.body)).toEqual(["Navid note"]);
+		expect(actorsOf(read.events)).toEqual(["human:dana"]);
+		expect(read.comments.map((found) => found.body)).toEqual(["Dana note"]);
 		const again = await inbox();
 		expect(again.events).toEqual([]);
 		expect(again.tickets).toEqual([]);

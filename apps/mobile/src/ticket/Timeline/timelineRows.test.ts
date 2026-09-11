@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { activityItem, ago, claude, commentItem, day, hour, id, minute, navid } from "../../../test/fixtures";
+import { activityItem, ago, claude, commentItem, dana, day, hour, id, minute } from "../../../test/fixtures";
 import { timelineRows } from "./timelineRows";
 
 const now = Date.parse("2026-09-09T12:00:00.000Z");
@@ -58,7 +58,7 @@ describe("timelineRows", () => {
 			activityItem({ id: 1, actor: claude, field: "status", createdAt: at(hour + 2 * minute) }),
 		];
 		const byActor = [
-			activityItem({ id: 2, actor: navid, field: "priority", createdAt: at(hour) }),
+			activityItem({ id: 2, actor: dana, field: "priority", createdAt: at(hour) }),
 			activityItem({ id: 1, actor: claude, field: "status", createdAt: at(hour + minute) }),
 		];
 		const byGap = [

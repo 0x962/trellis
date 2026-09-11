@@ -47,7 +47,7 @@ export const agentsOverview = () => ({
 			at: "2026-09-10T10:00:00.000Z",
 			projectId,
 			count: 2,
-			text: "trellis: 2 changes in CDE (CDE-42 created by navid, CDE-42 commented by navid). Run: trellis agents inbox --project CDE",
+			text: "trellis: 2 changes in CDE (CDE-42 created by dana, CDE-42 commented by dana). Run: trellis agents inbox --project CDE",
 		},
 	],
 });

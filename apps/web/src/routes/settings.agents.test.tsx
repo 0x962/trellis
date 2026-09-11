@@ -15,7 +15,7 @@ describe("routes/settings agents", () => {
 	// its own and its arrival moves no other page.
 	test("the Agent manager page carries the agents switch", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/settings", actor: "navid" });
+		const { router } = renderApp({ path: "/settings", actor: "dana" });
 		const nav = await screen.findByRole("navigation", { name: "Settings" });
 		await user.click(within(nav).getByRole("link", { name: "Agent manager" }));
 		expect(router.state.location.hash).toBe("manager");

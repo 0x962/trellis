@@ -21,7 +21,7 @@ const mount = async (user: ReturnType<typeof userEvent.setup>) => {
 			onPick={onPick}
 			trigger={<button type="button">Status</button>}
 		/>,
-		{ path: "/p/CDE", actor: "navid", server },
+		{ path: "/p/CDE", actor: "dana", server },
 	);
 	await user.click(screen.getByRole("button", { name: "Status" }));
 	const dialog = await screen.findByRole("dialog");

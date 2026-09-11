@@ -16,7 +16,7 @@ type ResolveInput = {
 };
 
 const resolve = (input: Partial<ResolveInput>) =>
-	resolveActor({ env: {}, gitUserName: () => "", osUser: () => "navid", ...input });
+	resolveActor({ env: {}, gitUserName: () => "", osUser: () => "dana", ...input });
 
 describe("the chain", () => {
 	// CLI-15
@@ -28,7 +28,7 @@ describe("the chain", () => {
 
 	// CLI-16
 	test("--as name keeps the inferred human kind", () => {
-		expect(resolve({ as: "navid" }).actor).toBe("human:navid");
+		expect(resolve({ as: "dana" }).actor).toBe("human:dana");
 	});
 
 	// CLI-17
@@ -87,7 +87,7 @@ describe("the chain", () => {
 	test("unlisted variables never mark an agent", () => {
 		const result = resolve({
 			env: { CLAUDE_CONFIG_DIR: "/x", ANTHROPIC_API_KEY: "k", CODEXX: "1" },
-			gitUserName: () => "Navid",
+			gitUserName: () => "Dana",
 		});
 		expect(result.kind).toBe("human");
 	});
@@ -102,10 +102,10 @@ describe("the chain", () => {
 		const result = await runCli(
 			["list"],
 			{ "tickets.list": { items: [ticketSummary()], nextCursor: null } },
-			{ env: {}, gitUserName: "navid", tty: false },
+			{ env: {}, gitUserName: "dana", tty: false },
 		);
 		expect(result.code).toBe(0);
-		expect(result.calls[0]!.request.headers.get("x-trellis-actor")).toBe("human:navid");
+		expect(result.calls[0]!.request.headers.get("x-trellis-actor")).toBe("human:dana");
 		expect(JSON.parse(result.stdout)).toEqual([ticketSummary()]);
 	});
 });
@@ -134,7 +134,7 @@ describe("the git name", () => {
 		const routes = { "projects.get": project({ repos: [] }), "projects.setRepos": [] };
 		const hinted = await runCli(["projects", "repos", "CDE", "--add", "0x962/trellis"], routes, {
 			env: {},
-			gitUserName: "Navid",
+			gitUserName: "Dana",
 			stderrTty: true,
 		});
 		expect(hinted.code).toBe(0);
@@ -147,18 +147,18 @@ describe("the git name", () => {
 			{ "tickets.get": ticket() },
 			{
 				env: {},
-				gitUserName: "Navid",
+				gitUserName: "Dana",
 				stderrTty: false,
 			},
 		);
 		expect(piped.stderr).toBe("");
 
 		const flagged = await runCli(
-			["--as", "navid", "show", "CDE-1"],
+			["--as", "dana", "show", "CDE-1"],
 			{ "tickets.get": ticket() },
 			{
 				env: {},
-				gitUserName: "Navid",
+				gitUserName: "Dana",
 				stderrTty: true,
 			},
 		);
@@ -168,8 +168,8 @@ describe("the git name", () => {
 			["show", "CDE-1"],
 			{ "tickets.get": ticket() },
 			{
-				env: { TRELLIS_ACTOR: "human:navid" },
-				gitUserName: "Navid",
+				env: { TRELLIS_ACTOR: "human:dana" },
+				gitUserName: "Dana",
 				stderrTty: true,
 			},
 		);
@@ -178,8 +178,8 @@ describe("the git name", () => {
 
 	// CLI-29
 	test("the OS user is the last step", () => {
-		const result = resolve({ gitUserName: () => "", osUser: () => "navid" });
-		expect(result.actor).toBe("human:navid");
+		const result = resolve({ gitUserName: () => "", osUser: () => "dana" });
+		expect(result.actor).toBe("human:dana");
 		expect(result.source).toBe("os");
 	});
 });

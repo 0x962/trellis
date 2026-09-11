@@ -25,7 +25,7 @@ describe("features/composer/CreateTicketDialog on an archived project", () => {
 	test("c on the page of an archived project opens no composer", async () => {
 		const server = createTestServer();
 		await archiveProject(server, "TRL");
-		renderApp({ path: "/p/TRL/table", actor: "navid", server });
+		renderApp({ path: "/p/TRL/table", actor: "dana", server });
 		await findGrid();
 		act(() => composerActions.open({ project: "TRL" }));
 		await toastWith("TRL is archived. Unarchive the project to change it.");
@@ -38,7 +38,7 @@ describe("features/composer/CreateTicketDialog on an archived project", () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
 		await archiveProject(server, "TRL");
-		renderApp({ path: "/all/table", actor: "navid", server });
+		renderApp({ path: "/all/table", actor: "dana", server });
 		await findGrid();
 		act(() => composerActions.open({}));
 		const open = await screen.findByRole("dialog", { name: /new ticket/i });

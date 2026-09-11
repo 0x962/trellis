@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { fireEvent, render, screen, within } from "@testing-library/react-native";
 import { View } from "react-native";
-import { activityItem, ago, claude, commentItem, day, hour, id, minute, navid } from "../../../test/fixtures";
+import { activityItem, ago, claude, commentItem, dana, day, hour, id, minute } from "../../../test/fixtures";
 import { tokens } from "../../theme/tokens";
 import { Timeline } from "./Timeline";
 import { timelineRows } from "./timelineRows";
@@ -16,7 +16,7 @@ const comments = [
 	}),
 	commentItem({
 		id: id("C3"),
-		actor: navid,
+		actor: dana,
 		body: "Send it to review when the desktop typecheck is green.",
 		createdAt: ago(20 * hour),
 	}),
@@ -28,7 +28,7 @@ const comments = [
 	}),
 	commentItem({
 		id: id("C1"),
-		actor: navid,
+		actor: dana,
 		body: "Plan: restore the five settings pages and keep every marked site.",
 		createdAt: ago(2 * day - hour),
 	}),
@@ -38,7 +38,7 @@ describe("Timeline", () => {
 	// O39. A fresh install is dark, so the cards paint the dark palette.
 	test("a comment card carries the actor, the time, and the markdown body", async () => {
 		await render(<Timeline rows={timelineRows(comments)} header={<View />} />);
-		expect(screen.getAllByText("navid")).toHaveLength(2);
+		expect(screen.getAllByText("dana")).toHaveLength(2);
 		expect(screen.getAllByText("claude")).toHaveLength(2);
 		expect(screen.getAllByText(/^\d+[smhd]$/)).toHaveLength(4);
 		for (const item of comments) {
@@ -58,7 +58,7 @@ describe("Timeline", () => {
 		const run = [
 			activityItem({
 				id: 2,
-				actor: navid,
+				actor: dana,
 				field: "parent",
 				fromValue: null,
 				toValue: "CDE-43",
@@ -66,7 +66,7 @@ describe("Timeline", () => {
 			}),
 			activityItem({
 				id: 1,
-				actor: navid,
+				actor: dana,
 				field: "priority",
 				fromValue: "none",
 				toValue: "high",

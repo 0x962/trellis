@@ -24,7 +24,7 @@ describe("features/filters/FilterBar", () => {
 	// Outcome 76
 	test("adds a status chip through the field and value pickers", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/p/CDE/table", actor: "navid" });
+		const { router } = renderApp({ path: "/p/CDE/table", actor: "dana" });
 		await findGrid();
 		press("f");
 		await user.click(await option("Status"));
@@ -38,7 +38,7 @@ describe("features/filters/FilterBar", () => {
 	// Outcome 79. The presets are the first section of the field picker.
 	test("applies a preset from the first section of the filter picker", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/p/CDE/table", actor: "navid" });
+		const { router } = renderApp({ path: "/p/CDE/table", actor: "dana" });
 		await findGrid();
 		await user.click(within(filterBar()).getByRole("button", { name: "Filter" }));
 		const dialog = await screen.findByRole("dialog");
@@ -64,7 +64,7 @@ describe("features/filters/FilterBar", () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
 		await server.client.projects.create({ parent: "CDE.web", name: "auth" });
-		const { router } = renderApp({ path: "/p/CDE/web/table?scope=self", actor: "navid", server });
+		const { router } = renderApp({ path: "/p/CDE/web/table?scope=self", actor: "dana", server });
 		await findGrid();
 		await waitFor(() => expect(inputs(server, "tickets.list").at(-1)).toMatchObject({ subprojects: false }));
 		await user.click(within(filterBar()).getByRole("button", { name: "Filter" }));
@@ -82,7 +82,7 @@ describe("features/filters/FilterBar", () => {
 		const user = userEvent.setup();
 		renderApp({
 			path: "/p/CDE/table?status=in-progress,agent-review&parent=none&ci=fail&sort=-updatedAt",
-			actor: "navid",
+			actor: "dana",
 		});
 		await findGrid();
 		expect(within(filterBar()).queryByRole("button", { name: "Copy as CLI" })).toBeNull();
@@ -101,7 +101,7 @@ describe("features/filters/FilterBar", () => {
 	// Outcome 82. The priority list starts at none; one arrow down is urgent.
 	test("builds a filter with the keyboard alone", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/p/CDE/table", actor: "navid" });
+		const { router } = renderApp({ path: "/p/CDE/table", actor: "dana" });
 		await findGrid();
 		press("g");
 		press("s");

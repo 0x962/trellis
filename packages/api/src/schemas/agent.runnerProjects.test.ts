@@ -9,7 +9,7 @@ const project = {
 	id: "sp-de",
 	name: "de",
 	repo: "acme/web",
-	path: "/Users/navid/projects/de",
+	path: "/Users/dana/projects/de",
 	defaultBranch: "main",
 };
 

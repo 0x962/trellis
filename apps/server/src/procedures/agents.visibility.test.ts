@@ -115,7 +115,7 @@ describe("agents.overview", () => {
 	test("lists every session and the actions of the manager, builder, and reviewer agents, newest first", async () => {
 		const project = await a.enable();
 		const manager = await a.registerManager();
-		await a.t.createTicket({ project: a.key, title: "By navid" });
+		await a.t.createTicket({ project: a.key, title: "By dana" });
 		await a.t.createTicket({ project: a.key, title: "By the manager" }, a.manager);
 		await a.t.createTicket({ project: a.key, title: "By claude" }, CLAUDE);
 		await a.t.createTicket({ project: a.key, title: "By a builder" }, builderActor(1));

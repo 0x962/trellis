@@ -43,11 +43,11 @@ export function DisplaySections() {
 				<Chip label="Actor" op="is" value="claude-code" />
 			</Section>
 			<Section name="Avatar" note="human; agent; live">
-				<Avatar kind="human" name="Navid Khan" />
-				<Avatar kind="human" name="navid" />
+				<Avatar kind="human" name="Dana Lee" />
+				<Avatar kind="human" name="dana" />
 				<Avatar kind="agent" name="claude-code" />
 				<Avatar kind="agent" name="claude-code" live />
-				<Avatar kind="human" name="navid" live />
+				<Avatar kind="human" name="dana" live />
 			</Section>
 			<Section name="Kbd" note="one style, in a row and inside every button">
 				<Kbd>⌘K</Kbd>

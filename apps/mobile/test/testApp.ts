@@ -34,7 +34,7 @@ export const createMobileApp = async () => {
 
 	const as = (actor: string): TrellisClient => createTrellisClient(origin, actor, (request) => record(request));
 	const seeder: Seeder = {
-		human: as("human:navid"),
+		human: as("human:dana"),
 		agent: as("agent:claude-code"),
 		setGhReply: (key, stdout) => stub.reply(key, { stdout, stderr: "", exitCode: 0 }),
 	};

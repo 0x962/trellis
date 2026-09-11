@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import {
 	count,
+	dana,
 	linkPr,
-	navid,
 	seedActivity,
 	seedActors,
 	seedAttachment,
@@ -19,7 +19,7 @@ import * as tickets from "./tickets.ts";
 
 const h = ticketHarness();
 
-const remove = (input: Record<string, unknown>) => h.as(navid)((ctx, tx) => tickets.delete(ctx, tx, input));
+const remove = (input: Record<string, unknown>) => h.as(dana)((ctx, tx) => tickets.delete(ctx, tx, input));
 
 describe("tickets.delete", () => {
 	test("delete detaches the children first and cascades the rest", async () => {
@@ -83,7 +83,7 @@ describe("tickets.delete", () => {
 		const { result } = await remove({ ticket: "CDE-3" });
 		expect(result).toEqual({ deleted: "CDE-3" });
 		expect(await ticketRow(h.db, id)).toBeUndefined();
-		const { result: next } = await h.as(navid)((ctx, tx) => tickets.create(ctx, tx, { project: "CDE", title: "Next" }));
+		const { result: next } = await h.as(dana)((ctx, tx) => tickets.create(ctx, tx, { project: "CDE", title: "Next" }));
 		expect(next).toMatchObject({ number: 4, identifier: "CDE-4" });
 	});
 

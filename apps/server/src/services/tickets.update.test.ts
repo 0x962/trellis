@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
 	count,
+	dana,
 	hoursAgo,
-	navid,
 	seedActors,
 	seedProject,
 	seedRoot,
@@ -16,7 +16,7 @@ import * as tickets from "./tickets.ts";
 
 const h = ticketHarness();
 
-const update = (input: Record<string, unknown>) => h.as(navid)((ctx, tx) => tickets.update(ctx, tx, input));
+const update = (input: Record<string, unknown>) => h.as(dana)((ctx, tx) => tickets.update(ctx, tx, input));
 
 // A root with its six statuses and one ticket in Todo, titled Alpha.
 const seed = async (extra: Partial<TicketSeed> = {}, overrides: Record<string, unknown> = {}) => {

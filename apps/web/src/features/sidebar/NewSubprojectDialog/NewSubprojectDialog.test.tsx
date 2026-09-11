@@ -17,7 +17,7 @@ test("a sub-project uses a slideout and requires a name and slug", async () => {
 				closed = true;
 			}}
 		/>,
-		{ path: "/all", actor: "navid", server },
+		{ path: "/all", actor: "dana", server },
 	);
 	const dialog = await screen.findByRole("dialog");
 	expect(dialog.className).toContain("right-0");

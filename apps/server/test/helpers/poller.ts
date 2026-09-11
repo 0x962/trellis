@@ -29,7 +29,7 @@ export const secondsFrom = (seconds: number, from: Date = BASE) => new Date(from
 
 export const hoursBefore = (hours: number, from: Date = BASE) => new Date(from.getTime() - hours * 3_600_000);
 
-const SIGNED_IN = "github.com\n  Logged in to github.com account navid (keyring)\n";
+const SIGNED_IN = "github.com\n  Logged in to github.com account dana (keyring)\n";
 
 export const authReply: StubReply = { stdout: SIGNED_IN, stderr: "", exitCode: 0 };
 

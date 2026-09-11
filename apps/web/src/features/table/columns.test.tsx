@@ -24,7 +24,7 @@ describe("features/table/columns", () => {
 	// is by status, so the status, project, and PR columns do not repeat
 	// what every row already shows.
 	test("renders the default column set without the status, project, or PR column", async () => {
-		renderApp({ path: "/p/TRL/table", actor: "navid" });
+		renderApp({ path: "/p/TRL/table", actor: "dana" });
 		await findGrid();
 		await waitFor(() => expect(visibleColumns().length).toBeGreaterThan(0));
 		expect(namedColumns()).toEqual(["priority", "id", "title", "actor", "updated"]);
@@ -32,7 +32,7 @@ describe("features/table/columns", () => {
 
 	// T2. Sort and columns live in Display, so the table has no header row.
 	test("renders no column-header row", async () => {
-		renderApp({ path: "/p/CDE/table", actor: "navid" });
+		renderApp({ path: "/p/CDE/table", actor: "dana" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-47"));
 		expect(document.querySelectorAll('[role="columnheader"]')).toHaveLength(0);
@@ -40,7 +40,7 @@ describe("features/table/columns", () => {
 
 	// T2. Across projects, the cell shows the key and the last path segment.
 	test("shows the project key and the last path segment on /all", async () => {
-		renderApp({ path: "/all/table?status=in-progress,agent-review,human-review", actor: "navid" });
+		renderApp({ path: "/all/table?status=in-progress,agent-review,human-review", actor: "dana" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-42"));
 		expect(within(cellOf("CDE-42", "project")).getByText("CDE")).toBeDefined();
@@ -50,7 +50,7 @@ describe("features/table/columns", () => {
 
 	// Outcome 23. CDE-43 sits in CDE itself, CDE-42 in CDE.web, CDE-45 in CDE.host.
 	test("shows the project column with the relative sub-path when the scope includes sub-projects", async () => {
-		renderApp({ path: "/p/CDE/table?status=in-progress,agent-review,human-review", actor: "navid" });
+		renderApp({ path: "/p/CDE/table?status=in-progress,agent-review,human-review", actor: "dana" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-45"));
 		expect(namedColumns()).toEqual(["priority", "id", "title", "pr", "project", "actor", "updated"]);
@@ -115,7 +115,7 @@ describe("features/table/columns", () => {
 		expect(tabular(agent.cell("updated"))).toBe(true);
 		expect(within(agent.cell("actor")).getByRole("img", { name: "claude-code · agent" })).toBeDefined();
 		agent.unmount();
-		const human = mountRow(summary({ lastActor: { kind: "human", name: "navid", at: ago(9 * minute) } }));
-		expect(within(human.cell("actor")).getByRole("img", { name: "navid" }).textContent).toBe("N");
+		const human = mountRow(summary({ lastActor: { kind: "human", name: "dana", at: ago(9 * minute) } }));
+		expect(within(human.cell("actor")).getByRole("img", { name: "dana" }).textContent).toBe("D");
 	});
 });

@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import {
 	type ActorRef,
 	claude,
-	navid,
+	dana,
 	seedProject,
 	seedRoot,
 	seedRootWithStatuses,
@@ -95,7 +95,7 @@ describe("statuses.delete agent policy", () => {
 	test("a human moves the tickets into a done status without force", async () => {
 		const { s } = await seedOnBlocked(1);
 
-		await removeAs(navid, { project: "CDE", status: "blocked", moveTo: "done" });
+		await removeAs(dana, { project: "CDE", status: "blocked", moveTo: "done" });
 
 		expect((await ticketStatuses()).map((row) => row.status_id)).toEqual([s.done]);
 	});

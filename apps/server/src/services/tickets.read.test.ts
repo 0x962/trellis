@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { BoardQuerySchema, ListQuerySchema } from "@trellis/api";
 import {
+	dana,
 	hoursAgo,
 	linkPr,
-	navid,
 	seedAttachment,
 	seedChild,
 	seedComment,
@@ -18,7 +18,7 @@ import * as tickets from "./tickets.ts";
 const h = ticketHarness();
 
 const list = (input: Record<string, unknown>) =>
-	h.as(navid)((ctx, tx) => tickets.list(ctx, tx, ListQuerySchema.parse(input)));
+	h.as(dana)((ctx, tx) => tickets.list(ctx, tx, ListQuerySchema.parse(input)));
 
 // A root with its six statuses, a sub-project `web`, two tickets in the root
 // and two in `web`, every ticket in Todo with a distinct updated_at.
@@ -121,7 +121,7 @@ describe("tickets.board and tickets.counts", () => {
 
 	test("board returns one column per effective status in order", async () => {
 		const { statuses, todo, started, done } = await seedSpread();
-		const { result: board } = await h.as(navid)((ctx, tx) =>
+		const { result: board } = await h.as(dana)((ctx, tx) =>
 			tickets.board(ctx, tx, BoardQuerySchema.parse({ project: "CDE" })),
 		);
 		expect(board.columns.map((column) => column.statusId)).toEqual(Object.values(statuses));
@@ -133,7 +133,7 @@ describe("tickets.board and tickets.counts", () => {
 
 	test("counts reports the total and every status", async () => {
 		const { statuses } = await seedSpread();
-		const { result: counts } = await h.as(navid)((ctx, tx) =>
+		const { result: counts } = await h.as(dana)((ctx, tx) =>
 			tickets.counts(ctx, tx, BoardQuerySchema.parse({ project: "CDE" })),
 		);
 		expect(counts.total).toBe(5);
@@ -161,7 +161,7 @@ describe("tickets.get", () => {
 		await linkPr(h.db, id, prId);
 		const attachmentId = await seedAttachment(h.db, id);
 		for (const body of ["a", "b", "c"]) await seedComment(h.db, id, body);
-		const { result: ticket } = await h.as(navid)((ctx, tx) => tickets.get(ctx, tx, { ticket: "CDE-9" }));
+		const { result: ticket } = await h.as(dana)((ctx, tx) => tickets.get(ctx, tx, { ticket: "CDE-9" }));
 		expect(ticket).toMatchObject({
 			id,
 			identifier: "CDE-9",
@@ -177,7 +177,7 @@ describe("tickets.get", () => {
 	test("get with an unknown ref throws NOT_FOUND", async () => {
 		await seedProject(h.db);
 		const data = await expectErrorData(
-			h.as(navid)((ctx, tx) => tickets.get(ctx, tx, { ticket: "CDE-999" })),
+			h.as(dana)((ctx, tx) => tickets.get(ctx, tx, { ticket: "CDE-999" })),
 			"NOT_FOUND",
 		);
 		expect(data).toEqual({ kind: "ticket", ref: "CDE-999" });

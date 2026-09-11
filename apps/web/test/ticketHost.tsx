@@ -27,7 +27,7 @@ export const renderTicket = (
 			<Host />
 			<Toaster />
 		</>,
-		{ path: "/p/CDE", actor: "navid", ...options, server },
+		{ path: "/p/CDE", actor: "dana", ...options, server },
 	);
 };
 

@@ -16,7 +16,7 @@ export type SeedManyOptions = {
 // Adds `count` tickets to the server, numbered after the root's last ticket.
 // The virtualizer tests need thousands of rows, which is too many for one
 // service call each, so the rows and their created activity go in with two
-// statements. Every ticket is a plain row by navid; a higher number is a
+// statements. Every ticket is a plain row by dana; a higher number is a
 // more recent change, so the default order lists them newest number first.
 export const seedTickets = async (server: TestServer, options: SeedManyOptions) => {
 	const project = await server.client.projects.get({ project: options.project });
@@ -50,7 +50,7 @@ export const seedTickets = async (server: TestServer, options: SeedManyOptions) 
 	`);
 	await db.execute(sql`
 		INSERT INTO activity (batch_id, root_id, project_id, ticket_id, actor_name, actor_kind, action, meta, created_at)
-		SELECT ${ulid()}, ${project.rootId}, ${project.id}, r.id, 'navid', 'human', 'ticket.created', '{}'::jsonb,
+		SELECT ${ulid()}, ${project.rootId}, ${project.id}, r.id, 'dana', 'human', 'ticket.created', '{}'::jsonb,
 			r.at::timestamptz
 		FROM jsonb_to_recordset(${json}::jsonb) AS r(id text, at text)
 	`);

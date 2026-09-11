@@ -19,7 +19,7 @@ describe("features/pickers/TicketPicker", () => {
 		const onPick = mock((_ticket: TicketSummary | null) => {});
 		renderWithProviders(
 			<TicketPicker project="CDE" value="CDE-43" onPick={onPick} trigger={<button type="button">Parent</button>} />,
-			{ path: "/p/CDE", actor: "navid", server },
+			{ path: "/p/CDE", actor: "dana", server },
 		);
 		await user.click(screen.getByRole("button", { name: "Parent" }));
 		const dialog = await screen.findByRole("dialog");

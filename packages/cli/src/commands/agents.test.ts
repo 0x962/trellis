@@ -32,7 +32,7 @@ describe("agents inbox", () => {
 			{ tty: true },
 		);
 		expect(result.code).toBe(0);
-		for (const fragment of ["CDE-42", "ticket.moved", "human:navid", "todo -> human-review", "Body A", "cursor 7"]) {
+		for (const fragment of ["CDE-42", "ticket.moved", "human:dana", "todo -> human-review", "Body A", "cursor 7"]) {
 			expect(result.stdout, fragment).toContain(fragment);
 		}
 	});

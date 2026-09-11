@@ -43,7 +43,7 @@ beforeEach(async () => {
 afterAll(() => h.close());
 
 const ctx = (): RequestContext => ({
-	actor: { kind: "human", name: "navid" },
+	actor: { kind: "human", name: "dana" },
 	session: null,
 	reqId: ulid(),
 	now: new Date(),

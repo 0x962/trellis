@@ -167,7 +167,7 @@ export default function SetupScreen() {
 				label="Name"
 				value={name}
 				onChangeText={setName}
-				placeholder="navid"
+				placeholder="dana"
 				autoCapitalize="none"
 				autoCorrect={false}
 				note={nameNote}

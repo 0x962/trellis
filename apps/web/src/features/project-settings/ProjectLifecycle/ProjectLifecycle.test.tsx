@@ -20,7 +20,7 @@ const projectTree = () => screen.getByRole("navigation", { name: "Projects" });
 describe("features/project-settings/ProjectLifecycle", () => {
 	test("project settings archive the project and unarchive it", async () => {
 		const user = userEvent.setup();
-		const { server } = renderApp({ path: "/p/TRL/settings#archive", actor: "navid" });
+		const { server } = renderApp({ path: "/p/TRL/settings#archive", actor: "dana" });
 		await user.click(await screen.findByRole("button", { name: "Archive project" }));
 		await waitFor(() =>
 			expect(lastCallTo(server, "projects.update")?.input).toEqual({ project: "TRL", archived: true }),
@@ -41,7 +41,7 @@ describe("features/project-settings/ProjectLifecycle", () => {
 		const server = createTestServer();
 		const count = await ticketsUnder(server, "TRL");
 		expect(count).toBeGreaterThan(1);
-		const { router } = renderApp({ path: "/p/TRL/settings#archive", actor: "navid", server });
+		const { router } = renderApp({ path: "/p/TRL/settings#archive", actor: "dana", server });
 		await user.click(await screen.findByRole("button", { name: "Delete project…" }));
 		const dialog = await screen.findByRole("dialog", { name: "Delete trellis?" });
 		await waitFor(() => expect(dialog.textContent).toContain(`${formatCount(count)} tickets`));
@@ -63,7 +63,7 @@ describe("features/project-settings/ProjectLifecycle", () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
 		await server.client.projects.create({ key: "EMP", name: "Empty" });
-		const { router } = renderApp({ path: "/p/EMP/settings#archive", actor: "navid", server });
+		const { router } = renderApp({ path: "/p/EMP/settings#archive", actor: "dana", server });
 		await user.click(await screen.findByRole("button", { name: "Delete project…" }));
 		const dialog = await screen.findByRole("dialog", { name: "Delete Empty?" });
 		await waitFor(() => expect(dialog.textContent).toContain("no tickets"));

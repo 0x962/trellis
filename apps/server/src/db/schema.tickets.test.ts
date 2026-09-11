@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { insertRow, navid, seedComment, seedProject, seedRoot, seedStatuses, seedTicket } from "../../test/fixtures";
+import { dana, insertRow, seedComment, seedProject, seedRoot, seedStatuses, seedTicket } from "../../test/fixtures";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
 import { checkNamed, FOREIGN_KEY, RESTRICT, UNIQUE } from "../../test/helpers/errors.ts";
 
@@ -143,7 +143,7 @@ describe("tickets", () => {
 	test("comments.search is generated from body at weight C", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
 		const ticket = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo });
-		const comment = await seedComment(h.db, ticket, "authentication broke", navid);
+		const comment = await seedComment(h.db, ticket, "authentication broke", dana);
 		const before = await h.db.execute(sql`SELECT search::text AS search FROM comments WHERE id = ${comment}`);
 		expect(before.rows[0]?.search).toBe("'authent':1C 'broke':2C");
 		await h.db.execute(sql`UPDATE comments SET body = 'billing fixed' WHERE id = ${comment}`);

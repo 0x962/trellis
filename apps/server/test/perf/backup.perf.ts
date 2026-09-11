@@ -17,7 +17,7 @@ describe.skipIf(PERF_ROWS === 0)(`perf backup at ${PERF_ROWS} rows`, () => {
 	let archive = "";
 	beforeAll(async () => {
 		server = await startPerfServer();
-		const client = createTrellisClient(server.url, "human:navid");
+		const client = createTrellisClient(server.url, "human:dana");
 
 		let backingUp = true;
 		const reading = (async () => {

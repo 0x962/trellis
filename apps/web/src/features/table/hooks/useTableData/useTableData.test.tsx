@@ -16,7 +16,7 @@ const mount = (server: TestServer, view: View = viewOf({}), expanded: Closed[] =
 	renderHookWithProviders(
 		(input: { expanded: Closed[] }) => useTableData({ project: "CDE", view, expanded: input.expanded }),
 		{ expanded },
-		{ path: "/p/CDE", actor: "navid", server },
+		{ path: "/p/CDE", actor: "dana", server },
 	);
 
 // The list requests of the active pass: the ones that ask for the todo category.

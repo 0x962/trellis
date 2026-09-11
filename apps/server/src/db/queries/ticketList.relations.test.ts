@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { claude, hoursAgo, linkPr, navid, seedActivity, seedPr, seedProject, seedTicket } from "../../../test/fixtures";
+import { claude, dana, hoursAgo, linkPr, seedActivity, seedPr, seedProject, seedTicket } from "../../../test/fixtures";
 import { freshDb, type TestDb } from "../../../test/helpers/db.ts";
 import { ticketList } from "./ticketList.ts";
 
@@ -63,20 +63,20 @@ describe("ticketList pull request and actor filters", () => {
 		const a = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.started });
 		const b = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.started });
 		const claudeAt = hoursAgo(2);
-		const navidAt = hoursAgo(1);
+		const danaAt = hoursAgo(1);
 		await seedActivity(h.db, { rootId, projectId: rootId, ticketId: a, actor: claude, createdAt: claudeAt });
 		await seedActivity(h.db, { rootId, projectId: rootId, ticketId: b, actor: claude, createdAt: claudeAt });
-		await seedActivity(h.db, { rootId, projectId: rootId, ticketId: b, actor: navid, createdAt: navidAt });
+		await seedActivity(h.db, { rootId, projectId: rootId, ticketId: b, actor: dana, createdAt: danaAt });
 		const projectIds = [rootId];
 		expect(await ids({ projectIds, actor: "agent:claude" })).toEqual([a]);
 		expect(await ids({ projectIds, actor: "claude" })).toEqual([a]);
-		expect(await ids({ projectIds, actor: "navid" })).toEqual([b]);
+		expect(await ids({ projectIds, actor: "dana" })).toEqual([b]);
 
 		const page = await list({ projectIds });
 		const rowA = page.items.find((item) => item.id === a)!;
 		const rowB = page.items.find((item) => item.id === b)!;
 		expect(rowA.lastActor).toEqual({ name: "claude", kind: "agent", at: claudeAt.toISOString() });
-		expect(rowB.lastActor).toEqual({ name: "navid", kind: "human", at: navidAt.toISOString() });
+		expect(rowB.lastActor).toEqual({ name: "dana", kind: "human", at: danaAt.toISOString() });
 	});
 });
 

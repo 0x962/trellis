@@ -11,7 +11,7 @@ test("personas appear as cards grouped by kind", async () => {
 	for (const kind of ["builder", "reviewer", "manager"] as const) {
 		await server.client.personas.create({ name: `${kind} example`, kind, instruction: `Instructions for ${kind}.` });
 	}
-	renderApp({ path: "/ai/personas", actor: "navid", server });
+	renderApp({ path: "/ai/personas", actor: "dana", server });
 	for (const [kind, group] of [
 		["builder", "Builders"],
 		["reviewer", "Reviewers"],
@@ -26,7 +26,7 @@ test("a slideout edits kind and moves the card to its new group", async () => {
 	const user = userEvent.setup();
 	const server = createTestServer();
 	await server.client.personas.create({ name: "Coordinator", kind: "builder", instruction: "Read the task." });
-	renderApp({ path: "/ai/personas", actor: "navid", server });
+	renderApp({ path: "/ai/personas", actor: "dana", server });
 	await user.click(await screen.findByRole("button", { name: "Edit Coordinator" }));
 	const sheet = await screen.findByRole("dialog", { name: "Edit persona" });
 	expect(sheet.className).toContain("right-0");
@@ -44,7 +44,7 @@ test("delete asks for confirmation inside the slideout and removes the card", as
 	const user = userEvent.setup();
 	const server = createTestServer();
 	await server.client.personas.create({ name: "Temporary", kind: "reviewer", instruction: "Read." });
-	renderApp({ path: "/ai/personas", actor: "navid", server });
+	renderApp({ path: "/ai/personas", actor: "dana", server });
 	await user.click(await screen.findByRole("button", { name: "Edit Temporary" }));
 	const sheet = within(await screen.findByRole("dialog", { name: "Edit persona" }));
 	await user.click(sheet.getByRole("button", { name: "Delete persona" }));
@@ -60,7 +60,7 @@ test("a failed delete keeps the persona and the open editor", async () => {
 	const user = userEvent.setup();
 	const server = createTestServer();
 	await server.client.personas.create({ name: "Keep", kind: "manager", instruction: "Manage." });
-	renderApp({ path: "/ai/personas", actor: "navid", server });
+	renderApp({ path: "/ai/personas", actor: "dana", server });
 	await user.click(await screen.findByRole("button", { name: "Edit Keep" }));
 	const sheet = within(await screen.findByRole("dialog", { name: "Edit persona" }));
 	await user.click(sheet.getByRole("button", { name: "Delete persona" }));

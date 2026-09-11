@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:tes
 import { userInfo } from "node:os";
 import { ActorSchema, DefaultActorSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { claude, navid, seedActor, system } from "../../test/fixtures";
+import { claude, dana, seedActor, system } from "../../test/fixtures";
 import { at, type Harness, NOW, secondsAfter, serviceHarness } from "../../test/helpers/services.ts";
 import { countStatements } from "../../test/helpers/statements.ts";
 import * as actors from "./actors.ts";
@@ -27,26 +27,26 @@ const actorRows = () =>
 		sql`SELECT name, kind, ${at("first_seen_at")}, ${at("last_seen_at")} FROM actors ORDER BY name, kind`,
 	);
 
-const upsert = (actor: typeof navid, now: Date = NOW) =>
+const upsert = (actor: typeof dana, now: Date = NOW) =>
 	h.run((ctx, tx) => actors.upsert(ctx, tx, actor), { actor, now });
 
 describe("actors.upsert", () => {
 	test("an unseen actor is inserted with both timestamps", async () => {
-		await upsert(navid);
+		await upsert(dana);
 		expect(await actorRows()).toEqual([
-			{ name: "navid", kind: "human", first_seen_at: NOW.toISOString(), last_seen_at: NOW.toISOString() },
+			{ name: "dana", kind: "human", first_seen_at: NOW.toISOString(), last_seen_at: NOW.toISOString() },
 		]);
 	});
 
 	test("a second upsert inside 30 seconds writes nothing", async () => {
-		await upsert(navid);
+		await upsert(dana);
 		const later = secondsAfter(10);
 		const statements = await h.read((tx) =>
 			countStatements(h.db.$client, () =>
 				actors.upsert(
 					h.ctx(() => {}, { now: later }),
 					tx,
-					navid,
+					dana,
 				),
 			),
 		);
@@ -55,11 +55,11 @@ describe("actors.upsert", () => {
 	});
 
 	test("an upsert after 30 seconds flushes last_seen_at", async () => {
-		await upsert(navid);
+		await upsert(dana);
 		const later = secondsAfter(31);
-		await upsert(navid, later);
+		await upsert(dana, later);
 		expect(await actorRows()).toEqual([
-			{ name: "navid", kind: "human", first_seen_at: NOW.toISOString(), last_seen_at: later.toISOString() },
+			{ name: "dana", kind: "human", first_seen_at: NOW.toISOString(), last_seen_at: later.toISOString() },
 		]);
 	});
 
@@ -90,10 +90,10 @@ describe("actors.upsert", () => {
 
 describe("actors.list and actors.default", () => {
 	test("list returns every actor newest seen first", async () => {
-		await seedActor(h.db, navid);
+		await seedActor(h.db, dana);
 		await seedActor(h.db, claude);
 		await seedActor(h.db, system);
-		await h.db.execute(sql`UPDATE actors SET last_seen_at = ${secondsAfter(-300)} WHERE name = 'navid'`);
+		await h.db.execute(sql`UPDATE actors SET last_seen_at = ${secondsAfter(-300)} WHERE name = 'dana'`);
 		await h.db.execute(sql`UPDATE actors SET last_seen_at = ${secondsAfter(-10)} WHERE name = 'claude'`);
 		await h.db.execute(sql`UPDATE actors SET last_seen_at = ${secondsAfter(-100)} WHERE name = 'trellis'`);
 		const listed = await h.read((tx) =>
@@ -102,13 +102,13 @@ describe("actors.list and actors.default", () => {
 				tx,
 			),
 		);
-		expect(listed.map((actor) => actor.name)).toEqual(["claude", "trellis", "navid"]);
+		expect(listed.map((actor) => actor.name)).toEqual(["claude", "trellis", "dana"]);
 		for (const actor of listed) ActorSchema.parse(actor);
 	});
 
 	test("the default actor comes from the settings name", async () => {
 		await h.db.execute(
-			sql`INSERT INTO settings (key, value, updated_at) VALUES ('defaultActorName', ${JSON.stringify("navid")}::jsonb, ${NOW})`,
+			sql`INSERT INTO settings (key, value, updated_at) VALUES ('defaultActorName', ${JSON.stringify("dana")}::jsonb, ${NOW})`,
 		);
 		const result = await h.read((tx) =>
 			actors.default(
@@ -116,7 +116,7 @@ describe("actors.list and actors.default", () => {
 				tx,
 			),
 		);
-		expect(DefaultActorSchema.parse(result)).toEqual({ name: "navid", kind: "human", stored: true });
+		expect(DefaultActorSchema.parse(result)).toEqual({ name: "dana", kind: "human", stored: true });
 	});
 
 	// A fresh browser adopts a stored name without the setup form. The

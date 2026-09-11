@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import type { TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { checkRun, count, graphqlReply, hoursAgo, navid, seedProject, seedTicket, system } from "../../test/fixtures";
+import { checkRun, count, dana, graphqlReply, hoursAgo, seedProject, seedTicket, system } from "../../test/fixtures";
 import { eventSink, testCtx, withEmit } from "../../test/helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
 import { caught } from "../../test/helpers/errors.ts";
@@ -70,7 +70,7 @@ const reply = () =>
 
 type LinkInput = { ticket: string; url: string; source?: "manual" | "auto" };
 
-const runLink = async (input: LinkInput, actor = navid) => {
+const runLink = async (input: LinkInput, actor = dana) => {
 	const handle = testCtx({ db: h.db, home, gh: createGhRunner(), actor });
 	const { delivered, sink } = eventSink();
 	const prepared = await prepareLink(handle.ctx, input);
@@ -177,7 +177,7 @@ describe("pullRequests.link", () => {
 		const links = await rows("ticket_pull_requests");
 		expect(links.map((row) => [row.source, row.actor_name, row.actor_kind]).sort()).toEqual([
 			["auto", "trellis", "system"],
-			["manual", "navid", "human"],
+			["manual", "dana", "human"],
 		]);
 	});
 

@@ -25,7 +25,7 @@ const rowCounts = async () => {
 describe("freshDb", () => {
 	test("freshDb migrates an in-memory PGlite and reset truncates every table", async () => {
 		const rootId = await seedRoot(h.db, "CDE");
-		await seedActor(h.db, { name: "navid", kind: "human" });
+		await seedActor(h.db, { name: "dana", kind: "human" });
 		expect(await seedActivity(h.db, { rootId, projectId: rootId })).toBe(1);
 		await h.reset();
 		const counts = await rowCounts();
@@ -33,7 +33,7 @@ describe("freshDb", () => {
 		expect(Object.values(counts).every((n) => n === 0)).toBe(true);
 
 		const again = await seedRoot(h.db, "CDE");
-		await seedActor(h.db, { name: "navid", kind: "human" });
+		await seedActor(h.db, { name: "dana", kind: "human" });
 		expect(await seedActivity(h.db, { rootId: again, projectId: again })).toBe(1);
 		const trigram = await h.db.execute(sql`SELECT 'a' <% 'ab' AS similar`);
 		expect(trigram.rows[0]?.similar).toBe(true);

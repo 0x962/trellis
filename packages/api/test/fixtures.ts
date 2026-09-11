@@ -105,7 +105,7 @@ export const linkedPullRequest = (overrides: Record<string, unknown> = {}) => ({
 	createdAt: "2026-09-09T10:00:00.000Z",
 	updatedAt: "2026-09-09T10:05:00.000Z",
 	source: "manual",
-	linkedBy: { name: "navid", kind: "human" },
+	linkedBy: { name: "dana", kind: "human" },
 	linkedAt: "2026-09-09T10:05:00.000Z",
 	...overrides,
 });

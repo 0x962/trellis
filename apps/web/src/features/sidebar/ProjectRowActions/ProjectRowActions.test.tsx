@@ -14,7 +14,7 @@ beforeEach(() => {
 describe("features/sidebar/ProjectRowActions", () => {
 	test("the row menu has Archive and Delete, and Archive archives the project", async () => {
 		const user = userEvent.setup();
-		const { server } = renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid" });
+		const { server } = renderWithProviders(<ProjectTree />, { path: "/all", actor: "dana" });
 		await user.click(await screen.findByRole("button", { name: "Actions for trellis" }));
 		expect(await screen.findByRole("menuitem", { name: "Archive" })).toBeDefined();
 		expect(screen.getByRole("menuitem", { name: "Delete…" })).toBeDefined();
@@ -26,7 +26,7 @@ describe("features/sidebar/ProjectRowActions", () => {
 
 	test("Delete in the row menu opens the delete confirmation", async () => {
 		const user = userEvent.setup();
-		renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid" });
+		renderWithProviders(<ProjectTree />, { path: "/all", actor: "dana" });
 		await user.click(await screen.findByRole("button", { name: "Actions for trellis" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Delete…" }));
 		const dialog = await screen.findByRole("dialog", { name: "Delete trellis?" });

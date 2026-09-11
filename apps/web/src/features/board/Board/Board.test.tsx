@@ -23,7 +23,7 @@ beforeEach(() => {
 const renderBoard = (server = createTestServer()) =>
 	renderWithProviders(<Board projectRef="CDE" storageKey="CDE" onOpenTicket={() => {}} />, {
 		path: "/p/CDE/board",
-		actor: "navid",
+		actor: "dana",
 		server,
 	});
 
@@ -120,7 +120,7 @@ describe("Board", () => {
 		expect(server.calls.filter((call) => call.path.join(".") === "tickets.move")).toHaveLength(0);
 		release();
 		await waitFor(() => expect(server.calls.filter((call) => call.path.join(".") === "tickets.move")).toHaveLength(1));
-		expect(server.calls.find((call) => call.path.join(".") === "tickets.move")!.actor).toBe("human:navid");
+		expect(server.calls.find((call) => call.path.join(".") === "tickets.move")!.actor).toBe("human:dana");
 		view.unmount();
 	});
 

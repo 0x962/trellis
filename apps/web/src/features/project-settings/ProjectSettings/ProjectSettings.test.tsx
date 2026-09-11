@@ -11,7 +11,7 @@ beforeEach(() => {
 
 test("settings sections have direct links, one visible page, and browser history", async () => {
 	const user = userEvent.setup();
-	const { router } = renderApp({ path: "/p/CDE/web/settings", actor: "navid" });
+	const { router } = renderApp({ path: "/p/CDE/web/settings", actor: "dana" });
 	const nav = await screen.findByRole("navigation", { name: "Project settings" });
 	expect(within(nav).getAllByRole("link")).toHaveLength(6);
 	expect(await screen.findByRole("heading", { name: "General", level: 2 })).toBeDefined();
@@ -28,7 +28,7 @@ test("settings sections have direct links, one visible page, and browser history
 
 test("the template page saves only the template", async () => {
 	const user = userEvent.setup();
-	const { server } = renderApp({ path: "/p/TRL/settings#template", actor: "navid" });
+	const { server } = renderApp({ path: "/p/TRL/settings#template", actor: "dana" });
 	const template = await screen.findByRole("textbox", { name: "Ticket template" });
 	expect(screen.queryByRole("textbox", { name: "Project name" })).toBeNull();
 	await user.clear(template);
@@ -44,7 +44,7 @@ test("the template page saves only the template", async () => {
 });
 
 test("a direct section link opens for a subproject", async () => {
-	renderApp({ path: "/p/CDE/web/settings#statuses", actor: "navid" });
+	renderApp({ path: "/p/CDE/web/settings#statuses", actor: "dana" });
 	expect(await screen.findByRole("heading", { name: "Statuses", level: 2 })).toBeDefined();
 	expect(await screen.findByText("Inherited from CDE")).toBeDefined();
 	expect(screen.queryByRole("textbox", { name: "Project name" })).toBeNull();
@@ -52,7 +52,7 @@ test("a direct section link opens for a subproject", async () => {
 
 test("a refused template save keeps the draft and shows the error", async () => {
 	const user = userEvent.setup();
-	const { server } = renderApp({ path: "/p/TRL/settings#template", actor: "navid" });
+	const { server } = renderApp({ path: "/p/TRL/settings#template", actor: "dana" });
 	const template = await screen.findByRole("textbox", { name: "Ticket template" });
 	server.failNext("projects.update", { code: "NOT_FOUND", data: { kind: "project", ref: "TRL" } });
 	await user.clear(template);

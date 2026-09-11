@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { navid, seedChild, seedProject, seedStatuses } from "../../test/fixtures";
+import { dana, seedChild, seedProject, seedStatuses } from "../../test/fixtures";
 import { ticketHarness } from "../../test/helpers/services.ts";
 import { assertStatusInvariant } from "../../test/invariants.ts";
 import * as tickets from "./tickets.ts";
@@ -31,13 +31,13 @@ describe("status invariant across the service tests", () => {
 		const { rootId } = await seedProject(h.db);
 		const webId = await seedChild(h.db, rootId, rootId, "web");
 		await seedStatuses(h.db, webId);
-		const { result: a } = await h.as(navid)((ctx, tx) =>
+		const { result: a } = await h.as(dana)((ctx, tx) =>
 			tickets.create(ctx, tx, { project: "CDE", title: "A", status: "in-progress" }),
 		);
-		const { result: b } = await h.as(navid)((ctx, tx) => tickets.create(ctx, tx, { project: "CDE.web", title: "B" }));
-		await h.as(navid)((ctx, tx) => tickets.update(ctx, tx, { ticket: a.id, project: "CDE.web" }));
-		await h.as(navid)((ctx, tx) => tickets.move(ctx, tx, { ticket: b.id, status: "in-progress" }));
-		await h.as(navid)((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: [a.id, b.id], project: "CDE" }));
+		const { result: b } = await h.as(dana)((ctx, tx) => tickets.create(ctx, tx, { project: "CDE.web", title: "B" }));
+		await h.as(dana)((ctx, tx) => tickets.update(ctx, tx, { ticket: a.id, project: "CDE.web" }));
+		await h.as(dana)((ctx, tx) => tickets.move(ctx, tx, { ticket: b.id, status: "in-progress" }));
+		await h.as(dana)((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: [a.id, b.id], project: "CDE" }));
 		await h.db.transaction((tx) => assertStatusInvariant(tx));
 	});
 });

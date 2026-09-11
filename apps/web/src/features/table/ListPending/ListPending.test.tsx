@@ -6,7 +6,7 @@ import { ListPending } from "./ListPending";
 // view: the page frame, then rows or cards that the data replaces in place.
 describe("features/table/ListPending", () => {
 	test("a table route shows 36 px skeleton rows with a 64 px ID bar", () => {
-		renderWithProviders(<ListPending view="table" title="All tickets" />, { path: "/all", actor: "navid" });
+		renderWithProviders(<ListPending view="table" title="All tickets" />, { path: "/all", actor: "dana" });
 		const rows = [...document.querySelectorAll<HTMLElement>("[data-table-skeleton] > div")];
 		expect(rows.length).toBeGreaterThan(0);
 		for (const row of rows) expect(row.style.height).toBe("36px");
@@ -15,7 +15,7 @@ describe("features/table/ListPending", () => {
 	});
 
 	test("a board route shows 3 columns of 3 cards", () => {
-		renderWithProviders(<ListPending view="board" title="All tickets" />, { path: "/all/board", actor: "navid" });
+		renderWithProviders(<ListPending view="board" title="All tickets" />, { path: "/all/board", actor: "dana" });
 		const columns = document.querySelectorAll("[data-board-skeleton] > div");
 		expect(columns).toHaveLength(3);
 		for (const column of columns) expect(column.querySelectorAll(".h-19")).toHaveLength(3);

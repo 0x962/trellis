@@ -10,7 +10,7 @@ describe("lib/orpc", () => {
 	// WS-17. The batch link folds every call made in one tick into one
 	// request. The fake server answers batches like the real one.
 	test("two calls in one tick go out as one batched request with the actor header", async () => {
-		setActorName("navid");
+		setActorName("dana");
 		const server = createTestServer();
 		const requests: Request[] = [];
 		const { client } = createOrpc({
@@ -24,12 +24,12 @@ describe("lib/orpc", () => {
 		expect(inbox.review.total).toBeGreaterThan(0);
 		expect(requests).toHaveLength(1);
 		expect(new URL(requests[0]!.url).pathname).toBe("/rpc/__batch__");
-		expect(requests[0]!.headers.get("x-trellis-actor")).toBe("human:navid");
+		expect(requests[0]!.headers.get("x-trellis-actor")).toBe("human:dana");
 		expect(requests[0]!.headers.get("x-trellis-client")).toMatch(/^api\//);
 	});
 
 	test("a statuses read leaves at once and never waits in a batch", async () => {
-		setActorName("navid");
+		setActorName("dana");
 		const server = createTestServer();
 		const paths: string[] = [];
 		const { client } = createOrpc({
@@ -46,7 +46,7 @@ describe("lib/orpc", () => {
 	// build, so the app must query through those utils. SSE keeps every
 	// entity current, so a query never goes stale by time and never retries.
 	test("the query utils produce the keys applyEvent patches and the client never refetches by staleness", async () => {
-		setActorName("navid");
+		setActorName("dana");
 		const key = orpc.tickets.get.queryOptions({ input: { ticket: "CDE-42" } }).queryKey;
 		expect<unknown>(key).toEqual(
 			generateOperationKey(["tickets", "get"], { input: { ticket: "CDE-42" }, type: "query" }),

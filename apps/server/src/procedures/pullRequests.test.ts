@@ -126,7 +126,7 @@ describe("pullRequests", () => {
 		const diff = await t.api(`/api/prs/${id}/diff`);
 		const unlinked = await t.app.request(`http://trellis.test/api/tickets/CDE-1/prs/${id}`, {
 			method: "DELETE",
-			headers: { "x-trellis-actor": "human:navid" },
+			headers: { "x-trellis-actor": "human:dana" },
 		});
 
 		expect(list.status).toBe(200);
@@ -136,7 +136,7 @@ describe("pullRequests", () => {
 			url,
 			state: "open",
 			ciState: "pass",
-			linkedBy: { name: "navid", kind: "human" },
+			linkedBy: { name: "dana", kind: "human" },
 		});
 		expect(list.body[0].checks).toEqual([{ name: "test", workflow: "ci", bucket: "pass", link: expect.any(String) }]);
 		expect(refreshed.status).toBe(200);
