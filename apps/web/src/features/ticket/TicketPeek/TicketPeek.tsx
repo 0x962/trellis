@@ -65,6 +65,7 @@ export function TicketPeek() {
 			title={shown}
 			modal={false}
 			bare
+			className="min-w-peek"
 			width={narrow ? "100%" : width}
 			initialFocus={() => document.querySelector<HTMLElement>('[role="dialog"] [data-peek-focus]')}
 			resizeHandle={narrow ? undefined : <ResizeHandle width={width} onResize={setWidth} onCommit={commit} />}
