@@ -66,14 +66,15 @@ const report = (name: string, ms: number) => {
 };
 
 // A fresh profile has no stored theme. The inline head script stamps dark
-// before the first frame, and the body paints the dark background token.
+// before the first frame, and the body paints the dark background token,
+// which is --bg of the dark block in packages/ui/src/tokens.css: #070707.
 test("paint > the first frame of a fresh profile carries the dark theme", async ({ page }) => {
 	await page.addInitScript(probe);
 	await signIn(page, "about:blank");
 	const marks = await load(page);
 	expect(marks.paintedBeforeFrame).toBe(false);
 	expect(marks.frameTheme).toBe("dark");
-	expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(10, 10, 10)");
+	expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(7, 7, 7)");
 });
 
 // Cold: a new browser profile with nothing cached.
