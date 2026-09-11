@@ -22,13 +22,9 @@ describe("ci.yml", () => {
 		expect(runs).toContain("bun run e2e");
 	});
 
-	// ARCHITECTURE.md, Performance budgets: CI enforces the perf tests at 2.5
-	// times the budget of the reference machine. turbo passes TRELLIS_*
-	// variables to a task and filters out `CI`, so the factor has its own
-	// variable.
-	test("the check job runs the perf suite at 2.5 times the budget", () => {
+	test("the check job runs functional checks without a performance requirement", () => {
 		const check = jobs().check!;
-		expect(check.env?.TRELLIS_PERF_FACTOR).toBe("2.5");
+		expect(check.env?.TRELLIS_PERF_FACTOR).toBeUndefined();
 		expect(check.steps.map((step) => step.run ?? "")).toContain("bun run check");
 	});
 

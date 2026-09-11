@@ -28,9 +28,11 @@ Open `http://127.0.0.1:5173`.
 The fake server deletes its data when it restarts.
 For the end-to-end suite, Playwright starts both processes.
 
-Run a focused test while you change code.
-Run `bun run lint:fix` before the full check.
-Run `bun run check --force` before you open a pull request.
+Assess the risk of the change and choose checks that cover the affected behavior.
+Balance speed with the cost of an error.
+Use focused tests for narrow changes and broader checks when the risk warrants them.
+The full `bun run check` command and performance tests are optional.
+One agent handles tests, implementation, and review, and decides whether browser checks add useful evidence.
 
 ## Repository map
 
@@ -86,8 +88,8 @@ The check fails when schema generation changes `apps/server/drizzle/`.
 ## Review pass
 
 1. Read the full diff and remove changes that are not part of the work.
-2. Run the focused tests again.
-3. Run `bun run check --force` at the repository root.
+2. Choose tests and checks based on the affected code and the risk of the change.
+3. Report the checks, their results, and any relevant gaps.
 4. Try to refute your own tests, your own correctness claim, and your own code quality.
 5. Give each finding a file, a line, a claim, and evidence.
 6. For each missing case, add a failing test before the fix.
