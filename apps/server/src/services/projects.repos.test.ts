@@ -38,11 +38,11 @@ const seedCde = async () => {
 describe("projects.setRepos", () => {
 	test("setRepos stores the owner and the repo in lower case", async () => {
 		const { cde } = await seedCde();
-		const result = await setRepos("CDE", [{ owner: "Canary", repo: "DE" }]);
-		expect(await repoRows(cde)).toEqual([{ owner: "canary", repo: "de" }]);
+		const result = await setRepos("CDE", [{ owner: "Acme", repo: "Web" }]);
+		expect(await repoRows(cde)).toEqual([{ owner: "acme", repo: "web" }]);
 		expect(result).toHaveLength(1);
 		const parsed = RepoSchema.parse(result[0]);
-		expect(parsed).toMatchObject({ projectId: cde, owner: "canary", repo: "de" });
+		expect(parsed).toMatchObject({ projectId: cde, owner: "acme", repo: "web" });
 	});
 
 	test("setRepos replaces the whole set and an empty array clears it", async () => {
@@ -60,10 +60,10 @@ describe("projects.setRepos", () => {
 	test("a repeated pair collapses to one repo row", async () => {
 		const { cde } = await seedCde();
 		const result = await setRepos("CDE", [
-			{ owner: "canary", repo: "de" },
-			{ owner: "Canary", repo: "DE" },
+			{ owner: "acme", repo: "web" },
+			{ owner: "Acme", repo: "Web" },
 		]);
-		expect(await repoRows(cde)).toEqual([{ owner: "canary", repo: "de" }]);
+		expect(await repoRows(cde)).toEqual([{ owner: "acme", repo: "web" }]);
 		expect(result).toHaveLength(1);
 	});
 

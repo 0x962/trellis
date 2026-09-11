@@ -12,7 +12,7 @@ const threeHoursAgo = () => new Date(Date.now() - 3 * 60 * 60 * 1000).toISOStrin
 const full = () =>
 	ticketSummary({
 		identifier: "CDE-42",
-		title: "Restore the fork pages after the upstream 1.27 merge",
+		title: "Restore the export pages after the upstream 1.27 merge",
 		parent: { id: "01J8Z6X4Q3M2K1H0G9F8E7D6T3", identifier: "CDE-43" },
 		childCount: 4,
 		childDoneCount: 1,

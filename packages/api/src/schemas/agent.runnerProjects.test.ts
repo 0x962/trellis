@@ -8,7 +8,7 @@ const ok = (schema: { safeParse: (value: unknown) => { success: boolean } }, val
 const project = {
 	id: "sp-de",
 	name: "de",
-	repo: "canary-technologies-corp/de",
+	repo: "acme/web",
 	path: "/Users/navid/projects/de",
 	defaultBranch: "main",
 };
