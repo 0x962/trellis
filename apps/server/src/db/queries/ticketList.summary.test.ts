@@ -101,6 +101,7 @@ describe("ticketList summary rows", () => {
 				color: "fg",
 			},
 			parent: null,
+			ancestors: [],
 			priority: "none",
 			version: 1,
 			completedAt: null,

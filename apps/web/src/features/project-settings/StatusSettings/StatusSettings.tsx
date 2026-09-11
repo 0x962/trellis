@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Project, Status } from "@trellis/api";
-import { Button, Skeleton, StatusIcon } from "@trellis/ui";
+import type { Project, Status, StatusCategory } from "@trellis/api";
+import { Button, IconButton, Skeleton } from "@trellis/ui";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -14,14 +14,25 @@ export type StatusSettingsProps = {
 	project: Project;
 };
 
+const categories: { value: StatusCategory; label: string }[] = [
+	{ value: "todo", label: "Todo" },
+	{ value: "started", label: "Started" },
+	{ value: "review", label: "Review" },
+	{ value: "done", label: "Done" },
+	{ value: "canceled", label: "Canceled" },
+];
+
 export function StatusSettings({ project }: StatusSettingsProps) {
 	const { client, orpc, queryClient } = useApp();
 	const query = useQuery(orpc.statuses.list.queryOptions({ input: { project: project.path } }));
-	const [adding, setAdding] = useState(false);
+	const countsQuery = useQuery(orpc.tickets.counts.queryOptions({ input: { project: project.path } }));
+	const [adding, setAdding] = useState<StatusCategory | null>(null);
+	const [editing, setEditing] = useState<string | null>(null);
 	const [clearOpen, setClearOpen] = useState(false);
 	const [deleting, setDeleting] = useState<Status | null>(null);
 	const [message, setMessage] = useState<string | null>(null);
 	const data = query.data;
+	const counts = countsQuery.data;
 	const inherited = data?.inheritedFrom !== null;
 
 	const refresh = async () => {
@@ -44,7 +55,8 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 		try {
 			await client.statuses.clear({ project: project.path });
 			setClearOpen(false);
-			setAdding(false);
+			setAdding(null);
+			setEditing(null);
 			setMessage(null);
 			await refresh();
 		} catch (error) {
@@ -52,15 +64,26 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 		}
 	};
 
-	const ownerPath = () => project.ancestors.find((entry) => entry.id === data!.inheritedFrom)!.path;
-
-	if (data === undefined) {
+	if (query.error !== null || countsQuery.error !== null) {
 		return (
 			<SettingsSection title="Statuses" hint="Statuses define the workflow for tickets in this project.">
-				<Skeleton lines={4} height="h-12" />
+				<p role="alert" className="text-sm text-danger">
+					Unable to load statuses. Refresh the page.
+				</p>
 			</SettingsSection>
 		);
 	}
+
+	if (data === undefined || counts === undefined) {
+		return (
+			<SettingsSection title="Statuses" hint="Statuses define the workflow for tickets in this project.">
+				<Skeleton lines={5} height="h-14" />
+			</SettingsSection>
+		);
+	}
+
+	const ownerPath = inherited ? project.ancestors.find((entry) => entry.id === data.inheritedFrom)!.path : null;
+	const countByStatus = new Map(counts.byStatus.map((entry) => [entry.statusId, entry.count]));
 
 	return (
 		<SettingsSection
@@ -68,63 +91,100 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 			hint="Statuses define the workflow for tickets in this project."
 			actions={
 				inherited ? (
-					<Button size="sm" onClick={() => setAdding(true)}>
+					<Button
+						size="sm"
+						icon={<Plus />}
+						onClick={() => {
+							setEditing(null);
+							setAdding("todo");
+						}}
+					>
 						Customize
 					</Button>
 				) : undefined
 			}
 		>
-			<div className="flex items-center justify-between gap-3">
+			<div className="status-settings-toolbar">
 				<p className="text-sm text-fg-muted">
-					{inherited ? `Inherited from ${ownerPath()}` : "This project owns its statuses."}
+					{inherited ? `Inherited from ${ownerPath}` : "This project owns its statuses."}
 				</p>
 				{!inherited && project.parentId !== null && (
 					<Button size="sm" onClick={() => setClearOpen(true)}>
-						Clear
+						Use inherited statuses
 					</Button>
 				)}
 			</div>
-			{inherited ? (
-				<ul className="flex flex-col gap-1">
-					{data.statuses.map((status) => (
-						<li key={status.id} className="flex h-8 items-center gap-2 rounded-md border border-border bg-surface px-2">
-							<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />
-							<span>{status.name}</span>
-							<span className="ml-auto font-mono text-xs text-fg-muted">{status.slug}</span>
-						</li>
-					))}
-				</ul>
-			) : (
-				<ul className="flex flex-col gap-2">
-					{data.statuses.map((status, index) => (
-						<StatusRow
-							key={status.id}
-							project={project.path}
-							status={status}
-							index={index}
-							count={data.statuses.length}
-							onChanged={refresh}
-							onMove={(from, to) => void move(from, to)}
-							onDelete={setDeleting}
-						/>
-					))}
-				</ul>
-			)}
-			{adding && (
-				<StatusCreateForm
-					project={project.path}
-					onCreated={async () => {
-						setAdding(false);
-						await refresh();
-					}}
-					onCancel={() => setAdding(false)}
-				/>
-			)}
-			{!adding && !inherited && (
-				<Button icon={<Plus />} className="self-start" onClick={() => setAdding(true)}>
-					New status
-				</Button>
-			)}
+			<div className="status-groups">
+				{categories.map((category) => {
+					const statuses = data.statuses.filter((status) => status.category === category.value);
+					return (
+						<section
+							key={category.value}
+							aria-labelledby={`status-category-${category.value}`}
+							className="status-group"
+						>
+							<header className="status-group-heading">
+								<h3 id={`status-category-${category.value}`} className="status-group-title">
+									{category.label}
+								</h3>
+								{!inherited && (
+									<IconButton
+										size="sm"
+										label={`Add a status to ${category.label}`}
+										icon={<Plus />}
+										onClick={() => {
+											setEditing(null);
+											setAdding(category.value);
+										}}
+									/>
+								)}
+							</header>
+							<ul className="status-group-list">
+								{statuses.map((status, categoryIndex) => {
+									return (
+										<StatusRow
+											key={status.id}
+											project={project.path}
+											status={status}
+											index={categoryIndex}
+											count={statuses.length}
+											ticketCount={countByStatus.get(status.id) ?? 0}
+											expanded={editing === status.id}
+											readOnly={inherited}
+											onChanged={refresh}
+											onEdit={() => {
+												setAdding(null);
+												setEditing(status.id);
+											}}
+											onCancel={() => setEditing(null)}
+											onMove={(from, to) => {
+												const fromIndex = data.statuses.findIndex((entry) => entry.id === statuses[from]!.id);
+												const toIndex = data.statuses.findIndex((entry) => entry.id === statuses[to]!.id);
+												void move(fromIndex, toIndex);
+											}}
+											onDelete={(entry) => {
+												setEditing(null);
+												setDeleting(entry);
+											}}
+										/>
+									);
+								})}
+							</ul>
+							{adding === category.value && (
+								<StatusCreateForm
+									project={project.path}
+									initialCategory={category.value}
+									onCreated={async () => {
+										setAdding(null);
+										await refresh();
+									}}
+									onCancel={() => setAdding(null)}
+								/>
+							)}
+						</section>
+					);
+				})}
+			</div>
 			{message !== null && (
 				<p role="alert" className="text-sm text-danger">
 					{message}
@@ -139,9 +199,9 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 			/>
 			<ConfirmActionDialog
 				open={clearOpen}
-				title="Clear statuses?"
+				title="Use inherited statuses?"
 				description="Tickets move to the inherited status set."
-				confirmLabel="Clear statuses"
+				confirmLabel="Use inherited statuses"
 				danger
 				onConfirm={() => void clear()}
 				onCancel={() => setClearOpen(false)}

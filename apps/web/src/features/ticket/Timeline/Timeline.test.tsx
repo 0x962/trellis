@@ -54,9 +54,9 @@ const lineTexts = (element: HTMLElement) =>
 		.map((item) => item.textContent!.replace(/\s+/g, " "));
 
 describe("features/ticket/Timeline", () => {
-	// WT-76. The server answers newest first. The page paints oldest first,
-	// and the newest item is the last thing before the composer.
-	test("renders the timeline oldest first under the newest item", async () => {
+	// WT-76. The API pages newest first. The Activity stream shows each item
+	// oldest first, and the newest item is the last thing before the composer.
+	test("interleaves activity and comments in one chronological stream", async () => {
 		const server = createTestServer();
 		const page = await server.client.timeline.list({ ticket: "CDE-42" });
 		expect(page.items[0]!.createdAt > page.items[page.items.length - 1]!.createdAt).toBe(true);
@@ -69,6 +69,15 @@ describe("features/ticket/Timeline", () => {
 		await within(element).findByText("Typecheck and tests are green on the PR. Ready for a look.");
 		const stamps = items(element).map((item) => item.querySelector("time")!.getAttribute("datetime")!);
 		expect(stamps).toEqual([...stamps].sort());
+		const activity = within(element).getByRole("list", { name: "Activity" });
+		expect(within(element).queryByRole("list", { name: "Comments" })).toBeNull();
+		const streamKinds = [...activity.querySelectorAll<HTMLElement>(":scope > [data-stream-entry]")].map((item) =>
+			item.getAttribute("data-stream-entry"),
+		);
+		expect(streamKinds).toContain("comment");
+		expect(streamKinds).toContain("activity");
+		expect(streamKinds.indexOf("comment")).toBeLessThan(streamKinds.lastIndexOf("activity"));
+		expect(streamKinds.lastIndexOf("activity")).toBeLessThan(streamKinds.lastIndexOf("comment"));
 		const newest = items(element)[items(element).length - 1]!;
 		expect(newest.textContent).toContain("Typecheck and tests are green on the PR.");
 		const composer = screen.getByRole("textbox", { name: "Comment" });
@@ -118,16 +127,12 @@ describe("features/ticket/Timeline", () => {
 		expect(lineTexts(element).some((text) => text.includes("comment"))).toBe(false);
 	});
 
-	// WT-86
-	test("the Comments toggle hides the activity lines", async () => {
-		const user = userEvent.setup();
+	// WT-86. Every activity row shows. There is no toggle to hide the older
+	// ones.
+	test("shows every activity entry with no toggle", async () => {
 		mount("CDE-42", createTestServer());
-		const element = await list();
-		await waitFor(() => expect(kinds(element)).toContain("activity"));
-		await user.click(screen.getByRole("button", { name: "Comments" }));
-		expect(screen.getByRole("button", { name: "Comments" }).getAttribute("aria-pressed")).toBe("true");
-		await waitFor(() => expect(kinds(element)).not.toContain("activity"));
-		expect(kinds(element).filter((kind) => kind === "comment")).toHaveLength(4);
+		await list();
+		expect(screen.queryByRole("button", { name: /activity/i })).toBeNull();
 	});
 
 	// WT-87. The stream loads newest first; the older page prepends once.

@@ -20,10 +20,10 @@ describe("install and the localhost gateway", () => {
 	test("install keeps the other routes and replaces the trellis route", async () => {
 		const { prefix, env, routes } = setup();
 		mkdirSync(dirname(routes), { recursive: true });
-		writeFileSync(routes, JSON.stringify({ margin: 4519, trellis: 9999, dots: 4520 }));
+		writeFileSync(routes, JSON.stringify({ docs: 4519, trellis: 9999, dots: 4520 }));
 		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
 		expect(result.code, result.stderr).toBe(0);
-		expect(JSON.parse(readFileSync(routes, "utf8"))).toEqual({ margin: 4519, trellis: 4521, dots: 4520 });
+		expect(JSON.parse(readFileSync(routes, "utf8"))).toEqual({ docs: 4519, trellis: 4521, dots: 4520 });
 	});
 
 	// A gateway can read the routes file at any moment. A rename swaps in the
@@ -31,7 +31,7 @@ describe("install and the localhost gateway", () => {
 	test("install replaces the routes file with a rename and leaves no temp file", async () => {
 		const { prefix, env, routes } = setup();
 		mkdirSync(dirname(routes), { recursive: true });
-		writeFileSync(routes, JSON.stringify({ margin: 4519 }));
+		writeFileSync(routes, JSON.stringify({ docs: 4519 }));
 		const before = statSync(routes).ino;
 		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
 		expect(result.code, result.stderr).toBe(0);
@@ -72,21 +72,21 @@ describe("install and the localhost gateway", () => {
 		}
 	});
 
-	test("install prints no margin gateway hint", async () => {
+	test("install prints no gateway source hint", async () => {
 		const { prefix, env } = setup();
 		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
 		expect(result.code, result.stderr).toBe(0);
-		expect(result.stdout).not.toContain("margin");
+		expect(result.stdout).not.toContain("gateway.ts");
 		expect(result.stdout).not.toContain("ROUTES");
 	});
 
-	// The margin gateway source belongs to another repository. The trellis
+	// The source of a gateway belongs to another repository. The trellis
 	// route lives in the routes file of the gateway.
-	test("install leaves the margin gateway source untouched and refuses --gateway", async () => {
+	test("install leaves the gateway source untouched and refuses --gateway", async () => {
 		const home = temp("user");
-		const gateway = join(home, "projects", "margin", "src", "gateway.ts");
+		const gateway = join(home, "projects", "gateway", "src", "gateway.ts");
 		mkdirSync(dirname(gateway), { recursive: true });
-		const source = "const ROUTES: Record<string, number> = {\n\tmargin: 4519,\n};\n";
+		const source = "const ROUTES: Record<string, number> = {\n\tdocs: 4519,\n};\n";
 		writeFileSync(gateway, source);
 		const result = await runCli(["install", "--no-launchd"], {}, { env: defaultEnv, home });
 		expect(result.code, result.stderr).toBe(0);

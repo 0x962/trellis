@@ -67,6 +67,25 @@ export const patchTicket = async (server: TestServer, identifier: string, patch:
 	await db.execute(sql`UPDATE tickets SET ${sql.join(sets, sql`, `)} WHERE id = ${id}`);
 };
 
+export type CommentRow = { id: string; body: string; parent_id: string | null; resolved_at: string | null };
+
+// One stored comment, or `undefined` after a delete. A test reads it to prove
+// what the server holds, not what the page paints.
+export const commentRow = async (server: TestServer, id: string): Promise<CommentRow | undefined> => {
+	await server.ready;
+	const { db } = await sharedDb();
+	const found = await db.execute(sql`SELECT id, body, parent_id, resolved_at FROM comments WHERE id = ${id}`);
+	return found.rows[0] as CommentRow | undefined;
+};
+
+// Stands one comment at an age the seed does not hold. `createdAt` is a
+// bookkeeping column no service sets.
+export const patchComment = async (server: TestServer, id: string, patch: { createdAt: string }) => {
+	await server.ready;
+	const { db } = await sharedDb();
+	await db.execute(sql`UPDATE comments SET created_at = ${patch.createdAt}::timestamptz WHERE id = ${id}`);
+};
+
 export type ActivityRow = {
 	ticket: string;
 	actor: ActorRef;

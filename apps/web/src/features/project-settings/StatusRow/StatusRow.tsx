@@ -1,16 +1,21 @@
 import type { ColorToken, Reviewer, Status } from "@trellis/api";
-import { Button, Checkbox, IconButton, Input, Select, StatusIcon } from "@trellis/ui";
-import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Button, Checkbox, Input, Menu, Select, StatusIcon, Textarea } from "@trellis/ui";
+import { ArrowDown, ArrowUp, CheckCircle2, Pencil, Trash2 } from "lucide-react";
+import { type FormEvent, useId, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { StatusDescriptionField } from "../StatusDescriptionField";
+import { formatCount } from "../../../lib/format";
 
 export type StatusRowProps = {
 	project: string;
 	status: Status;
 	index: number;
 	count: number;
+	ticketCount: number;
+	expanded: boolean;
+	readOnly?: boolean;
 	onChanged: () => Promise<void>;
+	onEdit: () => void;
+	onCancel: () => void;
 	onMove: (from: number, to: number) => void;
 	onDelete: (status: Status) => void;
 };
@@ -31,21 +36,41 @@ const reviewers: { value: Reviewer; label: string }[] = [
 	{ value: "human", label: "Human" },
 ];
 
-export function StatusRow({ project, status, index, count, onChanged, onMove, onDelete }: StatusRowProps) {
+const iconColors: Record<ColorToken, string> = {
+	fg: "!text-fg",
+	"fg-muted": "!text-fg-muted",
+	"fg-faint": "!text-fg-faint",
+	accent: "!text-accent",
+	agent: "!text-agent",
+	success: "!text-success",
+	warning: "!text-warning",
+	danger: "!text-danger",
+};
+
+type StatusEditorProps = Pick<StatusRowProps, "project" | "status" | "onChanged" | "onCancel">;
+
+function StatusEditor({ project, status, onChanged, onCancel }: StatusEditorProps) {
 	const { client } = useApp();
 	const [name, setName] = useState(status.name);
+	const [description, setDescription] = useState(status.description);
 	const [color, setColor] = useState<ColorToken>(status.color);
 	const [reviewer, setReviewer] = useState<Reviewer>(status.reviewer ?? "agent");
 	const [wipLimit, setWipLimit] = useState(status.wipLimit?.toString() ?? "");
 	const [isDefault, setIsDefault] = useState(status.isDefault);
 	const [message, setMessage] = useState<string | null>(null);
 
-	const save = async () => {
+	const save = async (event: FormEvent) => {
+		event.preventDefault();
+		if (name.trim() === "") {
+			setMessage("Enter a status name.");
+			return;
+		}
 		try {
 			await client.statuses.update({
 				project,
 				status: status.id,
 				name: name.trim(),
+				description,
 				color,
 				...(status.category === "review" ? { reviewer } : {}),
 				wipLimit: wipLimit === "" ? null : Number(wipLimit),
@@ -53,64 +78,175 @@ export function StatusRow({ project, status, index, count, onChanged, onMove, on
 			});
 			setMessage(null);
 			await onChanged();
+			onCancel();
 		} catch (error) {
 			setMessage((error as Error).message);
 		}
 	};
 
 	return (
-		<li className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-3">
-			<div className="flex items-center gap-2">
-				<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />
-				<span className="font-mono text-xs text-fg-muted">{status.category}</span>
-				<div className="ml-auto flex items-center gap-1">
-					<IconButton
-						size="sm"
-						label={`Move ${status.name} up`}
-						icon={<ArrowUp />}
-						disabled={index === 0}
-						onClick={() => onMove(index, index - 1)}
-					/>
-					<IconButton
-						size="sm"
-						label={`Move ${status.name} down`}
-						icon={<ArrowDown />}
-						disabled={index === count - 1}
-						onClick={() => onMove(index, index + 1)}
-					/>
-					<IconButton size="sm" label={`Delete ${status.name}`} icon={<Trash2 />} onClick={() => onDelete(status)} />
-				</div>
-			</div>
-			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-				<Input label={`Name for ${status.name}`} value={name} onChange={(event) => setName(event.target.value)} />
-				<Select label={`Color for ${status.name}`} items={colors} value={color} onValueChange={setColor} />
-				{status.category === "review" ? (
+		<form aria-label={`Edit ${status.name}`} className="status-row-editor" onSubmit={(event) => void save(event)}>
+			<div className="status-row-editor-grid">
+				<Input
+					label="Name"
+					aria-label={`Name for ${status.name}`}
+					value={name}
+					autoFocus
+					onChange={(event) => setName(event.target.value)}
+				/>
+				<div className="status-row-field">
+					<span aria-hidden="true" className="status-row-field-label">
+						Color
+					</span>
 					<Select
-						label={`Reviewer for ${status.name}`}
-						items={reviewers}
-						value={reviewer}
-						onValueChange={setReviewer}
+						label={`Color for ${status.name}`}
+						items={colors}
+						value={color}
+						onValueChange={setColor}
+						className="h-8"
 					/>
-				) : (
-					<div />
+				</div>
+				{status.category === "review" && (
+					<div className="status-row-field">
+						<span aria-hidden="true" className="status-row-field-label">
+							Reviewer
+						</span>
+						<Select
+							label={`Reviewer for ${status.name}`}
+							items={reviewers}
+							value={reviewer}
+							onValueChange={setReviewer}
+							className="h-8"
+						/>
+					</div>
 				)}
 				<Input
-					label={`WIP limit for ${status.name}`}
+					label="Work in progress limit"
+					aria-label={`WIP limit for ${status.name}`}
 					type="number"
 					min={1}
 					value={wipLimit}
 					onChange={(event) => setWipLimit(event.target.value)}
 				/>
 			</div>
-			<StatusDescriptionField project={project} status={status} />
-			<div className="flex items-center justify-between gap-3">
-				<Checkbox label={`Default status ${status.name}`} checked={isDefault} onCheckedChange={setIsDefault} />
-				<Button size="sm" onClick={() => void save()}>
-					Save {status.name}
-				</Button>
+			<Textarea
+				label="Description"
+				aria-label={`Description for ${status.name}`}
+				rows={3}
+				maxLength={2000}
+				value={description}
+				onChange={(event) => setDescription(event.target.value)}
+			/>
+			<div className="status-row-editor-actions">
+				<Checkbox label="Default status" checked={isDefault} onCheckedChange={setIsDefault} />
+				<div className="status-row-editor-buttons">
+					<Button type="button" onClick={onCancel}>
+						Cancel
+					</Button>
+					<Button type="submit" variant="primary">
+						Save status
+					</Button>
+				</div>
 			</div>
 			{message !== null && (
 				<p role="alert" className="text-sm text-danger">
+					{message}
+				</p>
+			)}
+		</form>
+	);
+}
+
+export function StatusRow({
+	project,
+	status,
+	index,
+	count,
+	ticketCount,
+	expanded,
+	readOnly = false,
+	onChanged,
+	onEdit,
+	onCancel,
+	onMove,
+	onDelete,
+}: StatusRowProps) {
+	const { client } = useApp();
+	const editorId = useId();
+	const [message, setMessage] = useState<string | null>(null);
+
+	const makeDefault = async () => {
+		try {
+			await client.statuses.update({ project, status: status.id, isDefault: true });
+			setMessage(null);
+			await onChanged();
+		} catch (error) {
+			setMessage((error as Error).message);
+		}
+	};
+
+	const menuItems = [
+		{ label: "Edit", icon: <Pencil />, onSelect: onEdit },
+		status.isDefault
+			? { label: "Default status", icon: <CheckCircle2 />, disabled: true, onSelect: () => {} }
+			: { label: "Make default", icon: <CheckCircle2 />, onSelect: () => void makeDefault() },
+		{ label: "Move up", icon: <ArrowUp />, disabled: index === 0, onSelect: () => onMove(index, index - 1) },
+		{
+			label: "Move down",
+			icon: <ArrowDown />,
+			disabled: index === count - 1,
+			onSelect: () => onMove(index, index + 1),
+		},
+		{ label: "Delete", icon: <Trash2 />, danger: true, onSelect: () => onDelete(status) },
+	];
+	const summary = (
+		<>
+			<span className="status-row-icon">
+				<StatusIcon
+					category={status.category}
+					reviewer={status.reviewer ?? undefined}
+					className={iconColors[status.color]}
+				/>
+			</span>
+			<span className="status-row-copy">
+				<span className="status-row-name-line">
+					<span className="status-row-name">{status.name}</span>
+					{status.isDefault && <span className="status-row-default">Default</span>}
+				</span>
+				{status.description !== "" && <span className="status-row-description">{status.description}</span>}
+			</span>
+		</>
+	);
+
+	return (
+		<li className="status-row">
+			<div className="status-row-summary">
+				{readOnly ? (
+					<div className="status-row-summary-button">{summary}</div>
+				) : (
+					<button
+						type="button"
+						className="status-row-summary-button"
+						aria-label={`Edit ${status.name}`}
+						aria-expanded={expanded}
+						aria-controls={expanded ? editorId : undefined}
+						onClick={onEdit}
+					>
+						{summary}
+					</button>
+				)}
+				<span className="status-row-count">
+					{formatCount(ticketCount)} {ticketCount === 1 ? "ticket" : "tickets"}
+				</span>
+				{!readOnly && <Menu label={`Actions for ${status.name}`} items={menuItems} />}
+			</div>
+			{expanded && (
+				<div id={editorId}>
+					<StatusEditor project={project} status={status} onChanged={onChanged} onCancel={onCancel} />
+				</div>
+			)}
+			{message !== null && (
+				<p role="alert" className="status-row-message">
 					{message}
 				</p>
 			)}

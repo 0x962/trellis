@@ -52,7 +52,7 @@ export function ActorFooter() {
 	};
 
 	return (
-		<div className="mt-auto flex items-center gap-0.5 border-t border-border pt-2">
+		<div className="flex shrink-0 items-center gap-0.5 border-t border-border pt-2">
 			<Popover
 				open={open}
 				onOpenChange={onOpenChange}
@@ -60,11 +60,12 @@ export function ActorFooter() {
 				trigger={
 					<button
 						type="button"
-						className="flex h-7 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left transition-colors duration-hover ease-out hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+						className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left transition-colors duration-hover ease-out hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 					>
-						<Avatar kind="human" name={actor.name} />
-						<span className="truncate font-medium text-fg">{actor.name}</span>
-						<span className="text-sm text-fg-muted">human</span>
+						<Avatar kind="human" name={actor.name} className="size-7 text-xs" />
+						<span title={actor.name} className="min-w-0 truncate text-sm font-medium text-fg">
+							{actor.name}
+						</span>
 					</button>
 				}
 			>
@@ -90,7 +91,7 @@ export function ActorFooter() {
 						<span
 							data-gh-warning=""
 							aria-hidden="true"
-							className="absolute top-1 right-1 size-1.5 rounded-full bg-warning"
+							className="absolute top-1 right-1 size-1.5 rounded-sm bg-warning"
 						/>
 						<span id={warningId} className="sr-only">
 							{ghCopy[gh.reason ?? "error"].line}
@@ -103,7 +104,12 @@ export function ActorFooter() {
 					<Bot />
 				</span>
 			</Link>
-			<IconButton label="Keyboard shortcuts" icon={<CircleHelp />} onClick={openShortcutHelp} />
+			<IconButton
+				label="Keyboard shortcuts"
+				className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
+				icon={<CircleHelp />}
+				onClick={openShortcutHelp}
+			/>
 		</div>
 	);
 }

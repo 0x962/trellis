@@ -23,9 +23,12 @@ describe("features/ticket/Header", () => {
 		expect(crumbs.textContent!.replace(/\s+/g, " ")).toMatch(/CDE\s*›\s*web/);
 		expect(within(crumbs).getByRole("link", { name: "CDE" }).getAttribute("href")).toBe("/p/CDE");
 		expect(within(crumbs).getByRole("link", { name: "web" }).getAttribute("href")).toBe("/p/CDE/web");
-		const chip = within(element).getByRole("button", { name: /CDE-43/ });
-		expect(chip.textContent).toContain("Merge upstream 1.27");
-		expect(chip.querySelector(".truncate")).not.toBeNull();
+		// The chip is the trail that leads here: each identifier opens that
+		// ticket, and the title of the parent closes the trail.
+		const trail = within(element).getByLabelText("Parent trail");
+		expect(within(trail).getByRole("button", { name: "CDE-43" })).toBeDefined();
+		expect(trail.textContent).toContain("Merge upstream 1.27");
+		expect(trail.querySelector(".truncate")).not.toBeNull();
 	});
 
 	// WT-20. A peek stays a peek: the parent opens in the same surface.
@@ -39,6 +42,15 @@ describe("features/ticket/Header", () => {
 		expect(router.state.location.pathname).toBe("/p/CDE");
 	});
 
+	test("the peek header shows the ticket ID without a project breadcrumb", async () => {
+		renderTicket("CDE-42", (ticket) => <Header ticket={ticket} surface="peek" />, {
+			path: "/p/CDE?peek=CDE-42",
+		});
+		const element = await header();
+		expect(within(element).getByText("CDE-42")).toBeDefined();
+		expect(within(element).queryByRole("navigation", { name: "Breadcrumb" })).toBeNull();
+	});
+
 	// WT-21
 	test("Copy ID writes the identifier to the clipboard and toasts", async () => {
 		const user = userEvent.setup();
@@ -48,13 +60,20 @@ describe("features/ticket/Header", () => {
 		expect(await screen.findByText(/Copied/)).toBeDefined();
 	});
 
-	// T3. The ID shows above the title, so the Copy ID button draws only
-	// its icon, and the Start with agent button carries no Kbd.
-	test("Copy ID is an icon button and Start with agent has no Kbd", async () => {
+	// The branch name is derived, not shown, so an icon beside Copy ID hands
+	// it over without a row of its own.
+	test("Copy branch name writes the derived branch to the clipboard", async () => {
+		const user = userEvent.setup();
+		mountPage();
+		await user.click(within(await header()).getByRole("button", { name: "Copy branch name" }));
+		await waitFor(async () => expect(await navigator.clipboard.readText()).toBe("cde-42-restore-fork-pages"));
+	});
+
+	// The title area already shows the ticket ID, so Copy ID needs only an icon.
+	test("Copy ID is an icon button", async () => {
 		mountPage();
 		const element = await header();
 		expect(within(element).getByRole("button", { name: "Copy ID" }).textContent!.trim()).toBe("");
-		expect(within(element).getByRole("button", { name: "Start with agent" }).querySelector("kbd")).toBeNull();
 	});
 
 	// WT-22. Arrow keys walk the items in order; each one takes focus.

@@ -42,9 +42,19 @@ const light = declarations(":root");
 const dark = declarations(':root[data-theme="dark"]');
 const colorNames = Object.keys(light).filter(isColor);
 
-// The first family of a CSS font stack, without the " Variable" suffix of a
-// variable font. expo-font registers the family under that name.
-const family = (stack: string) => /"([^"]+)"/.exec(stack)![1]!.replace(/ Variable$/, "");
+// BerkeleyMono is licensed per machine, so the repo ships no file for it. It
+// leads the CSS stacks because a desktop browser picks up a font the machine
+// has installed. React Native draws only a family it holds a file for, and
+// app/_layout.tsx loads JetBrains Mono under the name below.
+const licensedPerMachine = "BerkeleyMono";
+
+// The first family of a CSS font stack that this repo ships a file for,
+// without the " Variable" suffix of a variable font. expo-font registers the
+// family under that name.
+const family = (stack: string) =>
+	[...stack.matchAll(/"([^"]+)"/g)]
+		.map((match) => match[1]!.replace(/ Variable$/, ""))
+		.find((name) => name !== licensedPerMachine)!;
 
 // The seven steps of the type scale. The other `--text-*` sizes are the micro
 // steps a Kbd and a human Avatar use.
@@ -88,8 +98,8 @@ ${palette(dark)}
 	micro: { ${numbers(omit(sizes, scaleSteps))} },
 	// Half of the 4 px base, for a 2 px gap.
 	space: { half: ${spacingBase / 2}, ${numbers(space)} },
-	radius: { ${numbers(omit(radii, ["hairline"]))} },
-	hairline: ${radii.hairline!},
+	radius: { ${numbers(radii)} },
+	hairline: ${pxScale("border-width").hairline!},
 };
 
 export type ColorToken = keyof typeof tokens.light;

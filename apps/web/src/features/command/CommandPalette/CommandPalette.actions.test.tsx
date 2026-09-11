@@ -27,7 +27,7 @@ const callsTo = (server: TestServer, path: string) => server.calls.filter((call)
 
 const closed = () => screen.queryByRole("dialog", { name: "Command palette" });
 
-const withTicket = async (identifier = "CDE-42", path = "/p/CDE") => {
+const withTicket = async (identifier = "CDE-42", path = "/p/CDE/table") => {
 	const shell = await renderShell({ path });
 	act(() => commandActions.setPeekTicket(identifier));
 	await openPalette();
@@ -129,7 +129,10 @@ describe("features/command/CommandPalette actions", () => {
 	// PA-08
 	test("Toggle theme flips the theme", async () => {
 		await renderShell();
-		expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+		// The head script of index.html writes the stored theme before the
+		// first paint. A test document runs no head script, so the test writes
+		// the attribute that the toggle flips.
+		document.documentElement.setAttribute("data-theme", "dark");
 		await openPalette();
 		await pick(/Toggle theme/);
 		await waitFor(() => expect(document.documentElement.getAttribute("data-theme")).toBe("light"));
@@ -162,7 +165,7 @@ describe("features/command/CommandPalette actions", () => {
 		await pick(/Go to project…/);
 		await waitFor(() => expect(within(palette()).getByRole("option", { name: /CDE\/web\/auth/ })).toBeDefined());
 		await pick(/CDE\/web\/auth/);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE/web/auth"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE/web/auth/table"));
 	});
 
 	// PA-12

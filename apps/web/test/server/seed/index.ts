@@ -149,9 +149,9 @@ export const seedData = async ({ transport, gh, base }: SeedOptions) => {
 	const s = createSeeder(transport, base, gh);
 	await seedProjects(s);
 	await s.call("settings.set", "navid", s.at(30 * day), {
-		startWithAgentTemplate: 'claude "$(trellis brief {brief})"',
 		defaultActorName: "navid",
 		stalledHours: 24,
+		diffUrlTemplate: "{url}/files",
 	});
 	const steps: Step[] = [];
 	for (const spec of allSpecs()) {

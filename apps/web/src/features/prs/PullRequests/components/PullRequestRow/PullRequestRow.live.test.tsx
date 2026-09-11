@@ -78,7 +78,7 @@ describe("PullRequestRow live updates", () => {
 	});
 
 	// PR-56
-	test("swaps the state icon and raises the nudge when an event merges the pull request", async () => {
+	test("swaps the state icon without an approval bar when an event merges the pull request", async () => {
 		const server = createTestServer();
 		const { queryClient } = await renderSection(server, "CDE-42");
 		const pr = await firstPr(server, "CDE-42");
@@ -86,6 +86,6 @@ describe("PullRequestRow live updates", () => {
 		const event = await updatePr(server, pr.id, { state: "merged" });
 		createEventApplier(queryClient).applyEvent({ type: "pr.updated", ...event });
 		await waitFor(async () => expect((await prRow(pr.id)).querySelector('[data-pr-state="merged"]')).not.toBeNull());
-		await waitFor(() => expect(document.querySelector("[data-merged-nudge]")).not.toBeNull());
+		expect(document.querySelector("[data-merged-nudge]")).toBeNull();
 	});
 });

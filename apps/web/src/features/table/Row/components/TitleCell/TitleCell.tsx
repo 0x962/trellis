@@ -35,7 +35,7 @@ export function TitleCell({ ticket }: TitleCellProps) {
 					<span
 						aria-hidden="true"
 						style={{ "--progress": `${Math.round(progress * 100)}%` } as Record<string, string>}
-						className="inline-grid size-3.5 place-items-center rounded-full bg-[conic-gradient(var(--color-success)_var(--progress),var(--color-border)_0)] after:size-2 after:rounded-full after:bg-surface after:content-['']"
+						className="inline-grid size-3.5 place-items-center rounded-sm bg-[conic-gradient(var(--color-success)_var(--progress),var(--color-border)_0)] after:size-2 after:rounded-sm after:bg-surface after:content-['']"
 					/>
 					{childDoneCount}/{childCount}
 				</span>

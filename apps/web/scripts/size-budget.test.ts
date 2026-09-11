@@ -17,7 +17,12 @@ const run = (args: string[], cwd = web) => {
 
 // One string per route that only that route's module carries. The root
 // chunk must hold none of them, and some lazy chunk must hold each.
-const routeMarkers = ["Enter your name", "Pair a phone", "Nothing needs you"];
+const routeMarkers = ["Enter your name", "Pair a phone", "No personas yet"];
+
+// The Needs you page carries no words of its own: it draws the page title
+// that the sidebar also carries, over an empty body. The pair of strings
+// names its module, and no other lazy chunk holds both.
+const needsYouMarkers = ["Needs you", "min-h-0 flex-1"];
 
 // The bulk bar's copy action is text only the table module carries. The
 // editor mounts on focus, so its code is a lazy chunk; ProseMirror's class
@@ -77,13 +82,20 @@ const initialSource = async () => {
 	return { names, source: (await Promise.all(names.map(readAsset))).join("\n") };
 };
 
-// The lazy chunk that holds `marker`, which is text only one route carries.
-const chunkWith = async (marker: string, exclude: string[]) => {
+// The lazy chunks that hold every one of `markers`. Together the markers
+// name the module of one route.
+const chunksWith = async (markers: string[], exclude: string[]) => {
 	const names = assetFiles().filter((name) => name.endsWith(".js") && !exclude.includes(name));
 	const found: string[] = [];
-	for (const name of names) if ((await readAsset(name)).includes(marker)) found.push(name);
+	for (const name of names) {
+		const source = await readAsset(name);
+		if (markers.every((marker) => source.includes(marker))) found.push(name);
+	}
 	return found;
 };
+
+// The lazy chunk that holds `marker`, which is text only one route carries.
+const chunkWith = async (marker: string, exclude: string[]) => await chunksWith([marker], exclude);
 
 describe("bun run build", () => {
 	let build: ReturnType<typeof run>;
@@ -105,9 +117,10 @@ describe("bun run build", () => {
 			(link) => link.getAttribute("href") ?? "",
 		);
 		expect(preloads).toHaveLength(3);
-		expect(preloads.some((href) => /inter-latin-wght-normal/.test(href))).toBe(true);
+		expect(preloads.some((href) => /inter/.test(href))).toBe(false);
 		expect(preloads.some((href) => /jetbrains-mono-latin-400/.test(href))).toBe(true);
 		expect(preloads.some((href) => /jetbrains-mono-latin-500/.test(href))).toBe(true);
+		expect(preloads.some((href) => /jetbrains-mono-latin-600/.test(href))).toBe(true);
 		const entry = document.querySelector('script[type="module"][src]')!.getAttribute("src")!;
 		const entryName = entry.split("/").pop()!;
 		const chunks = assetFiles().filter((name) => name.endsWith(".js"));
@@ -233,9 +246,8 @@ describe("size-budget", () => {
 	test("needs-you and settings stay inside the initial JS budget", async () => {
 		expect(buildOnce().exitCode).toBe(0);
 		const initial = await initialSource();
-		expect(initial.source).not.toContain("Done by agents today");
 		expect(initial.source).not.toContain("Pair a phone");
-		const needsYou = await chunkWith("Done by agents today", initial.names);
+		const needsYou = await chunksWith(needsYouMarkers, initial.names);
 		const settings = await chunkWith("Pair a phone", initial.names);
 		expect(needsYou).toHaveLength(1);
 		expect(settings).toHaveLength(1);

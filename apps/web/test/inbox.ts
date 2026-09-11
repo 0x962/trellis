@@ -49,11 +49,6 @@ export const addArchivedStatus = async (server: TestServer) => {
 	await server.client.statuses.create({ project: "CDE", name: "Archived", category: "done", position: 6 });
 };
 
-export const setTemplate = async (server: TestServer, template: string) => {
-	const settings = await server.client.settings.get();
-	await server.client.settings.set({ ...settings, startWithAgentTemplate: template });
-};
-
 export type ClipboardMock = {
 	writeText: ReturnType<typeof mock>;
 	// Every text the page copied, oldest first.

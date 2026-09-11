@@ -34,7 +34,7 @@ const actions = ["Status", "Priority", "Move to project", "Set parent", "Copy ID
 
 // Selects the first `count` rows of the Todo group on /p/CDE with the keyboard.
 const selectFirst = async (count: number, server: TestServer = createTestServer()) => {
-	const app = renderApp({ path: "/p/CDE", actor: "navid", server });
+	const app = renderApp({ path: "/p/CDE/table", actor: "navid", server });
 	await findGrid();
 	await waitFor(() => expect(rows().length).toBeGreaterThanOrEqual(count));
 	rows()[0]!.focus();
@@ -56,7 +56,7 @@ const pickOption = async (user: ReturnType<typeof userEvent.setup>, name: RegExp
 describe("features/table/BulkBar", () => {
 	// Outcome 58
 	test("appears with the count and reveals the checkbox column on the first selection", async () => {
-		renderApp({ path: "/p/CDE", actor: "navid" });
+		renderApp({ path: "/p/CDE/table", actor: "navid" });
 		await findGrid();
 		await waitFor(() => expect(rows().length).toBeGreaterThan(2));
 		expect(queryBulkBar()).toBeNull();

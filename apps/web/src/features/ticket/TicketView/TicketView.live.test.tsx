@@ -66,10 +66,6 @@ describe("features/ticket/TicketView live", () => {
 		expect(within(rail).getByText("In Progress")).toBeDefined();
 		const header = screen.getByLabelText("Ticket header");
 		expect(within(header).queryByRole("button", { name: /Approve/ })).toBeNull();
-		const updated = within(rail)
-			.getAllByRole("term")
-			.find((term) => term.textContent === "Updated")!.nextElementSibling!;
-		expect(updated.textContent).toMatch(/just now|now|\b\d+s/);
 		expect(cached().version).toBe(18);
 		await settle(400);
 		expect(server.callsTo("tickets.get")).toHaveLength(gets);
@@ -112,7 +108,7 @@ describe("features/ticket/TicketView live", () => {
 				<TicketPeek />
 				<Toaster />
 			</PeekListProvider>,
-			{ path: "/p/CDE?peek=CDE-42", actor: "navid", server },
+			{ path: "/p/CDE/table?peek=CDE-42", actor: "navid", server },
 		);
 		await screen.findByRole("dialog", { name: "CDE-42" });
 		const ticket = await server.client.tickets.get({ ticket: "CDE-42" });

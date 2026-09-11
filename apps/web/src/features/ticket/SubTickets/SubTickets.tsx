@@ -1,20 +1,13 @@
 import type { Ticket, TicketSummary } from "@trellis/api";
-import { Avatar, CheckRibbon, PriorityIcon, SectionHeader, StatusIcon, TicketId } from "@trellis/ui";
-import { GitPullRequestArrow } from "lucide-react";
-import { type KeyboardEvent, useEffect, useRef, useState } from "react";
-import { useApp } from "../../../lib/appContext";
+import { Avatar, Button, CheckRibbon, PriorityIcon, SectionHeader, StatusIcon, TicketId } from "@trellis/ui";
+import { GitPullRequestArrow, Plus } from "lucide-react";
 import { compactRelativeTime } from "../../../lib/format";
+import { composerActions } from "../../composer";
 import { useOpenTicket } from "../hooks/useOpenTicket";
-import { failToast } from "../utils/failToast";
-import { summaryOf } from "../utils/summaryOf";
 
 export type SubTicketsProps = {
 	ticket: Ticket;
-	// The add field takes focus on mount, for the rail's Add.
-	autoFocusAdd?: boolean;
 };
-
-type Pending = { key: number; title: string };
 
 const rowClass = "flex h-9 w-full items-center gap-3 border-b border-border px-3 text-base text-fg";
 
@@ -32,90 +25,57 @@ const ciLabels = { none: "none", pending: "pending", pass: "passed", fail: "fail
 const prLabel = (pr: NonNullable<TicketSummary["pr"]>) =>
 	`${pr.state.charAt(0).toUpperCase()}${pr.state.slice(1)} PR, checks ${ciLabels[pr.ciState]}`;
 
-// The children of a ticket: the header with the done count, a progress bar,
-// one fixed-height row per child, and an add field. A new child shows at
-// once and takes its number when the server answers.
-export function SubTickets({ ticket, autoFocusAdd = false }: SubTicketsProps) {
-	const { client, orpc, queryClient } = useApp();
+// The children of a ticket: the header with the done count and the Add
+// button, a progress bar, and one fixed-height row per child. Add opens the
+// create dialog with this ticket as the parent, so a sub-ticket takes a
+// status, a priority and a description like any other ticket.
+export function SubTickets({ ticket }: SubTicketsProps) {
 	const open = useOpenTicket();
-	const [pending, setPending] = useState<Pending[]>([]);
-	const [draft, setDraft] = useState("");
-	const addField = useRef<HTMLInputElement>(null);
 	const done = ticket.children.filter((child) => child.status.category === "done").length;
 	const total = ticket.children.length;
 	const fill = total === 0 ? 0 : (done / total) * 100;
 
-	useEffect(() => {
-		if (autoFocusAdd) addField.current?.focus();
-	}, [autoFocusAdd]);
-
-	const create = async (title: string) => {
-		const key = Date.now() + Math.random();
-		setPending((rows) => [...rows, { key, title }]);
-		try {
-			const created = await client.tickets.create({ project: ticket.project.path, parent: ticket.identifier, title });
-			queryClient.setQueryData<Ticket>(orpc.tickets.get.queryKey({ input: { ticket: ticket.identifier } }), (data) =>
-				data === undefined
-					? data
-					: { ...data, children: [...data.children, summaryOf(created)], childCount: data.childCount + 1 },
-			);
-		} catch (error) {
-			setDraft(title);
-			failToast(`The sub-ticket of ${ticket.identifier} is not created.`, error, () => void create(title));
-		} finally {
-			setPending((rows) => rows.filter((row) => row.key !== key));
-		}
-	};
-
-	const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-		if (event.key !== "Enter") return;
-		event.preventDefault();
-		const title = draft.trim();
-		if (title === "") return;
-		setDraft("");
-		void create(title);
-	};
-
 	return (
 		<section aria-label="Sub-tickets" className="flex flex-col gap-2">
-			<SectionHeader title="Sub-tickets" count={`${done}/${total}`} />
-			<div className="overflow-hidden rounded-md border border-border">
-				<div
-					role="progressbar"
-					aria-label="Sub-tickets done"
-					aria-valuemin={0}
-					aria-valuemax={total}
-					aria-valuenow={done}
-					className="h-0.75 bg-border"
-				>
-					<div data-fill="" style={{ width: `${fill.toFixed(2)}%` }} className="h-full bg-success" />
+			<SectionHeader
+				title="Sub-tickets"
+				count={`${done}/${total}`}
+				actions={
+					<Button
+						variant="quiet"
+						size="sm"
+						icon={<Plus />}
+						onClick={() => composerActions.open({ project: ticket.project.path, parent: ticket.identifier })}
+					>
+						Add
+					</Button>
+				}
+			/>
+			{total === 0 ? (
+				// Nothing to frame, so no frame: one quiet word, and Add carries
+				// the invitation.
+				<p className="px-1 text-sm text-fg-faint">empty</p>
+			) : (
+				<div className="overflow-hidden rounded-md border border-border">
+					<div
+						role="progressbar"
+						aria-label="Sub-tickets done"
+						aria-valuemin={0}
+						aria-valuemax={total}
+						aria-valuenow={done}
+						className="h-0.75 bg-border"
+					>
+						<div data-fill="" style={{ width: `${fill.toFixed(2)}%` }} className="h-full bg-success" />
+					</div>
+					<ul>
+						{ticket.children.map((child) => (
+							<li key={child.id}>
+								<ChildRow child={child} onOpen={() => open(child.identifier)} />
+							</li>
+						))}
+					</ul>
 				</div>
-				<ul>
-					{ticket.children.map((child) => (
-						<li key={child.id}>
-							<ChildRow child={child} onOpen={() => open(child.identifier)} />
-						</li>
-					))}
-					{pending.map((row) => (
-						<li key={row.key} className={rowClass}>
-							<StatusIcon category="todo" />
-							<TicketId id="…" className="w-16" />
-							<span className="min-w-0 flex-1 truncate">{row.title}</span>
-						</li>
-					))}
-				</ul>
-				<div className="flex h-9 items-center px-3">
-					<input
-						ref={addField}
-						aria-label="New sub-ticket"
-						placeholder="New sub-ticket"
-						value={draft}
-						onChange={(event) => setDraft(event.target.value)}
-						onKeyDown={onKeyDown}
-						className="h-7 w-full rounded-sm bg-transparent text-base text-fg outline-none placeholder:text-fg-faint focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
-					/>
-				</div>
-			</div>
+			)}
 		</section>
 	);
 }

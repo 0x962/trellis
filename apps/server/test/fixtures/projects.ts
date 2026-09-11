@@ -1,7 +1,7 @@
 import { type SQL, sql } from "drizzle-orm";
 import { ulid } from "ulid";
 
-// Every fixture inserts through raw SQL with the column names of plan.md, so
+// Every fixture inserts through raw SQL with the column names of the schema, so
 // a test pins the schema and not the drizzle objects that describe it.
 export type Executor = {
 	execute(query: SQL): Promise<{ rows: Record<string, unknown>[] }>;

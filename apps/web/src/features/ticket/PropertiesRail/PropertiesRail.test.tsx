@@ -1,14 +1,12 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Ticket } from "@trellis/api";
-import { createFakeScheduler } from "../../../../test/fakeScheduler";
 import { press } from "../../../../test/keyboard";
 import { mockMatchMedia } from "../../../../test/media";
-import { addActivity, patchTicket, statusesOf } from "../../../../test/rows";
+import { statusesOf } from "../../../../test/rows";
 import { createTestServer, type TestServer } from "../../../../test/server";
-import { ago, hour, minute, renderTicket, settle, statusOf } from "../../../../test/ticketHost";
-import { TicketView } from "../TicketView";
+import { renderTicket, statusOf } from "../../../../test/ticketHost";
 import { PropertiesRail } from "./PropertiesRail";
 
 beforeEach(() => {
@@ -16,9 +14,9 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const rowOrder = ["Status", "Priority", "Project", "Parent", "Sub-tickets", "Branch", "Created", "Updated"];
+const rowOrder = ["Status", "Priority", "Project", "Parent"];
 
-const mount = (identifier = "CDE-42", server: TestServer = createTestServer(), path = "/p/CDE") =>
+const mount = (identifier = "CDE-42", server: TestServer = createTestServer(), path = "/p/CDE/table") =>
 	renderTicket(identifier, (ticket) => <PropertiesRail ticket={ticket} variant="page" />, { path, server });
 
 const rail = () => screen.findByLabelText("Properties");
@@ -41,62 +39,7 @@ const updates = (server: TestServer) => server.callsTo("tickets.update");
 const cachedStatus = (view: ReturnType<typeof mount>) =>
 	view.queryClient.getQueryData<Ticket>(view.orpc.tickets.get.queryKey({ input: { ticket: "CDE-42" } }))!.status.name;
 
-// An agent last touched CDE-42 `agoMs` before now. The last actor of a row
-// is the actor of its newest activity row.
-const touchedByAgent = async (server: TestServer, agoMs: number) => {
-	const at = ago(agoMs);
-	await addActivity(server, {
-		ticket: "CDE-42",
-		actor: { name: "claude-code", kind: "agent" },
-		action: "ticket.updated",
-		field: "title",
-		createdAt: at,
-	});
-	await patchTicket(server, "CDE-42", { updatedAt: at });
-};
-
 describe("features/ticket/PropertiesRail", () => {
-	// WT-40. The rail is where a save reports itself: Saved beside the version.
-	test("shows the Saved state after a description save", async () => {
-		const user = userEvent.setup();
-		const server = createTestServer();
-		const before = await server.client.tickets.get({ ticket: "CDE-42" });
-		const clock = createFakeScheduler();
-		const view = renderTicket("CDE-42", (ticket) => <TicketView identifier={ticket.identifier} variant="page" />, {
-			path: "/t/CDE-42",
-			server,
-			scheduler: clock.scheduler,
-		});
-		await waitFor(() => expect(document.querySelector(".markdown")).not.toBeNull());
-		press("e");
-		const element = await screen.findByRole("textbox", { name: "Description" });
-		await user.click(element);
-		await user.keyboard(" Saved text.");
-		act(() => clock.advanceTo(1000));
-		await waitFor(() => expect(updates(server)).toHaveLength(1));
-		const element_ = await rail();
-		const saved = await within(element_).findByText("Saved");
-		expect(saved.closest("dd")).toBe(rowNow("Updated"));
-		const key = view.orpc.tickets.get.queryKey({ input: { ticket: "CDE-42" } });
-		await waitFor(() => expect(view.queryClient.getQueryData<Ticket>(key)!.version).toBe(before.version + 1));
-	});
-
-	// T3.8. The rail has three groups and no Version row.
-	test("the rail draws three groups and no Version row", async () => {
-		mount();
-		const element = await rail();
-		expect(within(element).queryByText("Version")).toBeNull();
-		expect(element.querySelectorAll("[data-rail-divider]")).toHaveLength(2);
-	});
-
-	// T3.8. With no sub-tickets, the row offers a new one and draws no ring.
-	test("a ticket with no sub-tickets shows New sub-ticket", async () => {
-		mount("CDE-47");
-		const value = await row("Sub-tickets");
-		await waitFor(() => expect(within(value).getByRole("button", { name: "New sub-ticket" })).toBeDefined());
-		expect(value.querySelector("svg circle")).toBeNull();
-	});
-
 	// WT-47
 	test("lists the property rows in the specified order", async () => {
 		mount();
@@ -202,45 +145,5 @@ describe("features/ticket/PropertiesRail", () => {
 		expect((updates(server)[0]!.input as { parent: unknown }).parent).toBeNull();
 		await waitFor(() => expect(rowNow("Parent").textContent).not.toContain("CDE-43"));
 		expect(within(rowNow("Parent")).getByText("None")).toBeDefined();
-	});
-
-	// WT-54. The branch is derived from the identifier and the title slug.
-	test("the branch row shows the derived name and copies it", async () => {
-		const user = userEvent.setup();
-		mount();
-		const branch = await row("Branch");
-		expect(branch.textContent).toContain("cde-42-restore-fork-pages");
-		await user.click(within(branch).getByRole("button", { name: /Copy/ }));
-		await waitFor(async () => expect(await navigator.clipboard.readText()).toBe("cde-42-restore-fork-pages"));
-	});
-
-	// WT-56. The creator is the actor of the `created` activity row; the last
-	// actor comes from the summary. Four minutes is inside the live window.
-	test("Created and Updated render the actor chips with the live dot", async () => {
-		const server = createTestServer();
-		await patchTicket(server, "CDE-42", { createdAt: ago(3 * hour) });
-		await touchedByAgent(server, 4 * minute);
-		mount("CDE-42", server);
-		const created = await row("Created");
-		await waitFor(() => expect(within(created).getByRole("img", { name: "navid" })).toBeDefined());
-		expect(created.textContent).toContain("3h");
-		expect(created.querySelector("[data-live]")).toBeNull();
-		const updated = await row("Updated");
-		expect(within(updated).getByRole("img", { name: "claude-code · agent" })).toBeDefined();
-		expect(within(updated).getByText("claude-code").className).toMatch(/\bfont-mono\b/);
-		expect(updated.textContent).not.toContain("· agent");
-		expect(updated.textContent).toContain("4m");
-		expect(updated.querySelector("[data-live]")).not.toBeNull();
-	});
-
-	// WT-57
-	test("the live dot is absent after 5 minutes", async () => {
-		const server = createTestServer();
-		touchedByAgent(server, 40 * minute);
-		mount("CDE-42", server);
-		const updated = await row("Updated");
-		expect(within(updated).getByRole("img", { name: "claude-code · agent" })).toBeDefined();
-		await settle();
-		expect(updated.querySelector("[data-live]")).toBeNull();
 	});
 });

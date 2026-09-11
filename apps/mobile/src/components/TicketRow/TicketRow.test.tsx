@@ -13,7 +13,7 @@ const summary = (overrides: Partial<TicketSummary> = {}): TicketSummary => ({
 	id: id("D6T1"),
 	identifier: "CDE-42",
 	number: 42,
-	title: "Restore the fork pages after the upstream 1.27 merge",
+	title: "Restore the five settings pages the upgrade dropped",
 	priority: "high",
 	status: {
 		id: id("D6S1"),
@@ -25,6 +25,7 @@ const summary = (overrides: Partial<TicketSummary> = {}): TicketSummary => ({
 	},
 	project: { id: id("D6P1"), key: "CDE", path: "CDE.web" },
 	parent: null,
+	ancestors: [],
 	childCount: 0,
 	childDoneCount: 0,
 	commentCount: 4,

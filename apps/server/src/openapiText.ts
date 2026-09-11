@@ -8,10 +8,11 @@ export const ACTOR_HEADER_EXAMPLE = "agent:claude-code";
 
 export const SERVERS = [
 	{ url: "http://127.0.0.1:4521/api", description: "The local server" },
-	{ url: "http://trellis.localhost/api", description: "The same server through the margin gateway" },
+	{ url: "http://trellis.localhost/api", description: "The same server through the localhost gateway" },
 ];
 
 export const TAGS = [
+	{ name: "personas", description: "Saved personas. Each persona has a name and an instruction." },
 	{ name: "projects", description: "The project tree. A root has a key; a sub-project has a parent and a slug." },
 	{ name: "statuses", description: "The status set of a project. A sub-project inherits the nearest owner's set." },
 	{ name: "tickets", description: "Tickets: list, board, counts, one ticket, and every write." },
@@ -28,6 +29,10 @@ export const TAGS = [
 	{
 		name: "agents",
 		description: "The manager, builder, and reviewer agents of a project, their inbox, and the agent settings.",
+	},
+	{
+		name: "agent runs",
+		description: "The agents a persona starts on a ticket or a project, their output, and their follow-ups.",
 	},
 ];
 
@@ -72,6 +77,11 @@ Every response carries \`x-trellis-api-version\`. Every error is JSON with \`cod
 
 // One example per request body, keyed by `<METHOD> <path>`.
 export const BODY_EXAMPLES: Record<string, unknown> = {
+	"POST /personas": { name: "Reviewer", instruction: "Read the diff. Report defects with evidence." },
+	"PATCH /personas/{id}": {
+		name: "Code reviewer",
+		instruction: "Read each changed file. Report defects with evidence.",
+	},
 	"POST /projects": { key: "CDE", name: "Code" },
 	"PATCH /projects/{project}": { name: "Code, renamed", description: "The desktop app." },
 	"POST /projects/{project}/move": { parent: "CDE", after: "CDE.web" },
@@ -92,14 +102,17 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /tickets/update-many": { tickets: ["CDE-1", "CDE-2"], priority: "low" },
 	"POST /tickets/delete-many": { tickets: ["CDE-1", "CDE-2"] },
 	"POST /tickets/{ticket}/comments": { body: "Tests pass. Ready for review." },
+	"POST /comments/{id}/resolve": { resolved: true },
 	"PATCH /comments/{id}": { body: "Tests pass. Ready for a human review." },
 	"POST /tickets/{ticket}/attachments": { file: "<the file bytes as one multipart part named file>", name: "shot.png" },
 	"POST /tickets/{ticket}/prs": { url: "https://github.com/acme/web/pull/12" },
 	"PUT /settings": {
-		startWithAgentTemplate: 'claude "$(trellis brief {brief})"',
 		defaultActorName: "navid",
 		stalledHours: 24,
+		diffUrlTemplate: "{url}/files",
 	},
+	"POST /agent-runs": { personaId: "01J9Z0000000000000000000A1", ticket: "CDE-42" },
+	"POST /agent-runs/{id}/send": { text: "The CI run is red. Read the failing step and fix it." },
 	"POST /agents/inbox": { project: "CDE" },
 	"POST /agents/register": {
 		role: "builder",

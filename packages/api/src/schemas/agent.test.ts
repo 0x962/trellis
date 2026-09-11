@@ -24,6 +24,7 @@ describe("agent sessions", () => {
 			"error",
 			"id",
 			"lastWokenAt",
+			"name",
 			"openUrl",
 			"projectId",
 			"role",

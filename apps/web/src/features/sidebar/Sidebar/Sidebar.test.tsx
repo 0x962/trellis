@@ -31,6 +31,9 @@ describe("features/sidebar/Sidebar archived group", () => {
 		await user.click(toggle);
 		expect(toggle.getAttribute("aria-expanded")).toBe("true");
 		expect(await screen.findByRole("link", { name: /margin/ })).toBeDefined();
+		const pages = screen.getByRole("navigation", { name: "margin pages" });
+		expect(within(pages).getByRole("link", { name: "Tickets" }).getAttribute("href")).toBe("/p/MRG");
+		expect(within(pages).getByRole("link", { name: "Settings" }).getAttribute("href")).toBe("/p/MRG/settings");
 	});
 
 	test("no archived project shows no Archived group", async () => {
@@ -41,8 +44,21 @@ describe("features/sidebar/Sidebar archived group", () => {
 });
 
 describe("features/sidebar/Sidebar", () => {
+	test("navigation and projects share label and count columns with named sections", async () => {
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
+		const primary = screen.getByRole("navigation", { name: "Workspace" });
+		const project = await screen.findByRole("link", { name: /Superset CDE/ });
+		for (const row of [...within(primary).getAllByRole("link"), project]) {
+			expect(row.querySelector('[data-slot="leading"]')!.classList.contains("sidebar-leading")).toBe(true);
+			expect(row.querySelector('[data-slot="label"]')!.classList.contains("sidebar-label")).toBe(true);
+			expect(row.querySelector('[data-slot="trailing"]')!.classList.contains("sidebar-trailing")).toBe(true);
+		}
+		expect(screen.getByRole("heading", { name: "Projects", level: 2 })).toBeDefined();
+		expect(screen.getByRole("heading", { name: "AI", level: 2 })).toBeDefined();
+	});
+
 	// WS-93. w-60 is 240 px on the 4 px spacing scale.
-	test("the sidebar renders the rows in the canvas order at 240 px", async () => {
+	test("the sidebar renders the rows in the approved order at 240 px", async () => {
 		renderWithProviders(<Sidebar />, { path: "/needs-you", actor: "navid" });
 		const element = aside();
 		expect(element.tagName).toBe("ASIDE");
@@ -56,18 +72,14 @@ describe("features/sidebar/Sidebar", () => {
 		expect(text.indexOf("Projects")).toBeGreaterThan(text.indexOf("All tickets"));
 	});
 
-	// WS-94. The badge counts the distinct tickets of Review and Failing checks
-	// (D13): 3 in review and 1 other ticket with failed checks in the seed.
-	test("the Needs you badge sums the review and failing CI totals", async () => {
-		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
-		const row = await screen.findByRole("link", { name: /Needs you/ });
-		const badge = await within(row).findByText("4");
-		expect(badge.className).toMatch(/\btabular\b/);
-		localStorage.clear();
-		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", server: createTestServer({ empty: true }) });
-		const rows = await screen.findAllByRole("link", { name: /Needs you/ });
-		const empty = rows[rows.length - 1]!;
-		await waitFor(() => expect(within(empty).queryByText(/^\d+$/)).toBeNull());
+	// WS-94. The sidebar shows no count beside Needs you, so the shell reads
+	// nothing from the inbox.
+	test("Needs you has no count with populated tickets", async () => {
+		const server = createTestServer();
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", server });
+		const row = await screen.findByRole("link", { name: "Needs you" });
+		expect(row.textContent).toBe("Needs you");
+		expect(server.callsTo("inbox.get")).toHaveLength(0);
 	});
 
 	// WS-95
@@ -91,17 +103,16 @@ describe("features/sidebar/Sidebar", () => {
 
 	// WS-96. The label carries the state, so the color is never the only
 	// signal.
-	test("the connection dot mirrors the live status with a label", async () => {
+	test("the connection panel names every state but a live one", async () => {
 		const { live } = renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", liveStatus: "live" });
-		const dot = within(aside()).getByLabelText("Online");
-		expect(dot.className).toMatch(/\bbg-success\b/);
+		// A healthy server says nothing, so the panel is absent.
+		expect(within(aside()).queryByRole("status", { name: "Server connection" })).toBeNull();
 		act(() => live.status.set("reconnecting"));
-		expect(within(aside()).getByLabelText("Reconnecting").className).toMatch(/\bbg-warning\b/);
-		act(() => live.status.set("restarting"));
-		expect(within(aside()).getByLabelText("Reconnecting").className).toMatch(/\bbg-warning\b/);
+		expect(within(aside()).getByRole("status", { name: "Server connection" }).textContent).toContain("Reconnecting");
 		act(() => live.status.set("down"));
-		expect(within(aside()).getByLabelText("Offline").className).toMatch(/\bbg-danger\b/);
-		expect(within(aside()).queryByLabelText("Online")).toBeNull();
+		expect(within(aside()).getByRole("status", { name: "Server connection" }).textContent).toContain("Server offline");
+		act(() => live.status.set("live"));
+		expect(within(aside()).queryByRole("status", { name: "Server connection" })).toBeNull();
 	});
 
 	// SH-1. The header draws the trellis mark, the favicon drawing, and not
@@ -114,15 +125,8 @@ describe("features/sidebar/Sidebar", () => {
 		expect(aside().querySelector(".lucide-hash")).toBeNull();
 	});
 
-	// SH-2, SH-3, SH-4. The count is an 18 px accent pill, the Search row
-	// shows the key that opens search, and every nav icon is 16 px.
-	test("the nav rows show 16 px icons, the / key on Search, and the Needs you count as an 18 px pill", async () => {
+	test("the nav rows show 16 px icons and the / key on Search", async () => {
 		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
-		const needsYou = await screen.findByRole("link", { name: /Needs you/ });
-		const badge = await within(needsYou).findByText(/^\d+$/);
-		for (const name of ["bg-accent-soft", "text-accent", "text-xs", "font-semibold", "h-4.5"]) {
-			expect(badge.classList.contains(name)).toBe(true);
-		}
 		const search = screen.getByRole("link", { name: /^Search/ });
 		expect(search.querySelector("kbd")!.textContent).toBe("/");
 		for (const name of [/Needs you/, /^Search/, /All tickets/]) {

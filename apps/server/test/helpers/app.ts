@@ -76,6 +76,9 @@ export type TestAppOptions = {
 	// name, the request context, and the input of every call, so a test
 	// records the calls, delays one, or fails one.
 	wrapTransport?: (inner: ServiceTransport) => ServiceTransport;
+	// The folder picker `system.chooseDirectory` opens. The default answers
+	// the way a canceled dialog does, so no test waits on one.
+	chooseDirectory?: () => Promise<string | null>;
 };
 
 export const createTestApp = async (options: TestAppOptions = {}) => {
@@ -120,7 +123,15 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		: createWorkerTransport({ bus, config, runtime });
 	await inner.start();
 	const transport = options.wrapTransport === undefined ? inner : options.wrapTransport(inner);
-	const { app, bye } = createApp({ config, log, transport, bus, runtime, clock });
+	const { app, bye } = createApp({
+		config,
+		log,
+		transport,
+		bus,
+		runtime,
+		clock,
+		chooseDirectory: options.chooseDirectory ?? (async () => null),
+	});
 
 	const fetchThroughApp = (request: Request) => Promise.resolve(app.request(request));
 	const as = (actor: string): TrellisClient => createTrellisClient("http://trellis.test", actor, fetchThroughApp);

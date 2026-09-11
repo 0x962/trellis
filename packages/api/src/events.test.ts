@@ -7,6 +7,7 @@ const eventId = `${bootId}.7`;
 describe("events", () => {
 	test("the event name list matches the plan's Live updates section", () => {
 		expect([...eventNames].sort()).toEqual([
+			"agent-runs.changed",
 			"agents.batch",
 			"agents.session",
 			"attachment.created",
@@ -16,6 +17,7 @@ describe("events", () => {
 			"comment.deleted",
 			"comment.updated",
 			"gh.status",
+			"personas.changed",
 			"pr.linked",
 			"pr.unlinked",
 			"pr.updated",
@@ -93,4 +95,9 @@ describe("events", () => {
 			expect(EventIdSchema.safeParse(input).success, input).toBe(false);
 		}
 	});
+});
+
+test("comment events preserve thread identifiers and the resolution state", () => {
+	const event = { type: "comment.updated", id: ulid, ticketId: t1, parentId: null, threadId: ulid, resolved: true };
+	expect(EventSchema.parse(event)).toEqual(event);
 });

@@ -11,11 +11,11 @@ beforeEach(() => {
 
 describe("features/shell/NewTicketButton", () => {
 	test("the button is the primary sm button with the c key", () => {
-		renderWithProviders(<NewTicketButton />, { path: "/all", actor: "navid" });
+		renderWithProviders(<NewTicketButton />, { path: "/all/table", actor: "navid" });
 		const button = screen.getByRole("button", { name: /New ticket/ });
-		expect(button.className).toMatch(/\bbg-accent\b/);
+		expect(button.className).toMatch(/\bbg-surface\b/);
 		expect(button.className).toMatch(/\bh-7\b/);
-		expect(button.querySelector("kbd")!.textContent).toBe("C");
+		expect(button.querySelector("kbd")!.textContent).toBe("c");
 	});
 
 	// A filter or a grouping of the page never seeds the status: only the
@@ -29,7 +29,7 @@ describe("features/shell/NewTicketButton", () => {
 
 	test("off a project page the dialog opens with no project", async () => {
 		const user = userEvent.setup();
-		renderWithProviders(<NewTicketButton />, { path: "/all", actor: "navid" });
+		renderWithProviders(<NewTicketButton />, { path: "/all/table", actor: "navid" });
 		await user.click(screen.getByRole("button", { name: /New ticket/ }));
 		expect(useComposerStore.getState()).toEqual({ open: true, options: {} });
 	});

@@ -11,11 +11,15 @@ export const activityItems = (items: TimelineItem[]): ActivityItem[] =>
 	items.filter((item): item is ActivityItem => item.kind === "activity");
 
 // A thread reads oldest first, so the comment blocks print in reverse of
-// the wire order. Each block is the author line, the body, and a blank line.
+// the wire order. Each block names its comment and parent for a CLI reply.
 export const renderComments = (comments: CommentItem[]): string =>
 	[...comments]
 		.reverse()
-		.map((comment) => `${comment.actor.kind}:${comment.actor.name}  ${comment.createdAt}\n${comment.body}\n\n`)
+		.map((comment) => {
+			const state = comment.resolvedAt ? " [resolved]" : "";
+			const parent = comment.parentId ? ` reply to ${comment.parentId}` : "";
+			return `${comment.id}${state}${parent}\n${comment.actor.kind}:${comment.actor.name}  ${comment.createdAt}\n${comment.body}\n\n`;
+		})
 		.join("");
 
 export const commentList: ListSpec<CommentItem> = {

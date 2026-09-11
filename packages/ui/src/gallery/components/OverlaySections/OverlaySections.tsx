@@ -14,7 +14,7 @@ import { hitArea } from "../../../utils/hitArea";
 import { Section } from "../Section";
 
 const commands = [
-	{ id: "CDE-42", label: "Restore the fork pages after the upstream 1.27 merge", hint: "CDE-42" },
+	{ id: "CDE-42", label: "Restore the export pages after the upstream 1.27 merge", hint: "CDE-42" },
 	{ id: "CDE-44", label: "Terminal pane loses scrollback on session handoff", hint: "CDE-44" },
 	{ id: "TRL-4", label: "Poller batches PRs in one GraphQL call", hint: "TRL-4" },
 ];
@@ -98,7 +98,7 @@ export function OverlaySections() {
 					<IconButton label="Copy link" icon={<Copy />} />
 				</Tooltip>
 			</Section>
-			<Section name="Toast" note="plain, success, error, and the Start-with-agent command">
+			<Section name="Toast" note="plain, success, error, and a copied command">
 				<Button onClick={() => toast("Saved")}>Plain</Button>
 				<Button onClick={() => toast.success("Approved CDE-42")}>Success</Button>
 				<Button onClick={() => toast.error("gh is not signed in. Run gh auth login.")}>Error</Button>
@@ -107,11 +107,11 @@ export function OverlaySections() {
 					onClick={() =>
 						toast.command({
 							title: "Copied the command. Paste it in a terminal.",
-							command: 'claude "$(trellis brief CDE-42)"',
+							command: "trellis brief CDE-42",
 						})
 					}
 				>
-					Start with agent
+					Command
 				</Button>
 				<Toaster />
 			</Section>

@@ -24,6 +24,8 @@ export const eventNames = [
 	"project.deleted",
 	"project.moved",
 	"gh.status",
+	"personas.changed",
+	"agent-runs.changed",
 	"agents.session",
 	"agents.batch",
 	"reset",
@@ -75,11 +77,21 @@ export const TicketChildEventPayloadSchema = z.object({
 	projectId: UlidSchema.optional(),
 });
 
+export const CommentEventPayloadSchema = TicketChildEventPayloadSchema.extend({
+	parentId: UlidSchema.nullable().optional(),
+	threadId: UlidSchema.optional(),
+	resolved: z.boolean().optional(),
+});
+
 export const StatusesChangedPayloadSchema = z.object({
 	projectId: UlidSchema,
 });
 
 export const ProjectEventPayloadSchema = z.object({
+	id: UlidSchema,
+});
+
+export const PersonasChangedPayloadSchema = z.object({
 	id: UlidSchema,
 });
 
@@ -131,9 +143,9 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("pr.linked", PrEventPayloadSchema),
 	typed("pr.unlinked", PrEventPayloadSchema),
 	typed("pr.updated", PrEventPayloadSchema),
-	typed("comment.created", TicketChildEventPayloadSchema),
-	typed("comment.updated", TicketChildEventPayloadSchema),
-	typed("comment.deleted", TicketChildEventPayloadSchema),
+	typed("comment.created", CommentEventPayloadSchema),
+	typed("comment.updated", CommentEventPayloadSchema),
+	typed("comment.deleted", CommentEventPayloadSchema),
 	typed("attachment.created", TicketChildEventPayloadSchema),
 	typed("attachment.deleted", TicketChildEventPayloadSchema),
 	typed("statuses.changed", StatusesChangedPayloadSchema),
@@ -142,6 +154,8 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("project.deleted", ProjectEventPayloadSchema),
 	typed("project.moved", ProjectEventPayloadSchema),
 	typed("gh.status", GhStatusPayloadSchema),
+	typed("personas.changed", PersonasChangedPayloadSchema),
+	typed("agent-runs.changed", PersonasChangedPayloadSchema),
 	typed("agents.session", AgentSessionEventPayloadSchema),
 	typed("agents.batch", AgentBatchPayloadSchema),
 	typed("reset", ResetPayloadSchema),

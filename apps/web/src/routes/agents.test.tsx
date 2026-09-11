@@ -15,7 +15,7 @@ beforeEach(() => {
 const QUIET_MS = 10_000;
 
 describe("routes/agents", () => {
-	test("lists each project's sessions with their errors and the agent actions", async () => {
+	test("lists each project's sessions with their names and errors, and the agent actions", async () => {
 		const server = createTestServer();
 		const failed = await failedSession(server, "manager");
 		await addSession(server, { role: "builder" });
@@ -35,7 +35,9 @@ describe("routes/agents", () => {
 		const sessions = within(await screen.findByRole("region", { name: "CDE sessions" }));
 		expect(sessions.getByText(startError)).toBeDefined();
 		expect(sessions.getByText("Failed")).toBeDefined();
-		expect(sessions.getAllByRole("link", { name: "Open in Superset" })).toHaveLength(1);
+		// The fixtures name the manager Amara and the builder Kenji.
+		expect(sessions.getByText("Amara")).toBeDefined();
+		expect(sessions.getByText("Kenji")).toBeDefined();
 		expect(document.getElementById(failed.id)).not.toBeNull();
 
 		const actions = within(screen.getByRole("list", { name: "Agent actions" }));

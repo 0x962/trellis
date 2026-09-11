@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { render, within } from "@testing-library/react";
 import { checkList } from "../../../../../../../../test/prs";
+import { PR_OWNER, PR_REPO } from "../../../../../../../../test/server/seed/support";
 import { CheckRows } from "./CheckRows";
 
 const seeded = checkList(
@@ -49,7 +50,7 @@ describe("CheckRows", () => {
 		expect(rows()).toHaveLength(seeded.length);
 		for (const row of rows()) {
 			const link = within(row).getByRole("link", { name: "Open" });
-			expect(link.getAttribute("href")).toBe("https://github.com/canary-technologies-corp/de/actions/runs/118");
+			expect(link.getAttribute("href")).toBe(`https://github.com/${PR_OWNER}/${PR_REPO}/actions/runs/118`);
 			expect(link.getAttribute("target")).toBe("_blank");
 			expect(link.getAttribute("rel")).toContain("noopener");
 		}

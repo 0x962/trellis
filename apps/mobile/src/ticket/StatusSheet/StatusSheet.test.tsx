@@ -1,14 +1,18 @@
-import { beforeEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { errors } from "@trellis/api";
-import { fireEvent, renderRouter, screen, waitFor, within } from "expo-router/testing-library";
-import { appContext } from "../../../test/appContext";
-import { type FakeApp, installFakeApp } from "../../../test/fakeApp";
+import { fireEvent, screen, waitFor, within } from "expo-router/testing-library";
+import { connect } from "../../../test/connect";
+import type { Recorder } from "../../../test/record";
+import { renderRoute } from "../../../test/renderRoute";
+import { human, seeder } from "../../../test/server";
+import { seedTicketScreen, type TicketData, title } from "../../../test/ticket";
 
-let app: FakeApp;
+let data: TicketData;
+let net: Recorder;
 
 const openTicket = async () => {
-	await renderRouter(appContext(), { initialUrl: "/ticket/CDE-42" });
-	await screen.findByText("Restore the fork pages after the upstream 1.27 merge");
+	await renderRoute(`/ticket/${data.ticket}`);
+	await screen.findByText(title);
 };
 
 const statusRow = () => screen.getByRole("button", { name: "Status" });
@@ -25,9 +29,12 @@ const headings = (sheet: ReturnType<typeof screen.getByTestId>) =>
 		.map((header) => header.props.children);
 
 describe("the status sheet", () => {
-	beforeEach(() => {
-		app = installFakeApp();
+	beforeEach(async () => {
+		data = await seedTicketScreen(seeder);
+		net = connect();
 	});
+
+	afterEach(() => net.restore());
 
 	// O45. CDE.web inherits the six seeded statuses of CDE.
 	test("the Status row opens the sheet with the effective statuses grouped by category", async () => {
@@ -52,23 +59,23 @@ describe("the status sheet", () => {
 
 	// O47. The response waits behind the hold, so the grid shows the choice first.
 	test("a choice patches the grid before the response and sends expectedVersion", async () => {
-		const ticket = await app.server.client.tickets.get({ ticket: "CDE-42" });
-		const { statuses } = await app.server.client.statuses.list({ project: ticket.project.id });
+		const ticket = await human.tickets.get({ ticket: data.ticket });
+		const { statuses } = await human.statuses.list({ project: ticket.project.id });
 		const inProgress = statuses.find((status) => status.slug === "in-progress")!;
 		await openTicket();
 		const sheet = await openSheet();
-		const release = app.hold("tickets.update");
+		const hold = net.hold("tickets.update");
 		await fireEvent.press(within(sheet).getByRole("radio", { name: "In Progress" }));
-		await waitFor(() => expect(within(statusRow()).getByText("In Progress")).toBeOnTheScreen());
-		expect(app.callsTo("tickets.update")).toHaveLength(0);
-		release();
-		await waitFor(() => expect(app.callsTo("tickets.update")).toHaveLength(1));
-		const input = app.callsTo("tickets.update")[0]!.input as {
+		await waitFor(() => expect(hold.state.held).toBe(1));
+		expect(within(statusRow()).getByText("In Progress")).toBeOnTheScreen();
+		hold.release();
+		await waitFor(() => expect(net.callsTo("tickets.update")).toHaveLength(1));
+		const input = net.callsTo("tickets.update")[0]!.input as {
 			ticket: string;
 			status: string;
 			expectedVersion: number;
 		};
-		expect(input.ticket).toBe("CDE-42");
+		expect(input.ticket).toBe(data.ticket);
 		expect([inProgress.id, inProgress.slug]).toContain(input.status);
 		expect(input.expectedVersion).toBe(ticket.version);
 		expect(within(statusRow()).getByText("In Progress")).toBeOnTheScreen();
@@ -78,7 +85,7 @@ describe("the status sheet", () => {
 	// the screen's expectedVersion is stale.
 	test("a 412 rolls the grid back to the old status and shows the message", async () => {
 		await openTicket();
-		await app.server.client.tickets.update({ ticket: "CDE-42", title: "Retitled from the web" });
+		await human.tickets.update({ ticket: data.ticket, title: "Retitled from the web" });
 		const sheet = await openSheet();
 		await fireEvent.press(within(sheet).getByRole("radio", { name: "In Progress" }));
 		expect(await screen.findByText(errors.VERSION_CONFLICT.message)).toBeOnTheScreen();

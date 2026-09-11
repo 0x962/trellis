@@ -32,7 +32,7 @@ describe("features/ticket/Timeline/components/ActivityLine", () => {
 		expect(line.className).toMatch(/\bh-8\b/);
 		expect(line.getAttribute("data-kind")).toBe("activity");
 		const text = line.textContent!.replace(/\s+/g, " ").trim();
-		expect(text).toMatch(/^claude-code ?· ?agent moved the ticket from Todo to In Progress/);
+		expect(text).toMatch(/^claude-code moved the ticket from Todo to In Progress/);
 		expect(screen.getByRole("img", { name: "claude-code · agent" })).toBeDefined();
 		const time = line.querySelector("time")!;
 		expect(time.getAttribute("datetime")).toBe(moved.createdAt);

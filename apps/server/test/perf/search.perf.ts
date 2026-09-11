@@ -5,7 +5,7 @@ import { budget, p95, p95Of, report } from "./measure.ts";
 import { type PerfServer, startPerfServer, type TimedClient, timedClient } from "./perfServer.ts";
 import { PERF_ROWS, perfDb } from "./seed.ts";
 
-// plan.md, Performance requirements: `search.query` p95 at 50k is 40 ms, and
+// ARCHITECTURE.md, Performance budgets: `search.query` p95 at 50k is 40 ms, and
 // 3 ms for a `KEY-n` identifier.
 let db: TestDb["db"];
 beforeAll(async () => {

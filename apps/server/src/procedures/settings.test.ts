@@ -11,7 +11,12 @@ afterAll(() => t.close());
 
 describe("settings", () => {
 	test("settings round-trip through PUT and GET", async () => {
-		const settings = { startWithAgentTemplate: 'claude "{brief}"', defaultActorName: "navid", stalledHours: 12 };
+		const settings = {
+			defaultActorName: "navid",
+			stalledHours: 12,
+			diffUrlTemplate: "{url}/files",
+			agentLaunchCommand: "{{superset}} ws create --project {{projectId}} --name {{name}}",
+		};
 
 		const written = await t.api("/api/settings", { method: "PUT", body: settings });
 		const read = await t.api("/api/settings", { actor: null });

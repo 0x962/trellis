@@ -9,6 +9,7 @@ import {
 	insertSession,
 	LIVE_STATES,
 	newSessionId,
+	reserveName,
 	selectSessions,
 	sessionById,
 	toSession,
@@ -91,6 +92,7 @@ export const register = async (ctx: ServiceCtx, tx: Tx, input: AgentRegisterInpu
 		workspaceId: input.workspaceId,
 		terminalId: input.terminalId,
 		claudeSessionId: input.claudeSessionId,
+		name: await reserveName(tx, project.id),
 		title,
 		openUrl: null,
 	});

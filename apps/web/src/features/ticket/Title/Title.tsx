@@ -50,6 +50,18 @@ export function Title({ ticket, autoFocus = false, className }: TitleProps) {
 		if (field.current !== null && text !== undefined) fitHeight(field.current);
 	}, [text]);
 
+	useEffect(() => {
+		const element = field.current!;
+		let width = element.getBoundingClientRect().width;
+		const observer = new ResizeObserver(([entry]) => {
+			if (entry!.contentRect.width === width) return;
+			width = entry!.contentRect.width;
+			fitHeight(element);
+		});
+		observer.observe(element);
+		return () => observer.disconnect();
+	}, []);
+
 	// The peek opens at the start of the title, also for a title longer
 	// than one line.
 	useEffect(() => {

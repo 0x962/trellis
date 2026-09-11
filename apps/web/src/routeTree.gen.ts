@@ -17,7 +17,8 @@ import { Route as NeedsYouRouteRouteImport } from './routes/needs-you/route'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SetupRouteImport } from './routes/setup'
-import { Route as AllBoardRouteImport } from './routes/all_.board'
+import { Route as AiPersonasRouteImport } from './routes/ai.personas'
+import { Route as AllTableRouteImport } from './routes/all_.table'
 import { Route as PSplatRouteRouteImport } from './routes/p/$/route'
 import { Route as TIdentifierRouteRouteImport } from './routes/t/$identifier/route'
 
@@ -61,9 +62,14 @@ const SetupRoute = SetupRouteImport.update({
   path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AllBoardRoute = AllBoardRouteImport.update({
-  id: '/all_/board',
-  path: '/all/board',
+const AiPersonasRoute = AiPersonasRouteImport.update({
+  id: '/ai/personas',
+  path: '/ai/personas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AllTableRoute = AllTableRouteImport.update({
+  id: '/all_/table',
+  path: '/all/table',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PSplatRouteRoute = PSplatRouteRouteImport.update({
@@ -88,7 +94,8 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
-  '/all/board': typeof AllBoardRoute
+  '/ai/personas': typeof AiPersonasRoute
+  '/all/table': typeof AllTableRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -101,7 +108,8 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
-  '/all/board': typeof AllBoardRoute
+  '/ai/personas': typeof AiPersonasRoute
+  '/all/table': typeof AllTableRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -115,7 +123,8 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
-  '/all_/board': typeof AllBoardRoute
+  '/ai/personas': typeof AiPersonasRoute
+  '/all_/table': typeof AllTableRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -130,7 +139,8 @@ export interface FileRouteTypes {
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
-    | '/all/board'
+    | '/ai/personas'
+    | '/all/table'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -143,7 +153,8 @@ export interface FileRouteTypes {
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
-    | '/all/board'
+    | '/ai/personas'
+    | '/all/table'
   id:
     | '__root__'
     | '/'
@@ -156,7 +167,8 @@ export interface FileRouteTypes {
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
-    | '/all_/board'
+    | '/ai/personas'
+    | '/all_/table'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -170,7 +182,8 @@ export interface RootRouteChildren {
   SetupRoute: typeof SetupRoute
   PSplatRouteRoute: typeof PSplatRouteRoute
   TIdentifierRouteRoute: typeof TIdentifierRouteRoute
-  AllBoardRoute: typeof AllBoardRoute
+  AiPersonasRoute: typeof AiPersonasRoute
+  AllTableRoute: typeof AllTableRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -231,11 +244,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/all_/board': {
-      id: '/all_/board'
-      path: '/all/board'
-      fullPath: '/all/board'
-      preLoaderRoute: typeof AllBoardRouteImport
+    '/ai/personas': {
+      id: '/ai/personas'
+      path: '/ai/personas'
+      fullPath: '/ai/personas'
+      preLoaderRoute: typeof AiPersonasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/all_/table': {
+      id: '/all_/table'
+      path: '/all/table'
+      fullPath: '/all/table'
+      preLoaderRoute: typeof AllTableRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$': {
@@ -266,7 +286,8 @@ const rootRouteChildren: RootRouteChildren = {
   SetupRoute: SetupRoute,
   PSplatRouteRoute: PSplatRouteRoute,
   TIdentifierRouteRoute: TIdentifierRouteRoute,
-  AllBoardRoute: AllBoardRoute,
+  AiPersonasRoute: AiPersonasRoute,
+  AllTableRoute: AllTableRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

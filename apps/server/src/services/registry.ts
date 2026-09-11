@@ -1,10 +1,13 @@
 import type { Tx } from "../db/tx.ts";
 import * as actors from "./actors.ts";
+import * as agentRuns from "./agentRuns/agentRuns.ts";
+import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agents from "./agents.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
 import * as comments from "./comments.ts";
 import * as inbox from "./inbox.ts";
+import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
 import * as search from "./search.ts";
@@ -49,6 +52,16 @@ const prepared = (kind: ServiceKind, prepare: Prepare, run: Run): ServiceEntry =
 const runner = (prepare: Prepare, run: Run): ServiceEntry => ({ family: "agents", kind: "mutation", prepare, run });
 
 export const services = {
+	"agentRuns.send": prepared("mutation", agentCommunication.prepareSend, agentRuns.finish),
+	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
+	"agentRuns.list": core("read", agentRuns.list),
+	"agentRuns.start": prepared("mutation", agentRuns.prepareStart, agentRuns.finish),
+	"agentRuns.stop": prepared("mutation", agentRuns.prepareStop, agentRuns.finish),
+	"agentRuns.refresh": prepared("mutation", agentRuns.prepareRefresh, agentRuns.finish),
+	"personas.list": core("read", personas.list),
+	"personas.create": core("mutation", personas.create),
+	"personas.update": core("mutation", personas.update),
+	"personas.delete": core("mutation", personas.remove),
 	"projects.list": core("read", projects.list),
 	"projects.get": core("read", projects.get),
 	"projects.create": core("mutation", projects.create),
@@ -73,6 +86,8 @@ export const services = {
 	"tickets.deleteMany": core("mutation", tickets.deleteMany),
 	"tickets.delete": core("mutation", tickets.delete),
 	"timeline.list": core("read", timeline.list),
+	"comments.thread": core("read", comments.thread),
+	"comments.resolve": core("mutation", comments.resolve),
 	"comments.create": core("mutation", comments.create),
 	"comments.update": core("mutation", comments.update),
 	"comments.delete": core("mutation", comments.delete),

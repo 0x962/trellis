@@ -14,6 +14,7 @@ import type { Runtime, ServiceTransport } from "./db/transport.ts";
 import type { Bus } from "./events/bus.ts";
 import { isAllowedHost } from "./hostCheck.ts";
 import type { Logger } from "./log.ts";
+import { chooseDirectory } from "./native/chooseDirectory";
 import { type ProcedureContext, router } from "./procedures/index.ts";
 import { docsRoutes } from "./routes/docs.ts";
 import { type Clock, createEventsRoute, realClock } from "./routes/events.ts";
@@ -29,9 +30,12 @@ export type AppOptions = {
 	bus: Bus;
 	runtime: Runtime;
 	clock?: Clock;
+	// The folder picker `system.chooseDirectory` opens. A test gives its own,
+	// so no suite waits on a dialog nobody can answer.
+	chooseDirectory?: () => Promise<string | null>;
 };
 
-// The Vite dev server and margin's gateway. Every other origin gets no
+// The Vite dev server and the localhost gateway. Every other origin gets no
 // CORS header, so a page elsewhere cannot read the API.
 const DEV_ORIGINS = ["http://localhost:5173", "http://trellis.localhost"];
 
@@ -73,7 +77,15 @@ const deleteWithQuery = (request: Request) => {
 // paths, the RPC handler at /rpc, the OpenAPI handler at /api, the plain
 // routes, a JSON 404 under the two mounts, and the web app for everything
 // else.
-export const createApp = ({ config, log, transport, bus, runtime, clock = realClock }: AppOptions) => {
+export const createApp = ({
+	config,
+	log,
+	transport,
+	bus,
+	runtime,
+	clock = realClock,
+	chooseDirectory: chooseFolder = chooseDirectory,
+}: AppOptions) => {
 	const app = new Hono();
 	const events = createEventsRoute({ bus, runtime, transport, clock });
 	const docs = docsRoutes();
@@ -139,6 +151,7 @@ export const createApp = ({ config, log, transport, bus, runtime, clock = realCl
 		transport,
 		actor: null,
 		timing: createDbTiming(),
+		chooseDirectory: chooseFolder,
 	});
 	// Every procedure response carries the database time of its request. A
 	// request that fails before any service call reports 0.

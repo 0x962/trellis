@@ -30,6 +30,12 @@ describe("contract", () => {
 		expect(table).toEqual([
 			"actors.default GET /actors/default",
 			"actors.list GET /actors",
+			"agentRuns.list GET /agent-runs",
+			"agentRuns.output GET /agent-runs/{id}/output",
+			"agentRuns.refresh POST /agent-runs/{id}/refresh",
+			"agentRuns.send POST /agent-runs/{id}/send",
+			"agentRuns.start POST /agent-runs",
+			"agentRuns.stop POST /agent-runs/{id}/stop",
 			"agents.inbox POST /agents/inbox",
 			"agents.overview GET /agents/overview",
 			"agents.register POST /agents/register",
@@ -49,8 +55,14 @@ describe("contract", () => {
 			"brief.get GET /tickets/{ticket}/brief",
 			"comments.create POST /tickets/{ticket}/comments",
 			"comments.delete DELETE /comments/{id}",
+			"comments.resolve POST /comments/{id}/resolve",
+			"comments.thread GET /comments/{id}/thread",
 			"comments.update PATCH /comments/{id}",
 			"inbox.get GET /inbox",
+			"personas.create POST /personas",
+			"personas.delete DELETE /personas/{id}",
+			"personas.list GET /personas",
+			"personas.update PATCH /personas/{id}",
 			"projects.create POST /projects",
 			"projects.delete DELETE /projects/{project}",
 			"projects.get GET /projects/{project}",
@@ -73,6 +85,7 @@ describe("contract", () => {
 			"statuses.reorder PUT /projects/{project}/statuses/order",
 			"statuses.update PATCH /projects/{project}/statuses/{status}",
 			"system.backup POST /backup",
+			"system.chooseDirectory POST /choose-directory",
 			"system.gh GET /gh",
 			"system.health GET /health",
 			"tickets.board GET /tickets/board",
@@ -87,7 +100,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(58);
+		expect(table).toHaveLength(71);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

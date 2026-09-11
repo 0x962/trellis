@@ -15,11 +15,11 @@ const throwsNotFound = (splat: string) => {
 
 describe("lib/projectPath", () => {
 	// WS-37
-	test("a bare key is the project table", () => {
-		expect(parseProjectSplat("CDE")).toEqual({ ref: "CDE", view: "table" });
+	test("a bare key is the project board", () => {
+		expect(parseProjectSplat("CDE")).toEqual({ ref: "CDE", view: "board" });
 	});
 
-	// WS-38. `board` and `settings` are the reserved slugs, so a trailing
+	// WS-38. `board`, `table` and `settings` are the reserved slugs, so a trailing
 	// one is always the view.
 	test("a trailing reserved segment is the view", () => {
 		expect(parseProjectSplat("CDE/board")).toEqual({ ref: "CDE", view: "board" });
@@ -30,7 +30,7 @@ describe("lib/projectPath", () => {
 	// canonical spelling comes from ProjectRefStringSchema.
 	test("slugs join with dots into the API ref and canonicalize case", () => {
 		expect(parseProjectSplat("CDE/web/auth/board")).toEqual({ ref: "CDE.web.auth", view: "board" });
-		expect(parseProjectSplat("cde/Web/auth")).toEqual({ ref: "CDE.web.auth", view: "table" });
+		expect(parseProjectSplat("cde/Web/auth")).toEqual({ ref: "CDE.web.auth", view: "board" });
 	});
 
 	// WS-40
@@ -42,8 +42,8 @@ describe("lib/projectPath", () => {
 
 	// WS-41
 	test("projectHref keeps slashes in the URL and omits the default view", () => {
-		expect(projectHref("CDE.web.auth", "board")).toBe("/p/CDE/web/auth/board");
-		expect(projectHref("CDE", "table")).toBe("/p/CDE");
+		expect(projectHref("CDE.web.auth", "table")).toBe("/p/CDE/web/auth/table");
+		expect(projectHref("CDE", "board")).toBe("/p/CDE");
 		expect(projectHref("CDE.web", "settings")).toBe("/p/CDE/web/settings");
 	});
 });

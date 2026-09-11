@@ -15,7 +15,7 @@ const barHeights = [tokens.space[1], tokens.space[2], tokens.space[3]];
 
 const styles = StyleSheet.create({
 	bars: { flexDirection: "row", alignItems: "flex-end", gap: tokens.space.half, height: tokens.space[3] },
-	bar: { width: layout.bar, borderRadius: tokens.hairline },
+	bar: { width: layout.bar, borderRadius: tokens.radius.hairline },
 	square: {
 		width: layout.mark,
 		height: layout.mark,

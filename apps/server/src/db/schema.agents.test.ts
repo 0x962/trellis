@@ -27,6 +27,7 @@ const session = (projectId: string, overrides: Row = {}) =>
 		workspace_id: null,
 		terminal_id: null,
 		claude_session_id: null,
+		name: "Amara",
 		title: "CDE manager",
 		open_url: null,
 		last_woken_at: null,
@@ -52,13 +53,15 @@ describe("agent_sessions", () => {
 		expect(await count(h.db, "agent_sessions")).toBe(1);
 	});
 
-	test("role, runner, state, and title stay inside their sets", async () => {
+	test("role, runner, state, name, and title stay inside their sets", async () => {
 		const { rootId } = await ticketOf();
 		await expect(session(rootId, { role: "janitor" })).rejects.toThrow(checkNamed("agent_sessions_role_check"));
 		await expect(session(rootId, { runner: "tmux" })).rejects.toThrow(checkNamed("agent_sessions_runner_check"));
 		await expect(session(rootId, { state: "asleep" })).rejects.toThrow(checkNamed("agent_sessions_state_check"));
 		await expect(session(rootId, { title: "" })).rejects.toThrow(checkNamed("agent_sessions_title_check"));
 		await expect(session(rootId, { title: "x".repeat(121) })).rejects.toThrow(checkNamed("agent_sessions_title_check"));
+		await expect(session(rootId, { name: "" })).rejects.toThrow(checkNamed("agent_sessions_name_check"));
+		await expect(session(rootId, { name: "x".repeat(41) })).rejects.toThrow(checkNamed("agent_sessions_name_check"));
 	});
 
 	test("a project has one live manager; exited and stopped managers do not count", async () => {

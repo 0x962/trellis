@@ -28,7 +28,6 @@ describe("features/ticket/TicketView", () => {
 		expect(
 			screen.getAllByText("CDE-42").some((element) => element.closest("header, [aria-label='Ticket header']") === null),
 		).toBe(true);
-		expect(within(header).getByRole("button", { name: "Start with agent" })).toBeDefined();
 		const field = screen.getByRole("textbox", { name: "Title" });
 		await waitFor(() => expect(fieldValue(field)).toBe("Restore the fork pages after the upstream 1.27 merge"));
 		await waitFor(() => expect(document.querySelector(".markdown")!.textContent).toContain("1.27"));
@@ -44,10 +43,8 @@ describe("features/ticket/TicketView", () => {
 		expect(within(rail).getByText("Human Review")).toBeDefined();
 	});
 
-	// MB-C. Below 768 px the rail folds into the grid under the title, the
-	// header keeps Back, the ID, and the more menu, and Start with agent goes
-	// full width under the grid.
-	test("a phone-width page folds the rail and moves Start with agent under the grid", async () => {
+	// Below 768 px the properties form a grid under the title.
+	test("a phone-width page folds the rail without an approval bar", async () => {
 		mockMatchMedia(true);
 		try {
 			page();
@@ -55,12 +52,10 @@ describe("features/ticket/TicketView", () => {
 			expect(within(header).getByText("CDE-42")).toBeDefined();
 			expect(within(header).getByRole("link", { name: "Back to list" })).toBeDefined();
 			expect(within(header).getByRole("button", { name: "More actions" })).toBeDefined();
-			expect(within(header).queryByRole("button", { name: "Start with agent" })).toBeNull();
 			const grid = await screen.findByLabelText("Properties");
 			expect(grid.tagName).toBe("DL");
-			const start = screen.getByRole("button", { name: "Start with agent" });
-			expect(grid.compareDocumentPosition(start) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-			expect(start.closest("[data-phone-actions]")).not.toBeNull();
+			expect(document.querySelector("[data-phone-actions]")).toBeNull();
+			expect(screen.queryByRole("button", { name: /^Approve|^Send back/ })).toBeNull();
 		} finally {
 			// The mock is global to the test process, so the next file must not
 			// inherit a phone-width window.

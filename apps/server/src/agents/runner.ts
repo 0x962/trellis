@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { errors, type RunnerProject, type RunnerReason } from "@trellis/api";
+import type { BranchState } from "./git.ts";
 
 // The program that starts, finds, wakes, and stops agents. Superset is the
 // only runner. Every id a runner hands back is opaque to trellis: the server
@@ -74,6 +75,10 @@ export type Runner = {
 	// in the checkout at `path`.
 	defaultBranch: (runnerProjectId: string) => Promise<string>;
 	branchAt: (path: string) => Promise<string>;
+	// Whether the checkout of a runner project holds `branch`. The settings
+	// save reads this, so a base branch the repository does not hold is
+	// refused before an agent ever tries to start on it.
+	branchState: (runnerProjectId: string, branch: string) => Promise<BranchState>;
 	// `started` is false when a live manager tab already ran in the workspace.
 	ensureManager: (input: ManagerStart) => Promise<AgentPlace & { started: boolean }>;
 	startBuilder: (input: BuilderStart) => Promise<AgentPlace>;

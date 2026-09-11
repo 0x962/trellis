@@ -5,8 +5,7 @@ import { relativeTime, tabularClass } from "../../../../../lib/format";
 import { useExpandedPr } from "../../../hooks/useExpandedPr";
 import { CheckCountPill } from "./components/CheckCountPill";
 import { CheckRows } from "./components/CheckRows";
-import { MergedNudge } from "./components/MergedNudge";
-import { OpenInMargin } from "./components/OpenInMargin";
+import { DiffLink } from "./components/DiffLink";
 import { PrActions } from "./components/PrActions";
 import { PrStateIcon } from "./components/PrStateIcon";
 
@@ -113,7 +112,7 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 							className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
 							onClick={() => window.open(pr.url, "_blank", "noopener")}
 						/>
-						<OpenInMargin url={pr.url} />
+						<DiffLink url={pr.url} />
 					</div>
 					{expanded && <CheckRows checks={pr.checks} />}
 				</div>
@@ -121,7 +120,6 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 					<PrActions ticket={ticket} pr={pr} />
 				</div>
 			</div>
-			<MergedNudge ticket={ticket} pr={pr} />
 		</div>
 	);
 }

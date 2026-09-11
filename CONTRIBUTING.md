@@ -1,7 +1,15 @@
 # Contributing
 
 Read [AGENTS.md](AGENTS.md) first. It defines the repository rules.
-The [approved plan](docs/design/plan.md) defines the product.
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the stack, the domain rules, the schema, and the API.
+Read [SECURITY.md](SECURITY.md) before you change the server, the CORS list, or the file routes.
+This project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Before you start
+
+Open an issue before a large change, so nobody writes the same code twice.
+A bug fix with a failing test needs no issue.
+trellis needs [Bun](https://bun.sh) 1.3. Some suites need macOS, and CI runs them.
 
 ## Development loop
 
@@ -13,14 +21,15 @@ TRELLIS_HOME=$(mktemp -d) bun run dev
 ```
 
 Open `http://127.0.0.1:5173`.
-A temporary `TRELLIS_HOME` keeps the loop away from your own data, and each
-run starts from an empty database. Drop the variable to work against
-`~/.trellis`.
-Playwright starts both processes for the end-to-end suite.
+A temporary `TRELLIS_HOME` keeps the loop away from your own data, and each run starts from an empty database.
+Drop the variable to work against `~/.trellis`.
+For the end-to-end suite, Playwright starts both processes.
 
-Run a focused test while you change code.
-Run `bun run lint:fix` before the full check.
-Run `bun run check --force` before each hand-off.
+Assess the risk of the change and choose checks that cover the affected behavior.
+Balance speed with the cost of an error.
+Use focused tests for narrow changes and broader checks when the risk warrants them.
+The full `bun run check` command and performance tests are optional.
+One agent handles tests, implementation, and review, and decides whether browser checks add useful evidence.
 
 ## Repository map
 
@@ -32,10 +41,10 @@ Run `bun run check --force` before each hand-off.
 | `apps/server` | `@trellis/server` | The Hono server, procedures, services, database worker, and GitHub poller. |
 | `apps/web` | `@trellis/web` | The React web app. |
 | `apps/mobile` | `@trellis/mobile` | The Expo mobile app. |
-| `docs/design` | | The approved plan and supporting design documents. |
+| `docs` | | The architecture reference, the agent setup guide, and the images. |
 | `test` | | Tests for repository configuration and public files. |
 
-The dependency graph forms a star around `@trellis/api`.
+The dependency graph is a star with `@trellis/api` at the center.
 Only `@trellis/web` imports `@trellis/ui`.
 Each package exports TypeScript source without side effects.
 
@@ -60,9 +69,9 @@ The preload gives each test run a temporary `TRELLIS_HOME`.
 ## TDD rule
 
 Start every change with a failing test for the specified outcome.
-Confirm that the test fails for the intended reason.
-Make the test pass without deletion or weaker assertions.
-Send a disputed test to the lead with the reason.
+Make sure that the test fails for the correct reason.
+Make the test pass. Do not delete the test or weaken its assertions.
+If you think a test is wrong, say so in the pull request and give the reason.
 
 ## Database migration
 
@@ -75,13 +84,18 @@ The check fails when schema generation changes `apps/server/drizzle/`.
 
 ## Review pass
 
-1. Read the complete diff and remove unrelated changes.
-2. Run the focused tests again.
-3. Run `bun run check --force` at the repository root.
-4. Ask reviewers to refute the tests, correctness, and code quality.
-5. Give each finding a file, line, severity, claim, and evidence.
-6. Add a failing test for each missing case before the fix.
-7. Repeat the review until a pass has no findings.
+1. Read the full diff and remove changes that are not part of the work.
+2. Choose tests and checks based on the affected code and the risk of the change.
+3. Report the checks, their results, and any relevant gaps.
+4. Try to refute your own tests, your own correctness claim, and your own code quality.
+5. Give each finding a file, a line, a claim, and evidence.
+6. For each missing case, add a failing test before the fix.
+7. Do the review again until a pass has no findings.
 
-Two reviewers must agree on a finding unless one reviewer marks it as a blocker.
-Do not merge from one reviewer only.
+## Pull request
+
+Write one commit per result that a user sees.
+State what broke, what changed, and one sentence about how you verified it.
+Use no headers, no tables, and no checklists.
+Add a changeset with `bunx changeset` when the change touches a published behavior.
+CI runs `bun run check` on macOS and Ubuntu, the Playwright suite on macOS, and the migration diff.

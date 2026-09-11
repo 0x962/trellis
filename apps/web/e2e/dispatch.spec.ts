@@ -40,8 +40,9 @@ test("dispatch > a web ticket goes to a builder, a clean review, and Human Revie
 }) => {
 	test.setTimeout(180_000);
 
-	// Agents on, in the web settings.
-	await signIn(page, "/settings");
+	// Agents on, in the web settings. The Agent manager block is its own
+	// settings page, which the hash selects.
+	await signIn(page, "/settings#manager");
 	const agents = page.getByRole("switch", { name: "Turn on agents" });
 	if (!(await agents.isChecked())) await agents.click();
 	await expect(agents).toBeChecked();
@@ -110,18 +111,12 @@ test("dispatch > a web ticket goes to a builder, a clean review, and Human Revie
 	// manager, which moves the ticket to Human Review.
 	await expect.poll(() => statusOf(identifier), { timeout: WAKE_MS + AGENT_MS }).toBe("Human Review");
 
-	// The person sends the ticket back with a comment from Needs you.
+	// The person sends the ticket back with a comment. Needs you carries no
+	// Send back control any more, so the comment comes from the CLI.
 	const wakesBefore = sentTo(managerTab.terminalId).length;
 	const sendBack = "Rename the flag to --dry-run and keep the old name as an alias";
-	// The linked PR has a failing check, so the ticket is in the Failing CI
-	// section too. Only the row in the review section has Send back.
-	await page.goto("/needs-you");
-	const row = page.locator(`[data-inbox-row="${identifier}"]`).filter({ hasText: "Send back" });
-	await row.focus();
-	await page.keyboard.press("r");
-	await page.getByRole("textbox", { name: /Reason to send back/i }).fill(sendBack);
-	await page.keyboard.press("ControlOrMeta+Enter");
-	await expect(row).toHaveCount(0);
+	trellis(["comment", identifier, "--body", sendBack], human);
+	moveTicket(identifier, "in-progress", human);
 
 	// The send-back wakes the manager, which forwards the comment to the
 	// builder's terminal.

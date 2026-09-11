@@ -1,10 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { act, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, expect, test } from "bun:test";
+import { screen } from "@testing-library/react";
 import { mockMatchMedia } from "../../../test/media";
 import { renderApp } from "../../../test/renderWithProviders";
 import { createTestServer } from "../../../test/server";
-import { needsYouCount } from "../../features/needs-you/utils/needsYouCount";
-import { badgeLabel } from "./useFaviconBadge";
 
 // happy-dom has no 2D canvas. The fake context records what the badge
 // draws, and the canvas answers with a fixed data URL.
@@ -41,27 +39,11 @@ afterEach(() => {
 
 const icon = () => document.head.querySelector<HTMLLinkElement>('link[rel="icon"]')!;
 
-describe("hooks/useFaviconBadge", () => {
-	test("the badge prints the count up to 9 and a dot above 9", () => {
-		expect(badgeLabel(0)).toBeNull();
-		expect(badgeLabel(3)).toBe("3");
-		expect(badgeLabel(9)).toBe("9");
-		expect(badgeLabel(10)).toBe("");
-	});
-
-	// The tab icon follows the same inbox query as the sidebar badge.
-	test("the favicon carries the Needs you count and returns to the plain mark at 0", async () => {
-		const server = createTestServer();
-		const count = needsYouCount(await server.client.inbox.get({}));
-		expect(count).toBeGreaterThan(0);
-		const { queryClient, orpc } = renderApp({ path: "/all", actor: "navid", server });
-		await waitFor(() => expect(icon().getAttribute("href")).toBe("data:image/png;base64,badge"));
-		expect(icon().type).toBe("image/png");
-		const label = badgeLabel(count)!;
-		if (label !== "") expect(drawn.some((call) => call.startsWith(`fillText:${label},`))).toBe(true);
-		const empty = await createTestServer({ empty: true }).client.inbox.get({});
-		act(() => queryClient.setQueryData(orpc.inbox.get.queryKey({ input: {} }), empty));
-		await waitFor(() => expect(icon().getAttribute("href")).toBe("/favicon.svg"));
-		expect(icon().type).toBe("image/svg+xml");
-	});
+test("the favicon stays plain when review tickets exist", async () => {
+	const server = createTestServer();
+	renderApp({ path: "/needs-you", actor: "navid", server });
+	await screen.findByRole("heading", { name: "Needs you" });
+	expect(icon().getAttribute("href")).toBe("/favicon.svg");
+	expect(icon().type).toBe("image/svg+xml");
+	expect(drawn).toHaveLength(0);
 });

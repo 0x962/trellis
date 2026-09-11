@@ -11,7 +11,7 @@ beforeEach(() => localStorage.clear());
 // The composer is pinned inside the Timeline, so the card it posts is on
 // the same screen.
 const mount = (server: TestServer = createTestServer()) =>
-	renderTicket("CDE-42", (ticket) => <Timeline ticket={ticket} />, { path: "/t/CDE-42", server });
+	renderTicket("CDE-42", (ticket) => <Timeline ticket={ticket} pinned />, { path: "/t/CDE-42", server });
 
 const composer = () => screen.findByRole("textbox", { name: "Comment" });
 const list = () => screen.findByRole("list", { name: "Timeline" });
@@ -25,13 +25,22 @@ describe("features/ticket/Timeline/components/Composer", () => {
 		const user = userEvent.setup();
 		mount();
 		const box = await composer();
-		expect(box.getAttribute("placeholder")).toBe("Write a comment in Markdown. Paste an image to attach it.");
+		expect(box.getAttribute("placeholder")).toBe("Write a comment…");
 		expect(screen.queryByRole("button", { name: "Comment" })).toBeNull();
 		await user.click(box);
 		await user.keyboard("Looks right.");
 		expect(screen.getByRole("button", { name: "Comment" })).toBeDefined();
 		await user.clear(box);
 		expect(screen.queryByRole("button", { name: "Comment" })).toBeNull();
+	});
+
+	test("the pinned composer has an opaque background and a taller resting field", async () => {
+		mount();
+		const box = await composer();
+		const wrapper = box.closest("fieldset")!.parentElement!;
+		expect(wrapper.className).toMatch(/\bbg-surface\b/);
+		expect(box.closest("fieldset")!.className).toMatch(/\bbg-elevated\b/);
+		expect(box.closest("fieldset")!.className).toMatch(/\bmin-h-20\b/);
 	});
 
 	// WT-83

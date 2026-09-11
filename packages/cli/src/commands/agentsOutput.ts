@@ -1,9 +1,11 @@
 import type { Activity, AgentBatchRecord, AgentSession, AgentSettings } from "@trellis/api";
 import { type Column, cell, type ListSpec, type RecordSpec } from "../output.ts";
 
-// The title comes first: it is the tab name a person sees in Superset. A
-// failed session carries what the runner said in `error`.
+// The name comes first: it is what a person calls the agent. The title
+// after it is the tab name a person sees in Superset. A failed session
+// carries what the runner said in `error`.
 export const sessionColumns: Column<AgentSession>[] = [
+	{ name: "name", value: (row) => row.name },
 	{ name: "title", value: (row) => row.title },
 	{ name: "role", value: (row) => row.role },
 	{ name: "state", value: (row) => row.state },
@@ -40,6 +42,7 @@ export const batchColumns: Column<AgentBatchRecord>[] = [
 export const sessionRecord: RecordSpec<AgentSession> = {
 	fields: [
 		{ name: "id", value: (row) => row.id },
+		{ name: "name", value: (row) => row.name },
 		{ name: "title", value: (row) => row.title },
 		{ name: "role", value: (row) => row.role },
 		{ name: "state", value: (row) => row.state },

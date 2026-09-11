@@ -56,7 +56,7 @@ beforeEach(() => {
 describe("features/ticket/TicketPeek", () => {
 	// WT-02. The list routes mount the peek and read the param themselves.
 	test("renders from the peek search param as a non-modal dialog 720 px wide", async () => {
-		mount("/p/CDE?peek=CDE-42");
+		mount("/p/CDE/table?peek=CDE-42");
 		const panel = await peek();
 		expect(panel.getAttribute("aria-modal")).toBe("false");
 		expect(panel.style.width).toBe("720px");
@@ -64,10 +64,56 @@ describe("features/ticket/TicketPeek", () => {
 		await waitFor(() => expect(fieldValue(title(panel))).toBe("Restore the fork pages after the upstream 1.27 merge"));
 	});
 
+	test("a click outside the peek closes it", async () => {
+		const user = userEvent.setup();
+		const { router } = mount("/p/CDE/table?peek=CDE-42");
+		await peek();
+		await user.click(screen.getByRole("list", { name: "Rows" }));
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		expect(router.state.location.search).not.toHaveProperty("peek");
+	});
+
+	test("a saved width respects the viewport minimum", async () => {
+		window.innerWidth = 1920;
+		localStorage.setItem(peekWidthStorageKey, "480");
+		mount("/p/CDE?peek=CDE-42");
+		const panel = await peek();
+		expect(panel.classList.contains("min-w-peek")).toBe(true);
+		expect(panel.style.width).toBe("480px");
+		await within(panel).findByLabelText("Properties");
+	});
+
+	test("a drag starts from the visible width when the viewport minimum exceeds the saved width", async () => {
+		window.innerWidth = 1920;
+		localStorage.setItem(peekWidthStorageKey, "480");
+		mount("/p/CDE?peek=CDE-42");
+		const panel = await peek();
+		panel.getBoundingClientRect = () => new DOMRect(1056, 0, 864, 900);
+		const handle = within(panel).getByLabelText(/resize/i);
+		fireEvent.pointerDown(handle, { clientX: 1056, pointerId: 1, button: 0 });
+		fireEvent.pointerMove(handle, { clientX: 976, pointerId: 1 });
+		fireEvent.pointerUp(handle, { clientX: 976, pointerId: 1 });
+		expect(panel.style.width).toBe("944px");
+		expect(localStorage.getItem(peekWidthStorageKey)).toBe("944");
+		await within(panel).findByLabelText("Properties");
+	});
+
+	test("the resize arrow starts from the visible width when the viewport minimum exceeds the saved width", async () => {
+		window.innerWidth = 1920;
+		localStorage.setItem(peekWidthStorageKey, "480");
+		mount("/p/CDE?peek=CDE-42");
+		const panel = await peek();
+		panel.getBoundingClientRect = () => new DOMRect(1056, 0, 864, 900);
+		fireEvent.keyDown(within(panel).getByLabelText(/resize/i), { key: "ArrowLeft" });
+		expect(panel.style.width).toBe("880px");
+		expect(localStorage.getItem(peekWidthStorageKey)).toBe("880");
+		await within(panel).findByLabelText("Properties");
+	});
+
 	// WT-03. The title is the first thing a person edits in a peek.
 	test("moves focus to the title on open", async () => {
 		const user = userEvent.setup();
-		mount("/p/CDE");
+		mount("/p/CDE/table");
 		const opener = row("CDE-42");
 		opener.focus();
 		await user.click(opener);
@@ -79,7 +125,7 @@ describe("features/ticket/TicketPeek", () => {
 	// WT-04. The peek is a search param, so closing it drops the param.
 	test("Escape closes the peek and returns focus to the originating row", async () => {
 		const user = userEvent.setup();
-		const { router } = mount("/p/CDE");
+		const { router } = mount("/p/CDE/table");
 		const opener = row("CDE-42");
 		opener.focus();
 		await user.click(opener);
@@ -95,7 +141,7 @@ describe("features/ticket/TicketPeek", () => {
 	// WT-05. Escape closes the innermost layer first.
 	test("Escape closes an open popover before it closes the peek", async () => {
 		const user = userEvent.setup();
-		mount("/p/CDE?peek=CDE-42");
+		mount("/p/CDE/table?peek=CDE-42");
 		const panel = await peek();
 		const rail = await within(panel).findByLabelText("Properties");
 		await user.click(within(rail).getByRole("button", { name: /Human Review/ }));
@@ -107,7 +153,7 @@ describe("features/ticket/TicketPeek", () => {
 
 	// WT-06. j and k walk the list order; the param follows each step.
 	test("j and k walk the list while the peek stays open", async () => {
-		const { router } = mount("/p/CDE?peek=CDE-42");
+		const { router } = mount("/p/CDE/table?peek=CDE-42");
 		await peek();
 		press("j");
 		await waitFor(() => expect(router.state.location.search).toMatchObject({ peek: "CDE-41" }));
@@ -119,7 +165,7 @@ describe("features/ticket/TicketPeek", () => {
 
 	// WT-09
 	test("o opens the full page and closes the peek", async () => {
-		const { router } = mount("/p/CDE?peek=CDE-42");
+		const { router } = mount("/p/CDE/table?peek=CDE-42");
 		await peek();
 		press("o");
 		await waitFor(() => expect(router.state.location.pathname).toBe("/t/CDE-42"));
@@ -130,7 +176,7 @@ describe("features/ticket/TicketPeek", () => {
 	// WT-10. The handle sits on the page-facing edge; a drag to the left
 	// widens. The width survives a remount, which is what a reload is.
 	test("the drag handle resizes the peek and the width persists", async () => {
-		const first = mount("/p/CDE?peek=CDE-42");
+		const first = mount("/p/CDE/table?peek=CDE-42");
 		const panel = await peek();
 		const handle = within(panel).getByLabelText(/resize/i);
 		fireEvent.pointerDown(handle, { clientX: 700, pointerId: 1, button: 0 });
@@ -139,7 +185,7 @@ describe("features/ticket/TicketPeek", () => {
 		await waitFor(() => expect(panel.style.width).toBe("800px"));
 		expect(localStorage.getItem(peekWidthStorageKey)).toContain("800");
 		first.unmount();
-		mount("/p/CDE?peek=CDE-42");
+		mount("/p/CDE/table?peek=CDE-42");
 		expect((await peek()).style.width).toBe("800px");
 	});
 
@@ -148,7 +194,7 @@ describe("features/ticket/TicketPeek", () => {
 		const user = userEvent.setup();
 		window.innerWidth = 1000;
 		mockMatchMedia(true);
-		const { router } = mount("/p/CDE?peek=CDE-42");
+		const { router } = mount("/p/CDE/table?peek=CDE-42");
 		const panel = await peek();
 		expect(["100%", "100vw", "1000px"]).toContain(panel.style.width);
 		await user.keyboard("{Escape}");
@@ -156,23 +202,21 @@ describe("features/ticket/TicketPeek", () => {
 		expect(router.state.location.search).not.toHaveProperty("peek");
 	});
 
-	// WT-12. The peek is narrower than the page, so the rail folds into a
-	// two-column grid under the title. w-70 is the 280 px rail of the page.
-	test("renders the property grid instead of the rail", async () => {
-		mount("/p/CDE?peek=CDE-42");
+	// WT-12. The wide peek gives the ticket properties a fixed right rail.
+	test("renders the property rail beside the ticket content", async () => {
+		mount("/p/CDE/table?peek=CDE-42");
 		const panel = await peek();
-		const grid = await within(panel).findByLabelText("Properties");
-		expect(grid.tagName).not.toBe("ASIDE");
-		expect(grid.className).toMatch(/\bgrid-cols-2\b/);
-		expect(panel.querySelector(".w-70")).toBeNull();
-		const field = title(panel);
-		expect(field.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+		const rail = await within(panel).findByLabelText("Properties");
+		expect(rail.tagName).toBe("ASIDE");
+		expect(rail.className).toMatch(/\bw-70\b/);
+		const content = panel.querySelector("[data-ticket-content]")!;
+		expect(content.compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
 	});
 
 	// WT-13
 	test("the peek header carries Expand and Close", async () => {
 		const user = userEvent.setup();
-		const { router } = mount("/p/CDE?peek=CDE-42");
+		const { router } = mount("/p/CDE/table?peek=CDE-42");
 		const panel = await peek();
 		const header = within(panel).getByLabelText("Ticket header");
 		expect(within(header).getByRole("button", { name: /^Close/ })).toBeDefined();
@@ -184,7 +228,7 @@ describe("features/ticket/TicketPeek", () => {
 	// happy-dom has no CSS engine, so the classes are the evidence.
 	test("reduced motion drops the slide, the shimmer, and the pulse", async () => {
 		mockMatchMedia(true);
-		const { server } = mount("/p/CDE");
+		const { server } = mount("/p/CDE/table");
 		await addActivity(server, {
 			ticket: "CDE-43",
 			actor: { name: "claude-code", kind: "agent" },
@@ -202,12 +246,8 @@ describe("features/ticket/TicketPeek", () => {
 		for (const segment of panel.querySelectorAll('[data-bucket="pending"]')) {
 			expect(segment.className).toMatch(/motion-reduce:animate-none/);
 		}
-		const dot = await waitFor(() => {
-			const found = panel.querySelector<HTMLElement>("[data-live]");
-			expect(found).not.toBeNull();
-			return found!;
-		});
-		expect(dot.className).toMatch(/motion-reduce:animate-none/);
+		// The live dot rides on the activity lines now, and Avatar pins its
+		// reduced-motion class.
 		await settle();
 	});
 });

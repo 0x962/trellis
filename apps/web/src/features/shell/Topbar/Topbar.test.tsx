@@ -17,7 +17,7 @@ describe("features/shell/Topbar", () => {
 	test("on a phone the topbar opens the sidebar in a sheet that closes on navigation", async () => {
 		mockMatchMedia(true);
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/all", actor: "navid" });
+		const { router } = renderApp({ path: "/all/table", actor: "navid" });
 		const header = (await screen.findByRole("heading", { name: "All tickets" })).closest("header")!;
 		for (const name of ["max-md:h-12", "max-md:px-4"]) expect(header.classList.contains(name)).toBe(true);
 		const open = within(header).getByRole("button", { name: "Open the sidebar" });
@@ -34,7 +34,7 @@ describe("features/shell/Topbar", () => {
 	// MB-A. The desktop sidebar leaves the layout below 768 px.
 	test("the desktop sidebar hides below 768 px", async () => {
 		mockMatchMedia(false);
-		renderApp({ path: "/all", actor: "navid" });
+		renderApp({ path: "/all/table", actor: "navid" });
 		const aside = await screen.findByRole("complementary", { name: "Sidebar" });
 		expect(aside.classList.contains("max-md:hidden")).toBe(true);
 		const header = (await screen.findByRole("heading", { name: "All tickets" })).closest("header")!;

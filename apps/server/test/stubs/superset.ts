@@ -109,11 +109,13 @@ if (key === "ws create") {
 	}
 	const workspace: StubWorkspace = {
 		id: newId("ws"),
-		name: flag("--name")!,
-		branch: flag("--branch")!,
-		projectId: flag("--project")!,
-		baseBranch: flag("--base-branch")!,
-		tag: flag("--tag")!.toLowerCase(),
+		name: flag("--name") ?? "",
+		branch: flag("--branch") ?? "",
+		projectId: flag("--project") ?? "",
+		// The agent-runs launch template sends neither flag, and superset
+		// takes the command without them.
+		baseBranch: flag("--base-branch") ?? "",
+		tag: (flag("--tag") ?? "").toLowerCase(),
 	};
 	state.workspaces.push(workspace);
 	const setup =

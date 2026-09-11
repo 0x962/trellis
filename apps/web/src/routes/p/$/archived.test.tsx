@@ -29,7 +29,7 @@ describe("routes/p/$ archived", () => {
 		installViewport();
 		const user = userEvent.setup();
 		const server = await archivedServer();
-		renderApp({ path: "/p/MRG", actor: "navid", server });
+		renderApp({ path: "/p/MRG/table", actor: "navid", server });
 		expect(await screen.findByText(bannerText)).toBeDefined();
 		// The status grouping hides the status column; the priority cell is a
 		// write control on every row.
@@ -42,7 +42,7 @@ describe("routes/p/$ archived", () => {
 	test("the banner unarchives the project", async () => {
 		const user = userEvent.setup();
 		const server = await archivedServer();
-		renderApp({ path: "/p/MRG", actor: "navid", server });
+		renderApp({ path: "/p/MRG/table", actor: "navid", server });
 		await screen.findByText(bannerText);
 		await user.click(screen.getByRole("button", { name: "Unarchive" }));
 		await waitFor(() =>
@@ -58,12 +58,13 @@ describe("routes/p/$ archived", () => {
 		expect(await screen.findByText(bannerText)).toBeDefined();
 		await user.click(await screen.findByRole("button", { name: "Save project" }));
 		expect(callsTo(server, "projects.update")).toHaveLength(1);
+		await user.click(screen.getByRole("link", { name: "Archive and delete" }));
 		expect(screen.getByRole("button", { name: "Unarchive project" })).toBeDefined();
 		expect(screen.queryByRole("button", { name: "Archive project" })).toBeNull();
 	});
 
 	test("an active project shows no banner", async () => {
-		renderApp({ path: "/p/TRL", actor: "navid" });
+		renderApp({ path: "/p/TRL/table", actor: "navid" });
 		expect(await screen.findByRole("navigation", { name: "Breadcrumb" })).toBeDefined();
 		expect(screen.queryByText(bannerText)).toBeNull();
 	});

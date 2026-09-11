@@ -12,9 +12,9 @@ const servers = (): WebServer[] => {
 	return Array.isArray(value) ? value : [value];
 };
 
-// The live server and web app hold these ports, so the suite never binds
-// them.
-const livePorts = ["4521", "5173"];
+// A live server and its web app hold these ports, so the suite never
+// binds them.
+const livePorts = ["4521", "4522", "5173"];
 
 const portOf = (url: string) => new URL(url).port;
 

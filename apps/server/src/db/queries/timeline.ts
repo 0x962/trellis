@@ -14,6 +14,8 @@ type RawItem = {
 	id: string;
 	ticket_id: string;
 	body: string | null;
+	parent_id: string | null;
+	resolved_at: string | null;
 	actor_name: string;
 	actor_kind: StoredActorKind;
 	created_at: string;
@@ -32,13 +34,13 @@ type RawItem = {
 // first, a comment before an activity row of the same instant, then the id.
 // The activity id is zero-padded so its text order equals its number order.
 const stream = (ticketId: string) => sql`
-	SELECT 'comment' AS kind, 1 AS kind_rank, c.id AS sort_key, c.id, c.ticket_id, c.body,
+	SELECT 'comment' AS kind, 1 AS kind_rank, c.id AS sort_key, c.id, c.ticket_id, c.body, c.parent_id, c.resolved_at,
 		c.actor_name, c.actor_kind, c.created_at, c.updated_at,
 		NULL AS batch_id, NULL AS root_id, NULL AS project_id, NULL AS action, NULL AS field,
 		NULL AS from_value, NULL AS to_value, NULL::jsonb AS meta
 	FROM comments c WHERE c.ticket_id = ${ticketId}
 	UNION ALL
-	SELECT 'activity', 0, lpad(a.id::text, 19, '0'), a.id::text, a.ticket_id, NULL,
+	SELECT 'activity', 0, lpad(a.id::text, 19, '0'), a.id::text, a.ticket_id, NULL, NULL, NULL,
 		a.actor_name, a.actor_kind, a.created_at, NULL,
 		a.batch_id, a.root_id, a.project_id, a.action, a.field, a.from_value, a.to_value, a.meta
 	FROM activity a WHERE a.ticket_id = ${ticketId}`;
@@ -73,6 +75,8 @@ const toItem = (row: RawItem): TimelineItem => {
 			id: row.id,
 			ticketId: row.ticket_id,
 			body: row.body as string,
+			parentId: row.parent_id,
+			resolvedAt: row.resolved_at,
 			actor,
 			createdAt: row.created_at,
 			updatedAt: row.updated_at as string,
@@ -102,7 +106,7 @@ export const timeline = async (tx: Tx, input: TimelineInput): Promise<TimelineLi
 	const start = input.before === undefined ? sql`true` : afterCursor(readCursor(input.before));
 	const found = await rows<RawItem>(
 		tx,
-		sql`SELECT kind, kind_rank, sort_key, id, ticket_id, body, actor_name, actor_kind,
+		sql`SELECT kind, kind_rank, sort_key, id, ticket_id, body, parent_id, ${iso(sql`resolved_at`)} AS resolved_at, actor_name, actor_kind,
 			${iso(sql`created_at`)} AS created_at, ${iso(sql`updated_at`)} AS updated_at,
 			batch_id, root_id, project_id, action, field, from_value, to_value, meta
 		FROM (${stream(input.ticketId)}) stream

@@ -11,7 +11,7 @@ describe("routes/all", () => {
 	// WS-83. The footer is a fixed 28 px row (h-7), so the count arriving
 	// never shifts the list.
 	test("All tickets shows the topbar chrome and the count footer", async () => {
-		const { server } = renderApp({ path: "/all", actor: "navid" });
+		const { server } = renderApp({ path: "/all/table", actor: "navid" });
 		expect(await screen.findByRole("heading", { name: "All tickets" })).toBeDefined();
 		const group = screen.getByRole("radiogroup", { name: "View" });
 		expect(within(group).getByRole("radio", { name: "Table" }).getAttribute("aria-checked")).toBe("true");
@@ -46,7 +46,7 @@ describe("routes/all: the table", () => {
 
 	// Outcome 111
 	test("renders every project's tickets with the project column on /all", async () => {
-		const { server } = renderApp({ path: "/all", actor: "navid" });
+		const { server } = renderApp({ path: "/all/table", actor: "navid" });
 		await findGrid();
 		await waitFor(() => expect(grid().getAttribute("aria-rowcount")).toBe("48"));
 		await waitFor(() => expect(rows().length).toBeGreaterThan(5));
@@ -77,7 +77,7 @@ describe("routes/all: the peek", () => {
 
 	test("a row click opens the peek with that ticket", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/all", actor: "navid" });
+		const { router } = renderApp({ path: "/all/table", actor: "navid" });
 		const [, second] = await shownRows();
 		await user.click(rowOf(second!));
 		const panel = await screen.findByRole("dialog", { name: second });
@@ -87,7 +87,7 @@ describe("routes/all: the peek", () => {
 
 	test("Enter on a focused row opens the peek with that ticket", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/all", actor: "navid" });
+		const { router } = renderApp({ path: "/all/table", actor: "navid" });
 		const [first] = await shownRows();
 		rowOf(first!).focus();
 		await user.keyboard("{Enter}");
@@ -97,7 +97,7 @@ describe("routes/all: the peek", () => {
 
 	test("j and k walk the table rows inside the peek", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/all", actor: "navid" });
+		const { router } = renderApp({ path: "/all/table", actor: "navid" });
 		const [first, second] = await shownRows();
 		await user.click(rowOf(first!));
 		await screen.findByRole("dialog", { name: first });
@@ -111,7 +111,7 @@ describe("routes/all: the peek", () => {
 
 	test("Escape closes the peek and returns the focus to the row", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/all", actor: "navid" });
+		const { router } = renderApp({ path: "/all/table", actor: "navid" });
 		const [first] = await shownRows();
 		rowOf(first!).focus();
 		await user.keyboard("{Enter}");
@@ -124,7 +124,7 @@ describe("routes/all: the peek", () => {
 
 	test("o in the peek opens the full ticket page", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/all", actor: "navid" });
+		const { router } = renderApp({ path: "/all/table", actor: "navid" });
 		const [first] = await shownRows();
 		await user.click(rowOf(first!));
 		await screen.findByRole("dialog", { name: first });

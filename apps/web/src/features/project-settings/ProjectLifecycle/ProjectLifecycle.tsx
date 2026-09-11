@@ -17,12 +17,28 @@ export function ProjectLifecycle({ project }: ProjectLifecycleProps) {
 	return (
 		<SettingsSection
 			title="Archive and delete"
-			hint="An archived project is read-only. A delete removes the project, its sub-projects, and its tickets."
+			hint="Control whether this project stays active, becomes read-only, or is permanently deleted."
 		>
-			<div className="flex flex-wrap items-center gap-2">
+			<div className="project-settings-action-row">
+				<div className="project-settings-action-copy">
+					<h3 className="project-settings-group-title">{archived ? "Restore this project" : "Archive this project"}</h3>
+					<p className="text-sm text-fg-muted">
+						{archived
+							? "Make this project editable and return it to the active project list."
+							: "Keep the tickets and make the project read-only. You can restore it later."}
+					</p>
+				</div>
 				<Button onClick={() => void setArchived(project, !archived)}>
 					{archived ? "Unarchive project" : "Archive project"}
 				</Button>
+			</div>
+			<div className="project-settings-action-row">
+				<div className="project-settings-action-copy">
+					<h3 className="project-settings-group-title">Delete this project</h3>
+					<p className="text-sm text-fg-muted">
+						Permanently delete this project, its subprojects, and all their tickets.
+					</p>
+				</div>
 				<Button variant="danger" onClick={() => setDeleteOpen(true)}>
 					Delete project…
 				</Button>

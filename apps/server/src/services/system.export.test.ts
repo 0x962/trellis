@@ -56,17 +56,39 @@ const seedEveryTable = async () => {
 	await linkPr(h.db, ticket, pr, navid);
 	await seedActivity(h.db, { rootId, projectId: rootId, ticketId: ticket });
 	await insertRow(h.db, "settings", { key: "actor.default", value: { name: "navid" }, updated_at: new Date() });
+	await insertRow(h.db, "personas", {
+		id: ulid(),
+		name: "Reviewer",
+		instruction: "Read the diff.\nReport defects with evidence.",
+		created_at: new Date(),
+		updated_at: new Date(),
+	});
 	await insertRow(h.db, "agent_sessions", {
 		id: ulid(),
 		project_id: rootId,
 		role: "manager",
 		runner: "superset",
 		state: "running",
+		name: "Alex",
 		title: "CDE manager",
 		created_at: new Date(),
 		updated_at: new Date(),
 	});
 	await insertRow(h.db, "agent_cursors", { project_id: rootId, activity_id: 1, updated_at: new Date() });
+	await insertRow(h.db, "agent_runs", {
+		id: ulid(),
+		name: "Ada Finch",
+		persona_name: "Reviewer",
+		kind: "reviewer",
+		instruction: "Read the diff.",
+		project_id: rootId,
+		project_path: "CDE",
+		ticket_id: ticket,
+		ticket_identifier: "CDE-1",
+		state: "exited",
+		created_at: new Date(),
+		updated_at: new Date(),
+	});
 	return { rootId, ticket };
 };
 
@@ -120,6 +142,12 @@ describe("system.exportNdjson", () => {
 		const streamed = new Set(lines.slice(1).map((line) => line.table));
 		expect(tables.length).toBeGreaterThan(0);
 		for (const table of tables) expect(streamed).toContain(table);
+		const personas = lines.filter((line) => line.table === "personas");
+		expect(personas).toHaveLength(1);
+		expect(personas[0]!.row).toMatchObject({
+			name: "Reviewer",
+			instruction: "Read the diff.\nReport defects with evidence.",
+		});
 	});
 
 	test("the export carries the ticket identifier and the attachment url", async () => {

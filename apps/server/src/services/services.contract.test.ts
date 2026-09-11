@@ -105,7 +105,11 @@ describe("service modules", () => {
 			"activity.record": (ctx, tx) =>
 				record(ctx, tx, { rootId: cde, projectId: cde, ticketId: null, action: "project.updated", changes: [] }),
 			"settings.set": (ctx, tx) =>
-				settings.set(ctx, tx, { startWithAgentTemplate: "{brief}", defaultActorName: "navid", stalledHours: 24 }),
+				settings.set(ctx, tx, {
+					defaultActorName: "navid",
+					stalledHours: 24,
+					diffUrlTemplate: "{url}/files",
+				}),
 		};
 		for (const [name, mutation] of Object.entries(mutations)) {
 			const error = await expectError(
@@ -128,6 +132,6 @@ describe("service modules", () => {
 				settings: Object.keys(await settings.get(ctx, tx)).length,
 			};
 		});
-		expect(reads).toEqual({ project: "CDE", actors: 3, settings: 3 });
+		expect(reads).toEqual({ project: "CDE", actors: 3, settings: 4 });
 	});
 });

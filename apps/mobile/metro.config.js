@@ -10,8 +10,4 @@ const config = getDefaultConfig(__dirname);
 const appDir = path.join(__dirname, "app").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 config.resolver.blockList = [...config.resolver.blockList, new RegExp(`^${appDir}/.*\\.test\\.[jt]sx?$`)];
 
-// React Native 0.87 keeps its polyfill list in @react-native/js-polyfills. Expo 57
-// asks react-native/rn-get-polyfills for it, a file only React Native 0.86 ships.
-config.serializer.getPolyfills = require("@react-native/js-polyfills");
-
 module.exports = withNativeWind(config, { input: "./global.css" });

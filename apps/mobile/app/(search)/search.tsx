@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useMMKVString } from "react-native-mmkv";
 import { EmptyState } from "../../src/components/EmptyState";
 import { Field } from "../../src/components/Field";
 import { pushRecent, readRecents, recentSearchesKey, replaceRecent } from "../../src/features/search/recentSearches";
@@ -11,6 +10,7 @@ import { identifierOf, isSearchable, searchLimit } from "../../src/features/sear
 import { getQueries } from "../../src/lib/orpc";
 import { store } from "../../src/lib/store";
 import { useDebouncedValue } from "../../src/lib/useDebouncedValue";
+import { useStoredString } from "../../src/lib/useStoredString";
 import { tokens } from "../../src/theme/tokens";
 import { usePalette } from "../../src/theme/usePalette";
 
@@ -32,7 +32,7 @@ export default function SearchScreen() {
 		...getQueries().search.query.queryOptions({ input: { q: query, limit: searchLimit } }),
 		enabled,
 	});
-	const [storedRecents] = useMMKVString(recentSearchesKey, store);
+	const [storedRecents] = useStoredString(recentSearchesKey);
 	const recents = storedRecents === undefined ? [] : readRecents(store);
 	// The recent search the current typing session stored. The field searches
 	// as the person types, so every query of one session shares one slot, and

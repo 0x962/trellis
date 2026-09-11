@@ -112,14 +112,14 @@ describe("lib/hotkeys", () => {
 
 	// HK-11
 	test("g then b and g then t switch the project view", () => {
-		const { navigate, rerender } = mountScope("/p/CDE");
+		const { navigate, rerender } = mountScope("/p/CDE/table");
 		press("g");
 		press("b");
-		expect(navigate).toHaveBeenLastCalledWith("/p/CDE/board");
-		rerender("/p/CDE/board");
+		expect(navigate).toHaveBeenLastCalledWith("/p/CDE");
+		rerender("/p/CDE");
 		press("g");
 		press("t");
-		expect(navigate).toHaveBeenLastCalledWith("/p/CDE");
+		expect(navigate).toHaveBeenLastCalledWith("/p/CDE/table");
 		expect(navigate).toHaveBeenCalledTimes(2);
 	});
 
@@ -196,7 +196,7 @@ describe("lib/hotkeys", () => {
 		const list = mountTarget("list", ["b"]);
 		press("g");
 		press("b");
-		expect(navigate).toHaveBeenLastCalledWith("/p/CDE/board");
+		expect(navigate).toHaveBeenLastCalledWith("/p/CDE");
 		expect(list.spies.b).not.toHaveBeenCalled();
 	});
 

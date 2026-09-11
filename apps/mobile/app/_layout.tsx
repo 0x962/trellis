@@ -4,12 +4,12 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Tabs } from "expo-router/js-tabs";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { useMMKVString } from "react-native-mmkv";
 import { ScreenHeader } from "../src/components/ScreenHeader";
 import { startLive } from "../src/lib/live";
 import { queryClient } from "../src/lib/queryClient";
 import { restoreClient, subscribePersist } from "../src/lib/storage";
 import { keys, store } from "../src/lib/store";
+import { useStoredString } from "../src/lib/useStoredString";
 import { useInboxBadge } from "../src/needs-you/NeedsYou/hooks/useInboxBadge";
 import { tokens } from "../src/theme/tokens";
 import { usePalette } from "../src/theme/usePalette";
@@ -25,8 +25,8 @@ type IconName = keyof typeof Ionicons.glyphMap;
 // The four tabs are behind the guard: without a stored server URL and name,
 // only the setup screen exists, so the app shows setup until both are saved.
 export default function RootLayout() {
-	const [url] = useMMKVString(keys.serverUrl, store);
-	const [name] = useMMKVString(keys.actorName, store);
+	const [url] = useStoredString(keys.serverUrl);
+	const [name] = useStoredString(keys.actorName);
 	const configured = Boolean(url) && Boolean(name);
 	const { resolved } = useTheme();
 	const palette = usePalette();

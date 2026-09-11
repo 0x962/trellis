@@ -17,9 +17,9 @@ export type ComposerProps = {
 	onAttachFiles?: (files: File[]) => void;
 };
 
-// The comment box under the timeline. At rest it is one 40 px line. On
-// focus or with text it grows from 88 px to 320 px with no animation, and a
-// bottom bar shows the Paperclip and, with text, Comment. Cmd+Enter posts;
+// The comment box stays above the timeline while the peek body scrolls. Its
+// opaque wrapper hides the timeline below it. On focus or with text, a bottom
+// bar shows the Paperclip and, with text, Comment. Cmd+Enter posts;
 // the card shows at once and takes the server's row when it lands. A failed
 // post removes the card and puts the words back. Shift+C focuses the box.
 export function Composer({ ticket, pinned = false, onAttachFiles }: ComposerProps) {
@@ -44,6 +44,8 @@ export function Composer({ ticket, pinned = false, onAttachFiles }: ComposerProp
 			kind: "comment",
 			id: `pending-${Date.now()}`,
 			ticketId: ticket.id,
+			parentId: null,
+			resolvedAt: null,
 			body,
 			actor: { name: actor.name, kind: actor.kind },
 			createdAt: now,
@@ -88,27 +90,27 @@ export function Composer({ ticket, pinned = false, onAttachFiles }: ComposerProp
 	};
 
 	return (
-		<div className={cx(pinned && "sticky bottom-0 z-10 border-t border-border bg-pane pt-2 pb-3")}>
+		<div className={cx(pinned && "sticky bottom-0 z-10 border-t border-border bg-surface py-3")}>
 			<fieldset
 				aria-label="New comment"
 				onFocus={() => setFocused(true)}
 				onBlur={onBlur}
 				className={cx(
-					"flex rounded-md border border-border bg-surface px-3 transition-colors duration-hover ease-out",
-					open ? "flex-col gap-2 border-border-strong py-2" : "h-10 items-center gap-2",
+					"flex rounded-md border border-border bg-elevated px-3 transition-colors duration-hover ease-out",
+					open ? "flex-col gap-2 border-border-strong py-2" : "min-h-20 items-start gap-2 py-3",
 				)}
 			>
 				<textarea
 					ref={field}
 					aria-label="Comment"
-					placeholder="Write a comment in Markdown. Paste an image to attach it."
+					placeholder="Write a comment…"
 					rows={1}
 					value={text}
 					onChange={(event) => setText(event.target.value)}
 					onKeyDown={onKeyDown}
 					className={cx(
 						"w-full resize-none bg-transparent text-base leading-5 text-fg outline-none placeholder:text-fg-faint",
-						open ? "min-h-[72px] max-h-[272px] overflow-y-auto [field-sizing:content]" : "h-5 overflow-hidden",
+						open ? "min-h-[72px] max-h-[272px] overflow-y-auto [field-sizing:content]" : "min-h-12 overflow-hidden",
 					)}
 				/>
 				{open ? (
@@ -133,7 +135,7 @@ export function Composer({ ticket, pinned = false, onAttachFiles }: ComposerProp
 						)}
 					</div>
 				) : (
-					<Kbd className="shrink-0">⌘↵</Kbd>
+					<Kbd className="mt-auto shrink-0">⌘↵</Kbd>
 				)}
 			</fieldset>
 		</div>

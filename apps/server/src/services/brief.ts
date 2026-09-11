@@ -10,21 +10,32 @@ import { resolveTicket } from "./refs.ts";
 // keeps a stable order, so two reads of the same state give the same bytes
 // and an agent can parse the sections.
 
-// The origin margin's gateway serves trellis at. Every link in a brief is
+// The origin the localhost gateway serves trellis at. Every link in a brief is
 // absolute, because the agent reads it outside a browser.
 export const BASE_URL = "http://trellis.localhost";
 
 export const BRIEF_COMMENT_LIMIT = 10;
 
-type BriefComment = { body: string; actor_name: string; actor_kind: StoredActorKind; created_at: string };
+type BriefComment = {
+	id: string;
+	parent_id: string | null;
+	resolved_at: string | null;
+	body: string;
+	actor_name: string;
+	actor_kind: StoredActorKind;
+	created_at: string;
+};
 
-// The last `BRIEF_COMMENT_LIMIT` comments, oldest of them first.
+// Each recent reply includes its root, so the agent can read the original question.
 const lastComments = async (tx: Tx, ticketId: string) => {
 	const found = await rows<BriefComment>(
 		tx,
-		sql`SELECT body, actor_name, actor_kind, ${iso(sql`created_at`)} AS created_at
-			FROM (SELECT * FROM comments WHERE ticket_id = ${ticketId} ORDER BY created_at DESC, id DESC LIMIT ${BRIEF_COMMENT_LIMIT}) last
-			ORDER BY created_at, id`,
+		sql`WITH recent AS (
+			SELECT * FROM comments WHERE ticket_id = ${ticketId} ORDER BY created_at DESC, id DESC LIMIT ${BRIEF_COMMENT_LIMIT}
+		)
+		SELECT id, parent_id, ${iso(sql`resolved_at`)} AS resolved_at, body, actor_name, actor_kind, ${iso(sql`created_at`)} AS created_at
+		FROM comments WHERE id IN (SELECT id FROM recent UNION SELECT parent_id FROM recent WHERE parent_id IS NOT NULL)
+		ORDER BY created_at, id`,
 	);
 	return found;
 };
@@ -85,7 +96,13 @@ const comments = (list: BriefComment[]) => {
 	if (list.length === 0) return [];
 	const lines = ["## Comments", ""];
 	for (const comment of list) {
-		lines.push(`- ${comment.actor_name} (${comment.actor_kind}) at ${comment.created_at}:`);
+		const context =
+			comment.parent_id === null
+				? comment.resolved_at === null
+					? "open thread"
+					: "resolved thread"
+				: `reply to ${comment.parent_id}`;
+		lines.push(`- ${comment.id}, ${context}, ${comment.actor_name} (${comment.actor_kind}) at ${comment.created_at}:`);
 		for (const line of comment.body.split("\n")) lines.push(`  ${line}`);
 	}
 	return lines;

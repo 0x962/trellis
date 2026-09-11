@@ -8,7 +8,7 @@ import { renderWithProviders } from "../../../test/renderWithProviders";
 import { createTestServer, type TestServer } from "../../../test/server";
 import { settle } from "../../../test/ticketHost";
 import { ActorNameField } from "./ActorNameField";
-import { AgentTemplateField } from "./AgentTemplateField";
+import { DiffTemplateField } from "./DiffTemplateField";
 import { StalledThresholdField } from "./StalledThresholdField";
 
 beforeEach(() => {
@@ -33,18 +33,18 @@ const rowOf = (field: HTMLElement) => field.closest("[data-settings-row]") as HT
 // Spec ST-4. Every field saves on blur and shows "Saved" beside itself.
 // There is no Save button and no toast for a save.
 describe("settings autosave", () => {
-	test("the agent template has no Save button and saves on blur", async () => {
+	test("the diff template has no Save button and saves on blur", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		render(<AgentTemplateField />, server);
-		const field = await screen.findByRole("textbox", { name: /start with agent/i });
+		render(<DiffTemplateField />, server);
+		const field = await screen.findByRole("textbox", { name: /diff url template/i });
 		expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 		await user.clear(field);
-		await user.type(field, 'codex exec "{{brief}"');
+		await user.type(field, "http://margin.localhost/{{url}");
 		await user.tab();
 		await waitFor(() => expect(saves(server)).toHaveLength(1));
-		expect((saves(server)[0]!.input as { startWithAgentTemplate: string }).startWithAgentTemplate).toBe(
-			'codex exec "{brief}"',
+		expect((saves(server)[0]!.input as { diffUrlTemplate: string }).diffUrlTemplate).toBe(
+			"http://margin.localhost/{url}",
 		);
 		expect(await within(rowOf(field)).findByText("Saved")).toBeDefined();
 		await settle(50);
@@ -81,8 +81,8 @@ describe("settings autosave", () => {
 	test("a blur with no change saves nothing", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		render(<AgentTemplateField />, server);
-		const field = await screen.findByRole("textbox", { name: /start with agent/i });
+		render(<DiffTemplateField />, server);
+		const field = await screen.findByRole("textbox", { name: /diff url template/i });
 		await user.click(field);
 		await user.tab();
 		await settle(50);

@@ -87,7 +87,7 @@ const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "revie
 	},
 	{
 		name: "Human Review",
-		description: "Waiting for Navid. Do nothing unless he comments.",
+		description: "Waiting for the human reviewer. Do nothing unless they comment.",
 		category: "review",
 		reviewer: "human",
 		color: "warning",

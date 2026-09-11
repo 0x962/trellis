@@ -48,3 +48,23 @@ describe("comments", () => {
 		expect((await t.api("/api/tickets/CDE-1")).body.commentCount).toBe(0);
 	});
 });
+
+test("comment thread endpoints preserve replies, resolution, and delete protection", async () => {
+	const root = await t.api("/api/tickets/CDE-1/comments", { method: "POST", body: { body: "Question" } });
+	const reply = await t.api("/api/tickets/CDE-1/comments", {
+		method: "POST",
+		body: { body: "Answer", parentId: root.body.id },
+	});
+	expect(reply.status).toBe(201);
+	expect(reply.body.parentId).toBe(root.body.id);
+	const thread = await t.api(`/api/comments/${reply.body.id}/thread`);
+	expect(thread.status).toBe(200);
+	expect(thread.body.root.id).toBe(root.body.id);
+	expect(thread.body.replies).toHaveLength(1);
+	const resolved = await t.api(`/api/comments/${root.body.id}/resolve`, { method: "POST", body: { resolved: true } });
+	expect(resolved.status).toBe(200);
+	expect(resolved.body.resolvedAt).not.toBeNull();
+	const deleted = await t.api(`/api/comments/${root.body.id}`, { method: "DELETE" });
+	expect(deleted.status).toBe(409);
+	expect(deleted.body.code).toBe("COMMENT_HAS_REPLIES");
+});

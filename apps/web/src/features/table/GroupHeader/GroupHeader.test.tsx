@@ -14,7 +14,7 @@ beforeEach(() => {
 	installViewport();
 });
 
-const path = "/p/CDE?status=in-progress";
+const path = "/p/CDE/table?status=in-progress";
 
 // The seed holds 4 In Progress tickets in the CDE subtree.
 describe("features/table/GroupHeader", () => {

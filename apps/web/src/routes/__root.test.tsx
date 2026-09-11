@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { createFakeScheduler } from "../../test/fakeScheduler";
 import { mockMatchMedia } from "../../test/media";
 import { renderApp } from "../../test/renderWithProviders";
 import { createTestServer } from "../../test/server";
@@ -17,7 +16,7 @@ describe("routes/__root", () => {
 		expect(await screen.findByRole("heading", { name: /Needs you/ })).toBeDefined();
 		const sidebar = screen.getByRole("complementary", { name: "Sidebar" });
 		expect(sidebar.tagName).toBe("ASIDE");
-		expect(screen.getByLabelText("Online")).toBeDefined();
+		expect(screen.queryByRole("status", { name: "Server connection" })).toBeNull();
 		expect(document.querySelector('section[aria-label^="Notifications"]')).not.toBeNull();
 		expect(document.querySelector("[data-command-palette]")).not.toBeNull();
 		fireEvent.keyDown(document.body, { key: "g" });
@@ -68,15 +67,15 @@ describe("routes/__root", () => {
 		const sidebar = await screen.findByRole("complementary", { name: "Sidebar" });
 		const needsYou = within(sidebar).getByRole("link", { name: /Needs you/ });
 		const all = within(sidebar).getByRole("link", { name: /All tickets/ });
-		await waitFor(() => expect(needsYou.className).toMatch(/\bbg-accent-soft\b/));
+		await waitFor(() => expect(needsYou.className).toMatch(/\bsidebar-selected\b/));
 		const hold = server.holdNext("tickets.counts");
 		fireEvent.click(all);
 		await waitFor(() => expect(router.state.location.pathname).toBe("/all"));
-		expect(needsYou.className).toMatch(/\bbg-accent-soft\b/);
-		expect(all.className).not.toMatch(/\bbg-accent-soft\b/);
+		expect(needsYou.className).toMatch(/\bsidebar-selected\b/);
+		expect(all.className).not.toMatch(/\bsidebar-selected\b/);
 		act(() => hold.release());
-		await waitFor(() => expect(all.className).toMatch(/\bbg-accent-soft\b/));
-		expect(needsYou.className).not.toMatch(/\bbg-accent-soft\b/);
+		await waitFor(() => expect(all.className).toMatch(/\bsidebar-selected\b/));
+		expect(needsYou.className).not.toMatch(/\bsidebar-selected\b/);
 	});
 
 	// WS-68
@@ -85,49 +84,24 @@ describe("routes/__root", () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe("/needs-you"));
 	});
 
-	// WS-69. The banner is text, so the state never relies on the dot's
-	// color alone.
-	test("the reconnect banner mirrors the live status", async () => {
+	test("the sidebar alone shows reconnecting and restarting status", async () => {
 		const { live } = renderApp({ path: "/needs-you", actor: "navid", liveStatus: "reconnecting" });
-		const banner = await screen.findByText("Reconnecting to the server…");
-		const region = banner.closest("[role=status]")!;
-		expect(region).not.toBeNull();
-		expect(region.className).toMatch(/warning/);
-		act(() => live.status.set("restarting"));
-		expect(screen.getByText("Server restarting").closest("[role=status]")!.className).toMatch(/warning/);
-		act(() => live.status.set("live"));
-		expect(screen.queryByText("Server restarting")).toBeNull();
+		const panel = await screen.findByRole("status", { name: "Server connection" });
+		const sidebar = screen.getByRole("complementary", { name: "Sidebar" });
+		expect(sidebar.contains(panel)).toBe(true);
+		expect(within(panel).getByText("Reconnecting")).toBeDefined();
 		expect(screen.queryByText("Reconnecting to the server…")).toBeNull();
+		act(() => live.status.set("restarting"));
+		expect(within(panel).getByText("Restarting")).toBeDefined();
+		expect(screen.queryByText("Server restarting")).toBeNull();
 	});
 
-	// SH-7. The state is a pill over the top of the pane. It never pushes
-	// the page down, and the offline pill names the command that starts
-	// the server.
-	test("the reconnect state is a pill over the pane that moves nothing", async () => {
-		const { live } = renderApp({ path: "/needs-you", actor: "navid", liveStatus: "reconnecting" });
-		const pill = (await screen.findByText("Reconnecting to the server…")).closest("[role=status]")!;
-		for (const name of [
-			"absolute",
-			"top-2.5",
-			"left-1/2",
-			"-translate-x-1/2",
-			"z-20",
-			"h-6",
-			"rounded-full",
-			"px-2.5",
-			"text-xs",
-		]) {
-			expect(pill.classList.contains(name)).toBe(true);
-		}
-		expect(pill.className).toMatch(/\bbg-warning-soft\b/);
-		const dot = pill.querySelector("[data-pulse]")!;
-		for (const name of ["size-1.5", "rounded-full", "animate-pulse-live"])
-			expect(dot.classList.contains(name)).toBe(true);
-		expect(pill.parentElement!.className).toMatch(/\brelative\b/);
-		act(() => live.status.set("down"));
-		const offline = screen.getByText("The server is offline. Start it with trellis serve.").closest("[role=status]")!;
-		expect(offline.className).toMatch(/\bbg-danger-soft\b/);
-		expect(offline.className).toMatch(/\btext-danger\b/);
+	test("offline status stays in the sidebar without a header overlay", async () => {
+		renderApp({ path: "/needs-you", actor: "navid", liveStatus: "down" });
+		const panel = await screen.findByRole("status", { name: "Server connection" });
+		expect(within(panel).getByText("Server offline")).toBeDefined();
+		expect(screen.getByRole("complementary", { name: "Sidebar" }).contains(panel)).toBe(true);
+		expect(screen.queryByText("The server is offline. Start it with trellis serve.")).toBeNull();
 	});
 
 	// SH-10. A URL with no route shows the page-level empty state inside
@@ -142,22 +116,11 @@ describe("routes/__root", () => {
 		expect(screen.getByRole("complementary", { name: "Sidebar" })).toBeDefined();
 	});
 
-	// WS-70
-	test("the Reconnected banner shows for 2 s", async () => {
-		const clock = createFakeScheduler();
-		const { live } = renderApp({
-			path: "/needs-you",
-			actor: "navid",
-			liveStatus: "reconnecting",
-			scheduler: clock.scheduler,
-		});
-		await screen.findByText("Reconnecting to the server…");
+	test("a restored connection clears the status without a header confirmation", async () => {
+		const { live } = renderApp({ path: "/needs-you", actor: "navid", liveStatus: "reconnecting" });
+		await screen.findByRole("status", { name: "Server connection" });
 		act(() => live.status.set("live"));
-		const banner = screen.getByText("Reconnected");
-		expect(banner.closest("[role=status]")!.className).toMatch(/success/);
-		act(() => clock.advanceTo(1999));
-		expect(screen.getByText("Reconnected")).toBeDefined();
-		act(() => clock.advanceTo(2000));
+		expect(screen.queryByRole("status", { name: "Server connection" })).toBeNull();
 		expect(screen.queryByText("Reconnected")).toBeNull();
 	});
 });

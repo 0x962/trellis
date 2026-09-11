@@ -33,14 +33,14 @@ const items = async () => within(await agentsRow()).findAllByRole("listitem");
 const startButton = async () => within(await agentsRow()).queryByRole("button", { name: "Start builder" });
 
 describe("AgentsRow", () => {
-	test("the rail shows the Agents row right after Updated", async () => {
+	test("the rail shows the Agents row last, under the picker rows", async () => {
 		mount(createTestServer());
 		await agentsRow();
 		const order = await terms();
-		expect(order.indexOf("Agents")).toBe(order.indexOf("Updated") + 1);
+		expect(order.at(-1)).toBe("Agents");
 	});
 
-	test("lists the builder and the reviewer with their states and Open in Superset", async () => {
+	test("lists the builder and the reviewer with their names and their states", async () => {
 		const server = createTestServer();
 		await addSession(server, { role: "builder", createdAt: new Date(Date.now() - 10 * minute).toISOString() });
 		await addSession(server, {
@@ -51,13 +51,7 @@ describe("AgentsRow", () => {
 		});
 		mount(server);
 		const rows = await items();
-		expect(rows.map((row) => row.textContent)).toEqual([
-			"BuilderRunningOpen in Superset",
-			"ReviewerWaitingOpen in Superset",
-		]);
-		expect(within(rows[1]!).getByRole("link", { name: "Open in Superset" }).getAttribute("href")).toBe(
-			"superset://workspace/ws-1?terminal=term-2",
-		);
+		expect(rows.map((row) => row.textContent)).toEqual(["KenjiBuilderRunning", "NadiaReviewerWaiting"]);
 	});
 
 	test("offers Start builder when no builder runs, and starts one", async () => {
@@ -74,9 +68,10 @@ describe("AgentsRow", () => {
 		await user.click(start);
 		await waitFor(() => expect(server.callsTo("agents.startBuilder")).toHaveLength(1));
 		expect(server.callsTo("agents.startBuilder")[0]!.input).toEqual({ ticket: "CDE-42" });
-		await waitFor(async () =>
-			expect((await items()).map((row) => row.textContent)).toEqual(["BuilderStartingOpen in Superset"]),
-		);
+		// The server picks a free name of the pool at random, so the row is
+		// the name it picked and then the role and the state.
+		await waitFor(async () => expect(await items()).toHaveLength(1));
+		expect((await items())[0]!.textContent).toMatch(/^\w+BuilderStarting$/);
 		expect(await startButton()).toBeNull();
 	});
 
@@ -124,9 +119,7 @@ describe("AgentsRow", () => {
 		await items();
 		expect(await startButton()).toBeNull();
 		createEventApplier(queryClient).applyEvent(await updateSession(server, builder.id, { state: "exited" }));
-		await waitFor(async () =>
-			expect((await items()).map((row) => row.textContent)).toEqual(["BuilderExitedOpen in Superset"]),
-		);
+		await waitFor(async () => expect((await items()).map((row) => row.textContent)).toEqual(["KenjiBuilderExited"]));
 		expect(await startButton()).not.toBeNull();
 	});
 

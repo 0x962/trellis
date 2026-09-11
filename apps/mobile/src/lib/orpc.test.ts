@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { StandardRPCJsonSerializer } from "@orpc/client/standard";
-import * as mmkv from "../../test/mocks/react-native-mmkv";
+import * as kvStore from "../../test/mocks/expo-sqlite-kv-store";
 
-mock.module("react-native-mmkv", () => mmkv);
+mock.module("expo-sqlite/kv-store", () => kvStore);
 
 const { getClient } = await import("./orpc");
+const { store } = await import("./store");
 
-const store = mmkv.createMMKV();
 const realFetch = globalThis.fetch;
 
 // Replaces the global fetch with one that records every request and answers

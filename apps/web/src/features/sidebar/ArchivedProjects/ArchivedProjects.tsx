@@ -4,7 +4,8 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { formatCount } from "../../../lib/format";
-import { projectRefOfPathname } from "../../../lib/projectPath";
+import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
 
 // The archived projects under the project tree, in one group that starts
@@ -15,17 +16,17 @@ export function ArchivedProjects() {
 	const { data } = useQuery(orpc.projects.list.queryOptions({ input: { archived: true } }));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const [open, setOpen] = useState(false);
+	const expanded = useUiStore((state) => state.expandedProjects);
 	if (data === undefined || data.length === 0) return null;
-	const activeRef = projectRefOfPathname(pathname);
 	return (
 		<nav aria-label="Archived projects" className="pt-3">
 			<button
 				type="button"
 				aria-expanded={open}
 				onClick={() => setOpen(!open)}
-				className="flex h-7 w-full items-center gap-1 rounded-md pr-2 pl-2 text-xs font-medium tracking-[0.04em] text-fg-faint uppercase transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+				className="flex h-8 pointer-coarse:h-11 w-full items-center gap-2 rounded-md pr-2 pl-2 text-xs font-medium text-fg-faint transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 			>
-				<span aria-hidden="true" className="inline-flex w-4 justify-center *:size-3">
+				<span aria-hidden="true" className="inline-flex w-7 justify-center *:size-3">
 					{open ? <ChevronDown /> : <ChevronRight />}
 				</span>
 				<span>Archived</span>
@@ -33,9 +34,21 @@ export function ArchivedProjects() {
 			</button>
 			{open && (
 				<ul className="flex flex-col gap-0.5">
-					{data.map((project) => (
-						<TreeRow key={project.id} project={project} depth={0} active={project.path === activeRef} archived />
-					))}
+					{data.flatMap((project) => {
+						const expandedProject = expanded[project.id] ?? true;
+						return [
+							<TreeRow
+								key={project.id}
+								project={project}
+								depth={0}
+								expander={{ open: expandedProject, onToggle: () => uiActions.toggleProject(project.id) }}
+								archived
+							/>,
+							...(expandedProject
+								? [<ProjectPages key={`${project.id}.pages`} project={project} depth={1} pathname={pathname} />]
+								: []),
+						];
+					})}
 				</ul>
 			)}
 		</nav>

@@ -1,27 +1,35 @@
 import { notFound } from "@tanstack/react-router";
 import { ProjectRefStringSchema } from "@trellis/api";
 
-export type ProjectView = "table" | "board" | "settings";
+export type ProjectView = "table" | "board" | "settings" | "manager";
 
 // The web URL keeps slashes; the API ref joins with dots. The last segment
 // is a view only when it is a reserved slug, so a sub-project can never
-// take one of these names.
-const views: ReadonlySet<string> = new Set(["board", "settings"]);
+// take one of these names. `board` stays reserved so an old link such as
+// /p/CDE/board still resolves to the board, which is now the bare path.
+const views: ReadonlySet<string> = new Set(["board", "table", "settings"]);
 
 export const parseProjectSplat = (splat: string): { ref: string; view: ProjectView } => {
 	const segments = splat.split("/").filter((segment) => segment !== "");
+	if (segments.slice(-2).join("/").toLowerCase() === "settings/manager") {
+		segments.splice(-2);
+		const ref = ProjectRefStringSchema.safeParse(segments.join("."));
+		if (!ref.success) throw notFound();
+		return { ref: ref.data, view: "manager" };
+	}
 	const last = segments[segments.length - 1];
 	const view =
-		last !== undefined && views.has(last.toLowerCase()) ? (segments.pop()!.toLowerCase() as ProjectView) : "table";
+		last !== undefined && views.has(last.toLowerCase()) ? (segments.pop()!.toLowerCase() as ProjectView) : "board";
 	if (segments.length === 0) throw notFound();
 	const ref = ProjectRefStringSchema.safeParse(segments.join("."));
 	if (!ref.success) throw notFound();
 	return { ref: ref.data, view };
 };
 
-// `/p/CDE/web/auth/board`; the table view writes no segment.
-export const projectHref = (ref: string, view: ProjectView = "table") =>
-	`/p/${ref.split(".").join("/")}${view === "table" ? "" : `/${view}`}`;
+// `/p/CDE/web/auth/table`; the board writes no segment, because it is the
+// view a project opens in.
+export const projectHref = (ref: string, view: ProjectView = "board") =>
+	`/p/${ref.split(".").join("/")}${view === "board" ? "" : view === "manager" ? "/settings/manager" : `/${view}`}`;
 
 // The project path as the sidebar and a breadcrumb print it: `CDE/web/auth`.
 export const projectSlashPath = (ref: string) => ref.split(".").join("/");
@@ -35,6 +43,7 @@ export const projectRefOfPathname = (pathname: string): string | null => {
 		.slice(3)
 		.split("/")
 		.filter((segment) => segment !== "");
+	if (segments.slice(-2).join("/").toLowerCase() === "settings/manager") segments.pop();
 	const last = segments[segments.length - 1];
 	if (last !== undefined && views.has(last.toLowerCase())) segments.pop();
 	const ref = ProjectRefStringSchema.safeParse(segments.join("."));

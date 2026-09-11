@@ -20,7 +20,8 @@ export function ResizeHandle({ width, onResize, onCommit }: ResizeHandleProps) {
 	const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
 		if (event.button !== 0) return;
 		event.preventDefault();
-		start.current = { x: event.clientX, width };
+		const visibleWidth = event.currentTarget.closest('[role="dialog"]')!.getBoundingClientRect().width;
+		start.current = { x: event.clientX, width: Math.max(width, visibleWidth) };
 		const onMove = (move: PointerEvent) => {
 			const origin = start.current;
 			if (origin === null) return;
@@ -41,7 +42,8 @@ export function ResizeHandle({ width, onResize, onCommit }: ResizeHandleProps) {
 		const delta = event.key === "ArrowLeft" ? keyStep : event.key === "ArrowRight" ? -keyStep : 0;
 		if (delta === 0) return;
 		event.preventDefault();
-		const next = Math.max(minPeekWidth, width + delta);
+		const visibleWidth = event.currentTarget.closest('[role="dialog"]')!.getBoundingClientRect().width;
+		const next = Math.max(minPeekWidth, Math.max(width, visibleWidth) + delta);
 		onResize(next);
 		onCommit(next);
 	};

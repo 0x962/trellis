@@ -46,6 +46,7 @@ export function CreateTicketDialog() {
 	const [creating, setCreating] = useState(false);
 	const [createMore, setCreateMore] = useState(false);
 	const inFlight = useRef(false);
+	const titleRef = useRef<HTMLInputElement>(null);
 
 	const chosenProject = project ?? defaults.project;
 	const bySlug = (slug: string | undefined) => defaults.statuses.find((entry) => entry.slug === slug);
@@ -124,50 +125,58 @@ export function CreateTicketDialog() {
 			open
 			onOpenChange={(next) => !next && requestClose()}
 			title="New ticket"
-			header={<ComposerHeader project={chosenProject} onClose={requestClose} />}
 			size="lg"
-			className="rounded-xl"
+			bare
+			initialFocus={titleRef}
+			className="gap-0 bg-surface p-0"
 		>
-			<input
-				aria-label="Title"
-				autoFocus
-				autoComplete="off"
-				maxLength={500}
-				placeholder="Ticket title"
-				value={draft.title}
-				onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-				className="h-7 w-full bg-transparent text-xl font-semibold text-fg outline-none placeholder:text-fg-faint"
-			/>
-			<DescriptionField
-				key={editorKey}
-				markdown={description}
-				editing={editing}
-				onEdit={() => setEditing(true)}
-				onChange={(markdown) => setDraft({ ...draft, description: markdown })}
-			/>
-			<ChipRow
-				project={chosenProject}
-				projectMissing={projectMissing && chosenProject === undefined}
-				statuses={defaults.statuses}
-				status={chosenStatus}
-				priority={chosenPriority}
-				parent={parent ?? null}
-				parentRef={parent === undefined ? defaults.parent : undefined}
-				onProject={setProject}
-				onStatus={(next) => setStatus(next.slug)}
-				onPriority={setPriority}
-				onParent={setParent}
-			/>
-			<div className="flex items-center justify-end gap-3 border-t border-border pt-3">
-				<Switch
-					label="Create more"
-					checked={createMore}
-					onCheckedChange={setCreateMore}
-					className="text-xs text-fg-muted"
-				/>
-				<Button variant="primary" size="md" disabled={creating} onClick={() => void create(createMore)} kbd="⌘↩">
-					Create
-				</Button>
+			<div className="flex min-h-0 flex-col">
+				<div className="border-b border-border p-4">
+					<ComposerHeader project={chosenProject} onClose={requestClose} />
+				</div>
+				<div className="flex flex-1 flex-col gap-4 p-6 max-md:p-4">
+					<input
+						ref={titleRef}
+						aria-label="Title"
+						autoComplete="off"
+						maxLength={500}
+						placeholder="Ticket title"
+						value={draft.title}
+						onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+						className="h-7 w-full bg-transparent text-xl font-semibold text-fg outline-none placeholder:text-fg-faint"
+					/>
+					<DescriptionField
+						key={editorKey}
+						markdown={description}
+						editing={editing}
+						onEdit={() => setEditing(true)}
+						onChange={(markdown) => setDraft({ ...draft, description: markdown })}
+					/>
+					<ChipRow
+						project={chosenProject}
+						projectMissing={projectMissing && chosenProject === undefined}
+						statuses={defaults.statuses}
+						status={chosenStatus}
+						priority={chosenPriority}
+						parent={parent ?? null}
+						parentRef={parent === undefined ? defaults.parent : undefined}
+						onProject={setProject}
+						onStatus={(next) => setStatus(next.slug)}
+						onPriority={setPriority}
+						onParent={setParent}
+					/>
+				</div>
+				<div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-border bg-surface p-4">
+					<Switch
+						label="Create more"
+						checked={createMore}
+						onCheckedChange={setCreateMore}
+						className="text-xs text-fg-muted"
+					/>
+					<Button variant="primary" size="md" disabled={creating} onClick={() => void create(createMore)} kbd="⌘↩">
+						Create
+					</Button>
+				</div>
 			</div>
 			<ConfirmDialog
 				open={asking}

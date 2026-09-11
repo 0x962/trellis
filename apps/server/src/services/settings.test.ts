@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { type Settings, SettingsSchema } from "@trellis/api";
+import { DEFAULT_AGENT_LAUNCH_COMMAND, type Settings, SettingsSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { count } from "../../test/fixtures";
 import { at, type Harness, minutesAgo, NOW, serviceHarness } from "../../test/helpers/services.ts";
@@ -30,18 +30,23 @@ const get = () =>
 const set = (input: Settings) => h.run((ctx, tx) => settings.set(ctx, tx, input));
 
 const written: Settings = {
-	startWithAgentTemplate: 'codex "{brief}"',
 	defaultActorName: "navid",
 	stalledHours: 48,
+	diffUrlTemplate: "http://margin.localhost/{url}",
 };
 
 describe("settings", () => {
 	test("get returns the defaults on an empty table", async () => {
 		const defaults = await get();
 		const parsed = SettingsSchema.parse(defaults);
-		expect(Object.keys(parsed).sort()).toEqual(["defaultActorName", "stalledHours", "startWithAgentTemplate"]);
-		expect(parsed.startWithAgentTemplate).toContain("{brief}");
+		expect(Object.keys(parsed).sort()).toEqual([
+			"agentLaunchCommand",
+			"defaultActorName",
+			"diffUrlTemplate",
+			"stalledHours",
+		]);
 		expect(parsed.stalledHours).toBe(24);
+		expect(parsed.diffUrlTemplate).toBe("{url}/files");
 		expect(await count(h.db, "settings")).toBe(0);
 	});
 
@@ -49,9 +54,9 @@ describe("settings", () => {
 		const returned = await set(written);
 		expect(returned).toEqual(written);
 		const rows = await settingRows();
-		expect(rows.map((row) => row.key)).toEqual(["defaultActorName", "stalledHours", "startWithAgentTemplate"]);
-		expect(rows.map((row) => row.value)).toEqual(["navid", 48, 'codex "{brief}"']);
-		expect(await get()).toEqual(written);
+		expect(rows.map((row) => row.key)).toEqual(["defaultActorName", "diffUrlTemplate", "stalledHours"]);
+		expect(rows.map((row) => row.value)).toEqual(["navid", "http://margin.localhost/{url}", 48]);
+		expect(await get()).toEqual({ ...written, agentLaunchCommand: DEFAULT_AGENT_LAUNCH_COMMAND });
 	});
 
 	test("get fills a missing key with its default", async () => {
@@ -61,9 +66,9 @@ describe("settings", () => {
 	});
 
 	test("a template round-trips through jsonb without a change", async () => {
-		const template = 'claude "$(trellis brief {brief})"\n# {not a token} \\n {{double}}\n\ttail';
-		await set({ ...written, startWithAgentTemplate: template });
-		expect((await get()).startWithAgentTemplate).toBe(template);
+		const template = "http://margin.localhost/{url}?view=files&mode=split";
+		await set({ ...written, diffUrlTemplate: template });
+		expect((await get()).diffUrlTemplate).toBe(template);
 	});
 
 	test("set moves updated_at and writes no activity", async () => {

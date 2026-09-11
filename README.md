@@ -4,21 +4,29 @@
 
 ## What it is
 
-trellis is a local ticket tracker for work that humans give to coding agents. One server on your machine keeps every project, ticket, comment, attachment, linked pull request, and CI result. Agents use the `trellis` CLI or the HTTP API, and every write carries the name of the actor that made it. You use the web app, or the mobile app on your phone. The Needs you page collects the tickets that wait for a human: reviews, failing CI, and stalled work. An agent can move a ticket to review, but only a human moves it to Done.
+trellis is a local ticket tracker for work that humans give to coding agents. One server on your machine stores:
 
-The [approved plan](docs/design/plan.md) defines the v1 product.
+- projects and tickets
+- comments and attachments
+- linked pull requests and their CI results
+
+Agents use the `trellis` CLI or the HTTP API. Each write records the name of the actor that made it. You use the web app, or the mobile app on your phone. The Needs you page shows the tickets that wait for a human: reviews, failing CI, and stalled work. An agent can move a ticket to review. Only a human can move a ticket to Done.
+
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the stack, the domain rules, the schema, and the API.
 
 ## Install
 
-trellis needs [Bun](https://bun.sh) 1.3 and macOS for the launchd service. Install `gh` and run `gh auth login` to see pull requests and CI.
+trellis needs [Bun](https://bun.sh) 1.3. The launchd service needs macOS. To see pull requests and CI, install `gh` and run `gh auth login`.
+
+Version 0.1 publishes no package. The CLI installs from a clone, and the clone stays on disk, because the installed command and the launchd service run the server from it.
 
 ```sh test skip
-git clone git@github.com:0x962/trellis.git
+git clone https://github.com/0x962/trellis.git
 cd trellis
 bun install
 ```
 
-Run the install command once from the clone:
+Run the install command one time from the clone:
 
 ```sh
 bun packages/cli/src/index.ts install
@@ -36,9 +44,9 @@ bun packages/cli/src/index.ts install
 
 Agents need the Superset CLI. launchd gives the server a short `PATH`, so `trellis install` writes the full path of the `superset` on your `PATH` into the agent as `TRELLIS_SUPERSET_BIN`. `--superset-bin <path>` names another binary, and `trellis serve` takes the same flag.
 
-A gateway on port 80, such as margin's, serves `http://trellis.localhost` when it reads the routes file `~/.config/localhost-gateway/routes.json`. The file maps each `*.localhost` name to a port, as in `{ "trellis": 4521 }`. `trellis install` sets the `trellis` entry and keeps the others, and `trellis uninstall` removes it. When no gateway answers for `trellis.localhost`, install prints `http://127.0.0.1:4521` and the path of the routes file.
+A gateway on port 80, such as [margin](https://github.com/0x962/margin), serves `http://trellis.localhost` when it reads the routes file `~/.config/localhost-gateway/routes.json`. The file maps each `*.localhost` name to a port, as in `{ "trellis": 4521 }`. `trellis install` sets the `trellis` entry and keeps the others, and `trellis uninstall` removes it. When no gateway answers for `trellis.localhost`, install prints `http://127.0.0.1:4521` and the path of the routes file.
 
-To run the server in the foreground and not as a launchd agent, run it in its own terminal:
+To run the server in the foreground and not as a launchd agent, run this command in a separate terminal:
 
 ```sh test background
 trellis serve
@@ -46,7 +54,7 @@ trellis serve
 
 ## Daily use
 
-Open `http://trellis.localhost`, or `http://127.0.0.1:4521` without the gateway. On the first visit, the setup page asks for your name and your first project.
+Open `http://trellis.localhost`. Without the gateway, open `http://127.0.0.1:4521`. On the first visit, the setup page asks for your name and your first project.
 
 Create a project and a ticket from the CLI:
 
@@ -58,7 +66,7 @@ trellis projects create --key TRL --name trellis
 trellis create -p TRL -t "Write the README"
 ```
 
-The CLI prints aligned text in a terminal and JSON when you pipe it or pass `--json`:
+In a terminal, the CLI prints aligned text. When you pipe the output or pass `--json`, the CLI prints JSON:
 
 ```sh test
 trellis list --project TRL --json
@@ -66,7 +74,22 @@ trellis list --project TRL --json
 
 ![A ticket page with a linked pull request and its check ribbon](docs/images/ticket-pr.png)
 
-The ticket page shows the description, the sub-tickets, each linked pull request with its check ribbon, the attachments, and one timeline of comments and activity. A pull request links itself when its title, branch, or body carries the ticket identifier.
+The ticket page shows:
+
+- the description and the sub-tickets
+- each linked pull request with its check ribbon
+- the attachments
+- one timeline of comments and activity
+
+If the title, the branch, or the body of a pull request contains the ticket identifier, trellis links the pull request to the ticket.
+
+### The diff viewer
+
+Each pull request carries a Show diff control. The setting `diffUrlTemplate` names the address it opens, and `{url}` in the template stands for the URL of the pull request. The default is `{url}/files`, the Files changed tab on GitHub. To open the diff in another viewer, set the template to its address. For [margin](https://github.com/0x962/margin), a local review tool that routes on the whole pull request URL:
+
+```
+http://margin.localhost/{url}
+```
 
 ### Keyboard map
 
@@ -90,26 +113,26 @@ Press `?` in the web app for the full list. `Cmd` is `Ctrl` outside macOS.
 
 ## Agents
 
-Run `trellis instructions --project TRL` to print the workflow block below. Paste it into the `AGENTS.md` file of the repository that the agent works in. The [agent setup guide](docs/agents.md) gives more detail.
+Run `trellis instructions --project TRL` to print the workflow block below. Paste the block into the `AGENTS.md` file of the repository that the agent works in. The [agent setup guide](docs/agents.md) has the actor rules and the Done rule.
 
-Every write carries the header `x-trellis-actor: <human|agent>:<name>`. The CLI sets it for you: inside Claude Code every command runs as `agent:claude-code`, and `TRELLIS_ACTOR` or `--as` sets it elsewhere. `trellis whoami` prints how the CLI chose the actor.
+Every write sends the header `x-trellis-actor: <human|agent>:<name>`. The CLI sets the header. Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, `TRELLIS_ACTOR` or `--as` sets the actor. `trellis whoami` prints how the CLI chose the actor.
 
 ## Ticket workflow (trellis)
 
-Tickets live in trellis, a local tracker at http://trellis.localhost. Use the `trellis` CLI. It prints JSON when piped.
-Identify yourself: inside Claude Code every command runs as `agent:claude-code`. Elsewhere set `TRELLIS_ACTOR=agent:<name>`.
+Tickets live in trellis, a local tracker at http://trellis.localhost. Use the `trellis` CLI. When you pipe its output, it prints JSON.
+Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `TRELLIS_ACTOR=agent:<name>`.
 
 1. Pick work:        trellis list --project TRL --status todo
 2. Read the ticket:  trellis show TRL-42 --comments
 3. Start:            trellis move TRL-42 in-progress
-4. Put the identifier in the branch name, for example TRL-42-dark-mode. A PR whose title, branch, or body carries TRL-42 links itself. To link one by hand: trellis pr add TRL-42 <url>
+4. Put the identifier in the branch name, for example TRL-42-dark-mode. If the title, branch, or body of a PR contains TRL-42, trellis links the PR. To link a PR by hand: trellis pr add TRL-42 <url>
 5. Split work:       trellis sub TRL-42 -t "Write tests"
 6. Ask a question:   trellis comment TRL-42 --body "..." and then wait for the reply: trellis watch --ticket TRL-42
 7. Finish coding:    trellis move TRL-42 agent-review
 8. When CI is green and the self-review is done: trellis move TRL-42 human-review
 Never move a ticket to Done; a human does that. Never delete tickets.
 
-Without the CLI, the HTTP API takes the same actions. One call creates a ticket:
+Without the CLI, use the HTTP API. It has the same actions. This call creates a ticket:
 curl -X POST http://127.0.0.1:4521/api/tickets -H 'x-trellis-actor: agent:claude-code' -H 'Content-Type: application/json' -d '{"project":"TRL","title":"First"}'
 The OpenAPI spec is at http://127.0.0.1:4521/api/openapi.json.
 
@@ -138,7 +161,7 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 | `trellis projects create` | Create a project. |
 | `trellis projects show` | Show a project. |
 | `trellis projects move` | Move a project. |
-| `trellis projects repos` | Manage project repositories. |
+| `trellis projects repos` | Add or remove project repositories. |
 | `trellis statuses list` | List statuses. |
 | `trellis statuses add` | Add a status. |
 | `trellis statuses edit` | Edit a status. |
@@ -166,7 +189,7 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 | `trellis inbox` | Show work that needs a human. |
 | `trellis watch` | Stream events. |
 | `trellis open` | Print or open a ticket URL. |
-| `trellis whoami` | Show actor resolution. |
+| `trellis whoami` | Show how the CLI chose the actor. |
 | `trellis instructions` | Print the agent workflow. |
 | `trellis status` | Show server status. |
 | `trellis logs` | Show server logs. |
@@ -179,26 +202,50 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 
 ## Mobile
 
-The iOS app lives in `apps/mobile` and uses Expo. It stores its settings in a native module, so it runs as a development build and not in Expo Go. Xcode builds it and installs it on a simulator or a connected iPhone:
+The iOS app is in `apps/mobile` and uses Expo. The app stores its settings in a native module, so it runs as a development build, not in Expo Go. This command uses Xcode to build the app and install it on a simulator or a connected iPhone:
 
 ```sh
 cd apps/mobile
 bunx expo run:ios
 ```
 
-The server listens on `127.0.0.1` by default, so a phone cannot reach it. Run `trellis install --host 0.0.0.0` to open it to your network (`trellis serve --host` and `TRELLIS_HOST` do the same). The server has no auth, so anyone on the network can reach it.
+By default, the server listens on `127.0.0.1`, so a phone cannot reach it.
+
+CAUTION: The server has no auth. When you open the server to your network, anyone on the network can reach it.
+
+To open the server to your network, run `trellis install --host 0.0.0.0`. `trellis serve --host` and `TRELLIS_HOST` do the same.
 
 The server answers a request only when its Host header names an IP address, `localhost`, a `*.localhost` name, or the `TRELLIS_HOST` name. A proxy keeps its own hostname in the Host header. To allow a proxy hostname, add it to `TRELLIS_ALLOWED_HOSTS`, a comma-separated list. `trellis install --allow-host <name>` and `trellis serve --allow-host <name>` set the list. Repeat the flag for each name. For Tailscale Serve, which forwards `https://<machine>.<tailnet>.ts.net` to `127.0.0.1:4521`:
 
 ```sh
-trellis install --allow-host canary-jqv57w1hpl.tail4a5b4c.ts.net
+trellis install --allow-host my-laptop.tail1a2b3c.ts.net
 ```
 
-To pair the phone, open Settings, then Server in the app. Tap Scan QR code and scan the code under Pair a phone in the web app settings. The app fills in the server URL and tests the connection. To pair by hand, type the server URL and tap Test connection. The app shows the server version and the ticket count. Type your name and tap Save.
+To pair the phone:
+
+1. In the app, open Settings, then Server.
+2. Tap Scan QR code.
+3. Scan the code under Pair a phone in the web app settings. The app fills in the server URL and tests the connection.
+4. Type your name and tap Save.
+
+To pair without the QR code, type the server URL and tap Test connection. The app shows the server version and the ticket count.
+
+## Security model
+
+trellis is a single-user tool for one machine.
+
+- The server binds `127.0.0.1` by default, so only this machine reaches it.
+- The server has no authentication.
+- The header `x-trellis-actor` records who made a write. It is a label, not authentication.
+- CORS allows the development origins only, so a page on another origin cannot read the API.
+- `--host 0.0.0.0` puts the tickets, the attachments, the backups, and the export on your network.
+- trellis reads GitHub through the `gh` binary and its local login. trellis stores no token.
+
+Read [SECURITY.md](SECURITY.md) for the full model and for how to report a vulnerability.
 
 ## Data and backups
 
-trellis keeps all data under `~/.trellis`. Set `TRELLIS_HOME` to use a different directory, and `TRELLIS_PORT` to use a port other than 4521.
+trellis keeps all data in `~/.trellis`. To use a different directory, set `TRELLIS_HOME`. To use a port other than 4521, set `TRELLIS_PORT`.
 
 | Path | Content |
 |---|---|
@@ -207,15 +254,15 @@ trellis keeps all data under `~/.trellis`. Set `TRELLIS_HOME` to use a different
 | `backups/` | Archives from `trellis backup` |
 | `server.log` | The server log, rotated at 10 MB with five files kept |
 
-Run `trellis backup [dest]` to create a consistent archive while the server stays available. The server keeps the ten newest default backups. To restore an archive, stop the server first and run `trellis restore <archive>`; the command refuses while the server runs. `trellis export` streams all data as JSON.
+`trellis backup [dest]` creates a consistent archive while the server runs. The server keeps the ten newest backups in the default directory. To restore an archive, stop the server. Then run `trellis restore <archive>`. The command refuses while the server runs. `trellis export` streams all data as JSON.
 
 ## Architecture
 
 ![The trellis architecture](docs/architecture.svg)
 
-The web app, mobile app, and CLI share the contract from `@trellis/api`.
+The web app, the mobile app, and the CLI share the contract from `@trellis/api`.
 Only the web app imports the tokens and primitives from `@trellis/ui`.
-The local server owns all database access and sends live updates through server-sent events.
+Only the local server reads and writes the database. The server sends live updates as server-sent events.
 
 ## Development
 
@@ -223,20 +270,21 @@ The local server owns all database access and sends live updates through server-
 bun run dev
 ```
 
-`bun run dev` starts the server on port 4521 and vite on port 5173, with `/api` and `/rpc` proxied to the server. Open `http://localhost:5173`.
+`bun run dev` starts the server on port 4521 and vite on port 5173. Vite sends `/api` and `/rpc` requests to the server. Open `http://localhost:5173`.
 
 | Command | What it runs |
 |---|---|
-| `bun run check` | Lint, typecheck, every test, the web size budget, and the perf suite at 10k rows. Add `--force` to skip the turbo cache. |
-| `bun run e2e` | The Playwright suite against the real server and vite on free ports. Run `bunx playwright install chromium` in `apps/web` once. |
-| `bun run perf` | The perf suite at 50k rows. |
+| `bun run check` | Lint, typecheck, functional tests, and the web size budget. Add `--force` to skip the turbo cache. |
+| `bun run e2e` | The Playwright suite against the real server and vite on free ports. Run `bunx playwright install chromium` in `apps/web` one time. |
+| `bun run perf:10k` | Optional performance tests at 10k rows, one workspace at a time. |
+| `bun run perf` | Optional performance tests at 50k rows. |
 | `bun run db:generate` | The Drizzle migrations for a change to `apps/server/src/db/schema.ts`. |
 | `bun run --cwd apps/mobile test:native` | The mobile Jest suite. |
 
-A shell block in this README with the info string `sh test` runs in `test/readme.test.ts` against a temp data home, so the commands above stay true.
+`test/readme.test.ts` runs each shell block in this README that has the info string `sh test`. The blocks run against a temporary data home, so a command that stops working fails the test.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development loop, the TDD rules, and the review pass.
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

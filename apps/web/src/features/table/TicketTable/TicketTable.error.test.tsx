@@ -20,7 +20,7 @@ describe("features/table/TicketTable: a failed load", () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
 		server.failNext("tickets.list", { code: "NOT_FOUND", data: { ref: "CDE" } });
-		renderApp({ path: "/p/CDE", actor: "navid", server });
+		renderApp({ path: "/p/CDE/table", actor: "navid", server });
 		expect(await screen.findByText("The tickets did not load.")).toBeDefined();
 		expect(screen.getByText(/No row matches the ref/)).toBeDefined();
 		await user.click(screen.getByRole("button", { name: "Retry" }));

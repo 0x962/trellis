@@ -10,7 +10,7 @@ describe("routes: the board footer", () => {
 	// A board column lists the ticket that changed last at the top, so its
 	// footer names that order and not the table's sort.
 	test("the project board and the all-ticket board footers name the last update order", async () => {
-		for (const path of ["/p/CDE/board", "/all/board"]) {
+		for (const path of ["/p/CDE", "/all"]) {
 			const view = renderApp({ path, actor: "navid" });
 			await waitFor(() => expect(footer()?.textContent, path).toContain("Sorted by the last update"));
 			expect(footer()!.textContent, path).not.toContain("priority");

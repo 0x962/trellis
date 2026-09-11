@@ -22,7 +22,7 @@ describe("features/ticket/TicketPeek: command context", () => {
 			<PeekListProvider rows={rows}>
 				<TicketPeek />
 			</PeekListProvider>,
-			{ path: "/p/CDE?peek=CDE-42", actor: "navid" },
+			{ path: "/p/CDE/table?peek=CDE-42", actor: "navid" },
 		);
 		await screen.findByRole("dialog", { name: "CDE-42" });
 		await waitFor(() => expect(useCommandStore.getState().peekTicket).toBe("CDE-42"));

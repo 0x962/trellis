@@ -70,8 +70,8 @@ describe("projects", () => {
 	// CLI-73
 	test("projects repos reads then replaces the set", async () => {
 		const routes = {
-			"projects.get": project({ repos: [repo("old"), repo("margin")] }),
-			"projects.setRepos": [repo("margin"), repo("trellis")],
+			"projects.get": project({ repos: [repo("old"), repo("web")] }),
+			"projects.setRepos": [repo("web"), repo("trellis")],
 		};
 		const result = await runCli(
 			["projects", "repos", "CDE", "--add", "0x962/trellis", "--remove", "0x962/old"],
@@ -83,17 +83,17 @@ describe("projects", () => {
 		expect(result.calls[1]!.input).toEqual({
 			project: "CDE",
 			repos: [
-				{ owner: "0x962", repo: "margin" },
+				{ owner: "0x962", repo: "web" },
 				{ owner: "0x962", repo: "trellis" },
 			],
 		});
 
-		const again = await runCli(["projects", "repos", "CDE", "--add", "0x962/margin"], routes);
+		const again = await runCli(["projects", "repos", "CDE", "--add", "0x962/web"], routes);
 		expect(again.calls[1]!.input).toEqual({
 			project: "CDE",
 			repos: [
 				{ owner: "0x962", repo: "old" },
-				{ owner: "0x962", repo: "margin" },
+				{ owner: "0x962", repo: "web" },
 			],
 		});
 	});

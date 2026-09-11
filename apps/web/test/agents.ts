@@ -32,6 +32,7 @@ export const enableAgents = async (server: TestServer, key = "CDE", overrides: P
 	});
 
 const titles = { manager: "CDE manager", builder: "CDE-42", reviewer: "CDE-42 review" } as const;
+const names = { manager: "Amara", builder: "Kenji", reviewer: "Nadia" } as const;
 
 export const isoNow = () => new Date().toISOString();
 
@@ -51,6 +52,7 @@ export const addSession = async (
 		state: "running",
 		workspaceId: "ws-1",
 		terminalId: "term-1",
+		name: names[overrides.role],
 		title: titles[overrides.role],
 		openUrl: "superset://workspace/ws-1",
 		lastWokenAt: null,
@@ -61,10 +63,11 @@ export const addSession = async (
 	const { db } = await sharedDb();
 	await db.execute(sql`
 		INSERT INTO agent_sessions (id, project_id, ticket_id, role, runner, state, workspace_id, terminal_id,
-			claude_session_id, title, open_url, last_woken_at, error, created_at, updated_at)
+			claude_session_id, name, title, open_url, last_woken_at, error, created_at, updated_at)
 		VALUES (${session.id}, ${session.projectId}, ${session.ticketId}, ${session.role}, ${session.runner},
-			${session.state}, ${session.workspaceId}, ${session.terminalId}, NULL, ${session.title}, ${session.openUrl},
-			${session.lastWokenAt}, ${session.error}, ${session.createdAt}::timestamptz, ${session.createdAt}::timestamptz)
+			${session.state}, ${session.workspaceId}, ${session.terminalId}, NULL, ${session.name}, ${session.title},
+			${session.openUrl}, ${session.lastWokenAt}, ${session.error}, ${session.createdAt}::timestamptz,
+			${session.createdAt}::timestamptz)
 	`);
 	return session;
 };

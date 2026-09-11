@@ -23,7 +23,7 @@ describe("features/table/TicketTable with a ticket of an archived project", () =
 		const user = userEvent.setup();
 		const server = createTestServer();
 		await archiveProject(server, "CDE");
-		renderApp({ path: "/all?status=human-review", actor: "navid", server });
+		renderApp({ path: "/all/table?status=human-review", actor: "navid", server });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-42"));
 		focusRow("CDE-42");

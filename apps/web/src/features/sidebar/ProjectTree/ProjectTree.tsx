@@ -6,17 +6,17 @@ import type { ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectRefOfPathname } from "../../../lib/projectPath";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
 
-// The guide line of an open subtree sits at the center of the parent's
-// disclosure slot: the parent's row padding plus 8 px.
-const guide = ["before:left-4", "before:left-9", "before:left-14", "before:left-19"] as const;
+// Each guide runs under the centre of its parent's chevron, so the line
+// points at the control that opened the group.
+const guide = ["before:left-3.5", "before:left-7.5", "before:left-11.5", "before:left-15.5"] as const;
 
 const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.position;
 
-// The project tree in the sidebar. A root row shows its key; a sub-project
-// shares the root key and shows a dot. Every row shows the open count and
-// links to the project's table. Expansion persists in uiStore. A row whose
+// A folder identifies a root project; a dot identifies a sub-project.
+// Each row opens the project. Expansion persists in uiStore. A row whose
 // subtree holds the active project is open whatever the stored state says.
 //
 // The active row follows the page the outlet shows, not the URL of a
@@ -38,16 +38,14 @@ export function ProjectTree() {
 
 	const level = (parentId: string | null, depth: number): ReactNode[] =>
 		(children.get(parentId) ?? []).sort(byPosition).flatMap((project) => {
-			const own = children.get(project.id) ?? [];
 			const holdsActive = activeRef?.startsWith(`${project.path}.`) ?? false;
-			const open = own.length > 0 && (holdsActive || (expanded[project.id] ?? true));
+			const open = holdsActive || (expanded[project.id] ?? true);
 			const row = (
 				<TreeRow
 					key={project.id}
 					project={project}
 					depth={depth}
-					active={project.path === activeRef}
-					expander={own.length === 0 ? undefined : { open, onToggle: () => uiActions.toggleProject(project.id) }}
+					expander={{ open, onToggle: () => uiActions.toggleProject(project.id) }}
 				/>
 			);
 			if (!open) return [row];
@@ -56,10 +54,11 @@ export function ProjectTree() {
 				<li key={`${project.id}.subtree`}>
 					<ul
 						className={cx(
-							"relative flex flex-col gap-0.5 before:pointer-events-none before:absolute before:inset-y-0 before:z-10 before:w-px before:bg-border",
+							"relative flex flex-col gap-0.5 before:pointer-events-none before:absolute before:inset-y-0.5 before:z-10 before:w-px before:bg-border",
 							guide[Math.min(depth, guide.length - 1)],
 						)}
 					>
+						<ProjectPages project={project} depth={depth + 1} pathname={pathname} />
 						{level(project.id, depth + 1)}
 					</ul>
 				</li>,

@@ -25,8 +25,8 @@ beforeEach(() => {
 });
 
 // In Progress: CDE-44, CDE-43, CDE-41, CDE-38. Human Review: CDE-42, CDE-37.
-const started = "/p/CDE?status=in-progress";
-const review = "/p/CDE?status=human-review";
+const started = "/p/CDE/table?status=in-progress";
+const review = "/p/CDE/table?status=human-review";
 
 const ready = async (path: string, first: string, server: TestServer = createTestServer()) => {
 	const app = renderApp({ path, actor: "navid", server });
@@ -62,7 +62,7 @@ describe("features/table/hooks/useTableHotkeys", () => {
 		focusRow("CDE-42");
 		press("Enter");
 		await waitFor(() => expect(peekOf(router)).toBe("CDE-42"));
-		await router.navigate({ to: "/p/$", params: { _splat: "CDE" }, search: { status: ["human-review"] } });
+		await router.navigate({ to: "/p/$", params: { _splat: "CDE/table" }, search: { status: ["human-review"] } });
 		await waitFor(() => expect(peekOf(router)).toBeUndefined());
 		focusRow("CDE-42");
 		press(" ");
@@ -135,7 +135,7 @@ describe("features/table/hooks/useTableHotkeys", () => {
 
 	// Outcome 50
 	test("toggles the nth group with the digit keys", async () => {
-		await ready("/p/CDE?status=todo,in-progress,agent-review,human-review", "CDE-44");
+		await ready("/p/CDE/table?status=todo,in-progress,agent-review,human-review", "CDE-44");
 		await waitFor(() => expect(groupHeaders()).toHaveLength(4));
 		focusRow("CDE-44");
 		press("2");

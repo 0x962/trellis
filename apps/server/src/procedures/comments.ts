@@ -2,6 +2,8 @@ import type { Comment } from "@trellis/api";
 import { call, os, setLocation } from "./base.ts";
 
 export const comments = os.comments.router({
+	thread: os.comments.thread.handler(({ context, input }) => call(context, "comments.thread", input)),
+	resolve: os.comments.resolve.handler(({ context, input }) => call(context, "comments.resolve", input)),
 	create: os.comments.create.handler(async ({ context, input }) => {
 		const comment = await call<Comment>(context, "comments.create", input);
 		setLocation(context, `/api/comments/${comment.id}`);

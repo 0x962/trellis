@@ -29,7 +29,7 @@ describe("useSettingsDraft", () => {
 			saving = view.result.current.save({ defaultActorName: "Nav" });
 		});
 		await waitFor(() => expect(held.held()).toBe(1));
-		act(() => void view.result.current.edit({ startWithAgentTemplate: 'codex exec "{brief}"' }));
+		act(() => void view.result.current.edit({ diffUrlTemplate: "http://margin.localhost/{url}" }));
 		await act(async () => {
 			held.release();
 			await saving;
@@ -37,7 +37,7 @@ describe("useSettingsDraft", () => {
 
 		expect(view.result.current.saved?.defaultActorName).toBe("Nav");
 		expect(view.result.current.draft.defaultActorName).toBeUndefined();
-		expect(view.result.current.draft.startWithAgentTemplate).toBe('codex exec "{brief}"');
+		expect(view.result.current.draft.diffUrlTemplate).toBe("http://margin.localhost/{url}");
 
 		let second: Promise<unknown> = Promise.resolve();
 		act(() => {
@@ -48,7 +48,7 @@ describe("useSettingsDraft", () => {
 			held.release();
 			await second;
 		});
-		expect(view.result.current.saved?.startWithAgentTemplate).toBe('codex exec "{brief}"');
+		expect(view.result.current.saved?.diffUrlTemplate).toBe("http://margin.localhost/{url}");
 		expect(view.result.current.draft).toEqual({});
 	});
 });

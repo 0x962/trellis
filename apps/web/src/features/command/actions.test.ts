@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type { Settings, TrellisClient } from "@trellis/api";
+import type { TrellisClient } from "@trellis/api";
 import {
 	type ActionContext,
 	branchName,
@@ -15,16 +15,9 @@ import {
 	openPullRequest,
 	setParent,
 	setPriority,
-	startWithAgent,
 } from "./actions";
 
-const settings: Settings = {
-	startWithAgentTemplate: 'claude "$(trellis brief {brief})"',
-	defaultActorName: "navid",
-	stalledHours: 24,
-};
-
-const markdown = "# CDE-42 Restore the fork pages";
+const markdown = "# CDE-42 Restore the export pages";
 
 // A client that records the path and the input of every call.
 const stubClient = () => {
@@ -49,12 +42,11 @@ const stubClient = () => {
 const build = (answer = true) => {
 	const stub = stubClient();
 	const clipboard: string[] = [];
-	const notify = mock((_message: string, _options?: { command?: string; retry?: () => void }) => {});
+	const notify = mock((_message: string, _options?: { retry?: () => void }) => {});
 	const openUrl = mock((_url: string) => {});
 	const confirm = mock(async () => answer);
 	const context: ActionContext = {
 		client: stub.api,
-		settings,
 		origin: "http://localhost:4521",
 		copy: async (text) => {
 			clipboard.push(text);
@@ -67,7 +59,7 @@ const build = (answer = true) => {
 	return { ...stub, clipboard, notify, openUrl, confirm, context };
 };
 
-const ticket = { identifier: "CDE-42", title: "Restore the fork pages!" };
+const ticket = { identifier: "CDE-42", title: "Restore the export pages!" };
 
 let harness: ReturnType<typeof build>;
 
@@ -143,7 +135,7 @@ describe("features/command/actions", () => {
 
 	// AC-10
 	test("branchName lowercases the identifier and slugs the title", () => {
-		expect(branchName(ticket)).toBe("cde-42-restore-the-fork-pages");
+		expect(branchName(ticket)).toBe("cde-42-restore-the-export-pages");
 	});
 
 	// AC-11
@@ -158,27 +150,6 @@ describe("features/command/actions", () => {
 		expect(harness.clipboard).toEqual(["http://localhost:4521/t/CDE-42"]);
 	});
 
-	// AC-13. `{brief}` in the template stands for the ticket.
-	test("startWithAgent copies the command from the settings template", async () => {
-		await startWithAgent(harness.context, "CDE-42");
-		const command = 'claude "$(trellis brief CDE-42)"';
-		expect(harness.clipboard).toEqual([command]);
-		expect(harness.notify).toHaveBeenCalledTimes(1);
-		expect(harness.notify.mock.calls[0]![1]?.command).toBe(command);
-		expect(harness.notify.mock.calls[0]![0]).toBe("Copied the command. Paste it in a terminal.");
-	});
-
-	// CK-2. The palette builds the command with the one builder, so every
-	// `{brief}` in the template becomes the ID, as on the ticket page.
-	test("startWithAgent replaces every {brief} in the template", async () => {
-		const context = {
-			...harness.context,
-			settings: { ...harness.context.settings, startWithAgentTemplate: "a {brief} b {brief}" },
-		};
-		await startWithAgent(context, "CDE-42");
-		expect(harness.clipboard).toEqual(["a CDE-42 b CDE-42"]);
-	});
-
 	// AC-14
 	test("copyAgentBrief fetches the brief and copies the markdown", async () => {
 		await copyAgentBrief(harness.context, "CDE-42");
@@ -188,7 +159,7 @@ describe("features/command/actions", () => {
 
 	// AC-15
 	test("openPullRequest opens the pull request URL", () => {
-		const url = "https://github.com/canary-technologies-corp/de/pull/118";
+		const url = "https://github.com/acme/web/pull/118";
 		openPullRequest(harness.context, url);
 		expect(harness.openUrl.mock.calls).toEqual([[url]]);
 	});

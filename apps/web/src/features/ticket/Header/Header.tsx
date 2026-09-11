@@ -1,19 +1,17 @@
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
 import { IconButton, Skeleton, TicketId, Tooltip, useHotkey, useMediaQuery } from "@trellis/ui";
-import { ArrowLeft, Copy, Maximize2, Menu, X } from "lucide-react";
+import { ArrowLeft, Copy, GitBranch, Maximize2, Menu, X } from "lucide-react";
 import { copyText } from "../../../lib/clipboard";
 import { lastListHref } from "../../../lib/lastList";
 import { uiActions } from "../../../stores/uiStore";
 import { BriefCopy } from "../../agent/BriefCopy";
-import { StartWithAgent } from "../../agent/StartWithAgent";
 import { Breadcrumb } from "../../shell/Breadcrumb";
 import { useParentSummary } from "../hooks/useParentSummary";
 import { branchName, titleSlug } from "../PropertiesRail/utils/branchName";
 import { usePeek } from "../TicketPeek/hooks/usePeek";
 import { MoreMenu, ticketLink } from "./components/MoreMenu";
 import { ParentChip } from "./components/ParentChip";
-import { ReviewActions } from "./components/ReviewActions";
 
 export type HeaderProps =
 	| {
@@ -40,9 +38,9 @@ const claims = (event: KeyboardEvent) => {
 	return true;
 };
 
-// The sticky bar at the top of a ticket: the project path, the parent,
-// then the actions. The copy chords Cmd+C, Cmd+Shift+C, and Cmd+. work
-// anywhere on the surface.
+// The sticky bar shows the ticket ID in a peek and the project path on a page.
+// It also shows the parent and the ticket actions.
+// The copy chords Cmd+C, Cmd+Shift+C, and Cmd+. work on the full ticket surface.
 export function Header(props: HeaderProps) {
 	const ticket = props.ticket;
 	const surface = props.surface;
@@ -52,8 +50,7 @@ export function Header(props: HeaderProps) {
 	const parentSummary = useParentSummary(ticket?.parent?.identifier ?? null);
 	const identifier = ticket === undefined ? props.identifier : ticket.identifier;
 	const branch = ticket === undefined ? "" : branchName(ticket.identifier, titleSlug(ticket.title));
-	// Below 768 px the page header keeps Back, the ID, and the more menu. TicketView
-	// draws the review actions and Start with agent under the properties grid.
+	// Below 768 px the page header keeps Back, the ID, and the more menu.
 	const phone = useMediaQuery("(max-width: 767px)") && surface === "page";
 
 	useHotkey("mod+c", (event) => {
@@ -103,36 +100,46 @@ export function Header(props: HeaderProps) {
 					<ArrowLeft className="size-3.5" aria-hidden="true" />
 				</a>
 			)}
-			{ticket === undefined ? (
-				<Skeleton width="w-16" height="h-3" />
-			) : phone ? (
-				<TicketId id={ticket.identifier} />
-			) : (
-				<Breadcrumb path={ticket.project.path} />
-			)}
-			{ticket !== undefined && !phone && ticket.parent !== null && (
-				<>
-					<span aria-hidden="true" className="text-fg-faint">
-						·
-					</span>
-					<ParentChip parent={ticket.parent} title={parentSummary?.title ?? ""} />
-				</>
-			)}
-			<div className="ml-auto flex shrink-0 items-center gap-2">
+			<div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+				{ticket === undefined ? (
+					<Skeleton width="w-16" height="h-3" />
+				) : phone || surface === "peek" ? (
+					<TicketId id={ticket.identifier} />
+				) : (
+					<Breadcrumb path={ticket.project.path} />
+				)}
+				{ticket !== undefined && !phone && ticket.parent !== null && (
+					<>
+						<span aria-hidden="true" className="text-fg-faint">
+							·
+						</span>
+						<ParentChip ancestors={ticket.ancestors} title={parentSummary?.title ?? ""} />
+					</>
+				)}
+			</div>
+			<div className="ml-auto flex shrink-0 items-center gap-1">
 				{ticket !== undefined && (
 					<>
-						{!phone && <ReviewActions ticket={ticket} />}
-						{!phone && <StartWithAgent ticket={ticket} />}
-						<BriefCopy ticket={ticket} />
+						{surface === "page" && <BriefCopy ticket={ticket} />}
 						{!phone && (
-							<Tooltip content="Copy ID ⌘C">
-								<IconButton
-									label="Copy ID"
-									size="md"
-									icon={<Copy />}
-									onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
-								/>
-							</Tooltip>
+							<>
+								<Tooltip content="Copy ID ⌘C">
+									<IconButton
+										label="Copy ID"
+										size="md"
+										icon={<Copy />}
+										onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
+									/>
+								</Tooltip>
+								<Tooltip content="Copy branch name ⌘⇧C">
+									<IconButton
+										label="Copy branch name"
+										size="md"
+										icon={<GitBranch />}
+										onClick={() => void copyText(branch, "Copied the branch name")}
+									/>
+								</Tooltip>
+							</>
 						)}
 						<MoreMenu ticket={ticket} />
 					</>

@@ -1,6 +1,6 @@
 import { dlopen, FFIType, ptr } from "bun:ffi";
 
-// The memory a process holds, as the budget of plan.md means it. On macOS
+// The memory a process holds, as the memory budget means it. On macOS
 // that is the physical footprint, the number Activity Monitor shows. The
 // resident size there also counts pages the allocator freed and the kernel
 // has not taken back yet. Linux has no footprint, so there the resident size

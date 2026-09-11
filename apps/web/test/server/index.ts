@@ -37,6 +37,9 @@ export type TestServerOptions = {
 	// The URLs `system.health` lists.
 	addresses?: string[];
 	maxUploadBytes?: number;
+	// The folder the machine's picker answers with. `null` is a canceled
+	// dialog, which is the default.
+	directory?: string | null;
 	// Writes a test needs before the first render, through the same client the
 	// page uses. The calls it makes are not recorded, so a test still counts
 	// the calls its own render made.
@@ -59,8 +62,8 @@ let repos: Array<{ id: string; name: string; repo: string; path: string }> | und
 
 const runnerProjects = () => {
 	repos ??= [
-		{ id: "sp-de", name: "de", repo: "canary-technologies-corp/de", path: gitRepo("main") },
-		{ id: "sp-trellis", name: "trellis", repo: "0x962/trellis", path: gitRepo("main") },
+		{ id: "sp-de", name: "de", repo: "https://github.com/canary-technologies-corp/de", path: gitRepo("main") },
+		{ id: "sp-trellis", name: "trellis", repo: "https://github.com/0x962/trellis", path: gitRepo("main") },
 	];
 	return repos;
 };
@@ -162,10 +165,23 @@ const CLOSED = () =>
 		{ status: 503, headers: { "content-type": "application/json" } },
 	);
 
-// The process state one server reports: what gh says and what URLs the
-// listener answers on. A test changes either after the build, and the next
-// read answers with the new value.
-type GhHolder = { status: GhStatus; addresses: string[] };
+// The process state one server reports: what gh says, what URLs the listener
+// answers on, and what the folder picker returns. A test changes any of them
+// after the build, and the next read answers with the new value.
+type GhHolder = { status: GhStatus; addresses: string[]; directory: string | null };
+
+// The folder picker of the machine, for a test. `system.chooseDirectory` runs
+// in the procedure and not in a service, so this records the call and applies
+// the hooks the way the transport wrapper does for every other name.
+const folderPicker = (calls: Call[], hooks: Hooks, gh: GhHolder) => async () => {
+	const name = "system.chooseDirectory";
+	calls.push({ path: name.split("."), input: {}, actor: null });
+	const hold = hooks.takeHold(name);
+	if (hold !== undefined) await hold;
+	const failure = hooks.takeFailure(name);
+	if (failure !== undefined) throw fail(failure.code, failure.data as never);
+	return gh.directory;
+};
 
 const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh: GhHolder) => {
 	// A server of an earlier test is closed first, so no write of its own is
@@ -202,6 +218,7 @@ const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh
 		ghStatus: () => gh.status,
 		addresses: async () => gh.addresses,
 		wrapTransport: (inner) => recording(inner, calls, hooks),
+		chooseDirectory: folderPicker(calls, hooks, gh),
 	});
 	if (options.empty === true) {
 		await restore(h.db, { tables: {}, nextActivityId: 1 });
@@ -230,6 +247,7 @@ export const createTestServer = (options: TestServerOptions = {}) => {
 	const gh: GhHolder = {
 		status: options.gh ?? missingGh,
 		addresses: options.addresses ?? ["http://192.168.1.20:4521", "http://127.0.0.1:4521"],
+		directory: options.directory ?? null,
 	};
 	const ready = chain.then(() => build(options, calls, hooks, gh));
 	chain = ready;
@@ -261,6 +279,11 @@ export const createTestServer = (options: TestServerOptions = {}) => {
 		// The URLs `system.health` lists from the next read on.
 		setAddresses: (addresses: string[]) => {
 			gh.addresses = addresses;
+		},
+		// The folder the picker answers with from the next call on. `null` is
+		// a canceled dialog.
+		setDirectory: (directory: string | null) => {
+			gh.directory = directory;
 		},
 		failNext: hooks.failNext,
 		holdNext: hooks.holdNext,

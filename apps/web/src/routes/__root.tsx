@@ -6,14 +6,12 @@ import { ShortcutHelp } from "../features/command/ShortcutHelp";
 import { ComposerHost } from "../features/composer/ComposerHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { linkButtonClass } from "../features/shell/linkButtonClass";
-import { ReconnectBanner } from "../features/shell/ReconnectBanner";
 import { RouteError } from "../features/shell/RouteError";
 import { RouteProgress } from "../features/shell/RouteProgress";
 import { ShellFrame } from "../features/shell/ShellFrame";
 import { Sidebar } from "../features/sidebar/Sidebar";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
-import { useFaviconBadge } from "../hooks/useFaviconBadge";
-import { type RouterContext, useApp } from "../lib/appContext";
+import type { RouterContext } from "../lib/appContext";
 import { resolveActor } from "../lib/identity";
 
 // The two pages that render without the shell: the first run and the
@@ -59,9 +57,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 // before the first load.
 function RootComponent() {
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
-	const { live, scheduler } = useApp();
-	useDocumentTitle(!bare(pathname));
-	useFaviconBadge(!bare(pathname));
+	useDocumentTitle();
 
 	if (bare(pathname)) {
 		return (
@@ -76,7 +72,6 @@ function RootComponent() {
 		<div className="flex h-full bg-bg text-fg">
 			<Sidebar />
 			<div className="relative flex min-w-0 flex-1 flex-col">
-				<ReconnectBanner live={live} scheduler={scheduler} />
 				<RouteProgress />
 				<main className="flex min-h-0 min-w-0 flex-1 flex-col bg-pane">
 					<Outlet />

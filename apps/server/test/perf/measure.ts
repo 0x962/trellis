@@ -1,6 +1,6 @@
 import { BUDGET_FACTOR, PERF_ROWS } from "./seed.ts";
 
-// plan.md, Performance requirements: the `tickets.list` p95 for the default
+// ARCHITECTURE.md, Performance budgets: the `tickets.list` p95 for the default
 // table query is 5 ms at 1k, 10 ms at 10k, and 20 ms at 50k.
 export const LIST_BUDGET_MS = PERF_ROWS <= 1_000 ? 5 : PERF_ROWS <= 10_000 ? 10 : 20;
 
@@ -17,7 +17,7 @@ export const percentile99 = (samples: number[]) => {
 };
 
 // The 95th percentile of `runs` timed calls, in milliseconds, after three
-// untimed calls warm the plan cache. The budget table of plan.md is p95.
+// untimed calls warm the plan cache. The budget table is p95.
 export const p95 = async (fn: () => Promise<unknown>, runs = 50) => {
 	for (let i = 0; i < 3; i++) await fn();
 	const samples: number[] = [];
@@ -38,7 +38,7 @@ export const p95Of = async (fn: () => Promise<number>, runs = 50) => {
 	return percentile95(samples);
 };
 
-// The budget of plan.md on this machine: the Mac figure times the factor
+// The budget on this machine: the reference figure times the factor
 // `TRELLIS_PERF_FACTOR` sets. CI sets 2.5.
 export const budget = (value: number) => value * BUDGET_FACTOR;
 

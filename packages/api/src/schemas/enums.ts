@@ -66,8 +66,9 @@ export type AgentState = z.infer<typeof AgentStateSchema>;
 // Why the runner cannot serve a request. `missing`: the runner binary is
 // not found. `disabled`: the global or the project switch in the agent
 // settings is off. `unmapped`: no runner project matches the trellis
-// project. `error`: a runner command exited nonzero.
-export const RunnerReasonSchema = z.enum(["missing", "disabled", "unmapped", "error"]);
+// project. `branch`: the repository holds no branch with the name of the
+// project's base branch. `error`: a runner command exited nonzero.
+export const RunnerReasonSchema = z.enum(["missing", "disabled", "unmapped", "branch", "error"]);
 export type RunnerReason = z.infer<typeof RunnerReasonSchema>;
 
 // The palette token names a status may take as its color. The web resolves

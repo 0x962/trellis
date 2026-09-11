@@ -15,6 +15,7 @@ const TABLES = [
 	"projects",
 	"repos",
 	"statuses",
+	"personas",
 	"tickets",
 	"comments",
 	"attachments",
@@ -23,6 +24,7 @@ const TABLES = [
 	"activity",
 	"agent_sessions",
 	"agent_cursors",
+	"agent_runs",
 ] as const;
 
 export type Snapshot = {

@@ -6,7 +6,8 @@ import { signIn } from "./support";
 // A manager that cannot start says so in the project header, with the
 // reason superset gave, a link to the full error, and a Retry. The superset
 // stub refuses `ws create` as Superset does for a base branch the repository
-// does not have.
+// does not have. The header carries the failure alone, so a manager that
+// starts leaves the header empty and the Agents page holds its state.
 
 const human = "human:navid";
 const refusal = "fatal: invalid reference: main";
@@ -35,10 +36,10 @@ test("agents > a failed manager start shows Manager failed with the reason, and 
 	await expect(page.getByRole("region", { name: "FAIL sessions" })).toContainText(refusal);
 	await page.goBack();
 
-	// After the fix, Retry starts the manager.
+	// After the fix, Retry starts the manager and the header clears.
 	scriptFailure("ws create", null);
 	await manager.getByRole("button", { name: "Retry" }).click();
-	await expect(manager).not.toContainText("Manager failed", { timeout: START_MS });
+	await expect(manager).toBeHidden({ timeout: START_MS });
 	await expect.poll(() => tabOf("FAIL manager"), { timeout: START_MS }).toBeDefined();
 
 	trellis(["agents", "off", "--project", "FAIL"], human);

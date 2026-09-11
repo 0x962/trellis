@@ -37,6 +37,8 @@ export type RawActivity = {
 type RawComment = {
 	id: string;
 	ticket_id: string;
+	parent_id: string | null;
+	resolved_at: string | null;
 	body: string;
 	actor_name: string;
 	actor_kind: StoredActorKind;
@@ -65,6 +67,8 @@ export const toActivity = (row: RawActivity): Activity => ({
 const toComment = (row: RawComment): Comment => ({
 	id: row.id,
 	ticketId: row.ticket_id,
+	parentId: row.parent_id,
+	resolvedAt: row.resolved_at,
 	body: row.body,
 	actor: { name: row.actor_name, kind: row.actor_kind },
 	createdAt: row.created_at,
@@ -80,7 +84,8 @@ const commentsOf = async (tx: Tx, events: Activity[]) => {
 	if (ids.length === 0) return [];
 	const found = await rows<RawComment>(
 		tx,
-		sql`SELECT c.id, c.ticket_id, c.body, c.actor_name, c.actor_kind,
+		sql`SELECT c.id, c.ticket_id, c.parent_id, ${iso(sql`c.resolved_at`)} AS resolved_at,
+				c.body, c.actor_name, c.actor_kind,
 				${iso(sql`c.created_at`)} AS created_at, ${iso(sql`c.updated_at`)} AS updated_at
 			FROM comments c WHERE c.id = ANY(${textArray([...new Set(ids)])}) ORDER BY c.created_at, c.id`,
 	);

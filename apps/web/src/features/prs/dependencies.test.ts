@@ -10,8 +10,8 @@ const packageJson = async (): Promise<{
 }> => await Bun.file(join(import.meta.dir, "../../../package.json")).json();
 
 describe("pull request feature dependencies", () => {
-	// PR-31. margin renders every diff on this machine, so no diff library
-	// reaches the bundle.
+	// PR-31. The viewer that `diffUrlTemplate` names renders every diff, so
+	// no diff library reaches the bundle.
 	test("declares no diff rendering library", async () => {
 		const pkg = await packageJson();
 		const names = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });

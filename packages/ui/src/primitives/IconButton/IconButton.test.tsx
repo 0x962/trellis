@@ -26,15 +26,13 @@ describe("IconButton", () => {
 		expect(onClick).toHaveBeenCalledTimes(2);
 	});
 
-	// The primary variant is the chevron half of a split button beside a
-	// primary Button, so it carries the same accent fill. cx joins classes
-	// with no merge, so the surface fill of the default variant must be absent.
-	test("the primary variant fills with the accent and carries no surface fill", () => {
+	// Both halves of a primary split button share the same fill and border.
+	test("the primary variant uses the card surface and a strong border", () => {
 		render(<IconButton label="Options" icon={<RefreshCw />} variant="primary" />);
 		const button = screen.getByRole("button", { name: "Options" });
-		expectClasses(button, "bg-accent border-accent text-on-accent");
-		expect(button.classList.contains("bg-surface")).toBe(false);
-		expect(button.classList.contains("text-fg")).toBe(false);
+		expectClasses(button, "bg-surface border-border-strong text-fg");
+		expect(button.classList.contains("bg-accent")).toBe(false);
+		expect(button.classList.contains("text-on-accent")).toBe(false);
 	});
 
 	// Size md is drawn 28 px square and size sm 24 px, both with a 1 px border.
@@ -62,7 +60,7 @@ describe("IconButton", () => {
 				<IconButton label="Danger" variant="danger" icon={<RefreshCw />} />
 			</>,
 		);
-		expectClasses(screen.getByRole("button", { name: "Primary" }), "bg-accent border-accent text-on-accent");
+		expectClasses(screen.getByRole("button", { name: "Primary" }), "bg-surface border-border-strong text-fg");
 		expectClasses(screen.getByRole("button", { name: "Default" }), "bg-surface border-border text-fg");
 		expectClasses(screen.getByRole("button", { name: "Quiet" }), "bg-transparent border-transparent text-fg-muted");
 		expectClasses(screen.getByRole("button", { name: "Danger" }), "bg-danger border-danger text-on-accent");
