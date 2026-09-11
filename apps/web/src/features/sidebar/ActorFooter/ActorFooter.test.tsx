@@ -16,8 +16,8 @@ describe("features/sidebar/ActorFooter", () => {
 		expect(avatar.textContent).toBe("N");
 		const chip = screen.getByRole("button", { name: /navid/ });
 		expect(chip.textContent).toContain("navid");
-		const kind = within(chip).getByText("human");
-		expect(kind.className).toMatch(/\btext-fg-muted\b/);
+		// The chip carries the name alone; the kind is not worth a word.
+		expect(within(chip).queryByText("human")).toBeNull();
 		const settings = screen.getByRole("link", { name: "Settings" });
 		expect(settings.getAttribute("href")).toBe("/settings");
 		expect(screen.getByRole("button", { name: "Keyboard shortcuts" })).toBeDefined();

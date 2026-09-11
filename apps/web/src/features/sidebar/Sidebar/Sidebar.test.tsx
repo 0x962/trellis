@@ -90,17 +90,16 @@ describe("features/sidebar/Sidebar", () => {
 
 	// WS-96. The label carries the state, so the color is never the only
 	// signal.
-	test("the connection dot mirrors the live status with a label", async () => {
+	test("the connection panel names every state but a live one", async () => {
 		const { live } = renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", liveStatus: "live" });
-		const dot = within(aside()).getByLabelText("Online");
-		expect(dot.className).toMatch(/\bbg-success\b/);
+		// A healthy server says nothing, so the panel is absent.
+		expect(within(aside()).queryByRole("status", { name: "Server connection" })).toBeNull();
 		act(() => live.status.set("reconnecting"));
-		expect(within(aside()).getByLabelText("Reconnecting").className).toMatch(/\bbg-warning\b/);
-		act(() => live.status.set("restarting"));
-		expect(within(aside()).getByLabelText("Reconnecting").className).toMatch(/\bbg-warning\b/);
+		expect(within(aside()).getByRole("status", { name: "Server connection" }).textContent).toContain("Reconnecting");
 		act(() => live.status.set("down"));
-		expect(within(aside()).getByLabelText("Offline").className).toMatch(/\bbg-danger\b/);
-		expect(within(aside()).queryByLabelText("Online")).toBeNull();
+		expect(within(aside()).getByRole("status", { name: "Server connection" }).textContent).toContain("Server offline");
+		act(() => live.status.set("live"));
+		expect(within(aside()).queryByRole("status", { name: "Server connection" })).toBeNull();
 	});
 
 	// SH-1. The header draws the trellis mark, the favicon drawing, and not

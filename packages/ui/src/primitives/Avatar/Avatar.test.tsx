@@ -18,12 +18,22 @@ describe("Avatar", () => {
 		expect(full.querySelector("svg")).toBeNull();
 	});
 
-	test("agent avatar renders the bot glyph in a square", () => {
-		render(<Avatar kind="agent" name="claude-code" />);
+	test("an agent avatar is a circle of colour that its name picks", () => {
+		render(
+			<>
+				<Avatar kind="agent" name="claude-code" />
+				<Avatar kind="agent" name="codex" />
+			</>,
+		);
 		const avatar = screen.getByLabelText("claude-code · agent");
 		expect(avatar.textContent).toBe("");
-		expect(avatar.querySelector("svg[data-glyph=bot]")).not.toBeNull();
-		expectClasses(avatar, "rounded-sm bg-agent-soft text-agent border-agent");
+		expect(avatar.querySelector("svg")).toBeNull();
+		expectClasses(avatar, "size-4.5 rounded-full overflow-hidden");
+		// The name picks the picture, so one name always draws the same one
+		// and two names draw two.
+		const image = avatar.getAttribute("style")!;
+		expect(image).toContain("radial-gradient");
+		expect(screen.getByLabelText("codex · agent").getAttribute("style")).not.toBe(image);
 	});
 
 	test("the live dot renders only when live and stops under reduced motion", () => {
