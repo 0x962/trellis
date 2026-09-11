@@ -18,12 +18,12 @@ const badgeChecks = (pr: NonNullable<TicketSummary["pr"]>): Check[] => [
 	...Array.from({ length: pr.pass }, () => ({ name: "check", bucket: "pass" as const })),
 ];
 
-// One ticket in a Needs you section. The whole 36 px row is the link to the
+// One ticket in a Needs you section. The whole row is the link to the
 // ticket page, where the person acts on the ticket. Every row is 36 px tall,
-// whether or not the ticket has a parent, a pull request, or sub-tickets, so
-// a row that gains one of them pushes nothing. Under 768 px the status, the
-// pull request, and the last actor are hidden, so the title keeps room to
-// read.
+// and 44 px on a coarse pointer, whether or not the ticket has a parent, a
+// pull request, or sub-tickets, so a row that gains one of them pushes
+// nothing. Under 768 px the status, the pull request, and the last actor are
+// hidden, so the title keeps room to read.
 export function InboxRow({ ticket, showStatus = true }: InboxRowProps) {
 	const { status, lastActor, parent, pr } = ticket;
 	return (
@@ -32,7 +32,7 @@ export function InboxRow({ ticket, showStatus = true }: InboxRowProps) {
 			params={{ identifier: ticket.identifier }}
 			data-inbox-row={ticket.identifier}
 			className={cx(
-				"flex h-9 w-full items-center gap-3 border-b border-border px-5 text-fg max-md:gap-2 max-md:px-4",
+				"flex h-9 w-full items-center gap-3 border-b border-border px-5 text-fg max-md:gap-2 max-md:px-4 pointer-coarse:h-11",
 				"transition-colors duration-hover ease-out hover:bg-band",
 				"focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
 			)}

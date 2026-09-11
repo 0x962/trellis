@@ -32,7 +32,7 @@ export function InboxSection({ name, total, icon, hint, open, onToggle, rows, sh
 				aria-expanded={open}
 				onClick={onToggle}
 				className={cx(
-					"flex h-8 w-full items-center gap-2 border-y border-border bg-band px-5 text-left",
+					"flex h-8 w-full items-center gap-2 border-y border-border bg-band px-5 text-left pointer-coarse:h-11",
 					"transition-colors duration-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
 				)}
 			>
