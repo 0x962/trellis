@@ -11,6 +11,9 @@ const titles = {
 test.use({ viewport: { width: 390, height: 844 } });
 
 test.beforeAll(() => {
+	// A project whose name is wider than the phone bar, for the title that
+	// the view switch used to paint over.
+	ensureProject("LNG", "Long project name for a narrow phone bar");
 	if (!ensureProject("MOB", "Mobile")) return;
 	createTicket("MOB", titles["MOB-1"], ["-d", "Notes on the phone layout."]);
 	createTicket("MOB", titles["MOB-2"]);
@@ -91,6 +94,19 @@ test("the table gives the title a third of the row", async ({ page }) => {
 	const box = (await title.boundingBox())!;
 	expect(box.x + box.width).toBeLessThanOrEqual(390);
 	expect(box.width).toBeGreaterThanOrEqual(130);
+});
+
+// TRL-29. The view switch is opaque and never shrinks, so the title must
+// truncate before it. The title box ends where the switch begins.
+test("the board title ends before the view switch at 390 px", async ({ page }) => {
+	await signIn(page, "/p/LNG");
+	const title = page.getByRole("heading", { level: 1, name: "Long project name for a narrow phone bar" });
+	await expect(title).toBeVisible();
+	const titleBox = (await title.boundingBox())!;
+	const switchBox = (await page.getByRole("radiogroup", { name: "View" }).boundingBox())!;
+	expect(titleBox.width).toBeGreaterThan(0);
+	expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(switchBox.x);
+	expect(await sidewaysScroll(page)).toEqual({ page: 0, main: 0 });
 });
 
 // TRL-28. The search row drops the project, the status, and the time below
