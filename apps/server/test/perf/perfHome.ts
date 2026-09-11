@@ -59,16 +59,41 @@ export const seededHome = () => {
 	return built;
 };
 
-// APFS and btrfs copy a file by reference, so a copy of a 50k home costs no
-// disk and almost no time. Every test gets its own copy, because a server
-// writes to its home and holds a lock on it.
-const copyArgs = process.platform === "darwin" ? ["cp", "-cR"] : ["cp", "-R", "--reflink=auto"];
+// Every test gets its own copy of the seeded home, because a server writes
+// to its home and holds a lock on it.
+//
+// APFS and btrfs copy a file by reference, which costs no disk and almost no
+// time, but the copy then shares every block with its source. The first
+// write to a shared block makes the file system allocate a block and copy
+// it, and the write waits for that. A server on such a home pays the cost on
+// its first writes, and the write budgets then measure the file system
+// instead of trellis. The data home of a person is not a copy and never pays
+// it. Measured at 50k rows: a home copied by reference answers its first
+// write in 13 ms and spikes to 30 ms inside the first 35 writes; a home with
+// blocks of its own answers in 3 ms and stays under 6 ms.
+//
+// So the Postgres data files get blocks of their own. They are 433 MB of the
+// 1.1 GB home. The write-ahead log is the other 672 MB, and a copy by
+// reference costs nothing there, because a write to the log appends and an
+// appended block is new. `pg_wal` is the one directory the copy shares.
+const cloneArgs = process.platform === "darwin" ? ["cp", "-cR"] : ["cp", "-R", "--reflink=auto"];
+
+const SHARED = "pg_wal";
+
+const copy = async (args: string[], source: string, target: string) => {
+	const proc = Bun.spawn([...args, source, target], { stdout: "ignore", stderr: "pipe" });
+	const code = await proc.exited;
+	if (code !== 0) throw new Error(`copy of ${source} exited ${code}: ${await new Response(proc.stderr).text()}`);
+};
 
 export const perfHome = async () => {
 	const source = await seededHome();
 	const home = join(freshHome(), "home");
-	const proc = Bun.spawn([...copyArgs, source, home], { stdout: "ignore", stderr: "pipe" });
-	const code = await proc.exited;
-	if (code !== 0) throw new Error(`copy of the perf home exited ${code}: ${await new Response(proc.stderr).text()}`);
+	await copy(cloneArgs, source, home);
+	for (const entry of readdirSync(join(source, "db"))) {
+		if (entry === SHARED) continue;
+		rmSync(join(home, "db", entry), { recursive: true, force: true });
+		await copy(["cp", "-R"], join(source, "db", entry), join(home, "db", entry));
+	}
 	return home;
 };
