@@ -12,8 +12,8 @@ export type StatusDescriptionFieldProps = {
 // The contract caps a status description at this many characters.
 const maxLength = 2000;
 
-// The markdown the manager agent reads to decide what to do with a ticket
-// in this status. The field saves `autosaveDelayMs` after the last change,
+// The markdown describes when to use this status.
+// The field saves `autosaveDelayMs` after the last change,
 // or at once on blur, and each save writes the description alone, so the
 // other fields of the status row keep their own Save button.
 export function StatusDescriptionField({ project, status }: StatusDescriptionFieldProps) {
@@ -77,7 +77,7 @@ export function StatusDescriptionField({ project, status }: StatusDescriptionFie
 				onBlur={flush}
 			/>
 			<div id={hintId} className="flex items-center justify-between gap-3 text-xs text-fg-faint">
-				<span>Markdown. The manager agent reads it for tickets in this status.</span>
+				<span>Markdown. Describe when to use this status.</span>
 				<span className="flex shrink-0 items-center gap-2">
 					{saveState !== "idle" && <span>{saveState === "saving" ? "Saving…" : "Saved"}</span>}
 					<span className="tabular">

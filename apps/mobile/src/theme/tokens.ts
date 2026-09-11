@@ -52,7 +52,7 @@ export const tokens = {
 	micro: { kbd: 10, initials: 9 },
 	// Half of the 4 px base, for a 2 px gap.
 	space: { half: 2, "1": 4, "2": 8, "3": 12, "4": 16, "5": 20, "6": 24, "8": 32, "10": 40, "12": 48 },
-	radius: { sm: 4, md: 6, lg: 8, xl: 12 },
+	radius: { sm: 0, md: 0, lg: 0, xl: 0, hairline: 0 },
 	hairline: 1,
 };
 

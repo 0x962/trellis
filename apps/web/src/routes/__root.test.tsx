@@ -113,7 +113,7 @@ describe("routes/__root", () => {
 			"-translate-x-1/2",
 			"z-20",
 			"h-6",
-			"rounded-full",
+			"rounded-sm",
 			"px-2.5",
 			"text-xs",
 		]) {
@@ -121,7 +121,7 @@ describe("routes/__root", () => {
 		}
 		expect(pill.className).toMatch(/\bbg-warning-soft\b/);
 		const dot = pill.querySelector("[data-pulse]")!;
-		for (const name of ["size-1.5", "rounded-full", "animate-pulse-live"])
+		for (const name of ["size-1.5", "rounded-sm", "animate-pulse-live"])
 			expect(dot.classList.contains(name)).toBe(true);
 		expect(pill.parentElement!.className).toMatch(/\brelative\b/);
 		act(() => live.status.set("down"));

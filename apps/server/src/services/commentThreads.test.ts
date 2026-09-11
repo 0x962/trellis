@@ -3,7 +3,6 @@ import { sql } from "drizzle-orm";
 import { navid, seedProject, seedTicket } from "../../test/fixtures";
 import { expectErrorData, ticketHarness } from "../../test/helpers/services.ts";
 import { timeline } from "../db/queries/timeline.ts";
-import { inbox } from "./agentInbox.ts";
 import { get as brief } from "./brief.ts";
 import * as comments from "./comments.ts";
 
@@ -59,29 +58,11 @@ describe("comment threads", () => {
 		);
 		expect(resolved.id).toBe(root.id);
 		expect(resolved.resolvedAt).not.toBeNull();
-		const { result: resolvedInbox } = await h.as(navid)((ctx, tx) => inbox(ctx, tx, { project: "CDE" }));
-		expect(resolvedInbox.comments).toContainEqual(
-			expect.objectContaining({ id: root.id, resolvedAt: resolved.resolvedAt }),
-		);
-		expect(resolvedInbox.events).toContainEqual(
-			expect.objectContaining({
-				action: "comment.updated",
-				meta: expect.objectContaining({ threadId: root.id, resolved: true }),
-			}),
-		);
 		expect(events).toContainEqual(expect.objectContaining({ type: "comment.updated", id: root.id, ticketId: ticket }));
 		const { result: reopened } = await h.as(navid)((ctx, tx) =>
 			comments.resolve(ctx, tx, { id: root.id, resolved: false }),
 		);
 		expect(reopened.resolvedAt).toBeNull();
-		const { result: reopenedInbox } = await h.as(navid)((ctx, tx) => inbox(ctx, tx, { project: "CDE" }));
-		expect(reopenedInbox.comments).toContainEqual(expect.objectContaining({ id: root.id, resolvedAt: null }));
-		expect(reopenedInbox.events).toContainEqual(
-			expect.objectContaining({
-				action: "comment.updated",
-				meta: expect.objectContaining({ threadId: root.id, resolved: false }),
-			}),
-		);
 	});
 
 	test("a root with replies cannot be deleted, and a reply can be deleted", async () => {
@@ -111,18 +92,6 @@ describe("comment threads", () => {
 		const { result } = await h.as(navid)((ctx, tx) => comments.thread(ctx, tx, { id: root.id }));
 		expect(result.root.id).toBe(root.id);
 	});
-});
-
-test("an inbox reply includes its root after the root activity cursor is consumed", async () => {
-	const ticket = await seed();
-	const { result: root } = await create(ticket, "Original question");
-	await h.as(navid)((ctx, tx) => inbox(ctx, tx, { project: "CDE" }));
-	const { result: reply } = await create(ticket, "New answer", root.id);
-	const { result } = await h.as(navid)((ctx, tx) => inbox(ctx, tx, { project: "CDE" }));
-	expect(result.comments).toContainEqual(
-		expect.objectContaining({ id: root.id, body: "Original question", parentId: null }),
-	);
-	expect(result.comments).toContainEqual(expect.objectContaining({ id: reply.id, parentId: root.id }));
 });
 
 test("a brief includes the root context of a recent reply outside its last ten comments", async () => {

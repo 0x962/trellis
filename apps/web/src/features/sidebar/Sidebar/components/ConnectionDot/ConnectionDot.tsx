@@ -22,7 +22,7 @@ export function ConnectionDot({ status }: ConnectionDotProps) {
 			role="img"
 			aria-label={look.label}
 			title={look.label}
-			className={cx("inline-block size-1.75 shrink-0 rounded-full transition-colors duration-hover", look.color)}
+			className={cx("inline-block size-1.75 shrink-0 rounded-sm transition-colors duration-hover", look.color)}
 		/>
 	);
 }

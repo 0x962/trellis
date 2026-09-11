@@ -56,17 +56,6 @@ const seedEveryTable = async () => {
 	await linkPr(h.db, ticket, pr, navid);
 	await seedActivity(h.db, { rootId, projectId: rootId, ticketId: ticket });
 	await insertRow(h.db, "settings", { key: "actor.default", value: { name: "navid" }, updated_at: new Date() });
-	await insertRow(h.db, "agent_sessions", {
-		id: ulid(),
-		project_id: rootId,
-		role: "manager",
-		runner: "superset",
-		state: "running",
-		title: "CDE manager",
-		created_at: new Date(),
-		updated_at: new Date(),
-	});
-	await insertRow(h.db, "agent_cursors", { project_id: rootId, activity_id: 1, updated_at: new Date() });
 	return { rootId, ticket };
 };
 

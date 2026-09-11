@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
-import { defaultEnv, lines, makeDeps, runCli } from "../../test/deps.ts";
+import { join } from "node:path";
+import { defaultEnv, makeDeps, runCli } from "../../test/deps.ts";
 import { launchctlCalls, setup, temp } from "../../test/installEnv.ts";
 import { cliEntry, repoRoot } from "../../test/process.ts";
 
@@ -135,7 +135,7 @@ describe("install", () => {
 		};
 		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env, which });
 		expect(result.code, result.stderr).toBe(0);
-		expect(asked).toEqual(["bun", "superset"]);
+		expect(asked).toEqual(["bun"]);
 		const text = readFileSync(plist, "utf8");
 		expect(text).toContain("<array>\n\t\t<string>/stable/bin/bun</string>");
 		expect(text).toContain("<key>PATH</key>\n\t\t<string>/stable/bin:");
@@ -151,53 +151,6 @@ describe("install", () => {
 		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env, which });
 		expect(result.code, result.stderr).toBe(0);
 		expect(readFileSync(shim, "utf8")).toBe(`#!/bin/sh\nexec "/Users/me/.bun/bin/bun" "${cliEntry}" "$@"\n`);
-	});
-
-	// launchd starts the server with a PATH that holds only the bun directory
-	// and the system directories. The Superset CLI sits in ~/.superset/bin, so
-	// the plist names it by the path that `which` finds. That path is a
-	// symlink, and an update of the Superset CLI moves its target.
-	test("the plist names the superset path that which finds on PATH, with no symlink resolved", async () => {
-		const { prefix, env, plist } = setup();
-		const dir = temp("superset");
-		const target = join(dir, "superset-1.27");
-		const link = join(dir, "bin", "superset");
-		writeFileSync(target, "#!/bin/sh\n");
-		mkdirSync(dirname(link));
-		symlinkSync(target, link);
-		const which = (name: string) => (name === "superset" ? link : "/stable/bin/bun");
-		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env, which });
-		expect(result.code, result.stderr).toBe(0);
-		const text = readFileSync(plist, "utf8");
-		expect(text).toContain(`<key>TRELLIS_SUPERSET_BIN</key>\n\t\t<string>${link}</string>`);
-		expect(text).not.toContain(target);
-	});
-
-	test("without superset on PATH the plist sets no TRELLIS_SUPERSET_BIN and install prints one line about agents", async () => {
-		const { prefix, env, plist } = setup();
-		const which = (name: string) => (name === "bun" ? "/stable/bin/bun" : null);
-		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env, which });
-		expect(result.code, result.stderr).toBe(0);
-		expect(readFileSync(plist, "utf8")).not.toContain("TRELLIS_SUPERSET_BIN");
-		const warnings = lines(`${result.stdout}${result.stderr}`).filter((line) => line.includes("Superset CLI"));
-		expect(warnings).toHaveLength(1);
-		expect(warnings[0]).toContain("agents need the Superset CLI");
-	});
-
-	test("--superset-bin writes that path into the plist and skips the lookup", async () => {
-		const { prefix, env, plist } = setup();
-		const asked: string[] = [];
-		const which = (name: string) => {
-			asked.push(name);
-			return `/test/bin/${name}`;
-		};
-		const args = ["--superset-bin", "/opt/superset/bin/superset"];
-		const result = await runCli(["install", "--prefix", prefix, "--no-launchd", ...args], {}, { env, which });
-		expect(result.code, result.stderr).toBe(0);
-		expect(asked).toEqual(["bun"]);
-		expect(readFileSync(plist, "utf8")).toContain(
-			"<key>TRELLIS_SUPERSET_BIN</key>\n\t\t<string>/opt/superset/bin/superset</string>",
-		);
 	});
 
 	test("a bun that is not on PATH fails the install as INSTALL_FAILED", async () => {

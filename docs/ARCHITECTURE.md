@@ -442,7 +442,7 @@ is no shadcn and no Radix.
 
 - Type: Inter Variable with `cv11` and `ss01`, and `tnum` on ids, counts, and times. JetBrains Mono serves chips, branches, and code.
 - The type scale is 11, 12, 13, 14, 16, 20, and 24 px. The weights are 400, 500, and 600.
-- Spacing has a 4 px base. The radii are 4, 6, 8, and 12 px.
+- Spacing has a 4 px base. Controls and surfaces have square corners, including avatars, badges, and switch thumbs.
 - The tokens carry a light and a dark palette in `tokens.css`. Dark is the default, and an inline head script stamps `data-theme` before the first paint.
 - Dark mode swaps every shadow for a 1 px strong border.
 - Status by category: todo is a faint empty circle, started is a warning half ring, review is an accent dotted ring, done is a success filled check, and canceled is a faint cross.
