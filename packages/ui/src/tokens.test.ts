@@ -117,6 +117,11 @@ const keyframes = (pieces: ReturnType<typeof parseCss>, name: string) =>
 		.find((piece) => piece.prelude === `@keyframes ${name}`)!;
 
 describe("tokens.css", () => {
+	test("the peek minimum width uses 45 percent of the viewport", async () => {
+		const rule = findBlock(await tokens(), "@utility min-w-peek");
+		expect(rule.declarations["min-width"]).toBe("45vw");
+	});
+
 	test("a theme switch turns every transition off through data-theme-switch on html", async () => {
 		const rule = findBlock(await tokens(), "[data-theme-switch] *");
 		expect(rule.declarations["transition-duration"]).toBe("0ms");
