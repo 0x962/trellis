@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { Scheduler } from "@trellis/api";
 import { useCommandStore } from "../src/features/command/commandStore";
 import { useShortcutHelpStore } from "../src/features/command/ShortcutHelp";
@@ -31,8 +31,10 @@ export const resetStores = () => {
 	useUiStore.setState(createUiStore().getState());
 };
 
-// Renders the whole app over the seeded server with an identity, and
-// waits for the shell to paint.
+// Renders the whole app over the seeded server with an identity, and waits
+// for the shell to paint. The empty frame the root paints while it loads
+// carries a sidebar of its own, so the wait is for the marker the loaded
+// shell draws beside its keyboard.
 export const renderShell = async (options: ShellOptions = {}) => {
 	const wired = renderApp({
 		path: options.path ?? "/p/CDE",
@@ -41,6 +43,9 @@ export const renderShell = async (options: ShellOptions = {}) => {
 		scheduler: options.scheduler,
 	});
 	await screen.findByRole("complementary", { name: "Sidebar" });
+	await waitFor(() => {
+		if (document.querySelector("[data-command-palette]") === null) throw new Error("The shell has not loaded.");
+	});
 	return wired;
 };
 
