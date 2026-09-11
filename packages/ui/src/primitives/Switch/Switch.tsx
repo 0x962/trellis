@@ -34,7 +34,7 @@ export function Switch({ label, checked, onCheckedChange, disabled = false, clas
 					"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 				)}
 			>
-				<BaseSwitch.Thumb className="size-3 rounded-full bg-surface shadow-sm transition-transform duration-hover ease-out data-checked:translate-x-3" />
+				<BaseSwitch.Thumb className="size-3 rounded-sm bg-surface shadow-sm transition-transform duration-hover ease-out data-checked:translate-x-3" />
 			</BaseSwitch.Root>
 			<Field.Label>{label}</Field.Label>
 		</Field.Root>

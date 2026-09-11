@@ -20,8 +20,7 @@ const initials = (name: string) =>
 		.map((word) => word.charAt(0).toUpperCase())
 		.join("");
 
-// An 18 px actor mark. A human is a circle with initials. An agent is a
-// rounded square with the bot glyph, so the two kinds never look alike.
+// Initials identify a human; the bot glyph identifies an agent.
 export function Avatar({ kind, name, live = false, className }: AvatarProps) {
 	return (
 		<span
@@ -31,7 +30,7 @@ export function Avatar({ kind, name, live = false, className }: AvatarProps) {
 				"relative inline-grid size-4.5 shrink-0 place-items-center select-none",
 				kind === "agent"
 					? "rounded-sm border border-agent bg-agent-soft text-agent"
-					: "rounded-full bg-fg-muted text-surface text-initials font-semibold",
+					: "rounded-sm bg-fg-muted text-surface text-initials font-semibold",
 				className,
 			)}
 		>
@@ -39,7 +38,7 @@ export function Avatar({ kind, name, live = false, className }: AvatarProps) {
 			{live && (
 				<span
 					data-live=""
-					className="absolute -top-0.75 -right-0.75 size-1.75 rounded-full border-2 border-surface bg-success animate-pulse-live motion-reduce:animate-none"
+					className="absolute -top-0.75 -right-0.75 size-1.75 rounded-sm border-2 border-surface bg-success animate-pulse-live motion-reduce:animate-none"
 				/>
 			)}
 		</span>

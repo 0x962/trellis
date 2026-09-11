@@ -8,7 +8,7 @@ describe("ActorChip", () => {
 		const { container } = render(<ActorChip name="navid" kind="human" />);
 		const avatar = screen.getByLabelText("navid");
 		expect(avatar.textContent).toBe("N");
-		expectClasses(avatar, "rounded-full");
+		expectClasses(avatar, "rounded-sm");
 		expectClasses(screen.getByText("navid"), "font-medium text-fg");
 		expect(container.textContent).not.toContain("· agent");
 	});

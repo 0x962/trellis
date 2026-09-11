@@ -1,9 +1,6 @@
-import { type ActorRef, formatEventId, parseEventId, type TrellisEvent } from "@trellis/api";
+import { formatEventId, parseEventId, type TrellisEvent } from "@trellis/api";
 
-// `actor` is the actor of the call whose commit emitted the event, and null
-// for an event that no call made, such as a poller change. It stays inside
-// the process: the SSE stream sends the event alone.
-export type BusEntry = { id: string; seq: number; event: TrellisEvent; actor: ActorRef | null };
+export type BusEntry = { id: string; seq: number; event: TrellisEvent };
 
 // `types` holds exact event names and `prefix.*` forms. `projectIds` and
 // `ticketIds` hold the rows an SSE client scoped to. An event passes a scope
@@ -74,10 +71,10 @@ export const createBus = ({ bootId }: { bootId: string }) => {
 	const subscribers = new Map<symbol, { fn: Subscriber; filter: BusFilter }>();
 	let nextSeq = 0;
 
-	const emit = (event: TrellisEvent, actor: ActorRef | null = null): BusEntry => {
+	const emit = (event: TrellisEvent): BusEntry => {
 		const seq = nextSeq;
 		nextSeq += 1;
-		const entry: BusEntry = { id: formatEventId({ bootId, seq }), seq, event, actor };
+		const entry: BusEntry = { id: formatEventId({ bootId, seq }), seq, event };
 		ring.push(entry);
 		if (ring.length > RING_SIZE) ring.shift();
 		for (const { fn, filter } of subscribers.values()) {

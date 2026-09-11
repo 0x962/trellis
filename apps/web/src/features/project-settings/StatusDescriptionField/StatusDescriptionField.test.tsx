@@ -29,6 +29,12 @@ const todoOf = async (server: FakeServer) =>
 	(await server.client.statuses.list({ project: "CDE" })).statuses.find((status) => status.slug === "todo")!;
 
 describe("StatusDescriptionField", () => {
+	test("explains status descriptions as ticket workflow guidance", async () => {
+		await mount(createFakeServer());
+		await field("Todo");
+		expect(screen.getAllByText("Markdown. Describe when to use this status.")).toHaveLength(6);
+	});
+
 	test("shows the stored description under each status", async () => {
 		const server = createFakeServer();
 		const todo = await todoOf(server);

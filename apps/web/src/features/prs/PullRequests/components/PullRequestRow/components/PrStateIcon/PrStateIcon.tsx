@@ -28,7 +28,7 @@ export function PrStateIcon({ state, isDraft }: PrStateIconProps) {
 		<span
 			data-pr-state={key}
 			title={label}
-			className={cx("inline-flex size-5 shrink-0 items-center justify-center rounded-full", tone)}
+			className={cx("inline-flex size-5 shrink-0 items-center justify-center rounded-sm", tone)}
 		>
 			<Icon className="size-3.5" aria-hidden={true} />
 			<span className="sr-only">{label}</span>

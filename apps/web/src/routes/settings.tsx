@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SectionHeader } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
-import { AgentsSettings } from "../features/settings/AgentsSettings";
 import { DiffTemplateField } from "../features/settings/DiffTemplateField";
 import { GhBanner } from "../features/settings/GhBanner";
 import { PairPhone } from "../features/settings/PairPhone";
@@ -10,7 +9,6 @@ import { StalledThresholdField } from "../features/settings/StalledThresholdFiel
 import { ThemeField } from "../features/settings/ThemeField";
 import { Topbar } from "../features/shell/Topbar";
 
-// AgentsSettings loads its own data. Its section sits last so that data arrival keeps the other sections in place.
 export const Route = createFileRoute("/settings")({
 	loader: ({ context }) =>
 		Promise.all([
@@ -55,11 +53,6 @@ const sections: SettingsSection[] = [
 				<PairPhone />
 			</>
 		),
-	},
-	{
-		id: "manager",
-		title: "Agent manager",
-		rows: <AgentsSettings />,
 	},
 ];
 

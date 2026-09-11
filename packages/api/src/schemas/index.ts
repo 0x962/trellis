@@ -1,6 +1,5 @@
 export * from "./activity.ts";
 export * from "./actor.ts";
-export * from "./agent.ts";
 export * from "./attachment.ts";
 export * from "./brief.ts";
 export * from "./comment.ts";

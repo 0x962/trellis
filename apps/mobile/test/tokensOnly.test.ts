@@ -70,4 +70,15 @@ describe("tokens only", () => {
 		}
 		expect(violations).toEqual([]);
 	});
+
+	test("native corners use the square radius tokens", async () => {
+		const violations: string[] = [];
+		for (const file of sources().filter((file) => file !== "src/components/StatusIcon/StatusIcon.tsx")) {
+			const source = await Bun.file(join(root, file)).text();
+			for (const match of source.matchAll(/\bborder(?:[A-Z]\w*)?Radius\s*:\s*([^,}\n]+)/g)) {
+				if (!/^tokens\.radius\.\w+$/.test(match[1]!.trim())) violations.push(`${file}: ${match[0]}`);
+			}
+		}
+		expect(violations).toEqual([]);
+	});
 });
