@@ -18,7 +18,9 @@ const linkClass =
 // segment links to its project; a separator sits between them. The topbar
 // title slot shrinks and the view switch beside it does not, so every box
 // between the slot and the heading carries `min-w-0`. The heading then
-// truncates before it reaches the switch.
+// truncates before it reaches the switch. Below 640 px the bar has no room
+// for both, so the key chip beside the heading leaves and the name keeps
+// the width. The heading names the same project the chip does.
 export function Breadcrumb({ path, current }: BreadcrumbProps) {
 	const segments = path.split(".");
 	const linked = current === undefined ? segments : segments.slice(0, -1);
@@ -44,7 +46,7 @@ export function Breadcrumb({ path, current }: BreadcrumbProps) {
 					<>
 						{linked.length > 0 && <Separator />}
 						<li className="flex min-w-0 items-center gap-2">
-							{segments.length === 1 && <ProjectKey projectKey={own} />}
+							{segments.length === 1 && <ProjectKey projectKey={own} className="max-sm:hidden" />}
 							<h1 className="truncate text-lg font-semibold text-fg">{current}</h1>
 						</li>
 					</>

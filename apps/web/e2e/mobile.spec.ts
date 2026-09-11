@@ -159,6 +159,47 @@ test("the board title ends before the view switch at 390 px", async ({ page }) =
 	expect(await sidewaysScroll(page)).toEqual({ page: 0, main: 0 });
 });
 
+// The room the heading box gives the project name, against the room the
+// first `count` characters and the ellipsis need. A truncating box keeps
+// room for the ellipsis, so the name shows `count` characters only when the
+// box holds both. The probe measures the text with the heading's own
+// computed font, so it reads the same glyphs the browser paints.
+const headingRoom = (title: Locator, count: number) =>
+	title.evaluate((heading: HTMLElement, chars: number) => {
+		const style = getComputedStyle(heading);
+		const context = document.createElement("canvas").getContext("2d")!;
+		context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+		return {
+			has: heading.getBoundingClientRect().width,
+			needs: context.measureText(heading.textContent!.slice(0, chars)).width + context.measureText("…").width,
+		};
+	}, count);
+
+// TRL-45. The phone topbar packed a toggle, a project key chip, the title,
+// a two-segment view switch, and New ticket into 390 px, and the title
+// truncated to one glyph. The name carries the page, so the bar gives it
+// room for at least 8 characters. A phone drives a coarse pointer, which
+// draws the sidebar toggle at 44 px and takes 16 px more from the bar than
+// a mouse does, so the measurement runs under that pointer.
+test.describe("on a phone pointer", () => {
+	test.use({ hasTouch: true, isMobile: true });
+
+	test("the board title shows at least 8 characters at 390 px", async ({ page }) => {
+		await signIn(page, "/p/LNG");
+		const title = page.getByRole("heading", { level: 1, name: "Long project name for a narrow phone bar" });
+		await expect(title).toBeVisible();
+		const room = await headingRoom(title, 8);
+		expect(room.needs).toBeGreaterThan(0);
+		expect(room.has).toBeGreaterThanOrEqual(room.needs);
+		// The room comes out of the bar, so both controls beside the title stay.
+		const bar = page.locator("header");
+		await expect(bar.getByRole("radio", { name: "Table" })).toBeVisible();
+		await expect(bar.getByRole("radio", { name: "Board" })).toBeVisible();
+		await expect(bar.getByRole("button", { name: "New ticket c" })).toBeVisible();
+		expect(await sidewaysScroll(page)).toEqual({ page: 0, main: 0 });
+	});
+});
+
 // TRL-28 and TRL-31. Below 768 px the search row takes the table's phone
 // treatment: one cell over the whole row, and the title on its own line, so
 // the title keeps the room the fixed columns took.
