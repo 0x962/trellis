@@ -17,7 +17,7 @@ beforeEach(() => {
 const ready = async () => {
 	const server = createFakeServer();
 	seedTickets(server, { project: "CDE", count: 977 });
-	const app = renderApp({ path: "/p/CDE?status=todo", actor: "navid", server });
+	const app = renderApp({ path: "/p/CDE/table?status=todo", actor: "navid", server });
 	await findGrid();
 	await waitFor(() => expect(grid().getAttribute("aria-rowcount")).toBe("1000"), { timeout: 15_000 });
 	return app;

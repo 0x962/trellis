@@ -1,7 +1,6 @@
 import type { AgentSession } from "@trellis/api";
 import { relativeTime } from "../../../../../lib/format";
 import { AgentStateBadge } from "../../../AgentStateBadge";
-import { OpenInSuperset } from "../../../OpenInSuperset";
 
 export type SessionRowProps = {
 	session: AgentSession;
@@ -24,7 +23,6 @@ export function SessionRow({ session }: SessionRowProps) {
 				<span className="ml-auto text-fg-faint tabular">
 					{session.lastWokenAt === null ? "No batch yet" : `Last batch ${relativeTime(session.lastWokenAt)}`}
 				</span>
-				{session.openUrl !== null && <OpenInSuperset url={session.openUrl} />}
 			</div>
 			{session.error !== null && <p className="text-danger text-sm">{session.error}</p>}
 		</li>

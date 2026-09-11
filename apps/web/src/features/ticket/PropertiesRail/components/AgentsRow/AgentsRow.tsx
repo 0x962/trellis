@@ -6,7 +6,6 @@ import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { AgentFailure } from "../../../../agent/AgentFailure";
 import { AgentStateBadge } from "../../../../agent/AgentStateBadge";
-import { OpenInSuperset } from "../../../../agent/OpenInSuperset";
 import { runnerRefusal } from "../../../../agent/utils/runnerRefusal";
 import { Row } from "../Row";
 
@@ -72,7 +71,6 @@ export function AgentsRow({ identifier }: AgentsRowProps) {
 								<span className="text-fg-muted">{roleLabels[session.role]}</span>
 								<AgentStateBadge state={session.state} />
 								{session.state === "failed" && <AgentFailure id={session.id} error={session.error} />}
-								{session.openUrl !== null && <OpenInSuperset url={session.openUrl} />}
 							</li>
 						))}
 					</ul>

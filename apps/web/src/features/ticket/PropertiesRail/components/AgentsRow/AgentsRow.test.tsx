@@ -40,7 +40,7 @@ describe("AgentsRow", () => {
 		expect(order.indexOf("Agents")).toBe(order.indexOf("Updated") + 1);
 	});
 
-	test("lists the builder and the reviewer with their names, their states, and Open in Superset", async () => {
+	test("lists the builder and the reviewer with their names and their states", async () => {
 		const server = createFakeServer();
 		addSession(server, { role: "builder", createdAt: new Date(Date.now() - 10 * minute).toISOString() });
 		addSession(server, {
@@ -51,13 +51,7 @@ describe("AgentsRow", () => {
 		});
 		mount(server);
 		const rows = await items();
-		expect(rows.map((row) => row.textContent)).toEqual([
-			"KenjiBuilderRunningOpen in Superset",
-			"NadiaReviewerWaitingOpen in Superset",
-		]);
-		expect(within(rows[1]!).getByRole("link", { name: "Open in Superset" }).getAttribute("href")).toBe(
-			"superset://workspace/ws-1?terminal=term-2",
-		);
+		expect(rows.map((row) => row.textContent)).toEqual(["KenjiBuilderRunning", "NadiaReviewerWaiting"]);
 	});
 
 	test("offers Start builder when no builder runs, and starts one", async () => {
@@ -76,7 +70,7 @@ describe("AgentsRow", () => {
 		expect(server.callsTo("agents.startBuilder")[0]!.input).toEqual({ ticket: "CDE-42" });
 		await waitFor(async () =>
 			// The fake server hands a new agent the first free name of the pool.
-			expect((await items()).map((row) => row.textContent)).toEqual(["AaravBuilderStartingOpen in Superset"]),
+			expect((await items()).map((row) => row.textContent)).toEqual(["AaravBuilderStarting"]),
 		);
 		expect(await startButton()).toBeNull();
 	});
@@ -125,9 +119,7 @@ describe("AgentsRow", () => {
 		await items();
 		expect(await startButton()).toBeNull();
 		createEventApplier(queryClient).applyEvent(updateSession(server, builder.id, { state: "exited" }));
-		await waitFor(async () =>
-			expect((await items()).map((row) => row.textContent)).toEqual(["KenjiBuilderExitedOpen in Superset"]),
-		);
+		await waitFor(async () => expect((await items()).map((row) => row.textContent)).toEqual(["KenjiBuilderExited"]));
 		expect(await startButton()).not.toBeNull();
 	});
 

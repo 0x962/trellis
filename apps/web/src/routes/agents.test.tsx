@@ -41,7 +41,6 @@ describe("routes/agents", () => {
 		// The fixtures name the manager Amara and the builder Kenji.
 		expect(sessions.getByText("Amara")).toBeDefined();
 		expect(sessions.getByText("Kenji")).toBeDefined();
-		expect(sessions.getAllByRole("link", { name: "Open in Superset" })).toHaveLength(1);
 		expect(document.getElementById(failed.id)).not.toBeNull();
 
 		const actions = within(screen.getByRole("list", { name: "Agent actions" }));

@@ -54,8 +54,15 @@ const countsOptions = (context: AppContext, ref: string, search: Partial<View>, 
 export const Route = createFileRoute("/p/$")({
 	validateSearch: (search: Record<string, unknown>) => stripDefaults(parseSearch(search)),
 	beforeLoad: ({ location, params, search }) => {
+		// The board is the bare path now. An older link that ends in /board
+		// still works: it lands on the same view with the segment dropped.
+		const splat = params._splat ?? "";
+		const withoutBoard = splat.replace(/\/board$/i, "");
+		if (withoutBoard !== splat) {
+			throw redirect({ to: "/p/$", params: { _splat: withoutBoard }, search, replace: true });
+		}
 		if (!isCanonicalSearch(location.searchStr, search)) {
-			throw redirect({ to: "/p/$", params: { _splat: params._splat ?? "" }, search, replace: true });
+			throw redirect({ to: "/p/$", params: { _splat: splat }, search, replace: true });
 		}
 	},
 	loaderDeps: ({ search }) => search,

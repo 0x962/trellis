@@ -34,7 +34,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// Outcome 89. w-160 is 640 px on the 4 px scale. The seed template
 	// starts with "## Goal", so the read-only view shows that heading.
 	test("opens at 640 px with the title focused and the template rendered read-only", async () => {
-		const { dialog, title } = await open("/p/CDE");
+		const { dialog, title } = await open("/p/CDE/table");
 		expect(dialog.className).toMatch(/\bw-160\b/);
 		await waitFor(() => expect(document.activeElement).toBe(title()));
 		expect(within(dialog).getByRole("heading", { name: "Goal" })).toBeDefined();
@@ -44,7 +44,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// Outcome 90
 	test("mounts the editor on the first focus of the description", async () => {
 		const user = userEvent.setup();
-		const { dialog } = await open("/p/CDE");
+		const { dialog } = await open("/p/CDE/table");
 		await user.click(within(dialog).getByRole("button", { name: /description/i }));
 		await waitFor(() => expect(dialog.querySelector('.ProseMirror[contenteditable="true"]')).not.toBeNull(), {
 			timeout: 5000,
@@ -55,7 +55,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// Outcome 94
 	test("blocks the create on /all until a project is chosen", async () => {
 		const user = userEvent.setup();
-		const { server, chip, title } = await open("/all");
+		const { server, chip, title } = await open("/all/table");
 		expect(chip(/^project/i).textContent).toMatch(/choose|pick|select/i);
 		expect(chip(/^project/i).textContent).not.toMatch(/CDE|TRL|MRG/);
 		await user.type(title(), "Needs a home");
@@ -76,7 +76,7 @@ describe("features/composer/CreateTicketDialog", () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
 		const hold = server.holdNext("tickets.create");
-		const { dialog, title } = await open("/p/CDE", {}, server);
+		const { dialog, title } = await open("/p/CDE/table", {}, server);
 		await user.type(title(), "Only once");
 		await user.keyboard("{Meta>}{Enter}{/Meta}");
 		await user.keyboard("{Meta>}{Enter}{/Meta}");
@@ -95,7 +95,7 @@ describe("features/composer/CreateTicketDialog", () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
 		server.failNext("tickets.create", { code: "INPUT_VALIDATION_FAILED" });
-		const { title } = await open("/p/CDE", {}, server);
+		const { title } = await open("/p/CDE/table", {}, server);
 		await user.type(title(), "Refused once");
 		await user.keyboard("{Meta>}{Enter}{/Meta}");
 		const toast = await toastWith(/The ticket did not save/);
@@ -109,7 +109,7 @@ describe("features/composer/CreateTicketDialog", () => {
 
 	// The server takes a title of 500 characters at most.
 	test("the title field takes 500 characters at most", async () => {
-		const { title } = await open("/p/CDE");
+		const { title } = await open("/p/CDE/table");
 		expect(title().maxLength).toBe(500);
 	});
 
@@ -118,7 +118,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// project default, Todo. The single priority filter seeds the priority.
 	test("creates with the view defaults and closes on Cmd+Enter", async () => {
 		const user = userEvent.setup();
-		const { server, dialog, title } = await open("/p/CDE?status=in-progress&priority=high");
+		const { server, dialog, title } = await open("/p/CDE/table?status=in-progress&priority=high");
 		await user.type(title(), "Ship the table");
 		await user.keyboard("{Meta>}{Enter}{/Meta}");
 		await waitFor(() => expect(created(server)).toHaveLength(1));
@@ -136,7 +136,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// Outcome 96
 	test("creates and keeps the dialog open on Cmd+Shift+Enter", async () => {
 		const user = userEvent.setup();
-		const { server, dialog, chip, title } = await open("/p/CDE?priority=high", { status: "in-progress" });
+		const { server, dialog, chip, title } = await open("/p/CDE/table?priority=high", { status: "in-progress" });
 		const chips = () =>
 			[chip(/^project/i), chip(/^status/i), chip(/^priority/i), chip(/^parent/i)].map((c) => c.textContent);
 		const before = chips();
@@ -160,7 +160,7 @@ describe("features/composer/CreateTicketDialog", () => {
 		const todo = statuses.find((status) => status.slug === "todo")!;
 		await server.client.statuses.update({ project: "CDE", status: todo.id, isDefault: false });
 		await server.client.statuses.update({ project: "CDE", status: started.id, isDefault: true });
-		renderApp({ path: "/p/CDE?status=human-review", actor: "navid", server });
+		renderApp({ path: "/p/CDE/table?status=human-review", actor: "navid", server });
 		await findGrid();
 		await user.keyboard("c");
 		const dialog = await screen.findByRole("dialog", { name: /new ticket/i });
@@ -179,7 +179,7 @@ describe("features/composer/CreateTicketDialog", () => {
 		const review = mrg.find((status) => status.slug === "agent-review")!;
 		const todo = mrg.find((status) => status.slug === "todo")!;
 		await server.client.statuses.delete({ project: "MRG", status: review.id, moveTo: todo.id });
-		const { chip, title } = await open("/p/CDE", { status: "agent-review" }, server);
+		const { chip, title } = await open("/p/CDE/table", { status: "agent-review" }, server);
 		await waitFor(() => expect(chip(/^status/i).textContent).toContain("Agent Review"));
 		await user.click(chip(/^project/i));
 		await user.click(await screen.findByRole("option", { name: /TRL/ }));
@@ -198,7 +198,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// new row lands there, and the response alone puts it in the cache.
 	test("puts the created ticket into the table without a refetch", async () => {
 		const user = userEvent.setup();
-		const { server, title } = await open("/p/CDE?status=in-progress", { status: "in-progress" });
+		const { server, title } = await open("/p/CDE/table?status=in-progress", { status: "in-progress" });
 		const before = listCalls(server).length;
 		await user.type(title(), "Straight into the group");
 		await user.keyboard("{Meta>}{Enter}{/Meta}");
@@ -212,7 +212,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// Outcome 100
 	test("closes an empty composer without a question", async () => {
 		const user = userEvent.setup();
-		const { dialog } = await open("/p/CDE");
+		const { dialog } = await open("/p/CDE/table");
 		await user.keyboard("{Escape}");
 		await waitFor(() => expect(dialog.isConnected).toBe(false));
 		expect(screen.queryByRole("dialog", { name: /discard/i })).toBeNull();
@@ -221,7 +221,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// product.md 6.1: Esc asks to discard only when the composer holds text.
 	test("asks before it closes a composer with text", async () => {
 		const user = userEvent.setup();
-		const { dialog, title } = await open("/p/CDE");
+		const { dialog, title } = await open("/p/CDE/table");
 		await user.type(title(), "Half written");
 		await user.keyboard("{Escape}");
 		expect(await screen.findByRole("dialog", { name: /discard/i })).toBeDefined();

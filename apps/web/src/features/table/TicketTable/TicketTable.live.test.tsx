@@ -30,7 +30,7 @@ beforeEach(() => {
 });
 
 // Human Review: CDE-42, then CDE-37.
-const review = "/p/CDE?status=human-review";
+const review = "/p/CDE/table?status=human-review";
 
 const summaryOf = async (server: FakeServer, identifier: string) => {
 	const { items } = await server.client.tickets.list({ project: "CDE", limit: 200 });
@@ -59,7 +59,7 @@ describe("features/table/TicketTable: live events", () => {
 
 	// Outcome 102. The Todo group of /p/CDE shows the first rows.
 	test("keeps the fixed row heights through a burst of live patches", async () => {
-		const { server, queryClient } = renderApp({ path: "/p/CDE", actor: "navid" });
+		const { server, queryClient } = renderApp({ path: "/p/CDE/table", actor: "navid" });
 		await findGrid();
 		await waitFor(() => expect(rows().length).toBeGreaterThan(10));
 		const height = spacer().style.height;
@@ -78,7 +78,7 @@ describe("features/table/TicketTable: live events", () => {
 
 	// Outcome 103
 	test("regroups a row and updates the counts when a status event arrives", async () => {
-		const { server, queryClient } = renderApp({ path: "/p/CDE?status=in-progress,human-review", actor: "navid" });
+		const { server, queryClient } = renderApp({ path: "/p/CDE/table?status=in-progress,human-review", actor: "navid" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-42"));
 		expect(groupCount("in-progress")).toBe("4");
@@ -95,7 +95,7 @@ describe("features/table/TicketTable: live events", () => {
 
 	// Outcome 104. The coalescer trails 250 ms; one flush, one refetch.
 	test("adds a created ticket through the coalesced invalidation", async () => {
-		const { server, queryClient } = renderApp({ path: "/p/CDE?status=in-progress", actor: "navid" });
+		const { server, queryClient } = renderApp({ path: "/p/CDE/table?status=in-progress", actor: "navid" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-44"));
 		const before = listCalls(server).length;

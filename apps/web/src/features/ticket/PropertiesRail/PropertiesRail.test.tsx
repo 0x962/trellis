@@ -18,7 +18,7 @@ beforeEach(() => {
 
 const rowOrder = ["Status", "Priority", "Project", "Parent", "Sub-tickets", "Branch", "Created", "Updated"];
 
-const mount = (identifier = "CDE-42", server: FakeServer = createFakeServer(), path = "/p/CDE") =>
+const mount = (identifier = "CDE-42", server: FakeServer = createFakeServer(), path = "/p/CDE/table") =>
 	renderTicket(identifier, (ticket) => <PropertiesRail ticket={ticket} variant="page" />, { path, server });
 
 const rail = () => screen.findByLabelText("Properties");

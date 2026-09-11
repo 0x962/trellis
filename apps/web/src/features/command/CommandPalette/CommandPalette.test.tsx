@@ -214,7 +214,7 @@ describe("features/command/CommandPalette", () => {
 	// CP-17, CK-1. New sub-ticket lives in This ticket only, so no two rows
 	// open the same dialog.
 	test("the Create section adds the sub-project item on a project route", async () => {
-		await renderShell({ path: "/p/CDE" });
+		await renderShell({ path: "/p/CDE/table" });
 		act(() => commandActions.setPeekTicket("CDE-42"));
 		await openPalette();
 		expect(itemsOf("Create")).toHaveLength(3);

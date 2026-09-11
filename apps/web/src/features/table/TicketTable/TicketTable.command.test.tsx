@@ -17,7 +17,7 @@ describe("features/table/TicketTable: command context", () => {
 	// The palette's This ticket section acts on the focused row, and its
 	// Selection section on the selected rows.
 	test("the focused row and the selection reach the command palette", async () => {
-		renderApp({ path: "/p/CDE", actor: "navid" });
+		renderApp({ path: "/p/CDE/table", actor: "navid" });
 		await findGrid();
 		await waitFor(() => expect(rows().length).toBeGreaterThan(1));
 		const second = rows()[1]!;
