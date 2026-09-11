@@ -44,7 +44,19 @@ const AncestorSchema = ProjectLinkSchema.extend({
 
 // `statuses` is the effective set: the project's own, or the nearest
 // ancestor's, named by `statusesInheritedFrom`.
+export const ProjectManagerConfigSchema = z.strictObject({
+	personaId: UlidSchema.nullable(),
+	concurrency: z.number().int().min(1).max(64),
+	directory: z
+		.string()
+		.trim()
+		.refine((value) => value === "" || value.startsWith("/"), "Use an absolute directory path."),
+});
+export type ProjectManagerConfig = z.infer<typeof ProjectManagerConfigSchema>;
+export const DEFAULT_PROJECT_MANAGER_CONFIG: ProjectManagerConfig = { personaId: null, concurrency: 3, directory: "" };
+
 export const ProjectSchema = ProjectSummarySchema.extend({
+	managerConfig: ProjectManagerConfigSchema.optional(),
 	description: z.string(),
 	ticketTemplate: z.string(),
 	ticketCounter: CountSchema,
@@ -87,6 +99,7 @@ export type ProjectCreateInput = z.input<typeof ProjectCreateInputSchema>;
 // `key` applies to a root and only while its ticket counter is zero; `slug`
 // applies to a sub-project, whose slug is its path segment.
 export const ProjectUpdateInputSchema = z.strictObject({
+	managerConfig: ProjectManagerConfigSchema.optional(),
 	project: ProjectRefStringSchema,
 	key: KeySchema.optional(),
 	name: ProjectNameSchema.optional(),

@@ -16,7 +16,6 @@ import { Route as NeedsYouRouteRouteImport } from './routes/needs-you/route'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SetupRouteImport } from './routes/setup'
-import { Route as AiAgentsRouteImport } from './routes/ai.agents'
 import { Route as AiPersonasRouteImport } from './routes/ai.personas'
 import { Route as AllTableRouteImport } from './routes/all_.table'
 import { Route as PSplatRouteRouteImport } from './routes/p/$/route'
@@ -57,11 +56,6 @@ const SetupRoute = SetupRouteImport.update({
   path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AiAgentsRoute = AiAgentsRouteImport.update({
-  id: '/ai/agents',
-  path: '/ai/agents',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AiPersonasRoute = AiPersonasRouteImport.update({
   id: '/ai/personas',
   path: '/ai/personas',
@@ -93,7 +87,6 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
-  '/ai/agents': typeof AiAgentsRoute
   '/ai/personas': typeof AiPersonasRoute
   '/all/table': typeof AllTableRoute
 }
@@ -107,7 +100,6 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
-  '/ai/agents': typeof AiAgentsRoute
   '/ai/personas': typeof AiPersonasRoute
   '/all/table': typeof AllTableRoute
 }
@@ -122,7 +114,6 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
-  '/ai/agents': typeof AiAgentsRoute
   '/ai/personas': typeof AiPersonasRoute
   '/all_/table': typeof AllTableRoute
 }
@@ -138,7 +129,6 @@ export interface FileRouteTypes {
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
-    | '/ai/agents'
     | '/ai/personas'
     | '/all/table'
   fileRoutesByTo: FileRoutesByTo
@@ -152,7 +142,6 @@ export interface FileRouteTypes {
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
-    | '/ai/agents'
     | '/ai/personas'
     | '/all/table'
   id:
@@ -166,7 +155,6 @@ export interface FileRouteTypes {
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
-    | '/ai/agents'
     | '/ai/personas'
     | '/all_/table'
   fileRoutesById: FileRoutesById
@@ -181,7 +169,6 @@ export interface RootRouteChildren {
   SetupRoute: typeof SetupRoute
   PSplatRouteRoute: typeof PSplatRouteRoute
   TIdentifierRouteRoute: typeof TIdentifierRouteRoute
-  AiAgentsRoute: typeof AiAgentsRoute
   AiPersonasRoute: typeof AiPersonasRoute
   AllTableRoute: typeof AllTableRoute
 }
@@ -237,13 +224,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ai/agents': {
-      id: '/ai/agents'
-      path: '/ai/agents'
-      fullPath: '/ai/agents'
-      preLoaderRoute: typeof AiAgentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/ai/personas': {
       id: '/ai/personas'
       path: '/ai/personas'
@@ -285,7 +265,6 @@ const rootRouteChildren: RootRouteChildren = {
   SetupRoute: SetupRoute,
   PSplatRouteRoute: PSplatRouteRoute,
   TIdentifierRouteRoute: TIdentifierRouteRoute,
-  AiAgentsRoute: AiAgentsRoute,
   AiPersonasRoute: AiPersonasRoute,
   AllTableRoute: AllTableRoute,
 }

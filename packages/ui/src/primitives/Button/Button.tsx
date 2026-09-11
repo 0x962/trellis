@@ -11,6 +11,7 @@ export type ButtonProps = Omit<ComponentProps<typeof BaseButton>, "children" | "
 	className?: string;
 	variant?: ButtonVariant;
 	size?: ButtonSize;
+	align?: "center" | "start";
 	// A lucide icon element. It sits before the text at 14 px.
 	icon?: ReactElement;
 	// The shortcut occupies a full-height segment before the label.
@@ -27,7 +28,16 @@ const sizes: Record<ButtonSize, string> = {
 // bars, and headers, and md is 32 px, for dialogs, forms, and empty
 // states. Both are at least 28 px wide, and the hit-area layer brings both
 // to the 44 px minimum on a coarse pointer.
-export function Button({ variant = "default", size = "sm", icon, kbd, className, children, ...props }: ButtonProps) {
+export function Button({
+	variant = "default",
+	size = "sm",
+	align = "center",
+	icon,
+	kbd,
+	className,
+	children,
+	...props
+}: ButtonProps) {
 	const id = useId();
 	const labelId = `${id}-label`;
 	const shortcutId = `${id}-shortcut`;
@@ -60,7 +70,14 @@ export function Button({ variant = "default", size = "sm", icon, kbd, className,
 					{kbd}
 				</kbd>
 			)}
-			<span id={labelId} className={cx("inline-flex flex-1 items-center justify-center gap-1.5", kbd && padding)}>
+			<span
+				id={labelId}
+				className={cx(
+					"inline-flex flex-1 items-center gap-1.5",
+					align === "start" ? "justify-start" : "justify-center",
+					kbd && padding,
+				)}
+			>
 				{icon && (
 					<span aria-hidden="true" className="inline-flex size-3.5 shrink-0 *:size-full">
 						{icon}

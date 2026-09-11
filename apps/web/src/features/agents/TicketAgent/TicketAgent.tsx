@@ -1,14 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@trellis/ui";
-import { Bot, Plus } from "lucide-react";
+import { Bot } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentRunSheet } from "../AgentRunSheet";
-import { AgentStartSheet } from "../AgentStartSheet";
+import { PersonaPicker } from "./components/PersonaPicker";
 export function TicketAgent({ ticket, disabled = false }: { ticket: string; disabled?: boolean }) {
 	const { orpc } = useApp();
 	const query = useQuery(orpc.agentRuns.list.queryOptions({ input: { ticket }, retry: false }));
-	const [open, setOpen] = useState<"start" | "detail" | null>(null);
+	const [open, setOpen] = useState<"detail" | null>(null);
 	const active = query.data?.find(
 		(run) => run.state === "starting" || run.state === "interrupted" || run.state === "running",
 	);
@@ -30,24 +30,19 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 			) : (
 				<>
 					{latest && (
-						<Button variant="quiet" icon={<Bot />} className="justify-start" onClick={() => setOpen("detail")}>
+						<Button
+							variant="quiet"
+							align="start"
+							icon={<Bot />}
+							className="justify-start"
+							onClick={() => setOpen("detail")}
+						>
 							{latest.name} · {latest.state}
 						</Button>
 					)}
-					{!active && (
-						<Button
-							variant="quiet"
-							icon={<Plus />}
-							disabled={disabled}
-							className="justify-start"
-							onClick={() => setOpen("start")}
-						>
-							New agent
-						</Button>
-					)}
+					{!active && <PersonaPicker ticket={ticket} disabled={disabled} />}
 				</>
 			)}
-			{open === "start" && <AgentStartSheet ticket={ticket} onClose={() => setOpen(null)} />}
 			{open === "detail" && latest && <AgentRunSheet run={latest} onClose={() => setOpen(null)} />}
 		</section>
 	);

@@ -54,7 +54,9 @@ describe("features/sidebar/ProjectTree", () => {
 	test("project links show names without project codes or counts and indent children", async () => {
 		renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid" });
 		await screen.findByRole("link", { name: /Superset CDE/ });
-		const links = screen.getAllByRole("link").filter((link) => !["Tickets", "Settings"].includes(link.textContent!));
+		const links = screen
+			.getAllByRole("link")
+			.filter((link) => !["Tickets", "Manager", "Settings"].includes(link.textContent!));
 		const names = ["Superset CDE", "web", "host", "trellis", "margin"];
 		expect(links.map((link) => link.textContent)).toEqual(names);
 		for (const [index, name] of names.entries()) {
@@ -190,7 +192,7 @@ describe("features/sidebar/ProjectTree", () => {
 		await server.client.tickets.create({ project: "CDE.web", title: "One more" });
 		await queryClient.invalidateQueries({ queryKey: orpc.projects.list.key() });
 		expect(document.querySelector("[aria-busy=true]")).toBeNull();
-		expect(screen.getAllByRole("link")).toHaveLength(15);
+		expect(screen.getAllByRole("link")).toHaveLength(20);
 		expect(screen.getByRole("link", { name: /^web/ })).toBe(web);
 		expect(web.textContent).toBe("web");
 		expect(rootRow("Superset CDE").textContent).toBe("Superset CDE");

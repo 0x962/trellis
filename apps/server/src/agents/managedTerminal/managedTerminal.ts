@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 export const managedTerminal = (home: string) => {
@@ -24,6 +24,7 @@ export const managedTerminal = (home: string) => {
 		start: async (id: string, command: string, workDir: string, env: { url: string; actor: string }) => {
 			await mkdir(workDir, { recursive: true, mode: 0o700 });
 			const script = join(home, "agents", id, "launch.sh");
+			await mkdir(dirname(script), { recursive: true, mode: 0o700 });
 			await writeFile(
 				script,
 				`#!/bin/zsh\nexport TRELLIS_URL=${quote(env.url)}\nexport TRELLIS_ACTOR=${quote(env.actor)}\n${command}\n`,

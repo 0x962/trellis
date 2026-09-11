@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "manager_config" jsonb DEFAULT '{"personaId":null,"concurrency":3,"directory":""}'::jsonb NOT NULL;

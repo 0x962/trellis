@@ -145,3 +145,14 @@ describe("Button", () => {
 		expect(kbd.compareDocumentPosition(icon) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 });
+
+test("start alignment applies to the icon and label", () => {
+	render(
+		<Button align="start" icon={<Check />}>
+			New agent
+		</Button>,
+	);
+	const label = screen.getByRole("button", { name: "New agent" }).querySelector(":scope > span")!;
+	expect(label.classList.contains("justify-start")).toBe(true);
+	expect(label.classList.contains("justify-center")).toBe(false);
+});

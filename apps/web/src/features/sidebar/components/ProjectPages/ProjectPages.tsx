@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { cx } from "@trellis/ui";
-import { List, Settings } from "lucide-react";
+import { BriefcaseBusiness, List, Settings } from "lucide-react";
 import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectPath";
 
 // A page carries no chevron, so its padding adds that 20 px column to the
@@ -19,13 +19,15 @@ export function ProjectPages({
 	pathname: string;
 }) {
 	const current = projectRefOfPathname(pathname) === project.path;
+	const manager = pathname.endsWith("/settings/manager");
 	const settings = pathname.endsWith("/settings");
 	return (
 		<li>
 			<nav aria-label={`${project.name} pages`}>
 				<ul className="flex flex-col gap-0.5">
 					{[
-						{ label: "Tickets", suffix: "", icon: List, active: current && !settings },
+						{ label: "Tickets", suffix: "", icon: List, active: current && !settings && !manager },
+						{ label: "Manager", suffix: "/settings/manager", icon: BriefcaseBusiness, active: current && manager },
 						{ label: "Settings", suffix: "/settings", icon: Settings, active: current && settings },
 					].map(({ label, suffix, icon: Icon, active }) => (
 						<li key={label}>

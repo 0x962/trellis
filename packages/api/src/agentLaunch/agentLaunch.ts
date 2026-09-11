@@ -3,6 +3,8 @@ export const DEFAULT_AGENT_LAUNCH_COMMAND =
 export const AGENT_LAUNCH_VARIABLES = [
 	"superset",
 	"workDir",
+	"projectDir",
+	"concurrency",
 	"projectId",
 	"project",
 	"ticket",

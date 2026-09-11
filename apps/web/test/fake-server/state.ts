@@ -10,6 +10,7 @@ import {
 	type Persona,
 	type Priority,
 	type PrLinkSource,
+	type ProjectManagerConfig,
 	type PullRequest,
 	type Repo,
 	type Settings,
@@ -35,6 +36,7 @@ export type ProjectRow = {
 	position: number;
 	description: string;
 	ticketTemplate: string;
+	managerConfig?: ProjectManagerConfig;
 	ticketCounter: number;
 	createdAt: string;
 	updatedAt: string;
