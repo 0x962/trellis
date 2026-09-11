@@ -96,7 +96,7 @@ describe("agents host", () => {
 		await comment("Please add a test.");
 		await h.clock.advance(10_000);
 		expect(sent()).toEqual([
-			"trellis: 2 changes in CDE (CDE-1 created by dana, CDE-1 commented by dana). Run: trellis agents inbox --project CDE",
+			"trellis: 2 changes in CDE (CDE-1 created by dana, CDE-1 commented by dana). Run: trellis list --project CDE --json",
 		]);
 		expect(events.filter((event) => event.type === "agents.batch")).toEqual([
 			{ type: "agents.batch", projectId: project.id, count: 2 },

@@ -93,7 +93,8 @@ describe("ensureManager", () => {
 	test("an exited manager tab in the workspace gets a new tab that resumes the Claude session", async () => {
 		const first = await runner.ensureManager(manager);
 		stub.exit(first.terminalId);
-		const text = "trellis: the server restarted. Run: trellis agents inbox --project CDE";
+		const text =
+			"trellis: the server restarted. Run: trellis list --project CDE --json and trellis agents list --project CDE --json";
 		const second = await runner.ensureManager({ ...manager, claudeSessionId: "claude-1", text });
 		expect(second.started).toBe(true);
 		expect(second.terminalId).not.toBe(first.terminalId);

@@ -131,7 +131,7 @@ export const pointerText = (path: string, items: string[]) => {
 	const shown = items.slice(0, NAMED_MAX).join(", ");
 	const rest = items.length > NAMED_MAX ? `, and ${items.length - NAMED_MAX} more` : "";
 	const noun = items.length === 1 ? "change" : "changes";
-	return `trellis: ${items.length} ${noun} in ${path} (${shown}${rest}). Run: trellis agents inbox --project ${path}`;
+	return `trellis: ${items.length} ${noun} in ${path} (${shown}${rest}). Run: trellis list --project ${path} --json`;
 };
 
 export const createDispatcher = (options: DispatcherOptions): Dispatcher => {

@@ -75,7 +75,7 @@ describe("routes/agents", () => {
 		const batches = within(await screen.findByRole("list", { name: "Batches" }));
 		expect((await batches.findAllByRole("listitem")).length).toBeGreaterThan(0);
 		expect(batches.getByText(/1 change in CDE/)).toBeDefined();
-		expect(batches.getByText(/trellis agents inbox --project CDE/)).toBeDefined();
+		expect(batches.getByText(/trellis list --project CDE --json/)).toBeDefined();
 	});
 
 	test("with no agents each section says so", async () => {

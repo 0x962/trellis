@@ -121,7 +121,7 @@ describe("launch commands", () => {
 	});
 
 	test("an exited manager resumes its Claude session with the text as its prompt and reads no instructions", () => {
-		const text = "trellis: 1 change in CDE (CDE-1 commented by o'brien). Run: trellis agents inbox --project CDE";
+		const text = "trellis: 1 change in CDE (CDE-1 commented by o'brien). Run: trellis list --project CDE --json";
 		const { claude, trellis } = run(resumeCommand({ project: "CDE", sessionId: "abc-123", text, url }));
 		expect(trellis).toBeNull();
 		expect(claude.argv).toEqual([
@@ -143,7 +143,9 @@ describe("launch commands", () => {
 		}
 	});
 
-	test("the restart text points the manager at its inbox", () => {
-		expect(restartText("CDE")).toBe("trellis: the server restarted. Run: trellis agents inbox --project CDE");
+	test("the restart text points the manager at the tickets and the agents", () => {
+		expect(restartText("CDE")).toBe(
+			"trellis: the server restarted. Run: trellis list --project CDE --json and trellis agents list --project CDE --json",
+		);
 	});
 });

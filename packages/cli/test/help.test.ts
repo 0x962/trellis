@@ -22,6 +22,8 @@ export const spawnCli = (argv: string[]) => {
 const verbs = [
 	"projects",
 	"statuses",
+	"personas",
+	"agents",
 	"create",
 	"show",
 	"list",
@@ -50,7 +52,6 @@ const verbs = [
 	"backup",
 	"restore",
 	"export",
-	"agents",
 ];
 
 const globalFlags = ["--json", "--jsonl", "--quiet", "--as", "--url", "--no-color"];
@@ -73,7 +74,8 @@ test("group verbs render their subverbs in --help", () => {
 		projects: ["list", "create", "show", "move", "repos"],
 		statuses: ["list", "add", "edit", "rm", "clear"],
 		pr: ["add", "list", "rm", "refresh", "diff"],
-		agents: ["inbox", "register", "start", "review", "status", "stop", "on", "off"],
+		personas: ["list", "show"],
+		agents: ["list", "start", "refresh", "stop", "send", "output"],
 	};
 	for (const [group, subverbs] of Object.entries(groups)) {
 		const { exitCode, stdout } = spawnCli([group, "--help"]);

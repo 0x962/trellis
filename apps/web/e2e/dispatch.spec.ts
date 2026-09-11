@@ -76,7 +76,7 @@ test("dispatch > a web ticket goes to a builder, a clean review, and Human Revie
 	const [wake] = sentTo(managerTab.terminalId);
 	expect(wake).toMatch(/^trellis: /);
 	expect(wake).toContain(identifier);
-	expect(wake).toContain("trellis agents inbox --project CDE");
+	expect(wake).toContain("trellis list --project CDE --json");
 
 	// The manager reads the inbox and starts a builder: a workspace named
 	// after the ticket, in the project folder, with Claude named after the

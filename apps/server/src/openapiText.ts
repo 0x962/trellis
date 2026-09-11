@@ -123,7 +123,7 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	},
 	"POST /agents/builder": { ticket: "CDE-42" },
 	"POST /agents/reviewer": { ticket: "CDE-42", prUrl: "https://github.com/acme/web/pull/12" },
-	"POST /agents/wake": { project: "CDE", text: "trellis: 2 changes in CDE. Run: trellis agents inbox --project CDE" },
+	"POST /agents/wake": { project: "CDE", text: "trellis: 2 changes in CDE. Run: trellis list --project CDE --json" },
 	"POST /agents/manager/retry": { project: "CDE" },
 	"PUT /agents/settings": {
 		runner: "superset",
