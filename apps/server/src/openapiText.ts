@@ -12,6 +12,7 @@ export const SERVERS = [
 ];
 
 export const TAGS = [
+	{ name: "personas", description: "Saved personas. Each persona has a name and an instruction." },
 	{ name: "projects", description: "The project tree. A root has a key; a sub-project has a parent and a slug." },
 	{ name: "statuses", description: "The status set of a project. A sub-project inherits the nearest owner's set." },
 	{ name: "tickets", description: "Tickets: list, board, counts, one ticket, and every write." },
@@ -72,6 +73,11 @@ Every response carries \`x-trellis-api-version\`. Every error is JSON with \`cod
 
 // One example per request body, keyed by `<METHOD> <path>`.
 export const BODY_EXAMPLES: Record<string, unknown> = {
+	"POST /personas": { name: "Reviewer", instruction: "Read the diff. Report defects with evidence." },
+	"PATCH /personas/{id}": {
+		name: "Code reviewer",
+		instruction: "Read each changed file. Report defects with evidence.",
+	},
 	"POST /projects": { key: "CDE", name: "Code" },
 	"PATCH /projects/{project}": { name: "Code, renamed", description: "The desktop app." },
 	"POST /projects/{project}/move": { parent: "CDE", after: "CDE.web" },
