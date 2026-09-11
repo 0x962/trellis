@@ -27,6 +27,8 @@ test("the peek uses a bounded main column beside the property rail", async () =>
 	expect(within(body).queryByText("CDE-42")).toBeNull();
 	const rail = screen.getByLabelText("Properties");
 	expect(rail.tagName).toBe("ASIDE");
+	expect(rail.className).toMatch(/\bsticky\b/);
+	expect(rail.className).toMatch(/\btop-0\b/);
 	expect(body.compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
 });
 
