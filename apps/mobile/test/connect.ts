@@ -1,8 +1,7 @@
-import { createMMKV } from "react-native-mmkv";
+import { store } from "../src/lib/store";
 import { type Recorder, recordFetch } from "./record";
 import { actorName, directFetch, serverUrl } from "./server";
 
-const store = createMMKV();
 const realFetch = globalThis.fetch;
 
 const storeServer = () => {

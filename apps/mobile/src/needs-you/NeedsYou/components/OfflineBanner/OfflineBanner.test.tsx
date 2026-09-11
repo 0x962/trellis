@@ -1,26 +1,25 @@
 import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor } from "@testing-library/react-native";
-import { createMMKV } from "react-native-mmkv";
 import { connect, disconnect, hang } from "../../../../../test/connect";
 import { type InboxData, seedInbox } from "../../../../../test/inbox";
 import { paintedColors } from "../../../../../test/paint";
 import type { Recorder } from "../../../../../test/record";
 import { renderNeedsYou, testQueryClient } from "../../../../../test/renderNeedsYou";
 import { persistClient, restoreClient } from "../../../../lib/storage";
+import { store } from "../../../../lib/store";
 import { tokens } from "../../../../theme/tokens";
 import { OfflineBanner } from "./OfflineBanner";
 
 jest.mock("@shopify/flash-list", () => require("../../../../../test/mocks/flash-list"));
 
 const banner = "Offline, showing cached data";
-const store = createMMKV();
 
 let data: InboxData;
 let net: Recorder | undefined;
 let restoreFetch = () => {};
 
-// Fills MMKV with the snapshot the app writes after one good inbox.get.
+// Fills the store with the snapshot the app writes after one good inbox.get.
 const snapshotInbox = async () => {
 	net = connect();
 	const view = await renderNeedsYou();

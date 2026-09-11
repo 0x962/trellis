@@ -3,13 +3,13 @@ import { dehydrate, QueryClient } from "@tanstack/react-query";
 import { keys } from "./keys";
 import { persistClient, persistIntervalMs, persistOptions, restoreClient, subscribePersist } from "./storage";
 
-// `keys` names the MMKV keys and opens no native module, so this file runs
-// on its own without another file that replaces react-native-mmkv first.
+// `keys` names the stored values and opens no native module, so this file
+// runs on its own without another file that replaces the store first.
 const key = keys.queryCache;
 const hour = 3_600_000;
 const limit = 5 * 1024 * 1024;
 
-// The subset of MMKV the persister touches, over a map. `writes` counts
+// The subset of the store the persister touches, over a map. `writes` counts
 // every `set`, so a test can prove the persister never wrote.
 const memoryStore = (seed: Record<string, string> = {}) => {
 	const values = new Map(Object.entries(seed));
@@ -49,7 +49,7 @@ describe("query cache persistence", () => {
 		jest.useRealTimers();
 	});
 
-	test("a cache under 5 MB round-trips through MMKV", async () => {
+	test("a cache under 5 MB round-trips through the store", async () => {
 		const source = seeded(page);
 		const { store, values } = memoryStore();
 		await persistClient(source, store);

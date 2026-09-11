@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { router } from "expo-router";
 import { extractExpoPathFromURL } from "expo-router/build/fork/extractPathFromURL";
 import { act, fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
-import { createMMKV } from "react-native-mmkv";
 import { queryClient } from "../src/lib/queryClient";
 import * as server from "../src/lib/server";
+import { store } from "../src/lib/store";
 import { appContext } from "../test/appContext";
 import { scan } from "../test/mocks/expo-camera";
 
@@ -14,7 +14,6 @@ jest.mock("../src/lib/server", () => ({
 }));
 
 const probeHealth = jest.mocked(server.probeHealth);
-const store = createMMKV();
 const url = "http://192.168.1.20:4521";
 // What the web settings page encodes in its QR code for that server.
 const pairLink = "trellis://pair?url=http%3A%2F%2F192.168.1.20%3A4521";

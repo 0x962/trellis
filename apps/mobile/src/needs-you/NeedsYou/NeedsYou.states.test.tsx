@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
-import { createMMKV } from "react-native-mmkv";
 import { connect, disconnect } from "../../../test/connect";
 import { bumpVersion, type InboxData, seedInbox } from "../../../test/inbox";
 import { paintedColors } from "../../../test/paint";
@@ -9,6 +8,7 @@ import { renderNeedsYou, rowIdentifiers, testQueryClient } from "../../../test/r
 import { serverHost } from "../../../test/server";
 import { swipeLeft, swipeRight } from "../../../test/swipe";
 import { persistClient, restoreClient } from "../../lib/storage";
+import { store } from "../../lib/store";
 import { tokens } from "../../theme/tokens";
 
 jest.mock("@shopify/flash-list", () => require("../../../test/mocks/flash-list"));
@@ -16,7 +16,6 @@ jest.mock("@shopify/flash-list", () => require("../../../test/mocks/flash-list")
 const banner = "Offline, showing cached data";
 const unreachable = `Cannot reach ${serverHost}`;
 const headerPattern = /^(Review|Failing CI|Stalled|Done by agents today)$/;
-const store = createMMKV();
 
 let data: InboxData;
 let net: Recorder | undefined;
@@ -24,7 +23,7 @@ let restoreFetch = () => {};
 
 const first = () => data.review[0]!;
 
-// Fills MMKV with the snapshot the app writes after one good inbox.get,
+// Fills the store with the snapshot the app writes after one good inbox.get,
 // then takes the server away.
 const restoredCache = async () => {
 	net = connect();

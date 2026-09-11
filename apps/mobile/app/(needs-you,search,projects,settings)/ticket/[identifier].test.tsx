@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, test } from "@jest/globals";
 import { router } from "expo-router";
 import { act, fireEvent, renderRouter, screen } from "expo-router/testing-library";
-import { createMMKV } from "react-native-mmkv";
+import { store } from "../../../src/lib/store";
 import { appContext } from "../../../test/appContext";
 
-const store = createMMKV();
 const tabs = ["Needs you", "Search", "Projects", "Settings"];
 
 // The tab item's role is `button` on iOS and `tab` elsewhere.

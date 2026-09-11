@@ -2,8 +2,8 @@ import { afterAll, afterEach, beforeEach, jest } from "@jest/globals";
 import { realScheduler } from "@trellis/api";
 import { AppState } from "react-native";
 import { queryClient } from "../src/lib/queryClient";
+import { store } from "../src/lib/store";
 import { notificationAsync } from "./mocks/expo-haptics";
-import { createMMKV } from "./mocks/react-native-mmkv";
 import { resetEventSources } from "./mocks/react-native-sse";
 
 // expo-linking reads the URI scheme and the dev server host from the
@@ -19,17 +19,17 @@ jest.mock("expo-constants", () => {
 	};
 });
 
-// jest.config.js maps react-native-mmkv, react-native-sse, and expo-haptics
-// to the three mocks, so this file and the module under test share one
-// instance of each. Every test starts from a fresh install: an empty store,
-// an empty query cache, no open stream, and no haptic fired.
+// jest.config.js maps expo-sqlite/kv-store, react-native-sse, and
+// expo-haptics to the three mocks, so this file and the module under test
+// share one instance of each. Every test starts from a fresh install: an
+// empty store, an empty query cache, no open stream, and no haptic fired.
 //
 // react-native reports no app state under jest. A phone is in the foreground
 // when a person opens the app, and the event stream opens in the foreground
 // only, so every test starts active.
 beforeEach(() => {
 	AppState.currentState = "active";
-	createMMKV().clearAll();
+	store.clearAll();
 	queryClient.clear();
 	// A collected query arms a timer as long as the app's collection time, a
 	// day. Such a timer outlives the file and keeps the jest worker alive, so
