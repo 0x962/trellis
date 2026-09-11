@@ -82,6 +82,12 @@ const seedProjects = async (s: Seeder) => {
 	await child("CDE", "host", "host");
 	await root("TRL", "trellis");
 	await root("MRG", "margin");
+	// The repository the pull requests of CDE live in. The agents runner
+	// matches its Superset project by this pair.
+	await s.call("projects.setRepos", "navid", at, {
+		project: "CDE",
+		repos: [{ owner: PR_OWNER, repo: PR_REPO }],
+	});
 };
 
 // The steps one ticket's story needs, after its create.

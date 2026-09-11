@@ -80,7 +80,7 @@ describe("AgentsSettings", () => {
 		expect(lastSave(server)).toEqual({
 			runner: "superset",
 			enabled: false,
-			projects: [projectRow(rootId(server), { enabled: true })],
+			projects: [projectRow(await rootId(server), { enabled: true })],
 		});
 	});
 
@@ -104,7 +104,7 @@ describe("AgentsSettings", () => {
 		await user.click(options[2]!);
 		await waitFor(() => expect(saves(server)).toHaveLength(1));
 		expect(lastSave(server).projects).toEqual([
-			projectRow(rootId(server), { enabled: false, supersetProjectId: "sp-trellis" }),
+			projectRow(await rootId(server), { enabled: false, supersetProjectId: "sp-trellis" }),
 		]);
 	});
 
@@ -174,7 +174,7 @@ describe("AgentsSettings", () => {
 
 	test("each project block shows its manager state beside the switch, and a failed manager its reason", async () => {
 		const server = createTestServer();
-		failedSession(server, "manager");
+		await failedSession(server, "manager");
 		render(server);
 		const group = within(await projectGroup("CDE"));
 		expect(await group.findByText("Failed")).toBeDefined();
@@ -184,9 +184,7 @@ describe("AgentsSettings", () => {
 	test("the base branch shows the Superset project's default branch while the row has none, and a typed branch wins", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		(await server.superset()).update((state) => {
-			state.projects = state.projects.map((project) => ({ ...project, defaultBranch: "master" }));
-		});
+		await server.setRunnerBranch("master");
 		render(server);
 		const branch = within(await projectGroup("CDE")).getByRole("textbox", { name: "Base branch" }) as HTMLInputElement;
 		await waitFor(() => expect(branch.value).toBe("master"));

@@ -31,7 +31,7 @@ describe("ManagerStatus", () => {
 
 	test("shows a running manager, its last batch time, and Open in Superset", async () => {
 		const server = createTestServer();
-		addSession(server, { role: "manager", lastWokenAt: ago(3 * minute), openUrl: "superset://workspace/ws-m" });
+		await addSession(server, { role: "manager", lastWokenAt: ago(3 * minute), openUrl: "superset://workspace/ws-m" });
 		await mount(server);
 		const group = within(await status());
 		expect(await group.findByText("Running")).toBeDefined();
@@ -48,7 +48,7 @@ describe("ManagerStatus", () => {
 			["exited", "Exited"],
 		] as const) {
 			const server = createTestServer();
-			addSession(server, { role: "manager", state });
+			await addSession(server, { role: "manager", state });
 			const view = await mount(server);
 			expect(await within(await status()).findByText(label)).toBeDefined();
 			view.unmount();
@@ -57,13 +57,13 @@ describe("ManagerStatus", () => {
 
 	test("a stopped manager reads Off, and a manager with no batch says so", async () => {
 		const stopped = createTestServer();
-		addSession(stopped, { role: "manager", state: "stopped" });
+		await addSession(stopped, { role: "manager", state: "stopped" });
 		const view = await mount(stopped);
 		expect(await within(await status()).findByText("Off")).toBeDefined();
 		view.unmount();
 
 		const fresh = createTestServer();
-		addSession(fresh, { role: "manager" });
+		await addSession(fresh, { role: "manager" });
 		await mount(fresh);
 		expect(await within(await status()).findByText("No batch yet")).toBeDefined();
 	});
@@ -71,23 +71,23 @@ describe("ManagerStatus", () => {
 	// One manager serves the whole tree, so a sub-project shows its root's.
 	test("a sub-project shows the manager of its root", async () => {
 		const server = createTestServer();
-		addSession(server, { role: "manager" });
+		await addSession(server, { role: "manager" });
 		await mount(server, "CDE.web");
 		expect(await within(await status()).findByText("Running")).toBeDefined();
 	});
 
 	test("follows an agents.session event", async () => {
 		const server = createTestServer();
-		const manager = addSession(server, { role: "manager" });
+		const manager = await addSession(server, { role: "manager" });
 		const { queryClient } = await mount(server);
 		expect(await within(await status()).findByText("Running")).toBeDefined();
-		createEventApplier(queryClient).applyEvent(updateSession(server, manager.id, { state: "exited" }));
+		createEventApplier(queryClient).applyEvent(await updateSession(server, manager.id, { state: "exited" }));
 		await waitFor(async () => expect(within(await status()).getByText("Exited")).toBeDefined());
 	});
 
 	test("a failed manager reads Manager failed with the short reason and links the full error", async () => {
 		const server = createTestServer();
-		const failed = failedSession(server, "manager");
+		const failed = await failedSession(server, "manager");
 		await mount(server);
 		const group = within(await status());
 		expect(await group.findByText(`Manager failed: ${startReason}`)).toBeDefined();
@@ -99,7 +99,7 @@ describe("ManagerStatus", () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
 		await enableAgents(server);
-		failedSession(server, "manager");
+		await failedSession(server, "manager");
 		await mount(server);
 		const group = within(await status());
 		await user.click(await group.findByRole("button", { name: "Retry" }));

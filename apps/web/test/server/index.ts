@@ -10,6 +10,7 @@ import { blobPath } from "../../../server/src/storage/blobs.ts";
 import { createTestApp } from "../../../server/test/helpers/app.ts";
 import { fakeTimerClock } from "../../../server/test/helpers/clock.ts";
 import { ghStub } from "../../../server/test/helpers/gh-stub.ts";
+import { gitRepo } from "../../../server/test/helpers/gitRepo.ts";
 import { SUPERSET_STUB_BIN, supersetStub } from "../../../server/test/helpers/superset-stub.ts";
 import { seedSnapshot } from "./cache.ts";
 import { sharedDb } from "./db.ts";
@@ -46,10 +47,12 @@ export const defaultMaxUploadBytes = 50 * 1024 * 1024;
 // The origin the test clients address. `app.request` reads the path only.
 const origin = "http://trellis.local";
 
-// The Superset projects `agents.runnerProjects` lists.
-const RUNNER_PROJECTS = [
-	{ id: "sp-de", name: "de", repo: "canary-technologies-corp/de", path: "/Users/navid/projects/de" },
-	{ id: "sp-trellis", name: "trellis", repo: "0x962/trellis", path: "/Users/navid/projects/trellis" },
+// The Superset projects `agents.runnerProjects` lists. The runner reads the
+// default branch of each one with `git symbolic-ref` in its checkout, so
+// each path is a real repository whose origin/HEAD names `main`.
+const runnerProjects = () => [
+	{ id: "sp-de", name: "de", repo: "canary-technologies-corp/de", path: gitRepo("main") },
+	{ id: "sp-trellis", name: "trellis", repo: "0x962/trellis", path: gitRepo("main") },
 ];
 
 const missingGh: GhStatus = {
@@ -143,7 +146,7 @@ const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh
 	const supersetBin = join(dir, "superset");
 	copyFileSync(SUPERSET_STUB_BIN, supersetBin);
 	chmodSync(supersetBin, 0o755);
-	const superset = supersetStub(dir, { projects: RUNNER_PROJECTS });
+	const superset = supersetStub(dir, { projects: runnerProjects() });
 	const app = await createTestApp({
 		db: h,
 		supersetBin,
@@ -226,6 +229,20 @@ export const createTestServer = (options: TestServerOptions = {}) => {
 			const host = (app.transport as InlineTransport).startAgents({ clock, log: () => {} });
 			await host.start();
 			return { host, clock };
+		},
+		// The default branch the runner reads from each Superset project's
+		// checkout, which is what `git symbolic-ref origin/HEAD` names.
+		setRunnerBranch: async (branch: string) => {
+			for (const project of (await ready).superset.state().projects) {
+				Bun.spawnSync([
+					"git",
+					"-C",
+					project.path,
+					"symbolic-ref",
+					"refs/remotes/origin/HEAD",
+					`refs/remotes/origin/${branch}`,
+				]);
+			}
 		},
 		// The state of the fake superset the agents runner spawns.
 		superset: async () => (await ready).superset,

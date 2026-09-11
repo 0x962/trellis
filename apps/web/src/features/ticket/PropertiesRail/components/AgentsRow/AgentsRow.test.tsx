@@ -42,8 +42,8 @@ describe("AgentsRow", () => {
 
 	test("lists the builder and the reviewer with their states and Open in Superset", async () => {
 		const server = createTestServer();
-		addSession(server, { role: "builder", createdAt: new Date(Date.now() - 10 * minute).toISOString() });
-		addSession(server, {
+		await addSession(server, { role: "builder", createdAt: new Date(Date.now() - 10 * minute).toISOString() });
+		await addSession(server, {
 			role: "reviewer",
 			state: "waiting",
 			terminalId: "term-2",
@@ -83,7 +83,7 @@ describe("AgentsRow", () => {
 	test("hides Start builder while a builder starts, runs, or waits", async () => {
 		for (const state of ["starting", "running", "waiting"] as const) {
 			const server = createTestServer();
-			addSession(server, { role: "builder", state });
+			await addSession(server, { role: "builder", state });
 			const view = mount(server);
 			await items();
 			expect(await startButton()).toBeNull();
@@ -93,7 +93,7 @@ describe("AgentsRow", () => {
 
 	test("offers Start builder again after the builder exited", async () => {
 		const server = createTestServer();
-		addSession(server, { role: "builder", state: "exited" });
+		await addSession(server, { role: "builder", state: "exited" });
 		mount(server);
 		await items();
 		expect(await startButton()).not.toBeNull();
@@ -119,11 +119,11 @@ describe("AgentsRow", () => {
 
 	test("follows an agents.session event", async () => {
 		const server = createTestServer();
-		const builder = addSession(server, { role: "builder" });
+		const builder = await addSession(server, { role: "builder" });
 		const { queryClient } = mount(server);
 		await items();
 		expect(await startButton()).toBeNull();
-		createEventApplier(queryClient).applyEvent(updateSession(server, builder.id, { state: "exited" }));
+		createEventApplier(queryClient).applyEvent(await updateSession(server, builder.id, { state: "exited" }));
 		await waitFor(async () =>
 			expect((await items()).map((row) => row.textContent)).toEqual(["BuilderExitedOpen in Superset"]),
 		);
@@ -132,7 +132,7 @@ describe("AgentsRow", () => {
 
 	test("a failed builder shows Failed with its short reason and a link to the full error, and Start builder stays", async () => {
 		const server = createTestServer();
-		const failed = failedSession(server, "builder");
+		const failed = await failedSession(server, "builder");
 		mount(server);
 		const [row] = await items();
 		expect(within(row!).getByText("Failed")).toBeDefined();
