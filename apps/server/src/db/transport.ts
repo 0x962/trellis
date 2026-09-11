@@ -82,6 +82,9 @@ export const createInlineTransport = ({
 	// An `io` read never writes the actor, so a request without the header
 	// carries the system actor there.
 	const ioCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => ({
+		core: coreCtx(ctx, emit, tasks),
+		supersetBin: config.supersetBin,
+		localUrl: `http://127.0.0.1:${config.port}`,
 		actor: ctx.actor ?? SYSTEM_ACTOR,
 		session: ctx.session,
 		home: config.home,
@@ -156,6 +159,11 @@ export const createInlineTransport = ({
 	let jobs: Jobs | null = null;
 	const start = async (options?: JobsStart) => {
 		await db.transaction((tx) => cache.rebuild(tx));
+		await db.transaction((tx) =>
+			tx.execute(
+				sql`UPDATE agent_runs SET state = 'interrupted', error = 'Trellis stopped during startup. Refresh the status to reconnect to the workspace.' WHERE state = 'starting'`,
+			),
+		);
 		await warmWrites(db, cache);
 		const found = await db.execute(sql`SELECT DISTINCT sha256 FROM attachments`);
 		if (options !== undefined) {

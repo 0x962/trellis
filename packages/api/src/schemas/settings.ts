@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { unknownLaunchVariables } from "../agentLaunch/agentLaunch.ts";
 
 // `stalledHours` is how long a started ticket may sit without activity
 // before Needs you lists it.
@@ -8,6 +9,13 @@ export const SettingsSchema = z.object({
 	defaultActorName: z.string().max(64),
 	stalledHours: z.number().positive(),
 	diffUrlTemplate: z.string(),
+	agentLaunchCommand: z
+		.string()
+		.trim()
+		.min(1)
+		.max(20000)
+		.refine((value) => unknownLaunchVariables(value).length === 0, "The command has an unknown template variable.")
+		.optional(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 

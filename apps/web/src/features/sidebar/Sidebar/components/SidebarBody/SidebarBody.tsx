@@ -1,12 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Badge, cx, IconButton, Kbd, TrellisMark } from "@trellis/ui";
-import { Inbox, List, PanelLeftClose, Plus, Search, UserRound } from "lucide-react";
+import { cx, IconButton, Kbd, TrellisMark } from "@trellis/ui";
+import { Bot, Inbox, List, PanelLeftClose, Plus, Search, UserRound } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { formatCount } from "../../../../../lib/format";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
-import { needsYouCount } from "../../../../needs-you/utils/needsYouCount";
 import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
 import { ProjectTree } from "../../../ProjectTree";
@@ -15,7 +12,7 @@ import { ConnectionPanel } from "../ConnectionPanel";
 const rowClass =
 	"flex h-8 items-center rounded-md pr-1 pl-2 text-fg-muted transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11";
 
-type NavTarget = "/needs-you" | "/search" | "/all" | "/ai/personas";
+type NavTarget = "/needs-you" | "/search" | "/all" | "/ai/personas" | "/ai/agents";
 
 type NavRowProps = { to: NavTarget; icon: ReactElement; label: string; active: boolean; trailing?: ReactNode };
 
@@ -59,12 +56,10 @@ export type SidebarBodyProps = {
 // URL at once but keeps the old page until the new one loads, so the
 // highlight moves when the page does.
 export function SidebarBody({ onCollapse }: SidebarBodyProps) {
-	const { live, orpc } = useApp();
+	const { live } = useApp();
 	const status = useLiveStatus(live);
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
-	const inbox = useQuery(orpc.inbox.get.queryOptions({ input: {} }));
-	const needsYou = inbox.data === undefined ? 0 : needsYouCount(inbox.data);
 
 	return (
 		<>
@@ -80,19 +75,7 @@ export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 				</span>
 			</div>
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
-				<NavRow
-					to="/needs-you"
-					icon={<Inbox />}
-					label="Needs you"
-					active={isActive(pathname, "/needs-you")}
-					trailing={
-						needsYou > 0 ? (
-							<Badge tone="accent" size="sm">
-								{formatCount(needsYou)}
-							</Badge>
-						) : undefined
-					}
-				/>
+				<NavRow to="/needs-you" icon={<Inbox />} label="Needs you" active={isActive(pathname, "/needs-you")} />
 				<NavRow
 					to="/search"
 					icon={<Search />}
@@ -118,6 +101,7 @@ export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 				<nav aria-label="AI" className="mt-5">
 					<h2 className="sidebar-section">AI</h2>
 					<NavRow to="/ai/personas" icon={<UserRound />} label="Personas" active={isActive(pathname, "/ai/personas")} />
+					<NavRow to="/ai/agents" icon={<Bot />} label="Agents" active={isActive(pathname, "/ai/agents")} />
 				</nav>
 			</div>
 			<div className="mt-auto shrink-0">

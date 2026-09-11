@@ -1,4 +1,5 @@
 import type { Ticket } from "@trellis/api";
+import { TicketAgent } from "../../agents/TicketAgent";
 import { PickerRows } from "./components/PickerRows";
 
 export type PropertiesRailProps = {
@@ -8,15 +9,21 @@ export type PropertiesRailProps = {
 	variant: "page" | "peek";
 };
 
-// The properties of a ticket: the picker rows and nothing else. The
-// sub-tickets have their own section beside the description, the branch
-// name copies from the header, and the times a ticket was made and last
-// touched read as lines of the activity list.
+// The properties of a ticket: the picker rows and the agent control. The
+// sub-tickets have their own section beside the description, the branch name
+// copies from the header, and the times a ticket was made and last touched
+// read as lines of the activity list.
 export function PropertiesRail({ ticket, variant }: PropertiesRailProps) {
+	const agent = (
+		<div className="col-span-full">
+			<TicketAgent ticket={ticket.identifier} disabled={ticket.completedAt !== null} />
+		</div>
+	);
 	if (variant === "peek") {
 		return (
 			<dl aria-label="Properties" className="grid grid-cols-2 gap-x-6 gap-y-1 max-sm:grid-cols-1">
 				<PickerRows ticket={ticket} />
+				{agent}
 			</dl>
 		);
 	}
@@ -27,6 +34,7 @@ export function PropertiesRail({ ticket, variant }: PropertiesRailProps) {
 		>
 			<dl className="flex flex-col gap-0.5">
 				<PickerRows ticket={ticket} />
+				{agent}
 			</dl>
 		</aside>
 	);

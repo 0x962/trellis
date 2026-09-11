@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { type Settings, SettingsSchema } from "@trellis/api";
+import { DEFAULT_AGENT_LAUNCH_COMMAND, type Settings, SettingsSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { count } from "../../test/fixtures";
 import { at, type Harness, minutesAgo, NOW, serviceHarness } from "../../test/helpers/services.ts";
@@ -39,7 +39,12 @@ describe("settings", () => {
 	test("get returns the defaults on an empty table", async () => {
 		const defaults = await get();
 		const parsed = SettingsSchema.parse(defaults);
-		expect(Object.keys(parsed).sort()).toEqual(["defaultActorName", "diffUrlTemplate", "stalledHours"]);
+		expect(Object.keys(parsed).sort()).toEqual([
+			"agentLaunchCommand",
+			"defaultActorName",
+			"diffUrlTemplate",
+			"stalledHours",
+		]);
 		expect(parsed.stalledHours).toBe(24);
 		expect(parsed.diffUrlTemplate).toBe("{url}/files");
 		expect(await count(h.db, "settings")).toBe(0);
@@ -51,7 +56,7 @@ describe("settings", () => {
 		const rows = await settingRows();
 		expect(rows.map((row) => row.key)).toEqual(["defaultActorName", "diffUrlTemplate", "stalledHours"]);
 		expect(rows.map((row) => row.value)).toEqual(["navid", "http://margin.localhost/{url}", 48]);
-		expect(await get()).toEqual(written);
+		expect(await get()).toEqual({ ...written, agentLaunchCommand: DEFAULT_AGENT_LAUNCH_COMMAND });
 	});
 
 	test("get fills a missing key with its default", async () => {

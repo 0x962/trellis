@@ -46,3 +46,29 @@ describe("persona events", () => {
 		await h.read(assertStatusInvariant);
 	});
 });
+
+test("a deleted persona disappears after commit and emits its id", async () => {
+	const created = await h.run((ctx, tx) =>
+		personas.create(ctx, tx, { name: "Delete", instruction: "Read.", kind: "reviewer" }),
+	);
+	await h.run((ctx, tx) => personas.remove(ctx, tx, { id: created.id }));
+	expect(h.flushed.at(-1)).toEqual({ type: "personas.changed", id: created.id });
+	expect(await h.run((ctx, tx) => personas.list(ctx, tx, {}))).toEqual([]);
+	await h.read(assertStatusInvariant);
+});
+
+test("a delete rollback retains the persona and emits no event", async () => {
+	const created = await h.run((ctx, tx) =>
+		personas.create(ctx, tx, { name: "Keep", instruction: "Read.", kind: "manager" }),
+	);
+	const count = h.flushed.length;
+	await expect(
+		h.run(async (ctx, tx) => {
+			await personas.remove(ctx, tx, { id: created.id });
+			throw new Error("Abort deletion");
+		}),
+	).rejects.toThrow("Abort deletion");
+	expect(h.flushed).toHaveLength(count);
+	expect(await h.run((ctx, tx) => personas.list(ctx, tx, {}))).toEqual([created]);
+	await h.read(assertStatusInvariant);
+});

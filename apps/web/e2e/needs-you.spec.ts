@@ -14,19 +14,18 @@ test.afterEach(async () => {
 	await put("/settings", before);
 });
 
-// NYO-1 links the stubbed pull request, whose `typecheck (desktop)` check
-// fails, so the ticket shows in the Failing CI section.
+// NYO-1 links a pull request with a failed check.
 test.beforeAll(() => {
 	if (!ensureProject("NYO", "Needs you")) return;
 	createTicket("NYO", "Fix the desktop typecheck", ["--status", "in-progress"]);
 	trellis(["pr", "add", "NYO-1", failingPrUrl]);
 });
 
-test("needs-you > the failed check links to its pull request", async ({ page }) => {
+test("needs-you > failed checks leave the page empty", async ({ page }) => {
 	await signIn(page, "/needs-you");
 	const row = page.locator('[data-inbox-row="NYO-1"]');
-	await expect(row).toContainText("typecheck (desktop)");
-	await expect(row.locator("[data-open-pr]")).toHaveAttribute("href", failingPrUrl);
+	await expect(page.getByRole("heading", { name: "Needs you", exact: true })).toBeVisible();
+	await expect(row).toHaveCount(0);
 });
 
 // E2E-04. The settings live on the server, so a reload shows them again.

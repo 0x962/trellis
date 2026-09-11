@@ -7,6 +7,7 @@ const eventId = `${bootId}.7`;
 describe("events", () => {
 	test("the event name list matches the plan's Live updates section", () => {
 		expect([...eventNames].sort()).toEqual([
+			"agent-runs.changed",
 			"attachment.created",
 			"attachment.deleted",
 			"bye",

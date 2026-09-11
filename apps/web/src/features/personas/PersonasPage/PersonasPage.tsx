@@ -1,22 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Persona } from "@trellis/api";
-import { Button, EmptyState, IconButton, Skeleton } from "@trellis/ui";
-import { Pencil, Plus, UserRound } from "lucide-react";
+import type { Persona, PersonaKind } from "@trellis/api";
+import { Badge, Button, EmptyState, EntityCard, Skeleton } from "@trellis/ui";
+import { Plus, UserRound } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { Topbar } from "../../shell/Topbar";
-import { PersonaDialog } from "./components/PersonaDialog";
+import { PersonaSheet } from "./components/PersonaSheet";
+import { personaKinds } from "./kinds";
 
 export function PersonasPage() {
 	const { orpc } = useApp();
 	const personas = useQuery(orpc.personas.list.queryOptions({ input: {}, retry: false }));
-	const [editor, setEditor] = useState<{ persona?: Persona } | null>(null);
+	const [editor, setEditor] = useState<{ persona?: Persona; kind: PersonaKind } | null>(null);
 
 	return (
 		<>
 			<Topbar
 				actions={
-					<Button variant="primary" icon={<Plus />} onClick={() => setEditor({})}>
+					<Button variant="primary" icon={<Plus />} onClick={() => setEditor({ kind: "builder" })}>
 						New persona
 					</Button>
 				}
@@ -24,8 +25,8 @@ export function PersonasPage() {
 				<h1 className="text-md font-semibold text-fg">Personas</h1>
 			</Topbar>
 			<div className="min-h-0 flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
-				<div className="flex max-w-3xl flex-col gap-6">
-					<p className="text-sm text-fg-muted">Give each persona a name and an instruction.</p>
+				<div className="flex max-w-7xl flex-col gap-6">
+					<p className="text-sm text-fg-muted">Define how your builders, reviewers, and managers work.</p>
 					{personas.isPending ? (
 						<div role="status" aria-label="Load personas" className="flex flex-col gap-3">
 							<span className="sr-only">Load personas</span>
@@ -46,26 +47,49 @@ export function PersonasPage() {
 							description="Create a persona to define its role and instruction."
 						/>
 					) : (
-						<ul
-							aria-label="Personas"
-							className="flex flex-col divide-y divide-border rounded-lg border border-border bg-surface"
-						>
-							{personas.data.map((persona) => (
-								<li key={persona.id} className="flex items-start gap-4 p-4">
-									<div className="min-w-0 flex-1">
-										<h2 className="break-words text-md font-medium text-fg">{persona.name}</h2>
-										<p className="mt-1 line-clamp-3 whitespace-pre-wrap break-words text-sm leading-5 text-fg-muted">
-											{persona.instruction}
-										</p>
-									</div>
-									<IconButton label={`Edit ${persona.name}`} icon={<Pencil />} onClick={() => setEditor({ persona })} />
-								</li>
-							))}
-						</ul>
+						<div className="flex flex-col gap-8">
+							{personaKinds.map((group) => {
+								const members = personas.data.filter((persona) => persona.kind === group.value);
+								return (
+									<section key={group.value} aria-label={group.plural} className="flex flex-col gap-3">
+										<header className="flex items-center gap-2">
+											<h2 className="text-md font-medium text-fg">{group.plural}</h2>
+											<Badge>{members.length}</Badge>
+											<Button
+												variant="quiet"
+												icon={<Plus />}
+												className="ml-auto"
+												onClick={() => setEditor({ kind: group.value })}
+											>
+												New {group.label.toLowerCase()}
+											</Button>
+										</header>
+										{members.length === 0 ? (
+											<p className="border border-dashed border-border p-4 text-sm text-fg-faint">
+												No {group.plural.toLowerCase()} yet. {group.description}
+											</p>
+										) : (
+											<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+												{members.map((persona) => (
+													<EntityCard
+														key={persona.id}
+														title={persona.name}
+														description={persona.instruction}
+														icon={<group.icon />}
+														footer={group.label}
+														onEdit={() => setEditor({ persona, kind: persona.kind })}
+													/>
+												))}
+											</div>
+										)}
+									</section>
+								);
+							})}
+						</div>
 					)}
 				</div>
 			</div>
-			{editor !== null && <PersonaDialog persona={editor.persona} onClose={() => setEditor(null)} />}
+			{editor !== null && <PersonaSheet persona={editor.persona} kind={editor.kind} onClose={() => setEditor(null)} />}
 		</>
 	);
 }

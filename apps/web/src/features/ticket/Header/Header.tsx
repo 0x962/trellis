@@ -12,7 +12,6 @@ import { branchName, titleSlug } from "../PropertiesRail/utils/branchName";
 import { usePeek } from "../TicketPeek/hooks/usePeek";
 import { MoreMenu, ticketLink } from "./components/MoreMenu";
 import { ParentChip } from "./components/ParentChip";
-import { ReviewActions } from "./components/ReviewActions";
 
 export type HeaderProps =
 	| {
@@ -51,8 +50,7 @@ export function Header(props: HeaderProps) {
 	const parentSummary = useParentSummary(ticket?.parent?.identifier ?? null);
 	const identifier = ticket === undefined ? props.identifier : ticket.identifier;
 	const branch = ticket === undefined ? "" : branchName(ticket.identifier, titleSlug(ticket.title));
-	// Below 768 px the page header keeps Back, the ID, and the more menu. TicketView
-	// draws the review actions under the properties grid.
+	// Below 768 px the page header keeps Back, the ID, and the more menu.
 	const phone = useMediaQuery("(max-width: 767px)") && surface === "page";
 
 	useHotkey("mod+c", (event) => {
@@ -122,7 +120,6 @@ export function Header(props: HeaderProps) {
 			<div className="ml-auto flex shrink-0 items-center gap-1">
 				{ticket !== undefined && (
 					<>
-						{!phone && surface === "page" && <ReviewActions ticket={ticket} />}
 						{surface === "page" && <BriefCopy ticket={ticket} />}
 						{!phone && (
 							<>

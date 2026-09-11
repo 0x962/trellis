@@ -172,3 +172,16 @@ describe("PullRequestRow", () => {
 		expect(link.getAttribute("rel")).toContain("noopener");
 	});
 });
+
+test("merged pull requests show no ticket approval bar or automatic move", async () => {
+	const server = createFakeServer();
+	patchPr(server, (await firstPr(server, "CDE-42")).id, {
+		state: "merged",
+		mergedAt: new Date().toISOString(),
+	});
+	const { pr } = await renderRow(server, "CDE-42");
+	await prRow(pr.id);
+	expect(document.querySelector("[data-merged-nudge]")).toBeNull();
+	expect(screen.queryByRole("button", { name: /^Approve/ })).toBeNull();
+	expect(server.callsTo("tickets.move")).toHaveLength(0);
+});

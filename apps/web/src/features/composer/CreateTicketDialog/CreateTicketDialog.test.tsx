@@ -36,6 +36,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	test("opens at 640 px with the title focused and the template rendered read-only", async () => {
 		const { dialog, title } = await open("/p/CDE/table");
 		expect(dialog.className).toMatch(/\bw-160\b/);
+		expect(dialog.className).toContain("right-0");
 		await waitFor(() => expect(document.activeElement).toBe(title()));
 		expect(within(dialog).getByRole("heading", { name: "Goal" })).toBeDefined();
 		expect(dialog.querySelector(".ProseMirror")).toBeNull();

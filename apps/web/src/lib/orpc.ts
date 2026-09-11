@@ -28,10 +28,7 @@ export const createQueryClient = () =>
 		},
 	});
 
-// The reads that start at once, outside the batch. A ticket detail read
-// meets the ticket-open budget. A statuses read lands with it, so a review
-// key pressed the moment the Approve button shows never waits for a batch
-// of slower reads such as the timeline.
+// Ticket details and status options start outside the batch, so slower reads cannot delay these controls.
 const unbatched = new Set(["tickets.get", "statuses.list"]);
 
 // The typed client, the TanStack Query utils over it, and a QueryClient.

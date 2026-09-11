@@ -43,15 +43,14 @@ test("the description keeps a minimum reading area", async () => {
 	expect(description.className).toMatch(/\bmin-h-24\b/);
 });
 
-test("the peek keeps review actions in a separate row from navigation", async () => {
+test("the peek keeps navigation without an approval bar", async () => {
 	mountPeek();
-	const approve = await screen.findByRole("button", { name: /^Approve/ });
+	await screen.findByRole("textbox", { name: "Title" });
 	const header = screen.getByLabelText("Ticket header");
-	expect(header.contains(approve)).toBe(false);
+	expect(screen.queryByRole("button", { name: /^Approve/ })).toBeNull();
 	expect(within(header).getByRole("button", { name: "Close" })).toBeDefined();
 	expect(within(header).getByRole("button", { name: "Expand to the full page" })).toBeDefined();
-	const actions = screen.getByRole("group", { name: "Ticket actions" });
-	expect(actions.contains(approve)).toBe(true);
+	expect(screen.queryByRole("group", { name: "Ticket actions" })).toBeNull();
 });
 
 // The rail holds the pickers alone. The branch copies from the header, the

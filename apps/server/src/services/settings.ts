@@ -1,5 +1,5 @@
 import { userInfo } from "node:os";
-import type { Settings, SettingsSetInput } from "@trellis/api";
+import { DEFAULT_AGENT_LAUNCH_COMMAND, type Settings, type SettingsSetInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { requireActor, type ServiceCtx } from "../context.ts";
 import { rows, textArray } from "../db/queries/support.ts";
@@ -12,9 +12,15 @@ export const defaults = (): Settings => ({
 	defaultActorName: userInfo().username,
 	stalledHours: 24,
 	diffUrlTemplate: "{url}/files",
+	agentLaunchCommand: DEFAULT_AGENT_LAUNCH_COMMAND,
 });
 
-const KEYS = ["defaultActorName", "stalledHours", "diffUrlTemplate"] as const satisfies (keyof Settings)[];
+const KEYS = [
+	"defaultActorName",
+	"stalledHours",
+	"diffUrlTemplate",
+	"agentLaunchCommand",
+] as const satisfies (keyof Settings)[];
 
 // One row per key with a jsonb value; a key the table lacks reads as its
 // default. The read selects the keys in KEYS.
@@ -34,6 +40,7 @@ export const get = async (_ctx: ServiceCtx, tx: Tx): Promise<Settings> => {
 export const set = async (ctx: ServiceCtx, tx: Tx, input: SettingsSetInput): Promise<Settings> => {
 	requireActor(ctx);
 	for (const key of KEYS) {
+		if (input[key] === undefined) continue;
 		await tx.execute(
 			sql`INSERT INTO settings (key, value, updated_at) VALUES (${key}, ${JSON.stringify(input[key])}::jsonb, ${ctx.now})
 				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at`,

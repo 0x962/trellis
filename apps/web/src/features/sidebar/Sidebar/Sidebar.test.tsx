@@ -71,18 +71,12 @@ describe("features/sidebar/Sidebar", () => {
 		expect(text.indexOf("Projects")).toBeGreaterThan(text.indexOf("All tickets"));
 	});
 
-	// WS-94. The badge counts the distinct tickets of Review and Failing checks
-	// (D13): 3 in review and 1 other ticket with failed checks in the seed.
-	test("the Needs you badge sums the review and failing CI totals", async () => {
-		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
-		const row = await screen.findByRole("link", { name: /Needs you/ });
-		const badge = await within(row).findByText("4");
-		expect(badge.className).toMatch(/\btabular\b/);
-		localStorage.clear();
-		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", server: createFakeServer({ empty: true }) });
-		const rows = await screen.findAllByRole("link", { name: /Needs you/ });
-		const empty = rows[rows.length - 1]!;
-		await waitFor(() => expect(within(empty).queryByText(/^\d+$/)).toBeNull());
+	test("Needs you has no count with populated tickets", async () => {
+		const server = createFakeServer();
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", server });
+		const row = await screen.findByRole("link", { name: "Needs you" });
+		expect(row.textContent).toBe("Needs you");
+		expect(server.callsTo("inbox.get")).toHaveLength(0);
 	});
 
 	// WS-95
@@ -128,15 +122,8 @@ describe("features/sidebar/Sidebar", () => {
 		expect(aside().querySelector(".lucide-hash")).toBeNull();
 	});
 
-	// SH-2, SH-3, SH-4. The count is an 18 px accent pill, the Search row
-	// shows the key that opens search, and every nav icon is 16 px.
-	test("the nav rows show 16 px icons, the / key on Search, and the Needs you count as an 18 px pill", async () => {
+	test("the nav rows show 16 px icons and the / key on Search", async () => {
 		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
-		const needsYou = await screen.findByRole("link", { name: /Needs you/ });
-		const badge = await within(needsYou).findByText(/^\d+$/);
-		for (const name of ["bg-accent-soft", "text-accent", "text-xs", "font-semibold", "h-4.5"]) {
-			expect(badge.classList.contains(name)).toBe(true);
-		}
 		const search = screen.getByRole("link", { name: /^Search/ });
 		expect(search.querySelector("kbd")!.textContent).toBe("/");
 		for (const name of [/Needs you/, /^Search/, /All tickets/]) {
