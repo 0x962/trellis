@@ -48,6 +48,21 @@ test("server builder: migration 0021 stops and names the project that holds the 
 	// timeout of a test.
 }, 120_000);
 
+test("server builder: migration 0021 names every project that holds the slug, root and sub-project alike", async () => {
+	const db = await openDb(":memory:");
+	expect(await migrate(db, journalUntil("before-many", false))).toBeGreaterThan(0);
+	const cde = await seedRoot(db, "CDE");
+	await seedChild(db, cde, cde, "table");
+	// A root takes its slug from its key, so the key TABLE gives the slug
+	// table. /p/TABLE reads TABLE as the table view, so this root has no
+	// page either and the migration must name it too.
+	await seedRoot(db, "TABLE");
+	const failed = migrate(db, journalUntil("many", true));
+	await expect(failed).rejects.toThrow("CDE.table");
+	await expect(failed).rejects.toThrow("TABLE");
+	await db.$client.close();
+}, 120_000);
+
 test("server builder: migration 0021 passes without such a project and the slug table is then refused", async () => {
 	const db = await openDb(":memory:");
 	expect(await migrate(db, journalUntil("before-free", false))).toBeGreaterThan(0);

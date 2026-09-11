@@ -33,6 +33,17 @@ describe("lib/projectPath", () => {
 		expect(parseProjectSplat("cde/Web/auth")).toEqual({ ref: "CDE.web.auth", view: "board" });
 	});
 
+	// A key is upper case in the URL and a reserved slug is lower case, but
+	// the test that picks the view lower-cases the segment first. A root
+	// keyed TABLE therefore has no page: /p/TABLE reads TABLE as the table
+	// view and finds no project before it. This is why the reserved slugs
+	// bind a root project and not only a sub-project.
+	test("a root whose key spells a reserved slug has no page", () => {
+		for (const splat of ["TABLE", "BOARD", "SETTINGS", "table", "board"]) {
+			throwsNotFound(splat);
+		}
+	});
+
 	// WS-40
 	test("a reserved slug or an invalid segment inside the path is rejected", () => {
 		for (const splat of ["CDE/board/web", "CDE/settings/board", "board", "CDE/a_b", "", "1CDE"]) {

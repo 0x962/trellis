@@ -3,10 +3,14 @@
 -- never open. The slug joins `board` and `settings` as a name the projects
 -- table refuses.
 --
+-- A root project is caught too, and on purpose. The web route test lower-
+-- cases the last path segment before it compares, so a root keyed TABLE
+-- sits at /p/TABLE, reads as the table view, and shows the not-found page.
+--
 -- A database that already holds such a project cannot take the new rule.
--- This block stops the migration first and names that project, because the
--- person who runs the install has to rename it by hand. The block writes
--- nothing, so the database is unchanged when the install stops.
+-- This block stops the migration first and names every one of them, because
+-- the person who runs the install has to change them by hand. The block
+-- writes nothing, so the database is unchanged when the install stops.
 DO $$
 DECLARE
 	"held" text;
@@ -22,7 +26,7 @@ BEGIN
 	)
 	SELECT string_agg("path", ', ' ORDER BY "path") INTO "held" FROM "tree" WHERE "slug" = 'table';
 	IF "held" IS NOT NULL THEN
-		RAISE EXCEPTION 'The project % holds the slug "table", which is now a reserved web route. Rename that project, then run the install again.', "held";
+		RAISE EXCEPTION 'These projects hold the slug "table", which is now a reserved web route: %. Give a sub-project a new slug, and give a root project a new key. Then run the install again.', "held";
 	END IF;
 END $$;--> statement-breakpoint
 ALTER TABLE "projects" DROP CONSTRAINT "projects_slug_check";--> statement-breakpoint

@@ -16,7 +16,10 @@ import { at } from "./actors.ts";
 
 // A root has a key, its own id as root_id, and the ticket counter. A child
 // has a parent in the same root, a slug, no key, and a counter of zero.
-// The slugs `board` and `settings` are web routes under a project path.
+// The slugs `board`, `table`, and `settings` are web routes under a project
+// path, so no project may carry one. A root is bound by the same rule: the
+// web lower-cases the last path segment before it tests it, so a root keyed
+// TABLE sits at /p/TABLE and reads as the table view of nothing.
 // The UNIQUE NULLS NOT DISTINCT (parent_id, slug) constraint lives in the
 // migration 0002_constraints: drizzle-kit cannot render NULLS NOT DISTINCT.
 export const projects = pgTable(
