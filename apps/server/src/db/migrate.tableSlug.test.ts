@@ -30,6 +30,7 @@ const HELD_MESSAGE =
 	"A name with no dot is a root: set its key to a name that is not a reserved web route, " +
 	"and set its slug to the lower-cased form of that new key. " +
 	"A key is upper case: one letter, then 1 to 9 more letters or digits. " +
+	"A slug is lower case: letters and digits, with single hyphens between groups. " +
 	"A root URL is built from its key, so a root that keeps its key keeps its broken URL. " +
 	"Then run the install again.";
 
