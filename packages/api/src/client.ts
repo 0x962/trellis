@@ -6,10 +6,6 @@ import pkg from "../package.json";
 import type { contract } from "./contract/index.ts";
 import { ActorHeaderSchema } from "./refs.ts";
 
-// The CLI imports this package at runtime through this module only, so the
-// role prompts that `trellis instructions --role` prints come through here.
-export { rolePrompt } from "./instructions/rolePrompt.ts";
-
 export type TrellisClient = ContractRouterClient<typeof contract>;
 
 // The shape the RPC link calls. `globalThis.fetch` fits it; a test passes a

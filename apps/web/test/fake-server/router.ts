@@ -1,5 +1,4 @@
 import { os } from "./implementer";
-import { agents } from "./procedures/agents";
 import { attachments } from "./procedures/attachments";
 import { comments, timeline } from "./procedures/comments";
 import { brief, inbox, search } from "./procedures/inbox";
@@ -25,5 +24,4 @@ export const router = os.router({
 	actors,
 	settings,
 	system,
-	agents,
 });

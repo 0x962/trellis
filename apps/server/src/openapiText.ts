@@ -25,10 +25,6 @@ export const TAGS = [
 	{ name: "actors", description: "Every human and agent a mutation has carried." },
 	{ name: "settings", description: "The server settings." },
 	{ name: "system", description: "Health, the gh state, and backups." },
-	{
-		name: "agents",
-		description: "The manager, builder, and reviewer agents of a project, their inbox, and the agent settings.",
-	},
 ];
 
 export const DESCRIPTION = `trellis is a local ticket tracker for agent-driven work. No auth, no assignees. Every action carries an actor.
@@ -100,32 +96,5 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 		defaultActorName: "navid",
 		stalledHours: 24,
 		diffUrlTemplate: "{url}/files",
-	},
-	"POST /agents/inbox": { project: "CDE" },
-	"POST /agents/register": {
-		role: "builder",
-		project: "CDE",
-		ticket: "CDE-42",
-		workspaceId: "ws-7f3a",
-		terminalId: "term-1",
-		claudeSessionId: "9b1f0c3e-2d4a-4f7b-8c6d-1a2b3c4d5e6f",
-	},
-	"POST /agents/builder": { ticket: "CDE-42" },
-	"POST /agents/reviewer": { ticket: "CDE-42", prUrl: "https://github.com/acme/web/pull/12" },
-	"POST /agents/wake": { project: "CDE", text: "trellis: 2 changes in CDE. Run: trellis agents inbox --project CDE" },
-	"POST /agents/manager/retry": { project: "CDE" },
-	"PUT /agents/settings": {
-		runner: "superset",
-		enabled: true,
-		projects: [
-			{
-				projectId: "01J9Z0000000000000000000P1",
-				enabled: true,
-				supersetProjectId: null,
-				baseBranch: "main",
-				maxConcurrent: 3,
-				removeWorkspaceOnDone: true,
-			},
-		],
 	},
 };

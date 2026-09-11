@@ -6,7 +6,6 @@ import { copyText } from "../../../lib/clipboard";
 import { compactRelativeTime } from "../../../lib/format";
 import { useTimeline } from "../hooks/useTimeline";
 import { useSaveStatusStore } from "../stores/saveStatusStore";
-import { AgentsRow } from "./components/AgentsRow";
 import { PickerRows } from "./components/PickerRows";
 import { Row } from "./components/Row";
 import { branchName, titleSlug } from "./utils/branchName";
@@ -53,8 +52,8 @@ function Divider() {
 }
 
 // The properties of a ticket. The page rail has three groups: the four
-// picker rows, then Sub-tickets and Branch, then Created, Updated, and the
-// agent sessions. The peek grid has the same rows in the same order and
+// picker rows, then Sub-tickets and Branch, then Created and Updated.
+// The peek grid has the same rows in the same order and
 // shows Sub-tickets only when the ticket has one. Created shows the actor of
 // the `ticket.created` activity row. Updated shows the last actor, with the
 // live dot while an agent is at work, and the save state of the description.
@@ -116,7 +115,6 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 					</span>
 				)}
 			</Row>
-			<AgentsRow identifier={ticket.identifier} />
 		</>
 	);
 

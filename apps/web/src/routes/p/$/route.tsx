@@ -3,7 +3,6 @@ import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
 import { lazy, Suspense, useEffect } from "react";
-import { ManagerStatus } from "../../../features/agent/ManagerStatus";
 import { Board, boardSortLabel } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
@@ -131,7 +130,6 @@ function ProjectPage() {
 			<Topbar
 				actions={
 					<>
-						<ManagerStatus project={project} />
 						<ViewSwitch value={view} onChange={switchView} />
 						<NewTicketButton />
 					</>

@@ -24,8 +24,7 @@ const KEYS = [
 ] as const satisfies (keyof Settings)[];
 
 // One row per key with a jsonb value; a key the table lacks reads as its
-// default. The table holds other keys too, such as the agent settings, so
-// the read names its own keys.
+// default. The read selects the keys in KEYS.
 export const get = async (_ctx: ServiceCtx, tx: Tx): Promise<Settings> => {
 	const stored = await rows<{ key: string; value: unknown }>(
 		tx,
