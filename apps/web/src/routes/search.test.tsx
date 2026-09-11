@@ -16,7 +16,9 @@ describe("routes/search", () => {
 		await waitFor(() => {
 			const call = server.calls.find((entry) => entry.path.join(".") === "search.query");
 			expect(call).toBeDefined();
-			expect(call!.input).toEqual({ q: "oauth" });
+			// The server parses the query before the service sees it, so the
+			// default page size travels with it.
+			expect(call!.input).toEqual({ q: "oauth", limit: 20 });
 		});
 		expect(await screen.findByText(/3 tickets/)).toBeDefined();
 		// T10. The project count shows only when a project matches.

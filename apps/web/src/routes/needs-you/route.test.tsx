@@ -54,29 +54,29 @@ describe("routes/needs-you", () => {
 });
 
 // Enter on a row writes `?peek=`, and the route must mount the peek that
-// reads it. The seeded Review section lists CDE-42, CDE-37, and TRL-9 in
+// reads it. The seeded Review section lists TRL-9, CDE-37, and CDE-42 in
 // that order.
 describe("routes/needs-you: the peek", () => {
 	test("Enter on a focused row opens the peek, and j and k walk the rows", async () => {
 		const user = userEvent.setup();
 		const { router } = renderApp({ path: "/needs-you", actor: "navid" });
-		await focusRow("CDE-42");
+		await focusRow("TRL-9");
 		await user.keyboard("{Enter}");
-		await screen.findByRole("dialog", { name: "CDE-42" });
+		await screen.findByRole("dialog", { name: "TRL-9" });
 		await user.keyboard("j");
 		await screen.findByRole("dialog", { name: "CDE-37" });
 		expect(router.state.location.search).toEqual({ peek: "CDE-37" });
 		await user.keyboard("k");
-		await screen.findByRole("dialog", { name: "CDE-42" });
-		expect(router.state.location.search).toEqual({ peek: "CDE-42" });
+		await screen.findByRole("dialog", { name: "TRL-9" });
+		expect(router.state.location.search).toEqual({ peek: "TRL-9" });
 	});
 
 	test("Escape closes the peek with the focus on the row of the ticket it shows", async () => {
 		const user = userEvent.setup();
 		const { router } = renderApp({ path: "/needs-you", actor: "navid" });
-		await focusRow("CDE-42");
+		await focusRow("TRL-9");
 		await user.keyboard("{Enter}");
-		await screen.findByRole("dialog", { name: "CDE-42" });
+		await screen.findByRole("dialog", { name: "TRL-9" });
 		await user.keyboard("j");
 		await screen.findByRole("dialog", { name: "CDE-37" });
 		await user.keyboard("{Escape}");

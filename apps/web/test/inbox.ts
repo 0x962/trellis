@@ -6,8 +6,9 @@ import type { TestServer } from "./server/index.ts";
 // three review rows, one failing-CI row, one stalled row, and six rows the
 // agents finished today.
 
-// The Review section in the order the server returns, oldest waiting first.
-export const seededReview = ["CDE-42", "CDE-37", "TRL-9"];
+// The Review section in the order the server returns: the ticket whose last
+// change is oldest sits first.
+export const seededReview = ["TRL-9", "CDE-37", "CDE-42"];
 
 export const callsTo = (server: TestServer, path: string) =>
 	server.calls.filter((call) => call.path.join(".") === path);

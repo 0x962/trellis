@@ -18,7 +18,15 @@ describe("routes/all", () => {
 		expect(within(group).getByRole("radio", { name: "Board" }).getAttribute("aria-checked")).toBe("false");
 		expect(within(screen.getAllByRole("banner")[0]!).getByRole("button", { name: /New ticket/ })).toBeDefined();
 		expect(document.querySelector("[data-filter-bar]")).not.toBeNull();
-		const { total } = await server.client.tickets.counts({});
+		// The count is the rows the table holds plus the completed tickets of
+		// the route's status set, which the collapsed groups hold.
+		const counts = await server.client.tickets.counts({ subprojects: true });
+		const { statuses } = await server.client.statuses.list({ project: "CDE" });
+		const closed = new Set(
+			statuses.filter((status) => status.category === "done" || status.category === "canceled").map((s) => s.id),
+		);
+		const rows = Number(await waitFor(() => screen.getByRole("grid").getAttribute("aria-rowcount")));
+		const total = rows + counts.byStatus.filter((entry) => closed.has(entry.statusId)).reduce((n, e) => n + e.count, 0);
 		const footer = document.querySelector("[data-list-footer]")!;
 		expect(footer).not.toBeNull();
 		expect(footer.className).toMatch(/\bh-7\b/);

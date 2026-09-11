@@ -243,7 +243,9 @@ describe("routes/p/$", () => {
 		await waitFor(() => {
 			const call = server.calls.find((entry) => entry.path.join(".") === "tickets.counts");
 			expect(call).toBeDefined();
-			expect(call!.input).toEqual({ project: "CDE", status: ["in-progress"] });
+			// The server parses the query before the service sees it, so the
+			// default of `subprojects` travels with it.
+			expect(call!.input).toEqual({ project: "CDE", status: ["in-progress"], subprojects: true });
 		});
 	});
 

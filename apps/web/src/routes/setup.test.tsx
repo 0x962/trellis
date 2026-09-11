@@ -12,9 +12,13 @@ describe("routes/setup", () => {
 	// WS-72. Only a first-run server shows the name step.
 	test("setup step 1 asks for a name prefilled from actors.default", async () => {
 		const user = userEvent.setup();
-		renderApp({ path: "/setup", server: createTestServer({ empty: true }) });
+		const server = createTestServer({ empty: true });
+		// A first-run server stores no name, so `actors.default` reports the
+		// name of the machine account.
+		const machine = (await server.client.actors.default()).name;
+		renderApp({ path: "/setup", server });
 		expect(await screen.findByRole("heading", { name: "Enter your name" })).toBeDefined();
-		const input = await screen.findByDisplayValue("navid");
+		const input = await screen.findByDisplayValue(machine);
 		expect(document.activeElement).toBe(input);
 		const submit = screen.getByRole("button", { name: /^Continue/ });
 		expect(submit.hasAttribute("disabled")).toBe(false);
@@ -26,8 +30,10 @@ describe("routes/setup", () => {
 	// WS-73
 	test("Continue stores the identity and advances to the project step", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/setup", server: createTestServer({ empty: true }) });
-		const input = await screen.findByDisplayValue("navid");
+		const server = createTestServer({ empty: true });
+		const machine = (await server.client.actors.default()).name;
+		const { router } = renderApp({ path: "/setup", server });
+		const input = await screen.findByDisplayValue(machine);
 		await user.clear(input);
 		await user.type(input, "navid{Enter}");
 		expect(localStorage.getItem("trellis.actor")).toBe('{"name":"navid","kind":"human"}');
