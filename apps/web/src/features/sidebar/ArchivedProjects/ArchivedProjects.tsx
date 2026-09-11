@@ -4,7 +4,8 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { formatCount } from "../../../lib/format";
-import { projectRefOfPathname } from "../../../lib/projectPath";
+import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
 
 // The archived projects under the project tree, in one group that starts
@@ -15,8 +16,8 @@ export function ArchivedProjects() {
 	const { data } = useQuery(orpc.projects.list.queryOptions({ input: { archived: true } }));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const [open, setOpen] = useState(false);
+	const expanded = useUiStore((state) => state.expandedProjects);
 	if (data === undefined || data.length === 0) return null;
-	const activeRef = projectRefOfPathname(pathname);
 	return (
 		<nav aria-label="Archived projects" className="pt-3">
 			<button
@@ -33,9 +34,21 @@ export function ArchivedProjects() {
 			</button>
 			{open && (
 				<ul className="flex flex-col gap-0.5">
-					{data.map((project) => (
-						<TreeRow key={project.id} project={project} depth={0} active={project.path === activeRef} archived />
-					))}
+					{data.flatMap((project) => {
+						const expandedProject = expanded[project.id] ?? true;
+						return [
+							<TreeRow
+								key={project.id}
+								project={project}
+								depth={0}
+								expander={{ open: expandedProject, onToggle: () => uiActions.toggleProject(project.id) }}
+								archived
+							/>,
+							...(expandedProject
+								? [<ProjectPages key={`${project.id}.pages`} project={project} depth={1} pathname={pathname} />]
+								: []),
+						];
+					})}
 				</ul>
 			)}
 		</nav>

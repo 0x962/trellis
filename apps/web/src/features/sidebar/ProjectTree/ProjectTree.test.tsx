@@ -17,10 +17,44 @@ beforeEach(() => {
 const rootRow = (name: string) => screen.getByRole("link", { name: new RegExp(name) });
 
 describe("features/sidebar/ProjectTree", () => {
+	test("every project has Tickets and Settings pages with the selected page marked", async () => {
+		const user = userEvent.setup();
+		const { router } = renderWithProviders(<ProjectTree />, { path: "/p/TRL", actor: "navid" });
+		for (const [name, path] of [
+			["Superset CDE", "CDE"],
+			["web", "CDE/web"],
+			["host", "CDE/host"],
+			["trellis", "TRL"],
+			["margin", "MRG"],
+		]) {
+			const pages = await screen.findByRole("navigation", { name: `${name} pages` });
+			expect(within(pages).getByRole("link", { name: "Tickets" }).getAttribute("href")).toBe(`/p/${path}`);
+			expect(within(pages).getByRole("link", { name: "Settings" }).getAttribute("href")).toBe(`/p/${path}/settings`);
+		}
+		const pages = screen.getByRole("navigation", { name: "trellis pages" });
+		const tickets = within(pages).getByRole("link", { name: "Tickets" });
+		const settings = within(pages).getByRole("link", { name: "Settings" });
+		expect(tickets.getAttribute("aria-current")).toBe("page");
+		expect(rootRow("trellis").closest("li")!.classList.contains("sidebar-selected")).toBe(false);
+		await user.click(settings);
+		await waitFor(() => expect(router.state.location.pathname).toBe("/p/TRL/settings"));
+		expect(settings.getAttribute("aria-current")).toBe("page");
+		expect(tickets.getAttribute("aria-current")).toBeNull();
+	});
+
+	test("a project without children can collapse and restore its pages", async () => {
+		const user = userEvent.setup();
+		renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid" });
+		await user.click(await screen.findByRole("button", { name: "Collapse trellis" }));
+		expect(screen.queryByRole("navigation", { name: "trellis pages" })).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Expand trellis" }));
+		expect(screen.getByRole("navigation", { name: "trellis pages" })).toBeDefined();
+	});
+
 	test("project links show names without project codes or counts and indent children", async () => {
 		renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid" });
 		await screen.findByRole("link", { name: /Superset CDE/ });
-		const links = screen.getAllByRole("link");
+		const links = screen.getAllByRole("link").filter((link) => !["Tickets", "Settings"].includes(link.textContent!));
 		const names = ["Superset CDE", "web", "host", "trellis", "margin"];
 		expect(links.map((link) => link.textContent)).toEqual(names);
 		for (const [index, name] of names.entries()) {
@@ -52,7 +86,7 @@ describe("features/sidebar/ProjectTree", () => {
 		const chevron = screen.getByRole("button", { name: /Collapse Superset CDE/ });
 		expect(slot(rowOf(/Superset CDE/), "disclosure").contains(chevron)).toBe(true);
 		expect(chevron.classList.contains("absolute")).toBe(false);
-		expect(slot(rowOf(/^web/), "disclosure").querySelector("button")).toBeNull();
+		expect(slot(rowOf(/^web/), "disclosure").querySelector("button")).not.toBeNull();
 		const dot = slot(rowOf(/^web/), "leading").querySelector("span")!;
 		expect(dot.className).toMatch(/\bsize-1\.5\b/);
 		expect(dot.className).toMatch(/\brounded-sm\b/);
@@ -118,8 +152,11 @@ describe("features/sidebar/ProjectTree", () => {
 		useUiStore.setState({ expandedProjects: { [cde.id]: false } });
 		renderWithProviders(<ProjectTree />, { path: "/p/CDE/web", actor: "navid", server });
 		const web = await screen.findByRole("link", { name: /^web/ });
-		expect(web.getAttribute("aria-current")).toBe("page");
-		expect(web.closest("li")!.className).toMatch(/\bsidebar-selected\b/);
+		const tickets = within(screen.getByRole("navigation", { name: "web pages" })).getByRole("link", {
+			name: "Tickets",
+		});
+		expect(tickets.getAttribute("aria-current")).toBe("page");
+		expect(tickets.className).toMatch(/\bsidebar-selected\b/);
 		expect(web.textContent).toBe("web");
 		expect(rootRow("Superset CDE").getAttribute("aria-current")).toBeNull();
 		expect(screen.getByRole("button", { name: /Collapse Superset CDE/ }).getAttribute("aria-expanded")).toBe("true");
@@ -147,7 +184,7 @@ describe("features/sidebar/ProjectTree", () => {
 		await server.client.tickets.create({ project: "CDE.web", title: "One more" });
 		await queryClient.invalidateQueries({ queryKey: orpc.projects.list.key() });
 		expect(document.querySelector("[aria-busy=true]")).toBeNull();
-		expect(screen.getAllByRole("link")).toHaveLength(5);
+		expect(screen.getAllByRole("link")).toHaveLength(15);
 		expect(screen.getByRole("link", { name: /^web/ })).toBe(web);
 		expect(web.textContent).toBe("web");
 		expect(rootRow("Superset CDE").textContent).toBe("Superset CDE");

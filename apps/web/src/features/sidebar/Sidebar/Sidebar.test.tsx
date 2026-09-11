@@ -30,6 +30,9 @@ describe("features/sidebar/Sidebar archived group", () => {
 		await user.click(toggle);
 		expect(toggle.getAttribute("aria-expanded")).toBe("true");
 		expect(await screen.findByRole("link", { name: /margin/ })).toBeDefined();
+		const pages = screen.getByRole("navigation", { name: "margin pages" });
+		expect(within(pages).getByRole("link", { name: "Tickets" }).getAttribute("href")).toBe("/p/MRG");
+		expect(within(pages).getByRole("link", { name: "Settings" }).getAttribute("href")).toBe("/p/MRG/settings");
 	});
 
 	test("no archived project shows no Archived group", async () => {

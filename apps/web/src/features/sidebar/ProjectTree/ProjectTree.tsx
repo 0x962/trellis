@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectRefOfPathname } from "../../../lib/projectPath";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
 
 // Each guide aligns with the center of its parent project's icon.
@@ -36,16 +37,14 @@ export function ProjectTree() {
 
 	const level = (parentId: string | null, depth: number): ReactNode[] =>
 		(children.get(parentId) ?? []).sort(byPosition).flatMap((project) => {
-			const own = children.get(project.id) ?? [];
 			const holdsActive = activeRef?.startsWith(`${project.path}.`) ?? false;
-			const open = own.length > 0 && (holdsActive || (expanded[project.id] ?? true));
+			const open = holdsActive || (expanded[project.id] ?? true);
 			const row = (
 				<TreeRow
 					key={project.id}
 					project={project}
 					depth={depth}
-					active={project.path === activeRef}
-					expander={own.length === 0 ? undefined : { open, onToggle: () => uiActions.toggleProject(project.id) }}
+					expander={{ open, onToggle: () => uiActions.toggleProject(project.id) }}
 				/>
 			);
 			if (!open) return [row];
@@ -58,6 +57,7 @@ export function ProjectTree() {
 							guide[Math.min(depth, guide.length - 1)],
 						)}
 					>
+						<ProjectPages project={project} depth={depth + 1} pathname={pathname} />
 						{level(project.id, depth + 1)}
 					</ul>
 				</li>,

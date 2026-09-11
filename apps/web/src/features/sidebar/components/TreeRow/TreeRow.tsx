@@ -11,7 +11,6 @@ export type TreeRowProps = {
 	project: ProjectSummary;
 	// The level in the tree. Each level indents the row 20 px.
 	depth: number;
-	active: boolean;
 	// The chevron of a row with children.
 	expander?: { open: boolean; onToggle: () => void };
 	// An archived row uses faint text.
@@ -23,13 +22,13 @@ const indent = ["pl-2", "pl-7", "pl-12", "pl-17"] as const;
 
 // The disclosure button is beside the link so expansion does not navigate.
 // The trailing slot reserves space for the menu on hover and focus.
-export function TreeRow({ project, depth, active, expander, archived = false }: TreeRowProps) {
+export function TreeRow({ project, depth, expander, archived = false }: TreeRowProps) {
 	return (
 		<li
 			className={cx(
 				"group/row relative flex h-8 items-center rounded-md pr-1 transition-colors duration-hover ease-out hover:bg-surface pointer-coarse:h-11",
 				indent[Math.min(depth, indent.length - 1)],
-				active ? "sidebar-selected font-medium" : archived ? "text-fg-faint" : "text-fg-muted",
+				archived ? "text-fg-faint" : "font-medium text-fg",
 			)}
 		>
 			<span
@@ -54,7 +53,6 @@ export function TreeRow({ project, depth, active, expander, archived = false }: 
 				to="/p/$"
 				params={{ _splat: projectSlashPath(project.path) }}
 				activeOptions={{ exact: true, includeSearch: false }}
-				aria-current={active ? "page" : undefined}
 				className="flex h-8 min-w-0 flex-1 items-center rounded-md transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11"
 			>
 				<span data-slot="leading" className="sidebar-leading">
