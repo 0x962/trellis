@@ -35,7 +35,7 @@ const addFilter = async (page: Page, field: string, value: string) => {
 
 // M3: the chips and the URL hold the same filters in both directions.
 test("filters > chips write the URL, a reload keeps them, and a removed chip drops its param", async ({ page }) => {
-	await signIn(page, "/p/FLT");
+	await signIn(page, "/p/FLT/table");
 	await expect(rowOf(page, "FLT-5")).toBeVisible();
 	await addFilter(page, "Priority", "High");
 	await expect(page).toHaveURL(/[?&]priority=high(&|$)/);
@@ -59,7 +59,7 @@ test("filters > chips write the URL, a reload keeps them, and a removed chip dro
 // a second filter navigates, because the router validates the typed view
 // again. FLT-2 is the one ticket outside Todo, and it is High.
 test("filters > a status=!todo URL shows the tickets outside Todo and keeps the negation", async ({ page }) => {
-	await signIn(page, "/p/FLT?status=!todo");
+	await signIn(page, "/p/FLT/table?status=!todo");
 	await expect(chipOf(page, "status")).toContainText("is not");
 	await expect.poll(() => rowIds(page)).toEqual(["FLT-2"]);
 	await addFilter(page, "Priority", "High");
@@ -73,7 +73,7 @@ test("filters > a status=!todo URL shows the tickets outside Todo and keeps the 
 // pasted into a shell, returns the tickets the table shows. The command
 // always names the sort, as features/filters/cli.test.ts states.
 test("filters > Copy as CLI copies the trellis list command that returns the table's rows", async ({ page }) => {
-	await signIn(page, "/p/FLT?status=todo&priority=high");
+	await signIn(page, "/p/FLT/table?status=todo&priority=high");
 	await expect(chipOf(page, "status")).toBeVisible();
 	await expect.poll(() => rowIds(page)).toEqual(["FLT-1", "FLT-4"]);
 	// Filter and Display are the only text buttons; the copy actions sit in

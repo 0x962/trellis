@@ -14,7 +14,9 @@ test.beforeAll(() => {
 test("deleting a project with tickets takes the typed key and lands on All tickets", async ({ page }) => {
 	const { total } = await get<{ total: number }>("/tickets/counts?project=DEL");
 	expect(total).toBeGreaterThanOrEqual(2);
-	await signIn(page, "/p/DEL/settings");
+	// Project settings groups its rows into sections, and the hash picks one.
+	// Delete lives under Archive and delete.
+	await signIn(page, "/p/DEL/settings#archive");
 	await page.getByRole("button", { name: "Delete project…" }).click();
 	const dialog = page.getByRole("dialog", { name: "Delete Doomed?" });
 	await expect(dialog).toContainText(`${total} tickets`);

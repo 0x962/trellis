@@ -8,7 +8,9 @@ test("settings on a loopback server shows the command that pairs a phone", async
 	const health = await (await request.get(`${apiUrl}/api/health`)).json();
 	expect(health.addresses).toEqual([apiUrl]);
 
-	await signIn(page, "/settings");
+	// Settings groups its rows into sections, and the hash picks one. Pair a
+	// phone sits under Integrations.
+	await signIn(page, "/settings#integrations");
 	const row = page.locator("[data-settings-row]", { hasText: "Pair a phone" });
 
 	await expect(row.getByText("trellis install --host 0.0.0.0")).toBeVisible();

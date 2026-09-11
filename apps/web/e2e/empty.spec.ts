@@ -9,7 +9,7 @@ test.beforeAll(() => {
 // The empty state of a project prints a CLI line. The real CLI parses that
 // line, and the line pasted into a shell creates the first ticket.
 test("empty > the CLI line of an empty project creates its first ticket", async ({ page }) => {
-	await signIn(page, "/p/EMP");
+	await signIn(page, "/p/EMP/table");
 	const line = page.getByText(/^trellis create /);
 	await expect(line).toHaveText('trellis create -p EMP -t "First ticket"');
 	const created = runPasted<CliTicket>((await line.textContent())!);

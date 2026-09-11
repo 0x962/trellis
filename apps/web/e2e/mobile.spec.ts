@@ -25,13 +25,16 @@ const sidewaysScroll = (page: Page) =>
 		return { page: root.scrollWidth - root.clientWidth, main: main.scrollWidth - main.clientWidth };
 	});
 
-// Each route with the element that shows its content has painted.
+// Each route with the element that shows its content has painted. The board
+// is the bare path of a project and of All tickets; the table takes the
+// /table segment. Both views of both scopes get the check.
 const routes: Array<[string, (page: Page) => Locator]> = [
 	["/needs-you", (page) => page.getByRole("heading", { name: "Needs you", exact: true })],
 	["/search", (page) => page.getByRole("main").getByRole("searchbox")],
-	["/all", (page) => page.locator('[role="row"][data-identifier]').first()],
-	["/p/MOB", (page) => rowOf(page, "MOB-1")],
-	["/p/MOB/board", (page) => cardOf(columnOf(page, "Todo"), "MOB-1")],
+	["/all", (page) => columnOf(page, "Todo")],
+	["/all/table", (page) => page.locator('[role="row"][data-identifier]').first()],
+	["/p/MOB", (page) => cardOf(columnOf(page, "Todo"), "MOB-1")],
+	["/p/MOB/table", (page) => rowOf(page, "MOB-1")],
 	["/p/MOB/settings", (page) => page.getByRole("main").getByRole("textbox").first()],
 	["/t/MOB-1", (page) => page.getByRole("textbox", { name: "Title" })],
 	["/p/MOB?peek=MOB-1", (page) => peekOf(page, "MOB-1")],
@@ -47,7 +50,7 @@ for (const [route, ready] of routes) {
 }
 
 test("the composer fits 390 px with no sideways scroll", async ({ page }) => {
-	await signIn(page, "/p/MOB");
+	await signIn(page, "/p/MOB/table");
 	await expect(rowOf(page, "MOB-1")).toBeVisible();
 	await page.keyboard.press("c");
 	await expect(page.getByRole("dialog")).toBeVisible();
@@ -60,7 +63,7 @@ test("the composer fits 390 px with no sideways scroll", async ({ page }) => {
 // The sidebar is off the page until the menu button opens it, and a pick
 // in it closes it again.
 test("the sidebar starts closed and the menu button opens it over the page", async ({ page }) => {
-	await signIn(page, "/p/MOB");
+	await signIn(page, "/p/MOB/table");
 	await expect(rowOf(page, "MOB-1")).toBeVisible();
 	await expect(page.getByRole("complementary", { name: "Sidebar" })).toBeHidden();
 	await page.getByRole("button", { name: "Open the sidebar" }).click();
@@ -82,7 +85,7 @@ test("the ticket page opens the sidebar from its header", async ({ page }) => {
 // The table drops the Project, PR, and Last actor columns, so the title
 // keeps at least a third of the 390 px row.
 test("the table gives the title a third of the row", async ({ page }) => {
-	await signIn(page, "/p/MOB");
+	await signIn(page, "/p/MOB/table");
 	const title = rowOf(page, "MOB-1").getByText(titles["MOB-1"], { exact: true });
 	await expect(title).toBeVisible();
 	const box = (await title.boundingBox())!;
@@ -108,7 +111,7 @@ test.describe("on a touch screen", () => {
 
 	// The design checklist sets a 44 px hit area on a coarse pointer.
 	test("every sidebar row is at least 44 px tall", async ({ page }) => {
-		await signIn(page, "/p/MOB");
+		await signIn(page, "/p/MOB/table");
 		await expect(rowOf(page, "MOB-1")).toBeVisible();
 		await page.getByRole("button", { name: "Open the sidebar" }).tap();
 		const sheet = page.getByRole("dialog", { name: "Navigation" });

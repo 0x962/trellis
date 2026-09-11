@@ -23,7 +23,7 @@ test("an unknown identifier shows the not-found line and a search link", async (
 // a page-to-page hop: the peek on TKT-1, its full page, then its child
 // TKT-2 on the page.
 test("Back to list keeps the previous search params", async ({ page }) => {
-	await signIn(page, "/p/TKT?status=in-progress");
+	await signIn(page, "/p/TKT/table?status=in-progress");
 	await rowOf(page, "TKT-1").getByText("Merge upstream 1.27", { exact: false }).click();
 	await expect(peekOf(page, "TKT-1")).toBeVisible();
 	await page.keyboard.press("o");
@@ -34,5 +34,5 @@ test("Back to list keeps the previous search params", async ({ page }) => {
 		.click();
 	await expect(page).toHaveURL(/\/t\/TKT-2$/);
 	await page.getByRole("link", { name: "Back to list" }).click();
-	await expect(page).toHaveURL(/\/p\/TKT\?status=in-progress$/);
+	await expect(page).toHaveURL(/\/p\/TKT\/table\?status=in-progress$/);
 });

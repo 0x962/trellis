@@ -14,10 +14,11 @@ test.beforeAll(() => {
 	for (const title of Object.values(titles)) createTicket("APK", title, ["-d", `Notes on ${title}.`]);
 });
 
-// The project chip narrows /all to the tickets this spec seeds. Every other
-// spec writes to the same server, so without the chip a seeded row can sit
-// below the fold.
-const allTickets = "/all?project=APK";
+// The table of All tickets, which takes the /table segment now that the
+// board is the bare path. The project chip narrows it to the tickets this
+// spec seeds. Every other spec writes to the same server, so without the
+// chip a seeded row can sit below the fold.
+const allTickets = "/all/table?project=APK";
 
 // The table's row order: status groups in category order, then priority,
 // then the last update.
