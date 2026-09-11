@@ -7,9 +7,8 @@ import { useApp } from "../../../../../lib/appContext";
 import { AgentFailure } from "../../../../agent/AgentFailure";
 import { AgentStateBadge } from "../../../../agent/AgentStateBadge";
 import { runnerRefusal } from "../../../../agent/utils/runnerRefusal";
-import { Row } from "../Row";
 
-export type AgentsRowProps = {
+export type AgentSessionsProps = {
 	identifier: string;
 };
 
@@ -33,8 +32,9 @@ const refusal = (error: unknown) => {
 // its person name, its role, its state, and a link into its Superset
 // workspace. A person calls an agent by the name, so the name leads the
 // item. An agents.session event refetches agents.sessions, so the states
-// follow the runner live.
-export function AgentsRow({ identifier }: AgentsRowProps) {
+// follow the runner live. The list sits under the Agent heading of
+// TicketAgent, which is the one agent heading of the rail.
+export function AgentSessions({ identifier }: AgentSessionsProps) {
 	const { client, orpc, queryClient } = useApp();
 	const options = orpc.agents.sessions.queryOptions({ input: { ticket: identifier } });
 	const sessions = useQuery(options).data?.sessions;
@@ -54,33 +54,31 @@ export function AgentsRow({ identifier }: AgentsRowProps) {
 		}
 	};
 
-	if (sessions === undefined) return <Row label="Agents">{null}</Row>;
+	if (sessions === undefined) return null;
 	const ordered = [...sessions].sort(byCreated);
 	const building = ordered.some((session) => session.role === "builder" && liveStates.has(session.state));
 
 	return (
-		<Row label="Agents">
-			<div className="flex min-w-0 flex-1 flex-col items-start gap-1 py-1">
-				{ordered.length === 0 ? (
-					<span className="text-fg-faint">None</span>
-				) : (
-					<ul aria-label="Agent sessions" className="flex flex-col gap-1">
-						{ordered.map((session) => (
-							<li key={session.id} className="flex min-w-0 items-center gap-2">
-								<span>{session.name}</span>
-								<span className="text-fg-muted">{roleLabels[session.role]}</span>
-								<AgentStateBadge state={session.state} />
-								{session.state === "failed" && <AgentFailure id={session.id} error={session.error} />}
-							</li>
-						))}
-					</ul>
-				)}
-				{!building && (
-					<Button size="sm" disabled={starting} onClick={() => void start()}>
-						Start builder
-					</Button>
-				)}
-			</div>
-		</Row>
+		<div className="flex min-w-0 flex-col items-start gap-1">
+			{ordered.length === 0 ? (
+				<span className="text-fg-faint">None</span>
+			) : (
+				<ul aria-label="Agent sessions" className="flex flex-col gap-1">
+					{ordered.map((session) => (
+						<li key={session.id} className="flex min-w-0 items-center gap-2">
+							<span>{session.name}</span>
+							<span className="text-fg-muted">{roleLabels[session.role]}</span>
+							<AgentStateBadge state={session.state} />
+							{session.state === "failed" && <AgentFailure id={session.id} error={session.error} />}
+						</li>
+					))}
+				</ul>
+			)}
+			{!building && (
+				<Button size="sm" disabled={starting} onClick={() => void start()}>
+					Start builder
+				</Button>
+			)}
+		</div>
 	);
 }

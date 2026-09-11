@@ -49,6 +49,20 @@ describe("features/ticket/PropertiesRail", () => {
 		expect(terms.slice(0, rowOrder.length)).toEqual(rowOrder);
 	});
 
+	// TRL-33. The rail named agents twice: the TicketAgent section carried an
+	// Agent heading, and an Agents row followed it with a second stack. The
+	// sessions now sit inside that one section.
+	test("names agents once, in one section", async () => {
+		mount();
+		const properties = within(await rail());
+		const headings = properties.getAllByRole("heading").map((heading) => heading.textContent);
+		expect(headings.filter((heading) => heading === "Agent")).toEqual(["Agent"]);
+		expect(headings.filter((heading) => heading === "Agents")).toEqual([]);
+		expect(properties.queryByText("Agents", { selector: "dt" })).toBeNull();
+		const section = properties.getByRole("region", { name: "Agent assignment" });
+		expect(await within(section).findByText("None")).toBeDefined();
+	});
+
 	// WT-48
 	test("the status picker paints the new status optimistically", async () => {
 		const user = userEvent.setup();

@@ -7,7 +7,7 @@ import { mockMatchMedia } from "../../../../../../test/media";
 import { ticketId } from "../../../../../../test/rows";
 import { createTestServer, type TestServer } from "../../../../../../test/server";
 import { minute, renderTicket } from "../../../../../../test/ticketHost";
-import { PropertiesRail } from "../../PropertiesRail";
+import { TicketAgent } from "../../TicketAgent";
 
 beforeEach(() => {
 	localStorage.clear();
@@ -15,29 +15,23 @@ beforeEach(() => {
 });
 
 const mount = (server: TestServer) =>
-	renderTicket("CDE-42", (ticket) => <PropertiesRail ticket={ticket} variant="page" />, { server });
+	renderTicket("CDE-42", (ticket) => <TicketAgent ticket={ticket.identifier} />, { server });
 
-const terms = async () =>
-	within(await screen.findByLabelText("Properties"))
-		.getAllByRole("term")
-		.map((term) => term.textContent);
+// The one agent section of the rail. The sessions sit inside it, under its
+// Agent heading.
+const section = async () => screen.findByRole("region", { name: "Agent assignment" });
 
-// The value cell of the Agents row.
-const agentsRow = async () => {
-	const rail = within(await screen.findByLabelText("Properties"));
-	const term = await rail.findByText("Agents", { selector: "dt" });
-	return term.nextElementSibling as HTMLElement;
-};
+const items = async () => within(await section()).findAllByRole("listitem");
+const startButton = async () => within(await section()).queryByRole("button", { name: "Start builder" });
+const findStartButton = async () => within(await section()).findByRole("button", { name: "Start builder" });
 
-const items = async () => within(await agentsRow()).findAllByRole("listitem");
-const startButton = async () => within(await agentsRow()).queryByRole("button", { name: "Start builder" });
-
-describe("AgentsRow", () => {
-	test("the rail shows the Agents row last, under the picker rows", async () => {
+describe("AgentSessions", () => {
+	test("the sessions sit under the Agent heading, and the section names agents once", async () => {
 		mount(createTestServer());
-		await agentsRow();
-		const order = await terms();
-		expect(order.at(-1)).toBe("Agents");
+		const agent = await section();
+		expect(within(agent).getByRole("heading", { level: 3 }).textContent).toBe("Agent");
+		expect(await within(agent).findByText("None")).toBeDefined();
+		expect(screen.queryByText("Agents", { selector: "dt" })).toBeNull();
 	});
 
 	test("lists the builder and the reviewer with their names and their states", async () => {
@@ -59,8 +53,8 @@ describe("AgentsRow", () => {
 		const server = createTestServer();
 		await enableAgents(server);
 		mount(server);
-		expect(await within(await agentsRow()).findByText("None")).toBeDefined();
-		const start = (await startButton())!;
+		expect(await within(await section()).findByText("None")).toBeDefined();
+		const start = await findStartButton();
 		// The base layer of @trellis/ui sets the pointer cursor on every
 		// enabled button, so the control has to be a button element.
 		expect(start.tagName).toBe("BUTTON");
@@ -100,7 +94,7 @@ describe("AgentsRow", () => {
 		await enableAgents(server, "CDE", { maxConcurrent: 1 });
 		await addSession(server, { role: "builder", ticketId: await ticketId(server, "CDE-44"), title: "CDE-44" });
 		mount(server);
-		await user.click((await startButton())!);
+		await user.click(await findStartButton());
 		expect(await screen.findByText("Limit reached: 1 of 1 builders run.")).toBeDefined();
 	});
 
@@ -108,7 +102,7 @@ describe("AgentsRow", () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
 		mount(server);
-		await user.click((await startButton())!);
+		await user.click(await findStartButton());
 		expect(await screen.findByText("Agents are off. Turn them on in Settings.")).toBeDefined();
 	});
 
