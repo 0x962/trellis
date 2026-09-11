@@ -6,7 +6,7 @@ import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail } from "../errors.ts";
 import type { AgentsCtx } from "./agentSessions.ts";
-import { chainOf } from "./refs.ts";
+import { chainOf, pathOf } from "./refs.ts";
 
 // The agent settings live as one jsonb value under this key of the settings
 // table.
@@ -23,6 +23,25 @@ export const readAgentSettings = async (tx: Tx): Promise<AgentSettings> => {
 
 export const get = (_ctx: ServiceCtx, tx: Tx) => readAgentSettings(tx);
 
+// A base branch the repository does not hold makes every agent of that
+// project fail inside `superset ws create`, and the person who saved the
+// setting never learns why. So the save reads the checkout first and
+// refuses. A checkout this machine cannot read passes instead: Superset
+// also lists projects that live on another machine or that nobody cloned
+// here, and those must stay saveable.
+const refuseMissingBaseBranch = async (ctx: AgentsCtx, input: AgentSettingsSetInput) => {
+	if (!input.enabled) return;
+	for (const row of input.projects) {
+		const baseBranch = row.baseBranch ?? null;
+		if (!row.enabled || row.supersetProjectId === null || baseBranch === null) continue;
+		if ((await ctx.runner.branchState(row.supersetProjectId, baseBranch)) !== "absent") continue;
+		throw runnerUnavailable(
+			"branch",
+			`${pathOf(ctx.cache, row.projectId)}: the repository holds no branch "${baseBranch}". Name a branch it holds, or clear the base branch to take the default of the checkout.`,
+		);
+	}
+};
+
 // A full replace. The schema fills the defaults of every project row, so
 // the stored value is the value `get` returns. A settings write is not
 // activity: no activity row and no event. After the commit the agents host
@@ -32,6 +51,7 @@ export const set = async (ctx: AgentsCtx, tx: Tx, input: AgentSettingsSetInput):
 	for (const row of input.projects) {
 		if (ctx.cache.get(row.projectId) === undefined) throw fail("NOT_FOUND", { kind: "project", ref: row.projectId });
 	}
+	await refuseMissingBaseBranch(ctx, input);
 	await tx.execute(
 		sql`INSERT INTO settings (key, value, updated_at) VALUES (${KEY}, ${JSON.stringify(input)}::jsonb, ${ctx.now})
 			ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at`,

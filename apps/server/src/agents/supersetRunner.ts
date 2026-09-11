@@ -8,6 +8,7 @@ import {
 	restartText,
 	resumeCommand,
 } from "@trellis/api";
+import { branchState } from "./git.ts";
 import {
 	matchRunnerProject,
 	type Runner,
@@ -161,6 +162,12 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 		},
 
 		branchAt,
+
+		branchState: async (runnerProjectId, branch) => {
+			const found = (await projects()).find((project) => project.id === runnerProjectId);
+			if (found === undefined) return "unreadable";
+			return branchState(found.path, branch);
+		},
 
 		ensureManager: async (input) => {
 			const command = managerCommand(input.project, input.claudeSessionId, input.text ?? restartText(input.project));
