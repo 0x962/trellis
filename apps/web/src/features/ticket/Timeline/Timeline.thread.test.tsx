@@ -117,6 +117,10 @@ describe("features/ticket/Timeline threads", () => {
 		const actor = within(comment).getByText("navid");
 		expect(surface).not.toBeNull();
 		expect(surface.className).toMatch(/\bml-8\b/);
+		expect(surface.className).toMatch(/before:-top-4/);
+		expect(surface.className).toMatch(/before:h-4/);
+		expect(surface.className).toMatch(/before:border-l/);
+		expect(surface.className).toMatch(/before:border-b/);
 		expect(surface.contains(actor)).toBe(false);
 		expect(actor.compareDocumentPosition(surface) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
 	});

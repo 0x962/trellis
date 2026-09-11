@@ -11,7 +11,7 @@ beforeEach(() => localStorage.clear());
 // The composer is pinned inside the Timeline, so the card it posts is on
 // the same screen.
 const mount = (server: FakeServer = createFakeServer()) =>
-	renderTicket("CDE-42", (ticket) => <Timeline ticket={ticket} />, { path: "/t/CDE-42", server });
+	renderTicket("CDE-42", (ticket) => <Timeline ticket={ticket} pinned />, { path: "/t/CDE-42", server });
 
 const composer = () => screen.findByRole("textbox", { name: "Comment" });
 const list = () => screen.findByRole("list", { name: "Timeline" });
@@ -34,12 +34,13 @@ describe("features/ticket/Timeline/components/Composer", () => {
 		expect(screen.queryByRole("button", { name: "Comment" })).toBeNull();
 	});
 
-	test("the pinned composer does not add a different background band", async () => {
+	test("the pinned composer has an opaque background and a taller resting field", async () => {
 		mount();
 		const box = await composer();
 		const wrapper = box.closest("fieldset")!.parentElement!;
-		expect(wrapper.className).not.toMatch(/\bbg-pane\b/);
-		expect(box.closest("fieldset")!.className).toMatch(/\bbg-surface\b/);
+		expect(wrapper.className).toMatch(/\bbg-surface\b/);
+		expect(box.closest("fieldset")!.className).toMatch(/\bbg-elevated\b/);
+		expect(box.closest("fieldset")!.className).toMatch(/\bmin-h-20\b/);
 	});
 
 	// WT-83

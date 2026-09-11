@@ -78,6 +78,7 @@ describe("features/ticket/PropertiesRail", () => {
 	test("the rail draws three groups and no Version row", async () => {
 		mount();
 		const element = await rail();
+		expect(element.className).toMatch(/\bh-full\b/);
 		expect(within(element).queryByText("Version")).toBeNull();
 		expect(element.querySelectorAll("[data-rail-divider]")).toHaveLength(2);
 	});

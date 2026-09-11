@@ -73,16 +73,7 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 	// A disabled fieldset disables every control inside it, so the page and
 	// the peek show the ticket read-only. The edit keys read `readOnly` too.
 	const main = (
-		<article
-			{...drop.handlers}
-			className={cx("relative flex min-w-0 flex-1 flex-col", !peek && "min-h-0 overflow-y-auto")}
-		>
-			<Header ticket={ticket} surface={variant} />
-			{readOnly && (
-				<p className="flex h-9 shrink-0 items-center bg-warning-soft px-12 text-sm font-medium text-warning max-md:px-4">
-					{notice(ticket.project.path)}
-				</p>
-			)}
+		<article className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
 			<div
 				data-ticket-content=""
 				className={cx(
@@ -108,7 +99,7 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 						<ReviewActions ticket={ticket} />
 					</fieldset>
 				)}
-				<div className={inlineRail ? "mt-4" : "mt-3"}>
+				<div data-ticket-description="" className={cx("min-h-24", inlineRail ? "mt-4" : "mt-3")}>
 					<Description key={ticket.identifier} ticket={ticket} />
 				</div>
 				<div className="mt-8 flex flex-col gap-8">
@@ -118,22 +109,27 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 					<Timeline ticket={ticket} pinned={peek} onAttachFiles={uploads.start} />
 				</div>
 			</div>
-			{drop.over && <DropOverlay identifier={ticket.identifier} />}
 		</article>
 	);
 
-	if (inlineRail) {
-		return (
-			<fieldset disabled={readOnly} className="contents">
-				{main}
-			</fieldset>
-		);
-	}
 	return (
 		<fieldset disabled={readOnly} className="contents">
-			<div className="flex min-h-0 flex-1">
-				{main}
-				<PropertiesRail ticket={ticket} variant="page" onAddSubTicket={() => setAddingChild(true)} />
+			<div {...drop.handlers} className="relative flex h-full min-h-0 flex-1 flex-col">
+				<Header ticket={ticket} surface={variant} />
+				{readOnly && (
+					<p className="flex h-9 shrink-0 items-center bg-warning-soft px-12 text-sm font-medium text-warning max-md:px-4">
+						{notice(ticket.project.path)}
+					</p>
+				)}
+				{inlineRail ? (
+					main
+				) : (
+					<div data-ticket-columns="" className="flex min-h-0 flex-1">
+						{main}
+						<PropertiesRail ticket={ticket} variant="page" onAddSubTicket={() => setAddingChild(true)} />
+					</div>
+				)}
+				{drop.over && <DropOverlay identifier={ticket.identifier} />}
 			</div>
 		</fieldset>
 	);
