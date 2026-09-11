@@ -3,6 +3,7 @@ export * from "./client.ts";
 export * from "./contract/index.ts";
 export * from "./errors.ts";
 export * from "./events.ts";
+export * from "./instructions/index.ts";
 export * from "./instructions.ts";
 export * from "./pair.ts";
 export * from "./query-keys.ts";

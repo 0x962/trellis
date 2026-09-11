@@ -1,115 +1,110 @@
-import { useMutation } from "@tanstack/react-query";
-import { AGENT_LAUNCH_VARIABLES, DEFAULT_AGENT_LAUNCH_COMMAND, unknownLaunchVariables } from "@trellis/api";
-import { Button, Sheet, Textarea } from "@trellis/ui";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+	AGENT_LAUNCH_VARIABLES,
+	DEFAULT_AGENT_LAUNCH_COMMAND,
+	type Settings,
+	unknownLaunchVariables,
+} from "@trellis/api";
+import { Button, Textarea } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { useSettingsDraft } from "../hooks/useSettingsDraft";
+import { SavedMark } from "../SavedMark";
 import { SettingsRow } from "../SettingsRow";
+
 export function AgentLaunchField() {
-	const { saved } = useSettingsDraft();
 	const { client, orpc, queryClient } = useApp();
+	const savedKey = orpc.settings.get.queryKey({});
+	const { data: saved } = useQuery(orpc.settings.get.queryOptions({}));
 	const [template, setTemplate] = useState<string | null>(null);
+	const value = template ?? saved?.agentLaunchCommand ?? DEFAULT_AGENT_LAUNCH_COMMAND;
+	const unknown = unknownLaunchVariables(value);
+	const invalid = !value.trim() || unknown.length > 0;
 	const save = useMutation({
-		mutationFn: () => client.settings.set({ ...saved!, agentLaunchCommand: template! }),
-		onSuccess: (settings) => {
-			queryClient.setQueryData(orpc.settings.get.queryKey({}), settings);
-			setTemplate(null);
+		scope: { id: "agent-launch-command" },
+		mutationFn: (command: string) =>
+			client.settings.set({
+				...queryClient.getQueryData<Settings>(savedKey)!,
+				agentLaunchCommand: command,
+			}),
+		onSuccess: (settings, sent) => {
+			queryClient.setQueryData(savedKey, settings);
+			setTemplate((current) => (current === sent ? null : current));
 		},
 	});
-	const unknown = unknownLaunchVariables(template ?? "");
+	const commit = () => {
+		if (!invalid && (save.isPending || value.trim() !== (saved?.agentLaunchCommand ?? DEFAULT_AGENT_LAUNCH_COMMAND)))
+			save.mutate(value);
+	};
 	return (
 		<SettingsRow
 			label="Agent launch"
-			hint="Choose the command Trellis uses to open an agent. The default uses Superset."
+			hint="Choose the command Trellis uses to open an agent. Changes save automatically."
 		>
+			<Textarea
+				label="Command template"
+				rows={6}
+				required
+				maxLength={20000}
+				spellCheck={false}
+				value={value}
+				disabled={!saved}
+				invalid={invalid}
+				onChange={(event) => setTemplate(event.target.value)}
+				onBlur={commit}
+				className="font-mono text-sm"
+			/>
+			<p className="text-sm text-fg-muted">
+				Superset opens a tracked terminal. Custom commands run in a persistent terminal with status, output, and
+				follow-ups.
+			</p>
+			<div className="flex flex-col gap-2">
+				<h3 className="text-sm font-medium">Template variables</h3>
+				<p className="text-sm text-fg-muted">
+					Trellis quotes each value as one shell argument. Use variables without extra quotes. Custom commands run in
+					workDir. Use cd to select another checkout.
+				</p>
+				<div className="flex flex-wrap gap-2">
+					{AGENT_LAUNCH_VARIABLES.map((variable) => (
+						<code key={variable} className="border border-border bg-bg px-2 py-1 text-xs">{`{{${variable}}}`}</code>
+					))}
+				</div>
+				<p className="text-sm text-fg-muted">
+					prompt includes the persona and assignment. agentCommand starts the default agent with that prompt. projectId
+					identifies the Superset project.
+				</p>
+			</div>
 			<Button
 				variant="quiet"
-				disabled={!saved}
+				align="start"
+				disabled={!saved || value === DEFAULT_AGENT_LAUNCH_COMMAND}
 				onClick={() => {
-					save.reset();
-					setTemplate(saved?.agentLaunchCommand ?? DEFAULT_AGENT_LAUNCH_COMMAND);
+					setTemplate(DEFAULT_AGENT_LAUNCH_COMMAND);
+					save.mutate(DEFAULT_AGENT_LAUNCH_COMMAND);
 				}}
 			>
-				Configure agent launch
+				Use Superset default
 			</Button>
-			{template !== null && (
-				<Sheet
-					open
-					title="Agent launch command"
-					titleClassName="text-md font-medium"
-					onOpenChange={(open) => !open && !save.isPending && setTemplate(null)}
-				>
-					<form
-						className="flex min-h-full flex-col"
-						onSubmit={(event) => {
-							event.preventDefault();
-							if (template.trim() && unknown.length === 0 && !save.isPending) save.mutate();
-						}}
-					>
-						<div className="flex flex-1 flex-col gap-6 p-6 max-md:p-4">
-							<p className="text-sm text-fg-muted">
-								Superset opens a tracked terminal. Custom commands run in a persistent terminal with status, output, and
-								follow-ups.
-							</p>
-							<Textarea
-								label="Command template"
-								rows={8}
-								required
-								maxLength={20000}
-								spellCheck={false}
-								value={template}
-								disabled={save.isPending}
-								onChange={(event) => setTemplate(event.target.value)}
-								className="font-mono text-sm"
-							/>
-							<div className="flex flex-col gap-2">
-								<h2 className="text-sm font-medium">Template variables</h2>
-								<p className="text-sm text-fg-muted">
-									Trellis quotes each value as one shell argument. Use variables without extra quotes. Custom commands
-									run in workDir. Use cd to select another checkout.
-								</p>
-								<div className="flex flex-wrap gap-2">
-									{AGENT_LAUNCH_VARIABLES.map((variable) => (
-										<code
-											key={variable}
-											className="border border-border bg-bg px-2 py-1 text-xs"
-										>{`{{${variable}}}`}</code>
-									))}
-								</div>
-								<p className="text-sm text-fg-muted">
-									prompt includes the persona and assignment. agentCommand starts the default agent with that prompt.
-									projectId identifies the Superset project.
-								</p>
-							</div>
-							<Button type="button" variant="quiet" onClick={() => setTemplate(DEFAULT_AGENT_LAUNCH_COMMAND)}>
-								Use Superset default
-							</Button>
-							{unknown.length > 0 && (
-								<p role="alert" className="text-sm text-danger">
-									Unknown variables: {unknown.join(", ")}
-								</p>
-							)}
-							{save.isError && (
-								<p role="alert" className="text-sm text-danger">
-									Could not save the command. {save.error.message}
-								</p>
-							)}
-						</div>
-						<div className="sticky bottom-0 flex justify-end gap-2 border-t border-border bg-surface p-4">
-							<Button type="button" variant="quiet" disabled={save.isPending} onClick={() => setTemplate(null)}>
-								Cancel
-							</Button>
-							<Button
-								type="submit"
-								variant="primary"
-								disabled={!template.trim() || unknown.length > 0 || save.isPending}
-							>
-								Save command
-							</Button>
-						</div>
-					</form>
-				</Sheet>
+			{invalid && (
+				<p role="alert" className="text-sm text-danger">
+					{!value.trim() ? "Enter a command." : `Unknown variables: ${unknown.join(", ")}`}
+				</p>
 			)}
+			{save.isError && (
+				<p role="alert" className="text-sm text-danger">
+					Could not save the command. {save.error.message}
+					<Button variant="quiet" disabled={invalid} onClick={commit}>
+						Retry
+					</Button>
+				</p>
+			)}
+			<div className="min-h-4">
+				{save.isPending && (
+					<p role="status" className="text-xs text-fg-muted">
+						Save in progress…
+					</p>
+				)}
+				{!save.isPending && <SavedMark savedAt={save.isSuccess && template === null ? save.submittedAt : null} />}
+			</div>
 		</SettingsRow>
 	);
 }

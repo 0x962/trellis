@@ -3,6 +3,7 @@ import { Bot, Plug, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
 import { AgentLaunchField } from "../features/settings/AgentLaunchField";
+import { AgentsSettings } from "../features/settings/AgentsSettings";
 import { DiffTemplateField } from "../features/settings/DiffTemplateField";
 import { GhBanner } from "../features/settings/GhBanner";
 import { PairPhone } from "../features/settings/PairPhone";
@@ -10,6 +11,10 @@ import { StalledThresholdField } from "../features/settings/StalledThresholdFiel
 import { ThemeField } from "../features/settings/ThemeField";
 import { Topbar } from "../features/shell/Topbar";
 
+// Who you are, how the app looks, when a ticket counts as stalled, whether gh
+// is available, which viewer shows a diff, how a phone reaches the server, and
+// how the manager agents run. The Agent manager section loads its own data, so
+// it sits last and its arrival moves no other section.
 export const Route = createFileRoute("/settings")({
 	loader: ({ context }) =>
 		Promise.all([
@@ -65,6 +70,13 @@ const sections: SettingsSection[] = [
 				<PairPhone />
 			</>
 		),
+	},
+	{
+		id: "manager",
+		title: "Agent manager",
+		hint: "Give each project a manager agent and point it at a Superset project.",
+		icon: Bot,
+		rows: <AgentsSettings />,
 	},
 ];
 

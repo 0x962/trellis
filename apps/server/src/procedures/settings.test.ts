@@ -15,6 +15,7 @@ describe("settings", () => {
 			defaultActorName: "navid",
 			stalledHours: 12,
 			diffUrlTemplate: "{url}/files",
+			agentLaunchCommand: "{{superset}} ws create --project {{projectId}} --name {{name}}",
 		};
 
 		const written = await t.api("/api/settings", { method: "PUT", body: settings });

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ActorHeaderSchema } from "@trellis/api";
 import { Avatar, Button, IconButton, Input, Popover, toast } from "@trellis/ui";
-import { CircleHelp, Settings } from "lucide-react";
+import { Bot, CircleHelp, Settings } from "lucide-react";
 import { type FormEvent, useId, useState } from "react";
 import { useActor } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
@@ -14,7 +14,7 @@ import { openShortcutHelp } from "../../command/ShortcutHelp";
 const iconLinkClass =
 	"relative inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-fg-muted transition duration-hover ease-out hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 pointer-coarse:size-11";
 
-// The bottom of the sidebar: who you are, the settings, and the
+// The bottom of the sidebar: who you are, the settings, the agents, and the
 // keyboard help. The actor chip opens a rename popover; Enter stores the new name on
 // the server and in this browser.
 //
@@ -98,6 +98,11 @@ export function ActorFooter() {
 						</span>
 					</>
 				)}
+			</Link>
+			<Link to="/agents" aria-label="Agents" className={iconLinkClass}>
+				<span aria-hidden="true" className="inline-flex size-3.5 *:size-full">
+					<Bot />
+				</span>
 			</Link>
 			<IconButton
 				label="Keyboard shortcuts"

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "@playwright/test";
 import { createRunRoot, sweepDeadRoots } from "../../../test/runRoot.ts";
 import { ghReplies } from "./ghReplies";
+import { createCheckouts, initialSupersetState, supersetLogPath, supersetStatePath } from "./supersetStub";
 
 const ROOT_PREFIX = "trellis-e2e-";
 
@@ -13,6 +14,7 @@ const ROOT_PREFIX = "trellis-e2e-";
 const web = fileURLToPath(new URL("..", import.meta.url));
 const server = fileURLToPath(new URL("../../server", import.meta.url));
 const ghStub = join(server, "test", "stubs", "gh.ts");
+const supersetStub = fileURLToPath(new URL("./stubs/superset.ts", import.meta.url));
 
 // Asks the kernel for a free port, then releases it for the server to bind.
 const freePort = () =>
@@ -37,6 +39,9 @@ if (process.env.TRELLIS_E2E_ROOT === undefined) {
 	mkdirSync(join(root, "gh"));
 	mkdirSync(join(root, "user"));
 	writeFileSync(join(root, "gh", "replies.json"), JSON.stringify(ghReplies));
+	mkdirSync(join(root, "superset"));
+	createCheckouts(root);
+	writeFileSync(supersetStatePath(root), JSON.stringify(initialSupersetState(root)));
 	process.env.TRELLIS_E2E_ROOT = root;
 	process.env.TRELLIS_E2E_API_PORT = await freePort();
 	process.env.TRELLIS_E2E_WEB_PORT = await freePort();
@@ -95,6 +100,11 @@ export default defineConfig({
 				TRELLIS_GH_BIN: ghStub,
 				TRELLIS_GH_STUB_FILE: join(root, "gh", "replies.json"),
 				TRELLIS_GH_STUB_LOG: join(root, "gh", "spawns.log"),
+				// The agents runner spawns the superset stub, which starts
+				// simulated agents instead of Claude.
+				TRELLIS_SUPERSET_BIN: supersetStub,
+				TRELLIS_SUPERSET_STUB_STATE: supersetStatePath(root),
+				TRELLIS_SUPERSET_STUB_LOG: supersetLogPath(root),
 				// paint.spec.ts writes the production build here. The server
 				// looks for it on each request, so the build can come after boot.
 				TRELLIS_WEB_DIST: join(root, "dist"),

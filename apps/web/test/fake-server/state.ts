@@ -2,7 +2,10 @@ import {
 	type Activity,
 	type Actor,
 	type ActorRef,
+	type AgentBatchRecord,
 	type AgentRun,
+	type AgentSession,
+	type AgentSettings,
 	type Attachment,
 	type Comment,
 	DEFAULT_AGENT_LAUNCH_COMMAND,
@@ -13,6 +16,8 @@ import {
 	type ProjectManagerConfig,
 	type PullRequest,
 	type Repo,
+	type RunnerProject,
+	type RunnerReason,
 	type Settings,
 	type Status,
 	StatusRefSchema,
@@ -78,6 +83,7 @@ export type PrLink = {
 };
 
 export type State = {
+	directorySelection?: string | null;
 	personas: Map<string, Persona>;
 	agentRuns: Map<string, AgentRun>;
 	projects: Map<string, ProjectRow>;
@@ -102,6 +108,16 @@ export type State = {
 	// phone section.
 	addresses: string[];
 	nextActivityId: number;
+	agentSessions: Map<string, AgentSession>;
+	agentSettings: AgentSettings;
+	// The id of the last activity row each root's manager read, by root id.
+	agentCursors: Map<string, number>;
+	// What `superset projects list` gives.
+	runnerProjects: RunnerProject[];
+	// While set, every runner call answers RUNNER_UNAVAILABLE with this reason.
+	runnerDown: RunnerReason | null;
+	// The batches the dispatcher sent, oldest first. A test pushes to it.
+	agentBatches: AgentBatchRecord[];
 };
 
 export const createState = (): State => ({
@@ -133,6 +149,27 @@ export const createState = (): State => ({
 	},
 	addresses: ["http://192.168.1.20:4521", "http://127.0.0.1:4521"],
 	nextActivityId: 1,
+	agentSessions: new Map(),
+	agentSettings: { runner: "superset", enabled: false, projects: [] },
+	agentCursors: new Map(),
+	runnerProjects: [
+		{
+			id: "sp-de",
+			name: "de",
+			repo: "canary-technologies-corp/de",
+			path: "/Users/navid/projects/de",
+			defaultBranch: "main",
+		},
+		{
+			id: "sp-trellis",
+			name: "trellis",
+			repo: "0x962/trellis",
+			path: "/Users/navid/projects/trellis",
+			defaultBranch: "main",
+		},
+	],
+	runnerDown: null,
+	agentBatches: [],
 });
 
 export const newId = () => ulid();

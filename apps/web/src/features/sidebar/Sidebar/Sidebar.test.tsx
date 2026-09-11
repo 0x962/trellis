@@ -164,3 +164,13 @@ describe("features/sidebar/Sidebar", () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe("/all"));
 	});
 });
+
+describe("features/sidebar/Sidebar agents link", () => {
+	test("the footer links the Agents page right after Settings", async () => {
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
+		const agents = await screen.findByRole("link", { name: "Agents" });
+		expect(agents.getAttribute("href")).toBe("/agents");
+		const settings = screen.getByRole("link", { name: "Settings" });
+		expect(settings.nextElementSibling).toBe(agents);
+	});
+});

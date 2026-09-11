@@ -42,7 +42,8 @@ test("frequent personas come first once, search finds the rest, and Escape start
 	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	expect(document.activeElement).toBe(trigger);
 	expect(server.callsTo("agentRuns.start")).toHaveLength(3);
-	expect(screen.queryByRole("link", { name: "Agents" })).toBeNull();
+	// The sidebar carries its own Agents link, so this reads the rail alone.
+	expect(within(screen.getByLabelText("Properties")).queryByRole("link", { name: "Agents" })).toBeNull();
 });
 
 test("a pending assignment accepts only one persona selection", async () => {
