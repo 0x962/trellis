@@ -12,10 +12,8 @@ import { ArchivedProjects } from "../../../ArchivedProjects";
 import { ProjectTree } from "../../../ProjectTree";
 import { ConnectionPanel } from "../ConnectionPanel";
 
-// A row is 28 px tall on a mouse and 44 px on a touch screen, the two hit
-// area minimums of the design checklist.
 const rowClass =
-	"flex h-7 items-center gap-2 rounded-md px-2 text-fg-muted transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11";
+	"flex h-8 items-center rounded-md pr-1 pl-2 text-fg-muted transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11";
 
 type NavTarget = "/needs-you" | "/search" | "/all" | "/ai/personas";
 
@@ -26,13 +24,19 @@ function NavRow({ to, icon, label, active, trailing }: NavRowProps) {
 		<Link
 			to={to}
 			aria-current={active ? "page" : undefined}
-			className={cx(rowClass, active && "bg-accent-soft text-fg")}
+			className={cx(rowClass, active && "sidebar-selected font-medium")}
 		>
-			<span aria-hidden="true" className="inline-flex size-4 shrink-0 *:size-full">
-				{icon}
+			<span data-slot="leading" className="sidebar-leading">
+				<span aria-hidden="true" className="inline-flex size-4 shrink-0 *:size-full [&_svg]:stroke-[1.75]">
+					{icon}
+				</span>
 			</span>
-			<span className="flex-1 truncate">{label}</span>
-			{trailing}
+			<span data-slot="label" className="sidebar-label">
+				{label}
+			</span>
+			<span data-slot="trailing" className="sidebar-trailing">
+				{trailing}
+			</span>
 		</Link>
 	);
 }
@@ -64,8 +68,10 @@ export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 
 	return (
 		<>
-			<div className="mb-1.5 flex h-7 items-center gap-2 pl-2">
-				<TrellisMark />
+			<div className="mb-4 flex h-8 items-center gap-2 pr-1 pl-2">
+				<span className="flex w-7 shrink-0 justify-center">
+					<TrellisMark />
+				</span>
 				<span className="font-mono text-md font-medium text-fg">trellis</span>
 				<span className="ml-auto flex items-center">
 					{onCollapse && (
@@ -73,45 +79,48 @@ export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 					)}
 				</span>
 			</div>
-			<NavRow
-				to="/needs-you"
-				icon={<Inbox />}
-				label="Needs you"
-				active={isActive(pathname, "/needs-you")}
-				trailing={
-					needsYou > 0 ? (
-						<Badge tone="accent" size="sm">
-							{formatCount(needsYou)}
-						</Badge>
-					) : undefined
-				}
-			/>
-			<NavRow
-				to="/search"
-				icon={<Search />}
-				label="Search"
-				active={isActive(pathname, "/search")}
-				trailing={<Kbd>/</Kbd>}
-			/>
-			<NavRow to="/all" icon={<List />} label="All tickets" active={isActive(pathname, "/all")} />
-			<div className="flex items-center justify-between pt-3 pb-1 pl-2 text-xs font-medium tracking-[0.04em] text-fg-faint uppercase">
-				<span>Projects</span>
-				<IconButton
-					size="sm"
-					label="New project"
-					icon={<Plus />}
-					onClick={() => navigate({ to: "/setup", search: { step: "project" } })}
+			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
+				<NavRow
+					to="/needs-you"
+					icon={<Inbox />}
+					label="Needs you"
+					active={isActive(pathname, "/needs-you")}
+					trailing={
+						needsYou > 0 ? (
+							<Badge tone="accent" size="sm">
+								{formatCount(needsYou)}
+							</Badge>
+						) : undefined
+					}
 				/>
-			</div>
-			<div className="min-h-0 flex-1 overflow-y-auto">
+				<NavRow
+					to="/search"
+					icon={<Search />}
+					label="Search"
+					active={isActive(pathname, "/search")}
+					trailing={<Kbd>/</Kbd>}
+				/>
+				<NavRow to="/all" icon={<List />} label="All tickets" active={isActive(pathname, "/all")} />
+			</nav>
+			<div className="mt-5 min-h-0 flex-1 overflow-y-auto pb-4">
+				<div className="sidebar-section">
+					<h2>Projects</h2>
+					<IconButton
+						size="sm"
+						className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
+						label="New project"
+						icon={<Plus />}
+						onClick={() => navigate({ to: "/setup", search: { step: "project" } })}
+					/>
+				</div>
 				<ProjectTree />
 				<ArchivedProjects />
-				<nav aria-label="AI">
-					<div className="pt-3 pb-1 pl-2 text-xs font-medium tracking-[0.04em] text-fg-faint uppercase">AI</div>
+				<nav aria-label="AI" className="mt-5">
+					<h2 className="sidebar-section">AI</h2>
 					<NavRow to="/ai/personas" icon={<UserRound />} label="Personas" active={isActive(pathname, "/ai/personas")} />
 				</nav>
 			</div>
-			<div className="mt-auto">
+			<div className="mt-auto shrink-0">
 				<ConnectionPanel status={status} />
 				<ActorFooter />
 			</div>

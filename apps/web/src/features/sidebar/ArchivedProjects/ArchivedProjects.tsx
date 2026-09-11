@@ -23,9 +23,9 @@ export function ArchivedProjects() {
 				type="button"
 				aria-expanded={open}
 				onClick={() => setOpen(!open)}
-				className="flex h-7 w-full items-center gap-1 rounded-md pr-2 pl-2 text-xs font-medium tracking-[0.04em] text-fg-faint uppercase transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+				className="flex h-8 pointer-coarse:h-11 w-full items-center gap-2 rounded-md pr-2 pl-2 text-xs font-medium text-fg-faint transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 			>
-				<span aria-hidden="true" className="inline-flex w-4 justify-center *:size-3">
+				<span aria-hidden="true" className="inline-flex w-7 justify-center *:size-3">
 					{open ? <ChevronDown /> : <ChevronRight />}
 				</span>
 				<span>Archived</span>

@@ -40,6 +40,19 @@ describe("features/sidebar/Sidebar archived group", () => {
 });
 
 describe("features/sidebar/Sidebar", () => {
+	test("navigation and projects share label and count columns with named sections", async () => {
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
+		const primary = screen.getByRole("navigation", { name: "Workspace" });
+		const project = await screen.findByRole("link", { name: /Superset CDE/ });
+		for (const row of [...within(primary).getAllByRole("link"), project]) {
+			expect(row.querySelector('[data-slot="leading"]')!.classList.contains("sidebar-leading")).toBe(true);
+			expect(row.querySelector('[data-slot="label"]')!.classList.contains("sidebar-label")).toBe(true);
+			expect(row.querySelector('[data-slot="trailing"]')!.classList.contains("sidebar-trailing")).toBe(true);
+		}
+		expect(screen.getByRole("heading", { name: "Projects", level: 2 })).toBeDefined();
+		expect(screen.getByRole("heading", { name: "AI", level: 2 })).toBeDefined();
+	});
+
 	// WS-93. w-60 is 240 px on the 4 px spacing scale.
 	test("the sidebar renders the rows in the approved order at 240 px", async () => {
 		renderWithProviders(<Sidebar />, { path: "/needs-you", actor: "navid" });

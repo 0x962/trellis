@@ -56,14 +56,11 @@ describe("features/sidebar/ProjectTree", () => {
 			expect(within(row).getByText(count!).className).toMatch(/\btabular\b/);
 			expect(within(row).queryByText("CDE")).toBeNull();
 			expect(row.closest("li")!.className).toMatch(/\bpl-7\b/);
-			expect(row.className).toMatch(/\bh-7\b/);
+			expect(row.className).toMatch(/\bh-8\b/);
 		}
 	});
 
-	// T5. Every row has the same three slots, so a level moves the name
-	// exactly 20 px: the root name starts at 64 px, a sub-project name at
-	// 84 px. The disclosure slot keeps its width on a row with no children.
-	test("every row sits on one grid: a 20 px indent, a 16 px disclosure slot, and a 28 px leading slot", async () => {
+	test("every row keeps a 20 px indent and a shared leading slot, with a separate disclosure button", async () => {
 		renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid" });
 		await screen.findByRole("link", { name: /Superset CDE/ });
 		const rowOf = (name: RegExp) => screen.getByRole("link", { name }).closest("li")!;
@@ -76,10 +73,10 @@ describe("features/sidebar/ProjectTree", () => {
 		] as const) {
 			const row = rowOf(name);
 			expect(row.className).toMatch(new RegExp(`\\b${indent}\\b`));
-			expect(row.className).toMatch(/\bh-7\b/);
-			expect(slot(row, "disclosure").className).toMatch(/\bw-4\b/);
-			expect(slot(row, "leading").className).toMatch(/\bw-7\b/);
-			expect(slot(row, "trailing").className).toMatch(/\bw-6\b/);
+			expect(row.className).toMatch(/\bh-8\b/);
+			expect(slot(row, "disclosure").className).toMatch(/\bw-7\b/);
+			expect(slot(row, "leading").classList.contains("sidebar-leading")).toBe(true);
+			expect(slot(row, "trailing").classList.contains("sidebar-trailing")).toBe(true);
 		}
 		const chevron = screen.getByRole("button", { name: /Collapse Superset CDE/ });
 		expect(slot(rowOf(/Superset CDE/), "disclosure").contains(chevron)).toBe(true);
@@ -91,14 +88,13 @@ describe("features/sidebar/ProjectTree", () => {
 		expect(dot.className).toMatch(/\bbg-fg-faint\b/);
 	});
 
-	// The guide runs down the open subtree at the center of the parent's
-	// disclosure slot: 8 px of row padding plus half of the 16 px slot.
-	test("an open subtree draws a guide line under the parent's chevron", async () => {
+	// The guide connects each subtree to the center of its parent's key.
+	test("an open subtree draws a guide line under the parent's key", async () => {
 		renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid" });
 		const web = await screen.findByRole("link", { name: /^web/ });
 		const subtree = web.closest("ul")!;
 		expect(subtree.getAttribute("aria-label")).toBeNull();
-		for (const name of ["before:absolute", "before:inset-y-0", "before:left-4", "before:w-px", "before:bg-border"]) {
+		for (const name of ["before:absolute", "before:inset-y-0", "before:left-5.5", "before:w-px", "before:bg-border"]) {
 			expect(subtree.classList.contains(name)).toBe(true);
 		}
 	});
@@ -110,7 +106,7 @@ describe("features/sidebar/ProjectTree", () => {
 		const actions = await screen.findByRole("button", { name: "Actions for web" });
 		const row = screen.getByRole("link", { name: /^web/ }).closest("li")!;
 		const trailing = row.querySelector<HTMLElement>('[data-slot="trailing"]')!;
-		expect(trailing.className).toMatch(/\bw-6\b/);
+		expect(trailing.classList.contains("sidebar-trailing")).toBe(true);
 		const menu = actions.closest("[data-slot=menu]")!;
 		expect(row.contains(menu)).toBe(true);
 		for (const name of ["absolute", "right-1", "size-6"]) expect(menu.classList.contains(name)).toBe(true);
@@ -194,7 +190,7 @@ describe("features/sidebar/ProjectTree", () => {
 		expect(within(rootRow("Superset CDE")).getByText("32")).toBeDefined();
 		expect(document.querySelector("[aria-busy=true]")).toBeNull();
 		for (const row of screen.getAllByRole("link")) {
-			expect(row.className).toMatch(/\bh-7\b/);
+			expect(row.className).toMatch(/\bh-8\b/);
 		}
 	});
 

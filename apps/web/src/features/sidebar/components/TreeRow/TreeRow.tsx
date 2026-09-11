@@ -23,36 +23,28 @@ export type TreeRowProps = {
 // The row padding per level: 8 px, then 20 px more for each level.
 const indent = ["pl-2", "pl-7", "pl-12", "pl-17"] as const;
 
-// One project row of the sidebar tree. Every row has the same three slots:
-// a 16 px disclosure slot, a 4 px gap, and a 28 px leading slot. A level
-// therefore moves the name 20 px, and a leaf row keeps the empty disclosure
-// slot. The chevron is a button beside the link, because a button inside a
-// link is not valid HTML.
-//
-// The count and the row menu share one 24 px slot at the right end. At rest
-// the count shows. On hover, on keyboard focus inside the row, and on a
-// screen with no hover, the menu takes its place.
-//
-// A row is 28 px tall on a mouse and 44 px on a touch screen, the two hit
-// area minimums of the design checklist. The 24 px menu moves down 10 px on
-// a touch screen to stay centered in the taller row.
+// The disclosure button is beside the link so expansion does not navigate.
+// The count and menu share the trailing slot. Hover and focus reveal the menu.
 export function TreeRow({ project, depth, active, expander, archived = false }: TreeRowProps) {
 	return (
 		<li
 			className={cx(
-				"group/row relative flex h-7 items-center rounded-md pr-1 transition-colors duration-hover ease-out hover:bg-surface pointer-coarse:h-11",
+				"group/row relative flex h-8 items-center rounded-md pr-1 transition-colors duration-hover ease-out hover:bg-surface pointer-coarse:h-11",
 				indent[Math.min(depth, indent.length - 1)],
-				active ? "bg-accent-soft text-fg" : archived ? "text-fg-faint" : "text-fg-muted",
+				active ? "bg-accent-soft sidebar-selected font-medium" : archived ? "text-fg-faint" : "text-fg-muted",
 			)}
 		>
-			<span data-slot="disclosure" className="flex w-4 shrink-0 items-center justify-center">
+			<span
+				data-slot="disclosure"
+				className="absolute right-7 pointer-coarse:right-12 flex w-7 pointer-coarse:w-11 shrink-0 items-center justify-center"
+			>
 				{expander && (
 					<button
 						type="button"
 						aria-label={`${expander.open ? "Collapse" : "Expand"} ${project.name}`}
 						aria-expanded={expander.open}
 						onClick={expander.onToggle}
-						className="relative inline-flex size-4 items-center justify-center rounded-sm text-fg-faint transition-colors duration-hover ease-out before:absolute before:-inset-1.5 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1 pointer-coarse:before:-inset-3.5"
+						className="relative inline-flex size-7 items-center justify-center rounded-sm text-fg-faint transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1 pointer-coarse:size-11"
 					>
 						<span aria-hidden="true" className="inline-flex size-3 *:size-full">
 							{expander.open ? <ChevronDown /> : <ChevronRight />}
@@ -65,22 +57,28 @@ export function TreeRow({ project, depth, active, expander, archived = false }: 
 				params={{ _splat: projectSlashPath(project.path) }}
 				activeOptions={{ exact: true, includeSearch: false }}
 				aria-current={active ? "page" : undefined}
-				className="ml-1 flex h-7 min-w-0 flex-1 items-center rounded-md transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11"
+				className="flex h-8 min-w-0 flex-1 items-center rounded-md transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11"
 			>
-				<span data-slot="leading" className="flex w-7 shrink-0 items-center justify-center">
+				<span data-slot="leading" className="sidebar-leading" title={project.depth === 0 ? project.key : undefined}>
 					{project.depth === 0 ? (
-						<ProjectKey projectKey={project.key} />
+						<ProjectKey projectKey={project.key} className="max-w-7 overflow-hidden px-0.5 text-initials" />
 					) : (
 						<span aria-hidden="true" className="size-1.5 rounded-sm bg-fg-faint" />
 					)}
 				</span>
-				<span className="min-w-0 flex-1 truncate">{project.name}</span>
-				<span data-slot="trailing" className="flex w-6 shrink-0 items-center justify-center">
+				<span
+					data-slot="label"
+					title={project.name}
+					className={cx("sidebar-label", expander && "mr-7 pointer-coarse:mr-11")}
+				>
+					{project.name}
+				</span>
+				<span data-slot="trailing" className="sidebar-trailing">
 					{!archived && (
 						<span
 							className={cx(
 								"text-xs tabular transition-opacity duration-hover ease-out group-focus-within/row:opacity-0 group-hover/row:opacity-0 [@media(hover:none)]:opacity-0",
-								active ? "font-semibold text-accent" : "text-fg-faint",
+								active ? "font-semibold text-accent" : "text-fg-muted",
 							)}
 						>
 							{formatCount(project.openCount)}
@@ -90,7 +88,7 @@ export function TreeRow({ project, depth, active, expander, archived = false }: 
 			</Link>
 			<span
 				data-slot="menu"
-				className="absolute top-0.5 right-1 flex size-6 pointer-coarse:top-2.5 items-center justify-center opacity-0 transition-opacity duration-hover ease-out group-focus-within/row:opacity-100 group-hover/row:opacity-100 has-[[data-popup-open]]:opacity-100 [@media(hover:none)]:opacity-100"
+				className="absolute top-1 right-1 flex size-6 pointer-coarse:top-0 pointer-coarse:size-11 items-center justify-center opacity-0 transition-opacity duration-hover ease-out group-focus-within/row:opacity-100 group-hover/row:opacity-100 has-[[data-popup-open]]:opacity-100 [@media(hover:none)]:opacity-100"
 			>
 				<Suspense fallback={null}>
 					<ProjectRowActions project={project} />

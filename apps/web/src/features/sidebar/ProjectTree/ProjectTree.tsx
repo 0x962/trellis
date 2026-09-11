@@ -8,9 +8,8 @@ import { projectRefOfPathname } from "../../../lib/projectPath";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { TreeRow } from "../components/TreeRow";
 
-// The guide line of an open subtree sits at the center of the parent's
-// disclosure slot: the parent's row padding plus 8 px.
-const guide = ["before:left-4", "before:left-9", "before:left-14", "before:left-19"] as const;
+// Each guide aligns with the center of its parent project's key.
+const guide = ["before:left-5.5", "before:left-10.5", "before:left-15.5", "before:left-20.5"] as const;
 
 const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.position;
 
