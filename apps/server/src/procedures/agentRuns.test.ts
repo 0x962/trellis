@@ -70,10 +70,17 @@ test("assignment launches a named agent with the selected prompt and retains its
 	});
 });
 
-test("one concurrent assignment wins before Superset receives a second launch", async () => {
+test("a ticket takes more than one agent at a time, up to the project limit", async () => {
 	const results = await Promise.all([start({ personaId: builder, ticket }), start({ personaId: builder, ticket })]);
-	expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
-	expect(calls().filter((args) => args[1] === "create")).toHaveLength(1);
+	expect(results.map((r) => r.status)).toEqual([201, 201]);
+	expect(calls().filter((args) => args[1] === "create")).toHaveLength(2);
+	// The project limit counts the agents at work in the whole project, so a
+	// limit of two refuses the third.
+	await t.client.projects.update({
+		project: "RUN",
+		managerConfig: { personaId: null, concurrency: 2, directory: "" },
+	});
+	expect((await start({ personaId: builder, ticket })).status).toBe(409);
 });
 
 test("a manager starts from a manager persona and the project context", async () => {
@@ -130,7 +137,7 @@ test("refresh recognizes an exited terminal", async () => {
 	expect((await start({ personaId: builder, ticket })).status).toBe(201);
 });
 
-test("an interrupted startup keeps its assignment and reconnects to its existing workspace", async () => {
+test("an interrupted startup reconnects to its existing workspace", async () => {
 	const result = await start({ personaId: builder, ticket });
 	expect(result.status).toBe(201);
 	const { sql } = await import("drizzle-orm");
@@ -143,7 +150,6 @@ test("an interrupted startup keeps its assignment and reconnects to its existing
 	await t.transport.start();
 	const listed = await t.api(`/api/agent-runs?ticket=${ticket}`);
 	expect(listed.body[0].state).toBe("interrupted");
-	expect((await start({ personaId: builder, ticket })).status).toBe(409);
 	const refreshed = await t.api(`/api/agent-runs/${result.body.id}/refresh`, { method: "POST", body: {} });
 	expect(refreshed.body).toMatchObject({ state: "running", workspaceId: result.body.workspaceId });
 	expect(calls().filter((args) => args[1] === "create")).toHaveLength(1);

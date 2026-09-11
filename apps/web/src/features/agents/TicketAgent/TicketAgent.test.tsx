@@ -86,15 +86,15 @@ test("the rail shows a picture for every working agent, no state word, and still
 	await user.click(rail.getByRole("button", { name: "New agent" }));
 	const picker = within(await screen.findByRole("dialog", { name: "Assign a persona" }));
 	await user.click(await picker.findByRole("option", { name: "Code Clarity" }));
-	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	await waitFor(() => expect(server.callsTo("agentRuns.start")).toHaveLength(2));
+	await user.keyboard("{Escape}");
 
-	// Both agents hold the ticket, and the picker takes a third.
+	// Both agents hold the ticket, and the picker takes one more.
 	const runs = await server.client.agentRuns.list({ ticket: "CDE-42" });
 	const second = runs.find((run) => run.kind === "reviewer")!;
 	await rail.findByRole("button", { name: `${second.name} · reviewer` });
 	expect(rail.getByRole("button", { name: `${first.name} · builder` })).toBeTruthy();
 	expect(rail.getByRole("button", { name: "New agent" })).toBeTruthy();
-	expect(server.callsTo("agentRuns.start")).toHaveLength(1);
 });
 
 test("a stopped agent keeps its row without the live dot", async () => {

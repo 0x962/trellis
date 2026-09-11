@@ -32,7 +32,9 @@ export const agentRuns = pgTable(
 			"agent_runs_state_check",
 			sql`${t.state} IN ('starting', 'interrupted', 'running', 'failed', 'stopped', 'exited')`,
 		),
-		uniqueIndex("agent_runs_active_ticket_idx")
+		// A ticket carries as many agents at once as the project concurrency
+		// limit allows, which agentRuns.reserve counts before every insert.
+		index("agent_runs_active_ticket_idx")
 			.on(t.ticketId)
 			.where(sql`${t.state} IN ('starting', 'interrupted', 'running')`),
 		uniqueIndex("agent_runs_active_manager_idx")
