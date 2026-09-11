@@ -15,6 +15,7 @@ const planRoutes = [
 	"/_gallery",
 	"/needs-you",
 	"/all",
+	"/ai/personas",
 	"/all_/board",
 	"/p/$",
 	"/t/$identifier",
