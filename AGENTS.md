@@ -4,9 +4,14 @@ trellis is a local ticket tracker for agent-driven work. The plan is `docs/desig
 
 ## Work
 
-- Every work item is test-driven. The spec states outcomes. An agent turns the outcomes into a failing test before any implementation. The builder makes the test pass and never deletes or weakens a test. A change without a test does not merge.
+- Every work item is test-driven. Write a failing test for the outcome before implementation. Make it pass. Never delete or weaken a test.
 - A test you believe is wrong goes back to the lead with the reason. Do not edit it.
-- Run `bun run check` before every hand-off and report its output. It runs lint, typecheck, every test, the web size budget (`size-budget`), and the 10k perf suite (`perf:10k`).
+- Assess the risk of each change. Balance speed with the cost of an error.
+- Choose tests and checks that cover the changed behavior and affected code. Use broader checks when the risk warrants them.
+- Treat the full `bun run check` command as optional. Performance tests are optional for handoffs, pull requests, and merges.
+- Use one agent for tests, implementation, and review.
+- Decide whether a browser check adds useful evidence for the change.
+- Report the checks you ran, their results, and any relevant gaps.
 - Commit on small units. The commit subject states the user-visible result. The body ends with the `Claude-Session:` trailer.
 - Every PR description states what broke, what changed, and one verification sentence. No headers, no tables, no checklists.
 - Pin exact versions when you add a dependency. Prefer the current release on npm.
@@ -44,11 +49,11 @@ trellis is a local ticket tracker for agent-driven work. The plan is `docs/desig
 | contract | `apps/server/src/procedures/*.test.ts` | `bun test`, oRPC client over `app.request` |
 | component | beside the component, `*.test.tsx` | `bun test`, Testing Library, happy-dom |
 | CLI smoke | `packages/cli/test/` | `bun test`, spawned server on a random port |
-| perf | `apps/server/test/perf/`, `apps/web/scripts/size-budget.ts` | `check` at 10k rows, `perf` at 50k rows |
+| perf | `apps/server/test/perf/`, `apps/web/scripts/size-budget.ts` | optional `perf:10k` at 10k rows, `perf` at 50k rows |
 | e2e | `apps/web/e2e/` | Playwright with a temp `TRELLIS_HOME` |
 
 Every service test ends with `assertStatusInvariant(tx)`. `test/preload.ts` gives a test run a fresh `TRELLIS_HOME`, so a test never touches `~/.trellis`. Bun reads `bunfig.toml` from the current directory only, so every workspace ships a `bunfig.toml` with `[test]` and `preload = ["../../test/preload.ts"]`. A root test asserts it for every directory under `apps/` and `packages/` that holds a `package.json`.
 
 ## Review
 
-Reviewers refute first. A finding carries a file, a line, a severity, a claim, and evidence. Findings with two agreeing reviewers, or any blocker, go to a fix agent. A missing case becomes a failing test first. Nothing merges on a single reviewer's word.
+Read the full diff and try to refute your own change. State each finding with a file, a line, a claim, and evidence. Turn a missing case into a failing test before you fix it.

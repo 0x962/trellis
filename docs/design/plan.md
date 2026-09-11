@@ -6,7 +6,7 @@ Navid's dev workflow needs too much management. Tickets live in Linear, review l
 
 Outcome: a repo at `~/projects/trellis` (github.com/0x962/trellis, MIT) that Navid uses daily beside margin and dots, and that is good enough to share.
 
-Decisions made by Navid: name `trellis`; PGlite (embedded Postgres) so the install is one command; a native Expo app for mobile; no shadcn; built with ultracode, every step and every review by a spawned agent; TDD for every agent; builders on Opus 5 or Fable 5.1 at high effort, reviewers at max, plus Astra (`codex exec`, default model `gpt-6-astra`, effort high) as a second reviewer; the brand mockup is the first deliverable after approval.
+Decisions made by Navid: name `trellis`; PGlite (embedded Postgres) so the install is one command; a native Expo app for mobile; no shadcn; one agent handles tests, implementation, and review; verification follows the risk of the change; TDD; the brand mockup is the first deliverable after approval.
 
 This plan was produced by two design agents (product, engineering) and corrected by three adversarial critiques (schema, API/REST, performance). The full design documents get committed as `docs/design/*.md` in M0.
 
@@ -368,7 +368,7 @@ Serving `GET /api/attachments/{id}/file` with `Bun.file`: `Content-Type` from th
 
 ## Performance requirements
 
-Budgets are for Navid's Mac against a deterministic seed (`apps/server/test/perf/seed.ts`: N tickets across 3 roots × 8 projects, 10 activity rows and 2 comments per ticket, 2 KB descriptions, 40 open PRs). The 10k seed runs in `bun run check`; the 50k seed runs from a cached data dir in `bun run perf`. CI enforces the same tests at 2.5× the budget.
+Budgets are for Navid's Mac against a deterministic seed (`apps/server/test/perf/seed.ts`: N tickets across 3 roots × 8 projects, 10 activity rows and 2 comments per ticket, 2 KB descriptions, 40 open PRs). The 10k seed runs in `bun run check`; the 50k seed runs from a cached data dir in `bun run perf`. Performance tests are optional; these budgets guide performance work.
 
 | metric | target | test |
 |---|---|---|
@@ -469,42 +469,33 @@ No third-party styled components. Base UI (`@base-ui/react`) gives behavior and 
 - Motion: 120 ms hover, 160 ms popover, 240 ms peek slide, 160 ms row enter, 200 ms approve sweep. Never animate re-sorts, text changes, counters, skeleton swaps, theme switch.
 - Focus: `:focus-visible` 2 px accent outline; rows and cards use an inset left bar.
 - Theme: dark is the default (Navid's call, 2026-09-09); `useTheme` starts at `dark` on first run and the inline head script stamps `data-theme="dark"` before first paint; light and system stay selectable in settings.
-- Primitives built once: Button, IconButton, Input, Textarea, Select, Popover, Menu, Dialog, Sheet, Tooltip, Toast, Tabs, Segmented, Checkbox, Switch, Badge, Chip, Avatar (human/agent), StatusIcon, PriorityIcon, CheckRibbon, Kbd, Skeleton, ScrollArea, Separator, EmptyState, Command. A `/_gallery` route renders all of them in both themes for the design reviewer.
+- Primitives built once: Button, IconButton, Input, Textarea, Select, Popover, Menu, Dialog, Sheet, Tooltip, Toast, Tabs, Segmented, Checkbox, Switch, Badge, Chip, Avatar (human/agent), StatusIcon, PriorityIcon, CheckRibbon, Kbd, Skeleton, ScrollArea, Separator, EmptyState, Command. A `/_gallery` route renders all of them in both themes for visual checks.
 - Signature details: the check ribbon, agent chips with the live dot, the approve sweep, the Start-with-agent toast with the command in mono.
 
-## Orchestration: how we build it
+## Work and verification
 
-Ultracode is on. I lead; every step is an agent. One Workflow per milestone; I read the verdicts between milestones and merge.
+One agent handles tests, implementation, and review. Assess the risk of each change and balance speed with the cost of an error.
+Choose tests and checks that cover the changed behavior and affected code. Use broader checks when the risk warrants them.
+The full `bun run check` command is optional. Performance tests are optional for handoffs, pull requests, and merges.
+The agent decides whether browser checks add useful evidence. Report the checks, their results, and any relevant gaps.
+This workflow applies to every milestone below.
 
-Every work item is test-driven. The spec states outcomes; an agent turns the outcomes into failing tests before any implementation; the builder makes them pass without touching them. A change without a test does not merge.
-
-Per work item (a package, a feature, a screen):
-
-1. **Specify** (effort high): rewrite the item's spec section as numbered outcomes (given / when / then), each mapped to a test name and kind: unit (`bun test`, fresh in-memory PGlite, inline transport), contract (oRPC client over `app.request`), CLI smoke (spawned server), e2e (Playwright), perf (seeded budget). Returned as structured output; I approve or edit.
-2. **Test** (effort high, worktree): write those tests and nothing else; each fails for the right reason; the failure lines are returned as evidence.
-3. **Build** (Opus 5 or Fable 5.1, effort high, same worktree): implement until green; may add tests, never delete or weaken one; a test believed wrong comes back to me with the reason; runs `bun run check` and reports the output.
-4. **Review panel** (parallel, effort max, verdict schema `{findings: [{file, line, severity, claim, evidence}], approve}`):
-   - Test reviewer: are the tests real, do they cover every outcome, would a plausible bug pass them, is any tautological.
-   - Claude correctness reviewer (refute-first).
-   - Astra reviewer: a wrapper agent runs `codex exec` in the worktree with the same prompt and returns Astra's findings verbatim, tagged `astra`.
-   - Code-quality reviewer against the repo rules (STE comments, no fallbacks, no dead code, tokens only, tx-first, file size).
-   - Design reviewer for UI items: runs the app, captures light and dark at 1440 and 390 px (CDP), grades against the checklist, attaches screenshot paths.
-5. **Fix loop**: findings with two agreeing reviewers, or any blocker, go to a fix agent; a missing case becomes a failing test first; re-review; until a round is dry (max 3 rounds, then it escalates to me).
-6. **Merge**: I read the verdicts, the test list, and the diff summary, then merge. Nothing merges on a single reviewer's word.
+Every work item is test-driven. Write a failing test for the outcome before implementation. Make it pass without deleting or weakening it.
+Read the full diff and try to refute your own change. Turn a missing case into a failing test before the fix.
 
 Brand mockup, the first deliverable after approval: one artifact page in the proposed fonts, tokens, and primitives (Base UI + Tailwind v4), both themes, showing Needs you, a table group, one kanban column, and a ticket page with a PR row and the check ribbon. Navid reacts before any code. Its tokens become `packages/ui/tokens.css`.
 
 Design gate before M2: a design canvas (the `design` skill) with the five reference screens, light and dark, revised from the mockup feedback. Navid marks it up; the primitives get built from the approved canvas.
 
-Design checklist (the design reviewer's rubric): optical alignment; tabular numbers; hover, active, focus, disabled states; no layout shift on data arrival; hit areas ≥ 28 px desktop, 44 px mobile; contrast; density per spec; motion durations per token table; reduced motion; empty, loading, error states; no raw color or spacing literal outside `packages/ui` (Biome rule and a dots `design-tokens` checker).
+Design checklist: optical alignment; tabular numbers; hover, active, focus, disabled states; no layout shift on data arrival; hit areas ≥ 28 px desktop, 44 px mobile; contrast; density per spec; motion durations per token table; reduced motion; empty, loading, error states; no raw color or spacing literal outside `packages/ui` (Biome rule and a dots `design-tokens` checker).
 
-Repo rules for every agent (`AGENTS.md`): STE for prose and comments; happy path only; no fallbacks; comments explain invariants; `tx` first; commit subject = user-visible result; every PR has one verification sentence; `bun run check` green before hand-off.
+Repo rules for every agent (`AGENTS.md`): STE for prose and comments; happy path only; no fallbacks; comments explain invariants; `tx` first; commit subject = user-visible result; every PR has one verification sentence; verification follows the risk of the change.
 
 ## Milestones
 
-**M0 Scaffold and design system.** Repo, workspaces, turbo, Biome (including the `db/client` and `motion` import rules), tsconfig, CI, LICENSE, AGENTS.md, `docs/design/*` (product, engineering, ui-system, critiques), `packages/ui` tokens and primitives with `/_gallery`, `packages/api` skeleton (refs, errors, event types), the perf seed script. Mockup, then design canvas gate. Accept: `bun run check` green on a fresh clone; the gallery renders every primitive in both themes; Navid approves the canvas.
+**M0 Scaffold and design system.** Repo, workspaces, turbo, Biome (including the `db/client` and `motion` import rules), tsconfig, CI, LICENSE, AGENTS.md, `docs/design/*` (product, engineering, ui-system, critiques), `packages/ui` tokens and primitives with `/_gallery`, `packages/api` skeleton (refs, errors, event types), the perf seed script. Mockup, then design canvas gate. Accept: the selected checks pass on a fresh clone; the gallery renders every primitive in both themes; Navid approves the canvas.
 
-**M1 Server, DB, CLI.** Schema, migrations, DB worker with both transports, services (`remapScope`, transitions, numbering, cycle check, blob lock), procedures, SSE, OpenAPI post-processing, boot, rotating logs, full CLI. Perf suite at 10k in `check`. Accept: `trellis projects create --key CDE --name Code && trellis create -p CDE -t First && trellis move CDE-1 in-progress && trellis list --status in-progress --json` prints one summary; the curl one-liner returns `CDE-2` with a `Location`; `trellis watch` shows both events; `trellis move CDE-1 done` as an agent exits 4; a nested-query test proves the tx rule; 50 concurrent creates number consecutively; `/api/docs` renders and the spec carries the actor header on every mutation; list p95 at 10k under budget.
+**M1 Server, DB, CLI.** Schema, migrations, DB worker with both transports, services (`remapScope`, transitions, numbering, cycle check, blob lock), procedures, SSE, OpenAPI post-processing, boot, rotating logs, full CLI. Optional perf suite at 10k. Accept: `trellis projects create --key CDE --name Code && trellis create -p CDE -t First && trellis move CDE-1 in-progress && trellis list --status in-progress --json` prints one summary; the curl one-liner returns `CDE-2` with a `Location`; `trellis watch` shows both events; `trellis move CDE-1 done` as an agent exits 4; a nested-query test proves the tx rule; 50 concurrent creates number consecutively; `/api/docs` renders and the spec carries the actor header on every mutation; list p95 at 10k under budget.
 
 **M2 Web: shell, table, ticket page, Needs you.** Router, oRPC client with batch link, `applyEvent` patch-first with the coalescer, single EventSource per origin, setup, sidebar tree, two-tier table, peek and full page, read-only markdown with lazy Tiptap, timeline, composer, actor chips, Needs you, settings, size budget, font preload, pre-paint theme. Accept: create in the UI, move from the CLI, the row and page patch live under 100 ms; approve with `a`; a 412 on a stale description shows the conflict UI; Playwright create, approve, live, peek, paint specs pass; bundle within budget; design review approved.
 
@@ -521,13 +512,12 @@ Repo rules for every agent (`AGENTS.md`): STE for prose and comments; happy path
 ## Verification
 
 - Unit and contract tests per workspace against a fresh in-memory PGlite per file; gh stubbed at the process boundary; CLI smoke against a spawned server; `assertStatusInvariant(tx)` at the end of every service test.
-- Perf suite: 10k seed in `check`, 50k in `perf`, `Server-Timing` headers, size budget script, all with the targets above.
+- Performance tests are optional. The 10k and 50k suites use the targets above.
 - E2E: Playwright with a temp `TRELLIS_HOME`, including the live-update latency probe.
-- Design: screenshots from the running app in both themes at desktop and phone widths, graded by the rubric, attached to every UI verdict.
+- Design: the agent decides whether browser checks or screenshots add useful evidence for the change.
 - Live use: after M2, Navid's own work runs through trellis; `0x962/trellis` is declared as the repo of project `TRL` and every later milestone is dogfooded on real tickets and real PRs.
 
 ## Open items for Navid
 
-- Sol: my agent tool selects `opus` and `fable` only. If Sol is reachable another way, say how.
 - trellis never edits the source of another repo. The gateway route lives in the shared file `~/.config/localhost-gateway/routes.json`, and `trellis install` changes only its `trellis` key.
 - Superset (CDE): the upstream merge in worktree `meadow-mass` is committed (`92e1e27f0`); lint fixes and the `golemapp-migration.ts` biome-ignore are uncommitted; tests not run. Parked until you say otherwise.
