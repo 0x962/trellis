@@ -194,6 +194,35 @@ describe("root scaffold", () => {
 		}
 	});
 
+	// A session trailer names a private transcript of one agent runner, so it
+	// states the rule that keeps the trailer out of the history.
+	test("AGENTS.md states that a commit message carries no session trailer", async () => {
+		expect(await text("AGENTS.md")).toContain("carries no session trailer");
+	});
+
+	// A published package is public. `access: restricted` makes `changeset
+	// publish` ask npm for a private package and fail on a free account.
+	test(".changeset/config.json publishes with public access", async () => {
+		expect((await json(".changeset/config.json")).access).toBe("public");
+	});
+
+	// The tree is public, so no tracked file carries a session trailer or the
+	// URL of an agent session. `git grep` reads the tracked files only.
+	test("no tracked file carries a session trailer or an agent session URL", () => {
+		for (const pattern of ["Claude-Session", "claude.ai/"]) {
+			const result = Bun.spawnSync(["git", "grep", "-lF", "--", pattern], {
+				cwd: root,
+				stdout: "pipe",
+				stderr: "pipe",
+			});
+			const hits = result.stdout
+				.toString()
+				.split("\n")
+				.filter((line) => line !== "" && line !== "test/repo.test.ts");
+			expect(hits, pattern).toEqual([]);
+		}
+	});
+
 	// A contributor arrives from GitHub, so the entry documents point at the
 	// conduct rules, the security model, and the architecture reference.
 	test("CONTRIBUTING.md points at the code of conduct, the security model, and the architecture", async () => {

@@ -56,8 +56,10 @@ Personas are local records shared across projects. Each persona has a name and
 an instruction, and a kind: builder, reviewer, or manager. The AI section of the sidebar opens the Personas page, with
 cards grouped by kind and slideouts to create, edit, and delete these records. The API exposes `personas.list`,
 `personas.create`, `personas.update`, and `personas.delete`. The `personas.changed` event
-invalidates the cached persona list after a committed mutation.
-The [Personas spec](design/personas.md) defines the fields and outcomes.
+invalidates the cached persona list after a committed mutation. A persona name holds
+120 characters and an instruction holds 200,000 characters. Both fields are required.
+A persona that existed before the kind column takes the reviewer kind. A new persona
+defaults to builder. A delete keeps the snapshots of the runs that used the persona.
 
 - Projects form a tree. A root has a key (`^[A-Z][A-Z0-9]{1,9}$`) and a ticket counter. Tickets are `KEY-n` across the whole tree.
 - Ticket numbers are never reused. A delete leaves a gap. A key is immutable once the counter is above zero (`KEY_LOCKED`).
@@ -83,7 +85,16 @@ Agents use persona snapshots. `agentRuns` exposes start, list, stop, refresh, se
 The ticket rail opens a searchable persona picker, with frequent personas first. Each project has a Manager page with its persona, concurrency, directory, repositories, and manager controls.
 Settings stores the launch-command template. The default opens a Superset terminal.
 Custom commands run in private tmux sessions that survive a Trellis restart.
-The [agent spec](design/persona-agents.md) defines the behavior.
+A run keeps a snapshot of the persona name, kind, and instruction, so a later persona edit
+changes only the runs after it. A second active run for the same ticket is rejected before
+launch, and so is a second manager for the same project. A failed launch stays visible with
+its error. Stop closes the terminal of the run and keeps its workspace, its history, and its
+final output. The launch template quotes each value as one shell argument, and an unknown
+variable fails the save. The template variables are `{{prompt}}`, `{{instruction}}`,
+`{{name}}`, `{{actor}}`, `{{ticket}}`, `{{project}}`, `{{projectId}}`, `{{projectDir}}`,
+`{{branch}}`, `{{concurrency}}`, `{{trellisUrl}}`, `{{workDir}}`, and `{{agentCommand}}`.
+The concurrency limit runs from 1 to 64 and defaults to 3. It counts the active ticket agents
+of a project and excludes the manager.
 
 The Needs you page contains its heading and an empty body. Ticket status changes use the status picker.
 

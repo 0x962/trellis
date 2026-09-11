@@ -13,6 +13,7 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 - Decide whether a browser check adds useful evidence for the change.
 - Report the checks you ran, their results, and any relevant gaps.
 - Make small commits. The commit subject states the result that a user sees.
+- A commit message carries no session trailer. Add no trailer and no URL that points at an agent session.
 - Every pull request description states what broke, what changed, and one verification sentence. No headers, no tables, no checklists.
 - Pin exact versions when you add a dependency. Prefer the current release on npm.
 

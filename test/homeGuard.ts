@@ -10,7 +10,6 @@ export const guardedPaths = (home: string) => [
 	join(home, "Library", "LaunchAgents", "com.trellis.server.plist"),
 	join(home, ".local", "bin"),
 	join(home, ".local", "bin", "trellis"),
-	join(home, "projects", "margin", "src", "gateway.ts"),
 	join(home, ".config", "localhost-gateway", "routes.json"),
 ];
 
