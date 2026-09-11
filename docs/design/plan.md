@@ -57,6 +57,12 @@ Data home `~/.trellis/` (`TRELLIS_HOME` override): `db/`, `attachments/`, `backu
 
 ## Domain rules
 
+Personas (Navid, 2026-09-10): the sidebar has an AI section below Projects, with a Personas page at `/ai/personas`.
+Each persona has a name and an instruction. Personas are local records shared across projects, with forms to create and edit them.
+`personas.list`, `personas.create`, and `personas.update` expose these records through RPC and REST.
+The `personas.changed` event carries the persona id and invalidates the cached persona list after a committed mutation.
+The outcomes and validation limits are in `docs/design/personas.md`.
+
 - Projects form a tree. A root has a key (`^[A-Z][A-Z0-9]{1,9}$`) and a ticket counter. Tickets are `KEY-n` across the whole tree. Numbers are never reused; deletes leave gaps. A key is immutable once the counter is above zero (`KEY_LOCKED`).
 - Nothing moves across roots: ticket, parent, or sub-project (`CROSS_ROOT_MOVE`). A ticket or project cannot be its own ancestor (`PARENT_CYCLE`).
 - Statuses belong to a project. A root is seeded with Todo (todo, default), In Progress (started), Agent Review (review, reviewer agent), Human Review (review, reviewer human), Done (done), Canceled (canceled). A sub-project inherits the nearest ancestor's set until it creates its own. Owner(P) = nearest ancestor-or-self that owns statuses. Invariant: `tickets.status_id` belongs to owner(ticket.project). One function `remapScope` restores the invariant on first-status create, clear, re-parent, and project move; match order (name and category) → lowest-position status of the same category → the owner's default. Every status-to-status move is legal. WIP limits are advisory. `category` is immutable after creation.

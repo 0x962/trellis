@@ -26,6 +26,7 @@ export const eventNames = [
 	"gh.status",
 	"agents.session",
 	"agents.batch",
+	"personas.changed",
 	"reset",
 	"ready",
 	"bye",
@@ -80,6 +81,10 @@ export const StatusesChangedPayloadSchema = z.object({
 });
 
 export const ProjectEventPayloadSchema = z.object({
+	id: UlidSchema,
+});
+
+export const PersonasChangedPayloadSchema = z.object({
 	id: UlidSchema,
 });
 
@@ -144,6 +149,7 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("gh.status", GhStatusPayloadSchema),
 	typed("agents.session", AgentSessionEventPayloadSchema),
 	typed("agents.batch", AgentBatchPayloadSchema),
+	typed("personas.changed", PersonasChangedPayloadSchema),
 	typed("reset", ResetPayloadSchema),
 	typed("ready", ReadyPayloadSchema),
 	typed("bye", ByePayloadSchema),

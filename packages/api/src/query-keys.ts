@@ -250,6 +250,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "agents.session":
 				enqueue([family("agents", "sessions")]);
 				return;
+			case "personas.changed":
+				enqueue([family("personas", "list")]);
+				return;
 			case "reset":
 				invalidateAll();
 				return;

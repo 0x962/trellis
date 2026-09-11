@@ -50,6 +50,13 @@
       "when": 1789067784401,
       "tag": "0006_status_descriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789090560260,
+      "tag": "0007_left_iron_monger",
+      "breakpoints": true
     }
   ]
 }
