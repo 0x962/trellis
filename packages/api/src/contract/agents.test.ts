@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { accepts } from "../../test/standardSchema.ts";
+import { AgentSettingsSchema, AgentSettingsSetInputSchema } from "../schemas/agent.ts";
 import { agents } from "./agents.ts";
 
 describe("agents contract", () => {
@@ -14,6 +15,7 @@ describe("agents contract", () => {
 			"overview GET /agents/overview",
 			"register POST /agents/register",
 			"retryManager POST /agents/manager/retry",
+			"runnerHosts GET /agents/runner-hosts",
 			"runnerProjects GET /agents/runner-projects",
 			"sessions GET /agents/sessions",
 			"setSettings PUT /agents/settings",
@@ -28,7 +30,8 @@ describe("agents contract", () => {
 	// Every procedure that calls the runner can find it missing or turned
 	// off. A builder start can also hit the per-project limit.
 	test("each runner call declares RUNNER_UNAVAILABLE and a builder start declares CONCURRENCY_LIMIT", () => {
-		for (const name of ["startBuilder", "startReviewer", "stop", "wake", "runnerProjects", "retryManager"] as const) {
+		const callers = ["startBuilder", "startReviewer", "stop", "wake", "runnerProjects", "runnerHosts", "retryManager"];
+		for (const name of callers as Array<keyof typeof agents>) {
 			expect(agents[name]["~orpc"].errorMap, name).toHaveProperty("RUNNER_UNAVAILABLE");
 		}
 		expect(agents.startBuilder["~orpc"].errorMap).toHaveProperty("CONCURRENCY_LIMIT");
@@ -116,5 +119,34 @@ describe("agents contract", () => {
 		expect(await accepts(agents.setSettings["~orpc"].inputSchema, { enabled: false })).toBe(false);
 		expect(await accepts(agents.setSettings["~orpc"].outputSchema, settings)).toBe(true);
 		expect(await accepts(agents.settings["~orpc"].outputSchema, settings)).toBe(true);
+	});
+
+	// A project row names the machine its agents run on. A row that names
+	// none keeps the old behaviour, which is the machine that runs the
+	// server.
+	test("a project row carries supersetHostId, which defaults to null and takes a runner id", async () => {
+		const row = { projectId: "01J8Z6X4Q3M2K1H0G9F8E7D6P1", enabled: true, supersetProjectId: null };
+		const set = agents.setSettings["~orpc"].inputSchema;
+		expect(await accepts(set, { runner: "superset", enabled: true, projects: [row] })).toBe(true);
+		const hostId = "04705517c8ad3a6d7f595f395125ecfe";
+		const named = { ...row, supersetHostId: hostId };
+		expect(await accepts(set, { runner: "superset", enabled: true, projects: [named] })).toBe(true);
+		expect(await accepts(set, { runner: "superset", enabled: true, projects: [{ ...row, supersetHostId: "" }] })).toBe(
+			false,
+		);
+		const parsed = AgentSettingsSetInputSchema.parse({ runner: "superset", enabled: true, projects: [row] });
+		expect(parsed.projects[0]!.supersetHostId).toBeNull();
+		expect(AgentSettingsSchema.parse(parsed).projects[0]!.supersetHostId).toBeNull();
+	});
+
+	// The host picker offers the machines an agent can reach now, so the
+	// list carries the online hosts only.
+	test("runnerHosts wraps the online hosts in an object, each with an id and a name", async () => {
+		const hosts = agents.runnerHosts["~orpc"].outputSchema;
+		const host = { id: "04705517c8ad3a6d7f595f395125ecfe", name: "Navids-Mac-mini" };
+		expect(await accepts(hosts, { hosts: [host] })).toBe(true);
+		expect(await accepts(hosts, { hosts: [] })).toBe(true);
+		expect(await accepts(hosts, [host])).toBe(false);
+		expect(await accepts(hosts, { hosts: [{ id: host.id }] })).toBe(false);
 	});
 });

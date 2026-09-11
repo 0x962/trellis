@@ -7,5 +7,6 @@ export const runnerReasonLine: Record<RunnerReason, string> = {
 	disabled: "Agents are off. Turn them on in Settings.",
 	unmapped: "No Superset project matches this project. Pick one in Settings.",
 	branch: "The repository holds no branch with the name of the base branch. Change it in Settings.",
+	host: "The Superset host of this project is offline or gone. Pick another one in Settings.",
 	error: "Superset did not answer.",
 };

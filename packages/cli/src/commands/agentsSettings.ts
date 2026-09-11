@@ -61,6 +61,7 @@ const defaultRow = (projectId: string): AgentProjectSettings => ({
 	projectId,
 	enabled: false,
 	supersetProjectId: null,
+	supersetHostId: null,
 	baseBranch: null,
 	maxConcurrent: 3,
 	removeWorkspaceOnDone: true,

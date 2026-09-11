@@ -12,10 +12,12 @@ import { branchState } from "./git.ts";
 import {
 	matchRunnerProject,
 	type Runner,
+	type RunnerHostId,
 	type RunnerProjectRow,
 	runnerUnavailable,
 	type TerminalState,
 } from "./runner.ts";
+import { hostCalls, onHost, target } from "./supersetHost.ts";
 
 // The Runner over the `superset` command line (Superset 1.27). `bin` is
 // TRELLIS_SUPERSET_BIN or "superset" on PATH. `url` is the trellis server
@@ -38,6 +40,7 @@ const COMMAND_LABEL = "Command";
 
 type WorkspaceInput = {
 	runnerProjectId: string;
+	host: RunnerHostId;
 	name: string;
 	branch: string;
 	baseBranch: string;
@@ -100,22 +103,32 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 	const run = (args: string[]) => spawnSuperset(bin, args);
 	const json = async <T>(args: string[]) => JSON.parse(await run([...args, "--json"])) as T;
 
-	const terminals = async (workspaceId: string): Promise<TerminalState[]> => {
-		const answer = await json<{ sessions: TerminalState[] }>(["terminals", "list", "--workspace", workspaceId]);
+	const terminals = async (workspaceId: string, host: RunnerHostId): Promise<TerminalState[]> => {
+		const answer = await json<{ sessions: TerminalState[] }>([
+			...["terminals", "list", "--workspace", workspaceId],
+			...onHost(host),
+		]);
 		return answer.sessions.map(({ terminalId, exited, title }) => ({ terminalId, exited, title }));
 	};
 
-	const openUrl = async (workspaceId: string) => (await run(["ws", "open", workspaceId, "--print"])).trim();
+	const openUrl = async (workspaceId: string, host: RunnerHostId) =>
+		(await run(["ws", "open", workspaceId, "--print", ...onHost(host)])).trim();
 
-	const newTerminal = async (workspaceId: string, command: string) =>
-		(await json<{ terminalId: string }>(["terminals", "create", "--workspace", workspaceId, "--command", command]))
-			.terminalId;
+	const newTerminal = async (workspaceId: string, host: RunnerHostId, command: string) =>
+		(
+			await json<{ terminalId: string }>([
+				...["terminals", "create", "--workspace", workspaceId, "--command", command],
+				...onHost(host),
+			])
+		).terminalId;
+
+	const { hosts, assertHost } = hostCalls(json);
 
 	// A workspace with `branch` answers alreadyExists and runs no command, so a
 	// second start of the same agent reaches the first workspace.
 	const createWorkspace = (input: WorkspaceInput) =>
 		json<WorkspaceAnswer>([
-			...["ws", "create", "--local", "--project", input.runnerProjectId, "--name", input.name],
+			...["ws", "create", ...target(input.host), "--project", input.runnerProjectId, "--name", input.name],
 			...["--branch", input.branch, "--skip-branch-prefix", "--base-branch", input.baseBranch],
 			...["--tag", input.tag, "--command", input.command],
 		]);
@@ -123,14 +136,14 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 	// The Command tab that `answer` started, or in a workspace that already
 	// existed, its live tab named `title`, or else a new tab that runs
 	// `command`.
-	const tabOf = async (answer: WorkspaceAnswer, title: string, command: string) => {
+	const tabOf = async (answer: WorkspaceAnswer, host: RunnerHostId, title: string, command: string) => {
 		if (!answer.alreadyExists) {
 			const tab = answer.terminals.find((terminal) => terminal.label === COMMAND_LABEL)!;
 			return { terminalId: tab.terminalId, started: true };
 		}
-		const live = (await terminals(answer.workspace.id)).find((tab) => !tab.exited && tab.title === title);
+		const live = (await terminals(answer.workspace.id, host)).find((tab) => !tab.exited && tab.title === title);
 		if (live !== undefined) return { terminalId: live.terminalId, started: false };
-		return { terminalId: await newTerminal(answer.workspace.id, command), started: true };
+		return { terminalId: await newTerminal(answer.workspace.id, host, command), started: true };
 	};
 
 	const managerCommand = (project: string, claudeSessionId: string | null, text: string) =>
@@ -148,6 +161,7 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 
 	return {
 		projects,
+		hosts,
 
 		projectFor: async (repos) => {
 			const found = matchRunnerProject(await projects(), repos);
@@ -170,73 +184,85 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 		},
 
 		ensureManager: async (input) => {
+			await assertHost(input.host);
 			const command = managerCommand(input.project, input.claudeSessionId, input.text ?? restartText(input.project));
 			const answer = await createWorkspace({
 				runnerProjectId: input.runnerProjectId,
+				host: input.host,
 				name: managerWorkspaceName(input.project),
 				branch: managerBranch(input.project),
 				baseBranch: input.baseBranch,
 				tag: projectTag(input.project),
 				command,
 			});
-			const tab = await tabOf(answer, agentTitle({ role: "manager", project: input.project }), command);
-			return { workspaceId: answer.workspace.id, ...tab, openUrl: await openUrl(answer.workspace.id) };
+			const tab = await tabOf(answer, input.host, agentTitle({ role: "manager", project: input.project }), command);
+			return { workspaceId: answer.workspace.id, ...tab, openUrl: await openUrl(answer.workspace.id, input.host) };
 		},
 
 		startBuilder: async (input) => {
+			await assertHost(input.host);
 			const command = agentLaunch({ role: "builder", project: input.project, ticket: input.ticket, url }).command;
 			const answer = await createWorkspace({
 				runnerProjectId: input.runnerProjectId,
+				host: input.host,
 				name: input.ticket,
 				branch: builderBranch(input.ticket, input.title),
 				baseBranch: input.baseBranch,
 				tag: projectTag(input.project),
 				command,
 			});
-			const { terminalId } = await tabOf(answer, input.ticket, command);
-			return { workspaceId: answer.workspace.id, terminalId, openUrl: await openUrl(answer.workspace.id) };
+			const { terminalId } = await tabOf(answer, input.host, input.ticket, command);
+			return {
+				workspaceId: answer.workspace.id,
+				terminalId,
+				openUrl: await openUrl(answer.workspace.id, input.host),
+			};
 		},
 
 		startReviewer: async (input) => {
+			await assertHost(input.host);
 			const command = agentLaunch({ role: "reviewer", ...input, url }).command;
-			return { terminalId: await newTerminal(input.workspaceId, command) };
+			return { terminalId: await newTerminal(input.workspaceId, input.host, command) };
 		},
 
 		// Superset types the text as a paste and presses Enter. Text typed into
 		// a bare shell would run as a command, so an exited terminal never gets
 		// it; the manager starts again with the text as its prompt instead.
 		wake: async (session, text) => {
-			const tab = (await terminals(session.workspaceId)).find((found) => found.terminalId === session.terminalId);
+			await assertHost(session.host);
+			const tab = (await terminals(session.workspaceId, session.host)).find(
+				(found) => found.terminalId === session.terminalId,
+			);
 			if (tab !== undefined && !tab.exited) {
 				await run([
-					"terminals",
-					"send",
-					"--workspace",
-					session.workspaceId,
-					"--terminal",
-					session.terminalId,
-					"--text",
-					text,
+					...["terminals", "send", "--workspace", session.workspaceId, "--terminal", session.terminalId],
+					...["--text", text],
+					...onHost(session.host),
 				]);
 				return { terminalId: session.terminalId, relaunched: false };
 			}
 			const command = managerCommand(session.project, session.claudeSessionId, text);
-			return { terminalId: await newTerminal(session.workspaceId, command), relaunched: true };
+			return { terminalId: await newTerminal(session.workspaceId, session.host, command), relaunched: true };
 		},
 
 		isAlive: async (ref) =>
-			(await terminals(ref.workspaceId)).some((tab) => tab.terminalId === ref.terminalId && !tab.exited),
+			(await terminals(ref.workspaceId, ref.host)).some((tab) => tab.terminalId === ref.terminalId && !tab.exited),
 
 		terminals,
 
 		// A terminal that is already gone needs no close.
 		stop: async (ref) => {
-			const listed = (await terminals(ref.workspaceId)).some((tab) => tab.terminalId === ref.terminalId);
-			if (listed) await run(["terminals", "close", "--workspace", ref.workspaceId, "--terminal", ref.terminalId]);
+			const listed = (await terminals(ref.workspaceId, ref.host)).some((tab) => tab.terminalId === ref.terminalId);
+			if (listed) {
+				await run([
+					...["terminals", "close", "--workspace", ref.workspaceId, "--terminal", ref.terminalId],
+					...onHost(ref.host),
+				]);
+			}
 		},
 
-		removeWorkspace: async (workspaceId) => {
-			await run(["ws", "delete", workspaceId, "--local"]);
+		removeWorkspace: async (workspaceId, host) => {
+			await run(["ws", "delete", workspaceId, ...target(host)]);
 		},
 
 		openUrl,

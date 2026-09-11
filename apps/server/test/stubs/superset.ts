@@ -29,10 +29,18 @@ export type StubWorkspace = {
 	projectId: string;
 	baseBranch: string;
 	tag: string;
+	// The machine the workspace runs on: the argument of `--host`, or null
+	// for `--local`.
+	host?: string | null;
 };
+
+// One row of `superset hosts list --json`. Superset prints `online` as
+// "yes" or "no", not as a boolean.
+export type StubHost = { id: string; name: string; online: "yes" | "no" };
 
 export type StubState = {
 	projects: Array<{ id: string; name: string; repo: string; path: string }>;
+	hosts?: StubHost[];
 	workspaces: StubWorkspace[];
 	terminals: StubTerminal[];
 	next: number;
@@ -101,6 +109,8 @@ if (stdoutFailure !== undefined) {
 
 if (key === "projects list") answer(state.projects);
 
+if (key === "hosts list") answer(state.hosts ?? []);
+
 if (key === "ws create") {
 	const existing = state.workspaces.find((workspace) => workspace.branch === flag("--branch"));
 	if (existing !== undefined) {
@@ -116,6 +126,7 @@ if (key === "ws create") {
 		// takes the command without them.
 		baseBranch: flag("--base-branch") ?? "",
 		tag: (flag("--tag") ?? "").toLowerCase(),
+		host: flag("--host"),
 	};
 	state.workspaces.push(workspace);
 	const setup =

@@ -11,6 +11,7 @@ export const agents = os.agents.router({
 	settings: os.agents.settings.handler(({ context }) => call(context, "agents.settings", undefined)),
 	setSettings: os.agents.setSettings.handler(({ context, input }) => call(context, "agents.setSettings", input)),
 	runnerProjects: os.agents.runnerProjects.handler(({ context }) => call(context, "agents.runnerProjects", undefined)),
+	runnerHosts: os.agents.runnerHosts.handler(({ context }) => call(context, "agents.runnerHosts", undefined)),
 	retryManager: os.agents.retryManager.handler(({ context, input }) => call(context, "agents.retryManager", input)),
 	overview: os.agents.overview.handler(({ context }) => call(context, "agents.overview", undefined)),
 });

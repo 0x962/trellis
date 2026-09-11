@@ -60,6 +60,14 @@ export const set = async (ctx: AgentsCtx, tx: Tx, input: AgentSettingsSetInput):
 	return input as AgentSettings;
 };
 
+// The Superset host of the project that owns a stored session, or null for
+// the machine that runs the server. This reads the row of the project the
+// session names and refuses nothing: a session outlives the switches of its
+// project, and trellis still has to list, close, and delete its workspace on
+// the machine that holds it.
+export const hostOf = (settings: AgentSettings, projectId: string): string | null =>
+	settings.projects.find((row) => row.projectId === projectId)?.supersetHostId ?? null;
+
 // The settings row that covers `projectId`: the row of the nearest project
 // at or above it. That project owns the manager, and its builders count
 // toward its limit. With the global switch off, the row's switch off, or no

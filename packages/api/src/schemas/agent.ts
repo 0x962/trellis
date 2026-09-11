@@ -117,15 +117,18 @@ export const AgentWakeInputSchema = z.strictObject({
 export type AgentWakeInput = z.input<typeof AgentWakeInputSchema>;
 
 // `supersetProjectId` null lets the server match the project's declared
-// repo to a Superset project. `baseBranch` null starts each agent from the
-// default branch of that Superset project's checkout. `maxConcurrent` caps
-// the tickets that have a live builder at one time in the project.
-// `removeWorkspaceOnDone` removes the builder's workspace when its ticket is
-// done; the branch stays either way.
+// repo to a Superset project. `supersetHostId` null runs every workspace
+// and terminal of the project on the machine that runs the trellis server.
+// `baseBranch` null starts each agent from the default branch of that
+// Superset project's checkout. `maxConcurrent` caps the tickets that have a
+// live builder at one time in the project. `removeWorkspaceOnDone` removes
+// the builder's workspace when its ticket is done; the branch stays either
+// way.
 export const AgentProjectSettingsSchema = z.object({
 	projectId: UlidSchema,
 	enabled: z.boolean(),
 	supersetProjectId: RunnerIdSchema.nullable(),
+	supersetHostId: RunnerIdSchema.nullable().default(null),
 	baseBranch: z.string().min(1).max(255).nullable().default(null),
 	maxConcurrent: z.number().int().min(1).max(20).default(3),
 	removeWorkspaceOnDone: z.boolean().default(true),
@@ -153,6 +156,22 @@ export const AgentRunnerProjectsOutputSchema = z.object({
 	matches: z.array(z.object({ projectId: UlidSchema, runnerProjectId: RunnerIdSchema })),
 });
 export type AgentRunnerProjectsOutput = z.infer<typeof AgentRunnerProjectsOutputSchema>;
+
+// One machine the runner can put a workspace on: for Superset, one row of
+// `superset hosts list`. `name` is what the person named the machine.
+export const RunnerHostSchema = z.object({
+	id: RunnerIdSchema,
+	name: z.string().min(1),
+});
+export type RunnerHost = z.infer<typeof RunnerHostSchema>;
+
+// `hosts` holds the online hosts only. A project whose `supersetHostId`
+// names none of them fails every agent start, so the picker offers the
+// machines an agent can reach now.
+export const AgentRunnerHostsOutputSchema = z.object({
+	hosts: z.array(RunnerHostSchema),
+});
+export type AgentRunnerHostsOutput = z.infer<typeof AgentRunnerHostsOutputSchema>;
 
 // The runner starts the manager of `project` again: a failed or exited
 // manager starts in its own session row.

@@ -1,4 +1,10 @@
-import type { AgentProjectSettings, AgentRunnerProjectsOutput, AgentSession, ProjectSummary } from "@trellis/api";
+import type {
+	AgentProjectSettings,
+	AgentRunnerHostsOutput,
+	AgentRunnerProjectsOutput,
+	AgentSession,
+	ProjectSummary,
+} from "@trellis/api";
 import { Checkbox, Input, Select, Switch } from "@trellis/ui";
 import { useState } from "react";
 import { AgentFailure } from "../../../../agent/AgentFailure";
@@ -11,6 +17,9 @@ export type AgentProjectRowProps = {
 	// The runner's project list. Undefined while it loads or when the runner
 	// cannot answer.
 	runner: AgentRunnerProjectsOutput | undefined;
+	// The online hosts the runner knows. Undefined while the list loads or
+	// when the runner cannot answer.
+	hosts: AgentRunnerHostsOutput | undefined;
 	// The project's newest manager session, or undefined for a project whose
 	// manager never started.
 	manager: AgentSession | undefined;
@@ -19,6 +28,11 @@ export type AgentProjectRowProps = {
 // The picker value that stores `supersetProjectId: null`: the server then
 // uses the runner project that matches the project's declared repo.
 const autoValue = "auto";
+
+// The host picker value that stores `supersetHostId: null`: every agent of
+// the project then runs on the machine that runs the trellis server.
+const localValue = "local";
+const localLabel = "This machine";
 
 // The contract bounds of `maxConcurrent`.
 const minBuilders = 1;
@@ -42,7 +56,7 @@ const defaultBranchOf = (runner: AgentRunnerProjectsOutput | undefined, chosenId
 // One root project's agent settings, with the state of its manager. The
 // switch, the picker, and the checkbox save at once. The two text fields
 // save on blur and refuse a value the contract refuses.
-export function AgentProjectRow({ project, runner, manager }: AgentProjectRowProps) {
+export function AgentProjectRow({ project, runner, hosts, manager }: AgentProjectRowProps) {
 	const { projectOf, saveProject } = useAgentSettings();
 	const row = projectOf(project.id);
 	const [branch, setBranch] = useState<string | null>(null);
@@ -57,6 +71,19 @@ export function AgentProjectRow({ project, runner, manager }: AgentProjectRowPro
 	const items = [
 		{ value: autoValue, label: autoLabel },
 		...(runner?.projects ?? []).map((entry) => ({ value: entry.id, label: entry.name })),
+	];
+
+	// The list holds the online hosts. A row that names a host the list does
+	// not hold keeps that host as an item, so the setting stays readable and
+	// the person sees which machine to start.
+	const online = hosts?.hosts ?? [];
+	const savedHost = row.supersetHostId;
+	const hostItems = [
+		{ value: localValue, label: localLabel },
+		...online.map((entry) => ({ value: entry.id, label: entry.name })),
+		...(savedHost !== null && !online.some((entry) => entry.id === savedHost)
+			? [{ value: savedHost, label: `${savedHost} (offline)` }]
+			: []),
 	];
 
 	// The field shows the branch the agents start from. A row without a
@@ -117,6 +144,17 @@ export function AgentProjectRow({ project, runner, manager }: AgentProjectRowPro
 						items={items}
 						value={row.supersetProjectId ?? autoValue}
 						onValueChange={(value) => save({ supersetProjectId: value === autoValue ? null : value })}
+					/>
+				</div>
+				<div className="flex flex-col gap-1">
+					<span aria-hidden="true" className="text-sm text-fg-muted">
+						Superset host
+					</span>
+					<Select
+						label="Superset host"
+						items={hostItems}
+						value={savedHost ?? localValue}
+						onValueChange={(value) => save({ supersetHostId: value === localValue ? null : value })}
 					/>
 				</div>
 				<Input

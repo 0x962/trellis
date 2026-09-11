@@ -133,6 +133,7 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 				projectId: "01J9Z0000000000000000000P1",
 				enabled: true,
 				supersetProjectId: null,
+				supersetHostId: null,
 				baseBranch: "main",
 				maxConcurrent: 3,
 				removeWorkspaceOnDone: true,

@@ -168,6 +168,7 @@ describe("agent settings", () => {
 		projectId,
 		enabled: true,
 		supersetProjectId: "sp-1",
+		supersetHostId: null,
 		baseBranch: "main",
 		maxConcurrent: 3,
 		removeWorkspaceOnDone: true,

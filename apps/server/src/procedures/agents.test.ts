@@ -255,6 +255,7 @@ describe("agents procedures", () => {
 			projectId: project.id,
 			enabled: true,
 			supersetProjectId: "sp-web",
+			supersetHostId: null,
 			baseBranch: "develop",
 			maxConcurrent: 5,
 			removeWorkspaceOnDone: true,

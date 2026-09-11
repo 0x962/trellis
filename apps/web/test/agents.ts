@@ -17,6 +17,7 @@ export const projectRow = (projectId: string, overrides: Partial<AgentProjectSet
 	projectId,
 	enabled: true,
 	supersetProjectId: null,
+	supersetHostId: null,
 	baseBranch: null,
 	maxConcurrent: 3,
 	removeWorkspaceOnDone: true,

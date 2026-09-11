@@ -4,6 +4,7 @@ import {
 	AgentInboxOutputSchema,
 	AgentRegisterInputSchema,
 	AgentRetryManagerInputSchema,
+	AgentRunnerHostsOutputSchema,
 	AgentRunnerProjectsOutputSchema,
 	AgentSessionSchema,
 	AgentSessionsInputSchema,
@@ -83,6 +84,15 @@ export const agents = {
 			summary: "List the projects the runner knows and the project each trellis project matches",
 		})
 		.output(AgentRunnerProjectsOutputSchema),
+	// The settings page fills each project's host picker from this list.
+	runnerHosts: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "GET",
+			path: "/agents/runner-hosts",
+			summary: "List the online Superset hosts an agent of a project can run on",
+		})
+		.output(AgentRunnerHostsOutputSchema),
 	setSettings: base
 		.route({ method: "PUT", path: "/agents/settings", summary: "Replace the agent settings" })
 		.input(AgentSettingsSetInputSchema)

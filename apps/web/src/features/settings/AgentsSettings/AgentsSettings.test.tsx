@@ -141,6 +141,65 @@ describe("AgentsSettings", () => {
 		expect(picker.textContent).toBe("Auto");
 	});
 
+	// A project runs its agents on the machine that runs the server until
+	// somebody picks another host, so the picker starts on This machine.
+	test("the Superset host picker offers This machine and the online hosts, and saves the choice", async () => {
+		const user = userEvent.setup();
+		const server = createTestServer();
+		render(server);
+		const picker = within(await projectGroup("CDE")).getByRole("combobox", { name: "Superset host" });
+		expect(picker.textContent).toBe("This machine");
+		await user.click(picker);
+		const options = await screen.findAllByRole("option");
+		expect(options.map((option) => option.textContent)).toEqual(["This machine", "Mac mini"]);
+		await user.click(options[1]!);
+		await waitFor(() => expect(saves(server)).toHaveLength(1));
+		expect(lastSave(server).projects).toEqual([
+			projectRow(await rootId(server), { enabled: false, supersetHostId: "host-mini" }),
+		]);
+		await waitFor(() => expect(picker.textContent).toBe("Mac mini"));
+	});
+
+	test("the host picker goes back to This machine, which saves supersetHostId null", async () => {
+		const user = userEvent.setup();
+		const server = createTestServer();
+		await server.client.agents.setSettings({
+			runner: "superset",
+			enabled: true,
+			projects: [projectRow(await rootId(server), { supersetHostId: "host-mini" })],
+		});
+		const seeded = saves(server).length;
+		render(server);
+		const picker = within(await projectGroup("CDE")).getByRole("combobox", { name: "Superset host" });
+		await waitFor(() => expect(picker.textContent).toBe("Mac mini"));
+		await user.click(picker);
+		await user.click((await screen.findAllByRole("option"))[0]!);
+		await waitFor(() => expect(saves(server)).toHaveLength(seeded + 1));
+		expect(lastSave(server).projects[0]!.supersetHostId).toBeNull();
+	});
+
+	// An offline host is not on the list, so the picker keeps it as an item
+	// of its own and the setting stays readable.
+	test("a saved host that is offline stays on the picker and is marked offline", async () => {
+		const server = createTestServer();
+		await server.client.agents.setSettings({
+			runner: "superset",
+			enabled: true,
+			projects: [projectRow(await rootId(server), { supersetHostId: "host-canary" })],
+		});
+		render(server);
+		const picker = within(await projectGroup("CDE")).getByRole("combobox", { name: "Superset host" });
+		await waitFor(() => expect(picker.textContent).toBe("host-canary (offline)"));
+	});
+
+	test("a missing Superset CLI leaves the host picker on This machine", async () => {
+		const server = createTestServer();
+		await server.removeSuperset();
+		render(server);
+		const picker = within(await projectGroup("CDE")).getByRole("combobox", { name: "Superset host" });
+		expect(picker.textContent).toBe("This machine");
+	});
+
 	test("the base branch saves on blur and refuses an empty name", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();

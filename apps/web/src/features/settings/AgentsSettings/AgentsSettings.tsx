@@ -15,12 +15,15 @@ const runners: { value: AgentRunner; label: string }[] = [{ value: "superset", l
 // each with the state of its manager.
 // A manager serves a root and every sub-project under it, so a sub-project
 // gets no block. The runner project list fills each block's picker; a
-// runner that cannot answer leaves each picker on Auto.
+// runner that cannot answer leaves each picker on Auto. The host list fills
+// each block's host picker, which stays on This machine while the runner
+// cannot answer.
 export function AgentsSettings() {
 	const { orpc } = useApp();
 	const { saved, save } = useAgentSettings();
 	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} })).data;
 	const runner = useQuery({ ...orpc.agents.runnerProjects.queryOptions({}), retry: false });
+	const hosts = useQuery({ ...orpc.agents.runnerHosts.queryOptions({}), retry: false });
 	const overview = useQuery(orpc.agents.overview.queryOptions({})).data;
 	if (saved === undefined || projects === undefined) return null;
 
@@ -60,6 +63,7 @@ export function AgentsSettings() {
 					key={project.id}
 					project={project}
 					runner={runner.data}
+					hosts={hosts.data}
 					manager={managerOf(overview?.sessions ?? [], project.id)}
 				/>
 			))}

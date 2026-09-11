@@ -14,12 +14,13 @@ import {
 	sessionById,
 	toSession,
 } from "./agentSessions.ts";
-import { readAgentSettings } from "./agentSettings.ts";
+import { hostOf, readAgentSettings } from "./agentSettings.ts";
 import { pathOf, resolveProject, resolveTicket } from "./refs.ts";
 
 export { inbox } from "./agentInbox.ts";
 export { prepareManager, prepareReconcile, prepareRetry, reconcile, recordManager } from "./agentManager.ts";
 export { overview } from "./agentOverview.ts";
+export { prepareRunnerHosts, runnerHosts } from "./agentRunnerHosts.ts";
 export { prepareRunnerProjects, runnerProjects } from "./agentRunnerProjects.ts";
 export { get as settings, set as setSettings } from "./agentSettings.ts";
 export { prepareBuilder, prepareReviewer, startBuilder, startReviewer } from "./agentStart.ts";
@@ -120,15 +121,19 @@ const removesWorkspace = async (tx: Tx, session: { role: string; ticketId: strin
 // A stopped session stays as it is and the runner is not called.
 export const prepareStop = async (ctx: AgentsCtx, input: { id: string }): Promise<StopPlan> => {
 	requireActor(ctx);
-	const { session, remove } = await ctx.newTx(async (tx) => {
+	const { session, remove, host } = await ctx.newTx(async (tx) => {
 		const found = await sessionById(tx, input.id);
-		return { session: found, remove: await removesWorkspace(tx, found) };
+		return {
+			session: found,
+			remove: await removesWorkspace(tx, found),
+			host: hostOf(await readAgentSettings(tx), found.projectId),
+		};
 	});
 	if (session.state === "stopped") return { id: session.id, changed: false, removed: null };
 	if (session.workspaceId !== null && session.terminalId !== null) {
-		await ctx.runner.stop({ workspaceId: session.workspaceId, terminalId: session.terminalId });
+		await ctx.runner.stop({ workspaceId: session.workspaceId, terminalId: session.terminalId, host });
 	}
-	if (remove && session.workspaceId !== null) await ctx.runner.removeWorkspace(session.workspaceId);
+	if (remove && session.workspaceId !== null) await ctx.runner.removeWorkspace(session.workspaceId, host);
 	return { id: session.id, changed: true, removed: remove ? session.workspaceId : null };
 };
 

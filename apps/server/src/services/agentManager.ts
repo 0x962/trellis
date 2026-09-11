@@ -15,7 +15,7 @@ import {
 	reserveName,
 	selectSessions,
 } from "./agentSessions.ts";
-import { managedProject, readAgentSettings } from "./agentSettings.ts";
+import { hostOf, managedProject, readAgentSettings } from "./agentSettings.ts";
 import { baseBranchOf, effectiveRepos, runnerProjectOf } from "./agentStart.ts";
 import { pathOf, resolveProject } from "./refs.ts";
 
@@ -26,17 +26,22 @@ import { pathOf, resolveProject } from "./refs.ts";
 export type ReconcilePlan = { exited: string[]; running: string[] };
 
 // A session holds its terminal only while the runner lists that terminal as
-// running. The runner lists each workspace once. A tab that shows the
-// agent's name runs that agent, so a session that waits for the agent's
-// first word runs.
+// running. The runner lists each workspace once, on the machine the
+// project's settings name. A tab that shows the agent's name runs that
+// agent, so a session that waits for the agent's first word runs.
 export const prepareReconcile = async (ctx: AgentsCtx): Promise<ReconcilePlan> => {
-	const live = await ctx.newTx((tx) =>
-		selectSessions(tx, sql`s.state IN ${LIVE_STATES} AND s.workspace_id IS NOT NULL AND s.terminal_id IS NOT NULL`),
-	);
+	const { live, settings } = await ctx.newTx(async (tx) => ({
+		live: await selectSessions(
+			tx,
+			sql`s.state IN ${LIVE_STATES} AND s.workspace_id IS NOT NULL AND s.terminal_id IS NOT NULL`,
+		),
+		settings: await readAgentSettings(tx),
+	}));
 	const exited: string[] = [];
 	const running: string[] = [];
 	for (const workspaceId of new Set(live.map((session) => session.workspaceId!))) {
-		const tabs = await ctx.runner.terminals(workspaceId);
+		const owner = live.find((found) => found.workspaceId === workspaceId)!;
+		const tabs = await ctx.runner.terminals(workspaceId, hostOf(settings, owner.projectId));
 		for (const session of live.filter((found) => found.workspaceId === workspaceId)) {
 			const tab = tabs.find((found) => found.terminalId === session.terminalId);
 			if (tab === undefined || tab.exited) exited.push(session.id);
@@ -101,6 +106,7 @@ export const prepareManager = async (ctx: AgentsCtx, input: { project: string })
 		const place = await ctx.runner.ensureManager({
 			project,
 			runnerProjectId,
+			host: found.managed.supersetHostId,
 			baseBranch: await baseBranchOf(ctx, found.managed, runnerProjectId),
 			claudeSessionId: found.manager === undefined ? null : found.manager.claudeSessionId,
 			text: restartText(project),

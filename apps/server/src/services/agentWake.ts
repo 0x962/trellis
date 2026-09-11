@@ -21,6 +21,7 @@ export const prepareWake = async (ctx: AgentsCtx, input: AgentWakeInput): Promis
 		const managed = managedProject(ctx, await readAgentSettings(tx), project.id);
 		return {
 			projectId: managed.projectId,
+			host: managed.supersetHostId,
 			manager: await managerOf(tx, managed.projectId),
 			path: pathOf(ctx.cache, managed.projectId),
 		};
@@ -33,6 +34,7 @@ export const prepareWake = async (ctx: AgentsCtx, input: AgentWakeInput): Promis
 			project: found.path,
 			workspaceId: manager.workspaceId!,
 			terminalId: manager.terminalId!,
+			host: found.host,
 			claudeSessionId: manager.claudeSessionId,
 		},
 		input.text,

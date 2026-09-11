@@ -27,8 +27,11 @@ beforeEach(() => {
 });
 afterEach(() => stub.restore());
 
-const manager = { project: "CDE", runnerProjectId: "sp-web", baseBranch: "main", claudeSessionId: null };
-const builder = { project: "CDE", runnerProjectId: "sp-web", baseBranch: "main", ticket: "CDE-42", title: "Fix login" };
+// `host` null runs every agent on this machine, which is what a project
+// without a Superset host does.
+const start = { project: "CDE", runnerProjectId: "sp-web", host: null, baseBranch: "main" };
+const manager = { ...start, claudeSessionId: null };
+const builder = { ...start, ticket: "CDE-42", title: "Fix login" };
 
 // The rejection of `promise` as the declared runner error, with its reason.
 const reasonOf = async (promise: Promise<unknown>) => {
@@ -115,7 +118,7 @@ describe("startBuilder", () => {
 			branch: "cde-42-fix-login",
 		});
 		expect(started.openUrl).toBe(`superset://workspace/${started.workspaceId}`);
-		const listed = await runner.terminals(started.workspaceId);
+		const listed = await runner.terminals(started.workspaceId, null);
 		expect(listed).toEqual([{ terminalId: started.terminalId, exited: false, title: "CDE-42" }]);
 	});
 
@@ -145,6 +148,7 @@ describe("startReviewer", () => {
 			ticket: "CDE-42",
 			prUrl,
 			workspaceId: built.workspaceId,
+			host: null,
 		});
 		const [create] = stub.callsOf("terminals create");
 		expect(create).toEqual([
@@ -166,6 +170,7 @@ describe("wake", () => {
 			project: "CDE",
 			workspaceId: started.workspaceId,
 			terminalId: started.terminalId,
+			host: null,
 			claudeSessionId: null,
 		};
 		const woken = await runner.wake(session, "trellis: 2 changes in CDE");
@@ -186,6 +191,7 @@ describe("wake", () => {
 			project: "CDE",
 			workspaceId: started.workspaceId,
 			terminalId: started.terminalId,
+			host: null,
 			claudeSessionId: "c-9",
 		};
 		const woken = await runner.wake(session, "trellis: 1 change in CDE");
@@ -206,6 +212,7 @@ describe("wake", () => {
 			project: "CDE",
 			workspaceId: started.workspaceId,
 			terminalId: started.terminalId,
+			host: null,
 			claudeSessionId: null,
 		};
 		const woken = await runner.wake(session, "trellis: 1 change in CDE");
@@ -218,7 +225,7 @@ describe("wake", () => {
 describe("isAlive, stop, removeWorkspace", () => {
 	test("isAlive reads the terminal list, and stop closes a listed terminal", async () => {
 		const started = await runner.startBuilder(builder);
-		const ref = { workspaceId: started.workspaceId, terminalId: started.terminalId };
+		const ref = { workspaceId: started.workspaceId, terminalId: started.terminalId, host: null };
 		expect(await runner.isAlive(ref)).toBe(true);
 		await runner.stop(ref);
 		expect(stub.callsOf("terminals close")[0]).toEqual([
@@ -231,7 +238,7 @@ describe("isAlive, stop, removeWorkspace", () => {
 
 	test("removeWorkspace deletes the local worktree and keeps the branch", async () => {
 		const started = await runner.startBuilder(builder);
-		await runner.removeWorkspace(started.workspaceId);
+		await runner.removeWorkspace(started.workspaceId, null);
 		expect(stub.callsOf("ws delete")[0]).toEqual(["ws", "delete", started.workspaceId, "--local"]);
 		expect(stub.state().workspaces).toEqual([]);
 	});

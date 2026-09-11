@@ -68,6 +68,14 @@ const runnerProjects = () => {
 	return repos;
 };
 
+// The machines `agents.runnerHosts` reads from `superset hosts list`. Only
+// the online one reaches the host picker of a project block.
+const runnerHosts = () =>
+	[
+		{ id: "host-mini", name: "Mac mini", online: "yes" },
+		{ id: "host-canary", name: "Canary", online: "no" },
+	] as const;
+
 const missingGh: GhStatus = {
 	ok: false,
 	user: null,
@@ -209,7 +217,7 @@ const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh
 	const supersetBin = join(dir, "superset");
 	copyFileSync(SUPERSET_STUB_BIN, supersetBin);
 	chmodSync(supersetBin, 0o755);
-	const superset = supersetStub(dir, { projects: runnerProjects() });
+	const superset = supersetStub(dir, { projects: runnerProjects(), hosts: [...runnerHosts()] });
 	const app = await createTestApp({
 		db: h,
 		supersetBin,

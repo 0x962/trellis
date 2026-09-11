@@ -110,6 +110,26 @@ describe("agents on and off", () => {
 		expect(result.calls[2]!.input).toEqual({ ...settings, projects: [projectSettings({ enabled: false })] });
 	});
 
+	// The verb replaces the whole document, so a host somebody picked in the
+	// web survives a switch the CLI flips.
+	test("a project row keeps its Superset host through the toggle, and a new row names none", async () => {
+		const settings = agentSettings({
+			projects: [projectSettings({ supersetHostId: "04705517c8ad3a6d7f595f395125ecfe" })],
+		});
+		const result = await runCli(["agents", "off", "--project", "OPS"], {
+			"agents.settings": settings,
+			"projects.get": project({ id: projectId2, key: "OPS" }),
+			"agents.setSettings": (input: unknown) => input,
+		});
+		expect(result.code).toBe(0);
+		const written = result.calls[2]!.input as { projects: Array<Record<string, unknown>> };
+		expect(written.projects[0]!.supersetHostId).toBe("04705517c8ad3a6d7f595f395125ecfe");
+		expect(written.projects[1]).toEqual(
+			projectSettings({ projectId: projectId2, enabled: false }) as Record<string, unknown>,
+		);
+		expect(written.projects[1]!.supersetHostId).toBeNull();
+	});
+
 	test("on a TTY it prints the switch it changed", async () => {
 		const result = await runCli(
 			["agents", "on"],

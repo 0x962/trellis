@@ -65,6 +65,7 @@ export const agentsHarness = () => {
 			projectId,
 			enabled: true,
 			supersetProjectId: null,
+			supersetHostId: null,
 			baseBranch: "main",
 			maxConcurrent: 3,
 			removeWorkspaceOnDone: true,

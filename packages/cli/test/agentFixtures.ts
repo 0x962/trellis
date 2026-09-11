@@ -56,6 +56,7 @@ export const projectSettings = (overrides: Overrides = {}) => ({
 	projectId,
 	enabled: true,
 	supersetProjectId: null,
+	supersetHostId: null,
 	baseBranch: null,
 	maxConcurrent: 3,
 	removeWorkspaceOnDone: true,

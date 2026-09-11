@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import { errors, type RunnerProject, type RunnerReason } from "@trellis/api";
+import { errors, type RunnerHost, type RunnerProject, type RunnerReason } from "@trellis/api";
 import type { BranchState } from "./git.ts";
 
 // The program that starts, finds, wakes, and stops agents. Superset is the
@@ -24,6 +24,15 @@ const namesRepo = (recorded: string, { owner, repo }: RunnerRepo) => {
 // checkout at `path`, which the runner reads only on request.
 export type RunnerProjectRow = Omit<RunnerProject, "defaultBranch">;
 
+// One machine the runner can put a workspace on. An offline host serves no
+// agent, so the settings page offers the online ones and a start on an
+// offline one fails with the reason `host`.
+export type RunnerHostRow = RunnerHost & { online: boolean };
+
+// The machine a project's agents run on: the runner id of a Superset host,
+// or null for the machine that runs the trellis server.
+export type RunnerHostId = string | null;
+
 // The id of the runner project that holds the first of `repos` that any
 // runner project holds, or null. `repos` comes nearest project first, so a
 // sub-project's own repo wins over its parent's.
@@ -39,7 +48,10 @@ export const matchRunnerProject = (projects: RunnerProjectRow[], repos: RunnerRe
 // opens its workspace.
 export type AgentPlace = { workspaceId: string; terminalId: string; openUrl: string };
 
-export type TerminalRef = { workspaceId: string; terminalId: string };
+// `host` is the machine the workspace lives on. Every runner call that
+// names a workspace names its host too, because the runner reaches a
+// workspace only on the machine that holds it.
+export type TerminalRef = { workspaceId: string; terminalId: string; host: RunnerHostId };
 
 export type TerminalState = { terminalId: string; exited: boolean; title: string };
 
@@ -49,6 +61,7 @@ export type TerminalState = { terminalId: string; exited: boolean; title: string
 export type ManagerStart = {
 	project: string;
 	runnerProjectId: string;
+	host: RunnerHostId;
 	baseBranch: string;
 	claudeSessionId: string | null;
 	text?: string;
@@ -57,18 +70,28 @@ export type ManagerStart = {
 export type BuilderStart = {
 	project: string;
 	runnerProjectId: string;
+	host: RunnerHostId;
 	baseBranch: string;
 	ticket: string;
 	title: string;
 };
 
-export type ReviewerStart = { project: string; ticket: string; prUrl: string; workspaceId: string };
+export type ReviewerStart = {
+	project: string;
+	ticket: string;
+	prUrl: string;
+	workspaceId: string;
+	host: RunnerHostId;
+};
 
 export type ManagerSession = TerminalRef & { project: string; claudeSessionId: string | null };
 
 export type Runner = {
 	// Every project the runner knows, for the settings page picker.
 	projects: () => Promise<RunnerProjectRow[]>;
+	// Every machine the runner knows, online or not, for the settings page
+	// host picker.
+	hosts: () => Promise<RunnerHostRow[]>;
 	// The runner project that holds one of `repos`, in the order given.
 	projectFor: (repos: RunnerRepo[]) => Promise<string>;
 	// The branch origin/HEAD names in the checkout of a runner project, or
@@ -88,10 +111,10 @@ export type Runner = {
 	// true and `terminalId` names the new terminal.
 	wake: (session: ManagerSession, text: string) => Promise<{ terminalId: string; relaunched: boolean }>;
 	isAlive: (ref: TerminalRef) => Promise<boolean>;
-	terminals: (workspaceId: string) => Promise<TerminalState[]>;
+	terminals: (workspaceId: string, host: RunnerHostId) => Promise<TerminalState[]>;
 	stop: (ref: TerminalRef) => Promise<void>;
-	removeWorkspace: (workspaceId: string) => Promise<void>;
-	openUrl: (workspaceId: string) => Promise<string>;
+	removeWorkspace: (workspaceId: string, host: RunnerHostId) => Promise<void>;
+	openUrl: (workspaceId: string, host: RunnerHostId) => Promise<string>;
 };
 
 // True for the declared RUNNER_UNAVAILABLE error, the one way a runner call

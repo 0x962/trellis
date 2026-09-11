@@ -125,6 +125,7 @@ export const prepareBuilder = async (ctx: AgentsCtx, input: AgentStartBuilderInp
 		const place = await ctx.runner.startBuilder({
 			project: pathOf(ctx.cache, reserved.managed.projectId),
 			runnerProjectId,
+			host: reserved.managed.supersetHostId,
 			baseBranch: await baseBranchOf(ctx, reserved.managed, runnerProjectId),
 			ticket: reserved.ticket.identifier,
 			title: reserved.ticket.title,
@@ -188,6 +189,7 @@ export const prepareReviewer = async (ctx: AgentsCtx, input: AgentStartReviewerI
 			ticket: found.ticket.identifier,
 			prUrl: input.prUrl,
 			workspaceId: found.workspaceId,
+			host: found.managed.supersetHostId,
 		});
 		return { ...row, terminalId };
 	} catch (error) {

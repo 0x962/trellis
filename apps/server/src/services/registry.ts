@@ -126,6 +126,12 @@ export const services = {
 		prepare: agents.prepareRunnerProjects,
 		run: agents.runnerProjects,
 	} as ServiceEntry,
+	"agents.runnerHosts": {
+		family: "agents",
+		kind: "read",
+		prepare: agents.prepareRunnerHosts,
+		run: agents.runnerHosts,
+	} as ServiceEntry,
 	"agents.retryManager": runner(agents.prepareRetry, agents.recordManager),
 	"agents.overview": { family: "agents", kind: "read", run: agents.overview } as ServiceEntry,
 	// The agents host runs these two. They are not on the API.
