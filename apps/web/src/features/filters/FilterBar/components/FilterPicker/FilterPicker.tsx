@@ -18,8 +18,16 @@ import {
 import type { View } from "../../../grammar";
 import { presets } from "../../../presets";
 
-// The picker shows the fields first, then the values of one field.
-export type PickerStage = { kind: "fields" } | { kind: "values"; field: FilterField };
+// The picker shows the fields first, then the values of one field. `scope`
+// is not a filter field: it is the reach of the list, which a project route
+// alone can change, so it takes its own stage.
+export type PickerStage = { kind: "fields" } | { kind: "values"; field: FilterField } | { kind: "scope" };
+
+const scopeField = "scope:field";
+const scopeValues = [
+	{ id: "subprojects", label: "This and all sub-projects" },
+	{ id: "self", label: "This project only" },
+] as const;
 
 export type FilterPickerProps = {
 	view: View;
@@ -67,6 +75,10 @@ export function FilterPicker({
 	const close = () => onOpenChange(false);
 
 	const pickField = (id: string) => {
+		if (id === scopeField) {
+			onStageChange({ kind: "scope" });
+			return;
+		}
 		const preset = presets.find((entry) => presetId(entry.label) === id);
 		if (preset !== undefined) {
 			onChange({ ...view, ...preset.view });
@@ -82,7 +94,9 @@ export function FilterPicker({
 		if (!multiValue.includes(field)) close();
 	};
 
+	const scopeLabel = scopeValues.find((entry) => entry.id === view.scope)?.label ?? scopeValues[0].label;
 	const fieldItems: CommandItem[] = [
+		...(project === undefined ? [] : [{ id: scopeField, label: `Projects: ${scopeLabel}` }]),
 		...presets.map((preset) => ({ id: presetId(preset.label), label: preset.label })),
 		...pickerFields
 			.filter((field) => field !== "project" || project === undefined)
@@ -94,7 +108,16 @@ export function FilterPicker({
 			? statusGroups(statuses, { checked: checkedStatusIds(view, statuses) })
 			: [];
 	const items =
-		stage.kind === "values" && stage.field !== "status" ? valueItems(stage.field, view, projects, actors) : fieldItems;
+		stage.kind === "scope"
+			? scopeValues.map((entry) => ({ id: entry.id, label: entry.label, checked: view.scope === entry.id }))
+			: stage.kind === "values" && stage.field !== "status"
+				? valueItems(stage.field, view, projects, actors)
+				: fieldItems;
+
+	const pickScope = (id: string) => {
+		onChange({ ...view, scope: id as View["scope"] });
+		close();
+	};
 
 	return (
 		<Popover
@@ -106,14 +129,24 @@ export function FilterPicker({
 			className="w-72 p-0"
 		>
 			<Command
-				key={stage.kind === "fields" ? "fields" : stage.field}
+				key={stage.kind === "values" ? stage.field : stage.kind}
 				inputRef={input}
 				autoFocus
-				label={stage.kind === "fields" ? "Search fields" : `Search ${fieldLabels[stage.field]} values`}
-				placeholder={stage.kind === "fields" ? "Filter by" : fieldLabels[stage.field]}
+				label={
+					stage.kind === "values"
+						? `Search ${fieldLabels[stage.field]} values`
+						: stage.kind === "scope"
+							? "Search the reach of the list"
+							: "Search fields"
+				}
+				placeholder={
+					stage.kind === "values" ? fieldLabels[stage.field] : stage.kind === "scope" ? "Projects" : "Filter by"
+				}
 				items={stage.kind === "values" && stage.field === "status" ? [] : items}
 				groups={groups}
-				onSelect={(id) => (stage.kind === "fields" ? pickField(id) : pickValue(stage.field, id))}
+				onSelect={(id) =>
+					stage.kind === "values" ? pickValue(stage.field, id) : stage.kind === "scope" ? pickScope(id) : pickField(id)
+				}
 			/>
 		</Popover>
 	);

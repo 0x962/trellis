@@ -1,6 +1,6 @@
 import { useRouterState } from "@tanstack/react-router";
 import type { StatusSummary } from "@trellis/api";
-import { Button, IconButton, Menu, toast, useHotkey } from "@trellis/ui";
+import { IconButton, Menu, toast, useHotkey } from "@trellis/ui";
 import { Copy, Link2, ListFilter, Share2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toCli } from "../cli";
@@ -16,19 +16,17 @@ export type FilterBarProps = {
 	onSearchChange: (next: Partial<View>) => void;
 	// The statuses of the scope: the status values and the chip names.
 	statuses: readonly StatusSummary[];
-	// The scope chip of a project route, before the filter chips.
-	children?: ReactNode;
-	// The controls at the right end, before the Share menu.
+	// The controls at the right end, between Filter and the Share menu.
 	actions?: ReactNode;
 };
 
 const fields: PickerStage = { kind: "fields" };
 
-// The bar under the topbar: one chip per active filter, the Filter button
-// with its picker, the route's Display button, and the Share menu with the
-// copy actions. Filter and Display are the only text buttons. `f` opens
-// the picker; `g s` focuses the button.
-export function FilterBar({ project, search, onSearchChange, statuses, children, actions }: FilterBarProps) {
+// The bar under the topbar: one chip per active filter on the left, then
+// Filter, the route's Display control, and Share at the right end. The three
+// are icons, because their menus name what they do. `f` opens the picker;
+// `g s` focuses the button.
+export function FilterBar({ project, search, onSearchChange, statuses, actions }: FilterBarProps) {
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
 	const [open, setOpen] = useState(false);
 	const [stage, setStage] = useState<PickerStage>(fields);
@@ -78,9 +76,7 @@ export function FilterBar({ project, search, onSearchChange, statuses, children,
 			tabIndex={-1}
 			className="flex h-9 shrink-0 items-center gap-1.5 border-b border-border px-5 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 max-md:overflow-x-auto max-md:px-4 max-md:*:shrink-0"
 		>
-			{/* Under 768 px the buttons show their icons alone, and chips that
-			still do not fit scroll inside the bar, never the page. */}
-			{children}
+			{/* A chip that does not fit scrolls inside the bar, never the page. */}
 			{active.map((field: FilterField) => (
 				<FilterChip
 					key={field}
@@ -91,32 +87,18 @@ export function FilterBar({ project, search, onSearchChange, statuses, children,
 					onEdit={(target) => openAt({ kind: "values", field: target })}
 				/>
 			))}
-			<FilterPicker
-				view={view}
-				statuses={statuses}
-				project={project}
-				onChange={change}
-				open={open}
-				onOpenChange={onOpenChange}
-				stage={stage}
-				onStageChange={setStage}
-				trigger={
-					<Button
-						variant="quiet"
-						size="sm"
-						icon={<ListFilter />}
-						kbd="f"
-						aria-label="Filter"
-						data-filter-button=""
-						className="max-md:[&_kbd]:hidden"
-					>
-						<span className="max-md:sr-only">Filter</span>
-					</Button>
-				}
-			/>
-			{/* Under 768 px the two copy buttons show their icons alone; the
-			aria-label keeps their names. */}
 			<div className="ml-auto flex items-center gap-1">
+				<FilterPicker
+					view={view}
+					statuses={statuses}
+					project={project}
+					onChange={change}
+					open={open}
+					onOpenChange={onOpenChange}
+					stage={stage}
+					onStageChange={setStage}
+					trigger={<IconButton label="Filter" icon={<ListFilter />} size="md" data-filter-button="" />}
+				/>
 				{actions}
 				<Menu
 					label="Share"

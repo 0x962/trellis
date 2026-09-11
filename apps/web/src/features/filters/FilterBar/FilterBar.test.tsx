@@ -45,7 +45,9 @@ describe("features/filters/FilterBar", () => {
 		const options = within(dialog)
 			.getAllByRole("option")
 			.map((entry) => entry.textContent?.trim());
-		expect(options.slice(0, 4)).toEqual([
+		// A project route offers the reach of the list first, then the presets.
+		expect(options.slice(0, 5)).toEqual([
+			"Projects: This and all sub-projects",
 			"Active",
 			"Needs review",
 			"Failing checks",
@@ -58,14 +60,16 @@ describe("features/filters/FilterBar", () => {
 	});
 
 	// Outcome 80
-	test("toggles the sub-projects scope from the project chip", async () => {
+	test("the filter picker sets the reach of the list", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();
 		await server.client.projects.create({ parent: "CDE.web", name: "auth" });
 		const { router } = renderApp({ path: "/p/CDE/web/table?scope=self", actor: "navid", server });
 		await findGrid();
 		await waitFor(() => expect(inputs(server, "tickets.list").at(-1)).toMatchObject({ subprojects: false }));
-		await user.click(screen.getByRole("button", { name: /sub-projects/i }));
+		await user.click(within(filterBar()).getByRole("button", { name: "Filter" }));
+		await user.click(await option("Projects: This project only"));
+		await user.click(await option("This and all sub-projects"));
 		await waitFor(() => expect(router.state.location.searchStr).toBe(""));
 		await waitFor(() => expect(inputs(server, "tickets.list").at(-1)).not.toMatchObject({ subprojects: false }));
 		expect(inputs(server, "tickets.list").at(-1)).toMatchObject({ project: "CDE.web" });
