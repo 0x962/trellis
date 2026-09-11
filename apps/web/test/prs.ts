@@ -58,7 +58,7 @@ export const checkList = (...pairs: [string, CheckBucket][]): Check[] =>
 		name,
 		workflow: "ci",
 		bucket,
-		link: "https://github.com/canary-technologies-corp/de/actions/runs/118",
+		link: "https://github.com/acme/web/actions/runs/118",
 	}));
 
 // The row element for one pull request id, once it is on the page.

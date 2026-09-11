@@ -4,7 +4,7 @@ import { budget, report } from "./measure.ts";
 import { type PerfServer, startPerfServer } from "./perfServer.ts";
 import { PERF_ROWS } from "./seed.ts";
 
-// plan.md, Performance requirements: a 50 MB upload finishes within 1 s, the
+// ARCHITECTURE.md, Performance budgets: a 50 MB upload finishes within 1 s, the
 // HTTP thread never stalls for more than 50 ms while it runs, and the same
 // file serves back within 300 ms. 50 000 000 bytes leave room for the
 // multipart framing under the 50 MiB body limit.

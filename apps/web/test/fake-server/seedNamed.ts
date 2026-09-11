@@ -4,7 +4,7 @@ import { seedNamedHost } from "./seedNamedHost";
 import { seedNamedOthers } from "./seedNamedOthers";
 import { seedNamedWeb } from "./seedNamedWeb";
 
-// The named tickets the canvas shows, in one fixed order: CDE-43 first,
+// The named tickets the fake server shows, in one fixed order: CDE-43 first,
 // because CDE-42 and CDE-41 name it as their parent, then CDE.web, CDE.host,
 // the other root tickets of CDE, then TRL and MRG.
 export const seedNamed = (s: Seeder, roots: Roots) => {

@@ -49,7 +49,7 @@ describe("CheckRows", () => {
 		expect(rows()).toHaveLength(seeded.length);
 		for (const row of rows()) {
 			const link = within(row).getByRole("link", { name: "Open" });
-			expect(link.getAttribute("href")).toBe("https://github.com/canary-technologies-corp/de/actions/runs/118");
+			expect(link.getAttribute("href")).toBe("https://github.com/acme/web/actions/runs/118");
 			expect(link.getAttribute("target")).toBe("_blank");
 			expect(link.getAttribute("rel")).toContain("noopener");
 		}

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compile } from "tailwindcss";
-import { blocks, findBlock, mockupStyle, packageRoot, paletteBlocks, parseCss, readSource } from "../test/css";
+import { blocks, findBlock, packageRoot, paletteBlocks, parseCss, readSource } from "../test/css";
 
 const colorTokens = [
 	"--bg",
@@ -29,6 +29,65 @@ const colorTokens = [
 const shadowTokens = ["--shadow-sm", "--shadow-md", "--shadow-lg"];
 
 const fontTokens = ["--sans", "--mono"];
+
+// The approved palette, one value per themed token. tokens.css is the only
+// place these values exist, so this table is what pins them.
+const lightPalette: Record<string, string> = {
+	"--bg": "#F5F5F5",
+	"--surface": "#FFFFFF",
+	"--elevated": "#FFFFFF",
+	"--border": "#E5E5E5",
+	"--border-strong": "#D4D4D4",
+	"--fg": "#0A0A0A",
+	"--fg-muted": "#737373",
+	"--fg-faint": "#A3A3A3",
+	"--accent": "#009FFF",
+	"--accent-soft": "#DFEBFF",
+	"--agent": "#693ACF",
+	"--agent-soft": "#EFE8FB",
+	"--success": "#0DBE4E",
+	"--success-soft": "#E3F8EA",
+	"--warning": "#D5A910",
+	"--warning-soft": "#FBF4DA",
+	"--danger": "#FF2E3F",
+	"--danger-soft": "#FFE6E8",
+	"--scrim": "rgba(0,0,0,.4)",
+	"--shadow-sm": "0 1px 2px rgba(0,0,0,.06)",
+	"--shadow-md": "0 4px 12px rgba(0,0,0,.10)",
+	"--shadow-lg": "0 12px 32px rgba(0,0,0,.16)",
+};
+
+// Dark has no visible shadow, so each shadow starts with a strong-border ring.
+const darkPalette: Record<string, string> = {
+	"--bg": "#0A0A0A",
+	"--surface": "#111111",
+	"--elevated": "#171717",
+	"--border": "#1F1F1F",
+	"--border-strong": "#2A2A2A",
+	"--fg": "#FAFAFA",
+	"--fg-muted": "#A3A3A3",
+	"--fg-faint": "#737373",
+	"--accent": "#009FFF",
+	"--accent-soft": "#19283C",
+	"--agent": "#9D6AFB",
+	"--agent-soft": "#24183F",
+	"--success": "#5ECC71",
+	"--success-soft": "#10301A",
+	"--warning": "#FFD452",
+	"--warning-soft": "#332B0C",
+	"--danger": "#FF6762",
+	"--danger-soft": "#3A1517",
+	"--scrim": "rgba(0,0,0,.6)",
+	"--shadow-sm": "0 0 0 1px var(--border-strong)",
+	"--shadow-md": "0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4)",
+	"--shadow-lg": "0 0 0 1px var(--border-strong), 0 12px 32px rgba(0,0,0,.5)",
+};
+
+const fontStacks: Record<string, string> = {
+	"--sans":
+		'"Inter Variable", "Inter Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+	"--mono": '"JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+};
 
 // The dark blocks redefine the colors and shadows only. The font stacks and
 // `color-scheme` do not change with the theme.
@@ -92,28 +151,20 @@ describe("tokens.css", () => {
 		}
 	});
 
-	test("palette and shadow values match the mockup verbatim in light and dark", async () => {
+	test("palette and shadow values are the approved ones in light and dark", async () => {
 		const ours = paletteBlocks(await tokens());
-		const theirs = paletteBlocks(await mockupStyle());
-		for (const block of ["light", "darkMedia", "darkStamp"] as const) {
-			for (const name of themedTokens) {
-				expect(`${block} ${name}: ${ours[block].declarations[name]}`).toBe(
-					`${block} ${name}: ${theirs[block].declarations[name]}`,
-				);
+		for (const [name, value] of Object.entries(lightPalette)) {
+			expect(`light ${name}: ${ours.light.declarations[name]}`).toBe(`light ${name}: ${value}`);
+		}
+		for (const block of ["darkMedia", "darkStamp"] as const) {
+			for (const [name, value] of Object.entries(darkPalette)) {
+				expect(`${block} ${name}: ${ours[block].declarations[name]}`).toBe(`${block} ${name}: ${value}`);
 			}
 		}
-		expect(ours.light.declarations["--bg"]).toBe("#F5F5F5");
-		expect(ours.light.declarations["--danger-soft"]).toBe("#FFE6E8");
-		expect(ours.darkStamp.declarations["--bg"]).toBe("#0A0A0A");
-		expect(ours.darkStamp.declarations["--danger-soft"]).toBe("#3A1517");
-		expect(ours.darkStamp.declarations["--shadow-sm"]).toBe("0 0 0 1px var(--border-strong)");
 		// The web font and its metric-matched fallback lead each stack (see
-		// fonts.test.ts). The generic tail after them is the mockup's own.
-		for (const name of fontTokens) {
-			const tail = (stack: string) => stack.split(",").slice(2).join(",").trim();
-			expect(tail(ours.light.declarations[name]!)).toBe(
-				theirs.light.declarations[name]!.split(",").slice(1).join(",").trim(),
-			);
+		// fonts.test.ts). The generic families follow them.
+		for (const [name, stack] of Object.entries(fontStacks)) {
+			expect(`${name}: ${ours.light.declarations[name]}`).toBe(`${name}: ${stack}`);
 		}
 	});
 

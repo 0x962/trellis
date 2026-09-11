@@ -4,7 +4,16 @@ dist/
 .cache/
 *.log
 .DS_Store
+# TypeScript writes an incremental build cache beside each tsconfig.
+*.tsbuildinfo
+# A local environment file holds machine settings and secrets.
+.env*
 # Review agents write screenshots and measurements here; they never ship.
 .review/
 # Playwright writes traces and screenshots of failed specs here.
 test-results/
+# Playwright writes its HTML report here.
+playwright-report/
+# `expo run:ios` and `expo run:android` generate these projects from app.json.
+apps/mobile/ios/
+apps/mobile/android/

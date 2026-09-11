@@ -24,7 +24,7 @@ const row = (overrides: Partial<Activity>): Activity => ({
 // `meta` (services/pullRequests.ts).
 const linked = row({
 	action: "pr.linked",
-	meta: { pullRequestId: "01J9ZK3Q8V2M4N6P7R8S9T0V20", url: "https://github.com/canary-technologies-corp/de/pull/118" },
+	meta: { pullRequestId: "01J9ZK3Q8V2M4N6P7R8S9T0V20", url: "https://github.com/acme/web/pull/118" },
 });
 
 describe("features/ticket/Timeline/utils/describeActivity", () => {
@@ -53,8 +53,8 @@ describe("features/ticket/Timeline/utils/describeActivity", () => {
 
 	// TK-1. These rows carry no field, so the action names what happened.
 	test("a PR, attachment, or comment row reads from its action", () => {
-		expect(describeActivity(linked)).toBe("linked the PR de #118");
-		expect(describeActivity({ ...linked, action: "pr.unlinked" })).toBe("removed the PR de #118");
+		expect(describeActivity(linked)).toBe("linked the PR web #118");
+		expect(describeActivity({ ...linked, action: "pr.unlinked" })).toBe("removed the PR web #118");
 		expect(
 			describeActivity(row({ action: "attachment.created", meta: { filename: "trace.zip", attachmentId: "x" } })),
 		).toBe("attached trace.zip");
@@ -76,10 +76,10 @@ describe("features/ticket/Timeline/utils/describeActivity", () => {
 	test("a run joins its fields, then its PR links", () => {
 		const status = row({ field: "status", fromValue: "Todo", toValue: "In Progress" });
 		const priority = row({ field: "priority", fromValue: "medium", toValue: "high" });
-		expect(describeRun([status, priority, linked])).toBe("changed the status and priority, and linked the PR de #118");
+		expect(describeRun([status, priority, linked])).toBe("changed the status and priority, and linked the PR web #118");
 		expect(describeRun([status, priority])).toBe("changed the status and priority");
 		expect(describeRun([linked, { ...linked, meta: { url: "https://github.com/acme/api/pull/7" } }])).toBe(
-			"linked the PR de #118 and linked the PR api #7",
+			"linked the PR web #118 and linked the PR api #7",
 		);
 	});
 });

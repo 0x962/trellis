@@ -191,7 +191,7 @@ export const attachment = (overrides: Partial<Attachment> = {}): Attachment => (
 	...overrides,
 });
 
-// The `tickets.get` shape of CDE-42 as the canvas shows it.
+// The `tickets.get` shape of CDE-42 as the ticket screen shows it.
 export const ticket = (overrides: Partial<Ticket> = {}): Ticket => ({
 	...ticketSummary({
 		status: {

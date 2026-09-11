@@ -31,7 +31,7 @@ export type AppOptions = {
 	clock?: Clock;
 };
 
-// The Vite dev server and margin's gateway. Every other origin gets no
+// The Vite dev server and the localhost gateway. Every other origin gets no
 // CORS header, so a page elsewhere cannot read the API.
 const DEV_ORIGINS = ["http://localhost:5173", "http://trellis.localhost"];
 

@@ -9,7 +9,7 @@ type Db = TestDb["db"];
 // perf test skips.
 export const PERF_ROWS = Number(process.env.TRELLIS_PERF_ROWS ?? 0);
 
-// The budgets of plan.md are for Navid's Mac. CI sets
+// The budgets are for the reference machine. CI sets
 // TRELLIS_PERF_FACTOR=2.5 and runs the same tests at 2.5 times each budget.
 // turbo passes every TRELLIS_* variable to a task, and filters out `CI`.
 export const BUDGET_FACTOR = Number(process.env.TRELLIS_PERF_FACTOR ?? 1);

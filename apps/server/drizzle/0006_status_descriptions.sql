@@ -6,7 +6,7 @@ FROM (VALUES
 	('Todo', 'todo', 'New work. Read it, ask in a comment when it is unclear, then start a builder.'),
 	('In Progress', 'started', 'A builder works on this ticket. Forward each new comment to the builder.'),
 	('Agent Review', 'review', 'A builder opened a PR. Run a reviewer.'),
-	('Human Review', 'review', 'Waiting for Navid. Do nothing unless he comments.'),
+	('Human Review', 'review', 'Waiting for the human reviewer. Do nothing unless they comment.'),
 	('Done', 'done', 'The work is complete. Close the builder''s workspace.'),
 	('Canceled', 'canceled', 'Nobody works on this ticket. Stop its builder and close its workspace.')
 ) AS "seed" ("name", "category", "description")

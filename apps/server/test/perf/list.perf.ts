@@ -8,7 +8,7 @@ import { type PerfServer, startPerfServer, type TimedClient, timedClient } from 
 import { TABLE_QUERY } from "./queries.ts";
 import { PERF_ROWS, type PerfRoot, perfDb } from "./seed.ts";
 
-// plan.md, Performance requirements: `tickets.list` p95 for the default
+// ARCHITECTURE.md, Performance budgets: `tickets.list` p95 for the default
 // table query of 50 rows is 5 ms at 1k, 10 ms at 10k, and 20 ms at 50k;
 // 40 ms with `q`. `tickets.board` and `tickets.counts` are 30 ms each.
 const listBudget = LIST_BUDGET_MS;

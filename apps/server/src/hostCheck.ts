@@ -8,7 +8,7 @@ import type { Config } from "./config.ts";
 // it, and the hostnames that the owner lists:
 // - an IP address, which names no DNS record,
 // - `localhost` and every `*.localhost` name, which a browser always
-//   resolves to the loopback address (RFC 6761), such as margin's
+//   resolves to the loopback address (RFC 6761), such as the gateway's
 //   `trellis.localhost`,
 // - the hostname TRELLIS_HOST names,
 // - each hostname TRELLIS_ALLOWED_HOSTS names. A proxy such as Tailscale

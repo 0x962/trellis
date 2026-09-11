@@ -9,8 +9,8 @@ import { InboxSection } from "./InboxSection";
 beforeEach(() => localStorage.clear());
 
 const rows = [
-	ticketSummary({ id: "01J8Z6X4Q3M2K1H0G9F8E7D6T1", identifier: "CDE-42", title: "Restore the fork pages" }),
-	ticketSummary({ id: "01J8Z6X4Q3M2K1H0G9F8E7D6T2", identifier: "CDE-37", title: "Shell+ tabs survive a restart" }),
+	ticketSummary({ id: "01J8Z6X4Q3M2K1H0G9F8E7D6T1", identifier: "CDE-42", title: "Restore the export pages" }),
+	ticketSummary({ id: "01J8Z6X4Q3M2K1H0G9F8E7D6T2", identifier: "CDE-37", title: "Notes+ tabs survive a restart" }),
 	ticketSummary({ id: "01J8Z6X4Q3M2K1H0G9F8E7D6T3", identifier: "TRL-9", title: "PR polling" }),
 ] as TicketSummary[];
 
@@ -37,11 +37,11 @@ describe("InboxSection", () => {
 		const { getByRole, queryByText } = renderWithProviders(<Harness />, { path: "/needs-you", actor: "navid" });
 		const header = getByRole("button", { name: /^Review/ });
 		expect(header.getAttribute("aria-expanded")).toBe("true");
-		expect(queryByText("Restore the fork pages")).not.toBeNull();
+		expect(queryByText("Restore the export pages")).not.toBeNull();
 		header.focus();
 		await user.keyboard("{Enter}");
 		expect(getByRole("button", { name: /^Review/ }).getAttribute("aria-expanded")).toBe("false");
-		expect(queryByText("Restore the fork pages")).toBeNull();
+		expect(queryByText("Restore the export pages")).toBeNull();
 	});
 
 	// NY-55. One tab stop per section: Tab reaches the section, and j and k

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a vulnerability
+    url: https://github.com/0x962/trellis/security/advisories/new
+    about: Report it privately as a security advisory. Do not open a public issue.
+  - name: Read the contributing guide
+    url: https://github.com/0x962/trellis/blob/main/CONTRIBUTING.md
+    about: The development loop, the repository map, and the review pass.
+  - name: Read the architecture reference
+    url: https://github.com/0x962/trellis/blob/main/docs/ARCHITECTURE.md
+    about: The stack, the domain rules, the schema, and the API contract.

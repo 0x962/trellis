@@ -13,7 +13,7 @@ const themes: { value: ThemeMode; label: string }[] = [
 ];
 
 // Every primitive in every state, every domain component in every variant,
-// and the mockup's rows built from them. The theme switch stamps <html>, so
+// and the product rows built from them. The theme switch stamps <html>, so
 // the whole page flips at once.
 export function Gallery() {
 	const { mode, setTheme } = useTheme();

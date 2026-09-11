@@ -10,7 +10,7 @@ import { resolveTicket } from "./refs.ts";
 // keeps a stable order, so two reads of the same state give the same bytes
 // and an agent can parse the sections.
 
-// The origin margin's gateway serves trellis at. Every link in a brief is
+// The origin the localhost gateway serves trellis at. Every link in a brief is
 // absolute, because the agent reads it outside a browser.
 export const BASE_URL = "http://trellis.localhost";
 

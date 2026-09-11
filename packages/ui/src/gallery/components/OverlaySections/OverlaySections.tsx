@@ -14,7 +14,7 @@ import { hitArea } from "../../../utils/hitArea";
 import { Section } from "../Section";
 
 const commands = [
-	{ id: "CDE-42", label: "Restore the fork pages after the upstream 1.27 merge", hint: "CDE-42" },
+	{ id: "CDE-42", label: "Restore the export pages after the upstream 1.27 merge", hint: "CDE-42" },
 	{ id: "CDE-44", label: "Terminal pane loses scrollback on session handoff", hint: "CDE-44" },
 	{ id: "TRL-4", label: "Poller batches PRs in one GraphQL call", hint: "TRL-4" },
 ];

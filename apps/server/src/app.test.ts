@@ -86,9 +86,9 @@ describe("request id and cors", () => {
 	// Tailscale Serve proxies its ts.net hostname to 127.0.0.1 and keeps that
 	// hostname in the Host header.
 	test("a Host in TRELLIS_ALLOWED_HOSTS is served, and a Host not in it answers 403", async () => {
-		const proxied = await createTestApp({ db: h, allowedHosts: "canary-jqv57w1hpl.tail4a5b4c.ts.net" });
+		const proxied = await createTestApp({ db: h, allowedHosts: "my-laptop.tail1a2b3c.ts.net" });
 
-		const allowed = await proxied.api("/api/tickets", { headers: { host: "canary-jqv57w1hpl.tail4a5b4c.ts.net" } });
+		const allowed = await proxied.api("/api/tickets", { headers: { host: "my-laptop.tail1a2b3c.ts.net" } });
 		const refused = await proxied.api("/api/tickets", { headers: { host: "other.tail4a5b4c.ts.net" } });
 		await proxied.close();
 
