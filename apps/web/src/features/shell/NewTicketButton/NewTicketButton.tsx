@@ -10,7 +10,7 @@ export function NewTicketButton() {
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
 	const project = projectRefOfPathname(pathname);
 	return (
-		<Button variant="primary" kbd="C" onClick={() => composerActions.open(project === null ? {} : { project })}>
+		<Button variant="primary" kbd="c" onClick={() => composerActions.open(project === null ? {} : { project })}>
 			New ticket
 		</Button>
 	);

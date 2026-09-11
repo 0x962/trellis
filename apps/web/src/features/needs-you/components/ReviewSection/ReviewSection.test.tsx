@@ -59,7 +59,7 @@ describe("ReviewSection", () => {
 			names.push(document.activeElement?.textContent ?? "");
 		}
 		// Approve and Send back carry the key caps of a and r.
-		expect(names).toEqual(["Approve a", "Send back r", "Open PR"]);
+		expect(names).toEqual(["aApprove", "rSend back", "Open PR"]);
 	});
 
 	// NY-10. TRL-9 carries no pull request, so it offers no Open PR.

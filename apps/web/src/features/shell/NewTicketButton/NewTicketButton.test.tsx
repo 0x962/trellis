@@ -15,7 +15,7 @@ describe("features/shell/NewTicketButton", () => {
 		const button = screen.getByRole("button", { name: /New ticket/ });
 		expect(button.className).toMatch(/\bbg-surface\b/);
 		expect(button.className).toMatch(/\bh-7\b/);
-		expect(button.querySelector("kbd")!.textContent).toBe("C");
+		expect(button.querySelector("kbd")!.textContent).toBe("c");
 	});
 
 	// A filter or a grouping of the page never seeds the status: only the
