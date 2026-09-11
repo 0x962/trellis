@@ -12,7 +12,7 @@ const servers = (): WebServer[] => {
 	return Array.isArray(value) ? value : [value];
 };
 
-// Navid's live server and web app hold these ports, so the suite never
+// A live server and its web app hold these ports, so the suite never
 // binds them.
 const livePorts = ["4521", "4522", "5173"];
 

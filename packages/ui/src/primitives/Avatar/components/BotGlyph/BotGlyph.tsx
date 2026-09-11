@@ -1,4 +1,4 @@
-// The agent mark from the mockup: a rounded head with an antenna and two eyes.
+// The agent mark: a rounded head with an antenna and two eyes.
 // It is decorative; the Avatar that holds it carries the name.
 export function BotGlyph() {
 	return (

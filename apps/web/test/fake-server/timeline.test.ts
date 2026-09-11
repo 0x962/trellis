@@ -3,7 +3,7 @@ import { TimelineListOutputSchema } from "@trellis/api";
 import { createFakeServer } from "./index";
 
 describe("fake server timeline", () => {
-	// WS-126. CDE-42 carries 4 comments and the activity rows the canvas
+	// WS-126. CDE-42 carries 4 comments and the activity rows the reference screens
 	// timeline shows: created, two status moves, and a change batch.
 	test("timeline.list merges comments and activity newest first with paging", async () => {
 		const server = createFakeServer();

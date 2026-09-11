@@ -103,10 +103,10 @@ describe("board", () => {
 		expect(shown(byReviewer.columns)).toEqual([human]);
 	});
 
-	// plan.md: the board shows the first 100 by (updated_at desc, id desc) and
-	// more come through `list` with `status=`. Both order equal update times
-	// the same way, so the list's first page is the board's column and its
-	// second page starts where the column stopped.
+	// The board shows the first 100 by (updated_at desc, id desc) and more come
+	// through `list` with `status=`. Both order equal update times the same way,
+	// so the list's first page is the board's column and its second page starts
+	// where the column stopped.
 	test("board and list agree on the order of equal update times", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
 		const seeded: string[] = [];

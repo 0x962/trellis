@@ -1,6 +1,6 @@
 /*
- * The palette is Pierre's, copied from docs/design/mockup.html. Every
- * component reads a color through a Tailwind utility (bg-surface, text-fg).
+ * This file is the source of every color in trellis. Every component
+ * reads a color through a Tailwind utility (bg-surface, text-fg).
  * A theme change is therefore one attribute on <html>: data-theme="dark" or
  * data-theme="light". No attribute follows the system preference.
  *
@@ -11,8 +11,8 @@
  * Dark mode has no visible shadow, so each shadow starts with a 1 px
  * strong-border ring.
  *
- * The values are byte-identical to the mockup and a test enforces it, so
- * the formatter skips this file (see biome.json).
+ * A test in tokens.test.ts pins every value here, so the formatter skips
+ * this file (see biome.json).
  */
 :root {
 	--bg: #F5F5F5;
@@ -154,7 +154,7 @@
  * The type scale, the 4 px spacing base, the radii, and the motion tokens.
  * Sizes are in px on purpose: the product is a dense tool and a row is 40 px
  * at every browser zoom. `text-kbd` and `text-initials` are the two micro
- * steps the mockup uses inside a Kbd and a human Avatar.
+ * steps a Kbd and a human Avatar use.
  */
 @theme {
 	--text-*: initial;

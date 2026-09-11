@@ -8,7 +8,7 @@ import { type PerfServer, startPerfServer } from "./perfServer.ts";
 import { READ_MIX } from "./queries.ts";
 import { PERF_ROWS } from "./seed.ts";
 
-// The memory budgets from plan.md: the server holds 350 MB or less while it
+// The memory budgets: the server holds 350 MB or less while it
 // waits for requests, and 550 MB or less at its peak. The measure is the
 // physical footprint on macOS and the resident size on Linux (footprint.ts).
 // Each test prints the resident size beside it. A first boot on an empty

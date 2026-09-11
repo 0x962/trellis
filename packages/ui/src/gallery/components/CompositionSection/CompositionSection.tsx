@@ -26,7 +26,7 @@ const cardChecks: CheckRun[] = [
 	{ name: "e2e", bucket: "pending" },
 ];
 
-// The mockup's Needs-you row, board card, and PR row, built from the real
+// The Needs-you row, the board card, and the PR row, built from the real
 // components. This is where the pieces prove they fit together.
 export function CompositionSection() {
 	return (

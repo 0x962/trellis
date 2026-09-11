@@ -42,7 +42,7 @@ describe("generate-tokens", () => {
 		expect(await Bun.file(out).text()).toBe(await Bun.file(join(root, "src/theme/tokens.ts")).text());
 	});
 
-	test("tokens.ts carries both palettes with equal key sets and the mockup values", async () => {
+	test("tokens.ts carries both palettes with equal key sets and the token values", async () => {
 		const { tokens } = await import("../src/theme/tokens");
 		expect(Object.keys(tokens.light).sort()).toEqual(colorKeys);
 		expect(Object.keys(tokens.dark).sort()).toEqual(colorKeys);

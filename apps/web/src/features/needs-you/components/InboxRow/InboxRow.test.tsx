@@ -30,7 +30,7 @@ const heightClass = (element: Element) =>
 	(element.getAttribute("class") ?? "").split(/\s+/).find((name) => /^h-\d/.test(name));
 
 describe("InboxRow", () => {
-	// NY-07. Every mark the design canvas puts on a Needs you row.
+	// NY-07. Every mark the approved design puts on a Needs you row.
 	test("renders id, title, parent, sub-ticket ring, counts, status, PR badge, and waiting time", () => {
 		const ticket = full();
 		const { container, getByText } = row(ticket);
