@@ -26,6 +26,7 @@ export const ticketSummary = (overrides: Record<string, unknown> = {}) => ({
 	},
 	project: { id: projectId, key: "CDE", path: "CDE.web" },
 	parent: null,
+	ancestors: [],
 	childCount: 0,
 	childDoneCount: 0,
 	commentCount: 0,

@@ -24,6 +24,7 @@ export const ticketEvent = (type: TicketEventType, scope: TicketScope = {}): Tre
 			status: { id: ulid(), slug: "todo", name: "Todo", category: "todo", reviewer: null, color: "fg" },
 			project: { id: projectId, key: "CDE", path: "CDE" },
 			parent: null,
+			ancestors: [],
 			childCount: 0,
 			childDoneCount: 0,
 			commentCount: 0,
