@@ -67,7 +67,6 @@ describe("features/ticket/Timeline", () => {
 		expect(page.items[0]!.createdAt > page.items[page.items.length - 1]!.createdAt).toBe(true);
 		mount("CDE-42", server);
 		const element = await list();
-		await userEvent.setup().click(await screen.findByRole("button", { name: "Show all activity" }));
 		await waitFor(() => expect(items(element)).toHaveLength(page.items.length));
 		const activity = within(element).getByRole("list", { name: "Activity" });
 		expect(within(element).queryByRole("list", { name: "Comments" })).toBeNull();
@@ -133,38 +132,11 @@ describe("features/ticket/Timeline", () => {
 		expect(lineTexts(element).some((text) => text.includes("comment"))).toBe(false);
 	});
 
-	test("shows the last three activity entries and expands the older activity", async () => {
-		const user = userEvent.setup();
-		const server = createFakeServer();
-		const ticket = findTicket(server.state, "CDE-45")!;
-		server.state.activity = server.state.activity.filter((item) => item.ticketId !== ticket.id);
-		for (let index = 0; index < 5; index++) {
-			addActivity(server.state, {
-				rootId: ticket.rootId,
-				projectId: ticket.projectId,
-				ticketId: ticket.id,
-				actor: { name: "navid", kind: "human" },
-				action: "ticket.updated",
-				field: "title",
-				fromValue: `Title ${index}`,
-				toValue: `Title ${index + 1}`,
-				createdAt: ago((5 - index) * minute),
-			});
-		}
-		mount("CDE-45", server);
-		const element = await list();
-		await waitFor(() => expect(lineTexts(element)).toHaveLength(3));
-		const stamps = items(element).map((item) => item.querySelector("time")!.dateTime);
-		expect(stamps).toEqual(
-			server.state.activity
-				.filter((item) => item.ticketId === ticket.id)
-				.slice(-3)
-				.map((item) => item.createdAt),
-		);
-		await user.click(screen.getByRole("button", { name: "Show all activity" }));
-		expect(lineTexts(element)).toHaveLength(5);
-		await user.click(screen.getByRole("button", { name: "Show less activity" }));
-		expect(lineTexts(element)).toHaveLength(3);
+	// Every activity row shows. There is no toggle to hide the older ones.
+	test("shows every activity entry with no toggle", async () => {
+		mount("CDE-42", createFakeServer());
+		await list();
+		expect(screen.queryByRole("button", { name: /activity/i })).toBeNull();
 	});
 
 	// WT-87. The stream loads newest first; the older page prepends once.
