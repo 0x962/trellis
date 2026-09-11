@@ -133,7 +133,16 @@ describe("the ticket route", () => {
 		await openTicket();
 		await screen.findByText("Typecheck and tests are green on the PR. Ready for a look.");
 		const comment = await agent.comments.create({ ticket: data.ticket, body: "New from the stream" });
-		await emit("comment.created", { id: comment.id, ticketId: detail.id });
+		// TRL-9. The event carries the comment, the way the server sends it.
+		await emit("comment.created", {
+			id: comment.id,
+			ticketId: detail.id,
+			ticketIdentifier: detail.identifier,
+			ticketTitle: detail.title,
+			actor: comment.actor,
+			body: comment.body,
+			bodyTruncated: false,
+		});
 		expect(await screen.findByText("New from the stream", {}, { timeout: 2_000 })).toBeOnTheScreen();
 	});
 
@@ -146,7 +155,18 @@ describe("the ticket route", () => {
 			index === 1 ? { ...check, conclusion: "FAILURE" as const } : check,
 		);
 		await refreshPr(seeder, data.pr.id, { ...prSeed, checks });
-		await emit("pr.updated", { id: data.pr.id, ticketIds: [detail.id], state: "open", ciState: "fail" });
+		await emit("pr.updated", {
+			id: data.pr.id,
+			ticketIds: [detail.id],
+			ticketIdentifiers: [detail.identifier],
+			owner: detail.prs[0]!.owner,
+			repo: detail.prs[0]!.repo,
+			number: detail.prs[0]!.number,
+			url: detail.prs[0]!.url,
+			title: detail.prs[0]!.title,
+			state: "open",
+			ciState: "fail",
+		});
 		expect(await screen.findByLabelText("3 pass · 1 fail", {}, { timeout: 2_000 })).toBeOnTheScreen();
 		expect(screen.queryByLabelText("4 pass")).toBeNull();
 	});
