@@ -3,6 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { lastCallTo } from "../../../../test/inbox";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { storedActorName } from "../../../../test/rows";
 import { createTestServer } from "../../../../test/server";
 import { ActorFooter } from "./ActorFooter";
 

@@ -5,7 +5,7 @@ import type { Ticket } from "@trellis/api";
 import { createFakeScheduler } from "../../../../test/fakeScheduler";
 import { press } from "../../../../test/keyboard";
 import { mockMatchMedia } from "../../../../test/media";
-import { addActivity, patchTicket } from "../../../../test/rows";
+import { addActivity, patchTicket, statusesOf } from "../../../../test/rows";
 import { createTestServer, type TestServer } from "../../../../test/server";
 import { ago, hour, minute, renderTicket, settle, statusOf } from "../../../../test/ticketHost";
 import { TicketView } from "../TicketView";

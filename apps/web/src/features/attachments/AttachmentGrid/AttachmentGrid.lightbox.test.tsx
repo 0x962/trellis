@@ -14,12 +14,14 @@ const ticket = "CDE-51";
 const renderGrid = (server: TestServer) =>
 	renderWithProviders(<AttachmentGrid ticket={ticket} />, { path: `/t/${ticket}`, actor: "navid", server });
 
-const withImages = (names: string[], extras: Array<[string, string]> = []) => {
+const withImages = async (names: string[], extras: Array<[string, string]> = []) => {
 	const server = createTestServer();
-	const images = names.map((name) => addAttachment(server, ticket, name, "image/png"));
-	for (const [name, mime] of extras) addAttachment(server, ticket, name, mime);
+	const images = [];
+	for (const name of names) images.push(await addAttachment(server, ticket, name, "image/png"));
+	for (const [name, mime] of extras) await addAttachment(server, ticket, name, mime);
 	renderGrid(server);
-	return { server, images };
+	// The grid draws the newest upload first.
+	return { server, images: images.reverse() };
 };
 
 const thumbnailFor = (id: string) => document.querySelector<HTMLElement>(`[data-thumbnail="${id}"]`)!;
@@ -30,11 +32,11 @@ describe("lightbox", () => {
 	// OUT-37
 	test("a thumbnail opens the lightbox on its own image", async () => {
 		const user = userEvent.setup();
-		const { images } = withImages(["a.png", "b.png", "c.png"]);
+		const { images } = await withImages(["a.png", "b.png", "c.png"]);
 		await surfaceOf();
 		await waitFor(() => expect(thumbnailsOf()).toHaveLength(3));
 		await user.click(thumbnailFor(images[0]!.id));
-		const dialog = await screen.findByRole("dialog", { name: /a\.png/ });
+		const dialog = await screen.findByRole("dialog", { name: images[0]!.filename });
 		expect(dialog.querySelector("img")!.getAttribute("src")).toBe(images[0]!.url);
 		await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
 	});
@@ -42,7 +44,7 @@ describe("lightbox", () => {
 	// OUT-38
 	test("the arrow keys walk the images in grid order", async () => {
 		const user = userEvent.setup();
-		const { images } = withImages(["a.png", "b.png", "c.png"]);
+		const { images } = await withImages(["a.png", "b.png", "c.png"]);
 		await surfaceOf();
 		await waitFor(() => expect(thumbnailsOf()).toHaveLength(3));
 		await user.click(thumbnailFor(images[0]!.id));
@@ -54,7 +56,7 @@ describe("lightbox", () => {
 	// OUT-39
 	test("the walk stops at the last image", async () => {
 		const user = userEvent.setup();
-		const { images } = withImages(["a.png", "b.png", "c.png"]);
+		const { images } = await withImages(["a.png", "b.png", "c.png"]);
 		await surfaceOf();
 		await waitFor(() => expect(thumbnailsOf()).toHaveLength(3));
 		await user.click(thumbnailFor(images[2]!.id));
@@ -66,7 +68,7 @@ describe("lightbox", () => {
 	// OUT-40. The grid keeps the keyboard where the reader left it.
 	test("Escape closes the lightbox and returns focus to the thumbnail", async () => {
 		const user = userEvent.setup();
-		const { images } = withImages(["a.png", "b.png", "c.png"]);
+		const { images } = await withImages(["a.png", "b.png", "c.png"]);
 		await surfaceOf();
 		await waitFor(() => expect(thumbnailsOf()).toHaveLength(3));
 		await user.click(thumbnailFor(images[0]!.id));
@@ -79,7 +81,7 @@ describe("lightbox", () => {
 	// OUT-41
 	test("returns focus to the thumbnail of the image last shown", async () => {
 		const user = userEvent.setup();
-		const { images } = withImages(["a.png", "b.png", "c.png"]);
+		const { images } = await withImages(["a.png", "b.png", "c.png"]);
 		await surfaceOf();
 		await waitFor(() => expect(thumbnailsOf()).toHaveLength(3));
 		await user.click(thumbnailFor(images[0]!.id));
@@ -93,7 +95,7 @@ describe("lightbox", () => {
 	// OUT-42
 	test("walks the images and skips the other files", async () => {
 		const user = userEvent.setup();
-		const { images } = withImages(["a.png", "b.png"], [["notes.md", "text/markdown"]]);
+		const { images } = await withImages(["a.png", "b.png"], [["notes.md", "text/markdown"]]);
 		await surfaceOf();
 		await waitFor(() => expect(thumbnailsOf()).toHaveLength(2));
 		await user.click(thumbnailFor(images[0]!.id));
@@ -105,15 +107,15 @@ describe("lightbox", () => {
 	// OUT-50
 	test("a deleted image leaves the walk", async () => {
 		const user = userEvent.setup();
-		const { images } = withImages(["a.png", "b.png"]);
+		const { images } = await withImages(["a.png", "b.png"]);
 		await surfaceOf();
 		await waitFor(() => expect(thumbnailsOf()).toHaveLength(2));
 		await user.click(screen.getByRole("button", { name: "Actions for a.png" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
 		await waitFor(() => expect(thumbnailsOf()).toHaveLength(1));
-		await user.click(thumbnailFor(images[1]!.id));
+		await user.click(thumbnailFor(images[0]!.id));
 		await screen.findByRole("dialog");
 		await user.keyboard("{ArrowLeft}{ArrowRight}");
-		expect(shownImage()).toBe(images[1]!.url);
+		expect(shownImage()).toBe(images[0]!.url);
 	});
 });

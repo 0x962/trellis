@@ -110,12 +110,20 @@ export const createApp = ({ config, log, transport, bus, runtime, clock = realCl
 	app.use(cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) }));
 
 	const maxBytes = config.maxUploadMb * MB;
-	const uploadLimit = bodyLimit({
-		maxSize: maxBytes,
-		onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413),
-	});
-	app.use("/api/tickets/:ticket/attachments", uploadLimit);
-	app.use("/rpc/attachments/upload", uploadLimit);
+	app.use(
+		"/api/tickets/:ticket/attachments",
+		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
+	);
+	// The RPC codec wraps every body in `json`. The limit answers before the
+	// handler runs, so it writes that shape itself; without it the client
+	// reads an undefined error and never sees the cap it must report.
+	app.use(
+		"/rpc/attachments/upload",
+		bodyLimit({
+			maxSize: maxBytes,
+			onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
+		}),
+	);
 
 	const plugins = [new ResponseHeadersPlugin<ProcedureContext>()];
 	// The web app sends the calls of one tick as a single POST to

@@ -1,6 +1,8 @@
 import { fireEvent, waitFor } from "@testing-library/react";
 import type { Attachment } from "@trellis/api";
+import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { sharedDb } from "./server/db.ts";
 import type { TestServer } from "./server/index.ts";
 
 // Helpers for the attachments tests: files of an exact size, drag and drop
@@ -61,10 +63,14 @@ export const attachmentOf = (overrides: Partial<Attachment> = {}): Attachment =>
 	};
 };
 
+// The instants the seeded uploads take, one second apart, so the list order
+// is the upload order whatever the clock does inside one millisecond.
+let uploadSeq = 0;
+
 // Uploads one file to `ticket`, the way a drop on the page does. The grid
-// reads it back through attachments.list. The bytes are one repeated
-// character, so two files of one size share one blob, as two uploads of one
-// file do.
+// reads it back through attachments.list, newest first. The bytes are one
+// repeated character, so two files of one size share one blob, as two
+// uploads of one file do.
 export const addAttachment = async (
 	server: TestServer,
 	ticket: string,
@@ -74,7 +80,11 @@ export const addAttachment = async (
 ): Promise<Attachment> => {
 	const file = new File(["a".repeat(size)], filename, { type: mime });
 	const { attachment } = await server.client.attachments.upload({ ticket, file });
-	return attachment;
+	uploadSeq += 1;
+	const createdAt = new Date(Date.now() + uploadSeq * 1000).toISOString();
+	const { db } = await sharedDb();
+	await db.execute(sql`UPDATE attachments SET created_at = ${createdAt}::timestamptz WHERE id = ${attachment.id}`);
+	return { ...attachment, createdAt };
 };
 
 // One request the page or its client sent.
@@ -88,6 +98,10 @@ const logOf = (request: Request): RequestLog => ({
 
 const originalFetch = globalThis.fetch;
 
+// The paths the app serves. Every other request, such as the one that loads
+// the database engine, goes to the fetch of the runtime.
+const servedByApp = (request: Request) => /^\/(api|rpc)\//.test(new URL(request.url).pathname);
+
 // A test server that records every request. The page reads attachment bytes
 // with a plain GET, so `globalThis.fetch` goes to the same app as the oRPC
 // client does.
@@ -99,6 +113,7 @@ export const recordingServer = (server: TestServer) => {
 	};
 	globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
 		const request = new Request(input, init);
+		if (!servedByApp(request)) return originalFetch(input, init);
 		requests.push(logOf(request));
 		return server.request(request);
 	}) as typeof globalThis.fetch;

@@ -100,9 +100,9 @@ type GhHolder = { status: GhStatus; addresses: string[] };
 const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh: GhHolder) => {
 	const h = await sharedDb();
 	const snapshot = await seedSnapshot();
-	// The gh runner reads TRELLIS_GH_BIN when it is built, so the stub is
-	// installed around the build and taken out after it. The app keeps the
-	// binary it read, and the replies file stays under its own directory.
+	// The gh runner reads TRELLIS_GH_BIN when it is built, and the stub reads
+	// its replies file at every spawn, so the three variables stay set for the
+	// life of this server. The next build overwrites them with its own.
 	const dir = mkdtempSync(`${process.env.TRELLIS_HOME}/stubs-`);
 	const stub = ghStub(dir, {});
 	// The agents runner spawns this copy of the superset stub. A test deletes
@@ -119,7 +119,6 @@ const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh
 		addresses: async () => gh.addresses,
 		wrapTransport: (inner) => recording(inner, calls, hooks),
 	});
-	stub.restore();
 	if (options.empty === true) {
 		await restore(h.db, { tables: {}, nextActivityId: 1 });
 		await app.transport.start();
