@@ -51,10 +51,11 @@ const railProbe = `(() => {
 })();`;
 
 // The answer to the tickets.update call. The status picker in the
-// properties rail writes the new status through tickets.update, and a drag
-// on the board is the one caller of tickets.move. The batch link can fold
-// the call into a batch request, so the path is looked for in the request
-// body too.
+// properties rail of the ticket page writes the new status through
+// tickets.update. Every caller of tickets.move is on the board: a card
+// drag, the [ and ] keys, and the status choice the s key opens.
+// The batch link can fold the call into a batch request, so the path is
+// looked for in the request body too.
 const UPDATE_PATH = "/rpc/tickets/update";
 const isUpdate = (response: Response) =>
 	response.ok() &&

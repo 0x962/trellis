@@ -17,7 +17,7 @@ test.beforeAll(() => {
 // overflow shows on the Todo list.
 test("every column name sits at the same height when one column overflows", async ({ page }) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
-	await signIn(page, "/p/BRD/board");
+	await signIn(page, "/p/BRD");
 	await expect(cardOf(columnOf(page, "Todo"), "BRD-1")).toBeVisible();
 	await expect(cardOf(columnOf(page, "In Progress"), "BRD-17")).toBeVisible();
 	const todo = columnOf(page, "Todo");

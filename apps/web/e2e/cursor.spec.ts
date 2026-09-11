@@ -28,7 +28,7 @@ test("a sidebar project row and a menu item show the pointer", async ({ page }) 
 });
 
 test("a board card shows the grab hand", async ({ page }) => {
-	await signIn(page, "/p/CUR/board");
+	await signIn(page, "/p/CUR");
 	const card = page.locator("[data-card]").first();
 	await expect(card).toBeVisible();
 	expect(await cursor(card)).toBe("grab");

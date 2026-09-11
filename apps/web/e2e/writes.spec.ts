@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 import { createTicket, ensureProject } from "./cli";
 import { signIn } from "./support";
 
-// WRT-1 is the parent and WRT-2 its child, so the Sub-tickets section and
-// its add field show on WRT-1.
+// WRT-1 is the parent and WRT-2 its child, so the Sub-tickets section of
+// WRT-1 lists a child and shows its Add button.
 test.beforeAll(() => {
 	if (!ensureProject("WRT", "Writes")) return;
 	createTicket("WRT", "Ship the kestrel export");

@@ -51,7 +51,7 @@ test("kanban > a drag to another column moves the ticket, writes a status activi
 	const { key, ids } = seedBoard(["Drag this card to In Progress"]);
 	const id = ids[0]!;
 	await page.addInitScript(dropProbe);
-	await signIn(page, `/p/${key}/board`);
+	await signIn(page, `/p/${key}`);
 	await expect(cardOf(columnOf(page, "Todo"), id)).toBeVisible();
 	await watchMove(page, "In Progress", id);
 	await cardOf(page, id).dragTo(columnOf(page, "In Progress"));
@@ -79,7 +79,7 @@ test("kanban > a drop inside the same column changes nothing", async ({ page }) 
 		"Hold the Todo order three times",
 		"Drop this card inside Todo",
 	]);
-	await signIn(page, `/p/${key}/board`);
+	await signIn(page, `/p/${key}`);
 	const todo = columnOf(page, "Todo");
 	for (const id of ids) await expect(cardOf(todo, id)).toBeVisible();
 	const before = await cardOrder(todo);
@@ -101,7 +101,7 @@ test("kanban > a column lists the last updated card first", async ({ page }) => 
 		"Sort the Todo column twice",
 		"Sort the Todo column three times",
 	]);
-	await signIn(page, `/p/${key}/board`);
+	await signIn(page, `/p/${key}`);
 	const todo = columnOf(page, "Todo");
 	for (const id of ids) await expect(cardOf(todo, id)).toBeVisible();
 	const before = await cardOrder(todo);
@@ -120,7 +120,7 @@ test("kanban > a rejected move puts the card back and shows a toast", async ({ p
 	const { key, ids } = seedBoard(["Reject the drop of a stale card"]);
 	const id = ids[0]!;
 	await page.route("**/api/events**", (route) => route.abort());
-	await signIn(page, `/p/${key}/board`);
+	await signIn(page, `/p/${key}`);
 	await expect(cardOf(columnOf(page, "Todo"), id)).toBeVisible();
 	trellis(["edit", id, "--title", `Reject the drop of a stale card ${Date.now()}`]);
 	await cardOf(page, id).dragTo(columnOf(page, "In Progress"));
@@ -137,7 +137,7 @@ test("kanban > a rejected move puts the card back and shows a toast", async ({ p
 test("kanban > the status picker moves a card from the keyboard", async ({ page }) => {
 	const { key, ids } = seedBoard(["Move this card from the keyboard"]);
 	const id = ids[0]!;
-	await signIn(page, `/p/${key}/board`);
+	await signIn(page, `/p/${key}`);
 	const card = cardOf(columnOf(page, "Todo"), id);
 	await expect(card).toBeVisible();
 	await card.focus();

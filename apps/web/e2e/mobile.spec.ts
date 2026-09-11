@@ -30,11 +30,16 @@ const routes: Array<[string, (page: Page) => Locator]> = [
 	["/needs-you", (page) => page.getByRole("heading", { name: "Needs you", exact: true })],
 	["/search", (page) => page.getByRole("main").getByRole("searchbox")],
 	["/all/table", (page) => page.locator('[role="row"][data-identifier]').first()],
+	// The board across every project draws one column per status category,
+	// so it has a different column count from the board of one project.
+	["/all", (page) => cardOf(columnOf(page, "Todo"), "MOB-1")],
 	["/p/MOB/table", (page) => rowOf(page, "MOB-1")],
 	["/p/MOB", (page) => cardOf(columnOf(page, "Todo"), "MOB-1")],
 	["/p/MOB/settings", (page) => page.getByRole("main").getByRole("textbox").first()],
 	["/t/MOB-1", (page) => page.getByRole("textbox", { name: "Title" })],
-	["/p/MOB?peek=MOB-1", (page) => peekOf(page, "MOB-1")],
+	// The table is the surface that can push main wider than the viewport,
+	// so the peek entry opens the table and not the board.
+	["/p/MOB/table?peek=MOB-1", (page) => peekOf(page, "MOB-1")],
 	["/settings", (page) => page.getByRole("main").getByRole("textbox").first()],
 ];
 
