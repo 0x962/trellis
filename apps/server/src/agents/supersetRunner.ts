@@ -16,6 +16,7 @@ import {
 	type RunnerProjectRow,
 	runnerUnavailable,
 	type TerminalState,
+	terminalTitleMatches,
 } from "./runner.ts";
 import { hostCalls, onHost, target } from "./supersetHost.ts";
 
@@ -122,6 +123,9 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 			])
 		).terminalId;
 
+	const closeTerminal = (workspaceId: string, host: RunnerHostId, terminalId: string) =>
+		run([...["terminals", "close", "--workspace", workspaceId, "--terminal", terminalId], ...onHost(host)]);
+
 	const { hosts, assertHost } = hostCalls(json);
 
 	// A workspace with `branch` answers alreadyExists and runs no command, so a
@@ -136,13 +140,26 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 	// The Command tab that `answer` started, or in a workspace that already
 	// existed, its live tab named `title`, or else a new tab that runs
 	// `command`.
-	const tabOf = async (answer: WorkspaceAnswer, host: RunnerHostId, title: string, command: string) => {
+	const tabOf = async (
+		answer: WorkspaceAnswer,
+		host: RunnerHostId,
+		title: string,
+		command: string,
+		preferredTerminalId?: string | null,
+	) => {
 		if (!answer.alreadyExists) {
 			const tab = answer.terminals.find((terminal) => terminal.label === COMMAND_LABEL)!;
 			return { terminalId: tab.terminalId, started: true };
 		}
-		const live = (await terminals(answer.workspace.id, host)).find((tab) => !tab.exited && tab.title === title);
-		if (live !== undefined) return { terminalId: live.terminalId, started: false };
+		const live = (await terminals(answer.workspace.id, host)).filter(
+			(tab) => !tab.exited && terminalTitleMatches(tab.title, title),
+		);
+		const current = live.find((tab) => tab.terminalId === preferredTerminalId) ?? live.at(-1);
+		if (current !== undefined) {
+			for (const stale of live.filter((tab) => tab !== current))
+				await closeTerminal(answer.workspace.id, host, stale.terminalId);
+			return { terminalId: current.terminalId, started: false };
+		}
 		return { terminalId: await newTerminal(answer.workspace.id, host, command), started: true };
 	};
 
@@ -195,7 +212,13 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 				tag: projectTag(input.project),
 				command,
 			});
-			const tab = await tabOf(answer, input.host, agentTitle({ role: "manager", project: input.project }), command);
+			const tab = await tabOf(
+				answer,
+				input.host,
+				agentTitle({ role: "manager", project: input.project }),
+				command,
+				input.terminalId,
+			);
 			return { workspaceId: answer.workspace.id, ...tab, openUrl: await openUrl(answer.workspace.id, input.host) };
 		},
 
@@ -253,12 +276,7 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 		// A terminal that is already gone needs no close.
 		stop: async (ref) => {
 			const listed = (await terminals(ref.workspaceId, ref.host)).some((tab) => tab.terminalId === ref.terminalId);
-			if (listed) {
-				await run([
-					...["terminals", "close", "--workspace", ref.workspaceId, "--terminal", ref.terminalId],
-					...onHost(ref.host),
-				]);
-			}
+			if (listed) await closeTerminal(ref.workspaceId, ref.host, ref.terminalId);
 		},
 
 		removeWorkspace: async (workspaceId, host) => {

@@ -20,3 +20,6 @@ export const unknownLaunchVariables = (template: string) =>
 	[...template.matchAll(/\{\{([^{}]+)\}\}/g)]
 		.map((match) => match[1]!)
 		.filter((name) => !(AGENT_LAUNCH_VARIABLES as readonly string[]).includes(name));
+
+export const hasStandaloneLaunchHyphen = (template: string) =>
+	template.includes("{{superset}}") && /(?:^|\s)(?:-|'-'|"-")(?=\s|$)/.test(template);

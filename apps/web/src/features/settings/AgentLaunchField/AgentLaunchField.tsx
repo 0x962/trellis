@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import {
 	AGENT_LAUNCH_VARIABLES,
 	DEFAULT_AGENT_LAUNCH_COMMAND,
+	hasStandaloneLaunchHyphen,
 	type Settings,
 	unknownLaunchVariables,
 } from "@trellis/api";
@@ -18,7 +19,8 @@ export function AgentLaunchField() {
 	const [template, setTemplate] = useState<string | null>(null);
 	const value = template ?? saved?.agentLaunchCommand ?? DEFAULT_AGENT_LAUNCH_COMMAND;
 	const unknown = unknownLaunchVariables(value);
-	const invalid = !value.trim() || unknown.length > 0;
+	const standaloneHyphen = hasStandaloneLaunchHyphen(value);
+	const invalid = !value.trim() || unknown.length > 0 || standaloneHyphen;
 	const save = useMutation({
 		scope: { id: "agent-launch-command" },
 		mutationFn: (command: string) =>
@@ -86,7 +88,11 @@ export function AgentLaunchField() {
 			</Button>
 			{invalid && (
 				<p role="alert" className="text-sm text-danger">
-					{!value.trim() ? "Enter a command." : `Unknown variables: ${unknown.join(", ")}`}
+					{!value.trim()
+						? "Enter a command."
+						: unknown.length > 0
+							? `Unknown variables: ${unknown.join(", ")}`
+							: "Remove the standalone hyphen. Superset reads it as an unknown option."}
 				</p>
 			)}
 			{save.isError && (

@@ -1,6 +1,6 @@
 import { type AgentRetryManagerInput, type AgentSession, type AgentState, agentTitle, restartText } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { type AgentPlace, isStartFailure } from "../agents/runner.ts";
+import { type AgentPlace, isStartFailure, runnerUnavailable } from "../agents/runner.ts";
 import { requireActor } from "../context.ts";
 import { textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
@@ -17,6 +17,7 @@ import {
 } from "./agentSessions.ts";
 import { hostOf, managedProject, readAgentSettings } from "./agentSettings.ts";
 import { baseBranchOf, effectiveRepos, runnerProjectOf } from "./agentStart.ts";
+import { projectRow } from "./projectRows.ts";
 import { pathOf, resolveProject } from "./refs.ts";
 
 // The services that start a project's manager: the agents host runs
@@ -70,7 +71,7 @@ export const reconcile = async (ctx: AgentsCtx, tx: Tx, plan: ReconcilePlan) => 
 // runner failure.
 export type ManagerPlan = {
 	projectId: string;
-	manager: { id: string; state: AgentState } | null;
+	manager: { id: string; state: AgentState; terminalId: string | null } | null;
 	title: string;
 	outcome: { place: AgentPlace & { started: boolean } } | { error: string };
 };
@@ -93,12 +94,18 @@ export const prepareManager = async (ctx: AgentsCtx, input: { project: string })
 	const found = await ctx.newTx(async (tx) => {
 		const managed = managedProject(ctx, await readAgentSettings(tx), input.project);
 		const manager = (await managerOf(tx, managed.projectId)) ?? (await failedManagerOf(tx, managed.projectId));
-		return { managed, manager, repos: await effectiveRepos(ctx, tx, managed.projectId) };
+		const config = (await projectRow(tx, managed.projectId)).manager_config;
+		return { managed, manager, config, repos: await effectiveRepos(ctx, tx, managed.projectId) };
 	});
 	const project = pathOf(ctx.cache, found.managed.projectId);
+	if (found.config.personaId !== null)
+		throw runnerUnavailable("disabled", `${project} uses its selected manager persona.`);
 	const plan = {
 		projectId: found.managed.projectId,
-		manager: found.manager === undefined ? null : { id: found.manager.id, state: found.manager.state },
+		manager:
+			found.manager === undefined
+				? null
+				: { id: found.manager.id, state: found.manager.state, terminalId: found.manager.terminalId },
 		title: agentTitle({ role: "manager", project }),
 	};
 	try {
@@ -108,6 +115,7 @@ export const prepareManager = async (ctx: AgentsCtx, input: { project: string })
 			runnerProjectId,
 			host: found.managed.supersetHostId,
 			baseBranch: await baseBranchOf(ctx, found.managed, runnerProjectId),
+			terminalId: found.manager?.terminalId ?? null,
 			claudeSessionId: found.manager === undefined ? null : found.manager.claudeSessionId,
 			text: restartText(project),
 		});

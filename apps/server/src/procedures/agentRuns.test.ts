@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { chmodSync, copyFileSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { sql } from "drizzle-orm";
 import { createTestApp, type TestApp } from "../../test/helpers/app.ts";
 import { assertStatusInvariant } from "../../test/invariants.ts";
 
@@ -133,7 +134,6 @@ test("refresh recognizes an exited terminal", async () => {
 test("an interrupted startup keeps its assignment and reconnects to its existing workspace", async () => {
 	const result = await start({ personaId: builder, ticket });
 	expect(result.status).toBe(201);
-	const { sql } = await import("drizzle-orm");
 	await t.serverTx((tx) =>
 		tx.execute(
 			sql`UPDATE agent_runs SET state = 'starting', workspace_id = NULL, terminal_id = NULL, url = NULL WHERE id = ${result.body.id}`,

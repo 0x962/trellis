@@ -36,6 +36,16 @@ test("an invalid launch command stays inline and does not save", async () => {
 	await user.tab();
 	expect((await screen.findByRole("alert")).textContent).toContain("Enter a command.");
 	expect(server.callsTo("settings.set")).toHaveLength(0);
+	await user.click(field);
+	fireEvent.change(field, {
+		target: {
+			value:
+				"{{superset}} ws create --project {{projectId}} --name {{ticket}} - {{name}} --command {{agentCommand}} --json",
+		},
+	});
+	await user.tab();
+	expect((await screen.findByRole("alert")).textContent).toContain("Remove the standalone hyphen.");
+	expect(server.callsTo("settings.set")).toHaveLength(0);
 });
 
 test("a refused autosave keeps the command and permits a retry", async () => {

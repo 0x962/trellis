@@ -2,7 +2,7 @@ import { randomInt } from "node:crypto";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentRun, AgentRunListInput, AgentRunStartInput, Persona } from "@trellis/api";
-import { DEFAULT_AGENT_LAUNCH_COMMAND } from "@trellis/api";
+import { DEFAULT_AGENT_LAUNCH_COMMAND, hasStandaloneLaunchHyphen } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { runBranch } from "../../agents/launchCommand/branch.ts";
@@ -62,6 +62,13 @@ const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const project = await resolveMutableProject(ctx, tx, ticket?.projectId ?? input.project!);
 	assertProjectActive(ctx, project.id);
+	if (persona.kind === "manager") {
+		const [legacy] = await rows<{ id: string }>(
+			tx,
+			sql`SELECT id FROM agent_sessions WHERE project_id = ${project.id} AND role = 'manager' AND state IN ('starting', 'running', 'waiting') LIMIT 1`,
+		);
+		if (legacy !== undefined) throw fail("DUPLICATE", { field: "active manager" });
+	}
 	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
 	const config = (await projectRow(tx, project.id)).manager_config;
 	if (ticket !== null) {
@@ -115,6 +122,15 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 	const runner = superset(ctx.supersetBin);
 	const settings = await ctx.newTx((tx) => getSettings(ctx.core, tx));
 	const template = settings.agentLaunchCommand ?? DEFAULT_AGENT_LAUNCH_COMMAND;
+	if (hasStandaloneLaunchHyphen(template)) {
+		await recordError(
+			ctx,
+			run.id,
+			"Remove the standalone hyphen from the launch command. Superset reads it as an unknown option.",
+			"failed",
+		);
+		return { id: run.id };
+	}
 	const tracksSuperset = template.includes("{{superset}}");
 	const project = await attempt(async () => {
 		if (run.kind === "manager" && config.directory && !(await stat(config.directory)).isDirectory())
