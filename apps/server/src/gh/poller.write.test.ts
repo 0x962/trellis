@@ -75,6 +75,7 @@ describe("poller writes", () => {
 			projectId: rootId,
 			rootId,
 			statusId: statuses.started,
+			ticketNumber: 1,
 			pr: { number: 13 },
 			row: { fetched_at: BASE, content_hash: contentHash(seededContent({ number: 13 })) },
 		});
@@ -88,8 +89,23 @@ describe("poller writes", () => {
 		const [row] = await prRows();
 		expect(row!.title).toBe("Fresh");
 		expect(row!.content_hash).not.toBe(contentHash(seededContent({ number: 13 })));
+		// TRL-9. The event names the pull request, so a reader acts on the
+		// event and makes no second call.
 		expect(p.events).toEqual([
-			{ type: "pr.updated", id: pr, ticketIds: [ticket], projectIds: [rootId], state: "open", ciState: "none" },
+			{
+				type: "pr.updated",
+				id: pr,
+				ticketIds: [ticket],
+				ticketIdentifiers: ["CDE-1"],
+				projectIds: [rootId],
+				owner: "acme",
+				repo: "web",
+				number: 13,
+				url: "https://github.com/acme/web/pull/13",
+				title: "Fresh",
+				state: "open",
+				ciState: "none",
+			},
 		]);
 		expect(await activityRows()).toEqual([]);
 		await handle.stop();

@@ -122,6 +122,27 @@ describe("watch", () => {
 		expect(events[2]).toMatchObject({ id: "A.3", type: "comment.created", ticketId: "x" });
 	});
 
+	// TRL-9. An agent asks a question, then waits with
+	// `trellis watch --ticket`. The answer arrives inside the line, so the
+	// agent reads it and calls nothing else.
+	test("a comment line carries the ticket, the author, and the text", async () => {
+		const content = {
+			id: commentId,
+			ticketId,
+			ticketIdentifier: "CDE-42",
+			ticketTitle: "Dark mode",
+			actor: { name: "navid", kind: "human" },
+			body: "Use the tokens.",
+			bodyTruncated: false,
+		};
+		const stream = ready("A.1") + frame("A.2", "comment.created", content);
+		const route = eventsRoute([stream]);
+		const result = await runCli(["watch", "--ticket", "CDE-42"], {}, { raw: route.raw, signal: route.signal });
+		expect(result.code).toBe(0);
+		const { id: _id, ...payload } = content;
+		expect(parsed(result.stdout)[1]).toEqual({ id: "A.2", type: "comment.created", commentId, ...payload });
+	});
+
 	// CLI-63: `id` is the frame id, which `--since` takes. The row id a
 	// payload carries prints as `<kind>Id`, so a line names both the event
 	// and the row it is about. The `ready` payload's id is the frame id.

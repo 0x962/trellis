@@ -89,3 +89,47 @@ export const linkedPullRequest = (overrides: Record<string, unknown> = {}) => ({
 	linkedAt: "2026-09-09T10:05:00.000Z",
 	...overrides,
 });
+
+// The content an event about a comment carries: the ticket it sits on, who
+// wrote it, and the text. A test that needs one field different passes it in
+// `overrides`.
+export const commentEvent = (type: string, overrides: Record<string, unknown> = {}) => ({
+	type,
+	id: ulid,
+	ticketId: t1,
+	ticketIdentifier: "CDE-42",
+	ticketTitle: "First",
+	actor: { name: "navid", kind: "human" },
+	body: "Ship it.",
+	bodyTruncated: false,
+	...overrides,
+});
+
+// The content an event about an attachment carries.
+export const attachmentEvent = (type: string, overrides: Record<string, unknown> = {}) => ({
+	type,
+	id: ulid,
+	ticketId: t1,
+	ticketIdentifier: "CDE-42",
+	ticketTitle: "First",
+	actor: { name: "navid", kind: "human" },
+	filename: "trace.log",
+	...overrides,
+});
+
+// The content an event about a pull request carries: where it lives, what it
+// is called, its state, and the tickets that link it.
+export const prEvent = (type: string, overrides: Record<string, unknown> = {}) => ({
+	type,
+	id: ulid,
+	ticketIds: [t1],
+	ticketIdentifiers: ["CDE-42"],
+	owner: "0x962",
+	repo: "trellis",
+	number: 7,
+	url: "https://github.com/0x962/trellis/pull/7",
+	title: "Add the thing",
+	state: "open",
+	ciState: "pass",
+	...overrides,
+});

@@ -15,6 +15,8 @@ Inside Claude Code, every command runs as \`agent:claude-code\`. Elsewhere, set 
 8. When CI is green and the self-review is done: trellis move ${key}-42 human-review
 Never move a ticket to Done; a human does that. Never delete tickets.
 
+A watch line carries the change itself. A comment line holds the ticket, the author, and the text, so you read a reply without another call. A line with \`bodyTruncated\` true holds the first 2000 characters of the comment; read the rest with \`trellis thread show <comment-id>\`.
+
 Read a comment thread: trellis thread show <comment-id>
 Reply in that thread: trellis comment ${key}-42 --reply-to <comment-id> --body "..."
 Resolve a thread: trellis thread resolve <comment-id>

@@ -13,7 +13,7 @@ import {
 	summaryAt,
 	updatedEvent,
 } from "../test/applierHarness.ts";
-import { queryKey, t1, ticket, ulid } from "../test/fixtures.ts";
+import { commentEvent, queryKey, t1, ticket } from "../test/fixtures.ts";
 
 // Patch first, always. A queued invalidation covers a query for up to 1 s,
 // and the inbox for up to 4 s. Every event in that window still patches
@@ -52,7 +52,7 @@ describe("applyEvent while an invalidation waits", () => {
 
 	test("a title event patches the detail while a comment invalidation waits for it", () => {
 		const { queryClient, advanceTo, applier } = setup(seedTicketCaches(summaryAt(3)));
-		applier.applyEvent({ type: "comment.created", id: ulid, ticketId: t1 });
+		applier.applyEvent(commentEvent("comment.created"));
 		advanceTo(50);
 		const v4 = summaryAt(4, { title: "Fourth" });
 		applier.applyEvent(updatedEvent(v4, ["title"]));

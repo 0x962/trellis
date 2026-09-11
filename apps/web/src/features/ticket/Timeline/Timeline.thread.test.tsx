@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createEventApplier } from "@trellis/api";
+import { commentEvent } from "../../../../test/events";
 import { createFakeServer } from "../../../../test/fake-server";
 import { createFakeScheduler } from "../../../../test/fakeScheduler";
 import { ago, hour, renderTicket } from "../../../../test/ticketHost";
@@ -178,12 +179,12 @@ describe("features/ticket/Timeline threads", () => {
 			parentId: root.id,
 			body: "A live reply.",
 		});
-		act(() => applier.applyEvent({ type: "comment.created", id: reply.id, ticketId: ticket.id }));
+		act(() => applier.applyEvent(commentEvent("comment.created", ticket, reply)));
 		act(() => clock.advanceTo(1000));
 		await screen.findByText(reply.body);
 		expect(screen.getAllByText(reply.body)).toHaveLength(1);
 		await server.client.comments.delete({ id: reply.id });
-		act(() => applier.applyEvent({ type: "comment.deleted", id: reply.id, ticketId: ticket.id }));
+		act(() => applier.applyEvent(commentEvent("comment.deleted", ticket, reply)));
 		act(() => clock.advanceTo(2000));
 		await waitFor(() => expect(screen.queryByText(reply.body)).toBeNull());
 	});

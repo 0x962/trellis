@@ -189,6 +189,8 @@ describe("attachments.upload", () => {
 		expect(update!.fields).toEqual(["attachmentCount"]);
 	});
 
+	// TRL-9. A reader of the event stream acts on the event it reads, so the
+	// event names the ticket, the actor, and the file.
 	test("an upload emits attachment.created after the commit", async () => {
 		const { rootId, ticket } = await seedOneTicket();
 
@@ -196,7 +198,16 @@ describe("attachments.upload", () => {
 
 		expect(insideCommit).toBe(0);
 		const expected = [
-			{ type: "attachment.created", id: result.attachment.id, ticketId: ticket, projectId: rootId },
+			{
+				type: "attachment.created",
+				id: result.attachment.id,
+				ticketId: ticket,
+				ticketIdentifier: "CDE-1",
+				ticketTitle: "Ticket 1",
+				projectId: rootId,
+				actor: { name: "navid", kind: "human" },
+				filename: "shot.png",
+			},
 		] satisfies TrellisEvent[];
 		expect(delivered.filter((event) => event.type === "attachment.created")).toEqual(expected);
 	});

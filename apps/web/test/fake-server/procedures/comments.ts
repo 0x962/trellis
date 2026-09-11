@@ -1,7 +1,16 @@
-import type { TimelineItem } from "@trellis/api";
+import { type ActorRef, EVENT_BODY_LIMIT, type TimelineItem } from "@trellis/api";
 import { fail } from "../fail";
 import { os } from "../implementer";
-import { isoNow, newId, requireTicket, requireWritable, touchActor } from "../state";
+import {
+	identifierOf,
+	isoNow,
+	newId,
+	requireTicket,
+	requireWritable,
+	type State,
+	type TicketRow,
+	touchActor,
+} from "../state";
 
 // Comments and the timeline. A comment is user-visible activity, so the
 // ticket's version and updatedAt move with it.
@@ -11,6 +20,19 @@ const requireComment = (state: Parameters<typeof requireTicket>[0], id: string) 
 	if (comment === undefined) throw fail("NOT_FOUND", { kind: "comment", ref: id });
 	return comment;
 };
+
+// The content a comment event carries. The real server sends the ticket, the
+// actor, and the text on every comment event, so a reader acts on the event
+// and makes no second call.
+const commentContent = (state: State, ticket: TicketRow, comment: { id: string; body: string; actor: ActorRef }) => ({
+	id: comment.id,
+	ticketId: ticket.id,
+	ticketIdentifier: identifierOf(state, ticket),
+	ticketTitle: ticket.title,
+	actor: comment.actor,
+	body: comment.body.slice(0, EVENT_BODY_LIMIT),
+	bodyTruncated: comment.body.length > EVENT_BODY_LIMIT,
+});
 
 const cursorOf = (item: TimelineItem) => `${item.createdAt}|${item.kind}|${item.id}`;
 
@@ -30,11 +52,10 @@ export const comments = {
 		requireWritable(context.state, ticket.projectId);
 		root.resolvedAt = input.resolved ? isoNow() : null;
 		root.updatedAt = isoNow();
-		context.bus.emit(
-			"comment.updated",
-			{ id: root.id, ticketId: ticket.id },
-			{ ticketId: ticket.id, projectId: ticket.projectId },
-		);
+		context.bus.emit("comment.updated", commentContent(context.state, ticket, root), {
+			ticketId: ticket.id,
+			projectId: ticket.projectId,
+		});
 		return root;
 	}),
 	create: os.comments.create.handler(({ context, input }) => {
@@ -59,11 +80,10 @@ export const comments = {
 		ticket.updatedAt = at;
 		ticket.lastActor = { ...context.actor!, at };
 		touchActor(state, context.actor!, at);
-		bus.emit(
-			"comment.created",
-			{ id: comment.id, ticketId: ticket.id },
-			{ ticketId: ticket.id, projectId: ticket.projectId },
-		);
+		bus.emit("comment.created", commentContent(state, ticket, comment), {
+			ticketId: ticket.id,
+			projectId: ticket.projectId,
+		});
 		context.resHeaders.set("location", `/api/comments/${comment.id}`);
 		return comment;
 	}),
@@ -73,11 +93,10 @@ export const comments = {
 		comment.body = input.body;
 		comment.updatedAt = isoNow();
 		const ticket = state.tickets.get(comment.ticketId)!;
-		bus.emit(
-			"comment.updated",
-			{ id: comment.id, ticketId: ticket.id },
-			{ ticketId: ticket.id, projectId: ticket.projectId },
-		);
+		bus.emit("comment.updated", commentContent(state, ticket, comment), {
+			ticketId: ticket.id,
+			projectId: ticket.projectId,
+		});
 		return comment;
 	}),
 	delete: os.comments.delete.handler(({ context, input }) => {
@@ -89,11 +108,10 @@ export const comments = {
 		const ticket = state.tickets.get(comment.ticketId)!;
 		ticket.version += 1;
 		ticket.updatedAt = isoNow();
-		bus.emit(
-			"comment.deleted",
-			{ id: comment.id, ticketId: ticket.id },
-			{ ticketId: ticket.id, projectId: ticket.projectId },
-		);
+		bus.emit("comment.deleted", commentContent(state, ticket, comment), {
+			ticketId: ticket.id,
+			projectId: ticket.projectId,
+		});
 		return { deleted: comment.id };
 	}),
 };

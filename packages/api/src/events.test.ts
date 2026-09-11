@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { bootId, projectId, t1, ticketSummary, ulid } from "../test/fixtures.ts";
-import { EventIdSchema, EventSchema, eventNames, parseEventId } from "./events.ts";
+import { attachmentEvent, bootId, commentEvent, prEvent, projectId, ticketSummary, ulid } from "../test/fixtures.ts";
+import { EVENT_BODY_LIMIT, EventIdSchema, EventSchema, eventNames, parseEventId } from "./events.ts";
 
 const eventId = `${bootId}.7`;
 
@@ -40,9 +40,9 @@ describe("events", () => {
 	test("event payload schemas accept the plan's shapes and reject a missing or wrong field", () => {
 		const events = [
 			{ type: "ticket.updated", summary: ticketSummary(), fields: ["title"], batchId: ulid },
-			{ type: "pr.updated", id: ulid, ticketIds: [t1], state: "open", ciState: "pass" },
-			{ type: "comment.created", id: ulid, ticketId: t1 },
-			{ type: "attachment.deleted", id: ulid, ticketId: t1 },
+			prEvent("pr.updated"),
+			commentEvent("comment.created"),
+			attachmentEvent("attachment.deleted"),
 			{ type: "statuses.changed", projectId },
 			{ type: "project.updated", id: projectId },
 			{ type: "gh.status", ok: false, reason: "unauthenticated" },
@@ -55,9 +55,7 @@ describe("events", () => {
 		}
 		expect(EventSchema.safeParse({ type: "ticket.updated", fields: ["title"], batchId: ulid }).success).toBe(false);
 		expect(EventSchema.safeParse({ type: "reset", reason: "other" }).success).toBe(false);
-		expect(
-			EventSchema.safeParse({ type: "pr.updated", id: ulid, ticketIds: [t1], state: "open", ciState: "green" }).success,
-		).toBe(false);
+		expect(EventSchema.safeParse(prEvent("pr.updated", { ciState: "green" })).success).toBe(false);
 	});
 
 	// The boot id is a ULID minted at server boot. A client that reconnects
@@ -82,6 +80,49 @@ describe("events", () => {
 });
 
 test("comment events preserve thread identifiers and the resolution state", () => {
-	const event = { type: "comment.updated", id: ulid, ticketId: t1, parentId: null, threadId: ulid, resolved: true };
+	const event = commentEvent("comment.updated", { parentId: null, threadId: ulid, resolved: true });
 	expect(EventSchema.parse(event)).toEqual(event);
+});
+
+// TRL-9. A reader of the event stream acts on the event it reads. Every event
+// about a comment, an attachment, or a pull request carries the content of
+// that row, so the reader needs no second call. An event without the content
+// is not an event.
+describe("content", () => {
+	test("a comment event names the ticket, the author, and the text", () => {
+		const event = commentEvent("comment.created");
+		expect(EventSchema.parse(event)).toEqual(event);
+		for (const field of ["ticketIdentifier", "ticketTitle", "actor", "body", "bodyTruncated"]) {
+			const { [field]: _dropped, ...without } = event as Record<string, unknown>;
+			expect(EventSchema.safeParse(without).success, field).toBe(false);
+		}
+	});
+
+	// A comment body holds up to 200000 characters, and the bus keeps the
+	// last 1000 events in memory. The event carries the first 2000 characters
+	// and sets `bodyTruncated`, which tells the reader to read the comment
+	// itself for the rest.
+	test("a comment event stops at the body limit", () => {
+		expect(EVENT_BODY_LIMIT).toBe(2000);
+		expect(EventSchema.safeParse(commentEvent("comment.created", { body: "x".repeat(2000) })).success).toBe(true);
+		expect(EventSchema.safeParse(commentEvent("comment.created", { body: "x".repeat(2001) })).success).toBe(false);
+	});
+
+	test("an attachment event names the ticket, the author, and the file", () => {
+		const event = attachmentEvent("attachment.created");
+		expect(EventSchema.parse(event)).toEqual(event);
+		for (const field of ["ticketIdentifier", "ticketTitle", "actor", "filename"]) {
+			const { [field]: _dropped, ...without } = event as Record<string, unknown>;
+			expect(EventSchema.safeParse(without).success, field).toBe(false);
+		}
+	});
+
+	test("a pull request event names the repository, the number, the URL, the title, and its tickets", () => {
+		const event = prEvent("pr.linked");
+		expect(EventSchema.parse(event)).toEqual(event);
+		for (const field of ["owner", "repo", "number", "url", "title", "ticketIdentifiers"]) {
+			const { [field]: _dropped, ...without } = event as Record<string, unknown>;
+			expect(EventSchema.safeParse(without).success, field).toBe(false);
+		}
+	});
 });

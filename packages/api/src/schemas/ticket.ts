@@ -9,9 +9,9 @@ import { LinkedPullRequestSchema } from "./pullRequest.ts";
 import { StatusSummarySchema } from "./status.ts";
 
 // A title is stored trimmed. The limit keeps a row under the summary budget.
-const TitleSchema = z.string().trim().min(1).max(500);
+export const TitleSchema = z.string().trim().min(1).max(500);
 
-const IdentifierSchema = z.string().regex(/^[A-Z][A-Z0-9]{1,9}-[1-9][0-9]*$/);
+export const IdentifierSchema = z.string().regex(/^[A-Z][A-Z0-9]{1,9}-[1-9][0-9]*$/);
 
 // The PR badge on a row: the worst state across the ticket's pull requests
 // and the check counts behind the ribbon.

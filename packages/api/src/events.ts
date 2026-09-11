@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { ActorRefSchema } from "./schemas/actor.ts";
 import { CiStateSchema, GhReasonSchema, PrStateSchema } from "./schemas/enums.ts";
 import { UlidSchema } from "./schemas/primitives.ts";
-import { TicketSummarySchema } from "./schemas/ticket.ts";
+import { IdentifierSchema, TicketSummarySchema, TitleSchema } from "./schemas/ticket.ts";
 
 // Every SSE event name. `types=` on the events route takes these and
 // `prefix.*` forms.
@@ -56,28 +57,61 @@ export const TicketEventPayloadSchema = z.object({
 	batchId: UlidSchema,
 });
 
-// `ticketIds` are the tickets that link the pull request. `projectIds` are
-// the projects of those tickets, which a project-scoped event stream reads.
+// A reader of the stream acts on the event it reads, so an event about a
+// comment, an attachment, or a pull request carries the content of that row.
+// The reader needs no second call.
+
+// The longest comment body an event carries. A stored body holds up to
+// 200000 characters and the bus keeps the last 1000 events in memory, so a
+// full body in every event would hold hundreds of megabytes. A body above
+// this limit arrives cut, with `bodyTruncated` set.
+export const EVENT_BODY_LIMIT = 2000;
+
+// `ticketIds` are the tickets that link the pull request, and
+// `ticketIdentifiers` names the same tickets in the same order.
+// `projectIds` are the projects of those tickets, which a project-scoped
+// event stream reads.
 export const PrEventPayloadSchema = z.object({
 	id: UlidSchema,
 	ticketIds: z.array(UlidSchema),
+	ticketIdentifiers: z.array(IdentifierSchema),
 	projectIds: z.array(UlidSchema).optional(),
+	owner: z.string().min(1),
+	repo: z.string().min(1),
+	number: z.number().int().positive(),
+	url: z.string().min(1),
+	title: z.string(),
 	state: PrStateSchema,
 	ciState: CiStateSchema,
 });
 
 // `id` is the comment or attachment id. `projectId` is the project of the
-// ticket, which a project-scoped event stream reads.
+// ticket, which a project-scoped event stream reads. `ticketIdentifier` and
+// `ticketTitle` name the ticket the row sits on, and `actor` the person or
+// agent that wrote the row.
 export const TicketChildEventPayloadSchema = z.object({
 	id: UlidSchema,
 	ticketId: UlidSchema,
+	ticketIdentifier: IdentifierSchema,
+	ticketTitle: TitleSchema,
 	projectId: UlidSchema.optional(),
+	actor: ActorRefSchema,
 });
 
+// `body` is the text of the comment. `bodyTruncated` is true when the stored
+// body is longer than `EVENT_BODY_LIMIT`, which tells the reader to read the
+// comment itself for the rest.
 export const CommentEventPayloadSchema = TicketChildEventPayloadSchema.extend({
 	parentId: UlidSchema.nullable().optional(),
 	threadId: UlidSchema.optional(),
 	resolved: z.boolean().optional(),
+	body: z.string().max(EVENT_BODY_LIMIT),
+	bodyTruncated: z.boolean(),
+});
+
+// `filename` is the name the attachment carries on the ticket.
+export const AttachmentEventPayloadSchema = TicketChildEventPayloadSchema.extend({
+	filename: z.string().min(1).max(255),
 });
 
 export const StatusesChangedPayloadSchema = z.object({
@@ -131,8 +165,8 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("comment.created", CommentEventPayloadSchema),
 	typed("comment.updated", CommentEventPayloadSchema),
 	typed("comment.deleted", CommentEventPayloadSchema),
-	typed("attachment.created", TicketChildEventPayloadSchema),
-	typed("attachment.deleted", TicketChildEventPayloadSchema),
+	typed("attachment.created", AttachmentEventPayloadSchema),
+	typed("attachment.deleted", AttachmentEventPayloadSchema),
 	typed("statuses.changed", StatusesChangedPayloadSchema),
 	typed("project.created", ProjectEventPayloadSchema),
 	typed("project.updated", ProjectEventPayloadSchema),

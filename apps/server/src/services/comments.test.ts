@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { ulidPattern } from "@trellis/api";
+import { EVENT_BODY_LIMIT, ulidPattern } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import {
 	type ActorRef,
@@ -133,5 +133,82 @@ describe("comments", () => {
 			"NOT_FOUND",
 		);
 		expect(data).toEqual({ kind: "comment", ref: missing });
+	});
+});
+
+// TRL-9. A reader of the event stream acts on the event it reads. Every
+// comment event carries the ticket, the actor that made the change, and the
+// text, so the reader makes no second call.
+describe("comment event content", () => {
+	const seedNamed = async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const id = await seedTicket(h.db, {
+			projectId: rootId,
+			rootId,
+			statusId: statuses.todo,
+			number: 42,
+			title: "Dark mode",
+		});
+		return id;
+	};
+
+	test("a created comment carries the ticket, the author, and the text", async () => {
+		const id = await seedNamed();
+		const { events } = await create(claude, { ticket: id, body: "Started on it." });
+		expect(events.find((event) => event.type === "comment.created")).toMatchObject({
+			ticketId: id,
+			ticketIdentifier: "CDE-42",
+			ticketTitle: "Dark mode",
+			actor: { name: "claude", kind: "agent" },
+			body: "Started on it.",
+			bodyTruncated: false,
+		});
+	});
+
+	test("an edited comment carries the new text and the actor that edited it", async () => {
+		const id = await seedNamed();
+		const { result } = await create(claude, { ticket: id, body: "First words." });
+		const { events } = await h.as(navid)((ctx, tx) => comments.update(ctx, tx, { id: result.id, body: "Final." }));
+		expect(events.find((event) => event.type === "comment.updated")).toMatchObject({
+			ticketIdentifier: "CDE-42",
+			actor: { name: "navid", kind: "human" },
+			body: "Final.",
+		});
+	});
+
+	// The comment row is gone when the event arrives, so the event is the last
+	// place the text exists for a reader.
+	test("a deleted comment carries the text it held", async () => {
+		const id = await seedNamed();
+		const gone = await seedComment(h.db, id, "one");
+		const { events } = await h.as(navid)((ctx, tx) => comments.delete(ctx, tx, { id: gone }));
+		expect(events.find((event) => event.type === "comment.deleted")).toMatchObject({
+			ticketIdentifier: "CDE-42",
+			ticketTitle: "Dark mode",
+			body: "one",
+			bodyTruncated: false,
+		});
+	});
+
+	test("a resolved thread carries the text of the root comment", async () => {
+		const id = await seedNamed();
+		const { result } = await create(navid, { ticket: id, body: "Question." });
+		const { events } = await h.as(claude)((ctx, tx) => comments.resolve(ctx, tx, { id: result.id, resolved: true }));
+		expect(events.find((event) => event.type === "comment.updated")).toMatchObject({
+			resolved: true,
+			body: "Question.",
+			actor: { name: "claude", kind: "agent" },
+		});
+	});
+
+	// A body holds up to 200000 characters and the bus keeps the last 1000
+	// events, so the event carries the first 2000 characters only.
+	test("a body above the limit arrives cut, and the event says so", async () => {
+		const id = await seedNamed();
+		const { events } = await create(navid, { ticket: id, body: "y".repeat(EVENT_BODY_LIMIT + 1) });
+		expect(events.find((event) => event.type === "comment.created")).toMatchObject({
+			body: "y".repeat(EVENT_BODY_LIMIT),
+			bodyTruncated: true,
+		});
 	});
 });

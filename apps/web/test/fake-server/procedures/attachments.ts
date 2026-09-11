@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { fail } from "../fail";
 import { os } from "../implementer";
-import { isoNow, newId, requireTicket, type State } from "../state";
+import { identifierOf, isoNow, newId, requireTicket, type State } from "../state";
 
 const requireAttachment = (state: State, id: string) => {
 	const attachment = state.attachments.get(id);
@@ -40,7 +40,14 @@ export const attachments = {
 		context.state.attachments.set(id, attachment);
 		context.bus.emit(
 			"attachment.created",
-			{ id, ticketId: ticket.id },
+			{
+				id,
+				ticketId: ticket.id,
+				ticketIdentifier: identifierOf(context.state, ticket),
+				ticketTitle: ticket.title,
+				actor: context.actor!,
+				filename,
+			},
 			{ ticketId: ticket.id, projectId: ticket.projectId },
 		);
 		const markdown = input.file.type.startsWith("image/") ? `![${filename}](${url})` : `[${filename}](${url})`;
@@ -53,7 +60,14 @@ export const attachments = {
 		const ticket = context.state.tickets.get(attachment.ticketId)!;
 		context.bus.emit(
 			"attachment.deleted",
-			{ id: attachment.id, ticketId: ticket.id },
+			{
+				id: attachment.id,
+				ticketId: ticket.id,
+				ticketIdentifier: identifierOf(context.state, ticket),
+				ticketTitle: ticket.title,
+				actor: context.actor!,
+				filename: attachment.filename,
+			},
 			{ ticketId: ticket.id, projectId: ticket.projectId },
 		);
 		return { deleted: attachment.id };

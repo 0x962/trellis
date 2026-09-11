@@ -278,6 +278,14 @@ mobile app streams in the foreground only, and invalidates everything when it
 returns to the foreground. `trellis watch` prints JSON lines and filters
 server-side.
 
+An event that names a ticket row carries the content of that row, so a reader
+of the stream acts on the line it reads. A `comment.*` event holds the ticket
+identifier, the ticket title, the actor, and the body. An `attachment.*` event
+holds the file name. A `pr.*` event holds the repository, the number, the URL,
+the title, and the identifiers of the tickets that link it. A comment body
+stops at `EVENT_BODY_LIMIT`, which is 2000 characters, and `bodyTruncated`
+then tells the reader to read the comment for the rest.
+
 ## PR and CI polling
 
 The poller lives in `apps/server/src/gh/`. It runs one `gh api graphql` request

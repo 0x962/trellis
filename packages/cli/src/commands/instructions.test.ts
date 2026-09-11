@@ -19,6 +19,9 @@ describe("instructions", () => {
 			"sub CDE-42",
 			"comment CDE-42",
 			"watch --ticket CDE-42",
+			// TRL-9. The reply arrives in the watch line, so the block tells the
+			// agent to read it there.
+			"A comment line holds the ticket, the author, and the text",
 			"Never move a ticket to Done; a human does that. Never delete tickets.",
 		]) {
 			expect(result.stdout, fragment).toContain(fragment);

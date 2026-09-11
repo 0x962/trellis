@@ -17,7 +17,18 @@ import {
 	summaryAt,
 	updatedEvent,
 } from "../test/applierHarness.ts";
-import { projectId, queryKey, statusId, t1, t2, ticket, ulid } from "../test/fixtures.ts";
+import {
+	attachmentEvent,
+	commentEvent,
+	prEvent,
+	projectId,
+	queryKey,
+	statusId,
+	t1,
+	t2,
+	ticket,
+	ulid,
+} from "../test/fixtures.ts";
 
 describe("invalidation", () => {
 	const filteredListKey = queryKey(["tickets", "list"], { status: ["in-progress"], parent: "none" });
@@ -236,17 +247,17 @@ describe("invalidation", () => {
 	test("non-ticket events invalidate the keys the plan lists for them", () => {
 		const cases = [
 			{
-				event: { type: "comment.created" as const, id: ulid, ticketId: t1 },
+				event: commentEvent("comment.created"),
 				invalidated: [timelineKey(t1), timelineKey("CDE-42"), timelineKey("cde-42"), timelineKey(lowerT1), detailKey],
 				untouched: [timelineKey(t2), timelineKey("CDE-43"), attachmentsKey(t1), prsKey(t1), healthKey],
 			},
 			{
-				event: { type: "attachment.created" as const, id: ulid, ticketId: t1 },
+				event: attachmentEvent("attachment.created"),
 				invalidated: [attachmentsKey(t1), attachmentsKey("CDE-42"), attachmentsKey("cde-42"), detailKey],
 				untouched: [attachmentsKey(t2), attachmentsKey("CDE-43"), timelineKey(t1), prsKey(t1), healthKey],
 			},
 			{
-				event: { type: "pr.updated" as const, id: ulid, ticketIds: [t1], state: "open", ciState: "pass" },
+				event: prEvent("pr.updated"),
 				invalidated: [prsKey(t1), prsKey("CDE-42"), prsKey(lowerT1), detailKey, listKey],
 				untouched: [prsKey(t2), prsKey("CDE-43"), attachmentsKey(t1), timelineKey(t1), healthKey],
 			},
@@ -293,7 +304,7 @@ test("reply and resolution events invalidate cached threads for their ticket", (
 			client.setQueryData(replyKey, { root: { id: ulid, ticketId: t1 }, replies: [] });
 			client.setQueryData(otherKey, { root: { id: t2, ticketId: t2 }, replies: [] });
 		});
-		applier.applyEvent({ type, id: t1, ticketId: t1, parentId: ulid, threadId: ulid });
+		applier.applyEvent(commentEvent(type, { id: t1, parentId: ulid, threadId: ulid }));
 		advanceTo(1000);
 		expect(isInvalidated(queryClient, rootKey), type).toBe(true);
 		expect(isInvalidated(queryClient, replyKey), type).toBe(true);

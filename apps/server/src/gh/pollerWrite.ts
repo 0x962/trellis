@@ -14,8 +14,15 @@ import type { DueRow } from "./pollerDue.ts";
 // because no person acted.
 
 // A ticket that links one pull request, with the project columns an
-// activity row needs.
-type LinkRow = { pull_request_id: string; ticket_id: string; root_id: string; project_id: string };
+// activity row needs. `identifier` is the `KEY-n` name, which a pull request
+// event carries.
+type LinkRow = {
+	pull_request_id: string;
+	ticket_id: string;
+	identifier: string;
+	root_id: string;
+	project_id: string;
+};
 
 // The stored row of a pull request and the answer gh gave for it.
 export type Polled = { stored: DueRow; row: PullRequestRow };
@@ -74,8 +81,10 @@ export const linkedTickets = (tx: Tx, prIds: string[]) =>
 	rows<LinkRow>(
 		tx,
 		sql`
-			SELECT l.pull_request_id, t.id AS ticket_id, t.root_id, t.project_id
-			FROM ticket_pull_requests l JOIN tickets t ON t.id = l.ticket_id
+			SELECT l.pull_request_id, t.id AS ticket_id, root.key || '-' || t.number AS identifier, t.root_id, t.project_id
+			FROM ticket_pull_requests l
+			JOIN tickets t ON t.id = l.ticket_id
+			JOIN projects root ON root.id = t.root_id
 			WHERE l.pull_request_id = ANY(${textArray(prIds)})
 			ORDER BY l.created_at, t.id
 		`,
@@ -137,7 +146,13 @@ export const writePolled = async (tx: Tx, emit: Emit, input: WriteInput) => {
 			type: "pr.updated",
 			id: entry.stored.id,
 			ticketIds: linked.map((link) => link.ticket_id),
+			ticketIdentifiers: linked.map((link) => link.identifier),
 			projectIds: [...new Set(linked.map((link) => link.project_id))],
+			owner: entry.row.owner,
+			repo: entry.row.repo,
+			number: entry.row.number,
+			url: entry.row.url,
+			title: entry.row.title,
 			state: entry.row.state,
 			ciState: entry.row.ciState,
 		});

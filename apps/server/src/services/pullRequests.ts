@@ -187,6 +187,18 @@ export const link = async (ctx: ServiceCtx, tx: Tx, input: PreparedLink): Promis
 	return toLinked(linked!, linked!.linked_at);
 };
 
+// The fields a pull request event carries about the pull request itself. A
+// reader of the event stream acts on the event and makes no second call.
+const prContent = (row: PrRow) => ({
+	owner: row.owner,
+	repo: row.repo,
+	number: row.number,
+	url: row.url,
+	title: row.title,
+	state: row.state,
+	ciState: row.ci_state,
+});
+
 const announceLink = async (ctx: ServiceCtx, tx: Tx, input: { ticket: TicketRow; row: PrRow; at: Date }) => {
 	await touchTicket(tx, { id: input.ticket.id, at: input.at, versionStep: 0 });
 	await writeActivity(ctx, tx, {
@@ -195,13 +207,7 @@ const announceLink = async (ctx: ServiceCtx, tx: Tx, input: { ticket: TicketRow;
 		meta: { pullRequestId: input.row.id, url: input.row.url },
 		at: input.at,
 	});
-	ctx.emit({
-		type: "pr.linked",
-		id: input.row.id,
-		...(await linkScope(tx, input.row.id)),
-		state: input.row.state,
-		ciState: input.row.ci_state,
-	});
+	ctx.emit({ type: "pr.linked", id: input.row.id, ...(await linkScope(tx, input.row.id)), ...prContent(input.row) });
 };
 
 export type UnlinkInput = { ticket: string; id: string };
@@ -226,8 +232,9 @@ export const unlink = async (ctx: ServiceCtx, tx: Tx, input: UnlinkInput) => {
 	});
 	// The event names the ticket the link left too, so its viewers drop the pull request.
 	const ticketIds = [ticket.id, ...scope.ticketIds];
+	const ticketIdentifiers = [ticket.identifier, ...scope.ticketIdentifiers];
 	const projectIds = [...new Set([ticket.project_id, ...scope.projectIds])];
-	ctx.emit({ type: "pr.unlinked", id: row.id, ticketIds, projectIds, state: row.state, ciState: row.ci_state });
+	ctx.emit({ type: "pr.unlinked", id: row.id, ticketIds, ticketIdentifiers, projectIds, ...prContent(row) });
 	return { deleted: row.id };
 };
 
@@ -260,13 +267,7 @@ export const refresh = async (ctx: ServiceCtx, tx: Tx, input: PreparedRefresh): 
 	}
 	await writeFetched(tx, at, first.row);
 	const fresh = await findRow(tx, row.id);
-	ctx.emit({
-		type: "pr.updated",
-		id: fresh.id,
-		...(await linkScope(tx, fresh.id)),
-		state: fresh.state,
-		ciState: fresh.ci_state,
-	});
+	ctx.emit({ type: "pr.updated", id: fresh.id, ...(await linkScope(tx, fresh.id)), ...prContent(fresh) });
 	return toPullRequest(fresh);
 };
 

@@ -26,7 +26,16 @@ export type ListedPullRequest = { number: number; url: string; title: string; he
 
 type TicketRow = { id: string; root_id: string; project_id: string };
 
-type StoredPr = { id: string; state: PrState; ci_state: CiState };
+type StoredPr = {
+	id: string;
+	owner: string;
+	repo: string;
+	number: number;
+	url: string;
+	title: string;
+	state: PrState;
+	ci_state: CiState;
+};
 
 // A pull request this run linked for the first time, and the ref that reads
 // its fields from gh.
@@ -115,7 +124,13 @@ const announce = async (tx: Tx, emit: Emit, input: AnnounceInput) => {
 		type: "pr.linked",
 		id: input.pr.id,
 		ticketIds: links.map((link) => link.ticket_id),
+		ticketIdentifiers: links.map((link) => link.identifier),
 		projectIds: [...new Set(links.map((link) => link.project_id))],
+		owner: input.pr.owner,
+		repo: input.pr.repo,
+		number: input.pr.number,
+		url: input.pr.url,
+		title: input.pr.title,
 		state: input.pr.state,
 		ciState: input.pr.ci_state,
 	});
@@ -136,7 +151,7 @@ const linkOne = async (tx: Tx, emit: Emit, input: LinkInput): Promise<FreshPr | 
 	`);
 	const [pr] = await rows<StoredPr>(
 		tx,
-		sql`SELECT id, state, ci_state FROM pull_requests
+		sql`SELECT id, owner, repo, number, url, title, state, ci_state FROM pull_requests
 			WHERE owner = ${ref.owner} AND repo = ${ref.repo} AND number = ${ref.number}`,
 	);
 	const linked: TicketRow[] = [];

@@ -126,6 +126,35 @@ describe("detect", () => {
 		]);
 	});
 
+	// TRL-9. A reader of the event stream acts on the event it reads, so the
+	// event names the pull request and the tickets it links.
+	test("the pr.linked event names the pull request and the tickets", async () => {
+		const { rootId, two } = await seedCde();
+		const p = harness({
+			"pr list": prListReply([{ number: 41, url: url(41), title: "Fix the ribbon", headRefName: "cde-2-foo" }]),
+			"api graphql": graphqlReply([{ number: 41, url: url(41), title: "Fix the ribbon" }]),
+		});
+
+		await detect.run(p.hook);
+
+		expect(p.events.filter((event) => event.type === "pr.linked")).toEqual([
+			{
+				type: "pr.linked",
+				id: expect.any(String),
+				ticketIds: [two],
+				ticketIdentifiers: ["CDE-2"],
+				projectIds: [rootId],
+				owner: "acme",
+				repo: "web",
+				number: 41,
+				url: url(41),
+				title: "",
+				state: "open",
+				ciState: "none",
+			},
+		]);
+	});
+
 	test("detect matches a key in the title, the branch, or the body", async () => {
 		const { two, three } = await seedCde();
 		const p = harness({

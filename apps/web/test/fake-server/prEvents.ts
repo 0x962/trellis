@@ -1,6 +1,6 @@
 import type { EventName, EventPayload, PullRequest } from "@trellis/api";
 import type { EventBus } from "./events";
-import type { State } from "./state";
+import { identifierOf, type State } from "./state";
 
 // Every ticket that holds the pull request, in link order.
 export const holdersOf = (state: State, prId: string) =>
@@ -16,7 +16,18 @@ export const emitPr = (
 	pr: PullRequest,
 ): EventPayload<"pr.updated"> => {
 	const holders = holdersOf(state, pr.id);
-	const payload = { id: pr.id, ticketIds: holders.map((ticket) => ticket.id), state: pr.state, ciState: pr.ciState };
+	const payload = {
+		id: pr.id,
+		ticketIds: holders.map((ticket) => ticket.id),
+		ticketIdentifiers: holders.map((ticket) => identifierOf(state, ticket)),
+		owner: pr.owner,
+		repo: pr.repo,
+		number: pr.number,
+		url: pr.url,
+		title: pr.title,
+		state: pr.state,
+		ciState: pr.ciState,
+	};
 	for (const ticket of holders) bus.emit(type, payload, { ticketId: ticket.id, projectId: ticket.projectId });
 	return payload;
 };

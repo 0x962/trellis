@@ -47,11 +47,14 @@ export const notFound = (kind: string, ref: string) => fail("NOT_FOUND", { kind,
 
 // A ticket with the project it sits in. `archived_at` is the newest archive
 // stamp on that project and its ancestors, so it is set when the project or
-// any ancestor is archived. Every write refuses such a ticket.
+// any ancestor is archived. Every write refuses such a ticket. `identifier`
+// is the `KEY-n` name a person and an agent read, which an event carries.
 export type TicketRow = {
 	id: string;
 	project_id: string;
 	root_id: string;
+	identifier: string;
+	title: string;
 	archived_at: string | null;
 };
 
@@ -65,7 +68,7 @@ export const resolveTicket = async (tx: Tx, ref: string): Promise<TicketRow> => 
 	const [row] = await rows<TicketRow>(
 		tx,
 		sql`
-			SELECT t.id, t.project_id, t.root_id, chain.archived_at
+			SELECT t.id, t.project_id, t.root_id, root.key || '-' || t.number AS identifier, t.title, chain.archived_at
 			FROM tickets t
 			JOIN projects root ON root.id = t.root_id
 			CROSS JOIN LATERAL (

@@ -100,6 +100,12 @@ describe("fake server pull requests", () => {
 		expect(event).toEqual({
 			id: stored.id,
 			ticketIds: [await ticketIdOf(server, "CDE-42")],
+			ticketIdentifiers: ["CDE-42"],
+			owner: stored.owner,
+			repo: stored.repo,
+			number: stored.number,
+			url: stored.url,
+			title: stored.title,
 			state: "open",
 			ciState: "fail",
 		});

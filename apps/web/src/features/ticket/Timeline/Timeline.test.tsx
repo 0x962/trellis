@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createEventApplier } from "@trellis/api";
+import { commentEvent } from "../../../../test/events";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { addActivity, findTicket } from "../../../../test/fake-server/state";
 import { createFakeScheduler } from "../../../../test/fakeScheduler";
@@ -178,7 +179,7 @@ describe("features/ticket/Timeline", () => {
 			body: "Tests are green now.",
 		});
 		const lists = server.callsTo("timeline.list");
-		act(() => applier.applyEvent({ type: "comment.created", id: posted.id, ticketId: ticket.id }));
+		act(() => applier.applyEvent(commentEvent("comment.created", { ...ticket, identifier: "CDE-42" }, posted)));
 		act(() => clock.advanceTo(1000));
 		await waitFor(() => expect(within(element).getByText("Tests are green now.")).toBeDefined());
 		const fetched = server.callsTo("timeline.list").slice(lists.length);

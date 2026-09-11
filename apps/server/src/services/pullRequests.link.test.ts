@@ -154,8 +154,23 @@ describe("pullRequests.link", () => {
 
 		const { result, delivered } = await runLink({ ticket: "CDE-1", url });
 
+		// TRL-9. The event names the pull request, so a reader acts on the
+		// event and makes no second call.
 		const expected = [
-			{ type: "pr.linked", id: result.id, ticketIds: [first], projectIds: [rootId], state: "open", ciState: "fail" },
+			{
+				type: "pr.linked",
+				id: result.id,
+				ticketIds: [first],
+				ticketIdentifiers: ["CDE-1"],
+				projectIds: [rootId],
+				owner: "acme",
+				repo: "web",
+				number: 12,
+				url,
+				title: "Add the board",
+				state: "open",
+				ciState: "fail",
+			},
 		] satisfies TrellisEvent[];
 		expect(delivered.filter((event) => event.type === "pr.linked")).toEqual(expected);
 		const activity = await rows("activity");

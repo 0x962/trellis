@@ -47,14 +47,43 @@ export const prEvent = (
 	type,
 	id: ulid(),
 	ticketIds,
+	ticketIdentifiers: ticketIds.map((_id, index) => `CDE-${index + 1}`),
+	owner: "acme",
+	repo: "web",
+	number: 12,
+	url: "https://github.com/acme/web/pull/12",
+	title: "Add the board",
 	state: "open",
 	ciState: "pending",
 });
 
+// The ticket, the author, and the text travel with a comment event.
 export const commentEvent = (
 	type: "comment.created" | "comment.updated" | "comment.deleted",
 	ticketId: string = ulid(),
-): TrellisEvent => ({ type, id: ulid(), ticketId });
+): TrellisEvent => ({
+	type,
+	id: ulid(),
+	ticketId,
+	ticketIdentifier: "CDE-1",
+	ticketTitle: "First",
+	actor: { name: "navid", kind: "human" },
+	body: "Ship it.",
+	bodyTruncated: false,
+});
+
+export const attachmentEvent = (
+	type: "attachment.created" | "attachment.deleted",
+	ticketId: string = ulid(),
+): TrellisEvent => ({
+	type,
+	id: ulid(),
+	ticketId,
+	ticketIdentifier: "CDE-1",
+	ticketTitle: "First",
+	actor: { name: "navid", kind: "human" },
+	filename: "trace.log",
+});
 
 export const statusesChanged = (projectId: string = ulid()): TrellisEvent => ({ type: "statuses.changed", projectId });
 
@@ -74,8 +103,8 @@ export const everyServiceEvent = (): TrellisEvent[] => [
 	commentEvent("comment.created"),
 	commentEvent("comment.updated"),
 	commentEvent("comment.deleted"),
-	{ type: "attachment.created", id: ulid(), ticketId: ulid() },
-	{ type: "attachment.deleted", id: ulid(), ticketId: ulid() },
+	attachmentEvent("attachment.created"),
+	attachmentEvent("attachment.deleted"),
 	statusesChanged(),
 	projectEvent("project.created"),
 	projectEvent("project.updated"),

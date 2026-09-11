@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { ReadyPayloadSchema, TicketEventPayloadSchema } from "@trellis/api";
+import { EVENT_BODY_LIMIT, ReadyPayloadSchema, TicketEventPayloadSchema } from "@trellis/api";
 import { ulid } from "ulid";
 import { commentEvent, ticketEvent } from "../../test/fixtures";
 import { createTestApp, type TestApp } from "../../test/helpers/app.ts";
@@ -234,5 +234,50 @@ describe("ping and bye", () => {
 		expect(bye.event).toBe("bye");
 		expect(dataOf(bye)).toEqual({ reason: "shutdown" });
 		expect(await stream.closed()).toBe(true);
+	});
+});
+
+// TRL-9. An agent waits for the answer to its question with
+// `trellis watch --ticket CDE-1`, which reads this stream. The frame carries
+// the answer, so the agent reads it and makes no second call.
+describe("content", () => {
+	test("a new comment reaches the stream with the ticket, the author, and the text", async () => {
+		const ticket = await t.createTicket({ project: "CDE", title: "Dark mode" });
+		const stream = await open();
+		await nextEvent(stream);
+
+		await t.api(`/api/tickets/${ticket.identifier}/comments`, {
+			method: "POST",
+			body: { body: "Use the tokens." },
+			actor: "human:navid",
+		});
+		const message = await nextEvent(stream);
+
+		expect(message.event).toBe("comment.created");
+		expect(dataOf(message)).toMatchObject({
+			ticketId: ticket.id,
+			ticketIdentifier: "CDE-1",
+			ticketTitle: "Dark mode",
+			actor: { name: "navid", kind: "human" },
+			body: "Use the tokens.",
+			bodyTruncated: false,
+		});
+	});
+
+	test("a body above the limit reaches the stream cut, and the frame says so", async () => {
+		const ticket = await t.createTicket({ project: "CDE", title: "Dark mode" });
+		const stream = await open();
+		await nextEvent(stream);
+
+		await t.api(`/api/tickets/${ticket.identifier}/comments`, {
+			method: "POST",
+			body: { body: "x".repeat(EVENT_BODY_LIMIT + 40) },
+			actor: "human:navid",
+		});
+		const message = await nextEvent(stream);
+
+		const data = dataOf(message) as { body: string; bodyTruncated: boolean };
+		expect(data.body).toBe("x".repeat(EVENT_BODY_LIMIT));
+		expect(data.bodyTruncated).toBe(true);
 	});
 });

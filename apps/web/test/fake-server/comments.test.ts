@@ -49,7 +49,16 @@ describe("fake server comments", () => {
 		expect(comment.actor).toEqual({ name: "navid", kind: "human" });
 		const created = await frameOf("comment.created");
 		expect(created!.event).toBe("comment.created");
-		expect(parseData<object>(created)).toEqual({ id: comment.id, ticketId: before.id });
+		// TRL-9. The frame carries the content, the way the real server sends it.
+		expect(parseData<object>(created)).toEqual({
+			id: comment.id,
+			ticketId: before.id,
+			ticketIdentifier: "CDE-42",
+			ticketTitle: before.title,
+			actor: { name: "navid", kind: "human" },
+			body: "ok",
+			bodyTruncated: false,
+		});
 		const after = await server.client.tickets.get({ ticket: "CDE-42" });
 		expect(after.commentCount).toBe(before.commentCount + 1);
 		expect(after.version).toBe(before.version + 1);
@@ -59,7 +68,15 @@ describe("fake server comments", () => {
 		expect(updated.updatedAt >= comment.updatedAt).toBe(true);
 		const updatedFrame = await frameOf("comment.updated");
 		expect(updatedFrame!.event).toBe("comment.updated");
-		expect(parseData<object>(updatedFrame)).toEqual({ id: comment.id, ticketId: before.id });
+		expect(parseData<object>(updatedFrame)).toEqual({
+			id: comment.id,
+			ticketId: before.id,
+			ticketIdentifier: "CDE-42",
+			ticketTitle: before.title,
+			actor: { name: "navid", kind: "human" },
+			body: "edited",
+			bodyTruncated: false,
+		});
 
 		const deleteResponse = await server.app.request(`/api/comments/${comment.id}`, {
 			method: "DELETE",
@@ -69,7 +86,15 @@ describe("fake server comments", () => {
 		expect(await deleteResponse.json()).toEqual({ deleted: comment.id });
 		const deletedFrame = await frameOf("comment.deleted");
 		expect(deletedFrame!.event).toBe("comment.deleted");
-		expect(parseData<object>(deletedFrame)).toEqual({ id: comment.id, ticketId: before.id });
+		expect(parseData<object>(deletedFrame)).toEqual({
+			id: comment.id,
+			ticketId: before.id,
+			ticketIdentifier: "CDE-42",
+			ticketTitle: before.title,
+			actor: { name: "navid", kind: "human" },
+			body: "edited",
+			bodyTruncated: false,
+		});
 		stream.close();
 		expect((await server.client.tickets.get({ ticket: "CDE-42" })).commentCount).toBe(before.commentCount);
 	});

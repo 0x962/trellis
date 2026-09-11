@@ -98,7 +98,20 @@ describe("pullRequests.refresh", () => {
 		expect(row!.content_hash).not.toBe("stale");
 		expect(result).toMatchObject({ id: pr, title: "Add the board", state: "merged", ciState: "pass" });
 		expect(delivered).toEqual([
-			{ type: "pr.updated", id: pr, ticketIds: [ticket], projectIds: [rootId], state: "merged", ciState: "pass" },
+			{
+				type: "pr.updated",
+				id: pr,
+				ticketIds: [ticket],
+				ticketIdentifiers: ["CDE-1"],
+				projectIds: [rootId],
+				owner: "acme",
+				repo: "web",
+				number: 12,
+				url,
+				title: "Add the board",
+				state: "merged",
+				ciState: "pass",
+			},
 		]);
 	});
 

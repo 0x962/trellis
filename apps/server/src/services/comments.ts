@@ -6,6 +6,7 @@ import {
 	CommentResolveInputSchema,
 	type CommentThread,
 	CommentUpdateInputSchema,
+	EVENT_BODY_LIMIT,
 	type StoredActorKind,
 } from "@trellis/api";
 import { sql } from "drizzle-orm";
@@ -94,6 +95,20 @@ const activityFor = (
 	],
 });
 
+// The content a comment event carries. A reader of the event stream acts on
+// the event, so the event names the ticket, the actor that made the change,
+// and the text. A body longer than EVENT_BODY_LIMIT arrives cut, and
+// `bodyTruncated` tells the reader to read the comment for the rest.
+const eventContent = (ctx: ServiceCtx, row: TicketRow, body: string) => ({
+	ticketId: row.id,
+	ticketIdentifier: row.identifier,
+	ticketTitle: row.title,
+	projectId: row.projectId,
+	actor: requireActor(ctx),
+	body: body.slice(0, EVENT_BODY_LIMIT),
+	bodyTruncated: body.length > EVENT_BODY_LIMIT,
+});
+
 export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Comment> => {
 	const input = CommentCreateInputSchema.parse(rawInput);
 	const row = await resolveTicket(ctx, tx, input.ticket);
@@ -112,14 +127,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 			VALUES (${id}, ${row.id}, ${parentId}, ${input.body}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
 	);
 	await record(ctx, tx, activityFor(row, "comment.created", batchId, id, parentId));
-	ctx.emit({
-		type: "comment.created",
-		id,
-		parentId,
-		threadId: parentId ?? id,
-		ticketId: row.id,
-		projectId: row.projectId,
-	});
+	ctx.emit({ type: "comment.created", id, parentId, threadId: parentId ?? id, ...eventContent(ctx, row, input.body) });
 	await bumpTicket(ctx, tx, batchId, row, true);
 	return commentById(tx, id);
 };
@@ -136,8 +144,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 		id: comment.id,
 		parentId: comment.parentId,
 		threadId: comment.parentId ?? comment.id,
-		ticketId: row.id,
-		projectId: row.projectId,
+		...eventContent(ctx, row, input.body),
 	});
 	return commentById(tx, comment.id);
 };
@@ -160,8 +167,7 @@ const remove = async (
 		id: comment.id,
 		parentId: comment.parentId,
 		threadId: comment.parentId ?? comment.id,
-		ticketId: row.id,
-		projectId: row.projectId,
+		...eventContent(ctx, row, comment.body),
 	});
 	await bumpTicket(ctx, tx, batchId, row, false);
 	return { deleted: comment.id };
@@ -195,8 +201,7 @@ export const resolve = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promi
 		parentId: null,
 		threadId: root.id,
 		resolved: input.resolved,
-		ticketId: row.id,
-		projectId: row.projectId,
+		...eventContent(ctx, row, root.body),
 	});
 	await bumpTicket(ctx, tx, batchId, row, true);
 	return commentById(tx, root.id);

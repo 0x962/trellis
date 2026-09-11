@@ -62,7 +62,15 @@ describe("fake attachments", () => {
 		const result = await uploaded(server, "CDE-42", fileOf("notes.txt", "text/plain", 12));
 		const frame = await stream.nextEvent();
 		expect(frame!.event).toBe("attachment.created");
-		expect(parseData<object>(frame)).toEqual({ id: result.attachment.id, ticketId: ticket.id });
+		// TRL-9. The frame carries the content, the way the real server sends it.
+		expect(parseData<object>(frame)).toEqual({
+			id: result.attachment.id,
+			ticketId: ticket.id,
+			ticketIdentifier: "CDE-42",
+			ticketTitle: ticket.title,
+			actor: { name: "navid", kind: "human" },
+			filename: "notes.txt",
+		});
 		stream.close();
 	});
 
