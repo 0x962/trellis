@@ -164,6 +164,20 @@ describe("projects.update key", () => {
 		expect(await activityRows(h)).toHaveLength(1);
 	});
 
+	// A key change rewrites the root slug to the new key, lower-cased, so it
+	// reaches the same reserved web routes a create does. /p/BOARD reads
+	// BOARD as the board view, so the root would lose its page.
+	test("a key change to a reserved web route throws DUPLICATE on the key field", async () => {
+		const { cde } = await seedTree();
+		for (const key of ["BOARD", "TABLE", "SETTINGS"]) {
+			const error = await expectError(update({ project: "CDE", key }), "DUPLICATE");
+			expect(error.data, key).toEqual({ field: "key" });
+		}
+		const row = await projectRow(cde);
+		expect(row.key).toBe("CDE");
+		expect(row.slug).toBe("cde");
+	});
+
 	test("a key change after the counter moves throws KEY_LOCKED", async () => {
 		const { cde } = await seedTree();
 		await h.db.execute(sql`UPDATE projects SET ticket_counter = 1 WHERE id = ${cde}`);

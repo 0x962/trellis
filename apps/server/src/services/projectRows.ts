@@ -61,7 +61,7 @@ export const siblingIds = async (tx: Tx, parentId: string | null, exceptId: stri
 };
 
 // A slug is one path segment under its parent, so two children of one parent
-// never share one. The web routes `board` and `settings` are never a slug.
+// never share one. A slug in `reservedSlugs` is a web route and never a slug.
 export const assertSlugFree = async (tx: Tx, parentId: string, slug: string, exceptId: string | null) => {
 	if (reservedSlugs.has(slug)) throw fail("DUPLICATE", { field: "slug" });
 	const found = await rows<{ id: string }>(
@@ -71,7 +71,14 @@ export const assertSlugFree = async (tx: Tx, parentId: string, slug: string, exc
 	if (found.length > 0) throw fail("DUPLICATE", { field: "slug" });
 };
 
+// A root project takes its slug from its key, lower-cased, and that slug is
+// the last segment of `/p/KEY`. The web lower-cases that segment before it
+// tests it against the reserved web routes, so the key BOARD puts the root
+// at a URL that reads as the board view and shows the not-found page. The
+// key is refused here, so the caller reads a DUPLICATE on the key field
+// instead of the projects_slug_check error of the database.
 export const assertKeyFree = async (tx: Tx, key: string) => {
+	if (reservedSlugs.has(key.toLowerCase())) throw fail("DUPLICATE", { field: "key" });
 	const found = await rows<{ id: string }>(tx, sql`SELECT id FROM projects WHERE key = ${key}`);
 	if (found.length > 0) throw fail("DUPLICATE", { field: "key" });
 };

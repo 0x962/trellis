@@ -104,6 +104,22 @@ describe("projects.create on a root", () => {
 		expect(created.statusesInheritedFrom).toBeNull();
 	});
 
+	// A root takes its slug from its key, lower-cased, and the web lower-cases
+	// the last segment of `/p/KEY` before it tests it against the reserved web
+	// routes. A root keyed BOARD therefore has no page. The key is refused
+	// with the same typed error a reserved sub-project slug gets, so the
+	// caller never reads the raw projects_slug_check error of the database.
+	test("a key that spells a reserved web route throws DUPLICATE on the key field", async () => {
+		for (const key of ["BOARD", "TABLE", "SETTINGS"]) {
+			const error = await expectError(
+				h.run((ctx, tx) => projects.create(ctx, tx, { key, name: `Project ${key}` })),
+				"DUPLICATE",
+			);
+			expect(error.data, key).toEqual({ field: "key" });
+		}
+		expect(await count(h.db, "projects")).toBe(0);
+	});
+
 	test("a repeated key throws DUPLICATE on the key field", async () => {
 		await seedCde();
 		const error = await expectError(

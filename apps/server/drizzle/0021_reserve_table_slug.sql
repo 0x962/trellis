@@ -26,7 +26,7 @@ BEGIN
 	)
 	SELECT string_agg("path", ', ' ORDER BY "path") INTO "held" FROM "tree" WHERE "slug" = 'table';
 	IF "held" IS NOT NULL THEN
-		RAISE EXCEPTION 'These projects hold the slug "table", which is now a reserved web route: %. Give a sub-project a new slug, and give a root project a new key. Then run the install again.', "held";
+		RAISE EXCEPTION 'These projects hold the slug "table", which is now a reserved web route: %. Give a sub-project a new slug. A root project needs an UPDATE on its projects row, because it takes its slug from its key and the API locks the key of a root that has numbered a ticket. Then run the install again.', "held";
 	END IF;
 END $$;--> statement-breakpoint
 ALTER TABLE "projects" DROP CONSTRAINT "projects_slug_check";--> statement-breakpoint
