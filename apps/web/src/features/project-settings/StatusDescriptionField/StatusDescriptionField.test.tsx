@@ -36,8 +36,12 @@ describe("StatusDescriptionField", () => {
 		await server.client.statuses.update({ project: "CDE", status: todo.id, description: "Start a builder." });
 		await mount(server);
 		expect((await field("Todo")).value).toBe("Start a builder.");
+		// A project is created with a description on every status, and the
+		// edit of one leaves the rest as they are.
+		const stored = await statusesOf(server, "CDE");
 		for (const name of ["In Progress", "Agent Review", "Human Review", "Done", "Canceled"]) {
-			expect((await field(name)).value).toBe("");
+			const status = stored.find((entry) => entry.name === name)!;
+			expect((await field(name)).value).toBe(status.description);
 		}
 	});
 
@@ -49,6 +53,7 @@ describe("StatusDescriptionField", () => {
 		const todo = await todoOf(server);
 		const clock = createFakeScheduler();
 		await mount(server, "CDE", clock.scheduler);
+		await user.clear(await field("Todo"));
 		await user.type(await field("Todo"), "Start a builder.");
 		act(() => clock.advanceTo(799));
 		expect(server.callsTo("statuses.update")).toHaveLength(0);
@@ -78,6 +83,7 @@ describe("StatusDescriptionField", () => {
 		await mount(createTestServer());
 		const todo = await field("Todo");
 		expect(todo.getAttribute("maxLength")).toBe("2000");
+		await user.clear(todo);
 		await user.type(todo, "abc");
 		expect(await screen.findByText("3 / 2000")).toBeDefined();
 	});

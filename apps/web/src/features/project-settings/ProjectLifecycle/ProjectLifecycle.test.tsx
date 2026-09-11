@@ -39,7 +39,7 @@ describe("features/project-settings/ProjectLifecycle", () => {
 	test("delete states the ticket count, takes the typed key, and sends force", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		const count = ticketsUnder(server, "TRL");
+		const count = await ticketsUnder(server, "TRL");
 		expect(count).toBeGreaterThan(1);
 		const { router } = renderApp({ path: "/p/TRL/settings", actor: "navid", server });
 		await user.click(await screen.findByRole("button", { name: "Delete project…" }));
