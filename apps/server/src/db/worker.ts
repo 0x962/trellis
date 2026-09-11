@@ -121,17 +121,26 @@ const startHost = () => {
 		{ reader: ReadableStreamDefaultReader<Uint8Array>; done: () => void; reads: Promise<void>; cancelled: boolean }
 	>();
 	let nextGhId = 1;
-	let transport: ServiceTransport;
-	let database: Awaited<ReturnType<typeof openDatabase>>;
+	let transport: ServiceTransport | undefined;
+	let database: Awaited<ReturnType<typeof openDatabase>> | undefined;
 	let currentGhStatus: GhStatus;
 	let draining = false;
 	let scheduled = false;
 	let closing = false;
+	// The start builds the transport a call runs on. The host answers a call
+	// only after the start settles, so a call that arrives during the boot
+	// waits in the queue instead of reading a transport that is not there
+	// yet. A start that throws answers every queued call with its error.
+	const booted = Promise.withResolvers<void>();
+	booted.promise.catch(() => undefined);
 
 	const send = (message: WorkerOutput) => postMessage(message);
+	// A start that threw leaves no transport, and can still leave the
+	// database open, so the close reaches each part that exists and always
+	// sends the goodbye the HTTP side waits for.
 	const finish = async () => {
-		await transport.close();
-		await database.close();
+		await transport?.close();
+		await database?.close();
 		send({ type: "closed" });
 	};
 
@@ -146,7 +155,7 @@ const startHost = () => {
 		currentGhStatus = call.ghStatus;
 		const timing = { ms: 0 };
 		try {
-			const result = await transport.call(call.name, call.ctx, call.input, timing);
+			const result = await transport!.call(call.name, call.ctx, call.input, timing);
 			if (result instanceof ReadableStream) await relayStream(call.id, result);
 			else send({ type: "result", id: call.id, result, dbMs: timing.ms });
 		} catch (error) {
@@ -160,9 +169,14 @@ const startHost = () => {
 	const drain = async () => {
 		if (draining) return;
 		draining = true;
+		const startError = await booted.promise.then(
+			() => undefined,
+			(error: unknown) => error,
+		);
 		while (queue.size > 0) {
 			const call = queue.shift()!;
-			if ("prepare" in services[call.name]) void run(call);
+			if (startError !== undefined) send({ type: "error", id: call.id, error: errorOf(startError), dbMs: 0 });
+			else if ("prepare" in services[call.name]) void run(call);
 			else await run(call);
 		}
 		draining = false;
@@ -223,7 +237,11 @@ const startHost = () => {
 				const log = (msg: string, fields?: Record<string, unknown>) => send({ type: "log", msg, fields });
 				const started = await transport.start(jobs === null ? undefined : { clockRate: jobs.clockRate, log });
 				send({ type: "ready", applied: database.applied, liveShas: started.liveShas });
-			})().catch((error) => send({ type: "startError", error: errorOf(error) }));
+				booted.resolve();
+			})().catch((error: unknown) => {
+				booted.reject(error);
+				send({ type: "startError", error: errorOf(error) });
+			});
 			return;
 		}
 		if (data.type === "calls") {
@@ -256,8 +274,10 @@ const startHost = () => {
 			return;
 		}
 		closing = true;
+		// A close that arrives during the boot waits for it, so the close
+		// never shuts a database that the start is still opening.
 		if (draining || queue.size > 0) schedule();
-		else void finish();
+		else void booted.promise.then(finish, finish);
 	};
 };
 

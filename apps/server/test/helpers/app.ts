@@ -167,12 +167,15 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		return response.body as Ticket;
 	};
 
-	let open = true;
+	// Every call closes the transport, because a test that restarts the
+	// transport leaves a second worker on the data directory, and serverTx
+	// opens that directory next. The owned in-memory database closes once.
+	let dbOpen = owned;
 	const close = async () => {
-		if (!open) return;
-		open = false;
 		await inner.close();
-		if (owned) h.close();
+		if (!dbOpen) return;
+		dbOpen = false;
+		h.close();
 	};
 
 	// serverTx runs `fn` in a transaction on the database the server writes.
