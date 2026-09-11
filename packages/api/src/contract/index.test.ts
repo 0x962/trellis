@@ -85,6 +85,7 @@ describe("contract", () => {
 			"statuses.reorder PUT /projects/{project}/statuses/order",
 			"statuses.update PATCH /projects/{project}/statuses/{status}",
 			"system.backup POST /backup",
+			"system.chooseDirectory POST /choose-directory",
 			"system.gh GET /gh",
 			"system.health GET /health",
 			"tickets.board GET /tickets/board",
@@ -99,7 +100,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(70);
+		expect(table).toHaveLength(71);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has
