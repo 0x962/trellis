@@ -12,6 +12,7 @@ import {
 	ticketDetail,
 } from "./invalidationCoalescer.ts";
 import { realScheduler, type Scheduler } from "./scheduler.ts";
+import type { CommentThread } from "./schemas/comment.ts";
 import type { Ticket } from "./schemas/ticket.ts";
 import { createSettleCheck } from "./settleCheck.ts";
 import {
@@ -86,28 +87,11 @@ export type EventApplier = {
 	endMutation: (ticketId: string, result?: Ticket) => void;
 };
 
-// Patch first, invalidate rarely. A `ticket.*` event visits every cached
-// list, board, inbox section, search result, and detail that holds the
-// ticket. An entry takes the event's summary only when the event's version
-// is higher than the entry's own, and then its version equals the event's.
-// The compare is per entry, so an older event never overwrites a newer
-// field and never lowers a version. A queued invalidation never blocks a
-// patch, and neither does a fetch in flight: the patch lands, and the
-// fetch's result replaces it. The settle check keeps every change made
-// during a fetch. It compares each row of the result with those changes
-// and refetches a query whose rows are behind. The detail
-// holds the description, which a summary lacks. A description event moves
-// the detail to its version, sets `descriptionStale`, and queues the
-// detail's refetch. The refetch replaces the whole entry, which clears the
-// flag. Invalidations queue in two coalescers, one for the inbox and one
-// for the rest, and each flush is one `invalidateQueries` call. While a
-// mutation is in flight for a ticket, its create and update events wait.
-// On settle the mutation's response goes in first, then the held events
-// in version order, so the response never overwrites a newer row. A
-// delete is final and never waits. Every query that names the ticket is
-// cancelled and removed, so a fetch in flight never lands. The id is
-// tombstoned for `TOMBSTONE_MS`. A create, an update, or a mutation
-// response for a tombstoned id applies nothing.
+// Cached ticket rows accept only a higher version.
+// `createSettleCheck` refetches rows that miss changes during a request.
+// Description changes mark the cached text stale until its refetch completes.
+// Ticket writes hold events until the mutation response enters the cache.
+// Deleted ticket IDs block late responses for `TOMBSTONE_MS`.
 export const createEventApplier = (queryClient: QueryClient, options: { scheduler?: Scheduler } = {}): EventApplier => {
 	const scheduler = options.scheduler ?? realScheduler;
 	const general = createInvalidationCoalescer(queryClient, scheduler);
@@ -212,9 +196,22 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 				return;
 			case "comment.created":
 			case "comment.updated":
-			case "comment.deleted":
-				enqueue([forTicket(["timeline", "list"], event.ticketId), ...ticketDetail(event.ticketId)]);
+			case "comment.deleted": {
+				const threads = queryClient
+					.getQueryCache()
+					.findAll({ queryKey: [["comments", "thread"]] })
+					.filter((query) => {
+						const data = query.state.data as CommentThread | undefined;
+						const input = (query.queryKey[1] as { input: { id: string } }).input;
+						return data?.root.ticketId === event.ticketId || input.id === event.id || input.id === event.threadId;
+					});
+				enqueue([
+					forTicket(["timeline", "list"], event.ticketId),
+					...ticketDetail(event.ticketId),
+					...threads.map(forQuery),
+				]);
 				return;
+			}
 			case "attachment.created":
 			case "attachment.deleted":
 				enqueue([forTicket(["attachments", "list"], event.ticketId), ...ticketDetail(event.ticketId)]);

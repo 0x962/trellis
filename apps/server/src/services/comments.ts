@@ -3,6 +3,8 @@ import {
 	CommentCreateInputSchema,
 	type CommentDeleteOutputSchema,
 	CommentIdInputSchema,
+	CommentResolveInputSchema,
+	type CommentThread,
 	CommentUpdateInputSchema,
 	type StoredActorKind,
 } from "@trellis/api";
@@ -21,6 +23,8 @@ import { assertProjectActive, resolveTicket, type TicketRow } from "./refs.ts";
 type RawComment = {
 	id: string;
 	ticket_id: string;
+	parent_id: string | null;
+	resolved_at: string | null;
 	body: string;
 	actor_name: string;
 	actor_kind: StoredActorKind;
@@ -28,12 +32,14 @@ type RawComment = {
 	updated_at: string;
 };
 
-const commentSelect = sql`SELECT c.id, c.ticket_id, c.body, c.actor_name, c.actor_kind,
+const commentSelect = sql`SELECT c.id, c.ticket_id, c.parent_id, ${iso(sql`c.resolved_at`)} AS resolved_at, c.body, c.actor_name, c.actor_kind,
 	${iso(sql`c.created_at`)} AS created_at, ${iso(sql`c.updated_at`)} AS updated_at FROM comments c`;
 
 const toComment = (row: RawComment): Comment => ({
 	id: row.id,
 	ticketId: row.ticket_id,
+	parentId: row.parent_id,
+	resolvedAt: row.resolved_at,
 	body: row.body,
 	actor: { name: row.actor_name, kind: row.actor_kind },
 	createdAt: row.created_at,
@@ -65,19 +71,36 @@ const bumpTicket = async (ctx: ServiceCtx, tx: Tx, batchId: string, row: TicketR
 
 // The activity row of one comment write. `meta.commentId` names the comment,
 // because the activity table holds no column for it.
-const activityFor = (row: TicketRow, action: string, batchId: string, commentId: string) => ({
+const activityFor = (
+	row: TicketRow,
+	action: string,
+	batchId: string,
+	commentId: string,
+	parentId: string | null = null,
+	resolved?: boolean,
+) => ({
 	rootId: row.rootId,
 	projectId: row.projectId,
 	ticketId: row.id,
 	action,
 	batchId,
-	changes: [{ field: null, from: null, to: null, meta: { commentId } }],
+	changes: [
+		{
+			field: null,
+			from: null,
+			to: null,
+			meta: { commentId, parentId, threadId: parentId ?? commentId, ...(resolved === undefined ? {} : { resolved }) },
+		},
+	],
 });
 
 export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Comment> => {
 	const input = CommentCreateInputSchema.parse(rawInput);
 	const row = await resolveTicket(ctx, tx, input.ticket);
 	assertProjectActive(ctx, row.projectId);
+	const parent = input.parentId === undefined ? null : await commentById(tx, input.parentId);
+	if (parent !== null && parent.ticketId !== row.id) throw fail("COMMENT_PARENT_MISMATCH");
+	const parentId = parent === null ? null : (parent.parentId ?? parent.id);
 	const actor = requireActor(ctx);
 	const batchId = ulid();
 	const id = ulid();
@@ -85,11 +108,18 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	// first. The comment can be the first write of a new actor.
 	await upsert(ctx, tx, actor);
 	await tx.execute(
-		sql`INSERT INTO comments (id, ticket_id, body, actor_name, actor_kind, created_at, updated_at)
-			VALUES (${id}, ${row.id}, ${input.body}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
+		sql`INSERT INTO comments (id, ticket_id, parent_id, body, actor_name, actor_kind, created_at, updated_at)
+			VALUES (${id}, ${row.id}, ${parentId}, ${input.body}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
 	);
-	await record(ctx, tx, activityFor(row, "comment.created", batchId, id));
-	ctx.emit({ type: "comment.created", id, ticketId: row.id, projectId: row.projectId });
+	await record(ctx, tx, activityFor(row, "comment.created", batchId, id, parentId));
+	ctx.emit({
+		type: "comment.created",
+		id,
+		parentId,
+		threadId: parentId ?? id,
+		ticketId: row.id,
+		projectId: row.projectId,
+	});
 	await bumpTicket(ctx, tx, batchId, row, true);
 	return commentById(tx, id);
 };
@@ -100,8 +130,15 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const row = await ticketOfComment(ctx, tx, comment);
 	const batchId = ulid();
 	await tx.execute(sql`UPDATE comments SET body = ${input.body}, updated_at = ${ctx.now} WHERE id = ${comment.id}`);
-	await record(ctx, tx, activityFor(row, "comment.updated", batchId, comment.id));
-	ctx.emit({ type: "comment.updated", id: comment.id, ticketId: row.id, projectId: row.projectId });
+	await record(ctx, tx, activityFor(row, "comment.updated", batchId, comment.id, comment.parentId));
+	ctx.emit({
+		type: "comment.updated",
+		id: comment.id,
+		parentId: comment.parentId,
+		threadId: comment.parentId ?? comment.id,
+		ticketId: row.id,
+		projectId: row.projectId,
+	});
 	return commentById(tx, comment.id);
 };
 
@@ -114,11 +151,53 @@ const remove = async (
 	const comment = await commentById(tx, input.id);
 	const row = await ticketOfComment(ctx, tx, comment);
 	const batchId = ulid();
+	const replies = await rows(tx, sql`SELECT id FROM comments WHERE parent_id = ${comment.id} LIMIT 1`);
+	if (replies.length > 0) throw fail("COMMENT_HAS_REPLIES");
 	await tx.execute(sql`DELETE FROM comments WHERE id = ${comment.id}`);
-	await record(ctx, tx, activityFor(row, "comment.deleted", batchId, comment.id));
-	ctx.emit({ type: "comment.deleted", id: comment.id, ticketId: row.id, projectId: row.projectId });
+	await record(ctx, tx, activityFor(row, "comment.deleted", batchId, comment.id, comment.parentId));
+	ctx.emit({
+		type: "comment.deleted",
+		id: comment.id,
+		parentId: comment.parentId,
+		threadId: comment.parentId ?? comment.id,
+		ticketId: row.id,
+		projectId: row.projectId,
+	});
 	await bumpTicket(ctx, tx, batchId, row, false);
 	return { deleted: comment.id };
 };
 
 export { remove as delete };
+
+export const thread = async (_ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<CommentThread> => {
+	const input = CommentIdInputSchema.parse(rawInput);
+	const comment = await commentById(tx, input.id);
+	const root = comment.parentId === null ? comment : await commentById(tx, comment.parentId);
+	const replies = await rows<RawComment>(
+		tx,
+		sql`${commentSelect} WHERE c.parent_id = ${root.id} ORDER BY c.created_at, c.id`,
+	);
+	return { root, replies: replies.map(toComment) };
+};
+
+export const resolve = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Comment> => {
+	const input = CommentResolveInputSchema.parse(rawInput);
+	const comment = await commentById(tx, input.id);
+	const root = comment.parentId === null ? comment : await commentById(tx, comment.parentId);
+	const row = await ticketOfComment(ctx, tx, root);
+	if ((root.resolvedAt !== null) === input.resolved) return root;
+	const batchId = ulid();
+	await tx.execute(sql`UPDATE comments SET resolved_at = ${input.resolved ? ctx.now : null} WHERE id = ${root.id}`);
+	await record(ctx, tx, activityFor(row, "comment.updated", batchId, root.id, null, input.resolved));
+	ctx.emit({
+		type: "comment.updated",
+		id: root.id,
+		parentId: null,
+		threadId: root.id,
+		resolved: input.resolved,
+		ticketId: row.id,
+		projectId: row.projectId,
+	});
+	await bumpTicket(ctx, tx, batchId, row, true);
+	return commentById(tx, root.id);
+};

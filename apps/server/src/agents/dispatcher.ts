@@ -104,11 +104,11 @@ const describe = ({ event, actor }: Change, names: Map<string, string>) => {
 		case "ticket.deleted":
 			return `${event.summary.identifier} deleted ${by}`;
 		case "comment.created":
-			return `${name(event.ticketId)} commented ${by}`;
+			return `${name(event.ticketId)} commented ${by}${event.threadId === undefined ? "" : ` (${event.id}${event.parentId ? `, reply to ${event.parentId}` : ""})`}`;
 		case "comment.updated":
-			return `${name(event.ticketId)} comment edited ${by}`;
+			return `${name(event.ticketId)} comment ${event.resolved === undefined ? "edited" : event.resolved ? "resolved" : "reopened"} ${by}${event.threadId === undefined ? "" : ` (${event.id}${event.parentId ? `, reply to ${event.parentId}` : ""})`}`;
 		case "comment.deleted":
-			return `${name(event.ticketId)} comment deleted ${by}`;
+			return `${name(event.ticketId)} comment deleted ${by}${event.threadId === undefined ? "" : ` (${event.id}${event.parentId ? `, reply to ${event.parentId}` : ""})`}`;
 		case "attachment.created":
 			return `${name(event.ticketId)} attachment added ${by}`;
 		case "attachment.deleted":

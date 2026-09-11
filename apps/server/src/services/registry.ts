@@ -73,6 +73,8 @@ export const services = {
 	"tickets.deleteMany": core("mutation", tickets.deleteMany),
 	"tickets.delete": core("mutation", tickets.delete),
 	"timeline.list": core("read", timeline.list),
+	"comments.thread": core("read", comments.thread),
+	"comments.resolve": core("mutation", comments.resolve),
 	"comments.create": core("mutation", comments.create),
 	"comments.update": core("mutation", comments.update),
 	"comments.delete": core("mutation", comments.delete),

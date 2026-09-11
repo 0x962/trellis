@@ -207,3 +207,47 @@ describe("dispatcher recent batches", () => {
 		expect(times).toEqual([...times].sort().reverse());
 	});
 });
+
+test("a reply wake names the reply and root so the manager can read its thread", async () => {
+	const threadId = ulid();
+	const replyId = ulid();
+	bus.emit(
+		{ type: "comment.created", id: replyId, ticketId: TICKETS[0]!, projectId: CDE, parentId: threadId, threadId },
+		NAVID,
+	);
+	await clock.advance(10_000);
+	expect(batches[0]!.text).toContain(replyId);
+	expect(batches[0]!.text).toContain(`reply to ${threadId}`);
+});
+
+test("a resolution wake names the thread and its new state", async () => {
+	const id = ulid();
+	bus.emit(
+		{
+			type: "comment.updated",
+			id,
+			ticketId: TICKETS[0]!,
+			projectId: CDE,
+			parentId: null,
+			threadId: id,
+			resolved: true,
+		},
+		NAVID,
+	);
+	await clock.advance(10_000);
+	expect(batches[0]!.text).toContain(`comment resolved by navid (${id})`);
+	bus.emit(
+		{
+			type: "comment.updated",
+			id,
+			ticketId: TICKETS[0]!,
+			projectId: CDE,
+			parentId: null,
+			threadId: id,
+			resolved: false,
+		},
+		NAVID,
+	);
+	await clock.advance(10_000);
+	expect(batches[1]!.text).toContain(`comment reopened by navid (${id})`);
+});

@@ -75,6 +75,12 @@ export const TicketChildEventPayloadSchema = z.object({
 	projectId: UlidSchema.optional(),
 });
 
+export const CommentEventPayloadSchema = TicketChildEventPayloadSchema.extend({
+	parentId: UlidSchema.nullable().optional(),
+	threadId: UlidSchema.optional(),
+	resolved: z.boolean().optional(),
+});
+
 export const StatusesChangedPayloadSchema = z.object({
 	projectId: UlidSchema,
 });
@@ -131,9 +137,9 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("pr.linked", PrEventPayloadSchema),
 	typed("pr.unlinked", PrEventPayloadSchema),
 	typed("pr.updated", PrEventPayloadSchema),
-	typed("comment.created", TicketChildEventPayloadSchema),
-	typed("comment.updated", TicketChildEventPayloadSchema),
-	typed("comment.deleted", TicketChildEventPayloadSchema),
+	typed("comment.created", CommentEventPayloadSchema),
+	typed("comment.updated", CommentEventPayloadSchema),
+	typed("comment.deleted", CommentEventPayloadSchema),
 	typed("attachment.created", TicketChildEventPayloadSchema),
 	typed("attachment.deleted", TicketChildEventPayloadSchema),
 	typed("statuses.changed", StatusesChangedPayloadSchema),
