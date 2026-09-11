@@ -48,7 +48,7 @@ describe("routes/agents", () => {
 	// list holds what a manager was woken with.
 	test("lists the batches the dispatcher sent", async () => {
 		const server = createTestServer();
-		const { clock } = await server.startAgents();
+		const { clock, host } = await server.startAgents();
 		const project = await server.client.projects.get({ project: "CDE" });
 		await server.client.agents.setSettings({
 			runner: "superset",
@@ -64,6 +64,8 @@ describe("routes/agents", () => {
 				},
 			],
 		});
+		// The host watches the project after the settings change lands.
+		await host.idle();
 		await server.client.tickets.create({ project: "CDE", title: "A change the manager hears about" });
 		await clock.advance(QUIET_MS);
 

@@ -49,7 +49,7 @@ describe("routes/__root identity", () => {
 	// stores it, so every later browser agrees with it.
 	test("a name cached before the server stored one is saved to the server", async () => {
 		const server = createTestServer();
-		await clearStoredActorName();
+		await clearStoredActorName(server);
 		const { router } = renderApp({ path: "/needs-you", actor: "navid", server });
 		await waitFor(() => expect(router.state.location.pathname).toBe("/needs-you"));
 		await waitFor(() => expect(lastCallTo(server, "settings.set")?.input).toMatchObject({ defaultActorName: "navid" }));
@@ -59,7 +59,7 @@ describe("routes/__root identity", () => {
 
 	test("with projects and no stored name, a fresh browser adopts and stores the server default", async () => {
 		const server = createTestServer();
-		await clearStoredActorName();
+		await clearStoredActorName(server);
 		// Without a stored name the server reports the machine name.
 		const machine = (await server.client.actors.default()).name;
 		const { router } = renderApp({ path: "/", server });

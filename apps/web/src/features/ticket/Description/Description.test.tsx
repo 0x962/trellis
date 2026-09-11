@@ -6,7 +6,7 @@ import { summaryOf, updatedEvent } from "../../../../test/events";
 import { createFakeScheduler } from "../../../../test/fakeScheduler";
 import { captureIdle } from "../../../../test/idle";
 import { press } from "../../../../test/keyboard";
-import { ticketRow } from "../../../../test/rows";
+import { patchTicket, ticketRow } from "../../../../test/rows";
 import { createTestServer, type TestServer } from "../../../../test/server";
 import { ago, hour, renderTicket, settle } from "../../../../test/ticketHost";
 import { editorChunk } from "./components/LazyEditor";
@@ -114,10 +114,7 @@ describe("features/ticket/Description", () => {
 			queryClient.setQueryData<Ticket>(key, (data) => ({ ...data!, descriptionStale: true }));
 		});
 		const reload = await screen.findByRole("button", { name: "Reload" });
-		await server.clientAs("agent:claude-code").tickets.update({
-			ticket: "CDE-42",
-			description: "The agent rewrote this.",
-		});
+		await patchTicket(server, "CDE-42", { description: "The agent rewrote this." });
 		await user.click(reload);
 		await waitFor(() => expect(document.querySelector(".markdown")!.textContent).toContain("The agent rewrote this."));
 		expect(queryClient.getQueryData<Ticket>(key)!.descriptionStale).toBeUndefined();

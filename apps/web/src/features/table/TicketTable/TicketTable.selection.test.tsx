@@ -16,7 +16,7 @@ beforeEach(() => {
 // 977 seeded todo rows and the 23 of the seed make 1000 todo tickets.
 const ready = async () => {
 	const server = createTestServer();
-	seedTickets(server, { project: "CDE", count: 977 });
+	await seedTickets(server, { project: "CDE", count: 977 });
 	const app = renderApp({ path: "/p/CDE?status=todo", actor: "navid", server });
 	await findGrid();
 	await waitFor(() => expect(grid().getAttribute("aria-rowcount")).toBe("1000"), { timeout: 15_000 });

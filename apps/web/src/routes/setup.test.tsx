@@ -3,7 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { callsTo } from "../../test/inbox";
 import { renderApp } from "../../test/renderWithProviders";
-import { clearStoredActorName, setSetting, storedActorName } from "../../test/rows";
+import { clearStoredActorName, storedActorName } from "../../test/rows";
 import { createTestServer } from "../../test/server";
 
 beforeEach(() => localStorage.clear());
@@ -100,9 +100,11 @@ describe("routes/setup", () => {
 	test("the name step pre-fills defaultActorName and saves the name to the server", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer({ empty: true });
-		await setSetting("defaultActorName", "navidkhan");
+		// The name step shows while no name is stored, so the field is
+		// pre-filled with the machine name the server reports.
+		const machine = (await server.client.actors.default()).name;
 		renderApp({ path: "/setup", server });
-		const input = await screen.findByDisplayValue("navidkhan");
+		const input = await screen.findByDisplayValue(machine);
 		await user.clear(input);
 		await user.type(input, "navid{Enter}");
 		expect(await screen.findByRole("heading", { name: "Create your first project" })).toBeDefined();
@@ -117,13 +119,14 @@ describe("routes/setup", () => {
 	test("with projects on the server, /setup never asks for a name or a first project", async () => {
 		for (const stored of [true, false]) {
 			const server = createTestServer();
-			if (!stored) await clearStoredActorName();
+			if (!stored) await clearStoredActorName(server);
+			const name = (await server.client.actors.default()).name;
 			const view = renderApp({ path: "/setup", server });
 			await waitFor(() => expect(view.router.state.location.pathname, String(stored)).toBe("/needs-you"));
 			expect(screen.queryByRole("heading", { name: "Enter your name" })).toBeNull();
 			expect(screen.queryByRole("heading", { name: "Create your first project" })).toBeNull();
 			expect(screen.queryByRole("heading", { name: "New project" })).toBeNull();
-			expect(localStorage.getItem("trellis.actor")).toBe('{"name":"navid","kind":"human"}');
+			expect(localStorage.getItem("trellis.actor")).toBe(JSON.stringify({ name, kind: "human" }));
 			view.unmount();
 			localStorage.clear();
 		}

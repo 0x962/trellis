@@ -21,7 +21,7 @@ describe("features/table/GroupHeader", () => {
 	// Outcome 28. 8 seeded rows and the 4 of the seed make 12.
 	test("shows the status icon, name, count, and the create button", async () => {
 		const server = createTestServer();
-		seedTickets(server, { project: "CDE", count: 8, status: "in-progress" });
+		await seedTickets(server, { project: "CDE", count: 8, status: "in-progress" });
 		renderApp({ path, actor: "navid", server });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-44"));

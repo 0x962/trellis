@@ -35,7 +35,7 @@ describe("features/table/hooks/useTableData: the Done and Canceled groups", () =
 	// Outcome 5. 15 seeded rows and the 19 of the seed make 34.
 	test("loads the Done group's first page only when the group expands", async () => {
 		const server = createTestServer();
-		seedTickets(server, { project: "CDE", count: 15, status: "done" });
+		await seedTickets(server, { project: "CDE", count: 15, status: "done" });
 		const { result, rerender } = mount(server);
 		await waitFor(() => expect(result.current.rows).toHaveLength(31));
 		await sleep(100);
@@ -57,7 +57,7 @@ describe("features/table/hooks/useTableData: the Done and Canceled groups", () =
 	// 50, then 10 more.
 	test("pages the Done group with its own cursor", async () => {
 		const server = createTestServer();
-		seedTickets(server, { project: "CDE", count: 41, status: "done" });
+		await seedTickets(server, { project: "CDE", count: 41, status: "done" });
 		const { result } = mount(server, viewOf({}), ["done"]);
 		await waitFor(() => expect(result.current.closed!.done.rows).toHaveLength(50), { timeout: 10_000 });
 		expect(result.current.closed!.done.hasMore).toBe(true);

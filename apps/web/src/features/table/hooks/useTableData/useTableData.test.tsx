@@ -35,7 +35,7 @@ describe("features/table/hooks/useTableData", () => {
 	// Outcome 1. 419 seeded rows and the 31 of the seed make 450.
 	test("loads every active ticket in 200-row pages until the cursor is exhausted", async () => {
 		const server = createTestServer();
-		seedTickets(server, { project: "CDE", count: 419 });
+		await seedTickets(server, { project: "CDE", count: 419 });
 		const { result } = mount(server);
 		await waitFor(() => expect(result.current.rows).toHaveLength(450), { timeout: 15_000 });
 		const pages = activePages(server);
@@ -51,7 +51,7 @@ describe("features/table/hooks/useTableData", () => {
 	// Outcome 2. 2369 seeded rows and the 31 of the seed make 2400.
 	test("stops loading at the 2000-row cap and reports the list as capped", async () => {
 		const server = createTestServer();
-		seedTickets(server, { project: "CDE", count: 2369 });
+		await seedTickets(server, { project: "CDE", count: 2369 });
 		const { result } = mount(server);
 		await waitFor(() => expect(result.current.rows).toHaveLength(2000), { timeout: 20_000 });
 		await sleep(300);

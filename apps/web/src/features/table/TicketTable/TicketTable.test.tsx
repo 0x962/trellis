@@ -31,7 +31,7 @@ describe("features/table/TicketTable", () => {
 	// Outcome 3. 2369 seeded rows and the 31 of the seed make 2400.
 	test("shows the cap banner above the rows when the list is capped", async () => {
 		const server = createTestServer();
-		seedTickets(server, { project: "CDE", count: 2369 });
+		await seedTickets(server, { project: "CDE", count: 2369 });
 		renderApp({ path: "/p/CDE", actor: "navid", server });
 		await findGrid();
 		await waitFor(() => expect(banner()).not.toBeNull(), { timeout: 20_000 });
@@ -81,7 +81,7 @@ describe("features/table/TicketTable", () => {
 	// groups there is no header, so the spacer is the rows alone.
 	test("virtualizes 1000 rows and sizes the scroller from the fixed row height", async () => {
 		const server = createTestServer();
-		seedTickets(server, { project: "CDE", count: 969 });
+		await seedTickets(server, { project: "CDE", count: 969 });
 		renderApp({ path: "/p/CDE?group=none", actor: "navid", server });
 		await findGrid();
 		await waitFor(() => expect(grid().getAttribute("aria-rowcount")).toBe("1000"), { timeout: 15_000 });

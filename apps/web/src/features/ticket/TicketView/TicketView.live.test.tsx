@@ -92,11 +92,7 @@ describe("features/ticket/TicketView live", () => {
 		const { server, queryClient, cached } = await page();
 		const before = cached();
 		const gets = server.callsTo("tickets.get").length;
-		await server.clientAs("agent:claude-code").tickets.update({
-			ticket: "CDE-42",
-			description: "The agent rewrote this.",
-		});
-		await patchTicket(server, "CDE-42", { version: 18 });
+		await patchTicket(server, "CDE-42", { description: "The agent rewrote this.", version: 18 });
 		const summary = { ...summaryOf(before as unknown as Record<string, unknown>), version: 18 };
 		act(() => applyEvent(updatedEvent(summary, ["description"]), queryClient));
 		expect(document.querySelector(".markdown")!.textContent).toContain("1.27");
