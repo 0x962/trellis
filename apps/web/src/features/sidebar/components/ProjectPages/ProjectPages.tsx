@@ -4,7 +4,10 @@ import { cx } from "@trellis/ui";
 import { List, Settings } from "lucide-react";
 import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectPath";
 
-const indent = ["pl-2", "pl-7", "pl-12", "pl-17", "pl-22"] as const;
+// A page carries no chevron, so its padding adds that 20 px column to the
+// padding of the project row above it. The icon of a page then starts in
+// the same column as the icon of a sub-project at the same level.
+const indent = ["pl-6", "pl-10", "pl-14", "pl-18", "pl-22"] as const;
 
 export function ProjectPages({
 	project,
@@ -32,7 +35,7 @@ export function ProjectPages({
 								activeOptions={{ exact: true, includeSearch: false }}
 								aria-current={active ? "page" : undefined}
 								className={cx(
-									"flex h-8 items-center pr-1 text-sm text-fg-muted transition-colors duration-hover hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11",
+									"sidebar-row text-sm text-fg-muted hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
 									indent[Math.min(depth, indent.length - 1)],
 									active && "sidebar-selected font-medium",
 								)}

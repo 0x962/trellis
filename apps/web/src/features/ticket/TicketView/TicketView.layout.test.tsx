@@ -15,7 +15,7 @@ const mountPeek = () =>
 		actor: "navid",
 	});
 
-test("the peek uses a bounded main column beside the property rail", async () => {
+test("the peek header spans the body and the full-height property rail", async () => {
 	mountPeek();
 	const title = await screen.findByRole("textbox", { name: "Title" });
 	const body = title.closest<HTMLElement>("[data-ticket-content]")!;
@@ -27,9 +27,20 @@ test("the peek uses a bounded main column beside the property rail", async () =>
 	expect(within(body).queryByText("CDE-42")).toBeNull();
 	const rail = screen.getByLabelText("Properties");
 	expect(rail.tagName).toBe("ASIDE");
-	expect(rail.className).toMatch(/\bsticky\b/);
-	expect(rail.className).toMatch(/\btop-0\b/);
-	expect(body.compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+	const columns = body.closest<HTMLElement>("[data-ticket-columns]")!;
+	expect(columns).not.toBeNull();
+	expect(columns.contains(header)).toBe(false);
+	expect(header.compareDocumentPosition(columns) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+	expect(columns.contains(rail)).toBe(true);
+	expect(rail.className).toMatch(/\bh-full\b/);
+});
+
+test("the description keeps a minimum reading area", async () => {
+	mountPeek();
+	await screen.findByRole("textbox", { name: "Title" });
+	const description = document.querySelector<HTMLElement>("[data-ticket-description]")!;
+	expect(description).not.toBeNull();
+	expect(description.className).toMatch(/\bmin-h-24\b/);
 });
 
 test("the peek keeps navigation without an approval bar", async () => {
