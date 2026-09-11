@@ -7,6 +7,7 @@ import { Topbar } from "../features/shell/Topbar";
 export const Route = createFileRoute("/agents")({
 	loader: ({ context }) =>
 		Promise.all([
+			context.queryClient.ensureQueryData(context.orpc.agentRuns.list.queryOptions({ input: {} })),
 			context.queryClient.ensureQueryData(context.orpc.agents.overview.queryOptions({})),
 			context.queryClient.ensureQueryData(context.orpc.projects.list.queryOptions({ input: {} })),
 		]),

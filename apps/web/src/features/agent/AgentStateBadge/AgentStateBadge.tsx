@@ -1,15 +1,17 @@
-import type { AgentState } from "@trellis/api";
+import type { AgentRun, AgentState } from "@trellis/api";
 import { Badge, type BadgeTone } from "@trellis/ui";
 
 export type AgentStateBadgeProps = {
-	// `off` is a manager with no session that holds a terminal.
-	state: AgentState | "off";
+	// `off` is a manager with no session that holds a terminal. An agent run
+	// adds `interrupted`: the runner lost the terminal of a live agent.
+	state: AgentState | AgentRun["state"] | "off";
 };
 
 const looks: Record<AgentStateBadgeProps["state"], { label: string; tone: BadgeTone }> = {
 	starting: { label: "Starting", tone: "wait" },
 	running: { label: "Running", tone: "ok" },
 	waiting: { label: "Waiting", tone: "accent" },
+	interrupted: { label: "Interrupted", tone: "wait" },
 	exited: { label: "Exited", tone: "bad" },
 	failed: { label: "Failed", tone: "bad" },
 	stopped: { label: "Stopped", tone: "neutral" },

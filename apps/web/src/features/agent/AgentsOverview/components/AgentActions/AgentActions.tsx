@@ -11,8 +11,24 @@ export type AgentActionsProps = {
 
 // The last writes of the manager, builder, and reviewer agents, newest
 // first. Each line names the agent, its ticket, and what it changed.
+//
+// The source is the activity of an actor named `manager-`, `builder-`, or
+// `reviewer-`, which is what an agent that trellis itself runs writes as.
+// An agent started from a persona writes as `agent:<run id>`, so it never
+// lands here. The empty state says so, because the Sessions list above can
+// hold agents that this list cannot.
 export function AgentActions({ actions, identifiers }: AgentActionsProps) {
-	if (actions.length === 0) return <p className="px-3 py-2 text-fg-faint text-sm">No agent actions yet.</p>;
+	if (actions.length === 0) {
+		return (
+			<div className="flex flex-col gap-1 px-3 py-2 text-fg-faint text-sm">
+				<p>No agent actions yet.</p>
+				<p>
+					This list holds the manager, builder, and reviewer agents that trellis itself runs. An agent started from a
+					persona writes under its run id, so it has no line here.
+				</p>
+			</div>
+		);
+	}
 	return (
 		<ul aria-label="Agent actions" className="flex flex-col">
 			{actions.map((action) => (
