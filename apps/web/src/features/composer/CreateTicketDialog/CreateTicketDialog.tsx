@@ -126,15 +126,14 @@ export function CreateTicketDialog() {
 			onOpenChange={(next) => !next && requestClose()}
 			title="New ticket"
 			size="lg"
+			bare
 			initialFocus={titleRef}
-			header={
+			className="gap-0 bg-surface p-0"
+		>
+			<div className="flex min-h-0 flex-col">
 				<div className="border-b border-border p-4">
 					<ComposerHeader project={chosenProject} onClose={requestClose} />
 				</div>
-			}
-			className="gap-0 p-0"
-		>
-			<div className="flex min-h-0 flex-col">
 				<div className="flex flex-1 flex-col gap-4 p-6 max-md:p-4">
 					<input
 						ref={titleRef}
