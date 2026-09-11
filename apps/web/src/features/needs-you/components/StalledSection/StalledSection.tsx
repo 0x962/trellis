@@ -33,7 +33,7 @@ export function StalledSection() {
 			onRowActive={(ticket) => setFocusedId(ticket.identifier)}
 			isSweeping={isSweeping}
 			renderActions={(ticket) => (
-				<StalledActions ticket={ticket} onMoveToTodo={() => move(ticket, "todo", section.items.indexOf(ticket))} />
+				<StalledActions onMoveToTodo={() => move(ticket, "todo", section.items.indexOf(ticket))} />
 			)}
 		/>
 	);

@@ -48,6 +48,6 @@ describe("NeedsYou active row", () => {
 		const other = await rowOf(inbox.stalled.items[0]!.identifier);
 		fireEvent.pointerOver(other);
 		await waitFor(() => expect(activeRows()).toEqual([other]));
-		expect(other.querySelector("[data-start-with-agent]")).not.toBeNull();
+		expect(other.querySelector("[data-move-to-todo]")).not.toBeNull();
 	});
 });

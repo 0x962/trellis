@@ -44,7 +44,6 @@ const planRows = [
 	"mod+c@ticket",
 	"mod+shift+c@ticket",
 	"mod+.@ticket",
-	"mod+shift+a@ticket",
 	"mod+shift+b@ticket",
 	"mod+enter@composer",
 	"mod+shift+enter@composer",

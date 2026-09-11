@@ -268,11 +268,6 @@ describe("agents procedures", () => {
 		expect(replaced.body).toEqual({ runner: "superset", enabled: false, projects: [] });
 		expect((await a.t.api("/api/agents/settings", { actor: null })).body).toEqual(replaced.body);
 		const general = await a.t.api("/api/settings", { actor: null });
-		expect(Object.keys(general.body).sort()).toEqual([
-			"defaultActorName",
-			"diffUrlTemplate",
-			"stalledHours",
-			"startWithAgentTemplate",
-		]);
+		expect(Object.keys(general.body).sort()).toEqual(["defaultActorName", "diffUrlTemplate", "stalledHours"]);
 	});
 });

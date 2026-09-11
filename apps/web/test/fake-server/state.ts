@@ -124,7 +124,6 @@ export const createState = (): State => ({
 	blobs: new Map(),
 	actors: new Map(),
 	settings: {
-		startWithAgentTemplate: 'claude "$(trellis brief {brief})"',
 		defaultActorName: "navid",
 		stalledHours: 24,
 		diffUrlTemplate: "{url}/files",
