@@ -77,7 +77,7 @@ export function PersonaPicker({ ticket, disabled }: { ticket: string; disabled: 
 			}}
 			className="w-80 max-w-[calc(100vw-var(--spacing)*8)] p-0"
 			trigger={
-				<Button variant="quiet" align="start" icon={<Plus />} disabled={disabled}>
+				<Button variant="quiet" align="start" icon={<Plus />} className="-ml-2.5" disabled={disabled}>
 					New agent
 				</Button>
 			}

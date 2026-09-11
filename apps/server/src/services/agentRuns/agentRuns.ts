@@ -23,20 +23,53 @@ import type { ServiceCtx } from "../support.ts";
 import { columns, getRun } from "./queries.ts";
 
 type Ctx = ServiceCtx & { core: CoreCtx; supersetBin: string; localUrl: string };
-const firstNames = ["Ada", "Alma", "Arlo", "Cleo", "Ellis", "Iris", "Jules", "Milo", "Nora", "Rowan", "Sage", "Theo"];
-const lastNames = [
-	"Birch",
-	"Brooks",
-	"Cedar",
-	"Finch",
-	"Fox",
-	"Grove",
-	"Lake",
-	"Moss",
-	"Reed",
-	"Stone",
-	"Vale",
+// An agent gets one name, and a person says it out loud: "ask Jules". The
+// list is long enough that two agents in one project rarely take the same
+// name, and short enough that every name stays easy to say.
+const names = [
+	"Ada",
+	"Alma",
+	"Arlo",
+	"Bo",
+	"Cleo",
+	"Dara",
+	"Eli",
+	"Ellis",
+	"Esme",
+	"Finn",
+	"Gus",
+	"Hana",
+	"Ida",
+	"Iris",
+	"Ivo",
+	"Jules",
+	"Juno",
+	"Kai",
+	"Lena",
+	"Levi",
+	"Lior",
+	"Maya",
+	"Milo",
+	"Nadia",
+	"Nell",
+	"Nico",
+	"Nora",
+	"Olin",
+	"Otto",
+	"Pia",
+	"Quinn",
+	"Remy",
+	"Rowan",
+	"Sage",
+	"Shai",
+	"Sol",
+	"Tess",
+	"Theo",
+	"Uma",
+	"Vera",
 	"Wren",
+	"Yara",
+	"Zev",
 ];
 
 export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
@@ -81,7 +114,7 @@ const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
 		)})`,
 	);
 	if (repos.length === 0) throw invalidInput("project", "Add a repository to the project before you start an agent.");
-	const name = `${firstNames[randomInt(firstNames.length)]} ${lastNames[randomInt(lastNames.length)]}`;
+	const name = names[randomInt(names.length)]!;
 	await upsert(ctx, tx, actor);
 	const [run] = await rows<AgentRun>(
 		tx,

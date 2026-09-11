@@ -2,7 +2,7 @@
 	"name": "trellis",
 	"private": true,
 	"description": "A local ticket tracker for work that humans give to coding agents.",
-	"license": "MIT",
+	"license": "Apache-2.0",
 	"homepage": "https://github.com/0x962/trellis#readme",
 	"repository": {
 		"type": "git",

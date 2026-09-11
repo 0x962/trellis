@@ -127,6 +127,13 @@
       "when": 1789099234298,
       "tag": "0020_restore_agents",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789140757700,
+      "tag": "0021_white_pyro",
+      "breakpoints": true
     }
   ]
 }

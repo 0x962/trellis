@@ -289,4 +289,6 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development loop, the TDD rules,
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Apache License 2.0. See [LICENSE](LICENSE).
+
+If you redistribute trellis, or a work derived from it, you must keep the [NOTICE](NOTICE) file and state the files that you changed.
