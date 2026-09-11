@@ -31,7 +31,7 @@ BEGIN
 	)
 	SELECT string_agg("path", ', ' ORDER BY "path") INTO "held" FROM "tree" WHERE "slug" = 'table';
 	IF "held" IS NOT NULL THEN
-		RAISE EXCEPTION 'These projects hold the slug "table", which is now a reserved web route: %. The server does not start until no project holds it, and no API answers while this message stands. Change each project with an UPDATE on its projects row. A name with a dot is a sub-project: set its slug to any free slug. A name with no dot is a root: set its key to a name that is not a reserved web route, and set its slug to the lower-cased form of that new key. A root URL is built from its key, so a root that keeps its key keeps its broken URL. Then run the install again.', "held";
+		RAISE EXCEPTION 'These projects hold the slug "table", which is now a reserved web route: %. The server does not start until no project holds it, and no API answers while this message stands. Change each project with an UPDATE on its projects row. A name with a dot is a sub-project: set its slug to a free slug. A slug is free when no other project under the same parent holds it and it is not board, table, or settings. A name with no dot is a root: set its key to a name that is not a reserved web route, and set its slug to the lower-cased form of that new key. A key is upper case: one letter, then 1 to 9 more letters or digits. A root URL is built from its key, so a root that keeps its key keeps its broken URL. Then run the install again.', "held";
 	END IF;
 END $$;--> statement-breakpoint
 ALTER TABLE "projects" DROP CONSTRAINT "projects_slug_check";--> statement-breakpoint
