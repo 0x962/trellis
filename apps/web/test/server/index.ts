@@ -84,9 +84,9 @@ const authResult = (status: GhStatus): GhResult =>
 				stdout: `github.com\n  Logged in to github.com account ${status.user} (keyring)\n`,
 				stderr: "",
 			}
-		: status.reason === "error"
-			? { ok: false, reason: "error", message: status.message ?? "gh did not answer.", code: 1, stdout: "" }
-			: { ok: false, reason: status.reason ?? "error", message: status.message ?? "" };
+		: status.reason === "missing" || status.reason === "unauthenticated"
+			? { ok: false, reason: status.reason, message: status.message ?? "" }
+			: { ok: false, reason: "error", message: status.message ?? "gh did not answer.", code: 1, stdout: "" };
 
 // The runner the app spawns, with `auth status` answered in the process. A
 // pull request fetch still reaches the gh stub, so a poll and a refresh run

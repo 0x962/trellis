@@ -5,7 +5,6 @@ import { mockMatchMedia } from "../../../../../../test/media";
 import { callsTo, ghReady, lastCallTo, summaryOf } from "../../../../../../test/prs";
 import { renderWithProviders } from "../../../../../../test/renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../../../test/server";
-import { ghCopy } from "../../../../../lib/ghCopy";
 import { PullRequests } from "../../PullRequests";
 
 beforeEach(() => {

@@ -39,7 +39,9 @@ describe("AttachmentBox", () => {
 		await boxOf();
 		await user.upload(pickerOf(), fileOf("notes.txt", "text/plain", 12));
 		await screen.findByText("notes.txt");
-		expect(callsTo(server, "attachments.upload")).toHaveLength(1);
+		// The row paints from the upload in flight, so the call is counted
+		// once the server has it.
+		await waitFor(() => expect(callsTo(server, "attachments.upload")).toHaveLength(1));
 	});
 
 	// OUT-23. Nothing on the box needs a mouse.

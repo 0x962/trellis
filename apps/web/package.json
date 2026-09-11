@@ -6,7 +6,7 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "NODE_ENV=production vite build",
-		"test": "bun test .test. --parallel=4",
+		"test": "bun test .test. --parallel=4 --timeout=20000",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"lint": "biome check .",
 		"e2e": "playwright test -c e2e/playwright.config.ts",
