@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { PriorityIcon, StatusIcon, useMediaQuery } from "@trellis/ui";
+import { EmptyState, PriorityIcon, StatusIcon, useMediaQuery } from "@trellis/ui";
+import { Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
 import { compactRelativeTime, formatCount } from "../../../lib/format";
@@ -43,6 +44,23 @@ export function SearchResults({ q, filters = {}, children }: SearchResultsProps)
 		(ticket) => filters.priority === undefined || filters.priority.includes(ticket.priority),
 	);
 	const peekRows = visibleTickets.map((ticket) => ({ identifier: ticket.identifier, visible: true }));
+	// TRL-35. With no ticket and no project left, the page takes the same
+	// empty state it shows with no query, and the title names the query. A
+	// summary line that reads "0 tickets" over an empty page states the count
+	// and nothing else.
+	if (visibleTickets.length === 0 && projects.length === 0) {
+		return (
+			<PeekListProvider rows={peekRows}>
+				<EmptyState
+					variant="page"
+					icon={<Search />}
+					title={`No results for '${q}'`}
+					description="No ticket title, no ticket description, and no project name holds this text. Check the spelling, or search for one word."
+				/>
+				{children}
+			</PeekListProvider>
+		);
+	}
 	return (
 		<PeekListProvider rows={peekRows}>
 			<div className="flex flex-col">

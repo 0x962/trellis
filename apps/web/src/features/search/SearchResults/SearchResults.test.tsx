@@ -50,4 +50,31 @@ describe("features/search/SearchResults", () => {
 		expect(cells[0]!.getAttribute("colspan")).toBe("2");
 		expect(cells[2]!.getAttribute("colspan")).toBe("3");
 	});
+
+	// TRL-35. A query that matches no ticket and no project reaches the same
+	// empty state the page shows with no query, and the title names the query.
+	// The bare "0 tickets" line over an empty page is gone.
+	test("a query that matches nothing shows the empty state with the query in the title", async () => {
+		renderApp({ path: "/search?q=zzqqwxyv", actor: "dana" });
+		expect(await screen.findByRole("heading", { name: "No results for 'zzqqwxyv'" })).toBeDefined();
+		expect(screen.queryByRole("grid", { name: "Search results" })).toBeNull();
+		expect(screen.queryByText(/0 tickets/)).toBeNull();
+	});
+
+	// The empty state belongs to the zero-result case only. A query that
+	// matches still lists its rows.
+	test("a query that matches lists its rows and shows no empty state", async () => {
+		renderApp({ path: "/search?q=oauth", actor: "dana" });
+		const grid = await screen.findByRole("grid", { name: "Search results" });
+		await waitFor(() => expect(within(grid).getAllByRole("row").length).toBeGreaterThan(0));
+		expect(screen.queryByRole("heading", { name: /^No results for/ })).toBeNull();
+	});
+
+	// A filter that removes every ticket of a matching query reaches the same
+	// state, because the page then has nothing to list either.
+	test("a filter that removes every match shows the empty state", async () => {
+		renderApp({ path: "/search?q=oauth&priority=none", actor: "dana" });
+		expect(await screen.findByRole("heading", { name: "No results for 'oauth'" })).toBeDefined();
+		expect(screen.queryByRole("grid", { name: "Search results" })).toBeNull();
+	});
 });

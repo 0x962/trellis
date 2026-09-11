@@ -255,6 +255,37 @@ describe("routes/p/$", () => {
 		expect(screen.getByText(/The key cannot change after the project has a ticket\./)).toBeDefined();
 	});
 
+	// TRL-37. The form holds two fields a person cannot edit, Key and Slug,
+	// and they sat side by side in two different states: Slug was disabled and
+	// drew at half opacity, Key was read-only alone and drew like the editable
+	// Project name field beside it. One form said "you cannot edit this" in two
+	// ways, and one of the two was invisible. Both fields now carry the same
+	// state and the same class, so they look alike and the editable field does
+	// not.
+	test("the key field and the slug field of a root project carry one read-only state", async () => {
+		renderApp({ path: "/p/CDE/settings", actor: "dana" });
+		const key = (await screen.findByRole("textbox", { name: "Key" })) as HTMLInputElement;
+		const slug = screen.getByRole("textbox", { name: "Slug" }) as HTMLInputElement;
+		const name = screen.getByRole("textbox", { name: "Project name" }) as HTMLInputElement;
+		expect([key.readOnly, key.disabled]).toEqual([slug.readOnly, slug.disabled]);
+		expect([key.readOnly, key.disabled]).toEqual([true, true]);
+		// The Input primitive draws a disabled field at half opacity.
+		expect(key.className).toMatch(/\bdisabled:opacity-50\b/);
+		expect(slug.className).toMatch(/\bdisabled:opacity-50\b/);
+		// The one editable field of the pair stays editable.
+		expect([name.readOnly, name.disabled]).toEqual([false, false]);
+	});
+
+	// A sub-project owns its slug, so the slug stays editable there. The key
+	// is the root's key on every project under it, so it never is.
+	test("a sub-project keeps an editable slug and a locked key", async () => {
+		renderApp({ path: "/p/CDE/web/settings", actor: "dana" });
+		const key = (await screen.findByRole("textbox", { name: "Key" })) as HTMLInputElement;
+		const slug = screen.getByRole("textbox", { name: "Slug" }) as HTMLInputElement;
+		expect([key.readOnly, key.disabled]).toEqual([true, true]);
+		expect([slug.readOnly, slug.disabled]).toEqual([false, false]);
+	});
+
 	test("repositories add and remove through projects.setRepos", async () => {
 		const user = userEvent.setup();
 		const { server } = renderApp({ path: "/p/CDE/web/settings#repositories", actor: "dana" });

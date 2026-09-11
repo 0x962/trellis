@@ -64,10 +64,15 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 							onChange={(event) => setSlug(event.target.value)}
 						/>
 					</div>
+					{/* TRL-37. The key is read-only on every project, so it takes the
+					    treatment the read-only slug takes: disabled, at half opacity.
+					    Read-only alone drew the field exactly like the editable Project
+					    name field beside it, so a person clicked in and typed nothing. */}
 					<Input
 						label="Key"
 						value={project.key}
 						readOnly
+						disabled
 						aria-describedby={locked ? noticeId : undefined}
 						className="max-w-28 font-mono uppercase"
 					/>
