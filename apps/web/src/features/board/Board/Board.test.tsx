@@ -65,12 +65,8 @@ describe("Board", () => {
 
 	test("columns use category order and show counts and the WIP warning", async () => {
 		const server = createTestServer();
-		const started = [...server.state.statuses.values()].find(
-			(status) =>
-				status.projectId === [...server.state.projects.values()].find((project) => project.path === "CDE")!.id &&
-				status.slug === "in-progress",
-		)!;
-		started.wipLimit = 3;
+		const started = matchStatus(await statusesOf(server, "CDE"), "in-progress")!;
+		await server.client.statuses.update({ status: started.id, wipLimit: 3 });
 		renderBoard(server);
 
 		const columns = await screen.findAllByRole("list");
@@ -94,14 +90,11 @@ describe("Board", () => {
 		const server = createTestServer();
 		renderBoard(server);
 		await screen.findByText("CDE-47");
-		const project = [...server.state.projects.values()].find((entry) => entry.path === "CDE")!;
-		const todo = [...server.state.statuses.values()].find(
-			(status) => status.projectId === project.id && status.slug === "todo",
-		)!;
-		const expected = [...server.state.tickets.values()]
-			.filter((row) => row.statusId === todo.id)
+		const todo = matchStatus(await statusesOf(server, "CDE"), "todo")!;
+		const page = await server.client.tickets.list({ project: "CDE", status: todo.id, sort: "-updatedAt", limit: 200 });
+		const expected = page.items
 			.sort((a, b) => (a.updatedAt === b.updatedAt ? (a.id < b.id ? 1 : -1) : a.updatedAt < b.updatedAt ? 1 : -1))
-			.map((row) => `${project.key}-${row.number}`);
+			.map((row) => row.identifier);
 		expect(expected.length).toBeGreaterThan(1);
 		expect(identifiers(column("Todo"))).toEqual(expected);
 	});

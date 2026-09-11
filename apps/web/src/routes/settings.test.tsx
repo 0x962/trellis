@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { themeStorageKey } from "@trellis/ui";
 import { mockMatchMedia } from "../../test/media";
 import { renderApp } from "../../test/renderWithProviders";
+import { storedActorName } from "../../test/rows";
 import { createTestServer } from "../../test/server";
 
 beforeEach(() => {
@@ -153,7 +154,7 @@ describe("settings route", () => {
 		await user.clear(name);
 		await user.type(name, "nk");
 		await user.tab();
-		await waitFor(() => expect(server.state.settings.defaultActorName).toBe("nk"));
+		await waitFor(async () => expect(await storedActorName(server)).toBe("nk"));
 		first.unmount();
 		localStorage.clear();
 

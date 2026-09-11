@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { dragFilesOver, dropFiles, fileOf, surfaceOf } from "../../../../test/attachments";
 import { mockMatchMedia } from "../../../../test/media";
+import { patchPr } from "../../../../test/prs";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import { createTestServer } from "../../../../test/server";
 import { fieldValue, renderTicket, settle } from "../../../../test/ticketHost";
@@ -136,8 +137,9 @@ describe("features/ticket/TicketView", () => {
 	test("keeps the fixed row heights of the spec", async () => {
 		const server = createTestServer();
 		const long = await server.client.tickets.get({ ticket: "CDE-42" });
-		const link = server.state.prLinks.find((entry) => entry.ticketId === long.id)!;
-		server.state.prs.get(link.prId)!.title = "A pull request title that runs far past the width of the row ".repeat(4);
+		await patchPr(server, long.prs[0]!.id, {
+			title: "A pull request title that runs far past the width of the row ".repeat(4),
+		});
 		renderTicket("CDE-42", (ticket) => <TicketView identifier={ticket.identifier} variant="page" />, {
 			path: "/t/CDE-42",
 			server,

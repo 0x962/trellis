@@ -117,7 +117,7 @@ describe("features/ticket/PropertiesRail", () => {
 		await waitFor(() => expect(within(screen.getByLabelText("Properties")).getByText("In Progress")).toBeDefined());
 		expect(cachedStatus(view)).toBe("In Progress");
 		await waitFor(() => expect(updates(server)).toHaveLength(1));
-		expect(statusOf(server.state.statuses.values(), updates(server)[0]!.input)!.name).toBe("In Progress");
+		expect(statusOf(await statusesOf(server, "CDE"), updates(server)[0]!.input)!.name).toBe("In Progress");
 		hold.release();
 	});
 

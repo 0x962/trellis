@@ -12,10 +12,8 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const ticketsUnder = (server: TestServer, key: string) => {
-	const root = [...server.state.projects.values()].find((project) => project.path === key)!;
-	return [...server.state.tickets.values()].filter((ticket) => ticket.rootId === root.id).length;
-};
+const ticketsUnder = async (server: TestServer, key: string) =>
+	(await server.client.tickets.counts({ project: key })).total;
 
 const projectTree = () => screen.getByRole("navigation", { name: "Projects" });
 
@@ -58,7 +56,7 @@ describe("features/project-settings/ProjectLifecycle", () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe("/all"));
 		expect(lastCallTo(server, "projects.delete")!.input).toEqual({ project: "TRL", force: true });
 		await waitFor(() => expect(within(projectTree()).queryByRole("link", { name: /trellis/ })).toBeNull());
-		expect([...server.state.projects.values()].some((project) => project.key === "TRL")).toBe(false);
+		expect((await server.client.projects.list({})).some((project) => project.key === "TRL")).toBe(false);
 	});
 
 	test("delete of an empty project asks once and sends projects.delete without force", async () => {

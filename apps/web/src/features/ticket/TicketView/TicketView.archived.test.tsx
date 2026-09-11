@@ -1,15 +1,16 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { archiveProject } from "../../../../test/rows";
 import { createTestServer } from "../../../../test/server";
 import { renderTicket, settle } from "../../../../test/ticketHost";
 import { TicketView } from "./TicketView";
 
 beforeEach(() => localStorage.clear());
 
-const archivedServer = () => {
+const archivedServer = async () => {
 	const server = createTestServer();
-	[...server.state.projects.values()].find((entry) => entry.path === "CDE")!.archivedAt = new Date().toISOString();
+	await archiveProject(server, "CDE");
 	return server;
 };
 
@@ -24,7 +25,7 @@ describe("features/ticket/TicketView in an archived project", () => {
 	// The page and the peek show the ticket read-only: every control is
 	// disabled, and a notice names the project.
 	test("disables the title and every picker, and says why", async () => {
-		page(archivedServer());
+		page(await archivedServer());
 		// The browser disables every control inside a disabled fieldset,
 		// whatever the control's own disabled attribute says. happy-dom does
 		// not apply that rule to :disabled, so the test finds the fieldset.
@@ -39,7 +40,7 @@ describe("features/ticket/TicketView in an archived project", () => {
 	// The keys that start an edit open nothing: s, p, m, Shift+P, and e.
 	test("the edit keys open no picker and no editor", async () => {
 		const user = userEvent.setup();
-		page(archivedServer());
+		page(await archivedServer());
 		await screen.findByRole("textbox", { name: "Title" });
 		await waitFor(() => expect(screen.getByText(/is archived/)).toBeDefined());
 		for (const key of ["s", "p", "m", "{Shift>}P{/Shift}", "e"]) {

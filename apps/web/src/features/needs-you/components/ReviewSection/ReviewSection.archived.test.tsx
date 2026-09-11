@@ -5,6 +5,7 @@ import { Toaster } from "@trellis/ui";
 import { focusRow, rowOf } from "../../../../../test/inbox";
 import { mockMatchMedia } from "../../../../../test/media";
 import { renderWithProviders } from "../../../../../test/renderWithProviders";
+import { archiveProject } from "../../../../../test/rows";
 import { createTestServer, type TestServer } from "../../../../../test/server";
 import { settle } from "../../../../../test/ticketHost";
 import { ReviewSection } from "./ReviewSection";
@@ -14,9 +15,9 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const archivedServer = () => {
+const archivedServer = async () => {
 	const server = createTestServer();
-	[...server.state.projects.values()].find((entry) => entry.path === "CDE")!.archivedAt = new Date().toISOString();
+	await archiveProject(server, "CDE");
 	return server;
 };
 
@@ -36,7 +37,7 @@ describe("ReviewSection with a ticket of an archived project", () => {
 	// The row offers no action, and `a` sends no move and says why.
 	test("the row offers no Approve, and a sends no move", async () => {
 		const user = userEvent.setup();
-		const server = archivedServer();
+		const server = await archivedServer();
 		render(server);
 		const row = await rowOf("CDE-42");
 		await focusRow("CDE-42");
@@ -52,7 +53,7 @@ describe("ReviewSection with a ticket of an archived project", () => {
 	// no box, because both writes would be refused.
 	test("r opens no send-back box and names the project", async () => {
 		const user = userEvent.setup();
-		const server = archivedServer();
+		const server = await archivedServer();
 		render(server);
 		await rowOf("CDE-42");
 		await focusRow("CDE-42");

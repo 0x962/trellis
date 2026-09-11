@@ -155,7 +155,8 @@ describe("routes/p/$", () => {
 		const statuses = (await server.client.statuses.list({ project: "CDE" })).statuses;
 		const source = statuses.find((status) => status.slug === "in-progress")!;
 		const target = statuses.find((status) => status.slug === "todo")!;
-		const count = [...server.state.tickets.values()].filter((ticket) => ticket.statusId === source.id).length;
+		const counts = await server.client.tickets.counts({ project: "CDE" });
+		const count = counts.byStatus.find((entry) => entry.statusId === source.id)!.count;
 		renderApp({ path: "/p/CDE/settings", actor: "navid", server });
 		await user.click(await screen.findByRole("button", { name: "Delete In Progress" }));
 		const dialog = await screen.findByRole("dialog", { name: "Delete In Progress?" });
@@ -178,14 +179,11 @@ describe("routes/p/$", () => {
 	test("deleting the last status shows LAST_STATUS inline", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		const root = [...server.state.projects.values()].find((project) => project.path === "CDE")!;
-		const own = [...server.state.statuses.values()].filter((status) => status.projectId === root.id);
+		const own = (await server.client.statuses.list({ project: "CDE" })).statuses;
 		const remaining = own[0]!;
-		const removed = new Set(own.slice(1).map((status) => status.id));
-		for (const ticket of server.state.tickets.values()) {
-			if (removed.has(ticket.statusId)) ticket.statusId = remaining.id;
+		for (const status of own.slice(1).reverse()) {
+			await server.client.statuses.delete({ project: "CDE", status: status.id, moveTo: remaining.id });
 		}
-		for (const status of own.slice(1)) server.state.statuses.delete(status.id);
 		renderApp({ path: "/p/CDE/settings", actor: "navid", server });
 		await user.click(await screen.findByRole("button", { name: "Delete Todo" }));
 		const dialog = await screen.findByRole("dialog", { name: "Delete Todo?" });

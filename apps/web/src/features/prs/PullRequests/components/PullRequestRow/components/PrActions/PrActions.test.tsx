@@ -74,6 +74,7 @@ describe("PrActions", () => {
 		await runItem("Remove");
 		await waitFor(() => expect(callsTo(server, "pullRequests.unlink")).toHaveLength(1));
 		expect(callsTo(server, "pullRequests.unlink")[0]!.input).toEqual({ ticket: ticket.id, id: pr.id });
-		expect(server.state.prLinks.some((link) => link.ticketId === ticket.id && link.prId === pr.id)).toBe(false);
+		const linked = await server.client.pullRequests.list({ ticket: ticket.id });
+		expect(linked.some((entry) => entry.id === pr.id)).toBe(false);
 	});
 });

@@ -5,7 +5,7 @@ import { Toaster } from "@trellis/ui";
 import { deletedEvent, summaryOf, updatedEvent } from "../../../../test/events";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
-import { patchTicket } from "../../../../test/rows";
+import { patchTicket, statusesOf } from "../../../../test/rows";
 import { createTestServer } from "../../../../test/server";
 import { fieldValue, renderTicket, settle } from "../../../../test/ticketHost";
 import { TicketPeek } from "../TicketPeek";
@@ -32,8 +32,8 @@ const page = async () => {
 	return { ...view, server, key, cached };
 };
 
-const statusNamed = (server: ReturnType<typeof createTestServer>, name: string) => {
-	const status = [...server.state.statuses.values()].find((entry) => entry.name === name)!;
+const statusNamed = async (server: ReturnType<typeof createTestServer>, name: string) => {
+	const status = (await statusesOf(server, "CDE")).find((entry) => entry.name === name)!;
 	return {
 		id: status.id,
 		slug: status.slug,
@@ -55,7 +55,7 @@ describe("features/ticket/TicketView live", () => {
 			...summaryOf(before as unknown as Record<string, unknown>),
 			version: 18,
 			title: "Restore every fork page",
-			status: statusNamed(server, "In Progress"),
+			status: await statusNamed(server, "In Progress"),
 			updatedAt: new Date().toISOString(),
 		};
 		act(() => applyEvent(updatedEvent(summary, ["title", "status"]), queryClient));

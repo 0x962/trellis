@@ -32,8 +32,8 @@ const pendingFlag = () => document.querySelector("[data-pending]")!.getAttribute
 
 const image = () => fileOf("pasted.png", "image/png", 64);
 
-const storedUrl = (server: TestServer, filename: string) =>
-	[...server.state.attachments.values()].find((row) => row.filename === filename)!.url;
+const storedUrl = async (server: TestServer, ticket: string, filename: string) =>
+	(await server.client.attachments.list({ ticket })).find((row) => row.filename === filename)!.url;
 
 describe("usePasteUpload", () => {
 	// OUT-52
@@ -42,7 +42,8 @@ describe("usePasteUpload", () => {
 		const body = renderComposer(server);
 		pasteFiles(body, [image()]);
 		await waitFor(() => expect(callsTo(server, "attachments.upload")).toHaveLength(1));
-		await waitFor(() => expect(body.value).toBe(`![pasted.png](${storedUrl(server, "pasted.png")})`));
+		const url = await storedUrl(server, "CDE-42", "pasted.png");
+		await waitFor(() => expect(body.value).toBe(`![pasted.png](${url})`));
 	});
 
 	// OUT-53. Without preventDefault the editor keeps the raw paste beside

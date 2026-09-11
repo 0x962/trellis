@@ -27,7 +27,7 @@ describe("features/sidebar/ActorFooter", () => {
 	// warning dot while gh does not answer as a signed-in user.
 	test("the Settings link shows a warning dot while gh is not signed in", async () => {
 		const server = createTestServer();
-		server.state.gh = { ok: false, user: null, reason: "unauthenticated", message: null, checkedAt: null };
+		server.setGh({ ok: false, user: null, reason: "unauthenticated", message: null, checkedAt: null });
 		renderWithProviders(<ActorFooter />, { path: "/all", actor: "navid", server });
 		const settings = screen.getByRole("link", { name: "Settings" });
 		await waitFor(() => expect(settings.querySelector("[data-gh-warning]")).not.toBeNull());
@@ -39,7 +39,7 @@ describe("features/sidebar/ActorFooter", () => {
 
 	test("the Settings link shows no dot while gh is signed in", async () => {
 		const server = createTestServer();
-		server.state.gh = { ok: true, user: "navid-k", reason: null, message: null, checkedAt: null };
+		server.setGh({ ok: true, user: "navid-k", reason: null, message: null, checkedAt: null });
 		const { queryClient, orpc } = renderWithProviders(<ActorFooter />, { path: "/all", actor: "navid", server });
 		await waitFor(() => expect(queryClient.getQueryData(orpc.system.gh.queryKey({}))).toBeDefined());
 		expect(screen.getByRole("link", { name: "Settings" }).querySelector("[data-gh-warning]")).toBeNull();
@@ -70,7 +70,7 @@ describe("features/sidebar/ActorFooter", () => {
 		const input = await screen.findByRole("textbox", { name: /name/i });
 		await user.clear(input);
 		await user.type(input, "nk{Enter}");
-		await waitFor(() => expect(server.state.settings.defaultActorName).toBe("nk"));
+		await waitFor(async () => expect(await storedActorName(server)).toBe("nk"));
 		expect(lastCallTo(server, "settings.set")!.input).toEqual({ ...before, defaultActorName: "nk" });
 	});
 });

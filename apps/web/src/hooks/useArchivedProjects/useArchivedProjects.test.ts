@@ -1,18 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { waitFor } from "@testing-library/react";
 import { renderHookWithProviders } from "../../../test/renderHook";
+import { archiveProject } from "../../../test/rows";
 import { createTestServer } from "../../../test/server";
 import { useArchivedProjects } from "./useArchivedProjects";
-
-const archive = (server: ReturnType<typeof createTestServer>, key: string) => {
-	const project = [...server.state.projects.values()].find((entry) => entry.path === key)!;
-	project.archivedAt = new Date().toISOString();
-};
 
 describe("hooks/useArchivedProjects", () => {
 	test("an archived project and every project under it are read-only", async () => {
 		const server = createTestServer();
-		archive(server, "CDE");
+		await archiveProject(server, "CDE");
 		const { result } = renderHookWithProviders(() => useArchivedProjects(), undefined, {
 			path: "/all",
 			actor: "navid",

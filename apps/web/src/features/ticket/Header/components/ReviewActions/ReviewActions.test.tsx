@@ -3,6 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Ticket } from "@trellis/api";
 import { press } from "../../../../../../test/keyboard";
+import { statusesOf } from "../../../../../../test/rows";
 import { createTestServer, type TestServer } from "../../../../../../test/server";
 import { renderTicket, settle, statusOf } from "../../../../../../test/ticketHost";
 import { ReviewActions } from "./ReviewActions";
@@ -58,7 +59,7 @@ describe("features/ticket/Header/components/ReviewActions", () => {
 		await screen.findByRole("button", { name: /Approve/ });
 		press("a");
 		await waitFor(() => expect(moves(server)).toHaveLength(1));
-		expect(statusOf(server.state.statuses.values(), moves(server)[0]!.input)!.name).toBe("Shipped");
+		expect(statusOf(await statusesOf(server, "CDE"), moves(server)[0]!.input)!.name).toBe("Shipped");
 	});
 
 	// WT-99. Send back needs a reason: the comment goes first, then the move.
@@ -74,7 +75,7 @@ describe("features/ticket/Header/components/ReviewActions", () => {
 		await waitFor(() => expect(server.callsTo("comments.create")).toHaveLength(1));
 		expect((server.callsTo("comments.create")[0]!.input as { body: string }).body).toBe("Rerun the tests");
 		await waitFor(() => expect(moves(server)).toHaveLength(1));
-		expect(statusOf(server.state.statuses.values(), moves(server)[0]!.input)!.name).toBe("Queued");
+		expect(statusOf(await statusesOf(server, "CDE"), moves(server)[0]!.input)!.name).toBe("Queued");
 	});
 
 	// WT-100
@@ -91,8 +92,7 @@ describe("features/ticket/Header/components/ReviewActions", () => {
 		await settle();
 		expect(server.callsTo("comments.create")).toHaveLength(0);
 		expect(moves(server)).toHaveLength(0);
-		const row = [...server.state.tickets.values()].find((entry) => entry.number === 42)!;
-		expect(server.state.statuses.get(row.statusId)!.name).toBe("Human Review");
+		expect((await server.client.tickets.get({ ticket: "CDE-42" })).status.name).toBe("Human Review");
 	});
 
 	// WT-101. The hold keeps the move pending; the failure lands on release.

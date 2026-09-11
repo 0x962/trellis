@@ -16,7 +16,7 @@ beforeEach(() => {
 });
 
 const withReason = (server: TestServer, reason: GhReason) => {
-	server.state.gh = { ok: false, user: null, reason, message: null, checkedAt: new Date().toISOString() };
+	server.setGh({ ok: false, user: null, reason, message: null, checkedAt: new Date().toISOString() });
 };
 
 const renderSection = async (server: TestServer, identifier: string) => {

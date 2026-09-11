@@ -45,7 +45,7 @@ describe("AgentsSettings", () => {
 		await user.click(toggle);
 		await waitFor(() => expect(saves(server)).toHaveLength(1));
 		expect(lastSave(server)).toEqual({ runner: "superset", enabled: true, projects: [] });
-		expect(server.state.agentSettings.enabled).toBe(true);
+		expect((await server.client.agents.settings()).enabled).toBe(true);
 		await waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("true"));
 	});
 
@@ -64,7 +64,7 @@ describe("AgentsSettings", () => {
 	test("shows one block per open root project", async () => {
 		const server = createTestServer();
 		render(server);
-		const roots = [...server.state.projects.values()].filter(
+		const roots = (await server.client.projects.list({})).filter(
 			(project) => project.parentId === null && project.archivedAt === null,
 		);
 		for (const root of roots) expect(await projectGroup(root.key)).toBeDefined();
@@ -110,7 +110,7 @@ describe("AgentsSettings", () => {
 
 	test("a missing Superset CLI shows the reason and leaves Auto", async () => {
 		const server = createTestServer();
-		server.state.runnerDown = "missing";
+		await server.removeSuperset();
 		render(server);
 		expect(await screen.findByText("trellis cannot find the Superset CLI.")).toBeDefined();
 		const picker = within(await projectGroup("CDE")).getByRole("combobox", { name: "Superset project" });
@@ -169,7 +169,7 @@ describe("AgentsSettings", () => {
 		expect(await screen.findByText("Couldn't save the agent settings")).toBeDefined();
 		expect(screen.getByRole("button", { name: "Retry" })).toBeDefined();
 		await waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("false"));
-		expect(server.state.agentSettings.enabled).toBe(false);
+		expect((await server.client.agents.settings()).enabled).toBe(false);
 	});
 
 	test("each project block shows its manager state beside the switch, and a failed manager its reason", async () => {
@@ -184,10 +184,9 @@ describe("AgentsSettings", () => {
 	test("the base branch shows the Superset project's default branch while the row has none, and a typed branch wins", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		server.state.runnerProjects = server.state.runnerProjects.map((project) => ({
-			...project,
-			defaultBranch: "master",
-		}));
+		(await server.superset()).update((state) => {
+			state.projects = state.projects.map((project) => ({ ...project, defaultBranch: "master" }));
+		});
 		render(server);
 		const branch = within(await projectGroup("CDE")).getByRole("textbox", { name: "Base branch" }) as HTMLInputElement;
 		await waitFor(() => expect(branch.value).toBe("master"));

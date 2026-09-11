@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { createFakeScheduler } from "../../../../test/fakeScheduler";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { statusesOf } from "../../../../test/rows";
 import { createTestServer, type TestServer } from "../../../../test/server";
 import { StatusSettings } from "../StatusSettings";
 
@@ -59,7 +60,8 @@ describe("StatusDescriptionField", () => {
 			description: "Start a builder.",
 		});
 		expect(await screen.findByText("Saved")).toBeDefined();
-		expect(server.state.statuses.get(todo.id)!.description).toBe("Start a builder.");
+		const stored = (await statusesOf(server, "CDE")).find((status) => status.id === todo.id);
+		expect(stored!.description).toBe("Start a builder.");
 	});
 
 	test("saves at once on blur", async () => {

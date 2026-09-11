@@ -196,13 +196,7 @@ describe("features/command/CommandPalette", () => {
 		const server = createTestServer();
 		const first = await server.client.tickets.get({ ticket: "CDE-42" });
 		const second = await server.client.tickets.get({ ticket: "CDE-44" });
-		server.state.prLinks.push({
-			ticketId: first.id,
-			prId: second.prs[0]!.id,
-			source: "manual",
-			linkedBy: { kind: "human", name: "navid" },
-			linkedAt: new Date().toISOString(),
-		});
+		await server.client.pullRequests.link({ ticket: "CDE-42", url: second.prs[0]!.url });
 		await renderShell({ server });
 		act(() => commandActions.setPeekTicket("CDE-42"));
 		await openPalette();

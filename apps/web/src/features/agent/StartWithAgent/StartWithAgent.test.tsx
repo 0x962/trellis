@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mod } from "../../../../test/keyboard";
+import { statusesOf } from "../../../../test/rows";
 import { createTestServer, type TestServer } from "../../../../test/server";
 import { renderTicket, settle, statusOf } from "../../../../test/ticketHost";
 import { StartWithAgent } from "./StartWithAgent";
@@ -76,7 +77,7 @@ describe("features/agent/StartWithAgent", () => {
 		await user.click(await start());
 		await waitFor(async () => expect(await navigator.clipboard.readText()).toBe(command));
 		await waitFor(() => expect(server.callsTo("tickets.move")).toHaveLength(1));
-		expect(statusOf(server.state.statuses.values(), server.callsTo("tickets.move")[0]!.input)!.name).toBe(
+		expect(statusOf(await statusesOf(server, "CDE"), server.callsTo("tickets.move")[0]!.input)!.name).toBe(
 			"In Progress",
 		);
 		await settle();

@@ -24,8 +24,13 @@ describe("features/agent/StartWithAgent: copy targets", () => {
 	// box checked.
 	test("Copy command only copies the claude command from the settings template", async () => {
 		const user = userEvent.setup();
-		const server = createTestServer();
-		server.state.settings.startWithAgentTemplate = 'claude --model opus "$(trellis brief {brief})"';
+		const server = createTestServer({
+			prepare: async (client) =>
+				void (await client.settings.set({
+					...(await client.settings.get()),
+					startWithAgentTemplate: 'claude --model opus "$(trellis brief {brief})"',
+				})),
+		});
 		localStorage.setItem(markStartedKey, "1");
 		mount(server);
 		await pick(user, "Copy command only");

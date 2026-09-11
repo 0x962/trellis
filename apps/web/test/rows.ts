@@ -84,3 +84,28 @@ export const matchStatus = (statuses: Status[], ref: string): Status | undefined
 // The statuses of one project's effective set.
 export const statusesOf = async (server: TestServer, project: string) =>
 	(await server.client.statuses.list({ project })).statuses;
+
+// The settings row that holds the default actor name. `actors.default`
+// reports `stored: true` only while the row is there, and `settings.get`
+// falls back to the machine name without it.
+export const clearStoredActorName = async () => {
+	const { db } = await sharedDb();
+	await db.execute(sql`DELETE FROM settings WHERE key = 'defaultActorName'`);
+};
+
+export const storedActorName = async (server: TestServer) => (await server.client.settings.get()).defaultActorName;
+
+// Writes one settings key without a `settings.set` call, so a test that
+// counts the writes the page made still counts its own.
+export const setSetting = async (key: string, value: unknown) => {
+	const { db } = await sharedDb();
+	await db.execute(sql`
+		INSERT INTO settings (key, value, updated_at) VALUES (${key}, ${JSON.stringify(value)}::jsonb, now())
+		ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()
+	`);
+};
+
+// Archives `ref` through the service, so every write under it is refused.
+export const archiveProject = async (server: TestServer, ref: string) => {
+	await server.client.projects.update({ project: ref, archived: true });
+};

@@ -19,11 +19,15 @@ const ready: GhStatus = {
 	checkedAt: new Date(Date.now() - 30_000).toISOString(),
 };
 
-const withGh = (status: Partial<GhStatus>) => {
-	const server = createTestServer();
-	server.state.gh = { ...server.state.gh, ...status };
-	return server;
+const missing: GhStatus = {
+	ok: false,
+	user: null,
+	reason: "missing",
+	message: "gh is not installed. Install it with `brew install gh` and run `gh auth login`.",
+	checkedAt: new Date().toISOString(),
 };
+
+const withGh = (status: Partial<GhStatus>) => createTestServer({ gh: { ...missing, ...status } });
 
 const render = (server: TestServer) => renderWithProviders(<GhBanner />, { path: "/settings", actor: "navid", server });
 
@@ -71,7 +75,7 @@ describe("GhBanner", () => {
 		const server = withGh({ ok: false, user: null, reason: "missing", message: null });
 		const { queryClient } = render(server);
 		await screen.findByRole("alert");
-		server.state.gh = ready;
+		server.setGh(ready);
 		createEventApplier(queryClient).applyEvent({ type: "gh.status", ok: true });
 		await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
 		expect(await screen.findByText(/octocat/)).toBeDefined();

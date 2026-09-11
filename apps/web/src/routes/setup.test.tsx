@@ -3,6 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { callsTo } from "../../test/inbox";
 import { renderApp } from "../../test/renderWithProviders";
+import { clearStoredActorName, setSetting, storedActorName } from "../../test/rows";
 import { createTestServer } from "../../test/server";
 
 beforeEach(() => localStorage.clear());
@@ -93,7 +94,7 @@ describe("routes/setup", () => {
 	test("the name step pre-fills defaultActorName and saves the name to the server", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer({ empty: true });
-		server.state.settings.defaultActorName = "navidkhan";
+		await setSetting("defaultActorName", "navidkhan");
 		renderApp({ path: "/setup", server });
 		const input = await screen.findByDisplayValue("navidkhan");
 		await user.clear(input);
@@ -102,7 +103,7 @@ describe("routes/setup", () => {
 		const call = server.callsTo("settings.set").at(-1)!;
 		expect(call.input).toMatchObject({ defaultActorName: "navid" });
 		expect(call.actor).toBe("human:navid");
-		expect(server.state.settings.defaultActorName).toBe("navid");
+		expect(await storedActorName(server)).toBe("navid");
 		expect(await server.client.actors.default()).toEqual({ name: "navid", kind: "human", stored: true });
 		expect(localStorage.getItem("trellis.actor")).toBe('{"name":"navid","kind":"human"}');
 	});
@@ -110,7 +111,7 @@ describe("routes/setup", () => {
 	test("with projects on the server, /setup never asks for a name or a first project", async () => {
 		for (const stored of [true, false]) {
 			const server = createTestServer();
-			server.state.defaultActorStored = stored;
+			if (!stored) await clearStoredActorName();
 			const view = renderApp({ path: "/setup", server });
 			await waitFor(() => expect(view.router.state.location.pathname, String(stored)).toBe("/needs-you"));
 			expect(screen.queryByRole("heading", { name: "Enter your name" })).toBeNull();

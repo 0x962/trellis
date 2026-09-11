@@ -48,7 +48,7 @@ const decode = (svg: Element) => {
 describe("Pair a phone", () => {
 	test("a server on loopback shows the command that opens it and the no-sign-in caution, and no QR code", async () => {
 		const server = createTestServer();
-		server.state.addresses = ["http://127.0.0.1:4521"];
+		server.setAddresses(["http://127.0.0.1:4521"]);
 		renderApp({ path: "/settings", actor: "navid", server });
 
 		const row = await pairRow();
@@ -61,7 +61,7 @@ describe("Pair a phone", () => {
 
 	test("a server on a network address shows a QR code of the exact pair link and the URL", async () => {
 		const server = createTestServer();
-		server.state.addresses = ["http://127.0.0.1:4521", lan, "http://10.0.0.9:4521"];
+		server.setAddresses(["http://127.0.0.1:4521", lan, "http://10.0.0.9:4521"]);
 		renderApp({ path: "/settings", actor: "navid", server });
 
 		const qr = await screen.findByRole("img", { name: /QR code/i });

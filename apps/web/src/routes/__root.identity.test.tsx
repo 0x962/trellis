@@ -3,6 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import { callsTo, lastCallTo } from "../../test/inbox";
 import { mockMatchMedia } from "../../test/media";
 import { renderApp } from "../../test/renderWithProviders";
+import { clearStoredActorName, storedActorName } from "../../test/rows";
 import { createTestServer, type TestServer } from "../../test/server";
 
 beforeEach(() => {
@@ -48,25 +49,25 @@ describe("routes/__root identity", () => {
 	// stores it, so every later browser agrees with it.
 	test("a name cached before the server stored one is saved to the server", async () => {
 		const server = createTestServer();
-		server.state.defaultActorStored = false;
-		server.state.settings.defaultActorName = "navidkhan";
+		await clearStoredActorName();
 		const { router } = renderApp({ path: "/needs-you", actor: "navid", server });
 		await waitFor(() => expect(router.state.location.pathname).toBe("/needs-you"));
 		await waitFor(() => expect(lastCallTo(server, "settings.set")?.input).toMatchObject({ defaultActorName: "navid" }));
-		expect(server.state.settings.defaultActorName).toBe("navid");
+		expect(await storedActorName(server)).toBe("navid");
 		expect(cached().name).toBe("navid");
 	});
 
 	test("with projects and no stored name, a fresh browser adopts and stores the server default", async () => {
 		const server = createTestServer();
-		server.state.defaultActorStored = false;
-		server.state.settings.defaultActorName = "navidkhan";
+		await clearStoredActorName();
+		// Without a stored name the server reports the machine name.
+		const machine = (await server.client.actors.default()).name;
 		const { router } = renderApp({ path: "/", server });
 		await waitFor(() => expect(router.state.location.pathname).toBe("/needs-you"));
 		expect(screen.queryByRole("heading", { name: "Enter your name" })).toBeNull();
-		expect(cached().name).toBe("navidkhan");
-		await waitFor(() => expect(server.state.defaultActorStored).toBe(true));
-		expect(server.state.settings.defaultActorName).toBe("navidkhan");
+		expect(cached().name).toBe(machine);
+		await waitFor(async () => expect((await server.client.actors.default()).stored).toBe(true));
+		expect(await storedActorName(server)).toBe(machine);
 	});
 
 	test("a stored actor and no project opens the project step only", async () => {
