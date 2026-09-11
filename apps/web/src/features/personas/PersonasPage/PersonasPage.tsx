@@ -53,7 +53,7 @@ export function PersonasPage() {
 								return (
 									<section key={group.value} aria-label={group.plural} className="flex flex-col gap-3">
 										<header className="flex items-center gap-2">
-											<h2 className="text-md font-medium text-fg">{group.plural}</h2>
+											<h2 className="text-xl font-medium text-fg">{group.plural}</h2>
 											<Badge>{members.length}</Badge>
 											<Button
 												variant="quiet"

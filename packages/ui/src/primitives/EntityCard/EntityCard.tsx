@@ -26,7 +26,7 @@ export function EntityCard({ title, description, icon, footer, onEdit, editLabel
 						{icon}
 					</span>
 				)}
-				<h3 className="min-w-0 flex-1 break-words pt-1 text-md font-medium text-fg">{title}</h3>
+				<h3 className="min-w-0 flex-1 break-words pt-1 text-base font-medium text-fg">{title}</h3>
 				<IconButton label={editLabel ?? `Edit ${title}`} icon={<Pencil />} onClick={onEdit} />
 			</div>
 			<p className="line-clamp-4 min-h-20 whitespace-pre-wrap break-words text-sm leading-5 text-fg-muted">
