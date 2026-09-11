@@ -21,8 +21,9 @@
 //
 // The height and the minimum width carry the coarse box: a square control
 // keeps its width from `min-width` and a control with a label keeps the
-// wider of its label and 44 px.
-const coarseTarget = "pointer-coarse:h-11 pointer-coarse:min-w-11 pointer-coarse:before:inset-0";
+// wider of its label and 44 px. An entry whose fine layer reaches past the
+// drawn box pulls the layer back to `inset-0` itself.
+const coarseTarget = "pointer-coarse:h-11 pointer-coarse:min-w-11";
 
 export const hitArea = {
 	// A 16 px box with no border: the Switch track and the Chip remove button.
@@ -34,7 +35,7 @@ export const hitArea = {
 	// A 24 px tall box with a 1 px border: IconButton sm. The
 	// padding box is 22 px tall and at least 22 px wide.
 	// Fine: 3 px each side, 22 + 6 = 28. Coarse: the drawn box is 44.
-	box24Bordered: `relative before:absolute before:-inset-0.75 ${coarseTarget}`,
+	box24Bordered: `relative before:absolute before:-inset-0.75 pointer-coarse:before:inset-0 ${coarseTarget}`,
 	// A 28 px tall box with a 1 px border: Button sm, IconButton md, the Select
 	// trigger, and the Menu trigger. The padding box is 26 px tall and at least
 	// 26 px wide. Fine: 0, the drawn box is 28. Coarse: the drawn box is 44.

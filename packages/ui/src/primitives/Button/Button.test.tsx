@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Check } from "lucide-react";
 import { expectClasses, expectHitArea } from "../../../test/classes";
+import { Kbd } from "../Kbd";
 import { Button } from "./Button";
 
 describe("Button", () => {
@@ -35,8 +36,8 @@ describe("Button", () => {
 	});
 
 	// Size sm is drawn 28 px tall and size md 32 px, both with a 1 px border
-	// and at least 28 px wide. Both reach 28 px on a desktop pointer and 44 px
-	// on a coarse pointer in both axes through the hit-area layer.
+	// and at least 28 px wide. The hit-area token reaches 28 px on a desktop
+	// pointer through its layer, and draws a 44 px box on a coarse pointer.
 	test("both sizes carry the hit-area layer and the 28 px min-width", () => {
 		render(
 			<>
@@ -126,6 +127,50 @@ describe("Button", () => {
 		expectClasses(
 			screen.getByRole("button", { name: "Approve" }),
 			"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+		);
+	});
+
+	// TRL-34. One key cap style serves the whole app. The cap inside a button
+	// is the Kbd primitive, so a primary button, a secondary button, and a
+	// bare cap in a row all draw the same element.
+	test("the shortcut is the Kbd primitive, with the same classes in every variant", () => {
+		render(
+			<>
+				<Kbd>⌘K</Kbd>
+				<Button variant="primary" kbd="a">
+					Primary
+				</Button>
+				<Button variant="default" kbd="b">
+					Secondary
+				</Button>
+				<Button variant="quiet" size="md" kbd="c">
+					Quiet
+				</Button>
+			</>,
+		);
+		const bare = screen.getByText("⌘K");
+		for (const [name, cap] of [
+			["Primary", "a"],
+			["Secondary", "b"],
+			["Quiet", "c"],
+		]) {
+			const inside = screen.getByRole("button", { name: `${name} ${cap}` }).querySelector("kbd")!;
+			expect(inside.tagName).toBe("KBD");
+			expect(`${name}: ${inside.className}`).toBe(`${name}: ${bare.className} shrink-0`);
+		}
+	});
+
+	// A quiet button with a shortcut kept its own border and surface, so its
+	// cap read as a third style. It now looks like every other quiet button.
+	test("a quiet button with a shortcut keeps the quiet variant classes", () => {
+		render(
+			<Button variant="quiet" kbd="r">
+				Send back
+			</Button>,
+		);
+		expectClasses(
+			screen.getByRole("button", { name: "Send back r" }),
+			"bg-transparent border-transparent text-fg-muted",
 		);
 	});
 

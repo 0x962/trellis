@@ -12,6 +12,9 @@ export const routerPluginOptions = {
 	routeFileIgnorePattern: "\\.test\\.|^components$",
 } as const;
 
+// The @trellis/ui modules the shell loads before the first route.
+const shellUi = /packages\/ui\/src\/(utils\/cx|primitives\/(Button|IconButton|Kbd))\//;
+
 // The API the dev server proxies to. The server listens on 4521.
 const defaultApiUrl = "http://127.0.0.1:4521";
 
@@ -21,6 +24,19 @@ export const createConfig = (env: Record<string, string | undefined>): UserConfi
 	const target = env.TRELLIS_API_URL ?? defaultApiUrl;
 	return {
 		plugins: [tanstackRouter(routerPluginOptions), react(), tailwindcss()],
+		build: {
+			rollupOptions: {
+				output: {
+					// The shell draws a Button with a key cap and an IconButton
+					// before the first route opens, so these four modules always
+					// load together. Rollup would give each one its own chunk,
+					// because each is reachable from a different set of routes,
+					// and a chunk of a few hundred bytes costs more in its own
+					// gzip header and its own request than the code in it.
+					manualChunks: (id: string) => (shellUi.test(id) ? "ui-core" : undefined),
+				},
+			},
+		},
 		resolve: {
 			// cmdk pulls a whole second overlay library for a dialog this app
 			// never renders. See src/lib/emptyRadixDialog.ts.
