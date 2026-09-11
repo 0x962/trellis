@@ -78,6 +78,7 @@ export type PrLink = {
 };
 
 export type State = {
+	directorySelection?: string | null;
 	personas: Map<string, Persona>;
 	agentRuns: Map<string, AgentRun>;
 	projects: Map<string, ProjectRow>;

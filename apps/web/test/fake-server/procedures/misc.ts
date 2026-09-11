@@ -19,6 +19,7 @@ export const settings = {
 };
 
 export const system = {
+	chooseDirectory: os.system.chooseDirectory.handler(({ context }) => context.state.directorySelection ?? null),
 	health: os.system.health.handler(({ context }) => ({
 		ok: true,
 		version: context.versions.server,
