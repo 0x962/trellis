@@ -1,6 +1,6 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import type { Priority, Ticket, TicketSummary } from "@trellis/api";
-import { Button, Sheet, Switch, toast, useHotkey } from "@trellis/ui";
+import { Button, Dialog, Switch, toast, useHotkey } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useApp } from "../../../lib/appContext";
@@ -121,19 +121,20 @@ export function CreateTicketDialog() {
 	useHotkey("mod+shift+enter", () => void create(true));
 
 	return (
-		<Sheet
+		<Dialog
 			open
 			onOpenChange={(next) => !next && requestClose()}
 			title="New ticket"
-			bare
-			width={640}
+			size="lg"
 			initialFocus={titleRef}
-			className="w-160"
-		>
-			<div className="flex min-h-full flex-col">
+			header={
 				<div className="border-b border-border p-4">
 					<ComposerHeader project={chosenProject} onClose={requestClose} />
 				</div>
+			}
+			className="gap-0 p-0"
+		>
+			<div className="flex min-h-0 flex-col">
 				<div className="flex flex-1 flex-col gap-4 p-6 max-md:p-4">
 					<input
 						ref={titleRef}
@@ -192,6 +193,6 @@ export function CreateTicketDialog() {
 				}}
 				onCancel={() => setAsking(false)}
 			/>
-		</Sheet>
+		</Dialog>
 	);
 }

@@ -117,14 +117,15 @@ describe("features/ticket/SubTickets", () => {
 		expect(useComposerStore.getState().options.parent).toBe("CDE-42");
 	});
 
-	// The section is always there, so a ticket with no children says so and
-	// still offers Add.
-	test("a ticket with no children shows the empty line and Add", async () => {
+	// Nothing to frame, so no frame: one quiet word, and Add carries the
+	// invitation.
+	test("a ticket with no children shows one quiet word and Add", async () => {
 		renderTicket("CDE-47", (ticket) => <TicketView identifier={ticket.identifier} variant="page" />, {
 			path: "/t/CDE-47",
 		});
 		const element = await section();
-		expect(within(element).getByText("No sub-tickets yet.")).toBeDefined();
+		expect(within(element).getByText("empty")).toBeDefined();
+		expect(element.querySelector(".border-border")).toBeNull();
 		expect(within(element).getByRole("button", { name: "Add" })).toBeDefined();
 	});
 });
