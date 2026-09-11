@@ -28,6 +28,8 @@ const printInboxTable = (ctx: CliContext, inbox: AgentInboxOutput) => {
 		},
 	];
 	const comments: Column<InboxComment>[] = [
+		{ name: "id", value: (row) => row.id },
+		{ name: "thread", value: (row) => row.parentId ?? row.id },
 		{ name: "ticket", value: (row) => ticketOf(row.ticketId) },
 		{ name: "actor", value: (row) => `${row.actor.kind}:${row.actor.name}` },
 		{ name: "body", value: (row) => cell(row.body) },
