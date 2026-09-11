@@ -1,1 +1,1 @@
-export { useScopeStatuses } from "./useScopeStatuses";
+export { useScopeStatuses, useScopeStatusesAll } from "./useScopeStatuses";

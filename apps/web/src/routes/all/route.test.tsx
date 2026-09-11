@@ -18,19 +18,17 @@ describe("routes/all", () => {
 		expect(within(group).getByRole("radio", { name: "Board" }).getAttribute("aria-checked")).toBe("false");
 		expect(within(screen.getAllByRole("banner")[0]!).getByRole("button", { name: /New ticket/ })).toBeDefined();
 		expect(document.querySelector("[data-filter-bar]")).not.toBeNull();
-		// The count is the rows the table holds plus the completed tickets of
-		// the route's status set, which the collapsed groups hold.
+		// TRL-30. The count is every ticket of the scope: the rows the table
+		// holds plus the completed tickets the collapsed groups hold. Every
+		// root closes tickets under its own Done status, so the count reads
+		// the whole scope and not one root's statuses.
 		const counts = await server.client.tickets.counts({ subprojects: true });
-		const { statuses } = await server.client.statuses.list({ project: "CDE" });
-		const closed = new Set(
-			statuses.filter((status) => status.category === "done" || status.category === "canceled").map((s) => s.id),
-		);
 		const rows = Number(await waitFor(() => screen.getByRole("grid").getAttribute("aria-rowcount")));
-		const total = rows + counts.byStatus.filter((entry) => closed.has(entry.statusId)).reduce((n, e) => n + e.count, 0);
+		expect(counts.total).toBeGreaterThan(rows);
 		const footer = document.querySelector("[data-list-footer]")!;
 		expect(footer).not.toBeNull();
 		expect(footer.className).toMatch(/\bh-7\b/);
-		await waitFor(() => expect(footer.textContent).toContain(String(total)));
+		await waitFor(() => expect(footer.textContent).toContain(`${counts.total} tickets`));
 	});
 });
 
