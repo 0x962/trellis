@@ -15,8 +15,12 @@ test("writes > a sub-ticket added on the ticket page shows under its parent", as
 	await signIn(page, "/t/WRT-1");
 	const section = page.getByRole("region", { name: /Sub-tickets/ });
 	await expect(section.getByRole("button", { name: /WRT-2/ })).toBeVisible();
-	await section.getByRole("textbox", { name: "New sub-ticket" }).fill("Record the export demo");
-	await page.keyboard.press("Enter");
+	// Add opens the create dialog with WRT-1 already set as the parent.
+	await section.getByRole("button", { name: "Add" }).click();
+	const composer = page.getByRole("dialog", { name: "New ticket" });
+	await composer.getByRole("textbox", { name: "Title" }).fill("Record the export demo");
+	await page.keyboard.press("ControlOrMeta+Enter");
+	await expect(composer).toBeHidden();
 	await expect(section.getByRole("button", { name: /Record the export demo/ })).toBeVisible();
 	await page.reload();
 	await expect(
@@ -34,7 +38,7 @@ test("writes > a comment posted on the ticket page shows in the timeline and sur
 });
 
 test("writes > a status added in project settings shows in the status list", async ({ page }) => {
-	await signIn(page, "/p/STS/settings");
+	await signIn(page, "/p/STS/settings#statuses");
 	await page.getByRole("button", { name: "Add a status to Todo" }).click();
 	await page.getByRole("textbox", { name: "Status name" }).fill("Security Review");
 	await page.getByRole("button", { name: "Create status" }).click();

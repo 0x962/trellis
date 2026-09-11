@@ -26,7 +26,7 @@ const rowOrder = (page: Page) =>
 
 // WT-01. The peek is a search param push; the panel shows the title.
 test("a row click opens the peek and writes ?peek to the URL", async ({ page }) => {
-	await signIn(page, "/p/PEK");
+	await signIn(page, "/p/PEK/table");
 	await titleOf(page, "PEK-2").click();
 	await expect(page).toHaveURL(/[?&]peek=PEK-2(&|$)/);
 	const peek = peekOf(page, "PEK-2");
@@ -37,7 +37,7 @@ test("a row click opens the peek and writes ?peek to the URL", async ({ page }) 
 // Enter on the focused row opens its peek, j and k walk the list inside the
 // peek, and Escape closes it with the focus back on the row it shows.
 test("Enter opens the peek, j and k walk, and Escape restores the row focus", async ({ page }) => {
-	await signIn(page, "/p/PEK");
+	await signIn(page, "/p/PEK/table");
 	await expect(rowOf(page, "PEK-3")).toBeVisible();
 	const [first, second] = await rowOrder(page);
 	await rowOf(page, first!).focus();
@@ -57,13 +57,13 @@ test("Enter opens the peek, j and k walk, and Escape restores the row focus", as
 
 // WT-14. Back pops the param push, so the peek closes and the filter stays.
 test("browser back closes the peek", async ({ page }) => {
-	await signIn(page, "/p/PEK?status=human-review");
+	await signIn(page, "/p/PEK/table?status=human-review");
 	await titleOf(page, "PEK-1").click();
 	await expect(page).toHaveURL(/peek=PEK-1/);
 	await expect(peekOf(page, "PEK-1")).toBeVisible();
 	await page.goBack();
 	await expect(peekOf(page, "PEK-1")).toBeHidden();
-	await expect(page).toHaveURL(/\/p\/PEK\?status=human-review$/);
+	await expect(page).toHaveURL(/\/p\/PEK\/table\?status=human-review$/);
 });
 
 // The timings are taken inside the page, so the test runner's own polling
@@ -103,7 +103,7 @@ const marks = (page: Page) => page.evaluate(() => (window as unknown as { __peek
 // 100 ms, and every j step within 50 ms.
 test("peek open and j step stay inside the budget @timing", async ({ page }) => {
 	await page.addInitScript(probe);
-	await signIn(page, "/p/PEK");
+	await signIn(page, "/p/PEK/table");
 	await expect(rowOf(page, "PEK-3")).toBeVisible();
 	const [first] = await rowOrder(page);
 	await rowOf(page, first!).getByRole("gridcell").nth(2).click();

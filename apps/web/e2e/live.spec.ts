@@ -25,7 +25,7 @@ const rowProbe = (identifier: string, group: string) => `(() => {
 test("live > a trellis move from the CLI patches the open table row within 500 ms @timing", async ({ page }) => {
 	const ticket = createTicket("LIV", `Watch the row ${Date.now()}`);
 	await page.addInitScript(rowProbe(ticket.identifier, "in-progress"));
-	await signIn(page, "/p/LIV");
+	await signIn(page, "/p/LIV/table");
 	const row = page.locator(`[role="row"][data-identifier="${ticket.identifier}"]`);
 	await expect(row).toHaveAttribute("data-group", "todo");
 	const moved = moveTicket(ticket.identifier, "in-progress");
@@ -50,11 +50,15 @@ const railProbe = `(() => {
 	}).observe(document, { subtree: true, childList: true, characterData: true });
 })();`;
 
-// The answer to the tickets.move call. The batch link can fold the call
-// into a batch request, so the path is looked for in the request body too.
-const MOVE_PATH = "/rpc/tickets/move";
-const isMove = (response: Response) =>
-	response.ok() && (response.url().includes(MOVE_PATH) || (response.request().postData() ?? "").includes(MOVE_PATH));
+// The answer to the tickets.update call. The status picker in the
+// properties rail writes the new status through tickets.update, and a drag
+// on the board is the one caller of tickets.move. The batch link can fold
+// the call into a batch request, so the path is looked for in the request
+// body too.
+const UPDATE_PATH = "/rpc/tickets/update";
+const isUpdate = (response: Response) =>
+	response.ok() &&
+	(response.url().includes(UPDATE_PATH) || (response.request().postData() ?? "").includes(UPDATE_PATH));
 
 test("live > a ticket change in one tab repaints the ticket page in another inside the budget @timing", async ({
 	page,
@@ -73,7 +77,7 @@ test("live > a ticket change in one tab repaints the ticket page in another insi
 		.getByLabel("Properties")
 		.getByRole("button", { name: /Human Review/ })
 		.click();
-	const settled = other.waitForResponse(isMove);
+	const settled = other.waitForResponse(isUpdate);
 	await other.getByRole("option", { name: "Done", exact: true }).click();
 	await settled;
 	const committedAt = Date.now();

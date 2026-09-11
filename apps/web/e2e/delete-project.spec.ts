@@ -14,7 +14,7 @@ test.beforeAll(() => {
 test("deleting a project with tickets takes the typed key and lands on All tickets", async ({ page }) => {
 	const { total } = await get<{ total: number }>("/tickets/counts?project=DEL");
 	expect(total).toBeGreaterThanOrEqual(2);
-	await signIn(page, "/p/DEL/settings");
+	await signIn(page, "/p/DEL/settings#archive");
 	await page.getByRole("button", { name: "Delete project…" }).click();
 	const dialog = page.getByRole("dialog", { name: "Delete Doomed?" });
 	await expect(dialog).toContainText(`${total} tickets`);

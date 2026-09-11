@@ -41,6 +41,8 @@ test("needs-you > settings persist across a reload and the gh banner matches the
 	await saved;
 	await page.reload();
 	await expect(page.getByRole("textbox", { name: /your name/i })).toHaveValue("Nav");
+	// Your name sits in the Account section and the gh banner in Integrations.
+	await page.getByRole("navigation", { name: "Settings" }).getByRole("link", { name: "Integrations" }).click();
 	const banner = page.getByRole("alert");
 	await expect(banner).toContainText("gh is not signed in");
 	// gh's own message names the command too, so the check finds the chip.
