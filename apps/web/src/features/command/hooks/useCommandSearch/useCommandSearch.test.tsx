@@ -40,7 +40,7 @@ const gated = (server: FakeServer) => {
 const renderProbe = (server: FakeServer = createFakeServer()) => {
 	const clock = createFakeScheduler();
 	const view = renderWithProviders(<Probe />, {
-		path: "/p/CDE",
+		path: "/p/CDE/table",
 		actor: "navid",
 		server,
 		scheduler: clock.scheduler,

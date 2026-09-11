@@ -68,7 +68,7 @@ describe("routes/setup", () => {
 	});
 
 	// WS-76
-	test("creating the first project lands on its empty table", async () => {
+	test("creating the first project lands on its empty board", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer({ empty: true });
 		const { router } = renderApp({ path: "/setup", actor: "navid", server });
@@ -84,7 +84,9 @@ describe("routes/setup", () => {
 		expect(call).toBeDefined();
 		expect(call!.input).toEqual({ key: "DOC", name: "Docs" });
 		expect(call!.actor).toBe("human:navid");
-		expect(await screen.findByText(/trellis create -p DOC -t "/)).toBeDefined();
+		// The board is the view a project opens in, so the empty state here is
+		// the board and not the table's CLI line.
+		expect(await screen.findByRole("status", { name: "Board drag status" })).toBeDefined();
 		expect(screen.getByRole("complementary", { name: "Sidebar" })).toBeDefined();
 	});
 

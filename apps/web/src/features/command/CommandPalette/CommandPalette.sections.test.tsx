@@ -39,7 +39,7 @@ describe("features/command/CommandPalette sections", () => {
 		const path = within(web).getByText("CDE/web");
 		for (const name of ["font-mono", "text-xs", "text-fg-faint"]) expect(path.classList.contains(name)).toBe(true);
 		await user.click(web);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE/web"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE/web/table"));
 	});
 
 	// T8. The ticket page and a peek in the URL name the ticket, so This

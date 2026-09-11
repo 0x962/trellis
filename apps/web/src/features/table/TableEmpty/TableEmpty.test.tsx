@@ -22,7 +22,7 @@ describe("features/table/TableEmpty", () => {
 	// Outcome 33. The link drops every filter param and keeps the route.
 	test("offers Clear filters when no ticket matches", () => {
 		renderWithProviders(<TableEmpty project="CDE" filtered />, {
-			path: "/p/CDE?status=canceled&priority=urgent",
+			path: "/p/CDE/table?status=canceled&priority=urgent",
 			actor: "navid",
 		});
 		expect(screen.getByText("No tickets match")).toBeDefined();
@@ -34,7 +34,7 @@ describe("features/table/TableEmpty", () => {
 	// Outcome 34
 	test("names the search text in the empty state", () => {
 		renderWithProviders(<TableEmpty project="CDE" filtered q="oauth" />, {
-			path: "/p/CDE?q=oauth",
+			path: "/p/CDE/table?q=oauth",
 			actor: "navid",
 		});
 		expect(screen.getByText("No tickets match 'oauth'")).toBeDefined();

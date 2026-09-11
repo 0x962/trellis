@@ -114,7 +114,7 @@ describe("features/ticket/TicketView live", () => {
 				<TicketPeek />
 				<Toaster />
 			</PeekListProvider>,
-			{ path: "/p/CDE?peek=CDE-42", actor: "navid", server },
+			{ path: "/p/CDE/table?peek=CDE-42", actor: "navid", server },
 		);
 		await screen.findByRole("dialog", { name: "CDE-42" });
 		const ticket = await server.client.tickets.get({ ticket: "CDE-42" });

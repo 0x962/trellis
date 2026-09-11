@@ -35,7 +35,7 @@ export const resetStores = () => {
 // waits for the shell to paint.
 export const renderShell = async (options: ShellOptions = {}) => {
 	const wired = renderApp({
-		path: options.path ?? "/p/CDE",
+		path: options.path ?? "/p/CDE/table",
 		actor: "navid",
 		server: options.server,
 		scheduler: options.scheduler,

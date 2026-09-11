@@ -24,7 +24,7 @@ beforeEach(() => {
 // on the first, the title on the second.
 describe("features/table/TicketTable: phone width", () => {
 	test("rows are two 56 px lines with no PR, actor, or project cell", async () => {
-		renderApp({ path: "/p/CDE", actor: "navid" });
+		renderApp({ path: "/p/CDE/table", actor: "navid" });
 		await findGrid();
 		await waitFor(() => expect(rows().length).toBeGreaterThan(2));
 		for (const row of rows()) expect(row.style.height).toBe("56px");
@@ -35,13 +35,13 @@ describe("features/table/TicketTable: phone width", () => {
 	});
 
 	test("the filter bar scrolls on the x axis", async () => {
-		renderApp({ path: "/p/CDE", actor: "navid" });
+		renderApp({ path: "/p/CDE/table", actor: "navid" });
 		await findGrid();
 		expect(filterBar().className).toMatch(/\boverflow-x-auto\b/);
 	});
 
 	test("the bulk bar spans the width", async () => {
-		renderApp({ path: "/p/CDE", actor: "navid" });
+		renderApp({ path: "/p/CDE/table", actor: "navid" });
 		await findGrid();
 		await waitFor(() => expect(rows().length).toBeGreaterThan(2));
 		rows()[0]!.focus();

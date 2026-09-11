@@ -14,7 +14,7 @@ beforeEach(() => {
 });
 
 // In Progress: CDE-44, CDE-43, CDE-41, CDE-38. Agent Review: CDE-45, CDE-40.
-const path = "/p/CDE?status=in-progress,agent-review";
+const path = "/p/CDE/table?status=in-progress,agent-review";
 
 const ready = async () => {
 	const app = renderApp({ path, actor: "navid", server: createFakeServer() });

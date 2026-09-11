@@ -17,7 +17,7 @@ describe("routes/p/$: a negated status", () => {
 	// The API grammar has no negation. A negated status goes out as the rest
 	// of the project's statuses, and the server answers 400 for an empty list.
 	test("the table and the board send the rest of the statuses for status=!todo", async () => {
-		for (const path of ["/p/CDE?status=!todo", "/p/CDE/board?status=!todo"]) {
+		for (const path of ["/p/CDE/table?status=!todo", "/p/CDE/board?status=!todo"]) {
 			const server = createFakeServer();
 			const view = renderApp({ path, actor: "navid", server });
 			await screen.findByRole("radiogroup", { name: "View" });

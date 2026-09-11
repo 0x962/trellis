@@ -17,7 +17,7 @@ beforeEach(() => {
 afterEach(() => act(resetUi));
 
 const open = async (server = createFakeServer()) => {
-	const app = renderApp({ path: "/p/CDE", actor: "navid", server });
+	const app = renderApp({ path: "/p/CDE/table", actor: "navid", server });
 	await findGrid();
 	act(() => composerActions.open({}));
 	const dialog = await screen.findByRole("dialog", { name: "New ticket" });
