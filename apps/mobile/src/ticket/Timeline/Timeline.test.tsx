@@ -23,13 +23,13 @@ const comments = [
 	commentItem({
 		id: id("C2"),
 		actor: claude,
-		body: "Merged upstream 1.27. Every keep-marker survived; the lint fixes are in the last commit.",
+		body: "Restored the five pages. Every keep-marker survived; the lint fixes are in the last commit.",
 		createdAt: ago(36 * hour),
 	}),
 	commentItem({
 		id: id("C1"),
 		actor: navid,
-		body: "Plan: restore the five fork pages under cde/ and keep every marked site.",
+		body: "Plan: restore the five settings pages and keep every marked site.",
 		createdAt: ago(2 * day - hour),
 	}),
 ];

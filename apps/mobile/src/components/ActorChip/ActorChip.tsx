@@ -16,7 +16,7 @@ export type ActorChipProps = {
 	muted?: boolean;
 };
 
-// "Navid Khan" gives NK; "navid" gives N.
+// "Alex Kim" gives AK; "alex" gives A.
 const initials = (name: string) =>
 	name
 		.split(/\s+/)

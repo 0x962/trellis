@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, jest, mock, spyOn, test } from
 import { QueryClient } from "@tanstack/react-query";
 import { eventApplierFor } from "@trellis/api";
 import { ticketSummary, ulid } from "../../test/fixtures";
-import * as mmkv from "../../test/mocks/react-native-mmkv";
+import * as kvStore from "../../test/mocks/expo-sqlite-kv-store";
 import * as sse from "../../test/mocks/react-native-sse";
 
 type Change = (state: string) => void;
@@ -29,12 +29,11 @@ const fire = (state: string) => {
 };
 
 mock.module("react-native", () => ({ AppState: appState }));
-mock.module("react-native-mmkv", () => mmkv);
+mock.module("expo-sqlite/kv-store", () => kvStore);
 mock.module("react-native-sse", () => sse);
 
 const { libraryPollingInterval, reconnectCapMs, reconnectMs, startLive } = await import("./live");
-
-const store = mmkv.createMMKV();
+const { store } = await import("./store");
 
 // One invalidation with no filter is "invalidate all".
 const invalidatedAll = (calls: unknown[][]) => calls.filter((call) => call[0] === undefined).length;

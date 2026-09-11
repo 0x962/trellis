@@ -1,33 +1,40 @@
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { act, fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
-import { appContext } from "../../../test/appContext";
-import { failCalls } from "../../../test/connect";
-import { type FakeApp, installFakeApp } from "../../../test/fakeApp";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { fireEvent, screen, waitFor } from "expo-router/testing-library";
+import { connect } from "../../../test/connect";
+import type { Recorder } from "../../../test/record";
+import { renderRoute } from "../../../test/renderRoute";
+import { seeder } from "../../../test/server";
+import { settle } from "../../../test/settle";
+import { seedTicketScreen, type TicketData, title } from "../../../test/ticket";
 
 // The composer posts through the typed client, so the tests run the whole
-// route against the fake server.
-let app: FakeApp;
+// route against the real server.
+let data: TicketData;
+let net: Recorder;
 
 const openTicket = async () => {
-	await renderRouter(appContext(), { initialUrl: "/ticket/CDE-42" });
-	await screen.findByText("Restore the fork pages after the upstream 1.27 merge");
+	await renderRoute(`/ticket/${data.ticket}`);
+	await screen.findByText(title);
 };
 
 const field = () => screen.getByLabelText("Add a comment");
 const send = () => screen.getByRole("button", { name: "Send" });
 
 describe("the comment composer", () => {
-	beforeEach(() => {
-		app = installFakeApp();
+	beforeEach(async () => {
+		data = await seedTicketScreen(seeder);
+		net = connect();
 	});
+
+	afterEach(() => net.restore());
 
 	// O42.
 	test("the Send button posts comments.create with the ticket and the body", async () => {
 		await openTicket();
 		await fireEvent.changeText(field(), "Looks good");
 		await fireEvent.press(send());
-		await waitFor(() => expect(app.callsTo("comments.create")).toHaveLength(1));
-		expect(app.callsTo("comments.create")[0]!.input).toEqual({ ticket: "CDE-42", body: "Looks good" });
+		await waitFor(() => expect(net.callsTo("comments.create")).toHaveLength(1));
+		expect(net.callsTo("comments.create")[0]!.input).toEqual({ ticket: data.ticket, body: "Looks good" });
 	});
 
 	// O43.
@@ -46,14 +53,14 @@ describe("the comment composer", () => {
 		await fireEvent.changeText(field(), "   ");
 		expect(send()).toBeDisabled();
 		await fireEvent.press(send());
-		await act(() => jest.advanceTimersByTimeAsync(50));
-		expect(app.callsTo("comments.create")).toHaveLength(0);
+		await settle();
+		expect(net.callsTo("comments.create")).toHaveLength(0);
 	});
 
 	// A failed post leaves the text in the field, so the person loses nothing.
 	test("a failed post keeps the text editable and Retry posts it", async () => {
 		await openTicket();
-		const restore = failCalls("comments.create");
+		const restore = net.fail("comments.create");
 		await fireEvent.changeText(field(), "Looks good");
 		await fireEvent.press(send());
 		expect(await screen.findByText("Cannot post the comment")).toBeOnTheScreen();
@@ -62,8 +69,8 @@ describe("the comment composer", () => {
 		expect(send()).toBeEnabled();
 		restore();
 		await fireEvent.press(screen.getByRole("button", { name: "Retry" }));
-		await waitFor(() => expect(app.callsTo("comments.create")).toHaveLength(1));
-		expect(app.callsTo("comments.create")[0]!.input).toEqual({ ticket: "CDE-42", body: "Looks good" });
+		await waitFor(() => expect(net.callsTo("comments.create")).toHaveLength(2));
+		expect(net.callsTo("comments.create")[1]!.input).toEqual({ ticket: data.ticket, body: "Looks good" });
 		await waitFor(() => expect(field().props.value).toBe(""));
 		expect(screen.queryByText("Cannot post the comment")).toBeNull();
 	});

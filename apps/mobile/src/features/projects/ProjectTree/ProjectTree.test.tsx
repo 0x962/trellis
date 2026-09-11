@@ -8,7 +8,7 @@ import { ProjectTree } from "./ProjectTree";
 
 // The seeded tree: two roots, two sub-projects of CDE, and two more roots.
 const seeded = [
-	projectSummary({ path: "CDE", name: "Superset CDE", position: 0, openCount: 31 }),
+	projectSummary({ path: "CDE", name: "Code", position: 0, openCount: 31 }),
 	projectSummary({ path: "CDE.web", position: 0, openCount: 12 }),
 	projectSummary({ path: "CDE.host", position: 1, openCount: 7 }),
 	projectSummary({ path: "TRL", name: "trellis", position: 1, openCount: 14 }),
@@ -28,7 +28,7 @@ describe("ProjectTree", () => {
 
 		const root = within(row("CDE"));
 		expect(root.getByText("CDE")).toBeOnTheScreen();
-		expect(root.getByText("Superset CDE")).toBeOnTheScreen();
+		expect(root.getByText("Code")).toBeOnTheScreen();
 
 		const child = within(row("CDE.web"));
 		expect(child.getByText("web")).toBeOnTheScreen();
@@ -37,7 +37,7 @@ describe("ProjectTree", () => {
 
 	test("each level indents by one step from the tokens", async () => {
 		const deep = [
-			projectSummary({ path: "CDE", name: "Superset CDE", position: 0 }),
+			projectSummary({ path: "CDE", name: "Code", position: 0 }),
 			projectSummary({ path: "CDE.web", position: 0 }),
 			projectSummary({ path: "CDE.web.auth", position: 0 }),
 		];
@@ -52,10 +52,7 @@ describe("ProjectTree", () => {
 		const long = "a sub-project whose name runs far past the width of a phone screen and then some more";
 		await render(
 			<ProjectTree
-				projects={[
-					projectSummary({ path: "CDE", name: "Superset CDE" }),
-					projectSummary({ path: "CDE.web", name: long }),
-				]}
+				projects={[projectSummary({ path: "CDE", name: "Code" }), projectSummary({ path: "CDE.web", name: long })]}
 				onSelect={() => {}}
 			/>,
 		);

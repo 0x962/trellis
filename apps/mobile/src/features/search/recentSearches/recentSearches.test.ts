@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { maxRecentSearches, pushRecent, readRecents, recentSearchesKey, replaceRecent } from "./recentSearches";
 
-// A stand-in for MMKV that records every key the module names.
+// A stand-in for the app store that records every key the module names.
 const memoryStore = (seed: Record<string, string> = {}) => {
 	const values = new Map(Object.entries(seed));
 	const touched: string[] = [];

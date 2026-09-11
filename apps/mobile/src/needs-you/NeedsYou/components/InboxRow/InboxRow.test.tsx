@@ -45,7 +45,7 @@ describe("InboxRow", () => {
 		expect(paintedColors(screen.toJSON())).toContain(palette.accent);
 		expect(paintedColors(screen.toJSON())).not.toContain(palette.agent);
 		expect(flat(screen.getByText("CDE-42")).fontFamily).toBe(tokens.font.mono);
-		const title = screen.getByText("Restore the fork pages after the upstream 1.27 merge");
+		const title = screen.getByText("Restore the five settings pages the upgrade dropped");
 		expect(title.props.numberOfLines).toBe(1);
 		expect(screen.getByTestId("check-ribbon")).toHaveStyle({ width: ribbonWidths.mini });
 		expect(screen.getAllByTestId("ribbon-segment")).toHaveLength(4);

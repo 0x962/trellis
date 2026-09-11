@@ -40,7 +40,7 @@ export const POLLER_DRAIN_MS = 5_000;
 // long wait. The server runs at rate 1.
 export const scaledClock = (rate: number): JobsClock => {
 	const start = Date.now();
-	const timers = new Map<number, Timer>();
+	const timers = new Map<number, ReturnType<typeof setTimeout>>();
 	let nextId = 1;
 	return {
 		now: () => new Date(start + (Date.now() - start) * rate),
@@ -65,7 +65,7 @@ export const scaledClock = (rate: number): JobsClock => {
 // Resolves true when `work` settles within `ms`, and false when the deadline
 // comes first. The deadline timer is cleared either way.
 const within = async (work: Promise<void>, ms: number) => {
-	let timer: Timer | undefined;
+	let timer: ReturnType<typeof setTimeout> | undefined;
 	const deadline = new Promise<false>((resolve) => {
 		timer = setTimeout(() => resolve(false), ms);
 	});
