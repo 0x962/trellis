@@ -102,26 +102,28 @@ export function Header(props: HeaderProps) {
 					<ArrowLeft className="size-3.5" aria-hidden="true" />
 				</a>
 			)}
-			{ticket === undefined ? (
-				<Skeleton width="w-16" height="h-3" />
-			) : phone ? (
-				<TicketId id={ticket.identifier} />
-			) : (
-				<Breadcrumb path={ticket.project.path} />
-			)}
-			{ticket !== undefined && !phone && ticket.parent !== null && (
-				<>
-					<span aria-hidden="true" className="text-fg-faint">
-						·
-					</span>
-					<ParentChip parent={ticket.parent} title={parentSummary?.title ?? ""} />
-				</>
-			)}
-			<div className="ml-auto flex shrink-0 items-center gap-2">
+			<div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+				{ticket === undefined ? (
+					<Skeleton width="w-16" height="h-3" />
+				) : phone ? (
+					<TicketId id={ticket.identifier} />
+				) : (
+					<Breadcrumb path={ticket.project.path} />
+				)}
+				{ticket !== undefined && !phone && ticket.parent !== null && (
+					<>
+						<span aria-hidden="true" className="text-fg-faint">
+							·
+						</span>
+						<ParentChip parent={ticket.parent} title={parentSummary?.title ?? ""} />
+					</>
+				)}
+			</div>
+			<div className="ml-auto flex shrink-0 items-center gap-1">
 				{ticket !== undefined && (
 					<>
-						{!phone && <ReviewActions ticket={ticket} />}
-						<BriefCopy ticket={ticket} />
+						{!phone && surface === "page" && <ReviewActions ticket={ticket} />}
+						{surface === "page" && <BriefCopy ticket={ticket} />}
 						{!phone && (
 							<Tooltip content="Copy ID ⌘C">
 								<IconButton

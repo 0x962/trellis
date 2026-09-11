@@ -31,6 +31,8 @@ const activity = (actor: Actor, clock: string, field = "status"): TimelineItem =
 
 const comment = (actor: Actor, clock: string): TimelineItem => ({
 	kind: "comment",
+	parentId: null,
+	resolvedAt: null,
 	id: `01J8Z6X4Q3M2K1H0G9F8E7D6${String(nextId++).padStart(2, "0")}`,
 	ticketId,
 	body: "Plan.",

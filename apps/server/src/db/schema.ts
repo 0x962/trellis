@@ -108,12 +108,23 @@ export const comments = pgTable(
 			.notNull()
 			.references(() => tickets.id, { onDelete: "cascade" }),
 		body: text().notNull(),
+		parentId: text("parent_id"),
+		resolvedAt: at("resolved_at"),
 		...actorColumns(),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
 		actorFk("comments_actor_fk", t),
+		unique("comments_id_ticket_id_unique").on(t.id, t.ticketId),
+		foreignKey({
+			name: "comments_parent_fk",
+			columns: [t.parentId, t.ticketId],
+			foreignColumns: [t.id, t.ticketId],
+		}).onDelete("cascade"),
+		check("comments_parent_check", sql`${t.parentId} <> ${t.id}`),
+		check("comments_resolved_root_check", sql`${t.parentId} IS NULL OR ${t.resolvedAt} IS NULL`),
+		index("comments_parent_id_idx").on(t.parentId),
 		check("comments_body_check", sql`length(${t.body}) BETWEEN 1 AND 200000`),
 		index("comments_ticket_id_created_at_idx").on(t.ticketId, t.createdAt),
 	],

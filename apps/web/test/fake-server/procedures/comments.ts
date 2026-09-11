@@ -15,14 +15,40 @@ const requireComment = (state: Parameters<typeof requireTicket>[0], id: string) 
 const cursorOf = (item: TimelineItem) => `${item.createdAt}|${item.kind}|${item.id}`;
 
 export const comments = {
+	thread: os.comments.thread.handler(({ context, input }) => {
+		const comment = requireComment(context.state, input.id);
+		const root = requireComment(context.state, comment.parentId ?? comment.id);
+		const replies = [...context.state.comments.values()]
+			.filter((item) => item.parentId === root.id)
+			.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+		return { root, replies };
+	}),
+	resolve: os.comments.resolve.handler(({ context, input }) => {
+		const comment = requireComment(context.state, input.id);
+		const root = requireComment(context.state, comment.parentId ?? comment.id);
+		const ticket = context.state.tickets.get(root.ticketId)!;
+		requireWritable(context.state, ticket.projectId);
+		root.resolvedAt = input.resolved ? isoNow() : null;
+		root.updatedAt = isoNow();
+		context.bus.emit(
+			"comment.updated",
+			{ id: root.id, ticketId: ticket.id },
+			{ ticketId: ticket.id, projectId: ticket.projectId },
+		);
+		return root;
+	}),
 	create: os.comments.create.handler(({ context, input }) => {
 		const { state, bus } = context;
 		const ticket = requireTicket(state, input.ticket);
 		requireWritable(state, ticket.projectId);
 		const at = isoNow();
+		const parent = input.parentId === undefined ? null : requireComment(state, input.parentId);
+		if (parent !== null && parent.ticketId !== ticket.id) throw fail("COMMENT_PARENT_MISMATCH", undefined);
 		const comment = {
 			id: newId(),
 			ticketId: ticket.id,
+			parentId: parent === null ? null : (parent.parentId ?? parent.id),
+			resolvedAt: null,
 			body: input.body,
 			actor: context.actor!,
 			createdAt: at,
@@ -57,6 +83,8 @@ export const comments = {
 	delete: os.comments.delete.handler(({ context, input }) => {
 		const { state, bus } = context;
 		const comment = requireComment(state, input.id);
+		if ([...state.comments.values()].some((item) => item.parentId === comment.id))
+			throw fail("COMMENT_HAS_REPLIES", undefined);
 		state.comments.delete(comment.id);
 		const ticket = state.tickets.get(comment.ticketId)!;
 		ticket.version += 1;

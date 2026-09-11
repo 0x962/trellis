@@ -79,3 +79,8 @@ describe("events", () => {
 		}
 	});
 });
+
+test("comment events preserve thread identifiers and the resolution state", () => {
+	const event = { type: "comment.updated", id: ulid, ticketId: t1, parentId: null, threadId: ulid, resolved: true };
+	expect(EventSchema.parse(event)).toEqual(event);
+});

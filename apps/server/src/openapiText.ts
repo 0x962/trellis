@@ -94,6 +94,7 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /tickets/update-many": { tickets: ["CDE-1", "CDE-2"], priority: "low" },
 	"POST /tickets/delete-many": { tickets: ["CDE-1", "CDE-2"] },
 	"POST /tickets/{ticket}/comments": { body: "Tests pass. Ready for review." },
+	"POST /comments/{id}/resolve": { resolved: true },
 	"PATCH /comments/{id}": { body: "Tests pass. Ready for a human review." },
 	"POST /tickets/{ticket}/attachments": { file: "<the file bytes as one multipart part named file>", name: "shot.png" },
 	"POST /tickets/{ticket}/prs": { url: "https://github.com/acme/web/pull/12" },

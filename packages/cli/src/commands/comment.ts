@@ -5,10 +5,12 @@ import { compact, contextOf, readText, toNumber } from "../context.ts";
 import { cell, printList, printRecord, type RecordSpec } from "../output.ts";
 import { type CommentItem, commentItems, commentList, renderComments } from "../timeline.ts";
 
-const commentRecord: RecordSpec<Comment> = {
+export const commentRecord: RecordSpec<Comment> = {
 	fields: [
 		{ name: "id", value: (row) => row.id },
 		{ name: "ticketId", value: (row) => row.ticketId },
+		{ name: "parentId", value: (row) => cell(row.parentId) },
+		{ name: "resolved", value: (row) => cell(row.resolvedAt) },
 		{ name: "actor", value: (row) => `${row.actor.kind}:${row.actor.name}` },
 		{ name: "created", value: (row) => row.createdAt },
 		{ name: "body", value: (row) => cell(row.body) },
@@ -17,15 +19,18 @@ const commentRecord: RecordSpec<Comment> = {
 };
 
 export default defineCommand({
-	meta: { name: "comment", description: "Add a comment" },
+	meta: { name: "comment", description: "Add a comment or reply" },
 	args: {
 		ticket: { type: "positional", required: true, description: "Ticket ref" },
 		body: { type: "string", required: true, description: "Comment text, or - for stdin" },
+		"reply-to": { type: "string", description: "Comment ID of the thread to reply to" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
-		const comment = await clientOf(ctx).comments.create({ ticket: args.ticket, body: await readText(ctx, args.body) });
+		const comment = await clientOf(ctx).comments.create(
+			compact({ ticket: args.ticket, body: await readText(ctx, args.body), parentId: args["reply-to"] }),
+		);
 		printRecord(ctx.out, ctx.format, comment, commentRecord);
 	},
 });

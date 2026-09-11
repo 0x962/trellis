@@ -116,6 +116,12 @@ describe("system.exportNdjson", () => {
 		const streamed = new Set(lines.slice(1).map((line) => line.table));
 		expect(tables.length).toBeGreaterThan(0);
 		for (const table of tables) expect(streamed).toContain(table);
+		const personas = lines.filter((line) => line.table === "personas");
+		expect(personas).toHaveLength(1);
+		expect(personas[0]!.row).toMatchObject({
+			name: "Reviewer",
+			instruction: "Read the diff.\nReport defects with evidence.",
+		});
 	});
 
 	test("the export carries the ticket identifier and the attachment url", async () => {

@@ -27,7 +27,7 @@ export type TicketViewProps = {
 
 // One ticket, as the page and the peek both draw it: the header, the ID,
 // the title, the description, the sub-tickets, the PRs, the attachments,
-// and the timeline, in one left-aligned column of 760 px of content. Below
+// and the timeline. The peek content fills the panel. Below
 // 768 px the page folds the rail into the peek grid under the title, with
 // the review actions under the grid. Every
 // section reads the cached detail, so a live patch repaints it with no
@@ -87,7 +87,10 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 					{notice(ticket.project.path)}
 				</p>
 			)}
-			<div className="flex max-w-[856px] flex-col px-12 pt-8 pb-12 max-md:px-4">
+			<div
+				data-ticket-content=""
+				className={cx("flex min-w-0 flex-col pt-6 pb-8 max-md:px-4", peek ? "w-full px-6" : "max-w-[856px] px-12")}
+			>
 				<div className="flex flex-col gap-1">
 					<TicketId id={ticket.identifier} />
 					<Title key={ticket.identifier} ticket={ticket} autoFocus={peek} />
@@ -97,10 +100,14 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 						<PropertiesRail ticket={ticket} variant="peek" onAddSubTicket={() => setAddingChild(true)} />
 					</div>
 				)}
-				{narrow && !peek && (
-					<div data-phone-actions="" className="mt-4 flex flex-col gap-2 empty:hidden">
+				{(peek || narrow) && (
+					<fieldset
+						aria-label="Ticket actions"
+						data-phone-actions=""
+						className="mt-4 flex flex-wrap items-center gap-2"
+					>
 						<ReviewActions ticket={ticket} />
-					</div>
+					</fieldset>
 				)}
 				<div className={inlineRail ? "mt-4" : "mt-3"}>
 					<Description key={ticket.identifier} ticket={ticket} />

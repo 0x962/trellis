@@ -8,6 +8,8 @@ const BodySchema = z.string().min(1).max(200_000);
 export const CommentSchema = z.object({
 	id: UlidSchema,
 	ticketId: UlidSchema,
+	parentId: UlidSchema.nullable().default(null),
+	resolvedAt: IsoDateTimeSchema.nullable().default(null),
 	body: BodySchema,
 	actor: ActorRefSchema,
 	createdAt: IsoDateTimeSchema,
@@ -17,6 +19,7 @@ export type Comment = z.infer<typeof CommentSchema>;
 
 export const CommentCreateInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
+	parentId: UlidSchema.optional(),
 	body: BodySchema,
 });
 export type CommentCreateInput = z.input<typeof CommentCreateInputSchema>;
@@ -34,3 +37,15 @@ export const CommentIdInputSchema = z.strictObject({
 export const CommentDeleteOutputSchema = z.object({
 	deleted: UlidSchema,
 });
+
+export const CommentResolveInputSchema = z.strictObject({
+	id: UlidSchema,
+	resolved: z.boolean(),
+});
+export type CommentResolveInput = z.input<typeof CommentResolveInputSchema>;
+
+export const CommentThreadSchema = z.object({
+	root: CommentSchema,
+	replies: z.array(CommentSchema),
+});
+export type CommentThread = z.infer<typeof CommentThreadSchema>;
