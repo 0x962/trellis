@@ -5,7 +5,7 @@ import { renderApp } from "../../../../test/renderWithProviders";
 
 test("Settings edits the agent launch template in a slideout", async () => {
 	const user = userEvent.setup();
-	const { server } = renderApp({ path: "/settings", actor: "navid" });
+	const { server } = renderApp({ path: "/settings#agents", actor: "navid" });
 	await user.click(await screen.findByRole("button", { name: "Configure agent launch" }));
 	const dialog = await screen.findByRole("dialog", { name: "Agent launch command" });
 	expect(dialog.className).toContain("right-0");

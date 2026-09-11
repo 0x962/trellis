@@ -51,26 +51,31 @@ export function SubTickets({ ticket }: SubTicketsProps) {
 					</Button>
 				}
 			/>
-			<div className="overflow-hidden rounded-md border border-border">
-				<div
-					role="progressbar"
-					aria-label="Sub-tickets done"
-					aria-valuemin={0}
-					aria-valuemax={total}
-					aria-valuenow={done}
-					className="h-0.75 bg-border"
-				>
-					<div data-fill="" style={{ width: `${fill.toFixed(2)}%` }} className="h-full bg-success" />
+			{total === 0 ? (
+				// Nothing to frame, so no frame: one quiet word, and Add carries
+				// the invitation.
+				<p className="px-1 text-sm text-fg-faint">empty</p>
+			) : (
+				<div className="overflow-hidden rounded-md border border-border">
+					<div
+						role="progressbar"
+						aria-label="Sub-tickets done"
+						aria-valuemin={0}
+						aria-valuemax={total}
+						aria-valuenow={done}
+						className="h-0.75 bg-border"
+					>
+						<div data-fill="" style={{ width: `${fill.toFixed(2)}%` }} className="h-full bg-success" />
+					</div>
+					<ul>
+						{ticket.children.map((child) => (
+							<li key={child.id}>
+								<ChildRow child={child} onOpen={() => open(child.identifier)} />
+							</li>
+						))}
+					</ul>
 				</div>
-				<ul>
-					{ticket.children.map((child) => (
-						<li key={child.id}>
-							<ChildRow child={child} onOpen={() => open(child.identifier)} />
-						</li>
-					))}
-					{total === 0 && <li className={`${rowClass} border-b-0 text-fg-muted`}>No sub-tickets yet.</li>}
-				</ul>
-			</div>
+			)}
 		</section>
 	);
 }
