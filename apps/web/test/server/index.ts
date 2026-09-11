@@ -112,7 +112,8 @@ export type TestServer = ReturnType<typeof createTestServer>;
 export const createTestServer = (options: TestServerOptions = {}) => {
 	const calls: Call[] = [];
 	const hooks = createHooks();
-	const ready = (chain = chain.then(() => build(options, calls, hooks))) as Promise<TestApp>;
+	const ready = chain.then(() => build(options, calls, hooks));
+	chain = ready;
 	// A build that fails reaches the test through the first call; this keeps
 	// the process from reporting an unhandled rejection first.
 	ready.catch(() => undefined);
