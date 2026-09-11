@@ -7,7 +7,7 @@ import {
 	type ProjectManagerConfig,
 	ProjectManagerConfigSchema,
 } from "@trellis/api";
-import { Button, Input, Select } from "@trellis/ui";
+import { Avatar, Button, Input, Select } from "@trellis/ui";
 import { Bot, GitBranch, Settings2 } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -216,7 +216,15 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 							)}
 							{managers.map((run) => (
 								<Button key={run.id} align="start" variant="quiet" onClick={() => setSelected(run)}>
-									{run.name} · {run.state}
+									<span className="flex min-w-0 items-center gap-2">
+										<Avatar
+											kind="agent"
+											name={run.name}
+											live={["starting", "running", "interrupted"].includes(run.state)}
+										/>
+										<span className="truncate text-fg">{run.name.split(" ")[0]}</span>
+										<span className="text-xs text-fg-faint">{run.state}</span>
+									</span>
 								</Button>
 							))}
 							<Button

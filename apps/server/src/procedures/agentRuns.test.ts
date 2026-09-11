@@ -51,7 +51,7 @@ test("assignment launches a named agent with the selected prompt and retains its
 		kind: "builder",
 		ticketIdentifier: ticket,
 	});
-	expect(result.body.name).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+$/);
+	expect(result.body.name).toMatch(/^[A-Z][a-z]+$/);
 	const launch = calls().find((args) => args[1] === "create")!;
 	expect(launch).toContain("superset-project");
 	const command = launch[launch.indexOf("--command") + 1]!;

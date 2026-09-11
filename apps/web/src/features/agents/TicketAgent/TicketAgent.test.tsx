@@ -65,3 +65,50 @@ test("a pending assignment accepts only one persona selection", async () => {
 	await screen.findByRole("button", { name: new RegExp(run!.name) });
 	expect(server.callsTo("agentRuns.start")).toHaveLength(1);
 });
+
+test("the rail shows a picture for every working agent, no state word, and still takes another", async () => {
+	const server = createTestServer();
+	const builder = await server.client.personas.create({
+		name: "Feature Builder",
+		kind: "builder",
+		instruction: "Build.",
+	});
+	await server.client.personas.create({ name: "Code Clarity", kind: "reviewer", instruction: "Review." });
+	const first = await server.client.agentRuns.start({ personaId: builder.id, ticket: "CDE-42" });
+	const user = userEvent.setup();
+	renderApp({ path: "/t/CDE-42", actor: "dana", server });
+	const rail = within(await screen.findByRole("region", { name: "Agent assignment" }));
+	await rail.findByRole("button", { name: `${first.name} · builder` });
+	expect(rail.getByRole("img", { name: `${first.name} · agent` })).toBeTruthy();
+	expect(rail.getByText("builder")).toBeTruthy();
+	expect(rail.queryByText(/running/)).toBeNull();
+
+	await user.click(rail.getByRole("button", { name: "New agent" }));
+	const picker = within(await screen.findByRole("dialog", { name: "Assign a persona" }));
+	await user.click(await picker.findByRole("option", { name: "Code Clarity" }));
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+	// Both agents hold the ticket, and the picker takes a third.
+	const runs = await server.client.agentRuns.list({ ticket: "CDE-42" });
+	const second = runs.find((run) => run.kind === "reviewer")!;
+	await rail.findByRole("button", { name: `${second.name} · reviewer` });
+	expect(rail.getByRole("button", { name: `${first.name} · builder` })).toBeTruthy();
+	expect(rail.getByRole("button", { name: "New agent" })).toBeTruthy();
+	expect(server.callsTo("agentRuns.start")).toHaveLength(1);
+});
+
+test("a stopped agent keeps its row without the live dot", async () => {
+	const server = createTestServer();
+	const builder = await server.client.personas.create({
+		name: "Feature Builder",
+		kind: "builder",
+		instruction: "Build.",
+	});
+	const run = await server.client.agentRuns.start({ personaId: builder.id, ticket: "CDE-42" });
+	await server.client.agentRuns.stop({ id: run.id });
+	renderApp({ path: "/t/CDE-42", actor: "dana", server });
+	const rail = within(await screen.findByRole("region", { name: "Agent assignment" }));
+	const picture = await rail.findByRole("img", { name: `${run.name} · agent` });
+	expect(picture.querySelector("[data-live]")).toBeNull();
+	expect(rail.queryByText(/stopped/)).toBeNull();
+});

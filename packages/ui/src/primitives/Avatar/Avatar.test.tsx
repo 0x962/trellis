@@ -28,7 +28,7 @@ describe("Avatar", () => {
 		const avatar = screen.getByLabelText("claude-code · agent");
 		expect(avatar.textContent).toBe("");
 		expect(avatar.querySelector("svg")).toBeNull();
-		expectClasses(avatar, "size-4.5 rounded-sm overflow-hidden");
+		expectClasses(avatar, "size-4.5 rounded-sm");
 		// The name picks the picture, so one name always draws the same one
 		// and two names draw two.
 		const image = avatar.getAttribute("style")!;
@@ -49,5 +49,8 @@ describe("Avatar", () => {
 		expectClasses(dot, "bg-success border-surface animate-pulse-live motion-reduce:animate-none");
 		expect(screen.getByLabelText("codex · agent").querySelector("[data-live]")).toBeNull();
 		expect(screen.getByLabelText("dana").querySelector("[data-live]")).not.toBeNull();
+		// The dot sits over the top right corner. A clip on the avatar would cut
+		// it down to a speck inside the picture.
+		expect(dot.parentElement!.className).not.toContain("overflow-hidden");
 	});
 });
