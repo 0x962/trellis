@@ -30,7 +30,6 @@ import { parseProjectSplat, projectHref, projectSlashPath } from "../../../lib/p
 import { useUiStore } from "../../../stores/uiStore";
 import { ArchivedBanner } from "./components/ArchivedBanner";
 import { ProjectLoadError } from "./components/ProjectLoadError";
-import { ScopeChip } from "./components/ScopeChip";
 
 // The settings screen loads in its own chunk, so the list views never pay for it.
 const ProjectSettingsPage = lazy(async () => ({
@@ -122,8 +121,6 @@ function ProjectPage() {
 			search,
 		});
 
-	const toggleScope = () => setSearch({ ...search, scope: full.scope === "self" ? "subprojects" : "self" });
-
 	const openTicket = (identifier: string) =>
 		navigate({ to: "/p/$", params: { _splat }, search: { ...search, peek: identifier } });
 
@@ -161,9 +158,7 @@ function ProjectPage() {
 						sort={full.sort}
 					/>
 				}
-			>
-				<ScopeChip path={ref} scope={full.scope} onToggle={toggleScope} />
-			</FilterBar>
+			></FilterBar>
 			<fieldset disabled={archived} className="contents">
 				{view === "board" ? (
 					<>

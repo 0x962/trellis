@@ -44,11 +44,13 @@ export function Segmented<Value extends string>({
 					value={option.value}
 					className={(state) =>
 						cx(
-							"inline-flex h-7 min-w-7 cursor-default items-center justify-center border-y border-border px-2.5 text-sm leading-none whitespace-nowrap select-none transition-colors duration-hover ease-out pointer-coarse:min-w-11",
+							"inline-flex h-7 min-w-7 items-center justify-center border-y border-border px-2.5 text-sm leading-none whitespace-nowrap select-none transition-colors duration-hover ease-out pointer-coarse:min-w-11",
 							"first-of-type:rounded-l-md first-of-type:border-l last-of-type:rounded-r-md last-of-type:border-r",
 							hitArea.segment28,
 							"focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
-							state.checked ? "bg-bg text-fg" : "bg-surface text-fg-muted hover:text-fg",
+							// The option the reader is on is not a target, so only the other one
+							// takes the hand.
+							state.checked ? "cursor-default bg-bg text-fg" : "cursor-pointer bg-surface text-fg-muted hover:text-fg",
 						)
 					}
 				>
