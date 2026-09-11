@@ -1,8 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { AGENT_PERSON_NAMES } from "@trellis/api";
 import { ulid } from "ulid";
 import { insertRow, seedProject, seedRootWithStatuses, seedTicket } from "../../test/fixtures";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
+import { assertStatusInvariant } from "../../test/invariants.ts";
 import { reserveName } from "./agentSessions.ts";
 
 // reserveName gives a new agent the person name that a human calls it by.
@@ -14,6 +15,7 @@ beforeAll(async () => {
 	h = await freshDb();
 });
 beforeEach(() => h.reset());
+afterEach(() => h.db.transaction(assertStatusInvariant));
 afterAll(() => h.close());
 
 const seed = async () => {

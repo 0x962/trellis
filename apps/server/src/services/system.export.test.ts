@@ -62,6 +62,7 @@ const seedEveryTable = async () => {
 		role: "manager",
 		runner: "superset",
 		state: "running",
+		name: "Alex",
 		title: "CDE manager",
 		created_at: new Date(),
 		updated_at: new Date(),
