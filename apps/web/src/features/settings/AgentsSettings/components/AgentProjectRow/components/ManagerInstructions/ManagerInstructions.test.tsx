@@ -29,7 +29,7 @@ const mount = async (server: TestServer) => {
 			<Toaster />
 			<ManagerInstructions project={project} />
 		</>,
-		{ path: "/settings", actor: "navid", server },
+		{ path: "/settings", actor: "dana", server },
 	);
 };
 

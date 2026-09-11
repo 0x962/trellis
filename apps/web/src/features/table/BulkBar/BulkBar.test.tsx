@@ -34,7 +34,7 @@ const actions = ["Status", "Priority", "Move to project", "Set parent", "Copy ID
 
 // Selects the first `count` rows of the Todo group on /p/CDE with the keyboard.
 const selectFirst = async (count: number, server: TestServer = createTestServer()) => {
-	const app = renderApp({ path: "/p/CDE/table", actor: "navid", server });
+	const app = renderApp({ path: "/p/CDE/table", actor: "dana", server });
 	await findGrid();
 	await waitFor(() => expect(rows().length).toBeGreaterThanOrEqual(count));
 	rows()[0]!.focus();
@@ -56,7 +56,7 @@ const pickOption = async (user: ReturnType<typeof userEvent.setup>, name: RegExp
 describe("features/table/BulkBar", () => {
 	// Outcome 58
 	test("appears with the count and reveals the checkbox column on the first selection", async () => {
-		renderApp({ path: "/p/CDE/table", actor: "navid" });
+		renderApp({ path: "/p/CDE/table", actor: "dana" });
 		await findGrid();
 		await waitFor(() => expect(rows().length).toBeGreaterThan(2));
 		expect(queryBulkBar()).toBeNull();
@@ -116,7 +116,7 @@ describe("features/table/BulkBar", () => {
 	test("copies the selected IDs one per line", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer({ empty: true });
-		await server.client.projects.create({ key: "CDE", name: "Superset CDE" });
+		await server.client.projects.create({ key: "CDE", name: "Cloud Desktop" });
 		await server.client.tickets.create({ project: "CDE", title: "First" });
 		await server.client.tickets.create({ project: "CDE", title: "Second" });
 		await selectFirst(2, server);

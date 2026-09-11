@@ -55,7 +55,7 @@ describe("Pair a phone", () => {
 	test("a server on loopback shows the command that opens it and the no-sign-in caution, and no QR code", async () => {
 		const server = createTestServer();
 		server.setAddresses(["http://127.0.0.1:4521"]);
-		renderApp({ path: "/settings", actor: "navid", server });
+		renderApp({ path: "/settings", actor: "dana", server });
 
 		const row = await openIntegrations();
 
@@ -68,7 +68,7 @@ describe("Pair a phone", () => {
 	test("a server on a network address shows a QR code of the exact pair link and the URL", async () => {
 		const server = createTestServer();
 		server.setAddresses(["http://127.0.0.1:4521", lan, "http://10.0.0.9:4521"]);
-		renderApp({ path: "/settings", actor: "navid", server });
+		renderApp({ path: "/settings", actor: "dana", server });
 
 		const row = await openIntegrations();
 		const qr = await screen.findByRole("img", { name: /QR code/i });

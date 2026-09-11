@@ -11,8 +11,8 @@ export const rootName = "Code";
 export const webPath = "CDE.web";
 export const hostPath = "CDE.host";
 // A second root with three tickets, so one page holds its whole list.
-export const smallKey = "MRG";
-export const smallName = "Margin";
+export const smallKey = "OPS";
+export const smallName = "Ops";
 
 export const reviewTitle = "Persist the open tabs across an app restart";
 export const oauthTitles = [
@@ -34,7 +34,7 @@ export type BrowseData = {
 	small: string;
 	// The one ticket waiting in Human Review, under CDE.web.
 	review: string;
-	// The three tickets whose title names OAuth, one of them under MRG.
+	// The three tickets whose title names OAuth, one of them under OPS.
 	oauth: string[];
 	terminal: string;
 	named: string;
@@ -66,7 +66,7 @@ export const seedBrowse = async (): Promise<BrowseData> => {
 		});
 	}
 	for (let index = 0; index < 2; index += 1) {
-		await seedTicket(seeder, { project: smallKey, title: `Trim the margin report, step ${index + 1}` });
+		await seedTicket(seeder, { project: smallKey, title: `Trim the weekly report, step ${index + 1}` });
 	}
 	const small = await seedTicket(seeder, { project: smallKey, title: oauthTitles[2]!, priority: "medium" });
 	oauth.push(small.identifier);

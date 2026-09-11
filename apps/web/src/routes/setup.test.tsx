@@ -35,8 +35,8 @@ describe("routes/setup", () => {
 		const { router } = renderApp({ path: "/setup", server });
 		const input = await screen.findByDisplayValue(machine);
 		await user.clear(input);
-		await user.type(input, "navid{Enter}");
-		expect(localStorage.getItem("trellis.actor")).toBe('{"name":"navid","kind":"human"}');
+		await user.type(input, "dana{Enter}");
+		expect(localStorage.getItem("trellis.actor")).toBe('{"name":"dana","kind":"human"}');
 		expect(await screen.findByRole("heading", { name: "Create your first project" })).toBeDefined();
 		expect(screen.queryByRole("heading", { name: "Enter your name" })).toBeNull();
 		expect(router.state.location.pathname).toBe("/setup");
@@ -46,12 +46,12 @@ describe("routes/setup", () => {
 	// edit is validated live: A to Z, 2 to 5 characters, not taken.
 	test("setup step 2 suggests a free key and validates the edit live", async () => {
 		const user = userEvent.setup();
-		renderApp({ path: "/setup?step=project", actor: "navid" });
+		renderApp({ path: "/setup?step=project", actor: "dana" });
 		const name = await screen.findByRole("textbox", { name: /project name/i });
 		await user.type(name, "Cloud Data Engine");
 		const key = screen.getByRole("textbox", { name: /key/i }) as HTMLInputElement;
 		await waitFor(() => expect(key.value).toMatch(/^[A-Z][A-Z0-9]{1,4}$/));
-		expect(["CDE", "TRL", "MRG"]).not.toContain(key.value);
+		expect(["CDE", "TRL"]).not.toContain(key.value);
 		// Spec SU-2: a live chip shows the first ticket ID of the key.
 		expect(document.querySelector("[data-key-preview]")?.textContent).toContain(`${key.value}-1`);
 		const create = screen.getByRole("button", { name: /^Create/ });
@@ -78,7 +78,7 @@ describe("routes/setup", () => {
 	test("creating the first project lands on its empty board", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer({ empty: true });
-		const { router } = renderApp({ path: "/setup", actor: "navid", server });
+		const { router } = renderApp({ path: "/setup", actor: "dana", server });
 		const name = await screen.findByRole("textbox", { name: /project name/i });
 		await user.type(name, "Docs");
 		const key = screen.getByRole("textbox", { name: /key/i }) as HTMLInputElement;
@@ -90,7 +90,7 @@ describe("routes/setup", () => {
 		const call = server.calls.find((entry) => entry.path.join(".") === "projects.create");
 		expect(call).toBeDefined();
 		expect(call!.input).toEqual({ key: "DOC", name: "Docs" });
-		expect(call!.actor).toBe("human:navid");
+		expect(call!.actor).toBe("human:dana");
 		// The board is the view a project opens in, so the empty state here is
 		// the board and not the table's CLI line.
 		expect(await screen.findByRole("status", { name: "Board drag status" })).toBeDefined();
@@ -108,14 +108,14 @@ describe("routes/setup", () => {
 		renderApp({ path: "/setup", server });
 		const input = await screen.findByDisplayValue(machine);
 		await user.clear(input);
-		await user.type(input, "navid{Enter}");
+		await user.type(input, "dana{Enter}");
 		expect(await screen.findByRole("heading", { name: "Create your first project" })).toBeDefined();
 		const call = server.callsTo("settings.set").at(-1)!;
-		expect(call.input).toMatchObject({ defaultActorName: "navid" });
-		expect(call.actor).toBe("human:navid");
-		expect(await storedActorName(server)).toBe("navid");
-		expect(await server.client.actors.default()).toEqual({ name: "navid", kind: "human", stored: true });
-		expect(localStorage.getItem("trellis.actor")).toBe('{"name":"navid","kind":"human"}');
+		expect(call.input).toMatchObject({ defaultActorName: "dana" });
+		expect(call.actor).toBe("human:dana");
+		expect(await storedActorName(server)).toBe("dana");
+		expect(await server.client.actors.default()).toEqual({ name: "dana", kind: "human", stored: true });
+		expect(localStorage.getItem("trellis.actor")).toBe('{"name":"dana","kind":"human"}');
 	});
 
 	test("with projects on the server, /setup never asks for a name or a first project", async () => {
@@ -137,7 +137,7 @@ describe("routes/setup", () => {
 	// Two setups once made two projects both named "Operator".
 	test("the project step refuses a name another root project has", async () => {
 		const user = userEvent.setup();
-		const { server } = renderApp({ path: "/setup?step=project", actor: "navid" });
+		const { server } = renderApp({ path: "/setup?step=project", actor: "dana" });
 		const name = await screen.findByRole("textbox", { name: /project name/i });
 		const create = screen.getByRole("button", { name: /^Create/ });
 		await user.type(name, "Trellis");

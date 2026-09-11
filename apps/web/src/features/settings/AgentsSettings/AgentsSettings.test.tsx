@@ -21,7 +21,7 @@ const render = (server: TestServer) =>
 			<Toaster />
 			<AgentsSettings />
 		</>,
-		{ path: "/settings", actor: "navid", server },
+		{ path: "/settings", actor: "dana", server },
 	);
 
 // The block of one root project, named by its key and its name.
@@ -113,7 +113,7 @@ describe("AgentsSettings", () => {
 		const server = createTestServer();
 		await server.client.projects.setRepos({
 			project: "CDE",
-			repos: [{ owner: "canary-technologies-corp", repo: "de" }],
+			repos: [{ owner: "acme", repo: "web" }],
 		});
 		render(server);
 		const trellis = within(await projectGroup("TRL"));
@@ -121,10 +121,10 @@ describe("AgentsSettings", () => {
 			expect(trellis.getByRole("combobox", { name: "Superset project" }).textContent).toBe("Auto: no match"),
 		);
 		const picker = within(await projectGroup("CDE")).getByRole("combobox", { name: "Superset project" });
-		expect(picker.textContent).toBe("Auto: de");
+		expect(picker.textContent).toBe("Auto: web");
 		await user.click(picker);
 		const options = await screen.findAllByRole("option");
-		expect(options.map((option) => option.textContent)).toEqual(["Auto: de", "de", "trellis"]);
+		expect(options.map((option) => option.textContent)).toEqual(["Auto: web", "web", "trellis"]);
 		await user.click(options[2]!);
 		await waitFor(() => expect(saves(server)).toHaveLength(1));
 		expect(lastSave(server).projects).toEqual([

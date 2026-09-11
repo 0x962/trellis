@@ -25,7 +25,7 @@ const missing: GhStatus = {
 
 const withGh = (status: Partial<GhStatus>) => createTestServer({ gh: { ...missing, ...status } });
 
-const render = (server: TestServer) => renderWithProviders(<GhBanner />, { path: "/settings", actor: "navid", server });
+const render = (server: TestServer) => renderWithProviders(<GhBanner />, { path: "/settings", actor: "dana", server });
 
 describe("GhBanner", () => {
 	// ST-16. A working gh needs no banner, only the state.

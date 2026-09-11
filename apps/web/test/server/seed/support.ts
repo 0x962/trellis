@@ -11,18 +11,18 @@ export const minute = 60_000;
 export const hour = 60 * minute;
 export const day = 24 * hour;
 
-export const navid: ActorRef = { name: "navid", kind: "human" };
+export const dana: ActorRef = { name: "dana", kind: "human" };
 export const claude: ActorRef = { name: "claude-code", kind: "agent" };
 export const codex: ActorRef = { name: "codex", kind: "agent" };
 
-export const actors = { navid, claude, codex };
+export const actors = { dana, claude, codex };
 export type ActorName = keyof typeof actors;
 
 export const ticketTemplate = "## Goal\n\n## Acceptance\n\n- [ ] \n";
 
 // The repository every seeded pull request lives in.
-export const PR_OWNER = "canary-technologies-corp";
-export const PR_REPO = "de";
+export const PR_OWNER = "acme";
+export const PR_REPO = "web";
 
 export type PrSpec = {
 	number: number;

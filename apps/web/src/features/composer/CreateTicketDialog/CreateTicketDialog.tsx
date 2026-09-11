@@ -22,7 +22,7 @@ const summaryOf = (ticket: Ticket): TicketSummary => {
 // The list routes take a peek param; every other page opens the full ticket.
 const isList = (pathname: string) => pathname === "/all" || pathname.startsWith("/p/");
 
-// The quick composer, product.md 6.1: title, description from the
+// The quick composer: title, description from the
 // template, the chip row, Cmd+Enter to create, Cmd+Shift+Enter to create
 // and stay. With Create more on, every create stays. The draft survives an
 // Escape.

@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { paletteItems } from "../features/command/items";
 import { formatShortcut, shortcutById, shortcutScopes, shortcuts } from "./shortcuts";
 
-// The keyboard map of the plan, one entry per row of product.md 5.6, as
-// `<keys>@<scope>`. A row whose plan cell names several surfaces takes the
-// surface that owns the key; the other surfaces reach it by delegation.
+// The keyboard map the README documents, one entry per row, as
+// `<keys>@<scope>`. A row that names several surfaces takes the surface that
+// owns the key; the other surfaces reach it by delegation.
 const planRows = [
 	"mod+k@global",
 	"/@global",

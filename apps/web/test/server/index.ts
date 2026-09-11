@@ -62,7 +62,7 @@ let repos: Array<{ id: string; name: string; repo: string; path: string }> | und
 
 const runnerProjects = () => {
 	repos ??= [
-		{ id: "sp-de", name: "de", repo: "https://github.com/canary-technologies-corp/de", path: gitRepo("main") },
+		{ id: "sp-web", name: "web", repo: "https://github.com/acme/web", path: gitRepo("main") },
 		{ id: "sp-trellis", name: "trellis", repo: "https://github.com/0x962/trellis", path: gitRepo("main") },
 	];
 	return repos;
@@ -269,7 +269,7 @@ export const createTestServer = (options: TestServerOptions = {}) => {
 	return {
 		ready,
 		fetch,
-		client: clientAs("human:navid"),
+		client: clientAs("human:dana"),
 		clientAs,
 		calls,
 		// What `system.gh` reports from the next read on.

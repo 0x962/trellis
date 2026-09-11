@@ -41,7 +41,7 @@ const WORDS = sql.raw(
 		"migration",
 		"deploy",
 		"rollback",
-		"canary",
+		"throttle",
 		"metric",
 		"alert",
 		"dashboard",
@@ -140,7 +140,7 @@ export const perfSeed = async (db: Db, tickets: number): Promise<PerfRoot[]> => 
 		SELECT
 			'3' || substr(t.id, 2, 1) || lpad(t.number::text, 19, '0') || lpad(i::text, 5, '0'),
 			t.root_id, t.project_id, t.id,
-			CASE WHEN i % 2 = 0 THEN 'navid' ELSE 'claude' END,
+			CASE WHEN i % 2 = 0 THEN 'dana' ELSE 'claude' END,
 			CASE WHEN i % 2 = 0 THEN 'human' ELSE 'agent' END,
 			CASE WHEN i = 1 THEN 'ticket.created' ELSE 'ticket.updated' END,
 			CASE WHEN i = 1 THEN NULL ELSE 'priority' END,
@@ -155,7 +155,7 @@ export const perfSeed = async (db: Db, tickets: number): Promise<PerfRoot[]> => 
 			'1' || substr(t.id, 2, 1) || lpad(t.number::text, 23, '0') || i,
 			t.id,
 			(${WORDS})[((t.number * i * 17) % 60) + 1] || ' ' || (${WORDS})[((t.number + i) % 60) + 1] || ' broke on ' || t.number,
-			CASE WHEN i = 1 THEN 'claude' ELSE 'navid' END,
+			CASE WHEN i = 1 THEN 'claude' ELSE 'dana' END,
 			CASE WHEN i = 1 THEN 'agent' ELSE 'human' END,
 			t.created_at + interval '1 day',
 			t.created_at + interval '1 day'
@@ -172,7 +172,7 @@ export const perfSeed = async (db: Db, tickets: number): Promise<PerfRoot[]> => 
 		FROM generate_series(1, ${OPEN_PRS}) AS n`);
 	await db.execute(sql`
 		INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		SELECT '00' || lpad(n::text, 24, '0'), '2' || lpad(n::text, 25, '0'), 'manual', 'navid', 'human', now()
+		SELECT '00' || lpad(n::text, 24, '0'), '2' || lpad(n::text, 25, '0'), 'manual', 'dana', 'human', now()
 		FROM generate_series(1, ${OPEN_PRS}) AS n`);
 	// A real home is vacuumed by the maintenance timer after 1000 writes, and
 	// the cached perf home by its build step. VACUUM sets the visibility map,

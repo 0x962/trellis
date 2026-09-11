@@ -19,35 +19,37 @@ describe("features/sidebar/Sidebar archived group", () => {
 	test("an archived project sits under a collapsed Archived group", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer({
-			prepare: async (client) => void (await client.projects.update({ project: "MRG", archived: true })),
+			prepare: async (client) => void (await client.projects.update({ project: "TRL", archived: true })),
 		});
-		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", server });
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "dana", server });
 		const tree = await screen.findByRole("navigation", { name: "Projects" });
-		await within(tree).findByRole("link", { name: /trellis/ });
-		expect(within(tree).queryByRole("link", { name: /margin/ })).toBeNull();
+		await within(tree).findByRole("link", { name: /Cloud Desktop/ });
+		expect(within(tree).queryByRole("link", { name: /trellis/ })).toBeNull();
 		const toggle = await screen.findByRole("button", { name: /^Archived/ });
 		expect(toggle.getAttribute("aria-expanded")).toBe("false");
-		expect(screen.queryByRole("link", { name: /margin/ })).toBeNull();
+		expect(screen.queryByRole("link", { name: /trellis/ })).toBeNull();
 		await user.click(toggle);
 		expect(toggle.getAttribute("aria-expanded")).toBe("true");
-		expect(await screen.findByRole("link", { name: /margin/ })).toBeDefined();
-		const pages = screen.getByRole("navigation", { name: "margin pages" });
-		expect(within(pages).getByRole("link", { name: "Tickets" }).getAttribute("href")).toBe("/p/MRG");
-		expect(within(pages).getByRole("link", { name: "Settings" }).getAttribute("href")).toBe("/p/MRG/settings");
+		expect(await screen.findByRole("link", { name: /trellis/ })).toBeDefined();
+		const pages = screen.getByRole("navigation", { name: "trellis pages" });
+		expect(within(pages).getByRole("link", { name: "Tickets" }).getAttribute("href")).toBe("/p/TRL");
+		expect(within(pages).getByRole("link", { name: "Settings" }).getAttribute("href")).toBe("/p/TRL/settings");
 	});
 
 	test("no archived project shows no Archived group", async () => {
-		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
-		await within(await screen.findByRole("navigation", { name: "Projects" })).findByRole("link", { name: /trellis/ });
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "dana" });
+		await within(await screen.findByRole("navigation", { name: "Projects" })).findByRole("link", {
+			name: /Cloud Desktop/,
+		});
 		expect(screen.queryByRole("button", { name: /^Archived/ })).toBeNull();
 	});
 });
 
 describe("features/sidebar/Sidebar", () => {
 	test("navigation and projects share label and count columns with named sections", async () => {
-		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "dana" });
 		const primary = screen.getByRole("navigation", { name: "Workspace" });
-		const project = await screen.findByRole("link", { name: /Superset CDE/ });
+		const project = await screen.findByRole("link", { name: /Cloud Desktop/ });
 		for (const row of [...within(primary).getAllByRole("link"), project]) {
 			expect(row.querySelector('[data-slot="leading"]')!.classList.contains("sidebar-leading")).toBe(true);
 			expect(row.querySelector('[data-slot="label"]')!.classList.contains("sidebar-label")).toBe(true);
@@ -59,13 +61,13 @@ describe("features/sidebar/Sidebar", () => {
 
 	// WS-93. w-60 is 240 px on the 4 px spacing scale.
 	test("the sidebar renders the rows in the approved order at 240 px", async () => {
-		renderWithProviders(<Sidebar />, { path: "/needs-you", actor: "navid" });
+		renderWithProviders(<Sidebar />, { path: "/needs-you", actor: "dana" });
 		const element = aside();
 		expect(element.tagName).toBe("ASIDE");
 		expect(element.className).toMatch(/\bw-60\b/);
-		await within(element).findByText("Superset CDE");
+		await within(element).findByText("Cloud Desktop");
 		const text = element.textContent!;
-		const order = ["trellis", "Needs you", "Search", "All tickets", "Projects", "Superset CDE", "navid"];
+		const order = ["trellis", "Needs you", "Search", "All tickets", "Projects", "Cloud Desktop", "dana"];
 		const positions = order.map((label) => text.indexOf(label));
 		expect(positions.every((position) => position >= 0)).toBe(true);
 		expect(positions).toEqual([...positions].sort((a, b) => a - b));
@@ -76,7 +78,7 @@ describe("features/sidebar/Sidebar", () => {
 	// nothing from the inbox.
 	test("Needs you has no count with populated tickets", async () => {
 		const server = createTestServer();
-		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", server });
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "dana", server });
 		const row = await screen.findByRole("link", { name: "Needs you" });
 		expect(row.textContent).toBe("Needs you");
 		expect(server.callsTo("inbox.get")).toHaveLength(0);
@@ -85,8 +87,8 @@ describe("features/sidebar/Sidebar", () => {
 	// WS-95
 	test("[ and the toggle button collapse and restore the sidebar", async () => {
 		const user = userEvent.setup();
-		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
-		await within(aside()).findByText("Superset CDE");
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "dana" });
+		await within(aside()).findByText("Cloud Desktop");
 		fireEvent.keyDown(document.body, { key: "[" });
 		expect(useUiStore.getState().sidebarCollapsed).toBe(true);
 		expect(aside().getAttribute("aria-hidden")).toBe("true");
@@ -104,7 +106,7 @@ describe("features/sidebar/Sidebar", () => {
 	// WS-96. The label carries the state, so the color is never the only
 	// signal.
 	test("the connection panel names every state but a live one", async () => {
-		const { live } = renderWithProviders(<Sidebar />, { path: "/all", actor: "navid", liveStatus: "live" });
+		const { live } = renderWithProviders(<Sidebar />, { path: "/all", actor: "dana", liveStatus: "live" });
 		// A healthy server says nothing, so the panel is absent.
 		expect(within(aside()).queryByRole("status", { name: "Server connection" })).toBeNull();
 		act(() => live.status.set("reconnecting"));
@@ -118,7 +120,7 @@ describe("features/sidebar/Sidebar", () => {
 	// SH-1. The header draws the trellis mark, the favicon drawing, and not
 	// a generic icon.
 	test("the header shows the trellis mark beside the name", async () => {
-		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "dana" });
 		const mark = aside().querySelector('svg[viewBox="0 0 32 32"]')!;
 		expect(mark).not.toBeNull();
 		expect(mark.querySelector("rect")!.getAttribute("class")).toContain("fill-mark");
@@ -126,7 +128,7 @@ describe("features/sidebar/Sidebar", () => {
 	});
 
 	test("the nav rows show 16 px icons and the / key on Search", async () => {
-		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "dana" });
 		const search = screen.getByRole("link", { name: /^Search/ });
 		expect(search.querySelector("kbd")!.textContent).toBe("/");
 		for (const name of [/Needs you/, /^Search/, /All tickets/]) {
@@ -138,7 +140,7 @@ describe("features/sidebar/Sidebar", () => {
 	// WS-97
 	test("the navigation rows are links with the current page marked", async () => {
 		const user = userEvent.setup();
-		const { router } = renderWithProviders(<Sidebar />, { path: "/needs-you", actor: "navid" });
+		const { router } = renderWithProviders(<Sidebar />, { path: "/needs-you", actor: "dana" });
 		const needsYou = await screen.findByRole("link", { name: /Needs you/ });
 		expect(needsYou.getAttribute("aria-current")).toBe("page");
 		expect(needsYou.getAttribute("href")).toBe("/needs-you");
@@ -170,7 +172,7 @@ describe("features/sidebar/Sidebar", () => {
 
 describe("features/sidebar/Sidebar agents link", () => {
 	test("the footer links the Agents page right after Settings", async () => {
-		renderWithProviders(<Sidebar />, { path: "/all", actor: "navid" });
+		renderWithProviders(<Sidebar />, { path: "/all", actor: "dana" });
 		const agents = await screen.findByRole("link", { name: "Agents" });
 		expect(agents.getAttribute("href")).toBe("/agents");
 		const settings = screen.getByRole("link", { name: "Settings" });

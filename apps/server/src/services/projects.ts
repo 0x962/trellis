@@ -36,8 +36,8 @@ const nextPosition = async (tx: Tx, parentId: string | null) => {
 	return found[0]!.n;
 };
 
-// The description a new ticket of a new root starts with, from product.md
-// section 6.3. A sub-project starts with an empty template.
+// The description a new ticket of a new root starts with. A sub-project
+// starts with an empty template.
 export const DEFAULT_TICKET_TEMPLATE = "## Context\n\n## Acceptance criteria\n- [ ]\n\n## Out of scope\n";
 
 export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput): Promise<Project> => {

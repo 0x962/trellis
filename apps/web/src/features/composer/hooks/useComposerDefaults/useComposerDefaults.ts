@@ -31,7 +31,7 @@ export const defaultStatus = (statuses: readonly Status[]): Status | undefined =
 	statuses.find((status) => status.isDefault) ??
 	[...statuses].filter((status) => status.category === "todo").sort((a, b) => a.position - b.position)[0];
 
-// The chip values a new ticket starts with, product.md 6.2. Only a caller
+// The chip values a new ticket starts with. Only a caller
 // that names a status on purpose (a group `+` or a board column) seeds the
 // status. A filter only narrows the list, so a status filter never seeds
 // it, and the project default applies. A single-valued priority filter

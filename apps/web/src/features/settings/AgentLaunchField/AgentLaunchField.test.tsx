@@ -6,7 +6,7 @@ import { renderApp } from "../../../../test/renderWithProviders";
 
 test("Settings shows the agent launch command inline and saves on blur", async () => {
 	const user = userEvent.setup();
-	const { server } = renderApp({ path: "/settings#agents", actor: "navid" });
+	const { server } = renderApp({ path: "/settings#agents", actor: "dana" });
 	const field = await screen.findByRole("textbox", { name: "Command template" });
 	expect(field).toHaveProperty("value", DEFAULT_AGENT_LAUNCH_COMMAND);
 	expect(screen.queryByRole("button", { name: "Configure agent launch" })).toBeNull();
@@ -24,7 +24,7 @@ test("Settings shows the agent launch command inline and saves on blur", async (
 
 test("an invalid launch command stays inline and does not save", async () => {
 	const user = userEvent.setup();
-	const { server } = renderApp({ path: "/settings#agents", actor: "navid" });
+	const { server } = renderApp({ path: "/settings#agents", actor: "dana" });
 	const field = await screen.findByRole("textbox", { name: "Command template" });
 	await user.click(field);
 	fireEvent.change(field, { target: { value: "launch {{unknown}}" } });
@@ -40,7 +40,7 @@ test("an invalid launch command stays inline and does not save", async () => {
 
 test("a refused autosave keeps the command and permits a retry", async () => {
 	const user = userEvent.setup();
-	const { server } = renderApp({ path: "/settings#agents", actor: "navid" });
+	const { server } = renderApp({ path: "/settings#agents", actor: "dana" });
 	const field = await screen.findByRole("textbox", { name: "Command template" });
 	server.failNext("settings.set", { code: "NOT_FOUND" });
 	await user.click(field);
@@ -56,7 +56,7 @@ test("a refused autosave keeps the command and permits a retry", async () => {
 
 test("a pending save preserves a newer command and saves both edits in order", async () => {
 	const user = userEvent.setup();
-	const { server } = renderApp({ path: "/settings#agents", actor: "navid" });
+	const { server } = renderApp({ path: "/settings#agents", actor: "dana" });
 	const field = await screen.findByRole("textbox", { name: "Command template" });
 	const hold = server.holdNext("settings.set");
 	await user.click(field);
@@ -76,7 +76,7 @@ test("a pending save preserves a newer command and saves both edits in order", a
 
 test("restore Superset saves its default command without a separate save", async () => {
 	const user = userEvent.setup();
-	const { server } = renderApp({ path: "/settings#agents", actor: "navid" });
+	const { server } = renderApp({ path: "/settings#agents", actor: "dana" });
 	const field = await screen.findByRole("textbox", { name: "Command template" });
 	await user.click(field);
 	fireEvent.change(field, { target: { value: "custom-agent {{prompt}}" } });
@@ -94,7 +94,7 @@ test("restore Superset saves its default command without a separate save", async
 
 test("restore the original text while a save is pending still saves that text", async () => {
 	const user = userEvent.setup();
-	const { server } = renderApp({ path: "/settings#agents", actor: "navid" });
+	const { server } = renderApp({ path: "/settings#agents", actor: "dana" });
 	const field = await screen.findByRole("textbox", { name: "Command template" });
 	const hold = server.holdNext("settings.set");
 	await user.click(field);

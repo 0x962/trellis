@@ -46,7 +46,7 @@ const titles = [
 ];
 
 const priorities: Priority[] = ["medium", "low", "high", "none"];
-const fillerActors: ActorName[] = ["navid", "claude", "codex"];
+const fillerActors: ActorName[] = ["dana", "claude", "codex"];
 
 // Every filler is one create at its own instant, so its last change and its
 // creation share that instant and the default list order stays stable.
@@ -76,7 +76,5 @@ export const fillerSpecs = (): TicketSpec[] => {
 	for (const number of [32, 52]) filler("CDE", number, "canceled");
 	for (const number of [1, 2, 3, 5, 6, 10, 11, 13, 14, 15, 16]) filler("TRL", number, "todo");
 	for (const number of [17, 18, 19]) filler("TRL", number, "done");
-	for (const number of [1, 2]) filler("MRG", number, "todo");
-	for (const number of [4, 5]) filler("MRG", number, "done");
 	return specs;
 };

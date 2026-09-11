@@ -17,7 +17,7 @@ beforeEach(() => {
 const render = (harness?: ReturnType<typeof createHarness>) =>
 	renderWithProviders(<ThemeField />, {
 		path: "/settings",
-		actor: "navid",
+		actor: "dana",
 		server: createTestServer(),
 		...(harness === undefined ? {} : { harness }),
 	});

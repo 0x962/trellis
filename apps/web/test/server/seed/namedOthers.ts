@@ -1,15 +1,15 @@
 import { day, hour, type TicketSpec } from "./support.ts";
 
-// The named tickets of TRL and MRG.
+// The named tickets of TRL.
 export const otherNamedSpecs = (): TicketSpec[] => [
 	{
 		project: "TRL",
 		number: 4,
 		title: "PR and CI polling",
-		actor: "navid",
+		actor: "dana",
 		ago: 6 * day,
 		priority: "medium",
-		events: [{ ago: 20 * hour, actor: "navid", move: "in-progress" }],
+		events: [{ ago: 20 * hour, actor: "dana", move: "in-progress" }],
 	},
 	{
 		project: "TRL",
@@ -42,16 +42,8 @@ export const otherNamedSpecs = (): TicketSpec[] => [
 		project: "TRL",
 		number: 12,
 		title: "OAuth device flow for the CLI sign-in",
-		actor: "navid",
+		actor: "dana",
 		ago: 28 * hour,
 		priority: "urgent",
-	},
-	{
-		project: "MRG",
-		number: 3,
-		title: "Handle the oauth redirect on the review page",
-		actor: "navid",
-		ago: 2 * day,
-		priority: "medium",
 	},
 ];

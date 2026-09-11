@@ -18,16 +18,15 @@ import {
 // The seed the web tests read. It is the data the design canvas shows, so a
 // screenshot of the shell over it matches the approved screens.
 //
-// Actors: navid (human), claude-code (agent), codex (agent).
+// Actors: dana (human), claude-code (agent), codex (agent).
 //
 // Projects and their trees:
-//   CDE "Superset CDE"   with CDE.web "web" and CDE.host "host"
+//   CDE "Cloud Desktop"   with CDE.web "web" and CDE.host "host"
 //   TRL "trellis"
-//   MRG "margin"
 // Every root owns the six statuses a root is created with: Todo, In Progress,
 // Agent Review, Human Review, Done, Canceled. Sub-projects inherit CDE's set.
 //
-// CDE holds the numbers 1 to 52, TRL 1 to 19, MRG 1 to 5. A ticket takes the
+// CDE holds the numbers 1 to 52 and TRL 1 to 19. A ticket takes the
 // next number of its root, so every spec is created in number order.
 //
 // Named tickets, with the story each one replays:
@@ -36,24 +35,24 @@ import {
 //          with four passing checks; last change claude-code 2 h ago.
 //   CDE-44 "Terminal pane loses scrollback on session handoff" in-progress,
 //          urgent, PR de#121 with a failing typecheck; claude-code 9 min ago.
-//   CDE-41 "Local Stack tab reads the live checkout from tmux" in-progress,
+//   CDE-41 "Sandbox tab reads the live checkout from tmux" in-progress,
 //          medium, parent CDE-43, 1 attachment; claude-code 3 h ago.
 //   CDE-38 "Databases page: cancel button for long statements" in-progress,
 //          medium; claude-code 2 days ago, which is stalled.
-//   CDE-37 "Shell+ tabs survive an app restart" human-review, medium,
+//   CDE-37 "Console tabs survive an app restart" human-review, medium,
 //          2 comments, PR de#115 with four passing checks; codex 5 h ago.
 //   CDE-45 "Setup module skips a hand-run launchd agent" agent-review, high,
 //          PR de#119; claude-code 14 min ago.
-//   CDE-40 "Agent wrapper skips its own ~/.golemapp spelling" agent-review,
+//   CDE-40 "Agent wrapper skips its own ~/.acmeapp spelling" agent-review,
 //          medium, 1 comment, PR de#117; codex 6 h ago.
 //   CDE-43 "Merge upstream 1.27 and keep every marked site" in-progress, high,
-//          PR de#116 with four pending checks; navid 41 min ago.
-//   CDE-47 "Shell+ tab rename by double click" todo, low, 2 attachments.
+//          PR de#116 with four pending checks; dana 41 min ago.
+//   CDE-47 "Console tab rename by double click" todo, low, 2 attachments.
 //   CDE-48, CDE-49, CDE-33, CDE-34, TRL-7, TRL-8 were moved to Done by an
 //   agent today, so the Needs you page lists six rows there.
 //   TRL-9 "PR polling: one batched GraphQL query or per-PR REST calls"
 //          human-review, low, parent TRL-4; claude-code 6 h ago.
-//   TRL-4 "PR and CI polling" in-progress, medium; navid 20 h ago.
+//   TRL-4 "PR and CI polling" in-progress, medium; dana 20 h ago.
 //   TRL-12 "OAuth device flow for the CLI sign-in" todo, urgent.
 
 export type SeedOptions = { transport: ServiceTransport; gh: GhStubHandle; base: number };
@@ -61,7 +60,7 @@ export type SeedOptions = { transport: ServiceTransport; gh: GhStubHandle; base:
 // One change of the seed, with the instant it runs at.
 type Step = { ago: number; order: number; run: () => Promise<void> };
 
-const projectOrder = ["CDE", "TRL", "MRG"];
+const projectOrder = ["CDE", "TRL"];
 
 // Every ticket of the seed, in the order the numbers are handed out: root by
 // root, number by number.
@@ -74,17 +73,16 @@ const allSpecs = (): TicketSpec[] => {
 const seedProjects = async (s: Seeder) => {
 	const at = s.at(30 * day);
 	const root = async (key: string, name: string) =>
-		await s.call("projects.create", "navid", at, { key, name, ticketTemplate });
+		await s.call("projects.create", "dana", at, { key, name, ticketTemplate });
 	const child = async (parent: string, slug: string, name: string) =>
-		await s.call("projects.create", "navid", at, { parent, slug, name, ticketTemplate });
-	await root("CDE", "Superset CDE");
+		await s.call("projects.create", "dana", at, { parent, slug, name, ticketTemplate });
+	await root("CDE", "Cloud Desktop");
 	await child("CDE", "web", "web");
 	await child("CDE", "host", "host");
 	await root("TRL", "trellis");
-	await root("MRG", "margin");
 	// The repository the pull requests of CDE live in. The agents runner
 	// matches its Superset project by this pair.
-	await s.call("projects.setRepos", "navid", at, {
+	await s.call("projects.setRepos", "dana", at, {
 		project: "CDE",
 		repos: [{ owner: PR_OWNER, repo: PR_REPO }],
 	});
@@ -148,8 +146,8 @@ const stepsOf = (s: Seeder, spec: TicketSpec, identifier: string): Step[] => {
 export const seedData = async ({ transport, gh, base }: SeedOptions) => {
 	const s = createSeeder(transport, base, gh);
 	await seedProjects(s);
-	await s.call("settings.set", "navid", s.at(30 * day), {
-		defaultActorName: "navid",
+	await s.call("settings.set", "dana", s.at(30 * day), {
+		defaultActorName: "dana",
 		stalledHours: 24,
 		diffUrlTemplate: "{url}/files",
 	});

@@ -15,7 +15,7 @@ beforeEach(() => {
 const renderActions = async (server: TestServer) => {
 	const ticket = await summaryOf(server, "CDE-42");
 	const pr = await firstPr(server, "CDE-42");
-	renderWithProviders(<PrActions ticket={ticket} pr={pr} />, { path: "/t/CDE-42", actor: "navid", server });
+	renderWithProviders(<PrActions ticket={ticket} pr={pr} />, { path: "/t/CDE-42", actor: "dana", server });
 	return { ticket, pr };
 };
 

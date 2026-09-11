@@ -18,7 +18,7 @@ const renderRow = async (server: TestServer, identifier: string) => {
 	const pr = await firstPr(server, identifier);
 	const view = renderWithProviders(<PullRequestRow ticket={ticket} pr={pr} />, {
 		path: `/t/${identifier}`,
-		actor: "navid",
+		actor: "dana",
 		server,
 	});
 	return { ...view, ticket, pr };
@@ -33,7 +33,7 @@ describe("PullRequestRow", () => {
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
 		const text = (row.textContent ?? "").replace(/\s+/g, " ");
-		expect(text).toContain("canary-technologies-corp/de");
+		expect(text).toContain("acme/web");
 		expect(text).toContain("#118");
 		expect(text).toContain("Restore the fork pages");
 		expect(text).toContain("2h ago");
@@ -96,7 +96,7 @@ describe("PullRequestRow", () => {
 				<PullRequestRow ticket={ticket42} pr={withChecks} />
 				<PullRequestRow ticket={ticket45} pr={without} />
 			</>,
-			{ path: "/t/CDE-42", actor: "navid", server },
+			{ path: "/t/CDE-42", actor: "dana", server },
 		);
 		expect(heightClass(await prRow(withChecks.id))).toBe("h-14");
 		expect(heightClass(await prRow(without.id))).toBe("h-14");

@@ -45,8 +45,8 @@ const pr121: PrSpec = {
 
 const pr115: PrSpec = {
 	number: 115,
-	title: "Persist the Shell+ tab list",
-	headRef: "cde-37-shell-plus-tabs",
+	title: "Persist the Console tab list",
+	headRef: "cde-37-console-tabs",
 	checks: [
 		["lint", "pass"],
 		["typecheck (desktop)", "pass"],
@@ -72,7 +72,7 @@ const pr119: PrSpec = {
 const pr117: PrSpec = {
 	number: 117,
 	title: "Resolve the data home symlink in the wrapper",
-	headRef: "cde-40-golemapp-symlink",
+	headRef: "cde-40-data-home-symlink",
 	checks: [
 		["lint", "pass"],
 		["typecheck (desktop)", "pass"],
@@ -83,7 +83,7 @@ const pr117: PrSpec = {
 };
 
 const description42 =
-	'The upstream 1.27 merge dropped the five fork pages. Restore Actions, Shell+, Local Stack, Databases, and Terminals under `cde/` and keep every marked site.\n\n## Acceptance\n\n- [x] The five routes render\n- [x] `grep -rn "CDE FORK"` lists every marked site\n- [ ] The desktop typecheck is green';
+	'The upstream 1.27 merge dropped the five fork pages. Restore Actions, Console, Sandbox, Databases, and Terminals under `cde/` and keep every marked site.\n\n## Acceptance\n\n- [x] The five routes render\n- [x] `grep -rn "CDE FORK"` lists every marked site\n- [ ] The desktop typecheck is green';
 
 export const cdeNamedSpecs = (): TicketSpec[] => [
 	{
@@ -108,21 +108,21 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 		project: "CDE",
 		number: 35,
 		title: "Databases page: keep the server's time zone on timestamptz",
-		actor: "navid",
+		actor: "dana",
 		ago: 6 * day,
 	},
 	{
 		project: "CDE",
 		number: 36,
 		title: "Terminals page: reopen a dead shell in the same directory",
-		actor: "navid",
+		actor: "dana",
 		ago: 5 * day,
 		priority: "low",
 	},
 	{
 		project: "CDE.web",
 		number: 37,
-		title: "Shell+ tabs survive an app restart",
+		title: "Console tabs survive an app restart",
 		actor: "codex",
 		ago: 4 * day,
 		priority: "medium",
@@ -132,7 +132,7 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 			{
 				ago: 11 * hour,
 				actor: "codex",
-				comment: "The tab list persists under shell-plus-tabs and every session is reattached on boot.",
+				comment: "The tab list persists under console-tabs and every session is reattached on boot.",
 			},
 			{ ago: 5 * hour, actor: "codex", comment: "Rebased on main; checks are green." },
 			{ ago: 5 * hour, actor: "codex", pr: pr115 },
@@ -150,8 +150,8 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 	{
 		project: "CDE",
 		number: 39,
-		title: "Local Stack: stop the running checkout before a new one starts",
-		actor: "navid",
+		title: "Sandbox: stop the running checkout before a new one starts",
+		actor: "dana",
 		ago: 4 * day,
 		priority: "medium",
 		parent: 43,
@@ -159,7 +159,7 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 	{
 		project: "CDE.host",
 		number: 40,
-		title: "Agent wrapper skips its own ~/.golemapp spelling",
+		title: "Agent wrapper skips its own ~/.acmeapp spelling",
 		actor: "codex",
 		ago: 3 * day,
 		priority: "medium",
@@ -173,7 +173,7 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 	{
 		project: "CDE.web",
 		number: 41,
-		title: "Local Stack tab reads the live checkout from tmux",
+		title: "Sandbox tab reads the live checkout from tmux",
 		actor: "claude",
 		ago: 3 * day,
 		priority: "medium",
@@ -191,15 +191,15 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 		project: "CDE.web",
 		number: 42,
 		title: "Restore the fork pages after the upstream 1.27 merge",
-		actor: "navid",
+		actor: "dana",
 		ago: 3 * day,
 		description: description42,
 		events: [
-			{ ago: 3 * day - 10 * minute, actor: "navid", update: { priority: "high", parent: "CDE-43" } },
+			{ ago: 3 * day - 10 * minute, actor: "dana", update: { priority: "high", parent: "CDE-43" } },
 			{ ago: 2 * day, actor: "claude", move: "in-progress" },
 			{
 				ago: 2 * day - hour,
-				actor: "navid",
+				actor: "dana",
 				comment: "Plan: restore the five fork pages under cde/ and keep every marked site.",
 			},
 			{
@@ -213,7 +213,7 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 				attachment: { filename: "fork-pages-after-merge.png", mime: "image/png", size: 184_320 },
 			},
 			{ ago: 1 * day, actor: "claude", move: "human-review" },
-			{ ago: 20 * hour, actor: "navid", comment: "Send it to review when the desktop typecheck is green." },
+			{ ago: 20 * hour, actor: "dana", comment: "Send it to review when the desktop typecheck is green." },
 			{ ago: 2 * hour, actor: "claude", pr: pr118 },
 			{ ago: 2 * hour, actor: "claude", comment: "Typecheck and tests are green on the PR. Ready for a look." },
 		],
@@ -222,12 +222,12 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 		project: "CDE",
 		number: 43,
 		title: "Merge upstream 1.27 and keep every marked site",
-		actor: "navid",
+		actor: "dana",
 		ago: 4 * day,
 		priority: "high",
 		events: [
-			{ ago: 3 * day, actor: "navid", move: "in-progress" },
-			{ ago: 41 * minute, actor: "navid", pr: pr116 },
+			{ ago: 3 * day, actor: "dana", move: "in-progress" },
+			{ ago: 41 * minute, actor: "dana", pr: pr116 },
 		],
 	},
 	{
@@ -241,7 +241,7 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 			{ ago: 6 * hour, actor: "claude", move: "in-progress" },
 			{
 				ago: 5 * hour,
-				actor: "navid",
+				actor: "dana",
 				comment: "Repro: hand a session to another agent and scroll up. The buffer is gone.",
 			},
 			{
@@ -269,20 +269,20 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 		project: "CDE",
 		number: 46,
 		title: "Notices: the version feed guard for the fork build",
-		actor: "navid",
+		actor: "dana",
 		ago: 30 * hour,
 		priority: "medium",
 	},
 	{
 		project: "CDE",
 		number: 47,
-		title: "Shell+ tab rename by double click",
-		actor: "navid",
+		title: "Console tab rename by double click",
+		actor: "dana",
 		ago: 3 * day,
 		priority: "low",
 		events: [
-			{ ago: 3 * day, actor: "navid", attachment: { filename: "rename-flow.png", mime: "image/png", size: 61_440 } },
-			{ ago: 3 * day, actor: "navid", attachment: { filename: "notes.md", mime: "text/markdown", size: 2_048 } },
+			{ ago: 3 * day, actor: "dana", attachment: { filename: "rename-flow.png", mime: "image/png", size: 61_440 } },
+			{ ago: 3 * day, actor: "dana", attachment: { filename: "notes.md", mime: "text/markdown", size: 2_048 } },
 		],
 	},
 	{
@@ -297,7 +297,7 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 	{
 		project: "CDE.web",
 		number: 49,
-		title: "Shell+ page: focus the new tab's terminal",
+		title: "Console page: focus the new tab's terminal",
 		actor: "claude",
 		ago: 2 * day,
 		priority: "low",
@@ -307,7 +307,7 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 		project: "CDE.web",
 		number: 50,
 		title: "Terminals page: rename a tab on double click",
-		actor: "navid",
+		actor: "dana",
 		ago: 2 * day,
 		priority: "low",
 		parent: 42,
@@ -316,7 +316,7 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 		project: "CDE.web",
 		number: 51,
 		title: "Refresh the OAuth token before the gh poller runs",
-		actor: "navid",
+		actor: "dana",
 		ago: 26 * hour,
 		priority: "high",
 	},

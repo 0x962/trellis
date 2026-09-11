@@ -17,7 +17,7 @@ const renderSection = async (server: TestServer, identifier: string, wired: Test
 	const ticket = await summaryOf(server, identifier);
 	return renderWithProviders(<PullRequests ticket={ticket} />, {
 		path: `/t/${identifier}`,
-		actor: "navid",
+		actor: "dana",
 		server: wired,
 	});
 };

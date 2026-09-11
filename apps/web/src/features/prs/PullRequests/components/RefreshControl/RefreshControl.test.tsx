@@ -18,7 +18,7 @@ const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
 
 const renderSection = async (server: TestServer, identifier: string) => {
 	const ticket = await summaryOf(server, identifier);
-	return renderWithProviders(<PullRequests ticket={ticket} />, { path: `/t/${identifier}`, actor: "navid", server });
+	return renderWithProviders(<PullRequests ticket={ticket} />, { path: `/t/${identifier}`, actor: "dana", server });
 };
 
 // The seeded pull request fetched 40 s ago, beside an older second one.

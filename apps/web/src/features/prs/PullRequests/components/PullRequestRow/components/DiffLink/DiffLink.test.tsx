@@ -17,7 +17,7 @@ describe("DiffLink", () => {
 	// PR-28
 	test("opens the default diff of the pull request in a new tab", async () => {
 		const server = createTestServer();
-		renderWithProviders(<DiffLink url={url} />, { path: "/t/CDE-42", actor: "navid", server });
+		renderWithProviders(<DiffLink url={url} />, { path: "/t/CDE-42", actor: "dana", server });
 		const link = await screen.findByRole("link", { name: "Show diff" });
 		expect(link.getAttribute("href")).toBe(`${url}/files`);
 		expect(link.getAttribute("target")).toBe("_blank");
@@ -30,19 +30,19 @@ describe("DiffLink", () => {
 		const server = createTestServer({
 			prepare: async (client) => {
 				const settings = await client.settings.get();
-				await client.settings.set({ ...settings, diffUrlTemplate: "http://margin.localhost/{url}" });
+				await client.settings.set({ ...settings, diffUrlTemplate: "http://diff.localhost/{url}" });
 			},
 		});
-		renderWithProviders(<DiffLink url={url} />, { path: "/t/CDE-42", actor: "navid", server });
+		renderWithProviders(<DiffLink url={url} />, { path: "/t/CDE-42", actor: "dana", server });
 		const link = await screen.findByRole("link", { name: "Show diff" });
-		expect(link.getAttribute("href")).toBe(`http://margin.localhost/${url}`);
+		expect(link.getAttribute("href")).toBe(`http://diff.localhost/${url}`);
 	});
 
 	// PR-29. The viewer renders the diff, so trellis asks the server for none.
 	test("never asks the server for a diff", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		renderWithProviders(<DiffLink url={url} />, { path: "/t/CDE-42", actor: "navid", server });
+		renderWithProviders(<DiffLink url={url} />, { path: "/t/CDE-42", actor: "dana", server });
 		await user.click(await screen.findByRole("link", { name: "Show diff" }));
 		expect(callsTo(server, "pullRequests.diff")).toHaveLength(0);
 	});

@@ -19,7 +19,7 @@ const render = (server: TestServer) =>
 			<Toaster />
 			<StalledThresholdField />
 		</>,
-		{ path: "/settings", actor: "navid", server },
+		{ path: "/settings", actor: "dana", server },
 	);
 
 const field = () => screen.findByRole("spinbutton", { name: /stalled/i });

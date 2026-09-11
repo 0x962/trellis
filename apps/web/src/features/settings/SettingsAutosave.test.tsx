@@ -22,7 +22,7 @@ const render = (field: ReactElement, server: TestServer) =>
 			<Toaster />
 			{field}
 		</>,
-		{ path: "/settings", actor: "navid", server },
+		{ path: "/settings", actor: "dana", server },
 	);
 
 const saves = (server: TestServer) => server.calls.filter((call) => call.path.join(".") === "settings.set");
@@ -40,11 +40,11 @@ describe("settings autosave", () => {
 		const field = await screen.findByRole("textbox", { name: /diff url template/i });
 		expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 		await user.clear(field);
-		await user.type(field, "http://margin.localhost/{{url}");
+		await user.type(field, "http://diff.localhost/{{url}");
 		await user.tab();
 		await waitFor(() => expect(saves(server)).toHaveLength(1));
 		expect((saves(server)[0]!.input as { diffUrlTemplate: string }).diffUrlTemplate).toBe(
-			"http://margin.localhost/{url}",
+			"http://diff.localhost/{url}",
 		);
 		expect(await within(rowOf(field)).findByText("Saved")).toBeDefined();
 		await settle(50);
@@ -57,7 +57,7 @@ describe("settings autosave", () => {
 		render(<ActorNameField />, server);
 		const field = await screen.findByRole("textbox", { name: "Your name" });
 		await user.clear(field);
-		await user.type(field, "Navid K");
+		await user.type(field, "Dana K");
 		await user.tab();
 		await waitFor(() => expect(saves(server)).toHaveLength(1));
 		expect(await within(rowOf(field)).findByText("Saved")).toBeDefined();

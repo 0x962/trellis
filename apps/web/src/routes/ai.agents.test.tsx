@@ -15,7 +15,7 @@ test("ticket assignment requires a persona and creates a named agent", async () 
 	});
 	await server.client.personas.create({ name: "Coordinator", kind: "manager", instruction: "Manage." });
 	const user = userEvent.setup();
-	renderApp({ path: "/t/CDE-42", actor: "navid", server });
+	renderApp({ path: "/t/CDE-42", actor: "dana", server });
 	await user.click(await screen.findByRole("button", { name: "New agent" }));
 	const picker = within(await screen.findByRole("dialog", { name: "Assign a persona" }));
 	expect(picker.getByRole("combobox", { name: "Search personas" })).toBeDefined();
@@ -40,8 +40,8 @@ test("the project Manager page saves its setup and starts its configured persona
 		instruction: "Manage the project.",
 	});
 	const user = userEvent.setup();
-	renderApp({ path: "/p/CDE/settings/manager", actor: "navid", server });
-	await screen.findByRole("heading", { name: "Superset CDE › Manager" });
+	renderApp({ path: "/p/CDE/settings/manager", actor: "dana", server });
+	await screen.findByRole("heading", { name: "Cloud Desktop › Manager" });
 	await user.click(screen.getByRole("combobox", { name: "Manager persona" }));
 	await user.click(await screen.findByRole("option", { name: "Trellis Manager" }));
 	await user.clear(screen.getByRole("spinbutton", { name: "Concurrency" }));
@@ -67,7 +67,7 @@ test("the project Manager page saves its setup and starts its configured persona
 	expect(server.callsTo("agentRuns.start")[0]!.input).toEqual({ personaId: manager.id, project: "CDE" });
 	const [run] = await server.client.agentRuns.list({ project: "CDE" });
 	expect(await screen.findByRole("button", { name: new RegExp(run!.name) })).toBeDefined();
-	const navigation = within(screen.getByRole("navigation", { name: "Superset CDE pages" }));
+	const navigation = within(screen.getByRole("navigation", { name: "Cloud Desktop pages" }));
 	expect(navigation.getByRole("link", { name: "Manager" }).getAttribute("aria-current")).toBe("page");
 	expect(navigation.getByRole("link", { name: "Tickets" }).getAttribute("aria-current")).toBeNull();
 });
@@ -76,7 +76,7 @@ test("a rejected start retains the selected persona and displays the error", asy
 	const server = createTestServer();
 	await server.client.personas.create({ name: "Builder", kind: "builder", instruction: "Build." });
 	const user = userEvent.setup();
-	renderApp({ path: "/t/CDE-42", actor: "navid", server });
+	renderApp({ path: "/t/CDE-42", actor: "dana", server });
 	await user.click(await screen.findByRole("button", { name: "New agent" }));
 	const picker = within(await screen.findByRole("dialog", { name: "Assign a persona" }));
 	await user.type(picker.getByRole("combobox", { name: "Search personas" }), "Builder");
@@ -97,7 +97,7 @@ test("an agent slideout shows output and sends a follow-up", async () => {
 	const persona = await server.client.personas.create({ name: "Builder", kind: "builder", instruction: "Build." });
 	const run = await server.client.agentRuns.start({ personaId: persona.id, ticket: "CDE-42" });
 	const user = userEvent.setup();
-	renderApp({ path: "/t/CDE-42", actor: "navid", server });
+	renderApp({ path: "/t/CDE-42", actor: "dana", server });
 	await user.click(await screen.findByRole("button", { name: new RegExp(run.name) }));
 	const terminal = within(await screen.findByRole("region", { name: "Agent terminal" }));
 	expect(terminal.getByRole("heading", { name: "Terminal output" })).toBeDefined();
@@ -113,7 +113,7 @@ test("an agent slideout shows output and sends a follow-up", async () => {
 test("a project's Manager page accepts a GitHub URL and keeps a refused setup draft", async () => {
 	const server = createTestServer();
 	const user = userEvent.setup();
-	renderApp({ path: "/p/TRL/settings/manager#repositories", actor: "navid", server });
+	renderApp({ path: "/p/TRL/settings/manager#repositories", actor: "dana", server });
 	await user.type(await screen.findByRole("textbox", { name: "Repository" }), "https://github.com/0x962/trellis");
 	await user.click(screen.getByRole("button", { name: "Add repository" }));
 	await waitFor(() => expect(server.callsTo("projects.setRepos")).toHaveLength(1));
@@ -138,7 +138,7 @@ test("a canceled folder selection keeps the directory and makes no write", async
 	});
 	const writes = server.callsTo("projects.update").length;
 	const user = userEvent.setup();
-	renderApp({ path: "/p/TRL/settings/manager", actor: "navid", server });
+	renderApp({ path: "/p/TRL/settings/manager", actor: "dana", server });
 	const directory = await screen.findByRole("textbox", { name: "Project directory" });
 	await user.click(directory);
 	await waitFor(() => expect(server.callsTo("system.chooseDirectory")).toHaveLength(1));
@@ -150,7 +150,7 @@ test("manager autosave preserves a newer edit while a previous save is pending",
 	const server = createTestServer();
 	server.setDirectory("/tmp/project");
 	const user = userEvent.setup();
-	renderApp({ path: "/p/TRL/settings/manager", actor: "navid", server });
+	renderApp({ path: "/p/TRL/settings/manager", actor: "dana", server });
 	const concurrency = await screen.findByRole("spinbutton", { name: "Concurrency" });
 	const hold = server.holdNext("projects.update");
 	await user.clear(concurrency);
@@ -175,7 +175,7 @@ test("the folder result preserves a concurrency edit made while the dialog is op
 	const server = createTestServer();
 	server.setDirectory("/tmp/project");
 	const user = userEvent.setup();
-	renderApp({ path: "/p/TRL/settings/manager", actor: "navid", server });
+	renderApp({ path: "/p/TRL/settings/manager", actor: "dana", server });
 	const folder = await screen.findByRole("textbox", { name: "Project directory" });
 	const hold = server.holdNext("system.chooseDirectory");
 	await user.click(folder);
@@ -196,7 +196,7 @@ test("the folder result preserves a concurrency edit made while the dialog is op
 test("invalid concurrency stays visible without a save and a folder error permits another selection", async () => {
 	const server = createTestServer();
 	const user = userEvent.setup();
-	renderApp({ path: "/p/TRL/settings/manager", actor: "navid", server });
+	renderApp({ path: "/p/TRL/settings/manager", actor: "dana", server });
 	const concurrency = await screen.findByRole("spinbutton", { name: "Concurrency" });
 	await user.clear(concurrency);
 	await user.type(concurrency, "65");

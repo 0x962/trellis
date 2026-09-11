@@ -11,7 +11,7 @@ describe("renderWithProviders", () => {
 	// mounts: a memory router at `path`, a fresh QueryClient, and a trellis
 	// client whose fetch is the fake server's `app.request`.
 	test("renderWithProviders wires the router, the query client, and the fake server", async () => {
-		const result = renderWithProviders(<p>hello</p>, { path: "/needs-you", actor: "navid" });
+		const result = renderWithProviders(<p>hello</p>, { path: "/needs-you", actor: "dana" });
 		expect(await result.findByText("hello")).toBeDefined();
 		expect(result.router.state.location.pathname).toBe("/needs-you");
 		expect(result.queryClient).toBeInstanceOf(QueryClient);
@@ -19,12 +19,12 @@ describe("renderWithProviders", () => {
 		expect(typeof result.findByRole).toBe("function");
 		expect(result.live.status.get()).toBe("live");
 		expect(result.queryClient.getDefaultOptions().queries?.staleTime).toBe(Number.POSITIVE_INFINITY);
-		expect(localStorage.getItem("trellis.actor")).toBe('{"name":"navid","kind":"human"}');
+		expect(localStorage.getItem("trellis.actor")).toBe('{"name":"dana","kind":"human"}');
 		const projects = await result.client.projects.list({});
-		expect(projects.map((project) => project.path)).toEqual(["CDE", "CDE.web", "CDE.host", "TRL", "MRG"]);
+		expect(projects.map((project) => project.path)).toEqual(["CDE", "CDE.web", "CDE.host", "TRL"]);
 		expect(result.server.calls.some((call) => call.path.join(".") === "projects.list")).toBe(true);
-		expect(result.server.calls.find((call) => call.path.join(".") === "projects.list")!.actor).toBe("human:navid");
-		const second = renderWithProviders(<p>again</p>, { path: "/all", actor: "navid" });
+		expect(result.server.calls.find((call) => call.path.join(".") === "projects.list")!.actor).toBe("human:dana");
+		const second = renderWithProviders(<p>again</p>, { path: "/all", actor: "dana" });
 		expect(second.queryClient).not.toBe(result.queryClient);
 		expect(second.server).not.toBe(result.server);
 	});

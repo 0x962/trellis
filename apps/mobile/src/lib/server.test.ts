@@ -2,7 +2,7 @@ import { describe, expect, jest, test } from "bun:test";
 import { StandardRPCJsonSerializer } from "@orpc/client/standard";
 import { actorHeader, probeHealth, reachability, recordProbe, validateActorName, validateServerUrl } from "./server";
 
-const actor = "human:navid";
+const actor = "human:dana";
 const base = "http://192.168.1.20:4521";
 
 // Answers the RPC procedures the probe calls, keyed by the last path segment
@@ -34,10 +34,10 @@ const health = {
 	gh: { ok: false, user: null, reason: null, message: null, checkedAt: null },
 };
 const counts = { total: 12, byStatus: [] };
-const defaultActor = { name: "navid", kind: "human" };
+const defaultActor = { name: "dana", kind: "human" };
 
 const failure = { ok: false, kind: "unreachable", detail: "fetch failed: ECONNREFUSED" } as const;
-const success = { ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "navid" } as const;
+const success = { ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "dana" } as const;
 
 // Fake timers leave microtasks alone, so a few awaits settle a promise.
 const settle = async () => {
@@ -62,13 +62,13 @@ describe("validateActorName", () => {
 	// without a colon. `createTrellisClient` throws on anything else, so the
 	// setup screen must not send it a name it rejects.
 	test("rejects a name the actor header grammar rejects and trims the rest", () => {
-		for (const input of ["", "   ", "navid:khan", "Zoë", "line\nbreak", "n".repeat(65)]) {
+		for (const input of ["", "   ", "dana:lee", "Zoë", "line\nbreak", "n".repeat(65)]) {
 			const result = validateActorName(input);
 			expect(result.ok, input).toBe(false);
 			if (result.ok) throw new Error(`${input} validated`);
 			expect(result.error).toContain("colon");
 		}
-		expect(validateActorName("  navid  ")).toEqual({ ok: true, name: "navid" });
+		expect(validateActorName("  dana  ")).toEqual({ ok: true, name: "dana" });
 		expect(validateActorName("n".repeat(64)).ok).toBe(true);
 	});
 
@@ -76,11 +76,11 @@ describe("validateActorName", () => {
 	// module accepts never reaches that throw.
 	test("a name it accepts builds a client and a name it rejects throws there", async () => {
 		const { fetch } = rpcStub({ health, counts, default: defaultActor });
-		const accepted = validateActorName("navid khan");
+		const accepted = validateActorName("dana lee");
 		expect(accepted.ok).toBe(true);
 		if (!accepted.ok) throw new Error("valid name rejected");
 		expect(await probeHealth(base, actorHeader(accepted.name), { fetch })).toEqual(success);
-		expect(probeHealth(base, actorHeader("navid:khan"), { fetch })).rejects.toThrow();
+		expect(probeHealth(base, actorHeader("dana:lee"), { fetch })).rejects.toThrow();
 	});
 });
 
@@ -122,7 +122,7 @@ describe("probeHealth", () => {
 			detail: expect.stringContaining("ECONNREFUSED"),
 		});
 		const html = async () =>
-			new Response("<!doctype html><title>margin</title>", {
+			new Response("<!doctype html><title>another app</title>", {
 				status: 200,
 				headers: { "content-type": "text/html" },
 			});
@@ -134,7 +134,7 @@ describe("probeHealth", () => {
 		expect(await probeHealth(base, actor, { fetch })).toEqual(success);
 		const request = requests.find((item) => new URL(item.url).pathname.endsWith("/health"));
 		expect(request).toBeDefined();
-		expect(request!.headers.get("x-trellis-actor")).toBe("human:navid");
+		expect(request!.headers.get("x-trellis-actor")).toBe("human:dana");
 	});
 });
 

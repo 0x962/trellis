@@ -8,7 +8,7 @@ beforeEach(() => localStorage.clear());
 describe("routes/all/board", () => {
 	test("the all-project board uses category columns and returns to the table", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/all", actor: "navid" });
+		const { router } = renderApp({ path: "/all", actor: "dana" });
 		expect(await screen.findByRole("heading", { name: "All tickets" })).toBeDefined();
 		const group = screen.getByRole("radiogroup", { name: "View" });
 		expect(within(group).getByRole("radio", { name: "Board" }).getAttribute("aria-checked")).toBe("true");

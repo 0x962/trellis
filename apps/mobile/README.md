@@ -16,7 +16,7 @@ Metro prints a URL that the phone has to reach. `localhost` is not such a URL,
 so the packager hostname is the Tailscale name of this Mac.
 
 ```sh
-REACT_NATIVE_PACKAGER_HOSTNAME=navids-mac-mini.tail4a5b4c.ts.net bunx expo start
+REACT_NATIVE_PACKAGER_HOSTNAME=my-mac.tail1a2b3c.ts.net bunx expo start
 ```
 
 Run `tailscale status --json` and read `Self.DNSName` for the name of another
@@ -33,7 +33,7 @@ opens the Server screen.
 Type the URL of the trellis server into the Server field:
 
 ```
-https://canary-jqv57w1hpl.tail4a5b4c.ts.net
+https://my-mac.tail1a2b3c.ts.net
 ```
 
 Press **Test connection**. The screen shows the server version, the ticket

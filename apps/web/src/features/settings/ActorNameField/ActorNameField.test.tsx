@@ -19,7 +19,7 @@ const render = (server: TestServer) =>
 			<Toaster />
 			<ActorNameField />
 		</>,
-		{ path: "/settings", actor: "navid", server },
+		{ path: "/settings", actor: "dana", server },
 	);
 
 const field = () => screen.findByRole("textbox", { name: /your name/i });
@@ -80,6 +80,6 @@ describe("ActorNameField", () => {
 		const input = await saveName(user, "Nav");
 		expect(await screen.findByText("The input does not match the schema.")).toBeDefined();
 		expect(await screen.findByRole("button", { name: "Retry" })).toBeDefined();
-		await waitFor(() => expect(input.value).toBe("navid"));
+		await waitFor(() => expect(input.value).toBe("dana"));
 	});
 });

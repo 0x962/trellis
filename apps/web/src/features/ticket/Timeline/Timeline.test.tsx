@@ -42,7 +42,7 @@ const runOfThree = async (server: TestServer) => {
 	await addActivity(server, {
 		...base,
 		action: "pr.linked",
-		meta: { url: "https://github.com/canary-technologies-corp/de/pull/118" },
+		meta: { url: "https://github.com/acme/web/pull/118" },
 		createdAt: ago(minute),
 	});
 };
@@ -96,7 +96,7 @@ describe("features/ticket/Timeline", () => {
 		await runOfThree(server);
 		mount("CDE-45", server);
 		const element = await list();
-		const summary = await within(element).findByText(/changed the status and priority, and linked the PR de #118/);
+		const summary = await within(element).findByText(/changed the status and priority, and linked the PR web #118/);
 		const line = summary.closest<HTMLElement>("[data-kind]")!;
 		expect(line.textContent).toContain("3 changes");
 		expect(lineTexts(element).some((text) => text.includes("moved the ticket from Todo to In Progress"))).toBe(false);
@@ -105,7 +105,7 @@ describe("features/ticket/Timeline", () => {
 			expect(lineTexts(element).some((text) => text.includes("moved the ticket from Todo to In Progress"))).toBe(true),
 		);
 		expect(within(element).getByText(/set the priority to High/)).toBeDefined();
-		expect(within(element).getByText(/linked the PR de #118/)).toBeDefined();
+		expect(within(element).getByText(/linked the PR web #118/)).toBeDefined();
 	});
 
 	// TK-1. The server writes a `comment.created` row beside each comment.
@@ -115,7 +115,7 @@ describe("features/ticket/Timeline", () => {
 		const posted = await server.client.comments.create({ ticket: "CDE-45", body: "Tests are green now." });
 		await addActivity(server, {
 			ticket: "CDE-45",
-			actor: { name: "navid", kind: "human" },
+			actor: { name: "dana", kind: "human" },
 			action: "comment.created",
 			meta: { commentId: posted.id },
 			createdAt: posted.createdAt,
