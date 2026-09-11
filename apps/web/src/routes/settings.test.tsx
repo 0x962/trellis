@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { DEFAULT_AGENT_LAUNCH_COMMAND } from "@trellis/api";
 import { themeStorageKey } from "@trellis/ui";
 import { createFakeServer } from "../../test/fake-server";
 import { mockMatchMedia } from "../../test/media";
@@ -107,7 +108,9 @@ describe("settings route", () => {
 		const { server } = renderApp({ path: "/settings", actor: "navid" });
 		expect(await screen.findByRole("textbox", { name: /your name/i })).toBeDefined();
 		expect(await screen.findByRole("combobox", { name: "Theme" })).toBeDefined();
-		await user.click(screen.getByRole("link", { name: "Agents" }));
+		await user.click(
+			within(screen.getByRole("navigation", { name: "Settings" })).getByRole("link", { name: "Agents" }),
+		);
 		expect(await screen.findByRole("spinbutton", { name: /stalled/i })).toBeDefined();
 		await user.click(screen.getByRole("link", { name: "Integrations" }));
 		expect(await screen.findByRole("textbox", { name: /diff url template/i })).toBeDefined();
@@ -133,7 +136,9 @@ describe("settings route", () => {
 		expect(((await screen.findByRole("textbox", { name: /diff url template/i })) as HTMLInputElement).value).toBe(
 			"{url}/files",
 		);
-		await user.click(screen.getByRole("link", { name: "Agents" }));
+		await user.click(
+			within(screen.getByRole("navigation", { name: "Settings" })).getByRole("link", { name: "Agents" }),
+		);
 		expect(((await screen.findByRole("spinbutton", { name: /stalled/i })) as HTMLInputElement).value).toBe("24");
 	});
 
@@ -157,6 +162,7 @@ describe("settings route", () => {
 			return found;
 		});
 		expect(calls[1]!.input).toEqual({
+			agentLaunchCommand: DEFAULT_AGENT_LAUNCH_COMMAND,
 			defaultActorName: "Nav",
 			diffUrlTemplate: "http://margin.localhost/{url}",
 			stalledHours: 24,

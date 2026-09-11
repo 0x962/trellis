@@ -33,9 +33,12 @@ const created = (server: ReturnType<typeof createFakeServer>) => inputs(server, 
 describe("features/composer/CreateTicketDialog", () => {
 	// Outcome 89. w-160 is 640 px on the 4 px scale. The seed template
 	// starts with "## Goal", so the read-only view shows that heading.
-	test("opens at 640 px with the title focused and the template rendered read-only", async () => {
+	test("opens as a 640 px modal with the title focused and the template rendered read-only", async () => {
 		const { dialog, title } = await open("/p/CDE/table");
 		expect(dialog.className).toMatch(/\bw-160\b/);
+		// It sits in the middle of the screen, not on an edge.
+		expect(dialog.className).toContain("left-1/2");
+		expect(dialog.className).not.toContain("right-0");
 		await waitFor(() => expect(document.activeElement).toBe(title()));
 		expect(within(dialog).getByRole("heading", { name: "Goal" })).toBeDefined();
 		expect(dialog.querySelector(".ProseMirror")).toBeNull();

@@ -9,8 +9,9 @@ import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
 
-// Each guide aligns with the center of its parent project's icon.
-const guide = ["before:left-5.5", "before:left-10.5", "before:left-15.5", "before:left-20.5"] as const;
+// Each guide runs under the centre of its parent's chevron, so the line
+// points at the control that opened the group.
+const guide = ["before:left-3.5", "before:left-7.5", "before:left-11.5", "before:left-15.5"] as const;
 
 const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.position;
 
@@ -53,7 +54,7 @@ export function ProjectTree() {
 				<li key={`${project.id}.subtree`}>
 					<ul
 						className={cx(
-							"relative flex flex-col gap-0.5 before:pointer-events-none before:absolute before:inset-y-0 before:z-10 before:w-px before:bg-border",
+							"relative flex flex-col gap-0.5 before:pointer-events-none before:absolute before:inset-y-0.5 before:z-10 before:w-px before:bg-border",
 							guide[Math.min(depth, guide.length - 1)],
 						)}
 					>

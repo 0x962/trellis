@@ -12,6 +12,7 @@ export type SelectItem<Value extends string> = {
 export type SelectProps<Value extends string> = {
 	// The accessible name of the trigger.
 	label: string;
+	placeholder?: string;
 	items: readonly SelectItem<Value>[];
 	value: Value;
 	onValueChange: (value: Value) => void;
@@ -24,6 +25,7 @@ export type SelectProps<Value extends string> = {
 // opens under it and follows the arrow keys.
 export function Select<Value extends string>({
 	label,
+	placeholder,
 	items,
 	value,
 	onValueChange,
@@ -33,7 +35,7 @@ export function Select<Value extends string>({
 	return (
 		<BaseSelect.Root
 			items={items}
-			value={value}
+			value={value === "" ? null : value}
 			onValueChange={(next) => onValueChange(next as Value)}
 			disabled={disabled}
 		>
@@ -49,8 +51,8 @@ export function Select<Value extends string>({
 					className,
 				)}
 			>
-				<BaseSelect.Value />
-				<BaseSelect.Icon className="inline-flex size-3.5 text-fg-faint *:size-full">
+				<BaseSelect.Value placeholder={placeholder} className="min-w-0 truncate" />
+				<BaseSelect.Icon className="inline-flex size-3.5 shrink-0 text-fg-faint *:size-full">
 					<ChevronDown />
 				</BaseSelect.Icon>
 			</BaseSelect.Trigger>
@@ -58,7 +60,7 @@ export function Select<Value extends string>({
 				<BaseSelect.Positioner sideOffset={4} className="z-50 outline-none select-none">
 					<BaseSelect.Popup
 						className={cx(
-							"min-w-(--anchor-width) origin-(--transform-origin) rounded-lg border border-border bg-elevated p-1 shadow-md outline-none",
+							"min-w-(--anchor-width) max-w-(--available-width) origin-(--transform-origin) rounded-lg border border-border bg-elevated p-1 shadow-md outline-none",
 							popupMotion,
 							"duration-popover",
 						)}
@@ -73,7 +75,7 @@ export function Select<Value extends string>({
 									<BaseSelect.ItemIndicator className="col-start-1 inline-flex size-3.5 text-fg-muted *:size-full">
 										<Check />
 									</BaseSelect.ItemIndicator>
-									<BaseSelect.ItemText className="col-start-2">{item.label}</BaseSelect.ItemText>
+									<BaseSelect.ItemText className="col-start-2 truncate">{item.label}</BaseSelect.ItemText>
 								</BaseSelect.Item>
 							))}
 						</BaseSelect.List>

@@ -43,7 +43,7 @@ describe("features/ticket/TicketView", () => {
 	});
 
 	// Below 768 px the properties form a grid under the title.
-	test("a phone-width page folds the rail and keeps the review actions", async () => {
+	test("a phone-width page folds the rail without an approval bar", async () => {
 		mockMatchMedia(true);
 		try {
 			page();
@@ -53,9 +53,8 @@ describe("features/ticket/TicketView", () => {
 			expect(within(header).getByRole("button", { name: "More actions" })).toBeDefined();
 			const grid = await screen.findByLabelText("Properties");
 			expect(grid.tagName).toBe("DL");
-			const actions = document.querySelector<HTMLElement>("[data-phone-actions]")!;
-			expect(within(actions).getByRole("button", { name: /Approve/ })).toBeDefined();
-			expect(within(actions).getByRole("button", { name: /Send back/ })).toBeDefined();
+			expect(document.querySelector("[data-phone-actions]")).toBeNull();
+			expect(screen.queryByRole("button", { name: /^Approve|^Send back/ })).toBeNull();
 		} finally {
 			// The mock is global to the test process, so the next file must not
 			// inherit a phone-width window.

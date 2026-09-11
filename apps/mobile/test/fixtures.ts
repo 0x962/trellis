@@ -113,6 +113,8 @@ export const seededStatuses = (): Status[] => [
 ];
 
 export const comment = (overrides: Partial<Comment> = {}): Comment => ({
+	parentId: null,
+	resolvedAt: null,
 	id: id("C1"),
 	ticketId,
 	body: "Plan: restore the five settings pages and keep every marked site.",

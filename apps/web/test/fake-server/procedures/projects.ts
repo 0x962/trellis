@@ -53,6 +53,7 @@ export const projects = {
 		}
 		project.description = input.description ?? "";
 		if (input.ticketTemplate !== undefined) project.ticketTemplate = input.ticketTemplate;
+
 		bus.emit("project.created", { id: project.id }, { projectId: project.id });
 		context.resHeaders.set("location", `/api/projects/${project.path}`);
 		return fullProject(state, project);
@@ -68,6 +69,7 @@ export const projects = {
 		if (input.name !== undefined) project.name = input.name;
 		if (input.description !== undefined) project.description = input.description;
 		if (input.ticketTemplate !== undefined) project.ticketTemplate = input.ticketTemplate;
+		if (input.managerConfig !== undefined) project.managerConfig = input.managerConfig;
 		if (input.archived !== undefined) project.archivedAt = input.archived ? isoNow() : null;
 		project.updatedAt = isoNow();
 		bus.emit("project.updated", { id: project.id }, { projectId: project.id });

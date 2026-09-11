@@ -2,6 +2,7 @@ import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { Bot, Plug, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
+import { AgentLaunchField } from "../features/settings/AgentLaunchField";
 import { DiffTemplateField } from "../features/settings/DiffTemplateField";
 import { GhBanner } from "../features/settings/GhBanner";
 import { PairPhone } from "../features/settings/PairPhone";
@@ -43,9 +44,14 @@ const sections: SettingsSection[] = [
 	{
 		id: "agents",
 		title: "Agents",
-		hint: "Choose when trellis marks a ticket as stalled.",
+		hint: "Choose how trellis starts agents and when it marks a ticket as stalled.",
 		icon: Bot,
-		rows: <StalledThresholdField />,
+		rows: (
+			<>
+				<AgentLaunchField />
+				<StalledThresholdField />
+			</>
+		),
 	},
 	{
 		id: "integrations",

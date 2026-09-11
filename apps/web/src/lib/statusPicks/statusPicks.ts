@@ -1,8 +1,7 @@
 import type { Status, StatusCategory } from "@trellis/api";
 
 // The status with the smallest position in `category`, or undefined when
-// the list holds none of that category. Approve, Send back, Mark Done, and
-// "also mark In Progress" all move a ticket to this status.
+// the list holds none of that category.
 export const lowestPositionStatus = (statuses: readonly Status[], category: StatusCategory) =>
 	statuses
 		.filter((status) => status.category === category)

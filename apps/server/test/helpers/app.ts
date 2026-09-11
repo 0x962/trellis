@@ -48,6 +48,7 @@ export type ApiResponse = {
 };
 
 export type TestAppOptions = {
+	supersetBin?: string;
 	db?: TestDb;
 	maxUploadMb?: number;
 	logLevel?: LogLevel;
@@ -65,6 +66,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 	const home = freshHomeWithDirs();
 	const config: Config = loadConfig({
 		TRELLIS_HOME: home,
+		TRELLIS_SUPERSET_BIN: options.supersetBin,
 		TRELLIS_PORT: "0",
 		TRELLIS_MAX_UPLOAD_MB: String(options.maxUploadMb ?? 50),
 		TRELLIS_LOG_LEVEL: options.logLevel ?? "debug",

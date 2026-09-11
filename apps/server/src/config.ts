@@ -19,6 +19,7 @@ export type Config = {
 	port: number;
 	maxUploadMb: number;
 	ghBin: string;
+	supersetBin: string;
 	webDist: string;
 	logLevel: LogLevel;
 	dbInline: boolean;
@@ -83,6 +84,7 @@ export const loadConfig = (env: Env): Config => {
 		maxUploadMb:
 			env.TRELLIS_MAX_UPLOAD_MB === undefined ? 50 : numberOf("TRELLIS_MAX_UPLOAD_MB", env.TRELLIS_MAX_UPLOAD_MB),
 		ghBin: env.TRELLIS_GH_BIN ?? "gh",
+		supersetBin: env.TRELLIS_SUPERSET_BIN ?? join(homedir(), ".superset", "bin", "superset"),
 		webDist: env.TRELLIS_WEB_DIST === undefined ? defaultWebDist : resolve(expandHome(env.TRELLIS_WEB_DIST)),
 		logLevel: env.TRELLIS_LOG_LEVEL === undefined ? "info" : levelOf(env.TRELLIS_LOG_LEVEL),
 		dbInline: env.TRELLIS_DB_INLINE === "true",

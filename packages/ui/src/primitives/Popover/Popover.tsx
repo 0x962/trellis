@@ -21,6 +21,7 @@ export type PopoverProps = {
 	// trigger takes it back.
 	finalFocus?: RefObject<HTMLElement | null>;
 	className?: string;
+	overlapTrigger?: boolean;
 };
 
 // A small panel anchored to its trigger, for options that do not need a
@@ -38,12 +39,18 @@ export function Popover({
 	initialFocus,
 	finalFocus,
 	className,
+	overlapTrigger = false,
 }: PopoverProps) {
 	return (
 		<BasePopover.Root open={open} onOpenChange={onOpenChange ? (next) => onOpenChange(next) : undefined}>
 			<BasePopover.Trigger render={trigger} />
 			<BasePopover.Portal>
-				<BasePopover.Positioner side={side} align={align} sideOffset={6} className="z-50 outline-none">
+				<BasePopover.Positioner
+					side={side}
+					align={align}
+					sideOffset={overlapTrigger ? ({ anchor }) => -anchor.height : 6}
+					className="z-50 outline-none"
+				>
 					<BasePopover.Popup
 						aria-label={label}
 						initialFocus={initialFocus}

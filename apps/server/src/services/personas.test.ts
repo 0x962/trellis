@@ -52,7 +52,12 @@ describe("personas", () => {
 		);
 		const change = { id: first.id, name: "Code reviewer", instruction: "Read each changed file.\nReport defects." };
 		const changed = await h.run((ctx, tx) => personas.update(ctx, tx, change), { now: secondsAfter(60) });
-		expect(changed).toEqual({ ...change, createdAt: first.createdAt, updatedAt: secondsAfter(60).toISOString() });
+		expect(changed).toEqual({
+			...change,
+			kind: first.kind,
+			createdAt: first.createdAt,
+			updatedAt: secondsAfter(60).toISOString(),
+		});
 		const listed = await h.run((ctx, tx) => personas.list(ctx, tx, {}));
 		expect(listed).toHaveLength(2);
 		expect(listed).toEqual(expect.arrayContaining([changed, second]));

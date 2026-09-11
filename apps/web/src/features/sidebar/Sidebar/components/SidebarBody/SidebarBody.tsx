@@ -1,12 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Badge, cx, IconButton, Kbd, TrellisMark } from "@trellis/ui";
+import { cx, IconButton, Kbd, TrellisMark } from "@trellis/ui";
 import { Inbox, List, PanelLeftClose, Plus, Search, UserRound } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { formatCount } from "../../../../../lib/format";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
-import { needsYouCount } from "../../../../needs-you/utils/needsYouCount";
 import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
 import { ProjectTree } from "../../../ProjectTree";
@@ -59,12 +56,10 @@ export type SidebarBodyProps = {
 // URL at once but keeps the old page until the new one loads, so the
 // highlight moves when the page does.
 export function SidebarBody({ onCollapse }: SidebarBodyProps) {
-	const { live, orpc } = useApp();
+	const { live } = useApp();
 	const status = useLiveStatus(live);
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
-	const inbox = useQuery(orpc.inbox.get.queryOptions({ input: {} }));
-	const needsYou = inbox.data === undefined ? 0 : needsYouCount(inbox.data);
 
 	return (
 		<>
@@ -80,19 +75,7 @@ export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 				</span>
 			</div>
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
-				<NavRow
-					to="/needs-you"
-					icon={<Inbox />}
-					label="Needs you"
-					active={isActive(pathname, "/needs-you")}
-					trailing={
-						needsYou > 0 ? (
-							<Badge tone="accent" size="sm">
-								{formatCount(needsYou)}
-							</Badge>
-						) : undefined
-					}
-				/>
+				<NavRow to="/needs-you" icon={<Inbox />} label="Needs you" active={isActive(pathname, "/needs-you")} />
 				<NavRow
 					to="/search"
 					icon={<Search />}

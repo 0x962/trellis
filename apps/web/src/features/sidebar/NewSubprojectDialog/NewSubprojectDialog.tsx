@@ -1,58 +1,77 @@
+import { useMutation } from "@tanstack/react-query";
 import type { ProjectSummary } from "@trellis/api";
-import { Button, Dialog, Input } from "@trellis/ui";
-import { type FormEvent, useState } from "react";
+import { Button, Input, Sheet } from "@trellis/ui";
+import { useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-
 export type NewSubprojectDialogProps = {
 	project: ProjectSummary;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 };
-
 export function NewSubprojectDialog({ project, open, onOpenChange }: NewSubprojectDialogProps) {
 	const { client, queryClient } = useApp();
+	const nameRef = useRef<HTMLInputElement>(null);
 	const [name, setName] = useState("");
 	const [slug, setSlug] = useState("");
-	const [message, setMessage] = useState<string | null>(null);
-
-	const create = async (event: FormEvent) => {
-		event.preventDefault();
-		try {
-			await client.projects.create({ parent: project.path, name: name.trim(), slug });
+	const create = useMutation({
+		mutationFn: () => client.projects.create({ parent: project.path, name: name.trim(), slug }),
+		onSuccess: async () => {
 			await queryClient.invalidateQueries();
 			setName("");
 			setSlug("");
-			setMessage(null);
 			onOpenChange(false);
-		} catch (error) {
-			setMessage((error as Error).message);
-		}
-	};
-
+		},
+	});
 	return (
-		<Dialog
+		<Sheet
 			open={open}
-			onOpenChange={onOpenChange}
+			onOpenChange={(next) => !create.isPending && onOpenChange(next)}
 			title={`New sub-project under ${project.name}`}
-			description="Create a sub-project. It shares the key of the root project."
+			titleClassName="text-md font-medium"
+			initialFocus={nameRef}
 		>
-			<form className="flex flex-col gap-3" onSubmit={(event) => void create(event)}>
-				<Input label="Project name" value={name} onChange={(event) => setName(event.target.value)} autoFocus />
-				<Input label="Slug" value={slug} onChange={(event) => setSlug(event.target.value)} />
-				{message !== null && (
-					<p role="alert" className="text-sm text-danger">
-						{message}
-					</p>
-				)}
-				<div className="flex justify-end gap-2 max-md:*:flex-1">
-					<Button type="button" size="md" variant="quiet" onClick={() => onOpenChange(false)}>
+			<form
+				className="flex min-h-full flex-col"
+				onSubmit={(event) => {
+					event.preventDefault();
+					if (name.trim() && slug && !create.isPending) create.mutate();
+				}}
+			>
+				<div className="flex flex-1 flex-col gap-6 p-6 max-md:p-4">
+					<p className="text-sm text-fg-muted">Create a sub-project. It shares the key of the root project.</p>
+					<Input
+						ref={nameRef}
+						label="Project name"
+						required
+						maxLength={120}
+						disabled={create.isPending}
+						value={name}
+						onChange={(event) => setName(event.target.value)}
+						className="pointer-coarse:h-11"
+					/>
+					<Input
+						label="Slug"
+						required
+						disabled={create.isPending}
+						value={slug}
+						onChange={(event) => setSlug(event.target.value)}
+						className="pointer-coarse:h-11"
+					/>
+					{create.isError && (
+						<p role="alert" className="text-sm text-danger">
+							{create.error.message}
+						</p>
+					)}
+				</div>
+				<div className="sticky bottom-0 flex justify-end gap-2 border-t border-border bg-surface p-4">
+					<Button type="button" variant="quiet" disabled={create.isPending} onClick={() => onOpenChange(false)}>
 						Cancel
 					</Button>
-					<Button type="submit" size="md" variant="primary">
+					<Button type="submit" variant="primary" disabled={!name.trim() || !slug || create.isPending}>
 						Create sub-project
 					</Button>
 				</div>
 			</form>
-		</Dialog>
+		</Sheet>
 	);
 }
