@@ -1,11 +1,18 @@
 /*
  * The palette is code.storage's. Every neutral in it is one seed grey,
  * lab(59.312% 1.0058 -3.62585), mixed in sRGB with white or with black. The
- * seed itself is --fg-faint, the same value in both themes. A step keeps its
- * position in the ramp across the two themes, so --surface sits one step off
- * the page ground in light and in dark. Every component reads a color through
- * a Tailwind utility (bg-surface, text-fg).
- * A theme change is therefore one attribute on <html>: data-theme="dark" or
+ * seed itself is --fg-faint in dark. The light ground is far brighter, so
+ * light --fg-faint takes the seed mixed with black at 0.78 and reads 4.67:1
+ * on --surface. A step keeps its position in the ramp across the two themes,
+ * so --surface sits one step off the page ground in light and in dark. Every
+ * component reads a color through a Tailwind utility (bg-surface, text-fg).
+ *
+ * The light --success, --warning, and --danger carry 11 px and 13 px text on
+ * their own soft grounds, so each one is dark enough for 4.5:1 there. The
+ * dark palette keeps the brighter values, which already pass on the dark
+ * grounds. tokens.test.ts computes the ratio of every text and ground pair.
+ *
+ * A theme change is one attribute on <html>: data-theme="dark" or
  * data-theme="light". No attribute follows the system preference.
  *
  * The bare :root block is the light palette. The two dark blocks carry the
@@ -26,16 +33,16 @@
 	--border-strong: #DDDDDF;
 	--fg: #070707;
 	--fg-muted: #646468;
-	--fg-faint: #8E8E95;
+	--fg-faint: #6F6F74;
 	--accent: #009FFF;
 	--accent-soft: #DFEBFF;
 	--agent: #693ACF;
 	--agent-soft: #EFE8FB;
-	--success: #0DBE4E;
+	--success: #097F34;
 	--success-soft: #E3F8EA;
-	--warning: #D5A910;
+	--warning: #866A0A;
 	--warning-soft: #FBF4DA;
-	--danger: #FF2E3F;
+	--danger: #C92432;
 	--danger-soft: #FFE6E8;
 	--scrim: rgba(0,0,0,.4);
 	--shadow-sm: 0 1px 2px rgba(0,0,0,.06);

@@ -51,16 +51,16 @@ const lightPalette: Record<string, string> = {
 	"--border-strong": "#DDDDDF",
 	"--fg": "#070707",
 	"--fg-muted": "#646468",
-	"--fg-faint": "#8E8E95",
+	"--fg-faint": "#6F6F74",
 	"--accent": "#009FFF",
 	"--accent-soft": "#DFEBFF",
 	"--agent": "#693ACF",
 	"--agent-soft": "#EFE8FB",
-	"--success": "#0DBE4E",
+	"--success": "#097F34",
 	"--success-soft": "#E3F8EA",
-	"--warning": "#D5A910",
+	"--warning": "#866A0A",
 	"--warning-soft": "#FBF4DA",
-	"--danger": "#FF2E3F",
+	"--danger": "#C92432",
 	"--danger-soft": "#FFE6E8",
 	"--scrim": "rgba(0,0,0,.4)",
 	"--shadow-sm": "0 1px 2px rgba(0,0,0,.06)",
@@ -97,6 +97,49 @@ const darkPalette: Record<string, string> = {
 // The dark blocks redefine the colors and shadows only. The font stacks and
 // `color-scheme` do not change with the theme.
 const themedTokens = [...colorTokens, ...shadowTokens];
+
+// The WCAG 2.1 relative luminance of an sRGB hex color.
+const luminance = (hex: string) => {
+	const channel = (offset: number) => {
+		const value = Number.parseInt(hex.slice(offset, offset + 2), 16) / 255;
+		return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+	};
+	return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+};
+
+// The WCAG 2.1 contrast ratio of two opaque hex colors, lighter over darker.
+const contrastRatio = (a: string, b: string) => {
+	const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
+	return (lighter + 0.05) / (darker + 0.05);
+};
+
+// Every pair of a text token and a ground the app paints it on. `--fg`,
+// `--fg-muted`, and `--fg-faint` carry the body text on the three page
+// grounds. `--success`, `--warning`, `--danger`, and `--agent` carry a chip
+// label on their own soft ground and a line of status text on the page.
+const textPairs: Array<[string, string]> = [
+	["--fg", "--bg"],
+	["--fg", "--surface"],
+	["--fg", "--elevated"],
+	["--fg-muted", "--bg"],
+	["--fg-muted", "--surface"],
+	["--fg-muted", "--elevated"],
+	["--fg-faint", "--bg"],
+	["--fg-faint", "--surface"],
+	["--fg-faint", "--elevated"],
+	["--success", "--bg"],
+	["--success", "--surface"],
+	["--success", "--success-soft"],
+	["--warning", "--bg"],
+	["--warning", "--surface"],
+	["--warning", "--warning-soft"],
+	["--danger", "--bg"],
+	["--danger", "--surface"],
+	["--danger", "--danger-soft"],
+	["--agent", "--bg"],
+	["--agent", "--surface"],
+	["--agent", "--agent-soft"],
+];
 
 const tokens = async () => parseCss(await readSource("tokens.css"));
 
@@ -198,9 +241,10 @@ describe("tokens.css", () => {
 	 * Every neutral comes from one seed grey mixed with black or white in
 	 * sRGB, the way code.storage builds its own ramp. The seed is
 	 * lab(59.312% 1.0058 -3.62585), which is #8E8E95, and it is --fg-faint
-	 * itself in both themes. A step name keeps the same position in the ramp
-	 * in light and in dark, so --surface sits one step off the page ground in
-	 * both.
+	 * itself in dark. The light ground is far brighter, so light --fg-faint
+	 * takes the seed mixed with black at 0.78 and clears 4.5:1 on it. A step
+	 * name keeps the same position in the ramp in light and in dark, so
+	 * --surface sits one step off the page ground in both.
 	 */
 	test("the neutral ramp carries the code.storage greys", async () => {
 		const ours = paletteBlocks(await tokens());
@@ -212,7 +256,7 @@ describe("tokens.css", () => {
 			"--border-strong": ["#DDDDDF", "#323234"],
 			"--fg": ["#070707", "#E8E8EA"],
 			"--fg-muted": ["#646468", "#BBBBBF"],
-			"--fg-faint": ["#8E8E95", "#8E8E95"],
+			"--fg-faint": ["#6F6F74", "#8E8E95"],
 		};
 		for (const [name, [light, dark]] of Object.entries(ramp)) {
 			expect(`${name} light ${ours.light.declarations[name]}`).toBe(`${name} light ${light}`);
@@ -316,5 +360,37 @@ describe("tokens.css", () => {
 		expect(map["--ease-out"]).not.toBeEmpty();
 		expect(map["--ease-in-out"]).toBeString();
 		expect(map["--ease-in-out"]).not.toBeEmpty();
+	});
+
+	/*
+	 * TRL-32. Body text needs 4.5:1 against the color behind it, in both
+	 * themes. The ratios below come from the token values alone, so a change
+	 * to a palette value that drops a pair under the threshold fails here,
+	 * before a screenshot shows it.
+	 */
+	test("every text token clears 4.5:1 on every ground it sits on, in both themes", async () => {
+		const ours = paletteBlocks(await tokens());
+		const worst: string[] = [];
+		for (const [themeName, block] of [
+			["light", ours.light],
+			["dark", ours.darkStamp],
+		] as const) {
+			for (const [text, ground] of textPairs) {
+				const measured = contrastRatio(block.declarations[text]!, block.declarations[ground]!);
+				if (measured < 4.5) worst.push(`${themeName} ${text} on ${ground}: ${measured.toFixed(2)}:1`);
+			}
+		}
+		expect(worst).toEqual([]);
+	});
+
+	// The pairs above read the data-theme block. The media block carries the
+	// same dark values, so it clears the same thresholds.
+	test("the media dark block carries the same values as the data-theme block", async () => {
+		const ours = paletteBlocks(await tokens());
+		for (const [text, ground] of textPairs) {
+			for (const name of [text, ground]) {
+				expect(`${name} ${ours.darkMedia.declarations[name]}`).toBe(`${name} ${ours.darkStamp.declarations[name]}`);
+			}
+		}
 	});
 });
