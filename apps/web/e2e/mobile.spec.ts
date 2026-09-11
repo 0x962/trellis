@@ -93,6 +93,21 @@ test("the table gives the title a third of the row", async ({ page }) => {
 	expect(box.width).toBeGreaterThanOrEqual(130);
 });
 
+// TRL-28. The search row drops the project, the status, and the time below
+// 640 px, so the title keeps the room the fixed columns took.
+test("a search result gives the title half of the 390 px row", async ({ page }) => {
+	await signIn(page, "/search?q=sideways");
+	const row = page.getByRole("grid", { name: "Search results" }).getByRole("row").filter({ hasText: "MOB-1" });
+	await expect(row).toHaveCount(1);
+	const cells = row.locator("td:visible");
+	await expect(cells).toHaveCount(3);
+	await expect(cells.nth(2)).toContainText("Read the ticket page on a phone");
+	const box = (await cells.nth(2).boundingBox())!;
+	expect(box.width).toBeGreaterThanOrEqual(200);
+	expect(box.x + box.width).toBeLessThanOrEqual(390);
+	expect(await sidewaysScroll(page)).toEqual({ page: 0, main: 0 });
+});
+
 // The properties fold into a grid under the title. The grid spans the
 // ticket column, which keeps a 16 px gutter on each side of the 390 px page.
 test("the ticket page stacks the properties under the title", async ({ page }) => {

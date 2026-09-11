@@ -62,7 +62,7 @@ export function SearchResults({ q, filters = {}, children }: SearchResultsProps)
 										</Link>
 									</td>
 									<td className="truncate pr-3 text-base">{highlight(ticket.title, q)}</td>
-									<td className="w-40 pr-3" title={projectSlashPath(ticket.project.path)}>
+									<td className="hidden sm:table-cell w-40 pr-3" title={projectSlashPath(ticket.project.path)}>
 										<span className="flex min-w-0 items-center gap-1.5">
 											<ProjectKey projectKey={segments[0]!} />
 											{segments.length > 1 && (
@@ -70,14 +70,14 @@ export function SearchResults({ q, filters = {}, children }: SearchResultsProps)
 											)}
 										</span>
 									</td>
-									<td className="w-8">
+									<td className="hidden sm:table-cell w-8">
 										<StatusIcon
 											category={ticket.status.category}
 											reviewer={ticket.status.reviewer ?? undefined}
 											label={ticket.status.name}
 										/>
 									</td>
-									<td className="w-14 pr-5 text-right text-sm text-fg-muted tabular">
+									<td className="hidden sm:table-cell w-14 pr-5 text-right text-sm text-fg-muted tabular">
 										{compactRelativeTime(ticket.updatedAt)}
 									</td>
 								</tr>
@@ -91,7 +91,7 @@ export function SearchResults({ q, filters = {}, children }: SearchResultsProps)
 									</Link>
 								</td>
 								<td className="truncate pr-3 text-base">{highlight(project.name, q)}</td>
-								<td colSpan={3} className="pr-5 font-mono text-xs text-fg-faint">
+								<td colSpan={3} className="hidden sm:table-cell pr-5 font-mono text-xs text-fg-faint">
 									{projectSlashPath(project.path)}
 								</td>
 							</tr>
