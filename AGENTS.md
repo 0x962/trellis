@@ -4,15 +4,11 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 
 ## Work
 
-- Every change is test-driven. Write a failing test for the outcome first. Make it pass. Never delete or weaken a test.
-- A change without a test does not merge.
 - Assess the risk of each change. Balance speed with the cost of an error.
 - Choose tests and checks that cover the changed behavior and affected code. Use broader checks when the risk warrants them.
 - Treat the full `bun run check` command as optional. Performance tests are optional for handoffs, pull requests, and merges.
-- Use one agent for tests, implementation, and review.
 - Decide whether a browser check adds useful evidence for the change.
 - Report the checks you ran, their results, and any relevant gaps.
-- Make small commits. The commit subject states the result that a user sees.
 - A commit message carries no session trailer. Add no trailer and no URL that points at an agent session.
 - Every pull request description states what broke, what changed, and one verification sentence. No headers, no tables, no checklists.
 - Pin exact versions when you add a dependency. Prefer the current release on npm.
