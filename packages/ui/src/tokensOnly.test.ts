@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
-import { packageRoot } from "../test/css";
+import { packageRoot, repoRoot } from "../test/css";
 
 // Every component file under these two directories. Test files are excluded:
 // they assert on classes and never paint anything.
@@ -28,5 +28,20 @@ describe("tokens only", () => {
 		}
 		expect(violations).toEqual([]);
 		expect(empty).toEqual([]);
+	});
+
+	test("web and UI components use radius tokens instead of rounded-full", async () => {
+		const violations: string[] = [];
+		for (const directory of ["packages/ui/src", "apps/web/src"]) {
+			const files = readdirSync(join(repoRoot, directory), { recursive: true, encoding: "utf8" }).filter(
+				(file) => /\.tsx?$/.test(file) && !/\.test\.tsx?$/.test(file),
+			);
+			expect(files.length).toBeGreaterThan(0);
+			for (const file of files) {
+				const source = await Bun.file(join(repoRoot, directory, file)).text();
+				if (/\brounded-full\b/.test(source)) violations.push(join(directory, file));
+			}
+		}
+		expect(violations).toEqual([]);
 	});
 });
