@@ -26,12 +26,13 @@ const expectFragments = (text: string, fragments: string[]) => {
 };
 
 describe("the manager prompt", () => {
-	test("reads the inbox after every wake and registers its session", () => {
+	test("reads the personas, the tickets, and the agents after every wake", () => {
 		expectFragments(manager, [
 			"agent:manager-cde",
-			"trellis agents register --role manager --project CDE",
-			"After every wake, read the inbox: trellis agents inbox --project CDE --json",
-			'Run it again while "more" is true.',
+			"trellis personas list --json",
+			"After every wake, read the tickets again: trellis list --project CDE --json",
+			"Read the agents again: trellis agents list --project CDE --json",
+			"trellis agents refresh <agent-id> --json",
 		]);
 	});
 
@@ -54,11 +55,11 @@ describe("the manager prompt", () => {
 
 	test("starts builders up to the limit, queues once, and never starts a second builder", () => {
 		expectFragments(manager, [
-			"trellis agents start <ticket>",
-			"trellis agents status --ticket <ticket> --json",
+			"trellis agents start <persona> --ticket <ticket>",
+			"trellis agents list --ticket <ticket> --json",
 			"Never start a second builder for a ticket that has one.",
-			"CONCURRENCY_LIMIT",
-			'comment "Queued: <n> builders are running." once',
+			"DUPLICATE (exit code 4)",
+			'comment "Queued: <n> agents are running." once',
 			"On every wake, try each queued ticket in Todo again, until it starts.",
 		]);
 	});
@@ -67,13 +68,14 @@ describe("the manager prompt", () => {
 		expectFragments(manager, [
 			"Comment on the ticket at every transition you make, so the human knows what happens.",
 			"trellis comment <ticket> --body",
-			"trellis agents review <ticket> --pr <pr-url>",
+			"trellis agents output <agent-id>",
+			"Select a reviewer persona that fits the change, then start it: trellis agents start <persona> --ticket <ticket>",
 		]);
 	});
 
 	test("forwards findings and send-back comments to the builder with their text", () => {
 		expectFragments(manager, [
-			"superset terminals send --workspace <workspaceId> --terminal <terminalId> --text",
+			"trellis agents send <agent-id> --text",
 			"Verdict: changes needed",
 			"send-back",
 			"trellis move <ticket> in-progress",
@@ -97,7 +99,6 @@ describe("the builder prompt", () => {
 			"agent:builder-cde-42",
 			"Your deliverable is a pull request.",
 			"cde-42",
-			"trellis agents register --role builder --project CDE --ticket CDE-42",
 			"trellis show CDE-42 --comments",
 		]);
 	});

@@ -51,6 +51,6 @@ export const resumeCommand = (input: ResumeInput): string => {
 };
 
 // The wake text after a server start. The manager missed the changes of the
-// time the server was down; its inbox holds them.
+// time the server was down, so it reads the tickets and the agents again.
 export const restartText = (project: string): string =>
-	`trellis: the server restarted. Run: trellis agents inbox --project ${project}`;
+	`trellis: the server restarted. Run: trellis list --project ${project} --json and trellis agents list --project ${project} --json`;

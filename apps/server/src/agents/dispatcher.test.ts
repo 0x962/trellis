@@ -98,18 +98,18 @@ describe("dispatcher batches", () => {
 			{
 				projectId: CDE,
 				count: 2,
-				text: "trellis: 2 changes in CDE (CDE-1 commented by dana, CDE-2 moved to Agent Review by builder-cde-2). Run: trellis agents inbox --project CDE",
+				text: "trellis: 2 changes in CDE (CDE-1 commented by dana, CDE-2 moved to Agent Review by builder-cde-2). Run: trellis list --project CDE --json",
 			},
 		]);
 		for (const n of [1, 2, 3, 4, 5]) change(n);
 		await clock.advance(10_000);
 		expect(batches[1]!.text).toBe(
-			"trellis: 5 changes in CDE (CDE-1 updated by dana, CDE-2 updated by dana, CDE-3 updated by dana, and 2 more). Run: trellis agents inbox --project CDE",
+			"trellis: 5 changes in CDE (CDE-1 updated by dana, CDE-2 updated by dana, CDE-3 updated by dana, and 2 more). Run: trellis list --project CDE --json",
 		);
 		change(1);
 		await clock.advance(10_000);
 		expect(batches[2]!.text).toBe(
-			"trellis: 1 change in CDE (CDE-1 updated by dana). Run: trellis agents inbox --project CDE",
+			"trellis: 1 change in CDE (CDE-1 updated by dana). Run: trellis list --project CDE --json",
 		);
 	});
 });
@@ -140,7 +140,7 @@ describe("dispatcher relevance", () => {
 		expect(batches).toHaveLength(1);
 		expect(batches[0]!.count).toBe(4);
 		expect(batches[0]!.text).toBe(
-			"trellis: 4 changes in CDE (CDE-1 updated by dana, CDE-2 updated by reviewer-cde-2, CDE-2 attachment added by builder-cde-2, and 1 more). Run: trellis agents inbox --project CDE",
+			"trellis: 4 changes in CDE (CDE-1 updated by dana, CDE-2 updated by reviewer-cde-2, CDE-2 attachment added by builder-cde-2, and 1 more). Run: trellis list --project CDE --json",
 		);
 	});
 
@@ -161,7 +161,7 @@ describe("dispatcher relevance", () => {
 		bus.emit({ type: "statuses.changed", projectId: CDE }, DANA);
 		await clock.advance(10_000);
 		expect(batches[0]!.text).toBe(
-			"trellis: 3 changes in CDE (PR linked to CDE-1, PR on a ticket merged, CI pass, statuses changed by dana). Run: trellis agents inbox --project CDE",
+			"trellis: 3 changes in CDE (PR linked to CDE-1, PR on a ticket merged, CI pass, statuses changed by dana). Run: trellis list --project CDE --json",
 		);
 	});
 });
