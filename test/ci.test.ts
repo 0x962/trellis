@@ -22,16 +22,17 @@ describe("ci.yml", () => {
 		expect(runs).toContain("bun run e2e");
 	});
 
-	// plan.md, Performance requirements: CI enforces the perf tests at 2.5
-	// times the budget of Navid's Mac. turbo passes TRELLIS_* variables to a
-	// task and filters out `CI`, so the factor has its own variable.
+	// ARCHITECTURE.md, Performance budgets: CI enforces the perf tests at 2.5
+	// times the budget of the reference machine. turbo passes TRELLIS_*
+	// variables to a task and filters out `CI`, so the factor has its own
+	// variable.
 	test("the check job runs the perf suite at 2.5 times the budget", () => {
 		const check = jobs().check!;
 		expect(check.env?.TRELLIS_PERF_FACTOR).toBe("2.5");
 		expect(check.steps.map((step) => step.run ?? "")).toContain("bun run check");
 	});
 
-	// plan.md, Database schema: CI fails when `drizzle-kit generate` leaves a
+	// ARCHITECTURE.md, Database schema: CI fails when `drizzle-kit generate` leaves a
 	// change under apps/server/drizzle/. `test -z` exits 1 on any output.
 	test("the drizzle-diff job runs on every push and fails on a generated change", () => {
 		const drizzle = jobs()["drizzle-diff"]!;

@@ -17,7 +17,7 @@ const priorities = ["none", "low", "medium", "high", "urgent"].map((value) => ({
 
 // Every control primitive in every state.
 export function ControlSections() {
-	const [title, setTitle] = useState("Restore the fork pages after the upstream 1.27 merge");
+	const [title, setTitle] = useState("Restore the export pages after the upstream 1.27 merge");
 	const [comment, setComment] = useState("");
 	const [priority, setPriority] = useState("high");
 	const [done, setDone] = useState(false);

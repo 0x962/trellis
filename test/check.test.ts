@@ -49,7 +49,7 @@ describe("bun run check", () => {
 		}
 	});
 
-	// plan.md, Performance requirements: `bun run perf` runs the same suite
+	// ARCHITECTURE.md, Performance budgets: `bun run perf` runs the same suite
 	// against the 50k seed.
 	test("bun run perf runs every server timing file at 50k rows", async () => {
 		const scripts = await scriptsOf("apps/server");

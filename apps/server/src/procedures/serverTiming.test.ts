@@ -3,7 +3,7 @@ import { BatchLinkPlugin } from "@orpc/client/plugins";
 import { createTrellisClient } from "@trellis/api";
 import { createTestApp, NAVID, type TestApp } from "../../test/helpers/app.ts";
 
-// plan.md, Verification: every procedure response carries
+// Every procedure response carries
 // `Server-Timing: db;dur=<ms>`, the time the database spent on the request.
 // The perf suite reads its p95 from this header.
 

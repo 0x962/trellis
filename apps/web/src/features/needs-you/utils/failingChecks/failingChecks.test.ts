@@ -6,10 +6,10 @@ const check = (name: string, bucket: CheckBucket): Check => ({ name, workflow: "
 
 const pr = (number: number, state: PrState, checks: Check[]): LinkedPullRequest => ({
 	id: `01J8Z6X4Q3M2K1H0G9F8E7D6R${number}`,
-	owner: "canary-technologies-corp",
-	repo: "de",
+	owner: "acme",
+	repo: "web",
 	number,
-	url: `https://github.com/canary-technologies-corp/de/pull/${number}`,
+	url: `https://github.com/acme/web/pull/${number}`,
 	title: "Fix the terminal pane",
 	state,
 	isDraft: false,

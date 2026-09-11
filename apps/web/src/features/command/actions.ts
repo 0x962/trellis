@@ -74,7 +74,7 @@ export const copyId = async (context: ActionContext, ticket: string): Promise<vo
 	context.notify("Copied the ID.");
 };
 
-// `CDE-42` and `Restore the fork pages!` give `cde-42-restore-the-fork-pages`.
+// `CDE-42` and `Restore the export pages!` give `cde-42-restore-the-export-pages`.
 export const branchName = (ticket: ActionTicket): string => {
 	const slug = ticket.title
 		.toLowerCase()

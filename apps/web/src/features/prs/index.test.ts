@@ -3,6 +3,9 @@ import { join } from "node:path";
 import { Glob } from "bun";
 import * as feature from "./index";
 
+// The named renderers a web app reaches for when it draws a diff itself.
+const renderers = ["diff", "diff2html", "react-diff-viewer", "parse-diff", "@git-diff-view/react"];
+
 const featureDir = import.meta.dir;
 
 const sourceFiles = async () => {
@@ -21,14 +24,16 @@ describe("prs feature barrel", () => {
 	});
 
 	// PR-63. The section stands beside the ticket page and draws no diff.
-	test("imports nothing from the ticket feature", async () => {
+	// Show diff opens the viewer that `diffUrlTemplate` names, so no
+	// renderer reaches this feature.
+	test("imports nothing from the ticket feature and no diff renderer", async () => {
 		const files = await sourceFiles();
 		expect(files.length).toBeGreaterThan(0);
 		for (const file of files) {
 			const source = await Bun.file(join(featureDir, file)).text();
 			for (const specifier of importsOf(source)) {
 				expect(specifier, `${file} imports ${specifier}`).not.toContain("features/ticket");
-				expect(specifier.toLowerCase(), `${file} imports ${specifier}`).not.toContain("diff");
+				expect(renderers, `${file} imports ${specifier}`).not.toContain(specifier);
 			}
 		}
 	});

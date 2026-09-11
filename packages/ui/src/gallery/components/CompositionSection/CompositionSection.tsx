@@ -26,7 +26,7 @@ const cardChecks: CheckRun[] = [
 	{ name: "e2e", bucket: "pending" },
 ];
 
-// The mockup's Needs-you row, board card, and PR row, built from the real
+// The Needs-you row, the board card, and the PR row, built from the real
 // components. This is where the pieces prove they fit together.
 export function CompositionSection() {
 	return (
@@ -46,7 +46,7 @@ export function CompositionSection() {
 					<TicketId id="CDE-42" />
 				</span>
 				<span className="flex min-w-0 flex-1 items-center gap-2">
-					<span className="truncate">Restore the fork pages after the upstream 1.27 merge</span>
+					<span className="truncate">Restore the export pages after the upstream 1.27 merge</span>
 					<Badge icon={<MessageCircle />}>4</Badge>
 				</span>
 				<span className="inline-flex w-37.5 items-center gap-2 whitespace-nowrap">
@@ -95,11 +95,11 @@ export function CompositionSection() {
 						<GitPullRequest className="size-4 text-success" aria-hidden="true" />
 						<span className="flex min-w-0 flex-col">
 							<span className="truncate">
-								<span className="mr-1.5 font-mono text-sm text-fg-muted">canary-technologies-corp/de #118</span>
-								<span className="font-medium">Restore fork pages after the 1.27 merge</span>
+								<span className="mr-1.5 font-mono text-sm text-fg-muted">acme/web #118</span>
+								<span className="font-medium">Restore export pages after the 1.27 merge</span>
 							</span>
 							<span className="mt-0.5 flex items-center gap-2 text-sm whitespace-nowrap text-fg-muted">
-								<span className="truncate font-mono text-xs">cde-42-restore-fork-pages → main</span>
+								<span className="truncate font-mono text-xs">cde-42-restore-export-pages → main</span>
 								<span>·</span>
 								<span>updated 3m ago</span>
 								<span>·</span>

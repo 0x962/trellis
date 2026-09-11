@@ -12,7 +12,7 @@ const threeHoursAgo = () => new Date(Date.now() - 3 * 60 * 60 * 1000).toISOStrin
 const full = () =>
 	ticketSummary({
 		identifier: "CDE-42",
-		title: "Restore the fork pages after the upstream 1.27 merge",
+		title: "Restore the export pages after the upstream 1.27 merge",
 		parent: { id: "01J8Z6X4Q3M2K1H0G9F8E7D6T3", identifier: "CDE-43" },
 		childCount: 4,
 		childDoneCount: 1,
@@ -30,7 +30,7 @@ const heightClass = (element: Element) =>
 	(element.getAttribute("class") ?? "").split(/\s+/).find((name) => /^h-\d/.test(name));
 
 describe("InboxRow", () => {
-	// NY-07. Every mark the design canvas puts on a Needs you row.
+	// NY-07. Every mark the approved design puts on a Needs you row.
 	test("renders id, title, parent, sub-ticket ring, counts, status, PR badge, and waiting time", () => {
 		const ticket = full();
 		const { container, getByText } = row(ticket);

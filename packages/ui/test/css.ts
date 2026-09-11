@@ -72,13 +72,4 @@ export const paletteBlocks = (pieces: Piece[]) => ({
 
 export const packageRoot = join(import.meta.dir, "..");
 
-export const repoRoot = join(packageRoot, "..", "..");
-
 export const readSource = (relativePath: string) => Bun.file(join(packageRoot, "src", relativePath)).text();
-
-// The approved look. Its `<style>` element carries the palette that
-// tokens.css must copy verbatim.
-export const mockupStyle = async () => {
-	const html = await Bun.file(join(repoRoot, "docs", "design", "mockup.html")).text();
-	return parseCss(html.match(/<style>([\s\S]*?)<\/style>/)![1]!);
-};

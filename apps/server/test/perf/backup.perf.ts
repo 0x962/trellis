@@ -5,7 +5,7 @@ import { budget, report } from "./measure.ts";
 import { type PerfServer, startPerfServer } from "./perfServer.ts";
 import { PERF_ROWS } from "./seed.ts";
 
-// plan.md, Performance requirements: a backup at 50k holds the database for
+// ARCHITECTURE.md, Performance budgets: a backup at 50k holds the database for
 // 1.5 s or less and finishes within 15 s. While the backup holds the
 // database, every request waits, so the hold is the longest wait a reader
 // sees during the backup.

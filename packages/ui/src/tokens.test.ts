@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compile } from "tailwindcss";
-import { blocks, findBlock, mockupStyle, packageRoot, paletteBlocks, parseCss, readSource } from "../test/css";
+import { blocks, findBlock, packageRoot, paletteBlocks, parseCss, readSource } from "../test/css";
 
 const colorTokens = [
 	"--bg",
@@ -29,6 +29,68 @@ const colorTokens = [
 const shadowTokens = ["--shadow-sm", "--shadow-md", "--shadow-lg"];
 
 const fontTokens = ["--sans", "--mono"];
+
+// BerkeleyMono leads both stacks. A machine without it falls back to the
+// bundled JetBrains Mono, and "JetBrains Mono Fallback" is the
+// metric-matched face that holds the layout until the web font loads (see
+// fonts.test.ts).
+const fontStacks: Record<string, string> = {
+	"--sans": '"BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+	"--mono": '"BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+};
+
+// The approved palette, one value per themed token. tokens.css is the only
+// place these values exist, so this table is what pins them.
+const lightPalette: Record<string, string> = {
+	"--bg": "#FFFFFF",
+	"--surface": "#F7F7F8",
+	"--elevated": "#F5F5F5",
+	"--border": "#E8E8EA",
+	"--border-strong": "#DDDDDF",
+	"--fg": "#070707",
+	"--fg-muted": "#646468",
+	"--fg-faint": "#8E8E95",
+	"--accent": "#009FFF",
+	"--accent-soft": "#DFEBFF",
+	"--agent": "#693ACF",
+	"--agent-soft": "#EFE8FB",
+	"--success": "#0DBE4E",
+	"--success-soft": "#E3F8EA",
+	"--warning": "#D5A910",
+	"--warning-soft": "#FBF4DA",
+	"--danger": "#FF2E3F",
+	"--danger-soft": "#FFE6E8",
+	"--scrim": "rgba(0,0,0,.4)",
+	"--shadow-sm": "0 1px 2px rgba(0,0,0,.06)",
+	"--shadow-md": "0 4px 12px rgba(0,0,0,.10)",
+	"--shadow-lg": "0 12px 32px rgba(0,0,0,.16)",
+};
+
+// Dark has no visible shadow, so each shadow starts with a strong-border ring.
+const darkPalette: Record<string, string> = {
+	"--bg": "#070707",
+	"--surface": "#151516",
+	"--elevated": "#1C1C1E",
+	"--border": "#242425",
+	"--border-strong": "#323234",
+	"--fg": "#E8E8EA",
+	"--fg-muted": "#BBBBBF",
+	"--fg-faint": "#8E8E95",
+	"--accent": "#009FFF",
+	"--accent-soft": "#19283C",
+	"--agent": "#9D6AFB",
+	"--agent-soft": "#24183F",
+	"--success": "#5ECC71",
+	"--success-soft": "#10301A",
+	"--warning": "#FFD452",
+	"--warning-soft": "#332B0C",
+	"--danger": "#FF6762",
+	"--danger-soft": "#3A1517",
+	"--scrim": "rgba(0,0,0,.6)",
+	"--shadow-sm": "0 0 0 1px var(--border-strong)",
+	"--shadow-md": "0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4)",
+	"--shadow-lg": "0 0 0 1px var(--border-strong), 0 12px 32px rgba(0,0,0,.5)",
+};
 
 // The dark blocks redefine the colors and shadows only. The font stacks and
 // `color-scheme` do not change with the theme.
@@ -92,14 +154,14 @@ describe("tokens.css", () => {
 		}
 	});
 
-	test("palette and shadow values match the mockup verbatim in light and dark", async () => {
+	test("palette and shadow values are the approved ones in light and dark", async () => {
 		const ours = paletteBlocks(await tokens());
-		const theirs = paletteBlocks(await mockupStyle());
-		for (const block of ["light", "darkMedia", "darkStamp"] as const) {
-			for (const name of themedTokens) {
-				expect(`${block} ${name}: ${ours[block].declarations[name]}`).toBe(
-					`${block} ${name}: ${theirs[block].declarations[name]}`,
-				);
+		for (const [name, value] of Object.entries(lightPalette)) {
+			expect(`light ${name}: ${ours.light.declarations[name]}`).toBe(`light ${name}: ${value}`);
+		}
+		for (const block of ["darkMedia", "darkStamp"] as const) {
+			for (const [name, value] of Object.entries(darkPalette)) {
+				expect(`${block} ${name}: ${ours[block].declarations[name]}`).toBe(`${block} ${name}: ${value}`);
 			}
 		}
 		expect(ours.light.declarations["--bg"]).toBe("#FFFFFF");
@@ -107,12 +169,8 @@ describe("tokens.css", () => {
 		expect(ours.darkStamp.declarations["--bg"]).toBe("#070707");
 		expect(ours.darkStamp.declarations["--danger-soft"]).toBe("#3A1517");
 		expect(ours.darkStamp.declarations["--shadow-sm"]).toBe("0 0 0 1px var(--border-strong)");
-		// The mockup names BerkeleyMono and JetBrains Mono, and tokens.css
-		// inserts the metric-matched "JetBrains Mono Fallback" between the
-		// second entry and the generic tail (see fonts.test.ts).
-		for (const name of fontTokens) {
-			const tail = (stack: string, from: number) => stack.split(",").slice(from).join(",").trim();
-			expect(tail(ours.light.declarations[name]!, 3)).toBe(tail(theirs.light.declarations[name]!, 2));
+		for (const [name, stack] of Object.entries(fontStacks)) {
+			expect(`${name}: ${ours.light.declarations[name]}`).toBe(`${name}: ${stack}`);
 		}
 	});
 

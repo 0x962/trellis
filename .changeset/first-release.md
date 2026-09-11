@@ -7,4 +7,4 @@
 "@trellis/web": minor
 ---
 
-First release: the local server, the web app with Needs you, the table, the board, and the ticket page, the `trellis` CLI, pull request and CI tracking through gh, attachments, backups, the launchd install, and the Expo mobile app.
+The first release of trellis. It has the local server, the web app, the `trellis` CLI, and the Expo mobile app. The web app has Needs you, the table, the board, and the ticket page. The server tracks pull requests and CI through gh, and keeps attachments and backups. `trellis install` sets up a launchd agent.

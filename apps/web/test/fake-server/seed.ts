@@ -1,5 +1,5 @@
-// The seed the fake server starts with. It is the data the design canvas
-// shows, so a screenshot of the shell over the fake server matches the
+// The seed the fake server starts with. It is the data the reference screens
+// show, so a screenshot of the shell over the fake server matches the
 // approved screens. The contract tests under test/fake-server assert
 // these facts.
 //

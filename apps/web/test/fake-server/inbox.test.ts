@@ -9,7 +9,7 @@ describe("fake server inbox", () => {
 	// Stalled is a started ticket with no activity for settings.stalledHours.
 	// Done by agents today is a done ticket an agent completed in the last
 	// 24 hours.
-	test("inbox.get returns the canvas section totals and honors project", async () => {
+	test("inbox.get returns the seeded section totals and honors project", async () => {
 		const server = createFakeServer();
 		const inbox = InboxSchema.parse(await server.client.inbox.get({}));
 		expect(inbox.review.total).toBe(3);

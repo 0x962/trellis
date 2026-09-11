@@ -8,8 +8,8 @@ const actorHeaders = { "content-type": "application/json", "x-trellis-actor": "h
 
 describe("fake server projects", () => {
 	// WS-105. The flat list the sidebar builds its tree from, with the
-	// counts the canvas shows.
-	test("projects.list returns the canvas tree with its counts", async () => {
+	// counts the reference screens show.
+	test("projects.list returns the seeded tree with its counts", async () => {
 		const server = createFakeServer();
 		const response = await server.app.request("/api/projects");
 		expect(response.status).toBe(200);

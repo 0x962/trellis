@@ -15,6 +15,7 @@ export const agentSession = (overrides: Overrides = {}) => ({
 	state: "running",
 	workspaceId: "ws-1",
 	terminalId: "term-1",
+	name: "Kenji",
 	title: "CDE-42",
 	openUrl: "superset://workspace/ws-1",
 	lastWokenAt: null,
@@ -24,7 +25,7 @@ export const agentSession = (overrides: Overrides = {}) => ({
 });
 
 export const managerSession = (overrides: Overrides = {}) =>
-	agentSession({ id: sessionId2, ticketId: null, role: "manager", title: "CDE manager", ...overrides });
+	agentSession({ id: sessionId2, ticketId: null, role: "manager", name: "Amara", title: "CDE manager", ...overrides });
 
 // A manager whose start failed, a running builder, one manager action, and
 // one batch.

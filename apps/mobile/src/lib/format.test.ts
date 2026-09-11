@@ -8,8 +8,8 @@ const hour = 60 * minute;
 const ago = (ms: number) => new Date(now.getTime() - ms).toISOString();
 
 describe("format", () => {
-	// MI-57. The approved canvas shows 2h, 5h, 1d, and 9m on the rows.
-	test("compactRelativeTime prints the canvas time strings", () => {
+	// MI-57. The approved design shows 2h, 5h, 1d, and 9m on the rows.
+	test("compactRelativeTime prints the approved time strings", () => {
 		expect(compactRelativeTime(ago(2 * hour), now)).toBe("2h");
 		expect(compactRelativeTime(ago(5 * hour), now)).toBe("5h");
 		expect(compactRelativeTime(ago(24 * hour), now)).toBe("1d");

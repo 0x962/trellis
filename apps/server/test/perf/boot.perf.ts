@@ -6,7 +6,7 @@ import { budget, report } from "./measure.ts";
 import { perfHome } from "./perfHome.ts";
 import { PERF_ROWS } from "./seed.ts";
 
-// The boot and the shutdown budgets from plan.md: a warm data home answers
+// The boot and the shutdown budgets: a warm data home answers
 // /api/health within 1.5 s of the process start, a first run on an empty
 // home within 3.5 s, and a shutdown with an open stream and a pending request
 // finishes within 5 s.

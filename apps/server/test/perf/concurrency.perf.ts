@@ -4,7 +4,7 @@ import { type PerfServer, startPerfServer, timedClient } from "./perfServer.ts";
 import { TABLE_QUERY } from "./queries.ts";
 import { PERF_ROWS } from "./seed.ts";
 
-// plan.md, Performance requirements: five agents write at the same time, 20
+// ARCHITECTURE.md, Performance budgets: five agents write at the same time, 20
 // writes a second in all. Each write costs 15 ms of server time or less, and
 // the default table query keeps its p95 budget while they write. Server time
 // is the db duration of the Server-Timing header.

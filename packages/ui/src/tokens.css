@@ -1,11 +1,10 @@
 /*
- * The palette is code.storage's, copied from docs/design/mockup.html. Every
- * neutral in it is one seed grey, lab(59.312% 1.0058 -3.62585), mixed in
- * sRGB with white or with black. The seed itself is --fg-faint, the same
- * value in both themes. A step keeps its position in the ramp across the two
- * themes, so --surface sits one step off the page ground in light and in
- * dark. Every component reads a color through a Tailwind utility
- * (bg-surface, text-fg).
+ * The palette is code.storage's. Every neutral in it is one seed grey,
+ * lab(59.312% 1.0058 -3.62585), mixed in sRGB with white or with black. The
+ * seed itself is --fg-faint, the same value in both themes. A step keeps its
+ * position in the ramp across the two themes, so --surface sits one step off
+ * the page ground in light and in dark. Every component reads a color through
+ * a Tailwind utility (bg-surface, text-fg).
  * A theme change is therefore one attribute on <html>: data-theme="dark" or
  * data-theme="light". No attribute follows the system preference.
  *
@@ -16,8 +15,8 @@
  * Dark mode has no visible shadow, so each shadow starts with a 1 px
  * strong-border ring.
  *
- * The values are byte-identical to the mockup and a test enforces it, so
- * the formatter skips this file (see biome.json).
+ * A test in tokens.test.ts pins every value here, so the formatter skips
+ * this file (see biome.json).
  */
 :root {
 	--bg: #FFFFFF;
@@ -159,7 +158,7 @@
  * The type scale, the 4 px spacing base, the radii, and the motion tokens.
  * Sizes are in px on purpose: the product is a dense tool and a row is 40 px
  * at every browser zoom. `text-kbd` and `text-initials` are the two micro
- * steps the mockup uses inside a Kbd and a human Avatar.
+ * steps a Kbd and a human Avatar use.
  */
 @theme {
 	--text-*: initial;

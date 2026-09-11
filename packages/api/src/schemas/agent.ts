@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AGENT_PERSON_NAME_MAX } from "../instructions/agentPersonNames.ts";
 import { ProjectRefStringSchema, TicketRefStringSchema } from "../refs.ts";
 import { ActivitySchema } from "./activity.ts";
 import { CommentSchema } from "./comment.ts";
@@ -14,9 +15,10 @@ const RunnerIdSchema = z.string().min(1).max(200);
 // `agents.register`. `ticketId` is null for the manager. `workspaceId`,
 // `terminalId`, and `openUrl` are null until the runner reports them.
 // `openUrl` is the deep link that opens the workspace in Superset. `title`
-// is the tab name, for example "CDE-42 review". `error` is what the runner
-// said when it could not start the agent; it is null unless the state is
-// `failed`.
+// is the tab name, for example "CDE-42 review". `name` is the person name
+// a human calls the agent by, for example "Kenji"; it stays the same for
+// the life of the agent. `error` is what the runner said when it could not
+// start the agent; it is null unless the state is `failed`.
 export const AgentSessionSchema = z.object({
 	id: UlidSchema,
 	projectId: UlidSchema,
@@ -26,6 +28,7 @@ export const AgentSessionSchema = z.object({
 	state: AgentStateSchema,
 	workspaceId: RunnerIdSchema.nullable(),
 	terminalId: RunnerIdSchema.nullable(),
+	name: z.string().min(1).max(AGENT_PERSON_NAME_MAX),
 	title: z.string().min(1).max(120),
 	openUrl: z.string().min(1).nullable(),
 	lastWokenAt: IsoDateTimeSchema.nullable(),

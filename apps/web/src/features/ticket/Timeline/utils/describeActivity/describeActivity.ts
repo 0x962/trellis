@@ -2,7 +2,7 @@ import { type Activity, activityActions } from "@trellis/api";
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
-// `https://github.com/canary-technologies-corp/de/pull/118` reads as `de #118`.
+// `https://github.com/acme/web/pull/118` reads as `web #118`.
 const prShort = (url: string) => {
 	const match = /\/([^/]+)\/pull\/(\d+)/.exec(url);
 	return match === null ? url : `${match[1]} #${match[2]}`;
@@ -54,7 +54,7 @@ const oxford = (words: string[]) => {
 };
 
 // A run of rows as one phrase: "changed the status and priority, and
-// linked the PR de #118". Field names form one list after "changed the";
+// linked the PR web #118". Field names form one list after "changed the";
 // every other row keeps its own verb phrase.
 export const describeRun = (items: readonly Activity[]): string => {
 	const fields: string[] = [];
