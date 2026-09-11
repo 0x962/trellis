@@ -101,7 +101,7 @@ export function CommentThread({ id, identifier, comments, onEdited, onDeleted, o
 				<Button
 					size="sm"
 					variant="default"
-					className="w-full justify-start"
+					className="ml-8 justify-start"
 					aria-expanded={expandedResolved}
 					onClick={() => setExpandedResolved(!expandedResolved)}
 				>
@@ -110,17 +110,14 @@ export function CommentThread({ id, identifier, comments, onEdited, onDeleted, o
 				</Button>
 			)}
 			{(!resolved || expandedResolved) && (
-				<fieldset
-					aria-label={`Thread started by ${root.actor.name}`}
-					className="overflow-hidden rounded-md border border-border bg-surface shadow-sm"
-				>
+				<fieldset aria-label={`Thread started by ${root.actor.name}`} className="contents">
 					<ul aria-label="Thread comment">
 						<CommentCard
 							comment={root}
+							threadSurface
 							formatClassName="comment-markdown"
 							onEdited={edit}
 							onDeleted={remove}
-							className="px-4 pt-2 pb-4"
 							actions={[
 								{
 									label: resolved ? "Reopen thread" : "Resolve thread",
@@ -128,53 +125,54 @@ export function CommentThread({ id, identifier, comments, onEdited, onDeleted, o
 									onSelect: () => void resolve(),
 								},
 							]}
-						/>
-					</ul>
-					{replies.length > 0 && (
-						<ul aria-label="Replies" className="divide-y divide-border border-t border-border">
-							{replies.map((reply) => (
-								<CommentCard
-									key={reply.id}
-									comment={reply}
-									formatClassName="comment-markdown"
-									onEdited={edit}
-									onDeleted={remove}
-									className="px-4 pt-2 pb-4"
-								/>
-							))}
-						</ul>
-					)}
-					<form
-						aria-label="Leave a reply"
-						className="flex min-h-11 items-end gap-2 border-t border-border bg-bg px-4 py-2 focus-within:bg-surface"
-						onSubmit={(event) => {
-							event.preventDefault();
-							if (draft.trim() !== "" && !posting) void post();
-						}}
-					>
-						<Avatar name={actor.name} kind={actor.kind} className="mb-1.5" />
-						<textarea
-							aria-label="Reply"
-							placeholder="Leave a reply…"
-							value={draft}
-							onChange={(event) => setDraft(event.target.value)}
-							rows={1}
-							className="min-h-7 max-h-40 min-w-0 flex-1 resize-none bg-transparent py-1 text-base leading-5 text-fg outline-none placeholder:text-fg-faint [field-sizing:content] focus-visible:outline-2 focus-visible:outline-accent"
-							onKeyDown={(event) => {
-								if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && draft.trim() !== "" && !posting) {
+						>
+							{replies.length > 0 && (
+								<ul aria-label="Replies" className="divide-y divide-border border-t border-border">
+									{replies.map((reply) => (
+										<CommentCard
+											key={reply.id}
+											comment={reply}
+											formatClassName="comment-markdown"
+											onEdited={edit}
+											onDeleted={remove}
+											className="px-4 pt-2 pb-4"
+										/>
+									))}
+								</ul>
+							)}
+							<form
+								aria-label="Leave a reply"
+								className="flex min-h-11 items-start gap-2 border-t border-border bg-bg px-4 py-2 focus-within:bg-surface"
+								onSubmit={(event) => {
 									event.preventDefault();
-									void post();
-								}
-							}}
-						/>
-						<IconButton
-							label="Post reply"
-							icon={<ArrowUp />}
-							variant="primary"
-							disabled={posting || draft.trim() === ""}
-							type="submit"
-						/>
-					</form>
+									if (draft.trim() !== "" && !posting) void post();
+								}}
+							>
+								<Avatar name={actor.name} kind={actor.kind} className="mt-1.5" />
+								<textarea
+									aria-label="Reply"
+									placeholder="Leave a reply…"
+									value={draft}
+									onChange={(event) => setDraft(event.target.value)}
+									rows={1}
+									className="min-h-7 max-h-40 min-w-0 flex-1 resize-none bg-transparent py-1 text-base leading-5 text-fg outline-none placeholder:text-fg-faint [field-sizing:content] focus-visible:outline-2 focus-visible:outline-accent"
+									onKeyDown={(event) => {
+										if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && draft.trim() !== "" && !posting) {
+											event.preventDefault();
+											void post();
+										}
+									}}
+								/>
+								<IconButton
+									label="Post reply"
+									icon={<ArrowUp />}
+									variant="primary"
+									disabled={posting || draft.trim() === ""}
+									type="submit"
+								/>
+							</form>
+						</CommentCard>
+					</ul>
 				</fieldset>
 			)}
 		</li>

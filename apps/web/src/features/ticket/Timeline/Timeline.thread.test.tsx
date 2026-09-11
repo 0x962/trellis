@@ -108,6 +108,28 @@ describe("features/ticket/Timeline threads", () => {
 		expect(within(activity).getAllByRole("group", { name: /Thread started by navid/ })).toHaveLength(2);
 	});
 
+	test("the root actor stays on the timeline and the comment surface starts beside it", async () => {
+		const { root, mount } = await setup();
+		mount();
+		const body = await screen.findByText(root.body);
+		const comment = body.closest<HTMLElement>("article")!;
+		const surface = comment.querySelector<HTMLElement>("[data-thread-surface]")!;
+		const actor = within(comment).getByText("navid");
+		expect(surface).not.toBeNull();
+		expect(surface.className).toMatch(/\bml-8\b/);
+		expect(surface.contains(actor)).toBe(false);
+		expect(actor.compareDocumentPosition(surface) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+	});
+
+	test("the reply avatar stays at the top when the reply field grows", async () => {
+		const { root, mount } = await setup();
+		mount();
+		await screen.findByText(root.body);
+		const form = screen.getByRole("form", { name: "Leave a reply" });
+		expect(form.className).toMatch(/\bitems-start\b/);
+		expect(within(form).getByRole("img").className).toMatch(/\bmt-1\.5\b/);
+	});
+
 	test("a page with replies fetches the root and complete thread once", async () => {
 		const { server, ticket, root, mount } = await setup();
 		for (let index = 0; index < 105; index++) {

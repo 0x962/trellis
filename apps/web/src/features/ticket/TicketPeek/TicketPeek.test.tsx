@@ -64,6 +64,15 @@ describe("features/ticket/TicketPeek", () => {
 		await waitFor(() => expect(fieldValue(title(panel))).toBe("Restore the fork pages after the upstream 1.27 merge"));
 	});
 
+	test("a click outside the peek closes it", async () => {
+		const user = userEvent.setup();
+		const { router } = mount("/p/CDE/table?peek=CDE-42");
+		await peek();
+		await user.click(screen.getByRole("list", { name: "Rows" }));
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		expect(router.state.location.search).not.toHaveProperty("peek");
+	});
+
 	test("a saved width respects the viewport minimum", async () => {
 		window.innerWidth = 1920;
 		localStorage.setItem(peekWidthStorageKey, "480");
@@ -193,17 +202,15 @@ describe("features/ticket/TicketPeek", () => {
 		expect(router.state.location.search).not.toHaveProperty("peek");
 	});
 
-	// WT-12. The peek is narrower than the page, so the rail folds into a
-	// two-column grid under the title. w-70 is the 280 px rail of the page.
-	test("renders the property grid instead of the rail", async () => {
+	// WT-12. The wide peek gives the ticket properties a fixed right rail.
+	test("renders the property rail beside the ticket content", async () => {
 		mount("/p/CDE/table?peek=CDE-42");
 		const panel = await peek();
-		const grid = await within(panel).findByLabelText("Properties");
-		expect(grid.tagName).not.toBe("ASIDE");
-		expect(grid.className).toMatch(/\bgrid-cols-2\b/);
-		expect(panel.querySelector(".w-70")).toBeNull();
-		const field = title(panel);
-		expect(field.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+		const rail = await within(panel).findByLabelText("Properties");
+		expect(rail.tagName).toBe("ASIDE");
+		expect(rail.className).toMatch(/\bw-70\b/);
+		const content = panel.querySelector("[data-ticket-content]")!;
+		expect(content.compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
 	});
 
 	// WT-13

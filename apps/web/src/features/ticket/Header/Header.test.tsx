@@ -39,6 +39,15 @@ describe("features/ticket/Header", () => {
 		expect(router.state.location.pathname).toBe("/p/CDE");
 	});
 
+	test("the peek header shows the ticket ID without a project breadcrumb", async () => {
+		renderTicket("CDE-42", (ticket) => <Header ticket={ticket} surface="peek" />, {
+			path: "/p/CDE?peek=CDE-42",
+		});
+		const element = await header();
+		expect(within(element).getByText("CDE-42")).toBeDefined();
+		expect(within(element).queryByRole("navigation", { name: "Breadcrumb" })).toBeNull();
+	});
+
 	// WT-21
 	test("Copy ID writes the identifier to the clipboard and toasts", async () => {
 		const user = userEvent.setup();
