@@ -1,5 +1,6 @@
 import { oc } from "@orpc/contract";
 import { actors } from "./actors.ts";
+import { agentRuns } from "./agentRuns.ts";
 import { agents } from "./agents.ts";
 import { attachments } from "./attachments.ts";
 import { brief } from "./brief.ts";
@@ -19,6 +20,7 @@ import { timeline } from "./timeline.ts";
 // handler; the RPC handler at `/rpc` addresses a procedure by its dotted
 // name. The tag is the OpenAPI group.
 export const contract = {
+	agentRuns: oc.tag("agent runs").router(agentRuns),
 	personas: oc.tag("personas").router(personas),
 	projects: oc.tag("projects").router(projects),
 	statuses: oc.tag("statuses").router(statuses),

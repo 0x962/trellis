@@ -3,14 +3,17 @@ import {
 	type Actor,
 	type ActorRef,
 	type AgentBatchRecord,
+	type AgentRun,
 	type AgentSession,
 	type AgentSettings,
 	type Attachment,
 	type Comment,
+	DEFAULT_AGENT_LAUNCH_COMMAND,
 	type GhStatus,
 	type Persona,
 	type Priority,
 	type PrLinkSource,
+	type ProjectManagerConfig,
 	type PullRequest,
 	type Repo,
 	type RunnerProject,
@@ -38,6 +41,7 @@ export type ProjectRow = {
 	position: number;
 	description: string;
 	ticketTemplate: string;
+	managerConfig?: ProjectManagerConfig;
 	ticketCounter: number;
 	createdAt: string;
 	updatedAt: string;
@@ -80,6 +84,7 @@ export type PrLink = {
 
 export type State = {
 	personas: Map<string, Persona>;
+	agentRuns: Map<string, AgentRun>;
 	projects: Map<string, ProjectRow>;
 	statuses: Map<string, Status>;
 	tickets: Map<string, TicketRow>;
@@ -116,6 +121,7 @@ export type State = {
 
 export const createState = (): State => ({
 	personas: new Map(),
+	agentRuns: new Map(),
 	projects: new Map(),
 	statuses: new Map(),
 	tickets: new Map(),
@@ -130,6 +136,7 @@ export const createState = (): State => ({
 		defaultActorName: "navid",
 		stalledHours: 24,
 		diffUrlTemplate: "{url}/files",
+		agentLaunchCommand: DEFAULT_AGENT_LAUNCH_COMMAND,
 	},
 	defaultActorStored: false,
 	gh: {

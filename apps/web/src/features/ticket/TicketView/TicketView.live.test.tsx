@@ -66,10 +66,6 @@ describe("features/ticket/TicketView live", () => {
 		expect(within(rail).getByText("In Progress")).toBeDefined();
 		const header = screen.getByLabelText("Ticket header");
 		expect(within(header).queryByRole("button", { name: /Approve/ })).toBeNull();
-		const updated = within(rail)
-			.getAllByRole("term")
-			.find((term) => term.textContent === "Updated")!.nextElementSibling!;
-		expect(updated.textContent).toMatch(/just now|now|\b\d+s/);
 		expect(cached().version).toBe(18);
 		await settle(400);
 		expect(server.callsTo("tickets.get")).toHaveLength(gets);

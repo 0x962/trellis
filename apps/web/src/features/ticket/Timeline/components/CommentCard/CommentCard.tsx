@@ -132,7 +132,7 @@ export function CommentCard({
 				{threadSurface ? (
 					<div
 						data-thread-surface=""
-						className="relative ml-8 before:absolute before:top-0 before:right-full before:h-px before:w-6 before:bg-border"
+						className="relative ml-8 before:absolute before:-top-4 before:right-full before:h-4 before:w-6 before:rounded-bl-sm before:border-b before:border-l before:border-border"
 					>
 						<div className="overflow-hidden rounded-md border border-border bg-surface shadow-sm">
 							<div className="px-4 pt-3 pb-4">{body}</div>

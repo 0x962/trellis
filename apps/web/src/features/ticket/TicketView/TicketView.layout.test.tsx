@@ -15,7 +15,7 @@ const mountPeek = () =>
 		actor: "navid",
 	});
 
-test("the peek uses a bounded main column beside the property rail", async () => {
+test("the peek header spans the body and the full-height property rail", async () => {
 	mountPeek();
 	const title = await screen.findByRole("textbox", { name: "Title" });
 	const body = title.closest<HTMLElement>("[data-ticket-content]")!;
@@ -27,28 +27,40 @@ test("the peek uses a bounded main column beside the property rail", async () =>
 	expect(within(body).queryByText("CDE-42")).toBeNull();
 	const rail = screen.getByLabelText("Properties");
 	expect(rail.tagName).toBe("ASIDE");
-	expect(rail.className).toMatch(/\bsticky\b/);
-	expect(rail.className).toMatch(/\btop-0\b/);
-	expect(body.compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+	const columns = body.closest<HTMLElement>("[data-ticket-columns]")!;
+	expect(columns).not.toBeNull();
+	expect(columns.contains(header)).toBe(false);
+	expect(header.compareDocumentPosition(columns) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+	expect(columns.contains(rail)).toBe(true);
+	expect(rail.className).toMatch(/\bh-full\b/);
 });
 
-test("the peek keeps review actions in a separate row from navigation", async () => {
+test("the description keeps a minimum reading area", async () => {
 	mountPeek();
-	const approve = await screen.findByRole("button", { name: /^Approve/ });
+	await screen.findByRole("textbox", { name: "Title" });
+	const description = document.querySelector<HTMLElement>("[data-ticket-description]")!;
+	expect(description).not.toBeNull();
+	expect(description.className).toMatch(/\bmin-h-24\b/);
+});
+
+test("the peek keeps navigation without an approval bar", async () => {
+	mountPeek();
+	await screen.findByRole("textbox", { name: "Title" });
 	const header = screen.getByLabelText("Ticket header");
-	expect(header.contains(approve)).toBe(false);
+	expect(screen.queryByRole("button", { name: /^Approve/ })).toBeNull();
 	expect(within(header).getByRole("button", { name: "Close" })).toBeDefined();
 	expect(within(header).getByRole("button", { name: "Expand to the full page" })).toBeDefined();
-	const actions = screen.getByRole("group", { name: "Ticket actions" });
-	expect(actions.contains(approve)).toBe(true);
+	expect(screen.queryByRole("group", { name: "Ticket actions" })).toBeNull();
 });
 
-test("the peek shows all properties in the right rail", async () => {
+// The rail holds the pickers alone. The branch copies from the header, the
+// sub-tickets have their own section, and the times read in the activity.
+test("the peek rail holds the picker rows and nothing else", async () => {
 	mountPeek();
 	const properties = await screen.findByLabelText("Properties");
 	expect(within(properties).getByText("Status")).toBeDefined();
 	expect(within(properties).getByText("Priority")).toBeDefined();
-	expect(within(properties).getByText("Branch")).toBeDefined();
-	expect(within(properties).getByText("Created")).toBeDefined();
-	expect(within(properties).getByRole("button", { name: "Copy branch name" })).toBeDefined();
+	expect(within(properties).queryByText("Branch")).toBeNull();
+	expect(within(properties).queryByText("Created")).toBeNull();
+	expect(within(properties).queryByText("Sub-tickets")).toBeNull();
 });

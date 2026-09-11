@@ -10,7 +10,7 @@ import { migrate } from "./migrate.ts";
 // A database that agents already ran in holds sessions without a name.
 // Migration 0012 adds the name column and gives every stored session a
 // name, so no row is left without one. The later migration 0013 drops the
-// agent tables and 0016 creates them again with the name column, so this
+// agent tables and 0020 creates them again with the name column, so this
 // test stops each of its two migration runs at 0012.
 
 const drizzleDir = join(import.meta.dir, "../../drizzle");

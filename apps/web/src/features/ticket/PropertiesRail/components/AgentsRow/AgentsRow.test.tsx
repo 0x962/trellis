@@ -33,11 +33,11 @@ const items = async () => within(await agentsRow()).findAllByRole("listitem");
 const startButton = async () => within(await agentsRow()).queryByRole("button", { name: "Start builder" });
 
 describe("AgentsRow", () => {
-	test("the rail shows the Agents row right after Updated", async () => {
+	test("the rail shows the Agents row last, under the picker rows", async () => {
 		mount(createFakeServer());
 		await agentsRow();
 		const order = await terms();
-		expect(order.indexOf("Agents")).toBe(order.indexOf("Updated") + 1);
+		expect(order.at(-1)).toBe("Agents");
 	});
 
 	test("lists the builder and the reviewer with their names and their states", async () => {

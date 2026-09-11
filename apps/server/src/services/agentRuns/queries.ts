@@ -1,0 +1,14 @@
+import type { AgentRun } from "@trellis/api";
+import { sql } from "drizzle-orm";
+import { iso, rows } from "../../db/queries/support.ts";
+import type { Tx } from "../../db/tx.ts";
+import { fail } from "../../errors.ts";
+export const columns = sql`id, name, runtime, persona_id AS "personaId", persona_name AS "personaName", kind, instruction,
+	project_id AS "projectId", project_path AS "projectPath", ticket_id AS "ticketId", ticket_identifier AS "ticketIdentifier", state,
+	workspace_id AS "workspaceId", terminal_id AS "terminalId", url, error,
+	${iso(sql`created_at`)} AS "createdAt", ${iso(sql`updated_at`)} AS "updatedAt"`;
+export const getRun = async (tx: Tx, id: string) => {
+	const [run] = await rows<AgentRun>(tx, sql`SELECT ${columns} FROM agent_runs WHERE id = ${id}`);
+	if (run === undefined) throw fail("NOT_FOUND", { kind: "agent", ref: id });
+	return run;
+};

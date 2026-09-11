@@ -28,10 +28,6 @@ describe("lib/orpc", () => {
 		expect(requests[0]!.headers.get("x-trellis-client")).toMatch(/^api\//);
 	});
 
-	// A review key pressed the moment the Approve button shows needs the
-	// statuses of the ticket's project. The statuses read leaves at once, as
-	// the ticket detail read does, so it never waits for a batch of slower
-	// reads such as the timeline.
 	test("a statuses read leaves at once and never waits in a batch", async () => {
 		setActorName("navid");
 		const server = createFakeServer();

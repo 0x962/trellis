@@ -5,11 +5,15 @@ import type { PullRequest } from "@trellis/api";
 import { ulid } from "ulid";
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { findTicket } from "../../../../test/fake-server/state";
-import { ago, hour, renderTicket, settle } from "../../../../test/ticketHost";
+import { ago, hour, renderTicket } from "../../../../test/ticketHost";
+import { useComposerStore } from "../../composer";
 import { TicketView } from "../TicketView";
 import { SubTickets } from "./SubTickets";
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+	localStorage.clear();
+	useComposerStore.setState({ open: false, options: {} });
+});
 
 const mount = (identifier = "CDE-42", server: FakeServer = createFakeServer()) =>
 	renderTicket(identifier, (ticket) => <SubTickets ticket={ticket} />, { path: "/p/CDE", server });
@@ -102,41 +106,26 @@ describe("features/ticket/SubTickets", () => {
 		expect(router.state.location.pathname).toBe("/p/CDE");
 	});
 
-	// WT-61. The new row is optimistic and takes the parent's project.
-	test("the inline add creates a child optimistically", async () => {
+	// Add hands the work to the create dialog, with this ticket as the
+	// parent, so a sub-ticket takes every field a ticket takes.
+	test("Add opens the create dialog with this ticket as the parent", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
-		const hold = server.holdNext("tickets.create");
-		mount("CDE-42", server);
+		mount("CDE-42", createFakeServer());
 		const element = await section();
-		const input = within(element).getByRole("textbox", { name: "New sub-ticket" });
-		await user.type(input, "Write the docs{Enter}");
-		await waitFor(() => expect(server.callsTo("tickets.create")).toHaveLength(1));
-		expect(within(element).getByText("Write the docs")).toBeDefined();
-		const created = server.callsTo("tickets.create")[0]!.input as Record<string, unknown>;
-		const parent = findTicket(server.state, "CDE-42")!;
-		expect([parent.id, "CDE-42"]).toContain(created.parent as string);
-		expect([parent.projectId, "CDE.web"]).toContain(created.project as string);
-		expect(created.title).toBe("Write the docs");
-		hold.release();
-		await waitFor(() => expect(within(element).getByRole("button", { name: /CDE-\d+.*Write the docs/ })).toBeDefined());
+		await user.click(within(element).getByRole("button", { name: "Add" }));
+		await waitFor(() => expect(useComposerStore.getState().open).toBe(true));
+		expect(useComposerStore.getState().options.parent).toBe("CDE-42");
 	});
 
-	// WT-62. CDE-47 has no children: the section waits for Add in the rail.
-	test("the section appears only with children or on Add", async () => {
-		const user = userEvent.setup();
+	// Nothing to frame, so no frame: one quiet word, and Add carries the
+	// invitation.
+	test("a ticket with no children shows one quiet word and Add", async () => {
 		renderTicket("CDE-47", (ticket) => <TicketView identifier={ticket.identifier} variant="page" />, {
 			path: "/t/CDE-47",
 		});
-		const rail = await screen.findByLabelText("Properties");
-		await settle();
-		expect(screen.queryByRole("region", { name: /Sub-tickets/ })).toBeNull();
-		const term = within(rail)
-			.getAllByRole("term")
-			.find((element) => element.textContent === "Sub-tickets")!;
-		await user.click(within(term.nextElementSibling as HTMLElement).getByRole("button", { name: "New sub-ticket" }));
 		const element = await section();
-		const input = within(element).getByRole("textbox", { name: "New sub-ticket" });
-		await waitFor(() => expect(document.activeElement).toBe(input));
+		expect(within(element).getByText("empty")).toBeDefined();
+		expect(element.querySelector(".border-border")).toBeNull();
+		expect(within(element).getByRole("button", { name: "Add" })).toBeDefined();
 	});
 });

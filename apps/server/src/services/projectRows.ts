@@ -22,12 +22,13 @@ import { chainOf, pathOf, resolveProject } from "./refs.ts";
 type ProjectRow = ProjectSummaryRow & {
 	description: string;
 	ticket_template: string;
+	manager_config: NonNullable<Project["managerConfig"]>;
 	ticket_counter: number;
 	created_at: string;
 	updated_at: string;
 };
 
-const projectColumns = sql`${projectSummaryColumns}, p.description, p.ticket_template, p.ticket_counter,
+const projectColumns = sql`${projectSummaryColumns}, p.description, p.manager_config, p.ticket_template, p.ticket_counter,
 	${iso(sql`p.created_at`)} AS created_at, ${iso(sql`p.updated_at`)} AS updated_at`;
 
 export const projectRow = async (tx: Tx, projectId: string) => {
@@ -113,6 +114,7 @@ export const projectView = async (ctx: ServiceCtx, tx: Tx, projectId: string): P
 		...toProjectSummary(row),
 		description: row.description,
 		ticketTemplate: row.ticket_template,
+		managerConfig: row.manager_config,
 		ticketCounter: row.ticket_counter,
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,

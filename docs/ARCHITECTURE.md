@@ -53,9 +53,9 @@ five files. The port is 4521 (`TRELLIS_PORT`) and the host is `127.0.0.1`
 ## Domain rules
 
 Personas are local records shared across projects. Each persona has a name and
-an instruction. The AI section of the sidebar opens the Personas page, with
-forms to create and edit these records. The API exposes `personas.list`,
-`personas.create`, and `personas.update`. The `personas.changed` event
+an instruction, and a kind: builder, reviewer, or manager. The AI section of the sidebar opens the Personas page, with
+cards grouped by kind and slideouts to create, edit, and delete these records. The API exposes `personas.list`,
+`personas.create`, `personas.update`, and `personas.delete`. The `personas.changed` event
 invalidates the cached persona list after a committed mutation.
 The [Personas spec](design/personas.md) defines the fields and outcomes.
 
@@ -68,7 +68,7 @@ The [Personas spec](design/personas.md) defines the fields and outcomes.
 - The remap matches on name and category first, then on the lowest-position status of the same category, then on the default status of the owner.
 - Every status-to-status move is legal. A WIP limit is advisory. The `category` of a status is immutable after creation.
 - `started_at` is set once, when a ticket leaves todo. `completed_at` is set when a ticket enters done or canceled, and cleared when it leaves.
-- Priority is none, urgent, high, medium, or low. There are no labels and no assignees.
+- Priority is none, urgent, high, medium, or low. There are no labels. A ticket can have one active agent from a persona.
 - Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is printable ASCII without a colon, 1 to 64 characters.
 - A missing header is `ACTOR_REQUIRED` and a malformed one is `ACTOR_INVALID`. A GET ignores the header. The header rejects the kind `system`, which trellis reserves for `system:trellis`.
 - The optional header `x-trellis-session` is stored in `activity.meta.session`. trellis stores the name and the kind of an actor, and nothing else.
@@ -78,6 +78,14 @@ The [Personas spec](design/personas.md) defines the fields and outcomes.
 - `updated_at` moves only on user-visible activity: a ticket field, a comment, an attachment, or a pull request link. A reorder, a remap, and a poller CI change raise `version` only.
 - A delete is a hard delete. A ticket delete nulls the `parent_id` of its children, then cascades comments, attachments, pull request links, and activity. The blob collector then removes unused files.
 - A project delete needs an empty subtree or `force`.
+
+Agents use persona snapshots. `agentRuns` exposes start, list, stop, refresh, send, and output.
+The ticket rail opens a searchable persona picker, with frequent personas first. Each project has a Manager page with its persona, concurrency, directory, repositories, and manager controls.
+Settings stores the launch-command template. The default opens a Superset terminal.
+Custom commands run in private tmux sessions that survive a Trellis restart.
+The [agent spec](design/persona-agents.md) defines the behavior.
+
+The Needs you page contains its heading and an empty body. Ticket status changes use the status picker.
 
 ## Database schema
 
@@ -454,7 +462,7 @@ is no shadcn and no Radix.
 - Dark mode swaps every shadow for a 1 px strong border.
 - Status by category: todo is a faint empty circle, started is a warning half ring, review is an accent dotted ring, done is a success filled check, and canceled is a faint cross.
 - Priority uses bars in `fg-muted`. Urgent is a filled danger square.
-- Motion durations: 120 ms hover, 160 ms popover, 240 ms peek slide, 160 ms row enter, 200 ms approve sweep.
+- Motion durations: 120 ms hover, 160 ms popover, 240 ms peek slide, 160 ms row enter.
 - Never animate a re-sort, a text change, a counter, a skeleton swap, or the theme switch. Use `motion/mini` and CSS transitions only.
 - Focus uses a 2 px accent outline on `:focus-visible`. A row or a card uses an inset left bar.
 - The primitives are Button, IconButton, Input, Textarea, Select, Popover, Menu, Dialog, Sheet, Tooltip, Toast, Tabs, Segmented, Checkbox, Switch, Badge, Chip, Avatar, Kbd, Skeleton, ScrollArea, Separator, EmptyState, and Command.

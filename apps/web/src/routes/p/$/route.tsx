@@ -37,6 +37,10 @@ const ProjectSettingsPage = lazy(async () => ({
 	default: (await import("./components/ProjectSettingsPage")).ProjectSettingsPage,
 }));
 
+const ProjectManagerPage = lazy(async () => ({
+	default: (await import("../../../features/project-manager/ProjectManagerPage")).ProjectManagerPage,
+}));
+
 const projectOptions = (context: AppContext, ref: string) =>
 	context.orpc.projects.get.queryOptions({ input: { project: ref } });
 
@@ -68,7 +72,7 @@ export const Route = createFileRoute("/p/$")({
 	loader: async ({ context, params, deps }) => {
 		const { ref, view } = parseProjectSplat(params._splat ?? "");
 		const project = await context.queryClient.ensureQueryData(projectOptions(context, ref));
-		if (view !== "settings") {
+		if (view !== "settings" && view !== "manager") {
 			await context.queryClient.ensureQueryData(countsOptions(context, ref, deps, project.statuses));
 		}
 	},
@@ -101,14 +105,18 @@ function ProjectPage() {
 
 	useEffect(() => rememberList(listHref), [listHref]);
 
-	if (view === "settings") {
+	if (view === "settings" || view === "manager") {
 		return (
 			<Suspense
 				fallback={
 					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-muted">Loading settings…</div>
 				}
 			>
-				<ProjectSettingsPage project={project} />
+				{view === "manager" ? (
+					<ProjectManagerPage key={project.id} project={project} />
+				) : (
+					<ProjectSettingsPage project={project} />
+				)}
 			</Suspense>
 		);
 	}

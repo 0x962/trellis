@@ -9,13 +9,13 @@ import { openDb } from "./client.ts";
 import { migrate } from "./migrate.ts";
 
 // The migration 0013_remove_agents dropped the agent tables and rewrote the
-// seeded status descriptions. 0016_restore_agents undoes both. Migrations
-// run forward only, so 0016 must also leave a database that never ran 0013
+// seeded status descriptions. 0020_restore_agents undoes both. Migrations
+// run forward only, so 0020 must also leave a database that never ran 0013
 // as it found it.
 
 const drizzleDir = join(import.meta.dir, "../../drizzle");
 const REMOVE = "0013_remove_agents";
-const RESTORE = "0016_restore_agents";
+const RESTORE = "0020_restore_agents";
 
 type Journal = { entries: Array<{ tag: string }> };
 
@@ -102,8 +102,8 @@ describe("the agent restore migration", () => {
 		expect(await descriptionsByName(db)).toEqual(SEEDED_DESCRIPTIONS);
 	});
 
-	// Navid's database ran 0013, so 0016 must run there. A database that
-	// stopped before 0013 still holds the tables and the rows, and 0016 must
+	// Navid's database ran 0013, so 0020 must run there. A database that
+	// stopped before 0013 still holds the tables and the rows, and 0020 must
 	// keep both.
 	test("keeps the rows and the descriptions of a database that never ran the removal", async () => {
 		const { db, rootId } = await beforeRemoval();

@@ -30,6 +30,10 @@ export const TAGS = [
 		name: "agents",
 		description: "The manager, builder, and reviewer agents of a project, their inbox, and the agent settings.",
 	},
+	{
+		name: "agent runs",
+		description: "The agents a persona starts on a ticket or a project, their output, and their follow-ups.",
+	},
 ];
 
 export const DESCRIPTION = `trellis is a local ticket tracker for agent-driven work. No auth, no assignees. Every action carries an actor.
@@ -107,6 +111,8 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 		stalledHours: 24,
 		diffUrlTemplate: "{url}/files",
 	},
+	"POST /agent-runs": { personaId: "01J9Z0000000000000000000A1", ticket: "CDE-42" },
+	"POST /agent-runs/{id}/send": { text: "The CI run is red. Read the failing step and fix it." },
 	"POST /agents/inbox": { project: "CDE" },
 	"POST /agents/register": {
 		role: "builder",

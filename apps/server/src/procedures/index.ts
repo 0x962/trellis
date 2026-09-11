@@ -1,3 +1,4 @@
+import { agentRuns } from "./agentRuns.ts";
 import { agents } from "./agents.ts";
 import { attachments } from "./attachments.ts";
 import { os } from "./base.ts";
@@ -14,6 +15,7 @@ export type { ProcedureContext } from "./base.ts";
 
 // The whole contract, implemented. Both HTTP handlers serve this one router.
 export const router = os.router({
+	agentRuns,
 	personas,
 	projects,
 	statuses,

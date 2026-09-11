@@ -1,5 +1,5 @@
 {
-  "id": "8987333f-a32b-4ed1-a901-706bee348282",
+  "id": "26a5a4d1-84ca-4ff5-ade5-d99a2d4254d5",
   "prevId": "43afaf6f-ba93-4ec6-b8b4-933bb4ee2f48",
   "version": "7",
   "dialect": "postgresql",
@@ -1338,294 +1338,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.agent_cursors": {
-      "name": "agent_cursors",
-      "schema": "",
-      "columns": {
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "activity_id": {
-          "name": "activity_id",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "agent_cursors_project_id_projects_id_fk": {
-          "name": "agent_cursors_project_id_projects_id_fk",
-          "tableFrom": "agent_cursors",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.agent_sessions": {
-      "name": "agent_sessions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ticket_id": {
-          "name": "ticket_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "role": {
-          "name": "role",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "runner": {
-          "name": "runner",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "terminal_id": {
-          "name": "terminal_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "claude_session_id": {
-          "name": "claude_session_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "open_url": {
-          "name": "open_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_woken_at": {
-          "name": "last_woken_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "agent_sessions_project_id_role_state_idx": {
-          "name": "agent_sessions_project_id_role_state_idx",
-          "columns": [
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "role",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "state",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "agent_sessions_ticket_id_idx": {
-          "name": "agent_sessions_ticket_id_idx",
-          "columns": [
-            {
-              "expression": "ticket_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "agent_sessions_live_manager_idx": {
-          "name": "agent_sessions_live_manager_idx",
-          "columns": [
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"agent_sessions\".\"role\" = 'manager' AND \"agent_sessions\".\"state\" NOT IN ('exited', 'stopped', 'failed')",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "agent_sessions_terminal_idx": {
-          "name": "agent_sessions_terminal_idx",
-          "columns": [
-            {
-              "expression": "workspace_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "terminal_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"agent_sessions\".\"workspace_id\" IS NOT NULL AND \"agent_sessions\".\"terminal_id\" IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "agent_sessions_project_id_projects_id_fk": {
-          "name": "agent_sessions_project_id_projects_id_fk",
-          "tableFrom": "agent_sessions",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_sessions_ticket_id_tickets_id_fk": {
-          "name": "agent_sessions_ticket_id_tickets_id_fk",
-          "tableFrom": "agent_sessions",
-          "tableTo": "tickets",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "agent_sessions_role_check": {
-          "name": "agent_sessions_role_check",
-          "value": "\"agent_sessions\".\"role\" IN ('manager', 'builder', 'reviewer')"
-        },
-        "agent_sessions_runner_check": {
-          "name": "agent_sessions_runner_check",
-          "value": "\"agent_sessions\".\"runner\" IN ('superset')"
-        },
-        "agent_sessions_state_check": {
-          "name": "agent_sessions_state_check",
-          "value": "\"agent_sessions\".\"state\" IN ('starting', 'running', 'waiting', 'exited', 'stopped', 'failed')"
-        },
-        "agent_sessions_name_check": {
-          "name": "agent_sessions_name_check",
-          "value": "char_length(\"agent_sessions\".\"name\") BETWEEN 1 AND 40"
-        },
-        "agent_sessions_title_check": {
-          "name": "agent_sessions_title_check",
-          "value": "char_length(\"agent_sessions\".\"title\") BETWEEN 1 AND 120"
-        },
-        "agent_sessions_ticket_check": {
-          "name": "agent_sessions_ticket_check",
-          "value": "(\"agent_sessions\".\"role\" = 'manager') = (\"agent_sessions\".\"ticket_id\" IS NULL)"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.personas": {
       "name": "personas",
       "schema": "",
@@ -1641,6 +1353,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'reviewer'"
         },
         "instruction": {
           "name": "instruction",
@@ -1667,6 +1386,10 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
+        "personas_kind_check": {
+          "name": "personas_kind_check",
+          "value": "\"personas\".\"kind\" IN ('builder', 'reviewer', 'manager')"
+        },
         "personas_name_check": {
           "name": "personas_name_check",
           "value": "length(\"personas\".\"name\") BETWEEN 1 AND 120 AND \"personas\".\"name\" ~ '[^[:space:]]'"

@@ -83,8 +83,8 @@ describe("config", () => {
 		expect(config.logFile).toBe("/var/data/trellis/server.log");
 	});
 
-	test("the agents runner spawns superset on PATH unless TRELLIS_SUPERSET_BIN names another binary", () => {
-		expect(loadConfig({}).supersetBin).toBe("superset");
+	test("the agents runner spawns the superset of the home unless TRELLIS_SUPERSET_BIN names another binary", () => {
+		expect(loadConfig({}).supersetBin).toBe(join(homedir(), ".superset", "bin", "superset"));
 		expect(loadConfig({ TRELLIS_SUPERSET_BIN: "/opt/superset/bin/superset" }).supersetBin).toBe(
 			"/opt/superset/bin/superset",
 		);

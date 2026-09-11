@@ -1,4 +1,5 @@
 import { os } from "./implementer";
+import { agentRuns } from "./procedures/agentRuns";
 import { agents } from "./procedures/agents";
 import { attachments } from "./procedures/attachments";
 import { comments, timeline } from "./procedures/comments";
@@ -13,6 +14,7 @@ import { ticketWrites } from "./procedures/ticketWrites";
 
 // The whole contract, implemented in memory.
 export const router = os.router({
+	agentRuns,
 	personas,
 	projects,
 	statuses,

@@ -30,6 +30,12 @@ describe("contract", () => {
 		expect(table).toEqual([
 			"actors.default GET /actors/default",
 			"actors.list GET /actors",
+			"agentRuns.list GET /agent-runs",
+			"agentRuns.output GET /agent-runs/{id}/output",
+			"agentRuns.refresh POST /agent-runs/{id}/refresh",
+			"agentRuns.send POST /agent-runs/{id}/send",
+			"agentRuns.start POST /agent-runs",
+			"agentRuns.stop POST /agent-runs/{id}/stop",
 			"agents.inbox POST /agents/inbox",
 			"agents.overview GET /agents/overview",
 			"agents.register POST /agents/register",
@@ -54,6 +60,7 @@ describe("contract", () => {
 			"comments.update PATCH /comments/{id}",
 			"inbox.get GET /inbox",
 			"personas.create POST /personas",
+			"personas.delete DELETE /personas/{id}",
 			"personas.list GET /personas",
 			"personas.update PATCH /personas/{id}",
 			"projects.create POST /projects",
@@ -92,7 +99,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(63);
+		expect(table).toHaveLength(70);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

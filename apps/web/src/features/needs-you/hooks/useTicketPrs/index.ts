@@ -1,1 +1,0 @@
-export { useTicketPrs } from "./useTicketPrs";

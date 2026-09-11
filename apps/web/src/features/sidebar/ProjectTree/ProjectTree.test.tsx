@@ -54,32 +54,34 @@ describe("features/sidebar/ProjectTree", () => {
 	test("project links show names without project codes or counts and indent children", async () => {
 		renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid" });
 		await screen.findByRole("link", { name: /Superset CDE/ });
-		const links = screen.getAllByRole("link").filter((link) => !["Tickets", "Settings"].includes(link.textContent!));
+		const links = screen
+			.getAllByRole("link")
+			.filter((link) => !["Tickets", "Manager", "Settings"].includes(link.textContent!));
 		const names = ["Superset CDE", "web", "host", "trellis", "margin"];
 		expect(links.map((link) => link.textContent)).toEqual(names);
 		for (const [index, name] of names.entries()) {
 			const row = links[index]!;
 			expect(within(row).getByText(name)).toBeDefined();
-			expect(row.closest("li")!.classList.contains(index === 1 || index === 2 ? "pl-7" : "pl-2")).toBe(true);
-			expect(row.className).toMatch(/\bh-8\b/);
+			expect(row.closest("li")!.classList.contains(index === 1 || index === 2 ? "pl-5" : "pl-1")).toBe(true);
+			expect(row.className).toMatch(/\bh-7\b/);
 		}
 	});
 
-	test("every row keeps a 20 px indent and a shared leading slot, with a separate disclosure button", async () => {
+	test("every row keeps a 16 px indent and a shared leading slot, with a separate disclosure button", async () => {
 		renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid" });
 		await screen.findByRole("link", { name: /Superset CDE/ });
 		const rowOf = (name: RegExp) => screen.getByRole("link", { name }).closest("li")!;
 		const slot = (row: Element, name: string) => row.querySelector(`[data-slot="${name}"]`)!;
 		for (const [name, indent] of [
-			[/Superset CDE/, "pl-2"],
-			[/^web/, "pl-7"],
-			[/^host/, "pl-7"],
-			[/trellis/, "pl-2"],
+			[/Superset CDE/, "pl-1"],
+			[/^web/, "pl-5"],
+			[/^host/, "pl-5"],
+			[/trellis/, "pl-1"],
 		] as const) {
 			const row = rowOf(name);
 			expect(row.className).toMatch(new RegExp(`\\b${indent}\\b`));
-			expect(row.className).toMatch(/\bh-8\b/);
-			expect(slot(row, "disclosure").className).toMatch(/\bw-7\b/);
+			expect(row.className).toMatch(/\bsidebar-row\b/);
+			expect(slot(row, "disclosure").className).toMatch(/\bsize-5\b/);
 			expect(slot(row, "leading").classList.contains("sidebar-leading")).toBe(true);
 			expect(slot(row, "trailing").classList.contains("sidebar-trailing")).toBe(true);
 		}
@@ -93,13 +95,19 @@ describe("features/sidebar/ProjectTree", () => {
 		expect(dot.className).toMatch(/\bbg-fg-faint\b/);
 	});
 
-	// The guide connects each subtree to the center of its parent's icon.
-	test("an open subtree draws a guide line under the parent's icon", async () => {
+	// The guide connects each subtree to the centre of its parent's chevron.
+	test("an open subtree draws a guide line under the parent's chevron", async () => {
 		renderWithProviders(<ProjectTree />, { path: "/all", actor: "navid" });
 		const web = await screen.findByRole("link", { name: /^web/ });
 		const subtree = web.closest("ul")!;
 		expect(subtree.getAttribute("aria-label")).toBeNull();
-		for (const name of ["before:absolute", "before:inset-y-0", "before:left-5.5", "before:w-px", "before:bg-border"]) {
+		for (const name of [
+			"before:absolute",
+			"before:inset-y-0.5",
+			"before:left-3.5",
+			"before:w-px",
+			"before:bg-border",
+		]) {
 			expect(subtree.classList.contains(name)).toBe(true);
 		}
 	});
@@ -117,7 +125,7 @@ describe("features/sidebar/ProjectTree", () => {
 			expect(menu.classList.contains(name)).toBe(true);
 		}
 		expect(trailing.textContent).toBe("");
-		expect(row.className).toMatch(/\bpr-1\b/);
+		expect(row.className).toMatch(/\bsidebar-row\b/);
 		expect(row.className).not.toMatch(/\bpr-9\b/);
 	});
 
@@ -184,13 +192,14 @@ describe("features/sidebar/ProjectTree", () => {
 		await server.client.tickets.create({ project: "CDE.web", title: "One more" });
 		await queryClient.invalidateQueries({ queryKey: orpc.projects.list.key() });
 		expect(document.querySelector("[aria-busy=true]")).toBeNull();
-		expect(screen.getAllByRole("link")).toHaveLength(15);
+		expect(screen.getAllByRole("link")).toHaveLength(20);
 		expect(screen.getByRole("link", { name: /^web/ })).toBe(web);
 		expect(web.textContent).toBe("web");
 		expect(rootRow("Superset CDE").textContent).toBe("Superset CDE");
 		expect(document.querySelector("[aria-busy=true]")).toBeNull();
+		// Every row of the tree, a project or one of its pages, is one height.
 		for (const row of screen.getAllByRole("link")) {
-			expect(row.className).toMatch(/\bh-8\b/);
+			expect(row.className).toMatch(/\b(h-7|sidebar-row)\b/);
 		}
 	});
 
