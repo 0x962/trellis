@@ -51,7 +51,8 @@ describe("features/ticket/PropertiesRail", () => {
 
 	// TRL-33. The rail named agents twice: the TicketAgent section carried an
 	// Agent heading, and an Agents row followed it with a second stack. The
-	// sessions now sit inside that one section.
+	// agents now sit inside that one section. TRL-40 took the legacy session
+	// list, its bare "None", and its second start control out of it.
 	test("names agents once, in one section", async () => {
 		mount();
 		const properties = within(await rail());
@@ -59,8 +60,10 @@ describe("features/ticket/PropertiesRail", () => {
 		expect(headings.filter((heading) => heading === "Agent")).toEqual(["Agent"]);
 		expect(headings.filter((heading) => heading === "Agents")).toEqual([]);
 		expect(properties.queryByText("Agents", { selector: "dt" })).toBeNull();
-		const section = properties.getByRole("region", { name: "Agent assignment" });
-		expect(await within(section).findByText("None")).toBeDefined();
+		const section = within(properties.getByRole("region", { name: "Agent assignment" }));
+		expect(await section.findByRole("button", { name: "New agent" })).toBeDefined();
+		expect(section.queryByText("None")).toBeNull();
+		expect(section.queryByRole("button", { name: "Start builder" })).toBeNull();
 	});
 
 	// WT-48

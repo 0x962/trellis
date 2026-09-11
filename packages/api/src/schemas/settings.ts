@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { unknownLaunchVariables } from "../agentLaunch/agentLaunch.ts";
+import { hasStandaloneLaunchHyphen, unknownLaunchVariables } from "../agentLaunch/agentLaunch.ts";
 
 // `stalledHours` is how long a started ticket may sit without activity
 // before Needs you lists it.
@@ -15,6 +15,10 @@ export const SettingsSchema = z.object({
 		.min(1)
 		.max(20000)
 		.refine((value) => unknownLaunchVariables(value).length === 0, "The command has an unknown template variable.")
+		.refine(
+			(value) => !hasStandaloneLaunchHyphen(value),
+			"Remove the standalone hyphen. Superset reads it as an unknown option.",
+		)
 		.optional(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;

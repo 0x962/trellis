@@ -55,14 +55,20 @@ export type TerminalRef = { workspaceId: string; terminalId: string; host: Runne
 
 export type TerminalState = { terminalId: string; exited: boolean; title: string };
 
-// `project` is the trellis project path, such as "CDE". `claudeSessionId`
-// is the Claude session a manager registered; the runner resumes it when
-// the manager exited, with `text` as the next prompt.
+export const terminalTitleMatches = (actual: string, expected: string) =>
+	actual === expected || actual.replace(/^[^\p{L}\p{N}]+/u, "") === expected;
+
+// `project` is the trellis project path, such as "CDE". `terminalId`
+// identifies the tab already recorded for the manager. The runner keeps
+// this tab when other tabs have the same title. `claudeSessionId` is the
+// Claude session a manager registered. The runner resumes this session
+// when the manager exits, with `text` as the next prompt.
 export type ManagerStart = {
 	project: string;
 	runnerProjectId: string;
 	host: RunnerHostId;
 	baseBranch: string;
+	terminalId?: string | null;
 	claudeSessionId: string | null;
 	text?: string;
 };

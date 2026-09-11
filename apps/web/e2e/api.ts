@@ -15,6 +15,16 @@ export const put = async <T>(path: string, body: unknown): Promise<T> => {
 	return (await response.json()) as T;
 };
 
+export const post = async <T>(path: string, body: unknown): Promise<T> => {
+	const response = await fetch(`${apiUrl}/api${path}`, { method: "POST", headers, body: JSON.stringify(body) });
+	return (await response.json()) as T;
+};
+
+export const del = async <T>(path: string): Promise<T> => {
+	const response = await fetch(`${apiUrl}/api${path}`, { method: "DELETE", headers });
+	return (await response.json()) as T;
+};
+
 export type Section = { items: { identifier: string }[]; total: number };
 export type Inbox = { review: Section; failingCi: Section; stalled: Section; doneByAgentsToday: Section };
 

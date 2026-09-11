@@ -97,6 +97,27 @@ test("the rail shows a picture for every working agent, no state word, and still
 	expect(rail.getByRole("button", { name: "New agent" })).toBeTruthy();
 });
 
+// TRL-40. The rail carried a second list and a second start control, both
+// on the legacy agents.startBuilder path, which raises "Agents are off".
+test("the rail shows one agent list and one start control", async () => {
+	const server = createTestServer();
+	const builder = await server.client.personas.create({
+		name: "Feature Builder",
+		kind: "builder",
+		instruction: "Build.",
+	});
+	const run = await server.client.agentRuns.start({ personaId: builder.id, ticket: "CDE-42" });
+	renderApp({ path: "/t/CDE-42", actor: "dana", server });
+	const rail = within(await screen.findByRole("region", { name: "Agent assignment" }));
+	await rail.findByRole("button", { name: `${run.name} · builder` });
+	expect(rail.getAllByRole("button", { name: /^(New agent|Start builder)$/ })).toHaveLength(1);
+	expect(rail.queryByRole("button", { name: "Start builder" })).toBeNull();
+	// The legacy list printed a bare "None" beside the live agents.
+	expect(rail.queryByText("None")).toBeNull();
+	expect(rail.queryByRole("list", { name: "Agent sessions" })).toBeNull();
+	expect(server.callsTo("agents.sessions")).toHaveLength(0);
+});
+
 test("a stopped agent keeps its row without the live dot", async () => {
 	const server = createTestServer();
 	const builder = await server.client.personas.create({

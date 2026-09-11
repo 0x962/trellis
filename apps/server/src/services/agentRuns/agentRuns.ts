@@ -1,8 +1,7 @@
-import { randomInt } from "node:crypto";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentRun, AgentRunListInput, AgentRunStartInput, Persona } from "@trellis/api";
-import { DEFAULT_AGENT_LAUNCH_COMMAND } from "@trellis/api";
+import { DEFAULT_AGENT_LAUNCH_COMMAND, hasStandaloneLaunchHyphen } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { runBranch } from "../../agents/launchCommand/branch.ts";
@@ -20,57 +19,10 @@ import { managerConfigOf, projectRow } from "../projectRows.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveProject, resolveTicket } from "../refs.ts";
 import { get as getSettings } from "../settings.ts";
 import type { ServiceCtx } from "../support.ts";
+import { randomAgentName } from "./names.ts";
 import { columns, getRun } from "./queries.ts";
 
 type Ctx = ServiceCtx & { core: CoreCtx; supersetBin: string; localUrl: string };
-// An agent gets one name, and a person says it out loud: "ask Jules". The
-// list is long enough that two agents in one project rarely take the same
-// name, and short enough that every name stays easy to say.
-const names = [
-	"Ada",
-	"Alma",
-	"Arlo",
-	"Bo",
-	"Cleo",
-	"Dara",
-	"Eli",
-	"Ellis",
-	"Esme",
-	"Finn",
-	"Gus",
-	"Hana",
-	"Ida",
-	"Iris",
-	"Ivo",
-	"Jules",
-	"Juno",
-	"Kai",
-	"Lena",
-	"Levi",
-	"Lior",
-	"Maya",
-	"Milo",
-	"Nadia",
-	"Nell",
-	"Nico",
-	"Nora",
-	"Olin",
-	"Otto",
-	"Pia",
-	"Quinn",
-	"Remy",
-	"Rowan",
-	"Sage",
-	"Shai",
-	"Sol",
-	"Tess",
-	"Theo",
-	"Uma",
-	"Vera",
-	"Wren",
-	"Yara",
-	"Zev",
-];
 
 export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
@@ -95,6 +47,13 @@ const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const project = await resolveMutableProject(ctx, tx, ticket?.projectId ?? input.project!);
 	assertProjectActive(ctx, project.id);
+	if (persona.kind === "manager") {
+		const [legacy] = await rows<{ id: string }>(
+			tx,
+			sql`SELECT id FROM agent_sessions WHERE project_id = ${project.id} AND role = 'manager' AND state IN ('starting', 'running', 'waiting') LIMIT 1`,
+		);
+		if (legacy !== undefined) throw fail("DUPLICATE", { field: "active manager" });
+	}
 	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
 	const config = managerConfigOf(await projectRow(tx, project.id));
 	if (!config.enabled) throw invalidInput("project", "Turn on agents for this project before you start one.");
@@ -115,7 +74,7 @@ const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
 		)})`,
 	);
 	if (repos.length === 0) throw invalidInput("project", "Add a repository to the project before you start an agent.");
-	const name = names[randomInt(names.length)]!;
+	const name = randomAgentName();
 	await upsert(ctx, tx, actor);
 	const [run] = await rows<AgentRun>(
 		tx,
@@ -149,6 +108,15 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 	const runner = superset(ctx.supersetBin, config.supersetHostId);
 	const settings = await ctx.newTx((tx) => getSettings(ctx.core, tx));
 	const template = settings.agentLaunchCommand ?? DEFAULT_AGENT_LAUNCH_COMMAND;
+	if (hasStandaloneLaunchHyphen(template)) {
+		await recordError(
+			ctx,
+			run.id,
+			"Remove the standalone hyphen from the launch command. Superset reads it as an unknown option.",
+			"failed",
+		);
+		return { id: run.id };
+	}
 	const tracksSuperset = template.includes("{{superset}}");
 	const project = await attempt(async () => {
 		if (run.kind === "manager" && config.directory && !(await stat(config.directory)).isDirectory())

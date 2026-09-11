@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { setProjectAgents } from "./agentSettings";
 import { get, statusOf } from "./api";
 import { createTicket, ensureProject, moveTicket, trellis } from "./cli";
 import { failingPrUrl } from "./ghReplies";
@@ -20,6 +21,8 @@ const AGENT_MS = 10_000;
 const human = "human:dana";
 
 type Listed = { items: { identifier: string; title: string; status: { slug: string } }[] };
+
+type Sessions = { sessions: { role: string; state: string }[] };
 
 // command.spec.ts seeds CDE with Todo tickets. The manager starts a builder
 // for every Todo ticket, so the seeds are canceled before the manager starts,
@@ -92,9 +95,16 @@ test("dispatch > a web ticket goes to a builder, a clean review, and Human Revie
 	expect(sentTo(managerTab.terminalId)).toHaveLength(1);
 	const builderTab = tabOf(identifier)!;
 
-	// The ticket page lists the builder.
+	// The server holds the builder session. TRL-40 took the legacy session
+	// list off the ticket rail, which now lists agent runs only, so the
+	// manager's builder is read from the server here.
+	await expect
+		.poll(() => get<Sessions>(`/agents/sessions?ticket=${identifier}`).then((found) => found.sessions), {
+			timeout: AGENT_MS,
+		})
+		.toContainEqual(expect.objectContaining({ role: "builder" }));
 	await page.goto(`/t/${identifier}`);
-	await expect(page.getByRole("list", { name: "Agent sessions" })).toContainText("Builder");
+	await expect(page.getByRole("region", { name: "Agent assignment" })).toBeVisible();
 
 	// The builder links its pull request and moves the ticket to Agent Review.
 	await expect.poll(() => statusOf(identifier), { timeout: AGENT_MS }).toBe("Agent Review");
@@ -135,7 +145,10 @@ test("dispatch > 12 quick edits wake the manager twice: 10 at once, then 2 after
 	// the simulated manager reads each batch and adds no event of its own.
 	const ticket = createTicket("BAT", `Batch target ${Date.now()}`);
 	moveTicket(ticket.identifier, "human-review", human);
-	trellis(["agents", "on", "--project", "BAT"], human);
+	// The first test left the global switch on in the web settings. This
+	// test turns the BAT manager on over the settings route, which is what
+	// that page writes.
+	await setProjectAgents("BAT", true);
 	await expect.poll(() => tabOf("BAT manager"), { timeout: AGENT_MS }).toBeDefined();
 	const managerTab = tabOf("BAT manager")!;
 	const before = sentTo(managerTab.terminalId).length;

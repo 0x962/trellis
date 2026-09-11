@@ -1,21 +1,22 @@
-import type { AgentSession, AgentSettings } from "@trellis/api";
+import type { AgentSession, AgentSettings, Project } from "@trellis/api";
 import type { Bus } from "../events/bus.ts";
 import type { JobsLog } from "../jobs.ts";
 import type { ServiceName } from "../services/registry.ts";
 import { type Batch, createDispatcher, type Dispatcher, type DispatcherClock } from "./dispatcher.ts";
 
-// The agents host keeps one manager per enabled project and wakes it with
-// the batches of the dispatcher. It runs in the thread that owns the
-// database and reaches the database only through the services, which
-// `call` runs as the system actor.
+// The agents host keeps one legacy manager per enabled project and wakes
+// it with the batches of the dispatcher. A selected manager persona owns
+// the project instead, so the host stops its legacy manager and watcher.
+// The host runs in the thread that owns the database and reaches the
+// database only through services that `call` runs as the system actor.
 //
-// Nothing runs while the global switch of the agent settings is off. At
-// start the host marks the sessions whose terminal is gone, starts the
+// The legacy manager starts and wakes only while the global switch is on.
+// At start the host marks the sessions whose terminal is gone, starts the
 // manager of each enabled project, and watches those projects. Every
-// settings change starts the manager of each enabled project again, so a
-// fix in the settings recovers a failed manager, and stops watching a
-// project turned off; its manager and its builders keep running. A wake
-// for a project without a manager starts one.
+// settings change starts the manager of each enabled project again. This
+// recovers a failed manager. A disabled project loses its watcher, but its
+// legacy manager and builders keep running. A wake for a project without
+// a manager starts one.
 //
 // Start and reload run one at a time, in call order. A manager the runner
 // cannot start comes back as a failed session; the host logs what the
@@ -65,9 +66,30 @@ export const createAgentsHost = (options: AgentsHostOptions): AgentsHost => {
 	const dispatcher = createDispatcher({ ...options.projects, bus: options.bus, clock: options.clock, flush });
 
 	const settings = () => options.call("agents.settings", undefined) as Promise<AgentSettings>;
+	const usesManagerPersona = async (projectId: string) => {
+		const project = (await options.call("projects.get", { project: projectId })) as Project;
+		return project.managerConfig?.personaId != null;
+	};
+	const stopLegacyManager = async (projectId: string) => {
+		const result = (await options.call("agents.sessions", { project: projectId })) as { sessions: AgentSession[] };
+		for (const session of result.sessions) {
+			if (session.role !== "manager" || !["starting", "running", "waiting"].includes(session.state)) continue;
+			await options.call("agents.stop", { id: session.id });
+		}
+	};
 
 	const sync = async (current: AgentSettings) => {
-		const wanted = current.enabled ? current.projects.filter((row) => row.enabled).map((row) => row.projectId) : [];
+		const personaProjects = new Set<string>();
+		for (const row of current.projects) {
+			if (await usesManagerPersona(row.projectId)) personaProjects.add(row.projectId);
+		}
+		for (const projectId of personaProjects) {
+			dispatcher.unwatch(projectId);
+			await stopLegacyManager(projectId);
+		}
+		const wanted = current.enabled
+			? current.projects.filter((row) => row.enabled && !personaProjects.has(row.projectId)).map((row) => row.projectId)
+			: [];
 		for (const projectId of dispatcher.watched()) {
 			if (!wanted.includes(projectId)) dispatcher.unwatch(projectId);
 		}
@@ -85,18 +107,23 @@ export const createAgentsHost = (options: AgentsHostOptions): AgentsHost => {
 		chain = chain.then(work).catch(failed("agents", {}));
 		return chain;
 	};
+	const unsubscribe = options.bus.subscribe(() => void serial(async () => sync(await settings())), {
+		types: ["project.updated"],
+	});
 
 	return {
 		start: () =>
 			serial(async () => {
 				const current = await settings();
-				if (!current.enabled) return;
-				await options.call("agents.reconcile", {}).catch(failed("agents reconcile", {}));
+				if (current.enabled) await options.call("agents.reconcile", {}).catch(failed("agents reconcile", {}));
 				await sync(current);
 			}),
 		reload: () => serial(async () => sync(await settings())),
 		idle: () => chain,
-		stop: () => dispatcher.stop(),
+		stop: () => {
+			unsubscribe();
+			dispatcher.stop();
+		},
 		dispatcher,
 	};
 };

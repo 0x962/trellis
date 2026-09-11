@@ -47,7 +47,7 @@ export function ActivityRow({ row }: ActivityRowProps) {
 				onPress={() => setExpanded((value) => !value)}
 				style={styles.row}
 			>
-				<ActorChip name={row.actor.name} kind={row.actor.kind === "agent" ? "agent" : "human"} />
+				<ActorChip name={row.actor.name} kind={row.actor.kind} />
 				<Text numberOfLines={1} style={[styles.label, { color: palette.fgMuted }]}>
 					{row.label}
 				</Text>

@@ -15,8 +15,9 @@ const atWork = (run: AgentRun) => run.state === "starting" || run.state === "run
 // dropped surnames still carry two words, so the row takes the first one.
 const shortName = (name: string) => name.split(" ")[0]!;
 
-// The agent side of a ticket, under one heading: the agents that work on
-// the ticket now, and the picker that starts another one.
+// The agent side of a ticket, under one heading: the agent runs of the
+// ticket and the persona picker that starts another one. One list and one
+// start control, both on the agent_runs path.
 export function TicketAgent({ ticket, disabled = false }: { ticket: string; disabled?: boolean }) {
 	const { orpc } = useApp();
 	const query = useQuery(orpc.agentRuns.list.queryOptions({ input: { ticket }, retry: false }));

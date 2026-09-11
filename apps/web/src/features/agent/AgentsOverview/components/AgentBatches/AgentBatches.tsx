@@ -9,9 +9,21 @@ export type AgentBatchesProps = {
 
 // The pointers the dispatcher typed into the managers, newest first. The
 // server keeps them in memory, so a restart empties the list.
+//
+// The dispatcher watches a project whose manager trellis itself runs. A
+// project with a manager persona is unwatched (apps/server/src/agents/
+// host.ts), so its agent runs send no batch. The empty state says so.
 export function AgentBatches({ batches, keys }: AgentBatchesProps) {
 	if (batches.length === 0) {
-		return <p className="px-3 py-2 text-fg-faint text-sm">No batches since the server started.</p>;
+		return (
+			<div className="flex flex-col gap-1 px-3 py-2 text-fg-faint text-sm">
+				<p>No batches since the server started.</p>
+				<p>
+					The dispatcher wakes a manager that trellis itself runs. A project with a manager persona sends no batch, and
+					the server drops the list on a restart.
+				</p>
+			</div>
+		);
 	}
 	return (
 		<ul aria-label="Batches" className="flex flex-col">

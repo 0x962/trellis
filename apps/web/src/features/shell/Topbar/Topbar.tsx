@@ -18,7 +18,7 @@ export function Topbar({ children, actions }: TopbarProps) {
 	const collapsed = useUiStore((state) => state.sidebarCollapsed);
 	const phone = useMediaQuery("(max-width: 767px)");
 	return (
-		<header className="flex h-11 shrink-0 items-center gap-3 border-b border-border px-5 max-md:h-12 max-md:px-4">
+		<header className="flex h-11 shrink-0 items-center gap-3 border-b border-border px-5 max-md:h-12 max-md:px-4 max-sm:gap-2">
 			{phone ? (
 				<IconButton
 					label="Open the sidebar"

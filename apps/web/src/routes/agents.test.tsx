@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, within } from "@testing-library/react";
-import { addSession, failedSession, isoNow, startError } from "../../test/agents";
+import { addSession, isoNow } from "../../test/agents";
 import { mockMatchMedia } from "../../test/media";
 import { renderApp } from "../../test/renderWithProviders";
 import { addActivity } from "../../test/rows";
@@ -15,10 +15,22 @@ beforeEach(() => {
 const QUIET_MS = 10_000;
 
 describe("routes/agents", () => {
-	test("lists each project's sessions with their names and errors, and the agent actions", async () => {
+	// TRL-39. The page reads agentRuns.list, the query the ticket rail uses,
+	// so an agent a person started shows here as well.
+	test("lists each project's agent runs with their persona, state, and ticket", async () => {
 		const server = createTestServer();
-		const failed = await failedSession(server, "manager");
-		await addSession(server, { role: "builder" });
+		const builder = await server.client.personas.create({
+			name: "Feature Builder",
+			kind: "builder",
+			instruction: "Build.",
+		});
+		const reviewer = await server.client.personas.create({
+			name: "Code Clarity",
+			kind: "reviewer",
+			instruction: "Review.",
+		});
+		const first = await server.client.agentRuns.start({ personaId: builder.id, ticket: "CDE-42" });
+		const second = await server.client.agentRuns.start({ personaId: reviewer.id, ticket: "CDE-44" });
 		const row = {
 			ticket: "CDE-42",
 			action: "ticket.updated",
@@ -32,18 +44,35 @@ describe("routes/agents", () => {
 
 		renderApp({ path: "/agents", actor: "dana", server });
 		expect(await screen.findByRole("heading", { name: "Agents", level: 1 })).toBeDefined();
-		const sessions = within(await screen.findByRole("region", { name: "CDE sessions" }));
-		expect(sessions.getByText(startError)).toBeDefined();
-		expect(sessions.getByText("Failed")).toBeDefined();
-		// The fixtures name the manager Amara and the builder Kenji.
-		expect(sessions.getByText("Amara")).toBeDefined();
-		expect(sessions.getByText("Kenji")).toBeDefined();
-		expect(document.getElementById(failed.id)).not.toBeNull();
+		// The seed puts CDE-42 and CDE-44 in the same sub-project, so both runs
+		// land in one group. The group is named for the path the run carries.
+		expect(first.projectPath).toBe(second.projectPath);
+		const sessions = within(await screen.findByRole("region", { name: `${first.projectPath} sessions` }));
+		expect(await sessions.findByText(first.name)).toBeDefined();
+		expect(sessions.getByText(second.name)).toBeDefined();
+		expect(sessions.getByText("Feature Builder · builder")).toBeDefined();
+		expect(sessions.getByText("Code Clarity · reviewer")).toBeDefined();
+		expect(sessions.getByText("CDE-42")).toBeDefined();
+		expect(sessions.getByText("CDE-44")).toBeDefined();
+		expect(sessions.getAllByText("Running").length).toBe(2);
+		// A failed agent links to /agents#<run id>, so the row carries the id.
+		expect(document.getElementById(first.id)).not.toBeNull();
+		expect(document.getElementById(second.id)).not.toBeNull();
 
 		const actions = within(screen.getByRole("list", { name: "Agent actions" }));
 		expect(actions.getAllByRole("listitem")).toHaveLength(1);
 		expect(actions.getByText("CDE-42")).toBeDefined();
 		expect(actions.getByText(/moved the ticket from Todo to In Progress/)).toBeDefined();
+	});
+
+	// TRL-39. The legacy agent_sessions rows are not the source any more, so
+	// a stored session alone leaves the Sessions list empty.
+	test("a legacy agent session is not an agent run", async () => {
+		const server = createTestServer();
+		await addSession(server, { role: "builder" });
+		renderApp({ path: "/agents", actor: "dana", server });
+		expect(await screen.findByText("No agent sessions yet.")).toBeDefined();
+		expect(screen.queryByText("Kenji")).toBeNull();
 	});
 
 	// The batches come from the dispatcher of the running agents host, so the
@@ -78,10 +107,14 @@ describe("routes/agents", () => {
 		expect(batches.getByText(/trellis list --project CDE --json/)).toBeDefined();
 	});
 
-	test("with no agents each section says so", async () => {
+	// TRL-39. Actions and batches have no agent-run source, so each empty
+	// state names what it can still hold.
+	test("with no agents each section says so and names why", async () => {
 		renderApp({ path: "/agents", actor: "dana", server: createTestServer() });
 		expect(await screen.findByText("No agent sessions yet.")).toBeDefined();
 		expect(screen.getByText("No agent actions yet.")).toBeDefined();
+		expect(screen.getByText(/holds the manager, builder, and reviewer agents that trellis itself runs/)).toBeDefined();
 		expect(screen.getByText("No batches since the server started.")).toBeDefined();
+		expect(screen.getByText(/dispatcher wakes a manager that trellis itself runs/)).toBeDefined();
 	});
 });

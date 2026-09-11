@@ -29,4 +29,20 @@ describe("features/shell/Breadcrumb", () => {
 		const key = screen.getByText("CDE");
 		expect(key.className).toContain("shrink-0");
 	});
+
+	// TRL-45. The 390 px bar held a toggle, the key chip, the title, the view
+	// switch, and New ticket, and the title truncated to one glyph. The chip
+	// leaves below 640 px and the heading takes its width. A path with a
+	// parent keeps its chip, because that chip is the link to the root
+	// project.
+	test("the project key beside the heading leaves below 640 px and the link chip stays", () => {
+		const { unmount } = renderWithProviders(<Breadcrumb path="CDE" current="Cloud Desktop" />, {
+			path: "/all/table",
+			actor: "dana",
+		});
+		expect(screen.getByText("CDE").className).toContain("max-sm:hidden");
+		unmount();
+		renderWithProviders(<Breadcrumb path="CDE.web" current="Web" />, { path: "/all/table", actor: "dana" });
+		expect(screen.getByText("CDE").className).not.toContain("max-sm:hidden");
+	});
 });

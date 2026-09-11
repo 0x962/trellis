@@ -25,13 +25,13 @@ const styles = StyleSheet.create({
 	when: { marginLeft: "auto", fontSize: tokens.text.sm, lineHeight: tokens.leading.sm, fontVariant: ["tabular-nums"] },
 });
 
-// One comment: the actor line, the relative time, and the markdown body. An
-// agent's card carries the agent color on its left edge, a human's the
+// One comment: the actor line, the relative time, and the markdown body. A
+// machine's card carries the agent color on its left edge, a human's the
 // neutral border, so "who said what" reads while the list scrolls.
 export function CommentCard({ comment }: CommentCardProps) {
 	const palette = usePalette();
 	const { actor } = comment;
-	const agent = actor.kind === "agent";
+	const agent = actor.kind !== "human";
 	return (
 		<View
 			testID={`comment-${comment.id}`}
@@ -45,7 +45,7 @@ export function CommentCard({ comment }: CommentCardProps) {
 			]}
 		>
 			<View style={styles.head}>
-				<ActorChip name={actor.name} kind={agent ? "agent" : "human"} />
+				<ActorChip name={actor.name} kind={actor.kind} />
 				<Text style={[styles.when, { color: palette.fgFaint }]}>{compactRelativeTime(comment.createdAt)}</Text>
 			</View>
 			<Markdown source={comment.body} />

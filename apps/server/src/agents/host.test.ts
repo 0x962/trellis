@@ -147,6 +147,55 @@ describe("agents host", () => {
 		expect(h.stub.callsOf("terminals send")).toEqual([]);
 	});
 
+	test("selecting a manager persona stops the legacy manager and its watcher", async () => {
+		await enable();
+		await startHost();
+		const [legacy] = await sessions();
+		h.stub.update((state) => {
+			const terminal = state.terminals.find((item) => item.terminalId === legacy!.terminalId)!;
+			state.terminals.push({ ...terminal, terminalId: "orphan-manager", title: "◐ CDE manager" });
+		});
+		const persona = await h.t.client.personas.create({
+			name: "Project Manager",
+			kind: "manager",
+			instruction: "Manage this project.",
+		});
+		await h.t.client.projects.update({
+			project: "CDE",
+			managerConfig: { personaId: persona.id, concurrency: 3, directory: "" },
+		});
+		await h.host.idle();
+
+		expect(h.host.dispatcher.watched()).toEqual([]);
+		expect((await sessions())[0]).toMatchObject({ id: legacy!.id, state: "stopped" });
+		expect(h.stub.callsOf("terminals close")).toHaveLength(2);
+		expect(h.stub.state().terminals).toEqual([]);
+		expect(h.stub.callsOf("ws create")).toHaveLength(1);
+		h.stub.update((state) => {
+			state.projects[0]!.repo = "https://github.com/acme/web";
+		});
+		const manager = await h.t.client.agentRuns.start({ personaId: persona.id, project: "CDE" });
+		expect(manager).toMatchObject({ kind: "manager", state: "running" });
+	});
+
+	test("a configured manager persona prevents a legacy manager at boot", async () => {
+		await enable();
+		const persona = await h.t.client.personas.create({
+			name: "Project Manager",
+			kind: "manager",
+			instruction: "Manage this project.",
+		});
+		await h.t.client.projects.update({
+			project: "CDE",
+			managerConfig: { personaId: persona.id, concurrency: 3, directory: "" },
+		});
+		await startHost();
+
+		expect(h.stub.callsOf("ws create")).toEqual([]);
+		expect(await sessions()).toEqual([]);
+		expect(h.host.dispatcher.watched()).toEqual([]);
+	});
+
 	test("a wake the runner refuses is logged and emits no batch; the next batch wakes the manager", async () => {
 		await enable();
 		await startHost();

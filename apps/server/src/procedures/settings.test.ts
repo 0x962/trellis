@@ -26,4 +26,18 @@ describe("settings", () => {
 		expect(read.status).toBe(200);
 		expect(read.body).toEqual(settings);
 	});
+
+	test("settings reject a standalone hyphen in the launch command", async () => {
+		const settings = await t.client.settings.get();
+		const written = await t.api("/api/settings", {
+			method: "PUT",
+			body: {
+				...settings,
+				agentLaunchCommand:
+					"{{superset}} ws create --project {{projectId}} --name {{ticket}} - {{name}} --command {{agentCommand}} --json",
+			},
+		});
+		expect(written.status).toBe(400);
+		expect(JSON.stringify(written.body)).toContain("standalone hyphen");
+	});
 });

@@ -1,5 +1,6 @@
 import { type AgentRegisterInput, type AgentSession, type AgentSessionsInput, agentTitle } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { terminalTitleMatches } from "../agents/runner.ts";
 import { requireActor, type ServiceCtx } from "../context.ts";
 import { rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
@@ -131,7 +132,20 @@ export const prepareStop = async (ctx: AgentsCtx, input: { id: string }): Promis
 	});
 	if (session.state === "stopped") return { id: session.id, changed: false, removed: null };
 	if (session.workspaceId !== null && session.terminalId !== null) {
-		await ctx.runner.stop({ workspaceId: session.workspaceId, terminalId: session.terminalId, host });
+		const terminalIds =
+			session.role === "manager"
+				? [
+						...new Set([
+							session.terminalId,
+							...(await ctx.runner.terminals(session.workspaceId, host))
+								.filter((terminal) => terminalTitleMatches(terminal.title, session.title))
+								.map((terminal) => terminal.terminalId),
+						]),
+					]
+				: [session.terminalId];
+		for (const terminalId of terminalIds) {
+			await ctx.runner.stop({ workspaceId: session.workspaceId, terminalId, host });
+		}
 	}
 	if (remove && session.workspaceId !== null) await ctx.runner.removeWorkspace(session.workspaceId, host);
 	return { id: session.id, changed: true, removed: remove ? session.workspaceId : null };
