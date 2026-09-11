@@ -14,7 +14,7 @@ import { sql } from "drizzle-orm";
 import { deriveCiState } from "../../server/src/gh/parse.ts";
 import { sharedDb } from "./server/db.ts";
 import type { TestServer } from "./server/index.ts";
-import { PR_OWNER, PR_REPO } from "./server/seed/support.ts";
+import { PR_OWNER, PR_REPO, type PrSpec } from "./server/seed/support.ts";
 
 // The fields a poll writes back onto a stored pull request.
 export type PrPatch = {
@@ -29,8 +29,10 @@ export type PrPatch = {
 
 export { addArchivedStatus, callsTo, gatedServer, lastCallTo, statusOf } from "./inbox";
 
-// gh answers every request, so link and refresh reach the pull request.
-export const ghReady = (server: TestServer) => {
+// gh answers every request, so link and refresh reach the pull request. The
+// stub answers the next fetch with `pr`, which stands for the one the seed
+// linked to CDE-42 unless the caller names another.
+export const ghReady = async (server: TestServer, pr: Partial<PrSpec> = {}) => {
 	const status: GhStatus = {
 		ok: true,
 		user: "octocat",
@@ -39,6 +41,19 @@ export const ghReady = (server: TestServer) => {
 		checkedAt: new Date().toISOString(),
 	};
 	server.setGh(status);
+	await server.armPr({
+		number: 118,
+		title: "Restore the fork pages",
+		headRef: "cde-42-restore-fork-pages",
+		checks: [
+			["lint", "pass"],
+			["typecheck (desktop)", "pass"],
+			["test (host-service)", "pass"],
+			["build (macos-arm64)", "pass"],
+		],
+		review: "APPROVED",
+		...pr,
+	});
 	return status;
 };
 

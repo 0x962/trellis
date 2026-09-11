@@ -1,3 +1,4 @@
+import { afterEach } from "bun:test";
 import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createTrellisClient, type FetchLike, type GhStatus, type TrellisClient } from "@trellis/api";
@@ -7,7 +8,7 @@ import type { InlineTransport, ServiceTransport } from "../../../server/src/db/t
 import { fail } from "../../../server/src/errors.ts";
 import { createGhRunner, type GhResult, type GhRunner } from "../../../server/src/gh/run.ts";
 import { blobPath } from "../../../server/src/storage/blobs.ts";
-import { createTestApp } from "../../../server/test/helpers/app.ts";
+import { createTestApp, type TestApp } from "../../../server/test/helpers/app.ts";
 import { fakeTimerClock } from "../../../server/test/helpers/clock.ts";
 import { ghStub } from "../../../server/test/helpers/gh-stub.ts";
 import { gitRepo } from "../../../server/test/helpers/gitRepo.ts";
@@ -46,6 +47,9 @@ export const defaultMaxUploadBytes = 50 * 1024 * 1024;
 
 // The origin the test clients address. `app.request` reads the path only.
 const origin = "http://trellis.local";
+
+// The script that stands in for the gh binary.
+const GH_STUB_BIN = join(import.meta.dir, "..", "..", "..", "server", "test", "stubs", "gh.ts");
 
 // The Superset projects `agents.runnerProjects` lists. The runner reads the
 // default branch of each one with `git symbolic-ref` in its checkout, so
@@ -128,6 +132,18 @@ const writeSeedBlobs = async (home: string, rows: unknown[]) => {
 // and not inside one server.
 let chain: Promise<unknown> = Promise.resolve();
 
+// The servers this test built. Each one is closed after the test, which
+// drains the calls still in flight, so a rejection of one test never lands
+// on the next.
+const open: TestApp[] = [];
+
+afterEach(async () => {
+	for (const app of open.splice(0)) await app.close();
+	// A request the page left in flight settles here, so its answer never
+	// reaches the next test.
+	await new Promise((resolve) => setTimeout(resolve, 0));
+});
+
 // The process state one server reports: what gh says and what URLs the
 // listener answers on. A test changes either after the build, and the next
 // read answers with the new value.
@@ -141,6 +157,13 @@ const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh
 	// life of this server. The next build overwrites them with its own.
 	const dir = mkdtempSync(`${process.env.TRELLIS_HOME}/stubs-`);
 	const stub = ghStub(dir, {});
+	// The runner spawns this copy of the gh stub. A test deletes it to prove
+	// what the page shows when gh is not on the machine, so each build copies
+	// the stub itself and never the copy a previous build made.
+	const ghBin = join(dir, "gh");
+	copyFileSync(GH_STUB_BIN, ghBin);
+	chmodSync(ghBin, 0o755);
+	process.env.TRELLIS_GH_BIN = ghBin;
 	// The agents runner spawns this copy of the superset stub. A test deletes
 	// it to prove what the page shows when the CLI is not on the machine.
 	const supersetBin = join(dir, "superset");
@@ -166,9 +189,10 @@ const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh
 		await app.transport.start();
 		await seedDoneToday(app.transport);
 	}
+	open.push(app);
 	if (options.prepare !== undefined) await options.prepare(app.client);
 	calls.length = 0;
-	return { app, stub, superset, supersetBin };
+	return { app, stub, superset, supersetBin, ghBin };
 };
 
 export type TestServer = ReturnType<typeof createTestServer>;
@@ -246,6 +270,11 @@ export const createTestServer = (options: TestServerOptions = {}) => {
 		},
 		// The state of the fake superset the agents runner spawns.
 		superset: async () => (await ready).superset,
+		// Takes the gh binary off the machine, so every gh call answers with
+		// the reason `missing`.
+		removeGh: async () => {
+			rmSync((await ready).ghBin, { force: true });
+		},
 		// Takes the superset binary off the machine, so every runner call
 		// answers RUNNER_UNAVAILABLE with the reason `missing`.
 		removeSuperset: async () => {

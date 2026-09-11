@@ -40,7 +40,7 @@ describe("LinkPrField", () => {
 	test("links a pasted pull request URL and shows the new row", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		ghReady(server);
+		await ghReady(server, { number: 900, title: "A pull request", headRef: "pr-900" });
 		await renderSection(server, "CDE-47");
 		await user.type(await field(), url);
 		await user.click(await submit());
@@ -54,7 +54,7 @@ describe("LinkPrField", () => {
 	test("clears the field after a successful link", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		ghReady(server);
+		await ghReady(server, { number: 900, title: "A pull request", headRef: "pr-900" });
 		await renderSection(server, "CDE-47");
 		const input = await field();
 		await user.type(input, url);
@@ -67,7 +67,7 @@ describe("LinkPrField", () => {
 	test("shows INVALID_PR_URL inline and keeps the typed text", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		ghReady(server);
+		await ghReady(server, { number: 900, title: "A pull request", headRef: "pr-900" });
 		await renderSection(server, "CDE-47");
 		const input = await field();
 		await user.type(input, "https://github.com/o/r");
@@ -79,23 +79,28 @@ describe("LinkPrField", () => {
 		expect(rows()).toHaveLength(0);
 	});
 
-	// PR-35. The seed reports gh as missing.
-	test("shows GH_UNAVAILABLE inline when gh cannot answer", async () => {
+	// PR-35. A link with gh away keeps the link and states why the fields
+	// are empty, so the ticket never loses the pull request over an outage.
+	test("links the pull request and states the gh message when gh cannot answer", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
+		await server.removeGh();
 		await renderSection(server, "CDE-47");
 		await user.type(await field(), url);
 		await user.click(await submit());
-		await waitFor(() => expect(linkError()).not.toBeNull());
-		expect(linkError()!.textContent).toContain(ghCopy.missing.line);
-		expect(rows()).toHaveLength(0);
+		await waitFor(() => expect(rows()).toHaveLength(1));
+		expect(linkError()).toBeNull();
+		const [linked] = await server.client.pullRequests.list({ ticket: "CDE-47" });
+		expect(linked!.number).toBe(900);
+		expect(linked!.fetchError).toContain("gh");
+		await waitFor(() => expect(document.body.textContent).toContain("Fetch failed"));
 	});
 
 	// PR-36
 	test("disables the submit until the field holds a URL", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		ghReady(server);
+		await ghReady(server, { number: 900, title: "A pull request", headRef: "pr-900" });
 		await renderSection(server, "CDE-47");
 		const input = await field();
 		expect((await submit()).hasAttribute("disabled")).toBe(true);

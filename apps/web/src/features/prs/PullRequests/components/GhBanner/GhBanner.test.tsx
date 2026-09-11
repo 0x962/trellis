@@ -58,7 +58,7 @@ describe("PullRequests gh banner", () => {
 	// PR-39
 	test("shows no banner while gh answers", async () => {
 		const server = createTestServer();
-		ghReady(server);
+		await ghReady(server);
 		await renderSection(server, "CDE-42");
 		await screen.findByText(/#118/);
 		expect(document.querySelector("[data-gh-banner]")).toBeNull();

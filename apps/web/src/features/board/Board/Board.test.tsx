@@ -66,7 +66,7 @@ describe("Board", () => {
 	test("columns use category order and show counts and the WIP warning", async () => {
 		const server = createTestServer();
 		const started = matchStatus(await statusesOf(server, "CDE"), "in-progress")!;
-		await server.client.statuses.update({ status: started.id, wipLimit: 3 });
+		await server.client.statuses.update({ project: "CDE", status: started.id, wipLimit: 3 });
 		renderBoard(server);
 
 		const columns = await screen.findAllByRole("list");

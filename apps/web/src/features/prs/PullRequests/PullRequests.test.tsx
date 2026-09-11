@@ -54,7 +54,7 @@ describe("PullRequests", () => {
 	test("shows the empty state and the Link PR field for a ticket without a pull request", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		ghReady(server);
+		await ghReady(server);
 		await renderSection(server, "CDE-47");
 		const header = await waitFor(() => document.querySelector<HTMLElement>("[data-prs-header]")!);
 		const button = await within(header).findByRole("button", { name: "Link PR" });

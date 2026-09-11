@@ -44,7 +44,7 @@ describe("RefreshControl", () => {
 	test("refreshes every listed pull request on one click", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		ghReady(server);
+		await ghReady(server);
 		await twoFetches(server);
 		const listed = await prsOf(server, "CDE-42");
 		await renderSection(server, "CDE-42");
@@ -59,7 +59,7 @@ describe("RefreshControl", () => {
 	test("moves the fetch age to just now after a refresh", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
-		ghReady(server);
+		await ghReady(server);
 		await twoFetches(server);
 		await renderSection(server, "CDE-42");
 		await waitFor(() => expect(header().textContent).toContain("Fetched 40s ago"));
@@ -67,11 +67,12 @@ describe("RefreshControl", () => {
 		await waitFor(() => expect(header().textContent).toContain("Fetched just now"));
 	});
 
-	// PR-45. The seed reports gh as missing.
+	// PR-45. gh is not on the machine, so the refresh has nothing to ask.
 	test("shows GH_UNAVAILABLE inline and keeps the rows after a failed refresh", async () => {
 		const user = userEvent.setup();
 		const server = createTestServer();
 		await twoFetches(server);
+		await server.removeGh();
 		await renderSection(server, "CDE-42");
 		await waitFor(() => expect(document.querySelectorAll("[data-pr-row]")).toHaveLength(2));
 		await user.click(await refreshButton());
@@ -89,7 +90,7 @@ describe("RefreshControl", () => {
 	// PR-46. Nothing was fetched, so there is no age to state.
 	test("hides the fetch age when the ticket has no pull request", async () => {
 		const server = createTestServer();
-		ghReady(server);
+		await ghReady(server);
 		await renderSection(server, "CDE-47");
 		await screen.findByRole("button", { name: "Link PR" });
 		expect(header().textContent).not.toContain("Fetched");

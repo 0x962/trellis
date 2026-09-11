@@ -207,7 +207,6 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 				actor: "claude",
 				comment: "Merged upstream 1.27. Every keep-marker survived; the lint fixes are in the last commit.",
 			},
-			{ ago: 30 * hour, actor: "claude", pr: pr118 },
 			{
 				ago: 30 * hour,
 				actor: "claude",
@@ -215,6 +214,7 @@ export const cdeNamedSpecs = (): TicketSpec[] => [
 			},
 			{ ago: 1 * day, actor: "claude", move: "human-review" },
 			{ ago: 20 * hour, actor: "navid", comment: "Send it to review when the desktop typecheck is green." },
+			{ ago: 2 * hour, actor: "claude", pr: pr118 },
 			{ ago: 2 * hour, actor: "claude", comment: "Typecheck and tests are green on the PR. Ready for a look." },
 		],
 	},

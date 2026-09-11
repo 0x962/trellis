@@ -61,7 +61,7 @@ describe("PrActions", () => {
 	// The seed reports gh as missing, and a refresh needs gh.
 	test("Refresh refreshes this pull request", async () => {
 		const server = createTestServer();
-		ghReady(server);
+		await ghReady(server);
 		const { pr } = await renderActions(server);
 		await runItem("Refresh");
 		await waitFor(() => expect(callsTo(server, "pullRequests.refresh")).toHaveLength(1));
