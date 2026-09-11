@@ -18,11 +18,16 @@ export const KeySchema = z
 	.string()
 	.regex(keyPattern, "Expected a project key: an upper-case letter and 1 to 9 upper-case letters or digits.");
 
-// A sub-project slug. `board` and `settings` are web routes under a project
-// path, so a sub-project cannot take those names.
+// A sub-project slug: lower-case letters and digits, joined by single
+// dashes. The web URL prints a slug as one path segment, so it holds no
+// character that a path segment would escape.
 export const slugPattern = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-export const reservedSlugs: ReadonlySet<string> = new Set(["board", "settings"]);
+// `/p/CDE/board`, `/p/CDE/table`, and `/p/CDE/settings` are web routes of
+// the project CDE. A sub-project with one of these slugs would sit at the
+// same URL, so it could never open. The projects table refuses the same
+// three names.
+export const reservedSlugs: ReadonlySet<string> = new Set(["board", "table", "settings"]);
 
 export const SlugSchema = z
 	.string()

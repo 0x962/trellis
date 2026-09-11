@@ -42,9 +42,9 @@ describe("ProjectRefSchema", () => {
 		expect(ProjectRefSchema.canonicalize(lowerUlid)).toBe(ulid);
 	});
 
-	// `board` and `settings` are reserved: `/p/CDE/board` and `/p/CDE/settings`
-	// are web routes, so no sub-project may take those slugs. A key has at
-	// most 10 characters.
+	// `board`, `table`, and `settings` are reserved: `/p/CDE/board`,
+	// `/p/CDE/table`, and `/p/CDE/settings` are web routes, so no sub-project
+	// may take those slugs. A key has at most 10 characters.
 	test("ProjectRef rejects empty slugs, bad slug characters, reserved slugs, a ticket ref, and a long key", () => {
 		for (const input of [
 			"CDE.",
@@ -53,6 +53,7 @@ describe("ProjectRefSchema", () => {
 			"CDE.Web_Auth",
 			"CDE-42",
 			"CDE.board",
+			"CDE.table",
 			"CDE.settings",
 			"ABCDEFGHIJK",
 		]) {

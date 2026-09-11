@@ -54,9 +54,9 @@ describe("projects", () => {
 		await seedRoot(h.db, "OPS", { ticket_counter: 5 });
 	});
 
-	test("projects rejects a slug outside the grammar or named board or settings", async () => {
+	test("projects rejects a slug outside the grammar or named board, table, or settings", async () => {
 		const root = await seedRoot(h.db, "CDE");
-		for (const slug of ["board", "settings", "Web", "a--b", "-a", ""]) {
+		for (const slug of ["board", "table", "settings", "Web", "a--b", "-a", ""]) {
 			await expect(seedChild(h.db, root, root, slug)).rejects.toThrow(checkNamed("projects_slug_check"));
 		}
 		for (const slug of ["web", "web-auth", "v2"]) {

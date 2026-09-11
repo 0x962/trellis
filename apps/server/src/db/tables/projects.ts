@@ -43,7 +43,7 @@ export const projects = pgTable(
 		check("projects_key_check", sql`${t.key} ~ '^[A-Z][A-Z0-9]{1,9}$'`),
 		check(
 			"projects_slug_check",
-			sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND ${t.slug} NOT IN ('board', 'settings')`,
+			sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND ${t.slug} NOT IN ('board', 'table', 'settings')`,
 		),
 		check("projects_name_check", sql`length(${t.name}) BETWEEN 1 AND 120`),
 		check("projects_root_is_self", sql`(${t.parentId} IS NULL) = (${t.rootId} = ${t.id})`),
