@@ -11,7 +11,7 @@ export function StepDots({ current }: StepDotsProps) {
 	return (
 		<span role="img" aria-label={`Step ${current + 1} of 2`} className="ml-auto flex items-center gap-1.5">
 			{[0, 1].map((step) => (
-				<span key={step} className={cx("size-1.5 rounded-full", step === current ? "bg-accent" : "bg-border-strong")} />
+				<span key={step} className={cx("size-1.5 rounded-sm", step === current ? "bg-accent" : "bg-border-strong")} />
 			))}
 		</span>
 	);

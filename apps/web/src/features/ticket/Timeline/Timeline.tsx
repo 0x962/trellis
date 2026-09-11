@@ -1,15 +1,15 @@
 import type { Comment, Ticket, TimelineItem } from "@trellis/api";
-import { Button, cx, SectionHeader } from "@trellis/ui";
+import { Button, SectionHeader } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { useStatuses } from "../hooks/useStatuses";
 import { timelineOptions, useTimeline } from "../hooks/useTimeline";
 import { ActivityLine } from "./components/ActivityLine";
-import { CommentCard } from "./components/CommentCard";
+import { CommentThread } from "./components/CommentThread";
 import { Composer } from "./components/Composer";
 import { RunLine } from "./components/RunLine";
 import { collapseRuns } from "./utils/collapseRuns";
-import { updateTimeline } from "./utils/timelineCache";
+import { prependTimeline, updateTimeline } from "./utils/timelineCache";
 
 export type TimelineProps = {
 	// The peek pins the composer to the bottom of its scroll area.
@@ -19,32 +19,32 @@ export type TimelineProps = {
 	ticket: Ticket;
 };
 
-type Filter = "all" | "comments";
-
-const filters = [
-	{ value: "all", label: "All" },
-	{ value: "comments", label: "Comments" },
-] as const;
-
 // The server writes a `comment.created` activity row for each comment. The
 // comment card shows that event, so the row draws no line.
 const shownInStream = (item: TimelineItem) => item.kind === "comment" || item.action !== "comment.created";
 
-// Comments and activity as one stream, oldest first, with the composer
-// pinned under the newest item. The server pages newest first; an older
-// page goes above the rows on screen.
+// Each section shows its items oldest first. The API pages newest first.
 export function Timeline({ ticket, pinned = false, onAttachFiles }: TimelineProps) {
 	const { orpc, queryClient } = useApp();
 	const key = timelineOptions(orpc, ticket.identifier).queryKey;
 	const timeline = useTimeline(ticket.identifier);
 	const statuses = useStatuses(ticket.project.path);
-	const [filter, setFilter] = useState<Filter>("all");
+	const [expandedActivity, setExpandedActivity] = useState(false);
 	const items = (timeline.data?.pages ?? [])
 		.flatMap((page) => page.items)
 		.reverse()
 		.filter(shownInStream);
-	const shown = filter === "comments" ? items.filter((item) => item.kind === "comment") : items;
-	const entries = collapseRuns(shown);
+	const activity = collapseRuns(items).filter((entry) => entry.kind === "activity");
+	const shownActivity = expandedActivity ? activity : activity.slice(-3);
+	const comments = items.filter((item) => item.kind === "comment");
+	const threads = new Map<string, Comment[]>();
+	for (const comment of comments) {
+		const rootId = comment.parentId ?? comment.id;
+		const group = threads.get(rootId);
+		if (group === undefined) threads.set(rootId, [comment]);
+		else group.push(comment);
+	}
+	const threadEntries = [...threads];
 	const reviewer = (name: string) =>
 		statuses.find((status) => status.name === name)?.reviewer === "agent" ? ("agent" as const) : ("human" as const);
 
@@ -57,48 +57,62 @@ export function Timeline({ ticket, pinned = false, onAttachFiles }: TimelineProp
 
 	return (
 		<section aria-label="Timeline" className="flex flex-col gap-2">
-			<SectionHeader
-				title="Timeline"
-				actions={
-					<fieldset aria-label="Timeline filter" className="flex items-center gap-3">
-						{filters.map((option) => (
-							<button
-								key={option.value}
-								type="button"
-								aria-pressed={filter === option.value}
-								onClick={() => setFilter(option.value)}
-								className={cx(
-									"h-7 rounded-sm text-sm transition-colors duration-hover ease-out focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
-									filter === option.value ? "font-medium text-fg" : "text-fg-faint hover:text-fg-muted",
-								)}
-							>
-								{option.label}
-							</button>
-						))}
-					</fieldset>
-				}
-			/>
 			{timeline.hasNextPage && (
 				<Button variant="quiet" size="sm" className="self-start" onClick={() => void timeline.fetchNextPage()}>
 					Load older
 				</Button>
 			)}
-			<ul aria-label="Timeline" className="flex flex-col">
-				{entries.map((entry) =>
-					entry.kind === "comment" ? (
-						<CommentCard
-							key={entry.item.id}
-							comment={entry.item as Comment}
-							formatClassName="comment-markdown"
-							onEdited={onEdited}
-							onDeleted={onDeleted}
-						/>
-					) : entry.items.length === 1 ? (
-						<ActivityLine key={entry.items[0]!.id} item={entry.items[0]!} reviewer={reviewer} />
-					) : (
-						<RunLine key={entry.items[0]!.id} items={entry.items} reviewer={reviewer} />
-					),
-				)}
+			<ul aria-label="Timeline" className="flex flex-col gap-6">
+				<li>
+					<SectionHeader
+						title="Activity"
+						actions={
+							activity.length > 3 && (
+								<Button
+									variant="quiet"
+									size="sm"
+									onClick={() => setExpandedActivity(!expandedActivity)}
+									aria-expanded={expandedActivity}
+								>
+									{expandedActivity ? "Show less activity" : "Show all activity"}
+								</Button>
+							)
+						}
+					/>
+					<ul aria-label="Activity" className="flex flex-col">
+						{shownActivity.map((entry) =>
+							entry.items.length === 1 ? (
+								<ActivityLine key={entry.items[0]!.id} item={entry.items[0]!} reviewer={reviewer} />
+							) : (
+								<RunLine key={entry.items[0]!.id} items={entry.items} reviewer={reviewer} />
+							),
+						)}
+					</ul>
+				</li>
+				<li>
+					<SectionHeader title="Comments" count={comments.length} />
+					<ul aria-label="Comments" className="flex flex-col">
+						{threadEntries.map(([id, rows], index) => (
+							<CommentThread
+								key={id}
+								id={id}
+								identifier={ticket.identifier}
+								comments={rows}
+								showActor={
+									index === 0 ||
+									rows[0]!.parentId !== null ||
+									threadEntries[index - 1]![1][0]!.parentId !== null ||
+									threadEntries[index - 1]![1][0]!.resolvedAt !== null ||
+									threadEntries[index - 1]![1].at(-1)!.actor.name !== rows[0]!.actor.name ||
+									threadEntries[index - 1]![1].at(-1)!.actor.kind !== rows[0]!.actor.kind
+								}
+								onEdited={onEdited}
+								onDeleted={onDeleted}
+								onCreated={(comment) => prependTimeline(queryClient, key, { kind: "comment", ...comment })}
+							/>
+						))}
+					</ul>
+				</li>
 			</ul>
 			<Composer ticket={ticket} pinned={pinned} onAttachFiles={onAttachFiles} />
 		</section>

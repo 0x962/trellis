@@ -32,7 +32,7 @@ describe("features/sidebar/ActorFooter", () => {
 		const settings = screen.getByRole("link", { name: "Settings" });
 		await waitFor(() => expect(settings.querySelector("[data-gh-warning]")).not.toBeNull());
 		const dot = settings.querySelector("[data-gh-warning]")!;
-		for (const name of ["size-1.5", "rounded-full", "bg-warning"]) expect(dot.classList.contains(name)).toBe(true);
+		for (const name of ["size-1.5", "rounded-sm", "bg-warning"]) expect(dot.classList.contains(name)).toBe(true);
 		const description = document.getElementById(settings.getAttribute("aria-describedby")!)!;
 		expect(description.textContent).toBe("gh is not signed in.");
 	});

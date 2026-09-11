@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Play, RefreshCw, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Copy, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../primitives/Button";
 import { Checkbox } from "../../../primitives/Checkbox";
@@ -50,8 +50,8 @@ export function ControlSections() {
 						<Button size={size} disabled>
 							Disabled
 						</Button>
-						<Button size={size} variant="primary" icon={<Play />} kbd="⌘⇧A">
-							Start with agent
+						<Button size={size} variant="primary" icon={<Copy />} kbd="⌘C">
+							Copy brief
 						</Button>
 						<Button size={size} icon={<Check />}>
 							Approved
@@ -61,15 +61,10 @@ export function ControlSections() {
 			</Section>
 			<Section name="Split button" note="primary Button and primary IconButton, joined">
 				<span className="inline-flex items-center gap-px">
-					<Button variant="primary" icon={<Play />} kbd="⌘⇧A" className="rounded-r-none">
-						Start with agent
+					<Button variant="primary" icon={<Copy />} kbd="⌘C" className="rounded-r-none">
+						Copy brief
 					</Button>
-					<IconButton
-						label="Start with agent options"
-						icon={<ChevronDown />}
-						variant="primary"
-						className="rounded-l-none"
-					/>
+					<IconButton label="Copy options" icon={<ChevronDown />} variant="primary" className="rounded-l-none" />
 				</span>
 			</Section>
 			<Section name="IconButton" note="primary, default, quiet, danger; md and sm; disabled">

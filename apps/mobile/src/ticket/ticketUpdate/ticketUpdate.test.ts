@@ -1,26 +1,35 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { QueryClient } from "@tanstack/react-query";
 import { errors, type Ticket } from "@trellis/api";
-import { createFakeServer } from "../../../../web/test/fake-server";
+import { createMobileApp, type MobileApp } from "../../../test/testApp";
+import { seedTicketScreen } from "../../../test/ticket";
 import { ticketDetailKey } from "../ticketQueries";
 import { runTicketUpdate, updateMessage } from "./ticketUpdate";
 
+let app: MobileApp;
+
+beforeAll(async () => {
+	app = await createMobileApp();
+});
+
+afterAll(() => app.close());
+
 const setup = async () => {
-	const server = createFakeServer();
+	const data = await seedTicketScreen(app.seeder);
 	const queryClient = new QueryClient();
-	const key = ticketDetailKey("CDE-42");
-	const ticket = await server.client.tickets.get({ ticket: "CDE-42" });
+	const key = ticketDetailKey(data.ticket);
+	const ticket = await app.client.tickets.get({ ticket: data.ticket });
 	queryClient.setQueryData(key, ticket);
-	return { server, queryClient, key, ticket };
+	return { identifier: data.ticket, queryClient, key, ticket };
 };
 
 describe("runTicketUpdate", () => {
 	test("shows the optimistic row at once and then the response", async () => {
-		const { server, queryClient, key, ticket } = await setup();
+		const { identifier, queryClient, key, ticket } = await setup();
 		let seen: Ticket | undefined;
 		const pending = runTicketUpdate(queryClient, key, { ...ticket, priority: "urgent" }, async () => {
 			seen = queryClient.getQueryData<Ticket>(key);
-			return server.client.tickets.update({ ticket: "CDE-42", priority: "urgent", expectedVersion: ticket.version });
+			return app.client.tickets.update({ ticket: identifier, priority: "urgent", expectedVersion: ticket.version });
 		});
 		expect(queryClient.getQueryData<Ticket>(key)?.priority).toBe("urgent");
 		const result = await pending;
@@ -30,10 +39,10 @@ describe("runTicketUpdate", () => {
 	});
 
 	test("a VERSION_CONFLICT puts the current row in the cache and rethrows", async () => {
-		const { server, queryClient, key, ticket } = await setup();
-		const retitled = await server.client.tickets.update({ ticket: "CDE-42", title: "Retitled from the web" });
+		const { identifier, queryClient, key, ticket } = await setup();
+		const retitled = await app.client.tickets.update({ ticket: identifier, title: "Retitled from the web" });
 		const attempt = runTicketUpdate(queryClient, key, { ...ticket, priority: "urgent" }, () =>
-			server.client.tickets.update({ ticket: "CDE-42", priority: "urgent", expectedVersion: ticket.version }),
+			app.client.tickets.update({ ticket: identifier, priority: "urgent", expectedVersion: ticket.version }),
 		);
 		const error = await attempt.catch((rejection: unknown) => rejection);
 		expect(error).toMatchObject({ code: "VERSION_CONFLICT" });

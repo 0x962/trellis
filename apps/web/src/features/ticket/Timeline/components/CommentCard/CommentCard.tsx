@@ -1,6 +1,6 @@
 import type { Comment } from "@trellis/api";
 import { ActorChip, Button, cx, Menu, Textarea } from "@trellis/ui";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { isLiveActor } from "../../../../../lib/actorLive";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
@@ -11,6 +11,7 @@ import { absoluteTime } from "../../utils/absoluteTime";
 
 export type CommentCardProps = {
 	comment: Comment;
+	showActor?: boolean;
 	// The identifier of the comment's ticket, for the timeline cache.
 	identifier?: string;
 	onEdited?: (comment: Comment) => void;
@@ -18,14 +19,14 @@ export type CommentCardProps = {
 	formatClassName?: "markdown" | "comment-markdown";
 };
 
-// One comment: the actor, the relative time with the absolute time as its
-// title, the markdown body, and the menu. An agent's card carries the
-// agent-colored left border, so who said what stays legible at speed.
-export function CommentCard({ comment, onEdited, onDeleted, formatClassName }: CommentCardProps) {
+// The timestamp exposes the absolute time in its title.
+export function CommentCard({ comment, showActor = true, onEdited, onDeleted, formatClassName }: CommentCardProps) {
 	const { client } = useApp();
 	const [editing, setEditing] = useState(false);
 	const [draft, setDraft] = useState(comment.body);
-	const agent = comment.actor.kind === "agent";
+	const [expanded, setExpanded] = useState(false);
+	const bodyId = useId();
+	const long = comment.body.length > 700 || comment.body.split("\n").length > 8;
 
 	const save = async () => {
 		try {
@@ -48,16 +49,11 @@ export function CommentCard({ comment, onEdited, onDeleted, formatClassName }: C
 
 	return (
 		<li>
-			<article
-				data-kind="comment"
-				className={cx(
-					"my-1.5 overflow-hidden rounded-md border border-border border-l-2",
-					agent ? "border-l-agent" : "border-l-border",
-				)}
-			>
-				<header className="flex h-8 items-center gap-2 px-3 text-sm">
-					{comment.actor.kind !== "system" && (
+			<article aria-label={`Comment by ${comment.actor.name}`} data-kind="comment" className="py-3">
+				<header className="flex h-8 items-center gap-2 text-sm">
+					{showActor && comment.actor.kind !== "system" && (
 						<ActorChip
+							compact
 							name={comment.actor.name}
 							kind={comment.actor.kind}
 							live={isLiveActor({ kind: comment.actor.kind, at: comment.createdAt })}
@@ -80,7 +76,7 @@ export function CommentCard({ comment, onEdited, onDeleted, formatClassName }: C
 					/>
 				</header>
 				{editing ? (
-					<div className="flex flex-col gap-2 px-3 pb-3">
+					<div className="flex flex-col gap-2 pb-3">
 						<Textarea
 							label="Edit comment"
 							hideLabel
@@ -98,7 +94,22 @@ export function CommentCard({ comment, onEdited, onDeleted, formatClassName }: C
 						</div>
 					</div>
 				) : (
-					<ReadOnlyMarkdown markdown={comment.body} className="px-3 pb-3 text-base" formatClassName={formatClassName} />
+					<>
+						<div id={bodyId} className={cx("text-base", long && !expanded && "max-h-60 overflow-hidden")}>
+							<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
+						</div>
+						{long && (
+							<Button
+								size="sm"
+								variant="quiet"
+								aria-controls={bodyId}
+								aria-expanded={expanded}
+								onClick={() => setExpanded(!expanded)}
+							>
+								{expanded ? "Show less" : "Show more"}
+							</Button>
+						)}
+					</>
 				)}
 			</article>
 		</li>

@@ -2,11 +2,11 @@ import * as Clipboard from "expo-clipboard";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { useMMKVString } from "react-native-mmkv";
 import { Button } from "../../src/components/Button";
 import { KeyValueRow } from "../../src/components/KeyValueRow";
 import { Segmented } from "../../src/components/Segmented";
-import { keys, store } from "../../src/lib/store";
+import { keys } from "../../src/lib/store";
+import { useStoredString } from "../../src/lib/useStoredString";
 import { tokens } from "../../src/theme/tokens";
 import { usePalette } from "../../src/theme/usePalette";
 import { type ThemeMode, useTheme } from "../../src/theme/useTheme";
@@ -27,8 +27,8 @@ const styles = StyleSheet.create({
 });
 
 export default function SettingsScreen() {
-	const [url] = useMMKVString(keys.serverUrl, store);
-	const [name] = useMMKVString(keys.actorName, store);
+	const [url] = useStoredString(keys.serverUrl);
+	const [name] = useStoredString(keys.actorName);
 	const { mode, setTheme } = useTheme();
 	const palette = usePalette();
 	return (

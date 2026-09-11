@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: tokens.space[4],
 		paddingBottom: tokens.space[2],
 	},
-	track: { flex: 1, height: layout.bar, borderRadius: tokens.hairline, overflow: "hidden" },
+	track: { flex: 1, height: layout.bar, borderRadius: tokens.radius.hairline, overflow: "hidden" },
 	fill: { height: "100%" },
 	count: { fontSize: tokens.text.sm, lineHeight: tokens.leading.sm, fontVariant: ["tabular-nums"] },
 });

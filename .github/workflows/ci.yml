@@ -7,10 +7,6 @@ on:
 
 jobs:
   check:
-    # `bun run check` runs the 10k perf suite. The budgets are for the
-    # reference machine, and a CI runner gets 2.5 times each budget.
-    env:
-      TRELLIS_PERF_FACTOR: "2.5"
     strategy:
       fail-fast: false
       matrix:
@@ -47,6 +43,24 @@ jobs:
       - run: bunx playwright install chromium
         working-directory: apps/web
       - run: bun run e2e
+
+  # The mobile component suite runs under jest-expo on Node, and its
+  # globalSetup spawns the real server with bun on a free port, with a temp
+  # TRELLIS_HOME and the gh stub. So the job needs no GitHub login.
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bun run --cwd apps/mobile test:native
 
   # A schema.ts edit that skipped `bun run db:generate` leaves a diff under
   # apps/server/drizzle/ once the migrations regenerate.

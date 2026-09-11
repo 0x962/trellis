@@ -64,6 +64,43 @@ describe("features/ticket/TicketPeek", () => {
 		await waitFor(() => expect(fieldValue(title(panel))).toBe("Restore the fork pages after the upstream 1.27 merge"));
 	});
 
+	test("a saved width respects the viewport minimum", async () => {
+		window.innerWidth = 1920;
+		localStorage.setItem(peekWidthStorageKey, "480");
+		mount("/p/CDE?peek=CDE-42");
+		const panel = await peek();
+		expect(panel.classList.contains("min-w-peek")).toBe(true);
+		expect(panel.style.width).toBe("480px");
+		await within(panel).findByLabelText("Properties");
+	});
+
+	test("a drag starts from the visible width when the viewport minimum exceeds the saved width", async () => {
+		window.innerWidth = 1920;
+		localStorage.setItem(peekWidthStorageKey, "480");
+		mount("/p/CDE?peek=CDE-42");
+		const panel = await peek();
+		panel.getBoundingClientRect = () => new DOMRect(1056, 0, 864, 900);
+		const handle = within(panel).getByLabelText(/resize/i);
+		fireEvent.pointerDown(handle, { clientX: 1056, pointerId: 1, button: 0 });
+		fireEvent.pointerMove(handle, { clientX: 976, pointerId: 1 });
+		fireEvent.pointerUp(handle, { clientX: 976, pointerId: 1 });
+		expect(panel.style.width).toBe("944px");
+		expect(localStorage.getItem(peekWidthStorageKey)).toBe("944");
+		await within(panel).findByLabelText("Properties");
+	});
+
+	test("the resize arrow starts from the visible width when the viewport minimum exceeds the saved width", async () => {
+		window.innerWidth = 1920;
+		localStorage.setItem(peekWidthStorageKey, "480");
+		mount("/p/CDE?peek=CDE-42");
+		const panel = await peek();
+		panel.getBoundingClientRect = () => new DOMRect(1056, 0, 864, 900);
+		fireEvent.keyDown(within(panel).getByLabelText(/resize/i), { key: "ArrowLeft" });
+		expect(panel.style.width).toBe("880px");
+		expect(localStorage.getItem(peekWidthStorageKey)).toBe("880");
+		await within(panel).findByLabelText("Properties");
+	});
+
 	// WT-03. The title is the first thing a person edits in a peek.
 	test("moves focus to the title on open", async () => {
 		const user = userEvent.setup();

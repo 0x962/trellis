@@ -282,3 +282,21 @@ describe("invalidation", () => {
 		}
 	});
 });
+
+test("reply and resolution events invalidate cached threads for their ticket", () => {
+	const rootKey = queryKey(["comments", "thread"], { id: ulid });
+	const replyKey = queryKey(["comments", "thread"], { id: t1 });
+	const otherKey = queryKey(["comments", "thread"], { id: t2 });
+	for (const type of ["comment.created", "comment.updated", "comment.deleted"] as const) {
+		const { queryClient, advanceTo, applier } = setup((client) => {
+			client.setQueryData(rootKey, { root: { id: ulid, ticketId: t1 }, replies: [] });
+			client.setQueryData(replyKey, { root: { id: ulid, ticketId: t1 }, replies: [] });
+			client.setQueryData(otherKey, { root: { id: t2, ticketId: t2 }, replies: [] });
+		});
+		applier.applyEvent({ type, id: t1, ticketId: t1, parentId: ulid, threadId: ulid });
+		advanceTo(1000);
+		expect(isInvalidated(queryClient, rootKey), type).toBe(true);
+		expect(isInvalidated(queryClient, replyKey), type).toBe(true);
+		expect(isInvalidated(queryClient, otherKey), type).toBe(false);
+	}
+});

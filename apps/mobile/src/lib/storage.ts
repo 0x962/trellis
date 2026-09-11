@@ -7,7 +7,7 @@ import {
 import type { QueryClient } from "@tanstack/react-query";
 import { keys } from "./keys";
 
-// The part of MMKV the persister touches.
+// The part of the store the persister touches.
 export type CacheStore = {
 	getString: (key: string) => string | undefined;
 	set: (key: string, value: string) => void;
@@ -22,7 +22,7 @@ export const persistOptions = { maxAge: 86_400_000 } as const;
 
 const encoder = new TextEncoder();
 
-// The whole query cache under one MMKV key, as one JSON string.
+// The whole query cache under one store key, as one JSON string.
 export const createPersister = (store: CacheStore): Persister => ({
 	persistClient: (client: PersistedClient) => {
 		const json = JSON.stringify(client);
@@ -44,7 +44,7 @@ export const persistClient = (queryClient: QueryClient, store: CacheStore) =>
 export const restoreClient = (queryClient: QueryClient, store: CacheStore) =>
 	persistQueryClientRestore({ queryClient, persister: createPersister(store), maxAge: persistOptions.maxAge });
 
-// The longest a cache change waits for its MMKV write.
+// The longest a cache change waits for its write to the store.
 export const persistIntervalMs = 1_000;
 
 // Writes a snapshot of the whole cache one second after a change, and stops

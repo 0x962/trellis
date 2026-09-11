@@ -1,10 +1,10 @@
 import { oc } from "@orpc/contract";
 import { actors } from "./actors.ts";
-import { agents } from "./agents.ts";
 import { attachments } from "./attachments.ts";
 import { brief } from "./brief.ts";
 import { comments } from "./comments.ts";
 import { inbox } from "./inbox.ts";
+import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
 import { search } from "./search.ts";
@@ -18,6 +18,7 @@ import { timeline } from "./timeline.ts";
 // handler; the RPC handler at `/rpc` addresses a procedure by its dotted
 // name. The tag is the OpenAPI group.
 export const contract = {
+	personas: oc.tag("personas").router(personas),
 	projects: oc.tag("projects").router(projects),
 	statuses: oc.tag("statuses").router(statuses),
 	tickets: oc.tag("tickets").router(tickets),
@@ -31,6 +32,5 @@ export const contract = {
 	actors: oc.tag("actors").router(actors),
 	settings: oc.tag("settings").router(settings),
 	system: oc.tag("system").router(system),
-	agents: oc.tag("agents").router(agents),
 };
 export type TrellisContract = typeof contract;

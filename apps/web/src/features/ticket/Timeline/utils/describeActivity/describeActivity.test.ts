@@ -68,6 +68,15 @@ describe("features/ticket/Timeline/utils/describeActivity", () => {
 		).toBe("moved the ticket from QA to Todo");
 	});
 
+	test("thread activity distinguishes resolution and reopening from body edits", () => {
+		expect(describeActivity(row({ action: "comment.updated", meta: { resolved: true } }))).toBe(
+			"resolved a comment thread",
+		);
+		expect(describeActivity(row({ action: "comment.updated", meta: { resolved: false } }))).toBe(
+			"reopened a comment thread",
+		);
+	});
+
 	test("an unknown field keeps the article", () => {
 		expect(describeActivity(row({ field: "estimate" }))).toBe("changed the estimate");
 		expect(describeActivity(row({ action: "ticket.something" }))).toBe("changed the ticket");

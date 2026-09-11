@@ -96,7 +96,7 @@ export function DisplayPopover({
 									aria-pressed={on}
 									onClick={() => uiActions.setColumnVisible(routeKey, id, !on)}
 									className={cx(
-										"h-6 rounded-full border px-2 text-sm transition-colors duration-hover ease-out focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+										"h-6 rounded-sm border px-2 text-sm transition-colors duration-hover ease-out focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 										on ? "border-accent bg-accent-soft text-fg" : "border-border text-fg-muted hover:text-fg",
 									)}
 								>

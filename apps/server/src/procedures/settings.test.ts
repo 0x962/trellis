@@ -12,7 +12,6 @@ afterAll(() => t.close());
 describe("settings", () => {
 	test("settings round-trip through PUT and GET", async () => {
 		const settings = {
-			startWithAgentTemplate: 'claude "{brief}"',
 			defaultActorName: "navid",
 			stalledHours: 12,
 			diffUrlTemplate: "{url}/files",

@@ -20,7 +20,7 @@ const initials = (name: string) =>
 		.map((word) => word.charAt(0).toUpperCase())
 		.join("");
 
-// An 18 px actor mark. A human is a circle with initials. An agent is a
+// An 18 px actor mark. A human is a square with initials. An agent is a
 // circle filled with the soft color its name picks, so two agents never
 // look alike and one agent always looks the same. See agentGradient.
 export function Avatar({ kind, name, live = false, className }: AvatarProps) {
@@ -30,8 +30,8 @@ export function Avatar({ kind, name, live = false, className }: AvatarProps) {
 			aria-label={kind === "agent" ? `${name} · agent` : name}
 			style={kind === "agent" ? agentGradient(name) : undefined}
 			className={cx(
-				"relative inline-grid size-4.5 shrink-0 place-items-center overflow-hidden rounded-full select-none",
-				kind === "human" && "bg-fg-muted text-surface text-initials font-semibold",
+				"relative inline-grid size-4.5 shrink-0 place-items-center overflow-hidden select-none",
+				kind === "agent" ? "rounded-full" : "rounded-sm bg-fg-muted text-surface text-initials font-semibold",
 				className,
 			)}
 		>
@@ -39,7 +39,7 @@ export function Avatar({ kind, name, live = false, className }: AvatarProps) {
 			{live && (
 				<span
 					data-live=""
-					className="absolute -top-0.75 -right-0.75 size-1.75 rounded-full border-2 border-surface bg-success animate-pulse-live motion-reduce:animate-none"
+					className="absolute -top-0.75 -right-0.75 size-1.75 rounded-sm border-2 border-surface bg-success animate-pulse-live motion-reduce:animate-none"
 				/>
 			)}
 		</span>

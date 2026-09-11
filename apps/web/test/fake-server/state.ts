@@ -2,18 +2,14 @@ import {
 	type Activity,
 	type Actor,
 	type ActorRef,
-	type AgentBatchRecord,
-	type AgentSession,
-	type AgentSettings,
 	type Attachment,
 	type Comment,
 	type GhStatus,
+	type Persona,
 	type Priority,
 	type PrLinkSource,
 	type PullRequest,
 	type Repo,
-	type RunnerProject,
-	type RunnerReason,
 	type Settings,
 	type Status,
 	StatusRefSchema,
@@ -78,6 +74,7 @@ export type PrLink = {
 };
 
 export type State = {
+	personas: Map<string, Persona>;
 	projects: Map<string, ProjectRow>;
 	statuses: Map<string, Status>;
 	tickets: Map<string, TicketRow>;
@@ -100,19 +97,10 @@ export type State = {
 	// phone section.
 	addresses: string[];
 	nextActivityId: number;
-	agentSessions: Map<string, AgentSession>;
-	agentSettings: AgentSettings;
-	// The id of the last activity row each root's manager read, by root id.
-	agentCursors: Map<string, number>;
-	// What `superset projects list` gives.
-	runnerProjects: RunnerProject[];
-	// While set, every runner call answers RUNNER_UNAVAILABLE with this reason.
-	runnerDown: RunnerReason | null;
-	// The batches the dispatcher sent, oldest first. A test pushes to it.
-	agentBatches: AgentBatchRecord[];
 };
 
 export const createState = (): State => ({
+	personas: new Map(),
 	projects: new Map(),
 	statuses: new Map(),
 	tickets: new Map(),
@@ -124,7 +112,6 @@ export const createState = (): State => ({
 	blobs: new Map(),
 	actors: new Map(),
 	settings: {
-		startWithAgentTemplate: 'claude "$(trellis brief {brief})"',
 		defaultActorName: "navid",
 		stalledHours: 24,
 		diffUrlTemplate: "{url}/files",
@@ -139,27 +126,6 @@ export const createState = (): State => ({
 	},
 	addresses: ["http://192.168.1.20:4521", "http://127.0.0.1:4521"],
 	nextActivityId: 1,
-	agentSessions: new Map(),
-	agentSettings: { runner: "superset", enabled: false, projects: [] },
-	agentCursors: new Map(),
-	runnerProjects: [
-		{
-			id: "sp-de",
-			name: "de",
-			repo: "canary-technologies-corp/de",
-			path: "/Users/navid/projects/de",
-			defaultBranch: "main",
-		},
-		{
-			id: "sp-trellis",
-			name: "trellis",
-			repo: "0x962/trellis",
-			path: "/Users/navid/projects/trellis",
-			defaultBranch: "main",
-		},
-	],
-	runnerDown: null,
-	agentBatches: [],
 });
 
 export const newId = () => ulid();

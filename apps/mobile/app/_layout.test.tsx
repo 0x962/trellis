@@ -2,14 +2,13 @@ import { describe, expect, test } from "@jest/globals";
 import { QueryClient } from "@tanstack/react-query";
 import * as Font from "expo-font";
 import { act, renderRouter, screen, waitFor } from "expo-router/testing-library";
-import { createMMKV } from "react-native-mmkv";
 import { queryClient } from "../src/lib/queryClient";
 import { persistClient } from "../src/lib/storage";
+import { store } from "../src/lib/store";
 import { tokens } from "../src/theme/tokens";
 import { appContext } from "../test/appContext";
 import { instances } from "../test/mocks/react-native-sse";
 
-const store = createMMKV();
 const tabs = ["Needs you", "Search", "Projects", "Settings"];
 
 // The tab item's role is `button` on iOS and `tab` elsewhere.

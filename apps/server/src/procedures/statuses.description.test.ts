@@ -1,38 +1,41 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import type { Activity, Status } from "@trellis/api";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import type { Status } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { seedProject } from "../../test/fixtures";
 import { SEEDED_DESCRIPTIONS } from "../../test/fixtures/statusDescriptions.ts";
 import { createTestApp, type TestApp } from "../../test/helpers/app.ts";
 import { freshDb } from "../../test/helpers/db.ts";
+import { rows } from "../db/queries/support.ts";
 
-// The status description is the manager's rulebook for that status. The
-// manager reads every description of the set at start and on
-// statuses.changed, so the description travels with every status. The file
-// has one app, and every test works in a project of its own key.
+// Each test uses a separate project, so status changes stay inside that test.
 
 let t: TestApp;
 let count = 0;
 let key = "";
-beforeAll(async () => {
+beforeEach(async () => {
 	t = await createTestApp();
-});
-beforeEach(() => {
 	count += 1;
 	key = `D${count}`;
 });
-afterAll(() => t.close());
+afterEach(() => t.close());
 
 const descriptionsByName = (statuses: Status[]) =>
 	Object.fromEntries(statuses.map((status) => [status.name, status.description]));
 
-// The activity rows of the project after the previous read, through the
-// manager inbox, which returns every row of the project.
-const readActivity = async (): Promise<Activity[]> => {
-	const response = await t.api("/api/agents/inbox", { method: "POST", body: { project: key } });
-	expect(response.status).toBe(200);
-	return response.body.events;
-};
+const readActivity = async (projectId: string) =>
+	t.serverTx((tx) =>
+		rows<{
+			action: string;
+			field: string | null;
+			fromValue: string | null;
+			toValue: string | null;
+			meta: { deltaChars: number };
+		}>(
+			tx,
+			sql`SELECT action, field, from_value AS "fromValue", to_value AS "toValue", meta
+	FROM activity WHERE project_id = ${projectId} AND action = 'status.updated' ORDER BY id`,
+		),
+	);
 
 describe("status descriptions", () => {
 	test("server builder: the migration adds statuses.description as text not null default ''", async () => {
@@ -62,19 +65,18 @@ describe("status descriptions", () => {
 	});
 
 	test("server builder: statuses.update changes the description and writes one activity row", async () => {
-		await t.seedProject(key);
-		await readActivity();
+		const project = await t.seedProject(key);
 		const description = "New work. Start a builder at once.";
 		const updated = await t.api(`/api/projects/${key}/statuses/todo`, { method: "PATCH", body: { description } });
 		expect(updated.status).toBe(200);
 		expect(updated.body.description).toBe(description);
-		const rows = (await readActivity()).filter((row) => row.action === "status.updated");
-		expect(rows).toHaveLength(1);
-		expect(rows[0]).toMatchObject({ field: "description", fromValue: null, toValue: null });
-		expect(rows[0]!.meta.deltaChars).toBe(description.length - SEEDED_DESCRIPTIONS.Todo!.length);
+
 		const again = await t.api(`/api/projects/${key}/statuses/todo`, { method: "PATCH", body: { description } });
 		expect(again.status).toBe(200);
-		expect((await readActivity()).filter((row) => row.action === "status.updated")).toEqual([]);
+		const changed = await readActivity(project.id);
+		expect(changed).toHaveLength(1);
+		expect(changed[0]).toMatchObject({ field: "description", fromValue: null, toValue: null });
+		expect(changed[0]!.meta.deltaChars).toBe(description.length - SEEDED_DESCRIPTIONS.Todo!.length);
 	});
 
 	test("server builder: a new root project seeds a description for each default status", async () => {

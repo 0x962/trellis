@@ -13,6 +13,11 @@ Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `T
 8. When CI is green and the self-review is done: trellis move KEY-42 human-review
 Never move a ticket to Done; a human does that. Never delete tickets.
 
+Read a comment thread: trellis thread show <comment-id>
+Reply in that thread: trellis comment KEY-42 --reply-to <comment-id> --body "..."
+Resolve a thread: trellis thread resolve <comment-id>
+Reopen a thread: trellis thread reopen <comment-id>
+
 Without the CLI, use the HTTP API. It has the same actions. This call creates a ticket:
 curl -X POST http://127.0.0.1:4521/api/tickets -H 'x-trellis-actor: agent:claude-code' -H 'Content-Type: application/json' -d '{"project":"KEY","title":"First"}'
 The OpenAPI spec is at http://127.0.0.1:4521/api/openapi.json.

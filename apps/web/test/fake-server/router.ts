@@ -1,9 +1,9 @@
 import { os } from "./implementer";
-import { agents } from "./procedures/agents";
 import { attachments } from "./procedures/attachments";
 import { comments, timeline } from "./procedures/comments";
 import { brief, inbox, search } from "./procedures/inbox";
 import { actors, settings, system } from "./procedures/misc";
+import { personas } from "./procedures/personas";
 import { projects } from "./procedures/projects";
 import { pullRequests } from "./procedures/prs";
 import { statuses } from "./procedures/statuses";
@@ -12,6 +12,7 @@ import { ticketWrites } from "./procedures/ticketWrites";
 
 // The whole contract, implemented in memory.
 export const router = os.router({
+	personas,
 	projects,
 	statuses,
 	tickets: { ...tickets, ...ticketWrites },
@@ -25,5 +26,4 @@ export const router = os.router({
 	actors,
 	settings,
 	system,
-	agents,
 });

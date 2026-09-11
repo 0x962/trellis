@@ -87,7 +87,7 @@ describe("features/sidebar/ProjectTree", () => {
 		expect(slot(rowOf(/^web/), "disclosure").querySelector("button")).toBeNull();
 		const dot = slot(rowOf(/^web/), "leading").querySelector("span")!;
 		expect(dot.className).toMatch(/\bsize-1\.5\b/);
-		expect(dot.className).toMatch(/\brounded-full\b/);
+		expect(dot.className).toMatch(/\brounded-sm\b/);
 		expect(dot.className).toMatch(/\bbg-fg-faint\b/);
 	});
 

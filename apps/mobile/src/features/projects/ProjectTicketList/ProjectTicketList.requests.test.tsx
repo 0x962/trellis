@@ -1,20 +1,24 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import type { ListQuery } from "@trellis/api";
-import { type FakeServer, inputsTo, startFakeServer, stopFakeServer } from "../../../../test/fakeServer";
+import { type BrowseData, seedBrowse } from "../../../../test/browse";
+import { connect } from "../../../../test/connect";
+import type { Recorder } from "../../../../test/record";
 import { renderWithClient } from "../../../../test/renderWithClient";
 import { pageLimit } from "./listQuery";
 import { ProjectTicketList } from "./ProjectTicketList";
 
-let server: FakeServer;
+let data: BrowseData;
+let net: Recorder;
 
-beforeEach(() => {
-	server = startFakeServer();
+beforeEach(async () => {
+	data = await seedBrowse();
+	net = connect();
 });
 
-afterEach(() => stopFakeServer(server));
+afterEach(() => net.restore());
 
-const listInputs = () => inputsTo(server, "tickets.list") as Partial<ListQuery>[];
+const listInputs = () => net.inputsTo("tickets.list") as Partial<ListQuery>[];
 
 const lastInput = () => listInputs()[listInputs().length - 1]!;
 
@@ -30,16 +34,16 @@ const endOfList = async () => {
 
 describe("the ticket list requests", () => {
 	test("the first request asks for the active categories sorted by -updatedAt", async () => {
-		renderWithClient(<ProjectTicketList project="CDE" />);
+		renderWithClient(<ProjectTicketList project={data.root} />);
 		await waitForRows();
 
 		expect(listInputs()).toEqual([
-			{ project: "CDE", category: ["todo", "started"], sort: "-updatedAt", limit: pageLimit },
+			{ project: data.root, category: ["todo", "started"], sort: "-updatedAt", limit: pageLimit },
 		]);
 	});
 
 	test("the Review segment sends category review with no cursor", async () => {
-		renderWithClient(<ProjectTicketList project="CDE" />);
+		renderWithClient(<ProjectTicketList project={data.root} />);
 		await waitForRows();
 
 		await fireEvent.press(screen.getByLabelText("Review"));
@@ -49,7 +53,7 @@ describe("the ticket list requests", () => {
 	});
 
 	test("the Done segment sends the done and canceled categories", async () => {
-		renderWithClient(<ProjectTicketList project="CDE" />);
+		renderWithClient(<ProjectTicketList project={data.root} />);
 		await waitForRows();
 
 		await fireEvent.press(screen.getByLabelText("Done"));
@@ -58,7 +62,7 @@ describe("the ticket list requests", () => {
 	});
 
 	test("the sort toggle sends sort priority and restarts the paging", async () => {
-		renderWithClient(<ProjectTicketList project="CDE" />);
+		renderWithClient(<ProjectTicketList project={data.root} />);
 		await waitForRows();
 
 		await fireEvent.press(screen.getByLabelText("Priority"));
@@ -68,8 +72,9 @@ describe("the ticket list requests", () => {
 	});
 
 	test("the end of the list asks for the next page by cursor", async () => {
-		// CDE holds 27 active tickets, so the first page of 25 leaves a cursor.
-		renderWithClient(<ProjectTicketList project="CDE" />);
+		// The root holds 28 active tickets, so the first page of 25 leaves a
+		// cursor.
+		renderWithClient(<ProjectTicketList project={data.root} />);
 		await waitForRows();
 
 		await endOfList();
@@ -77,12 +82,13 @@ describe("the ticket list requests", () => {
 		expect(lastInput().cursor).toEqual(expect.any(String));
 		expect(lastInput().category).toEqual(["todo", "started"]);
 		expect(lastInput().sort).toBe("-updatedAt");
-		expect(lastInput().project).toBe("CDE");
+		expect(lastInput().project).toBe(data.root);
 	});
 
 	test("a null cursor stops the paging", async () => {
-		// MRG holds 3 active tickets, so its first page is the whole list.
-		renderWithClient(<ProjectTicketList project="MRG" />);
+		// The small root holds 3 active tickets, so its first page is the whole
+		// list.
+		renderWithClient(<ProjectTicketList project={data.small} />);
 		await waitForRows();
 
 		await endOfList();
@@ -91,7 +97,7 @@ describe("the ticket list requests", () => {
 	});
 
 	test("a filter change drops the cursor of the old filter", async () => {
-		renderWithClient(<ProjectTicketList project="CDE" />);
+		renderWithClient(<ProjectTicketList project={data.root} />);
 		await waitForRows();
 
 		await endOfList();
@@ -103,9 +109,9 @@ describe("the ticket list requests", () => {
 	});
 
 	test("a lower-case project ref reaches the server in canonical spelling", async () => {
-		renderWithClient(<ProjectTicketList project="cde.web" />);
+		renderWithClient(<ProjectTicketList project={data.web.toLowerCase()} />);
 		await waitForRows();
 
-		expect(lastInput().project).toBe("CDE.web");
+		expect(lastInput().project).toBe(data.web);
 	});
 });

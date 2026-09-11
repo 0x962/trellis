@@ -1,10 +1,8 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { act, renderHook } from "@testing-library/react-native";
 import { Appearance } from "react-native";
-import { createMMKV } from "react-native-mmkv";
+import { store } from "../lib/store";
 import { useTheme } from "./useTheme";
-
-const store = createMMKV();
 
 type SchemeChange = Parameters<typeof Appearance.addChangeListener>[0];
 
@@ -20,7 +18,7 @@ describe("useTheme", () => {
 		expect(store.contains("trellis-theme")).toBe(false);
 	});
 
-	test("a theme change persists in MMKV and survives a remount", async () => {
+	test("a theme change persists in the store and survives a remount", async () => {
 		const first = await renderHook(() => useTheme());
 		const second = await renderHook(() => useTheme());
 		await act(() => first.result.current.setTheme("light"));
