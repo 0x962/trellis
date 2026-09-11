@@ -6,6 +6,9 @@
 -- A root project is caught too, and on purpose. The web route test lower-
 -- cases the last path segment before it compares, so a root keyed TABLE
 -- sits at /p/TABLE, reads as the table view, and shows the not-found page.
+-- A root needs both of its columns changed. pathOf in services/refs.ts
+-- builds a root ref from the key column, so a root that changes only its
+-- slug clears this block and keeps the URL that has no page.
 --
 -- A database that already holds such a project cannot take the new rule.
 -- This block stops the migration first and names every one of them. The
@@ -28,7 +31,7 @@ BEGIN
 	)
 	SELECT string_agg("path", ', ' ORDER BY "path") INTO "held" FROM "tree" WHERE "slug" = 'table';
 	IF "held" IS NOT NULL THEN
-		RAISE EXCEPTION 'These projects hold the slug "table", which is now a reserved web route: %. Change the slug of each one with an UPDATE on its projects row, because the server does not start until the slug is free. A name with a dot is a sub-project and takes any free slug. A name with no dot is a root and takes the lower-cased form of its new key. Then run the install again.', "held";
+		RAISE EXCEPTION 'These projects hold the slug "table", which is now a reserved web route: %. The server does not start until no project holds it, and no API answers while this message stands. Change each project with an UPDATE on its projects row. A name with a dot is a sub-project: set its slug to any free slug. A name with no dot is a root: set its key to a name that is not a reserved web route, and set its slug to the lower-cased form of that new key. A root URL is built from its key, so a root that keeps its key keeps its broken URL. Then run the install again.', "held";
 	END IF;
 END $$;--> statement-breakpoint
 ALTER TABLE "projects" DROP CONSTRAINT "projects_slug_check";--> statement-breakpoint

@@ -16,6 +16,20 @@ const NAMED = "0021_reserve_table_slug";
 
 type Journal = { entries: Array<{ tag: string }> };
 
+// The exact text of the migration's refusal, for the two seeded projects
+// CDE.table and TABLE. A root needs both of its columns: pathOf in
+// services/refs.ts builds a root ref from the key, so a root that changes
+// only its slug clears the block and keeps a URL with no page.
+const HELD_MESSAGE =
+	'These projects hold the slug "table", which is now a reserved web route: CDE.table, TABLE. ' +
+	"The server does not start until no project holds it, and no API answers while this message stands. " +
+	"Change each project with an UPDATE on its projects row. " +
+	"A name with a dot is a sub-project: set its slug to any free slug. " +
+	"A name with no dot is a root: set its key to a name that is not a reserved web route, " +
+	"and set its slug to the lower-cased form of that new key. " +
+	"A root URL is built from its key, so a root that keeps its key keeps its broken URL. " +
+	"Then run the install again.";
+
 let temp: string;
 beforeAll(() => {
 	temp = mkdtempSync(join(import.meta.dir, "../../.cache/migrate-table-slug-"));
@@ -57,14 +71,18 @@ test("server builder: migration 0021 names every project that holds the slug, ro
 	// table. /p/TABLE reads TABLE as the table view, so this root has no
 	// page either and the migration must name it too.
 	await seedRoot(db, "TABLE");
-	const failed = migrate(db, journalUntil("many", true));
-	await expect(failed).rejects.toThrow("CDE.table");
-	await expect(failed).rejects.toThrow("TABLE");
-	// openDatabase runs this migration before the server builds its app, so
-	// no API answers while the message stands. It must name SQL, and it must
-	// not name an app action for either kind of project.
-	await expect(failed).rejects.toThrow("UPDATE on its projects row");
-	await expect(failed).rejects.toThrow("the server does not start until the slug is free");
+	let message = "";
+	try {
+		await migrate(db, journalUntil("many", true));
+	} catch (error) {
+		message = (error as Error).message;
+	}
+	// The whole text, not a phrase of it. openDatabase runs this migration
+	// before the server builds its app, so no API answers while the message
+	// stands and every repair it names has to be SQL. A match on a phrase
+	// would still pass if someone added a sentence that names the settings
+	// page, so this asserts the message word for word.
+	expect(message).toBe(HELD_MESSAGE);
 	await db.$client.close();
 }, 120_000);
 
