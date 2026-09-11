@@ -56,15 +56,11 @@ const MOVE_PATH = "/rpc/tickets/move";
 const isMove = (response: Response) =>
 	response.ok() && (response.url().includes(MOVE_PATH) || (response.request().postData() ?? "").includes(MOVE_PATH));
 
-// WT-107. The ticket waits in Human Review. Tab two approves it with `a`;
-// tab one sees Done within 100 ms of the commit. The commit time is read
-// when the move request settles, so the measured gap is never longer than
-// the real one.
 test("live > a ticket change in one tab repaints the ticket page in another inside the budget @timing", async ({
 	page,
 	context,
 }) => {
-	const ticket = createTicket("LIV", `Approve from the other tab ${Date.now()}`);
+	const ticket = createTicket("LIV", `Change status from the other tab ${Date.now()}`);
 	moveTicket(ticket.identifier, "human-review");
 	await page.addInitScript(railProbe);
 	await signIn(page, `/t/${ticket.identifier}`);
@@ -73,9 +69,12 @@ test("live > a ticket change in one tab repaints the ticket page in another insi
 
 	const other = await context.newPage();
 	await signIn(other, `/t/${ticket.identifier}`);
-	await expect(other.getByRole("button", { name: /Approve/ })).toBeVisible();
+	await other
+		.getByLabel("Properties")
+		.getByRole("button", { name: /Human Review/ })
+		.click();
 	const settled = other.waitForResponse(isMove);
-	await other.keyboard.press("a");
+	await other.getByRole("option", { name: "Done", exact: true }).click();
 	await settled;
 	const committedAt = Date.now();
 

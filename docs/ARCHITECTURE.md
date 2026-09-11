@@ -85,6 +85,8 @@ Settings stores the launch-command template. The default opens a Superset termin
 Custom commands run in private tmux sessions that survive a Trellis restart.
 The [agent spec](design/persona-agents.md) defines the behavior.
 
+The Needs you page contains its heading and an empty body. Ticket status changes use the status picker.
+
 ## Database schema
 
 The schema lives in `apps/server/src/db/schema.ts` and
@@ -460,7 +462,7 @@ is no shadcn and no Radix.
 - Dark mode swaps every shadow for a 1 px strong border.
 - Status by category: todo is a faint empty circle, started is a warning half ring, review is an accent dotted ring, done is a success filled check, and canceled is a faint cross.
 - Priority uses bars in `fg-muted`. Urgent is a filled danger square.
-- Motion durations: 120 ms hover, 160 ms popover, 240 ms peek slide, 160 ms row enter, 200 ms approve sweep.
+- Motion durations: 120 ms hover, 160 ms popover, 240 ms peek slide, 160 ms row enter.
 - Never animate a re-sort, a text change, a counter, a skeleton swap, or the theme switch. Use `motion/mini` and CSS transitions only.
 - Focus uses a 2 px accent outline on `:focus-visible`. A row or a card uses an inset left bar.
 - The primitives are Button, IconButton, Input, Textarea, Select, Popover, Menu, Dialog, Sheet, Tooltip, Toast, Tabs, Segmented, Checkbox, Switch, Badge, Chip, Avatar, Kbd, Skeleton, ScrollArea, Separator, EmptyState, and Command.

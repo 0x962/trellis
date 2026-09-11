@@ -59,8 +59,6 @@ export const shortcuts: readonly Shortcut[] = [
 	{ id: "listGroups", keys: "1-9", scope: "list", label: "Collapse or expand a group (1 to 9)" },
 	{ id: "boardPrevious", keys: "[", scope: "board", label: "Move the ticket to the column on the left" },
 	{ id: "boardNext", keys: "]", scope: "board", label: "Move the ticket to the column on the right" },
-	{ id: "ticketApprove", keys: "a", scope: "ticket", label: "Approve the ticket" },
-	{ id: "ticketSendBack", keys: "r", scope: "ticket", label: "Send the ticket back" },
 	{ id: "ticketEdit", keys: "e", scope: "ticket", label: "Edit the description" },
 	{ id: "ticketComment", keys: "shift+c", scope: "ticket", label: "Focus the comment box" },
 	{ id: "ticketCopyId", keys: "mod+c", scope: "ticket", label: "Copy the ID" },

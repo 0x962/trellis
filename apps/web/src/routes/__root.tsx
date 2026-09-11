@@ -11,7 +11,6 @@ import { RouteProgress } from "../features/shell/RouteProgress";
 import { ShellFrame } from "../features/shell/ShellFrame";
 import { Sidebar } from "../features/sidebar/Sidebar";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
-import { useFaviconBadge } from "../hooks/useFaviconBadge";
 import type { RouterContext } from "../lib/appContext";
 import { resolveActor } from "../lib/identity";
 
@@ -58,8 +57,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 // before the first load.
 function RootComponent() {
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
-	useDocumentTitle(!bare(pathname));
-	useFaviconBadge(!bare(pathname));
+	useDocumentTitle();
 
 	if (bare(pathname)) {
 		return (

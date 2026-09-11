@@ -10,7 +10,6 @@ import { PullRequests } from "../../prs";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { Description } from "../Description";
 import { Header } from "../Header";
-import { ReviewActions } from "../Header/components/ReviewActions";
 import { PropertiesRail } from "../PropertiesRail";
 import { SubTickets } from "../SubTickets";
 import { Timeline } from "../Timeline";
@@ -99,15 +98,7 @@ export function TicketView({ identifier, variant }: TicketViewProps) {
 						<PropertiesRail ticket={ticket} variant="peek" onAddSubTicket={() => setAddingChild(true)} />
 					</div>
 				)}
-				{(peek || narrow) && (
-					<fieldset
-						aria-label="Ticket actions"
-						data-phone-actions=""
-						className="mt-4 flex flex-wrap items-center gap-2"
-					>
-						<ReviewActions ticket={ticket} />
-					</fieldset>
-				)}
+
 				<div className={inlineRail ? "mt-4" : "mt-3"}>
 					<Description key={ticket.identifier} ticket={ticket} />
 				</div>

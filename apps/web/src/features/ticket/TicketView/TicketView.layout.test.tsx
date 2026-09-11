@@ -32,15 +32,14 @@ test("the peek uses a bounded main column beside the property rail", async () =>
 	expect(body.compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
 });
 
-test("the peek keeps review actions in a separate row from navigation", async () => {
+test("the peek keeps navigation without an approval bar", async () => {
 	mountPeek();
-	const approve = await screen.findByRole("button", { name: /^Approve/ });
+	await screen.findByRole("textbox", { name: "Title" });
 	const header = screen.getByLabelText("Ticket header");
-	expect(header.contains(approve)).toBe(false);
+	expect(screen.queryByRole("button", { name: /^Approve/ })).toBeNull();
 	expect(within(header).getByRole("button", { name: "Close" })).toBeDefined();
 	expect(within(header).getByRole("button", { name: "Expand to the full page" })).toBeDefined();
-	const actions = screen.getByRole("group", { name: "Ticket actions" });
-	expect(actions.contains(approve)).toBe(true);
+	expect(screen.queryByRole("group", { name: "Ticket actions" })).toBeNull();
 });
 
 test("the peek shows all properties in the right rail", async () => {

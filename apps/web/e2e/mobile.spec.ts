@@ -7,7 +7,7 @@ const titles = {
 	"MOB-2": "Wait for a person to review this on the phone",
 } as const;
 
-// A phone in portrait. MOB-2 waits in Human Review, so Needs you lists it.
+// A phone in portrait.
 test.use({ viewport: { width: 390, height: 844 } });
 
 test.beforeAll(() => {
@@ -27,7 +27,7 @@ const sidewaysScroll = (page: Page) =>
 
 // Each route with the element that shows its content has painted.
 const routes: Array<[string, (page: Page) => Locator]> = [
-	["/needs-you", (page) => page.getByText(titles["MOB-2"])],
+	["/needs-you", (page) => page.getByRole("heading", { name: "Needs you", exact: true })],
 	["/search", (page) => page.getByRole("main").getByRole("searchbox")],
 	["/all", (page) => page.locator('[role="row"][data-identifier]').first()],
 	["/p/MOB", (page) => rowOf(page, "MOB-1")],

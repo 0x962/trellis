@@ -6,7 +6,6 @@ import { useExpandedPr } from "../../../hooks/useExpandedPr";
 import { CheckCountPill } from "./components/CheckCountPill";
 import { CheckRows } from "./components/CheckRows";
 import { DiffLink } from "./components/DiffLink";
-import { MergedNudge } from "./components/MergedNudge";
 import { PrActions } from "./components/PrActions";
 import { PrStateIcon } from "./components/PrStateIcon";
 
@@ -121,7 +120,6 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 					<PrActions ticket={ticket} pr={pr} />
 				</div>
 			</div>
-			<MergedNudge ticket={ticket} pr={pr} />
 		</div>
 	);
 }
