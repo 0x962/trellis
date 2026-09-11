@@ -6,7 +6,9 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 
 - Every change is test-driven. Write a failing test for the outcome first. Make it pass. Never delete or weaken a test.
 - A change without a test does not merge.
-- Run `bun run check` before you open a pull request and report its output. It runs lint, typecheck, every test, the web size budget (`size-budget`), and the 10k perf suite (`perf:10k`).
+- Run the tests of the code you changed while you work: `bun test src/features/board` in the workspace you are in, not the whole suite. The full run takes minutes, and it tells you nothing that the files you touched do not.
+- Run `bun run check` once, before you open a pull request, and report its output. It runs lint, typecheck, every test, the web size budget (`size-budget`), and the 10k perf suite (`perf:10k`).
+- Run a component test from its own workspace, such as `packages/ui`. The DOM setup is per workspace, and a run from the repo root fails with `document is not defined`.
 - Make small commits. The commit subject states the result that a user sees.
 - Every pull request description states what broke, what changed, and one verification sentence. No headers, no tables, no checklists.
 - Pin exact versions when you add a dependency. Prefer the current release on npm.

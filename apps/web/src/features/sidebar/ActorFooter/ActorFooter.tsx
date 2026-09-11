@@ -52,7 +52,7 @@ export function ActorFooter() {
 	};
 
 	return (
-		<div className="mt-auto flex items-center gap-0.5 border-t border-border pt-2">
+		<div className="flex items-center gap-0.5 border-t border-border pt-2">
 			<Popover
 				open={open}
 				onOpenChange={onOpenChange}
@@ -64,7 +64,6 @@ export function ActorFooter() {
 					>
 						<Avatar kind="human" name={actor.name} />
 						<span className="truncate font-medium text-fg">{actor.name}</span>
-						<span className="text-sm text-fg-muted">human</span>
 					</button>
 				}
 			>

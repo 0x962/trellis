@@ -1,17 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Badge, cx, IconButton, Kbd, TrellisMark } from "@trellis/ui";
-import { Inbox, List, Moon, PanelLeftClose, Plus, Search, Sun } from "lucide-react";
+import { Inbox, List, PanelLeftClose, Plus, Search } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { formatCount } from "../../../../../lib/format";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
-import { toggleTheme, useTheme } from "../../../../../lib/theme";
 import { needsYouCount } from "../../../../needs-you/utils/needsYouCount";
 import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
 import { ProjectTree } from "../../../ProjectTree";
-import { ConnectionDot } from "../ConnectionDot";
+import { ConnectionPanel } from "../ConnectionPanel";
 
 // A row is 28 px tall on a mouse and 44 px on a touch screen, the two hit
 // area minimums of the design checklist.
@@ -58,7 +57,6 @@ export type SidebarBodyProps = {
 export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 	const { live, orpc } = useApp();
 	const status = useLiveStatus(live);
-	const { resolved } = useTheme();
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const inbox = useQuery(orpc.inbox.get.queryOptions({ input: {} }));
@@ -69,14 +67,7 @@ export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 			<div className="mb-1.5 flex h-7 items-center gap-2 pl-2">
 				<TrellisMark />
 				<span className="font-mono text-md font-medium text-fg">trellis</span>
-				<ConnectionDot status={status} />
 				<span className="ml-auto flex items-center">
-					<IconButton
-						size="sm"
-						label={resolved === "dark" ? "Switch to the light theme" : "Switch to the dark theme"}
-						icon={resolved === "dark" ? <Sun /> : <Moon />}
-						onClick={toggleTheme}
-					/>
 					{onCollapse && (
 						<IconButton size="sm" label="Collapse sidebar" icon={<PanelLeftClose />} onClick={onCollapse} />
 					)}
@@ -116,7 +107,10 @@ export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 				<ProjectTree />
 				<ArchivedProjects />
 			</div>
-			<ActorFooter />
+			<div className="mt-auto">
+				<ConnectionPanel status={status} />
+				<ActorFooter />
+			</div>
 		</>
 	);
 }
