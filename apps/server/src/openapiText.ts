@@ -8,7 +8,7 @@ export const ACTOR_HEADER_EXAMPLE = "agent:claude-code";
 
 export const SERVERS = [
 	{ url: "http://127.0.0.1:4521/api", description: "The local server" },
-	{ url: "http://trellis.localhost/api", description: "The same server through the margin gateway" },
+	{ url: "http://trellis.localhost/api", description: "The same server through the localhost gateway" },
 ];
 
 export const TAGS = [
@@ -99,6 +99,7 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 		startWithAgentTemplate: 'claude "$(trellis brief {brief})"',
 		defaultActorName: "navid",
 		stalledHours: 24,
+		diffUrlTemplate: "{url}/files",
 	},
 	"POST /agents/inbox": { project: "CDE" },
 	"POST /agents/register": {

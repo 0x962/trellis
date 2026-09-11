@@ -83,6 +83,14 @@ The ticket page shows:
 
 If the title, the branch, or the body of a pull request contains the ticket identifier, trellis links the pull request to the ticket.
 
+### The diff viewer
+
+Each pull request carries a Show diff control. The setting `diffUrlTemplate` names the address it opens, and `{url}` in the template stands for the URL of the pull request. The default is `{url}/files`, the Files changed tab on GitHub. To open the diff in another viewer, set the template to its address. For [margin](https://github.com/0x962/margin), a local review tool that routes on the whole pull request URL:
+
+```
+http://margin.localhost/{url}
+```
+
 ### Keyboard map
 
 Press `?` in the web app for the full list. `Cmd` is `Ctrl` outside macOS.

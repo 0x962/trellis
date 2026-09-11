@@ -161,13 +161,13 @@ describe("PullRequestRow", () => {
 		expect(screen.queryByRole("button", { name: /#118/ })).toBeNull();
 	});
 
-	// margin is the review surface, so the row sends its diff there.
-	test("offers Show diff, which opens margin at the pull request URL in a new tab", async () => {
+	// The settings name the diff viewer, so the row sends its diff there.
+	test("offers Show diff, which opens the diff of the pull request in a new tab", async () => {
 		const server = createFakeServer();
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
-		const link = within(row).getByRole("link", { name: "Show diff" });
-		expect(link.getAttribute("href")).toBe(`http://margin.localhost/${pr.url}`);
+		const link = await within(row).findByRole("link", { name: "Show diff" });
+		expect(link.getAttribute("href")).toBe(`${pr.url}/files`);
 		expect(link.getAttribute("target")).toBe("_blank");
 		expect(link.getAttribute("rel")).toContain("noopener");
 	});

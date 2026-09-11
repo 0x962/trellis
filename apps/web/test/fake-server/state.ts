@@ -127,6 +127,7 @@ export const createState = (): State => ({
 		startWithAgentTemplate: 'claude "$(trellis brief {brief})"',
 		defaultActorName: "navid",
 		stalledHours: 24,
+		diffUrlTemplate: "{url}/files",
 	},
 	defaultActorStored: false,
 	gh: {

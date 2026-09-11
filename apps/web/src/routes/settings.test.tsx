@@ -105,6 +105,7 @@ describe("settings route", () => {
 			defaultActorName: "Navid",
 			startWithAgentTemplate: 'claude "{brief}"',
 			stalledHours: 24,
+			diffUrlTemplate: "{url}/files",
 		});
 		renderApp({ path: "/settings", actor: "navid", server });
 		await waitFor(async () =>
@@ -138,6 +139,7 @@ describe("settings route", () => {
 			defaultActorName: "Nav",
 			startWithAgentTemplate: 'codex exec "{brief}"',
 			stalledHours: 24,
+			diffUrlTemplate: "{url}/files",
 		});
 	});
 

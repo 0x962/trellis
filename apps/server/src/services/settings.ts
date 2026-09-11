@@ -5,19 +5,27 @@ import { requireActor, type ServiceCtx } from "../context.ts";
 import { rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 
-// The value of every key the table does not hold. `{brief}` in the template
-// stands for the ticket brief the Start-with-agent button inserts.
+// The value of every key the table does not hold. `{brief}` in the agent
+// template stands for the ticket brief the Start-with-agent button inserts.
+// `{url}` in the diff template stands for the URL of the pull request, so
+// the default opens the Files changed tab of that pull request on GitHub.
 export const defaults = (): Settings => ({
 	startWithAgentTemplate: 'claude "$(trellis brief {brief})"',
 	defaultActorName: userInfo().username,
 	stalledHours: 24,
+	diffUrlTemplate: "{url}/files",
 });
 
-const KEYS = ["startWithAgentTemplate", "defaultActorName", "stalledHours"] as const satisfies (keyof Settings)[];
+const KEYS = [
+	"startWithAgentTemplate",
+	"defaultActorName",
+	"stalledHours",
+	"diffUrlTemplate",
+] as const satisfies (keyof Settings)[];
 
 // One row per key with a jsonb value; a key the table lacks reads as its
 // default. The table holds other keys too, such as the agent settings, so
-// the read names its three keys.
+// the read names its own keys.
 export const get = async (_ctx: ServiceCtx, tx: Tx): Promise<Settings> => {
 	const stored = await rows<{ key: string; value: unknown }>(
 		tx,
@@ -28,7 +36,7 @@ export const get = async (_ctx: ServiceCtx, tx: Tx): Promise<Settings> => {
 	return result as Settings;
 };
 
-// Replaces the three values. Every row takes `updated_at = ctx.now`, also a
+// Replaces every value. Every row takes `updated_at = ctx.now`, also a
 // row whose value stays. A settings write is not activity: no activity row,
 // no event.
 export const set = async (ctx: ServiceCtx, tx: Tx, input: SettingsSetInput): Promise<Settings> => {
