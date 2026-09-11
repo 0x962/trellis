@@ -173,6 +173,78 @@ test("a search result gives the title half of the 390 px row", async ({ page }) 
 	expect(await sidewaysScroll(page)).toEqual({ page: 0, main: 0 });
 });
 
+// TRL-36. The list bar under the table and under the board is a fixed 28 px.
+// The probe reads the bar's own overflow, the way the audit measured it: a
+// span that wraps makes `scrollHeight` taller than `clientHeight`, and the
+// second line then falls outside the bar. It also returns the bar's box, so
+// the test can check what sits above it.
+const footerOverflow = (page: Page) =>
+	page.evaluate(() => {
+		const bar = document.querySelector<HTMLElement>("[data-list-footer]")!;
+		const box = bar.getBoundingClientRect();
+		const wraps = [...bar.querySelectorAll("span")].filter(
+			(span) => getComputedStyle(span).whiteSpace !== "nowrap" && span.textContent !== "",
+		);
+		return {
+			scrollHeight: bar.scrollHeight,
+			clientHeight: bar.clientHeight,
+			top: box.top,
+			height: Math.round(box.height),
+			// `innerText` leaves out a span that `display: none` removes, so it
+			// reads what a person sees and `textContent` does not.
+			text: bar.innerText.trim(),
+			wraps: wraps.length,
+		};
+	});
+
+for (const [name, path, ready] of [
+	["the table", "/all/table", (page: Page) => page.locator('[role="row"][data-identifier]').first()],
+	["the board", "/p/MOB", (page: Page) => cardOf(columnOf(page, "Todo"), "MOB-1")],
+] as const) {
+	test(`the list bar under ${name} holds one line at 390 px`, async ({ page }) => {
+		await signIn(page, path);
+		await expect(ready(page)).toBeVisible();
+		await page.waitForTimeout(400);
+		const bar = await footerOverflow(page);
+		expect(bar.height).toBe(28);
+		expect(bar.scrollHeight).toBe(bar.clientHeight);
+		expect(bar.wraps).toBe(0);
+		// The sort label leaves the bar below 640 px, so the count stands alone.
+		expect(bar.text).not.toContain("Sorted by");
+		expect(bar.text).toMatch(/\d+ (ticket|open)/);
+	});
+}
+
+// TRL-36. The audit shot All tickets, a list of 43 across four projects. The
+// bar there wrapped to two lines, and the second line of each span fell under
+// the bottom edge of the bar and of the page, so a person read "43" with no
+// noun and half of the sort label. Every span the bar shows now sits between
+// the top edge and the bottom edge of the bar.
+test("every span of the list bar sits inside the bar on All tickets at 390 px", async ({ page }) => {
+	await signIn(page, "/all/table");
+	await expect(page.locator('[role="row"][data-identifier]').first()).toBeVisible();
+	await page.waitForTimeout(400);
+	const bar = await page.evaluate(() => {
+		const element = document.querySelector<HTMLElement>("[data-list-footer]")!;
+		const box = element.getBoundingClientRect();
+		const spans = [...element.querySelectorAll("span")]
+			.filter((span) => getComputedStyle(span).display !== "none")
+			.map((span) => {
+				const rect = span.getBoundingClientRect();
+				return { text: span.textContent!, top: rect.top, bottom: rect.bottom };
+			});
+		return { top: box.top, bottom: box.bottom, spans };
+	});
+	// A span is a flex item, so it draws one block box however many lines the
+	// text takes. A second line therefore grows the box past the fixed bar,
+	// which is what these two bounds read.
+	expect(bar.spans.length).toBeGreaterThan(0);
+	for (const span of bar.spans) {
+		expect(span.top).toBeGreaterThanOrEqual(bar.top);
+		expect(span.bottom).toBeLessThanOrEqual(bar.bottom);
+	}
+});
+
 // The properties fold into a grid under the title. The grid spans the
 // ticket column, which keeps a 16 px gutter on each side of the 390 px page.
 test("the ticket page stacks the properties under the title", async ({ page }) => {
