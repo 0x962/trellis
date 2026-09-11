@@ -241,6 +241,33 @@ describe("dispatcher heartbeat", () => {
 		expect(pings).toEqual([CDE]);
 	});
 
+	// The ticket asks the heartbeat to notice a manager that stops answering.
+	// A heartbeat that waits for its own ping notices nothing when that ping
+	// never settles, which happens when the runner waits on a child that does
+	// not exit. So the next beat is armed before the ping starts. The test
+	// runs the armed timer by hand and never waits for the ping.
+	test("the next beat is armed before the ping runs, so a ping that hangs stops one beat only", () => {
+		dispatcher.stop();
+		dispatcher = createDispatcher({
+			bus,
+			clock,
+			scope: (projectId) => [projectId],
+			path: () => "CDE",
+			flush: () => undefined,
+			ping: (projectId) => {
+				pings.push(projectId);
+				return new Promise<void>(() => undefined);
+			},
+		});
+		dispatcher.watch(CDE, HEARTBEAT_MS);
+		const [armed] = clock.timers();
+		expect(armed!.at).toBe(clock.nowMs() + HEARTBEAT_MS);
+		clock.clearTimer(armed!.id);
+		void armed!.fn();
+		expect(pings).toEqual([CDE]);
+		expect(clock.timers().map((timer) => timer.at)).toEqual([clock.nowMs() + HEARTBEAT_MS]);
+	});
+
 	test("unwatch and stop clear the heartbeat", async () => {
 		dispatcher.watch(CDE, HEARTBEAT_MS);
 		dispatcher.watch(OPS, HEARTBEAT_MS);

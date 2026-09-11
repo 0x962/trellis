@@ -1,4 +1,9 @@
-import type { AgentProjectSettings, AgentSettings, AgentSettingsSetInput } from "@trellis/api";
+import {
+	type AgentProjectSettings,
+	type AgentSettings,
+	AgentSettingsSchema,
+	type AgentSettingsSetInput,
+} from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { runnerUnavailable } from "../agents/runner.ts";
 import { requireActor, type ServiceCtx } from "../context.ts";
@@ -16,9 +21,13 @@ const KEY = "agents";
 // project has a manager.
 export const DEFAULT_AGENT_SETTINGS: AgentSettings = { runner: "superset", enabled: false, projects: [] };
 
+// The stored value goes through the schema, so a row written before a field
+// existed reads back with that field's default. Without the parse, a reader
+// gets undefined where the contract promises a number, and every caller
+// that does arithmetic on it gets NaN.
 export const readAgentSettings = async (tx: Tx): Promise<AgentSettings> => {
-	const [stored] = await rows<{ value: AgentSettings }>(tx, sql`SELECT value FROM settings WHERE key = ${KEY}`);
-	return stored === undefined ? DEFAULT_AGENT_SETTINGS : stored.value;
+	const [stored] = await rows<{ value: unknown }>(tx, sql`SELECT value FROM settings WHERE key = ${KEY}`);
+	return stored === undefined ? DEFAULT_AGENT_SETTINGS : AgentSettingsSchema.parse(stored.value);
 };
 
 export const get = (_ctx: ServiceCtx, tx: Tx) => readAgentSettings(tx);

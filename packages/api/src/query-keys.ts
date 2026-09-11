@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/query-core";
 import { dropTicketQueries } from "./dropTicketQueries.ts";
-import { EventSchema, type TrellisEvent } from "./events.ts";
+import { EventSchema } from "./events.ts";
 import {
 	createInvalidationCoalescer,
 	family,
@@ -25,14 +25,7 @@ import {
 	toChange,
 	toResultChange,
 } from "./ticketChanges.ts";
-import {
-	holdsTicketRow,
-	holdsTicketRows,
-	isCounts,
-	isDetail,
-	patchTicketQuery,
-	type TicketChange,
-} from "./ticketPatches.ts";
+import { holdsTicketRow, holdsTicketRows, isCounts, isDetail, patchTicketQuery } from "./ticketPatches.ts";
 import { createTombstones } from "./tombstones.ts";
 
 export { INBOX_MAX_WAIT_MS, INBOX_TRAILING_MS, MAX_WAIT_MS, TRAILING_MS } from "./invalidationCoalescer.ts";

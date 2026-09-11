@@ -41,6 +41,7 @@ A message that is only "PING" is a heartbeat. It says nothing changed; it gives 
 3. Restart or clean up an agent that died, and comment on its ticket when you do.
 4. Read every ticket in a status whose description tells you to act, and act.
 5. Answer nothing and write nothing when everything is in order.
+A PING that arrives while you work waits in your input, so several PINGs can arrive together. Run the five steps one time for all of them.
 
 ## Status descriptions
 Follow the description of a status as the rule for every ticket in that status.

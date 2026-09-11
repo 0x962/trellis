@@ -171,6 +171,25 @@ describe("AgentsSettings", () => {
 		expect(lastSave(server).projects[0]!.heartbeatSeconds).toBeNull();
 	});
 
+	// A refused value stays in the field so a person can correct it. The
+	// switch must not send it: the whole replace would fail on the contract.
+	test("the switch sends the stored interval, not a field value the contract refuses", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		await enableAgents(server, "CDE");
+		render(server);
+		const group = within(await projectGroup("CDE"));
+		const seconds = await group.findByRole("spinbutton", { name: "Ping seconds" });
+		await commit(user, seconds, "5");
+		expect(await screen.findByText("Enter a whole number from 15 to 3600.")).toBeDefined();
+		await user.click(group.getByRole("switch", { name: "Heartbeat" }));
+		await waitFor(() => expect(saves(server)).toHaveLength(2));
+		expect(lastSave(server).projects[0]!.heartbeatSeconds).toBeNull();
+		await user.click(group.getByRole("switch", { name: "Heartbeat" }));
+		await waitFor(() => expect(saves(server)).toHaveLength(3));
+		expect(lastSave(server).projects[0]!.heartbeatSeconds).toBe(60);
+	});
+
 	test("a heartbeat that is off disables the seconds field, and turning it on restores 60", async () => {
 		const user = userEvent.setup();
 		const server = createFakeServer();

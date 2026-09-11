@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, test } from "bun:test";
-import { contract } from "@trellis/api";
+import { AgentSettingsSetInputSchema, contract } from "@trellis/api";
 import { buildOpenApiDocument } from "./openapi.ts";
+import { BODY_EXAMPLES } from "./openapiText.ts";
 
 // The generated document is post-processed so an agent that reads
 // /api/openapi.json alone can work: the actor header on every mutation, the
@@ -150,6 +151,16 @@ describe("tags, examples, servers", () => {
 		expect(document.info.version).toMatch(/\S+/);
 		expect(Object.keys(document.paths).length).toBeGreaterThanOrEqual(30);
 		expect(() => JSON.parse(JSON.stringify(document))).not.toThrow();
+	});
+
+	// A body example that omits a field the contract added shows a reader a
+	// body the contract no longer describes in full. Nothing else compares
+	// the examples with the schemas, so the settings example is pinned here:
+	// zod fills no default, which means the example lists every field.
+	test("the agent settings body example lists every field the contract takes", () => {
+		const example = BODY_EXAMPLES["PUT /agents/settings"];
+		const parsed = AgentSettingsSetInputSchema.parse(example);
+		expect(parsed).toEqual(example as typeof parsed);
 	});
 
 	test("a declared contract error appears as its HTTP status response", () => {

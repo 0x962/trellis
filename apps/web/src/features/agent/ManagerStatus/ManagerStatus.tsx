@@ -22,14 +22,21 @@ const newest = (sessions: AgentSession[]) =>
 // heartbeat reached it. An agents.session event refetches agents.sessions
 // and an agents.ping event refetches agents.pings, so both lines follow the
 // manager live.
+//
+// A project whose manager is off shows neither line, so it asks for no
+// ping. The project page of a person who runs no agents therefore makes
+// one request here, not two.
 export function ManagerStatus({ project }: ManagerStatusProps) {
 	const { orpc } = useApp();
 	const root = project.ancestors[0]?.path ?? project.path;
 	const sessions = useQuery(orpc.agents.sessions.queryOptions({ input: { project: root } })).data?.sessions;
-	const pings = useQuery(orpc.agents.pings.queryOptions({ input: { project: root, limit: 1 } })).data?.pings;
-	if (sessions === undefined) return null;
-	const manager = newest(sessions.filter((session) => session.role === "manager"));
+	const manager = sessions === undefined ? undefined : newest(sessions.filter((session) => session.role === "manager"));
 	const on = manager !== undefined && manager.state !== "stopped";
+	const pings = useQuery({
+		...orpc.agents.pings.queryOptions({ input: { project: root, limit: 1 } }),
+		enabled: on,
+	}).data?.pings;
+	if (sessions === undefined) return null;
 	const ping = pings?.[0];
 	const pingLine =
 		ping === undefined ? "No ping yet" : `Last ping ${relativeTime(ping.at)}${ping.restarted ? ", restarted" : ""}`;

@@ -15,8 +15,10 @@ import { resolveProject } from "./refs.ts";
 export const PING_TEXT = "PING";
 
 // `projectId` is the project that owns the manager, which is the project the
-// ping row names.
-export type PingPlan = { id: string; projectId: string; terminalId: string; restarted: boolean };
+// ping row names. `restarted` says this ping started the manager again.
+// `moved` says the manager runs in a terminal the session row does not name
+// yet, which also happens when another wake started it a moment ago.
+export type PingPlan = { id: string; projectId: string; terminalId: string; restarted: boolean; moved: boolean };
 
 export const preparePing = async (ctx: AgentsCtx, input: { project: string }): Promise<PingPlan> => {
 	const found = await findManager(ctx, input.project);
@@ -26,15 +28,16 @@ export const preparePing = async (ctx: AgentsCtx, input: { project: string }): P
 		projectId: found.projectId,
 		terminalId: woken.terminalId,
 		restarted: woken.relaunched,
+		moved: woken.terminalId !== found.manager.terminalId,
 	};
 };
 
 // A ping is not a batch: it sets no `last_woken_at`, so the project header
-// keeps showing when the manager last got real work. The session row
-// changes only when the runner started the manager again, because that
-// manager runs in a new terminal.
+// keeps showing when the manager last got real work. The session row changes
+// only when the manager moved to another terminal, so a manager that answers
+// every ping in place emits no agents.session event.
 export const ping = async (ctx: AgentsCtx, tx: Tx, plan: PingPlan): Promise<AgentPing> => {
-	if (plan.restarted) {
+	if (plan.moved) {
 		await tx.execute(sql`
 			UPDATE agent_sessions SET terminal_id = ${plan.terminalId}, state = 'running', updated_at = ${ctx.now}
 			WHERE id = ${plan.id}

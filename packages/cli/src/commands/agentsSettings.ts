@@ -36,7 +36,9 @@ export const status = defineCommand({
 });
 
 // A project without a settings row gets the contract defaults. The base
-// branch is "main" until a person changes it in the web settings.
+// branch is "main" until a person changes it in the web settings, and
+// heartbeatSeconds 60 is the interval at which the server types PING into
+// the manager's terminal.
 const defaultRow = (projectId: string): AgentProjectSettings => ({
 	projectId,
 	enabled: false,
@@ -44,6 +46,7 @@ const defaultRow = (projectId: string): AgentProjectSettings => ({
 	baseBranch: "main",
 	maxConcurrent: 3,
 	removeWorkspaceOnDone: true,
+	heartbeatSeconds: 60,
 });
 
 // `agents.setSettings` replaces the whole document, so the verb reads it,

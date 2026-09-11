@@ -35,6 +35,26 @@ type WorkspaceInput = {
 
 const isMissing = (error: unknown) => (error as { code?: string }).code === "ENOENT";
 
+// One promise chain per workspace, so two wakes of one manager run in turn.
+// Without it the heartbeat and a batch can both read the same exited
+// terminal and each start a manager, and only one of the two terminals ever
+// gets an agent_sessions row.
+const wakeChains = new Map<string, Promise<unknown>>();
+
+const inTurn = async <T>(key: string, work: () => Promise<T>): Promise<T> => {
+	const queued = (wakeChains.get(key) ?? Promise.resolve()).then(work, work);
+	const settled = queued.then(
+		() => undefined,
+		() => undefined,
+	);
+	wakeChains.set(key, settled);
+	try {
+		return await queued;
+	} finally {
+		if (wakeChains.get(key) === settled) wakeChains.delete(key);
+	}
+};
+
 // Resolves with stdout. A missing binary is the reason `missing`; a nonzero
 // exit is `error`, with what superset printed on stderr.
 const spawnSuperset = async (bin: string, args: string[]) => {
@@ -149,24 +169,27 @@ export const createSupersetRunner = ({ bin, url }: { bin: string; url: string })
 		// Superset types the text as a paste and presses Enter. Text typed into
 		// a bare shell would run as a command, so an exited terminal never gets
 		// it; the manager starts again with the text as its prompt instead.
-		wake: async (session, text) => {
-			const tab = (await terminals(session.workspaceId)).find((found) => found.terminalId === session.terminalId);
-			if (tab !== undefined && !tab.exited) {
-				await run([
-					"terminals",
-					"send",
-					"--workspace",
-					session.workspaceId,
-					"--terminal",
-					session.terminalId,
-					"--text",
-					text,
-				]);
-				return { terminalId: session.terminalId, relaunched: false };
-			}
-			const command = managerCommand(session.project, session.claudeSessionId, text);
-			return { terminalId: await newTerminal(session.workspaceId, command), relaunched: true };
-		},
+		//
+		// `session.terminalId` can name a terminal that another wake replaced a
+		// moment ago, because that wake writes its agent_sessions row after it
+		// returns. The manager tab keeps the title `agentTitle` gives it, so a
+		// live tab with that title is this manager whatever the row says.
+		wake: (session, text) =>
+			inTurn(session.workspaceId, async () => {
+				const tabs = await terminals(session.workspaceId);
+				const named = agentTitle({ role: "manager", project: session.project });
+				const live = tabs.find((tab) => !tab.exited && tab.terminalId === session.terminalId);
+				const found = live ?? tabs.find((tab) => !tab.exited && tab.title === named);
+				if (found !== undefined) {
+					await run([
+						...["terminals", "send", "--workspace", session.workspaceId],
+						...["--terminal", found.terminalId, "--text", text],
+					]);
+					return { terminalId: found.terminalId, relaunched: false };
+				}
+				const command = managerCommand(session.project, session.claudeSessionId, text);
+				return { terminalId: await newTerminal(session.workspaceId, command), relaunched: true };
+			}),
 
 		isAlive: async (ref) =>
 			(await terminals(ref.workspaceId)).some((tab) => tab.terminalId === ref.terminalId && !tab.exited),

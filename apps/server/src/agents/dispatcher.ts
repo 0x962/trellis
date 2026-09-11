@@ -35,6 +35,8 @@ export type DispatcherOptions = {
 	clock: DispatcherClock;
 	scope: (projectId: string) => string[];
 	path: (projectId: string) => string;
+	// Neither may reject: the dispatcher hands the failure to no one. The
+	// agents host logs what the runner refused and returns.
 	flush: (batch: Batch) => void | Promise<void>;
 	ping: (projectId: string) => void | Promise<void>;
 };
@@ -156,9 +158,13 @@ export const createDispatcher = (options: DispatcherOptions): Dispatcher => {
 			watch.heartbeatMs === null ? null : options.clock.setTimer(() => beat(projectId), watch.heartbeatMs);
 	};
 
-	const beat = async (projectId: string) => {
-		await options.ping(projectId);
-		if (watches.has(projectId)) arm(projectId);
+	// Arms the next beat before it pings, the way `flush` arms before it hands
+	// the batch over. A ping that throws, or one that never settles because
+	// the runner waits on a child that does not exit, then stops one beat and
+	// not the heartbeat of the project.
+	const beat = (projectId: string) => {
+		arm(projectId);
+		return options.ping(projectId);
 	};
 
 	const flush = (projectId: string) => {

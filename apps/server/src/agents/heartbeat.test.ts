@@ -70,6 +70,20 @@ describe("agents heartbeat", () => {
 		expect((await a.sessions())[0]!.lastWokenAt).toBeNull();
 	});
 
+	// A settings row written before heartbeatSeconds existed holds no such
+	// field. Without a default the interval is NaN, and a NaN delay runs the
+	// timer every millisecond, so the manager would get PING in a loop.
+	test("a settings row written without heartbeatSeconds reads 60 and beats once a minute", async () => {
+		const project = await a.enable(true, 60);
+		await a.writeRawSettings(project, ["heartbeatSeconds"]);
+		expect((await a.settings()).projects[0]!.heartbeatSeconds).toBe(60);
+		await a.startHost();
+		await a.clock.advance(1_000);
+		expect(a.sent()).toEqual([]);
+		await a.clock.advance(59_000);
+		expect(a.sent()).toEqual(["PING"]);
+	});
+
 	test("no heartbeat runs while the interval is off or the project's manager is off", async () => {
 		const project = await a.enable(true, null);
 		await a.startHost();

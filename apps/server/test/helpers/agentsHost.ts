@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, expect } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
-import type { AgentPing, AgentSession, Project, TrellisEvent } from "@trellis/api";
+import type { AgentPing, AgentSession, AgentSettings, Project, TrellisEvent } from "@trellis/api";
+import { sql } from "drizzle-orm";
 import type { AgentsHost } from "../../src/agents/host.ts";
 import type { InlineTransport } from "../../src/db/transport.ts";
 import { createTestApp, type TestApp } from "./app.ts";
@@ -19,7 +20,9 @@ export const agentsHostHarness = () => {
 	let t: TestApp;
 	let stub: SupersetStubHandle;
 	let clock: FakeTimerClock;
-	let host: AgentsHost;
+	// Undefined until a test calls startHost, so the teardown of a test that
+	// failed before the start has nothing to stop.
+	let host: AgentsHost | undefined;
 	let logs: string[];
 	const events: TrellisEvent[] = [];
 
@@ -29,12 +32,13 @@ export const agentsHostHarness = () => {
 		});
 		t = await createTestApp({ supersetBin: stub.bin });
 		clock = fakeTimerClock(new Date("2026-09-10T12:00:00.000Z"));
+		host = undefined;
 		logs = [];
 		events.length = 0;
 		t.bus.subscribe(({ event }) => void events.push(event));
 	});
 	afterEach(async () => {
-		host.stop();
+		host?.stop();
 		await t.close();
 		stub.restore();
 	});
@@ -68,7 +72,7 @@ export const agentsHostHarness = () => {
 			return clock;
 		},
 		get host() {
-			return host;
+			return host!;
 		},
 		get logs() {
 			return logs;
@@ -95,6 +99,21 @@ export const agentsHostHarness = () => {
 
 		setSettings: (project: Project, global: boolean, heartbeatSeconds: number | null) =>
 			t.api("/api/agents/settings", { method: "PUT", body: settingsFor(project, global, heartbeatSeconds) }),
+
+		settings: async (): Promise<AgentSettings> => (await t.api("/api/agents/settings", { actor: null })).body,
+
+		// Writes the settings jsonb straight to the table, without the keys in
+		// `drop`. A row an older version wrote misses the keys that version did
+		// not have, and only a direct write makes such a row: the PUT route
+		// fills every default the schema declares.
+		writeRawSettings: async (project: Project, drop: string[]) => {
+			const row = settingsFor(project, true, 60).projects[0] as Record<string, unknown>;
+			for (const key of drop) delete row[key];
+			const value = JSON.stringify({ runner: "superset", enabled: true, projects: [row] });
+			await t.db.execute(
+				sql`UPDATE settings SET value = ${value}::jsonb, updated_at = ${new Date()} WHERE key = 'agents'`,
+			);
+		},
 
 		// The sessions `query` selects, such as "project=CDE" or "ticket=CDE-1".
 		sessions: async (query = "project=CDE"): Promise<AgentSession[]> =>

@@ -123,6 +123,7 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 				baseBranch: "main",
 				maxConcurrent: 3,
 				removeWorkspaceOnDone: true,
+				heartbeatSeconds: 60,
 			},
 		],
 	},

@@ -112,7 +112,8 @@ export const services = {
 		prepare: agents.prepareRunnerProjects,
 		run: agents.runnerProjects,
 	} as ServiceEntry,
-	// The agents host runs these two at its start. They are not on the API.
+	// The agents host calls these three itself, not the API: the first two at
+	// its start, and agents.ping on each project's heartbeat interval.
 	"agents.reconcile": runner(agents.prepareReconcile, agents.reconcile),
 	"agents.ensureManager": runner(agents.prepareManager, agents.recordManager),
 	"agents.ping": runner(agents.preparePing, agents.ping),

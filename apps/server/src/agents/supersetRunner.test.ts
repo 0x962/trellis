@@ -212,6 +212,29 @@ describe("wake", () => {
 		const command = flagOf(stub.callsOf("terminals create")[0]!, "--command");
 		expect(command).toBe(agentLaunch({ role: "manager", project: "CDE", url }).command);
 	});
+
+	// The heartbeat and a batch both wake one manager. Each reads the session
+	// row, which still names the exited terminal until the first of the two
+	// commits, so both would start a manager and only one would get the row.
+	test("two wakes of one dead manager start it once and the second types into the new terminal", async () => {
+		const started = await runner.ensureManager(manager);
+		stub.exit(started.terminalId);
+		const session = {
+			project: "CDE",
+			workspaceId: started.workspaceId,
+			terminalId: started.terminalId,
+			claudeSessionId: "c-9",
+		};
+		const [first, second] = await Promise.all([
+			runner.wake(session, "PING"),
+			runner.wake(session, "trellis: 1 change"),
+		]);
+		expect(stub.callsOf("terminals create")).toHaveLength(1);
+		expect([first!.relaunched, second!.relaunched].sort()).toEqual([false, true]);
+		expect(first!.terminalId).toBe(second!.terminalId);
+		expect(first!.terminalId).not.toBe(started.terminalId);
+		expect(stub.terminal(first!.terminalId).sent).toEqual(["trellis: 1 change"]);
+	});
 });
 
 describe("isAlive, stop, removeWorkspace", () => {

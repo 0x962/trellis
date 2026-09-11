@@ -73,6 +73,7 @@ describe("the manager prompt", () => {
 			"3. Restart or clean up an agent that died, and comment on its ticket when you do.",
 			"4. Read every ticket in a status whose description tells you to act, and act.",
 			"5. Answer nothing and write nothing when everything is in order.",
+			"several PINGs can arrive together. Run the five steps one time for all of them.",
 		]);
 	});
 

@@ -69,7 +69,8 @@ export function AgentProjectRow({ project, runner }: AgentProjectRowProps) {
 	};
 
 	// A heartbeat that is off stores null, so the field keeps showing the
-	// interval the switch puts back.
+	// interval the switch puts back. The switch saves the stored interval and
+	// never the text in the field, which `commitSeconds` may have refused.
 	const heartbeatOn = row.heartbeatSeconds !== null;
 	const shownSeconds = seconds ?? String(row.heartbeatSeconds ?? defaultSeconds);
 
@@ -137,7 +138,7 @@ export function AgentProjectRow({ project, runner }: AgentProjectRowProps) {
 					label="Heartbeat"
 					checked={heartbeatOn}
 					className="cursor-pointer"
-					onCheckedChange={(on) => save({ heartbeatSeconds: on ? Number(shownSeconds) : null })}
+					onCheckedChange={(on) => save({ heartbeatSeconds: on ? (row.heartbeatSeconds ?? defaultSeconds) : null })}
 				/>
 				<Input
 					label="Ping seconds"

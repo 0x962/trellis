@@ -84,6 +84,22 @@ describe("ManagerStatus", () => {
 		await waitFor(async () => expect(within(await status()).getByText("Exited")).toBeDefined());
 	});
 
+	// The project page is on the paint path. A project whose manager is off
+	// shows no ping line, so it must not pay for a ping request.
+	test("asks for no ping while the manager is off, and asks once while it runs", async () => {
+		const off = createFakeServer();
+		const view = await mount(off);
+		expect(await within(await status()).findByText("Off")).toBeDefined();
+		expect(off.callsTo("agents.pings")).toHaveLength(0);
+		view.unmount();
+
+		const running = createFakeServer();
+		addSession(running, { role: "manager" });
+		await mount(running);
+		expect(await within(await status()).findByText("Running")).toBeDefined();
+		await waitFor(() => expect(running.callsTo("agents.pings")).toHaveLength(1));
+	});
+
 	// The heartbeat pings the manager while nothing changes, so the last ping
 	// says the manager is reachable even when the last batch is old.
 	test("shows the last ping beside the last batch", async () => {

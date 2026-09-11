@@ -72,7 +72,11 @@ export type Runner = {
 	startReviewer: (input: ReviewerStart) => Promise<{ terminalId: string }>;
 	// Types `text` into the manager's terminal. A manager whose terminal
 	// exited or closed starts again in a new terminal; `relaunched` is then
-	// true and `terminalId` names the new terminal.
+	// true and `terminalId` names the new terminal. Two wakes of one manager
+	// run in turn, so only the first of them starts the manager again and the
+	// second types into the terminal the first one made. `terminalId` can
+	// therefore differ from the one the caller passed while `relaunched` is
+	// false.
 	wake: (session: ManagerSession, text: string) => Promise<{ terminalId: string; relaunched: boolean }>;
 	isAlive: (ref: TerminalRef) => Promise<boolean>;
 	terminals: (workspaceId: string) => Promise<TerminalState[]>;

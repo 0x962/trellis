@@ -32,6 +32,7 @@ export const projectSettings = (overrides: Overrides = {}) => ({
 	baseBranch: "main",
 	maxConcurrent: 3,
 	removeWorkspaceOnDone: true,
+	heartbeatSeconds: 60,
 	...overrides,
 });
 
