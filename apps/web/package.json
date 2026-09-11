@@ -8,7 +8,7 @@
 		"dev": "vite",
 		"dev:fake": "bun test/fake-server/serve.ts",
 		"build": "NODE_ENV=production vite build",
-		"test": "bun test .test. --isolate",
+		"test": "bun test .test. --parallel",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"lint": "biome check .",
 		"e2e": "playwright test -c e2e/playwright.config.ts",

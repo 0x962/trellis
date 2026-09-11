@@ -288,6 +288,18 @@ describe("root scaffold", () => {
 		}
 	});
 
+	// The preload gives a process its own HOME, TRELLIS_HOME, and PATH, so a
+	// test file is safe in a process of its own. --parallel spreads those
+	// processes over every core and implies --isolate. apps/server runs every
+	// file in one process instead, because its tests bind port 4521, take the
+	// lock on the data home, and spawn a worker; two such tests at the same
+	// time fail.
+	test("apps/web runs its test files on every core", async () => {
+		const web = await json("apps/web/package.json");
+		expect(web.name).toBe("@trellis/web");
+		expect(web.scripts.test).toBe("bun test .test. --parallel");
+	});
+
 	// apps/server is the first app. turbo runs `bun test` inside it, so its
 	// bunfig.toml must carry the shared preload like every other workspace.
 	test("every workspace ships a bunfig.toml with the shared preload", async () => {
