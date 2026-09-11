@@ -14,6 +14,7 @@ describe("errors", () => {
 			["AGENT_CANNOT_DELETE", 403],
 			["COMMENT_HAS_REPLIES", 409],
 			["COMMENT_PARENT_MISMATCH", 409],
+			["CONCURRENCY_LIMIT", 409],
 			["CROSS_ROOT_MOVE", 409],
 			["DUPLICATE", 409],
 			["GH_UNAVAILABLE", 503],
@@ -29,6 +30,7 @@ describe("errors", () => {
 			["PROJECT_ARCHIVED", 409],
 			["PROJECT_NOT_EMPTY", 409],
 			["ROOT_STATUSES", 409],
+			["RUNNER_UNAVAILABLE", 503],
 			["STATUS_CATEGORY_IMMUTABLE", 409],
 			["STATUS_IN_USE", 409],
 			["STATUS_NOT_IN_PROJECT", 409],
@@ -53,5 +55,18 @@ describe("errors", () => {
 			expect(schema.safeParse(payload).success, code).toBe(true);
 			expect(schema.safeParse({}).success, code).toBe(false);
 		}
+	});
+
+	// The manager reads `reason` to decide between a retry, a comment, and a
+	// wait. `running` against `limit` is what the queued comment quotes.
+	test("the runner errors carry a closed reason and the limit with the running count", () => {
+		for (const reason of ["missing", "disabled", "unmapped", "error"]) {
+			expect(errors.RUNNER_UNAVAILABLE.data.safeParse({ reason }).success, reason).toBe(true);
+		}
+		expect(errors.RUNNER_UNAVAILABLE.data.safeParse({ reason: "busy" }).success).toBe(false);
+		expect(errors.RUNNER_UNAVAILABLE.data.safeParse({}).success).toBe(false);
+		expect(errors.CONCURRENCY_LIMIT.data.safeParse({ limit: 3, running: 3 }).success).toBe(true);
+		expect(errors.CONCURRENCY_LIMIT.data.safeParse({ limit: 0, running: 0 }).success).toBe(false);
+		expect(errors.CONCURRENCY_LIMIT.data.safeParse({ limit: 3 }).success).toBe(false);
 	});
 });

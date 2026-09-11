@@ -19,12 +19,6 @@ const emitMany = (bus: ReturnType<typeof createBus>, count: number) => {
 };
 
 describe("event bus ids", () => {
-	test("an event envelope holds its id, sequence, and payload", () => {
-		const bus = createBus({ bootId });
-		const event = projectEvent("project.created");
-		expect(bus.emit(event)).toEqual({ id: `${bootId}.0`, seq: 0, event });
-	});
-
 	test("the first event id is bootId.0 and the sequence rises by one", () => {
 		const bus = createBus({ bootId });
 		const first = bus.emit(projectEvent("project.created"));

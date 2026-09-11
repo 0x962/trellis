@@ -29,6 +29,8 @@ const exitCodes: Record<ErrorCode, number> = {
 	VERSION_CONFLICT: 4,
 	PAYLOAD_TOO_LARGE: 4,
 	GH_UNAVAILABLE: 6,
+	CONCURRENCY_LIMIT: 4,
+	RUNNER_UNAVAILABLE: 6,
 };
 
 // An error the contract does not declare comes from a crashed handler, so it
@@ -97,7 +99,10 @@ const detail = (code: string, message: string, data: Data): string => {
 		case "PAYLOAD_TOO_LARGE":
 			return `${message} The limit is ${data.maxBytes} bytes.`;
 		case "GH_UNAVAILABLE":
+		case "RUNNER_UNAVAILABLE":
 			return `${message} Reason: ${data.reason}.`;
+		case "CONCURRENCY_LIMIT":
+			return `${message} ${data.running} of ${data.limit} builders are running.`;
 		case "INPUT_VALIDATION_FAILED": {
 			const issues = data.issues as Array<{ path?: Array<string | number>; message: string }>;
 			return `${message} ${issues.map((issue) => `${(issue.path ?? []).join(".")}: ${issue.message}`).join("; ")}`;

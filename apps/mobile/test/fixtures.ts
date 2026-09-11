@@ -120,6 +120,10 @@ export const comment = (overrides: Partial<Comment> = {}): Comment => ({
 	createdAt: ago(2 * hour),
 	updatedAt: ago(2 * hour),
 	...overrides,
+	// `Partial<Comment>` makes each key optional, so a spread key that is
+	// absent would widen the type with `undefined`.
+	parentId: overrides.parentId ?? null,
+	resolvedAt: overrides.resolvedAt ?? null,
 });
 
 export const activity = (overrides: Partial<Activity> = {}): Activity => ({

@@ -38,7 +38,8 @@ export type Deps = {
 	// LaunchAgents directory, the real shim, or the real gateway routes file.
 	home: string;
 	// The path of a program on PATH, with no symlink resolved, or null when
-	// PATH has no such program. install uses this path to keep the Bun symlink.
+	// PATH has no such program. install names the bun and the superset it finds
+	// here.
 	which: (name: string) => string | null;
 	// Starts a program that shares the terminal of the CLI. serve starts the
 	// server through it, so a test records the call and starts nothing.

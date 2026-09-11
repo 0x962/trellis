@@ -50,6 +50,7 @@ const verbs = [
 	"backup",
 	"restore",
 	"export",
+	"agents",
 ];
 
 const globalFlags = ["--json", "--jsonl", "--quiet", "--as", "--url", "--no-color"];
@@ -72,6 +73,7 @@ test("group verbs render their subverbs in --help", () => {
 		projects: ["list", "create", "show", "move", "repos"],
 		statuses: ["list", "add", "edit", "rm", "clear"],
 		pr: ["add", "list", "rm", "refresh", "diff"],
+		agents: ["inbox", "register", "start", "review", "status", "stop", "on", "off"],
 	};
 	for (const [group, subverbs] of Object.entries(groups)) {
 		const { exitCode, stdout } = spawnCli([group, "--help"]);

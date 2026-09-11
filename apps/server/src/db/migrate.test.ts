@@ -2,8 +2,6 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
-import { seedActor, seedProject, seedTicket } from "../../test/fixtures";
-import { assertStatusInvariant } from "../../test/invariants.ts";
 import { openDb } from "./client.ts";
 import { migrate } from "./migrate.ts";
 
@@ -26,6 +24,8 @@ const tables = [
 	"actors",
 	"settings",
 	"personas",
+	"agent_sessions",
+	"agent_cursors",
 ];
 
 const closers: Array<() => Promise<void>> = [];
@@ -75,47 +75,6 @@ describe("migrate", () => {
 	test("migrate creates every table on an empty database", async () => {
 		const db = await openMigrated();
 		expect(await tableNames(db)).toEqual([...tables].sort());
-	});
-
-	test("migrate removes orchestration data and preserves tickets, actors, and other settings", async () => {
-		const temp = mkdtempSync(join(process.env.TRELLIS_HOME as string, "migrate-agents-"));
-		cpSync(drizzleDir, temp, { recursive: true });
-		const journal = readJournal(temp);
-		journal.entries = journal.entries.filter((entry) => entry.idx <= 12);
-		writeFileSync(join(temp, "meta/_journal.json"), JSON.stringify(journal));
-		const db = await openDb(":memory:");
-		closers.push(() => db.$client.close());
-		await migrate(db, temp);
-		const { rootId, statuses } = await seedProject(db);
-		const ticket = await seedTicket(db, { projectId: rootId, rootId, statusId: statuses.todo, number: 1 });
-		await seedActor(db, { name: "builder", kind: "agent" });
-		await db.execute(
-			sql`UPDATE statuses SET description = 'New work. Read it, ask in a comment when it is unclear, then start a builder.' WHERE id = ${statuses.todo}`,
-		);
-		await db.execute(sql`UPDATE statuses SET description = 'Use the release checklist.' WHERE id = ${statuses.done}`);
-		await db.execute(sql`
-			INSERT INTO agent_sessions (id, project_id, role, runner, state, title, name, created_at, updated_at)
-			VALUES ('session-1', ${rootId}, 'manager', 'superset', 'running', 'Manager', 'Amara', now(), now())
-		`);
-		await db.execute(sql`INSERT INTO agent_cursors (project_id, activity_id, updated_at) VALUES (${rootId}, 1, now())`);
-		await db.execute(sql`INSERT INTO settings (key, value, updated_at) VALUES
-			('agents', '{"enabled":true}', now()), ('actor.default', '{"name":"navid"}', now())`);
-
-		await migrate(db);
-
-		expect(await tableNames(db)).toEqual([...tables].sort());
-		expect((await db.execute(sql`SELECT key FROM settings ORDER BY key`)).rows).toEqual([{ key: "actor.default" }]);
-		expect((await db.execute(sql`SELECT id FROM tickets WHERE id = ${ticket}`)).rows).toEqual([{ id: ticket }]);
-		expect((await db.execute(sql`SELECT name, kind FROM actors WHERE name = 'builder'`)).rows).toEqual([
-			{ name: "builder", kind: "agent" },
-		]);
-		expect((await db.execute(sql`SELECT description FROM statuses WHERE id = ${statuses.todo}`)).rows).toEqual([
-			{ description: "Work awaits its start. Clarify the requirements before work starts." },
-		]);
-		expect((await db.execute(sql`SELECT description FROM statuses WHERE id = ${statuses.done}`)).rows).toEqual([
-			{ description: "Use the release checklist." },
-		]);
-		await db.transaction(assertStatusInvariant);
 	});
 
 	test("migrate is idempotent on a second boot", async () => {

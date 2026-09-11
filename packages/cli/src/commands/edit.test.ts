@@ -19,7 +19,6 @@ describe("edit", () => {
 			description: "D",
 			priority: "low",
 			parent: null,
-			ancestors: [],
 			project: "CDE.web",
 			status: "todo",
 			expectedVersion: 3,

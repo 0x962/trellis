@@ -63,6 +63,18 @@ const seedEveryTable = async () => {
 		created_at: new Date(),
 		updated_at: new Date(),
 	});
+	await insertRow(h.db, "agent_sessions", {
+		id: ulid(),
+		project_id: rootId,
+		role: "manager",
+		runner: "superset",
+		state: "running",
+		name: "Alex",
+		title: "CDE manager",
+		created_at: new Date(),
+		updated_at: new Date(),
+	});
+	await insertRow(h.db, "agent_cursors", { project_id: rootId, activity_id: 1, updated_at: new Date() });
 	return { rootId, ticket };
 };
 

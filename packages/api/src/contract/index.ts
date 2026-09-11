@@ -1,5 +1,6 @@
 import { oc } from "@orpc/contract";
 import { actors } from "./actors.ts";
+import { agents } from "./agents.ts";
 import { attachments } from "./attachments.ts";
 import { brief } from "./brief.ts";
 import { comments } from "./comments.ts";
@@ -32,5 +33,6 @@ export const contract = {
 	actors: oc.tag("actors").router(actors),
 	settings: oc.tag("settings").router(settings),
 	system: oc.tag("system").router(system),
+	agents: oc.tag("agents").router(agents),
 };
 export type TrellisContract = typeof contract;

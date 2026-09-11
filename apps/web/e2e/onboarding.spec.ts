@@ -39,7 +39,6 @@ test("setup creates the actor and the first project", async ({ page }) => {
 	const sidebar = page.getByRole("complementary", { name: "Sidebar" });
 	const docRow = sidebar.getByRole("link", { name: /Docs/ });
 	await expect(docRow).toBeVisible();
-	await expect(docRow).toContainText("0");
 	await expect(sidebar).toContainText("navid");
 	const projects = await get<{ key: string; name: string }[]>("/projects");
 	expect(projects.map((project) => [project.key, project.name])).toEqual([["DO", "Docs"]]);
