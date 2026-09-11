@@ -11,6 +11,19 @@
 // box. The spacing token is 4 px, so `inset-1.75` is 7 px. A control whose
 // drawn width follows its content gets a centered layer with a minimum size
 // instead. That hit box is the same for every content width.
+//
+// A layer only wins a hit test where nothing paints over it. Two controls
+// that sit a few px apart each cover the other's layer, and a bar under a
+// control covers the layer below it, so `document.elementFromPoint` there
+// answers the neighbour. A control in a row of controls therefore draws its
+// own 44 px box on a coarse pointer, through `coarseTarget`, and its layer
+// shrinks back to the padding box.
+//
+// The height and the minimum width carry the coarse box: a square control
+// keeps its width from `min-width` and a control with a label keeps the
+// wider of its label and 44 px.
+const coarseTarget = "pointer-coarse:h-11 pointer-coarse:min-w-11 pointer-coarse:before:inset-0";
+
 export const hitArea = {
 	// A 16 px box with no border: the Switch track and the Chip remove button.
 	// Fine: 6 px each side, 16 + 12 = 28. Coarse: 14 px, 16 + 28 = 44.
@@ -20,16 +33,16 @@ export const hitArea = {
 	box16Bordered: "relative before:absolute before:-inset-1.75 pointer-coarse:before:-inset-3.75",
 	// A 24 px tall box with a 1 px border: IconButton sm. The
 	// padding box is 22 px tall and at least 22 px wide.
-	// Fine: 3 px each side, 22 + 6 = 28. Coarse: 11 px, 22 + 22 = 44.
-	box24Bordered: "relative before:absolute before:-inset-0.75 pointer-coarse:before:-inset-2.75",
+	// Fine: 3 px each side, 22 + 6 = 28. Coarse: the drawn box is 44.
+	box24Bordered: `relative before:absolute before:-inset-0.75 ${coarseTarget}`,
 	// A 28 px tall box with a 1 px border: Button sm, IconButton md, the Select
 	// trigger, and the Menu trigger. The padding box is 26 px tall and at least
-	// 26 px wide. Fine: 0, the drawn box is 28. Coarse: 9 px, 26 + 18 = 44.
-	box28Bordered: "relative before:absolute before:inset-0 pointer-coarse:before:-inset-2.25",
+	// 26 px wide. Fine: 0, the drawn box is 28. Coarse: the drawn box is 44.
+	box28Bordered: `relative before:absolute before:inset-0 ${coarseTarget}`,
 	// A 32 px tall box with a 1 px border: Button md. The padding box is 30 px
 	// tall and at least 26 px wide. Fine: 0, the drawn box is 28 x 32.
-	// Coarse: 9 px, 26 + 18 = 44 wide and 30 + 18 = 48 tall.
-	box32Bordered: "relative before:absolute before:inset-0 pointer-coarse:before:-inset-2.25",
+	// Coarse: the drawn box is 44.
+	box32Bordered: `relative before:absolute before:inset-0 ${coarseTarget}`,
 	// A Segmented item: 28 px tall with a 1 px border, pressed against its
 	// neighbours, so the layer grows in height only. The item's own min-width
 	// gives the width: 28 px on a fine pointer and 44 px on a coarse pointer.

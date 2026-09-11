@@ -100,7 +100,12 @@ export function BoardColumn({
 			className={cx("flex min-h-0 shrink-0 snap-start flex-col rounded-lg", well && "bg-band")}
 		>
 			<header
-				className={cx("group/header flex h-9 shrink-0 items-center gap-2 px-2", exceeded ? "text-warning" : "text-fg")}
+				// The header is 48 px on a coarse pointer, so the 44 px plus and
+				// actions buttons stay inside it and never cover the first card.
+				className={cx(
+					"group/header flex h-9 shrink-0 items-center gap-2 px-2 pointer-coarse:h-12",
+					exceeded ? "text-warning" : "text-fg",
+				)}
 			>
 				<StatusIcon category={column.category} reviewer={reviewer} />
 				<h2 className="truncate text-base font-medium">{column.name}</h2>

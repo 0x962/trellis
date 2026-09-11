@@ -1,1 +1,1 @@
-export { GroupHeader, groupHeaderHeight } from "./GroupHeader";
+export { GroupHeader, groupHeaderHeight, phoneGroupHeaderHeight } from "./GroupHeader";

@@ -114,6 +114,7 @@ export const Row = memo(function Row({
 				onOpenChange={editingChange("priority")}
 				onPick={(priority) => change({ priority })}
 				finalFocus={element}
+				className={phone ? "pointer-coarse:size-11" : undefined}
 			/>
 		),
 		id: <span className="font-mono text-sm whitespace-nowrap text-fg-faint tabular">{identifier}</span>,

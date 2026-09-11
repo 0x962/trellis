@@ -95,7 +95,7 @@ export function Header(props: HeaderProps) {
 						event.preventDefault();
 						void router.navigate({ href: back });
 					}}
-					className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-fg-muted hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent md:-ml-2"
+					className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-fg-muted hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:size-11 md:-ml-2"
 				>
 					<ArrowLeft className="size-3.5" aria-hidden="true" />
 				</a>

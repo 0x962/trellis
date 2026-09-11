@@ -13,7 +13,7 @@ import {
 } from "react";
 import type { Density } from "../../../../../stores/uiStore";
 import type { ColumnId } from "../../../columns";
-import { GroupHeader, groupHeaderHeight } from "../../../GroupHeader";
+import { GroupHeader, groupHeaderHeight, phoneGroupHeaderHeight } from "../../../GroupHeader";
 import type { RowSelection } from "../../../hooks/useRowSelection";
 import { type EditField, Row, type RowChange } from "../../../Row";
 import { phoneRowHeight, rowHeights } from "../../../rowHeights";
@@ -49,8 +49,8 @@ export type TableBodyProps = {
 	bottomRoom: boolean;
 };
 
-const heightOf = (item: TableItem, rowHeight: number) =>
-	item.kind === "header" ? groupHeaderHeight : item.kind === "more" ? showMoreHeight : rowHeight;
+const heightOf = (item: TableItem, rowHeight: number, headerHeight: number) =>
+	item.kind === "header" ? headerHeight : item.kind === "more" ? showMoreHeight : rowHeight;
 
 // The scroll container and the virtual list inside it. Every line has a
 // fixed height, so the spacer is the sum of the lines and never moves
@@ -81,6 +81,7 @@ export function TableBody({
 	// Below 768 px every row is two lines, so the row height changes with it.
 	const phone = useMediaQuery("(max-width: 767px)");
 	const rowHeight = phone ? phoneRowHeight : rowHeights[density];
+	const headerHeight = phone ? phoneGroupHeaderHeight : groupHeaderHeight;
 	const [initialRect, setInitialRect] = useState({ width: 0, height: 0 });
 	useLayoutEffect(() => {
 		const { width, height } = viewport.current!.getBoundingClientRect();
@@ -95,7 +96,7 @@ export function TableBody({
 	const virtualizer = useVirtualizer({
 		count: items.length,
 		getScrollElement: () => viewport.current,
-		estimateSize: (index) => heightOf(items[index]!, rowHeight),
+		estimateSize: (index) => heightOf(items[index]!, rowHeight, headerHeight),
 		enabled: initialRect.height > 0,
 		initialRect,
 		observeElementRect: (instance, callback) => {
@@ -117,8 +118,8 @@ export function TableBody({
 	});
 
 	// A density or a width change resizes every line.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: the row height is the trigger; the virtualizer is stable
-	useEffect(() => virtualizer.measure(), [rowHeight]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the line heights are the trigger; the virtualizer is stable
+	useEffect(() => virtualizer.measure(), [rowHeight, headerHeight]);
 
 	useEffect(() => {
 		const id = pendingFocus.current;
@@ -169,6 +170,7 @@ export function TableBody({
 									expanded={group.expanded}
 									onToggle={() => onToggleGroup(group.key)}
 									onCreate={group.status === undefined ? undefined : () => onCreateInGroup(group.status!)}
+									phone={phone}
 									top={virtual.start}
 								/>
 							);

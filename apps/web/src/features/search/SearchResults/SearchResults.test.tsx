@@ -15,45 +15,39 @@ const fixedWidth = (cells: readonly HTMLTableCellElement[]) =>
 		return sum + (match === null ? 0 : Number(match[1]) * 4) + pad;
 	}, 0);
 
-const shown = (cells: readonly HTMLTableCellElement[]) => cells.filter((cell) => !cell.className.includes("hidden"));
-
 const firstRow = async () => {
 	const grid = await screen.findByRole("grid", { name: "Search results" });
 	await waitFor(() => expect(within(grid).getAllByRole("row").length).toBeGreaterThan(0));
 	return within(grid).getAllByRole("row")[0]!;
 };
 
-// TRL-28. `table-fixed` hands the fixed columns their width first, so the
-// title column gets what is left. The whole set is wider than a 390 px
-// phone. Below 640 px the project, the status, and the time leave the row,
-// and the title keeps the space.
+// At 768 px and up a result reads as a table row with the same six columns
+// the ticket table draws. `table-fixed` hands the fixed columns their width
+// first, so the title column gets what is left. The whole fixed set is
+// wider than a 390 px phone, which is why the phone takes the two-line row
+// in SearchResults.phone.test.tsx.
 describe("features/search/SearchResults", () => {
-	test("hides the project, status, and time cells below 640 px", async () => {
+	test("draws six table cells at 768 px and up", async () => {
 		renderApp({ path: "/search?q=oauth", actor: "dana" });
 		const cells = cellsOf(await firstRow());
 		expect(cells).toHaveLength(6);
-		// Priority, ID, and title stay on every width.
-		for (const index of [0, 1, 2]) expect(cells[index]!.className).not.toContain("hidden");
-		// Project, status, and time come back at the sm breakpoint.
-		for (const index of [3, 4, 5]) expect(cells[index]!.className).toContain("hidden sm:table-cell");
+		for (const cell of cells) expect(cell.getAttribute("colspan")).toBeNull();
 	});
 
-	test("leaves the title at least 200 px on a 390 px phone", async () => {
+	test("the fixed columns are wider than a 390 px phone", async () => {
 		renderApp({ path: "/search?q=oauth", actor: "dana" });
-		const cells = cellsOf(await firstRow());
-		expect(fixedWidth(cells)).toBeGreaterThan(390);
-		expect(390 - fixedWidth(shown(cells))).toBeGreaterThanOrEqual(200);
+		expect(fixedWidth(cellsOf(await firstRow()))).toBeGreaterThan(390);
 	});
 
-	// A project result spans the columns the phone drops, so its last cell
-	// leaves the row with them and the columns stay lined up.
-	test("the project row drops the cell that spans the hidden columns", async () => {
+	// A project result spans the columns it has no value for, so the title
+	// column stays lined up with the ticket rows above it.
+	test("the project row spans the columns it leaves empty", async () => {
 		renderApp({ path: "/search?q=trellis", actor: "dana" });
 		const grid = await screen.findByRole("grid", { name: "Search results" });
 		const link = await within(grid).findByRole("link", { name: "TRL" });
 		const cells = cellsOf(link.closest("tr")!);
 		expect(cells).toHaveLength(3);
+		expect(cells[0]!.getAttribute("colspan")).toBe("2");
 		expect(cells[2]!.getAttribute("colspan")).toBe("3");
-		expect(cells[2]!.className).toContain("hidden sm:table-cell");
 	});
 });

@@ -15,8 +15,8 @@ export type IconButtonProps = Omit<ComponentProps<typeof BaseButton>, "children"
 
 // A square button that shows one icon, drawn 28 px at size md and 24 px at
 // size sm. Size sm sits inside rows and headers; next to a Button in a bar
-// it is md. The hit-area layer brings both sizes to the 28 px and 44 px
-// minimums in both axes.
+// it is md. The hit-area layer brings both sizes to the 28 px minimum on a
+// fine pointer, and the size token draws both at 44 px on a coarse one.
 export function IconButton({ label, icon, size = "md", variant = "quiet", className, ...props }: IconButtonProps) {
 	return (
 		<BaseButton

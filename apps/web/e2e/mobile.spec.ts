@@ -28,6 +28,43 @@ const sidewaysScroll = (page: Page) =>
 		return { page: root.scrollWidth - root.clientWidth, main: main.scrollWidth - main.clientWidth };
 	});
 
+// Every control whose tap target is under `min` px, as `tag "label" WxH
+// tall=… wide=…`. The probe hit-tests four points `min / 2` from the centre
+// of a control with `document.elementFromPoint`: a point counts when the
+// topmost element there is the control or something inside it. A ::before
+// hit-area layer therefore counts, and a neighbour that paints over one
+// does not. A control the viewport cuts is left out, and so is a control
+// whose own centre another element covers, because a person can tap
+// neither. A box under 2 px is left out too: Base UI carries the form value
+// of a Segmented item and of a Checkbox in a 1 px input behind the control
+// it draws, and the drawn control is the one this probe measures.
+const tooSmall = (page: Page, min: number) =>
+	page.evaluate((need: number) => {
+		const selector =
+			"button, a[href], [role='button'], input:not([type=hidden]), select, textarea, [role='tab'], [role='menuitem'], [role='option'], [role='switch'], [role='checkbox']";
+		const small: string[] = [];
+		for (const element of document.querySelectorAll(selector)) {
+			const box = element.getBoundingClientRect();
+			if (box.width < 2 || box.height < 2) continue;
+			if (box.top < 0 || box.bottom > innerHeight || box.left < 0 || box.right > innerWidth) continue;
+			const x = box.left + box.width / 2;
+			const y = box.top + box.height / 2;
+			const hits = (px: number, py: number) => {
+				const top = document.elementFromPoint(px, py);
+				return top !== null && (top === element || element.contains(top) || top.contains(element));
+			};
+			if (!hits(x, y)) continue;
+			const tall = hits(x, y - need + 1) && hits(x, y + need - 1);
+			const wide = hits(x - need + 1, y) && hits(x + need - 1, y);
+			if (tall && wide) continue;
+			const label = (element.getAttribute("aria-label") ?? element.textContent ?? "").trim().slice(0, 34);
+			small.push(
+				`${element.tagName.toLowerCase()} "${label}" ${Math.round(box.width)}x${Math.round(box.height)} tall=${tall} wide=${wide}`,
+			);
+		}
+		return [...new Set(small)];
+	}, min / 2);
+
 // Each route with the element that shows its content has painted. The board
 // is the bare path of a project and of All tickets; the table takes the
 // /table segment. Both views of both scopes get the check.
@@ -42,6 +79,16 @@ const routes: Array<[string, (page: Page) => Locator]> = [
 	["/t/MOB-1", (page) => page.getByRole("textbox", { name: "Title" })],
 	["/p/MOB?peek=MOB-1", (page) => peekOf(page, "MOB-1")],
 	["/settings", (page) => page.getByRole("main").getByRole("textbox").first()],
+];
+
+// The screens TRL-31 covers, with the element that shows each one has
+// painted.
+const screens: Array<[string, string, (page: Page) => Locator]> = [
+	["all tickets", "/all/table", (page) => page.locator('[role="row"][data-identifier]').first()],
+	["the project board", "/p/MOB", (page) => cardOf(columnOf(page, "Todo"), "MOB-1")],
+	["the ticket page", "/t/MOB-1", (page) => page.getByRole("textbox", { name: "Title" })],
+	["the ticket panel", "/all/table?peek=MOB-1", (page) => peekOf(page, "MOB-1")],
+	["the search results", "/search?q=phone", (page) => page.getByRole("grid", { name: "Search results" })],
 ];
 
 for (const [route, ready] of routes) {
@@ -109,16 +156,18 @@ test("the board title ends before the view switch at 390 px", async ({ page }) =
 	expect(await sidewaysScroll(page)).toEqual({ page: 0, main: 0 });
 });
 
-// TRL-28. The search row drops the project, the status, and the time below
-// 640 px, so the title keeps the room the fixed columns took.
+// TRL-28 and TRL-31. Below 768 px the search row takes the table's phone
+// treatment: one cell over the whole row, and the title on its own line, so
+// the title keeps the room the fixed columns took.
 test("a search result gives the title half of the 390 px row", async ({ page }) => {
 	await signIn(page, "/search?q=sideways");
 	const row = page.getByRole("grid", { name: "Search results" }).getByRole("row").filter({ hasText: "MOB-1" });
 	await expect(row).toHaveCount(1);
 	const cells = row.locator("td:visible");
-	await expect(cells).toHaveCount(3);
-	await expect(cells.nth(2)).toContainText("Read the ticket page on a phone");
-	const box = (await cells.nth(2).boundingBox())!;
+	await expect(cells).toHaveCount(1);
+	const title = cells.first().locator('[data-line="title"]');
+	await expect(title).toContainText("Read the ticket page on a phone");
+	const box = (await title.boundingBox())!;
 	expect(box.width).toBeGreaterThanOrEqual(200);
 	expect(box.x + box.width).toBeLessThanOrEqual(390);
 	expect(await sidewaysScroll(page)).toEqual({ page: 0, main: 0 });
@@ -152,5 +201,29 @@ test.describe("on a touch screen", () => {
 			.evaluateAll((links) => links.map((link) => Math.round(link.getBoundingClientRect().height)));
 		expect(heights.length).toBeGreaterThanOrEqual(4);
 		expect(heights.filter((height) => height < 44)).toEqual([]);
+	});
+
+	// TRL-31. Every control that a person can reach on a phone takes a tap
+	// 22 px from its centre on all four sides. The probe hit-tests the page
+	// with `document.elementFromPoint`, so it counts a ::before layer and it
+	// also counts an element that paints over one. A rectangle alone answers
+	// neither question.
+	for (const [name, path, ready] of screens) {
+		test(`every control on ${name} takes a tap 44 px wide at 390 px`, async ({ page }) => {
+			await signIn(page, path);
+			await expect(ready(page)).toBeVisible();
+			// The board and the list settle their virtual rows one frame late.
+			await page.waitForTimeout(400);
+			expect(await tooSmall(page, 44)).toEqual([]);
+		});
+	}
+
+	test("every control in the create composer takes a tap 44 px wide at 390 px", async ({ page }) => {
+		await signIn(page, "/p/MOB/table");
+		await expect(rowOf(page, "MOB-1")).toBeVisible();
+		await page.keyboard.press("c");
+		await expect(page.getByRole("dialog")).toBeVisible();
+		await page.waitForTimeout(400);
+		expect(await tooSmall(page, 44)).toEqual([]);
 	});
 });

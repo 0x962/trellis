@@ -26,8 +26,9 @@ const sizes: Record<ButtonSize, string> = {
 
 // The text button. The app has two button heights: sm is 28 px, for rows,
 // bars, and headers, and md is 32 px, for dialogs, forms, and empty
-// states. Both are at least 28 px wide, and the hit-area layer brings both
-// to the 44 px minimum on a coarse pointer.
+// states. Both are at least 28 px wide. On a coarse pointer the size token
+// draws both at 44 px in both axes, so a tap on the edge of one button
+// never lands on the one beside it.
 export function Button({
 	variant = "default",
 	size = "sm",

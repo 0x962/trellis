@@ -16,12 +16,19 @@ export type GroupHeaderProps = {
 	// Opens the composer with the group's value. Absent on a group that
 	// cannot seed a ticket, such as a PR state.
 	onCreate?: () => void;
+	// Below 768 px. The header then takes the taller box, because its
+	// controls draw 44 px there.
+	phone?: boolean;
 	// The offset inside the virtual body.
 	top?: number;
 };
 
 // The fixed height of a group header.
 export const groupHeaderHeight = 32;
+
+// The box below 768 px. The toggle, the "Show n" button, and the plus draw
+// 44 px on a coarse pointer, so the header holds them with 2 px to spare.
+export const phoneGroupHeaderHeight = 48;
 
 // The plus shows on header hover and on keyboard focus inside the header.
 // A touch screen has no hover, so there it always shows.
@@ -40,6 +47,7 @@ export function GroupHeader({
 	expanded,
 	onToggle,
 	onCreate,
+	phone = false,
 	top,
 }: GroupHeaderProps) {
 	const Chevron = expanded ? ChevronDown : ChevronRight;
@@ -49,7 +57,10 @@ export function GroupHeader({
 			role="rowgroup"
 			data-group={group}
 			aria-expanded={expanded}
-			style={{ height: `${groupHeaderHeight}px`, transform: top === undefined ? undefined : `translateY(${top}px)` }}
+			style={{
+				height: `${phone ? phoneGroupHeaderHeight : groupHeaderHeight}px`,
+				transform: top === undefined ? undefined : `translateY(${top}px)`,
+			}}
 			className={cx(
 				"group/header flex w-full items-center gap-2 border-y border-border bg-band px-5",
 				top === undefined ? "relative" : "absolute top-0 left-0",
@@ -58,7 +69,7 @@ export function GroupHeader({
 			<button
 				type="button"
 				onClick={onToggle}
-				className="-ml-1 inline-flex h-7 min-w-7 items-center gap-2 rounded-md px-1 text-sm font-medium text-fg-muted transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+				className="-ml-1 inline-flex h-7 min-w-7 items-center gap-2 rounded-md px-1 text-sm font-medium text-fg-muted transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11 pointer-coarse:min-w-11"
 			>
 				<Chevron aria-hidden="true" className="size-3 text-fg-faint" />
 				{category !== undefined && <StatusIcon category={category} reviewer={status?.reviewer ?? undefined} />}
@@ -72,7 +83,7 @@ export function GroupHeader({
 					<button
 						type="button"
 						onClick={onToggle}
-						className="inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-sm text-fg-faint transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+						className="inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-sm text-fg-faint transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11 pointer-coarse:min-w-11"
 					>
 						Show {formatCount(count)}
 						<ChevronDown aria-hidden="true" className="size-3" />

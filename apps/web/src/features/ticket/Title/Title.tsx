@@ -136,7 +136,9 @@ export function Title({ ticket, autoFocus = false, className }: TitleProps) {
 				onKeyDown={onKeyDown}
 				onPaste={onPaste}
 				onBlur={commit}
-				className="block w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-2xl font-semibold tracking-tight text-fg outline-none [field-sizing:content] focus:outline-none focus-visible:outline-none"
+				// One line of 24 px text is 32 px tall, so a coarse pointer gets
+				// the 44 px minimum from a minimum height.
+				className="block w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-2xl font-semibold tracking-tight text-fg outline-none [field-sizing:content] focus:outline-none focus-visible:outline-none pointer-coarse:min-h-11"
 			/>
 			{conflict !== null && (
 				<ConflictNotice
