@@ -6,5 +6,6 @@ export const runnerReasonLine: Record<RunnerReason, string> = {
 	missing: "trellis cannot find the Superset CLI.",
 	disabled: "Agents are off. Turn them on in Settings.",
 	unmapped: "No Superset project matches this project. Pick one in Settings.",
+	branch: "The repository holds no branch with the name of the base branch. Change it in Settings.",
 	error: "Superset did not answer.",
 };
