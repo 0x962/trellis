@@ -1,11 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { cx } from "@trellis/ui";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Folder } from "lucide-react";
 import { lazy, Suspense } from "react";
-import { formatCount } from "../../../../lib/format";
 import { projectSlashPath } from "../../../../lib/projectPath";
-import { ProjectKey } from "../../../shell/ProjectKey";
 
 const ProjectRowActions = lazy(async () => ({ default: (await import("../../ProjectRowActions")).ProjectRowActions }));
 
@@ -16,7 +14,7 @@ export type TreeRowProps = {
 	active: boolean;
 	// The chevron of a row with children.
 	expander?: { open: boolean; onToggle: () => void };
-	// An archived row reads faint and shows no count.
+	// An archived row uses faint text.
 	archived?: boolean;
 };
 
@@ -24,14 +22,14 @@ export type TreeRowProps = {
 const indent = ["pl-2", "pl-7", "pl-12", "pl-17"] as const;
 
 // The disclosure button is beside the link so expansion does not navigate.
-// The count and menu share the trailing slot. Hover and focus reveal the menu.
+// The trailing slot reserves space for the menu on hover and focus.
 export function TreeRow({ project, depth, active, expander, archived = false }: TreeRowProps) {
 	return (
 		<li
 			className={cx(
 				"group/row relative flex h-8 items-center rounded-md pr-1 transition-colors duration-hover ease-out hover:bg-surface pointer-coarse:h-11",
 				indent[Math.min(depth, indent.length - 1)],
-				active ? "bg-accent-soft sidebar-selected font-medium" : archived ? "text-fg-faint" : "text-fg-muted",
+				active ? "sidebar-selected font-medium" : archived ? "text-fg-faint" : "text-fg-muted",
 			)}
 		>
 			<span
@@ -59,9 +57,9 @@ export function TreeRow({ project, depth, active, expander, archived = false }: 
 				aria-current={active ? "page" : undefined}
 				className="flex h-8 min-w-0 flex-1 items-center rounded-md transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11"
 			>
-				<span data-slot="leading" className="sidebar-leading" title={project.depth === 0 ? project.key : undefined}>
+				<span data-slot="leading" className="sidebar-leading">
 					{project.depth === 0 ? (
-						<ProjectKey projectKey={project.key} className="max-w-7 overflow-hidden px-0.5 text-initials" />
+						<Folder aria-hidden="true" className="size-4" strokeWidth={1.75} />
 					) : (
 						<span aria-hidden="true" className="size-1.5 rounded-sm bg-fg-faint" />
 					)}
@@ -73,18 +71,7 @@ export function TreeRow({ project, depth, active, expander, archived = false }: 
 				>
 					{project.name}
 				</span>
-				<span data-slot="trailing" className="sidebar-trailing">
-					{!archived && (
-						<span
-							className={cx(
-								"text-xs tabular transition-opacity duration-hover ease-out group-focus-within/row:opacity-0 group-hover/row:opacity-0 [@media(hover:none)]:opacity-0",
-								active ? "font-semibold text-accent" : "text-fg-muted",
-							)}
-						>
-							{formatCount(project.openCount)}
-						</span>
-					)}
-				</span>
+				<span data-slot="trailing" className="sidebar-trailing" aria-hidden="true" />
 			</Link>
 			<span
 				data-slot="menu"

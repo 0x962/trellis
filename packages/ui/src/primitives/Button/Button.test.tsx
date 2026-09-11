@@ -23,7 +23,7 @@ describe("Button", () => {
 				<Button size="md">Medium</Button>
 			</>,
 		);
-		expectClasses(screen.getByRole("button", { name: "Primary" }), "bg-accent border-accent");
+		expectClasses(screen.getByRole("button", { name: "Primary" }), "bg-surface border-border-strong text-fg");
 		expectClasses(screen.getByRole("button", { name: "Quiet" }), "border-transparent text-fg-muted");
 		expectClasses(screen.getByRole("button", { name: "Danger" }), "bg-danger");
 		expectClasses(

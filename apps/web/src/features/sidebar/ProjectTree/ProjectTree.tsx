@@ -8,14 +8,13 @@ import { projectRefOfPathname } from "../../../lib/projectPath";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { TreeRow } from "../components/TreeRow";
 
-// Each guide aligns with the center of its parent project's key.
+// Each guide aligns with the center of its parent project's icon.
 const guide = ["before:left-5.5", "before:left-10.5", "before:left-15.5", "before:left-20.5"] as const;
 
 const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.position;
 
-// The project tree in the sidebar. A root row shows its key; a sub-project
-// shares the root key and shows a dot. Every row shows the open count and
-// links to the project's table. Expansion persists in uiStore. A row whose
+// A folder identifies a root project; a dot identifies a sub-project.
+// Each row opens the project. Expansion persists in uiStore. A row whose
 // subtree holds the active project is open whatever the stored state says.
 //
 // The active row follows the page the outlet shows, not the URL of a

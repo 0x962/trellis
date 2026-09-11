@@ -11,10 +11,9 @@
 }
 
 @utility sidebar-section {
-	@apply flex h-8 pointer-coarse:h-11 items-center justify-between pl-2 pr-1 text-xs font-medium text-fg-muted;
+	@apply flex h-8 pointer-coarse:h-11 items-center justify-between pl-2 pr-1 text-base font-semibold text-fg;
 }
 
 @utility sidebar-selected {
-	@apply bg-accent-soft text-fg;
-	box-shadow: inset 2px 0 0 var(--accent);
+	@apply bg-surface text-fg;
 }

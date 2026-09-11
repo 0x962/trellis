@@ -17,7 +17,7 @@ describe("routes/__root", () => {
 		expect(await screen.findByRole("heading", { name: /Needs you/ })).toBeDefined();
 		const sidebar = screen.getByRole("complementary", { name: "Sidebar" });
 		expect(sidebar.tagName).toBe("ASIDE");
-		expect(screen.getByLabelText("Online")).toBeDefined();
+		expect(screen.queryByRole("status", { name: "Server connection" })).toBeNull();
 		expect(document.querySelector('section[aria-label^="Notifications"]')).not.toBeNull();
 		expect(document.querySelector("[data-command-palette]")).not.toBeNull();
 		fireEvent.keyDown(document.body, { key: "g" });
@@ -68,15 +68,15 @@ describe("routes/__root", () => {
 		const sidebar = await screen.findByRole("complementary", { name: "Sidebar" });
 		const needsYou = within(sidebar).getByRole("link", { name: /Needs you/ });
 		const all = within(sidebar).getByRole("link", { name: /All tickets/ });
-		await waitFor(() => expect(needsYou.className).toMatch(/\bbg-accent-soft\b/));
+		await waitFor(() => expect(needsYou.className).toMatch(/\bsidebar-selected\b/));
 		const hold = server.holdNext("tickets.counts");
 		fireEvent.click(all);
 		await waitFor(() => expect(router.state.location.pathname).toBe("/all"));
-		expect(needsYou.className).toMatch(/\bbg-accent-soft\b/);
-		expect(all.className).not.toMatch(/\bbg-accent-soft\b/);
+		expect(needsYou.className).toMatch(/\bsidebar-selected\b/);
+		expect(all.className).not.toMatch(/\bsidebar-selected\b/);
 		act(() => hold.release());
-		await waitFor(() => expect(all.className).toMatch(/\bbg-accent-soft\b/));
-		expect(needsYou.className).not.toMatch(/\bbg-accent-soft\b/);
+		await waitFor(() => expect(all.className).toMatch(/\bsidebar-selected\b/));
+		expect(needsYou.className).not.toMatch(/\bsidebar-selected\b/);
 	});
 
 	// WS-68
