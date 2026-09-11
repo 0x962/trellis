@@ -1,22 +1,10 @@
 // The picture an agent gets instead of initials: a circle filled with soft
 // overlapping color, the way a macro photograph of a flower looks when the
-// lens is wide open and nothing is in focus. The palettes are mid-century
+// lens is wide open and nothing is in focus. The colors are mid-century
 // color field: few colors, close in value, none of them pure.
 //
-// One agent keeps one picture, because the palette and the placement come
-// from its name and not from a random number.
-
-// Four colors per palette: the ground, then three blooms over it.
-const palettes: readonly (readonly [string, string, string, string])[] = [
-	["#C96F4A", "#E8A87C", "#8C3B24", "#F2D8C2"],
-	["#3F5E78", "#7FA6C4", "#22384A", "#CFE0EC"],
-	["#7C6A9C", "#B9A3D4", "#4A3B66", "#E3D8F0"],
-	["#5B7F5A", "#9CBE8C", "#33512F", "#DDE9CE"],
-	["#B5563F", "#E2856B", "#6E2A1C", "#F6D3C1"],
-	["#C9A227", "#E8CE72", "#8A6B12", "#F7EBC0"],
-	["#A64B6B", "#D68CA5", "#6E2540", "#F2CFDC"],
-	["#2F6E6B", "#6FA8A2", "#1B4442", "#C9E3DF"],
-];
+// One agent keeps one picture, because the hue and the placement come from
+// its name and not from a random number.
 
 // FNV-1a. Any change in the name gives a different picture, and the same
 // name always gives the same one.
@@ -32,21 +20,35 @@ const hashOf = (seed: string) => {
 // A number from `hash` in [0, span), stable for one seed and one slot.
 const pick = (hash: number, slot: number, span: number) => Math.floor((hash / 7 ** slot) % span);
 
+// The name picks one angle on the color wheel, and the four colors sit at
+// fixed distances from it. Saturation never passes 48 percent, so no color
+// comes out pure, and the four lightness steps hold the picture together.
+const color = (hue: number, saturation: number, lightness: number, alpha = 1) =>
+	`hsl(${((hue % 360) + 360) % 360} ${saturation}% ${lightness}% / ${alpha})`;
+
 export type AgentGradient = { backgroundColor: string; backgroundImage: string };
 
-// Three radial gradients over a flat ground. Each one fades to transparent
-// well before its edge, so the colors bleed into each other and no line
-// shows. `closest-side` keeps every bloom inside the circle.
+// Three radial gradients over a flat ground. Each one fades to nothing well
+// before its edge, so the colors bleed into each other and no line shows.
+// `closest-side` keeps every bloom inside the circle.
 export const agentGradient = (seed: string): AgentGradient => {
 	const hash = hashOf(seed);
-	const [ground, first, second, third] = palettes[pick(hash, 0, palettes.length)]!;
+	// 72 angles, 5 degrees apart. Two names that land side by side still read
+	// as two hues, and a run of agents covers the whole wheel.
+	const hue = pick(hash, 0, 72) * 5;
+	const blooms: readonly [number, number, number][] = [
+		[hue + 28, 46, 66],
+		[hue - 36, 42, 30],
+		[hue + 74, 30, 82],
+	];
 	const at = (slot: number) => `${20 + pick(hash, slot, 60)}% ${20 + pick(hash, slot + 1, 60)}%`;
 	return {
-		backgroundColor: ground,
-		backgroundImage: [
-			`radial-gradient(closest-side circle at ${at(1)}, ${first} 0%, ${first}00 70%)`,
-			`radial-gradient(closest-side circle at ${at(3)}, ${second} 0%, ${second}00 72%)`,
-			`radial-gradient(closest-side circle at ${at(5)}, ${third} 0%, ${third}00 68%)`,
-		].join(", "),
+		backgroundColor: color(hue, 34, 44),
+		backgroundImage: blooms
+			.map(
+				([bloomHue, saturation, lightness], index) =>
+					`radial-gradient(closest-side circle at ${at(index * 2 + 1)}, ${color(bloomHue, saturation, lightness)} 0%, ${color(bloomHue, saturation, lightness, 0)} ${70 + index * 2}%)`,
+			)
+			.join(", "),
 	};
 };

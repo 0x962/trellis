@@ -1,4 +1,3 @@
-import { randomInt } from "node:crypto";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentRun, AgentRunListInput, AgentRunStartInput, Persona } from "@trellis/api";
@@ -20,24 +19,10 @@ import { projectRow } from "../projectRows.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveProject, resolveTicket } from "../refs.ts";
 import { get as getSettings } from "../settings.ts";
 import type { ServiceCtx } from "../support.ts";
+import { randomAgentName } from "./names.ts";
 import { columns, getRun } from "./queries.ts";
 
 type Ctx = ServiceCtx & { core: CoreCtx; supersetBin: string; localUrl: string };
-const firstNames = ["Ada", "Alma", "Arlo", "Cleo", "Ellis", "Iris", "Jules", "Milo", "Nora", "Rowan", "Sage", "Theo"];
-const lastNames = [
-	"Birch",
-	"Brooks",
-	"Cedar",
-	"Finch",
-	"Fox",
-	"Grove",
-	"Lake",
-	"Moss",
-	"Reed",
-	"Stone",
-	"Vale",
-	"Wren",
-];
 
 export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
@@ -88,7 +73,7 @@ const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
 		)})`,
 	);
 	if (repos.length === 0) throw invalidInput("project", "Add a repository to the project before you start an agent.");
-	const name = `${firstNames[randomInt(firstNames.length)]} ${lastNames[randomInt(lastNames.length)]}`;
+	const name = randomAgentName();
 	await upsert(ctx, tx, actor);
 	const [run] = await rows<AgentRun>(
 		tx,

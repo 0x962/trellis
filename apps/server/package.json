@@ -2,7 +2,7 @@
 	"name": "@trellis/server",
 	"version": "0.0.0",
 	"private": true,
-	"license": "MIT",
+	"license": "Apache-2.0",
 	"type": "module",
 	"scripts": {
 		"dev": "bun --watch src/index.ts",

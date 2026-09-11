@@ -1,0 +1,2 @@
+DROP INDEX "agent_runs_active_ticket_idx";--> statement-breakpoint
+CREATE INDEX "agent_runs_active_ticket_idx" ON "agent_runs" USING btree ("ticket_id") WHERE "agent_runs"."state" IN ('starting', 'interrupted', 'running');

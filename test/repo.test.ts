@@ -146,10 +146,20 @@ describe("root scaffold", () => {
 		expect(lines).toContain(".review/");
 	});
 
-	test("LICENSE is MIT for Navid Khan 2026", async () => {
+	test("LICENSE is Apache 2.0 for Navid Khan 2026", async () => {
 		const license = await text("LICENSE");
-		expect(license).toStartWith("MIT License");
-		expect(license).toContain("2026 Navid Khan");
+		expect(license).toContain("Apache License");
+		expect(license).toContain("Version 2.0, January 2004");
+		expect(license).toContain("Copyright 2026 Navid Khan");
+	});
+
+	// Section 4 of the Apache License makes anyone who redistributes trellis
+	// reproduce the NOTICE file. That file is the only thing that carries the
+	// author credit into a fork, so a build that drops it loses the credit.
+	test("NOTICE names the copyright holder and the project", async () => {
+		const notice = await text("NOTICE");
+		expect(notice).toContain("Copyright 2026 Navid Khan");
+		expect(notice).toContain("https://github.com/0x962/trellis");
 	});
 
 	test("the root docs, changelog, changeset config, and editorconfig exist", async () => {

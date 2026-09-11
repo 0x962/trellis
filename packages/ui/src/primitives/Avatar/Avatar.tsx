@@ -31,7 +31,10 @@ export function Avatar({ kind, name, live = false, className }: AvatarProps) {
 			aria-label={kind === "agent" ? `${name} · agent` : name}
 			style={kind === "agent" ? agentGradient(name) : undefined}
 			className={cx(
-				"relative inline-grid size-4.5 shrink-0 place-items-center overflow-hidden select-none",
+				// The live dot hangs over the top right corner, outside this box, so
+				// this box must let its content spill. The corner radius cuts the
+				// background picture to shape on its own.
+				"relative inline-grid size-4.5 shrink-0 place-items-center select-none",
 				kind === "agent" ? "rounded-sm" : "rounded-sm bg-fg-muted text-surface text-initials font-semibold",
 				className,
 			)}

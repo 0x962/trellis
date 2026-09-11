@@ -18,7 +18,7 @@ const journalBeforeFix = () => {
 	cpSync(drizzleDir, dir, { recursive: true });
 	const file = join(dir, "meta/_journal.json");
 	const journal = JSON.parse(readFileSync(file, "utf8"));
-	journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx < 21);
+	journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx < 22);
 	writeFileSync(file, JSON.stringify(journal));
 	return dir;
 };
