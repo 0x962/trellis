@@ -10,7 +10,7 @@ const reply = {
 	parentId: "01J8Z6X4Q3M2K1H0G9F8E7D6C3",
 	resolvedAt: null,
 	body: "The reply already arrived through the live stream.",
-	actor: { name: "navid", kind: "human" as const },
+	actor: { name: "dana", kind: "human" as const },
 	createdAt: "2026-09-10T12:00:00Z",
 	updatedAt: "2026-09-10T12:00:00Z",
 };

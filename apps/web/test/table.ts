@@ -2,7 +2,7 @@ import { fireEvent, screen, within } from "@testing-library/react";
 import { toast } from "@trellis/ui";
 import { composerActions } from "../src/features/composer/composerStore";
 import { createUiStore, useUiStore } from "../src/stores/uiStore";
-import type { FakeServer } from "./fake-server";
+import type { TestServer } from "./server/index.ts";
 
 // The DOM contract of the ticket table, as the tests read it:
 // - the table is `role="grid"` with `aria-rowcount`; its scroll container
@@ -91,11 +91,11 @@ export const focusRow = (identifier: string) => {
 export const press = (key: string, init: KeyboardEventInit = {}) =>
 	fireEvent.keyDown(document.activeElement ?? document.body, { key, ...init });
 
-export const calls = (server: FakeServer, path: string) => server.calls.filter((call) => call.path.join(".") === path);
+export const calls = (server: TestServer, path: string) => server.calls.filter((call) => call.path.join(".") === path);
 
-export const listCalls = (server: FakeServer) => calls(server, "tickets.list");
+export const listCalls = (server: TestServer) => calls(server, "tickets.list");
 
-export const inputs = (server: FakeServer, path: string) =>
+export const inputs = (server: TestServer, path: string) =>
 	calls(server, path).map((call) => call.input as Record<string, unknown>);
 
 export const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));

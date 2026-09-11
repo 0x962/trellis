@@ -36,6 +36,19 @@ describe("contract", () => {
 			"agentRuns.send POST /agent-runs/{id}/send",
 			"agentRuns.start POST /agent-runs",
 			"agentRuns.stop POST /agent-runs/{id}/stop",
+			"agents.inbox POST /agents/inbox",
+			"agents.overview GET /agents/overview",
+			"agents.register POST /agents/register",
+			"agents.retryManager POST /agents/manager/retry",
+			"agents.runnerHosts GET /agents/runner-hosts",
+			"agents.runnerProjects GET /agents/runner-projects",
+			"agents.sessions GET /agents/sessions",
+			"agents.setSettings PUT /agents/settings",
+			"agents.settings GET /agents/settings",
+			"agents.startBuilder POST /agents/builder",
+			"agents.startReviewer POST /agents/reviewer",
+			"agents.stop POST /agents/sessions/{id}/stop",
+			"agents.wake POST /agents/wake",
 			"attachments.delete DELETE /attachments/{id}",
 			"attachments.get GET /attachments/{id}",
 			"attachments.list GET /tickets/{ticket}/attachments",
@@ -73,6 +86,7 @@ describe("contract", () => {
 			"statuses.reorder PUT /projects/{project}/statuses/order",
 			"statuses.update PATCH /projects/{project}/statuses/{status}",
 			"system.backup POST /backup",
+			"system.chooseDirectory POST /choose-directory",
 			"system.gh GET /gh",
 			"system.health GET /health",
 			"tickets.board GET /tickets/board",
@@ -87,7 +101,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(58);
+		expect(table).toHaveLength(72);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

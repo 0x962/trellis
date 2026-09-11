@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { calls, findGrid, inputs, listCalls, queryRow, resetUi, rowOf, sleep, toastWith } from "../../../../test/table";
 import { tableViewport } from "../../../../test/viewport";
 import { type ComposerOptions, composerActions } from "../composerStore";
@@ -18,8 +18,8 @@ beforeEach(() => {
 // file, so an open composer would trap the keys of the next file's app.
 afterEach(() => act(resetUi));
 
-const open = async (path: string, options: ComposerOptions = {}, server = createFakeServer()) => {
-	const app = renderApp({ path, actor: "navid", server });
+const open = async (path: string, options: ComposerOptions = {}, server = createTestServer()) => {
+	const app = renderApp({ path, actor: "dana", server });
 	await findGrid();
 	act(() => composerActions.open(options));
 	const dialog = await screen.findByRole("dialog", { name: /new ticket/i });
@@ -28,7 +28,7 @@ const open = async (path: string, options: ComposerOptions = {}, server = create
 	return { ...app, dialog, chip, title };
 };
 
-const created = (server: ReturnType<typeof createFakeServer>) => inputs(server, "tickets.create");
+const created = (server: ReturnType<typeof createTestServer>) => inputs(server, "tickets.create");
 
 describe("features/composer/CreateTicketDialog", () => {
 	// Outcome 89. w-160 is 640 px on the 4 px scale. The seed template
@@ -60,7 +60,7 @@ describe("features/composer/CreateTicketDialog", () => {
 		const user = userEvent.setup();
 		const { server, chip, title } = await open("/all/table");
 		expect(chip(/^project/i).textContent).toMatch(/choose|pick|select/i);
-		expect(chip(/^project/i).textContent).not.toMatch(/CDE|TRL|MRG/);
+		expect(chip(/^project/i).textContent).not.toMatch(/CDE|TRL/);
 		await user.type(title(), "Needs a home");
 		await user.keyboard("{Meta>}{Enter}{/Meta}");
 		await sleep(50);
@@ -77,7 +77,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// second ticket, and Create is disabled until the answer arrives.
 	test("creates one ticket for two quick Cmd+Enter presses", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const hold = server.holdNext("tickets.create");
 		const { dialog, title } = await open("/p/CDE/table", {}, server);
 		await user.type(title(), "Only once");
@@ -96,7 +96,7 @@ describe("features/composer/CreateTicketDialog", () => {
 	// a Retry that sends the create again.
 	test("a refused create shows a toast with Retry and keeps the draft", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.failNext("tickets.create", { code: "INPUT_VALIDATION_FAILED" });
 		const { title } = await open("/p/CDE/table", {}, server);
 		await user.type(title(), "Refused once");
@@ -152,18 +152,18 @@ describe("features/composer/CreateTicketDialog", () => {
 		expect(chips()).toEqual(before);
 	});
 
-	// T7 (Navid 8). `c` in a view filtered to Human Review opens with the
+	// T7. `c` in a view filtered to Human Review opens with the
 	// project default status. The test marks In Progress as the default, so
 	// the chip proves that the default flag decides, not the filter.
 	test("c in a filtered view opens with the project default status", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { statuses } = await server.client.statuses.list({ project: "CDE" });
 		const started = statuses.find((status) => status.slug === "in-progress")!;
 		const todo = statuses.find((status) => status.slug === "todo")!;
 		await server.client.statuses.update({ project: "CDE", status: todo.id, isDefault: false });
 		await server.client.statuses.update({ project: "CDE", status: started.id, isDefault: true });
-		renderApp({ path: "/p/CDE/table?status=human-review", actor: "navid", server });
+		renderApp({ path: "/p/CDE/table?status=human-review", actor: "dana", server });
 		await findGrid();
 		await user.keyboard("c");
 		const dialog = await screen.findByRole("dialog", { name: /new ticket/i });
@@ -173,28 +173,29 @@ describe("features/composer/CreateTicketDialog", () => {
 	});
 
 	// T7. A new project keeps the chosen status when it has that slug, and
-	// takes its own default status when it does not. MRG loses Agent Review
-	// here, so the move to MRG falls back to MRG's default, Todo.
+	// takes its own default status when it does not. TRL loses Agent Review
+	// here, so the move to TRL falls back to TRL's default, Todo. CDE.web
+	// inherits the set of CDE, so the move to it keeps Agent Review.
 	test("a project change keeps the status slug when the new project has it", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
-		const mrg = (await server.client.statuses.list({ project: "MRG" })).statuses;
-		const review = mrg.find((status) => status.slug === "agent-review")!;
-		const todo = mrg.find((status) => status.slug === "todo")!;
-		await server.client.statuses.delete({ project: "MRG", status: review.id, moveTo: todo.id });
+		const server = createTestServer();
+		const trl = (await server.client.statuses.list({ project: "TRL" })).statuses;
+		const review = trl.find((status) => status.slug === "agent-review")!;
+		const todo = trl.find((status) => status.slug === "todo")!;
+		await server.client.statuses.delete({ project: "TRL", status: review.id, moveTo: todo.id });
 		const { chip, title } = await open("/p/CDE/table", { status: "agent-review" }, server);
 		await waitFor(() => expect(chip(/^status/i).textContent).toContain("Agent Review"));
 		await user.click(chip(/^project/i));
-		await user.click(await screen.findByRole("option", { name: /TRL/ }));
-		await waitFor(() => expect(chip(/^project/i).textContent).toContain("TRL"));
+		await user.click(await screen.findByRole("option", { name: /^web/ }));
+		await waitFor(() => expect(chip(/^project/i).textContent).toContain("web"));
 		await waitFor(() => expect(chip(/^status/i).textContent).toContain("Agent Review"));
 		await user.click(chip(/^project/i));
-		await user.click(await screen.findByRole("option", { name: /MRG/ }));
+		await user.click(await screen.findByRole("option", { name: /^TRL$/ }));
 		await waitFor(() => expect(chip(/^status/i).textContent).toContain("Todo"));
-		await user.type(title(), "Lands in margin");
+		await user.type(title(), "Lands in trellis");
 		await user.keyboard("{Meta>}{Enter}{/Meta}");
 		await waitFor(() => expect(created(server)).toHaveLength(1));
-		expect(created(server)[0]).toMatchObject({ project: "MRG", status: "todo" });
+		expect(created(server)[0]).toMatchObject({ project: "TRL", status: "todo" });
 	});
 
 	// Outcome 97. In Progress is the group the composer opened from, so the
@@ -221,7 +222,7 @@ describe("features/composer/CreateTicketDialog", () => {
 		expect(screen.queryByRole("dialog", { name: /discard/i })).toBeNull();
 	});
 
-	// product.md 6.1: Esc asks to discard only when the composer holds text.
+	// Esc asks to discard only when the composer holds text.
 	test("asks before it closes a composer with text", async () => {
 		const user = userEvent.setup();
 		const { dialog, title } = await open("/p/CDE/table");

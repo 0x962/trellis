@@ -1,7 +1,7 @@
 import { defineCommand } from "citty";
-import { contextOf } from "../context.ts";
+import { type CliContext, contextOf } from "../context.ts";
 
-export const webUrl = (ticket: string) => `http://trellis.localhost/t/${ticket.toUpperCase()}`;
+export const webUrl = (ctx: CliContext, ticket: string) => `${ctx.publicUrl}/t/${ticket.toUpperCase()}`;
 
 // A ticket ref is upper-case in its canonical spelling, so no request is
 // needed to build the URL.
@@ -13,7 +13,7 @@ export default defineCommand({
 	},
 	run(context) {
 		const ctx = contextOf(context);
-		const url = webUrl(context.args.ticket);
+		const url = webUrl(ctx, context.args.ticket);
 		ctx.out.write(`${url}\n`);
 		if (context.args.browser === true) ctx.deps.open(url);
 	},

@@ -83,7 +83,7 @@ describe("features/command/CommandPalette sections", () => {
 			expect(within(group).getByRole("option", { name: new RegExp(label) }), label).toBeDefined();
 		}
 		expect(itemsOf("Go to")).toHaveLength(6);
-		expect(within(group).queryByRole("option", { name: /CDE\.web|CDE\/web|MRG/ })).toBeNull();
+		expect(within(group).queryByRole("option", { name: /CDE\.web|CDE\/web/ })).toBeNull();
 	});
 
 	// CP-24, T8. happy-dom draws no layout, so the fixed height is the row

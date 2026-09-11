@@ -41,10 +41,10 @@ describe("vite.config", () => {
 		expect(ignore.test("setup.tsx")).toBe(false);
 	});
 
-	// WS-11. `bun run dev` against the fake server sets this variable.
+	// WS-11. A server on another port sets this variable.
 	test("TRELLIS_API_URL overrides both proxy targets", () => {
-		const proxy = proxyOf(createConfig({ TRELLIS_API_URL: "http://127.0.0.1:4522" }));
-		expect(proxy["/api"]!.target).toBe("http://127.0.0.1:4522");
-		expect(proxy["/rpc"]!.target).toBe("http://127.0.0.1:4522");
+		const proxy = proxyOf(createConfig({ TRELLIS_API_URL: "http://127.0.0.1:4599" }));
+		expect(proxy["/api"]!.target).toBe("http://127.0.0.1:4599");
+		expect(proxy["/rpc"]!.target).toBe("http://127.0.0.1:4599");
 	});
 });

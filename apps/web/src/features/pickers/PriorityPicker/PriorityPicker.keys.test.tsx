@@ -8,7 +8,7 @@ const mount = async (user: ReturnType<typeof userEvent.setup>) => {
 	const onPick = mock((_priority: string) => {});
 	renderWithProviders(
 		<PriorityPicker value="medium" onPick={onPick} trigger={<button type="button">Priority</button>} />,
-		{ path: "/p/CDE", actor: "navid" },
+		{ path: "/p/CDE", actor: "dana" },
 	);
 	await user.click(screen.getByRole("button", { name: "Priority" }));
 	const dialog = await screen.findByRole("dialog");

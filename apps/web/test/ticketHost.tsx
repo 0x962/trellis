@@ -3,8 +3,8 @@ import type { Ticket } from "@trellis/api";
 import { Toaster } from "@trellis/ui";
 import type { ReactElement } from "react";
 import { useApp } from "../src/lib/appContext";
-import { createFakeServer } from "./fake-server";
 import { type ProviderOptions, renderWithProviders } from "./renderWithProviders";
+import { createTestServer } from "./server/index.ts";
 
 export type TicketHostOptions = Partial<ProviderOptions>;
 
@@ -16,7 +16,7 @@ export const renderTicket = (
 	render: (ticket: Ticket) => ReactElement,
 	options: TicketHostOptions = {},
 ) => {
-	const server = options.server ?? createFakeServer();
+	const server = options.server ?? createTestServer();
 	function Host() {
 		const { orpc } = useApp();
 		const { data } = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
@@ -27,7 +27,7 @@ export const renderTicket = (
 			<Host />
 			<Toaster />
 		</>,
-		{ path: "/p/CDE", actor: "navid", ...options, server },
+		{ path: "/p/CDE", actor: "dana", ...options, server },
 	);
 };
 

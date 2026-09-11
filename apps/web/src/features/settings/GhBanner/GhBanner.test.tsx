@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import { createEventApplier, type GhStatus } from "@trellis/api";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { GhBanner } from "./GhBanner";
 
 beforeEach(() => {
@@ -11,28 +11,28 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const ready: GhStatus = {
-	ok: true,
-	user: "octocat",
-	reason: null,
-	message: null,
-	checkedAt: new Date(Date.now() - 30_000).toISOString(),
+// The server runs `gh auth status` for every read, so the check time it
+// reports is the instant of the request.
+const ready: GhStatus = { ok: true, user: "octocat", reason: null, message: null, checkedAt: null };
+
+const missing: GhStatus = {
+	ok: false,
+	user: null,
+	reason: "missing",
+	message: "gh is not installed. Install it with `brew install gh` and run `gh auth login`.",
+	checkedAt: new Date().toISOString(),
 };
 
-const withGh = (status: Partial<GhStatus>) => {
-	const server = createFakeServer();
-	server.state.gh = { ...server.state.gh, ...status };
-	return server;
-};
+const withGh = (status: Partial<GhStatus>) => createTestServer({ gh: { ...missing, ...status } });
 
-const render = (server: FakeServer) => renderWithProviders(<GhBanner />, { path: "/settings", actor: "navid", server });
+const render = (server: TestServer) => renderWithProviders(<GhBanner />, { path: "/settings", actor: "dana", server });
 
 describe("GhBanner", () => {
 	// ST-16. A working gh needs no banner, only the state.
 	test("shows the ready state with the user and the check time", async () => {
 		render(withGh(ready));
 		expect(await screen.findByText(/octocat/)).toBeDefined();
-		expect(await screen.findByText(/30s ago/)).toBeDefined();
+		expect(await screen.findByText(/just now/)).toBeDefined();
 		expect(screen.queryByRole("alert")).toBeNull();
 	});
 
@@ -71,7 +71,7 @@ describe("GhBanner", () => {
 		const server = withGh({ ok: false, user: null, reason: "missing", message: null });
 		const { queryClient } = render(server);
 		await screen.findByRole("alert");
-		server.state.gh = ready;
+		server.setGh(ready);
 		createEventApplier(queryClient).applyEvent({ type: "gh.status", ok: true });
 		await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
 		expect(await screen.findByText(/octocat/)).toBeDefined();

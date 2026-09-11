@@ -15,14 +15,17 @@ const linkClass =
 	"inline-flex h-7 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
 // The project path of a page: the root key, then one slug per level. Each
-// segment links to its project; a separator sits between them.
+// segment links to its project; a separator sits between them. The topbar
+// title slot shrinks and the view switch beside it does not, so every box
+// between the slot and the heading carries `min-w-0`. The heading then
+// truncates before it reaches the switch.
 export function Breadcrumb({ path, current }: BreadcrumbProps) {
 	const segments = path.split(".");
 	const linked = current === undefined ? segments : segments.slice(0, -1);
 	const own = current === undefined ? null : segments[segments.length - 1]!;
 	return (
-		<nav aria-label="Breadcrumb">
-			<ol className="flex items-center gap-1">
+		<nav aria-label="Breadcrumb" className="min-w-0">
+			<ol className="flex min-w-0 items-center gap-1">
 				{linked.map((segment, index) => (
 					<Fragment key={segment}>
 						{index > 0 && <Separator />}
@@ -40,7 +43,7 @@ export function Breadcrumb({ path, current }: BreadcrumbProps) {
 				{own !== null && (
 					<>
 						{linked.length > 0 && <Separator />}
-						<li className="flex items-center gap-2">
+						<li className="flex min-w-0 items-center gap-2">
 							{segments.length === 1 && <ProjectKey projectKey={own} />}
 							<h1 className="truncate text-md font-semibold text-fg">{current}</h1>
 						</li>

@@ -2,9 +2,9 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import {
+	dana,
 	insertRow,
 	linkPr,
-	navid,
 	seedActivity,
 	seedAttachment,
 	seedComment,
@@ -53,9 +53,9 @@ const seedEveryTable = async () => {
 	await seedComment(h.db, ticket, "a comment");
 	await seedAttachment(h.db, ticket);
 	const pr = await seedPr(h.db, { number: 12 });
-	await linkPr(h.db, ticket, pr, navid);
+	await linkPr(h.db, ticket, pr, dana);
 	await seedActivity(h.db, { rootId, projectId: rootId, ticketId: ticket });
-	await insertRow(h.db, "settings", { key: "actor.default", value: { name: "navid" }, updated_at: new Date() });
+	await insertRow(h.db, "settings", { key: "actor.default", value: { name: "dana" }, updated_at: new Date() });
 	await insertRow(h.db, "personas", {
 		id: ulid(),
 		name: "Reviewer",
@@ -63,6 +63,18 @@ const seedEveryTable = async () => {
 		created_at: new Date(),
 		updated_at: new Date(),
 	});
+	await insertRow(h.db, "agent_sessions", {
+		id: ulid(),
+		project_id: rootId,
+		role: "manager",
+		runner: "superset",
+		state: "running",
+		name: "Alex",
+		title: "CDE manager",
+		created_at: new Date(),
+		updated_at: new Date(),
+	});
+	await insertRow(h.db, "agent_cursors", { project_id: rootId, activity_id: 1, updated_at: new Date() });
 	await insertRow(h.db, "agent_runs", {
 		id: ulid(),
 		name: "Ada Finch",

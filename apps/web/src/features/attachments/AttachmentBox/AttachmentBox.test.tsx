@@ -2,16 +2,16 @@ import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { dragFilesOver, fileOf } from "../../../../test/attachments";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { callsTo } from "../../../../test/inbox";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { DropTarget } from "../DropTarget";
 import { AttachmentBox } from "./AttachmentBox";
 
 beforeEach(() => localStorage.clear());
 
-const renderBox = (server: FakeServer = createFakeServer()) =>
-	renderWithProviders(<AttachmentBox ticket="CDE-42" />, { path: "/t/CDE-42", actor: "navid", server });
+const renderBox = (server: TestServer = createTestServer()) =>
+	renderWithProviders(<AttachmentBox ticket="CDE-42" />, { path: "/t/CDE-42", actor: "dana", server });
 
 const boxOf = async () =>
 	await waitFor(() => {
@@ -39,7 +39,9 @@ describe("AttachmentBox", () => {
 		await boxOf();
 		await user.upload(pickerOf(), fileOf("notes.txt", "text/plain", 12));
 		await screen.findByText("notes.txt");
-		expect(callsTo(server, "attachments.upload")).toHaveLength(1);
+		// The row paints from the upload in flight, so the call is counted
+		// once the server has it.
+		await waitFor(() => expect(callsTo(server, "attachments.upload")).toHaveLength(1));
 	});
 
 	// OUT-23. Nothing on the box needs a mouse.
@@ -62,7 +64,7 @@ describe("AttachmentBox", () => {
 			<DropTarget identifier="CDE-42" onFiles={() => {}}>
 				<AttachmentBox ticket="CDE-42" />
 			</DropTarget>,
-			{ path: "/t/CDE-42", actor: "navid" },
+			{ path: "/t/CDE-42", actor: "dana" },
 		);
 		const box = await boxOf();
 		dragFilesOver(box);

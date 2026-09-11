@@ -34,24 +34,31 @@ const fromError = (error: SerializedError) => {
 };
 
 export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportOptions): ServiceTransport => {
-	let worker: Worker;
+	let worker: Worker | null = null;
 	let nextId = 1;
 	let batchScheduled = false;
 	const outgoing: WorkerCall[] = [];
 	const pending = new Map<number, PendingCall>();
 	const streams = new Map<number, StreamState>();
-	const ready = Promise.withResolvers<TransportStart>();
-	const closed = Promise.withResolvers<void>();
+	// `start` and `close` make one cycle, and the inline transport runs the
+	// cycle again after a close. The worker transport carries the same
+	// interface, so each cycle gets its own gates: the second `start` waits
+	// for the boot of its own worker, and the second `close` waits for the
+	// goodbye of that worker. One pair of gates for the life of the
+	// transport would settle on the first cycle and let every later `start`
+	// return before its worker holds a database.
+	let ready: PromiseWithResolvers<TransportStart> | null = null;
+	let closed: PromiseWithResolvers<void> | null = null;
 	let jobsLog: JobsLog;
 	const fail = (error: unknown) => {
-		ready.reject(error);
+		ready?.reject(error);
 		for (const call of pending.values()) call.reject(error);
 		pending.clear();
 		for (const stream of streams.values()) stream.controller.error(error);
 		streams.clear();
 	};
 
-	const send = (message: WorkerInput) => worker.postMessage(message);
+	const send = (message: WorkerInput) => worker?.postMessage(message);
 	const flush = () => {
 		batchScheduled = false;
 		if (outgoing.length > 0) send({ type: "calls", calls: outgoing.splice(0) });
@@ -59,11 +66,11 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 
 	const receive = ({ data }: MessageEvent<WorkerOutput>) => {
 		if (data.type === "ready") {
-			ready.resolve({ applied: data.applied, liveShas: data.liveShas });
+			ready?.resolve({ applied: data.applied, liveShas: data.liveShas });
 			return;
 		}
 		if (data.type === "startError") {
-			ready.reject(fromError(data.error));
+			ready?.reject(fromError(data.error));
 			return;
 		}
 		if (data.type === "result") {
@@ -138,12 +145,16 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			streams.delete(data.id);
 			return;
 		}
-		closed.resolve();
+		closed?.resolve();
 	};
 
 	// The jobs run on the worker, beside the database. Their log lines come
 	// back as messages, so they reach the one logger of the process.
 	const start = async (jobs?: JobsStart) => {
+		if (worker !== null) throw new Error("the database worker is already running");
+		const gate = Promise.withResolvers<TransportStart>();
+		ready = gate;
+		closed = Promise.withResolvers<void>();
 		worker = new Worker(new URL("./worker.ts", import.meta.url).href, { name: "trellis-db" });
 		worker.onmessage = receive;
 		worker.onerror = (event) => fail(event.error);
@@ -159,10 +170,11 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			},
 			jobs: jobs === undefined ? null : { clockRate: jobs.clockRate },
 		});
-		return ready.promise;
+		return gate.promise;
 	};
 
 	const call = (name: ServiceName, ctx: RequestContext, input: unknown, timing?: DbTiming) => {
+		if (worker === null) return Promise.reject(new Error("the database worker is not running"));
 		const id = nextId++;
 		const promise = new Promise<unknown>((resolve, reject) => pending.set(id, { resolve, reject, timing }));
 		const entry = services[name];
@@ -184,14 +196,22 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 	};
 
 	// The worker drains the poller before it closes the database. This side
-	// keeps answering gh relays until the worker says closed.
+	// keeps answering gh relays until the worker says closed. A close with no
+	// worker running returns at once, so a caller closes twice without a wait
+	// on a goodbye that never comes.
 	const close = async () => {
+		const running = worker;
+		const gate = closed;
+		if (running === null || gate === null) return;
 		flush();
 		for (const id of streams.keys()) send({ type: "cancel", id });
 		streams.clear();
 		send({ type: "close" });
-		await closed.promise;
-		worker.terminate();
+		await gate.promise;
+		running.terminate();
+		worker = null;
+		ready = null;
+		closed = null;
 	};
 
 	return { call, start, close };

@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import "@atlaskit/pragmatic-drag-and-drop-unit-testing/drag-event-polyfill";
 import "@atlaskit/pragmatic-drag-and-drop-unit-testing/dom-rect-polyfill";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { resetUi } from "../../../../test/table";
 import { useUiStore } from "../../../stores/uiStore";
 
@@ -16,8 +16,8 @@ describe("features/board/Board: the sidebar key", () => {
 	// On a board, `[` moves the focused card one column to the left. The
 	// same press must not collapse the sidebar too.
 	test("[ on a focused card moves the card and leaves the sidebar open", async () => {
-		const server = createFakeServer();
-		renderApp({ path: "/p/CDE/board", actor: "navid", server });
+		const server = createTestServer();
+		renderApp({ path: "/p/CDE/board", actor: "dana", server });
 		const item = await screen.findByRole("listitem", { name: /^CDE-47 / });
 		fireEvent.keyDown(item, { key: "]" });
 		await waitFor(() => expect(server.callsTo("tickets.move")).toHaveLength(1));

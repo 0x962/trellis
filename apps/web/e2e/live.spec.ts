@@ -25,7 +25,7 @@ const rowProbe = (identifier: string, group: string) => `(() => {
 test("live > a trellis move from the CLI patches the open table row within 500 ms @timing", async ({ page }) => {
 	const ticket = createTicket("LIV", `Watch the row ${Date.now()}`);
 	await page.addInitScript(rowProbe(ticket.identifier, "in-progress"));
-	await signIn(page, "/p/LIV");
+	await signIn(page, "/p/LIV/table");
 	const row = page.locator(`[role="row"][data-identifier="${ticket.identifier}"]`);
 	await expect(row).toHaveAttribute("data-group", "todo");
 	const moved = moveTicket(ticket.identifier, "in-progress");
@@ -50,11 +50,12 @@ const railProbe = `(() => {
 	}).observe(document, { subtree: true, childList: true, characterData: true });
 })();`;
 
-// The answer to the tickets.move call. The batch link can fold the call
-// into a batch request, so the path is looked for in the request body too.
-const MOVE_PATH = "/rpc/tickets/move";
-const isMove = (response: Response) =>
-	response.ok() && (response.url().includes(MOVE_PATH) || (response.request().postData() ?? "").includes(MOVE_PATH));
+// The answer to the tickets.update call the status picker of the rail
+// makes. The batch link can fold the call into a batch request, so the path
+// is looked for in the request body too.
+const WRITE_PATH = "/rpc/tickets/update";
+const isWrite = (response: Response) =>
+	response.ok() && (response.url().includes(WRITE_PATH) || (response.request().postData() ?? "").includes(WRITE_PATH));
 
 test("live > a ticket change in one tab repaints the ticket page in another inside the budget @timing", async ({
 	page,
@@ -73,7 +74,7 @@ test("live > a ticket change in one tab repaints the ticket page in another insi
 		.getByLabel("Properties")
 		.getByRole("button", { name: /Human Review/ })
 		.click();
-	const settled = other.waitForResponse(isMove);
+	const settled = other.waitForResponse(isWrite);
 	await other.getByRole("option", { name: "Done", exact: true }).click();
 	await settled;
 	const committedAt = Date.now();

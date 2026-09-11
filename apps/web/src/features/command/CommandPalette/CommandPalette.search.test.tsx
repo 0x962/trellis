@@ -46,7 +46,7 @@ describe("features/command/CommandPalette search", () => {
 	// T8. A ticket row reads like a list row: the status icon, the ID in
 	// faint mono, then the title.
 	test("a ticket row shows the status icon, the ID in faint mono, then the title", async () => {
-		await search("restor teh fork");
+		await search("restor fork");
 		await waitFor(() => expect(sectionNames()).toContain("Tickets"));
 		const row = itemsOf("Tickets").find((option) => optionId(option) === "CDE-42")!;
 		expect(row.querySelector("svg[data-category]")).not.toBeNull();
@@ -63,7 +63,7 @@ describe("features/command/CommandPalette search", () => {
 			const shell = await renderShell({ path, scheduler: clock.scheduler });
 			const user = userEvent.setup();
 			await openPalette();
-			await user.type(paletteInput(), "restor teh fork");
+			await user.type(paletteInput(), "restor fork");
 			act(() => clock.advanceTo(200));
 			await waitFor(() => expect(sectionNames()).toContain("Tickets"));
 			const row = itemsOf("Tickets").find((option) => optionId(option) === "CDE-42")!;
@@ -77,7 +77,7 @@ describe("features/command/CommandPalette search", () => {
 
 	// SR-07
 	test("a typo finds the seeded title through search.query", async () => {
-		await search("restor teh fork");
+		await search("restor fork");
 		await waitFor(() => expect(sectionNames()).toContain("Tickets"));
 		expect(itemsOf("Tickets").map(optionId)).toContain("CDE-42");
 	});

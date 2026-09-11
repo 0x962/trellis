@@ -12,7 +12,7 @@ beforeEach(() => {
 const mountPeek = () =>
 	renderWithProviders(<TicketView identifier="CDE-42" variant="peek" />, {
 		path: "/p/CDE?peek=CDE-42",
-		actor: "navid",
+		actor: "dana",
 	});
 
 test("the peek header spans the body and the full-height property rail", async () => {

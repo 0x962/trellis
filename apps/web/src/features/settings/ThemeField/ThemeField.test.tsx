@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { themeStorageKey } from "@trellis/ui";
-import { createFakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { type createHarness, renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { ThemeField } from "./ThemeField";
 
 beforeEach(() => {
@@ -17,8 +17,8 @@ beforeEach(() => {
 const render = (harness?: ReturnType<typeof createHarness>) =>
 	renderWithProviders(<ThemeField />, {
 		path: "/settings",
-		actor: "navid",
-		server: createFakeServer(),
+		actor: "dana",
+		server: createTestServer(),
 		...(harness === undefined ? {} : { harness }),
 	});
 

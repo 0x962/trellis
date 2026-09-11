@@ -4,7 +4,11 @@ import { Bot } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentRunSheet } from "../AgentRunSheet";
+import { AgentSessions } from "./components/AgentSessions";
 import { PersonaPicker } from "./components/PersonaPicker";
+
+// The agent side of a ticket, under one heading: the run the manager
+// started, the persona picker, and the builder and reviewer sessions.
 export function TicketAgent({ ticket, disabled = false }: { ticket: string; disabled?: boolean }) {
 	const { orpc } = useApp();
 	const query = useQuery(orpc.agentRuns.list.queryOptions({ input: { ticket }, retry: false }));
@@ -43,6 +47,7 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 					{!active && <PersonaPicker ticket={ticket} disabled={disabled} />}
 				</>
 			)}
+			<AgentSessions identifier={ticket} />
 			{open === "detail" && latest && <AgentRunSheet run={latest} onClose={() => setOpen(null)} />}
 		</section>
 	);

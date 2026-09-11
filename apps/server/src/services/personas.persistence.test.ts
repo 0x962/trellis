@@ -18,7 +18,7 @@ afterAll(() => handle.close());
 
 test("a persona survives a database close and reopen", async () => {
 	const ctx: ServiceCtx = {
-		actor: { kind: "human", name: "navid" },
+		actor: { kind: "human", name: "dana" },
 		session: null,
 		reqId: "persona-persistence",
 		now: new Date("2026-09-10T12:00:00Z"),
@@ -26,6 +26,7 @@ test("a persona survives a database close and reopen", async () => {
 		cache: createCache(),
 		actorCache: new Map(),
 		dropBlobs: () => {},
+		publicUrl: "http://127.0.0.1:4521",
 	};
 	const { result: created } = await withTx(handle.db, (tx, emit) =>
 		personas.create({ ...ctx, emit }, tx, { name: "Reviewer", instruction: "Read the diff.\nReport defects." }),

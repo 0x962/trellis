@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../../../test/media";
 import { callsTo, ghReady, lastCallTo, summaryOf } from "../../../../../../test/prs";
 import { renderWithProviders } from "../../../../../../test/renderWithProviders";
-import { ghCopy } from "../../../../../lib/ghCopy";
+import { createTestServer, type TestServer } from "../../../../../../test/server";
 import { PullRequests } from "../../PullRequests";
 
 beforeEach(() => {
@@ -14,11 +13,11 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const url = "https://github.com/canary-technologies-corp/de/pull/900";
+const url = "https://github.com/acme/web/pull/900";
 
-const renderSection = async (server: FakeServer, identifier: string) => {
+const renderSection = async (server: TestServer, identifier: string) => {
 	const ticket = await summaryOf(server, identifier);
-	return renderWithProviders(<PullRequests ticket={ticket} />, { path: `/t/${identifier}`, actor: "navid", server });
+	return renderWithProviders(<PullRequests ticket={ticket} />, { path: `/t/${identifier}`, actor: "dana", server });
 };
 
 // The field shows after a click on the Link PR button in the section header.
@@ -39,8 +38,8 @@ describe("LinkPrField", () => {
 	// PR-32
 	test("links a pasted pull request URL and shows the new row", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
-		ghReady(server);
+		const server = createTestServer();
+		await ghReady(server, { number: 900, title: "A pull request", headRef: "pr-900" });
 		await renderSection(server, "CDE-47");
 		await user.type(await field(), url);
 		await user.click(await submit());
@@ -53,8 +52,8 @@ describe("LinkPrField", () => {
 	// PR-33. The next paste needs no click.
 	test("clears the field after a successful link", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
-		ghReady(server);
+		const server = createTestServer();
+		await ghReady(server, { number: 900, title: "A pull request", headRef: "pr-900" });
 		await renderSection(server, "CDE-47");
 		const input = await field();
 		await user.type(input, url);
@@ -66,8 +65,8 @@ describe("LinkPrField", () => {
 	// PR-34
 	test("shows INVALID_PR_URL inline and keeps the typed text", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
-		ghReady(server);
+		const server = createTestServer();
+		await ghReady(server, { number: 900, title: "A pull request", headRef: "pr-900" });
 		await renderSection(server, "CDE-47");
 		const input = await field();
 		await user.type(input, "https://github.com/o/r");
@@ -79,23 +78,34 @@ describe("LinkPrField", () => {
 		expect(rows()).toHaveLength(0);
 	});
 
-	// PR-35. The seed reports gh as missing.
-	test("shows GH_UNAVAILABLE inline when gh cannot answer", async () => {
+	// PR-35. A link with gh away keeps the link and marks the card stale, so
+	// the ticket never loses the pull request over an outage. The stale marker
+	// carries the gh failure in its title.
+	test("links the pull request and states the gh message when gh cannot answer", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
+		await server.removeGh();
 		await renderSection(server, "CDE-47");
 		await user.type(await field(), url);
 		await user.click(await submit());
-		await waitFor(() => expect(linkError()).not.toBeNull());
-		expect(linkError()!.textContent).toContain(ghCopy.missing.line);
-		expect(rows()).toHaveLength(0);
+		await waitFor(() => expect(rows()).toHaveLength(1));
+		expect(linkError()).toBeNull();
+		const [linked] = await server.client.pullRequests.list({ ticket: "CDE-47" });
+		expect(linked!.number).toBe(900);
+		expect(linked!.fetchError).toContain("gh");
+		const stale = await waitFor(() => {
+			const marker = document.querySelector("[data-pr-stale]");
+			if (marker === null) throw new Error("No stale marker on the card.");
+			return marker;
+		});
+		expect(stale.getAttribute("title")).toContain("gh");
 	});
 
 	// PR-36
 	test("disables the submit until the field holds a URL", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
-		ghReady(server);
+		const server = createTestServer();
+		await ghReady(server, { number: 900, title: "A pull request", headRef: "pr-900" });
 		await renderSection(server, "CDE-47");
 		const input = await field();
 		expect((await submit()).hasAttribute("disabled")).toBe(true);

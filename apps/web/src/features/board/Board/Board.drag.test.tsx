@@ -3,8 +3,8 @@ import "@atlaskit/pragmatic-drag-and-drop-unit-testing/drag-event-polyfill";
 import "@atlaskit/pragmatic-drag-and-drop-unit-testing/dom-rect-polyfill";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { useComposerStore } from "../../composer/composerStore";
 import { Board } from ".";
 
@@ -13,10 +13,10 @@ beforeEach(() => {
 	useComposerStore.setState({ open: false, options: {} });
 });
 
-const renderBoard = (server = createFakeServer()) =>
+const renderBoard = (server = createTestServer()) =>
 	renderWithProviders(<Board projectRef="CDE" storageKey="CDE" onOpenTicket={() => {}} />, {
 		path: "/p/CDE/board",
-		actor: "navid",
+		actor: "dana",
 		server,
 	});
 
@@ -130,7 +130,7 @@ describe("Board drag", () => {
 	});
 
 	test("a drop on another column moves the ticket there with no anchor and puts it at the top", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderBoard(server);
 		await screen.findByText("CDE-47");
 		const target = column("In Progress");

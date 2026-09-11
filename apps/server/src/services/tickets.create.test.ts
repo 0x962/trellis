@@ -3,7 +3,7 @@ import { ulidPattern } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import {
 	count,
-	navid,
+	dana,
 	seedActors,
 	seedChild,
 	seedProject,
@@ -18,7 +18,7 @@ import * as tickets from "./tickets.ts";
 const h = ticketHarness();
 
 const create = (input: Record<string, unknown>) =>
-	h.as(navid)((ctx, tx) => tickets.create(ctx, tx, { project: "CDE", title: "Alpha", ...input }));
+	h.as(dana)((ctx, tx) => tickets.create(ctx, tx, { project: "CDE", title: "Alpha", ...input }));
 
 const counterOf = async (projectId: string) =>
 	(await query<{ ticket_counter: number }>(h.db, sql`SELECT ticket_counter FROM projects WHERE id = ${projectId}`))[0]!
@@ -95,7 +95,7 @@ describe("tickets.create", () => {
 		const { result: ticket } = await create({ parent: "CDE-7" });
 		expect(ticket.parent).toEqual({ id: parentId, identifier: "CDE-7" });
 		expect((await ticketRow(h.db, ticket.id))?.parent_id).toBe(parentId);
-		const { result: parent } = await h.as(navid)((ctx, tx) => tickets.get(ctx, tx, { ticket: parentId }));
+		const { result: parent } = await h.as(dana)((ctx, tx) => tickets.get(ctx, tx, { ticket: parentId }));
 		expect(parent.childCount).toBe(1);
 	});
 
@@ -151,7 +151,7 @@ describe("tickets.create", () => {
 		expect(rows).toHaveLength(1);
 		expect(rows[0]).toMatchObject({
 			action: "ticket.created",
-			actor_name: "navid",
+			actor_name: "dana",
 			actor_kind: "human",
 			root_id: rootId,
 			project_id: rootId,

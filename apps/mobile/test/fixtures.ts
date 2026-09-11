@@ -26,7 +26,7 @@ export const minute = 60_000;
 export const hour = 60 * minute;
 export const day = 24 * hour;
 
-export const navid = { name: "navid", kind: "human" } as const;
+export const dana = { name: "dana", kind: "human" } as const;
 export const claude = { name: "claude", kind: "agent" } as const;
 
 // One TicketSummary as `tickets.list` returns it, every nullable field null.
@@ -118,7 +118,7 @@ export const comment = (overrides: Partial<Comment> = {}): Comment => ({
 	id: id("C1"),
 	ticketId,
 	body: "Plan: restore the five settings pages and keep every marked site.",
-	actor: navid,
+	actor: dana,
 	createdAt: ago(2 * hour),
 	updatedAt: ago(2 * hour),
 	...overrides,

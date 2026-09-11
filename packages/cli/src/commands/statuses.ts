@@ -33,9 +33,12 @@ const statusRecord: RecordSpec<Status> = {
 	identifier: (row) => row.slug,
 };
 
+// The manager agent reads the description as its rule for the tickets in
+// the status. `-` reads the whole standard input, so a long markdown rule
+// comes from a file.
 const descriptionFlag = {
 	type: "string",
-	description: "Status description in markdown; - reads standard input",
+	description: "The rule for the manager agent, in markdown; - reads standard input",
 } as const;
 
 const descriptionOf = (ctx: CliContext, value: string | undefined): Promise<string | undefined> =>

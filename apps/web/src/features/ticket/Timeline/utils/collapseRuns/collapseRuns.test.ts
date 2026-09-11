@@ -6,7 +6,7 @@ import { collapseRuns } from "./collapseRuns";
 type Actor = { name: string; kind: "agent" | "human" };
 
 const claude: Actor = { name: "claude-code", kind: "agent" };
-const navid: Actor = { name: "navid", kind: "human" };
+const dana: Actor = { name: "dana", kind: "human" };
 
 // `at` is a clock time on one day; the rows are oldest first.
 const at = (clock: string) => `2026-09-09T${clock}:00.000Z`;
@@ -49,7 +49,7 @@ describe("features/ticket/Timeline/utils/collapseRuns", () => {
 	test("a 5 minute gap or a new actor ends a run", () => {
 		const gap = collapseRuns([activity(claude, "22:08"), activity(claude, "22:14", "priority")]);
 		expect(sizes(gap)).toEqual([1, 1]);
-		const other = collapseRuns([activity(claude, "22:08"), activity(navid, "22:09", "priority")]);
+		const other = collapseRuns([activity(claude, "22:08"), activity(dana, "22:09", "priority")]);
 		expect(sizes(other)).toEqual([1, 1]);
 		const inside = collapseRuns([activity(claude, "22:08"), activity(claude, "22:12", "priority")]);
 		expect(sizes(inside)).toEqual([2]);

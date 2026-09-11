@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import { dropFiles, fileOf, surfaceOf } from "../../../../test/attachments";
-import { createFakeServer } from "../../../../test/fake-server";
 import { gatedServer } from "../../../../test/inbox";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { AttachmentGrid } from "../AttachmentGrid";
 import type { Upload } from "../hooks/useUploads";
 import { UploadProgress } from "./UploadProgress";
@@ -26,7 +26,7 @@ describe("UploadProgress", () => {
 	test("shows a determinate bar with the sent percentage", () => {
 		renderWithProviders(<UploadProgress upload={running} onDismiss={() => {}} />, {
 			path: "/t/CDE-42",
-			actor: "navid",
+			actor: "dana",
 		});
 		const bar = screen.getByRole("progressbar");
 		expect(bar.getAttribute("aria-valuemin")).toBe("0");
@@ -38,8 +38,8 @@ describe("UploadProgress", () => {
 	// OUT-26. The bar and the server row are the same file, so the grid
 	// must swap one for the other and never show both.
 	test("drops the bar when the upload settles and leaves one row", async () => {
-		const gate = gatedServer(createFakeServer());
-		renderWithProviders(<AttachmentGrid ticket="CDE-42" />, { path: "/t/CDE-42", actor: "navid", server: gate.server });
+		const gate = gatedServer(createTestServer());
+		renderWithProviders(<AttachmentGrid ticket="CDE-42" />, { path: "/t/CDE-42", actor: "dana", server: gate.server });
 		const surface = await surfaceOf();
 		gate.hold();
 		dropFiles(surface, [fileOf("notes.txt", "text/plain", 2048)]);
@@ -53,7 +53,7 @@ describe("UploadProgress", () => {
 	test("replaces the bar with the inline error of a failed upload", () => {
 		renderWithProviders(<UploadProgress upload={refused} onDismiss={() => {}} />, {
 			path: "/t/CDE-42",
-			actor: "navid",
+			actor: "dana",
 		});
 		expect(screen.queryByRole("progressbar")).toBeNull();
 		const alert = screen.getByRole("alert");

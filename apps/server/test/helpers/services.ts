@@ -6,13 +6,17 @@ import type { z } from "zod";
 import { createCache, type ProjectCache } from "../../src/db/cache.ts";
 import { iso } from "../../src/db/queries/support.ts";
 import { type Emit, type EventSink, type Tx, withTx } from "../../src/db/tx.ts";
-import { navid } from "../fixtures/projects.ts";
+import { dana } from "../fixtures/projects.ts";
 import { assertStatusInvariant } from "../invariants.ts";
 import { freshDb } from "./db.ts";
 
 // The one instant every service test runs at. A service stamps every row of
 // one transaction with `ctx.now`, so a test compares a column against NOW.
 export const NOW = new Date("2026-09-09T12:00:00.000Z");
+
+// The default `publicUrl` of loadConfig. Every absolute link a service test
+// reads starts with it.
+export const PUBLIC_URL = "http://127.0.0.1:4521";
 
 export const secondsAfter = (seconds: number, from: Date = NOW) => new Date(from.getTime() + seconds * 1000);
 export const minutesAgo = (minutes: number, from: Date = NOW) => new Date(from.getTime() - minutes * 60_000);
@@ -31,6 +35,7 @@ export type ServiceCtx = {
 	cache: ProjectCache;
 	actorCache: Map<string, number>;
 	dropBlobs: (shas: string[]) => void;
+	publicUrl: string;
 };
 
 export type CtxOptions = {
@@ -64,7 +69,7 @@ export const serviceHarness = async () => {
 	const rebuild = () => h.db.transaction((tx) => cache.rebuild(tx));
 
 	const ctx = (emit: Emit, options: CtxOptions = {}): ServiceCtx => ({
-		actor: options.actor === undefined ? navid : options.actor,
+		actor: options.actor === undefined ? dana : options.actor,
 		session: options.session ?? null,
 		reqId: options.reqId ?? "req-1",
 		now: options.now ?? NOW,
@@ -73,6 +78,7 @@ export const serviceHarness = async () => {
 		actorCache,
 		// The harness writes no blob files, so it has none to remove.
 		dropBlobs: () => {},
+		publicUrl: PUBLIC_URL,
 	});
 
 	// Every service call leaves the status invariant intact: no ticket points

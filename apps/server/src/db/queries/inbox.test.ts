@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import {
 	claude,
+	dana,
 	hoursAgo,
 	linkPr,
-	navid,
 	seedActivity,
 	seedPr,
 	seedProject,
@@ -78,7 +78,7 @@ describe("inbox", () => {
 		const { rootId, statuses } = await seedProject(h.db);
 		const seed = seedIn(rootId);
 		const byClaude = await seed(statuses.done);
-		const byNavid = await seed(statuses.done);
+		const byDana = await seed(statuses.done);
 		const yesterday = await seed(statuses.done);
 		const done = (ticketId: string, actor: typeof claude, createdAt: Date) =>
 			seedActivity(h.db, {
@@ -93,7 +93,7 @@ describe("inbox", () => {
 			});
 		await done(byClaude, claude, hoursAgo(2));
 		await done(byClaude, claude, hoursAgo(1));
-		await done(byNavid, navid, hoursAgo(1));
+		await done(byDana, dana, hoursAgo(1));
 		await done(yesterday, claude, hoursAgo(30));
 		const { doneByAgentsToday } = await run({ todayStart: hoursAgo(6) });
 		expect(ids(doneByAgentsToday)).toEqual([byClaude]);

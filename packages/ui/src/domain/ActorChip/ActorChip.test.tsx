@@ -5,11 +5,11 @@ import { ActorChip } from "./ActorChip";
 
 describe("ActorChip", () => {
 	test("human actor shows initials and a plain name without the agent suffix", () => {
-		const { container } = render(<ActorChip name="navid" kind="human" />);
-		const avatar = screen.getByLabelText("navid");
-		expect(avatar.textContent).toBe("N");
+		const { container } = render(<ActorChip name="dana" kind="human" />);
+		const avatar = screen.getByLabelText("dana");
+		expect(avatar.textContent).toBe("D");
 		expectClasses(avatar, "rounded-sm");
-		expectClasses(screen.getByText("navid"), "font-medium text-fg");
+		expectClasses(screen.getByText("dana"), "font-medium text-fg");
 		expect(container.textContent).not.toContain("· agent");
 	});
 

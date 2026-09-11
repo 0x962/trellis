@@ -33,7 +33,7 @@ const ghEnvironment = (dir: string) => {
 	writeFileSync(
 		replyFile,
 		JSON.stringify({
-			"auth status": { stdout: "Logged in to github.com account navid\n", stderr: "", exitCode: 0 },
+			"auth status": { stdout: "Logged in to github.com account dana\n", stderr: "", exitCode: 0 },
 			"api graphql": graphqlReply([{ number: 7, title: "Smoke PR" }]),
 		}),
 	);

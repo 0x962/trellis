@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { TrellisEvent } from "@trellis/api";
-import { count, navid, seedChild, seedProject, seedRoot, seedStatuses, seedTicket } from "../../test/fixtures";
+import { count, dana, seedChild, seedProject, seedRoot, seedStatuses, seedTicket } from "../../test/fixtures";
 import {
 	activityOf,
 	distinct,
@@ -29,7 +29,7 @@ const seed = async () => {
 describe("tickets.updateMany", () => {
 	test("updateMany is one batch and one transaction", async () => {
 		const { ids } = await seed();
-		const { result } = await h.as(navid)((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: ids, priority: "high" }));
+		const { result } = await h.as(dana)((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: ids, priority: "high" }));
 		for (const id of ids) expect((await ticketRow(h.db, id))!.priority).toBe("high");
 		const rows = await activityOf(h.db);
 		expect(rows).toHaveLength(3);
@@ -40,7 +40,7 @@ describe("tickets.updateMany", () => {
 
 	test("updateMany emits one event per ticket with the shared batch id", async () => {
 		const { ids } = await seed();
-		const { events } = await h.as(navid)((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: ids, priority: "high" }));
+		const { events } = await h.as(dana)((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: ids, priority: "high" }));
 		const updated = events.filter((event) => event.type === "ticket.updated");
 		expect(updated).toHaveLength(3);
 		expect(updated.map((event) => event.summary.id).sort()).toEqual([...ids].sort());
@@ -53,7 +53,7 @@ describe("tickets.updateMany", () => {
 		const flushed: TrellisEvent[][] = [];
 		const refs = [ids[0]!, "CDE-999", ids[2]!];
 		const data = await expectErrorData(
-			h.as(navid, (events) => {
+			h.as(dana, (events) => {
 				flushed.push(events);
 			})((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: refs, priority: "high" })),
 			"NOT_FOUND",
@@ -68,9 +68,7 @@ describe("tickets.updateMany", () => {
 		const { rootId, ids } = await seed();
 		const webId = await seedChild(h.db, rootId, rootId, "web");
 		const web = await seedStatuses(h.db, webId);
-		const { result } = await h.as(navid)((ctx, tx) =>
-			tickets.updateMany(ctx, tx, { tickets: ids, project: "CDE.web" }),
-		);
+		const { result } = await h.as(dana)((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: ids, project: "CDE.web" }));
 		const byId = new Map(result.items.map((item) => [item.id, item]));
 		expect(byId.get(ids[0]!)?.status.id).toBe(web.todo);
 		expect(byId.get(ids[1]!)?.status.id).toBe(web.started);
@@ -83,7 +81,7 @@ describe("tickets.updateMany", () => {
 describe("tickets.deleteMany", () => {
 	test("deleteMany removes every ticket and leaves one trace row each", async () => {
 		const { ids } = await seed();
-		const { result } = await h.as(navid)((ctx, tx) => tickets.deleteMany(ctx, tx, { tickets: ids }));
+		const { result } = await h.as(dana)((ctx, tx) => tickets.deleteMany(ctx, tx, { tickets: ids }));
 		expect([...result.deleted].sort()).toEqual(["CDE-1", "CDE-2", "CDE-3"]);
 		expect(await count(h.db, "tickets")).toBe(0);
 		const traces = await traceRows(h.db);
@@ -98,7 +96,7 @@ describe("tickets.deleteMany", () => {
 		const arc = await seedStatuses(h.db, arcId);
 		const archived = await seedTicket(h.db, { projectId: arcId, rootId: arcId, statusId: arc.todo });
 		await expectErrorData(
-			h.as(navid)((ctx, tx) => tickets.deleteMany(ctx, tx, { tickets: [ids[0]!, archived] })),
+			h.as(dana)((ctx, tx) => tickets.deleteMany(ctx, tx, { tickets: [ids[0]!, archived] })),
 			"PROJECT_ARCHIVED",
 		);
 		expect(await ticketRow(h.db, ids[0]!)).toBeDefined();

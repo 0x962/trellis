@@ -18,10 +18,13 @@ export type PhoneRowProps = {
 	onClick?: (id: string, event: MouseEvent) => void;
 };
 
-// One ticket below 768 px: priority, ID, status icon, and time on the first
-// line, and the title on the second. The PR, actor, and project cells do
-// not show; the row keeps the grid roles, the roving tab stop, and the
-// focus and selection states of the wide row.
+// One ticket below 768 px: the priority mark in a column of its own, then
+// the ID, the status icon, and the time on the first line with the title on
+// the second. The priority mark is the one control in the row, and on a
+// coarse pointer it draws 44 px, which the two text lines beside it leave
+// room for. The PR, actor, and project cells do not show; the row keeps the
+// grid roles, the roving tab stop, and the focus and selection states of
+// the wide row.
 export function PhoneRow({ ref, ticket, priority, top, group, focused, selected, onFocus, onClick }: PhoneRowProps) {
 	return (
 		// biome-ignore lint/a11y/useSemanticElements lint/a11y/useKeyWithClickEvents: The virtual grid positions each row, and the table keyboard map provides every row action.
@@ -39,7 +42,7 @@ export function PhoneRow({ ref, ticket, priority, top, group, focused, selected,
 				transform: top === undefined ? undefined : `translateY(${top}px)`,
 			}}
 			className={cx(
-				"absolute top-0 left-0 flex w-full flex-col justify-center gap-1 border-b border-border px-4 outline-none",
+				"absolute top-0 left-0 flex w-full items-center gap-3 border-b border-border px-4 outline-none",
 				"data-focused:bg-accent-soft/60 data-selected:bg-accent-soft",
 				top === undefined && "relative",
 			)}
@@ -48,32 +51,34 @@ export function PhoneRow({ ref, ticket, priority, top, group, focused, selected,
 			}}
 			onClick={(event) => onClick?.(ticket.id, event)}
 		>
-			<div className="flex items-center gap-3">
-				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-				<div role="gridcell" data-column="priority" className="flex items-center">
-					{priority}
-				</div>
-				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-				<div role="gridcell" data-column="id" className="font-mono text-sm whitespace-nowrap text-fg-faint tabular">
-					{ticket.identifier}
-				</div>
-				<span className="flex-1" />
-				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-				<div role="gridcell" data-column="status" className="flex items-center">
-					<StatusIcon
-						category={ticket.status.category}
-						reviewer={ticket.status.reviewer ?? undefined}
-						label={ticket.status.name}
-					/>
-				</div>
-				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-				<div role="gridcell" data-column="updated" className="text-xs text-fg-faint tabular">
-					{compactRelativeTime(ticket.updatedAt)}
-				</div>
-			</div>
 			{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-			<div role="gridcell" data-column="title" data-line="title" className="truncate text-sm text-fg">
-				{ticket.title}
+			<div role="gridcell" data-column="priority" className="flex shrink-0 items-center">
+				{priority}
+			</div>
+			<div className="flex min-w-0 flex-1 flex-col gap-1">
+				<div className="flex items-center gap-3">
+					{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
+					<div role="gridcell" data-column="id" className="font-mono text-sm whitespace-nowrap text-fg-faint tabular">
+						{ticket.identifier}
+					</div>
+					<span className="flex-1" />
+					{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
+					<div role="gridcell" data-column="status" className="flex items-center">
+						<StatusIcon
+							category={ticket.status.category}
+							reviewer={ticket.status.reviewer ?? undefined}
+							label={ticket.status.name}
+						/>
+					</div>
+					{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
+					<div role="gridcell" data-column="updated" className="text-xs text-fg-faint tabular">
+						{compactRelativeTime(ticket.updatedAt)}
+					</div>
+				</div>
+				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
+				<div role="gridcell" data-column="title" data-line="title" className="truncate text-sm text-fg">
+					{ticket.title}
+				</div>
 			</div>
 		</div>
 	);

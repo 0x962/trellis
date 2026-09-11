@@ -12,7 +12,7 @@ const tabRole = /^(button|tab)$/;
 describe("the ticket route", () => {
 	beforeEach(() => {
 		store.set("trellis-server-url", "http://h:4521");
-		store.set("trellis-actor-name", "navid");
+		store.set("trellis-actor-name", "dana");
 	});
 
 	// Each tab holds its own stack. A second ticket goes on top of the first

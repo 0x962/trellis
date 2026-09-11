@@ -2,18 +2,19 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createEventApplier } from "@trellis/api";
-import { createFakeServer } from "../../../../test/fake-server";
 import { createFakeScheduler } from "../../../../test/fakeScheduler";
+import { commentRow, patchComment } from "../../../../test/rows";
+import { createTestServer } from "../../../../test/server";
 import { ago, hour, renderTicket } from "../../../../test/ticketHost";
 import { Timeline } from "./Timeline";
 
 beforeEach(() => localStorage.clear());
 
 const setup = async () => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	const ticket = await server.client.tickets.create({ project: "CDE", title: "Comment threads" });
 	const root = await server.client.comments.create({ ticket: ticket.identifier, body: "Please check the layout." });
-	server.state.comments.get(root.id)!.createdAt = ago(hour);
+	await patchComment(server, root.id, { createdAt: ago(hour) });
 	const mount = () => renderTicket(ticket.identifier, (row) => <Timeline ticket={row} />, { server });
 	return { server, ticket, root, mount };
 };
@@ -52,7 +53,7 @@ describe("features/ticket/Timeline threads", () => {
 		await user.click(screen.getAllByRole("button", { name: "Comment actions" })[0]!);
 		await user.click(await screen.findByRole("menuitem", { name: "Reopen thread" }));
 		await screen.findByRole("textbox", { name: "Reply" });
-		expect(server.state.comments.get(root.id)!.resolvedAt).toBeNull();
+		expect((await commentRow(server, root.id))!.resolved_at).toBeNull();
 	});
 
 	test("a reply keeps its edit, copy, and delete actions", async () => {
@@ -71,7 +72,7 @@ describe("features/ticket/Timeline threads", () => {
 		await user.type(screen.getByRole("textbox", { name: "Edit comment" }), "The final reply.");
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		await within(replies).findByText("The final reply.");
-		expect(server.state.comments.get(reply.id)!.body).toBe("The final reply.");
+		expect((await commentRow(server, reply.id))!.body).toBe("The final reply.");
 		await user.click(within(replies).getByRole("button", { name: "Comment actions" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Copy markdown" }));
 		expect(await navigator.clipboard.readText()).toBe("The final reply.");
@@ -80,7 +81,7 @@ describe("features/ticket/Timeline threads", () => {
 		await waitFor(() =>
 			expect(within(screen.getByRole("list", { name: "Activity" })).queryByText("The final reply.")).toBeNull(),
 		);
-		expect(server.state.comments.has(reply.id)).toBe(false);
+		expect(await commentRow(server, reply.id)).toBeUndefined();
 		expect(screen.getByText(root.body)).toBeDefined();
 	});
 
@@ -102,10 +103,10 @@ describe("features/ticket/Timeline threads", () => {
 		mount();
 		await screen.findByText(root.body);
 		const activity = screen.getByRole("list", { name: "Activity" });
-		const comments = within(activity).getAllByRole("article", { name: "Comment by navid" });
+		const comments = within(activity).getAllByRole("article", { name: "Comment by dana" });
 		expect(comments).toHaveLength(2);
-		for (const comment of comments) expect(within(comment).getByText("navid")).toBeDefined();
-		expect(within(activity).getAllByRole("group", { name: /Thread started by navid/ })).toHaveLength(2);
+		for (const comment of comments) expect(within(comment).getByText("dana")).toBeDefined();
+		expect(within(activity).getAllByRole("group", { name: /Thread started by dana/ })).toHaveLength(2);
 	});
 
 	test("the root actor stays on the timeline and the comment surface starts beside it", async () => {
@@ -114,7 +115,7 @@ describe("features/ticket/Timeline threads", () => {
 		const body = await screen.findByText(root.body);
 		const comment = body.closest<HTMLElement>("article")!;
 		const surface = comment.querySelector<HTMLElement>("[data-thread-surface]")!;
-		const actor = within(comment).getByText("navid");
+		const actor = within(comment).getByText("dana");
 		expect(surface).not.toBeNull();
 		expect(surface.className).toMatch(/\bml-8\b/);
 		expect(surface.className).toMatch(/before:-top-4/);
@@ -161,7 +162,7 @@ describe("features/ticket/Timeline threads", () => {
 		await user.click(screen.getAllByRole("button", { name: "Comment actions" })[0]!);
 		await user.click(await screen.findByRole("menuitem", { name: "Reopen thread" }));
 		await screen.findByRole("textbox", { name: "Reply" });
-		expect(server.state.comments.get(root.id)!.resolvedAt).toBeNull();
+		expect((await commentRow(server, root.id))!.resolved_at).toBeNull();
 	});
 
 	test("live replies refresh a thread whose root is outside the loaded page", async () => {

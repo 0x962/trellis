@@ -31,8 +31,8 @@ const failure = (fn: () => unknown) => {
 
 describe("createContext", () => {
 	test("a valid actor header becomes the context actor", () => {
-		const ctx = createContext({ headers: headers({ "x-trellis-actor": "human:navid" }), reqId: "req-7" });
-		expect(ctx.actor).toEqual({ kind: "human", name: "navid" });
+		const ctx = createContext({ headers: headers({ "x-trellis-actor": "human:dana" }), reqId: "req-7" });
+		expect(ctx.actor).toEqual({ kind: "human", name: "dana" });
 		expect(ctx.reqId).toBe("req-7");
 		expect(ctx.session).toBeNull();
 	});
@@ -55,7 +55,7 @@ describe("createContext", () => {
 	});
 
 	test("a malformed actor header throws ACTOR_INVALID with the grammar", () => {
-		const malformed = ["navid", "human:na:vid", "robot:x", `human:${"a".repeat(65)}`];
+		const malformed = ["dana", "human:na:vid", "robot:x", `human:${"a".repeat(65)}`];
 		for (const value of malformed) {
 			const error = failure(() => createContext({ headers: headers({ "x-trellis-actor": value }), reqId: "req-1" }));
 			expect(error, value).toBeInstanceOf(ORPCError);

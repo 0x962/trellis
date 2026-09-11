@@ -42,6 +42,8 @@ export const warmWrites = async (db: Db, cache: ProjectCache) => {
 		cache,
 		actorCache: new Map<string, number>(),
 		dropBlobs: () => {},
+		// The warm-up reads one ticket and writes no link.
+		publicUrl: "",
 	};
 	const title = ticket.title === WARM_TITLE ? `${WARM_TITLE} again` : WARM_TITLE;
 	await db

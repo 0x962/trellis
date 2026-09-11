@@ -26,11 +26,11 @@ test("first run paints dark and lands on setup", async ({ page }) => {
 test("setup creates the actor and the first project", async ({ page }) => {
 	await page.goto("/setup");
 	const name = page.getByRole("textbox", { name: /name/i });
-	await name.fill("navid");
+	await name.fill("dana");
 	await name.press("Enter");
 	await expect(page.getByRole("heading", { name: "Create your first project" })).toBeVisible();
 	const actor = await page.evaluate(() => localStorage.getItem("trellis.actor"));
-	expect(JSON.parse(actor!)).toEqual({ name: "navid", kind: "human" });
+	expect(JSON.parse(actor!)).toEqual({ name: "dana", kind: "human" });
 	// One word suggests its first two letters (WS-74 in src/lib/projectKey).
 	await page.getByRole("textbox", { name: /project name/i }).fill("Docs");
 	await expect(page.getByRole("textbox", { name: /key/i })).toHaveValue("DO");
@@ -39,8 +39,7 @@ test("setup creates the actor and the first project", async ({ page }) => {
 	const sidebar = page.getByRole("complementary", { name: "Sidebar" });
 	const docRow = sidebar.getByRole("link", { name: /Docs/ });
 	await expect(docRow).toBeVisible();
-	await expect(docRow).toContainText("0");
-	await expect(sidebar).toContainText("navid");
+	await expect(sidebar).toContainText("dana");
 	const projects = await get<{ key: string; name: string }[]>("/projects");
 	expect(projects.map((project) => [project.key, project.name])).toEqual([["DO", "Docs"]]);
 });

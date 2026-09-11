@@ -89,7 +89,7 @@ export const makeDeps = (routes: Routes = {}, options: RunOptions = {}) => {
 		},
 		stdin: async () => options.stdin ?? "",
 		gitUserName: () => options.gitUserName ?? "",
-		osUser: () => options.osUser ?? "navid",
+		osUser: () => options.osUser ?? "dana",
 		now: () => new Date(options.now ?? "2026-09-09T12:00:00Z"),
 		sleep: async (ms: number) => {
 			sleeps.push(ms);

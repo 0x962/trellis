@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { claude, navid, seedAttachment, seedProject, seedTicket } from "../../test/fixtures";
+import { claude, dana, seedAttachment, seedProject, seedTicket } from "../../test/fixtures";
 import { testCtx } from "../../test/helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../test/helpers/db.ts";
 import { freshHomeWithDirs } from "../../test/helpers/home.ts";
@@ -62,7 +62,7 @@ describe("attachments read", () => {
 			mime: "image/png",
 			actor: { name: claude.name, kind: claude.kind },
 		});
-		expect(items[0]!.actor).toEqual({ name: navid.name, kind: navid.kind });
+		expect(items[0]!.actor).toEqual({ name: dana.name, kind: dana.kind });
 	});
 
 	test("get returns one attachment with its url", async () => {

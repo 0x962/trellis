@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { navid, seedProject, seedTicket } from "../../test/fixtures";
+import { dana, seedProject, seedTicket } from "../../test/fixtures";
 import { expectErrorData, ticketHarness } from "../../test/helpers/services.ts";
 import { timeline } from "../db/queries/timeline.ts";
 import { get as brief } from "./brief.ts";
@@ -12,7 +12,7 @@ const seed = async () => {
 	return seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo });
 };
 const create = (ticket: string, body: string, parentId?: string) =>
-	h.as(navid)((ctx, tx) => comments.create(ctx, tx, { ticket, body, parentId }));
+	h.as(dana)((ctx, tx) => comments.create(ctx, tx, { ticket, body, parentId }));
 
 describe("comment threads", () => {
 	test("replies name their root and a thread read includes replies outside the timeline page", async () => {
@@ -24,7 +24,7 @@ describe("comment threads", () => {
 		expect(reply.parentId).toBe(root.id);
 		expect(nested.parentId).toBe(root.id);
 		expect(events).toContainEqual(expect.objectContaining({ type: "comment.created", id: reply.id, ticketId: ticket }));
-		const { result: thread } = await h.as(navid)((ctx, tx) => comments.thread(ctx, tx, { id: nested.id }));
+		const { result: thread } = await h.as(dana)((ctx, tx) => comments.thread(ctx, tx, { id: nested.id }));
 		expect(thread.root).toEqual(root);
 		expect(thread.replies.map((item) => item.id).sort()).toEqual([reply.id, nested.id].sort());
 		const page = await h.db.transaction((tx) => timeline(tx, { ticketId: ticket, limit: 1 }));
@@ -53,13 +53,13 @@ describe("comment threads", () => {
 		const ticket = await seed();
 		const { result: root } = await create(ticket, "Question");
 		const { result: reply } = await create(ticket, "Answer", root.id);
-		const { result: resolved, events } = await h.as(navid)((ctx, tx) =>
+		const { result: resolved, events } = await h.as(dana)((ctx, tx) =>
 			comments.resolve(ctx, tx, { id: reply.id, resolved: true }),
 		);
 		expect(resolved.id).toBe(root.id);
 		expect(resolved.resolvedAt).not.toBeNull();
 		expect(events).toContainEqual(expect.objectContaining({ type: "comment.updated", id: root.id, ticketId: ticket }));
-		const { result: reopened } = await h.as(navid)((ctx, tx) =>
+		const { result: reopened } = await h.as(dana)((ctx, tx) =>
 			comments.resolve(ctx, tx, { id: root.id, resolved: false }),
 		);
 		expect(reopened.resolvedAt).toBeNull();
@@ -70,14 +70,14 @@ describe("comment threads", () => {
 		const { result: root } = await create(ticket, "Question");
 		const { result: reply } = await create(ticket, "Answer", root.id);
 		await expectErrorData(
-			h.as(navid)((ctx, tx) => comments.delete(ctx, tx, { id: root.id })),
+			h.as(dana)((ctx, tx) => comments.delete(ctx, tx, { id: root.id })),
 			"COMMENT_HAS_REPLIES",
 		);
-		const { events } = await h.as(navid)((ctx, tx) => comments.delete(ctx, tx, { id: reply.id }));
+		const { events } = await h.as(dana)((ctx, tx) => comments.delete(ctx, tx, { id: reply.id }));
 		expect(events).toContainEqual(
 			expect.objectContaining({ type: "ticket.updated", summary: expect.objectContaining({ commentCount: 1 }) }),
 		);
-		await h.as(navid)((ctx, tx) => comments.delete(ctx, tx, { id: root.id }));
+		await h.as(dana)((ctx, tx) => comments.delete(ctx, tx, { id: root.id }));
 	});
 
 	test("archived projects allow thread reads and reject reply and resolve writes", async () => {
@@ -86,10 +86,10 @@ describe("comment threads", () => {
 		await h.db.execute(sql`UPDATE projects SET archived_at = now()`);
 		await expectErrorData(create(ticket, "Answer", root.id), "PROJECT_ARCHIVED");
 		await expectErrorData(
-			h.as(navid)((ctx, tx) => comments.resolve(ctx, tx, { id: root.id, resolved: true })),
+			h.as(dana)((ctx, tx) => comments.resolve(ctx, tx, { id: root.id, resolved: true })),
 			"PROJECT_ARCHIVED",
 		);
-		const { result } = await h.as(navid)((ctx, tx) => comments.thread(ctx, tx, { id: root.id }));
+		const { result } = await h.as(dana)((ctx, tx) => comments.thread(ctx, tx, { id: root.id }));
 		expect(result.root.id).toBe(root.id);
 	});
 });
@@ -101,7 +101,7 @@ test("a brief includes the root context of a recent reply outside its last ten c
 	for (let i = 0; i < 11; i++) await create(ticket, `Other comment ${i}`);
 	const { result: reply } = await create(ticket, "New answer", root.id);
 	await h.db.execute(sql`UPDATE comments SET created_at = now() WHERE id = ${reply.id}`);
-	const { result } = await h.as(navid)((ctx, tx) => brief(ctx, tx, { ticket }));
+	const { result } = await h.as(dana)((ctx, tx) => brief(ctx, tx, { ticket }));
 	expect(result.markdown).toContain(`reply to ${root.id}`);
 	expect(result.markdown).toContain("Original question");
 	expect(result.markdown).toContain(reply.id);

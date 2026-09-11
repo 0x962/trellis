@@ -89,7 +89,7 @@ export function DomainSections() {
 				</span>
 			</Section>
 			<Section name="ActorChip" note="human; agent; agent live; compact">
-				<ActorChip name="navid" kind="human" />
+				<ActorChip name="dana" kind="human" />
 				<ActorChip name="codex" kind="agent" />
 				<ActorChip name="claude-code" kind="agent" live />
 				<ActorChip name="claude-code" kind="agent" compact />

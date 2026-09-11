@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { waitFor } from "@testing-library/react";
 import type { ListQueryInput } from "@trellis/api";
-import { createFakeServer, type FakeServer } from "../../../../../test/fake-server";
 import { renderHookWithProviders } from "../../../../../test/renderHook";
 import { seedTickets } from "../../../../../test/seedMany";
+import { createTestServer, type TestServer } from "../../../../../test/server";
 import { inputs, listCalls, sleep } from "../../../../../test/table";
 import { parseSearch, toListQuery, type View, viewOf } from "../../../filters/grammar";
 import { useTableData } from "./useTableData";
@@ -12,20 +12,20 @@ type Closed = "done" | "canceled";
 
 const active = ["todo", "started", "review"];
 
-const mount = (server: FakeServer, view: View = viewOf({}), expanded: Closed[] = []) =>
+const mount = (server: TestServer, view: View = viewOf({}), expanded: Closed[] = []) =>
 	renderHookWithProviders(
 		(input: { expanded: Closed[] }) => useTableData({ project: "CDE", view, expanded: input.expanded }),
 		{ expanded },
-		{ path: "/p/CDE", actor: "navid", server },
+		{ path: "/p/CDE", actor: "dana", server },
 	);
 
 // The list requests of the active pass: the ones that ask for the todo category.
-const activePages = (server: FakeServer) =>
+const activePages = (server: TestServer) =>
 	inputs(server, "tickets.list").filter((input) => (input.category as string[] | undefined)?.includes("todo"));
 
 // The cursor the server hands out for `input`, from a second call with the
 // same filters.
-const nextCursorOf = async (server: FakeServer, input: Record<string, unknown>) =>
+const nextCursorOf = async (server: TestServer, input: Record<string, unknown>) =>
 	(await server.client.tickets.list(input as ListQueryInput)).nextCursor;
 
 beforeEach(() => localStorage.clear());
@@ -34,8 +34,8 @@ beforeEach(() => localStorage.clear());
 describe("features/table/hooks/useTableData", () => {
 	// Outcome 1. 419 seeded rows and the 31 of the seed make 450.
 	test("loads every active ticket in 200-row pages until the cursor is exhausted", async () => {
-		const server = createFakeServer();
-		seedTickets(server, { project: "CDE", count: 419 });
+		const server = createTestServer();
+		await seedTickets(server, { project: "CDE", count: 419 });
 		const { result } = mount(server);
 		await waitFor(() => expect(result.current.rows).toHaveLength(450), { timeout: 15_000 });
 		const pages = activePages(server);
@@ -50,8 +50,8 @@ describe("features/table/hooks/useTableData", () => {
 
 	// Outcome 2. 2369 seeded rows and the 31 of the seed make 2400.
 	test("stops loading at the 2000-row cap and reports the list as capped", async () => {
-		const server = createFakeServer();
-		seedTickets(server, { project: "CDE", count: 2369 });
+		const server = createTestServer();
+		await seedTickets(server, { project: "CDE", count: 2369 });
 		const { result } = mount(server);
 		await waitFor(() => expect(result.current.rows).toHaveLength(2000), { timeout: 20_000 });
 		await sleep(300);
@@ -62,7 +62,7 @@ describe("features/table/hooks/useTableData", () => {
 
 	// Outcome 4
 	test("asks only for active categories in the first pass", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { result } = mount(server);
 		await waitFor(() => expect(result.current.rows).toHaveLength(31));
 		expect(listCalls(server).length).toBeGreaterThan(0);
@@ -75,11 +75,18 @@ describe("features/table/hooks/useTableData", () => {
 	// Outcome 8. The plan's example URL. A status filter is active, so the
 	// pass sends the filters as parsed and adds only the page size.
 	test("sends the route's filter grammar as the tickets.list query", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const view = parseSearch({ status: "in-progress,agent-review", parent: "none", ci: "fail", sort: "-updatedAt" });
 		const { result } = mount(server, view);
 		await waitFor(() => expect(listCalls(server).length).toBeGreaterThan(0));
-		expect(inputs(server, "tickets.list")[0]).toEqual({ project: "CDE", ...toListQuery(view), limit: 200 });
+		// The server parses the query before the service sees it, so the
+		// default of `subprojects` travels with it.
+		expect(inputs(server, "tickets.list")[0]).toEqual({
+			project: "CDE",
+			...toListQuery(view),
+			subprojects: true,
+			limit: 200,
+		});
 		await waitFor(() =>
 			expect(result.current.rows.map((row: { identifier: string }) => row.identifier)).toEqual(["CDE-44"]),
 		);

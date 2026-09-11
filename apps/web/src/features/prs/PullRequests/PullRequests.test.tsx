@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { callsTo, gatedServer, ghReady, heightClass, linkPrCopy, prsOf, summaryOf } from "../../../../test/prs";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { PullRequests } from "./PullRequests";
 
 beforeEach(() => {
@@ -13,11 +13,11 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const renderSection = async (server: FakeServer, identifier: string, wired: FakeServer = server) => {
+const renderSection = async (server: TestServer, identifier: string, wired: TestServer = server) => {
 	const ticket = await summaryOf(server, identifier);
 	return renderWithProviders(<PullRequests ticket={ticket} />, {
 		path: `/t/${identifier}`,
-		actor: "navid",
+		actor: "dana",
 		server: wired,
 	});
 };
@@ -27,7 +27,7 @@ const rowIds = () => [...document.querySelectorAll("[data-pr-row]")].map((row) =
 describe("PullRequests", () => {
 	// PR-57
 	test("lists one row per linked pull request in server order", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		await linkPrCopy(server, "CDE-42", { number: 122 });
 		const listed = await prsOf(server, "CDE-42");
 		await renderSection(server, "CDE-42");
@@ -42,7 +42,7 @@ describe("PullRequests", () => {
 
 	// PR-58. One read serves every row.
 	test("reads the pull requests once for the whole section", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		await linkPrCopy(server, "CDE-42", { number: 122 });
 		const before = callsTo(server, "pullRequests.list").length;
 		await renderSection(server, "CDE-42");
@@ -55,8 +55,8 @@ describe("PullRequests", () => {
 	// right. The button opens the modal; Escape closes it.
 	test("shows the empty state and the Link PR modal for a ticket without a pull request", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
-		ghReady(server);
+		const server = createTestServer();
+		await ghReady(server);
 		await renderSection(server, "CDE-47");
 		const header = await waitFor(() => document.querySelector<HTMLElement>("[data-prs-header]")!);
 		const button = await within(header).findByRole("button", { name: "Link PR" });
@@ -76,7 +76,7 @@ describe("PullRequests", () => {
 	// PR-60. The skeleton holds the space a row takes, so the page below it
 	// never moves when the data arrives.
 	test("holds the row height with a skeleton while the list loads", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const gate = gatedServer(server);
 		const listed = await prsOf(server, "CDE-42");
 		gate.hold();
@@ -94,7 +94,7 @@ describe("PullRequests", () => {
 
 	// PR-61
 	test("puts the gh banner above the rows", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		await renderSection(server, "CDE-42");
 		const banner = await waitFor(() => {
 			const element = document.querySelector("[data-gh-banner]");
@@ -111,8 +111,8 @@ describe("PullRequests", () => {
 	// PR-65. The section header carries one icon control, so the empty state
 	// and a full list read the same.
 	test("opens the Link PR modal from a plus button that shows no label", async () => {
-		const server = createFakeServer();
-		ghReady(server);
+		const server = createTestServer();
+		await ghReady(server);
 		await renderSection(server, "CDE-47");
 		const header = await waitFor(() => document.querySelector<HTMLElement>("[data-prs-header]")!);
 		const button = await within(header).findByRole("button", { name: "Link PR" });

@@ -8,8 +8,7 @@ declare global {
 // globals must exist before any other preload file or test file loads. The
 // page has an origin, so a client built over `window.location.origin` forms
 // a valid request URL.
-// The same-origin policy is off: a test that spawns the fake server on
-// 127.0.0.1 reads its health from this origin.
+// The same-origin policy is off, so a page reads a URL of another origin.
 GlobalRegistrator.register({ url: "http://trellis.local/", settings: { fetch: { disableSameOriginPolicy: true } } });
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 

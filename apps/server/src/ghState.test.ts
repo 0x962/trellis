@@ -7,7 +7,7 @@ const AT = new Date("2026-09-10T12:00:00.000Z");
 const SIGNED_IN: GhResult = {
 	ok: true,
 	code: 0,
-	stdout: "github.com\n  Logged in to github.com account navid (keyring)\n",
+	stdout: "github.com\n  Logged in to github.com account dana (keyring)\n",
 	stderr: "",
 };
 
@@ -49,7 +49,7 @@ describe("createGhState", () => {
 		expect(gh.calls).toEqual([["auth", "status"]]);
 		expect(state.current()).toEqual({
 			ok: true,
-			user: "navid",
+			user: "dana",
 			reason: null,
 			message: null,
 			checkedAt: AT.toISOString(),
@@ -77,7 +77,7 @@ describe("createGhState", () => {
 		bus.emit({ type: "gh.status", ok: true });
 		await Bun.sleep(0);
 		expect(gh.calls).toEqual([["auth", "status"]]);
-		expect(state.current()).toMatchObject({ ok: true, user: "navid" });
+		expect(state.current()).toMatchObject({ ok: true, user: "dana" });
 	});
 
 	// The poller also sends { ok: true } when the rate limit budget changes.
@@ -87,6 +87,6 @@ describe("createGhState", () => {
 		bus.emit({ type: "gh.status", ok: true });
 		await Bun.sleep(0);
 		expect(gh.calls).toHaveLength(1);
-		expect(state.current()).toMatchObject({ ok: true, user: "navid" });
+		expect(state.current()).toMatchObject({ ok: true, user: "dana" });
 	});
 });

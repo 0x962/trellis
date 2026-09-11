@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { screen } from "@testing-library/react";
-import { createFakeServer } from "../../../test/fake-server";
 import { mockMatchMedia } from "../../../test/media";
 import { renderApp } from "../../../test/renderWithProviders";
+import { createTestServer } from "../../../test/server";
 
 // happy-dom has no 2D canvas. The fake context records what the badge
 // draws, and the canvas answers with a fixed data URL.
@@ -40,8 +40,8 @@ afterEach(() => {
 const icon = () => document.head.querySelector<HTMLLinkElement>('link[rel="icon"]')!;
 
 test("the favicon stays plain when review tickets exist", async () => {
-	const server = createFakeServer();
-	renderApp({ path: "/needs-you", actor: "navid", server });
+	const server = createTestServer();
+	renderApp({ path: "/needs-you", actor: "dana", server });
 	await screen.findByRole("heading", { name: "Needs you" });
 	expect(icon().getAttribute("href")).toBe("/favicon.svg");
 	expect(icon().type).toBe("image/svg+xml");

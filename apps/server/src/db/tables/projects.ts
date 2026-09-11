@@ -73,7 +73,8 @@ export const repos = pgTable(
 
 // A review status names who reviews; every other category carries no
 // reviewer. One status per project is the default for a new ticket.
-// `description` contains markdown that explains the work in this status.
+// `description` is markdown that tells the manager agent what to do with a
+// ticket in this status.
 export const statuses = pgTable(
 	"statuses",
 	{

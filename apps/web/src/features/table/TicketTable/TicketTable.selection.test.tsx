@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { fireEvent, waitFor } from "@testing-library/react";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
 import { seedTickets } from "../../../../test/seedMany";
+import { createTestServer } from "../../../../test/server";
 import { bulkBar, findGrid, footer, grid, press, resetUi, rows } from "../../../../test/table";
 import { tableViewport } from "../../../../test/viewport";
 
@@ -15,9 +15,9 @@ beforeEach(() => {
 
 // 977 seeded todo rows and the 23 of the seed make 1000 todo tickets.
 const ready = async () => {
-	const server = createFakeServer();
-	seedTickets(server, { project: "CDE", count: 977 });
-	const app = renderApp({ path: "/p/CDE/table?status=todo", actor: "navid", server });
+	const server = createTestServer();
+	await seedTickets(server, { project: "CDE", count: 977 });
+	const app = renderApp({ path: "/p/CDE/table?status=todo", actor: "dana", server });
 	await findGrid();
 	await waitFor(() => expect(grid().getAttribute("aria-rowcount")).toBe("1000"), { timeout: 15_000 });
 	return app;

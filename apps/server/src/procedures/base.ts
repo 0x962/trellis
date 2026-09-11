@@ -11,6 +11,9 @@ import type { ServiceName } from "../services/registry.ts";
 // whose route method is not GET. `resHeaders` comes from the response
 // headers plugin; a create sets `Location` on it. `timing` belongs to the
 // HTTP request, so every procedure of a batch adds to the same one.
+// `chooseDirectory` opens the folder picker of the machine. It is here and
+// not in a service, because the picker blocks until a person answers and the
+// database worker must serve every other request while it waits.
 export type ProcedureContext = {
 	headers: Headers;
 	reqId: string;
@@ -18,6 +21,7 @@ export type ProcedureContext = {
 	actor: ActorRef | null;
 	timing: DbTiming;
 	resHeaders?: Headers;
+	chooseDirectory: () => Promise<string | null>;
 };
 
 const base = implement(contract).$context<ProcedureContext>();

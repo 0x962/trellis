@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { archiveProject } from "../../../../test/rows";
+import { createTestServer } from "../../../../test/server";
 import { findGrid, resetUi, sleep, toastWith } from "../../../../test/table";
 import { tableViewport } from "../../../../test/viewport";
 import { composerActions } from "../composerStore";
@@ -16,19 +17,15 @@ beforeEach(() => {
 
 afterEach(() => act(resetUi));
 
-const archive = (server: ReturnType<typeof createFakeServer>, path: string) => {
-	[...server.state.projects.values()].find((entry) => entry.path === path)!.archivedAt = new Date().toISOString();
-};
-
 const dialog = () => screen.queryByRole("dialog", { name: /new ticket/i });
 
 describe("features/composer/CreateTicketDialog on an archived project", () => {
 	// An archived project takes no new ticket. The composer does not open,
 	// and a toast names the project and the way out.
 	test("c on the page of an archived project opens no composer", async () => {
-		const server = createFakeServer();
-		archive(server, "TRL");
-		renderApp({ path: "/p/TRL/table", actor: "navid", server });
+		const server = createTestServer();
+		await archiveProject(server, "TRL");
+		renderApp({ path: "/p/TRL/table", actor: "dana", server });
 		await findGrid();
 		act(() => composerActions.open({ project: "TRL" }));
 		await toastWith("TRL is archived. Unarchive the project to change it.");
@@ -39,9 +36,9 @@ describe("features/composer/CreateTicketDialog on an archived project", () => {
 	// The project picker offers only the projects that take a new ticket.
 	test("the project picker leaves out every archived project", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
-		archive(server, "TRL");
-		renderApp({ path: "/all/table", actor: "navid", server });
+		const server = createTestServer();
+		await archiveProject(server, "TRL");
+		renderApp({ path: "/all/table", actor: "dana", server });
 		await findGrid();
 		act(() => composerActions.open({}));
 		const open = await screen.findByRole("dialog", { name: /new ticket/i });

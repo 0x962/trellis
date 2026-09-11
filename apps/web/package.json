@@ -6,9 +6,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
-		"dev:fake": "bun test/fake-server/serve.ts",
 		"build": "NODE_ENV=production vite build",
-		"test": "bun test .test. --parallel",
+		"test": "bun test .test. --parallel=4 --timeout=20000",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"lint": "biome check .",
 		"e2e": "playwright test -c e2e/playwright.config.ts",

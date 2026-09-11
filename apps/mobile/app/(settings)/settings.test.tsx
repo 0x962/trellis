@@ -20,13 +20,13 @@ const theme = (label: string) => screen.getByRole("radio", { name: label });
 describe("the Settings tab", () => {
 	beforeEach(() => {
 		store.set("trellis-server-url", "http://h:4521");
-		store.set("trellis-actor-name", "navid");
+		store.set("trellis-actor-name", "dana");
 		setStringAsync.mockClear();
 	});
 
 	test("shows name, server, theme with dark selected, version, and the notifications note", async () => {
 		await renderRouter(appContext(), { initialUrl: "/settings" });
-		expect(screen.getByText("navid")).toBeOnTheScreen();
+		expect(screen.getByText("dana")).toBeOnTheScreen();
 		expect(screen.getByText("http://h:4521")).toBeOnTheScreen();
 		for (const label of ["System", "Light", "Dark"]) {
 			expect(theme(label)).toBeOnTheScreen();

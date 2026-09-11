@@ -31,7 +31,7 @@ export type ServiceCtx = {
 	vacuum: () => Promise<void>;
 };
 
-export const navidCtxActor: ActorRef = { name: "navid", kind: "human" };
+export const danaCtxActor: ActorRef = { name: "dana", kind: "human" };
 
 // A runner that fails the test when a service spawns gh where the outcome
 // says it must not.
@@ -44,7 +44,7 @@ export const noGh: GhRunner = Object.assign(
 
 export const signedInGh = (): GhStatus => ({
 	ok: true,
-	user: "navid",
+	user: "dana",
 	reason: null,
 	message: null,
 	checkedAt: "2026-09-09T10:00:00.000Z",
@@ -70,7 +70,7 @@ export type CtxOptions = {
 export const testCtx = (options: CtxOptions): CtxHandle => {
 	const tasks: Array<() => Promise<void>> = [];
 	const ctx: ServiceCtx = {
-		actor: options.actor ?? navidCtxActor,
+		actor: options.actor ?? danaCtxActor,
 		session: null,
 		home: options.home,
 		maxUploadBytes: options.maxUploadBytes ?? 50 * 1024 * 1024,

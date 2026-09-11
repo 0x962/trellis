@@ -1,10 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { PullRequest } from "@trellis/api";
-import { ulid } from "ulid";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
-import { findTicket } from "../../../../test/fake-server/state";
+import { linkPrCopy, patchPr } from "../../../../test/prs";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { ago, hour, renderTicket } from "../../../../test/ticketHost";
 import { useComposerStore } from "../../composer";
 import { TicketView } from "../TicketView";
@@ -15,47 +13,27 @@ beforeEach(() => {
 	useComposerStore.setState({ open: false, options: {} });
 });
 
-const mount = (identifier = "CDE-42", server: FakeServer = createFakeServer()) =>
+const mount = (identifier = "CDE-42", server: TestServer = createTestServer()) =>
 	renderTicket(identifier, (ticket) => <SubTickets ticket={ticket} />, { path: "/p/CDE", server });
 
 const section = () => screen.findByRole("region", { name: /Sub-tickets/ });
 const rows = (element: HTMLElement) => within(element).getAllByRole("button", { name: /CDE-\d+/ });
 
-// An open PR with two passing checks on the child CDE-50.
-const linkPrToChild = (server: FakeServer) => {
-	const child = findTicket(server.state, "CDE-50")!;
-	const pr: PullRequest = {
-		id: ulid(),
-		owner: "canary-technologies-corp",
-		repo: "de",
+// An open PR with two passing checks on the child CDE-50. It is copied from
+// the one CDE-42 holds, so the seed's repository answers for it.
+const linkPrToChild = async (server: TestServer) => {
+	const pr = await linkPrCopy(server, "CDE-42", {
 		number: 123,
-		url: "https://github.com/canary-technologies-corp/de/pull/123",
 		title: "Rename a tab on double click",
-		state: "open",
-		isDraft: false,
 		headRef: "cde-50-rename-tab",
-		baseRef: "main",
-		reviewState: "none",
-		mergedAt: null,
-		closedAt: null,
 		checks: [
 			{ name: "lint", workflow: "ci", bucket: "pass", link: null },
 			{ name: "test", workflow: "ci", bucket: "pass", link: null },
 		],
-		ciState: "pass",
-		fetchedAt: ago(hour),
-		fetchError: null,
-		createdAt: ago(hour),
-		updatedAt: ago(hour),
-	};
-	server.state.prs.set(pr.id, pr);
-	server.state.prLinks.push({
-		ticketId: child.id,
-		prId: pr.id,
-		source: "auto",
-		linkedBy: { name: "trellis", kind: "system" },
-		linkedAt: ago(hour),
 	});
+	await server.client.pullRequests.unlink({ ticket: "CDE-42", id: pr.id });
+	await server.client.pullRequests.link({ ticket: "CDE-50", url: pr.url });
+	await patchPr(server, pr.id, { fetchedAt: ago(hour), createdAt: ago(hour), updatedAt: ago(hour) });
 };
 
 describe("features/ticket/SubTickets", () => {
@@ -76,8 +54,8 @@ describe("features/ticket/SubTickets", () => {
 
 	// WT-59. One row per child; each row is the same fixed height.
 	test("renders fixed-height rows with status, ID, title, priority, and PR", async () => {
-		const server = createFakeServer();
-		linkPrToChild(server);
+		const server = createTestServer();
+		await linkPrToChild(server);
 		mount("CDE-42", server);
 		const element = await section();
 		const all = rows(element);
@@ -110,7 +88,7 @@ describe("features/ticket/SubTickets", () => {
 	// parent, so a sub-ticket takes every field a ticket takes.
 	test("Add opens the create dialog with this ticket as the parent", async () => {
 		const user = userEvent.setup();
-		mount("CDE-42", createFakeServer());
+		mount("CDE-42");
 		const element = await section();
 		await user.click(within(element).getByRole("button", { name: "Add" }));
 		await waitFor(() => expect(useComposerStore.getState().open).toBe(true));

@@ -2,7 +2,7 @@
 // copy. `key` is the project key an agent works in.
 export const instructions = (key: string) => `## Ticket workflow (trellis)
 
-Tickets live in trellis, a local tracker at http://trellis.localhost. Use the \`trellis\` CLI. When you pipe its output, it prints JSON.
+Tickets live in trellis, a local tracker at http://127.0.0.1:4521. Use the \`trellis\` CLI. When you pipe its output, it prints JSON.
 Inside Claude Code, every command runs as \`agent:claude-code\`. Elsewhere, set \`TRELLIS_ACTOR=agent:<name>\`.
 
 1. Pick work:        trellis list --project ${key} --status todo

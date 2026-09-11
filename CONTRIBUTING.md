@@ -13,19 +13,16 @@ trellis needs [Bun](https://bun.sh) 1.3. Some suites need macOS, and CI runs the
 
 ## Development loop
 
-Run the fake server and the web app in separate terminals.
+`bun run dev` starts the server on 4521 and the web app on 5173.
 
 ```sh
 bun install
-bun run --cwd apps/web dev:fake
-```
-
-```sh
-TRELLIS_API_URL=http://127.0.0.1:4522 bun run --cwd apps/web dev
+TRELLIS_HOME=$(mktemp -d) bun run dev
 ```
 
 Open `http://127.0.0.1:5173`.
-The fake server deletes its data when it restarts.
+A temporary `TRELLIS_HOME` keeps the loop away from your own data, and each run starts from an empty database.
+Drop the variable to work against `~/.trellis`.
 For the end-to-end suite, Playwright starts both processes.
 
 Assess the risk of the change and choose checks that cover the affected behavior.
@@ -42,7 +39,7 @@ One agent handles tests, implementation, and review, and decides whether browser
 | `packages/ui` | `@trellis/ui` | Design tokens, Base UI wrappers, and visual primitives. |
 | `packages/cli` | `@trellis/cli` | The `trellis` command and HTTP client. |
 | `apps/server` | `@trellis/server` | The Hono server, procedures, services, database worker, and GitHub poller. |
-| `apps/web` | `@trellis/web` | The React web app and its fake server. |
+| `apps/web` | `@trellis/web` | The React web app. |
 | `apps/mobile` | `@trellis/mobile` | The Expo mobile app. |
 | `docs` | | The architecture reference, the agent setup guide, and the images. |
 | `test` | | Tests for repository configuration and public files. |

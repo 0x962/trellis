@@ -76,7 +76,7 @@ describe("boot", () => {
 	test("the gh auth check runs without blocking the listen", async () => {
 		const home = freshHome();
 		const stub = ghStub(mkdtempSync(join(home, "gh-")), {
-			"auth status": { stdout: "Logged in to github.com account navid", stderr: "", exitCode: 0, delayMs: 3000 },
+			"auth status": { stdout: "Logged in to github.com account dana", stderr: "", exitCode: 0, delayMs: 3000 },
 		});
 		restores.push(stub.restore);
 		const server = start(home);
@@ -97,7 +97,7 @@ describe("boot", () => {
 	test("an event stream stays open through 12 silent seconds", async () => {
 		const home = freshHome();
 		const stub = ghStub(mkdtempSync(join(home, "gh-")), {
-			"auth status": { stdout: "Logged in to github.com account navid", stderr: "", exitCode: 0 },
+			"auth status": { stdout: "Logged in to github.com account dana", stderr: "", exitCode: 0 },
 		});
 		restores.push(stub.restore);
 		const server = start(home);
@@ -108,7 +108,7 @@ describe("boot", () => {
 		await stream.idle(12_000);
 		await fetch(`${url}/api/projects`, {
 			method: "POST",
-			headers: { "content-type": "application/json", "x-trellis-actor": "human:navid" },
+			headers: { "content-type": "application/json", "x-trellis-actor": "human:dana" },
 			body: JSON.stringify({ key: "IDL", name: "Idle" }),
 		});
 		const event = await stream.next(2000);

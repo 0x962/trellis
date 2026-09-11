@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { callsTo, lastCallTo } from "../../../../test/inbox";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { StalledThresholdField } from "./StalledThresholdField";
 
 beforeEach(() => {
@@ -13,13 +13,13 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const render = (server: FakeServer) =>
+const render = (server: TestServer) =>
 	renderWithProviders(
 		<>
 			<Toaster />
 			<StalledThresholdField />
 		</>,
-		{ path: "/settings", actor: "navid", server },
+		{ path: "/settings", actor: "dana", server },
 	);
 
 const field = () => screen.findByRole("spinbutton", { name: /stalled/i });
@@ -36,7 +36,7 @@ describe("StalledThresholdField", () => {
 	// ST-09. A zero threshold would call every started ticket stalled.
 	test("saves a positive threshold and blocks zero", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const saved = await server.client.settings.get();
 		render(server);
 		await save(user, "0");
@@ -51,7 +51,7 @@ describe("StalledThresholdField", () => {
 	// so the inbox must be read again.
 	test("invalidates the inbox after a threshold save", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { queryClient, orpc } = render(server);
 		await queryClient.fetchQuery(orpc.inbox.get.queryOptions({ input: {} }));
 		const before = callsTo(server, "inbox.get").length;

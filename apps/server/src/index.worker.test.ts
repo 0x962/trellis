@@ -34,7 +34,7 @@ const startWithStub = async (replies: Parameters<typeof ghStub>[1]) => {
 	const server = spawnServer({ home, env: { TRELLIS_CLOCK_RATE: "100" } });
 	servers.push(server);
 	const { url } = await server.listening();
-	const client = createTrellisClient(url, "human:navid");
+	const client = createTrellisClient(url, "human:dana");
 	return { stub, server, client };
 };
 

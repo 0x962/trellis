@@ -8,7 +8,7 @@ describe("lib/preloadRouteChunks", () => {
 	// reload that shows the browser's error page. Every route file therefore
 	// loads while the server still answers.
 	test("loads the chunk of every route in the tree", async () => {
-		const { router } = wire({ path: "/needs-you", actor: "navid" });
+		const { router } = wire({ path: "/needs-you", actor: "dana" });
 		const loaded: string[] = [];
 		router.loadRouteChunk = mock((route: { id: string }) => {
 			loaded.push(route.id);

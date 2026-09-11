@@ -12,7 +12,7 @@ const seeded = [
 	projectSummary({ path: "CDE.web", position: 0, openCount: 12 }),
 	projectSummary({ path: "CDE.host", position: 1, openCount: 7 }),
 	projectSummary({ path: "TRL", name: "trellis", position: 1, openCount: 14 }),
-	projectSummary({ path: "MRG", name: "margin", position: 2, openCount: 3 }),
+	projectSummary({ path: "OPS", name: "ops", position: 2, openCount: 3 }),
 ];
 
 const row = (path: string) => screen.getByTestId(`project-row-${path}`);

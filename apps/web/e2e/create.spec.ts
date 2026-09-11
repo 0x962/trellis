@@ -10,7 +10,7 @@ test.beforeAll(() => {
 // The composer opens on `c`, takes the project from the route, and creates
 // on Cmd+Enter. The new row shows in the table without a reload.
 test("the composer creates a ticket with Cmd+Enter and the row joins the table", async ({ page }) => {
-	await signIn(page, "/p/CRT");
+	await signIn(page, "/p/CRT/table");
 	await expect(page.getByRole("heading", { name: "Create", level: 1 })).toBeVisible();
 	const title = `Write the release notes ${Date.now()}`;
 	await page.keyboard.press("c");

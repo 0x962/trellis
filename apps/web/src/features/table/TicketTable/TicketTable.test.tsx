@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
 import { seedTickets } from "../../../../test/seedMany";
+import { createTestServer } from "../../../../test/server";
 import {
 	findGrid,
 	footer,
@@ -30,9 +30,9 @@ const banner = () => document.querySelector<HTMLElement>("[data-cap-banner]");
 describe("features/table/TicketTable", () => {
 	// Outcome 3. 2369 seeded rows and the 31 of the seed make 2400.
 	test("shows the cap banner above the rows when the list is capped", async () => {
-		const server = createFakeServer();
-		seedTickets(server, { project: "CDE", count: 2369 });
-		renderApp({ path: "/p/CDE/table", actor: "navid", server });
+		const server = createTestServer();
+		await seedTickets(server, { project: "CDE", count: 2369 });
+		renderApp({ path: "/p/CDE/table", actor: "dana", server });
 		await findGrid();
 		await waitFor(() => expect(banner()).not.toBeNull(), { timeout: 20_000 });
 		expect(banner()!.textContent).toMatch(/first 2,?000 tickets/i);
@@ -43,7 +43,7 @@ describe("features/table/TicketTable", () => {
 
 	// Outcome 15
 	test("collapses the Done and Canceled groups on a first visit", async () => {
-		renderApp({ path: "/p/CDE/table", actor: "navid" });
+		renderApp({ path: "/p/CDE/table", actor: "dana" });
 		await findGrid();
 		await waitFor(() => groupHeader("canceled"));
 		expect(groupHeader("done").getAttribute("aria-expanded")).toBe("false");
@@ -61,7 +61,7 @@ describe("features/table/TicketTable", () => {
 	// state is keyed by the route, so /all keeps its own.
 	test("keeps a group's collapse state per route across a remount", async () => {
 		const user = userEvent.setup();
-		const first = renderApp({ path: "/p/CDE/table", actor: "navid" });
+		const first = renderApp({ path: "/p/CDE/table", actor: "dana" });
 		await findGrid();
 		await waitFor(() => groupHeader("in-progress"));
 		expect(groupHeader("in-progress").getAttribute("aria-expanded")).toBe("true");
@@ -69,7 +69,7 @@ describe("features/table/TicketTable", () => {
 		expect(groupHeader("in-progress").getAttribute("aria-expanded")).toBe("false");
 		expect(storedUi().collapsedGroups["/p/CDE"]).toContain("in-progress");
 		first.unmount();
-		renderApp({ path: "/p/CDE/table", actor: "navid" });
+		renderApp({ path: "/p/CDE/table", actor: "dana" });
 		await findGrid();
 		await waitFor(() => groupHeader("in-progress"));
 		expect(groupHeader("in-progress").getAttribute("aria-expanded")).toBe("false");
@@ -80,9 +80,9 @@ describe("features/table/TicketTable", () => {
 	// Outcome 20. 969 seeded rows and the 31 of the seed make 1000. Without
 	// groups there is no header, so the spacer is the rows alone.
 	test("virtualizes 1000 rows and sizes the scroller from the fixed row height", async () => {
-		const server = createFakeServer();
-		seedTickets(server, { project: "CDE", count: 969 });
-		renderApp({ path: "/p/CDE/table?group=none", actor: "navid", server });
+		const server = createTestServer();
+		await seedTickets(server, { project: "CDE", count: 969 });
+		renderApp({ path: "/p/CDE/table?group=none", actor: "dana", server });
 		await findGrid();
 		await waitFor(() => expect(grid().getAttribute("aria-rowcount")).toBe("1000"), { timeout: 15_000 });
 		expect(rows().length).toBeLessThan(60);
@@ -92,7 +92,7 @@ describe("features/table/TicketTable", () => {
 
 	// Outcome 21
 	test("exposes a grid with one roving tabindex", async () => {
-		renderApp({ path: "/p/CDE/table", actor: "navid" });
+		renderApp({ path: "/p/CDE/table", actor: "dana" });
 		const table = await findGrid();
 		await waitFor(() => expect(rows().length).toBeGreaterThan(2));
 		expect(table.getAttribute("role")).toBe("grid");
@@ -105,7 +105,7 @@ describe("features/table/TicketTable", () => {
 	// TB-1. A grouping other than status loads only the open tickets, so the
 	// footer states the completed ones it leaves out.
 	test("the footer names the completed tickets a priority grouping hides", async () => {
-		renderApp({ path: "/p/CDE/table?group=priority", actor: "navid" });
+		renderApp({ path: "/p/CDE/table?group=priority", actor: "dana" });
 		await findGrid();
 		await waitFor(() => expect(footer().textContent).toMatch(/\d+ open · \d+ completed hidden/));
 	});

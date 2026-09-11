@@ -4,10 +4,10 @@ import "@atlaskit/pragmatic-drag-and-drop-unit-testing/dom-rect-polyfill";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { applyEvent } from "@trellis/api";
-import { createFakeServer } from "../../../../test/fake-server";
-import { findTicket, matchStatus } from "../../../../test/fake-server/state";
-import { ticketSummary } from "../../../../test/fake-server/summaries";
+import { summaryOf } from "../../../../test/events";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { matchStatus, patchTicket, statusesOf, ticketRow } from "../../../../test/rows";
+import { createTestServer } from "../../../../test/server";
 import { useUiStore } from "../../../stores/uiStore";
 import { useComposerStore } from "../../composer/composerStore";
 import { Board } from ".";
@@ -20,10 +20,10 @@ beforeEach(() => {
 	useComposerStore.setState({ open: false, options: {} });
 });
 
-const renderBoard = (server = createFakeServer()) =>
+const renderBoard = (server = createTestServer()) =>
 	renderWithProviders(<Board projectRef="CDE" storageKey="CDE" onOpenTicket={() => {}} />, {
 		path: "/p/CDE/board",
-		actor: "navid",
+		actor: "dana",
 		server,
 	});
 
@@ -64,13 +64,9 @@ describe("Board", () => {
 	});
 
 	test("columns use category order and show counts and the WIP warning", async () => {
-		const server = createFakeServer();
-		const started = [...server.state.statuses.values()].find(
-			(status) =>
-				status.projectId === [...server.state.projects.values()].find((project) => project.path === "CDE")!.id &&
-				status.slug === "in-progress",
-		)!;
-		started.wipLimit = 3;
+		const server = createTestServer();
+		const started = matchStatus(await statusesOf(server, "CDE"), "in-progress")!;
+		await server.client.statuses.update({ project: "CDE", status: started.id, wipLimit: 3 });
 		renderBoard(server);
 
 		const columns = await screen.findAllByRole("list");
@@ -91,23 +87,20 @@ describe("Board", () => {
 	// The board matches the sort field of the table: the ticket that changed
 	// last sits at the top of its column, and a tie breaks by id descending.
 	test("a column lists the last updated card first", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderBoard(server);
 		await screen.findByText("CDE-47");
-		const project = [...server.state.projects.values()].find((entry) => entry.path === "CDE")!;
-		const todo = [...server.state.statuses.values()].find(
-			(status) => status.projectId === project.id && status.slug === "todo",
-		)!;
-		const expected = [...server.state.tickets.values()]
-			.filter((row) => row.statusId === todo.id)
+		const todo = matchStatus(await statusesOf(server, "CDE"), "todo")!;
+		const page = await server.client.tickets.list({ project: "CDE", status: todo.id, sort: "-updatedAt", limit: 200 });
+		const expected = page.items
 			.sort((a, b) => (a.updatedAt === b.updatedAt ? (a.id < b.id ? 1 : -1) : a.updatedAt < b.updatedAt ? 1 : -1))
-			.map((row) => `${project.key}-${row.number}`);
+			.map((row) => row.identifier);
 		expect(expected.length).toBeGreaterThan(1);
 		expect(identifiers(column("Todo"))).toEqual(expected);
 	});
 
 	test("a drop between columns patches the cache before one move response", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		let release = () => {};
 		let blocked = false;
 		const gate = new Promise<void>((resolve) => {
@@ -127,12 +120,12 @@ describe("Board", () => {
 		expect(server.calls.filter((call) => call.path.join(".") === "tickets.move")).toHaveLength(0);
 		release();
 		await waitFor(() => expect(server.calls.filter((call) => call.path.join(".") === "tickets.move")).toHaveLength(1));
-		expect(server.calls.find((call) => call.path.join(".") === "tickets.move")!.actor).toBe("human:navid");
+		expect(server.calls.find((call) => call.path.join(".") === "tickets.move")!.actor).toBe("human:dana");
 		view.unmount();
 	});
 
 	test("a 412 rolls the card back and shows a toast", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderBoard(server);
 		await screen.findByText("CDE-47");
 		await server.client.tickets.update({ ticket: "CDE-47", title: "Changed elsewhere" });
@@ -148,7 +141,7 @@ describe("Board", () => {
 	// A column has no manual order, so a drop inside the card's own column
 	// takes no drop target and writes nothing.
 	test("a drop inside the card's own column changes nothing", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderBoard(server);
 		await screen.findByText("CDE-47");
 		const before = identifiers(column("Todo"));
@@ -161,7 +154,7 @@ describe("Board", () => {
 	});
 
 	test("brackets change columns and Shift with an arrow only moves the focus", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderBoard(server);
 		const item = await screen.findByRole("listitem", { name: /^CDE-47 / });
 		item.focus();
@@ -215,7 +208,7 @@ describe("Board", () => {
 	});
 
 	test("a collapsed column stays collapsed after a remount", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const first = renderBoard(server);
 		const user = userEvent.setup();
 		await user.click(await screen.findByRole("button", { name: "Todo actions" }));
@@ -227,10 +220,12 @@ describe("Board", () => {
 	});
 
 	test("Done shows 30 days until Show all done", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const created = await server.client.tickets.create({ project: "CDE", title: "Old completed ticket" });
 		await server.client.tickets.move({ ticket: created.identifier, status: "done" });
-		findTicket(server.state, created.identifier)!.completedAt = new Date(Date.now() - 31 * 86_400_000).toISOString();
+		await patchTicket(server, created.identifier, {
+			completedAt: new Date(Date.now() - 31 * 86_400_000).toISOString(),
+		});
 		renderBoard(server);
 		// Done starts as a rail at the end of the board.
 		await userEvent.setup().click(await screen.findByRole("button", { name: "Expand Done" }));
@@ -241,7 +236,7 @@ describe("Board", () => {
 	});
 
 	test("the column header plus opens New ticket in the project and the column status", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		renderBoard(server);
 		await userEvent.setup().click(await screen.findByRole("button", { name: "New ticket in Todo" }));
 		expect(useComposerStore.getState()).toMatchObject({ open: true, options: { project: "CDE", status: "todo" } });
@@ -249,23 +244,16 @@ describe("Board", () => {
 	});
 
 	test("a ticket.updated event moves a card without a board refetch", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const view = renderBoard(server);
 		await screen.findByText("CDE-47");
-		const row = findTicket(server.state, "CDE-47")!;
-		const target = matchStatus(
-			[...server.state.statuses.values()].filter((status) => status.projectId === row.rootId),
-			"in-progress",
-		)!;
-		row.statusId = target.id;
-		row.version += 1;
+		const row = await ticketRow(server, "CDE-47");
+		const target = matchStatus(await statusesOf(server, "CDE"), "in-progress")!;
+		const summary = summaryOf({ ...row, status: target, version: row.version + 1 });
 		const calls = server.calls.filter((call) => call.path.join(".") === "tickets.board").length;
 
 		await act(async () => {
-			applyEvent(
-				{ type: "ticket.updated", summary: ticketSummary(server.state, row), fields: ["status"], batchId: row.id },
-				view.queryClient,
-			);
+			applyEvent({ type: "ticket.updated", summary, fields: ["status"], batchId: row.id }, view.queryClient);
 			await Promise.resolve();
 		});
 

@@ -14,6 +14,7 @@ import type { Runtime, ServiceTransport } from "./db/transport.ts";
 import type { Bus } from "./events/bus.ts";
 import { isAllowedHost } from "./hostCheck.ts";
 import type { Logger } from "./log.ts";
+import { chooseDirectory } from "./native/chooseDirectory";
 import { type ProcedureContext, router } from "./procedures/index.ts";
 import { docsRoutes } from "./routes/docs.ts";
 import { type Clock, createEventsRoute, realClock } from "./routes/events.ts";
@@ -29,6 +30,9 @@ export type AppOptions = {
 	bus: Bus;
 	runtime: Runtime;
 	clock?: Clock;
+	// The folder picker `system.chooseDirectory` opens. A test gives its own,
+	// so no suite waits on a dialog nobody can answer.
+	chooseDirectory?: () => Promise<string | null>;
 };
 
 // The Vite dev server and the localhost gateway. Every other origin gets no
@@ -73,7 +77,15 @@ const deleteWithQuery = (request: Request) => {
 // paths, the RPC handler at /rpc, the OpenAPI handler at /api, the plain
 // routes, a JSON 404 under the two mounts, and the web app for everything
 // else.
-export const createApp = ({ config, log, transport, bus, runtime, clock = realClock }: AppOptions) => {
+export const createApp = ({
+	config,
+	log,
+	transport,
+	bus,
+	runtime,
+	clock = realClock,
+	chooseDirectory: chooseFolder = chooseDirectory,
+}: AppOptions) => {
 	const app = new Hono();
 	const events = createEventsRoute({ bus, runtime, transport, clock });
 	const docs = docsRoutes();
@@ -110,12 +122,20 @@ export const createApp = ({ config, log, transport, bus, runtime, clock = realCl
 	app.use(cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) }));
 
 	const maxBytes = config.maxUploadMb * MB;
-	const uploadLimit = bodyLimit({
-		maxSize: maxBytes,
-		onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413),
-	});
-	app.use("/api/tickets/:ticket/attachments", uploadLimit);
-	app.use("/rpc/attachments/upload", uploadLimit);
+	app.use(
+		"/api/tickets/:ticket/attachments",
+		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
+	);
+	// The RPC codec wraps every body in `json`. The limit answers before the
+	// handler runs, so it writes that shape itself; without it the client
+	// reads an undefined error and never sees the cap it must report.
+	app.use(
+		"/rpc/attachments/upload",
+		bodyLimit({
+			maxSize: maxBytes,
+			onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
+		}),
+	);
 
 	const plugins = [new ResponseHeadersPlugin<ProcedureContext>()];
 	// The web app sends the calls of one tick as a single POST to
@@ -131,6 +151,7 @@ export const createApp = ({ config, log, transport, bus, runtime, clock = realCl
 		transport,
 		actor: null,
 		timing: createDbTiming(),
+		chooseDirectory: chooseFolder,
 	});
 	// Every procedure response carries the database time of its request. A
 	// request that fails before any service call reports 0.

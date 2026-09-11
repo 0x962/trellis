@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { lastCallTo } from "../../../../test/inbox";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { formatCount } from "../../../lib/format";
 
 beforeEach(() => {
@@ -12,17 +12,15 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const ticketsUnder = (server: FakeServer, key: string) => {
-	const root = [...server.state.projects.values()].find((project) => project.path === key)!;
-	return [...server.state.tickets.values()].filter((ticket) => ticket.rootId === root.id).length;
-};
+const ticketsUnder = async (server: TestServer, key: string) =>
+	(await server.client.tickets.counts({ project: key })).total;
 
 const projectTree = () => screen.getByRole("navigation", { name: "Projects" });
 
 describe("features/project-settings/ProjectLifecycle", () => {
 	test("project settings archive the project and unarchive it", async () => {
 		const user = userEvent.setup();
-		const { server } = renderApp({ path: "/p/TRL/settings#archive", actor: "navid" });
+		const { server } = renderApp({ path: "/p/TRL/settings#archive", actor: "dana" });
 		await user.click(await screen.findByRole("button", { name: "Archive project" }));
 		await waitFor(() =>
 			expect(lastCallTo(server, "projects.update")?.input).toEqual({ project: "TRL", archived: true }),
@@ -40,10 +38,10 @@ describe("features/project-settings/ProjectLifecycle", () => {
 	// count and waits for the key before it sends `force`.
 	test("delete states the ticket count, takes the typed key, and sends force", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
-		const count = ticketsUnder(server, "TRL");
+		const server = createTestServer();
+		const count = await ticketsUnder(server, "TRL");
 		expect(count).toBeGreaterThan(1);
-		const { router } = renderApp({ path: "/p/TRL/settings#archive", actor: "navid", server });
+		const { router } = renderApp({ path: "/p/TRL/settings#archive", actor: "dana", server });
 		await user.click(await screen.findByRole("button", { name: "Delete project…" }));
 		const dialog = await screen.findByRole("dialog", { name: "Delete trellis?" });
 		await waitFor(() => expect(dialog.textContent).toContain(`${formatCount(count)} tickets`));
@@ -58,14 +56,14 @@ describe("features/project-settings/ProjectLifecycle", () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe("/all"));
 		expect(lastCallTo(server, "projects.delete")!.input).toEqual({ project: "TRL", force: true });
 		await waitFor(() => expect(within(projectTree()).queryByRole("link", { name: /trellis/ })).toBeNull());
-		expect([...server.state.projects.values()].some((project) => project.key === "TRL")).toBe(false);
+		expect((await server.client.projects.list({})).some((project) => project.key === "TRL")).toBe(false);
 	});
 
 	test("delete of an empty project asks once and sends projects.delete without force", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await server.client.projects.create({ key: "EMP", name: "Empty" });
-		const { router } = renderApp({ path: "/p/EMP/settings#archive", actor: "navid", server });
+		const { router } = renderApp({ path: "/p/EMP/settings#archive", actor: "dana", server });
 		await user.click(await screen.findByRole("button", { name: "Delete project…" }));
 		const dialog = await screen.findByRole("dialog", { name: "Delete Empty?" });
 		await waitFor(() => expect(dialog.textContent).toContain("no tickets"));

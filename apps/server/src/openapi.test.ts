@@ -144,11 +144,8 @@ describe("tags, examples, servers", () => {
 		}
 	});
 
-	test("the document lists both server URLs", () => {
-		expect(document.servers?.map((server) => server.url)).toEqual([
-			"http://127.0.0.1:4521/api",
-			"http://trellis.localhost/api",
-		]);
+	test("the document lists the local server URL", () => {
+		expect(document.servers?.map((server) => server.url)).toEqual(["http://127.0.0.1:4521/api"]);
 	});
 
 	test("the document generates without a warning", () => {

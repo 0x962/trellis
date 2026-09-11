@@ -12,7 +12,7 @@ describe("routes/_gallery", () => {
 	// WS-92. The design reviewer grades the primitives here, so the shell
 	// stays out of the frame.
 	test("/_gallery renders the ui gallery without the shell", async () => {
-		renderApp({ path: "/_gallery", actor: "navid" });
+		renderApp({ path: "/_gallery", actor: "dana" });
 		expect(await screen.findByText("gallery")).toBeDefined();
 		expect(screen.getAllByText("trellis").length).toBeGreaterThanOrEqual(1);
 		expect(await screen.findByRole("heading", { name: "Button" })).toBeDefined();

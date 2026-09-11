@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { callsTo, lastCallTo } from "../../../../test/inbox";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import { ActorNameField } from "./ActorNameField";
 
 beforeEach(() => {
@@ -13,13 +13,13 @@ beforeEach(() => {
 	mockMatchMedia(false);
 });
 
-const render = (server: FakeServer) =>
+const render = (server: TestServer) =>
 	renderWithProviders(
 		<>
 			<Toaster />
 			<ActorNameField />
 		</>,
-		{ path: "/settings", actor: "navid", server },
+		{ path: "/settings", actor: "dana", server },
 	);
 
 const field = () => screen.findByRole("textbox", { name: /your name/i });
@@ -38,7 +38,7 @@ describe("ActorNameField", () => {
 	// every other setting unchanged.
 	test("sends every settings field on a name save", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const saved = await server.client.settings.get();
 		render(server);
 		await saveName(user, "Nav");
@@ -49,7 +49,7 @@ describe("ActorNameField", () => {
 	// ST-04. The name is the identity every write carries.
 	test("makes the saved name the actor on the next mutation", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { client } = render(server);
 		await saveName(user, "Nav");
 		expect(JSON.parse(localStorage.getItem("trellis.actor")!)).toEqual({ name: "Nav", kind: "human" });
@@ -60,7 +60,7 @@ describe("ActorNameField", () => {
 	// ST-05. An empty name would make every write anonymous.
 	test("blocks an empty name with an inline message", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		render(server);
 		const input = await saveName(user, "");
 		expect(await screen.findByText("Enter a name.")).toBeDefined();
@@ -71,7 +71,7 @@ describe("ActorNameField", () => {
 	// ST-11. A failed save leaves the field showing what the server holds.
 	test("restores the old value and toasts when the save fails", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.failNext("settings.set", {
 			code: "INPUT_VALIDATION_FAILED",
 			data: { issues: [{ message: "The name is taken." }] },
@@ -80,6 +80,6 @@ describe("ActorNameField", () => {
 		const input = await saveName(user, "Nav");
 		expect(await screen.findByText("The input does not match the schema.")).toBeDefined();
 		expect(await screen.findByRole("button", { name: "Retry" })).toBeDefined();
-		await waitFor(() => expect(input.value).toBe("navid"));
+		await waitFor(() => expect(input.value).toBe("dana"));
 	});
 });

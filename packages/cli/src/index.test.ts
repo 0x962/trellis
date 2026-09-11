@@ -38,6 +38,7 @@ const verbs = [
 	"backup",
 	"restore",
 	"export",
+	"agents",
 ];
 
 const listPage = { items: [ticketSummary()], nextCursor: null };

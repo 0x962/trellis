@@ -1,4 +1,13 @@
 import { join, resolve } from "node:path";
+import type { Deps } from "./index.ts";
+
+// The superset binary that the server spawns for every agents call: the
+// --superset-bin flag, then TRELLIS_SUPERSET_BIN, then the path that `which`
+// finds on PATH. The path keeps its symlink, so an update of the Superset CLI
+// that moves the symlink target does not break it. null means that PATH has
+// no superset.
+export const supersetBin = (deps: Pick<Deps, "env" | "which">, flag: string | undefined): string | null =>
+	flag ?? deps.env.TRELLIS_SUPERSET_BIN ?? deps.which("superset");
 
 // The files `install` writes and `uninstall` removes, all under `home`, the
 // user home the CLI deps carry. `prefix` moves the shim, the LaunchAgents

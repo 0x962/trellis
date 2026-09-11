@@ -44,6 +44,26 @@ export const ticketSummary = (overrides: Record<string, unknown> = {}) => ({
 	...overrides,
 });
 
+// One builder session as `agents.sessions` returns it. Superset ids are
+// opaque strings, so the fixture uses short ones.
+export const agentSession = (overrides: Record<string, unknown> = {}) => ({
+	id: ulid,
+	projectId,
+	ticketId: t1,
+	role: "builder",
+	runner: "superset",
+	state: "running",
+	workspaceId: "ws-7f3a",
+	terminalId: "term-1",
+	name: "Kenji",
+	title: "CDE-42",
+	openUrl: "superset://workspace/ws-7f3a",
+	lastWokenAt: null,
+	error: null,
+	createdAt: "2026-09-10T10:00:00.000Z",
+	...overrides,
+});
+
 // The `tickets.get` shape: a summary plus the fields only the detail carries.
 export const ticket = (overrides: Record<string, unknown> = {}) => ({
 	...ticketSummary(),
@@ -85,7 +105,7 @@ export const linkedPullRequest = (overrides: Record<string, unknown> = {}) => ({
 	createdAt: "2026-09-09T10:00:00.000Z",
 	updatedAt: "2026-09-09T10:05:00.000Z",
 	source: "manual",
-	linkedBy: { name: "navid", kind: "human" },
+	linkedBy: { name: "dana", kind: "human" },
 	linkedAt: "2026-09-09T10:05:00.000Z",
 	...overrides,
 });

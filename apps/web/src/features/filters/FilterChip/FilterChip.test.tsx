@@ -19,7 +19,7 @@ const status = () => chip("status")!;
 const text = () => status().textContent!.replace(/\s+/g, " ").trim();
 
 const ready = async () => {
-	const app = renderApp({ path, actor: "navid" });
+	const app = renderApp({ path, actor: "dana" });
 	await findGrid();
 	await waitFor(() => expect(chip("status")).not.toBeNull());
 	expect(text()).toBe("Status is In Progress, Agent Review");
@@ -60,14 +60,14 @@ describe("features/filters/FilterChip", () => {
 	// D17. A category chip names the statuses of the category in the scope,
 	// so it reads like the cells. After two names it counts the rest.
 	test("a category chip names its statuses", async () => {
-		renderApp({ path: "/p/CDE/table?category=review", actor: "navid" });
+		renderApp({ path: "/p/CDE/table?category=review", actor: "dana" });
 		await findGrid();
 		await waitFor(() => expect(chip("category")).not.toBeNull());
 		expect(chip("category")!.textContent!.replace(/\s+/g, " ").trim()).toBe("Status is Agent Review, Human Review");
 	});
 
 	test("a chip with more than two values names two and counts the rest", async () => {
-		renderApp({ path: "/p/CDE/table?category=todo,started,review", actor: "navid" });
+		renderApp({ path: "/p/CDE/table?category=todo,started,review", actor: "dana" });
 		await findGrid();
 		await waitFor(() => expect(chip("category")).not.toBeNull());
 		expect(chip("category")!.textContent!.replace(/\s+/g, " ").trim()).toBe("Status is Todo, In Progress +2");

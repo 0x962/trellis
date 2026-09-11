@@ -4,7 +4,12 @@ import { ulid } from "ulid";
 import { createApp } from "../../src/app.ts";
 import { type Config, loadConfig } from "../../src/config.ts";
 import { openDb } from "../../src/db/client.ts";
-import { createInlineTransport, createWorkerTransport, type Runtime } from "../../src/db/transport.ts";
+import {
+	createInlineTransport,
+	createWorkerTransport,
+	type Runtime,
+	type ServiceTransport,
+} from "../../src/db/transport.ts";
 import type { Tx } from "../../src/db/tx.ts";
 import { createBus } from "../../src/events/bus.ts";
 import { createGhRunner, type GhRunner } from "../../src/gh/run.ts";
@@ -13,6 +18,7 @@ import { fakeIntervalClock } from "./clock.ts";
 import { signedInGh } from "./ctx.ts";
 import { freshDb, type TestDb } from "./db.ts";
 import { freshHomeWithDirs } from "./home.ts";
+import { SUPERSET_STUB_BIN } from "./superset-stub.ts";
 
 // createTestApp builds the HTTP app the way index.ts does, against an
 // in-memory database and a temporary data home, and hands back every part a
@@ -29,7 +35,7 @@ import { freshHomeWithDirs } from "./home.ts";
 // `transport.start()` loads the project cache; the worker transport spawns
 // its thread there instead.
 
-export const NAVID = "human:navid";
+export const DANA = "human:dana";
 export const CLAUDE = "agent:claude-code";
 
 export type ApiCall = {
@@ -48,7 +54,6 @@ export type ApiResponse = {
 };
 
 export type TestAppOptions = {
-	supersetBin?: string;
 	db?: TestDb;
 	maxUploadMb?: number;
 	logLevel?: LogLevel;
@@ -58,21 +63,37 @@ export type TestAppOptions = {
 	version?: string;
 	// The TRELLIS_ALLOWED_HOSTS value, a comma-separated hostname list.
 	allowedHosts?: string;
+	// The superset binary the agents runner spawns. The default is the fake
+	// from test/stubs/superset.ts, so no test reaches the real superset.
+	supersetBin?: string;
+	// The data home. A caller that shares one home across several apps reuses
+	// the attachment blobs it already wrote there.
+	home?: string;
+	// The URLs `system.health` lists.
+	addresses?: () => Promise<string[]>;
+	bootId?: string;
+	// Wraps the transport every procedure calls. The wrapper sees the service
+	// name, the request context, and the input of every call, so a test
+	// records the calls, delays one, or fails one.
+	wrapTransport?: (inner: ServiceTransport) => ServiceTransport;
+	// The folder picker `system.chooseDirectory` opens. The default answers
+	// the way a canceled dialog does, so no test waits on one.
+	chooseDirectory?: () => Promise<string | null>;
 };
 
 export const createTestApp = async (options: TestAppOptions = {}) => {
 	const owned = options.db === undefined;
 	const h = options.db ?? (await freshDb());
-	const home = freshHomeWithDirs();
+	const home = options.home ?? freshHomeWithDirs();
 	const config: Config = loadConfig({
 		TRELLIS_HOME: home,
-		TRELLIS_SUPERSET_BIN: options.supersetBin,
 		TRELLIS_PORT: "0",
 		TRELLIS_MAX_UPLOAD_MB: String(options.maxUploadMb ?? 50),
 		TRELLIS_LOG_LEVEL: options.logLevel ?? "debug",
 		TRELLIS_WEB_DIST: options.webDist ?? `${home}/no-web-dist`,
 		TRELLIS_DB_INLINE: process.env.TRELLIS_TEST_TRANSPORT === "worker" ? "false" : "true",
 		TRELLIS_ALLOWED_HOSTS: options.allowedHosts,
+		TRELLIS_SUPERSET_BIN: options.supersetBin ?? SUPERSET_STUB_BIN,
 	});
 	// The directories boot creates, so a backup of this home finds db/.
 	for (const dir of [config.dbDir, config.tmpDir, config.backupsDir]) mkdirSync(dir, { recursive: true });
@@ -87,28 +108,37 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		},
 		env: {},
 	});
-	const bootId = ulid();
+	const bootId = options.bootId ?? ulid();
 	const bus = createBus({ bootId });
 	const runtime: Runtime = {
 		version: options.version ?? "0.1.0-test",
 		bootId,
 		gh: options.gh ?? createGhRunner(),
 		ghStatus: options.ghStatus ?? signedInGh,
-		addresses: async () => ["http://192.168.1.20:4521", "http://127.0.0.1:4521"],
+		addresses: options.addresses ?? (async () => ["http://192.168.1.20:4521", "http://127.0.0.1:4521"]),
 	};
 	const clock = fakeIntervalClock();
-	const transport = config.dbInline
+	const inner = config.dbInline
 		? createInlineTransport({ db: h.db, bus, config, runtime })
 		: createWorkerTransport({ bus, config, runtime });
-	await transport.start();
-	const { app, bye } = createApp({ config, log, transport, bus, runtime, clock });
+	await inner.start();
+	const transport = options.wrapTransport === undefined ? inner : options.wrapTransport(inner);
+	const { app, bye } = createApp({
+		config,
+		log,
+		transport,
+		bus,
+		runtime,
+		clock,
+		chooseDirectory: options.chooseDirectory ?? (async () => null),
+	});
 
 	const fetchThroughApp = (request: Request) => Promise.resolve(app.request(request));
 	const as = (actor: string): TrellisClient => createTrellisClient("http://trellis.test", actor, fetchThroughApp);
 
 	const api = async (path: string, call: ApiCall = {}): Promise<ApiResponse> => {
 		const headers = new Headers(call.headers);
-		const actor = call.actor === undefined ? NAVID : call.actor;
+		const actor = call.actor === undefined ? DANA : call.actor;
 		if (actor !== null) headers.set("x-trellis-actor", actor);
 		let body: BodyInit | undefined = call.raw;
 		if (call.body !== undefined) {
@@ -131,18 +161,21 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		return response.body as Project;
 	};
 
-	const createTicket = async (input: Record<string, unknown>, actor: string = NAVID): Promise<Ticket> => {
+	const createTicket = async (input: Record<string, unknown>, actor: string = DANA): Promise<Ticket> => {
 		const response = await api("/api/tickets", { method: "POST", body: input, actor });
 		if (response.status !== 201) throw new Error(`createTicket: ${response.status} ${JSON.stringify(response.body)}`);
 		return response.body as Ticket;
 	};
 
-	let open = true;
+	// Every call closes the transport, because a test that restarts the
+	// transport leaves a second worker on the data directory, and serverTx
+	// opens that directory next. The owned in-memory database closes once.
+	let dbOpen = owned;
 	const close = async () => {
-		if (!open) return;
-		open = false;
-		await transport.close();
-		if (owned) h.close();
+		await inner.close();
+		if (!dbOpen) return;
+		dbOpen = false;
+		h.close();
 	};
 
 	// serverTx runs `fn` in a transaction on the database the server writes.
@@ -164,7 +197,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		bye,
 		api,
 		as,
-		client: as(NAVID),
+		client: as(DANA),
 		seedProject,
 		createTicket,
 		db: h.db,
@@ -176,7 +209,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		clock,
 		records,
 		runtime,
-		transport,
+		transport: inner,
 		close,
 	};
 };

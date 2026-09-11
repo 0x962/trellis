@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import {
 	type ActorRef,
 	claude,
+	dana,
 	hoursAgo,
 	linkPr,
-	navid,
 	type StatusIds,
 	seedActivity,
 	seedChild,
@@ -18,7 +18,7 @@ import * as inbox from "./inbox.ts";
 
 const h = ticketHarness();
 
-const get = (input: Record<string, unknown> = {}) => h.as(navid)((ctx, tx) => inbox.get(ctx, tx, input));
+const get = (input: Record<string, unknown> = {}) => h.as(dana)((ctx, tx) => inbox.get(ctx, tx, input));
 
 const ids = (section: { items: Array<{ id: string }> }) => section.items.map((item) => item.id);
 
@@ -93,7 +93,7 @@ describe("inbox.get", () => {
 		const byAgent = await seedIn(statuses.done, { completedAt: new Date() });
 		const byHuman = await seedIn(statuses.done, { completedAt: new Date() });
 		await doneMove(rootId, rootId, byAgent, claude, statuses);
-		await doneMove(rootId, rootId, byHuman, navid, statuses);
+		await doneMove(rootId, rootId, byHuman, dana, statuses);
 		const { result } = await get();
 		expect(ids(result.doneByAgentsToday)).toEqual([byAgent]);
 	});

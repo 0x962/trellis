@@ -44,7 +44,7 @@ export const runPasted = <T>(command: string): T => {
 	mkdirSync(bin, { recursive: true });
 	writeFileSync(
 		join(bin, "trellis"),
-		`#!/bin/sh\nexec bun "${entry}" --url "${apiUrl}" --as human:navid --json "$@"\n`,
+		`#!/bin/sh\nexec bun "${entry}" --url "${apiUrl}" --as human:dana --json "$@"\n`,
 		{ mode: 0o755 },
 	);
 	const stdout = execFileSync("sh", ["-c", command], {

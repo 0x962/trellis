@@ -3,7 +3,7 @@ import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { BatchLinkPlugin } from "@orpc/client/plugins";
 import type { TrellisClient } from "@trellis/api";
-import { createTestApp, NAVID, type TestApp } from "../test/helpers/app.ts";
+import { createTestApp, DANA, type TestApp } from "../test/helpers/app.ts";
 
 // The web app sends the calls of one tick as a single POST to /rpc/__batch__.
 // The server answers that path only while the RPC handler carries the batch
@@ -20,7 +20,7 @@ afterAll(() => t.close());
 const batchedClient = (): TrellisClient => {
 	const link = new RPCLink({
 		url: "http://trellis.test/rpc",
-		headers: { "x-trellis-actor": NAVID },
+		headers: { "x-trellis-actor": DANA },
 		fetch: (request) => Promise.resolve(t.app.request(request)),
 		plugins: [new BatchLinkPlugin({ groups: [{ condition: () => true, context: {} }], mode: "buffered" })],
 	});

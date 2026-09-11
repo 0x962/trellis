@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { waitFor } from "@testing-library/react";
-import { createFakeServer } from "../../../test/fake-server";
 import { mockMatchMedia } from "../../../test/media";
 import { renderApp } from "../../../test/renderWithProviders";
+import { createTestServer } from "../../../test/server";
 import { documentTitle } from "./useDocumentTitle";
 
 beforeEach(() => {
@@ -27,8 +27,8 @@ describe("hooks/useDocumentTitle", () => {
 
 	// Each route sets its tab title. The ticket page sets its own title.
 	test("the shell sets the tab title of the page it shows", async () => {
-		const server = createFakeServer();
-		const { router } = renderApp({ path: "/needs-you", actor: "navid", server });
+		const server = createTestServer();
+		const { router } = renderApp({ path: "/needs-you", actor: "dana", server });
 		await waitFor(() => expect(document.title).toBe("Needs you · trellis"));
 		await router.navigate({ to: "/all" });
 		await waitFor(() => expect(document.title).toBe("All tickets · trellis"));

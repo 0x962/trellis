@@ -23,8 +23,8 @@ describe("ActorChip", () => {
 		expect(screen.getByTestId("live-dot")).toBeOnTheScreen();
 		await agent.unmount();
 
-		await render(<ActorChip name="navid" kind="human" />);
-		const humanName = textStyle(screen.getByText("navid"));
+		await render(<ActorChip name="dana" kind="human" />);
+		const humanName = textStyle(screen.getByText("dana"));
 		expect(String(humanName.fontWeight)).toBe("500");
 		expect(humanName.color).toBe(palette.fg);
 		expect(humanName.fontFamily).not.toBe(tokens.font.mono);

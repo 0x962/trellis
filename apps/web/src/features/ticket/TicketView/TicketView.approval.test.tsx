@@ -13,7 +13,7 @@ for (const variant of ["page", "peek"] as const) {
 			mockMatchMedia(phone);
 			const view = renderWithProviders(<TicketView identifier="CDE-42" variant={variant} />, {
 				path: "/t/CDE-42",
-				actor: "navid",
+				actor: "dana",
 			});
 			await screen.findByLabelText("Properties");
 			expect(screen.queryByRole("button", { name: /^Approve\b|^Send back\b/ })).toBeNull();

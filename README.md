@@ -42,6 +42,8 @@ bun packages/cli/src/index.ts install
 
 `--no-launchd` writes the files and loads nothing. `trellis uninstall` removes the agent and the command.
 
+Agents need the Superset CLI. launchd gives the server a short `PATH`, so `trellis install` writes the full path of the `superset` on your `PATH` into the agent as `TRELLIS_SUPERSET_BIN`. `--superset-bin <path>` names another binary, and `trellis serve` takes the same flag.
+
 A gateway on port 80, such as [margin](https://github.com/0x962/margin), serves `http://trellis.localhost` when it reads the routes file `~/.config/localhost-gateway/routes.json`. The file maps each `*.localhost` name to a port, as in `{ "trellis": 4521 }`. `trellis install` sets the `trellis` entry and keeps the others, and `trellis uninstall` removes it. When no gateway answers for `trellis.localhost`, install prints `http://127.0.0.1:4521` and the path of the routes file.
 
 To run the server in the foreground and not as a launchd agent, run this command in a separate terminal:
@@ -52,7 +54,7 @@ trellis serve
 
 ## Daily use
 
-Open `http://trellis.localhost`. Without the gateway, open `http://127.0.0.1:4521`. On the first visit, the setup page asks for your name and your first project.
+Open `http://127.0.0.1:4521`. With the optional gateway, open `http://trellis.localhost`. On the first visit, the setup page asks for your name and your first project.
 
 Create a project and a ticket from the CLI:
 
@@ -117,7 +119,7 @@ Every write sends the header `x-trellis-actor: <human|agent>:<name>`. The CLI se
 
 ## Ticket workflow (trellis)
 
-Tickets live in trellis, a local tracker at http://trellis.localhost. Use the `trellis` CLI. When you pipe its output, it prints JSON.
+Tickets live in trellis, a local tracker at http://127.0.0.1:4521. Use the `trellis` CLI. When you pipe its output, it prints JSON.
 Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `TRELLIS_ACTOR=agent:<name>`.
 
 1. Pick work:        trellis list --project TRL --status todo
@@ -244,6 +246,8 @@ Read [SECURITY.md](SECURITY.md) for the full model and for how to report a vulne
 ## Data and backups
 
 trellis keeps all data in `~/.trellis`. To use a different directory, set `TRELLIS_HOME`. To use a port other than 4521, set `TRELLIS_PORT`.
+
+`trellis open` and every link in an agent brief start with `http://127.0.0.1:<port>`. When a gateway or a proxy serves trellis under another name, set `TRELLIS_PUBLIC_URL` to that origin, for example `TRELLIS_PUBLIC_URL=http://trellis.localhost`. The CLI reads the same variable.
 
 | Path | Content |
 |---|---|

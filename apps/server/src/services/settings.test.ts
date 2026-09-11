@@ -30,9 +30,9 @@ const get = () =>
 const set = (input: Settings) => h.run((ctx, tx) => settings.set(ctx, tx, input));
 
 const written: Settings = {
-	defaultActorName: "navid",
+	defaultActorName: "dana",
 	stalledHours: 48,
-	diffUrlTemplate: "http://margin.localhost/{url}",
+	diffUrlTemplate: "http://diff.localhost/{url}",
 };
 
 describe("settings", () => {
@@ -55,7 +55,7 @@ describe("settings", () => {
 		expect(returned).toEqual(written);
 		const rows = await settingRows();
 		expect(rows.map((row) => row.key)).toEqual(["defaultActorName", "diffUrlTemplate", "stalledHours"]);
-		expect(rows.map((row) => row.value)).toEqual(["navid", "http://margin.localhost/{url}", 48]);
+		expect(rows.map((row) => row.value)).toEqual(["dana", "http://diff.localhost/{url}", 48]);
 		expect(await get()).toEqual({ ...written, agentLaunchCommand: DEFAULT_AGENT_LAUNCH_COMMAND });
 	});
 
@@ -66,7 +66,7 @@ describe("settings", () => {
 	});
 
 	test("a template round-trips through jsonb without a change", async () => {
-		const template = "http://margin.localhost/{url}?view=files&mode=split";
+		const template = "http://diff.localhost/{url}?view=files&mode=split";
 		await set({ ...written, diffUrlTemplate: template });
 		expect((await get()).diffUrlTemplate).toBe(template);
 	});

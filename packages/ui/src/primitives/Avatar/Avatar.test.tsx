@@ -7,13 +7,13 @@ describe("Avatar", () => {
 	test("human avatar renders initials in a square", () => {
 		render(
 			<>
-				<Avatar kind="human" name="Navid Khan" />
-				<Avatar kind="human" name="navid" />
+				<Avatar kind="human" name="Dana Lee" />
+				<Avatar kind="human" name="dana" />
 			</>,
 		);
-		const full = screen.getByLabelText("Navid Khan");
-		expect(full.textContent).toBe("NK");
-		expect(screen.getByLabelText("navid").textContent).toBe("N");
+		const full = screen.getByLabelText("Dana Lee");
+		expect(full.textContent).toBe("DL");
+		expect(screen.getByLabelText("dana").textContent).toBe("D");
 		expectClasses(full, "size-4.5 rounded-sm bg-fg-muted text-surface text-initials font-semibold");
 		expect(full.querySelector("svg")).toBeNull();
 	});
@@ -41,13 +41,13 @@ describe("Avatar", () => {
 			<>
 				<Avatar kind="agent" name="claude-code" live />
 				<Avatar kind="agent" name="codex" live={false} />
-				<Avatar kind="human" name="navid" live />
+				<Avatar kind="human" name="dana" live />
 			</>,
 		);
 		const dot = screen.getByLabelText("claude-code · agent").querySelector("[data-live]")!;
 		expect(dot).not.toBeNull();
 		expectClasses(dot, "bg-success border-surface animate-pulse-live motion-reduce:animate-none");
 		expect(screen.getByLabelText("codex · agent").querySelector("[data-live]")).toBeNull();
-		expect(screen.getByLabelText("navid").querySelector("[data-live]")).not.toBeNull();
+		expect(screen.getByLabelText("dana").querySelector("[data-live]")).not.toBeNull();
 	});
 });

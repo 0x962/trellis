@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
 import { seedTickets } from "../../../../test/seedMany";
+import { createTestServer } from "../../../../test/server";
 import { findGrid, groupCount, groupHeader, groupRows, resetUi, rowOf } from "../../../../test/table";
 import { tableViewport } from "../../../../test/viewport";
 
@@ -20,9 +20,9 @@ const path = "/p/CDE/table?status=in-progress";
 describe("features/table/GroupHeader", () => {
 	// Outcome 28. 8 seeded rows and the 4 of the seed make 12.
 	test("shows the status icon, name, count, and the create button", async () => {
-		const server = createFakeServer();
-		seedTickets(server, { project: "CDE", count: 8, status: "in-progress" });
-		renderApp({ path, actor: "navid", server });
+		const server = createTestServer();
+		await seedTickets(server, { project: "CDE", count: 8, status: "in-progress" });
+		renderApp({ path, actor: "dana", server });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-44"));
 		const header = groupHeader("in-progress");
@@ -35,7 +35,7 @@ describe("features/table/GroupHeader", () => {
 	// Outcome 29
 	test("opens the composer with the group's status", async () => {
 		const user = userEvent.setup();
-		renderApp({ path, actor: "navid" });
+		renderApp({ path, actor: "dana" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-44"));
 		await user.click(within(groupHeader("in-progress")).getByRole("button", { name: "New ticket in In Progress" }));
@@ -46,7 +46,7 @@ describe("features/table/GroupHeader", () => {
 	// Outcome 30
 	test("toggles the group open and closed from the header", async () => {
 		const user = userEvent.setup();
-		renderApp({ path, actor: "navid" });
+		renderApp({ path, actor: "dana" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-44"));
 		expect(groupRows("in-progress")).toHaveLength(4);

@@ -31,7 +31,7 @@ export type TableController = {
 
 const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
 
-// The keyboard map of the table, product.md 3.6. Every handler reads the
+// The keyboard map of the table. Every handler reads the
 // controller of the latest render, so the listeners bind once.
 export const useTableHotkeys = (controller: TableController) => {
 	const active = useStableCallback(() => {

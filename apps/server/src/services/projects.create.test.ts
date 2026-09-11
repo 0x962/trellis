@@ -47,7 +47,7 @@ const seedCde = async () => {
 	return seeded;
 };
 
-// The default description of product.md section 6.3.
+// The default description a new root hands to its tickets.
 const DEFAULT_TEMPLATE = "## Context\n\n## Acceptance criteria\n- [ ]\n\n## Out of scope\n";
 
 describe("projects.create ticket template", () => {
@@ -207,7 +207,7 @@ describe("projects.create on a sub-project", () => {
 describe("projects.create side effects", () => {
 	test("a create upserts the actor and writes one activity row", async () => {
 		const created = await h.run((ctx, tx) => projects.create(ctx, tx, { key: "CDE", name: "Code" }));
-		expect(await h.rows(sql`SELECT name, kind FROM actors`)).toEqual([{ name: "navid", kind: "human" }]);
+		expect(await h.rows(sql`SELECT name, kind FROM actors`)).toEqual([{ name: "dana", kind: "human" }]);
 		const rows = await activityRows(h);
 		expect(rows).toHaveLength(1);
 		const row = rows[0]!;
@@ -216,7 +216,7 @@ describe("projects.create side effects", () => {
 		expect(row.project_id).toBe(created.id);
 		expect(row.root_id).toBe(created.id);
 		expect(row.action).toBe("project.created");
-		expect({ name: row.actor_name, kind: row.actor_kind }).toEqual({ name: "navid", kind: "human" });
+		expect({ name: row.actor_name, kind: row.actor_kind }).toEqual({ name: "dana", kind: "human" });
 		expect(row.created_at).toBe(NOW.toISOString());
 	});
 

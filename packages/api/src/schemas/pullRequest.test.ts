@@ -18,6 +18,6 @@ test("a check keeps gh's cancel and skipping buckets verbatim", () => {
 test("a linked pull request accepts the auto-link actor system:trellis", () => {
 	const auto = linkedPullRequest({ source: "auto", linkedBy: { name: "trellis", kind: "system" } });
 	expect(LinkedPullRequestSchema.safeParse(auto).success).toBe(true);
-	const manual = linkedPullRequest({ source: "manual", linkedBy: { name: "navid", kind: "human" } });
+	const manual = linkedPullRequest({ source: "manual", linkedBy: { name: "dana", kind: "human" } });
 	expect(LinkedPullRequestSchema.safeParse(manual).success).toBe(true);
 });

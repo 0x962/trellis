@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { createFakeServer, type FakeServer } from "../../test/fake-server";
 import { createFakeScheduler } from "../../test/fakeScheduler";
 import { mockMatchMedia } from "../../test/media";
 import { renderApp } from "../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../test/server";
 
 beforeEach(() => {
 	localStorage.clear();
@@ -13,10 +13,10 @@ beforeEach(() => {
 // A server that stops answering on `stop()`: every request then fails the
 // way a browser fetch fails when nothing listens on the port.
 const stoppable = () => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	const real = server.fetch;
 	let down = false;
-	const wrapped: FakeServer = {
+	const wrapped: TestServer = {
 		...server,
 		fetch: (request, init) => (down ? Promise.reject(new TypeError("Failed to fetch")) : real(request, init)),
 	};
@@ -29,9 +29,9 @@ describe("routes/__root loading and errors", () => {
 	// ER-1. A cold load that waits on the server paints the shell frame
 	// after 300 ms, not a blank page.
 	test("a slow cold load paints the shell frame, then the app", async () => {
-		const server = createFakeServer();
+		const server = createTestServer();
 		const hold = server.holdNext("projects.list");
-		renderApp({ path: "/needs-you", actor: "navid", server });
+		renderApp({ path: "/needs-you", actor: "dana", server });
 		const frame = await waitFor(
 			() => {
 				const found = document.querySelector<HTMLElement>("[data-shell-frame]");
@@ -54,7 +54,7 @@ describe("routes/__root loading and errors", () => {
 	// bar at the top of the main pane until the page arrives.
 	test("a slow navigation shows the progress bar after 150 ms", async () => {
 		const clock = createFakeScheduler();
-		const { server, router } = renderApp({ path: "/needs-you", actor: "navid", scheduler: clock.scheduler });
+		const { server, router } = renderApp({ path: "/needs-you", actor: "dana", scheduler: clock.scheduler });
 		const sidebar = await screen.findByRole("complementary", { name: "Sidebar" });
 		const hold = server.holdNext("tickets.counts");
 		fireEvent.click(within(sidebar).getByRole("link", { name: /All tickets/ }));
@@ -75,7 +75,7 @@ describe("routes/__root loading and errors", () => {
 	test("a failed load shows Server offline inside the shell, and Retry loads the page", async () => {
 		const { server, stop, start } = stoppable();
 		stop();
-		renderApp({ path: "/needs-you", actor: "navid", server });
+		renderApp({ path: "/needs-you", actor: "dana", server });
 		const title = await screen.findByRole("heading", { name: "Server offline" });
 		expect(document.querySelector("[data-shell-frame]")!.contains(title)).toBe(true);
 		const body = screen.getByText(/trellis did not load this page\./);
@@ -94,7 +94,7 @@ describe("routes/__root loading and errors", () => {
 	test("the failed page loads again when the connection comes back", async () => {
 		const { server, stop, start } = stoppable();
 		stop();
-		const { live } = renderApp({ path: "/needs-you", actor: "navid", server, liveStatus: "down" });
+		const { live } = renderApp({ path: "/needs-you", actor: "dana", server, liveStatus: "down" });
 		await screen.findByRole("heading", { name: "Server offline" });
 		start();
 		act(() => live.status.set("live"));
@@ -104,7 +104,7 @@ describe("routes/__root loading and errors", () => {
 	// A navigation while the server is down keeps one sidebar on screen.
 	test("a navigation while the server is down shows Server offline with one sidebar", async () => {
 		const { server, stop } = stoppable();
-		const { router } = renderApp({ path: "/needs-you", actor: "navid", server });
+		const { router } = renderApp({ path: "/needs-you", actor: "dana", server });
 		await screen.findByRole("heading", { name: /Needs you/ });
 		stop();
 		await act(() => router.navigate({ to: "/all" }));

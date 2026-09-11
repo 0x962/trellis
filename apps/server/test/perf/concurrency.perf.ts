@@ -23,7 +23,7 @@ describe.skipIf(PERF_ROWS === 0)(`perf concurrency at ${PERF_ROWS} rows`, () => 
 	beforeAll(async () => {
 		server = await startPerfServer();
 		const agents = Array.from({ length: AGENTS }, (_, index) => timedClient(server.url, `agent:perf-${index + 1}`));
-		const reader = timedClient(server.url, "human:navid");
+		const reader = timedClient(server.url, "human:dana");
 
 		let writing = true;
 		const reading = (async () => {

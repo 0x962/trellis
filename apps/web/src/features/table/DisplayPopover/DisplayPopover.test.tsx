@@ -18,7 +18,7 @@ const path = "/p/CDE/table?status=in-progress";
 const cells = (column: string) => document.querySelectorAll(`[role="gridcell"][data-column="${column}"]`);
 
 const open = async (user: ReturnType<typeof userEvent.setup>) => {
-	const app = renderApp({ path, actor: "navid" });
+	const app = renderApp({ path, actor: "dana" });
 	await findGrid();
 	await waitFor(() => rowOf("CDE-44"));
 	await user.click(screen.getByRole("button", { name: "Display" }));
@@ -48,7 +48,7 @@ describe("features/table/DisplayPopover", () => {
 		await waitFor(() => expect(cells("updated")).toHaveLength(0));
 		expect(storedUi().columnVisibility["/p/CDE"].updated).toBe(false);
 		first.unmount();
-		renderApp({ path, actor: "navid" });
+		renderApp({ path, actor: "dana" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-44"));
 		expect(cells("updated")).toHaveLength(0);
@@ -98,7 +98,7 @@ describe("features/table/DisplayPopover", () => {
 	// footer names the tickets it leaves out.
 	test("hides the completed groups when Show completed is off", async () => {
 		const user = userEvent.setup();
-		const app = renderApp({ path: "/p/CDE/table", actor: "navid" });
+		const app = renderApp({ path: "/p/CDE/table", actor: "dana" });
 		await findGrid();
 		await waitFor(() => expect(document.querySelector('[role="rowgroup"][data-group="done"]')).not.toBeNull());
 		await user.click(screen.getByRole("button", { name: "Display" }));

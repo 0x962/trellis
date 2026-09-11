@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { dropFiles, fileOf, surfaceOf } from "../../../../../test/attachments";
-import { createFakeServer } from "../../../../../test/fake-server";
 import { callsTo, gatedServer } from "../../../../../test/inbox";
 import { renderWithProviders } from "../../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../../test/server";
 import { AttachmentGrid } from "../../AttachmentGrid";
 import { useUploads } from "./useUploads";
 
@@ -34,8 +34,8 @@ describe("useUploads", () => {
 	// OUT-57. The server list is the truth, so the grid renders it and
 	// never a row the page kept beside it.
 	test("invalidates the attachments list of the ticket after an upload", async () => {
-		const server = createFakeServer();
-		renderWithProviders(<AttachmentGrid ticket="CDE-42" />, { path: "/t/CDE-42", actor: "navid", server });
+		const server = createTestServer();
+		renderWithProviders(<AttachmentGrid ticket="CDE-42" />, { path: "/t/CDE-42", actor: "dana", server });
 		const surface = await surfaceOf();
 		await waitFor(() => expect(callsTo(server, "attachments.list")).toHaveLength(1));
 		dropFiles(surface, [fileOf("notes.txt", "text/plain", 2048)]);
@@ -47,11 +47,11 @@ describe("useUploads", () => {
 	// OUT-58
 	test("tracks one progress entry per file", async () => {
 		const user = userEvent.setup();
-		const gate = gatedServer(createFakeServer());
+		const gate = gatedServer(createTestServer());
 		const files = [fileOf("notes.txt", "text/plain", 100), fileOf("plan.md", "text/markdown", 400)];
 		renderWithProviders(<UploadsProbe ticket="CDE-42" files={files} />, {
 			path: "/t/CDE-42",
-			actor: "navid",
+			actor: "dana",
 			server: gate.server,
 		});
 		gate.hold();

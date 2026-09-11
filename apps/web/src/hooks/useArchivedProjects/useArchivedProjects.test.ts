@@ -1,21 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import { waitFor } from "@testing-library/react";
-import { createFakeServer } from "../../../test/fake-server";
 import { renderHookWithProviders } from "../../../test/renderHook";
+import { archiveProject } from "../../../test/rows";
+import { createTestServer } from "../../../test/server";
 import { useArchivedProjects } from "./useArchivedProjects";
-
-const archive = (server: ReturnType<typeof createFakeServer>, key: string) => {
-	const project = [...server.state.projects.values()].find((entry) => entry.path === key)!;
-	project.archivedAt = new Date().toISOString();
-};
 
 describe("hooks/useArchivedProjects", () => {
 	test("an archived project and every project under it are read-only", async () => {
-		const server = createFakeServer();
-		archive(server, "CDE");
+		const server = createTestServer();
+		await archiveProject(server, "CDE");
 		const { result } = renderHookWithProviders(() => useArchivedProjects(), undefined, {
 			path: "/all",
-			actor: "navid",
+			actor: "dana",
 			server,
 		});
 		await waitFor(() => expect(result.current.isArchived("CDE")).toBe(true));
@@ -28,7 +24,7 @@ describe("hooks/useArchivedProjects", () => {
 	test("the notice names the archived project and the way out", async () => {
 		const { result } = renderHookWithProviders(() => useArchivedProjects(), undefined, {
 			path: "/all",
-			actor: "navid",
+			actor: "dana",
 		});
 		expect(result.current.notice("CDE.web")).toBe("CDE/web is archived. Unarchive the project to change it.");
 	});

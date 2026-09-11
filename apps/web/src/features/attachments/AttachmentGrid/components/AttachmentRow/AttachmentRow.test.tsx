@@ -11,7 +11,7 @@ const threeDaysAgo = () => new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOS
 
 const renderRow = (mime: string, filename = "notes.md") => {
 	const attachment = attachmentOf({ filename, mime, size: 2048, createdAt: threeDaysAgo() });
-	const view = renderWithProviders(<AttachmentRow attachment={attachment} />, { path: "/t/CDE-47", actor: "navid" });
+	const view = renderWithProviders(<AttachmentRow attachment={attachment} />, { path: "/t/CDE-47", actor: "dana" });
 	return { attachment, view };
 };
 
@@ -26,7 +26,7 @@ describe("AttachmentRow", () => {
 		expect(iconOf(view.container)).toBe("document");
 		expect(within(row).getByText("notes.md")).toBeDefined();
 		expect(within(row).getByText("2.0 KB")).toBeDefined();
-		expect(within(row).getByText("navid")).toBeDefined();
+		expect(within(row).getByText("dana")).toBeDefined();
 		expect(within(row).getByText(relativeTime(attachment.createdAt))).toBeDefined();
 		const link = within(row).getByRole("link");
 		expect(link.getAttribute("href")).toBe(attachment.url);

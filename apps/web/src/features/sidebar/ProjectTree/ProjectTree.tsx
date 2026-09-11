@@ -23,7 +23,7 @@ const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.posi
 // navigation that is still loading, so the highlight and the page match.
 export function ProjectTree() {
 	const { orpc } = useApp();
-	const { data } = useQuery(orpc.projects.list.queryOptions({ input: {} }));
+	const { data } = useQuery(orpc.projects.list.queryOptions({ input: { archived: false } }));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const expanded = useUiStore((state) => state.expandedProjects);
 	const activeRef = projectRefOfPathname(pathname);

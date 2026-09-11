@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { conflictAt18, serverAt17 } from "../../../../test/conflict";
-import type { FakeServer } from "../../../../test/fake-server";
+import type { TestServer } from "../../../../test/server";
 import { fieldValue, renderTicket, settle } from "../../../../test/ticketHost";
 import { Title } from "./Title";
 
@@ -10,7 +10,7 @@ beforeEach(() => localStorage.clear());
 
 const stored = "Restore the fork pages after the upstream 1.27 merge";
 
-const mount = (server: FakeServer = serverAt17()) =>
+const mount = (server: TestServer = serverAt17()) =>
 	renderTicket("CDE-42", (ticket) => <Title ticket={ticket} />, { path: "/t/CDE-42", server });
 
 const field = () => screen.getByRole("textbox", { name: "Title" });
@@ -21,7 +21,7 @@ const ready = async () => {
 	return element;
 };
 
-const updates = (server: FakeServer) => server.callsTo("tickets.update");
+const updates = (server: TestServer) => server.callsTo("tickets.update");
 
 describe("features/ticket/Title", () => {
 	// WT-25

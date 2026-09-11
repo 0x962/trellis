@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { createFakeServer } from "../../../../../test/fake-server";
+import { createTestServer } from "../../../../../test/server";
 import { viewOf } from "../../../filters/grammar";
 import { composerDefaults } from "./useComposerDefaults";
 
-const server = createFakeServer();
+const server = createTestServer();
 const { statuses } = await server.client.statuses.list({ project: "CDE" });
 
 describe("features/composer/hooks/useComposerDefaults", () => {
-	// Outcome 91, T7 (Navid 8). A filter narrows what the list shows. It does
+	// Outcome 91, T7. A filter narrows what the list shows. It does
 	// not say where a new ticket starts, so a status filter never seeds the
 	// status. A single-valued priority filter still seeds the priority.
 	test("takes the priority from a single-valued filter, and not the status", () => {

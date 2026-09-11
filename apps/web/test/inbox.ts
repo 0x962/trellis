@@ -1,18 +1,19 @@
 import { mock } from "bun:test";
 import { waitFor } from "@testing-library/react";
-import type { FakeServer } from "./fake-server";
+import type { TestServer } from "./server/index.ts";
 
-// Helpers for the Needs you tests. The seed behind `createFakeServer` holds
+// Helpers for the Needs you tests. The seed behind `createTestServer` holds
 // three review rows, one failing-CI row, one stalled row, and six rows the
 // agents finished today.
 
-// The Review section in the order the server returns, oldest waiting first.
-export const seededReview = ["CDE-42", "CDE-37", "TRL-9"];
+// The Review section in the order the server returns: the ticket whose last
+// change is oldest sits first.
+export const seededReview = ["TRL-9", "CDE-37", "CDE-42"];
 
-export const callsTo = (server: FakeServer, path: string) =>
+export const callsTo = (server: TestServer, path: string) =>
 	server.calls.filter((call) => call.path.join(".") === path);
 
-export const lastCallTo = (server: FakeServer, path: string) => callsTo(server, path).at(-1);
+export const lastCallTo = (server: TestServer, path: string) => callsTo(server, path).at(-1);
 
 // The first element that matches `selector`, once it is on the page.
 export const waitForElement = async (selector: string) =>
@@ -37,14 +38,14 @@ export const focusRow = async (identifier: string) => {
 	return row;
 };
 
-export const statusOf = async (server: FakeServer, project: string, slug: string) => {
+export const statusOf = async (server: TestServer, project: string, slug: string) => {
 	const { statuses } = await server.client.statuses.list({ project });
 	return statuses.find((status) => status.slug === slug)!;
 };
 
 // A second done status after Done, so the approve target is a choice between
 // two and not the only done status there is.
-export const addArchivedStatus = async (server: FakeServer) => {
+export const addArchivedStatus = async (server: TestServer) => {
 	await server.client.statuses.create({ project: "CDE", name: "Archived", category: "done", position: 6 });
 };
 
@@ -69,10 +70,10 @@ export const mockClipboard = (fails = false): ClipboardMock => {
 
 // A server whose responses wait for `release`. The test reads what the page
 // paints while a mutation is still in flight.
-export const gatedServer = (server: FakeServer) => {
+export const gatedServer = (server: TestServer) => {
 	const waiting: Array<() => void> = [];
 	let holding = false;
-	const fetch: FakeServer["fetch"] = async (request, init) => {
+	const fetch: TestServer["fetch"] = async (request, init) => {
 		if (holding) await new Promise<void>((resolve) => waiting.push(resolve));
 		return server.fetch(request, init);
 	};
@@ -90,9 +91,9 @@ export const gatedServer = (server: FakeServer) => {
 
 // A server whose first `count` requests fail the way a dropped connection
 // does. The client sees a rejected fetch, not an error response.
-export const flakyServer = (server: FakeServer, count: number) => {
+export const flakyServer = (server: TestServer, count: number) => {
 	let left = count;
-	const fetch: FakeServer["fetch"] = (request, init) => {
+	const fetch: TestServer["fetch"] = (request, init) => {
 		if (left > 0) {
 			left -= 1;
 			return Promise.reject(new TypeError("Failed to fetch"));

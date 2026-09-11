@@ -3,9 +3,10 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DEFAULT_AGENT_LAUNCH_COMMAND } from "@trellis/api";
 import { themeStorageKey } from "@trellis/ui";
-import { createFakeServer } from "../../test/fake-server";
 import { mockMatchMedia } from "../../test/media";
 import { renderApp } from "../../test/renderWithProviders";
+import { storedActorName } from "../../test/rows";
+import { createTestServer } from "../../test/server";
 
 beforeEach(() => {
 	localStorage.clear();
@@ -16,9 +17,9 @@ beforeEach(() => {
 describe("routes/settings", () => {
 	test("settings sections have direct links, one visible page, and browser history", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/settings", actor: "navid" });
+		const { router } = renderApp({ path: "/settings", actor: "dana" });
 		const nav = await screen.findByRole("navigation", { name: "Settings" });
-		expect(within(nav).getAllByRole("link")).toHaveLength(3);
+		expect(within(nav).getAllByRole("link")).toHaveLength(4);
 		expect(await screen.findByRole("heading", { name: "Account", level: 2 })).toBeDefined();
 		expect(screen.queryByRole("textbox", { name: /diff url template/i })).toBeNull();
 		await user.click(within(nav).getByRole("link", { name: "Integrations" }));
@@ -33,10 +34,10 @@ describe("routes/settings", () => {
 	// WS-77
 	test("settings shows the actor, the theme, the diff template, and the gh status", async () => {
 		const user = userEvent.setup();
-		const { server } = renderApp({ path: "/settings", actor: "navid" });
+		const { server } = renderApp({ path: "/settings", actor: "dana" });
 		expect(await screen.findByRole("heading", { name: "Settings" })).toBeDefined();
 		const name = (await screen.findByRole("textbox", { name: /your name/i })) as HTMLInputElement;
-		expect(name.value).toBe("navid");
+		expect(name.value).toBe("dana");
 		const theme = screen.getByRole("combobox", { name: "Theme" });
 		expect(theme.textContent).toBe("Dark");
 		await user.click(theme);
@@ -56,7 +57,7 @@ describe("routes/settings", () => {
 	// WS-78
 	test("renaming the actor updates the header on the next request", async () => {
 		const user = userEvent.setup();
-		const { server, client } = renderApp({ path: "/settings", actor: "navid" });
+		const { server, client } = renderApp({ path: "/settings", actor: "dana" });
 		const name = (await screen.findByRole("textbox", { name: /your name/i })) as HTMLInputElement;
 		await user.clear(name);
 		await user.type(name, "nk");
@@ -70,12 +71,12 @@ describe("routes/settings", () => {
 	// WS-79
 	test("a blur on the template calls settings.set", async () => {
 		const user = userEvent.setup();
-		const { server } = renderApp({ path: "/settings#integrations", actor: "navid" });
+		const { server } = renderApp({ path: "/settings#integrations", actor: "dana" });
 		const before = await server.client.settings.get();
 		const template = (await screen.findByRole("textbox", { name: /diff url template/i })) as HTMLInputElement;
 		await waitFor(() => expect(template.value).toBe(before.diffUrlTemplate));
 		await user.clear(template);
-		await user.type(template, "http://margin.localhost/{{url}");
+		await user.type(template, "http://diff.localhost/{{url}");
 		// Spec ST-4: the field saves on blur. It has no Save button.
 		await user.tab();
 		const call = await waitFor(() => {
@@ -83,15 +84,15 @@ describe("routes/settings", () => {
 			expect(found).toBeDefined();
 			return found!;
 		});
-		expect(call.input).toEqual({ ...before, diffUrlTemplate: "http://margin.localhost/{url}" });
-		expect((await server.client.settings.get()).diffUrlTemplate).toBe("http://margin.localhost/{url}");
+		expect(call.input).toEqual({ ...before, diffUrlTemplate: "http://diff.localhost/{url}" });
+		expect((await server.client.settings.get()).diffUrlTemplate).toBe("http://diff.localhost/{url}");
 		expect(await within(template.closest("[data-settings-row]") as HTMLElement).findByText("Saved")).toBeDefined();
 	});
 
 	// WS-80
 	test("the theme select stamps the choice", async () => {
 		const user = userEvent.setup();
-		renderApp({ path: "/settings", actor: "navid" });
+		renderApp({ path: "/settings", actor: "dana" });
 		const theme = await screen.findByRole("combobox", { name: "Theme" });
 		await user.click(theme);
 		await user.click(await screen.findByRole("option", { name: "Light" }));
@@ -105,7 +106,7 @@ describe("settings route", () => {
 	// ST-01
 	test("renders the actor, theme, diff template, threshold, and gh blocks", async () => {
 		const user = userEvent.setup();
-		const { server } = renderApp({ path: "/settings", actor: "navid" });
+		const { server } = renderApp({ path: "/settings", actor: "dana" });
 		expect(await screen.findByRole("textbox", { name: /your name/i })).toBeDefined();
 		expect(await screen.findByRole("combobox", { name: "Theme" })).toBeDefined();
 		await user.click(
@@ -122,15 +123,15 @@ describe("settings route", () => {
 	// ST-02
 	test("loads every field from settings.get", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		await server.client.settings.set({
-			defaultActorName: "Navid",
+			defaultActorName: "Dana",
 			stalledHours: 24,
 			diffUrlTemplate: "{url}/files",
 		});
-		renderApp({ path: "/settings", actor: "navid", server });
+		renderApp({ path: "/settings", actor: "dana", server });
 		await waitFor(async () =>
-			expect(((await screen.findByRole("textbox", { name: /your name/i })) as HTMLInputElement).value).toBe("Navid"),
+			expect(((await screen.findByRole("textbox", { name: /your name/i })) as HTMLInputElement).value).toBe("Dana"),
 		);
 		await user.click(screen.getByRole("link", { name: "Integrations" }));
 		expect(((await screen.findByRole("textbox", { name: /diff url template/i })) as HTMLInputElement).value).toBe(
@@ -147,10 +148,10 @@ describe("settings route", () => {
 	// carries both edits. No replace drops the edit of another field.
 	test("each blur sends one full replace, and the last one holds both edits", async () => {
 		const user = userEvent.setup();
-		const { server } = renderApp({ path: "/settings#integrations", actor: "navid" });
+		const { server } = renderApp({ path: "/settings#integrations", actor: "dana" });
 		const template = (await screen.findByRole("textbox", { name: /diff url template/i })) as HTMLInputElement;
 		await user.clear(template);
-		await user.type(template, "http://margin.localhost/{{url}");
+		await user.type(template, "http://diff.localhost/{{url}");
 		await user.click(screen.getByRole("link", { name: "Account" }));
 		const name = await screen.findByRole("textbox", { name: /your name/i });
 		await user.clear(name);
@@ -164,7 +165,7 @@ describe("settings route", () => {
 		expect(calls[1]!.input).toEqual({
 			agentLaunchCommand: DEFAULT_AGENT_LAUNCH_COMMAND,
 			defaultActorName: "Nav",
-			diffUrlTemplate: "http://margin.localhost/{url}",
+			diffUrlTemplate: "http://diff.localhost/{url}",
 			stalledHours: 24,
 		});
 	});
@@ -173,15 +174,15 @@ describe("settings route", () => {
 	// a second browser, with nothing in localStorage, starts with.
 	test("shows the stored name, and a rename reaches a second browser", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
-		await server.client.settings.set({ ...(await server.client.settings.get()), defaultActorName: "Navid" });
+		const server = createTestServer();
+		await server.client.settings.set({ ...(await server.client.settings.get()), defaultActorName: "Dana" });
 		const first = renderApp({ path: "/settings", server });
 		const name = (await screen.findByRole("textbox", { name: /your name/i })) as HTMLInputElement;
-		await waitFor(() => expect(name.value).toBe("Navid"));
+		await waitFor(() => expect(name.value).toBe("Dana"));
 		await user.clear(name);
 		await user.type(name, "nk");
 		await user.tab();
-		await waitFor(() => expect(server.state.settings.defaultActorName).toBe("nk"));
+		await waitFor(async () => expect(await storedActorName(server)).toBe("nk"));
 		first.unmount();
 		localStorage.clear();
 
@@ -194,7 +195,7 @@ describe("settings route", () => {
 	// ST-21. Every control is reachable in the order it is read.
 	test("reaches every control by keyboard in reading order", async () => {
 		const user = userEvent.setup();
-		renderApp({ path: "/settings", actor: "navid" });
+		renderApp({ path: "/settings", actor: "dana" });
 		const nav = await screen.findByRole("navigation", { name: "Settings" });
 		const account = within(nav).getByRole("link", { name: "Account" });
 		const agents = within(nav).getByRole("link", { name: "Agents" });

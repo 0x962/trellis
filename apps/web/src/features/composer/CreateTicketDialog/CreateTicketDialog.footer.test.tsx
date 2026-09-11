@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { calls, findGrid, resetUi } from "../../../../test/table";
 import { tableViewport } from "../../../../test/viewport";
 import { composerActions } from "../composerStore";
@@ -16,8 +16,8 @@ beforeEach(() => {
 
 afterEach(() => act(resetUi));
 
-const open = async (server = createFakeServer()) => {
-	const app = renderApp({ path: "/p/CDE/table", actor: "navid", server });
+const open = async (server = createTestServer()) => {
+	const app = renderApp({ path: "/p/CDE/table", actor: "dana", server });
 	await findGrid();
 	act(() => composerActions.open({}));
 	const dialog = await screen.findByRole("dialog", { name: "New ticket" });
@@ -53,7 +53,7 @@ describe("features/composer/CreateTicketDialog header and footer", () => {
 	// ticket and empties the title.
 	test("Create more keeps the dialog open after a create", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const { dialog, title } = await open(server);
 		await user.click(within(dialog).getByRole("switch", { name: "Create more" }));
 		await user.type(title(), "First of two");

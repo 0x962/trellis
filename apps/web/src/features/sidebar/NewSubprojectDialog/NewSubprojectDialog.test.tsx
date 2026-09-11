@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 import { NewSubprojectDialog } from "./NewSubprojectDialog";
 
 test("a sub-project uses a slideout and requires a name and slug", async () => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	const project = (await server.client.projects.list({}))[0]!;
 	let closed = false;
 	renderWithProviders(
@@ -17,7 +17,7 @@ test("a sub-project uses a slideout and requires a name and slug", async () => {
 				closed = true;
 			}}
 		/>,
-		{ path: "/all", actor: "navid", server },
+		{ path: "/all", actor: "dana", server },
 	);
 	const dialog = await screen.findByRole("dialog");
 	expect(dialog.className).toContain("right-0");

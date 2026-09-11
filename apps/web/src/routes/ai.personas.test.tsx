@@ -1,16 +1,19 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../test/fake-server";
 import { renderApp } from "../../test/renderWithProviders";
+import { createTestServer } from "../../test/server";
 
 beforeEach(() => localStorage.clear());
 
 describe("AI personas", () => {
 	test("the sidebar places AI after Projects and opens Personas", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/all", actor: "navid" });
-		const sidebar = await screen.findByRole("complementary", { name: "Sidebar" });
+		const { router } = renderApp({ path: "/all", actor: "dana" });
+		// The shell paints a busy frame while it loads, and that frame carries
+		// a sidebar of its own. The page heading marks the loaded shell.
+		await screen.findByRole("heading", { name: "All tickets" });
+		const sidebar = screen.getByRole("complementary", { name: "Sidebar" });
 		const ai = within(sidebar).getByRole("navigation", { name: "AI" });
 		const link = within(ai).getByRole("link", { name: "Personas" });
 		expect(link.getAttribute("href")).toBe("/ai/personas");
@@ -24,8 +27,8 @@ describe("AI personas", () => {
 
 	test("create and edit persist across a fresh page mount", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
-		const first = renderApp({ path: "/ai/personas", actor: "navid", server });
+		const server = createTestServer();
+		const first = renderApp({ path: "/ai/personas", actor: "dana", server });
 		await user.click(await screen.findByRole("button", { name: "New persona" }));
 		const dialog = within(await screen.findByRole("dialog", { name: "New persona" }));
 		await user.type(dialog.getByRole("textbox", { name: "Name" }), "Reviewer");
@@ -49,7 +52,7 @@ describe("AI personas", () => {
 		expect(await screen.findByRole("heading", { name: "Builder" })).toBeDefined();
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 		first.unmount();
-		renderApp({ path: "/ai/personas", actor: "navid", server });
+		renderApp({ path: "/ai/personas", actor: "dana", server });
 		expect(await screen.findByRole("heading", { name: "Builder" })).toBeDefined();
 		expect(await screen.findByText("Write a failing test first.")).toBeDefined();
 		expect(await server.client.personas.list({})).toMatchObject([
@@ -59,7 +62,7 @@ describe("AI personas", () => {
 
 	test("blank fields prevent a save and Cancel discards the draft", async () => {
 		const user = userEvent.setup();
-		const { server } = renderApp({ path: "/ai/personas", actor: "navid" });
+		const { server } = renderApp({ path: "/ai/personas", actor: "dana" });
 		await user.click(await screen.findByRole("button", { name: "New persona" }));
 		const dialog = within(await screen.findByRole("dialog", { name: "New persona" }));
 		const save = dialog.getByRole("button", { name: "Create persona" }) as HTMLButtonElement;
@@ -78,7 +81,7 @@ describe("AI personas", () => {
 
 	test("a failed save keeps the draft and permits a second attempt", async () => {
 		const user = userEvent.setup();
-		const { server } = renderApp({ path: "/ai/personas", actor: "navid" });
+		const { server } = renderApp({ path: "/ai/personas", actor: "dana" });
 		await user.click(await screen.findByRole("button", { name: "New persona" }));
 		const dialog = within(await screen.findByRole("dialog", { name: "New persona" }));
 		await user.type(dialog.getByRole("textbox", { name: "Name" }), "Reviewer");
@@ -94,9 +97,9 @@ describe("AI personas", () => {
 
 	test("a failed list offers Retry instead of the empty state", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		server.failNext("personas.list", { code: "INPUT_VALIDATION_FAILED", data: { issues: [] } });
-		renderApp({ path: "/ai/personas", actor: "navid", server });
+		renderApp({ path: "/ai/personas", actor: "dana", server });
 		expect(await screen.findByRole("alert")).toBeDefined();
 		expect(screen.queryByText("No personas yet")).toBeNull();
 		await user.click(screen.getByRole("button", { name: "Retry" }));

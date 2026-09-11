@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../../test/fake-server";
-import { findTicket } from "../../../../../test/fake-server/state";
 import { renderApp } from "../../../../../test/renderWithProviders";
+import { createTestServer, type TestServer } from "../../../../../test/server";
 import {
 	filterBar,
 	findGrid,
@@ -29,8 +28,8 @@ beforeEach(() => {
 const started = "/p/CDE/table?status=in-progress";
 const review = "/p/CDE/table?status=human-review";
 
-const ready = async (path: string, first: string, server: FakeServer = createFakeServer()) => {
-	const app = renderApp({ path, actor: "navid", server });
+const ready = async (path: string, first: string, server: TestServer = createTestServer()) => {
+	const app = renderApp({ path, actor: "dana", server });
 	await findGrid();
 	await waitFor(() => rowOf(first));
 	return app;
@@ -111,8 +110,9 @@ describe("features/table/hooks/useTableHotkeys", () => {
 	// Outcome 47. The branch name is the identifier and the title slug.
 	test("copies the ID, the branch name, and the link from the focused row", async () => {
 		userEvent.setup();
-		const server = createFakeServer();
-		findTicket(server.state, "CDE-42")!.title = "OAuth refresh";
+		const server = createTestServer({
+			prepare: async (client) => void (await client.tickets.update({ ticket: "CDE-42", title: "OAuth refresh" })),
+		});
 		await ready(review, "CDE-42", server);
 		focusRow("CDE-42");
 		press("c", { metaKey: true });

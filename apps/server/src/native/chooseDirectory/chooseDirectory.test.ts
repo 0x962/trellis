@@ -6,9 +6,9 @@ test("the folder selector returns the absolute path with spaces intact", async (
 		expect(file).toBe("/usr/bin/osascript");
 		expect(args.join(" ")).toContain("choose folder");
 		expect(args.join(" ")).toContain("on error number -128");
-		return { stdout: "/Users/navidkhan/projects/My Project/\n" };
+		return { stdout: "/Users/dana/projects/My Project/\n" };
 	});
-	expect(selected).toBe("/Users/navidkhan/projects/My Project/");
+	expect(selected).toBe("/Users/dana/projects/My Project/");
 });
 
 test("cancel returns null", async () => {

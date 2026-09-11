@@ -41,8 +41,8 @@ describe("the key-value store", () => {
 	test("a write reaches the backend and a remove takes the value back out", () => {
 		const { backend, values } = mapBackend();
 		const store = createKvStore(backend);
-		store.set("trellis-actor-name", "navid");
-		expect(values.get("trellis-actor-name")).toBe("navid");
+		store.set("trellis-actor-name", "dana");
+		expect(values.get("trellis-actor-name")).toBe("dana");
 		store.remove("trellis-actor-name");
 		expect(store.getString("trellis-actor-name")).toBeUndefined();
 	});
@@ -62,7 +62,7 @@ describe("the key-value store", () => {
 		expect(changed).toEqual(["trellis-theme", "trellis-theme"]);
 
 		store.set("trellis-server-url", "http://h:4521");
-		store.set("trellis-actor-name", "navid");
+		store.set("trellis-actor-name", "dana");
 		changed.length = 0;
 		store.clearAll();
 		expect(changed.sort()).toEqual(["trellis-actor-name", "trellis-server-url"]);

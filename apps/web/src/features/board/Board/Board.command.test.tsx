@@ -12,7 +12,7 @@ beforeEach(() => {
 const renderBoard = () =>
 	renderWithProviders(<Board projectRef="CDE" storageKey="CDE" onOpenTicket={() => {}} />, {
 		path: "/p/CDE/board",
-		actor: "navid",
+		actor: "dana",
 	});
 
 // The cards of one column, top to bottom.

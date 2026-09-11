@@ -9,7 +9,9 @@ export type PropertiesRailProps = {
 	variant: "page" | "peek";
 };
 
-// The properties of a ticket: the picker rows and the agent control. The
+// The properties of a ticket: the picker rows, then one agent section. That
+// section carries the heading, the agent control, and the sessions the
+// manager started for this ticket, so the rail names agents once. The
 // sub-tickets have their own section beside the description, the branch name
 // copies from the header, and the times a ticket was made and last touched
 // read as lines of the activity list.

@@ -143,7 +143,7 @@ describe("request logging", () => {
 		expect(line!.path).toBe("/api/tickets");
 		expect(line!.status).toBe(201);
 		expect(typeof line!.ms).toBe("number");
-		expect(line!.actor).toBe("human:navid");
+		expect(line!.actor).toBe("human:dana");
 		expect(line!.reqId).toBe(response.headers.get("x-request-id"));
 	});
 });

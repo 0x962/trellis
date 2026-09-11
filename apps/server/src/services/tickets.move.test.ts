@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { hoursAgo, navid, seedActors, seedProject, seedRoot, seedStatuses, seedTicket } from "../../test/fixtures";
+import { dana, hoursAgo, seedActors, seedProject, seedRoot, seedStatuses, seedTicket } from "../../test/fixtures";
 import { activityOf, expectErrorData, millis, query, ticketHarness, ticketRow } from "../../test/helpers/services.ts";
 import * as tickets from "./tickets.ts";
 
 const h = ticketHarness();
 
-const move = (input: Record<string, unknown>) => h.as(navid)((ctx, tx) => tickets.move(ctx, tx, input));
+const move = (input: Record<string, unknown>) => h.as(dana)((ctx, tx) => tickets.move(ctx, tx, input));
 
 // A root with its six statuses, tickets a, b, c in In Progress at the
 // positions given, and ticket x in Todo at 1024. `xSeed` sets the fixture

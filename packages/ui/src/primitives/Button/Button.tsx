@@ -2,6 +2,7 @@ import { Button as BaseButton } from "@base-ui/react/button";
 import { type ComponentProps, type ReactElement, type ReactNode, useId } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
+import { Kbd } from "../Kbd";
 import { type ButtonVariant, buttonVariants, disabledLook } from "./variants";
 
 export type { ButtonVariant } from "./variants";
@@ -14,7 +15,8 @@ export type ButtonProps = Omit<ComponentProps<typeof BaseButton>, "children" | "
 	align?: "center" | "start";
 	// A lucide icon element. It sits before the text at 14 px.
 	icon?: ReactElement;
-	// The shortcut occupies a full-height segment before the label.
+	// The shortcut, drawn as a Kbd key cap before the icon and the label. A
+	// key cap is the same element here, in a row, and in a menu.
 	kbd?: string;
 	children: ReactNode;
 };
@@ -26,8 +28,9 @@ const sizes: Record<ButtonSize, string> = {
 
 // The text button. The app has two button heights: sm is 28 px, for rows,
 // bars, and headers, and md is 32 px, for dialogs, forms, and empty
-// states. Both are at least 28 px wide, and the hit-area layer brings both
-// to the 44 px minimum on a coarse pointer.
+// states. Both are at least 28 px wide. On a coarse pointer the size token
+// draws both at 44 px in both axes, so a tap on the edge of one button
+// never lands on the one beside it.
 export function Button({
 	variant = "default",
 	size = "sm",
@@ -47,35 +50,26 @@ export function Button({
 		<BaseButton
 			aria-labelledby={kbd && !props["aria-label"] ? `${labelId} ${shortcutId}` : undefined}
 			className={cx(
-				"inline-flex min-w-7 shrink-0 items-center justify-center rounded-md border font-medium whitespace-nowrap select-none transition duration-hover ease-out",
+				"inline-flex min-w-7 shrink-0 items-center justify-center gap-1.5 rounded-md border font-medium whitespace-nowrap select-none transition duration-hover ease-out",
 				"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
-				variant === "quiet" && kbd
-					? "bg-transparent border-border text-fg-muted enabled:hover:bg-bg enabled:hover:text-fg"
-					: buttonVariants[variant],
+				buttonVariants[variant],
 				disabledLook(variant),
 				sizes[size],
-				!kbd && padding,
+				padding,
 				className,
 			)}
 			{...props}
 		>
 			{kbd && (
-				<kbd
-					id={shortcutId}
-					className={cx(
-						"inline-flex shrink-0 items-center justify-center self-stretch border-r border-inherit px-1.5 font-mono text-xs font-normal leading-none",
-						size === "sm" ? "min-w-6.5" : "min-w-7.5",
-					)}
-				>
+				<Kbd id={shortcutId} className="shrink-0">
 					{kbd}
-				</kbd>
+				</Kbd>
 			)}
 			<span
 				id={labelId}
 				className={cx(
 					"inline-flex flex-1 items-center gap-1.5",
 					align === "start" ? "justify-start" : "justify-center",
-					kbd && padding,
 				)}
 			>
 				{icon && (

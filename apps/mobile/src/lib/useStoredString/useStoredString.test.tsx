@@ -54,7 +54,7 @@ describe("useStoredString", () => {
 		store.set(key, "http://h:4521");
 		const { result } = await renderHook(() => useStoredString(key));
 		await act(() => {
-			store.set("trellis-actor-name", "navid");
+			store.set("trellis-actor-name", "dana");
 		});
 		expect(result.current[0]).toBe("http://h:4521");
 	});

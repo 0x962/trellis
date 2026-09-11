@@ -13,8 +13,8 @@ describe("diffUrl", () => {
 	// origin gets the URL with its own scheme and its own slashes.
 	test("a template that holds the URL after one slash keeps the whole URL", () => {
 		const pr = "https://github.com/acme/web/pull/118";
-		const url = diffUrl("http://margin.localhost/{url}", pr);
-		expect(url).toBe(`http://margin.localhost/${pr}`);
+		const url = diffUrl("http://diff.localhost/{url}", pr);
+		expect(url).toBe(`http://diff.localhost/${pr}`);
 		expect(url).toContain("https://github.com");
 		expect(url).not.toContain("%3A");
 		expect(url.endsWith("/")).toBe(false);

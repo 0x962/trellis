@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { BatchLinkPlugin } from "@orpc/client/plugins";
 import { createTrellisClient } from "@trellis/api";
-import { createTestApp, NAVID, type TestApp } from "../../test/helpers/app.ts";
+import { createTestApp, DANA, type TestApp } from "../../test/helpers/app.ts";
 
 // Every procedure response carries
 // `Server-Timing: db;dur=<ms>`, the time the database spent on the request.
@@ -47,7 +47,7 @@ describe("Server-Timing", () => {
 	test("a call under /rpc carries the db duration", async () => {
 		const response = await t.app.request("http://trellis.test/rpc/tickets/counts", {
 			method: "POST",
-			headers: { "content-type": "application/json", "x-trellis-actor": NAVID },
+			headers: { "content-type": "application/json", "x-trellis-actor": DANA },
 			body: JSON.stringify({ json: { project: "TIM" } }),
 		});
 
@@ -59,7 +59,7 @@ describe("Server-Timing", () => {
 		const seen: Headers[] = [];
 		const client = createTrellisClient(
 			"http://trellis.test",
-			NAVID,
+			DANA,
 			async (request) => {
 				const response = await t.app.request(request);
 				seen.push(response.headers);

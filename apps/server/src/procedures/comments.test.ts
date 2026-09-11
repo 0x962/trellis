@@ -26,7 +26,7 @@ describe("comments", () => {
 		expect(response.status).toBe(201);
 		expect(response.headers.get("location")).toBe(`/api/comments/${response.body.id}`);
 		expect(response.body.body).toBe("Looks good.");
-		expect(response.body.actor).toEqual({ name: "navid", kind: "human" });
+		expect(response.body.actor).toEqual({ name: "dana", kind: "human" });
 	});
 
 	test("comments.update and comments.delete answer 200", async () => {
@@ -36,7 +36,7 @@ describe("comments", () => {
 		const updated = await t.api(`/api/comments/${id}`, { method: "PATCH", body: { body: "Final" } });
 		const deleted = await t.app.request(`http://trellis.test/api/comments/${id}`, {
 			method: "DELETE",
-			headers: { "x-trellis-actor": "human:navid" },
+			headers: { "x-trellis-actor": "human:dana" },
 		});
 
 		expect(updated.status).toBe(200);

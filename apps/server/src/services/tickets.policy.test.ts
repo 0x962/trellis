@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { type ActorRef, claude, count, navid, seedProject, seedTicket } from "../../test/fixtures";
+import { type ActorRef, claude, count, dana, seedProject, seedTicket } from "../../test/fixtures";
 import {
 	activityOf,
 	expectErrorData,
@@ -77,7 +77,7 @@ describe("agent policy", () => {
 		const { result: canceled } = await h.as(claude)((ctx, tx) =>
 			tickets.create(ctx, tx, { project: "CDE", title: "Dropped", status: "canceled" }),
 		);
-		const { result: done } = await h.as(navid)((ctx, tx) =>
+		const { result: done } = await h.as(dana)((ctx, tx) =>
 			tickets.create(ctx, tx, { project: "CDE", title: "Shipped", status: "done" }),
 		);
 		expect(canceled.status.id).toBe(statuses.canceled);
@@ -92,7 +92,7 @@ describe("agent policy", () => {
 
 	test("a human moves a ticket to a done status without force", async () => {
 		const { statuses, id } = await seed();
-		const { result: ticket } = await move(navid, { ticket: id, status: "done" });
+		const { result: ticket } = await move(dana, { ticket: id, status: "done" });
 		expect(ticket.status.id).toBe(statuses.done);
 	});
 

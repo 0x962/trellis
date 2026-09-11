@@ -44,7 +44,7 @@ type Marks = { frameTheme: string | null; paintedBeforeFrame: boolean; rowsAt: n
 // Opens the table from the server and returns the page's own marks. Every
 // time is in ms from the start of the navigation.
 const load = async (page: Page): Promise<Marks> => {
-	await page.goto(`${apiUrl}/p/PNT`);
+	await page.goto(`${apiUrl}/p/PNT/table`);
 	await expect(page.locator('[role="row"][data-identifier]').first()).toBeVisible();
 	await expect
 		.poll(() =>

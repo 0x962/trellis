@@ -3,9 +3,9 @@ import { sql } from "drizzle-orm";
 import {
 	claude,
 	count,
+	dana,
 	insertRow,
 	linkPr,
-	navid,
 	seedActivity,
 	seedActor,
 	seedAttachment,
@@ -87,7 +87,7 @@ describe("ticket_pull_requests", () => {
 		await linkPr(h.db, ticket, pr);
 		await expect(linkPr(h.db, ticket, pr)).rejects.toThrow(UNIQUE);
 		const second = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo });
-		await expect(linkPr(h.db, second, pr, navid, "scan")).rejects.toThrow(
+		await expect(linkPr(h.db, second, pr, dana, "scan")).rejects.toThrow(
 			checkNamed("ticket_pull_requests_source_check"),
 		);
 		await h.db.execute(sql`DELETE FROM tickets WHERE id = ${ticket}`);

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../../../test/fake-server";
 import { press } from "../../../../../../test/keyboard";
+import { createTestServer, type TestServer } from "../../../../../../test/server";
 import { renderTicket, settle } from "../../../../../../test/ticketHost";
 import { Timeline } from "../../Timeline";
 
@@ -10,7 +10,7 @@ beforeEach(() => localStorage.clear());
 
 // The composer is pinned inside the Timeline, so the card it posts is on
 // the same screen.
-const mount = (server: FakeServer = createFakeServer()) =>
+const mount = (server: TestServer = createTestServer()) =>
 	renderTicket("CDE-42", (ticket) => <Timeline ticket={ticket} pinned />, { path: "/t/CDE-42", server });
 
 const composer = () => screen.findByRole("textbox", { name: "Comment" });
@@ -46,7 +46,7 @@ describe("features/ticket/Timeline/components/Composer", () => {
 	// WT-83
 	test("Cmd+Enter posts the comment optimistically", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const hold = server.holdNext("comments.create");
 		mount(server);
 		const box = await composer();
@@ -78,7 +78,7 @@ describe("features/ticket/Timeline/components/Composer", () => {
 	// WT-85. Rollback returns the words to the composer, so nothing is lost.
 	test("a failed comment rolls back and keeps the text", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
+		const server = createTestServer();
 		const hold = server.holdNext("comments.create");
 		server.failNext("comments.create", { code: "PROJECT_ARCHIVED" });
 		mount(server);

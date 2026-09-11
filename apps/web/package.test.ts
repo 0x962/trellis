@@ -60,7 +60,7 @@ describe("apps/web package", () => {
 		}
 		expect(versions.react).toBe(uiPkg.peerDependencies.react);
 		expect(versions["react-dom"]).toBe(uiPkg.peerDependencies["react-dom"]);
-		for (const script of ["dev", "dev:fake", "build", "test", "typecheck", "lint", "e2e", "size-budget"]) {
+		for (const script of ["dev", "build", "test", "typecheck", "lint", "e2e", "size-budget"]) {
 			expect(pkg.scripts, script).toHaveProperty(script);
 		}
 	});

@@ -9,7 +9,7 @@ export type Executor = {
 
 export type ActorRef = { name: string; kind: "human" | "agent" | "system" };
 
-export const navid: ActorRef = { name: "navid", kind: "human" };
+export const dana: ActorRef = { name: "dana", kind: "human" };
 export const claude: ActorRef = { name: "claude", kind: "agent" };
 export const system: ActorRef = { name: "trellis", kind: "system" };
 
@@ -87,7 +87,7 @@ export const seedActor = (tx: Executor, actor: ActorRef) =>
 // The three actors every service writes. A second call in the same test
 // leaves the existing rows in place, so two seeded roots share them.
 export const seedActors = async (tx: Executor) => {
-	for (const actor of [navid, claude, system]) {
+	for (const actor of [dana, claude, system]) {
 		await tx.execute(
 			sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at) VALUES (${actor.name}, ${actor.kind}, ${now()}, ${now()}) ON CONFLICT (name, kind) DO NOTHING`,
 		);

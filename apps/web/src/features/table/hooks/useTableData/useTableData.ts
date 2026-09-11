@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { ListQueryInput, Status, StatusCategory, TicketSummary } from "@trellis/api";
 import { useEffect, useMemo } from "react";
-import { useScopeStatuses } from "../../../../hooks/useScopeStatuses";
+import { useScopeStatuses, useScopeStatusesAll } from "../../../../hooks/useScopeStatuses";
 import { useApp } from "../../../../lib/appContext";
 import { toCountsQuery, type View } from "../../../filters/grammar";
 import { activeInput, closedInput, closedSlugs, hasStatusFilter, rowCap } from "../../utils/listQuery";
@@ -60,6 +60,10 @@ const withCursor = (input: ListQueryInput, cursor: string | undefined): ListQuer
 export const useTableData = ({ project, view, expanded }: TableDataOptions): TableData => {
 	const { orpc } = useApp();
 	const statuses = useScopeStatuses(project);
+	// The grouping reads the folded list, which names one root's status per
+	// slug. A count over a category reads every root's statuses, so a ticket
+	// another root closed lands in the group count and in the footer.
+	const allStatuses = useScopeStatusesAll(project);
 	const filtered = hasStatusFilter(view);
 	// A negated status set is the rest of the scope's statuses, so the pass
 	// waits for them.
@@ -89,7 +93,7 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 	);
 
 	const countOf = (category: StatusCategory) => {
-		const ids = new Set(statuses.filter((status) => status.category === category).map((status) => status.id));
+		const ids = new Set(allStatuses.filter((status) => status.category === category).map((status) => status.id));
 		return (counts.data?.byStatus ?? [])
 			.filter((entry) => ids.has(entry.statusId))
 			.reduce((sum, entry) => sum + entry.count, 0);

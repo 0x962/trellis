@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { bootId, projectId, t1, ticketSummary, ulid } from "../test/fixtures.ts";
+import { agentSession, bootId, projectId, t1, ticketSummary, ulid } from "../test/fixtures.ts";
 import { EventIdSchema, EventSchema, eventNames, parseEventId } from "./events.ts";
 
 const eventId = `${bootId}.7`;
@@ -8,6 +8,8 @@ describe("events", () => {
 	test("the event name list matches the plan's Live updates section", () => {
 		expect([...eventNames].sort()).toEqual([
 			"agent-runs.changed",
+			"agents.batch",
+			"agents.session",
 			"attachment.created",
 			"attachment.deleted",
 			"bye",
@@ -58,6 +60,20 @@ describe("events", () => {
 		expect(
 			EventSchema.safeParse({ type: "pr.updated", id: ulid, ticketIds: [t1], state: "open", ciState: "green" }).success,
 		).toBe(false);
+	});
+
+	// `agents.session` carries the whole session row, so a client patches the
+	// Agents row without a read. `agents.batch` counts the events one wake
+	// delivered to the manager of `projectId`.
+	test("agents event payloads carry one session or a project with a positive count", () => {
+		expect(EventSchema.safeParse({ type: "agents.session", session: agentSession() }).success).toBe(true);
+		expect(EventSchema.safeParse({ type: "agents.session", session: agentSession({ state: "done" }) }).success).toBe(
+			false,
+		);
+		expect(EventSchema.safeParse({ type: "agents.session" }).success).toBe(false);
+		expect(EventSchema.safeParse({ type: "agents.batch", projectId, count: 10 }).success).toBe(true);
+		expect(EventSchema.safeParse({ type: "agents.batch", projectId, count: 0 }).success).toBe(false);
+		expect(EventSchema.safeParse({ type: "agents.batch", count: 1 }).success).toBe(false);
 	});
 
 	// The boot id is a ULID minted at server boot. A client that reconnects

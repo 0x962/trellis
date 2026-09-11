@@ -17,7 +17,7 @@ const tabRole = /^(button|tab)$/;
 describe("the app shell", () => {
 	test("renders the four tabs with Needs you active when a server is stored", async () => {
 		store.set("trellis-server-url", "http://h:4521");
-		store.set("trellis-actor-name", "navid");
+		store.set("trellis-actor-name", "dana");
 		await renderRouter(appContext(), { initialUrl: "/" });
 		for (const label of tabs) {
 			expect(screen.getByRole(tabRole, { name: label })).toBeOnTheScreen();
@@ -33,7 +33,7 @@ describe("the app shell", () => {
 	// test that reads the style string cannot see that.
 	test("the app loads the mono family before it paints a screen", async () => {
 		store.set("trellis-server-url", "http://h:4521");
-		store.set("trellis-actor-name", "navid");
+		store.set("trellis-actor-name", "dana");
 		await renderRouter(appContext(), { initialUrl: "/" });
 		expect(Font.isLoaded(tokens.font.mono)).toBe(true);
 		expect(screen.getByRole(tabRole, { name: "Needs you" })).toBeOnTheScreen();
@@ -43,7 +43,7 @@ describe("the app shell", () => {
 	// app at another server must not keep reading the first one.
 	test("a new server closes the stream of the old one and opens one on it", async () => {
 		store.set("trellis-server-url", "http://h:4521");
-		store.set("trellis-actor-name", "navid");
+		store.set("trellis-actor-name", "dana");
 		await renderRouter(appContext(), { initialUrl: "/" });
 		expect(instances).toHaveLength(1);
 		expect(instances[0]!.url).toBe("http://h:4521/api/events?ping=25");
@@ -61,7 +61,7 @@ describe("the app shell", () => {
 	// whole cache stale, so the app fetches what changed while it was closed.
 	test("the cache restored at start is marked stale", async () => {
 		store.set("trellis-server-url", "http://h:4521");
-		store.set("trellis-actor-name", "navid");
+		store.set("trellis-actor-name", "dana");
 		queryClient.clear();
 		const snapshot = new QueryClient();
 		snapshot.setQueryData(["tickets", "list", {}], { items: [{ identifier: "CDE-42" }] });

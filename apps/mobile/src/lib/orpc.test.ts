@@ -29,7 +29,7 @@ describe("getClient", () => {
 	beforeEach(() => {
 		store.clearAll();
 		store.set("trellis-server-url", "http://h:4521");
-		store.set("trellis-actor-name", "navid");
+		store.set("trellis-actor-name", "dana");
 	});
 
 	afterEach(() => {
@@ -43,7 +43,7 @@ describe("getClient", () => {
 		expect(requests).toHaveLength(1);
 		const request = requests[0]!;
 		expect(request.url).toStartWith("http://h:4521/rpc");
-		expect(request.headers.get("x-trellis-actor")).toBe("human:navid");
+		expect(request.headers.get("x-trellis-actor")).toBe("human:dana");
 		expect(request.headers.get("x-trellis-client")).toMatch(/^api\//);
 
 		expect(getClient()).toBe(client);

@@ -43,7 +43,7 @@ beforeEach(async () => {
 afterAll(() => h.close());
 
 const ctx = (): RequestContext => ({
-	actor: { kind: "human", name: "navid" },
+	actor: { kind: "human", name: "dana" },
 	session: null,
 	reqId: ulid(),
 	now: new Date(),
@@ -111,13 +111,16 @@ describe("inline transport", () => {
 		expect(received).toEqual([]);
 	});
 
+	// The inline transport is a ServiceTransport plus `startAgents`, which
+	// builds the agents host in the thread that owns the database.
 	test("the inline transport implements the whole ServiceTransport interface", () => {
 		const checked: ServiceTransport = transport;
 
 		expect(typeof checked.call).toBe("function");
 		expect(typeof checked.start).toBe("function");
 		expect(typeof checked.close).toBe("function");
-		expect(Object.keys(checked).sort()).toEqual(["call", "close", "start"]);
+		expect(typeof transport.startAgents).toBe("function");
+		expect(Object.keys(checked).sort()).toEqual(["call", "close", "start", "startAgents"]);
 	});
 
 	test("a service query through the given tx never deadlocks", async () => {

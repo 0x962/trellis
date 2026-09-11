@@ -1,13 +1,13 @@
 import { beforeEach, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer } from "../../../../test/fake-server";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { createTestServer } from "../../../../test/server";
 
 beforeEach(() => localStorage.clear());
 
 test("frequent personas come first once, search finds the rest, and Escape starts nothing", async () => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	const builder = await server.client.personas.create({
 		name: "Feature Builder",
 		kind: "builder",
@@ -24,7 +24,7 @@ test("frequent personas come first once, search finds the rest, and Escape start
 		await server.client.agentRuns.stop({ id: run.id });
 	}
 	const user = userEvent.setup();
-	renderApp({ path: "/t/CDE-42", actor: "navid", server });
+	renderApp({ path: "/t/CDE-42", actor: "dana", server });
 	const trigger = await screen.findByRole("button", { name: "New agent" });
 	expect(trigger.querySelector(":scope > span")!.classList.contains("justify-start")).toBe(true);
 	await user.click(trigger);
@@ -42,15 +42,16 @@ test("frequent personas come first once, search finds the rest, and Escape start
 	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	expect(document.activeElement).toBe(trigger);
 	expect(server.callsTo("agentRuns.start")).toHaveLength(3);
-	expect(screen.queryByRole("link", { name: "Agents" })).toBeNull();
+	// The sidebar carries its own Agents link, so this reads the rail alone.
+	expect(within(screen.getByLabelText("Properties")).queryByRole("link", { name: "Agents" })).toBeNull();
 });
 
 test("a pending assignment accepts only one persona selection", async () => {
-	const server = createFakeServer();
+	const server = createTestServer();
 	await server.client.personas.create({ name: "Builder", kind: "builder", instruction: "Build." });
 	const hold = server.holdNext("agentRuns.start");
 	const user = userEvent.setup();
-	renderApp({ path: "/t/CDE-42", actor: "navid", server });
+	renderApp({ path: "/t/CDE-42", actor: "dana", server });
 	await user.click(await screen.findByRole("button", { name: "New agent" }));
 	const picker = within(await screen.findByRole("dialog", { name: "Assign a persona" }));
 	const option = await picker.findByRole("option", { name: "Builder" });
@@ -59,6 +60,8 @@ test("a pending assignment accepts only one persona selection", async () => {
 	await user.click(option);
 	await user.keyboard("{Enter}");
 	hold.release();
-	await screen.findByRole("button", { name: /Ada Finch/ });
+	await waitFor(() => expect(server.callsTo("agentRuns.start")).toHaveLength(1));
+	const [run] = await server.client.agentRuns.list({ ticket: "CDE-42" });
+	await screen.findByRole("button", { name: new RegExp(run!.name) });
 	expect(server.callsTo("agentRuns.start")).toHaveLength(1);
 });

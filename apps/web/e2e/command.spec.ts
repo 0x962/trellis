@@ -20,18 +20,18 @@ const openPalette = async (page: Page) => {
 // The palette field takes the focus some frames after Cmd+K. Keys typed at
 // once go into the query, and the `o` of the query opens no ticket.
 test("keys typed at once after Cmd+K fill the query and open no ticket", async ({ page }) => {
-	await signIn(page, "/p/CDE");
+	await signIn(page, "/p/CDE/table");
 	await expect(rowOf(page, "CDE-1")).toBeVisible();
 	await page.keyboard.press("j");
 	await page.keyboard.press("ControlOrMeta+k");
 	await page.keyboard.type("oauth");
 	await expect(palette(page).getByRole("combobox")).toHaveValue("oauth");
-	await expect(page).toHaveURL(/\/p\/CDE$/);
+	await expect(page).toHaveURL(/\/p\/CDE\/table$/);
 });
 
 // E2E-04. Cmd+K, the identifier, Enter: the ticket page opens.
 test("typing an identifier jumps to that ticket", async ({ page }) => {
-	await signIn(page, "/p/CDE");
+	await signIn(page, "/p/CDE/table");
 	await expect(rowOf(page, "CDE-1")).toBeVisible();
 	const input = await openPalette(page);
 	await input.fill("cde-1");
@@ -44,7 +44,7 @@ test("typing an identifier jumps to that ticket", async ({ page }) => {
 // nothing and only the trigram path, one similar title word per typed word,
 // finds the ticket.
 test("a typo in the palette finds the ticket and opens the peek", async ({ page }) => {
-	await signIn(page, "/p/CDE");
+	await signIn(page, "/p/CDE/table");
 	await expect(rowOf(page, "CDE-1")).toBeVisible();
 	const input = await openPalette(page);
 	await input.fill("restor the fork pags");
@@ -57,7 +57,7 @@ test("a typo in the palette finds the ticket and opens the peek", async ({ page 
 // row takes the new status in place. The table groups by status, so a row
 // states its status as its group and draws no status cell.
 test("Change status from the palette updates the row in place", async ({ page }) => {
-	await signIn(page, "/p/CDE");
+	await signIn(page, "/p/CDE/table");
 	const row = rowOf(page, "CDE-2");
 	await expect(row).toHaveAttribute("data-group", "todo");
 	await row.getByText("Merge upstream 1.27", { exact: false }).click();
@@ -90,8 +90,9 @@ test("the help sheet opens over any route and closes on Escape", async ({ page }
 	await page.keyboard.press("?");
 	const sheet = page.getByRole("dialog", { name: /Keyboard shortcuts/ });
 	await expect(sheet).toBeVisible();
-	// The sheet combines the two shortcuts for each of three actions.
-	await expect(sheet.getByRole("listitem")).toHaveCount(38);
+	// The map holds 39 keys and the sheet combines the two shortcuts for each
+	// of three actions, so it draws 36 rows.
+	await expect(sheet.getByRole("listitem")).toHaveCount(36);
 	await page.keyboard.press("Escape");
 	await expect(sheet).toBeHidden();
 });

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
-import { findTicket } from "../../../../test/fake-server/state";
 import { interceptFetch } from "../../../../test/interceptFetch";
 import { renderApp } from "../../../../test/renderWithProviders";
+import { patchTicket, ticketRow } from "../../../../test/rows";
+import { createTestServer, type TestServer } from "../../../../test/server";
 import {
 	calls,
 	cellOf,
@@ -67,7 +67,7 @@ const cachedRows = (queryClient: {
 			return data?.pages?.flatMap((page) => page.items) ?? data?.items ?? [];
 		}) as { identifier: string; version: number; priority: string }[];
 
-const held = (server: FakeServer = createFakeServer()) =>
+const held = (server: TestServer = createTestServer()) =>
 	interceptFetch(server, { match: (text) => text.includes("tickets/update") });
 
 describe("features/table/TicketTable: inline edits", () => {
@@ -77,7 +77,7 @@ describe("features/table/TicketTable: inline edits", () => {
 		const slow = held();
 		const { server } = renderApp({
 			path: "/p/CDE/web/table?status=todo,in-progress",
-			actor: "navid",
+			actor: "dana",
 			server: slow.server,
 		});
 		await findGrid();
@@ -95,11 +95,11 @@ describe("features/table/TicketTable: inline edits", () => {
 	// conditional write fails with 412.
 	test("rolls the row back and names the ticket in the toast on a 412", async () => {
 		const user = userEvent.setup();
-		const server = createFakeServer();
-		renderApp({ path: "/p/CDE/table?status=human-review", actor: "navid", server });
+		const server = createTestServer();
+		renderApp({ path: "/p/CDE/table?status=human-review", actor: "dana", server });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-42"));
-		findTicket(server.state, "CDE-42")!.version += 7;
+		await patchTicket(server, "CDE-42", { version: (await ticketRow(server, "CDE-42")).version + 7 });
 		await pickWithKey(user, "CDE-42", "s", "In Progress");
 		const toast = await toastWith(/CDE-42/);
 		expect(within(toast).getByRole("button", { name: "Retry" })).toBeDefined();
@@ -110,7 +110,7 @@ describe("features/table/TicketTable: inline edits", () => {
 	// Outcome 54
 	test("writes the mutation response into the cache without a refetch", async () => {
 		const user = userEvent.setup();
-		const { server, queryClient } = renderApp({ path: "/p/CDE/table?status=in-progress", actor: "navid" });
+		const { server, queryClient } = renderApp({ path: "/p/CDE/table?status=in-progress", actor: "dana" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-44"));
 		const before = listCalls(server).length;
@@ -128,7 +128,7 @@ describe("features/table/TicketTable: inline edits", () => {
 	test("applies an inline priority change optimistically and re-sorts the group", async () => {
 		const user = userEvent.setup();
 		const slow = held();
-		renderApp({ path: "/p/CDE/web/table?status=todo", actor: "navid", server: slow.server });
+		renderApp({ path: "/p/CDE/web/table?status=todo", actor: "dana", server: slow.server });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-8"));
 		expect(within(cellOf("CDE-8", "priority")).getByRole("img", { name: "Priority: none" })).toBeDefined();
@@ -144,7 +144,7 @@ describe("features/table/TicketTable: inline edits", () => {
 	test("moves the row between project groups optimistically", async () => {
 		const user = userEvent.setup();
 		const slow = held();
-		renderApp({ path: "/p/CDE/table?status=in-progress&group=project", actor: "navid", server: slow.server });
+		renderApp({ path: "/p/CDE/table?status=in-progress&group=project", actor: "dana", server: slow.server });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-44"));
 		expect(rowOf("CDE-44").getAttribute("data-group")).toBe("CDE.web");
@@ -158,7 +158,7 @@ describe("features/table/TicketTable: inline edits", () => {
 
 	// Outcome 57
 	test("never edits the title inline in the table", async () => {
-		const { router } = renderApp({ path: "/p/CDE/table?status=in-progress", actor: "navid" });
+		const { router } = renderApp({ path: "/p/CDE/table?status=in-progress", actor: "dana" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-44"));
 		fireEvent.doubleClick(cellOf("CDE-44", "title"));

@@ -10,7 +10,7 @@ const row = (overrides: Partial<Activity>): Activity => ({
 	rootId: "01J9ZK3Q8V2M4N6P7R8S9T0V1X",
 	projectId: "01J9ZK3Q8V2M4N6P7R8S9T0V1Y",
 	ticketId: "01J9ZK3Q8V2M4N6P7R8S9T0V1Z",
-	actor: { kind: "human", name: "navid" },
+	actor: { kind: "human", name: "dana" },
 	action: "ticket.updated",
 	field: null,
 	fromValue: null,

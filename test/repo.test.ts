@@ -194,6 +194,35 @@ describe("root scaffold", () => {
 		}
 	});
 
+	// A session trailer names a private transcript of one agent runner, so it
+	// states the rule that keeps the trailer out of the history.
+	test("AGENTS.md states that a commit message carries no session trailer", async () => {
+		expect(await text("AGENTS.md")).toContain("carries no session trailer");
+	});
+
+	// A published package is public. `access: restricted` makes `changeset
+	// publish` ask npm for a private package and fail on a free account.
+	test(".changeset/config.json publishes with public access", async () => {
+		expect((await json(".changeset/config.json")).access).toBe("public");
+	});
+
+	// The tree is public, so no tracked file carries a session trailer or the
+	// URL of an agent session. `git grep` reads the tracked files only.
+	test("no tracked file carries a session trailer or an agent session URL", () => {
+		for (const pattern of ["Claude-Session", "claude.ai/"]) {
+			const result = Bun.spawnSync(["git", "grep", "-lF", "--", pattern], {
+				cwd: root,
+				stdout: "pipe",
+				stderr: "pipe",
+			});
+			const hits = result.stdout
+				.toString()
+				.split("\n")
+				.filter((line) => line !== "" && line !== "test/repo.test.ts");
+			expect(hits, pattern).toEqual([]);
+		}
+	});
+
 	// A contributor arrives from GitHub, so the entry documents point at the
 	// conduct rules, the security model, and the architecture reference.
 	test("CONTRIBUTING.md points at the code of conduct, the security model, and the architecture", async () => {
@@ -290,14 +319,14 @@ describe("root scaffold", () => {
 
 	// The preload gives a process its own HOME, TRELLIS_HOME, and PATH, so a
 	// test file is safe in a process of its own. --parallel spreads those
-	// processes over every core and implies --isolate. apps/server runs every
-	// file in one process instead, because its tests bind port 4521, take the
-	// lock on the data home, and spawn a worker; two such tests at the same
-	// time fail.
-	test("apps/web runs its test files on every core", async () => {
+	// processes over several cores and implies --isolate, which takes the suite
+	// from 319 s to about 20 s. apps/server runs every file in one process
+	// instead, because its tests bind port 4521, take the lock on the data
+	// home, and spawn a worker; two such tests at the same time fail.
+	test("apps/web runs its test files on more than one core", async () => {
 		const web = await json("apps/web/package.json");
 		expect(web.name).toBe("@trellis/web");
-		expect(web.scripts.test).toBe("bun test .test. --parallel");
+		expect(web.scripts.test).toContain("--parallel");
 	});
 
 	// apps/server is the first app. turbo runs `bun test` inside it, so its

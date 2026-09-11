@@ -8,7 +8,7 @@ let t: TestApp;
 beforeAll(async () => {
 	t = await createTestApp();
 	await t.seedProject("CDE");
-	await t.createTicket({ project: "CDE", title: "By navid" });
+	await t.createTicket({ project: "CDE", title: "By dana" });
 	await t.createTicket({ project: "CDE", title: "By claude" }, CLAUDE);
 });
 afterAll(() => t.close());
@@ -20,7 +20,7 @@ describe("actors", () => {
 
 		expect(list.status).toBe(200);
 		const seen = list.body.map((actor: { name: string; kind: string }) => `${actor.kind}:${actor.name}`).sort();
-		expect(seen).toEqual(["agent:claude-code", "human:navid"]);
+		expect(seen).toEqual(["agent:claude-code", "human:dana"]);
 		for (const actor of list.body) {
 			expect(Object.keys(actor).sort()).toEqual(["firstSeenAt", "kind", "lastSeenAt", "name"]);
 			expect(Date.parse(actor.firstSeenAt)).toBeGreaterThan(0);
