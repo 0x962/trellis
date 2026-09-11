@@ -69,10 +69,14 @@ export const prRow = async (id: string) =>
 		return row;
 	});
 
-export const bucketsOf = (row: Element) =>
-	[...row.querySelectorAll("i[data-bucket]")].map((segment) => segment.getAttribute("data-bucket"));
+// The key the state icon of one row draws: open, draft, blocked, merged, or
+// closed.
+export const stateOf = (row: Element) => row.querySelector("[data-pr-state]")?.getAttribute("data-pr-state") ?? null;
 
-export const pillLabel = (row: Element) => row.querySelector("[data-check-pill]")?.getAttribute("aria-label") ?? null;
+// The key the review icon of one row draws: approved, waiting, changes, or
+// idle.
+export const reviewOf = (row: Element) =>
+	row.querySelector("[data-review-state]")?.getAttribute("data-review-state") ?? null;
 
 // happy-dom runs no layout, so the class that sets the height is what a test
 // can compare.

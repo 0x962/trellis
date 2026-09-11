@@ -1,9 +1,19 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createFakeServer, type FakeServer } from "../../../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../../../test/media";
-import { bucketsOf, firstPr, heightClass, patchPr, pillLabel, prRow, summaryOf } from "../../../../../../test/prs";
+import {
+	callsTo,
+	firstPr,
+	heightClass,
+	patchPr,
+	prRow,
+	prsOf,
+	reviewOf,
+	stateOf,
+	summaryOf,
+} from "../../../../../../test/prs";
 import { renderWithProviders } from "../../../../../../test/renderWithProviders";
 import { PullRequestRow } from "./PullRequestRow";
 
@@ -24,63 +34,67 @@ const renderRow = async (server: FakeServer, identifier: string) => {
 	return { ...view, ticket, pr };
 };
 
-const headerOf = (row: HTMLElement) => within(row).getByRole("button", { name: /#118/ });
+const flat = (row: Element) => (row.textContent ?? "").replace(/\s+/g, " ");
 
 describe("PullRequestRow", () => {
-	// PR-01
-	test("renders the repo, the number, the title, the branch pair, the update time, and the linking actor", async () => {
+	// PR-01. The card carries the title, the number, and the branch pair.
+	test("renders the title, the number, and the branch pair", async () => {
 		const server = createFakeServer();
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
-		const text = (row.textContent ?? "").replace(/\s+/g, " ");
-		expect(text).toContain("canary-technologies-corp/de");
-		expect(text).toContain("#118");
-		expect(text).toContain("Restore the fork pages");
-		expect(text).toContain("2h ago");
-		expect(text).toContain("claude-code");
-		expect(text).toContain("· agent");
+		expect(flat(row)).toContain("#118");
+		expect(flat(row)).toContain("Restore the fork pages");
 		const head = within(row).getByText("cde-42-restore-fork-pages");
 		const base = within(row).getByText("main");
 		expect(head.getAttribute("class")).toContain("font-mono");
 		expect(base.getAttribute("class")).toContain("font-mono");
 	});
 
-	// PR-02. The ribbon is the ui package's own; the row adds no bar.
-	test("draws the full check ribbon from the ui package, one segment per check", async () => {
-		const server = createFakeServer();
-		const { pr } = await renderRow(server, "CDE-42");
-		const row = await prRow(pr.id);
-		expect(bucketsOf(row)).toEqual(pr.checks.map((check) => check.bucket));
-		const ribbons = new Set([...row.querySelectorAll("i[data-bucket]")].map((segment) => segment.parentElement));
-		expect(ribbons.size).toBe(1);
-		expect([...ribbons][0]!.getAttribute("class")).toContain("w-16");
-	});
-
-	// PR-03
-	test("shows the pass, fail, and pending counts in one pill", async () => {
+	// PR-02. The state icon carries the CI state, so the card holds no check
+	// ribbon, no count pill, and no per-check row.
+	test("draws no check ribbon, no count pill, and no check row", async () => {
 		const server = createFakeServer();
 		const { pr } = await renderRow(server, "CDE-44");
 		const row = await prRow(pr.id);
-		expect(row.querySelectorAll("[data-check-pill]")).toHaveLength(1);
-		expect(pillLabel(row)).toBe("2 passed, 1 failed, 1 pending");
-		expect((row.querySelector("[data-check-pill]")!.textContent ?? "").match(/\d+/g)).toEqual(["2", "1", "1"]);
+		expect(row.querySelectorAll("i[data-bucket]")).toHaveLength(0);
+		expect(row.querySelectorAll("[data-check-pill]")).toHaveLength(0);
+		expect(row.querySelectorAll("[data-check-row]")).toHaveLength(0);
+		expect(row.querySelector("[aria-expanded]")).toBeNull();
 	});
 
-	// PR-04
-	test("shows the review-state chip for an approved pull request", async () => {
+	// PR-03. The repo, the update time, and the actor who linked the pull
+	// request stay off the card.
+	test("names no repo, no update time, and no linking actor", async () => {
 		const server = createFakeServer();
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
-		expect(row.querySelector("[data-review-chip]")!.textContent).toBe("Approved");
+		const text = flat(row);
+		expect(text).not.toContain("canary-technologies-corp");
+		expect(text).not.toContain("claude-code");
+		expect(text).not.toContain("ago");
+		expect(row.querySelector("[data-pr-repo]")).toBeNull();
 	});
 
-	// PR-05
-	test("hides the review-state chip when gh reports no review", async () => {
+	// PR-04
+	test("draws the approved review state on the right of the card", async () => {
+		const server = createFakeServer();
+		const { pr } = await renderRow(server, "CDE-42");
+		const row = await prRow(pr.id);
+		expect(pr.reviewState).toBe("approved");
+		const icon = row.querySelector("[data-review-state]")!;
+		expect(reviewOf(row)).toBe("approved");
+		const title = within(row).getByText("Restore the fork pages");
+		expect(title.compareDocumentPosition(icon) & Node.DOCUMENT_POSITION_FOLLOWING).toBeGreaterThan(0);
+	});
+
+	// PR-05. Every card holds a review icon, so a row with no review keeps
+	// the same shape as a row with one.
+	test("draws the idle review state when gh reports no review", async () => {
 		const server = createFakeServer();
 		const { pr } = await renderRow(server, "CDE-45");
 		const row = await prRow(pr.id);
 		expect(pr.reviewState).toBe("none");
-		expect(row.querySelector("[data-review-chip]")).toBeNull();
+		expect(reviewOf(row)).toBe("idle");
 	});
 
 	// PR-06. A row that gains a check pushes nothing below it.
@@ -102,73 +116,63 @@ describe("PullRequestRow", () => {
 		expect(heightClass(await prRow(without.id))).toBe("h-14");
 	});
 
-	// PR-07. A failed poll leaves the stored fields on the page and says how
-	// old they are.
+	// PR-07. A failed poll leaves the stored fields on the page and says that
+	// the fetch failed.
 	test("keeps the stored fields and marks the row stale after a failed poll", async () => {
 		const server = createFakeServer();
 		patchPr(server, (await firstPr(server, "CDE-42")).id, { fetchError: "gh exited with code 1." });
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
-		expect(row.querySelector('[data-pr-state="open"]')).not.toBeNull();
-		expect(bucketsOf(row)).toEqual(["pass", "pass", "pass", "pass"]);
-		expect(pillLabel(row)).toBe("4 passed, 0 failed, 0 pending");
-		expect(row.querySelector("[data-pr-stale]")!.textContent).toContain("2h ago");
+		expect(stateOf(row)).toBe("open");
+		expect(flat(row)).toContain("Restore the fork pages");
+		const stale = row.querySelector("[data-pr-stale]")!;
+		expect(stale.getAttribute("title")).toBe("gh exited with code 1.");
+		expect(flat(row)).not.toContain("ago");
 	});
 
-	// PR-08
-	test("expands to the per-check rows by click and by Enter", async () => {
-		const user = userEvent.setup();
+	// PR-08. The settings name the diff viewer, so the card sends its diff
+	// there. The link covers the card, so a click anywhere opens the diff.
+	test("opens the diff of the pull request from a click on the card", async () => {
 		const server = createFakeServer();
 		const { pr } = await renderRow(server, "CDE-42");
 		const row = await prRow(pr.id);
-		const header = headerOf(row);
-		expect(header.getAttribute("aria-expanded")).toBe("false");
-		expect(row.querySelectorAll("[data-check-row]")).toHaveLength(0);
-		await user.click(header);
-		expect(header.getAttribute("aria-expanded")).toBe("true");
-		expect((await prRow(pr.id)).querySelectorAll("[data-check-row]")).toHaveLength(4);
-		await user.click(header);
-		expect(header.getAttribute("aria-expanded")).toBe("false");
-		header.focus();
-		await user.keyboard("{Enter}");
-		expect(header.getAttribute("aria-expanded")).toBe("true");
-		expect((await prRow(pr.id)).querySelectorAll("[data-check-row]")).toHaveLength(4);
-	});
-
-	// PR-09
-	test("remembers the expanded pull request in the session", async () => {
-		const user = userEvent.setup();
-		const server = createFakeServer();
-		const first = await renderRow(server, "CDE-42");
-		await user.click(headerOf(await prRow(first.pr.id)));
-		expect(sessionStorage.getItem("prs-expanded")).toContain(first.pr.id);
-		first.unmount();
-		await renderRow(server, "CDE-42");
-		const row = await prRow(first.pr.id);
-		expect(headerOf(row).getAttribute("aria-expanded")).toBe("true");
-		expect(row.querySelectorAll("[data-check-row]")).toHaveLength(4);
-	});
-
-	// PR-10. A pull request without checks has nothing to expand.
-	test("drops the ribbon and the expand control for a pull request without checks", async () => {
-		const server = createFakeServer();
-		patchPr(server, (await firstPr(server, "CDE-42")).id, { checks: [], ciState: "none" });
-		const { pr } = await renderRow(server, "CDE-42");
-		const row = await prRow(pr.id);
-		expect(bucketsOf(row)).toEqual([]);
-		expect(row.querySelector("[aria-expanded]")).toBeNull();
-		expect(row.querySelectorAll("[data-check-row]")).toHaveLength(0);
-		expect(screen.queryByRole("button", { name: /#118/ })).toBeNull();
-	});
-
-	// The settings name the diff viewer, so the row sends its diff there.
-	test("offers Show diff, which opens the diff of the pull request in a new tab", async () => {
-		const server = createFakeServer();
-		const { pr } = await renderRow(server, "CDE-42");
-		const row = await prRow(pr.id);
-		const link = await within(row).findByRole("link", { name: "Show diff" });
+		const link = await within(row).findByRole("link", { name: "Restore the fork pages" });
 		expect(link.getAttribute("href")).toBe(`${pr.url}/files`);
 		expect(link.getAttribute("target")).toBe("_blank");
 		expect(link.getAttribute("rel")).toContain("noopener");
+		expect(link.getAttribute("class")).toContain("before:inset-0");
+		expect(row.getAttribute("class")).toContain("relative");
+	});
+
+	// PR-09. The menu is gone, so the card keeps one visible control per
+	// action.
+	test("offers no actions menu", async () => {
+		const server = createFakeServer();
+		await renderRow(server, "CDE-42");
+		expect(screen.queryByRole("button", { name: "PR actions" })).toBeNull();
+	});
+
+	// PR-10. Unlink sits on the card, so a pull request linked by mistake
+	// comes off the ticket without the CLI.
+	test("unlinks the pull request from the card", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		const { pr, ticket } = await renderRow(server, "CDE-42");
+		const row = await prRow(pr.id);
+		const button = within(row).getByRole("button", { name: "Unlink PR #118" });
+		expect(button.getAttribute("class")).toContain("opacity-0");
+		expect(button.getAttribute("class")).toContain("group-hover:opacity-100");
+		await user.click(button);
+		await waitFor(() => expect(callsTo(server, "pullRequests.unlink")).toHaveLength(1));
+		expect(await prsOf(server, ticket.identifier)).toHaveLength(0);
+	});
+
+	// PR-24. The card opens the diff, so GitHub keeps a control of its own.
+	test("opens the pull request on GitHub from a control of its own", async () => {
+		const server = createFakeServer();
+		const { pr } = await renderRow(server, "CDE-42");
+		const row = await prRow(pr.id);
+		const button = within(row).getByRole("button", { name: "Open on GitHub" });
+		expect(button.getAttribute("class")).toContain("group-hover:opacity-100");
 	});
 });

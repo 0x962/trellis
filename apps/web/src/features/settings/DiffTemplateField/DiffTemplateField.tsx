@@ -4,8 +4,8 @@ import { useSettingsDraft } from "../hooks/useSettingsDraft";
 import { SavedMark } from "../SavedMark";
 import { SettingsRow } from "../SettingsRow";
 
-// The address the Show diff control of a pull request opens. `{url}` in it
-// stands for the URL of the pull request. A blur saves a changed template.
+// The address a click on a pull request card opens. `{url}` in it stands for
+// the URL of the pull request. A blur saves a changed template.
 export function DiffTemplateField() {
 	const { saved, draft, edit, save } = useSettingsDraft();
 	const hintId = useId();
@@ -20,7 +20,7 @@ export function DiffTemplateField() {
 	};
 
 	return (
-		<SettingsRow label="Show diff" hint="The address the Show diff control of a pull request opens.">
+		<SettingsRow label="Show diff" hint="The address a click on a pull request card opens.">
 			<div className="flex items-center gap-3">
 				<Input
 					label="Diff URL template"

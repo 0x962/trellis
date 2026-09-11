@@ -5,16 +5,7 @@ import { createFakeServer, type FakeServer } from "../../../../../../test/fake-s
 import { updatePr } from "../../../../../../test/fake-server/prs";
 import { createFakeScheduler } from "../../../../../../test/fakeScheduler";
 import { mockMatchMedia } from "../../../../../../test/media";
-import {
-	bucketsOf,
-	callsTo,
-	checkList,
-	firstPr,
-	linkPrCopy,
-	pillLabel,
-	prRow,
-	summaryOf,
-} from "../../../../../../test/prs";
+import { callsTo, checkList, firstPr, linkPrCopy, prRow, stateOf, summaryOf } from "../../../../../../test/prs";
 import { renderWithProviders } from "../../../../../../test/renderWithProviders";
 import { PullRequests } from "../../PullRequests";
 
@@ -29,36 +20,39 @@ const renderSection = async (server: FakeServer, identifier: string) => {
 	return renderWithProviders(<PullRequests ticket={ticket} />, { path: `/t/${identifier}`, actor: "navid", server });
 };
 
-const settled = checkList(
+const green = checkList(
 	["lint", "pass"],
-	["typecheck (desktop)", "fail"],
+	["typecheck (desktop)", "pass"],
 	["test (host-service)", "pass"],
 	["build (macos-arm64)", "pass"],
 );
 
 describe("PullRequestRow live updates", () => {
-	// PR-53
-	test("follows a pr.updated event into the ribbon and the counts", async () => {
+	// PR-53. The seed leaves CDE-44 with a failed check, so the card starts
+	// blocked and turns open when the re-run passes.
+	test("follows a pr.updated event into the state icon", async () => {
 		const server = createFakeServer();
 		const { queryClient } = await renderSection(server, "CDE-44");
 		const pr = await firstPr(server, "CDE-44");
-		await waitFor(async () => expect(pillLabel(await prRow(pr.id))).toBe("2 passed, 1 failed, 1 pending"));
-		const event = updatePr(server, pr.id, { checks: settled });
+		await waitFor(async () => expect(stateOf(await prRow(pr.id))).toBe("blocked"));
+		const event = updatePr(server, pr.id, { checks: green });
 		createEventApplier(queryClient).applyEvent({ type: "pr.updated", ...event });
-		await waitFor(async () => expect(pillLabel(await prRow(pr.id))).toBe("3 passed, 1 failed, 0 pending"));
-		expect(bucketsOf(await prRow(pr.id))).toEqual(["pass", "fail", "pass", "pass"]);
+		await waitFor(async () => expect(stateOf(await prRow(pr.id))).toBe("open"));
 	});
 
-	// PR-54. The event carries the change, so nobody presses refresh.
-	test("needs no refresh click to show the new state", async () => {
+	// PR-54. The event carries the change, so the section holds no refresh
+	// control and calls none.
+	test("shows the new state with no refresh control on the page", async () => {
 		const server = createFakeServer();
 		const { queryClient } = await renderSection(server, "CDE-44");
 		const pr = await firstPr(server, "CDE-44");
 		await prRow(pr.id);
-		const event = updatePr(server, pr.id, { checks: settled });
+		const event = updatePr(server, pr.id, { checks: green });
 		createEventApplier(queryClient).applyEvent({ type: "pr.updated", ...event });
-		await waitFor(async () => expect(pillLabel(await prRow(pr.id))).toBe("3 passed, 1 failed, 0 pending"));
+		await waitFor(async () => expect(stateOf(await prRow(pr.id))).toBe("open"));
 		expect(callsTo(server, "pullRequests.refresh")).toHaveLength(0);
+		expect(document.body.textContent).not.toContain("Refresh");
+		expect(document.body.textContent).not.toContain("Fetched");
 	});
 
 	// PR-55. The coalescer reads the list once, however many rows hold it.
@@ -70,7 +64,7 @@ describe("PullRequestRow live updates", () => {
 		await waitFor(() => expect(document.querySelectorAll("[data-pr-row]")).toHaveLength(2));
 		const before = callsTo(server, "pullRequests.list").length;
 		const pr = await firstPr(server, "CDE-44");
-		const event = updatePr(server, pr.id, { checks: settled });
+		const event = updatePr(server, pr.id, { checks: green });
 		createEventApplier(queryClient, { scheduler: clock.scheduler }).applyEvent({ type: "pr.updated", ...event });
 		clock.advanceTo(MAX_WAIT_MS);
 		await waitFor(() => expect(callsTo(server, "pullRequests.list")).toHaveLength(before + 1));
@@ -82,10 +76,10 @@ describe("PullRequestRow live updates", () => {
 		const server = createFakeServer();
 		const { queryClient } = await renderSection(server, "CDE-42");
 		const pr = await firstPr(server, "CDE-42");
-		expect((await prRow(pr.id)).querySelector('[data-pr-state="open"]')).not.toBeNull();
+		expect(stateOf(await prRow(pr.id))).toBe("open");
 		const event = updatePr(server, pr.id, { state: "merged" });
 		createEventApplier(queryClient).applyEvent({ type: "pr.updated", ...event });
-		await waitFor(async () => expect((await prRow(pr.id)).querySelector('[data-pr-state="merged"]')).not.toBeNull());
+		await waitFor(async () => expect(stateOf(await prRow(pr.id))).toBe("merged"));
 		await waitFor(() => expect(document.querySelector("[data-merged-nudge]")).not.toBeNull());
 	});
 });
