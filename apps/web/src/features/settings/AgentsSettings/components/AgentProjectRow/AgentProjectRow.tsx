@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AgentFailure } from "../../../../agent/AgentFailure";
 import { AgentStateBadge } from "../../../../agent/AgentStateBadge";
 import { useAgentSettings } from "../../hooks/useAgentSettings";
+import { ManagerInstructions } from "./components/ManagerInstructions";
 
 export type AgentProjectRowProps = {
 	project: ProjectSummary;
@@ -144,6 +145,7 @@ export function AgentProjectRow({ project, runner, manager }: AgentProjectRowPro
 				className="self-start"
 				onCheckedChange={(removeWorkspaceOnDone) => save({ removeWorkspaceOnDone })}
 			/>
+			<ManagerInstructions project={project} />
 			{[branchMessage, limitMessage].map(
 				(message) =>
 					message !== null && (

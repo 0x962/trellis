@@ -7,6 +7,7 @@ import { failedSession, projectRow, rootId, startReason } from "../../../../test
 import { createFakeServer, type FakeServer } from "../../../../test/fake-server";
 import { mockMatchMedia } from "../../../../test/media";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { settle } from "../../../../test/ticketHost";
 import { AgentsSettings } from "./AgentsSettings";
 
 beforeEach(() => {
@@ -69,6 +70,29 @@ describe("AgentsSettings", () => {
 		);
 		for (const root of roots) expect(await projectGroup(root.key)).toBeDefined();
 		expect(screen.getAllByRole("group")).toHaveLength(roots.length);
+	});
+
+	// The manager prompt reaches a manager as command text, so the block of
+	// its project is the one place a human can read it.
+	test("each project block opens the manager instructions", async () => {
+		const server = createFakeServer();
+		render(server);
+		expect(within(await projectGroup("CDE")).getByRole("button", { name: "Manager instructions" })).toBeDefined();
+		expect(within(await projectGroup("TRL")).getByRole("button", { name: "Manager instructions" })).toBeDefined();
+	});
+
+	// One statuses read per project would cost the settings page a request
+	// per block. The read waits for the click.
+	test("the page reads the statuses of a project only after that block asks for the text", async () => {
+		const user = userEvent.setup();
+		const server = createFakeServer();
+		render(server);
+		await screen.findByRole("switch", { name: "Turn on agents" });
+		await settle();
+		expect(server.callsTo("statuses.list")).toHaveLength(0);
+		await user.click(within(await projectGroup("CDE")).getByRole("button", { name: "Manager instructions" }));
+		await waitFor(() => expect(server.callsTo("statuses.list")).toHaveLength(1));
+		expect(server.callsTo("statuses.list")[0]!.input).toEqual({ project: "CDE" });
 	});
 
 	test("turning a manager on saves the project row with the defaults", async () => {

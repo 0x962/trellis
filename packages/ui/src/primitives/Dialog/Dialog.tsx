@@ -48,7 +48,7 @@ export function Dialog({
 				<BaseDialog.Popup
 					aria-modal="true"
 					className={cx(
-						"fixed top-1/2 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-lg border border-border bg-elevated p-4 text-base text-fg shadow-lg outline-none",
+						"fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-elevated p-4 text-base text-fg shadow-lg outline-none",
 						sizes[size],
 						bottomSheet,
 						popupMotion,

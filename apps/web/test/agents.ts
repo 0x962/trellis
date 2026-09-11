@@ -26,6 +26,7 @@ export const enableAgents = (server: FakeServer, key = "CDE", overrides: Partial
 	});
 
 const titles = { manager: "CDE manager", builder: "CDE-42", reviewer: "CDE-42 review" } as const;
+const names = { manager: "Amara", builder: "Kenji", reviewer: "Nadia" } as const;
 
 // Stores one session as the server holds it after a runner start. A builder
 // or a reviewer works CDE-42 unless `overrides` names another ticket.
@@ -39,6 +40,7 @@ export const addSession = (server: FakeServer, overrides: Partial<AgentSession> 
 		state: "running",
 		workspaceId: "ws-1",
 		terminalId: "term-1",
+		name: names[overrides.role],
 		title: titles[overrides.role],
 		openUrl: "superset://workspace/ws-1",
 		lastWokenAt: null,

@@ -71,6 +71,7 @@ describe("agents contract", () => {
 			state: "starting",
 			workspaceId: null,
 			terminalId: null,
+			name: "Amara",
 			title: "CDE manager",
 			openUrl: null,
 			lastWokenAt: null,

@@ -14,7 +14,7 @@ beforeEach(() => {
 const batchText = "trellis: 2 changes in CDE (CDE-42 created by navid). Run: trellis agents inbox --project CDE";
 
 describe("routes/agents", () => {
-	test("lists each project's sessions with their errors, the agent actions, and the batches", async () => {
+	test("lists each project's sessions with their names and errors, the agent actions, and the batches", async () => {
 		const server = createFakeServer();
 		const failed = failedSession(server, "manager");
 		addSession(server, { role: "builder" });
@@ -38,6 +38,9 @@ describe("routes/agents", () => {
 		const sessions = within(await screen.findByRole("region", { name: "CDE sessions" }));
 		expect(sessions.getByText(startError)).toBeDefined();
 		expect(sessions.getByText("Failed")).toBeDefined();
+		// The fixtures name the manager Amara and the builder Kenji.
+		expect(sessions.getByText("Amara")).toBeDefined();
+		expect(sessions.getByText("Kenji")).toBeDefined();
 		expect(sessions.getAllByRole("link", { name: "Open in Superset" })).toHaveLength(1);
 		expect(document.getElementById(failed.id)).not.toBeNull();
 

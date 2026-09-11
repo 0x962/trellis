@@ -10,7 +10,7 @@ import { lines, runCli } from "../../test/deps.ts";
 import { project, projectId2 } from "../../test/fixtures.ts";
 
 describe("agents status", () => {
-	test("--project lists the sessions of the project", async () => {
+	test("--project lists the sessions of the project, the person name first", async () => {
 		const sessions = { sessions: [managerSession(), agentSession()] };
 		const result = await runCli(
 			["agents", "status", "--project", "CDE"],
@@ -20,8 +20,10 @@ describe("agents status", () => {
 		expect(result.code).toBe(0);
 		expect(result.calls.map((call) => [call.path, call.input])).toEqual([["agents.sessions", { project: "CDE" }]]);
 		const [header, ...rows] = lines(result.stdout);
+		expect(header).toContain("name");
 		expect(header).toContain("title");
-		expect(rows.map((row) => row.split(/\s{2,}/)[0])).toEqual(["CDE manager", "CDE-42"]);
+		expect(rows.map((row) => row.split(/\s{2,}/)[0])).toEqual(["Amara", "Kenji"]);
+		expect(result.stdout).toContain("CDE manager");
 		expect(result.stdout).toContain("running");
 	});
 
