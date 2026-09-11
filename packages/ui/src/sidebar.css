@@ -1,0 +1,19 @@
+@utility sidebar-leading {
+	@apply flex w-7 shrink-0 items-center justify-center mr-2;
+}
+
+@utility sidebar-label {
+	@apply min-w-0 flex-1 truncate;
+}
+
+@utility sidebar-trailing {
+	@apply flex w-6 shrink-0 items-center justify-center text-xs tabular pointer-coarse:w-11;
+}
+
+@utility sidebar-section {
+	@apply flex h-8 pointer-coarse:h-11 items-center justify-between pl-2 pr-1 text-base font-semibold text-fg;
+}
+
+@utility sidebar-selected {
+	@apply bg-surface text-fg;
+}

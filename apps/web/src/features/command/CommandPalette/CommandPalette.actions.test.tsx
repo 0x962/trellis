@@ -27,7 +27,7 @@ const callsTo = (server: FakeServer, path: string) => server.calls.filter((call)
 
 const closed = () => screen.queryByRole("dialog", { name: "Command palette" });
 
-const withTicket = async (identifier = "CDE-42", path = "/p/CDE") => {
+const withTicket = async (identifier = "CDE-42", path = "/p/CDE/table") => {
 	const shell = await renderShell({ path });
 	act(() => commandActions.setPeekTicket(identifier));
 	await openPalette();
@@ -162,7 +162,7 @@ describe("features/command/CommandPalette actions", () => {
 		await pick(/Go to project…/);
 		await waitFor(() => expect(within(palette()).getByRole("option", { name: /CDE\/web\/auth/ })).toBeDefined());
 		await pick(/CDE\/web\/auth/);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE/web/auth"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE/web/auth/table"));
 	});
 
 	// PA-12

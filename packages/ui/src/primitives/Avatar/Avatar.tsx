@@ -1,5 +1,5 @@
 import { cx } from "../../utils/cx";
-import { BotGlyph } from "./components/BotGlyph";
+import { agentGradient } from "./agentGradient";
 
 export type ActorKind = "human" | "agent";
 
@@ -20,21 +20,22 @@ const initials = (name: string) =>
 		.map((word) => word.charAt(0).toUpperCase())
 		.join("");
 
-// Initials identify a human; the bot glyph identifies an agent.
+// An 18 px actor mark. A human is a square with initials. An agent is a
+// circle filled with the soft color its name picks, so two agents never
+// look alike and one agent always looks the same. See agentGradient.
 export function Avatar({ kind, name, live = false, className }: AvatarProps) {
 	return (
 		<span
 			role="img"
 			aria-label={kind === "agent" ? `${name} · agent` : name}
+			style={kind === "agent" ? agentGradient(name) : undefined}
 			className={cx(
-				"relative inline-grid size-4.5 shrink-0 place-items-center select-none",
-				kind === "agent"
-					? "rounded-sm border border-agent bg-agent-soft text-agent"
-					: "rounded-sm bg-fg-muted text-surface text-initials font-semibold",
+				"relative inline-grid size-4.5 shrink-0 place-items-center overflow-hidden select-none",
+				kind === "agent" ? "rounded-full" : "rounded-sm bg-fg-muted text-surface text-initials font-semibold",
 				className,
 			)}
 		>
-			{kind === "agent" ? <BotGlyph /> : initials(name)}
+			{kind === "agent" ? null : initials(name)}
 			{live && (
 				<span
 					data-live=""

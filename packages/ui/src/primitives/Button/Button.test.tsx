@@ -23,7 +23,7 @@ describe("Button", () => {
 				<Button size="md">Medium</Button>
 			</>,
 		);
-		expectClasses(screen.getByRole("button", { name: "Primary" }), "bg-accent border-accent");
+		expectClasses(screen.getByRole("button", { name: "Primary" }), "bg-surface border-border-strong text-fg");
 		expectClasses(screen.getByRole("button", { name: "Quiet" }), "border-transparent text-fg-muted");
 		expectClasses(screen.getByRole("button", { name: "Danger" }), "bg-danger");
 		expectClasses(
@@ -72,16 +72,22 @@ describe("Button", () => {
 		expectClasses(screen.getByRole("button", { name: "Cancel" }), "disabled:opacity-50");
 	});
 
-	// One Kbd style serves every button, so a primary button prints the same
-	// key cap as a default one.
-	test("the Kbd inside a primary button uses the one Kbd style", () => {
+	test("both segments of a shortcut button activate the same action", async () => {
+		const user = userEvent.setup();
+		const onClick = mock();
 		render(
-			<Button variant="primary" kbd="⌘↵">
+			<Button variant="primary" kbd="⌘↵" onClick={onClick}>
 				Create
 			</Button>,
 		);
-		const kbd = screen.getByRole("button", { name: /Create/ }).querySelector("kbd")!;
-		expectClasses(kbd, "border-border-strong bg-surface text-fg-muted text-xs");
+		const button = screen.getByRole("button", { name: "Create ⌘↵" });
+		const shortcut = button.querySelector("kbd")!;
+		const label = screen.getByText("Create");
+		expect(shortcut.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(screen.getAllByRole("button")).toHaveLength(1);
+		await user.click(shortcut);
+		await user.click(label);
+		expect(onClick).toHaveBeenCalledTimes(2);
 	});
 
 	test("Enter and Space activate the button", async () => {
@@ -123,7 +129,7 @@ describe("Button", () => {
 		);
 	});
 
-	test("renders a leading icon and a trailing Kbd", () => {
+	test("renders the shortcut segment before the icon and label", () => {
 		render(
 			<Button icon={<Check />} kbd="a">
 				Approve
@@ -136,6 +142,6 @@ describe("Button", () => {
 		expect(kbd.textContent).toBe("a");
 		const text = screen.getByText("Approve");
 		expect(icon.compareDocumentPosition(text) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-		expect(text.compareDocumentPosition(kbd) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(kbd.compareDocumentPosition(icon) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 });

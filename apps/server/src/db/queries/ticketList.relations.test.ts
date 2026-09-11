@@ -79,3 +79,20 @@ describe("ticketList pull request and actor filters", () => {
 		expect(rowB.lastActor).toEqual({ name: "navid", kind: "human", at: navidAt.toISOString() });
 	});
 });
+
+describe("ticketList ancestors", () => {
+	test("a summary names every ticket above it, the top of the tree first", async () => {
+		const { rootId, statuses } = await seedProject(h.db);
+		const seed = (parentId?: string) =>
+			seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.started, parentId });
+		const top = await seed();
+		const middle = await seed(top);
+		const leaf = await seed(middle);
+
+		const items = (await list({ projectIds: [rootId] })).items;
+		const of = (id: string) => items.find((item) => item.id === id)!;
+		expect(of(top).ancestors).toEqual([]);
+		expect(of(middle).ancestors).toEqual([of(top).identifier]);
+		expect(of(leaf).ancestors).toEqual([of(top).identifier, of(middle).identifier]);
+	});
+});

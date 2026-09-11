@@ -17,7 +17,7 @@ beforeEach(() => {
 afterEach(() => act(resetUi));
 
 const open = async (server = createFakeServer()) => {
-	const app = renderApp({ path: "/p/CDE", actor: "navid", server });
+	const app = renderApp({ path: "/p/CDE/table", actor: "navid", server });
 	await findGrid();
 	act(() => composerActions.open({}));
 	const dialog = await screen.findByRole("dialog", { name: "New ticket" });
@@ -31,10 +31,7 @@ describe("features/composer/CreateTicketDialog header and footer", () => {
 	test("the footer holds one Create button and a Create more switch", async () => {
 		const { dialog, title } = await open();
 		expect(title().placeholder).toBe("Ticket title");
-		const buttons = within(dialog)
-			.getAllByRole("button")
-			.map((button) => button.textContent?.trim());
-		expect(buttons.filter((name) => name?.startsWith("Create"))).toHaveLength(1);
+		expect(within(dialog).getAllByRole("button", { name: /^Create/ })).toHaveLength(1);
 		expect(within(dialog).queryByRole("button", { name: "Cancel" })).toBeNull();
 		expect(within(dialog).queryByRole("button", { name: /add another/i })).toBeNull();
 		expect(within(dialog).getByRole("switch", { name: "Create more" })).toBeDefined();

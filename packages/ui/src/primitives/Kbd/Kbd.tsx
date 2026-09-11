@@ -9,8 +9,6 @@ export type KbdProps = {
 };
 
 // A key cap: 18 px tall, 11 px mono, on the surface with the strong border.
-// The cap keeps its own surface, so it reads the same inside a primary
-// button as it does in a menu.
 export function Kbd({ children, className }: KbdProps) {
 	return (
 		<kbd

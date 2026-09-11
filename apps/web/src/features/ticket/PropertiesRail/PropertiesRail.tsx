@@ -144,7 +144,7 @@ export function PropertiesRail({ ticket, variant, onAddSubTicket }: PropertiesRa
 		);
 	}
 	return (
-		<aside aria-label="Properties" className="w-70 shrink-0 border-l border-border px-4 py-3">
+		<aside aria-label="Properties" className="sticky top-0 w-70 shrink-0 self-start border-l border-border px-4 py-3">
 			<dl className="flex flex-col gap-0.5">
 				<PickerRows ticket={ticket} />
 				<div className="col-span-full">

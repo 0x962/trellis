@@ -29,7 +29,7 @@ const activity = (actor: Actor, clock: string, field = "status"): TimelineItem =
 	createdAt: at(clock),
 });
 
-const comment = (actor: Actor, clock: string): TimelineItem => ({
+const comment = (actor: Actor, clock: string): Extract<TimelineItem, { kind: "comment" }> => ({
 	kind: "comment",
 	parentId: null,
 	resolvedAt: null,

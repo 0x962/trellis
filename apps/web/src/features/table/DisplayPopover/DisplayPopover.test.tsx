@@ -13,7 +13,7 @@ beforeEach(() => {
 	installViewport();
 });
 
-const path = "/p/CDE?status=in-progress";
+const path = "/p/CDE/table?status=in-progress";
 
 const cells = (column: string) => document.querySelectorAll(`[role="gridcell"][data-column="${column}"]`);
 
@@ -98,7 +98,7 @@ describe("features/table/DisplayPopover", () => {
 	// footer names the tickets it leaves out.
 	test("hides the completed groups when Show completed is off", async () => {
 		const user = userEvent.setup();
-		const app = renderApp({ path: "/p/CDE", actor: "navid" });
+		const app = renderApp({ path: "/p/CDE/table", actor: "navid" });
 		await findGrid();
 		await waitFor(() => expect(document.querySelector('[role="rowgroup"][data-group="done"]')).not.toBeNull());
 		await user.click(screen.getByRole("button", { name: "Display" }));

@@ -30,7 +30,6 @@ import { parseProjectSplat, projectHref, projectSlashPath } from "../../../lib/p
 import { useUiStore } from "../../../stores/uiStore";
 import { ArchivedBanner } from "./components/ArchivedBanner";
 import { ProjectLoadError } from "./components/ProjectLoadError";
-import { ScopeChip } from "./components/ScopeChip";
 
 // The settings screen loads in its own chunk, so the list views never pay for it.
 const ProjectSettingsPage = lazy(async () => ({
@@ -53,8 +52,15 @@ const countsOptions = (context: AppContext, ref: string, search: Partial<View>, 
 export const Route = createFileRoute("/p/$")({
 	validateSearch: (search: Record<string, unknown>) => stripDefaults(parseSearch(search)),
 	beforeLoad: ({ location, params, search }) => {
+		// The board is the bare path now. An older link that ends in /board
+		// still works: it lands on the same view with the segment dropped.
+		const splat = params._splat ?? "";
+		const withoutBoard = splat.replace(/\/board$/i, "");
+		if (withoutBoard !== splat) {
+			throw redirect({ to: "/p/$", params: { _splat: withoutBoard }, search, replace: true });
+		}
 		if (!isCanonicalSearch(location.searchStr, search)) {
-			throw redirect({ to: "/p/$", params: { _splat: params._splat ?? "" }, search, replace: true });
+			throw redirect({ to: "/p/$", params: { _splat: splat }, search, replace: true });
 		}
 	},
 	loaderDeps: ({ search }) => search,
@@ -111,11 +117,9 @@ function ProjectPage() {
 	const switchView = (next: ListView) =>
 		navigate({
 			to: "/p/$",
-			params: { _splat: `${projectSlashPath(ref)}${next === "table" ? "" : "/board"}` },
+			params: { _splat: `${projectSlashPath(ref)}${next === "table" ? "/table" : ""}` },
 			search,
 		});
-
-	const toggleScope = () => setSearch({ ...search, scope: full.scope === "self" ? "subprojects" : "self" });
 
 	const openTicket = (identifier: string) =>
 		navigate({ to: "/p/$", params: { _splat }, search: { ...search, peek: identifier } });
@@ -154,9 +158,7 @@ function ProjectPage() {
 						sort={full.sort}
 					/>
 				}
-			>
-				<ScopeChip path={ref} scope={full.scope} onToggle={toggleScope} />
-			</FilterBar>
+			></FilterBar>
 			<fieldset disabled={archived} className="contents">
 				{view === "board" ? (
 					<>

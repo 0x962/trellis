@@ -39,9 +39,9 @@ const claims = (event: KeyboardEvent) => {
 	return true;
 };
 
-// The sticky bar at the top of a ticket: the project path, the parent,
-// then the actions. The copy chords Cmd+C, Cmd+Shift+C, and Cmd+. work
-// anywhere on the surface.
+// The sticky bar shows the ticket ID in a peek and the project path on a page.
+// It also shows the parent and the ticket actions.
+// The copy chords Cmd+C, Cmd+Shift+C, and Cmd+. work on the full ticket surface.
 export function Header(props: HeaderProps) {
 	const ticket = props.ticket;
 	const surface = props.surface;
@@ -105,7 +105,7 @@ export function Header(props: HeaderProps) {
 			<div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
 				{ticket === undefined ? (
 					<Skeleton width="w-16" height="h-3" />
-				) : phone ? (
+				) : phone || surface === "peek" ? (
 					<TicketId id={ticket.identifier} />
 				) : (
 					<Breadcrumb path={ticket.project.path} />

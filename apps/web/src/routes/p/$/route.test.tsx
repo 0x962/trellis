@@ -48,13 +48,14 @@ describe("routes/p/$", () => {
 		missing.unmount();
 
 		localStorage.clear();
-		renderApp({ path: "/p/CDE/web", actor: "navid" });
+		renderApp({ path: "/p/CDE/web/table", actor: "navid" });
 		const crumbs = await screen.findByRole("navigation", { name: "Breadcrumb" });
 		expect(crumbs.textContent!.replace(/\s+/g, " ")).toMatch(/CDE\s*›\s*web/);
 		expect(within(crumbs).getByRole("link", { name: "CDE" }).getAttribute("href")).toBe("/p/CDE");
 		const group = screen.getByRole("radiogroup", { name: "View" });
 		expect(within(group).getByRole("radio", { name: "Table" }).getAttribute("aria-checked")).toBe("true");
-		expect(screen.getByText("in CDE/web + sub-projects")).toBeDefined();
+		// The reach of the list lives in the filter picker now, not in a chip.
+		expect(screen.queryByText(/sub-projects/)).toBeNull();
 	});
 
 	test("project settings save the editable project fields", async () => {
@@ -222,26 +223,26 @@ describe("routes/p/$", () => {
 
 	// WS-85. The table is the default view, so its URL carries no segment
 	// and no search params.
-	test("the view segmented control switches between /p/CDE and /p/CDE/board", async () => {
+	test("the view segmented control switches between /p/CDE and /p/CDE/table", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/p/CDE/board", actor: "navid" });
+		const { router } = renderApp({ path: "/p/CDE", actor: "navid" });
 		const group = await screen.findByRole("radiogroup", { name: "View" });
 		expect(within(group).getByRole("radio", { name: "Board" }).getAttribute("aria-checked")).toBe("true");
 		await user.click(within(group).getByRole("radio", { name: "Table" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE/table"));
 		expect(router.state.location.searchStr).toBe("");
 		await user.click(within(group).getByRole("radio", { name: "Board" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE/board"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/p/CDE"));
 	});
 
 	// WS-86
 	test("the route strips default search params and passes the grammar to the API", async () => {
 		const { router, server } = renderApp({
-			path: "/p/CDE?status=in-progress&sort=-updatedAt&density=comfortable",
+			path: "/p/CDE/table?status=in-progress&sort=-updatedAt&density=comfortable",
 			actor: "navid",
 		});
 		await waitFor(() => expect(router.state.location.searchStr).toBe("?status=in-progress"));
-		expect(router.state.location.pathname).toBe("/p/CDE");
+		expect(router.state.location.pathname).toBe("/p/CDE/table");
 		await waitFor(() => {
 			const call = server.calls.find((entry) => entry.path.join(".") === "tickets.counts");
 			expect(call).toBeDefined();
@@ -264,7 +265,7 @@ describe("routes/p/$", () => {
 	test("an empty project shows the CLI empty state", async () => {
 		const server = createFakeServer();
 		await server.client.projects.create({ key: "DOC", name: "Docs" });
-		renderApp({ path: "/p/DOC", actor: "navid", server });
+		renderApp({ path: "/p/DOC/table", actor: "navid", server });
 		expect(await screen.findByText('trellis create -p DOC -t "First ticket"')).toBeDefined();
 		expect(screen.getByRole("button", { name: "Create ticket" })).toBeDefined();
 		expect(screen.getByRole("heading", { name: /no tickets/i })).toBeDefined();
@@ -283,7 +284,7 @@ describe("routes/p/$: the table", () => {
 
 	// Outcome 108
 	test("renders the ticket table for a project route", async () => {
-		const { server } = renderApp({ path: "/p/CDE", actor: "navid" });
+		const { server } = renderApp({ path: "/p/CDE/table", actor: "navid" });
 		await findGrid();
 		expect(filterBar()).not.toBeNull();
 		await waitFor(() => expect(rows().length).toBeGreaterThan(2));
@@ -297,17 +298,17 @@ describe("routes/p/$: the table", () => {
 	test("maps the splat path to a dotted project ref", async () => {
 		const server = createFakeServer();
 		await server.client.projects.create({ parent: "CDE.web", name: "auth" });
-		const { router } = renderApp({ path: "/p/CDE/web/auth", actor: "navid", server });
+		const { router } = renderApp({ path: "/p/CDE/web/auth/table", actor: "navid", server });
 		await findGrid();
 		await waitFor(() => expect(inputs(server, "tickets.list").length).toBeGreaterThan(0));
 		expect(inputs(server, "tickets.list")[0]).toMatchObject({ project: "CDE.web.auth" });
-		expect(router.state.location.pathname).toBe("/p/CDE/web/auth");
+		expect(router.state.location.pathname).toBe("/p/CDE/web/auth/table");
 	});
 
 	// Outcome 110. The grid element is the same node before and after.
 	test("reruns the query on a filter change without remounting the table", async () => {
 		const user = userEvent.setup();
-		const { router, server } = renderApp({ path: "/p/CDE", actor: "navid" });
+		const { router, server } = renderApp({ path: "/p/CDE/table", actor: "navid" });
 		const table = await findGrid();
 		await waitFor(() => expect(rows().length).toBeGreaterThan(2));
 		const before = inputs(server, "tickets.list").length;
@@ -324,7 +325,7 @@ describe("routes/p/$: the table", () => {
 
 	// Outcome 112
 	test("keeps the table mounted and the row focused while the peek is open", async () => {
-		renderApp({ path: "/p/CDE?status=human-review&peek=CDE-42", actor: "navid" });
+		renderApp({ path: "/p/CDE/table?status=human-review&peek=CDE-42", actor: "navid" });
 		await findGrid();
 		await waitFor(() => rowOf("CDE-42"));
 		expect(rowOf("CDE-42").getAttribute("tabindex")).toBe("0");
@@ -338,7 +339,7 @@ describe("routes/p/$: the table", () => {
 	// the peek shows after a j step.
 	test("Escape closes the peek with the focus on the row of the ticket it shows", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/p/CDE?status=human-review&peek=CDE-42", actor: "navid" });
+		const { router } = renderApp({ path: "/p/CDE/table?status=human-review&peek=CDE-42", actor: "navid" });
 		await findGrid();
 		await screen.findByRole("dialog", { name: "CDE-42" });
 		await user.keyboard("j");
@@ -355,7 +356,7 @@ describe("routes/p/$: the table", () => {
 	// closes, so the close changes no focus state of the table.
 	test("Escape closes the peek with the focus on its row when that row had the focus before", async () => {
 		const user = userEvent.setup();
-		const { router } = renderApp({ path: "/p/CDE?status=human-review&peek=CDE-42", actor: "navid" });
+		const { router } = renderApp({ path: "/p/CDE/table?status=human-review&peek=CDE-42", actor: "navid" });
 		await findGrid();
 		const panel = await screen.findByRole("dialog", { name: "CDE-42" });
 		await waitFor(() => rowOf("CDE-42"));

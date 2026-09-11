@@ -34,8 +34,8 @@ describe("features/ticket/Header/components/ReviewActions", () => {
 		mount("CDE-42", createFakeServer());
 		const approve = await screen.findByRole("button", { name: /Approve/ });
 		const sendBack = screen.getByRole("button", { name: /Send back/ });
-		expect(approve.textContent).toMatch(/\ba\b/);
-		expect(sendBack.textContent).toMatch(/\br\b/);
+		expect(approve.querySelector("kbd")!.textContent).toBe("a");
+		expect(sendBack.querySelector("kbd")!.textContent).toBe("r");
 	});
 
 	// WT-97. CDE-45 sits in Agent Review; CDE-44 sits in In Progress.

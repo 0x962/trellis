@@ -54,7 +54,11 @@ export function ActivityLine({ item, reviewer = humanReviewer }: ActivityLinePro
 	const actor = item.actor;
 	const statusMove = item.field === "status" && item.meta.fromCategory !== undefined;
 	return (
-		<li data-kind="activity" className="flex h-8 items-center gap-2 text-sm text-fg-muted">
+		<li
+			data-kind="activity"
+			data-stream-entry="activity"
+			className="relative flex h-8 items-center gap-2 text-sm text-fg-muted"
+		>
 			{actor.kind !== "system" && (
 				<ActorChip
 					compact

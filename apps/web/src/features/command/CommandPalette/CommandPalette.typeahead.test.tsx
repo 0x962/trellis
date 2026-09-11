@@ -15,12 +15,12 @@ describe("features/command/CommandPalette: keys typed at once", () => {
 	// after Cmd+K. The keys typed in that time belong to the query. A page
 	// hotkey such as `o` must not act on them.
 	test("keys typed right after Cmd+K fill the query and move no page", async () => {
-		const { router } = await renderShell({ path: "/p/CDE" });
+		const { router } = await renderShell({ path: "/p/CDE/table" });
 		await findGrid();
 		press("k", { metaKey: true });
 		for (const key of "oauth") press(key);
 		await screen.findByRole("dialog", { name: "Command palette" });
 		await waitFor(() => expect(paletteInput().value).toBe("oauth"));
-		expect(router.state.location.pathname).toBe("/p/CDE");
+		expect(router.state.location.pathname).toBe("/p/CDE/table");
 	});
 });

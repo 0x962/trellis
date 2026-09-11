@@ -18,7 +18,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as AiAgentsRouteImport } from './routes/ai.agents'
 import { Route as AiPersonasRouteImport } from './routes/ai.personas'
-import { Route as AllBoardRouteImport } from './routes/all_.board'
+import { Route as AllTableRouteImport } from './routes/all_.table'
 import { Route as PSplatRouteRouteImport } from './routes/p/$/route'
 import { Route as TIdentifierRouteRouteImport } from './routes/t/$identifier/route'
 
@@ -67,9 +67,9 @@ const AiPersonasRoute = AiPersonasRouteImport.update({
   path: '/ai/personas',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AllBoardRoute = AllBoardRouteImport.update({
-  id: '/all_/board',
-  path: '/all/board',
+const AllTableRoute = AllTableRouteImport.update({
+  id: '/all_/table',
+  path: '/all/table',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PSplatRouteRoute = PSplatRouteRouteImport.update({
@@ -95,7 +95,7 @@ export interface FileRoutesByFullPath {
   '/t/$identifier': typeof TIdentifierRouteRoute
   '/ai/agents': typeof AiAgentsRoute
   '/ai/personas': typeof AiPersonasRoute
-  '/all/board': typeof AllBoardRoute
+  '/all/table': typeof AllTableRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -109,7 +109,7 @@ export interface FileRoutesByTo {
   '/t/$identifier': typeof TIdentifierRouteRoute
   '/ai/agents': typeof AiAgentsRoute
   '/ai/personas': typeof AiPersonasRoute
-  '/all/board': typeof AllBoardRoute
+  '/all/table': typeof AllTableRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -124,7 +124,7 @@ export interface FileRoutesById {
   '/t/$identifier': typeof TIdentifierRouteRoute
   '/ai/agents': typeof AiAgentsRoute
   '/ai/personas': typeof AiPersonasRoute
-  '/all_/board': typeof AllBoardRoute
+  '/all_/table': typeof AllTableRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -140,7 +140,7 @@ export interface FileRouteTypes {
     | '/t/$identifier'
     | '/ai/agents'
     | '/ai/personas'
-    | '/all/board'
+    | '/all/table'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -154,7 +154,7 @@ export interface FileRouteTypes {
     | '/t/$identifier'
     | '/ai/agents'
     | '/ai/personas'
-    | '/all/board'
+    | '/all/table'
   id:
     | '__root__'
     | '/'
@@ -168,7 +168,7 @@ export interface FileRouteTypes {
     | '/t/$identifier'
     | '/ai/agents'
     | '/ai/personas'
-    | '/all_/board'
+    | '/all_/table'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -183,7 +183,7 @@ export interface RootRouteChildren {
   TIdentifierRouteRoute: typeof TIdentifierRouteRoute
   AiAgentsRoute: typeof AiAgentsRoute
   AiPersonasRoute: typeof AiPersonasRoute
-  AllBoardRoute: typeof AllBoardRoute
+  AllTableRoute: typeof AllTableRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -251,11 +251,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AiPersonasRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/all_/board': {
-      id: '/all_/board'
-      path: '/all/board'
-      fullPath: '/all/board'
-      preLoaderRoute: typeof AllBoardRouteImport
+    '/all_/table': {
+      id: '/all_/table'
+      path: '/all/table'
+      fullPath: '/all/table'
+      preLoaderRoute: typeof AllTableRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$': {
@@ -287,7 +287,7 @@ const rootRouteChildren: RootRouteChildren = {
   TIdentifierRouteRoute: TIdentifierRouteRoute,
   AiAgentsRoute: AiAgentsRoute,
   AiPersonasRoute: AiPersonasRoute,
-  AllBoardRoute: AllBoardRoute,
+  AllTableRoute: AllTableRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

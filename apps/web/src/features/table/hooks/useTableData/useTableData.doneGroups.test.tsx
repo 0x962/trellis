@@ -18,7 +18,7 @@ const mount = (server: FakeServer, view: View = viewOf({}), expanded: Closed[] =
 	renderHookWithProviders(
 		(input: { expanded: Closed[] }) => useTableData({ project: "CDE", view, expanded: input.expanded }),
 		{ expanded },
-		{ path: "/p/CDE", actor: "navid", server },
+		{ path: "/p/CDE/table", actor: "navid", server },
 	);
 
 // The list requests that ask for one closed status.
@@ -84,7 +84,7 @@ describe("features/table/hooks/useTableData: the Done and Canceled groups", () =
 		expect(requestsFor(server, "done")).toHaveLength(0);
 		expect(requestsFor(server, "canceled")).toHaveLength(0);
 
-		const app = renderApp({ path: "/p/CDE?status=in-progress", actor: "navid" });
+		const app = renderApp({ path: "/p/CDE/table?status=in-progress", actor: "navid" });
 		await findGrid();
 		await waitFor(() => expect(queryGroupHeader("in-progress")).not.toBeNull());
 		expect(queryGroupHeader("done")).toBeNull();

@@ -9,6 +9,15 @@ import { ActorFooter } from "./ActorFooter";
 beforeEach(() => localStorage.clear());
 
 describe("features/sidebar/ActorFooter", () => {
+	test("a long account name truncates without shrinking the account control", () => {
+		renderWithProviders(<ActorFooter />, { path: "/all", actor: "a-name-that-fills-the-sidebar" });
+		const trigger = screen.getByRole("button", { name: /a-name-that-fills-the-sidebar/ });
+		const name = within(trigger).getByText("a-name-that-fills-the-sidebar");
+		expect(name.classList.contains("truncate")).toBe(true);
+		expect(name.getAttribute("title")).toBe("a-name-that-fills-the-sidebar");
+		expect(trigger.classList.contains("min-h-11")).toBe(true);
+	});
+
 	// WS-103
 	test("the footer shows the actor chip, settings, and help", async () => {
 		renderWithProviders(<ActorFooter />, { path: "/all", actor: "navid" });
@@ -16,8 +25,8 @@ describe("features/sidebar/ActorFooter", () => {
 		expect(avatar.textContent).toBe("N");
 		const chip = screen.getByRole("button", { name: /navid/ });
 		expect(chip.textContent).toContain("navid");
-		const kind = within(chip).getByText("human");
-		expect(kind.className).toMatch(/\btext-fg-muted\b/);
+		// The chip carries the name alone; the kind is not worth a word.
+		expect(within(chip).queryByText("human")).toBeNull();
 		const settings = screen.getByRole("link", { name: "Settings" });
 		expect(settings.getAttribute("href")).toBe("/settings");
 		expect(screen.getByRole("button", { name: "Keyboard shortcuts" })).toBeDefined();
