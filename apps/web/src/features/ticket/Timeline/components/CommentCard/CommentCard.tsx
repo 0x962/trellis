@@ -1,6 +1,6 @@
 import type { Comment } from "@trellis/api";
 import { ActorChip, Button, cx, Menu, type MenuItem, Textarea } from "@trellis/ui";
-import { type ReactNode, useId, useState } from "react";
+import { type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
 import { isLiveActor } from "../../../../../lib/actorLive";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
@@ -39,8 +39,23 @@ export function CommentCard({
 	const [editing, setEditing] = useState(false);
 	const [draft, setDraft] = useState(comment.body);
 	const [expanded, setExpanded] = useState(false);
+	const [overflows, setOverflows] = useState(false);
 	const bodyId = useId();
-	const long = comment.body.length > 700 || comment.body.split("\n").length > 8;
+	const bodyRef = useRef<HTMLDivElement>(null);
+
+	useLayoutEffect(() => {
+		if (editing || expanded) return;
+		const element = bodyRef.current!;
+		const measure = () => setOverflows(element.scrollHeight > element.clientHeight);
+		measure();
+		const observer = new ResizeObserver(measure);
+		observer.observe(element);
+		element.addEventListener("load", measure, true);
+		return () => {
+			observer.disconnect();
+			element.removeEventListener("load", measure, true);
+		};
+	}, [editing, expanded]);
 
 	const save = async () => {
 		try {
@@ -81,10 +96,10 @@ export function CommentCard({
 		</div>
 	) : (
 		<>
-			<div id={bodyId} className={cx("text-base", long && !expanded && "max-h-60 overflow-hidden")}>
+			<div ref={bodyRef} id={bodyId} className={cx("text-base", !expanded && "max-h-60 overflow-hidden")}>
 				<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
 			</div>
-			{long && (
+			{overflows && (
 				<Button
 					size="sm"
 					variant="quiet"
@@ -105,10 +120,11 @@ export function CommentCard({
 				data-kind="comment"
 				className={cx("relative", !threadSurface && "py-3", className)}
 			>
-				<header className="relative flex h-8 items-center gap-2 pl-1 text-sm">
+				<header className="relative flex h-8 items-center gap-2 text-sm">
 					{showActor && comment.actor.kind !== "system" && (
 						<ActorChip
 							compact
+							className="gap-2.5"
 							name={comment.actor.name}
 							kind={comment.actor.kind}
 							live={isLiveActor({ kind: comment.actor.kind, at: comment.createdAt })}

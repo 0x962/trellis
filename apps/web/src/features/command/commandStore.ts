@@ -1,8 +1,8 @@
 import { create } from "zustand";
 
 // What the palette knows about the page under it: the ticket in context,
-// the selected rows, and the route they belong to. The table, the board,
-// and the peek write here; the palette reads.
+// the selected rows, and their route. The table and the board write here.
+// The palette reads these values.
 
 // `commands` opens the section list, `search` opens on the search field
 // with no command sections, `projects` opens the project picker.
@@ -15,8 +15,6 @@ export type CommandState = {
 	pathname: string;
 	// The identifier of the row that holds the focus.
 	focusedTicket: string | null;
-	// The identifier the peek shows.
-	peekTicket: string | null;
 	// The identifiers of the selected rows.
 	selection: string[];
 };
@@ -26,7 +24,6 @@ const initial: CommandState = {
 	mode: "commands",
 	pathname: "",
 	focusedTicket: null,
-	peekTicket: null,
 	selection: [],
 };
 
@@ -64,16 +61,12 @@ export const commandActions = {
 	// still true.
 	reset: () => set({ ...initial }),
 	setFocusedTicket: (identifier: string | null) => set({ focusedTicket: identifier }),
-	setPeekTicket: (identifier: string | null) => set({ peekTicket: identifier }),
 	setSelection: (identifiers: string[]) => set({ selection: identifiers }),
 	// The route the app moved to. A new route drops the ticket context and
 	// the selection.
 	setRoute: (pathname: string) =>
-		set((state) =>
-			state.pathname === pathname ? {} : { pathname, focusedTicket: null, peekTicket: null, selection: [] },
-		),
+		set((state) => (state.pathname === pathname ? {} : { pathname, focusedTicket: null, selection: [] })),
 };
 
-// The ticket the This ticket section acts on. The peek wins over the
-// focused row, because the peek is the closer surface.
-export const contextTicket = (state: CommandState): string | null => state.peekTicket ?? state.focusedTicket;
+// The palette acts on the focused row.
+export const contextTicket = (state: CommandState): string | null => state.focusedTicket;

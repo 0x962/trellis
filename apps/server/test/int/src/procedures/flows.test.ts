@@ -56,14 +56,14 @@ describe("flows procedures", () => {
 		expect(response.body).toMatchObject({ code: "FLOW_VERSION_CONFLICT", data: { version: 2 } });
 	});
 
-	test("a budget without minutes fails the input schema", async () => {
-		const flow = await t.client.flows.create({ name: "Budget" });
+	test("a group can save without a time limit", async () => {
+		const flow = await t.client.flows.create({ name: "Group" });
 		const response = await t.api(`/api/flows/${flow.slug}/graph`, {
 			method: "PUT",
-			body: { nodes: [{ ...step("Box"), kind: "budget" }], edges: [] },
+			body: { nodes: [{ ...step("Box"), kind: "group", parallel: true }], edges: [] },
 		});
-		expect(response.status).toBe(400);
-		expect(response.body.code).toBe("INPUT_VALIDATION_FAILED");
+		expect(response.status).toBe(200);
+		expect(response.body.nodes[0]).toMatchObject({ kind: "group", parallel: true, minutes: null });
 	});
 
 	test("every mutation requires an actor", async () => {

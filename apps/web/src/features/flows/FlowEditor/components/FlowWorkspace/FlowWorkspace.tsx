@@ -1,11 +1,12 @@
 import { ArrowClockwise, SlidersHorizontal } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { FlowDoc, Persona } from "@trellis/api";
-import { IconButton, Tooltip } from "@trellis/ui";
+import { ConfirmDialog, IconButton, Tooltip } from "@trellis/ui";
 import { useEdgesState, useNodesState, useReactFlow } from "@xyflow/react";
 import { useMemo, useState } from "react";
 import { PageTitle } from "../../../../shell/PageTitle";
 import { Topbar } from "../../../../shell/Topbar";
+import { createDraftRecovery } from "../../draftRecovery";
 import { FlowEditorContext } from "../../editorContext";
 import {
 	boxEnds,
@@ -24,60 +25,88 @@ import { NodeInspector } from "../NodeInspector";
 
 type FlowWorkspaceProps = { doc: FlowDoc; personas: Persona[]; onReload: () => void };
 
-// The bar names a save only when the person has to act on it.
-const problemText = (status: AutosaveStatus, count: number) =>
+const saveText = (status: AutosaveStatus) =>
 	({
-		saved: "",
-		pending: "",
-		saving: "",
-		invalid: `Not saved: ${count} ${count === 1 ? "issue" : "issues"}`,
-		conflict: "Not saved: the flow changed in another window",
-		error: "Not saved: the save failed",
+		saved: "Saved",
+		pending: "Pending save",
+		saving: "Save in progress",
+		invalid: "Draft kept in this browser",
+		conflict: "Draft kept: the flow changed in another window",
+		error: "Draft kept: the save failed",
 	})[status];
 
-// The editor of one flow. The canvas rows load once, when the workspace
-// mounts, so a later refetch of the flow never replaces the draft. Every
-// change runs the flow rules, and the draft saves when it has no issue.
 export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 	const rf = useReactFlow<CanvasNode, CanvasEdge>();
-	const [initial] = useState(() => toCanvas(doc));
+	const [recovery] = useState(() => {
+		let tab = sessionStorage.getItem("trellis.flow-tab");
+		if (tab === null) {
+			tab = crypto.randomUUID();
+			sessionStorage.setItem("trellis.flow-tab", tab);
+		}
+		return createDraftRecovery(localStorage, tab, doc.flow.id);
+	});
+	const [stored] = useState(() => recovery.read());
+	const [initial] = useState(() => toCanvas(stored === null ? doc : stored.graph));
+	const [initialSavedJson] = useState(() => {
+		const canvas = toCanvas(doc);
+		return JSON.stringify(fromCanvas(canvas.nodes, canvas.edges));
+	});
+	const [confirmReload, setConfirmReload] = useState(false);
 	const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(initial.nodes);
 	const [edges, setEdges, onEdgesChange] = useEdgesState<CanvasEdge>(initial.edges);
-	const [flow, setFlow] = useState(doc.flow);
+	const [flow, setFlow] = useState(() => ({ ...doc.flow, version: stored?.version ?? doc.flow.version }));
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 
 	const graph = useMemo(() => fromCanvas(nodes, edges), [nodes, edges]);
 	const issues = useMemo(() => draftIssues(flow.id, graph), [flow.id, graph]);
-	const autosave = useFlowAutosave({ flow, graph, valid: issues.count === 0, onSaved: setFlow });
+	const autosave = useFlowAutosave({
+		flow,
+		graph,
+		canSave: issues.canSave,
+		initialSavedJson,
+		recovery,
+		onSaved: setFlow,
+	});
 	const shownEdges = useMemo(() => edgesWithIssues(edges, issues.byRow), [edges, issues]);
 	const editor = useMemo(
 		() => ({
 			personas: new Map(personas.map((persona) => [persona.id, persona])),
 			issues: issues.byRow,
+			unconnected: new Set(
+				nodes
+					.filter((node) => nodes.some((parent) => parent.id === node.parentId && parent.data.fields.parallel))
+					.map((node) => node.id),
+			),
 			...boxEnds(graph),
 		}),
-		[personas, issues, graph],
+		[personas, issues, graph, nodes],
 	);
 	const selected = selectedId === null ? undefined : nodes.find((node) => node.id === selectedId);
-	const change = (patch: Partial<StepFields>) =>
+	const change = (patch: Partial<StepFields>) => {
+		if (patch.parallel === true) {
+			const children = new Set(nodes.filter((node) => node.parentId === selectedId).map((node) => node.id));
+			setEdges((current) => current.filter((edge) => !children.has(edge.source)));
+		}
 		setNodes((current) =>
 			current.map((node) =>
 				node.id === selectedId ? { ...node, data: { fields: { ...node.data.fields, ...patch } } } : node,
 			),
 		);
+	};
 
 	return (
 		<FlowEditorContext value={editor}>
 			<Topbar
 				actions={
 					<>
-						<span role="status" className="text-xs tabular-nums text-danger">
-							{problemText(autosave.status, issues.count)}
+						<span role="status" title={autosave.message} className="text-xs tabular-nums text-fg-muted">
+							{saveText(autosave.status)}
+							{issues.count > 0 ? ` · ${issues.count} ${issues.count === 1 ? "issue" : "issues"}` : ""}
 						</span>
 						{autosave.status === "conflict" && (
 							<Tooltip content="Reload the flow">
-								<IconButton label="Reload the flow" icon={<ArrowClockwise />} onClick={onReload} />
+								<IconButton label="Reload the flow" icon={<ArrowClockwise />} onClick={() => setConfirmReload(true)} />
 							</Tooltip>
 						)}
 						{autosave.status === "error" && (
@@ -93,7 +122,7 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 			>
 				<PageTitle parent={<Link to="/ai/flows">Flows</Link>} title={flow.name} />
 			</Topbar>
-			<div className="relative flex min-h-0 flex-1">
+			<div className="page-card relative flex flex-1 overflow-hidden">
 				<FlowCanvas
 					nodes={nodes}
 					edges={shownEdges}
@@ -115,6 +144,17 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 					/>
 				)}
 			</div>
+			<ConfirmDialog
+				open={confirmReload}
+				onCancel={() => setConfirmReload(false)}
+				title="Discard this draft?"
+				description="This replaces your browser draft with the graph saved on the server."
+				confirmLabel="Discard draft"
+				onConfirm={() => {
+					recovery.clear();
+					onReload();
+				}}
+			/>
 			{settingsOpen && <FlowSettingsSheet flow={flow} onSaved={setFlow} onClose={() => setSettingsOpen(false)} />}
 		</FlowEditorContext>
 	);

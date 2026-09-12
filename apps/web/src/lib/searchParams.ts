@@ -27,7 +27,6 @@ export const searchParamOrder = [
 	"group",
 	"closed",
 	"scope",
-	"peek",
 	"density",
 	"limit",
 ] as const;

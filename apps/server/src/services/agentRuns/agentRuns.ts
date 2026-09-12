@@ -1,12 +1,7 @@
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentRun, AgentRunListInput, AgentRunStartInput } from "@trellis/api";
-import {
-	DEFAULT_AGENT_LAUNCH_COMMAND,
-	DEFAULT_AGENT_RESUME_COMMAND,
-	DEFAULT_AGENT_START_COMMAND,
-	hasStandaloneLaunchHyphen,
-} from "@trellis/api";
+import { DEFAULT_AGENT_LAUNCH_COMMAND, hasStandaloneLaunchHyphen } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { runBranch } from "../../agents/launchCommand/branch.ts";
 import { launchCommand } from "../../agents/launchCommand/launchCommand.ts";
@@ -20,7 +15,7 @@ import type { Tx } from "../../db/tx.ts";
 import { resolveProject, resolveTicket } from "../refs.ts";
 import { get as getSettings } from "../settings.ts";
 import type { ServiceCtx } from "../support.ts";
-import { startHarness } from "./harnessStart.ts";
+import { startAde } from "./adeStart.ts";
 import { columns, getRun } from "./queries.ts";
 import { reserve } from "./reserve.ts";
 import { exitedSoon, lostSessionMessage, outputTail } from "./resume.ts";
@@ -48,8 +43,25 @@ const recordError = (ctx: Ctx, id: string, error: string, state: AgentRun["state
 export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 	const { run, repos, context, config, resume } = await ctx.newTx((tx) => reserve(ctx.core, tx, input));
 	ctx.emit({ type: "agent-runs.changed", id: run.id });
-	if (config.harnessCommands !== null) return startHarness(ctx, { run, repos, context, config, resume });
 	const runner = superset(ctx.supersetBin, config.supersetHostId);
+	if (
+		config.ade === "superset" &&
+		config.supersetHostId !== null &&
+		["localhost", "127.0.0.1", "[::1]"].includes(new URL(ctx.localUrl).hostname)
+	) {
+		const reachable = await attempt(async () => {
+			const host = (await runner.hostDetails()).find((host) => host.id === config.supersetHostId);
+			if (host?.online !== "local")
+				throw new Error(
+					`This project runs agents on ${host?.name ?? config.supersetHostId}, but Trellis uses the localhost address ${ctx.localUrl} on this machine. Select This machine in ADE settings, or install Trellis with --host set to an address that the remote machine can reach.`,
+				);
+		});
+		if (!reachable.ok) {
+			await recordError(ctx, run.id, reachable.error, "failed");
+			return { id: run.id };
+		}
+	}
+	if (config.adeCommands !== null) return startAde(ctx, { run, repos, context, config, resume });
 	const settings = await ctx.newTx((tx) => getSettings(ctx.core, tx));
 	// A project that names its own ADE command runs that. A run that has a
 	// workspace runs the resume command of that ADE, which opens the agent
@@ -102,9 +114,7 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 		context,
 		directory: run.kind === "manager" ? config.directory : "",
 		resume,
-		template: resume
-			? config.agentResumeCommand || DEFAULT_AGENT_RESUME_COMMAND
-			: config.agentCommand || DEFAULT_AGENT_START_COMMAND,
+		template: resume ? config.harness.resumeCommand : config.harness.startCommand,
 	});
 	const workDir =
 		run.kind === "manager" && config.directory ? config.directory : join(ctx.home, "agents", run.id, "work");

@@ -19,6 +19,7 @@ export function FlowEditor({ slug }: { slug: string }) {
 		return (
 			<EmptyState
 				variant="page"
+				className="page-card"
 				title={missing ? "No flow with this name" : "Could not load the flow"}
 				description={missing ? `No flow has the slug “${slug}”.` : doc.error.message}
 			/>
@@ -26,7 +27,7 @@ export function FlowEditor({ slug }: { slug: string }) {
 	}
 	if (doc.isPending || personas.isPending)
 		return (
-			<div role="status" aria-label="Load the flow" className="flex min-h-0 flex-1 flex-col gap-3 p-6">
+			<div role="status" aria-label="Load the flow" className="page-card flex flex-1 flex-col gap-3 p-6">
 				<span className="sr-only">Load the flow</span>
 				<Skeleton className="h-11 w-full" />
 				<Skeleton className="min-h-0 w-full flex-1" />

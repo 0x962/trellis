@@ -16,11 +16,11 @@ const terminalsSchema = z.object({
 // The `ws create` flag pair that names where the workspace goes, already
 // quoted for the shell. The launch command template carries it as
 // `{{target}}`.
-export const shellTarget = (host: string | null) => (host === null ? "" : `--host '${host.replaceAll("'", "'\\''")}'`);
+export const shellTarget = (host: string | null) =>
+	host === null ? "--local" : `--host '${host.replaceAll("'", "'\\''")}'`;
 
 // `host` names the Superset machine the agents of one project run on. Null
-// runs them on the machine that runs the trellis server, which every verb
-// takes as its default, so a null host adds no flag.
+// runs terminal commands on the machine that runs the trellis server.
 export const superset = (bin: string, host: string | null = null) => {
 	const on = host === null ? [] : ["--host", host];
 	const call = async (args: string[]) => {
@@ -34,6 +34,7 @@ export const superset = (bin: string, host: string | null = null) => {
 		return output.trim();
 	};
 	return {
+		hostDetails: async () => hostsSchema.parse(JSON.parse(await call(["hosts", "list", "--json"]))),
 		hasWorkspace: async (id: string) =>
 			workspacesSchema
 				.parse(JSON.parse(await call(["ws", "list", "--json", ...on])))

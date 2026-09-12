@@ -222,9 +222,9 @@ describe("lib/hotkeys", () => {
 	test("the innermost target receives a delegated key", () => {
 		mountScope();
 		const list = mountTarget("list", ["j"]);
-		const peek = mountTarget("peek", ["j"]);
+		const ticket = mountTarget("ticket", ["j"]);
 		press("j");
-		expect(peek.spies.j).toHaveBeenCalledTimes(1);
+		expect(ticket.spies.j).toHaveBeenCalledTimes(1);
 		expect(list.spies.j).not.toHaveBeenCalled();
 	});
 
@@ -252,13 +252,13 @@ describe("lib/hotkeys", () => {
 	});
 
 	// HK-24
-	test("Escape closes the popover, then the peek, then the selection", () => {
+	test("Escape closes the popover, then the selection", () => {
 		mountScope();
 		const log = mountEscapeStack();
 		press("Escape");
 		press("Escape");
 		press("Escape");
-		expect(log).toEqual(["popover", "peek", "selection"]);
+		expect(log).toEqual(["popover", "selection"]);
 	});
 
 	// HK-25. A key bound twice would run its action twice.

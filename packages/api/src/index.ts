@@ -1,3 +1,5 @@
+export * from "./adeCommands/adeCommands.ts";
+export * from "./adeCommands/presets.ts";
 export * from "./agentCommand/agentCommand.ts";
 export * from "./agentLaunch/agentLaunch.ts";
 export * from "./client.ts";
@@ -5,8 +7,7 @@ export * from "./contract/index.ts";
 export * from "./errors.ts";
 export * from "./events.ts";
 export * from "./flowGraph.ts";
-export * from "./harnessCommands/harnessCommands.ts";
-export * from "./harnessCommands/presets.ts";
+export * from "./harness/harness.ts";
 export * from "./instructions/index.ts";
 export * from "./instructions.ts";
 export * from "./pair.ts";

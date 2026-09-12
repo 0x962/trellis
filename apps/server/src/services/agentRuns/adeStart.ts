@@ -3,17 +3,17 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentRun, ProjectManagerConfig } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { commandHarness, readHarness, saveHarness } from "../../agents/commandHarness/commandHarness.ts";
+import { commandAde, readAde, saveAde } from "../../agents/commandAde/commandAde.ts";
 import { runBranch } from "../../agents/launchCommand/branch.ts";
 import { launchCommand, resumeText } from "../../agents/launchCommand/launchCommand.ts";
 import { managedTerminal } from "../../agents/managedTerminal/managedTerminal.ts";
 import { attempt } from "../../agents/superset/attempt.ts";
-import { shellTarget } from "../../agents/superset/superset.ts";
+import { shellTarget, superset } from "../../agents/superset/superset.ts";
 import type { ServiceCtx } from "../support.ts";
 import { getRun } from "./queries.ts";
 import { exitedSoon, lostSessionMessage, outputTail } from "./resume.ts";
 
-export const startHarness = async (
+export const startAde = async (
 	ctx: ServiceCtx & { supersetBin: string; localUrl: string },
 	input: {
 		run: AgentRun;
@@ -25,21 +25,22 @@ export const startHarness = async (
 ) => {
 	const { config, context, repos } = input;
 	let { run } = input;
-	const previous = run.workspaceId !== null && run.runtime === "commands" ? await readHarness(ctx.home, run.id) : null;
-	const attaching =
+	const previous = run.workspaceId !== null && run.runtime === "commands" ? await readAde(ctx.home, run.id) : null;
+	let attaching =
 		previous !== null &&
-		previous.commands.start === config.harnessCommands!.start &&
-		previous.agentCommand === config.agentCommand;
+		previous.commands.start === config.adeCommands!.start &&
+		previous.values.target === (config.supersetHostId === null ? "" : shellTarget(config.supersetHostId)) &&
+		previous.agentCommand === config.harness.startCommand;
 	const resume = attaching && input.resume;
 	if (!attaching)
 		run = { ...run, workspaceId: null, terminalId: null, sessionId: input.resume ? randomUUID() : run.sessionId };
-	const commands = config.harnessCommands!;
+	const commands = config.adeCommands!;
 	const launch = launchCommand({
 		run,
 		url: ctx.localUrl,
 		context,
 		directory: run.kind === "manager" ? config.directory : "",
-		template: resume ? config.agentResumeCommand : config.agentCommand,
+		template: resume ? config.harness.resumeCommand : config.harness.startCommand,
 	});
 	const runDir = join(ctx.home, "agents", run.id);
 	const workDir = run.kind === "manager" && config.directory ? config.directory : join(runDir, "work");
@@ -64,11 +65,12 @@ export const startHarness = async (
 		actor: `agent:${run.id}`,
 		trellisUrl: ctx.localUrl,
 		superset: ctx.supersetBin,
-		target: shellTarget(config.supersetHostId),
+		target: config.supersetHostId === null ? "" : shellTarget(config.supersetHostId),
+		createTarget: shellTarget(config.supersetHostId),
 		projectId: "",
 		bun: process.execPath,
 	};
-	await saveHarness(ctx.home, run.id, { commands, values, agentCommand: config.agentCommand });
+	await saveAde(ctx.home, run.id, { commands, values, agentCommand: config.harness.startCommand });
 	await ctx.newTx((tx) =>
 		tx.execute(
 			sql`UPDATE agent_runs SET runtime = 'commands', session_id = ${run.sessionId}, workspace_id = ${run.workspaceId}, terminal_id = ${run.terminalId}, url = NULL WHERE id = ${run.id}`,
@@ -76,20 +78,35 @@ export const startHarness = async (
 	);
 	let failureState = "failed";
 	const started = await attempt(async () => {
-		const harness = await commandHarness(ctx.home, run);
+		if (
+			attaching &&
+			!input.resume &&
+			config.ade === "superset" &&
+			!(await superset(ctx.supersetBin, config.supersetHostId).hasWorkspace(run.workspaceId!))
+		) {
+			attaching = false;
+			run = { ...run, workspaceId: null, terminalId: null };
+			values.workspaceId = "";
+			values.terminalId = "";
+			await saveAde(ctx.home, run.id, { commands, values, agentCommand: config.harness.startCommand });
+			await ctx.newTx((tx) =>
+				tx.execute(sql`UPDATE agent_runs SET workspace_id = NULL, terminal_id = NULL, url = NULL WHERE id = ${run.id}`),
+			);
+		}
+		const ade = await commandAde(ctx.home, run);
 		if ((attaching ? commands.resume : commands.start).includes("{{projectId}}")) {
-			const matches = (await harness.projects()).filter((project) =>
+			const matches = (await ade.projects()).filter((project) =>
 				repos.some(
 					(repo) =>
 						project.repo?.replace(/\.git$/, "").toLowerCase() === `https://github.com/${repo.owner}/${repo.repo}`,
 				),
 			);
-			if (matches.length !== 1) throw new Error("The declared repositories must match exactly one harness project.");
+			if (matches.length !== 1) throw new Error("The declared repositories must match exactly one ADE project.");
 			values.projectId = matches[0]!.id;
-			await saveHarness(ctx.home, run.id, { commands, values, agentCommand: config.agentCommand });
+			await saveAde(ctx.home, run.id, { commands, values, agentCommand: config.harness.startCommand });
 		}
 		failureState = "interrupted";
-		return (await commandHarness(ctx.home, run)).start(attaching);
+		return (await commandAde(ctx.home, run)).start(attaching);
 	});
 	if (!started.ok) {
 		await ctx.newTx((tx) =>
@@ -107,12 +124,12 @@ export const startHarness = async (
 	const current = await ctx.newTx((tx) => getRun(tx, run.id));
 	if (resume) {
 		const checked = await attempt(async () => {
-			const harness = await commandHarness(ctx.home, current);
-			if (!(await exitedSoon(async () => (await harness.healthcheck()).state === "exited"))) return null;
+			const ade = await commandAde(ctx.home, current);
+			if (!(await exitedSoon(async () => (await ade.healthcheck()).state === "exited"))) return null;
 			return lostSessionMessage({
 				sessionId: run.sessionId!,
 				where: `workspace ${current.workspaceId}, directory ${workDir}`,
-				printed: outputTail(await harness.output()),
+				printed: outputTail(await ade.output()),
 			});
 		});
 		if (!checked.ok || checked.value !== null) {
@@ -125,7 +142,7 @@ export const startHarness = async (
 		}
 	}
 
-	const url = await attempt(async () => (await commandHarness(ctx.home, current)).url());
+	const url = await attempt(async () => (await commandAde(ctx.home, current)).url());
 	await ctx.newTx((tx) =>
 		url.ok
 			? tx.execute(sql`UPDATE agent_runs SET url = ${url.value}, error = NULL WHERE id = ${run.id}`)

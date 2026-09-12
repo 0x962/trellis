@@ -18,7 +18,6 @@ const scopeNames: Record<ShortcutScope, string> = {
 	global: "Global",
 	list: "List",
 	board: "Board",
-	peek: "Peek",
 	ticket: "Ticket",
 	composer: "New ticket",
 };

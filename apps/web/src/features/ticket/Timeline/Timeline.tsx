@@ -11,8 +11,6 @@ import { collapseRuns } from "./utils/collapseRuns";
 import { prependTimeline, updateTimeline } from "./utils/timelineCache";
 
 export type TimelineProps = {
-	// The peek pins the composer to the bottom of its scroll area.
-	pinned?: boolean;
 	// Uploads files the composer picks to the ticket.
 	onAttachFiles?: (files: File[]) => void;
 	ticket: Ticket;
@@ -23,7 +21,7 @@ export type TimelineProps = {
 const shownInStream = (item: TimelineItem) => item.kind === "comment" || item.action !== "comment.created";
 
 // Each section shows its items oldest first. The API pages newest first.
-export function Timeline({ ticket, pinned = false, onAttachFiles }: TimelineProps) {
+export function Timeline({ ticket, onAttachFiles }: TimelineProps) {
 	const { orpc, queryClient } = useApp();
 	const key = timelineOptions(orpc, ticket.identifier).queryKey;
 	const timeline = useTimeline(ticket.identifier);
@@ -97,7 +95,7 @@ export function Timeline({ ticket, pinned = false, onAttachFiles }: TimelineProp
 					</ul>
 				</li>
 			</ul>
-			<Composer ticket={ticket} pinned={pinned} onAttachFiles={onAttachFiles} />
+			<Composer ticket={ticket} onAttachFiles={onAttachFiles} />
 		</section>
 	);
 }

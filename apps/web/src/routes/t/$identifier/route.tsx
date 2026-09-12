@@ -10,14 +10,19 @@ const ticketOptions = (context: AppContext, identifier: string) =>
 	context.orpc.tickets.get.queryOptions({ input: { ticket: TicketRefStringSchema.parse(identifier) } });
 
 export const Route = createFileRoute("/t/$identifier")({
-	loader: ({ context, params }) => context.queryClient.ensureQueryData(ticketOptions(context, params.identifier)),
+	loader: async ({ context, params }) => {
+		const ticket = await context.queryClient.ensureQueryData(ticketOptions(context, params.identifier));
+		await context.queryClient.ensureQueryData(
+			context.orpc.projects.get.queryOptions({ input: { project: ticket.project.path } }),
+		);
+	},
 	component: TicketPage,
 	errorComponent: TicketError,
 });
 
 function TicketPage() {
 	const { identifier } = Route.useParams();
-	return <TicketView identifier={TicketRefStringSchema.parse(identifier)} variant="page" />;
+	return <TicketView identifier={TicketRefStringSchema.parse(identifier)} />;
 }
 
 function TicketError({ error }: ErrorComponentProps) {
@@ -28,6 +33,7 @@ function TicketError({ error }: ErrorComponentProps) {
 	return (
 		<EmptyState
 			variant="page"
+			className="page-card"
 			title="The ticket did not load."
 			description={error instanceof Error ? error.message : String(error)}
 		/>

@@ -11,7 +11,6 @@ import { PageTitle } from "../../features/shell/PageTitle";
 import { Topbar } from "../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../features/shell/ViewSwitch";
 import { ListPending } from "../../features/table/ListPending";
-import { TicketPeek } from "../../features/ticket/TicketPeek";
 import { useScopeStatuses } from "../../hooks/useScopeStatuses";
 import type { AppContext } from "../../lib/appContext";
 import { useApp } from "../../lib/appContext";
@@ -59,7 +58,7 @@ function AllBoardPage() {
 		if (next === "table") void navigate({ to: "/all/table", search });
 	};
 
-	const openTicket = (identifier: string) => navigate({ to: "/all", search: { ...search, peek: identifier } });
+	const openTicket = (identifier: string) => navigate({ to: "/t/$identifier", params: { identifier } });
 
 	return (
 		<>
@@ -72,10 +71,10 @@ function AllBoardPage() {
 					statuses={statuses}
 				/>
 			</Topbar>
-			<Board filters={toCountsQuery(view, { statuses })} storageKey="all" onOpenTicket={openTicket}>
-				<TicketPeek />
-			</Board>
-			<ListFooter total={counts?.total} sort={boardSortLabel} />
+			<div className="page-card flex flex-1 flex-col overflow-hidden">
+				<Board filters={toCountsQuery(view, { statuses })} storageKey="all" onOpenTicket={openTicket} />
+				<ListFooter total={counts?.total} sort={boardSortLabel} />
+			</div>
 		</>
 	);
 }

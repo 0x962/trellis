@@ -20,7 +20,7 @@ export type TableController = {
 	setEditing: (editing: { id: string; field: EditField } | null) => void;
 	groupKeys: readonly string[];
 	toggleGroup: (key: string) => void;
-	openPeek: (id: string) => void;
+	openTicket: (id: string) => void;
 	openPage: (id: string) => void;
 	openComposer: () => void;
 	copy: (id: string, kind: CopyKind) => void;
@@ -97,8 +97,8 @@ export const useTableHotkeys = (controller: TableController) => {
 		useStableCallback((event) => move(-1, true, event)),
 	);
 
-	useHotkey("enter", useStableCallback(withFocused((id) => controller.openPeek(id))));
-	useHotkey(" ", useStableCallback(withFocused((id) => controller.openPeek(id))));
+	useHotkey("enter", useStableCallback(withFocused((id) => controller.openTicket(id))));
+	useHotkey(" ", useStableCallback(withFocused((id) => controller.openTicket(id))));
 	useHotkey("o", useStableCallback(withFocused((id) => controller.openPage(id))));
 	useHotkey("x", useStableCallback(withFocused((id) => controller.selection.toggle(id))));
 	useHotkey("s", useStableCallback(withFocused((id) => controller.setEditing({ id, field: "status" }))));

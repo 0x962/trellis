@@ -35,7 +35,7 @@ export const paletteItems: readonly PaletteItemDef[] = [
 	{ id: "ticket.copyBranch", label: "Copy branch name", section: "ticket", shortcutId: "ticketCopyBranch" },
 	{ id: "ticket.copyBrief", label: "Copy agent brief", section: "ticket", shortcutId: "ticketCopyBrief" },
 	{ id: "ticket.copyLink", label: "Copy link", section: "ticket", shortcutId: "ticketCopyLink" },
-	{ id: "ticket.open", label: "Open full page", section: "ticket", shortcutId: "listOpen" },
+	{ id: "ticket.open", label: "Open ticket", section: "ticket", shortcutId: "listOpen" },
 	{ id: "ticket.delete", label: "Delete", section: "ticket", shortcutId: "listDelete" },
 	{ id: "selection.status", label: "Change status", section: "selection", submenu: true },
 	{ id: "selection.priority", label: "Set priority", section: "selection", submenu: true },

@@ -34,6 +34,7 @@ export function RouteError({ error }: RouteErrorProps) {
 		return (
 			<EmptyState
 				variant="page"
+				className="page-card"
 				title="A new version of trellis is on the server"
 				description="trellis did not load this page, because the server holds a new build. Reload to use it."
 				action={
@@ -48,6 +49,7 @@ export function RouteError({ error }: RouteErrorProps) {
 		return (
 			<EmptyState
 				variant="page"
+				className="page-card"
 				title="Server offline"
 				description={
 					<>
@@ -66,6 +68,7 @@ export function RouteError({ error }: RouteErrorProps) {
 	return (
 		<EmptyState
 			variant="page"
+			className="page-card"
 			title="trellis did not load this page"
 			description={error instanceof Error ? error.message : String(error)}
 			action={

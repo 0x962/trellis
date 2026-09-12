@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
-import { commandHarness } from "../../agents/commandHarness/commandHarness.ts";
+import { commandAde } from "../../agents/commandAde/commandAde.ts";
 import { runBranch } from "../../agents/launchCommand/branch.ts";
 import { managedTerminal } from "../../agents/managedTerminal/managedTerminal.ts";
 import { attempt } from "../../agents/superset/attempt.ts";
@@ -9,7 +9,7 @@ import { superset } from "../../agents/superset/superset.ts";
 import { invalidInput } from "../../errors.ts";
 import { managerConfigOf, projectRow } from "../projectRows.ts";
 import type { ServiceCtx } from "../support.ts";
-import { refreshHarness } from "./harnessRefresh.ts";
+import { refreshAde } from "./adeRefresh.ts";
 import { getRun } from "./queries.ts";
 
 type Ctx = ServiceCtx & { supersetBin: string };
@@ -31,17 +31,17 @@ export const prepareStop = async (ctx: Ctx, input: { id: string }) => {
 		throw invalidInput("id", "Refresh the status to locate the terminal before you stop this agent.");
 	if (run.state === "stopped" || run.state === "exited") return input;
 	if (run.workspaceId !== null && run.terminalId !== null) {
-		const harness = run.runtime === "commands" ? await commandHarness(ctx.home, run) : null;
+		const ade = run.runtime === "commands" ? await commandAde(ctx.home, run) : null;
 		const text =
-			harness !== null
-				? await harness.output()
+			ade !== null
+				? await ade.output()
 				: run.runtime === "tmux"
 					? await managedTerminal(ctx.home).output(run.terminalId)
 					: await superset(ctx.supersetBin, host).output(run.workspaceId, run.terminalId);
 		const dir = join(ctx.home, "agents", run.id);
 		await mkdir(dir, { recursive: true, mode: 0o700 });
 		await writeFile(join(dir, "output.txt"), text, { mode: 0o600 });
-		if (harness !== null) await harness.stop();
+		if (ade !== null) await ade.stop();
 		else if (run.runtime === "tmux") await managedTerminal(ctx.home).stop(run.terminalId);
 		else await superset(ctx.supersetBin, host).stop(run.workspaceId, run.terminalId);
 	}
@@ -53,7 +53,7 @@ export const prepareStop = async (ctx: Ctx, input: { id: string }) => {
 
 export const prepareRefresh = async (ctx: Ctx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
-	if (run.runtime === "commands") return refreshHarness(ctx, run);
+	if (run.runtime === "commands") return refreshAde(ctx, run);
 	const host = await ctx.newTx(async (tx) => managerConfigOf(await projectRow(tx, run.projectId!)).supersetHostId);
 	const runner = superset(ctx.supersetBin, host);
 	if (run.state === "interrupted" && run.runtime === "superset") {

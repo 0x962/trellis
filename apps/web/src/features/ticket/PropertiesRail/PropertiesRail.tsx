@@ -4,9 +4,8 @@ import { PickerRows } from "./components/PickerRows";
 
 export type PropertiesRailProps = {
 	ticket: Ticket;
-	// The page draws a 280 px rail; the peek folds the rows into two columns
-	// under the title.
-	variant: "page" | "peek";
+	// A phone shows the properties under the title.
+	variant: "page" | "inline";
 };
 
 // The properties of a ticket: the picker rows, then one agent section. That
@@ -21,7 +20,7 @@ export function PropertiesRail({ ticket, variant }: PropertiesRailProps) {
 			<TicketAgent ticket={ticket.identifier} disabled={ticket.completedAt !== null} />
 		</div>
 	);
-	if (variant === "peek") {
+	if (variant === "inline") {
 		return (
 			<dl aria-label="Properties" className="grid grid-cols-2 gap-x-6 gap-y-1 max-sm:grid-cols-1">
 				<PickerRows ticket={ticket} />
@@ -32,7 +31,7 @@ export function PropertiesRail({ ticket, variant }: PropertiesRailProps) {
 	return (
 		<aside
 			aria-label="Properties"
-			className="h-full w-70 shrink-0 overflow-y-auto border-l border-border bg-surface px-4 py-3"
+			className="min-h-0 w-70 shrink-0 overflow-y-auto page-card px-4 py-3 transition-colors duration-hover ease-out hover:border-border-strong focus-within:border-border-strong motion-reduce:transition-none"
 		>
 			<dl className="flex flex-col gap-0.5">
 				<PickerRows ticket={ticket} />

@@ -11,7 +11,7 @@ export type ContextTicket = {
 };
 
 // The ticket the palette acts on. The read starts as soon as a row takes
-// the focus or a peek opens, and a ticket a page already read answers from
+// the focus, and a ticket the page already read answers from
 // the cache. A query that is off never sends its placeholder ref.
 export const useContextTicket = (identifier: string | null): ContextTicket => {
 	const { orpc } = useApp();

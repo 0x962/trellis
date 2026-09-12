@@ -1,5 +1,5 @@
 {
-  "id": "fa054dd4-1472-4b0e-ac85-8ddcde701a10",
+  "id": "bafef4a3-2d2b-4da1-b337-8113c7a358d7",
   "prevId": "02c45318-3e52-4049-9b4a-bc27155713c3",
   "version": "7",
   "dialect": "postgresql",
@@ -632,13 +632,6 @@
         },
         "is_draft": {
           "name": "is_draft",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "review_retained": {
-          "name": "review_retained",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
@@ -2050,6 +2043,13 @@
           "notNull": true,
           "default": "''"
         },
+        "parallel": {
+          "name": "parallel",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "minutes": {
           "name": "minutes",
           "type": "integer",
@@ -2181,11 +2181,11 @@
         },
         "flow_nodes_kind_check": {
           "name": "flow_nodes_kind_check",
-          "value": "\"flow_nodes\".\"kind\" IN ('agent', 'gate', 'human', 'budget', 'loop')"
+          "value": "\"flow_nodes\".\"kind\" IN ('agent', 'gate', 'human', 'group', 'loop')"
         },
         "flow_nodes_title_check": {
           "name": "flow_nodes_title_check",
-          "value": "\"flow_nodes\".\"title\" = btrim(\"flow_nodes\".\"title\") AND length(\"flow_nodes\".\"title\") BETWEEN 1 AND 120"
+          "value": "length(\"flow_nodes\".\"title\") <= 120"
         },
         "flow_nodes_instruction_check": {
           "name": "flow_nodes_instruction_check",
@@ -2193,7 +2193,11 @@
         },
         "flow_nodes_minutes_check": {
           "name": "flow_nodes_minutes_check",
-          "value": "(\"flow_nodes\".\"kind\" = 'budget') = (\"flow_nodes\".\"minutes\" IS NOT NULL) AND (\"flow_nodes\".\"minutes\" IS NULL OR \"flow_nodes\".\"minutes\" BETWEEN 1 AND 1440)"
+          "value": "(\"flow_nodes\".\"kind\" = 'group' OR \"flow_nodes\".\"minutes\" IS NULL) AND (\"flow_nodes\".\"minutes\" IS NULL OR \"flow_nodes\".\"minutes\" BETWEEN 1 AND 1440)"
+        },
+        "flow_nodes_parallel_check": {
+          "name": "flow_nodes_parallel_check",
+          "value": "\"flow_nodes\".\"kind\" = 'group' OR \"flow_nodes\".\"parallel\" = false"
         },
         "flow_nodes_max_rounds_check": {
           "name": "flow_nodes_max_rounds_check",
@@ -2297,410 +2301,6 @@
           "value": "\"flows\".\"version\" > 0"
         }
       },
-      "isRLSEnabled": false
-    },
-    "public.review_deliveries": {
-      "name": "review_deliveries",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "review_id": {
-          "name": "review_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "run_id": {
-          "name": "run_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "read_at": {
-          "name": "read_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "attempt": {
-          "name": "attempt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "review_deliveries_review_id_review_submissions_id_fk": {
-          "name": "review_deliveries_review_id_review_submissions_id_fk",
-          "tableFrom": "review_deliveries",
-          "tableTo": "review_submissions",
-          "columnsFrom": [
-            "review_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "review_deliveries_recipient": {
-          "name": "review_deliveries_recipient",
-          "nullsNotDistinct": false,
-          "columns": [
-            "review_id",
-            "run_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.review_imports": {
-      "name": "review_imports",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "source": {
-          "name": "source",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "legacy_id": {
-          "name": "legacy_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pr_id": {
-          "name": "pr_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "thread_id": {
-          "name": "thread_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "hash": {
-          "name": "hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "review_imports_pr_id_pull_requests_id_fk": {
-          "name": "review_imports_pr_id_pull_requests_id_fk",
-          "tableFrom": "review_imports",
-          "tableTo": "pull_requests",
-          "columnsFrom": [
-            "pr_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "review_imports_thread_id_review_threads_id_fk": {
-          "name": "review_imports_thread_id_review_threads_id_fk",
-          "tableFrom": "review_imports",
-          "tableTo": "review_threads",
-          "columnsFrom": [
-            "thread_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "review_imports_source": {
-          "name": "review_imports_source",
-          "nullsNotDistinct": false,
-          "columns": [
-            "source",
-            "pr_id",
-            "legacy_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.review_revisions": {
-      "name": "review_revisions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "pr_id": {
-          "name": "pr_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "base_sha": {
-          "name": "base_sha",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "head_sha": {
-          "name": "head_sha",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "document": {
-          "name": "document",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "review_revisions_pr_id_pull_requests_id_fk": {
-          "name": "review_revisions_pr_id_pull_requests_id_fk",
-          "tableFrom": "review_revisions",
-          "tableTo": "pull_requests",
-          "columnsFrom": [
-            "pr_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "review_revisions_commit_pair": {
-          "name": "review_revisions_commit_pair",
-          "nullsNotDistinct": false,
-          "columns": [
-            "pr_id",
-            "base_sha",
-            "head_sha"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.review_submissions": {
-      "name": "review_submissions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "pr_id": {
-          "name": "pr_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "request_id": {
-          "name": "request_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "actor": {
-          "name": "actor",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "document": {
-          "name": "document",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "review_submissions_pr_id_pull_requests_id_fk": {
-          "name": "review_submissions_pr_id_pull_requests_id_fk",
-          "tableFrom": "review_submissions",
-          "tableTo": "pull_requests",
-          "columnsFrom": [
-            "pr_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "review_submissions_request": {
-          "name": "review_submissions_request",
-          "nullsNotDistinct": false,
-          "columns": [
-            "pr_id",
-            "actor",
-            "request_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.review_threads": {
-      "name": "review_threads",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "pr_id": {
-          "name": "pr_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "revision_id": {
-          "name": "revision_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "document": {
-          "name": "document",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "review_threads_pr_updated": {
-          "name": "review_threads_pr_updated",
-          "columns": [
-            {
-              "expression": "pr_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "updated_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "review_threads_pr_id_pull_requests_id_fk": {
-          "name": "review_threads_pr_id_pull_requests_id_fk",
-          "tableFrom": "review_threads",
-          "tableTo": "pull_requests",
-          "columnsFrom": [
-            "pr_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "review_threads_revision_id_review_revisions_id_fk": {
-          "name": "review_threads_revision_id_review_revisions_id_fk",
-          "tableFrom": "review_threads",
-          "tableTo": "review_revisions",
-          "columnsFrom": [
-            "revision_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.personas": {

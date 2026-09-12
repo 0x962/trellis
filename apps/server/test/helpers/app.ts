@@ -54,6 +54,7 @@ export type ApiResponse = {
 };
 
 export type TestAppOptions = {
+	host?: string;
 	db?: TestDb;
 	maxUploadMb?: number;
 	logLevel?: LogLevel;
@@ -88,6 +89,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 	const config: Config = loadConfig({
 		TRELLIS_HOME: home,
 		TRELLIS_PORT: "0",
+		TRELLIS_HOST: options.host,
 		TRELLIS_MAX_UPLOAD_MB: String(options.maxUploadMb ?? 50),
 		TRELLIS_LOG_LEVEL: options.logLevel ?? "debug",
 		TRELLIS_WEB_DIST: options.webDist ?? `${home}/no-web-dist`,

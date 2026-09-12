@@ -8,23 +8,24 @@ import {
 	type ProjectManagerConfig,
 	ProjectManagerConfigSchema,
 } from "@trellis/api";
-import { Button, IconButton, PowerToggle, Select, Tooltip, toast } from "@trellis/ui";
+import { Button, IconButton, PowerToggle, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
-import { RepoSettings } from "../../project-settings/RepoSettings";
-import { SettingsSection } from "../../project-settings/SettingsSection";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { AgentEnvironment } from "./components/AgentEnvironment";
+import { GeneralSettings } from "./components/GeneralSettings";
+import { HarnessSettings } from "./components/HarnessSettings";
 
 // Status opens the page, so it takes the empty hash and the bare URL
 // `/p/<path>/settings/manager` shows it.
 const sections = [
 	{ id: "", label: "Status" },
+	{ id: "settings", label: "General" },
 	{ id: "ade", label: "ADE" },
-	{ id: "settings", label: "Settings" },
+	{ id: "harness", label: "Harness" },
 ];
 
 // True while the manager holds its terminal, so Pause has a terminal to
@@ -47,13 +48,8 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 	// True when Play continues the Claude session the manager had before its
 	// pause. A manager with no session yet, or none that ran, starts new.
 	const resumes = manager !== undefined && manager.sessionId !== null && manager.workspaceId !== null;
-	const dirty =
-		draft.personaId !== saved.personaId ||
-		draft.concurrency !== saved.concurrency ||
-		draft.directory !== saved.directory ||
-		draft.agentCommand !== saved.agentCommand ||
-		draft.agentResumeCommand !== saved.agentResumeCommand ||
-		JSON.stringify(draft.harnessCommands) !== JSON.stringify(saved.harnessCommands);
+	const parsedDraft = ProjectManagerConfigSchema.safeParse(draft);
+	const dirty = !parsedDraft.success || JSON.stringify(parsedDraft.data) !== JSON.stringify(saved);
 	const save = useMutation({
 		scope: { id: `project-manager-${project.id}` },
 		mutationFn: (managerConfig: ProjectManagerConfig) =>
@@ -65,15 +61,10 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 	});
 	const commit = (next: ProjectManagerConfig) => {
 		setDraft(next);
-		if (ProjectManagerConfigSchema.safeParse(next).success) save.mutate(next);
+		const parsed = ProjectManagerConfigSchema.safeParse(next);
+		if (parsed.success) save.mutate(parsed.data);
 	};
-	const folder = useMutation({
-		mutationFn: () => client.system.chooseDirectory(),
-		onSuccess: (directory) => {
-			if (directory !== null) commit({ ...draft, directory });
-		},
-		onError: (error) => toast.error("Could not open the folder selector", { description: error.message }),
-	});
+
 	// `newSession` true gives the manager a new session. A person sends it
 	// from the lost-session notice, after a resume found none.
 	const start = useMutation({
@@ -103,9 +94,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 			<Topbar
 				actions={
 					<>
-						{/* The agents toggle is green metal while agents run and red metal while
-						    they are off. The tooltip says the state in words. */}
-						<Tooltip content={draft.enabled ? "Agents are on" : "Agents are off"}>
+						<Tooltip content={draft.enabled ? "Agents are on. Turn off agents" : "Agents are off. Turn on agents"}>
 							<PowerToggle
 								label="Agents"
 								on={draft.enabled}
@@ -122,8 +111,8 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 								<IconButton
 									label="Pause manager"
 									icon={<Pause weight="fill" />}
-									size="md"
-									variant="primary"
+									size="sm"
+									variant="default"
 									disabled={readOnly || manager.state === "starting" || pause.isPending}
 									onClick={() => pause.mutate()}
 								/>
@@ -133,8 +122,8 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 								<IconButton
 									label={resumes ? "Resume manager" : "Start manager"}
 									icon={<Play weight="fill" />}
-									size="md"
-									variant="primary"
+									size="sm"
+									variant="default"
 									disabled={
 										readOnly ||
 										dirty ||
@@ -161,7 +150,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 					title="Manager"
 				/>
 			</Topbar>
-			<div className="project-settings-layout">
+			<div className="page-card project-settings-layout">
 				<nav aria-label="Manager settings" className="project-settings-nav">
 					<p className="project-settings-nav-title">Manager settings</p>
 					<ul className="project-settings-nav-list">
@@ -231,45 +220,38 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 					</div>
 					<div hidden={section !== "ade"} className="project-settings-page">
 						<AgentEnvironment
+							setDraft={setDraft}
 							active={section === "ade"}
 							readOnly={readOnly}
-							saved={saved}
 							draft={draft}
-							setDraft={setDraft}
+							saved={saved}
 							commit={commit}
-							choosingDirectory={folder.isPending}
-							chooseDirectory={() => folder.mutate()}
-							saving={save.isPending}
-							saveError={save.error}
-							savedSuccessfully={save.isSuccess}
 						/>
 					</div>
-					<div hidden={section !== "settings"} className="project-settings-page">
-						<fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-10">
-							<SettingsSection title="Manager" hint="The persona that Start manager runs.">
-								<p className="text-sm text-fg-muted">Manager persona</p>
-								<Select
-									label="Manager persona"
-									placeholder="Select a manager persona"
-									value={draft.personaId ?? ""}
-									items={(personas.data ?? [])
-										.filter((item) => item.kind === "manager")
-										.map((item) => ({ value: item.id, label: item.name }))}
-									onValueChange={(value) => commit({ ...draft, personaId: value })}
-									disabled={personas.isPending}
-								/>
-								{personas.isError && (
-									<p role="alert" className="text-sm text-danger">
-										Could not load personas.{" "}
-										<Button variant="quiet" onClick={() => void personas.refetch()}>
-											Retry
-										</Button>
-									</p>
-								)}
-							</SettingsSection>
-							<RepoSettings project={project} />
-						</fieldset>
+					<div hidden={section !== "harness"} className="project-settings-page">
+						<HarnessSettings readOnly={readOnly} draft={draft} saved={saved} commit={commit} setDraft={setDraft} />
 					</div>
+					<div hidden={section !== "settings"} className="project-settings-page">
+						<GeneralSettings
+							project={project}
+							readOnly={readOnly}
+							draft={draft}
+							saved={saved}
+							commit={commit}
+							setDraft={setDraft}
+						/>
+					</div>
+					{section !== "" && (
+						<p role={save.error ? "alert" : "status"} className="manager-save-status">
+							{save.isPending
+								? "Save in progress…"
+								: save.error
+									? save.error.message
+									: dirty
+										? "Unsaved changes"
+										: "All changes saved"}
+						</p>
+					)}
 				</div>
 			</div>
 		</>

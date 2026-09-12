@@ -193,11 +193,6 @@ const compileTokens = async () => {
 };
 
 describe("tokens.css", () => {
-	test("the peek minimum width uses 60 percent of the viewport", async () => {
-		const rule = findBlock(await tokens(), "@utility min-w-peek");
-		expect(rule.declarations["min-width"]).toBe("60vw");
-	});
-
 	test("a theme switch turns every transition off through data-theme-switch on html", async () => {
 		const rule = findBlock(await tokens(), "[data-theme-switch] *");
 		expect(rule.declarations["transition-duration"]).toBe("0ms");

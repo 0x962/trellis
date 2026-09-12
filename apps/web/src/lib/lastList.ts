@@ -1,5 +1,5 @@
 // The list a ticket page returns to. A list route stores its own href on
-// every render, filters included and without the peek param. The ticket
+// every render, filters included. The ticket
 // page's "Back to list" reads it. The value lives in sessionStorage, so a
 // reload keeps it and a new tab starts fresh.
 const key = "trellis.last-list";

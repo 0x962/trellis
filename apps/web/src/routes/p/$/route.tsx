@@ -9,18 +9,11 @@ import {
 	useParams,
 } from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense } from "react";
 import { Board, boardSortLabel } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
-import {
-	parseSearch,
-	serializeSearch,
-	stripDefaults,
-	toCountsQuery,
-	type View,
-	viewOf,
-} from "../../../features/filters/grammar";
+import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../../features/filters/grammar";
 import { ListFooter } from "../../../features/shell/ListFooter";
 import { NewTicketButton } from "../../../features/shell/NewTicketButton";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
@@ -30,9 +23,7 @@ import { type ListView, ViewSwitch } from "../../../features/shell/ViewSwitch";
 import { DisplayPopover } from "../../../features/table/DisplayPopover";
 import { ListPending } from "../../../features/table/ListPending";
 import { TicketTable } from "../../../features/table/TicketTable";
-import { TicketPeek } from "../../../features/ticket/TicketPeek";
 import { type AppContext, useApp } from "../../../lib/appContext";
-import { rememberList } from "../../../lib/lastList";
 import { parseProjectSplat, projectHref, projectSlashPath } from "../../../lib/projectPath";
 import { useUiStore } from "../../../stores/uiStore";
 import { ArchivedBanner } from "./components/ArchivedBanner";
@@ -111,12 +102,6 @@ function ProjectPage() {
 	const routeKey = projectHref(ref);
 	// The loader fills this cache entry, so the board footer reads it on the first paint.
 	const counts = useQuery(countsOptions(context, ref, search, project.statuses)).data;
-	// The list URL without the peek, so the full ticket page can link back
-	// to the list it came from.
-	const searchText = serializeSearch({ ...search, peek: undefined });
-	const listHref = `/p/${_splat}${searchText === "" ? "" : `?${searchText}`}`;
-
-	useEffect(() => rememberList(listHref), [listHref]);
 
 	if (view === "settings" || view === "manager") {
 		return (
@@ -143,8 +128,7 @@ function ProjectPage() {
 			search,
 		});
 
-	const openTicket = (identifier: string) =>
-		navigate({ to: "/p/$", params: { _splat }, search: { ...search, peek: identifier } });
+	const openTicket = (identifier: string) => navigate({ to: "/t/$identifier", params: { identifier } });
 
 	const archived = project.archivedAt !== null;
 
@@ -183,34 +167,31 @@ function ProjectPage() {
 					}
 				/>
 			</Topbar>
-			{archived && <ArchivedBanner project={project} />}
-			<fieldset disabled={archived} className="contents">
-				{view === "board" ? (
-					<>
-						<div className="flex min-h-0 flex-1 flex-col">
-							<Board
-								projectRef={ref}
-								filters={toCountsQuery(full, { statuses: project.statuses })}
-								storageKey={ref}
-								onOpenTicket={openTicket}
-							>
-								<TicketPeek />
-							</Board>
-						</div>
-						<ListFooter total={counts?.total} sort={boardSortLabel} />
-					</>
-				) : (
-					<TicketTable
-						project={ref}
-						routeKey={routeKey}
-						search={search}
-						onSearchChange={setSearch}
-						onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
-					>
-						<TicketPeek />
-					</TicketTable>
-				)}
-			</fieldset>
+			<div className="page-card flex flex-1 flex-col overflow-hidden">
+				{archived && <ArchivedBanner project={project} />}
+				<fieldset disabled={archived} className="contents">
+					{view === "board" ? (
+						<>
+							<div className="flex min-h-0 flex-1 flex-col">
+								<Board
+									projectRef={ref}
+									filters={toCountsQuery(full, { statuses: project.statuses })}
+									storageKey={ref}
+									onOpenTicket={openTicket}
+								/>
+							</div>
+							<ListFooter total={counts?.total} sort={boardSortLabel} />
+						</>
+					) : (
+						<TicketTable
+							project={ref}
+							routeKey={routeKey}
+							search={search}
+							onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
+						/>
+					)}
+				</fieldset>
+			</div>
 		</>
 	);
 }

@@ -25,8 +25,10 @@ export function ProjectSettingsPage({ project }: ProjectSettingsPageProps) {
 					title="Settings"
 				/>
 			</Topbar>
-			{project.archivedAt !== null && <ArchivedBanner project={project} />}
-			<ProjectSettings project={project} />
+			<div className="page-card flex flex-1 flex-col overflow-hidden">
+				{project.archivedAt !== null && <ArchivedBanner project={project} />}
+				<ProjectSettings project={project} />
+			</div>
 		</>
 	);
 }

@@ -14,6 +14,7 @@ export function ProjectLoadError({ error }: ProjectLoadErrorProps) {
 	return (
 		<EmptyState
 			variant="page"
+			className="page-card"
 			title={`${projectSlashPath(ref)} did not load.`}
 			description={error instanceof Error ? error.message : String(error)}
 		/>

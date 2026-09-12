@@ -2,11 +2,11 @@
 // the help sheet read their keys from here, so a key exists in one place.
 
 // `global` fires wherever the app is. Every other scope belongs to the
-// focused surface: the list, the board, the peek, the ticket page, or the
+// focused surface: the list, the board, the ticket page, or the
 // composer.
-export type ShortcutScope = "global" | "list" | "board" | "peek" | "ticket" | "composer";
+export type ShortcutScope = "global" | "list" | "board" | "ticket" | "composer";
 
-export const shortcutScopes: readonly ShortcutScope[] = ["global", "list", "board", "peek", "ticket", "composer"];
+export const shortcutScopes: readonly ShortcutScope[] = ["global", "list", "board", "ticket", "composer"];
 
 export type Shortcut = {
 	// The name a palette item and a hotkey registration point at.
@@ -39,15 +39,15 @@ export const shortcuts: readonly Shortcut[] = [
 		id: "escape",
 		keys: "escape",
 		scope: "global",
-		label: "Close the popover, then the peek, then clear the selection",
+		label: "Close the popover, then clear the selection",
 	},
 	{ id: "listDown", keys: "j", scope: "list", label: "Move to the row below" },
 	{ id: "listUp", keys: "k", scope: "list", label: "Move to the row above" },
 	{ id: "listArrowUp", keys: "up", scope: "list", label: "Move to the row above" },
 	{ id: "listArrowDown", keys: "down", scope: "list", label: "Move to the row below" },
-	{ id: "listPeek", keys: "enter", scope: "list", label: "Open the peek" },
-	{ id: "listPeekSpace", keys: "space", scope: "list", label: "Open the peek" },
-	{ id: "listOpen", keys: "o", scope: "list", label: "Open the full page" },
+	{ id: "listOpenEnter", keys: "enter", scope: "list", label: "Open the ticket" },
+	{ id: "listOpenSpace", keys: "space", scope: "list", label: "Open the ticket" },
+	{ id: "listOpen", keys: "o", scope: "list", label: "Open the ticket" },
 	{ id: "listSelect", keys: "x", scope: "list", label: "Select or clear the row" },
 	{ id: "listExtendDown", keys: "shift+j", scope: "list", label: "Extend the selection down" },
 	{ id: "listExtendUp", keys: "shift+k", scope: "list", label: "Extend the selection up" },

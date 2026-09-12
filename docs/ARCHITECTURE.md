@@ -173,12 +173,17 @@ section then asks the person whether to start a new session. A start with
 A Superset launch keeps the workspace if it exists on the configured host.
 If that workspace is missing, the launch creates one.
 
-`managerConfig.harnessCommands` configures every session operation. The Superset
-and tmux presets fill its command templates. Each template stays editable.
+`managerConfig.adeCommands` configures every session operation. The Superset,
+Terminal, and tmux presets fill its command templates. Each template stays editable.
+`managerConfig.harness` holds the agent preset and its start and resume commands.
+The ADE and Harness pages change their own presets independently.
+The API accepts legacy agent command fields and writes the separate configuration on the next save.
 A command-backed run has runtime `commands`. It keeps its templates and launch
 values in `agents/<id>/harness.json`. Later project edits affect the next start.
 A changed start template or agent executable command starts a fresh session.
 The [command reference](agent-harnesses.md) defines each result and variable.
+A remote Superset launch rejects a localhost Trellis URL before it creates a session.
+The launch uses the server bind address from `config.agentsUrl`.
 
 A run copies the persona name, the kind, and the instruction at launch, so a
 later persona edit changes only the runs after it. The row also keeps the project
@@ -212,15 +217,15 @@ ADE opens that terminal itself with `superset terminals create`. An unknown
 variable fails the save, and so does a standalone
 hyphen beside `{{superset}}`. The expander wraps each value in single quotes, so
 one value is one shell argument. `{{target}}` is the Superset host flag of the
-project: empty for a null `supersetHostId`, and `--host '<id>'` otherwise.
+project: `--local` for a null `supersetHostId`, and `--host '<id>'` otherwise.
 
 `{{prompt}}` is the instruction of the run plus an assignment block: the agent
 name, the actor `agent:<run id>`, the trellis URL, the persona, the ticket or the
 project, the concurrency limit, the project directory, and the repositories.
 `{{agentCommand}}` wraps the agent command of the project: `exec env
 TRELLIS_URL=... TRELLIS_ACTOR=... <agent command>`, with a `cd` into the
-project directory for a manager. `managerConfig.agentCommand` is the agent
-command of a new session and `managerConfig.agentResumeCommand` that of a
+project directory for a manager. `managerConfig.harness.startCommand` is the agent
+command of a new session and `managerConfig.harness.resumeCommand` that of a
 resume. Each takes `{{name}}`, `{{prompt}}`, `{{sessionId}}`, `{{resumeText}}`,
 `{{actor}}`, `{{trellisUrl}}`, `{{directory}}`, `{{project}}`, `{{ticket}}`,
 and `{{instruction}}`, one shell argument per value. An empty one runs the
@@ -260,9 +265,9 @@ editor at `/ai/flows/<slug>`. The slug comes from the name at create time, and
 a collision takes the next free suffix: `review`, `review-2`.
 
 A node is one step. An `agent` node runs one agent. A `gate` runs one agent that
-answers YES or NO. A `human` node waits for a person. A `budget` and a `loop`
-are boxes that hold other nodes. A budget sets a time limit in minutes, and a
-loop runs its nodes again up to its round limit. An agent, a gate, and a loop
+answers YES or NO. A `human` node waits for a person. A `group` and a `loop`
+are boxes that hold other nodes. A group has a `parallel` switch and optional
+`minutes`. A loop runs its nodes again up to its round limit. An agent, a gate, and a loop
 take a persona, an instruction, or both. A human node takes an instruction. The
 `x` and `y` of a node inside a box are relative to that box.
 
@@ -270,26 +275,36 @@ An edge connects an output of one node to another node. A gate has the outputs
 `yes` and `no`, and every other kind has `out`. An edge connects two nodes in
 the same box, or two nodes outside every box. The edges of a flow form no loop.
 `validateFlowGraph` in `packages/api/src/flowGraph.ts` holds these rules. The
-server applies it before a save, and the editor shows its issues on the canvas.
+server applies its structural rules before a save. The editor also shows
+missing instructions, blank titles, and disconnected group steps as draft issues.
 
-Every card and box has a handle on each of its four sides, and a wire starts
-or ends on any of them. The canvas draws each wire between the two sides of its
+Each connectable card and box has handles on its four sides. Children of
+parallel groups hide their handles. A wire starts or ends on any visible handle. The canvas draws each wire between the two sides of its
 nodes that face each other, so an edge row stores no side. A gate starts a wire
 only from its YES and NO handles. A new step connects from the step before it:
 the selected step, or else the newest step of the same box. A gate connects the
 new step by YES. The Clean up button lays out each box and then the canvas from
-top to bottom with dagre, and its toast offers Undo. A box that holds steps
-starts at exactly one of them, and a new box comes with an agent step inside
-it. A wire into a box draws to that step, and a wire out of a box draws from
-its last step when the box has one. The zoom, fit, and Clean up controls sit
+top to bottom with dagre, and its toast offers Undo. A connected group needs
+one starting step, with edges that reach every other child. A new group contains one agent step. A wire into a connected group draws
+to its starting step. A wire out draws from its last step when it has one.
+A parallel group connects only at its boundary. Its children have no edges
+between them. The Parallel switch removes edges between direct children.
+A group can set a time limit or leave the time limit off. The zoom, fit, and Clean up controls sit
 together at the bottom left of the canvas.
 
 `flows.save` replaces every node and edge of a flow in one transaction. The
 client mints the ULID of each new node and edge. `version` rises on every change
 to a flow, and a save or an update with an older `expectedVersion` fails with
 `FLOW_VERSION_CONFLICT`. A persona delete sets `persona_id` to NULL and keeps
-the node. The editor saves the graph 600 ms after the last change, and it holds
-a graph with an issue until the person fixes it.
+the node. The editor saves drafts 600 ms after the last change, including
+unfinished instructions and disconnected steps. Structural errors still block
+a server save. Each browser tab keeps its pending draft in local storage,
+with the server version it edits. A reload or a return to the editor restores
+that draft. A completed save clears only the draft that it confirms. Edits
+made during the request keep the returned version for the next save.
+The topbar shows the save status and the count of draft issues. A conflict
+keeps the browser draft. A reload of the server graph requires explicit
+confirmation to discard that draft.
 
 ## Web routes
 
@@ -310,6 +325,13 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/settings` | `settings.tsx` | the settings |
 | `/setup` | `setup.tsx` | the first visit, and the new project step |
 | `/_gallery` | `[_]gallery.tsx` | every primitive in every state, in both themes |
+
+Ticket links open `/t/$identifier`. The header shows the project name and ticket
+identifier, with the actions on the right. The content sits in fully rounded
+cards below the header.
+Every page card has a gap from the sidebar, the right edge, and the bottom edge.
+The gap is 12 px on desktop and 8 px on a phone. Back to list restores the
+last list URL with its filters.
 
 `/p/$` takes one splat, `[key, ...slugs, view?]`. The URL keeps slashes and the
 API ref joins the same segments with dots, so `/p/CDE/web/auth` reads
@@ -360,7 +382,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `enabled`, `supersetHostId`, `ade`, `adeCommand`, `adeResumeCommand`, `agentCommand`, `agentResumeCommand`, `harnessCommands`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
+| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `enabled`, `supersetHostId`, `ade`, `adeCommand`, `adeResumeCommand`, `harness` (`preset`, `startCommand`, `resumeCommand`), `adeCommands`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). The effective repos of a project are its own plus those of its ancestors. |
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, wip_limit (CHECK > 0), is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
 | tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
@@ -373,7 +395,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | settings | key PK, value jsonb, updated_at. |
 | personas | id PK, name (CHECK 1 to 120, not blank), kind (CHECK builder, reviewer, or manager; default reviewer), instruction (CHECK 1 to 200000, not blank), created_at, updated_at. |
 | flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), version (CHECK > 0), created_at, updated_at. |
-| flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, budget, or loop), title (trimmed, 1 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), minutes (CHECK `(kind = 'budget') = (minutes IS NOT NULL)`, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
+| flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | agent_runs | id PK, name, runtime (default `superset`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, state (CHECK starting, interrupted, running, failed, stopped, exited), workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE the state is live. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND the state is live. Index (created_at). |
 | agent_sessions | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |
@@ -656,7 +678,6 @@ descriptions, and 40 open pull requests. `bun run perf:10k` runs the 10k seed, a
 | `search.query` p95 at 50k | 40 ms; 3 ms for `KEY-n` | perf/search |
 | SSE commit to repaint | 100 ms on the patch path; 500 ms on the invalidation path | e2e/live |
 | Kanban drop | optimistic paint in 16 ms | e2e/kanban |
-| Ticket open | 50 ms summary and 100 ms body from cache | e2e/peek |
 | Web bundle | 220 KB gzip initial JS; 200 KB lazy Tiptap; 900 KB total; 160 KB fonts | scripts/size-budget |
 | First paint | 300 ms FCP; rows in 600 ms cold and 150 ms warm | e2e/paint |
 | Server RSS at 50k | 350 MB idle, 550 MB peak | perf/memory |
@@ -792,7 +813,7 @@ is no shadcn and no Radix.
 - `--accent` is the interface blue and `--agent` is the agent purple. Each one has a `-soft` ground.
 - Status by category: todo is a faint empty circle, started is a warning half ring, review is an accent dotted ring, done is a success filled check, and canceled is a faint cross.
 - Priority uses bars in `fg-muted`. Urgent is a filled danger square.
-- Motion durations: 120 ms hover, 160 ms popover, 240 ms peek slide, 160 ms row enter, and 200 ms ribbon sweep.
+- Motion durations: 120 ms hover, 160 ms popover, 240 ms sheet slide, 160 ms row enter, and 200 ms ribbon sweep.
 - Never animate a re-sort, a text change, a counter, a skeleton swap, or the theme switch. Use `motion/mini` and CSS transitions only.
 - Focus uses a 2 px accent outline on `:focus-visible`. A row or a card uses an inset left bar.
 - The primitives are Avatar, Badge, Button, Checkbox, Chip, Command, ConfirmDialog, Dialog, EmptyState, EntityCard, IconButton, Input, Kbd, Menu, Popover, ScrollArea, SectionHeader, Segmented, Select, Separator, Sheet, Skeleton, Spinner, Switch, Tabs, Textarea, Toast, and Tooltip.

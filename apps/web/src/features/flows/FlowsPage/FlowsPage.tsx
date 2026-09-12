@@ -24,7 +24,7 @@ export function FlowsPage() {
 			>
 				<PageTitle title="Flows" />
 			</Topbar>
-			<div className="min-h-0 flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
+			<div className="page-card flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
 				<div className="flex max-w-7xl flex-col gap-6">
 					<p className="text-sm text-fg-muted">
 						Draw how agents work together: the steps, their order, and their limits.

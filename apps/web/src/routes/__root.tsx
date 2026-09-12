@@ -1,5 +1,6 @@
 import { createRootRouteWithContext, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { EmptyState, Toaster } from "@trellis/ui";
+import { useEffect } from "react";
 import { CommandPalette } from "../features/command/CommandPalette";
 import { ShortcutHelp } from "../features/command/ShortcutHelp";
 import { ComposerHost } from "../features/composer/ComposerHost";
@@ -12,6 +13,8 @@ import { Sidebar } from "../features/sidebar/Sidebar";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import type { RouterContext } from "../lib/appContext";
 import { resolveActor } from "../lib/identity";
+import { rememberList } from "../lib/lastList";
+import { parseProjectSplat } from "../lib/projectPath";
 
 // The two pages that render without the shell: the first run and the
 // design gallery.
@@ -55,7 +58,18 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 // outlet shows, so the layout and the page always match. It is unset only
 // before the first load.
 function RootComponent() {
-	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
+	const location = useRouterState({ select: (state) => state.resolvedLocation ?? state.location });
+	const pathname = location.pathname;
+	useEffect(() => {
+		const projectView = pathname.startsWith("/p/") ? parseProjectSplat(pathname.slice(3)).view : undefined;
+		if (
+			["/all", "/all/table", "/search", "/needs-you"].includes(pathname) ||
+			projectView === "board" ||
+			projectView === "table"
+		) {
+			rememberList(location.href);
+		}
+	}, [location.href, pathname]);
 	useDocumentTitle();
 
 	if (bare(pathname)) {
@@ -72,7 +86,7 @@ function RootComponent() {
 			<Sidebar />
 			<div className="relative flex min-w-0 flex-1 flex-col">
 				<RouteProgress />
-				<main className="flex min-h-0 min-w-0 flex-1 flex-col bg-pane">
+				<main className="page-inset flex min-h-0 min-w-0 flex-1 flex-col bg-pane">
 					<Outlet />
 				</main>
 			</div>
@@ -90,6 +104,7 @@ function PageNotFound() {
 	return (
 		<EmptyState
 			variant="page"
+			className="page-card"
 			title="Page not found"
 			description="No page has this URL."
 			action={
