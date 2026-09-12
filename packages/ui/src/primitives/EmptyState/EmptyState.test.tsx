@@ -20,7 +20,7 @@ describe("EmptyState", () => {
 		const empty = container.firstElementChild!;
 		expect(empty.querySelector("svg")).toBeNull();
 		screen.getByRole("button", { name: "New ticket" });
-		expectClasses(empty, "items-start py-8 text-fg-muted");
+		expectClasses(empty, "items-start py-3 text-fg-muted");
 	});
 
 	// A page-level empty state fills the pane under the bar, and its 20 px of
@@ -42,8 +42,9 @@ describe("EmptyState", () => {
 
 	test("the section variant is the default", () => {
 		const { container } = render(<EmptyState title="No sub-projects." />);
-		expect(container.firstElementChild!.className).not.toMatch(/flex-1/);
-		expectClasses(container.firstElementChild!, "py-8");
+		const empty = container.firstElementChild!;
+		expect(empty.className).not.toMatch(/flex-1|px-1/);
+		expectClasses(empty, "py-3");
 		expectClasses(screen.getByRole("heading", { name: "No sub-projects." }), "text-sm font-medium text-fg");
 	});
 });
