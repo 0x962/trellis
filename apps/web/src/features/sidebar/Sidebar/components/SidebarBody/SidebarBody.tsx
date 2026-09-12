@@ -70,7 +70,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 
 	return (
 		<>
-			<div className="mb-2 flex h-7 items-center pl-2">
+			<div className="mb-1 flex h-13 shrink-0 items-center pl-2">
 				{onCollapse ? (
 					// The mark is the control that opens and closes the sidebar.
 					// A closed sidebar keeps the first two letters of it.

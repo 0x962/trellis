@@ -20,7 +20,7 @@ describe("Segmented", () => {
 			/>,
 		);
 		const group = screen.getByRole("radiogroup", { name: "View" });
-		expectClasses(group, "rounded-md");
+		expectClasses(group, "rounded-round");
 		expect(group.classList.contains("overflow-hidden")).toBe(false);
 		const table = screen.getByRole("radio", { name: "Table" });
 		const board = screen.getByRole("radio", { name: "Board" });
@@ -30,7 +30,7 @@ describe("Segmented", () => {
 		for (const item of [table, board]) {
 			expectClasses(
 				item,
-				"h-7 border-y border-border first-of-type:rounded-l-md first-of-type:border-l last-of-type:rounded-r-md last-of-type:border-r",
+				"h-7 border-y border-border first-of-type:rounded-l-round first-of-type:border-l last-of-type:rounded-r-round last-of-type:border-r",
 			);
 		}
 		expect(table.matches(":first-of-type")).toBe(true);
