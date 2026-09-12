@@ -38,6 +38,9 @@ test("project manager settings persist and enter the manager launch context", as
 		supersetHostId: null,
 		ade: "superset" as const,
 		adeCommand: "",
+		adeResumeCommand: "",
+		agentCommand: "",
+		agentResumeCommand: "",
 	};
 	const saved = await configure(config);
 	expect(saved.status).toBe(200);
@@ -55,6 +58,8 @@ test("the project rejects a non-manager persona and invalid configuration", asyn
 		{ personaId: builder, concurrency: 2, directory: dir },
 		{ personaId: manager, concurrency: 0, directory: dir },
 		{ personaId: manager, concurrency: 2, directory: "relative/path" },
+		{ personaId: manager, concurrency: 2, directory: dir, agentCommand: "codex {{workspaceId}}" },
+		{ personaId: manager, concurrency: 2, directory: dir, adeResumeCommand: "tmux {{resumeText}}" },
 	])
 		expect((await configure(config)).status).toBe(400);
 });

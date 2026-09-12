@@ -13,6 +13,9 @@ export type AgentRunDetailsProps = {
 	// its state at the far end of that row. The sheet puts the name in its
 	// own title bar, so it leaves this off and takes the plain state row.
 	heading?: boolean;
+	// False leaves out the Stop agent control. The manager page pauses and
+	// starts its manager from its header, so it shows none here.
+	controls?: boolean;
 };
 
 // How often the page asks the server to read the agent's terminal again,
@@ -22,7 +25,7 @@ const followEveryMs = 15000;
 // Everything one agent shows: its state, what the runner said, its terminal
 // output, the follow-up box, and the controls that stop it or open its
 // workspace. The state and the output both follow the agent on their own.
-export function AgentRunDetails({ run: initial, heading = false }: AgentRunDetailsProps) {
+export function AgentRunDetails({ run: initial, heading = false, controls = true }: AgentRunDetailsProps) {
 	const { client, orpc, queryClient } = useApp();
 	const query = useQuery(orpc.agentRuns.list.queryOptions({ input: {} }));
 	const run = query.data?.find((item) => item.id === initial.id) ?? initial;
@@ -85,7 +88,7 @@ export function AgentRunDetails({ run: initial, heading = false }: AgentRunDetai
 			)}
 			<AgentTerminal run={run} />
 			<div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
-				{(active || (run.state === "failed" && run.workspaceId)) && (
+				{controls && (active || (run.state === "failed" && run.workspaceId)) && (
 					<Button
 						variant="quiet"
 						disabled={run.state === "starting"}

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, check, index, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
 import { personas } from "./personas.ts";
@@ -23,6 +23,12 @@ export const agentRuns = pgTable(
 		terminalId: text("terminal_id"),
 		url: text(),
 		error: text(),
+		// The agent session of the run, which trellis names before the first
+		// start. A manager start after a pause hands it to the agent resume
+		// command, in the workspace the row already names.
+		sessionId: text("session_id"),
+		// True while the last resume of a manager found no session.
+		sessionLost: boolean("session_lost").notNull().default(false),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
 	},

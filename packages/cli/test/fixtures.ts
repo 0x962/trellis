@@ -274,6 +274,8 @@ export const agentRun = (overrides: Overrides = {}) => ({
 	terminalId: "term-1",
 	url: "https://superset.localhost/ws-1",
 	error: null,
+	sessionId: "3f1c9a7e-8b2d-4c6e-9f0a-1b2c3d4e5f60",
+	sessionLost: false,
 	createdAt: "2026-09-09T10:00:00.000Z",
 	updatedAt: "2026-09-09T10:05:00.000Z",
 	...overrides,

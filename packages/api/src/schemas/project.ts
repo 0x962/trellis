@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { unknownAgentCommandVariables, unknownLaunchVariables } from "../agentLaunch/agentLaunch.ts";
 import { ProjectRefStringSchema } from "../refs.ts";
 import { booleanString, CountSchema, IsoDateTimeSchema, KeySchema, SlugSchema, UlidSchema } from "./primitives.ts";
 import { StatusSchema } from "./status.ts";
@@ -67,6 +68,32 @@ export const ProjectManagerConfigSchema = z.strictObject({
 	// The command that starts one agent, for a project whose ADE is custom.
 	// Empty means the machine's own launch command, which starts Superset.
 	adeCommand: z.string().trim().default(""),
+	// The command that opens an agent again in the workspace its run has,
+	// for a project whose ADE is custom. Empty runs adeCommand again.
+	adeResumeCommand: z
+		.string()
+		.trim()
+		.refine((value) => unknownLaunchVariables(value).length === 0, "The command has an unknown template variable.")
+		.default(""),
+	// The program that is one agent, in a new session and in a resumed one.
+	// Empty runs Claude Code. trellis owns the session id and the prompt;
+	// the command owns what runs.
+	agentCommand: z
+		.string()
+		.trim()
+		.refine(
+			(value) => unknownAgentCommandVariables(value).length === 0,
+			"The command has an unknown template variable.",
+		)
+		.default(""),
+	agentResumeCommand: z
+		.string()
+		.trim()
+		.refine(
+			(value) => unknownAgentCommandVariables(value).length === 0,
+			"The command has an unknown template variable.",
+		)
+		.default(""),
 });
 export type ProjectManagerConfig = z.infer<typeof ProjectManagerConfigSchema>;
 export const DEFAULT_PROJECT_MANAGER_CONFIG: ProjectManagerConfig = {
@@ -77,6 +104,9 @@ export const DEFAULT_PROJECT_MANAGER_CONFIG: ProjectManagerConfig = {
 	supersetHostId: null,
 	ade: "superset",
 	adeCommand: "",
+	adeResumeCommand: "",
+	agentCommand: "",
+	agentResumeCommand: "",
 };
 
 export const ProjectSchema = ProjectSummarySchema.extend({

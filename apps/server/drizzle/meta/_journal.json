@@ -162,6 +162,13 @@
       "when": 1789182338806,
       "tag": "0025_awesome_scourge",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1789185106775,
+      "tag": "0026_manager_session",
+      "breakpoints": true
     }
   ]
 }

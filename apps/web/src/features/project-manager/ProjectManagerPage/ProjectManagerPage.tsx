@@ -1,17 +1,14 @@
-import { Plus, Power } from "@phosphor-icons/react";
+import { Pause, Play, Power } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
-	type Ade,
-	AGENT_LAUNCH_VARIABLES,
 	type AgentRun,
 	DEFAULT_PROJECT_MANAGER_CONFIG,
 	type Project,
 	type ProjectManagerConfig,
 	ProjectManagerConfigSchema,
-	unknownLaunchVariables,
 } from "@trellis/api";
-import { Button, IconButton, Input, Select, Tooltip, toast } from "@trellis/ui";
+import { Button, IconButton, Select, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
@@ -19,6 +16,7 @@ import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { RepoSettings } from "../../project-settings/RepoSettings";
 import { SettingsSection } from "../../project-settings/SettingsSection";
 import { Topbar } from "../../shell/Topbar";
+import { AdeSection } from "./components/AdeSection";
 
 // Status opens the page, so it takes the empty hash and the bare URL
 // `/p/<path>/settings/manager` shows it.
@@ -28,18 +26,10 @@ const sections = [
 	{ id: "settings", label: "Settings" },
 ];
 
-const ades: { value: Ade; label: string }[] = [
-	{ value: "superset", label: "Superset" },
-	{ value: "custom", label: "Custom command" },
-];
-
-// The host picker value that stores `supersetHostId: null`: every agent of
-// the project then runs on the machine that runs the trellis server.
-const localValue = "local";
-const localLabel = "This machine";
-
-// True while the agent still holds its terminal.
-const atWork = (run: AgentRun) => run.state === "starting" || run.state === "running" || run.state === "interrupted";
+// True while the manager holds its terminal, so Pause has a terminal to
+// close. An interrupted manager has none the server can find, so Play
+// starts it again.
+const atWork = (run: AgentRun) => run.state === "starting" || run.state === "running";
 
 export function ProjectManagerPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
@@ -47,8 +37,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 	const section = sections.some((item) => item.id === hash) ? hash : "";
 	const saved = project.managerConfig ?? DEFAULT_PROJECT_MANAGER_CONFIG;
 	const [draft, setDraft] = useState(saved);
-	const [command, setCommand] = useState<string | null>(null);
-	const [commandMessage, setCommandMessage] = useState<string | null>(null);
 	const personas = useQuery(orpc.personas.list.queryOptions({ input: {} }));
 	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: { project: project.path } }));
 	// The host list comes from `superset hosts list`, which spawns a process,
@@ -61,10 +49,13 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 		enabled: section === "ade",
 		staleTime: 5 * 60_000,
 	});
-	// A project keeps one manager, so the list holds at most one row of that
-	// kind. A start takes that row again instead of making another.
+	// A project keeps one manager row, which every start takes again. The
+	// list comes newest first, so the first row of the kind is that row.
 	const manager = runs.data?.find((run) => run.kind === "manager");
 	const active = manager !== undefined && atWork(manager);
+	// True when Play continues the Claude session the manager had before its
+	// pause. A manager with no session yet, or none that ran, starts new.
+	const resumes = manager !== undefined && manager.sessionId !== null && manager.workspaceId !== null;
 	const dirty =
 		draft.personaId !== saved.personaId ||
 		draft.concurrency !== saved.concurrency ||
@@ -89,44 +80,29 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 		},
 		onError: (error) => toast.error("Could not open the folder selector", { description: error.message }),
 	});
+	// `newSession` true gives the manager a new session. A person sends it
+	// from the lost-session notice, after a resume found none.
 	const start = useMutation({
-		mutationFn: () => client.agentRuns.start({ project: project.path, personaId: saved.personaId! }),
-		onSuccess: async (run) => {
+		mutationFn: (newSession: boolean) =>
+			client.agentRuns.start({ project: project.path, personaId: saved.personaId!, newSession }),
+		onSuccess: async (run, newSession) => {
 			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
-			if (run.state === "failed") toast.error("Could not start the manager", { description: run.error ?? undefined });
-			else toast.success(`${run.name} starts now`);
+			const verb = resumes && !newSession ? "resume" : "start";
+			if (run.state === "failed") toast.error(`Could not ${verb} the manager`, { description: run.error ?? undefined });
+			else toast.success(`${run.name} ${verb}s now`);
 		},
 		onError: (error) => toast.error("Could not start the manager", { description: error.message }),
 	});
-	const commitCommand = () => {
-		const value = (command ?? draft.adeCommand).trim();
-		if (value === "") {
-			setCommandMessage("Enter the command that starts one agent.");
-			return;
-		}
-		const unknown = unknownLaunchVariables(value);
-		if (unknown.length > 0) {
-			setCommandMessage(`Unknown variables: ${unknown.join(", ")}`);
-			return;
-		}
-		setCommandMessage(null);
-		setCommand(null);
-		if (value !== draft.adeCommand) commit({ ...draft, adeCommand: value });
-	};
+	const pause = useMutation({
+		mutationFn: () => client.agentRuns.stop({ id: manager!.id }),
+		onSuccess: async () => {
+			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
+			toast.success(`${manager!.name} pauses now`);
+		},
+		onError: (error) => toast.error("Could not pause the manager", { description: error.message }),
+	});
 	const persona = personas.data?.find((item) => item.id === draft.personaId);
 	const readOnly = project.archivedAt !== null;
-
-	// The list holds the machines Superset can reach now. A project that
-	// names a machine the list does not hold keeps it as an item, so the
-	// setting stays readable and the person sees which machine to start.
-	const online = hosts.data?.hosts ?? [];
-	const hostItems = [
-		{ value: localValue, label: localLabel },
-		...online.map((entry) => ({ value: entry.id, label: entry.name })),
-		...(draft.supersetHostId !== null && !online.some((entry) => entry.id === draft.supersetHostId)
-			? [{ value: draft.supersetHostId, label: `${draft.supersetHostId} (offline)` }]
-			: []),
-	];
 
 	return (
 		<>
@@ -148,15 +124,37 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 								onClick={() => commit({ ...draft, enabled: !draft.enabled })}
 							/>
 						</Tooltip>
-						<IconButton
-							label="Start manager"
-							icon={<Plus />}
-							size="md"
-							round
-							variant="primary"
-							disabled={readOnly || active || dirty || !draft.enabled || !persona || runs.isPending || runs.isError}
-							onClick={() => start.mutate()}
-						/>
+						{/* One round control runs the one manager of the project: Pause
+						    while it holds a terminal, else Play. Pause closes the terminal
+						    and keeps the session, and Play opens a terminal that continues
+						    that session. */}
+						{active ? (
+							<Tooltip content="Pause the manager">
+								<IconButton
+									label="Pause manager"
+									icon={<Pause weight="fill" />}
+									size="md"
+									round
+									variant="primary"
+									disabled={readOnly || manager.state === "starting" || pause.isPending}
+									onClick={() => pause.mutate()}
+								/>
+							</Tooltip>
+						) : (
+							<Tooltip content={resumes ? "Resume the manager" : "Start the manager"}>
+								<IconButton
+									label={resumes ? "Resume manager" : "Start manager"}
+									icon={<Play weight="fill" />}
+									size="md"
+									round
+									variant="primary"
+									disabled={
+										readOnly || dirty || !draft.enabled || !persona || runs.isPending || runs.isError || start.isPending
+									}
+									onClick={() => start.mutate(false)}
+								/>
+							</Tooltip>
+						)}
 					</>
 				}
 			>
@@ -200,9 +198,26 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 									</Button>
 								</p>
 							)}
-							{manager !== undefined && <AgentRunDetails run={manager} heading />}
+							{manager?.sessionLost && (
+								<div className="flex flex-col gap-3 rounded-md border border-border p-3">
+									<p className="text-sm">
+										The manager could not resume its session. The error below names the session and where the agent ran.
+										Start a new session? The new session does not hold the chat of the old one. The workspace stays.
+									</p>
+									<Button
+										variant="primary"
+										align="start"
+										disabled={readOnly || dirty || !draft.enabled || !persona}
+										processing={start.isPending}
+										onClick={() => start.mutate(true)}
+									>
+										Start a new session
+									</Button>
+								</div>
+							)}
+							{manager !== undefined && <AgentRunDetails run={manager} heading controls={false} />}
 							{manager === undefined && !runs.isPending && !runs.isError && (
-								<p className="text-sm text-fg-muted">This project has no manager yet.</p>
+								<p className="text-sm text-fg-muted">This project has no manager yet. Press Play to start one.</p>
 							)}
 							{!draft.enabled && (
 								<p className="text-sm text-fg-muted">
@@ -214,107 +229,16 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 					</div>
 					<div hidden={section !== "ade"} className="project-settings-page">
 						<fieldset disabled={readOnly} className="min-w-0">
-							<SettingsSection
-								title="ADE"
-								hint="The Agentic Development Environment that runs this project's agents. Changes save automatically."
-							>
-								<form
-									className="flex flex-col gap-4"
-									onSubmit={(event) => {
-										event.preventDefault();
-										if (dirty) commit(draft);
-									}}
-								>
-									<p className="text-sm text-fg-muted">ADE</p>
-									<Select
-										label="ADE"
-										items={ades}
-										value={draft.ade}
-										onValueChange={(ade) => commit({ ...draft, ade })}
-									/>
-									{draft.ade === "custom" && (
-										<>
-											<Input
-												label="Command template"
-												value={command ?? draft.adeCommand}
-												invalid={commandMessage !== null}
-												className="text-sm"
-												onChange={(event) => setCommand(event.target.value)}
-												onBlur={commitCommand}
-											/>
-											<p className="text-sm text-fg-muted">
-												The command that starts one agent. It takes the variables{" "}
-												{AGENT_LAUNCH_VARIABLES.map((name) => `{{${name}}}`).join(", ")}.
-											</p>
-											{commandMessage !== null && (
-												<p role="alert" className="text-sm text-danger">
-													{commandMessage}
-												</p>
-											)}
-										</>
-									)}
-									<p className="text-sm text-fg-muted">Superset host</p>
-									<Select
-										label="Superset host"
-										items={hostItems}
-										value={draft.supersetHostId ?? localValue}
-										onValueChange={(value) => commit({ ...draft, supersetHostId: value === localValue ? null : value })}
-									/>
-									<p className="text-sm text-fg-muted">
-										The machine that runs every agent of this project. Superset must be signed in on it.
-									</p>
-									<Input
-										label="Concurrency"
-										type="number"
-										min={1}
-										max={64}
-										step={1}
-										value={draft.concurrency || ""}
-										onChange={(event) => setDraft({ ...draft, concurrency: Number(event.target.value) })}
-										onBlur={() => {
-											if (draft.concurrency !== saved.concurrency) commit(draft);
-										}}
-										invalid={!ProjectManagerConfigSchema.safeParse(draft).success}
-									/>
-									<p className="text-sm text-fg-muted">
-										Maximum active ticket agents in this project. The manager does not count.
-									</p>
-									<Input
-										label="Project directory"
-										placeholder="Select a folder"
-										value={draft.directory}
-										readOnly
-										className="cursor-pointer"
-										disabled={folder.isPending}
-										aria-busy={folder.isPending}
-										onClick={() => folder.mutate()}
-										onKeyDown={(event) => {
-											if (event.key === "Enter" || event.key === " ") {
-												event.preventDefault();
-												folder.mutate();
-											}
-										}}
-									/>
-									<p className="text-sm text-fg-muted">
-										The manager starts in this directory. Leave it empty to use its agent workspace.
-									</p>
-									{draft.directory && (
-										<Button variant="quiet" align="start" onClick={() => commit({ ...draft, directory: "" })}>
-											Clear directory
-										</Button>
-									)}
-									{!ProjectManagerConfigSchema.safeParse(draft).success && (
-										<p role="alert" className="text-sm text-danger">
-											Enter a whole number from 1 to 64.
-										</p>
-									)}
-									{save.isPending && (
-										<p role="status" className="text-sm text-fg-muted">
-											Save in progress…
-										</p>
-									)}
-								</form>
-							</SettingsSection>
+							<AdeSection
+								draft={draft}
+								saved={saved}
+								commit={commit}
+								setDraft={setDraft}
+								hosts={hosts.data?.hosts ?? []}
+								chooseDirectory={() => folder.mutate()}
+								choosing={folder.isPending}
+								saving={save.isPending}
+							/>
 						</fieldset>
 					</div>
 					<div hidden={section !== "settings"} className="project-settings-page">
