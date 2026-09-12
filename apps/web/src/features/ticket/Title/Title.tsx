@@ -8,8 +8,6 @@ import { failToast } from "../utils/failToast";
 
 export type TitleProps = {
 	ticket: Ticket;
-	// The peek focuses the title when it opens.
-	autoFocus?: boolean;
 	className?: string;
 };
 
@@ -31,7 +29,7 @@ const fitHeight = (element: HTMLTextAreaElement) => {
 // stored title back; an empty field saves nothing. The field draws no
 // border and no ring in any state, so the caret is the focus signal. A 412
 // shows the conflict notice with the actor who won.
-export function Title({ ticket, autoFocus = false, className }: TitleProps) {
+export function Title({ ticket, className }: TitleProps) {
 	const { write } = useTicketWrite(ticket.identifier);
 	const [text, setText] = useState(ticket.title);
 	const [conflict, setConflict] = useState<Conflict | null>(null);
@@ -61,17 +59,6 @@ export function Title({ ticket, autoFocus = false, className }: TitleProps) {
 		observer.observe(element);
 		return () => observer.disconnect();
 	}, []);
-
-	// The peek opens at the start of the title, also for a title longer
-	// than one line.
-	useEffect(() => {
-		const element = field.current;
-		if (!autoFocus || element === null) return;
-		element.focus();
-		element.setSelectionRange(0, 0);
-		element.scrollTop = 0;
-		element.scrollLeft = 0;
-	}, [autoFocus]);
 
 	const save = async (title: string, expectedVersion: number | undefined) => {
 		try {
@@ -129,7 +116,6 @@ export function Title({ ticket, autoFocus = false, className }: TitleProps) {
 			<textarea
 				ref={field}
 				aria-label="Title"
-				data-peek-focus=""
 				rows={1}
 				value={text}
 				onChange={(event) => setText(oneLine(event.target.value))}

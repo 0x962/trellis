@@ -26,18 +26,7 @@ describe("features/filters/grammar", () => {
 			parent: "none",
 			ci: ["fail"],
 		});
-		for (const field of [
-			"priority",
-			"category",
-			"reviewer",
-			"pr",
-			"actor",
-			"q",
-			"updated",
-			"created",
-			"completed",
-			"peek",
-		]) {
+		for (const field of ["priority", "category", "reviewer", "pr", "actor", "q", "updated", "created", "completed"]) {
 			expect(view, field).not.toHaveProperty(field);
 		}
 	});
@@ -76,15 +65,13 @@ describe("features/filters/grammar", () => {
 	});
 
 	// WS-45. `scope=self` narrows the API query to the project itself.
-	// `peek` is a ticket ref and takes its canonical spelling.
-	test("group, scope, peek, and density round-trip and scope=self narrows the query", () => {
-		const view = parseSearch({ group: "priority", scope: "self", peek: "cde-42", density: "compact" });
+	test("group, scope, and density round-trip and scope=self narrows the query", () => {
+		const view = parseSearch({ group: "priority", scope: "self", density: "compact" });
 		expect(view.group).toBe("priority");
 		expect(view.scope).toBe("self");
-		expect(view.peek).toBe("CDE-42");
 		expect(view.density).toBe("compact");
 		expect(toListQuery(view, { now }).subprojects).toBe(false);
-		expect(serializeSearch(view)).toBe("group=priority&scope=self&peek=CDE-42&density=compact");
+		expect(serializeSearch(view)).toBe("group=priority&scope=self&density=compact");
 	});
 
 	// WS-46. The URL keeps the short form a person types; the API takes an
@@ -163,7 +150,6 @@ describe("features/filters/grammar: the table's filter grammar", () => {
 			sort: "-createdAt",
 			group: "priority",
 			scope: "subprojects",
-			peek: "CDE-42",
 			density: "compact",
 			limit: 100,
 		};

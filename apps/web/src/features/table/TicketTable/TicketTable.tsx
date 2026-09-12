@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTable } from "@tanstack/react-table";
 import type { StatusSummary, TicketSummary } from "@trellis/api";
-import { type MouseEvent, type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type MouseEvent, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useScopeStatuses } from "../../../hooks/useScopeStatuses";
@@ -12,7 +12,6 @@ import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { composerActions } from "../../composer/composerStore";
 import { type View, viewOf } from "../../filters/grammar";
 import { hasFilters } from "../../filters/labels";
-import { PeekListProvider } from "../../ticket/TicketPeek/providers/PeekListProvider";
 import { BulkBar } from "../BulkBar";
 import { buildColumns, type ColumnId, tableFeatureSet } from "../columns";
 import { useApplyChange } from "../hooks/useApplyChange";
@@ -38,11 +37,7 @@ export type TicketTableProps = {
 	// The pathname, which keys the stored preferences.
 	routeKey: string;
 	search: Partial<View>;
-	onSearchChange: (next: Partial<View>) => void;
 	onOpenPage: (identifier: string) => void;
-	// Renders inside the table's peek list, so a peek there walks the rows in
-	// display order.
-	children?: ReactNode;
 };
 
 export type Editing = { id: string; field: EditField } | null;
@@ -53,7 +48,7 @@ const focusFilter = () => document.querySelector<HTMLElement>("[data-filter-bar]
 // The ticket table of a list route: the active rows grouped client-side,
 // the closed groups on demand, the roving focus, the id-keyed selection,
 // the inline pickers, and the bulk bar.
-export function TicketTable({ project, routeKey, search, onSearchChange, onOpenPage, children }: TicketTableProps) {
+export function TicketTable({ project, routeKey, search, onOpenPage }: TicketTableProps) {
 	const { orpc } = useApp();
 	const view = viewOf(search);
 	const storedDensity = useUiStore((state) => state.density);
@@ -108,8 +103,7 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 	const selection = useRowSelection({ ids });
 	const mutations = useTicketMutations();
 
-	const peekId = view.peek === undefined ? undefined : tickets.find((ticket) => ticket.identifier === view.peek)?.id;
-	const focusedId = (focusState !== null && byId.has(focusState) ? focusState : undefined) ?? peekId ?? ids[0] ?? null;
+	const focusedId = (focusState !== null && byId.has(focusState) ? focusState : undefined) ?? ids[0] ?? null;
 	const setRowFocus = useStableCallback((id: string) => flushSync(() => setFocusState(id)));
 
 	const focus = useStableCallback((id: string) => {
@@ -120,30 +114,7 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
 	});
 
-	// When the peek closes, the focus goes to the row of the ticket that the
-	// peek showed last. Base UI returns the focus only to the element that had
-	// it before the peek opened, and a j or k step just before Escape can make
-	// it skip that return and leave the focus on the page body.
-	// The row can already hold the table focus state, so `focus` can cause no
-	// render. TableBody focuses the row in a passive effect of this same
-	// commit, and that effect runs after this layout effect sets
-	// `pendingFocus`.
-	const lastPeek = useRef(view.peek);
-	useLayoutEffect(() => {
-		const closed = lastPeek.current;
-		lastPeek.current = view.peek;
-		if (closed === undefined || view.peek !== undefined) return;
-		const ticket = tickets.find((row) => row.identifier === closed);
-		if (ticket !== undefined) focus(ticket.id);
-	}, [view.peek, tickets, focus]);
-
 	const applyChange = useApplyChange(mutations, projects);
-	// The rows the peek walks with j and k, in display order. A row in a
-	// collapsed group stays in the list but is not visible.
-	const peekRows = useMemo(
-		() => groups.flatMap((group) => group.rows.map((row) => ({ identifier: row.identifier, visible: group.expanded }))),
-		[groups],
-	);
 
 	const selectedTickets = () => selection.selected.map((id) => byId.get(id)!);
 
@@ -151,9 +122,9 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		void applyChange(selection.isSelected(ticket.id) ? selectedTickets() : [ticket], change);
 	});
 
-	const openPeek = useStableCallback((id: string) => {
+	const openTicket = useStableCallback((id: string) => {
 		const ticket = byId.get(id);
-		if (ticket !== undefined) onSearchChange({ ...search, peek: ticket.identifier });
+		if (ticket !== undefined) onOpenPage(ticket.identifier);
 	});
 
 	const copier = useCopyTickets();
@@ -172,7 +143,7 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		if ((event.target as HTMLElement).closest("button, a, [role=checkbox]") !== null) return;
 		if (event.shiftKey) selection.extend(id);
 		else if (event.metaKey || event.ctrlKey) selection.toggle(id);
-		else openPeek(id);
+		else openTicket(id);
 	});
 
 	const onEditingChange = useStableCallback((id: string, field: EditField | null) =>
@@ -196,7 +167,7 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		setEditing,
 		groupKeys: groups.filter((group) => group.label !== null).map((group) => group.key),
 		toggleGroup: collapsed.toggle,
-		openPeek,
+		openTicket,
 		openPage: (id) => onOpenPage(byId.get(id)!.identifier),
 		openComposer: () => openNew(),
 		copy,
@@ -228,57 +199,54 @@ export function TicketTable({ project, routeKey, search, onSearchChange, onOpenP
 		count === 1 ? `Delete ${byId.get(pendingDelete![0]!)?.identifier ?? "the ticket"}?` : `Delete ${count} tickets?`;
 
 	return (
-		<PeekListProvider rows={peekRows}>
-			<div ref={root} data-ticket-table="" className="relative flex min-h-0 flex-1 flex-col">
-				{data.capped && <CapBanner onNarrow={focusFilter} />}
-				<TableBody
-					items={items}
-					columns={columnIds}
-					density={density}
-					project={project}
-					statuses={data.statuses}
-					projects={projects}
-					loading={data.loading}
-					rowCount={ids.length}
-					focusedId={focusedId}
-					pendingFocus={pendingFocus}
-					selection={selection}
-					editing={editing}
-					onFocusRow={setRowFocus}
-					onRowClick={onRowClick}
-					onOpen={openPeek}
-					onEditingChange={onEditingChange}
-					onRowChange={onRowChange}
-					onToggleGroup={collapsed.toggle}
-					onCreateInGroup={openNew}
-					bottomRoom={selection.count > 0}
-				/>
-				<TableFooter total={total} hidden={hidden} sort={view.sort} />
-				<BulkBar
-					open={selection.count > 0}
-					count={selection.count}
-					statuses={data.statuses}
-					projects={projects}
-					project={project}
-					onStatus={(status) => void applyChange(selectedTickets(), { status })}
-					onPriority={(priority) => void applyChange(selectedTickets(), { priority })}
-					onProject={(ref) => void applyChange(selectedTickets(), { project: ref })}
-					onParent={(parent) => void applyChange(selectedTickets(), { parent })}
-					onCopyIds={copyIds}
-					onDelete={() => setPendingDelete(selection.selected)}
-					onClear={selection.clear}
-				/>
-				<ConfirmDialog
-					open={pendingDelete !== null}
-					title={deleteTitle}
-					description="trellis cannot restore a deleted ticket. Its sub-tickets stay and lose their parent."
-					confirmLabel="Delete"
-					danger
-					onConfirm={() => void confirmDelete()}
-					onCancel={() => setPendingDelete(null)}
-				/>
-			</div>
-			{children}
-		</PeekListProvider>
+		<div ref={root} data-ticket-table="" className="relative flex min-h-0 flex-1 flex-col">
+			{data.capped && <CapBanner onNarrow={focusFilter} />}
+			<TableBody
+				items={items}
+				columns={columnIds}
+				density={density}
+				project={project}
+				statuses={data.statuses}
+				projects={projects}
+				loading={data.loading}
+				rowCount={ids.length}
+				focusedId={focusedId}
+				pendingFocus={pendingFocus}
+				selection={selection}
+				editing={editing}
+				onFocusRow={setRowFocus}
+				onRowClick={onRowClick}
+				onOpen={openTicket}
+				onEditingChange={onEditingChange}
+				onRowChange={onRowChange}
+				onToggleGroup={collapsed.toggle}
+				onCreateInGroup={openNew}
+				bottomRoom={selection.count > 0}
+			/>
+			<TableFooter total={total} hidden={hidden} sort={view.sort} />
+			<BulkBar
+				open={selection.count > 0}
+				count={selection.count}
+				statuses={data.statuses}
+				projects={projects}
+				project={project}
+				onStatus={(status) => void applyChange(selectedTickets(), { status })}
+				onPriority={(priority) => void applyChange(selectedTickets(), { priority })}
+				onProject={(ref) => void applyChange(selectedTickets(), { project: ref })}
+				onParent={(parent) => void applyChange(selectedTickets(), { parent })}
+				onCopyIds={copyIds}
+				onDelete={() => setPendingDelete(selection.selected)}
+				onClear={selection.clear}
+			/>
+			<ConfirmDialog
+				open={pendingDelete !== null}
+				title={deleteTitle}
+				description="trellis cannot restore a deleted ticket. Its sub-tickets stay and lose their parent."
+				confirmLabel="Delete"
+				danger
+				onConfirm={() => void confirmDelete()}
+				onCancel={() => setPendingDelete(null)}
+			/>
+		</div>
 	);
 }

@@ -2,14 +2,13 @@ import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { type BoardOutput, type BoardQueryInput, eventApplierFor, type Status, type StatusSummary } from "@trellis/api";
 import { toast, useMediaQuery, useTheme } from "@trellis/ui";
-import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { composerActions } from "../../composer/composerStore";
-import { PeekListProvider } from "../../ticket/TicketPeek/providers/PeekListProvider";
 import { categoryColumns, moveInBoard, projectColumns } from "../columns";
 import { BoardColumn } from "../components/BoardColumn";
 import { BoardSkeleton } from "../components/BoardSkeleton";
@@ -25,9 +24,6 @@ export type BoardProps = {
 	filters?: BoardQueryInput;
 	storageKey: string;
 	onOpenTicket: (identifier: string) => void;
-	// Renders inside the board's peek list, so a peek there walks the cards
-	// column by column.
-	children?: ReactNode;
 };
 
 type PendingChoice = BoardMove & { statuses: Status[] };
@@ -42,7 +38,7 @@ const closedCategories = ["done", "canceled"];
 // stays empty on it.
 const noSelection: string[] = [];
 
-export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, children }: BoardProps) {
+export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: BoardProps) {
 	const context = useApp();
 	const boardRef = useRef<HTMLDivElement>(null);
 	const [announcement, setAnnouncement] = useState("");
@@ -68,16 +64,6 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 		if (projectQuery.data === undefined) return [];
 		return projectColumns(boardQuery.data, projectQuery.data);
 	}, [boardQuery.data, projectQuery.data, projectRef]);
-
-	// The cards the peek walks with j and k. A card in a collapsed column
-	// stays in the list but is not visible.
-	const peekRows = useMemo(
-		() =>
-			columns.flatMap((column) =>
-				column.items.map((ticket) => ({ identifier: ticket.identifier, visible: !collapsed.includes(column.id) })),
-			),
-		[columns, collapsed],
-	);
 
 	useEffect(() => {
 		if (useUiStore.getState().collapsedGroups[storageKey] !== undefined) return;
@@ -224,7 +210,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 		: columnWidth(columns.length, columns.filter((column) => collapsed.includes(column.id)).length);
 
 	return (
-		<PeekListProvider rows={peekRows}>
+		<>
 			<div ref={boardRef} data-board="" className="flex min-h-0 flex-1 snap-x gap-3 overflow-x-auto px-5 py-4">
 				{columns.map((column) => (
 					<BoardColumn
@@ -260,7 +246,6 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 					onCancel={() => setPendingChoice(null)}
 				/>
 			)}
-			{children}
-		</PeekListProvider>
+		</>
 	);
 }

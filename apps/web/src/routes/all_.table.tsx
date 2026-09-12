@@ -10,7 +10,6 @@ import { type ListView, ViewSwitch } from "../features/shell/ViewSwitch";
 import { DisplayPopover } from "../features/table/DisplayPopover";
 import { ListPending } from "../features/table/ListPending";
 import { TicketTable } from "../features/table/TicketTable";
-import { TicketPeek } from "../features/ticket/TicketPeek";
 import { useScopeStatuses } from "../hooks/useScopeStatuses";
 import type { AppContext } from "../lib/appContext";
 import { loadScopeStatuses } from "../lib/scopeStatuses";
@@ -83,11 +82,8 @@ function AllPage() {
 			<TicketTable
 				routeKey={routeKey}
 				search={search}
-				onSearchChange={setSearch}
 				onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
-			>
-				<TicketPeek />
-			</TicketTable>
+			/>
 		</>
 	);
 }

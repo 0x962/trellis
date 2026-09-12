@@ -6,11 +6,8 @@ import { useKeyboardFocusRing } from "../features/search/hooks/useKeyboardFocusR
 import { SearchResults } from "../features/search/SearchResults";
 import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
-import { TicketPeek } from "../features/ticket/TicketPeek";
 
-// Full search results. `q` lives in the URL, so a search is a link. The
-// command palette opens a ticket in a peek over the page it is on, so the
-// page mounts the peek with and without a query.
+// `q` lives in the URL, so a search is a link.
 export const Route = createFileRoute("/search")({
 	validateSearch: (search: Record<string, unknown>) => stripDefaults(parseSearch(search)),
 	loaderDeps: ({ search }) => ({ q: search.q }),
@@ -85,19 +82,14 @@ function SearchPage() {
 			)}
 			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 				{q === undefined ? (
-					<>
-						<EmptyState
-							variant="page"
-							image="/search-poster.jpg"
-							title="Search tickets and projects"
-							description="A ticket ID such as CDE-42 opens the ticket. A word matches ticket titles, descriptions, and project names."
-						/>
-						<TicketPeek />
-					</>
+					<EmptyState
+						variant="page"
+						image="/search-poster.jpg"
+						title="Search tickets and projects"
+						description="A ticket ID such as CDE-42 opens the ticket. A word matches ticket titles, descriptions, and project names."
+					/>
 				) : (
-					<SearchResults q={q} filters={search}>
-						<TicketPeek />
-					</SearchResults>
+					<SearchResults q={q} filters={search} />
 				)}
 			</div>
 		</>
