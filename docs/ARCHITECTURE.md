@@ -139,7 +139,7 @@ exposes list, start, stop, refresh, send, and output. The ticket rail lists the
 runs of the ticket and opens a searchable persona picker; the picker puts the
 five personas the project used most first, and hides the manager kind. Each
 project has a Manager page at `/p/<project path>/settings/manager`. Its header
-holds the agents switch and one round control: Pause while the manager holds a
+holds one round control: Pause while the manager holds a
 terminal, else Play. Its Status section opens the manager, reads its output,
 sends it a follow-up, and asks about a new session when a resume lost the old
 one. Its Settings section picks the manager persona. Its ADE section picks the
@@ -194,8 +194,7 @@ of the run, writes the terminal text to `agents/<id>/output.txt`, and keeps the
 workspace and the history.
 
 A start needs a persona whose kind matches the target: a manager takes a project,
-and a builder or a reviewer takes a ticket. A start refuses a project whose agents
-switch is off, a completed ticket, a project with no repository, and a second
+and a builder or a reviewer takes a ticket. A start refuses a completed ticket, a project with no repository, and a second
 live manager for the same project. A ticket start counts the active non-manager
 runs of the project and refuses at the concurrency limit. The limit runs from 1 to 64 and defaults to 3. The manager is
 outside that count. A partial unique index on `agent_runs` holds the one-manager
@@ -360,7 +359,7 @@ time. The first section of each page carries no hash.
 `/settings` holds what is true for the whole machine: the actor name, the theme,
 the machine launch command, the stalled threshold, the gh state, the diff URL
 template, and the phone pair code. Every agent setting of one project lives on
-that project's Manager page: its agents switch, its manager persona, its ADE, its
+that project's Manager page: its manager persona, its ADE, its
 ADE command, its Superset host, its concurrency limit, and its project directory.
 `projects.managerConfig` carries those seven fields, and the Manager page writes
 them through `projects.update`.
@@ -382,7 +381,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `enabled`, `supersetHostId`, `ade`, `adeCommand`, `adeResumeCommand`, `harness` (`preset`, `startCommand`, `resumeCommand`), `adeCommands`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
+| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `supersetHostId`, `ade`, `adeCommand`, `adeResumeCommand`, `harness` (`preset`, `startCommand`, `resumeCommand`), `adeCommands`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). The effective repos of a project are its own plus those of its ancestors. |
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, wip_limit (CHECK > 0), is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
 | tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |

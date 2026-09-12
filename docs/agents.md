@@ -130,7 +130,6 @@ A run carries one state.
 ### What a start refuses
 
 - A persona kind that does not match the target. A manager takes `--project`. A builder and a reviewer take `--ticket`.
-- A project whose agents switch is off.
 - A ticket that is already done or canceled.
 - A project with no repository.
 - A second live manager for the same project.
@@ -143,8 +142,7 @@ continues the chat the stop left behind. A start still reads the persona the
 project names now, so a change of persona takes effect on the next start.
 
 Every agent setting of a project sits on its Manager page, at
-`/p/<project path>/settings/manager`. The header holds the agents switch and the
-Start manager button. The Status section picks the manager persona and draws the
+`/p/<project path>/settings/manager`. The header holds one Play/Pause button. Play starts or resumes the manager. Pause stops its terminal. The Status section picks the manager persona and draws the
 manager in the page: its state, its output, a follow-up box, and Stop. The ADE
 section
 picks the ADE, its command template, the Superset host, the concurrency limit,

@@ -48,7 +48,6 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 	}
 	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
 	const config = managerConfigOf(await projectRow(tx, project.id));
-	if (!config.enabled) throw invalidInput("project", "Turn on agents for this project before you start one.");
 	if (ticket !== null) {
 		const [active] = await rows<{ count: number }>(
 			tx,

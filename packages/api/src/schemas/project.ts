@@ -63,10 +63,7 @@ const ProjectManagerConfigInputSchema = z.strictObject({
 		.string()
 		.trim()
 		.refine((value) => value === "" || value.startsWith("/"), "Use an absolute directory path."),
-	// False stops every new agent of the project. An agent that already runs
-	// keeps running. A project row written before this field existed holds no
-	// value, so the default turns agents on.
-	enabled: z.boolean().default(true),
+	enabled: z.boolean().optional(),
 	// The Superset machine that runs the project's agents, by its machine id.
 	// Null runs them on the machine that runs the trellis server.
 	supersetHostId: z.string().min(1).nullable().default(null),
@@ -92,7 +89,7 @@ const ProjectManagerConfigInputSchema = z.strictObject({
 	harnessCommands: AdeCommandsSchema.nullable().optional(),
 });
 export const ProjectManagerConfigSchema = ProjectManagerConfigInputSchema.transform(
-	({ agentCommand, agentResumeCommand, harnessCommands, harness, adeCommands, ...config }) => ({
+	({ enabled: _enabled, agentCommand, agentResumeCommand, harnessCommands, harness, adeCommands, ...config }) => ({
 		...config,
 		adeCommands:
 			(harnessCommands?.start === SUPERSET_ADE_COMMANDS.start.replace("{{createTarget}}", "{{target}}")
