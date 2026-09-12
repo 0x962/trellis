@@ -1,5 +1,5 @@
 import { type ReviewRevision, reviewRef } from "@trellis/api";
-import { Badge } from "@trellis/ui";
+import { Badge, Tooltip } from "@trellis/ui";
 export function ReviewSummary({
 	pr,
 	revision,
@@ -17,6 +17,7 @@ export function ReviewSummary({
 				title?: string;
 				state?: string;
 				isDraft?: boolean;
+				mergeable?: string;
 				author?: { login: string };
 				headRefName?: string;
 				baseRefName?: string;
@@ -40,6 +41,13 @@ export function ReviewSummary({
 									? "Open"
 									: "Local review"}
 				</Badge>
+				{meta?.mergeable === "CONFLICTING" && (
+					<Tooltip content="Open merge conflicts on GitHub">
+						<a href={`${pr}/conflicts`} target="_blank" rel="noreferrer">
+							<Badge tone="wait">Merge conflicts</Badge>
+						</a>
+					</Tooltip>
+				)}
 				{meta?.author && <span>{meta.author.login}</span>}
 				{meta?.headRefName && (
 					<span className="review-branch" title={`${meta.headRefName} → ${meta.baseRefName}`}>

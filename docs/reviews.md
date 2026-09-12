@@ -10,7 +10,8 @@ The Changes tab uses Pierre Trees for file navigation and Pierre Diffs for code.
 The tree supports file search, keyboard navigation, Git status, and thread counts.
 The diff supports syntax colors, split and unified layouts, and inline threads.
 The layout choice persists in the browser.
-Select a line or range, then use **Add line comment**.
+Click a code line or line number to add a comment.
+Drag across line numbers to comment on a range.
 The comment sheet shows the file, side, and range.
 Draft text persists in the browser. Added drafts appear inline and in Discussion.
 

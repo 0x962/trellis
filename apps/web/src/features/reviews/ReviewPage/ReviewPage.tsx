@@ -161,14 +161,6 @@ export function ReviewPage({ pr }: { pr: string }) {
 							The PR has a new revision. Refresh to review it. Current comments keep their original anchors.
 						</button>
 					)}
-				{status.data?.mergeable === "CONFLICTING" && (
-					<p className="review-notice">
-						This PR has merge conflicts.{" "}
-						<a href={`${pr}/conflicts`} target="_blank" rel="noreferrer">
-							Open conflicts on GitHub
-						</a>
-					</p>
-				)}
 				<ReviewTabs
 					value={tab}
 					onValueChange={changeTab}

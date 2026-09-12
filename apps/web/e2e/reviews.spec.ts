@@ -11,7 +11,7 @@ test("reviews > a local draft becomes a persistent thread and keeps replies", as
 	await expect(page.locator("diffs-container")).toHaveCount(1);
 	await page.getByRole("radio", { name: "Split", exact: true }).check();
 	await expect(page.locator("[data-diff-type='split']")).toBeVisible();
-	await page.getByRole("button", { name: "Add comment", exact: true }).click();
+	await page.locator("diffs-container [data-line-type='change-addition'][data-line-index]").last().click();
 	const composer = page.getByRole("dialog", { name: "Add review comment" });
 	await composer.getByRole("textbox", { name: "Comment", exact: true }).fill("Keep the value within the transaction.");
 	await composer.getByRole("button", { name: "Add to review" }).click();

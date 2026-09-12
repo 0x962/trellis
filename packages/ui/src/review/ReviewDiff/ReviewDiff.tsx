@@ -4,7 +4,6 @@ import {
 	type DiffLineAnnotation,
 	type FileDiffContentsLoader,
 	parsePatchFiles,
-	type SelectedLineRange,
 } from "@pierre/diffs";
 import {
 	CodeView,
@@ -12,10 +11,11 @@ import {
 	type CodeViewReactOptions,
 	WorkerPoolContextProvider,
 } from "@pierre/diffs/react";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
+import { commentInteractions } from "./commentInteractions";
 import { expandControls } from "./expandControls";
 export type DiffAnchor = { path: string; side: "old" | "new"; line: number; startLine: number };
 export type DiffThread = DiffAnchor & { id: string; version: number; updatedAt: string; revisionId: string | null };
@@ -47,7 +47,6 @@ export function ReviewDiff({
 	onFiles,
 	loadFile,
 }: Props) {
-	const [selection, setSelection] = useState<{ id: string; range: SelectedLineRange } | null>(null);
 	const viewer = useRef<CodeViewHandle<string, undefined>>(null);
 	const files = useMemo(() => parsePatchFiles(patch).flatMap((patch) => patch.files), [patch]);
 	useEffect(() => {
@@ -101,6 +100,10 @@ export function ReviewDiff({
 	);
 	const options = useMemo<CodeViewReactOptions<string, undefined>>(
 		() => ({
+			...commentInteractions((anchor) => {
+				onSelect(anchor);
+				viewer.current?.clearSelectedLines();
+			}),
 			theme: { light: "pierre-light", dark: "pierre-dark" },
 			themeType: theme,
 			diffStyle: mode,
@@ -110,7 +113,7 @@ export function ReviewDiff({
 			enableLineSelection: true,
 			enableGutterUtility: true,
 		}),
-		[mode, theme, loadDiffFiles],
+		[mode, theme, loadDiffFiles, onSelect],
 	);
 	if (items.length === 0)
 		return (
@@ -132,8 +135,6 @@ export function ReviewDiff({
 			}}
 		>
 			<CodeView
-				selectedLines={selection}
-				onSelectedLinesChange={setSelection}
 				renderGutterUtility={(hover, item) => (
 					<Tooltip content="Add line comment">
 						<IconButton
@@ -144,20 +145,11 @@ export function ReviewDiff({
 								if (item.type !== "diff") return;
 								const line = hover();
 								if (!line || !("side" in line)) return;
-								const range: SelectedLineRange =
-									selection?.id === item.id
-										? selection.range
-										: {
-												start: line.lineNumber,
-												end: line.lineNumber,
-												side: line.side === "deletions" ? "deletions" : "additions",
-											};
-								if (range.endSide && range.side !== range.endSide) return;
 								onSelect({
 									path: item.fileDiff.name,
-									side: range.side === "deletions" ? "old" : "new",
-									startLine: Math.min(range.start, range.end),
-									line: Math.max(range.start, range.end),
+									side: line.side === "deletions" ? "old" : "new",
+									startLine: line.lineNumber,
+									line: line.lineNumber,
 								});
 							}}
 						/>
