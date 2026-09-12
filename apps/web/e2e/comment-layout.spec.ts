@@ -20,18 +20,13 @@ test.beforeAll(async () => {
 	}
 });
 
-test("a compact rendered comment has no Show more button", async ({ page }) => {
-	await signIn(page, "/t/CMT-1");
-	await expect(page.getByRole("article", { name: "Comment by dana" })).toBeVisible();
-	await expect(page.getByRole("button", { name: "Show more" })).toHaveCount(0);
-});
-
-test("an overflowing comment can expand and collapse", async ({ page }) => {
+test("a long comment renders its full body", async ({ page }) => {
 	await signIn(page, "/t/CMT-2");
-	await page.getByRole("button", { name: "Show more" }).click();
-	await expect(page.getByRole("button", { name: "Show less" })).toBeVisible();
-	await page.getByRole("button", { name: "Show less" }).click();
-	await expect(page.getByRole("button", { name: "Show more" })).toBeVisible();
+	const body = page.getByRole("article", { name: "Comment by dana" }).locator(".markdown, .comment-markdown");
+	await expect(body.getByText("Paragraph 12")).toBeVisible();
+	await expect
+		.poll(() => body.evaluate((element) => element.parentElement!.clientHeight === element.parentElement!.scrollHeight))
+		.toBe(true);
 });
 
 test("timeline actor names align with the comment surface", async ({ page }) => {

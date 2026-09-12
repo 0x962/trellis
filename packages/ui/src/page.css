@@ -1,5 +1,5 @@
 @utility page-inset {
-	@apply px-3 pb-3 max-md:px-2 max-md:pb-2;
+	@apply px-2 pb-3 max-md:pb-2;
 	& > .page-card:first-child {
 		@apply mt-13;
 	}

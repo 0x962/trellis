@@ -110,4 +110,11 @@ test("the desktop ticket cards use the compact gap", async ({ page }) => {
 	await page.setViewportSize({ width: 1280, height: 812 });
 	await signIn(page, "/t/TKT-1");
 	await expect(page.locator("[data-ticket-columns]")).toHaveCSS("column-gap", "12px");
+	const [pageBox, cardBox] = await Promise.all([
+		page.getByRole("main").boundingBox(),
+		page.locator("[data-ticket-columns] > article").boundingBox(),
+	]);
+	expect(pageBox).not.toBeNull();
+	expect(cardBox).not.toBeNull();
+	expect(cardBox!.x - pageBox!.x).toBeCloseTo(8, 0);
 });

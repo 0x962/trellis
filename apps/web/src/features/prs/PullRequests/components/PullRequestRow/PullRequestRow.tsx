@@ -50,8 +50,8 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 				className="relative opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
 				onClick={() => window.open(pr.url, "_blank", "noopener")}
 			/>
-			<ReviewStateIcon reviewState={pr.reviewState} isDraft={pr.isDraft} />
 			<UnlinkButton ticket={ticket} pr={pr} />
+			<ReviewStateIcon reviewState={pr.reviewState} isDraft={pr.isDraft} />
 		</div>
 	);
 }

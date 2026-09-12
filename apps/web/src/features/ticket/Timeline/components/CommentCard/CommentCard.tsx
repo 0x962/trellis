@@ -1,6 +1,6 @@
 import type { Comment } from "@trellis/api";
 import { ActorChip, Button, cx, Menu, type MenuItem, Textarea } from "@trellis/ui";
-import { type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { isLiveActor } from "../../../../../lib/actorLive";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
@@ -38,24 +38,6 @@ export function CommentCard({
 	const { client } = useApp();
 	const [editing, setEditing] = useState(false);
 	const [draft, setDraft] = useState(comment.body);
-	const [expanded, setExpanded] = useState(false);
-	const [overflows, setOverflows] = useState(false);
-	const bodyId = useId();
-	const bodyRef = useRef<HTMLDivElement>(null);
-
-	useLayoutEffect(() => {
-		if (editing || expanded) return;
-		const element = bodyRef.current!;
-		const measure = () => setOverflows(element.scrollHeight > element.clientHeight);
-		measure();
-		const observer = new ResizeObserver(measure);
-		observer.observe(element);
-		element.addEventListener("load", measure, true);
-		return () => {
-			observer.disconnect();
-			element.removeEventListener("load", measure, true);
-		};
-	}, [editing, expanded]);
 
 	const save = async () => {
 		try {
@@ -95,22 +77,9 @@ export function CommentCard({
 			</div>
 		</div>
 	) : (
-		<>
-			<div ref={bodyRef} id={bodyId} className={cx("text-base", !expanded && "max-h-60 overflow-hidden")}>
-				<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
-			</div>
-			{overflows && (
-				<Button
-					size="sm"
-					variant="quiet"
-					aria-controls={bodyId}
-					aria-expanded={expanded}
-					onClick={() => setExpanded(!expanded)}
-				>
-					{expanded ? "Show less" : "Show more"}
-				</Button>
-			)}
-		</>
+		<div className="text-base">
+			<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
+		</div>
 	);
 
 	return (
