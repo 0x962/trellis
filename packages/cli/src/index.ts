@@ -294,5 +294,5 @@ if (import.meta.main) {
 			Bun.spawn(args, { cwd, env, stdin: "inherit", stdout: "inherit", stderr: "inherit" }),
 	};
 	const code = await run(process.argv.slice(2), deps);
-	process.stdout.write("", () => process.exit(code));
+	process.exitCode = code;
 }

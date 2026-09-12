@@ -154,7 +154,8 @@ The gateway reads `~/.config/localhost-gateway/routes.json` on each request.
 It preserves configured routes and supplies the Trellis and Dots defaults.
 `GATEWAY_ROUTES_FILE` selects another route file.
 `margin.localhost` redirects to the native Trellis review route.
-The gateway binds `127.0.0.1` and defaults to port 80.
+The gateway accepts requests from loopback addresses and defaults to port 80.
+For low ports on macOS, it uses a wildcard bind. The request handler refuses clients outside loopback.
 Use `trellis gateway --port 8080` for a foreground rehearsal.
 
 After the generated plist passes inspection, transfer port 80:
