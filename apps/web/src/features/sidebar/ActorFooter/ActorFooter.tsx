@@ -52,7 +52,7 @@ export function ActorFooter() {
 	};
 
 	return (
-		<div className="flex shrink-0 items-center gap-0.5 pt-2">
+		<div className="flex shrink-0 items-center gap-0.5 pt-1">
 			<Popover
 				open={open}
 				onOpenChange={onOpenChange}
@@ -60,9 +60,9 @@ export function ActorFooter() {
 				trigger={
 					<button
 						type="button"
-						className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left transition-colors duration-hover ease-out hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+						className="flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left transition-colors duration-hover ease-out hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 					>
-						<Avatar kind="human" name={actor.name} className="size-7 text-xs" />
+						<Avatar kind="human" name={actor.name} className="size-6 shrink-0 text-xs" />
 						<span title={actor.name} className="min-w-0 truncate text-sm font-medium text-fg">
 							{actor.name}
 						</span>

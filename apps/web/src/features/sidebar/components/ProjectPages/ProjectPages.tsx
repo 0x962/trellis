@@ -7,7 +7,7 @@ import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectP
 // A page carries no chevron, so its padding adds that 20 px column to the
 // padding of the project row above it. The icon of a page then starts in
 // the same column as the icon of a sub-project at the same level.
-const indent = ["pl-6", "pl-10", "pl-14", "pl-18", "pl-22"] as const;
+const indent = ["pl-4", "pl-7", "pl-10", "pl-13", "pl-16"] as const;
 
 export function ProjectPages({
 	project,
