@@ -127,13 +127,20 @@ A run carries one state.
 - A second live manager for the same project.
 - A ticket start when the project already runs its concurrency limit of ticket agents. The limit runs from 1 to 64 and defaults to 3. The manager is outside that count.
 
+A project keeps one manager. Its first start names it, and every later start
+takes that same row, so the name holds. A manager that already has a Superset
+workspace resumes: the start opens one more terminal in that workspace and
+continues the chat the stop left behind. A start still reads the persona the
+project names now, so a change of persona takes effect on the next start.
+
 Every agent setting of a project sits on its Manager page, at
 `/p/<project path>/settings/manager`. The header holds the agents switch and the
-Start manager button. The Status section picks the manager persona, opens the
-manager, reads its output, sends it a follow-up, and stops it. The ADE section
+Start manager button. The Status section picks the manager persona and draws the
+manager in the page: its state, its output, a follow-up box, and Stop. The ADE
+section
 picks the ADE, its command template, the Superset host, the concurrency limit,
 and the project directory. The Agents section of `/settings` holds only the
-machine launch command and the stalled threshold.
+stalled threshold.
 
 ### The launch command
 
