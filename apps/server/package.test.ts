@@ -55,7 +55,9 @@ describe("apps/server package", () => {
 		}
 		expect(pkg.scripts.start).toContain("src/index.ts");
 		expect(pkg.scripts.dev).toContain("src/index.ts");
-		expect(pkg.scripts.test).toBe("bun test");
+		expect(pkg.scripts.test).toStartWith("bun test");
+		expect(pkg.scripts.test).toContain("test/int");
+		expect(pkg.scripts["test:int"]).toContain("test/int");
 	});
 
 	test("the server bunfig preloads the shared test setup", async () => {

@@ -15,7 +15,8 @@
 		"./gallery": "./src/gallery/Gallery.tsx"
 	},
 	"scripts": {
-		"test": "bun test",
+		"test": "bun test --path-ignore-patterns '**/test/int/**'",
+		"test:int": "bun test test/int",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"gallery": "vite",
 		"gallery:build": "NODE_ENV=production vite build"
