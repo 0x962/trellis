@@ -1,6 +1,6 @@
 import { Trash } from "@phosphor-icons/react";
 import { type FlowNodeKind, flowAgentKinds, type Persona } from "@trellis/api";
-import { IconButton, Input, Switch, Textarea, Tooltip } from "@trellis/ui";
+import { IconButton, Input, Sheet, Switch, Textarea, Tooltip } from "@trellis/ui";
 import { flowKinds } from "../../../kinds";
 import type { StepFields } from "../../flowDraft";
 import { PersonaSelect } from "../PersonaSelect";
@@ -11,6 +11,8 @@ type NodeInspectorProps = {
 	personas: Persona[];
 	onChange: (patch: Partial<StepFields>) => void;
 	onDelete: () => void;
+	onClose: () => void;
+	saveState: string;
 };
 
 // The inspector labels each instruction by its purpose.
@@ -24,101 +26,126 @@ const promptLabels: Record<FlowNodeKind, string | null> = {
 
 // Edits one step. Each change goes to the canvas at once, and the editor saves
 // the flow a moment later.
-export function NodeInspector({ fields, issue, personas, onChange, onDelete }: NodeInspectorProps) {
+export function NodeInspector({ fields, issue, personas, onChange, onDelete, onClose, saveState }: NodeInspectorProps) {
 	const meta = flowKinds[fields.kind];
 	const runsAgent = flowAgentKinds.has(fields.kind);
 	const promptLabel = promptLabels[fields.kind];
 	return (
-		<aside
-			aria-label="Step settings"
-			className="flex w-80 shrink-0 flex-col gap-5 overflow-y-auto border-l border-border bg-surface p-4 max-md:absolute max-md:inset-x-0 max-md:bottom-0 max-md:h-1/2 max-md:w-full max-md:border-t max-md:border-l-0"
+		<Sheet
+			open
+			modal={false}
+			title={`Edit ${meta.label.toLowerCase()}`}
+			titleClassName="text-md font-medium"
+			onOpenChange={(open) => !open && onClose()}
 		>
-			<header className="flex items-center gap-2">
-				<span aria-hidden="true" className="inline-flex size-4 text-fg-muted *:size-full">
-					<meta.icon />
-				</span>
-				<h2 className="text-md font-medium text-fg">{meta.label}</h2>
-				<Tooltip content="Delete step">
-					<IconButton label="Delete step" icon={<Trash />} variant="quiet" className="ml-auto" onClick={onDelete} />
-				</Tooltip>
-			</header>
-			<p className="text-xs text-fg-faint">{meta.description}</p>
-			<Input
-				label="Title"
-				required
-				maxLength={120}
-				invalid={fields.title.trim() === ""}
-				value={fields.title}
-				onChange={(event) => onChange({ title: event.target.value })}
-			/>
-			{runsAgent && (
-				<div className="flex flex-col gap-2">
-					<span className="text-sm text-fg-muted">Persona</span>
-					<PersonaSelect
-						personas={personas}
-						value={fields.personaId}
-						onChange={(personaId) => onChange({ personaId })}
-					/>
-				</div>
-			)}
-			{promptLabel !== null && (
-				<Textarea
-					label={promptLabel}
-					rows={10}
-					maxLength={200000}
-					value={fields.instruction}
-					onChange={(event) => onChange({ instruction: event.target.value })}
-					placeholder={
-						runsAgent && fields.personaId !== null
-							? "Optional. The agent reads this text after the persona instruction."
-							: "Write what this step does."
-					}
-				/>
-			)}
-			{fields.kind === "group" && (
-				<>
-					<Switch
-						label="Parallel"
-						checked={fields.parallel ?? false}
-						onCheckedChange={(parallel) => onChange({ parallel })}
-					/>
-					<p className="text-xs text-fg-muted">
-						{fields.parallel
-							? "All children start together. Connect only the group."
-							: "Connect one starting step to the other children."}
-					</p>
-					<Switch
-						label="Time limit"
-						checked={fields.minutes !== null}
-						onCheckedChange={(enabled) => onChange({ minutes: enabled ? 10 : null })}
-					/>
-					{fields.minutes !== null && (
+			<div className="flex min-h-full flex-col">
+				<div className="flex flex-1 flex-col gap-6 p-6 max-md:p-4">
+					<p className="text-sm text-fg-muted">{meta.description}</p>
+					<section aria-label="Details" className="flex flex-col gap-4">
+						<h3 className="text-md font-medium text-fg">Details</h3>
 						<Input
-							label="Minutes"
-							type="number"
-							min={1}
-							max={1440}
-							value={Number.isFinite(fields.minutes) ? String(fields.minutes) : ""}
-							onChange={(event) => onChange({ minutes: event.target.value === "" ? 0 : event.target.valueAsNumber })}
+							label="Title"
+							className="pointer-coarse:h-11"
+							required
+							maxLength={120}
+							invalid={fields.title.trim() === ""}
+							value={fields.title}
+							onChange={(event) => onChange({ title: event.target.value })}
 						/>
+						{runsAgent && (
+							<div className="flex flex-col gap-2">
+								<span className="text-sm text-fg-muted">Persona</span>
+								<PersonaSelect
+									personas={personas}
+									value={fields.personaId}
+									onChange={(personaId) => onChange({ personaId })}
+								/>
+							</div>
+						)}
+					</section>
+					{promptLabel !== null && (
+						<section aria-label="Instructions" className="flex flex-col gap-4 border-t border-border pt-6">
+							<h3 className="text-md font-medium text-fg">Instructions</h3>
+							<Textarea
+								label={promptLabel}
+								rows={14}
+								maxLength={200000}
+								value={fields.instruction}
+								onChange={(event) => onChange({ instruction: event.target.value })}
+								placeholder={
+									runsAgent && fields.personaId !== null
+										? "Optional. The agent reads this text after the persona instruction."
+										: "Write what this step does."
+								}
+							/>
+						</section>
 					)}
-				</>
-			)}
-			{fields.kind === "loop" && (
-				<Input
-					label="Rounds at most"
-					type="number"
-					min={1}
-					max={50}
-					value={String(fields.maxRounds)}
-					onChange={(event) => onChange({ maxRounds: event.target.valueAsNumber })}
-				/>
-			)}
-			{issue !== undefined && (
-				<p role="alert" className="text-sm text-danger">
-					{issue}
-				</p>
-			)}
-		</aside>
+					{fields.kind === "group" && (
+						<section aria-label="Execution" className="flex flex-col gap-4 border-t border-border pt-6">
+							<h3 className="text-md font-medium text-fg">Execution</h3>
+							<div className="flex flex-col gap-2">
+								<Switch
+									label="Parallel"
+									className="flex-row-reverse justify-between text-sm"
+									checked={fields.parallel === true}
+									onCheckedChange={(parallel) => onChange({ parallel })}
+								/>
+								<p className="text-xs text-fg-muted">
+									{fields.parallel
+										? "All children start together. Connect only the group."
+										: "Connect one starting step to the other children."}
+								</p>
+							</div>
+							<div className="flex flex-col gap-3 border-t border-border pt-4">
+								<Switch
+									label="Time limit"
+									className="flex-row-reverse justify-between text-sm"
+									checked={fields.minutes !== null}
+									onCheckedChange={(enabled) => onChange({ minutes: enabled ? 10 : null })}
+								/>
+								{fields.minutes !== null && (
+									<Input
+										label="Minutes"
+										className="tabular-nums pointer-coarse:h-11"
+										type="number"
+										min={1}
+										max={1440}
+										value={Number.isFinite(fields.minutes) ? String(fields.minutes) : ""}
+										onChange={(event) =>
+											onChange({ minutes: event.target.value === "" ? 0 : event.target.valueAsNumber })
+										}
+									/>
+								)}
+							</div>
+						</section>
+					)}
+					{fields.kind === "loop" && (
+						<section aria-label="Execution" className="flex flex-col gap-4 border-t border-border pt-6">
+							<h3 className="text-md font-medium text-fg">Execution</h3>
+							<Input
+								label="Rounds at most"
+								className="tabular-nums pointer-coarse:h-11"
+								type="number"
+								min={1}
+								max={50}
+								value={String(fields.maxRounds)}
+								onChange={(event) => onChange({ maxRounds: event.target.valueAsNumber })}
+							/>
+						</section>
+					)}
+					{issue !== undefined && (
+						<p role="alert" className="text-sm text-danger">
+							{issue}
+						</p>
+					)}
+				</div>
+				<footer className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-border bg-surface p-4">
+					<span className="text-xs text-fg-muted">{saveState}</span>
+					<Tooltip content="Delete step">
+						<IconButton label="Delete step" icon={<Trash />} onClick={onDelete} />
+					</Tooltip>
+				</footer>
+			</div>
+		</Sheet>
 	);
 }

@@ -52,6 +52,39 @@
 	border-color: var(--accent);
 }
 
+.flow-canvas .flow-node-hover-handles > .react-flow__handle {
+	opacity: 0;
+}
+
+.flow-canvas .flow-node-hover-handles:hover > .react-flow__handle,
+.flow-canvas .react-flow__node:focus-within > .flow-node-hover-handles > .react-flow__handle,
+.flow-canvas .flow-node-hover-handles > .react-flow__handle.connectingfrom,
+.flow-canvas .flow-node-hover-handles > .react-flow__handle.connectingto {
+	opacity: 1;
+}
+
+@media (hover: none) {
+	.flow-canvas .react-flow__node.selected > .flow-node-hover-handles > .react-flow__handle {
+		opacity: 1;
+	}
+}
+
+.flow-canvas .flow-edge-anchor {
+	r: 5px;
+	fill: var(--surface);
+	stroke: var(--border-strong);
+	stroke-width: 1.5;
+	pointer-events: none;
+}
+
+.flow-canvas .flow-edge-anchor[data-branch="yes"] {
+	stroke: var(--success);
+}
+
+.flow-canvas .flow-edge-anchor[data-branch="no"] {
+	stroke: var(--danger);
+}
+
 /* An edge that breaks a flow rule, such as an edge that makes a loop. */
 .flow-canvas .react-flow__edge.flow-edge-issue .react-flow__edge-path {
 	stroke: var(--danger);

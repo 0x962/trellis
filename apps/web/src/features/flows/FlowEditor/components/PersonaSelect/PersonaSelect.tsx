@@ -1,5 +1,5 @@
 import type { Persona } from "@trellis/api";
-import { Button, Command, type CommandGroup, Popover } from "@trellis/ui";
+import { Command, type CommandGroup, PickerButton, Popover } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { personaKinds } from "../../../../personas/PersonasPage/kinds";
 
@@ -35,9 +35,9 @@ export function PersonaSelect({ personas, value, onChange }: PersonaSelectProps)
 			initialFocus={input}
 			className="w-72 p-0"
 			trigger={
-				<Button align="start" className="w-full">
+				<PickerButton label="Persona">
 					{selected?.name ?? (value === null ? "No persona" : "Missing persona")}
-				</Button>
+				</PickerButton>
 			}
 		>
 			<Command

@@ -75,3 +75,36 @@ test("the ticket sections use the same Add button", async ({ page }) => {
 		}
 	}
 });
+
+test("empty ticket sections use the same empty state", async ({ page }) => {
+	await signIn(page, "/t/TKT-2");
+	const sections = [
+		{
+			name: /Sub-tickets/,
+			title: "No sub-tickets",
+			description: "Add a sub-ticket to split this work into smaller tasks.",
+		},
+		{
+			name: "PRs",
+			title: "No pull requests",
+			description: "Add a pull request to track its review and checks.",
+		},
+		{
+			name: "Attachments for TKT-2",
+			title: "No attachments",
+			description: "Add a file or drop it anywhere on this ticket.",
+		},
+	];
+
+	for (const expected of sections) {
+		const section = page.getByRole("region", { name: expected.name });
+		await expect(section.getByRole("heading", { level: 3, name: expected.title })).toBeVisible();
+		await expect(section.getByText(expected.description, { exact: true })).toBeVisible();
+	}
+});
+
+test("the desktop ticket cards use the compact gap", async ({ page }) => {
+	await page.setViewportSize({ width: 1280, height: 812 });
+	await signIn(page, "/t/TKT-1");
+	await expect(page.locator("[data-ticket-columns]")).toHaveCSS("column-gap", "12px");
+});

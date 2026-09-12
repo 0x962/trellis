@@ -1,6 +1,15 @@
 import { GitPullRequest, Plus } from "@phosphor-icons/react";
 import type { Ticket, TicketSummary } from "@trellis/api";
-import { Avatar, Button, CheckRibbon, PriorityIcon, SectionHeader, StatusIcon, TicketId } from "@trellis/ui";
+import {
+	Avatar,
+	Button,
+	CheckRibbon,
+	EmptyState,
+	PriorityIcon,
+	SectionHeader,
+	StatusIcon,
+	TicketId,
+} from "@trellis/ui";
 import { compactRelativeTime } from "../../../lib/format";
 import { composerActions } from "../../composer";
 import { useOpenTicket } from "../hooks/useOpenTicket";
@@ -52,9 +61,7 @@ export function SubTickets({ ticket }: SubTicketsProps) {
 				}
 			/>
 			{total === 0 ? (
-				// Nothing to frame, so no frame: one quiet word, and Add carries
-				// the invitation.
-				<p className="px-1 text-sm text-fg-faint">empty</p>
+				<EmptyState title="No sub-tickets" description="Add a sub-ticket to split this work into smaller tasks." />
 			) : (
 				<div className="overflow-hidden rounded-md border border-border">
 					<div
