@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
-import { openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import { openDb } from "../../../../src/db/client.ts";
+import { migrate } from "../../../../src/db/migrate.ts";
 
 describe("openDb", () => {
 	// `<%` is the word-similarity operator that pg_trgm defines. The CREATE

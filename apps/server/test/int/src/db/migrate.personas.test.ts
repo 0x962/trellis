@@ -2,9 +2,10 @@ import { afterAll, expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
-import { assertStatusInvariant } from "../../test/invariants.ts";
-import { openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import { originDir } from "../../../../../../test/originDir.ts";
+import { openDb } from "../../../../src/db/client.ts";
+import { migrate } from "../../../../src/db/migrate.ts";
+import { assertStatusInvariant } from "../../../invariants.ts";
 
 let db: Awaited<ReturnType<typeof openDb>>;
 afterAll(async () => {
@@ -13,7 +14,7 @@ afterAll(async () => {
 
 test("existing personas become reviewers without a change to their instructions", async () => {
 	const temp = mkdtempSync(join(process.env.TRELLIS_HOME!, "persona-migration-"));
-	cpSync(join(import.meta.dir, "../../drizzle"), temp, { recursive: true });
+	cpSync(join(originDir(import.meta.dir), "../../drizzle"), temp, { recursive: true });
 	const file = join(temp, "meta/_journal.json");
 	const journal = JSON.parse(readFileSync(file, "utf8"));
 	journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx <= 15);

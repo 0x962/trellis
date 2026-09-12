@@ -3,10 +3,11 @@ import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DEFAULT_AGENT_LAUNCH_COMMAND } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import { originDir } from "../../../../../../test/originDir.ts";
+import { openDb } from "../../../../src/db/client.ts";
+import { migrate } from "../../../../src/db/migrate.ts";
 
-const drizzleDir = join(import.meta.dir, "../../drizzle");
+const drizzleDir = join(originDir(import.meta.dir), "../../drizzle");
 const closers: Array<() => Promise<void>> = [];
 
 afterAll(async () => {

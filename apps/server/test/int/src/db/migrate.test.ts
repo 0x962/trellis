@@ -2,10 +2,11 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
-import { openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import { originDir } from "../../../../../../test/originDir.ts";
+import { openDb } from "../../../../src/db/client.ts";
+import { migrate } from "../../../../src/db/migrate.ts";
 
-const drizzleDir = join(import.meta.dir, "../../drizzle");
+const drizzleDir = join(originDir(import.meta.dir), "../../drizzle");
 
 type Journal = { entries: Array<{ idx: number; version: string; when: number; tag: string; breakpoints: boolean }> };
 
@@ -66,7 +67,7 @@ describe("migrations on disk", () => {
 		expect(custom).toMatch(/gin_trgm_ops/);
 		expect(custom).toMatch(/setweight\(to_tsvector\('english',\s*(coalesce\()?"?title"?/i);
 		expect(custom).toMatch(/setweight\(to_tsvector\('english',\s*(coalesce\()?"?body"?/i);
-		const schema = readFileSync(join(import.meta.dir, "schema.ts"), "utf8");
+		const schema = readFileSync(join(originDir(import.meta.dir), "schema.ts"), "utf8");
 		const mentions = schema.split(tag).length - 1;
 		expect(mentions).toBeGreaterThanOrEqual(4);
 	});
