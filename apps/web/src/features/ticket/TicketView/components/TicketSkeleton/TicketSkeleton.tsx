@@ -11,7 +11,7 @@ export function TicketSkeleton() {
 	);
 	return (
 		<div className="flex min-h-0 flex-1 gap-5">
-			<div className="min-w-0 flex-1 rounded-tl-lg border-t border-r border-border max-md:rounded-none max-md:border-r-0">
+			<div className="min-w-0 flex-1 rounded-t-lg border-t border-r border-border max-md:rounded-none max-md:border-r-0">
 				{main}
 			</div>
 			<div className="flex min-h-0 w-70 shrink-0 flex-col rounded-tl-lg border-t border-l border-border px-4 py-3 max-md:hidden">
