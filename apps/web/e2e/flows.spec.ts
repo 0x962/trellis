@@ -61,17 +61,23 @@ test("group captions show only the name and enabled options", async ({ page }) =
 	const flow = await create();
 	await signIn(page, `/ai/flows/${flow.slug}`);
 	await page.getByRole("button", { name: "Add group", exact: true }).click();
-	await page.getByRole("textbox", { name: "Title", exact: true }).fill("New budget");
 	const caption = page.getByRole("region", { name: "Flow canvas" }).locator("header");
-	await expect(caption).toHaveText("");
+	const save = async (text: string) => {
+		await page.getByRole("button", { name: "Save changes", exact: true }).click();
+		await expect(page.getByRole("dialog", { name: "Edit group", exact: true })).toHaveCount(0);
+		await expect(caption).toHaveText(text);
+		await caption.click();
+	};
+	await page.getByRole("textbox", { name: "Title", exact: true }).fill("New budget");
+	await save("");
 	await page.getByRole("switch", { name: "Parallel", exact: true }).click();
-	await expect(caption).toHaveText("Parallel");
+	await save("Parallel");
 	await page.getByRole("switch", { name: "Time limit", exact: true }).click();
-	await expect(caption).toHaveText("Parallel · 10 min");
+	await save("Parallel · 10 min");
 	await page.getByRole("switch", { name: "Parallel", exact: true }).click();
-	await expect(caption).toHaveText("10 min");
+	await save("10 min");
 	await page.getByRole("textbox", { name: "Title", exact: true }).fill("Backend checks");
-	await expect(caption).toHaveText("Backend checks10 min");
+	await save("Backend checks10 min");
 });
 
 test("palette tooltips use the panel theme and appear without a hover delay", async ({ page }) => {
@@ -88,7 +94,7 @@ test("palette tooltips use the panel theme and appear without a hover delay", as
 	}
 });
 
-test("the node sheet labels its sections and closes without losing edits", async ({ page }) => {
+test("the node sheet labels its sections and saves through the shared footer", async ({ page }) => {
 	const flow = await create();
 	await signIn(page, `/ai/flows/${flow.slug}`);
 	await page.getByRole("button", { name: "Add agent", exact: true }).click();
@@ -103,7 +109,7 @@ test("the node sheet labels its sections and closes without losing edits", async
 	await expect(sheet).toBeVisible();
 	await sheet.getByRole("textbox", { name: "Title", exact: true }).fill("Review the change");
 	await sheet.getByRole("textbox", { name: "Instruction", exact: true }).fill("Read the diff.");
-	await sheet.getByRole("button", { name: "Close", exact: true }).click();
+	await sheet.getByRole("button", { name: "Save changes", exact: true }).click();
 	await expect(sheet).toHaveCount(0);
 	await expect.poll(async () => (await read(flow)).nodes[0]?.instruction).toBe("Read the diff.");
 	await page.getByText("Review the change", { exact: true }).click();
@@ -112,7 +118,7 @@ test("the node sheet labels its sections and closes without losing edits", async
 	await expect(sheet).toHaveCount(0);
 	await page.getByText("Review the change", { exact: true }).click();
 	await expect(sheet.getByText("Saved", { exact: true })).toHaveCount(0);
-	await sheet.getByRole("button", { name: "Save", exact: true }).click();
+	await sheet.getByRole("button", { name: "Save changes", exact: true }).click();
 	await expect(sheet).toHaveCount(0);
 });
 
@@ -138,6 +144,7 @@ test("unfinished steps save to the server and survive a reload", async ({ page }
 	await signIn(page, `/ai/flows/${flow.slug}`);
 	await page.getByRole("button", { name: "Add agent", exact: true }).click();
 	await page.getByRole("textbox", { name: "Title", exact: true }).fill("Unfinished review");
+	await page.getByRole("button", { name: "Save changes", exact: true }).click();
 	await expect.poll(async () => (await read(flow)).nodes[0]?.title).toBe("Unfinished review");
 	await expect(page.getByRole("status").filter({ hasText: "Saved" })).toContainText("1 issue");
 	await page.reload();
@@ -170,11 +177,11 @@ test("navigation before autosave restores the pending draft", async ({ page }) =
 	const flow = await create();
 	await signIn(page, `/ai/flows/${flow.slug}`);
 	await page.getByRole("button", { name: "Add agent", exact: true }).click();
-	await page.getByRole("textbox", { name: "Title", exact: true }).fill("Pending review");
+
 	await page.getByRole("link", { name: "Flows", exact: true }).first().click();
 	await page.goto(`/ai/flows/${flow.slug}`);
-	await expect(page.getByText("Pending review", { exact: true })).toBeVisible();
-	await expect.poll(async () => (await read(flow)).nodes[0]?.title).toBe("Pending review");
+	await expect(page.getByText("New agent", { exact: true })).toBeVisible();
+	await expect.poll(async () => (await read(flow)).nodes[0]?.title).toBe("New agent");
 });
 
 test("a failed save keeps the draft through a reload", async ({ page }) => {
@@ -183,6 +190,7 @@ test("a failed save keeps the draft through a reload", async ({ page }) => {
 	await page.route("**/rpc/flows/save", (route) => route.abort());
 	await page.getByRole("button", { name: "Add agent", exact: true }).click();
 	await page.getByRole("textbox", { name: "Title", exact: true }).fill("Keep after network failure");
+	await page.getByRole("button", { name: "Save changes", exact: true }).click();
 	await expect(page.getByRole("status").filter({ hasText: "the save failed" })).toBeVisible();
 	await page.reload();
 	await expect(page.getByText("Keep after network failure", { exact: true })).toBeVisible();
@@ -199,9 +207,11 @@ test("a group stores parallel mode and an optional time limit", async ({ page })
 	await page.getByRole("switch", { name: "Parallel", exact: true }).click();
 	await page.getByRole("switch", { name: "Time limit", exact: true }).click();
 	await page.getByRole("spinbutton", { name: "Minutes" }).fill("12");
+	await page.getByRole("button", { name: "Save changes", exact: true }).click();
 	await expect
 		.poll(async () => (await read(flow)).nodes.find((node) => node.kind === "group"))
 		.toMatchObject({ parallel: true, minutes: 12 });
+	await page.getByText("Parallel · 12 min", { exact: true }).click();
 	await page.getByRole("button", { name: "Add agent", exact: true }).click();
 	await expect.poll(async () => (await read(flow)).nodes.length).toBe(3);
 	expect((await read(flow)).edges).toEqual([]);
@@ -210,12 +220,13 @@ test("a group stores parallel mode and an optional time limit", async ({ page })
 	await page.getByText("Parallel · 12 min", { exact: true }).click();
 	await page.getByRole("switch", { name: "Parallel", exact: true }).click();
 	await page.getByRole("switch", { name: "Time limit", exact: true }).click();
-	await expect
-		.poll(async () => (await read(flow)).nodes.find((node) => node.kind === "group"))
-		.toMatchObject({ parallel: false, minutes: null });
 	await expect(page.getByRole("alert")).toHaveText(
 		"A connected group needs one starting step. Connect every other child from that step.",
 	);
+	await page.getByRole("button", { name: "Save changes", exact: true }).click();
+	await expect
+		.poll(async () => (await read(flow)).nodes.find((node) => node.kind === "group"))
+		.toMatchObject({ parallel: false, minutes: null });
 });
 
 test("a version conflict keeps the draft through a reload and requires consent to discard", async ({ page }) => {
@@ -230,6 +241,7 @@ test("a version conflict keeps the draft through a reload and requires consent t
 		expectedVersion: saved.flow.version,
 	});
 	await page.getByRole("textbox", { name: "Title", exact: true }).fill("My browser edit");
+	await page.getByRole("button", { name: "Save changes", exact: true }).click();
 	await expect(page.getByRole("status").filter({ hasText: "another window" })).toBeVisible();
 	await page.reload();
 	await expect(page.getByText("My browser edit", { exact: true })).toBeVisible();
