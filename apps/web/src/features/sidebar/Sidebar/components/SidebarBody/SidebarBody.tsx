@@ -38,14 +38,6 @@ function NavRow({ to, icon, label, active, trailing }: NavRowProps) {
 	);
 }
 
-// The rows the rail keeps, in the order the open sidebar shows them.
-const railRows: Array<{ to: NavTarget; icon: ReactElement; label: string }> = [
-	{ to: "/needs-you", icon: <Inbox />, label: "Needs you" },
-	{ to: "/search", icon: <Search />, label: "Search" },
-	{ to: "/all", icon: <List />, label: "All tickets" },
-	{ to: "/ai/personas", icon: <UserRound />, label: "Personas" },
-];
-
 // A nav row is active on its own page and on every page under it: All
 // tickets stays marked on the All tickets board.
 const isActive = (pathname: string, to: NavTarget) => pathname === to || pathname.startsWith(`${to}/`);
@@ -76,50 +68,19 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 
-	if (collapsed) {
-		return (
-			<>
-				<button
-					type="button"
-					aria-label="Expand sidebar"
-					onClick={onCollapse}
-					className="mb-4 flex h-7 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md transition-opacity duration-hover ease-out hover:opacity-70 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
-				>
-					<TrellisWordmark short className="h-4" />
-				</button>
-				<nav aria-label="Workspace" className="flex flex-col gap-0.5">
-					{railRows.map(({ to, icon, label }) => (
-						<Link
-							key={to}
-							to={to}
-							aria-label={label}
-							title={label}
-							aria-current={isActive(pathname, to) ? "page" : undefined}
-							className={cx("sidebar-rail-row", isActive(pathname, to) && "sidebar-selected")}
-						>
-							<span aria-hidden="true" className="inline-flex size-4 shrink-0 *:size-full [&_svg]:stroke-[1.75]">
-								{icon}
-							</span>
-						</Link>
-					))}
-				</nav>
-			</>
-		);
-	}
-
 	return (
 		<>
-			<div className="mb-3 flex h-7 items-center pl-2">
+			<div className="mb-2 flex h-7 items-center pl-2">
 				{onCollapse ? (
-					// The mark is the control that closes the sidebar. A closed
-					// sidebar leaves the short mark in the topbar, which opens it.
+					// The mark is the control that opens and closes the sidebar.
+					// A closed sidebar keeps the first two letters of it.
 					<button
 						type="button"
-						aria-label="Collapse sidebar"
+						aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
 						onClick={onCollapse}
-						className="-mx-1 inline-flex h-7 cursor-pointer items-center rounded-md px-1 transition-opacity duration-hover ease-out hover:opacity-70 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+						className="inline-flex h-7 cursor-pointer items-center rounded-md transition-opacity duration-hover ease-out hover:opacity-70 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
 					>
-						<TrellisWordmark className="h-4.5" />
+						<TrellisWordmark short={collapsed} className="h-4.5" />
 					</button>
 				) : (
 					<TrellisWordmark className="h-4.5" />
@@ -137,7 +98,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				<NavRow to="/all" icon={<List />} label="All tickets" active={isActive(pathname, "/all")} />
 				<NavRow to="/ai/personas" icon={<UserRound />} label="Personas" active={isActive(pathname, "/ai/personas")} />
 			</nav>
-			<div className="mt-4 min-h-0 flex-1 overflow-y-auto pb-3">
+			<div hidden={collapsed} className="mt-3 min-h-0 flex-1 overflow-y-auto pb-2">
 				<div className="sidebar-section">
 					<h2>Projects</h2>
 					<IconButton

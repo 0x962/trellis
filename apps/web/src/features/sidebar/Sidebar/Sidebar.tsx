@@ -28,7 +28,7 @@ export function Sidebar() {
 				aria-label="Sidebar"
 				data-collapsed={collapsed || undefined}
 				className={cx(
-					"flex h-full shrink-0 flex-col gap-0.5 overflow-hidden border-r border-border bg-bg py-2.5 text-base max-md:hidden",
+					"flex h-full shrink-0 flex-col gap-0.5 overflow-hidden border-r border-border bg-bg py-2 text-base max-md:hidden",
 					"transition-[width] duration-peek ease-in-out motion-reduce:transition-none",
 					collapsed ? "w-12 px-2" : "w-60 px-2",
 				)}

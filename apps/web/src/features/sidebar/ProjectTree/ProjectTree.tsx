@@ -4,19 +4,13 @@ import type { ProjectSummary } from "@trellis/api";
 import { cx } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
-import { projectRefOfPathname } from "../../../lib/projectPath";
-import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
 
-// Each guide runs under the centre of its parent's chevron, so the line
-// points at the control that opened the group.
-
 const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.position;
 
-// A folder identifies a root project; a dot identifies a sub-project.
-// Each row opens the project. Expansion persists in uiStore. A row whose
-// subtree holds the active project is open whatever the stored state says.
+// Each row is the name of its project and opens it. Every level is drawn,
+// so a sub-project is always one glance away.
 //
 // The active row follows the page the outlet shows, not the URL of a
 // navigation that is still loading, so the highlight and the page match.
@@ -24,8 +18,6 @@ export function ProjectTree() {
 	const { orpc } = useApp();
 	const { data } = useQuery(orpc.projects.list.queryOptions({ input: { archived: false } }));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
-	const expanded = useUiStore((state) => state.expandedProjects);
-	const activeRef = projectRefOfPathname(pathname);
 	if (data === undefined) return <nav aria-label="Projects" data-project-tree="" />;
 
 	const children = new Map<string | null, ProjectSummary[]>();
@@ -37,17 +29,7 @@ export function ProjectTree() {
 
 	const level = (parentId: string | null, depth: number): ReactNode[] =>
 		(children.get(parentId) ?? []).sort(byPosition).flatMap((project) => {
-			const holdsActive = activeRef?.startsWith(`${project.path}.`) ?? false;
-			const open = holdsActive || (expanded[project.id] ?? true);
-			const row = (
-				<TreeRow
-					key={project.id}
-					project={project}
-					depth={depth}
-					expander={{ open, onToggle: () => uiActions.toggleProject(project.id) }}
-				/>
-			);
-			if (!open) return [row];
+			const row = <TreeRow key={project.id} project={project} depth={depth} />;
 			return [
 				row,
 				<li key={`${project.id}.subtree`}>

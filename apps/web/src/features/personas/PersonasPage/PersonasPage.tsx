@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Persona, PersonaKind } from "@trellis/api";
-import { Badge, Button, EmptyState, EntityCard, Skeleton } from "@trellis/ui";
+import { Button, EmptyState, EntityCard, Skeleton } from "@trellis/ui";
 import { Plus, UserRound } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -54,7 +54,6 @@ export function PersonasPage() {
 									<section key={group.value} aria-label={group.plural} className="flex flex-col gap-3">
 										<header className="flex items-center gap-2">
 											<h2 className="text-xl font-medium text-fg">{group.plural}</h2>
-											<Badge>{members.length}</Badge>
 											<Button
 												variant="quiet"
 												icon={<Plus />}
