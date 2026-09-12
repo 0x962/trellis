@@ -59,15 +59,9 @@ function AllPage() {
 
 	return (
 		<>
-			<Topbar
-				actions={
-					<>
-						<ViewSwitch value="table" onChange={switchView} />
-						<NewTicketButton />
-					</>
-				}
-			>
+			<Topbar actions={<NewTicketButton />}>
 				<h1 className="sr-only">All tickets</h1>
+				<ViewSwitch value="table" onChange={switchView} />
 			</Topbar>
 			<FilterBar
 				search={search}

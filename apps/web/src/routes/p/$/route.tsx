@@ -145,15 +145,9 @@ function ProjectPage() {
 	// only read, so they stay outside it.
 	return (
 		<>
-			<Topbar
-				actions={
-					<>
-						<ViewSwitch value={view} onChange={switchView} />
-						<NewTicketButton />
-					</>
-				}
-			>
+			<Topbar actions={<NewTicketButton />}>
 				<h1 className="sr-only">{project.name}</h1>
+				<ViewSwitch value={view} onChange={switchView} />
 			</Topbar>
 			{archived && <ArchivedBanner project={project} />}
 			<FilterBar
