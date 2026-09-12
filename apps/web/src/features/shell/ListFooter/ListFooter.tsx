@@ -15,10 +15,7 @@ export type ListFooterProps = {
 // bar below 640 px.
 export function ListFooter({ total, sort }: ListFooterProps) {
 	return (
-		<div
-			data-list-footer=""
-			className="flex h-7 shrink-0 items-center gap-4 border-t border-border px-5 text-xs text-fg-muted tabular"
-		>
+		<div data-list-footer="" className="flex h-7 shrink-0 items-center gap-4 px-5 text-xs text-fg-muted tabular">
 			<span className="whitespace-nowrap">
 				{total === undefined ? "" : `${formatCount(total)} ${total === 1 ? "ticket" : "tickets"}`}
 			</span>

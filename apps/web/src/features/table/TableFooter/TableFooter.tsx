@@ -25,7 +25,7 @@ export function TableFooter({ total, hidden = 0, sort }: TableFooterProps) {
 		<div
 			data-table-footer=""
 			data-list-footer=""
-			className="flex h-7 shrink-0 items-center gap-4 border-t border-border px-5 text-xs text-fg-muted tabular"
+			className="flex h-7 shrink-0 items-center gap-4 px-5 text-xs text-fg-muted tabular"
 		>
 			<span className="whitespace-nowrap">
 				{hidden > 0
