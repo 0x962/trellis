@@ -188,12 +188,12 @@ describe("features/sidebar/Sidebar AI section", () => {
 	});
 });
 
-describe("features/sidebar/Sidebar agents link", () => {
-	test("the footer links the Agents page right after Settings", async () => {
+describe("features/sidebar/Sidebar footer", () => {
+	// Each project reads its own agents on its Manager page, so the footer
+	// carries no agents link.
+	test("the footer carries no Agents link", async () => {
 		renderWithProviders(<Sidebar />, { path: "/all", actor: "dana" });
-		const agents = await screen.findByRole("link", { name: "Agents" });
-		expect(agents.getAttribute("href")).toBe("/agents");
-		const settings = screen.getByRole("link", { name: "Settings" });
-		expect(settings.nextElementSibling).toBe(agents);
+		await screen.findByRole("link", { name: "Settings" });
+		expect(screen.queryByRole("link", { name: "Agents" })).toBeNull();
 	});
 });

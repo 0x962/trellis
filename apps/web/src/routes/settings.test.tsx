@@ -19,7 +19,7 @@ describe("routes/settings", () => {
 		const user = userEvent.setup();
 		const { router } = renderApp({ path: "/settings", actor: "dana" });
 		const nav = await screen.findByRole("navigation", { name: "Settings" });
-		expect(within(nav).getAllByRole("link")).toHaveLength(4);
+		expect(within(nav).getAllByRole("link")).toHaveLength(3);
 		expect(await screen.findByRole("heading", { name: "Account", level: 2 })).toBeDefined();
 		expect(screen.queryByRole("textbox", { name: /diff url template/i })).toBeNull();
 		await user.click(within(nav).getByRole("link", { name: "Integrations" }));

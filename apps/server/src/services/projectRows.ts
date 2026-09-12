@@ -1,4 +1,10 @@
-import { type Project, type ProjectSummary, reservedSlugs } from "@trellis/api";
+import {
+	type Project,
+	type ProjectManagerConfig,
+	ProjectManagerConfigSchema,
+	type ProjectSummary,
+	reservedSlugs,
+} from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { ServiceCtx } from "../context.ts";
 import {
@@ -22,7 +28,8 @@ import { chainOf, pathOf, resolveProject } from "./refs.ts";
 type ProjectRow = ProjectSummaryRow & {
 	description: string;
 	ticket_template: string;
-	manager_config: NonNullable<Project["managerConfig"]>;
+	// The raw jsonb value. Read it through `managerConfigOf`.
+	manager_config: unknown;
 	ticket_counter: number;
 	created_at: string;
 	updated_at: string;
@@ -30,6 +37,12 @@ type ProjectRow = ProjectSummaryRow & {
 
 const projectColumns = sql`${projectSummaryColumns}, p.description, p.manager_config, p.ticket_template, p.ticket_counter,
 	${iso(sql`p.created_at`)} AS created_at, ${iso(sql`p.updated_at`)} AS updated_at`;
+
+// The manager settings of a project row. A row the database wrote before a
+// setting existed holds no key for it, so the schema fills each missing key
+// with its default value.
+export const managerConfigOf = (row: { manager_config: unknown }): ProjectManagerConfig =>
+	ProjectManagerConfigSchema.parse(row.manager_config);
 
 export const projectRow = async (tx: Tx, projectId: string) => {
 	const found = await rows<ProjectRow>(
@@ -114,7 +127,7 @@ export const projectView = async (ctx: ServiceCtx, tx: Tx, projectId: string): P
 		...toProjectSummary(row),
 		description: row.description,
 		ticketTemplate: row.ticket_template,
-		managerConfig: row.manager_config,
+		managerConfig: managerConfigOf(row),
 		ticketCounter: row.ticket_counter,
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,

@@ -51,9 +51,22 @@ export const ProjectManagerConfigSchema = z.strictObject({
 		.string()
 		.trim()
 		.refine((value) => value === "" || value.startsWith("/"), "Use an absolute directory path."),
+	// False stops every new agent of the project. An agent that already runs
+	// keeps running. A project row written before this field existed holds no
+	// value, so the default turns agents on.
+	enabled: z.boolean().default(true),
+	// The Superset machine that runs the project's agents, by its machine id.
+	// Null runs them on the machine that runs the trellis server.
+	supersetHostId: z.string().min(1).nullable().default(null),
 });
 export type ProjectManagerConfig = z.infer<typeof ProjectManagerConfigSchema>;
-export const DEFAULT_PROJECT_MANAGER_CONFIG: ProjectManagerConfig = { personaId: null, concurrency: 3, directory: "" };
+export const DEFAULT_PROJECT_MANAGER_CONFIG: ProjectManagerConfig = {
+	personaId: null,
+	concurrency: 3,
+	directory: "",
+	enabled: true,
+	supersetHostId: null,
+};
 
 export const ProjectSchema = ProjectSummarySchema.extend({
 	managerConfig: ProjectManagerConfigSchema.optional(),

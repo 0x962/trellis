@@ -1,8 +1,8 @@
 import type { Ticket } from "@trellis/api";
 import { useHotkey } from "@trellis/ui";
 import { useCallback } from "react";
-import { useApp } from "../../../lib/appContext";
-import { copyText } from "../../../lib/clipboard";
+import { useApp } from "../../../../../lib/appContext";
+import { copyText } from "../../../../../lib/clipboard";
 
 // Copies the brief `trellis brief <id>` prints: the markdown an agent
 // starts from.

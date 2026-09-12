@@ -9,13 +9,13 @@ import { launchCommand } from "../../agents/launchCommand/launchCommand.ts";
 import { expandLaunchTemplate } from "../../agents/launchCommand/template.ts";
 import { managedTerminal } from "../../agents/managedTerminal/managedTerminal.ts";
 import { attempt } from "../../agents/superset/attempt.ts";
-import { superset } from "../../agents/superset/superset.ts";
+import { shellTarget, superset } from "../../agents/superset/superset.ts";
 import { type ServiceCtx as CoreCtx, requireActor } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
-import { projectRow } from "../projectRows.ts";
+import { managerConfigOf, projectRow } from "../projectRows.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveProject, resolveTicket } from "../refs.ts";
 import { get as getSettings } from "../settings.ts";
 import type { ServiceCtx } from "../support.ts";
@@ -55,7 +55,8 @@ const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
 		if (legacy !== undefined) throw fail("DUPLICATE", { field: "active manager" });
 	}
 	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
-	const config = (await projectRow(tx, project.id)).manager_config;
+	const config = managerConfigOf(await projectRow(tx, project.id));
+	if (!config.enabled) throw invalidInput("project", "Turn on agents for this project before you start one.");
 	if (ticket !== null) {
 		const [active] = await rows<{ count: number }>(
 			tx,
@@ -104,7 +105,7 @@ const recordError = (ctx: Ctx, id: string, error: string, state: AgentRun["state
 export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 	const { run, repos, context, config } = await ctx.newTx((tx) => reserve(ctx.core, tx, input));
 	ctx.emit({ type: "agent-runs.changed", id: run.id });
-	const runner = superset(ctx.supersetBin);
+	const runner = superset(ctx.supersetBin, config.supersetHostId);
 	const settings = await ctx.newTx((tx) => getSettings(ctx.core, tx));
 	const template = settings.agentLaunchCommand ?? DEFAULT_AGENT_LAUNCH_COMMAND;
 	if (hasStandaloneLaunchHyphen(template)) {
@@ -147,6 +148,7 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 		projectDir: config.directory,
 		concurrency: String(config.concurrency),
 		superset: ctx.supersetBin,
+		target: shellTarget(config.supersetHostId),
 		projectId: project.value,
 		project: run.projectPath,
 		ticket: run.ticketIdentifier ?? "",
@@ -192,6 +194,7 @@ export const finish = async (ctx: Ctx, tx: Tx, input: { id: string }) => {
 
 export const prepareStop = async (ctx: Ctx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
+	const host = await ctx.newTx(async (tx) => managerConfigOf(await projectRow(tx, run.projectId!)).supersetHostId);
 	if (run.state === "starting") throw invalidInput("id", "Wait for the agent to finish its startup.");
 	if (run.state === "interrupted")
 		throw invalidInput("id", "Refresh the status to locate the terminal before you stop this agent.");
@@ -200,12 +203,12 @@ export const prepareStop = async (ctx: Ctx, input: { id: string }) => {
 		const text =
 			run.runtime === "tmux"
 				? await managedTerminal(ctx.home).output(run.terminalId)
-				: await superset(ctx.supersetBin).output(run.workspaceId, run.terminalId);
+				: await superset(ctx.supersetBin, host).output(run.workspaceId, run.terminalId);
 		const dir = join(ctx.home, "agents", run.id);
 		await mkdir(dir, { recursive: true, mode: 0o700 });
 		await writeFile(join(dir, "output.txt"), text, { mode: 0o600 });
 		if (run.runtime === "tmux") await managedTerminal(ctx.home).stop(run.terminalId);
-		else await superset(ctx.supersetBin).stop(run.workspaceId, run.terminalId);
+		else await superset(ctx.supersetBin, host).stop(run.workspaceId, run.terminalId);
 	}
 	await ctx.newTx((tx) =>
 		tx.execute(sql`UPDATE agent_runs SET state = 'stopped', updated_at = ${ctx.now()} WHERE id = ${input.id}`),
@@ -215,7 +218,8 @@ export const prepareStop = async (ctx: Ctx, input: { id: string }) => {
 
 export const prepareRefresh = async (ctx: Ctx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
-	const runner = superset(ctx.supersetBin);
+	const host = await ctx.newTx(async (tx) => managerConfigOf(await projectRow(tx, run.projectId!)).supersetHostId);
+	const runner = superset(ctx.supersetBin, host);
 	if (run.state === "interrupted" && run.runtime === "superset") {
 		const recovered = await attempt(() => runner.recover(runBranch(run), run.name));
 		if (!recovered.ok) {

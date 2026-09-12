@@ -7,7 +7,7 @@ import {
 	type ProjectManagerConfig,
 	ProjectManagerConfigSchema,
 } from "@trellis/api";
-import { Avatar, Button, Input, Select } from "@trellis/ui";
+import { Avatar, Button, ConfirmDialog, Input, Select, Switch, toast } from "@trellis/ui";
 import { Bot, GitBranch, Settings2 } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -17,11 +17,21 @@ import { RepoSettings } from "../../project-settings/RepoSettings";
 import { SettingsSection } from "../../project-settings/SettingsSection";
 import { Topbar } from "../../shell/Topbar";
 
+// Status opens the page, so it takes the empty hash and the bare URL
+// `/p/<path>/settings/manager` shows it.
 const sections = [
-	{ id: "", label: "General", icon: Settings2 },
+	{ id: "", label: "Status", icon: Bot },
+	{ id: "general", label: "General", icon: Settings2 },
 	{ id: "repositories", label: "Repositories", icon: GitBranch },
-	{ id: "manager", label: "Manager", icon: Bot },
 ];
+
+// The host picker value that stores `supersetHostId: null`: every agent of
+// the project then runs on the machine that runs the trellis server.
+const localValue = "local";
+const localLabel = "This machine";
+
+// True while the agent still holds its terminal.
+const atWork = (run: AgentRun) => run.state === "starting" || run.state === "running" || run.state === "interrupted";
 
 export function ProjectManagerPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
@@ -30,10 +40,21 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 	const saved = project.managerConfig ?? DEFAULT_PROJECT_MANAGER_CONFIG;
 	const [draft, setDraft] = useState(saved);
 	const [selected, setSelected] = useState<AgentRun | null>(null);
+	const [stopping, setStopping] = useState<AgentRun | null>(null);
 	const personas = useQuery(orpc.personas.list.queryOptions({ input: {} }));
 	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: { project: project.path } }));
+	// The host list comes from `superset hosts list`, which spawns a process,
+	// so only the General page reads it and the answer holds for five
+	// minutes. A runner that cannot answer leaves the picker with This
+	// machine alone.
+	const hosts = useQuery({
+		...orpc.agents.runnerHosts.queryOptions({}),
+		retry: false,
+		enabled: section === "general",
+		staleTime: 5 * 60_000,
+	});
 	const managers = runs.data?.filter((run) => run.kind === "manager") ?? [];
-	const active = managers.some((run) => ["starting", "running", "interrupted"].includes(run.state));
+	const active = managers.some(atWork);
 	const dirty =
 		draft.personaId !== saved.personaId ||
 		draft.concurrency !== saved.concurrency ||
@@ -45,6 +66,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 		onSuccess: async () => {
 			await queryClient.invalidateQueries({ queryKey: orpc.projects.get.key() });
 		},
+		onError: (error) => toast.error("Could not save the manager settings", { description: error.message }),
 	});
 	const commit = (next: ProjectManagerConfig) => {
 		setDraft(next);
@@ -55,15 +77,41 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 		onSuccess: (directory) => {
 			if (directory !== null) commit({ ...draft, directory });
 		},
+		onError: (error) => toast.error("Could not open the folder selector", { description: error.message }),
 	});
 	const start = useMutation({
 		mutationFn: () => client.agentRuns.start({ project: project.path, personaId: saved.personaId! }),
-		onSuccess: async () => {
+		onSuccess: async (run) => {
 			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
+			if (run.state === "failed") toast.error("Could not start the manager", { description: run.error ?? undefined });
+			else toast.success(`${run.name} starts now`);
 		},
+		onError: (error) => toast.error("Could not start the manager", { description: error.message }),
+	});
+	const stop = useMutation({
+		mutationFn: (run: AgentRun) => client.agentRuns.stop({ id: run.id }),
+		onSuccess: async (_result, run) => {
+			setStopping(null);
+			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
+			toast.success(`${run.name} stops now`);
+		},
+		onError: (error) => toast.error("Could not stop the agent", { description: error.message }),
 	});
 	const persona = personas.data?.find((item) => item.id === draft.personaId);
 	const readOnly = project.archivedAt !== null;
+
+	// The list holds the machines Superset can reach now. A project that
+	// names a machine the list does not hold keeps it as an item, so the
+	// setting stays readable and the person sees which machine to start.
+	const online = hosts.data?.hosts ?? [];
+	const hostItems = [
+		{ value: localValue, label: localLabel },
+		...online.map((entry) => ({ value: entry.id, label: entry.name })),
+		...(draft.supersetHostId !== null && !online.some((entry) => entry.id === draft.supersetHostId)
+			? [{ value: draft.supersetHostId, label: `${draft.supersetHostId} (offline)` }]
+			: []),
+	];
+
 	return (
 		<>
 			<Topbar>
@@ -94,6 +142,55 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 				</nav>
 				<div className="project-settings-content">
 					<div hidden={section !== ""} className="project-settings-page">
+						<SettingsSection title="Status" hint="Open the manager to read its output, send follow-ups, or stop it.">
+							{runs.isPending && (
+								<p role="status" className="text-sm text-fg-muted">
+									Load manager…
+								</p>
+							)}
+							{runs.isError && (
+								<p role="alert" className="text-sm text-danger">
+									Could not load manager.{" "}
+									<Button variant="quiet" onClick={() => void runs.refetch()}>
+										Retry
+									</Button>
+								</p>
+							)}
+							{managers.map((run) => (
+								<div key={run.id} className="flex min-w-0 items-center gap-2">
+									<Button align="start" variant="quiet" className="min-w-0 flex-1" onClick={() => setSelected(run)}>
+										<span className="flex min-w-0 items-center gap-2">
+											<Avatar kind="agent" name={run.name} live={atWork(run)} />
+											<span className="truncate text-fg">{run.name.split(" ")[0]}</span>
+											<span className="text-xs text-fg-faint">{run.state}</span>
+										</span>
+									</Button>
+									{atWork(run) && (
+										<Button
+											variant="quiet"
+											aria-label={`Stop ${run.name}`}
+											disabled={readOnly || run.state === "starting"}
+											processing={stop.isPending && stop.variables?.id === run.id}
+											onClick={() => setStopping(run)}
+										>
+											Stop
+										</Button>
+									)}
+								</div>
+							))}
+							<Button
+								disabled={readOnly || active || dirty || !draft.enabled || !persona || runs.isPending || runs.isError}
+								processing={start.isPending || save.isPending}
+								onClick={() => start.mutate()}
+							>
+								Start manager
+							</Button>
+							{!draft.enabled && (
+								<p className="text-sm text-fg-muted">Turn on agents in General before you start the manager.</p>
+							)}
+						</SettingsSection>
+					</div>
+					<div hidden={section !== "general"} className="project-settings-page">
 						<fieldset disabled={readOnly} className="min-w-0">
 							<SettingsSection title="General" hint="Changes save automatically.">
 								<form
@@ -103,6 +200,15 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 										if (dirty) commit(draft);
 									}}
 								>
+									<Switch
+										label="Turn on agents"
+										checked={draft.enabled}
+										className="self-start"
+										onCheckedChange={(enabled) => commit({ ...draft, enabled })}
+									/>
+									<p className="text-sm text-fg-muted">
+										Off: no agent of this project starts. An agent that already runs keeps running.
+									</p>
 									<p className="text-sm text-fg-muted">Manager persona</p>
 									<Select
 										label="Manager persona"
@@ -122,6 +228,16 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 											</Button>
 										</p>
 									)}
+									<p className="text-sm text-fg-muted">Superset host</p>
+									<Select
+										label="Superset host"
+										items={hostItems}
+										value={draft.supersetHostId ?? localValue}
+										onValueChange={(value) => commit({ ...draft, supersetHostId: value === localValue ? null : value })}
+									/>
+									<p className="text-sm text-fg-muted">
+										The machine that runs every agent of this project. Superset must be signed in on it.
+									</p>
 									<Input
 										label="Concurrency"
 										type="number"
@@ -162,11 +278,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 											Clear directory
 										</Button>
 									)}
-									{folder.isError && (
-										<p role="alert" className="text-sm text-danger">
-											Could not open the folder selector. {folder.error.message}
-										</p>
-									)}
 									{!ProjectManagerConfigSchema.safeParse(draft).success && (
 										<p role="alert" className="text-sm text-danger">
 											Enter a whole number from 1 to 64.
@@ -175,19 +286,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 									{save.isPending && (
 										<p role="status" className="text-sm text-fg-muted">
 											Save in progress…
-										</p>
-									)}
-									{save.isError && (
-										<p role="alert" className="text-sm text-danger">
-											Could not save manager settings. {save.error.message}
-											<Button variant="quiet" onClick={() => commit(draft)}>
-												Retry
-											</Button>
-										</p>
-									)}
-									{save.isSuccess && !save.isPending && !dirty && (
-										<p role="status" className="text-sm text-fg-muted">
-											Manager settings saved.
 										</p>
 									)}
 								</form>
@@ -199,64 +297,19 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 							<RepoSettings project={project} />
 						</fieldset>
 					</div>
-					<div hidden={section !== "manager"} className="project-settings-page">
-						<SettingsSection title="Manager" hint="Open the manager to read its output, send follow-ups, or stop it.">
-							{runs.isPending && (
-								<p role="status" className="text-sm text-fg-muted">
-									Load manager…
-								</p>
-							)}
-							{runs.isError && (
-								<p role="alert" className="text-sm text-danger">
-									Could not load manager.{" "}
-									<Button variant="quiet" onClick={() => void runs.refetch()}>
-										Retry
-									</Button>
-								</p>
-							)}
-							{managers.map((run) => (
-								<Button key={run.id} align="start" variant="quiet" onClick={() => setSelected(run)}>
-									<span className="flex min-w-0 items-center gap-2">
-										<Avatar
-											kind="agent"
-											name={run.name}
-											live={["starting", "running", "interrupted"].includes(run.state)}
-										/>
-										<span className="truncate text-fg">{run.name.split(" ")[0]}</span>
-										<span className="text-xs text-fg-faint">{run.state}</span>
-									</span>
-								</Button>
-							))}
-							<Button
-								disabled={
-									readOnly ||
-									active ||
-									dirty ||
-									save.isPending ||
-									!persona ||
-									start.isPending ||
-									runs.isPending ||
-									runs.isError
-								}
-								onClick={() => start.mutate()}
-							>
-								Start manager
-							</Button>
-							{start.isError && (
-								<p role="alert" className="text-sm text-danger">
-									Could not start manager. {start.error.message}
-								</p>
-							)}
-							{start.data?.state === "failed" && (
-								<p role="alert" className="text-sm text-danger">
-									Could not start manager. {start.data.error}
-								</p>
-							)}
-						</SettingsSection>
-					</div>
 				</div>
 			</div>
 			{selected && <AgentRunSheet run={selected} onClose={() => setSelected(null)} />}
+			<ConfirmDialog
+				open={stopping !== null}
+				title={`Stop ${stopping?.name ?? "the agent"}?`}
+				description="The workspace and its files stay available."
+				confirmLabel="Stop agent"
+				danger
+				processing={stop.isPending}
+				onConfirm={() => stopping && stop.mutate(stopping)}
+				onCancel={() => setStopping(null)}
+			/>
 		</>
 	);
 }

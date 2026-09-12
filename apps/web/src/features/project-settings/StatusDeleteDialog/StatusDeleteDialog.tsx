@@ -1,10 +1,9 @@
 import { ORPCError } from "@orpc/client";
 import type { Status } from "@trellis/api";
 import { errors } from "@trellis/api";
-import { Select } from "@trellis/ui";
+import { ConfirmDialog, Select } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { ConfirmActionDialog } from "../ConfirmActionDialog";
 
 export type StatusDeleteDialogProps = {
 	project: string;
@@ -56,7 +55,7 @@ export function StatusDeleteDialog({ project, status, statuses, onDeleted, onClo
 	};
 
 	return (
-		<ConfirmActionDialog
+		<ConfirmDialog
 			open={status !== null}
 			title={`Delete ${status?.name ?? "status"}?`}
 			description="trellis deletes the status from the project."
@@ -73,6 +72,6 @@ export function StatusDeleteDialog({ project, status, statuses, onDeleted, onClo
 			{moveTo !== null && (
 				<Select label="Move tickets to" items={alternatives} value={moveTo} onValueChange={setMoveTo} />
 			)}
-		</ConfirmActionDialog>
+		</ConfirmDialog>
 	);
 }

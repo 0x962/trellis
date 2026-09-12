@@ -3,6 +3,7 @@ import { type ComponentProps, type ReactElement, type ReactNode, useId } from "r
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
 import { Kbd } from "../Kbd";
+import { Spinner } from "../Spinner";
 import { type ButtonVariant, buttonVariants, disabledLook } from "./variants";
 
 export type { ButtonVariant } from "./variants";
@@ -18,6 +19,11 @@ export type ButtonProps = Omit<ComponentProps<typeof BaseButton>, "children" | "
 	// The shortcut, drawn as a Kbd key cap before the icon and the label. A
 	// key cap is the same element here, in a row, and in a menu.
 	kbd?: string;
+	// True while the action the button started still runs. A turning ring
+	// takes the icon slot, the label stays, and the button takes no second
+	// click. Set it for every action that reaches the server, such as Start
+	// or Stop.
+	processing?: boolean;
 	children: ReactNode;
 };
 
@@ -37,6 +43,7 @@ export function Button({
 	align = "center",
 	icon,
 	kbd,
+	processing = false,
 	className,
 	children,
 	...props
@@ -49,6 +56,7 @@ export function Button({
 	return (
 		<BaseButton
 			aria-labelledby={kbd && !props["aria-label"] ? `${labelId} ${shortcutId}` : undefined}
+			aria-busy={processing || undefined}
 			className={cx(
 				"inline-flex min-w-7 shrink-0 items-center justify-center gap-1.5 rounded-md border font-medium whitespace-nowrap select-none transition duration-hover ease-out",
 				"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
@@ -59,6 +67,7 @@ export function Button({
 				className,
 			)}
 			{...props}
+			disabled={props.disabled === true || processing}
 		>
 			{kbd && (
 				<Kbd id={shortcutId} className="shrink-0">
@@ -72,10 +81,14 @@ export function Button({
 					align === "start" ? "justify-start" : "justify-center",
 				)}
 			>
-				{icon && (
-					<span aria-hidden="true" className="inline-flex size-3.5 shrink-0 *:size-full">
-						{icon}
-					</span>
+				{processing ? (
+					<Spinner />
+				) : (
+					icon && (
+						<span aria-hidden="true" className="inline-flex size-3.5 shrink-0 *:size-full">
+							{icon}
+						</span>
+					)
 				)}
 				<span>{children}</span>
 			</span>

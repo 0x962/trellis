@@ -5,11 +5,11 @@ import { ArrowLeft, Copy, GitBranch, Maximize2, Menu, X } from "lucide-react";
 import { copyText } from "../../../lib/clipboard";
 import { lastListHref } from "../../../lib/lastList";
 import { uiActions } from "../../../stores/uiStore";
-import { BriefCopy } from "../../agent/BriefCopy";
 import { Breadcrumb } from "../../shell/Breadcrumb";
 import { useParentSummary } from "../hooks/useParentSummary";
 import { branchName, titleSlug } from "../PropertiesRail/utils/branchName";
 import { usePeek } from "../TicketPeek/hooks/usePeek";
+import { BriefCopy } from "./components/BriefCopy";
 import { MoreMenu, ticketLink } from "./components/MoreMenu";
 import { ParentChip } from "./components/ParentChip";
 

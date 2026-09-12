@@ -1,7 +1,8 @@
 export const DEFAULT_AGENT_LAUNCH_COMMAND =
-	"{{superset}} ws create --local --project {{projectId}} --name {{name}} --branch {{branch}} --command {{agentCommand}} --json";
+	"{{superset}} ws create {{target}} --project {{projectId}} --name {{name}} --branch {{branch}} --command {{agentCommand}} --json";
 export const AGENT_LAUNCH_VARIABLES = [
 	"superset",
+	"target",
 	"workDir",
 	"projectDir",
 	"concurrency",
