@@ -10,12 +10,33 @@ const prShort = (url: string) => {
 
 const metaText = (item: Activity, key: string) => String(item.meta[key] ?? "");
 
+// The poller writes a pull request row as "<state>/<ci state>", such as
+// "open/pending". A row moves either the state or the checks, so the line
+// names whichever one moved.
+const prStateWords: Record<string, string> = {
+	merged: "merged the pull request",
+	closed: "closed the pull request",
+	open: "reopened the pull request",
+};
+const prCheckWords: Record<string, string> = {
+	pass: "the checks of the pull request passed",
+	fail: "the checks of the pull request failed",
+	pending: "the checks of the pull request are running",
+	none: "the pull request has no checks",
+};
+
 // A PR, attachment, or comment row has no field. Its action names what
 // happened, and its `meta` holds the URL or the file name.
 const byAction: Record<string, (item: Activity) => string> = {
 	[activityActions.created]: () => "created the ticket",
 	"pr.linked": (item) => `linked the PR ${prShort(metaText(item, "url"))}`,
 	"pr.unlinked": (item) => `removed the PR ${prShort(metaText(item, "url"))}`,
+	"pr.state_changed": (item) => {
+		const [fromState] = metaText(item, "from").split("/");
+		const [toState, toChecks] = metaText(item, "to").split("/");
+		const words = toState === fromState ? prCheckWords[toChecks ?? ""] : prStateWords[toState ?? ""];
+		return words ?? "changed the pull request";
+	},
 	"attachment.created": (item) => `attached ${metaText(item, "filename")}`,
 	"attachment.deleted": (item) => `removed ${metaText(item, "filename")}`,
 	"comment.updated": (item) => {

@@ -105,7 +105,7 @@ export function CommentCard({
 				data-kind="comment"
 				className={cx("relative", !threadSurface && "py-3", className)}
 			>
-				<header className="relative flex h-8 items-center gap-2 text-sm">
+				<header className="relative flex h-8 items-center gap-2 pl-1 text-sm">
 					{showActor && comment.actor.kind !== "system" && (
 						<ActorChip
 							compact
@@ -130,10 +130,7 @@ export function CommentCard({
 					</div>
 				</header>
 				{threadSurface ? (
-					<div
-						data-thread-surface=""
-						className="relative ml-8 before:absolute before:-top-4 before:right-full before:h-4 before:w-6 before:rounded-bl-sm before:border-b before:border-l before:border-border"
-					>
+					<div data-thread-surface="" className="relative ml-7">
 						<div className="overflow-hidden rounded-md border border-border bg-surface shadow-sm">
 							<div className="px-4 pt-3 pb-4">{body}</div>
 							{children}
