@@ -1,4 +1,4 @@
-import { Check, Funnel, Inbox, MessageCircle, Paperclip, Plus, SearchX, X } from "lucide-react";
+import { Check, Funnel, MessageCircle, Paperclip, Plus, X } from "lucide-react";
 import { StatusIcon } from "../../../domain/StatusIcon";
 import { Avatar } from "../../../primitives/Avatar";
 import { Badge } from "../../../primitives/Badge";
@@ -67,7 +67,7 @@ export function DisplaySections() {
 				<ScrollArea className="h-40 w-56 rounded-md border border-border">
 					<ul className="flex flex-col p-1">
 						{lines.map((line) => (
-							<li key={line} className="h-7 px-2 font-mono text-sm leading-7 text-fg-muted">
+							<li key={line} className="h-7 px-2 text-sm leading-7 text-fg-muted">
 								{line}
 							</li>
 						))}
@@ -88,7 +88,6 @@ export function DisplaySections() {
 			</Section>
 			<Section name="EmptyState" note="section: inside a list; page: fills the pane" className="justify-center">
 				<EmptyState
-					icon={<Inbox />}
 					title="Nothing needs you"
 					description="Every review is done. Every check passed."
 					action={<Button>New ticket</Button>}
@@ -97,7 +96,6 @@ export function DisplaySections() {
 				<div className="flex h-60 w-full flex-col rounded-md border border-border">
 					<EmptyState
 						variant="page"
-						icon={<SearchX />}
 						title="Page not found"
 						description="No page has this URL."
 						action={<Button size="md">Needs you</Button>}

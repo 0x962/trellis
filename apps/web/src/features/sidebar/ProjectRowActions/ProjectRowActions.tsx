@@ -61,7 +61,7 @@ export function ProjectRowActions({ project }: ProjectRowActionsProps) {
 			<Menu
 				label={`Actions for ${project.name}`}
 				items={items}
-				trigger={<IconButton size="sm" label={`Actions for ${project.name}`} icon={<MoreHorizontal />} />}
+				trigger={<IconButton size="xs" label={`Actions for ${project.name}`} icon={<MoreHorizontal />} />}
 			/>
 			<NewSubprojectDialog project={project} open={createOpen} onOpenChange={setCreateOpen} />
 			<DeleteProjectDialog project={project} open={deleteOpen} onOpenChange={setDeleteOpen} />

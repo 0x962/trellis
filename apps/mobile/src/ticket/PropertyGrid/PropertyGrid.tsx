@@ -54,7 +54,7 @@ export function PropertyGrid({ ticket, parentTitle, onStatusPress, onPriorityPre
 			</View>
 			<View style={styles.row}>
 				<PropertyCell label="Project">
-					<Text numberOfLines={1} style={[styles.mono, { color: palette.fg }]}>
+					<Text numberOfLines={1} style={[styles.value, { color: palette.fg }]}>
 						{project.key}
 						<Text style={{ color: palette.fgMuted }}>{rest}</Text>
 					</Text>

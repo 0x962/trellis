@@ -1,6 +1,5 @@
 import { createRootRouteWithContext, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { EmptyState, Toaster } from "@trellis/ui";
-import { MapPinOff } from "lucide-react";
 import { CommandPalette } from "../features/command/CommandPalette";
 import { ShortcutHelp } from "../features/command/ShortcutHelp";
 import { ComposerHost } from "../features/composer/ComposerHost";
@@ -91,7 +90,6 @@ function PageNotFound() {
 	return (
 		<EmptyState
 			variant="page"
-			icon={<MapPinOff />}
 			title="Page not found"
 			description="No page has this URL."
 			action={

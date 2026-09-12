@@ -55,7 +55,7 @@ const command = ({ title, command }: CommandToastProps, data?: ExternalToast) =>
 	);
 
 // `toast("Saved")` shows a plain message. `toast.command` shows a copy
-// toast with the copied text in mono. The rest is sonner's API.
+// toast with the copied text. The rest is sonner's API.
 export const toast = Object.assign((message: string, data?: ExternalToast) => sonnerToast(message, data), {
 	success: (message: string, data?: ExternalToast) =>
 		sonnerToast.success(message, { duration: toastDurations.success, ...data }),

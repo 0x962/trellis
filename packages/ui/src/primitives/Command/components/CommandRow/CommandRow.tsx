@@ -14,7 +14,7 @@ export type CommandRowProps = {
 	// Muted text after the label: the current status, a project path, a
 	// command to paste.
 	sub?: string;
-	// Draws the sub in faint mono, for a branch name, an ID, or a command.
+	// Draws the sub in faint mono, for a ticket ID.
 	mono?: boolean;
 	// Faint mono text before the label, such as a ticket ID.
 	prefix?: string;

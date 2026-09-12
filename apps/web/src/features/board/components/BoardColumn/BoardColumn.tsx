@@ -82,7 +82,7 @@ export function BoardColumn({
 				)}
 			>
 				<li role="none" className="contents">
-					<IconButton label={`Expand ${column.name}`} icon={<ChevronRight />} size="sm" onClick={onToggle} />
+					<IconButton label={`Expand ${column.name}`} icon={<ChevronRight />} size="xs" onClick={onToggle} />
 					<StatusIcon category={column.category} reviewer={reviewer} />
 					<span className="mt-2 [writing-mode:vertical-rl] text-sm font-medium text-fg-muted">
 						{column.name} <span className="tabular">{count}</span>
@@ -112,10 +112,10 @@ export function BoardColumn({
 				<span className="text-sm text-fg-faint tabular">{count}</span>
 				{column.wipLimit !== null && <WipBadge count={column.count} limit={column.wipLimit} />}
 				<span className={cx("ml-auto flex items-center gap-0.5", revealed)}>
-					<IconButton label={`New ticket in ${column.name}`} icon={<Plus />} size="sm" onClick={onNewTicket} />
+					<IconButton label={`New ticket in ${column.name}`} icon={<Plus />} size="xs" round onClick={onNewTicket} />
 					<Menu
 						label={`${column.name} actions`}
-						trigger={<IconButton label={`${column.name} actions`} icon={<MoreHorizontal />} size="sm" />}
+						trigger={<IconButton label={`${column.name} actions`} icon={<MoreHorizontal />} size="xs" />}
 						items={[{ label: "Collapse", onSelect: onToggle }]}
 					/>
 				</span>

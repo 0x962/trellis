@@ -91,7 +91,8 @@ export function GroupHeader({
 				)}
 				{onCreate && (
 					<IconButton
-						size="sm"
+						size="xs"
+						round
 						label={`New ticket in ${label}`}
 						icon={<Plus />}
 						className={revealed}

@@ -141,6 +141,20 @@
       "when": 1789143314838,
       "tag": "0022_fix_manager_launch",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1789177878741,
+      "tag": "0023_target_launch_template",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789181428783,
+      "tag": "0024_abandoned_misty_knight",
+      "breakpoints": true
     }
   ]
 }

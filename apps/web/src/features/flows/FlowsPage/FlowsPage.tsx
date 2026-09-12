@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Button, EmptyState, EntityCard, Skeleton } from "@trellis/ui";
-import { Plus, Workflow } from "lucide-react";
+import { Button, EmptyState, EntityCard, IconButton, Skeleton } from "@trellis/ui";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { Topbar } from "../../shell/Topbar";
@@ -18,12 +18,17 @@ export function FlowsPage() {
 		<>
 			<Topbar
 				actions={
-					<Button variant="primary" icon={<Plus />} onClick={() => setCreating(true)}>
-						New flow
-					</Button>
+					<IconButton
+						label="New flow"
+						icon={<Plus />}
+						size="md"
+						round
+						variant="primary"
+						onClick={() => setCreating(true)}
+					/>
 				}
 			>
-				<h1 className="text-lg font-semibold text-fg">Flows</h1>
+				<h1 className="sr-only">Flows</h1>
 			</Topbar>
 			<div className="min-h-0 flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
 				<div className="flex max-w-7xl flex-col gap-6">
@@ -44,11 +49,7 @@ export function FlowsPage() {
 							</Button>
 						</div>
 					) : flows.data.length === 0 ? (
-						<EmptyState
-							icon={<Workflow />}
-							title="No flows yet"
-							description="Create a flow, then draw its steps on the canvas."
-						/>
+						<EmptyState title="No flows yet" description="Create a flow, then draw its steps on the canvas." />
 					) : (
 						<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
 							{flows.data.map((flow) => (
@@ -56,12 +57,6 @@ export function FlowsPage() {
 									key={flow.id}
 									title={flow.name}
 									description={flow.description === "" ? "No description." : flow.description}
-									icon={<Workflow />}
-									footer={
-										<span className="tabular-nums">
-											{flow.nodeCount} {flow.nodeCount === 1 ? "step" : "steps"}
-										</span>
-									}
 									editLabel={`Open ${flow.name}`}
 									onEdit={() => open(flow.slug)}
 								/>

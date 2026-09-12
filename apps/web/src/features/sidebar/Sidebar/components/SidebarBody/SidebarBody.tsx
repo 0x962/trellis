@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { cx, IconButton, Kbd, TrellisWordmark } from "@trellis/ui";
-import { Inbox, List, Plus, Search, UserRound, Workflow } from "lucide-react";
+import { AiGlyph, cx, IconButton, Kbd, TicketGlyph, TrellisWordmark } from "@trellis/ui";
+import { Inbox, Plus, Search, Workflow } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
@@ -95,16 +95,20 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 					active={isActive(pathname, "/search")}
 					trailing={<Kbd>/</Kbd>}
 				/>
-				<NavRow to="/all" icon={<List />} label="All tickets" active={isActive(pathname, "/all")} />
-				<NavRow to="/ai/personas" icon={<UserRound />} label="Personas" active={isActive(pathname, "/ai/personas")} />
+				<NavRow to="/all" icon={<TicketGlyph />} label="All tickets" active={isActive(pathname, "/all")} />
+			</nav>
+			<nav aria-label="AI" hidden={collapsed} className="mt-3 shrink-0">
+				<h2 className="sidebar-section">AI</h2>
+				<NavRow to="/ai/personas" icon={<AiGlyph />} label="Personas" active={isActive(pathname, "/ai/personas")} />
 				<NavRow to="/ai/flows" icon={<Workflow />} label="Flows" active={isActive(pathname, "/ai/flows")} />
 			</nav>
 			<div hidden={collapsed} className="mt-3 min-h-0 flex-1 overflow-y-auto pb-2">
 				<div className="sidebar-section">
 					<h2>Projects</h2>
 					<IconButton
-						size="sm"
+						size="xs"
 						className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
+						round
 						label="New project"
 						icon={<Plus />}
 						onClick={() => navigate({ to: "/setup", search: { step: "project" } })}

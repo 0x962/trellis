@@ -1,6 +1,6 @@
 import type { Sort } from "@trellis/api";
-import { cx, IconButton, Popover, Segmented, Select, Switch, Tooltip } from "@trellis/ui";
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, SlidersHorizontal } from "lucide-react";
+import { cx, IconButton, Popover, Segmented, Select, SortGlyph, Switch, Tooltip } from "@trellis/ui";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
 import { type Density, uiActions, useUiStore } from "../../../stores/uiStore";
 import type { Group, View } from "../../filters/grammar";
 import { alwaysVisible, type ColumnId, columnLabels, columnOrder } from "../columns";
@@ -77,7 +77,7 @@ export function DisplayPopover({
 			label="Display"
 			align="end"
 			className="w-75 p-3"
-			trigger={<IconButton label="Display" icon={<SlidersHorizontal />} size="md" />}
+			trigger={<IconButton label="Display" icon={<SortGlyph />} size="sm" />}
 		>
 			<div className="flex flex-col gap-3">
 				<section className="flex flex-col gap-1.5">
@@ -92,7 +92,7 @@ export function DisplayPopover({
 									aria-pressed={on}
 									onClick={() => uiActions.setColumnVisible(routeKey, id, !on)}
 									className={cx(
-										"h-6 rounded-sm border px-2 text-sm transition-colors duration-hover ease-out focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+										"h-7 rounded-md border px-2 text-sm transition-colors duration-hover ease-out focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 										on ? "border-accent bg-accent-soft text-fg" : "border-border text-fg-muted hover:text-fg",
 									)}
 								>
@@ -123,7 +123,7 @@ export function DisplayPopover({
 							/>
 							<Tooltip content={descending ? "Descending" : "Ascending"}>
 								<IconButton
-									size="sm"
+									size="xs"
 									label="Sort direction"
 									icon={descending ? <ArrowDownWideNarrow /> : <ArrowUpNarrowWide />}
 									onClick={() => setSort(field.value, !descending)}

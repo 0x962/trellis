@@ -19,7 +19,7 @@ export function ComposerHeader({ project, onClose }: ComposerHeaderProps) {
 			{key !== undefined && (
 				<span className="inline-flex h-5 items-center gap-1.5">
 					<ProjectKey projectKey={key} />
-					{rest.length > 0 && <span className="font-mono text-sm text-fg-muted">{rest.join("/")}</span>}
+					{rest.length > 0 && <span className="text-sm text-fg-muted">{rest.join("/")}</span>}
 				</span>
 			)}
 			{key !== undefined && (
@@ -28,7 +28,7 @@ export function ComposerHeader({ project, onClose }: ComposerHeaderProps) {
 				</span>
 			)}
 			<span className="text-sm text-fg-muted">New ticket</span>
-			<IconButton variant="quiet" size="md" label="Close" icon={<X />} onClick={onClose} className="ml-auto" />
+			<IconButton variant="quiet" size="sm" label="Close" icon={<X />} onClick={onClose} className="ml-auto" />
 		</div>
 	);
 }

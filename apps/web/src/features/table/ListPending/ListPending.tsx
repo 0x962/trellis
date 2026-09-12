@@ -16,7 +16,7 @@ export function ListPending({ view, title }: ListPendingProps) {
 	return (
 		<>
 			<Topbar>
-				<h1 className="text-lg font-semibold text-fg">{title}</h1>
+				<h1 className="sr-only">{title}</h1>
 			</Topbar>
 			<div aria-hidden="true" className="h-9 shrink-0 border-b border-border" />
 			<div aria-busy="true" className="flex min-h-0 flex-1 flex-col">

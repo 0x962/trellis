@@ -42,9 +42,9 @@ export function Menu({ label, items, trigger, align = "end", className }: MenuPr
 						: cx(
 								"inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-fg-muted transition duration-hover ease-out",
 								hitArea.box28Bordered,
-								"hover:bg-bg hover:text-fg data-popup-open:bg-bg data-popup-open:text-fg",
+								"hover:bg-fg/6 hover:text-fg active:bg-fg/10 data-popup-open:bg-fg/10 data-popup-open:text-fg",
 								"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
-								"disabled:opacity-50 disabled:pointer-events-none",
+								"disabled:text-fg-faint disabled:pointer-events-none",
 							)
 				}
 			>

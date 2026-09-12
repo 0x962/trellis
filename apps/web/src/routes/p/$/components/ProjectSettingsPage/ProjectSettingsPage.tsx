@@ -19,7 +19,7 @@ export function ProjectSettingsPage({ project }: ProjectSettingsPageProps) {
 	return (
 		<>
 			<Topbar>
-				<h1 className="flex min-w-0 items-center gap-1.5 text-lg font-semibold text-fg">
+				<h1 className="sr-only">
 					{crumbs.map(({ id, name }, index) => (
 						<span key={id} className="flex min-w-0 items-center gap-1.5">
 							{index > 0 && (

@@ -74,7 +74,7 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 						readOnly
 						disabled
 						aria-describedby={locked ? noticeId : undefined}
-						className="max-w-28 font-mono uppercase"
+						className="max-w-28 uppercase"
 					/>
 					{locked && (
 						<p id={noticeId} className="flex items-center gap-1.5 text-sm text-fg-muted">

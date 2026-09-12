@@ -43,11 +43,11 @@ export function Select<Value extends string>({
 				aria-label={label}
 				aria-disabled={disabled || undefined}
 				className={cx(
-					"inline-flex h-7 min-w-24 shrink-0 items-center justify-between gap-2 rounded-md border border-border bg-surface pr-1.5 pl-2 text-sm text-fg whitespace-nowrap select-none transition duration-hover ease-out",
+					"inline-flex h-7 min-w-24 shrink-0 items-center justify-between gap-2 rounded-md border border-border-strong bg-control pr-1.5 pl-2 text-sm text-fg whitespace-nowrap select-none transition duration-hover ease-out",
 					hitArea.box28Bordered,
-					"hover:bg-bg hover:border-border-strong data-popup-open:bg-bg",
-					"outline-none focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft",
-					"disabled:opacity-50 disabled:pointer-events-none",
+					"hover:bg-control-hover active:bg-control-active data-popup-open:bg-control-active",
+					"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+					"disabled:bg-surface disabled:border-border disabled:text-fg-faint disabled:pointer-events-none",
 					className,
 				)}
 			>

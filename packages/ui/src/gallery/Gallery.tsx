@@ -20,7 +20,7 @@ export function Gallery() {
 	return (
 		<div className="min-h-screen bg-bg text-base text-fg">
 			<header className="sticky top-0 z-10 flex h-11 items-center gap-3 border-b border-border bg-surface px-5">
-				<span className="font-mono text-md font-medium">trellis</span>
+				<span className="text-md font-medium">trellis</span>
 				<span className="text-sm text-fg-muted">gallery</span>
 				<div className="ml-auto">
 					<Segmented label="Theme" options={themes} value={mode} onValueChange={setTheme} />

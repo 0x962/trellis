@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { EmptyState } from "@trellis/ui";
-import { SearchX } from "lucide-react";
 import { linkButtonClass } from "../linkButtonClass";
 
 export type NotFoundStateProps = {
@@ -16,7 +15,6 @@ export function NotFoundState({ ref, searchFor }: NotFoundStateProps) {
 	return (
 		<EmptyState
 			variant="page"
-			icon={<SearchX />}
 			title={`${ref} does not exist`}
 			description="Make sure that the URL has no typo. This page also shows for a deleted ticket or project."
 			action={

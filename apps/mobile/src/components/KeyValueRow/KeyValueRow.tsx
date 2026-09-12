@@ -6,7 +6,6 @@ import { usePalette } from "../../theme/usePalette";
 export type KeyValueRowProps = {
 	label: string;
 	value: string;
-	mono?: boolean;
 	// When set, the row is a button and shows a chevron.
 	onPress?: () => void;
 };
@@ -22,12 +21,11 @@ const styles = StyleSheet.create({
 	},
 	label: { fontSize: tokens.text.md, lineHeight: tokens.leading.md },
 	value: { flex: 1, textAlign: "right", fontSize: tokens.text.md, lineHeight: tokens.leading.md },
-	mono: { fontFamily: tokens.font.mono, fontSize: tokens.text.base },
 	chevron: { fontSize: tokens.text.lg, lineHeight: tokens.leading.lg },
 });
 
 // A settings line: the label on the left, the value on the right.
-export function KeyValueRow({ label, value, mono = false, onPress }: KeyValueRowProps) {
+export function KeyValueRow({ label, value, onPress }: KeyValueRowProps) {
 	const palette = usePalette();
 	return (
 		<Pressable
@@ -37,7 +35,7 @@ export function KeyValueRow({ label, value, mono = false, onPress }: KeyValueRow
 			style={[styles.row, { borderBottomColor: palette.border }]}
 		>
 			<Text style={[styles.label, { color: palette.fg }]}>{label}</Text>
-			<Text numberOfLines={1} style={[styles.value, mono && styles.mono, { color: palette.fgMuted }]}>
+			<Text numberOfLines={1} style={[styles.value, { color: palette.fgMuted }]}>
 				{value}
 			</Text>
 			{onPress !== undefined && <Text style={[styles.chevron, { color: palette.fgFaint }]}>›</Text>}

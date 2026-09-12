@@ -13,6 +13,8 @@ import { Section } from "../Section";
 
 const sizes = ["sm", "md"] as const;
 
+const iconSizes = ["xs", "sm", "md"] as const;
+
 const priorities = ["none", "low", "medium", "high", "urgent"].map((value) => ({ value, label: value }));
 
 // Every control primitive in every state.
@@ -59,16 +61,21 @@ export function ControlSections() {
 					</div>
 				))}
 			</Section>
-			<Section name="Split button" note="primary Button and primary IconButton, joined">
-				<span className="inline-flex items-center gap-px">
-					<Button variant="primary" icon={<Copy />} kbd="⌘C" className="rounded-r-none">
+			<Section name="Split button" note="primary Button and primary IconButton at sm, sharing one edge">
+				<span className="inline-flex items-center">
+					<Button variant="primary" icon={<Copy />} kbd="⌘C" className="rounded-r-none focus-visible:z-1">
 						Copy brief
 					</Button>
-					<IconButton label="Copy options" icon={<ChevronDown />} variant="primary" className="rounded-l-none" />
+					<IconButton
+						label="Copy options"
+						icon={<ChevronDown />}
+						variant="primary"
+						className="-ml-px rounded-l-none focus-visible:z-1"
+					/>
 				</span>
 			</Section>
-			<Section name="IconButton" note="primary, default, quiet, danger; md and sm; disabled">
-				{sizes.map((size) => (
+			<Section name="IconButton" note="primary, default, quiet, danger; xs 24 px, sm 28 px, md 32 px; disabled">
+				{iconSizes.map((size) => (
 					<div key={size} className="flex items-center gap-2">
 						<IconButton label="Refresh" icon={<RefreshCw />} size={size} variant="primary" />
 						<IconButton label="Refresh" icon={<RefreshCw />} size={size} variant="default" />

@@ -44,6 +44,12 @@
 	--warning-soft: #FBF4DA;
 	--danger: #C92432;
 	--danger-soft: #FFE6E8;
+	/* The ground of a default button, a danger-soft button, and a Select
+	   trigger, then its hover and pressed steps. Each step moves toward the
+	   text color: darker in light, lighter in dark. */
+	--control: #FFFFFF;
+	--control-hover: #F4F4F5;
+	--control-active: #EBEBED;
 	--scrim: rgba(0,0,0,.4);
 	--shadow-sm: 0 1px 2px rgba(0,0,0,.06);
 	--shadow-md: 0 4px 12px rgba(0,0,0,.10);
@@ -52,7 +58,7 @@
 	   The light accent is dark enough to carry white; the dark accent is the
 	   bright silver, so there it flips. */
 	--on-accent: #FFFFFF;
-	--sans: "BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	--sans: "Inter Variable", "Inter Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 	--mono: "BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 	color-scheme: light;
 }
@@ -77,6 +83,9 @@
 		--warning-soft: #332B0C;
 		--danger: #FF6762;
 		--danger-soft: #3A1517;
+		--control: #1C1C1E;
+		--control-hover: #252527;
+		--control-active: #2E2E30;
 		--scrim: rgba(0,0,0,.6);
 		--shadow-sm: 0 0 0 1px var(--border-strong);
 		--shadow-md: 0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4);
@@ -105,6 +114,9 @@
 	--warning-soft: #332B0C;
 	--danger: #FF6762;
 	--danger-soft: #3A1517;
+	--control: #1C1C1E;
+	--control-hover: #252527;
+	--control-active: #2E2E30;
 	--scrim: rgba(0,0,0,.6);
 	--shadow-sm: 0 0 0 1px var(--border-strong);
 	--shadow-md: 0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4);
@@ -139,6 +151,9 @@
 	--color-warning-soft: var(--warning-soft);
 	--color-danger: var(--danger);
 	--color-danger-soft: var(--danger-soft);
+	--color-control: var(--control);
+	--color-control-hover: var(--control-hover);
+	--color-control-active: var(--control-active);
 	--color-scrim: var(--scrim);
 	--color-on-accent: var(--on-accent);
 	/* A camera reads a QR code as dark modules on a light ground, so these two stay fixed in both themes. */

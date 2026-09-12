@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { Button, EmptyState } from "@trellis/ui";
-import { Inbox } from "lucide-react";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { CliLine } from "../../shell/CliLine";
 
@@ -47,7 +46,6 @@ export function TableEmpty({ project, filtered, q, onCreate }: TableEmptyProps) 
 	const command = `trellis create -p ${project ?? "<project>"} -t "First ticket"`;
 	return (
 		<EmptyState
-			icon={<Inbox />}
 			title="No tickets yet"
 			description="Create the first one here or from a terminal."
 			variant="page"

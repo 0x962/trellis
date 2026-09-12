@@ -128,7 +128,7 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 								</h3>
 								{!inherited && (
 									<IconButton
-										size="sm"
+										size="xs"
 										label={`Add a status to ${category.label}`}
 										icon={<Plus />}
 										onClick={() => {

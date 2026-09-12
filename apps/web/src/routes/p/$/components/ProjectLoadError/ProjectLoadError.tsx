@@ -1,6 +1,5 @@
 import { useParams } from "@tanstack/react-router";
 import { EmptyState } from "@trellis/ui";
-import { AlertTriangle } from "lucide-react";
 import { parseProjectSplat, projectSlashPath } from "../../../../../lib/projectPath";
 
 export type ProjectLoadErrorProps = {
@@ -15,7 +14,6 @@ export function ProjectLoadError({ error }: ProjectLoadErrorProps) {
 	return (
 		<EmptyState
 			variant="page"
-			icon={<AlertTriangle />}
 			title={`${projectSlashPath(ref)} did not load.`}
 			description={error instanceof Error ? error.message : String(error)}
 		/>

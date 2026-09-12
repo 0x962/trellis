@@ -2,7 +2,6 @@ import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { EmptyState, Skeleton } from "@trellis/ui";
 import { ReactFlowProvider } from "@xyflow/react";
-import { Workflow } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { FlowWorkspace } from "./components/FlowWorkspace";
@@ -20,7 +19,6 @@ export function FlowEditor({ slug }: { slug: string }) {
 		return (
 			<EmptyState
 				variant="page"
-				icon={<Workflow />}
 				title={missing ? "No flow with this name" : "Could not load the flow"}
 				description={missing ? `No flow has the slug “${slug}”.` : doc.error.message}
 			/>

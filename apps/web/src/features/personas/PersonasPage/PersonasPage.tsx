@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Persona, PersonaKind } from "@trellis/api";
-import { Button, EmptyState, EntityCard, Skeleton } from "@trellis/ui";
-import { Plus, UserRound } from "lucide-react";
+import { Button, EmptyState, EntityCard, IconButton, Skeleton } from "@trellis/ui";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { Topbar } from "../../shell/Topbar";
@@ -17,16 +17,20 @@ export function PersonasPage() {
 		<>
 			<Topbar
 				actions={
-					<Button variant="primary" icon={<Plus />} onClick={() => setEditor({ kind: "builder" })}>
-						New persona
-					</Button>
+					<IconButton
+						label="New persona"
+						icon={<Plus />}
+						size="md"
+						round
+						variant="primary"
+						onClick={() => setEditor({ kind: "builder" })}
+					/>
 				}
 			>
-				<h1 className="text-lg font-semibold text-fg">Personas</h1>
+				<h1 className="sr-only">Personas</h1>
 			</Topbar>
 			<div className="min-h-0 flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
 				<div className="flex max-w-7xl flex-col gap-6">
-					<p className="text-sm text-fg-muted">Define how your builders, reviewers, and managers work.</p>
 					{personas.isPending ? (
 						<div role="status" aria-label="Load personas" className="flex flex-col gap-3">
 							<span className="sr-only">Load personas</span>
@@ -41,11 +45,7 @@ export function PersonasPage() {
 							</Button>
 						</div>
 					) : personas.data.length === 0 ? (
-						<EmptyState
-							icon={<UserRound />}
-							title="No personas yet"
-							description="Create a persona to define its role and instruction."
-						/>
+						<EmptyState title="No personas yet" description="Create a persona to define its role and instruction." />
 					) : (
 						<div className="flex flex-col gap-8">
 							{personaKinds.map((group) => {
@@ -54,14 +54,6 @@ export function PersonasPage() {
 									<section key={group.value} aria-label={group.plural} className="flex flex-col gap-3">
 										<header className="flex items-center gap-2">
 											<h2 className="text-xl font-medium text-fg">{group.plural}</h2>
-											<Button
-												variant="quiet"
-												icon={<Plus />}
-												className="ml-auto"
-												onClick={() => setEditor({ kind: group.value })}
-											>
-												New {group.label.toLowerCase()}
-											</Button>
 										</header>
 										{members.length === 0 ? (
 											<p className="border border-dashed border-border p-4 text-sm text-fg-faint">
@@ -74,8 +66,6 @@ export function PersonasPage() {
 														key={persona.id}
 														title={persona.name}
 														description={persona.instruction}
-														icon={<group.icon />}
-														footer={group.label}
 														onEdit={() => setEditor({ persona, kind: persona.kind })}
 													/>
 												))}

@@ -77,21 +77,12 @@ describe("index.html", () => {
 		}
 	});
 
-	// WS-08. fonts.css declares the latin subset of the three JetBrains Mono
-	// weights only, so the page preloads exactly those three files.
-	test("the head preloads only the latin JetBrains Mono woff2 files", async () => {
+	// WS-08. A preload href must name the hashed file that the built CSS asks
+	// for. Only the build knows that name, so scripts/fontPreloads writes the
+	// font preloads and the source page holds none.
+	test("the source page holds no font preload", async () => {
 		const document = await parse();
-		const preloads = [...document.head.querySelectorAll('link[rel="preload"][as="font"]')];
-		expect(preloads).toHaveLength(3);
-		const hrefs = preloads.map((link) => link.getAttribute("href") ?? "");
-		expect(hrefs.filter((href) => href.includes("inter"))).toHaveLength(0);
-		expect(hrefs.filter((href) => href.includes("jetbrains-mono-latin-400-normal.woff2"))).toHaveLength(1);
-		expect(hrefs.filter((href) => href.includes("jetbrains-mono-latin-500-normal.woff2"))).toHaveLength(1);
-		expect(hrefs.filter((href) => href.includes("jetbrains-mono-latin-600-normal.woff2"))).toHaveLength(1);
-		for (const link of preloads) {
-			expect(link.getAttribute("type")).toBe("font/woff2");
-			expect(link.hasAttribute("crossorigin")).toBe(true);
-		}
+		expect(document.head.querySelectorAll('link[rel="preload"][as="font"]')).toHaveLength(0);
 	});
 
 	// SH-1. The tab shows the trellis mark. A browser that reads SVG icons

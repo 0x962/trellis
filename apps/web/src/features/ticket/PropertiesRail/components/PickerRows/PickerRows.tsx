@@ -163,7 +163,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 						<Button variant="quiet" className={triggerClass}>
 							<span className="inline-flex items-center gap-1.5">
 								<ProjectKey projectKey={ticket.project.key} />
-								<span className="truncate font-mono text-sm">{ticket.project.path.split(".").slice(1).join("/")}</span>
+								<span className="truncate text-sm">{ticket.project.path.split(".").slice(1).join("/")}</span>
 							</span>
 						</Button>
 					}

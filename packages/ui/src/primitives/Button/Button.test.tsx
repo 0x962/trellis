@@ -10,7 +10,38 @@ describe("Button", () => {
 	test("renders a button with its name and the default variant classes", () => {
 		render(<Button>Approve</Button>);
 		const button = screen.getByRole("button", { name: "Approve" });
-		expectClasses(button, "h-7 rounded-md text-sm font-medium bg-surface border-border text-fg");
+		expectClasses(button, "h-7 rounded-md text-sm font-medium bg-control border-border-strong text-fg");
+	});
+
+	// Default steps through the control ramp, and quiet takes a wash of the
+	// text color, so both hovers read on the page and on a surface.
+	test("default and quiet hover and press one step toward the text color", () => {
+		render(
+			<>
+				<Button>Default</Button>
+				<Button variant="quiet">Quiet</Button>
+			</>,
+		);
+		expectClasses(
+			screen.getByRole("button", { name: "Default" }),
+			"enabled:hover:bg-control-hover enabled:active:bg-control-active",
+		);
+		expectClasses(screen.getByRole("button", { name: "Quiet" }), "enabled:hover:bg-fg/6 enabled:active:bg-fg/10");
+	});
+
+	test("every variant has a pressed look", () => {
+		const variants = ["primary", "default", "quiet", "danger", "danger-soft"] as const;
+		render(
+			variants.map((variant) => (
+				<Button key={variant} variant={variant}>
+					{variant}
+				</Button>
+			)),
+		);
+		for (const variant of variants) {
+			const button = screen.getByRole("button", { name: variant });
+			expect(`${variant}: ${/(^| )enabled:active:/.test(button.className)}`).toBe(`${variant}: true`);
+		}
 	});
 
 	test("variant and size props map to token classes", () => {
@@ -24,12 +55,12 @@ describe("Button", () => {
 				<Button size="md">Medium</Button>
 			</>,
 		);
-		expectClasses(screen.getByRole("button", { name: "Primary" }), "bg-surface border-border-strong text-fg");
+		expectClasses(screen.getByRole("button", { name: "Primary" }), "metal enabled:active:metal-pressed");
 		expectClasses(screen.getByRole("button", { name: "Quiet" }), "border-transparent text-fg-muted");
 		expectClasses(screen.getByRole("button", { name: "Danger" }), "bg-danger");
 		expectClasses(
 			screen.getByRole("button", { name: "Delete" }),
-			"bg-surface border-border text-danger enabled:hover:bg-danger-soft enabled:hover:border-danger",
+			"bg-control border-border-strong text-danger enabled:hover:bg-danger-soft enabled:hover:border-danger",
 		);
 		expectClasses(screen.getByRole("button", { name: "Small" }), "h-7 px-2.5 text-sm");
 		expectClasses(screen.getByRole("button", { name: "Medium" }), "h-8 px-3 text-base");
@@ -51,26 +82,54 @@ describe("Button", () => {
 		expectClasses(screen.getByRole("button", { name: "Small" }), "min-w-7");
 	});
 
-	// A disabled fill must not read as an action, so primary and danger lose
-	// their fill and draw the quiet surface instead of a faded color.
-	test("a disabled primary and a disabled danger draw the surface with faint text and no opacity", () => {
+	// A disabled control must not read as an action, so every variant with a
+	// ground draws the same surface with a faint label, and quiet keeps no
+	// ground and takes the faint label. No variant fades through opacity.
+	test("every disabled variant has one look: the surface and a faint label, with no opacity", () => {
 		render(
 			<>
 				<Button variant="primary" disabled>
 					Create
 				</Button>
+				<Button variant="default" disabled>
+					Cancel
+				</Button>
 				<Button variant="danger" disabled>
 					Delete
 				</Button>
-				<Button disabled>Cancel</Button>
+				<Button variant="danger-soft" disabled>
+					Keep mine
+				</Button>
+				<Button variant="quiet" disabled>
+					Move
+				</Button>
 			</>,
 		);
-		for (const name of ["Create", "Delete"]) {
-			const button = screen.getByRole("button", { name });
-			expectClasses(button, "disabled:bg-surface disabled:border-border disabled:text-fg-faint");
-			expect(button.className).not.toMatch(/disabled:opacity-50/);
+		for (const name of ["Create", "Cancel", "Delete", "Keep mine"]) {
+			expectClasses(
+				screen.getByRole("button", { name }),
+				"disabled:bg-surface disabled:border-border disabled:text-fg-faint",
+			);
 		}
-		expectClasses(screen.getByRole("button", { name: "Cancel" }), "disabled:opacity-50");
+		expectClasses(screen.getByRole("button", { name: "Move" }), "disabled:text-fg-faint");
+		for (const button of screen.getAllByRole("button")) {
+			expect(button.className).not.toMatch(/opacity/);
+		}
+	});
+
+	// The cap sits 4 px from the top at sm and 6 px at md, so the left padding
+	// matches and the cap's corner follows the button's corner.
+	test("a shortcut button pulls its left padding in to the cap's top inset", () => {
+		render(
+			<>
+				<Button kbd="a">Small</Button>
+				<Button size="md" kbd="b">
+					Medium
+				</Button>
+			</>,
+		);
+		expectClasses(screen.getByRole("button", { name: "Small a" }), "pl-1 pr-2.5");
+		expectClasses(screen.getByRole("button", { name: "Medium b" }), "pl-1.5 pr-3");
 	});
 
 	test("both segments of a shortcut button activate the same action", async () => {
@@ -116,7 +175,7 @@ describe("Button", () => {
 		button.focus();
 		await user.keyboard("{Enter} ");
 		expect(onClick).not.toHaveBeenCalled();
-		expectClasses(button, "disabled:opacity-50 enabled:hover:bg-bg");
+		expectClasses(button, "disabled:bg-surface disabled:text-fg-faint enabled:hover:bg-control-hover");
 		// The pointer still reaches a disabled button, so base.css can show the
 		// not-allowed cursor. Every hover is gated on :enabled instead.
 		expect(button.className).not.toMatch(/(^| )hover:/);

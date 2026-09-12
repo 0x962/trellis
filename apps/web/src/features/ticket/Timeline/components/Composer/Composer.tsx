@@ -121,7 +121,7 @@ export function Composer({ ticket, pinned = false, onAttachFiles }: ComposerProp
 								<Tooltip content="Attach a file">
 									<IconButton
 										label="Attach a file"
-										size="md"
+										size="sm"
 										icon={<Paperclip />}
 										onClick={() => picker.current!.click()}
 									/>

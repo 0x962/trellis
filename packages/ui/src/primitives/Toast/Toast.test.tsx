@@ -33,7 +33,7 @@ describe("Toast", () => {
 		expect(toastDurations).toEqual({ plain: 3000, success: 3000, error: 6000 });
 	});
 
-	test("the command toast shows the command in mono", async () => {
+	test("the command toast shows the copied command", async () => {
 		render(<Toaster />);
 		act(() => {
 			toast.command({ title: "Copied the command", command: "trellis move CDE-1 in-progress" });
@@ -43,6 +43,6 @@ describe("Toast", () => {
 		expect(shell.querySelector("svg.text-success")).not.toBeNull();
 		expectClasses(title, "text-sm font-medium");
 		const command = screen.getByText("trellis move CDE-1 in-progress");
-		expectClasses(command, "font-mono text-xs text-fg-muted truncate");
+		expectClasses(command, "text-xs text-fg-muted truncate");
 	});
 });
