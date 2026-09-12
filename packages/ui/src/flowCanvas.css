@@ -57,11 +57,15 @@
 	stroke: var(--danger);
 }
 
-.flow-canvas .react-flow__edge-textbg {
-	fill: var(--bg);
+/* The arrowhead each edge draws at the node it leads to. */
+.flow-canvas .flow-edge-arrow {
+	fill: var(--fg-faint);
 }
 
-.flow-canvas .react-flow__edge-text {
-	fill: var(--fg-muted);
-	font-size: var(--text-xs);
+.flow-canvas .react-flow__edge.selected .flow-edge-arrow {
+	fill: var(--accent);
+}
+
+.flow-canvas .react-flow__edge.flow-edge-issue .flow-edge-arrow {
+	fill: var(--danger);
 }

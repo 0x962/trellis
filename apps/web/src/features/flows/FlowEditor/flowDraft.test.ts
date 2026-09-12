@@ -1,17 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import type { FlowNode } from "@trellis/api";
 import { ulid } from "ulid";
-import {
-	absolutePosition,
-	addNode,
-	boxAt,
-	canConnect,
-	canvasEdge,
-	draftIssues,
-	fromCanvas,
-	moveIntoBox,
-	toCanvas,
-} from "./flowDraft";
+import { absolutePosition, boxAt } from "./canvasGeometry";
+import { addNode, branchOf, canConnect, canvasEdge, draftIssues, fromCanvas, moveIntoBox, toCanvas } from "./flowDraft";
 
 const row = (fields: Partial<FlowNode>): FlowNode => ({
 	id: ulid(),
@@ -20,8 +11,6 @@ const row = (fields: Partial<FlowNode>): FlowNode => ({
 	title: "Step",
 	personaId: null,
 	instruction: "Read the diff.",
-	model: null,
-	effort: null,
 	minutes: null,
 	maxRounds: null,
 	x: 0,
@@ -43,15 +32,14 @@ const box = row({
 });
 const inside = row({ parentId: box.id, x: 20, y: 40 });
 const outside = row({ x: 700, y: 0 });
+const center = { center: { x: 500, y: 500 } };
 
 describe("flowDraft", () => {
 	test("toCanvas puts a box before the node inside it, and fromCanvas gives back the saved rows", () => {
-		const doc = { nodes: [inside, box, outside], edges: [] };
-		const canvas = toCanvas(doc);
+		const canvas = toCanvas({ nodes: [inside, box, outside], edges: [] });
 		expect(canvas.nodes.map((node) => node.id)).toEqual([box.id, outside.id, inside.id]);
 		expect(canvas.nodes[0]).toMatchObject({ type: "box", width: 400, height: 300 });
-		const graph = fromCanvas(canvas.nodes, canvas.edges);
-		expect(graph.nodes).toEqual(expect.arrayContaining([inside, box, outside]));
+		expect(fromCanvas(canvas.nodes, canvas.edges).nodes).toEqual(expect.arrayContaining([inside, box, outside]));
 	});
 
 	test("a box without a stored size takes the default size", () => {
@@ -62,18 +50,25 @@ describe("flowDraft", () => {
 		});
 	});
 
-	test("canConnect refuses a loop, an edge across a box, and `out` from a gate", () => {
+	test("branchOf reads the output from a handle id", () => {
+		expect(branchOf("yes-bottom")).toBe("yes");
+		expect(branchOf("no-right")).toBe("no");
+		expect(branchOf("out-top")).toBe("out");
+		expect(branchOf("in-left")).toBe("out");
+		expect(branchOf(null)).toBe("out");
+	});
+
+	test("canConnect refuses a loop, an edge across a box, and a gate handle that is not YES or NO", () => {
 		const a = row({});
 		const b = row({});
 		const gate = row({ kind: "gate", instruction: "Backend?" });
 		const nodes = fromCanvas(toCanvas({ nodes: [a, b, gate, box, inside], edges: [] }).nodes, []).nodes;
-		const edges = [{ id: ulid(), fromNodeId: a.id, toNodeId: b.id, branch: "out" as const }];
-		const graph = { nodes, edges };
-		expect(canConnect(graph, { source: b.id, target: a.id, sourceHandle: "out" })).toBe(false);
-		expect(canConnect(graph, { source: a.id, target: inside.id, sourceHandle: "out" })).toBe(false);
-		expect(canConnect(graph, { source: gate.id, target: a.id, sourceHandle: "out" })).toBe(false);
-		expect(canConnect(graph, { source: gate.id, target: a.id, sourceHandle: "yes" })).toBe(true);
-		expect(canConnect(graph, { source: a.id, target: box.id, sourceHandle: "out" })).toBe(true);
+		const graph = { nodes, edges: [{ id: ulid(), fromNodeId: a.id, toNodeId: b.id, branch: "out" as const }] };
+		expect(canConnect(graph, { source: b.id, target: a.id, sourceHandle: "out-top" })).toBe(false);
+		expect(canConnect(graph, { source: a.id, target: inside.id, sourceHandle: "out-right" })).toBe(false);
+		expect(canConnect(graph, { source: gate.id, target: a.id, sourceHandle: "in-top" })).toBe(false);
+		expect(canConnect(graph, { source: gate.id, target: a.id, sourceHandle: "yes-bottom" })).toBe(true);
+		expect(canConnect(graph, { source: a.id, target: box.id, sourceHandle: "out-left" })).toBe(true);
 	});
 
 	test("boxAt finds the innermost box under a point and skips the box that moves", () => {
@@ -94,12 +89,47 @@ describe("flowDraft", () => {
 		expect(boxAt(nodes, { x: 900, y: 900 }, null)).toBe(null);
 	});
 
-	test("addNode inside a box stores the position relative to the box", () => {
-		const start = toCanvas({ nodes: [box], edges: [] }).nodes;
-		const { nodes, id } = addNode(start, "agent", { x: 150, y: 180 });
-		const added = nodes.find((node) => node.id === id)!;
-		expect(added).toMatchObject({ parentId: box.id, position: { x: 50, y: 80 }, selected: true });
-		expect(absolutePosition(nodes, id)).toEqual({ x: 150, y: 180 });
+	test("a drop inside an empty box stores the position relative to the box and adds no edge", () => {
+		const next = addNode(toCanvas({ nodes: [box], edges: [] }).nodes, [], "agent", { drop: { x: 150, y: 180 } });
+		expect(next.nodes.find((node) => node.id === next.id)).toMatchObject({
+			parentId: box.id,
+			position: { x: 50, y: 80 },
+			selected: true,
+		});
+		expect(absolutePosition(next.nodes, next.id)).toEqual({ x: 150, y: 180 });
+		expect(next.edges).toEqual([]);
+	});
+
+	test("a click adds the node below the newest node and connects the two", () => {
+		const first = row({ x: 40, y: 16 });
+		const next = addNode(toCanvas({ nodes: [first], edges: [] }).nodes, [], "agent", center);
+		expect(next.nodes.find((node) => node.id === next.id)?.position).toEqual({ x: 40, y: 144 });
+		expect(next.edges).toMatchObject([{ source: first.id, target: next.id, data: { branch: "out" } }]);
+	});
+
+	test("a click with a gate selected connects the new node from the gate by YES", () => {
+		const gate = row({ kind: "gate", instruction: "Backend?" });
+		const later = row({ x: 400 });
+		const nodes = toCanvas({ nodes: [gate, later], edges: [] }).nodes.map((node) =>
+			node.id === gate.id ? { ...node, selected: true } : node,
+		);
+		const next = addNode(nodes, [], "agent", center);
+		expect(next.edges).toMatchObject([{ source: gate.id, target: next.id, data: { branch: "yes" } }]);
+	});
+
+	test("a click with a box selected adds the node inside the box after its newest node, and the box grows", () => {
+		const small = row({ kind: "budget", instruction: "", minutes: 5, width: 280, height: 160 });
+		const child = row({ parentId: small.id, x: 24, y: 48 });
+		const nodes = toCanvas({ nodes: [small, child], edges: [] }).nodes.map((node) =>
+			node.id === small.id ? { ...node, selected: true } : node,
+		);
+		const next = addNode(nodes, [], "agent", center);
+		expect(next.nodes.find((node) => node.id === next.id)).toMatchObject({
+			parentId: small.id,
+			position: { x: 24, y: 176 },
+		});
+		expect(next.edges).toMatchObject([{ source: child.id, target: next.id }]);
+		expect(next.nodes.find((node) => node.id === small.id)).toMatchObject({ height: 256, selected: false });
 	});
 
 	test("moveIntoBox keeps the place on screen and removes the edges that cross the box", () => {
@@ -117,8 +147,7 @@ describe("flowDraft", () => {
 	test("draftIssues names the row of a schema issue and of a graph issue", () => {
 		const blank = row({ title: "   " });
 		const lonely = row({ instruction: "" });
-		const graph = fromCanvas(toCanvas({ nodes: [blank, lonely], edges: [] }).nodes, []);
-		const issues = draftIssues(ulid(), graph);
+		const issues = draftIssues(ulid(), fromCanvas(toCanvas({ nodes: [blank, lonely], edges: [] }).nodes, []));
 		expect(issues.byRow.get(blank.id)).toBe("Write a title.");
 		expect(issues.byRow.get(lonely.id)).toBe("Select a persona or write an instruction.");
 		expect(issues.count).toBe(2);

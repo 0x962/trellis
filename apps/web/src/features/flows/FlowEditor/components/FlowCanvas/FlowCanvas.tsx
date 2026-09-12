@@ -1,9 +1,12 @@
-import type { FlowBranch, FlowNodeKind } from "@trellis/api";
-import { toast } from "@trellis/ui";
+import { MagicWand } from "@phosphor-icons/react";
+import type { FlowNodeKind } from "@trellis/api";
+import { Button, toast } from "@trellis/ui";
 import {
 	Background,
 	BackgroundVariant,
 	type Connection,
+	ConnectionLineType,
+	ConnectionMode,
 	Controls,
 	MiniMap,
 	type OnEdgesChange,
@@ -16,11 +19,10 @@ import {
 } from "@xyflow/react";
 import { type Dispatch, type DragEvent, type SetStateAction, useCallback, useRef } from "react";
 import { ulid } from "ulid";
+import { absolutePosition, boxAt, sizeOf } from "../../canvasGeometry";
 import {
-	absolutePosition,
 	addNode,
-	boxAt,
-	CARD_SIZE,
+	branchOf,
 	type CanvasEdge,
 	type CanvasNode,
 	canConnect,
@@ -29,13 +31,16 @@ import {
 	KIND_MIME,
 	moveIntoBox,
 } from "../../flowDraft";
+import { tidyLayout } from "../../flowLayout";
 import { BoxNode } from "../BoxNode";
+import { FlowEdge } from "../FlowEdge";
 import { NodePalette } from "../NodePalette";
 import { StepNode } from "../StepNode";
 
-// React Flow draws every node again when this object changes, so it lives
-// outside the component.
+// React Flow draws every node and edge again when one of these objects
+// changes, so they live outside the component.
 const nodeTypes = { step: StepNode, box: BoxNode };
+const edgeTypes = { flow: FlowEdge };
 
 type FlowCanvasProps = {
 	nodes: CanvasNode[];
@@ -48,24 +53,28 @@ type FlowCanvasProps = {
 	onSelect: (id: string | null) => void;
 };
 
-// A left drag on the empty canvas draws a selection box. A scroll, a middle
-// drag, or a right drag pans, and a pinch zooms. Backspace and Delete remove
-// the selection, and a box takes the nodes inside it with it.
+// A left drag on the empty canvas pans, and a drag with Shift held draws a
+// selection box. A two-finger scroll also pans, and a pinch zooms. Backspace and Delete remove
+// the selection, and a box takes the nodes inside it with it. The loose
+// connection mode lets a wire end on any handle, so any side connects to any
+// side.
 export function FlowCanvas(props: FlowCanvasProps) {
 	const { nodes, edges, graph, onNodesChange, onEdgesChange, setNodes, setEdges, onSelect } = props;
 	const rf = useReactFlow<CanvasNode, CanvasEdge>();
 	const wrapRef = useRef<HTMLElement>(null);
 
-	const add = (kind: FlowNodeKind, point: XYPosition) => {
-		const next = addNode(nodes, kind, point);
+	const add = (kind: FlowNodeKind, place: { drop: XYPosition } | { center: XYPosition }) => {
+		const next = addNode(nodes, edges, kind, place);
 		setNodes(next.nodes);
+		setEdges(next.edges);
 		onSelect(next.id);
 	};
 
 	const addAtCenter = (kind: FlowNodeKind) => {
 		const frame = wrapRef.current!.getBoundingClientRect();
-		const center = rf.screenToFlowPosition({ x: frame.left + frame.width / 2, y: frame.top + frame.height / 2 });
-		add(kind, { x: center.x - CARD_SIZE.width / 2, y: center.y - CARD_SIZE.height / 2 });
+		add(kind, {
+			center: rf.screenToFlowPosition({ x: frame.left + frame.width / 2, y: frame.top + frame.height / 2 }),
+		});
 	};
 
 	const onConnect = (connection: Connection) =>
@@ -75,7 +84,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
 				id: ulid(),
 				fromNodeId: connection.source,
 				toNodeId: connection.target,
-				branch: (connection.sourceHandle ?? "out") as FlowBranch,
+				branch: branchOf(connection.sourceHandle),
 			}),
 		]);
 
@@ -86,8 +95,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
 		if (dragged.length !== 1) return;
 		const current = nodes.map((item) => (item.id === node.id ? node : item));
 		const corner = absolutePosition(current, node.id);
-		const width = node.width ?? node.measured?.width ?? CARD_SIZE.width;
-		const height = node.height ?? node.measured?.height ?? CARD_SIZE.height;
+		const { width, height } = sizeOf(node);
 		const target = boxAt(current, { x: corner.x + width / 2, y: corner.y + height / 2 }, node.id);
 		if (target === (node.parentId ?? null)) return;
 		const next = moveIntoBox(current, edges, node.id, target);
@@ -97,6 +105,28 @@ export function FlowCanvas(props: FlowCanvasProps) {
 			toast(
 				`Removed ${next.removed} ${next.removed === 1 ? "connection" : "connections"} that crossed the edge of a box.`,
 			);
+	};
+
+	// Undo puts back the positions and the box sizes from before the clean up,
+	// and keeps every other change.
+	const cleanUp = () => {
+		const before = new Map(nodes.map((node) => [node.id, node]));
+		setNodes(tidyLayout(nodes, edges));
+		requestAnimationFrame(() => void rf.fitView({ maxZoom: 1 }));
+		toast("Cleaned up the layout.", {
+			action: {
+				label: "Undo",
+				onClick: () =>
+					setNodes((current) =>
+						current.map((node) => {
+							const old = before.get(node.id);
+							return old === undefined
+								? node
+								: { ...node, position: old.position, width: old.width, height: old.height };
+						}),
+					),
+			},
+		});
 	};
 
 	const onSelectionChange = useCallback(
@@ -115,10 +145,9 @@ export function FlowCanvas(props: FlowCanvasProps) {
 
 	const onDrop = (event: DragEvent) => {
 		event.preventDefault();
-		add(
-			event.dataTransfer.getData(KIND_MIME) as FlowNodeKind,
-			rf.screenToFlowPosition({ x: event.clientX, y: event.clientY }),
-		);
+		add(event.dataTransfer.getData(KIND_MIME) as FlowNodeKind, {
+			drop: rf.screenToFlowPosition({ x: event.clientX, y: event.clientY }),
+		});
 	};
 
 	return (
@@ -134,10 +163,13 @@ export function FlowCanvas(props: FlowCanvasProps) {
 				nodes={nodes}
 				edges={edges}
 				nodeTypes={nodeTypes}
+				edgeTypes={edgeTypes}
 				onNodesChange={onNodesChange}
 				onEdgesChange={onEdgesChange}
 				onConnect={onConnect}
 				isValidConnection={(connection) => canConnect(graph, connection)}
+				connectionMode={ConnectionMode.Loose}
+				connectionLineType={ConnectionLineType.SmoothStep}
 				onNodeDragStop={onNodeDragStop}
 				onSelectionChange={onSelectionChange}
 				snapToGrid
@@ -147,13 +179,16 @@ export function FlowCanvas(props: FlowCanvasProps) {
 				minZoom={0.2}
 				maxZoom={2}
 				panOnScroll
-				selectionOnDrag
-				panOnDrag={[1, 2]}
 				deleteKeyCode={["Backspace", "Delete"]}
 			>
 				<Background variant={BackgroundVariant.Dots} gap={24} />
 				<Panel position="top-left">
 					<NodePalette onAdd={addAtCenter} />
+				</Panel>
+				<Panel position="top-right">
+					<Button icon={<MagicWand />} disabled={nodes.length === 0} onClick={cleanUp}>
+						Clean up
+					</Button>
 				</Panel>
 				<Controls position="bottom-left" showInteractive={false} />
 				<MiniMap position="bottom-right" pannable zoomable />
