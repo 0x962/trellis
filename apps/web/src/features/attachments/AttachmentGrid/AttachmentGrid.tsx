@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Attachment } from "@trellis/api";
-import { Dialog, SectionHeader } from "@trellis/ui";
+import { Dialog, EmptyState, SectionHeader } from "@trellis/ui";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AttachmentBox } from "../AttachmentBox";
@@ -96,6 +96,9 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 				{uploadManager.uploads.map((upload) => (
 					<UploadProgress key={upload.id} upload={upload} showName={false} onDismiss={uploadManager.dismiss} />
 				))}
+				{attachments.length === 0 && uploadManager.uploads.length === 0 && (
+					<EmptyState title="No attachments" description="Add a file or drop it anywhere on this ticket." />
+				)}
 				{images.length > 0 && (
 					<div className="flex flex-wrap gap-2">
 						{images.map((attachment, index) => (

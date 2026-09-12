@@ -98,7 +98,7 @@ export function TicketView({ identifier }: TicketViewProps) {
 				{inlineRail ? (
 					main
 				) : (
-					<div data-ticket-columns="" className="flex min-h-0 flex-1 gap-5">
+					<div data-ticket-columns="" className="flex min-h-0 flex-1 gap-3">
 						{main}
 						<PropertiesRail ticket={ticket} variant="page" />
 					</div>

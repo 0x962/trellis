@@ -10,7 +10,7 @@ export function TicketSkeleton() {
 		</div>
 	);
 	return (
-		<div className="mt-13 flex min-h-0 flex-1 gap-5">
+		<div className="mt-13 flex min-h-0 flex-1 gap-3">
 			<div className="min-w-0 flex-1 page-card">{main}</div>
 			<div className="flex min-h-0 w-70 shrink-0 flex-col page-card px-4 py-3 max-md:hidden">
 				<Skeleton lines={4} width="w-40" height="h-4" className="gap-3.5" />
