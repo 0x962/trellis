@@ -85,6 +85,10 @@ const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
 					sql`SELECT ${columns} FROM agent_runs WHERE project_id = ${project.id} AND kind = 'manager' ORDER BY created_at LIMIT 1`,
 				)
 			: [];
+	// A manager that still holds its terminal is the one that runs. A second
+	// start would take its row and leave that terminal with no row.
+	if (existing !== undefined && ["starting", "running", "interrupted"].includes(existing.state))
+		throw fail("DUPLICATE", { field: "active agent" });
 	const [run] =
 		existing === undefined
 			? await rows<AgentRun>(
