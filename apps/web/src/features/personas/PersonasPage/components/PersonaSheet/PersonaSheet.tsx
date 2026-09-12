@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { type Persona, type PersonaCreateInput, PersonaCreateInputSchema, type PersonaKind } from "@trellis/api";
-import { Button, Input, Select, Sheet, Textarea } from "@trellis/ui";
+import { Button, Input, Select, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { personaKinds } from "../../kinds";
@@ -44,7 +44,7 @@ export function PersonaSheet({ persona, kind: initialKind, onClose }: PersonaShe
 					if (input.success && !pending) save.mutate(input.data);
 				}}
 			>
-				<div className="flex flex-1 flex-col gap-6 p-6 max-md:p-4">
+				<SheetBody>
 					<p className="text-sm text-fg-muted">Define the role and instructions an agent uses when it starts.</p>
 					<Input
 						ref={nameRef}
@@ -89,25 +89,29 @@ export function PersonaSheet({ persona, kind: initialKind, onClose }: PersonaShe
 							Could not delete the persona. {remove.error.message}
 						</p>
 					)}
-				</div>
-				<div className="sticky bottom-0 flex flex-col gap-3 border-t border-border bg-surface p-4">
-					{confirmDelete && (
-						<fieldset
-							className="flex flex-wrap items-center gap-2 border border-danger p-3"
-							aria-label="Confirm deletion"
-						>
-							<p className="w-full break-words text-sm text-fg">Delete “{persona!.name}”?</p>
-							<p className="w-full text-sm text-fg-muted">This permanently deletes the persona and its instructions.</p>
-							<Button type="button" variant="danger" disabled={pending} onClick={() => remove.mutate()}>
-								Confirm delete
-							</Button>
-							<Button type="button" variant="quiet" disabled={pending} onClick={() => setConfirmDelete(false)}>
-								Keep persona
-							</Button>
-						</fieldset>
-					)}
-					<div className="flex items-center gap-2">
-						{persona !== undefined && (
+				</SheetBody>
+				<SheetFooter
+					confirmation={
+						confirmDelete && (
+							<fieldset
+								className="flex flex-wrap items-center gap-2 border border-danger p-3"
+								aria-label="Confirm deletion"
+							>
+								<p className="w-full break-words text-sm text-fg">Delete “{persona!.name}”?</p>
+								<p className="w-full text-sm text-fg-muted">
+									This permanently deletes the persona and its instructions.
+								</p>
+								<Button type="button" variant="danger" disabled={pending} onClick={() => remove.mutate()}>
+									Confirm delete
+								</Button>
+								<Button type="button" variant="quiet" disabled={pending} onClick={() => setConfirmDelete(false)}>
+									Keep persona
+								</Button>
+							</fieldset>
+						)
+					}
+					leading={
+						persona !== undefined && (
 							<Button
 								type="button"
 								variant="quiet"
@@ -116,22 +120,21 @@ export function PersonaSheet({ persona, kind: initialKind, onClose }: PersonaShe
 							>
 								Delete persona
 							</Button>
-						)}
-						<div className="ml-auto flex gap-2">
-							<Button type="button" variant="quiet" disabled={pending} onClick={onClose}>
-								Cancel
-							</Button>
-							<Button
-								type="submit"
-								variant="primary"
-								disabled={!input.success || pending || confirmDelete || (persona !== undefined && !dirty)}
-								aria-busy={save.isPending}
-							>
-								{persona === undefined ? "Create persona" : "Save changes"}
-							</Button>
-						</div>
-					</div>
-				</div>
+						)
+					}
+				>
+					<Button type="button" variant="quiet" disabled={pending} onClick={onClose}>
+						Cancel
+					</Button>
+					<Button
+						type="submit"
+						variant="primary"
+						disabled={!input.success || pending || confirmDelete || (persona !== undefined && !dirty)}
+						aria-busy={save.isPending}
+					>
+						{persona === undefined ? "Create persona" : "Save changes"}
+					</Button>
+				</SheetFooter>
 			</form>
 		</Sheet>
 	);
