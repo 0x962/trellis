@@ -1,6 +1,6 @@
 import { Checkbox as BaseCheckbox } from "@base-ui/react/checkbox";
 import { Field } from "@base-ui/react/field";
-import { Check, Minus } from "lucide-react";
+import { Check, Minus } from "@phosphor-icons/react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
 
@@ -53,7 +53,7 @@ export function Checkbox({
 				)}
 			>
 				<BaseCheckbox.Indicator className="inline-flex size-3 data-unchecked:hidden *:size-full">
-					{indeterminate ? <Minus strokeWidth={3} /> : <Check strokeWidth={3} />}
+					{indeterminate ? <Minus weight="bold" /> : <Check weight="bold" />}
 				</BaseCheckbox.Indicator>
 			</BaseCheckbox.Root>
 			<Field.Label className={cx(hideLabel && "sr-only")}>{label}</Field.Label>

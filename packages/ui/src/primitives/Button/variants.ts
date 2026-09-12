@@ -24,6 +24,11 @@ export const buttonVariants: Record<ButtonVariant, string> = {
 		"bg-control border-border-strong text-danger enabled:hover:bg-danger-soft enabled:hover:border-danger enabled:active:brightness-95",
 };
 
+// A toggle that is on: the soft accent fill inside the accent ring. It
+// replaces the variant classes while the toggle is on, so the ring shows
+// on every variant and the hover keeps the fill.
+export const pressedLook = "bg-accent-soft border-accent text-fg enabled:active:brightness-95";
+
 // Every disabled control has one look: a faint label and no hover. A variant
 // with a ground also takes the surface and the quiet border. Primary drops
 // its gradient and its lit edge too, so a control nobody can press never

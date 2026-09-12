@@ -2,7 +2,7 @@ import { Button as BaseButton } from "@base-ui/react/button";
 import type { ComponentProps, ReactElement } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
-import { buttonVariants, disabledLook } from "../Button/variants";
+import { buttonVariants, disabledLook, pressedLook } from "../Button/variants";
 
 export type IconButtonSize = "xs" | "sm" | "md";
 
@@ -15,6 +15,9 @@ export type IconButtonProps = Omit<ComponentProps<typeof BaseButton>, "children"
 	// True draws the button as a circle. Create and toggle controls are
 	// round, so a person tells them from the square controls around them.
 	round?: boolean;
+	// Set only on a toggle. The button reports the state through
+	// aria-pressed, and while it is on it takes the accent ring and fill.
+	pressed?: boolean;
 	variant?: "primary" | "default" | "quiet" | "danger";
 };
 
@@ -35,6 +38,7 @@ export function IconButton({
 	icon,
 	size = "sm",
 	round = false,
+	pressed,
 	variant = "quiet",
 	className,
 	...props
@@ -42,11 +46,12 @@ export function IconButton({
 	return (
 		<BaseButton
 			aria-label={label}
+			aria-pressed={pressed}
 			className={cx(
 				"inline-flex shrink-0 items-center justify-center border select-none transition duration-hover ease-out",
 				round ? "rounded-round" : "rounded-md",
 				"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
-				buttonVariants[variant],
+				pressed ? pressedLook : buttonVariants[variant],
 				disabledLook(variant),
 				sizes[size],
 				className,

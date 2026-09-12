@@ -36,7 +36,7 @@ export function Segmented<Value extends string>({
 			aria-label={label}
 			value={value}
 			onValueChange={(next) => onValueChange(next as Value)}
-			className={cx("inline-flex shrink-0 rounded-md", className)}
+			className={cx("inline-flex shrink-0 rounded-round", className)}
 		>
 			{options.map((option) => (
 				<Radio.Root
@@ -45,7 +45,7 @@ export function Segmented<Value extends string>({
 					className={(state) =>
 						cx(
 							"inline-flex h-7 min-w-7 items-center justify-center border-y border-border px-2.5 text-sm leading-none whitespace-nowrap select-none transition-colors duration-hover ease-out pointer-coarse:min-w-11",
-							"first-of-type:rounded-l-md first-of-type:border-l last-of-type:rounded-r-md last-of-type:border-r",
+							"first-of-type:rounded-l-round first-of-type:border-l first-of-type:pl-3 last-of-type:rounded-r-round last-of-type:border-r last-of-type:pr-3",
 							hitArea.segment28,
 							"focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
 							// The option the reader is on is not a target, so only the other one

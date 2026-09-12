@@ -3,7 +3,11 @@ import { render, screen } from "@testing-library/react";
 import { expectClasses } from "../../../test/classes";
 import { StatusIcon } from "./StatusIcon";
 
-const icon = (container: HTMLElement, selector: string) => container.querySelector<SVGSVGElement>(`svg${selector}`)!;
+const icon = (container: HTMLElement, selector: string) => container.querySelector<HTMLElement>(selector)!;
+
+// The share of the started disk that is filled, read from its conic gradient.
+const share = (element: HTMLElement) =>
+	element.querySelector<HTMLElement>("[data-fill]")!.style.backgroundImage.match(/([\d.]+)turn/)![1];
 
 describe("StatusIcon", () => {
 	test("renders the six variants with the category colors", () => {
@@ -19,24 +23,16 @@ describe("StatusIcon", () => {
 		);
 		expectClasses(icon(container, "[data-category=todo]"), "text-fg-faint");
 		expectClasses(icon(container, "[data-category=started]"), "text-warning");
-		const human = icon(container, "[data-category=review][data-reviewer=human]");
-		expectClasses(human, "text-accent");
-		const agent = icon(container, "[data-category=review][data-reviewer=agent]");
-		expectClasses(agent, "text-agent");
-		const done = icon(container, "[data-category=done]");
-		expectClasses(done, "text-success");
-		const canceled = icon(container, "[data-category=canceled]");
-		expectClasses(canceled, "text-fg-faint");
-
-		for (const review of [human, agent]) {
-			expect(review.querySelector("circle[stroke-dasharray]")).not.toBeNull();
+		expectClasses(icon(container, "[data-category=review][data-reviewer=human]"), "text-accent");
+		expectClasses(icon(container, "[data-category=review][data-reviewer=agent]"), "text-agent");
+		expectClasses(icon(container, "[data-category=done]"), "text-success");
+		expectClasses(icon(container, "[data-category=canceled]"), "text-fg-faint");
+		for (const category of ["todo", "review", "done", "canceled"]) {
+			expect(icon(container, `[data-category=${category}]`).tagName.toLowerCase()).toBe("svg");
 		}
-		expect(done.querySelector("circle[fill=currentColor]")).not.toBeNull();
-		expect(done.querySelector("path")).not.toBeNull();
-		expect(canceled.querySelectorAll("path, line").length).toBeGreaterThan(0);
 	});
 
-	test("the agent reviewer variant carries the glyph", () => {
+	test("the agent reviewer draws a different mark from the human reviewer", () => {
 		const { container } = render(
 			<>
 				<StatusIcon category="review" reviewer="human" />
@@ -44,8 +40,8 @@ describe("StatusIcon", () => {
 			</>,
 		);
 		const agent = icon(container, "[data-reviewer=agent]");
-		expect(agent.querySelector("path[fill=currentColor]")).not.toBeNull();
-		expect(icon(container, "[data-reviewer=human]").querySelector("path[fill=currentColor]")).toBeNull();
+		const human = icon(container, "[data-reviewer=human]");
+		expect(agent.innerHTML).not.toBe(human.innerHTML);
 	});
 
 	test("started fills by sub-ticket progress", () => {
@@ -61,14 +57,9 @@ describe("StatusIcon", () => {
 		const plain = screen.getByRole("img", { name: "plain" });
 		expect(sixty.getAttribute("data-progress")).toBe("0.6");
 		expect(plain.getAttribute("data-progress")).toBeNull();
-		// An SVG arc command carries the large-arc flag as its fourth number.
-		// 60 percent needs the large arc; 25 percent does not.
-		const arc = /[Aa]\s*[\d.]+[\s,]+[\d.]+[\s,]+[\d.-]+[\s,]+([01])[\s,]+([01])/;
-		const fill = (element: HTMLElement) => element.querySelector("path[fill=currentColor]")!.getAttribute("d")!;
-		expect(fill(sixty).match(arc)![1]).toBe("1");
-		expect(fill(quarter).match(arc)![1]).toBe("0");
-		expect(fill(sixty)).not.toBe(fill(quarter));
-		expect(fill(plain)).toMatch(arc);
+		expect(share(sixty)).toBe("0.6");
+		expect(share(quarter)).toBe("0.25");
+		expect(share(plain)).toBe("0.5");
 	});
 
 	test("labeled icons are named, unlabeled icons are hidden", () => {

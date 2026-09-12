@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
+import { ArrowsClockwise } from "@phosphor-icons/react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { RefreshCw } from "lucide-react";
 import { expectClasses, expectHitArea } from "../../../test/classes";
 import { IconButton } from "./IconButton";
 
@@ -9,7 +9,7 @@ describe("IconButton", () => {
 	test("square button named by its label, keyboard operable, reflects disabled", async () => {
 		const user = userEvent.setup();
 		const onClick = mock();
-		const { rerender } = render(<IconButton label="Refresh" icon={<RefreshCw />} onClick={onClick} />);
+		const { rerender } = render(<IconButton label="Refresh" icon={<ArrowsClockwise />} onClick={onClick} />);
 		const button = screen.getByRole("button", { name: "Refresh" });
 		expect(button.getAttribute("aria-label")).toBe("Refresh");
 		expectClasses(button, "size-7 rounded-md");
@@ -20,7 +20,7 @@ describe("IconButton", () => {
 		await user.keyboard(" ");
 		expect(onClick).toHaveBeenCalledTimes(2);
 
-		rerender(<IconButton label="Refresh" icon={<RefreshCw />} onClick={onClick} disabled />);
+		rerender(<IconButton label="Refresh" icon={<ArrowsClockwise />} onClick={onClick} disabled />);
 		expect(button.hasAttribute("disabled")).toBe(true);
 		await user.click(button);
 		expect(onClick).toHaveBeenCalledTimes(2);
@@ -28,7 +28,7 @@ describe("IconButton", () => {
 
 	// Both halves of a primary split button share the same silver fill.
 	test("the primary variant is the silver metal", () => {
-		render(<IconButton label="Options" icon={<RefreshCw />} variant="primary" />);
+		render(<IconButton label="Options" icon={<ArrowsClockwise />} variant="primary" />);
 		const button = screen.getByRole("button", { name: "Options" });
 		expectClasses(button, "metal enabled:active:metal-pressed");
 		expect(button.classList.contains("bg-accent")).toBe(false);
@@ -41,10 +41,10 @@ describe("IconButton", () => {
 	test("each size matches the Button height of the same name and carries the hit-area layer", () => {
 		render(
 			<>
-				<IconButton label="Default" icon={<RefreshCw />} />
-				<IconButton label="Extra small" size="xs" icon={<RefreshCw />} />
-				<IconButton label="Small" size="sm" icon={<RefreshCw />} />
-				<IconButton label="Medium" size="md" icon={<RefreshCw />} />
+				<IconButton label="Default" icon={<ArrowsClockwise />} />
+				<IconButton label="Extra small" size="xs" icon={<ArrowsClockwise />} />
+				<IconButton label="Small" size="sm" icon={<ArrowsClockwise />} />
+				<IconButton label="Medium" size="md" icon={<ArrowsClockwise />} />
 			</>,
 		);
 		expectClasses(screen.getByRole("button", { name: "Default" }), "size-7");
@@ -56,15 +56,34 @@ describe("IconButton", () => {
 		expectHitArea(screen.getByRole("button", { name: "Medium" }), "box32Bordered");
 	});
 
+	// A toggle reports its state to assistive technology and draws it: an on
+	// toggle takes the accent ring and fill, and an off toggle keeps its variant.
+	test("a toggle sets aria-pressed and takes the accent ring while it is on", () => {
+		render(
+			<>
+				<IconButton label="On" icon={<ArrowsClockwise />} variant="default" round pressed />
+				<IconButton label="Off" icon={<ArrowsClockwise />} variant="default" round pressed={false} />
+				<IconButton label="Plain" icon={<ArrowsClockwise />} />
+			</>,
+		);
+		const on = screen.getByRole("button", { name: "On" });
+		const off = screen.getByRole("button", { name: "Off" });
+		expect(on.getAttribute("aria-pressed")).toBe("true");
+		expect(off.getAttribute("aria-pressed")).toBe("false");
+		expect(screen.getByRole("button", { name: "Plain" }).hasAttribute("aria-pressed")).toBe(false);
+		expectClasses(on, "rounded-round bg-accent-soft border-accent text-fg");
+		expectClasses(off, "rounded-round bg-control border-border-strong");
+	});
+
 	// An IconButton next to a Button in a split control takes the same fill,
 	// so a caller never paints a variant through className.
 	test("the variants match the Button variant set", () => {
 		render(
 			<>
-				<IconButton label="Primary" variant="primary" icon={<RefreshCw />} />
-				<IconButton label="Default" variant="default" icon={<RefreshCw />} />
-				<IconButton label="Quiet" icon={<RefreshCw />} />
-				<IconButton label="Danger" variant="danger" icon={<RefreshCw />} />
+				<IconButton label="Primary" variant="primary" icon={<ArrowsClockwise />} />
+				<IconButton label="Default" variant="default" icon={<ArrowsClockwise />} />
+				<IconButton label="Quiet" icon={<ArrowsClockwise />} />
+				<IconButton label="Danger" variant="danger" icon={<ArrowsClockwise />} />
 			</>,
 		);
 		expectClasses(screen.getByRole("button", { name: "Primary" }), "metal");

@@ -1,5 +1,5 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
-import { X } from "lucide-react";
+import { X } from "@phosphor-icons/react";
 import type { ComponentProps, ReactNode } from "react";
 import { cx } from "../../utils/cx";
 import { IconButton } from "../IconButton";

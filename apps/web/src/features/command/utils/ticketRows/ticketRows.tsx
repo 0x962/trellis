@@ -1,5 +1,5 @@
+import { ArrowElbowDownRight, ArrowSquareOut, Copy, FolderSimple, GitPullRequest, Trash } from "@phosphor-icons/react";
 import { PriorityIcon, StatusIcon } from "@trellis/ui";
-import { Copy, CornerDownRight, ExternalLink, FolderInput, GitPullRequest, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { projectSlashPath } from "../../../../lib/projectPath";
 import { composerActions } from "../../../composer";
@@ -20,17 +20,17 @@ import { capsOf, type PaletteRow, priorityLabels, type RowDeps, statusProject } 
 // same actions, on one ticket or on every selected row.
 
 const icons: Record<string, ReactNode> = {
-	"ticket.project": <FolderInput />,
-	"ticket.parent": <CornerDownRight />,
-	"ticket.subTicket": <CornerDownRight />,
+	"ticket.project": <FolderSimple />,
+	"ticket.parent": <ArrowElbowDownRight />,
+	"ticket.subTicket": <ArrowElbowDownRight />,
 	"ticket.copyId": <Copy />,
 	"ticket.copyBranch": <Copy />,
 	"ticket.copyBrief": <Copy />,
 	"ticket.copyLink": <Copy />,
-	"ticket.open": <ExternalLink />,
-	"ticket.delete": <Trash2 />,
-	"selection.project": <FolderInput />,
-	"selection.delete": <Trash2 />,
+	"ticket.open": <ArrowSquareOut />,
+	"ticket.delete": <Trash />,
+	"selection.project": <FolderSimple />,
+	"selection.delete": <Trash />,
 };
 
 // The palette closes as soon as an action starts, so the page under it

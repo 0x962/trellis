@@ -225,7 +225,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket, chil
 
 	return (
 		<PeekListProvider rows={peekRows}>
-			<div ref={boardRef} data-board="" className="flex min-h-0 flex-1 snap-x gap-3 overflow-x-auto p-4">
+			<div ref={boardRef} data-board="" className="flex min-h-0 flex-1 snap-x gap-3 overflow-x-auto px-5 py-4">
 				{columns.map((column) => (
 					<BoardColumn
 						key={column.id}

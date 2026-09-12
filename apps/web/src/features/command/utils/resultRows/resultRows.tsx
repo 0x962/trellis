@@ -1,6 +1,6 @@
+import { ArrowRight } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
 import { StatusIcon } from "@trellis/ui";
-import { ArrowRight } from "lucide-react";
 import type { PaletteRow, RowDeps } from "../../rows";
 import { viewHref } from "../viewHref";
 

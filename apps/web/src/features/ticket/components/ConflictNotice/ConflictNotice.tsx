@@ -1,6 +1,6 @@
+import { Warning } from "@phosphor-icons/react";
 import type { Ticket } from "@trellis/api";
 import { ActorChip, Button, Popover } from "@trellis/ui";
-import { AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../../lib/appContext";
 import { relativeTime } from "../../../../lib/format";
@@ -36,7 +36,7 @@ export function ConflictNotice({ current, onOverwrite, onClose }: ConflictNotice
 			role="alert"
 			className="flex min-h-9 flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning-soft px-3 py-1 text-sm text-fg"
 		>
-			<AlertTriangle aria-hidden="true" className="size-3.5 shrink-0 text-warning" />
+			<Warning aria-hidden="true" className="size-3.5 shrink-0 text-warning" />
 			<span className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
 				{actor === null ? (
 					<span>Another actor changed this ticket. Your edit is not saved.</span>

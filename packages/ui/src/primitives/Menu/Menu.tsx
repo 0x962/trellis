@@ -1,5 +1,5 @@
 import { Menu as BaseMenu } from "@base-ui/react/menu";
-import { MoreHorizontal } from "lucide-react";
+import { DotsThree } from "@phosphor-icons/react";
 import type { ReactElement } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
@@ -50,7 +50,7 @@ export function Menu({ label, items, trigger, align = "end", className }: MenuPr
 			>
 				{trigger ? undefined : (
 					<span aria-hidden="true" className="inline-flex size-3.5 *:size-full">
-						<MoreHorizontal />
+						<DotsThree />
 					</span>
 				)}
 			</BaseMenu.Trigger>

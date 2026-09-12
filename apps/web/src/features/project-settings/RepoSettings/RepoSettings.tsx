@@ -1,6 +1,6 @@
+import { Plus, Trash } from "@phosphor-icons/react";
 import type { Project } from "@trellis/api";
 import { Button, IconButton, Input } from "@trellis/ui";
-import { Plus, Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { SettingsSection } from "../SettingsSection";
@@ -67,7 +67,7 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 							<IconButton
 								size="xs"
 								label={`Remove ${repo.owner}/${repo.repo}`}
-								icon={<Trash2 />}
+								icon={<Trash />}
 								onClick={() => void remove(repo.owner, repo.repo)}
 							/>
 						</li>

@@ -62,15 +62,9 @@ function AllBoardPage() {
 
 	return (
 		<>
-			<Topbar
-				actions={
-					<>
-						<ViewSwitch value="board" onChange={switchView} />
-						<NewTicketButton />
-					</>
-				}
-			>
+			<Topbar actions={<NewTicketButton />}>
 				<h1 className="sr-only">All tickets</h1>
+				<ViewSwitch value="board" onChange={switchView} />
 			</Topbar>
 			<FilterBar search={search} onSearchChange={setSearch} statuses={statuses} />
 			<Board filters={toCountsQuery(view, { statuses })} storageKey="all" onOpenTicket={openTicket}>

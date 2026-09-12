@@ -1,6 +1,6 @@
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Chip, EmptyState, Kbd } from "@trellis/ui";
-import { Search } from "lucide-react";
 import { type FormEvent, useId, useState } from "react";
 import { parseSearch, stripDefaults, type View } from "../features/filters/grammar";
 import { useKeyboardFocusRing } from "../features/search/hooks/useKeyboardFocusRing";
@@ -56,7 +56,7 @@ function SearchPage() {
 					<label htmlFor={id} className="sr-only">
 						Search
 					</label>
-					<Search
+					<MagnifyingGlass
 						aria-hidden="true"
 						className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-faint"
 					/>

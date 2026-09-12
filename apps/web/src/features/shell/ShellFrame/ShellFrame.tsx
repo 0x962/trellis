@@ -1,6 +1,6 @@
+import { ListBullets, MagnifyingGlass, Tray } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { TrellisWordmark } from "@trellis/ui";
-import { Inbox, List, Search } from "lucide-react";
 import type { ReactNode } from "react";
 
 export type ShellFrameProps = {
@@ -10,9 +10,9 @@ export type ShellFrameProps = {
 };
 
 const rows = [
-	{ to: "/needs-you", label: "Needs you", icon: <Inbox /> },
-	{ to: "/search", label: "Search", icon: <Search /> },
-	{ to: "/all", label: "All tickets", icon: <List /> },
+	{ to: "/needs-you", label: "Needs you", icon: <Tray /> },
+	{ to: "/search", label: "Search", icon: <MagnifyingGlass /> },
+	{ to: "/all", label: "All tickets", icon: <ListBullets /> },
 ] as const;
 
 // The shell with no data in it: the sidebar header, the three fixed rows,
@@ -24,9 +24,9 @@ export function ShellFrame({ children }: ShellFrameProps) {
 			<aside
 				aria-label="Sidebar"
 				aria-busy="true"
-				className="relative flex h-full w-60 shrink-0 flex-col gap-0.5 bg-bg px-2 py-2 text-base max-md:hidden after:pointer-events-none after:absolute after:top-11 after:right-0 after:bottom-0 after:w-px after:bg-border"
+				className="relative flex h-full w-60 shrink-0 flex-col gap-0.5 bg-bg px-2 pb-2 text-base max-md:hidden after:pointer-events-none after:absolute after:top-16 after:right-0 after:bottom-0 after:w-px after:-translate-y-px after:bg-border"
 			>
-				<div className="mb-1.5 flex h-7 items-center gap-2 pl-2">
+				<div className="mb-1 flex h-13 shrink-0 items-center gap-2 pl-2">
 					<TrellisWordmark className="h-4.5" />
 				</div>
 				{rows.map((row) => (

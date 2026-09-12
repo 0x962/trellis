@@ -1,7 +1,7 @@
+import { Lock } from "@phosphor-icons/react";
 import { useNavigate } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
 import { Button, Input, Textarea } from "@trellis/ui";
-import { Lock } from "lucide-react";
 import { type FormEvent, useId, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";

@@ -1,3 +1,4 @@
+import { MagicWand } from "@phosphor-icons/react";
 import type { FlowNodeKind } from "@trellis/api";
 import { Button, toast } from "@trellis/ui";
 import {
@@ -16,7 +17,6 @@ import {
 	useReactFlow,
 	type XYPosition,
 } from "@xyflow/react";
-import { WandSparkles } from "lucide-react";
 import { type Dispatch, type DragEvent, type SetStateAction, useCallback, useRef } from "react";
 import { ulid } from "ulid";
 import { absolutePosition, boxAt, sizeOf } from "../../canvasGeometry";
@@ -188,7 +188,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
 					<NodePalette onAdd={addAtCenter} />
 				</Panel>
 				<Panel position="top-right">
-					<Button icon={<WandSparkles />} disabled={nodes.length === 0} onClick={cleanUp}>
+					<Button icon={<MagicWand />} disabled={nodes.length === 0} onClick={cleanUp}>
 						Clean up
 					</Button>
 				</Panel>

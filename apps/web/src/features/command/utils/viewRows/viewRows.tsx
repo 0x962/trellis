@@ -1,18 +1,18 @@
 import {
-	ArrowUpDown,
-	Filter,
+	ArrowsDownUp,
 	FolderOpen,
 	FolderPlus,
-	Inbox,
-	LayoutGrid,
-	List,
+	Funnel,
+	Gear,
+	ListBullets,
 	Moon,
-	PanelLeft,
 	Plus,
-	Rows3,
-	Settings,
+	Rows,
+	SidebarSimple,
+	SquaresFour,
 	Table,
-} from "lucide-react";
+	Tray,
+} from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { projectHref } from "../../../../lib/projectPath";
 import { toggleTheme } from "../../../../lib/theme";
@@ -30,18 +30,18 @@ const icons: Record<string, ReactNode> = {
 	"create.ticket": <Plus />,
 	"create.project": <FolderPlus />,
 	"create.subProject": <FolderPlus />,
-	"goto.needsYou": <Inbox />,
-	"goto.all": <List />,
-	"goto.board": <LayoutGrid />,
+	"goto.needsYou": <Tray />,
+	"goto.all": <ListBullets />,
+	"goto.board": <SquaresFour />,
 	"goto.table": <Table />,
-	"goto.settings": <Settings />,
+	"goto.settings": <Gear />,
 	"goto.project": <FolderOpen />,
-	"view.filter": <Filter />,
-	"view.sort": <ArrowUpDown />,
-	"view.group": <Rows3 />,
-	"view.density": <Rows3 />,
+	"view.filter": <Funnel />,
+	"view.sort": <ArrowsDownUp />,
+	"view.group": <Rows />,
+	"view.density": <Rows />,
 	"view.theme": <Moon />,
-	"view.sidebar": <PanelLeft />,
+	"view.sidebar": <SidebarSimple />,
 };
 
 const run = (deps: RowDeps, action: () => void) => () => {

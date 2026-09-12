@@ -1,5 +1,5 @@
+import { Briefcase, Hammer, Scan } from "@phosphor-icons/react";
 import type { PersonaKind } from "@trellis/api";
-import { BriefcaseBusiness, Hammer, ScanSearch } from "lucide-react";
 
 export const personaKinds = [
 	{
@@ -14,13 +14,13 @@ export const personaKinds = [
 		label: "Reviewer",
 		plural: "Reviewers",
 		description: "Review work and report findings.",
-		icon: ScanSearch,
+		icon: Scan,
 	},
 	{
 		value: "manager",
 		label: "Manager",
 		plural: "Managers",
 		description: "Coordinate agents and move work forward.",
-		icon: BriefcaseBusiness,
+		icon: Briefcase,
 	},
 ] satisfies Array<{ value: PersonaKind; label: string; plural: string; description: string; icon: typeof Hammer }>;

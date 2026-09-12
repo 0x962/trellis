@@ -85,7 +85,7 @@ describe("Gallery", () => {
 			/^[A-Z]+-\d+$/.test(element.textContent!),
 		);
 		expect(id).toBeDefined();
-		expect(row.querySelector("svg[data-category]")).not.toBeNull();
+		expect(row.querySelector("[data-category]")).not.toBeNull();
 		const miniRibbon = row.querySelector("[title$='checks']")!;
 		expect(miniRibbon.classList.contains("w-8")).toBe(true);
 		expect(row.querySelector("[aria-label$='· agent'] [data-live]")).not.toBeNull();

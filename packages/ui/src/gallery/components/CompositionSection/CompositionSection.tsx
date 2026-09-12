@@ -1,4 +1,4 @@
-import { Check, ExternalLink, GitPullRequest, MessageCircle } from "lucide-react";
+import { ArrowSquareOut, ChatCircle, Check, GitPullRequest } from "@phosphor-icons/react";
 import { ActorChip } from "../../../domain/ActorChip";
 import { CheckRibbon, type Check as CheckRun } from "../../../domain/CheckRibbon";
 import { PriorityIcon } from "../../../domain/PriorityIcon";
@@ -47,7 +47,7 @@ export function CompositionSection() {
 				</span>
 				<span className="flex min-w-0 flex-1 items-center gap-2">
 					<span className="truncate">Restore the export pages after the upstream 1.27 merge</span>
-					<Badge icon={<MessageCircle />}>4</Badge>
+					<Badge icon={<ChatCircle />}>4</Badge>
 				</span>
 				<span className="inline-flex w-37.5 items-center gap-2 whitespace-nowrap">
 					<StatusIcon category="review" reviewer="human" />
@@ -82,7 +82,7 @@ export function CompositionSection() {
 					<div className="flex items-center gap-2.5 text-xs text-fg-muted">
 						<GitPullRequest className="size-3.25 text-fg-muted" aria-hidden="true" />
 						<CheckRibbon size="mini" checks={cardChecks} />
-						<Badge icon={<MessageCircle />}>2</Badge>
+						<Badge icon={<ChatCircle />}>2</Badge>
 						<span className="ml-auto inline-flex items-center gap-1.5 tabular">
 							<Avatar kind="agent" name="claude-code" live />
 							9m
@@ -115,7 +115,7 @@ export function CompositionSection() {
 								Approved
 							</Badge>
 						</span>
-						<ExternalLink className="size-3.5 text-fg-faint" aria-hidden="true" />
+						<ArrowSquareOut className="size-3.5 text-fg-faint" aria-hidden="true" />
 					</div>
 					<div className="border-t border-border bg-bg">
 						{checks.slice(0, 3).map((check) => (
@@ -123,7 +123,7 @@ export function CompositionSection() {
 								key={check.name}
 								className="grid h-7.5 grid-cols-[auto_1fr_auto_auto] items-center gap-2.5 border-t border-border pr-3 pl-10.5 text-sm first:border-t-0"
 							>
-								<Check className="size-3.25 text-success" strokeWidth={2.5} aria-hidden="true" />
+								<Check className="size-3.25 text-success" weight="bold" aria-hidden="true" />
 								<span>
 									{check.name} <span className="text-fg-muted">· CI</span>
 								</span>

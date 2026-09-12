@@ -1,7 +1,7 @@
+import { ArrowLeft, ArrowsOut, Copy, GitBranch, List, X } from "@phosphor-icons/react";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
 import { IconButton, Skeleton, TicketId, Tooltip, useHotkey, useMediaQuery } from "@trellis/ui";
-import { ArrowLeft, Copy, GitBranch, Maximize2, Menu, X } from "lucide-react";
 import { copyText } from "../../../lib/clipboard";
 import { lastListHref } from "../../../lib/lastList";
 import { uiActions } from "../../../stores/uiStore";
@@ -69,20 +69,20 @@ export function Header(props: HeaderProps) {
 	const expand = () => void navigate({ to: "/t/$identifier", params: { identifier } });
 	const back = lastListHref();
 	if (ticket !== undefined && surface === "page" && ticket.parent !== null && parentSummary === undefined) {
-		return <div className="h-11 shrink-0 border-border border-b" />;
+		return <div className="h-13 shrink-0 border-border border-b" />;
 	}
 
 	return (
 		<section
 			aria-label="Ticket header"
-			className="sticky top-0 z-10 flex h-11 shrink-0 items-center gap-2 border-b border-border bg-surface px-4"
+			className="sticky top-0 z-10 flex h-13 shrink-0 items-center gap-2 border-b border-border bg-surface px-4"
 		>
 			{/* The ticket page has no Topbar, so under 768 px its header carries
 			the menu button that opens the sidebar sheet. */}
 			{surface === "page" && (
 				<IconButton
 					label="Open the sidebar"
-					icon={<Menu />}
+					icon={<List />}
 					className="-ml-2 md:hidden"
 					onClick={() => uiActions.setMobileSidebarOpen(true)}
 				/>
@@ -148,7 +148,7 @@ export function Header(props: HeaderProps) {
 					<>
 						<span aria-hidden="true" className="mx-1 h-4 w-px bg-border" />
 						<Tooltip content="Expand to the full page">
-							<IconButton label="Expand to the full page" size="sm" icon={<Maximize2 />} onClick={expand} />
+							<IconButton label="Expand to the full page" size="sm" icon={<ArrowsOut />} onClick={expand} />
 						</Tooltip>
 						<Tooltip content="Close Esc">
 							<IconButton label="Close" size="sm" icon={<X />} onClick={peek.close} />
