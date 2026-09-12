@@ -28,7 +28,8 @@ export function useFlowAutosave({ flow, graph, canSave, initialSavedJson, recove
 
 	useLayoutEffect(() => {
 		if (json !== savedJson) recovery.write({ version: flow.version, graph });
-	}, [json, savedJson, flow.version, graph, recovery]);
+		else if (!saving) recovery.clear();
+	}, [json, savedJson, flow.version, graph, recovery, saving]);
 
 	useEffect(() => {
 		if (json === savedJson && !saving) {
@@ -64,6 +65,10 @@ export function useFlowAutosave({ flow, graph, canSave, initialSavedJson, recove
 		status,
 		message,
 		retry: () => setFailure(null),
+		discardSubmission: () => {
+			setFailure(null);
+			setImmediate(false);
+		},
 		saveNow: () => {
 			setImmediate(true);
 			if (failure === "error") setFailure(null);

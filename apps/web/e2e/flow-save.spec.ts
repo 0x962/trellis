@@ -24,20 +24,18 @@ test("Save sends pending edits immediately and keeps the sheet open until the se
 	});
 	const sheet = page.getByRole("dialog", { name: "Edit agent", exact: true });
 	await sheet.getByRole("textbox", { name: "Title", exact: true }).fill("Save this edit");
-	await sheet.getByRole("button", { name: "Save", exact: true }).click();
+	await sheet.getByRole("button", { name: "Save changes", exact: true }).click();
 	await expect.poll(() => requests, { timeout: 400 }).toBe(1);
 	await expect(sheet).toBeVisible();
-	await expect(sheet.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
+	await expect(sheet.getByRole("button", { name: "Save changes", exact: true })).toBeDisabled();
 	release.resolve();
 	await expect(sheet).toHaveCount(0);
 	expect((await read(flow)).nodes[0]?.title).toBe("Save this edit");
 });
 
-test("Save waits for autosave and then saves edits made during that request", async ({ page }) => {
+test("Save waits for the new node autosave before it submits the form", async ({ page }) => {
 	const flow = await create();
 	await signIn(page, `/ai/flows/${flow.slug}`);
-	await page.getByRole("button", { name: "Add agent", exact: true }).click();
-	await expect.poll(async () => (await read(flow)).nodes.length).toBe(1);
 	const release = Promise.withResolvers<void>();
 	let requests = 0;
 	await page.route("**/rpc/flows/save", async (route) => {
@@ -45,11 +43,11 @@ test("Save waits for autosave and then saves edits made during that request", as
 		if (requests === 1) await release.promise;
 		await route.continue();
 	});
-	const sheet = page.getByRole("dialog", { name: "Edit agent", exact: true });
-	await sheet.getByRole("textbox", { name: "Title", exact: true }).fill("First edit");
+	await page.getByRole("button", { name: "Add agent", exact: true }).click();
 	await expect.poll(() => requests).toBe(1);
+	const sheet = page.getByRole("dialog", { name: "Edit agent", exact: true });
 	await sheet.getByRole("textbox", { name: "Instruction", exact: true }).fill("Latest edit");
-	await sheet.getByRole("button", { name: "Save", exact: true }).click();
+	await sheet.getByRole("button", { name: "Save changes", exact: true }).click();
 	release.resolve();
 	await expect(sheet).toHaveCount(0);
 	expect(requests).toBe(2);
@@ -64,12 +62,69 @@ test("a refused Save keeps the node sheet open and permits another save", async 
 	await page.route("**/rpc/flows/save", (route) => route.abort());
 	const sheet = page.getByRole("dialog", { name: "Edit agent", exact: true });
 	await sheet.getByRole("textbox", { name: "Title", exact: true }).fill("Keep this edit");
-	await sheet.getByRole("button", { name: "Save", exact: true }).click();
+	await sheet.getByRole("button", { name: "Save changes", exact: true }).click();
 	await expect(sheet.getByRole("alert")).toBeVisible();
-	await expect(sheet.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
+	await expect(sheet.getByRole("button", { name: "Save changes", exact: true })).toBeEnabled();
 	await expect(sheet.getByRole("textbox", { name: "Title", exact: true })).toHaveValue("Keep this edit");
 	await page.unroute("**/rpc/flows/save");
-	await sheet.getByRole("button", { name: "Save", exact: true }).click();
+	await sheet.getByRole("button", { name: "Save changes", exact: true }).click();
 	await expect(sheet).toHaveCount(0);
 	expect((await read(flow)).nodes[0]?.title).toBe("Keep this edit");
+});
+
+for (const action of ["Cancel", "Close", "Escape"]) {
+	test(`${action} discards node edits without autosave`, async ({ page }) => {
+		const flow = await create();
+		await signIn(page, `/ai/flows/${flow.slug}`);
+		await page.getByRole("button", { name: "Add agent", exact: true }).click();
+		await expect.poll(async () => (await read(flow)).nodes.length).toBe(1);
+		const sheet = page.getByRole("dialog", { name: "Edit agent", exact: true });
+		await sheet.getByRole("textbox", { name: "Title", exact: true }).fill("Discard this edit");
+		await page.waitForTimeout(900);
+		expect((await read(flow)).nodes[0]?.title).toBe("New agent");
+		if (action === "Escape") await page.keyboard.press("Escape");
+		else await sheet.getByRole("button", { name: action, exact: true }).click();
+		await expect(sheet).toHaveCount(0);
+		await page.reload();
+		await page.getByText("New agent", { exact: true }).click();
+		await expect(sheet.getByRole("textbox", { name: "Title", exact: true })).toHaveValue("New agent");
+	});
+}
+
+test("Cancel after a failed submission discards the submitted draft", async ({ page }) => {
+	const flow = await create();
+	await signIn(page, `/ai/flows/${flow.slug}`);
+	await page.getByRole("button", { name: "Add agent", exact: true }).click();
+	await expect.poll(async () => (await read(flow)).nodes.length).toBe(1);
+	await page.route("**/rpc/flows/save", (route) => route.abort());
+	const sheet = page.getByRole("dialog", { name: "Edit agent", exact: true });
+	await sheet.getByRole("textbox", { name: "Title", exact: true }).fill("Discard failed edit");
+	await sheet.getByRole("button", { name: "Save changes", exact: true }).click();
+	await expect(sheet.getByRole("alert")).toBeVisible();
+	await sheet.getByRole("button", { name: "Cancel", exact: true }).click();
+	await page.unroute("**/rpc/flows/save");
+	await page.reload();
+	await expect(page.getByText("New agent", { exact: true })).toBeVisible();
+	expect((await read(flow)).nodes[0]?.title).toBe("New agent");
+});
+
+test("Cancel keeps group connections and Save changes applies parallel mode", async ({ page }) => {
+	const flow = await create();
+	await signIn(page, `/ai/flows/${flow.slug}`);
+	await page.getByRole("button", { name: "Add group", exact: true }).click();
+	await page.getByRole("button", { name: "Add agent", exact: true }).click();
+	await page.getByRole("button", { name: "Close", exact: true }).click();
+	await expect.poll(async () => (await read(flow)).edges.length).toBe(1);
+	const before = await read(flow);
+	await page.getByText("Group", { exact: true }).click();
+	await page.getByRole("switch", { name: "Parallel", exact: true }).click();
+	await page.getByRole("button", { name: "Cancel", exact: true }).click();
+	expect((await read(flow)).edges).toEqual(before.edges);
+	await page.getByText("Group", { exact: true }).click();
+	await expect(page.getByRole("switch", { name: "Parallel", exact: true })).not.toBeChecked();
+	await page.getByRole("switch", { name: "Parallel", exact: true }).click();
+	await page.getByRole("button", { name: "Save changes", exact: true }).click();
+	await expect(page.getByRole("dialog", { name: "Edit group", exact: true })).toHaveCount(0);
+	expect((await read(flow)).edges).toEqual([]);
+	expect((await read(flow)).nodes.find((node) => node.kind === "group")?.parallel).toBe(true);
 });
