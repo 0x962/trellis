@@ -20,7 +20,7 @@ bun install
 TRELLIS_HOME=$(mktemp -d) bun run dev
 ```
 
-Open `http://127.0.0.1:5173`.
+Open `http://127.0.0.1:5173`. Vite sends `/api` and `/rpc` to the server on 4521.
 A temporary `TRELLIS_HOME` keeps the loop away from your own data, and each run starts from an empty database.
 Drop the variable to work against `~/.trellis`.
 For the end-to-end suite, Playwright starts both processes.
@@ -30,6 +30,30 @@ Balance speed with the cost of an error.
 Use focused tests for narrow changes and broader checks when the risk warrants them.
 The full `bun run check` command and performance tests are optional.
 One agent handles tests, implementation, and review, and decides whether browser checks add useful evidence.
+
+| Command | What it runs |
+|---|---|
+| `bun run test` | The `bun test` suite of every workspace. |
+| `bun run test:repo` | The repository rules and the public documentation links in `test/`. |
+| `bun run typecheck` | `tsc --noEmit` in every workspace. |
+| `bun run lint` | Biome over the whole tree. `bun run lint:fix` applies the fixes. |
+| `bun run check` | lint, typecheck, test, size-budget, typecheck:repo, and test:repo through turbo. |
+| `bun run e2e` | The Playwright suite. |
+
+## Web tests
+
+A web test drives the real server. `apps/web/test/server` builds the Hono app of
+`apps/server` over an in-memory PGlite and hands the page its `fetch`.
+The workspace ships no fake server, so a change to a procedure breaks the page
+tests that call it.
+
+The seed runs through the real services once and its rows go to a JSON snapshot
+under `apps/web/.cache/seed`. The cache key hashes the seed sources and the
+migration files, so a change to either builds a new snapshot.
+One in-memory PGlite serves all the tests of one file, and each test restores
+the snapshot into it.
+`apps/web` runs its test files on four workers, because the preload gives each
+process its own `TRELLIS_HOME`.
 
 ## Repository map
 
@@ -51,12 +75,12 @@ Each package exports TypeScript source without side effects.
 ## Add a procedure
 
 1. Add the resource schemas under `packages/api/src/schemas/`.
-2. Add the oRPC contract under `packages/api/src/contract/`.
+2. Add the oRPC contract under `packages/api/src/contract/`, then list the router in `packages/api/src/contract/index.ts`.
 3. Write a failing unit test beside the service.
 4. Write a failing contract test beside the server procedure.
 5. Add the service under `apps/server/src/services/` with the `(ctx, tx, input) => result` signature.
 6. Add the procedure under `apps/server/src/procedures/`.
-7. Add the CLI verb under `packages/cli/src/commands/`.
+7. Add the CLI verb under `packages/cli/src/commands/`, then add its row to `packages/cli/src/verbs.ts`.
 8. Add a CLI smoke test under `packages/cli/test/`.
 
 The procedure resolves refs, calls the service, and returns the result.

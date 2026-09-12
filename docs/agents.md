@@ -1,5 +1,9 @@
 # Agent setup
 
+This guide covers two things. The first is the rules an agent follows when it
+works a trellis ticket from another repository. The second is the personas and
+the agent runs that trellis starts on its own.
+
 ## Actor header
 
 Every non-GET request sends `x-trellis-actor: <human|agent>:<name>`.
@@ -54,3 +58,126 @@ trellis thread reopen <comment-id>
 
 A reply to a reply joins the same thread. A thread read includes the root comment and every reply.
 The server refuses to delete a root comment while replies exist.
+
+## Personas
+
+A persona is a local record that trellis shares across every project. It holds a
+name, an instruction, and one kind.
+
+| Kind | Works on | Started from |
+|---|---|---|
+| builder | one ticket | the Agent section of the ticket rail, or `trellis agents start` |
+| reviewer | one ticket | the same picker |
+| manager | one project | the Manager page of the project |
+
+Open the Personas page from the AI section of the sidebar, at `/ai/personas`.
+The cards group by kind. A slideout creates, edits, and deletes a record.
+
+A name holds 1 to 120 characters and an instruction holds 1 to 200,000
+characters. Neither may be blank. A create without a kind takes builder.
+
+```sh
+trellis personas list
+trellis personas list --kind manager
+trellis personas show "Careful reviewer"
+```
+
+`trellis personas show` prints the record, then the instruction below it.
+A persona argument takes the persona id or its name, in any letter case.
+
+## Agent runs
+
+An agent run is one agent that trellis started from a persona. The run copies the
+persona name, the kind, and the instruction at launch. A later edit of the
+persona therefore changes only the runs after it, and a delete of the persona
+keeps the copies.
+
+```sh
+trellis agents list
+trellis agents list --ticket TRL-42
+trellis agents start "Careful builder" --ticket TRL-42
+trellis agents refresh <id>
+trellis agents send <id> --text "Rebase on main, then push."
+trellis agents output <id>
+trellis agents stop <id>
+```
+
+`--text -` reads the follow-up from stdin.
+
+A run carries one state.
+
+| State | Meaning |
+|---|---|
+| starting | trellis asked the runner and holds no terminal yet |
+| running | the terminal is up |
+| interrupted | the launch reached the runner and the terminal is lost |
+| failed | the launch did not reach the runner; `error` holds the reason |
+| stopped | a person stopped the run |
+| exited | the agent left its terminal |
+
+`trellis agents start` exits 6 when the run answers in a state other than
+`running`, and writes the reason to stderr.
+
+### What a start refuses
+
+- A persona kind that does not match the target. A manager takes `--project`. A builder and a reviewer take `--ticket`.
+- A project whose agents switch is off.
+- A ticket that is already done or canceled.
+- A project with no repository.
+- A second live manager for the same project.
+- A ticket start when the project already runs its concurrency limit of ticket agents. The limit runs from 1 to 64 and defaults to 3. The manager is outside that count.
+
+Every agent setting of a project sits on its Manager page, at
+`/p/<project path>/settings/manager`. The header holds the agents switch and the
+Start manager button. The Status section picks the manager persona, opens the
+manager, reads its output, sends it a follow-up, and stops it. The ADE section
+picks the ADE, its command template, the Superset host, the concurrency limit,
+and the project directory. The Agents section of `/settings` holds only the
+machine launch command and the stalled threshold.
+
+### The launch command
+
+A project picks its Agentic Development Environment (ADE) in the ADE section of
+its Manager page. `superset` opens a Superset workspace with the command template
+of the machine. `custom` runs the command template of the project, and an empty
+project template falls back to the machine template.
+
+The machine template is `settings.agentLaunchCommand`. Its default is:
+
+```
+{{superset}} ws create {{target}} --project {{projectId}} --name {{name}} --branch {{branch}} --command {{agentCommand}} --json
+```
+
+The template takes these variables: `{{superset}}`, `{{target}}`, `{{workDir}}`,
+`{{projectDir}}`, `{{concurrency}}`, `{{projectId}}`, `{{project}}`,
+`{{ticket}}`, `{{name}}`, `{{branch}}`, `{{instruction}}`, `{{prompt}}`,
+`{{actor}}`, `{{trellisUrl}}`, and `{{agentCommand}}`. An unknown variable fails
+the save. Each value goes in as one quoted shell argument. `{{target}}` is the
+Superset host flag of the project: `--local` for This machine, and
+`--host '<id>'` for another machine.
+
+A template that holds `{{superset}}` runs the agent in a Superset workspace. A
+template without it runs the agent in a private tmux session, which survives a
+restart of the trellis server.
+
+`{{prompt}}` is the instruction of the persona, plus an assignment block with the
+agent name, its actor, the trellis URL, the persona, the ticket or the project,
+the concurrency limit, the project directory, and the repositories.
+`{{agentCommand}}` wraps that prompt: it exports `TRELLIS_URL` and
+`TRELLIS_ACTOR`, then runs `claude` with the agent name and the prompt. The actor
+of a run is `agent:<run id>`.
+
+The runner-driven agent manager takes the other path. Its command reads the
+prompt from the server at start time, with
+`trellis instructions --role manager|builder|reviewer`. Run that command yourself
+to read what an agent of each role starts with:
+
+```sh
+trellis instructions --role builder --project TRL --ticket TRL-42
+```
+
+A manager prompt holds the status descriptions of the project, so
+`--role manager` with `--project` reads them from the server.
+
+CAUTION: The template is a shell command that the server runs as your account.
+The server has no sign-in, so anyone who reaches the API sets that template.

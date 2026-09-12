@@ -5,6 +5,7 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 ## Work
 
 - Assess the risk of each change. Balance speed with the cost of an error.
+- Start each change with a failing test. A behavior change without a test does not merge.
 - Choose tests and checks that cover the changed behavior and affected code. Use broader checks when the risk warrants them.
 - Treat the full `bun run check` command as optional. Performance tests are optional for handoffs, pull requests, and merges.
 - Decide whether a browser check adds useful evidence for the change.
@@ -54,10 +55,12 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 |---|---|---|
 | unit | beside the module, `*.test.ts` | `bun test`, in-memory PGlite, inline transport |
 | contract | `apps/server/src/procedures/*.test.ts` | `bun test`, oRPC client over `app.request` |
-| component | beside the component, `*.test.tsx` | `bun test`, Testing Library, happy-dom |
+| component | beside the component, `*.test.tsx` | `bun test`, Testing Library, happy-dom, the real server in process |
 | CLI smoke | `packages/cli/test/` | `bun test`, spawned server on a random port |
 | perf | `apps/server/test/perf/`, `apps/web/scripts/size-budget.ts` | optional `perf:10k` at 10k rows, `perf` at 50k rows |
 | e2e | `apps/web/e2e/` | Playwright with a temp `TRELLIS_HOME` |
+
+A web component test builds the real Hono app of `apps/server` over an in-memory PGlite. `apps/web/test/server` holds that harness. The web workspace ships no fake server, so a page test fails when the server contract changes.
 
 Every service test ends with `assertStatusInvariant(tx)`. `test/preload.ts` gives a test run a fresh `TRELLIS_HOME`, so a test never touches `~/.trellis`. Bun reads `bunfig.toml` from the current directory only. So every workspace has a `bunfig.toml` with `[test]` and `preload = ["../../test/preload.ts"]`. A root test checks this for every directory under `apps/` and `packages/` that has a `package.json`.
 

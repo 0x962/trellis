@@ -12,6 +12,20 @@ it accepts. The boundary is the network interface it binds, and nothing else.
 - CORS allows the two development origins only: `http://localhost:5173` and `http://trellis.localhost`. Every other origin gets no CORS header, so a page elsewhere cannot read the API from a browser.
 - An attachment downloads unless its type is in the inline allowlist. The file route sets `X-Content-Type-Options: nosniff` and `Content-Security-Policy: sandbox`, so an uploaded SVG or HTML file never runs as script on the app origin.
 
+## Agents run shell commands
+
+The agent launch command is a template in the settings. `PUT /api/settings`
+writes it, and a start of an agent runs it as a shell command under the account
+that runs the server. `POST /api/choose-directory` opens a folder picker on the
+server computer, and `POST /api/agent-runs` starts an agent.
+
+The server has no sign-in, so any client that reaches the API sets the template
+and starts an agent. On `127.0.0.1` that client is a process on this machine. On
+`0.0.0.0` it is anyone who reaches the port.
+
+An agent gets its own actor, `agent:<run id>`. That label records the writes of
+the agent. It grants nothing and restricts nothing.
+
 ## The network flag
 
 `trellis serve --host 0.0.0.0` and `TRELLIS_HOST=0.0.0.0` bind every interface.
