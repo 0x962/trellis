@@ -16,7 +16,7 @@ export function TitleCell({ ticket }: TitleCellProps) {
 	const progress = childCount === 0 ? 0 : childDoneCount / childCount;
 	return (
 		<span className="flex min-w-0 items-center gap-2">
-			<span className="truncate text-fg">{ticket.title}</span>
+			<span className="truncate font-mono text-fg">{ticket.title}</span>
 			{parent !== null && (
 				<span
 					role="img"

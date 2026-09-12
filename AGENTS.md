@@ -60,12 +60,12 @@ A test is an integration test when it opens a PGlite database, boots the Hono ap
 | unit | beside the module, `*.test.ts` | `bun run test`, no database, no process |
 | integration | `<workspace>/test/int/`, mirroring the source path | `bun run test:int`, in-memory PGlite, the app, spawned servers |
 | contract | `apps/server/test/int/src/procedures/` | `bun run test:int`, oRPC client over `app.request` |
-| component | `apps/web/test/int/src/`, mirroring the source path | `bun run test:int`, Testing Library, happy-dom |
+| component | `packages/ui`, beside the component | `bun run test`, Testing Library, happy-dom, no server |
 | CLI smoke | `packages/cli/test/int/` | `bun run test:int`, spawned server on a random port |
 | perf | `apps/server/test/perf/`, `apps/web/scripts/size-budget.ts` | optional `perf:10k` at 10k rows, `perf` at 50k rows |
 | e2e | `apps/web/e2e/` | Playwright with a temp `TRELLIS_HOME` |
 
-A web component test builds the real Hono app of `apps/server` over an in-memory PGlite. `apps/web/test/server` holds that harness. The web workspace ships no fake server, so a page test fails when the server contract changes.
+`apps/web` holds no component test. A page that renders is covered by the Playwright specs in `apps/web/e2e`, which drive a real browser against a real server. A component on its own is covered in `packages/ui`, which mounts it with no server and no database. `apps/web/test/server` builds the real Hono app of `apps/server` over an in-memory PGlite for the few tests that need it.
 
 An integration test that reads a file by path calls `originDir(import.meta.dir)` from `test/originDir.ts`, because its own directory sits under `test/int/` and holds no source. Every service test ends with `assertStatusInvariant(tx)`. `test/preload.ts` gives a test run a fresh `TRELLIS_HOME`, so a test never touches `~/.trellis`. Bun reads `bunfig.toml` from the current directory only. So every workspace has a `bunfig.toml` with `[test]` and `preload = ["../../test/preload.ts"]`. A root test checks this for every directory under `apps/` and `packages/` that has a `package.json`.
 

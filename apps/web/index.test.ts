@@ -77,14 +77,15 @@ describe("index.html", () => {
 		}
 	});
 
-	// WS-08. fonts.css declares the latin subset of the three JetBrains Mono
-	// weights only, so the page preloads exactly those three files.
-	test("the head preloads only the latin JetBrains Mono woff2 files", async () => {
+	// WS-08. fonts.css declares the latin subset of the Inter variable file
+	// and of three JetBrains Mono weights, so the page preloads exactly those
+	// four files.
+	test("the head preloads only the latin Inter and JetBrains Mono woff2 files", async () => {
 		const document = await parse();
 		const preloads = [...document.head.querySelectorAll('link[rel="preload"][as="font"]')];
-		expect(preloads).toHaveLength(3);
+		expect(preloads).toHaveLength(4);
 		const hrefs = preloads.map((link) => link.getAttribute("href") ?? "");
-		expect(hrefs.filter((href) => href.includes("inter"))).toHaveLength(0);
+		expect(hrefs.filter((href) => href.includes("inter-latin-wght-normal.woff2"))).toHaveLength(1);
 		expect(hrefs.filter((href) => href.includes("jetbrains-mono-latin-400-normal.woff2"))).toHaveLength(1);
 		expect(hrefs.filter((href) => href.includes("jetbrains-mono-latin-500-normal.woff2"))).toHaveLength(1);
 		expect(hrefs.filter((href) => href.includes("jetbrains-mono-latin-600-normal.woff2"))).toHaveLength(1);
