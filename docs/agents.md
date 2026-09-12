@@ -121,28 +121,35 @@ A run carries one state.
 ### What a start refuses
 
 - A persona kind that does not match the target. A manager takes `--project`. A builder and a reviewer take `--ticket`.
+- A project whose agents switch is off.
 - A ticket that is already done or canceled.
 - A project with no repository.
 - A second live manager for the same project.
 - A ticket start when the project already runs its concurrency limit of ticket agents. The limit runs from 1 to 64 and defaults to 3. The manager is outside that count.
 
-Set the persona, the concurrency, and the project directory of a project on its
-Manager page, at `/p/<project path>/settings/manager`.
+Every agent setting of a project sits on its Manager page, at
+`/p/<project path>/settings/manager`. The General section holds the agents
+switch, the manager persona, the Superset host, the concurrency limit, and the
+project directory. The Status section opens the manager, reads its output, sends
+it a follow-up, and stops it. The Agents section of `/settings` holds only what
+is true for the whole machine: the launch command and the stalled threshold.
 
 ### The launch command
 
-The Agents section of the settings holds one command template for every agent.
-The default is:
+The Agents section of `/settings` holds one command template for every agent of
+the machine. The default is:
 
 ```
-{{superset}} ws create --local --project {{projectId}} --name {{name}} --branch {{branch}} --command {{agentCommand}} --json
+{{superset}} ws create {{target}} --project {{projectId}} --name {{name}} --branch {{branch}} --command {{agentCommand}} --json
 ```
 
-The template takes these variables: `{{superset}}`, `{{workDir}}`,
+The template takes these variables: `{{superset}}`, `{{target}}`, `{{workDir}}`,
 `{{projectDir}}`, `{{concurrency}}`, `{{projectId}}`, `{{project}}`,
 `{{ticket}}`, `{{name}}`, `{{branch}}`, `{{instruction}}`, `{{prompt}}`,
 `{{actor}}`, `{{trellisUrl}}`, and `{{agentCommand}}`. An unknown variable fails
-the save. Each value goes in as one quoted shell argument.
+the save. Each value goes in as one quoted shell argument. `{{target}}` is the
+Superset host flag of the project: `--local` for This machine, and
+`--host '<id>'` for another machine.
 
 A template that holds `{{superset}}` runs the agent in a Superset workspace. A
 template without it runs the agent in a private tmux session, which survives a

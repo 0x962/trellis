@@ -90,8 +90,8 @@ the project tree, and the AI section with the Personas page.
 | `/t/TRL-42` | One ticket |
 | `/search` | Search |
 | `/ai/personas` | The personas |
-| `/agents` | Every agent run and what the runner answered |
 | `/settings` | The settings |
+| `/setup` | The first visit, and the new project step |
 
 The URL keeps slashes between project segments, and the API ref joins the same
 segments with dots: the page `/p/TRL/web/auth` reads the project `TRL.web.auth`.
@@ -175,15 +175,18 @@ edit of the persona changes only the runs after it. A delete of the persona
 keeps the copies.
 
 A builder run and a reviewer run name one ticket. A manager run names one
-project. A project runs one manager at a time. The concurrency limit of a
-project caps its active ticket agents; it runs from 1 to 64, defaults to 3, and
-excludes the manager. Set it on the Manager page at
-`/p/<project path>/settings/manager`, beside the persona and the project
-directory.
+project. A project runs one manager at a time.
+
+Every agent setting of a project lives on its Manager page, at
+`/p/<project path>/settings/manager`: the agents switch, the manager persona, the
+Superset host, the concurrency limit, and the project directory. The concurrency
+limit caps the active ticket agents of the project. It runs from 1 to 64,
+defaults to 3, and excludes the manager. The Status section of the same page
+opens the manager, reads its output, sends it a follow-up, and stops it.
 
 The Agent section of the ticket rail lists the runs of the ticket and opens a
 searchable persona picker. The picker puts the five personas the project used
-most at the top and hides the manager kind. `/agents` lists every run.
+most at the top and hides the manager kind.
 
 A run carries one state: `starting`, `running`, `interrupted`, `failed`,
 `stopped`, or `exited`. A failed launch stays visible with its error. A stop
@@ -212,18 +215,20 @@ reason to stderr.
 
 ### How trellis starts an agent
 
-The Agents section of the settings holds the launch command template. The
-default is:
+The Agents section of `/settings` holds one launch command template for every
+agent of the machine. The default is:
 
 ```
-{{superset}} ws create --local --project {{projectId}} --name {{name}} --branch {{branch}} --command {{agentCommand}} --json
+{{superset}} ws create {{target}} --project {{projectId}} --name {{name}} --branch {{branch}} --command {{agentCommand}} --json
 ```
 
-The template takes these variables: `{{superset}}`, `{{workDir}}`,
+The template takes these variables: `{{superset}}`, `{{target}}`, `{{workDir}}`,
 `{{projectDir}}`, `{{concurrency}}`, `{{projectId}}`, `{{project}}`,
 `{{ticket}}`, `{{name}}`, `{{branch}}`, `{{instruction}}`, `{{prompt}}`,
 `{{actor}}`, `{{trellisUrl}}`, and `{{agentCommand}}`. An unknown variable
-fails the save. Each value goes in as one quoted shell argument.
+fails the save. Each value goes in as one quoted shell argument. `{{target}}` is
+the Superset host flag of the project: `--local` for This machine, and
+`--host '<id>'` for another machine.
 
 A template that holds `{{superset}}` runs the agent in a Superset workspace. A
 template without it runs the agent in a private tmux session on a socket of its
@@ -334,21 +339,21 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 
 ## Settings
 
-`/settings` holds four sections. The nav writes the section into the URL hash,
-and Account carries no hash.
+Every setting at `/settings` holds for the whole machine. The nav writes the
+section into the URL hash, and Account carries no hash.
 
 | Hash | Section | Contents |
 |---|---|---|
 | none | Account | Your name and the theme |
 | `#agents` | Agents | The agent launch command and the stalled threshold |
 | `#integrations` | Integrations | The gh state, the diff URL template, and Pair a phone |
-| `#manager` | Agent manager | The agents switch, the runner, and one block per root project |
 
-A project has its own settings at `/p/<project path>/settings`, with the
-sections General, `#template`, `#statuses`, `#repositories`, `#subprojects`, and
-`#archive`. The manager of a project sits at
-`/p/<project path>/settings/manager`, with the sections General,
-`#repositories`, and `#manager`.
+A setting that belongs to one project lives on that project's pages.
+
+| Page | Sections |
+|---|---|
+| `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
+| `/p/<path>/settings/manager` | Status (no hash), `#general`, `#repositories` |
 
 ## Mobile
 

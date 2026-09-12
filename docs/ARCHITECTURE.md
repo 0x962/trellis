@@ -96,9 +96,11 @@ An agent run is one agent that trellis started from a persona. `agentRuns`
 exposes list, start, stop, refresh, send, and output. The ticket rail lists the
 runs of the ticket and opens a searchable persona picker; the picker puts the
 five personas the project used most first, and hides the manager kind. Each
-project has a Manager page at `/p/<project path>/settings/manager` with its
-persona, its concurrency, its directory, its repositories, and its manager
-controls. `/agents` lists every run.
+project has a Manager page at `/p/<project path>/settings/manager`. Its Status
+section opens the manager, reads its output, sends it a follow-up, and stops it.
+Its General section holds the agents switch, the manager persona, the Superset
+host, the concurrency limit, and the project directory, which together are
+`projects.managerConfig`.
 
 A run copies the persona name, the kind, and the instruction at launch, so a
 later persona edit changes only the runs after it. The row also keeps the project
@@ -109,22 +111,24 @@ of the run, writes the terminal text to `agents/<id>/output.txt`, and keeps the
 workspace and the history.
 
 A start needs a persona whose kind matches the target: a manager takes a project,
-and a builder or a reviewer takes a ticket. A start refuses a completed ticket, a
-project with no repository, and a second live manager for the same project. A
-ticket start counts the active non-manager runs of the project and refuses at the
-concurrency limit. The limit runs from 1 to 64 and defaults to 3. The manager is
+and a builder or a reviewer takes a ticket. A start refuses a project whose agents
+switch is off, a completed ticket, a project with no repository, and a second
+live manager for the same project. A ticket start counts the active non-manager
+runs of the project and refuses at the concurrency limit. The limit runs from 1 to 64 and defaults to 3. The manager is
 outside that count. A partial unique index on `agent_runs` holds the one-manager
 rule in the database.
 
-The Agents section of the settings holds the launch command template. The default
-is `{{superset}} ws create --local --project {{projectId}} --name {{name}}
---branch {{branch}} --command {{agentCommand}} --json`. The template variables are
-`{{superset}}`, `{{workDir}}`, `{{projectDir}}`, `{{concurrency}}`,
+The Agents section of `/settings` holds the launch command template, which is one
+template for every agent of the machine. The default is `{{superset}} ws create
+{{target}} --project {{projectId}} --name {{name}} --branch {{branch}} --command
+{{agentCommand}} --json`. The template variables are
+`{{superset}}`, `{{target}}`, `{{workDir}}`, `{{projectDir}}`, `{{concurrency}}`,
 `{{projectId}}`, `{{project}}`, `{{ticket}}`, `{{name}}`, `{{branch}}`,
 `{{instruction}}`, `{{prompt}}`, `{{actor}}`, `{{trellisUrl}}`, and
 `{{agentCommand}}`. An unknown variable fails the save, and so does a standalone
 hyphen beside `{{superset}}`. The expander wraps each value in single quotes, so
-one value is one shell argument.
+one value is one shell argument. `{{target}}` is the Superset host flag of the
+project: `--local` for a null `supersetHostId`, and `--host '<id>'` otherwise.
 
 `{{prompt}}` is the instruction of the run plus an assignment block: the agent
 name, the actor `agent:<run id>`, the trellis URL, the persona, the ticket or the
@@ -171,7 +175,6 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/t/$identifier` | `t/$identifier/route.tsx` | one ticket |
 | `/search` | `search.tsx` | search |
 | `/ai/personas` | `ai.personas.tsx` | the personas |
-| `/agents` | `agents.tsx` | every agent run and the last runner answers |
 | `/settings` | `settings.tsx` | the settings |
 | `/setup` | `setup.tsx` | the first visit, and the new project step |
 | `/_gallery` | `[_]gallery.tsx` | every primitive in every state, in both themes |
@@ -196,9 +199,17 @@ time. The first section of each page carries no hash.
 
 | page | sections |
 |---|---|
-| `/settings` | Account (no hash), `#agents`, `#integrations`, `#manager` |
+| `/settings` | Account (no hash), `#agents`, `#integrations` |
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
-| `/p/<path>/settings/manager` | General (no hash), `#repositories`, `#manager` |
+| `/p/<path>/settings/manager` | Status (no hash), `#general`, `#repositories` |
+
+`/settings` holds what is true for the whole machine: the actor name, the theme,
+the agent launch command, the stalled threshold, the gh state, the diff URL
+template, and the phone pair code. Every setting of one project lives on that
+project's Manager page: its agents switch, its manager persona, its Superset
+host, its concurrency limit, and its project directory. `projects.managerConfig`
+carries those five fields, and the Manager page writes them through
+`projects.update`.
 
 The sidebar holds the workspace row, Needs you, Search, All tickets, the project
 tree, the AI section with the Personas link, and the actor footer. The project
@@ -217,7 +228,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb, ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
+| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `enabled`, `supersetHostId`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). The effective repos of a project are its own plus those of its ancestors. |
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, wip_limit (CHECK > 0), is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
 | tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
@@ -576,11 +587,10 @@ snapshot into `trellis-<stamp>.tar.gz.partial`, renames the file when tar exits
 boot. The data home keeps the 10 newest archives. `trellis export` streams
 NDJSON per table in keyset pages of 1000 rows.
 
-`apps/web` holds `routes/` (TanStack Router file routes), `features/` (agent,
-agents, attachments, board, command, composer, filters, needs-you, personas,
-pickers, project-actions, project-manager, project-settings, prs, search,
-settings, setup, shell, sidebar, table, ticket), `components/`, `hooks/`, `lib/`,
-and `stores/`. The end-to-end suite is in `apps/web/e2e/`, the test server is in
+`apps/web` holds `routes/` (TanStack Router file routes), `features/` (agents,
+attachments, board, command, composer, filters, needs-you, personas, pickers,
+project-actions, project-manager, project-settings, prs, search, settings, setup,
+shell, sidebar, table, ticket), `components/`, `hooks/`, `lib/`, and `stores/`. The end-to-end suite is in `apps/web/e2e/`, the test server is in
 `apps/web/test/server/`, and the size budget script is in `apps/web/scripts/`.
 
 `apps/mobile` holds the expo-router `app/` tree and `src/` with `features/`,
@@ -649,7 +659,7 @@ is no shadcn and no Radix.
 - Motion durations: 120 ms hover, 160 ms popover, 240 ms peek slide, 160 ms row enter, and 200 ms ribbon sweep.
 - Never animate a re-sort, a text change, a counter, a skeleton swap, or the theme switch. Use `motion/mini` and CSS transitions only.
 - Focus uses a 2 px accent outline on `:focus-visible`. A row or a card uses an inset left bar.
-- The primitives are Button, IconButton, Input, Textarea, Select, Popover, Menu, Dialog, Sheet, Tooltip, Toast, Tabs, Segmented, Checkbox, Switch, Badge, Chip, Avatar, Kbd, Skeleton, ScrollArea, Separator, SectionHeader, EntityCard, EmptyState, and Command.
+- The primitives are Avatar, Badge, Button, Checkbox, Chip, Command, ConfirmDialog, Dialog, EmptyState, EntityCard, IconButton, Input, Kbd, Menu, Popover, ScrollArea, SectionHeader, Segmented, Select, Separator, Sheet, Skeleton, Spinner, Switch, Tabs, Textarea, Toast, and Tooltip.
 - The domain visuals are StatusIcon, PriorityIcon, CheckRibbon, ActorChip, TicketId, and TrellisMark.
 - The route `/_gallery` renders every primitive in every state, in both themes.
 - No raw color or spacing literal appears outside `packages/ui`. The Tailwind theme clears `--color-*`, so a utility such as `bg-red-500` does not exist. A Biome rule and a test enforce the tokens.
