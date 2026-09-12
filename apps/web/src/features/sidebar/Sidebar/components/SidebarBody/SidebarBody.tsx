@@ -1,4 +1,4 @@
-import { FlowArrow, MagnifyingGlass, Plus, Sparkle, Ticket, Tray } from "@phosphor-icons/react";
+import { FlowArrow, GitPullRequest, MagnifyingGlass, Plus, Sparkle, Ticket, Tray } from "@phosphor-icons/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { cx, IconButton, Kbd, TrellisWordmark } from "@trellis/ui";
 import type { ReactElement, ReactNode } from "react";
@@ -87,7 +87,6 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				)}
 			</div>
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
-				<NavRow to="/reviews" icon={<FlowArrow />} label="Reviews" active={isActive(pathname, "/reviews")} />
 				<NavRow to="/needs-you" icon={<Tray />} label="Needs you" active={isActive(pathname, "/needs-you")} />
 				<NavRow
 					to="/search"
@@ -97,6 +96,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 					trailing={collapsed ? undefined : <Kbd>/</Kbd>}
 				/>
 				<NavRow to="/all" icon={<Ticket />} label="All tickets" active={isActive(pathname, "/all")} />
+				<NavRow to="/reviews" icon={<GitPullRequest />} label="Pull requests" active={isActive(pathname, "/reviews")} />
 			</nav>
 			<nav aria-label="AI" hidden={collapsed} className="mt-3 shrink-0">
 				<h2 className="sidebar-section">AI</h2>

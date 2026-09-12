@@ -1,4 +1,4 @@
-import { ListBullets, MagnifyingGlass, Tray } from "@phosphor-icons/react";
+import { GitPullRequest, ListBullets, MagnifyingGlass, Tray } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { TrellisWordmark } from "@trellis/ui";
 import type { ReactNode } from "react";
@@ -13,9 +13,10 @@ const rows = [
 	{ to: "/needs-you", label: "Needs you", icon: <Tray /> },
 	{ to: "/search", label: "Search", icon: <MagnifyingGlass /> },
 	{ to: "/all", label: "All tickets", icon: <ListBullets /> },
+	{ to: "/reviews", label: "Pull requests", icon: <GitPullRequest /> },
 ] as const;
 
-// The shell with no data in it: the sidebar header, the three fixed rows,
+// The shell with no data in it: the sidebar header, the fixed rows,
 // the Projects label, and an empty main pane. It reads no query, so it
 // paints while the server is slow or down, and the page never flashes white.
 export function ShellFrame({ children }: ShellFrameProps) {

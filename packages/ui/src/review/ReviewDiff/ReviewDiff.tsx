@@ -1,10 +1,5 @@
 import { Plus } from "@phosphor-icons/react";
-import {
-	type CodeViewItem,
-	type DiffLineAnnotation,
-	type FileDiffContentsLoader,
-	parsePatchFiles,
-} from "@pierre/diffs";
+import { type CodeViewItem, type FileDiffContentsLoader, parsePatchFiles } from "@pierre/diffs";
 import {
 	CodeView,
 	type CodeViewHandle,
@@ -17,6 +12,7 @@ import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
 import { commentInteractions } from "./commentInteractions";
 import { expandControls } from "./expandControls";
+import { lineAnnotations } from "./lineAnnotations";
 export type DiffAnchor = { path: string; side: "old" | "new"; line: number; startLine: number };
 export type DiffThread = DiffAnchor & { id: string; version: number; updatedAt: string; revisionId: string | null };
 type Props = {
@@ -29,6 +25,8 @@ type Props = {
 	selectedFile?: string;
 	filter?: string;
 	renderThread: (id: string) => ReactNode;
+	composer?: DiffAnchor | null;
+	renderComposer?: () => ReactNode;
 	onSelect: (anchor: DiffAnchor) => void;
 	loadFile?: (path: string, side: "old" | "new") => Promise<string>;
 	onFiles: (files: { path: string; type: string; additions: number; deletions: number }[]) => void;
@@ -43,11 +41,13 @@ export function ReviewDiff({
 	selectedFile,
 	filter = "",
 	renderThread,
+	composer = null,
+	renderComposer,
 	onSelect,
 	onFiles,
 	loadFile,
 }: Props) {
-	const viewer = useRef<CodeViewHandle<string, undefined>>(null);
+	const viewer = useRef<CodeViewHandle<ReactNode, undefined>>(null);
 	const files = useMemo(() => parsePatchFiles(patch).flatMap((patch) => patch.files), [patch]);
 	useEffect(() => {
 		onFiles(
@@ -63,27 +63,18 @@ export function ReviewDiff({
 		if (selectedFile) viewer.current?.scrollTo({ type: "item", id: selectedFile, align: "start" });
 	}, [selectedFile]);
 	const version = useRef(0);
-	const items = useMemo<CodeViewItem<string>[]>(() => {
+	const items = useMemo<CodeViewItem<ReactNode>[]>(() => {
 		version.current += 1;
 		return files
 			.filter((file) => file.name.toLowerCase().includes(filter.toLowerCase()))
 			.map((file) => {
-				const annotations: DiffLineAnnotation<string>[] = [];
-				for (const t of threads.filter((t) => t.path === file.name && t.revisionId === revisionId)) {
-					const shown = file.hunks.some((h) =>
-						t.side === "old"
-							? t.line >= h.deletionStart && t.line < h.deletionStart + h.deletionCount
-							: t.line >= h.additionStart && t.line < h.additionStart + h.additionCount,
-					);
-					annotations.push({
-						side: t.side === "old" ? "deletions" : "additions",
-						lineNumber: shown ? t.line : 0,
-						metadata: t.id,
-					});
-				}
+				const annotations = lineAnnotations(file, threads, revisionId, composer).map((annotation) => ({
+					...annotation,
+					metadata: annotation.metadata === "composer" ? renderComposer?.() : renderThread(annotation.metadata),
+				}));
 				return { id: file.name, type: "diff", fileDiff: file, annotations, version: version.current };
 			});
-	}, [files, threads, revisionId, filter]);
+	}, [files, threads, revisionId, filter, composer, renderThread, renderComposer]);
 	const loadDiffFiles = useMemo<FileDiffContentsLoader | undefined>(
 		() =>
 			loadFile
@@ -98,9 +89,9 @@ export function ReviewDiff({
 				: undefined,
 		[loadFile],
 	);
-	const options = useMemo<CodeViewReactOptions<string, undefined>>(
+	const options = useMemo<CodeViewReactOptions<ReactNode, undefined>>(
 		() => ({
-			...commentInteractions((anchor) => {
+			...commentInteractions<ReactNode>((anchor) => {
 				onSelect(anchor);
 				viewer.current?.clearSelectedLines();
 			}),
@@ -108,6 +99,8 @@ export function ReviewDiff({
 			themeType: theme,
 			diffStyle: mode,
 			stickyHeaders: true,
+			unsafeCSS:
+				"[data-file-info] { border-block-width: .5px; } [data-additions], [data-additions] [data-gutter] { border-left-width: .5px; } [data-deletions], [data-deletions] [data-content] { border-right-width: .5px; }",
 			onPostRender: expandControls,
 			loadDiffFiles,
 			enableLineSelection: true,
@@ -159,7 +152,7 @@ export function ReviewDiff({
 				className="review-code"
 				items={items}
 				options={options}
-				renderAnnotation={(a) => renderThread(a.metadata)}
+				renderAnnotation={(annotation) => annotation.metadata}
 			/>
 		</WorkerPoolContextProvider>
 	);

@@ -1,116 +1,39 @@
-import { Button, Input, Select, Sheet, Textarea } from "@trellis/ui";
-import type { DiffAnchor } from "@trellis/ui/review";
+import { type DiffAnchor, ReviewCommentEditor } from "@trellis/ui/review";
 import { useState } from "react";
+import { ReviewMarkdown } from "../ReviewPage/ReviewMarkdown";
 export type DraftFinding = DiffAnchor & { id: string; body: string; revisionId: string | null };
 export function ReviewComposer({
 	anchor,
 	revisionId,
 	storageKey,
+	draft,
 	onSave,
 	onClose,
 }: {
 	anchor: DiffAnchor;
 	revisionId: string | null;
 	storageKey: string;
+	draft?: DraftFinding;
 	onSave: (draft: DraftFinding) => void;
 	onClose: () => void;
 }) {
-	const [path, setPath] = useState(anchor.path);
-	const [startLine, setStartLine] = useState(anchor.startLine);
-	const [side, setSide] = useState(anchor.side);
-	const [line, setLine] = useState(anchor.line);
-	const [body, setBody] = useState(() => localStorage.getItem(storageKey) ?? "");
+	const [body, setBody] = useState(() => localStorage.getItem(storageKey) ?? draft?.body ?? "");
 	return (
-		<Sheet
-			width="var(--review-sheet-width)"
-			titleClassName="font-medium text-base"
-			open
-			title="Add review comment"
-			onOpenChange={(open) => !open && onClose()}
-		>
-			<form
-				className="review-form"
-				onSubmit={(e) => {
-					e.preventDefault();
-					onSave({
-						...anchor,
-						path,
-						line,
-						startLine,
-						side,
-						body,
-						id: crypto.randomUUID(),
-						revisionId,
-					});
-					localStorage.removeItem(storageKey);
-					onClose();
-				}}
-			>
-				<details className="review-anchor-details" open={!anchor.path}>
-					<summary className="review-anchor-toggle">
-						{anchor.path ? `${anchor.path} · ${side} · lines ${startLine}–${line}` : "Choose a file and line"}
-					</summary>
-					<div className="review-section">
-						<Input label="File path" value={path} required onChange={(e) => setPath(e.target.value)} />
-						<Select
-							label="Diff side"
-							value={side}
-							onValueChange={setSide}
-							items={[
-								{ value: "old", label: "Old side" },
-								{ value: "new", label: "New side" },
-							]}
-						/>
-						<div className="review-form-row">
-							<Input
-								label="First line"
-								type="number"
-								min={1}
-								max={line}
-								value={startLine}
-								onChange={(e) => setStartLine(Number(e.target.value))}
-							/>
-							<Input
-								label="Last line"
-								type="number"
-								min={1}
-								value={line}
-								onChange={(e) => setLine(Number(e.target.value))}
-							/>
-						</div>
-					</div>
-				</details>
-				<Textarea
-					label="Comment"
-					rows={10}
-					value={body}
-					onChange={(e) => {
-						setBody(e.target.value);
-						localStorage.setItem(storageKey, e.target.value);
-					}}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && body.trim()) {
-							e.preventDefault();
-							e.currentTarget.form?.requestSubmit();
-						}
-					}}
-				/>
-				<p role="status" className="review-meta">
-					{body.trim() ? "Draft saved on this device." : "Comments stay local until you submit the review."}
-				</p>
-				<div className="review-form-actions">
-					<Button type="button" onClick={onClose}>
-						Cancel
-					</Button>
-					<Button
-						type="submit"
-						variant="primary"
-						disabled={!body.trim() || !path.trim() || line < 1 || startLine < 1 || startLine > line}
-					>
-						Add to review
-					</Button>
-				</div>
-			</form>
-		</Sheet>
+		<ReviewCommentEditor
+			body={body}
+			location={anchor.startLine === anchor.line ? `Line ${anchor.line}` : `Lines ${anchor.startLine}–${anchor.line}`}
+			saveLabel={draft ? "Save comment" : "Add to review"}
+			renderPreview={(text) => <ReviewMarkdown body={text} />}
+			onChange={(text) => {
+				setBody(text);
+				localStorage.setItem(storageKey, text);
+			}}
+			onCancel={onClose}
+			onSave={() => {
+				onSave({ ...anchor, body, id: draft?.id ?? crypto.randomUUID(), revisionId });
+				localStorage.removeItem(storageKey);
+				onClose();
+			}}
+		/>
 	);
 }

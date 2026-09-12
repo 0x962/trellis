@@ -12,7 +12,8 @@ test("reviews > a local draft becomes a persistent thread and keeps replies", as
 	await page.getByRole("radio", { name: "Split", exact: true }).check();
 	await expect(page.locator("[data-diff-type='split']")).toBeVisible();
 	await page.locator("diffs-container [data-line-type='change-addition'][data-line-index]").last().click();
-	const composer = page.getByRole("dialog", { name: "Add review comment" });
+	const composer = page.getByRole("form", { name: "Add review comment" });
+	await expect(page.getByRole("dialog")).toHaveCount(0);
 	await composer.getByRole("textbox", { name: "Comment", exact: true }).fill("Keep the value within the transaction.");
 	await composer.getByRole("button", { name: "Add to review" }).click();
 	await expect(page.getByRole("article", { name: "Draft comment" })).toContainText("Keep the value");
@@ -20,6 +21,7 @@ test("reviews > a local draft becomes a persistent thread and keeps replies", as
 	const submit = page.getByRole("dialog", { name: "Submit local review" });
 	await submit.getByRole("checkbox", { name: "Submit without a notification" }).check();
 	await submit.getByRole("button", { name: "Submit review", exact: true }).click();
+	await expect(page.getByRole("tab", { name: "Changes", exact: true })).toHaveAttribute("aria-selected", "true");
 	const thread = page.getByRole("article", { name: "Thread by dana" }).last();
 	await thread.getByRole("textbox", { name: "Reply" }).fill("Fixed and verified.");
 	await thread.getByRole("button", { name: "Post reply" }).click();

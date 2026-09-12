@@ -1,7 +1,7 @@
 import { expect, mock, test } from "bun:test";
 import { commentInteractions } from "./commentInteractions";
 
-type Options = ReturnType<typeof commentInteractions>;
+type Options = ReturnType<typeof commentInteractions<string>>;
 type Context = Parameters<NonNullable<Options["onLineSelectionEnd"]>>[1];
 const context = {
 	type: "diff",

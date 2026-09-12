@@ -11,6 +11,7 @@ import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
 import { type DraftFinding, ReviewComposer } from "../ReviewComposer/ReviewComposer";
 import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
+import { ReviewDraft } from "../ReviewDraft/ReviewDraft";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewLive } from "../ReviewLive/ReviewLive";
 import { ReviewRuns } from "../ReviewRuns/ReviewRuns";
@@ -18,7 +19,6 @@ import { ReviewStack } from "../ReviewStack/ReviewStack";
 import { ReviewSubmit } from "../ReviewSubmit/ReviewSubmit";
 import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
 import { DiffToolbar } from "./components/DiffToolbar/DiffToolbar";
-import { ReviewMarkdown } from "./ReviewMarkdown";
 import "@trellis/ui/review.css";
 
 const workerFactory = () => new ReviewWorker();
@@ -91,20 +91,18 @@ export function ReviewPage({ pr }: { pr: string }) {
 		[client, pr, revision],
 	);
 	const invalid = () => queryClient.invalidateQueries({ queryKey: orpc.reviews.key() });
-	const allThreads = threads.data?.items ?? [];
+	const allThreads = (threads.data?.items ?? []).filter((thread) => thread.revisionId === revision?.id);
 	const renderThread = (id: string) => {
 		const draft = drafts.find((draft) => draft.id === id);
 		if (draft)
 			return (
-				<article className="review-thread" aria-label="Draft comment">
-					<div className="review-message">
-						<strong>
-							Draft · {draft.path}:{draft.startLine}–{draft.line}
-						</strong>
-						<ReviewMarkdown body={draft.body} />
-						<p className="review-meta">Submit the review to share this finding.</p>
-					</div>
-				</article>
+				<ReviewDraft
+					key={draft.id}
+					draft={draft}
+					storageKey={`${storageKey}:edit:${draft.id}`}
+					onSave={(next) => saveDrafts(drafts.map((item) => (item.id === next.id ? next : item)))}
+					onDiscard={() => saveDrafts(drafts.filter((item) => item.id !== draft.id))}
+				/>
 			);
 		const t = allThreads.find((t) => t.id === id)!;
 		return <ReviewComment key={t.id} thread={t} />;
@@ -129,7 +127,6 @@ export function ReviewPage({ pr }: { pr: string }) {
 		/>
 	);
 	const displayRevision = revision ? { ...revision, meta: status.data ?? revision.meta } : null;
-	const outdated = allThreads.filter((t) => t.revisionId !== revision?.id || !files.some((f) => f.path === t.path));
 	return (
 		<div className="review-page">
 			<ReviewHeader
@@ -138,14 +135,13 @@ export function ReviewPage({ pr }: { pr: string }) {
 				draftCount={drafts.length}
 				refreshing={refresh.isPending || composer !== null}
 				onRefresh={() => refresh.mutate()}
-				onComment={() => setComposer({ path: file || files[0]?.path || "", line: 1, startLine: 1, side: "new" })}
 				onSubmit={() => setSubmitOpen(true)}
 			/>
 			<div className="page-card review-workspace">
 				<ReviewSummary
 					pr={pr}
 					revision={displayRevision}
-					openCount={threads.data?.open ?? 0}
+					openCount={allThreads.filter((thread) => thread.status === "open").length}
 					draftCount={drafts.length}
 				/>
 				<ReviewStack pr={pr} />
@@ -189,10 +185,6 @@ export function ReviewPage({ pr }: { pr: string }) {
 							</aside>
 							<div className="review-content">
 								<DiffToolbar
-									count={files.length}
-									visibleCount={
-										files.filter((file) => file.path.toLowerCase().includes(fileFilter.toLowerCase())).length
-									}
 									mode={mode}
 									onFiles={() => setFileSheet(true)}
 									onMode={(value) => {
@@ -201,11 +193,6 @@ export function ReviewPage({ pr }: { pr: string }) {
 									}}
 								/>
 
-								{outdated.length > 0 && (
-									<button type="button" className="review-notice" onClick={() => changeTab("discussion")}>
-										{outdated.length} threads have older or unknown anchors. Read them in Discussion.
-									</button>
-								)}
 								{revision ? (
 									<ReviewDiff
 										filter={fileFilter}
@@ -218,6 +205,19 @@ export function ReviewPage({ pr }: { pr: string }) {
 										theme={theme}
 										selectedFile={file}
 										renderThread={renderThread}
+										composer={composer}
+										renderComposer={() =>
+											composer && (
+												<ReviewComposer
+													key={`${revision.id}:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`}
+													anchor={composer}
+													revisionId={revision.id}
+													storageKey={`${storageKey}:compose:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`}
+													onClose={() => setComposer(null)}
+													onSave={(d) => saveDrafts([...drafts, d])}
+												/>
+											)
+										}
 										onSelect={setComposer}
 										onFiles={setFiles}
 									/>
@@ -233,7 +233,6 @@ export function ReviewPage({ pr }: { pr: string }) {
 							threads={allThreads}
 							revision={displayRevision}
 							submissions={submissions.data ?? []}
-							saveDrafts={saveDrafts}
 							renderThread={renderThread}
 							onJump={(thread) => {
 								void (async () => {
@@ -263,15 +262,6 @@ export function ReviewPage({ pr }: { pr: string }) {
 					<div className="review-file-sheet">{fileNav}</div>
 				</Sheet>
 			)}
-			{composer && (
-				<ReviewComposer
-					anchor={composer}
-					revisionId={revision?.id ?? null}
-					storageKey={`${storageKey}:compose:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`}
-					onClose={() => setComposer(null)}
-					onSave={(d) => saveDrafts([...drafts, d])}
-				/>
-			)}
 			{submitOpen && (
 				<ReviewSubmit
 					pr={pr}
@@ -282,7 +272,6 @@ export function ReviewPage({ pr }: { pr: string }) {
 					onSubmitted={() => {
 						saveDrafts([]);
 						setSubmitOpen(false);
-						changeTab("discussion");
 						void invalid();
 					}}
 				/>

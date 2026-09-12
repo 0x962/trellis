@@ -72,7 +72,7 @@ export function ReviewsPage() {
 					</>
 				}
 			>
-				<PageTitle title="Reviews" />
+				<PageTitle title="Pull requests" />
 			</Topbar>
 			<div className="page-card review-index">
 				<div className="review-index-toolbar">

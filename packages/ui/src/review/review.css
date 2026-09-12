@@ -99,10 +99,10 @@
 	gap: 16px;
 	min-height: 52px;
 	padding: 10px 20px;
-	border-bottom: 1px solid var(--border);
+	border-bottom: 0.5px solid var(--border);
 }
-.review-diff-toolbar > .review-meta {
-	white-space: nowrap;
+.review-diff-toolbar {
+	justify-content: flex-end;
 }
 .review-code {
 	height: 100%;
@@ -159,7 +159,7 @@
 	gap: 16px;
 	min-height: 48px;
 	padding: 12px 0;
-	border-bottom: 1px solid var(--border);
+	border-bottom: 0.5px solid var(--border);
 	font-size: 13px;
 }
 .review-list-row a {
@@ -182,7 +182,7 @@
 .review-notice {
 	margin: 8px 28px;
 	padding: 10px 12px;
-	border: 1px solid var(--border);
+	border: 0.5px solid var(--border);
 	border-radius: var(--radius-sm);
 	background: var(--surface);
 	color: var(--fg-muted);
@@ -287,7 +287,7 @@ button.review-notice:hover {
 }
 .review-index-footer {
 	padding: 10px 24px;
-	border-top: 1px solid var(--border);
+	border-top: 0.5px solid var(--border);
 	color: var(--fg-faint);
 	font-size: 11px;
 	font-variant-numeric: tabular-nums;
@@ -393,4 +393,17 @@ button.review-file:is(:hover, [aria-current="true"]) {
 	display: grid;
 	flex: 1;
 	place-items: center;
+}
+
+.review-workspace,
+.review-index,
+.review-page input,
+.review-page textarea,
+.review-page [role="tablist"] {
+	border-width: 0.5px;
+}
+.review-comment-editor textarea:focus-visible {
+	box-shadow: none;
+	outline: 1px solid var(--accent);
+	outline-offset: 1px;
 }

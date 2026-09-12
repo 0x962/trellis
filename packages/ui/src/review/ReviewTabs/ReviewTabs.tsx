@@ -16,7 +16,7 @@ export function ReviewTabs({
 }) {
 	const sections = [
 		{ value: "changes", label: "Changes" },
-		{ value: "discussion", label: count ? `Discussion ${count}` : "Discussion" },
+		{ value: "discussion", label: count ? `Conversation ${count}` : "Conversation" },
 		{ value: "checks", label: "Checks" },
 		{ value: "runs", label: "Runs" },
 		...(live ? [{ value: "live", label: "Live Branch" }] : []),

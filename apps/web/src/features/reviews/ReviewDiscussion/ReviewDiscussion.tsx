@@ -1,7 +1,8 @@
-import { ArrowClockwise, ArrowDown, ArrowUp, Copy, Trash } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowDown, ArrowUp, Copy } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import type { ReviewRevision, ReviewSubmission, ReviewThread } from "@trellis/api";
 import { IconButton, Input, Select, Tooltip } from "@trellis/ui";
+import { type ConversationMeta, ReviewConversation } from "@trellis/ui/review";
 import { type ReactNode, useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import type { DraftFinding } from "../ReviewComposer/ReviewComposer";
@@ -12,11 +13,10 @@ type Props = {
 	threads: ReviewThread[];
 	revision: ReviewRevision | null;
 	submissions: ReviewSubmission[];
-	saveDrafts: (drafts: DraftFinding[]) => void;
 	renderThread: (id: string) => ReactNode;
 	onJump: (thread: ReviewThread) => void;
 };
-export function ReviewDiscussion({ drafts, threads, revision, submissions, saveDrafts, renderThread, onJump }: Props) {
+export function ReviewDiscussion({ drafts, threads, revision, submissions, renderThread, onJump }: Props) {
 	const { client, orpc, queryClient } = useApp();
 	const [filter, setFilter] = useState("all");
 	const [search, setSearch] = useState("");
@@ -44,90 +44,84 @@ export function ReviewDiscussion({ drafts, threads, revision, submissions, saveD
 		const id = new URLSearchParams(location.hash.split("?")[1]).get("thread");
 		if (id) document.getElementById(`thread-${id}`)?.scrollIntoView({ block: "center" });
 	}, []);
-	const meta = revision?.meta as
-		| {
-				body?: string;
-				comments?: { id: string; body: string; createdAt: string; author?: { login: string } }[];
-				reviews?: { id: string; body: string; state: string; submittedAt: string; author?: { login: string } }[];
-		  }
-		| undefined;
-	const conversation = [
-		...(meta?.comments ?? []).map((c) => ({ ...c, state: "", at: c.createdAt })),
-		...(meta?.reviews ?? []).map((r) => ({ ...r, at: r.submittedAt })),
-	].sort((a, b) => a.at.localeCompare(b.at));
 	return (
 		<div className="review-scroll">
 			<div className="review-list">
-				<div className="review-discussion-toolbar">
-					<Input
-						hideLabel
-						placeholder="Find a thread…"
-						label="Find a thread"
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-					/>
-					<Select
-						label="Thread status"
-						value={filter}
-						onValueChange={setFilter}
-						items={[
-							{ value: "all", label: "All" },
-							{ value: "open", label: "Open" },
-							{ value: "resolved", label: "Resolved" },
-						]}
-					/>
-					<Tooltip content="Previous thread">
-						<IconButton
-							label="Previous thread"
-							icon={<ArrowUp />}
-							disabled={!visible.length}
-							onClick={() => next(-1)}
-						/>
-					</Tooltip>
-					<Tooltip content="Next thread">
-						<IconButton label="Next thread" icon={<ArrowDown />} disabled={!visible.length} onClick={() => next(1)} />
-					</Tooltip>
-				</div>
-				{visibleDrafts.map((d) => (
-					<div key={d.id} className="review-draft-preview">
-						<header>
-							<span className="review-meta">
-								Draft · {d.path}:{d.startLine}–{d.line}
-							</span>
-							<Tooltip content="Discard draft">
+				<ReviewConversation
+					meta={revision?.meta as ConversationMeta | undefined}
+					renderBody={(body) => <ReviewMarkdown body={body} />}
+				/>
+				{(threads.length > 0 || drafts.length > 0) && (
+					<>
+						<h2 className="review-local-heading">Local review</h2>
+						<div className="review-discussion-toolbar">
+							<Input
+								hideLabel
+								placeholder="Find a thread…"
+								label="Find a thread"
+								value={search}
+								onChange={(e) => setSearch(e.target.value)}
+							/>
+							<Select
+								label="Thread status"
+								value={filter}
+								onValueChange={setFilter}
+								items={[
+									{ value: "all", label: "All" },
+									{ value: "open", label: "Open" },
+									{ value: "resolved", label: "Resolved" },
+								]}
+							/>
+							<Tooltip content="Previous thread">
 								<IconButton
-									label="Discard draft"
-									icon={<Trash />}
-									onClick={() => saveDrafts(drafts.filter((other) => other.id !== d.id))}
+									label="Previous thread"
+									icon={<ArrowUp />}
+									disabled={!visible.length}
+									onClick={() => next(-1)}
 								/>
 							</Tooltip>
-						</header>
-						<ReviewMarkdown body={d.body} />
-					</div>
-				))}
-				{visible.length === 0 && visibleDrafts.length === 0 && <p>No threads match.</p>}
-				{visible.map((t) => (
-					<section key={t.id}>
-						<div className="review-thread-location">
-							<button type="button" className="review-meta" onClick={() => onJump(t)}>
-								{t.path}:{t.startLine}–{t.line} · {t.side}
-								{t.revisionId !== revision?.id ? " · Older or unknown revision" : ""}
-							</button>
-							<Tooltip content="Copy thread link">
+							<Tooltip content="Next thread">
 								<IconButton
-									label="Copy thread link"
-									icon={<Copy />}
-									onClick={() =>
-										void navigator.clipboard.writeText(
-											`${location.origin}${location.pathname}#discussion?thread=${t.id}`,
-										)
-									}
+									label="Next thread"
+									icon={<ArrowDown />}
+									disabled={!visible.length}
+									onClick={() => next(1)}
 								/>
 							</Tooltip>
 						</div>
-						{renderThread(t.id)}
-					</section>
-				))}
+						{visibleDrafts.map((draft) => (
+							<section key={draft.id}>
+								<div className="review-thread-location">
+									{draft.path}:{draft.startLine}–{draft.line}
+								</div>
+								{renderThread(draft.id)}
+							</section>
+						))}
+						{visible.length === 0 && visibleDrafts.length === 0 && <p>No threads match.</p>}
+						{visible.map((t) => (
+							<section key={t.id}>
+								<div className="review-thread-location">
+									<button type="button" className="review-meta" onClick={() => onJump(t)}>
+										{t.path}:{t.startLine}–{t.line} · {t.side}
+										{t.revisionId !== revision?.id ? " · Older or unknown revision" : ""}
+									</button>
+									<Tooltip content="Copy thread link">
+										<IconButton
+											label="Copy thread link"
+											icon={<Copy />}
+											onClick={() =>
+												void navigator.clipboard.writeText(
+													`${location.origin}${location.pathname}#discussion?thread=${t.id}`,
+												)
+											}
+										/>
+									</Tooltip>
+								</div>
+								{renderThread(t.id)}
+							</section>
+						))}
+					</>
+				)}
 				{submissions.length > 0 && (
 					<details className="review-disclosure">
 						<summary>Submitted reviews ({submissions.length})</summary>
@@ -177,18 +171,6 @@ export function ReviewDiscussion({ drafts, threads, revision, submissions, saveD
 						{resend.error.message}
 					</p>
 				)}
-				<details className="review-disclosure">
-					<summary>PR description and GitHub conversation</summary>
-					<ReviewMarkdown body={meta?.body ?? "No PR description loaded."} />
-					{conversation.map((c) => (
-						<section key={c.id}>
-							<strong>
-								{c.author?.login} · {c.state}
-							</strong>
-							<ReviewMarkdown body={c.body} />
-						</section>
-					))}
-				</details>
 			</div>
 		</div>
 	);

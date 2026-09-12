@@ -1,4 +1,4 @@
-import { ArrowsClockwise, ChatCircle, PaperPlaneTilt } from "@phosphor-icons/react";
+import { ArrowsClockwise, PaperPlaneTilt } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { type ReviewRevision, reviewRef } from "@trellis/api";
 import { IconButton, Tooltip } from "@trellis/ui";
@@ -13,10 +13,9 @@ type Props = {
 	draftCount: number;
 	refreshing: boolean;
 	onRefresh: () => void;
-	onComment: () => void;
 	onSubmit: () => void;
 };
-export function ReviewHeader({ pr, revision, draftCount, refreshing, onRefresh, onComment, onSubmit }: Props) {
+export function ReviewHeader({ pr, revision, draftCount, refreshing, onRefresh, onSubmit }: Props) {
 	const ref = reviewRef(pr);
 	const meta = revision?.meta as
 		| {
@@ -51,16 +50,13 @@ export function ReviewHeader({ pr, revision, draftCount, refreshing, onRefresh, 
 						/>
 					</Tooltip>
 					{revision && <ReviewActions pr={pr} revision={revision} onDone={onRefresh} />}
-					<Tooltip content="Add comment">
-						<IconButton label="Add comment" icon={<ChatCircle />} onClick={onComment} />
-					</Tooltip>
 					<Tooltip content={draftCount ? `Submit review · ${draftCount} drafts` : "Submit review"}>
 						<IconButton label="Submit review" icon={<PaperPlaneTilt />} variant="primary" onClick={onSubmit} />
 					</Tooltip>
 				</>
 			}
 		>
-			<PageTitle parent={<Link to="/reviews">Reviews</Link>} title={`${ref.repo} #${ref.number}`} />
+			<PageTitle parent={<Link to="/reviews">Pull requests</Link>} title={`${ref.repo} #${ref.number}`} />
 		</Topbar>
 	);
 }

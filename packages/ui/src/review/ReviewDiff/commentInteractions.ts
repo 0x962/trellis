@@ -1,7 +1,9 @@
 import type { CodeViewReactOptions } from "@pierre/diffs/react";
 import type { DiffAnchor } from "./ReviewDiff";
 
-export function commentInteractions(onSelect: (anchor: DiffAnchor) => void): CodeViewReactOptions<string, undefined> {
+export function commentInteractions<Annotation = string>(
+	onSelect: (anchor: DiffAnchor) => void,
+): CodeViewReactOptions<Annotation, undefined> {
 	return {
 		onLineClick: (line, context) => {
 			if (context.type !== "diff" || line.type !== "diff-line" || line.numberColumn) return;

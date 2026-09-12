@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewThread } from "@trellis/api";
-import { Button, Checkbox, Select, Sheet, Textarea } from "@trellis/ui";
+import { Button, Checkbox, Dialog, Select, Textarea } from "@trellis/ui";
 import { useEffect, useId, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import type { DraftFinding } from "../ReviewComposer/ReviewComposer";
@@ -50,15 +50,9 @@ export function ReviewSubmit({
 		},
 	});
 	return (
-		<Sheet
-			width="var(--review-sheet-width)"
-			titleClassName="font-medium text-base"
-			open
-			title="Submit local review"
-			onOpenChange={(open) => !open && !submit.isPending && onClose()}
-		>
+		<Dialog size="lg" open title="Submit local review" onOpenChange={(open) => !open && !submit.isPending && onClose()}>
 			<form
-				className="review-form"
+				className="review-form review-submit-form"
 				onSubmit={(e) => {
 					e.preventDefault();
 					submit.mutate();
@@ -152,6 +146,6 @@ export function ReviewSubmit({
 					</Button>
 				</div>
 			</form>
-		</Sheet>
+		</Dialog>
 	);
 }
