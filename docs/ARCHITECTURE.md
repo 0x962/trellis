@@ -219,9 +219,9 @@ editor at `/ai/flows/<slug>`. The slug comes from the name at create time, and
 a collision takes the next free suffix: `review`, `review-2`.
 
 A node is one step. An `agent` node runs one agent. A `gate` runs one agent that
-answers YES or NO. A `human` node waits for a person. A `budget` and a `loop`
-are boxes that hold other nodes. A budget sets a time limit in minutes, and a
-loop runs its nodes again up to its round limit. An agent, a gate, and a loop
+answers YES or NO. A `human` node waits for a person. A `group` and a `loop`
+are boxes that hold other nodes. A group has a `parallel` switch and optional
+`minutes`. A loop runs its nodes again up to its round limit. An agent, a gate, and a loop
 take a persona, an instruction, or both. A human node takes an instruction. The
 `x` and `y` of a node inside a box are relative to that box.
 
@@ -229,26 +229,36 @@ An edge connects an output of one node to another node. A gate has the outputs
 `yes` and `no`, and every other kind has `out`. An edge connects two nodes in
 the same box, or two nodes outside every box. The edges of a flow form no loop.
 `validateFlowGraph` in `packages/api/src/flowGraph.ts` holds these rules. The
-server applies it before a save, and the editor shows its issues on the canvas.
+server applies its structural rules before a save. The editor also shows
+missing instructions, blank titles, and disconnected group steps as draft issues.
 
-Every card and box has a handle on each of its four sides, and a wire starts
-or ends on any of them. The canvas draws each wire between the two sides of its
+Each connectable card and box has handles on its four sides. Children of
+parallel groups hide their handles. A wire starts or ends on any visible handle. The canvas draws each wire between the two sides of its
 nodes that face each other, so an edge row stores no side. A gate starts a wire
 only from its YES and NO handles. A new step connects from the step before it:
 the selected step, or else the newest step of the same box. A gate connects the
 new step by YES. The Clean up button lays out each box and then the canvas from
-top to bottom with dagre, and its toast offers Undo. A box that holds steps
-starts at exactly one of them, and a new box comes with an agent step inside
-it. A wire into a box draws to that step, and a wire out of a box draws from
-its last step when the box has one. The zoom, fit, and Clean up controls sit
+top to bottom with dagre, and its toast offers Undo. A connected group needs
+one starting step, with edges that reach every other child. A new group contains one agent step. A wire into a connected group draws
+to its starting step. A wire out draws from its last step when it has one.
+A parallel group connects only at its boundary. Its children have no edges
+between them. The Parallel switch removes edges between direct children.
+A group can set a time limit or leave the time limit off. The zoom, fit, and Clean up controls sit
 together at the bottom left of the canvas.
 
 `flows.save` replaces every node and edge of a flow in one transaction. The
 client mints the ULID of each new node and edge. `version` rises on every change
 to a flow, and a save or an update with an older `expectedVersion` fails with
 `FLOW_VERSION_CONFLICT`. A persona delete sets `persona_id` to NULL and keeps
-the node. The editor saves the graph 600 ms after the last change, and it holds
-a graph with an issue until the person fixes it.
+the node. The editor saves drafts 600 ms after the last change, including
+unfinished instructions and disconnected steps. Structural errors still block
+a server save. Each browser tab keeps its pending draft in local storage,
+with the server version it edits. A reload or a return to the editor restores
+that draft. A completed save clears only the draft that it confirms. Edits
+made during the request keep the returned version for the next save.
+The topbar shows the save status and the count of draft issues. A conflict
+keeps the browser draft. A reload of the server graph requires explicit
+confirmation to discard that draft.
 
 ## Web routes
 
@@ -332,7 +342,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | settings | key PK, value jsonb, updated_at. |
 | personas | id PK, name (CHECK 1 to 120, not blank), kind (CHECK builder, reviewer, or manager; default reviewer), instruction (CHECK 1 to 200000, not blank), created_at, updated_at. |
 | flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), version (CHECK > 0), created_at, updated_at. |
-| flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, budget, or loop), title (trimmed, 1 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), minutes (CHECK `(kind = 'budget') = (minutes IS NOT NULL)`, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
+| flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | agent_runs | id PK, name, runtime (default `superset`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, state (CHECK starting, interrupted, running, failed, stopped, exited), workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE the state is live. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND the state is live. Index (created_at). |
 | agent_sessions | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |

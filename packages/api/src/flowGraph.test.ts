@@ -7,6 +7,8 @@ const agent = (id: string, parentId: string | null = null): FlowGraphNode => ({
 	kind: "agent",
 	personaId: null,
 	instruction: `Do step ${id}.`,
+	title: id,
+	parallel: false,
 });
 const node = (id: string, fields: Partial<FlowGraphNode>): FlowGraphNode => ({ ...agent(id), ...fields });
 const edge = (id: string, fromNodeId: string, toNodeId: string, branch: "out" | "yes" | "no" = "out") => ({
@@ -25,7 +27,7 @@ describe("validateFlowGraph", () => {
 				node("frontend", { kind: "gate", instruction: "Does the change touch the web app?" }),
 				agent("tokens"),
 				agent("skip"),
-				node("box", { kind: "budget", instruction: "" }),
+				node("box", { kind: "group", instruction: "" }),
 				agent("migrations", "box"),
 				agent("rest", "box"),
 				agent("report"),
@@ -61,8 +63,8 @@ describe("validateFlowGraph", () => {
 		expect(notGroup).toEqual([expect.objectContaining({ code: "parent-not-group", nodeId: "b" })]);
 		const loop = codes({
 			nodes: [
-				node("x", { kind: "budget", minutes: 5, parentId: "y" } as Partial<FlowGraphNode>),
-				node("y", { kind: "budget", parentId: "x" }),
+				node("x", { kind: "group", minutes: 5, parentId: "y" } as Partial<FlowGraphNode>),
+				node("y", { kind: "group", parentId: "x" }),
 			],
 			edges: [],
 		});
@@ -95,7 +97,7 @@ describe("validateFlowGraph", () => {
 
 	test("an edge stays inside one group", () => {
 		const graph = {
-			nodes: [node("box", { kind: "budget" }), agent("inside", "box"), agent("outside")],
+			nodes: [node("box", { kind: "group" }), agent("inside", "box"), agent("outside")],
 			edges: [edge("e1", "inside", "outside"), edge("e2", "outside", "inside")],
 		};
 		expect(codes(graph)).toEqual(["cross-group-edge", "cross-group-edge"]);
@@ -117,7 +119,7 @@ describe("validateFlowGraph", () => {
 				node("persona", { instruction: "", personaId: persona }),
 				node("gate", { kind: "gate", instruction: "" }),
 				node("person", { kind: "human", instruction: "", personaId: persona }),
-				node("box", { kind: "budget", instruction: "" }),
+				node("box", { kind: "group", parallel: true, instruction: "" }),
 			],
 			edges: [],
 		};
@@ -129,11 +131,11 @@ describe("validateFlowGraph", () => {
 	});
 
 	test("a box that holds steps starts at exactly one of them", () => {
-		const box = node("box", { kind: "budget", instruction: "" });
+		const box = node("box", { kind: "group", instruction: "" });
 		const loose = { nodes: [box, agent("a", "box"), agent("b", "box")], edges: [] };
 		expect(validateFlowGraph(loose)).toEqual([expect.objectContaining({ code: "box-entry", nodeId: "box" })]);
 		expect(validateFlowGraph({ ...loose, edges: [edge("e1", "a", "b")] })).toEqual([]);
-		expect(validateFlowGraph({ nodes: [box], edges: [] })).toEqual([]);
+		expect(codes({ nodes: [box], edges: [] })).toEqual(["box-entry"]);
 	});
 
 	test("every issue carries a message for a person", () => {
@@ -150,5 +152,22 @@ describe("entryNodes", () => {
 		};
 		expect(entryNodes(graph, null)).toEqual(["b", "a"]);
 		expect(entryNodes(graph, "box")).toEqual(["x"]);
+	});
+});
+
+describe("group connections", () => {
+	test("parallel children need no edges and cannot connect to each other", () => {
+		const group = node("group", { kind: "group", parallel: true, instruction: "" });
+		const nodes = [group, agent("a", "group"), agent("b", "group")];
+		expect(validateFlowGraph({ nodes, edges: [] })).toEqual([]);
+		expect(codes({ nodes, edges: [edge("e", "a", "b")] })).toContain("parallel-edge");
+	});
+
+	test("connected groups need one entry, while drafts can keep disconnected steps", () => {
+		const group = node("group", { kind: "group", parallel: false, instruction: "" });
+		const nodes = [group, agent("a", "group"), agent("b", "group")];
+		expect(codes({ nodes, edges: [] })).toContain("box-entry");
+		expect(validateFlowGraph({ nodes, edges: [] }, "save")).toEqual([]);
+		expect(validateFlowGraph({ nodes, edges: [edge("e", "a", "b")] })).toEqual([]);
 	});
 });

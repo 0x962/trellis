@@ -24,7 +24,7 @@ export const save = async (ctx: ServiceCtx, tx: Tx, input: FlowSaveInput): Promi
 	const actor = requireActor(ctx);
 	const current = await resolveFlow(tx, input.flow);
 	assertVersion(current, input.expectedVersion);
-	const issues = validateFlowGraph(input);
+	const issues = validateFlowGraph(input, "save");
 	if (issues.length > 0)
 		throw fail("INPUT_VALIDATION_FAILED", {
 			issues: issues.map((issue) => ({ message: issue.message, path: pathOf(input, issue), code: issue.code })),
@@ -57,12 +57,12 @@ export const save = async (ctx: ServiceCtx, tx: Tx, input: FlowSaveInput): Promi
 	await tx.execute(sql`DELETE FROM flow_nodes WHERE flow_id = ${current.id}`);
 	if (input.nodes.length > 0)
 		await tx.execute(
-			sql`INSERT INTO flow_nodes (id, flow_id, parent_id, kind, title, persona_id, instruction, minutes, max_rounds, x, y, width, height)
+			sql`INSERT INTO flow_nodes (id, flow_id, parent_id, kind, title, persona_id, instruction, parallel, minutes, max_rounds, x, y, width, height)
 				VALUES ${sql.join(
 					input.nodes.map(
 						(node) =>
 							sql`(${node.id}, ${current.id}, ${node.parentId}, ${node.kind}, ${node.title}, ${node.personaId}, ${node.instruction},
-							${node.minutes}, ${node.maxRounds}, ${node.x}, ${node.y}, ${node.width}, ${node.height})`,
+							${node.parallel ?? false}, ${node.minutes}, ${node.maxRounds}, ${node.x}, ${node.y}, ${node.width}, ${node.height})`,
 					),
 					sql`, `,
 				)}`,

@@ -11,7 +11,7 @@ const sides = [Position.Top, Position.Right, Position.Bottom, Position.Left] as 
 // from its YES and NO handles, on its right and bottom sides. Its top and
 // left handles only end a wire.
 export function StepNode({ id, data, selected }: NodeProps<CanvasNode>) {
-	const { personas, issues } = useFlowEditor();
+	const { personas, issues, unconnected } = useFlowEditor();
 	const { fields } = data;
 	const meta = flowKinds[fields.kind];
 	const issue = issues.get(id);
@@ -48,42 +48,43 @@ export function StepNode({ id, data, selected }: NodeProps<CanvasNode>) {
 					{detail}
 				</p>
 			</div>
-			{fields.kind === "gate" ? (
-				<>
-					<Handle type="source" position={Position.Top} id="in-top" isConnectableStart={false} />
-					<Handle type="source" position={Position.Left} id="in-left" isConnectableStart={false} />
-					<Handle
-						type="source"
-						position={Position.Right}
-						id="yes-right"
-						aria-label="Yes"
-						className="top-1/3! border-success!"
-					/>
-					<Handle
-						type="source"
-						position={Position.Right}
-						id="no-right"
-						aria-label="No"
-						className="top-2/3! border-danger!"
-					/>
-					<Handle
-						type="source"
-						position={Position.Bottom}
-						id="yes-bottom"
-						aria-label="Yes"
-						className="left-1/3! border-success!"
-					/>
-					<Handle
-						type="source"
-						position={Position.Bottom}
-						id="no-bottom"
-						aria-label="No"
-						className="left-2/3! border-danger!"
-					/>
-				</>
-			) : (
-				sides.map((side) => <Handle key={side} type="source" position={side} id={`out-${side}`} />)
-			)}
+			{!unconnected.has(id) &&
+				(fields.kind === "gate" ? (
+					<>
+						<Handle type="source" position={Position.Top} id="in-top" isConnectableStart={false} />
+						<Handle type="source" position={Position.Left} id="in-left" isConnectableStart={false} />
+						<Handle
+							type="source"
+							position={Position.Right}
+							id="yes-right"
+							aria-label="Yes"
+							className="top-1/3! border-success!"
+						/>
+						<Handle
+							type="source"
+							position={Position.Right}
+							id="no-right"
+							aria-label="No"
+							className="top-2/3! border-danger!"
+						/>
+						<Handle
+							type="source"
+							position={Position.Bottom}
+							id="yes-bottom"
+							aria-label="Yes"
+							className="left-1/3! border-success!"
+						/>
+						<Handle
+							type="source"
+							position={Position.Bottom}
+							id="no-bottom"
+							aria-label="No"
+							className="left-2/3! border-danger!"
+						/>
+					</>
+				) : (
+					sides.map((side) => <Handle key={side} type="source" position={side} id={`out-${side}`} />)
+				))}
 		</div>
 	);
 }

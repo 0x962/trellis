@@ -1,6 +1,6 @@
 import { Trash } from "@phosphor-icons/react";
 import { type FlowNodeKind, flowAgentKinds, type Persona } from "@trellis/api";
-import { IconButton, Input, Textarea, Tooltip } from "@trellis/ui";
+import { IconButton, Input, Switch, Textarea, Tooltip } from "@trellis/ui";
 import { flowKinds } from "../../../kinds";
 import type { StepFields } from "../../flowDraft";
 import { PersonaSelect } from "../PersonaSelect";
@@ -13,13 +13,13 @@ type NodeInspectorProps = {
 	onDelete: () => void;
 };
 
-// The label of the text each kind takes. A budget takes no text.
+// The inspector labels each instruction by its purpose.
 const promptLabels: Record<FlowNodeKind, string | null> = {
 	agent: "Instruction",
 	gate: "Question",
 	loop: "Exit question",
 	human: "What the person decides",
-	budget: null,
+	group: null,
 };
 
 // Edits one step. Each change goes to the canvas at once, and the editor saves
@@ -75,15 +75,34 @@ export function NodeInspector({ fields, issue, personas, onChange, onDelete }: N
 					}
 				/>
 			)}
-			{fields.kind === "budget" && (
-				<Input
-					label="Minutes"
-					type="number"
-					min={1}
-					max={1440}
-					value={String(fields.minutes)}
-					onChange={(event) => onChange({ minutes: event.target.valueAsNumber })}
-				/>
+			{fields.kind === "group" && (
+				<>
+					<Switch
+						label="Parallel"
+						checked={fields.parallel ?? false}
+						onCheckedChange={(parallel) => onChange({ parallel })}
+					/>
+					<p className="text-xs text-fg-muted">
+						{fields.parallel
+							? "All children start together. Connect only the group."
+							: "Connect one starting step to the other children."}
+					</p>
+					<Switch
+						label="Time limit"
+						checked={fields.minutes !== null}
+						onCheckedChange={(enabled) => onChange({ minutes: enabled ? 10 : null })}
+					/>
+					{fields.minutes !== null && (
+						<Input
+							label="Minutes"
+							type="number"
+							min={1}
+							max={1440}
+							value={Number.isFinite(fields.minutes) ? String(fields.minutes) : ""}
+							onChange={(event) => onChange({ minutes: event.target.value === "" ? 0 : event.target.valueAsNumber })}
+						/>
+					)}
+				</>
 			)}
 			{fields.kind === "loop" && (
 				<Input
