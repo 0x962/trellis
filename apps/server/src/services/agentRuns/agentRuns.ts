@@ -107,7 +107,12 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 	ctx.emit({ type: "agent-runs.changed", id: run.id });
 	const runner = superset(ctx.supersetBin, config.supersetHostId);
 	const settings = await ctx.newTx((tx) => getSettings(ctx.core, tx));
-	const template = settings.agentLaunchCommand ?? DEFAULT_AGENT_LAUNCH_COMMAND;
+	// A project that names its own ADE command runs that. Every other
+	// project runs the machine's launch command, which starts Superset.
+	const template =
+		config.ade === "custom" && config.adeCommand !== ""
+			? config.adeCommand
+			: (settings.agentLaunchCommand ?? DEFAULT_AGENT_LAUNCH_COMMAND);
 	if (hasStandaloneLaunchHyphen(template)) {
 		await recordError(
 			ctx,

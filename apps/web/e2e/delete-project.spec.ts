@@ -15,7 +15,7 @@ test("deleting a project with tickets takes the typed key and lands on All ticke
 	const { total } = await get<{ total: number }>("/tickets/counts?project=DEL");
 	expect(total).toBeGreaterThanOrEqual(2);
 	// Project settings groups its rows into sections, and the hash picks one.
-	// Delete lives under Archive and delete.
+	// Delete lives under Danger Zone.
 	await signIn(page, "/p/DEL/settings#archive");
 	await page.getByRole("button", { name: "Delete project…" }).click();
 	const dialog = page.getByRole("dialog", { name: "Delete Doomed?" });

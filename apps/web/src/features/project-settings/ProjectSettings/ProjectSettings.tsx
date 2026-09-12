@@ -17,7 +17,7 @@ const sections = [
 	{ id: "statuses", label: "Statuses", icon: ListTodo, component: StatusSettings },
 	{ id: "repositories", label: "Repositories", icon: GitBranch, component: RepoSettings },
 	{ id: "subprojects", label: "Subprojects", icon: FolderTree, component: SubprojectSettings },
-	{ id: "archive", label: "Archive and delete", icon: Archive, component: ProjectLifecycle },
+	{ id: "archive", label: "Danger Zone", icon: Archive, component: ProjectLifecycle },
 ];
 
 export function ProjectSettings({ project }: ProjectSettingsProps) {

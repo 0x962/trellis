@@ -44,6 +44,9 @@ const AncestorSchema = ProjectLinkSchema.extend({
 
 // `statuses` is the effective set: the project's own, or the nearest
 // ancestor's, named by `statusesInheritedFrom`.
+export const AdeSchema = z.enum(["superset", "custom"]);
+export type Ade = z.infer<typeof AdeSchema>;
+
 export const ProjectManagerConfigSchema = z.strictObject({
 	personaId: UlidSchema.nullable(),
 	concurrency: z.number().int().min(1).max(64),
@@ -58,6 +61,12 @@ export const ProjectManagerConfigSchema = z.strictObject({
 	// The Superset machine that runs the project's agents, by its machine id.
 	// Null runs them on the machine that runs the trellis server.
 	supersetHostId: z.string().min(1).nullable().default(null),
+	// The Agentic Development Environment that runs this project's agents.
+	// "superset" opens a Superset workspace. "custom" runs adeCommand.
+	ade: AdeSchema.default("superset"),
+	// The command that starts one agent, for a project whose ADE is custom.
+	// Empty means the machine's own launch command, which starts Superset.
+	adeCommand: z.string().trim().default(""),
 });
 export type ProjectManagerConfig = z.infer<typeof ProjectManagerConfigSchema>;
 export const DEFAULT_PROJECT_MANAGER_CONFIG: ProjectManagerConfig = {
@@ -66,6 +75,8 @@ export const DEFAULT_PROJECT_MANAGER_CONFIG: ProjectManagerConfig = {
 	directory: "",
 	enabled: true,
 	supersetHostId: null,
+	ade: "superset",
+	adeCommand: "",
 };
 
 export const ProjectSchema = ProjectSummarySchema.extend({
