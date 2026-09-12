@@ -5,7 +5,7 @@ import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectP
 
 // A page reads as its name alone, and its padding puts that name one step
 // in from the name of the project above it.
-const indent = ["pl-4", "pl-7", "pl-10", "pl-13", "pl-16"] as const;
+const indent = ["pl-2", "pl-5", "pl-8", "pl-11", "pl-14"] as const;
 
 export function ProjectPages({
 	project,
