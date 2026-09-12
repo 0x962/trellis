@@ -4,7 +4,7 @@ import { expectClasses } from "../../../test/classes";
 import { Avatar } from "./Avatar";
 
 describe("Avatar", () => {
-	test("human avatar renders initials in a square", () => {
+	test("human avatar renders initials in a circle", () => {
 		render(
 			<>
 				<Avatar kind="human" name="Dana Lee" />
@@ -14,7 +14,7 @@ describe("Avatar", () => {
 		const full = screen.getByLabelText("Dana Lee");
 		expect(full.textContent).toBe("DL");
 		expect(screen.getByLabelText("dana").textContent).toBe("D");
-		expectClasses(full, "size-4.5 rounded-sm bg-fg-muted text-surface text-initials font-semibold");
+		expectClasses(full, "size-4.5 rounded-round bg-fg-muted text-surface text-initials font-semibold");
 		expect(full.querySelector("svg")).toBeNull();
 	});
 

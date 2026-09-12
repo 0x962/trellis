@@ -1,7 +1,6 @@
 import { afterAll, expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { DEFAULT_AGENT_LAUNCH_COMMAND } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { openDb } from "./client.ts";
 import { migrate } from "./migrate.ts";
@@ -40,6 +39,12 @@ test("the manager launch migration repairs the bad template and releases its int
 	expect(await migrate(db)).toBe(1);
 	const setting = await db.execute(sql`SELECT value FROM settings WHERE key = 'agentLaunchCommand'`);
 	const run = await db.execute(sql`SELECT state FROM agent_runs WHERE id = 'run-1'`);
-	expect(setting.rows[0]?.value).toBe(DEFAULT_AGENT_LAUNCH_COMMAND);
+	// The text migration 0022 writes, spelled out. A migration that has run on a
+	// real database never changes, so it still writes the default of the day it
+	// was written. DEFAULT_AGENT_LAUNCH_COMMAND has moved on since, and reading
+	// it here would fail this test on every later change to the default.
+	const repaired =
+		"{{superset}} ws create --local --project {{projectId}} --name {{name}} --branch {{branch}} --command {{agentCommand}} --json";
+	expect(setting.rows[0]?.value).toBe(repaired);
 	expect(run.rows[0]?.state).toBe("failed");
 });

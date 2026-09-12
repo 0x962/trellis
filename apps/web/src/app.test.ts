@@ -95,7 +95,9 @@ describe("app.css", () => {
 	});
 });
 
-test("markdown code, images, and editor content use square corners", async () => {
+// A corner comes from the radius scale in tokens.css, never from a literal.
+// tokens.test.ts holds the same rule for the utilities that packages/ui uses.
+test("markdown code, images, and editor content take their corners from the radius scale", async () => {
 	const pieces = parseCss(await Bun.file(new URL("./app.css", import.meta.url)).text());
 	const tokens = Object.assign(
 		{},
@@ -103,12 +105,15 @@ test("markdown code, images, and editor content use square corners", async () =>
 			.filter((piece) => piece.prelude.startsWith("@theme"))
 			.map((piece) => piece.declarations),
 	);
+	const scale = Object.entries(tokens)
+		.filter(([name]) => name.startsWith("--radius-"))
+		.map(([, step]) => step);
 	const violations: string[] = [];
 	for (const rule of blocks(pieces)) {
 		for (const [property, value] of Object.entries(rule.declarations)) {
 			if (!/^border-.*radius$/.test(property)) continue;
 			const resolved = value.replace(/var\((--[\w-]+)\)/g, (_, name: string) => tokens[name]);
-			if (!/^0(?:px)?$/.test(resolved)) violations.push(`${rule.prelude}: ${property}: ${value}`);
+			if (!scale.includes(resolved)) violations.push(`${rule.prelude}: ${property}: ${value}`);
 		}
 	}
 	expect(violations).toEqual([]);
