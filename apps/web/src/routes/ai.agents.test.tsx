@@ -1,6 +1,7 @@
 import { beforeEach, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { DEFAULT_PROJECT_MANAGER_CONFIG } from "@trellis/api";
 import { renderApp } from "../../test/renderWithProviders";
 import { createTestServer } from "../../test/server";
 
@@ -72,8 +73,12 @@ test("the project Manager page saves its setup and starts its configured persona
 	await user.click(screen.getByRole("button", { name: "Start manager" }));
 	await waitFor(() => expect(server.callsTo("agentRuns.start")).toHaveLength(1));
 	expect(server.callsTo("agentRuns.start")[0]!.input).toEqual({ personaId: manager.id, project: "CDE" });
+	// The manager shows on the page it started from, with no click.
 	const [run] = await server.client.agentRuns.list({ project: "CDE" });
-	expect(await screen.findByRole("button", { name: new RegExp(run!.name) })).toBeDefined();
+	await user.click(
+		within(screen.getByRole("navigation", { name: "Manager settings" })).getByRole("link", { name: "Status" }),
+	);
+	expect(await screen.findByText(run!.name)).toBeDefined();
 	const navigation = within(screen.getByRole("navigation", { name: "Cloud Desktop pages" }));
 	expect(navigation.getByRole("link", { name: "Manager" }).getAttribute("aria-current")).toBe("page");
 	expect(navigation.getByRole("link", { name: "Tickets" }).getAttribute("aria-current")).toBeNull();
@@ -250,4 +255,29 @@ test("the Manager page turns the project's agents off and picks the machine that
 		expect((await server.client.projects.get({ project: "TRL" })).managerConfig?.enabled).toBe(false),
 	);
 	expect(screen.getByRole("button", { name: "Start manager" })).toHaveProperty("disabled", true);
+});
+
+test("a project keeps one manager, and its next start takes the same name", async () => {
+	const server = createTestServer();
+	const persona = await server.client.personas.create({
+		name: "Trellis Manager",
+		kind: "manager",
+		instruction: "Manage the project.",
+	});
+	await server.client.projects.update({
+		project: "TRL",
+		managerConfig: { ...DEFAULT_PROJECT_MANAGER_CONFIG, personaId: persona.id },
+	});
+	const first = await server.client.agentRuns.start({ project: "TRL", personaId: persona.id });
+	await server.client.agentRuns.stop({ id: first.id });
+	const again = await server.client.agentRuns.start({ project: "TRL", personaId: persona.id });
+	expect(again.id).toBe(first.id);
+	expect(again.name).toBe(first.name);
+	expect((await server.client.agentRuns.list({ project: "TRL" })).filter((run) => run.kind === "manager")).toHaveLength(
+		1,
+	);
+	renderApp({ path: "/p/TRL/settings/manager", actor: "dana", server });
+	// One manager, so the page draws its terminal without a click.
+	expect(await screen.findByText(first.name)).toBeDefined();
+	expect(await screen.findByRole("region", { name: "Agent terminal" })).toBeDefined();
 });

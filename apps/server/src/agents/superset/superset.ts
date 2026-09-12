@@ -9,6 +9,7 @@ const workspacesSchema = z.array(z.object({ id: z.string(), branch: z.string() }
 // Superset 1.28 prints `online` as "yes", "no", or "local". An older or a
 // newer build may print a boolean.
 const hostsSchema = z.array(z.object({ id: z.string(), name: z.string(), online: z.union([z.boolean(), z.string()]) }));
+const terminalSchema = z.object({ terminalId: z.string() });
 const terminalsSchema = z.object({
 	sessions: z.array(z.object({ terminalId: z.string(), exited: z.boolean(), title: z.string() })),
 });
@@ -56,6 +57,17 @@ export const superset = (bin: string, host: string | null = null) => {
 			const terminal = result.terminals.find((item) => item.label === "Command");
 			if (!terminal) throw new Error(`Superset workspace ${result.workspace.id} has no command terminal.`);
 			return { workspaceId: result.workspace.id, terminalId: terminal.terminalId };
+		},
+		// Open one more terminal in a workspace that already exists. A manager
+		// that starts again takes this, so its workspace and the chat inside
+		// it hold across every stop.
+		terminal: async (workspaceId: string, command: string) => {
+			const created = terminalSchema.parse(
+				JSON.parse(
+					await call(["terminals", "create", ...on, "--workspace", workspaceId, "--command", command, "--json"]),
+				),
+			);
+			return { workspaceId, terminalId: created.terminalId };
 		},
 		send: (workspaceId: string, terminalId: string, text: string) =>
 			call(["terminals", "send", ...on, "--workspace", workspaceId, "--terminal", terminalId, "--text", text]),

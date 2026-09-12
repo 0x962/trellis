@@ -10,12 +10,12 @@ import {
 	ProjectManagerConfigSchema,
 	unknownLaunchVariables,
 } from "@trellis/api";
-import { Avatar, Button, ConfirmDialog, Input, Select, Switch, toast } from "@trellis/ui";
+import { Button, Input, Select, Switch, toast } from "@trellis/ui";
 import { Bot, GitBranch, Settings2 } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
-import { AgentRunSheet } from "../../agents/AgentRunSheet";
+import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { RepoSettings } from "../../project-settings/RepoSettings";
 import { SettingsSection } from "../../project-settings/SettingsSection";
 import { Topbar } from "../../shell/Topbar";
@@ -47,8 +47,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 	const section = sections.some((item) => item.id === hash) ? hash : "";
 	const saved = project.managerConfig ?? DEFAULT_PROJECT_MANAGER_CONFIG;
 	const [draft, setDraft] = useState(saved);
-	const [selected, setSelected] = useState<AgentRun | null>(null);
-	const [stopping, setStopping] = useState<AgentRun | null>(null);
 	const [command, setCommand] = useState<string | null>(null);
 	const [commandMessage, setCommandMessage] = useState<string | null>(null);
 	const personas = useQuery(orpc.personas.list.queryOptions({ input: {} }));
@@ -63,8 +61,10 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 		enabled: section === "ade",
 		staleTime: 5 * 60_000,
 	});
-	const managers = runs.data?.filter((run) => run.kind === "manager") ?? [];
-	const active = managers.some(atWork);
+	// A project keeps one manager, so the list holds at most one row of that
+	// kind. A start takes that row again instead of making another.
+	const manager = runs.data?.find((run) => run.kind === "manager");
+	const active = manager !== undefined && atWork(manager);
 	const dirty =
 		draft.personaId !== saved.personaId ||
 		draft.concurrency !== saved.concurrency ||
@@ -97,15 +97,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 			else toast.success(`${run.name} starts now`);
 		},
 		onError: (error) => toast.error("Could not start the manager", { description: error.message }),
-	});
-	const stop = useMutation({
-		mutationFn: (run: AgentRun) => client.agentRuns.stop({ id: run.id }),
-		onSuccess: async (_result, run) => {
-			setStopping(null);
-			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
-			toast.success(`${run.name} stops now`);
-		},
-		onError: (error) => toast.error("Could not stop the agent", { description: error.message }),
 	});
 	const commitCommand = () => {
 		const value = (command ?? draft.adeCommand).trim();
@@ -186,7 +177,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 				</nav>
 				<div className="project-settings-content">
 					<div hidden={section !== ""} className="project-settings-page">
-						<SettingsSection title="Status" hint="Open the manager to read its output, send follow-ups, or stop it.">
+						<SettingsSection title="Status" hint="What the manager is doing, and what it read last.">
 							<p className="text-sm text-fg-muted">Manager persona</p>
 							<Select
 								label="Manager persona"
@@ -219,28 +210,10 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 									</Button>
 								</p>
 							)}
-							{managers.map((run) => (
-								<div key={run.id} className="flex min-w-0 items-center gap-2">
-									<Button align="start" variant="quiet" className="min-w-0 flex-1" onClick={() => setSelected(run)}>
-										<span className="flex min-w-0 items-center gap-2">
-											<Avatar kind="agent" name={run.name} live={atWork(run)} />
-											<span className="truncate text-fg">{run.name.split(" ")[0]}</span>
-											<span className="text-xs text-fg-faint">{run.state}</span>
-										</span>
-									</Button>
-									{atWork(run) && (
-										<Button
-											variant="quiet"
-											aria-label={`Stop ${run.name}`}
-											disabled={readOnly || run.state === "starting"}
-											processing={stop.isPending && stop.variables?.id === run.id}
-											onClick={() => setStopping(run)}
-										>
-											Stop
-										</Button>
-									)}
-								</div>
-							))}
+							{manager !== undefined && <AgentRunDetails run={manager} heading />}
+							{manager === undefined && !runs.isPending && !runs.isError && (
+								<p className="text-sm text-fg-muted">This project has no manager yet.</p>
+							)}
 							{!draft.enabled && (
 								<p className="text-sm text-fg-muted">
 									Agents are off. Turn them on in the header to start the manager. An agent that already runs keeps
@@ -361,17 +334,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 					</div>
 				</div>
 			</div>
-			{selected && <AgentRunSheet run={selected} onClose={() => setSelected(null)} />}
-			<ConfirmDialog
-				open={stopping !== null}
-				title={`Stop ${stopping?.name ?? "the agent"}?`}
-				description="The workspace and its files stay available."
-				confirmLabel="Stop agent"
-				danger
-				processing={stop.isPending}
-				onConfirm={() => stopping && stop.mutate(stopping)}
-				onCancel={() => setStopping(null)}
-			/>
 		</>
 	);
 }

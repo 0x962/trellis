@@ -74,14 +74,33 @@ const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
 		)})`,
 	);
 	if (repos.length === 0) throw invalidInput("project", "Add a repository to the project before you start an agent.");
-	const name = randomAgentName();
 	await upsert(ctx, tx, actor);
-	const [run] = await rows<AgentRun>(
-		tx,
-		sql`INSERT INTO agent_runs (id, name, persona_id, persona_name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, state, created_at, updated_at)
-		VALUES (${ulid()}, ${name}, ${persona.id}, ${persona.name}, ${persona.kind}, ${persona.instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'starting', ${ctx.now}, ${ctx.now})
+	// A project keeps one manager. Its next start takes the row it already
+	// has, so a person keeps calling it by the name they know and its
+	// Superset workspace holds the chat it had.
+	const [existing] =
+		persona.kind === "manager"
+			? await rows<AgentRun>(
+					tx,
+					sql`SELECT ${columns} FROM agent_runs WHERE project_id = ${project.id} AND kind = 'manager' ORDER BY created_at LIMIT 1`,
+				)
+			: [];
+	const [run] =
+		existing === undefined
+			? await rows<AgentRun>(
+					tx,
+					sql`INSERT INTO agent_runs (id, name, persona_id, persona_name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, state, created_at, updated_at)
+		VALUES (${ulid()}, ${randomAgentName()}, ${persona.id}, ${persona.name}, ${persona.kind}, ${persona.instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'starting', ${ctx.now}, ${ctx.now})
 		ON CONFLICT DO NOTHING RETURNING ${columns}`,
-	);
+				)
+			: // A person can change the persona between two starts, so the row
+				// takes the current persona and its instruction. The error of the
+				// last start goes.
+				await rows<AgentRun>(
+					tx,
+					sql`UPDATE agent_runs SET state = 'starting', error = NULL, persona_id = ${persona.id}, persona_name = ${persona.name},
+			instruction = ${persona.instruction}, updated_at = ${ctx.now} WHERE id = ${existing.id} RETURNING ${columns}`,
+				);
 	if (run === undefined) throw fail("DUPLICATE", { field: "active agent" });
 	const context =
 		ticket === null
@@ -91,6 +110,10 @@ const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
 		run,
 		repos,
 		config,
+		// True when this start continues a manager that ran before. Its
+		// workspace already holds the chat, so the start opens a terminal in
+		// that workspace and tells Claude to continue.
+		resume: existing !== undefined && existing.workspaceId !== null,
 		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || "Use the agent workspace."}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}`,
 	};
 };
@@ -103,7 +126,7 @@ const recordError = (ctx: Ctx, id: string, error: string, state: AgentRun["state
 	);
 
 export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
-	const { run, repos, context, config } = await ctx.newTx((tx) => reserve(ctx.core, tx, input));
+	const { run, repos, context, config, resume } = await ctx.newTx((tx) => reserve(ctx.core, tx, input));
 	ctx.emit({ type: "agent-runs.changed", id: run.id });
 	const runner = superset(ctx.supersetBin, config.supersetHostId);
 	const settings = await ctx.newTx((tx) => getSettings(ctx.core, tx));
@@ -140,11 +163,15 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 		await recordError(ctx, run.id, project.error, "failed");
 		return { id: run.id };
 	}
+	// A resume needs the workspace the manager already has, which only the
+	// Superset path keeps.
+	const resuming = resume && tracksSuperset && run.workspaceId !== null;
 	const launch = launchCommand({
 		run,
 		url: ctx.localUrl,
 		context,
 		directory: run.kind === "manager" ? config.directory : "",
+		resume: resuming,
 	});
 	const workDir =
 		run.kind === "manager" && config.directory ? config.directory : join(ctx.home, "agents", run.id, "work");
@@ -167,13 +194,18 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 	});
 	await ctx.newTx((tx) =>
 		tx.execute(
-			sql`UPDATE agent_runs SET runtime = ${tracksSuperset ? "superset" : "tmux"}, workspace_id = ${tracksSuperset ? null : workDir} WHERE id = ${run.id}`,
+			sql`UPDATE agent_runs SET runtime = ${tracksSuperset ? "superset" : "tmux"}, workspace_id = ${resuming ? run.workspaceId : tracksSuperset ? null : workDir} WHERE id = ${run.id}`,
 		),
 	);
+	// A resume opens one more terminal in the workspace the manager has, and
+	// that terminal runs the agent command alone. Every other start runs the
+	// whole launch template, which makes the workspace first.
 	const launched = await attempt(() =>
-		tracksSuperset
-			? runner.create(command)
-			: managedTerminal(ctx.home).start(run.id, command, workDir, { url: ctx.localUrl, actor: `agent:${run.id}` }),
+		resuming
+			? runner.terminal(run.workspaceId!, launch.command)
+			: tracksSuperset
+				? runner.create(command)
+				: managedTerminal(ctx.home).start(run.id, command, workDir, { url: ctx.localUrl, actor: `agent:${run.id}` }),
 	);
 	if (!launched.ok) {
 		await recordError(ctx, run.id, launched.error, "interrupted");

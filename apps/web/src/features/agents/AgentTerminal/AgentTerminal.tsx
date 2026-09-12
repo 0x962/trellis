@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import type { AgentRun } from "@trellis/api";
 import { Button, Textarea } from "@trellis/ui";
 import { useState } from "react";
-import { useApp } from "../../../../../lib/appContext";
+import { useApp } from "../../../lib/appContext";
 export function AgentTerminal({ run }: { run: AgentRun }) {
 	const { client, orpc, queryClient } = useApp();
 	const output = useQuery({
