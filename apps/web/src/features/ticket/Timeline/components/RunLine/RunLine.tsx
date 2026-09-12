@@ -29,6 +29,7 @@ export function RunLine({ items, reviewer }: RunLineProps) {
 			{actor.kind !== "system" && (
 				<ActorChip
 					compact
+					className="gap-2.5"
 					name={actor.name}
 					kind={actor.kind}
 					live={isLiveActor({ kind: actor.kind, at: last.createdAt })}

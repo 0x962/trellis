@@ -52,7 +52,7 @@ const viewHref = (pathname: string, view: "board" | "table") => {
 const holdsBoardKeys = (pathname: string) => pathname.startsWith("/p/") || pathname.startsWith("/all");
 
 // The surfaces that take a delegated key. The innermost one wins.
-export type HotkeyTargetScope = "list" | "board" | "peek" | "ticket" | "composer";
+export type HotkeyTargetScope = "list" | "board" | "ticket" | "composer";
 
 // The keys a target answers, each in the `shortcuts` spelling: "j",
 // "shift+c", "mod+.", "backspace".
@@ -60,8 +60,7 @@ export type HotkeyHandlers = Record<string, (event: KeyboardEvent) => void>;
 
 type Target = { scope: HotkeyTargetScope; handlers: { current: HotkeyHandlers } };
 
-// The mounted targets in mount order. The last one is the innermost, so a
-// peek over a list answers j before the list does.
+// The last mounted target receives the key before other targets.
 const targets: Target[] = [];
 
 // The `shortcuts` spelling of a key press: "j", "shift+c", "mod+.".
@@ -111,9 +110,9 @@ export const useHotkeyTarget = (scope: HotkeyTargetScope, handlers: HotkeyHandle
 };
 
 // Escape runs one layer per press, the closest one first.
-export type EscapeLayer = "popover" | "peek" | "selection";
+export type EscapeLayer = "popover" | "selection";
 
-const escapeOrder: EscapeLayer[] = ["popover", "peek", "selection"];
+const escapeOrder: EscapeLayer[] = ["popover", "selection"];
 
 const openLayers = new Set<EscapeLayer>();
 

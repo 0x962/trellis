@@ -1,10 +1,9 @@
-import { useRouter, useRouterState } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import type { Priority, Ticket, TicketSummary } from "@trellis/api";
 import { Button, Dialog, Switch, toast, useHotkey } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useApp } from "../../../lib/appContext";
-import { parseSearch, serializeSearch } from "../../filters/grammar";
 import { insertRow } from "../../table/utils/cacheRows";
 import { failToast } from "../../ticket/utils/failToast";
 import { composerActions, useComposerStore } from "../composerStore";
@@ -19,9 +18,6 @@ const summaryOf = (ticket: Ticket): TicketSummary => {
 	return summary;
 };
 
-// The list routes take a peek param; every other page opens the full ticket.
-const isList = (pathname: string) => pathname === "/all" || pathname.startsWith("/p/");
-
 // The quick composer: title, description from the
 // template, the chip row, Cmd+Enter to create, Cmd+Shift+Enter to create
 // and stay. With Create more on, every create stays. The draft survives an
@@ -30,7 +26,6 @@ export function CreateTicketDialog() {
 	const options = useComposerStore((state) => state.options);
 	const { client, queryClient, orpc } = useApp();
 	const router = useRouter();
-	const location = useRouterState({ select: (state) => state.location });
 	const { draft, setDraft, clearDraft } = useComposerDraft();
 	const [project, setProject] = useState<string | undefined>();
 	const defaults = useComposerDefaults(options, project);
@@ -55,14 +50,7 @@ export function CreateTicketDialog() {
 	const description = draft.description === "" ? defaults.template : draft.description;
 	const dirty = draft.title.trim() !== "" || (draft.description !== "" && draft.description !== defaults.template);
 
-	const openTicket = (identifier: string) => {
-		if (isList(location.pathname)) {
-			const search = serializeSearch({ ...parseSearch(location.search as Record<string, unknown>), peek: identifier });
-			void router.navigate({ href: `${location.pathname}?${search}` });
-		} else {
-			void router.navigate({ href: `/t/${identifier}` });
-		}
-	};
+	const openTicket = (identifier: string) => void router.navigate({ href: `/t/${identifier}` });
 
 	// One create at a time. Two hotkey presses can land in one tick, before
 	// `creating` renders, so the ref holds the guard and the state disables

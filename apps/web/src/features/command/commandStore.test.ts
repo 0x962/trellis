@@ -9,7 +9,6 @@ beforeEach(() => {
 		mode: "commands",
 		pathname: "/p/CDE",
 		focusedTicket: null,
-		peekTicket: null,
 		selection: [],
 	});
 });
@@ -19,16 +18,6 @@ describe("features/command/commandStore", () => {
 	test("the store takes the focused ticket from the list", () => {
 		commandActions.setFocusedTicket("CDE-42");
 		expect(state().focusedTicket).toBe("CDE-42");
-		expect(contextTicket(state())).toBe("CDE-42");
-	});
-
-	// CS-02. The peek is the closer surface, so it names the ticket the
-	// This ticket section acts on.
-	test("the peek ticket wins over the focused row", () => {
-		commandActions.setFocusedTicket("CDE-42");
-		commandActions.setPeekTicket("CDE-44");
-		expect(contextTicket(state())).toBe("CDE-44");
-		commandActions.setPeekTicket(null);
 		expect(contextTicket(state())).toBe("CDE-42");
 	});
 
@@ -44,12 +33,10 @@ describe("features/command/commandStore", () => {
 	// a row the person left behind.
 	test("a route change clears the ticket context and the selection", () => {
 		commandActions.setFocusedTicket("CDE-42");
-		commandActions.setPeekTicket("CDE-44");
 		commandActions.setSelection(["CDE-42"]);
 		commandActions.setRoute("/all");
 		expect(state().pathname).toBe("/all");
 		expect(state().focusedTicket).toBeNull();
-		expect(state().peekTicket).toBeNull();
 		expect(state().selection).toEqual([]);
 		expect(contextTicket(state())).toBeNull();
 	});

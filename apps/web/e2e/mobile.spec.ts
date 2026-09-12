@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { createTicket, ensureProject, moveTicket } from "./cli";
-import { cardOf, columnOf, peekOf, rowOf, signIn } from "./support";
+import { cardOf, columnOf, rowOf, signIn } from "./support";
 
 const titles = {
 	"MOB-1": "Read the ticket page on a phone without a sideways scroll",
@@ -77,7 +77,6 @@ const routes: Array<[string, (page: Page) => Locator]> = [
 	["/p/MOB/table", (page) => rowOf(page, "MOB-1")],
 	["/p/MOB/settings", (page) => page.getByRole("main").getByRole("textbox").first()],
 	["/t/MOB-1", (page) => page.getByRole("textbox", { name: "Title" })],
-	["/p/MOB?peek=MOB-1", (page) => peekOf(page, "MOB-1")],
 	["/settings", (page) => page.getByRole("main").getByRole("textbox").first()],
 ];
 
@@ -90,7 +89,6 @@ const screens: Array<[string, string, (page: Page) => Locator]> = [
 	["all tickets", "/all/table", (page) => page.locator('[role="row"][data-identifier]').first()],
 	["the project board", "/p/MOB", (page) => cardOf(columnOf(page, "Todo"), "MOB-1")],
 	["the ticket page", "/t/MOB-1", (page) => page.getByRole("textbox", { name: "Title" })],
-	["the ticket panel", "/all/table?peek=MOB-1", (page) => peekOf(page, "MOB-1")],
 	["the search results", "/search?q=phone", (page) => page.getByRole("grid", { name: "Search results" })],
 ];
 

@@ -1,6 +1,7 @@
+import { DotsThree } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
-import { Button, Dialog, Menu } from "@trellis/ui";
+import { Button, Dialog, IconButton, Menu, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
@@ -38,17 +39,20 @@ export function MoreMenu({ ticket }: MoreMenuProps) {
 
 	return (
 		<>
-			<Menu
-				label="More actions"
-				items={[
-					{ label: "Copy brief", onSelect: () => void copyBrief() },
-					{ label: "Copy branch name", onSelect: () => void copyText(branch, "Copied the branch name") },
-					{ label: "Copy link", onSelect: () => void copyText(ticketLink(ticket.identifier), "Copied the link") },
-					{ label: "Move to project", onSelect: () => openPicker("project") },
-					{ label: "Set parent", onSelect: () => openPicker("parent") },
-					{ label: "Delete", onSelect: () => setConfirming(true), danger: true },
-				]}
-			/>
+			<Tooltip content="More actions">
+				<Menu
+					label="More actions"
+					trigger={<IconButton label="More actions" variant="default" icon={<DotsThree />} />}
+					items={[
+						{ label: "Copy brief", onSelect: () => void copyBrief() },
+						{ label: "Copy branch name", onSelect: () => void copyText(branch, "Copied the branch name") },
+						{ label: "Copy link", onSelect: () => void copyText(ticketLink(ticket.identifier), "Copied the link") },
+						{ label: "Move to project", onSelect: () => openPicker("project") },
+						{ label: "Set parent", onSelect: () => openPicker("parent") },
+						{ label: "Delete", onSelect: () => setConfirming(true), danger: true },
+					]}
+				/>
+			</Tooltip>
 			<Dialog
 				open={confirming}
 				onOpenChange={setConfirming}

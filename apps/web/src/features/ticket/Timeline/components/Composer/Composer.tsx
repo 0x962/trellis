@@ -10,19 +10,16 @@ import { prependTimeline, updateTimeline } from "../../utils/timelineCache";
 
 export type ComposerProps = {
 	ticket: Ticket;
-	// The peek pins the composer to the bottom of its scroll area.
-	pinned?: boolean;
 	// Uploads picked files to the ticket. Without it, the composer shows no
 	// Paperclip.
 	onAttachFiles?: (files: File[]) => void;
 };
 
-// The comment box stays above the timeline while the peek body scrolls. Its
-// opaque wrapper hides the timeline below it. On focus or with text, a bottom
-// bar shows the Paperclip and, with text, Comment. Cmd+Enter posts;
+// On focus or with text, the comment box shows the file control.
+// With text, it also shows Comment. Cmd+Enter posts;
 // the card shows at once and takes the server's row when it lands. A failed
 // post removes the card and puts the words back. Shift+C focuses the box.
-export function Composer({ ticket, pinned = false, onAttachFiles }: ComposerProps) {
+export function Composer({ ticket, onAttachFiles }: ComposerProps) {
 	const { client, orpc, queryClient } = useApp();
 	const key = timelineOptions(orpc, ticket.identifier).queryKey;
 	const [text, setText] = useState("");
@@ -90,7 +87,7 @@ export function Composer({ ticket, pinned = false, onAttachFiles }: ComposerProp
 	};
 
 	return (
-		<div className={cx(pinned && "sticky bottom-0 z-10 border-t border-border bg-surface py-3")}>
+		<div>
 			<fieldset
 				aria-label="New comment"
 				onFocus={() => setFocused(true)}

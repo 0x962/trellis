@@ -25,8 +25,6 @@ export const signIn = async (page: Page, path: string) => {
 // The list row of a ticket in the project table.
 export const rowOf = (page: Page, identifier: string) => page.locator(`[role="row"][data-identifier="${identifier}"]`);
 
-export const peekOf = (page: Page, identifier: string) => page.getByRole("dialog", { name: identifier });
-
 // A board column. Its accessible name is the column name, a comma, and
 // the ticket count.
 export const columnOf = (page: Page, name: string) => page.getByRole("list", { name: new RegExp(`^${name},`) });

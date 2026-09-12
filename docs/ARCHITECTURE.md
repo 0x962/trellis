@@ -285,6 +285,10 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/setup` | `setup.tsx` | the first visit, and the new project step |
 | `/_gallery` | `[_]gallery.tsx` | every primitive in every state, in both themes |
 
+Ticket links open `/t/$identifier`. The header shows the project name and ticket
+identifier, with the actions on the right. The content sits below the shared
+rounded corner. Back to list restores the last list URL with its filters.
+
 `/p/$` takes one splat, `[key, ...slugs, view?]`. The URL keeps slashes and the
 API ref joins the same segments with dots, so `/p/CDE/web/auth` reads
 `CDE.web.auth`. The last segment is a view only when it is a reserved slug:
@@ -630,7 +634,6 @@ descriptions, and 40 open pull requests. `bun run perf:10k` runs the 10k seed, a
 | `search.query` p95 at 50k | 40 ms; 3 ms for `KEY-n` | perf/search |
 | SSE commit to repaint | 100 ms on the patch path; 500 ms on the invalidation path | e2e/live |
 | Kanban drop | optimistic paint in 16 ms | e2e/kanban |
-| Ticket open | 50 ms summary and 100 ms body from cache | e2e/peek |
 | Web bundle | 220 KB gzip initial JS; 200 KB lazy Tiptap; 900 KB total; 160 KB fonts | scripts/size-budget |
 | First paint | 300 ms FCP; rows in 600 ms cold and 150 ms warm | e2e/paint |
 | Server RSS at 50k | 350 MB idle, 550 MB peak | perf/memory |
@@ -766,7 +769,7 @@ is no shadcn and no Radix.
 - `--accent` is the interface blue and `--agent` is the agent purple. Each one has a `-soft` ground.
 - Status by category: todo is a faint empty circle, started is a warning half ring, review is an accent dotted ring, done is a success filled check, and canceled is a faint cross.
 - Priority uses bars in `fg-muted`. Urgent is a filled danger square.
-- Motion durations: 120 ms hover, 160 ms popover, 240 ms peek slide, 160 ms row enter, and 200 ms ribbon sweep.
+- Motion durations: 120 ms hover, 160 ms popover, 240 ms sheet slide, 160 ms row enter, and 200 ms ribbon sweep.
 - Never animate a re-sort, a text change, a counter, a skeleton swap, or the theme switch. Use `motion/mini` and CSS transitions only.
 - Focus uses a 2 px accent outline on `:focus-visible`. A row or a card uses an inset left bar.
 - The primitives are Avatar, Badge, Button, Checkbox, Chip, Command, ConfirmDialog, Dialog, EmptyState, EntityCard, IconButton, Input, Kbd, Menu, Popover, ScrollArea, SectionHeader, Segmented, Select, Separator, Sheet, Skeleton, Spinner, Switch, Tabs, Textarea, Toast, and Tooltip.

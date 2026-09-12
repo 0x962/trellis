@@ -64,7 +64,7 @@ describe("lib/shortcuts", () => {
 
 	// SM-03
 	test("every row carries a known scope", () => {
-		expect(shortcutScopes).toEqual(["global", "list", "board", "peek", "ticket", "composer"]);
+		expect(shortcutScopes).toEqual(["global", "list", "board", "ticket", "composer"]);
 		for (const shortcut of shortcuts) {
 			expect(shortcutScopes, shortcut.id).toContain(shortcut.scope);
 		}

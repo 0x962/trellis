@@ -65,18 +65,17 @@ export const mountTarget = (scope: HotkeyTargetScope, keys: string[]) => {
 };
 
 function EscapeStack({ log }: { log: string[] }) {
-	const [open, setOpen] = useState<Record<EscapeLayer, boolean>>({ popover: true, peek: true, selection: true });
+	const [open, setOpen] = useState<Record<EscapeLayer, boolean>>({ popover: true, selection: true });
 	const close = (layer: EscapeLayer) => () => {
 		log.push(layer);
 		setOpen((current) => ({ ...current, [layer]: false }));
 	};
 	useEscapeLayer("popover", open.popover, close("popover"));
-	useEscapeLayer("peek", open.peek, close("peek"));
 	useEscapeLayer("selection", open.selection, close("selection"));
 	return null;
 }
 
-// Renders an open popover, an open peek, and a selection, and records the
+// Renders an open popover and a selection, and records the
 // order in which Escape closes them.
 export const mountEscapeStack = () => {
 	const log: string[] = [];

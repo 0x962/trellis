@@ -9,7 +9,6 @@ import {
 	SortSchema,
 	StatusCategorySchema,
 	StatusRefStringSchema,
-	TicketRefStringSchema,
 } from "@trellis/api";
 import type { z } from "zod";
 import { searchParamOrder } from "../../lib/searchParams";
@@ -46,7 +45,6 @@ export type View = {
 	// URL carries it only when set, so a view shows them by default.
 	closed?: "hide";
 	scope: Scope;
-	peek?: string;
 	density: Density;
 	limit: number;
 	not?: NegatableField[];
@@ -151,7 +149,6 @@ export const parseSearch = (params: Record<string, unknown>): View => {
 		group: oneOf<Group>(raw.group, groups) ?? viewDefaults.group,
 		closed: raw.closed === "hide" ? "hide" : undefined,
 		scope: oneOf<Scope>(raw.scope, scopes) ?? viewDefaults.scope,
-		peek: single(raw.peek, TicketRefStringSchema),
 		density: oneOf<Density>(raw.density, densities) ?? viewDefaults.density,
 		limit: Number.isInteger(limit) && limit >= 1 && limit <= 200 ? limit : viewDefaults.limit,
 	};
