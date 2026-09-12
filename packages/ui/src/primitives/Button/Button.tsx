@@ -32,6 +32,14 @@ const sizes: Record<ButtonSize, string> = {
 	md: `h-8 text-base ${hitArea.box32Bordered}`,
 };
 
+// The side padding of each size. A key cap sits as far from the left edge
+// as from the top edge: 4 px at sm and 6 px at md. So the 3 px corner of
+// the cap follows the 8 px corner of the button.
+const paddings: Record<ButtonSize, { plain: string; withKbd: string }> = {
+	sm: { plain: "px-2.5", withKbd: "pr-2.5 pl-1" },
+	md: { plain: "px-3", withKbd: "pr-3 pl-1.5" },
+};
+
 // The text button. The app has two button heights: sm is 28 px, for rows,
 // bars, and headers, and md is 32 px, for dialogs, forms, and empty
 // states. Both are at least 28 px wide. On a coarse pointer the size token
@@ -51,7 +59,7 @@ export function Button({
 	const id = useId();
 	const labelId = `${id}-label`;
 	const shortcutId = `${id}-shortcut`;
-	const padding = size === "sm" ? "px-2.5" : "px-3";
+	const padding = kbd ? paddings[size].withKbd : paddings[size].plain;
 
 	return (
 		<BaseButton

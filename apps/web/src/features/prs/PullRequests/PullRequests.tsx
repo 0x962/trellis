@@ -37,7 +37,7 @@ export function PullRequests({ ticket, initialPrs }: PullRequestsProps) {
 				<SectionHeader
 					title="PRs"
 					count={prs !== undefined && prs.length > 0 ? prs.length : undefined}
-					actions={<IconButton label="Link PR" size="sm" icon={<Plus />} onClick={() => setLinking(true)} />}
+					actions={<IconButton label="Link PR" size="xs" icon={<Plus />} onClick={() => setLinking(true)} />}
 				/>
 			</div>
 			<LinkPrDialog ticket={ticket} open={linking} onOpenChange={setLinking} />

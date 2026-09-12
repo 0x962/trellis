@@ -10,9 +10,11 @@ describe("Kbd", () => {
 		expect(kbd.tagName).toBe("KBD");
 		expectClasses(
 			kbd,
-			"inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-sm border border-border-strong bg-surface px-1 font-mono text-xs leading-none text-fg-muted",
+			"inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-hairline border border-current/25 bg-current/8 px-1 font-mono text-xs leading-none",
 		);
 		expect(kbd.className).not.toMatch(/border-b-2/);
+		// The cap takes its text color from the text around it, so it sets none.
+		expect(kbd.className).not.toMatch(/(^| )text-fg/);
 	});
 
 	// A caller that still passes `tone` gets the same key cap.

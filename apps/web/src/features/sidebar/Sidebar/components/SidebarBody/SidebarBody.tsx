@@ -102,7 +102,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				<div className="sidebar-section">
 					<h2>Projects</h2>
 					<IconButton
-						size="sm"
+						size="xs"
 						className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
 						label="New project"
 						icon={<Plus />}

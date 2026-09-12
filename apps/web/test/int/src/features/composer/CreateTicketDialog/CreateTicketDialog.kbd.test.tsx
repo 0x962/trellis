@@ -20,24 +20,23 @@ beforeEach(() => {
 
 afterEach(() => act(resetUi));
 
-// The one key cap style: the surface fill, the strong border, the square
-// corner, and 11 px mono. A call site adds layout classes such as shrink-0,
-// and nothing else.
+// The one key cap style: a fill and a border drawn from the color of the
+// text around the cap, the 3 px hairline corner, and 11 px mono. A call site
+// adds layout classes such as shrink-0, and nothing else.
 const capStyle = [
 	"inline-flex",
 	"h-4.5",
 	"min-w-4.5",
 	"items-center",
 	"justify-center",
-	"rounded-sm",
+	"rounded-hairline",
 	"border",
-	"border-border-strong",
-	"bg-surface",
+	"border-current/25",
+	"bg-current/8",
 	"px-1",
 	"font-mono",
 	"text-xs",
 	"leading-none",
-	"text-fg-muted",
 ];
 
 const styleOf = (cap: HTMLElement) => cap.className.split(" ").filter((name) => capStyle.includes(name));

@@ -4,20 +4,29 @@ import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
 import { buttonVariants, disabledLook } from "../Button/variants";
 
+export type IconButtonSize = "xs" | "sm" | "md";
+
 export type IconButtonProps = Omit<ComponentProps<typeof BaseButton>, "children" | "className"> & {
 	className?: string;
 	// The accessible name. The icon has no text, so the label is the name.
 	label: string;
 	icon: ReactElement;
-	size?: "sm" | "md";
+	size?: IconButtonSize;
 	variant?: "primary" | "default" | "quiet" | "danger";
 };
 
-// A square button that shows one icon, drawn 28 px at size md and 24 px at
-// size sm. Size sm sits inside rows and headers; next to a Button in a bar
-// it is md. The hit-area layer brings both sizes to the 28 px minimum on a
-// fine pointer, and the size token draws both at 44 px on a coarse one.
-export function IconButton({ label, icon, size = "md", variant = "quiet", className, ...props }: IconButtonProps) {
+const sizes: Record<IconButtonSize, string> = {
+	xs: `size-6 ${hitArea.box24Bordered}`,
+	sm: `size-7 ${hitArea.box28Bordered}`,
+	md: `size-8 ${hitArea.box32Bordered}`,
+};
+
+// A square button that shows one icon. Sizes sm and md are as tall as the
+// Button sizes with the same names: sm is 28 px, for rows, bars, and
+// headers, and md is 32 px, for dialogs and forms. Size xs is 24 px, for a
+// row too short for 28 px. The hit-area layer brings every size to 28 px on
+// a fine pointer, and the size token draws each at 44 px on a coarse one.
+export function IconButton({ label, icon, size = "sm", variant = "quiet", className, ...props }: IconButtonProps) {
 	return (
 		<BaseButton
 			aria-label={label}
@@ -26,7 +35,7 @@ export function IconButton({ label, icon, size = "md", variant = "quiet", classN
 				"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 				buttonVariants[variant],
 				disabledLook(variant),
-				size === "md" ? `size-7 ${hitArea.box28Bordered}` : `size-6 ${hitArea.box24Bordered}`,
+				sizes[size],
 				className,
 			)}
 			{...props}

@@ -65,7 +65,7 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 								{repo.owner}/{repo.repo}
 							</a>
 							<IconButton
-								size="sm"
+								size="xs"
 								label={`Remove ${repo.owner}/${repo.repo}`}
 								icon={<Trash2 />}
 								onClick={() => void remove(repo.owner, repo.repo)}

@@ -46,7 +46,7 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 			<IconButton
 				label="Open on GitHub"
 				icon={<ExternalLink />}
-				size="sm"
+				size="xs"
 				className="relative opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
 				onClick={() => window.open(pr.url, "_blank", "noopener")}
 			/>

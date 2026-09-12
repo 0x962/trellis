@@ -25,7 +25,7 @@ export function UnlinkButton({ ticket, pr }: UnlinkButtonProps) {
 		<IconButton
 			label={`Unlink PR #${pr.number}`}
 			icon={<X />}
-			size="sm"
+			size="xs"
 			disabled={unlink.isPending}
 			className="relative opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
 			onClick={() => unlink.mutate()}

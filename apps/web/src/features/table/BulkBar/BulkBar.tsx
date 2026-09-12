@@ -144,7 +144,7 @@ export function BulkBar({
 					</span>
 				}
 			>
-				<IconButton label="Clear selection" icon={<X />} size="md" className="ml-1" onClick={onClear} />
+				<IconButton label="Clear selection" icon={<X />} size="sm" className="ml-1" onClick={onClear} />
 			</Tooltip>
 		</div>
 	);
