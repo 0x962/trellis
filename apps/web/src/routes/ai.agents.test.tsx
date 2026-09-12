@@ -40,7 +40,7 @@ test("the project Manager page saves its setup and starts its configured persona
 		instruction: "Manage the project.",
 	});
 	const user = userEvent.setup();
-	renderApp({ path: "/p/CDE/settings/manager", actor: "dana", server });
+	renderApp({ path: "/p/CDE/settings/manager#general", actor: "dana", server });
 	await screen.findByRole("heading", { name: "Cloud Desktop › Manager" });
 	// The host picker reads `superset hosts list`, which spawns a process.
 	// The form is driven after that read lands.
@@ -65,7 +65,7 @@ test("the project Manager page saves its setup and starts its configured persona
 	expect(screen.queryByText("Edit personas and instructions")).toBeNull();
 	expect(screen.queryByText("Workflow")).toBeNull();
 	await user.click(
-		within(screen.getByRole("navigation", { name: "Manager settings" })).getByRole("link", { name: "Manager" }),
+		within(screen.getByRole("navigation", { name: "Manager settings" })).getByRole("link", { name: "Status" }),
 	);
 	await user.click(screen.getByRole("button", { name: "Start manager" }));
 	await waitFor(() => expect(server.callsTo("agentRuns.start")).toHaveLength(1));
@@ -143,7 +143,7 @@ test("a canceled folder selection keeps the directory and makes no write", async
 	});
 	const writes = server.callsTo("projects.update").length;
 	const user = userEvent.setup();
-	renderApp({ path: "/p/TRL/settings/manager", actor: "dana", server });
+	renderApp({ path: "/p/TRL/settings/manager#general", actor: "dana", server });
 	const directory = await screen.findByRole("textbox", { name: "Project directory" });
 	await user.click(directory);
 	await waitFor(() => expect(server.callsTo("system.chooseDirectory")).toHaveLength(1));
@@ -155,7 +155,7 @@ test("manager autosave preserves a newer edit while a previous save is pending",
 	const server = createTestServer();
 	server.setDirectory("/tmp/project");
 	const user = userEvent.setup();
-	renderApp({ path: "/p/TRL/settings/manager", actor: "dana", server });
+	renderApp({ path: "/p/TRL/settings/manager#general", actor: "dana", server });
 	const concurrency = await screen.findByRole("spinbutton", { name: "Concurrency" });
 	const hold = server.holdNext("projects.update");
 	await user.clear(concurrency);
@@ -180,7 +180,7 @@ test("the folder result preserves a concurrency edit made while the dialog is op
 	const server = createTestServer();
 	server.setDirectory("/tmp/project");
 	const user = userEvent.setup();
-	renderApp({ path: "/p/TRL/settings/manager", actor: "dana", server });
+	renderApp({ path: "/p/TRL/settings/manager#general", actor: "dana", server });
 	const folder = await screen.findByRole("textbox", { name: "Project directory" });
 	const hold = server.holdNext("system.chooseDirectory");
 	await user.click(folder);
@@ -201,7 +201,7 @@ test("the folder result preserves a concurrency edit made while the dialog is op
 test("invalid concurrency stays visible without a save and a folder error permits another selection", async () => {
 	const server = createTestServer();
 	const user = userEvent.setup();
-	renderApp({ path: "/p/TRL/settings/manager", actor: "dana", server });
+	renderApp({ path: "/p/TRL/settings/manager#general", actor: "dana", server });
 	const concurrency = await screen.findByRole("spinbutton", { name: "Concurrency" });
 	await user.clear(concurrency);
 	await user.type(concurrency, "65");
@@ -229,7 +229,7 @@ test("invalid concurrency stays visible without a save and a folder error permit
 test("the Manager page turns the project's agents off and picks the machine that runs them", async () => {
 	const server = createTestServer();
 	const user = userEvent.setup();
-	renderApp({ path: "/p/TRL/settings/manager", actor: "dana", server });
+	renderApp({ path: "/p/TRL/settings/manager#general", actor: "dana", server });
 	const host = await screen.findByRole("combobox", { name: "Superset host" });
 	expect(host.textContent).toBe("This machine");
 	await user.click(host);
@@ -248,7 +248,7 @@ test("the Manager page turns the project's agents off and picks the machine that
 		expect((await server.client.projects.get({ project: "TRL" })).managerConfig?.enabled).toBe(false),
 	);
 	await user.click(
-		within(screen.getByRole("navigation", { name: "Manager settings" })).getByRole("link", { name: "Manager" }),
+		within(screen.getByRole("navigation", { name: "Manager settings" })).getByRole("link", { name: "Status" }),
 	);
 	expect(screen.getByRole("button", { name: "Start manager" })).toHaveProperty("disabled", true);
 	expect(screen.getByText("Turn on agents in General before you start the manager.")).toBeDefined();
