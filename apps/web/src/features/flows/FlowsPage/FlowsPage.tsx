@@ -1,6 +1,6 @@
 import { Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Button, EmptyState, EntityCard, IconButton, Skeleton } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -51,8 +51,7 @@ export function FlowsPage() {
 									key={flow.id}
 									title={flow.name}
 									description={flow.description === "" ? "No description." : flow.description}
-									editLabel={`Open ${flow.name}`}
-									onEdit={() => open(flow.slug)}
+									link={<Link to="/ai/flows/$slug" params={{ slug: flow.slug }} />}
 								/>
 							))}
 						</div>

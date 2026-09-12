@@ -1,6 +1,5 @@
-import { Trash } from "@phosphor-icons/react";
 import { type FlowNodeKind, flowAgentKinds, type Persona } from "@trellis/api";
-import { IconButton, Input, Sheet, Switch, Textarea, Tooltip } from "@trellis/ui";
+import { Button, Input, Sheet, SheetBody, SheetFooter, SheetSection, Switch, Textarea } from "@trellis/ui";
 import { flowKinds } from "../../../kinds";
 import type { StepFields } from "../../flowDraft";
 import { PersonaSelect } from "../PersonaSelect";
@@ -39,10 +38,9 @@ export function NodeInspector({ fields, issue, personas, onChange, onDelete, onC
 			onOpenChange={(open) => !open && onClose()}
 		>
 			<div className="flex min-h-full flex-col">
-				<div className="flex flex-1 flex-col gap-6 p-6 max-md:p-4">
+				<SheetBody>
 					<p className="text-sm text-fg-muted">{meta.description}</p>
-					<section aria-label="Details" className="flex flex-col gap-4">
-						<h3 className="text-md font-medium text-fg">Details</h3>
+					<SheetSection title="Details">
 						<Input
 							label="Title"
 							className="pointer-coarse:h-11"
@@ -62,10 +60,9 @@ export function NodeInspector({ fields, issue, personas, onChange, onDelete, onC
 								/>
 							</div>
 						)}
-					</section>
+					</SheetSection>
 					{promptLabel !== null && (
-						<section aria-label="Instructions" className="flex flex-col gap-4 border-t border-border pt-6">
-							<h3 className="text-md font-medium text-fg">Instructions</h3>
+						<SheetSection title="Instructions" divided>
 							<Textarea
 								label={promptLabel}
 								rows={14}
@@ -78,11 +75,10 @@ export function NodeInspector({ fields, issue, personas, onChange, onDelete, onC
 										: "Write what this step does."
 								}
 							/>
-						</section>
+						</SheetSection>
 					)}
 					{fields.kind === "group" && (
-						<section aria-label="Execution" className="flex flex-col gap-4 border-t border-border pt-6">
-							<h3 className="text-md font-medium text-fg">Execution</h3>
+						<SheetSection title="Execution" divided>
 							<div className="flex flex-col gap-2">
 								<Switch
 									label="Parallel"
@@ -117,11 +113,10 @@ export function NodeInspector({ fields, issue, personas, onChange, onDelete, onC
 									/>
 								)}
 							</div>
-						</section>
+						</SheetSection>
 					)}
 					{fields.kind === "loop" && (
-						<section aria-label="Execution" className="flex flex-col gap-4 border-t border-border pt-6">
-							<h3 className="text-md font-medium text-fg">Execution</h3>
+						<SheetSection title="Execution" divided>
 							<Input
 								label="Rounds at most"
 								className="tabular-nums pointer-coarse:h-11"
@@ -131,20 +126,26 @@ export function NodeInspector({ fields, issue, personas, onChange, onDelete, onC
 								value={String(fields.maxRounds)}
 								onChange={(event) => onChange({ maxRounds: event.target.valueAsNumber })}
 							/>
-						</section>
+						</SheetSection>
 					)}
 					{issue !== undefined && (
 						<p role="alert" className="text-sm text-danger">
 							{issue}
 						</p>
 					)}
-				</div>
-				<footer className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-border bg-surface p-4">
+				</SheetBody>
+				<SheetFooter
+					leading={
+						<Button type="button" variant="quiet" onClick={onDelete}>
+							Delete step
+						</Button>
+					}
+				>
 					<span className="text-xs text-fg-muted">{saveState}</span>
-					<Tooltip content="Delete step">
-						<IconButton label="Delete step" icon={<Trash />} onClick={onDelete} />
-					</Tooltip>
-				</footer>
+					<Button type="button" variant="primary" onClick={onClose}>
+						Done
+					</Button>
+				</SheetFooter>
 			</div>
 		</Sheet>
 	);

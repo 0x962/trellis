@@ -10,6 +10,53 @@ test.beforeAll(async () => {
 const create = () => post<Flow>("/flows", { name: `Draft ${crypto.randomUUID()}` });
 const read = (flow: Flow) => get<FlowDoc>(`/flows/${flow.id}`);
 
+test("flow settings save and cancel through the shared footer", async ({ page }) => {
+	const flow = await create();
+	await signIn(page, `/ai/flows/${flow.slug}`);
+	await page.getByRole("button", { name: "Flow settings", exact: true }).click();
+	const sheet = page.getByRole("dialog", { name: "Flow settings", exact: true });
+	await sheet.getByRole("textbox", { name: "Description", exact: true }).fill("Saved description");
+	await sheet.getByRole("button", { name: "Save changes", exact: true }).click();
+	await expect(sheet).toHaveCount(0);
+	expect((await read(flow)).flow.description).toBe("Saved description");
+	await page.getByRole("button", { name: "Flow settings", exact: true }).click();
+	await sheet.getByRole("textbox", { name: "Description", exact: true }).fill("Discard this");
+	await sheet.getByRole("button", { name: "Cancel", exact: true }).click();
+	await expect(sheet).toHaveCount(0);
+	expect((await read(flow)).flow.description).toBe("Saved description");
+});
+
+test("persona edits save and cancel through the shared footer", async ({ page }) => {
+	const name = `Persona ${crypto.randomUUID()}`;
+	await post("/personas", { name, kind: "reviewer", instruction: "Read the diff." });
+	await signIn(page, "/ai/personas");
+	const card = page.getByRole("article", { name, exact: true });
+	await card.getByRole("button", { name: `Edit ${name}`, exact: true }).click();
+	const sheet = page.getByRole("dialog", { name: "Edit persona", exact: true });
+	await sheet.getByRole("textbox", { name: "Instruction", exact: true }).fill("Review the change.");
+	await sheet.getByRole("button", { name: "Save changes", exact: true }).click();
+	await expect(sheet).toHaveCount(0);
+	await expect(card).toContainText("Review the change.");
+	await card.getByRole("button", { name: `Edit ${name}`, exact: true }).click();
+	await sheet.getByRole("textbox", { name: "Instruction", exact: true }).fill("Discard this");
+	await sheet.getByRole("button", { name: "Cancel", exact: true }).click();
+	await expect(sheet).toHaveCount(0);
+	await expect(card).toContainText("Review the change.");
+});
+
+test("the entire flow card opens its graph and supports keyboard navigation", async ({ page }) => {
+	const flow = await create();
+	await signIn(page, "/ai/flows");
+	const card = page.getByRole("article", { name: flow.name, exact: true });
+	const bounds = await card.boundingBox();
+	await card.click({ position: { x: 12, y: bounds!.height - 12 } });
+	await expect(page).toHaveURL(new RegExp(`/ai/flows/${flow.slug}$`));
+	await page.goto("/ai/flows");
+	await card.getByRole("link", { name: flow.name, exact: true }).focus();
+	await page.keyboard.press("Enter");
+	await expect(page).toHaveURL(new RegExp(`/ai/flows/${flow.slug}$`));
+});
+
 test("group captions show only the name and enabled options", async ({ page }) => {
 	const flow = await create();
 	await signIn(page, `/ai/flows/${flow.slug}`);
@@ -62,6 +109,9 @@ test("the node sheet labels its sections and closes without losing edits", async
 	await page.getByText("Review the change", { exact: true }).click();
 	await expect(sheet.getByRole("textbox", { name: "Instruction", exact: true })).toHaveValue("Read the diff.");
 	await page.keyboard.press("Escape");
+	await expect(sheet).toHaveCount(0);
+	await page.getByText("Review the change", { exact: true }).click();
+	await sheet.getByRole("button", { name: "Done", exact: true }).click();
 	await expect(sheet).toHaveCount(0);
 });
 
