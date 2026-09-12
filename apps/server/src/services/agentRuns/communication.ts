@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { commandHarness } from "../../agents/commandHarness/commandHarness.ts";
 import { managedTerminal } from "../../agents/managedTerminal/managedTerminal.ts";
 import { superset } from "../../agents/superset/superset.ts";
 import type { Tx } from "../../db/tx.ts";
@@ -11,7 +12,8 @@ type Ctx = ServiceCtx & { supersetBin: string };
 export const prepareSend = async (ctx: Ctx, input: { id: string; text: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	if (run.state !== "running") throw invalidInput("id", "Only a running agent can receive a follow-up.");
-	if (run.runtime === "tmux") await managedTerminal(ctx.home).send(run.terminalId!, input.text);
+	if (run.runtime === "commands") await (await commandHarness(ctx.home, run)).send(input.text);
+	else if (run.runtime === "tmux") await managedTerminal(ctx.home).send(run.terminalId!, input.text);
 	else await superset(ctx.supersetBin).send(run.workspaceId!, run.terminalId!, input.text);
 	return { id: run.id };
 };
@@ -20,6 +22,7 @@ export const prepareOutput = async (ctx: Ctx, input: { id: string }) => {
 	if (run.state === "stopped" && run.terminalId)
 		return { text: await readFile(join(ctx.home, "agents", run.id, "output.txt"), "utf8") };
 	if (!run.terminalId) return { text: "The agent has no terminal yet." };
+	if (run.runtime === "commands") return { text: await (await commandHarness(ctx.home, run)).output() };
 	const text =
 		run.runtime === "tmux"
 			? await managedTerminal(ctx.home).output(run.terminalId)

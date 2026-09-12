@@ -56,6 +56,7 @@ test("assignment launches a named agent with the selected prompt and retains its
 	const launch = calls().find((args) => args[1] === "create")!;
 	expect(launch).toContain("superset-project");
 	const command = launch[launch.indexOf("--command") + 1]!;
+	expect(command).toContain("claude -n");
 	expect(command).toContain("TRELLIS_ACTOR");
 	expect(command).toContain(result.body.id);
 	expect(command).toContain("Build carefully.");

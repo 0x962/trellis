@@ -5,7 +5,7 @@ import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 export const AgentRunSchema = z.object({
 	id: UlidSchema,
 	name: z.string(),
-	runtime: z.enum(["superset", "tmux"]),
+	runtime: z.enum(["superset", "tmux", "commands"]),
 	personaId: UlidSchema.nullable(),
 	personaName: z.string(),
 	kind: PersonaKindSchema,

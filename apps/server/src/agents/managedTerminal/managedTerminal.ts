@@ -21,6 +21,7 @@ export const managedTerminal = (home: string) => {
 		return output;
 	};
 	return {
+		socket,
 		start: async (id: string, command: string, workDir: string, env: { url: string; actor: string }) => {
 			await mkdir(workDir, { recursive: true, mode: 0o700 });
 			const script = join(home, "agents", id, "launch.sh");

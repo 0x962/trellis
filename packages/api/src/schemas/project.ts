@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+	AgentCommandSchema,
+	DEFAULT_AGENT_COMMAND,
+	DEFAULT_AGENT_RESUME_COMMAND,
+} from "../agentCommand/agentCommand.ts";
+import { HarnessCommandsSchema } from "../harnessCommands/harnessCommands.ts";
 import { ProjectRefStringSchema } from "../refs.ts";
 import { booleanString, CountSchema, IsoDateTimeSchema, KeySchema, SlugSchema, UlidSchema } from "./primitives.ts";
 import { StatusSchema } from "./status.ts";
@@ -67,6 +73,9 @@ export const ProjectManagerConfigSchema = z.strictObject({
 	// The command that starts one agent, for a project whose ADE is custom.
 	// Empty means the machine's own launch command, which starts Superset.
 	adeCommand: z.string().trim().default(""),
+	agentCommand: AgentCommandSchema.default(DEFAULT_AGENT_COMMAND),
+	agentResumeCommand: AgentCommandSchema.default(DEFAULT_AGENT_RESUME_COMMAND),
+	harnessCommands: HarnessCommandsSchema.nullable().default(null),
 });
 export type ProjectManagerConfig = z.infer<typeof ProjectManagerConfigSchema>;
 export const DEFAULT_PROJECT_MANAGER_CONFIG: ProjectManagerConfig = {
@@ -77,6 +86,9 @@ export const DEFAULT_PROJECT_MANAGER_CONFIG: ProjectManagerConfig = {
 	supersetHostId: null,
 	ade: "superset",
 	adeCommand: "",
+	agentCommand: DEFAULT_AGENT_COMMAND,
+	agentResumeCommand: DEFAULT_AGENT_RESUME_COMMAND,
+	harnessCommands: null,
 };
 
 export const ProjectSchema = ProjectSummarySchema.extend({

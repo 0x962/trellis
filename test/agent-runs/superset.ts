@@ -14,6 +14,8 @@ if (args[0] === "projects")
 		JSON.stringify([{ id: "superset-project", name: "Example", repo: "https://github.com/example/code", path: dir }]),
 	);
 else if (args[0] === "ws" && args[1] === "list") console.log(readFileSync(join(dir, "workspaces.json"), "utf8"));
+else if (args[0] === "terminals" && args[1] === "create")
+	console.log(JSON.stringify({ terminalId: "resumed-terminal" }));
 else if (args[1] === "create") {
 	const id = crypto.randomUUID();
 	writeFileSync(join(dir, "workspaces.json"), JSON.stringify([{ id, branch: args[args.indexOf("--branch") + 1] }]));

@@ -2,6 +2,7 @@ import type { Tx } from "../db/tx.ts";
 import * as actors from "./actors.ts";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import * as agentCommunication from "./agentRuns/communication.ts";
+import * as agentLifecycle from "./agentRuns/lifecycle.ts";
 import * as agents from "./agents.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
@@ -58,8 +59,8 @@ export const services = {
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": core("read", agentRuns.list),
 	"agentRuns.start": prepared("mutation", agentRuns.prepareStart, agentRuns.finish),
-	"agentRuns.stop": prepared("mutation", agentRuns.prepareStop, agentRuns.finish),
-	"agentRuns.refresh": prepared("mutation", agentRuns.prepareRefresh, agentRuns.finish),
+	"agentRuns.stop": prepared("mutation", agentLifecycle.prepareStop, agentRuns.finish),
+	"agentRuns.refresh": prepared("mutation", agentLifecycle.prepareRefresh, agentRuns.finish),
 	"personas.list": core("read", personas.list),
 	"personas.create": core("mutation", personas.create),
 	"personas.update": core("mutation", personas.update),

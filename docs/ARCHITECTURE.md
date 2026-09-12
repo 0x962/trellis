@@ -101,8 +101,8 @@ project has a Manager page at `/p/<project path>/settings/manager`. Its header
 holds the agents switch and the Start manager button. Its Status section picks
 the manager persona, opens the manager, reads its output, sends it a follow-up,
 and stops it. Its ADE section picks the Agentic Development Environment, its
-command template, the Superset host, the concurrency limit, and the project
-directory. Those seven fields are `projects.managerConfig`.
+command template, the agent commands, the Superset host, the concurrency limit, and the project
+directory. Those fields are `projects.managerConfig`.
 
 A run copies the persona name, the kind, and the instruction at launch, so a
 later persona edit changes only the runs after it. The row also keeps the project
@@ -137,10 +137,25 @@ project: `--local` for a null `supersetHostId`, and `--host '<id>'` otherwise.
 `{{prompt}}` is the instruction of the run plus an assignment block: the agent
 name, the actor `agent:<run id>`, the trellis URL, the persona, the ticket or the
 project, the concurrency limit, the project directory, and the repositories.
-`{{agentCommand}}` wraps that prompt: it runs `exec env TRELLIS_URL=...
-TRELLIS_ACTOR=... claude -n <name> <prompt>`, with a `cd` into the project
-directory for a manager. `launchCommand.ts` is the one place that builds it. The
-runner-driven agent manager takes the other path in
+`managerConfig.agentCommand` selects the executable and flags for new agents.
+It defaults to `claude -n {{name}} {{prompt}}`.
+`managerConfig.agentResumeCommand` selects the command for a manager restart in
+its existing Superset workspace. It defaults to `claude --continue {{prompt}}`.
+Both commands accept the variables in [Agent harness commands](agent-harnesses.md).
+Trellis quotes each value as one shell argument. The Manager page exposes both commands under ADE and saves
+an edit on blur or Enter. Configure both commands to select another agent.
+
+`managerConfig.harnessCommands` configures every session operation. The Superset
+and tmux presets fill its command templates. Each template stays editable.
+A command-backed run has runtime `commands`. It keeps its templates and launch
+values in `agents/<id>/harness.json`. Later project edits affect the next start.
+A changed start template or agent executable command starts a fresh session.
+The [command reference](agent-harnesses.md) defines each result and variable.
+
+`{{agentCommand}}` in the ADE template holds the expanded agent command with
+`exec env TRELLIS_URL=... TRELLIS_ACTOR=...` before it. A manager also gets a
+`cd` into its configured project directory. `launchCommand.ts` builds this
+command. The runner-driven agent manager takes the other path in
 `packages/api/src/instructions/agentLaunch.ts`, whose command reads its prompt at
 start time with `trellis instructions --role`.
 
@@ -253,8 +268,8 @@ time. The first section of each page carries no hash.
 the machine launch command, the stalled threshold, the gh state, the diff URL
 template, and the phone pair code. Every agent setting of one project lives on
 that project's Manager page: its agents switch, its manager persona, its ADE, its
-ADE command, its Superset host, its concurrency limit, and its project directory.
-`projects.managerConfig` carries those seven fields, and the Manager page writes
+ADE command, its agent commands, its Superset host, its concurrency limit, and its project directory.
+`projects.managerConfig` carries those fields, and the Manager page writes
 them through `projects.update`.
 
 The sidebar holds the workspace row, Needs you, Search, All tickets, the project
@@ -274,7 +289,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `enabled`, `supersetHostId`, `ade`, `adeCommand`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
+| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `enabled`, `supersetHostId`, `ade`, `adeCommand`, `agentCommand`, `agentResumeCommand`, `harnessCommands`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). The effective repos of a project are its own plus those of its ancestors. |
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, wip_limit (CHECK > 0), is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
 | tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
