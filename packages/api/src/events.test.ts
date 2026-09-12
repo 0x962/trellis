@@ -16,6 +16,7 @@ describe("events", () => {
 			"comment.created",
 			"comment.deleted",
 			"comment.updated",
+			"flows.changed",
 			"gh.status",
 			"personas.changed",
 			"pr.linked",

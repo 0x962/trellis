@@ -12,6 +12,7 @@
 		"./tokens.css": "./src/tokens.css",
 		"./fonts.css": "./src/fonts.css",
 		"./base.css": "./src/base.css",
+		"./flow-canvas.css": "./src/flowCanvas.css",
 		"./gallery": "./src/gallery/Gallery.tsx"
 	},
 	"scripts": {

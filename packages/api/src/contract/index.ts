@@ -5,6 +5,7 @@ import { agents } from "./agents.ts";
 import { attachments } from "./attachments.ts";
 import { brief } from "./brief.ts";
 import { comments } from "./comments.ts";
+import { flows } from "./flows.ts";
 import { inbox } from "./inbox.ts";
 import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
@@ -22,6 +23,7 @@ import { timeline } from "./timeline.ts";
 export const contract = {
 	agentRuns: oc.tag("agent runs").router(agentRuns),
 	personas: oc.tag("personas").router(personas),
+	flows: oc.tag("flows").router(flows),
 	projects: oc.tag("projects").router(projects),
 	statuses: oc.tag("statuses").router(statuses),
 	tickets: oc.tag("tickets").router(tickets),

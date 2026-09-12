@@ -1,0 +1,67 @@
+/*
+ * The React Flow canvas of the flow editor, drawn in trellis tokens. The
+ * editor puts the class `flow-canvas` on the ReactFlow root, and React Flow
+ * reads the `--xy-*` variables for every color it draws.
+ */
+.flow-canvas {
+	--xy-background-color: var(--bg);
+	--xy-background-pattern-color: var(--border-strong);
+	--xy-edge-stroke: var(--fg-faint);
+	--xy-edge-stroke-selected: var(--accent);
+	--xy-edge-stroke-width: 1.5;
+	--xy-connectionline-stroke: var(--accent);
+	--xy-connectionline-stroke-width: 1.5;
+	--xy-handle-background-color: var(--surface);
+	--xy-minimap-background-color: var(--surface);
+	--xy-minimap-mask-background-color: var(--scrim);
+	--xy-minimap-mask-stroke-color: var(--border-strong);
+	--xy-minimap-node-background-color: var(--border-strong);
+	--xy-minimap-node-stroke-color: transparent;
+	--xy-node-color: var(--fg);
+	--xy-node-border: none;
+	--xy-node-border-selected: none;
+	--xy-resize-background-color: var(--accent);
+	--xy-selection-background-color: var(--accent-soft);
+	--xy-selection-border: 1px solid var(--accent);
+	--xy-attribution-background-color: transparent;
+	--xy-controls-button-background-color: var(--elevated);
+	--xy-controls-button-background-color-hover: var(--surface);
+	--xy-controls-button-color: var(--fg-muted);
+	--xy-controls-button-color-hover: var(--fg);
+	--xy-controls-button-border-color: var(--border);
+	--xy-controls-box-shadow: var(--shadow-md);
+	font-family: var(--sans);
+}
+
+/* A handle draws as a 10 px dot. The ::before layer widens the hit area to 28 px. */
+.flow-canvas .react-flow__handle {
+	width: 10px;
+	height: 10px;
+	border: 1.5px solid var(--border-strong);
+	background: var(--surface);
+}
+
+.flow-canvas .react-flow__handle::before {
+	content: "";
+	position: absolute;
+	inset: -9px;
+}
+
+.flow-canvas .react-flow__handle.connectingto,
+.flow-canvas .react-flow__handle.valid {
+	border-color: var(--accent);
+}
+
+/* An edge that breaks a flow rule, such as an edge that makes a loop. */
+.flow-canvas .react-flow__edge.flow-edge-issue .react-flow__edge-path {
+	stroke: var(--danger);
+}
+
+.flow-canvas .react-flow__edge-textbg {
+	fill: var(--bg);
+}
+
+.flow-canvas .react-flow__edge-text {
+	fill: var(--fg-muted);
+	font-size: var(--text-xs);
+}
