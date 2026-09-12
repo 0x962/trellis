@@ -20,15 +20,23 @@ export function ReviewLive({
 					<h2>Live Branch</h2>
 					<ReviewActions pr={pr} revision={revision} live onDone={onRefresh} />
 				</div>
-				<p>
-					Deploy on push:{" "}
-					{labels.some((l) => ["Live Branch: Enabled", "Lite Env: Enabled"].includes(l)) ? "Enabled" : "Disabled"}
-				</p>
-				<p>
-					Keep after merge:{" "}
-					{labels.some((l) => ["Live Branch: Persist", "Lite Env: Persist"].includes(l)) ? "Yes" : "No"}
-				</p>
-				{status ? <ReviewMarkdown body={status.body} /> : <p>The workflow has no status report for this PR.</p>}
+				<dl className="review-status-grid">
+					<div>
+						<dt>Deploy on push</dt>
+						<dd>
+							{labels.some((label) => ["Live Branch: Enabled", "Lite Env: Enabled"].includes(label))
+								? "Enabled"
+								: "Disabled"}
+						</dd>
+					</div>
+					<div>
+						<dt>Keep after merge</dt>
+						<dd>
+							{labels.some((label) => ["Live Branch: Persist", "Lite Env: Persist"].includes(label)) ? "Yes" : "No"}
+						</dd>
+					</div>
+				</dl>
+				{status ? <ReviewMarkdown body={status.body} /> : <p className="review-meta">No deployment report yet.</p>}
 			</div>
 		</div>
 	);

@@ -21,7 +21,13 @@ export function ReviewComposer({
 	const [line, setLine] = useState(anchor.line);
 	const [body, setBody] = useState(() => localStorage.getItem(storageKey) ?? "");
 	return (
-		<Sheet open title="Add review comment" onOpenChange={(open) => !open && onClose()}>
+		<Sheet
+			width="var(--review-sheet-width)"
+			titleClassName="font-medium text-base"
+			open
+			title="Add review comment"
+			onOpenChange={(open) => !open && onClose()}
+		>
 			<form
 				className="review-form"
 				onSubmit={(e) => {
@@ -40,28 +46,40 @@ export function ReviewComposer({
 					onClose();
 				}}
 			>
-				<p className="review-meta">
-					{side} side · lines {startLine}–{line}
-				</p>
-				<Input label="File path" value={path} required onChange={(e) => setPath(e.target.value)} />
-				<Select
-					label="Diff side"
-					value={side}
-					onValueChange={setSide}
-					items={[
-						{ value: "old", label: "Old side" },
-						{ value: "new", label: "New side" },
-					]}
-				/>
-				<Input
-					label="First line"
-					type="number"
-					min={1}
-					max={line}
-					value={startLine}
-					onChange={(e) => setStartLine(Number(e.target.value))}
-				/>
-				<Input label="Last line" type="number" min={1} value={line} onChange={(e) => setLine(Number(e.target.value))} />
+				<details className="review-anchor-details" open={!anchor.path}>
+					<summary className="review-anchor-toggle">
+						{anchor.path ? `${anchor.path} · ${side} · lines ${startLine}–${line}` : "Choose a file and line"}
+					</summary>
+					<div className="review-section">
+						<Input label="File path" value={path} required onChange={(e) => setPath(e.target.value)} />
+						<Select
+							label="Diff side"
+							value={side}
+							onValueChange={setSide}
+							items={[
+								{ value: "old", label: "Old side" },
+								{ value: "new", label: "New side" },
+							]}
+						/>
+						<div className="review-form-row">
+							<Input
+								label="First line"
+								type="number"
+								min={1}
+								max={line}
+								value={startLine}
+								onChange={(e) => setStartLine(Number(e.target.value))}
+							/>
+							<Input
+								label="Last line"
+								type="number"
+								min={1}
+								value={line}
+								onChange={(e) => setLine(Number(e.target.value))}
+							/>
+						</div>
+					</div>
+				</details>
 				<Textarea
 					label="Comment"
 					rows={10}
@@ -78,7 +96,7 @@ export function ReviewComposer({
 					}}
 				/>
 				<p role="status" className="review-meta">
-					Draft saved on this browser. Add it to the review before submission.
+					{body.trim() ? "Draft saved on this device." : "Comments stay local until you submit the review."}
 				</p>
 				<div className="review-form-actions">
 					<Button type="button" onClick={onClose}>

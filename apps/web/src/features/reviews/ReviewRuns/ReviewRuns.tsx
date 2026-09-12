@@ -1,6 +1,6 @@
 import { ArrowClockwise, ArrowRight, Play } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Button, IconButton, Input, Sheet, Textarea, Tooltip } from "@trellis/ui";
+import { Badge, Button, EmptyState, IconButton, Input, Sheet, Textarea, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ReviewMarkdown } from "../ReviewPage/ReviewMarkdown";
@@ -77,21 +77,30 @@ export function ReviewRuns({ pr }: { pr: string }) {
 					</p>
 				)}
 				{list.isLoading && <p role="status">Load review runs…</p>}
-				{rows?.length === 0 && <p>No review run for this PR.</p>}
-				{rows?.map((r) => (
-					<button
-						type="button"
-						className="review-file"
-						key={r.runId}
-						aria-current={runId === r.runId}
-						onClick={() => {
-							setRunId(r.runId);
-							setNodeId(undefined);
-						}}
-					>
-						{r.runId} · {r.status} · {r.startedAt}
-					</button>
-				))}
+				{rows?.length === 0 && (
+					<EmptyState title="No review runs yet" description="Start an agent review for this pull request." />
+				)}
+				<section className="review-section" aria-label="Review runs">
+					{rows?.map((r) => (
+						<button
+							type="button"
+							className="review-file"
+							key={r.runId}
+							aria-current={runId === r.runId}
+							onClick={() => {
+								setRunId(r.runId);
+								setNodeId(undefined);
+							}}
+						>
+							<span>
+								<strong>{r.runId.slice(0, 8)}</strong>
+								<span className="review-meta">{r.startedAt ? ` · ${new Date(r.startedAt).toLocaleString()}` : ""}</span>
+							</span>
+							<Badge>{r.status}</Badge>
+						</button>
+					))}
+				</section>
+				{current && <h2 className="review-meta">Review steps</h2>}
 				{current?.nodes?.map((n) => (
 					<button
 						type="button"
@@ -100,7 +109,11 @@ export function ReviewRuns({ pr }: { pr: string }) {
 						onClick={() => setNodeId(n.id)}
 						aria-current={nodeId === n.id}
 					>
-						{n.id} · {n.status} {n.note}
+						<span>
+							{n.id}
+							{n.note && <span className="review-meta"> · {n.note}</span>}
+						</span>
+						<Badge>{n.status}</Badge>
 					</button>
 				))}
 				{nodeId && (
@@ -119,15 +132,15 @@ export function ReviewRuns({ pr }: { pr: string }) {
 							</div>
 							{selected?.sessionId && <p>Session: {selected.sessionId}</p>}
 							<ReviewMarkdown body={String(node.data?.reply ?? "No reply yet.")} />
-							<details>
+							<details className="review-disclosure">
 								<summary>Prompt</summary>
 								<pre className="review-output">{String(node.data?.prompt ?? "")}</pre>
 							</details>
-							<details>
+							<details className="review-disclosure">
 								<summary>Input</summary>
 								<pre className="review-output">{String(node.data?.input ?? "")}</pre>
 							</details>
-							<details>
+							<details className="review-disclosure">
 								<summary>Live output</summary>
 								<pre className="review-output">{String(node.data?.stream ?? "")}</pre>
 							</details>
@@ -154,7 +167,13 @@ export function ReviewRuns({ pr }: { pr: string }) {
 					</section>
 				)}
 				{startOpen && (
-					<Sheet open title="Start agent review" onOpenChange={(open) => !open && setStartOpen(false)}>
+					<Sheet
+						width="var(--review-sheet-width)"
+						titleClassName="font-medium text-base"
+						open
+						title="Start agent review"
+						onOpenChange={(open) => !open && setStartOpen(false)}
+					>
 						<form
 							className="review-form"
 							onSubmit={(e) => {

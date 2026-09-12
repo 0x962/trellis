@@ -1,11 +1,14 @@
 # Local pull request reviews
 
 Open **Reviews** in the sidebar, or select **Show diff** on a ticket's pull request.
-Paste a GitHub PR URL or `owner/repo#123`.
+Select **Open review**, then paste a GitHub PR URL or `owner/repo#123`.
+The index groups local reviews by repository.
 The native URL is `/reviews/owner/repo/123`.
 A review can exist without a ticket.
 
-The Changes tab has a file tree, syntax colors, split and unified layouts, and inline threads.
+The Changes tab uses Pierre Trees for file navigation and Pierre Diffs for code.
+The tree supports file search, keyboard navigation, Git status, and thread counts.
+The diff supports syntax colors, split and unified layouts, and inline threads.
 The layout choice persists in the browser.
 Select a line or range, then use **Add line comment**.
 The comment sheet shows the file, side, and range.

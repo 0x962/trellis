@@ -13,6 +13,7 @@ import {
 	WorkerPoolContextProvider,
 } from "@pierre/diffs/react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
 import { expandControls } from "./expandControls";
@@ -111,6 +112,17 @@ export function ReviewDiff({
 		}),
 		[mode, theme, loadDiffFiles],
 	);
+	if (items.length === 0)
+		return (
+			<div className="review-diff-empty">
+				<EmptyState
+					title={filter ? "No matching files" : "No changes"}
+					description={
+						filter ? "Clear the file filter to show all changes." : "This revision has no text changes to display."
+					}
+				/>
+			</div>
+		);
 	return (
 		<WorkerPoolContextProvider
 			highlighterOptions={{ theme: { light: "pierre-light", dark: "pierre-dark" }, preferredHighlighter: "shiki-js" }}

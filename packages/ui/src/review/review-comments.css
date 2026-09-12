@@ -1,0 +1,319 @@
+.review-thread {
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+	background: var(--bg);
+	font-family: var(--font-sans);
+	color: var(--fg);
+	margin: 8px 0;
+	font-size: 13px;
+	line-height: 20px;
+	overflow: hidden;
+}
+.review-message {
+	padding: 16px;
+	border-bottom: 1px solid var(--border);
+}
+.review-message:last-child {
+	border-bottom: 0;
+}
+.review-message > header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+.review-message > header strong {
+	font-size: 12px;
+	font-weight: 600;
+}
+.review-message > header .review-meta {
+	flex: 1;
+	font-size: 11px;
+}
+.review-message-action {
+	opacity: 0;
+	transition: opacity 120ms;
+}
+.review-message:is(:hover, :focus-within) .review-message-action {
+	opacity: 1;
+}
+.review-reactions {
+	border: 0;
+	padding: 0;
+	min-width: 0;
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-top: 12px;
+}
+.review-reaction-count {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+}
+.review-reaction-picker {
+	display: grid;
+	grid-template-columns: repeat(4, 32px);
+	gap: 4px;
+}
+.review-reply {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 16px;
+	background: var(--surface);
+}
+.review-reply textarea {
+	min-width: 0;
+	flex: 1;
+	min-height: 36px;
+	padding: 8px 10px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	background: var(--bg);
+	font-size: 13px;
+	line-height: 20px;
+	resize: vertical;
+}
+.review-resolved {
+	padding: 12px 16px;
+	width: 100%;
+	text-align: start;
+	color: var(--fg-muted);
+	font-size: 12px;
+}
+.review-form {
+	padding: 24px;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	font-size: 13px;
+	line-height: 20px;
+}
+.review-form fieldset {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	min-width: 0;
+}
+.review-form legend {
+	margin-bottom: 12px;
+	font-size: 13px;
+	font-weight: 600;
+}
+.review-form-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 12px;
+}
+.review-form .review-form-actions {
+	margin-top: 4px;
+	padding-top: 20px;
+	border-top: 1px solid var(--border);
+}
+.review-form-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+}
+.review-form-hint {
+	color: var(--fg-muted);
+	font-size: 12px;
+	line-height: 18px;
+}
+.review-choice-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	max-height: 220px;
+	overflow: auto;
+	padding: 4px;
+}
+.review-discussion-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+.review-discussion-toolbar > div:first-child {
+	flex: 1;
+}
+.review-discussion-toolbar > button {
+	flex-shrink: 0;
+}
+.review-thread-location {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 32px;
+	font-size: 11px;
+	color: var(--fg-muted);
+}
+.review-thread-location > button:first-child {
+	flex: 1;
+	min-width: 0;
+	text-align: start;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--font-mono);
+}
+.review-thread-location > button:first-child:hover {
+	color: var(--fg);
+}
+.review-draft-preview {
+	padding: 16px;
+	background: var(--surface);
+	border: 1px dashed var(--border-strong);
+	border-radius: var(--radius-md);
+}
+.review-draft-preview > header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 8px;
+}
+.review-section {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+.review-disclosure {
+	border-top: 1px solid var(--border);
+	padding-top: 16px;
+}
+.review-disclosure > summary {
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--fg-muted);
+}
+.review-disclosure > summary:hover {
+	color: var(--fg);
+}
+.review-disclosure[open] > summary {
+	margin-bottom: 16px;
+	color: var(--fg);
+}
+.review-anchor-details {
+	color: var(--fg-muted);
+	font-size: 12px;
+}
+.review-anchor-toggle {
+	cursor: pointer;
+	overflow-wrap: anywhere;
+	font-family: var(--font-mono);
+	font-size: 11px;
+}
+.review-anchor-details[open] > .review-anchor-toggle {
+	margin-bottom: 16px;
+}
+
+.review-markdown {
+	overflow-wrap: anywhere;
+	font-size: 13px;
+	line-height: 1.65;
+}
+.review-markdown pre {
+	overflow: auto;
+	padding: 12px;
+	border-radius: var(--radius-sm);
+	background: var(--surface);
+	font-family: var(--font-mono);
+	font-size: 12px;
+}
+.review-markdown p {
+	margin: 8px 0;
+}
+.review-markdown h1,
+.review-markdown h2,
+.review-markdown h3 {
+	margin: 20px 0 8px;
+	font-size: 15px;
+	font-weight: 600;
+}
+.review-markdown :first-child {
+	margin-top: 0;
+}
+.review-markdown :last-child {
+	margin-bottom: 0;
+}
+.review-markdown ul,
+.review-markdown ol {
+	padding-inline-start: 24px;
+	list-style: revert;
+}
+.review-markdown a {
+	color: var(--fg);
+	text-decoration: underline;
+	text-decoration-color: var(--border-strong);
+	text-underline-offset: 3px;
+}
+.review-markdown img {
+	max-width: 100%;
+	border-radius: var(--radius-sm);
+}
+.review-output {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	max-height: 400px;
+	overflow: auto;
+	padding: 12px;
+	background: var(--surface);
+	border-radius: var(--radius-sm);
+}
+.review-status-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 24px;
+	padding: 20px 0;
+	border-block: 1px solid var(--border);
+}
+.review-status-grid dt {
+	color: var(--fg-muted);
+	font-size: 12px;
+	margin-bottom: 8px;
+}
+.review-status-grid dd {
+	font-size: 14px;
+	font-weight: 500;
+}
+@media (max-width: 767px) {
+	.review-form {
+		padding: 20px 16px;
+	}
+	.review-discussion-toolbar {
+		flex-wrap: wrap;
+	}
+	.review-discussion-toolbar > div:first-child {
+		flex-basis: calc(100% - 80px);
+	}
+	.review-message {
+		padding: 12px;
+	}
+	.review-message > header {
+		flex-wrap: wrap;
+	}
+	.review-thread-location > button:first-child {
+		font-size: 10px;
+	}
+}
+@media (pointer: coarse) {
+	.review-message-action {
+		opacity: 1;
+	}
+	.review-resolved,
+	.review-disclosure > summary {
+		min-height: 44px;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.review-message-action {
+		transition: none;
+	}
+}

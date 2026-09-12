@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewThread } from "@trellis/api";
-import { Button, Select, Sheet, Textarea } from "@trellis/ui";
+import { Button, Checkbox, Select, Sheet, Textarea } from "@trellis/ui";
 import { useEffect, useId, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import type { DraftFinding } from "../ReviewComposer/ReviewComposer";
@@ -50,7 +50,13 @@ export function ReviewSubmit({
 		},
 	});
 	return (
-		<Sheet open title="Submit local review" onOpenChange={(open) => !open && !submit.isPending && onClose()}>
+		<Sheet
+			width="var(--review-sheet-width)"
+			titleClassName="font-medium text-base"
+			open
+			title="Submit local review"
+			onOpenChange={(open) => !open && !submit.isPending && onClose()}
+		>
 			<form
 				className="review-form"
 				onSubmit={(e) => {
@@ -73,65 +79,58 @@ export function ReviewSubmit({
 					]}
 				/>
 				<Textarea label="Summary" rows={5} value={body} onChange={(e) => setBody(e.target.value)} />
-				<fieldset>
-					<legend>Include existing findings</legend>
-					{threads
-						.filter((t) => t.status === "open")
-						.map((t) => (
-							<label className="review-file" key={t.id}>
-								<input
-									type="checkbox"
-									checked={selected.includes(t.id)}
-									onChange={(e) =>
-										setSelected(e.target.checked ? [...selected, t.id] : selected.filter((id) => id !== t.id))
-									}
-								/>
-								<span>
-									{t.path}:{t.startLine}–{t.line} · {t.author}
-								</span>
-							</label>
-						))}
-				</fieldset>
+				{threads.some((thread) => thread.status === "open") && (
+					<details className="review-disclosure">
+						<summary>Include existing findings</summary>
+						<div className="review-choice-list">
+							{threads
+								.filter((thread) => thread.status === "open")
+								.map((thread) => (
+									<Checkbox
+										key={thread.id}
+										label={`${thread.path}:${thread.startLine}–${thread.line} · ${thread.author}`}
+										checked={selected.includes(thread.id)}
+										onCheckedChange={(checked) =>
+											setSelected(checked ? [...selected, thread.id] : selected.filter((id) => id !== thread.id))
+										}
+									/>
+								))}
+						</div>
+					</details>
+				)}
 				<fieldset>
 					<legend>Notify agents</legend>
-					<p className="review-meta">Select the exact recipients. Stopped agents keep an unread review.</p>
+					<p className="review-form-hint">Choose who receives this review. Stopped agents keep it in their inbox.</p>
 					{agents.isPending && <p role="status">Load agent recipients…</p>}
 					{agents.isError && <p role="alert">{agents.error.message}</p>}
-					{agents.data?.length === 0 && (
-						<p>No agent runs are available. Select “Submit without a notification” to save this review.</p>
-					)}
-					{agents.data?.map((agent) => (
-						<label className="review-file" key={agent.id}>
-							<input
-								type="checkbox"
+					{agents.data?.length === 0 && <p className="review-meta">No agent runs are available.</p>}
+					<div className="review-choice-list">
+						{agents.data?.map((agent) => (
+							<Checkbox
+								key={agent.id}
+								label={`${agent.name} · ${agent.ticketIdentifier ?? agent.projectPath} · ${agent.state}`}
 								disabled={noNotify}
 								checked={recipients.includes(agent.id)}
-								onChange={(e) =>
-									setRecipients(
-										e.target.checked ? [...recipients, agent.id] : recipients.filter((id) => id !== agent.id),
-									)
+								onCheckedChange={(checked) =>
+									setRecipients(checked ? [...recipients, agent.id] : recipients.filter((id) => id !== agent.id))
 								}
 							/>
-							<span>
-								{agent.name} · {agent.ticketIdentifier ?? agent.projectPath} · {agent.state}
-							</span>
-						</label>
-					))}
-				</fieldset>
-				<label className="review-file">
-					<input
-						type="checkbox"
+						))}
+					</div>
+					<Checkbox
+						label="Submit without a notification"
 						checked={noNotify}
-						onChange={(e) => {
-							setNoNotify(e.target.checked);
-							if (e.target.checked) setRecipients([]);
+						onCheckedChange={(checked) => {
+							setNoNotify(checked);
+							if (checked) setRecipients([]);
 						}}
-					/>{" "}
-					Submit without a notification
-				</label>
+					/>
+				</fieldset>
 				{!noNotify && recipients.length === 0 && (
 					<p className="review-meta" id={notifyHint} role="status">
-						Select an agent or choose “Submit without a notification”.
+						{agents.data?.length === 0
+							? "Choose ‘Submit without a notification’ to continue."
+							: "Select an agent or choose ‘Submit without a notification’."}
 					</p>
 				)}
 				{submit.isError && (

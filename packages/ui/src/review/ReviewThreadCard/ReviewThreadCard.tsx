@@ -80,6 +80,7 @@ export function ReviewThreadCard({ thread, renderBody, onReply, onResolve, onEdi
 								{message.session && (
 									<Tooltip content={`Copy session ${message.session}`}>
 										<IconButton
+											className="review-message-action"
 											label="Copy session"
 											icon={<Copy />}
 											onClick={() => void navigator.clipboard.writeText(message.session!)}
@@ -88,6 +89,7 @@ export function ReviewThreadCard({ thread, renderBody, onReply, onResolve, onEdi
 								)}
 								<Tooltip content="Edit message">
 									<IconButton
+										className="review-message-action"
 										label="Edit message"
 										icon={<PencilSimple />}
 										disabled={busy}

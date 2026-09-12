@@ -1,0 +1,74 @@
+.review-files {
+	width: 272px;
+	flex-shrink: 0;
+	min-width: 200px;
+	max-width: 400px;
+	resize: horizontal;
+	overflow: hidden;
+	border-right: 1px solid var(--border);
+	background: var(--bg);
+}
+.review-file-navigation {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+}
+.review-file-search {
+	flex-shrink: 0;
+	padding: 16px 12px 12px;
+}
+.review-file-search > .review-section-heading {
+	padding: 0 4px 12px;
+}
+.review-file-search h2 {
+	color: var(--fg-muted);
+	font-size: 12px;
+	font-weight: 500;
+}
+.review-tree-mount {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+}
+.review-tree-mount[hidden] {
+	display: none;
+}
+.review-pierre-tree {
+	flex: 1;
+	min-height: 0;
+	width: 100%;
+	padding: 0 8px 12px;
+	--trees-bg-override: var(--bg);
+	--trees-bg-muted-override: var(--surface);
+	--trees-fg-override: var(--fg);
+	--trees-fg-muted-override: var(--fg-muted);
+	--trees-border-color-override: var(--border);
+	--trees-border-radius-override: var(--radius-sm);
+	--trees-font-family-override: var(--font-sans);
+	--trees-font-size-override: 12px;
+	--trees-selected-bg-override: var(--accent-soft);
+	--trees-selected-fg-override: var(--fg);
+	--trees-selected-focused-border-color-override: var(--border-strong);
+	--trees-focus-ring-color-override: var(--accent);
+	--trees-accent-override: var(--accent);
+	--trees-status-added-override: var(--success);
+	--trees-status-modified-override: var(--fg-muted);
+	--trees-status-deleted-override: var(--danger);
+	--trees-status-renamed-override: var(--fg-muted);
+	--trees-file-icon-color: var(--fg-muted);
+}
+.review-file-empty {
+	padding: 12px 16px;
+	color: var(--fg-muted);
+	font-size: 12px;
+}
+.review-file-sheet {
+	height: 100%;
+	min-height: 0;
+}
+@media (max-width: 767px) {
+	.review-files {
+		display: none;
+	}
+}

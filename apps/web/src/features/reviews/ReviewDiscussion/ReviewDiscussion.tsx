@@ -58,8 +58,14 @@ export function ReviewDiscussion({ drafts, threads, revision, submissions, saveD
 	return (
 		<div className="review-scroll">
 			<div className="review-list">
-				<div className="review-header">
-					<Input label="Find a thread" value={search} onChange={(e) => setSearch(e.target.value)} />
+				<div className="review-discussion-toolbar">
+					<Input
+						hideLabel
+						placeholder="Find a thread…"
+						label="Find a thread"
+						value={search}
+						onChange={(e) => setSearch(e.target.value)}
+					/>
 					<Select
 						label="Thread status"
 						value={filter}
@@ -83,24 +89,26 @@ export function ReviewDiscussion({ drafts, threads, revision, submissions, saveD
 					</Tooltip>
 				</div>
 				{visibleDrafts.map((d) => (
-					<div key={d.id} className="review-list-row">
-						<span>
-							Draft · {d.path}:{d.startLine}–{d.line}
-						</span>
+					<div key={d.id} className="review-draft-preview">
+						<header>
+							<span className="review-meta">
+								Draft · {d.path}:{d.startLine}–{d.line}
+							</span>
+							<Tooltip content="Discard draft">
+								<IconButton
+									label="Discard draft"
+									icon={<Trash />}
+									onClick={() => saveDrafts(drafts.filter((other) => other.id !== d.id))}
+								/>
+							</Tooltip>
+						</header>
 						<ReviewMarkdown body={d.body} />
-						<Tooltip content="Discard draft">
-							<IconButton
-								label="Discard draft"
-								icon={<Trash />}
-								onClick={() => saveDrafts(drafts.filter((other) => other.id !== d.id))}
-							/>
-						</Tooltip>
 					</div>
 				))}
 				{visible.length === 0 && visibleDrafts.length === 0 && <p>No threads match.</p>}
 				{visible.map((t) => (
 					<section key={t.id}>
-						<div className="review-header">
+						<div className="review-thread-location">
 							<button type="button" className="review-meta" onClick={() => onJump(t)}>
 								{t.path}:{t.startLine}–{t.line} · {t.side}
 								{t.revisionId !== revision?.id ? " · Older or unknown revision" : ""}
@@ -120,60 +128,67 @@ export function ReviewDiscussion({ drafts, threads, revision, submissions, saveD
 						{renderThread(t.id)}
 					</section>
 				))}
-				{submissions.map((s) => (
-					<section className="review-thread" key={s.id}>
-						<div className="review-message">
-							<strong>
-								{s.author} · {s.verdict}
-							</strong>
-							<ReviewMarkdown body={s.body} />
-							<details>
-								<summary>Submitted findings ({s.threads.length})</summary>
-								{s.threads.map((t) => (
-									<div key={t.id}>
-										<p>
-											{t.path}:{t.startLine}–{t.line} · {t.author}
-										</p>
-										<ReviewMarkdown body={t.body} />
-									</div>
-								))}
-							</details>
-							{s.deliveries.map((d) => (
-								<div key={d.id} className="review-header">
-									<p className="review-meta">
-										Agent {d.runId} · {d.state} · {d.readAt ? "Read" : "Unread"}
-										{d.error ? `: ${d.error}` : ""}
-									</p>
-									{["failed", "unknown"].includes(d.state) && (
-										<Tooltip content="Resend notification">
-											<IconButton
-												label="Resend notification"
-												icon={<ArrowClockwise />}
-												disabled={resend.isPending}
-												onClick={() => resend.mutate(d.id)}
-											/>
-										</Tooltip>
-									)}
+				{submissions.length > 0 && (
+					<details className="review-disclosure">
+						<summary>Submitted reviews ({submissions.length})</summary>
+						{submissions.map((s) => (
+							<section className="review-thread" key={s.id}>
+								<div className="review-message">
+									<strong>
+										{s.author} · {s.verdict}
+									</strong>
+									<ReviewMarkdown body={s.body} />
+									<details className="review-disclosure">
+										<summary>Submitted findings ({s.threads.length})</summary>
+										{s.threads.map((t) => (
+											<div key={t.id}>
+												<p>
+													{t.path}:{t.startLine}–{t.line} · {t.author}
+												</p>
+												<ReviewMarkdown body={t.body} />
+											</div>
+										))}
+									</details>
+									{s.deliveries.map((d) => (
+										<div key={d.id} className="review-header">
+											<p className="review-meta">
+												Agent {d.runId} · {d.state} · {d.readAt ? "Read" : "Unread"}
+												{d.error ? `: ${d.error}` : ""}
+											</p>
+											{["failed", "unknown"].includes(d.state) && (
+												<Tooltip content="Resend notification">
+													<IconButton
+														label="Resend notification"
+														icon={<ArrowClockwise />}
+														disabled={resend.isPending}
+														onClick={() => resend.mutate(d.id)}
+													/>
+												</Tooltip>
+											)}
+										</div>
+									))}
 								</div>
-							))}
-						</div>
-					</section>
-				))}
+							</section>
+						))}
+					</details>
+				)}
 				{resend.isError && (
 					<p role="alert" className="review-error">
 						{resend.error.message}
 					</p>
 				)}
-				<h2>On GitHub</h2>
-				<ReviewMarkdown body={meta?.body ?? "No PR description loaded."} />
-				{conversation.map((c) => (
-					<section key={c.id}>
-						<strong>
-							{c.author?.login} · {c.state}
-						</strong>
-						<ReviewMarkdown body={c.body} />
-					</section>
-				))}
+				<details className="review-disclosure">
+					<summary>PR description and GitHub conversation</summary>
+					<ReviewMarkdown body={meta?.body ?? "No PR description loaded."} />
+					{conversation.map((c) => (
+						<section key={c.id}>
+							<strong>
+								{c.author?.login} · {c.state}
+							</strong>
+							<ReviewMarkdown body={c.body} />
+						</section>
+					))}
+				</details>
 			</div>
 		</div>
 	);

@@ -1,4 +1,4 @@
-import { GitMerge } from "@phosphor-icons/react";
+import { DotsThree, GitMerge } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision, TrellisClient } from "@trellis/api";
 import { Button, IconButton, Select, Sheet, Tooltip } from "@trellis/ui";
@@ -59,12 +59,14 @@ export function ReviewActions({
 			<Tooltip content={live ? "Live Branch actions" : "GitHub actions"}>
 				<IconButton
 					label={live ? "Live Branch actions" : "GitHub actions"}
-					icon={<GitMerge />}
+					icon={live ? <GitMerge /> : <DotsThree />}
 					onClick={() => setOpen(true)}
 				/>
 			</Tooltip>
 			{open && (
 				<Sheet
+					width="var(--review-sheet-width)"
+					titleClassName="font-medium text-base"
 					open
 					title={live ? "Live Branch action" : "GitHub action"}
 					onOpenChange={(value) => !value && !mutation.isPending && setOpen(false)}
@@ -77,7 +79,10 @@ export function ReviewActions({
 						}}
 					>
 						<Select label="Action" value={action} onValueChange={setAction} items={items} />
-						<p>This action changes {pr} on GitHub.</p>
+						<p className="review-form-hint">This action changes the pull request on GitHub.</p>
+						<a className="review-meta" href={pr} target="_blank" rel="noreferrer">
+							Open pull request on GitHub
+						</a>
 						{action === "admin-merge" && <p role="alert">This action bypasses branch protection.</p>}
 						{action === "live-delete" && <p role="alert">This action deletes the PR environment.</p>}
 						<p className="review-meta">Reviewed head: {revision.headSha.slice(0, 12)}</p>

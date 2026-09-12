@@ -1,9 +1,8 @@
-import { List } from "@phosphor-icons/react";
 import ReviewWorker from "@pierre/diffs/worker/worker.js?worker";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision, ReviewThread } from "@trellis/api";
-import { IconButton, Sheet, Tooltip } from "@trellis/ui";
-import { type DiffAnchor, ReviewDiff, ReviewFiles } from "@trellis/ui/review";
+import { Sheet } from "@trellis/ui";
+import { type DiffAnchor, ReviewDiff, ReviewFiles, ReviewTabs } from "@trellis/ui/review";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useActor } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
@@ -17,6 +16,8 @@ import { ReviewLive } from "../ReviewLive/ReviewLive";
 import { ReviewRuns } from "../ReviewRuns/ReviewRuns";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
 import { ReviewSubmit } from "../ReviewSubmit/ReviewSubmit";
+import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
+import { DiffToolbar } from "./components/DiffToolbar/DiffToolbar";
 import { ReviewMarkdown } from "./ReviewMarkdown";
 import "@trellis/ui/review.css";
 
@@ -89,10 +90,7 @@ export function ReviewPage({ pr }: { pr: string }) {
 		},
 		[client, pr, revision],
 	);
-	const onSelect = useCallback((anchor: DiffAnchor) => setComposer(anchor), []);
-	const invalid = async () => {
-		await queryClient.invalidateQueries({ queryKey: orpc.reviews.key() });
-	};
+	const invalid = () => queryClient.invalidateQueries({ queryKey: orpc.reviews.key() });
 	const allThreads = threads.data?.items ?? [];
 	const renderThread = (id: string) => {
 		const draft = drafts.find((draft) => draft.id === id);
@@ -137,133 +135,138 @@ export function ReviewPage({ pr }: { pr: string }) {
 			<ReviewHeader
 				pr={pr}
 				revision={displayRevision}
-				openCount={threads.data?.open ?? 0}
 				draftCount={drafts.length}
-				mode={mode}
-				setMode={(m) => {
-					setMode(m);
-					localStorage.setItem("trellis.review.mode", m);
-				}}
 				refreshing={refresh.isPending || composer !== null}
 				onRefresh={() => refresh.mutate()}
 				onComment={() => setComposer({ path: file || files[0]?.path || "", line: 1, startLine: 1, side: "new" })}
 				onSubmit={() => setSubmitOpen(true)}
 			/>
-			<ReviewStack pr={pr} />
-			{status.isError && (
-				<p role="alert" className="review-notice">
-					GitHub status: {status.error.message}
-				</p>
-			)}
-			{revision &&
-				status.data &&
-				(status.data.headRefOid !== revision.headSha || status.data.baseRefOid !== revision.baseSha) && (
-					<button type="button" className="review-notice" onClick={() => refresh.mutate()}>
-						The PR has a new revision. Refresh to review it. Current comments keep their original anchors.
-					</button>
-				)}
-			{status.data?.mergeable === "CONFLICTING" && (
-				<p className="review-notice">
-					This PR has merge conflicts.{" "}
-					<a href={`${pr}/conflicts`} target="_blank" rel="noreferrer">
-						Open conflicts on GitHub
-					</a>
-				</p>
-			)}
-			<nav className="review-tabs" aria-label="Review sections">
-				{[
-					"changes",
-					"discussion",
-					"checks",
-					"runs",
-					...(pr.includes("/canary-technologies-corp/canary/") ? ["live"] : []),
-				].map((t) => (
-					<button type="button" key={t} aria-current={tab === t ? "page" : undefined} onClick={() => changeTab(t)}>
-						{t === "live" ? "Live Branch" : t.charAt(0).toUpperCase() + t.slice(1)}
-						{t === "discussion"
-							? ` (${allThreads.length}${drafts.length ? ` + ${drafts.length} ${drafts.length === 1 ? "draft" : "drafts"}` : ""})`
-							: ""}
-					</button>
-				))}
-			</nav>
-			{refresh.isError && (
-				<p className="review-error" role="alert">
-					{refresh.error.message}. Local comments remain available.
-				</p>
-			)}
-			{refresh.isPending && (
-				<p className="review-notice" role="status">
-					Fetch the PR revision…
-				</p>
-			)}
-			{threads.isError && (
-				<p role="alert" className="review-error">
-					{threads.error.message}
-				</p>
-			)}
-			{tab === "changes" && (
-				<div className="review-main">
-					<aside className="review-files" aria-label="Changed files">
-						{fileNav}
-					</aside>
-					<div className="review-content">
-						<div className="review-mobile-files">
-							<Tooltip content="Changed files">
-								<IconButton label="Changed files" icon={<List />} onClick={() => setFileSheet(true)} />
-							</Tooltip>
-						</div>
-						{outdated.length > 0 && (
-							<button type="button" className="review-notice" onClick={() => changeTab("discussion")}>
-								{outdated.length} threads have older or unknown anchors. Read them in Discussion.
-							</button>
-						)}
-						{revision ? (
-							<ReviewDiff
-								filter={fileFilter}
-								workerFactory={workerFactory}
-								patch={revision.patch}
-								loadFile={loadFile}
-								revisionId={revision.id}
-								threads={[...allThreads, ...drafts.map((d) => ({ ...d, version: 1, updatedAt: d.id }))]}
-								mode={mode}
-								theme={theme}
-								selectedFile={file}
-								renderThread={renderThread}
-								onSelect={onSelect}
-								onFiles={setFiles}
-							/>
-						) : (
-							<p className="review-scroll">Refresh from GitHub to load the diff.</p>
-						)}
-					</div>
-				</div>
-			)}
-			{tab === "discussion" && (
-				<ReviewDiscussion
-					drafts={drafts}
-					threads={allThreads}
+			<div className="page-card review-workspace">
+				<ReviewSummary
+					pr={pr}
 					revision={displayRevision}
-					submissions={submissions.data ?? []}
-					saveDrafts={saveDrafts}
-					renderThread={renderThread}
-					onJump={(thread) => {
-						void (async () => {
-							if (thread.revisionId && thread.revisionId !== revision?.id)
-								setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
-							setFile(thread.path);
-							changeTab("changes");
-						})();
-					}}
+					openCount={threads.data?.open ?? 0}
+					draftCount={drafts.length}
 				/>
-			)}
-			{tab === "checks" && <ReviewChecks revision={displayRevision} />}
-			{tab === "runs" && <ReviewRuns pr={pr} />}
-			{tab === "live" && displayRevision && (
-				<ReviewLive pr={pr} revision={displayRevision} onRefresh={() => refresh.mutate()} />
-			)}
+				<ReviewStack pr={pr} />
+				{status.isError && (
+					<p role="alert" className="review-notice">
+						GitHub status: {status.error.message}
+					</p>
+				)}
+				{revision &&
+					status.data &&
+					(status.data.headRefOid !== revision.headSha || status.data.baseRefOid !== revision.baseSha) && (
+						<button type="button" className="review-notice" onClick={() => refresh.mutate()}>
+							The PR has a new revision. Refresh to review it. Current comments keep their original anchors.
+						</button>
+					)}
+				{status.data?.mergeable === "CONFLICTING" && (
+					<p className="review-notice">
+						This PR has merge conflicts.{" "}
+						<a href={`${pr}/conflicts`} target="_blank" rel="noreferrer">
+							Open conflicts on GitHub
+						</a>
+					</p>
+				)}
+				<ReviewTabs
+					value={tab}
+					onValueChange={changeTab}
+					count={allThreads.length + drafts.length}
+					live={pr.includes("/canary-technologies-corp/canary/")}
+				>
+					{refresh.isError && (
+						<p className="review-error" role="alert">
+							{refresh.error.message}. Local comments remain available.
+						</p>
+					)}
+					{refresh.isPending && (
+						<p className="review-notice" role="status">
+							Fetch the PR revision…
+						</p>
+					)}
+					{threads.isError && (
+						<p role="alert" className="review-error">
+							{threads.error.message}
+						</p>
+					)}
+					{tab === "changes" && (
+						<div className="review-main">
+							<aside className="review-files" aria-label="Changed files">
+								{fileNav}
+							</aside>
+							<div className="review-content">
+								<DiffToolbar
+									count={files.length}
+									visibleCount={files.filter((file) => file.path.toLowerCase().includes(fileFilter.toLowerCase())).length}
+									mode={mode}
+									onFiles={() => setFileSheet(true)}
+									onMode={(value) => {
+										setMode(value);
+										localStorage.setItem("trellis.review.mode", value);
+									}}
+								/>
+
+								{outdated.length > 0 && (
+									<button type="button" className="review-notice" onClick={() => changeTab("discussion")}>
+										{outdated.length} threads have older or unknown anchors. Read them in Discussion.
+									</button>
+								)}
+								{revision ? (
+									<ReviewDiff
+										filter={fileFilter}
+										workerFactory={workerFactory}
+										patch={revision.patch}
+										loadFile={loadFile}
+										revisionId={revision.id}
+										threads={[...allThreads, ...drafts.map((d) => ({ ...d, version: 1, updatedAt: d.id }))]}
+										mode={mode}
+										theme={theme}
+										selectedFile={file}
+										renderThread={renderThread}
+										onSelect={setComposer}
+										onFiles={setFiles}
+									/>
+								) : (
+									<p className="review-scroll">Refresh from GitHub to load the diff.</p>
+								)}
+							</div>
+						</div>
+					)}
+					{tab === "discussion" && (
+						<ReviewDiscussion
+							drafts={drafts}
+							threads={allThreads}
+							revision={displayRevision}
+							submissions={submissions.data ?? []}
+							saveDrafts={saveDrafts}
+							renderThread={renderThread}
+							onJump={(thread) => {
+								void (async () => {
+									if (thread.revisionId && thread.revisionId !== revision?.id)
+										setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
+									setFile(thread.path);
+									changeTab("changes");
+								})();
+							}}
+						/>
+					)}
+					{tab === "checks" && <ReviewChecks revision={displayRevision} />}
+					{tab === "runs" && <ReviewRuns pr={pr} />}
+					{tab === "live" && displayRevision && (
+						<ReviewLive pr={pr} revision={displayRevision} onRefresh={() => refresh.mutate()} />
+					)}
+				</ReviewTabs>
+			</div>
 			{fileSheet && (
-				<Sheet open title="Changed files" side="left" onOpenChange={(open) => !open && setFileSheet(false)}>
-					<div className="review-scroll">{fileNav}</div>
+				<Sheet
+					open
+					title="Changed files"
+					titleClassName="font-medium text-base"
+					side="left"
+					onOpenChange={(open) => !open && setFileSheet(false)}
+				>
+					<div className="review-file-sheet">{fileNav}</div>
 				</Sheet>
 			)}
 			{composer && (

@@ -1,3 +1,7 @@
+import type { GitStatusEntry } from "@pierre/trees";
+import { FileTree, useFileTree } from "@pierre/trees/react";
+import { useEffect, useRef } from "react";
+import { useMediaQuery } from "../../hooks/useMediaQuery/useMediaQuery";
 import { Input } from "../../primitives/Input";
 
 type FileRow = { path: string; type: string; additions: number; deletions: number };
@@ -10,41 +14,70 @@ type Props = {
 	onSearch: (value: string) => void;
 };
 export function ReviewFiles({ files, selected, counts, onSelect, search, onSearch }: Props) {
-	const visible = files.filter((f) => f.path.toLowerCase().includes(search.toLowerCase()));
-	const tree = (prefix: string) => {
-		const children = new Set(
-			visible.filter((f) => f.path.startsWith(prefix)).map((f) => f.path.slice(prefix.length).split("/")[0]!),
-		);
-		return [...children].sort().map((name) => {
-			const path = prefix + name;
-			const file = visible.find((f) => f.path === path);
-			return file ? (
-				<button
-					type="button"
-					className="review-file"
-					key={path}
-					title={path}
-					aria-current={selected === path}
-					onClick={() => onSelect(path)}
-				>
-					<span>{name}</span>
-					<span className="review-meta">
-						+{file.additions} −{file.deletions}
-						{counts[path] ? ` · ${counts[path]}` : ""}
-					</span>
-				</button>
-			) : (
-				<details className="review-folder" key={path} open>
-					<summary>{name}</summary>
-					{tree(`${path}/`)}
-				</details>
-			);
-		});
-	};
+	const current = useRef({ files, counts, onSelect });
+	current.current = { files, counts, onSelect };
+	const hasMatches = files.some((file) => file.path.toLowerCase().includes(search.toLowerCase()));
+	const coarse = useMediaQuery("(pointer: coarse)");
+	const { model } = useFileTree({
+		paths: files.map((file) => file.path),
+		initialExpansion: "open",
+		flattenEmptyDirectories: true,
+		fileTreeSearchMode: "hide-non-matches",
+		itemHeight: coarse ? 44 : 30,
+		onSelectionChange: (paths) => {
+			const path = paths.at(-1);
+			if (path && current.current.files.some((file) => file.path === path)) current.current.onSelect(path);
+		},
+		renderRowDecoration: ({ item }) => {
+			const count = current.current.counts[item.path];
+			return count ? { text: String(count), title: `${count} open comments and drafts` } : null;
+		},
+	});
+	useEffect(() => {
+		model.resetPaths(files.map((file) => file.path));
+	}, [files, model]);
+	useEffect(() => {
+		const statuses: GitStatusEntry[] = files.map((file) => ({
+			path: file.path,
+			status:
+				file.type === "new"
+					? "added"
+					: file.type === "deleted"
+						? "deleted"
+						: file.type.startsWith("rename")
+							? "renamed"
+							: "modified",
+		}));
+		model.setGitStatus(statuses);
+	}, [files, model]);
+	useEffect(() => {
+		current.current.counts = counts;
+		model.setComposition(model.getComposition());
+	}, [counts, model]);
+	useEffect(() => {
+		model.setSearch(search || null);
+	}, [model, search]);
+	useEffect(() => {
+		if (selected && !model.getSelectedPaths().includes(selected)) model.getItem(selected)?.select();
+	}, [model, selected]);
 	return (
-		<>
-			<Input label="Find a file" value={search} onChange={(e) => onSearch(e.target.value)} />
-			{visible.length ? tree("") : <p className="review-meta">No files match.</p>}
-		</>
+		<div className="review-file-navigation">
+			<div className="review-file-search">
+				<div className="review-section-heading">
+					<h2>Files</h2>
+				</div>
+				<Input
+					label="Find a file"
+					hideLabel
+					placeholder="Find a file…"
+					value={search}
+					onChange={(event) => onSearch(event.target.value)}
+				/>
+				{search && !hasMatches && <p className="review-file-empty">No files match.</p>}
+			</div>
+			<div className="review-tree-mount" hidden={!hasMatches}>
+				<FileTree model={model} className="review-pierre-tree" aria-label="Changed files" />
+			</div>
+		</div>
 	);
 }
