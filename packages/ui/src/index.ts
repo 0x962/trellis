@@ -33,7 +33,6 @@ export { Input, type InputProps } from "./primitives/Input";
 export { Kbd, type KbdProps } from "./primitives/Kbd";
 export { Menu, type MenuItem, type MenuProps } from "./primitives/Menu";
 export { Popover, type PopoverProps } from "./primitives/Popover";
-export { PowerToggle, type PowerToggleProps } from "./primitives/PowerToggle";
 export { ScrollArea, type ScrollAreaProps } from "./primitives/ScrollArea";
 export { SectionHeader, type SectionHeaderProps } from "./primitives/SectionHeader";
 export { Segmented, type SegmentedOption, type SegmentedProps } from "./primitives/Segmented";

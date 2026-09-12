@@ -8,7 +8,7 @@ import {
 	type ProjectManagerConfig,
 	ProjectManagerConfigSchema,
 } from "@trellis/api";
-import { Button, IconButton, PowerToggle, Tooltip, toast } from "@trellis/ui";
+import { Button, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
@@ -94,14 +94,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 			<Topbar
 				actions={
 					<>
-						<Tooltip content={draft.enabled ? "Agents are on. Turn off agents" : "Agents are off. Turn on agents"}>
-							<PowerToggle
-								label="Agents"
-								on={draft.enabled}
-								disabled={readOnly}
-								onChange={(enabled) => commit({ ...draft, enabled })}
-							/>
-						</Tooltip>
 						{/* One control runs the one manager of the project: Pause while it
 						    holds a terminal, else Play. Pause closes the terminal and keeps
 						    the session, and Play opens a terminal that continues that
@@ -125,14 +117,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 									size="sm"
 									variant="default"
 									disabled={
-										readOnly ||
-										dirty ||
-										save.isPending ||
-										!draft.enabled ||
-										!persona ||
-										runs.isPending ||
-										runs.isError ||
-										start.isPending
+										readOnly || dirty || save.isPending || !persona || runs.isPending || runs.isError || start.isPending
 									}
 									onClick={() => start.mutate(false)}
 								/>
@@ -198,7 +183,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 									<Button
 										variant="primary"
 										align="start"
-										disabled={readOnly || dirty || save.isPending || !draft.enabled || !persona}
+										disabled={readOnly || dirty || save.isPending || !persona}
 										processing={start.isPending}
 										onClick={() => start.mutate(true)}
 									>
@@ -209,12 +194,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 							{manager !== undefined && <AgentRunDetails run={manager} heading controls={false} />}
 							{manager === undefined && !runs.isPending && !runs.isError && (
 								<p className="text-sm text-fg-muted">This project has no manager yet. Press Play to start one.</p>
-							)}
-							{!draft.enabled && (
-								<p className="text-sm text-fg-muted">
-									Agents are off. Turn them on in the header to start the manager. An agent that already runs keeps
-									running.
-								</p>
 							)}
 						</section>
 					</div>

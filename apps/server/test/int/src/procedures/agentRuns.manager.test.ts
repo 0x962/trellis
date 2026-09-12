@@ -181,3 +181,17 @@ test("terminal read and follow-up failures expose the runner error", async () =>
 	expect(sent.status).toBe(503);
 	expect(sent.body.message).toContain("Superset is unavailable");
 });
+
+test("Play starts and resumes a manager whose saved project switch was off", async () => {
+	await t.serverTx((tx) =>
+		tx.execute(
+			sql`UPDATE projects SET manager_config = manager_config || '{"enabled":false}'::jsonb WHERE key = 'RUN'`,
+		),
+	);
+	const first = await start({ personaId: manager, project: "RUN" });
+	expect(first.status).toBe(201);
+	expect(first.body.state).toBe("running");
+	await stop(first.body.id);
+	const resumed = await start({ personaId: manager, project: "RUN" });
+	expect(resumed.body).toMatchObject({ id: first.body.id, state: "running", sessionId: first.body.sessionId });
+});
