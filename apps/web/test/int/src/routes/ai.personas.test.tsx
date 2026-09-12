@@ -14,10 +14,12 @@ describe("AI personas", () => {
 		// a sidebar of its own. The page heading marks the loaded shell.
 		await screen.findByRole("heading", { name: "All tickets" });
 		const sidebar = screen.getByRole("complementary", { name: "Sidebar" });
-		const ai = within(sidebar).getByRole("navigation", { name: "AI" });
-		const link = within(ai).getByRole("link", { name: "Personas" });
+		// Personas is a fixed destination, so it sits with the other three
+		// above the project tree.
+		const workspace = within(sidebar).getByRole("navigation", { name: "Workspace" });
+		const link = within(workspace).getByRole("link", { name: "Personas" });
 		expect(link.getAttribute("href")).toBe("/ai/personas");
-		expect(sidebar.textContent!.indexOf("AI")).toBeGreaterThan(sidebar.textContent!.indexOf("Projects"));
+		expect(sidebar.textContent!.indexOf("Personas")).toBeLessThan(sidebar.textContent!.indexOf("Projects"));
 		await user.click(link);
 		expect(await screen.findByRole("heading", { name: "Personas" })).toBeDefined();
 		expect(router.state.location.pathname).toBe("/ai/personas");

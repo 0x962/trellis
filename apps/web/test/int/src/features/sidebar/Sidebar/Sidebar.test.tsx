@@ -56,7 +56,6 @@ describe("features/sidebar/Sidebar", () => {
 			expect(row.querySelector('[data-slot="trailing"]')!.classList.contains("sidebar-trailing")).toBe(true);
 		}
 		expect(screen.getByRole("heading", { name: "Projects", level: 2 })).toBeDefined();
-		expect(screen.getByRole("heading", { name: "AI", level: 2 })).toBeDefined();
 	});
 
 	// WS-93. w-60 is 240 px on the 4 px spacing scale.

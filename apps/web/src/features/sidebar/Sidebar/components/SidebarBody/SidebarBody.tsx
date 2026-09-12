@@ -10,7 +10,7 @@ import { ProjectTree } from "../../../ProjectTree";
 import { ConnectionPanel } from "../ConnectionPanel";
 
 const rowClass =
-	"flex h-8 items-center rounded-md pr-1 pl-2 text-fg-muted transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11";
+	"flex h-7 items-center rounded-md pr-1 pl-2 text-fg-muted transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11";
 
 type NavTarget = "/needs-you" | "/search" | "/all" | "/ai/personas";
 
@@ -38,37 +38,78 @@ function NavRow({ to, icon, label, active, trailing }: NavRowProps) {
 	);
 }
 
+// The rows the rail keeps, in the order the open sidebar shows them.
+const railRows: Array<{ to: NavTarget; icon: ReactElement; label: string }> = [
+	{ to: "/needs-you", icon: <Inbox />, label: "Needs you" },
+	{ to: "/search", icon: <Search />, label: "Search" },
+	{ to: "/all", icon: <List />, label: "All tickets" },
+	{ to: "/ai/personas", icon: <UserRound />, label: "Personas" },
+];
+
 // A nav row is active on its own page and on every page under it: All
 // tickets stays marked on the All tickets board.
 const isActive = (pathname: string, to: NavTarget) => pathname === to || pathname.startsWith(`${to}/`);
 
 export type SidebarBodyProps = {
+	// True while the desktop sidebar is a rail of icons. The phone sheet is
+	// never a rail, so it leaves this off.
+	collapsed?: boolean;
 	// The collapse button of the desktop sidebar. The phone sheet has its
 	// own way to close, so it passes nothing and shows no button.
 	onCollapse?: () => void;
 };
 
-// What the sidebar holds: the workspace row, the three fixed destinations,
-// the project tree, the AI section, and the actor footer. The desktop aside
-// and the phone sheet both draw it.
+// What the sidebar holds: the mark, the four fixed destinations, the
+// project tree, and the actor footer. The desktop aside and the phone sheet
+// both draw it.
 //
-// The project tree is the one region that scrolls, and it takes the spare
-// height. The AI section and the footer sit after it and keep their place,
-// so the Personas link stays inside the viewport whatever the tree height
-// (TRL-41).
+// The project tree is the one region that scrolls and takes the spare
+// height. Every fixed destination sits above it, so none of them moves when
+// the tree grows.
 //
 // The highlight follows the page the outlet shows. A navigation changes the
 // URL at once but keeps the old page until the new one loads, so the
 // highlight moves when the page does.
-export function SidebarBody({ onCollapse }: SidebarBodyProps) {
+export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps) {
 	const { live } = useApp();
 	const status = useLiveStatus(live);
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 
+	if (collapsed) {
+		return (
+			<>
+				<button
+					type="button"
+					aria-label="Expand sidebar"
+					onClick={onCollapse}
+					className="mb-4 flex h-7 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md transition-opacity duration-hover ease-out hover:opacity-70 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+				>
+					<TrellisWordmark short className="h-4" />
+				</button>
+				<nav aria-label="Workspace" className="flex flex-col gap-0.5">
+					{railRows.map(({ to, icon, label }) => (
+						<Link
+							key={to}
+							to={to}
+							aria-label={label}
+							title={label}
+							aria-current={isActive(pathname, to) ? "page" : undefined}
+							className={cx("sidebar-rail-row", isActive(pathname, to) && "sidebar-selected")}
+						>
+							<span aria-hidden="true" className="inline-flex size-4 shrink-0 *:size-full [&_svg]:stroke-[1.75]">
+								{icon}
+							</span>
+						</Link>
+					))}
+				</nav>
+			</>
+		);
+	}
+
 	return (
 		<>
-			<div className="mb-4 flex h-8 items-center pl-2">
+			<div className="mb-3 flex h-7 items-center pl-2">
 				{onCollapse ? (
 					// The mark is the control that closes the sidebar. A closed
 					// sidebar leaves the short mark in the topbar, which opens it.
@@ -94,8 +135,9 @@ export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 					trailing={<Kbd>/</Kbd>}
 				/>
 				<NavRow to="/all" icon={<List />} label="All tickets" active={isActive(pathname, "/all")} />
+				<NavRow to="/ai/personas" icon={<UserRound />} label="Personas" active={isActive(pathname, "/ai/personas")} />
 			</nav>
-			<div className="mt-5 min-h-0 flex-1 overflow-y-auto pb-4">
+			<div className="mt-4 min-h-0 flex-1 overflow-y-auto pb-3">
 				<div className="sidebar-section">
 					<h2>Projects</h2>
 					<IconButton
@@ -109,10 +151,6 @@ export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 				<ProjectTree />
 				<ArchivedProjects />
 			</div>
-			<nav aria-label="AI" className="mt-4 shrink-0">
-				<h2 className="sidebar-section">AI</h2>
-				<NavRow to="/ai/personas" icon={<UserRound />} label="Personas" active={isActive(pathname, "/ai/personas")} />
-			</nav>
 			<div className="mt-auto shrink-0">
 				<ConnectionPanel status={status} />
 				<ActorFooter />

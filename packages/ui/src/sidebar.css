@@ -1,5 +1,5 @@
 @utility sidebar-leading {
-	@apply flex w-5 shrink-0 items-center justify-center mr-1.5;
+	@apply flex w-4 shrink-0 items-center justify-center mr-2;
 }
 
 @utility sidebar-label {
@@ -10,15 +10,23 @@
 	@apply flex w-6 shrink-0 items-center justify-center text-xs tabular pointer-coarse:w-11;
 }
 
+/* A group title: small, spaced capitals, quiet enough that the rows under
+   it read first. */
 @utility sidebar-section {
-	@apply flex h-8 pointer-coarse:h-11 items-center justify-between pl-2 pr-1 text-base font-semibold text-fg;
+	@apply flex h-7 pointer-coarse:h-11 items-center justify-between pl-2 pr-1 text-xs font-medium tracking-wider uppercase text-fg-faint;
 }
 
 @utility sidebar-selected {
 	@apply bg-surface text-fg;
 }
 
-/* Every row of the project tree: one height, one radius, one hover. */
+/* Every row of the sidebar, fixed or project: one height, one radius, one
+   hover. */
 @utility sidebar-row {
 	@apply flex h-7 items-center rounded-md pr-1 transition-colors duration-hover ease-out pointer-coarse:h-11;
+}
+
+/* The rail a collapsed sidebar leaves behind: one icon per row, centred. */
+@utility sidebar-rail-row {
+	@apply flex h-7 w-8 shrink-0 items-center justify-center rounded-md text-fg-muted transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent pointer-coarse:h-11 pointer-coarse:w-11;
 }

@@ -1,3 +1,4 @@
+import { cx } from "@trellis/ui";
 import { lazy, Suspense, useState } from "react";
 import { useSidebarHotkey } from "../../../lib/sidebarHotkey";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
@@ -7,10 +8,11 @@ import { SidebarBody } from "./components/SidebarBody";
 // load of the app.
 const MobileSidebar = lazy(async () => ({ default: (await import("./components/MobileSidebar")).MobileSidebar }));
 
-// The 240 px sidebar. `[` collapses it; a collapsed sidebar is out of the
-// layout and out of the accessibility tree, and the topbar shows the button
-// that brings it back. Below 768 px the aside leaves the layout, and the
-// same content opens in a sheet from the topbar.
+// The 240 px sidebar. `[` collapses it to a 48 px rail of icons, and the
+// width animates between the two. The rail keeps the mark, which opens the
+// sidebar again, so the aside never leaves the layout or the accessibility
+// tree. Below 768 px the aside leaves the layout, and the same content opens
+// in a sheet from the topbar.
 export function Sidebar() {
 	const collapsed = useUiStore((state) => state.sidebarCollapsed);
 	const mobileOpen = useUiStore((state) => state.mobileSidebarOpen);
@@ -24,11 +26,14 @@ export function Sidebar() {
 		<>
 			<aside
 				aria-label="Sidebar"
-				hidden={collapsed}
-				aria-hidden={collapsed || undefined}
-				className="flex h-full w-60 shrink-0 flex-col gap-0.5 border-r border-border bg-bg px-2 py-2.5 text-base max-md:hidden"
+				data-collapsed={collapsed || undefined}
+				className={cx(
+					"flex h-full shrink-0 flex-col gap-0.5 overflow-hidden border-r border-border bg-bg py-2.5 text-base max-md:hidden",
+					"transition-[width] duration-peek ease-in-out motion-reduce:transition-none",
+					collapsed ? "w-12 px-2" : "w-60 px-2",
+				)}
 			>
-				<SidebarBody onCollapse={uiActions.toggleSidebar} />
+				<SidebarBody collapsed={collapsed} onCollapse={uiActions.toggleSidebar} />
 			</aside>
 			{sheetMounted && (
 				<Suspense fallback={null}>
