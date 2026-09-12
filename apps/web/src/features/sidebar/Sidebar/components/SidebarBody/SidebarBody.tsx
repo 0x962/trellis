@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { cx, IconButton, Kbd, TrellisWordmark } from "@trellis/ui";
-import { Inbox, List, PanelLeftClose, Plus, Search, UserRound } from "lucide-react";
+import { Inbox, List, Plus, Search, UserRound } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
@@ -68,13 +68,21 @@ export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 
 	return (
 		<>
-			<div className="mb-4 flex h-8 items-center gap-2 pr-1 pl-2">
-				<TrellisWordmark className="h-4.5" />
-				<span className="ml-auto flex items-center">
-					{onCollapse && (
-						<IconButton size="sm" label="Collapse sidebar" icon={<PanelLeftClose />} onClick={onCollapse} />
-					)}
-				</span>
+			<div className="mb-4 flex h-8 items-center pl-2">
+				{onCollapse ? (
+					// The mark is the control that closes the sidebar. A closed
+					// sidebar leaves the short mark in the topbar, which opens it.
+					<button
+						type="button"
+						aria-label="Collapse sidebar"
+						onClick={onCollapse}
+						className="-mx-1 inline-flex h-7 cursor-pointer items-center rounded-md px-1 transition-opacity duration-hover ease-out hover:opacity-70 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+					>
+						<TrellisWordmark className="h-4.5" />
+					</button>
+				) : (
+					<TrellisWordmark className="h-4.5" />
+				)}
 			</div>
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
 				<NavRow to="/needs-you" icon={<Inbox />} label="Needs you" active={isActive(pathname, "/needs-you")} />

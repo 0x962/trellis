@@ -52,7 +52,7 @@ export function ActorFooter() {
 	};
 
 	return (
-		<div className="flex shrink-0 items-center gap-0.5 border-t border-border pt-2">
+		<div className="flex shrink-0 items-center gap-0.5 pt-2">
 			<Popover
 				open={open}
 				onOpenChange={onOpenChange}

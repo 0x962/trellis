@@ -206,13 +206,14 @@
 	--radius-round: 999px;
 	--border-width-hairline: 1px;
 
-	/* Brushed silver, for a raised control. The gradient runs top to bottom,
-	   the sheen is the lit top edge, and the edge is the shadowed rim. Metal
-	   looks the same under either theme, so one set serves both. */
-	--metal-top: #EDEDEF;
-	--metal-bottom: #B9B9BD;
-	--metal-edge: #9A9AA0;
-	--metal-sheen: rgba(255,255,255,.7);
+	/* Brushed silver, for the one filled control. The gradient runs top to
+	   bottom across a narrow range, so the face reads as metal without
+	   standing off the page, and the sheen is a faint light on its top edge.
+	   Metal looks the same under either theme, so one set serves both. */
+	--metal-top: #D6D6D9;
+	--metal-bottom: #C0C0C4;
+	--metal-edge: #AAAAB0;
+	--metal-sheen: rgba(255,255,255,.4);
 	--on-metal: #101012;
 
 	--duration-hover: 120ms;

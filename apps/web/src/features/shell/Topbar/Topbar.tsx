@@ -1,5 +1,5 @@
-import { IconButton, useMediaQuery } from "@trellis/ui";
-import { PanelLeft, PanelLeftOpen } from "lucide-react";
+import { IconButton, TrellisWordmark, useMediaQuery } from "@trellis/ui";
+import { PanelLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 
@@ -28,12 +28,15 @@ export function Topbar({ children, actions }: TopbarProps) {
 				/>
 			) : (
 				collapsed && (
-					<IconButton
-						label="Expand sidebar"
-						icon={<PanelLeftOpen />}
-						className="-ml-2"
+					// The short mark stands in for the closed sidebar and opens it.
+					<button
+						type="button"
+						aria-label="Expand sidebar"
 						onClick={() => uiActions.setSidebarCollapsed(false)}
-					/>
+						className="-ml-1 inline-flex h-7 cursor-pointer items-center rounded-md px-1 transition-opacity duration-hover ease-out hover:opacity-70 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+					>
+						<TrellisWordmark short className="h-4.5" />
+					</button>
 				)
 			)}
 			<div className="flex min-w-0 items-center gap-2 max-md:[&_h1]:truncate max-md:[&_h1]:text-md max-md:[&_h1]:font-semibold">
