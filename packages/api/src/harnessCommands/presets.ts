@@ -15,7 +15,7 @@ export const SUPERSET_HARNESS_COMMANDS: HarnessCommands = {
 	stop: "{{superset}} terminals close {{target}} --workspace {{workspaceId}} --terminal {{terminalId}}",
 	open: "{{superset}} ws open {{workspaceId}} --print {{target}}",
 	recover: `trellis_workspace=$({{superset}} ws list {{target}} --json | ${mapJson("const r=await Bun.stdin.json(); console.log(r.find(w=>w.branch===process.argv[1]).id)")} {{branch}}); {{superset}} terminals list {{target}} --workspace "$trellis_workspace" --json | ${mapJson('const r=await Bun.stdin.json(); const t=r.sessions.find(t=>t.title==="Command"||t.title==="Agent"||t.title.includes(process.argv[2])); console.log(JSON.stringify({workspaceId:process.argv[1],terminalId:t.terminalId}))')} "$trellis_workspace" {{name}}`,
-	projects: "{{superset}} projects list --json",
+	projects: "{{superset}} projects list {{target}} --json",
 };
 
 export const TMUX_HARNESS_COMMANDS: HarnessCommands = {

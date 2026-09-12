@@ -95,3 +95,21 @@ test("the Superset preset reports a lost session and starts a fresh session in t
 	const launched = calls.filter((args) => args[0] === "terminals" && args[1] === "create").at(-1)!;
 	expect(launched[launched.indexOf("--command") + 1]).toContain(`--session-id '${fresh.sessionId}'`);
 });
+
+test("the Superset preset uses the configured host to find the project and control the terminal", async () => {
+	await t.client.projects.update({
+		project: "PRE",
+		managerConfig: {
+			personaId,
+			concurrency: 3,
+			directory,
+			supersetHostId: "remote-machine",
+			harnessCommands: SUPERSET_HARNESS_COMMANDS,
+		},
+	});
+	writeFileSync(join(directory, "expected-host"), "remote-machine");
+	const run = await t.client.agentRuns.start({ personaId, project: "PRE" });
+	expect(run.state).toBe("running");
+	await t.client.agentRuns.send({ id: run.id, text: "Next task" });
+	expect((await t.client.agentRuns.output({ id: run.id })).text).toContain("Agent output");
+});

@@ -141,3 +141,43 @@ test("a running manager refuses a second start until it pauses", async () => {
 	await stop(first.body.id);
 	expect((await start({ personaId: manager, project: "RUN" })).status).toBe(201);
 });
+
+test("a new session creates a workspace when the previous workspace is missing", async () => {
+	const first = await start({ personaId: manager, project: "RUN" });
+	await stop(first.body.id);
+	writeFileSync(join(dir, "workspace-missing"), "");
+	const failed = await start({ personaId: manager, project: "RUN" });
+	expect(failed.body).toMatchObject({ state: "failed", sessionLost: true });
+	const fresh = await start({ personaId: manager, project: "RUN", newSession: true });
+	expect(fresh.body).toMatchObject({ id: first.body.id, state: "running", sessionLost: false });
+	expect(fresh.body.workspaceId).not.toBe(first.body.workspaceId);
+	expect(fresh.body.sessionId).not.toBe(first.body.sessionId);
+});
+
+test("project lookup, follow-up, and output use the configured Superset host", async () => {
+	await t.client.projects.update({
+		project: "RUN",
+		managerConfig: { personaId: manager, concurrency: 3, directory: "", supersetHostId: "remote-machine" },
+	});
+	writeFileSync(join(dir, "expected-host"), "remote-machine");
+	const run = await start({ personaId: manager, project: "RUN" });
+	expect(run.body.state).toBe("running");
+	expect(
+		(await t.api(`/api/agent-runs/${run.body.id}/send`, { method: "POST", body: { text: "Next task" } })).status,
+	).toBe(200);
+	const output = await t.api(`/api/agent-runs/${run.body.id}/output`);
+	expect(output.status).toBe(200);
+	expect(output.body.text).toContain("Agent output");
+});
+
+test("terminal read and follow-up failures expose the runner error", async () => {
+	const run = await start({ personaId: manager, project: "RUN" });
+	writeFileSync(join(dir, "fail"), "");
+	const output = await t.api(`/api/agent-runs/${run.body.id}/output`);
+	expect(output.status).toBe(503);
+	expect(output.body).toMatchObject({ code: "RUNNER_UNAVAILABLE" });
+	expect(output.body.message).toContain("Superset is unavailable");
+	const sent = await t.api(`/api/agent-runs/${run.body.id}/send`, { method: "POST", body: { text: "Next task" } });
+	expect(sent.status).toBe(503);
+	expect(sent.body.message).toContain("Superset is unavailable");
+});

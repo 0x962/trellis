@@ -16,8 +16,7 @@ const terminalsSchema = z.object({
 // The `ws create` flag pair that names where the workspace goes, already
 // quoted for the shell. The launch command template carries it as
 // `{{target}}`.
-export const shellTarget = (host: string | null) =>
-	host === null ? "--local" : `--host '${host.replaceAll("'", "'\\''")}'`;
+export const shellTarget = (host: string | null) => (host === null ? "" : `--host '${host.replaceAll("'", "'\\''")}'`);
 
 // `host` names the Superset machine the agents of one project run on. Null
 // runs them on the machine that runs the trellis server, which every verb
@@ -35,7 +34,11 @@ export const superset = (bin: string, host: string | null = null) => {
 		return output.trim();
 	};
 	return {
-		projects: async () => projectsSchema.parse(JSON.parse(await call(["projects", "list", "--json"]))),
+		hasWorkspace: async (id: string) =>
+			workspacesSchema
+				.parse(JSON.parse(await call(["ws", "list", "--json", ...on])))
+				.some((workspace) => workspace.id === id),
+		projects: async () => projectsSchema.parse(JSON.parse(await call(["projects", "list", "--json", ...on]))),
 		// The machines Superset can reach. `online` is "yes" or "local" for a
 		// machine that answers now; "local" names the machine that runs
 		// Superset itself.

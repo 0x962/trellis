@@ -80,7 +80,7 @@ These settings do not add a timer or an automatic wake.
 | `{{actor}}` | `agent:<run ID>` |
 | `{{trellisUrl}}` | Trellis server URL |
 | `{{superset}}` | Configured Superset executable path |
-| `{{target}}` | `--local` or the configured Superset host flag |
+| `{{target}}` | Empty for this machine, or the configured Superset host flag |
 | `{{projectId}}` | Project ID from the `projects` result |
 | `{{bun}}` | Bun executable path for the preset's JSON transforms |
 

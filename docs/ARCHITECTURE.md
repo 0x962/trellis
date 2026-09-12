@@ -128,7 +128,9 @@ start watches the new terminal for three seconds. An exit in that time sets the
 row `failed` with `session_lost` true, and the error names the session id, the
 machine, the workspace, the directory, and what the agent printed. The Status
 section then asks the person whether to start a new session. A start with
-`newSession` true keeps the row and the workspace and mints a fresh session id.
+`newSession` true keeps the row and mints a fresh session id.
+A Superset launch keeps the workspace if it exists on the configured host.
+If that workspace is missing, the launch creates one.
 
 `managerConfig.harnessCommands` configures every session operation. The Superset
 and tmux presets fill its command templates. Each template stays editable.
@@ -136,7 +138,6 @@ A command-backed run has runtime `commands`. It keeps its templates and launch
 values in `agents/<id>/harness.json`. Later project edits affect the next start.
 A changed start template or agent executable command starts a fresh session.
 The [command reference](agent-harnesses.md) defines each result and variable.
-
 
 A run copies the persona name, the kind, and the instruction at launch, so a
 later persona edit changes only the runs after it. The row also keeps the project
@@ -170,7 +171,7 @@ ADE opens that terminal itself with `superset terminals create`. An unknown
 variable fails the save, and so does a standalone
 hyphen beside `{{superset}}`. The expander wraps each value in single quotes, so
 one value is one shell argument. `{{target}}` is the Superset host flag of the
-project: `--local` for a null `supersetHostId`, and `--host '<id>'` otherwise.
+project: empty for a null `supersetHostId`, and `--host '<id>'` otherwise.
 
 `{{prompt}}` is the instruction of the run plus an assignment block: the agent
 name, the actor `agent:<run id>`, the trellis URL, the persona, the ticket or the

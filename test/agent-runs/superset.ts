@@ -9,11 +9,27 @@ if (existsSync(join(dir, "fail"))) {
 	process.stderr.write("Superset is unavailable");
 	process.exit(1);
 }
+if ((args[0] === "terminals" || args[1] === "open") && args.includes("--local")) {
+	process.stderr.write("Unknown option: --local");
+	process.exit(1);
+}
+if (existsSync(join(dir, "expected-host")) && ["projects", "terminals"].includes(args[0]!)) {
+	const expected = readFileSync(join(dir, "expected-host"), "utf8");
+	if (args[args.indexOf("--host") + 1] !== expected) {
+		process.stderr.write(`Expected --host ${expected}`);
+		process.exit(1);
+	}
+}
+if (args[0] === "terminals" && args[1] === "create" && existsSync(join(dir, "workspace-missing"))) {
+	process.stderr.write("Workspace not found on host");
+	process.exit(1);
+}
 if (args[0] === "projects")
 	console.log(
 		JSON.stringify([{ id: "superset-project", name: "Example", repo: "https://github.com/example/code", path: dir }]),
 	);
-else if (args[0] === "ws" && args[1] === "list") console.log(readFileSync(join(dir, "workspaces.json"), "utf8"));
+else if (args[0] === "ws" && args[1] === "list")
+	console.log(existsSync(join(dir, "workspace-missing")) ? "[]" : readFileSync(join(dir, "workspaces.json"), "utf8"));
 else if (args[0] === "terminals" && args[1] === "create") {
 	writeFileSync(join(dir, "resumed"), "");
 	console.log(JSON.stringify({ terminalId: "resumed-terminal" }));

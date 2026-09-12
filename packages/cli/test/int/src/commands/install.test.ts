@@ -139,6 +139,7 @@ describe("install", () => {
 		const text = readFileSync(plist, "utf8");
 		expect(text).toContain("<array>\n\t\t<string>/stable/bin/bun</string>");
 		expect(text).toContain("<key>PATH</key>\n\t\t<string>/stable/bin:");
+		expect(text).toContain("/usr/bin:/bin:/usr/sbin:/sbin</string>");
 		expect(text).not.toContain(process.execPath);
 	});
 
