@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { AiGlyph, cx, IconButton, Kbd, TicketGlyph, TrellisWordmark } from "@trellis/ui";
-import { Inbox, Plus, Search } from "lucide-react";
+import { Inbox, Plus, Search, Workflow } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
@@ -12,7 +12,7 @@ import { ConnectionPanel } from "../ConnectionPanel";
 const rowClass =
 	"flex h-7 items-center rounded-md pr-1 pl-2 text-fg-muted transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11";
 
-type NavTarget = "/needs-you" | "/search" | "/all" | "/ai/personas";
+type NavTarget = "/needs-you" | "/search" | "/all" | "/ai/personas" | "/ai/flows";
 
 type NavRowProps = { to: NavTarget; icon: ReactElement; label: string; active: boolean; trailing?: ReactNode };
 
@@ -100,6 +100,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 			<nav aria-label="AI" hidden={collapsed} className="mt-3 shrink-0">
 				<h2 className="sidebar-section">AI</h2>
 				<NavRow to="/ai/personas" icon={<AiGlyph />} label="Personas" active={isActive(pathname, "/ai/personas")} />
+				<NavRow to="/ai/flows" icon={<Workflow />} label="Flows" active={isActive(pathname, "/ai/flows")} />
 			</nav>
 			<div hidden={collapsed} className="mt-3 min-h-0 flex-1 overflow-y-auto pb-2">
 				<div className="sidebar-section">

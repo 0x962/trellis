@@ -6,6 +6,8 @@ import * as agents from "./agents.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
 import * as comments from "./comments.ts";
+import * as flows from "./flows/flows.ts";
+import * as flowSave from "./flows/save.ts";
 import * as inbox from "./inbox.ts";
 import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
@@ -62,6 +64,12 @@ export const services = {
 	"personas.create": core("mutation", personas.create),
 	"personas.update": core("mutation", personas.update),
 	"personas.delete": core("mutation", personas.remove),
+	"flows.list": core("read", flows.list),
+	"flows.get": core("read", flows.get),
+	"flows.create": core("mutation", flows.create),
+	"flows.update": core("mutation", flows.update),
+	"flows.save": core("mutation", flowSave.save),
+	"flows.delete": core("mutation", flows.remove),
 	"projects.list": core("read", projects.list),
 	"projects.get": core("read", projects.get),
 	"projects.create": core("mutation", projects.create),

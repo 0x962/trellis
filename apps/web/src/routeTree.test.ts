@@ -16,6 +16,8 @@ const planRoutes = [
 	"/needs-you",
 	"/all",
 	"/ai/personas",
+	"/ai/flows",
+	"/ai/flows_/$slug",
 	"/all_/table",
 	"/p/$",
 	"/t/$identifier",

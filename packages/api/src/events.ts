@@ -25,6 +25,7 @@ export const eventNames = [
 	"project.moved",
 	"gh.status",
 	"personas.changed",
+	"flows.changed",
 	"agent-runs.changed",
 	"agents.session",
 	"agents.batch",
@@ -95,6 +96,11 @@ export const PersonasChangedPayloadSchema = z.object({
 	id: UlidSchema,
 });
 
+// `id` is the flow that a committed mutation created, changed, or deleted.
+export const FlowsChangedPayloadSchema = z.object({
+	id: UlidSchema,
+});
+
 // `reason` is present when `ok` is false.
 export const GhStatusPayloadSchema = z.object({
 	ok: z.boolean(),
@@ -155,6 +161,7 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("project.moved", ProjectEventPayloadSchema),
 	typed("gh.status", GhStatusPayloadSchema),
 	typed("personas.changed", PersonasChangedPayloadSchema),
+	typed("flows.changed", FlowsChangedPayloadSchema),
 	typed("agent-runs.changed", PersonasChangedPayloadSchema),
 	typed("agents.session", AgentSessionEventPayloadSchema),
 	typed("agents.batch", AgentBatchPayloadSchema),
