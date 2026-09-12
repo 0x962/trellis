@@ -121,6 +121,7 @@ export function ReviewsPage() {
 									.map((pr) => (
 										<Link
 											className="review-index-row"
+											aria-label={`#${pr.number} ${pr.title || "Pull request"}, ${pr.state}${pr.open ? `, ${pr.open} open ${pr.open === 1 ? "thread" : "threads"}` : ""}`}
 											key={pr.id}
 											to="/reviews/$owner/$repo/$number"
 											params={{ owner: pr.owner, repo: pr.repo, number: String(pr.number) }}
@@ -128,7 +129,10 @@ export function ReviewsPage() {
 											<span className="review-pr-number">#{pr.number}</span>
 											<span className="review-row-title">{pr.title || `Pull request #${pr.number}`}</span>
 											{pr.open > 0 && (
-												<span className="review-row-count" title={`${pr.open} open threads`}>
+												<span
+													className="review-row-count"
+													title={`${pr.open} open ${pr.open === 1 ? "thread" : "threads"}`}
+												>
 													<ChatCircle aria-hidden="true" />
 													{pr.open}
 												</span>
