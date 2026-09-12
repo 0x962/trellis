@@ -24,7 +24,7 @@ export function ShellFrame({ children }: ShellFrameProps) {
 			<aside
 				aria-label="Sidebar"
 				aria-busy="true"
-				className="flex h-full w-60 shrink-0 flex-col gap-0.5 border-r border-border bg-bg px-2 py-2.5 text-base max-md:hidden"
+				className="relative flex h-full w-60 shrink-0 flex-col gap-0.5 bg-bg px-2 py-2 text-base max-md:hidden after:pointer-events-none after:absolute after:top-11 after:right-0 after:bottom-0 after:w-px after:bg-border"
 			>
 				<div className="mb-1.5 flex h-7 items-center gap-2 pl-2">
 					<TrellisWordmark className="h-4.5" />

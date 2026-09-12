@@ -93,7 +93,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 					icon={<Search />}
 					label="Search"
 					active={isActive(pathname, "/search")}
-					trailing={<Kbd>/</Kbd>}
+					trailing={collapsed ? undefined : <Kbd>/</Kbd>}
 				/>
 				<NavRow to="/all" icon={<TicketGlyph />} label="All tickets" active={isActive(pathname, "/all")} />
 			</nav>
@@ -118,7 +118,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 			</div>
 			<div className="mt-auto shrink-0">
 				<ConnectionPanel status={status} />
-				<ActorFooter />
+				<ActorFooter collapsed={collapsed} />
 			</div>
 		</>
 	);
