@@ -398,12 +398,15 @@ button.review-file:is(:hover, [aria-current="true"]) {
 .review-workspace,
 .review-index,
 .review-page input,
-.review-page textarea,
-.review-page [role="tablist"] {
+.review-page textarea {
 	border-width: 0.5px;
 }
 .review-comment-editor textarea:focus-visible {
 	box-shadow: none;
 	outline: 1px solid var(--accent);
 	outline-offset: 1px;
+}
+
+.review-page [role="tablist"] {
+	border-bottom-width: 0.5px;
 }
