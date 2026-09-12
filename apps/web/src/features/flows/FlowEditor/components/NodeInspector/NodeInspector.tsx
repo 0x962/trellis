@@ -11,7 +11,9 @@ type NodeInspectorProps = {
 	onChange: (patch: Partial<StepFields>) => void;
 	onDelete: () => void;
 	onClose: () => void;
-	saveState: string;
+	onSave: () => void;
+	saving: boolean;
+	canSave: boolean;
 };
 
 // The inspector labels each instruction by its purpose.
@@ -25,7 +27,17 @@ const promptLabels: Record<FlowNodeKind, string | null> = {
 
 // Edits one step. Each change goes to the canvas at once, and the editor saves
 // the flow a moment later.
-export function NodeInspector({ fields, issue, personas, onChange, onDelete, onClose, saveState }: NodeInspectorProps) {
+export function NodeInspector({
+	fields,
+	issue,
+	personas,
+	onChange,
+	onDelete,
+	onClose,
+	onSave,
+	saving,
+	canSave,
+}: NodeInspectorProps) {
 	const meta = flowKinds[fields.kind];
 	const runsAgent = flowAgentKinds.has(fields.kind);
 	const promptLabel = promptLabels[fields.kind];
@@ -141,9 +153,8 @@ export function NodeInspector({ fields, issue, personas, onChange, onDelete, onC
 						</Button>
 					}
 				>
-					<span className="text-xs text-fg-muted">{saveState}</span>
-					<Button type="button" variant="primary" onClick={onClose}>
-						Done
+					<Button type="button" variant="primary" onClick={onSave} processing={saving} disabled={!canSave}>
+						Save
 					</Button>
 				</SheetFooter>
 			</div>
