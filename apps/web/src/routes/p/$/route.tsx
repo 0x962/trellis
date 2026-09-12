@@ -148,25 +148,25 @@ function ProjectPage() {
 			<Topbar actions={<NewTicketButton />}>
 				<h1 className="sr-only">{project.name}</h1>
 				<ViewSwitch value={view} onChange={switchView} />
+				<FilterBar
+					project={ref}
+					search={search}
+					onSearchChange={setSearch}
+					statuses={project.statuses}
+					actions={
+						<DisplayPopover
+							routeKey={routeKey}
+							showProject={project.children.length > 0 && full.scope !== "self"}
+							search={search}
+							onSearchChange={setSearch}
+							density={search.density ?? storedDensity}
+							group={full.group}
+							sort={full.sort}
+						/>
+					}
+				/>
 			</Topbar>
 			{archived && <ArchivedBanner project={project} />}
-			<FilterBar
-				project={ref}
-				search={search}
-				onSearchChange={setSearch}
-				statuses={project.statuses}
-				actions={
-					<DisplayPopover
-						routeKey={routeKey}
-						showProject={project.children.length > 0 && full.scope !== "self"}
-						search={search}
-						onSearchChange={setSearch}
-						density={search.density ?? storedDensity}
-						group={full.group}
-						sort={full.sort}
-					/>
-				}
-			></FilterBar>
 			<fieldset disabled={archived} className="contents">
 				{view === "board" ? (
 					<>

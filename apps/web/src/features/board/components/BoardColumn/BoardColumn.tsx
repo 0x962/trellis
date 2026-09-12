@@ -112,7 +112,13 @@ export function BoardColumn({
 				<span className="text-sm text-fg-faint tabular">{count}</span>
 				{column.wipLimit !== null && <WipBadge count={column.count} limit={column.wipLimit} />}
 				<span className={cx("ml-auto flex items-center gap-0.5", revealed)}>
-					<IconButton label={`New ticket in ${column.name}`} icon={<Plus />} size="xs" onClick={onNewTicket} />
+					<IconButton
+						label={`New ticket in ${column.name}`}
+						icon={<Plus />}
+						size="xs"
+						variant="primary"
+						onClick={onNewTicket}
+					/>
 					<Menu
 						label={`${column.name} actions`}
 						trigger={<IconButton label={`${column.name} actions`} icon={<DotsThree />} size="xs" />}

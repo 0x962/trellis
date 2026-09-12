@@ -27,7 +27,7 @@ export function Topbar({ children, actions }: TopbarProps) {
 			className={cx(
 				"relative flex h-13 shrink-0 items-center gap-3 px-5 max-md:px-4 max-sm:gap-2",
 				"before:pointer-events-none before:absolute before:right-0 before:bottom-0 before:left-3 before:h-px before:bg-border max-md:before:left-0",
-				"after:pointer-events-none after:absolute after:top-full after:-left-px after:size-3 after:-translate-y-px after:rounded-tl-lg after:border-t after:border-l after:border-border max-md:after:hidden",
+				"after:pointer-events-none after:absolute after:top-full after:-left-px after:size-3 after:-translate-y-px after:z-20 after:rounded-tl-lg after:border-t after:border-l after:border-border after:corner-mask max-md:after:hidden",
 			)}
 		>
 			{phone ? (
@@ -38,7 +38,7 @@ export function Topbar({ children, actions }: TopbarProps) {
 					onClick={() => uiActions.setMobileSidebarOpen(true)}
 				/>
 			) : null}
-			<div className="flex min-w-0 items-center gap-2 max-md:[&_h1]:truncate max-md:[&_h1]:text-md max-md:[&_h1]:font-semibold">
+			<div className="flex min-w-0 flex-1 items-center gap-2 max-md:[&_h1]:truncate max-md:[&_h1]:text-md max-md:[&_h1]:font-semibold">
 				{children}
 			</div>
 			{actions && <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>}

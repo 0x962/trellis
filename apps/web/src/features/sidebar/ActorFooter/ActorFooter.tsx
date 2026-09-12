@@ -85,7 +85,7 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 						aria-describedby={ghWarning ? warningId : undefined}
 						className={iconLinkClass}
 					>
-						<span aria-hidden="true" className="inline-flex size-3.5 *:size-full">
+						<span aria-hidden="true" className="inline-flex size-4 *:size-full">
 							<Gear />
 						</span>
 						{ghWarning && (
@@ -103,7 +103,7 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 					</Link>
 					<IconButton
 						label="Keyboard shortcuts"
-						className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
+						className="*:size-4 pointer-coarse:size-11 pointer-coarse:before:inset-0"
 						icon={<Question />}
 						onClick={openShortcutHelp}
 					/>

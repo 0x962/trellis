@@ -77,7 +77,7 @@ export function DisplayPopover({
 			label="Display"
 			align="end"
 			className="w-75 p-3"
-			trigger={<IconButton label="Display" icon={<SlidersHorizontal />} size="sm" />}
+			trigger={<IconButton label="Display" icon={<SlidersHorizontal />} variant="default" />}
 		>
 			<div className="flex flex-col gap-3">
 				<section className="flex flex-col gap-1.5">

@@ -62,23 +62,23 @@ function AllPage() {
 			<Topbar actions={<NewTicketButton />}>
 				<h1 className="sr-only">All tickets</h1>
 				<ViewSwitch value="table" onChange={switchView} />
+				<FilterBar
+					search={search}
+					onSearchChange={setSearch}
+					statuses={statuses}
+					actions={
+						<DisplayPopover
+							routeKey={routeKey}
+							showProject
+							search={search}
+							onSearchChange={setSearch}
+							density={search.density ?? storedDensity}
+							group={full.group}
+							sort={full.sort}
+						/>
+					}
+				/>
 			</Topbar>
-			<FilterBar
-				search={search}
-				onSearchChange={setSearch}
-				statuses={statuses}
-				actions={
-					<DisplayPopover
-						routeKey={routeKey}
-						showProject
-						search={search}
-						onSearchChange={setSearch}
-						density={search.density ?? storedDensity}
-						group={full.group}
-						sort={full.sort}
-					/>
-				}
-			/>
 			<TicketTable
 				routeKey={routeKey}
 				search={search}
