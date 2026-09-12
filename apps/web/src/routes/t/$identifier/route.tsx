@@ -33,6 +33,7 @@ function TicketError({ error }: ErrorComponentProps) {
 	return (
 		<EmptyState
 			variant="page"
+			className="page-card"
 			title="The ticket did not load."
 			description={error instanceof Error ? error.message : String(error)}
 		/>

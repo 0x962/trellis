@@ -44,7 +44,7 @@ bun packages/cli/src/index.ts install
 
 Agents need the Superset CLI. launchd gives the server a short `PATH`, so `trellis install` writes the full path of the `superset` on your `PATH` into the agent as `TRELLIS_SUPERSET_BIN`. `--superset-bin <path>` names another binary, and `trellis serve` takes the same flag.
 
-A gateway on port 80, such as [margin](https://github.com/0x962/margin), serves `http://trellis.localhost` when it reads the routes file `~/.config/localhost-gateway/routes.json`. The file maps each `*.localhost` name to a port, as in `{ "trellis": 4521 }`. `trellis install` sets the `trellis` entry and keeps the others, and `trellis uninstall` removes it. When no gateway answers for `trellis.localhost`, install prints `http://127.0.0.1:4521` and the path of the routes file.
+`trellis gateway` on port 80 serves `http://trellis.localhost` when it reads the routes file `~/.config/localhost-gateway/routes.json`. The file maps each `*.localhost` name to a port, as in `{ "trellis": 4521 }`. `trellis install` sets the `trellis` entry and keeps the others, and `trellis uninstall` removes it. When no gateway answers for `trellis.localhost`, install prints `http://127.0.0.1:4521` and the path of the routes file.
 
 To run the server in the foreground and not as a launchd agent, run this command in a separate terminal:
 
@@ -115,11 +115,9 @@ If the title, the branch, or the body of a pull request contains the ticket iden
 
 ### The diff viewer
 
-Each pull request carries a Show diff control. The setting `diffUrlTemplate` names the address it opens, and `{url}` in the template stands for the URL of the pull request. The default is `{url}/files`, the Files changed tab on GitHub. To open the diff in another viewer, set the template to its address. For [margin](https://github.com/0x962/margin), a local review tool that routes on the whole pull request URL:
+Each pull request carries a Show diff control that opens its native Trellis review page. The Reviews sidebar entry also accepts a GitHub PR URL. The page supports split and unified diffs, local threads, replies, reactions, and review submissions with agent notifications.
 
-```
-http://margin.localhost/{url}
-```
+Read [Local pull request reviews](docs/reviews.md) for the CLI, Margin import, and gateway cutover.
 
 ### Keyboard map
 

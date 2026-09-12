@@ -149,7 +149,6 @@ export const seedData = async ({ transport, gh, base }: SeedOptions) => {
 	await s.call("settings.set", "dana", s.at(30 * day), {
 		defaultActorName: "dana",
 		stalledHours: 24,
-		diffUrlTemplate: "{url}/files",
 	});
 	const steps: Step[] = [];
 	for (const spec of allSpecs()) {

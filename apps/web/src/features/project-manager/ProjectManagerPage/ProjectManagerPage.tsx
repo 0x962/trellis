@@ -135,7 +135,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 					title="Manager"
 				/>
 			</Topbar>
-			<div className="project-settings-layout">
+			<div className="page-card project-settings-layout">
 				<nav aria-label="Manager settings" className="project-settings-nav">
 					<p className="project-settings-nav-title">Manager settings</p>
 					<ul className="project-settings-nav-list">

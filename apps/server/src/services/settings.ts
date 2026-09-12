@@ -11,16 +11,10 @@ import type { Tx } from "../db/tx.ts";
 export const defaults = (): Settings => ({
 	defaultActorName: userInfo().username,
 	stalledHours: 24,
-	diffUrlTemplate: "{url}/files",
 	agentLaunchCommand: DEFAULT_AGENT_LAUNCH_COMMAND,
 });
 
-const KEYS = [
-	"defaultActorName",
-	"stalledHours",
-	"diffUrlTemplate",
-	"agentLaunchCommand",
-] as const satisfies (keyof Settings)[];
+const KEYS = ["defaultActorName", "stalledHours", "agentLaunchCommand"] as const satisfies (keyof Settings)[];
 
 // One row per key with a jsonb value; a key the table lacks reads as its
 // default. The table holds other keys too, such as the agent settings, so

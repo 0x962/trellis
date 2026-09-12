@@ -15,6 +15,7 @@ export function NotFoundState({ ref, searchFor }: NotFoundStateProps) {
 	return (
 		<EmptyState
 			variant="page"
+			className="page-card"
 			title={`${ref} does not exist`}
 			description="Make sure that the URL has no typo. This page also shows for a deleted ticket or project."
 			action={

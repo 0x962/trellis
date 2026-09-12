@@ -31,9 +31,8 @@ export const refOf = (row: DueRow): PullRequestRef => ({ owner: row.owner, repo:
 
 const literal = (value: number) => sql.raw(String(value));
 
-// Every pull request somebody still watches. An open pull request whose
-// every linked ticket is done or canceled is left alone, and so is a pull
-// request that closed more than a day before `at`.
+// An open PR polls while review_retained is true or an active ticket links it.
+// A closed PR polls until one day after its closing time.
 export const selectCandidates = (tx: Tx, at: Date): Promise<DueRow[]> =>
 	rows<DueRow>(
 		tx,
@@ -48,12 +47,12 @@ export const selectCandidates = (tx: Tx, at: Date): Promise<DueRow[]> =>
 			FROM pull_requests p
 			WHERE (
 					p.state = 'open'
-					AND EXISTS (
+					AND (p.review_retained OR EXISTS (
 						SELECT 1 FROM ticket_pull_requests l
 						JOIN tickets t ON t.id = l.ticket_id
 						JOIN statuses s ON s.id = t.status_id
 						WHERE l.pull_request_id = p.id AND s.category NOT IN ('done', 'canceled')
-					)
+					))
 				)
 				OR (
 					p.state IN ('merged', 'closed')

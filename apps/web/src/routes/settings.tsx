@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
-import { DiffTemplateField } from "../features/settings/DiffTemplateField";
 import { GhBanner } from "../features/settings/GhBanner";
 import { PairPhone } from "../features/settings/PairPhone";
 import { StalledThresholdField } from "../features/settings/StalledThresholdField";
@@ -10,7 +9,7 @@ import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
 
 // Who you are, how the app looks, when a ticket counts as stalled, whether gh
-// is available, which viewer shows a diff, and how a phone reaches the server.
+// is available, and how a phone reaches the server.
 // Each setting here holds for the whole machine. A setting that belongs to one
 // project, such as its manager persona, its Superset host, and its agent
 // switch, lives on that project's Manager page.
@@ -56,7 +55,6 @@ const sections: SettingsSection[] = [
 		rows: (
 			<>
 				<GhBanner />
-				<DiffTemplateField />
 				<PairPhone />
 			</>
 		),
@@ -71,7 +69,7 @@ function SettingsPage() {
 			<Topbar>
 				<PageTitle title="Settings" />
 			</Topbar>
-			<div className="project-settings-layout">
+			<div className="page-card project-settings-layout">
 				<nav aria-label="Settings" className="project-settings-nav">
 					<p className="project-settings-nav-title">Settings</p>
 					<ul className="project-settings-nav-list">

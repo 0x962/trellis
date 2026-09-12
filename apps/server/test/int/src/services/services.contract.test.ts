@@ -109,7 +109,6 @@ describe("service modules", () => {
 				settings.set(ctx, tx, {
 					defaultActorName: "dana",
 					stalledHours: 24,
-					diffUrlTemplate: "{url}/files",
 				}),
 		};
 		for (const [name, mutation] of Object.entries(mutations)) {
@@ -133,6 +132,6 @@ describe("service modules", () => {
 				settings: Object.keys(await settings.get(ctx, tx)).length,
 			};
 		});
-		expect(reads).toEqual({ project: "CDE", actors: 3, settings: 4 });
+		expect(reads).toEqual({ project: "CDE", actors: 3, settings: 3 });
 	});
 });

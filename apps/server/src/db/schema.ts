@@ -23,6 +23,7 @@ export * from "./tables/agents.ts";
 export * from "./tables/flows.ts";
 export * from "./tables/personas.ts";
 export * from "./tables/projects.ts";
+export * from "./tables/reviews.ts";
 
 // drizzle-kit reads this file and every table it exports. Each table is
 // text plus a named CHECK where the wire has a closed set. The migration
@@ -173,6 +174,7 @@ export const pullRequests = pgTable(
 		title: text().notNull().default(""),
 		state: text().notNull(),
 		isDraft: boolean("is_draft").notNull().default(false),
+		reviewRetained: boolean("review_retained").notNull().default(false),
 		headRef: text("head_ref").notNull().default(""),
 		baseRef: text("base_ref").notNull().default(""),
 		reviewState: text("review_state").notNull().default("none"),

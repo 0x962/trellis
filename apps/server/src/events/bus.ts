@@ -13,6 +13,7 @@ export type BusFilter = {
 	types?: string[];
 	projectIds?: string[];
 	ticketIds?: string[];
+	prIds?: string[];
 };
 
 export type Subscriber = (entry: BusEntry) => void;
@@ -27,6 +28,7 @@ const scopeOf = (event: TrellisEvent): Scope => {
 		case "ticket.updated":
 		case "ticket.deleted":
 			return { projectIds: [event.summary.project.id], ticketIds: [event.summary.id] };
+		case "reviews.changed":
 		case "pr.linked":
 		case "pr.unlinked":
 		case "pr.updated":
@@ -56,6 +58,15 @@ const intersects = (wanted: string[], scoped: string[]) => scoped.some((id) => w
 
 export const matches = (event: TrellisEvent, filter: BusFilter) => {
 	if (filter.types !== undefined && !filter.types.some((pattern) => matchesType(event.type, pattern))) return false;
+	if (event.type === "reviews.changed") {
+		if (filter.prIds && !filter.prIds.includes(event.id)) return false;
+		if (filter.projectIds && !intersects(filter.projectIds, event.projectIds)) return false;
+		if (filter.ticketIds && !intersects(filter.ticketIds, event.ticketIds)) return false;
+		return true;
+	}
+	if (filter.prIds !== undefined && ["pr.linked", "pr.unlinked", "pr.updated"].includes(event.type)) {
+		if (!filter.prIds.includes((event as { id: string }).id)) return false;
+	}
 	const scope = scopeOf(event);
 	const unscoped = scope.projectIds.length === 0 && scope.ticketIds.length === 0;
 	if (unscoped) return true;

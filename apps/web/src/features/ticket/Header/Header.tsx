@@ -46,7 +46,6 @@ export function Header({ ticket }: HeaderProps) {
 
 	return (
 		<Topbar
-			bordered={false}
 			actions={
 				<>
 					<BriefCopy ticket={ticket} />

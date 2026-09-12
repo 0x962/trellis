@@ -18,6 +18,11 @@ const IssueSchema = z.looseObject({
 // An error without a payload declares `z.undefined()`, so `data` is typed
 // as absent instead of as an empty object.
 export const errors = {
+	REVIEW_VERSION_CONFLICT: {
+		status: 412,
+		message: "The review message changed. Read it again before an edit.",
+		data: z.undefined(),
+	},
 	INPUT_VALIDATION_FAILED: {
 		status: 400,
 		message: "The input does not match the schema.",

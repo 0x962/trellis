@@ -1,0 +1,1 @@
+export { reviewImage } from "./reviewImage";

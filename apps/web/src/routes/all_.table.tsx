@@ -79,11 +79,13 @@ function AllPage() {
 					}
 				/>
 			</Topbar>
-			<TicketTable
-				routeKey={routeKey}
-				search={search}
-				onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
-			/>
+			<div className="page-card flex flex-1 flex-col overflow-hidden">
+				<TicketTable
+					routeKey={routeKey}
+					search={search}
+					onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
+				/>
+			</div>
 		</>
 	);
 }

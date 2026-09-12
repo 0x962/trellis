@@ -2,11 +2,13 @@ import { Popover as BasePopover } from "@base-ui/react/popover";
 import type { ReactElement, ReactNode, RefObject } from "react";
 import { cx } from "../../utils/cx";
 import { popupMotion } from "../../utils/popupMotion";
+import { Tooltip } from "../Tooltip";
 
 export type PopoverProps = {
 	// The element that opens the popover, usually a Button. It receives the
 	// trigger's click handler and aria attributes.
 	trigger: ReactElement;
+	triggerTooltip?: string;
 	children: ReactNode;
 	// The accessible name of the panel.
 	label?: string;
@@ -30,6 +32,7 @@ export type PopoverProps = {
 // it took.
 export function Popover({
 	trigger,
+	triggerTooltip,
 	children,
 	label,
 	side = "bottom",
@@ -43,7 +46,13 @@ export function Popover({
 }: PopoverProps) {
 	return (
 		<BasePopover.Root open={open} onOpenChange={onOpenChange ? (next) => onOpenChange(next) : undefined}>
-			<BasePopover.Trigger render={trigger} />
+			{triggerTooltip ? (
+				<Tooltip content={triggerTooltip}>
+					<BasePopover.Trigger render={trigger} />
+				</Tooltip>
+			) : (
+				<BasePopover.Trigger render={trigger} />
+			)}
 			<BasePopover.Portal>
 				<BasePopover.Positioner
 					side={side}

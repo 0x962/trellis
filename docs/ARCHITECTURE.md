@@ -91,6 +91,47 @@ takes builder. A delete keeps the snapshots of the runs that used the persona.
 - A delete is a hard delete. A ticket delete nulls the `parent_id` of its children, then cascades comments, attachments, pull request links, and activity. The blob collector then removes unused files.
 - A project delete needs an empty subtree or `force`.
 
+### Pull request reviews
+
+The `reviews` API owns local PR discussion. `pull_requests.review_retained`
+keeps a standalone review after its last ticket link disappears. Ticket and
+project deletion preserve retained PRs. The GitHub poller includes them.
+
+`review_revisions` stores the complete patch and GitHub metadata for a base/head
+commit pair. The comparison merge base identifies the old file contents.
+The new file contents come from the head repository, including fork PRs.
+GitHub calls run through prepared services, outside database transactions.
+A second head/base read detects a PR change during a diff fetch.
+
+`review_threads` holds one JSON document per root thread. The document contains
+its anchor, author, session, replies, reactions, and resolution state.
+Message edits require the expected version. The database serializes writes.
+`review_submissions` holds fixed copies of selected findings and a local verdict.
+A request identifier makes repeated submissions idempotent for one actor and PR.
+
+`review_deliveries` records one notification per submission and recipient run.
+The submission transaction creates the deliveries. A background task claims
+pending records and calls the saved agent transport outside the transaction.
+Failed sends remain unread. An interrupted send becomes unknown at startup
+and requires an explicit resend. Agent acknowledgement sets `read_at`.
+
+`review_imports` maps Margin identifiers to canonical message identifiers and
+stores each source hash. A repeated import skips unchanged roots and reports
+changed roots as conflicts. Imported anchors retain an unknown revision.
+Backups and NDJSON exports include all five review tables.
+
+The web route `/reviews/$owner/$repo/$number` uses the Trellis shell.
+`@trellis/ui/review` wraps `@pierre/diffs` 1.4.2 with virtual scroll, workers,
+line selection, and thread annotations. Review styles live in `packages/ui`.
+Drafts persist in browser storage until the user submits them.
+The `reviews.changed` event invalidates local review queries after commit.
+Current GitHub status polls separately from the saved diff revision.
+
+The Dots adapter exposes only its review graph and checks the PR target before
+a run action. `apps/server/src/gateway.ts` owns the optional localhost gateway.
+It reads the shared route file and redirects old Margin links to Trellis.
+Read [the review guide](reviews.md) for commands and the service cutover.
+
 ### Agent runs
 
 An agent run is one agent that trellis started from a persona. `agentRuns`
@@ -285,8 +326,11 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/_gallery` | `[_]gallery.tsx` | every primitive in every state, in both themes |
 
 Ticket links open `/t/$identifier`. The header shows the project name and ticket
-identifier, with the actions on the right. The content sits below the shared
-rounded corner. Back to list restores the last list URL with its filters.
+identifier, with the actions on the right. The content sits in fully rounded
+cards below the header.
+Every page card has a gap from the sidebar, the right edge, and the bottom edge.
+The gap is 12 px on desktop and 8 px on a phone. Back to list restores the
+last list URL with its filters.
 
 `/p/$` takes one splat, `[key, ...slugs, view?]`. The URL keeps slashes and the
 API ref joins the same segments with dots, so `/p/CDE/web/auth` reads

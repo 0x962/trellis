@@ -1,35 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { reviewRef } from "@trellis/api";
 import type { ReactNode } from "react";
-import { useApp } from "../../../../../../../lib/appContext";
-import { diffUrl } from "../../../../../utils/diffUrl";
-
-export type DiffLinkProps = {
-	url: string;
-	children: ReactNode;
-};
-
-// The link that opens the diff of the pull request. `diffUrlTemplate` in the
-// settings names the viewer, so a viewer on this machine draws the diff and
-// trellis renders none of its own. The root route loads the settings, so the
-// read here answers from the cache.
-//
-// `before:absolute before:inset-0` stretches an invisible layer over the
-// nearest positioned ancestor, so a click anywhere on the card opens the
-// diff. The card that holds this link must carry `relative`.
+export type DiffLinkProps = { url: string; children: ReactNode };
 export function DiffLink({ url, children }: DiffLinkProps) {
-	const { orpc } = useApp();
-	const settings = useQuery(orpc.settings.get.queryOptions({})).data;
-	const text = "min-w-0 truncate text-base font-medium text-fg";
-	if (settings === undefined) return <span className={text}>{children}</span>;
-
+	const ref = reviewRef(url);
 	return (
-		<a
-			href={diffUrl(settings.diffUrlTemplate, url)}
-			target="_blank"
-			rel="noopener noreferrer"
-			className={`${text} before:absolute before:inset-0 before:rounded-md hover:underline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2`}
+		<Link
+			to="/reviews/$owner/$repo/$number"
+			params={{ owner: ref.owner, repo: ref.repo, number: String(ref.number) }}
+			className="min-w-0 truncate text-base font-medium text-fg before:absolute before:inset-0 hover:underline"
 		>
 			{children}
-		</a>
+		</Link>
 	);
 }

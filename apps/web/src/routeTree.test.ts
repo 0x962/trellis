@@ -8,6 +8,8 @@ import { join } from "node:path";
 const read = () => Bun.file(join(import.meta.dir, "routeTree.gen.ts")).text();
 
 const planRoutes = [
+	"/reviews",
+	"/reviews_/$owner/$repo/$number",
 	"/",
 	"/setup",
 	"/settings",

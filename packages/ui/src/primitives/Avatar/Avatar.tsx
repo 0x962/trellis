@@ -20,10 +20,8 @@ const initials = (name: string) =>
 		.map((word) => word.charAt(0).toUpperCase())
 		.join("");
 
-// An 18 px actor mark. A human is a square with initials. An agent is a
-// square filled with the soft color its name picks, so two agents never
-// look alike and one agent always looks the same. See agentGradient. Every
-// avatar has square corners, as the UI system says.
+// An 18 px actor mark. A human is a circle with initials. An agent is a
+// circle filled with the soft color its name picks. See agentGradient.
 export function Avatar({ kind, name, live = false, className }: AvatarProps) {
 	return (
 		<span
@@ -34,8 +32,8 @@ export function Avatar({ kind, name, live = false, className }: AvatarProps) {
 				// The live dot hangs over the top right corner, outside this box, so
 				// this box must let its content spill. The corner radius cuts the
 				// background picture to shape on its own.
-				"relative inline-grid size-4.5 shrink-0 place-items-center select-none",
-				kind === "agent" ? "rounded-sm" : "rounded-round bg-fg-muted text-surface text-initials font-semibold",
+				"relative inline-grid size-4.5 shrink-0 place-items-center rounded-round select-none",
+				kind === "human" && "bg-fg-muted text-surface text-initials font-semibold",
 				className,
 			)}
 		>

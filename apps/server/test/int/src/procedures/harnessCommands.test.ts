@@ -114,3 +114,30 @@ test("a repository lookup failure permits another start after configuration chan
 	expect((await configure()).status).toBe(200);
 	expect((await t.client.agentRuns.start({ personaId, project: "CMD" })).state).toBe("running");
 });
+
+test("a local review sends one notification through the run's saved harness", async () => {
+	expect(
+		(await configure({ ...commands, send: "printf '%s\\n' {{text}} >> {{projectDir}}/notifications.txt" })).status,
+	).toBe(200);
+	const run = await t.client.agentRuns.start({ personaId, project: "CMD" });
+	const review = await t.client.reviews.submit({
+		pr: "example/code#91",
+		requestId: "one-delivery",
+		verdict: "changes_requested",
+		body: "Fix the selected findings.",
+		recipients: [run.id],
+		drafts: [{ path: "a.ts", line: 1, body: "Fix." }],
+	});
+	const deliver = () =>
+		t.transport.call(
+			"reviews.deliverPending",
+			{ actor: null, session: null, reqId: "review-notify", now: new Date() },
+			{},
+		);
+	await Promise.all([deliver(), deliver()]);
+	expect((await t.client.reviews.show({ id: review.id })).deliveries[0]?.state).toBe("sent");
+	const text = readFileSync(join(directory, "notifications.txt"), "utf8");
+	expect(text.match(/trellis: Review/g)).toHaveLength(1);
+	expect(text).toContain(`trellis review show ${review.id} --json`);
+	expect(text).toContain(`/reviews/example/code/91`);
+});

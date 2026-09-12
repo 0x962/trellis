@@ -18,7 +18,7 @@ describe("Avatar", () => {
 		expect(full.querySelector("svg")).toBeNull();
 	});
 
-	test("an agent avatar is a square of colour that its name picks", () => {
+	test("an agent avatar is a circle of color that its name picks", () => {
 		render(
 			<>
 				<Avatar kind="agent" name="claude-code" />
@@ -28,7 +28,7 @@ describe("Avatar", () => {
 		const avatar = screen.getByLabelText("claude-code · agent");
 		expect(avatar.textContent).toBe("");
 		expect(avatar.querySelector("svg")).toBeNull();
-		expectClasses(avatar, "size-4.5 rounded-sm");
+		expectClasses(avatar, "size-4.5 rounded-round");
 		// The name picks the picture, so one name always draws the same one
 		// and two names draw two.
 		const image = avatar.getAttribute("style")!;

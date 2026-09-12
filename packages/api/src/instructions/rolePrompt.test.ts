@@ -118,11 +118,12 @@ describe("the builder prompt", () => {
 });
 
 describe("the reviewer prompt", () => {
-	test("runs /code-review on the PR and posts every finding to the ticket, never GitHub", () => {
+	test("runs /code-review on the PR and posts every finding to the local PR review", () => {
 		expectFragments(reviewer, [
 			"agent:reviewer-cde-42",
 			`/code-review ${pr}`,
-			"each with its file and its line number",
+			`trellis review list ${pr}`,
+			`trellis review add ${pr} --path <file> --line <n> --body`,
 			"Never post a finding as a GitHub comment.",
 		]);
 	});

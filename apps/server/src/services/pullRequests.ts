@@ -21,8 +21,8 @@ import {
 } from "./support.ts";
 
 // One pull request is one row, whatever number of tickets link it. The link
-// row carries who linked it and whether a person or the poller did. The last
-// link that goes takes the pull request row with it.
+// row carries who linked it and whether a person or the poller did.
+// pull_requests.review_retained keeps the PR after its last ticket link leaves.
 //
 // prepareLink and prepareRefresh read one pull request through the same gh
 // query the poller runs for 50, before the service transaction opens, so no
@@ -215,7 +215,8 @@ export const unlink = async (ctx: ServiceCtx, tx: Tx, input: UnlinkInput) => {
 	`);
 	if (dropped.rows.length === 0) throw notFound("pullRequest", input.id);
 	const scope = await linkScope(tx, row.id);
-	if (scope.ticketIds.length === 0) await tx.execute(sql`DELETE FROM pull_requests WHERE id = ${row.id}`);
+	if (scope.ticketIds.length === 0)
+		await tx.execute(sql`DELETE FROM pull_requests WHERE id = ${row.id} AND NOT review_retained`);
 	const at = ctx.now();
 	await touchTicket(tx, { id: ticket.id, at, versionStep: 0 });
 	await writeActivity(ctx, tx, {

@@ -12,7 +12,7 @@ import { ConnectionPanel } from "../ConnectionPanel";
 const rowClass =
 	"flex h-7 items-center rounded-md pr-1 pl-2 text-fg-muted transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11";
 
-type NavTarget = "/needs-you" | "/search" | "/all" | "/ai/personas" | "/ai/flows";
+type NavTarget = "/reviews" | "/needs-you" | "/search" | "/all" | "/ai/personas" | "/ai/flows";
 
 type NavRowProps = { to: NavTarget; icon: ReactElement; label: string; active: boolean; trailing?: ReactNode };
 
@@ -87,6 +87,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				)}
 			</div>
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
+				<NavRow to="/reviews" icon={<FlowArrow />} label="Reviews" active={isActive(pathname, "/reviews")} />
 				<NavRow to="/needs-you" icon={<Tray />} label="Needs you" active={isActive(pathname, "/needs-you")} />
 				<NavRow
 					to="/search"

@@ -14,7 +14,6 @@ describe("settings", () => {
 		const settings = {
 			defaultActorName: "dana",
 			stalledHours: 12,
-			diffUrlTemplate: "{url}/files",
 			agentLaunchCommand: "{{superset}} ws create --project {{projectId}} --name {{name}}",
 		};
 
