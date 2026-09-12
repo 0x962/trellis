@@ -6,8 +6,8 @@ export type CommandToastProps = {
 	command: string;
 };
 
-// The body of a copy toast: the success line, then the copied text in mono
-// on one line. A long text truncates; the clipboard holds all of it.
+// The body of a copy toast: the success line, then the copied text on one
+// line. A long text truncates; the clipboard holds all of it.
 export function CommandToast({ title, command }: CommandToastProps) {
 	return (
 		<div className="flex min-w-0 flex-col gap-0.5">
@@ -15,7 +15,7 @@ export function CommandToast({ title, command }: CommandToastProps) {
 				<Check className="size-3 shrink-0 text-success" strokeWidth={2.5} aria-hidden="true" />
 				{title}
 			</div>
-			<span className="truncate font-mono text-xs text-fg-muted">{command}</span>
+			<span className="truncate text-xs text-fg-muted">{command}</span>
 		</div>
 	);
 }

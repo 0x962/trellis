@@ -16,7 +16,9 @@ describe("Select", () => {
 		render(<Select label="Priority" items={items} value="low" onValueChange={() => {}} />);
 		const trigger = screen.getByRole("combobox", { name: "Priority" });
 		expect(trigger.textContent).toContain("low");
-		expectClasses(trigger, "h-7 rounded-md border-border bg-surface");
+		// The trigger sits on the same control ground as a default Button.
+		expectClasses(trigger, "h-7 rounded-md border-border-strong bg-control");
+		expectClasses(trigger, "focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2");
 	});
 
 	// The trigger is 28 px tall with a 1 px border and at least 96 px wide.

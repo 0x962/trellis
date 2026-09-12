@@ -39,7 +39,7 @@ export function ProjectLifecycle({ project }: ProjectLifecycleProps) {
 						Permanently delete this project, its subprojects, and all their tickets.
 					</p>
 				</div>
-				<Button variant="danger" onClick={() => setDeleteOpen(true)}>
+				<Button variant="danger-soft" onClick={() => setDeleteOpen(true)}>
 					Delete project…
 				</Button>
 			</div>

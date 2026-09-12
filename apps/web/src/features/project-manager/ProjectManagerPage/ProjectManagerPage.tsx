@@ -142,7 +142,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 						<IconButton
 							label="Start manager"
 							icon={<Plus />}
-							size="lg"
+							size="md"
 							round
 							variant="primary"
 							disabled={readOnly || active || dirty || !draft.enabled || !persona || runs.isPending || runs.isError}
@@ -230,7 +230,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 												label="Command template"
 												value={command ?? draft.adeCommand}
 												invalid={commandMessage !== null}
-												className="font-mono text-sm"
+												className="text-sm"
 												onChange={(event) => setCommand(event.target.value)}
 												onBlur={commitCommand}
 											/>

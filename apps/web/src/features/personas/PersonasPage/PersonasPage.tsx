@@ -20,7 +20,7 @@ export function PersonasPage() {
 					<IconButton
 						label="New persona"
 						icon={<Plus />}
-						size="lg"
+						size="md"
 						round
 						variant="primary"
 						onClick={() => setEditor({ kind: "builder" })}

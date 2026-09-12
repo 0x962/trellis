@@ -40,12 +40,12 @@ const styles = StyleSheet.create({
 		borderRadius: tokens.radius.sm,
 		borderWidth: layout.stroke,
 	},
-	agentName: { fontFamily: tokens.font.mono, fontSize: tokens.text.sm, lineHeight: tokens.leading.sm },
+	agentName: { fontSize: tokens.text.sm, lineHeight: tokens.leading.sm },
 	humanName: { fontWeight: "500", fontSize: tokens.text.base, lineHeight: tokens.leading.base },
 	suffix: { fontSize: tokens.text.sm, lineHeight: tokens.leading.sm },
 });
 
-// Initials identify a human. The glyph, mono name, and kind suffix identify
+// Initials identify a human. The glyph, the name color, and the kind suffix identify
 // an agent or the system in a timeline or a row.
 export function ActorChip({ name, kind, live = false, muted = false }: ActorChipProps) {
 	const palette = usePalette();

@@ -53,13 +53,13 @@ describe("Gallery", () => {
 		const buttons = within(section("Button")).getAllByRole("button");
 		const withClasses = (classes: string) =>
 			buttons.filter((button) => classes.split(" ").every((name) => button.classList.contains(name)));
-		// The primary variant is the brushed silver that the `metal` utility draws.
+		// The primary variant is the silver metal. Default sits on the control ground.
 		expect(withClasses("metal").length).toBeGreaterThan(0);
-		expect(withClasses("bg-surface border-border").length).toBeGreaterThan(0);
+		expect(withClasses("bg-control border-border-strong text-fg").length).toBeGreaterThan(0);
 		expect(withClasses("border-transparent text-fg-muted").length).toBeGreaterThan(0);
 		expect(withClasses("bg-danger").length).toBeGreaterThan(0);
 		expect(buttons.filter((button) => button.hasAttribute("disabled")).length).toBeGreaterThan(0);
-		expect(withClasses("text-danger bg-surface").length).toBeGreaterThan(0);
+		expect(withClasses("text-danger bg-control").length).toBeGreaterThan(0);
 		expect(withClasses("h-8 text-base").length).toBeGreaterThan(0);
 		expect(withClasses("h-7 text-sm").length).toBeGreaterThan(0);
 	});

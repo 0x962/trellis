@@ -23,6 +23,9 @@ const colorTokens = [
 	"--warning-soft",
 	"--danger",
 	"--danger-soft",
+	"--control",
+	"--control-hover",
+	"--control-active",
 	"--scrim",
 	"--on-accent",
 ];
@@ -31,8 +34,8 @@ const shadowTokens = ["--shadow-sm", "--shadow-md", "--shadow-lg"];
 
 const fontTokens = ["--sans", "--mono"];
 
-// Inter carries the prose and the mono stack carries the ticket titles, the
-// identifiers, the branches, and the commands. BerkeleyMono leads the mono
+// Inter carries the prose and the mono stack carries the ticket
+// identifiers and the code blocks. BerkeleyMono leads the mono
 // stack. A machine without it falls back to the bundled JetBrains Mono. Each
 // "Fallback" entry is the metric-matched face that holds the layout until
 // the web font loads (see fonts.test.ts).
@@ -64,6 +67,9 @@ const lightPalette: Record<string, string> = {
 	"--warning-soft": "#FBF4DA",
 	"--danger": "#C92432",
 	"--danger-soft": "#FFE6E8",
+	"--control": "#FFFFFF",
+	"--control-hover": "#F4F4F5",
+	"--control-active": "#EBEBED",
 	"--scrim": "rgba(0,0,0,.4)",
 	"--on-accent": "#FFFFFF",
 	"--shadow-sm": "0 1px 2px rgba(0,0,0,.06)",
@@ -91,6 +97,9 @@ const darkPalette: Record<string, string> = {
 	"--warning-soft": "#332B0C",
 	"--danger": "#FF6762",
 	"--danger-soft": "#3A1517",
+	"--control": "#1C1C1E",
+	"--control-hover": "#252527",
+	"--control-active": "#2E2E30",
 	"--scrim": "rgba(0,0,0,.6)",
 	"--on-accent": "#0A0A0A",
 	"--shadow-sm": "0 0 0 1px var(--border-strong)",
@@ -121,7 +130,12 @@ const contrastRatio = (a: string, b: string) => {
 // `--fg-muted`, and `--fg-faint` carry the body text on the three page
 // grounds. `--success`, `--warning`, `--danger`, and `--agent` carry a chip
 // label on their own soft ground and a line of status text on the page.
+// `--fg` and `--danger` carry a button label on each control step.
 const textPairs: Array<[string, string]> = [
+	["--fg", "--control"],
+	["--fg", "--control-hover"],
+	["--fg", "--control-active"],
+	["--danger", "--control"],
 	["--fg", "--bg"],
 	["--fg", "--surface"],
 	["--fg", "--elevated"],

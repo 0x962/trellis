@@ -51,8 +51,8 @@ export function RouteError({ error }: RouteErrorProps) {
 				title="Server offline"
 				description={
 					<>
-						trellis did not load this page. The server at{" "}
-						<span className="font-mono text-fg">{window.location.host}</span> does not answer.
+						trellis did not load this page. The server at <span className="text-fg">{window.location.host}</span> does
+						not answer.
 					</>
 				}
 				action={

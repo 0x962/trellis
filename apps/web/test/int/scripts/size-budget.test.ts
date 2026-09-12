@@ -117,11 +117,9 @@ describe("bun run build", () => {
 		const preloads = [...document.head.querySelectorAll('link[rel="preload"][as="font"]')].map(
 			(link) => link.getAttribute("href") ?? "",
 		);
-		expect(preloads).toHaveLength(4);
+		expect(preloads).toHaveLength(2);
 		expect(preloads.some((href) => /inter-latin-wght-normal/.test(href))).toBe(true);
 		expect(preloads.some((href) => /jetbrains-mono-latin-400/.test(href))).toBe(true);
-		expect(preloads.some((href) => /jetbrains-mono-latin-500/.test(href))).toBe(true);
-		expect(preloads.some((href) => /jetbrains-mono-latin-600/.test(href))).toBe(true);
 		// Each preload names a file the build wrote, so the server sends the
 		// font and not the page.
 		for (const href of preloads) expect(assetFiles()).toContain(href.replace(/^\/assets\//, ""));

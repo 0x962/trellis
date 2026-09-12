@@ -29,12 +29,12 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 			<span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
 				<span className="flex min-w-0 items-center gap-2">
 					<DiffLink url={pr.url}>{pr.title}</DiffLink>
-					<span className={cx("shrink-0 font-mono text-sm text-fg-muted", tabularClass)}>#{pr.number}</span>
+					<span className={cx("shrink-0 text-sm text-fg-muted", tabularClass)}>#{pr.number}</span>
 				</span>
 				<span className="flex min-w-0 items-center gap-1 text-sm text-fg-faint">
-					<span className="truncate font-mono">{pr.headRef}</span>
+					<span className="truncate">{pr.headRef}</span>
 					<span aria-hidden="true">→</span>
-					<span className="shrink-0 font-mono">{pr.baseRef}</span>
+					<span className="shrink-0">{pr.baseRef}</span>
 				</span>
 			</span>
 			{pr.fetchError !== null && (
@@ -46,7 +46,7 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 			<IconButton
 				label="Open on GitHub"
 				icon={<ExternalLink />}
-				size="sm"
+				size="xs"
 				className="relative opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
 				onClick={() => window.open(pr.url, "_blank", "noopener")}
 			/>

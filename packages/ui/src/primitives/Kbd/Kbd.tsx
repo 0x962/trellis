@@ -11,7 +11,10 @@ export type KbdProps = {
 	className?: string;
 };
 
-// A key cap: 18 px tall, 11 px mono, on the surface with the strong border.
+// A key cap: 18 px tall, 11 px text, with the 3 px hairline corner. The cap
+// takes its text, its border, and its fill from the color of the text
+// around it. So one style reads on the page, in a menu, in a tooltip, and
+// on every button fill, the silver primary and the red danger included.
 // Every hint in the app draws this element: a row, a menu item, a command
 // palette footer, and the shortcut inside a Button.
 export function Kbd({ children, id, className }: KbdProps) {
@@ -19,7 +22,7 @@ export function Kbd({ children, id, className }: KbdProps) {
 		<kbd
 			id={id}
 			className={cx(
-				"inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-sm border border-border-strong bg-surface px-1 font-mono text-xs leading-none text-fg-muted",
+				"inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-hairline border border-current/25 bg-current/8 px-1 text-xs leading-none",
 				className,
 			)}
 		>

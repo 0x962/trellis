@@ -1,6 +1,6 @@
 import type { Activity } from "@trellis/api";
-import { ActorChip } from "@trellis/ui";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ActorChip, Button } from "@trellis/ui";
+import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { isLiveActor } from "../../../../../lib/actorLive";
 import { compactRelativeTime } from "../../../../../lib/format";
@@ -20,7 +20,6 @@ export function RunLine({ items, reviewer }: RunLineProps) {
 	const last = items[items.length - 1]!;
 	const actor = last.actor;
 	if (open) return items.map((item) => <ActivityLine key={item.id} item={item} reviewer={reviewer} />);
-	const Chevron = open ? ChevronDown : ChevronRight;
 	return (
 		<li
 			data-kind="activity"
@@ -36,15 +35,9 @@ export function RunLine({ items, reviewer }: RunLineProps) {
 				/>
 			)}
 			<span className="min-w-0 truncate"> {describeRun(items)}</span>
-			<button
-				type="button"
-				aria-expanded={open}
-				onClick={() => setOpen(true)}
-				className="inline-flex h-6 shrink-0 items-center gap-0.5 rounded-sm px-1 text-xs text-fg-muted hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
-			>
-				<Chevron className="size-3" aria-hidden="true" />
+			<Button variant="quiet" icon={<ChevronRight />} aria-expanded={false} onClick={() => setOpen(true)}>
 				{items.length} changes
-			</button>
+			</Button>
 			<time dateTime={last.createdAt} className="ml-auto shrink-0 text-fg-muted tabular">
 				{compactRelativeTime(last.createdAt)}
 			</time>

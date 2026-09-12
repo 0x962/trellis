@@ -20,8 +20,6 @@ const styles = StyleSheet.create({
 	grid: { gap: tokens.space[2], paddingHorizontal: tokens.space[4], paddingTop: tokens.space[4] },
 	row: { flexDirection: "row", gap: tokens.space[2] },
 	value: { flex: 1, fontSize: tokens.text.md, lineHeight: tokens.leading.md },
-	// A ticket title reads in the mono face, at the size of a value.
-	titleValue: { flex: 1, fontFamily: tokens.font.mono, fontSize: tokens.text.md, lineHeight: tokens.leading.md },
 	mono: { fontFamily: tokens.font.mono, fontSize: tokens.text.sm, lineHeight: tokens.leading.md },
 });
 
@@ -56,7 +54,7 @@ export function PropertyGrid({ ticket, parentTitle, onStatusPress, onPriorityPre
 			</View>
 			<View style={styles.row}>
 				<PropertyCell label="Project">
-					<Text numberOfLines={1} style={[styles.mono, { color: palette.fg }]}>
+					<Text numberOfLines={1} style={[styles.value, { color: palette.fg }]}>
 						{project.key}
 						<Text style={{ color: palette.fgMuted }}>{rest}</Text>
 					</Text>
@@ -70,7 +68,7 @@ export function PropertyGrid({ ticket, parentTitle, onStatusPress, onPriorityPre
 					) : (
 						<>
 							<Text style={[styles.mono, { color: palette.fgMuted }]}>{parent.identifier}</Text>
-							<Text numberOfLines={1} style={[styles.titleValue, { color: palette.fg }]}>
+							<Text numberOfLines={1} style={[styles.value, { color: palette.fg }]}>
 								{parentTitle ?? ""}
 							</Text>
 						</>

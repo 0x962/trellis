@@ -1,16 +1,17 @@
 /*
- * Two typefaces carry the interface. Inter carries the prose: the labels,
- * the buttons, the menus, the descriptions, and the comments. The mono stack
- * carries the text a person also types into a terminal or a commit: the
- * ticket titles, the identifiers, the branches, the agent names, and the
- * commands. A component marks that text with the font-mono class.
+ * Two typefaces carry the interface. Inter carries every word of the
+ * interface, ticket titles included. The mono stack carries the ticket
+ * identifiers, which a component marks with the font-mono class, and the
+ * code blocks and raw terminal output, whose spacing lines up only in a
+ * monospace face.
  *
  * BerkeleyMono leads the mono stack in tokens.css and is licensed per
  * machine, so this repo ships no file for it and declares no face. A machine
  * with the font installed picks it up from the stack. Every other machine
  * falls through to JetBrains Mono from fontsource. Only the latin subset of
  * each font is declared, and only the three mono weights the components ask
- * for: 400, 500 through font-medium, and 600 through font-semibold. The Inter
+ * for: 400, 500 through font-medium, and 600 through font-semibold. A bold
+ * heading that holds inline code asks for 600. The Inter
  * face below is the latin entry of @fontsource-variable/inter/wght.css, with
  * its unicode-range. Each fallback face is metric-matched to its web font, so
  * text set before that font arrives occupies the same lines and nothing
@@ -66,8 +67,7 @@ body {
 }
 
 /*
- * A component marks a ticket title, an identifier, a branch, or a command
- * with this utility. JetBrains Mono has no cv11 and no ss01, so the marked
+ * A component marks a ticket identifier with this utility. JetBrains Mono has no cv11 and no ss01, so the marked
  * text drops the two Inter features the body sets.
  */
 @utility mono {

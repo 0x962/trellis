@@ -41,7 +41,6 @@ export type TicketViewProps = {
 const styles = StyleSheet.create({
 	screen: { flex: 1 },
 	title: {
-		fontFamily: tokens.font.mono,
 		fontSize: tokens.text.xl,
 		lineHeight: tokens.leading.xl,
 		fontWeight: "600",

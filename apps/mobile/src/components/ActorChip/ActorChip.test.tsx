@@ -17,7 +17,7 @@ describe("ActorChip", () => {
 		const palette = tokens.dark;
 		const agent = await render(<ActorChip name="claude-code" kind="agent" live />);
 		const agentName = textStyle(screen.getByText("claude-code"));
-		expect(agentName.fontFamily).toBe(tokens.font.mono);
+		expect(agentName.fontFamily).not.toBe(tokens.font.mono);
 		expect(agentName.color).toBe(palette.agent);
 		expect(screen.getByText("· agent")).toBeOnTheScreen();
 		expect(screen.getByTestId("live-dot")).toBeOnTheScreen();

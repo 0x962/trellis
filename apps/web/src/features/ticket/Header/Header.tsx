@@ -126,7 +126,7 @@ export function Header(props: HeaderProps) {
 								<Tooltip content="Copy ID ⌘C">
 									<IconButton
 										label="Copy ID"
-										size="md"
+										size="sm"
 										icon={<Copy />}
 										onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
 									/>
@@ -134,7 +134,7 @@ export function Header(props: HeaderProps) {
 								<Tooltip content="Copy branch name ⌘⇧C">
 									<IconButton
 										label="Copy branch name"
-										size="md"
+										size="sm"
 										icon={<GitBranch />}
 										onClick={() => void copyText(branch, "Copied the branch name")}
 									/>
@@ -148,10 +148,10 @@ export function Header(props: HeaderProps) {
 					<>
 						<span aria-hidden="true" className="mx-1 h-4 w-px bg-border" />
 						<Tooltip content="Expand to the full page">
-							<IconButton label="Expand to the full page" size="md" icon={<Maximize2 />} onClick={expand} />
+							<IconButton label="Expand to the full page" size="sm" icon={<Maximize2 />} onClick={expand} />
 						</Tooltip>
 						<Tooltip content="Close Esc">
-							<IconButton label="Close" size="md" icon={<X />} onClick={peek.close} />
+							<IconButton label="Close" size="sm" icon={<X />} onClick={peek.close} />
 						</Tooltip>
 					</>
 				)}

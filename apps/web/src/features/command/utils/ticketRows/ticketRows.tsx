@@ -52,7 +52,7 @@ export const ticketRows = (deps: RowDeps): PaletteRow[] => {
 		"ticket.copyId": identifier,
 		"ticket.copyBranch": branch,
 	};
-	const mono = new Set(["ticket.copyId", "ticket.copyBranch"]);
+	const mono = new Set(["ticket.copyId"]);
 	// The branch name needs the title. A palette opened before the ticket
 	// answered reads it here.
 	const copyBranch = async () => {
