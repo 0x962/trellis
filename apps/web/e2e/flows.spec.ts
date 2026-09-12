@@ -111,7 +111,8 @@ test("the node sheet labels its sections and closes without losing edits", async
 	await page.keyboard.press("Escape");
 	await expect(sheet).toHaveCount(0);
 	await page.getByText("Review the change", { exact: true }).click();
-	await sheet.getByRole("button", { name: "Done", exact: true }).click();
+	await expect(sheet.getByText("Saved", { exact: true })).toHaveCount(0);
+	await sheet.getByRole("button", { name: "Save", exact: true }).click();
 	await expect(sheet).toHaveCount(0);
 });
 

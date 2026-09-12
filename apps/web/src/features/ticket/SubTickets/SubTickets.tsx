@@ -61,7 +61,7 @@ export function SubTickets({ ticket }: SubTicketsProps) {
 				}
 			/>
 			{total === 0 ? (
-				<EmptyState title="No sub-tickets" description="Add a sub-ticket to split this work into smaller tasks." />
+				<EmptyState description="Add a sub-ticket to split this work into smaller tasks." />
 			) : (
 				<div className="overflow-hidden rounded-md border border-border">
 					<div

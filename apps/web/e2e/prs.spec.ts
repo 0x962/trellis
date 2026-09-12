@@ -18,6 +18,24 @@ test("prs > a linked pull request shows its row, and its parent shows the failin
 	const row = page.locator("[data-pr-row]");
 	await expect(row).toContainText("Fix the desktop typecheck");
 	await expect(row).toContainText("#7");
+	await row.hover();
+	const title = row.getByRole("link", { name: "Fix the desktop typecheck" });
+	const open = row.getByRole("button", { name: "Open on GitHub" });
+	const manage = row.getByRole("button", { name: "Unlink PR #7" });
+	const reviewState = row.locator("[data-review-state]");
+	await expect(title).toHaveCSS("text-decoration-line", "none");
+	await expect(open).toBeVisible();
+	await expect(manage).toBeVisible();
+	const [openBox, manageBox, reviewBox] = await Promise.all([
+		open.boundingBox(),
+		manage.boundingBox(),
+		reviewState.boundingBox(),
+	]);
+	expect(openBox).not.toBeNull();
+	expect(manageBox).not.toBeNull();
+	expect(reviewBox).not.toBeNull();
+	expect(reviewBox!.x).toBeGreaterThan(openBox!.x);
+	expect(reviewBox!.x).toBeGreaterThan(manageBox!.x);
 	await page.goto("/t/PRS-1");
 	const children = page.getByRole("region", { name: /Sub-tickets/ });
 	await expect(children.getByLabel(/ PR, checks failed/)).toBeVisible();

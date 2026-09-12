@@ -1,5 +1,5 @@
 import type { Comment, Ticket, TimelineItem } from "@trellis/api";
-import { Button, SectionHeader } from "@trellis/ui";
+import { SectionHeader } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { useStatuses } from "../hooks/useStatuses";
 import { timelineOptions, useTimeline } from "../hooks/useTimeline";
@@ -56,11 +56,6 @@ export function Timeline({ ticket, onAttachFiles }: TimelineProps) {
 
 	return (
 		<section aria-label="Timeline" className="flex flex-col gap-2">
-			{timeline.hasNextPage && (
-				<Button variant="quiet" size="sm" className="self-start" onClick={() => void timeline.fetchNextPage()}>
-					Load older
-				</Button>
-			)}
 			<ul aria-label="Timeline">
 				<li>
 					<SectionHeader title="Activity" />

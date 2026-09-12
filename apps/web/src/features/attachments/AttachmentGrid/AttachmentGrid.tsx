@@ -97,7 +97,7 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 					<UploadProgress key={upload.id} upload={upload} showName={false} onDismiss={uploadManager.dismiss} />
 				))}
 				{attachments.length === 0 && uploadManager.uploads.length === 0 && (
-					<EmptyState title="No attachments" description="Add a file or drop it anywhere on this ticket." />
+					<EmptyState description="Add a file or drop it anywhere on this ticket." />
 				)}
 				{images.length > 0 && (
 					<div className="flex flex-wrap gap-2">

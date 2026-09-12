@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { FlowDoc, Persona } from "@trellis/api";
 import { ConfirmDialog, IconButton, Tooltip } from "@trellis/ui";
 import { useEdgesState, useNodesState, useReactFlow } from "@xyflow/react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageTitle } from "../../../../shell/PageTitle";
 import { Topbar } from "../../../../shell/Topbar";
 import { createDraftRecovery } from "../../draftRecovery";
@@ -57,6 +57,7 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 	const [flow, setFlow] = useState(() => ({ ...doc.flow, version: stored?.version ?? doc.flow.version }));
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [saveAndCloseId, setSaveAndCloseId] = useState<string | null>(null);
 
 	const graph = useMemo(() => fromCanvas(nodes, edges), [nodes, edges]);
 	const issues = useMemo(() => draftIssues(flow.id, graph), [flow.id, graph]);
@@ -83,6 +84,20 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 		[personas, issues, graph, nodes],
 	);
 	const selected = selectedId === null ? undefined : nodes.find((node) => node.id === selectedId);
+	const closeInspector = useCallback(() => {
+		setSaveAndCloseId(null);
+		setSelectedId(null);
+		setNodes((current) => current.map((node) => ({ ...node, selected: false })));
+	}, [setNodes]);
+	useEffect(() => {
+		if (saveAndCloseId === null) return;
+		if (autosave.status === "saved") {
+			if (selectedId === saveAndCloseId) closeInspector();
+			else setSaveAndCloseId(null);
+		} else if (["error", "conflict", "invalid"].includes(autosave.status)) {
+			setSaveAndCloseId(null);
+		}
+	}, [autosave.status, saveAndCloseId, selectedId, closeInspector]);
 	const change = (patch: Partial<StepFields>) => {
 		if (patch.parallel === true) {
 			const children = new Set(nodes.filter((node) => node.parentId === selectedId).map((node) => node.id));
@@ -137,14 +152,20 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 					<NodeInspector
 						key={selected.id}
 						fields={selected.data.fields}
-						issue={issues.byRow.get(selected.id)}
+						issue={
+							autosave.status === "error" || autosave.status === "conflict"
+								? autosave.message
+								: issues.byRow.get(selected.id)
+						}
 						personas={personas}
 						onChange={change}
-						onClose={() => {
-							setSelectedId(null);
-							setNodes((current) => current.map((node) => ({ ...node, selected: false })));
+						onClose={closeInspector}
+						onSave={() => {
+							setSaveAndCloseId(selected.id);
+							autosave.saveNow();
 						}}
-						saveState={saveText(autosave.status)}
+						saving={saveAndCloseId === selected.id}
+						canSave={issues.canSave && autosave.status !== "conflict"}
 						onDelete={() => void rf.deleteElements({ nodes: [{ id: selected.id }] })}
 					/>
 				)}

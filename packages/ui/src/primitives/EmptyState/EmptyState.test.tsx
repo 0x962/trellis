@@ -47,4 +47,10 @@ describe("EmptyState", () => {
 		expectClasses(empty, "py-3");
 		expectClasses(screen.getByRole("heading", { name: "No sub-projects." }), "text-sm font-medium text-fg");
 	});
+
+	test("a section can show compact helper text without a title", () => {
+		const { container } = render(<EmptyState description="Add a file to this ticket." />);
+		expectClasses(container.firstElementChild!, "py-0");
+		expectClasses(screen.getByText("Add a file to this ticket."), "text-sm text-fg-muted");
+	});
 });

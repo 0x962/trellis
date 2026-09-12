@@ -5,7 +5,7 @@ export type EmptyStateProps = {
 	// A small picture above the title, pinned a little crooked like a print
 	// on a wall. It is decoration, so screen readers skip it.
 	image?: string;
-	title: string;
+	title?: string;
 	description?: ReactNode;
 	// A Button, shown under the description. A page-level action is md.
 	action?: ReactNode;
@@ -24,12 +24,14 @@ export function EmptyState({ image, title, description, action, variant = "secti
 		<div
 			className={cx(
 				"flex flex-col items-start gap-2 text-fg-muted",
-				page ? "flex-1 px-5 pt-10 max-md:px-4" : "py-3",
+				page ? "flex-1 px-5 pt-10 max-md:px-4" : title === undefined ? "py-0" : "py-3",
 				className,
 			)}
 		>
 			{image !== undefined && <img src={image} alt="" className="mb-4 w-24 -rotate-2 rounded-sm shadow-md grayscale" />}
-			<h3 className={cx("text-fg", page ? "text-xl font-semibold" : "text-sm font-medium")}>{title}</h3>
+			{title !== undefined && (
+				<h3 className={cx("text-fg", page ? "text-xl font-semibold" : "text-sm font-medium")}>{title}</h3>
+			)}
 			{description && <p className="max-w-xl text-sm text-fg-muted">{description}</p>}
 			{action && <div className={cx(page ? "mt-3" : "mt-2")}>{action}</div>}
 		</div>

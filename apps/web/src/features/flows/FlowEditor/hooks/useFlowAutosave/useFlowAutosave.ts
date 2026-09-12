@@ -22,6 +22,7 @@ export function useFlowAutosave({ flow, graph, canSave, initialSavedJson, recove
 	const json = useMemo(() => JSON.stringify(graph), [graph]);
 	const [savedJson, setSavedJson] = useState(initialSavedJson);
 	const [saving, setSaving] = useState(false);
+	const [immediate, setImmediate] = useState(false);
 	const [failure, setFailure] = useState<"conflict" | "error" | null>(null);
 	const [message, setMessage] = useState("");
 
@@ -30,27 +31,42 @@ export function useFlowAutosave({ flow, graph, canSave, initialSavedJson, recove
 	}, [json, savedJson, flow.version, graph, recovery]);
 
 	useEffect(() => {
-		if (json === savedJson || !canSave || saving || failure !== null) return;
-		const timer = setTimeout(() => {
-			setSaving(true);
-			client.flows.save({ flow: flow.id, ...graph, expectedVersion: flow.version }).then(
-				(doc) => {
-					recovery.acknowledge(graph, doc.flow.version);
-					setSaving(false);
-					setSavedJson(json);
-					onSaved(doc.flow);
-				},
-				(error: unknown) => {
-					setSaving(false);
-					setFailure(error instanceof ORPCError && error.code === "FLOW_VERSION_CONFLICT" ? "conflict" : "error");
-					setMessage(error instanceof Error ? error.message : String(error));
-				},
-			);
-		}, SAVE_DELAY_MS);
+		if (json === savedJson && !saving) {
+			setImmediate(false);
+			return;
+		}
+		if (!canSave || saving || failure !== null) return;
+		const timer = setTimeout(
+			() => {
+				setSaving(true);
+				client.flows.save({ flow: flow.id, ...graph, expectedVersion: flow.version }).then(
+					(doc) => {
+						recovery.acknowledge(graph, doc.flow.version);
+						setSaving(false);
+						setSavedJson(json);
+						onSaved(doc.flow);
+					},
+					(error: unknown) => {
+						setSaving(false);
+						setFailure(error instanceof ORPCError && error.code === "FLOW_VERSION_CONFLICT" ? "conflict" : "error");
+						setMessage(error instanceof Error ? error.message : String(error));
+					},
+				);
+			},
+			immediate ? 0 : SAVE_DELAY_MS,
+		);
 		return () => clearTimeout(timer);
-	}, [json, savedJson, canSave, saving, failure, client, flow.id, flow.version, graph, onSaved, recovery]);
+	}, [json, savedJson, canSave, saving, immediate, failure, client, flow.id, flow.version, graph, onSaved, recovery]);
 
 	const status: AutosaveStatus =
 		failure ?? (saving ? "saving" : json === savedJson ? "saved" : canSave ? "pending" : "invalid");
-	return { status, message, retry: () => setFailure(null) };
+	return {
+		status,
+		message,
+		retry: () => setFailure(null),
+		saveNow: () => {
+			setImmediate(true);
+			if (failure === "error") setFailure(null);
+		},
+	};
 }

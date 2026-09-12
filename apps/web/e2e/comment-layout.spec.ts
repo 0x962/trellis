@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { patch } from "./api";
 import { createTicket, ensureProject, trellis } from "./cli";
 import { signIn } from "./support";
 
 const shortRenderedComment = `[Short link](https://example.com/${"a".repeat(750)})`;
 const longRenderedComment = Array.from({ length: 12 }, (_, index) => `Paragraph ${index + 1}`).join("\n\n");
 
-test.beforeAll(() => {
+test.beforeAll(async () => {
 	if (!ensureProject("CMT", "Comment layout")) return;
 	createTicket("CMT", "Keep compact comments compact");
 	trellis(["comment", "CMT-1", "--body", shortRenderedComment], "human:dana");
@@ -14,20 +15,18 @@ test.beforeAll(() => {
 	createTicket("CMT", "Show every activity item");
 	trellis(["edit", "CMT-3", "--title", "Show every activity item after one edit"]);
 	trellis(["edit", "CMT-3", "--title", "Show every activity item after two edits"]);
+	for (let index = 0; index < 100; index += 1) {
+		await patch(`/tickets/CMT-3`, { title: `Show every activity item after edit ${index + 3}` });
+	}
 });
 
-test("a compact rendered comment has no Show more button", async ({ page }) => {
-	await signIn(page, "/t/CMT-1");
-	await expect(page.getByRole("article", { name: "Comment by dana" })).toBeVisible();
-	await expect(page.getByRole("button", { name: "Show more" })).toHaveCount(0);
-});
-
-test("an overflowing comment can expand and collapse", async ({ page }) => {
+test("a long comment renders its full body", async ({ page }) => {
 	await signIn(page, "/t/CMT-2");
-	await page.getByRole("button", { name: "Show more" }).click();
-	await expect(page.getByRole("button", { name: "Show less" })).toBeVisible();
-	await page.getByRole("button", { name: "Show less" }).click();
-	await expect(page.getByRole("button", { name: "Show more" })).toBeVisible();
+	const body = page.getByRole("article", { name: "Comment by dana" }).locator(".markdown, .comment-markdown");
+	await expect(body.getByText("Paragraph 12")).toBeVisible();
+	await expect
+		.poll(() => body.evaluate((element) => element.parentElement!.clientHeight === element.parentElement!.scrollHeight))
+		.toBe(true);
 });
 
 test("timeline actor names align with the comment surface", async ({ page }) => {
@@ -50,5 +49,5 @@ test("timeline actor names align with the comment surface", async ({ page }) => 
 
 test("every activity item renders as its own timeline row", async ({ page }) => {
 	await signIn(page, "/t/CMT-3");
-	await expect(page.locator('[data-stream-entry="activity"]')).toHaveCount(3);
+	await expect(page.locator('[data-stream-entry="activity"]')).toHaveCount(103);
 });

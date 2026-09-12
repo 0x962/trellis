@@ -50,7 +50,7 @@ export function PullRequests({ ticket, initialPrs }: PullRequestsProps) {
 					<Skeleton width="w-64" />
 				</div>
 			) : prs.length === 0 ? (
-				<EmptyState title="No pull requests" description="Add a pull request to track its review and checks." />
+				<EmptyState description="Add a pull request to track its review and checks." />
 			) : (
 				<>
 					<GhBanner />

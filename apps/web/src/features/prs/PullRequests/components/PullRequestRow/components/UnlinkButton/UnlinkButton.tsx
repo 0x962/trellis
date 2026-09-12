@@ -1,4 +1,4 @@
-import { X } from "@phosphor-icons/react";
+import { Gear } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
 import { IconButton } from "@trellis/ui";
@@ -24,7 +24,7 @@ export function UnlinkButton({ ticket, pr }: UnlinkButtonProps) {
 	return (
 		<IconButton
 			label={`Unlink PR #${pr.number}`}
-			icon={<X />}
+			icon={<Gear />}
 			size="xs"
 			disabled={unlink.isPending}
 			className="relative opacity-0 group-hover:opacity-100 focus-visible:opacity-100"

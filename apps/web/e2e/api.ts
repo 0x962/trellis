@@ -15,6 +15,11 @@ export const put = async <T>(path: string, body: unknown): Promise<T> => {
 	return (await response.json()) as T;
 };
 
+export const patch = async <T>(path: string, body: unknown): Promise<T> => {
+	const response = await fetch(`${apiUrl}/api${path}`, { method: "PATCH", headers, body: JSON.stringify(body) });
+	return (await response.json()) as T;
+};
+
 export const post = async <T>(path: string, body: unknown): Promise<T> => {
 	const response = await fetch(`${apiUrl}/api${path}`, { method: "POST", headers, body: JSON.stringify(body) });
 	return (await response.json()) as T;

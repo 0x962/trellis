@@ -8,7 +8,7 @@ export function DiffLink({ url, children }: DiffLinkProps) {
 		<Link
 			to="/reviews/$owner/$repo/$number"
 			params={{ owner: ref.owner, repo: ref.repo, number: String(ref.number) }}
-			className="min-w-0 truncate text-base font-medium text-fg before:absolute before:inset-0 hover:underline"
+			className="min-w-0 truncate text-base font-medium text-fg before:absolute before:inset-0"
 		>
 			{children}
 		</Link>
