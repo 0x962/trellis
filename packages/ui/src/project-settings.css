@@ -146,10 +146,10 @@
 @utility manager-command-group {
 	@apply min-w-0 border border-border;
 	& > summary {
-		@apply cursor-pointer px-4 py-3 text-sm font-medium hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11;
+		@apply flex min-h-7 list-none items-center gap-2 cursor-pointer px-4 py-3 text-sm font-medium hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11;
 	}
-	& > summary > span {
-		@apply ml-2 font-normal text-fg-muted;
+	& > summary > .manager-command-hint {
+		@apply ml-auto hidden font-normal text-fg-muted sm:block;
 	}
 }
 @utility manager-command-body {
@@ -164,7 +164,7 @@
 @utility manager-command-row {
 	@apply min-w-0 border-b border-border;
 	& > summary {
-		@apply min-h-7 cursor-pointer py-2 text-sm text-fg hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11;
+		@apply flex min-h-7 list-none items-center gap-2 cursor-pointer py-2 text-sm text-fg hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11;
 	}
 }
 @utility manager-command-editor {
@@ -182,4 +182,17 @@
 	& > :first-child {
 		@apply min-w-0 flex-1;
 	}
+}
+
+.manager-command-group > summary::-webkit-details-marker,
+.manager-command-row > summary::-webkit-details-marker {
+	display: none;
+}
+.manager-command-group > summary > svg,
+.manager-command-row > summary > svg {
+	@apply size-3.5 shrink-0 text-fg-muted;
+}
+.manager-command-group[open] > summary > svg,
+.manager-command-row[open] > summary > svg {
+	@apply rotate-90;
 }

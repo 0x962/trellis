@@ -94,9 +94,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 			<Topbar
 				actions={
 					<>
-						{/* The agents toggle is green metal while agents run and red metal while
-						    they are off. The tooltip says the state in words. */}
-						<Tooltip content={draft.enabled ? "Agents are on" : "Agents are off"}>
+						<Tooltip content={draft.enabled ? "Agents are on. Turn off agents" : "Agents are off. Turn on agents"}>
 							<PowerToggle
 								label="Agents"
 								on={draft.enabled}
@@ -113,8 +111,8 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 								<IconButton
 									label="Pause manager"
 									icon={<Pause weight="fill" />}
-									size="md"
-									variant="primary"
+									size="sm"
+									variant="default"
 									disabled={readOnly || manager.state === "starting" || pause.isPending}
 									onClick={() => pause.mutate()}
 								/>
@@ -124,8 +122,8 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 								<IconButton
 									label={resumes ? "Resume manager" : "Start manager"}
 									icon={<Play weight="fill" />}
-									size="md"
-									variant="primary"
+									size="sm"
+									variant="default"
 									disabled={
 										readOnly ||
 										dirty ||
