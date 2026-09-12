@@ -62,6 +62,7 @@ export type Live = {
 // One SSE frame as it crosses the tab channel.
 type FrameMessage = { id: string; type: string; data: unknown };
 type StatusMessage = { type: "status"; value: LiveStatus };
+type StatusRequest = { type: "status-request" };
 
 export const lockName = "trellis-sse";
 export const channelName = "trellis-events";
@@ -173,7 +174,7 @@ export const createLive = (options: LiveOptions): Live => {
 		for (const type of eventNames) {
 			next.addEventListener(type, (event) => {
 				const data: unknown = JSON.parse(event.data);
-				lastId = event.lastEventId;
+				if (event.lastEventId !== "") lastId = event.lastEventId;
 				channel?.postMessage({ id: event.lastEventId, type, data } satisfies FrameMessage);
 				handleFrame(type, data);
 			});
@@ -182,14 +183,18 @@ export const createLive = (options: LiveOptions): Live => {
 	};
 
 	const onMessage = (event: { data: unknown }) => {
+		const message = event.data as FrameMessage | StatusMessage | StatusRequest;
+		if (message.type === "status-request") {
+			if (leader) channel?.postMessage({ type: "status", value: status.get() } satisfies StatusMessage);
+			return;
+		}
 		if (leader) return;
-		const message = event.data as FrameMessage | StatusMessage;
 		if (message.type === "status") {
 			status.set((message as StatusMessage).value);
 			return;
 		}
 		const frame = message as FrameMessage;
-		lastId = frame.id;
+		if (frame.id !== "") lastId = frame.id;
 		handleFrame(frame.type, frame.data);
 	};
 
@@ -210,6 +215,7 @@ export const createLive = (options: LiveOptions): Live => {
 		status.subscribe(() => {
 			if (leader) channel?.postMessage({ type: "status", value: status.get() } satisfies StatusMessage);
 		});
+		channel.postMessage({ type: "status-request" } satisfies StatusRequest);
 		lockPromise = locks.request(lockName, becomeLeader);
 	};
 

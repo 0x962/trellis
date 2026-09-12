@@ -6,6 +6,14 @@ import { createOrigin, flush, recordingApplier, startTab } from "../../test/live
 const detailKey = generateOperationKey(["tickets", "get"], { input: { ticket: "CDE-42" }, type: "query" });
 
 describe("lib/live leader election", () => {
+	test("a new tab receives the current connection status from the leader", async () => {
+		const origin = createOrigin();
+		const leader = await startTab(origin);
+		leader.latest().emit("ready", eventId(4), readyPayload(4));
+		const follower = await startTab(origin);
+		expect(follower.live.status.get()).toBe("live");
+	});
+
 	// WS-48. One EventSource per origin: the tab that holds the trellis-sse
 	// lock owns the connection, every other tab waits on the lock.
 	test("one tab per origin wins the trellis-sse lock and owns the EventSource", async () => {

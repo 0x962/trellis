@@ -118,20 +118,19 @@ export async function metadata(ctx: ServiceCtx, input: { pr: string }) {
 			`num=${ref.number}`,
 		]),
 	);
-	const labels = JSON.parse(
-		await gh(ctx, [
-			"label",
-			"list",
-			"-R",
-			`${ref.owner}/${ref.repo}`,
-			"--search",
-			"00_AUTO_DEPLOY",
-			"--limit",
-			"20",
-			"--json",
-			"name",
-		]),
-	) as { name: string }[];
+	const rawLabels = await gh(ctx, [
+		"label",
+		"list",
+		"-R",
+		`${ref.owner}/${ref.repo}`,
+		"--search",
+		"00_AUTO_DEPLOY",
+		"--limit",
+		"20",
+		"--json",
+		"name",
+	]);
+	const labels = (rawLabels.trim() === "" ? [] : JSON.parse(rawLabels)) as { name: string }[];
 	return {
 		...graph.data.repository.pullRequest,
 		autoDeployAvailable: labels.some((l) => l.name === "00_AUTO_DEPLOY"),

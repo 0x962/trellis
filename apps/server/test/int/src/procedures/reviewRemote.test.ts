@@ -35,7 +35,7 @@ beforeEach(async () => {
 				else if (args[1]?.includes("contents/")) stdout = "original file";
 				else if (args[1] === "graphql")
 					stdout = JSON.stringify({ data: { repository: { pullRequest: { stack: null, mergeQueueEntry: null } } } });
-				else if (args[0] === "label") stdout = "[]";
+				else if (args[0] === "label") stdout = "";
 				return { ok: true as const, stdout, code: 0, stderr: "" };
 			},
 			{ bin: "gh", timeoutMs: 100 },
@@ -48,6 +48,11 @@ afterEach(async () => {
 });
 const pr = "owner/repo#30";
 const post = (path: string, body: unknown) => t.api(`/api/reviews${path}`, { method: "POST", body });
+test("reads metadata when GitHub returns no matching deployment label", async () => {
+	const result = await post("/metadata", { pr });
+	expect(result.status).toBe(200);
+	expect(result.body).toMatchObject({ stack: null, mergeQueueEntry: null, autoDeployAvailable: false });
+});
 test("reads current PR status without a new diff or a revision write", async () => {
 	calls.length = 0;
 	const status = await post("/status", { pr });

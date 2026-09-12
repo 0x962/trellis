@@ -3,6 +3,15 @@ import { eventId, readyPayload, updatedPayload } from "../../test/fixtures";
 import { createOrigin, startTab } from "../../test/liveHarness";
 
 describe("lib/live reconnect", () => {
+	test("a ready frame without an event id reconnects without an empty cursor", async () => {
+		const origin = createOrigin();
+		const tab = await startTab(origin);
+		tab.latest().emit("ready", "", readyPayload(0));
+		tab.latest().fail();
+		origin.advanceTo(1000);
+		expect(tab.latest().url).toBe("/api/events");
+	});
+
 	// WS-51. The client closes a failed source and reopens it itself, so
 	// the reopen carries the last id as `since` and the backoff is the
 	// client's: 1, 2, 4, 8 s, then 8 s again.
