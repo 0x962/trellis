@@ -1,6 +1,6 @@
 import type { Sort } from "@trellis/api";
-import { cx, IconButton, Popover, Segmented, Select, Switch, Tooltip } from "@trellis/ui";
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, SlidersHorizontal } from "lucide-react";
+import { cx, IconButton, Popover, Segmented, Select, SortGlyph, Switch, Tooltip } from "@trellis/ui";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
 import { type Density, uiActions, useUiStore } from "../../../stores/uiStore";
 import type { Group, View } from "../../filters/grammar";
 import { alwaysVisible, type ColumnId, columnLabels, columnOrder } from "../columns";
@@ -77,7 +77,7 @@ export function DisplayPopover({
 			label="Display"
 			align="end"
 			className="w-75 p-3"
-			trigger={<IconButton label="Display" icon={<SlidersHorizontal />} size="md" />}
+			trigger={<IconButton label="Display" icon={<SortGlyph />} size="md" />}
 		>
 			<div className="flex flex-col gap-3">
 				<section className="flex flex-col gap-1.5">

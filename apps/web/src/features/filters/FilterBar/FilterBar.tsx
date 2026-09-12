@@ -1,7 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
 import type { StatusSummary } from "@trellis/api";
-import { IconButton, Menu, toast, useHotkey } from "@trellis/ui";
-import { Copy, Link2, ListFilter, Share2 } from "lucide-react";
+import { FilterGlyph, IconButton, Menu, toast, useHotkey } from "@trellis/ui";
+import { Copy, Link2, Share2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toCli } from "../cli";
 import { FilterChip } from "../FilterChip";
@@ -99,7 +99,7 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions }
 					onOpenChange={onOpenChange}
 					stage={stage}
 					onStageChange={setStage}
-					trigger={<IconButton label="Filter" icon={<ListFilter />} size="md" data-filter-button="" />}
+					trigger={<IconButton label="Filter" icon={<FilterGlyph />} size="md" data-filter-button="" />}
 				/>
 				{actions}
 				<Menu

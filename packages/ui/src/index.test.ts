@@ -42,6 +42,8 @@ const names = [
 	"TicketGlyph",
 	"AiGlyph",
 	"SettingGlyph",
+	"FilterGlyph",
+	"SortGlyph",
 	"TrellisWordmark",
 	"useTheme",
 	"useReducedMotion",

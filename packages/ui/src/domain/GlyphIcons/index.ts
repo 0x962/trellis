@@ -1,1 +1,1 @@
-export { AiGlyph, type GlyphProps, SettingGlyph, TicketGlyph } from "./GlyphIcons";
+export { AiGlyph, FilterGlyph, type GlyphProps, SettingGlyph, SortGlyph, TicketGlyph } from "./GlyphIcons";
