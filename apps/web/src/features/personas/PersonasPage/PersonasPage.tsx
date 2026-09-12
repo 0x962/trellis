@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Persona, PersonaKind } from "@trellis/api";
-import { Button, EmptyState, EntityCard, Skeleton } from "@trellis/ui";
+import { Button, EmptyState, EntityCard, IconButton, Skeleton } from "@trellis/ui";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -17,9 +17,14 @@ export function PersonasPage() {
 		<>
 			<Topbar
 				actions={
-					<Button variant="primary" icon={<Plus />} onClick={() => setEditor({ kind: "builder" })}>
-						New persona
-					</Button>
+					<IconButton
+						label="New persona"
+						icon={<Plus />}
+						size="lg"
+						round
+						variant="primary"
+						onClick={() => setEditor({ kind: "builder" })}
+					/>
 				}
 			>
 				<h1 className="sr-only">Personas</h1>

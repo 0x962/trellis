@@ -107,6 +107,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 					<IconButton
 						size="sm"
 						className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
+						round
 						label="New project"
 						icon={<Plus />}
 						onClick={() => navigate({ to: "/setup", search: { step: "project" } })}

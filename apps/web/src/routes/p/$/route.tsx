@@ -14,7 +14,6 @@ import {
 	type View,
 	viewOf,
 } from "../../../features/filters/grammar";
-import { Breadcrumb } from "../../../features/shell/Breadcrumb";
 import { ListFooter } from "../../../features/shell/ListFooter";
 import { NewTicketButton } from "../../../features/shell/NewTicketButton";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
@@ -154,7 +153,7 @@ function ProjectPage() {
 					</>
 				}
 			>
-				<Breadcrumb path={ref} current={project.name} />
+				<h1 className="sr-only">{project.name}</h1>
 			</Topbar>
 			{archived && <ArchivedBanner project={project} />}
 			<FilterBar
