@@ -2,7 +2,8 @@ import { ArrowRight, ArrowsClockwise, ChatCircle, Plus } from "@phosphor-icons/r
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { reviewRef } from "@trellis/api";
-import { Badge, Button, EmptyState, IconButton, Input, Segmented, Sheet, Tooltip } from "@trellis/ui";
+import { Button, EmptyState, IconButton, Input, Segmented, Sheet, Tooltip } from "@trellis/ui";
+import { ReviewStatus } from "@trellis/ui/review";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
@@ -132,15 +133,7 @@ export function ReviewsPage() {
 													{pr.open}
 												</span>
 											)}
-											<Badge tone={pr.state === "MERGED" ? "agent" : pr.state === "OPEN" ? "ok" : "neutral"} size="sm">
-												{pr.state === "MERGED"
-													? "Merged"
-													: pr.state === "OPEN"
-														? "Open"
-														: pr.state === "CLOSED"
-															? "Closed"
-															: "Draft"}
-											</Badge>
+											<ReviewStatus state={pr.state} />
 											<ArrowRight className="review-row-arrow" aria-hidden="true" />
 										</Link>
 									))}
