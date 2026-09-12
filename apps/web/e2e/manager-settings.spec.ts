@@ -39,7 +39,7 @@ test("ADE and harness presets save independently on separate pages", async ({ pa
 		HARNESS_PRESETS.codex.startCommand,
 	);
 	await page.getByRole("link", { name: "General", exact: true }).click();
-	await page.getByRole("spinbutton", { name: "Concurrency" }).fill("5");
-	await page.getByRole("spinbutton", { name: "Concurrency" }).press("Tab");
+	await page.getByLabel("Concurrency", { exact: true }).fill("5");
+	await page.getByLabel("Concurrency", { exact: true }).press("Tab");
 	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.concurrency).toBe(5);
 });
