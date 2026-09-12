@@ -30,14 +30,12 @@ const built = [
 describe("fontPreloads", () => {
 	// The href is the hashed file the built CSS asks for, so the browser
 	// reuses the preloaded bytes.
-	test("the build preloads the four latin font files by their hashed names", () => {
+	test("the build preloads the latin Inter file and JetBrains Mono 400 by their hashed names", () => {
 		const hrefs = tags(built).map((tag) => tag.attrs!.href);
 		expect(hrefs.sort()).toEqual(
 			[
 				"/assets/inter-latin-wght-normal-Dx4kXJAl.woff2",
 				"/assets/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
-				"/assets/jetbrains-mono-latin-500-normal-BWZEU5yA.woff2",
-				"/assets/jetbrains-mono-latin-600-normal-C8RAYTDA.woff2",
 			].sort(),
 		);
 	});

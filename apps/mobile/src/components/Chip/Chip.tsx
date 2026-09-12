@@ -6,7 +6,7 @@ import { usePalette } from "../../theme/usePalette";
 
 export type ChipProps = {
 	children: string;
-	// A branch, a slug, or an identifier reads in mono.
+	// A ticket identifier reads in mono.
 	mono?: boolean;
 	// A StatusIcon or a PriorityIcon before the label.
 	icon?: ReactNode;

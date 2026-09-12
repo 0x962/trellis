@@ -76,7 +76,7 @@ export function PhoneRow({ ref, ticket, priority, top, group, focused, selected,
 					</div>
 				</div>
 				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-				<div role="gridcell" data-column="title" data-line="title" className="truncate font-mono text-sm text-fg">
+				<div role="gridcell" data-column="title" data-line="title" className="truncate text-sm text-fg">
 					{ticket.title}
 				</div>
 			</div>

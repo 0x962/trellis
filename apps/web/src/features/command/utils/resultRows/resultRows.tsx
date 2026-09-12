@@ -23,7 +23,6 @@ export const resultRows = (tickets: TicketSummary[], deps: RowDeps): PaletteRow[
 	tickets.map((ticket) => ({
 		value: ticket.identifier,
 		label: ticket.title,
-		labelMono: true,
 		prefix: ticket.identifier,
 		icon: <StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? "human"} />,
 		keywords: [ticket.identifier],

@@ -1,13 +1,15 @@
 import { basename } from "node:path";
 import type { HtmlTagDescriptor, Plugin } from "vite";
 
-// The font files fonts.css declares: the latin Inter variable file and the
-// latin JetBrains Mono weights 400, 500, and 600. The build names each file
+// The font files every page draws: the latin Inter variable file for the
+// prose and the latin JetBrains Mono 400 for the ticket identifiers. A
+// preload downloads its file on every first visit, so a weight only a rare
+// bold code span asks for loads on demand instead. The build names each file
 // `<fontsource name>-<hash>.woff2`, so a pattern matches the name before the
 // hash.
 export const preloadedFonts = [
 	/^inter-latin-wght-normal-[\w-]+\.woff2$/,
-	/^jetbrains-mono-latin-(400|500|600)-normal-[\w-]+\.woff2$/,
+	/^jetbrains-mono-latin-400-normal-[\w-]+\.woff2$/,
 ];
 
 // A preload href must be the exact URL that the built CSS asks for, or the

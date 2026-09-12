@@ -70,7 +70,7 @@ export function TicketPicker({
 			label: ticket.identifier,
 			current: ticket.identifier === value,
 			icon: <StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? undefined} />,
-			children: <span className="truncate font-mono text-fg-muted">{ticket.title}</span>,
+			children: <span className="truncate text-fg-muted">{ticket.title}</span>,
 		})),
 		...(search.trim() === "" ? [{ id: noneId, label: "None", current: value === undefined }] : []),
 	];

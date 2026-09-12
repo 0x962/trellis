@@ -14,7 +14,7 @@ export function CliLine({ command }: CliLineProps) {
 	};
 	return (
 		<div className="inline-flex h-7 max-w-full items-center gap-1 rounded-md border border-border bg-surface pr-0.5 pl-2.5">
-			<code className="truncate font-mono text-sm text-fg">{command}</code>
+			<code className="truncate text-sm text-fg">{command}</code>
 			<IconButton size="xs" label="Copy command" icon={<Copy />} onClick={copy} />
 		</div>
 	);

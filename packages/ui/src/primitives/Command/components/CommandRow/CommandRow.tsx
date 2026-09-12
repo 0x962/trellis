@@ -9,14 +9,12 @@ export type CommandRowProps = {
 	// A ticket row carries its identifier.
 	value: string;
 	label: string;
-	// Draws the label in mono, for a row whose label is a ticket title.
-	labelMono?: boolean;
 	// Extra words the filter matches, beside the value and the label.
 	keywords?: string[];
 	// Muted text after the label: the current status, a project path, a
 	// command to paste.
 	sub?: string;
-	// Draws the sub in faint mono, for a branch name, an ID, or a command.
+	// Draws the sub in faint mono, for a ticket ID.
 	mono?: boolean;
 	// Faint mono text before the label, such as a ticket ID.
 	prefix?: string;
@@ -34,7 +32,6 @@ export type CommandRowProps = {
 export function CommandRow({
 	value,
 	label,
-	labelMono,
 	keywords,
 	sub,
 	mono,
@@ -57,9 +54,7 @@ export function CommandRow({
 			)}
 			{prefix !== undefined && <span className="shrink-0 font-mono text-sm text-fg-faint tabular">{prefix}</span>}
 			{/* A command label is short and names the action, so a long sub truncates first. */}
-			<span className={cx(sub === undefined ? "truncate" : "shrink-0", labelMono === true && "font-mono")}>
-				{label}
-			</span>
+			<span className={sub === undefined ? "truncate" : "shrink-0"}>{label}</span>
 			{sub !== undefined && (
 				<span
 					className={cx(

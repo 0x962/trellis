@@ -143,7 +143,6 @@ export default function SetupScreen() {
 				keyboardType="url"
 				autoCapitalize="none"
 				autoCorrect={false}
-				mono
 				note="Scan the code under Pair a phone in the web settings, or type the address the server prints at start."
 			/>
 			{scanning ? (
@@ -158,7 +157,7 @@ export default function SetupScreen() {
 			)}
 			{answer?.ok && (
 				<View style={[styles.card, { backgroundColor: palette.surface }]}>
-					<KeyValueRow label="Version" value={answer.version} mono />
+					<KeyValueRow label="Version" value={answer.version} />
 					<KeyValueRow label="Tickets" value={`${answer.ticketCount} tickets`} />
 					<KeyValueRow label="Server says you are" value={answer.actorName} />
 				</View>

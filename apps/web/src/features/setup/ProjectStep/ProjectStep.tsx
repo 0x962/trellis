@@ -71,7 +71,7 @@ export function ProjectStep({ taken, takenNames, onCreate }: ProjectStepProps) {
 					invalid={keyError !== null}
 					autoComplete="off"
 					spellCheck={false}
-					className="w-28 font-mono uppercase"
+					className="w-28 uppercase"
 					onChange={(event) => setEditedKey(event.target.value.toUpperCase())}
 				/>
 				{keyError !== null ? (

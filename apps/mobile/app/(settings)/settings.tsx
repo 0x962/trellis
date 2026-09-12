@@ -34,12 +34,12 @@ export default function SettingsScreen() {
 	return (
 		<ScrollView>
 			<KeyValueRow label="Name" value={name ?? ""} />
-			<KeyValueRow label="Server" value={url ?? ""} mono onPress={() => router.push("/setup")} />
+			<KeyValueRow label="Server" value={url ?? ""} onPress={() => router.push("/setup")} />
 			<View style={styles.section}>
 				<Text style={[styles.label, { color: palette.fgMuted }]}>Theme</Text>
 				<Segmented options={themeOptions} value={mode} onChange={setTheme} />
 			</View>
-			<KeyValueRow label="Version" value={Constants.expoConfig?.version ?? ""} mono />
+			<KeyValueRow label="Version" value={Constants.expoConfig?.version ?? ""} />
 			<View style={styles.section}>
 				<Button label="Copy trellis install command" onPress={() => void Clipboard.setStringAsync(installCommand)} />
 				<Text style={[styles.note, { color: palette.fgMuted }]}>Notifications: not yet</Text>
