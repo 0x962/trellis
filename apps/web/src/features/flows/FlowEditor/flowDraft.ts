@@ -1,9 +1,7 @@
 import {
 	entryNodes,
 	type FlowBranch,
-	type FlowEdge,
 	type FlowEdgeInput,
-	type FlowNode,
 	type FlowNodeInput,
 	type FlowNodeKind,
 	FlowSaveInputSchema,
@@ -17,9 +15,10 @@ import { absolutePosition, BOX_SIZE, boxAt, CARD_SIZE, sizeOf, sortParentsFirst 
 // The editor keeps the graph as React Flow nodes and edges. React Flow owns
 // the position of a node, the box that holds it (`parentId`), and the size of
 // a box. `data.fields` holds every other field of the flow node. A box is a
-// budget or a loop node, drawn as a rectangle that holds other nodes.
+// group or a loop node, drawn as a rectangle that holds other nodes.
 //
-// Every card and box has a handle on each side. A handle id starts with the
+// Children of parallel groups hide their handles. Other nodes have a handle
+// on each side. A handle id starts with the
 // output it stands for: `yes-` and `no-` on a gate, `out-` on every other
 // kind. An edge stores only its output, and the canvas draws it between the
 // two sides of its nodes that face each other.
@@ -41,7 +40,7 @@ const titles: Record<FlowNodeKind, string> = {
 	agent: "New agent",
 	gate: "New gate",
 	human: "Ask a person",
-	budget: "Time budget",
+	group: "Group",
 	loop: "Loop",
 };
 
@@ -56,7 +55,8 @@ export const newFields = (kind: FlowNodeKind): StepFields => ({
 	title: titles[kind],
 	personaId: null,
 	instruction: "",
-	minutes: kind === "budget" ? 10 : null,
+	parallel: false,
+	minutes: null,
 	maxRounds: kind === "loop" ? 3 : null,
 });
 
@@ -86,7 +86,7 @@ export const canvasEdge = (edge: FlowEdgeInput): CanvasEdge => ({
 	data: { branch: edge.branch },
 });
 
-export const toCanvas = (doc: { nodes: FlowNode[]; edges: FlowEdge[] }) => ({
+export const toCanvas = (doc: { nodes: FlowNodeInput[]; edges: FlowEdgeInput[] }) => ({
 	nodes: sortParentsFirst(
 		doc.nodes.map(({ x, y, parentId, width, height, ...fields }) =>
 			canvasNode(
@@ -117,9 +117,8 @@ export const fromCanvas = (nodes: CanvasNode[], edges: CanvasEdge[]): DraftGraph
 	})),
 });
 
-// The first message for each node and edge, from the graph rules and the save
-// schema. `count` also counts an issue that names no row, because the server
-// refuses a save with any issue.
+// `byRow` gives each node or edge its first issue. `canSave` checks storage
+// constraints; `count` also includes incomplete steps that a draft can keep.
 export const draftIssues = (flowId: string, graph: DraftGraph) => {
 	const byRow = new Map<string, string>();
 	let count = 0;
@@ -128,6 +127,7 @@ export const draftIssues = (flowId: string, graph: DraftGraph) => {
 		if (id !== undefined && !byRow.has(id)) byRow.set(id, message);
 	};
 	for (const issue of validateFlowGraph(graph)) note(issue.nodeId ?? issue.edgeId, issue.message);
+	const saveIssues = validateFlowGraph(graph, "save");
 	const parsed = FlowSaveInputSchema.safeParse({ flow: flowId, ...graph });
 	if (!parsed.success)
 		for (const issue of parsed.error.issues) {
@@ -135,7 +135,7 @@ export const draftIssues = (flowId: string, graph: DraftGraph) => {
 			const rows: readonly { id: string }[] = list === "nodes" ? graph.nodes : list === "edges" ? graph.edges : [];
 			note(rows[index as number]?.id, issue.message);
 		}
-	return { byRow, count };
+	return { byRow, count, canSave: parsed.success && saveIssues.length === 0 };
 };
 
 export const edgesWithIssues = (edges: CanvasEdge[], byRow: Map<string, string>) =>
@@ -164,7 +164,7 @@ export const boxEnds = (graph: DraftGraph) => {
 	const entryOf = new Map<string, string>();
 	const exitOf = new Map<string, string>();
 	for (const box of graph.nodes) {
-		if (!flowGroupKinds.has(box.kind)) continue;
+		if (!flowGroupKinds.has(box.kind) || box.parallel) continue;
 		const inside = new Set(graph.nodes.filter((node) => node.parentId === box.id).map((node) => node.id));
 		const entries = entryNodes(graph, box.id);
 		const sources = new Set(graph.edges.filter((edge) => inside.has(edge.toNodeId)).map((edge) => edge.fromNodeId));
@@ -241,7 +241,8 @@ export const addNode = (
 		? [canvasNode(newFields("agent"), { x: (BOX_SIZE.width - CARD_SIZE.width) / 2, y: BOX_PAD.top }, node.id, null)]
 		: [];
 	const nextNodes = sortParentsFirst([...others, node, ...entry]);
-	if (previous === undefined) return { nodes: nextNodes, edges, id: node.id };
+	if (previous === undefined || nodes.find((item) => item.id === boxId)?.data.fields.parallel)
+		return { nodes: nextNodes, edges, id: node.id };
 	const branch = previous.data.fields.kind === "gate" ? "yes" : "out";
 	const edge = canvasEdge({ id: ulid(), fromNodeId: previous.id, toNodeId: node.id, branch });
 	const fits = canConnect(fromCanvas(nextNodes, edges), { source: previous.id, target: node.id, sourceHandle: branch });

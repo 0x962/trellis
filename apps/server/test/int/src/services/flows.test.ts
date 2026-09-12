@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import type { FlowNodeInput, FlowSaveInput } from "@trellis/api";
+import type { FlowNode, FlowSaveInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import * as flows from "../../../../src/services/flows/flows.ts";
@@ -22,13 +22,14 @@ beforeAll(async () => {
 beforeEach(() => h.reset());
 afterAll(() => h.close());
 
-const node = (fields: Partial<FlowNodeInput> = {}): FlowNodeInput => ({
+const node = (fields: Partial<FlowNode> = {}): FlowNode => ({
 	id: ulid(),
 	parentId: null,
 	kind: "agent",
 	title: "Step",
 	personaId: null,
 	instruction: "Read the diff.",
+	parallel: false,
 	minutes: null,
 	maxRounds: null,
 	x: 0,
@@ -42,6 +43,17 @@ const createFlow = (name = "Review") => h.run((ctx, tx) => flows.create(ctx, tx,
 const saveGraph = (input: FlowSaveInput) => h.run((ctx, tx) => save(ctx, tx, input));
 
 describe("flows", () => {
+	test("save preserves an unfinished agent and disconnected group steps", async () => {
+		const flow = await createFlow();
+		const group = node({ kind: "group", parallel: false, instruction: "" });
+		const a = node({ parentId: group.id, title: "", instruction: "" });
+		const b = node({ parentId: group.id, instruction: "" });
+		const doc = await saveGraph({ flow: flow.id, nodes: [group, a, b], edges: [] });
+		expect(doc.nodes).toHaveLength(3);
+		expect(await h.run((ctx, tx) => flows.get(ctx, tx, { flow: flow.id }))).toEqual(doc);
+		expect(doc.nodes.find((row) => row.id === a.id)).toMatchObject({ title: "", instruction: "" });
+	});
+
 	test("create derives a slug from the name and takes the next free one on a collision", async () => {
 		const first = await createFlow("Code Review!");
 		expect(first).toMatchObject({
@@ -82,7 +94,7 @@ describe("flows", () => {
 	test("save stores a graph with a group, a gate, and a fan-in, and raises the version", async () => {
 		const flow = await createFlow();
 		const gate = node({ kind: "gate", title: "Backend?", instruction: "Does it touch the server?" });
-		const box = node({ kind: "budget", title: "Checks", instruction: "", minutes: 12, width: 480, height: 240 });
+		const box = node({ kind: "group", title: "Checks", instruction: "", minutes: 12, width: 480, height: 240 });
 		// The child comes before its group in the input.
 		const inner = node({ parentId: box.id, title: "Migrations", x: 12.5, y: -4 });
 		const report = node({ title: "Report" });

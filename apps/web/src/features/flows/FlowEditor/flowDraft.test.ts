@@ -21,6 +21,7 @@ const row = (fields: Partial<FlowNode>): FlowNode => ({
 	title: "Step",
 	personaId: null,
 	instruction: "Read the diff.",
+	parallel: false,
 	minutes: null,
 	maxRounds: null,
 	x: 0,
@@ -31,7 +32,7 @@ const row = (fields: Partial<FlowNode>): FlowNode => ({
 });
 
 const box = row({
-	kind: "budget",
+	kind: "group",
 	title: "Checks",
 	instruction: "",
 	minutes: 10,
@@ -128,7 +129,7 @@ describe("flowDraft", () => {
 	});
 
 	test("a click with a box selected adds the node inside the box after its newest node, and the box grows", () => {
-		const small = row({ kind: "budget", instruction: "", minutes: 5, width: 280, height: 160 });
+		const small = row({ kind: "group", instruction: "", minutes: 5, width: 280, height: 160 });
 		const child = row({ parentId: small.id, x: 24, y: 48 });
 		const nodes = toCanvas({ nodes: [small, child], edges: [] }).nodes.map((node) =>
 			node.id === small.id ? { ...node, selected: true } : node,
@@ -167,7 +168,7 @@ describe("flowDraft", () => {
 describe("boxes", () => {
 	test("a new box comes with one agent step inside it, and the edge from the step before reaches the box", () => {
 		const first = row({});
-		const next = addNode(toCanvas({ nodes: [first], edges: [] }).nodes, [], "budget", center);
+		const next = addNode(toCanvas({ nodes: [first], edges: [] }).nodes, [], "group", center);
 		const inside = next.nodes.filter((node) => node.parentId === next.id);
 		expect(inside).toHaveLength(1);
 		expect(inside[0]).toMatchObject({ type: "step", data: { fields: { kind: "agent" } } });
@@ -183,4 +184,15 @@ describe("boxes", () => {
 		const loose = fromCanvas(toCanvas({ nodes: [box, a, b], edges: [] }).nodes, []);
 		expect(boxEnds(loose)).toEqual({ entryOf: new Map(), exitOf: new Map() });
 	});
+});
+
+test("parallel groups connect at the boundary and add children without edges", () => {
+	const group = row({ kind: "group", parallel: true, instruction: "", width: 400, height: 300 });
+	const child = row({ parentId: group.id });
+	const canvas = toCanvas({ nodes: [group, child], edges: [] });
+	const selected = canvas.nodes.map((node) => ({ ...node, selected: node.id === group.id }));
+	const next = addNode(selected, [], "agent", center);
+	expect(next.edges).toEqual([]);
+	expect(boxEnds(fromCanvas(next.nodes, next.edges))).toEqual({ entryOf: new Map(), exitOf: new Map() });
+	expect(canConnect(fromCanvas(next.nodes, next.edges), { source: child.id, target: next.id })).toBe(false);
 });
