@@ -44,5 +44,6 @@ describe("EmptyState", () => {
 		const { container } = render(<EmptyState title="No sub-projects." />);
 		expect(container.firstElementChild!.className).not.toMatch(/flex-1/);
 		expectClasses(container.firstElementChild!, "py-8");
+		expectClasses(screen.getByRole("heading", { name: "No sub-projects." }), "text-sm font-medium text-fg");
 	});
 });
