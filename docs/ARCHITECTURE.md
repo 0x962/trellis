@@ -228,7 +228,11 @@ nodes that face each other, so an edge row stores no side. A gate starts a wire
 only from its YES and NO handles. A new step connects from the step before it:
 the selected step, or else the newest step of the same box. A gate connects the
 new step by YES. The Clean up button lays out each box and then the canvas from
-top to bottom with dagre, and its toast offers Undo.
+top to bottom with dagre, and its toast offers Undo. A box that holds steps
+starts at exactly one of them, and a new box comes with an agent step inside
+it. A wire into a box draws to that step, and a wire out of a box draws from
+its last step when the box has one. The zoom, fit, and Clean up controls sit
+together at the bottom left of the canvas.
 
 `flows.save` replaces every node and edge of a flow in one transaction. The
 client mints the ULID of each new node and edge. `version` rises on every change

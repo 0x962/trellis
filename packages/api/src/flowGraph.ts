@@ -18,7 +18,8 @@ export type FlowIssueCode =
 	| "branch-kind"
 	| "cross-group-edge"
 	| "cycle"
-	| "empty-prompt";
+	| "empty-prompt"
+	| "box-entry";
 
 // `nodeId` or `edgeId` names the row the issue is about.
 export type FlowIssue = { code: FlowIssueCode; nodeId?: string; edgeId?: string; message: string };
@@ -106,6 +107,18 @@ export const validateFlowGraph = (graph: FlowGraph): FlowIssue[] => {
 			issues.push({ code: "empty-prompt", nodeId: node.id, message: "Select a persona or write an instruction." });
 		}
 	}
+
+	// A box that holds steps starts at one of them, so a wire into the box has
+	// one step to reach.
+	for (const node of graph.nodes) {
+		if (!flowGroupKinds.has(node.kind) || !graph.nodes.some((child) => child.parentId === node.id)) continue;
+		if (entryNodes(graph, node.id).length !== 1)
+			issues.push({
+				code: "box-entry",
+				nodeId: node.id,
+				message: "A box starts at one step. Connect every other step inside it from that step.",
+			});
+	}
 	return issues;
 };
 
@@ -143,9 +156,10 @@ const backEdges = (nodes: FlowGraphNode[], edges: FlowGraphEdge[]) => {
 };
 
 // The nodes of one scope that start when the scope starts: the nodes with
-// `parentId` equal to `parentId` and no incoming edge. `null` is the scope
-// outside every group.
+// `parentId` equal to `parentId` that no edge from the same scope reaches.
+// `null` is the scope outside every group.
 export const entryNodes = (graph: FlowGraph, parentId: string | null) => {
-	const targets = new Set(graph.edges.map((edge) => edge.toNodeId));
-	return graph.nodes.filter((node) => node.parentId === parentId && !targets.has(node.id)).map((node) => node.id);
+	const inScope = new Set(graph.nodes.filter((node) => node.parentId === parentId).map((node) => node.id));
+	const targets = new Set(graph.edges.filter((edge) => inScope.has(edge.fromNodeId)).map((edge) => edge.toNodeId));
+	return graph.nodes.filter((node) => inScope.has(node.id) && !targets.has(node.id)).map((node) => node.id);
 };

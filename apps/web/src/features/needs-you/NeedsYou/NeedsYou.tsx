@@ -1,4 +1,5 @@
 import { Button, EmptyState } from "@trellis/ui";
+import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { DoneTodaySection } from "../components/DoneTodaySection";
 import { FailingCiSection } from "../components/FailingCiSection";
@@ -22,7 +23,7 @@ export function NeedsYou() {
 	return (
 		<>
 			<Topbar>
-				<h1 className="sr-only">Needs you</h1>
+				<PageTitle title="Needs you" />
 			</Topbar>
 			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 				{inbox.isPending && <InboxSkeleton />}

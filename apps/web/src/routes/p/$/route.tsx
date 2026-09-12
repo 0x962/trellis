@@ -1,6 +1,13 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	type ErrorComponentProps,
+	Link,
+	redirect,
+	useNavigate,
+	useParams,
+} from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
 import { lazy, Suspense, useEffect } from "react";
 import { Board, boardSortLabel } from "../../../features/board";
@@ -17,6 +24,7 @@ import {
 import { ListFooter } from "../../../features/shell/ListFooter";
 import { NewTicketButton } from "../../../features/shell/NewTicketButton";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
+import { PageTitle } from "../../../features/shell/PageTitle";
 import { Topbar } from "../../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../../features/shell/ViewSwitch";
 import { DisplayPopover } from "../../../features/table/DisplayPopover";
@@ -146,27 +154,36 @@ function ProjectPage() {
 	return (
 		<>
 			<Topbar actions={<NewTicketButton />}>
-				<h1 className="sr-only">{project.name}</h1>
-				<ViewSwitch value={view} onChange={switchView} />
+				<PageTitle
+					parent={
+						project.ancestors.length > 0 ? (
+							<Link to="/p/$" params={{ _splat: projectSlashPath(project.ancestors.at(-1)!.path) }} search={{}}>
+								{project.ancestors.at(-1)!.name}
+							</Link>
+						) : undefined
+					}
+					title={project.name}
+				/>
+				<FilterBar
+					lead={<ViewSwitch value={view} onChange={switchView} />}
+					project={ref}
+					search={search}
+					onSearchChange={setSearch}
+					statuses={project.statuses}
+					actions={
+						<DisplayPopover
+							routeKey={routeKey}
+							showProject={project.children.length > 0 && full.scope !== "self"}
+							search={search}
+							onSearchChange={setSearch}
+							density={search.density ?? storedDensity}
+							group={full.group}
+							sort={full.sort}
+						/>
+					}
+				/>
 			</Topbar>
 			{archived && <ArchivedBanner project={project} />}
-			<FilterBar
-				project={ref}
-				search={search}
-				onSearchChange={setSearch}
-				statuses={project.statuses}
-				actions={
-					<DisplayPopover
-						routeKey={routeKey}
-						showProject={project.children.length > 0 && full.scope !== "self"}
-						search={search}
-						onSearchChange={setSearch}
-						density={search.density ?? storedDensity}
-						group={full.group}
-						sort={full.sort}
-					/>
-				}
-			></FilterBar>
 			<fieldset disabled={archived} className="contents">
 				{view === "board" ? (
 					<>
@@ -218,7 +235,7 @@ function ProjectError({ error }: ErrorComponentProps) {
 		return (
 			<>
 				<Topbar>
-					<h1 className="sr-only">{ref}</h1>
+					<PageTitle title={ref} />
 				</Topbar>
 				<NotFoundState ref={ref} />
 			</>

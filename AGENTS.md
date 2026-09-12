@@ -35,6 +35,8 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 ## UI
 
 - No shadcn, no Radix. Base UI gives behavior and accessibility. Every visual lives in `packages/ui`.
+- Every icon button is a circle. `IconButton` always draws one. Give an icon action an `IconButton` and a `Tooltip` that names it. Do not put an icon and a word on one `Button` in a bar, on a canvas, or in a panel.
+- A `Button` with text is for a form action in a dialog or a sheet, such as Save, Cancel, or Delete.
 - For animation, use only `motion/mini` and CSS transitions. Never animate re-sorts, text changes, counters, skeleton swaps, or the theme switch.
 - No raw color or spacing literal outside `packages/ui`. Use the tokens.
 - Every UI item passes the design checklist:

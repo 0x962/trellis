@@ -1,8 +1,9 @@
 import { Trash } from "@phosphor-icons/react";
 import { type FlowNodeKind, flowAgentKinds, type Persona } from "@trellis/api";
-import { Button, Input, Select, type SelectItem, Textarea } from "@trellis/ui";
+import { IconButton, Input, Textarea, Tooltip } from "@trellis/ui";
 import { flowKinds } from "../../../kinds";
 import type { StepFields } from "../../flowDraft";
+import { PersonaSelect } from "../PersonaSelect";
 
 type NodeInspectorProps = {
 	fields: StepFields;
@@ -27,10 +28,6 @@ export function NodeInspector({ fields, issue, personas, onChange, onDelete }: N
 	const meta = flowKinds[fields.kind];
 	const runsAgent = flowAgentKinds.has(fields.kind);
 	const promptLabel = promptLabels[fields.kind];
-	const personaItems: SelectItem<string>[] = [
-		{ value: "none", label: "No persona" },
-		...personas.map((persona) => ({ value: persona.id, label: persona.name })),
-	];
 	return (
 		<aside
 			aria-label="Step settings"
@@ -41,6 +38,9 @@ export function NodeInspector({ fields, issue, personas, onChange, onDelete }: N
 					<meta.icon />
 				</span>
 				<h2 className="text-md font-medium text-fg">{meta.label}</h2>
+				<Tooltip content="Delete step">
+					<IconButton label="Delete step" icon={<Trash />} variant="quiet" className="ml-auto" onClick={onDelete} />
+				</Tooltip>
 			</header>
 			<p className="text-xs text-fg-faint">{meta.description}</p>
 			<Input
@@ -54,12 +54,10 @@ export function NodeInspector({ fields, issue, personas, onChange, onDelete }: N
 			{runsAgent && (
 				<div className="flex flex-col gap-2">
 					<span className="text-sm text-fg-muted">Persona</span>
-					<Select
-						label="Persona"
-						items={personaItems}
-						value={fields.personaId ?? "none"}
-						onValueChange={(value) => onChange({ personaId: value === "none" ? null : value })}
-						className="w-full"
+					<PersonaSelect
+						personas={personas}
+						value={fields.personaId}
+						onChange={(personaId) => onChange({ personaId })}
 					/>
 				</div>
 			)}
@@ -102,9 +100,6 @@ export function NodeInspector({ fields, issue, personas, onChange, onDelete }: N
 					{issue}
 				</p>
 			)}
-			<Button variant="quiet" icon={<Trash />} className="mt-auto self-start" onClick={onDelete}>
-				Delete step
-			</Button>
 		</aside>
 	);
 }

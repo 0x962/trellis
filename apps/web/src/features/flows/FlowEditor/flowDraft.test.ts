@@ -2,7 +2,17 @@ import { describe, expect, test } from "bun:test";
 import type { FlowNode } from "@trellis/api";
 import { ulid } from "ulid";
 import { absolutePosition, boxAt } from "./canvasGeometry";
-import { addNode, branchOf, canConnect, canvasEdge, draftIssues, fromCanvas, moveIntoBox, toCanvas } from "./flowDraft";
+import {
+	addNode,
+	boxEnds,
+	branchOf,
+	canConnect,
+	canvasEdge,
+	draftIssues,
+	fromCanvas,
+	moveIntoBox,
+	toCanvas,
+} from "./flowDraft";
 
 const row = (fields: Partial<FlowNode>): FlowNode => ({
 	id: ulid(),
@@ -151,5 +161,26 @@ describe("flowDraft", () => {
 		expect(issues.byRow.get(blank.id)).toBe("Write a title.");
 		expect(issues.byRow.get(lonely.id)).toBe("Select a persona or write an instruction.");
 		expect(issues.count).toBe(2);
+	});
+});
+
+describe("boxes", () => {
+	test("a new box comes with one agent step inside it, and the edge from the step before reaches the box", () => {
+		const first = row({});
+		const next = addNode(toCanvas({ nodes: [first], edges: [] }).nodes, [], "budget", center);
+		const inside = next.nodes.filter((node) => node.parentId === next.id);
+		expect(inside).toHaveLength(1);
+		expect(inside[0]).toMatchObject({ type: "step", data: { fields: { kind: "agent" } } });
+		expect(next.edges).toMatchObject([{ source: first.id, target: next.id }]);
+	});
+
+	test("boxEnds finds the one step a box starts at and the one step it ends at", () => {
+		const a = row({ parentId: box.id });
+		const b = row({ parentId: box.id });
+		const edges = [{ id: ulid(), fromNodeId: a.id, toNodeId: b.id, branch: "out" as const }];
+		const graph = fromCanvas(toCanvas({ nodes: [box, a, b], edges }).nodes, toCanvas({ nodes: [], edges }).edges);
+		expect(boxEnds(graph)).toEqual({ entryOf: new Map([[box.id, a.id]]), exitOf: new Map([[box.id, b.id]]) });
+		const loose = fromCanvas(toCanvas({ nodes: [box, a, b], edges: [] }).nodes, []);
+		expect(boxEnds(loose)).toEqual({ entryOf: new Map(), exitOf: new Map() });
 	});
 });

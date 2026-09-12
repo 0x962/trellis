@@ -1,4 +1,4 @@
-import { Pause, Play, Power } from "@phosphor-icons/react";
+import { Pause, Play } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
@@ -8,13 +8,14 @@ import {
 	type ProjectManagerConfig,
 	ProjectManagerConfigSchema,
 } from "@trellis/api";
-import { Button, IconButton, Select, Tooltip, toast } from "@trellis/ui";
+import { Button, IconButton, PowerToggle, Select, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { RepoSettings } from "../../project-settings/RepoSettings";
 import { SettingsSection } from "../../project-settings/SettingsSection";
+import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { AdeSection } from "./components/AdeSection";
 
@@ -109,32 +110,26 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 			<Topbar
 				actions={
 					<>
-						{/* The agents toggle is a round power button like the create button
-						    beside it. The accent ring and fill show that agents are on, and
-						    the tooltip says the state in words. */}
+						{/* The agents toggle is green metal while agents run and red metal while
+						    they are off. The tooltip says the state in words. */}
 						<Tooltip content={draft.enabled ? "Agents are on" : "Agents are off"}>
-							<IconButton
+							<PowerToggle
 								label="Agents"
-								icon={<Power weight="bold" />}
-								size="md"
-								round
-								variant="default"
-								pressed={draft.enabled}
+								on={draft.enabled}
 								disabled={readOnly}
-								onClick={() => commit({ ...draft, enabled: !draft.enabled })}
+								onChange={(enabled) => commit({ ...draft, enabled })}
 							/>
 						</Tooltip>
-						{/* One round control runs the one manager of the project: Pause
-						    while it holds a terminal, else Play. Pause closes the terminal
-						    and keeps the session, and Play opens a terminal that continues
-						    that session. */}
+						{/* One control runs the one manager of the project: Pause while it
+						    holds a terminal, else Play. Pause closes the terminal and keeps
+						    the session, and Play opens a terminal that continues that
+						    session. */}
 						{active ? (
 							<Tooltip content="Pause the manager">
 								<IconButton
 									label="Pause manager"
 									icon={<Pause weight="fill" />}
 									size="md"
-									round
 									variant="primary"
 									disabled={readOnly || manager.state === "starting" || pause.isPending}
 									onClick={() => pause.mutate()}
@@ -146,7 +141,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 									label={resumes ? "Resume manager" : "Start manager"}
 									icon={<Play weight="fill" />}
 									size="md"
-									round
 									variant="primary"
 									disabled={
 										readOnly || dirty || !draft.enabled || !persona || runs.isPending || runs.isError || start.isPending
@@ -158,7 +152,14 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 					</>
 				}
 			>
-				<span className="sr-only">{project.name} › Manager</span>
+				<PageTitle
+					parent={
+						<Link to="/p/$" params={{ _splat: projectSlashPath(project.path) }} search={{}}>
+							{project.name}
+						</Link>
+					}
+					title="Manager"
+				/>
 			</Topbar>
 			<div className="project-settings-layout">
 				<nav aria-label="Manager settings" className="project-settings-nav">

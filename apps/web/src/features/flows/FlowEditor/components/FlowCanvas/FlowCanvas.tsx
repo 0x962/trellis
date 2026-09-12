@@ -1,13 +1,11 @@
-import { MagicWand } from "@phosphor-icons/react";
 import type { FlowNodeKind } from "@trellis/api";
-import { Button, toast } from "@trellis/ui";
+import { toast } from "@trellis/ui";
 import {
 	Background,
 	BackgroundVariant,
 	type Connection,
 	ConnectionLineType,
 	ConnectionMode,
-	Controls,
 	MiniMap,
 	type OnEdgesChange,
 	type OnNodesChange,
@@ -33,6 +31,7 @@ import {
 } from "../../flowDraft";
 import { tidyLayout } from "../../flowLayout";
 import { BoxNode } from "../BoxNode";
+import { CanvasControls } from "../CanvasControls";
 import { FlowEdge } from "../FlowEdge";
 import { NodePalette } from "../NodePalette";
 import { StepNode } from "../StepNode";
@@ -185,12 +184,9 @@ export function FlowCanvas(props: FlowCanvasProps) {
 				<Panel position="top-left">
 					<NodePalette onAdd={addAtCenter} />
 				</Panel>
-				<Panel position="top-right">
-					<Button icon={<MagicWand />} disabled={nodes.length === 0} onClick={cleanUp}>
-						Clean up
-					</Button>
+				<Panel position="bottom-left">
+					<CanvasControls onCleanUp={cleanUp} canCleanUp={nodes.length > 0} />
 				</Panel>
-				<Controls position="bottom-left" showInteractive={false} />
 				<MiniMap position="bottom-right" pannable zoomable />
 			</ReactFlow>
 		</section>

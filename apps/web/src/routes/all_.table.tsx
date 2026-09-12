@@ -4,6 +4,7 @@ import { isCanonicalSearch } from "../features/filters/canonical";
 import { FilterBar } from "../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../features/filters/grammar";
 import { NewTicketButton } from "../features/shell/NewTicketButton";
+import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../features/shell/ViewSwitch";
 import { DisplayPopover } from "../features/table/DisplayPopover";
@@ -60,25 +61,25 @@ function AllPage() {
 	return (
 		<>
 			<Topbar actions={<NewTicketButton />}>
-				<h1 className="sr-only">All tickets</h1>
-				<ViewSwitch value="table" onChange={switchView} />
+				<PageTitle title="All tickets" />
+				<FilterBar
+					lead={<ViewSwitch value="table" onChange={switchView} />}
+					search={search}
+					onSearchChange={setSearch}
+					statuses={statuses}
+					actions={
+						<DisplayPopover
+							routeKey={routeKey}
+							showProject
+							search={search}
+							onSearchChange={setSearch}
+							density={search.density ?? storedDensity}
+							group={full.group}
+							sort={full.sort}
+						/>
+					}
+				/>
 			</Topbar>
-			<FilterBar
-				search={search}
-				onSearchChange={setSearch}
-				statuses={statuses}
-				actions={
-					<DisplayPopover
-						routeKey={routeKey}
-						showProject
-						search={search}
-						onSearchChange={setSearch}
-						density={search.density ?? storedDensity}
-						group={full.group}
-						sort={full.sort}
-					/>
-				}
-			/>
 			<TicketTable
 				routeKey={routeKey}
 				search={search}

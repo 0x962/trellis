@@ -1,4 +1,5 @@
 import { BoardSkeleton } from "../../board/components/BoardSkeleton";
+import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { TableSkeleton } from "../TicketTable/components/TableSkeleton";
 
@@ -15,9 +16,7 @@ export type ListPendingProps = {
 export function ListPending({ view, title }: ListPendingProps) {
 	return (
 		<>
-			<Topbar>
-				<h1 className="sr-only">{title}</h1>
-			</Topbar>
+			<Topbar>{title !== undefined && <PageTitle title={title} />}</Topbar>
 			<div aria-hidden="true" className="h-9 shrink-0 border-b border-border" />
 			<div aria-busy="true" className="flex min-h-0 flex-1 flex-col">
 				{view === "table" ? <TableSkeleton density="comfortable" /> : <BoardSkeleton />}

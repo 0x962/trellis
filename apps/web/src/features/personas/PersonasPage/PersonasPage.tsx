@@ -4,6 +4,7 @@ import type { Persona, PersonaKind } from "@trellis/api";
 import { Button, EmptyState, EntityCard, IconButton, Skeleton } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { PersonaSheet } from "./components/PersonaSheet";
 import { personaKinds } from "./kinds";
@@ -21,13 +22,12 @@ export function PersonasPage() {
 						label="New persona"
 						icon={<Plus />}
 						size="md"
-						round
 						variant="primary"
 						onClick={() => setEditor({ kind: "builder" })}
 					/>
 				}
 			>
-				<h1 className="sr-only">Personas</h1>
+				<PageTitle title="Personas" />
 			</Topbar>
 			<div className="min-h-0 flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
 				<div className="flex max-w-7xl flex-col gap-6">
