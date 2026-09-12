@@ -128,16 +128,21 @@ A run carries one state.
 - A ticket start when the project already runs its concurrency limit of ticket agents. The limit runs from 1 to 64 and defaults to 3. The manager is outside that count.
 
 Every agent setting of a project sits on its Manager page, at
-`/p/<project path>/settings/manager`. The General section holds the agents
-switch, the manager persona, the Superset host, the concurrency limit, and the
-project directory. The Status section opens the manager, reads its output, sends
-it a follow-up, and stops it. The Agents section of `/settings` holds only what
-is true for the whole machine: the launch command and the stalled threshold.
+`/p/<project path>/settings/manager`. The header holds the agents switch and the
+Start manager button. The Status section picks the manager persona, opens the
+manager, reads its output, sends it a follow-up, and stops it. The ADE section
+picks the ADE, its command template, the Superset host, the concurrency limit,
+and the project directory. The Agents section of `/settings` holds only the
+machine launch command and the stalled threshold.
 
 ### The launch command
 
-The Agents section of `/settings` holds one command template for every agent of
-the machine. The default is:
+A project picks its Agentic Development Environment (ADE) in the ADE section of
+its Manager page. `superset` opens a Superset workspace with the command template
+of the machine. `custom` runs the command template of the project, and an empty
+project template falls back to the machine template.
+
+The machine template is `settings.agentLaunchCommand`. Its default is:
 
 ```
 {{superset}} ws create {{target}} --project {{projectId}} --name {{name}} --branch {{branch}} --command {{agentCommand}} --json

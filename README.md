@@ -178,11 +178,13 @@ A builder run and a reviewer run name one ticket. A manager run names one
 project. A project runs one manager at a time.
 
 Every agent setting of a project lives on its Manager page, at
-`/p/<project path>/settings/manager`: the agents switch, the manager persona, the
-Superset host, the concurrency limit, and the project directory. The concurrency
-limit caps the active ticket agents of the project. It runs from 1 to 64,
-defaults to 3, and excludes the manager. The Status section of the same page
-opens the manager, reads its output, sends it a follow-up, and stops it.
+`/p/<project path>/settings/manager`. The header holds the agents switch and the
+Start manager button. The Status section picks the manager persona, opens the
+manager, reads its output, sends it a follow-up, and stops it. The ADE section
+picks the Agentic Development Environment, the Superset host, the concurrency
+limit, and the project directory. The concurrency limit caps the active ticket
+agents of the project. It runs from 1 to 64, defaults to 3, and excludes the
+manager.
 
 The Agent section of the ticket rail lists the runs of the ticket and opens a
 searchable persona picker. The picker puts the five personas the project used
@@ -215,8 +217,12 @@ reason to stderr.
 
 ### How trellis starts an agent
 
-The Agents section of `/settings` holds one launch command template for every
-agent of the machine. The default is:
+A project picks its Agentic Development Environment (ADE) in the ADE section of
+its Manager page. `superset` opens a Superset workspace with the launch command
+of the machine. `custom` runs the command template of the project. An empty
+project template falls back to the machine template.
+
+The machine template is `settings.agentLaunchCommand`. Its default is:
 
 ```
 {{superset}} ws create {{target}} --project {{projectId}} --name {{name}} --branch {{branch}} --command {{agentCommand}} --json
@@ -345,7 +351,7 @@ section into the URL hash, and Account carries no hash.
 | Hash | Section | Contents |
 |---|---|---|
 | none | Account | Your name and the theme |
-| `#agents` | Agents | The agent launch command and the stalled threshold |
+| `#agents` | Agents | The stalled threshold |
 | `#integrations` | Integrations | The gh state, the diff URL template, and Pair a phone |
 
 A setting that belongs to one project lives on that project's pages.
@@ -353,7 +359,10 @@ A setting that belongs to one project lives on that project's pages.
 | Page | Sections |
 |---|---|
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
-| `/p/<path>/settings/manager` | Status (no hash), `#general`, `#repositories` |
+| `/p/<path>/settings/manager` | Status (no hash), `#ade`, `#repositories` |
+
+The header of the Manager page holds the agents switch and the Start manager
+button.
 
 ## Mobile
 
