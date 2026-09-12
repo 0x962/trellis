@@ -16,7 +16,7 @@ export function ProjectLifecycle({ project }: ProjectLifecycleProps) {
 	const archived = project.archivedAt !== null;
 	return (
 		<SettingsSection
-			title="Archive and delete"
+			title="Danger Zone"
 			hint="Control whether this project stays active, becomes read-only, or is permanently deleted."
 		>
 			<div className="project-settings-action-row">

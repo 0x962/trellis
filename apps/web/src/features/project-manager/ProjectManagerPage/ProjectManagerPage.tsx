@@ -1,11 +1,14 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
+	type Ade,
+	AGENT_LAUNCH_VARIABLES,
 	type AgentRun,
 	DEFAULT_PROJECT_MANAGER_CONFIG,
 	type Project,
 	type ProjectManagerConfig,
 	ProjectManagerConfigSchema,
+	unknownLaunchVariables,
 } from "@trellis/api";
 import { Avatar, Button, ConfirmDialog, Input, Select, Switch, toast } from "@trellis/ui";
 import { Bot, GitBranch, Settings2 } from "lucide-react";
@@ -21,8 +24,13 @@ import { Topbar } from "../../shell/Topbar";
 // `/p/<path>/settings/manager` shows it.
 const sections = [
 	{ id: "", label: "Status", icon: Bot },
-	{ id: "general", label: "General", icon: Settings2 },
+	{ id: "ade", label: "ADE", icon: Settings2 },
 	{ id: "repositories", label: "Repositories", icon: GitBranch },
+];
+
+const ades: { value: Ade; label: string }[] = [
+	{ value: "superset", label: "Superset" },
+	{ value: "custom", label: "Custom command" },
 ];
 
 // The host picker value that stores `supersetHostId: null`: every agent of
@@ -41,16 +49,18 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 	const [draft, setDraft] = useState(saved);
 	const [selected, setSelected] = useState<AgentRun | null>(null);
 	const [stopping, setStopping] = useState<AgentRun | null>(null);
+	const [command, setCommand] = useState<string | null>(null);
+	const [commandMessage, setCommandMessage] = useState<string | null>(null);
 	const personas = useQuery(orpc.personas.list.queryOptions({ input: {} }));
 	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: { project: project.path } }));
 	// The host list comes from `superset hosts list`, which spawns a process,
-	// so only the General page reads it and the answer holds for five
+	// so only the ADE page reads it and the answer holds for five
 	// minutes. A runner that cannot answer leaves the picker with This
 	// machine alone.
 	const hosts = useQuery({
 		...orpc.agents.runnerHosts.queryOptions({}),
 		retry: false,
-		enabled: section === "general",
+		enabled: section === "ade",
 		staleTime: 5 * 60_000,
 	});
 	const managers = runs.data?.filter((run) => run.kind === "manager") ?? [];
@@ -97,6 +107,21 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 		},
 		onError: (error) => toast.error("Could not stop the agent", { description: error.message }),
 	});
+	const commitCommand = () => {
+		const value = (command ?? draft.adeCommand).trim();
+		if (value === "") {
+			setCommandMessage("Enter the command that starts one agent.");
+			return;
+		}
+		const unknown = unknownLaunchVariables(value);
+		if (unknown.length > 0) {
+			setCommandMessage(`Unknown variables: ${unknown.join(", ")}`);
+			return;
+		}
+		setCommandMessage(null);
+		setCommand(null);
+		if (value !== draft.adeCommand) commit({ ...draft, adeCommand: value });
+	};
 	const persona = personas.data?.find((item) => item.id === draft.personaId);
 	const readOnly = project.archivedAt !== null;
 
@@ -114,7 +139,26 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 
 	return (
 		<>
-			<Topbar>
+			<Topbar
+				actions={
+					<>
+						<Switch
+							label="Agents"
+							checked={draft.enabled}
+							disabled={readOnly}
+							onCheckedChange={(enabled) => commit({ ...draft, enabled })}
+						/>
+						<Button
+							variant="primary"
+							disabled={readOnly || active || dirty || !draft.enabled || !persona || runs.isPending || runs.isError}
+							processing={start.isPending || save.isPending}
+							onClick={() => start.mutate()}
+						>
+							Start manager
+						</Button>
+					</>
+				}
+			>
 				<h1 className="text-lg font-semibold text-fg">{project.name} › Manager</h1>
 			</Topbar>
 			<div className="project-settings-layout">
@@ -143,6 +187,25 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 				<div className="project-settings-content">
 					<div hidden={section !== ""} className="project-settings-page">
 						<SettingsSection title="Status" hint="Open the manager to read its output, send follow-ups, or stop it.">
+							<p className="text-sm text-fg-muted">Manager persona</p>
+							<Select
+								label="Manager persona"
+								placeholder="Select a manager persona"
+								value={draft.personaId ?? ""}
+								items={(personas.data ?? [])
+									.filter((item) => item.kind === "manager")
+									.map((item) => ({ value: item.id, label: item.name }))}
+								onValueChange={(value) => commit({ ...draft, personaId: value })}
+								disabled={readOnly || personas.isPending}
+							/>
+							{personas.isError && (
+								<p role="alert" className="text-sm text-danger">
+									Could not load personas.{" "}
+									<Button variant="quiet" onClick={() => void personas.refetch()}>
+										Retry
+									</Button>
+								</p>
+							)}
 							{runs.isPending && (
 								<p role="status" className="text-sm text-fg-muted">
 									Load manager…
@@ -178,21 +241,20 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 									)}
 								</div>
 							))}
-							<Button
-								disabled={readOnly || active || dirty || !draft.enabled || !persona || runs.isPending || runs.isError}
-								processing={start.isPending || save.isPending}
-								onClick={() => start.mutate()}
-							>
-								Start manager
-							</Button>
 							{!draft.enabled && (
-								<p className="text-sm text-fg-muted">Turn on agents in General before you start the manager.</p>
+								<p className="text-sm text-fg-muted">
+									Agents are off. Turn them on in the header to start the manager. An agent that already runs keeps
+									running.
+								</p>
 							)}
 						</SettingsSection>
 					</div>
-					<div hidden={section !== "general"} className="project-settings-page">
+					<div hidden={section !== "ade"} className="project-settings-page">
 						<fieldset disabled={readOnly} className="min-w-0">
-							<SettingsSection title="General" hint="Changes save automatically.">
+							<SettingsSection
+								title="ADE"
+								hint="The Agentic Development Environment that runs this project's agents. Changes save automatically."
+							>
 								<form
 									className="flex flex-col gap-4"
 									onSubmit={(event) => {
@@ -200,33 +262,33 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 										if (dirty) commit(draft);
 									}}
 								>
-									<Switch
-										label="Turn on agents"
-										checked={draft.enabled}
-										className="self-start"
-										onCheckedChange={(enabled) => commit({ ...draft, enabled })}
-									/>
-									<p className="text-sm text-fg-muted">
-										Off: no agent of this project starts. An agent that already runs keeps running.
-									</p>
-									<p className="text-sm text-fg-muted">Manager persona</p>
+									<p className="text-sm text-fg-muted">ADE</p>
 									<Select
-										label="Manager persona"
-										placeholder="Select a manager persona"
-										value={draft.personaId ?? ""}
-										items={(personas.data ?? [])
-											.filter((item) => item.kind === "manager")
-											.map((item) => ({ value: item.id, label: item.name }))}
-										onValueChange={(value) => commit({ ...draft, personaId: value })}
-										disabled={personas.isPending}
+										label="ADE"
+										items={ades}
+										value={draft.ade}
+										onValueChange={(ade) => commit({ ...draft, ade })}
 									/>
-									{personas.isError && (
-										<p role="alert" className="text-sm text-danger">
-											Could not load personas.{" "}
-											<Button variant="quiet" onClick={() => void personas.refetch()}>
-												Retry
-											</Button>
-										</p>
+									{draft.ade === "custom" && (
+										<>
+											<Input
+												label="Command template"
+												value={command ?? draft.adeCommand}
+												invalid={commandMessage !== null}
+												className="font-mono text-sm"
+												onChange={(event) => setCommand(event.target.value)}
+												onBlur={commitCommand}
+											/>
+											<p className="text-sm text-fg-muted">
+												The command that starts one agent. It takes the variables{" "}
+												{AGENT_LAUNCH_VARIABLES.map((name) => `{{${name}}}`).join(", ")}.
+											</p>
+											{commandMessage !== null && (
+												<p role="alert" className="text-sm text-danger">
+													{commandMessage}
+												</p>
+											)}
+										</>
 									)}
 									<p className="text-sm text-fg-muted">Superset host</p>
 									<Select

@@ -2,7 +2,6 @@ import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { Bot, Plug, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
-import { AgentLaunchField } from "../features/settings/AgentLaunchField";
 import { DiffTemplateField } from "../features/settings/DiffTemplateField";
 import { GhBanner } from "../features/settings/GhBanner";
 import { PairPhone } from "../features/settings/PairPhone";
@@ -49,14 +48,9 @@ const sections: SettingsSection[] = [
 	{
 		id: "agents",
 		title: "Agents",
-		hint: "Choose the command that starts every agent and when a ticket counts as stalled. Each project sets its own manager on its Manager page.",
+		hint: "Choose when a ticket counts as stalled. Each project picks its own ADE and manager on its Manager page.",
 		icon: Bot,
-		rows: (
-			<>
-				<AgentLaunchField />
-				<StalledThresholdField />
-			</>
-		),
+		rows: <StalledThresholdField />,
 	},
 	{
 		id: "integrations",
