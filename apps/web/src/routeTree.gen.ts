@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GalleryRouteImport } from './routes/[_]gallery'
-import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AllRouteRouteImport } from './routes/all/route'
 import { Route as NeedsYouRouteRouteImport } from './routes/needs-you/route'
 import { Route as SearchRouteImport } from './routes/search'
@@ -30,11 +29,6 @@ const IndexRoute = IndexRouteImport.update({
 const GalleryRoute = GalleryRouteImport.update({
   id: '/_gallery',
   path: '/_gallery',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgentsRoute = AgentsRouteImport.update({
-  id: '/agents',
-  path: '/agents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AllRouteRoute = AllRouteRouteImport.update({
@@ -88,7 +82,6 @@ export interface FileRoutesByFullPath {
   '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
-  '/agents': typeof AgentsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
@@ -102,7 +95,6 @@ export interface FileRoutesByTo {
   '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
-  '/agents': typeof AgentsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
@@ -117,7 +109,6 @@ export interface FileRoutesById {
   '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
-  '/agents': typeof AgentsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
@@ -133,7 +124,6 @@ export interface FileRouteTypes {
     | '/all'
     | '/needs-you'
     | '/_gallery'
-    | '/agents'
     | '/search'
     | '/settings'
     | '/setup'
@@ -147,7 +137,6 @@ export interface FileRouteTypes {
     | '/all'
     | '/needs-you'
     | '/_gallery'
-    | '/agents'
     | '/search'
     | '/settings'
     | '/setup'
@@ -161,7 +150,6 @@ export interface FileRouteTypes {
     | '/all'
     | '/needs-you'
     | '/_gallery'
-    | '/agents'
     | '/search'
     | '/settings'
     | '/setup'
@@ -176,7 +164,6 @@ export interface RootRouteChildren {
   AllRouteRoute: typeof AllRouteRoute
   NeedsYouRouteRoute: typeof NeedsYouRouteRoute
   GalleryRoute: typeof GalleryRoute
-  AgentsRoute: typeof AgentsRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SetupRoute: typeof SetupRoute
@@ -200,13 +187,6 @@ declare module '@tanstack/react-router' {
       path: '/_gallery'
       fullPath: '/_gallery'
       preLoaderRoute: typeof GalleryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agents': {
-      id: '/agents'
-      path: '/agents'
-      fullPath: '/agents'
-      preLoaderRoute: typeof AgentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/all': {
@@ -280,7 +260,6 @@ const rootRouteChildren: RootRouteChildren = {
   AllRouteRoute: AllRouteRoute,
   NeedsYouRouteRoute: NeedsYouRouteRoute,
   GalleryRoute: GalleryRoute,
-  AgentsRoute: AgentsRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SetupRoute: SetupRoute,

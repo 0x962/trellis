@@ -5,10 +5,10 @@ import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
 import { lastListHref } from "../../../../../lib/lastList";
-import { useCopyBrief } from "../../../../agent/BriefCopy";
 import { branchName, titleSlug } from "../../../PropertiesRail/utils/branchName";
 import { openPicker } from "../../../stores/pickerStore";
 import { failToast } from "../../../utils/failToast";
+import { useCopyBrief } from "../BriefCopy";
 
 export type MoreMenuProps = {
 	ticket: Ticket;
