@@ -1,4 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useApp } from "../../../../lib/appContext";
 import type { Orpc } from "../../../../lib/orpc";
 
@@ -15,5 +16,10 @@ export const timelineOptions = (orpc: Orpc, identifier: string) =>
 // stream once.
 export const useTimeline = (identifier: string) => {
 	const { orpc } = useApp();
-	return useInfiniteQuery(timelineOptions(orpc, identifier));
+	const timeline = useInfiniteQuery(timelineOptions(orpc, identifier));
+	const { fetchNextPage, hasNextPage, isFetchingNextPage } = timeline;
+	useEffect(() => {
+		if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+	}, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+	return timeline;
 };

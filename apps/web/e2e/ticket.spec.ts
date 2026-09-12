@@ -81,25 +81,28 @@ test("empty ticket sections use the same empty state", async ({ page }) => {
 	const sections = [
 		{
 			name: /Sub-tickets/,
-			title: "No sub-tickets",
 			description: "Add a sub-ticket to split this work into smaller tasks.",
 		},
 		{
 			name: "PRs",
-			title: "No pull requests",
 			description: "Add a pull request to track its review and checks.",
 		},
 		{
 			name: "Attachments for TKT-2",
-			title: "No attachments",
 			description: "Add a file or drop it anywhere on this ticket.",
 		},
 	];
 
 	for (const expected of sections) {
 		const section = page.getByRole("region", { name: expected.name });
-		await expect(section.getByRole("heading", { level: 3, name: expected.title })).toBeVisible();
-		await expect(section.getByText(expected.description, { exact: true })).toBeVisible();
+		const title = section.getByRole("heading", { level: 2 });
+		const helper = section.getByText(expected.description, { exact: true });
+		await expect(helper).toBeVisible();
+		const [titleBox, helperBox] = await Promise.all([title.boundingBox(), helper.boundingBox()]);
+		expect(titleBox).not.toBeNull();
+		expect(helperBox).not.toBeNull();
+		expect(helperBox!.x).toBeCloseTo(titleBox!.x, 0);
+		expect(helperBox!.y - titleBox!.y - titleBox!.height).toBeCloseTo(12, 0);
 	}
 });
 
