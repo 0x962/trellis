@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { AgentRun } from "@trellis/api";
 import { Avatar, Badge, Button, ConfirmDialog, toast } from "@trellis/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentTerminal } from "../AgentTerminal";
 
@@ -14,24 +14,43 @@ export type AgentRunDetailsProps = {
 	heading?: boolean;
 };
 
+// How often the page asks the server to read the agent's terminal again,
+// in ms.
+const followEveryMs = 15000;
+
 // Everything one agent shows: its state, what the runner said, its terminal
-// output, the follow-up box, the instruction it started with, and the
-// controls that stop it, read its status again, or open its workspace.
+// output, the follow-up box, and the controls that stop it or open its
+// workspace. The state and the output both follow the agent on their own.
 export function AgentRunDetails({ run: initial, heading = false }: AgentRunDetailsProps) {
 	const { client, orpc, queryClient } = useApp();
 	const query = useQuery(orpc.agentRuns.list.queryOptions({ input: {} }));
 	const run = query.data?.find((item) => item.id === initial.id) ?? initial;
 	const [confirmStop, setConfirmStop] = useState(false);
-	const action = useMutation({
-		mutationFn: (operation: "stop" | "refresh") => client.agentRuns[operation]({ id: run.id }),
-		onSuccess: async (_result, operation) => {
+	const stop = useMutation({
+		mutationFn: () => client.agentRuns.stop({ id: run.id }),
+		onSuccess: async () => {
 			setConfirmStop(false);
 			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
-			if (operation === "stop") toast.success(`${run.name} stops now`);
+			toast.success(`${run.name} stops now`);
 		},
-		onError: (error) => toast.error("Could not reach the agent", { description: error.message }),
+		onError: (error) => toast.error("Could not stop the agent", { description: error.message }),
 	});
 	const active = run.state === "running" || run.state === "starting" || run.state === "interrupted";
+
+	// The server learns that a terminal exited only when somebody asks it, so
+	// the page asks while it is open and the agent is at work. The answer
+	// updates the row, and the state above follows with no button to press.
+	// A hidden tab asks nothing.
+	useEffect(() => {
+		if (!active) return;
+		const handle = setInterval(() => {
+			if (document.visibilityState !== "visible") return;
+			void client.agentRuns.refresh({ id: run.id }).then(() => {
+				void queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
+			});
+		}, followEveryMs);
+		return () => clearInterval(handle);
+	}, [active, run.id, client, queryClient, orpc]);
 	return (
 		<div className="flex min-w-0 flex-col gap-6">
 			{heading && (
@@ -53,29 +72,15 @@ export function AgentRunDetails({ run: initial, heading = false }: AgentRunDetai
 				</p>
 			)}
 			<AgentTerminal run={run} />
-			<section aria-label="Prompt snapshot" className="flex flex-col gap-2">
-				<h2 className="text-sm font-medium">Instruction at startup</h2>
-				<p className="text-xs text-fg-faint">Persona edits apply to future agents.</p>
-				<p className="whitespace-pre-wrap break-words text-sm text-fg-muted">{run.instruction}</p>
-			</section>
 			<div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
 				{(active || (run.state === "failed" && run.workspaceId)) && (
 					<Button
 						variant="quiet"
 						disabled={run.state === "starting"}
-						processing={action.isPending && action.variables === "stop"}
+						processing={stop.isPending}
 						onClick={() => setConfirmStop(true)}
 					>
 						Stop agent
-					</Button>
-				)}
-				{(run.state === "running" || run.state === "interrupted") && (
-					<Button
-						variant="quiet"
-						processing={action.isPending && action.variables === "refresh"}
-						onClick={() => action.mutate("refresh")}
-					>
-						Refresh status
 					</Button>
 				)}
 				{run.url && (
@@ -93,8 +98,8 @@ export function AgentRunDetails({ run: initial, heading = false }: AgentRunDetai
 				description="The workspace and its files stay available."
 				confirmLabel="Stop agent"
 				danger
-				processing={action.isPending && action.variables === "stop"}
-				onConfirm={() => action.mutate("stop")}
+				processing={stop.isPending}
+				onConfirm={() => stop.mutate()}
 				onCancel={() => setConfirmStop(false)}
 			/>
 		</div>
