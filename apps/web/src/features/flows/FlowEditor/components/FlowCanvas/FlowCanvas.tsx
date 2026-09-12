@@ -53,8 +53,8 @@ type FlowCanvasProps = {
 	onSelect: (id: string | null) => void;
 };
 
-// A left drag on the empty canvas draws a selection box. A scroll, a middle
-// drag, or a right drag pans, and a pinch zooms. Backspace and Delete remove
+// A left drag on the empty canvas pans, and a drag with Shift held draws a
+// selection box. A two-finger scroll also pans, and a pinch zooms. Backspace and Delete remove
 // the selection, and a box takes the nodes inside it with it. The loose
 // connection mode lets a wire end on any handle, so any side connects to any
 // side.
@@ -179,8 +179,6 @@ export function FlowCanvas(props: FlowCanvasProps) {
 				minZoom={0.2}
 				maxZoom={2}
 				panOnScroll
-				selectionOnDrag
-				panOnDrag={[1, 2]}
 				deleteKeyCode={["Backspace", "Delete"]}
 			>
 				<Background variant={BackgroundVariant.Dots} gap={24} />
