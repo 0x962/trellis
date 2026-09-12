@@ -1,3 +1,4 @@
+import { CaretRight } from "@phosphor-icons/react";
 import { ADE_FIELDS, ADE_VARIABLES, type AdeCommands as Commands, type ProjectManagerConfig } from "@trellis/api";
 import { AgentCommandField } from "../AgentCommandField";
 
@@ -22,7 +23,9 @@ export function AdeCommands({
 	return (
 		<details className="manager-command-group">
 			<summary>
-				Advanced commands<span>Start, check, and control sessions</span>
+				<CaretRight aria-hidden="true" />
+				<span className="manager-command-label">Advanced commands</span>
+				<span className="manager-command-hint">Start, check, and control sessions</span>
 			</summary>
 			<div className="manager-command-body">
 				{groups.map((group) => (
@@ -32,7 +35,10 @@ export function AdeCommands({
 							.map((key) => ADE_FIELDS.find((field) => field.key === key)!)
 							.map(({ key, label, hint }) => (
 								<details key={key} className="manager-command-row">
-									<summary>{label}</summary>
+									<summary>
+										<CaretRight aria-hidden="true" />
+										{label}
+									</summary>
 									<div className="manager-command-editor">
 										<AgentCommandField
 											label={`${label} command`}
@@ -49,7 +55,10 @@ export function AdeCommands({
 					</section>
 				))}
 				<details className="manager-command-row">
-					<summary>Command variables and results</summary>
+					<summary>
+						<CaretRight aria-hidden="true" />
+						Command variables and results
+					</summary>
 					<div className="manager-command-editor manager-settings-hint">
 						<p>
 							Commands run on the Trellis server. Each variable is a quoted shell argument, except {"{{target}}"} and{" "}
