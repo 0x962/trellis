@@ -20,7 +20,7 @@ export function SectionHeader({ title, count, actions, level = 2, className }: S
 		<div className={cx("flex h-7 items-center gap-2", className)}>
 			<Heading className="flex min-w-0 items-baseline gap-2">
 				<span className="truncate text-base font-medium text-fg">{title}</span>
-				{count !== undefined && <span className="text-base text-fg-faint tabular">{count}</span>}
+				{count !== undefined && <span className="text-sm text-fg-faint tabular">({count})</span>}
 			</Heading>
 			{actions !== undefined && <div className="ml-auto flex items-center gap-2 text-sm text-fg-faint">{actions}</div>}
 		</div>

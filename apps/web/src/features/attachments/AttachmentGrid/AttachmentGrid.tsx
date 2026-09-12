@@ -23,8 +23,8 @@ export type AttachmentGridProps = {
 };
 
 // The attachments section of a ticket surface: the header, the uploads in
-// flight, the image thumbnails, and the file rows. With no image, Upload
-// sits in the header. With images, the thumbnail grid ends in the add tile.
+// flight, the image thumbnails, and the file rows. Add stays in the header
+// while the attachment list changes.
 export function AttachmentGrid({ ticket, initialAttachments, uploads }: AttachmentGridProps) {
 	const { client, orpc, queryClient, scheduler } = useApp();
 	const list = useQuery({
@@ -91,7 +91,7 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 				<SectionHeader
 					title="Attachments"
 					count={list.length > 0 ? list.length : undefined}
-					actions={images.length === 0 ? <AttachmentBox ticket={ticket} uploads={uploadManager} compact /> : undefined}
+					actions={<AttachmentBox ticket={ticket} uploads={uploadManager} />}
 				/>
 				{uploadManager.uploads.map((upload) => (
 					<UploadProgress key={upload.id} upload={upload} showName={false} onDismiss={uploadManager.dismiss} />
@@ -123,7 +123,6 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 								</div>
 							</div>
 						))}
-						<AttachmentBox ticket={ticket} uploads={uploadManager} />
 					</div>
 				)}
 				{files.map((attachment) => (

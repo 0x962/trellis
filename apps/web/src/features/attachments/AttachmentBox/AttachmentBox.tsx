@@ -1,4 +1,4 @@
-import { Paperclip, Plus } from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react";
 import { Button } from "@trellis/ui";
 import { type ChangeEvent, type DragEvent, useRef, useState } from "react";
 import { type Uploads, useUploads } from "../hooks/useUploads";
@@ -10,19 +10,12 @@ export type AttachmentBoxProps = {
 	// The uploads of the surface that owns the section. With them, the
 	// surface draws the upload progress, so the box draws only its control.
 	uploads?: Uploads;
-	// A quiet 28 px Upload button for a section header. Without it, the box
-	// is the 96 px dashed tile that ends the thumbnail grid.
-	compact?: boolean;
 };
 
-const tileClass =
-	"flex size-24 shrink-0 items-center justify-center rounded-lg border border-dashed border-border-strong text-fg-faint transition-colors duration-hover ease-out hover:border-accent hover:text-fg data-[over=true]:border-accent data-[over=true]:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
+type ViewProps = { uploads: Uploads; showProgress: boolean };
 
-type ViewProps = { uploads: Uploads; showProgress: boolean; compact: boolean };
-
-// The control that picks files and takes a drop. Both presentations carry
-// `data-attachment-box`, so a drop on either one uploads the files.
-function AttachmentBoxView({ uploads, showProgress, compact }: ViewProps) {
+// The control that picks files and takes a drop from the attachment header.
+function AttachmentBoxView({ uploads, showProgress }: ViewProps) {
 	const picker = useRef<HTMLInputElement>(null);
 	const [over, setOver] = useState(false);
 	const { uploads: entries, start, dismiss } = uploads;
@@ -50,22 +43,10 @@ function AttachmentBoxView({ uploads, showProgress, compact }: ViewProps) {
 	};
 	const handlers = { onClick: choose, onDragOver: dragOver, onDragLeave: dragLeave, onDrop: drop };
 
-	const control = compact ? (
-		<Button
-			variant="quiet"
-			size="sm"
-			icon={<Paperclip />}
-			data-attachment-box=""
-			data-over={String(over)}
-			{...handlers}
-		>
-			Upload
+	const control = (
+		<Button variant="quiet" size="sm" icon={<Plus />} data-attachment-box="" data-over={String(over)} {...handlers}>
+			Add
 		</Button>
-	) : (
-		<button type="button" data-attachment-box="" data-over={String(over)} className={tileClass} {...handlers}>
-			<Plus aria-hidden="true" className="size-4" />
-			<span className="sr-only">Drop files or click to upload</span>
-		</button>
 	);
 
 	return (
@@ -78,16 +59,16 @@ function AttachmentBoxView({ uploads, showProgress, compact }: ViewProps) {
 	);
 }
 
-function OwnedAttachmentBox({ ticket, compact }: { ticket: string; compact: boolean }) {
+function OwnedAttachmentBox({ ticket }: { ticket: string }) {
 	const uploads = useUploads(ticket, false);
-	return <AttachmentBoxView uploads={uploads} showProgress compact={compact} />;
+	return <AttachmentBoxView uploads={uploads} showProgress />;
 }
 
 // The file picker and drop control of the attachments section.
-export function AttachmentBox({ ticket, uploads, compact = false }: AttachmentBoxProps) {
+export function AttachmentBox({ ticket, uploads }: AttachmentBoxProps) {
 	return uploads === undefined ? (
-		<OwnedAttachmentBox ticket={ticket} compact={compact} />
+		<OwnedAttachmentBox ticket={ticket} />
 	) : (
-		<AttachmentBoxView uploads={uploads} showProgress={false} compact={compact} />
+		<AttachmentBoxView uploads={uploads} showProgress={false} />
 	);
 }

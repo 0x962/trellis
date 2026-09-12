@@ -36,3 +36,13 @@ test("Back to list keeps the previous search params", async ({ page }) => {
 	await page.getByRole("link", { name: "Back to list" }).click();
 	await expect(page).toHaveURL(/\/p\/TKT\/table\?status=in-progress$/);
 });
+
+test("the ticket sections use the same Add button", async ({ page }) => {
+	await signIn(page, "/t/TKT-1");
+	for (const width of [1280, 375]) {
+		await page.setViewportSize({ width, height: 812 });
+		for (const name of [/Sub-tickets/, "PRs", "Attachments for TKT-1"]) {
+			await expect(page.getByRole("region", { name }).getByRole("button", { name: "Add", exact: true })).toBeVisible();
+		}
+	}
+});

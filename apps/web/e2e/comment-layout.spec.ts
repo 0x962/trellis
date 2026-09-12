@@ -1,0 +1,46 @@
+import { expect, test } from "@playwright/test";
+import { createTicket, ensureProject, trellis } from "./cli";
+import { signIn } from "./support";
+
+const shortRenderedComment = `[Short link](https://example.com/${"a".repeat(750)})`;
+const longRenderedComment = Array.from({ length: 12 }, (_, index) => `Paragraph ${index + 1}`).join("\n\n");
+
+test.beforeAll(() => {
+	if (!ensureProject("CMT", "Comment layout")) return;
+	createTicket("CMT", "Keep compact comments compact");
+	trellis(["comment", "CMT-1", "--body", shortRenderedComment], "human:dana");
+	createTicket("CMT", "Expand a long comment");
+	trellis(["comment", "CMT-2", "--body", longRenderedComment], "human:dana");
+});
+
+test("a compact rendered comment has no Show more button", async ({ page }) => {
+	await signIn(page, "/t/CMT-1");
+	await expect(page.getByRole("article", { name: "Comment by dana" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Show more" })).toHaveCount(0);
+});
+
+test("an overflowing comment can expand and collapse", async ({ page }) => {
+	await signIn(page, "/t/CMT-2");
+	await page.getByRole("button", { name: "Show more" }).click();
+	await expect(page.getByRole("button", { name: "Show less" })).toBeVisible();
+	await page.getByRole("button", { name: "Show less" }).click();
+	await expect(page.getByRole("button", { name: "Show more" })).toBeVisible();
+});
+
+test("timeline actor names align with the comment surface", async ({ page }) => {
+	await signIn(page, "/t/CMT-1");
+	const comment = page.getByRole("article", { name: "Comment by dana" });
+	const surface = comment.locator("[data-thread-surface]");
+	const commentName = comment.getByText("dana", { exact: true });
+	const activityName = page.locator('[data-kind="activity"]').getByText("claude-code", { exact: true });
+	const [surfaceBox, commentNameBox, activityNameBox] = await Promise.all([
+		surface.boundingBox(),
+		commentName.boundingBox(),
+		activityName.boundingBox(),
+	]);
+	expect(surfaceBox).not.toBeNull();
+	expect(commentNameBox).not.toBeNull();
+	expect(activityNameBox).not.toBeNull();
+	expect(commentNameBox!.x).toBeCloseTo(surfaceBox!.x, 0);
+	expect(activityNameBox!.x).toBeCloseTo(surfaceBox!.x, 0);
+});
