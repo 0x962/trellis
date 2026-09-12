@@ -71,14 +71,7 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions }
 	};
 
 	return (
-		<div
-			data-filter-bar=""
-			tabIndex={-1}
-			// The bar is 48 px on a coarse pointer, so the 44 px controls in it
-			// stay inside it and never cover the bar above or the first row below.
-			className="flex h-9 shrink-0 items-center gap-1.5 border-b border-border px-5 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-12 max-md:overflow-x-auto max-md:px-4 max-md:*:shrink-0"
-		>
-			{/* A chip that does not fit scrolls inside the bar, never the page. */}
+		<div data-filter-bar="" className="contents">
 			{active.map((field: FilterField) => (
 				<FilterChip
 					key={field}
@@ -89,7 +82,7 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions }
 					onEdit={(target) => openAt({ kind: "values", field: target })}
 				/>
 			))}
-			<div className="ml-auto flex items-center gap-1">
+			<div className="ml-auto flex shrink-0 items-center gap-1.5">
 				<FilterPicker
 					view={view}
 					statuses={statuses}
@@ -99,12 +92,12 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions }
 					onOpenChange={onOpenChange}
 					stage={stage}
 					onStageChange={setStage}
-					trigger={<IconButton label="Filter" icon={<FunnelSimple />} size="sm" data-filter-button="" />}
+					trigger={<IconButton label="Filter" icon={<FunnelSimple />} round variant="default" data-filter-button="" />}
 				/>
 				{actions}
 				<Menu
 					label="Share"
-					trigger={<IconButton label="Share" icon={<ShareFat />} size="sm" />}
+					trigger={<IconButton label="Share" icon={<ShareFat />} round variant="default" />}
 					items={[
 						{ label: "Copy as CLI", icon: <Copy />, onSelect: () => void copyCli() },
 						{ label: "Copy link", icon: <Link />, onSelect: () => void copyLink() },

@@ -104,7 +104,9 @@ export const gotoProjectRows = (deps: RowDeps): PaletteRow[] =>
 
 export const viewRows = (deps: RowDeps): PaletteRow[] => {
 	const runs: Record<string, () => void> = {
-		"view.filter": run(deps, () => document.querySelector<HTMLElement>("[data-filter-bar]")?.focus()),
+		"view.filter": run(deps, () =>
+			document.querySelector<HTMLElement>("[data-filter-bar] [data-filter-button]")?.focus(),
+		),
 		"view.sort": () => deps.openSubmenu({ kind: "sort" }),
 		"view.group": () => deps.openSubmenu({ kind: "group" }),
 		"view.density": run(deps, () =>

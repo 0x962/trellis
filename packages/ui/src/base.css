@@ -75,3 +75,18 @@
 	background-image: linear-gradient(180deg, var(--metal-bottom) 0%, var(--metal-top) 100%);
 	box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.16);
 }
+
+/*
+ * The on and off faces of a power toggle: green metal and red metal, each
+ * with the faint lit edge that the silver control carries.
+ */
+@utility metal-on {
+	background-image: linear-gradient(180deg, var(--metal-on-top) 0%, var(--metal-on-bottom) 100%);
+	border-color: var(--metal-on-edge);
+	box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+@utility metal-off {
+	background-image: linear-gradient(180deg, var(--metal-off-top) 0%, var(--metal-off-bottom) 100%);
+	border-color: var(--metal-off-edge);
+	box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+}

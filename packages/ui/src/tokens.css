@@ -231,6 +231,16 @@
 	--metal-sheen: rgba(255,255,255,.4);
 	--on-metal: #101012;
 
+	/* The two states of a power toggle, in metal too. Each stays darker than
+	   the silver of the primary control, so the create control keeps the
+	   brightest face in any bar. */
+	--metal-on-top: #6B9676;
+	--metal-on-bottom: #51785C;
+	--metal-on-edge: #43664D;
+	--metal-off-top: #9E6464;
+	--metal-off-bottom: #7E4A4A;
+	--metal-off-edge: #6A3E3E;
+
 	--duration-hover: 120ms;
 	--duration-popover: 160ms;
 	--duration-peek: 240ms;

@@ -1,4 +1,4 @@
-import { Plus, Power } from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
@@ -11,7 +11,7 @@ import {
 	ProjectManagerConfigSchema,
 	unknownLaunchVariables,
 } from "@trellis/api";
-import { Button, IconButton, Input, Select, Tooltip, toast } from "@trellis/ui";
+import { Button, IconButton, Input, PowerToggle, Select, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
@@ -133,19 +133,14 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 			<Topbar
 				actions={
 					<>
-						{/* The agents toggle is a round power button like the create button
-						    beside it. The accent ring and fill show that agents are on, and
-						    the tooltip says the state in words. */}
+						{/* The agents toggle is green metal while agents run and red metal while
+						    they are off. The tooltip says the state in words. */}
 						<Tooltip content={draft.enabled ? "Agents are on" : "Agents are off"}>
-							<IconButton
+							<PowerToggle
 								label="Agents"
-								icon={<Power weight="bold" />}
-								size="md"
-								round
-								variant="default"
-								pressed={draft.enabled}
+								on={draft.enabled}
 								disabled={readOnly}
-								onClick={() => commit({ ...draft, enabled: !draft.enabled })}
+								onChange={(enabled) => commit({ ...draft, enabled })}
 							/>
 						</Tooltip>
 						<IconButton

@@ -174,3 +174,16 @@ svg {
 	max-width: 100%;
 	border-radius: var(--radius-md);
 }
+
+/*
+ * The rounded corner that Topbar draws under itself. The quarter circle
+ * inside the curve stays clear, and the page ground fills the square
+ * outside it, so no square edge of the page content shows at the corner.
+ */
+@utility corner-mask {
+	background-image: radial-gradient(
+		circle at 100% 100%,
+		transparent calc(var(--radius-lg) - 1px),
+		var(--color-pane) var(--radius-lg)
+	);
+}

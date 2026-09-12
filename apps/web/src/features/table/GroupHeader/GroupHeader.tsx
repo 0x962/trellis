@@ -93,6 +93,7 @@ export function GroupHeader({
 					<IconButton
 						size="xs"
 						round
+						variant="primary"
 						label={`New ticket in ${label}`}
 						icon={<Plus />}
 						className={revealed}
