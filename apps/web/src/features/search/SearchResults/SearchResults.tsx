@@ -1,7 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { EmptyState, PriorityIcon, StatusIcon, useMediaQuery } from "@trellis/ui";
-import { Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
 import { compactRelativeTime, formatCount } from "../../../lib/format";
@@ -53,7 +52,6 @@ export function SearchResults({ q, filters = {}, children }: SearchResultsProps)
 			<PeekListProvider rows={peekRows}>
 				<EmptyState
 					variant="page"
-					icon={<Search />}
 					title={`No results for '${q}'`}
 					description="No ticket title, no ticket description, and no project name holds this text. Check the spelling, or search for one word."
 				/>
@@ -94,7 +92,7 @@ export function SearchResults({ q, filters = {}, children }: SearchResultsProps)
 													/>
 													<span className="text-xs text-fg-faint tabular">{compactRelativeTime(ticket.updatedAt)}</span>
 												</span>
-												<span data-line="title" className="truncate text-sm">
+												<span data-line="title" className="truncate font-mono text-sm">
 													{highlight(ticket.title, q)}
 												</span>
 											</Link>
@@ -112,7 +110,7 @@ export function SearchResults({ q, filters = {}, children }: SearchResultsProps)
 											<span className="font-mono text-sm text-fg-faint tabular">{ticket.identifier}</span>
 										</Link>
 									</td>
-									<td className="truncate pr-3 text-base">{highlight(ticket.title, q)}</td>
+									<td className="truncate pr-3 font-mono text-base">{highlight(ticket.title, q)}</td>
 									<td className="w-40 pr-3" title={projectSlashPath(ticket.project.path)}>
 										<span className="flex min-w-0 items-center gap-1.5">
 											<ProjectKey projectKey={segments[0]!} />

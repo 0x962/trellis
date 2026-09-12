@@ -5,7 +5,7 @@
 	@apply shrink-0 border-b border-border p-4 lg:w-52 lg:overflow-y-auto lg:border-r lg:border-b-0 lg:py-7;
 }
 @utility project-settings-nav-title {
-	@apply mb-3 px-2 text-sm font-semibold text-fg;
+	@apply sr-only;
 }
 @utility project-settings-nav-list {
 	@apply grid grid-cols-2 gap-1 lg:flex lg:flex-col;

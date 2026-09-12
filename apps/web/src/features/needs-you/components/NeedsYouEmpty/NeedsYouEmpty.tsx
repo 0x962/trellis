@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { EmptyState } from "@trellis/ui";
-import { Inbox } from "lucide-react";
 import { useApp } from "../../../../lib/appContext";
 import { startedLine } from "../../utils/emptyLine";
 
@@ -19,7 +18,6 @@ export function NeedsYouEmpty() {
 		<EmptyState
 			variant="page"
 			className="h-full"
-			icon={<Inbox />}
 			title="Nothing needs you"
 			description={
 				<>

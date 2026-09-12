@@ -42,7 +42,7 @@ export function ParentChip({ ancestors, title }: ParentChipProps) {
 					)}
 				</span>
 			))}
-			<span className="truncate">{title}</span>
+			<span className="truncate font-mono">{title}</span>
 		</fieldset>
 	);
 }

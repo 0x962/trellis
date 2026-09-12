@@ -8,7 +8,7 @@ import { dirname, join, relative, resolve } from "node:path";
 //
 // Real infrastructure means one of these, which each cost about half a second
 // or more every time a file asks for one:
-//   - a PGlite database (test/helpers/db.ts)
+//   - a PGlite database (test/helpers/db.ts, or a direct openDb call)
 //   - the Hono app (test/helpers/app.ts, apps/web/test/server)
 //   - a spawned process (Bun.spawn, node:child_process)
 //
@@ -28,6 +28,9 @@ const BUILDERS = [
 ];
 
 const SPAWNS = /Bun\.spawn|spawnSync|execFileSync|node:child_process/;
+// A test can also open a database without a helper, by calling the same
+// function the server calls at boot.
+const OPENS_DATABASE = /\bopenDb\(|\bdiskDb\(|new PGlite\b/;
 const SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*|\bimport\s*)["'](\.[^"']*)["']/g;
 
 // The file a relative specifier names. Bun resolves a bare directory to its
@@ -51,11 +54,11 @@ const buildsInfrastructure = (file: string, visiting: Set<string> = new Set()): 
 	if (BUILDERS.includes(path)) return true;
 
 	const source = readFileSync(file, "utf8");
-	if (SPAWNS.test(source)) return true;
+	if (SPAWNS.test(source) || OPENS_DATABASE.test(source)) return true;
 
 	let answer = false;
-	for (const [, specifier] of source.matchAll(SPECIFIER)) {
-		const imported = fileFor(file, specifier);
+	for (const match of source.matchAll(SPECIFIER)) {
+		const imported = fileFor(file, match[1]!);
 		if (imported && buildsInfrastructure(imported, visiting)) {
 			answer = true;
 			break;

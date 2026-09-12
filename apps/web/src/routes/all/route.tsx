@@ -70,7 +70,7 @@ function AllBoardPage() {
 					</>
 				}
 			>
-				<h1 className="text-lg font-semibold text-fg">All tickets</h1>
+				<h1 className="sr-only">All tickets</h1>
 			</Topbar>
 			<FilterBar search={search} onSearchChange={setSearch} statuses={statuses} />
 			<Board filters={toCountsQuery(view, { statuses })} storageKey="all" onOpenTicket={openTicket}>

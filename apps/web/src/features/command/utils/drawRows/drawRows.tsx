@@ -9,6 +9,7 @@ export const drawRows = (rows: PaletteRow[]) =>
 			key={row.value}
 			value={row.value}
 			label={row.label}
+			labelMono={row.labelMono}
 			sub={row.sub}
 			mono={row.mono}
 			prefix={row.prefix}

@@ -12,8 +12,9 @@ export type SwitchProps = {
 };
 
 // An on/off toggle with its label. Space and Enter flip it; so does a click
-// on the label. The track is 28 by 16 px; the hit-area layer around it
-// reaches the 28 px and 44 px minimums.
+// on the label. The track and its thumb are both round, the way the create
+// button is. The track is 36 by 20 px; the hit-area layer around it reaches
+// the 28 px and 44 px minimums.
 export function Switch({ label, checked, onCheckedChange, disabled = false, className }: SwitchProps) {
 	return (
 		<Field.Root
@@ -28,13 +29,13 @@ export function Switch({ label, checked, onCheckedChange, disabled = false, clas
 				checked={checked}
 				onCheckedChange={(next) => onCheckedChange(next)}
 				className={cx(
-					"inline-flex h-4 w-7 shrink-0 items-center rounded-xl bg-border-strong p-0.5 transition-colors duration-hover ease-out",
+					"inline-flex h-5 w-9 shrink-0 items-center rounded-round bg-border-strong p-0.5 transition-colors duration-hover ease-out",
 					hitArea.box16,
 					"data-checked:bg-accent",
 					"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 				)}
 			>
-				<BaseSwitch.Thumb className="size-3 rounded-sm bg-surface shadow-sm transition-transform duration-hover ease-out data-checked:translate-x-3" />
+				<BaseSwitch.Thumb className="size-4 rounded-round bg-surface shadow-sm transition-transform duration-hover ease-out data-checked:translate-x-4" />
 			</BaseSwitch.Root>
 			<Field.Label>{label}</Field.Label>
 		</Field.Root>

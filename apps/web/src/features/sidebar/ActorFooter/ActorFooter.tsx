@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ActorHeaderSchema } from "@trellis/api";
-import { Avatar, Button, IconButton, Input, Popover, toast } from "@trellis/ui";
-import { CircleHelp, Settings } from "lucide-react";
+import { Avatar, Button, IconButton, Input, Popover, SettingGlyph, toast } from "@trellis/ui";
+import { CircleHelp } from "lucide-react";
 import { type FormEvent, useId, useState } from "react";
 import { useActor } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
@@ -84,7 +84,7 @@ export function ActorFooter() {
 				className={iconLinkClass}
 			>
 				<span aria-hidden="true" className="inline-flex size-3.5 *:size-full">
-					<Settings />
+					<SettingGlyph />
 				</span>
 				{ghWarning && (
 					<>

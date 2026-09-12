@@ -1,12 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { cx } from "@trellis/ui";
-import { BriefcaseBusiness, List, Settings } from "lucide-react";
 import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectPath";
 
-// A page carries no chevron, so its padding adds that 20 px column to the
-// padding of the project row above it. The icon of a page then starts in
-// the same column as the icon of a sub-project at the same level.
+// A page reads as its name alone, and its padding puts that name one step
+// in from the name of the project above it.
 const indent = ["pl-4", "pl-7", "pl-10", "pl-13", "pl-16"] as const;
 
 export function ProjectPages({
@@ -26,10 +24,10 @@ export function ProjectPages({
 			<nav aria-label={`${project.name} pages`}>
 				<ul className="flex flex-col gap-0.5">
 					{[
-						{ label: "Tickets", suffix: "", icon: List, active: current && !settings && !manager },
-						{ label: "Manager", suffix: "/settings/manager", icon: BriefcaseBusiness, active: current && manager },
-						{ label: "Settings", suffix: "/settings", icon: Settings, active: current && settings },
-					].map(({ label, suffix, icon: Icon, active }) => (
+						{ label: "Tickets", suffix: "", active: current && !settings && !manager },
+						{ label: "Manager", suffix: "/settings/manager", active: current && manager },
+						{ label: "Settings", suffix: "/settings", active: current && settings },
+					].map(({ label, suffix, active }) => (
 						<li key={label}>
 							<Link
 								to="/p/$"
@@ -42,9 +40,6 @@ export function ProjectPages({
 									active && "sidebar-selected font-medium",
 								)}
 							>
-								<span className="sidebar-leading">
-									<Icon aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
-								</span>
 								<span className="sidebar-label">{label}</span>
 							</Link>
 						</li>

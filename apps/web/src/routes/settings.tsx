@@ -73,7 +73,7 @@ function SettingsPage() {
 	return (
 		<>
 			<Topbar>
-				<h1 className="text-lg font-semibold text-fg">Settings</h1>
+				<h1 className="sr-only">Settings</h1>
 			</Topbar>
 			<div className="project-settings-layout">
 				<nav aria-label="Settings" className="project-settings-nav">

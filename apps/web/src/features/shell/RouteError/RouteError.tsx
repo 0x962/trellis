@@ -1,6 +1,5 @@
 import { useRouter } from "@tanstack/react-router";
 import { Button, EmptyState } from "@trellis/ui";
-import { FileWarning, WifiOff } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useApp } from "../../../lib/appContext";
 import { useLiveStatus } from "../../../lib/liveStatus";
@@ -35,7 +34,6 @@ export function RouteError({ error }: RouteErrorProps) {
 		return (
 			<EmptyState
 				variant="page"
-				icon={<FileWarning />}
 				title="A new version of trellis is on the server"
 				description="trellis did not load this page, because the server holds a new build. Reload to use it."
 				action={
@@ -50,7 +48,6 @@ export function RouteError({ error }: RouteErrorProps) {
 		return (
 			<EmptyState
 				variant="page"
-				icon={<WifiOff />}
 				title="Server offline"
 				description={
 					<>
@@ -69,7 +66,6 @@ export function RouteError({ error }: RouteErrorProps) {
 	return (
 		<EmptyState
 			variant="page"
-			icon={<FileWarning />}
 			title="trellis did not load this page"
 			description={error instanceof Error ? error.message : String(error)}
 			action={

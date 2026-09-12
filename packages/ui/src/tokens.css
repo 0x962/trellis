@@ -58,7 +58,7 @@
 	   The light accent is dark enough to carry white; the dark accent is the
 	   bright silver, so there it flips. */
 	--on-accent: #FFFFFF;
-	--sans: "BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	--sans: "Inter Variable", "Inter Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 	--mono: "BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 	color-scheme: light;
 }

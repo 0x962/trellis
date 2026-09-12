@@ -12,6 +12,8 @@ export type PaletteRow = {
 	// row carries its identifier, so a test and a person read the same name.
 	value: string;
 	label: string;
+	// Draws the label in mono, for a row whose label is a ticket title.
+	labelMono?: boolean;
 	// Muted text after the label: the current status, a project path.
 	sub?: string;
 	mono?: boolean;

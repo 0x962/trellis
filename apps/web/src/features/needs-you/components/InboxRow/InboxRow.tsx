@@ -40,7 +40,7 @@ export function InboxRow({ ticket, showStatus = true }: InboxRowProps) {
 			<PriorityIcon priority={ticket.priority} />
 			<TicketId id={ticket.identifier} className="w-16 text-fg-faint" />
 			<span className="flex min-w-0 flex-1 items-center gap-2">
-				<span className="truncate text-base">{ticket.title}</span>
+				<span className="truncate font-mono text-base">{ticket.title}</span>
 				{parent !== null && <span className="shrink-0 font-mono text-xs text-fg-muted">↳ {parent.identifier}</span>}
 				{ticket.childCount > 0 && (
 					<span

@@ -27,19 +27,21 @@ const colorTokens = [
 	"--control-hover",
 	"--control-active",
 	"--scrim",
+	"--on-accent",
 ];
 
 const shadowTokens = ["--shadow-sm", "--shadow-md", "--shadow-lg"];
 
 const fontTokens = ["--sans", "--mono"];
 
-// BerkeleyMono leads both stacks. A machine without it falls back to the
-// bundled JetBrains Mono, and "JetBrains Mono Fallback" is the
-// metric-matched face that holds the layout until the web font loads (see
-// fonts.test.ts).
+// Inter carries the prose and the mono stack carries the ticket titles, the
+// identifiers, the branches, and the commands. BerkeleyMono leads the mono
+// stack. A machine without it falls back to the bundled JetBrains Mono. Each
+// "Fallback" entry is the metric-matched face that holds the layout until
+// the web font loads (see fonts.test.ts).
 const fontStacks: Record<string, string> = {
 	"--sans":
-		'"BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+		'"Inter Variable", "Inter Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
 	"--mono":
 		'"BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
 };
@@ -69,6 +71,7 @@ const lightPalette: Record<string, string> = {
 	"--control-hover": "#F4F4F5",
 	"--control-active": "#EBEBED",
 	"--scrim": "rgba(0,0,0,.4)",
+	"--on-accent": "#FFFFFF",
 	"--shadow-sm": "0 1px 2px rgba(0,0,0,.06)",
 	"--shadow-md": "0 4px 12px rgba(0,0,0,.10)",
 	"--shadow-lg": "0 12px 32px rgba(0,0,0,.16)",
@@ -98,6 +101,7 @@ const darkPalette: Record<string, string> = {
 	"--control-hover": "#252527",
 	"--control-active": "#2E2E30",
 	"--scrim": "rgba(0,0,0,.6)",
+	"--on-accent": "#0A0A0A",
 	"--shadow-sm": "0 0 0 1px var(--border-strong)",
 	"--shadow-md": "0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4)",
 	"--shadow-lg": "0 0 0 1px var(--border-strong), 0 12px 32px rgba(0,0,0,.5)",
