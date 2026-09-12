@@ -23,7 +23,7 @@ export function ReviewFiles({ files, selected, counts, onSelect, search, onSearc
 		initialExpansion: "open",
 		flattenEmptyDirectories: true,
 		fileTreeSearchMode: "hide-non-matches",
-		itemHeight: coarse ? 44 : 30,
+		itemHeight: coarse ? 44 : 28,
 		onSelectionChange: (paths) => {
 			const path = paths.at(-1);
 			if (path && current.current.files.some((file) => file.path === path)) current.current.onSelect(path);

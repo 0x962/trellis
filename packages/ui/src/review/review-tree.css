@@ -38,7 +38,7 @@
 	flex: 1;
 	min-height: 0;
 	width: 100%;
-	padding: 0 8px 12px;
+	padding: 0 4px 8px;
 	--trees-bg-override: var(--bg);
 	--trees-bg-muted-override: var(--surface);
 	--trees-fg-override: var(--fg);
@@ -46,7 +46,13 @@
 	--trees-border-color-override: var(--border);
 	--trees-border-radius-override: var(--radius-sm);
 	--trees-font-family-override: var(--font-sans);
-	--trees-font-size-override: 12px;
+	--trees-font-size-override: 11px;
+	--trees-padding-inline-override: 4px;
+	--trees-item-padding-x-override: 4px;
+	--trees-item-margin-x-override: 0px;
+	--trees-icon-width-override: 12px;
+	--trees-item-row-gap-override: 4px;
+	--trees-level-gap-override: 2px;
 	--trees-selected-bg-override: var(--accent-soft);
 	--trees-selected-fg-override: var(--fg);
 	--trees-selected-focused-border-color-override: var(--border-strong);
