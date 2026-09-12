@@ -57,14 +57,18 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 	const [flow, setFlow] = useState(() => ({ ...doc.flow, version: stored?.version ?? doc.flow.version }));
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
-	const [saveAndCloseId, setSaveAndCloseId] = useState<string | null>(null);
+	const [submission, setSubmission] = useState<{ nodes: CanvasNode[]; edges: CanvasEdge[] } | null>(null);
 
 	const graph = useMemo(() => fromCanvas(nodes, edges), [nodes, edges]);
 	const issues = useMemo(() => draftIssues(flow.id, graph), [flow.id, graph]);
+	const submittedGraph = useMemo(
+		() => (submission === null ? graph : fromCanvas(submission.nodes, submission.edges)),
+		[submission, graph],
+	);
 	const autosave = useFlowAutosave({
 		flow,
-		graph,
-		canSave: issues.canSave,
+		graph: submittedGraph,
+		canSave: draftIssues(flow.id, submittedGraph).canSave,
 		initialSavedJson,
 		recovery,
 		onSaved: setFlow,
@@ -85,29 +89,29 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 	);
 	const selected = selectedId === null ? undefined : nodes.find((node) => node.id === selectedId);
 	const closeInspector = useCallback(() => {
-		setSaveAndCloseId(null);
 		setSelectedId(null);
 		setNodes((current) => current.map((node) => ({ ...node, selected: false })));
 	}, [setNodes]);
+	const submitting = submission !== null && !["error", "conflict", "invalid"].includes(autosave.status);
 	useEffect(() => {
-		if (saveAndCloseId === null) return;
-		if (autosave.status === "saved") {
-			if (selectedId === saveAndCloseId) closeInspector();
-			else setSaveAndCloseId(null);
-		} else if (["error", "conflict", "invalid"].includes(autosave.status)) {
-			setSaveAndCloseId(null);
-		}
-	}, [autosave.status, saveAndCloseId, selectedId, closeInspector]);
-	const change = (patch: Partial<StepFields>) => {
-		if (patch.parallel === true) {
-			const children = new Set(nodes.filter((node) => node.parentId === selectedId).map((node) => node.id));
-			setEdges((current) => current.filter((edge) => !children.has(edge.source)));
-		}
-		setNodes((current) =>
-			current.map((node) =>
-				node.id === selectedId ? { ...node, data: { fields: { ...node.data.fields, ...patch } } } : node,
-			),
-		);
+		if (submission === null || autosave.status !== "saved") return;
+		setNodes(submission.nodes);
+		setEdges(submission.edges);
+		setSubmission(null);
+		closeInspector();
+	}, [autosave.status, closeInspector, submission, setNodes, setEdges]);
+	const editCanvas = (fields: StepFields) => {
+		const children = new Set(nodes.filter((node) => node.parentId === fields.id).map((node) => node.id));
+		const turnsParallel = fields.parallel && !nodes.find((node) => node.id === fields.id)!.data.fields.parallel;
+		return {
+			nodes: nodes.map((node) => (node.id === fields.id ? { ...node, data: { fields } } : node)),
+			edges: turnsParallel ? edges.filter((edge) => !children.has(edge.source)) : edges,
+		};
+	};
+	const cancelInspector = () => {
+		setSubmission(null);
+		if (submission !== null) autosave.discardSubmission();
+		closeInspector();
 	};
 
 	return (
@@ -124,13 +128,18 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 								<IconButton label="Reload the flow" icon={<ArrowClockwise />} onClick={() => setConfirmReload(true)} />
 							</Tooltip>
 						)}
-						{autosave.status === "error" && (
+						{autosave.status === "error" && submission === null && (
 							<Tooltip content="Retry the save">
 								<IconButton label="Retry the save" icon={<ArrowClockwise />} onClick={autosave.retry} />
 							</Tooltip>
 						)}
 						<Tooltip content="Flow settings">
-							<IconButton label="Flow settings" icon={<SlidersHorizontal />} onClick={() => setSettingsOpen(true)} />
+							<IconButton
+								label="Flow settings"
+								icon={<SlidersHorizontal />}
+								disabled={submitting}
+								onClick={() => setSettingsOpen(true)}
+							/>
 						</Tooltip>
 					</>
 				}
@@ -138,35 +147,40 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 				<PageTitle parent={<Link to="/ai/flows">Flows</Link>} title={flow.name} />
 			</Topbar>
 			<div className="page-card relative flex flex-1 overflow-hidden">
-				<FlowCanvas
-					nodes={nodes}
-					edges={shownEdges}
-					graph={graph}
-					onNodesChange={onNodesChange}
-					onEdgesChange={onEdgesChange}
-					setNodes={setNodes}
-					setEdges={setEdges}
-					onSelect={setSelectedId}
-				/>
+				<div className="flex min-w-0 flex-1" inert={submission !== null}>
+					<FlowCanvas
+						nodes={nodes}
+						edges={shownEdges}
+						graph={graph}
+						onNodesChange={onNodesChange}
+						onEdgesChange={onEdgesChange}
+						setNodes={setNodes}
+						setEdges={setEdges}
+						onSelect={setSelectedId}
+					/>
+				</div>
 				{selected !== undefined && (
 					<NodeInspector
 						key={selected.id}
 						fields={selected.data.fields}
-						issue={
-							autosave.status === "error" || autosave.status === "conflict"
-								? autosave.message
-								: issues.byRow.get(selected.id)
-						}
+						issue={autosave.status === "error" || autosave.status === "conflict" ? autosave.message : undefined}
 						personas={personas}
-						onChange={change}
-						onClose={closeInspector}
-						onSave={() => {
-							setSaveAndCloseId(selected.id);
+						validate={(fields) => {
+							const canvas = editCanvas(fields);
+							const result = draftIssues(flow.id, fromCanvas(canvas.nodes, canvas.edges));
+							return { canSave: result.canSave, issue: result.byRow.get(fields.id) };
+						}}
+						onClose={cancelInspector}
+						onSave={(fields) => {
+							setSubmission(editCanvas(fields));
 							autosave.saveNow();
 						}}
-						saving={saveAndCloseId === selected.id}
-						canSave={issues.canSave && autosave.status !== "conflict"}
-						onDelete={() => void rf.deleteElements({ nodes: [{ id: selected.id }] })}
+						saving={submitting}
+						canSave={autosave.status !== "conflict"}
+						onDelete={() => {
+							cancelInspector();
+							void rf.deleteElements({ nodes: [{ id: selected.id }] });
+						}}
 					/>
 				)}
 			</div>
