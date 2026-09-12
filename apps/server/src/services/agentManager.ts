@@ -17,7 +17,7 @@ import {
 } from "./agentSessions.ts";
 import { hostOf, managedProject, readAgentSettings } from "./agentSettings.ts";
 import { baseBranchOf, effectiveRepos, runnerProjectOf } from "./agentStart.ts";
-import { projectRow } from "./projectRows.ts";
+import { managerConfigOf, projectRow } from "./projectRows.ts";
 import { pathOf, resolveProject } from "./refs.ts";
 
 // The services that start a project's manager: the agents host runs
@@ -94,7 +94,7 @@ export const prepareManager = async (ctx: AgentsCtx, input: { project: string })
 	const found = await ctx.newTx(async (tx) => {
 		const managed = managedProject(ctx, await readAgentSettings(tx), input.project);
 		const manager = (await managerOf(tx, managed.projectId)) ?? (await failedManagerOf(tx, managed.projectId));
-		const config = (await projectRow(tx, managed.projectId)).manager_config;
+		const config = managerConfigOf(await projectRow(tx, managed.projectId));
 		return { managed, manager, config, repos: await effectiveRepos(ctx, tx, managed.projectId) };
 	});
 	const project = pathOf(ctx.cache, found.managed.projectId);
