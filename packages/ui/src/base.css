@@ -58,3 +58,22 @@
 		cursor: not-allowed;
 	}
 }
+
+/*
+ * A raised silver control. The gradient gives the face its curve, the inset
+ * hairline is the light caught on the top edge, and the rim is the shadow
+ * under it. A press flips the gradient, so the face reads as pushed in.
+ * Text on it is near-black, which reads at 12:1 on the lightest part.
+ */
+@utility metal {
+	background-image: linear-gradient(180deg, var(--metal-top) 0%, var(--metal-bottom) 100%);
+	border-color: var(--metal-edge);
+	color: var(--on-metal);
+	box-shadow:
+		inset 0 1px 0 var(--metal-sheen),
+		var(--shadow-sm);
+}
+@utility metal-pressed {
+	background-image: linear-gradient(180deg, var(--metal-bottom) 0%, var(--metal-top) 100%);
+	box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.25);
+}

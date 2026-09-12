@@ -34,8 +34,8 @@
 	--fg: #070707;
 	--fg-muted: #646468;
 	--fg-faint: #6F6F74;
-	--accent: #009FFF;
-	--accent-soft: #DFEBFF;
+	--accent: #6E6E73;
+	--accent-soft: #EDEDEF;
 	--agent: #693ACF;
 	--agent-soft: #EFE8FB;
 	--success: #097F34;
@@ -48,7 +48,9 @@
 	--shadow-sm: 0 1px 2px rgba(0,0,0,.06);
 	--shadow-md: 0 4px 12px rgba(0,0,0,.10);
 	--shadow-lg: 0 12px 32px rgba(0,0,0,.16);
-	/* Text on a saturated fill (accent, danger) stays white in both themes. */
+	/* Text on a saturated fill, such as a danger button or a selected row.
+	   The light accent is dark enough to carry white; the dark accent is the
+	   bright silver, so there it flips. */
 	--on-accent: #FFFFFF;
 	--sans: "BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 	--mono: "BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -65,8 +67,8 @@
 		--fg: #E8E8EA;
 		--fg-muted: #BBBBBF;
 		--fg-faint: #8E8E95;
-		--accent: #009FFF;
-		--accent-soft: #19283C;
+		--accent: #C4C4C4;
+		--accent-soft: #2A2A2C;
 		--agent: #9D6AFB;
 		--agent-soft: #24183F;
 		--success: #5ECC71;
@@ -79,6 +81,7 @@
 		--shadow-sm: 0 0 0 1px var(--border-strong);
 		--shadow-md: 0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4);
 		--shadow-lg: 0 0 0 1px var(--border-strong), 0 12px 32px rgba(0,0,0,.5);
+		--on-accent: #0A0A0A;
 		color-scheme: dark;
 	}
 }
@@ -92,8 +95,8 @@
 	--fg: #E8E8EA;
 	--fg-muted: #BBBBBF;
 	--fg-faint: #8E8E95;
-	--accent: #009FFF;
-	--accent-soft: #19283C;
+	--accent: #C4C4C4;
+	--accent-soft: #2A2A2C;
 	--agent: #9D6AFB;
 	--agent-soft: #24183F;
 	--success: #5ECC71;
@@ -106,6 +109,7 @@
 	--shadow-sm: 0 0 0 1px var(--border-strong);
 	--shadow-md: 0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4);
 	--shadow-lg: 0 0 0 1px var(--border-strong), 0 12px 32px rgba(0,0,0,.5);
+	--on-accent: #0A0A0A;
 	color-scheme: dark;
 }
 
@@ -201,6 +205,15 @@
 	--radius-xl: 16px;
 	--radius-round: 999px;
 	--border-width-hairline: 1px;
+
+	/* Brushed silver, for a raised control. The gradient runs top to bottom,
+	   the sheen is the lit top edge, and the edge is the shadowed rim. Metal
+	   looks the same under either theme, so one set serves both. */
+	--metal-top: #EDEDEF;
+	--metal-bottom: #B9B9BD;
+	--metal-edge: #9A9AA0;
+	--metal-sheen: rgba(255,255,255,.7);
+	--on-metal: #101012;
 
 	--duration-hover: 120ms;
 	--duration-popover: 160ms;

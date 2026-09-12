@@ -40,7 +40,7 @@ const restoredCache = async () => {
 };
 
 const onlyPalette = () => {
-	const palette = new Set([...Object.values(tokens.dark), tokens.onAccent]);
+	const palette = new Set([...Object.values(tokens.dark), tokens.onSaturated]);
 	const colors = paintedColors(screen.toJSON());
 	expect(colors.size).toBeGreaterThan(0);
 	expect([...colors].filter((color) => !palette.has(color))).toEqual([]);

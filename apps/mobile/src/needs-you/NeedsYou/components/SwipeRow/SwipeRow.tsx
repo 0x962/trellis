@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
 	},
 	revealRight: { justifyContent: "flex-start" },
 	revealLeft: { justifyContent: "flex-end" },
-	label: { fontSize: tokens.text.md, lineHeight: tokens.leading.md, fontWeight: "600", color: tokens.onAccent },
+	label: { fontSize: tokens.text.md, lineHeight: tokens.leading.md, fontWeight: "600", color: tokens.onSaturated },
 });
 
 const clamp = (x: number) => Math.max(-maxDragPx, Math.min(maxDragPx, x));
@@ -137,14 +137,14 @@ export function SwipeRow({ identifier, children, onApprove, onSendBack, removing
 				<View
 					style={[StyleSheet.absoluteFill, styles.reveal, styles.revealRight, { backgroundColor: palette.success }]}
 				>
-					<Ionicons name="checkmark" size={tokens.text.lg} color={tokens.onAccent} />
+					<Ionicons name="checkmark" size={tokens.text.lg} color={tokens.onSaturated} />
 					<Text style={styles.label}>Approve</Text>
 				</View>
 			)}
 			{side === "left" && (
 				<View style={[StyleSheet.absoluteFill, styles.reveal, styles.revealLeft, { backgroundColor: palette.danger }]}>
 					<Text style={styles.label}>Send back</Text>
-					<Ionicons name="arrow-undo" size={tokens.text.lg} color={tokens.onAccent} />
+					<Ionicons name="arrow-undo" size={tokens.text.lg} color={tokens.onSaturated} />
 				</View>
 			)}
 			<GestureDetector gesture={pan}>

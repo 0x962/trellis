@@ -79,5 +79,5 @@ export const markdownStyles = (palette: Palette): MarkdownStyleMap => ({
 		marginTop: (tokens.leading.md - layout.statusIcon) / 2,
 	},
 	task_box_done: { backgroundColor: palette.accent, borderColor: palette.accent },
-	task_check: { color: tokens.onAccent, fontSize: tokens.micro.kbd, lineHeight: layout.statusIcon - layout.ring },
+	task_check: { color: palette.onAccent, fontSize: tokens.micro.kbd, lineHeight: layout.statusIcon - layout.ring },
 });

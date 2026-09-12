@@ -44,7 +44,7 @@ export function Button({ label, onPress, disabled = false, variant = "secondary"
 				disabled && styles.disabled,
 			]}
 		>
-			<Text style={[styles.label, { color: primary ? tokens.onAccent : palette.fg }]}>{label}</Text>
+			<Text style={[styles.label, { color: primary ? palette.onAccent : palette.fg }]}>{label}</Text>
 		</Pressable>
 	);
 }

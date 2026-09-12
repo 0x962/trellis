@@ -42,7 +42,7 @@ export default function RootLayout() {
 		title,
 		tabBarAccessibilityLabel: title,
 		tabBarBadge,
-		tabBarBadgeStyle: { backgroundColor: palette.danger, color: tokens.onAccent, fontSize: tokens.text.xs },
+		tabBarBadgeStyle: { backgroundColor: palette.danger, color: tokens.onSaturated, fontSize: tokens.text.xs },
 		tabBarIcon: ({ focused, size }: { focused: boolean; size: number }) => (
 			<Ionicons name={icon} size={size} color={focused ? palette.accent : palette.fgMuted} />
 		),

@@ -82,7 +82,7 @@ describe("TicketRow", () => {
 
 	test("a row paints only token colors", async () => {
 		// A fresh install is dark, so every color comes from the dark palette.
-		const allowed = new Set<string>([...Object.values(tokens.dark), tokens.onAccent]);
+		const allowed = new Set<string>([...Object.values(tokens.dark), tokens.onSaturated]);
 		await render(<TicketRow ticket={summary()} onPress={() => {}} />);
 		const painted = [...paintedColors(screen.toJSON())];
 		expect(painted.length).toBeGreaterThan(0);

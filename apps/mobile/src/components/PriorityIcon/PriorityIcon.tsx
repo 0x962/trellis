@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	mark: { fontSize: tokens.micro.kbd, lineHeight: layout.mark, fontWeight: "700", color: tokens.onAccent },
+	mark: { fontSize: tokens.micro.kbd, lineHeight: layout.mark, fontWeight: "700", color: tokens.onSaturated },
 });
 
 // Three rising bars fill from the left as the priority rises. Urgent is a

@@ -11,8 +11,8 @@ export const tokens = {
 		fg: "#070707",
 		fgMuted: "#646468",
 		fgFaint: "#6F6F74",
-		accent: "#009FFF",
-		accentSoft: "#DFEBFF",
+		accent: "#6E6E73",
+		accentSoft: "#EDEDEF",
 		agent: "#693ACF",
 		agentSoft: "#EFE8FB",
 		success: "#097F34",
@@ -22,6 +22,7 @@ export const tokens = {
 		danger: "#C92432",
 		dangerSoft: "#FFE6E8",
 		scrim: "rgba(0,0,0,.4)",
+		onAccent: "#FFFFFF",
 	},
 	dark: {
 		bg: "#070707",
@@ -32,8 +33,8 @@ export const tokens = {
 		fg: "#E8E8EA",
 		fgMuted: "#BBBBBF",
 		fgFaint: "#8E8E95",
-		accent: "#009FFF",
-		accentSoft: "#19283C",
+		accent: "#C4C4C4",
+		accentSoft: "#2A2A2C",
 		agent: "#9D6AFB",
 		agentSoft: "#24183F",
 		success: "#5ECC71",
@@ -43,16 +44,18 @@ export const tokens = {
 		danger: "#FF6762",
 		dangerSoft: "#3A1517",
 		scrim: "rgba(0,0,0,.6)",
+		onAccent: "#0A0A0A",
 	},
-	// Text on a saturated fill (accent, danger) stays white in both themes.
-	onAccent: "#FFFFFF",
+	// Text on a danger or success fill. Those two keep a saturated colour in
+	// both themes, so the text on them is white in both.
+	onSaturated: "#FFFFFF",
 	font: { sans: "JetBrains Mono", mono: "JetBrains Mono" },
 	text: { xs: 11, sm: 12, base: 13, md: 14, lg: 16, xl: 20, "2xl": 24 },
 	leading: { xs: 16, sm: 16, base: 20, md: 22, lg: 24, xl: 28, "2xl": 32 },
 	micro: { kbd: 10, initials: 9 },
 	// Half of the 4 px base, for a 2 px gap.
 	space: { half: 2, "1": 4, "2": 8, "3": 12, "4": 16, "5": 20, "6": 24, "8": 32, "10": 40, "12": 48 },
-	radius: { sm: 0, md: 0, lg: 0, xl: 0, hairline: 0 },
+	radius: { hairline: 3, sm: 6, md: 8, lg: 12, xl: 16, round: 999 },
 	hairline: 1,
 };
 
