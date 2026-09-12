@@ -6,6 +6,7 @@ import { fail } from "../../errors.ts";
 export const columns = sql`id, name, runtime, persona_id AS "personaId", persona_name AS "personaName", kind, instruction,
 	project_id AS "projectId", project_path AS "projectPath", ticket_id AS "ticketId", ticket_identifier AS "ticketIdentifier", state,
 	workspace_id AS "workspaceId", terminal_id AS "terminalId", url, error,
+	session_id AS "sessionId", session_lost AS "sessionLost",
 	${iso(sql`created_at`)} AS "createdAt", ${iso(sql`updated_at`)} AS "updatedAt"`;
 export const getRun = async (tx: Tx, id: string) => {
 	const [run] = await rows<AgentRun>(tx, sql`SELECT ${columns} FROM agent_runs WHERE id = ${id}`);

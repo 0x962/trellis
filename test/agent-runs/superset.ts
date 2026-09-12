@@ -14,16 +14,23 @@ if (args[0] === "projects")
 		JSON.stringify([{ id: "superset-project", name: "Example", repo: "https://github.com/example/code", path: dir }]),
 	);
 else if (args[0] === "ws" && args[1] === "list") console.log(readFileSync(join(dir, "workspaces.json"), "utf8"));
-else if (args[0] === "terminals" && args[1] === "create")
+else if (args[0] === "terminals" && args[1] === "create") {
+	writeFileSync(join(dir, "resumed"), "");
 	console.log(JSON.stringify({ terminalId: "resumed-terminal" }));
-else if (args[1] === "create") {
+} else if (args[1] === "create") {
 	const id = crypto.randomUUID();
 	writeFileSync(join(dir, "workspaces.json"), JSON.stringify([{ id, branch: args[args.indexOf("--branch") + 1] }]));
 	console.log(JSON.stringify({ workspace: { id }, terminals: [{ terminalId: "terminal", label: "Command" }] }));
 } else if (args[1] === "open") console.log(`superset://workspace/${args[2]}`);
 else if (args[1] === "list")
 	console.log(
-		JSON.stringify({ sessions: [{ terminalId: "terminal", exited: existsSync(join(dir, "exited")), title: "Agent" }] }),
+		JSON.stringify({
+			sessions: ["terminal", ...(existsSync(join(dir, "resumed")) ? ["resumed-terminal"] : [])].map((terminalId) => ({
+				terminalId,
+				exited: existsSync(join(dir, "exited")),
+				title: "Agent",
+			})),
+		}),
 	);
 else if (args[1] === "send") console.log("{}");
 else if (args[1] === "read") console.log("Agent output");

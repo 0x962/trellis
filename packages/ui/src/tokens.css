@@ -251,6 +251,7 @@
 
 	--animate-pulse-live: pulse-live 1.6s ease-in-out infinite;
 	--animate-shimmer: shimmer 1.4s linear infinite;
+	--animate-glimmer: glimmer 7s ease-in-out infinite;
 
 	/*
 	 * The live dot on an agent avatar breathes: it shrinks and dims. The
@@ -276,6 +277,16 @@
 		}
 		to {
 			background-position: -200% 0;
+		}
+	}
+	/* Six seconds still, then one sweep of light across the text. */
+	@keyframes glimmer {
+		0%,
+		80% {
+			background-position: 150% 0;
+		}
+		100% {
+			background-position: -50% 0;
 		}
 	}
 }

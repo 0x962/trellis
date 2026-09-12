@@ -90,3 +90,27 @@
 	border-color: var(--metal-off-edge);
 	box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
 }
+
+/*
+ * Text that catches the light now and then: a band of the bright text color
+ * sweeps across muted text once every seven seconds. A person who turns
+ * motion off sees the muted text, still.
+ */
+@utility text-glimmer {
+	background-image: linear-gradient(
+		90deg,
+		var(--color-fg-muted) 0%,
+		var(--color-fg-muted) 40%,
+		var(--color-fg) 50%,
+		var(--color-fg-muted) 60%,
+		var(--color-fg-muted) 100%
+	);
+	background-size: 250% 100%;
+	background-position: 150% 0;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+	animation: var(--animate-glimmer);
+	@media (prefers-reduced-motion: reduce) {
+		animation: none;
+	}
+}

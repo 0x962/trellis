@@ -19,6 +19,13 @@ export const AgentRunSchema = z.object({
 	terminalId: z.string().nullable(),
 	url: z.string().nullable(),
 	error: z.string().nullable(),
+	// The agent session of the run, which trellis names and the agent
+	// command receives. A manager keeps it across every pause, so a start
+	// after a pause resumes the same session.
+	sessionId: z.string().nullable(),
+	// True after a resume in which the agent did not find the session. The
+	// manager page then asks the person whether to start a new session.
+	sessionLost: z.boolean(),
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,
 });
@@ -28,6 +35,9 @@ export const AgentRunStartInputSchema = z
 		personaId: UlidSchema,
 		ticket: z.string().min(1).optional(),
 		project: z.string().min(1).optional(),
+		// True gives a manager a new session in place of the one its row
+		// holds. A person sends it after a resume lost the session.
+		newSession: z.boolean().optional(),
 	})
 	.refine((input) => (input.ticket === undefined) !== (input.project === undefined), "Select one ticket or project.");
 export type AgentRunStartInput = z.infer<typeof AgentRunStartInputSchema>;

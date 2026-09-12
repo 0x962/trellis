@@ -1,15 +1,17 @@
+import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentRun, ProjectManagerConfig } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { commandHarness, readHarness, saveHarness } from "../../agents/commandHarness/commandHarness.ts";
 import { runBranch } from "../../agents/launchCommand/branch.ts";
-import { launchCommand } from "../../agents/launchCommand/launchCommand.ts";
+import { launchCommand, resumeText } from "../../agents/launchCommand/launchCommand.ts";
 import { managedTerminal } from "../../agents/managedTerminal/managedTerminal.ts";
 import { attempt } from "../../agents/superset/attempt.ts";
 import { shellTarget } from "../../agents/superset/superset.ts";
 import type { ServiceCtx } from "../support.ts";
 import { getRun } from "./queries.ts";
+import { exitedSoon, lostSessionMessage, outputTail } from "./resume.ts";
 
 export const startHarness = async (
 	ctx: ServiceCtx & { supersetBin: string; localUrl: string },
@@ -23,25 +25,29 @@ export const startHarness = async (
 ) => {
 	const { config, context, repos } = input;
 	let { run } = input;
-	const previous = input.resume && run.runtime === "commands" ? await readHarness(ctx.home, run.id) : null;
-	const resume =
+	const previous = run.workspaceId !== null && run.runtime === "commands" ? await readHarness(ctx.home, run.id) : null;
+	const attaching =
 		previous !== null &&
 		previous.commands.start === config.harnessCommands!.start &&
 		previous.agentCommand === config.agentCommand;
-	if (!resume) run = { ...run, workspaceId: null, terminalId: null };
+	const resume = attaching && input.resume;
+	if (!attaching)
+		run = { ...run, workspaceId: null, terminalId: null, sessionId: input.resume ? randomUUID() : run.sessionId };
 	const commands = config.harnessCommands!;
 	const launch = launchCommand({
 		run,
 		url: ctx.localUrl,
 		context,
 		directory: run.kind === "manager" ? config.directory : "",
-		commandTemplate: resume ? config.agentResumeCommand : config.agentCommand,
+		template: resume ? config.agentResumeCommand : config.agentCommand,
 	});
 	const runDir = join(ctx.home, "agents", run.id);
 	const workDir = run.kind === "manager" && config.directory ? config.directory : join(runDir, "work");
 	if (workDir === join(runDir, "work")) await mkdir(workDir, { recursive: true, mode: 0o700 });
 	const values = {
 		id: run.id,
+		sessionId: run.sessionId!,
+		resumeText,
 		name: run.name,
 		project: run.projectPath,
 		ticket: run.ticketIdentifier ?? "",
@@ -65,13 +71,13 @@ export const startHarness = async (
 	await saveHarness(ctx.home, run.id, { commands, values, agentCommand: config.agentCommand });
 	await ctx.newTx((tx) =>
 		tx.execute(
-			sql`UPDATE agent_runs SET runtime = 'commands', workspace_id = ${run.workspaceId}, terminal_id = ${run.terminalId}, url = NULL WHERE id = ${run.id}`,
+			sql`UPDATE agent_runs SET runtime = 'commands', session_id = ${run.sessionId}, workspace_id = ${run.workspaceId}, terminal_id = ${run.terminalId}, url = NULL WHERE id = ${run.id}`,
 		),
 	);
 	let failureState = "failed";
 	const started = await attempt(async () => {
 		const harness = await commandHarness(ctx.home, run);
-		if ((resume ? commands.resume : commands.start).includes("{{projectId}}")) {
+		if ((attaching ? commands.resume : commands.start).includes("{{projectId}}")) {
 			const matches = (await harness.projects()).filter((project) =>
 				repos.some(
 					(repo) =>
@@ -83,7 +89,7 @@ export const startHarness = async (
 			await saveHarness(ctx.home, run.id, { commands, values, agentCommand: config.agentCommand });
 		}
 		failureState = "interrupted";
-		return (await commandHarness(ctx.home, run)).start(resume);
+		return (await commandHarness(ctx.home, run)).start(attaching);
 	});
 	if (!started.ok) {
 		await ctx.newTx((tx) =>
@@ -99,6 +105,26 @@ export const startHarness = async (
 		),
 	);
 	const current = await ctx.newTx((tx) => getRun(tx, run.id));
+	if (resume) {
+		const checked = await attempt(async () => {
+			const harness = await commandHarness(ctx.home, current);
+			if (!(await exitedSoon(async () => (await harness.healthcheck()).state === "exited"))) return null;
+			return lostSessionMessage({
+				sessionId: run.sessionId!,
+				where: `workspace ${current.workspaceId}, directory ${workDir}`,
+				printed: outputTail(await harness.output()),
+			});
+		});
+		if (!checked.ok || checked.value !== null) {
+			await ctx.newTx((tx) =>
+				tx.execute(
+					sql`UPDATE agent_runs SET state = ${checked.ok ? "failed" : "running"}, session_lost = ${checked.ok}, error = ${checked.ok ? checked.value : checked.error}, updated_at = ${ctx.now()} WHERE id = ${run.id}`,
+				),
+			);
+			return { id: run.id };
+		}
+	}
+
 	const url = await attempt(async () => (await commandHarness(ctx.home, current)).url());
 	await ctx.newTx((tx) =>
 		url.ok

@@ -13,14 +13,15 @@ A multiline field also saves on Ctrl+Enter or Command+Enter.
 
 ## Agent commands
 
-The default start command is `claude -n {{name}} {{prompt}}`.
-The default manager resume command is `claude --continue {{prompt}}`.
+The default start command is `claude -n {{name}} --session-id {{sessionId}} {{prompt}}`.
+The default manager resume command is `claude -n {{name}} --resume {{sessionId}} {{resumeText}}`.
 Set both fields when you select another agent executable.
 Trellis adds `TRELLIS_URL` and `TRELLIS_ACTOR` to the process environment.
 A manager also starts in its configured project directory.
 
 These fields accept `{{name}}`, `{{prompt}}`, `{{id}}`, `{{project}}`, `{{ticket}}`,
-`{{actor}}`, `{{trellisUrl}}`, `{{workspaceId}}`, and `{{terminalId}}`.
+`{{actor}}`, `{{trellisUrl}}`, `{{workspaceId}}`, `{{terminalId}}`, `{{sessionId}}`,
+`{{resumeText}}`, `{{directory}}`, and `{{instruction}}`.
 
 ## Session commands
 
@@ -53,6 +54,7 @@ The run shows the error.
 Trellis saves the output before it executes the stop command.
 
 The healthcheck runs when a person or client requests Refresh.
+It also checks a resumed manager for three seconds to detect a lost session.
 These settings do not add a timer or an automatic wake.
 
 ## Session variables
@@ -60,6 +62,8 @@ These settings do not add a timer or an automatic wake.
 | Variable | Value |
 |---|---|
 | `{{id}}` | Stable Trellis run ID |
+| `{{sessionId}}` | Agent session ID |
+| `{{resumeText}}` | Instructions for a manager after a pause |
 | `{{name}}` | Agent name |
 | `{{project}}` | Project reference |
 | `{{ticket}}` | Ticket identifier, or empty for a manager |

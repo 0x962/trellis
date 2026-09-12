@@ -38,6 +38,7 @@ test("project manager settings persist and enter the manager launch context", as
 		supersetHostId: null,
 		ade: "superset" as const,
 		adeCommand: "",
+		adeResumeCommand: "",
 		agentCommand: "other-agent --prompt {{prompt}}",
 		agentResumeCommand: "other-agent resume --prompt {{prompt}}",
 		harnessCommands: null,

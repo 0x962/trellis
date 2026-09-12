@@ -56,13 +56,22 @@ const start = defineCommand({
 		persona: { type: "positional", required: true, description: "Persona id or name" },
 		ticket: { type: "string", description: "Ticket ref, for a builder or a reviewer" },
 		project: { type: "string", description: "Project ref, for a manager" },
+		"new-session": {
+			type: "boolean",
+			description: "Give a manager a new agent session in place of the one it keeps",
+		},
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
 		const persona = await resolvePersona(ctx, args.persona);
 		const run = await clientOf(ctx).agentRuns.start(
-			compact({ personaId: persona.id, ticket: args.ticket, project: args.project }),
+			compact({
+				personaId: persona.id,
+				ticket: args.ticket,
+				project: args.project,
+				newSession: args["new-session"] ? true : undefined,
+			}),
 		);
 		printRecord(ctx.out, ctx.format, run, agentRecord);
 		// A start answers a row in any state. Only `running` means the

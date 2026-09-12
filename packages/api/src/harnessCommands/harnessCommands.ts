@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export const HARNESS_VARIABLES = [
 	"id",
+	"sessionId",
+	"resumeText",
 	"name",
 	"project",
 	"ticket",

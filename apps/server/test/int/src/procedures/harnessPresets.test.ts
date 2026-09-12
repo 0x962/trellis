@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { chmodSync, copyFileSync, mkdtempSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SUPERSET_HARNESS_COMMANDS, TMUX_HARNESS_COMMANDS } from "@trellis/api";
@@ -72,4 +72,26 @@ test("the tmux preset controls a real terminal and restarts a stopped manager", 
 	await t.client.agentRuns.stop({ id: run.id });
 	expect((await t.client.agentRuns.output({ id: run.id })).text).toContain("Harness follow-up");
 	expect(await t.client.agentRuns.start({ personaId, project: "PRE" })).toMatchObject({ id: run.id, state: "running" });
+});
+
+test("the Superset preset reports a lost session and starts a fresh session in the same workspace", async () => {
+	await t.client.projects.update({
+		project: "PRE",
+		managerConfig: { personaId, concurrency: 3, directory, harnessCommands: SUPERSET_HARNESS_COMMANDS },
+	});
+	const first = await t.client.agentRuns.start({ personaId, project: "PRE" });
+	await t.client.agentRuns.stop({ id: first.id });
+	writeFileSync(join(directory, "exited"), "");
+	const failed = await t.client.agentRuns.start({ personaId, project: "PRE" });
+	expect(failed).toMatchObject({ state: "failed", sessionLost: true, sessionId: first.sessionId });
+	rmSync(join(directory, "exited"));
+	const fresh = await t.client.agentRuns.start({ personaId, project: "PRE", newSession: true });
+	expect(fresh).toMatchObject({ state: "running", sessionLost: false, workspaceId: first.workspaceId });
+	expect(fresh.sessionId).not.toBe(first.sessionId);
+	const calls = readFileSync(join(directory, "calls.jsonl"), "utf8")
+		.trim()
+		.split("\n")
+		.map((line) => JSON.parse(line) as string[]);
+	const launched = calls.filter((args) => args[0] === "terminals" && args[1] === "create").at(-1)!;
+	expect(launched[launched.indexOf("--command") + 1]).toContain(`--session-id '${fresh.sessionId}'`);
 });

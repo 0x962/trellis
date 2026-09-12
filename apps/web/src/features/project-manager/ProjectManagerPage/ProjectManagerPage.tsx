@@ -1,4 +1,4 @@
-import { Plus } from "@phosphor-icons/react";
+import { Pause, Play } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
@@ -15,6 +15,7 @@ import { projectSlashPath } from "../../../lib/projectPath";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { RepoSettings } from "../../project-settings/RepoSettings";
 import { SettingsSection } from "../../project-settings/SettingsSection";
+import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { AgentEnvironment } from "./components/AgentEnvironment";
 
@@ -26,8 +27,10 @@ const sections = [
 	{ id: "settings", label: "Settings" },
 ];
 
-// True while the agent still holds its terminal.
-const atWork = (run: AgentRun) => run.state === "starting" || run.state === "running" || run.state === "interrupted";
+// True while the manager holds its terminal, so Pause has a terminal to
+// close. An interrupted manager has none the server can find, so Play
+// starts it again.
+const atWork = (run: AgentRun) => run.state === "starting" || run.state === "running";
 
 export function ProjectManagerPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
@@ -37,10 +40,13 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 	const [draft, setDraft] = useState(saved);
 	const personas = useQuery(orpc.personas.list.queryOptions({ input: {} }));
 	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: { project: project.path } }));
-	// A project keeps one manager, so the list holds at most one row of that
-	// kind. A start takes that row again instead of making another.
+	// A project keeps one manager row, which every start takes again. The
+	// list comes newest first, so the first row of the kind is that row.
 	const manager = runs.data?.find((run) => run.kind === "manager");
 	const active = manager !== undefined && atWork(manager);
+	// True when Play continues the Claude session the manager had before its
+	// pause. A manager with no session yet, or none that ran, starts new.
+	const resumes = manager !== undefined && manager.sessionId !== null && manager.workspaceId !== null;
 	const dirty =
 		draft.personaId !== saved.personaId ||
 		draft.concurrency !== saved.concurrency ||
@@ -68,14 +74,26 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 		},
 		onError: (error) => toast.error("Could not open the folder selector", { description: error.message }),
 	});
+	// `newSession` true gives the manager a new session. A person sends it
+	// from the lost-session notice, after a resume found none.
 	const start = useMutation({
-		mutationFn: () => client.agentRuns.start({ project: project.path, personaId: saved.personaId! }),
-		onSuccess: async (run) => {
+		mutationFn: (newSession: boolean) =>
+			client.agentRuns.start({ project: project.path, personaId: saved.personaId!, newSession }),
+		onSuccess: async (run, newSession) => {
 			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
-			if (run.state === "failed") toast.error("Could not start the manager", { description: run.error ?? undefined });
-			else toast.success(`${run.name} starts now`);
+			const verb = resumes && !newSession ? "resume" : "start";
+			if (run.state === "failed") toast.error(`Could not ${verb} the manager`, { description: run.error ?? undefined });
+			else toast.success(`${run.name} ${verb}s now`);
 		},
 		onError: (error) => toast.error("Could not start the manager", { description: error.message }),
+	});
+	const pause = useMutation({
+		mutationFn: () => client.agentRuns.stop({ id: manager!.id }),
+		onSuccess: async () => {
+			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
+			toast.success(`${manager!.name} pauses now`);
+		},
+		onError: (error) => toast.error("Could not pause the manager", { description: error.message }),
 	});
 	const persona = personas.data?.find((item) => item.id === draft.personaId);
 	const readOnly = project.archivedAt !== null;
@@ -95,27 +113,53 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 								onChange={(enabled) => commit({ ...draft, enabled })}
 							/>
 						</Tooltip>
-						<IconButton
-							label="Start manager"
-							icon={<Plus />}
-							size="md"
-							variant="primary"
-							disabled={
-								readOnly ||
-								active ||
-								dirty ||
-								save.isPending ||
-								!draft.enabled ||
-								!persona ||
-								runs.isPending ||
-								runs.isError
-							}
-							onClick={() => start.mutate()}
-						/>
+						{/* One control runs the one manager of the project: Pause while it
+						    holds a terminal, else Play. Pause closes the terminal and keeps
+						    the session, and Play opens a terminal that continues that
+						    session. */}
+						{active ? (
+							<Tooltip content="Pause the manager">
+								<IconButton
+									label="Pause manager"
+									icon={<Pause weight="fill" />}
+									size="md"
+									variant="primary"
+									disabled={readOnly || manager.state === "starting" || pause.isPending}
+									onClick={() => pause.mutate()}
+								/>
+							</Tooltip>
+						) : (
+							<Tooltip content={resumes ? "Resume the manager" : "Start the manager"}>
+								<IconButton
+									label={resumes ? "Resume manager" : "Start manager"}
+									icon={<Play weight="fill" />}
+									size="md"
+									variant="primary"
+									disabled={
+										readOnly ||
+										dirty ||
+										save.isPending ||
+										!draft.enabled ||
+										!persona ||
+										runs.isPending ||
+										runs.isError ||
+										start.isPending
+									}
+									onClick={() => start.mutate(false)}
+								/>
+							</Tooltip>
+						)}
 					</>
 				}
 			>
-				<span className="sr-only">{project.name} › Manager</span>
+				<PageTitle
+					parent={
+						<Link to="/p/$" params={{ _splat: projectSlashPath(project.path) }} search={{}}>
+							{project.name}
+						</Link>
+					}
+					title="Manager"
+				/>
 			</Topbar>
 			<div className="project-settings-layout">
 				<nav aria-label="Manager settings" className="project-settings-nav">
@@ -155,9 +199,26 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 									</Button>
 								</p>
 							)}
-							{manager !== undefined && <AgentRunDetails run={manager} heading />}
+							{manager?.sessionLost && (
+								<div className="flex flex-col gap-3 rounded-md border border-border p-3">
+									<p className="text-sm">
+										The manager could not resume its session. The error below names the session and where the agent ran.
+										Start a new session? The new session does not hold the chat of the old one. The workspace stays.
+									</p>
+									<Button
+										variant="primary"
+										align="start"
+										disabled={readOnly || dirty || save.isPending || !draft.enabled || !persona}
+										processing={start.isPending}
+										onClick={() => start.mutate(true)}
+									>
+										Start a new session
+									</Button>
+								</div>
+							)}
+							{manager !== undefined && <AgentRunDetails run={manager} heading controls={false} />}
 							{manager === undefined && !runs.isPending && !runs.isError && (
-								<p className="text-sm text-fg-muted">This project has no manager yet.</p>
+								<p className="text-sm text-fg-muted">This project has no manager yet. Press Play to start one.</p>
 							)}
 							{!draft.enabled && (
 								<p className="text-sm text-fg-muted">

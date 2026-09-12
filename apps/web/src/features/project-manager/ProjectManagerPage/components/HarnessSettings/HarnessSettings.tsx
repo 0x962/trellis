@@ -1,6 +1,6 @@
 import {
-	DEFAULT_AGENT_COMMAND,
 	DEFAULT_AGENT_RESUME_COMMAND,
+	DEFAULT_AGENT_START_COMMAND,
 	HARNESS_FIELDS,
 	HARNESS_VARIABLES,
 	type HarnessCommands,
@@ -56,7 +56,7 @@ export function HarnessSettings({
 						...draft,
 						ade: value === "superset" ? "superset" : "custom",
 						harnessCommands: { ...(value === "superset" ? SUPERSET_HARNESS_COMMANDS : TMUX_HARNESS_COMMANDS) },
-						agentCommand: DEFAULT_AGENT_COMMAND,
+						agentCommand: DEFAULT_AGENT_START_COMMAND,
 						agentResumeCommand: DEFAULT_AGENT_RESUME_COMMAND,
 					});
 				}}

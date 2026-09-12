@@ -18,6 +18,9 @@ export type FilterBarProps = {
 	statuses: readonly StatusSummary[];
 	// The controls at the right end, between Filter and the Share menu.
 	actions?: ReactNode;
+	// A control drawn first in the group at the right end, such as the view
+	// switch, so it sits before Filter.
+	lead?: ReactNode;
 };
 
 const fields: PickerStage = { kind: "fields" };
@@ -26,7 +29,7 @@ const fields: PickerStage = { kind: "fields" };
 // Filter, the route's Display control, and Share at the right end. The three
 // are icons, because their menus name what they do. `f` opens the picker;
 // `g s` focuses the button.
-export function FilterBar({ project, search, onSearchChange, statuses, actions }: FilterBarProps) {
+export function FilterBar({ project, search, onSearchChange, statuses, actions, lead }: FilterBarProps) {
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
 	const [open, setOpen] = useState(false);
 	const [stage, setStage] = useState<PickerStage>(fields);
@@ -83,6 +86,7 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions }
 				/>
 			))}
 			<div className="ml-auto flex shrink-0 items-center gap-1.5">
+				{lead}
 				<FilterPicker
 					view={view}
 					statuses={statuses}

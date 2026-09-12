@@ -1,18 +1,7 @@
 import { z } from "zod";
 
-export const DEFAULT_AGENT_COMMAND = "claude -n {{name}} {{prompt}}";
-export const DEFAULT_AGENT_RESUME_COMMAND = "claude --continue {{prompt}}";
-export const AGENT_COMMAND_VARIABLES = [
-	"name",
-	"prompt",
-	"id",
-	"project",
-	"ticket",
-	"actor",
-	"trellisUrl",
-	"workspaceId",
-	"terminalId",
-] as const;
+import { AGENT_COMMAND_VARIABLES } from "../agentLaunch/agentLaunch.ts";
+
 export const AgentCommandSchema = z
 	.string()
 	.trim()

@@ -80,7 +80,9 @@ test("a manager starts a new session when its harness start command changes", as
 			})
 		).status,
 	).toBe(200);
-	expect(await t.client.agentRuns.start({ personaId, project: "CMD" })).toMatchObject({
+	const fresh = await t.client.agentRuns.start({ personaId, project: "CMD" });
+	expect(fresh.sessionId).not.toBe(run.sessionId);
+	expect(fresh).toMatchObject({
 		id: run.id,
 		state: "running",
 		workspaceId: "new-workspace",
