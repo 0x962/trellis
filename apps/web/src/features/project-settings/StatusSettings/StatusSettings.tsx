@@ -1,7 +1,7 @@
+import { Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { Project, Status, StatusCategory } from "@trellis/api";
 import { Button, ConfirmDialog, IconButton, Skeleton } from "@trellis/ui";
-import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { SettingsSection } from "../SettingsSection";

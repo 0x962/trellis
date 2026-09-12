@@ -1,7 +1,7 @@
+import { ArrowElbowDownRight, FolderOpen } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { Priority, Status, TicketSummary } from "@trellis/api";
 import { cx, PriorityIcon, StatusIcon } from "@trellis/ui";
-import { CornerDownRight, FolderOpen } from "lucide-react";
 import type { ReactNode } from "react";
 import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../../lib/appContext";
@@ -128,7 +128,7 @@ export function ChipRow({
 				onPick={onParent}
 				trigger={chip({
 					label: `Parent: ${parentName ?? "None"}`,
-					icon: <CornerDownRight />,
+					icon: <ArrowElbowDownRight />,
 					unset: parentName === undefined,
 					children: parentName ?? "Parent",
 				})}

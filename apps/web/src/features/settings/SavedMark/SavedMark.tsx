@@ -1,5 +1,5 @@
+import { Check } from "@phosphor-icons/react";
 import { cx } from "@trellis/ui";
-import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export type SavedMarkProps = {

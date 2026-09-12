@@ -1,8 +1,8 @@
+import { SlidersHorizontal } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { FlowDoc, Persona } from "@trellis/api";
 import { Button, cx } from "@trellis/ui";
 import { useEdgesState, useNodesState, useReactFlow } from "@xyflow/react";
-import { Settings2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Topbar } from "../../../../shell/Topbar";
 import { FlowEditorContext } from "../../editorContext";
@@ -71,7 +71,7 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 						</span>
 						{autosave.status === "conflict" && <Button onClick={onReload}>Reload</Button>}
 						{autosave.status === "error" && <Button onClick={autosave.retry}>Retry</Button>}
-						<Button variant="quiet" icon={<Settings2 />} onClick={() => setSettingsOpen(true)}>
+						<Button variant="quiet" icon={<SlidersHorizontal />} onClick={() => setSettingsOpen(true)}>
 							Settings
 						</Button>
 					</>

@@ -1,6 +1,6 @@
+import { ArrowBendUpLeft } from "@phosphor-icons/react";
 import type { Status, TicketSummary } from "@trellis/api";
 import { PriorityIcon, StatusIcon } from "@trellis/ui";
-import { CornerUpLeft } from "lucide-react";
 import {
 	bulkChangeStatus,
 	bulkMoveToProject,
@@ -107,7 +107,7 @@ export const submenuRows = (submenu: Submenu, deps: RowDeps, data: SubmenuData):
 		const none: PaletteRow = {
 			value: "parent.none",
 			label: "No parent",
-			icon: <CornerUpLeft />,
+			icon: <ArrowBendUpLeft />,
 			run: () => {
 				deps.close();
 				void setParent(action, submenu.ticket, null);

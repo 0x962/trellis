@@ -1,6 +1,6 @@
+import { X } from "@phosphor-icons/react";
 import type { Priority, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
 import { Button, cx, IconButton, Kbd, Tooltip, useReducedMotion } from "@trellis/ui";
-import { X } from "lucide-react";
 import { type ReactElement, useEffect, useRef, useState } from "react";
 import { formatCount } from "../../../lib/format";
 import { PriorityPicker } from "../../pickers/PriorityPicker";

@@ -1,7 +1,7 @@
+import { Archive, BoxArrowUp, Copy, DotsThree, FolderPlus, Gear, Plus, Trash } from "@phosphor-icons/react";
 import { useNavigate } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { IconButton, Menu, type MenuItem, toast } from "@trellis/ui";
-import { Archive, ArchiveRestore, Copy, FolderPlus, MoreHorizontal, Plus, Settings, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { composerActions } from "../../composer";
@@ -31,7 +31,7 @@ export function ProjectRowActions({ project }: ProjectRowActionsProps) {
 
 	const settings: MenuItem = {
 		label: "Settings",
-		icon: <Settings />,
+		icon: <Gear />,
 		onSelect: () => {
 			void navigate({
 				to: "/p/$",
@@ -40,13 +40,9 @@ export function ProjectRowActions({ project }: ProjectRowActionsProps) {
 			});
 		},
 	};
-	const remove: MenuItem = { label: "Delete…", icon: <Trash2 />, danger: true, onSelect: () => setDeleteOpen(true) };
+	const remove: MenuItem = { label: "Delete…", icon: <Trash />, danger: true, onSelect: () => setDeleteOpen(true) };
 	const items: MenuItem[] = archived
-		? [
-				{ label: "Unarchive", icon: <ArchiveRestore />, onSelect: () => void setArchived(project, false) },
-				settings,
-				remove,
-			]
+		? [{ label: "Unarchive", icon: <BoxArrowUp />, onSelect: () => void setArchived(project, false) }, settings, remove]
 		: [
 				{ label: "New sub-project", icon: <FolderPlus />, onSelect: () => setCreateOpen(true) },
 				{ label: "New ticket", icon: <Plus />, onSelect: () => composerActions.open({ project: project.path }) },
@@ -61,7 +57,7 @@ export function ProjectRowActions({ project }: ProjectRowActionsProps) {
 			<Menu
 				label={`Actions for ${project.name}`}
 				items={items}
-				trigger={<IconButton size="xs" label={`Actions for ${project.name}`} icon={<MoreHorizontal />} />}
+				trigger={<IconButton size="xs" label={`Actions for ${project.name}`} icon={<DotsThree />} />}
 			/>
 			<NewSubprojectDialog project={project} open={createOpen} onOpenChange={setCreateOpen} />
 			<DeleteProjectDialog project={project} open={deleteOpen} onOpenChange={setDeleteOpen} />

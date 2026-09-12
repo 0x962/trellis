@@ -1,6 +1,6 @@
+import { Plus } from "@phosphor-icons/react";
 import { useRouterState } from "@tanstack/react-router";
 import { IconButton } from "@trellis/ui";
-import { Plus } from "lucide-react";
 import { projectRefOfPathname } from "../../../lib/projectPath";
 import { composerActions } from "../../composer";
 

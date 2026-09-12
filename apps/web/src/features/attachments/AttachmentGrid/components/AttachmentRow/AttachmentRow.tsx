@@ -1,6 +1,6 @@
+import { Archive, DownloadSimple, File, FileText, FileXls } from "@phosphor-icons/react";
 import type { Attachment } from "@trellis/api";
 import { ActorChip } from "@trellis/ui";
-import { Archive, Download, File, FileSpreadsheet, FileText } from "lucide-react";
 import type { ReactElement } from "react";
 import { relativeTime } from "../../../../../lib/format";
 import { formatBytes } from "../../../utils/formatBytes";
@@ -14,7 +14,7 @@ export type AttachmentRowProps = {
 
 const fileIcon = (attachment: Attachment): { name: string; icon: ReactElement } => {
 	if (attachment.mime.startsWith("text/")) return { name: "document", icon: <FileText /> };
-	if (attachment.mime.includes("spreadsheet")) return { name: "table", icon: <FileSpreadsheet /> };
+	if (attachment.mime.includes("spreadsheet")) return { name: "table", icon: <FileXls /> };
 	if (attachment.mime.includes("zip")) return { name: "archive", icon: <Archive /> };
 	return { name: "file", icon: <File /> };
 };
@@ -47,7 +47,7 @@ export function AttachmentRow({ attachment, onDelete, onRename }: AttachmentRowP
 				aria-label={`Download ${attachment.filename}`}
 				className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted transition duration-hover ease-out hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
 			>
-				<Download aria-hidden="true" className="size-3.5" />
+				<DownloadSimple aria-hidden="true" className="size-3.5" />
 			</a>
 			{onDelete !== undefined && onRename !== undefined && (
 				<AttachmentActions attachment={attachment} onDelete={onDelete} onRename={onRename} />

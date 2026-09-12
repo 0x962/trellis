@@ -1,6 +1,6 @@
+import { Paperclip } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
 import { Avatar, PriorityIcon, StatusIcon } from "@trellis/ui";
-import { Paperclip } from "lucide-react";
 import { gap, ticketTrail } from "../../../../lib/ticketTrail";
 
 export type CardContentProps = {

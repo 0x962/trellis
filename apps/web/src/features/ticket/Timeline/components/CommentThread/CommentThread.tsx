@@ -1,7 +1,7 @@
+import { ArrowUp, CheckCircle } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { Comment, CommentThread as ThreadData } from "@trellis/api";
 import { Avatar, Button, IconButton } from "@trellis/ui";
-import { ArrowUp, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { useActor } from "../../../../../lib/actor";
 import { useApp } from "../../../../../lib/appContext";
@@ -105,7 +105,7 @@ export function CommentThread({ id, identifier, comments, onEdited, onDeleted, o
 					aria-expanded={expandedResolved}
 					onClick={() => setExpandedResolved(!expandedResolved)}
 				>
-					<CheckCircle2 aria-hidden="true" />
+					<CheckCircle aria-hidden="true" />
 					Resolved thread · {replies.length} {replies.length === 1 ? "reply" : "replies"}
 				</Button>
 			)}

@@ -1,5 +1,5 @@
+import { Check, MagnifyingGlass } from "@phosphor-icons/react";
 import { Command as Cmdk } from "cmdk";
-import { Check, Search } from "lucide-react";
 import type { ReactElement, ReactNode, RefObject } from "react";
 import { cx } from "../../utils/cx";
 import { CommandDialog } from "./components/CommandDialog";
@@ -121,7 +121,7 @@ export function Command({
 	return (
 		<Cmdk label={label} shouldFilter={filter} className={cx("flex flex-col text-base text-fg", className)}>
 			<div className="flex h-11 items-center gap-2 border-b border-border px-3">
-				<Search className="size-3.5 shrink-0 text-fg-faint" aria-hidden="true" />
+				<MagnifyingGlass className="size-3.5 shrink-0 text-fg-faint" aria-hidden="true" />
 				<Cmdk.Input
 					ref={inputRef}
 					placeholder={placeholder}

@@ -1,6 +1,6 @@
+import { CaretDown, CaretRight, Plus } from "@phosphor-icons/react";
 import type { StatusCategory, StatusSummary } from "@trellis/api";
 import { cx, IconButton, StatusIcon } from "@trellis/ui";
-import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { formatCount } from "../../../lib/format";
 
 export type GroupHeaderProps = {
@@ -50,7 +50,7 @@ export function GroupHeader({
 	phone = false,
 	top,
 }: GroupHeaderProps) {
-	const Chevron = expanded ? ChevronDown : ChevronRight;
+	const Chevron = expanded ? CaretDown : CaretRight;
 	return (
 		// biome-ignore lint/a11y/useSemanticElements lint/a11y/useAriaPropsSupportedByRole: The virtual grid keeps each group header in its measured position and exposes whether its rows are visible.
 		<div
@@ -86,7 +86,7 @@ export function GroupHeader({
 						className="inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-sm text-fg-faint transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11 pointer-coarse:min-w-11"
 					>
 						Show {formatCount(count)}
-						<ChevronDown aria-hidden="true" className="size-3" />
+						<CaretDown aria-hidden="true" className="size-3" />
 					</button>
 				)}
 				{onCreate && (

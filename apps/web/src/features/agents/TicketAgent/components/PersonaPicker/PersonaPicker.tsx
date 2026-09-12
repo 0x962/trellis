@@ -1,8 +1,8 @@
 import { ORPCError } from "@orpc/client";
+import { Plus } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Button, Command, type CommandGroup, Popover } from "@trellis/ui";
-import { Plus } from "lucide-react";
 import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { personaKinds } from "../../../../personas/PersonasPage/kinds";

@@ -1,3 +1,4 @@
+import { Plus, Power } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
@@ -10,8 +11,7 @@ import {
 	ProjectManagerConfigSchema,
 	unknownLaunchVariables,
 } from "@trellis/api";
-import { Button, IconButton, Input, Select, Switch, toast } from "@trellis/ui";
-import { Bot, Plus, Settings2, SquareTerminal } from "lucide-react";
+import { Button, IconButton, Input, Select, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
@@ -23,9 +23,9 @@ import { Topbar } from "../../shell/Topbar";
 // Status opens the page, so it takes the empty hash and the bare URL
 // `/p/<path>/settings/manager` shows it.
 const sections = [
-	{ id: "", label: "Status", icon: Bot },
-	{ id: "ade", label: "ADE", icon: SquareTerminal },
-	{ id: "settings", label: "Settings", icon: Settings2 },
+	{ id: "", label: "Status" },
+	{ id: "ade", label: "ADE" },
+	{ id: "settings", label: "Settings" },
 ];
 
 const ades: { value: Ade; label: string }[] = [
@@ -133,12 +133,21 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 			<Topbar
 				actions={
 					<>
-						<Switch
-							label="Agents"
-							checked={draft.enabled}
-							disabled={readOnly}
-							onCheckedChange={(enabled) => commit({ ...draft, enabled })}
-						/>
+						{/* The agents toggle is a round power button like the create button
+						    beside it. The accent ring and fill show that agents are on, and
+						    the tooltip says the state in words. */}
+						<Tooltip content={draft.enabled ? "Agents are on" : "Agents are off"}>
+							<IconButton
+								label="Agents"
+								icon={<Power weight="bold" />}
+								size="md"
+								round
+								variant="default"
+								pressed={draft.enabled}
+								disabled={readOnly}
+								onClick={() => commit({ ...draft, enabled: !draft.enabled })}
+							/>
+						</Tooltip>
 						<IconButton
 							label="Start manager"
 							icon={<Plus />}
@@ -157,7 +166,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 				<nav aria-label="Manager settings" className="project-settings-nav">
 					<p className="project-settings-nav-title">Manager settings</p>
 					<ul className="project-settings-nav-list">
-						{sections.map(({ id, label, icon: Icon }) => (
+						{sections.map(({ id, label }) => (
 							<li key={id}>
 								<Link
 									to="/p/$"
@@ -169,7 +178,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 									aria-current={section === id ? "page" : undefined}
 									className="project-settings-nav-link"
 								>
-									<Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.75} />
 									{label}
 								</Link>
 							</li>

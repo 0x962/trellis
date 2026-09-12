@@ -1,6 +1,6 @@
+import { Trash } from "@phosphor-icons/react";
 import { type FlowEffort, FlowEffortSchema, type FlowNodeKind, flowAgentKinds, type Persona } from "@trellis/api";
 import { Button, Input, Select, type SelectItem, Textarea } from "@trellis/ui";
-import { Trash2 } from "lucide-react";
 import { flowKinds } from "../../../kinds";
 import type { StepFields } from "../../flowDraft";
 
@@ -128,7 +128,7 @@ export function NodeInspector({ fields, issue, personas, onChange, onDelete }: N
 					{issue}
 				</p>
 			)}
-			<Button variant="quiet" icon={<Trash2 />} className="mt-auto self-start" onClick={onDelete}>
+			<Button variant="quiet" icon={<Trash />} className="mt-auto self-start" onClick={onDelete}>
 				Delete step
 			</Button>
 		</aside>

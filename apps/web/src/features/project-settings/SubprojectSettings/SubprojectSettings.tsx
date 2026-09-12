@@ -1,6 +1,6 @@
+import { CaretRight } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
-import { ChevronRight } from "lucide-react";
 import { formatCount } from "../../../lib/format";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { SettingsSection } from "../SettingsSection";
@@ -31,7 +31,7 @@ export function SubprojectSettings({ project }: SubprojectSettingsProps) {
 							>
 								<span className="min-w-0 flex-1 truncate">{child.name}</span>
 								<span className="text-sm text-fg-faint tabular">{formatCount(child.openCount)} open</span>
-								<ChevronRight aria-hidden="true" className="size-3 text-fg-faint" />
+								<CaretRight aria-hidden="true" className="size-3 text-fg-faint" />
 							</Link>
 						</li>
 					))}

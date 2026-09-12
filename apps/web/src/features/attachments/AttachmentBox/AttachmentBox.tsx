@@ -1,5 +1,5 @@
+import { Paperclip, Plus } from "@phosphor-icons/react";
 import { Button } from "@trellis/ui";
-import { Paperclip, Plus } from "lucide-react";
 import { type ChangeEvent, type DragEvent, useRef, useState } from "react";
 import { type Uploads, useUploads } from "../hooks/useUploads";
 import { UploadProgress } from "../UploadProgress";

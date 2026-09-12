@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { X } from "@phosphor-icons/react";
 import type { ReactElement, ReactNode } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";

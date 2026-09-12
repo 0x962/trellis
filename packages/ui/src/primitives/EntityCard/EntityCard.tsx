@@ -1,4 +1,4 @@
-import { Pencil } from "lucide-react";
+import { PencilSimple } from "@phosphor-icons/react";
 import { IconButton } from "../IconButton";
 
 export type EntityCardProps = {
@@ -18,7 +18,7 @@ export function EntityCard({ title, description, onEdit, editLabel }: EntityCard
 		>
 			<div className="flex items-start gap-3">
 				<h3 className="min-w-0 flex-1 break-words text-base font-medium text-fg">{title}</h3>
-				<IconButton label={editLabel ?? `Edit ${title}`} icon={<Pencil />} onClick={onEdit} />
+				<IconButton label={editLabel ?? `Edit ${title}`} icon={<PencilSimple />} onClick={onEdit} />
 			</div>
 			<p className="line-clamp-4 min-h-20 whitespace-pre-wrap break-words text-sm leading-5 text-fg-muted">
 				{description}

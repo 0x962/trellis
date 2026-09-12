@@ -1,3 +1,4 @@
+import { ExclamationMark } from "@phosphor-icons/react";
 import { cx } from "../../utils/cx";
 
 export type Priority = "none" | "low" | "medium" | "high" | "urgent";
@@ -13,7 +14,7 @@ const barHeights = ["h-1", "h-2", "h-3"];
 
 // Three rising bars fill from the left as the priority rises. Urgent is a
 // filled danger square with an exclamation mark, so it reads from across
-// the room. The mark is a drawn path, not a text node: a picker option
+// the room. The mark is the Phosphor exclamation icon, not a text node: a picker option
 // that holds the icon keeps its own label as its whole text.
 export function PriorityIcon({ priority, className }: PriorityIconProps) {
 	const label = `Priority: ${priority}`;
@@ -27,10 +28,7 @@ export function PriorityIcon({ priority, className }: PriorityIconProps) {
 					className,
 				)}
 			>
-				<svg viewBox="0 0 16 16" aria-hidden="true" className="size-3.5">
-					<path d="M8 3.5v5.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-					<circle cx="8" cy="12.3" r="1.4" fill="currentColor" />
-				</svg>
+				<ExclamationMark aria-hidden="true" weight="bold" className="size-3" />
 			</span>
 		);
 	}

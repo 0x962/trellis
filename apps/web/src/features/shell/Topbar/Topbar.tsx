@@ -1,5 +1,5 @@
+import { SidebarSimple } from "@phosphor-icons/react";
 import { cx, IconButton, useMediaQuery } from "@trellis/ui";
-import { PanelLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { uiActions } from "../../../stores/uiStore";
 
@@ -33,7 +33,7 @@ export function Topbar({ children, actions }: TopbarProps) {
 			{phone ? (
 				<IconButton
 					label="Open the sidebar"
-					icon={<PanelLeft />}
+					icon={<SidebarSimple />}
 					className="-ml-1.5"
 					onClick={() => uiActions.setMobileSidebarOpen(true)}
 				/>

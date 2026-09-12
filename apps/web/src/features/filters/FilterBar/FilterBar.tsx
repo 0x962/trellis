@@ -1,7 +1,7 @@
+import { Copy, FunnelSimple, Link, ShareFat } from "@phosphor-icons/react";
 import { useRouterState } from "@tanstack/react-router";
 import type { StatusSummary } from "@trellis/api";
-import { FilterGlyph, IconButton, Menu, ShareGlyph, toast, useHotkey } from "@trellis/ui";
-import { Copy, Link2 } from "lucide-react";
+import { IconButton, Menu, toast, useHotkey } from "@trellis/ui";
 import { type ReactNode, useState } from "react";
 import { toCli } from "../cli";
 import { FilterChip } from "../FilterChip";
@@ -99,15 +99,15 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions }
 					onOpenChange={onOpenChange}
 					stage={stage}
 					onStageChange={setStage}
-					trigger={<IconButton label="Filter" icon={<FilterGlyph />} size="sm" data-filter-button="" />}
+					trigger={<IconButton label="Filter" icon={<FunnelSimple />} size="sm" data-filter-button="" />}
 				/>
 				{actions}
 				<Menu
 					label="Share"
-					trigger={<IconButton label="Share" icon={<ShareGlyph />} size="sm" />}
+					trigger={<IconButton label="Share" icon={<ShareFat />} size="sm" />}
 					items={[
 						{ label: "Copy as CLI", icon: <Copy />, onSelect: () => void copyCli() },
-						{ label: "Copy link", icon: <Link2 />, onSelect: () => void copyLink() },
+						{ label: "Copy link", icon: <Link />, onSelect: () => void copyLink() },
 					]}
 				/>
 			</div>

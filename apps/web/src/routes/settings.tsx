@@ -1,5 +1,4 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
-import { Bot, Plug, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
 import { DiffTemplateField } from "../features/settings/DiffTemplateField";
@@ -28,7 +27,6 @@ type SettingsSection = {
 	id: string;
 	title: string;
 	hint: string;
-	icon: typeof UserRound;
 	rows: ReactNode;
 };
 
@@ -37,7 +35,6 @@ const sections: SettingsSection[] = [
 		id: "account",
 		title: "Account",
 		hint: "Set your name and choose how trellis looks.",
-		icon: UserRound,
 		rows: (
 			<>
 				<ActorNameField />
@@ -49,14 +46,12 @@ const sections: SettingsSection[] = [
 		id: "agents",
 		title: "Agents",
 		hint: "Choose when a ticket counts as stalled. Each project picks its own ADE and manager on its Manager page.",
-		icon: Bot,
 		rows: <StalledThresholdField />,
 	},
 	{
 		id: "integrations",
 		title: "Integrations",
 		hint: "Connect trellis to GitHub and the mobile app.",
-		icon: Plug,
 		rows: (
 			<>
 				<GhBanner />
@@ -79,7 +74,7 @@ function SettingsPage() {
 				<nav aria-label="Settings" className="project-settings-nav">
 					<p className="project-settings-nav-title">Settings</p>
 					<ul className="project-settings-nav-list">
-						{sections.map(({ id, title, icon: Icon }) => (
+						{sections.map(({ id, title }) => (
 							<li key={id}>
 								<Link
 									to="/settings"
@@ -90,7 +85,6 @@ function SettingsPage() {
 									aria-current={selected === id ? "page" : undefined}
 									className="project-settings-nav-link"
 								>
-									<Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.75} />
 									{title}
 								</Link>
 							</li>

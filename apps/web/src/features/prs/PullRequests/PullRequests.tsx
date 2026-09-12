@@ -1,7 +1,7 @@
+import { Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
 import { IconButton, SectionHeader, Skeleton } from "@trellis/ui";
-import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { GhBanner } from "./components/GhBanner";

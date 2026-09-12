@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
+import { Check } from "@phosphor-icons/react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Check } from "lucide-react";
 import { expectClasses, expectHitArea } from "../../../test/classes";
 import { Kbd } from "../Kbd";
 import { Button } from "./Button";

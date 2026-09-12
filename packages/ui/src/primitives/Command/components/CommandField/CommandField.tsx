@@ -1,5 +1,5 @@
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import { Command as Cmdk } from "cmdk";
-import { Search } from "lucide-react";
 import type { KeyboardEventHandler } from "react";
 import { Kbd } from "../../../Kbd";
 
@@ -26,7 +26,7 @@ export function CommandField({
 	return (
 		<div className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
 			{context === undefined ? (
-				<Search className="size-3.5 shrink-0 text-fg-faint" aria-hidden="true" />
+				<MagnifyingGlass className="size-3.5 shrink-0 text-fg-faint" aria-hidden="true" />
 			) : (
 				<span
 					data-command-context=""

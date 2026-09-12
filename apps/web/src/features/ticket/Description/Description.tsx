@@ -1,6 +1,6 @@
+import { ArrowsClockwise } from "@phosphor-icons/react";
 import type { Ticket } from "@trellis/api";
 import { Button, cx, useHotkey } from "@trellis/ui";
-import { RefreshCw } from "lucide-react";
 import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
@@ -165,7 +165,7 @@ export function Description({ ticket }: DescriptionProps) {
 		<div className="flex flex-col gap-3">
 			{(ticket.descriptionStale === true || remoteChanged) && conflict === null && (
 				<div role="alert" className="flex h-9 items-center gap-2 rounded-md bg-warning-soft px-3 text-sm text-fg">
-					<RefreshCw aria-hidden="true" className="size-3.5 shrink-0 text-warning" />
+					<ArrowsClockwise aria-hidden="true" className="size-3.5 shrink-0 text-warning" />
 					<span className="min-w-0 flex-1 truncate">{writerName(ticket)} changed the description.</span>
 					<Button size="sm" variant="quiet" onClick={() => void reload()}>
 						Reload

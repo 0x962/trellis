@@ -1,6 +1,6 @@
+import { CaretDown, CaretRight } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
 import { cx } from "@trellis/ui";
-import { ChevronDown, ChevronRight } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { formatCount } from "../../../../lib/format";
 import { InboxRow } from "../InboxRow";
@@ -24,7 +24,7 @@ export type InboxSectionProps = {
 // The frame every Needs you section shares: a band header that opens and
 // closes the section, and the rows under it. Each row links to its ticket.
 export function InboxSection({ name, total, icon, hint, open, onToggle, rows, showStatus = false }: InboxSectionProps) {
-	const Chevron = open ? ChevronDown : ChevronRight;
+	const Chevron = open ? CaretDown : CaretRight;
 	return (
 		<section aria-label={name}>
 			<button
