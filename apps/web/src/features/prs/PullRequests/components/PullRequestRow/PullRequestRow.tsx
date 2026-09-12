@@ -12,18 +12,17 @@ export type PullRequestRowProps = {
 	pr: LinkedPullRequest;
 };
 
-// One pull request as a card 56 px tall: the state icon, the title, the
-// number, the branch pair, and the review state. The card carries no content
-// that grows, so a card never pushes the cards below it.
+// One pull request is 56 px tall. The first line holds the title and number.
+// The second line holds the branch pair.
 //
-// The card is `relative` because the diff link stretches over it. Every other
-// control inside the card carries `relative` as well, so it takes the click
+// The row is `relative` because the diff link stretches over it. Every other
+// control inside the row carries `relative`, so it takes the click
 // the stretched link would otherwise swallow.
 export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 	return (
 		<div
 			data-pr-row={pr.id}
-			className="group relative flex h-14 items-center gap-3 rounded-md border border-border bg-surface px-3 transition-colors duration-hover ease-out hover:border-border-strong hover:bg-bg focus-within:border-border-strong"
+			className="group relative flex h-14 items-center gap-3 px-5 transition-colors duration-hover ease-out hover:bg-band focus-within:bg-band focus-within:outline-2 focus-within:outline-accent focus-within:-outline-offset-2 max-md:px-4"
 		>
 			<PrStateIcon state={pr.state} isDraft={pr.isDraft} ciState={pr.ciState} />
 			<span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
@@ -47,7 +46,7 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 				label="Open on GitHub"
 				icon={<ArrowSquareOut />}
 				size="xs"
-				className="relative opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+				className="relative opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
 				onClick={() => window.open(pr.url, "_blank", "noopener")}
 			/>
 			<UnlinkButton ticket={ticket} pr={pr} />

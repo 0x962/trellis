@@ -54,9 +54,9 @@ export function PullRequests({ ticket, initialPrs }: PullRequestsProps) {
 			) : (
 				<>
 					<GhBanner />
-					<ul className="flex flex-col gap-1">
+					<ul className="overflow-hidden rounded-md border border-border">
 						{prs.map((pr) => (
-							<li key={pr.id}>
+							<li key={pr.id} className="border-b border-border last:border-b-0">
 								<PullRequestRow ticket={ticket} pr={pr} />
 							</li>
 						))}

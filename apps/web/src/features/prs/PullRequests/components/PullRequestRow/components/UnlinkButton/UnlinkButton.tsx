@@ -9,10 +9,9 @@ export type UnlinkButtonProps = {
 	pr: LinkedPullRequest;
 };
 
-// The control that takes one pull request off one ticket. The label names
-// the number, so a section with several cards gives each control a name of
-// its own. The button shows on hover and on focus, so the card stays quiet
-// until somebody reaches for it.
+// The control that takes one pull request off one ticket. The label includes
+// the pull request number, so assistive technology gives each row a unique
+// control name.
 export function UnlinkButton({ ticket, pr }: UnlinkButtonProps) {
 	const { client, orpc, queryClient } = useApp();
 	const listKey = orpc.pullRequests.list.queryKey({ input: { ticket: ticket.id } });
@@ -27,7 +26,7 @@ export function UnlinkButton({ ticket, pr }: UnlinkButtonProps) {
 			icon={<Gear />}
 			size="xs"
 			disabled={unlink.isPending}
-			className="relative opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+			className="relative opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
 			onClick={() => unlink.mutate()}
 		/>
 	);

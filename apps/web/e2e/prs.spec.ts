@@ -40,3 +40,22 @@ test("prs > a linked pull request shows its row, and its parent shows the failin
 	const children = page.getByRole("region", { name: /Sub-tickets/ });
 	await expect(children.getByLabel(/ PR, checks failed/)).toBeVisible();
 });
+
+test("linked pull requests use the ticket table surface", async ({ page }) => {
+	await signIn(page, "/p/PRS/table");
+	const tableBand = await page
+		.getByRole("rowgroup")
+		.first()
+		.evaluate((element) => getComputedStyle(element).backgroundColor);
+
+	await page.goto("/t/PRS-2");
+	const section = page.getByRole("region", { name: "PRs" });
+	const list = section.locator("ul");
+	const prRow = section.locator("[data-pr-row]");
+	await expect(list).toHaveCSS("border-top-width", "1px");
+	await expect(list).toHaveCSS("overflow", "hidden");
+	await expect(prRow).toHaveCSS("border-left-width", "0px");
+	await expect(prRow).toHaveCSS("border-top-left-radius", "0px");
+	await prRow.hover();
+	await expect(prRow).toHaveCSS("background-color", tableBand);
+});
