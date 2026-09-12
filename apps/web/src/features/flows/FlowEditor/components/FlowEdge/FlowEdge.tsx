@@ -8,6 +8,7 @@ import {
 	useInternalNode,
 	type XYPosition,
 } from "@xyflow/react";
+import { useFlowEditor } from "../../editorContext";
 import type { CanvasEdge, CanvasNode } from "../../flowDraft";
 
 type Rect = { x: number; y: number; width: number; height: number };
@@ -63,13 +64,24 @@ const arrowPath = (tip: XYPosition, side: Position) => {
 	return `M ${left.x} ${left.y} L ${right.x} ${right.y} L ${tip.x} ${tip.y} Z`;
 };
 
+// The step a wire draws to or from, in place of a box: the box maps to the
+// step it starts or ends at, and a box nested inside maps again.
+const follow = (id: string, map: Map<string, string>) => {
+	let current = id;
+	while (map.has(current)) current = map.get(current)!;
+	return current;
+};
+
 // An edge drawn between the two sides of its nodes that face each other, so a
 // wire from any side reads the same after a reload. It ends in an arrow at the
-// node it leads to. React Flow draws an edge only after it measures both
+// node it leads to. A wire into a box draws to the step the box
+// starts at, and a wire out of a box draws from its last step, so the arrows
+// read through the box. React Flow draws an edge only after it measures both
 // nodes, so both internal nodes exist here.
 export function FlowEdge({ id, source, target, data, label }: EdgeProps<CanvasEdge>) {
-	const from = rectOf(useInternalNode<CanvasNode>(source)!);
-	const to = rectOf(useInternalNode<CanvasNode>(target)!);
+	const { entryOf, exitOf } = useFlowEditor();
+	const from = rectOf(useInternalNode<CanvasNode>(follow(source, exitOf))!);
+	const to = rectOf(useInternalNode<CanvasNode>(follow(target, entryOf))!);
 	const fromSide = facingSide(from, to);
 	const toSide = facingSide(to, from);
 	const start = pointOn(from, fromSide, along[data!.branch]);

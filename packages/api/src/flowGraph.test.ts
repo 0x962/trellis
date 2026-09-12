@@ -128,6 +128,14 @@ describe("validateFlowGraph", () => {
 		]);
 	});
 
+	test("a box that holds steps starts at exactly one of them", () => {
+		const box = node("box", { kind: "budget", instruction: "" });
+		const loose = { nodes: [box, agent("a", "box"), agent("b", "box")], edges: [] };
+		expect(validateFlowGraph(loose)).toEqual([expect.objectContaining({ code: "box-entry", nodeId: "box" })]);
+		expect(validateFlowGraph({ ...loose, edges: [edge("e1", "a", "b")] })).toEqual([]);
+		expect(validateFlowGraph({ nodes: [box], edges: [] })).toEqual([]);
+	});
+
 	test("every issue carries a message for a person", () => {
 		const issues = validateFlowGraph({ nodes: [agent("a", "ghost")], edges: [edge("e", "a", "a")] });
 		for (const issue of issues) expect(issue.message.length).toBeGreaterThan(0);

@@ -12,9 +12,6 @@ export type IconButtonProps = Omit<ComponentProps<typeof BaseButton>, "children"
 	label: string;
 	icon: ReactElement;
 	size?: IconButtonSize;
-	// True draws the button as a circle. Create and toggle controls are
-	// round, so a person tells them from the square controls around them.
-	round?: boolean;
 	// Set only on a toggle. The button reports the state through
 	// aria-pressed, and while it is on it takes the accent ring and fill.
 	pressed?: boolean;
@@ -27,7 +24,8 @@ const sizes: Record<IconButtonSize, string> = {
 	md: `size-8 ${hitArea.box32Bordered}`,
 };
 
-// A square button that shows one icon. Sizes sm and md are as tall as the
+// A round button that shows one icon. Every icon button in trellis is a
+// circle, and an action that needs words is a Button. Sizes sm and md are as tall as the
 // Button sizes with the same names: sm is 28 px, for rows, bars, and
 // headers, and md is 32 px, for dialogs, forms, and the create control of a
 // page. Size xs is 24 px, for a row too short for 28 px. The hit-area layer
@@ -37,7 +35,6 @@ export function IconButton({
 	label,
 	icon,
 	size = "sm",
-	round = false,
 	pressed,
 	variant = "quiet",
 	className,
@@ -48,8 +45,7 @@ export function IconButton({
 			aria-label={label}
 			aria-pressed={pressed}
 			className={cx(
-				"inline-flex shrink-0 items-center justify-center border select-none transition duration-hover ease-out",
-				round ? "rounded-round" : "rounded-md",
+				"inline-flex shrink-0 items-center justify-center rounded-round border select-none transition duration-hover ease-out",
 				"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 				pressed ? pressedLook : buttonVariants[variant],
 				disabledLook(variant),

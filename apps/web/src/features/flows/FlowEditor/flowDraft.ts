@@ -1,4 +1,5 @@
 import {
+	entryNodes,
 	type FlowBranch,
 	type FlowEdge,
 	type FlowEdgeInput,
@@ -156,6 +157,24 @@ export const canConnect = (
 	return !validateFlowGraph({ nodes: graph.nodes, edges: [...graph.edges, edge] }).some((issue) => issue.edgeId === id);
 };
 
+// The one step a wire into a box draws to, and the one step a wire out of a
+// box draws from. A box with two entry steps or two last steps is absent from
+// the map, and its wires draw to its outline.
+export const boxEnds = (graph: DraftGraph) => {
+	const entryOf = new Map<string, string>();
+	const exitOf = new Map<string, string>();
+	for (const box of graph.nodes) {
+		if (!flowGroupKinds.has(box.kind)) continue;
+		const inside = new Set(graph.nodes.filter((node) => node.parentId === box.id).map((node) => node.id));
+		const entries = entryNodes(graph, box.id);
+		const sources = new Set(graph.edges.filter((edge) => inside.has(edge.toNodeId)).map((edge) => edge.fromNodeId));
+		const exits = [...inside].filter((id) => !sources.has(id));
+		if (entries.length === 1) entryOf.set(box.id, entries[0]!);
+		if (exits.length === 1) exitOf.set(box.id, exits[0]!);
+	}
+	return { entryOf, exitOf };
+};
+
 // The newest node of one scope. A node id is a ULID, and a ULID sorts by the
 // time it was made.
 const newestIn = (nodes: CanvasNode[], boxId: string | null) => {
@@ -172,7 +191,8 @@ const newestIn = (nodes: CanvasNode[], boxId: string | null) => {
 // A drop places the node at `drop`, inside the box under that point. A click
 // places it below the node before it, or at `center` when the scope is empty.
 // A click while a box is selected adds the node inside that box. A box grows
-// to hold a node that does not fit. The new node is the only selected node.
+// to hold a node that does not fit. The new node is the only selected node. A
+// new box comes with an agent step inside it, the step the box starts at.
 export const addNode = (
 	nodes: CanvasNode[],
 	edges: CanvasEdge[],
@@ -217,7 +237,10 @@ export const addNode = (
 			height: Math.max(box.height, position.y + size.height + BOX_PAD.bottom),
 		};
 	});
-	const nextNodes = sortParentsFirst([...others, node]);
+	const entry = flowGroupKinds.has(kind)
+		? [canvasNode(newFields("agent"), { x: (BOX_SIZE.width - CARD_SIZE.width) / 2, y: BOX_PAD.top }, node.id, null)]
+		: [];
+	const nextNodes = sortParentsFirst([...others, node, ...entry]);
 	if (previous === undefined) return { nodes: nextNodes, edges, id: node.id };
 	const branch = previous.data.fields.kind === "gate" ? "yes" : "out";
 	const edge = canvasEdge({ id: ulid(), fromNodeId: previous.id, toNodeId: node.id, branch });

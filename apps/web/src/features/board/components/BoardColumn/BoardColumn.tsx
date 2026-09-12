@@ -116,7 +116,6 @@ export function BoardColumn({
 						label={`New ticket in ${column.name}`}
 						icon={<Plus />}
 						size="xs"
-						round
 						variant="primary"
 						onClick={onNewTicket}
 					/>

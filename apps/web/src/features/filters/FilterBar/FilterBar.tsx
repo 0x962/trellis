@@ -96,12 +96,12 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions, 
 					onOpenChange={onOpenChange}
 					stage={stage}
 					onStageChange={setStage}
-					trigger={<IconButton label="Filter" icon={<FunnelSimple />} round variant="default" data-filter-button="" />}
+					trigger={<IconButton label="Filter" icon={<FunnelSimple />} variant="default" data-filter-button="" />}
 				/>
 				{actions}
 				<Menu
 					label="Share"
-					trigger={<IconButton label="Share" icon={<ShareFat />} round variant="default" />}
+					trigger={<IconButton label="Share" icon={<ShareFat />} variant="default" />}
 					items={[
 						{ label: "Copy as CLI", icon: <Copy />, onSelect: () => void copyCli() },
 						{ label: "Copy link", icon: <Link />, onSelect: () => void copyLink() },
