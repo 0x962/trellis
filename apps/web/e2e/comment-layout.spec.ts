@@ -11,6 +11,9 @@ test.beforeAll(() => {
 	trellis(["comment", "CMT-1", "--body", shortRenderedComment], "human:dana");
 	createTicket("CMT", "Expand a long comment");
 	trellis(["comment", "CMT-2", "--body", longRenderedComment], "human:dana");
+	createTicket("CMT", "Show every activity item");
+	trellis(["edit", "CMT-3", "--title", "Show every activity item after one edit"]);
+	trellis(["edit", "CMT-3", "--title", "Show every activity item after two edits"]);
 });
 
 test("a compact rendered comment has no Show more button", async ({ page }) => {
@@ -43,4 +46,9 @@ test("timeline actor names align with the comment surface", async ({ page }) => 
 	expect(activityNameBox).not.toBeNull();
 	expect(commentNameBox!.x).toBeCloseTo(surfaceBox!.x, 0);
 	expect(activityNameBox!.x).toBeCloseTo(surfaceBox!.x, 0);
+});
+
+test("every activity item renders as its own timeline row", async ({ page }) => {
+	await signIn(page, "/t/CMT-3");
+	await expect(page.locator('[data-stream-entry="activity"]')).toHaveCount(3);
 });

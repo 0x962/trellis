@@ -6,8 +6,6 @@ import { timelineOptions, useTimeline } from "../hooks/useTimeline";
 import { ActivityLine } from "./components/ActivityLine";
 import { CommentThread } from "./components/CommentThread";
 import { Composer } from "./components/Composer";
-import { RunLine } from "./components/RunLine";
-import { collapseRuns } from "./utils/collapseRuns";
 import { prependTimeline, updateTimeline } from "./utils/timelineCache";
 
 export type TimelineProps = {
@@ -46,7 +44,6 @@ export function Timeline({ ticket, onAttachFiles }: TimelineProps) {
 		seenThreads.add(rootId);
 		return true;
 	});
-	const shownStream = collapseRuns(streamItems);
 	const reviewer = (name: string) =>
 		statuses.find((status) => status.name === name)?.reviewer === "agent" ? ("agent" as const) : ("human" as const);
 
@@ -71,15 +68,11 @@ export function Timeline({ ticket, onAttachFiles }: TimelineProps) {
 						aria-label="Activity"
 						className="relative flex flex-col gap-3 before:absolute before:top-4 before:bottom-4 before:left-2 before:w-px before:bg-border"
 					>
-						{shownStream.map((entry) => {
-							if (entry.kind === "activity") {
-								return entry.items.length === 1 ? (
-									<ActivityLine key={entry.items[0]!.id} item={entry.items[0]!} reviewer={reviewer} />
-								) : (
-									<RunLine key={entry.items[0]!.id} items={entry.items} reviewer={reviewer} />
-								);
+						{streamItems.map((item) => {
+							if (item.kind === "activity") {
+								return <ActivityLine key={item.id} item={item} reviewer={reviewer} />;
 							}
-							const id = entry.item.parentId ?? entry.item.id;
+							const id = item.parentId ?? item.id;
 							return (
 								<CommentThread
 									key={id}
