@@ -3,6 +3,7 @@ import { agents } from "./agents.ts";
 import { attachments } from "./attachments.ts";
 import { os } from "./base.ts";
 import { comments } from "./comments.ts";
+import { flows } from "./flows.ts";
 import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
@@ -17,6 +18,7 @@ export type { ProcedureContext } from "./base.ts";
 export const router = os.router({
 	agentRuns,
 	personas,
+	flows,
 	projects,
 	statuses,
 	tickets,

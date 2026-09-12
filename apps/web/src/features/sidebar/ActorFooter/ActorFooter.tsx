@@ -21,7 +21,7 @@ const iconLinkClass =
 // PR states and checks need gh. While gh does not answer as a signed-in
 // user, the Settings link carries a warning dot, and its description says
 // why in the words of ghCopy.
-export function ActorFooter() {
+export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 	const app = useApp();
 	const actor = useActor()!;
 	const gh = useQuery(app.orpc.system.gh.queryOptions({})).data;
@@ -77,34 +77,38 @@ export function ActorFooter() {
 					</Button>
 				</form>
 			</Popover>
-			<Link
-				to="/settings"
-				aria-label="Settings"
-				aria-describedby={ghWarning ? warningId : undefined}
-				className={iconLinkClass}
-			>
-				<span aria-hidden="true" className="inline-flex size-3.5 *:size-full">
-					<Gear />
-				</span>
-				{ghWarning && (
-					<>
-						<span
-							data-gh-warning=""
-							aria-hidden="true"
-							className="absolute top-1 right-1 size-1.5 rounded-sm bg-warning"
-						/>
-						<span id={warningId} className="sr-only">
-							{ghCopy[gh.reason ?? "error"].line}
+			{!collapsed && (
+				<>
+					<Link
+						to="/settings"
+						aria-label="Settings"
+						aria-describedby={ghWarning ? warningId : undefined}
+						className={iconLinkClass}
+					>
+						<span aria-hidden="true" className="inline-flex size-3.5 *:size-full">
+							<Gear />
 						</span>
-					</>
-				)}
-			</Link>
-			<IconButton
-				label="Keyboard shortcuts"
-				className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
-				icon={<Question />}
-				onClick={openShortcutHelp}
-			/>
+						{ghWarning && (
+							<>
+								<span
+									data-gh-warning=""
+									aria-hidden="true"
+									className="absolute top-1 right-1 size-1.5 rounded-sm bg-warning"
+								/>
+								<span id={warningId} className="sr-only">
+									{ghCopy[gh.reason ?? "error"].line}
+								</span>
+							</>
+						)}
+					</Link>
+					<IconButton
+						label="Keyboard shortcuts"
+						className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
+						icon={<Question />}
+						onClick={openShortcutHelp}
+					/>
+				</>
+			)}
 		</div>
 	);
 }

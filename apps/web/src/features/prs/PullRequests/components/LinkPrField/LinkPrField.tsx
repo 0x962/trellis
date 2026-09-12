@@ -50,7 +50,7 @@ export function LinkPrField({ ticket, onError }: LinkPrFieldProps) {
 				autoComplete="off"
 				spellCheck={false}
 				onChange={(event) => setUrl(event.target.value)}
-				className="h-9 w-full rounded-md border border-border bg-surface px-2 font-mono text-sm text-fg outline-none transition-colors duration-hover ease-out placeholder:font-sans placeholder:text-fg-faint focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft"
+				className="h-9 w-full rounded-md border border-border bg-surface px-2 text-sm text-fg outline-none transition-colors duration-hover ease-out placeholder:text-fg-faint focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft"
 			/>
 			<Button type="submit" className="self-end" disabled={url.trim() === "" || link.isPending}>
 				Link

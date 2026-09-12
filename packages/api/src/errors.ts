@@ -138,6 +138,13 @@ export const errors = {
 		message: "The ticket changed since the version you sent.",
 		data: z.object({ current: TicketSchema }),
 	},
+	// `version` is the current version of the flow. The client reads the flow
+	// again and repeats the change on top of it.
+	FLOW_VERSION_CONFLICT: {
+		status: 412,
+		message: "The flow changed since the version you sent. Read the flow again before you save.",
+		data: z.object({ version: z.number().int().positive() }),
+	},
 	PAYLOAD_TOO_LARGE: {
 		status: 413,
 		message: "The upload is over the size limit.",

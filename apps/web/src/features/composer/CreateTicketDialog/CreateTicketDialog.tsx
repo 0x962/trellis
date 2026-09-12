@@ -143,7 +143,7 @@ export function CreateTicketDialog() {
 						placeholder="Ticket title"
 						value={draft.title}
 						onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-						className="h-7 w-full bg-transparent font-mono text-xl font-semibold text-fg outline-none placeholder:font-sans placeholder:text-fg-faint"
+						className="h-7 w-full bg-transparent text-xl font-semibold text-fg outline-none placeholder:text-fg-faint"
 					/>
 					<DescriptionField
 						key={editorKey}

@@ -1,4 +1,4 @@
-import { MagnifyingGlass, Plus, Sparkle, Ticket, Tray } from "@phosphor-icons/react";
+import { FlowArrow, MagnifyingGlass, Plus, Sparkle, Ticket, Tray } from "@phosphor-icons/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { cx, IconButton, Kbd, TrellisWordmark } from "@trellis/ui";
 import type { ReactElement, ReactNode } from "react";
@@ -12,7 +12,7 @@ import { ConnectionPanel } from "../ConnectionPanel";
 const rowClass =
 	"flex h-7 items-center rounded-md pr-1 pl-2 text-fg-muted transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11";
 
-type NavTarget = "/needs-you" | "/search" | "/all" | "/ai/personas";
+type NavTarget = "/needs-you" | "/search" | "/all" | "/ai/personas" | "/ai/flows";
 
 type NavRowProps = { to: NavTarget; icon: ReactElement; label: string; active: boolean; trailing?: ReactNode };
 
@@ -70,7 +70,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 
 	return (
 		<>
-			<div className="mb-2 flex h-7 items-center pl-2">
+			<div className="mb-1 flex h-13 shrink-0 items-center pl-2">
 				{onCollapse ? (
 					// The mark is the control that opens and closes the sidebar.
 					// A closed sidebar keeps the first two letters of it.
@@ -93,13 +93,14 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 					icon={<MagnifyingGlass />}
 					label="Search"
 					active={isActive(pathname, "/search")}
-					trailing={<Kbd>/</Kbd>}
+					trailing={collapsed ? undefined : <Kbd>/</Kbd>}
 				/>
 				<NavRow to="/all" icon={<Ticket />} label="All tickets" active={isActive(pathname, "/all")} />
 			</nav>
 			<nav aria-label="AI" hidden={collapsed} className="mt-3 shrink-0">
 				<h2 className="sidebar-section">AI</h2>
 				<NavRow to="/ai/personas" icon={<Sparkle />} label="Personas" active={isActive(pathname, "/ai/personas")} />
+				<NavRow to="/ai/flows" icon={<FlowArrow />} label="Flows" active={isActive(pathname, "/ai/flows")} />
 			</nav>
 			<div hidden={collapsed} className="mt-3 min-h-0 flex-1 overflow-y-auto pb-2">
 				<div className="sidebar-section">
@@ -118,7 +119,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 			</div>
 			<div className="mt-auto shrink-0">
 				<ConnectionPanel status={status} />
-				<ActorFooter />
+				<ActorFooter collapsed={collapsed} />
 			</div>
 		</>
 	);

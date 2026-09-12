@@ -2,6 +2,8 @@
 @import "@trellis/ui/tokens.css";
 @import "@trellis/ui/fonts.css";
 @import "@trellis/ui/base.css";
+@import "@xyflow/react/dist/style.css";
+@import "@trellis/ui/flow-canvas.css";
 
 /* Tailwind emits only the classes it finds in scanned files. The primitives live in packages/ui, outside this root. */
 @source "../../../packages/ui/src";

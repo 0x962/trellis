@@ -25,7 +25,6 @@ const styles = StyleSheet.create({
 		borderBottomWidth: layout.stroke,
 	},
 	badge: {
-		fontFamily: tokens.font.mono,
 		fontSize: tokens.text.xs,
 		lineHeight: tokens.leading.xs,
 		paddingHorizontal: tokens.space[1],

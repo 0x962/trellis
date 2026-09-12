@@ -24,8 +24,8 @@ describe("Row and Chip", () => {
 		expect(screen.getByText("2h")).toBeOnTheScreen();
 		await unmount();
 
-		await render(<Chip mono>cde-42-restore-settings-pages</Chip>);
-		expect(textStyle(screen.getByText("cde-42-restore-settings-pages")).fontFamily).toBe(tokens.font.mono);
+		await render(<Chip mono>CDE-41</Chip>);
+		expect(textStyle(screen.getByText("CDE-41")).fontFamily).toBe(tokens.font.mono);
 		const colors = paintedColors(screen.toJSON());
 		expect(colors.size).toBeGreaterThan(0);
 		const palette = new Set(Object.values(tokens.dark));

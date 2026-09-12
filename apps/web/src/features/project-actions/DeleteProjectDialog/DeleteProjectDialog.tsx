@@ -58,7 +58,6 @@ export function DeleteProjectDialog({ project, open, onOpenChange }: DeleteProje
 					autoFocus
 					autoComplete="off"
 					spellCheck={false}
-					className="font-mono"
 					onChange={(event) => setTyped(event.target.value)}
 				/>
 			)}

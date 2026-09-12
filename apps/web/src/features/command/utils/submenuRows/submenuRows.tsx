@@ -118,7 +118,6 @@ export const submenuRows = (submenu: Submenu, deps: RowDeps, data: SubmenuData):
 			.map((ticket) => ({
 				value: `parent.${ticket.identifier}`,
 				label: ticket.title,
-				labelMono: true,
 				sub: ticket.identifier,
 				mono: true,
 				run: () => {

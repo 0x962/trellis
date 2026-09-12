@@ -60,7 +60,7 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 								href={`https://github.com/${repo.owner}/${repo.repo}`}
 								target="_blank"
 								rel="noreferrer"
-								className="min-w-0 flex-1 truncate font-mono text-sm text-accent underline"
+								className="min-w-0 flex-1 truncate text-sm text-accent underline"
 							>
 								{repo.owner}/{repo.repo}
 							</a>
@@ -80,7 +80,6 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 					placeholder="https://github.com/owner/repository"
 					value={value}
 					invalid={message !== null}
-					className="font-mono"
 					onChange={(event) => setValue(event.target.value)}
 				/>
 				<Button type="submit" icon={<Plus />}>

@@ -238,7 +238,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 												label="Command template"
 												value={command ?? draft.adeCommand}
 												invalid={commandMessage !== null}
-												className="font-mono text-sm"
+												className="text-sm"
 												onChange={(event) => setCommand(event.target.value)}
 												onBlur={commitCommand}
 											/>

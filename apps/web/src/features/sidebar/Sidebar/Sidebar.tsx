@@ -28,7 +28,11 @@ export function Sidebar() {
 				aria-label="Sidebar"
 				data-collapsed={collapsed || undefined}
 				className={cx(
-					"flex h-full shrink-0 flex-col gap-0.5 overflow-hidden border-r border-border bg-bg py-2 text-base max-md:hidden",
+					// The rule between the sidebar and the page starts where the rounded
+					// corner under the 52 px topbar ends, 63 px down. Topbar draws that
+					// corner, and the two together frame the page as one card.
+					"relative flex h-full shrink-0 flex-col gap-0.5 overflow-hidden bg-bg pb-2 text-base max-md:hidden",
+					"after:pointer-events-none after:absolute after:top-16 after:right-0 after:bottom-0 after:w-px after:-translate-y-px after:bg-border",
 					"transition-[width] duration-peek ease-in-out motion-reduce:transition-none",
 					collapsed ? "w-12 px-2" : "w-60 px-2",
 				)}

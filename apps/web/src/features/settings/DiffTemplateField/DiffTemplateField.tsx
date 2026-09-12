@@ -28,7 +28,7 @@ export function DiffTemplateField() {
 					autoComplete="off"
 					spellCheck={false}
 					aria-describedby={hintId}
-					className="max-w-96 font-mono text-sm"
+					className="max-w-96 text-sm"
 					value={value}
 					onChange={(event) => edit({ diffUrlTemplate: event.target.value })}
 					onBlur={() => void commit()}

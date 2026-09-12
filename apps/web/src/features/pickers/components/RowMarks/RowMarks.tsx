@@ -26,7 +26,7 @@ export function RowMarks({ current, keyLabel, afterHint = false }: RowMarksProps
 			{keyLabel !== undefined && (
 				<span
 					data-key={keyLabel}
-					className="inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-sm border border-border-strong bg-surface px-1 font-mono text-xs leading-none text-fg-muted before:content-[attr(data-key)]"
+					className="inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-sm border border-border-strong bg-surface px-1 text-xs leading-none text-fg-muted before:content-[attr(data-key)]"
 				/>
 			)}
 		</span>

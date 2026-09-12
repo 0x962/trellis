@@ -16,10 +16,12 @@ import { Route as NeedsYouRouteRouteImport } from './routes/needs-you/route'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SetupRouteImport } from './routes/setup'
+import { Route as AiFlowsRouteImport } from './routes/ai.flows'
 import { Route as AiPersonasRouteImport } from './routes/ai.personas'
 import { Route as AllTableRouteImport } from './routes/all_.table'
 import { Route as PSplatRouteRouteImport } from './routes/p/$/route'
 import { Route as TIdentifierRouteRouteImport } from './routes/t/$identifier/route'
+import { Route as AiFlowsSlugRouteImport } from './routes/ai.flows_.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -56,6 +58,11 @@ const SetupRoute = SetupRouteImport.update({
   path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AiFlowsRoute = AiFlowsRouteImport.update({
+  id: '/ai/flows',
+  path: '/ai/flows',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AiPersonasRoute = AiPersonasRouteImport.update({
   id: '/ai/personas',
   path: '/ai/personas',
@@ -76,6 +83,11 @@ const TIdentifierRouteRoute = TIdentifierRouteRouteImport.update({
   path: '/t/$identifier',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AiFlowsSlugRoute = AiFlowsSlugRouteImport.update({
+  id: '/ai/flows_/$slug',
+  path: '/ai/flows/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -87,8 +99,10 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
+  '/ai/flows': typeof AiFlowsRoute
   '/ai/personas': typeof AiPersonasRoute
   '/all/table': typeof AllTableRoute
+  '/ai/flows/$slug': typeof AiFlowsSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -100,8 +114,10 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
+  '/ai/flows': typeof AiFlowsRoute
   '/ai/personas': typeof AiPersonasRoute
   '/all/table': typeof AllTableRoute
+  '/ai/flows/$slug': typeof AiFlowsSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -114,8 +130,10 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
+  '/ai/flows': typeof AiFlowsRoute
   '/ai/personas': typeof AiPersonasRoute
   '/all_/table': typeof AllTableRoute
+  '/ai/flows_/$slug': typeof AiFlowsSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -129,8 +147,10 @@ export interface FileRouteTypes {
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
+    | '/ai/flows'
     | '/ai/personas'
     | '/all/table'
+    | '/ai/flows/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -142,8 +162,10 @@ export interface FileRouteTypes {
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
+    | '/ai/flows'
     | '/ai/personas'
     | '/all/table'
+    | '/ai/flows/$slug'
   id:
     | '__root__'
     | '/'
@@ -155,8 +177,10 @@ export interface FileRouteTypes {
     | '/setup'
     | '/p/$'
     | '/t/$identifier'
+    | '/ai/flows'
     | '/ai/personas'
     | '/all_/table'
+    | '/ai/flows_/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -169,8 +193,10 @@ export interface RootRouteChildren {
   SetupRoute: typeof SetupRoute
   PSplatRouteRoute: typeof PSplatRouteRoute
   TIdentifierRouteRoute: typeof TIdentifierRouteRoute
+  AiFlowsRoute: typeof AiFlowsRoute
   AiPersonasRoute: typeof AiPersonasRoute
   AllTableRoute: typeof AllTableRoute
+  AiFlowsSlugRoute: typeof AiFlowsSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -224,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ai/flows': {
+      id: '/ai/flows'
+      path: '/ai/flows'
+      fullPath: '/ai/flows'
+      preLoaderRoute: typeof AiFlowsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ai/personas': {
       id: '/ai/personas'
       path: '/ai/personas'
@@ -252,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TIdentifierRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ai/flows_/$slug': {
+      id: '/ai/flows_/$slug'
+      path: '/ai/flows/$slug'
+      fullPath: '/ai/flows/$slug'
+      preLoaderRoute: typeof AiFlowsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -265,8 +305,10 @@ const rootRouteChildren: RootRouteChildren = {
   SetupRoute: SetupRoute,
   PSplatRouteRoute: PSplatRouteRoute,
   TIdentifierRouteRoute: TIdentifierRouteRoute,
+  AiFlowsRoute: AiFlowsRoute,
   AiPersonasRoute: AiPersonasRoute,
   AllTableRoute: AllTableRoute,
+  AiFlowsSlugRoute: AiFlowsSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

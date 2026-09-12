@@ -67,7 +67,7 @@ export function DisplaySections() {
 				<ScrollArea className="h-40 w-56 rounded-md border border-border">
 					<ul className="flex flex-col p-1">
 						{lines.map((line) => (
-							<li key={line} className="h-7 px-2 font-mono text-sm leading-7 text-fg-muted">
+							<li key={line} className="h-7 px-2 text-sm leading-7 text-fg-muted">
 								{line}
 							</li>
 						))}

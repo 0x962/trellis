@@ -10,10 +10,9 @@ const monoHead = ['"BerkeleyMono"', '"JetBrains Mono"', '"JetBrains Mono Fallbac
 const sansHead = ['"Inter Variable"', '"Inter Fallback"'];
 
 describe("fonts.css", () => {
-	// The mono stack carries the ticket titles, the identifiers, the
-	// branches, and the commands, so the stylesheet declares the three
-	// weights the components ask for: 400, 500 through font-medium, and 600
-	// through font-semibold.
+	// The mono stack carries the ticket identifiers and the code blocks. A
+	// bold heading that holds inline code asks for 600, so the stylesheet
+	// declares 400, 500, and 600.
 	test("fonts.css imports the latin JetBrains Mono files for weights 400, 500, and 600", async () => {
 		const pieces = await fonts();
 		const imports = statements(pieces)
@@ -90,9 +89,8 @@ describe("fonts.css", () => {
 		expect(families(root.declarations["--mono"]!).slice(0, 3)).toEqual(monoHead);
 	});
 
-	// The prose reads in Inter and the ticket titles, the identifiers, the
-	// branches, and the commands read in the mono stack, so no entry of one
-	// stack appears in the other.
+	// The prose reads in Inter and the ticket identifiers read in the mono
+	// stack, so no entry of one stack appears in the other.
 	test("--sans and --mono share no family", async () => {
 		const root = findBlock(parseCss(await readSource("tokens.css")), ":root");
 		const families = (stack: string) => new Set(stack.split(",").map((entry) => entry.trim()));

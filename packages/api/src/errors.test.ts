@@ -17,6 +17,7 @@ describe("errors", () => {
 			["CONCURRENCY_LIMIT", 409],
 			["CROSS_ROOT_MOVE", 409],
 			["DUPLICATE", 409],
+			["FLOW_VERSION_CONFLICT", 412],
 			["GH_UNAVAILABLE", 503],
 			["INPUT_VALIDATION_FAILED", 400],
 			["INVALID_ANCHOR", 409],

@@ -24,7 +24,7 @@ export function TreeRow({ project, depth, archived = false }: TreeRowProps) {
 	return (
 		<li
 			className={cx(
-				"group/row sidebar-row relative hover:bg-surface",
+				"group/row sidebar-row relative text-sm hover:bg-surface",
 				indent[Math.min(depth, indent.length - 1)],
 				archived ? "text-fg-faint" : "font-medium text-fg",
 			)}

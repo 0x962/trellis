@@ -20,7 +20,6 @@ export type FieldProps = Pick<
 	label: string;
 	// A line under the input, such as a hint or a validation message.
 	note?: string;
-	mono?: boolean;
 };
 
 const styles = StyleSheet.create({
@@ -33,12 +32,11 @@ const styles = StyleSheet.create({
 		borderWidth: layout.stroke,
 		fontSize: tokens.text.md,
 	},
-	mono: { fontFamily: tokens.font.mono },
 	note: { fontSize: tokens.text.sm, lineHeight: tokens.leading.sm },
 });
 
 // A labeled text input.
-export function Field({ label, note, mono = false, ...input }: FieldProps) {
+export function Field({ label, note, ...input }: FieldProps) {
 	const palette = usePalette();
 	return (
 		<View style={styles.field}>
@@ -48,7 +46,6 @@ export function Field({ label, note, mono = false, ...input }: FieldProps) {
 				placeholderTextColor={palette.fgFaint}
 				style={[
 					styles.input,
-					mono && styles.mono,
 					{ color: palette.fg, backgroundColor: palette.surface, borderColor: palette.borderStrong },
 				]}
 				{...input}

@@ -42,7 +42,7 @@ export function PairPhone() {
 					</Suspense>
 					<div className="flex min-w-0 flex-col gap-1">
 						<p className="text-sm text-fg-muted">Or type this URL in the app:</p>
-						<code className="font-mono text-sm text-fg">{address}</code>
+						<code className="text-sm text-fg">{address}</code>
 						<p className="text-sm text-fg-muted">{caution}</p>
 					</div>
 				</div>

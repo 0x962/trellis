@@ -21,7 +21,7 @@ export type CommandItem = {
 	label: string;
 	// Extra words the filter matches, beside the id and the label.
 	keywords?: string[];
-	// Short mono text after the label, such as the identifier. It is drawn by
+	// Short muted text after the label, such as a project path. It is drawn by
 	// CSS, so the option's text stays the label alone.
 	hint?: string;
 	// A lucide icon or a domain mark, shown at 14 px before the label.
@@ -108,7 +108,7 @@ export function Command({
 			className={cx(
 				"flex h-8 cursor-default items-center gap-2 rounded-sm pr-2 text-base text-fg outline-none select-none data-[selected=true]:bg-bg",
 				indents[Math.min(item.depth ?? 0, indents.length - 1)],
-				"after:ml-auto after:font-mono after:text-xs after:text-fg-muted after:content-[attr(data-hint)] after:tabular",
+				"after:ml-auto after:text-xs after:text-fg-muted after:content-[attr(data-hint)] after:tabular",
 			)}
 		>
 			{item.icon && <span className="inline-flex size-3.5 shrink-0 *:size-full">{item.icon}</span>}

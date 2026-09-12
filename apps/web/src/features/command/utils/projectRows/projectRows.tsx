@@ -3,8 +3,8 @@ import { projectSlashPath } from "../../../../lib/projectPath";
 import { ProjectKey } from "../../../shell/ProjectKey";
 import type { PaletteRow } from "../../rows";
 
-// One row per project: the key badge, the name, then the path in faint
-// mono. The name shows once; the path tells two projects of one name apart.
+// One row per project: the key badge, the name, then the muted path.
+// The name shows once; the path tells two projects of one name apart.
 export const projectRows = (
 	projects: readonly ProjectSummary[],
 	value: (project: ProjectSummary) => string,
@@ -14,7 +14,6 @@ export const projectRows = (
 		value: value(project),
 		label: project.name,
 		sub: projectSlashPath(project.path),
-		mono: true,
 		leading: <ProjectKey projectKey={project.key} />,
 		keywords: [project.key, project.path, projectSlashPath(project.path)],
 		run: run(project),

@@ -19,6 +19,7 @@ model.
 | Web | React, Vite, TanStack Router, Query, Table, Virtual | 19, 8, current |
 | UI primitives | Base UI, Tailwind, own tokens in `packages/ui` | 1.8, 4.3 |
 | Editor, palette, drag and drop, motion, toasts, icons | Tiptap, cmdk, pragmatic-drag-and-drop, `motion/mini`, sonner, lucide-react | current |
+| Flow canvas | @xyflow/react | 12.11 |
 | Fonts | BerkeleyMono, then JetBrains Mono from fontsource | 5.3 |
 | Mobile | Expo, expo-router, React Native, NativeWind, FlashList, `expo-sqlite/kv-store`, `react-native-sse` | 57, 0.86, current |
 | Agent runner | the Superset CLI, or tmux for a template without `{{superset}}` | |
@@ -164,6 +165,34 @@ stored cursor of the project in the transaction that reads the rows after it. Th
 `agents.session` and `agents.batch` events carry the changed row and the count the
 dispatcher woke a manager for.
 
+### Flows
+
+A flow is a graph of agent steps that trellis runs against a target, such as a
+pull request. Flows are local records shared across projects. The AI section of
+the sidebar opens the Flows page at `/ai/flows`, and each flow opens in a canvas
+editor at `/ai/flows/<slug>`. The slug comes from the name at create time, and
+a collision takes the next free suffix: `review`, `review-2`.
+
+A node is one step. An `agent` node runs one agent. A `gate` runs one agent that
+answers YES or NO. A `human` node waits for a person. A `budget` and a `loop`
+are boxes that hold other nodes. A budget sets a time limit in minutes, and a
+loop runs its nodes again up to its round limit. An agent, a gate, and a loop
+take a persona, an instruction, or both. A human node takes an instruction. The
+`x` and `y` of a node inside a box are relative to that box.
+
+An edge connects an output of one node to another node. A gate has the outputs
+`yes` and `no`, and every other kind has `out`. An edge connects two nodes in
+the same box, or two nodes outside every box. The edges of a flow form no loop.
+`validateFlowGraph` in `packages/api/src/flowGraph.ts` holds these rules. The
+server applies it before a save, and the editor shows its issues on the canvas.
+
+`flows.save` replaces every node and edge of a flow in one transaction. The
+client mints the ULID of each new node and edge. `version` rises on every change
+to a flow, and a save or an update with an older `expectedVersion` fails with
+`FLOW_VERSION_CONFLICT`. A persona delete sets `persona_id` to NULL and keeps
+the node. The editor saves the graph 600 ms after the last change, and it holds
+a graph with an issue until the person fixes it.
+
 ## Web routes
 
 The routes are TanStack Router file routes under `apps/web/src/routes/`.
@@ -178,6 +207,8 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/t/$identifier` | `t/$identifier/route.tsx` | one ticket |
 | `/search` | `search.tsx` | search |
 | `/ai/personas` | `ai.personas.tsx` | the personas |
+| `/ai/flows` | `ai.flows.tsx` | the flows |
+| `/ai/flows/$slug` | `ai.flows_.$slug.tsx` | one flow in the canvas editor |
 | `/settings` | `settings.tsx` | the settings |
 | `/setup` | `setup.tsx` | the first visit, and the new project step |
 | `/_gallery` | `[_]gallery.tsx` | every primitive in every state, in both themes |
@@ -215,9 +246,9 @@ ADE command, its Superset host, its concurrency limit, and its project directory
 them through `projects.update`.
 
 The sidebar holds the workspace row, Needs you, Search, All tickets, the project
-tree, the AI section with the Personas link, and the actor footer. The project
-tree is the one region that scrolls, so the Personas link keeps its place at any
-tree height.
+tree, the AI section with the Personas and Flows links, and the actor footer. The
+project tree is the one region that scrolls, so the AI links keep their place at
+any tree height.
 
 ## Database schema
 
@@ -243,6 +274,9 @@ are no triggers. Every rule is a constraint or a service function that takes
 | actors | name (CHECK 1 to 64, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
 | settings | key PK, value jsonb, updated_at. |
 | personas | id PK, name (CHECK 1 to 120, not blank), kind (CHECK builder, reviewer, or manager; default reviewer), instruction (CHECK 1 to 200000, not blank), created_at, updated_at. |
+| flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), version (CHECK > 0), created_at, updated_at. |
+| flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, budget, or loop), title (trimmed, 1 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), model (1 to 120), effort (CHECK low to max), minutes (CHECK `(kind = 'budget') = (minutes IS NOT NULL)`, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
+| flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | agent_runs | id PK, name, runtime (default `superset`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, state (CHECK starting, interrupted, running, failed, stopped, exited), workspace_id, terminal_id, url, error, created_at, updated_at. Partial index (ticket_id) WHERE the state is live. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND the state is live. Index (created_at). |
 | agent_sessions | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |
 | agent_cursors | project_id PK (CASCADE), activity_id bigint, updated_at. The last activity row the manager of the project read through `agents.inbox`. |
@@ -262,12 +296,12 @@ midpoint of its neighbors. The column renumbers in steps of 1024 when the gap
 falls below 1. A list sorts and pages by `(position, id)`.
 
 The migrations live in `apps/server/drizzle/`, from `0000_extensions` to
-`0022_fix_manager_launch`. `0000_extensions` creates `pg_trgm`. `0001_init` holds
+`0024_abandoned_misty_knight`. `0000_extensions` creates `pg_trgm`. `0001_init` holds
 the tables. `0002_constraints` holds what drizzle-kit cannot render: the
 `UNIQUE NULLS NOT DISTINCT` constraint, the generated `tsvector` columns, and the
 trigram index. The migrator applies them at boot in one transaction, then runs
 `ANALYZE` and sets `pg_trgm.word_similarity_threshold`. `meta/_journal.json` is
-the order the migrator runs, and it lists 20 entries: the numbers 0009 to 0011
+the order the migrator runs, and it lists 22 entries: the numbers 0009 to 0011
 are absent, because those migrations left the tree before release.
 `0013_remove_agents` drops the agent manager tables and `0020_restore_agents`
 brings them back, so a data home from that window still upgrades. CI fails when
@@ -323,6 +357,7 @@ returns one canonical spelling.
 | pullRequests.list, link, unlink, refresh | GET, POST /api/tickets/{ticket}/prs; DELETE /api/tickets/{ticket}/prs/{id}; POST /api/prs/{id}/refresh | a link is idempotent |
 | pullRequests.diff | GET /api/prs/{id}/diff | `gh pr diff`, cut at 1 MB, cached for 60 s |
 | personas.list, create, update, delete | GET, POST /api/personas; PATCH, DELETE /api/personas/{id} | no route reads one persona |
+| flows.list, get, create, update, save, delete | GET, POST /api/flows; GET, PATCH, DELETE /api/flows/{flow}; PUT /api/flows/{flow}/graph | `{flow}` is a ULID or a slug; save replaces every node and edge |
 | agentRuns.list, start | GET, POST /api/agent-runs | start answers 201 with the row in any state |
 | agentRuns.stop, refresh, send | POST /api/agent-runs/{id}/stop, /refresh, /send | send takes 1 to 20000 characters |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
@@ -380,7 +415,7 @@ AGENT_CANNOT_COMPLETE 403, AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
 409, ROOT_STATUSES 409, STATUS_CATEGORY_IMMUTABLE 409, CROSS_ROOT_MOVE 409,
 PARENT_CYCLE 409, PROJECT_NOT_EMPTY 409, PROJECT_ARCHIVED 409,
 COMMENT_PARENT_MISMATCH 409, COMMENT_HAS_REPLIES 409, INVALID_ANCHOR 409,
-CONCURRENCY_LIMIT 409, VERSION_CONFLICT 412, PAYLOAD_TOO_LARGE 413,
+CONCURRENCY_LIMIT 409, VERSION_CONFLICT 412, FLOW_VERSION_CONFLICT 412, PAYLOAD_TOO_LARGE 413,
 GH_UNAVAILABLE 503, RUNNER_UNAVAILABLE 503.
 
 The API carries no version prefix. `apiVersion` appears in health and in
@@ -407,7 +442,7 @@ Payloads:
 `attachment.created | deleted {id, ticketId, projectId}`,
 `statuses.changed {projectId}`,
 `project.created | updated | deleted | moved {id}`, `gh.status {ok, reason}`,
-`personas.changed {id}`, `agent-runs.changed {id}`,
+`personas.changed {id}`, `flows.changed {id}`, `agent-runs.changed {id}`,
 `agents.session {session}`, and `agents.batch {projectId, count}`.
 `packages/api/src/events.ts` holds the one list of names, and the `types=`
 parameter takes a name or a `prefix.*` form.
@@ -650,7 +685,7 @@ pair link, beside the ticket, board, table, and live paths.
 `packages/ui` owns every visual. Base UI gives behavior and accessibility. There
 is no shadcn and no Radix.
 
-- Type: two typefaces carry the interface. `--sans` is Inter Variable, then a metric-matched Arial fallback, and it sets the prose: labels, buttons, menus, descriptions, and comments. `--mono` is BerkeleyMono, then JetBrains Mono, then a metric-matched local fallback, and it sets ticket titles, ids, branches, agent names, and commands through `font-mono`. BerkeleyMono is licensed per machine, so the repo ships no file for it and declares no face. A machine without it falls through to JetBrains Mono from fontsource, in the latin subset and the weights 400, 500, and 600. `tnum` lines up ids, counts, and times.
+- Type: two typefaces carry the interface. `--sans` is Inter Variable, then a metric-matched Arial fallback, and it sets the prose: labels, buttons, menus, descriptions, and comments. `--mono` is BerkeleyMono, then JetBrains Mono, then a metric-matched local fallback, and it sets ticket ids through `font-mono`, plus code blocks and raw terminal output. The build preloads Inter and JetBrains Mono 400 only. BerkeleyMono is licensed per machine, so the repo ships no file for it and declares no face. A machine without it falls through to JetBrains Mono from fontsource, in the latin subset and the weights 400, 500, and 600. `tnum` lines up ids, counts, and times.
 - The type scale is 11, 12, 13, 14, 16, 20, and 24 px, plus the two micro steps `text-kbd` at 10 px and `text-initials` at 9 px.
 - Spacing has a 4 px base. Every radius token is 0 px, so controls and surfaces have square corners, including avatars, badges, and switch thumbs.
 - The tokens carry a light and a dark palette in `tokens.css`. Every neutral is one seed grey mixed with white or with black, and a step keeps its position in the ramp across the two themes. The light `--success`, `--warning`, and `--danger` are dark enough for 4.5:1 on their own soft grounds. `tokens.test.ts` computes the ratio of every text and ground pair, and pins every value in the file, so Biome skips it.

@@ -2,7 +2,7 @@
 	@apply flex min-h-0 flex-1 flex-col overflow-y-auto bg-bg lg:flex-row lg:overflow-hidden;
 }
 @utility project-settings-nav {
-	@apply shrink-0 border-b border-border p-4 lg:w-52 lg:overflow-y-auto lg:border-r lg:border-b-0 lg:py-7;
+	@apply shrink-0 border-b border-border p-2 lg:w-52 lg:overflow-y-auto lg:border-r lg:border-b-0;
 }
 @utility project-settings-nav-title {
 	@apply sr-only;
@@ -22,10 +22,11 @@
 	}
 }
 @utility project-settings-content {
-	@apply min-w-0 flex-1 px-5 py-7 sm:px-8 lg:overflow-y-auto lg:px-10 lg:py-10;
+	@apply min-w-0 flex-1 px-5 pt-5 pb-10 lg:overflow-y-auto;
 }
+/* A settings page starts at the left edge under the bar and stops at 720 px. */
 @utility project-settings-page {
-	@apply mx-auto max-w-180;
+	@apply max-w-180;
 }
 @utility project-settings-section {
 	@apply flex min-w-0 flex-col gap-7;
@@ -43,7 +44,7 @@
 	@apply text-md font-medium text-fg;
 }
 @utility project-settings-save {
-	@apply flex flex-wrap items-center gap-3 border-t border-border pt-5;
+	@apply flex flex-wrap items-center justify-end gap-3 border-t border-border pt-5;
 }
 @utility project-settings-action-row {
 	@apply flex flex-col items-start gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between;

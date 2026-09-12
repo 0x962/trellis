@@ -30,7 +30,7 @@ export function CardContent({ ticket, showStatus = false }: CardContentProps) {
 				</span>
 				{ticket.priority !== "none" && <PriorityIcon priority={ticket.priority} />}
 			</div>
-			<p className="line-clamp-3 font-mono text-base font-medium text-fg">{ticket.title}</p>
+			<p className="line-clamp-3 text-base font-medium text-fg">{ticket.title}</p>
 			<div className="mt-auto flex h-4 min-w-0 items-center gap-1.5 text-xs text-fg-faint tabular">
 				{ticket.childCount > 0 && (
 					<span className="inline-flex items-center gap-1">

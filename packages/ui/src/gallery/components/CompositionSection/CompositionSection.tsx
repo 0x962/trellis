@@ -95,11 +95,11 @@ export function CompositionSection() {
 						<GitPullRequest className="size-4 text-success" aria-hidden="true" />
 						<span className="flex min-w-0 flex-col">
 							<span className="truncate">
-								<span className="mr-1.5 font-mono text-sm text-fg-muted">acme/web #118</span>
+								<span className="mr-1.5 text-sm text-fg-muted">acme/web #118</span>
 								<span className="font-medium">Restore export pages after the 1.27 merge</span>
 							</span>
 							<span className="mt-0.5 flex items-center gap-2 text-sm whitespace-nowrap text-fg-muted">
-								<span className="truncate font-mono text-xs">cde-42-restore-export-pages → main</span>
+								<span className="truncate text-xs">cde-42-restore-export-pages → main</span>
 								<span>·</span>
 								<span>updated 3m ago</span>
 								<span>·</span>

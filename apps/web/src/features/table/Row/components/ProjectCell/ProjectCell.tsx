@@ -47,7 +47,7 @@ export function ProjectCell({
 					trigger={
 						<button type="button" aria-label={`Project: ${path}`} className={cellButtonClass}>
 							{!inScope && <ProjectKey projectKey={segments[0]!} />}
-							{segment !== "" && <span className="truncate font-mono text-sm text-fg-muted">{segment}</span>}
+							{segment !== "" && <span className="truncate text-sm text-fg-muted">{segment}</span>}
 						</button>
 					}
 				/>

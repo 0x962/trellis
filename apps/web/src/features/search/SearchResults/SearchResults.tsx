@@ -92,7 +92,7 @@ export function SearchResults({ q, filters = {}, children }: SearchResultsProps)
 													/>
 													<span className="text-xs text-fg-faint tabular">{compactRelativeTime(ticket.updatedAt)}</span>
 												</span>
-												<span data-line="title" className="truncate font-mono text-sm">
+												<span data-line="title" className="truncate text-sm">
 													{highlight(ticket.title, q)}
 												</span>
 											</Link>
@@ -110,13 +110,11 @@ export function SearchResults({ q, filters = {}, children }: SearchResultsProps)
 											<span className="font-mono text-sm text-fg-faint tabular">{ticket.identifier}</span>
 										</Link>
 									</td>
-									<td className="truncate pr-3 font-mono text-base">{highlight(ticket.title, q)}</td>
+									<td className="truncate pr-3 text-base">{highlight(ticket.title, q)}</td>
 									<td className="w-40 pr-3" title={projectSlashPath(ticket.project.path)}>
 										<span className="flex min-w-0 items-center gap-1.5">
 											<ProjectKey projectKey={segments[0]!} />
-											{segments.length > 1 && (
-												<span className="truncate font-mono text-sm text-fg-muted">{segments.at(-1)}</span>
-											)}
+											{segments.length > 1 && <span className="truncate text-sm text-fg-muted">{segments.at(-1)}</span>}
 										</span>
 									</td>
 									<td className="w-8">
@@ -140,9 +138,7 @@ export function SearchResults({ q, filters = {}, children }: SearchResultsProps)
 											<span className="flex items-center gap-3">
 												<ProjectKey projectKey={project.key} />
 												<span className="flex-1" />
-												<span className="truncate font-mono text-xs text-fg-faint">
-													{projectSlashPath(project.path)}
-												</span>
+												<span className="truncate text-xs text-fg-faint">{projectSlashPath(project.path)}</span>
 											</span>
 											<span data-line="title" className="truncate text-sm">
 												{highlight(project.name, q)}
@@ -158,7 +154,7 @@ export function SearchResults({ q, filters = {}, children }: SearchResultsProps)
 										</Link>
 									</td>
 									<td className="truncate pr-3 text-base">{highlight(project.name, q)}</td>
-									<td colSpan={3} className="pr-5 font-mono text-xs text-fg-faint">
+									<td colSpan={3} className="pr-5 text-xs text-fg-faint">
 										{projectSlashPath(project.path)}
 									</td>
 								</tr>

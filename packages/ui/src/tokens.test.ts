@@ -34,8 +34,8 @@ const shadowTokens = ["--shadow-sm", "--shadow-md", "--shadow-lg"];
 
 const fontTokens = ["--sans", "--mono"];
 
-// Inter carries the prose and the mono stack carries the ticket titles, the
-// identifiers, the branches, and the commands. BerkeleyMono leads the mono
+// Inter carries the prose and the mono stack carries the ticket
+// identifiers and the code blocks. BerkeleyMono leads the mono
 // stack. A machine without it falls back to the bundled JetBrains Mono. Each
 // "Fallback" entry is the metric-matched face that holds the layout until
 // the web font loads (see fonts.test.ts).

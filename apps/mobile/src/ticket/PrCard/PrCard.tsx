@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
 		borderWidth: layout.stroke,
 	},
 	line: { flexDirection: "row", alignItems: "center", gap: tokens.space[2] },
-	repo: { flex: 1, fontFamily: tokens.font.mono, fontSize: tokens.text.sm, lineHeight: tokens.leading.sm },
+	repo: { flex: 1, fontSize: tokens.text.sm, lineHeight: tokens.leading.sm },
 	title: { fontSize: tokens.text.md, lineHeight: tokens.leading.md, fontWeight: "500" },
 	pill: {
 		flexDirection: "row",
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
 		borderRadius: tokens.radius.sm,
 	},
 	pillText: { fontSize: tokens.text.xs, lineHeight: tokens.leading.xs, fontVariant: ["tabular-nums"] },
-	branch: { flex: 1, fontFamily: tokens.font.mono, fontSize: tokens.text.xs, lineHeight: tokens.leading.xs },
+	branch: { flex: 1, fontSize: tokens.text.xs, lineHeight: tokens.leading.xs },
 	sub: { fontSize: tokens.text.xs, lineHeight: tokens.leading.xs },
 });
 
