@@ -198,7 +198,9 @@ export function ReviewPage({ pr }: { pr: string }) {
 							<div className="review-content">
 								<DiffToolbar
 									count={files.length}
-									visibleCount={files.filter((file) => file.path.toLowerCase().includes(fileFilter.toLowerCase())).length}
+									visibleCount={
+										files.filter((file) => file.path.toLowerCase().includes(fileFilter.toLowerCase())).length
+									}
 									mode={mode}
 									onFiles={() => setFileSheet(true)}
 									onMode={(value) => {
