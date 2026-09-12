@@ -6,7 +6,8 @@
 	"main": "expo-router/entry",
 	"scripts": {
 		"start": "expo start",
-		"test": "bun test --path-ignore-patterns '**/*.test.tsx'",
+		"test": "bun test --path-ignore-patterns '**/*.test.tsx' --path-ignore-patterns '**/test/int/**'",
+		"test:int": "bun test test/int --path-ignore-patterns '**/*.test.tsx'",
 		"test:native": "jest",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"export:check": "expo export --platform ios --output-dir .expo-export",

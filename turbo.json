@@ -11,6 +11,7 @@
 			"outputs": ["dist/**"]
 		},
 		"test": {},
+		"test:int": {},
 		"typecheck": {},
 		"lint": {},
 		"db:generate": {
@@ -29,6 +30,9 @@
 		"//#lint": {},
 		"//#typecheck:repo": {},
 		"//#test:repo": {
+			"cache": false
+		},
+		"//#test:repo:int": {
 			"cache": false
 		}
 	}

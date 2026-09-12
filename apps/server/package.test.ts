@@ -55,7 +55,9 @@ describe("apps/server package", () => {
 		}
 		expect(pkg.scripts.start).toContain("src/index.ts");
 		expect(pkg.scripts.dev).toContain("src/index.ts");
-		expect(pkg.scripts.test).toBe("bun test");
+		expect(pkg.scripts.test).toStartWith("bun test");
+		expect(pkg.scripts.test).toContain("test/int");
+		expect(pkg.scripts["test:int"]).toContain("test/int");
 	});
 
 	test("the server bunfig preloads the shared test setup", async () => {
@@ -64,15 +66,18 @@ describe("apps/server package", () => {
 		expect(await text("../../test/preload.ts")).toContain("TRELLIS_HOME");
 	});
 
+	// A file that ends with a newline, as every file here does, splits into one
+	// more piece than it has lines. The last piece is the empty text after the
+	// final newline. trimEnd drops it, so a file of exactly 300 lines counts 300.
+	const lineCount = (file: string) => readFileSync(join(root, file), "utf8").trimEnd().split("\n").length;
+
 	test("no server source file passes 300 lines", () => {
 		const files = walk("src").filter((file) => file.endsWith(".ts"));
-		const over = files.filter((file) => readFileSync(join(root, file), "utf8").split("\n").length > 300);
-		expect(over).toEqual([]);
+		expect(files.filter((file) => lineCount(file) > 300)).toEqual([]);
 	});
 
 	test("every server source file stays under 300 lines", () => {
 		const files = [...walk("src"), ...walk("test"), "drizzle.config.ts"].filter((file) => file.endsWith(".ts"));
-		const over = files.filter((file) => readFileSync(join(root, file), "utf8").split("\n").length > 300);
-		expect(over).toEqual([]);
+		expect(files.filter((file) => lineCount(file) > 300)).toEqual([]);
 	});
 });

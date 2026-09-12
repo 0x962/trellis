@@ -28,7 +28,7 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 - Layers import downward only. Server, web, mobile, and cli import `api`. Only web imports `ui`. Packages export TypeScript source and have no side effects.
 - One folder per module or component: `Name/Name.ts(x)`, `Name/Name.test.ts(x)`, `Name/index.ts`. If one module uses it, nest it under that module's `components/`. If two use it, move it to the highest shared parent.
 - One exported component or service per file. Split a file over 300 lines.
-- Tests sit beside the code they test. Fixtures and helpers live in `test/` at the workspace root. Perf and e2e suites are directories.
+- A unit test sits beside the code it tests. An integration test sits under `<workspace>/test/int/`, at the path it would have beside that code. Fixtures and helpers live in `test/` at the workspace root. Perf and e2e suites are directories.
 - Names: `camelCase` files for modules, `PascalCase` folders for React components, `kebab-case` for routes and CLI commands. Schema `TicketSummarySchema`, type `TicketSummary`, table `tickets`, service `tickets.ts`, procedure file `tickets.ts`, CLI command `list.ts`.
 - Tabs for indentation. Biome formats and lints. `bun run lint:fix` applies the fixes.
 
@@ -51,18 +51,23 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 
 ## Tests
 
+`bun run test` runs the unit tests and takes seconds. `bun run test:int` runs the integration tests and takes minutes. Run `test:int` before a pull request, and when your change touches the database, the app wiring, or the CLI.
+
+A test is an integration test when it opens a PGlite database, boots the Hono app, or spawns a process. Those cost about half a second each, every time a file asks for one. `test/testLayout.test.ts` reads every test file, follows its imports, and fails when a file of that kind sits outside `test/int/`.
+
 | kind | where | runs in |
 |---|---|---|
-| unit | beside the module, `*.test.ts` | `bun test`, in-memory PGlite, inline transport |
-| contract | `apps/server/src/procedures/*.test.ts` | `bun test`, oRPC client over `app.request` |
-| component | beside the component, `*.test.tsx` | `bun test`, Testing Library, happy-dom, the real server in process |
-| CLI smoke | `packages/cli/test/` | `bun test`, spawned server on a random port |
+| unit | beside the module, `*.test.ts` | `bun run test`, no database, no process |
+| integration | `<workspace>/test/int/`, mirroring the source path | `bun run test:int`, in-memory PGlite, the app, spawned servers |
+| contract | `apps/server/test/int/src/procedures/` | `bun run test:int`, oRPC client over `app.request` |
+| component | `apps/web/test/int/src/`, mirroring the source path | `bun run test:int`, Testing Library, happy-dom |
+| CLI smoke | `packages/cli/test/int/` | `bun run test:int`, spawned server on a random port |
 | perf | `apps/server/test/perf/`, `apps/web/scripts/size-budget.ts` | optional `perf:10k` at 10k rows, `perf` at 50k rows |
 | e2e | `apps/web/e2e/` | Playwright with a temp `TRELLIS_HOME` |
 
 A web component test builds the real Hono app of `apps/server` over an in-memory PGlite. `apps/web/test/server` holds that harness. The web workspace ships no fake server, so a page test fails when the server contract changes.
 
-Every service test ends with `assertStatusInvariant(tx)`. `test/preload.ts` gives a test run a fresh `TRELLIS_HOME`, so a test never touches `~/.trellis`. Bun reads `bunfig.toml` from the current directory only. So every workspace has a `bunfig.toml` with `[test]` and `preload = ["../../test/preload.ts"]`. A root test checks this for every directory under `apps/` and `packages/` that has a `package.json`.
+An integration test that reads a file by path calls `originDir(import.meta.dir)` from `test/originDir.ts`, because its own directory sits under `test/int/` and holds no source. Every service test ends with `assertStatusInvariant(tx)`. `test/preload.ts` gives a test run a fresh `TRELLIS_HOME`, so a test never touches `~/.trellis`. Bun reads `bunfig.toml` from the current directory only. So every workspace has a `bunfig.toml` with `[test]` and `preload = ["../../test/preload.ts"]`. A root test checks this for every directory under `apps/` and `packages/` that has a `package.json`.
 
 ## Review
 

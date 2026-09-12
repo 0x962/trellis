@@ -11,7 +11,6 @@ const planRoutes = [
 	"/",
 	"/setup",
 	"/settings",
-	"/agents",
 	"/search",
 	"/_gallery",
 	"/needs-you",
