@@ -25,7 +25,7 @@ export function NeedsYou() {
 			<Topbar>
 				<PageTitle title="Needs you" />
 			</Topbar>
-			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+			<div className="page-card flex flex-1 flex-col overflow-y-auto">
 				{inbox.isPending && <InboxSkeleton />}
 				{inbox.isError && (
 					<EmptyState

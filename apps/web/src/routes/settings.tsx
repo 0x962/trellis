@@ -71,7 +71,7 @@ function SettingsPage() {
 			<Topbar>
 				<PageTitle title="Settings" />
 			</Topbar>
-			<div className="project-settings-layout">
+			<div className="page-card project-settings-layout">
 				<nav aria-label="Settings" className="project-settings-nav">
 					<p className="project-settings-nav-title">Settings</p>
 					<ul className="project-settings-nav-list">

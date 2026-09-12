@@ -1,0 +1,10 @@
+@utility page-inset {
+	@apply px-3 pb-3 max-md:px-2 max-md:pb-2;
+	& > .page-card:first-child {
+		@apply mt-13;
+	}
+}
+
+@utility page-card {
+	@apply min-h-0 min-w-0 rounded-lg border border-border;
+}

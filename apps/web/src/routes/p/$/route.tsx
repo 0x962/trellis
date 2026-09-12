@@ -167,29 +167,31 @@ function ProjectPage() {
 					}
 				/>
 			</Topbar>
-			{archived && <ArchivedBanner project={project} />}
-			<fieldset disabled={archived} className="contents">
-				{view === "board" ? (
-					<>
-						<div className="flex min-h-0 flex-1 flex-col">
-							<Board
-								projectRef={ref}
-								filters={toCountsQuery(full, { statuses: project.statuses })}
-								storageKey={ref}
-								onOpenTicket={openTicket}
-							/>
-						</div>
-						<ListFooter total={counts?.total} sort={boardSortLabel} />
-					</>
-				) : (
-					<TicketTable
-						project={ref}
-						routeKey={routeKey}
-						search={search}
-						onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
-					/>
-				)}
-			</fieldset>
+			<div className="page-card flex flex-1 flex-col overflow-hidden">
+				{archived && <ArchivedBanner project={project} />}
+				<fieldset disabled={archived} className="contents">
+					{view === "board" ? (
+						<>
+							<div className="flex min-h-0 flex-1 flex-col">
+								<Board
+									projectRef={ref}
+									filters={toCountsQuery(full, { statuses: project.statuses })}
+									storageKey={ref}
+									onOpenTicket={openTicket}
+								/>
+							</div>
+							<ListFooter total={counts?.total} sort={boardSortLabel} />
+						</>
+					) : (
+						<TicketTable
+							project={ref}
+							routeKey={routeKey}
+							search={search}
+							onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
+						/>
+					)}
+				</fieldset>
+			</div>
 		</>
 	);
 }

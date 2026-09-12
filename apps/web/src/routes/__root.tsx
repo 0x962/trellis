@@ -86,7 +86,7 @@ function RootComponent() {
 			<Sidebar />
 			<div className="relative flex min-w-0 flex-1 flex-col">
 				<RouteProgress />
-				<main className="flex min-h-0 min-w-0 flex-1 flex-col bg-pane">
+				<main className="page-inset flex min-h-0 min-w-0 flex-1 flex-col bg-pane">
 					<Outlet />
 				</main>
 			</div>
@@ -104,6 +104,7 @@ function PageNotFound() {
 	return (
 		<EmptyState
 			variant="page"
+			className="page-card"
 			title="Page not found"
 			description="No page has this URL."
 			action={

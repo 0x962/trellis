@@ -45,7 +45,14 @@ export function TicketView({ identifier }: TicketViewProps) {
 		if (query.error instanceof ORPCError && query.error.code === "NOT_FOUND") {
 			return <NotFoundState ref={identifier} searchFor={identifier} />;
 		}
-		return <EmptyState variant="page" title={`${identifier} did not load.`} description={query.error.message} />;
+		return (
+			<EmptyState
+				className="page-card"
+				variant="page"
+				title={`${identifier} did not load.`}
+				description={query.error.message}
+			/>
+		);
 	}
 	if (query.data === undefined) return <TicketSkeleton />;
 	const ticket = query.data;
@@ -55,7 +62,7 @@ export function TicketView({ identifier }: TicketViewProps) {
 	// The server refuses every write to a ticket under an archived project.
 	// The disabled fieldset and the edit keys enforce `readOnly`.
 	const main = (
-		<article className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto rounded-t-lg border-t border-r border-border max-md:rounded-none max-md:border-r-0">
+		<article className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto page-card">
 			<div data-ticket-content="" className="flex min-w-0 max-w-[856px] flex-col px-5 pt-6 pb-8 max-md:px-4">
 				<div className="flex flex-col gap-1">
 					{ticket.parent !== null && <ParentChip ancestors={ticket.ancestors} title={parentSummary?.title ?? ""} />}

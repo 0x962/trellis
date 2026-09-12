@@ -24,7 +24,7 @@ export function ShellFrame({ children }: ShellFrameProps) {
 			<aside
 				aria-label="Sidebar"
 				aria-busy="true"
-				className="relative flex h-full w-60 shrink-0 flex-col gap-0.5 bg-bg px-2 pb-2 text-base max-md:hidden after:pointer-events-none after:absolute after:top-16 after:right-0 after:bottom-0 after:w-px after:-translate-y-px after:bg-border"
+				className="relative flex h-full w-60 shrink-0 flex-col gap-0.5 bg-bg px-2 pb-2 text-base max-md:hidden"
 			>
 				<div className="mb-1 flex h-13 shrink-0 items-center gap-2 pl-2">
 					<TrellisWordmark className="h-4.5" />
@@ -45,7 +45,9 @@ export function ShellFrame({ children }: ShellFrameProps) {
 					Projects
 				</div>
 			</aside>
-			<main className="flex min-h-0 min-w-0 flex-1 flex-col bg-pane">{children}</main>
+			<main className="page-inset flex min-h-0 min-w-0 flex-1 flex-col bg-pane">
+				{children ?? <div aria-hidden="true" className="page-card mt-13 flex-1" />}
+			</main>
 		</div>
 	);
 }

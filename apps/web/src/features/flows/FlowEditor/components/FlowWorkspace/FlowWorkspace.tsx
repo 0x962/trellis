@@ -122,7 +122,7 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 			>
 				<PageTitle parent={<Link to="/ai/flows">Flows</Link>} title={flow.name} />
 			</Topbar>
-			<div className="relative flex min-h-0 flex-1">
+			<div className="page-card relative flex flex-1 overflow-hidden">
 				<FlowCanvas
 					nodes={nodes}
 					edges={shownEdges}

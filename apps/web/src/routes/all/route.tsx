@@ -71,8 +71,10 @@ function AllBoardPage() {
 					statuses={statuses}
 				/>
 			</Topbar>
-			<Board filters={toCountsQuery(view, { statuses })} storageKey="all" onOpenTicket={openTicket} />
-			<ListFooter total={counts?.total} sort={boardSortLabel} />
+			<div className="page-card flex flex-1 flex-col overflow-hidden">
+				<Board filters={toCountsQuery(view, { statuses })} storageKey="all" onOpenTicket={openTicket} />
+				<ListFooter total={counts?.total} sort={boardSortLabel} />
+			</div>
 		</>
 	);
 }

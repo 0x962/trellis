@@ -286,8 +286,11 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/_gallery` | `[_]gallery.tsx` | every primitive in every state, in both themes |
 
 Ticket links open `/t/$identifier`. The header shows the project name and ticket
-identifier, with the actions on the right. The content sits below the shared
-rounded corner. Back to list restores the last list URL with its filters.
+identifier, with the actions on the right. The content sits in fully rounded
+cards below the header.
+Every page card has a gap from the sidebar, the right edge, and the bottom edge.
+The gap is 12 px on desktop and 8 px on a phone. Back to list restores the
+last list URL with its filters.
 
 `/p/$` takes one splat, `[key, ...slugs, view?]`. The URL keeps slashes and the
 API ref joins the same segments with dots, so `/p/CDE/web/auth` reads
