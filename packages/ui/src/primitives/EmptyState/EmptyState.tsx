@@ -29,7 +29,7 @@ export function EmptyState({ image, title, description, action, variant = "secti
 			)}
 		>
 			{image !== undefined && <img src={image} alt="" className="mb-4 w-24 -rotate-2 rounded-sm shadow-md grayscale" />}
-			<h3 className={cx("text-fg", page ? "text-xl font-semibold" : "text-md font-medium")}>{title}</h3>
+			<h3 className={cx("text-fg", page ? "text-xl font-semibold" : "text-sm font-medium")}>{title}</h3>
 			{description && <p className="max-w-xl text-sm text-fg-muted">{description}</p>}
 			{action && <div className={cx(page ? "mt-3" : "mt-2")}>{action}</div>}
 		</div>
