@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { commandHarness } from "../../agents/commandHarness/commandHarness.ts";
+import { commandAde } from "../../agents/commandAde/commandAde.ts";
 import { managedTerminal } from "../../agents/managedTerminal/managedTerminal.ts";
 import { runnerUnavailable } from "../../agents/runner.ts";
 import { attempt } from "../../agents/superset/attempt.ts";
@@ -20,7 +20,7 @@ export const prepareSend = async (ctx: Ctx, input: { id: string; text: string })
 			? await ctx.newTx(async (tx) => managerConfigOf(await projectRow(tx, run.projectId!)).supersetHostId)
 			: null;
 	const sent = await attempt(async () => {
-		if (run.runtime === "commands") await (await commandHarness(ctx.home, run)).send(input.text);
+		if (run.runtime === "commands") await (await commandAde(ctx.home, run)).send(input.text);
 		else if (run.runtime === "tmux") await managedTerminal(ctx.home).send(run.terminalId!, input.text);
 		else await superset(ctx.supersetBin, host).send(run.workspaceId!, run.terminalId!, input.text);
 	});
@@ -37,7 +37,7 @@ export const prepareOutput = async (ctx: Ctx, input: { id: string }) => {
 			? await ctx.newTx(async (tx) => managerConfigOf(await projectRow(tx, run.projectId!)).supersetHostId)
 			: null;
 	const result = await attempt(async () => {
-		if (run.runtime === "commands") return (await commandHarness(ctx.home, run)).output();
+		if (run.runtime === "commands") return (await commandAde(ctx.home, run)).output();
 		return run.runtime === "tmux"
 			? managedTerminal(ctx.home).output(run.terminalId!)
 			: superset(ctx.supersetBin, host).output(run.workspaceId!, run.terminalId!);

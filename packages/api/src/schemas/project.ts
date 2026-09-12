@@ -1,11 +1,13 @@
 import { z } from "zod";
+import { AdeCommandsSchema } from "../adeCommands/adeCommands.ts";
+import { ADE_PRESETS, SUPERSET_ADE_COMMANDS } from "../adeCommands/presets.ts";
 import { AgentCommandSchema } from "../agentCommand/agentCommand.ts";
 import {
 	DEFAULT_AGENT_RESUME_COMMAND,
 	DEFAULT_AGENT_START_COMMAND,
 	unknownLaunchVariables,
 } from "../agentLaunch/agentLaunch.ts";
-import { HarnessCommandsSchema } from "../harnessCommands/harnessCommands.ts";
+import { HarnessSchema, harnessFromCommands } from "../harness/harness.ts";
 import { ProjectRefStringSchema } from "../refs.ts";
 import { booleanString, CountSchema, IsoDateTimeSchema, KeySchema, SlugSchema, UlidSchema } from "./primitives.ts";
 import { StatusSchema } from "./status.ts";
@@ -51,10 +53,10 @@ const AncestorSchema = ProjectLinkSchema.extend({
 
 // `statuses` is the effective set: the project's own, or the nearest
 // ancestor's, named by `statusesInheritedFrom`.
-export const AdeSchema = z.enum(["superset", "custom"]);
+export const AdeSchema = z.enum(["superset", "terminal", "tmux", "custom"]);
 export type Ade = z.infer<typeof AdeSchema>;
 
-export const ProjectManagerConfigSchema = z.strictObject({
+const ProjectManagerConfigInputSchema = z.strictObject({
 	personaId: UlidSchema.nullable(),
 	concurrency: z.number().int().min(1).max(64),
 	directory: z
@@ -81,28 +83,38 @@ export const ProjectManagerConfigSchema = z.strictObject({
 		.trim()
 		.refine((value) => unknownLaunchVariables(value).length === 0, "The command has an unknown template variable.")
 		.default(""),
-	agentCommand: z
-		.union([AgentCommandSchema, z.literal("").transform(() => DEFAULT_AGENT_START_COMMAND)])
-		.default(DEFAULT_AGENT_START_COMMAND),
+	harness: HarnessSchema.optional(),
+	adeCommands: AdeCommandsSchema.nullable().optional(),
+	agentCommand: z.union([AgentCommandSchema, z.literal("").transform(() => DEFAULT_AGENT_START_COMMAND)]).optional(),
 	agentResumeCommand: z
 		.union([AgentCommandSchema, z.literal("").transform(() => DEFAULT_AGENT_RESUME_COMMAND)])
-		.default(DEFAULT_AGENT_RESUME_COMMAND),
-	harnessCommands: HarnessCommandsSchema.nullable().default(null),
+		.optional(),
+	harnessCommands: AdeCommandsSchema.nullable().optional(),
 });
+export const ProjectManagerConfigSchema = ProjectManagerConfigInputSchema.transform(
+	({ agentCommand, agentResumeCommand, harnessCommands, harness, adeCommands, ...config }) => ({
+		...config,
+		adeCommands:
+			(harnessCommands?.start === SUPERSET_ADE_COMMANDS.start.replace("{{createTarget}}", "{{target}}")
+				? { ...harnessCommands, start: SUPERSET_ADE_COMMANDS.start }
+				: harnessCommands) ??
+			adeCommands ??
+			(config.ade === "tmux" || config.ade === "terminal" ? ADE_PRESETS[config.ade] : null),
+		harness:
+			agentCommand !== undefined || agentResumeCommand !== undefined
+				? harnessFromCommands(
+						agentCommand ?? DEFAULT_AGENT_START_COMMAND,
+						agentResumeCommand ?? DEFAULT_AGENT_RESUME_COMMAND,
+					)
+				: (harness ?? HarnessSchema.parse({ preset: "claude" })),
+	}),
+);
 export type ProjectManagerConfig = z.infer<typeof ProjectManagerConfigSchema>;
-export const DEFAULT_PROJECT_MANAGER_CONFIG: ProjectManagerConfig = {
+export const DEFAULT_PROJECT_MANAGER_CONFIG = ProjectManagerConfigSchema.parse({
 	personaId: null,
 	concurrency: 3,
 	directory: "",
-	enabled: true,
-	supersetHostId: null,
-	ade: "superset",
-	adeCommand: "",
-	adeResumeCommand: "",
-	agentCommand: DEFAULT_AGENT_START_COMMAND,
-	agentResumeCommand: DEFAULT_AGENT_RESUME_COMMAND,
-	harnessCommands: null,
-};
+});
 
 export const ProjectSchema = ProjectSummarySchema.extend({
 	managerConfig: ProjectManagerConfigSchema.optional(),

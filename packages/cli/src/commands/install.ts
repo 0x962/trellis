@@ -56,7 +56,7 @@ const plistText = (
 	<key>EnvironmentVariables</key>
 	<dict>
 		<key>PATH</key>
-		<string>${xml(dirname(bun))}:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+		<string>${xml(dirname(bun))}:${xml(paths.userHome)}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
 		<key>HOME</key>
 		<string>${xml(paths.userHome)}</string>
 		<key>TRELLIS_HOME</key>

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { chmodSync, copyFileSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { ProjectManagerConfigSchema } from "@trellis/api";
 import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
 
@@ -45,8 +46,10 @@ test("project manager settings persist and enter the manager launch context", as
 	};
 	const saved = await configure(config);
 	expect(saved.status).toBe(200);
-	expect(saved.body.managerConfig).toEqual(config);
-	expect((await t.client.projects.get({ project: "RUN" })).managerConfig).toEqual(config);
+	expect(saved.body.managerConfig).toEqual(ProjectManagerConfigSchema.parse(config));
+	expect((await t.client.projects.get({ project: "RUN" })).managerConfig).toEqual(
+		ProjectManagerConfigSchema.parse(config),
+	);
 	await t.client.agentRuns.start({ personaId: manager, project: "RUN" });
 	const command = readFileSync(join(dir, "calls.jsonl"), "utf8");
 	expect(command).toContain("Concurrency limit: 2");

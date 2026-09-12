@@ -132,12 +132,17 @@ section then asks the person whether to start a new session. A start with
 A Superset launch keeps the workspace if it exists on the configured host.
 If that workspace is missing, the launch creates one.
 
-`managerConfig.harnessCommands` configures every session operation. The Superset
-and tmux presets fill its command templates. Each template stays editable.
+`managerConfig.adeCommands` configures every session operation. The Superset,
+Terminal, and tmux presets fill its command templates. Each template stays editable.
+`managerConfig.harness` holds the agent preset and its start and resume commands.
+The ADE and Harness pages change their own presets independently.
+The API accepts legacy agent command fields and writes the separate configuration on the next save.
 A command-backed run has runtime `commands`. It keeps its templates and launch
 values in `agents/<id>/harness.json`. Later project edits affect the next start.
 A changed start template or agent executable command starts a fresh session.
 The [command reference](agent-harnesses.md) defines each result and variable.
+A remote Superset launch rejects a localhost Trellis URL before it creates a session.
+The launch uses the server bind address from `config.agentsUrl`.
 
 A run copies the persona name, the kind, and the instruction at launch, so a
 later persona edit changes only the runs after it. The row also keeps the project
@@ -171,15 +176,15 @@ ADE opens that terminal itself with `superset terminals create`. An unknown
 variable fails the save, and so does a standalone
 hyphen beside `{{superset}}`. The expander wraps each value in single quotes, so
 one value is one shell argument. `{{target}}` is the Superset host flag of the
-project: empty for a null `supersetHostId`, and `--host '<id>'` otherwise.
+project: `--local` for a null `supersetHostId`, and `--host '<id>'` otherwise.
 
 `{{prompt}}` is the instruction of the run plus an assignment block: the agent
 name, the actor `agent:<run id>`, the trellis URL, the persona, the ticket or the
 project, the concurrency limit, the project directory, and the repositories.
 `{{agentCommand}}` wraps the agent command of the project: `exec env
 TRELLIS_URL=... TRELLIS_ACTOR=... <agent command>`, with a `cd` into the
-project directory for a manager. `managerConfig.agentCommand` is the agent
-command of a new session and `managerConfig.agentResumeCommand` that of a
+project directory for a manager. `managerConfig.harness.startCommand` is the agent
+command of a new session and `managerConfig.harness.resumeCommand` that of a
 resume. Each takes `{{name}}`, `{{prompt}}`, `{{sessionId}}`, `{{resumeText}}`,
 `{{actor}}`, `{{trellisUrl}}`, `{{directory}}`, `{{project}}`, `{{ticket}}`,
 and `{{instruction}}`, one shell argument per value. An empty one runs the
@@ -319,7 +324,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `enabled`, `supersetHostId`, `ade`, `adeCommand`, `adeResumeCommand`, `agentCommand`, `agentResumeCommand`, `harnessCommands`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
+| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `enabled`, `supersetHostId`, `ade`, `adeCommand`, `adeResumeCommand`, `harness` (`preset`, `startCommand`, `resumeCommand`), `adeCommands`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). The effective repos of a project are its own plus those of its ancestors. |
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, wip_limit (CHECK > 0), is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
 | tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |

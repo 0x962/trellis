@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const HARNESS_VARIABLES = [
+export const ADE_VARIABLES = [
 	"id",
 	"sessionId",
 	"resumeText",
@@ -21,10 +21,11 @@ export const HARNESS_VARIABLES = [
 	"trellisUrl",
 	"superset",
 	"target",
+	"createTarget",
 	"projectId",
 	"bun",
 ] as const;
-export const HarnessCommandSchema = z
+export const AdeCommandSchema = z
 	.string()
 	.trim()
 	.min(1, "Enter the command.")
@@ -32,27 +33,27 @@ export const HarnessCommandSchema = z
 	.refine(
 		(value) =>
 			[...value.matchAll(/\{\{([^{}]+)\}\}/g)].every((match) =>
-				(HARNESS_VARIABLES as readonly string[]).includes(match[1]!),
+				(ADE_VARIABLES as readonly string[]).includes(match[1]!),
 			),
 		"The command has an unknown template variable.",
 	);
-export const HarnessCommandsSchema = z.strictObject({
-	start: HarnessCommandSchema,
-	resume: HarnessCommandSchema,
-	healthcheck: HarnessCommandSchema,
-	send: HarnessCommandSchema,
-	output: HarnessCommandSchema,
-	stop: HarnessCommandSchema,
-	open: HarnessCommandSchema,
-	recover: HarnessCommandSchema,
-	projects: HarnessCommandSchema,
+export const AdeCommandsSchema = z.strictObject({
+	start: AdeCommandSchema,
+	resume: AdeCommandSchema,
+	healthcheck: AdeCommandSchema,
+	send: AdeCommandSchema,
+	output: AdeCommandSchema,
+	stop: AdeCommandSchema,
+	open: AdeCommandSchema,
+	recover: AdeCommandSchema,
+	projects: AdeCommandSchema,
 });
-export type HarnessCommands = z.infer<typeof HarnessCommandsSchema>;
-export const HarnessPlaceSchema = z.object({ workspaceId: z.string().min(1), terminalId: z.string().min(1) });
-export const HarnessHealthSchema = z.object({ state: z.enum(["running", "exited"]) });
-export const HarnessProjectsSchema = z.array(z.object({ id: z.string(), repo: z.string().nullable().optional() }));
+export type AdeCommands = z.infer<typeof AdeCommandsSchema>;
+export const AdePlaceSchema = z.object({ workspaceId: z.string().min(1), terminalId: z.string().min(1) });
+export const AdeHealthSchema = z.object({ state: z.enum(["running", "exited"]) });
+export const AdeProjectsSchema = z.array(z.object({ id: z.string(), repo: z.string().nullable().optional() }));
 
-export const HARNESS_FIELDS: { key: keyof HarnessCommands; label: string; hint: string }[] = [
+export const ADE_FIELDS: { key: keyof AdeCommands; label: string; hint: string }[] = [
 	{ key: "start", label: "Start session", hint: "Start the agent. Print JSON with workspaceId and terminalId." },
 	{ key: "resume", label: "Resume session", hint: "Resume the manager. Print JSON with workspaceId and terminalId." },
 	{

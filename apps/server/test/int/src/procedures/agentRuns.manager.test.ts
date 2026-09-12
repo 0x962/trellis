@@ -17,7 +17,7 @@ beforeEach(async () => {
 	const bin = join(dir, "superset.ts");
 	copyFileSync(new URL("../../../../../../test/agent-runs/superset.ts", import.meta.url), bin);
 	chmodSync(bin, 0o755);
-	t = await createTestApp({ supersetBin: bin });
+	t = await createTestApp({ supersetBin: bin, host: "192.168.1.20" });
 	await t.seedProject("RUN");
 	await t.client.projects.setRepos({ project: "RUN", repos: [{ owner: "example", repo: "code" }] });
 	manager = (

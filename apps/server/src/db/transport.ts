@@ -93,7 +93,7 @@ export const createInlineTransport = ({
 	const ioCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => ({
 		core: coreCtx(ctx, emit, tasks),
 		supersetBin: config.supersetBin,
-		localUrl: `http://127.0.0.1:${config.port}`,
+		localUrl: config.agentsUrl,
 		actor: ctx.actor ?? SYSTEM_ACTOR,
 		session: ctx.session,
 		home: config.home,
