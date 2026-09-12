@@ -225,7 +225,7 @@ function ProjectError({ error }: ErrorComponentProps) {
 		return (
 			<>
 				<Topbar>
-					<h1 className="text-lg font-semibold text-fg">{ref}</h1>
+					<h1 className="sr-only">{ref}</h1>
 				</Topbar>
 				<NotFoundState ref={ref} />
 			</>

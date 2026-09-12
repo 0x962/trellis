@@ -10,8 +10,8 @@ import {
 	ProjectManagerConfigSchema,
 	unknownLaunchVariables,
 } from "@trellis/api";
-import { Button, Input, Select, Switch, toast } from "@trellis/ui";
-import { Bot, Settings2, SquareTerminal } from "lucide-react";
+import { Button, IconButton, Input, Select, Switch, toast } from "@trellis/ui";
+import { Bot, Plus, Settings2, SquareTerminal } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
@@ -139,18 +139,19 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 							disabled={readOnly}
 							onCheckedChange={(enabled) => commit({ ...draft, enabled })}
 						/>
-						<Button
+						<IconButton
+							label="Start manager"
+							icon={<Plus />}
+							size="lg"
+							round
 							variant="primary"
 							disabled={readOnly || active || dirty || !draft.enabled || !persona || runs.isPending || runs.isError}
-							processing={start.isPending || save.isPending}
 							onClick={() => start.mutate()}
-						>
-							Start manager
-						</Button>
+						/>
 					</>
 				}
 			>
-				<h1 className="text-lg font-semibold text-fg">{project.name} › Manager</h1>
+				<span className="sr-only">{project.name} › Manager</span>
 			</Topbar>
 			<div className="project-settings-layout">
 				<nav aria-label="Manager settings" className="project-settings-nav">

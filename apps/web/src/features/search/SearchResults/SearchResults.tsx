@@ -1,7 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { EmptyState, PriorityIcon, StatusIcon, useMediaQuery } from "@trellis/ui";
-import { Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
 import { compactRelativeTime, formatCount } from "../../../lib/format";
@@ -53,7 +52,6 @@ export function SearchResults({ q, filters = {}, children }: SearchResultsProps)
 			<PeekListProvider rows={peekRows}>
 				<EmptyState
 					variant="page"
-					icon={<Search />}
 					title={`No results for '${q}'`}
 					description="No ticket title, no ticket description, and no project name holds this text. Check the spelling, or search for one word."
 				/>

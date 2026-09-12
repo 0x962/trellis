@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { render, screen } from "@testing-library/react";
-import { Inbox } from "lucide-react";
 import { expectClasses } from "../../../test/classes";
 import { Button } from "../Button/Button";
 import { EmptyState } from "./EmptyState";
@@ -9,7 +8,6 @@ describe("EmptyState", () => {
 	test("empty state renders icon, title, description, and action", () => {
 		const { container } = render(
 			<EmptyState
-				icon={<Inbox />}
 				title="Nothing needs you"
 				description="Every review is done. Every check passed."
 				action={<Button>New ticket</Button>}
@@ -29,7 +27,6 @@ describe("EmptyState", () => {
 		const { container } = render(
 			<EmptyState
 				variant="page"
-				icon={<Inbox />}
 				title="Page not found"
 				description="No page has this URL."
 				action={<Button size="md">Needs you</Button>}

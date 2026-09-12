@@ -9,7 +9,10 @@ export type IconButtonProps = Omit<ComponentProps<typeof BaseButton>, "children"
 	// The accessible name. The icon has no text, so the label is the name.
 	label: string;
 	icon: ReactElement;
-	size?: "sm" | "md";
+	size?: "sm" | "md" | "lg";
+	// True draws the button as a circle. Create and toggle controls are
+	// round, so a person tells them from the square controls around them.
+	round?: boolean;
 	variant?: "primary" | "default" | "quiet" | "danger";
 };
 
@@ -17,16 +20,29 @@ export type IconButtonProps = Omit<ComponentProps<typeof BaseButton>, "children"
 // size sm. Size sm sits inside rows and headers; next to a Button in a bar
 // it is md. The hit-area layer brings both sizes to the 28 px minimum on a
 // fine pointer, and the size token draws both at 44 px on a coarse one.
-export function IconButton({ label, icon, size = "md", variant = "quiet", className, ...props }: IconButtonProps) {
+export function IconButton({
+	label,
+	icon,
+	size = "md",
+	round = false,
+	variant = "quiet",
+	className,
+	...props
+}: IconButtonProps) {
 	return (
 		<BaseButton
 			aria-label={label}
 			className={cx(
-				"inline-flex shrink-0 items-center justify-center rounded-md border select-none transition duration-hover ease-out",
+				"inline-flex shrink-0 items-center justify-center border select-none transition duration-hover ease-out",
+				round ? "rounded-round" : "rounded-md",
 				"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 				buttonVariants[variant],
 				disabledLook(variant),
-				size === "md" ? `size-7 ${hitArea.box28Bordered}` : `size-6 ${hitArea.box24Bordered}`,
+				size === "lg"
+					? "size-8"
+					: size === "md"
+						? `size-7 ${hitArea.box28Bordered}`
+						: `size-6 ${hitArea.box24Bordered}`,
 				className,
 			)}
 			{...props}

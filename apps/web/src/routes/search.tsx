@@ -49,10 +49,10 @@ function SearchPage() {
 	return (
 		<>
 			<Topbar>
-				<h1 className="text-lg font-semibold text-fg">Search</h1>
+				<h1 className="sr-only">Search</h1>
 			</Topbar>
 			<div className="flex h-16 shrink-0 items-center border-b border-border px-5">
-				<form onSubmit={submit} className="relative w-full max-w-180">
+				<form onSubmit={submit} className="relative w-full">
 					<label htmlFor={id} className="sr-only">
 						Search
 					</label>
@@ -91,7 +91,6 @@ function SearchPage() {
 					<>
 						<EmptyState
 							variant="page"
-							icon={<Search />}
 							title="Search tickets and projects"
 							description="A ticket ID such as CDE-42 opens the ticket. A word matches ticket titles, descriptions, and project names."
 						/>

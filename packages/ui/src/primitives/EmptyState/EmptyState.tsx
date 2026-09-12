@@ -1,9 +1,7 @@
-import type { ReactElement, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { cx } from "../../utils/cx";
 
 export type EmptyStateProps = {
-	// A lucide icon element, shown at 24 px above the title.
-	icon?: ReactElement;
 	title: string;
 	description?: ReactNode;
 	// A Button, shown under the description. A page-level action is md.
@@ -15,24 +13,20 @@ export type EmptyStateProps = {
 };
 
 // What a list or a page shows when it has nothing to show: the fact, then
-// the action, if one exists.
-export function EmptyState({ icon, title, description, action, variant = "section", className }: EmptyStateProps) {
+// the action, if one exists. It reads as the opening of a document, so it
+// starts at the left edge under a heading and carries no picture.
+export function EmptyState({ title, description, action, variant = "section", className }: EmptyStateProps) {
 	const page = variant === "page";
 	return (
 		<div
 			className={cx(
-				"flex flex-col items-center gap-1.5 px-5 text-center text-fg-muted",
-				page ? "flex-1 justify-center pb-[15vh]" : "py-10",
+				"flex flex-col items-start gap-2 text-fg-muted",
+				page ? "flex-1 px-5 pt-10 max-md:px-4" : "px-1 py-8",
 				className,
 			)}
 		>
-			{icon && (
-				<span aria-hidden="true" className="mb-1 inline-flex size-6 text-fg-faint *:size-full">
-					{icon}
-				</span>
-			)}
-			<h3 className={cx("text-md text-fg", page ? "font-semibold" : "font-medium")}>{title}</h3>
-			{description && <p className={cx("text-sm text-fg-muted", page ? "max-w-sm" : "max-w-xs")}>{description}</p>}
+			<h3 className={cx("text-fg", page ? "text-xl font-semibold" : "text-md font-medium")}>{title}</h3>
+			{description && <p className="max-w-xl text-sm text-fg-muted">{description}</p>}
 			{action && <div className={cx(page ? "mt-3" : "mt-2")}>{action}</div>}
 		</div>
 	);
