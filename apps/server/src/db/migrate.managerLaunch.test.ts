@@ -12,12 +12,15 @@ afterAll(async () => {
 	for (const close of closers) await close();
 });
 
-const journalBeforeFix = () => {
+// A copy of the migration folder whose journal stops below `max`. A run
+// against it applies the migrations before that index only, so a test drives
+// one migration and reads what that migration alone wrote.
+const journalUnder = (max: number) => {
 	const dir = mkdtempSync(join(process.env.TRELLIS_HOME!, "manager-launch-migration-"));
 	cpSync(drizzleDir, dir, { recursive: true });
 	const file = join(dir, "meta/_journal.json");
 	const journal = JSON.parse(readFileSync(file, "utf8"));
-	journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx < 22);
+	journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx < max);
 	writeFileSync(file, JSON.stringify(journal));
 	return dir;
 };
@@ -25,7 +28,7 @@ const journalBeforeFix = () => {
 test("the manager launch migration repairs the bad template and releases its interrupted run", async () => {
 	const db = await openDb(":memory:");
 	closers.push(() => db.$client.close());
-	await migrate(db, journalBeforeFix());
+	await migrate(db, journalUnder(22));
 	const bad =
 		"{{superset}} ws create --local --project {{projectId}} --name {{ticket}} - {{name}} --branch {{branch}} --command {{agentCommand}} --json";
 	await db.execute(
@@ -36,7 +39,9 @@ test("the manager launch migration repairs the bad template and releases its int
 		VALUES ('run-1', 'Cleo Wren', 'Manager', 'manager', 'Manage.', 'TRL', 'interrupted', 'Error: Error: Unknown option: -', NOW(), NOW());
 	`);
 
-	expect(await migrate(db)).toBe(1);
+	// Migration 0022 alone, so this test reads what 0022 wrote. Migration 0023
+	// moves the same row on to the current default, and its own test covers it.
+	expect(await migrate(db, journalUnder(23))).toBe(1);
 	const setting = await db.execute(sql`SELECT value FROM settings WHERE key = 'agentLaunchCommand'`);
 	const run = await db.execute(sql`SELECT state FROM agent_runs WHERE id = 'run-1'`);
 	// The text migration 0022 writes, spelled out. A migration that has run on a
