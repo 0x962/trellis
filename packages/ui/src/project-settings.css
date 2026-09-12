@@ -16,7 +16,7 @@
  * not of this package, so no utility here can read it.
  */
 @utility project-settings-nav-link {
-	@apply flex min-h-9 items-center gap-2.5 px-2 text-sm text-fg-muted hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent pointer-coarse:min-h-11;
+	@apply flex min-h-9 items-center gap-2.5 rounded-md px-2 text-sm text-fg-muted hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent pointer-coarse:min-h-11;
 	&[aria-current="page"] {
 		@apply bg-surface font-medium text-fg;
 	}
@@ -58,10 +58,10 @@
 	@apply flex min-w-0 flex-col gap-5;
 }
 @utility status-group {
-	@apply min-w-0;
+	@apply min-w-0 overflow-hidden rounded-lg border border-border;
 }
 @utility status-group-heading {
-	@apply flex min-h-9 items-center justify-between border border-border bg-surface px-3;
+	@apply flex min-h-9 items-center justify-between border-b border-border bg-surface px-3;
 }
 @utility status-group-title {
 	@apply text-sm font-semibold text-fg-muted;
@@ -70,7 +70,7 @@
 	@apply min-w-0;
 }
 @utility status-row {
-	@apply min-w-0 border-x border-b border-border bg-bg;
+	@apply min-w-0 border-b border-border bg-bg last:border-b-0;
 }
 @utility status-row-summary {
 	@apply grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 pr-2;
@@ -80,7 +80,7 @@
 	@apply enabled:hover:bg-surface focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent;
 }
 @utility status-row-icon {
-	@apply inline-flex size-8 shrink-0 items-center justify-center border border-border bg-elevated [&>svg]:size-4;
+	@apply inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-elevated [&>svg]:size-4;
 }
 @utility status-row-copy {
 	@apply flex min-w-0 flex-1 flex-col gap-0.5;
@@ -98,7 +98,7 @@
 	@apply shrink-0 text-sm text-fg-muted tabular;
 }
 @utility status-row-default {
-	@apply border border-border bg-surface px-1.5 text-xs font-medium text-fg-muted;
+	@apply rounded-sm border border-border bg-surface px-1.5 text-xs font-medium text-fg-muted;
 }
 @utility status-row-editor {
 	@apply flex min-w-0 flex-col gap-4 border-t border-border bg-surface p-4;
@@ -122,7 +122,7 @@
 	@apply border-t border-border px-3 py-2 text-sm text-danger;
 }
 @utility status-create-form {
-	@apply flex flex-col gap-3 border-x border-b border-border bg-surface p-4;
+	@apply flex flex-col gap-3 rounded-lg border border-border bg-surface p-4;
 }
 
 @layer components {

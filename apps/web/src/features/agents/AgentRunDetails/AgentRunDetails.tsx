@@ -9,8 +9,9 @@ export type AgentRunDetailsProps = {
 	// The agent as the caller last read it. The list refetches, so the row
 	// here follows the runner without the caller passing it again.
 	run: AgentRun;
-	// True draws the name and the picture above the state. The sheet puts
-	// the name in its own title bar, so it leaves this off.
+	// True makes the agent's picture and name the heading of the block, with
+	// its state at the far end of that row. The sheet puts the name in its
+	// own title bar, so it leaves this off and takes the plain state row.
 	heading?: boolean;
 };
 
@@ -53,19 +54,30 @@ export function AgentRunDetails({ run: initial, heading = false }: AgentRunDetai
 	}, [active, run.id, client, queryClient, orpc]);
 	return (
 		<div className="flex min-w-0 flex-col gap-6">
-			{heading && (
-				<div className="flex min-w-0 items-center gap-2">
-					<Avatar kind="agent" name={run.name} live={active} />
-					<span className="truncate font-medium text-fg">{run.name}</span>
-				</div>
+			{heading ? (
+				<header className="project-settings-heading">
+					<div className="flex min-w-0 items-center gap-3">
+						<Avatar kind="agent" name={run.name} live={active} />
+						<div className="min-w-0">
+							<h2 className="truncate text-xl font-semibold text-fg">{run.name}</h2>
+							<p className="mt-1 truncate text-sm text-fg-muted">
+								{run.personaName} · {run.ticketIdentifier ?? run.projectPath}
+							</p>
+						</div>
+					</div>
+					<Badge>{run.state}</Badge>
+				</header>
+			) : (
+				<>
+					<div className="flex flex-wrap items-center gap-2">
+						<Badge>{run.state}</Badge>
+						<span className="text-sm text-fg-muted">
+							{run.personaName} · {run.kind}
+						</span>
+					</div>
+					<p className="text-sm text-fg-muted">{run.ticketIdentifier ?? run.projectPath}</p>
+				</>
 			)}
-			<div className="flex flex-wrap items-center gap-2">
-				<Badge>{run.state}</Badge>
-				<span className="text-sm text-fg-muted">
-					{run.personaName} · {run.kind}
-				</span>
-			</div>
-			<p className="text-sm text-fg-muted">{run.ticketIdentifier ?? run.projectPath}</p>
 			{run.error && (
 				<p role="alert" className="break-words text-sm text-danger">
 					{run.error}

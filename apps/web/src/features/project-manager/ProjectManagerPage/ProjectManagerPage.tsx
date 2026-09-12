@@ -11,7 +11,7 @@ import {
 	unknownLaunchVariables,
 } from "@trellis/api";
 import { Button, Input, Select, Switch, toast } from "@trellis/ui";
-import { Bot, GitBranch, Settings2 } from "lucide-react";
+import { Bot, Settings2, SquareTerminal } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
@@ -24,8 +24,8 @@ import { Topbar } from "../../shell/Topbar";
 // `/p/<path>/settings/manager` shows it.
 const sections = [
 	{ id: "", label: "Status", icon: Bot },
-	{ id: "ade", label: "ADE", icon: Settings2 },
-	{ id: "repositories", label: "Repositories", icon: GitBranch },
+	{ id: "ade", label: "ADE", icon: SquareTerminal },
+	{ id: "settings", label: "Settings", icon: Settings2 },
 ];
 
 const ades: { value: Ade; label: string }[] = [
@@ -177,26 +177,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 				</nav>
 				<div className="project-settings-content">
 					<div hidden={section !== ""} className="project-settings-page">
-						<SettingsSection title="Status" hint="What the manager is doing, and what it read last.">
-							<p className="text-sm text-fg-muted">Manager persona</p>
-							<Select
-								label="Manager persona"
-								placeholder="Select a manager persona"
-								value={draft.personaId ?? ""}
-								items={(personas.data ?? [])
-									.filter((item) => item.kind === "manager")
-									.map((item) => ({ value: item.id, label: item.name }))}
-								onValueChange={(value) => commit({ ...draft, personaId: value })}
-								disabled={readOnly || personas.isPending}
-							/>
-							{personas.isError && (
-								<p role="alert" className="text-sm text-danger">
-									Could not load personas.{" "}
-									<Button variant="quiet" onClick={() => void personas.refetch()}>
-										Retry
-									</Button>
-								</p>
-							)}
+						<section aria-label="Status" className="project-settings-section">
 							{runs.isPending && (
 								<p role="status" className="text-sm text-fg-muted">
 									Load manager…
@@ -220,7 +201,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 									running.
 								</p>
 							)}
-						</SettingsSection>
+						</section>
 					</div>
 					<div hidden={section !== "ade"} className="project-settings-page">
 						<fieldset disabled={readOnly} className="min-w-0">
@@ -327,8 +308,29 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 							</SettingsSection>
 						</fieldset>
 					</div>
-					<div hidden={section !== "repositories"} className="project-settings-page">
-						<fieldset disabled={readOnly} className="min-w-0">
+					<div hidden={section !== "settings"} className="project-settings-page">
+						<fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-10">
+							<SettingsSection title="Manager" hint="The persona that Start manager runs.">
+								<p className="text-sm text-fg-muted">Manager persona</p>
+								<Select
+									label="Manager persona"
+									placeholder="Select a manager persona"
+									value={draft.personaId ?? ""}
+									items={(personas.data ?? [])
+										.filter((item) => item.kind === "manager")
+										.map((item) => ({ value: item.id, label: item.name }))}
+									onValueChange={(value) => commit({ ...draft, personaId: value })}
+									disabled={personas.isPending}
+								/>
+								{personas.isError && (
+									<p role="alert" className="text-sm text-danger">
+										Could not load personas.{" "}
+										<Button variant="quiet" onClick={() => void personas.refetch()}>
+											Retry
+										</Button>
+									</p>
+								)}
+							</SettingsSection>
 							<RepoSettings project={project} />
 						</fieldset>
 					</div>
