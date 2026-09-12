@@ -14,7 +14,7 @@ export function NodePalette({ onAdd }: NodePaletteProps) {
 			{flowKindOrder.map((kind) => {
 				const meta = flowKinds[kind];
 				return (
-					<Tooltip key={kind} side="right" content={`${meta.label}: ${meta.description}`}>
+					<Tooltip key={kind} side="right" content={meta.label} description={meta.description} delay={0}>
 						<IconButton
 							label={`Add ${meta.label.toLowerCase()}`}
 							icon={<meta.icon />}

@@ -13,15 +13,18 @@ export function BoxNode({ id, data, selected }: NodeProps<CanvasNode>) {
 	const { fields } = data;
 	const meta = flowKinds[fields.kind];
 	const issue = issues.get(id);
+	const title = fields.kind === "group" && fields.title === "New budget" ? "" : fields.title;
 	const limit =
 		fields.kind === "group"
-			? `${fields.parallel ? "Parallel" : "Connected"}${fields.minutes === null ? "" : ` · ${fields.minutes} min`}`
+			? [fields.parallel ? "Parallel" : "", fields.minutes === null ? "" : `${fields.minutes} min`]
+					.filter(Boolean)
+					.join(" · ")
 			: `${fields.maxRounds} rounds at most`;
 	return (
 		<div
 			title={issue}
 			className={cx(
-				"flex size-full flex-col rounded-lg border border-dashed transition-colors duration-hover",
+				"flow-node-hover-handles flex size-full flex-col rounded-lg border border-dashed transition-colors duration-hover",
 				selected ? "border-accent" : issue !== undefined ? "border-danger" : "border-border",
 			)}
 		>
@@ -30,8 +33,8 @@ export function BoxNode({ id, data, selected }: NodeProps<CanvasNode>) {
 				<span aria-hidden="true" className="inline-flex size-3.5 shrink-0 *:size-full">
 					<meta.icon />
 				</span>
-				<span className="truncate text-fg-muted">{fields.title}</span>
-				<span className="ml-auto shrink-0 tabular-nums">{limit}</span>
+				{title !== "" && <span className="truncate text-fg-muted">{title}</span>}
+				{limit !== "" && <span className="ml-auto shrink-0 tabular-nums">{limit}</span>}
 			</header>
 			{!unconnected.has(id) &&
 				sides.map((side) => <Handle key={side} type="source" position={side} id={`out-${side}`} />)}

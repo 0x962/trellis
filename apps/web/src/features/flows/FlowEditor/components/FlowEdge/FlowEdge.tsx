@@ -80,7 +80,8 @@ const follow = (id: string, map: Map<string, string>) => {
 // nodes, so both internal nodes exist here.
 export function FlowEdge({ id, source, target, data, label }: EdgeProps<CanvasEdge>) {
 	const { entryOf, exitOf } = useFlowEditor();
-	const from = rectOf(useInternalNode<CanvasNode>(follow(source, exitOf))!);
+	const fromNode = useInternalNode<CanvasNode>(follow(source, exitOf))!;
+	const from = rectOf(fromNode);
 	const to = rectOf(useInternalNode<CanvasNode>(follow(target, entryOf))!);
 	const fromSide = facingSide(from, to);
 	const toSide = facingSide(to, from);
@@ -99,6 +100,9 @@ export function FlowEdge({ id, source, target, data, label }: EdgeProps<CanvasEd
 	return (
 		<>
 			<BaseEdge id={id} path={path} />
+			{(fromNode.data.fields.kind === "gate" || fromNode.data.fields.kind === "group") && (
+				<circle cx={start.x} cy={start.y} className="flow-edge-anchor" data-branch={data!.branch} />
+			)}
 			<path d={arrowPath(tip, toSide)} className="flow-edge-arrow" />
 			{label !== undefined && (
 				<EdgeLabelRenderer>
