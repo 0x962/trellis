@@ -8,7 +8,7 @@
 	@apply sr-only;
 }
 @utility project-settings-nav-list {
-	@apply grid grid-cols-2 gap-1 lg:flex lg:flex-col;
+	@apply grid grid-cols-2 gap-0.5 lg:flex lg:flex-col;
 }
 /*
  * The nav sits on the page ground, so a hover takes the surface one step
@@ -16,7 +16,7 @@
  * not of this package, so no utility here can read it.
  */
 @utility project-settings-nav-link {
-	@apply flex min-h-9 items-center gap-2.5 rounded-md px-2 text-sm text-fg-muted hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent pointer-coarse:min-h-11;
+	@apply flex h-7 items-center gap-2.5 rounded-md px-2 text-sm text-fg-muted hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent pointer-coarse:h-11;
 	&[aria-current="page"] {
 		@apply bg-surface font-medium text-fg;
 	}

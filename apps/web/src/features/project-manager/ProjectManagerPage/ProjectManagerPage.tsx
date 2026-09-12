@@ -18,6 +18,7 @@ import { projectSlashPath } from "../../../lib/projectPath";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { RepoSettings } from "../../project-settings/RepoSettings";
 import { SettingsSection } from "../../project-settings/SettingsSection";
+import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 
 // Status opens the page, so it takes the empty hash and the bare URL
@@ -155,7 +156,14 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 					</>
 				}
 			>
-				<span className="sr-only">{project.name} › Manager</span>
+				<PageTitle
+					parent={
+						<Link to="/p/$" params={{ _splat: projectSlashPath(project.path) }} search={{}}>
+							{project.name}
+						</Link>
+					}
+					title="Manager"
+				/>
 			</Topbar>
 			<div className="project-settings-layout">
 				<nav aria-label="Manager settings" className="project-settings-nav">

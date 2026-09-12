@@ -6,6 +6,7 @@ import { GhBanner } from "../features/settings/GhBanner";
 import { PairPhone } from "../features/settings/PairPhone";
 import { StalledThresholdField } from "../features/settings/StalledThresholdField";
 import { ThemeField } from "../features/settings/ThemeField";
+import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
 
 // Who you are, how the app looks, when a ticket counts as stalled, whether gh
@@ -68,7 +69,7 @@ function SettingsPage() {
 	return (
 		<>
 			<Topbar>
-				<h1 className="sr-only">Settings</h1>
+				<PageTitle title="Settings" />
 			</Topbar>
 			<div className="project-settings-layout">
 				<nav aria-label="Settings" className="project-settings-nav">

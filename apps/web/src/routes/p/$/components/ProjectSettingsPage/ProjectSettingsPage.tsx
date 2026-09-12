@@ -1,6 +1,9 @@
+import { Link } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
 import { ProjectSettings } from "../../../../../features/project-settings";
+import { PageTitle } from "../../../../../features/shell/PageTitle";
 import { Topbar } from "../../../../../features/shell/Topbar";
+import { projectSlashPath } from "../../../../../lib/projectPath";
 import { ArchivedBanner } from "../ArchivedBanner";
 
 export type ProjectSettingsPageProps = {
@@ -10,28 +13,17 @@ export type ProjectSettingsPageProps = {
 // The screen of `/p/<project path>/settings`: the topbar and the editable
 // project settings. The title names the project by its names, root first.
 export function ProjectSettingsPage({ project }: ProjectSettingsPageProps) {
-	// Each crumb keys on its project id, so two projects with one name stay two crumbs.
-	const crumbs = [
-		...project.ancestors.map((ancestor) => ({ id: ancestor.id, name: ancestor.name })),
-		{ id: project.id, name: project.name },
-		{ id: "settings", name: "Settings" },
-	];
 	return (
 		<>
 			<Topbar>
-				<h1 className="sr-only">
-					{crumbs.map(({ id, name }, index) => (
-						<span key={id} className="flex min-w-0 items-center gap-1.5">
-							{index > 0 && (
-								<span aria-hidden="true" className="font-normal text-fg-faint">
-									›
-								</span>
-							)}
-							<span className="sr-only">{index > 0 ? " › " : ""}</span>
-							<span className="truncate">{name}</span>
-						</span>
-					))}
-				</h1>
+				<PageTitle
+					parent={
+						<Link to="/p/$" params={{ _splat: projectSlashPath(project.path) }} search={{}}>
+							{project.name}
+						</Link>
+					}
+					title="Settings"
+				/>
 			</Topbar>
 			{project.archivedAt !== null && <ArchivedBanner project={project} />}
 			<ProjectSettings project={project} />

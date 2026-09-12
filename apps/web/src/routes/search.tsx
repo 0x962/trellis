@@ -1,10 +1,10 @@
-import { MagnifyingGlass } from "@phosphor-icons/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Chip, EmptyState, Kbd } from "@trellis/ui";
 import { type FormEvent, useId, useState } from "react";
 import { parseSearch, stripDefaults, type View } from "../features/filters/grammar";
 import { useKeyboardFocusRing } from "../features/search/hooks/useKeyboardFocusRing";
 import { SearchResults } from "../features/search/SearchResults";
+import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
 import { TicketPeek } from "../features/ticket/TicketPeek";
 
@@ -22,11 +22,12 @@ export const Route = createFileRoute("/search")({
 	component: SearchPage,
 });
 
-// The field is the page's main control: 40 px tall, up to 720 px wide, in
-// a 64 px band. The accent border and ring show only for a keyboard focus,
-// so the autofocus on arrival draws no ring.
+// The field is the page's main control, 40 px tall in a 64 px band. It has
+// no box, so its text starts on the same edge as the page title under it.
+// The ring shows only for a keyboard focus, so the autofocus on arrival
+// draws no ring.
 const fieldClass =
-	"h-10 w-full rounded-md border border-border bg-surface pr-10 pl-9 text-md text-fg outline-none transition-colors duration-hover ease-out placeholder:text-fg-faint hover:border-border-strong data-ring:border-accent data-ring:ring-3 data-ring:ring-accent-soft [&::-webkit-search-cancel-button]:hidden";
+	"h-10 w-full rounded-md bg-transparent pr-10 text-md text-fg outline-none placeholder:text-fg-faint data-ring:ring-3 data-ring:ring-accent-soft [&::-webkit-search-cancel-button]:hidden";
 
 function SearchPage() {
 	const search = Route.useSearch();
@@ -49,17 +50,13 @@ function SearchPage() {
 	return (
 		<>
 			<Topbar>
-				<h1 className="sr-only">Search</h1>
+				<PageTitle title="Search" />
 			</Topbar>
-			<div className="flex h-16 shrink-0 items-center border-b border-border px-5">
+			<div className="flex h-16 shrink-0 items-center px-5">
 				<form onSubmit={submit} className="relative w-full">
 					<label htmlFor={id} className="sr-only">
 						Search
 					</label>
-					<MagnifyingGlass
-						aria-hidden="true"
-						className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-faint"
-					/>
 					<input
 						id={id}
 						type="search"
@@ -91,6 +88,7 @@ function SearchPage() {
 					<>
 						<EmptyState
 							variant="page"
+							image="/search-poster.jpg"
 							title="Search tickets and projects"
 							description="A ticket ID such as CDE-42 opens the ticket. A word matches ticket titles, descriptions, and project names."
 						/>

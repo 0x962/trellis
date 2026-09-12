@@ -4,6 +4,7 @@ import type { FlowDoc, Persona } from "@trellis/api";
 import { Button, cx } from "@trellis/ui";
 import { useEdgesState, useNodesState, useReactFlow } from "@xyflow/react";
 import { useMemo, useState } from "react";
+import { PageTitle } from "../../../../shell/PageTitle";
 import { Topbar } from "../../../../shell/Topbar";
 import { FlowEditorContext } from "../../editorContext";
 import {
@@ -77,13 +78,7 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 					</>
 				}
 			>
-				<Link to="/ai/flows" className="text-lg text-fg-muted transition-colors duration-hover hover:text-fg">
-					Flows
-				</Link>
-				<span aria-hidden="true" className="text-fg-faint">
-					/
-				</span>
-				<h1 className="truncate text-lg font-semibold text-fg">{flow.name}</h1>
+				<PageTitle parent={<Link to="/ai/flows">Flows</Link>} title={flow.name} />
 			</Topbar>
 			<div className="relative flex min-h-0 flex-1">
 				<FlowCanvas

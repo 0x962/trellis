@@ -1,11 +1,10 @@
-import { Archive, BoxArrowUp, Copy, DotsThree, FolderPlus, Gear, Plus, Trash } from "@phosphor-icons/react";
+import { BoxArrowUp, DotsThree, FolderPlus, Gear, Plus, Trash } from "@phosphor-icons/react";
 import { useNavigate } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
-import { IconButton, Menu, type MenuItem, toast } from "@trellis/ui";
+import { IconButton, Menu, type MenuItem } from "@trellis/ui";
 import { useState } from "react";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { composerActions } from "../../composer";
-import { toCli } from "../../filters/cli";
 import { DeleteProjectDialog, useProjectActions } from "../../project-actions";
 import { NewSubprojectDialog } from "../NewSubprojectDialog";
 
@@ -14,20 +13,16 @@ export type ProjectRowActionsProps = {
 };
 
 // The row menu of a project in the sidebar: a 24 px button that fits the
-// row's trailing slot. An archived project takes no
-// new sub-project and no new ticket, so its menu offers only unarchive,
-// settings, and delete.
+// row's trailing slot. An open project offers a new sub-project and a new
+// ticket; its settings, archive, and delete live on its settings page. An
+// archived project takes no new sub-project and no new ticket, so its menu
+// offers unarchive, settings, and delete.
 export function ProjectRowActions({ project }: ProjectRowActionsProps) {
 	const navigate = useNavigate();
 	const { setArchived } = useProjectActions();
 	const [createOpen, setCreateOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const archived = project.archivedAt !== null;
-
-	const copyFilter = async () => {
-		await navigator.clipboard.writeText(toCli({ project: project.path }));
-		toast("Copied the CLI filter");
-	};
 
 	const settings: MenuItem = {
 		label: "Settings",
@@ -46,10 +41,6 @@ export function ProjectRowActions({ project }: ProjectRowActionsProps) {
 		: [
 				{ label: "New sub-project", icon: <FolderPlus />, onSelect: () => setCreateOpen(true) },
 				{ label: "New ticket", icon: <Plus />, onSelect: () => composerActions.open({ project: project.path }) },
-				settings,
-				{ label: "Copy CLI filter", icon: <Copy />, onSelect: () => void copyFilter() },
-				{ label: "Archive", icon: <Archive />, onSelect: () => void setArchived(project, true) },
-				remove,
 			];
 
 	return (

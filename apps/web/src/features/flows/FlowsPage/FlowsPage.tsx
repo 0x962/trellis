@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Button, EmptyState, EntityCard, IconButton, Skeleton } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { NewFlowDialog } from "./components/NewFlowDialog";
 
@@ -28,7 +29,7 @@ export function FlowsPage() {
 					/>
 				}
 			>
-				<h1 className="sr-only">Flows</h1>
+				<PageTitle title="Flows" />
 			</Topbar>
 			<div className="min-h-0 flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
 				<div className="flex max-w-7xl flex-col gap-6">

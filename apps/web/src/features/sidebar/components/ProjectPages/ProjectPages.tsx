@@ -1,6 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { cx } from "@trellis/ui";
+import { useApp } from "../../../../lib/appContext";
 import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectPath";
 
 // A page reads as its name alone, and its padding puts that name one step
@@ -16,9 +18,15 @@ export function ProjectPages({
 	depth: number;
 	pathname: string;
 }) {
+	const { orpc } = useApp();
 	const current = projectRefOfPathname(pathname) === project.path;
 	const manager = pathname.endsWith("/settings/manager");
 	const settings = pathname.endsWith("/settings");
+	// The Manager link glimmers while the project's manager runs, so a person
+	// sees at a glance which projects have one at work.
+	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: {} })).data;
+	const managing =
+		runs?.some((run) => run.kind === "manager" && run.state === "running" && run.projectId === project.id) ?? false;
 	return (
 		<li>
 			<nav aria-label={`${project.name} pages`}>
@@ -40,7 +48,7 @@ export function ProjectPages({
 									active && "sidebar-selected font-medium",
 								)}
 							>
-								<span className="sidebar-label">{label}</span>
+								<span className={cx("sidebar-label", label === "Manager" && managing && "text-glimmer")}>{label}</span>
 							</Link>
 						</li>
 					))}
