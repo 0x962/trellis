@@ -73,7 +73,9 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 	}
 	const tracksSuperset = template.includes("{{superset}}");
 	const runtime = tracksSuperset ? "superset" : "tmux";
+	let attaching = tracksSuperset && run.workspaceId !== null && run.runtime === "superset";
 	const project = await attempt(async () => {
+		if (attaching && input.newSession) attaching = await runner.hasWorkspace(run.workspaceId!);
 		if (run.kind === "manager" && config.directory && !(await stat(config.directory)).isDirectory())
 			throw new Error(`Not a directory: ${config.directory}`);
 		if (!template.includes("{{projectId}}")) return "";
@@ -90,12 +92,7 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 		await recordError(ctx, run.id, project.error, "failed");
 		return { id: run.id };
 	}
-	// A manager that ran before keeps its Superset workspace, because the
-	// workspace branch carries the run id and Superset holds one workspace
-	// per branch. The start then opens one more terminal in that workspace,
-	// and that terminal runs the agent command alone. Every other start runs
-	// the whole launch template, which makes the workspace first.
-	const attaching = tracksSuperset && run.workspaceId !== null && run.runtime === "superset";
+
 	// The agent command of the project is the program that is one agent.
 	// trellis names the session and hands it over; the command decides what
 	// its agent does with it. An empty command runs Claude Code.

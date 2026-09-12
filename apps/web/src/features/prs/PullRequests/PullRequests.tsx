@@ -1,7 +1,7 @@
 import { Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
-import { IconButton, SectionHeader, Skeleton } from "@trellis/ui";
+import { Button, SectionHeader, Skeleton } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { GhBanner } from "./components/GhBanner";
@@ -37,7 +37,11 @@ export function PullRequests({ ticket, initialPrs }: PullRequestsProps) {
 				<SectionHeader
 					title="PRs"
 					count={prs !== undefined && prs.length > 0 ? prs.length : undefined}
-					actions={<IconButton label="Link PR" size="xs" icon={<Plus />} onClick={() => setLinking(true)} />}
+					actions={
+						<Button variant="quiet" size="sm" icon={<Plus />} onClick={() => setLinking(true)}>
+							Add
+						</Button>
+					}
 				/>
 			</div>
 			<LinkPrDialog ticket={ticket} open={linking} onOpenChange={setLinking} />

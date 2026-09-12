@@ -62,6 +62,7 @@ export function ActivityLine({ item, reviewer = humanReviewer }: ActivityLinePro
 			{actor.kind !== "system" && (
 				<ActorChip
 					compact
+					className="gap-2.5"
 					name={actor.name}
 					kind={actor.kind}
 					live={isLiveActor({ kind: actor.kind, at: item.createdAt })}

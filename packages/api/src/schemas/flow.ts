@@ -11,20 +11,21 @@ import { CountSchema, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primi
 // - `gate` runs one agent that answers YES or NO. Its `yes` edges run on YES,
 //   and its `no` edges run on NO.
 // - `human` waits until a person approves or rejects its input.
-// - `budget` is a group with a time limit in `minutes`. When the time runs
-//   out, every unfinished node inside it fails.
+// - `group` holds steps. `parallel` starts all children together; otherwise
+//   edges set their order. Optional `minutes` limits the whole group.
 // - `loop` is a group that runs its nodes as one round, then asks its exit
 //   question. It runs `maxRounds` rounds at most.
 //
-// A group that holds nodes starts at exactly one of them, its entry node.
+// A connected group starts at one child. A parallel group connects only at
+// its boundary; its children have no edges between them.
 // A node inside a group names the group in `parentId`. Its `x` and `y` are relative to the
 // top left corner of that group. A node outside every group places `x` and
 // `y` on the canvas. An edge connects two
 // nodes of the same group, or two nodes outside every group.
-export const FlowNodeKindSchema = z.enum(["agent", "gate", "human", "budget", "loop"]);
+export const FlowNodeKindSchema = z.enum(["agent", "gate", "human", "group", "loop"]);
 export type FlowNodeKind = z.infer<typeof FlowNodeKindSchema>;
 
-export const flowGroupKinds: ReadonlySet<FlowNodeKind> = new Set(["budget", "loop"]);
+export const flowGroupKinds: ReadonlySet<FlowNodeKind> = new Set(["group", "loop"]);
 
 // The kinds that run an agent, and so take a persona or an instruction.
 export const flowAgentKinds: ReadonlySet<FlowNodeKind> = new Set(["agent", "gate", "loop"]);
@@ -44,19 +45,25 @@ const CoordinateSchema = z.number().min(-1_000_000).max(1_000_000);
 // The drawn size of a group box. A card sizes itself, so a card keeps null.
 const SizeSchema = z.number().min(40).max(100_000);
 
-// `minutes` belongs to a budget and `maxRounds` belongs to a loop. Each kind
-// carries its own number and no other.
-const numbersMatchKind = (node: { kind: FlowNodeKind; minutes: number | null; maxRounds: number | null }) =>
-	(node.kind === "budget") === (node.minutes !== null) && (node.kind === "loop") === (node.maxRounds !== null);
+// Only a group takes optional minutes or parallel mode. A loop requires maxRounds.
+const numbersMatchKind = (node: {
+	kind: FlowNodeKind;
+	parallel: boolean;
+	minutes: number | null;
+	maxRounds: number | null;
+}) =>
+	(node.kind === "group" || (node.minutes === null && !node.parallel)) &&
+	(node.kind === "loop") === (node.maxRounds !== null);
 
 export const FlowNodeInputSchema = z
 	.strictObject({
 		id: UlidSchema,
 		parentId: UlidSchema.nullable(),
 		kind: FlowNodeKindSchema,
-		title: z.string().trim().min(1, "Write a title.").max(120),
+		title: z.string().max(120),
 		personaId: UlidSchema.nullable(),
 		instruction: z.string().max(200_000),
+		parallel: z.boolean().default(false),
 		minutes: z.number().int().min(1).max(FLOW_MAX_MINUTES).nullable(),
 		maxRounds: z.number().int().min(1).max(FLOW_MAX_ROUNDS).nullable(),
 		x: CoordinateSchema,
@@ -64,7 +71,7 @@ export const FlowNodeInputSchema = z
 		width: SizeSchema.nullable(),
 		height: SizeSchema.nullable(),
 	})
-	.refine(numbersMatchKind, "A budget needs minutes, a loop needs maxRounds, and no other kind takes either.");
+	.refine(numbersMatchKind, "Only a group takes minutes or parallel mode. A loop requires maxRounds.");
 export type FlowNodeInput = z.input<typeof FlowNodeInputSchema>;
 
 export const FlowEdgeInputSchema = z.strictObject({
@@ -82,6 +89,7 @@ export const FlowNodeSchema = z.object({
 	title: z.string(),
 	personaId: UlidSchema.nullable(),
 	instruction: z.string(),
+	parallel: z.boolean(),
 	minutes: z.number().int().nullable(),
 	maxRounds: z.number().int().nullable(),
 	x: z.number(),

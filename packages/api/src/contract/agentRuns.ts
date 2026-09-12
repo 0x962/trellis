@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pickErrors } from "../errors.ts";
 import { AgentRunListInputSchema, AgentRunSchema, AgentRunStartInputSchema } from "../schemas/agentRun.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
 import { base } from "./base.ts";
@@ -6,10 +7,12 @@ import { base } from "./base.ts";
 const idInput = z.strictObject({ id: UlidSchema });
 export const agentRuns = {
 	send: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/agent-runs/{id}/send", summary: "Send an agent a follow-up" })
 		.input(idInput.extend({ text: z.string().trim().min(1).max(20000) }))
 		.output(AgentRunSchema),
 	output: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({ method: "GET", path: "/agent-runs/{id}/output", summary: "Read agent output" })
 		.input(idInput)
 		.output(z.object({ text: z.string() })),

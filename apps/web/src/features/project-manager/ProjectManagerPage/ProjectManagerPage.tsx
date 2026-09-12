@@ -203,7 +203,8 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 								<div className="flex flex-col gap-3 rounded-md border border-border p-3">
 									<p className="text-sm">
 										The manager could not resume its session. The error below names the session and where the agent ran.
-										Start a new session? The new session does not hold the chat of the old one. The workspace stays.
+										Start a new session? The new session does not hold the chat of the old one. Trellis reuses the
+										workspace if it exists.
 									</p>
 									<Button
 										variant="primary"

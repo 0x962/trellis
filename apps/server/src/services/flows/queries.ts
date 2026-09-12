@@ -8,7 +8,7 @@ export const flowColumns = sql`id, slug, name, description, briefing, version,
 	${iso(sql`created_at`)} AS "createdAt", ${iso(sql`updated_at`)} AS "updatedAt"`;
 
 const nodeColumns = sql`id, parent_id AS "parentId", kind, title, persona_id AS "personaId", instruction,
-	minutes, max_rounds AS "maxRounds", x, y, width, height`;
+	parallel, minutes, max_rounds AS "maxRounds", x, y, width, height`;
 
 const edgeColumns = sql`id, from_node_id AS "fromNodeId", to_node_id AS "toNodeId", branch`;
 
