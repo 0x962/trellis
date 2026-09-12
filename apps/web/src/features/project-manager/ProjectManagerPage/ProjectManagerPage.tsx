@@ -141,7 +141,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 								label="Agents"
 								icon={<Power weight="bold" />}
 								size="md"
-								round
 								variant="default"
 								pressed={draft.enabled}
 								disabled={readOnly}
@@ -152,7 +151,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 							label="Start manager"
 							icon={<Plus />}
 							size="md"
-							round
 							variant="primary"
 							disabled={readOnly || active || dirty || !draft.enabled || !persona || runs.isPending || runs.isError}
 							onClick={() => start.mutate()}

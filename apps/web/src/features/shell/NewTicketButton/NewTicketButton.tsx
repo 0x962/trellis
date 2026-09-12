@@ -16,7 +16,6 @@ export function NewTicketButton() {
 			label="New ticket"
 			icon={<Plus />}
 			size="md"
-			round
 			variant="primary"
 			onClick={() => composerActions.open(project === null ? {} : { project })}
 		/>

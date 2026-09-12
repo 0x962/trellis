@@ -18,14 +18,7 @@ export function FlowsPage() {
 		<>
 			<Topbar
 				actions={
-					<IconButton
-						label="New flow"
-						icon={<Plus />}
-						size="md"
-						round
-						variant="primary"
-						onClick={() => setCreating(true)}
-					/>
+					<IconButton label="New flow" icon={<Plus />} size="md" variant="primary" onClick={() => setCreating(true)} />
 				}
 			>
 				<h1 className="sr-only">Flows</h1>

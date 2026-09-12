@@ -16,6 +16,7 @@ import { CountSchema, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primi
 // - `loop` is a group that runs its nodes as one round, then asks its exit
 //   question. It runs `maxRounds` rounds at most.
 //
+// A group that holds nodes starts at exactly one of them, its entry node.
 // A node inside a group names the group in `parentId`. Its `x` and `y` are relative to the
 // top left corner of that group. A node outside every group places `x` and
 // `y` on the canvas. An edge connects two

@@ -12,7 +12,7 @@ describe("IconButton", () => {
 		const { rerender } = render(<IconButton label="Refresh" icon={<ArrowsClockwise />} onClick={onClick} />);
 		const button = screen.getByRole("button", { name: "Refresh" });
 		expect(button.getAttribute("aria-label")).toBe("Refresh");
-		expectClasses(button, "size-7 rounded-md");
+		expectClasses(button, "size-7 rounded-round");
 		expectClasses(button, "focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2");
 		expect(button.querySelector("svg")!.getAttribute("aria-hidden")).toBe("true");
 		button.focus();
@@ -61,8 +61,8 @@ describe("IconButton", () => {
 	test("a toggle sets aria-pressed and takes the accent ring while it is on", () => {
 		render(
 			<>
-				<IconButton label="On" icon={<ArrowsClockwise />} variant="default" round pressed />
-				<IconButton label="Off" icon={<ArrowsClockwise />} variant="default" round pressed={false} />
+				<IconButton label="On" icon={<ArrowsClockwise />} variant="default" pressed />
+				<IconButton label="Off" icon={<ArrowsClockwise />} variant="default" pressed={false} />
 				<IconButton label="Plain" icon={<ArrowsClockwise />} />
 			</>,
 		);

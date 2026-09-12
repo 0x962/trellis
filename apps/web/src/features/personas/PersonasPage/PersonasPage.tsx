@@ -21,7 +21,6 @@ export function PersonasPage() {
 						label="New persona"
 						icon={<Plus />}
 						size="md"
-						round
 						variant="primary"
 						onClick={() => setEditor({ kind: "builder" })}
 					/>

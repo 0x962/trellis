@@ -1,12 +1,13 @@
-import { SlidersHorizontal } from "@phosphor-icons/react";
+import { ArrowClockwise, SlidersHorizontal } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { FlowDoc, Persona } from "@trellis/api";
-import { Button, cx } from "@trellis/ui";
+import { IconButton, Tooltip } from "@trellis/ui";
 import { useEdgesState, useNodesState, useReactFlow } from "@xyflow/react";
 import { useMemo, useState } from "react";
 import { Topbar } from "../../../../shell/Topbar";
 import { FlowEditorContext } from "../../editorContext";
 import {
+	boxEnds,
 	type CanvasEdge,
 	type CanvasNode,
 	draftIssues,
@@ -22,11 +23,12 @@ import { NodeInspector } from "../NodeInspector";
 
 type FlowWorkspaceProps = { doc: FlowDoc; personas: Persona[]; onReload: () => void };
 
-const statusText = (status: AutosaveStatus, count: number) =>
+// The bar names a save only when the person has to act on it.
+const problemText = (status: AutosaveStatus, count: number) =>
 	({
-		saved: "Saved",
-		pending: "Unsaved changes",
-		saving: "Saving",
+		saved: "",
+		pending: "",
+		saving: "",
 		invalid: `Not saved: ${count} ${count === 1 ? "issue" : "issues"}`,
 		conflict: "Not saved: the flow changed in another window",
 		error: "Not saved: the save failed",
@@ -49,8 +51,12 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 	const autosave = useFlowAutosave({ flow, graph, valid: issues.count === 0, onSaved: setFlow });
 	const shownEdges = useMemo(() => edgesWithIssues(edges, issues.byRow), [edges, issues]);
 	const editor = useMemo(
-		() => ({ personas: new Map(personas.map((persona) => [persona.id, persona])), issues: issues.byRow }),
-		[personas, issues],
+		() => ({
+			personas: new Map(personas.map((persona) => [persona.id, persona])),
+			issues: issues.byRow,
+			...boxEnds(graph),
+		}),
+		[personas, issues, graph],
 	);
 	const selected = selectedId === null ? undefined : nodes.find((node) => node.id === selectedId);
 	const change = (patch: Partial<StepFields>) =>
@@ -59,21 +65,28 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 				node.id === selectedId ? { ...node, data: { fields: { ...node.data.fields, ...patch } } } : node,
 			),
 		);
-	const quiet = autosave.status === "saved" || autosave.status === "saving" || autosave.status === "pending";
 
 	return (
 		<FlowEditorContext value={editor}>
 			<Topbar
 				actions={
 					<>
-						<span role="status" className={cx("text-xs tabular-nums", quiet ? "text-fg-faint" : "text-danger")}>
-							{statusText(autosave.status, issues.count)}
+						<span role="status" className="text-xs tabular-nums text-danger">
+							{problemText(autosave.status, issues.count)}
 						</span>
-						{autosave.status === "conflict" && <Button onClick={onReload}>Reload</Button>}
-						{autosave.status === "error" && <Button onClick={autosave.retry}>Retry</Button>}
-						<Button variant="quiet" icon={<SlidersHorizontal />} onClick={() => setSettingsOpen(true)}>
-							Settings
-						</Button>
+						{autosave.status === "conflict" && (
+							<Tooltip content="Reload the flow">
+								<IconButton label="Reload the flow" icon={<ArrowClockwise />} onClick={onReload} />
+							</Tooltip>
+						)}
+						{autosave.status === "error" && (
+							<Tooltip content="Retry the save">
+								<IconButton label="Retry the save" icon={<ArrowClockwise />} onClick={autosave.retry} />
+							</Tooltip>
+						)}
+						<Tooltip content="Flow settings">
+							<IconButton label="Flow settings" icon={<SlidersHorizontal />} onClick={() => setSettingsOpen(true)} />
+						</Tooltip>
 					</>
 				}
 			>
