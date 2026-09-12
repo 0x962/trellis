@@ -49,7 +49,7 @@ export const tokens = {
 	// Text on a danger or success fill. Those two keep a saturated colour in
 	// both themes, so the text on them is white in both.
 	onSaturated: "#FFFFFF",
-	font: { sans: "JetBrains Mono", mono: "JetBrains Mono" },
+	font: { sans: "Inter", mono: "JetBrains Mono" },
 	text: { xs: 11, sm: 12, base: 13, md: 14, lg: 16, xl: 20, "2xl": 24 },
 	leading: { xs: 16, sm: 16, base: 20, md: 22, lg: 24, xl: 28, "2xl": 32 },
 	micro: { kbd: 10, initials: 9 },

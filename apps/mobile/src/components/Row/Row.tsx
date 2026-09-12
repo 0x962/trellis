@@ -7,6 +7,7 @@ import { usePalette } from "../../theme/usePalette";
 export type RowProps = {
 	// The ticket identifier, in mono.
 	id?: string;
+	// The ticket title, in mono.
 	title: string;
 	// A status icon or a priority icon before the id.
 	leading?: ReactNode;
@@ -39,13 +40,14 @@ const styles = StyleSheet.create({
 		fontVariant: ["tabular-nums"],
 	},
 	body: { flex: 1, gap: tokens.space.half, justifyContent: "center" },
-	title: { fontSize: tokens.text.md, lineHeight: tokens.leading.md },
+	title: { fontFamily: tokens.font.mono, fontSize: tokens.text.md, lineHeight: tokens.leading.md },
 	meta: { flexDirection: "row", alignItems: "center", gap: tokens.space[2], overflow: "hidden" },
 	trailing: { fontSize: tokens.text.sm, lineHeight: tokens.leading.sm, fontVariant: ["tabular-nums"] },
 });
 
-// One list row: a fixed hit area of 44 px, the title on one line, the id in
-// mono. A fixed height keeps FlashList rows the same size.
+// One list row: a fixed hit area of 44 px, the title on one line. The title
+// and the id both paint in mono. A fixed height keeps FlashList rows the
+// same size.
 export function Row({ id, title, leading, meta, trailing, onPress, height, testID }: RowProps) {
 	const palette = usePalette();
 	return (

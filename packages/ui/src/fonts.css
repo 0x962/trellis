@@ -1,18 +1,43 @@
 /*
- * One typeface carries the whole interface: the prose, the identifiers, the
- * branches, the agent names, and the commands. BerkeleyMono leads both
- * stacks in tokens.css and is licensed per machine, so this repo ships no
- * file for it and declares no face. A machine with the font installed picks
- * it up from the stack. Every other machine falls through to JetBrains Mono
- * from fontsource. Only the latin subset is declared, and only the three
- * weights the components ask for: 400, 500 through font-medium, and 600
- * through font-semibold. The fallback face below is metric-matched to
- * JetBrains Mono, so text set before that font arrives occupies the same
- * lines and nothing shifts when it swaps in.
+ * Two typefaces carry the interface. Inter carries the prose: the labels,
+ * the buttons, the menus, the descriptions, and the comments. The mono stack
+ * carries the text a person also types into a terminal or a commit: the
+ * ticket titles, the identifiers, the branches, the agent names, and the
+ * commands. A component marks that text with the font-mono class.
+ *
+ * BerkeleyMono leads the mono stack in tokens.css and is licensed per
+ * machine, so this repo ships no file for it and declares no face. A machine
+ * with the font installed picks it up from the stack. Every other machine
+ * falls through to JetBrains Mono from fontsource. Only the latin subset of
+ * each font is declared, and only the three mono weights the components ask
+ * for: 400, 500 through font-medium, and 600 through font-semibold. The Inter
+ * face below is the latin entry of @fontsource-variable/inter/wght.css, with
+ * its unicode-range. Each fallback face is metric-matched to its web font, so
+ * text set before that font arrives occupies the same lines and nothing
+ * shifts when it swaps in.
  */
 @import "@fontsource/jetbrains-mono/latin-400.css";
 @import "@fontsource/jetbrains-mono/latin-500.css";
 @import "@fontsource/jetbrains-mono/latin-600.css";
+
+@font-face {
+	font-family: "Inter Variable";
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url("@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2-variations");
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: "Inter Fallback";
+	src: local(Arial);
+	size-adjust: 107.12%;
+	ascent-override: 90.2%;
+	descent-override: 22.48%;
+	line-gap-override: 0%;
+}
 
 /*
  * Chromium matches local() by a font's full name or PostScript name, never by
@@ -28,11 +53,10 @@
 	line-gap-override: 0%;
 }
 
+/* cv11 is the single-storey a; ss01 opens the digits. Both are Inter features. */
 body {
-	font-family:
-		"BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas,
-		monospace;
-	font-feature-settings: normal;
+	font-family: var(--sans);
+	font-feature-settings: "cv11", "ss01";
 	-webkit-font-smoothing: antialiased;
 }
 
@@ -42,9 +66,9 @@ body {
 }
 
 /*
- * A component marks an identifier, a branch, or a command with this utility.
- * It sets the family from --mono, which holds the same stack as --sans, so
- * the marked text renders in the same face as the text around it.
+ * A component marks a ticket title, an identifier, a branch, or a command
+ * with this utility. JetBrains Mono has no cv11 and no ss01, so the marked
+ * text drops the two Inter features the body sets.
  */
 @utility mono {
 	font-family: var(--mono);

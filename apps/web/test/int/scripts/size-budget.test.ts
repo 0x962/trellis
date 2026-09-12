@@ -117,8 +117,8 @@ describe("bun run build", () => {
 		const preloads = [...document.head.querySelectorAll('link[rel="preload"][as="font"]')].map(
 			(link) => link.getAttribute("href") ?? "",
 		);
-		expect(preloads).toHaveLength(3);
-		expect(preloads.some((href) => /inter/.test(href))).toBe(false);
+		expect(preloads).toHaveLength(4);
+		expect(preloads.some((href) => /inter-latin-wght-normal/.test(href))).toBe(true);
 		expect(preloads.some((href) => /jetbrains-mono-latin-400/.test(href))).toBe(true);
 		expect(preloads.some((href) => /jetbrains-mono-latin-500/.test(href))).toBe(true);
 		expect(preloads.some((href) => /jetbrains-mono-latin-600/.test(href))).toBe(true);

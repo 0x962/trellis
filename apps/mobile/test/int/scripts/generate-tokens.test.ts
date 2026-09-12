@@ -62,10 +62,12 @@ describe("generate-tokens", () => {
 	// app/_layout.tsx passes tokens.font.mono to useFonts as the name of the
 	// JetBrains Mono file. React Native draws a family it holds no file for
 	// in the system font, so a name the app cannot load is a silent wrong
-	// face. BerkeleyMono leads the CSS stacks and ships no file.
+	// face. BerkeleyMono leads the CSS mono stack and ships no file. The app
+	// bundles no sans file and sets no fontFamily for prose, so every screen
+	// draws its prose in the system font.
 	test("the font tokens name the family the app bundles", async () => {
 		const { tokens } = await import("../../../src/theme/tokens");
 		expect(tokens.font.mono).toBe("JetBrains Mono");
-		expect(tokens.font.sans).toBe("JetBrains Mono");
+		expect(tokens.font.sans).toBe("Inter");
 	});
 });

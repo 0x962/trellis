@@ -30,13 +30,14 @@ const shadowTokens = ["--shadow-sm", "--shadow-md", "--shadow-lg"];
 
 const fontTokens = ["--sans", "--mono"];
 
-// BerkeleyMono leads both stacks. A machine without it falls back to the
-// bundled JetBrains Mono, and "JetBrains Mono Fallback" is the
-// metric-matched face that holds the layout until the web font loads (see
-// fonts.test.ts).
+// Inter carries the prose and the mono stack carries the ticket titles, the
+// identifiers, the branches, and the commands. BerkeleyMono leads the mono
+// stack. A machine without it falls back to the bundled JetBrains Mono. Each
+// "Fallback" entry is the metric-matched face that holds the layout until
+// the web font loads (see fonts.test.ts).
 const fontStacks: Record<string, string> = {
 	"--sans":
-		'"BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+		'"Inter Variable", "Inter Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
 	"--mono":
 		'"BerkeleyMono", "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
 };

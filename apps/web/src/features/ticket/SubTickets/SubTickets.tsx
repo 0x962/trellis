@@ -90,7 +90,7 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 		>
 			<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />
 			<TicketId id={child.identifier} className="w-16" />
-			<span className="min-w-0 flex-1 truncate">{child.title}</span>
+			<span className="min-w-0 flex-1 truncate font-mono">{child.title}</span>
 			<PriorityIcon priority={child.priority} />
 			<span className="flex w-16 shrink-0 items-center gap-1">
 				{pr !== null && (
