@@ -29,7 +29,16 @@ export const createQueryClient = () =>
 	});
 
 // Ticket details and status options start outside the batch, so slower reads cannot delay these controls.
-const unbatched = new Set(["tickets.get", "statuses.list"]);
+const unbatched = new Set([
+	"tickets.get",
+	"statuses.list",
+	"reviews.refresh",
+	"reviews.status",
+	"reviews.file",
+	"reviews.metadata",
+	"reviews.mine",
+	"reviews.runs",
+]);
 
 // The typed client, the TanStack Query utils over it, and a QueryClient.
 // The batch link folds calls from one tick, except the reads above. The

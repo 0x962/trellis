@@ -12,4 +12,6 @@ export * from "./instructions.ts";
 export * from "./pair.ts";
 export * from "./query-keys.ts";
 export * from "./refs.ts";
+export * from "./reviewImage";
+export * from "./reviewRef/index.ts";
 export * from "./schemas/index.ts";

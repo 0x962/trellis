@@ -131,7 +131,8 @@ describe("system.exportNdjson", () => {
 	test("the export covers every table in the schema", async () => {
 		await seedEveryTable();
 
-		const lines = await collect();
+		const capture = captureStatements(h.db.$client);
+		const lines = await collect().finally(capture.restore);
 
 		const listed = await h.db.execute(sql`
 			SELECT table_name FROM information_schema.tables
@@ -141,7 +142,13 @@ describe("system.exportNdjson", () => {
 		const tables = listed.rows.map((row) => row.table_name as string);
 		const streamed = new Set(lines.slice(1).map((line) => line.table));
 		expect(tables.length).toBeGreaterThan(0);
-		for (const table of tables) expect(streamed).toContain(table);
+		for (const table of tables) {
+			expect(
+				capture.texts.some((text) => text.toLowerCase().includes(`from "${table}"`)),
+				table,
+			).toBe(true);
+		}
+		for (const table of streamed) expect(tables).toContain(table!);
 		const personas = lines.filter((line) => line.table === "personas");
 		expect(personas).toHaveLength(1);
 		expect(personas[0]!.row).toMatchObject({

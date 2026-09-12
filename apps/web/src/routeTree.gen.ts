@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as GalleryRouteImport } from './routes/[_]gallery'
 import { Route as AllRouteRouteImport } from './routes/all/route'
 import { Route as NeedsYouRouteRouteImport } from './routes/needs-you/route'
+import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SetupRouteImport } from './routes/setup'
@@ -22,6 +23,7 @@ import { Route as AllTableRouteImport } from './routes/all_.table'
 import { Route as PSplatRouteRouteImport } from './routes/p/$/route'
 import { Route as TIdentifierRouteRouteImport } from './routes/t/$identifier/route'
 import { Route as AiFlowsSlugRouteImport } from './routes/ai.flows_.$slug'
+import { Route as ReviewsOwnerRepoNumberRouteImport } from './routes/reviews_.$owner.$repo.$number'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -41,6 +43,11 @@ const AllRouteRoute = AllRouteRouteImport.update({
 const NeedsYouRouteRoute = NeedsYouRouteRouteImport.update({
   id: '/needs-you',
   path: '/needs-you',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewsRoute = ReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -88,12 +95,18 @@ const AiFlowsSlugRoute = AiFlowsSlugRouteImport.update({
   path: '/ai/flows/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReviewsOwnerRepoNumberRoute = ReviewsOwnerRepoNumberRouteImport.update({
+  id: '/reviews_/$owner/$repo/$number',
+  path: '/reviews/$owner/$repo/$number',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
+  '/reviews': typeof ReviewsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
@@ -103,12 +116,14 @@ export interface FileRoutesByFullPath {
   '/ai/personas': typeof AiPersonasRoute
   '/all/table': typeof AllTableRoute
   '/ai/flows/$slug': typeof AiFlowsSlugRoute
+  '/reviews/$owner/$repo/$number': typeof ReviewsOwnerRepoNumberRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
+  '/reviews': typeof ReviewsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
@@ -118,6 +133,7 @@ export interface FileRoutesByTo {
   '/ai/personas': typeof AiPersonasRoute
   '/all/table': typeof AllTableRoute
   '/ai/flows/$slug': typeof AiFlowsSlugRoute
+  '/reviews/$owner/$repo/$number': typeof ReviewsOwnerRepoNumberRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -125,6 +141,7 @@ export interface FileRoutesById {
   '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
+  '/reviews': typeof ReviewsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
@@ -134,6 +151,7 @@ export interface FileRoutesById {
   '/ai/personas': typeof AiPersonasRoute
   '/all_/table': typeof AllTableRoute
   '/ai/flows_/$slug': typeof AiFlowsSlugRoute
+  '/reviews_/$owner/$repo/$number': typeof ReviewsOwnerRepoNumberRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -142,6 +160,7 @@ export interface FileRouteTypes {
     | '/all'
     | '/needs-you'
     | '/_gallery'
+    | '/reviews'
     | '/search'
     | '/settings'
     | '/setup'
@@ -151,12 +170,14 @@ export interface FileRouteTypes {
     | '/ai/personas'
     | '/all/table'
     | '/ai/flows/$slug'
+    | '/reviews/$owner/$repo/$number'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/all'
     | '/needs-you'
     | '/_gallery'
+    | '/reviews'
     | '/search'
     | '/settings'
     | '/setup'
@@ -166,12 +187,14 @@ export interface FileRouteTypes {
     | '/ai/personas'
     | '/all/table'
     | '/ai/flows/$slug'
+    | '/reviews/$owner/$repo/$number'
   id:
     | '__root__'
     | '/'
     | '/all'
     | '/needs-you'
     | '/_gallery'
+    | '/reviews'
     | '/search'
     | '/settings'
     | '/setup'
@@ -181,6 +204,7 @@ export interface FileRouteTypes {
     | '/ai/personas'
     | '/all_/table'
     | '/ai/flows_/$slug'
+    | '/reviews_/$owner/$repo/$number'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -188,6 +212,7 @@ export interface RootRouteChildren {
   AllRouteRoute: typeof AllRouteRoute
   NeedsYouRouteRoute: typeof NeedsYouRouteRoute
   GalleryRoute: typeof GalleryRoute
+  ReviewsRoute: typeof ReviewsRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SetupRoute: typeof SetupRoute
@@ -197,6 +222,7 @@ export interface RootRouteChildren {
   AiPersonasRoute: typeof AiPersonasRoute
   AllTableRoute: typeof AllTableRoute
   AiFlowsSlugRoute: typeof AiFlowsSlugRoute
+  ReviewsOwnerRepoNumberRoute: typeof ReviewsOwnerRepoNumberRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -227,6 +253,13 @@ declare module '@tanstack/react-router' {
       path: '/needs-you'
       fullPath: '/needs-you'
       preLoaderRoute: typeof NeedsYouRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reviews': {
+      id: '/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof ReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -292,6 +325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AiFlowsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reviews_/$owner/$repo/$number': {
+      id: '/reviews_/$owner/$repo/$number'
+      path: '/reviews/$owner/$repo/$number'
+      fullPath: '/reviews/$owner/$repo/$number'
+      preLoaderRoute: typeof ReviewsOwnerRepoNumberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -300,6 +340,7 @@ const rootRouteChildren: RootRouteChildren = {
   AllRouteRoute: AllRouteRoute,
   NeedsYouRouteRoute: NeedsYouRouteRoute,
   GalleryRoute: GalleryRoute,
+  ReviewsRoute: ReviewsRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SetupRoute: SetupRoute,
@@ -309,6 +350,7 @@ const rootRouteChildren: RootRouteChildren = {
   AiPersonasRoute: AiPersonasRoute,
   AllTableRoute: AllTableRoute,
   AiFlowsSlugRoute: AiFlowsSlugRoute,
+  ReviewsOwnerRepoNumberRoute: ReviewsOwnerRepoNumberRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

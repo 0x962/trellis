@@ -26,6 +26,7 @@ export const eventNames = [
 	"gh.status",
 	"personas.changed",
 	"flows.changed",
+	"reviews.changed",
 	"agent-runs.changed",
 	"agents.session",
 	"agents.batch",
@@ -162,6 +163,10 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("gh.status", GhStatusPayloadSchema),
 	typed("personas.changed", PersonasChangedPayloadSchema),
 	typed("flows.changed", FlowsChangedPayloadSchema),
+	typed(
+		"reviews.changed",
+		z.object({ id: UlidSchema, ticketIds: z.array(UlidSchema), projectIds: z.array(UlidSchema) }),
+	),
 	typed("agent-runs.changed", PersonasChangedPayloadSchema),
 	typed("agents.session", AgentSessionEventPayloadSchema),
 	typed("agents.batch", AgentBatchPayloadSchema),

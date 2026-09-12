@@ -20,6 +20,17 @@ const setup = () => {
 };
 
 describe("Popover", () => {
+	test("a trigger with a tooltip keeps its popup action", async () => {
+		render(
+			<Popover trigger={<Button>Reaction</Button>} triggerTooltip="Add a reaction">
+				<p>Choices</p>
+			</Popover>,
+		);
+		await userEvent.hover(screen.getByRole("button", { name: "Reaction" }));
+		expect((await screen.findByRole("tooltip")).textContent).toBe("Add a reaction");
+		await userEvent.click(screen.getByRole("button", { name: "Reaction" }));
+		expect((await screen.findByRole("dialog")).textContent).toContain("Choices");
+	});
 	test("click opens a themed popup and sets aria-expanded", async () => {
 		const { user, trigger } = setup();
 		expect(trigger.getAttribute("aria-expanded")).toBe("false");

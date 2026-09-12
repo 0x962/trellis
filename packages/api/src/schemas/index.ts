@@ -12,6 +12,8 @@ export * from "./persona.ts";
 export * from "./primitives.ts";
 export * from "./project.ts";
 export * from "./pullRequest.ts";
+export * from "./review.ts";
+export * from "./reviewImport";
 export * from "./search.ts";
 export * from "./settings.ts";
 export * from "./status.ts";

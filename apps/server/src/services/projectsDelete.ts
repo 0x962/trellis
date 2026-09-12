@@ -47,7 +47,7 @@ const remove = async (ctx: ServiceCtx, tx: Tx, input: ProjectDeleteInput): Promi
 	ctx.dropBlobs(blobs.map((blob) => blob.sha256));
 	await tx.execute(
 		sql`DELETE FROM pull_requests pr
-			WHERE NOT EXISTS (SELECT 1 FROM ticket_pull_requests l WHERE l.pull_request_id = pr.id)`,
+			WHERE NOT pr.review_retained AND NOT EXISTS (SELECT 1 FROM ticket_pull_requests l WHERE l.pull_request_id = pr.id)`,
 	);
 	await tx.execute(sql`DELETE FROM projects WHERE id = ANY(${scope})`);
 	if (project.parentId !== null) {

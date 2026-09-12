@@ -169,6 +169,13 @@
       "when": 1789185106775,
       "tag": "0026_manager_session",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1789195136801,
+      "tag": "0027_magical_galactus",
+      "breakpoints": true
     }
   ]
 }

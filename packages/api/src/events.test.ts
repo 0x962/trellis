@@ -28,6 +28,7 @@ describe("events", () => {
 			"project.updated",
 			"ready",
 			"reset",
+			"reviews.changed",
 			"statuses.changed",
 			"ticket.created",
 			"ticket.deleted",
@@ -42,6 +43,7 @@ describe("events", () => {
 	// `project.*`, `id` is the id of the resource.
 	test("event payload schemas accept the plan's shapes and reject a missing or wrong field", () => {
 		const events = [
+			{ type: "reviews.changed", id: ulid, ticketIds: [t1], projectIds: [projectId] },
 			{ type: "ticket.updated", summary: ticketSummary(), fields: ["title"], batchId: ulid },
 			{ type: "pr.updated", id: ulid, ticketIds: [t1], state: "open", ciState: "pass" },
 			{ type: "comment.created", id: ulid, ticketId: t1 },

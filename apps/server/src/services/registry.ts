@@ -13,6 +13,16 @@ import * as inbox from "./inbox.ts";
 import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
+import * as reviewDelivery from "./reviews/delivery";
+import * as reviewImage from "./reviews/image";
+import * as reviewMessages from "./reviews/messages";
+import * as reviewPrs from "./reviews/prs";
+import * as reviewRemote from "./reviews/remote";
+import * as reviewRevision from "./reviews/revision";
+import * as reviewRuns from "./reviews/runs";
+import * as reviewSubmissions from "./reviews/submissions";
+import * as reviewThreads from "./reviews/threads";
+import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
 import * as settings from "./settings.ts";
 import * as statuses from "./statuses.ts";
@@ -55,6 +65,34 @@ const prepared = (kind: ServiceKind, prepare: Prepare, run: Run): ServiceEntry =
 const runner = (prepare: Prepare, run: Run): ServiceEntry => ({ family: "agents", kind: "mutation", prepare, run });
 
 export const services = {
+	"reviews.image": prepared("read", reviewImage.image, reviewRemote.result),
+	"reviews.status": prepared("read", reviewRevision.status, reviewRemote.result),
+	"reviews.runs": prepared("mutation", reviewRuns.runs, reviewRemote.result),
+	"reviews.action": prepared("mutation", reviewRemote.action, reviewRemote.result),
+	"reviews.metadata": prepared("read", reviewRemote.metadata, reviewRemote.result),
+	"reviews.mine": prepared("read", reviewRemote.mine, reviewRemote.result),
+	"reviews.importMargin": io("mutation", reviewTransfers.importMargin),
+	"reviews.export": io("read", reviewTransfers.exportReview),
+	"reviews.refresh": prepared("mutation", reviewRevision.prepare, reviewRevision.refresh),
+	"reviews.revision": io("read", reviewRevision.revision),
+	"reviews.file": prepared("read", reviewRevision.prepareFile, reviewRevision.file),
+	"reviews.open": io("mutation", reviewPrs.open),
+	"reviews.prs": io("read", reviewPrs.prs),
+	"reviews.list": io("read", reviewThreads.list),
+	"reviews.thread": io("read", reviewThreads.thread),
+	"reviews.add": io("mutation", reviewThreads.add),
+	"reviews.reply": io("mutation", reviewThreads.reply),
+	"reviews.resolve": io("mutation", reviewThreads.resolve),
+	"reviews.edit": io("mutation", reviewMessages.edit),
+	"reviews.reaction": io("mutation", reviewMessages.reaction),
+	"reviews.submit": io("mutation", reviewSubmissions.submit),
+	"reviews.show": io("read", reviewSubmissions.show),
+	"reviews.history": io("read", reviewSubmissions.history),
+	"reviews.inbox": io("read", reviewSubmissions.inbox),
+	"reviews.read": io("mutation", reviewSubmissions.read),
+	"reviews.resend": io("mutation", reviewDelivery.resend),
+	"reviews.deliverPending": prepared("mutation", reviewDelivery.preparePending, reviewDelivery.finished),
+
 	"agentRuns.send": prepared("mutation", agentCommunication.prepareSend, agentRuns.finish),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": core("read", agentRuns.list),

@@ -31,7 +31,7 @@ const deleteOne = async (ctx: ServiceCtx, tx: Tx, batchId: string, row: TicketRo
 	ctx.dropBlobs(blobs.map((blob) => blob.sha256));
 	await tx.execute(
 		sql`DELETE FROM pull_requests p
-			WHERE NOT EXISTS (SELECT 1 FROM ticket_pull_requests l WHERE l.pull_request_id = p.id)`,
+			WHERE NOT p.review_retained AND NOT EXISTS (SELECT 1 FROM ticket_pull_requests l WHERE l.pull_request_id = p.id)`,
 	);
 	await record(ctx, tx, {
 		rootId: row.rootId,

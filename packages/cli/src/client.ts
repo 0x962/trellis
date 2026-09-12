@@ -69,7 +69,7 @@ export const clientOptions = (ctx: CliContext): ClientOptions => {
 	return {
 		url: ctx.url,
 		actor: actor.actor,
-		session: actor.session ?? undefined,
+		session: ctx.deps.env.TRELLIS_SESSION ?? actor.session ?? undefined,
 		fetch: ctx.deps.fetch,
 		signal: ctx.deps.signal,
 		apiVersion: ctx.deps.apiVersion,

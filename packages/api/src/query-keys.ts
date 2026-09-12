@@ -250,6 +250,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "personas.changed":
 				enqueue([family("personas", "list")]);
 				return;
+			case "reviews.changed":
+				enqueue([family("reviews")]);
+				return;
 			case "flows.changed":
 				enqueue([family("flows")]);
 				return;

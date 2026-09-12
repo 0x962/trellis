@@ -8,6 +8,9 @@ import { openDb } from "../../../../src/db/client.ts";
 import { migrate } from "../../../../src/db/migrate.ts";
 
 const drizzleDir = join(originDir(import.meta.dir), "../../drizzle");
+const pendingCount = JSON.parse(readFileSync(join(drizzleDir, "meta/_journal.json"), "utf8")).entries.filter(
+	(entry: { idx: number }) => entry.idx >= 23,
+).length;
 const closers: Array<() => Promise<void>> = [];
 
 afterAll(async () => {
@@ -48,7 +51,7 @@ const local =
 test("the target launch migration moves the local template to the current default", async () => {
 	const db = await withTemplate(local);
 
-	expect(await migrate(db)).toBe(1);
+	expect(await migrate(db)).toBe(pendingCount);
 	// This migration exists to land the row on the default the product reads
 	// now. A later change to that default must bring its own migration, and
 	// this line fails until it does.
@@ -59,6 +62,6 @@ test("the target launch migration leaves a template a person wrote", async () =>
 	const own = "{{superset}} ws create --local --project {{projectId}} --name {{name}} --tag mine --json";
 	const db = await withTemplate(own);
 
-	expect(await migrate(db)).toBe(1);
+	expect(await migrate(db)).toBe(pendingCount);
 	expect(await templateOf(db)).toBe(own);
 });

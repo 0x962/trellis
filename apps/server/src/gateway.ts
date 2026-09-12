@@ -1,0 +1,25 @@
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { gatewayTarget } from "./gateway/target";
+
+const path = process.env.GATEWAY_ROUTES_FILE ?? join(homedir(), ".config/localhost-gateway/routes.json");
+const defaults = { trellis: Number(process.env.TRELLIS_PORT ?? 4521), dots: Number(process.env.DOTS_PORT ?? 4517) };
+const server = Bun.serve({
+	hostname: "127.0.0.1",
+	port: Number(process.env.GATEWAY_PORT ?? 80),
+	idleTimeout: 120,
+	async fetch(request) {
+		const routes = existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as Record<string, number>) : {};
+		const target = gatewayTarget(request.url, { ...defaults, ...routes });
+		if (!target) return new Response("No local route matches this hostname.", { status: 404 });
+		if (target.kind === "redirect") return Response.redirect(target.url, 302);
+		return fetch(target.url, {
+			method: request.method,
+			headers: request.headers,
+			body: request.body,
+			redirect: "manual",
+		});
+	},
+});
+console.log(`Trellis gateway listens on 127.0.0.1:${server.port}. Routes: ${path}`);

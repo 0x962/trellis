@@ -94,6 +94,7 @@ export const createInlineTransport = ({
 		core: coreCtx(ctx, emit, tasks),
 		supersetBin: config.supersetBin,
 		localUrl: `http://127.0.0.1:${config.port}`,
+		publicUrl: config.publicUrl,
 		actor: ctx.actor ?? SYSTEM_ACTOR,
 		session: ctx.session,
 		home: config.home,
@@ -209,6 +210,7 @@ export const createInlineTransport = ({
 	// The agents host starts beside the jobs and does not hold up the boot:
 	// its first superset calls can take seconds.
 	let jobs: Jobs | null = null;
+	let reviewTimer: ReturnType<typeof setInterval> | undefined;
 	const start = async (options?: JobsStart) => {
 		await db.transaction((tx) => cache.rebuild(tx));
 		await db.transaction((tx) =>
@@ -219,6 +221,14 @@ export const createInlineTransport = ({
 		await warmWrites(db, cache);
 		const found = await db.execute(sql`SELECT DISTINCT sha256 FROM attachments`);
 		if (options !== undefined) {
+			await db.transaction((tx) =>
+				tx.execute(
+					sql`UPDATE review_deliveries SET state = 'unknown', error = 'Trellis stopped before delivery confirmation.' WHERE state = 'sending'`,
+				),
+			);
+			reviewTimer = setInterval(() => {
+				void call("reviews.deliverPending", systemContext(), {});
+			}, 3000);
 			const clock = scaledClock(options.clockRate);
 			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });
 			void startAgents({ clock, log: options.log }).start();
@@ -227,6 +237,7 @@ export const createInlineTransport = ({
 	};
 
 	const close = async () => {
+		clearInterval(reviewTimer);
 		agents?.stop();
 		if (jobs !== null) await jobs.stop();
 		await Promise.allSettled([...inFlight]);

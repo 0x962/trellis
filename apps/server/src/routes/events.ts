@@ -1,5 +1,5 @@
 import type { Project, ProjectSummary, Ticket } from "@trellis/api";
-import { EventIdSchema, parseEventId } from "@trellis/api";
+import { EventIdSchema, parseEventId, UlidSchema } from "@trellis/api";
 import type { Context } from "hono";
 import { API_VERSION, type RequestContext } from "../context.ts";
 import type { Runtime, ServiceTransport } from "../db/transport.ts";
@@ -62,6 +62,11 @@ export const createEventsRoute = ({ bus, runtime, transport, clock }: EventsRout
 
 	const filterOf = async (c: Context): Promise<BusFilter> => {
 		const filter: BusFilter = {};
+		const pr = c.req.query("pr");
+		if (pr !== undefined) {
+			if (!UlidSchema.safeParse(pr).success) throw invalidInput("pr", "Use the local PR identifier.");
+			filter.prIds = [pr];
+		}
 		const types = c.req.query("types");
 		if (types !== undefined) filter.types = types.split(",");
 		const project = c.req.query("project");

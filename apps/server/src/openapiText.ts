@@ -11,6 +11,7 @@ export const ACTOR_HEADER_EXAMPLE = "agent:claude-code";
 export const SERVERS = [{ url: "http://127.0.0.1:4521/api", description: "The local server" }];
 
 export const TAGS = [
+	{ name: "reviews", description: "Local PR reviews, diff revisions, comments, submissions, and agent notifications." },
 	{ name: "personas", description: "Saved personas. Each persona has a name and an instruction." },
 	{
 		name: "flows",
@@ -80,6 +81,40 @@ Every response carries \`x-trellis-api-version\`. Every error is JSON with \`cod
 
 // One example per request body, keyed by `<METHOD> <path>`.
 export const BODY_EXAMPLES: Record<string, unknown> = {
+	"POST /reviews/open": { pr: "acme/web#12" },
+	"POST /reviews/status": { pr: "acme/web#12" },
+	"POST /reviews/refresh": { pr: "acme/web#12" },
+	"POST /reviews/metadata": { pr: "acme/web#12" },
+	"POST /reviews/mine": {},
+	"POST /reviews/file": {
+		pr: "acme/web#12",
+		revisionId: "01J9Z000000000000000000001",
+		path: "src/app.ts",
+		side: "new",
+	},
+	"POST /reviews/threads": {
+		pr: "acme/web#12",
+		path: "src/app.ts",
+		line: 12,
+		body: "This branch drops the saved value.",
+	},
+	"POST /reviews/threads/{id}/reply": { body: "Fixed in the latest commit." },
+	"POST /reviews/threads/{id}/resolve": { resolved: true },
+	"PATCH /reviews/messages/{id}": { body: "The empty branch drops the saved value.", expectedVersion: 1 },
+	"POST /reviews/messages/{id}/reaction": { reaction: "+1", remove: false },
+	"POST /reviews/submit": {
+		pr: "acme/web#12",
+		requestId: "review-12-first",
+		verdict: "commented",
+		body: "Review complete.",
+		recipients: [],
+	},
+	"POST /reviews/inbox": {},
+	"POST /reviews/submissions/{id}/read": { runId: "01J9Z000000000000000000001" },
+	"POST /reviews/deliveries/{id}/resend": {},
+	"POST /reviews/import-margin": { source: "/Users/me/.margin/comments", dryRun: true, files: [] },
+	"POST /reviews/action": { pr: "acme/web#12", headSha: "0123456789abcdef", action: "ready" },
+	"POST /reviews/runs": { pr: "acme/web#12", action: "list" },
 	"POST /personas": { name: "Reviewer", instruction: "Read the diff. Report defects with evidence." },
 	"PATCH /personas/{id}": {
 		name: "Code reviewer",
@@ -155,7 +190,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"PUT /settings": {
 		defaultActorName: "dana",
 		stalledHours: 24,
-		diffUrlTemplate: "{url}/files",
 	},
 	"POST /agent-runs": { personaId: "01J9Z0000000000000000000A1", ticket: "CDE-42" },
 	"POST /agent-runs/{id}/send": { text: "The CI run is red. Read the failing step and fix it." },

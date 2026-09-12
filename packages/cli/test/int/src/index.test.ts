@@ -8,6 +8,7 @@ import { rpcError } from "../../fakeServer.ts";
 import { comment, statusSummary, ticket, ticketSummary } from "../../fixtures.ts";
 
 const verbs = [
+	"gateway",
 	"projects",
 	"statuses",
 	"personas",
@@ -23,6 +24,7 @@ const verbs = [
 	"attach",
 	"attachments",
 	"pr",
+	"review",
 	"sub",
 	"delete",
 	"search",

@@ -2,7 +2,7 @@ import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { ORPCError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin, ResponseHeadersPlugin } from "@orpc/server/plugins";
-import { errors } from "@trellis/api";
+import { errors, reviewHref } from "@trellis/api";
 import { type Context, Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
@@ -20,6 +20,7 @@ import { docsRoutes } from "./routes/docs.ts";
 import { type Clock, createEventsRoute, realClock } from "./routes/events.ts";
 import { exportRoute } from "./routes/export.ts";
 import { filesRoute } from "./routes/files.ts";
+import { reviewImageRoute } from "./routes/reviewImage";
 import { staticRoute } from "./routes/static.ts";
 import { createDbTiming, serverTimingHeader } from "./serverTiming.ts";
 
@@ -172,6 +173,7 @@ export const createApp = ({
 		await next();
 	});
 
+	app.get("/api/review-image", reviewImageRoute(transport));
 	app.get("/api/events", events.handler);
 	app.get("/api/attachments/:id/file", filesRoute({ config, transport }));
 	app.get("/api/export", exportRoute({ transport }));
@@ -182,7 +184,10 @@ export const createApp = ({
 	app.all("/api/*", notFound);
 	app.all("/rpc/*", notFound);
 
-	app.get("*", staticRoute(config));
+	app.get("*", async (c) => {
+		if (/^\/https?:\/\/github\.com\//.test(c.req.path)) return c.redirect(reviewHref(c.req.path.slice(1)), 302);
+		return staticRoute(config)(c);
+	});
 
 	app.onError((error, c) => {
 		if (error instanceof ORPCError) return c.json(orpcBody(error), error.status as ContentfulStatusCode);

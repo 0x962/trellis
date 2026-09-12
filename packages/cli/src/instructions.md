@@ -18,6 +18,14 @@ Reply in that thread: trellis comment KEY-42 --reply-to <comment-id> --body "...
 Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
 
+PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
+Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."
+Reply: trellis review reply <thread-id> --body "..."
+Resolve an addressed finding: trellis review resolve <thread-id>
+Submit and notify selected agents: trellis review submit <pr-url> --threads <ids> --notify <agent-run-ids>
+Use --no-notify when no agent needs a notification. Read unread reviews: trellis review inbox
+Never post review findings as GitHub comments.
+
 Without the CLI, use the HTTP API. It has the same actions. This call creates a ticket:
 curl -X POST http://127.0.0.1:4521/api/tickets -H 'x-trellis-actor: agent:claude-code' -H 'Content-Type: application/json' -d '{"project":"KEY","title":"First"}'
 The OpenAPI spec is at http://127.0.0.1:4521/api/openapi.json.
