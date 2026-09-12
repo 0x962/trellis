@@ -53,8 +53,8 @@ describe("Gallery", () => {
 		const buttons = within(section("Button")).getAllByRole("button");
 		const withClasses = (classes: string) =>
 			buttons.filter((button) => classes.split(" ").every((name) => button.classList.contains(name)));
-		// The primary variant is neutral: the card surface with the strong border.
-		expect(withClasses("bg-surface border-border-strong text-fg").length).toBeGreaterThan(0);
+		// The primary variant is the brushed silver that the `metal` utility draws.
+		expect(withClasses("metal").length).toBeGreaterThan(0);
 		expect(withClasses("bg-surface border-border").length).toBeGreaterThan(0);
 		expect(withClasses("border-transparent text-fg-muted").length).toBeGreaterThan(0);
 		expect(withClasses("bg-danger").length).toBeGreaterThan(0);

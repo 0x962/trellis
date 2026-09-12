@@ -31,7 +31,7 @@ describe("Switch", () => {
 			</>,
 		);
 		const sound = screen.getByRole("switch", { name: "Sound" });
-		expectClasses(sound, "h-4 w-7 rounded-xl bg-border-strong data-checked:bg-accent duration-hover");
+		expectClasses(sound, "h-5 w-9 rounded-round bg-border-strong data-checked:bg-accent duration-hover");
 		expectFocusRing(sound);
 		expectHitArea(sound, "box16");
 		sound.focus();

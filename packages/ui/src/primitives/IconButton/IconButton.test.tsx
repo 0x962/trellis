@@ -27,10 +27,10 @@ describe("IconButton", () => {
 	});
 
 	// Both halves of a primary split button share the same fill and border.
-	test("the primary variant uses the card surface and a strong border", () => {
+	test("the primary variant is the brushed silver of the metal utility", () => {
 		render(<IconButton label="Options" icon={<RefreshCw />} variant="primary" />);
 		const button = screen.getByRole("button", { name: "Options" });
-		expectClasses(button, "bg-surface border-border-strong text-fg");
+		expectClasses(button, "metal");
 		expect(button.classList.contains("bg-accent")).toBe(false);
 		expect(button.classList.contains("text-on-accent")).toBe(false);
 	});
@@ -60,7 +60,7 @@ describe("IconButton", () => {
 				<IconButton label="Danger" variant="danger" icon={<RefreshCw />} />
 			</>,
 		);
-		expectClasses(screen.getByRole("button", { name: "Primary" }), "bg-surface border-border-strong text-fg");
+		expectClasses(screen.getByRole("button", { name: "Primary" }), "metal");
 		expectClasses(screen.getByRole("button", { name: "Default" }), "bg-surface border-border text-fg");
 		expectClasses(screen.getByRole("button", { name: "Quiet" }), "bg-transparent border-transparent text-fg-muted");
 		expectClasses(screen.getByRole("button", { name: "Danger" }), "bg-danger border-danger text-on-accent");

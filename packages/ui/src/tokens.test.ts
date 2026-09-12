@@ -24,6 +24,7 @@ const colorTokens = [
 	"--danger",
 	"--danger-soft",
 	"--scrim",
+	"--on-accent",
 ];
 
 const shadowTokens = ["--shadow-sm", "--shadow-md", "--shadow-lg"];
@@ -63,6 +64,7 @@ const lightPalette: Record<string, string> = {
 	"--danger": "#C92432",
 	"--danger-soft": "#FFE6E8",
 	"--scrim": "rgba(0,0,0,.4)",
+	"--on-accent": "#FFFFFF",
 	"--shadow-sm": "0 1px 2px rgba(0,0,0,.06)",
 	"--shadow-md": "0 4px 12px rgba(0,0,0,.10)",
 	"--shadow-lg": "0 12px 32px rgba(0,0,0,.16)",
@@ -89,6 +91,7 @@ const darkPalette: Record<string, string> = {
 	"--danger": "#FF6762",
 	"--danger-soft": "#3A1517",
 	"--scrim": "rgba(0,0,0,.6)",
+	"--on-accent": "#0A0A0A",
 	"--shadow-sm": "0 0 0 1px var(--border-strong)",
 	"--shadow-md": "0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4)",
 	"--shadow-lg": "0 0 0 1px var(--border-strong), 0 12px 32px rgba(0,0,0,.5)",

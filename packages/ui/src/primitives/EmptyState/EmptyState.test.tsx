@@ -5,7 +5,9 @@ import { Button } from "../Button/Button";
 import { EmptyState } from "./EmptyState";
 
 describe("EmptyState", () => {
-	test("empty state renders icon, title, description, and action", () => {
+	// An empty state reads as the opening of a document: a heading at the
+	// left edge, the text under it, and no picture.
+	test("empty state renders the title, the description, and the action at the left edge", () => {
 		const { container } = render(
 			<EmptyState
 				title="Nothing needs you"
@@ -16,14 +18,14 @@ describe("EmptyState", () => {
 		screen.getByRole("heading", { name: "Nothing needs you" });
 		expectClasses(screen.getByText("Every review is done. Every check passed."), "text-fg-muted");
 		const empty = container.firstElementChild!;
-		expect(empty.querySelector("svg")!.getAttribute("aria-hidden")).toBe("true");
+		expect(empty.querySelector("svg")).toBeNull();
 		screen.getByRole("button", { name: "New ticket" });
-		expectClasses(empty, "py-10 text-center text-fg-muted");
+		expectClasses(empty, "items-start py-8 text-fg-muted");
 	});
 
-	// A page-level empty state fills the pane and sits near 35% of its
-	// height: the block is centered, and the bottom padding lifts it.
-	test("the page variant fills the pane and lifts the block above the center", () => {
+	// A page-level empty state fills the pane under the bar, and its 20 px of
+	// side padding puts its first letter over the first letter of the bar.
+	test("the page variant fills the pane with the padding of the bar above it", () => {
 		const { container } = render(
 			<EmptyState
 				variant="page"
@@ -33,15 +35,14 @@ describe("EmptyState", () => {
 			/>,
 		);
 		const empty = container.firstElementChild!;
-		expectClasses(empty, "flex-1 justify-center pb-[15vh]");
-		expectClasses(screen.getByRole("heading", { name: "Page not found" }), "text-md font-semibold text-fg");
-		expectClasses(screen.getByText("No page has this URL."), "text-sm text-fg-muted max-w-sm");
-		expectClasses(empty.querySelector("span[aria-hidden]")!, "size-6 text-fg-faint");
+		expectClasses(empty, "flex-1 items-start px-5 pt-10");
+		expectClasses(screen.getByRole("heading", { name: "Page not found" }), "text-xl font-semibold text-fg");
+		expectClasses(screen.getByText("No page has this URL."), "max-w-xl text-sm text-fg-muted");
 	});
 
 	test("the section variant is the default", () => {
 		const { container } = render(<EmptyState title="No sub-projects." />);
 		expect(container.firstElementChild!.className).not.toMatch(/flex-1/);
-		expectClasses(container.firstElementChild!, "py-10");
+		expectClasses(container.firstElementChild!, "py-8");
 	});
 });
