@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type Flow, FlowSlugSchema } from "@trellis/api";
-import { Button, Input, Sheet, Textarea } from "@trellis/ui";
+import { Button, Input, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 
@@ -56,7 +56,7 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 					if (valid && dirty && !pending) save.mutate();
 				}}
 			>
-				<div className="flex flex-1 flex-col gap-6 p-6 max-md:p-4">
+				<SheetBody>
 					<Input
 						ref={nameRef}
 						label="Name"
@@ -107,26 +107,28 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 							Could not delete the flow. {remove.error.message}
 						</p>
 					)}
-				</div>
-				<div className="sticky bottom-0 flex flex-col gap-3 border-t border-border bg-surface p-4">
-					{confirmDelete && (
-						<fieldset
-							className="flex flex-wrap items-center gap-2 border border-danger p-3"
-							aria-label="Confirm deletion"
-						>
-							<p className="w-full break-words text-sm text-fg">Delete “{flow.name}”?</p>
-							<p className="w-full text-sm text-fg-muted">
-								This permanently deletes the flow with every step and connection.
-							</p>
-							<Button type="button" variant="danger" disabled={pending} onClick={() => remove.mutate()}>
-								Confirm delete
-							</Button>
-							<Button type="button" variant="quiet" disabled={pending} onClick={() => setConfirmDelete(false)}>
-								Keep flow
-							</Button>
-						</fieldset>
-					)}
-					<div className="flex items-center gap-2">
+				</SheetBody>
+				<SheetFooter
+					confirmation={
+						confirmDelete && (
+							<fieldset
+								className="flex flex-wrap items-center gap-2 border border-danger p-3"
+								aria-label="Confirm deletion"
+							>
+								<p className="w-full break-words text-sm text-fg">Delete “{flow.name}”?</p>
+								<p className="w-full text-sm text-fg-muted">
+									This permanently deletes the flow with every step and connection.
+								</p>
+								<Button type="button" variant="danger" disabled={pending} onClick={() => remove.mutate()}>
+									Confirm delete
+								</Button>
+								<Button type="button" variant="quiet" disabled={pending} onClick={() => setConfirmDelete(false)}>
+									Keep flow
+								</Button>
+							</fieldset>
+						)
+					}
+					leading={
 						<Button
 							type="button"
 							variant="quiet"
@@ -135,21 +137,20 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 						>
 							Delete flow
 						</Button>
-						<div className="ml-auto flex gap-2">
-							<Button type="button" variant="quiet" disabled={pending} onClick={onClose}>
-								Cancel
-							</Button>
-							<Button
-								type="submit"
-								variant="primary"
-								disabled={!valid || !dirty || pending || confirmDelete}
-								aria-busy={save.isPending}
-							>
-								Save changes
-							</Button>
-						</div>
-					</div>
-				</div>
+					}
+				>
+					<Button type="button" variant="quiet" disabled={pending} onClick={onClose}>
+						Cancel
+					</Button>
+					<Button
+						type="submit"
+						variant="primary"
+						disabled={!valid || !dirty || pending || confirmDelete}
+						aria-busy={save.isPending}
+					>
+						Save changes
+					</Button>
+				</SheetFooter>
 			</form>
 		</Sheet>
 	);

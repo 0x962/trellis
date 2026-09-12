@@ -40,6 +40,9 @@ export { Segmented, type SegmentedOption, type SegmentedProps } from "./primitiv
 export { Select, type SelectItem, type SelectProps } from "./primitives/Select";
 export { Separator, type SeparatorProps } from "./primitives/Separator";
 export { Sheet, type SheetProps } from "./primitives/Sheet";
+export { SheetBody } from "./primitives/SheetBody";
+export { SheetFooter } from "./primitives/SheetFooter";
+export { SheetSection } from "./primitives/SheetSection";
 export { Skeleton, type SkeletonProps } from "./primitives/Skeleton";
 export { Spinner, type SpinnerProps } from "./primitives/Spinner";
 export { Switch, type SwitchProps } from "./primitives/Switch";

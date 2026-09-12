@@ -24,7 +24,7 @@ export function EmptyState({ image, title, description, action, variant = "secti
 		<div
 			className={cx(
 				"flex flex-col items-start gap-2 text-fg-muted",
-				page ? "flex-1 px-5 pt-10 max-md:px-4" : "px-1 py-8",
+				page ? "flex-1 px-5 pt-10 max-md:px-4" : "py-3",
 				className,
 			)}
 		>
