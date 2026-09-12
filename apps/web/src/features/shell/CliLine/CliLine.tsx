@@ -1,5 +1,5 @@
+import { Copy } from "@phosphor-icons/react";
 import { IconButton, toast } from "@trellis/ui";
-import { Copy } from "lucide-react";
 
 export type CliLineProps = {
 	// The whole command, as one string.

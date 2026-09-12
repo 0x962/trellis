@@ -1,6 +1,6 @@
+import { DotsThree } from "@phosphor-icons/react";
 import type { Attachment } from "@trellis/api";
 import { IconButton, Input, Menu } from "@trellis/ui";
-import { MoreHorizontal } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { attachmentMarkdown } from "../../../utils/attachmentMarkdown";
 
@@ -59,7 +59,7 @@ export function AttachmentActions({ attachment, onDelete, onRename, triggerClass
 					<IconButton
 						ref={trigger}
 						label={`Actions for ${attachment.filename}`}
-						icon={<MoreHorizontal />}
+						icon={<DotsThree />}
 						className={triggerClassName}
 					/>
 				}

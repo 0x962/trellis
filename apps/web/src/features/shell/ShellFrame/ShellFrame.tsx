@@ -1,6 +1,6 @@
+import { ListBullets, MagnifyingGlass, Tray } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { TrellisWordmark } from "@trellis/ui";
-import { Inbox, List, Search } from "lucide-react";
 import type { ReactNode } from "react";
 
 export type ShellFrameProps = {
@@ -10,9 +10,9 @@ export type ShellFrameProps = {
 };
 
 const rows = [
-	{ to: "/needs-you", label: "Needs you", icon: <Inbox /> },
-	{ to: "/search", label: "Search", icon: <Search /> },
-	{ to: "/all", label: "All tickets", icon: <List /> },
+	{ to: "/needs-you", label: "Needs you", icon: <Tray /> },
+	{ to: "/search", label: "Search", icon: <MagnifyingGlass /> },
+	{ to: "/all", label: "All tickets", icon: <ListBullets /> },
 ] as const;
 
 // The shell with no data in it: the sidebar header, the three fixed rows,

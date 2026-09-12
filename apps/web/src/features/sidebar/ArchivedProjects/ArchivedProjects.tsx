@@ -1,6 +1,6 @@
+import { CaretDown, CaretRight } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
-import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { formatCount } from "../../../lib/format";
@@ -25,7 +25,7 @@ export function ArchivedProjects() {
 				className="flex h-8 pointer-coarse:h-11 w-full items-center gap-2 rounded-md pr-2 pl-2 text-xs font-medium text-fg-faint transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 			>
 				<span aria-hidden="true" className="inline-flex w-7 justify-center *:size-3">
-					{open ? <ChevronDown /> : <ChevronRight />}
+					{open ? <CaretDown /> : <CaretRight />}
 				</span>
 				<span>Archived</span>
 				<span className="ml-auto tabular">{formatCount(data.length)}</span>

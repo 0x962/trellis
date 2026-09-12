@@ -1,8 +1,8 @@
+import { Gear, Question } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ActorHeaderSchema } from "@trellis/api";
-import { Avatar, Button, IconButton, Input, Popover, SettingGlyph, toast } from "@trellis/ui";
-import { CircleHelp } from "lucide-react";
+import { Avatar, Button, IconButton, Input, Popover, toast } from "@trellis/ui";
 import { type FormEvent, useId, useState } from "react";
 import { useActor } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
@@ -84,7 +84,7 @@ export function ActorFooter() {
 				className={iconLinkClass}
 			>
 				<span aria-hidden="true" className="inline-flex size-3.5 *:size-full">
-					<SettingGlyph />
+					<Gear />
 				</span>
 				{ghWarning && (
 					<>
@@ -102,7 +102,7 @@ export function ActorFooter() {
 			<IconButton
 				label="Keyboard shortcuts"
 				className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
-				icon={<CircleHelp />}
+				icon={<Question />}
 				onClick={openShortcutHelp}
 			/>
 		</div>

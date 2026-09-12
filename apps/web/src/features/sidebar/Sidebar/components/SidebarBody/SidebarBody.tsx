@@ -1,6 +1,6 @@
+import { MagnifyingGlass, Plus, Sparkle, Ticket, Tray } from "@phosphor-icons/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { AiGlyph, cx, IconButton, Kbd, TicketGlyph, TrellisWordmark } from "@trellis/ui";
-import { Inbox, Plus, Search } from "lucide-react";
+import { cx, IconButton, Kbd, TrellisWordmark } from "@trellis/ui";
 import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
@@ -24,7 +24,7 @@ function NavRow({ to, icon, label, active, trailing }: NavRowProps) {
 			className={cx(rowClass, active && "sidebar-selected font-medium")}
 		>
 			<span data-slot="leading" className="sidebar-leading">
-				<span aria-hidden="true" className="inline-flex size-4 shrink-0 *:size-full [&_svg]:stroke-[1.75]">
+				<span aria-hidden="true" className="inline-flex size-4 shrink-0 *:size-full">
 					{icon}
 				</span>
 			</span>
@@ -87,19 +87,19 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				)}
 			</div>
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
-				<NavRow to="/needs-you" icon={<Inbox />} label="Needs you" active={isActive(pathname, "/needs-you")} />
+				<NavRow to="/needs-you" icon={<Tray />} label="Needs you" active={isActive(pathname, "/needs-you")} />
 				<NavRow
 					to="/search"
-					icon={<Search />}
+					icon={<MagnifyingGlass />}
 					label="Search"
 					active={isActive(pathname, "/search")}
 					trailing={<Kbd>/</Kbd>}
 				/>
-				<NavRow to="/all" icon={<TicketGlyph />} label="All tickets" active={isActive(pathname, "/all")} />
+				<NavRow to="/all" icon={<Ticket />} label="All tickets" active={isActive(pathname, "/all")} />
 			</nav>
 			<nav aria-label="AI" hidden={collapsed} className="mt-3 shrink-0">
 				<h2 className="sidebar-section">AI</h2>
-				<NavRow to="/ai/personas" icon={<AiGlyph />} label="Personas" active={isActive(pathname, "/ai/personas")} />
+				<NavRow to="/ai/personas" icon={<Sparkle />} label="Personas" active={isActive(pathname, "/ai/personas")} />
 			</nav>
 			<div hidden={collapsed} className="mt-3 min-h-0 flex-1 overflow-y-auto pb-2">
 				<div className="sidebar-section">

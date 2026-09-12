@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Copy, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowsClockwise, CaretDown, Check, Copy, Trash } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Button } from "../../../primitives/Button";
 import { Checkbox } from "../../../primitives/Checkbox";
@@ -68,7 +68,7 @@ export function ControlSections() {
 					</Button>
 					<IconButton
 						label="Copy options"
-						icon={<ChevronDown />}
+						icon={<CaretDown />}
 						variant="primary"
 						className="-ml-px rounded-l-none focus-visible:z-1"
 					/>
@@ -77,11 +77,11 @@ export function ControlSections() {
 			<Section name="IconButton" note="primary, default, quiet, danger; xs 24 px, sm 28 px, md 32 px; disabled">
 				{iconSizes.map((size) => (
 					<div key={size} className="flex items-center gap-2">
-						<IconButton label="Refresh" icon={<RefreshCw />} size={size} variant="primary" />
-						<IconButton label="Refresh" icon={<RefreshCw />} size={size} variant="default" />
-						<IconButton label="Refresh" icon={<RefreshCw />} size={size} />
-						<IconButton label="Delete" icon={<Trash2 />} size={size} variant="danger" />
-						<IconButton label="Refresh" icon={<RefreshCw />} size={size} disabled />
+						<IconButton label="Refresh" icon={<ArrowsClockwise />} size={size} variant="primary" />
+						<IconButton label="Refresh" icon={<ArrowsClockwise />} size={size} variant="default" />
+						<IconButton label="Refresh" icon={<ArrowsClockwise />} size={size} />
+						<IconButton label="Delete" icon={<Trash />} size={size} variant="danger" />
+						<IconButton label="Refresh" icon={<ArrowsClockwise />} size={size} disabled />
 					</div>
 				))}
 			</Section>

@@ -1,6 +1,6 @@
+import { Checks, Circle, X } from "@phosphor-icons/react";
 import type { ReviewState } from "@trellis/api";
 import { cx } from "@trellis/ui";
-import { CheckCheck, Circle, X } from "lucide-react";
 import type { ComponentType } from "react";
 
 export type ReviewStateIconProps = {
@@ -11,7 +11,7 @@ export type ReviewStateIconProps = {
 type Look = { label: string; tone: string; Icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }> };
 
 const looks: Record<"approved" | "waiting" | "changes" | "idle", Look> = {
-	approved: { label: "Approved", tone: "text-success", Icon: CheckCheck },
+	approved: { label: "Approved", tone: "text-success", Icon: Checks },
 	waiting: { label: "Review requested", tone: "text-warning", Icon: Circle },
 	changes: { label: "Changes requested", tone: "text-danger", Icon: X },
 	idle: { label: "No review requested", tone: "text-fg-muted", Icon: Circle },

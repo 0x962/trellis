@@ -1,6 +1,6 @@
+import { GitMerge, GitPullRequest } from "@phosphor-icons/react";
 import type { CiState, PrState } from "@trellis/api";
 import { cx } from "@trellis/ui";
-import { GitMerge, GitPullRequest, GitPullRequestClosed, GitPullRequestDraft } from "lucide-react";
 import type { ComponentType } from "react";
 
 export type PrStateIconProps = {
@@ -13,10 +13,10 @@ type Look = { label: string; tone: string; Icon: ComponentType<{ className?: str
 
 const looks: Record<"open" | "draft" | "blocked" | "merged" | "closed", Look> = {
 	open: { label: "Open", tone: "text-success", Icon: GitPullRequest },
-	draft: { label: "Draft", tone: "text-fg-muted", Icon: GitPullRequestDraft },
+	draft: { label: "Draft", tone: "text-fg-muted", Icon: GitPullRequest },
 	blocked: { label: "Blocked", tone: "text-danger", Icon: GitPullRequest },
 	merged: { label: "Merged", tone: "text-agent", Icon: GitMerge },
-	closed: { label: "Closed", tone: "text-danger", Icon: GitPullRequestClosed },
+	closed: { label: "Closed", tone: "text-danger", Icon: GitPullRequest },
 };
 
 // A merged or a closed pull request keeps its own look, because a check that

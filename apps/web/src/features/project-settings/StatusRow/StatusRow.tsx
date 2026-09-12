@@ -1,6 +1,6 @@
+import { ArrowDown, ArrowUp, CheckCircle, PencilSimple, Trash } from "@phosphor-icons/react";
 import type { ColorToken, Reviewer, Status } from "@trellis/api";
 import { Button, Checkbox, Input, Menu, Select, StatusIcon, Textarea } from "@trellis/ui";
-import { ArrowDown, ArrowUp, CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import { type FormEvent, useId, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { formatCount } from "../../../lib/format";
@@ -186,10 +186,10 @@ export function StatusRow({
 	};
 
 	const menuItems = [
-		{ label: "Edit", icon: <Pencil />, onSelect: onEdit },
+		{ label: "Edit", icon: <PencilSimple />, onSelect: onEdit },
 		status.isDefault
-			? { label: "Default status", icon: <CheckCircle2 />, disabled: true, onSelect: () => {} }
-			: { label: "Make default", icon: <CheckCircle2 />, onSelect: () => void makeDefault() },
+			? { label: "Default status", icon: <CheckCircle />, disabled: true, onSelect: () => {} }
+			: { label: "Make default", icon: <CheckCircle />, onSelect: () => void makeDefault() },
 		{ label: "Move up", icon: <ArrowUp />, disabled: index === 0, onSelect: () => onMove(index, index - 1) },
 		{
 			label: "Move down",
@@ -197,7 +197,7 @@ export function StatusRow({
 			disabled: index === count - 1,
 			onSelect: () => onMove(index, index + 1),
 		},
-		{ label: "Delete", icon: <Trash2 />, danger: true, onSelect: () => onDelete(status) },
+		{ label: "Delete", icon: <Trash />, danger: true, onSelect: () => onDelete(status) },
 	];
 	const summary = (
 		<>

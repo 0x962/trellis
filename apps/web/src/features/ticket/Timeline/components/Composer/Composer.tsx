@@ -1,6 +1,6 @@
+import { Paperclip } from "@phosphor-icons/react";
 import type { Comment, Ticket } from "@trellis/api";
 import { Button, cx, IconButton, Kbd, Tooltip, useHotkey } from "@trellis/ui";
-import { Paperclip } from "lucide-react";
 import { type ChangeEvent, type FocusEvent, type KeyboardEvent, useRef, useState } from "react";
 import { readActor } from "../../../../../lib/actor";
 import { useApp } from "../../../../../lib/appContext";

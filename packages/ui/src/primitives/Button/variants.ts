@@ -15,8 +15,7 @@ export type ButtonVariant = "primary" | "default" | "quiet" | "danger" | "danger
 // dialog or popover that confirms it. Every other delete button is
 // danger-soft, so a red fill never outranks the primary action on a page.
 export const buttonVariants: Record<ButtonVariant, string> = {
-	default:
-		"bg-control border-border-strong text-fg enabled:hover:bg-control-hover enabled:active:bg-control-active",
+	default: "bg-control border-border-strong text-fg enabled:hover:bg-control-hover enabled:active:bg-control-active",
 	primary: "metal enabled:hover:brightness-105 enabled:active:metal-pressed",
 	quiet:
 		"bg-transparent border-transparent text-fg-muted enabled:hover:bg-fg/6 enabled:hover:text-fg enabled:active:bg-fg/10",
@@ -24,6 +23,11 @@ export const buttonVariants: Record<ButtonVariant, string> = {
 	"danger-soft":
 		"bg-control border-border-strong text-danger enabled:hover:bg-danger-soft enabled:hover:border-danger enabled:active:brightness-95",
 };
+
+// A toggle that is on: the soft accent fill inside the accent ring. It
+// replaces the variant classes while the toggle is on, so the ring shows
+// on every variant and the hover keeps the fill.
+export const pressedLook = "bg-accent-soft border-accent text-fg enabled:active:brightness-95";
 
 // Every disabled control has one look: a faint label and no hover. A variant
 // with a ground also takes the surface and the quiet border. Primary drops

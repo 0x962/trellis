@@ -1,6 +1,6 @@
+import { SlidersHorizontal, SortAscending, SortDescending } from "@phosphor-icons/react";
 import type { Sort } from "@trellis/api";
-import { cx, IconButton, Popover, Segmented, Select, SortGlyph, Switch, Tooltip } from "@trellis/ui";
-import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
+import { cx, IconButton, Popover, Segmented, Select, Switch, Tooltip } from "@trellis/ui";
 import { type Density, uiActions, useUiStore } from "../../../stores/uiStore";
 import type { Group, View } from "../../filters/grammar";
 import { alwaysVisible, type ColumnId, columnLabels, columnOrder } from "../columns";
@@ -77,7 +77,7 @@ export function DisplayPopover({
 			label="Display"
 			align="end"
 			className="w-75 p-3"
-			trigger={<IconButton label="Display" icon={<SortGlyph />} size="sm" />}
+			trigger={<IconButton label="Display" icon={<SlidersHorizontal />} size="sm" />}
 		>
 			<div className="flex flex-col gap-3">
 				<section className="flex flex-col gap-1.5">
@@ -125,7 +125,7 @@ export function DisplayPopover({
 								<IconButton
 									size="xs"
 									label="Sort direction"
-									icon={descending ? <ArrowDownWideNarrow /> : <ArrowUpNarrowWide />}
+									icon={descending ? <SortDescending /> : <SortAscending />}
 									onClick={() => setSort(field.value, !descending)}
 								/>
 							</Tooltip>

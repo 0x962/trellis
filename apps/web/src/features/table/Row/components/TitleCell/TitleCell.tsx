@@ -1,5 +1,5 @@
+import { Chat, Paperclip } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
-import { MessageSquare, Paperclip } from "lucide-react";
 import { formatCount } from "../../../../../lib/format";
 
 export type TitleCellProps = {
@@ -56,7 +56,7 @@ export function TitleCell({ ticket }: TitleCellProps) {
 					aria-label={plural(commentCount, "comment")}
 					className="inline-flex shrink-0 items-center gap-0.5 text-xs text-fg-muted tabular"
 				>
-					<MessageSquare aria-hidden="true" className="size-2.75" />
+					<Chat aria-hidden="true" className="size-2.75" />
 					{formatCount(commentCount)}
 				</span>
 			)}

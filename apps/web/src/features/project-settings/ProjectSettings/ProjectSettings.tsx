@@ -1,6 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
-import { Archive, FileText, FolderTree, GitBranch, ListTodo, Settings2 } from "lucide-react";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { ProjectDetailsForm } from "../ProjectDetailsForm";
 import { ProjectLifecycle } from "../ProjectLifecycle";
@@ -12,12 +11,12 @@ import { TicketTemplateSettings } from "../TicketTemplateSettings";
 export type ProjectSettingsProps = { project: Project };
 
 const sections = [
-	{ id: "", label: "General", icon: Settings2, component: ProjectDetailsForm },
-	{ id: "template", label: "Ticket template", icon: FileText, component: TicketTemplateSettings },
-	{ id: "statuses", label: "Statuses", icon: ListTodo, component: StatusSettings },
-	{ id: "repositories", label: "Repositories", icon: GitBranch, component: RepoSettings },
-	{ id: "subprojects", label: "Subprojects", icon: FolderTree, component: SubprojectSettings },
-	{ id: "archive", label: "Danger Zone", icon: Archive, component: ProjectLifecycle },
+	{ id: "", label: "General", component: ProjectDetailsForm },
+	{ id: "template", label: "Ticket template", component: TicketTemplateSettings },
+	{ id: "statuses", label: "Statuses", component: StatusSettings },
+	{ id: "repositories", label: "Repositories", component: RepoSettings },
+	{ id: "subprojects", label: "Subprojects", component: SubprojectSettings },
+	{ id: "archive", label: "Danger Zone", component: ProjectLifecycle },
 ];
 
 export function ProjectSettings({ project }: ProjectSettingsProps) {
@@ -28,7 +27,7 @@ export function ProjectSettings({ project }: ProjectSettingsProps) {
 			<nav aria-label="Project settings" className="project-settings-nav">
 				<p className="project-settings-nav-title">Project settings</p>
 				<ul className="project-settings-nav-list">
-					{sections.map(({ id, label, icon: Icon }) => (
+					{sections.map(({ id, label }) => (
 						<li key={id}>
 							<Link
 								to="/p/$"
@@ -40,7 +39,6 @@ export function ProjectSettings({ project }: ProjectSettingsProps) {
 								aria-current={selected === id ? "page" : undefined}
 								className="project-settings-nav-link"
 							>
-								<Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.75} />
 								{label}
 							</Link>
 						</li>

@@ -1,5 +1,5 @@
+import { Warning } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle } from "lucide-react";
 import { useApp } from "../../../../../lib/appContext";
 import { ghCopy } from "../../../../../lib/ghCopy";
 import { CliLine } from "../../../../shell/CliLine";
@@ -14,7 +14,7 @@ export function GhBanner() {
 	const copy = ghCopy[gh.reason ?? "error"];
 	return (
 		<div data-gh-banner="" role="alert" className="flex min-h-8 flex-wrap items-center gap-2">
-			<AlertTriangle aria-hidden="true" className="size-3.5 shrink-0 text-warning" />
+			<Warning aria-hidden="true" className="size-3.5 shrink-0 text-warning" />
 			<span className="text-sm text-fg-muted">{copy.line}</span>
 			{copy.command !== null && <CliLine command={copy.command} />}
 		</div>

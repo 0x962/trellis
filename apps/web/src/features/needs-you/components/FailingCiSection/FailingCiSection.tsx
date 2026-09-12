@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { X } from "@phosphor-icons/react";
 import { useInbox } from "../../hooks/useInbox";
 import { useSectionOpen } from "../../hooks/useSectionOpen";
 import { InboxSection } from "../InboxSection";

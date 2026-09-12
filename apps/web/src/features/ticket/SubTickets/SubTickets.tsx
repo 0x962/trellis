@@ -1,6 +1,6 @@
+import { GitPullRequest, Plus } from "@phosphor-icons/react";
 import type { Ticket, TicketSummary } from "@trellis/api";
 import { Avatar, Button, CheckRibbon, PriorityIcon, SectionHeader, StatusIcon, TicketId } from "@trellis/ui";
-import { GitPullRequestArrow, Plus } from "lucide-react";
 import { compactRelativeTime } from "../../../lib/format";
 import { composerActions } from "../../composer";
 import { useOpenTicket } from "../hooks/useOpenTicket";
@@ -95,7 +95,7 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 			<span className="flex w-16 shrink-0 items-center gap-1">
 				{pr !== null && (
 					<span role="img" aria-label={prLabel(pr)} className="inline-flex items-center gap-1 text-fg-muted">
-						<GitPullRequestArrow className="size-3.5" aria-hidden="true" />
+						<GitPullRequest className="size-3.5" aria-hidden="true" />
 						<CheckRibbon size="mini" checks={badgeChecks(pr)} />
 					</span>
 				)}

@@ -1,6 +1,6 @@
+import { CaretRight } from "@phosphor-icons/react";
 import type { Activity } from "@trellis/api";
 import { ActorChip, Button } from "@trellis/ui";
-import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { isLiveActor } from "../../../../../lib/actorLive";
 import { compactRelativeTime } from "../../../../../lib/format";
@@ -35,7 +35,7 @@ export function RunLine({ items, reviewer }: RunLineProps) {
 				/>
 			)}
 			<span className="min-w-0 truncate"> {describeRun(items)}</span>
-			<Button variant="quiet" icon={<ChevronRight />} aria-expanded={false} onClick={() => setOpen(true)}>
+			<Button variant="quiet" icon={<CaretRight />} aria-expanded={false} onClick={() => setOpen(true)}>
 				{items.length} changes
 			</Button>
 			<time dateTime={last.createdAt} className="ml-auto shrink-0 text-fg-muted tabular">

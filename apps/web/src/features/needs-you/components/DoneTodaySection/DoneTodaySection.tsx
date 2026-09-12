@@ -1,5 +1,5 @@
+import { CaretDown } from "@phosphor-icons/react";
 import { StatusIcon } from "@trellis/ui";
-import { ChevronDown } from "lucide-react";
 import { formatCount } from "../../../../lib/format";
 import { useInbox } from "../../hooks/useInbox";
 import { useSectionOpen } from "../../hooks/useSectionOpen";
@@ -21,7 +21,7 @@ export function DoneTodaySection() {
 			hint={
 				<>
 					{open ? "Hide" : `Show ${formatCount(section.total)}`}
-					<ChevronDown aria-hidden="true" className="size-3" />
+					<CaretDown aria-hidden="true" className="size-3" />
 				</>
 			}
 			open={open}

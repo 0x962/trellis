@@ -1,7 +1,7 @@
+import { Chat, GitPullRequest } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { TicketSummary } from "@trellis/api";
 import { Avatar, type Check, CheckRibbon, cx, PriorityIcon, StatusIcon, TicketId } from "@trellis/ui";
-import { GitPullRequest, MessageSquare } from "lucide-react";
 import { compactRelativeTime } from "../../../../lib/format";
 
 export type InboxRowProps = {
@@ -58,7 +58,7 @@ export function InboxRow({ ticket, showStatus = true }: InboxRowProps) {
 						title="Comments"
 						className="flex shrink-0 items-center gap-1 text-xs text-fg-muted tabular"
 					>
-						<MessageSquare className="size-3" aria-hidden="true" />
+						<Chat className="size-3" aria-hidden="true" />
 						{ticket.commentCount}
 					</span>
 				)}

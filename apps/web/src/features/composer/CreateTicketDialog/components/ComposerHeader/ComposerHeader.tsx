@@ -1,5 +1,5 @@
+import { X } from "@phosphor-icons/react";
 import { IconButton } from "@trellis/ui";
-import { X } from "lucide-react";
 import { projectSlashPath } from "../../../../../lib/projectPath";
 import { ProjectKey } from "../../../../shell/ProjectKey";
 

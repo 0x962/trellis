@@ -1,5 +1,5 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
-import { Check, ChevronDown } from "lucide-react";
+import { CaretDown, Check } from "@phosphor-icons/react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
 import { popupMotion } from "../../utils/popupMotion";
@@ -53,7 +53,7 @@ export function Select<Value extends string>({
 			>
 				<BaseSelect.Value placeholder={placeholder} className="min-w-0 truncate" />
 				<BaseSelect.Icon className="inline-flex size-3.5 shrink-0 text-fg-faint *:size-full">
-					<ChevronDown />
+					<CaretDown />
 				</BaseSelect.Icon>
 			</BaseSelect.Trigger>
 			<BaseSelect.Portal>

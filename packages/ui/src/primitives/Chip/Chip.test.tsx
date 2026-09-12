@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
+import { Funnel } from "@phosphor-icons/react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Filter } from "lucide-react";
 import { expectClasses, expectHitArea } from "../../../test/classes";
 import { Chip } from "./Chip";
 
@@ -9,7 +9,7 @@ describe("Chip", () => {
 	test("filter chip with optional remove button", async () => {
 		const user = userEvent.setup();
 		const onRemove = mock();
-		const { rerender } = render(<Chip icon={<Filter />} label="Status" value="In Progress" onRemove={onRemove} />);
+		const { rerender } = render(<Chip icon={<Funnel />} label="Status" value="In Progress" onRemove={onRemove} />);
 		const label = screen.getByText("Status");
 		const chip = screen.getByText("In Progress").parentElement!;
 		expect(chip.contains(label)).toBe(true);
@@ -23,7 +23,7 @@ describe("Chip", () => {
 		await user.click(remove);
 		expect(onRemove).toHaveBeenCalledTimes(1);
 
-		rerender(<Chip icon={<Filter />} label="Status" value="In Progress" />);
+		rerender(<Chip icon={<Funnel />} label="Status" value="In Progress" />);
 		expect(screen.queryByRole("button")).toBeNull();
 	});
 });

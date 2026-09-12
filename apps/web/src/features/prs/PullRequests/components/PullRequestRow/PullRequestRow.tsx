@@ -1,6 +1,6 @@
+import { ArrowSquareOut, Warning } from "@phosphor-icons/react";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
 import { cx, IconButton } from "@trellis/ui";
-import { ExternalLink, TriangleAlert } from "lucide-react";
 import { tabularClass } from "../../../../../lib/format";
 import { DiffLink } from "./components/DiffLink";
 import { PrStateIcon } from "./components/PrStateIcon";
@@ -39,13 +39,13 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 			</span>
 			{pr.fetchError !== null && (
 				<span data-pr-stale="" title={pr.fetchError} className="relative shrink-0 text-warning">
-					<TriangleAlert className="size-4" aria-hidden={true} />
+					<Warning className="size-4" aria-hidden={true} />
 					<span className="sr-only">The last read from GitHub failed, so these fields are old.</span>
 				</span>
 			)}
 			<IconButton
 				label="Open on GitHub"
-				icon={<ExternalLink />}
+				icon={<ArrowSquareOut />}
 				size="xs"
 				className="relative opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
 				onClick={() => window.open(pr.url, "_blank", "noopener")}

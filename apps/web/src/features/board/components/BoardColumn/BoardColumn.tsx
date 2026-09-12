@@ -1,5 +1,5 @@
+import { CaretRight, DotsThree, Plus } from "@phosphor-icons/react";
 import { Button, cx, IconButton, Menu, StatusIcon } from "@trellis/ui";
-import { ChevronRight, MoreHorizontal, Plus } from "lucide-react";
 import { type KeyboardEvent, useCallback, useRef } from "react";
 import { useBoardAutoScroll, useColumnDnd } from "../../hooks/useBoardDnd";
 import type { BoardColumnModel } from "../../types";
@@ -82,7 +82,7 @@ export function BoardColumn({
 				)}
 			>
 				<li role="none" className="contents">
-					<IconButton label={`Expand ${column.name}`} icon={<ChevronRight />} size="xs" onClick={onToggle} />
+					<IconButton label={`Expand ${column.name}`} icon={<CaretRight />} size="xs" onClick={onToggle} />
 					<StatusIcon category={column.category} reviewer={reviewer} />
 					<span className="mt-2 [writing-mode:vertical-rl] text-sm font-medium text-fg-muted">
 						{column.name} <span className="tabular">{count}</span>
@@ -115,7 +115,7 @@ export function BoardColumn({
 					<IconButton label={`New ticket in ${column.name}`} icon={<Plus />} size="xs" round onClick={onNewTicket} />
 					<Menu
 						label={`${column.name} actions`}
-						trigger={<IconButton label={`${column.name} actions`} icon={<MoreHorizontal />} size="xs" />}
+						trigger={<IconButton label={`${column.name} actions`} icon={<DotsThree />} size="xs" />}
 						items={[{ label: "Collapse", onSelect: onToggle }]}
 					/>
 				</span>

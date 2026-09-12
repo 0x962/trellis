@@ -1,6 +1,6 @@
+import { ArrowElbowDownRight, Clock, FolderOpen, GitPullRequest, User } from "@phosphor-icons/react";
 import type { StatusSummary } from "@trellis/api";
 import { Chip, PriorityIcon, StatusIcon } from "@trellis/ui";
-import { Clock, CornerDownRight, FolderOpen, GitPullRequestArrow, User } from "lucide-react";
 import type { ReactElement } from "react";
 import {
 	type FilterField,
@@ -36,10 +36,10 @@ const iconOf = (field: FilterField, values: string[], statuses: readonly StatusS
 		case "project":
 			return <FolderOpen />;
 		case "parent":
-			return <CornerDownRight />;
+			return <ArrowElbowDownRight />;
 		case "pr":
 		case "ci":
-			return <GitPullRequestArrow />;
+			return <GitPullRequest />;
 		case "updated":
 		case "created":
 			return <Clock />;

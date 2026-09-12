@@ -1,4 +1,4 @@
-import { Check, Copy, Pencil, X } from "lucide-react";
+import { Check, Copy, PencilSimple, X } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Button } from "../../../primitives/Button";
 import { Command } from "../../../primitives/Command";
@@ -35,7 +35,7 @@ export function OverlaySections() {
 				<Menu
 					label="Actions"
 					items={[
-						{ label: "Edit", icon: <Pencil />, kbd: "e", onSelect: () => toast("Edit") },
+						{ label: "Edit", icon: <PencilSimple />, kbd: "e", onSelect: () => toast("Edit") },
 						{ label: "Copy link", icon: <Copy />, onSelect: () => toast("Copied") },
 						{ label: "Delete", icon: <X />, danger: true, onSelect: () => toast("Deleted") },
 						{ label: "Archive", disabled: true, onSelect: () => {} },

@@ -1,6 +1,6 @@
+import { GitMerge, GitPullRequest } from "@phosphor-icons/react";
 import type { CiState, TicketSummary } from "@trellis/api";
 import { type Check, CheckRibbon, cx } from "@trellis/ui";
-import { GitMerge, GitPullRequestArrow, GitPullRequestClosed } from "lucide-react";
 import type { Density } from "../../../../../stores/uiStore";
 
 export type PrCellProps = {
@@ -9,9 +9,9 @@ export type PrCellProps = {
 };
 
 const icons = {
-	open: { Icon: GitPullRequestArrow, className: "text-success", label: "PR open" },
+	open: { Icon: GitPullRequest, className: "text-success", label: "PR open" },
 	merged: { Icon: GitMerge, className: "text-agent", label: "PR merged" },
-	closed: { Icon: GitPullRequestClosed, className: "text-danger", label: "PR closed" },
+	closed: { Icon: GitPullRequest, className: "text-danger", label: "PR closed" },
 } as const;
 
 const dots: Record<CiState, string> = {
