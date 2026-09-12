@@ -1,5 +1,15 @@
 import { sql } from "drizzle-orm";
-import { check, doublePrecision, foreignKey, index, integer, pgTable, text, unique } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	check,
+	doublePrecision,
+	foreignKey,
+	index,
+	integer,
+	pgTable,
+	text,
+	unique,
+} from "drizzle-orm/pg-core";
 import { checkIn, FLOW_BRANCHES, FLOW_NODE_KINDS } from "../enums.ts";
 import { at } from "./actors.ts";
 import { personas } from "./personas.ts";
@@ -29,7 +39,7 @@ export const flows = pgTable(
 	],
 );
 
-// One step of a flow. A node inside a budget or a loop names that group in
+// One step of a flow. A node inside a group or a loop names that group in
 // `parent_id`. The composite foreign key keeps the group inside the same
 // flow, and the delete of a group deletes every node inside it. The service
 // checks that the parent is a group kind, because a CHECK cannot read the
@@ -48,6 +58,7 @@ export const flowNodes = pgTable(
 		title: text().notNull(),
 		personaId: text("persona_id").references(() => personas.id, { onDelete: "set null" }),
 		instruction: text().notNull().default(""),
+		parallel: boolean().notNull().default(false),
 		minutes: integer(),
 		maxRounds: integer("max_rounds"),
 		x: doublePrecision().notNull(),
@@ -64,12 +75,13 @@ export const flowNodes = pgTable(
 		}).onDelete("cascade"),
 		check("flow_nodes_parent_check", sql`${t.parentId} <> ${t.id}`),
 		checkIn(t.kind, FLOW_NODE_KINDS),
-		check("flow_nodes_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 120`),
+		check("flow_nodes_title_check", sql`length(${t.title}) <= 120`),
 		check("flow_nodes_instruction_check", sql`length(${t.instruction}) <= 200000`),
 		check(
 			"flow_nodes_minutes_check",
-			sql`(${t.kind} = 'budget') = (${t.minutes} IS NOT NULL) AND (${t.minutes} IS NULL OR ${t.minutes} BETWEEN 1 AND 1440)`,
+			sql`(${t.kind} = 'group' OR ${t.minutes} IS NULL) AND (${t.minutes} IS NULL OR ${t.minutes} BETWEEN 1 AND 1440)`,
 		),
+		check("flow_nodes_parallel_check", sql`${t.kind} = 'group' OR ${t.parallel} = false`),
 		check(
 			"flow_nodes_max_rounds_check",
 			sql`(${t.kind} = 'loop') = (${t.maxRounds} IS NOT NULL) AND (${t.maxRounds} IS NULL OR ${t.maxRounds} BETWEEN 1 AND 50)`,

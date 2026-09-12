@@ -6,16 +6,17 @@ import type { CanvasNode } from "../../flowDraft";
 
 const sides = [Position.Top, Position.Right, Position.Bottom, Position.Left] as const;
 
-// A budget or a loop, drawn as an outline that holds other nodes. The box has
-// no fill, so the canvas and the wires behind it stay visible. A wire into or
-// out of the box connects the box as one step. A selected box shows corner
-// handles to resize it.
+// A transparent outline keeps the child steps and their wires visible.
+// A selected group shows corner handles to resize it.
 export function BoxNode({ id, data, selected }: NodeProps<CanvasNode>) {
-	const { issues } = useFlowEditor();
+	const { issues, unconnected } = useFlowEditor();
 	const { fields } = data;
 	const meta = flowKinds[fields.kind];
 	const issue = issues.get(id);
-	const limit = fields.kind === "budget" ? `${fields.minutes} min` : `${fields.maxRounds} rounds at most`;
+	const limit =
+		fields.kind === "group"
+			? `${fields.parallel ? "Parallel" : "Connected"}${fields.minutes === null ? "" : ` · ${fields.minutes} min`}`
+			: `${fields.maxRounds} rounds at most`;
 	return (
 		<div
 			title={issue}
@@ -32,9 +33,8 @@ export function BoxNode({ id, data, selected }: NodeProps<CanvasNode>) {
 				<span className="truncate text-fg-muted">{fields.title}</span>
 				<span className="ml-auto shrink-0 tabular-nums">{limit}</span>
 			</header>
-			{sides.map((side) => (
-				<Handle key={side} type="source" position={side} id={`out-${side}`} />
-			))}
+			{!unconnected.has(id) &&
+				sides.map((side) => <Handle key={side} type="source" position={side} id={`out-${side}`} />)}
 		</div>
 	);
 }

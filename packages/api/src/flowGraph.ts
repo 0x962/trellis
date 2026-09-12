@@ -1,9 +1,12 @@
 import { type FlowEdgeInput, type FlowNodeInput, flowAgentKinds, flowGroupKinds } from "./schemas/flow.ts";
 
-// The fields of a flow graph that decide whether the graph is valid. The
-// server checks a graph with `validateFlowGraph` before a save writes it, and
-// the web editor shows the same issues while a person draws.
-export type FlowGraphNode = Pick<FlowNodeInput, "id" | "parentId" | "kind" | "personaId" | "instruction">;
+// `validateFlowGraph` checks parent links and edges before a save. The run
+// check also requires titles, instructions, and connected steps inside each
+// connected group. The editor shows these incomplete steps as draft issues.
+export type FlowGraphNode = Pick<
+	FlowNodeInput,
+	"id" | "parentId" | "kind" | "personaId" | "instruction" | "parallel" | "title"
+>;
 export type FlowGraphEdge = Pick<FlowEdgeInput, "id" | "fromNodeId" | "toNodeId" | "branch">;
 export type FlowGraph = { nodes: FlowGraphNode[]; edges: FlowGraphEdge[] };
 
@@ -18,13 +21,15 @@ export type FlowIssueCode =
 	| "branch-kind"
 	| "cross-group-edge"
 	| "cycle"
+	| "empty-title"
+	| "parallel-edge"
 	| "empty-prompt"
 	| "box-entry";
 
 // `nodeId` or `edgeId` names the row the issue is about.
 export type FlowIssue = { code: FlowIssueCode; nodeId?: string; edgeId?: string; message: string };
 
-export const validateFlowGraph = (graph: FlowGraph): FlowIssue[] => {
+export const validateFlowGraph = (graph: FlowGraph, purpose: "save" | "run" = "run"): FlowIssue[] => {
 	const issues: FlowIssue[] = [];
 	const nodes = new Map<string, FlowGraphNode>();
 	const ids = new Set<string>();
@@ -44,7 +49,7 @@ export const validateFlowGraph = (graph: FlowGraph): FlowIssue[] => {
 				message: "The node is inside a group that does not exist.",
 			});
 		} else if (!flowGroupKinds.has(parent.kind)) {
-			issues.push({ code: "parent-not-group", nodeId: node.id, message: "Only a budget or a loop can hold nodes." });
+			issues.push({ code: "parent-not-group", nodeId: node.id, message: "Only a group or a loop can hold nodes." });
 		} else if (insideItself(nodes, node)) {
 			issues.push({ code: "parent-cycle", nodeId: node.id, message: "The group is inside itself." });
 		}
@@ -89,6 +94,14 @@ export const validateFlowGraph = (graph: FlowGraph): FlowIssue[] => {
 			});
 			continue;
 		}
+		if (from.parentId !== null && nodes.get(from.parentId)?.parallel) {
+			issues.push({
+				code: "parallel-edge",
+				edgeId: edge.id,
+				message: "Connect the parallel group, not its child steps.",
+			});
+			continue;
+		}
 		valid.push(edge);
 	}
 	for (const edge of backEdges(graph.nodes, valid)) {
@@ -99,7 +112,10 @@ export const validateFlowGraph = (graph: FlowGraph): FlowIssue[] => {
 		});
 	}
 
+	if (purpose === "save") return issues;
+
 	for (const node of graph.nodes) {
+		if (node.title.trim() === "") issues.push({ code: "empty-title", nodeId: node.id, message: "Write a title." });
 		const blank = node.instruction.trim() === "";
 		if (node.kind === "human" && blank) {
 			issues.push({ code: "empty-prompt", nodeId: node.id, message: "Write what the person must decide." });
@@ -111,12 +127,12 @@ export const validateFlowGraph = (graph: FlowGraph): FlowIssue[] => {
 	// A box that holds steps starts at one of them, so a wire into the box has
 	// one step to reach.
 	for (const node of graph.nodes) {
-		if (!flowGroupKinds.has(node.kind) || !graph.nodes.some((child) => child.parentId === node.id)) continue;
+		if (!flowGroupKinds.has(node.kind) || node.parallel) continue;
 		if (entryNodes(graph, node.id).length !== 1)
 			issues.push({
 				code: "box-entry",
 				nodeId: node.id,
-				message: "A box starts at one step. Connect every other step inside it from that step.",
+				message: "A connected group needs one starting step. Connect every other child from that step.",
 			});
 	}
 	return issues;
