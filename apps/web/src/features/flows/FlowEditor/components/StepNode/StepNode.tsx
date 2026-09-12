@@ -31,6 +31,7 @@ export function StepNode({ id, data, selected }: NodeProps<CanvasNode>) {
 			title={issue}
 			className={cx(
 				"flex w-56 items-center gap-2 rounded-md border bg-elevated px-3 py-2 shadow-sm transition-colors duration-hover",
+				fields.kind === "gate" && "flow-node-hover-handles",
 				selected ? "border-accent" : issue !== undefined ? "border-danger" : "border-border",
 			)}
 		>

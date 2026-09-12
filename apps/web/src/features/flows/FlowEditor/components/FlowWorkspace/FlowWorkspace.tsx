@@ -140,6 +140,11 @@ export function FlowWorkspace({ doc, personas, onReload }: FlowWorkspaceProps) {
 						issue={issues.byRow.get(selected.id)}
 						personas={personas}
 						onChange={change}
+						onClose={() => {
+							setSelectedId(null);
+							setNodes((current) => current.map((node) => ({ ...node, selected: false })));
+						}}
+						saveState={saveText(autosave.status)}
 						onDelete={() => void rf.deleteElements({ nodes: [{ id: selected.id }] })}
 					/>
 				)}

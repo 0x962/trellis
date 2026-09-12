@@ -32,6 +32,7 @@ export { IconButton, type IconButtonProps } from "./primitives/IconButton";
 export { Input, type InputProps } from "./primitives/Input";
 export { Kbd, type KbdProps } from "./primitives/Kbd";
 export { Menu, type MenuItem, type MenuProps } from "./primitives/Menu";
+export { PickerButton } from "./primitives/PickerButton";
 export { Popover, type PopoverProps } from "./primitives/Popover";
 export { PowerToggle, type PowerToggleProps } from "./primitives/PowerToggle";
 export { ScrollArea, type ScrollAreaProps } from "./primitives/ScrollArea";
