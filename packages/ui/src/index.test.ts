@@ -44,6 +44,7 @@ const names = [
 	"SettingGlyph",
 	"FilterGlyph",
 	"SortGlyph",
+	"ShareGlyph",
 	"TrellisWordmark",
 	"useTheme",
 	"useReducedMotion",

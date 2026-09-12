@@ -1,7 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
 import type { StatusSummary } from "@trellis/api";
-import { FilterGlyph, IconButton, Menu, toast, useHotkey } from "@trellis/ui";
-import { Copy, Link2, Share2 } from "lucide-react";
+import { FilterGlyph, IconButton, Menu, ShareGlyph, toast, useHotkey } from "@trellis/ui";
+import { Copy, Link2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toCli } from "../cli";
 import { FilterChip } from "../FilterChip";
@@ -104,7 +104,7 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions }
 				{actions}
 				<Menu
 					label="Share"
-					trigger={<IconButton label="Share" icon={<Share2 />} size="md" />}
+					trigger={<IconButton label="Share" icon={<ShareGlyph />} size="md" />}
 					items={[
 						{ label: "Copy as CLI", icon: <Copy />, onSelect: () => void copyCli() },
 						{ label: "Copy link", icon: <Link2 />, onSelect: () => void copyLink() },
