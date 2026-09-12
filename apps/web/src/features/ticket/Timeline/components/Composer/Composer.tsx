@@ -97,7 +97,7 @@ export function Composer({ ticket, pinned = false, onAttachFiles }: ComposerProp
 				onBlur={onBlur}
 				className={cx(
 					"flex rounded-md border border-border bg-elevated px-3 transition-colors duration-hover ease-out",
-					open ? "flex-col gap-2 border-border-strong py-2" : "min-h-20 items-start gap-2 py-3",
+					open ? "flex-col gap-2 rounded-lg border-border-strong py-2" : "min-h-20 items-start gap-2 py-3",
 				)}
 			>
 				<textarea

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { TrellisMark } from "@trellis/ui";
+import { TrellisWordmark } from "@trellis/ui";
 import { Inbox, List, Search } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -27,8 +27,7 @@ export function ShellFrame({ children }: ShellFrameProps) {
 				className="flex h-full w-60 shrink-0 flex-col gap-0.5 border-r border-border bg-bg px-2 py-2.5 text-base max-md:hidden"
 			>
 				<div className="mb-1.5 flex h-7 items-center gap-2 pl-2">
-					<TrellisMark />
-					<span className="font-mono text-md font-medium text-fg">trellis</span>
+					<TrellisWordmark className="h-4.5" />
 				</div>
 				{rows.map((row) => (
 					<Link

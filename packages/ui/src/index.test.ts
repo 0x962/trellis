@@ -39,6 +39,7 @@ const names = [
 	"ActorChip",
 	"TicketId",
 	"TrellisMark",
+	"TrellisWordmark",
 	"useTheme",
 	"useReducedMotion",
 	"useHotkey",

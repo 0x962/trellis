@@ -25,7 +25,7 @@ export function DropTarget({ identifier, onFiles, children }: DropTargetProps) {
 			{target.over && (
 				<div
 					data-drop-overlay=""
-					className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center border-2 border-dashed border-accent bg-accent-soft text-md font-medium text-accent"
+					className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg border-2 border-dashed border-accent bg-accent-soft text-md font-medium text-accent"
 				>
 					Drop to attach to {identifier}
 				</div>

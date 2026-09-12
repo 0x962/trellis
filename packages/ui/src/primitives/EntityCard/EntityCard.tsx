@@ -15,13 +15,13 @@ export function EntityCard({ title, description, icon, footer, onEdit, editLabel
 	return (
 		<article
 			aria-label={title}
-			className="group flex min-w-0 flex-col gap-4 border border-border bg-surface p-4 transition-colors duration-hover hover:border-border-strong focus-within:border-accent"
+			className="group flex min-w-0 flex-col gap-4 rounded-lg border border-border bg-surface p-4 transition-colors duration-hover hover:border-border-strong focus-within:border-accent"
 		>
 			<div className="flex items-start gap-3">
 				{icon && (
 					<span
 						aria-hidden="true"
-						className="inline-flex size-8 shrink-0 items-center justify-center border border-border bg-bg text-fg-muted *:size-4"
+						className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-bg text-fg-muted *:size-4"
 					>
 						{icon}
 					</span>

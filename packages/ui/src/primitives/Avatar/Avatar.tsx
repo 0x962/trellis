@@ -35,7 +35,7 @@ export function Avatar({ kind, name, live = false, className }: AvatarProps) {
 				// this box must let its content spill. The corner radius cuts the
 				// background picture to shape on its own.
 				"relative inline-grid size-4.5 shrink-0 place-items-center select-none",
-				kind === "agent" ? "rounded-sm" : "rounded-sm bg-fg-muted text-surface text-initials font-semibold",
+				kind === "agent" ? "rounded-sm" : "rounded-round bg-fg-muted text-surface text-initials font-semibold",
 				className,
 			)}
 		>
@@ -43,7 +43,7 @@ export function Avatar({ kind, name, live = false, className }: AvatarProps) {
 			{live && (
 				<span
 					data-live=""
-					className="absolute -top-0.75 -right-0.75 size-1.75 rounded-sm border-2 border-surface bg-success animate-pulse-live motion-reduce:animate-none"
+					className="absolute -top-0.75 -right-0.75 size-1.75 rounded-round border-2 border-surface bg-success animate-pulse-live motion-reduce:animate-none"
 				/>
 			)}
 		</span>

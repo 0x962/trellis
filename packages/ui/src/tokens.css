@@ -191,11 +191,15 @@
 	--spacing: 4px;
 
 	--radius-*: initial;
-	--radius-sm: 0px;
-	--radius-md: 0px;
-	--radius-lg: 0px;
-	--radius-xl: 0px;
-	--radius-hairline: 0px;
+	/* One step per box size. hairline rounds a mark of a few pixels, sm a
+	   chip or a swatch, md a control 28 to 32 px tall, lg a card or a
+	   dialog, xl a sheet edge. round makes a circle of any square box. */
+	--radius-hairline: 3px;
+	--radius-sm: 6px;
+	--radius-md: 8px;
+	--radius-lg: 12px;
+	--radius-xl: 16px;
+	--radius-round: 999px;
 	--border-width-hairline: 1px;
 
 	--duration-hover: 120ms;

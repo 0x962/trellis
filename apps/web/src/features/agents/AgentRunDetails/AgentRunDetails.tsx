@@ -81,7 +81,7 @@ export function AgentRunDetails({ run: initial, heading = false }: AgentRunDetai
 				{run.url && (
 					<a
 						href={run.url}
-						className="ml-auto inline-flex min-h-7 items-center border border-border px-3 text-sm text-accent hover:bg-bg focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11"
+						className="ml-auto inline-flex min-h-7 items-center rounded-md border border-border px-3 text-sm text-accent hover:bg-bg focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11"
 					>
 						Open workspace
 					</a>

@@ -318,13 +318,18 @@ describe("tokens.css", () => {
 			);
 		}
 		expect(map["--spacing"]).toBe("4px");
-		expect(map["--radius-sm"]).toBe("0px");
-		expect(map["--radius-md"]).toBe("0px");
-		expect(map["--radius-lg"]).toBe("0px");
-		expect(map["--radius-xl"]).toBe("0px");
+		expect(map["--radius-hairline"]).toBe("3px");
+		expect(map["--radius-sm"]).toBe("6px");
+		expect(map["--radius-md"]).toBe("8px");
+		expect(map["--radius-lg"]).toBe("12px");
+		expect(map["--radius-xl"]).toBe("16px");
+		expect(map["--radius-round"]).toBe("999px");
 	});
 
-	test("every supported radius utility produces square corners, including directional utilities", async () => {
+	// A corner comes from the scale, never from a literal. Every radius
+	// utility the components use, including the directional ones, has to
+	// resolve to one step of the scale.
+	test("every supported radius utility resolves to a step of the scale", async () => {
 		const compiler = await compileTokens();
 		const candidates = [
 			"rounded-sm",
@@ -332,11 +337,13 @@ describe("tokens.css", () => {
 			"rounded-lg",
 			"rounded-xl",
 			"rounded-hairline",
+			"rounded-round",
 			"rounded-r-sm",
 			"rounded-t-xl",
 		];
 		const pieces = parseCss(compiler.build(candidates));
 		const map = theme(await tokens());
+		const scale = ["3px", "6px", "8px", "12px", "16px", "999px"];
 		for (const candidate of candidates) {
 			const rule = findBlock(pieces, `.${candidate}`);
 			expect(rule, candidate).toBeDefined();
@@ -344,7 +351,7 @@ describe("tokens.css", () => {
 			expect(radii.length, candidate).toBeGreaterThan(0);
 			for (const [property, value] of radii) {
 				const resolved = value.replace(/var\((--[\w-]+)\)/g, (_, name: string) => map[name]);
-				expect(resolved, `${candidate} ${property}`).toMatch(/^0(?:px)?$/);
+				expect(scale, `${candidate} ${property}`).toContain(resolved);
 			}
 		}
 	});

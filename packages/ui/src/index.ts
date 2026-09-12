@@ -4,6 +4,7 @@ export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/Pr
 export { type StatusCategory, StatusIcon, type StatusIconProps } from "./domain/StatusIcon";
 export { TicketId, type TicketIdProps } from "./domain/TicketId";
 export { TrellisMark, type TrellisMarkProps } from "./domain/TrellisMark";
+export { TrellisWordmark, type TrellisWordmarkProps } from "./domain/TrellisWordmark";
 export { type Hotkey, useHotkey } from "./hooks/useHotkey";
 export { useMediaQuery } from "./hooks/useMediaQuery";
 export { useReducedMotion } from "./hooks/useReducedMotion";

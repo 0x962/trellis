@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { cx, IconButton, Kbd, TrellisMark } from "@trellis/ui";
+import { cx, IconButton, Kbd, TrellisWordmark } from "@trellis/ui";
 import { Inbox, List, PanelLeftClose, Plus, Search, UserRound } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../../../lib/appContext";
@@ -69,10 +69,7 @@ export function SidebarBody({ onCollapse }: SidebarBodyProps) {
 	return (
 		<>
 			<div className="mb-4 flex h-8 items-center gap-2 pr-1 pl-2">
-				<span className="flex w-7 shrink-0 justify-center">
-					<TrellisMark />
-				</span>
-				<span className="font-mono text-md font-medium text-fg">trellis</span>
+				<TrellisWordmark className="h-4.5" />
 				<span className="ml-auto flex items-center">
 					{onCollapse && (
 						<IconButton size="sm" label="Collapse sidebar" icon={<PanelLeftClose />} onClick={onCollapse} />

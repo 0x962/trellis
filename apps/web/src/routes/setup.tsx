@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { TrellisMark } from "@trellis/ui";
+import { TrellisWordmark } from "@trellis/ui";
 import { NameStep } from "../features/setup/NameStep";
 import { ProjectStep } from "../features/setup/ProjectStep";
 import { StepDots } from "../features/setup/StepDots";
@@ -48,8 +48,7 @@ function SetupPage() {
 		<div className="flex h-full items-center justify-center bg-bg p-5 max-md:px-4">
 			<div className="flex w-100 max-w-full flex-col gap-6 rounded-lg border border-border bg-surface p-6 shadow-sm">
 				<div className="flex items-center gap-2">
-					<TrellisMark className="size-6" />
-					<span className="font-mono text-md font-medium text-fg">trellis</span>
+					<TrellisWordmark className="h-6" />
 					<StepDots current={actor === null ? 0 : 1} />
 				</div>
 				{actor === null ? (
