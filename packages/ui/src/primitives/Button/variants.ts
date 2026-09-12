@@ -15,8 +15,7 @@ export type ButtonVariant = "primary" | "default" | "quiet" | "danger" | "danger
 // dialog or popover that confirms it. Every other delete button is
 // danger-soft, so a red fill never outranks the primary action on a page.
 export const buttonVariants: Record<ButtonVariant, string> = {
-	default:
-		"bg-control border-border-strong text-fg enabled:hover:bg-control-hover enabled:active:bg-control-active",
+	default: "bg-control border-border-strong text-fg enabled:hover:bg-control-hover enabled:active:bg-control-active",
 	primary: "metal enabled:hover:brightness-105 enabled:active:metal-pressed",
 	quiet:
 		"bg-transparent border-transparent text-fg-muted enabled:hover:bg-fg/6 enabled:hover:text-fg enabled:active:bg-fg/10",
