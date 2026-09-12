@@ -32,6 +32,7 @@ describe("vite.config", () => {
 			const names = pluginNames(value.plugins);
 			expect(names.some((name) => name.startsWith("tanstack-router"))).toBe(true);
 			expect(names.some((name) => name.startsWith("@tailwindcss/vite"))).toBe(true);
+			expect(names).toContain("trellis-font-preloads");
 		}
 		expect(routerPluginOptions.autoCodeSplitting).toBe(true);
 		const ignore = new RegExp(routerPluginOptions.routeFileIgnorePattern);

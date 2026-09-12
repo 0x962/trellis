@@ -122,6 +122,9 @@ describe("bun run build", () => {
 		expect(preloads.some((href) => /jetbrains-mono-latin-400/.test(href))).toBe(true);
 		expect(preloads.some((href) => /jetbrains-mono-latin-500/.test(href))).toBe(true);
 		expect(preloads.some((href) => /jetbrains-mono-latin-600/.test(href))).toBe(true);
+		// Each preload names a file the build wrote, so the server sends the
+		// font and not the page.
+		for (const href of preloads) expect(assetFiles()).toContain(href.replace(/^\/assets\//, ""));
 		const entry = document.querySelector('script[type="module"][src]')!.getAttribute("src")!;
 		const entryName = entry.split("/").pop()!;
 		const chunks = assetFiles().filter((name) => name.endsWith(".js"));

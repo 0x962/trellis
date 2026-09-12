@@ -3,6 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type UserConfig } from "vite";
+import { fontPreloads } from "./scripts/fontPreloads";
 
 // Route files live beside their tests. The pattern keeps a `*.test.tsx`
 // out of the route tree, and every route becomes its own chunk.
@@ -23,7 +24,7 @@ const defaultApiUrl = "http://127.0.0.1:4521";
 export const createConfig = (env: Record<string, string | undefined>): UserConfig => {
 	const target = env.TRELLIS_API_URL ?? defaultApiUrl;
 	return {
-		plugins: [tanstackRouter(routerPluginOptions), react(), tailwindcss()],
+		plugins: [tanstackRouter(routerPluginOptions), react(), tailwindcss(), fontPreloads()],
 		build: {
 			rollupOptions: {
 				output: {
