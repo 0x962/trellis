@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { ulidPattern } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import * as comments from "../../../../src/services/comments.ts";
 import {
 	type ActorRef,
 	claude,
@@ -15,7 +16,6 @@ import {
 	seedTicket,
 } from "../../../fixtures";
 import { activityOf, expectErrorData, millis, query, ticketHarness, ticketRow } from "../../../helpers/services.ts";
-import * as comments from "../../../../src/services/comments.ts";
 
 const h = ticketHarness();
 

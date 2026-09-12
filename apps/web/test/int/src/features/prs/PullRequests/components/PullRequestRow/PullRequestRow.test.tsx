@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { PullRequestRow } from "../../../../../../../../src/features/prs/PullRequests/components/PullRequestRow/PullRequestRow";
 import { mockMatchMedia } from "../../../../../../../media";
 import {
 	callsTo,
@@ -15,7 +16,6 @@ import {
 } from "../../../../../../../prs";
 import { renderWithProviders } from "../../../../../../../renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../../../../server";
-import { PullRequestRow } from "../../../../../../../../src/features/prs/PullRequests/components/PullRequestRow/PullRequestRow";
 
 beforeEach(() => {
 	localStorage.clear();

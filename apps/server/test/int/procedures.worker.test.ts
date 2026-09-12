@@ -1,5 +1,5 @@
-import { originDir } from "../../../../test/originDir.ts";
 import { expect, test } from "bun:test";
+import { originDir } from "../../../../test/originDir.ts";
 
 // Each procedure file boots its own database worker in beforeAll. Under the
 // parallel load of `bun run check` a boot takes longer than the 5 s default

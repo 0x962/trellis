@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { DEFAULT_AGENT_LAUNCH_COMMAND, type Settings, SettingsSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import * as settings from "../../../../src/services/settings.ts";
 import { count } from "../../../fixtures";
 import { at, type Harness, minutesAgo, NOW, serviceHarness } from "../../../helpers/services.ts";
-import * as settings from "../../../../src/services/settings.ts";
 
 // Settings live one row per key with a jsonb value. `get` fills a missing
 // key with its default. `set` replaces the three values. A settings write

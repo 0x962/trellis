@@ -1,15 +1,15 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import { type Tx, withTx } from "../../../../src/db/tx.ts";
+import * as attachments from "../../../../src/services/attachments.ts";
+import * as pullRequests from "../../../../src/services/pullRequests.ts";
+import type { ServiceCtx } from "../../../../src/services/support.ts";
 import { count, linkPr, seedAttachment, seedChild, seedPr, seedProject, seedTicket } from "../../../fixtures";
 import { testCtx, withEmit } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { caught } from "../../../helpers/errors.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { type Tx, withTx } from "../../../../src/db/tx.ts";
-import * as attachments from "../../../../src/services/attachments.ts";
-import * as pullRequests from "../../../../src/services/pullRequests.ts";
-import type { ServiceCtx } from "../../../../src/services/support.ts";
 
 // An archived project, or one below an archived ancestor, accepts no
 // mutation. The attachment and pull request services refuse an upload, a

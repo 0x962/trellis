@@ -1,10 +1,10 @@
-import { originDir } from "../../../../../../../../test/originDir.ts";
 import { beforeEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import jsQR from "jsqr";
+import { originDir } from "../../../../../../../../test/originDir.ts";
 import { mockMatchMedia } from "../../../../../media";
 import { renderApp } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";

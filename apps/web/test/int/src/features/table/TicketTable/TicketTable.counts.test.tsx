@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { waitFor } from "@testing-library/react";
+import { formatCount } from "../../../../../../src/lib/format";
 import { renderApp } from "../../../../../renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../../server";
 import { findGrid, footer, groupCount, resetUi } from "../../../../../table";
 import { tableViewport } from "../../../../../viewport";
-import { formatCount } from "../../../../../../src/lib/format";
 
 const installViewport = tableViewport(600);
 

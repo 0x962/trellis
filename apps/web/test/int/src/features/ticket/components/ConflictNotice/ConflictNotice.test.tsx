@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Ticket } from "@trellis/api";
+import { ConflictNotice } from "../../../../../../../src/features/ticket/components/ConflictNotice/ConflictNotice";
+import { Title } from "../../../../../../../src/features/ticket/Title";
 import { conflictAt18, serverAt17 } from "../../../../../../conflict";
 import { fieldValue, renderTicket } from "../../../../../../ticketHost";
-import { Title } from "../../../../../../../src/features/ticket/Title";
-import { ConflictNotice } from "../../../../../../../src/features/ticket/components/ConflictNotice/ConflictNotice";
 
 beforeEach(() => localStorage.clear());
 

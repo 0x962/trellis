@@ -1,5 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import { fetchDiff } from "../../../../src/gh/diff.ts";
+import * as poller from "../../../../src/gh/poller.ts";
 import { graphqlReply, seedProject } from "../../../fixtures";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import {
@@ -12,8 +14,6 @@ import {
 	seedLinkedPr,
 	spawnKey,
 } from "../../../helpers/poller.ts";
-import { fetchDiff } from "../../../../src/gh/diff.ts";
-import * as poller from "../../../../src/gh/poller.ts";
 
 // One `gh api graphql` request carries up to 50 pull requests, so a tick
 // spawns one process per 50 due pull requests whatever number of repositories

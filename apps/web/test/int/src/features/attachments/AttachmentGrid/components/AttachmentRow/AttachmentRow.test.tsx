@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { within } from "@testing-library/react";
+import { AttachmentRow } from "../../../../../../../../src/features/attachments/AttachmentGrid/components/AttachmentRow/AttachmentRow";
+import { relativeTime } from "../../../../../../../../src/lib/format";
 import { attachmentOf } from "../../../../../../../attachments";
 import { renderWithProviders } from "../../../../../../../renderWithProviders";
-import { relativeTime } from "../../../../../../../../src/lib/format";
-import { AttachmentRow } from "../../../../../../../../src/features/attachments/AttachmentGrid/components/AttachmentRow/AttachmentRow";
 
 beforeEach(() => localStorage.clear());
 

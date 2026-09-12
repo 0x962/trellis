@@ -1,9 +1,9 @@
 import { describe, expect, mock, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ProjectPicker } from "../../../../../../src/features/pickers/ProjectPicker/ProjectPicker";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";
-import { ProjectPicker } from "../../../../../../src/features/pickers/ProjectPicker/ProjectPicker";
 
 // Two roots: CDE with web (and web/auth) and host, and TRL.
 const server = createTestServer();

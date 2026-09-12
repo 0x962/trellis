@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, waitFor } from "@testing-library/react";
+import { useSettingsDraft } from "../../../../../../../src/features/settings/hooks/useSettingsDraft/useSettingsDraft";
 import { interceptFetch } from "../../../../../../interceptFetch";
 import { mockMatchMedia } from "../../../../../../media";
 import { renderHookWithProviders } from "../../../../../../renderHook";
 import { createTestServer } from "../../../../../../server";
-import { useSettingsDraft } from "../../../../../../../src/features/settings/hooks/useSettingsDraft/useSettingsDraft";
 
 beforeEach(() => {
 	localStorage.clear();

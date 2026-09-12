@@ -1,13 +1,13 @@
-import { originDir } from "../../../../../../test/originDir.ts";
 import { afterAll, describe, expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { seedActors, seedRoot, seedStatuses } from "../../../fixtures";
-import { SEEDED_DESCRIPTIONS } from "../../../fixtures/statusDescriptions.ts";
+import { originDir } from "../../../../../../test/originDir.ts";
 import { openDb } from "../../../../src/db/client.ts";
 import { migrate } from "../../../../src/db/migrate.ts";
+import { seedActors, seedRoot, seedStatuses } from "../../../fixtures";
+import { SEEDED_DESCRIPTIONS } from "../../../fixtures/statusDescriptions.ts";
 
 // The migration 0013_remove_agents dropped the agent tables and rewrote the
 // seeded status descriptions. 0020_restore_agents undoes both. Migrations

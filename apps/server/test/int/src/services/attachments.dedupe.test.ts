@@ -2,14 +2,14 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 import { existsSync, readdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { sql } from "drizzle-orm";
+import { withTx } from "../../../../src/db/tx.ts";
+import { remove, upload } from "../../../../src/services/attachments.ts";
+import { blobPath } from "../../../../src/storage/blobs.ts";
 import { seedProject, seedTicket } from "../../../fixtures";
 import { testCtx, withEmit } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { freshHomeWithDirs, sha256Of } from "../../../helpers/home.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { withTx } from "../../../../src/db/tx.ts";
-import { blobPath } from "../../../../src/storage/blobs.ts";
-import { remove, upload } from "../../../../src/services/attachments.ts";
 
 // One blob serves every row with its sha256. A delete unlinks the blob only
 // when the row it removed was the last one on that sha.

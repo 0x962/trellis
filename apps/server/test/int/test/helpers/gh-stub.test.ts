@@ -1,7 +1,7 @@
-import { originDir } from "../../../../../../test/originDir.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { originDir } from "../../../../../../test/originDir.ts";
 import { ghStub } from "../../../helpers/gh-stub.ts";
 
 // ghStub points the gh runner at test/stubs/gh.ts for one test. It writes the

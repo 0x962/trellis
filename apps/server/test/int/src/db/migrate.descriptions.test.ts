@@ -1,12 +1,12 @@
-import { originDir } from "../../../../../../test/originDir.ts";
 import { afterAll, describe, expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
-import { seedActors, seedRoot, seedStatus, seedStatuses } from "../../../fixtures";
-import { SEEDED_DESCRIPTIONS } from "../../../fixtures/statusDescriptions.ts";
+import { originDir } from "../../../../../../test/originDir.ts";
 import { openDb } from "../../../../src/db/client.ts";
 import { migrate } from "../../../../src/db/migrate.ts";
+import { seedActors, seedRoot, seedStatus, seedStatuses } from "../../../fixtures";
+import { SEEDED_DESCRIPTIONS } from "../../../fixtures/statusDescriptions.ts";
 
 // A database that existed before the status descriptions gets the seeded
 // description on each status that carries a default name and category, and

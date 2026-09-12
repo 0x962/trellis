@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { themeStorageKey } from "@trellis/ui";
+import { ThemeField } from "../../../../../../src/features/settings/ThemeField/ThemeField";
 import { mockMatchMedia } from "../../../../../media";
 import { type createHarness, renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";
-import { ThemeField } from "../../../../../../src/features/settings/ThemeField/ThemeField";
 
 beforeEach(() => {
 	localStorage.clear();

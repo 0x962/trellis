@@ -3,13 +3,13 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
 import type { ReactElement } from "react";
+import { ActorNameField } from "../../../../../src/features/settings/ActorNameField";
+import { DiffTemplateField } from "../../../../../src/features/settings/DiffTemplateField";
+import { StalledThresholdField } from "../../../../../src/features/settings/StalledThresholdField";
 import { mockMatchMedia } from "../../../../media";
 import { renderWithProviders } from "../../../../renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../server";
 import { settle } from "../../../../ticketHost";
-import { ActorNameField } from "../../../../../src/features/settings/ActorNameField";
-import { DiffTemplateField } from "../../../../../src/features/settings/DiffTemplateField";
-import { StalledThresholdField } from "../../../../../src/features/settings/StalledThresholdField";
 
 beforeEach(() => {
 	localStorage.clear();

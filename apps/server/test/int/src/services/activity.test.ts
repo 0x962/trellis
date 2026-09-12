@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { ActivitySchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { record } from "../../../../src/services/activity.ts";
 import { claude, dana, seedActivity, seedProject, seedRoot, seedStatuses, seedTicket } from "../../../fixtures";
 import {
 	type ActivityRow,
@@ -11,7 +12,6 @@ import {
 	serviceHarness,
 	ULID,
 } from "../../../helpers/services.ts";
-import { record } from "../../../../src/services/activity.ts";
 
 // The activity writer is the one path onto the activity table. One call
 // writes one row per changed field under one batch id, stamped with the

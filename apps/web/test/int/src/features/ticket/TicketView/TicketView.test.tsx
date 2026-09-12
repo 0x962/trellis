@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { TicketView } from "../../../../../../src/features/ticket/TicketView/TicketView";
 import { dragFilesOver, dropFiles, fileOf, surfaceOf } from "../../../../../attachments";
 import { mockMatchMedia } from "../../../../../media";
 import { patchPr } from "../../../../../prs";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";
 import { fieldValue, renderTicket, settle } from "../../../../../ticketHost";
-import { TicketView } from "../../../../../../src/features/ticket/TicketView/TicketView";
 
 beforeEach(() => localStorage.clear());
 

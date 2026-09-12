@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { StatusSettings } from "../../../../../../src/features/project-settings/StatusSettings";
 import { mockMatchMedia } from "../../../../../media";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { statusesOf } from "../../../../../rows";
 import { createTestServer, type TestServer } from "../../../../../server";
-import { StatusSettings } from "../../../../../../src/features/project-settings/StatusSettings";
 
 // The markdown the manager agent reads to decide what to do with a ticket in
 // this status. The row editor holds it, and Save status writes it with the

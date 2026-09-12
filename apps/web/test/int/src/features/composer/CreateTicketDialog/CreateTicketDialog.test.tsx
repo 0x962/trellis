@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { type ComposerOptions, composerActions } from "../../../../../../src/features/composer/composerStore";
 import { renderApp } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";
 import { calls, findGrid, inputs, listCalls, queryRow, resetUi, rowOf, sleep, toastWith } from "../../../../../table";
 import { tableViewport } from "../../../../../viewport";
-import { type ComposerOptions, composerActions } from "../../../../../../src/features/composer/composerStore";
 
 const installViewport = tableViewport(800);
 

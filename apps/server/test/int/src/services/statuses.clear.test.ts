@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { StatusClearOutputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import * as statuses from "../../../../src/services/statuses.ts";
 import {
 	count,
 	seedActors,
@@ -13,7 +14,6 @@ import {
 } from "../../../fixtures";
 import { activityRows, expectError, type Harness, serviceHarness } from "../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import * as statuses from "../../../../src/services/statuses.ts";
 
 // A clear drops the own set of a sub-project, so it inherits the nearest
 // owner's set again, and remaps the tickets of its scope onto that set by

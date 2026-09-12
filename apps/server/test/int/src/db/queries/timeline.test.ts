@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { seedActivity, seedComment, seedProject, seedTicket } from "../../../../fixtures";
-import { freshDb, type TestDb } from "../../../../helpers/db.ts";
 import { InvalidCursorError } from "../../../../../src/db/queries/support.ts";
 import { timeline } from "../../../../../src/db/queries/timeline.ts";
+import { seedActivity, seedComment, seedProject, seedTicket } from "../../../../fixtures";
+import { freshDb, type TestDb } from "../../../../helpers/db.ts";
 
 let h: TestDb;
 beforeAll(async () => {

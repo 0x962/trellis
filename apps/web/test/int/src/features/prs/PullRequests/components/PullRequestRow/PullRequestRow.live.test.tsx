@@ -1,21 +1,12 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { waitFor } from "@testing-library/react";
 import { createEventApplier, MAX_WAIT_MS } from "@trellis/api";
+import { PullRequests } from "../../../../../../../../src/features/prs/PullRequests/PullRequests";
 import { createFakeScheduler } from "../../../../../../../fakeScheduler";
 import { mockMatchMedia } from "../../../../../../../media";
-import {
-	callsTo,
-	checkList,
-	firstPr,
-	linkPrCopy,
-	prRow,
-	stateOf,
-	summaryOf,
-	updatePr,
-} from "../../../../../../../prs";
+import { callsTo, checkList, firstPr, linkPrCopy, prRow, stateOf, summaryOf, updatePr } from "../../../../../../../prs";
 import { renderWithProviders } from "../../../../../../../renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../../../../server";
-import { PullRequests } from "../../../../../../../../src/features/prs/PullRequests/PullRequests";
 
 beforeEach(() => {
 	localStorage.clear();

@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { commandActions } from "../../../../../../src/features/command/commandStore";
+import { useComposerStore } from "../../../../../../src/features/composer";
+import { useUiStore } from "../../../../../../src/stores/uiStore";
 import { mockMatchMedia } from "../../../../../media";
 import {
 	openPalette,
@@ -12,9 +15,6 @@ import {
 	sectionNames,
 } from "../../../../../palette";
 import { createTestServer, type TestServer } from "../../../../../server";
-import { useUiStore } from "../../../../../../src/stores/uiStore";
-import { useComposerStore } from "../../../../../../src/features/composer";
-import { commandActions } from "../../../../../../src/features/command/commandStore";
 
 const user = () => userEvent.setup();
 

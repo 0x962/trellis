@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { act, waitFor } from "@testing-library/react";
 import type { FetchLike } from "@trellis/api";
 import { useState } from "react";
+import { useCommandSearch } from "../../../../../../../src/features/command/hooks/useCommandSearch/useCommandSearch";
 import { createFakeScheduler } from "../../../../../../fakeScheduler";
 import { mockMatchMedia } from "../../../../../../media";
 import { renderWithProviders } from "../../../../../../renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../../../server";
-import { useCommandSearch } from "../../../../../../../src/features/command/hooks/useCommandSearch/useCommandSearch";
 
 let setQuery: (query: string) => void = () => {};
 

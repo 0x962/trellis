@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { render, screen } from "@testing-library/react";
 import type { Activity } from "@trellis/api";
+import { ActivityLine } from "../../../../../../../../src/features/ticket/Timeline/components/ActivityLine/ActivityLine";
 import { batchId, projectId, ticketId } from "../../../../../../../fixtures";
 import { ago, hour } from "../../../../../../../ticketHost";
-import { ActivityLine } from "../../../../../../../../src/features/ticket/Timeline/components/ActivityLine/ActivityLine";
 
 const moved: Activity = {
 	id: 7,

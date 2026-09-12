@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import type { Status, TicketSummary } from "@trellis/api";
+import { groupRows } from "../../../../../../../src/features/table/utils/groupRows/groupRows";
 import { ticketSummary } from "../../../../../../fixtures";
 import { createTestServer } from "../../../../../../server";
-import { groupRows } from "../../../../../../../src/features/table/utils/groupRows/groupRows";
 
 const server = createTestServer();
 const { statuses } = await server.client.statuses.list({ project: "CDE" });

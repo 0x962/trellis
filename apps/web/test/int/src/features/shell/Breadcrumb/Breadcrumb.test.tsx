@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen } from "@testing-library/react";
-import { renderWithProviders } from "../../../../../renderWithProviders";
 import { Breadcrumb } from "../../../../../../src/features/shell/Breadcrumb/Breadcrumb";
+import { renderWithProviders } from "../../../../../renderWithProviders";
 
 beforeEach(() => localStorage.clear());
 

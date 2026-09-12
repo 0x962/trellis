@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { screen } from "@testing-library/react";
-import { renderWithProviders } from "../../../../../renderWithProviders";
 import { RouteError } from "../../../../../../src/features/shell/RouteError/RouteError";
+import { renderWithProviders } from "../../../../../renderWithProviders";
 
 const chunkError = new TypeError("Failed to fetch dynamically imported module: http://127.0.0.1:4521/assets/route.js");
 

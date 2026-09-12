@@ -2,15 +2,15 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
+import { usePeek } from "../../../../../../src/features/ticket/TicketPeek/hooks/usePeek";
+import { PeekListProvider } from "../../../../../../src/features/ticket/TicketPeek/providers/PeekListProvider";
+import { peekWidthStorageKey, TicketPeek } from "../../../../../../src/features/ticket/TicketPeek/TicketPeek";
 import { press } from "../../../../../keyboard";
 import { mockMatchMedia } from "../../../../../media";
 import { checkList, firstPr, updatePr } from "../../../../../prs";
 import { type ProviderOptions, renderWithProviders } from "../../../../../renderWithProviders";
 import { addActivity, patchTicket } from "../../../../../rows";
 import { ago, fieldValue, frames, minute, settle } from "../../../../../ticketHost";
-import { usePeek } from "../../../../../../src/features/ticket/TicketPeek/hooks/usePeek";
-import { PeekListProvider } from "../../../../../../src/features/ticket/TicketPeek/providers/PeekListProvider";
-import { peekWidthStorageKey, TicketPeek } from "../../../../../../src/features/ticket/TicketPeek/TicketPeek";
 
 // The visible list order the table shows. CDE-42 sits at index 3.
 const identifiers = ["CDE-45", "CDE-44", "CDE-43", "CDE-42", "CDE-41"];

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { TrellisEvent } from "@trellis/api";
+import * as tickets from "../../../../src/services/tickets.ts";
 import { count, dana, seedChild, seedProject, seedRoot, seedStatuses, seedTicket } from "../../../fixtures";
 import {
 	activityOf,
@@ -10,7 +11,6 @@ import {
 	traceRows,
 } from "../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import * as tickets from "../../../../src/services/tickets.ts";
 
 const h = ticketHarness();
 

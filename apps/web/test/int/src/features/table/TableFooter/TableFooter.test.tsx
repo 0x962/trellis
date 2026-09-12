@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { render } from "@testing-library/react";
-import { footer } from "../../../../../table";
 import { TableFooter } from "../../../../../../src/features/table/TableFooter/TableFooter";
+import { footer } from "../../../../../table";
 
 const text = () => footer().textContent!.replace(/\s+/g, " ");
 

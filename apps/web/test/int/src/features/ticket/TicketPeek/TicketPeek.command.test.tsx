@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
-import { mockMatchMedia } from "../../../../../media";
-import { renderWithProviders } from "../../../../../renderWithProviders";
 import { commandActions, useCommandStore } from "../../../../../../src/features/command/commandStore";
 import { PeekListProvider } from "../../../../../../src/features/ticket/TicketPeek/providers/PeekListProvider";
 import { TicketPeek } from "../../../../../../src/features/ticket/TicketPeek/TicketPeek";
+import { mockMatchMedia } from "../../../../../media";
+import { renderWithProviders } from "../../../../../renderWithProviders";
 
 const rows = ["CDE-44", "CDE-42"].map((identifier) => ({ identifier, visible: true }));
 

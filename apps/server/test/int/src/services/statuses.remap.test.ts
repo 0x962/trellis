@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import { remapScope } from "../../../../src/services/statuses.ts";
 import { hoursAgo, seedChild, seedProject, seedStatus, seedStatuses, seedTicket } from "../../../fixtures";
 import { activityRows, at, type Harness, NOW, serviceHarness } from "../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { remapScope } from "../../../../src/services/statuses.ts";
 
 // `remapScope` restores the status invariant for the tickets of a scope:
 // the project and every descendant below it that owns no statuses. Each

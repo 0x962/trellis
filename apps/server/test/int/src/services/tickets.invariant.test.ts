@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import * as tickets from "../../../../src/services/tickets.ts";
 import { dana, seedChild, seedProject, seedStatuses } from "../../../fixtures";
 import { ticketHarness } from "../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import * as tickets from "../../../../src/services/tickets.ts";
 
 const h = ticketHarness();
 

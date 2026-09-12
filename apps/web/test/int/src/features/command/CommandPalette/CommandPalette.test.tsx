@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { commandActions } from "../../../../../../src/features/command/commandStore";
 import { createFakeScheduler } from "../../../../../fakeScheduler";
 import { mockMatchMedia } from "../../../../../media";
 import {
@@ -16,7 +17,6 @@ import {
 	sectionNames,
 } from "../../../../../palette";
 import { createTestServer } from "../../../../../server";
-import { commandActions } from "../../../../../../src/features/command/commandStore";
 
 const ticketItems = [
 	"Change status",

@@ -1,9 +1,9 @@
-import { originDir } from "../../originDir.ts";
 import { afterAll, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { join } from "node:path";
 import type { Subprocess } from "bun";
+import { originDir } from "../../originDir.ts";
 
 // The README is a script as well as a document. A fenced block with the info
 // string `sh test` runs here, in README order, against a temp data home and a

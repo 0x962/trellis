@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { dana, seedProject, seedTicket } from "../../../fixtures";
-import { expectErrorData, ticketHarness } from "../../../helpers/services.ts";
 import { timeline } from "../../../../src/db/queries/timeline.ts";
 import { get as brief } from "../../../../src/services/brief.ts";
 import * as comments from "../../../../src/services/comments.ts";
+import { dana, seedProject, seedTicket } from "../../../fixtures";
+import { expectErrorData, ticketHarness } from "../../../helpers/services.ts";
 
 const h = ticketHarness();
 const seed = async () => {

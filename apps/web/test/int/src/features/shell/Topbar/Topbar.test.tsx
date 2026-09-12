@@ -1,12 +1,12 @@
-import { originDir } from "../../../../../../../../test/originDir.ts";
 import { beforeEach, describe, expect, test } from "bun:test";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { originDir } from "../../../../../../../../test/originDir.ts";
+import { createUiStore, useUiStore } from "../../../../../../src/stores/uiStore";
 import { mockMatchMedia } from "../../../../../media";
 import { renderApp } from "../../../../../renderWithProviders";
-import { createUiStore, useUiStore } from "../../../../../../src/stores/uiStore";
 
 beforeEach(() => {
 	localStorage.clear();
@@ -76,4 +76,3 @@ describe("features/shell/Topbar", () => {
 		expect(headings.filter((heading) => !heading.endsWith(": text-lg"))).toEqual([]);
 	});
 });
-"

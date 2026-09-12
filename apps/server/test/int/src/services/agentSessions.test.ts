@@ -1,10 +1,10 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { AGENT_PERSON_NAMES } from "@trellis/api";
 import { ulid } from "ulid";
+import { reserveName } from "../../../../src/services/agentSessions.ts";
 import { insertRow, seedProject, seedRootWithStatuses, seedTicket } from "../../../fixtures";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { reserveName } from "../../../../src/services/agentSessions.ts";
 
 // reserveName gives a new agent the person name that a human calls it by.
 // The live agents of one project hold different names, so a name names one

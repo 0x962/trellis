@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { attachmentOf } from "../../../../../../attachments";
 import { attachmentMarkdown } from "../../../../../../../src/features/attachments/utils/attachmentMarkdown/attachmentMarkdown";
+import { attachmentOf } from "../../../../../../attachments";
 
 describe("attachmentMarkdown", () => {
 	// OUT-45. An image pasted into a description renders as a picture, so

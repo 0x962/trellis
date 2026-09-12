@@ -4,13 +4,13 @@ import "@atlaskit/pragmatic-drag-and-drop-unit-testing/dom-rect-polyfill";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { applyEvent } from "@trellis/api";
+import { Board } from "../../../../../../src/features/board/Board";
+import { useComposerStore } from "../../../../../../src/features/composer/composerStore";
+import { useUiStore } from "../../../../../../src/stores/uiStore";
 import { summaryOf } from "../../../../../events";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { matchStatus, patchTicket, statusesOf, ticketRow } from "../../../../../rows";
 import { createTestServer } from "../../../../../server";
-import { useUiStore } from "../../../../../../src/stores/uiStore";
-import { useComposerStore } from "../../../../../../src/features/composer/composerStore";
-import { Board } from "../../../../../../src/features/board/Board";
 
 // The UI store keeps the collapsed columns in memory, so each test starts
 // with none stored and gets the board's default rails.

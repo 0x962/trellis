@@ -1,9 +1,9 @@
-import { originDir } from "../../../../../test/originDir.ts";
 import { afterAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { agentLaunch, rolePrompt } from "@trellis/api";
+import { originDir } from "../../../../../test/originDir.ts";
 import { fakeServer } from "../../fakeServer.ts";
 import { statusSet } from "../../fixtures.ts";
 
@@ -18,7 +18,10 @@ const script = (name: string, body: string) => {
 	writeFileSync(join(bin, name), body);
 	chmodSync(join(bin, name), 0o755);
 };
-script("trellis", `#!/bin/sh\nexec "${process.execPath}" "${join(originDir(import.meta.dir), "..", "src", "index.ts")}" "$@"\n`);
+script(
+	"trellis",
+	`#!/bin/sh\nexec "${process.execPath}" "${join(originDir(import.meta.dir), "..", "src", "index.ts")}" "$@"\n`,
+);
 script(
 	"claude",
 	`#!${process.execPath}

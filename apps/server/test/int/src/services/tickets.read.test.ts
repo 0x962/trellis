@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { BoardQuerySchema, ListQuerySchema } from "@trellis/api";
+import * as tickets from "../../../../src/services/tickets.ts";
 import {
 	dana,
 	hoursAgo,
@@ -13,7 +14,6 @@ import {
 	seedTicket,
 } from "../../../fixtures";
 import { expectErrorData, ticketHarness } from "../../../helpers/services.ts";
-import * as tickets from "../../../../src/services/tickets.ts";
 
 const h = ticketHarness();
 

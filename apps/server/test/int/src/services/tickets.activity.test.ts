@@ -1,15 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import {
-	type ActorRef,
-	claude,
-	dana,
-	seedActivity,
-	seedProject,
-	seedTicket,
-	type TicketSeed,
-} from "../../../fixtures";
-import { activityOf, distinct, millis, ticketHarness, ticketRow } from "../../../helpers/services.ts";
 import * as tickets from "../../../../src/services/tickets.ts";
+import { type ActorRef, claude, dana, seedActivity, seedProject, seedTicket, type TicketSeed } from "../../../fixtures";
+import { activityOf, distinct, millis, ticketHarness, ticketRow } from "../../../helpers/services.ts";
 
 const h = ticketHarness();
 

@@ -1,10 +1,10 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
+import { blobPath } from "../../../../src/storage/blobs.ts";
 import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { sha256Of } from "../../../helpers/home.ts";
 import { assertBlobInvariant } from "../../../invariants.ts";
-import { blobPath } from "../../../../src/storage/blobs.ts";
 
 // A ticket delete, a bulk delete, and a forced project delete remove the
 // attachment rows of the deleted tickets. The blob file of a hash that no

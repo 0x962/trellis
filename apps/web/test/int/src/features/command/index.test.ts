@@ -1,7 +1,7 @@
-import { originDir } from "../../../../../../../test/originDir.ts";
 import { beforeAll, describe, expect, test } from "bun:test";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
+import { originDir } from "../../../../../../../test/originDir.ts";
 
 const web = join(originDir(import.meta.dir), "..", "..", "..");
 

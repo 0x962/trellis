@@ -1,10 +1,10 @@
-import { originDir } from "../../originDir.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import bunfig from "../../../bunfig.toml";
 import { checkTasks } from "../../../scripts/check";
+import { originDir } from "../../originDir.ts";
 
 // Each test reads one root file and checks the fields the repo needs in it.
 // A missing file throws ENOENT, so the failure names the file to create.

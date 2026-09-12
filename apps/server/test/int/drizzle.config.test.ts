@@ -1,7 +1,7 @@
-import { originDir } from "../../../../test/originDir.ts";
 import { describe, expect, test } from "bun:test";
 import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join, relative } from "node:path";
+import { originDir } from "../../../../test/originDir.ts";
 import config from "../../drizzle.config.ts";
 
 const root = originDir(import.meta.dir);

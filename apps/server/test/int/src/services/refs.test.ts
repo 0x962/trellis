@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import { resolveProject, resolveStatus, resolveTicket } from "../../../../src/services/refs.ts";
 import { seedChild, seedProject, seedRootWithStatuses, seedStatus, seedTicket } from "../../../fixtures";
 import { expectError, type Harness, serviceHarness } from "../../../helpers/services.ts";
 import { countStatements } from "../../../helpers/statements.ts";
-import { resolveProject, resolveStatus, resolveTicket } from "../../../../src/services/refs.ts";
 
 // A ref is what a client types: a ULID, `CDE-1`, `CDE.web.auth`, or a
 // status name, slug, or `category:x`. Every grammar ignores letter case.

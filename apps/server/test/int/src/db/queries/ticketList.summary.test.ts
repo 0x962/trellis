@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { TicketSummarySchema } from "@trellis/api";
+import { ticketList } from "../../../../../src/db/queries/ticketList.ts";
 import {
 	claude,
 	linkPr,
@@ -13,7 +14,6 @@ import {
 	seedTicket,
 } from "../../../../fixtures";
 import { freshDb, type TestDb } from "../../../../helpers/db.ts";
-import { ticketList } from "../../../../../src/db/queries/ticketList.ts";
 
 let h: TestDb;
 beforeAll(async () => {

@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { waitFor } from "@testing-library/react";
+import { useArchivedProjects } from "../../../../../src/hooks/useArchivedProjects/useArchivedProjects";
 import { renderHookWithProviders } from "../../../../renderHook";
 import { archiveProject } from "../../../../rows";
 import { createTestServer } from "../../../../server";
-import { useArchivedProjects } from "../../../../../src/hooks/useArchivedProjects/useArchivedProjects";
 
 describe("hooks/useArchivedProjects", () => {
 	test("an archived project and every project under it are read-only", async () => {

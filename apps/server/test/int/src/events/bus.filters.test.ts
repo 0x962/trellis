@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { ulid } from "ulid";
-import { commentEvent, everyServiceEvent, prEvent, statusesChanged, ticketEvent } from "../../../fixtures";
 import { type BusEntry, createBus } from "../../../../src/events/bus.ts";
+import { commentEvent, everyServiceEvent, prEvent, statusesChanged, ticketEvent } from "../../../fixtures";
 
 // A subscriber and a replay take the same filter: `types` holds exact event
 // names and `prefix.*` forms, `projectIds` and `ticketIds` narrow to the

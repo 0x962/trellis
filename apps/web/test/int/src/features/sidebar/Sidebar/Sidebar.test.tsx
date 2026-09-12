@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Sidebar } from "../../../../../../src/features/sidebar/Sidebar/Sidebar";
+import { createUiStore, useUiStore } from "../../../../../../src/stores/uiStore";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";
-import { createUiStore, useUiStore } from "../../../../../../src/stores/uiStore";
-import { Sidebar } from "../../../../../../src/features/sidebar/Sidebar/Sidebar";
 
 beforeEach(() => {
 	localStorage.clear();

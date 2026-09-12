@@ -1,6 +1,6 @@
-import { originDir } from "../../../../../test/originDir.ts";
 import { expect, test } from "bun:test";
 import { join } from "node:path";
+import { originDir } from "../../../../../test/originDir.ts";
 import pkg from "../../../package.json";
 
 // The package is imported by the server, the web app, the mobile app, and

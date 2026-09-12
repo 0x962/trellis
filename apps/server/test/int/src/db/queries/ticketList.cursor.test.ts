@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { PrioritySchema, SortSchema } from "@trellis/api";
+import { InvalidCursorError, ticketList } from "../../../../../src/db/queries/ticketList.ts";
 import { hoursAgo, type StatusIds, seedProject, seedTicket } from "../../../../fixtures";
 import { freshDb, type TestDb } from "../../../../helpers/db.ts";
-import { InvalidCursorError, ticketList } from "../../../../../src/db/queries/ticketList.ts";
 
 let h: TestDb;
 beforeAll(async () => {

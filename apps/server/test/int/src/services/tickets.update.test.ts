@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import * as tickets from "../../../../src/services/tickets.ts";
 import {
 	count,
 	dana,
@@ -12,7 +13,6 @@ import {
 	type TicketSeed,
 } from "../../../fixtures";
 import { expectErrorData, millis, ticketHarness, ticketRow } from "../../../helpers/services.ts";
-import * as tickets from "../../../../src/services/tickets.ts";
 
 const h = ticketHarness();
 

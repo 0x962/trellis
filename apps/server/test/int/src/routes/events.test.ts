@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { ReadyPayloadSchema, TicketEventPayloadSchema } from "@trellis/api";
 import { ulid } from "ulid";
+import type { BusEntry } from "../../../../src/events/bus.ts";
 import { commentEvent, ticketEvent } from "../../../fixtures";
 import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { dataOf, nextEvent, openSse, type SseReader } from "../../../helpers/sse.ts";
-import type { BusEntry } from "../../../../src/events/bus.ts";
 
 // GET /api/events is the SSE stream. On connect it replays from `since` or
 // `Last-Event-ID`, or sends `reset` when it cannot, then `ready`. Every bus

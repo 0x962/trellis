@@ -2,9 +2,9 @@ import { describe, expect, mock, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { TicketSummary } from "@trellis/api";
+import { TicketPicker } from "../../../../../../src/features/pickers/TicketPicker/TicketPicker";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";
-import { TicketPicker } from "../../../../../../src/features/pickers/TicketPicker/TicketPicker";
 
 const optionTexts = (dialog: HTMLElement) =>
 	within(dialog)

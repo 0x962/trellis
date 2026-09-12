@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import "@atlaskit/pragmatic-drag-and-drop-unit-testing/drag-event-polyfill";
 import "@atlaskit/pragmatic-drag-and-drop-unit-testing/dom-rect-polyfill";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { useUiStore } from "../../../../../../src/stores/uiStore";
 import { renderApp } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";
 import { resetUi } from "../../../../../table";
-import { useUiStore } from "../../../../../../src/stores/uiStore";
 
 beforeEach(() => {
 	localStorage.clear();

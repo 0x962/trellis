@@ -1,10 +1,10 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { get, list } from "../../../../src/services/attachments.ts";
 import { claude, dana, seedAttachment, seedProject, seedTicket } from "../../../fixtures";
 import { testCtx } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { get, list } from "../../../../src/services/attachments.ts";
 
 // The read side answers the metadata of a row plus the url that serves its
 // bytes. It never reads the blob.

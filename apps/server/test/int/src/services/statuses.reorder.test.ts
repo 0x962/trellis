@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import * as statuses from "../../../../src/services/statuses.ts";
 import { seedChild, seedProject, seedRootWithStatuses, seedTicket } from "../../../fixtures";
 import { activityRows, eventsOfType, expectError, type Harness, serviceHarness } from "../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import * as statuses from "../../../../src/services/statuses.ts";
 
 // A reorder takes the whole effective set and writes the positions 0 to
 // n minus 1 in the given order on the owner's rows. A ticket keeps its

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { packageRoot } from "../../../css";
 import config from "../../../../vite.config";
+import { packageRoot } from "../../../css";
 
 type Plugin = { name: string } | Plugin[];
 
@@ -38,4 +38,3 @@ describe("gallery", () => {
 		expect(css).not.toContain("jetbrains-mono-latin-ext");
 	}, 120_000);
 });
-"

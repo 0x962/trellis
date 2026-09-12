@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { QueryClient } from "@tanstack/react-query";
 import { errors, type Ticket } from "@trellis/api";
-import { createMobileApp, type MobileApp } from "../../../../testApp";
-import { seedTicketScreen } from "../../../../ticket";
 import { ticketDetailKey } from "../../../../../src/ticket/ticketQueries";
 import { runTicketUpdate, updateMessage } from "../../../../../src/ticket/ticketUpdate/ticketUpdate";
+import { createMobileApp, type MobileApp } from "../../../../testApp";
+import { seedTicketScreen } from "../../../../ticket";
 
 let app: MobileApp;
 

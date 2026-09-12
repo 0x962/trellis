@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import * as detect from "../../../../src/gh/detect.ts";
 import {
 	dana,
 	graphqlReply,
@@ -13,15 +14,8 @@ import {
 	seedTicket,
 } from "../../../fixtures";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
-import {
-	authReply,
-	errorsReply,
-	pollerHarness,
-	prListReply,
-	type StubRepliesInput,
-} from "../../../helpers/poller.ts";
+import { authReply, errorsReply, pollerHarness, prListReply, type StubRepliesInput } from "../../../helpers/poller.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import * as detect from "../../../../src/gh/detect.ts";
 
 // Auto-link reads one `gh pr list` per distinct declared repository and
 // matches `KEY-number` in the title, the head branch, and the body. The key

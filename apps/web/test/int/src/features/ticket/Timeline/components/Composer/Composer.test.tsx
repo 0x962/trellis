@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Timeline } from "../../../../../../../../src/features/ticket/Timeline/Timeline";
 import { press } from "../../../../../../../keyboard";
 import { createTestServer, type TestServer } from "../../../../../../../server";
 import { renderTicket, settle } from "../../../../../../../ticketHost";
-import { Timeline } from "../../../../../../../../src/features/ticket/Timeline/Timeline";
 
 beforeEach(() => localStorage.clear());
 

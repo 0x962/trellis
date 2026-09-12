@@ -2,12 +2,12 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { fakeTimerClock } from "../../helpers/clock.ts";
-import { freshDb, type TestDb } from "../../helpers/db.ts";
-import { BASE } from "../../helpers/poller.ts";
 import { createBus } from "../../../src/events/bus.ts";
 import type { GhResult, GhRunner } from "../../../src/gh/run.ts";
 import { MAINTENANCE_MS, POLLER_DRAIN_MS, startJobs } from "../../../src/jobs.ts";
+import { fakeTimerClock } from "../../helpers/clock.ts";
+import { freshDb, type TestDb } from "../../helpers/db.ts";
+import { BASE } from "../../helpers/poller.ts";
 
 // The jobs run in the thread that owns the database: the pull request poller
 // and the maintenance timer. Every event on the bus counts as one write.

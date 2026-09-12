@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { TimelineListInputSchema } from "@trellis/api";
+import * as timeline from "../../../../src/services/timeline.ts";
 import { dana, seedActivity, seedComment, seedProject, seedTicket } from "../../../fixtures";
 import { expectErrorData, ticketHarness } from "../../../helpers/services.ts";
-import * as timeline from "../../../../src/services/timeline.ts";
 
 const h = ticketHarness();
 

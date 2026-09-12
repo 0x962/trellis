@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
+import { createGhRunner } from "../../../../src/gh/run.ts";
 import { graphqlReply, linkPr, seedPr } from "../../../fixtures";
 import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { ghStub } from "../../../helpers/gh-stub.ts";
 import { dataOf, nextEvent, openSse, type SseReader } from "../../../helpers/sse.ts";
-import { createGhRunner } from "../../../../src/gh/run.ts";
 
 // The scope filters of GET /api/events on the events of a ticket's
 // children: a project stream receives the comment, attachment, and pull

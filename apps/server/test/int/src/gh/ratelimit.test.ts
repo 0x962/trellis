@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
-import { ghStub } from "../../../helpers/gh-stub.ts";
 import { intervalMultiplier, readRateLimit } from "../../../../src/gh/ratelimit.ts";
 import { createGhRunner } from "../../../../src/gh/run.ts";
+import { ghStub } from "../../../helpers/gh-stub.ts";
 
 // `gh api rate_limit` reports one budget per resource. The poller spends
 // the graphql budget, and a diff fetch spends the core budget, so the reader

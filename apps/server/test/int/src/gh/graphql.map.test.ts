@@ -1,6 +1,6 @@
-import { originDir } from "../../../../../../test/originDir.ts";
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import { originDir } from "../../../../../../test/originDir.ts";
 import { contentHash, mapPullRequestResponse } from "../../../../src/gh/graphql.ts";
 import { deriveCiState } from "../../../../src/gh/parse.ts";
 

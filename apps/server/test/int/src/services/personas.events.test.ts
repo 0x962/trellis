@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import type { TrellisEvent } from "@trellis/api";
+import * as personas from "../../../../src/services/personas.ts";
 import { type Harness, serviceHarness } from "../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import * as personas from "../../../../src/services/personas.ts";
 
 let h: Harness;
 beforeAll(async () => {

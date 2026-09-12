@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import cliPkg from "../../../package.json";
+import { createClient } from "../../../src/client.ts";
 import { lines, runCli } from "../../deps.ts";
 import { apiVersion, fakeServer, refusedFetch } from "../../fakeServer.ts";
 import { ticket } from "../../fixtures.ts";
-import { createClient } from "../../../src/client.ts";
 
 // `createClient` builds the typed RPC client over `deps.fetch`. `apiVersion`
 // is the version the CLI was built against; the client compares it with the

@@ -1,9 +1,9 @@
-import { originDir } from "../../originDir.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkTasks } from "../../../scripts/check";
+import { originDir } from "../../originDir.ts";
 
 const root = join(originDir(import.meta.dir), "..");
 

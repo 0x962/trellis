@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { run } from "../../../src/index.ts";
+import { type Format, printList, printRecord, ticketList, ticketRecord } from "../../../src/output.ts";
 import { ansiPattern, stripAnsi } from "../../ansi.ts";
 import { defaultEnv, lines, makeDeps, runCli } from "../../deps.ts";
 import {
@@ -15,8 +17,6 @@ import {
 	ticketSummary,
 	timeline,
 } from "../../fixtures.ts";
-import { run } from "../../../src/index.ts";
-import { type Format, printList, printRecord, ticketList, ticketRecord } from "../../../src/output.ts";
 
 // `Format` is `{ mode, color }`: `mode` is table (a TTY), json, jsonl, or
 // quiet; `color` is false under --no-color and on a pipe. `printList` and

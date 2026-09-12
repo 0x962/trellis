@@ -3,6 +3,10 @@ import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { withTx } from "../../../../src/db/tx.ts";
+import { contentHash } from "../../../../src/gh/graphql.ts";
+import { createGhRunner } from "../../../../src/gh/run.ts";
+import { diff, prepareDiff, prepareRefresh, refresh } from "../../../../src/services/pullRequests.ts";
 import { checkRun, graphqlReply, linkPr, seedPr, seedProject, seedTicket } from "../../../fixtures";
 import { eventSink, testCtx, withEmit } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
@@ -10,10 +14,6 @@ import { caught } from "../../../helpers/errors.ts";
 import { ghStub, type StubReply } from "../../../helpers/gh-stub.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { withTx } from "../../../../src/db/tx.ts";
-import { contentHash } from "../../../../src/gh/graphql.ts";
-import { createGhRunner } from "../../../../src/gh/run.ts";
-import { diff, prepareDiff, prepareRefresh, refresh } from "../../../../src/services/pullRequests.ts";
 
 // refresh reads one pull request through gh and writes the row only when the
 // content hash changed. The fetch stamp moves on every call, so the poller

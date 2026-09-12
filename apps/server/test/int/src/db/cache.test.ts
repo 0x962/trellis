@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { createCache } from "../../../../src/db/cache.ts";
 import { seedChild, seedRoot, seedStatuses } from "../../../fixtures";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
-import { createCache } from "../../../../src/db/cache.ts";
 
 let h: TestDb;
 beforeAll(async () => {

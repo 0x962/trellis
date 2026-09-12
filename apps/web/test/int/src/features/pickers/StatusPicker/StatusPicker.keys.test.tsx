@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { StatusPicker } from "../../../../../../src/features/pickers/StatusPicker/StatusPicker";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";
-import { StatusPicker } from "../../../../../../src/features/pickers/StatusPicker/StatusPicker";
 
 const server = createTestServer();
 const { statuses } = await server.client.statuses.list({ project: "CDE" });

@@ -1,5 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import { contentHash } from "../../../../src/gh/graphql.ts";
+import * as poller from "../../../../src/gh/poller.ts";
 import { checkRun, graphqlReply, linkPr, rawPullRequest, seedPr, seedProject, seedTicket } from "../../../fixtures";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import {
@@ -12,8 +14,6 @@ import {
 	seedLinkedPr,
 } from "../../../helpers/poller.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { contentHash } from "../../../../src/gh/graphql.ts";
-import * as poller from "../../../../src/gh/poller.ts";
 
 // A fetch writes the row only when the content hash changed. A written row
 // emits one pr.updated event with every linked ticket. A state or ci state

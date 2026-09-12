@@ -1,8 +1,8 @@
-import { originDir } from "../../originDir.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
+import { originDir } from "../../originDir.ts";
 import { createRunRoot, RUN_ROOT_PREFIX, sweepDeadRoots } from "../../runRoot.ts";
 
 const repoRoot = join(originDir(import.meta.dir), "..");

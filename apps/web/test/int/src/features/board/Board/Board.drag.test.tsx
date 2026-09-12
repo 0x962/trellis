@@ -3,10 +3,10 @@ import "@atlaskit/pragmatic-drag-and-drop-unit-testing/drag-event-polyfill";
 import "@atlaskit/pragmatic-drag-and-drop-unit-testing/dom-rect-polyfill";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Board } from "../../../../../../src/features/board/Board";
+import { useComposerStore } from "../../../../../../src/features/composer/composerStore";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";
-import { useComposerStore } from "../../../../../../src/features/composer/composerStore";
-import { Board } from "../../../../../../src/features/board/Board";
 
 beforeEach(() => {
 	localStorage.clear();

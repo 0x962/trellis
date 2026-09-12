@@ -1,8 +1,8 @@
-import { originDir } from "../../../../../test/originDir.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { originDir } from "../../../../../test/originDir.ts";
 
 const root = join(originDir(import.meta.dir), "..");
 

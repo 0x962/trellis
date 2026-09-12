@@ -3,15 +3,15 @@ import { existsSync } from "node:fs";
 import type { TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { withTx } from "../../../../src/db/tx.ts";
+import { gcAttachmentBlobs, get, remove, upload } from "../../../../src/services/attachments.ts";
+import { blobPath } from "../../../../src/storage/blobs.ts";
 import { count, hoursAgo, seedProject, seedTicket } from "../../../fixtures";
 import { eventSink, testCtx, withEmit } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { caught } from "../../../helpers/errors.ts";
 import { freshHomeWithDirs, sha256Of } from "../../../helpers/home.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { withTx } from "../../../../src/db/tx.ts";
-import { blobPath } from "../../../../src/storage/blobs.ts";
-import { gcAttachmentBlobs, get, remove, upload } from "../../../../src/services/attachments.ts";
 
 // A delete removes the row inside the transaction and queues the blob check
 // for after the commit. A rolled back delete therefore keeps the blob.

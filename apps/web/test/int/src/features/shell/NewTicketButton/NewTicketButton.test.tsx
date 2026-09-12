@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderWithProviders } from "../../../../../renderWithProviders";
 import { useComposerStore } from "../../../../../../src/features/composer";
 import { NewTicketButton } from "../../../../../../src/features/shell/NewTicketButton/NewTicketButton";
+import { renderWithProviders } from "../../../../../renderWithProviders";
 
 beforeEach(() => {
 	useComposerStore.setState({ open: false, options: {} });

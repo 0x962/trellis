@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
-import { ghStub } from "../../../helpers/gh-stub.ts";
 import { createGhRunner } from "../../../../src/gh/run.ts";
+import { ghStub } from "../../../helpers/gh-stub.ts";
 
 // One gh binary serves the process, so the slots are shared by every runner:
 // 2 poller slots and 1 interactive slot. A call past its slot count waits.

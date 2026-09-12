@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import * as tickets from "../../../../src/services/tickets.ts";
 import { dana, hoursAgo, seedActors, seedProject, seedRoot, seedStatuses, seedTicket } from "../../../fixtures";
 import { activityOf, expectErrorData, millis, query, ticketHarness, ticketRow } from "../../../helpers/services.ts";
-import * as tickets from "../../../../src/services/tickets.ts";
 
 const h = ticketHarness();
 

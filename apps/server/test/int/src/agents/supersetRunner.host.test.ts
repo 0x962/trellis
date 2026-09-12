@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { ORPCError } from "@orpc/server";
-import { flagOf, type SupersetStubHandle, supersetStub } from "../../../helpers/superset-stub.ts";
 import type { Runner } from "../../../../src/agents/runner.ts";
 import { createSupersetRunner } from "../../../../src/agents/supersetRunner.ts";
+import { flagOf, type SupersetStubHandle, supersetStub } from "../../../helpers/superset-stub.ts";
 
 // The Superset host of a project, as the runner sees it. A project that
 // names no host keeps `--local`, which is the machine that runs the trellis

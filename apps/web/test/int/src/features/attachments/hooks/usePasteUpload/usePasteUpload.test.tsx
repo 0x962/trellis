@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
+import { usePasteUpload } from "../../../../../../../src/features/attachments/hooks/usePasteUpload/usePasteUpload";
+import { uploadErrorText } from "../../../../../../../src/features/attachments/utils/uploadErrorText";
 import { fileOf, pasteFiles, pasteText } from "../../../../../../attachments";
 import { callsTo, gatedServer } from "../../../../../../inbox";
 import { renderWithProviders } from "../../../../../../renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../../../server";
-import { uploadErrorText } from "../../../../../../../src/features/attachments/utils/uploadErrorText";
-import { usePasteUpload } from "../../../../../../../src/features/attachments/hooks/usePasteUpload/usePasteUpload";
 
 beforeEach(() => localStorage.clear());
 

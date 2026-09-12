@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { waitFor } from "@testing-library/react";
 import type { ListQueryInput } from "@trellis/api";
+import { parseSearch, type View, viewOf } from "../../../../../../../src/features/filters/grammar";
+import { useTableData } from "../../../../../../../src/features/table/hooks/useTableData/useTableData";
 import { renderHookWithProviders } from "../../../../../../renderHook";
 import { renderApp } from "../../../../../../renderWithProviders";
 import { seedTickets } from "../../../../../../seedMany";
 import { createTestServer, type TestServer } from "../../../../../../server";
 import { findGrid, inputs, queryGroupHeader, sleep } from "../../../../../../table";
 import { tableViewport } from "../../../../../../viewport";
-import { parseSearch, type View, viewOf } from "../../../../../../../src/features/filters/grammar";
-import { useTableData } from "../../../../../../../src/features/table/hooks/useTableData/useTableData";
 
 type Closed = "done" | "canceled";
 

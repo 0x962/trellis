@@ -3,11 +3,11 @@ import "@atlaskit/pragmatic-drag-and-drop-unit-testing/drag-event-polyfill";
 import "@atlaskit/pragmatic-drag-and-drop-unit-testing/dom-rect-polyfill";
 import { fireEvent, screen } from "@testing-library/react";
 import { Toaster } from "@trellis/ui";
+import { Board } from "../../../../../../src/features/board/Board";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { archiveProject } from "../../../../../rows";
 import { createTestServer, type TestServer } from "../../../../../server";
 import { settle } from "../../../../../ticketHost";
-import { Board } from "../../../../../../src/features/board/Board";
 
 beforeEach(() => localStorage.clear());
 

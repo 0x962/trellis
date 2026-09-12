@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import * as tickets from "../../../../src/services/tickets.ts";
 import {
 	dana,
 	seedChild,
@@ -10,7 +11,6 @@ import {
 } from "../../../fixtures";
 import { activityOf, expectErrorData, ticketHarness, ticketRow } from "../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import * as tickets from "../../../../src/services/tickets.ts";
 
 const h = ticketHarness();
 

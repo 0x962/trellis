@@ -2,11 +2,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:tes
 import { userInfo } from "node:os";
 import { ActorSchema, DefaultActorSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import * as actors from "../../../../src/services/actors.ts";
+import * as projects from "../../../../src/services/projects.ts";
 import { claude, dana, seedActor, system } from "../../../fixtures";
 import { at, type Harness, NOW, secondsAfter, serviceHarness } from "../../../helpers/services.ts";
 import { countStatements } from "../../../helpers/statements.ts";
-import * as actors from "../../../../src/services/actors.ts";
-import * as projects from "../../../../src/services/projects.ts";
 
 // Every mutating service upserts its actor before its first write, so the
 // actor foreign keys hold. The actor cache remembers the last write per

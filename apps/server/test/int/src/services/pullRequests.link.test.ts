@@ -3,6 +3,9 @@ import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import type { TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { withTx } from "../../../../src/db/tx.ts";
+import { createGhRunner } from "../../../../src/gh/run.ts";
+import { link, prepareLink } from "../../../../src/services/pullRequests.ts";
 import { checkRun, count, dana, graphqlReply, hoursAgo, seedProject, seedTicket, system } from "../../../fixtures";
 import { eventSink, testCtx, withEmit } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
@@ -10,9 +13,6 @@ import { caught } from "../../../helpers/errors.ts";
 import { ghStub, type StubReply } from "../../../helpers/gh-stub.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { withTx } from "../../../../src/db/tx.ts";
-import { createGhRunner } from "../../../../src/gh/run.ts";
-import { link, prepareLink } from "../../../../src/services/pullRequests.ts";
 
 // link fetches the one pull request through gh and stores it. A second link
 // of the same URL on the same ticket answers with the row that is there. A

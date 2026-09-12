@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
+import { AttachmentGrid } from "../../../../../../src/features/attachments/AttachmentGrid";
+import type { Upload } from "../../../../../../src/features/attachments/hooks/useUploads";
+import { UploadProgress } from "../../../../../../src/features/attachments/UploadProgress/UploadProgress";
 import { dropFiles, fileOf, surfaceOf } from "../../../../../attachments";
 import { gatedServer } from "../../../../../inbox";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";
-import { AttachmentGrid } from "../../../../../../src/features/attachments/AttachmentGrid";
-import type { Upload } from "../../../../../../src/features/attachments/hooks/useUploads";
-import { UploadProgress } from "../../../../../../src/features/attachments/UploadProgress/UploadProgress";
 
 beforeEach(() => localStorage.clear());
 

@@ -1,5 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import { contentHash } from "../../../../src/gh/graphql.ts";
+import * as poller from "../../../../src/gh/poller.ts";
 import { checkRun, graphqlReply, seedProject, seedRepo } from "../../../fixtures";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import {
@@ -11,8 +13,6 @@ import {
 	seededContent,
 	seedLinkedPr,
 } from "../../../helpers/poller.ts";
-import { contentHash } from "../../../../src/gh/graphql.ts";
-import * as poller from "../../../../src/gh/poller.ts";
 
 // One cadence per pull request, counted from its last fetch: 30 s while a
 // check is pending, 120 s while it is open with no pending check, 10 min

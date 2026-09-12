@@ -1,10 +1,10 @@
-import { originDir } from "../../../../../test/originDir.ts";
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Subprocess } from "bun";
-import { freshHome } from "../../helpers/home.ts";
+import { originDir } from "../../../../../test/originDir.ts";
 import { HomeLockedError, LOCK_FILE, lockHome } from "../../../src/homeLock.ts";
+import { freshHome } from "../../helpers/home.ts";
 
 // One process at a time owns a data home. The owner holds an exclusive lock
 // on `<home>/trellis.lock` for its whole life, and the file names its pid,

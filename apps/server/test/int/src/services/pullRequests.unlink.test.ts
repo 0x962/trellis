@@ -1,14 +1,14 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import type { TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { withTx } from "../../../../src/db/tx.ts";
+import { unlink } from "../../../../src/services/pullRequests.ts";
 import { count, hoursAgo, linkPr, seedPr, seedProject, seedTicket } from "../../../fixtures";
 import { eventSink, testCtx, withEmit } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { caught } from "../../../helpers/errors.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { withTx } from "../../../../src/db/tx.ts";
-import { unlink } from "../../../../src/services/pullRequests.ts";
 
 // unlink removes the row that joins one ticket to one pull request. The
 // pull request row lives as long as a ticket links it, and goes in the same

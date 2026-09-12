@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { createTestApp, type TestApp } from "../../helpers/app.ts";
 import { createLogger, createRotatingSink, type LogRecord } from "../../../src/log.ts";
+import { createTestApp, type TestApp } from "../../helpers/app.ts";
 
 // The logger writes one record per call. A record is one JSON line on a
 // pipe or a file, and pretty text on a terminal outside production. The

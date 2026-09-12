@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { instructions } from "@trellis/api";
-import { runCli } from "../../../deps.ts";
 import template from "../../../../src/instructions.md" with { type: "text" };
+import { runCli } from "../../../deps.ts";
 
 describe("instructions", () => {
 	// CLI-114

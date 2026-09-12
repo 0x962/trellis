@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { DiffLink } from "../../../../../../../../../../src/features/prs/PullRequests/components/PullRequestRow/components/DiffLink/DiffLink";
 import { mockMatchMedia } from "../../../../../../../../../media";
 import { callsTo } from "../../../../../../../../../prs";
 import { renderWithProviders } from "../../../../../../../../../renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../../../../../../server";
-import { DiffLink } from "../../../../../../../../../../src/features/prs/PullRequests/components/PullRequestRow/components/DiffLink/DiffLink";
 
 const url = "https://github.com/acme/web/pull/118";
 const title = "Restore the fork pages";

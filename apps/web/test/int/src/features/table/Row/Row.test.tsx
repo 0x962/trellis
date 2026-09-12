@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { mountRow, summary } from "../../../../../row";
 import { rowHeights } from "../../../../../../src/features/table/Row/Row";
+import { mountRow, summary } from "../../../../../row";
 
 const longTitle =
 	"A much longer title that would wrap onto a second line if the cell let it, which it never does in the table";

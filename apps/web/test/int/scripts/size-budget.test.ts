@@ -1,7 +1,7 @@
-import { originDir } from "../../../../../test/originDir.ts";
 import { beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { originDir } from "../../../../../test/originDir.ts";
 import { budgets, measure } from "../../../scripts/size-budget";
 
 const web = join(originDir(import.meta.dir), "..");

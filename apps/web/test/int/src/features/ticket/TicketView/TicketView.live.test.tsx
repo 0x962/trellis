@@ -2,15 +2,15 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { applyEvent, type Ticket } from "@trellis/api";
 import { Toaster } from "@trellis/ui";
+import { TicketPeek } from "../../../../../../src/features/ticket/TicketPeek";
+import { PeekListProvider } from "../../../../../../src/features/ticket/TicketPeek/providers/PeekListProvider";
+import { TicketView } from "../../../../../../src/features/ticket/TicketView/TicketView";
 import { deletedEvent, summaryOf, updatedEvent } from "../../../../../events";
 import { mockMatchMedia } from "../../../../../media";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { patchTicket, statusesOf } from "../../../../../rows";
 import { createTestServer } from "../../../../../server";
 import { fieldValue, renderTicket, settle } from "../../../../../ticketHost";
-import { TicketPeek } from "../../../../../../src/features/ticket/TicketPeek";
-import { PeekListProvider } from "../../../../../../src/features/ticket/TicketPeek/providers/PeekListProvider";
-import { TicketView } from "../../../../../../src/features/ticket/TicketView/TicketView";
 
 beforeEach(() => {
 	localStorage.clear();

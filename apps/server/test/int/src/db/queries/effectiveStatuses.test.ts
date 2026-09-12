@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import { effectiveStatuses, ownerOf } from "../../../../../src/db/queries/effectiveStatuses.ts";
 import { seedChild, seedNested, seedRoot, seedStatuses } from "../../../../fixtures";
 import { freshDb, type TestDb } from "../../../../helpers/db.ts";
-import { effectiveStatuses, ownerOf } from "../../../../../src/db/queries/effectiveStatuses.ts";
 
 let h: TestDb;
 beforeAll(async () => {

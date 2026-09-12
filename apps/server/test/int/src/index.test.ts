@@ -2,12 +2,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { networkInterfaces } from "node:os";
 import { join } from "node:path";
+import { boot, type StartHook } from "../../../src/index.ts";
+import { listenAddresses } from "../../../src/listen.ts";
 import { ghStub } from "../../helpers/gh-stub.ts";
 import { freshHome } from "../../helpers/home.ts";
 import { type SpawnedServer, spawnServer, stopServer } from "../../helpers/server.ts";
 import { readSse } from "../../helpers/sse.ts";
-import { boot, type StartHook } from "../../../src/index.ts";
-import { listenAddresses } from "../../../src/listen.ts";
 
 // The boot sequence: config, the data home directories, the blob sweep, the
 // database and its migrations, the gh check off the boot path, then listen.

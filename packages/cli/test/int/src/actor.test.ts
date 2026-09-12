@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { ActorHeaderSchema } from "@trellis/api";
+import { resolveActor } from "../../../src/actor.ts";
 import { lines, runCli } from "../../deps.ts";
 import { project, ticket, ticketSummary } from "../../fixtures.ts";
-import { resolveActor } from "../../../src/actor.ts";
 
 // `resolveActor` walks the chain --as, TRELLIS_ACTOR, CLAUDECODE,
 // CLAUDE_SESSION_ID, CODEX_*, git config user.name, OS user. It returns

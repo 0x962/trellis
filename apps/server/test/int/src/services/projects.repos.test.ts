@@ -2,9 +2,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:tes
 import { RepoSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import * as projects from "../../../../src/services/projects.ts";
 import { insertRow, seedChild, seedProject } from "../../../fixtures";
 import { activityRows, type Harness, serviceHarness } from "../../../helpers/services.ts";
-import * as projects from "../../../../src/services/projects.ts";
 
 // `setRepos` replaces the whole repo set of one project. Owner and repo are
 // stored in lower case, a repeated pair collapses to one row, and one

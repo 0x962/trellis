@@ -1,6 +1,9 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
+import { withTx } from "../../../../src/db/tx.ts";
+import { createGhRunner } from "../../../../src/gh/run.ts";
+import { link, parsePullRequestUrl, prepareLink } from "../../../../src/services/pullRequests.ts";
 import { count, seedProject, seedTicket } from "../../../fixtures";
 import { testCtx, withEmit } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
@@ -8,9 +11,6 @@ import { caught } from "../../../helpers/errors.ts";
 import { ghStub } from "../../../helpers/gh-stub.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { withTx } from "../../../../src/db/tx.ts";
-import { createGhRunner } from "../../../../src/gh/run.ts";
-import { link, parsePullRequestUrl, prepareLink } from "../../../../src/services/pullRequests.ts";
 
 // A pull request URL names the owner, the repository, and the number. Any
 // other GitHub URL is INVALID_PR_URL, and the service refuses it before it

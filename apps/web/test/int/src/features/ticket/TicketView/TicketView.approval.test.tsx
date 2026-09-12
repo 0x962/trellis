@@ -1,9 +1,9 @@
 import { beforeEach, expect, test } from "bun:test";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { TicketView } from "../../../../../../src/features/ticket/TicketView/TicketView";
 import { mockMatchMedia } from "../../../../../media";
 import { renderWithProviders } from "../../../../../renderWithProviders";
-import { TicketView } from "../../../../../../src/features/ticket/TicketView/TicketView";
 
 beforeEach(() => localStorage.clear());
 

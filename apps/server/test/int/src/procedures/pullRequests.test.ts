@@ -1,11 +1,11 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
+import { createGhRunner } from "../../../../src/gh/run.ts";
 import { checkRun, graphqlReply } from "../../../fixtures";
 import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { type GhStubHandle, ghStub, type StubReply } from "../../../helpers/gh-stub.ts";
-import { createGhRunner } from "../../../../src/gh/run.ts";
 
 // The pull request procedures over /api against the gh stub: an idempotent
 // link, the URL check, the list, the unlink, the refresh, the diff with its

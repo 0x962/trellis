@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { BriefCopy } from "../../../../../../../../src/features/ticket/Header/components/BriefCopy/BriefCopy";
 import { mod } from "../../../../../../../keyboard";
 import { createTestServer } from "../../../../../../../server";
 import { renderTicket } from "../../../../../../../ticketHost";
-import { BriefCopy } from "../../../../../../../../src/features/ticket/Header/components/BriefCopy/BriefCopy";
 
 beforeEach(() => localStorage.clear());
 

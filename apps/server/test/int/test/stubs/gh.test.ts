@@ -1,7 +1,7 @@
-import { originDir } from "../../../../../../test/originDir.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { originDir } from "../../../../../../test/originDir.ts";
 
 // The stub stands in for the gh binary. It answers from TRELLIS_GH_STUB_FILE,
 // a JSON map keyed by the first two args, and appends one JSON line per spawn

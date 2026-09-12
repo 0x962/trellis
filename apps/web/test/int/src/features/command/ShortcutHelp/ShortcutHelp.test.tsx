@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { formatShortcut, shortcuts } from "../../../../../../src/lib/shortcuts";
 import { mockMatchMedia } from "../../../../../media";
 import { asPlatform, press, renderShell, resetStores } from "../../../../../palette";
-import { formatShortcut, shortcuts } from "../../../../../../src/lib/shortcuts";
 
 const sheet = () => screen.getByRole("dialog", { name: /Keyboard shortcuts/ });
 

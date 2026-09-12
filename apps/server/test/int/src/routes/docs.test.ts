@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { buildOpenApiDocument } from "../../../../src/openapi.ts";
+import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 
 // /api/openapi.json serves the post-processed document and /api/docs renders
 // it with Scalar. Neither needs the actor header.

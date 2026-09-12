@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { createTestServer } from "../../../../../../server";
-import { viewOf } from "../../../../../../../src/features/filters/grammar";
 import { composerDefaults } from "../../../../../../../src/features/composer/hooks/useComposerDefaults/useComposerDefaults";
+import { viewOf } from "../../../../../../../src/features/filters/grammar";
+import { createTestServer } from "../../../../../../server";
 
 const server = createTestServer();
 const { statuses } = await server.client.statuses.list({ project: "CDE" });

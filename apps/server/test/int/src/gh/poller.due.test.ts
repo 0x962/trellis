@@ -1,5 +1,8 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import { withTx } from "../../../../src/db/tx.ts";
+import * as poller from "../../../../src/gh/poller.ts";
+import { prepareRefresh, refresh } from "../../../../src/services/pullRequests.ts";
 import { graphqlReply, seedProject } from "../../../fixtures";
 import { eventSink, testCtx, withEmit } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
@@ -13,9 +16,6 @@ import {
 	secondsFrom,
 	seedLinkedPr,
 } from "../../../helpers/poller.ts";
-import { withTx } from "../../../../src/db/tx.ts";
-import { prepareRefresh, refresh } from "../../../../src/services/pullRequests.ts";
-import * as poller from "../../../../src/gh/poller.ts";
 
 // The due selection keeps the poller off pull requests nobody watches: an
 // open pull request on a done or canceled ticket, and a pull request that

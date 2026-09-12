@@ -1,8 +1,8 @@
 import { describe, expect, mock, test } from "bun:test";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderWithProviders } from "../../../../../renderWithProviders";
 import { TableEmpty } from "../../../../../../src/features/table/TableEmpty/TableEmpty";
+import { renderWithProviders } from "../../../../../renderWithProviders";
 
 describe("features/table/TableEmpty", () => {
 	// Outcome 32

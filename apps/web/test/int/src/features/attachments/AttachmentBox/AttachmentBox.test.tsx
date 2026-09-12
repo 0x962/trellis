@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AttachmentBox } from "../../../../../../src/features/attachments/AttachmentBox/AttachmentBox";
+import { DropTarget } from "../../../../../../src/features/attachments/DropTarget";
 import { dragFilesOver, fileOf } from "../../../../../attachments";
 import { callsTo } from "../../../../../inbox";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../../server";
-import { DropTarget } from "../../../../../../src/features/attachments/DropTarget";
-import { AttachmentBox } from "../../../../../../src/features/attachments/AttachmentBox/AttachmentBox";
 
 beforeEach(() => localStorage.clear());
 

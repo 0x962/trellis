@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { waitFor } from "@testing-library/react";
+import { commandActions, useCommandStore } from "../../../../../../src/features/command/commandStore";
 import { renderApp } from "../../../../../renderWithProviders";
 import { findGrid, press, resetUi, rows } from "../../../../../table";
 import { tableViewport } from "../../../../../viewport";
-import { commandActions, useCommandStore } from "../../../../../../src/features/command/commandStore";
 
 const installViewport = tableViewport(800);
 

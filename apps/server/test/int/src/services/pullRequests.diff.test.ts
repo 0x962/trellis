@@ -1,7 +1,9 @@
-import { originDir } from "../../../../../../test/originDir.ts";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
+import { originDir } from "../../../../../../test/originDir.ts";
+import { createGhRunner, type GhRunner, type GhSlot } from "../../../../src/gh/run.ts";
+import { diff, prepareDiff } from "../../../../src/services/pullRequests.ts";
 import { linkPr, seedPr, seedProject, seedTicket } from "../../../fixtures";
 import { testCtx } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
@@ -9,8 +11,6 @@ import { caught } from "../../../helpers/errors.ts";
 import { ghStub, type StubReply } from "../../../helpers/gh-stub.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { createGhRunner, type GhRunner, type GhSlot } from "../../../../src/gh/run.ts";
-import { diff, prepareDiff } from "../../../../src/services/pullRequests.ts";
 
 // diff runs `gh pr diff` on the interactive slot, cuts the text at 1 MB, and
 // keeps the answer for 60 seconds. A person who reopens a diff inside that

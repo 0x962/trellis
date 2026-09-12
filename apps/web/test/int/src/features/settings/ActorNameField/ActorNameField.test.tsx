@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "@trellis/ui";
+import { ActorNameField } from "../../../../../../src/features/settings/ActorNameField/ActorNameField";
 import { callsTo, lastCallTo } from "../../../../../inbox";
 import { mockMatchMedia } from "../../../../../media";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../../server";
-import { ActorNameField } from "../../../../../../src/features/settings/ActorNameField/ActorNameField";
 
 beforeEach(() => {
 	localStorage.clear();

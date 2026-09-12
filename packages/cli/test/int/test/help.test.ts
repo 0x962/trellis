@@ -1,6 +1,6 @@
-import { originDir } from "../../../../../test/originDir.ts";
 import { expect, test } from "bun:test";
 import { join } from "node:path";
+import { originDir } from "../../../../../test/originDir.ts";
 import { stripAnsi } from "../../ansi.ts";
 
 const root = join(originDir(import.meta.dir), "..");

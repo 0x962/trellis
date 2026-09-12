@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createEventApplier } from "@trellis/api";
+import { Timeline } from "../../../../../../src/features/ticket/Timeline/Timeline";
 import { createFakeScheduler } from "../../../../../fakeScheduler";
 import { addActivity, ticketId } from "../../../../../rows";
 import { createTestServer, type TestServer } from "../../../../../server";
 import { ago, minute, renderTicket } from "../../../../../ticketHost";
-import { Timeline } from "../../../../../../src/features/ticket/Timeline/Timeline";
 
 beforeEach(() => localStorage.clear());
 

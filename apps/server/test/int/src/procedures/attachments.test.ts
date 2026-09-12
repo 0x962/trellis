@@ -1,10 +1,10 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { blobPath } from "../../../../src/storage/blobs.ts";
 import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { sha256Of } from "../../../helpers/home.ts";
-import { blobPath } from "../../../../src/storage/blobs.ts";
 
 // The attachment procedures over /api: a multipart upload that stores the
 // blob under its hash, the dedupe of a second upload, and the list, get,

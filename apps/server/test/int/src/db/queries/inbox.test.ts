@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { inbox } from "../../../../../src/db/queries/inbox.ts";
 import {
 	claude,
 	dana,
@@ -11,7 +12,6 @@ import {
 	seedTicket,
 } from "../../../../fixtures";
 import { freshDb, type TestDb } from "../../../../helpers/db.ts";
-import { inbox } from "../../../../../src/db/queries/inbox.ts";
 
 let h: TestDb;
 beforeAll(async () => {

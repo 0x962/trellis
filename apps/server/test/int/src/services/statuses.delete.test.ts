@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import * as statuses from "../../../../src/services/statuses.ts";
 import {
 	type ActorRef,
 	claude,
@@ -20,7 +21,6 @@ import {
 	serviceHarness,
 } from "../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import * as statuses from "../../../../src/services/statuses.ts";
 
 // A delete needs the status to be empty, or `moveTo` names the status in
 // the same project that receives its tickets. A project keeps at least one

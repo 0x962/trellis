@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { screen } from "@testing-library/react";
+import { Board } from "../../../../../../src/features/board/Board";
+import { useUiStore } from "../../../../../../src/stores/uiStore";
 import { mockMatchMedia } from "../../../../../media";
 import { renderWithProviders } from "../../../../../renderWithProviders";
-import { useUiStore } from "../../../../../../src/stores/uiStore";
-import { Board } from "../../../../../../src/features/board/Board";
 
 // The phone query mock replaces a window global, so each test puts the
 // original back for the test files that run after it.

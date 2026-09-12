@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import * as projects from "../../../../src/services/projects.ts";
+import { resolveProject } from "../../../../src/services/refs.ts";
 import { hoursAgo, seedChild, seedProject } from "../../../fixtures";
 import {
 	activityRows,
@@ -10,8 +12,6 @@ import {
 	NOW,
 	serviceHarness,
 } from "../../../helpers/services.ts";
-import * as projects from "../../../../src/services/projects.ts";
-import { resolveProject } from "../../../../src/services/refs.ts";
 
 // An update writes one activity row per field that changed and nothing for
 // a field that keeps its value. A slug change renames the dotted path of

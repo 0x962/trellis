@@ -1,10 +1,10 @@
-import { originDir } from "../../originDir.ts";
 import { describe, expect, test } from "bun:test";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
 import { join } from "node:path";
 import { changedPaths, guardedPaths, snapshot } from "../../homeGuard.ts";
+import { originDir } from "../../originDir.ts";
 
 const repoRoot = join(originDir(import.meta.dir), "..");
 const root = process.env.TRELLIS_TEST_ROOT!;

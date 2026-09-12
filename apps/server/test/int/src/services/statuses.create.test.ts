@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { StatusSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import * as statuses from "../../../../src/services/statuses.ts";
 import { seedChild, seedProject, seedStatus, seedStatuses, seedTicket } from "../../../fixtures";
 import { activityRows, eventsOfType, expectError, type Harness, serviceHarness } from "../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import * as statuses from "../../../../src/services/statuses.ts";
 
 // A new status appends at the next position unless the caller names one.
 // The first status a sub-project creates copies the inherited set into the

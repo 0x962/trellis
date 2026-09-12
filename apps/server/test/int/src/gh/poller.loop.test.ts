@@ -1,8 +1,8 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import * as poller from "../../../../src/gh/poller.ts";
 import { graphqlReply, seedProject } from "../../../fixtures";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { authReply, pollerHarness, seedLinkedPr } from "../../../helpers/poller.ts";
-import * as poller from "../../../../src/gh/poller.ts";
 
 // The loop is one setTimeout chain. A tick runs every 10 s, one tick runs at
 // a time, and the next timer is armed after the running tick settles. start

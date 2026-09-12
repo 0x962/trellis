@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { seedChild, seedProject, seedStatuses, seedTicket } from "../../../fixtures";
-import { expectError, type Harness, NOW, serviceHarness } from "../../../helpers/services.ts";
 import * as projects from "../../../../src/services/projects.ts";
 import * as statuses from "../../../../src/services/statuses.ts";
+import { seedChild, seedProject, seedStatuses, seedTicket } from "../../../fixtures";
+import { expectError, type Harness, NOW, serviceHarness } from "../../../helpers/services.ts";
 
 // An archived project still answers every read. Every mutation on it, and
 // on any project below it, throws PROJECT_ARCHIVED. The one exception is

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { waitFor } from "@testing-library/react";
+import { documentTitle } from "../../../../../src/hooks/useDocumentTitle/useDocumentTitle";
 import { mockMatchMedia } from "../../../../media";
 import { renderApp } from "../../../../renderWithProviders";
 import { createTestServer } from "../../../../server";
-import { documentTitle } from "../../../../../src/hooks/useDocumentTitle/useDocumentTitle";
 
 beforeEach(() => {
 	localStorage.clear();

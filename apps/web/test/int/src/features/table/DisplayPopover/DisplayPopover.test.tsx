@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useUiStore } from "../../../../../../src/stores/uiStore";
 import { renderApp } from "../../../../../renderWithProviders";
 import { findGrid, footer, resetUi, rowOf, rows, storedUi } from "../../../../../table";
 import { tableViewport } from "../../../../../viewport";
-import { useUiStore } from "../../../../../../src/stores/uiStore";
 
 const installViewport = tableViewport(800);
 

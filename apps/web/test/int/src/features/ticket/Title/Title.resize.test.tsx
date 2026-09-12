@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { screen } from "@testing-library/react";
-import { renderTicket } from "../../../../../ticketHost";
 import { Title } from "../../../../../../src/features/ticket/Title/Title";
+import { renderTicket } from "../../../../../ticketHost";
 
 const nativeResizeObserver = globalThis.ResizeObserver;
 afterEach(() => {

@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { PullRequestDiffOutputSchema } from "@trellis/api";
-import { ghStub } from "../../../helpers/gh-stub.ts";
 import { fetchDiff } from "../../../../src/gh/diff.ts";
 import { createGhRunner } from "../../../../src/gh/run.ts";
+import { ghStub } from "../../../helpers/gh-stub.ts";
 
 // `gh pr diff <url>` runs on the interactive slot. A diff over 1 MB is cut at
 // 1 MB and marked truncated; `url` opens the whole diff on GitHub.

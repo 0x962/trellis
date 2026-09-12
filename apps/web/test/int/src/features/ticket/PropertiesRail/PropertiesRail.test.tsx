@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Ticket } from "@trellis/api";
+import { PropertiesRail } from "../../../../../../src/features/ticket/PropertiesRail/PropertiesRail";
 import { press } from "../../../../../keyboard";
 import { mockMatchMedia } from "../../../../../media";
 import { statusesOf } from "../../../../../rows";
 import { createTestServer, type TestServer } from "../../../../../server";
 import { renderTicket, statusOf } from "../../../../../ticketHost";
-import { PropertiesRail } from "../../../../../../src/features/ticket/PropertiesRail/PropertiesRail";
 
 beforeEach(() => {
 	localStorage.clear();

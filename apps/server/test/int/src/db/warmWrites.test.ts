@@ -2,14 +2,14 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import type { TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { loadConfig } from "../../../../src/config.ts";
+import type { RequestContext } from "../../../../src/context.ts";
+import { createInlineTransport, type Runtime } from "../../../../src/db/transport.ts";
+import { createBus } from "../../../../src/events/bus.ts";
 import { noGh, signedInGh } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 import { captureStatements } from "../../../helpers/statements.ts";
-import { loadConfig } from "../../../../src/config.ts";
-import type { RequestContext } from "../../../../src/context.ts";
-import { createBus } from "../../../../src/events/bus.ts";
-import { createInlineTransport, type Runtime } from "../../../../src/db/transport.ts";
 
 // The first write after a boot pays for what Postgres loads on first use:
 // the catalog entries of the tables and indexes, and the text search

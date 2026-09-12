@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { NewSubprojectDialog } from "../../../../../../src/features/sidebar/NewSubprojectDialog/NewSubprojectDialog";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";
-import { NewSubprojectDialog } from "../../../../../../src/features/sidebar/NewSubprojectDialog/NewSubprojectDialog";
 
 test("a sub-project uses a slideout and requires a name and slug", async () => {
 	const server = createTestServer();

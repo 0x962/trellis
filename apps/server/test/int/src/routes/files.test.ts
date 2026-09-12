@@ -2,11 +2,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:tes
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { ulid } from "ulid";
+import { blobPath } from "../../../../src/storage/blobs.ts";
 import { seedAttachment } from "../../../fixtures";
 import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { sha256Of } from "../../../helpers/home.ts";
-import { blobPath } from "../../../../src/storage/blobs.ts";
 
 // GET /api/attachments/{id}/file serves the stored bytes with the recorded
 // mime, an ETag of the hash, an immutable private cache, nosniff, and a

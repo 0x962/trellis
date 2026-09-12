@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, within } from "@testing-library/react";
+import { composerActions } from "../../../../../../src/features/composer/composerStore";
 import { mockMatchMedia } from "../../../../../media";
 import { openPalette, renderShell, resetStores } from "../../../../../palette";
 import { renderApp } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";
 import { findGrid, resetUi } from "../../../../../table";
 import { tableViewport } from "../../../../../viewport";
-import { composerActions } from "../../../../../../src/features/composer/composerStore";
 
 const installViewport = tableViewport(800);
 

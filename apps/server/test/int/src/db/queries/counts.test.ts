@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { counts } from "../../../../../src/db/queries/counts.ts";
 import { seedProject, seedTicket } from "../../../../fixtures";
 import { freshDb, type TestDb } from "../../../../helpers/db.ts";
-import { counts } from "../../../../../src/db/queries/counts.ts";
 
 let h: TestDb;
 beforeAll(async () => {

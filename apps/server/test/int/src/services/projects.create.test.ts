@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { ProjectSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import * as projects from "../../../../src/services/projects.ts";
 import { count, seedChild, seedProject } from "../../../fixtures";
 import {
 	activityRows,
@@ -12,7 +13,6 @@ import {
 	serviceHarness,
 	ULID,
 } from "../../../helpers/services.ts";
-import * as projects from "../../../../src/services/projects.ts";
 
 // A root project takes a key and owns the six seeded statuses. A sub-project
 // takes a parent, a slug, and inherits the nearest owner's statuses. Every

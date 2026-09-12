@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { ORPCError } from "@orpc/client";
 import { errors } from "@trellis/api";
+import { exitCodeFor, formatError } from "../../../src/errors.ts";
 import { lines, runCli } from "../../deps.ts";
 import { rpcError } from "../../fakeServer.ts";
 import { statusSummary, ticket } from "../../fixtures.ts";
-import { exitCodeFor, formatError } from "../../../src/errors.ts";
 
 // `exitCodeFor(code)` maps a contract error code to the process exit code.
 // `formatError(error)` renders one ORPCError as the one stderr line

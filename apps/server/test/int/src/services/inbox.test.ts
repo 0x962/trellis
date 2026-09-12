@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import * as inbox from "../../../../src/services/inbox.ts";
 import {
 	type ActorRef,
 	claude,
@@ -14,7 +15,6 @@ import {
 	seedTicket,
 } from "../../../fixtures";
 import { expectErrorData, ticketHarness } from "../../../helpers/services.ts";
-import * as inbox from "../../../../src/services/inbox.ts";
 
 const h = ticketHarness();
 

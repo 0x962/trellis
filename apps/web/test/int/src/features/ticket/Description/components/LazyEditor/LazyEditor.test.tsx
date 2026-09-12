@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { editorChunk } from "../../../../../../../../src/features/ticket/Description/components/LazyEditor/LazyEditor";
+import { Description } from "../../../../../../../../src/features/ticket/Description/Description";
 import { createFakeScheduler } from "../../../../../../../fakeScheduler";
 import { captureIdle } from "../../../../../../../idle";
 import { press } from "../../../../../../../keyboard";
 import { createTestServer, type TestServer } from "../../../../../../../server";
 import { renderTicket } from "../../../../../../../ticketHost";
-import { Description } from "../../../../../../../../src/features/ticket/Description/Description";
-import { editorChunk } from "../../../../../../../../src/features/ticket/Description/components/LazyEditor/LazyEditor";
 
 let idle: ReturnType<typeof captureIdle>;
 

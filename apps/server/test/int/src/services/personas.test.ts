@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { ulidPattern } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import * as personas from "../../../../src/services/personas.ts";
 import { expectErrorData, type Harness, NOW, secondsAfter, serviceHarness } from "../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import * as personas from "../../../../src/services/personas.ts";
 
 let h: Harness;
 beforeAll(async () => {

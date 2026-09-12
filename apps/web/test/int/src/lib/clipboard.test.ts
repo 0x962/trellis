@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { act, render, screen } from "@testing-library/react";
 import { Toaster } from "@trellis/ui";
 import { createElement } from "react";
-import { mockClipboard } from "../../../inbox";
 import { copyText } from "../../../../src/lib/clipboard";
+import { mockClipboard } from "../../../inbox";
 
 beforeEach(() => {
 	document.body.innerHTML = "";

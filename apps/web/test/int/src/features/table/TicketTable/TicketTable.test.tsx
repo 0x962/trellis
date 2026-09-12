@@ -4,17 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { renderApp } from "../../../../../renderWithProviders";
 import { seedTickets } from "../../../../../seedMany";
 import { createTestServer } from "../../../../../server";
-import {
-	findGrid,
-	footer,
-	grid,
-	groupHeader,
-	groupRows,
-	resetUi,
-	rows,
-	spacer,
-	storedUi,
-} from "../../../../../table";
+import { findGrid, footer, grid, groupHeader, groupRows, resetUi, rows, spacer, storedUi } from "../../../../../table";
 import { tableViewport } from "../../../../../viewport";
 
 const installViewport = tableViewport(600);

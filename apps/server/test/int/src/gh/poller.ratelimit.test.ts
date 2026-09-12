@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import * as poller from "../../../../src/gh/poller.ts";
 import { checkRun, graphqlReply, seedProject, seedRepo } from "../../../fixtures";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import {
@@ -9,7 +10,6 @@ import {
 	type StubRepliesInput,
 	seedLinkedPr,
 } from "../../../helpers/poller.ts";
-import * as poller from "../../../../src/gh/poller.ts";
 
 // The poller reads `gh api rate_limit` at most once every 5 minutes. While
 // the remaining fraction is under 20 percent every interval is multiplied by

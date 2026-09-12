@@ -2,12 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
+import { restoreHome } from "../../../src/restore.ts";
+import { backup } from "../../../src/services/system.ts";
 import { seedProject } from "../../fixtures";
 import { testCtx } from "../../helpers/ctx.ts";
 import { diskDb } from "../../helpers/db.ts";
 import { freshHomeWithDirs } from "../../helpers/home.ts";
-import { restoreHome } from "../../../src/restore.ts";
-import { backup } from "../../../src/services/system.ts";
 
 // A restore swaps the database and the attachments of the data home for the
 // ones in the archive. Every other file of the home stays: the backup

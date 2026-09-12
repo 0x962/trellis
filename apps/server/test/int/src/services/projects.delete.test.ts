@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import * as projects from "../../../../src/services/projects.ts";
 import {
 	type ActorRef,
 	claude,
@@ -19,7 +20,6 @@ import {
 	NOW,
 	serviceHarness,
 } from "../../../helpers/services.ts";
-import * as projects from "../../../../src/services/projects.ts";
 
 // A delete is hard. Without `force` the subtree must be empty. With `force`
 // every project and ticket below goes too. A human deletes without force;

@@ -1,12 +1,12 @@
-import { originDir } from "../../../../../../test/originDir.ts";
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { seedProject, seedTicket } from "../../../fixtures";
+import { originDir } from "../../../../../../test/originDir.ts";
 import { openDb } from "../../../../src/db/client.ts";
 import { migrate } from "../../../../src/db/migrate.ts";
+import { seedProject, seedTicket } from "../../../fixtures";
 
 // A database that agents already ran in holds sessions without a name.
 // Migration 0012 adds the name column and gives every stored session a

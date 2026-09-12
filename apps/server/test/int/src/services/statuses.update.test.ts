@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { StatusUpdateInputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import * as statuses from "../../../../src/services/statuses.ts";
 import { seedChild, seedProject, seedTicket } from "../../../fixtures";
 import { activityRows, eventsOfType, expectError, type Harness, serviceHarness } from "../../../helpers/services.ts";
-import * as statuses from "../../../../src/services/statuses.ts";
 
 // An update edits the owner's row: a rename rewrites the slug and moves no
 // ticket, `isDefault` transfers the one default, and the category never

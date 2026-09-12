@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderWithProviders } from "../../../../../renderWithProviders";
-import { commandActions, useCommandStore } from "../../../../../../src/features/command/commandStore";
 import { Board } from "../../../../../../src/features/board/Board";
+import { commandActions, useCommandStore } from "../../../../../../src/features/command/commandStore";
+import { renderWithProviders } from "../../../../../renderWithProviders";
 
 beforeEach(() => {
 	localStorage.clear();

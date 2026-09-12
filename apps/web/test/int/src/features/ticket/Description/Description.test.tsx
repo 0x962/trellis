@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { eventApplierFor, type Ticket } from "@trellis/api";
+import { editorChunk } from "../../../../../../src/features/ticket/Description/components/LazyEditor";
+import { Description } from "../../../../../../src/features/ticket/Description/Description";
 import { summaryOf, updatedEvent } from "../../../../../events";
 import { createFakeScheduler } from "../../../../../fakeScheduler";
 import { captureIdle } from "../../../../../idle";
@@ -9,8 +11,6 @@ import { press } from "../../../../../keyboard";
 import { patchTicket, ticketRow } from "../../../../../rows";
 import { createTestServer, type TestServer } from "../../../../../server";
 import { ago, hour, renderTicket, settle } from "../../../../../ticketHost";
-import { editorChunk } from "../../../../../../src/features/ticket/Description/components/LazyEditor";
-import { Description } from "../../../../../../src/features/ticket/Description/Description";
 
 let idle: ReturnType<typeof captureIdle>;
 

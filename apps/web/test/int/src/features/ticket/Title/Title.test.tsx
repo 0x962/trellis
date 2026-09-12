@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Title } from "../../../../../../src/features/ticket/Title/Title";
 import { conflictAt18, serverAt17 } from "../../../../../conflict";
 import type { TestServer } from "../../../../../server";
 import { fieldValue, renderTicket, settle } from "../../../../../ticketHost";
-import { Title } from "../../../../../../src/features/ticket/Title/Title";
 
 beforeEach(() => localStorage.clear());
 

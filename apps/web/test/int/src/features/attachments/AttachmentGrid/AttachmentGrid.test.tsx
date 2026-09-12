@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AttachmentGrid } from "../../../../../../src/features/attachments/AttachmentGrid/AttachmentGrid";
 import {
 	dropFiles,
 	fileOf,
@@ -13,7 +14,6 @@ import {
 import { callsTo } from "../../../../../inbox";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../../server";
-import { AttachmentGrid } from "../../../../../../src/features/attachments/AttachmentGrid/AttachmentGrid";
 
 beforeEach(() => localStorage.clear());
 afterEach(restoreFetch);

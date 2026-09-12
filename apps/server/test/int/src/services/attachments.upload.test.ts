@@ -1,13 +1,13 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import type { TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { withTx } from "../../../../src/db/tx.ts";
+import { upload } from "../../../../src/services/attachments.ts";
 import { claude, hoursAgo, seedProject, seedTicket } from "../../../fixtures";
 import { eventSink, testCtx, withEmit } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { freshHomeWithDirs, sha256Of } from "../../../helpers/home.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { withTx } from "../../../../src/db/tx.ts";
-import { upload } from "../../../../src/services/attachments.ts";
 
 // An upload hashes the file while it writes `attachments/tmp`, finalizes the
 // blob under the blob lock, and writes one attachment row. The row, the

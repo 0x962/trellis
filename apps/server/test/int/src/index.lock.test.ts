@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { LOCK_FILE } from "../../../src/homeLock.ts";
 import { freshHome } from "../../helpers/home.ts";
 import { type SpawnedServer, spawnServer, stopServer } from "../../helpers/server.ts";
-import { LOCK_FILE } from "../../../src/homeLock.ts";
 
 // Two PGlite instances on one data directory corrupt it. So the production
 // boot takes the lock on the data home first, then binds the port, and only

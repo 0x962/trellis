@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useComposerStore } from "../../../../../../src/features/composer";
+import { ProjectTree } from "../../../../../../src/features/sidebar/ProjectTree/ProjectTree";
+import { createUiStore, useUiStore } from "../../../../../../src/stores/uiStore";
 import { mockClipboard } from "../../../../../inbox";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer } from "../../../../../server";
-import { createUiStore, useUiStore } from "../../../../../../src/stores/uiStore";
-import { useComposerStore } from "../../../../../../src/features/composer";
-import { ProjectTree } from "../../../../../../src/features/sidebar/ProjectTree/ProjectTree";
 
 beforeEach(() => {
 	localStorage.clear();

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { IsoDateTimeSchema } from "@trellis/api";
+import * as brief from "../../../../src/services/brief.ts";
 import {
 	claude,
 	count,
@@ -13,7 +14,6 @@ import {
 	seedTicket,
 } from "../../../fixtures";
 import { expectErrorData, ticketHarness } from "../../../helpers/services.ts";
-import * as brief from "../../../../src/services/brief.ts";
 
 const h = ticketHarness();
 

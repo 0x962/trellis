@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { render, screen } from "@testing-library/react";
-import { dragFilesOver, dragLeave, dragTextOver, dropFiles, fileOf } from "../../../../../attachments";
 import { DropTarget } from "../../../../../../src/features/attachments/DropTarget/DropTarget";
+import { dragFilesOver, dragLeave, dragTextOver, dropFiles, fileOf } from "../../../../../attachments";
 
 const surface = () => screen.getByTestId("surface");
 

@@ -2,14 +2,14 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
+import { withTx } from "../../../../src/db/tx.ts";
+import { upload } from "../../../../src/services/attachments.ts";
 import { count, seedProject, seedTicket } from "../../../fixtures";
 import { testCtx, withEmit } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { caught } from "../../../helpers/errors.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { withTx } from "../../../../src/db/tx.ts";
-import { upload } from "../../../../src/services/attachments.ts";
 
 // A refused upload leaves nothing behind: no row, no blob, and no file under
 // `attachments/tmp`.

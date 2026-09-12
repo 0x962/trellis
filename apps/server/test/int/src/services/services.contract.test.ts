@@ -1,15 +1,15 @@
-import { originDir } from "../../../../../../test/originDir.ts";
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
-import { count, seedChild, seedProject } from "../../../fixtures";
-import { expectError, type Harness, serviceHarness } from "../../../helpers/services.ts";
+import { originDir } from "../../../../../../test/originDir.ts";
 import { record } from "../../../../src/services/activity.ts";
 import * as actors from "../../../../src/services/actors.ts";
 import * as projects from "../../../../src/services/projects.ts";
 import * as settings from "../../../../src/services/settings.ts";
 import * as statuses from "../../../../src/services/statuses.ts";
+import { count, seedChild, seedProject } from "../../../fixtures";
+import { expectError, type Harness, serviceHarness } from "../../../helpers/services.ts";
 
 // The rules every service module keeps: it takes (ctx, tx, input) in that
 // order, it never imports the database client, it writes only through the

@@ -1,11 +1,11 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
+import * as poller from "../../../../src/gh/poller.ts";
 import { graphqlReply, seedProject, seedRepo } from "../../../fixtures";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { freshHome } from "../../../helpers/home.ts";
 import { authReply, pollerHarness, prListReply, seedLinkedPr, signedOutReply } from "../../../helpers/poller.ts";
-import * as poller from "../../../../src/gh/poller.ts";
 
 // gh that is missing or signed out is a state, not a crash. start reads the
 // state once. While the state is bad the poller rechecks with `gh auth

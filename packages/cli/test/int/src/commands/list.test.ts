@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { run } from "../../../../src/index.ts";
 import { lines, makeDeps, runCli } from "../../../deps.ts";
 import { ticketPage } from "../../../fixtures.ts";
-import { run } from "../../../../src/index.ts";
 
 describe("list", () => {
 	// CLI-86: the flags are the shared grammar one to one.

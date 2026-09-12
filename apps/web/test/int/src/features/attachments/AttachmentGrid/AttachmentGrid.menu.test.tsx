@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AttachmentGrid } from "../../../../../../src/features/attachments/AttachmentGrid/AttachmentGrid";
 import { recordingServer, restoreFetch, rowsOf, surfaceOf } from "../../../../../attachments";
 import { callsTo, mockClipboard } from "../../../../../inbox";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../../server";
-import { AttachmentGrid } from "../../../../../../src/features/attachments/AttachmentGrid/AttachmentGrid";
 
 beforeEach(() => localStorage.clear());
 afterEach(restoreFetch);

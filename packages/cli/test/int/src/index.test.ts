@@ -1,11 +1,11 @@
-import { originDir } from "../../../../../test/originDir.ts";
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import { originDir } from "../../../../../test/originDir.ts";
+import type { Deps } from "../../../src/index.ts";
+import { main } from "../../../src/index.ts";
 import { lines, runCli } from "../../deps.ts";
 import { rpcError } from "../../fakeServer.ts";
 import { comment, statusSummary, ticket, ticketSummary } from "../../fixtures.ts";
-import type { Deps } from "../../../src/index.ts";
-import { main } from "../../../src/index.ts";
 
 const verbs = [
 	"projects",

@@ -1,8 +1,8 @@
 import { describe, expect, mock, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderWithProviders } from "../../../../../renderWithProviders";
 import { PriorityPicker } from "../../../../../../src/features/pickers/PriorityPicker/PriorityPicker";
+import { renderWithProviders } from "../../../../../renderWithProviders";
 
 const mount = async (user: ReturnType<typeof userEvent.setup>) => {
 	const onPick = mock((_priority: string) => {});

@@ -1,13 +1,13 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
+import { createGhRunner } from "../../../../src/gh/run.ts";
+import { gh } from "../../../../src/services/system.ts";
 import { testCtx } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { ghStub, type StubReply } from "../../../helpers/gh-stub.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { createGhRunner } from "../../../../src/gh/run.ts";
-import { gh } from "../../../../src/services/system.ts";
 
 // The gh status runs `gh auth status` and reports what the web banner and
 // the CLI line print. A missing binary and a signed out gh are answers, not

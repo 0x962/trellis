@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import type { TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { count, seedRoot } from "../../../fixtures";
-import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { ownerOf } from "../../../../src/db/queries/effectiveStatuses.ts";
 import { withTx } from "../../../../src/db/tx.ts";
+import { count, seedRoot } from "../../../fixtures";
+import { freshDb, type TestDb } from "../../../helpers/db.ts";
 
 let h: TestDb;
 beforeAll(async () => {

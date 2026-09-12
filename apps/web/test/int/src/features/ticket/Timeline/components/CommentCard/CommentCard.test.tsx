@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Comment } from "@trellis/api";
+import { CommentCard } from "../../../../../../../../src/features/ticket/Timeline/components/CommentCard/CommentCard";
+import { compactRelativeTime } from "../../../../../../../../src/lib/format";
 import { ticketId } from "../../../../../../../fixtures";
 import { renderWithProviders } from "../../../../../../../renderWithProviders";
 import { ago, hour } from "../../../../../../../ticketHost";
-import { compactRelativeTime } from "../../../../../../../../src/lib/format";
-import { CommentCard } from "../../../../../../../../src/features/ticket/Timeline/components/CommentCard/CommentCard";
 
 beforeEach(() => localStorage.clear());
 

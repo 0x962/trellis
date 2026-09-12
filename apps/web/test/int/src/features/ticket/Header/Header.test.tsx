@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Header } from "../../../../../../src/features/ticket/Header/Header";
 import { mod } from "../../../../../keyboard";
 import { renderTicket } from "../../../../../ticketHost";
-import { Header } from "../../../../../../src/features/ticket/Header/Header";
 
 beforeEach(() => localStorage.clear());
 

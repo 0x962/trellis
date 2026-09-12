@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import type { GhReason } from "@trellis/api";
+import { PullRequests } from "../../../../../../../../src/features/prs/PullRequests/PullRequests";
+import { ghCopy } from "../../../../../../../../src/lib/ghCopy";
 import { mockMatchMedia } from "../../../../../../../media";
 import { ghReady, summaryOf } from "../../../../../../../prs";
 import { renderWithProviders } from "../../../../../../../renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../../../../server";
 import { renderTicket } from "../../../../../../../ticketHost";
-import { ghCopy } from "../../../../../../../../src/lib/ghCopy";
-import { PullRequests } from "../../../../../../../../src/features/prs/PullRequests/PullRequests";
 
 beforeEach(() => {
 	localStorage.clear();

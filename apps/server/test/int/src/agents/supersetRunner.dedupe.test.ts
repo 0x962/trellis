@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
-import { type SupersetStubHandle, supersetStub } from "../../../helpers/superset-stub.ts";
 import type { Runner } from "../../../../src/agents/runner.ts";
 import { createSupersetRunner } from "../../../../src/agents/supersetRunner.ts";
+import { type SupersetStubHandle, supersetStub } from "../../../helpers/superset-stub.ts";
 
 let stub: SupersetStubHandle;
 let runner: Runner;

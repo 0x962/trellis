@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { act, render, screen } from "@testing-library/react";
 import { Toaster } from "@trellis/ui";
+import { useApplyChange } from "../../../../../../../src/features/table/hooks/useApplyChange/useApplyChange";
+import { useTicketMutations } from "../../../../../../../src/features/table/hooks/useTicketMutations";
 import { summaryOf } from "../../../../../../events";
 import { renderHookWithProviders } from "../../../../../../renderHook";
 import { createTestServer } from "../../../../../../server";
-import { useTicketMutations } from "../../../../../../../src/features/table/hooks/useTicketMutations";
-import { useApplyChange } from "../../../../../../../src/features/table/hooks/useApplyChange/useApplyChange";
 
 // The hook over the fake server, with the Toaster that shows its rollback
 // toasts, and two CDE tickets as the table holds them.

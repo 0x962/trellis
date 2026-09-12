@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import * as projects from "../../../../src/services/projects.ts";
 import { seedChild, seedProject, seedRootWithStatuses, seedStatuses, seedTicket } from "../../../fixtures";
 import { activityRows, eventsOfType, expectError, type Harness, serviceHarness } from "../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import * as projects from "../../../../src/services/projects.ts";
 
 // A move re-parents a project inside its root, or reorders it among its
 // siblings with `after` and `before`. A project never becomes its own

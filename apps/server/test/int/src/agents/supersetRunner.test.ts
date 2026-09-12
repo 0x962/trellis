@@ -3,10 +3,10 @@ import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { ORPCError } from "@orpc/server";
 import { agentLaunch, resumeCommand } from "@trellis/api";
-import { gitRepo } from "../../../helpers/gitRepo.ts";
-import { flagOf, type SupersetStubHandle, supersetStub } from "../../../helpers/superset-stub.ts";
 import type { Runner } from "../../../../src/agents/runner.ts";
 import { createSupersetRunner } from "../../../../src/agents/supersetRunner.ts";
+import { gitRepo } from "../../../helpers/gitRepo.ts";
+import { flagOf, type SupersetStubHandle, supersetStub } from "../../../helpers/superset-stub.ts";
 
 // The runner spawns the fake superset binary from test/stubs/superset.ts,
 // which records every argument list and keeps its workspaces and terminals

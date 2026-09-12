@@ -2,6 +2,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
+import { backup } from "../../../../src/services/system.ts";
+import { blobPath } from "../../../../src/storage/blobs.ts";
 import { seedComment, seedProject, seedTicket } from "../../../fixtures";
 import { testCtx } from "../../../helpers/ctx.ts";
 import { type DiskDb, diskDb } from "../../../helpers/db.ts";
@@ -9,8 +11,6 @@ import { freshHomeWithDirs, sha256Of } from "../../../helpers/home.ts";
 import { listArchive, restoreBackup } from "../../../helpers/restore.ts";
 import { captureStatements } from "../../../helpers/statements.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { blobPath } from "../../../../src/storage/blobs.ts";
-import { backup } from "../../../../src/services/system.ts";
 
 // A backup checkpoints the database, then tars the data directory and the
 // attachments into `<home>/backups`. The archive is a data home again, so a

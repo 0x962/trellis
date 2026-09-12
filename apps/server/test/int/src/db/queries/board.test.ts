@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { board } from "../../../../../src/db/queries/board.ts";
+import { ticketList } from "../../../../../src/db/queries/ticketList.ts";
 import { type StatusIds, seedProject, seedTicket } from "../../../../fixtures";
 import { freshDb, type TestDb } from "../../../../helpers/db.ts";
 import { countStatements } from "../../../../helpers/statements.ts";
-import { board } from "../../../../../src/db/queries/board.ts";
-import { ticketList } from "../../../../../src/db/queries/ticketList.ts";
 
 let h: TestDb;
 beforeAll(async () => {

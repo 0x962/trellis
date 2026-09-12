@@ -1,6 +1,6 @@
 import { describe, expect, mock, test } from "bun:test";
-import { wire } from "../../../renderWithProviders";
 import { preloadRouteChunks } from "../../../../src/lib/preloadRouteChunks";
+import { wire } from "../../../renderWithProviders";
 
 describe("lib/preloadRouteChunks", () => {
 	// A route file loads on its first visit. After the server stops, that

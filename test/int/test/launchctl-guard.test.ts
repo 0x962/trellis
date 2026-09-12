@@ -1,9 +1,9 @@
-import { originDir } from "../../originDir.ts";
 import { expect, test } from "bun:test";
 import { exec, execFileSync, execSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { originDir } from "../../originDir.ts";
 
 const repoRoot = join(originDir(import.meta.dir), "..");
 

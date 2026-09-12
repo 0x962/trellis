@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ActorFooter } from "../../../../../../src/features/sidebar/ActorFooter/ActorFooter";
 import { lastCallTo } from "../../../../../inbox";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { storedActorName } from "../../../../../rows";
 import { createTestServer } from "../../../../../server";
-import { ActorFooter } from "../../../../../../src/features/sidebar/ActorFooter/ActorFooter";
 
 beforeEach(() => localStorage.clear());
 

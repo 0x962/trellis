@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import { search } from "../../../../../src/db/queries/search.ts";
 import {
 	seedChild,
 	seedComment,
@@ -10,7 +11,6 @@ import {
 } from "../../../../fixtures";
 import { freshDb, type TestDb } from "../../../../helpers/db.ts";
 import { captureStatements } from "../../../../helpers/statements.ts";
-import { search } from "../../../../../src/db/queries/search.ts";
 
 let h: TestDb;
 beforeAll(async () => {

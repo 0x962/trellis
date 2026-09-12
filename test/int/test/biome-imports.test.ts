@@ -1,7 +1,7 @@
-import { originDir } from "../../originDir.ts";
 import { describe, expect, test } from "bun:test";
 import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { originDir } from "../../originDir.ts";
 
 // A probe project lives under TRELLIS_HOME, outside this repo, so Biome reads
 // only the fixture files. The root biome.json is copied into the probe root:

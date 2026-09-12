@@ -1,10 +1,10 @@
-import { originDir } from "../../../../../../test/originDir.ts";
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
-import { ghStub } from "../../../helpers/gh-stub.ts";
+import { originDir } from "../../../../../../test/originDir.ts";
 import { buildPullRequestQuery, fetchPullRequests } from "../../../../src/gh/graphql.ts";
 import { createGhRunner } from "../../../../src/gh/run.ts";
+import { ghStub } from "../../../helpers/gh-stub.ts";
 
 // test/fixtures/graphql-50.json is one `gh api graphql` response for the 50
 // refs below: pr0..pr24 in acme/web, pr25..pr49 in acme/api, numbers 100..149.

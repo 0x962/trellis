@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { screen, waitFor } from "@testing-library/react";
 import { createEventApplier, type GhStatus } from "@trellis/api";
+import { GhBanner } from "../../../../../../src/features/settings/GhBanner/GhBanner";
 import { mockMatchMedia } from "../../../../../media";
 import { renderWithProviders } from "../../../../../renderWithProviders";
 import { createTestServer, type TestServer } from "../../../../../server";
-import { GhBanner } from "../../../../../../src/features/settings/GhBanner/GhBanner";
 
 beforeEach(() => {
 	localStorage.clear();

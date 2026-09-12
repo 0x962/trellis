@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { join } from "node:path";
-import { type DiskDb, diskDb } from "../../../helpers/db.ts";
-import { freshHome } from "../../../helpers/home.ts";
-import { assertStatusInvariant } from "../../../invariants.ts";
 import type { ServiceCtx } from "../../../../src/context.ts";
 import { createCache } from "../../../../src/db/cache.ts";
 import { withTx } from "../../../../src/db/tx.ts";
 import * as personas from "../../../../src/services/personas.ts";
+import { type DiskDb, diskDb } from "../../../helpers/db.ts";
+import { freshHome } from "../../../helpers/home.ts";
+import { assertStatusInvariant } from "../../../invariants.ts";
 
 let handle: DiskDb;
 let dataDir: string;

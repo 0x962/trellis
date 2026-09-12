@@ -1,11 +1,11 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import type { GhStatus } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { health } from "../../../../src/services/system.ts";
 import { testCtx } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { health } from "../../../../src/services/system.ts";
 
 // health answers the version pair, the boot id, the resident memory of this
 // process, and the size of the database. The gh field repeats the state the

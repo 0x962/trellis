@@ -1,17 +1,11 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { graphqlReply, seedProject, seedRepo, seedTicket } from "../../../fixtures";
-import { freshDb, type TestDb } from "../../../helpers/db.ts";
-import {
-	authReply,
-	errorsReply,
-	pollerHarness,
-	prListReply,
-	type StubRepliesInput,
-} from "../../../helpers/poller.ts";
-import { assertStatusInvariant } from "../../../invariants.ts";
 import * as detect from "../../../../src/gh/detect.ts";
 import type { GhResult, GhRunner, GhSlot } from "../../../../src/gh/run.ts";
+import { graphqlReply, seedProject, seedRepo, seedTicket } from "../../../fixtures";
+import { freshDb, type TestDb } from "../../../helpers/db.ts";
+import { authReply, errorsReply, pollerHarness, prListReply, type StubRepliesInput } from "../../../helpers/poller.ts";
+import { assertStatusInvariant } from "../../../invariants.ts";
 
 // Auto-link lists the open pull requests of each declared repository. A
 // failure that belongs to one repository skips that repository only, and

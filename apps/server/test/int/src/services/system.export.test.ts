@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { exportNdjson } from "../../../../src/services/system.ts";
 import {
 	dana,
 	insertRow,
@@ -17,7 +18,6 @@ import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 import { captureStatements } from "../../../helpers/statements.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
-import { exportNdjson } from "../../../../src/services/system.ts";
 
 // The export streams NDJSON: one header line, then one line per row tagged
 // with its table. Each table is read in keyset pages of 1000 rows, so the

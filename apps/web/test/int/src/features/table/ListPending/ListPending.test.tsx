@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { renderWithProviders } from "../../../../../renderWithProviders";
 import { ListPending } from "../../../../../../src/features/table/ListPending/ListPending";
+import { renderWithProviders } from "../../../../../renderWithProviders";
 
 // ER-2. A list route that takes more than 300 ms shows the shape of its
 // view: the page frame, then rows or cards that the data replaces in place.
