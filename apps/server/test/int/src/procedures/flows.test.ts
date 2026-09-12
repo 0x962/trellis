@@ -15,8 +15,6 @@ const step = (title: string) => ({
 	title,
 	personaId: null,
 	instruction: `Do ${title}.`,
-	model: null,
-	effort: null,
 	minutes: null,
 	maxRounds: null,
 	x: 0,

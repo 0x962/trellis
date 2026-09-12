@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { check, doublePrecision, foreignKey, index, integer, pgTable, text, unique } from "drizzle-orm/pg-core";
-import { checkIn, FLOW_BRANCHES, FLOW_EFFORTS, FLOW_NODE_KINDS } from "../enums.ts";
+import { checkIn, FLOW_BRANCHES, FLOW_NODE_KINDS } from "../enums.ts";
 import { at } from "./actors.ts";
 import { personas } from "./personas.ts";
 
@@ -48,8 +48,6 @@ export const flowNodes = pgTable(
 		title: text().notNull(),
 		personaId: text("persona_id").references(() => personas.id, { onDelete: "set null" }),
 		instruction: text().notNull().default(""),
-		model: text(),
-		effort: text(),
 		minutes: integer(),
 		maxRounds: integer("max_rounds"),
 		x: doublePrecision().notNull(),
@@ -66,10 +64,8 @@ export const flowNodes = pgTable(
 		}).onDelete("cascade"),
 		check("flow_nodes_parent_check", sql`${t.parentId} <> ${t.id}`),
 		checkIn(t.kind, FLOW_NODE_KINDS),
-		checkIn(t.effort, FLOW_EFFORTS),
 		check("flow_nodes_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 120`),
 		check("flow_nodes_instruction_check", sql`length(${t.instruction}) <= 200000`),
-		check("flow_nodes_model_check", sql`${t.model} IS NULL OR length(${t.model}) BETWEEN 1 AND 120`),
 		check(
 			"flow_nodes_minutes_check",
 			sql`(${t.kind} = 'budget') = (${t.minutes} IS NOT NULL) AND (${t.minutes} IS NULL OR ${t.minutes} BETWEEN 1 AND 1440)`,

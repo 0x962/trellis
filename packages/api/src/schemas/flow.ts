@@ -33,9 +33,6 @@ export const flowAgentKinds: ReadonlySet<FlowNodeKind> = new Set(["agent", "gate
 export const FlowBranchSchema = z.enum(["out", "yes", "no"]);
 export type FlowBranch = z.infer<typeof FlowBranchSchema>;
 
-export const FlowEffortSchema = z.enum(["low", "medium", "high", "xhigh", "max"]);
-export type FlowEffort = z.infer<typeof FlowEffortSchema>;
-
 export const FLOW_MAX_MINUTES = 1440;
 export const FLOW_MAX_ROUNDS = 50;
 export const FLOW_MAX_NODES = 500;
@@ -59,8 +56,6 @@ export const FlowNodeInputSchema = z
 		title: z.string().trim().min(1, "Write a title.").max(120),
 		personaId: UlidSchema.nullable(),
 		instruction: z.string().max(200_000),
-		model: z.string().trim().min(1).max(120).nullable(),
-		effort: FlowEffortSchema.nullable(),
 		minutes: z.number().int().min(1).max(FLOW_MAX_MINUTES).nullable(),
 		maxRounds: z.number().int().min(1).max(FLOW_MAX_ROUNDS).nullable(),
 		x: CoordinateSchema,
@@ -86,8 +81,6 @@ export const FlowNodeSchema = z.object({
 	title: z.string(),
 	personaId: UlidSchema.nullable(),
 	instruction: z.string(),
-	model: z.string().nullable(),
-	effort: FlowEffortSchema.nullable(),
 	minutes: z.number().int().nullable(),
 	maxRounds: z.number().int().nullable(),
 	x: z.number(),

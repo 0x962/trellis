@@ -1,4 +1,4 @@
-import { type FlowEffort, FlowEffortSchema, type FlowNodeKind, flowAgentKinds, type Persona } from "@trellis/api";
+import { type FlowNodeKind, flowAgentKinds, type Persona } from "@trellis/api";
 import { Button, Input, Select, type SelectItem, Textarea } from "@trellis/ui";
 import { Trash2 } from "lucide-react";
 import { flowKinds } from "../../../kinds";
@@ -20,11 +20,6 @@ const promptLabels: Record<FlowNodeKind, string | null> = {
 	human: "What the person decides",
 	budget: null,
 };
-
-const effortItems: SelectItem<FlowEffort | "default">[] = [
-	{ value: "default", label: "Default" },
-	...FlowEffortSchema.options.map((value) => ({ value, label: value })),
-];
 
 // Edits one step. Each change goes to the canvas at once, and the editor saves
 // the flow a moment later.
@@ -81,27 +76,6 @@ export function NodeInspector({ fields, issue, personas, onChange, onDelete }: N
 							: "Write what this step does."
 					}
 				/>
-			)}
-			{runsAgent && (
-				<div className="grid grid-cols-2 gap-3">
-					<Input
-						label="Model"
-						placeholder="Default"
-						maxLength={120}
-						value={fields.model ?? ""}
-						onChange={(event) => onChange({ model: event.target.value.trim() === "" ? null : event.target.value })}
-					/>
-					<div className="flex flex-col gap-2">
-						<span className="text-sm text-fg-muted">Effort</span>
-						<Select
-							label="Effort"
-							items={effortItems}
-							value={fields.effort ?? "default"}
-							onValueChange={(value) => onChange({ effort: value === "default" ? null : value })}
-							className="w-full"
-						/>
-					</div>
-				</div>
 			)}
 			{fields.kind === "budget" && (
 				<Input

@@ -19,7 +19,7 @@ model.
 | Web | React, Vite, TanStack Router, Query, Table, Virtual | 19, 8, current |
 | UI primitives | Base UI, Tailwind, own tokens in `packages/ui` | 1.8, 4.3 |
 | Editor, palette, drag and drop, motion, toasts, icons | Tiptap, cmdk, pragmatic-drag-and-drop, `motion/mini`, sonner, lucide-react | current |
-| Flow canvas | @xyflow/react | 12.11 |
+| Flow canvas, flow layout | @xyflow/react, @dagrejs/dagre | 12.11, 3.1 |
 | Fonts | BerkeleyMono, then JetBrains Mono from fontsource | 5.3 |
 | Mobile | Expo, expo-router, React Native, NativeWind, FlashList, `expo-sqlite/kv-store`, `react-native-sse` | 57, 0.86, current |
 | Agent runner | the Superset CLI, or tmux for a template without `{{superset}}` | |
@@ -186,6 +186,14 @@ the same box, or two nodes outside every box. The edges of a flow form no loop.
 `validateFlowGraph` in `packages/api/src/flowGraph.ts` holds these rules. The
 server applies it before a save, and the editor shows its issues on the canvas.
 
+Every card and box has a handle on each of its four sides, and a wire starts
+or ends on any of them. The canvas draws each wire between the two sides of its
+nodes that face each other, so an edge row stores no side. A gate starts a wire
+only from its YES and NO handles. A new step connects from the step before it:
+the selected step, or else the newest step of the same box. A gate connects the
+new step by YES. The Clean up button lays out each box and then the canvas from
+top to bottom with dagre, and its toast offers Undo.
+
 `flows.save` replaces every node and edge of a flow in one transaction. The
 client mints the ULID of each new node and edge. `version` rises on every change
 to a flow, and a save or an update with an older `expectedVersion` fails with
@@ -275,7 +283,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | settings | key PK, value jsonb, updated_at. |
 | personas | id PK, name (CHECK 1 to 120, not blank), kind (CHECK builder, reviewer, or manager; default reviewer), instruction (CHECK 1 to 200000, not blank), created_at, updated_at. |
 | flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), version (CHECK > 0), created_at, updated_at. |
-| flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, budget, or loop), title (trimmed, 1 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), model (1 to 120), effort (CHECK low to max), minutes (CHECK `(kind = 'budget') = (minutes IS NOT NULL)`, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
+| flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, budget, or loop), title (trimmed, 1 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), minutes (CHECK `(kind = 'budget') = (minutes IS NOT NULL)`, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | agent_runs | id PK, name, runtime (default `superset`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, state (CHECK starting, interrupted, running, failed, stopped, exited), workspace_id, terminal_id, url, error, created_at, updated_at. Partial index (ticket_id) WHERE the state is live. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND the state is live. Index (created_at). |
 | agent_sessions | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |
@@ -296,12 +304,12 @@ midpoint of its neighbors. The column renumbers in steps of 1024 when the gap
 falls below 1. A list sorts and pages by `(position, id)`.
 
 The migrations live in `apps/server/drizzle/`, from `0000_extensions` to
-`0024_abandoned_misty_knight`. `0000_extensions` creates `pg_trgm`. `0001_init` holds
+`0025_awesome_scourge`. `0000_extensions` creates `pg_trgm`. `0001_init` holds
 the tables. `0002_constraints` holds what drizzle-kit cannot render: the
 `UNIQUE NULLS NOT DISTINCT` constraint, the generated `tsvector` columns, and the
 trigram index. The migrator applies them at boot in one transaction, then runs
 `ANALYZE` and sets `pg_trgm.word_similarity_threshold`. `meta/_journal.json` is
-the order the migrator runs, and it lists 22 entries: the numbers 0009 to 0011
+the order the migrator runs, and it lists 23 entries: the numbers 0009 to 0011
 are absent, because those migrations left the tree before release.
 `0013_remove_agents` drops the agent manager tables and `0020_restore_agents`
 brings them back, so a data home from that window still upgrades. CI fails when

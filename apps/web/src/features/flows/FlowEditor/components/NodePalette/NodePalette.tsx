@@ -5,8 +5,8 @@ import { KIND_MIME } from "../../flowDraft";
 
 type NodePaletteProps = { onAdd: (kind: FlowNodeKind) => void };
 
-// A click adds the step at the center of the view. A drag adds it where the
-// person drops it, inside the box under the pointer.
+// A click adds the step below the step before it and connects the two. A drag
+// adds it where the person drops it, inside the box under the pointer.
 export function NodePalette({ onAdd }: NodePaletteProps) {
 	return (
 		<div

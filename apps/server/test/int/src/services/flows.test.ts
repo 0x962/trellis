@@ -29,8 +29,6 @@ const node = (fields: Partial<FlowNodeInput> = {}): FlowNodeInput => ({
 	title: "Step",
 	personaId: null,
 	instruction: "Read the diff.",
-	model: null,
-	effort: null,
 	minutes: null,
 	maxRounds: null,
 	x: 0,
@@ -86,7 +84,7 @@ describe("flows", () => {
 		const gate = node({ kind: "gate", title: "Backend?", instruction: "Does it touch the server?" });
 		const box = node({ kind: "budget", title: "Checks", instruction: "", minutes: 12, width: 480, height: 240 });
 		// The child comes before its group in the input.
-		const inner = node({ parentId: box.id, title: "Migrations", model: "opus", effort: "high", x: 12.5, y: -4 });
+		const inner = node({ parentId: box.id, title: "Migrations", x: 12.5, y: -4 });
 		const report = node({ title: "Report" });
 		const edges = [
 			{ id: ulid(), fromNodeId: gate.id, toNodeId: box.id, branch: "yes" as const },
