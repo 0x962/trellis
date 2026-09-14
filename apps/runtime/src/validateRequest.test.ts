@@ -27,3 +27,7 @@ test("requires byte-safe input and bounded terminal dimensions", () => {
 test("accepts a structured launch and absolute working directory", () => {
 	expect(validateRequest(launch)).toEqual(launch);
 });
+test("process deadlines require a positive bounded duration", () => {
+	expect(() => validateRequest({ ...launch, params: { ...launch.params, timeoutMs: 0 } })).toThrow("timeout");
+	expect(() => validateRequest({ ...launch, params: { ...launch.params, timeoutMs: 86400001 } })).toThrow("timeout");
+});

@@ -17,7 +17,7 @@ The manifest contains the protocol version, daemon identifier, PID, start time, 
 
 ## Protocol
 
-Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens one socket connection. Requests and responses use newline-delimited JSON with protocol version 2.
+Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens one socket connection. Requests and responses use newline-delimited JSON with protocol version 3.
 
 | Method | Input | Result |
 | --- | --- | --- |
@@ -30,7 +30,7 @@ Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens 
 | `stop` | Session identifier | Session |
 | `output` | Session identifier, byte offset | Base64 bytes and retained byte interval |
 
-A launch specification holds `id`, `command`, `args`, `cwd`, and `mode`. Optional fields are `env`, `cols`, and `rows`. The modes are `pty` and `stdio`. `separateStderr: true` retains standard error in its own log. `output(id, offset, "stderr")` reads that log. The host assigns a distinct identifier to each execution attempt.
+A launch specification holds `id`, `command`, `args`, `cwd`, and `mode`. Optional fields are `env`, `cols`, `rows`, and `timeoutMs`. A timeout must be between 1 millisecond and 24 hours. The runtime enforces it independently of host connections. A deadline stops the process tree and persists the timeout reason. The modes are `pty` and `stdio`. `separateStderr: true` retains standard error in its own log. `output(id, offset, "stderr")` reads that log. The host assigns a distinct identifier to each execution attempt.
 
 A repeated launch identifier returns its existing session. A changed command under that identifier returns `LAUNCH_CONFLICT`. The runtime records the identifier before it starts the process. A stop before launch records cancellation, so a delayed launch cannot create a process.
 

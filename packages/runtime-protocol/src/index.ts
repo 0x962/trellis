@@ -1,4 +1,4 @@
-export const RUNTIME_PROTOCOL_VERSION = 2;
+export const RUNTIME_PROTOCOL_VERSION = 3;
 export type SessionMode = "pty" | "stdio";
 export type SessionStatus = "running" | "exited" | "unknown";
 export interface LaunchSpec {
@@ -9,6 +9,7 @@ export interface LaunchSpec {
 	env?: Record<string, string>;
 	mode: SessionMode;
 	separateStderr?: boolean;
+	timeoutMs?: number;
 	cols?: number;
 	rows?: number;
 }

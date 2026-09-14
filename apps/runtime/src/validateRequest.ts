@@ -19,6 +19,13 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			break;
 		case "start":
 			if (
+				params.timeoutMs !== undefined &&
+				(!Number.isSafeInteger(params.timeoutMs) ||
+					(params.timeoutMs as number) < 1 ||
+					(params.timeoutMs as number) > 86400000)
+			)
+				throw new Error("Process timeout must be between 1 and 86400000 milliseconds");
+			if (
 				typeof params.command !== "string" ||
 				!params.command ||
 				typeof params.cwd !== "string" ||

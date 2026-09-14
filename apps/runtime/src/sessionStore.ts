@@ -13,6 +13,7 @@ type Record = {
 	stderr: SessionLog;
 	ledger: InputLedger;
 	process?: ProcessHandle;
+	timer?: ReturnType<typeof setTimeout>;
 	stopped: Promise<void>;
 	resolveStop: () => void;
 };
@@ -68,6 +69,7 @@ export class SessionStore {
 					spec.cols ?? 80,
 					spec.rows ?? 24,
 					spec.separateStderr ?? false,
+					spec.timeoutMs ?? null,
 				]),
 			)
 			.digest("hex");
@@ -106,6 +108,7 @@ export class SessionStore {
 		this.records.set(spec.id, record);
 		this.save(record);
 		const exit = (code: number | null, error: string | null = session.error) => {
+			clearTimeout(record.timer);
 			session.status = "exited";
 			session.exitCode = code;
 			session.error = error;
@@ -129,6 +132,12 @@ export class SessionStore {
 		session.pid = record.process.pid;
 		session.status = "running";
 		this.save(record);
+		if (spec.timeoutMs !== undefined)
+			record.timer = setTimeout(() => {
+				session.error = `Process timed out after ${spec.timeoutMs} ms`;
+				this.save(record);
+				record.process!.stop();
+			}, spec.timeoutMs);
 		return session;
 	}
 	input(id: string, data: string) {

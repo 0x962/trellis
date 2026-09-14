@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { originDir } from "../../../../../test/originDir.ts";
+import { buildRuntime } from "../../runtimeBuild.ts";
 
 const runtimeNode = process.env.TRELLIS_RUNTIME_NODE ?? "node";
 const sourceDir = originDir(import.meta.dir);
@@ -20,13 +21,7 @@ async function waitFor<T>(read: () => Promise<T>, accept: (value: T) => boolean)
 	}
 }
 beforeAll(async () => {
-	const build = await Bun.build({
-		entrypoints: [join(sourceDir, "index.ts")],
-		outdir: resolve(sourceDir, "../dist"),
-		target: "node",
-		external: ["node-pty", "fs-ext"],
-	});
-	expect(build.success).toBe(true);
+	await buildRuntime();
 	daemon = spawn(runtimeNode, [resolve(sourceDir, "../dist/index.js"), "--home", home], {
 		stdio: ["ignore", "pipe", "inherit"],
 	});
