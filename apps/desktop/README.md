@@ -14,6 +14,10 @@ TRELLIS_DESKTOP_HOME=/tmp/trellis-desktop-dev bun run --cwd apps/desktop dev
 
 In development, `TRELLIS_DESKTOP_HOME` selects the host data directory. Packaged service registration uses the fixed application data directory. The default is the `host` directory inside Electron's application data directory. This release does not import `~/.trellis` automatically.
 
+On first launch, choose New Trellis data or Import existing Trellis data. The import preview shows the source and target paths, file size, ticket counts, and active work blockers. Stop the source host before you import. Trellis requests confirmation before it copies the reviewed source version.
+
+The imported data starts with local work paused and repositories untrusted. Workspace paths still point to their original folders. The import keeps a copy of the files in the new home. If an import fails, the app retains its target and shows an exact command to archive it before another import.
+
 The host keeps its selected port across restarts. This preserves the renderer origin and its local drafts. A port conflict fails with a link to the host log.
 
 Close a window to detach its view. Quit Trellis to close the desktop process. Both actions keep the host and agents active. Use the Help menu to reconnect to the host or open its logs.
@@ -64,4 +68,4 @@ The isolated launchd integration test verifies helper execution and host crash r
 
 The build machine has Apple Development identities but no Developer ID Application identity. Signed distribution and notarization remain unverified. The current package target is the build machine's architecture. Cross-architecture native module builds remain unverified.
 
-The desktop uses a separate data home until the controlled service migration is complete. Existing browser drafts require an explicit export and import. The old server must release its database lock before desktop migration can open that data home.
+Existing browser drafts require an explicit export and import. The old server must release its database lock before the desktop can copy its data home.

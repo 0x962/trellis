@@ -4,6 +4,7 @@ import { desktopPaths } from "./desktopPaths/desktopPaths.ts";
 import { adoptHost, connectHost, type HostConnection } from "./host/host.ts";
 import { deepLinkPath, externalUrl, sameOrigin } from "./navigation/navigation.ts";
 import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResources.ts";
+import { prepareHome } from "./prepareHome/prepareHome.ts";
 import { requireService, resumeLocalWork, showServiceStatus, stopLocalWork } from "./serviceActions/serviceActions.ts";
 import { showUpdateStatus } from "./updateActions/updateActions.ts";
 import { readUpdateStatus } from "./updateStatus/updateStatus.ts";
@@ -59,6 +60,23 @@ const connect = async () => {
 			throw new Error(
 				"The registered service uses the Trellis application data directory. Use the desktop dev command for a scratch home.",
 			);
+		const prepared = await prepareHome(
+			{ home: desktopHome(), resources: hostRoot },
+			{
+				message: (options) => dialog.showMessageBox(options),
+				chooseSource: async () => {
+					const source = await dialog.showOpenDialog({
+						title: "Choose a stopped Trellis data home",
+						properties: ["openDirectory"],
+					});
+					return source.canceled ? null : source.filePaths[0]!;
+				},
+			},
+		);
+		if (!prepared) {
+			app.quit();
+			return;
+		}
 		availableRelease = await pinResources(hostRoot, desktopHome());
 		await requireService(paths().helper, desktopHome());
 		host = await adoptHost(desktopHome());
@@ -124,6 +142,7 @@ else {
 				return result.canceled ? null : result.filePaths[0];
 			});
 			await connect();
+			if (!host) return;
 			Menu.setApplicationMenu(
 				Menu.buildFromTemplate([
 					{
