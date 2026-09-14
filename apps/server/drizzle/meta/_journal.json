@@ -183,6 +183,13 @@
       "when": 1789214904867,
       "tag": "0028_useful_cyclops",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1789411873538,
+      "tag": "0029_manager_controller",
+      "breakpoints": true
     }
   ]
 }
