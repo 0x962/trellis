@@ -197,6 +197,13 @@
       "when": 1789412554275,
       "tag": "0030_agent_assignments",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1789413328880,
+      "tag": "0031_agent_harness_observations",
+      "breakpoints": true
     }
   ]
 }

@@ -17,6 +17,7 @@ export interface HarnessSnapshot {
 	acknowledgedMessageIds: string[];
 	pendingPermissions: HarnessPermission[];
 	result: string | null;
+	resultId?: string | null;
 	error: string | null;
 }
 export type HarnessEvent =

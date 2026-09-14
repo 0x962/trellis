@@ -153,6 +153,7 @@ export class ClaudeStream {
 			);
 			this.value.state = "unknown";
 		} else if (row.type === "result") {
+			this.value.resultId = typeof row.uuid === "string" ? row.uuid : null;
 			this.value.result = typeof row.result === "string" ? row.result : null;
 			const denied = Array.isArray(row.permission_denials) && row.permission_denials.length > 0;
 			this.value.state = denied
