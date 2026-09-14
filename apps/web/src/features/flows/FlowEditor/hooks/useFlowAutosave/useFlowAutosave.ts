@@ -11,13 +11,22 @@ type AutosaveOptions = {
 	flow: Flow;
 	graph: DraftGraph;
 	canSave: boolean;
+	paused?: boolean;
 	initialSavedJson: string;
 	recovery: ReturnType<typeof createDraftRecovery>;
 	onSaved: (flow: Flow) => void;
 };
 
 // Browser storage keeps edits until the server confirms them. One request runs at a time.
-export function useFlowAutosave({ flow, graph, canSave, initialSavedJson, recovery, onSaved }: AutosaveOptions) {
+export function useFlowAutosave({
+	flow,
+	graph,
+	canSave,
+	paused = false,
+	initialSavedJson,
+	recovery,
+	onSaved,
+}: AutosaveOptions) {
 	const { client } = useApp();
 	const json = useMemo(() => JSON.stringify(graph), [graph]);
 	const [savedJson, setSavedJson] = useState(initialSavedJson);
@@ -27,16 +36,17 @@ export function useFlowAutosave({ flow, graph, canSave, initialSavedJson, recove
 	const [message, setMessage] = useState("");
 
 	useLayoutEffect(() => {
+		if (paused) return;
 		if (json !== savedJson) recovery.write({ version: flow.version, graph });
-		else if (!saving) recovery.clear();
-	}, [json, savedJson, flow.version, graph, recovery, saving]);
+		else if (!saving) recovery.resetToSaved(graph);
+	}, [json, savedJson, flow.version, graph, recovery, saving, paused]);
 
 	useEffect(() => {
 		if (json === savedJson && !saving) {
 			setImmediate(false);
 			return;
 		}
-		if (!canSave || saving || failure !== null) return;
+		if (paused || !canSave || saving || failure !== null) return;
 		const timer = setTimeout(
 			() => {
 				setSaving(true);
@@ -57,7 +67,21 @@ export function useFlowAutosave({ flow, graph, canSave, initialSavedJson, recove
 			immediate ? 0 : SAVE_DELAY_MS,
 		);
 		return () => clearTimeout(timer);
-	}, [json, savedJson, canSave, saving, immediate, failure, client, flow.id, flow.version, graph, onSaved, recovery]);
+	}, [
+		json,
+		savedJson,
+		canSave,
+		saving,
+		immediate,
+		failure,
+		client,
+		flow.id,
+		flow.version,
+		graph,
+		onSaved,
+		recovery,
+		paused,
+	]);
 
 	const status: AutosaveStatus =
 		failure ?? (saving ? "saving" : json === savedJson ? "saved" : canSave ? "pending" : "invalid");

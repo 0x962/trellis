@@ -3,10 +3,14 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from "elect
 import { desktopPaths } from "./desktopPaths/desktopPaths.ts";
 import { adoptHost, connectHost, type HostConnection } from "./host/host.ts";
 import { deepLinkPath, externalUrl, sameOrigin } from "./navigation/navigation.ts";
+import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResources.ts";
 import { requireService, resumeLocalWork, showServiceStatus, stopLocalWork } from "./serviceActions/serviceActions.ts";
+import { showUpdateStatus } from "./updateActions/updateActions.ts";
+import { readUpdateStatus } from "./updateStatus/updateStatus.ts";
 
 let window: BrowserWindow | undefined;
 let host: HostConnection;
+let availableRelease: PinnedRelease | undefined;
 let pendingPath = "/";
 const desktopHome = () => process.env.TRELLIS_DESKTOP_HOME ?? join(app.getPath("userData"), "host");
 const paths = () => desktopPaths(app.getAppPath(), process.resourcesPath, app.isPackaged);
@@ -55,8 +59,11 @@ const connect = async () => {
 			throw new Error(
 				"The registered service uses the Trellis application data directory. Use the desktop dev command for a scratch home.",
 			);
+		availableRelease = await pinResources(hostRoot, desktopHome());
 		await requireService(paths().helper, desktopHome());
 		host = await adoptHost(desktopHome());
+		if ((await readUpdateStatus(desktopHome(), availableRelease)).state === "blocked")
+			await showUpdateStatus(desktopHome(), availableRelease);
 		return;
 	}
 	host = await connectHost({
@@ -116,12 +123,21 @@ else {
 				const result = await dialog.showOpenDialog(window, { properties: ["openDirectory"] });
 				return result.canceled ? null : result.filePaths[0];
 			});
+			await connect();
 			Menu.setApplicationMenu(
 				Menu.buildFromTemplate([
 					{
 						label: "Trellis",
 						submenu: [
 							{ role: "about" },
+							{
+								label: "Update status",
+								enabled: app.isPackaged,
+								click: () =>
+									void showUpdateStatus(desktopHome(), availableRelease!).catch((error: Error) =>
+										dialog.showErrorBox("Update status unavailable", error.message),
+									),
+							},
 							{
 								label: "Background service status",
 								enabled: app.isPackaged,
@@ -195,7 +211,6 @@ else {
 					},
 				]),
 			);
-			await connect();
 			await openWindow();
 		})
 		.catch((error: Error) => {

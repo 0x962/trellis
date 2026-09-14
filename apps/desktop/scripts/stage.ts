@@ -1,11 +1,20 @@
 import { existsSync } from "node:fs";
 import { cp, mkdir, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
+import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
+import { writeBundleManifest } from "../src/resourceBundle/resourceBundle.ts";
 
 const repo = resolve(import.meta.dir, "../../..");
 const target = resolve(import.meta.dir, "../dist/host");
-type Manifest = { name: string; version: string; dependencies?: Record<string, string> };
+type Manifest = {
+	name: string;
+	version: string;
+	dependencies?: Record<string, string>;
+	peerDependencies?: Record<string, string>;
+	peerDependenciesMeta?: Record<string, { optional?: boolean }>;
+};
 const copies = new Map<string, string>();
+const optionalPeers: { source: string; name: string; destination: string }[] = [];
 const workspacePaths = ["apps/server", "packages/api", "packages/cli", "apps/runtime", "packages/runtime-protocol"];
 const workspaceDestinations = new Map(workspacePaths.map((path) => [join(repo, path), join(target, path)]));
 
@@ -33,20 +42,26 @@ const copyPackage = async (source: string, destination?: string): Promise<string
 	const output =
 		destination ??
 		workspaceDestinations.get(canonical) ??
-		join(target, "modules", `${manifest.name.replaceAll("/", "_")}@${manifest.version}`);
+		join(target, "modules", `${manifest.name.replaceAll("/", "_")}@${manifest.version}_${copies.size}`);
 	copies.set(canonical, output);
 	await cp(canonical, output, {
 		recursive: true,
+		verbatimSymlinks: true,
 		filter: (path) => {
 			const segments = relative(canonical, path).split("/");
 			return (
-				!segments.some((segment) => ["node_modules", ".git", "test", "tests", "e2e"].includes(segment)) &&
-				!/\.(test|perf)\.[cm]?[jt]sx?$/.test(path)
+				!segments.some((segment) => ["node_modules", ".git", ".cache", "test", "tests", "e2e"].includes(segment)) &&
+				!/\.(test|spec|perf)\.[cm]?[jt]sx?$/.test(path)
 			);
 		},
 	});
-	for (const name of Object.keys(manifest.dependencies ?? {})) {
-		const dependency = await copyPackage(await packageAt(canonical, name));
+	for (const name of Object.keys({ ...manifest.peerDependencies, ...manifest.dependencies })) {
+		if (!manifest.dependencies?.[name] && manifest.peerDependenciesMeta?.[name]?.optional === true) {
+			optionalPeers.push({ source: canonical, name, destination: join(output, "node_modules", name) });
+			continue;
+		}
+		const path = await packageAt(canonical, name);
+		const dependency = await copyPackage(path);
 		await link(dependency, join(output, "node_modules", name));
 	}
 	return output;
@@ -56,6 +71,20 @@ await rm(target, { recursive: true, force: true });
 await mkdir(join(target, "bin"), { recursive: true });
 for (const path of workspacePaths) {
 	await copyPackage(join(repo, path), join(target, path));
+}
+for (const peer of optionalPeers) {
+	let directory = peer.source;
+	while (true) {
+		const candidate = join(directory, "node_modules", peer.name);
+		if (existsSync(join(candidate, "package.json"))) {
+			const dependency = copies.get(await realpath(candidate));
+			if (dependency) await link(dependency, peer.destination);
+			break;
+		}
+		const parent = dirname(directory);
+		if (parent === directory) break;
+		directory = parent;
+	}
 }
 await cp(join(repo, "apps/web/dist"), join(target, "apps/web/dist"), { recursive: true });
 await cp(process.execPath, join(target, "bin/bun"));
@@ -75,4 +104,6 @@ await writeFile(
 		2,
 	),
 );
+const desktop = JSON.parse(await readFile(join(repo, "apps/desktop/package.json"), "utf8"));
+await writeBundleManifest(target, desktop.version, RUNTIME_PROTOCOL_VERSION);
 console.log(`Staged ${copies.size} packages at ${target}`);

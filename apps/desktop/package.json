@@ -13,7 +13,7 @@
 		"build": "bun run --cwd ../web build && bun run --cwd ../runtime build && bun run build:main && bun scripts/stage.ts",
 		"package": "bun run build && electron-builder --config electron-builder.json --mac --dir",
 		"dist:mac": "bun run build && electron-builder --config electron-builder.json --mac dmg zip",
-		"test": "bun test src --path-ignore-patterns '**/test/int/**'",
+		"test": "bun test ./src --path-ignore-patterns '**/test/int/**'",
 		"test:int": "bun test test/int --timeout=60000",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"smoke": "bun scripts/smoke.ts"

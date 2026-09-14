@@ -36,7 +36,7 @@ bun run --cwd apps/desktop smoke
 bun run --cwd apps/desktop package
 ```
 
-The staging step copies the server, database worker, migrations, PGlite assets, CLI, web assets, and execution runtime. It includes Bun and Node binaries for the build machine's architecture. The dependency tree remains inside the application resources.
+The staging step copies the server, database worker, migrations, PGlite assets, CLI, web assets, and execution runtime. It includes Bun and Node binaries for the build machine's architecture. The package records a SHA-256 hash for the complete dependency tree, binaries, and relative links. Before host launch, Trellis copies that release into the `releases` directory beside its `host` data directory. Host processes use these retained files. Links cannot point outside the release.
 
 `smoke` opens a fresh database outside the repository. It tests authenticated HTTP, web assets, the bundled CLI, and the native PTY with the bundled Node binary. It also restarts the host and checks that the same PTY remains active.
 
@@ -48,9 +48,17 @@ bun apps/desktop/scripts/smoke.ts apps/desktop/release/mac-arm64/Trellis.app/Con
 
 `package` creates an unpacked macOS application. `dist:mac` creates DMG and ZIP artifacts. Set the Electron Builder signing and notarization credentials for distribution. A local package can use `CSC_IDENTITY_AUTO_DISCOVERY=false` for an unsigned feasibility check.
 
+## Manual app replacement
+
+Use the Trellis menu to open Update status. Before you replace the app, use Stop local work and background service. Replace `Trellis.app`, reopen it, and enable its service. Resume local work when you want to permit new launches. Each project keeps its saved dispatch setting.
+
+The app retains earlier releases. A live execution service with a different protocol blocks the new host. The previous pinned host remains available to stop local work. An unknown service state also blocks activation.
+
+Runtime files stay outside the host database directory, so a database export does not include application binaries. A package replacement does not remove the files of an active runtime. The integration test removes the source app, retains a live PTY, starts another child with the pinned native modules, and restarts the host.
+
 ## Release limits
 
-The detached development host has no crash supervisor. The packaged app requires its registered macOS service and does not start an unmanaged replacement. Application updates remain unimplemented.
+The detached development host has no crash supervisor. The packaged app requires its registered macOS service and does not start an unmanaged replacement.
 
 The isolated launchd integration test verifies helper execution and host crash restart with a temporary label and data home. It removes that service after the test. A second test signs a temporary app with an ad-hoc identity. It registers through `SMAppService`, verifies host crash restart, unregisters, and checks that the host exits. Developer ID signing, notarization, and approval changes through System Settings remain release checks.
 
