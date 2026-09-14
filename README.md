@@ -10,11 +10,20 @@ trellis is a local ticket tracker for work that humans give to coding agents. On
 - comments and attachments
 - linked pull requests and their CI results
 
-Agents use the `trellis` CLI or the HTTP API. Each write records the name of the actor that made it. You use the web app, or the mobile app on your phone. The Needs you page shows the tickets that wait for a human: reviews, failing CI, and stalled work. An agent can move a ticket to review. Only a human can move a ticket to Done.
+Agents use the `trellis` CLI or the HTTP API. Each write records the name of the actor that made it. You use the desktop app, the web app, or the mobile app on your phone. The Needs you page shows the tickets that wait for a human: reviews, failing CI, and stalled work. An agent can move a ticket to review. Only a human can move a ticket to Done.
 
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the stack, the domain rules, the schema, and the API.
 
-## Install
+## macOS desktop preview
+
+The desktop includes Bun, Node, a local host, and a separate execution runtime. Native ticket work uses Git and the selected agent executable.
+Its manager queue persists ticket events. The ticket work area shows agent output, local changes, checks, artifacts, and required decisions.
+
+Read [the desktop guide](apps/desktop/README.md) to build the app and import an offline data home.
+The [implementation report](docs/desktop/implementation-status.md) records the real ticket result, package checks, and open release gates.
+Developer ID signing and notarization remain unverified. Existing projects retain their execution configuration until an explicit migration.
+
+## Install the standalone server
 
 trellis needs [Bun](https://bun.sh) 1.3. The launchd service needs macOS. To see pull requests and CI, install `gh` and run `gh auth login`.
 
@@ -42,7 +51,7 @@ bun packages/cli/src/index.ts install
 
 `--no-launchd` writes the files and loads nothing. `trellis uninstall` removes the agent and the command.
 
-Agents need the Superset CLI. launchd gives the server a short `PATH`, so `trellis install` writes the full path of the `superset` on your `PATH` into the agent as `TRELLIS_SUPERSET_BIN`. `--superset-bin <path>` names another binary, and `trellis serve` takes the same flag.
+Superset projects need the Superset CLI. launchd gives the server a short `PATH`, so `trellis install` writes the full path of the `superset` on your `PATH` into the agent as `TRELLIS_SUPERSET_BIN`. `--superset-bin <path>` names another binary, and `trellis serve` takes the same flag.
 
 `trellis gateway` on port 80 serves `http://trellis.localhost` when it reads the routes file `~/.config/localhost-gateway/routes.json`. The file maps each `*.localhost` name to a port, as in `{ "trellis": 4521 }`. `trellis install` sets the `trellis` entry and keeps the others, and `trellis uninstall` removes it. When no gateway answers for `trellis.localhost`, install prints `http://127.0.0.1:4521` and the path of the routes file.
 
