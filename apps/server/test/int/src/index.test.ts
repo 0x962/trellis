@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { networkInterfaces } from "node:os";
 import { join } from "node:path";
+import { createTrellisClient } from "@trellis/api";
 import { boot, type StartHook } from "../../../src/index.ts";
 import { listenAddresses } from "../../../src/listen.ts";
 import { ghStub } from "../../helpers/gh-stub.ts";
@@ -32,6 +33,15 @@ const start = (home: string) => {
 const health = (url: string) => fetch(`${url}/api/health`);
 
 describe("boot", () => {
+	test("ephemeral ports appear in agent briefs", async () => {
+		const server = start(freshHome());
+		const { url } = await server.listening();
+		const client = createTrellisClient(url, "human:fixture");
+		await client.projects.create({ key: "PRT", name: "Port fixture" });
+		const ticket = await client.tickets.create({ project: "PRT", title: "Correct origin" });
+		const brief = await client.brief.get({ ticket: ticket.identifier });
+		expect(brief.markdown).toContain(`${url}/t/PRT-1`);
+	});
 	test("boot creates the data home directories", async () => {
 		const home = join(freshHome(), "nested");
 		const server = start(home);

@@ -2,7 +2,7 @@ import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { StandardLinkPlugin } from "@orpc/client/standard";
 import type { ContractRouterClient } from "@orpc/contract";
-import pkg from "../package.json";
+import pkg from "../package.json" with { type: "json" };
 import type { contract } from "./contract/index.ts";
 import { ActorHeaderSchema } from "./refs.ts";
 

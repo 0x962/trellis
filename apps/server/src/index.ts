@@ -78,6 +78,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			fetch: (request) => handler(request),
 		});
 		lock.setPort(server.port!);
+		Object.assign(config, loadConfig({ ...env, TRELLIS_PORT: String(server.port) }));
 		for (const dir of [config.dbDir, config.tmpDir, config.backupsDir]) mkdirSync(dir, { recursive: true });
 		const leftovers = sweepBackups(config.backupsDir);
 		if (leftovers.length > 0) log.info("backup sweep", { removed: leftovers });
