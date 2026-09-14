@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
+import { Diagnostics } from "../features/settings/Diagnostics";
+import { DraftTransfer } from "../features/settings/DraftTransfer";
 import { GhBanner } from "../features/settings/GhBanner";
 import { PairPhone } from "../features/settings/PairPhone";
 import { StalledThresholdField } from "../features/settings/StalledThresholdField";
@@ -32,6 +34,12 @@ type SettingsSection = {
 
 const sections: SettingsSection[] = [
 	{
+		id: "diagnostics",
+		title: "Diagnostics",
+		hint: "Inspect the local execution service, manager queue, and unresolved attempts.",
+		rows: <Diagnostics />,
+	},
+	{
 		id: "account",
 		title: "Account",
 		hint: "Set your name and choose how trellis looks.",
@@ -47,6 +55,12 @@ const sections: SettingsSection[] = [
 		title: "Agents",
 		hint: "Choose when a ticket counts as stalled. Each project picks its own ADE and manager on its Manager page.",
 		rows: <StalledThresholdField />,
+	},
+	{
+		id: "drafts",
+		title: "Drafts",
+		hint: "Move unsaved edits between this browser and the desktop app.",
+		rows: <DraftTransfer />,
 	},
 	{
 		id: "integrations",
