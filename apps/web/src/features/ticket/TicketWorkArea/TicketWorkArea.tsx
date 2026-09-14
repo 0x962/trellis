@@ -6,6 +6,9 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { PullRequests } from "../../prs";
+import { FlowRuns } from "./components/FlowRuns";
+import { LocalChanges } from "./components/LocalChanges";
+import { LocalChecks } from "./components/LocalChecks";
 
 export function TicketWorkArea({
 	ticket,
@@ -76,22 +79,35 @@ export function TicketWorkArea({
 							</div>
 						),
 					},
-					{ value: "changes", label: "Changes", content: <PullRequests ticket={ticket} initialPrs={ticket.prs} /> },
+					{
+						value: "changes",
+						label: "Changes",
+						content: (
+							<div className="flex flex-col gap-8">
+								{run?.runtime === "native" && run.workspaceId && <LocalChanges key={run.terminalId} run={run} />}
+								<PullRequests ticket={ticket} initialPrs={ticket.prs} />
+							</div>
+						),
+					},
 					{
 						value: "checks",
 						label: "Checks",
 						content: (
-							<CheckResults
-								groups={(prs.data ?? []).map((pr) => ({
-									id: pr.id,
-									title: `${pr.owner}/${pr.repo} #${pr.number}`,
-									checks: pr.checks,
-									error: pr.fetchError,
-								}))}
-							/>
+							<div className="flex flex-col gap-8">
+								{run?.runtime === "native" && run.workspaceId && <LocalChecks key={run.terminalId} run={run} />}
+								<CheckResults
+									groups={(prs.data ?? []).map((pr) => ({
+										id: pr.id,
+										title: `${pr.owner}/${pr.repo} #${pr.number}`,
+										checks: pr.checks,
+										error: pr.fetchError,
+									}))}
+								/>
+							</div>
 						),
 					},
 					{ value: "activity", label: "Activity", content: activity },
+					{ value: "flows", label: "Flows", content: <FlowRuns ticket={ticket.identifier} /> },
 				]}
 			/>
 		</section>
