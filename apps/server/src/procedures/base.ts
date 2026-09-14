@@ -60,6 +60,7 @@ export const call = <T>(context: ProcedureContext, name: ServiceName, input: unk
 	const ctx: RequestContext = {
 		actor: context.actor,
 		session: context.headers.get("x-trellis-session"),
+		attemptToken: context.headers.get("x-trellis-attempt"),
 		reqId: context.reqId,
 		now: new Date(),
 	};

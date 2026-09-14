@@ -1,7 +1,9 @@
 import type { AgentBatchRecord, GhStatus, TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { createController } from "../agents/controller/controller.ts";
 import type { DispatcherClock } from "../agents/dispatcher.ts";
 import { type AgentsHost, createAgentsHost } from "../agents/host.ts";
+import { startNativeReconcile } from "../agents/nativeReconcile/host.ts";
 import { createSupersetRunner } from "../agents/supersetRunner.ts";
 import type { Config } from "../config.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR, systemContext } from "../context.ts";
@@ -9,6 +11,7 @@ import type { Bus } from "../events/bus.ts";
 import type { GhRunner } from "../gh/run.ts";
 import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs } from "../jobs.ts";
 import type { DbTiming } from "../serverTiming.ts";
+import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcAttachmentBlobs } from "../services/attachments.ts";
 import { pathOf } from "../services/refs.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
@@ -110,7 +113,11 @@ export const createInlineTransport = ({
 		afterCommit: (task: () => Promise<void>) => {
 			tasks.push(task);
 		},
-		newTx,
+		newTx: <T>(fn: (tx: Tx) => Promise<T>) =>
+			newTx(async (tx) => {
+				await assertCurrentAttempt(ctx, tx);
+				return fn(tx);
+			}),
 		vacuum: () => createMaintenance(db).runNow(),
 	});
 
@@ -127,7 +134,11 @@ export const createInlineTransport = ({
 	const agentsCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => ({
 		...coreCtx(ctx, emit, tasks),
 		runner,
-		newTx,
+		newTx: <T>(fn: (tx: Tx) => Promise<T>) =>
+			newTx(async (tx) => {
+				await assertCurrentAttempt(ctx, tx);
+				return fn(tx);
+			}),
 		afterCommit: (task: () => Promise<void>) => {
 			tasks.push(task);
 		},
@@ -149,6 +160,7 @@ export const createInlineTransport = ({
 		const tasks: Array<() => Promise<void>> = [];
 		const early: TrellisEvent[] = [];
 		try {
+			if (entry.kind === "mutation" && "prepare" in entry) await newTx((tx) => assertCurrentAttempt(ctx, tx));
 			const input =
 				"prepare" in entry
 					? await entry.prepare(
@@ -163,9 +175,10 @@ export const createInlineTransport = ({
 					}).then(() => undefined),
 				);
 			}
-			const { result, events } = await withTx(db, (tx, emit) =>
-				entry.run(buildCtx(entry, ctx, emit, tasks), tx, input),
-			);
+			const { result, events } = await withTx(db, async (tx, emit) => {
+				if (entry.kind === "mutation") await assertCurrentAttempt(ctx, tx);
+				return entry.run(buildCtx(entry, ctx, emit, tasks), tx, input);
+			});
 			for (const task of tasks) await task();
 			for (const event of [...early.splice(0), ...events]) bus.emit(event, ctx.actor);
 			return result;
@@ -210,6 +223,9 @@ export const createInlineTransport = ({
 	// The agents host starts beside the jobs and does not hold up the boot:
 	// its first superset calls can take seconds.
 	let jobs: Jobs | null = null;
+	let controller: ReturnType<typeof createController> | null = null;
+	let nativeReconcile: ReturnType<typeof startNativeReconcile> | null = null;
+	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
 	let reviewTimer: ReturnType<typeof setInterval> | undefined;
 	const start = async (options?: JobsStart) => {
 		await db.transaction((tx) => cache.rebuild(tx));
@@ -218,6 +234,7 @@ export const createInlineTransport = ({
 				sql`UPDATE agent_runs SET state = 'interrupted', error = 'Trellis stopped during startup. Refresh the status to reconnect to the workspace.' WHERE state = 'starting'`,
 			),
 		);
+		await call("evidence.recover", systemContext(), {});
 		await warmWrites(db, cache);
 		const found = await db.execute(sql`SELECT DISTINCT sha256 FROM attachments`);
 		if (options !== undefined) {
@@ -230,6 +247,24 @@ export const createInlineTransport = ({
 				void call("reviews.deliverPending", systemContext(), {});
 			}, 3000);
 			const clock = scaledClock(options.clockRate);
+			nativeReconcile = startNativeReconcile({
+				tick: () => call("agentRuns.reconcileNative", systemContext(), {}),
+				setTimer: clock.setTimer,
+				clearTimer: clock.clearTimer,
+				log: options.log,
+			});
+			flowReconcile = startNativeReconcile({
+				tick: () => call("flowExecutions.reconcile", systemContext(), {}),
+				setTimer: clock.setTimer,
+				clearTimer: clock.clearTimer,
+				log: options.log,
+			});
+			controller = createController({
+				clock,
+				log: options.log,
+				call: (name, input) => call(name, systemContext(), input),
+			});
+			await controller.start();
 			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });
 			void startAgents({ clock, log: options.log }).start();
 		}
@@ -238,6 +273,9 @@ export const createInlineTransport = ({
 
 	const close = async () => {
 		clearInterval(reviewTimer);
+		await controller?.stop();
+		await nativeReconcile?.stop();
+		await flowReconcile?.stop();
 		agents?.stop();
 		if (jobs !== null) await jobs.stop();
 		await Promise.allSettled([...inFlight]);

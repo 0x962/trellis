@@ -21,6 +21,7 @@
 		"@orpc/server": "1.15.0",
 		"@orpc/zod": "1.15.0",
 		"@trellis/api": "workspace:*",
+		"@trellis/runtime-protocol": "workspace:*",
 		"drizzle-kit": "0.31.10",
 		"drizzle-orm": "0.45.2",
 		"hono": "4.13.7",

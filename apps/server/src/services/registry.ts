@@ -2,14 +2,39 @@ import type { Tx } from "../db/tx.ts";
 import * as actors from "./actors.ts";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import * as agentCommunication from "./agentRuns/communication.ts";
+import * as agentHarness from "./agentRuns/harness.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
+import { readNativeWork, setNativeWork } from "./agentRuns/nativeControl.ts";
+import { prepareNativeReconcile } from "./agentRuns/nativeReconcile.ts";
+import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
+import * as agentTerminal from "./agentRuns/terminal.ts";
 import * as agents from "./agents.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
 import * as comments from "./comments.ts";
+import { collect as collectController } from "./controller/collect.ts";
+import * as controller from "./controller/controller.ts";
+import * as controllerDispatch from "./controller/dispatch.ts";
+import { diagnostics } from "./diagnostics.ts";
+import { check as evidenceCheck } from "./evidence/check.ts";
+import { file as evidenceFile } from "./evidence/file.ts";
+import { list as evidenceList } from "./evidence/list.ts";
+import { recover as evidenceRecover } from "./evidence/recover.ts";
+import { register as evidenceRegister } from "./evidence/register.ts";
+import { result as evidenceResult } from "./evidence/result.ts";
+import { workspace as evidenceWorkspace } from "./evidence/workspace.ts";
+import { decide as decideFlowExecution } from "./flowExecutions/decide.ts";
+import { list as listFlowExecutions } from "./flowExecutions/list.ts";
+import { prepareFlowCancel } from "./flowExecutions/prepareFlowCancel.ts";
+import { prepareFlowReconcile } from "./flowExecutions/prepareFlowReconcile.ts";
+import { get as getFlowExecution } from "./flowExecutions/queries.ts";
+import { start as startFlowExecution } from "./flowExecutions/start.ts";
 import * as flows from "./flows/flows.ts";
 import * as flowSave from "./flows/save.ts";
 import * as inbox from "./inbox.ts";
+import { apply as migrationApply } from "./nativeMigration/apply.ts";
+import { inventory as migrationInventory } from "./nativeMigration/inventory.ts";
+import { rollback as migrationRollback } from "./nativeMigration/rollback.ts";
 import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
@@ -65,6 +90,32 @@ const prepared = (kind: ServiceKind, prepare: Prepare, run: Run): ServiceEntry =
 const runner = (prepare: Prepare, run: Run): ServiceEntry => ({ family: "agents", kind: "mutation", prepare, run });
 
 export const services = {
+	"nativeMigration.inventory": core("read", migrationInventory),
+	"nativeMigration.apply": core("mutation", migrationApply),
+	"nativeMigration.rollback": core("mutation", migrationRollback),
+	"flowExecutions.start": core("mutation", startFlowExecution),
+	"flowExecutions.get": core("read", getFlowExecution),
+	"flowExecutions.list": core("read", listFlowExecutions),
+	"flowExecutions.decide": core("mutation", decideFlowExecution),
+	"flowExecutions.cancel": prepared("mutation", prepareFlowCancel, agentTerminal.result),
+	"flowExecutions.reconcile": prepared("mutation", prepareFlowReconcile, agentTerminal.result),
+	"system.doctor": prepared("read", diagnostics, agentTerminal.result),
+	"system.nativeWork": core("read", (_ctx, tx) => readNativeWork(tx)),
+	"system.resumeNativeWork": core("mutation", (ctx, tx) => setNativeWork(ctx, tx, { paused: false })),
+	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
+	"evidence.workspace": prepared("read", evidenceWorkspace, evidenceResult),
+	"evidence.file": prepared("read", evidenceFile, evidenceResult),
+	"evidence.list": prepared("read", evidenceList, evidenceResult),
+	"evidence.check": prepared("mutation", evidenceCheck, evidenceResult),
+	"evidence.register": prepared("mutation", evidenceRegister, evidenceResult),
+	"evidence.recover": core("mutation", evidenceRecover),
+	"agentRuns.reconcileNative": prepared("mutation", (ctx) => prepareNativeReconcile(ctx), agentTerminal.result),
+	"agentRuns.harness": prepared("read", agentHarness.harness, agentTerminal.result),
+	"agentRuns.permission": prepared("mutation", agentHarness.permission, agentTerminal.result),
+	"agentRuns.session": prepared("read", agentTerminal.session, agentTerminal.result),
+	"agentRuns.terminalOutput": prepared("read", agentTerminal.output, agentTerminal.result),
+	"agentRuns.terminalInput": prepared("mutation", agentTerminal.input, agentTerminal.result),
+	"agentRuns.resize": prepared("mutation", agentTerminal.resize, agentTerminal.result),
 	"reviews.image": prepared("read", reviewImage.image, reviewRemote.result),
 	"reviews.status": prepared("read", reviewRevision.status, reviewRemote.result),
 	"reviews.runs": prepared("mutation", reviewRuns.runs, reviewRemote.result),
@@ -94,6 +145,14 @@ export const services = {
 	"reviews.deliverPending": prepared("mutation", reviewDelivery.preparePending, reviewDelivery.finished),
 
 	"agentRuns.send": prepared("mutation", agentCommunication.prepareSend, agentRuns.finish),
+	"controller.collect": core("mutation", collectController),
+	"controller.claim": core("mutation", controller.claim),
+	"controller.complete": core("mutation", controller.complete),
+	"controller.recover": core("mutation", controller.recover),
+	"controller.list": core("read", controller.list),
+	"controller.retry": core("mutation", controller.retry),
+	"controller.resolveUnknown": core("mutation", controller.resolveUnknown),
+	"controller.dispatch": prepared("mutation", controllerDispatch.dispatch, controllerDispatch.finished),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": core("read", agentRuns.list),
 	"agentRuns.start": prepared("mutation", agentRuns.prepareStart, agentRuns.finish),

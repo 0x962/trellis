@@ -1,4 +1,9 @@
-import type { Project, ProjectCreateInput, ProjectUpdateInput } from "@trellis/api";
+import {
+	DEFAULT_PROJECT_MANAGER_CONFIG,
+	type Project,
+	type ProjectCreateInput,
+	type ProjectUpdateInput,
+} from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { requireActor, type ServiceCtx } from "../context.ts";
@@ -16,6 +21,7 @@ import {
 	projectView,
 } from "./projectRows.ts";
 import { assertProjectActive, pathOf, resolveProject } from "./refs.ts";
+import { assertRuntimeReleased } from "./runtimeOwnership.ts";
 import { deriveSlug } from "./slug.ts";
 import { seedRootStatuses } from "./statusSet.ts";
 
@@ -43,6 +49,15 @@ export const DEFAULT_TICKET_TEMPLATE = "## Context\n\n## Acceptance criteria\n- 
 
 export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput): Promise<Project> => {
 	requireActor(ctx);
+	if (ctx.actor?.kind !== "human" && input.managerConfig?.trustedDirectory)
+		throw invalidInput("managerConfig.trustedDirectory", "A person must trust the repository before an agent uses it.");
+	if (input.managerConfig?.personaId != null) {
+		const [persona] = await rows<{ kind: string }>(
+			tx,
+			sql`SELECT kind FROM personas WHERE id = ${input.managerConfig.personaId}`,
+		);
+		if (persona?.kind !== "manager") throw invalidInput("managerConfig.personaId", "Select a manager persona.");
+	}
 	const id = ulid();
 	const parent = input.parent === undefined ? null : await resolveProject(ctx, tx, input.parent);
 	if (parent !== null) assertProjectActive(ctx, parent.id);
@@ -55,9 +70,9 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput)
 	const position = await nextPosition(tx, parent?.id ?? null);
 	const template = input.ticketTemplate ?? (parent === null ? DEFAULT_TICKET_TEMPLATE : "");
 	await tx.execute(
-		sql`INSERT INTO projects (id, parent_id, root_id, key, slug, name, description, ticket_template, ticket_counter, position, archived_at, created_at, updated_at)
+		sql`INSERT INTO projects (id, parent_id, root_id, key, slug, name, description, ticket_template, ticket_counter, position, archived_at, created_at, updated_at, manager_config)
 			VALUES (${id}, ${parent?.id ?? null}, ${parent?.rootId ?? id}, ${key}, ${slug}, ${input.name},
-				${input.description ?? ""}, ${template}, 0, ${position}, NULL, ${ctx.now}, ${ctx.now})`,
+				${input.description ?? ""}, ${template}, 0, ${position}, NULL, ${ctx.now}, ${ctx.now}, ${JSON.stringify(input.managerConfig ?? DEFAULT_PROJECT_MANAGER_CONFIG)}::jsonb)`,
 	);
 	if (parent === null) await seedRootStatuses(ctx, tx, id);
 	await ctx.cache.rebuild(tx);
@@ -78,6 +93,14 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	const project = await resolveProject(ctx, tx, input.project);
 	if (input.archived !== false) assertProjectActive(ctx, project.id);
 	const row = await projectRow(tx, project.id);
+	if (input.managerConfig && input.managerConfig.ade !== managerConfigOf(row).ade)
+		await assertRuntimeReleased(tx, project.id);
+	if (
+		ctx.actor?.kind !== "human" &&
+		input.managerConfig?.trustedDirectory &&
+		(!managerConfigOf(row).trustedDirectory || managerConfigOf(row).directory !== input.managerConfig.directory)
+	)
+		throw invalidInput("managerConfig.trustedDirectory", "A person must trust the repository before an agent uses it.");
 	if (input.managerConfig?.personaId != null) {
 		const [persona] = await rows<{ kind: string }>(
 			tx,

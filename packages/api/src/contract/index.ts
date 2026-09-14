@@ -5,8 +5,12 @@ import { agents } from "./agents.ts";
 import { attachments } from "./attachments.ts";
 import { brief } from "./brief.ts";
 import { comments } from "./comments.ts";
+import { controller } from "./controller.ts";
+import { evidence } from "./evidence.ts";
+import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { inbox } from "./inbox.ts";
+import { nativeMigration } from "./nativeMigration.ts";
 import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
@@ -22,10 +26,13 @@ import { timeline } from "./timeline.ts";
 // handler; the RPC handler at `/rpc` addresses a procedure by its dotted
 // name. The tag is the OpenAPI group.
 export const contract = {
+	evidence: oc.tag("evidence").router(evidence),
+	controller: oc.tag("controller").router(controller),
 	reviews: oc.tag("reviews").router(reviews),
 	agentRuns: oc.tag("agent runs").router(agentRuns),
 	personas: oc.tag("personas").router(personas),
 	flows: oc.tag("flows").router(flows),
+	flowExecutions: oc.tag("flow executions").router(flowExecutions),
 	projects: oc.tag("projects").router(projects),
 	statuses: oc.tag("statuses").router(statuses),
 	tickets: oc.tag("tickets").router(tickets),
@@ -35,6 +42,7 @@ export const contract = {
 	pullRequests: oc.tag("pull requests").router(pullRequests),
 	search: oc.tag("search").router(search),
 	inbox: oc.tag("inbox").router(inbox),
+	nativeMigration: oc.tag("native migration").router(nativeMigration),
 	brief: oc.tag("brief").router(brief),
 	actors: oc.tag("actors").router(actors),
 	settings: oc.tag("settings").router(settings),

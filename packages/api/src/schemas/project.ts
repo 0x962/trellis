@@ -53,7 +53,7 @@ const AncestorSchema = ProjectLinkSchema.extend({
 
 // `statuses` is the effective set: the project's own, or the nearest
 // ancestor's, named by `statusesInheritedFrom`.
-export const AdeSchema = z.enum(["superset", "terminal", "tmux", "custom"]);
+export const AdeSchema = z.enum(["native", "superset", "terminal", "tmux", "custom"]);
 export type Ade = z.infer<typeof AdeSchema>;
 
 const ProjectManagerConfigInputSchema = z.strictObject({
@@ -64,6 +64,8 @@ const ProjectManagerConfigInputSchema = z.strictObject({
 		.trim()
 		.refine((value) => value === "" || value.startsWith("/"), "Use an absolute directory path."),
 	enabled: z.boolean().optional(),
+	trustedDirectory: z.boolean().default(false),
+	dispatchPaused: z.boolean().default(false),
 	// The Superset machine that runs the project's agents, by its machine id.
 	// Null runs them on the machine that runs the trellis server.
 	supersetHostId: z.string().min(1).nullable().default(null),
@@ -141,6 +143,7 @@ export const ProjectGetInputSchema = z.strictObject({
 // is addressed by slug, so exactly one of `key` and `parent` is present.
 export const ProjectCreateInputSchema = z
 	.strictObject({
+		managerConfig: ProjectManagerConfigSchema.optional(),
 		key: KeySchema.optional(),
 		parent: ProjectRefStringSchema.optional(),
 		name: ProjectNameSchema,

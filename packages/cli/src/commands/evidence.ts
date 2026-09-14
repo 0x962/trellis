@@ -1,4 +1,3 @@
-import { EvidenceCheckInputSchema } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { contextOf } from "../context.ts";
@@ -65,15 +64,14 @@ const check = defineCommand({
 		}
 		if (!Array.isArray(args) || args.some((arg) => typeof arg !== "string"))
 			throw usageError("--args must be a JSON array of strings");
-		const input = EvidenceCheckInputSchema.safeParse({
+		const input = {
 			runId: context.args.run,
 			command: context.args.command,
 			args,
 			requestId: context.args["request-id"],
 			timeoutMs: Number(context.args["timeout-ms"]),
-		});
-		if (!input.success) throw usageError(input.error.issues.map((issue) => issue.message).join("; "));
-		const result = await clientOf(ctx).evidence.check(input.data);
+		};
+		const result = await clientOf(ctx).evidence.check(input);
 		ctx.out.write(json(result));
 		return result.state === "passed" && result.current ? 0 : 6;
 	},

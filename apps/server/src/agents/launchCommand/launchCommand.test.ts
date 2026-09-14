@@ -26,6 +26,20 @@ const run: AgentRun = {
 };
 const url = "http://127.0.0.1:4521";
 
+test("native assignments explain CLI discovery and current workspace evidence", () => {
+	const launch = launchCommand({
+		run: { ...run, runtime: "native" },
+		url,
+		context: "Project: TRL",
+		template: DEFAULT_AGENT_START_COMMAND,
+	});
+	expect(launch.prompt).toContain("trellis --help");
+	expect(launch.prompt).toContain('trellis evidence register "$TRELLIS_RUN_ID" --path');
+	expect(launch.prompt).toContain('trellis evidence check "$TRELLIS_RUN_ID" --request-id');
+	expect(launch.prompt).toContain("readyForReview");
+	expect(launch.prompt).toContain("margin list <pr-url>");
+});
+
 test("the default start command hands Claude the session id of the run and the whole prompt", () => {
 	const launch = launchCommand({ run, url, context: "Project: TRL", template: DEFAULT_AGENT_START_COMMAND });
 	expect(launch.command).toContain("claude -n 'Wren' --session-id '3f1c9a7e-8b2d-4c6e-9f0a-1b2c3d4e5f60' '");

@@ -11,6 +11,10 @@ export const ACTOR_HEADER_EXAMPLE = "agent:claude-code";
 export const SERVERS = [{ url: "http://127.0.0.1:4521/api", description: "The local server" }];
 
 export const TAGS = [
+	{ name: "native migration", description: "Project ownership inventory and reversible local runtime configuration." },
+	{ name: "evidence", description: "Workspace files, retained checks, and artifacts for a native attempt." },
+	{ name: "controller", description: "Durable manager messages and uncertain delivery decisions." },
+	{ name: "flow executions", description: "Saved flow versions, local worker attempts, and human decisions." },
 	{ name: "reviews", description: "Local PR reviews, diff revisions, comments, submissions, and agent notifications." },
 	{ name: "personas", description: "Saved personas. Each persona has a name and an instruction." },
 	{
@@ -40,7 +44,11 @@ export const TAGS = [
 	},
 ];
 
-export const DESCRIPTION = `trellis is a local ticket tracker for agent-driven work. No auth, no assignees. Every action carries an actor.
+export const DESCRIPTION = `trellis is a local ticket tracker for agent-driven work. Every action carries an actor.
+
+## Desktop authentication
+
+The desktop host requires an Authorization bearer token. Native agents receive TRELLIS_AUTH_TOKEN and TRELLIS_ATTEMPT_TOKEN in their environment. Send the attempt token in x-trellis-attempt. An expired attempt cannot change Trellis data. The CLI sends these headers from its environment.
 
 ## The actor header
 
@@ -81,6 +89,41 @@ Every response carries \`x-trellis-api-version\`. Every error is JSON with \`cod
 
 // One example per request body, keyed by `<METHOD> <path>`.
 export const BODY_EXAMPLES: Record<string, unknown> = {
+	"POST /native-migrations": {
+		project: "CDE",
+		expectedVersion: "reviewed-inventory-sha256",
+		directory: "/Users/me/projects/cde",
+		requestId: "5178cacf-d5b1-4223-8e2f-4fb3fb3f7710",
+	},
+	"POST /native-migrations/{migrationId}/rollback": { expectedVersion: "reviewed-inventory-sha256" },
+	"POST /agent-runs/{runId}/checks": {
+		command: "bun",
+		args: ["test"],
+		timeoutMs: 60000,
+		requestId: "5178cacf-d5b1-4223-8e2f-4fb3fb3f7710",
+	},
+	"POST /agent-runs/{runId}/artifacts": { path: "src/result.ts" },
+	"POST /agent-runs/{id}/permission": { requestId: "tool-request-1", behavior: "deny" },
+	"POST /agent-runs/{id}/terminal/input": { text: "pwd\r" },
+	"POST /agent-runs/{id}/terminal/resize": { cols: 100, rows: 32 },
+	"POST /manager-dispatches/{id}/retry": {},
+	"POST /manager-dispatches/{id}/received": {},
+	"POST /native-work/resume": {},
+	"POST /native-work/stop": {},
+	"POST /flow-executions": {
+		flow: "review",
+		ticket: "CDE-1",
+		defaultPersonaId: "01J9Z0000000000000000000A1",
+		expectedVersion: 1,
+		requestId: "5178cacf-d5b1-4223-8e2f-4fb3fb3f7710",
+	},
+	"POST /flow-executions/{id}/decision": {
+		key: "step:step:0",
+		approved: true,
+		output: "Reviewed locally.",
+		expectedRevision: 1,
+	},
+	"POST /flow-executions/{id}/cancel": { expectedRevision: 1 },
 	"POST /reviews/open": { pr: "acme/web#12" },
 	"POST /reviews/status": { pr: "acme/web#12" },
 	"POST /reviews/refresh": { pr: "acme/web#12" },

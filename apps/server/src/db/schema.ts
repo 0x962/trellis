@@ -20,6 +20,7 @@ import { projects, statuses } from "./tables/projects.ts";
 export * from "./tables/actors.ts";
 export * from "./tables/agentRuns.ts";
 export * from "./tables/agents.ts";
+export * from "./tables/controller.ts";
 export * from "./tables/flows.ts";
 export * from "./tables/personas.ts";
 export * from "./tables/projects.ts";
@@ -264,3 +265,11 @@ export const activity = pgTable(
 		index("activity_created_at_idx").on(t.createdAt),
 	],
 );
+
+export * from "./tables/assignments.ts";
+export * from "./tables/evidence.ts";
+export * from "./tables/flowExecutions.ts";
+export * from "./tables/flowExecutionTasks.ts";
+export * from "./tables/harnessObservations.ts";
+export * from "./tables/harnessReceipts.ts";
+export * from "./tables/nativeMigrations.ts";

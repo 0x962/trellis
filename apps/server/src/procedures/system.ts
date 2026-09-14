@@ -2,6 +2,11 @@ import { archive, type Snapshot } from "../services/system.ts";
 import { call, os } from "./base.ts";
 
 export const system = os.system.router({
+	doctor: os.system.doctor.handler(({ context }) => call(context, "system.doctor", {})),
+	nativeWork: os.system.nativeWork.handler(({ context }) => call(context, "system.nativeWork", {})),
+	resumeNativeWork: os.system.resumeNativeWork.handler(({ context }) => call(context, "system.resumeNativeWork", {})),
+	stopNativeWork: os.system.stopNativeWork.handler(({ context }) => call(context, "system.stopNativeWork", {})),
+
 	chooseDirectory: os.system.chooseDirectory.handler(({ context }) => context.chooseDirectory()),
 	health: os.system.health.handler(({ context }) => call(context, "system.health", {})),
 	gh: os.system.gh.handler(({ context }) => call(context, "system.gh", {})),

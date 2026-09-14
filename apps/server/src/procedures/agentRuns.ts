@@ -1,5 +1,15 @@
 import { call, os } from "./base.ts";
 export const agentRuns = os.agentRuns.router({
+	harness: os.agentRuns.harness.handler(({ context, input }) => call(context, "agentRuns.harness", input)),
+	permission: os.agentRuns.permission.handler(({ context, input }) => call(context, "agentRuns.permission", input)),
+	session: os.agentRuns.session.handler(({ context, input }) => call(context, "agentRuns.session", input)),
+	terminalOutput: os.agentRuns.terminalOutput.handler(({ context, input }) =>
+		call(context, "agentRuns.terminalOutput", input),
+	),
+	terminalInput: os.agentRuns.terminalInput.handler(({ context, input }) =>
+		call(context, "agentRuns.terminalInput", input),
+	),
+	resize: os.agentRuns.resize.handler(({ context, input }) => call(context, "agentRuns.resize", input)),
 	send: os.agentRuns.send.handler(({ context, input }) => call(context, "agentRuns.send", input)),
 	output: os.agentRuns.output.handler(({ context, input }) => call(context, "agentRuns.output", input)),
 	list: os.agentRuns.list.handler(({ context, input }) => call(context, "agentRuns.list", input)),

@@ -12,6 +12,7 @@ import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { managerConfigOf, projectRow } from "../projectRows.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
 import { randomAgentName } from "./names.ts";
+import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { columns } from "./queries.ts";
 
 // The one manager row of a project: the newest row of the kind. A project
@@ -40,6 +41,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 		throw invalidInput("personaId", "Select a manager for a project, or a builder or reviewer for a ticket.");
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const project = await resolveMutableProject(ctx, tx, ticket?.projectId ?? input.project!);
+	await tx.execute(sql`SELECT id FROM projects WHERE id = ${project.id} FOR UPDATE`);
 	const request = {
 		requestId: input.requestId,
 		target: {
@@ -61,6 +63,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 	}
 	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
 	const config = managerConfigOf(await projectRow(tx, project.id));
+	if (config.ade === "native") await assertNativeWorkEnabled(tx);
 	if (ticket !== null) {
 		const [active] = await rows<{ count: number }>(
 			tx,

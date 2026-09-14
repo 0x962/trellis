@@ -236,7 +236,13 @@
 										"message": "No Radix. Every visual primitive lives in packages/ui on top of Base UI."
 									},
 									{
-										"group": ["@trellis/**", "!@trellis/api", "!@trellis/api/**"],
+										"group": [
+											"@trellis/**",
+											"!@trellis/api",
+											"!@trellis/api/**",
+											"!@trellis/runtime-protocol",
+											"!@trellis/runtime-protocol/**"
+										],
 										"message": "Layers import downward only. api is imported by server, web, mobile, and cli. ui is imported by web only."
 									}
 								]
@@ -340,7 +346,13 @@
 										"message": "No Radix. Every visual primitive lives in packages/ui on top of Base UI."
 									},
 									{
-										"group": ["@trellis/**", "!@trellis/api", "!@trellis/api/**"],
+										"group": [
+											"@trellis/**",
+											"!@trellis/api",
+											"!@trellis/api/**",
+											"!@trellis/runtime-protocol",
+											"!@trellis/runtime-protocol/**"
+										],
 										"message": "Layers import downward only. api is imported by server, web, mobile, and cli. ui is imported by web only."
 									}
 								]

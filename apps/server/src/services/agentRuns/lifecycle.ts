@@ -10,6 +10,7 @@ import { invalidInput } from "../../errors.ts";
 import { managerConfigOf, projectRow } from "../projectRows.ts";
 import type { ServiceCtx } from "../support.ts";
 import { refreshAde } from "./adeRefresh.ts";
+import { refreshNative, stopNative } from "./nativeLifecycle.ts";
 import { getRun } from "./queries.ts";
 
 type Ctx = ServiceCtx & { supersetBin: string };
@@ -22,6 +23,7 @@ const recordError = (ctx: Ctx, id: string, error: string, state: string) =>
 
 export const prepareStop = async (ctx: Ctx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
+	if (run.runtime === "native") return stopNative(ctx, run);
 	const host =
 		run.runtime === "commands"
 			? null
@@ -53,6 +55,7 @@ export const prepareStop = async (ctx: Ctx, input: { id: string }) => {
 
 export const prepareRefresh = async (ctx: Ctx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
+	if (run.runtime === "native") return refreshNative(ctx, run);
 	if (run.runtime === "commands") return refreshAde(ctx, run);
 	const host = await ctx.newTx(async (tx) => managerConfigOf(await projectRow(tx, run.projectId!)).supersetHostId);
 	const runner = superset(ctx.supersetBin, host);
