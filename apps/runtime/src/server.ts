@@ -29,9 +29,16 @@ export async function startRuntime(home: string) {
 	let store: SessionStore;
 	const sockets = new Set<Socket>();
 	let closing = false;
+	let closePromise: Promise<void> | undefined;
 	async function dispatch(request: RuntimeRequest) {
 		if (closing && request.method === "start") throw new Error("Runtime is shutting down");
 		switch (request.method) {
+			case "shutdown":
+				if (store.list().some((session) => session.status === "unknown"))
+					throw new Error("Cannot shut down: a session has an unknown process owner");
+				closing = true;
+				await store.stopAll();
+				return null;
 			case "hello":
 				return hello;
 			case "list":
@@ -78,8 +85,11 @@ export async function startRuntime(home: string) {
 			try {
 				const value = JSON.parse(buffer.slice(0, end));
 				id = typeof value?.id === "string" ? value.id : "";
-				const result = await dispatch(validateRequest(value));
-				socket.end(`${JSON.stringify({ id, result })}\n`);
+				const request = validateRequest(value);
+				const result = await dispatch(request);
+				socket.end(`${JSON.stringify({ id, result })}\n`, () => {
+					if (request.method === "shutdown") void close();
+				});
 			} catch (error) {
 				const failure = error as Error & { code?: string };
 				socket.end(
@@ -95,15 +105,16 @@ export async function startRuntime(home: string) {
 	store = new SessionStore(join(home, "sessions"), hello.daemonId);
 	chmodSync(socketPath, 0o600);
 	writeFileSync(join(home, "manifest.json"), JSON.stringify(hello), { mode: 0o600 });
-	return {
-		hello,
-		async close() {
+	function close() {
+		closePromise ??= (async () => {
 			closing = true;
 			await store.stopAll();
 			for (const socket of sockets) socket.destroy();
 			await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
 			rmSync(join(home, "manifest.json"), { force: true });
 			releaseLock();
-		},
-	};
+		})();
+		return closePromise;
+	}
+	return { hello, close };
 }

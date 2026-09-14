@@ -62,6 +62,9 @@ export class RuntimeClient {
 			});
 		});
 	}
+	shutdown() {
+		return this.call("shutdown", {});
+	}
 	hello() {
 		return this.call("hello", {});
 	}

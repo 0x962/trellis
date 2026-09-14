@@ -13,6 +13,7 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			throw new Error("Session identifier must contain letters, numbers, underscores, or hyphens");
 	}
 	switch (request.method) {
+		case "shutdown":
 		case "hello":
 		case "list":
 		case "stop":

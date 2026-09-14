@@ -17,11 +17,12 @@ The manifest contains the protocol version, daemon identifier, PID, start time, 
 
 ## Protocol
 
-Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens one socket connection. Requests and responses use newline-delimited JSON with protocol version 3.
+Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens one socket connection. Requests and responses use newline-delimited JSON with protocol version 4.
 
 | Method | Input | Result |
 | --- | --- | --- |
 | `hello` | None | Runtime identity |
+| `shutdown` | None | Null after managed processes stop |
 | `list` | None | All recorded sessions |
 | `start` | Launch specification | Session |
 | `input` | Session identifier, base64 bytes | Null |
@@ -48,6 +49,6 @@ Each session retains the latest 1 MiB of output bytes in memory and on disk. The
 
 Output files can contain repository content or credentials that a child prints. Environment values stay outside the session metadata. A command fingerprint includes their hash for launch conflict detection.
 
-A graceful runtime shutdown stops its children. A client disconnect does not stop them. A hard runtime crash preserves recorded output and launch identifiers, but it cannot preserve a live terminal connection. The host must reconcile surviving processes before it creates another attempt.
+The `shutdown` request refuses sessions with unknown process ownership. An accepted request stops every managed process before it responds. It then closes the socket and releases the runtime lock. A graceful runtime shutdown stops its children. A client disconnect does not stop them. A hard runtime crash preserves recorded output and launch identifiers, but it cannot preserve a live terminal connection. The host must reconcile surviving processes before it creates another attempt.
 
 The first protocol uses bounded reads rather than subscriptions. It does not provide input ownership, a global log retention policy, or descriptor handoff across runtime upgrades. These require host or later protocol work.

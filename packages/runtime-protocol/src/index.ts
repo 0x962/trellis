@@ -1,4 +1,4 @@
-export const RUNTIME_PROTOCOL_VERSION = 3;
+export const RUNTIME_PROTOCOL_VERSION = 4;
 export type SessionMode = "pty" | "stdio";
 export type SessionStatus = "running" | "exited" | "unknown";
 export interface LaunchSpec {
@@ -42,6 +42,7 @@ export interface RuntimeDelivery {
 	status: "written" | "unknown";
 }
 export interface RuntimeMethods {
+	shutdown: { params: Record<string, never>; result: null };
 	deliver: { params: { id: string; messageId: string; data: string }; result: RuntimeDelivery };
 	hello: { params: Record<string, never>; result: RuntimeHello };
 	list: { params: Record<string, never>; result: RuntimeSession[] };
