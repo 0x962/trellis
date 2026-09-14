@@ -41,7 +41,7 @@ async function read(ctx: ServiceCtx, run: AgentRun, client: Reader) {
 			.filter((event) => event.type === "acknowledged")
 			.map((event) => event.messageId);
 		snapshot = parser.snapshot();
-		checkpoint = parser.checkpoint(output.nextOffset);
+		checkpoint = { ...parser.checkpoint(output.nextOffset), processExited: session.status === "exited" };
 		if (session.status === "unknown")
 			snapshot = {
 				...snapshot,

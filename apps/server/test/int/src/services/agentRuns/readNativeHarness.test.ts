@@ -55,10 +55,18 @@ let log = Buffer.alloc(0);
 let retainedFrom = 0;
 let requested: number[] = [];
 let available = true;
+let processExited = false;
 const reader = {
 	list: async () => {
 		if (!available) throw new Error("Runtime unavailable");
-		return [{ id: attemptId, mode: "stdio", status: "running" }];
+		return [
+			{
+				id: attemptId,
+				mode: "stdio",
+				status: processExited ? "exited" : "running",
+				exitCode: processExited ? 0 : null,
+			},
+		];
 	},
 	output: async (_id: string, offset = 0) => {
 		requested.push(offset);
@@ -77,6 +85,7 @@ beforeEach(() => {
 	retainedFrom = 0;
 	requested = [];
 	available = true;
+	processExited = false;
 });
 test("the saved cursor survives host restart and preserves partial UTF-8", async () => {
 	const bytes = line({
@@ -160,4 +169,13 @@ test("concurrent readers share one read and release the completed promise", asyn
 	expect(requested).toEqual([0]);
 	await readNativeHarness(ctx, run, reader);
 	expect(requested).toEqual([0, log.length]);
+});
+
+test("the final read records process exit separately from turn state", async () => {
+	log = line({ type: "result", uuid: "last", subtype: "success", result: "Complete" });
+	processExited = true;
+	expect((await read())?.state).toBe("idle");
+	expect(
+		(await h.one(sql`SELECT checkpoint FROM agent_harness_observations WHERE attempt_id=${attemptId}`)).checkpoint,
+	).toMatchObject({ processExited: true });
 });

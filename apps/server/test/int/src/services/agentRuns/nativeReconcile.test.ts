@@ -162,3 +162,13 @@ test("an expired runtime log cannot erase the saved transcript", async () => {
 	expect(persisted?.transcript).toEqual(snapshot.transcript);
 	expect(persisted?.result).toBe(snapshot.result);
 });
+test("an exited attempt stays eligible until its final process observation is saved", async () => {
+	await record();
+	await h.rows(sql`UPDATE agent_runs SET state='exited' WHERE id=${runId}`);
+	const deps = { refresh: async () => {}, observe: async () => snapshot };
+	expect((await prepareNativeReconcile(prepareCtx(), {}, deps)).observed).toBe(1);
+	await h.rows(
+		sql`UPDATE agent_harness_observations SET checkpoint='{"processExited":true}'::jsonb WHERE attempt_id=${attemptId}`,
+	);
+	expect((await prepareNativeReconcile(prepareCtx(), {}, deps)).observed).toBe(0);
+});

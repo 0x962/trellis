@@ -25,7 +25,7 @@ export const prepareNativeReconcile = async (
 	const runs = await ctx.newTx((tx) =>
 		rows<AgentRun>(
 			tx,
-			sql`SELECT ${columns} FROM agent_runs WHERE runtime='native' AND terminal_id IS NOT NULL AND state IN ('running','interrupted')`,
+			sql`SELECT ${columns} FROM agent_runs WHERE runtime='native' AND terminal_id IS NOT NULL AND (state IN ('running','interrupted') OR (state IN ('exited','failed','stopped') AND EXISTS (SELECT 1 FROM agent_harness_observations o WHERE o.attempt_id=agent_runs.terminal_id AND o.checkpoint->>'processExited' IS DISTINCT FROM 'true')))`,
 		),
 	);
 	let changed = 0;
