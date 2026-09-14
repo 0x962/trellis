@@ -117,6 +117,18 @@ test("a project without a manager persona never receives a controller batch", as
 	expect(await take()).toBeNull();
 });
 
+test("pause preserves queued events until the manager resumes dispatch", async () => {
+	await h.rows(sql`UPDATE projects SET manager_config = manager_config || '{"dispatchPaused":true}'::jsonb`);
+	await event();
+	await gather();
+	expect(await take(20)).toBeNull();
+	expect((await h.one(sql`SELECT state FROM manager_dispatches`)).state).toBe("pending");
+	await event("dana", 20);
+	await gather(20);
+	await h.rows(sql`UPDATE projects SET manager_config = manager_config || '{"dispatchPaused":false}'::jsonb`);
+	expect((await take(30))!.events).toHaveLength(2);
+});
+
 test("the controller waits until a legacy manager stops", async () => {
 	await h.rows(sql`INSERT INTO agent_sessions (id, project_id, role, runner, state, name, title, created_at, updated_at)
 		VALUES ('legacy', ${projectId}, 'manager', 'superset', 'running', 'Legacy', 'Legacy', ${NOW}, ${NOW})`);

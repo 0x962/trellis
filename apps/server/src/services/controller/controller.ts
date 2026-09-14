@@ -26,6 +26,7 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, _input: Record<string, n
 			JOIN agent_runs r ON r.project_id = p.id AND r.kind = 'manager' AND r.state = 'running'
 			WHERE d.state = 'pending' AND d.due_at <= ${ctx.now} AND r.terminal_id IS NOT NULL
 			AND p.manager_config->>'personaId' IS NOT NULL AND p.archived_at IS NULL
+			AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
 			AND NOT EXISTS (WITH RECURSIVE ancestors AS (
 				SELECT id, parent_id, archived_at FROM projects WHERE id = p.id
 				UNION ALL SELECT parent.id, parent.parent_id, parent.archived_at FROM projects parent JOIN ancestors child ON parent.id = child.parent_id

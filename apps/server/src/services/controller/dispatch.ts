@@ -2,6 +2,7 @@ import type { Tx } from "../../db/tx.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import type { ServiceCtx } from "../support.ts";
 import { claim, complete } from "./controller.ts";
+import { dispatchMessageId } from "./messageId.ts";
 import { sendDeadline } from "./sendDeadline.ts";
 import type { Dispatch } from "./types.ts";
 
@@ -29,6 +30,7 @@ export const dispatch = async (ctx: Ctx) => {
 					prepareSend(ctx, {
 						id: delivery.runId!,
 						text: message(delivery),
+						messageId: dispatchMessageId(delivery),
 						expectedTerminalId: delivery.terminalId!,
 						expectedSessionId: delivery.sessionId,
 					}),
