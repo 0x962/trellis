@@ -16,3 +16,7 @@ test("a user message preserves its delivery and session identifiers", () => {
 	expect(message.session_id).toBe("session");
 	expect(message.message.content).toBe("hello");
 });
+test("a structured worker carries its runtime deadline", () => {
+	const spec = claudeLaunchSpec({ attemptId: "attempt", sessionId: "session", cwd: "/tmp", timeoutMs: 2500 });
+	expect(spec.timeoutMs).toBe(2500);
+});

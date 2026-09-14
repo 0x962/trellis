@@ -1,0 +1,65 @@
+import { isDeepStrictEqual } from "node:util";
+import { type FlowExecutionStartInput, type Persona, validateFlowGraph } from "@trellis/api";
+import { sql } from "drizzle-orm";
+import { ulid } from "ulid";
+import { createFlowExecution } from "../../agents/nativeFlow/createFlowExecution.ts";
+import { requireActor, type ServiceCtx } from "../../context.ts";
+import { rows, textArray } from "../../db/queries/support.ts";
+import type { Tx } from "../../db/tx.ts";
+import { invalidInput } from "../../errors.ts";
+import { assertNativeWorkEnabled } from "../agentRuns/nativeControl.ts";
+import { assertVersion, readDoc, resolveFlow } from "../flows/queries.ts";
+import { managerConfigOf, projectRow } from "../projectRows.ts";
+import { assertProjectActive, resolveTicket } from "../refs.ts";
+import { get } from "./queries.ts";
+export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartInput) {
+	const actor = requireActor(ctx);
+	const lookup = () =>
+		rows<{ id: string; request: unknown }>(
+			tx,
+			sql`SELECT id,request FROM flow_executions WHERE actor_kind=${actor.kind} AND actor_name=${actor.name} AND request_id=${input.requestId}`,
+		);
+	const replay = async (row: { id: string; request: unknown }) => {
+		if (!isDeepStrictEqual(row.request, input))
+			throw invalidInput("requestId", "This request identifier already names a different flow start.");
+		return get(ctx, tx, { id: row.id });
+	};
+	const [previous] = await lookup();
+	if (previous) return replay(previous);
+	await assertNativeWorkEnabled(tx);
+	const ticket = await resolveTicket(ctx, tx, input.ticket);
+	assertProjectActive(ctx, ticket.projectId);
+	if (ticket.completedAt !== null) throw invalidInput("ticket", "Reopen the ticket before a flow starts.");
+	const config = managerConfigOf(await projectRow(tx, ticket.projectId));
+	if (config.ade !== "native" || config.harness.preset !== "claude")
+		throw invalidInput("project", "Native flows require the structured native harness.");
+	if (!config.trustedDirectory) throw invalidInput("project", "Trust the project directory before a flow starts.");
+	const resolved = await resolveFlow(tx, input.flow);
+	await tx.execute(sql`SELECT id FROM flows WHERE id=${resolved.id} FOR SHARE`);
+	const flow = await resolveFlow(tx, resolved.id);
+	assertVersion(flow, input.expectedVersion);
+	const doc = await readDoc(tx, flow);
+	const issues = validateFlowGraph(doc, "run");
+	if (issues.length > 0) throw invalidInput("flow", issues.map((issue) => issue.message).join("\n"));
+	const ids = [
+		...new Set([
+			input.defaultPersonaId,
+			...doc.nodes.flatMap((node) => (node.personaId === null ? [] : [node.personaId])),
+		]),
+	];
+	const personas = await rows<Persona>(
+		tx,
+		sql`SELECT id,name,kind,instruction FROM personas WHERE id=ANY(${textArray(ids)})`,
+	);
+	if (personas.length !== ids.length || personas.some((persona) => persona.kind === "manager"))
+		throw invalidInput("defaultPersonaId", "Flow steps require existing builder or reviewer personas.");
+	const state = createFlowExecution(doc, ctx.now.getTime());
+	const [created] = await rows<{ id: string }>(
+		tx,
+		sql`INSERT INTO flow_executions (id,flow_id,ticket_id,project_id,default_persona_id,actor_kind,actor_name,request_id,request,doc,personas,state,revision,created_at,updated_at)
+ VALUES (${ulid()},${flow.id},${ticket.id},${ticket.projectId},${input.defaultPersonaId},${actor.kind},${actor.name},${input.requestId},${JSON.stringify(input)}::jsonb,${JSON.stringify(doc)}::jsonb,${JSON.stringify(Object.fromEntries(personas.map((persona) => [persona.id, persona])))}::jsonb,${JSON.stringify(state)}::jsonb,1,${ctx.now},${ctx.now}) ON CONFLICT (actor_kind,actor_name,request_id) DO NOTHING RETURNING id`,
+	);
+	if (!created) return replay((await lookup())[0]!);
+	ctx.emit({ type: "flows.changed", id: flow.id });
+	return get(ctx, tx, { id: created.id });
+}

@@ -48,7 +48,11 @@ async function read(ctx: ServiceCtx, run: AgentRun, client: Reader) {
 				state: "unknown",
 				error: "The execution service cannot establish whether this attempt still owns a process",
 			};
-		else if (session.status === "exited" && session.exitCode !== 0)
+		else if (
+			session.status === "exited" &&
+			session.exitCode !== 0 &&
+			!(run.state === "stopped" && snapshot.state === "idle")
+		)
 			snapshot = {
 				...snapshot,
 				state: "failed",

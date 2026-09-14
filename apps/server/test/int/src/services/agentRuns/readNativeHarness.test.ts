@@ -56,6 +56,7 @@ let retainedFrom = 0;
 let requested: number[] = [];
 let available = true;
 let processExited = false;
+let exitCode: number | null = 0;
 const reader = {
 	list: async () => {
 		if (!available) throw new Error("Runtime unavailable");
@@ -64,7 +65,7 @@ const reader = {
 				id: attemptId,
 				mode: "stdio",
 				status: processExited ? "exited" : "running",
-				exitCode: processExited ? 0 : null,
+				exitCode: processExited ? exitCode : null,
 			},
 		];
 	},
@@ -86,6 +87,7 @@ beforeEach(() => {
 	requested = [];
 	available = true;
 	processExited = false;
+	exitCode = 0;
 });
 test("the saved cursor survives host restart and preserves partial UTF-8", async () => {
 	const bytes = line({
@@ -178,4 +180,13 @@ test("the final read records process exit separately from turn state", async () 
 	expect(
 		(await h.one(sql`SELECT checkpoint FROM agent_harness_observations WHERE attempt_id=${attemptId}`)).checkpoint,
 	).toMatchObject({ processExited: true });
+});
+test("a deliberate stop preserves a completed structured result", async () => {
+	log = line({ type: "result", uuid: "completed", subtype: "success", result: "Useful output" });
+	await read();
+	processExited = true;
+	exitCode = null;
+	await h.rows(sql`UPDATE agent_runs SET state='stopped' WHERE id=${runId}`);
+	expect((await read())?.state).toBe("idle");
+	expect((await read())?.result).toBe("Useful output");
 });

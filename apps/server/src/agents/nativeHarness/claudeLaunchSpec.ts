@@ -8,6 +8,7 @@ export function claudeLaunchSpec(input: {
 	resume?: boolean;
 	systemPrompt?: string;
 	executable?: string;
+	timeoutMs?: number;
 }): LaunchSpec {
 	const args = [
 		"--print",
@@ -32,5 +33,6 @@ export function claudeLaunchSpec(input: {
 		env: input.env,
 		mode: "stdio",
 		separateStderr: true,
+		timeoutMs: input.timeoutMs,
 	};
 }
