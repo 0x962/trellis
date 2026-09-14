@@ -16,6 +16,7 @@ import { resolveProject, resolveTicket } from "../refs.ts";
 import { get as getSettings } from "../settings.ts";
 import type { ServiceCtx } from "../support.ts";
 import { startAde } from "./adeStart.ts";
+import { startNative } from "./nativeStart.ts";
 import { columns, getRun } from "./queries.ts";
 import { reserve } from "./reserve.ts";
 import { exitedSoon, lostSessionMessage, outputTail } from "./resume.ts";
@@ -41,8 +42,11 @@ const recordError = (ctx: Ctx, id: string, error: string, state: AgentRun["state
 	);
 
 export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
-	const { run, repos, context, config, resume } = await ctx.newTx((tx) => reserve(ctx.core, tx, input));
+	const reservation = await ctx.newTx((tx) => reserve(ctx.core, tx, input));
+	if (reservation.replay) return { id: reservation.run.id };
+	const { run, repos, context, config, resume, attempt: executionAttempt } = reservation;
 	ctx.emit({ type: "agent-runs.changed", id: run.id });
+	if (config.ade === "native") return startNative(ctx, { run, context, config, resume, attempt: executionAttempt! });
 	const runner = superset(ctx.supersetBin, config.supersetHostId);
 	if (
 		config.ade === "superset" &&

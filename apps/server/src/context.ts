@@ -15,6 +15,7 @@ export const SYSTEM_ACTOR: ActorRef = { kind: "system", name: "trellis" };
 export type RequestContext = {
 	actor: ActorRef | null;
 	session: string | null;
+	attemptToken?: string | null;
 	reqId: string;
 	now: Date;
 };
@@ -52,6 +53,7 @@ export const createContext = ({ headers, reqId, clock = () => new Date() }: Crea
 	return {
 		actor: header === null ? null : parseActor(header),
 		session: headers.get("x-trellis-session"),
+		attemptToken: headers.get("x-trellis-attempt"),
 		reqId,
 		now: clock(),
 	};

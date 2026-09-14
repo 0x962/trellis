@@ -42,6 +42,19 @@ const calls = () =>
 		.split("\n")
 		.map((line) => JSON.parse(line) as string[]);
 
+test("concurrent repeated request IDs launch one worker at the project limit", async () => {
+	await t.client.projects.update({ project: "RUN", managerConfig: { personaId: null, concurrency: 1, directory: "" } });
+	const input = { personaId: builder, ticket, requestId: "RUN:builder" };
+	const [first, second] = await Promise.all([start(input), start(input)]);
+	expect(first.status).toBe(201);
+	expect(second.status).toBe(201);
+	expect(first.body.id).toBe(second.body.id);
+	expect(calls().filter((args) => args[0] === "ws" && args[1] === "create")).toHaveLength(1);
+	const third = await start(input);
+	expect(third.body.id).toBe(first.body.id);
+	expect(calls().filter((args) => args[0] === "ws" && args[1] === "create")).toHaveLength(1);
+});
+
 test("assignment launches a named agent with the selected prompt and retains its snapshot", async () => {
 	const result = await start({ personaId: builder, ticket });
 	expect(result.status).toBe(201);

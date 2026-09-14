@@ -31,6 +31,17 @@ describe("agents list", () => {
 });
 
 describe("agents start", () => {
+	test("agents start sends a stable assignment request ID", async () => {
+		const result = await runCli(
+			["agents", "start", personaId, "--ticket", "CDE-42", "--request-id", "CDE-42:builder"],
+			{
+				"personas.list": [persona()],
+				"agentRuns.start": agentRun(),
+			},
+		);
+		expect(result.code).toBe(0);
+		expect(result.calls[1]!.input).toEqual({ personaId, ticket: "CDE-42", requestId: "CDE-42:builder" });
+	});
 	// CLI-125: the start route takes a persona id, so the verb reads the
 	// persona list and matches the ref there first.
 	test("agents start resolves the persona by id and by name", async () => {

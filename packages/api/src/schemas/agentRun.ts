@@ -5,7 +5,7 @@ import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 export const AgentRunSchema = z.object({
 	id: UlidSchema,
 	name: z.string(),
-	runtime: z.enum(["superset", "tmux", "commands"]),
+	runtime: z.enum(["native", "superset", "tmux", "commands"]),
 	personaId: UlidSchema.nullable(),
 	personaName: z.string(),
 	kind: PersonaKindSchema,
@@ -33,6 +33,12 @@ export type AgentRun = z.infer<typeof AgentRunSchema>;
 export const AgentRunStartInputSchema = z
 	.strictObject({
 		personaId: UlidSchema,
+		requestId: z
+			.string()
+			.min(1)
+			.max(200)
+			.regex(/^[\x21-\x7e]+$/)
+			.optional(),
 		ticket: z.string().min(1).optional(),
 		project: z.string().min(1).optional(),
 		// True gives a manager a new session in place of the one its row

@@ -56,6 +56,7 @@ const start = defineCommand({
 		persona: { type: "positional", required: true, description: "Persona id or name" },
 		ticket: { type: "string", description: "Ticket ref, for a builder or a reviewer" },
 		project: { type: "string", description: "Project ref, for a manager" },
+		"request-id": { type: "string", description: "Stable assignment ID to prevent a duplicate start" },
 		"new-session": {
 			type: "boolean",
 			description: "Give a manager a new agent session in place of the one it keeps",
@@ -68,6 +69,7 @@ const start = defineCommand({
 		const run = await clientOf(ctx).agentRuns.start(
 			compact({
 				personaId: persona.id,
+				requestId: args["request-id"],
 				ticket: args.ticket,
 				project: args.project,
 				newSession: args["new-session"] ? true : undefined,

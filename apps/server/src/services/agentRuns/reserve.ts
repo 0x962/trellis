@@ -7,6 +7,8 @@ import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
+import { reserveAttempt } from "../assignments/attempts.ts";
+import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { managerConfigOf, projectRow } from "../projectRows.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
 import { randomAgentName } from "./names.ts";
@@ -38,6 +40,17 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 		throw invalidInput("personaId", "Select a manager for a project, or a builder or reviewer for a ticket.");
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const project = await resolveMutableProject(ctx, tx, ticket?.projectId ?? input.project!);
+	const request = {
+		requestId: input.requestId,
+		target: {
+			personaId: persona.id,
+			projectId: project.id,
+			ticketId: ticket?.id ?? null,
+			newSession: input.newSession === true,
+		},
+	};
+	const replay = await replayRequest(ctx, tx, request);
+	if (replay) return { replay: true as const, run: replay };
 	assertProjectActive(ctx, project.id);
 	if (persona.kind === "manager") {
 		const [legacy] = await rows<{ id: string }>(
@@ -64,9 +77,26 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 			sql`, `,
 		)})`,
 	);
-	if (repos.length === 0) throw invalidInput("project", "Add a repository to the project before you start an agent.");
+	if (repos.length === 0 && config.ade !== "native")
+		throw invalidInput("project", "Add a repository to the project before you start an agent.");
 	await upsert(ctx, tx, actor);
-	const existing = persona.kind === "manager" ? await managerRowOf(tx, project.id) : undefined;
+	let existing = persona.kind === "manager" ? await managerRowOf(tx, project.id) : undefined;
+	if (existing && config.ade !== "native") {
+		const [protectedRun] = await rows<{ id: string }>(
+			tx,
+			sql`SELECT id FROM agent_execution_attempts WHERE run_id = ${existing.id} LIMIT 1`,
+		);
+		if (protectedRun) {
+			if (existing.state !== "stopped" || input.newSession !== true)
+				throw invalidInput(
+					"newSession",
+					"Stop the native manager and select a new session before you switch its runtime.",
+				);
+			existing = undefined;
+		}
+	}
+	if (existing?.runtime === "native" && existing.state === "interrupted")
+		throw invalidInput("project", "Reconcile the interrupted native manager before you start a replacement.");
 	// A manager that holds its terminal is the one that runs. A second start
 	// would take its row and leave that terminal with no row. An interrupted
 	// manager has no terminal the server can find, so a start takes it.
@@ -78,7 +108,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 	// session holds no chat to continue.
 	const resume =
 		existing !== undefined && existing.sessionId !== null && existing.workspaceId !== null && input.newSession !== true;
-	const sessionId = resume ? existing.sessionId! : randomUUID();
+	const sessionId = resume ? existing!.sessionId! : randomUUID();
 	const [run] =
 		existing === undefined
 			? await rows<AgentRun>(
@@ -97,12 +127,21 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 			WHERE id = ${existing.id} RETURNING ${columns}`,
 				);
 	if (run === undefined) throw fail("DUPLICATE", { field: "active agent" });
+	const attempt = config.ade === "native" ? await reserveAttempt(ctx, tx, { runId: run.id }) : null;
+	if (attempt) {
+		await tx.execute(sql`UPDATE agent_runs SET runtime = 'native', terminal_id = ${attempt.id} WHERE id = ${run.id}`);
+		run.runtime = "native";
+		run.terminalId = attempt.id;
+	}
+	await recordRequest(ctx, tx, { ...request, runId: run.id });
 	const context =
 		ticket === null
-			? `Project: ${projectPath}\nEffective statuses:\n${JSON.stringify(ctx.cache.effectiveStatuses(project.id).statuses)}\nRead the project and its tickets from Trellis before you act.`
+			? `Project: ${projectPath}\nEffective statuses:\n${JSON.stringify(ctx.cache.effectiveStatuses(project.id).statuses)}\nRead the project and its tickets from Trellis before you act.\nUse a stable --request-id for each worker assignment. Reuse it when a start result is uncertain. Use a different ID for an intentional new assignment.`
 			: `Ticket: ${ticket.identifier}: ${ticket.title}\nProject: ${projectPath}\n\n${ticket.description}\n\nRead the current ticket, comments, and linked pull requests before you act.\nUse trellis brief ${ticket.identifier} for the full task context.`;
 	return {
+		replay: false as const,
 		run,
+		attempt,
 		repos,
 		config,
 		resume,
