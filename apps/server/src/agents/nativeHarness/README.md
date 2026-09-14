@@ -49,3 +49,7 @@ This certification does not establish unrestricted unattended repository work. T
 The installed `claude --help` describes stream formats, replay acknowledgements, print-mode trust, and permission modes. The public [CLI reference](https://code.claude.com/docs/en/cli-reference) documents the command interface.
 
 The official [streaming input guide](https://code.claude.com/docs/en/agent-sdk/streaming-vs-single-mode) describes persistent message input. The SDK's [query implementation](https://github.com/anthropics/claude-agent-sdk-python/blob/main/src/claude_agent_sdk/_internal/query.py) defines initialization and permission control messages. Its [subprocess transport](https://github.com/anthropics/claude-agent-sdk-python/blob/main/src/claude_agent_sdk/_internal/transport/subprocess_cli.py) supplies the permission-handler flag. The local probes verify these records against the installed executable.
+
+The host saves the byte cursor and partial JSON record with each observation. This permits a restart after part of a UTF-8 character arrives. Unread output that expires makes the harness state unknown. Consumed output can expire without loss of state.
+
+The transcript retains up to 512 KiB of text. The result retains up to 512 KiB separately. `transcriptTruncated` and `resultTruncated` identify partial text. The public snapshot holds the latest 128 message receipts. `hasNativeReceipt` reads all receipts for an attempt from the database. `waitForNativeHarness` uses these receipts when the caller supplies `messageId`.

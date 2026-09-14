@@ -1,14 +1,15 @@
-import { StringDecoder } from "node:string_decoder";
+import { boundedText } from "./boundedText.ts";
+import type { ClaudeCheckpoint } from "./checkpoint.ts";
 import type { HarnessEvent, HarnessSnapshot } from "./types.ts";
 
 export class ClaudeStream {
-	private readonly decoder = new StringDecoder("utf8");
-	private buffer = "";
+	private buffer = Buffer.alloc(0);
 	private readonly value: HarnessSnapshot;
 	private invalid = false;
 	constructor(
 		sessionId: string,
 		private readonly initializeId?: string,
+		restore?: { snapshot: HarnessSnapshot; checkpoint: ClaudeCheckpoint },
 	) {
 		this.value = {
 			sessionId,
@@ -18,6 +19,23 @@ export class ClaudeStream {
 			transcript: [],
 			result: null,
 			error: null,
+		};
+		if (restore) {
+			Object.assign(this.value, structuredClone(restore.snapshot), {
+				state: restore.checkpoint.state,
+				error: restore.checkpoint.error,
+			});
+			this.buffer = Buffer.from(restore.checkpoint.pendingBytes, "base64");
+			this.invalid = restore.checkpoint.invalid;
+		}
+	}
+	checkpoint(offset: number): ClaudeCheckpoint {
+		return {
+			offset,
+			pendingBytes: this.buffer.toString("base64"),
+			invalid: this.invalid,
+			state: this.value.state,
+			error: this.value.error,
 		};
 	}
 	snapshot(): HarnessSnapshot {
@@ -29,17 +47,13 @@ export class ClaudeStream {
 		this.value.error = reason;
 	}
 	feed(bytes: Buffer): HarnessEvent[] {
-		this.buffer += this.decoder.write(bytes);
-		if (this.buffer.length > 2_000_000) {
-			this.gap("Harness JSON record exceeds the byte limit");
-			this.buffer = "";
-			return [];
-		}
+		this.buffer = Buffer.concat([this.buffer, bytes]);
 		const events: HarnessEvent[] = [];
-		while (this.buffer.includes("\n")) {
-			const end = this.buffer.indexOf("\n");
-			const line = this.buffer.slice(0, end);
-			this.buffer = this.buffer.slice(end + 1);
+		while (this.buffer.includes(10)) {
+			const end = this.buffer.indexOf(10);
+			if (end > 2_000_000) this.gap("Harness JSON record exceeds the byte limit");
+			const line = this.buffer.subarray(0, end).toString("utf8");
+			this.buffer = this.buffer.subarray(end + 1);
 			if (line.trim() === "") continue;
 			let row: Record<string, unknown>;
 			try {
@@ -59,6 +73,10 @@ export class ClaudeStream {
 			if (this.invalid) continue;
 			this.accept(row, events);
 		}
+		if (this.buffer.length > 2_000_000) {
+			this.gap("Harness JSON record exceeds the byte limit");
+			this.buffer = Buffer.alloc(0);
+		}
 		return events;
 	}
 	private transcript(row: Record<string, unknown>, role: "user" | "assistant") {
@@ -75,7 +93,13 @@ export class ClaudeStream {
 		if (text === "") return;
 		const messageId = typeof row.uuid === "string" ? row.uuid : undefined;
 		if (messageId !== undefined && this.value.transcript.some((message) => message.messageId === messageId)) return;
-		this.value.transcript.push({ role, text, messageId });
+		const bounded = boundedText(text);
+		this.value.transcript.push({ role, text: bounded.text, messageId });
+		if (bounded.truncated) this.value.transcriptTruncated = true;
+		while (this.value.transcript.reduce((size, message) => size + Buffer.byteLength(message.text), 0) > 512 * 1024) {
+			this.value.transcript.shift();
+			this.value.transcriptTruncated = true;
+		}
 	}
 	private accept(row: Record<string, unknown>, events: HarnessEvent[]) {
 		if (
@@ -117,6 +141,7 @@ export class ClaudeStream {
 		) {
 			this.transcript(row, "user");
 			if (!this.value.acknowledgedMessageIds.includes(row.uuid)) this.value.acknowledgedMessageIds.push(row.uuid);
+			this.value.acknowledgedMessageIds = this.value.acknowledgedMessageIds.slice(-128);
 			this.value.state = "working";
 			events.push({ type: "acknowledged", messageId: row.uuid });
 		} else if (row.type === "assistant" && row.parent_tool_use_id == null) {
@@ -154,7 +179,9 @@ export class ClaudeStream {
 			this.value.state = "unknown";
 		} else if (row.type === "result") {
 			this.value.resultId = typeof row.uuid === "string" ? row.uuid : null;
-			this.value.result = typeof row.result === "string" ? row.result : null;
+			const result = typeof row.result === "string" ? boundedText(row.result) : null;
+			this.value.result = result?.text ?? null;
+			this.value.resultTruncated = result?.truncated ?? false;
 			const denied = Array.isArray(row.permission_denials) && row.permission_denials.length > 0;
 			this.value.state = denied
 				? "needs_input"

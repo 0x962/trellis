@@ -18,6 +18,8 @@ export interface HarnessSnapshot {
 	pendingPermissions: HarnessPermission[];
 	result: string | null;
 	resultId?: string | null;
+	resultTruncated?: boolean;
+	transcriptTruncated?: boolean;
 	error: string | null;
 }
 export type HarnessEvent =

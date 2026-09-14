@@ -7,6 +7,7 @@ export const agentHarnessObservations = pgTable("agent_harness_observations", {
 		.primaryKey()
 		.references(() => agentExecutionAttempts.id, { onDelete: "cascade" }),
 	snapshot: jsonb().notNull(),
+	checkpoint: jsonb(),
 	resultKey: text("result_key"),
 	attentionKey: text("attention_key"),
 	updatedAt: at("updated_at").notNull(),
