@@ -12,11 +12,17 @@ bun run --cwd apps/desktop build
 TRELLIS_DESKTOP_HOME=/tmp/trellis-desktop-dev bun run --cwd apps/desktop dev
 ```
 
-`TRELLIS_DESKTOP_HOME` selects the host data directory. The default is the `host` directory inside Electron's application data directory. This release does not import `~/.trellis` automatically.
+In development, `TRELLIS_DESKTOP_HOME` selects the host data directory. Packaged service registration uses the fixed application data directory. The default is the `host` directory inside Electron's application data directory. This release does not import `~/.trellis` automatically.
 
 The host keeps its selected port across restarts. This preserves the renderer origin and its local drafts. A port conflict fails with a link to the host log.
 
 Close a window to detach its view. Quit Trellis to close the desktop process. Both actions keep the host and agents active. Use the Help menu to reconnect to the host or open its logs.
+
+The packaged app requests permission to enable its background service. `SMAppService` registers the bundled LaunchAgent. macOS starts it at login and restarts it after a crash. The Trellis menu shows its status and opens Login Items when approval is required. The separate Open Trellis at login option controls the desktop window.
+
+Stop local work and background service pauses local dispatch, stops known local processes, and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. External Superset sessions remain active. Resume local work allows new local launches. Each project keeps its saved dispatch setting.
+
+The helper reads the user login shell environment with a ten-second limit. It places the bundled executable directory first in PATH. Shell errors omit captured output because startup scripts can expose secrets.
 
 The preload bridge exposes only `trellisDesktop.chooseDirectory()`. The renderer uses a sandbox and context isolation. The desktop session adds the host token only to requests from its window to its exact host origin. The token does not enter the renderer.
 
@@ -44,7 +50,9 @@ bun apps/desktop/scripts/smoke.ts apps/desktop/release/mac-arm64/Trellis.app/Con
 
 ## Release limits
 
-The current package does not register a login helper, restart the host after logout, or apply updates. Detached processes survive a window close and desktop quit. They do not establish a login service.
+The detached development host has no crash supervisor. The packaged app requires its registered macOS service and does not start an unmanaged replacement. Application updates remain unimplemented.
+
+The isolated launchd integration test verifies helper execution and host crash restart with a temporary label and data home. It removes that service after the test. A second test signs a temporary app with an ad-hoc identity. It registers through `SMAppService`, verifies host crash restart, unregisters, and checks that the host exits. Developer ID signing, notarization, and approval changes through System Settings remain release checks.
 
 The build machine has Apple Development identities but no Developer ID Application identity. Signed distribution and notarization remain unverified. The current package target is the build machine's architecture. Cross-architecture native module builds remain unverified.
 

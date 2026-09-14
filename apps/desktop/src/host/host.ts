@@ -65,16 +65,65 @@ export const connectHost = (options: HostOptions): Promise<HostConnection> => {
 	return connection;
 };
 
-const startHost = async ({ home, executable, entry, webDist, env }: HostOptions): Promise<HostConnection> => {
+export const ensureHostToken = (home: string): string => {
 	mkdirSync(home, { recursive: true, mode: 0o700 });
 	const tokenPath = join(home, "desktop-token");
 	if (!existsSync(tokenPath)) writeFileSync(tokenPath, randomBytes(32).toString("hex"), { mode: 0o600, flag: "wx" });
 	const token = readFileSync(tokenPath, "utf8");
+	return token;
+};
+
+export const assertHostStopped = (home: string) => {
+	const owner = ownerAt(home);
+	if (owner && alive(owner.pid)) throw new Error(`Process ${owner.pid} already owns this data home.`);
+};
+
+export const assertManagedHome = (home: string) => {
+	const owner = ownerAt(home);
+	if (!owner || !alive(owner.pid)) return;
+	const servicePid = join(home, "desktop-service.pid");
+	if (!existsSync(servicePid) || Number(readFileSync(servicePid, "utf8")) !== owner.pid)
+		throw new Error("An unmanaged host owns this data home. Stop it before you enable the background service.");
+};
+
+export const waitForHostExit = async (home: string) => {
+	const deadline = Date.now() + 10000;
+	while (Date.now() < deadline) {
+		const owner = ownerAt(home);
+		if (!owner || !alive(owner.pid)) return;
+		await setTimeout(100);
+	}
+	throw new Error("The background host still runs. Inspect the local logs before you close Trellis.");
+};
+
+export const adoptHost = async (home: string): Promise<HostConnection> => {
+	const token = ensureHostToken(home);
+	const deadline = Date.now() + 60000;
+	while (Date.now() < deadline) {
+		const connection = await healthy(ownerAt(home), token);
+		if (connection) {
+			assertManagedHome(home);
+			return connection;
+		}
+		await setTimeout(100);
+	}
+	throw new Error(`The background service did not become ready. Read ${join(home, "desktop-host.log")}.`);
+};
+
+const startHost = async ({ home, executable, entry, webDist, env }: HostOptions): Promise<HostConnection> => {
+	const token = ensureHostToken(home);
 	const owner = ownerAt(home);
 	const existing = await healthy(owner, token);
 	if (existing) return existing;
-	if (owner && alive(owner.pid))
-		throw new Error(`Process ${owner.pid} owns ${home} but does not answer. Inspect ${join(home, "server.log")}.`);
+	if (owner && alive(owner.pid)) {
+		const deadline = Date.now() + 60000;
+		while (Date.now() < deadline && alive(owner.pid)) {
+			const connection = await healthy(ownerAt(home), token);
+			if (connection) return connection;
+			await setTimeout(100);
+		}
+		throw new Error(`Process ${owner.pid} did not become ready. Inspect ${join(home, "server.log")}.`);
+	}
 	const logPath = join(home, "desktop-host.log");
 	const log = openSync(logPath, "a", 0o600);
 	const child = spawn(executable, [entry], {

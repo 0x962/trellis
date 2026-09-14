@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "..");
 await mkdir(resolve(root, "dist"), { recursive: true });
-for (const name of ["main", "preload"]) {
+for (const name of ["main", "preload", "host-service"]) {
 	const result = await Bun.build({
 		entrypoints: [resolve(root, `src/${name}.ts`)],
 		outdir: resolve(root, "dist"),
@@ -14,3 +14,17 @@ for (const name of ["main", "preload"]) {
 	});
 	if (!result.success) throw new AggregateError(result.logs, `Could not build ${name}.`);
 }
+
+const swift = Bun.spawn(
+	[
+		"xcrun",
+		"swiftc",
+		"-target",
+		`${process.arch === "arm64" ? "arm64" : "x86_64"}-apple-macos13`,
+		resolve(root, "native/TrellisHost.swift"),
+		"-o",
+		resolve(root, "dist/TrellisHost"),
+	],
+	{ stdout: "inherit", stderr: "inherit" },
+);
+if (await swift.exited) throw new Error("Could not compile the macOS service helper.");

@@ -1,13 +1,15 @@
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from "electron";
-import { connectHost, type HostConnection } from "./host/host.ts";
+import { desktopPaths } from "./desktopPaths/desktopPaths.ts";
+import { adoptHost, connectHost, type HostConnection } from "./host/host.ts";
 import { deepLinkPath, externalUrl, sameOrigin } from "./navigation/navigation.ts";
+import { requireService, resumeLocalWork, showServiceStatus, stopLocalWork } from "./serviceActions/serviceActions.ts";
 
 let window: BrowserWindow | undefined;
 let host: HostConnection;
 let pendingPath = "/";
 const desktopHome = () => process.env.TRELLIS_DESKTOP_HOME ?? join(app.getPath("userData"), "host");
-const root = () => (app.isPackaged ? join(process.resourcesPath, "host") : resolve(__dirname, "../../.."));
+const paths = () => desktopPaths(app.getAppPath(), process.resourcesPath, app.isPackaged);
 
 const openWindow = async () => {
 	if (window) {
@@ -23,7 +25,7 @@ const openWindow = async () => {
 		show: false,
 		title: "Trellis",
 		webPreferences: {
-			preload: join(__dirname, "preload.cjs"),
+			preload: paths().preload,
 			contextIsolation: true,
 			nodeIntegration: false,
 			sandbox: true,
@@ -47,19 +49,21 @@ const openWindow = async () => {
 };
 
 const connect = async () => {
-	const hostRoot = root();
+	const hostRoot = paths().hostRoot;
+	if (app.isPackaged) {
+		if (process.env.TRELLIS_DESKTOP_HOME)
+			throw new Error(
+				"The registered service uses the Trellis application data directory. Use the desktop dev command for a scratch home.",
+			);
+		await requireService(paths().helper, desktopHome());
+		host = await adoptHost(desktopHome());
+		return;
+	}
 	host = await connectHost({
 		home: desktopHome(),
-		executable: app.isPackaged ? join(hostRoot, "bin/bun") : (process.env.TRELLIS_BUN_BIN ?? "bun"),
+		executable: process.env.TRELLIS_BUN_BIN ?? "bun",
 		entry: join(hostRoot, "apps/server/src/index.ts"),
 		webDist: join(hostRoot, "apps/web/dist"),
-		env: app.isPackaged
-			? {
-					PATH: `${join(hostRoot, "bin")}:${process.env.PATH ?? "/usr/bin:/bin"}`,
-					TRELLIS_RUNTIME_NODE: join(hostRoot, "bin/node"),
-					TRELLIS_RUNTIME_SCRIPT: join(hostRoot, "apps/runtime/dist/index.js"),
-				}
-			: undefined,
 	});
 };
 
@@ -118,6 +122,34 @@ else {
 						label: "Trellis",
 						submenu: [
 							{ role: "about" },
+							{
+								label: "Background service status",
+								enabled: app.isPackaged,
+								click: () => void showServiceStatus(paths().helper),
+							},
+							{
+								label: "Open Trellis at login",
+								type: "checkbox",
+								enabled: app.isPackaged,
+								checked: app.getLoginItemSettings().openAtLogin,
+								click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
+							},
+							{
+								label: "Stop local work and background service",
+								click: () =>
+									void stopLocalWork(host, desktopHome(), app.isPackaged ? paths().helper : undefined)
+										.then((stopped) => {
+											if (stopped) app.quit();
+										})
+										.catch((error: Error) => dialog.showErrorBox("Local work did not stop", error.message)),
+							},
+							{
+								label: "Resume local work",
+								click: () =>
+									void resumeLocalWork(host).catch((error: Error) =>
+										dialog.showErrorBox("Local work stays paused", error.message),
+									),
+							},
 							{ type: "separator" },
 							{ role: "hide" },
 							{ role: "hideOthers" },

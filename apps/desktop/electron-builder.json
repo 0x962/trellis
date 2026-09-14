@@ -1,17 +1,43 @@
 {
 	"appId": "com.trellis.desktop",
 	"productName": "Trellis",
-	"directories": { "output": "release" },
+	"directories": {
+		"output": "release"
+	},
 	"files": ["dist/*.cjs", "package.json"],
-	"extraResources": [{ "from": "dist/host", "to": "host" }],
+	"extraResources": [
+		{
+			"from": "dist/host",
+			"to": "host"
+		},
+		{
+			"from": "dist/host-service.cjs",
+			"to": "host-service.cjs"
+		}
+	],
 	"asar": true,
 	"npmRebuild": false,
-	"protocols": [{ "name": "Trellis", "schemes": ["trellis"] }],
+	"protocols": [
+		{
+			"name": "Trellis",
+			"schemes": ["trellis"]
+		}
+	],
 	"mac": {
 		"category": "public.app-category.developer-tools",
 		"minimumSystemVersion": "13.0",
 		"hardenedRuntime": true,
 		"entitlements": "entitlements.mac.plist",
 		"entitlementsInherit": "entitlements.mac.plist"
-	}
+	},
+	"extraFiles": [
+		{
+			"from": "dist/TrellisHost",
+			"to": "MacOS/TrellisHost"
+		},
+		{
+			"from": "native/com.trellis.desktop.host.plist",
+			"to": "Library/LaunchAgents/com.trellis.desktop.host.plist"
+		}
+	]
 }
