@@ -1,0 +1,28 @@
+import { describe, expect, test } from "bun:test";
+import { slug } from "./slug";
+
+describe("slug", () => {
+  test("lowercases mixed case", () => {
+    expect(slug("Hello World")).toBe("hello-world");
+    expect(slug("  MiXeD CaSe  ")).toBe("mixed-case");
+  });
+
+  test("collapses repeated separators", () => {
+    expect(slug("a  --  b__c")).toBe("a-b-c");
+    expect(slug("--foo...bar--")).toBe("foo-bar");
+  });
+
+  test("returns empty string for punctuation-only input", () => {
+    expect(slug("!!!---???")).toBe("");
+  });
+
+  test("keeps numbers", () => {
+    expect(slug("Version 2.0 Release 10")).toBe("version-2-0-release-10");
+    expect(slug("123")).toBe("123");
+  });
+
+  test("returns empty string for empty input", () => {
+    expect(slug("")).toBe("");
+    expect(slug("   ")).toBe("");
+  });
+});

@@ -1,0 +1,10 @@
+import { strictEqual } from "node:assert";
+import { slug } from "./home/agents/01M2GQ3MQ4B2KN4GKV53X2CJJW/work/slug.ts";
+const cases: [string, string][] = [
+	["", ""], [" \t\n ", ""], ["Hello WORLD", "hello-world"],
+	["--a__B...9--", "a-b-9"], ["!?$%^", ""], ["0123456789", "0123456789"],
+	["a\nb\tc", "a-b-c"], ["already-a-slug", "already-a-slug"], [" A + B ", "a-b"],
+	["éà", ""], ["Kelvin K sign", "kelvin-sign"], ["A\0B", "a-b"],
+];
+for (const [input, expected] of cases) strictEqual(slug(input), expected);
+console.log(JSON.stringify({ independentCases: cases.length, passed: true }));
