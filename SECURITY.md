@@ -2,11 +2,12 @@
 
 ## The security model
 
-trellis is a single-user tool for one machine. The server trusts every request
-it accepts. The boundary is the network interface it binds, and nothing else.
+trellis is a single-user tool for one machine. Local agents run under the same operating system account as the host.
 
 - The server binds `127.0.0.1` by default. Only a process on the same machine can reach it.
-- The server has no authentication. It has no accounts, no passwords, no tokens, and no sessions.
+- The desktop host requires a bearer token and rejects a browser origin that differs from its host origin.
+- A standalone server requires a bearer token when `TRELLIS_AUTH_TOKEN` is set. Without that variable, it accepts requests without authentication.
+- The desktop keeps the token outside the renderer. Its session adds the token only to requests from its window to its exact host origin.
 - The header `x-trellis-actor` is a label. It records who made a write. It is not authentication, and any client can send any value.
 - The agent policy is a guard rail, not a permission system. An agent that sends `human:<name>` moves a ticket to Done.
 - CORS allows the two development origins only: `http://localhost:5173` and `http://trellis.localhost`. Every other origin gets no CORS header, so a page elsewhere cannot read the API from a browser.
@@ -19,12 +20,16 @@ writes it, and a start of an agent runs it as a shell command under the account
 that runs the server. `POST /api/choose-directory` opens a folder picker on the
 server computer, and `POST /api/agent-runs` starts an agent.
 
-The server has no sign-in, so any client that reaches the API sets the template
-and starts an agent. On `127.0.0.1` that client is a process on this machine. On
-`0.0.0.0` it is anyone who reaches the port.
+An authenticated client can set a command template and start an agent. If authentication is disabled, any client that reaches the API can do this.
 
-An agent gets its own actor, `agent:<run id>`. That label records the writes of
-the agent. It grants nothing and restricts nothing.
+An agent gets its own actor, `agent:<run id>`. A native attempt also gets a token in `TRELLIS_ATTEMPT_TOKEN`.
+The API checks that token and the current attempt before it accepts that actor's writes.
+The host stores the token hash. A stopped or replaced attempt cannot use its old token to write as that run.
+The actor header remains a caller-supplied label. This check does not sandbox a process with the user's filesystem and host credentials.
+
+The native runtime uses an owner-only Unix socket and a lifetime file lock.
+The structured Claude harness requires explicit repository trust and human tool permission decisions.
+Worktrees separate file changes. They do not restrict operating system access.
 
 ## The network flag
 
@@ -32,7 +37,7 @@ the agent. It grants nothing and restricts nothing.
 `trellis install --host 0.0.0.0` does the same for the installed service. The
 mobile app needs this flag, because a phone cannot reach `127.0.0.1`.
 
-CAUTION: The server has no authentication. On `0.0.0.0`, anyone who reaches the
+CAUTION: If authentication is disabled, on `0.0.0.0` anyone who reaches the
 port reads and writes every ticket, reads and downloads every attachment,
 triggers a backup, and streams the full export.
 
@@ -50,8 +55,8 @@ repository that trellis can read.
 
 ## Data on disk
 
-trellis writes everything to `~/.trellis`, and `TRELLIS_HOME` moves that
-directory. The database, the attachments, the backups, and the log carry no
+The standalone server writes to `~/.trellis`, and `TRELLIS_HOME` moves that
+directory. The desktop uses its application data directory. The database, the attachments, the backups, and the log carry no
 encryption. They inherit the permissions of the account that runs the server.
 
 ## Report a vulnerability

@@ -2,8 +2,8 @@
 
 trellis is a local ticket tracker for work that humans give to coding agents.
 One server on the machine owns all data. The web app, the mobile app, and the
-CLI reach that server over HTTP. The server has no authentication and binds
-`127.0.0.1` by default. Read [SECURITY.md](../SECURITY.md) for the security
+CLI reach that server over HTTP. The desktop host requires a bearer token and binds
+`127.0.0.1`. The standalone server requires authentication when `TRELLIS_AUTH_TOKEN` is set. Read [SECURITY.md](../SECURITY.md) for the security
 model.
 
 ## Stack
@@ -23,6 +23,8 @@ model.
 | Fonts | BerkeleyMono, then JetBrains Mono from fontsource | 5.3 |
 | Mobile | Expo, expo-router, React Native, NativeWind, FlashList, `expo-sqlite/kv-store`, `react-native-sse` | 57, 0.86, current |
 | Agent runner | the Superset CLI, or tmux for a template without `{{superset}}` | |
+| Desktop | Electron, macOS SMAppService | 44.3.0 |
+| Native execution | Node, node-pty, fs-ext, Koffi | 26.8.2, 1.2.0-beta.15, 2.1.1, 3.3.0 |
 | CLI | citty | 0.2 |
 | End to end, perf | Playwright with Chromium, a seeded perf suite | current |
 | Releases | changesets, GitHub Actions | |
@@ -36,10 +38,13 @@ trellis/
 ├── apps/
 │   ├── server/   @trellis/server   Hono, oRPC handlers, database worker, gh poller, agent runner
 │   ├── web/      @trellis/web      React single-page app
+│   ├── desktop/  @trellis/desktop  macOS window, preload bridge, background service
+│   ├── runtime/  @trellis/runtime  persistent processes, terminal bytes, process ownership
 │   └── mobile/   @trellis/mobile   Expo app
 ├── packages/
 │   ├── api/      @trellis/api      Zod schemas, refs, errors, contract, client, events, query keys
 │   ├── ui/       @trellis/ui       design tokens, Base UI wrappers, visual primitives
+│   ├── runtime-protocol/          private socket protocol and client
 │   └── cli/      @trellis/cli      the `trellis` command, HTTP only
 ├── docs/                           this reference, the agent setup guide, the diagram
 ├── scripts/                        the `bun run check` runner
@@ -55,6 +60,62 @@ The data home is `~/.trellis`, and `TRELLIS_HOME` overrides it. It holds `db/`,
 and keeps five files. `agents/<run id>/` holds the launch script, the workspace
 of a ticket agent under `work/`, and `output.txt` after a stop. The port is 4521
 (`TRELLIS_PORT`) and the host is `127.0.0.1` (`TRELLIS_HOST`).
+
+## Desktop execution
+
+The macOS app uses a separate host data directory under its application data directory.
+Its Swift helper registers through `SMAppService` and starts the bundled host through launchd.
+The host keeps its port across restarts, so the renderer retains its origin.
+Close or quit detaches the window. The background host and agent processes continue.
+The explicit Stop local work action pauses native dispatch, stops owned processes, and unregisters the helper.
+An unconfirmed process prevents a successful stop.
+
+The Bun host owns PGlite and the manager queue. A separate Node runtime owns PTYs and structured agent processes.
+Its private Unix socket uses protocol 5. A lifetime file lock permits one runtime owner.
+Each attempt has one immutable identifier, a token hash, bounded output, and a process record.
+The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
+A runtime restart never substitutes a new process for an unresolved attempt.
+Natural leader exit stops the remaining members of its OS session. Explicit stop also includes descendant sessions observed while the leader remains live.
+The runtime reports exit only after cleanup and output completion. Failed cleanup records an unknown result.
+A descendant that leaves its session and loses its parent before inspection requires separate process inspection.
+
+The native Claude adapter uses structured input, output, and explicit tool decisions.
+It supports Claude 2.1.270. Repository trust requires a human action before the structured harness starts.
+Durable parser checkpoints preserve partial bytes, conversation output, permissions, and receipt identifiers.
+The host distinguishes an idle agent, an active turn, a required decision, and an unconfirmed result.
+
+The controller stores ticket events in `manager_dispatches` with a fixed coalescing deadline.
+It sends a native manager one batch when the current harness reports ready or idle without pending permissions.
+An exact durable receipt can resolve an unknown delivery without another send.
+Stable assignment request identifiers prevent repeated worker starts from producing duplicate attempts.
+The legacy controller and persona manager cannot own the same project concurrently.
+
+Native ticket agents use Git worktrees under `agents/<run id>/work`.
+Workspace evidence binds checks and registered files to an attempt, HEAD, and a hash of the current file contents.
+A later file change makes earlier evidence outdated. A passed process alone does not mark a ticket complete.
+The ticket page shows its attempts, structured conversation, local diff, files, checks, and flow runs.
+Settings includes runtime diagnostics. `trellis doctor --json` reads the same report without starting the runtime.
+
+Native flows freeze the saved graph and persona instructions for each execution.
+Each node occurrence binds to an ordinary agent attempt or a versioned human decision.
+Gate results use complete YES or NO responses. Skipped branches remain explicit, and joins wait for their incoming paths to settle.
+Group deadlines also reach the runtime process, so they remain effective after a host crash.
+Cancellation retains files and output and records any worker whose stop remains unconfirmed.
+
+The desktop retains each host resource version under its application data directory, beside the host data directory.
+An application replacement can reuse that version while its runtime owns active sessions.
+The update status blocks an incompatible runtime protocol and retains the prior host until work stops.
+
+`trellis home-import` previews and copies an offline data home into a separate empty directory.
+The copy starts with automation paused and repository trust disabled. Its source stays unchanged.
+An incomplete import marker prevents host boot. Rollback archives the target, including files created after the import.
+`trellis native-migration` inventories one project's execution ownership and applies a versioned native configuration.
+Its rollback restores the original configuration after active owners and unresolved deliveries clear.
+
+Settings exports browser drafts and imports them as separate recovery copies.
+A flow recovery copy remains until the host acknowledges its saved graph.
+
+Read the [implementation status](desktop/implementation-status.md), [desktop plan](desktop/trellis-desktop-plan.md), and [real acceptance report](desktop/acceptance/2026-09-14-native-real/report.md) for scope and measured results.
 
 ## Domain rules
 
@@ -148,15 +209,14 @@ the Superset host, the agent command and agent resume command, the
 concurrency limit, and the project directory. Those fields are
 `projects.managerConfig`.
 
-trellis owns no step of execution. It owns the run row, the session id, the
-prompt, and the resume text, and it hands them to command templates that a
-person writes. An ADE command makes a workspace and runs the agent command in
-it, or opens the agent again in the workspace a run has. An agent command is
-the program that is one agent. The defaults are Superset and Claude Code, and a
-project replaces either with any command.
+A native project uses the local execution path described above. Trellis creates its worktree, reserves its attempt, and starts its process through the runtime.
+Desktop project creation selects native execution and the structured Claude harness.
+
+External projects use command templates for execution. An ADE command creates a workspace and starts the agent, or opens it in an existing workspace.
+The browser project form defaults to Superset. Each project retains its saved execution configuration.
 
 A project keeps one manager row in `agent_runs`, the newest row of the kind.
-Every start of the manager takes that row again. The row holds `session_id`,
+Every start of the manager takes that row again. The external launch path holds `session_id`,
 which trellis mints before the first start and passes to the agent command as
 `{{sessionId}}`, so the server knows the session before the agent writes a
 word. Pause is `agentRuns.stop`: it closes the terminal and keeps the workspace
@@ -189,9 +249,9 @@ A run copies the persona name, the kind, and the instruction at launch, so a
 later persona edit changes only the runs after it. The row also keeps the project
 path and the ticket identifier, so a delete of either leaves the run readable.
 A run state is `starting`, `running`, `interrupted`, `failed`, `stopped`, or
-`exited`. A failed launch stays visible with its error. Stop closes the terminal
-of the run, writes the terminal text to `agents/<id>/output.txt`, and keeps the
-workspace and the history.
+`exited`. A failed launch stays visible with its error.
+An external stop closes the terminal and saves its text to `agents/<id>/output.txt`.
+A native stop confirms the runtime result before it marks the attempt stopped. Both paths retain the workspace and history.
 
 A start needs a persona whose kind matches the target: a manager takes a project,
 and a builder or a reviewer takes a ticket. A start refuses a completed ticket, a project with no repository, and a second
@@ -247,7 +307,8 @@ every section is empty. Ticket status changes use the status picker.
 
 ### The agent manager
 
-`agent_sessions` is the second agent path, which the runner drives. A session
+`agent_sessions` holds the legacy runner path. The native controller uses `agent_runs`.
+Both paths check project ownership before a manager starts. A session
 carries a role of manager, builder, or reviewer, a runner, a state, a person
 name, and the terminal it runs in. A project holds one live manager, which a
 partial unique index enforces. `agents.inbox` is a POST, because it moves the
