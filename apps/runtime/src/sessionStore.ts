@@ -132,6 +132,10 @@ export class SessionStore {
 					this.save(record);
 					resolveStop();
 				},
+				(error) => {
+					session.error = `Input delivery is unconfirmed: ${error.message}`;
+					this.save(record);
+				},
 			);
 		} catch (error) {
 			exit(null, (error as Error).message);
@@ -148,16 +152,14 @@ export class SessionStore {
 			}, spec.timeoutMs);
 		return session;
 	}
-	input(id: string, data: string) {
+	async input(id: string, data: string) {
 		const record = this.get(id);
 		if (!record.process) throw new Error(`Session ${id} is ${record.session.status}`);
-		record.process.input(Buffer.from(data, "base64"));
+		await record.process.input(Buffer.from(data, "base64"));
 		return null;
 	}
 	deliver(id: string, messageId: string, data: string) {
-		return this.get(id).ledger.deliver(messageId, data, () => {
-			this.input(id, data);
-		});
+		return this.get(id).ledger.deliver(messageId, data, () => this.input(id, data));
 	}
 	resize(id: string, cols: number, rows: number) {
 		const record = this.get(id);

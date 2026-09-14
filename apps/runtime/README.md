@@ -35,7 +35,11 @@ A launch specification holds `id`, `command`, `args`, `cwd`, and `mode`. Optiona
 
 A repeated launch identifier returns its existing session. A changed command under that identifier returns `LAUNCH_CONFLICT`. The runtime records the identifier before it starts the process. A stop before launch records cancellation, so a delayed launch cannot create a process.
 
-A transport error after a request means the result is unknown. A caller reconciles a launch through its existing identifier. Keyed `deliver` calls persist the message identifier and byte hash before they write input. Repeated calls return the recorded outcome. An interrupted write remains unknown and never resends automatically. `written` means the runtime queued bytes, not that the agent accepted the message.
+A transport error after a request means the result is unknown. A caller reconciles a launch through its existing identifier. Keyed `deliver` calls persist the message identifier and byte hash before they write input. Repeated calls return the recorded outcome. An interrupted write remains unknown and never resends automatically.
+
+Standard-stream writes await the stream callback before they record `written`. PTY writes record `written` when the terminal accepts the write call. Neither outcome establishes that the agent accepted the message.
+
+A child can close standard input while it remains active. A failed write returns its error and retains an unknown keyed delivery. The runtime records the input error without changing process ownership or status. The process remains available for `stop`, and its deadline remains active.
 
 Input calls have no automatic resend. The host must preserve an unknown input result until its harness can establish receipt.
 

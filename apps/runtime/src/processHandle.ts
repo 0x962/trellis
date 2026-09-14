@@ -6,7 +6,7 @@ import { stopProcessTree } from "./stopProcessTree.ts";
 
 export interface ProcessHandle {
 	pid: number;
-	input(data: Buffer): void;
+	input(data: Buffer): Promise<void>;
 	resize(cols: number, rows: number): void;
 	stop(): void;
 }
@@ -17,6 +17,7 @@ export function createProcessHandle(
 	exited: (code: number | null) => void,
 	failed: (error: Error) => void,
 	unconfirmed: (error: Error) => void,
+	inputFailed: (error: Error) => void,
 ): ProcessHandle {
 	const env = { ...process.env, ...spec.env };
 	if (spec.mode === "pty") {
@@ -33,7 +34,7 @@ export function createProcessHandle(
 		child.onExit(({ exitCode }) => completion.closed(exitCode));
 		return {
 			pid: child.pid,
-			input: (data) => child.write(data),
+			input: async (data) => child.write(data),
 			resize: (cols, rows) => child.resize(cols, rows),
 			stop: completion.stop,
 		};
@@ -42,6 +43,7 @@ export function createProcessHandle(
 	const completion = processCompletion(() => stopProcessTree(child.pid!), exited, unconfirmed);
 	child.stdout.on("data", output);
 	child.stderr.on("data", spec.separateStderr ? stderr : output);
+	child.stdin.on("error", inputFailed);
 	child.once("error", (error) => {
 		completion.failed();
 		failed(error);
@@ -50,9 +52,10 @@ export function createProcessHandle(
 	child.once("close", completion.closed);
 	return {
 		pid: child.pid ?? 0,
-		input: (data) => {
-			child.stdin.write(data);
-		},
+		input: (data) =>
+			new Promise<void>((resolve, reject) => {
+				child.stdin.write(data, (error) => (error ? reject(error) : resolve()));
+			}),
 		resize: () => {
 			throw new Error("Only PTY sessions support resize");
 		},
