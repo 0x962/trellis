@@ -30,6 +30,10 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "List personas or show one persona",
 		load: () => import("./commands/personas.ts").then((m) => command(m.default)),
 	},
+	evidence: {
+		description: "Inspect native work and record checks and artifacts",
+		load: () => import("./commands/evidence.ts").then((m) => command(m.default)),
+	},
 	agents: {
 		description: "List, start, refresh, stop, or talk to agents",
 		load: () => import("./commands/agents.ts").then((m) => command(m.default)),
