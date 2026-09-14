@@ -7,6 +7,7 @@ import { invalidInput } from "../../errors.ts";
 import { assertNativeWorkEnabled } from "../agentRuns/nativeControl.ts";
 import { currentCheck } from "./current.ts";
 import { finishCheck } from "./finishCheck.ts";
+import { reconcileCheck } from "./reconcileCheck.ts";
 import { revision } from "./revision.ts";
 import { target } from "./target.ts";
 import type { EvidenceCtx } from "./types.ts";
@@ -58,7 +59,11 @@ export const check = async (ctx: EvidenceCtx, input: EvidenceCheckInput) => {
 		);
 		return { fresh: true, document };
 	});
-	if (!reserved.fresh) return currentCheck(reserved.document, { ...before, attemptId: selected.attemptId });
+	if (!reserved.fresh)
+		return currentCheck(await reconcileCheck(ctx, reserved.document, selected.workspace), {
+			...before,
+			attemptId: selected.attemptId,
+		});
 	let document = reserved.document;
 	try {
 		const client = await ensureNativeRuntime(ctx.home);

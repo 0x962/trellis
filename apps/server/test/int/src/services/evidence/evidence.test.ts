@@ -135,7 +135,7 @@ test("paused local work rejects checks before a runtime launch", async () => {
 	await expect(nativeClient(home).hello()).rejects.toMatchObject({ code: "ENOENT" });
 });
 
-test("interrupted starting checks become unknown and the same request cannot relaunch", async () => {
+test("a repeated check settles a confirmed exit after host recovery without another launch", async () => {
 	const input = command("process.exit(0)");
 	const passed = await check(ctx, input);
 	await h.read((tx) =>
@@ -145,9 +145,31 @@ test("interrupted starting checks become unknown and the same request cannot rel
 	);
 	await h.run(recover);
 	const replay = await check(ctx, input);
-	expect(replay.state).toBe("unknown");
+	expect(replay).toMatchObject({ state: "passed", id: passed.id, exitCode: 0, current: true });
 	expect((await nativeClient(home).list()).length).toBe(1);
 	expect((await list(ctx, { runId })).readyForReview).toBe(false);
+});
+
+test("evidence reads retain uncertainty until the runtime confirms the same check exited", async () => {
+	const passed = await check(ctx, command('process.stdout.write("confirmed result")'));
+	const missingId = randomUUID();
+	await h.read((tx) =>
+		tx.execute(
+			sql`UPDATE evidence_checks SET id=${missingId}, document=document || ${JSON.stringify({ id: missingId, state: "unknown", error: "Unconfirmed exit", output: "", exitCode: null, finishedFingerprint: null })}::jsonb WHERE id=${passed.id}`,
+		),
+	);
+	expect((await list(ctx, { runId })).checks[0]).toMatchObject({ state: "unknown", error: "Unconfirmed exit" });
+	await h.read((tx) =>
+		tx.execute(
+			sql`UPDATE evidence_checks SET id=${passed.id}, document=jsonb_set(document, '{id}', ${JSON.stringify(passed.id)}::jsonb) WHERE id=${missingId}`,
+		),
+	);
+	expect((await list(ctx, { runId })).checks[0]).toMatchObject({
+		state: "passed",
+		output: "confirmed result",
+		current: true,
+	});
+	expect((await nativeClient(home).list()).length).toBe(1);
 });
 
 test("the display limit cannot hide a failed check from review readiness", async () => {

@@ -53,7 +53,7 @@ export const finishCheck = async (
 	};
 	return ctx.newTx(async (tx) => {
 		await tx.execute(
-			sql`UPDATE evidence_checks SET document = ${JSON.stringify(document)}::jsonb, finished_at = ${document.finishedAt} WHERE id = ${record.id} AND finished_at IS NULL`,
+			sql`UPDATE evidence_checks SET document = ${JSON.stringify(document)}::jsonb, finished_at = ${document.finishedAt} WHERE id = ${record.id} AND (finished_at IS NULL OR (document->>'state' = 'unknown' AND ${session?.status === "exited" && state !== "unknown"}))`,
 		);
 		const [stored] = await rows<{ document: Omit<EvidenceCheck, "current"> }>(
 			tx,

@@ -1,9 +1,8 @@
 import type { EvidenceArtifact, EvidenceCheck } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { nativeClient } from "../../agents/native/connection.ts";
 import { rows } from "../../db/queries/support.ts";
 import { currentCheck } from "./current.ts";
-import { finishCheck } from "./finishCheck.ts";
+import { reconcileCheck } from "./reconcileCheck.ts";
 import { revision } from "./revision.ts";
 import { target } from "./target.ts";
 import type { EvidenceCtx } from "./types.ts";
@@ -22,28 +21,7 @@ export const list = async (ctx: EvidenceCtx, input: { runId: string }) => {
 	}));
 	const completed = [];
 	for (const { document } of stored.checks) {
-		if (document.state !== "running") {
-			completed.push(document);
-			continue;
-		}
-		try {
-			const session = (await nativeClient(ctx.home).list()).find((item) => item.id === document.id);
-			completed.push(
-				session?.status === "running"
-					? document
-					: await finishCheck(ctx, document, selected.workspace, session ?? null),
-			);
-		} catch (cause) {
-			completed.push(
-				await finishCheck(
-					ctx,
-					document,
-					selected.workspace,
-					null,
-					cause instanceof Error ? cause.message : String(cause),
-				),
-			);
-		}
+		completed.push(await reconcileCheck(ctx, document, selected.workspace));
 	}
 	const state = await revision(selected.workspace);
 	const checks = completed.map((check) => currentCheck(check, { ...state, attemptId: selected.attemptId }));
