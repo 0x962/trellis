@@ -225,6 +225,13 @@
       "when": 1789415265714,
       "tag": "0034_native_flow_executions",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1789416496572,
+      "tag": "0035_native_project_migrations",
+      "breakpoints": true
     }
   ]
 }
