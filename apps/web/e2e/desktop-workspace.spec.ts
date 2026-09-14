@@ -26,7 +26,7 @@ test("native execution settings and ticket work tabs retain the ticket context",
 	await page.goto("/t/DUX-1");
 	await expect(page.getByRole("tab", { name: "Overview", exact: true })).toBeVisible();
 	await page.getByRole("tab", { name: "Checks", exact: true }).click();
-	await expect(page.getByText("No checks reported", { exact: true })).toBeVisible();
+	await expect(page.getByText("No pull request checks", { exact: true })).toBeVisible();
 	await expect(page.getByRole("textbox", { name: "Title", exact: true })).toHaveValue("Verify local output");
 	await page.getByRole("tab", { name: "Activity", exact: true }).click();
 	await expect(page.getByRole("tab", { name: "Activity", exact: true })).toHaveAttribute("aria-selected", "true");

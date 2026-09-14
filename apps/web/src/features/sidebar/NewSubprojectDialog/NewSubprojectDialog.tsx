@@ -3,6 +3,7 @@ import type { ProjectSummary } from "@trellis/api";
 import { Button, Input, Sheet } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { desktopProjectConfig } from "../../../lib/desktopProjectConfig";
 export type NewSubprojectDialogProps = {
 	project: ProjectSummary;
 	open: boolean;
@@ -14,7 +15,8 @@ export function NewSubprojectDialog({ project, open, onOpenChange }: NewSubproje
 	const [name, setName] = useState("");
 	const [slug, setSlug] = useState("");
 	const create = useMutation({
-		mutationFn: () => client.projects.create({ parent: project.path, name: name.trim(), slug }),
+		mutationFn: () =>
+			client.projects.create({ parent: project.path, name: name.trim(), slug, managerConfig: desktopProjectConfig() }),
 		onSuccess: async () => {
 			await queryClient.invalidateQueries();
 			setName("");

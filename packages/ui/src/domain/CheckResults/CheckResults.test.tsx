@@ -4,7 +4,7 @@ import { CheckResults } from "./CheckResults";
 
 test("empty checks never imply success", () => {
 	const view = render(<CheckResults groups={[]} />);
-	expect(view.getByText("No checks reported")).toBeDefined();
+	expect(view.getByText("No pull request checks")).toBeDefined();
 	expect(view.queryByText("Passed")).toBeNull();
 });
 

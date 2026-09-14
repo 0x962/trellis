@@ -14,7 +14,7 @@ export function CheckResults({ groups }: { groups: Group[] }) {
 	if (!groups.some((group) => group.checks.length || group.error))
 		return (
 			<EmptyState
-				title="No checks reported"
+				title="No pull request checks"
 				description="Link a pull request to see its reported checks. Terminal activity does not count as a passed check."
 			/>
 		);

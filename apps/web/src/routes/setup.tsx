@@ -6,6 +6,7 @@ import { ProjectStep } from "../features/setup/ProjectStep";
 import { StepDots } from "../features/setup/StepDots";
 import { useActor } from "../lib/actor";
 import { useApp } from "../lib/appContext";
+import { desktopProjectConfig } from "../lib/desktopProjectConfig";
 import { resolveActor } from "../lib/identity";
 
 type SetupSearch = { step?: "project" };
@@ -39,7 +40,7 @@ function SetupPage() {
 	const roots = projects.filter((project) => project.parentId === null);
 
 	const create = async (input: { key: string; name: string }) => {
-		await client.projects.create(input);
+		await client.projects.create({ ...input, managerConfig: desktopProjectConfig() });
 		await queryClient.invalidateQueries({ queryKey: orpc.projects.list.key() });
 		await navigate({ to: "/p/$", params: { _splat: input.key } });
 	};
