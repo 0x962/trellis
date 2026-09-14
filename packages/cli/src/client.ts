@@ -8,6 +8,8 @@ import type { Deps } from "./index.ts";
 export type ClientOptions = {
 	url: string;
 	actor: string;
+	token?: string | undefined;
+	attemptToken?: string | undefined;
 	session?: string | undefined;
 	fetch: Deps["fetch"];
 	// Fires on Ctrl-C. Every request carries it, so one interrupt ends the
@@ -39,6 +41,8 @@ export const trellisFetch =
 	async (request, init) => {
 		request.headers.set("x-trellis-actor", options.actor);
 		request.headers.set("x-trellis-client", clientVersion);
+		if (options.token !== undefined) request.headers.set("authorization", `Bearer ${options.token}`);
+		if (options.attemptToken !== undefined) request.headers.set("x-trellis-attempt", options.attemptToken);
 		if (options.session !== undefined) request.headers.set("x-trellis-session", options.session);
 		let response: Response;
 		try {
@@ -69,6 +73,8 @@ export const clientOptions = (ctx: CliContext): ClientOptions => {
 	return {
 		url: ctx.url,
 		actor: actor.actor,
+		token: ctx.deps.env.TRELLIS_AUTH_TOKEN,
+		attemptToken: ctx.deps.env.TRELLIS_ATTEMPT_TOKEN,
 		session: ctx.deps.env.TRELLIS_SESSION ?? actor.session ?? undefined,
 		fetch: ctx.deps.fetch,
 		signal: ctx.deps.signal,

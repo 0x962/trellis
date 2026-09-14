@@ -8,9 +8,9 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
 // files, the archives, and the rotating log.
 export type Config = {
 	home: string;
+	authToken: string | null;
 	// The address the server binds. 127.0.0.1 keeps it on this machine; a
-	// network address or 0.0.0.0 lets a phone reach it, and the server has no
-	// auth.
+	// network address or 0.0.0.0 lets a phone reach it.
 	host: string;
 	// Lowercase hostnames with no port. The Host check serves them beside
 	// `host`, so a proxy that keeps its own hostname in the Host header, such
@@ -93,6 +93,7 @@ export const loadConfig = (env: Env): Config => {
 	const port = env.TRELLIS_PORT === undefined ? 4521 : numberOf("TRELLIS_PORT", env.TRELLIS_PORT);
 	return {
 		home,
+		authToken: env.TRELLIS_AUTH_TOKEN ?? null,
 		host,
 		allowedHosts: env.TRELLIS_ALLOWED_HOSTS === undefined ? [] : hostnamesOf(env.TRELLIS_ALLOWED_HOSTS),
 		port,

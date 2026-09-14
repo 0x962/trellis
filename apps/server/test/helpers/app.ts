@@ -54,6 +54,7 @@ export type ApiResponse = {
 };
 
 export type TestAppOptions = {
+	authToken?: string;
 	host?: string;
 	db?: TestDb;
 	maxUploadMb?: number;
@@ -88,6 +89,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 	const home = options.home ?? freshHomeWithDirs();
 	const config: Config = loadConfig({
 		TRELLIS_HOME: home,
+		TRELLIS_AUTH_TOKEN: options.authToken,
 		TRELLIS_PORT: "0",
 		TRELLIS_HOST: options.host,
 		TRELLIS_MAX_UPLOAD_MB: String(options.maxUploadMb ?? 50),

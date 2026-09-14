@@ -8,6 +8,7 @@ import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
+import { hostAuth } from "./auth/auth.ts";
 import type { Config } from "./config.ts";
 import { API_VERSION } from "./context.ts";
 import type { Runtime, ServiceTransport } from "./db/transport.ts";
@@ -120,6 +121,7 @@ export const createApp = ({
 		await next();
 	});
 
+	app.use(hostAuth(config.authToken));
 	app.use(cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) }));
 
 	const maxBytes = config.maxUploadMb * MB;
