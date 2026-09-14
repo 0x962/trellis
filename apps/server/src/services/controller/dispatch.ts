@@ -3,6 +3,7 @@ import { prepareSend } from "../agentRuns/communication.ts";
 import type { ServiceCtx } from "../support.ts";
 import { claim, complete } from "./controller.ts";
 import { dispatchMessageId } from "./messageId.ts";
+import { reconcile } from "./reconcile.ts";
 import { sendDeadline } from "./sendDeadline.ts";
 import type { Dispatch } from "./types.ts";
 
@@ -15,6 +16,7 @@ Use a stable --request-id for each worker assignment. Reuse it when a start resu
 Events: ${JSON.stringify(delivery.events)}`;
 
 export const dispatch = async (ctx: Ctx) => {
+	await ctx.newTx((tx) => reconcile({ now: ctx.now() }, tx));
 	const deliveries: Dispatch[] = [];
 	for (let i = 0; i < 20; i++) {
 		const delivery = await ctx.newTx((tx) => claim({ now: ctx.now() }, tx, {}));

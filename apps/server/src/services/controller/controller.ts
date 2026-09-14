@@ -27,6 +27,12 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, _input: Record<string, n
 			WHERE d.state = 'pending' AND d.due_at <= ${ctx.now} AND r.terminal_id IS NOT NULL
 			AND p.manager_config->>'personaId' IS NOT NULL AND p.archived_at IS NULL
 			AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
+			AND (r.runtime <> 'native' OR EXISTS (
+				SELECT 1 FROM agent_harness_observations observation WHERE observation.attempt_id = r.terminal_id
+				AND observation.snapshot->>'sessionId' = r.session_id
+				AND observation.snapshot->>'state' IN ('ready', 'idle')
+				AND observation.snapshot->'pendingPermissions' = '[]'::jsonb
+			))
 			AND NOT EXISTS (WITH RECURSIVE ancestors AS (
 				SELECT id, parent_id, archived_at FROM projects WHERE id = p.id
 				UNION ALL SELECT parent.id, parent.parent_id, parent.archived_at FROM projects parent JOIN ancestors child ON parent.id = child.parent_id
