@@ -5,6 +5,7 @@ import type { DbTiming } from "../serverTiming.ts";
 import { type ServiceName, services } from "../services/registry.ts";
 import type { JobsStart, ServiceTransport, TransportStart, WorkerTransportOptions } from "./transport.ts";
 import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./worker.ts";
+import { workerError } from "./workerError/workerError.ts";
 
 // The production ServiceTransport. The database, the services, the poller,
 // and the maintenance timer run on one Bun Worker, `worker.ts`. This side
@@ -157,7 +158,7 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 		closed = Promise.withResolvers<void>();
 		worker = new Worker(new URL("./worker.ts", import.meta.url).href, { name: "trellis-db" });
 		worker.onmessage = receive;
-		worker.onerror = (event) => fail(event.error);
+		worker.onerror = (event) => fail(workerError(event));
 		if (jobs !== undefined) jobsLog = jobs.log;
 		send({
 			type: "start",
