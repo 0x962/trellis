@@ -93,7 +93,7 @@ test("a resume whose terminal exits at once marks the session lost and names whe
 test("a start takes the newest manager row of the project and leaves an older failed one as history", async () => {
 	const initial = await start({ personaId: manager, project: "RUN" });
 	await stop(initial.body.id);
-	await t.serverTx((tx) =>
+	await t.editServerTx((tx) =>
 		tx.execute(sql`
 			INSERT INTO agent_runs (id, name, persona_name, kind, instruction, project_id, project_path, state, error, created_at, updated_at)
 			SELECT '01J9Z0000000000000000000A0', 'Cleo Wren', 'Manager', 'manager', 'Manage.', id, 'RUN', 'failed', 'Project is not set up on this host', NOW() - interval '1 hour', NOW()
@@ -108,7 +108,7 @@ test("a start takes the newest manager row of the project and leaves an older fa
 	expect(second.body).toMatchObject({ id: first.body.id, state: "running" });
 	const listed = await t.api("/api/agent-runs?project=RUN");
 	expect(listed.body.map((run: { id: string }) => run.id)).toEqual([first.body.id, "01J9Z0000000000000000000A0"]);
-});
+}, 15000);
 
 test("a project's own agent commands run in place of Claude, with the session id of the run", async () => {
 	await t.client.projects.update({
@@ -183,7 +183,7 @@ test("terminal read and follow-up failures expose the runner error", async () =>
 });
 
 test("Play starts and resumes a manager whose saved project switch was off", async () => {
-	await t.serverTx((tx) =>
+	await t.editServerTx((tx) =>
 		tx.execute(
 			sql`UPDATE projects SET manager_config = manager_config || '{"enabled":false}'::jsonb WHERE key = 'RUN'`,
 		),

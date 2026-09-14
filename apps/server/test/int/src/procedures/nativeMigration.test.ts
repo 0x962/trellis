@@ -15,7 +15,7 @@ test("migration API reports actionable agent IDs and stale preview errors", asyn
 	await t.seedProject("MIG");
 	const before = await t.client.nativeMigration.inventory({ project: "MIG" });
 	const runId = ulid();
-	await t.serverTx((tx) =>
+	await t.editServerTx((tx) =>
 		tx.execute(
 			sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,state,runtime,created_at,updated_at) VALUES (${runId},'Fixture','Fixture','builder','',${before.projectId},'MIG','interrupted','superset',now(),now())`,
 		),

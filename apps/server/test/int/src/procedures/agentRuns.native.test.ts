@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, beforeEach, expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -9,7 +9,16 @@ import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
 
 let t: TestApp;
+const originalClaudeBin = process.env.TRELLIS_CLAUDE_BIN;
+beforeEach(() => {
+	process.env.TRELLIS_CLAUDE_BIN = new URL(
+		"../../../fixtures/nativeHarness/claudeFixture.mjs",
+		import.meta.url,
+	).pathname;
+});
 afterEach(async () => {
+	if (originalClaudeBin === undefined) delete process.env.TRELLIS_CLAUDE_BIN;
+	else process.env.TRELLIS_CLAUDE_BIN = originalClaudeBin;
 	if (t !== undefined && existsSync(join(t.home, "runtime", "runtime.sock"))) {
 		const client = new RuntimeClient(join(t.home, "runtime", "runtime.sock"));
 		process.kill((await client.hello()).pid, "SIGTERM");
@@ -166,54 +175,44 @@ test("a structured native agent requires trust and exposes tool approval", async
 			.projects.update({ project: "HAR", managerConfig: { ...config, trustedDirectory: true } }),
 	).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 	await t.client.projects.update({ project: "HAR", managerConfig: { ...config, trustedDirectory: true } });
-	const previous = process.env.TRELLIS_CLAUDE_BIN;
-	process.env.TRELLIS_CLAUDE_BIN = new URL(
-		"../../../fixtures/nativeHarness/claudeFixture.mjs",
-		import.meta.url,
-	).pathname;
-	try {
-		const run = await t.client.agentRuns.start({ ticket: ticket.identifier, personaId: persona.id });
-		expect(run.state).toBe("running");
-		expect(await t.client.agentRuns.session({ id: run.id })).toMatchObject({ mode: "stdio" });
-		let observed = await t.client.agentRuns.harness({ id: run.id });
-		for (let i = 0; i < 50 && observed?.state !== "idle"; i++) {
-			await Bun.sleep(20);
-			observed = await t.client.agentRuns.harness({ id: run.id });
-		}
-		expect(observed?.state).toBe("idle");
-		expect((await t.client.agentRuns.output({ id: run.id })).text).toContain("Fixture turn completed.");
-		await t.client.agentRuns.send({ id: run.id, text: "request tool" });
-		expect((await t.client.agentRuns.harness({ id: run.id }))?.state).toBe("needs_input");
-		await expect(
-			t.as(`agent:${run.id}`).agentRuns.permission({ id: run.id, requestId: "fixture-permission", behavior: "allow" }),
-		).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
-		await t.client.agentRuns.permission({ id: run.id, requestId: "fixture-permission", behavior: "allow" });
-		for (let i = 0; i < 50 && (await t.client.agentRuns.harness({ id: run.id }))?.state !== "idle"; i++)
-			await Bun.sleep(20);
-		expect(readFileSync(join(run.workspaceId!, "artifact.txt"), "utf8")).toBe("Fixture output\n");
-		await t.client.evidence.register({ runId: run.id, path: "artifact.txt" });
-		const checked = await t.client.evidence.check({
-			runId: run.id,
-			command: "/usr/bin/true",
-			args: [],
-			timeoutMs: 1000,
-		});
-		expect(checked.state).toBe("passed");
-		expect((await t.client.evidence.list({ runId: run.id })).readyForReview).toBe(true);
-		writeFileSync(join(run.workspaceId!, "artifact.txt"), "Changed after the check\n");
-		expect((await t.client.evidence.list({ runId: run.id })).readyForReview).toBe(false);
-		await t.transport.call("agentRuns.reconcileNative", systemContext(), {});
-		const runtime = new RuntimeClient(join(t.home, "runtime", "runtime.sock"));
-		process.kill((await runtime.hello()).pid, "SIGTERM");
-		for (let i = 0; i < 100 && existsSync(join(t.home, "runtime", "runtime.sock")); i++) await Bun.sleep(20);
-		expect((await t.client.agentRuns.harness({ id: run.id }))?.result).toBe("Artifact created.");
-		expect((await t.client.agentRuns.harness({ id: run.id }))?.state).toBe("unknown");
-		await t.client.agentRuns.stop({ id: run.id });
-		const retained = (await t.client.agentRuns.output({ id: run.id })).text;
-		expect(retained).toContain("Artifact created.");
-		expect(retained).not.toContain('"type":"control_response"');
-	} finally {
-		if (previous === undefined) delete process.env.TRELLIS_CLAUDE_BIN;
-		else process.env.TRELLIS_CLAUDE_BIN = previous;
+	const run = await t.client.agentRuns.start({ ticket: ticket.identifier, personaId: persona.id });
+	expect(run.state).toBe("running");
+	expect(await t.client.agentRuns.session({ id: run.id })).toMatchObject({ mode: "stdio" });
+	let observed = await t.client.agentRuns.harness({ id: run.id });
+	for (let i = 0; i < 50 && observed?.state !== "idle"; i++) {
+		await Bun.sleep(20);
+		observed = await t.client.agentRuns.harness({ id: run.id });
 	}
+	expect(observed?.state).toBe("idle");
+	expect((await t.client.agentRuns.output({ id: run.id })).text).toContain("Fixture turn completed.");
+	await t.client.agentRuns.send({ id: run.id, text: "request tool" });
+	expect((await t.client.agentRuns.harness({ id: run.id }))?.state).toBe("needs_input");
+	await expect(
+		t.as(`agent:${run.id}`).agentRuns.permission({ id: run.id, requestId: "fixture-permission", behavior: "allow" }),
+	).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
+	await t.client.agentRuns.permission({ id: run.id, requestId: "fixture-permission", behavior: "allow" });
+	for (let i = 0; i < 50 && (await t.client.agentRuns.harness({ id: run.id }))?.state !== "idle"; i++)
+		await Bun.sleep(20);
+	expect(readFileSync(join(run.workspaceId!, "artifact.txt"), "utf8")).toBe("Fixture output\n");
+	await t.client.evidence.register({ runId: run.id, path: "artifact.txt" });
+	const checked = await t.client.evidence.check({
+		runId: run.id,
+		command: "/usr/bin/true",
+		args: [],
+		timeoutMs: 1000,
+	});
+	expect(checked.state).toBe("passed");
+	expect((await t.client.evidence.list({ runId: run.id })).readyForReview).toBe(true);
+	writeFileSync(join(run.workspaceId!, "artifact.txt"), "Changed after the check\n");
+	expect((await t.client.evidence.list({ runId: run.id })).readyForReview).toBe(false);
+	await t.transport.call("agentRuns.reconcileNative", systemContext(), {});
+	const runtime = new RuntimeClient(join(t.home, "runtime", "runtime.sock"));
+	process.kill((await runtime.hello()).pid, "SIGTERM");
+	for (let i = 0; i < 100 && existsSync(join(t.home, "runtime", "runtime.sock")); i++) await Bun.sleep(20);
+	expect((await t.client.agentRuns.harness({ id: run.id }))?.result).toBe("Artifact created.");
+	expect((await t.client.agentRuns.harness({ id: run.id }))?.state).toBe("unknown");
+	await t.client.agentRuns.stop({ id: run.id });
+	const retained = (await t.client.agentRuns.output({ id: run.id })).text;
+	expect(retained).toContain("Artifact created.");
+	expect(retained).not.toContain('"type":"control_response"');
 }, 20000);

@@ -15,7 +15,7 @@ beforeEach(async () => {
 	const work = await t.createTicket({ project: "TOK", title: "Original" });
 	ticket = work.identifier;
 	runId = ulid();
-	await t.serverTx(async (tx) => {
+	await t.editServerTx(async (tx) => {
 		await tx.execute(sql`INSERT INTO agent_runs (id, name, runtime, persona_name, kind, instruction, project_id, project_path, ticket_id, state, created_at, updated_at)
 			VALUES (${runId}, 'Builder', 'native', 'Builder', 'builder', 'Build.', ${project.id}, 'TOK', ${work.id}, 'running', NOW(), NOW())`);
 		const attempt = await reserveAttempt({ now: new Date() }, tx, { runId });
@@ -42,7 +42,7 @@ test("native agent mutations require the current token while human edits remain 
 		body: { title: "Current token" },
 	});
 	expect(current.status).toBe(200);
-	await t.serverTx((tx) => reserveAttempt({ now: new Date() }, tx, { runId }));
+	await t.editServerTx((tx) => reserveAttempt({ now: new Date() }, tx, { runId }));
 	const stale = await t.api(`/api/tickets/${ticket}`, {
 		method: "PATCH",
 		actor: `agent:${runId}`,

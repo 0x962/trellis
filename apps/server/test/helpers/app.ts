@@ -195,6 +195,12 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		await db.$client.close();
 		return result;
 	};
+	// editServerTx stops the database worker before fixture writes and starts it again before API calls resume.
+	const editServerTx = async <T>(fn: (tx: Tx) => Promise<T>) => {
+		const result = await serverTx(fn);
+		if (!config.dbInline) await inner.start();
+		return result;
+	};
 
 	return {
 		app,
@@ -206,6 +212,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		createTicket,
 		db: h.db,
 		serverTx,
+		editServerTx,
 		home,
 		config,
 		bus,
