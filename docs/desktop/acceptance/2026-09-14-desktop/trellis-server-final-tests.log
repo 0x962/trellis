@@ -1,0 +1,1584 @@
+$ bun test test/int
+bun test v1.3.13 (bf2e2cec)
+
+test/int/drizzle.config.test.ts:
+(pass) drizzle-kit configuration > drizzle.config.ts points drizzle-kit at schema.ts and the drizzle directory [0.03ms]
+(pass) drizzle-kit configuration > drizzle-kit generate produces no new migration [563.06ms]
+
+test/int/procedures.worker.test.ts:
+(pass) the procedure suite passes through the worker transport [327504.62ms]
+
+test/int/test/invariants.blobs.test.ts:
+(pass) assertBlobInvariant > the blob invariant reports a row without a blob and a blob without a row [41.67ms]
+
+test/int/test/invariants.test.ts:
+(pass) assertStatusInvariant > assertStatusInvariant passes on the seeded fixtures [30.51ms]
+(pass) assertStatusInvariant > assertStatusInvariant fails on a planted violation [29.97ms]
+(pass) assertStatusInvariant > assertStatusInvariant accepts a ticket deeper than 64 levels [39.50ms]
+(pass) assertStatusInvariant > assertStatusInvariant is one statement [21.99ms]
+
+test/int/src/app.test.ts:
+(pass) request id and cors > the request id header matches the logged request id [47.79ms]
+(pass) request id and cors > cors allows the two development origins [34.79ms]
+(pass) request id and cors > a request whose Host names another site answers 403 on a read and on a write [32.74ms]
+(pass) request id and cors > a request whose Host is a loopback name, a .localhost name, or an address is served [43.76ms]
+(pass) request id and cors > a Host in TRELLIS_ALLOWED_HOSTS is served, and a Host not in it answers 403 [34.48ms]
+(pass) request id and cors > the 403 message names TRELLIS_ALLOWED_HOSTS as the way to allow a proxy hostname [27.04ms]
+(pass) request id and cors > cors refuses an unknown origin [32.49ms]
+(pass) body limit > the body limit rejects an upload over the configured size [45.98ms]
+(pass) body limit > the body limit applies to the upload paths only [69.76ms]
+(pass) handlers > the RPC handler serves the contract at /rpc [35.07ms]
+(pass) handlers > the OpenAPI handler serves the contract at /api [31.94ms]
+(pass) handlers > every response carries the api version header [40.59ms]
+(pass) handlers > an unknown api path answers 404 and never falls through to the SPA [29.47ms]
+(pass) handlers > the RPC route and the OpenAPI route return the same body [31.06ms]
+(pass) actor header > a mutation without the actor header answers ACTOR_REQUIRED [25.45ms]
+(pass) actor header > a malformed actor header answers ACTOR_INVALID with the grammar [27.09ms]
+(pass) actor header > the actor header refuses the system kind [26.37ms]
+(pass) actor header > a GET works without the actor header [27.10ms]
+(pass) actor header > a GET ignores a malformed actor header [27.57ms]
+(pass) actor header > requireActor upserts the actor row before the service runs [33.54ms]
+(pass) actor header > the session header reaches activity meta [33.21ms]
+(pass) actor header > every mutating procedure requires the actor header [30.14ms]
+
+test/int/src/rpcBatch.test.ts:
+(pass) rpc batch > two calls the web app batches come back as two results [17.58ms]
+(pass) rpc batch > one failing call in a batch leaves the other answered [8.82ms]
+
+test/int/src/index.gh.test.ts:
+(pass) health.gh turns signed out after a poller tick reports a sign-out, with no restart [1788.03ms]
+
+test/int/src/index.test.ts:
+(pass) boot > ephemeral ports appear in agent briefs [1528.07ms]
+(pass) boot > boot creates the data home directories [1552.57ms]
+(pass) boot > the blob sweep runs before the server accepts requests [1461.08ms]
+(pass) boot > boot migrates before it listens and logs both lines [1614.94ms]
+(pass) boot > the gh auth check runs without blocking the listen [1477.80ms]
+(pass) boot > an event stream stays open through 12 silent seconds [13603.86ms]
+(pass) boot > a boot failure exits 1 with one line [227.62ms]
+(pass) the listen host > the server binds 127.0.0.1 by default and health lists that one address [1452.77ms]
+(pass) the listen host > TRELLIS_HOST moves the listener, and health lists its address [1540.24ms]
+(pass) the listen host > TRELLIS_HOST=0.0.0.0 lists every IPv4 address and answers on the first and on loopback [1530.79ms]
+(pass) shutdown > SIGTERM stops accepting, says bye, closes the database and exits 0 [1564.83ms]
+(pass) shutdown > a start hook runs after listen and stops on shutdown [1419.34ms]
+(pass) shutdown > a second signal exits immediately [1398.04ms]
+
+test/int/src/homeLock.test.ts:
+(pass) lockHome > the lock file names the pid, the role, and the port of the holder [0.48ms]
+(pass) lockHome > setPort writes the port the server bound [0.29ms]
+(pass) lockHome > a second lock on a held home throws and names the holder pid and port [0.48ms]
+(pass) lockHome > a lock that another live process holds refuses and names that process [16.88ms]
+(pass) lockHome > the lock of a killed holder is taken over [16.82ms]
+(pass) lockHome > a stale lock file from a dead pid is taken over [2.91ms]
+(pass) lockHome > release lets the next owner in [0.31ms]
+(pass) lockHome > the lock creates a data home that does not exist yet [0.24ms]
+
+test/int/src/log.test.ts:
+(pass) logger > the logger writes one JSON line per record [0.11ms]
+(pass) logger > the logger prints pretty text on a TTY outside production [0.09ms]
+(pass) logger > the logger drops a record below the configured level
+(pass) rotating sink > the sink rotates at 10 MB and keeps five files [29.65ms]
+(pass) rotating sink > the sink deletes the sixth file so the logs stay under 60 MB [6.33ms]
+(pass) request logging > a GET request logs at debug [1.89ms]
+(pass) request logging > a mutating request logs at info with the request fields [10.48ms]
+
+test/int/src/ghState.test.ts:
+(pass) createGhState > reports not checked until the first check [0.10ms]
+(pass) createGhState > check() runs gh auth status and keeps the answer [0.16ms]
+(pass) createGhState > a gh.status sign-out on the bus sets the state with no gh call [0.16ms]
+(pass) createGhState > a gh.status sign-in after a sign-out checks gh again for the user [0.07ms]
+(pass) createGhState > a gh.status ok event while gh is ready changes nothing [0.06ms]
+
+test/int/src/index.jobs.test.ts:
+(pass) the live poller > a linked pull request whose checks go from pending to pass updates the ticket with no refresh call [3308.17ms]
+(pass) the live poller > a branch named cde-2-foo in the open pull request list links to CDE-2 as system:trellis [1654.73ms]
+(pass) the shutdown > SIGTERM drains the poller tick in flight before the worker closes [4568.84ms]
+
+test/int/src/index.lock.test.ts:
+(pass) the data home lock > a second server on the same home exits non-zero, names the holder pid, and never opens the database [1631.11ms]
+(pass) the data home lock > a stale lock from a dead pid is taken over [1478.19ms]
+(pass) the data home lock > the lock is free again once the holder stops [1992.54ms]
+(pass) the port > a port conflict exits 1 before the database opens [98.34ms]
+
+test/int/src/jobs.test.ts:
+(pass) maintenance > the timer vacuums the busy tables after more than 1000 writes [5.58ms]
+(pass) stop > stop waits for the poller tick in flight [51.35ms]
+(pass) stop > stop gives up on a tick that runs past the 5 s deadline [5002.24ms]
+(pass) stop > no timer fires after stop [2.01ms]
+(pass) a failed job > a poller tick that throws logs the error, and the next tick runs [0.25ms]
+(pass) a failed job > a vacuum that throws logs the error, and the timer runs again [0.29ms]
+
+test/int/src/index.backups.test.ts:
+(pass) boot removes the snapshot and the partial archive of an interrupted backup [1463.81ms]
+
+test/int/src/restore.test.ts:
+(pass) restoreHome > a restore keeps every backup archive and every log of the home [4016.80ms]
+
+test/int/src/index.import.test.ts:
+(pass) an incomplete home import cannot open or migrate its database [105.76ms]
+
+test/int/src/index.worker.test.ts:
+(pass) a failed job on the database worker > a rate_limit reply without resources.core leaves the server serving and logs the reply once [4918.10ms]
+(pass) a failed job on the database worker > a poller tick that throws leaves the server serving and logs the error [2037.59ms]
+
+test/int/test/stubs/gh.test.ts:
+(pass) gh stub > the stub runs as a binary through its shebang and answers by the first two args [17.40ms]
+(pass) gh stub > the stub passes stdout, stderr, and exitCode through and ignores extra args [17.49ms]
+(pass) gh stub > the stub exits 1 and names the missing key [18.23ms]
+(pass) gh stub > the stub appends one JSON line per spawn to TRELLIS_GH_STUB_LOG [52.06ms]
+(pass) gh stub > the stub honors delayMs and logs before it waits [217.72ms]
+
+test/int/test/helpers/db.test.ts:
+(pass) freshDb > freshDb migrates an in-memory PGlite and reset truncates every table [26.55ms]
+
+test/int/test/helpers/gh-stub.test.ts:
+(pass) ghStub > ghStub writes the reply file and points the env at the stub [0.49ms]
+(pass) ghStub > ghStub updates replies, reads the spawn log, and restores the env [33.93ms]
+
+test/int/src/procedures/agentAttempts.test.ts:
+(pass) native agent mutations require the current token while human edits remain available [592.03ms]
+(pass) an expired agent cannot enter a prepared external action [607.59ms]
+
+test/int/src/procedures/agents.visibility.test.ts:
+(pass) agents.retryManager > records a failed start with the runner's message, then starts the manager in that row after the fix [413.60ms]
+(pass) agents.retryManager > answers RUNNER_UNAVAILABLE disabled when agents are off for the project, and records nothing [9.22ms]
+(pass) one row per agent > a builder that registers from another terminal of its workspace updates its starting row and keeps its openUrl [84.61ms]
+(pass) one row per agent > a manager that registers from another terminal of its workspace updates the manager row: no exited row [93.46ms]
+(pass) one row per agent > the builder limit counts one per ticket with a live builder: a second live row and a stopped row never count [125.40ms]
+(pass) agents.overview > lists every session and the actions of the manager, builder, and reviewer agents, newest first [39.14ms]
+(pass) agents.overview > holds at most the last 50 agent actions [323.98ms]
+(pass) the base branch default > a project without a base branch starts its agents from the default branch of the Superset checkout [262.10ms]
+(pass) the base branch default > agents.runnerProjects names the default branch of each Superset project, or null when git cannot read it [96.67ms]
+
+test/int/src/procedures/statuses.test.ts:
+(pass) statuses > statuses.list returns the effective status set [32.57ms]
+(pass) statuses > statuses.create answers 201 with a Location header [28.47ms]
+(pass) statuses > statuses.update answers 200 with the changed status [32.32ms]
+(pass) statuses > statuses.reorder sets the full order [31.80ms]
+(pass) statuses > statuses.delete without moveTo answers STATUS_IN_USE with the count [49.01ms]
+(pass) statuses > statuses.delete with moveTo moves the tickets [68.38ms]
+(pass) statuses > statuses.clear refuses a root project [32.86ms]
+(pass) statuses > statuses.clear returns a sub-project to the inherited set [44.15ms]
+
+test/int/src/procedures/inbox.test.ts:
+(pass) inbox.get > inbox.get returns the four sections capped at 100 items [15.97ms]
+
+test/int/src/procedures/agents.test.ts:
+(pass) agents procedures > server builder: agents.register stores the session and returns it; a second call for the same terminal updates the row [219.08ms]
+(pass) agents procedures > server builder: agents.sessions lists the sessions of a project, and of one ticket [17.92ms]
+(pass) agents procedures > server builder: agents.inbox returns the activity after the stored cursor with ticket summaries and comment bodies, then advances the cursor [24.91ms]
+(pass) agents procedures > server builder: agents.inbox leaves out the rows the manager wrote, and a second call right after returns no events [21.26ms]
+(pass) agents procedures > server builder: agents.inbox with more rows than the limit returns the limit, more: true, and the cursor of the last row [26.06ms]
+(pass) agents procedures > server builder: agents.startBuilder creates the ticket workspace through the runner and returns a starting builder session [76.66ms]
+(pass) agents procedures > server builder: agents.startBuilder a second time for the same ticket returns the same session and creates no workspace [79.88ms]
+(pass) agents procedures > server builder: agents.startBuilder at maxConcurrent answers CONCURRENCY_LIMIT with the limit and the running count [84.38ms]
+(pass) agents procedures > server builder: agents.startBuilder answers RUNNER_UNAVAILABLE disabled when the global or the project switch is off [15.36ms]
+(pass) agents procedures > server builder: agents.startBuilder answers RUNNER_UNAVAILABLE missing when the superset binary does not exist [14.72ms]
+(pass) agents procedures > server builder: agents.startReviewer opens a reviewer terminal in the builder's workspace and answers INVALID_PR_URL for another URL [257.71ms]
+(pass) agents procedures > server builder: agents.stop sets the state to stopped and emits agents.session [121.27ms]
+(pass) agents procedures > server builder: agents.wake sends the text to the manager's terminal, sets lastWokenAt, and emits agents.session [50.90ms]
+(pass) agents procedures > server builder: agents.settings returns runner superset, enabled false, and no projects before the first setSettings [572.10ms]
+(pass) agents procedures > server builder: agents.setSettings replaces the settings and agents.settings returns them [45.95ms]
+
+test/int/src/procedures/attachments.test.ts:
+(pass) attachments > an upload answers 201 and stores the blob under its hash [54.69ms]
+(pass) attachments > an upload with an empty type stores application/octet-stream [49.21ms]
+(pass) attachments > a second upload of the same bytes reuses the one blob [54.52ms]
+(pass) attachments > attachments list, get and delete answer with the metadata shape [58.72ms]
+(pass) attachments > a file with no type is stored as application/octet-stream and the ticket still reads [54.23ms]
+(pass) attachments > a filename with a double quote uploads and the ticket still reads [51.67ms]
+(pass) attachments > the name field keeps a filename with a double quote whole [45.99ms]
+
+test/int/src/procedures/flows.test.ts:
+(pass) flows procedures > REST creates a flow with a Location, PUT saves its graph, and RPC reads the same graph [8.90ms]
+(pass) flows procedures > a stale version answers 412 with the current version [1.79ms]
+(pass) flows procedures > a group can save without a time limit [2.15ms]
+(pass) flows procedures > every mutation requires an actor [0.33ms]
+
+test/int/src/procedures/projectManager.test.ts:
+(pass) project manager settings persist and enter the manager launch context [841.21ms]
+(pass) a manager restart uses the configured resume command in the same workspace [4082.67ms]
+(pass) agent commands reject blank values and unsupported variables [553.91ms]
+(pass) the project rejects a non-manager persona and invalid configuration [530.95ms]
+(pass) concurrency blocks a second ticket agent before launch and excludes the manager [1015.81ms]
+(pass) a custom manager terminal starts in the configured directory [657.37ms]
+(pass) a missing manager directory fails before the terminal launches [516.94ms]
+(pass) a custom agent receives the literal prompt and Trellis environment in tmux [601.56ms]
+
+test/int/src/procedures/agents.hosts.test.ts:
+(pass) agents.runnerHosts > lists the online hosts with their ids and names, and leaves the offline ones out [173.12ms]
+(pass) agents.runnerHosts > answers RUNNER_UNAVAILABLE missing when the superset binary is not on the machine [0.87ms]
+(pass) the Superset host of a project > a project that names no host keeps --local and passes --host nowhere [363.38ms]
+(pass) the Superset host of a project > a project that names a host passes --host to ws create, terminals create, and terminals send [260.57ms]
+(pass) the Superset host of a project > an offline host fails the builder start with the reason host and the machine name on the session [68.11ms]
+(pass) the Superset host of a project > a host id that no host carries fails the start with the reason host and names the id [74.99ms]
+(pass) the Superset host of a project > the settings save keeps an offline host and reads it back [7.65ms]
+
+test/int/src/procedures/comments.test.ts:
+(pass) comments > comments.create answers 201 with a Location header [37.68ms]
+(pass) comments > comments.update and comments.delete answer 200 [45.44ms]
+(pass) comment thread endpoints preserve replies, resolution, and delete protection [44.34ms]
+
+test/int/src/procedures/remoteLaunch.test.ts:
+(pass) a remote legacy launch reports an unreachable localhost address [699.69ms]
+(pass) a remote preset launch reports an unreachable localhost address [716.91ms]
+(pass) a named local Superset host can use the localhost Trellis address [829.38ms]
+
+test/int/src/procedures/agentRuns.test.ts:
+(pass) concurrent repeated request IDs launch one worker at the project limit [825.22ms]
+(pass) assignment launches a named agent with the selected prompt and retains its snapshot [779.58ms]
+(pass) a ticket takes more than one agent at a time, up to the project limit [794.50ms]
+(pass) a manager starts from a manager persona and the project context [808.29ms]
+(pass) missing actors and archived projects cannot start agents [544.08ms]
+(pass) a failed launch stays visible and releases the ticket for a later start [717.64ms]
+(pass) stop closes only the run terminal and permits a new assignment [902.33ms]
+(pass) refresh recognizes an exited terminal [936.91ms]
+(pass) an interrupted startup reconnects to its existing workspace [869.35ms]
+(pass) a saved launch template supplies literal persona values to Superset [794.29ms]
+(pass) Superset agents accept follow-ups and expose terminal output [819.23ms]
+(pass) a custom command has a persistent terminal with follow-ups, output, and stop [745.83ms]
+
+test/int/src/procedures/agents.names.test.ts:
+(pass) agent names > server builder: the manager, a builder, and a reviewer each get a name of the pool [285.50ms]
+(pass) agent names > server builder: the live agents of a project hold different names [226.11ms]
+(pass) agent names > server builder: a register of the same terminal keeps the name, so the name survives a restart [7.79ms]
+(pass) agent names > server builder: a builder that starts again after a failed start takes a name no live agent holds [191.03ms]
+(pass) agent names > server builder: the name of a builder reaches the sessions of its ticket and the agents.session event [81.71ms]
+
+test/int/src/procedures/personas.test.ts:
+(pass) personas procedures > REST creates a persona and RPC reads and updates the same saved row [3.84ms]
+(pass) personas procedures > RPC creates a persona and REST updates the same saved row [1.36ms]
+(pass) personas procedures > create and update require an actor [0.26ms]
+(pass) personas procedures > invalid create and update fields leave the saved personas unchanged [2.14ms]
+(pass) personas procedures > REST update reports a missing persona [0.36ms]
+
+test/int/src/procedures/harnessPresets.test.ts:
+(pass) the Superset preset starts, checks, sends, reads, stops, and resumes [4258.48ms]
+(pass) the tmux preset controls a real terminal and restarts a stopped manager [3883.21ms]
+(pass) the Superset preset reports a lost session and starts a fresh session in the same workspace [1053.50ms]
+(pass) the Superset preset uses the configured host to find the project and control the terminal [936.70ms]
+(pass) a new Superset session replaces a missing workspace [974.10ms]
+(pass) a Superset host change starts on the new host with a new workspace [932.71ms]
+(pass) the Terminal preset opens an AppleScript attachment to its managed tmux session [752.72ms]
+
+test/int/src/procedures/tickets.read.test.ts:
+(pass) tickets.list > tickets.list returns items and a cursor without a total [53.25ms]
+(pass) tickets.list > tickets.list parses the comma grammar from the query string [59.61ms]
+(pass) tickets.list > tickets.list bounds the limit to 1 through 200 [51.67ms]
+(pass) tickets.list > a cursor from another filter answers INVALID_CURSOR [53.23ms]
+(pass) tickets.counts and tickets.board > tickets.counts returns the total and the per-status counts [52.67ms]
+(pass) tickets.counts and tickets.board > an empty status list answers INPUT_VALIDATION_FAILED [53.08ms]
+(pass) tickets.counts and tickets.board > tickets.board caps a column at 100 items and reports the full count [951.03ms]
+(pass) tickets.get > tickets.get resolves a case-insensitive identifier and a ULID [289.03ms]
+
+test/int/src/procedures/projects.test.ts:
+(pass) projects.list > projects.list returns the flat project shape [36.56ms]
+(pass) projects.list > projects.list filters on the archived flag [35.74ms]
+(pass) projects.get > projects.get resolves every ProjectRef form [44.34ms]
+(pass) projects.get > an unknown project ref answers NOT_FOUND with the kind and the ref [23.75ms]
+(pass) projects mutations > projects.create answers 201 with a Location header [28.08ms]
+(pass) projects mutations > projects.create refuses a key with a parent and a root without a key [27.77ms]
+(pass) projects mutations > projects.create and projects.update answer 409 DUPLICATE on name for a name an active root holds [38.96ms]
+(pass) projects mutations > projects.update answers 200 with the changed project [33.01ms]
+(pass) projects mutations > projects.move re-parents and reorders [47.12ms]
+(pass) projects mutations > projects.delete works without a request body [39.59ms]
+(pass) projects mutations > projects.setRepos replaces the list and is idempotent [28.35ms]
+
+test/int/src/procedures/settings.test.ts:
+(pass) settings > settings round-trip through PUT and GET [1.62ms]
+(pass) settings > settings reject a standalone hyphen in the launch command [0.72ms]
+
+test/int/src/procedures/statuses.description.test.ts:
+(pass) status descriptions > server builder: the migration adds statuses.description as text not null default '' [527.97ms]
+(pass) status descriptions > server builder: statuses.create stores the description and statuses.list returns it [6.39ms]
+(pass) status descriptions > server builder: statuses.update changes the description and writes one activity row [8.99ms]
+(pass) status descriptions > server builder: a new root project seeds a description for each default status [4.33ms]
+(pass) status descriptions > server builder: a sub-project that takes its own set copies the descriptions [10.88ms]
+
+test/int/src/procedures/harnessCommands.test.ts:
+(pass) custom commands control every operation without Superset or tmux [3667.13ms]
+(pass) a run keeps its commands after the project changes its preset [631.74ms]
+(pass) a manager starts a new session when its harness start command changes [587.66ms]
+(pass) an interrupted start uses the recovery command and then the healthcheck [567.98ms]
+(pass) an invalid healthcheck reply preserves the state and exposes its error [545.34ms]
+(pass) a repository lookup failure permits another start after configuration changes [566.69ms]
+(pass) a local review sends one notification through the run's saved harness [571.06ms]
+
+test/int/src/procedures/search.test.ts:
+(pass) search.query > search.query returns tickets and projects [5.98ms]
+
+test/int/src/procedures/reviewRemote.test.ts:
+(pass) reads metadata when GitHub returns no matching deployment label [507.94ms]
+(pass) reads current PR status without a new diff or a revision write [525.70ms]
+(pass) retains complete patches and reads old files at the merge base and new files from a fork [563.19ms]
+(pass) GitHub mutations require an explicit action and a matching head [522.57ms]
+(pass) a PR restored to an older commit pair selects its most recent refresh [609.07ms]
+
+test/int/src/procedures/agentRuns.native.test.ts:
+(pass) native agents use an isolated Git worktree and retain output after stop [883.19ms]
+(pass) a structured native agent requires trust and exposes tool approval [1477.67ms]
+
+test/int/src/procedures/reviews.test.ts:
+(pass) local PR review > saves standalone threads and preserves range, session, replies, and resolution [579.83ms]
+(pass) local PR review > rejects invalid line ranges before a write [524.09ms]
+(pass) local PR review > submits once and freezes the reviewed text [520.60ms]
+
+test/int/src/procedures/reviewImport.test.ts:
+(pass) previews imports and preserves legacy threads without duplicate or destructive updates [17.46ms]
+(pass) preserves a reversed range already stored by Margin [2.23ms]
+
+test/int/src/procedures/reviewRetention.test.ts:
+(pass) keeps review history after unlink, ticket deletion, and project deletion [63.05ms]
+
+test/int/src/procedures/agents.more.test.ts:
+(pass) agents.startBuilder refusals > answers RUNNER_UNAVAILABLE unmapped when no Superset project holds a declared repo [225.94ms]
+(pass) agents.startBuilder refusals > a Superset project id in the settings wins over the repo match [83.56ms]
+(pass) agents.startBuilder refusals > answers PROJECT_ARCHIVED for a ticket in an archived project [19.72ms]
+(pass) agents.startBuilder refusals > a runner error answers RUNNER_UNAVAILABLE error, keeps a failed builder with the message, and does not count toward the limit [159.81ms]
+(pass) agents.startBuilder refusals > answers NOT_FOUND for a reviewer of a ticket without a builder workspace [13.71ms]
+(pass) agents.runnerProjects > server builder: agents.runnerProjects lists the projects of superset projects list and matches each trellis project by its declared repo [45.14ms]
+(pass) agents.runnerProjects > server builder: agents.runnerProjects answers RUNNER_UNAVAILABLE missing when the superset binary does not exist [0.90ms]
+(pass) agents.stop and the builder's workspace > stopping the builder of a done ticket removes its workspace and stops every agent in it [333.54ms]
+(pass) agents.stop and the builder's workspace > the workspace stays when the setting keeps it, or when the ticket is not done [241.37ms]
+(pass) agents.stop and the builder's workspace > stopping a stopped session calls no runner and changes nothing [125.92ms]
+
+test/int/src/procedures/pullRequests.test.ts:
+(pass) gh outside the transaction > a ticket read completes while a slow gh call of a link runs [2063.95ms]
+(pass) gh outside the transaction > a ticket read completes while a slow gh call of a refresh runs [2076.71ms]
+(pass) pullRequests > pullRequests.link is idempotent [84.66ms]
+(pass) pullRequests > a URL that is not a pull request answers INVALID_PR_URL [38.16ms]
+(pass) pullRequests > the pull request routes answer with the documented shapes [120.07ms]
+(pass) pullRequests > a refresh without gh answers GH_UNAVAILABLE [62.24ms]
+
+test/int/src/procedures/tickets.test.ts:
+(pass) tickets.create and tickets.update > tickets.create answers 201 with a Location header and the identifier [40.12ms]
+(pass) tickets.create and tickets.update > a stale expectedVersion answers VERSION_CONFLICT with the current ticket [49.33ms]
+(pass) tickets.create and tickets.update > If-Match maps to expectedVersion and answers 412 on a mismatch [54.65ms]
+(pass) tickets.create and tickets.update > a matching If-Match lets the update through [49.08ms]
+(pass) tickets.create and tickets.update > a disagreeing If-Match and expectedVersion answer INPUT_VALIDATION_FAILED [50.86ms]
+(pass) tickets.move and the batches > tickets.move places the ticket at the anchor [49.24ms]
+(pass) tickets.move and the batches > tickets.updateMany changes every ref in one call [66.70ms]
+(pass) tickets.move and the batches > a batch over 200 refs answers INPUT_VALIDATION_FAILED [27.64ms]
+(pass) tickets.move and the batches > tickets.deleteMany deletes every ref in one call [57.53ms]
+(pass) tickets.delete and the agent rules > tickets.delete works without a request body [256.06ms]
+(pass) tickets.delete and the agent rules > an agent moving a ticket to done answers AGENT_CANNOT_COMPLETE [35.15ms]
+(pass) tickets.delete and the agent rules > an agent deleting a ticket answers AGENT_CANNOT_DELETE [40.80ms]
+
+test/int/src/procedures/timeline.test.ts:
+(pass) timeline.list > timeline.list merges comments and activity newest first [122.53ms]
+(pass) timeline.list > a bad before cursor answers 400 INVALID_CURSOR [34.44ms]
+(pass) timeline.list > timeline.list pages with the before cursor [648.64ms]
+
+test/int/src/procedures/brief.test.ts:
+(pass) brief.get > brief.get returns the markdown and its timestamp [5.54ms]
+
+test/int/src/procedures/doctor.test.ts:
+(pass) diagnostics inspect a stopped runtime without starting it [510.32ms]
+
+test/int/src/procedures/deletes.blobs.test.ts:
+(pass) blob removal on delete > a ticket delete removes the blob that only its attachment named [70.10ms]
+(pass) blob removal on delete > a bulk delete removes the blobs of every deleted ticket [60.82ms]
+(pass) blob removal on delete > a forced project delete removes the blobs of its tickets [65.43ms]
+
+test/int/src/procedures/agentRuns.manager.test.ts:
+(pass) a start names the session, and a start after a pause resumes it in the same workspace [4027.61ms]
+(pass) a resume whose terminal exits at once marks the session lost and names where the agent ran [1044.93ms]
+(pass) a start takes the newest manager row of the project and leaves an older failed one as history [7306.67ms]
+(pass) a project's own agent commands run in place of Claude, with the session id of the run [4065.46ms]
+(pass) a running manager refuses a second start until it pauses [4124.54ms]
+(pass) a new session creates a workspace when the previous workspace is missing [1009.23ms]
+(pass) project lookup, follow-up, and output use the configured Superset host [842.89ms]
+(pass) terminal read and follow-up failures expose the runner error [861.31ms]
+(pass) Play starts and resumes a manager whose saved project switch was off [4032.47ms]
+
+test/int/src/procedures/serverTiming.test.ts:
+(pass) Server-Timing > a GET under /api carries the db duration [3.05ms]
+(pass) Server-Timing > a mutation under /api carries the db duration [8.52ms]
+(pass) Server-Timing > an error answer under /api carries the db duration [1.06ms]
+(pass) Server-Timing > a call under /rpc carries the db duration [0.54ms]
+(pass) Server-Timing > a buffered batch under /rpc carries the db duration of all its calls [7.71ms]
+(pass) Server-Timing > the db duration is never longer than the request [6.85ms]
+
+test/int/src/procedures/reviewDelivery.test.ts:
+(pass) retains unread submissions when an agent is stopped and sends only after an explicit resend [587.02ms]
+(pass) rolls back draft writes when a recipient does not exist [582.99ms]
+
+test/int/src/procedures/actors.test.ts:
+(pass) actors > the actor routes return the seen actors and the default identity [1.51ms]
+
+test/int/src/procedures/personas.kinds.test.ts:
+(pass) persona kinds and deletion > each kind survives create, update, and a fresh read [4.21ms]
+(pass) persona kinds and deletion > an invalid kind never creates a persona [1.00ms]
+(pass) persona kinds and deletion > delete requires an actor and removes only the selected persona [1.80ms]
+
+test/int/src/procedures/system.test.ts:
+(pass) system > system.health returns the documented health shape [2.39ms]
+(pass) system > system.gh returns the gh state [25.07ms]
+(pass) system > system.backup writes an archive under the data home [13.77ms]
+
+test/int/src/procedures/reviewRuns.test.ts:
+(pass) the executor adapter filters runs and refuses actions on another PR [10.44ms]
+(pass) embedded Margin paths redirect to native review pages [0.20ms]
+
+test/int/src/procedures/nativeMigration.test.ts:
+(pass) migration API reports actionable agent IDs and stale preview errors [571.09ms]
+(pass) migration API round trips preview, replay, and rollback without a runtime launch [550.45ms]
+
+test/int/src/gh/ratelimit.test.ts:
+(pass) readRateLimit > reads gh api rate_limit and computes the remaining fraction [337.46ms]
+(pass) readRateLimit > reports core when the body carries both budgets and core is the lower fraction [17.24ms]
+(pass) readRateLimit > reports the graphql budget when it is the lower fraction [16.68ms]
+(pass) readRateLimit > returns the run failure when gh cannot read the rate limit [16.89ms]
+(pass) readRateLimit > a body whose resources hold no budget returns the shape failure with the raw reply [16.73ms]
+(pass) readRateLimit > a reply that is not JSON returns the shape failure with the raw reply [17.41ms]
+(pass) readRateLimit > a budget with a limit of zero is not a budget [17.05ms]
+(pass) readRateLimit > a body with graphql and no core reports the graphql budget [17.73ms]
+(pass) intervalMultiplier > multiplier is 4 under 20 percent remaining [0.02ms]
+(pass) intervalMultiplier > multiplier is 1 at and above 20 percent remaining
+
+test/int/src/gh/detect.repos.test.ts:
+(pass) detect with a failing repository > a repository whose pr list fails does not stop the repositories after it [68.79ms]
+(pass) detect with a failing repository > a failing repository is logged once while it keeps failing [58.67ms]
+(pass) detect with a failing repository > an unauthenticated gh stops the run at the first repository [22.82ms]
+
+test/int/src/gh/graphql.map.test.ts:
+(pass) mapPullRequestResponse > maps an open draft PR with lowercased state, refs, and null dates [0.92ms]
+(pass) mapPullRequestResponse > maps MERGED and CLOSED states and keeps ISO dates [0.46ms]
+(pass) mapPullRequestResponse > maps reviewDecision to reviewState with null as none [0.43ms]
+(pass) mapPullRequestResponse > sorts checks by workflow then name with null workflow first [0.39ms]
+(pass) mapPullRequestResponse > keeps the newest of two runs of one name and reports the row once [0.18ms]
+(pass) mapPullRequestResponse > maps a StatusContext to a check with a null workflow [0.30ms]
+(pass) mapPullRequestResponse > maps a PR without a rollup to empty checks and ciState none [0.40ms]
+(pass) mapPullRequestResponse > sets ciState from the mapped checks [0.37ms]
+(pass) mapPullRequestResponse > content_hash is stable across key order and check input order [0.88ms]
+(pass) mapPullRequestResponse > content_hash changes when a check bucket or a field changes [0.37ms]
+(pass) mapPullRequestResponse > reports a per-PR error for an alias whose rollup is null under an error path
+(pass) mapPullRequestResponse > reports a per-PR error for an alias GitHub could not resolve
+
+test/int/src/gh/parse.test.ts:
+(pass) check buckets > maps CheckRun conclusions to buckets [0.07ms]
+(pass) check buckets > maps an unfinished CheckRun status to pending
+(pass) check buckets > maps StatusContext states to buckets [0.06ms]
+(pass) check buckets > normalizeChecks returns CheckSchema rows sorted by workflow then name [0.11ms]
+(pass) check buckets > normalizeChecks gives a null link when the raw node omits its URL field [0.04ms]
+(pass) deriveCiState > deriveCiState: no checks is none [0.03ms]
+(pass) deriveCiState > deriveCiState: all pass is pass
+(pass) deriveCiState > deriveCiState: skipping counts as nothing
+(pass) deriveCiState > deriveCiState: any pending beats pass [0.02ms]
+(pass) deriveCiState > deriveCiState: any fail beats pending
+(pass) deriveCiState > deriveCiState: cancel counts as fail
+(pass) findTicketIdentifiers > auto-link regex matches a lowercase branch name and uppercases the key
+(pass) findTicketIdentifiers > auto-link regex matches uppercase identifiers inside a title [0.07ms]
+(pass) findTicketIdentifiers > auto-link deduplicates the same identifier in different cases
+(pass) findTicketIdentifiers > auto-link drops number zero
+(pass) findTicketIdentifiers > auto-link drops a number above the Postgres int range [0.04ms]
+(pass) findTicketIdentifiers > auto-link regex rejects keys outside the grammar and unbounded numbers
+(pass) findTicketIdentifiers > auto-link matches after a path separator and parses leading zeros as an integer
+(pass) findTicketIdentifiers > auto-link regex is the plan's pattern and is safe to call twice
+(pass) findTicketIdentifiers > auto-link finds every identifier after an outside exec moved the regex's lastIndex
+(pass) duplicate contexts > keeps the newest of two runs with one name, workflow, and event
+(pass) duplicate contexts > keeps the newest run whatever order the nodes arrive in
+(pass) duplicate contexts > keeps a queued re-run over the completed run it replaces
+(pass) duplicate contexts > keeps two runs of one name that ran on different events
+(pass) duplicate contexts > keeps two runs of one name that belong to different workflows
+(pass) duplicate contexts > keeps the newest of two status contexts with one name
+(pass) duplicate contexts > keeps the node that carries a start time over one that omits it
+
+test/int/src/gh/poller.batch.test.ts:
+(pass) poller batching > 40 due pull requests cost one gh spawn per tick [87.00ms]
+(pass) poller batching > 60 due pull requests split into one request of 50 and one of 10 [107.19ms]
+(pass) poller batching > every alias in the batch writes the row of its own pull request [63.13ms]
+(pass) poller batching > the poller spawns gh through the poller slots only [368.36ms]
+
+test/int/src/gh/detect.test.ts:
+(pass) detect > detect runs one gh pr list per distinct declared repository [60.83ms]
+(pass) detect > a branch named cde-2-foo links its pull request to CDE-2 as system trellis with source auto [64.51ms]
+(pass) detect > detect matches a key in the title, the branch, or the body [84.51ms]
+(pass) detect > one pull request links every ticket its text names [69.26ms]
+(pass) detect > detect never links a pull request twice [47.81ms]
+(pass) detect > a key and number with no ticket is skipped and the run continues [62.85ms]
+(pass) detect > a match is skipped when the ticket root does not declare that repository [61.74ms]
+(pass) detect > a lowercase key resolves the same ticket as an uppercase key [82.81ms]
+(pass) detect > a newly linked pull request is fetched in the same run [62.66ms]
+
+test/int/src/gh/run.slots.test.ts:
+(pass) gh slots > a third poller call waits for one of the 2 poller slots [640.49ms]
+(pass) gh slots > an interactive call runs at once while both poller slots are busy [421.69ms]
+(pass) gh slots > a second interactive call waits for the single interactive slot [635.13ms]
+(pass) gh slots > a poller call does not wait on the interactive slot [422.30ms]
+(pass) gh slots > a failed or timed-out call releases its slot [122.79ms]
+(pass) gh slots > two missing-binary calls release both poller slots [17.59ms]
+(pass) gh slots > two timed-out calls release both poller slots [224.14ms]
+
+test/int/src/gh/poller.cadence.test.ts:
+(pass) poller cadence > a pull request with a pending check polls every 30 seconds [63.68ms]
+(pass) poller cadence > an open pull request without a pending check polls every 120 seconds [66.77ms]
+(pass) poller cadence > a recently merged pull request polls every 10 minutes [129.18ms]
+(pass) poller cadence > the last fetch time lives in memory so an unwritten row keeps its cadence [84.91ms]
+(pass) poller cadence > detection runs every 120 seconds and not on every tick [80.54ms]
+
+test/int/src/gh/diff.test.ts:
+(pass) fetchDiff > returns the whole diff under 1 MB with truncated false [19.67ms]
+(pass) fetchDiff > cuts a diff over 1 MB and returns truncated true with the url [20.78ms]
+(pass) fetchDiff > a diff of exactly 1 MB is not truncated [20.91ms]
+(pass) fetchDiff > diff uses the interactive slot [319.44ms]
+(pass) fetchDiff > returns the run failure when gh pr diff fails [17.27ms]
+
+test/int/src/gh/poller.auth.test.ts:
+(pass) poller gh state > an unauthenticated gh skips the tick and rechecks at most once per 60 seconds [59.74ms]
+(pass) poller gh state > an unauthenticated gh emits one gh.status event and one log line per state change [92.03ms]
+(pass) poller gh state > a gh that signs back in emits one gh.status event and resumes polling [87.61ms]
+(pass) poller gh state > a missing gh binary reports reason missing once and keeps the loop alive [24.44ms]
+(pass) poller gh state > detection is skipped while gh is unauthenticated [109.64ms]
+
+test/int/src/gh/poller.ratelimit.test.ts:
+(pass) poller rate limit > the rate limit is read at most once every 5 minutes [109.70ms]
+(pass) poller rate limit > a budget under 20 percent multiplies every poll interval by 4 [109.28ms]
+(pass) poller rate limit > a low budget emits one gh.status event per state change [101.94ms]
+(pass) poller rate limit > a budget back above 20 percent restores the 30 second cadence [127.30ms]
+(pass) poller rate limit > a rate_limit reply without a budget logs its raw text once and keeps the 1x cadence [108.12ms]
+(pass) poller rate limit > a low budget multiplies the detection interval by 4 [176.47ms]
+
+test/int/src/gh/run.test.ts:
+(pass) runGh > runs TRELLIS_GH_BIN with the given args and returns code, stdout, stderr [17.64ms]
+(pass) runGh > defaults the binary to gh when TRELLIS_GH_BIN is unset [0.06ms]
+(pass) runGh > passes GH_PROMPT_DISABLED=1 and NO_COLOR=1 to the child on top of process.env [17.73ms]
+(pass) runGh > classifies ENOENT on spawn as missing [0.83ms]
+(pass) runGh > classifies a stderr that contains gh auth login as unauthenticated [18.56ms]
+(pass) runGh > classifies an HTTP 401 from a rejected token as unauthenticated [35.61ms]
+(pass) runGh > classifies a non-zero exit with any other stderr as error and keeps the stderr as the message [18.03ms]
+(pass) runGh > kills the child and returns error when the timeout passes [156.10ms]
+(pass) runGh > defaults the timeout to 30 s [0.02ms]
+
+test/int/src/gh/poller.write.test.ts:
+(pass) poller writes > an unchanged content hash writes no row, no event, and no activity [61.03ms]
+(pass) poller writes > a changed title writes the row and emits pr.updated without activity [62.19ms]
+(pass) poller writes > a ci state change writes pr.state_changed activity as system trellis [62.38ms]
+(pass) poller writes > a pull request that merged writes one state change row per linked ticket [62.72ms]
+(pass) poller writes > a poller write bumps the ticket version and leaves updated_at [62.23ms]
+(pass) poller writes > a pull request gh could not answer stores fetch_error and keeps its cadence [85.19ms]
+
+test/int/src/gh/graphql.test.ts:
+(pass) buildPullRequestQuery > builds one query with 50 distinct aliases and the plan's field selection [0.52ms]
+(pass) buildPullRequestQuery > builds a one-alias query for a single PR [0.04ms]
+(pass) fetchPullRequests > fetches 50 PRs with one gh api graphql spawn on a poller slot [341.48ms]
+(pass) fetchPullRequests > returns the run failure for the whole batch when gh fails [21.12ms]
+(pass) fetchPullRequests > maps a per-PR error from an exit 1 body that carries data [19.16ms]
+(pass) fetchPullRequests > returns the run failure for an exit 1 body without a data object [86.79ms]
+(pass) fetchPullRequests > returns the run failure for an exit 1 body that is cut short [21.77ms]
+(pass) fetchPullRequests > reports a per-PR error for an alias whose check node is null [20.54ms]
+(pass) fetchPullRequests > fetches one PR on the interactive slot while both poller slots are busy [322.44ms]
+
+test/int/src/gh/poller.due.test.ts:
+(pass) poller due selection > an open pull request on a done ticket is never polled [65.57ms]
+(pass) poller due selection > an open pull request on a canceled ticket is never polled [40.74ms]
+(pass) poller due selection > a pull request merged inside a day is due and one closed for more than a day is not [61.03ms]
+(pass) poller due selection > refresh fetches a pull request the cadence would skip [60.69ms]
+
+test/int/src/gh/poller.loop.test.ts:
+(pass) poller loop > start arms one 10 s timer and runs no tick before it fires [23.95ms]
+(pass) poller loop > a slow tick never overlaps the next tick [310.39ms]
+(pass) poller loop > stop waits for the in-flight tick and runs no tick after it [313.46ms]
+
+test/int/src/auth/auth.test.ts:
+(pass) a desktop host requires its bearer token on every route [519.93ms]
+(pass) a foreign browser origin cannot use a desktop token [551.41ms]
+(pass) an existing host without a configured token retains its access contract [540.30ms]
+
+test/int/src/agents/supersetRunner.test.ts:
+(pass) projectFor > matches a declared repo to the Superset project whose repo names it, in any case and form [35.43ms]
+(pass) projectFor > answers RUNNER_UNAVAILABLE unmapped when no Superset project names a declared repo [34.13ms]
+(pass) ensureManager > creates the manager workspace on its own branch with the manager tab and the project tag [37.13ms]
+(pass) ensureManager > a second call finds the workspace by its branch and the live manager tab, and starts nothing [87.48ms]
+(pass) ensureManager > an exited manager tab in the workspace gets a new tab that resumes the Claude session [109.09ms]
+(pass) startBuilder > names the workspace after the ticket, tags it with the project, and branches from the base [50.98ms]
+(pass) startBuilder > a second start of the same ticket reuses the workspace and its live builder tab [87.62ms]
+(pass) startBuilder > answers RUNNER_UNAVAILABLE error when superset exits nonzero, and missing when the binary is absent [18.70ms]
+(pass) startReviewer > opens a tab named '<ticket> review' in the builder's workspace with the reviewer prompt [53.84ms]
+(pass) wake > types the text into a live terminal after it checks the terminal list [71.45ms]
+(pass) wake > never types into an exited terminal; it relaunches the manager resuming its session with the text [72.69ms]
+(pass) wake > a closed terminal without a Claude session gets a fresh manager [67.30ms]
+(pass) isAlive, stop, removeWorkspace > isAlive reads the terminal list, and stop closes a listed terminal [124.59ms]
+(pass) isAlive, stop, removeWorkspace > removeWorkspace deletes the local worktree and keeps the branch [51.66ms]
+(pass) the agent's terminal > ensureManager and startBuilder take the Command terminal, never the Workspace Setup terminal [69.88ms]
+(pass) runner errors > an error superset prints on stdout reaches the message when stderr is empty [17.21ms]
+(pass) defaultBranch > reads origin/HEAD in the checkout of the Superset project, without refs/remotes/origin/ [62.54ms]
+(pass) defaultBranch > a checkout without origin/HEAD answers RUNNER_UNAVAILABLE error with the path in the message [80.15ms]
+
+test/int/src/agents/supersetRunner.host.test.ts:
+(pass) the Superset host of a project > a project with no host keeps --local on ws create and names no host anywhere else [87.29ms]
+(pass) the Superset host of a project > a project with a host passes --host to ws create, terminals create, and terminals send [139.87ms]
+(pass) the Superset host of a project > the terminal list, the terminal close, the deep link, and the delete name the host too [123.25ms]
+(pass) the Superset host of a project > hosts reads the list and turns the yes and no of superset into a boolean [18.12ms]
+(pass) the Superset host of a project > an offline host fails every start with the reason host and names the machine, and creates nothing [86.56ms]
+(pass) the Superset host of a project > a host id no host carries fails the start with the reason host and names the id [34.60ms]
+
+test/int/src/agents/supersetRunner.dedupe.test.ts:
+(pass) ensureManager keeps the recorded manager tab and closes decorated duplicates [100.89ms]
+
+test/int/src/agents/host.test.ts:
+(pass) agents host > while the global switch is off, nothing runs superset and no change is watched [603.72ms]
+(pass) agents host > at start the manager of each enabled project starts once, and a restart finds it [683.67ms]
+(pass) agents host > at start a session whose terminal exited or is gone becomes exited [626.77ms]
+(pass) agents host > a batch wakes the manager once with the pointer, sets lastWokenAt, and emits agents.batch [650.14ms]
+(pass) agents host > a wake of an exited manager starts it again in its Claude session [627.89ms]
+(pass) agents host > turning agents on in settings starts the manager and the watching; turning them off stops the waking [636.94ms]
+(pass) agents host > selecting a manager persona stops the legacy manager and its watcher [764.19ms]
+(pass) agents host > a configured manager persona prevents a legacy manager at boot [538.02ms]
+(pass) agents host > a wake the runner refuses is logged and emits no batch; the next batch wakes the manager [652.24ms]
+
+test/int/src/agents/git.test.ts:
+(pass) branchState > a local branch of that name is present [84.93ms]
+(pass) branchState > a branch of a remote counts, because superset ws create takes it [158.95ms]
+(pass) branchState > a checkout without the branch answers absent [80.43ms]
+(pass) branchState > a longer branch that starts with the name does not count [204.66ms]
+(pass) branchState > the longer name is still present under its own full name [96.71ms]
+(pass) branchState > a path that is no repository answers unreadable [16.76ms]
+
+test/int/src/agents/host.failures.test.ts:
+(pass) agents host failures > a manager start that fails keeps a failed manager with the superset message, logs it, and emits agents.session [592.20ms]
+(pass) agents host failures > a batch for a project without a running manager starts the manager once, and a second failure updates the failed row [609.22ms]
+(pass) agents host failures > after the fix, the next batch starts the manager in the failed row [638.81ms]
+(pass) agents host failures > every settings save starts the manager of each enabled project, so a save after a fix recovers [634.67ms]
+(pass) agents host failures > agents.overview lists the batches the dispatcher sent [669.74ms]
+(pass) agents host tabs > at start a starting session whose tab shows its name becomes running [755.63ms]
+
+test/int/src/db/schema.rows.test.ts:
+(pass) comments > comments keep body between 1 and 200000 characters, need a known actor, and cascade on ticket delete [32.71ms]
+(pass) attachments > attachments keep filename, size, and sha256 in their grammar and cascade on ticket delete [24.04ms]
+(pass) pull_requests > pull_requests keep every closed set, the lowercase owner and repo, the array checks, and the unique number [20.55ms]
+(pass) ticket_pull_requests > ticket_pull_requests keeps one link per pair with a known source and cascades from both sides [24.07ms]
+(pass) activity > activity ids come from the identity and a description row carries no values [27.51ms]
+(pass) activity > activity cascades from ticket, project, and root and needs a known actor [27.95ms]
+(pass) actors > actors keep name printable without a colon and key by name and kind [17.77ms]
+(pass) settings > settings keys by key and stores jsonb [19.65ms]
+
+test/int/src/db/schema.statuses.test.ts:
+(pass) repos > repos keeps owner and repo lowercase, unique per project, and cascades on project delete [22.05ms]
+(pass) statuses > statuses rejects a category outside the set [21.80ms]
+(pass) statuses > statuses ties a reviewer to the review category [20.54ms]
+(pass) statuses > statuses rejects a non-positive WIP limit [19.21ms]
+(pass) statuses > statuses allows one default per project [19.29ms]
+(pass) statuses > statuses keeps name and slug unique per project [19.52ms]
+(pass) statuses > statuses keeps name between 1 and 40 characters [19.42ms]
+(pass) statuses > statuses cascade on project delete [21.30ms]
+
+test/int/src/db/migrate.test.ts:
+(pass) migrations on disk > the journal lists the extensions migration before init and the extensions migration creates pg_trgm
+(pass) migrations on disk > the custom migration carries the constraints drizzle-kit cannot express and schema.ts names it [0.83ms]
+(pass) migrate > migrate creates every table on an empty database [532.33ms]
+(pass) migrate > migrate is idempotent on a second boot [566.75ms]
+(pass) migrate > migrate runs ANALYZE and sets the trigram threshold [530.69ms]
+(pass) migrate > a failing migration leaves no partial schema behind [508.70ms]
+
+test/int/src/db/tx.test.ts:
+(pass) withTx > withTx returns the result and the queued events after commit [19.37ms]
+(pass) withTx > withTx rolls back and drops the events on a throw [23.26ms]
+(pass) withTx > withTx flushes events only after the commit [26.82ms]
+(pass) withTx > nested queries through tx complete inside withTx within 2 seconds [19.05ms]
+
+test/int/src/db/migrate.restoreAgents.test.ts:
+(pass) the agent restore migration > gives back the agent tables and the manager's status descriptions after the removal [485.38ms]
+(pass) the agent restore migration > keeps the rows and the descriptions of a database that never ran the removal [543.29ms]
+(pass) the agent restore migration > the restored session table keeps its project foreign key and its indexes [488.96ms]
+
+test/int/src/db/migrate.agentNames.test.ts:
+(pass) server builder: migration 0012 names every session that the database already holds [537.49ms]
+
+test/int/src/db/transport.worker.test.ts:
+(pass) worker transport > the worker transport runs the same service calls as the inline transport [1322.84ms]
+(pass) worker transport > a contract error crosses the worker transport unchanged [1355.54ms]
+(pass) worker transport > a closed transport starts again and answers on its new worker [1551.89ms]
+(pass) worker transport > a call sent during the boot waits for the boot [1354.21ms]
+(pass) worker transport > a second close of a closed transport returns [1238.98ms]
+(pass) worker transport > close stops the worker within five seconds [1351.81ms]
+
+test/int/src/db/schema.columns.test.ts:
+(pass) column types > column types follow the schema table [4.44ms]
+(pass) indexes > every index from the schema table exists [4.45ms]
+
+test/int/src/db/cache.test.ts:
+(pass) project cache > resolveSubtree returns the project and every descendant [20.36ms]
+(pass) project cache > resolvePath resolves a dotted path case-insensitively and returns null for a missing segment [19.42ms]
+(pass) project cache > the cache serves effective statuses and changes only on rebuild [22.14ms]
+
+test/int/src/db/migrate.flowGroups.test.ts:
+(pass) existing budgets become connected groups with their children and time limit [560.50ms]
+
+test/int/src/db/migrate.managerLaunch.test.ts:
+(pass) the manager launch migration repairs the bad template and releases its interrupted run [538.99ms]
+
+test/int/src/db/warmWrites.test.ts:
+(pass) start runs a ticket write and a comment write, then leaves no row and no event [47.75ms]
+(pass) start on a database with no ticket writes nothing [24.78ms]
+
+test/int/src/db/schema.projects.test.ts:
+(pass) projects > projects rejects a key outside ^[A-Z][A-Z0-9]{1,9}$ [20.45ms]
+(pass) projects > projects rejects a root without a key [19.19ms]
+(pass) projects > projects rejects a sub-project with a key [19.06ms]
+(pass) projects > projects rejects parent_id = id [25.53ms]
+(pass) projects > projects ties root_id = id to a null parent [20.76ms]
+(pass) projects > projects keeps the ticket counter on roots only [19.86ms]
+(pass) projects > projects rejects a slug outside the grammar or named board or settings [22.12ms]
+(pass) projects > projects rejects a duplicate key [18.87ms]
+(pass) projects > projects rejects a duplicate slug among siblings and among roots [19.93ms]
+(pass) projects > projects rejects a child whose root_id differs from its parent's root [19.01ms]
+(pass) projects > projects refuses to delete a parent that still has children [21.12ms]
+(pass) projects > projects keeps name between 1 and 120 characters [17.96ms]
+
+test/int/src/db/migrate.managerSession.test.ts:
+(pass) the manager session migration adds the session columns and fails the managers no refresh can find [578.86ms]
+
+test/int/src/db/schema.tickets.test.ts:
+(pass) tickets > tickets rejects a root_id that is not the project's root [22.64ms]
+(pass) tickets > tickets rejects a parent from another root [35.47ms]
+(pass) tickets > tickets rejects parent_id = id [20.38ms]
+(pass) tickets > tickets keeps number positive and unique per root [22.60ms]
+(pass) tickets > tickets keeps title trimmed and between 1 and 500 characters [21.11ms]
+(pass) tickets > tickets default priority, version, and description and reject an unknown priority [20.21ms]
+(pass) tickets > the status, project, and parent foreign keys of tickets are RESTRICT [17.75ms]
+(pass) tickets > tickets block the delete of their status [20.59ms]
+(pass) tickets > tickets block the delete of their project [20.30ms]
+(pass) tickets > tickets block the delete of their parent [20.26ms]
+(pass) tickets > tickets.search is generated from title at weight A and description at weight B [19.42ms]
+(pass) tickets > comments.search is generated from body at weight C [20.20ms]
+
+test/int/src/db/schema.agents.test.ts:
+(pass) agent_sessions > a manager names no ticket, and a builder or a reviewer names one [29.53ms]
+(pass) agent_sessions > role, runner, state, name, and title stay inside their sets [36.26ms]
+(pass) agent_sessions > a project has one live manager; exited and stopped managers do not count [26.69ms]
+(pass) agent_sessions > one terminal holds one session [26.69ms]
+(pass) agent_sessions > a project delete and a ticket delete remove their sessions [28.95ms]
+(pass) agent_cursors > each project has one cursor that starts at 0 and goes with the project [23.77ms]
+(pass) agent_sessions failures > a failed session keeps its error, and a failed manager stays outside the one-live-manager index [23.12ms]
+
+test/int/src/db/migrate.personas.test.ts:
+(pass) existing personas become reviewers without a change to their instructions [556.17ms]
+
+test/int/src/db/worker.test.ts:
+(pass) ServiceQueue > a mutation queued behind ten reads runs first
+(pass) ServiceQueue > a newer search removes the queued search from the same client
+
+test/int/src/db/transport.test.ts:
+(pass) inline transport > the inline transport runs a service in one transaction [35.76ms]
+(pass) inline transport > a contract error crosses the transport unchanged [20.58ms]
+(pass) inline transport > the transport flushes events after the commit [25.08ms]
+(pass) inline transport > a rollback drops the queued events [32.42ms]
+(pass) inline transport > the inline transport implements the whole ServiceTransport interface [18.20ms]
+(pass) inline transport > a service query through the given tx never deadlocks [35.67ms]
+
+test/int/src/db/migrate.targetLaunch.test.ts:
+(pass) the target launch migration moves the local template to the current default [573.84ms]
+(pass) the target launch migration leaves a template a person wrote [572.47ms]
+
+test/int/src/db/client.test.ts:
+(pass) openDb > openDb builds PGlite with the pg_trgm extension [411.60ms]
+(pass) openDb > openDb with a data dir persists rows across a reopen [794.63ms]
+
+test/int/src/db/migrate.descriptions.test.ts:
+(pass) the status description data step > fills the empty description of each default status and keeps a written or custom one [564.95ms]
+
+test/int/src/homeImport/import.test.ts:
+(pass) offline import preserves source bytes and pauses automation before the target can boot [2202.08ms]
+(pass) live source and nonempty target reject before copy [1.07ms]
+(pass) a killed import leaves an unbootable target that explicit rollback archives [1152.00ms]
+(pass) stale source previews, nested homes, and runtime ownership refuse import [669.73ms]
+(pass) rollback refuses an active target host and a new unresolved run [1491.25ms]
+(pass) workspace symlinks stay links and an alias into the target refuses import [1091.14ms]
+(pass) the server rejects an interrupted import before it opens a database [111.46ms]
+(pass) rollback archives a truncated initial marker without source metadata [1.46ms]
+(pass) external relative workspace links keep their referent when the target depth changes [1001.24ms]
+(pass) a file added during copy prevents publication [1050.89ms]
+
+test/int/src/homeImport/runtimeLock.test.ts:
+(pass) a live runtime lock refuses copy after the host releases its lock [20.19ms]
+
+test/int/src/events/bus.test.ts:
+(pass) event bus ids > the first event id is bootId.0 and the sequence rises by one [0.19ms]
+(pass) event bus subscribe > subscribe delivers in order and unsubscribe stops delivery [0.10ms]
+(pass) event bus since > since replays every event after the given id [0.12ms]
+(pass) event bus since > since on the newest id returns an empty array [0.07ms]
+(pass) event bus since > since returns null for an id from another boot [0.04ms]
+(pass) event bus since > the ring holds the last 1000 events [1.35ms]
+(pass) event bus since > since returns null below the ring floor [1.03ms]
+(pass) event bus since > the ring keeps an event no subscriber wants [0.11ms]
+
+test/int/src/events/bus.filters.test.ts:
+(pass) event bus type filters > an exact type filter delivers only that event name [0.12ms]
+(pass) event bus type filters > a prefix type filter delivers every event of that prefix
+(pass) event bus type filters > a type filter takes a list of names and prefixes
+(pass) event bus type filters > an unknown type in a filter matches nothing [0.20ms]
+(pass) event bus scope filters > a project scope filter drops events of another project
+(pass) event bus scope filters > a ticket scope filter drops every event of another ticket [0.15ms]
+(pass) event bus scope filters > the filters apply to a since replay as well as to live delivery
+
+test/int/src/routes/events.scope.test.ts:
+(pass) scope filters on child events > the project filter passes the comment and attachment events of its project only [184.44ms]
+(pass) scope filters on child events > the project filter passes the pull request events of its tickets [68.83ms]
+(pass) scope filters on child events > a ticket stream receives the pr.unlinked of its ticket while another ticket keeps the link [48.46ms]
+(pass) ping parameter > a ping outside whole seconds from 5 to 120 answers INPUT_VALIDATION_FAILED [25.01ms]
+(pass) ping parameter > a ping of 5 and a ping of 120 open the stream [26.29ms]
+
+test/int/src/routes/static.test.ts:
+(pass) static route > a hashed asset is served immutable [1.06ms]
+(pass) static route > index.html is served no-cache [0.14ms]
+(pass) static route > a path with a malformed percent escape falls back to index.html [0.32ms]
+(pass) static route > an app route falls back to index.html [0.08ms]
+(pass) static route > a missing web dist explains how to build [0.16ms]
+(pass) static route > the api and rpc mounts never fall back to the SPA [0.22ms]
+
+test/int/src/routes/events.test.ts:
+(pass) connect > the stream opens with a ready event [26.80ms]
+(pass) connect > a mutation reaches the stream with a bootId dot seq id [35.63ms]
+(pass) connect > ready carries the newest event id as its frame id [54.28ms]
+(pass) connect > the events route needs no actor header [26.01ms]
+(pass) connect > a malformed since answers INPUT_VALIDATION_FAILED [25.48ms]
+(pass) replay and reset > since replays the events after the given id [45.17ms]
+(pass) replay and reset > Last-Event-ID wins over the since parameter [43.83ms]
+(pass) replay and reset > an id from another boot answers reset restart [44.37ms]
+(pass) replay and reset > an id below the ring floor answers reset gap [29.75ms]
+(pass) filters > the types filter passes a prefix wildcard and an exact name [128.16ms]
+(pass) filters > the project filter scopes the stream to one project [158.71ms]
+(pass) filters > the ticket filter scopes the stream to one ticket [155.56ms]
+(pass) ping and bye > an idle stream pings every 15 seconds [27.87ms]
+(pass) ping and bye > the ping parameter sets the idle interval [2130.29ms]
+(pass) ping and bye > shutdown sends bye and closes the stream [26.17ms]
+
+test/int/src/routes/files.test.ts:
+(pass) files route > a PNG renders inline with the cache and safety headers [36.40ms]
+(pass) files route > a matching If-None-Match answers 304 [33.45ms]
+(pass) files route > an SVG downloads instead of rendering [31.05ms]
+(pass) files route > HTML downloads instead of rendering [33.17ms]
+(pass) files route > the inline allowlist holds exactly the ten documented types [41.81ms]
+(pass) files route > the file route serves the stored bytes [32.98ms]
+(pass) files route > a filename outside Latin-1 serves with an ASCII fallback and a UTF-8 filename* [35.15ms]
+(pass) files route > a filename with a double quote or a backslash serves a well-formed header [33.67ms]
+(pass) files route > an unknown attachment id answers 404 [32.65ms]
+(pass) files route > the file route ignores a Range header [37.08ms]
+
+test/int/src/routes/docs.test.ts:
+(pass) docs routes > the spec route serves the post-processed document [37.99ms]
+(pass) docs routes > the docs route renders Scalar against the spec URL [0.19ms]
+
+test/int/src/routes/export.test.ts:
+(pass) export route > the export route answers as an NDJSON attachment [37.70ms]
+(pass) export route > every export line is one JSON object with its table [31.19ms]
+(pass) export route > the export pages through a table without repeating a row [101.70ms]
+(pass) export route > the export streams instead of buffering the whole body [103.58ms]
+
+test/int/src/services/system.export.test.ts:
+(pass) system.exportNdjson > the export starts with a header line and then one line per row [35.22ms]
+(pass) system.exportNdjson > the export pages a table in 1000 row keyset pages [100.17ms]
+(pass) system.exportNdjson > the export covers every table in the schema [32.29ms]
+(pass) system.exportNdjson > the export carries the ticket identifier and the attachment url [31.76ms]
+
+test/int/src/services/statuses.update.test.ts:
+(pass) statuses.update fields > a rename rewrites the slug and moves no ticket [27.69ms]
+(pass) statuses.update fields > a rename onto another status name throws DUPLICATE [22.14ms]
+(pass) statuses.update fields > a category in an update throws STATUS_CATEGORY_IMMUTABLE [20.27ms]
+(pass) statuses.update fields > an update with isDefault transfers the default [22.85ms]
+(pass) statuses.update fields > an update clears the wip limit and changes the color [24.94ms]
+(pass) statuses.update fields > a reviewer on a non-review status is refused [20.98ms]
+(pass) statuses.update through inheritance > an update through an inheriting project edits the owner's row [24.47ms]
+(pass) statuses.update side effects > an update writes one activity row per field and emits statuses.changed [23.90ms]
+
+test/int/src/services/runtimeOwnership.test.ts:
+(pass) new projects persist explicit native settings and require human repository trust [587.19ms]
+(pass) a runtime change waits for legacy and persona processes to end [537.81ms]
+
+test/int/src/services/pullRequests.url.test.ts:
+(pass) parsePullRequestUrl > every GitHub pull request URL form parses to owner, repo, and number [19.20ms]
+(pass) link with a URL that is not a pull request > a URL that is not a pull request is INVALID_PR_URL [24.19ms]
+
+test/int/src/services/attachments.inline.test.ts:
+(pass) isInlineMime > the ten allowed mime types serve inline [0.05ms]
+(pass) isInlineMime > svg and html never serve inline [0.03ms]
+(pass) contentDisposition > the disposition is inline for the allowlist and attachment for the rest [0.03ms]
+
+test/int/src/services/tickets.move.test.ts:
+(pass) tickets.move > a move without anchors puts the ticket last in the target column [33.95ms]
+(pass) tickets.move > a move with after takes the midpoint below the next neighbour [31.72ms]
+(pass) tickets.move > a move with before puts the ticket above the anchor [29.86ms]
+(pass) tickets.move > a move with both anchors takes the midpoint of the pair [29.42ms]
+(pass) tickets.move > INVALID_ANCHOR for an anchor in another column [24.71ms]
+(pass) tickets.move > a gap under the threshold renumbers the column in steps of 1024 [30.81ms]
+(pass) tickets.move > a reorder bumps the version but not updated_at [29.10ms]
+(pass) tickets.move > a move across columns writes the status row and the position row in one batch [33.78ms]
+(pass) tickets.move > a move sets started_at and completed_at by category [37.32ms]
+(pass) tickets.move > a move with a stale expectedVersion throws VERSION_CONFLICT [30.39ms]
+(pass) tickets.move > a move in an archived project throws PROJECT_ARCHIVED [24.08ms]
+(pass) tickets.move > a move emits ticket.updated with the new version and position [32.07ms]
+
+test/int/src/services/attachments.dedupe.test.ts:
+(pass) attachments dedupe > two uploads of one file share a blob and keep two rows [51.00ms]
+(pass) attachments dedupe > a delete keeps the blob while a second row holds the sha [39.07ms]
+
+test/int/src/services/attachments.limits.test.ts:
+(pass) attachments limits > an upload to an archived project stores nothing [26.47ms]
+(pass) attachments limits > an upload over the size limit stores nothing [22.44ms]
+
+test/int/src/services/inbox.test.ts:
+(pass) inbox.get > the review section holds human-reviewer tickets oldest first [33.87ms]
+(pass) inbox.get > the failingCi section holds tickets with a failing open pull request [31.86ms]
+(pass) inbox.get > the stalled section reads the stalledHours setting [29.01ms]
+(pass) inbox.get > a changed stalledHours setting changes the stalled membership [33.27ms]
+(pass) inbox.get > the doneByAgentsToday section counts the agent moves since midnight [30.20ms]
+(pass) inbox.get > a project ref narrows every inbox section [32.47ms]
+(pass) inbox.get > an inbox section caps at 100 items and reports the whole total [56.27ms]
+(pass) inbox.get > inbox with an unknown project ref throws NOT_FOUND [22.67ms]
+
+test/int/src/services/agentSettings.branch.test.ts:
+(pass) the base branch check of a settings save > a base branch the repository does not hold is refused, and the message names the project and the branch [391.62ms]
+(pass) the base branch check of a settings save > a base branch the repository holds is saved [116.22ms]
+(pass) the base branch check of a settings save > a checkout this machine cannot read is saved, because Superset lists projects nobody cloned here [40.33ms]
+(pass) the base branch check of a settings save > a branch name that only starts another branch name is refused [111.22ms]
+(pass) the base branch check of a settings save > the check is skipped while the global switch is off, so a person can always turn agents off [83.30ms]
+
+test/int/src/services/attachments.delete.test.ts:
+(pass) attachments.remove > a delete of the last row unlinks the blob after the commit [46.45ms]
+(pass) attachments.remove > a rolled back delete keeps the blob [32.38ms]
+(pass) attachments.remove > a delete emits ticket.updated with the new attachment count [35.93ms]
+(pass) attachments.remove > a delete emits attachment.deleted and moves the ticket [32.89ms]
+(pass) attachments.remove > an unknown attachment id is NOT_FOUND [24.97ms]
+(pass) attachments.remove > a ticket delete drops the blobs whose last row went [35.39ms]
+
+test/int/src/services/refs.test.ts:
+(pass) resolveTicket > resolveTicket accepts a ULID in any letter case [27.85ms]
+(pass) resolveTicket > resolveTicket accepts the KEY-n form in any letter case [25.51ms]
+(pass) resolveTicket > resolveTicket throws NOT_FOUND for a number that does not exist [22.96ms]
+(pass) resolveTicket > resolveTicket throws NOT_FOUND for an unknown key [23.91ms]
+(pass) resolveProject > resolveProject accepts a key in any letter case [23.56ms]
+(pass) resolveProject > resolveProject walks a dotted path to the nested project [23.86ms]
+(pass) resolveProject > resolveProject throws NOT_FOUND when a segment is not a child of the previous one [24.17ms]
+(pass) resolveProject > resolveProject accepts a ULID [23.09ms]
+(pass) resolveProject > resolveProject answers from the cache and runs no query [23.80ms]
+(pass) resolveStatus > resolveStatus matches a status name without letter case [24.75ms]
+(pass) resolveStatus > resolveStatus matches a status slug [24.82ms]
+(pass) resolveStatus > resolveStatus accepts a ULID inside the effective set [23.35ms]
+(pass) resolveStatus > resolveStatus refuses a status of another project with the valid list [25.62ms]
+(pass) resolveStatus > resolveStatus with category picks the lowest position of that category [24.27ms]
+(pass) resolveStatus > resolveStatus throws when no status carries the category [24.51ms]
+(pass) resolveStatus > resolveStatus resolves an inheriting project in the owner's set [24.86ms]
+(pass) resolveStatus > resolveStatus throws for a name outside the effective set [22.70ms]
+
+test/int/src/services/tickets.activity.test.ts:
+(pass) tickets.update activity > update writes one activity row per changed field under one batch id [34.46ms]
+(pass) tickets.update activity > update with unchanged values writes no activity and no version bump [28.58ms]
+(pass) tickets.update activity > a title activity row carries the old and the new text [27.07ms]
+(pass) tickets.update activity > a description activity row carries no text and reports deltaChars [28.34ms]
+(pass) tickets.update activity > a second description change by the same actor inside 5 minutes writes no row [29.03ms]
+(pass) tickets.update activity > a description change by another actor inside 5 minutes writes its own row [29.48ms]
+(pass) tickets.update activity > a description change by the same actor after 5 minutes writes a row [30.65ms]
+(pass) tickets.update activity > a status activity row carries the names and the ids and categories in meta [29.23ms]
+(pass) tickets.update activity > a parent activity row carries the identifiers and a cleared parent [38.78ms]
+
+test/int/src/services/flows.test.ts:
+(pass) flows > save preserves an unfinished agent and disconnected group steps [25.76ms]
+(pass) flows > create derives a slug from the name and takes the next free one on a collision [21.62ms]
+(pass) flows > create refuses a slug the caller sends when another flow holds it [20.28ms]
+(pass) flows > get reads a flow by slug and by id, and an unknown ref is NOT_FOUND [25.51ms]
+(pass) flows > save stores a graph with a group, a gate, and a fan-in, and raises the version [29.99ms]
+(pass) flows > a save replaces the graph, so a node the input omits is gone with its edges [27.98ms]
+(pass) flows > a save with an old version is FLOW_VERSION_CONFLICT and writes nothing [23.98ms]
+(pass) flows > a graph with a loop of edges is INPUT_VALIDATION_FAILED at the edge that closes it [23.63ms]
+(pass) flows > a node that names an unknown persona is INPUT_VALIDATION_FAILED on its personaId [23.88ms]
+(pass) flows > a node id that another flow holds is DUPLICATE [27.56ms]
+(pass) flows > a persona delete keeps the node and clears its persona [31.13ms]
+(pass) flows > update changes the briefing and the slug, and checks the version [25.78ms]
+(pass) flows > delete removes the flow with its nodes and edges [27.75ms]
+
+test/int/src/services/statuses.reorder.test.ts:
+(pass) statuses.reorder > reorder writes the positions 0 to n minus 1 in the given order [25.39ms]
+(pass) statuses.reorder > reorder needs the whole set and refuses a foreign status [22.78ms]
+(pass) statuses.reorder > reorder through an inheriting project reorders the owner's set [26.33ms]
+(pass) statuses.reorder > reorder moves no ticket [28.19ms]
+
+test/int/src/services/comments.test.ts:
+(pass) comments > a comment moves the ticket updated_at and bumps the version [28.71ms]
+(pass) comments > a comment can be the first write of a new actor [27.97ms]
+(pass) comments > comments.create emits comment.created and ticket.updated [26.77ms]
+(pass) comments > comments.create writes the comment.created activity row [24.87ms]
+(pass) comments > comments.update rewrites the body and writes activity [23.84ms]
+(pass) comments > comments.delete drops the row and lowers commentCount [26.61ms]
+(pass) comments > a comment on an archived project throws PROJECT_ARCHIVED [23.90ms]
+(pass) comments > comments.create with an unknown ticket throws NOT_FOUND [23.14ms]
+(pass) comments > comments.update with an unknown id throws NOT_FOUND [22.65ms]
+
+test/int/src/services/tickets.update.test.ts:
+(pass) tickets.update > update changes the title, bumps the version, and moves updated_at [35.43ms]
+(pass) tickets.update > update sets started_at on the first move out of todo [30.30ms]
+(pass) tickets.update > started_at is set once and never overwritten [34.79ms]
+(pass) tickets.update > completed_at is set on entering done and cleared on leaving [36.02ms]
+(pass) tickets.update > a move into canceled sets completed_at [28.93ms]
+(pass) tickets.update > update with a matching expectedVersion writes the change [28.39ms]
+(pass) tickets.update > VERSION_CONFLICT carries the current row and writes nothing [25.21ms]
+(pass) tickets.update > update rejects a status outside owner(project) [24.39ms]
+(pass) tickets.update > update rejects a parent that is a descendant with PARENT_CYCLE [24.47ms]
+(pass) tickets.update > update rejects a ticket as its own parent [24.19ms]
+(pass) tickets.update > update rejects a parent in another root [24.91ms]
+(pass) tickets.update > update in an archived project throws PROJECT_ARCHIVED [23.68ms]
+(pass) tickets.update > update with an unknown ticket ref throws NOT_FOUND [22.88ms]
+(pass) tickets.update > update emits ticket.updated with the new version and the changed fields [29.56ms]
+
+test/int/src/services/projects.move.test.ts:
+(pass) projects.move parent > a move to a sibling parent rewrites parent_id and emits project.moved [34.66ms]
+(pass) projects.move parent > a move under a descendant throws PARENT_CYCLE [26.03ms]
+(pass) projects.move parent > a move onto itself throws PARENT_CYCLE [27.22ms]
+(pass) projects.move parent > a move into another root throws CROSS_ROOT_MOVE [26.70ms]
+(pass) projects.move parent > a root cannot take a parent [23.70ms]
+(pass) projects.move parent > a null parent moves a project to the top level of its root [28.09ms]
+(pass) projects.move parent > a move into a parent that holds the slug throws DUPLICATE [23.84ms]
+(pass) projects.move order > an after anchor places the project between its neighbors [33.65ms]
+(pass) projects.move order > an anchor outside the target parent throws INVALID_ANCHOR [27.04ms]
+(pass) projects.move status owner > a move across status owners remaps the subtree in one batch as system:trellis [38.62ms]
+(pass) projects.move status owner > a move inside the same status owner remaps nothing [29.71ms]
+(pass) projects.move status owner > a project that owns statuses keeps its tickets on that set after a move [32.49ms]
+
+test/int/src/services/pullRequests.diff.test.ts:
+(pass) pullRequests.diff > diff returns the gh output for one pull request [51.09ms]
+(pass) pullRequests.diff > a diff over 1 MB comes back cut and marked truncated [45.55ms]
+(pass) pullRequests.diff > a diff is cached for 60 seconds [62.95ms]
+(pass) pullRequests.diff > diff with gh missing is GH_UNAVAILABLE [43.02ms]
+
+test/int/src/services/pullRequests.refresh.test.ts:
+(pass) pullRequests.refresh > refresh writes the row when the content hash changes [46.18ms]
+(pass) pullRequests.refresh > refresh writes nothing when the content hash is the same [43.42ms]
+(pass) pullRequests.refresh > refresh with gh down is GH_UNAVAILABLE and changes no row [42.12ms]
+(pass) pullRequests.refresh > an unknown pull request id is NOT_FOUND [23.50ms]
+
+test/int/src/services/statuses.remap.test.ts:
+(pass) remapScope matching > remapScope matches by name first and ignores letter case [32.66ms]
+(pass) remapScope matching > remapScope falls back to the lowest position of the same category [29.15ms]
+(pass) remapScope matching > remapScope falls back to the target default [28.49ms]
+(pass) remapScope matching > the scope stops at a descendant that owns statuses [31.98ms]
+(pass) remapScope bookkeeping > remapScope leaves a ticket that is already correct alone [25.50ms]
+(pass) remapScope bookkeeping > remapScope writes one row per moved ticket in one batch as system:trellis [31.55ms]
+(pass) remapScope bookkeeping > a remap bumps the version and leaves updated_at [27.66ms]
+(pass) remapScope bookkeeping > a remap across categories applies the started and completed rules [28.19ms]
+(pass) remapScope bookkeeping > remapScope returns the number of moved tickets [29.94ms]
+(pass) remapScope bookkeeping > the status invariant holds after every remap path [33.77ms]
+
+test/int/src/services/statuses.delete.test.ts:
+(pass) statuses.delete agent policy > an agent delete that moves tickets into a done status throws AGENT_CANNOT_COMPLETE [26.72ms]
+(pass) statuses.delete agent policy > force lets an agent move the tickets into a done status [30.02ms]
+(pass) statuses.delete agent policy > an agent may move the tickets into a status outside the done category [29.24ms]
+(pass) statuses.delete agent policy > a human moves the tickets into a done status without force [26.84ms]
+(pass) statuses.delete > a status with no ticket deletes and moves nothing [26.25ms]
+(pass) statuses.delete > a status that holds tickets throws STATUS_IN_USE with the count [23.09ms]
+(pass) statuses.delete > moveTo carries the tickets and writes one row and one event per ticket [30.91ms]
+(pass) statuses.delete > a moveTo from another project throws STATUS_NOT_IN_PROJECT [22.76ms]
+(pass) statuses.delete > a project keeps at least one status [19.89ms]
+(pass) statuses.delete > deleting the default transfers is_default to the lowest position [26.54ms]
+(pass) statuses.delete > a moved ticket follows the started and completed rules [27.87ms]
+(pass) statuses.delete > the status invariant holds after every delete path [35.05ms]
+
+test/int/src/services/projects.create.test.ts:
+(pass) projects.create ticket template > a root created with no ticket template gets the default template [24.85ms]
+(pass) projects.create ticket template > a root created with a ticket template keeps that template [23.17ms]
+(pass) projects.create on a root > a root project takes its key, its own root id, and a zero counter [23.73ms]
+(pass) projects.create on a root > a root is seeded with the six statuses in order [22.99ms]
+(pass) projects.create on a root > a repeated key throws DUPLICATE on the key field [19.98ms]
+(pass) projects.create root name > a root name that an active root holds, in any letter case, throws DUPLICATE on the name field [24.57ms]
+(pass) projects.create root name > an archived root does not hold its name [32.50ms]
+(pass) projects.create root name > a sub-project can take the name of a root [27.42ms]
+(pass) projects.create on a sub-project > a sub-project seeds no status and inherits the root's set [25.68ms]
+(pass) projects.create on a sub-project > a sub-project takes the root id of its parent and no key [25.45ms]
+(pass) projects.create on a sub-project > a slug is unique per parent and free under another parent [26.07ms]
+(pass) projects.create on a sub-project > the slug comes from the name when the caller sends none [27.15ms]
+(pass) projects.create on a sub-project > a derived slug that is reserved throws DUPLICATE [20.70ms]
+(pass) projects.create on a sub-project > a create under an archived parent throws PROJECT_ARCHIVED [21.14ms]
+(pass) projects.create side effects > a create upserts the actor and writes one activity row [23.75ms]
+(pass) projects.create side effects > a create emits project.created once after the commit [27.48ms]
+(pass) projects.create side effects > the create result matches ProjectSchema [24.96ms]
+
+test/int/src/services/system.backup.test.ts:
+(pass) system.backup > backup runs CHECKPOINT before it spawns tar [1321.47ms]
+(pass) system.backup > backup writes one archive of the data directory and the attachments [1292.33ms]
+(pass) system.backup > backup keeps the last ten archives [1294.01ms]
+(pass) system.backup > a backup whose tar fails removes its snapshot and writes no archive [241.92ms]
+(pass) system.backup > backup vacuums the busy tables once its transaction commits [1265.55ms]
+(pass) system.backup > a restore of the archive reproduces the rows and the blobs [1887.64ms]
+
+test/int/src/services/personas.test.ts:
+(pass) personas > an empty database lists no personas without a project [22.14ms]
+(pass) personas > create stores a persona and a later transaction reads its fields [23.01ms]
+(pass) personas > multiple personas keep separate ids and instructions [22.29ms]
+(pass) personas > update replaces the selected persona and preserves its id and creation time [22.67ms]
+(pass) personas > update reports an unknown persona without a new row [20.56ms]
+
+test/int/src/services/system.health.test.ts:
+(pass) system.health > health reports the resident memory and the database size [25.64ms]
+(pass) system.health > health carries the current gh state [22.86ms]
+(pass) system.health > health lists the URLs the server listens on [22.45ms]
+
+test/int/src/services/system.gh.test.ts:
+(pass) system.gh > the gh status reports the signed in user [26.65ms]
+(pass) system.gh > an unauthenticated gh reports reason unauthenticated [19.71ms]
+(pass) system.gh > a missing gh binary reports reason missing [1.49ms]
+
+test/int/src/services/tickets.delete.test.ts:
+(pass) tickets.delete > delete detaches the children first and cascades the rest [39.46ms]
+(pass) tickets.delete > delete leaves the project-level trace row with the identifier and title [29.74ms]
+(pass) tickets.delete > delete emits ticket.deleted with the last summary [30.80ms]
+(pass) tickets.delete > a deleted number is never reused [35.46ms]
+(pass) tickets.delete > delete with an unknown ref throws NOT_FOUND [25.20ms]
+(pass) tickets.delete > delete in an archived project throws PROJECT_ARCHIVED [23.79ms]
+
+test/int/src/services/pullRequests.link.test.ts:
+(pass) pullRequests.link > link stores the pull request that gh returned [51.41ms]
+(pass) pullRequests.link > a second link of one URL on one ticket returns the existing row [61.15ms]
+(pass) pullRequests.link > one pull request on two tickets is one row and two links [64.82ms]
+(pass) pullRequests.link > a gh failure stores fetchError and still links the pull request [44.90ms]
+(pass) pullRequests.link > link emits pr.linked and records the activity [44.96ms]
+(pass) pullRequests.link > a link records its source and its actor [63.86ms]
+(pass) pullRequests.link > link refuses an archived project and an unknown ticket [24.31ms]
+
+test/int/src/services/tickets.read.test.ts:
+(pass) tickets.list status refs > a status ref outside the project's statuses throws STATUS_NOT_IN_PROJECT [28.76ms]
+(pass) tickets.list status refs > a status ref of another project's set throws STATUS_NOT_IN_PROJECT [26.09ms]
+(pass) tickets.list status refs > a status ref that names no status anywhere throws INPUT_VALIDATION_FAILED [24.59ms]
+(pass) tickets.list status refs > a known status ref still narrows the list with and without a project [27.69ms]
+(pass) tickets.list > list resolves the project ref to the subtree [25.49ms]
+(pass) tickets.list > list with subprojects false narrows to one project [26.04ms]
+(pass) tickets.list > list resolves status refs before the query runs [25.54ms]
+(pass) tickets.list > list with a foreign cursor throws INVALID_CURSOR [26.12ms]
+(pass) tickets.board and tickets.counts > board returns one column per effective status in order [27.19ms]
+(pass) tickets.board and tickets.counts > counts reports the total and every status [24.56ms]
+(pass) tickets.get > get returns the full ticket with its children and links [28.78ms]
+(pass) tickets.get > get with an unknown ref throws NOT_FOUND [22.68ms]
+
+test/int/src/services/activity.test.ts:
+(pass) activity.record rows > one call writes one row per field with a shared batch id [28.18ms]
+(pass) activity.record rows > a description row carries deltaChars and no text [24.60ms]
+(pass) activity.record rows > a status row carries the names in the values and the ids in meta [23.21ms]
+(pass) activity.record rows > a project-level row carries a null ticket id [22.37ms]
+(pass) activity.record rows > the session lands in meta and meta defaults to an empty object [23.12ms]
+(pass) activity.record description bursts > a second description change inside 5 minutes writes no row [24.40ms]
+(pass) activity.record description bursts > another actor's description change writes its own row [23.86ms]
+(pass) activity.record description bursts > a description change after 5 minutes writes a new row [22.92ms]
+(pass) activity.record ordering and actors > the writer upserts the actor before the insert [22.70ms]
+(pass) activity.record ordering and actors > the activity ids rise with insertion order [25.75ms]
+
+test/int/src/services/commentThreads.test.ts:
+(pass) comment threads > replies name their root and a thread read includes replies outside the timeline page [36.01ms]
+(pass) comment threads > a reply cannot name a comment from another ticket [27.38ms]
+(pass) comment threads > resolve and reopen update the root and emit its comment event [37.78ms]
+(pass) comment threads > a root with replies cannot be deleted, and a reply can be deleted [34.16ms]
+(pass) comment threads > archived projects allow thread reads and reject reply and resolve writes [27.79ms]
+(pass) a brief includes the root context of a recent reply outside its last ten comments [63.80ms]
+
+test/int/src/services/settings.test.ts:
+(pass) settings > get returns the defaults on an empty table [20.09ms]
+(pass) settings > set writes one row per key and get reads them back [21.79ms]
+(pass) settings > get fills a missing key with its default [18.73ms]
+(pass) settings > set moves updated_at and writes no activity [21.71ms]
+
+test/int/src/services/archive.io.test.ts:
+(pass) io writes under an archived root > an upload throws PROJECT_ARCHIVED [29.27ms]
+(pass) io writes under an archived root > an attachment delete throws PROJECT_ARCHIVED [26.10ms]
+(pass) io writes under an archived root > a pull request link throws PROJECT_ARCHIVED [26.13ms]
+(pass) io writes under an archived root > a pull request unlink throws PROJECT_ARCHIVED [25.85ms]
+(pass) io writes under an archived project > an upload throws PROJECT_ARCHIVED [25.02ms]
+(pass) io writes under an archived project > an attachment delete throws PROJECT_ARCHIVED [23.71ms]
+(pass) io writes under an archived project > a pull request link throws PROJECT_ARCHIVED [23.95ms]
+(pass) io writes under an archived project > a pull request unlink throws PROJECT_ARCHIVED [23.85ms]
+
+test/int/src/services/tickets.batch.test.ts:
+(pass) tickets.updateMany > updateMany is one batch and one transaction [34.94ms]
+(pass) tickets.updateMany > updateMany emits one event per ticket with the shared batch id [30.25ms]
+(pass) tickets.updateMany > one bad ref rolls back the whole updateMany [26.60ms]
+(pass) tickets.updateMany > updateMany remaps every ticket status on a project change [36.16ms]
+(pass) tickets.deleteMany > deleteMany removes every ticket and leaves one trace row each [31.64ms]
+(pass) tickets.deleteMany > deleteMany rolls back when one ticket sits in an archived project [30.22ms]
+
+test/int/src/services/projects.update.test.ts:
+(pass) projects.update fields > an update writes one activity row per changed field [29.78ms]
+(pass) projects.update fields > an update to the same value writes nothing [26.91ms]
+(pass) projects.update fields > a slug change moves the dotted path of the whole subtree [29.20ms]
+(pass) projects.update fields > a slug that collides with a sibling throws DUPLICATE [23.53ms]
+(pass) projects.update root name > a rename to the name of another active root, in any letter case, throws DUPLICATE on the name field [29.56ms]
+(pass) projects.update root name > a root can change the letter case of its own name [27.20ms]
+(pass) projects.update root name > a restore of an archived root whose name an active root holds throws DUPLICATE on the name field [32.08ms]
+(pass) projects.update root name > a sub-project can take the name of a root [30.31ms]
+(pass) projects.update key > a key change is free while the ticket counter is zero [26.55ms]
+(pass) projects.update key > a key change after the counter moves throws KEY_LOCKED [25.00ms]
+(pass) projects.update archived > archive sets archived_at and unarchive clears it [30.79ms]
+
+test/int/src/services/projects.repos.test.ts:
+(pass) projects.setRepos > setRepos stores the owner and the repo in lower case [30.40ms]
+(pass) projects.setRepos > setRepos replaces the whole set and an empty array clears it [30.59ms]
+(pass) projects.setRepos > a repeated pair collapses to one repo row [25.36ms]
+(pass) projects.setRepos > setRepos writes one activity row for the repos field [25.11ms]
+(pass) effective repos > the effective repos are the project's own plus its ancestors' [22.90ms]
+
+test/int/src/services/personas.events.test.ts:
+(pass) persona events > create and update emit the persona id after commit [22.96ms]
+(pass) persona events > a failed transaction drops the persona and its queued event [20.39ms]
+(pass) a deleted persona disappears after commit and emits its id [22.43ms]
+(pass) a delete rollback retains the persona and emits no event [21.94ms]
+
+test/int/src/services/tickets.project.test.ts:
+(pass) tickets.update project > a project move remaps the status by name and category [35.13ms]
+(pass) tickets.update project > a project move falls back to the lowest status of the same category [30.27ms]
+(pass) tickets.update project > a project move falls back to the owner default status [30.08ms]
+(pass) tickets.update project > a project move across roots throws CROSS_ROOT_MOVE [23.88ms]
+(pass) tickets.update project > a project move writes the project row and the remap row in one batch [29.67ms]
+
+test/int/src/services/services.contract.test.ts:
+(pass) service transactions > a rollback drops every row and every queued event [30.25ms]
+(pass) service transactions > events reach the sink only after the commit [29.49ms]
+(pass) service modules > no service module imports the database client [26.24ms]
+(pass) service modules > every service takes ctx, tx, and input in that order [30.17ms]
+
+test/int/src/services/tickets.policy.test.ts:
+(pass) agent policy > an agent move to a done status throws AGENT_CANNOT_COMPLETE [25.82ms]
+(pass) agent policy > force lets an agent move a ticket to a done status [30.96ms]
+(pass) agent policy > an agent update to a done status throws AGENT_CANNOT_COMPLETE [23.63ms]
+(pass) agent policy > an agent create in a done status throws AGENT_CANNOT_COMPLETE and writes no ticket [22.13ms]
+(pass) agent policy > force lets an agent create a ticket in a done status [28.51ms]
+(pass) agent policy > an agent may create a ticket in a canceled status, and a human in a done status [36.81ms]
+(pass) agent policy > an agent may move a ticket to a canceled status [29.89ms]
+(pass) agent policy > a human moves a ticket to a done status without force [29.98ms]
+(pass) agent policy > an agent delete throws AGENT_CANNOT_DELETE [22.76ms]
+(pass) agent policy > force lets an agent delete a ticket [26.89ms]
+(pass) agent policy > an agent updateMany to a done status throws AGENT_CANNOT_COMPLETE [24.72ms]
+(pass) agent policy > an agent deleteMany throws AGENT_CANNOT_DELETE [23.92ms]
+
+test/int/src/services/tickets.invariant.test.ts:
+(pass) status invariant across the service tests > every service test ends with the status invariant intact [65.77ms]
+
+test/int/src/services/pullRequests.list.test.ts:
+(pass) pullRequests.list > list returns the linked pull requests of a ticket [29.32ms]
+
+test/int/src/services/attachments.upload.test.ts:
+(pass) attachments.upload > the upload hashes the stream in chunks of 1 MB or less [45.62ms]
+(pass) attachments.upload > an upload writes the row and returns the file url [29.55ms]
+(pass) attachments.upload > an image gets image markdown and any other file gets link markdown [30.78ms]
+(pass) attachments.upload > the name input replaces the file name [28.14ms]
+(pass) attachments.upload > an upload moves the ticket version and updated_at [30.46ms]
+(pass) attachments.upload > an upload emits ticket.updated with the new attachment count [33.70ms]
+(pass) attachments.upload > an upload emits attachment.created after the commit [34.31ms]
+(pass) attachments.upload > an upload writes one activity row that names the file [32.55ms]
+
+test/int/src/services/personas.persistence.test.ts:
+(pass) a persona survives a database close and reopen [64.18ms]
+
+test/int/src/services/statuses.clear.test.ts:
+(pass) statuses.clear > clear drops the own set and returns the new owner [34.85ms]
+(pass) statuses.clear > clear remaps the subtree by name, then category, then default [30.18ms]
+(pass) statuses.clear > a root cannot clear its statuses [22.29ms]
+(pass) statuses.clear > a clear on an inheriting project changes nothing [24.36ms]
+(pass) statuses.clear > clear emits statuses.changed [28.21ms]
+
+test/int/src/services/timeline.test.ts:
+(pass) timeline.list > timeline merges comments and activity newest first [29.77ms]
+(pass) timeline.list > timeline pages 100 items at a time through the cursor [52.78ms]
+(pass) timeline.list > timeline with an unknown ticket throws NOT_FOUND [22.36ms]
+
+test/int/src/services/projects.delete.test.ts:
+(pass) projects.delete > an empty sub-project deletes and leaves the trace row on the parent [27.81ms]
+(pass) projects.delete > a delete of a non-empty project throws PROJECT_NOT_EMPTY with the counts [24.55ms]
+(pass) projects.delete > force deletes the whole subtree [29.42ms]
+(pass) projects.delete > an agent cannot delete a project without force [20.76ms]
+(pass) projects.delete > an agent deletes a project with force [24.97ms]
+(pass) projects.delete > a delete of an archived project throws PROJECT_ARCHIVED [20.63ms]
+(pass) projects.delete > a forced root delete cascades to statuses, tickets, and activity [28.40ms]
+
+test/int/src/services/statuses.create.test.ts:
+(pass) statuses.create on an owner > a new status appends at the next position with a slug from the name [26.17ms]
+(pass) statuses.create on an owner > a repeated status name or slug throws DUPLICATE [20.15ms]
+(pass) statuses.create on an owner > a create with isDefault moves the default off the previous status [23.02ms]
+(pass) statuses.create on an owner > a create with a position inserts there and renumbers the set [23.44ms]
+(pass) statuses.create on an inheriting project > the first status of a sub-project copies the inherited set first [29.95ms]
+(pass) statuses.create on an inheriting project > the materialization remaps the subtree onto the copies by name [30.43ms]
+(pass) statuses.create on an inheriting project > the materialization emits statuses.changed and writes one remap batch [30.54ms]
+(pass) statuses.create on an inheriting project > a project that owns statuses copies nothing on a later create [24.87ms]
+
+test/int/src/services/attachments.read.test.ts:
+(pass) attachments read > list returns the attachments of a ticket newest first [27.34ms]
+(pass) attachments read > get returns one attachment with its url [24.21ms]
+
+test/int/src/services/brief.test.ts:
+(pass) brief.get > the brief header names the ticket, the parent, the branch, and the URL [31.46ms]
+(pass) brief.get > the brief carries the description verbatim [27.55ms]
+(pass) brief.get > the brief lists the sub-tickets with their statuses [28.18ms]
+(pass) brief.get > the brief lists the pull requests with the failing check names [28.30ms]
+(pass) brief.get > the brief lists the attachments as URLs [26.84ms]
+(pass) brief.get > the brief holds the last 10 comments newest last [30.25ms]
+(pass) brief.get > the brief omits the empty sections [26.53ms]
+(pass) brief.get > the brief ends with the fixed protocol section [27.87ms]
+(pass) brief.get > the brief output is byte-stable for the same state [33.09ms]
+(pass) brief.get > the brief writes nothing and emits nothing [26.96ms]
+(pass) brief.get > the brief with an unknown ref throws NOT_FOUND [22.78ms]
+
+test/int/src/services/projects.archive.test.ts:
+(pass) archived projects > every mutation on an archived project throws PROJECT_ARCHIVED [30.70ms]
+(pass) archived projects > unarchive is allowed on an archived project [27.99ms]
+(pass) archived projects > an archived ancestor blocks a mutation in the subtree [25.52ms]
+
+test/int/src/services/agentSessions.test.ts:
+(pass) reserveName > gives the first agent of a project a name of the pool [26.31ms]
+(pass) reserveName > passes over every name that a live agent of the project holds [31.99ms]
+(pass) reserveName > a name that another project holds stays free [55.26ms]
+(pass) reserveName > the name of an exited or a stopped agent goes back to the pool [55.20ms]
+(pass) reserveName > with every name held by a live agent the next agent gets the name and a number [56.73ms]
+
+test/int/src/services/pullRequests.unlink.test.ts:
+(pass) pullRequests.unlink event scope > the pr.unlinked event names the ticket the last link left [29.88ms]
+(pass) pullRequests.unlink > unlink keeps the row while another ticket links it [26.12ms]
+(pass) pullRequests.unlink > unlink of the last link deletes the orphan pull request row [24.97ms]
+(pass) pullRequests.unlink > unlink emits pr.unlinked and moves the ticket [25.84ms]
+(pass) pullRequests.unlink > unlink of a pull request the ticket does not hold is NOT_FOUND [24.52ms]
+
+test/int/src/services/actors.test.ts:
+(pass) actors.upsert > an unseen actor is inserted with both timestamps [20.99ms]
+(pass) actors.upsert > a second upsert inside 30 seconds writes nothing [21.09ms]
+(pass) actors.upsert > an upsert after 30 seconds flushes last_seen_at [21.23ms]
+(pass) actors.upsert > the actor cache is keyed by name and kind [20.42ms]
+(pass) actors.upsert > the system actor is stored with the system kind [20.79ms]
+(pass) actors.upsert > a service upserts the actor before its first write [25.99ms]
+(pass) actors.list and actors.default > list returns every actor newest seen first [20.31ms]
+(pass) actors.list and actors.default > the default actor comes from the settings name [19.03ms]
+(pass) actors.list and actors.default > the default actor is not stored until the settings hold a name [19.56ms]
+
+test/int/src/services/tickets.create.test.ts:
+(pass) tickets.create > create fills the defaults from the project and numbers the first ticket KEY-1 [32.85ms]
+(pass) tickets.create > create puts the ticket last in the column at max position plus 1024 [29.73ms]
+(pass) tickets.create > 50 concurrent creates yield consecutive numbers [293.40ms]
+(pass) tickets.create > a ticket in a sub-project takes the root counter and the root key [29.10ms]
+(pass) tickets.create > create accepts a status ref from the effective set [28.36ms]
+(pass) tickets.create > create rejects a status outside the project with STATUS_NOT_IN_PROJECT [24.44ms]
+(pass) tickets.create > create links the ticket to a parent in the same root [35.28ms]
+(pass) tickets.create > create rejects a parent in another root with CROSS_ROOT_MOVE [26.78ms]
+(pass) tickets.create > create on an archived project throws PROJECT_ARCHIVED [25.62ms]
+(pass) tickets.create > create with an unknown project ref throws NOT_FOUND [26.47ms]
+(pass) tickets.create > create into a started status sets started_at [33.67ms]
+(pass) tickets.create > create into a done status sets completed_at [33.52ms]
+(pass) tickets.create > create writes one ticket.created activity row with a batch id [34.74ms]
+(pass) tickets.create > create emits ticket.created with the summary and version 1 [33.20ms]
+
+test/int/src/native/chooseDirectory/chooseDirectory.test.ts:
+(pass) the folder selector returns the absolute path with spaces intact [0.26ms]
+(pass) cancel returns null [0.07ms]
+(pass) dialog errors reach the caller [0.10ms]
+
+test/int/src/agents/controller/processRecovery.test.ts:
+(pass) a committed ticket event survives hard host restart without duplicate agents [12149.70ms]
+(pass) a hard crash during a send records unknown and cannot send or launch again [14554.19ms]
+
+test/int/src/agents/controller/controller.test.ts:
+(pass) the host collects after startup and on its timer without browser events [0.42ms]
+(pass) a tick waits for its send before the next timer [0.09ms]
+
+test/int/src/db/queries/inbox.test.ts:
+(pass) inbox > inbox review lists human-review tickets oldest first [33.92ms]
+(pass) inbox > inbox failingCi lists open tickets with a failing PR [31.71ms]
+(pass) inbox > inbox stalled lists started tickets older than the threshold [28.13ms]
+(pass) inbox > inbox doneByAgentsToday reads agent done activity since the day start [30.71ms]
+(pass) inbox > inbox caps each section at 100 items and totals the rest [55.22ms]
+(pass) inbox > inbox narrows to the project subtree [29.46ms]
+
+test/int/src/db/queries/ticketList.filters.test.ts:
+(pass) ticketList filters > ticketList filters by project_id = ANY of the resolved ids [30.87ms]
+(pass) ticketList filters > ticketList honors the status, category, and reviewer filters [28.77ms]
+(pass) ticketList filters > ticketList honors the priority list [23.94ms]
+(pass) ticketList filters > ticketList honors parent none and a parent id [25.63ms]
+(pass) ticketList filters > ticketList q uses FTS with a prefix on the last token and no trigram [26.48ms]
+(pass) ticketList filters > ticketList q keeps OR semantics before the prefixed last token [26.28ms]
+(pass) ticketList filters > ticketList narrows to the roots of rootIds [28.34ms]
+(pass) ticketList filters > an open category filter with a root walks the open partial index [24.06ms]
+(pass) ticketList filters > ticketList treats updated, created, and completed as after bounds [33.95ms]
+
+test/int/src/db/queries/board.test.ts:
+(pass) board > board returns one column per effective status including empty ones [28.61ms]
+(pass) board > board lists a column by the last update, newest first, and breaks a tie by id descending [27.30ms]
+(pass) board > board caps items at 100 per column and counts the whole column [54.44ms]
+(pass) board > board honors the list filters [27.43ms]
+(pass) board > board honors the category and reviewer filters [25.87ms]
+(pass) board > board and list agree on the order of equal update times [53.57ms]
+(pass) board > board runs as one query [24.84ms]
+
+test/int/src/db/queries/statusScope.test.ts:
+(pass) statusScope > statusScope returns the inheriting subtree and stops at an owner [23.45ms]
+(pass) statusScope > statusScope follows a chain deeper than 64 projects [33.81ms]
+(pass) statusScope > statusScope of a leaf returns the leaf [19.90ms]
+
+test/int/src/db/queries/effectiveStatuses.test.ts:
+(pass) effective statuses > owner resolves through three levels to the root [23.06ms]
+(pass) effective statuses > owner is the nearest ancestor-or-self that owns statuses [23.55ms]
+(pass) effective statuses > owner is found above a chain deeper than 64 projects [34.55ms]
+(pass) effective statuses > the recursive CTE stops at depth 64 on a planted cycle [20.58ms]
+
+test/int/src/db/queries/search.test.ts:
+(pass) search > search puts the KEY-n match first [31.08ms]
+(pass) search > search answers a KEY-n text with one statement and no projects [24.81ms]
+(pass) search > search finds authentication from auth by prefix [26.80ms]
+(pass) search > search requires every leading token and prefixes the last [25.09ms]
+(pass) search > search finds a ticket through its comments and groups by ticket [25.61ms]
+(pass) search > search finds AuthService from servic via trigram [25.06ms]
+(pass) search > search skips trigram under 3 characters [28.31ms]
+(pass) search > search finds a description hit and ranks it below a title hit [26.60ms]
+(pass) search > search matches a stemmed word that no trigram finds [26.73ms]
+(pass) search > search keeps OR before the prefixed last token [27.87ms]
+(pass) search > search keeps OR semantics when the last group has several words [37.11ms]
+(pass) search > search treats an identifier beyond the integer range as text [28.40ms]
+(pass) search > search dedupes a ticket matched by both paths [26.08ms]
+(pass) search > search caps at 20 and ranks title hits first [38.40ms]
+(pass) search > search sets a local 200 ms statement timeout [24.68ms]
+(pass) search > search narrows to the project subtree [26.13ms]
+(pass) search > search narrows a KEY-n text to the project subtree [27.29ms]
+(pass) search > search returns matching projects beside tickets [25.93ms]
+(pass) search > search finds a project deeper than 64 levels [37.22ms]
+
+test/int/src/db/queries/counts.test.ts:
+(pass) counts > counts groups by status and totals [26.68ms]
+(pass) counts > counts honors the list filters [23.29ms]
+
+test/int/src/db/queries/ticketList.relations.test.ts:
+(pass) ticketList pull request and actor filters > ticketList honors every pr filter value [38.72ms]
+(pass) ticketList pull request and actor filters > ticketList honors the ci list with the worst state per ticket [27.30ms]
+(pass) ticketList pull request and actor filters > ticketList matches the actor filter against the last actor [28.65ms]
+(pass) ticketList ancestors > a summary names every ticket above it, the top of the tree first [24.04ms]
+
+test/int/src/db/queries/timeline.test.ts:
+(pass) timeline > timeline merges comments and activity newest first [25.49ms]
+(pass) timeline > timeline pages 100 per page through the before cursor [60.81ms]
+(pass) timeline > timeline holds only the requested ticket's rows [23.62ms]
+(pass) timeline > timeline orders equal timestamps deterministically [23.35ms]
+(pass) timeline > a malformed before cursor throws InvalidCursorError [23.83ms]
+
+test/int/src/db/queries/ticketList.summary.test.ts:
+(pass) ticketList summary rows > ticketList lists a ticket in a project deeper than 64 levels [40.49ms]
+(pass) ticketList summary rows > ticketList never returns description or search [25.61ms]
+(pass) ticketList summary rows > ticketList fills every summary column [29.45ms]
+
+test/int/src/db/queries/ticketList.sort.test.ts:
+(pass) ticketList sort > ticketList sorts by updatedAt with id desc as the tiebreak [31.54ms]
+(pass) ticketList sort > ticketList sorts priority by rank [27.88ms]
+(pass) ticketList sort > ticketList sorts status by category rank, position, and id [24.84ms]
+(pass) ticketList sort > ticketList sorts by number, createdAt, and position in both directions [34.18ms]
+
+test/int/src/db/queries/ticketList.cursor.test.ts:
+(pass) ticketList cursor > the keyset cursor pages every sort without gaps or overlap [200.09ms]
+(pass) ticketList cursor > a cursor from another filter or sort throws InvalidCursorError [32.99ms]
+(pass) ticketList cursor > a cursor with an unknown version throws InvalidCursorError [25.25ms]
+(pass) ticketList cursor > a malformed cursor throws InvalidCursorError [41.48ms]
+(pass) ticketList cursor > a cursor value outside the column type throws InvalidCursorError [41.85ms]
+(pass) ticketList cursor > ticketList returns at most limit rows and a cursor when more exist [90.73ms]
+
+test/int/src/services/assignments/assignments.test.ts:
+(pass) one request returns its reserved run again even when the project is at capacity [32.79ms]
+(pass) a request cannot change its persona or target [30.66ms]
+(pass) distinct request IDs permit intentional parallel assignments [28.60ms]
+(pass) native attempts keep a durable terminal ID and store only a token hash [27.00ms]
+(pass) a replacement manager attempt rejects the prior generation token [32.20ms]
+(pass) human and untracked external agent sessions do not need an attempt token [23.56ms]
+(pass) an external runtime switch preserves the old native actor guard [30.25ms]
+
+test/int/src/services/flowExecutions/persistence.test.ts:
+(pass) concurrent identical starts create one frozen execution [48.47ms]
+(pass) new starts enforce flow version, worker persona, native runtime, and pause [44.26ms]
+(pass) only a person can answer a current human step [29.96ms]
+(pass) cancel saves terminal state before any process stop [29.30ms]
+(pass) a late launch error cannot replace a person's cancellation [32.94ms]
+
+test/int/src/services/flowExecutions/claims.test.ts:
+(pass) a claimed flow task binds one ordinary attempt across concurrent claims [38.70ms]
+(pass) a task result requires its current attempt and durable first-message receipt [44.69ms]
+(pass) a host restart observes a claimed attempt without another launch [39.17ms]
+(pass) ordinary starts and flow claims share the project capacity lock [35.78ms]
+(pass) an expired flow deadline prevents a native launch [36.88ms]
+(pass) project dispatch pause prevents a new flow claim [31.71ms]
+(pass) an unconfirmed cancellation persists its error and refuses a success response [38.61ms]
+(pass) a changed project configuration records a visible flow failure [33.22ms]
+
+test/int/src/services/flowExecutions/runtime.test.ts:
+(pass) a real runtime completes a flow through a gate and human decision [1707.68ms]
+(pass) cancel stops a claimed native flow without another launch [1047.01ms]
+
+test/int/src/services/evidence/workspace.test.ts:
+(pass) working tree bytes invalidate evidence without a HEAD change [278.61ms]
+(pass) workspace files reject absolute paths, traversal, and symlink escape [114.15ms]
+(pass) a deleted tracked directory remains inspectable [150.12ms]
+(pass) the file hash does not follow a replacement leaf symlink [60.59ms]
+
+test/int/src/services/evidence/evidence.test.ts:
+(pass) current artifacts and checks permit review, then same-HEAD changes invalidate both [743.01ms]
+(pass) check timeout and bounded output persist without a shell [813.94ms]
+(pass) file preview and artifact registration reject paths outside the workspace [247.21ms]
+(pass) paused local work rejects checks before a runtime launch [250.75ms]
+(pass) a repeated check settles a confirmed exit after host recovery without another launch [578.31ms]
+(pass) evidence reads retain uncertainty until the runtime confirms the same check exited [602.29ms]
+(pass) the display limit cannot hide a failed check from review readiness [607.24ms]
+(pass) a check that changes workspace contents cannot provide current passing evidence [442.22ms]
+(pass) only the current native attempt can register evidence as its agent [285.01ms]
+(pass) concurrent requests reserve one check and launch one process [545.15ms]
+
+test/int/src/services/controller/controller.test.ts:
+(pass) activity survives a stopped manager and a later controller instance [31.72ms]
+(pass) ULID worker activity wakes the manager but its own activity does not [29.72ms]
+(pass) continuous activity cannot move the first event deadline [29.68ms]
+(pass) a restart marks an interrupted send unknown and rejects its late completion [33.75ms]
+(pass) a sent batch cannot repeat and subsequent events produce a new batch [36.15ms]
+(pass) a project without a manager persona never receives a controller batch [30.29ms]
+(pass) pause preserves queued events until the manager resumes dispatch [32.70ms]
+(pass) the controller waits until a legacy manager stops [30.53ms]
+(pass) a rollback preserves the activity cursor and creates no dispatch [31.99ms]
+(pass) a child with its own manager owns its ticket events [31.62ms]
+(pass) explicit confirmation unblocks the next batch without a resend [37.88ms]
+(pass) a transport failure records unknown once and never automatically resends [320.34ms]
+
+test/int/src/services/controller/nativeReadiness.test.ts:
+(pass) native dispatch waits for the current conversation to become idle without permissions [42.79ms]
+(pass) a durable late receipt clears unknown after host recovery without another send [32.33ms]
+(pass) an old dispatch generation receipt cannot confirm an explicit retry [33.04ms]
+(pass) a receipt from a different attempt cannot confirm the dispatch [30.94ms]
+
+test/int/src/services/agentRuns/nativeStart.test.ts:
+(pass) a stopped start cannot commit its workspace or launch [23.41ms]
+(pass) a replaced start cannot commit its workspace or launch [22.35ms]
+
+test/int/src/services/agentRuns/readNativeHarness.test.ts:
+(pass) the saved cursor survives host restart and preserves partial UTF-8 [30.59ms]
+(pass) consumed output can expire while old message receipts remain durable [75.64ms]
+(pass) lost unread bytes remain unknown and do not acknowledge messages [24.52ms]
+(pass) temporary runtime loss preserves parser state for reconnect [27.94ms]
+(pass) a replaced attempt cannot persist receipts or output [24.72ms]
+(pass) concurrent readers share one read and release the completed promise [24.31ms]
+(pass) the final read records process exit separately from turn state [24.68ms]
+(pass) a deliberate stop preserves a completed structured result [26.50ms]
+
+test/int/src/services/agentRuns/nativeControl.test.ts:
+(pass) a durable local stop prevents new agent reservations until a person resumes [599.87ms]
+
+test/int/src/services/agentRuns/nativeReconcile.test.ts:
+(pass) the same completed turn produces one activity after host restart [29.81ms]
+(pass) a stale attempt cannot overwrite the current attempt or produce activity [24.31ms]
+(pass) a manager observation produces no ticket event [25.52ms]
+(pass) new transcript text does not repeat a completed turn event [24.15ms]
+(pass) a reconnect does not announce the same turn again [28.29ms]
+(pass) background reconciliation records an exited worker without a UI call [24.98ms]
+(pass) runtime failure preserves the transcript and result in the database [26.74ms]
+(pass) background observation leaves an in-flight launch to its owner [22.49ms]
+(pass) an expired runtime log cannot erase the saved transcript [25.86ms]
+(pass) an exited attempt stays eligible until its final process observation is saved [25.56ms]
+
+test/int/src/services/nativeMigration/migration.test.ts:
+(pass) apply starts paused and untrusted; rollback restores the exact original config [41.64ms]
+(pass) apply rejects a stale inventory and an agent actor [24.40ms]
+(pass) concurrent apply replay creates one migration and rejects changed request bytes [30.23ms]
+(pass) descendant agents block apply with their IDs and retain both conversation references [38.43ms]
+(pass) unassigned events stay queued while an assigned unknown delivery blocks apply [37.15ms]
+(pass) rollback preserves new files and evidence, then replay leaves later config changes intact [60.06ms]
+(pass) a native check with an unresolved process blocks rollback even after its agent stops [35.05ms]
+(pass) review delivery remains a blocker after its recipient reads it [27.25ms]
+(pass) waiting flows and unfinished stop requests block a project migration [39.86ms]
+
+test/int/src/services/reviews/image.test.ts:
+(pass) image redirects resolve from the last URL and never forward the token [0.60ms]
+(pass) an image redirect to another host is refused before a fetch [0.10ms]
+
+ 1173 pass
+ 0 fail
+ 5023 expect() calls
+Ran 1173 tests across 202 files. [682.80s]
