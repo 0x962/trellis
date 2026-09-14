@@ -10,9 +10,11 @@ import {
 } from "@trellis/runtime-protocol";
 import { acquireRuntimeLock } from "./runtimeLock.ts";
 import { SessionStore } from "./sessionStore.ts";
+import { validateSocketPath } from "./socketPath.ts";
 import { validateRequest } from "./validateRequest.ts";
 
 export async function startRuntime(home: string) {
+	validateSocketPath(join(home, "runtime.sock"));
 	mkdirSync(home, { recursive: true, mode: 0o700 });
 	chmodSync(home, 0o700);
 	const releaseLock = await acquireRuntimeLock(home);
@@ -40,6 +42,10 @@ export async function startRuntime(home: string) {
 				const p = request.params as RuntimeMethods["input"]["params"];
 				return store.input(p.id, p.data);
 			}
+			case "deliver": {
+				const p = request.params as RuntimeMethods["deliver"]["params"];
+				return store.deliver(p.id, p.messageId, p.data);
+			}
 			case "resize": {
 				const p = request.params as RuntimeMethods["resize"]["params"];
 				return store.resize(p.id, p.cols, p.rows);
@@ -48,7 +54,7 @@ export async function startRuntime(home: string) {
 				return store.stop((request.params as RuntimeMethods["stop"]["params"]).id);
 			case "output": {
 				const p = request.params as RuntimeMethods["output"]["params"];
-				return store.output(p.id, p.offset);
+				return store.output(p.id, p.offset, p.stream);
 			}
 		}
 	}

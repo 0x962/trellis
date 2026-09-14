@@ -1,15 +1,15 @@
 import { expect, test } from "bun:test";
-import type { RuntimeRequest } from "@trellis/runtime-protocol";
+import { RUNTIME_PROTOCOL_VERSION, type RuntimeRequest } from "@trellis/runtime-protocol";
 import { validateRequest } from "./validateRequest.ts";
 
 const launch: RuntimeRequest = {
 	id: "request",
-	version: 1,
+	version: RUNTIME_PROTOCOL_VERSION,
 	method: "start",
 	params: { id: "attempt", command: "/bin/cat", args: [], cwd: "/tmp", mode: "stdio" },
 };
 test("requires a compatible protocol before launch", () => {
-	expect(() => validateRequest({ ...launch, version: 2 })).toThrow("incompatible");
+	expect(() => validateRequest({ ...launch, version: RUNTIME_PROTOCOL_VERSION + 1 })).toThrow("incompatible");
 });
 test("rejects paths in session identifiers", () => {
 	expect(() => validateRequest({ ...launch, params: { ...launch.params, id: "../../other" } })).toThrow(

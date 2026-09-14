@@ -224,3 +224,56 @@ test("a missing executable retains its actionable launch error", async () => {
 	);
 	expect(sessions.find((row) => row.id === session.id)?.error).toContain("ENOENT");
 });
+test("keyed input is written once across concurrent calls", async () => {
+	const session = await client.start({ id: "keyed-input", command: "/bin/cat", args: [], cwd: home, mode: "stdio" });
+	const bytes = Buffer.from("one message\n").toString("base64");
+	const deliveries = await Promise.all(Array.from({ length: 8 }, () => client.deliver(session.id, "message-1", bytes)));
+	expect(deliveries.every((delivery) => delivery.status === "written")).toBe(true);
+	const output = await waitFor(
+		() => client.output(session.id),
+		(out) => out.nextOffset > 0,
+	);
+	expect(Buffer.from(output.data, "base64").toString()).toBe("one message\n");
+	await expect(client.deliver(session.id, "message-1", Buffer.from("different").toString("base64"))).rejects.toThrow(
+		"different bytes",
+	);
+	await client.stop(session.id);
+});
+test("structured stdout does not mix with stderr diagnostics", async () => {
+	const session = await client.start({
+		id: "separate-stderr",
+		command: runtimeNode,
+		args: ["-e", "process.stdout.write('json\\n');process.stderr.write('diagnostic\\n')"],
+		cwd: home,
+		mode: "stdio",
+		separateStderr: true,
+	});
+	await waitFor(
+		() => client.list(),
+		(rows) => rows.find((row) => row.id === session.id)?.status === "exited",
+	);
+	expect(Buffer.from((await client.output(session.id)).data, "base64").toString()).toBe("json\n");
+	expect(Buffer.from((await client.output(session.id, 0, "stderr")).data, "base64").toString()).toBe("diagnostic\n");
+});
+test("unknown keyed input stays unknown and is not sent again", async () => {
+	const bytes = Buffer.from("uncertain\n").toString("base64");
+	await expect(client.deliver("missing", "unknown-message", bytes)).rejects.toThrow("exited");
+	expect((await client.deliver("missing", "unknown-message", bytes)).status).toBe("unknown");
+});
+test("keyed input records survive a daemon restart", async () => {
+	daemon.kill("SIGTERM");
+	await new Promise<void>((resolve) => daemon.once("exit", () => resolve()));
+	daemon = spawn(runtimeNode, [resolve(sourceDir, "../dist/index.js"), "--home", home], {
+		stdio: ["ignore", "pipe", "inherit"],
+	});
+	await new Promise<void>((resolve, reject) => {
+		daemon.stdout!.once("data", () => resolve());
+		daemon.once("exit", (code) => reject(new Error(`Runtime exited ${code}`)));
+	});
+	expect(
+		(await client.deliver("missing", "unknown-message", Buffer.from("uncertain\n").toString("base64"))).status,
+	).toBe("unknown");
+	expect(
+		(await client.deliver("keyed-input", "message-1", Buffer.from("one message\n").toString("base64"))).status,
+	).toBe("written");
+});

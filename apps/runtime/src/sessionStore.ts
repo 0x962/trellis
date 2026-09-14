@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { LaunchSpec, RuntimeSession } from "@trellis/runtime-protocol";
+import { InputLedger } from "./inputLedger.ts";
 import { createProcessHandle, type ProcessHandle } from "./processHandle.ts";
 import { SessionLog } from "./sessionLog.ts";
 
@@ -9,6 +10,8 @@ type Record = {
 	session: RuntimeSession;
 	fingerprint: string | null;
 	log: SessionLog;
+	stderr: SessionLog;
+	ledger: InputLedger;
 	process?: ProcessHandle;
 	stopped: Promise<void>;
 	resolveStop: () => void;
@@ -29,6 +32,8 @@ export class SessionStore {
 			const record = {
 				...saved,
 				log: new SessionLog(join(home, `${saved.session.id}.output.json`)),
+				stderr: new SessionLog(join(home, `${saved.session.id}.stderr.json`)),
+				ledger: new InputLedger(join(home, `${saved.session.id}.input.json`)),
 				stopped: Promise.resolve(),
 				resolveStop: () => {},
 			};
@@ -62,6 +67,7 @@ export class SessionStore {
 					Object.entries(spec.env ?? {}).sort(),
 					spec.cols ?? 80,
 					spec.rows ?? 24,
+					spec.separateStderr ?? false,
 				]),
 			)
 			.digest("hex");
@@ -92,6 +98,8 @@ export class SessionStore {
 			session,
 			fingerprint,
 			log: new SessionLog(join(this.home, `${spec.id}.output.json`)),
+			stderr: new SessionLog(join(this.home, `${spec.id}.stderr.json`)),
+			ledger: new InputLedger(join(this.home, `${spec.id}.input.json`)),
 			stopped,
 			resolveStop,
 		};
@@ -110,6 +118,7 @@ export class SessionStore {
 			record.process = createProcessHandle(
 				spec,
 				(data) => record.log.append(data),
+				(data) => record.stderr.append(data),
 				(code) => exit(code),
 				(error) => exit(null, error.message),
 			);
@@ -127,6 +136,11 @@ export class SessionStore {
 		if (!record.process) throw new Error(`Session ${id} is ${record.session.status}`);
 		record.process.input(Buffer.from(data, "base64"));
 		return null;
+	}
+	deliver(id: string, messageId: string, data: string) {
+		return this.get(id).ledger.deliver(messageId, data, () => {
+			this.input(id, data);
+		});
 	}
 	resize(id: string, cols: number, rows: number) {
 		const record = this.get(id);
@@ -151,6 +165,8 @@ export class SessionStore {
 				},
 				fingerprint: null,
 				log: new SessionLog(join(this.home, `${id}.output.json`)),
+				stderr: new SessionLog(join(this.home, `${id}.stderr.json`)),
+				ledger: new InputLedger(join(this.home, `${id}.input.json`)),
 				stopped: Promise.resolve(),
 				resolveStop: () => {},
 			};
@@ -164,8 +180,8 @@ export class SessionStore {
 		}
 		return record.session;
 	}
-	output(id: string, offset: number) {
-		return this.get(id).log.read(offset);
+	output(id: string, offset: number, stream: "stdout" | "stderr" = "stdout") {
+		return (stream === "stderr" ? this.get(id).stderr : this.get(id).log).read(offset);
 	}
 	async stopAll() {
 		await Promise.all(

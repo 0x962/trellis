@@ -17,7 +17,7 @@ The manifest contains the protocol version, daemon identifier, PID, start time, 
 
 ## Protocol
 
-Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens one socket connection. Requests and responses use newline-delimited JSON with protocol version 1.
+Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens one socket connection. Requests and responses use newline-delimited JSON with protocol version 2.
 
 | Method | Input | Result |
 | --- | --- | --- |
@@ -25,15 +25,18 @@ Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens 
 | `list` | None | All recorded sessions |
 | `start` | Launch specification | Session |
 | `input` | Session identifier, base64 bytes | Null |
+| `deliver` | Session identifier, message identifier, base64 bytes | Written or unknown |
 | `resize` | Session identifier, columns, rows | Null |
 | `stop` | Session identifier | Session |
 | `output` | Session identifier, byte offset | Base64 bytes and retained byte interval |
 
-A launch specification holds `id`, `command`, `args`, `cwd`, and `mode`. Optional fields are `env`, `cols`, and `rows`. The modes are `pty` and `stdio`. The host assigns a distinct identifier to each execution attempt.
+A launch specification holds `id`, `command`, `args`, `cwd`, and `mode`. Optional fields are `env`, `cols`, and `rows`. The modes are `pty` and `stdio`. `separateStderr: true` retains standard error in its own log. `output(id, offset, "stderr")` reads that log. The host assigns a distinct identifier to each execution attempt.
 
 A repeated launch identifier returns its existing session. A changed command under that identifier returns `LAUNCH_CONFLICT`. The runtime records the identifier before it starts the process. A stop before launch records cancellation, so a delayed launch cannot create a process.
 
-A transport error after a request means the result is unknown. A caller reconciles a launch through its existing identifier. Input calls have no automatic resend. The host must preserve an unknown input result until its harness can establish receipt.
+A transport error after a request means the result is unknown. A caller reconciles a launch through its existing identifier. Keyed `deliver` calls persist the message identifier and byte hash before they write input. Repeated calls return the recorded outcome. An interrupted write remains unknown and never resends automatically. `written` means the runtime queued bytes, not that the agent accepted the message.
+
+Input calls have no automatic resend. The host must preserve an unknown input result until its harness can establish receipt.
 
 `running` describes a process. It does not establish agent readiness, a current turn, or useful output. After a runtime crash, prior active sessions become `unknown`. Their recorded identifiers cannot create replacement processes.
 

@@ -74,13 +74,16 @@ export class RuntimeClient {
 	input(id: string, data: string) {
 		return this.call("input", { id, data });
 	}
+	deliver(id: string, messageId: string, data: string) {
+		return this.call("deliver", { id, messageId, data });
+	}
 	resize(id: string, cols: number, rows: number) {
 		return this.call("resize", { id, cols, rows });
 	}
 	stop(id: string) {
 		return this.call("stop", { id });
 	}
-	output(id: string, offset = 0) {
-		return this.call("output", { id, offset });
+	output(id: string, offset = 0, stream: "stdout" | "stderr" = "stdout") {
+		return this.call("output", { id, offset, stream });
 	}
 }

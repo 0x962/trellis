@@ -8,7 +8,7 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		throw Object.assign(new Error("Runtime protocol version is incompatible"), { code: "PROTOCOL_MISMATCH" });
 	const params = request.params as Record<string, unknown>;
 	if (!params || typeof params !== "object") throw new Error("Request parameters are required");
-	if (["start", "input", "resize", "stop", "output"].includes(request.method)) {
+	if (["start", "input", "deliver", "resize", "stop", "output"].includes(request.method)) {
 		if (typeof params.id !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.id))
 			throw new Error("Session identifier must contain letters, numbers, underscores, or hyphens");
 	}
@@ -42,7 +42,13 @@ export function validateRequest(value: unknown): RuntimeRequest {
 				)
 					throw new Error("Terminal dimensions must be between 1 and 1000");
 			break;
+		case "deliver":
 		case "input":
+			if (
+				request.method === "deliver" &&
+				(typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))
+			)
+				throw new Error("Message identifier is required");
 			if (
 				typeof params.data !== "string" ||
 				!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(params.data)
@@ -55,6 +61,8 @@ export function validateRequest(value: unknown): RuntimeRequest {
 					throw new Error("Terminal dimensions must be between 1 and 1000");
 			break;
 		case "output":
+			if (params.stream !== undefined && params.stream !== "stdout" && params.stream !== "stderr")
+				throw new Error("Output stream must be stdout or stderr");
 			if (!Number.isSafeInteger(params.offset) || (params.offset as number) < 0)
 				throw new Error("Output offset must be a positive byte count");
 			break;

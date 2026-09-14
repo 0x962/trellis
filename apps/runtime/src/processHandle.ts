@@ -12,6 +12,7 @@ export interface ProcessHandle {
 export function createProcessHandle(
 	spec: LaunchSpec,
 	output: (data: Buffer) => void,
+	stderr: (data: Buffer) => void,
 	exited: (code: number | null) => void,
 	failed: (error: Error) => void,
 ): ProcessHandle {
@@ -36,7 +37,7 @@ export function createProcessHandle(
 	}
 	const child = spawn(spec.command, spec.args, { cwd: spec.cwd, env, detached: true, stdio: "pipe" });
 	child.stdout.on("data", output);
-	child.stderr.on("data", output);
+	child.stderr.on("data", spec.separateStderr ? stderr : output);
 	child.once("error", failed);
 	child.once("close", exited);
 	return {
