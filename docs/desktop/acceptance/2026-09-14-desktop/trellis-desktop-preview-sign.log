@@ -1,0 +1,23 @@
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Resources/host/bin/bun: replacing existing signature
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Resources/host/bin/node: replacing existing signature
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Resources/host/modules/fsevents@2.3.3_48/fsevents.node: replacing existing signature
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Resources/host/modules/fs-ext@2.1.1_57/build/Release/fs_ext.node: replacing existing signature
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Resources/host/modules/node-pty@1.2.0-beta.15_55/prebuilds/darwin-arm64/pty.node: replacing existing signature
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Resources/host/modules/node-pty@1.2.0-beta.15_55/prebuilds/darwin-arm64/spawn-helper: replacing existing signature
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Resources/host/modules/@esbuild_darwin-arm64@0.28.2_47/bin/esbuild: replacing existing signature
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Resources/host/modules/esbuild@0.28.2_46/bin/esbuild: replacing existing signature
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Resources/host/modules/esbuild@0.18.20_36/bin/esbuild: replacing existing signature
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Resources/host/modules/@koromix_koffi-darwin-arm64@3.3.0_60/darwin_arm64/koffi.node: replacing existing signature
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Resources/host/modules/@esbuild_darwin-arm64@0.18.20_37/bin/esbuild: replacing existing signature
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Resources/host/modules/@esbuild_darwin-arm64@0.25.12_44/bin/esbuild: replacing existing signature
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app: replacing existing signature
+/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app: replacing existing signature
+{
+  "application": "/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app",
+  "binaries": 15,
+  "release": {
+    "id": "7b9a1cbe8fd516128d28a4633aafd7a525dc233266450da4b45eca56e249a428",
+    "version": "0.0.0",
+    "protocol": 5
+  }
+}

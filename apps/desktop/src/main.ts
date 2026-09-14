@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from "electron";
+import { configureDesktopIdentity } from "./desktopIdentity/desktopIdentity.ts";
 import { desktopPaths } from "./desktopPaths/desktopPaths.ts";
 import { adoptHost, connectHost, type HostConnection } from "./host/host.ts";
 import { deepLinkPath, externalUrl, sameOrigin } from "./navigation/navigation.ts";
@@ -102,9 +103,9 @@ const navigate = async (url: string) => {
 	}
 };
 
+configureDesktopIdentity(app);
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
-	app.setName("Trellis");
 	app.setAsDefaultProtocolClient("trellis");
 	app.on("open-url", (event, url) => {
 		event.preventDefault();

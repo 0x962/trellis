@@ -12,7 +12,7 @@ bun run --cwd apps/desktop build
 TRELLIS_DESKTOP_HOME=/tmp/trellis-desktop-dev bun run --cwd apps/desktop dev
 ```
 
-In development, `TRELLIS_DESKTOP_HOME` selects the host data directory. Packaged service registration uses the fixed application data directory. The default is the `host` directory inside Electron's application data directory. This release does not import `~/.trellis` automatically.
+In development, `TRELLIS_DESKTOP_HOME` selects the host data directory. Packaged service registration uses the fixed application data directory. The default is `~/Library/Application Support/Trellis/host`. Trellis sets its data directory before it requests the single-instance lock. This release does not import `~/.trellis` automatically.
 
 On first launch, choose New Trellis data or Import existing Trellis data. The import preview shows the source and target paths, file size, ticket counts, and active work blockers. Stop the source host before you import. Trellis requests confirmation before it copies the reviewed source version.
 
@@ -51,6 +51,26 @@ bun apps/desktop/scripts/smoke.ts apps/desktop/release/mac-arm64/Trellis.app/Con
 ```
 
 `package` creates an unpacked macOS application. `dist:mac` creates DMG and ZIP artifacts. Set the Electron Builder signing and notarization credentials for distribution. A local package can use `CSC_IDENTITY_AUTO_DISCOVERY=false` for an unsigned feasibility check.
+
+## Local preview signature
+
+After you build the app, run this command from the repository root:
+
+```sh
+bun apps/desktop/scripts/sign-preview.ts apps/desktop/release/mac-arm64/Trellis.app
+```
+
+The command signs native host binaries and the app with the local ad-hoc identity `-`. It recalculates the host release hash before it seals the outer app. It then verifies the nested signatures and the complete app.
+
+This local preview disables hardened runtime through `codesign --options 0`. Ad-hoc binaries have no shared Team ID, so library validation rejects the native modules with hardened runtime enabled. The production entitlement file and Developer ID build settings retain their existing settings. The preview has no Developer ID signature or notarization.
+
+To verify actual Electron startup with an isolated service and data home:
+
+```sh
+TRELLIS_DESKTOP_PREVIEW_APP="$PWD/apps/desktop/release/mac-arm64/Trellis.app" bun test apps/desktop/test/int/src/preview/preview.test.ts
+```
+
+The test copies the app and uses a unique service label. It redirects the production data path to a scratch directory before any directory creation. It also disables protocol registration and answers only the fixture's two startup prompts. It verifies renderer load and removes the temporary service.
 
 ## Manual app replacement
 

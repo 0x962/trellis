@@ -1,0 +1,22 @@
+--prepared:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/MacOS/TrellisHost
+--validated:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/MacOS/TrellisHost
+--prepared:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Squirrel.framework/Versions/Current/.
+--prepared:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Mantle.framework/Versions/Current/.
+--prepared:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current/.
+--validated:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Squirrel.framework/Versions/Current/.
+--validated:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current/.
+--validated:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Mantle.framework/Versions/Current/.
+--prepared:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Trellis Helper (GPU).app
+--prepared:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Trellis Helper.app
+--validated:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Trellis Helper (GPU).app
+--validated:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Trellis Helper.app
+--prepared:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Trellis Helper (Renderer).app
+--prepared:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Trellis Helper (Plugin).app
+--validated:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Trellis Helper (Renderer).app
+--validated:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Trellis Helper (Plugin).app
+--prepared:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/.
+--prepared:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler
+--validated:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler
+--validated:/Users/navidkhan/.superset/worktrees/974494a1-2921-48f1-b1b1-9589e4a5f428/talented-knot/apps/desktop/release/mac-arm64/Trellis.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/.
+apps/desktop/release/mac-arm64/Trellis.app: valid on disk
+apps/desktop/release/mac-arm64/Trellis.app: satisfies its Designated Requirement
