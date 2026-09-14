@@ -42,7 +42,7 @@ bun run --cwd apps/desktop package
 
 The staging step copies the server, database worker, migrations, PGlite assets, CLI, web assets, and execution runtime. It includes Bun and Node binaries for the build machine's architecture. The package records a SHA-256 hash for the complete dependency tree, binaries, and relative links. Before host launch, Trellis copies that release into the `releases` directory beside its `host` data directory. Host processes use these retained files. Links cannot point outside the release.
 
-`smoke` opens a fresh database outside the repository. It tests authenticated HTTP, web assets, the bundled CLI, and the native PTY with the bundled Node binary. It also restarts the host and checks that the same PTY remains active.
+`smoke` copies the full package into a temporary directory outside the repository. It opens a fresh database and tests authenticated HTTP, web assets, the bundled CLI, the native PTY, and process ownership calls. It also restarts the host and checks that the same PTY remains active.
 
 To test the resources inside a built application:
 

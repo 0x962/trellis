@@ -63,7 +63,7 @@ test("app removal preserves the runtime and new native children from pinned reso
 			args: [
 				"--input-type=module",
 				"-e",
-				'import pty from "node-pty"; import fs from "fs-ext"; if(typeof fs.flockSync !== "function") process.exit(2); const child=pty.spawn("/bin/echo",["pinned native modules work"]); child.onData(data=>process.stdout.write(data)); child.onExit(({exitCode})=>process.exit(exitCode));',
+				'import pty from "node-pty"; import fs from "fs-ext"; import {load} from "koffi"; if(load(null).func("int getpid()")() !== process.pid) process.exit(3); if(typeof fs.flockSync !== "function") process.exit(2); const child=pty.spawn("/bin/echo",["pinned native modules work"]); child.onData(data=>process.stdout.write(data)); child.onExit(({exitCode})=>process.exit(exitCode));',
 			],
 			cwd: join(pinned.root, "apps/runtime"),
 			mode: "pty",

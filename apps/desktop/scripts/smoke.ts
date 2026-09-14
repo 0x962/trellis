@@ -1,16 +1,18 @@
 import { strict as assert } from "node:assert";
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { connectHost } from "../src/host/host.ts";
+import { pinResources } from "../src/pinnedResources/pinnedResources.ts";
 
-const staged = process.argv[2] ? resolve(process.argv[2]) : resolve(import.meta.dir, "../dist/host");
-const home = await mkdtemp(join(tmpdir(), "trellis-desktop-smoke-"));
+const source = process.argv[2] ? resolve(process.argv[2]) : resolve(import.meta.dir, "../dist/host");
+const directory = await mkdtemp("/tmp/trl-smoke-");
+const home = join(directory, "home");
 let pid: number | undefined;
 let daemon: ReturnType<typeof Bun.spawn> | undefined;
 try {
+	const { root: staged } = await pinResources(source, home);
 	const options = {
 		home,
 		executable: join(staged, "bin/bun"),
@@ -40,7 +42,7 @@ try {
 			join(staged, "bin/node"),
 			"--input-type=module",
 			"-e",
-			'import pty from "node-pty"; const t = pty.spawn("/bin/echo", ["trellis-packaged-pty"]); t.onData(data => process.stdout.write(data)); t.onExit(({exitCode}) => process.exit(exitCode));',
+			'import pty from "node-pty"; import {load} from "koffi"; if(load(null).func("int getpid()")() !== process.pid) process.exit(2); const t = pty.spawn("/bin/echo", ["trellis-packaged-pty"]); t.onData(data => process.stdout.write(data)); t.onExit(({exitCode}) => process.exit(exitCode));',
 		],
 		{ cwd: join(staged, "apps/runtime"), env: { PATH: "/usr/bin:/bin" }, stdout: "pipe", stderr: "pipe" },
 	);
@@ -83,6 +85,7 @@ try {
 				rendererAssets: "pass",
 				bundledCli: "pass",
 				bundledPty: "pass",
+				bundledProcessOwnership: "pass",
 				ptySurvivesHostRestart: "pass",
 				stableRendererOrigin: "pass",
 				build: JSON.parse(await readFile(join(staged, "build.json"), "utf8")),
@@ -98,5 +101,5 @@ try {
 	}
 	if (pid) process.kill(pid, "SIGTERM");
 	await Bun.sleep(1000);
-	await rm(home, { recursive: true, force: true });
+	await rm(directory, { recursive: true, force: true });
 }

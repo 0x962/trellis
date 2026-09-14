@@ -115,3 +115,26 @@ test("a failed import retains its target and shows an archive rollback command",
 		await rm(directory, { recursive: true, force: true });
 	}
 });
+
+test("Cancel leaves first launch without data or maintenance work", async () => {
+	const directory = await mkdtemp("/tmp/trl-import-cancel-");
+	const home = join(directory, "host");
+	try {
+		const accepted = await prepareHome(
+			{ home, resources: directory },
+			{
+				message: async () => ({ response: 2 }),
+				chooseSource: async () => {
+					throw new Error("Cancel must not open the source picker.");
+				},
+				maintenance: async () => {
+					throw new Error("Cancel must not start maintenance.");
+				},
+			},
+		);
+		expect(accepted).toBe(false);
+		expect(existsSync(home)).toBe(false);
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+});

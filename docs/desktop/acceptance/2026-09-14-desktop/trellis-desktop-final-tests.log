@@ -1,0 +1,41 @@
+$ bun test test/int --timeout=60000
+bun test v1.3.13 (bf2e2cec)
+
+test/int/src/host/host.test.ts:
+(pass) a desktop host opens a worker database and reconnects to its existing owner [2431.12ms]
+(pass) a second desktop waits for an existing host during its cold boot [1027.07ms]
+
+test/int/src/prepareHome/prepareHome.real.test.ts:
+(pass) the packaged maintenance entry imports a stopped scratch host through the desktop preview [4657.96ms]
+
+test/int/src/prepareHome/prepareHome.test.ts:
+(pass) import confirms concrete paths before any host token exists [0.56ms]
+(pass) active work blocks import and never starts a copy [0.36ms]
+(pass) a failed import retains its target and shows an archive rollback command [0.80ms]
+(pass) Cancel leaves first launch without data or maintenance work [0.21ms]
+
+test/int/src/desktopPaths/preload.test.ts:
+(pass) the compiled preload exposes its narrow bridge inside a sandboxed Electron renderer [691.19ms]
+
+test/int/src/pinnedResources/pinnedResources.test.ts:
+(pass) app removal preserves the runtime and new native children from pinned resources [9637.38ms]
+
+test/int/src/homeImportClient/homeImportClient.test.ts:
+(pass) maintenance passes selected paths as literal arguments and preserves errors [33.26ms]
+
+test/int/src/stopHostWork/stopHostWork.test.ts:
+(pass) an uncertain local stop leaves the background service registered [1.57ms]
+(pass) the service stops only after the host confirms the local processes stopped [1.19ms]
+
+test/int/src/loginEnvironment/loginEnvironment.test.ts:
+(pass) a login shell supplies the agent PATH while bundled executables stay first [16.66ms]
+(pass) shell startup errors do not expose environment values in the desktop error [197.98ms]
+
+test/int/src/service/service.test.ts:
+(pass) an isolated launchd service restarts the host without a desktop process [8948.61ms]
+(pass) SMAppService registers an isolated app and supervises its relocated host [10632.87ms]
+
+ 16 pass
+ 0 fail
+ 67 expect() calls
+Ran 16 tests across 9 files. [38.36s]
