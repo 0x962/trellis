@@ -1,0 +1,27 @@
+{
+	"name": "@trellis/desktop",
+	"version": "0.0.0",
+	"private": true,
+	"license": "Apache-2.0",
+	"description": "Trellis desktop for macOS",
+	"author": "Trellis",
+	"main": "dist/main.cjs",
+	"scripts": {
+		"dev": "bun run build:main && electron .",
+		"start": "electron .",
+		"build:main": "bun scripts/build.ts",
+		"build": "bun run --cwd ../web build && bun run --cwd ../runtime build && bun run build:main && bun scripts/stage.ts",
+		"package": "bun run build && electron-builder --config electron-builder.json --mac --dir",
+		"dist:mac": "bun run build && electron-builder --config electron-builder.json --mac dmg zip",
+		"test": "bun test src --path-ignore-patterns '**/test/int/**'",
+		"test:int": "bun test test/int --timeout=60000",
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"smoke": "bun scripts/smoke.ts"
+	},
+	"devDependencies": {
+		"electron": "44.3.0",
+		"electron-builder": "26.15.3",
+		"node": "26.8.2",
+		"@trellis/runtime-protocol": "workspace:*"
+	}
+}

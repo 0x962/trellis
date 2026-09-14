@@ -1,0 +1,17 @@
+{
+	"appId": "com.trellis.desktop",
+	"productName": "Trellis",
+	"directories": { "output": "release" },
+	"files": ["dist/*.cjs", "package.json"],
+	"extraResources": [{ "from": "dist/host", "to": "host" }],
+	"asar": true,
+	"npmRebuild": false,
+	"protocols": [{ "name": "Trellis", "schemes": ["trellis"] }],
+	"mac": {
+		"category": "public.app-category.developer-tools",
+		"minimumSystemVersion": "13.0",
+		"hardenedRuntime": true,
+		"entitlements": "entitlements.mac.plist",
+		"entitlementsInherit": "entitlements.mac.plist"
+	}
+}
