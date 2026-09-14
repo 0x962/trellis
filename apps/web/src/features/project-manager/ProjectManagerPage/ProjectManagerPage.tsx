@@ -1,4 +1,4 @@
-import { Pause, Play } from "@phosphor-icons/react";
+import { Play, Stop } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
@@ -8,29 +8,27 @@ import {
 	type ProjectManagerConfig,
 	ProjectManagerConfigSchema,
 } from "@trellis/api";
-import { Button, IconButton, Tooltip, toast } from "@trellis/ui";
+import { Button, IconButton, Switch, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
+import { ManagerQueue } from "../ManagerQueue";
 import { AgentEnvironment } from "./components/AgentEnvironment";
 import { GeneralSettings } from "./components/GeneralSettings";
 import { HarnessSettings } from "./components/HarnessSettings";
 
-// Status opens the page, so it takes the empty hash and the bare URL
-// `/p/<path>/settings/manager` shows it.
+// The empty hash opens Operation at `/p/<path>/settings/manager`.
 const sections = [
-	{ id: "", label: "Status" },
+	{ id: "", label: "Operation" },
 	{ id: "settings", label: "General" },
 	{ id: "ade", label: "ADE" },
 	{ id: "harness", label: "Harness" },
 ];
 
-// True while the manager holds its terminal, so Pause has a terminal to
-// close. An interrupted manager has none the server can find, so Play
-// starts it again.
+// A starting or running manager holds a process that Stop can close.
 const atWork = (run: AgentRun) => run.state === "starting" || run.state === "running";
 
 export function ProjectManagerPage({ project }: { project: Project }) {
@@ -82,9 +80,9 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 		mutationFn: () => client.agentRuns.stop({ id: manager!.id }),
 		onSuccess: async () => {
 			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
-			toast.success(`${manager!.name} pauses now`);
+			toast.success(`${manager!.name} stops now`);
 		},
-		onError: (error) => toast.error("Could not pause the manager", { description: error.message }),
+		onError: (error) => toast.error("Could not stop the manager", { description: error.message }),
 	});
 	const persona = personas.data?.find((item) => item.id === draft.personaId);
 	const readOnly = project.archivedAt !== null;
@@ -93,37 +91,31 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 		<>
 			<Topbar
 				actions={
-					<>
-						{/* One control runs the one manager of the project: Pause while it
-						    holds a terminal, else Play. Pause closes the terminal and keeps
-						    the session, and Play opens a terminal that continues that
-						    session. */}
-						{active ? (
-							<Tooltip content="Pause the manager">
-								<IconButton
-									label="Pause manager"
-									icon={<Pause weight="fill" />}
-									size="sm"
-									variant="default"
-									disabled={readOnly || manager.state === "starting" || pause.isPending}
-									onClick={() => pause.mutate()}
-								/>
-							</Tooltip>
-						) : (
-							<Tooltip content={resumes ? "Resume the manager" : "Start the manager"}>
-								<IconButton
-									label={resumes ? "Resume manager" : "Start manager"}
-									icon={<Play weight="fill" />}
-									size="sm"
-									variant="default"
-									disabled={
-										readOnly || dirty || save.isPending || !persona || runs.isPending || runs.isError || start.isPending
-									}
-									onClick={() => start.mutate(false)}
-								/>
-							</Tooltip>
-						)}
-					</>
+					active ? (
+						<Tooltip content="Stop the manager process">
+							<IconButton
+								label="Stop manager"
+								icon={<Stop weight="fill" />}
+								size="sm"
+								variant="default"
+								disabled={readOnly || manager.state === "starting" || pause.isPending}
+								onClick={() => pause.mutate()}
+							/>
+						</Tooltip>
+					) : (
+						<Tooltip content={resumes ? "Resume the manager" : "Start the manager"}>
+							<IconButton
+								label={resumes ? "Resume manager" : "Start manager"}
+								icon={<Play weight="fill" />}
+								size="sm"
+								variant="default"
+								disabled={
+									readOnly || dirty || save.isPending || !persona || runs.isPending || runs.isError || start.isPending
+								}
+								onClick={() => start.mutate(false)}
+							/>
+						</Tooltip>
+					)
 				}
 			>
 				<PageTitle
@@ -136,8 +128,8 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 				/>
 			</Topbar>
 			<div className="page-card project-settings-layout">
-				<nav aria-label="Manager settings" className="project-settings-nav">
-					<p className="project-settings-nav-title">Manager settings</p>
+				<nav aria-label="Manager navigation" className="project-settings-nav">
+					<p className="project-settings-nav-title">Manager</p>
 					<ul className="project-settings-nav-list">
 						{sections.map(({ id, label }) => (
 							<li key={id}>
@@ -160,6 +152,16 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 				<div className="project-settings-content">
 					<div hidden={section !== ""} className="project-settings-page">
 						<section aria-label="Status" className="project-settings-section">
+							<Switch
+								label="Automatic dispatch"
+								checked={!draft.dispatchPaused}
+								disabled={readOnly || save.isPending}
+								onCheckedChange={(enabled) => commit({ ...draft, dispatchPaused: !enabled })}
+							/>
+							<p className="text-sm text-fg-muted">
+								Pause automatic dispatch to keep new messages queued. The current process continues.
+							</p>
+							<ManagerQueue projectId={project.id} />
 							{runs.isPending && (
 								<p role="status" className="text-sm text-fg-muted">
 									Load manager…

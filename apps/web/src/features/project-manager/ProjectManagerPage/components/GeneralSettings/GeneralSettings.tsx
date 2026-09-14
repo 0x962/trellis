@@ -1,7 +1,7 @@
 import { FolderOpen } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { Project, ProjectManagerConfig } from "@trellis/api";
-import { IconButton, Input, Select, Tooltip, toast } from "@trellis/ui";
+import { Checkbox, IconButton, Input, Select, Tooltip, toast } from "@trellis/ui";
 import { useApp } from "../../../../../lib/appContext";
 import { RepoSettings } from "../../../../project-settings/RepoSettings";
 import { SettingsSection } from "../../../../project-settings/SettingsSection";
@@ -23,9 +23,14 @@ export function GeneralSettings({
 }) {
 	const { client, orpc } = useApp();
 	const folder = useMutation({
-		mutationFn: () => client.system.chooseDirectory(),
+		mutationFn: () => {
+			const desktop = (window as Window & { trellisDesktop?: { chooseDirectory: () => Promise<string | null> } })
+				.trellisDesktop;
+			return desktop ? desktop.chooseDirectory() : client.system.chooseDirectory();
+		},
 		onSuccess: (directory) => {
-			if (directory !== null) commit({ ...draft, directory });
+			if (directory !== null)
+				commit({ ...draft, directory, trustedDirectory: directory === draft.directory && draft.trustedDirectory });
 		},
 		onError: (error) => toast.error("Could not open the folder selector", { description: error.message }),
 	});
@@ -58,7 +63,7 @@ export function GeneralSettings({
 							label="Project directory"
 							placeholder="Use the agent workspace"
 							value={draft.directory}
-							onChange={(event) => setDraft({ ...draft, directory: event.target.value })}
+							onChange={(event) => setDraft({ ...draft, directory: event.target.value, trustedDirectory: false })}
 							onBlur={() => {
 								if (draft.directory !== saved.directory) commit(draft);
 							}}
@@ -76,6 +81,19 @@ export function GeneralSettings({
 					<p className="manager-settings-hint">
 						The manager starts in this directory on its host. Leave it empty to use its agent workspace.
 					</p>
+					{draft.ade === "native" && (
+						<div className="flex flex-col gap-2">
+							<Checkbox
+								label="Trust this repository"
+								checked={draft.trustedDirectory}
+								disabled={!draft.directory || invalidDirectory}
+								onCheckedChange={(trustedDirectory) => commit({ ...draft, trustedDirectory })}
+							/>
+							<p className="manager-settings-hint">
+								Agent tools still ask for permission. A directory change clears this trust.
+							</p>
+						</div>
+					)}
 					{invalidDirectory && (
 						<p role="alert" className="text-sm text-danger">
 							Use an absolute directory path.

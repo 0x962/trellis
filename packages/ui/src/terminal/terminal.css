@@ -1,0 +1,32 @@
+.terminal-surface {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: calc(var(--spacing) * 2);
+}
+.terminal-hint {
+	color: var(--fg-muted);
+	font-size: var(--text-xs);
+}
+.terminal-notice {
+	color: var(--warning);
+	font-size: var(--text-sm);
+}
+.terminal-error {
+	color: var(--danger);
+	font-size: var(--text-sm);
+}
+.terminal-canvas {
+	min-width: 0;
+	height: 20rem;
+	padding: calc(var(--spacing) * 3);
+	background: var(--bg);
+	color: var(--fg);
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+	border: 1px solid var(--border);
+}
+.terminal-canvas:focus-within {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}

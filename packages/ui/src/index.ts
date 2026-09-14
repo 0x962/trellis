@@ -1,4 +1,6 @@
 export { ActorChip, type ActorChipProps } from "./domain/ActorChip";
+export { AgentConversation } from "./domain/AgentConversation";
+export { CheckResults } from "./domain/CheckResults";
 export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from "./domain/CheckRibbon";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { type StatusCategory, StatusIcon, type StatusIconProps } from "./domain/StatusIcon";

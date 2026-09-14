@@ -8,6 +8,7 @@ import { AdeCommands } from "../AdeCommands";
 import { AgentCommandField } from "../AgentCommandField";
 
 const presets = [
+	{ value: "native", label: "Trellis (local)" },
 	{ value: "superset", label: "Superset" },
 	{ value: "terminal", label: "Terminal" },
 	{ value: "tmux", label: "tmux" },
@@ -44,7 +45,8 @@ export function AgentEnvironment({
 			? [{ value: draft.supersetHostId, label: `${draft.supersetHostId} (offline)` }]
 			: []),
 	];
-	const commands = draft.adeCommands ?? (draft.ade === "custom" ? null : ADE_PRESETS[draft.ade]);
+	const commands =
+		draft.adeCommands ?? (draft.ade === "custom" || draft.ade === "native" ? null : ADE_PRESETS[draft.ade]);
 	return (
 		<fieldset disabled={readOnly} className="manager-settings-groups">
 			<SettingsSection title="ADE" hint="The environment that opens and manages your agent sessions.">
@@ -55,11 +57,17 @@ export function AgentEnvironment({
 					onValueChange={(value) => {
 						const ade = value as Ade;
 						setRevision(revision + 1);
-						commit({ ...draft, ade, adeCommands: ade === "custom" ? commands : { ...ADE_PRESETS[ade] } });
+						commit({
+							...draft,
+							ade,
+							adeCommands: ade === "native" ? null : ade === "custom" ? commands : { ...ADE_PRESETS[ade] },
+						});
 					}}
 				/>
 				<p className="manager-settings-hint">
-					A preset fills the session commands. Your harness and its commands stay as configured.
+					{draft.ade === "native"
+						? "Trellis owns the terminal and workspace on this Mac."
+						: "A preset fills the session commands. Your harness and its commands stay as configured."}
 				</p>
 				{draft.ade === "terminal" && (
 					<p className="manager-settings-hint">
@@ -90,7 +98,7 @@ export function AgentEnvironment({
 					)}
 				</SettingsSection>
 			)}
-			{commands ? (
+			{draft.ade === "native" ? null : commands ? (
 				<AdeCommands
 					key={revision}
 					commands={commands}

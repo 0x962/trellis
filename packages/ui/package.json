@@ -15,7 +15,8 @@
 		"./flow-canvas.css": "./src/flowCanvas.css",
 		"./gallery": "./src/gallery/Gallery.tsx",
 		"./review": "./src/review/index.ts",
-		"./review.css": "./src/review/review.css"
+		"./review.css": "./src/review/review.css",
+		"./terminal": "./src/terminal/index.ts"
 	},
 	"scripts": {
 		"test": "bun test --path-ignore-patterns '**/test/int/**'",
@@ -33,7 +34,9 @@
 		"@pierre/trees": "1.0.0-beta.6",
 		"cmdk": "1.1.1",
 		"motion": "13.2.0",
-		"sonner": "2.0.8"
+		"sonner": "2.0.8",
+		"@xterm/xterm": "6.0.0",
+		"@xterm/addon-fit": "0.11.0"
 	},
 	"peerDependencies": {
 		"react": "19.2.8",

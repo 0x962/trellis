@@ -3,6 +3,7 @@ import type { AgentRun } from "@trellis/api";
 import { Button, Textarea } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { NativeTerminal } from "../NativeTerminal";
 
 // How often the page reads the terminal again, in ms.
 const readEveryMs = 5000;
@@ -11,6 +12,10 @@ const readEveryMs = 5000;
 const atWork = (run: AgentRun) => run.state === "starting" || run.state === "running" || run.state === "interrupted";
 
 export function AgentTerminal({ run }: { run: AgentRun }) {
+	return run.runtime === "native" ? <NativeTerminal run={run} /> : <CommandTerminal run={run} />;
+}
+
+function CommandTerminal({ run }: { run: AgentRun }) {
 	const { client, orpc, queryClient } = useApp();
 	const output = useQuery({
 		...orpc.agentRuns.output.queryOptions({ input: { id: run.id }, retry: false }),

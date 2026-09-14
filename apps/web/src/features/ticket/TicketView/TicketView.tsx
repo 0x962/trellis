@@ -13,6 +13,7 @@ import { Header } from "../Header";
 import { useParentSummary } from "../hooks/useParentSummary";
 import { PropertiesRail } from "../PropertiesRail";
 import { SubTickets } from "../SubTickets";
+import { TicketWorkArea } from "../TicketWorkArea";
 import { Timeline } from "../Timeline";
 import { Title } from "../Title";
 import { DropOverlay, useDropOverlay } from "./components/DropOverlay";
@@ -76,11 +77,20 @@ export function TicketView({ identifier }: TicketViewProps) {
 				<div data-ticket-description="" className={cx("min-h-24", inlineRail ? "mt-4" : "mt-3")}>
 					<Description key={ticket.identifier} ticket={ticket} />
 				</div>
-				<div className="mt-8 flex flex-col gap-8">
-					<SubTickets ticket={ticket} />
-					<PullRequests ticket={ticket} initialPrs={ticket.prs} />
-					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
-					<Timeline ticket={ticket} onAttachFiles={uploads.start} />
+				<div className="mt-8">
+					<TicketWorkArea
+						key={ticket.id}
+						ticket={ticket}
+						activity={<Timeline ticket={ticket} onAttachFiles={uploads.start} />}
+						overview={
+							<>
+								<SubTickets ticket={ticket} />
+								<PullRequests ticket={ticket} initialPrs={ticket.prs} />
+								<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
+								<Timeline ticket={ticket} onAttachFiles={uploads.start} />
+							</>
+						}
+					/>
 				</div>
 			</div>
 		</article>
