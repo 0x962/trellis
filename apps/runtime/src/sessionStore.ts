@@ -124,6 +124,14 @@ export class SessionStore {
 				(data) => record.stderr.append(data),
 				(code) => exit(code),
 				(error) => exit(null, error.message),
+				(error) => {
+					clearTimeout(record.timer);
+					session.status = "unknown";
+					session.error = `Process cleanup is unconfirmed: ${error.message}`;
+					record.process = undefined;
+					this.save(record);
+					resolveStop();
+				},
 			);
 		} catch (error) {
 			exit(null, (error as Error).message);

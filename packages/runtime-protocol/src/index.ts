@@ -1,4 +1,4 @@
-export const RUNTIME_PROTOCOL_VERSION = 4;
+export const RUNTIME_PROTOCOL_VERSION = 5;
 export type SessionMode = "pty" | "stdio";
 export type SessionStatus = "running" | "exited" | "unknown";
 export interface LaunchSpec {

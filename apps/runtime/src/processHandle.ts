@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import type { LaunchSpec } from "@trellis/runtime-protocol";
 import { spawn as spawnPty } from "node-pty";
+import { processCompletion } from "./processCompletion.ts";
 import { stopProcessTree } from "./stopProcessTree.ts";
 
 export interface ProcessHandle {
@@ -15,6 +16,7 @@ export function createProcessHandle(
 	stderr: (data: Buffer) => void,
 	exited: (code: number | null) => void,
 	failed: (error: Error) => void,
+	unconfirmed: (error: Error) => void,
 ): ProcessHandle {
 	const env = { ...process.env, ...spec.env };
 	if (spec.mode === "pty") {
@@ -26,20 +28,26 @@ export function createProcessHandle(
 			name: "xterm-256color",
 			encoding: null,
 		});
+		const completion = processCompletion(() => stopProcessTree(child.pid), exited, unconfirmed);
 		child.onData((data) => output(Buffer.isBuffer(data) ? data : Buffer.from(data)));
-		child.onExit(({ exitCode }) => exited(exitCode));
+		child.onExit(({ exitCode }) => completion.closed(exitCode));
 		return {
 			pid: child.pid,
 			input: (data) => child.write(data),
 			resize: (cols, rows) => child.resize(cols, rows),
-			stop: () => stopProcessTree(child.pid),
+			stop: completion.stop,
 		};
 	}
 	const child = spawn(spec.command, spec.args, { cwd: spec.cwd, env, detached: true, stdio: "pipe" });
+	const completion = processCompletion(() => stopProcessTree(child.pid!), exited, unconfirmed);
 	child.stdout.on("data", output);
 	child.stderr.on("data", spec.separateStderr ? stderr : output);
-	child.once("error", failed);
-	child.once("close", exited);
+	child.once("error", (error) => {
+		completion.failed();
+		failed(error);
+	});
+	child.once("exit", completion.leaderExited);
+	child.once("close", completion.closed);
 	return {
 		pid: child.pid ?? 0,
 		input: (data) => {
@@ -48,6 +56,6 @@ export function createProcessHandle(
 		resize: () => {
 			throw new Error("Only PTY sessions support resize");
 		},
-		stop: () => stopProcessTree(child.pid!),
+		stop: completion.stop,
 	};
 }

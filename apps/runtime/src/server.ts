@@ -38,6 +38,8 @@ export async function startRuntime(home: string) {
 					throw new Error("Cannot shut down: a session has an unknown process owner");
 				closing = true;
 				await store.stopAll();
+				if (store.list().some((session) => session.status === "unknown"))
+					throw new Error("Cannot shut down: process cleanup is unconfirmed");
 				return null;
 			case "hello":
 				return hello;

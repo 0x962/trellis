@@ -6,7 +6,7 @@ export function buildRuntime() {
 		entrypoints: [resolve(import.meta.dir, "../src/index.ts")],
 		outdir: resolve(import.meta.dir, "../dist"),
 		target: "node",
-		external: ["node-pty", "fs-ext"],
+		external: ["node-pty", "fs-ext", "koffi"],
 	}).then((result) => {
 		if (!result.success) throw new AggregateError(result.logs, "Runtime test build failed");
 	});

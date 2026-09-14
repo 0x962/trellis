@@ -1,29 +1,35 @@
 import { execFileSync } from "node:child_process";
+import { constants } from "node:os";
+import { errno, load } from "koffi";
+import { terminateSession } from "./terminateSession.ts";
 
-export function stopProcessTree(pid: number) {
-	const rows = execFileSync("/bin/ps", ["-ax", "-o", "pid=,ppid=,pgid="], { encoding: "utf8" })
-		.trim()
-		.split("\n")
-		.map((line) => {
-			const [pid, ppid, pgid] = line.trim().split(/\s+/).map(Number);
-			return { pid: pid!, ppid: ppid!, pgid: pgid! };
-		});
-	const descendants = new Set([pid]);
-	let changed = true;
-	while (changed) {
-		changed = false;
-		for (const row of rows)
-			if (descendants.has(row.ppid) && !descendants.has(row.pid)) {
-				descendants.add(row.pid);
-				changed = true;
+let sessionOf: ((pid: number) => number) | undefined;
+export async function stopProcessTree(sessionId: number) {
+	sessionOf ??= load(null).func("int getsid(int pid)");
+	return terminateSession(sessionId, {
+		processes: () =>
+			execFileSync("/bin/ps", ["-ax", "-o", "pid=,ppid=,pgid=,stat="], { encoding: "utf8", timeout: 1000 })
+				.trim()
+				.split("\n")
+				.map((line) => {
+					const [pid, parent, group, state] = line.trim().split(/\s+/);
+					return { pid: Number(pid), parent: Number(parent), group: Number(group), state: state! };
+				}),
+		sessionOf: (pid) => {
+			const session = sessionOf!(pid);
+			if (session !== -1) return session;
+			const failure = errno();
+			if (failure === constants.errno.ESRCH) return -1;
+			throw new Error(`Cannot inspect process ${pid}: getsid failed with errno ${failure}`);
+		},
+		killGroup: (group) => {
+			try {
+				process.kill(-group, "SIGKILL");
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
 			}
-	}
-	const groups = new Set(rows.filter((row) => descendants.has(row.pid)).map((row) => row.pgid));
-	for (const group of groups) {
-		try {
-			process.kill(-group, "SIGKILL");
-		} catch (error) {
-			if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
-		}
-	}
+		},
+		now: () => performance.now(),
+		wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+	});
 }
