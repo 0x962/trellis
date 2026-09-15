@@ -4,6 +4,7 @@ import { createController } from "../agents/controller/controller.ts";
 import { startNativeReconcile } from "../agents/nativeReconcile/host.ts";
 import type { Config } from "../config.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR, systemContext } from "../context.ts";
+import { invalidInput } from "../errors.ts";
 import type { Bus } from "../events/bus.ts";
 import type { GhRunner } from "../gh/run.ts";
 import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs } from "../jobs.ts";
@@ -15,6 +16,7 @@ import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
 import { createMaintenance } from "./maintenance.ts";
 import { pullStream } from "./pullStream.ts";
+import { restartBlocks } from "./restartGate/restartGate.ts";
 import { type Emit, type Tx, withTx } from "./tx.ts";
 import { warmWrites } from "./warmWrites.ts";
 
@@ -142,6 +144,12 @@ export const createInlineTransport = ({
 	// name, because every other call waited for it.
 	const run = async (name: ServiceName, ctx: RequestContext, rawInput: unknown, span: Span) => {
 		const entry: ServiceEntry = services[name];
+		if (restartBlocks(config.home, name))
+			throw invalidInput(
+				"restart",
+				"Trellis is restoring agent sessions after a restart. Wait for the restart to finish.",
+			);
+
 		const tasks: Array<() => Promise<void>> = [];
 		const early: TrellisEvent[] = [];
 		try {
@@ -194,6 +202,9 @@ export const createInlineTransport = ({
 		return promise;
 	};
 
+	const backgroundCall = (name: ServiceName, input: unknown) =>
+		restartBlocks(config.home, name) ? Promise.resolve() : call(name, systemContext(), input);
+
 	let jobs: Jobs | null = null;
 	let controller: ReturnType<typeof createController> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
@@ -210,11 +221,11 @@ export const createInlineTransport = ({
 				),
 			);
 			reviewTimer = setInterval(() => {
-				void call("reviews.deliverPending", systemContext(), {});
+				void backgroundCall("reviews.deliverPending", {});
 			}, 3000);
 			const clock = scaledClock(options.clockRate);
 			flowReconcile = startNativeReconcile({
-				tick: () => call("flowExecutions.reconcile", systemContext(), {}),
+				tick: () => backgroundCall("flowExecutions.reconcile", {}),
 				setTimer: clock.setTimer,
 				clearTimer: clock.clearTimer,
 				log: options.log,
@@ -222,7 +233,7 @@ export const createInlineTransport = ({
 			controller = createController({
 				clock,
 				log: options.log,
-				call: (name, input) => call(name, systemContext(), input),
+				call: (name, input) => backgroundCall(name, input),
 			});
 			await controller.start();
 			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });

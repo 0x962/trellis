@@ -69,7 +69,7 @@ export const readUpdateStatus = async (home: string, available: PinnedRelease): 
 			available,
 			active,
 			runtimeProtocol: protocol,
-			detail: `The active execution service uses protocol ${protocol}. This package requires protocol ${available.manifest.protocol}. Quit and reopen Trellis to activate this package. Trellis stops active agents and the previous execution service before it starts the new host.`,
+			detail: `The active execution service uses protocol ${protocol}. This package requires protocol ${available.manifest.protocol}. Quit and reopen Trellis to activate this package. Trellis saves active agent sessions before runtime shutdown, then resumes them after the new host starts.`,
 		};
 	const current =
 		(active === null || active.manifest.id === available.manifest.id) &&
@@ -80,8 +80,8 @@ export const readUpdateStatus = async (home: string, available: PinnedRelease): 
 		active,
 		runtimeProtocol: protocol,
 		detail: current
-			? "The host uses this package. You can replace Trellis.app while it runs, then quit and reopen Trellis to activate the new host. A new package stops active agents and the execution service when Trellis restarts."
-			: "The host or execution service uses a previous package. Quit and reopen Trellis to activate this package. Trellis stops active agents and the execution service before it starts the new host. Saved files stay in the selected data directory.",
+			? "The host uses this package. You can replace Trellis.app while it runs, then quit and reopen Trellis to activate the new host. A changed package resumes active agent sessions after the new host starts."
+			: "The host or execution service uses a previous package. Quit and reopen Trellis to activate this package. Trellis saves active agent sessions before runtime shutdown, then resumes them after the new host starts. Manually stopped agents stay stopped.",
 	};
 };
 
