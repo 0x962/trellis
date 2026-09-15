@@ -92,9 +92,15 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 							</span>
 						}
 					>
-						<span className="inline-flex">
-							<IconButton label={toggleLabel} icon={<SidebarSimple />} className="ml-0.5" onClick={onCollapse} />
-						</span>
+						{/* The circle centres on the row icons below it. A coarse
+						    pointer draws it at 44 px, and the negative margin keeps
+						    all of it inside the 48 px rail, which clips its overflow. */}
+						<IconButton
+							label={toggleLabel}
+							icon={<SidebarSimple />}
+							className="ml-0.5 pointer-coarse:-ml-1.5"
+							onClick={onCollapse}
+						/>
 					</Tooltip>
 				</div>
 			)}
