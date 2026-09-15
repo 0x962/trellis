@@ -6,7 +6,9 @@ export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from
 export { FlowDecisionContext } from "./domain/FlowDecisionContext";
 export { FlowProgress } from "./domain/FlowProgress";
 export { LocalEvidence } from "./domain/LocalEvidence";
+export { NativeMigrationReview } from "./domain/NativeMigrationReview";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
+export { RecoveryDecisionDialog } from "./domain/RecoveryDecisionDialog";
 export { RuntimeDiagnostics } from "./domain/RuntimeDiagnostics";
 export { type StatusCategory, StatusIcon, type StatusIconProps } from "./domain/StatusIcon";
 export { TicketId, type TicketIdProps } from "./domain/TicketId";
