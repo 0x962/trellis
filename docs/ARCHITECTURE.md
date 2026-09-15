@@ -22,7 +22,6 @@ model.
 | Flow canvas, flow layout | @xyflow/react, @dagrejs/dagre | 12.11, 3.1 |
 | Fonts | BerkeleyMono, then JetBrains Mono from fontsource | 5.3 |
 | Mobile | Expo, expo-router, React Native, NativeWind, FlashList, `expo-sqlite/kv-store`, `react-native-sse` | 57, 0.86, current |
-| Agent runner | the Superset CLI, or tmux for a template without `{{superset}}` | |
 | Desktop | Electron, macOS SMAppService | 44.3.0 |
 | Native execution | Node, node-pty, fs-ext, Koffi | 26.8.2, 1.2.0-beta.15, 2.1.1, 3.3.0 |
 | CLI | citty | 0.2 |
@@ -55,11 +54,11 @@ The dependency graph is a star. Server, web, mobile, and CLI import `api`. The
 CLI imports the contract as a type only. Only web imports `ui`. Each package
 exports TypeScript source and has no side effects.
 
-The data home is `~/.trellis`, and `TRELLIS_HOME` overrides it. It holds `db/`,
-`attachments/`, `backups/`, `agents/`, and `server.log`. The log rotates at 10 MB
-and keeps five files. `agents/<run id>/` holds the launch script, the workspace
-of a ticket agent under `work/`, and `output.txt` after a stop. The port is 4521
-(`TRELLIS_PORT`) and the host is `127.0.0.1` (`TRELLIS_HOST`).
+The standalone data home is `~/.trellis`, and `TRELLIS_HOME` overrides it.
+It holds `db/`, `attachments/`, `backups/`, `agents/`, `runtime/`, and `server.log`.
+Ticket worktrees live under `agents/<run id>/work`. The runtime retains process records and output under `runtime/`.
+The server log rotates at 10 MB and keeps five files.
+The standalone port is 4521 (`TRELLIS_PORT`) and the host is `127.0.0.1` (`TRELLIS_HOST`).
 
 ## Desktop execution
 
@@ -92,7 +91,7 @@ The controller stores ticket events in `manager_dispatches` with a fixed coalesc
 It sends a native manager one batch when the current harness reports ready or idle without pending permissions.
 An exact durable receipt can resolve an unknown delivery without another send.
 Stable assignment request identifiers prevent repeated worker starts from producing duplicate attempts.
-The legacy controller and persona manager cannot own the same project concurrently.
+A partial database index permits one active manager per project.
 
 Native ticket agents use Git worktrees under `agents/<run id>/work`.
 Workspace evidence binds checks and registered files to an attempt, HEAD, and a hash of the current file contents.
@@ -117,20 +116,6 @@ It then applies schema migrations. It pauses automation in one transaction.
 External agent records retain their states. External clients need the desktop bearer token to update tickets.
 An incomplete handoff marker blocks startup until the retained backup and operation state receive review.
 The previous desktop home retains its files when the selected home changes.
-
-`trellis home-import` previews and copies an offline data home into a separate empty directory.
-The copy starts with automation paused and repository trust disabled. Its source stays unchanged.
-An incomplete import marker prevents host boot. Rollback archives the target, including files created after the import.
-`trellis native-migration` inventories one project's execution ownership and applies a versioned native configuration.
-Its rollback restores the original configuration after active owners and unresolved deliveries clear.
-
-The project manager page previews local execution with the repository directory, saved assignments, and migration blockers.
-A human can retire an external assignment after its process stops. The audit retains its host, workspace, terminal, and conversation identifiers.
-Retirement preserves terminal captures and prevents the assignment from reuse.
-A missing external workspace interrupts its manager and blocks automatic replacement.
-A human can cancel an unknown delivery with its current generation and a reason.
-Cancellation preserves the unknown receipt, original events, error, and assignment identifiers.
-The migration keeps project history and starts with dispatch paused and repository trust disabled.
 
 Settings exports browser drafts and imports them as separate recovery copies.
 A flow recovery copy remains until the host acknowledges its saved graph.
@@ -215,126 +200,46 @@ Read [the review guide](reviews.md) for commands and the service cutover.
 
 ### Agent runs
 
-An agent run is one agent that trellis started from a persona. `agentRuns`
-exposes list, start, stop, refresh, send, and output. The ticket rail lists the
-runs of the ticket and opens a searchable persona picker; the picker puts the
-five personas the project used most first, and hides the manager kind. Each
-project has a Manager page at `/p/<project path>/settings/manager`. Its header
-holds one round control: Pause while the manager holds a
-terminal, else Play. Its Status section opens the manager, reads its output,
-sends it a follow-up, and asks about a new session when a resume lost the old
-one. Its Settings section picks the manager persona. Its ADE section picks the
-Agentic Development Environment, its preset and session commands,
-the Superset host, the agent command and agent resume command, the
-concurrency limit, and the project directory. Those fields are
-`projects.managerConfig`.
+An agent run copies its persona name, kind, and instruction at launch. Later persona edits affect later runs.
+A builder or reviewer names one ticket. A manager names one project.
+The row retains the project path and ticket identifier so its history remains readable.
 
-A native project uses the local execution path described above. Trellis creates its worktree, reserves its attempt, and starts its process through the runtime.
-Desktop project creation selects native execution and the structured Claude harness.
+`agentRuns` exposes start, stop, refresh, send, output, terminal, harness, and permission operations.
+The runtime owns each process through a distinct execution attempt. Each attempt has an identifier, generation, and token hash.
+A stable start request identifier returns its existing run before the concurrency check.
+A changed target or persona rejects reuse of that identifier.
 
-External projects use command templates for execution. An ADE command creates a workspace and starts the agent, or opens it in an existing workspace.
-The browser project form defaults to Superset. Each project retains its saved execution configuration.
+The Manager page at `/p/<project path>/settings/manager` has Operation, General, and Harness sections.
+Operation shows the process, conversation, and durable queue. The dispatch switch pauses automatic messages while events remain stored.
+General selects the manager persona, repository directory, trust, and concurrency limit.
+Harness selects the agent preset and its start and resume commands.
+`projects.managerConfig` stores these fields with `ade: native`.
 
-A project keeps one manager row in `agent_runs`, the newest row of the kind.
-Every start of the manager takes that row again. The external launch path holds `session_id`,
-which trellis mints before the first start and passes to the agent command as
-`{{sessionId}}`, so the server knows the session before the agent writes a
-word. Pause is `agentRuns.stop`: it closes the terminal and keeps the workspace
-and the session. Play is `agentRuns.start`: a row with a session and a
-workspace opens the agent again in that workspace with the agent resume
-command, which reads `{{resumeText}}` first, so the manager continues the chat
-it had. A row with neither runs the whole launch template, which makes the
-workspace. An agent exits at once when it does not find its session, so the
-start watches the new terminal for three seconds. An exit in that time sets the
-row `failed` with `session_lost` true, and the error names the session id, the
-machine, the workspace, the directory, and what the agent printed. The Status
-section then asks the person whether to start a new session. A start with
-`newSession` true keeps the row and mints a fresh session id.
-A Superset launch keeps the workspace if it exists on the configured host.
-If that workspace is missing, the launch creates one.
+The Claude preset uses the structured adapter. Other presets run their commands through a local PTY.
+`launchCommand.ts` combines the persona instruction with the project or ticket context.
+The launch supplies the server URL, actor, run identifier, and attempt token through environment variables.
+A manager uses the configured repository. A ticket agent uses a Git worktree under its run directory.
 
-`managerConfig.adeCommands` configures every session operation. The Superset,
-Terminal, and tmux presets fill its command templates. Each template stays editable.
-`managerConfig.harness` holds the agent preset and its start and resume commands.
-The ADE and Harness pages change their own presets independently.
-The API accepts legacy agent command fields and writes the separate configuration on the next save.
-A command-backed run has runtime `commands`. It keeps its templates and launch
-values in `agents/<id>/harness.json`. Later project edits affect the next start.
-A changed start template or agent executable command starts a fresh session.
-The [command reference](agent-harnesses.md) defines each result and variable.
-A remote Superset launch rejects a localhost Trellis URL before it creates a session.
-The launch uses the server bind address from `config.agentsUrl`.
+A stopped manager can resume its conversation. An explicit new session gets a new conversation identifier.
+An interrupted manager requires reconciliation before another start.
+Run states are `starting`, `running`, `interrupted`, `failed`, `stopped`, and `exited`.
+A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.
 
-A run copies the persona name, the kind, and the instruction at launch, so a
-later persona edit changes only the runs after it. The row also keeps the project
-path and the ticket identifier, so a delete of either leaves the run readable.
-A run state is `starting`, `running`, `interrupted`, `failed`, `stopped`, or
-`exited`. A failed launch stays visible with its error.
-An external stop closes the terminal and saves its text to `agents/<id>/output.txt`.
-A native stop confirms the runtime result before it marks the attempt stopped. Both paths retain the workspace and history.
+The concurrency limit counts active ticket runs, including interrupted attempts. It excludes the manager.
+The limit runs from 1 to 64 and defaults to 3. A partial unique index permits one active manager per project.
 
-A start needs a persona whose kind matches the target: a manager takes a project,
-and a builder or a reviewer takes a ticket. A start refuses a completed ticket, a project with no repository, and a second
-live manager for the same project. A ticket start counts the active non-manager
-runs of the project and refuses at the concurrency limit. The limit runs from 1 to 64 and defaults to 3. The manager is
-outside that count. A partial unique index on `agent_runs` holds the one-manager
-rule in the database.
+### Manager controller
 
-A project picks its Agentic Development Environment in `managerConfig.ade`. The
-value `superset` takes the machine template, `settings.agentLaunchCommand`. The
-value `custom` takes `managerConfig.adeCommand`, and an empty project command
-falls back to the machine template. The default machine template is
-`{{superset}} ws create {{target}} --project {{projectId}} --name {{name}}
---branch {{branch}} --command {{agentCommand}} --json`. The template variables are
-`{{superset}}`, `{{target}}`, `{{workDir}}`, `{{projectDir}}`, `{{concurrency}}`,
-`{{projectId}}`, `{{project}}`, `{{ticket}}`, `{{name}}`, `{{branch}}`,
-`{{instruction}}`, `{{prompt}}`, `{{actor}}`, `{{trellisUrl}}`,
-`{{agentCommand}}`, `{{sessionId}}`, and `{{workspaceId}}`. A custom ADE also
-takes `managerConfig.adeResumeCommand`, the command that opens an agent again
-in the workspace a run has; an empty one runs `adeCommand` again. The Superset
-ADE opens that terminal itself with `superset terminals create`. An unknown
-variable fails the save, and so does a standalone
-hyphen beside `{{superset}}`. The expander wraps each value in single quotes, so
-one value is one shell argument. `{{target}}` is the Superset host flag of the
-project: `--local` for a null `supersetHostId`, and `--host '<id>'` otherwise.
+`manager_controller_cursors` records the last collected activity identifier for each project.
+`manager_dispatches` retains event batches and their send state. The first event fixes the batch deadline at ten seconds.
+The collector continues while dispatch pauses. It excludes the manager's own activity and respects child projects with their own manager.
 
-`{{prompt}}` is the instruction of the run plus an assignment block: the agent
-name, the actor `agent:<run id>`, the trellis URL, the persona, the ticket or the
-project, the concurrency limit, the project directory, and the repositories.
-`{{agentCommand}}` wraps the agent command of the project: `exec env
-TRELLIS_URL=... TRELLIS_ACTOR=... <agent command>`, with a `cd` into the
-project directory for a manager. `managerConfig.harness.startCommand` is the agent
-command of a new session and `managerConfig.harness.resumeCommand` that of a
-resume. Each takes `{{name}}`, `{{prompt}}`, `{{sessionId}}`, `{{resumeText}}`,
-`{{actor}}`, `{{trellisUrl}}`, `{{directory}}`, `{{project}}`, `{{ticket}}`,
-and `{{instruction}}`, one shell argument per value. An empty one runs the
-default, `claude -n {{name}} --session-id {{sessionId}} {{prompt}}` and `claude
--n {{name}} --resume {{sessionId}} {{resumeText}}`. `launchCommand.ts` is the one place that builds it. The
-runner-driven agent manager takes the other path in
-`packages/api/src/instructions/agentLaunch.ts`, whose command reads its prompt at
-start time with `trellis instructions --role`.
+The controller sends a batch only to the current native attempt with a matching conversation and a ready or idle harness.
+Pending permissions prevent dispatch. A host interruption changes an unfinished send to `unknown`.
+A durable receipt can confirm the original delivery. An explicit resend uses a new generation and message identifier.
 
-A template that holds `{{superset}}` gives the run the runtime `superset` and
-creates a Superset workspace. A template without it gives the run the runtime
-`tmux`: the server writes `agents/<id>/launch.sh` with mode 0700 and starts a
-detached session on a private tmux socket in the temp directory, keyed by a hash
-of the data home. That session survives a restart of the trellis server.
-
-The Needs you page holds four sections in a fixed order: review, failing CI,
-stalled, and done today. It reads `inbox.get` once with no project filter, and
-every section reads its rows from that one entry. The empty state shows only when
-every section is empty. Ticket status changes use the status picker.
-
-### The agent manager
-
-`agent_sessions` holds the legacy runner path. The native controller uses `agent_runs`.
-Both paths check project ownership before a manager starts. A session
-carries a role of manager, builder, or reviewer, a runner, a state, a person
-name, and the terminal it runs in. A project holds one live manager, which a
-partial unique index enforces. `agents.inbox` is a POST, because it moves the
-stored cursor of the project in the transaction that reads the rows after it. The
-`agents.session` and `agents.batch` events carry the changed row and the count the
-dispatcher woke a manager for.
+The Needs you page shows review, failing CI, stalled work, and work completed by agents today.
+It also shows manager deliveries that require attention. Ticket status changes use the status picker.
 
 ### Flows
 
@@ -435,15 +340,11 @@ time. The first section of each page carries no hash.
 |---|---|
 | `/settings` | Account (no hash), `#agents`, `#integrations` |
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
-| `/p/<path>/settings/manager` | Status (no hash), `#ade`, `#repositories` |
+| `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
-`/settings` holds what is true for the whole machine: the actor name, the theme,
-the machine launch command, the stalled threshold, the gh state, the diff URL
-template, and the phone pair code. Every agent setting of one project lives on
-that project's Manager page: its manager persona, its ADE, its
-ADE command, its Superset host, its concurrency limit, and its project directory.
-`projects.managerConfig` carries those seven fields, and the Manager page writes
-them through `projects.update`.
+`/settings` holds the actor name, theme, stalled threshold, GitHub state, phone pair code, drafts, and runtime diagnostics.
+The Manager page holds the manager persona, repository directory, trust, dispatch state, concurrency limit, and harness commands.
+It writes `projects.managerConfig` through `projects.update`.
 
 The sidebar holds the workspace row, Needs you, Search, All tickets, the project
 tree, the AI section with the Personas and Flows links, and the actor footer. The
@@ -462,7 +363,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `supersetHostId`, `ade`, `adeCommand`, `adeResumeCommand`, `harness` (`preset`, `startCommand`, `resumeCommand`), `adeCommands`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
+| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `trustedDirectory`, `dispatchPaused`, `ade: native`, `harness` (`preset`, `startCommand`, `resumeCommand`)), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). The effective repos of a project are its own plus those of its ancestors. |
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, wip_limit (CHECK > 0), is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
 | tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
@@ -477,9 +378,9 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), version (CHECK > 0), created_at, updated_at. |
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
-| agent_runs | id PK, name, runtime (default `superset`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, state (CHECK starting, interrupted, running, failed, stopped, exited), workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE the state is live. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND the state is live. Index (created_at). |
-| agent_sessions | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |
-| agent_cursors | project_id PK (CASCADE), activity_id bigint, updated_at. The last activity row the manager of the project read through `agents.inbox`. |
+| agent_runs | id PK, name, runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, state (CHECK starting, interrupted, running, failed, stopped, exited), workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE the state is live. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND the state is live. Index (created_at). |
+| agent_sessions (stored history) | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |
+| agent_cursors | project_id PK (CASCADE), activity_id bigint, updated_at. Stored activity cursor from earlier data homes. |
 
 The `id` column of `activity` is the cursor and the sort key of every activity
 feed. A description row carries `meta.deltaChars` and no text. A status row
@@ -495,17 +396,10 @@ The kanban position of a new card is the maximum plus 1024. A move takes the
 midpoint of its neighbors. The column renumbers in steps of 1024 when the gap
 falls below 1. A list sorts and pages by `(position, id)`.
 
-The migrations live in `apps/server/drizzle/`, from `0000_extensions` to
-`0026_manager_session`. `0000_extensions` creates `pg_trgm`. `0001_init` holds
-the tables. `0002_constraints` holds what drizzle-kit cannot render: the
-`UNIQUE NULLS NOT DISTINCT` constraint, the generated `tsvector` columns, and the
-trigram index. The migrator applies them at boot in one transaction, then runs
-`ANALYZE` and sets `pg_trgm.word_similarity_threshold`. `meta/_journal.json` is
-the order the migrator runs, and it lists 24 entries: the numbers 0009 to 0011
-are absent, because those migrations left the tree before release.
-`0013_remove_agents` drops the agent manager tables and `0020_restore_agents`
-brings them back, so a data home from that window still upgrades. CI fails when
-`drizzle-kit generate` leaves a change under `apps/server/drizzle/`.
+The schema migrations live in `apps/server/drizzle/`, through `0036_native_runtime_default`.
+`meta/_journal.json` defines their order. Applied migrations preserve upgrades for existing data homes.
+The migrator applies schema changes at boot in one transaction, then runs `ANALYZE` and sets `pg_trgm.word_similarity_threshold`.
+The schema drift check requires `drizzle-kit generate` to leave the migration directory unchanged.
 
 PGlite has no autovacuum. A maintenance timer runs `VACUUM (ANALYZE)` on
 tickets, activity, and comments after more than 1000 writes, and after a backup
@@ -561,11 +455,6 @@ returns one canonical spelling.
 | agentRuns.list, start | GET, POST /api/agent-runs | start answers 201 with the row in any state |
 | agentRuns.stop, refresh, send | POST /api/agent-runs/{id}/stop, /refresh, /send | send takes 1 to 20000 characters |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
-| agents.sessions, overview | GET /api/agents/sessions, /api/agents/overview | the runner-driven agent manager |
-| agents.inbox | POST /api/agents/inbox | it moves the manager cursor, so it is a POST |
-| agents.register, startBuilder, startReviewer, stop, wake, retryManager | POST /api/agents/register, /builder, /reviewer, /sessions/{id}/stop, /wake, /manager/retry | |
-| agents.settings, setSettings | GET, PUT /api/agents/settings | |
-| agents.runnerProjects, runnerHosts | GET /api/agents/runner-projects, /api/agents/runner-hosts | they throw GH-style `RUNNER_UNAVAILABLE` |
 | search.query | GET /api/search | tickets and projects |
 | inbox.get | GET /api/inbox | `{review, failingCi, stalled, doneByAgentsToday}` |
 | brief.get | GET /api/tickets/{ticket}/brief | the markdown brief an agent starts from |
@@ -642,8 +531,7 @@ Payloads:
 `attachment.created | deleted {id, ticketId, projectId}`,
 `statuses.changed {projectId}`,
 `project.created | updated | deleted | moved {id}`, `gh.status {ok, reason}`,
-`personas.changed {id}`, `flows.changed {id}`, `agent-runs.changed {id}`,
-`agents.session {session}`, and `agents.batch {projectId, count}`.
+`personas.changed {id}`, `flows.changed {id}`, and `agent-runs.changed {id}`.
 `packages/api/src/events.ts` holds the one list of names, and the `types=`
 parameter takes a name or a `prefix.*` form.
 
@@ -792,15 +680,13 @@ Conventions shared by every workspace:
 
 `packages/api` holds the contract and no runtime dependency beyond zod and oRPC:
 `refs.ts`, `errors.ts`, `events.ts`, `query-keys.ts`, `client.ts`, `pair.ts`,
-`schemas/`, `contract/`, `agentLaunch/` (the launch template and its variables),
-`instructions.ts` (the `AGENTS.md` block), and `instructions/` (the manager,
-builder, and reviewer prompts, and the agent names).
+`schemas/`, `contract/`, `agentLaunch/` (agent command variables),
+`instructions.ts` (the `AGENTS.md` block), and `instructions/` (agent names).
 
 `apps/server` holds `index.ts` (boot), `config.ts`, `log.ts`, `app.ts`,
 `context.ts`, `db/` (worker, transport, client, migrate, schema, tables, enums,
 tx, cache, maintenance, queries), `services/`, `procedures/`, `routes/`,
-`events/bus.ts`, `gh/`, `agents/` (the launch command, the Superset runner, and
-the managed tmux terminal), and `storage/blobs.ts`.
+`events/bus.ts`, `gh/`, `agents/` (native launch, harness, controller, and flow execution), and `storage/blobs.ts`.
 
 One mutation flows in one direction: `procedures/tickets.ts#move` calls
 `services/tickets.ts#move(ctx, tx, input)` inside `withTx`, which calls the
@@ -873,8 +759,7 @@ workers, because the preload gives each process its own `TRELLIS_HOME`.
 The harness wraps the service transport, so a test reads the input and the actor
 of every service call, holds a call until it releases it, and makes a declared
 error take the place of a service. `gh auth status` answers from the state the
-test set, and every other gh call reaches the gh stub. The Superset runner
-answers from a stub binary, so a test drives a real agent start.
+test set, and every other gh call reaches the gh stub. Native execution tests use isolated runtime processes and fixture harnesses.
 
 The end-to-end suite covers the agent failure page, the dispatch path, and the
 pair link, beside the ticket, board, table, and live paths.

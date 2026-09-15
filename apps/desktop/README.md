@@ -18,9 +18,7 @@ Use **File > Choose data directory** to select an existing home in place. The ap
 
 The handoff backs up the database before schema migrations. It pauses automation and keeps external agent records intact. External clients need the desktop access token to update tickets. Both data directories retain their files.
 
-On first launch, choose New Trellis data, Use existing directory, or Import a copy. The import preview shows the source and target paths, file size, ticket counts, and active work blockers. Stop the source host before you import. Trellis requests confirmation before it copies the reviewed source version.
-
-The imported data starts with local work paused and repositories untrusted. Workspace paths still point to their original folders. The import keeps a copy of the files in the new home. If an import fails, the app retains its target and shows an exact command to archive it before another import.
+On first launch, choose New Trellis data or Use existing directory. An existing directory opens in place after the confirmed handoff.
 
 The host keeps its selected port across restarts. This preserves the renderer origin and its local drafts. A port conflict fails with a link to the host log.
 
@@ -28,7 +26,7 @@ Close a window to detach its view. Quit Trellis to close the desktop process. Bo
 
 The packaged app requests permission to enable its background service. `SMAppService` registers the bundled LaunchAgent. macOS starts it at login and restarts it after a crash. The Trellis menu shows its status and opens Login Items when approval is required. The separate Open Trellis at login option controls the desktop window.
 
-Stop local work and background service pauses local dispatch, stops known local processes, and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. External Superset sessions remain active. Resume local work allows new local launches. Each project keeps its saved dispatch setting.
+Stop local work and background service pauses local dispatch, stops known local processes, and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Resume local work allows new local launches. Each project keeps its saved dispatch setting.
 
 The helper reads the user login shell environment with a ten-second limit. It places the bundled executable directory first in PATH. Shell errors omit captured output because startup scripts can expose secrets.
 
@@ -92,4 +90,4 @@ The isolated launchd integration test verifies helper execution and host crash r
 
 The build machine has Apple Development identities but no Developer ID Application identity. Signed distribution and notarization remain unverified. The current package target is the build machine's architecture. Cross-architecture native module builds remain unverified.
 
-Existing browser drafts require an explicit export and import. The old server must release its database lock before the desktop can copy its data home.
+Existing browser drafts require an explicit export and import through Settings. The current host must release its database lock before a directory handoff.

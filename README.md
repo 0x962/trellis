@@ -24,9 +24,9 @@ The confirmation shows the current directory, selected directory, and backup pat
 The desktop disables the matching standalone service, backs up the database, and starts with automation paused.
 Both data directories keep their files. The macOS window uses native controls in the app title bar.
 
-Read [the desktop guide](apps/desktop/README.md) to build the app and import an offline data home.
+Read [the desktop guide](apps/desktop/README.md) to build the app and select its data directory.
 The [implementation report](docs/desktop/implementation-status.md) records the real ticket result, package checks, and open release gates.
-Developer ID signing and notarization remain unverified. Existing projects retain their execution configuration until an explicit migration.
+Developer ID signing and notarization remain unverified.
 
 ## Install the standalone server
 
@@ -55,8 +55,6 @@ bun packages/cli/src/index.ts install
 5. It loads the agent with `launchctl`, waits until `http://127.0.0.1:4521/api/health` answers, and prints the server URL.
 
 `--no-launchd` writes the files and loads nothing. `trellis uninstall` removes the agent and the command.
-
-Superset projects need the Superset CLI. launchd gives the server a short `PATH`, so `trellis install` writes the full path of the `superset` on your `PATH` into the agent as `TRELLIS_SUPERSET_BIN`. `--superset-bin <path>` names another binary, and `trellis serve` takes the same flag.
 
 `trellis gateway` on port 80 serves `http://trellis.localhost` when it reads the routes file `~/.config/localhost-gateway/routes.json`. The file maps each `*.localhost` name to a port, as in `{ "trellis": 4521 }`. `trellis install` sets the `trellis` entry and keeps the others, and `trellis uninstall` removes it. When no gateway answers for `trellis.localhost`, install prints `http://127.0.0.1:4521` and the path of the routes file.
 
@@ -189,14 +187,10 @@ keeps the copies.
 A builder run and a reviewer run name one ticket. A manager run names one
 project. A project runs one manager at a time.
 
-Every agent setting of a project lives on its Manager page, at
-`/p/<project path>/settings/manager`. The header holds the agents switch and the
-Start manager button. The Status section picks the manager persona, opens the
-manager, reads its output, sends it a follow-up, and stops it. The ADE section
-picks the Agentic Development Environment, the Superset host, the concurrency
-limit, and the project directory. The concurrency limit caps the active ticket
-agents of the project. It runs from 1 to 64, defaults to 3, and excludes the
-manager.
+The Manager page at `/p/<project path>/settings/manager` controls the project's local work.
+Operation shows the manager process, output, and durable event queue. Its switch pauses automatic dispatch while queued events remain stored.
+General selects the manager persona, repository directory, trust, and concurrency limit. Harness selects the agent preset and commands.
+The concurrency limit runs from 1 to 64, defaults to 3, and excludes the manager.
 
 The Agent section of the ticket rail lists the runs of the ticket and opens a
 searchable persona picker. The picker puts the five personas the project used
@@ -229,32 +223,22 @@ reason to stderr.
 
 ### How trellis starts an agent
 
-A project picks its Agentic Development Environment (ADE) in the ADE section of
-its Manager page. `superset` opens a Superset workspace with the launch command
-of the machine. `custom` runs the command template of the project. An empty
-project template falls back to the machine template.
+Trellis reserves an execution attempt and creates a Git worktree for each ticket run.
+The local runtime owns the process and retains its output across a host restart.
+The Claude preset uses structured messages and explicit tool permissions. Other harness presets run through the native terminal.
+Trust the repository on the Manager page before the structured harness starts.
 
-The machine template is `settings.agentLaunchCommand`. Its default is:
+The manager receives queued ticket events when its harness reports ready or idle.
+An uncertain delivery stays in the queue for inspection. Confirm receipt or request a resend only after you inspect the manager output.
+Use the same `--request-id` if a worker start has an uncertain result. Use a new identifier for intentional new work.
 
-```
-{{superset}} ws create {{target}} --project {{projectId}} --name {{name}} --branch {{branch}} --command {{agentCommand}} --json
-```
+The launch supplies `TRELLIS_URL`, `TRELLIS_ACTOR`, `TRELLIS_RUN_ID`, and `TRELLIS_ATTEMPT_TOKEN` to the agent.
+The actor is `agent:<run id>`. The attempt token prevents an old execution from changing the current run.
 
-The template takes these variables: `{{superset}}`, `{{target}}`, `{{workDir}}`,
-`{{projectDir}}`, `{{concurrency}}`, `{{projectId}}`, `{{project}}`,
-`{{ticket}}`, `{{name}}`, `{{branch}}`, `{{instruction}}`, `{{prompt}}`,
-`{{actor}}`, `{{trellisUrl}}`, and `{{agentCommand}}`. An unknown variable
-fails the save. Each value goes in as one quoted shell argument. `{{target}}` is
-the Superset host flag of the project: `--local` for This machine, and
-`--host '<id>'` for another machine.
-
-A template that holds `{{superset}}` runs the agent in a Superset workspace. A
-template without it runs the agent in a private tmux session on a socket of its
-own, so the session survives a restart of the trellis server.
-
-`{{prompt}}` is the instruction of the persona plus an assignment block.
-`{{agentCommand}}` wraps that prompt: it exports `TRELLIS_URL` and
-`TRELLIS_ACTOR`, then runs `claude`. The actor of a run is `agent:<run id>`.
+Use `trellis evidence workspace <run>` to inspect its files and changes.
+Use `trellis evidence check <run> --command <executable> --request-id <uuid>` to retain a command result.
+Use `trellis evidence register <run> --path <relative-path>` to record an artifact.
+Each check and artifact records the attempt and workspace revision. A later file change makes earlier evidence outdated.
 
 ## Ticket workflow (trellis)
 
@@ -345,7 +329,7 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 | `trellis watch` | Stream events. |
 | `trellis open` | Print or open a ticket URL. |
 | `trellis whoami` | Show how the CLI chose the actor. |
-| `trellis instructions` | Print the `AGENTS.md` block, or the prompt of an agent role with `--role`. |
+| `trellis instructions` | Print the `AGENTS.md` block. `--project` supplies the project key. |
 | `trellis status` | Show server status. |
 | `trellis logs` | Show server logs. |
 | `trellis serve` | Start the server. |
@@ -371,10 +355,9 @@ A setting that belongs to one project lives on that project's pages.
 | Page | Sections |
 |---|---|
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
-| `/p/<path>/settings/manager` | Status (no hash), `#ade`, `#repositories` |
+| `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
-The header of the Manager page holds the agents switch and the Start manager
-button.
+The Manager page separates automatic dispatch from the manager process. The top control starts, resumes, or stops the process.
 
 ## Mobile
 
@@ -396,7 +379,7 @@ The app keeps the server URL, your name, the theme, and the query cache in
 
 By default, the server listens on `127.0.0.1`, so a phone cannot reach it.
 
-CAUTION: The server has no auth. When you open the server to your network, anyone on the network can reach it.
+Set `TRELLIS_AUTH_TOKEN` before you expose the standalone server to your network. Clients must send that token as a bearer credential.
 
 To open the server to your network, run `trellis install --host 0.0.0.0`. `trellis serve --host` and `TRELLIS_HOST` do the same.
 
@@ -420,12 +403,12 @@ To pair without the QR code, type the server URL and tap Test connection. The ap
 trellis is a single-user tool for one machine.
 
 - The server binds `127.0.0.1` by default, so only this machine reaches it.
-- The server has no authentication.
+- The desktop host requires its local bearer token. The standalone host requires a token when `TRELLIS_AUTH_TOKEN` is set.
 - The header `x-trellis-actor` records who made a write. It is a label, not authentication.
 - CORS allows the development origins only, so a page on another origin cannot read the API.
 - `--host 0.0.0.0` puts the tickets, the attachments, the backups, and the export on your network.
-- trellis reads GitHub through the `gh` binary and its local login. trellis stores no token.
-- The agent launch command is a shell command that the server runs as your account. Anyone who reaches the API writes that template and starts agents with it.
+- trellis reads GitHub through the `gh` binary and its local login.
+- Agent processes run as your local account. Repository trust and the structured harness control agent tool requests.
 
 Read [SECURITY.md](SECURITY.md) for the full model and for how to report a vulnerability.
 
