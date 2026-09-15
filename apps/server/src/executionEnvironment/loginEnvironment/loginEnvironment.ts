@@ -3,11 +3,15 @@ import { promisify } from "node:util";
 
 const execute = promisify(execFile);
 
+// A loaded host runs the interactive startup files in 6 s or more. The limit
+// leaves room for that load and still ends a shell that hangs in a startup file.
+export const loginShellTimeoutMs = 30000;
+
 export const loginEnvironment = async (
 	shell: string,
 	bundledBin: string,
 	env: NodeJS.ProcessEnv = process.env,
-	timeoutMs = 10000,
+	timeoutMs = loginShellTimeoutMs,
 ): Promise<NodeJS.ProcessEnv> => {
 	const { stdout } = await execute(shell, ["-ilc", "/usr/bin/env -0"], {
 		env,
