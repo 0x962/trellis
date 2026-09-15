@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { createConnection } from "node:net";
 import { join, resolve } from "node:path";
+import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { originDir } from "../../../../../test/originDir.ts";
 import { buildRuntime } from "../../runtimeBuild.ts";
@@ -371,4 +373,41 @@ test("status subscriptions skip retained output and push authenticated turn rece
 	}
 	expect(seen).toContain(session.id);
 	await client.stop(session.id);
+});
+
+test("a graceful idle subscriber disconnect releases the server socket", async () => {
+	const session = await client.start({
+		id: "push-graceful-close",
+		command: "/bin/cat",
+		args: [],
+		cwd: home,
+		mode: "stdio",
+	});
+	const descriptors = () =>
+		spawnSync("/usr/sbin/lsof", ["-p", String(daemon.pid), "-Ff"], { encoding: "utf8" })
+			.stdout.split("\n")
+			.filter((line) => /^f\d/.test(line)).length;
+	const before = descriptors();
+	const sockets = [];
+	for (let index = 0; index < 6; index++) {
+		const socket = createConnection(join(home, "runtime.sock"));
+		sockets.push(socket);
+		await new Promise<void>((resolve, reject) => {
+			socket.once("error", reject);
+			socket.once("connect", () =>
+				socket.write(
+					`${JSON.stringify({ id: `graceful-${index}`, version: RUNTIME_PROTOCOL_VERSION, method: "subscribe", params: { id: session.id, offset: 0 } })}\n`,
+				),
+			);
+			socket.once("data", () => {
+				socket.end();
+				resolve();
+			});
+		});
+	}
+	await Bun.sleep(100);
+	const after = descriptors();
+	for (const socket of sockets) socket.destroy();
+	await client.stop(session.id);
+	expect(after).toBeLessThanOrEqual(before + 2);
 });

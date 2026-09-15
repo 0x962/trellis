@@ -5,7 +5,7 @@ import type { LaunchSpec, RuntimeMethods, RuntimeProcessStatus, RuntimeSession }
 import { CompletionStore } from "./completionStore.ts";
 import { InputLedger } from "./inputLedger.ts";
 import { inspectProcess } from "./inspectProcess.ts";
-import { observedSession } from "./observedSession.ts";
+import { inspectSessionRecord } from "./inspectSessionRecord.ts";
 import { createProcessHandle } from "./processHandle.ts";
 import { SessionLog } from "./sessionLog.ts";
 import type { SessionRecord as Record } from "./sessionRecord.ts";
@@ -70,17 +70,7 @@ export class SessionStore {
 		return [...this.records.keys()].map((id) => this.inspect(id));
 	}
 	inspect(id: string): RuntimeProcessStatus {
-		const record = this.get(id);
-		const observation = record.session.pid === null ? { kind: "missing" as const } : inspectProcess(record.session.pid);
-		return {
-			...record.session,
-			...observedSession(record.session, record.identity, observation, record.process !== undefined),
-			checkedAt: new Date().toISOString(),
-			launch: record.launch,
-			activity: record.activity,
-			acknowledgedMessageIds: record.ledger.acknowledgedMessageIds(),
-			result: record.completion.latest,
-		};
+		return inspectSessionRecord(this.get(id));
 	}
 	turn({ id, token, event, messageId, result }: RuntimeMethods["turn"]["params"]): RuntimeProcessStatus {
 		const record = this.get(id);
