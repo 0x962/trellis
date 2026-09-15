@@ -65,6 +65,8 @@ test("a failed provider turn retains its live process status and attempt identit
 		turnId: "failed-turn",
 		model: "fixture-model",
 		tool: null,
+		lastTool: null,
+		lastMessage: null,
 		error: "Provider request failed.",
 		outcome: "failed" as const,
 	};

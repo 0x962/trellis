@@ -36,7 +36,6 @@ const start = () =>
 		mode: "pty",
 		env: { TRELLIS_ATTEMPT_TOKEN: "secret" },
 	});
-
 test("provider observations require the actual attempt token and acknowledge only observed prompts", async () => {
 	await start();
 	await expect(client.observe("attempt", "wrong", { kind: "session", sessionId: "provider-session" })).rejects.toThrow(
@@ -58,7 +57,6 @@ test("provider observations require the actual attempt token and acknowledge onl
 	await client.stop("attempt");
 	await expect(client.observe("attempt", "secret", { kind: "idle" })).rejects.toThrow("controllable");
 });
-
 test("provider metadata and errors stay distinct from actual process status", async () => {
 	await start();
 	await client.observe("attempt", "secret", { kind: "session", sessionId: "provider-session", model: "model-one" });
@@ -104,6 +102,14 @@ test("provider metadata and errors stay distinct from actual process status", as
 	expect(await client.list({ hasError: true })).toEqual([]);
 	await client.observe("attempt", "secret", { kind: "idle", result: "finished", outcome: "completed" });
 	expect((await client.inspect("attempt")).result?.text).toBe("finished");
+	await client.observe("attempt", "secret", { kind: "message", message: { text: "Ready for review." } });
+	expect(await client.inspect("attempt")).toMatchObject({
+		activity: { state: "idle" },
+		agent: {
+			lastTool: { input: { path: "file" }, status: "failed", error: "File not found" },
+			lastMessage: { text: "Ready for review.", at: expect.any(String) },
+		},
+	});
 });
 
 test("provider events stream complete JSONL history and resume from byte offsets", async () => {
@@ -144,7 +150,7 @@ test("provider events stream complete JSONL history and resume from byte offsets
 	});
 	await new Promise<void>((done) => daemon.stdout!.once("data", () => done()));
 	expect(await client.inspect("attempt")).toMatchObject({
-		activity: null,
+		activity: { state: "idle", updatedAt: lines[150].observedAt },
 		agent: { sessionId: "retained-session", model: "retained-model" },
 		result: { text: "all done" },
 	});
