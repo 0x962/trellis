@@ -74,7 +74,7 @@ Last update: 2026-09-15.
 | TRL-70: send returns success before the initial CLI prompt exists. | Fixed; final install pending | Commits f510bfac and 595b0016; initial and follow-up receipts are required. Busy sends write no text. |
 | A failed first controller tick prevents future ticks. | Fixed; final install pending | Commit 595b0016; the normal periodic tick continues after its logged error. |
 | TRL-69: some agent commands return 401. | Agent path fixed; desktop launcher under review | Commit 411110f0; the second login shell selected the old source CLI. Four authenticated procedure tests pass. |
-| Act as manager and drive a ticket through the installed CLI. | In progress | TRL-71 covers a builder, follow-up, PR, reviewer, and final handoff. |
+| Act as manager and drive a ticket through the installed CLI. | Pending after the host gate | TRL-71 covers a builder, follow-up, PR, reviewer, and final handoff. |
 | Keep Hana stopped. | Applied | The live runtime no longer lists Hana as running. Do not resume her as part of this test. |
 | No hacks, shortcuts, or fallbacks. | Acceptance constraint | Each reproduced defect requires a regression test and a fix to its owning component. |
 
@@ -104,3 +104,22 @@ Run the host gate before the manager acceptance ticket. Cover Claude, Codex, AGY
 | Interrupt a session | The current turn stops, the conversation remains, and the next message works. |
 
 The process gate passes independently of a manager: 100 process/reconnect cycles retain 16 file descriptors. Two readers and replay match 2,097,409 binary bytes. The packaged host test confirms one PID for 12 concurrent starts, rejects a conflicting start, and preserves the PTY through an HTTP host restart. Harness-specific gates remain in progress.
+
+## Independent host results
+
+- Claude 2.1.272, Codex 0.154.0, Pi 0.73.1, and OpenCode 1.18.31 pass real host acceptance.
+- The four host cases contain 112 assertions across separate verified runs.
+- Native tests cover file edits, shell output, provider IDs, explicit models, prompt receipts, tool events, interruption, follow-up, stop, and exact-ID resume.
+- Host tests also verify pushed output, retained events, process lists, and elapsed time.
+- Twelve concurrent starts produce one process. Twelve concurrent native resume requests produce one prompt.
+- An uncertain native send remains inspectable and is not sent again after a host restart.
+- AGY remains limited to manual terminal use because its tested hooks cannot establish the complete autonomous contract.
+- The installed OpenCode 1.4.11 fails initial prompt submission. The host requires the tested minimum, 1.18.31.
+- The packaged host smoke test passes authentication, CLI, PTY, process ownership, reconnect, stop, and host restart checks.
+- Hana remains stopped. The independent tests do not dispatch manager work.
+
+Commands and coverage: [Host tests](host-testing.md). Detailed evidence: [Harness acceptance](harness-acceptance.md).
+
+Final checks: `bun run test:host` passes 155 deterministic tests. Its eight native cases are opt-in and pass in the separate recorded runs. All nine workspace typechecks, lint, 15 repository checks, the desktop build, and the packaged host smoke test pass.
+
+Codex provider failures remain outside the verified error contract. Local 401 and 503 probes produce session and prompt hooks but no error or Stop hook within 15 seconds. The CLI continues requests in that interval. Final failure behavior remains unverified.

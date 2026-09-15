@@ -6,7 +6,7 @@ Run the isolated process and host tests from the repository root:
 bun run test:host
 ```
 
-The tests use temporary directories and separate runtime processes. Native CLI tests require explicit credentials and model choices:
+The tests use temporary directories and separate runtime processes. Native CLI tests require OpenCode 1.18.31 or later, explicit credentials, and model choices:
 
 ```sh
 TRELLIS_NATIVE_ACCEPTANCE_HOME="$HOME" \
@@ -50,3 +50,9 @@ The [acceptance record](harness-acceptance.md) contains versions, models, eviden
 AGY permits an explicit manual terminal launch. Its autonomous host operations report missing capabilities.
 The tested CLI cannot isolate its hooks per attempt. An interrupt can also cancel its Stop hook before an idle confirmation.
 These cases remain unverified for autonomous use.
+
+## Codex error limit
+
+The verified error tests cover runtime failures and explicit native error events.
+Codex does not emit an error or Stop hook during the bounded local 401 and 503 probes. It continues requests in that interval.
+Final provider failure behavior remains unverified. The acceptance record contains the probe evidence.

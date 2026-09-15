@@ -46,7 +46,7 @@
 		"db:generate": "turbo run db:generate --filter=@trellis/server",
 		"e2e": "bun run --cwd apps/web e2e",
 		"release": "changeset version && bun install && changeset tag",
-		"test:host": "bun run --cwd apps/runtime test:int && bun run --cwd apps/server test:host",
+		"test:host": "bun run --cwd apps/runtime test && bun run --cwd apps/runtime test:int && bun run --cwd apps/server test:host",
 		"test:host:real": "TRELLIS_REAL_HARNESS_ACCEPTANCE=1 bun run --cwd apps/server test:host"
 	},
 	"devDependencies": {
