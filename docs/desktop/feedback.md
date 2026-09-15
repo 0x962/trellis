@@ -69,7 +69,7 @@ Evidence: `/tmp/trellis-continuity-production.log`, `/tmp/trellis-continuity-ins
 
 | Follow-up feedback | Status | Verification |
 | --- | --- | --- |
-| Add a manager button to start fresh context after prompt changes. | Implemented; user UI check pending | Restart with new context confirms a manager Stop before a fresh Start. The new conversation uses the saved persona and project instructions. Resume preserves the current conversation. |
+| Add a manager button to start fresh context after prompt changes. | Implemented; user UI check pending | Restart with new context confirms a manager Stop before a fresh Start. Four unit tests and nine integration tests pass. The new conversation uses the saved persona and project instructions. Resume preserves the current conversation. |
 | The window appears hung. The manager cannot accept input or resize. | Installed | Failed cleanup retains the live PTY handle. Regression tests cover input, resize, repeated Stop, and a later natural exit. |
 | Fix the manager terminal width. | Installed; user UI check pending | The installed runtime accepts input and returns `80 200` after a resize to 200 columns and 80 rows. |
 | Remove the rounded inner page cards. | Installed; user UI check pending | Shared page frames have no rounded border or outer inset. Ticket properties use a straight divider. |
