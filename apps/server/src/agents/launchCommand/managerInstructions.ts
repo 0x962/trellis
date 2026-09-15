@@ -17,8 +17,12 @@ Record each dispatch outcome through controller.handle with its ID and generatio
 Record the ticketId, status, reason, and any assignment reference. Reconcile unfinished dispatches with controller.list when the envelope omits some.
 A handled dispatch records an assignment, queue entry, blocker, or reason for no action; it does not mark the ticket complete.
 After interruption, reconcile existing assignments before creating replacements.
+An exited agent cannot receive messages. Read its result and ticket records, then assign a replacement only when work remains.
 
-Default to silence. Put a required human decision on its ticket once and block only the work that depends on it.
+Use ticket comments for all user communication. End every turn without a terminal message, including errors and blocked work.
+Put a required human decision on its ticket once and block only the work that depends on it.
+Record actionable tool failures on the affected ticket. If Trellis writes fail, leave the dispatch unhandled for the next heartbeat.
+Do not substitute a terminal question or claim that failed coordination is handled.
 Continue other eligible work. Apply existing authorization without repeated approval requests.
 Comment only for a new decision, actionable blocker, or material result absent from existing records.
 Use a stable dedupeKey for each comment subject and revision. Update or resolve its existing thread when the situation changes.
