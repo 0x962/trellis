@@ -56,3 +56,22 @@ test("a prior turn failure cannot turn uncertain delivery into a rejection", asy
 	expect((await host.status("attempt")).acknowledgedMessageIds).not.toContain("uncertain");
 	expect(Buffer.from((await host.output("attempt")).data, "base64").toString()).not.toContain("native prompt accepted");
 });
+
+test("a claude terminal that drops pasted input cannot report the message as sent", async () => {
+	const { client, home } = fixture;
+	const dropping = new HarnessHost({
+		runtime: client,
+		directory: join(home, "attempts"),
+		env: { ...process.env, PATH: join(home, "bin"), HARNESS_FIXTURE_BEHAVIOR: "drop-input" },
+		bun: process.execPath,
+		observationTimeoutMs: 1500,
+	});
+	await dropping.start({ id: "attempt", harness: "claude", cwd: home, prompt: "initial", token: "secret" });
+	await dropping.waitFor("attempt", (state) => state.activity?.state === "idle");
+	await expect(dropping.send("attempt", "review findings", "followup")).rejects.toMatchObject({
+		code: "HARNESS_OBSERVATION_TIMEOUT",
+	});
+	const after = await dropping.status("attempt");
+	expect(after.status).toBe("running");
+	expect(after.acknowledgedMessageIds).toEqual(["attempt"]);
+});

@@ -109,6 +109,24 @@ test("authenticated completion retains the result after the process exits", asyn
 	expect((await client.inspect(session.id)).result).toEqual(completed.result);
 });
 
+test("automatic delivery refuses a session before its first harness observation", async () => {
+	const id = "early-delivery";
+	await client.start({
+		id,
+		command: "/bin/cat",
+		args: [],
+		cwd: home,
+		mode: "pty",
+		env: { TRELLIS_ATTEMPT_TOKEN: "early-token" },
+	});
+	const bytes = Buffer.from("review findings\n").toString("base64");
+	await expect(client.deliver(id, "early", bytes, true)).rejects.toMatchObject({ code: "RUNTIME_BUSY" });
+	expect((await client.inspect(id)).acknowledgedMessageIds).toEqual([]);
+	await client.turn(id, "early-token", "Stop");
+	expect((await client.deliver(id, "early", bytes, true)).status).toBe("written");
+	await client.stop(id);
+});
+
 test("automatic delivery claims an idle turn before it writes any bytes", async () => {
 	const id = "idle-delivery";
 	await client.start({

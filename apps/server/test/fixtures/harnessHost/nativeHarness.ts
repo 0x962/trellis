@@ -128,6 +128,7 @@ if (
 process.stdin.resume();
 let input = "";
 process.stdin.on("data", (chunk: Buffer) => {
+	if (process.env.HARNESS_FIXTURE_BEHAVIOR === "drop-input") return;
 	input += chunk.toString().replaceAll("\x1b[200~", "").replaceAll("\x1b[201~", "");
 	if (input.includes("\x03") || input.includes("\x1b")) {
 		input = "";
