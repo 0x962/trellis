@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { render } from "@testing-library/react-native";
 import { NeedsYou } from "../src/needs-you/NeedsYou";
 
 // A query client for one test: no retries, so a failed request settles at
@@ -14,21 +13,13 @@ export const testQueryClient = () =>
 		},
 	});
 
-// Renders the Needs you screen the way the tab does, under a gesture root
-// and a query client provider.
+// Renders the Needs you screen the way the tab does, under a query client
+// provider.
 export const renderNeedsYou = async (queryClient = testQueryClient()) => {
 	const view = await render(
-		<GestureHandlerRootView>
-			<QueryClientProvider client={queryClient}>
-				<NeedsYou />
-			</QueryClientProvider>
-		</GestureHandlerRootView>,
+		<QueryClientProvider client={queryClient}>
+			<NeedsYou />
+		</QueryClientProvider>,
 	);
 	return { ...view, queryClient };
 };
-
-// The identifiers of the rows on screen, in list order.
-export const rowIdentifiers = () =>
-	screen.queryAllByTestId(/^inbox-row-/).map((row) => String(row.props.testID).replace("inbox-row-", ""));
-
-export const sectionHeader = (name: string) => screen.getByRole("button", { name });

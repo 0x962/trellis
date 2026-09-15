@@ -40,9 +40,35 @@ describe("EmptyState", () => {
 		expectClasses(screen.getByText("No page has this URL."), "max-w-xl text-sm text-fg-muted");
 	});
 
+	// The 404 page, Search, and every page with no rows show one poster, so
+	// they read as one family of pages.
+	test("the page variant draws the poster above the title", () => {
+		const { container } = render(<EmptyState variant="page" title="Page not found" />);
+		const poster = container.firstElementChild!.firstElementChild!;
+		expect(poster.tagName).toBe("IMG");
+		expect(poster.getAttribute("src")).toEndWith("poster.jpg");
+		expect(poster.getAttribute("alt")).toBe("");
+	});
+
+	// An img with a width and no height is 0 px tall until its file loads, and
+	// then pushes the title down. The poster keeps its 192x306 shape from the
+	// first paint, so the text under it never moves.
+	test("the default poster holds its height before the file loads", () => {
+		const { container } = render(<EmptyState variant="page" title="Page not found" />);
+		expectClasses(container.querySelector("img")!, "w-24 aspect-[192/306]");
+	});
+
+	test("a page can show its own picture in place of the poster", () => {
+		const { container } = render(<EmptyState variant="page" image="/flows.jpg" title="No flows yet" />);
+		const pictures = container.querySelectorAll("img");
+		expect(pictures).toHaveLength(1);
+		expect(pictures[0]!.getAttribute("src")).toBe("/flows.jpg");
+	});
+
 	test("the section variant is the default", () => {
 		const { container } = render(<EmptyState title="No sub-projects." />);
 		const empty = container.firstElementChild!;
+		expect(empty.querySelector("img")).toBeNull();
 		expect(empty.className).not.toMatch(/flex-1|px-1/);
 		expectClasses(empty, "py-3");
 		expectClasses(screen.getByRole("heading", { name: "No sub-projects." }), "text-sm font-medium text-fg");

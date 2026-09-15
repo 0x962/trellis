@@ -4,16 +4,21 @@ import { createTrellisClient } from "@trellis/api";
 import { createTestApp, DANA, type TestApp } from "../../../helpers/app.ts";
 
 // Every procedure response carries
-// `Server-Timing: db;dur=<ms>`, the time the database spent on the request.
-// The perf suite reads its p95 from this header.
+// `Server-Timing: db;dur=<ms>, lock;dur=<ms>, queue;dur=<ms>`: the time the
+// database spent on the request, the wait for the database lock, and the
+// wait in the queue of the database worker. The perf suite reads its p95
+// from the db part.
 
-const DB_DURATION = /^db;dur=(\d+(?:\.\d+)?)$/;
+const TIMING = /^db;dur=(\d+(?:\.\d+)?), lock;dur=(\d+(?:\.\d+)?), queue;dur=(\d+(?:\.\d+)?)$/;
 
-const dbDurationOf = (headers: Headers) => {
+const timingOf = (headers: Headers) => {
 	const header = headers.get("server-timing");
-	expect(header).toMatch(DB_DURATION);
-	return Number(DB_DURATION.exec(header!)![1]);
+	expect(header).toMatch(TIMING);
+	const [, db, lock, queue] = TIMING.exec(header!)!;
+	return { db: Number(db), lock: Number(lock), queue: Number(queue) };
 };
+
+const dbDurationOf = (headers: Headers) => timingOf(headers).db;
 
 let t: TestApp;
 beforeAll(async () => {
@@ -72,6 +77,14 @@ describe("Server-Timing", () => {
 
 		expect(seen).toHaveLength(1);
 		expect(dbDurationOf(seen[0]!)).toBeGreaterThan(0);
+	});
+
+	test("the header carries a lock wait and a queue wait", async () => {
+		const response = await t.api("/api/tickets?project=TIM");
+
+		const timing = timingOf(response.headers);
+		expect(timing.lock).toBeGreaterThanOrEqual(0);
+		expect(timing.queue).toBeGreaterThanOrEqual(0);
 	});
 
 	test("the db duration is never longer than the request", async () => {

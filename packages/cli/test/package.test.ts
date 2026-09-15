@@ -32,7 +32,6 @@ const commandFiles = [
 	"search",
 	"activity",
 	"brief",
-	"inbox",
 	"watch",
 	"open",
 	"whoami",

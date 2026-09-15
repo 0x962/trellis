@@ -51,8 +51,8 @@ describe("the review actions", () => {
 		expect(sendBack()).toBeNull();
 	});
 
-	// O54.
-	test("Approve moves the ticket to the lowest done status", async () => {
+	// O54. The seeded set has no status between Human Review and Done.
+	test("Approve moves the ticket to the status after Human Review", async () => {
 		const ticket = await human.tickets.get({ ticket: data.ticket });
 		const { statuses } = await human.statuses.list({ project: ticket.project.id });
 		const done = statuses.find((status) => status.slug === "done")!;
