@@ -19,6 +19,7 @@ export const TrellisPlugin = async ({ client }) => {
 				path: { id },
 				body: {
 					parts: [{ type: "text", text }],
+					...(managerTools ? { agent: "trellis-manager" } : {}),
 					...(model ? { model: { providerID: model.slice(0, split), modelID: model.slice(split + 1) } } : {}),
 				},
 			});
@@ -110,7 +111,7 @@ export const TrellisPlugin = async ({ client }) => {
 		},
 		"tool.execute.before": async (input, output) => {
 			if (managerTools && !input.tool.startsWith("trellis_trellis_"))
-				throw new Error("Managers use Trellis tools. Delegate technical work to a worker.");
+				throw new Error("This tool is unavailable in the manager tool catalog.");
 			if (matches(input.sessionID))
 				await send({
 					event: "tool-start",

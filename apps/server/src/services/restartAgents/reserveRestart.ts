@@ -4,6 +4,7 @@ import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
 import type { ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { invalidInput } from "../../errors.ts";
 import { readNativeWork } from "../agentRuns/nativeControl.ts";
 import { columns, type StoredRun } from "../agentRuns/queries.ts";
 import { type ExecutionAttempt, reserveAttempt } from "../assignments/attempts.ts";
@@ -59,6 +60,16 @@ export async function reserveRestart(ctx: ServiceCtx, tx: Tx, session: RestartSe
 	if (deadlineAt !== undefined && deadlineAt <= ctx.now.getTime()) return null;
 	let attempt: ExecutionAttempt | undefined;
 	if (reserve && run.terminalId === session.previousAttemptId) {
+		if (run.kind === "manager") {
+			if (run.personaId === null)
+				throw invalidInput("personaId", "Select a current manager persona before you restart this assignment.");
+			const [persona] = await rows<{ name: string; instruction: string }>(
+				tx,
+				sql`UPDATE agent_runs AS r SET persona_name=p.name,instruction=p.instruction FROM personas AS p WHERE r.id=${run.id} AND p.id=r.persona_id RETURNING p.name,p.instruction`,
+			);
+			run.personaName = persona!.name;
+			run.instruction = persona!.instruction;
+		}
 		attempt = await reserveAttempt(ctx, tx, { runId: run.id, attempt: session.attempt });
 		await tx.execute(
 			sql`UPDATE agent_runs SET terminal_id=${attempt.id},session_id=${session.providerSessionId},workspace_id=${session.workspace},error=NULL,session_lost=false,updated_at=${ctx.now} WHERE id=${run.id}`,

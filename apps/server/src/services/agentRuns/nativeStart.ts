@@ -3,9 +3,9 @@ import { ORPCError } from "@orpc/server";
 import type { ProjectManagerConfig } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
+import type { HarnessStartInput } from "../../agents/harnessHost/types.ts";
 import { launchCommand } from "../../agents/launchCommand/launchCommand.ts";
 import { launchPrompt } from "../../agents/launchCommand/launchPrompt.ts";
-import { managerInstructions } from "../../agents/launchCommand/managerInstructions.ts";
 import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { customLaunch } from "../../agents/native/customLaunch.ts";
 import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
@@ -105,18 +105,14 @@ export const startNative = async (
 			session = await client.inspect(terminalId);
 		} else {
 			const host = nativeHost(ctx.home, env, client);
-			const launch = {
+			const launch: HarnessStartInput = {
 				id: terminalId,
-				kind: run.kind,
-				...(run.kind === "manager" ? { managerId: run.id } : {}),
+				...(run.kind === "manager"
+					? { kind: "manager", managerId: run.id, managerSystemPrompt: run.instruction }
+					: { kind: run.kind }),
 				harness: config.harness.preset,
 				cwd: workspaceId,
-				prompt:
-					input.resumePrompt === undefined
-						? launchPrompt({ run, url: ctx.localUrl, context })
-						: run.kind === "manager"
-							? `${managerInstructions}\n\n${input.resumePrompt}`
-							: input.resumePrompt,
+				prompt: input.resumePrompt ?? launchPrompt({ run, url: ctx.localUrl, context }),
 				model: config.harness.model,
 				token: input.attempt.token,
 				timeoutMs,

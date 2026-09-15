@@ -9,17 +9,23 @@ import { sendNativePrompt } from "./sendNativePrompt.ts";
 import type { HarnessDescriptor, HarnessHostOptions, HarnessStarted, HarnessStartInput } from "./types.ts";
 
 const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/);
-const launchInput = z.object({
-	id: identifier,
-	harness: z.enum(["claude", "codex", "pi", "opencode"]),
-	kind: z.enum(["manager", "builder", "reviewer"]).optional(),
-	managerId: identifier.optional(),
-	cwd: z.string().startsWith("/"),
-	prompt: z.string().min(1),
-	model: z.string().min(1).optional(),
-	token: z.string().min(1).optional(),
-	timeoutMs: z.number().positive().optional(),
-});
+const launchInput = z
+	.object({
+		id: identifier,
+		harness: z.enum(["claude", "codex", "pi", "opencode"]),
+		managerId: identifier.optional(),
+		cwd: z.string().startsWith("/"),
+		prompt: z.string().min(1),
+		model: z.string().min(1).optional(),
+		token: z.string().min(1).optional(),
+		timeoutMs: z.number().positive().optional(),
+	})
+	.and(
+		z.union([
+			z.object({ kind: z.literal("manager"), managerSystemPrompt: z.string().min(1) }),
+			z.object({ kind: z.enum(["builder", "reviewer"]).optional() }),
+		]),
+	);
 export class HarnessHost {
 	constructor(private readonly options: HarnessHostOptions) {}
 	prepare(input: HarnessStartInput, sessionId?: string): Promise<HarnessDescriptor> {

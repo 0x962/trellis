@@ -27,7 +27,10 @@ export const launchCommand = (input: {
 		terminalId: run.terminalId ?? "",
 		prompt,
 		sessionId: run.sessionId!,
-		resumeText: `${prefix}${run.instruction}\n\n${resumeText}`,
+		resumeText:
+			run.kind === "manager"
+				? `${prefix}${JSON.stringify({ event: "session.resumed", actor, project: run.projectPath })}`
+				: `${prefix}${run.instruction}\n\n${resumeText}`,
 		actor,
 		trellisUrl: url,
 		directory: input.directory ?? "",

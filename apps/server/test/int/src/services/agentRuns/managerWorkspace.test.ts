@@ -81,7 +81,9 @@ test.each([false, true])("a resumed manager uses the observed directory when pri
 	const previous = await host.start({
 		id: previousId,
 		harness: "claude",
-		...(privateDirectory ? { kind: "manager" as const, managerId: runId } : {}),
+		...(privateDirectory
+			? { kind: "manager" as const, managerId: runId, managerSystemPrompt: "Stored manager persona" }
+			: { kind: "builder" as const }),
 		cwd: fixture.home,
 		prompt: "Original",
 		token: "previous-token",
@@ -112,7 +114,7 @@ test.each([false, true])("a resumed manager uses the observed directory when pri
 	const descriptor = JSON.parse(
 		await readFile(join(fixture.home, "harness-attempts", attemptId, "launch.json"), "utf8"),
 	);
-	expect(descriptor.prompt).toContain("controller.handle");
+	expect(descriptor.spec.args[descriptor.spec.args.indexOf("--system-prompt") + 1]).toBe(run.instruction);
 	expect(descriptor.prompt).toContain("Trellis performed a system restart.");
 	expect(descriptor.prompt).not.toContain("Original assignment must not repeat");
 	expect(descriptor.spec.args).toContain("--strict-mcp-config");

@@ -67,7 +67,7 @@ export async function registerManagerTools(pi, launch) {
 		pi.on("session_start", () => pi.setActiveTools(names));
 		pi.on("tool_call", (event) => {
 			if (!names.includes(event.toolName))
-				return { block: true, reason: "Managers use Trellis tools. Delegate technical work to a worker." };
+				return { block: true, reason: "This tool is unavailable in the manager tool catalog." };
 		});
 		pi.on("session_shutdown", close);
 	} catch (error) {

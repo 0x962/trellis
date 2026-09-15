@@ -27,7 +27,7 @@ export async function prepareAttempt(
 		input.model ?? null,
 		input.token ?? null,
 		input.timeoutMs ?? null,
-		...(input.kind === "manager" ? ["manager-tools-v1", input.managerId ?? input.id] : []),
+		...(input.kind === "manager" ? ["manager-tools-v1", input.managerId ?? input.id, input.managerSystemPrompt] : []),
 		sessionId ?? null,
 		env,
 		options.bun,
@@ -64,12 +64,13 @@ export async function prepareAttempt(
 		hookCommand,
 		...(input.kind === "manager"
 			? {
+					managerSystemPrompt: input.managerSystemPrompt,
 					managerTools: {
 						command: options.bun,
 						args: [fileURLToPath(new URL("../managerTools/entry.ts", import.meta.url))],
 					},
 				}
-			: {}),
+			: { managerTools: undefined, managerSystemPrompt: undefined }),
 	};
 	const launch = await providers[input.harness].prepare(
 		sessionId === undefined ? { ...common, resume: false } : { ...common, resume: true, sessionId },

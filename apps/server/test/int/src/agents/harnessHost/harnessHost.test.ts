@@ -30,16 +30,20 @@ test("a manager gets private working context and cannot reuse an unrestricted la
 		cwd: home,
 		prompt: "Coordinate",
 	};
-	const descriptor = await host.prepare({ ...input, kind: "manager" });
+	const managerSystemPrompt = `Database persona ${crypto.randomUUID()}`;
+	const descriptor = await host.prepare({ ...input, kind: "manager", managerSystemPrompt });
 	expect(descriptor.spec.cwd).toBe(join(home, "attempts", "manager-workspaces", "assignment"));
 	expect(descriptor.spec.args).toContain("--strict-mcp-config");
 	expect(descriptor.spec.args).not.toContain("--dangerously-skip-permissions");
-	expect(await host.prepare({ ...input, kind: "manager" })).toEqual(descriptor);
+	expect(await host.prepare({ ...input, kind: "manager", managerSystemPrompt })).toEqual(descriptor);
 	const resumed = await host.prepare(
-		{ ...input, cwd: descriptor.spec.cwd, id: "manager-resumed", kind: "manager" },
+		{ ...input, cwd: descriptor.spec.cwd, id: "manager-resumed", kind: "manager", managerSystemPrompt },
 		"same-provider-session",
 	);
 	expect(resumed.spec.cwd).toBe(descriptor.spec.cwd);
+	await expect(
+		host.prepare({ ...input, kind: "manager", managerSystemPrompt: "Changed database instruction" }),
+	).rejects.toThrow("different launch request");
 	await expect(host.prepare(input)).rejects.toThrow("different launch request");
 	expect(await client.list()).toEqual([]);
 });

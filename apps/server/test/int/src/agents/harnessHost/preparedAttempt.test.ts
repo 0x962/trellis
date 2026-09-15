@@ -55,22 +55,39 @@ test("OpenCode resumes its prepared prompt after process launch and keeps the pr
 });
 
 test.each(["claude", "pi", "opencode"] as const)(
-	"%s manager resume preserves the prior directory and restricts its tools",
+	"%s manager resume uses the exact persona and preserves its directory and tools",
 	async (harness) => {
+		const managerSystemPrompt = `Database persona ${crypto.randomUUID()}`;
 		const started = await host.prepare({
 			id: "new-manager",
 			managerId: "manager",
 			kind: "manager",
+			managerSystemPrompt,
 			harness,
 			cwd: home,
 			prompt: "Coordinate",
 		});
 		expect(started.spec.cwd).toBe(join(home, "attempts", "manager-workspaces", "manager"));
 		const resumed = await host.prepare(
-			{ id: "old-manager-resumed", managerId: "manager", kind: "manager", harness, cwd: home, prompt: "Continue" },
+			{
+				id: "old-manager-resumed",
+				managerId: "manager",
+				kind: "manager",
+				managerSystemPrompt,
+				harness,
+				cwd: home,
+				prompt: "Continue",
+			},
 			`provider-${harness}`,
 		);
 		expect(resumed.spec.cwd).toBe(home);
+		for (const descriptor of [started, resumed]) {
+			const system =
+				harness === "opencode"
+					? JSON.parse(descriptor.spec.env!.OPENCODE_CONFIG_CONTENT!).agent["trellis-manager"].prompt
+					: descriptor.spec.args[descriptor.spec.args.indexOf("--system-prompt") + 1];
+			expect(system).toBe(managerSystemPrompt);
+		}
 		if (harness === "claude") {
 			expect(resumed.spec.args).toContain("--strict-mcp-config");
 			expect(resumed.spec.args).not.toContain("--dangerously-skip-permissions");
