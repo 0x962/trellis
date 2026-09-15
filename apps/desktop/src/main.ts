@@ -13,7 +13,7 @@ import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResour
 import { prepareHome } from "./prepareHome/prepareHome.ts";
 import { restartHost } from "./restartHost/index.ts";
 import { restartMenuItem } from "./restartMenuItem/index.ts";
-import { readConfiguredHome, readSelectedHome } from "./selectedHome/selectedHome.ts";
+import { readSelectedHome } from "./selectedHome/selectedHome.ts";
 import { requireService, resumeLocalWork, showServiceStatus, stopLocalWork } from "./serviceActions/serviceActions.ts";
 import { showMaximizedWindow } from "./showMaximizedWindow/showMaximizedWindow.ts";
 import { showUpdateStatus } from "./updateActions/updateActions.ts";
@@ -280,21 +280,14 @@ else {
 			await openWindow();
 		})
 		.catch(async (error: Error) => {
-			const { response } = await dialog.showMessageBox({
+			await dialog.showMessageBox({
 				type: "error",
 				message: "Trellis cannot start",
 				detail: error.message,
-				buttons: app.isPackaged ? ["Quit", "Choose data directory…"] : ["Quit"],
+				buttons: ["Quit"],
 				defaultId: 0,
 				cancelId: 0,
 			});
-			if (response === 1) {
-				try {
-					await chooseHome(readConfiguredHome(app.getPath("userData")));
-				} catch (selectionError) {
-					dialog.showErrorBox("The saved data directory needs attention", (selectionError as Error).message);
-				}
-			}
 			app.quit();
 		});
 }
