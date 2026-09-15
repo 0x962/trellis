@@ -11,6 +11,7 @@ import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResour
 import { prepareHome } from "./prepareHome/prepareHome.ts";
 import { readConfiguredHome, readSelectedHome } from "./selectedHome/selectedHome.ts";
 import { requireService, resumeLocalWork, showServiceStatus, stopLocalWork } from "./serviceActions/serviceActions.ts";
+import { showMaximizedWindow } from "./showMaximizedWindow/showMaximizedWindow.ts";
 import { showUpdateStatus } from "./updateActions/updateActions.ts";
 import { readUpdateStatus } from "./updateStatus/updateStatus.ts";
 import { windowOptions } from "./windowOptions/windowOptions.ts";
@@ -24,8 +25,7 @@ const paths = () => desktopPaths(app.getAppPath(), process.resourcesPath, app.is
 
 const openWindow = async () => {
 	if (window) {
-		window.show();
-		window.focus();
+		showMaximizedWindow(window);
 		return;
 	}
 	window = new BrowserWindow({
@@ -45,7 +45,8 @@ const openWindow = async () => {
 			partition: "persist:trellis",
 		},
 	});
-	window.once("ready-to-show", () => window?.show());
+	const createdWindow = window;
+	window.once("ready-to-show", () => showMaximizedWindow(createdWindow));
 	window.on("closed", () => {
 		window = undefined;
 	});
