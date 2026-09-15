@@ -86,7 +86,11 @@ The command rejects uncommitted changes. It exports one commit into a fresh dire
 
 The command signs the local package and runs the packaged smoke checks. It copies the app with `ditto` into a temporary directory beside `~/Applications/Trellis.app` and verifies that copy. It publishes the copy through an atomic directory exchange when an installed app exists. Deleted source files cannot remain in the installed bundle. The running app and its services stay open during the copy.
 
-Restart Trellis to activate the installed build. If the package changes, the restart stops active agents before it starts the new runtime.
+Restart Trellis to activate the installed build. For a changed package, Trellis saves the confirmed active agent sessions before it stops the previous runtime. After the new host starts, Trellis resumes those provider sessions in their saved workspaces. Agents that you stopped stay stopped. An unchanged package keeps the existing processes.
+
+Trellis stores pending resumes in `restart-plan.json` inside the selected data directory. A failed activation preserves this plan for the next app launch. Each saved attempt has one resume identity, which prevents duplicate processes and restart messages. A later package must complete any partial resume before it stops another runtime.
+
+A custom agent or an agent without a confirmed provider session blocks the update before runtime shutdown. Stop that agent, or wait for its provider session, then reopen Trellis.
 
 To prepare a verified candidate without a production install:
 
