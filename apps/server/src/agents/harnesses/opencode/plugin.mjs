@@ -61,6 +61,10 @@ export const TrellisPlugin = async ({ client }) => {
 	}
 	const matches = (id) => id === sessionId;
 	return {
+		"experimental.chat.system.transform": async (_input, output) => {
+			if (managerTools && output.system.some((text) => text.includes(process.env.TRELLIS_MANAGER_SYSTEM_PROMPT)))
+				output.system = [process.env.TRELLIS_MANAGER_SYSTEM_PROMPT];
+		},
 		config: async (config) => {
 			const permission = managerTools ? { "*": "deny", "trellis_trellis_*": "allow" } : { "*": "allow" };
 			config.permission = permission;

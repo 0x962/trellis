@@ -1,3 +1,4 @@
+import { managerInstructions } from "../../launchCommand/managerInstructions.ts";
 import type { HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 export async function prepareClaude(input: HarnessLaunchInput): Promise<HarnessLaunch> {
@@ -16,6 +17,10 @@ export async function prepareClaude(input: HarnessLaunchInput): Promise<HarnessL
 	);
 	const args = input.managerTools
 		? [
+				"--system-prompt",
+				managerInstructions,
+				"--system-prompt-snapshot",
+				"off",
 				"--tools",
 				"",
 				"--permission-mode",

@@ -1,6 +1,7 @@
 import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { managerInstructions } from "../../launchCommand/managerInstructions.ts";
 import type { HarnessEvent, HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 export async function preparePi(input: HarnessLaunchInput): Promise<HarnessLaunch> {
@@ -39,7 +40,17 @@ export default async function(pi) {
 		executable: "pi",
 		args: [
 			...(input.managerTools
-				? ["--no-builtin-tools", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-context-files"]
+				? [
+						"--system-prompt",
+						managerInstructions,
+						"--append-system-prompt",
+						"",
+						"--no-builtin-tools",
+						"--no-extensions",
+						"--no-skills",
+						"--no-prompt-templates",
+						"--no-context-files",
+					]
 				: ["--tools", "read,bash,edit,write,grep,find,ls"]),
 			"--extension",
 			extension,

@@ -116,3 +116,31 @@ A custom launch command provides no verifiable tool contract.
 
 These controls restrict tools available to the agent model. They are not an operating-system sandbox.
 Existing manager processes retain their launch configuration until a new attempt starts.
+
+## Manager system role and communication
+
+A local request capture found a 9,135-character coding system prompt above the manager's assignment message.
+That system prompt described an interactive software agent and terminal communication with the user.
+The Trellis manager contract previously occupied the user message, below those instructions.
+The capture excluded a canary `CLAUDE.md`, so it did not reproduce global instruction leakage in this harness.
+
+Managers now receive the shared role contract as their native system prompt.
+Assignment messages carry the selected persona and project context without a duplicate role contract.
+Claude uses `--system-prompt` and `--system-prompt-snapshot off` on start and resume.
+The provider recommends replacement when the agent's identity or communication surface differs from its coding assistant.
+[Source: system prompt replacement and resume behavior](https://code.claude.com/docs/en/cli-reference#system-prompt-flags).
+
+Claude Code 2.1.273 accepted both flags in a local model fixture.
+The request contained the manager contract in its system field and omitted the interactive coding and terminal communication instructions.
+A second fixture resumed a session with a saved canary system prompt and verified that the current manager contract replaced it.
+These fixtures verify prompt composition. They do not measure model compliance.
+
+OpenCode uses a custom primary-agent prompt and replaces the final system text through its native plugin hook.
+The final replacement excludes global instruction files that OpenCode otherwise appends after a custom agent prompt.
+[Source: system assembly and plugin hook](https://github.com/anomalyco/opencode/blob/v1.18.31/packages/opencode/src/session/llm/request.ts#L52).
+Pi uses a custom system prompt and an explicit empty append value to exclude automatic `APPEND_SYSTEM.md` discovery.
+
+Tool permissions do not restrict ordinary assistant text.
+A Stop hook runs after the response and can force another turn, so it cannot prevent a terminal question.
+[Source: Stop hook timing and decisions](https://code.claude.com/docs/en/hooks#stop).
+The manager contract directs questions to tickets. The native terminal remains an observable transcript, not an enforced communication channel.

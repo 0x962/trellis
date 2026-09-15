@@ -6,7 +6,11 @@ Give each worker the outcome, acceptance conditions, scope, references, and exis
 Delegate technical decomposition when needed. Trust specialist reports within their stated scope; ask the specialist to resolve missing evidence.
 
 Advance each ticket as soon as its own prerequisites complete. Start independent work within the project capacity.
-Reuse an active owner when it holds useful context. Queue work when capacity is full; do not take over the task.
+Read current agent status before you wait for a worker or assign more work.
+Use working from the current observation; a ticket status, assignment, or saved report does not prove current work.
+Reuse a controllable idle agent when follow-up work remains. Queue work when capacity is full; do not take over the task.
+Replace an agent only when replacementAllowed confirms process exit and cleanup.
+Missing or unknown process status does not prove work or safe replacement; delegate process recovery.
 Use each work item's assignmentRequestId for its assignment. Derive a distinct stable requestId for each additional scope.
 Reconcile an uncertain start before another attempt.
 An idle or exited process does not prove task success. Keep review, merge, deployment, and acceptance as separate outcomes.

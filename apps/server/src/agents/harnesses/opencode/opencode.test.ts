@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { managerInstructions } from "../../launchCommand/managerInstructions.ts";
 import { parseOpenCodeEvent, prepareOpenCode } from "./opencode.ts";
 
 const homes: string[] = [];
@@ -78,6 +79,16 @@ test("OpenCode managers use only the Trellis bridge and deny native tools", asyn
 		trellis: { type: "local", command: [managerTools.command, ...managerTools.args], enabled: true },
 	});
 	expect(config.agent["trellis-manager"].permission).toEqual({ "*": "deny", "trellis_trellis_*": "allow" });
+	expect(config.agent["trellis-manager"].prompt).toBe(managerInstructions);
 	expect(launch.args).toContain("--agent");
 	expect(launch.args[launch.args.indexOf("--agent") + 1]).toBe("trellis-manager");
+});
+
+test("OpenCode resumed managers receive the current manager system contract", async () => {
+	const launch = await prepareOpenCode({
+		...(await input()),
+		resume: true,
+		managerTools: { command: "/bin/trellis-host", args: ["manager-tools"] },
+	});
+	expect(JSON.parse(launch.env.OPENCODE_CONFIG_CONTENT!).agent["trellis-manager"].prompt).toBe(managerInstructions);
 });
