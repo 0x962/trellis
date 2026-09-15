@@ -19,21 +19,21 @@ export const createController = (options: ControllerOptions) => {
 	};
 	const tickFailed = (cause: unknown) =>
 		options.log("controller tick failed", { error: cause instanceof Error ? cause.message : String(cause) });
-	const schedule = () => {
+	const schedule = (delay = 1000) => {
 		if (stopped) return;
 		timer = options.clock.setTimer(() => {
 			timer = null;
-			running = tick().catch(tickFailed).then(schedule);
-		}, 1000);
+			running = tick()
+				.catch(tickFailed)
+				.then(() => schedule());
+		}, delay);
 	};
 	return {
 		start: async () => {
 			if (!stopped) return;
 			stopped = false;
 			await options.call("controller.recover", {});
-			running = tick().catch(tickFailed);
-			await running;
-			schedule();
+			schedule(0);
 		},
 		stop: async () => {
 			stopped = true;

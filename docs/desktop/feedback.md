@@ -6,12 +6,25 @@ Last update: 2026-09-15.
 The project subitems use text labels for Tickets, Manager, and Settings. The user tests this UI change after deployment.
 
 `Integrated` means that the source contains the change. It does not establish that the installed desktop uses that source.
-The desktop opens with release `d345422e`. The release includes the host fixes, manager settings move, terminal layout, sidebar, and window changes.
+The desktop opens with release `a2be8054`. It includes text-only project links, manager settings move, terminal layout, sidebar, and window changes.
 Hana resumes at 20:02:37 UTC with the same provider session. TRL dispatch is enabled, and OP dispatch stays paused.
 
 ## Current work
 
-All five new UI changes are installed. The user will check the installed UI.
+The user tests the installed UI. The following follow-up fixes await deployment.
+
+| Follow-up feedback | Status | Verification |
+| --- | --- | --- |
+| The window appears hung. The manager cannot accept input or resize. | Runtime fix integrated | Failed process cleanup retains the live PTY handle. Regression tests cover input, resize, repeated Stop, and a later natural exit. |
+| Fix the manager terminal width. | Runtime fix integrated | The failed manager remained at 98 columns because the runtime rejected resize. The live-PTY regression resizes to 200 columns after failed cleanup. |
+| Remove the rounded inner page cards. | Integrated | Shared page frames have no rounded border or outer inset. Ticket properties use a straight divider. |
+| Make project submenu items more compact. | Integrated | Desktop rows use 28 px; touch rows use 44 px. |
+| Align and redesign the Archived submenu. | Integrated | The caret, label, and count use the same slots as project rows. Expanded projects use nested indentation. |
+| Remove the manager settings icon. | Integrated | The manager toolbar holds its process control. Control+] returns focus to that control. |
+| Stop and restart report a schema error. | API fix integrated | Failed cleanup reports RUNNER_UNAVAILABLE with the runtime error. Three focused API integration tests pass. |
+| Fix the broken Agent tab terminal. | Integrated | A padding-free host gives FitAddon the correct available size. Aside confirms that the terminal screen stays inside its frame. Runtime failures remain visible. |
+| Use Astra subagents. | Applied | Astra agents own the sidebar, terminal UI, lifecycle review, native process inspection, and shell environment work. |
+| Address root causes. | In progress | Native process inspection replaces the spawned ps command. Host startup and the first manager dispatch must remain independent of shell setup. |
 
 | New feedback | Status | Owner | Verification |
 | --- | --- | --- | --- |
