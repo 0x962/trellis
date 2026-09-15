@@ -3,7 +3,6 @@ import { copyFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { z } from "zod";
-import { managerInstructions } from "../../launchCommand/managerInstructions.ts";
 import type { HarnessEvent, HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 const envelope = z.object({
@@ -44,7 +43,7 @@ export const prepareOpenCode = async (input: HarnessLaunchInput): Promise<Harnes
 			...(input.managerTools
 				? {
 						TRELLIS_MANAGER_TOOLS: JSON.stringify(input.managerTools),
-						TRELLIS_MANAGER_SYSTEM_PROMPT: managerInstructions,
+						TRELLIS_MANAGER_SYSTEM_PROMPT: input.managerSystemPrompt,
 						OPENCODE_DISABLE_PROJECT_CONFIG: "1",
 					}
 				: {}),
@@ -54,7 +53,7 @@ export const prepareOpenCode = async (input: HarnessLaunchInput): Promise<Harnes
 				...(input.managerTools
 					? {
 							default_agent: "trellis-manager",
-							agent: { "trellis-manager": { mode: "primary", permission, prompt: managerInstructions } },
+							agent: { "trellis-manager": { mode: "primary", permission, prompt: input.managerSystemPrompt } },
 							mcp: {
 								trellis: {
 									type: "local",

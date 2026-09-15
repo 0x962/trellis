@@ -1,5 +1,4 @@
 import { expect, test } from "bun:test";
-import { managerInstructions } from "../../launchCommand/managerInstructions.ts";
 import { parseClaudeEvent } from "./parseClaudeEvent.ts";
 import { parseClaudeStatus } from "./parseClaudeStatus.ts";
 import { prepareClaude } from "./prepareClaude.ts";
@@ -50,10 +49,11 @@ test("Claude resumes the supplied vendor ID with bypass and model", async () => 
 });
 
 test("Claude managers expose only the Trellis bridge and remove native execution tools on start and resume", async () => {
+	const managerSystemPrompt = `Database persona ${crypto.randomUUID()}`;
 	const managerTools = { command: "/bin/bun", args: ["/app/manager.ts"] };
 	for (const resume of [false, true] as const) {
-		const launch = await prepareClaude({ ...input, managerTools, resume });
-		expect(launch.args[launch.args.indexOf("--system-prompt") + 1]).toBe(managerInstructions);
+		const launch = await prepareClaude({ ...input, managerTools, managerSystemPrompt, resume });
+		expect(launch.args[launch.args.indexOf("--system-prompt") + 1]).toBe(managerSystemPrompt);
 		expect(launch.args[launch.args.indexOf("--system-prompt-snapshot") + 1]).toBe("off");
 		expect(launch.args).not.toContain("--dangerously-skip-permissions");
 		expect(launch.args).toContain("--strict-mcp-config");

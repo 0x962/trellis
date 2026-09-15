@@ -22,7 +22,11 @@ test("Codex owns an isolated engine and resumes the exact native thread", async 
 });
 
 test("Codex refuses manager launches before it can expose unrestricted native tools", async () => {
-	await expect(prepareCodex({ ...input, managerTools: { command: "bun", args: ["manager.ts"] } })).rejects.toThrow(
-		"cannot enforce the manager tool boundary",
-	);
+	await expect(
+		prepareCodex({
+			...input,
+			managerSystemPrompt: "Database persona",
+			managerTools: { command: "bun", args: ["manager.ts"] },
+		}),
+	).rejects.toThrow("cannot enforce the manager tool boundary");
 });

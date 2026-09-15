@@ -8,7 +8,7 @@ const run: AgentRun = {
 	runtime: "native",
 	personaId: null,
 	personaName: "Trellis Manager",
-	kind: "manager",
+	kind: "builder",
 	instruction: "Manage the project.",
 	projectId: null,
 	projectPath: "TRL",
@@ -90,14 +90,36 @@ test("initial and resumed prompts identify the runtime message", () => {
 	}
 });
 
-test("manager assignment messages contain persona and context without a duplicate system contract", () => {
-	const { prompt } = launchCommand({ run, url, context: "Project: TRL", template: DEFAULT_AGENT_START_COMMAND });
-	expect(prompt).toContain(run.instruction);
-	expect(prompt).toContain("Your name is Wren");
-	expect(prompt).toContain("Project: TRL");
-	expect(prompt).not.toContain("## Manager role");
-	expect(prompt).not.toContain("trellis evidence check");
-	expect(prompt).not.toContain("Read the repository's AGENTS.md");
-	expect(prompt).not.toContain("margin list");
-	expect(prompt).not.toContain("Navid");
+test("manager assignment messages contain only identity and context facts", () => {
+	const instruction = `Database persona ${crypto.randomUUID()}`;
+	const { prompt } = launchCommand({
+		run: { ...run, kind: "manager", instruction },
+		url,
+		context: "Project: TRL",
+		template: DEFAULT_AGENT_START_COMMAND,
+	});
+	expect(JSON.parse(prompt)).toEqual({
+		agent: { id: run.id, name: run.name },
+		actor: `agent:${run.id}`,
+		trellisUrl: url,
+		persona: { id: run.personaId, name: run.personaName },
+		context: "Project: TRL",
+	});
+	expect(prompt).not.toContain(instruction);
+});
+
+test("manager resume messages contain restart facts without behavioral instructions", () => {
+	const instruction = `Database persona ${crypto.randomUUID()}`;
+	const launch = launchCommand({
+		run: { ...run, kind: "manager", instruction },
+		url,
+		context: "Project: TRL",
+		template: "agent {{resumeText}}",
+		messageId: "resume-id",
+	});
+	expect(launch.command).toContain(
+		`trellis-message:resume-id\n{"event":"session.resumed","actor":"agent:${run.id}","project":"TRL"}`,
+	);
+	expect(launch.command).not.toContain(instruction);
+	expect(launch.command).not.toContain(resumeText);
 });

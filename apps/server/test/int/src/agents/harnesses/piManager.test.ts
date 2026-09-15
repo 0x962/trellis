@@ -23,6 +23,7 @@ for await (const line of createInterface({input:process.stdin})) {
 			prompt: "Manage tickets",
 			resume: false,
 			hookCommand: "/usr/bin/true",
+			managerSystemPrompt: `Database persona ${crypto.randomUUID()}`,
 			managerTools: { command: process.execPath, args: [bridge] },
 		});
 		expect(launch.args).toContain("--no-builtin-tools");
@@ -78,6 +79,7 @@ test("Pi manager setup fails if the tool bridge cannot start", async () => {
 			prompt: "Manage tickets",
 			resume: false,
 			hookCommand: "/usr/bin/true",
+			managerSystemPrompt: `Database persona ${crypto.randomUUID()}`,
 			managerTools: { command: join(directory, "missing-bridge"), args: [] },
 		});
 		const extension = await import(join(directory, "trellis-pi.mjs"));

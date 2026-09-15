@@ -12,14 +12,13 @@ export type HarnessHostOptions = {
 export type HarnessStartInput = {
 	id: string;
 	harness: BuiltInHarness;
-	kind?: "manager" | "builder" | "reviewer";
 	managerId?: string;
 	cwd: string;
 	prompt: string;
 	model?: string;
 	token?: string;
 	timeoutMs?: number;
-};
+} & ({ kind: "manager"; managerSystemPrompt: string } | { kind?: "builder" | "reviewer"; managerSystemPrompt?: never });
 export type HarnessDescriptor = {
 	fingerprint: string;
 	prompt: string;
