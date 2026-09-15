@@ -116,3 +116,28 @@ export const createGhRunner = (options: { timeoutMs?: number } = {}): GhRunner =
 	};
 	return Object.assign(run, { bin, timeoutMs });
 };
+
+export type GhJsonResult<T> = { ok: true; value: T } | GhFailure;
+
+// The gh subcommand without its flags and their values, such as
+// "gh api graphql". A graphql query argument can be many kilobytes long, so
+// an error message names only the subcommand.
+const commandOf = (args: string[]) => {
+	const end = args.findIndex((arg) => arg.startsWith("-"));
+	return ["gh", ...(end === -1 ? args : args.slice(0, end))].join(" ");
+};
+
+// gh can exit 0 and print nothing, or print a cut body. A server process
+// with no free file descriptor gets that from every gh child. runGhJson
+// turns that stdout into an error result that names the command, so the
+// caller stores or logs the message as it does for any other gh failure.
+export const runGhJson = async <T>(runGh: GhRunner, slot: GhSlot, args: string[]): Promise<GhJsonResult<T>> => {
+	const result = await runGh(slot, args);
+	if (!result.ok) return result;
+	try {
+		return { ok: true, value: JSON.parse(result.stdout) as T };
+	} catch {
+		const message = `gh printed output that is not JSON (${result.stdout.length} characters) and exited 0: ${commandOf(args)}`;
+		return { ok: false, reason: "error", message, code: 0, stdout: result.stdout };
+	}
+};

@@ -1,6 +1,6 @@
 import type { Check, CiState, PrState, ReviewState } from "@trellis/api";
 import { deriveCiState, normalizeChecks, type RawContext } from "./parse.ts";
-import type { GhFailure, GhRunner, GhSlot } from "./run.ts";
+import { type GhFailure, type GhRunner, type GhSlot, runGhJson } from "./run.ts";
 
 // One `gh api graphql` request fetches a batch of pull requests. Each ref gets
 // the alias prN, so the response maps back to refs[N] by index. The response
@@ -139,7 +139,8 @@ export const mapPullRequestResponse = (refs: PullRequestRef[], response: PullReq
 // `data` key, and a 401 or 403 gives a REST style `message` body. gh writes
 // its message to stderr in each case, so the run failure carries it. A run
 // that timed out or lost its connection holds a cut body, which is not JSON,
-// so the run failure stands.
+// so the run failure stands. An exit 0 run whose stdout is not JSON is the
+// error result of runGhJson, which names the command.
 //
 // The poller passes 10 refs on the poller slot. link and refresh pass one ref
 // on the interactive slot, so a user action never waits behind a tick.
@@ -148,8 +149,9 @@ export const fetchPullRequests = async (
 	refs: PullRequestRef[],
 	slot: GhSlot = "poller",
 ): Promise<FetchPullRequestsResult> => {
-	const result = await runGh(slot, ["api", "graphql", "-f", `query=${buildPullRequestQuery(refs)}`]);
-	if (result.ok) return { ok: true, results: mapPullRequestResponse(refs, JSON.parse(result.stdout)) };
+	const query = `query=${buildPullRequestQuery(refs)}`;
+	const result = await runGhJson<PullRequestResponse>(runGh, slot, ["api", "graphql", "-f", query]);
+	if (result.ok) return { ok: true, results: mapPullRequestResponse(refs, result.value) };
 	if (result.reason !== "error") return result;
 	const response = parseFailureBody(result.stdout);
 	if (response === undefined) return result;

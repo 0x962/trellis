@@ -213,6 +213,19 @@ describe("detect", () => {
 		expect(links.every((row) => row.ticket_id === two)).toBe(true);
 	});
 
+	// gh can exit 0 with no output. The repository gets one detect log line
+	// that names the command, and the run links nothing and does not throw.
+	test("a pr list reply that is not JSON logs the repository and links nothing", async () => {
+		await seedCde();
+		const p = harness({ "pr list": { stdout: "", stderr: "", exitCode: 0 } });
+
+		await detect.run(p.hook);
+
+		const message = "gh printed output that is not JSON (0 characters) and exited 0: gh pr list";
+		expect(p.logs).toEqual([["detect", { repo: "acme/web", ok: false, message }]]);
+		expect(await linkRows()).toEqual([]);
+	});
+
 	test("a newly linked pull request is fetched in the same run", async () => {
 		await seedCde();
 		const p = harness({

@@ -157,6 +157,22 @@ describe("fetchPullRequests", () => {
 		expect(handle.spawns()).toHaveLength(1);
 	});
 
+	// gh can exit 0 with no output. The batch fails with a message that names
+	// the command, so the poller stores it on each pull request of the batch
+	// and link stores it on the pull request it links.
+	test("returns an error that names the command for an exit 0 run without JSON", async () => {
+		const handle = stub({ "api graphql": { stdout: "", stderr: "", exitCode: 0 } });
+		const result = await fetchPullRequests(createGhRunner(), refs.slice(0, 1));
+		expect(result).toEqual({
+			ok: false,
+			reason: "error",
+			message: "gh printed output that is not JSON (0 characters) and exited 0: gh api graphql",
+			code: 0,
+			stdout: "",
+		});
+		expect(handle.spawns()).toHaveLength(1);
+	});
+
 	// GitHub can answer one alias with partial data: a null check node or a
 	// null rollup, with an error whose path points into that alias. The alias
 	// gets the error, and every other alias in the batch still gets a row.

@@ -147,6 +147,19 @@ describe("pullRequests.link", () => {
 		expect(result.fetchError).toContain("HTTP 500");
 	});
 
+	test("an exit 0 gh reply that is not JSON stores a fetchError that names the command", async () => {
+		await seedTickets();
+		stub({ "api graphql": { stdout: "", stderr: "", exitCode: 0 } });
+
+		const { result } = await runLink({ ticket: "CDE-1", url });
+
+		const message = "gh printed output that is not JSON (0 characters) and exited 0: gh api graphql";
+		const [row] = await rows("pull_requests");
+		expect(row!.fetch_error).toBe(message);
+		expect(await count(h.db, "ticket_pull_requests")).toBe(1);
+		expect(result.fetchError).toBe(message);
+	});
+
 	test("link emits pr.linked and records the activity", async () => {
 		const { rootId, first } = await seedTickets();
 		stub({ "api graphql": reply() });

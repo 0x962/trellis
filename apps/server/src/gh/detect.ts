@@ -8,7 +8,7 @@ import { fetchPullRequests, type PullRequestRef } from "./graphql.ts";
 import { findTicketIdentifiers, parsePullRequestUrl } from "./parse.ts";
 import type { PollerHook } from "./poller.ts";
 import { linkedTickets, storeFetchErrors, touchSystemActor, upsertPullRequests } from "./pollerWrite.ts";
-import type { GhRunner } from "./run.ts";
+import { type GhRunner, runGhJson } from "./run.ts";
 
 // Auto-link reads the open pull requests of every declared repository and
 // links each one to the tickets its text names. The key is uppercased before
@@ -37,10 +37,10 @@ const declaredRepos = (tx: Tx) => rows<RepoPair>(tx, sql`SELECT DISTINCT owner, 
 // The open pull requests of one repository. `stop` is true when gh is
 // missing or signed out, which fails every repository alike. `error` is the
 // gh message of a failure that belongs to this repository alone, such as a
-// renamed or private repository.
+// renamed or private repository, or a reply that is not JSON.
 const listOpen = async (gh: GhRunner, name: string) => {
-	const result = await gh("poller", ["pr", "list", "--repo", name, ...LIST_ARGS]);
-	if (result.ok) return { stop: false, error: null, listed: JSON.parse(result.stdout) as ListedPullRequest[] };
+	const result = await runGhJson<ListedPullRequest[]>(gh, "poller", ["pr", "list", "--repo", name, ...LIST_ARGS]);
+	if (result.ok) return { stop: false, error: null, listed: result.value };
 	return { stop: result.reason !== "error", error: result.message, listed: [] };
 };
 

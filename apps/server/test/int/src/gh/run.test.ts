@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
-import { createGhRunner } from "../../../../src/gh/run.ts";
+import { createGhRunner, runGhJson } from "../../../../src/gh/run.ts";
 import { ghStub } from "../../../helpers/gh-stub.ts";
 
 // createGhRunner() returns the runner as a callable: runGh(kind, args). It
@@ -101,5 +101,38 @@ describe("runGh", () => {
 
 	test("defaults the timeout to 30 s", () => {
 		expect(createGhRunner().timeoutMs).toBe(30_000);
+	});
+});
+
+// gh can exit 0 and print nothing or a cut body. runGhJson turns that stdout
+// into an error result that names the gh subcommand, so a caller never throws
+// a JSON parse error.
+describe("runGhJson", () => {
+	test("parses the stdout of an exit 0 run", async () => {
+		stub({ "api rate_limit": { stdout: '{"resources":{}}', stderr: "", exitCode: 0 } });
+		const result = await runGhJson(createGhRunner(), "poller", ["api", "rate_limit"]);
+		expect(result).toEqual({ ok: true, value: { resources: {} } });
+	});
+
+	test("gives an error that names the command for an exit 0 run with empty or cut stdout", async () => {
+		const handle = stub({ "pr list": { stdout: "", stderr: "", exitCode: 0 } });
+		for (const stdout of ["", '[{"number":1,"url":"']) {
+			handle.reply("pr list", { stdout, stderr: "", exitCode: 0 });
+			const args = ["pr", "list", "--repo", "acme/web", "--json", "number"];
+			const result = await runGhJson(createGhRunner(), "poller", args);
+			expect(result, stdout).toEqual({
+				ok: false,
+				reason: "error",
+				message: `gh printed output that is not JSON (${stdout.length} characters) and exited 0: gh pr list`,
+				code: 0,
+				stdout,
+			});
+		}
+	});
+
+	test("returns a failed run unchanged", async () => {
+		stub({ "api graphql": { stdout: "", stderr: "HTTP 502: Bad Gateway", exitCode: 1 } });
+		const result = await runGhJson(createGhRunner(), "poller", ["api", "graphql"]);
+		expect(result).toEqual({ ok: false, reason: "error", message: "HTTP 502: Bad Gateway", code: 1, stdout: "" });
 	});
 });
