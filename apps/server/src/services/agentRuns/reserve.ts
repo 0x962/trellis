@@ -11,7 +11,6 @@ import { reserveAttempt } from "../assignments/attempts.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { managerConfigOf, projectRow } from "../projectRows.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
-import { retirementOf } from "./externalRetirement/retirementOf.ts";
 import { randomAgentName } from "./names.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { columns } from "./queries.ts";
@@ -61,7 +60,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 	}
 	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
 	const config = managerConfigOf(await projectRow(tx, project.id));
-	if (config.ade === "native") await assertNativeWorkEnabled(tx);
+	await assertNativeWorkEnabled(tx);
 	if (ticket !== null) {
 		const [active] = await rows<{ count: number }>(
 			tx,
@@ -78,33 +77,13 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 			sql`, `,
 		)})`,
 	);
-	if (repos.length === 0 && config.ade !== "native")
-		throw invalidInput("project", "Add a repository to the project before you start an agent.");
 	await upsert(ctx, tx, actor);
 	let existing = persona.kind === "manager" ? await managerRowOf(tx, project.id) : undefined;
-	if (existing && config.ade !== "native") {
-		const [protectedRun] = await rows<{ id: string }>(
-			tx,
-			sql`SELECT id FROM agent_execution_attempts WHERE run_id = ${existing.id} LIMIT 1`,
-		);
-		if (protectedRun) {
-			if (existing.state !== "stopped" || input.newSession !== true)
-				throw invalidInput(
-					"newSession",
-					"Stop the native manager and select a new session before you switch its runtime.",
-				);
-			existing = undefined;
-		}
-	}
 	if (existing?.state === "interrupted")
-		throw invalidInput("project", "Reconcile or retire the interrupted manager before you start a replacement.");
+		throw invalidInput("project", "Reconcile the interrupted manager before you start a replacement.");
 	if (existing !== undefined && (existing.state === "starting" || existing.state === "running"))
 		throw fail("DUPLICATE", { field: "active agent" });
-	if (
-		existing &&
-		((config.ade === "native" && existing.runtime !== "native") || (await retirementOf(tx, "persona", existing.id)))
-	)
-		existing = undefined;
+	if (existing && existing.runtime !== "native") existing = undefined;
 	const resume =
 		existing !== undefined && existing.sessionId !== null && existing.workspaceId !== null && input.newSession !== true;
 	const sessionId = resume ? existing!.sessionId! : randomUUID();
@@ -112,8 +91,8 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 		existing === undefined
 			? await rows<AgentRun>(
 					tx,
-					sql`INSERT INTO agent_runs (id, name, persona_id, persona_name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, state, session_id, created_at, updated_at)
-		VALUES (${ulid()}, ${randomAgentName()}, ${persona.id}, ${persona.name}, ${persona.kind}, ${persona.instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'starting', ${sessionId}, ${ctx.now}, ${ctx.now})
+					sql`INSERT INTO agent_runs (id, name, persona_id, persona_name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, runtime, state, session_id, created_at, updated_at)
+		VALUES (${ulid()}, ${randomAgentName()}, ${persona.id}, ${persona.name}, ${persona.kind}, ${persona.instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', 'starting', ${sessionId}, ${ctx.now}, ${ctx.now})
 		ON CONFLICT DO NOTHING RETURNING ${columns}`,
 				)
 			: // A person can change the persona between two starts, so the row
@@ -126,12 +105,10 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 			WHERE id = ${existing.id} RETURNING ${columns}`,
 				);
 	if (run === undefined) throw fail("DUPLICATE", { field: "active agent" });
-	const attempt = config.ade === "native" ? await reserveAttempt(ctx, tx, { runId: run.id }) : null;
-	if (attempt) {
-		await tx.execute(sql`UPDATE agent_runs SET runtime = 'native', terminal_id = ${attempt.id} WHERE id = ${run.id}`);
-		run.runtime = "native";
-		run.terminalId = attempt.id;
-	}
+	const attempt = await reserveAttempt(ctx, tx, { runId: run.id });
+	await tx.execute(sql`UPDATE agent_runs SET runtime = 'native', terminal_id = ${attempt.id} WHERE id = ${run.id}`);
+	run.runtime = "native";
+	run.terminalId = attempt.id;
 	await recordRequest(ctx, tx, { ...request, runId: run.id });
 	const context =
 		ticket === null

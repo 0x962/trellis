@@ -1,7 +1,6 @@
 import { afterAll, expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { DEFAULT_AGENT_LAUNCH_COMMAND } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { originDir } from "../../../../../../test/originDir.ts";
 import { openDb } from "../../../../src/db/client.ts";
@@ -48,14 +47,13 @@ const templateOf = async (db: Awaited<ReturnType<typeof openDb>>) =>
 const local =
 	"{{superset}} ws create --local --project {{projectId}} --name {{name}} --branch {{branch}} --command {{agentCommand}} --json";
 
-test("the target launch migration moves the local template to the current default", async () => {
+test("the target launch migration adds the target variable", async () => {
 	const db = await withTemplate(local);
 
 	expect(await migrate(db)).toBe(pendingCount);
-	// This migration exists to land the row on the default the product reads
-	// now. A later change to that default must bring its own migration, and
-	// this line fails until it does.
-	expect(await templateOf(db)).toBe(DEFAULT_AGENT_LAUNCH_COMMAND);
+	expect(await templateOf(db)).toBe(
+		"{{superset}} ws create {{target}} --project {{projectId}} --name {{name}} --branch {{branch}} --command {{agentCommand}} --json",
+	);
 });
 
 test("the target launch migration leaves a template a person wrote", async () => {

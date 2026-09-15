@@ -9,7 +9,7 @@ export const agentRuns = pgTable(
 	{
 		id: text().primaryKey(),
 		name: text().notNull(),
-		runtime: text().notNull().default("superset"),
+		runtime: text().notNull().default("native"),
 		personaId: text("persona_id").references(() => personas.id, { onDelete: "set null" }),
 		personaName: text("persona_name").notNull(),
 		kind: text().notNull(),

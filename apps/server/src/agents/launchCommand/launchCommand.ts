@@ -25,7 +25,7 @@ export const launchCommand = (input: {
 }) => {
 	const { run, url, context } = input;
 	const actor = `agent:${run.id}`;
-	const prompt = `${run.instruction}\n\n# Assignment\n\nYour name is ${run.name}. Your Trellis actor is ${actor}.\nTrellis URL: ${url}\nPersona: ${run.personaName} (${run.kind})\n\n${context}\n\nUse TRELLIS_URL and TRELLIS_ACTOR for every Trellis command. Read the repository's AGENTS.md before work.\n${run.runtime === "native" ? nativeInstructions : ""}`;
+	const prompt = `${run.instruction}\n\n# Assignment\n\nYour name is ${run.name}. Your Trellis actor is ${actor}.\nTrellis URL: ${url}\nPersona: ${run.personaName} (${run.kind})\n\n${context}\n\nUse TRELLIS_URL and TRELLIS_ACTOR for every Trellis command. Read the repository's AGENTS.md before work.\n${nativeInstructions}`;
 	const agent = expandLaunchTemplate(input.template, {
 		name: run.name,
 		id: run.id,

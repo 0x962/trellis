@@ -118,24 +118,3 @@ test("human and untracked external agent sessions do not need an attempt token",
 		assertCurrentAttempt({ actor: { kind: "agent", name: "external-session" }, attemptToken: null }, tx),
 	);
 });
-
-test("an external runtime switch preserves the old native actor guard", async () => {
-	const managerId = (
-		await h.run((ctx, tx) => personas.create(ctx, tx, { name: "Manager", kind: "manager", instruction: "Manage." }))
-	).id;
-	const first = await h.run((ctx, tx) => reserve(ctx, tx, { personaId: managerId, project }));
-	if (first.replay) throw new Error("Expected a new assignment");
-	await h.rows(sql`UPDATE projects SET manager_config = manager_config || '{"ade":"superset"}'::jsonb`);
-	await h.rows(sql`INSERT INTO repos (id, project_id, owner, repo) VALUES ('repo', ${project}, 'example', 'code')`);
-	await h.rows(sql`UPDATE agent_runs SET state = 'stopped' WHERE id = ${first.run.id}`);
-	await expect(h.run((ctx, tx) => reserve(ctx, tx, { personaId: managerId, project }))).rejects.toMatchObject({
-		code: "INPUT_VALIDATION_FAILED",
-	});
-	const replacement = await h.run((ctx, tx) => reserve(ctx, tx, { personaId: managerId, project, newSession: true }));
-	expect(replacement.run.id).not.toBe(first.run.id);
-	await expect(
-		h.read((tx) =>
-			assertCurrentAttempt({ actor: { kind: "agent", name: first.run.id }, attemptToken: first.attempt!.token }, tx),
-		),
-	).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
-});

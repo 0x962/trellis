@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
+import { sql } from "drizzle-orm";
 import { systemContext } from "../../../../src/context.ts";
 import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
@@ -54,10 +55,6 @@ test("native agents use an isolated Git worktree and retain output after stop", 
 			concurrency: 3,
 			directory,
 			ade: "native",
-			supersetHostId: null,
-			adeCommand: "",
-			adeResumeCommand: "",
-			adeCommands: null,
 			harness: { preset: "custom", startCommand: "/bin/cat", resumeCommand: "/bin/cat" },
 		},
 	});
@@ -122,7 +119,11 @@ test("native agents use an isolated Git worktree and retain output after stop", 
 		body: { text: "stale-input\r" },
 	});
 	expect(deniedInput.status).toBe(400);
+	await t.editServerTx((tx) =>
+		tx.execute(sql`UPDATE projects SET manager_config=manager_config - 'ade' WHERE key='NAT'`),
+	);
 	expect(await t.client.system.stopNativeWork({})).toEqual({ stopped: 1 });
+	expect((await t.client.projects.get({ project: "NAT" })).managerConfig?.dispatchPaused).toBe(true);
 	expect((await t.client.agentRuns.list({ ticket: ticket.identifier }))[0]?.state).toBe("stopped");
 	expect(await t.client.system.nativeWork({})).toEqual({ paused: true });
 	await expect(t.client.agentRuns.start({ ticket: ticket.identifier, personaId: persona.id })).rejects.toMatchObject({

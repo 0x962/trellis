@@ -5,7 +5,7 @@ import { launchCommand, resumeText } from "./launchCommand.ts";
 const run: AgentRun = {
 	id: "01J9Z0000000000000000000A1",
 	name: "Wren",
-	runtime: "superset",
+	runtime: "native",
 	personaId: null,
 	personaName: "Trellis Manager",
 	kind: "manager",
@@ -28,7 +28,7 @@ const url = "http://127.0.0.1:4521";
 
 test("native assignments explain CLI discovery and current workspace evidence", () => {
 	const launch = launchCommand({
-		run: { ...run, runtime: "native" },
+		run,
 		url,
 		context: "Project: TRL",
 		template: DEFAULT_AGENT_START_COMMAND,
