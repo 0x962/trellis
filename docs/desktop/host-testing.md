@@ -58,3 +58,19 @@ It tests HTTP 400, 401, 429, and 503 responses, dropped response streams, and in
 Native events must distinguish temporary errors from final failures through `willRetry`.
 The suite also verifies that terminal exit stops the owned engine.
 The acceptance record distinguishes these source checks from installed desktop and manager acceptance.
+
+## Manager tool readiness
+
+Run the interactive Claude manager tests with an authenticated home and an available model:
+
+```sh
+cd apps/server
+TRELLIS_REAL_MANAGER_READY=1 \
+TRELLIS_NATIVE_ACCEPTANCE_HOME="$HOME" \
+TRELLIS_NATIVE_CLAUDE_MODEL=claude-sonnet-5 \
+bun test test/int/src/agents/harnessHost/managerReady.real.test.ts
+```
+
+The first case delays tool discovery, calls the project tool, and repeats the call after exact-session resume.
+The second case delays discovery beyond the startup deadline. It requires a failed start, no prompt receipt, and no project call.
+Both cases use isolated runtimes and a temporary HTTP fixture. The first case requires provider inference.
