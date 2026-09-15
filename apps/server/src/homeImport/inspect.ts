@@ -17,7 +17,7 @@ export const inspect = async (tx: Tx): Promise<ImportInventory> => {
 			blockers.push(`Stop or reconcile ${owner.source} agent ${owner.id} (${owner.state}) in project ${project.id}.`);
 	const deliveries = await rows<{ id: string; state: string; source: string }>(
 		tx,
-		sql`SELECT id,state,'manager' AS source FROM manager_dispatches WHERE state <> 'sent' AND NOT (state='pending' AND run_id IS NULL) UNION ALL SELECT id,state,'review' AS source FROM review_deliveries WHERE state <> 'sent' ORDER BY id`,
+		sql`SELECT id,state,'manager' AS source FROM manager_dispatches WHERE state NOT IN ('sent','cancelled') AND NOT (state='pending' AND run_id IS NULL) UNION ALL SELECT id,state,'review' AS source FROM review_deliveries WHERE state <> 'sent' ORDER BY id`,
 	);
 	for (const delivery of deliveries)
 		blockers.push(`Resolve ${delivery.source} delivery ${delivery.id} (${delivery.state}) before import or rollback.`);

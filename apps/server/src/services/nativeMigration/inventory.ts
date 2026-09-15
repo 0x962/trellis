@@ -60,6 +60,7 @@ export const inventory = async (
 	for (const delivery of deliveries) {
 		if (
 			delivery.state === "sent" ||
+			delivery.state === "cancelled" ||
 			(delivery.source === "manager" && delivery.state === "pending" && delivery.runId === null)
 		)
 			continue;

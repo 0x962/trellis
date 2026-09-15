@@ -9,7 +9,7 @@ const dispatch = z.object({
 	terminalId: z.string().nullable(),
 	sessionId: z.string().nullable(),
 	generation: z.number(),
-	state: z.enum(["pending", "sending", "sent", "unknown"]),
+	state: z.enum(["pending", "sending", "sent", "unknown", "cancelled"]),
 	events: z.array(
 		z.object({
 			id: z.number(),
@@ -21,9 +21,33 @@ const dispatch = z.object({
 	),
 	dueAt: z.string(),
 	error: z.string().nullable(),
+	resolution: z
+		.object({
+			kind: z.literal("cancelled"),
+			receipt: z.literal("unknown"),
+			generation: z.number().int(),
+			reason: z.string(),
+			actor: z.object({ kind: z.literal("human"), name: z.string() }),
+			at: z.string(),
+		})
+		.nullable()
+		.optional(),
 });
 const idInput = z.object({ id: z.string().min(1) });
 export const controller = {
+	cancel: base
+		.route({
+			method: "POST",
+			path: "/manager-dispatches/{id}/cancel",
+			summary: "Cancel an uncertain manager delivery without confirming receipt",
+		})
+		.input(
+			idInput.extend({
+				expectedGeneration: z.number().int().nonnegative(),
+				reason: z.string().trim().min(1).max(2000),
+			}),
+		)
+		.output(dispatch),
 	list: base
 		.route({ method: "GET", path: "/manager-dispatches", summary: "Read the manager queue" })
 		.input(z.object({ projectId: UlidSchema.optional() }))

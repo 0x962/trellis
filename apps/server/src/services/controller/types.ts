@@ -15,8 +15,16 @@ export type Dispatch = {
 	terminalId: string | null;
 	sessionId: string | null;
 	generation: number;
-	state: "pending" | "sending" | "sent" | "unknown";
+	state: "pending" | "sending" | "sent" | "unknown" | "cancelled";
 	events: ControllerEvent[];
 	dueAt: string;
 	error: string | null;
+	resolution?: {
+		kind: "cancelled";
+		receipt: "unknown";
+		generation: number;
+		reason: string;
+		actor: { kind: "human"; name: string };
+		at: string;
+	} | null;
 };

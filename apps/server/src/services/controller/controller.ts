@@ -1,10 +1,11 @@
 import { sql } from "drizzle-orm";
-import { iso, rows } from "../../db/queries/support.ts";
+import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { notFound } from "../support.ts";
+import { columns } from "./columns.ts";
 import type { ControllerCtx, Dispatch } from "./types.ts";
 
-const columns = sql`id, project_id AS "projectId", run_id AS "runId", terminal_id AS "terminalId", session_id AS "sessionId", generation, state, events, ${iso(sql`due_at`)} AS "dueAt", error`;
+export { cancel } from "./cancel.ts";
 
 export const list = (_ctx: ControllerCtx, tx: Tx, input: { projectId?: string }) =>
 	rows<Dispatch>(

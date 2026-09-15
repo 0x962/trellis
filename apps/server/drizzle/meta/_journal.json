@@ -232,6 +232,13 @@
       "when": 1789416496572,
       "tag": "0035_native_project_migrations",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1789439516162,
+      "tag": "0036_manager_delivery_cancellation",
+      "breakpoints": true
     }
   ]
 }
