@@ -3,6 +3,7 @@ import { createConnection } from "node:net";
 import {
 	type LaunchSpec,
 	RUNTIME_PROTOCOL_VERSION,
+	type RuntimeListInput,
 	type RuntimeMethod,
 	type RuntimeMethods,
 	type RuntimeResponse,
@@ -87,8 +88,8 @@ export class RuntimeClient {
 	hello() {
 		return this.call("hello", {});
 	}
-	list() {
-		return this.call("list", {});
+	list(input: RuntimeListInput = {}) {
+		return this.call("list", input);
 	}
 	start(spec: LaunchSpec) {
 		return this.call("start", spec);

@@ -1,4 +1,4 @@
-export const RUNTIME_PROTOCOL_VERSION = 5;
+export const RUNTIME_PROTOCOL_VERSION = 6;
 export type SessionMode = "pty" | "stdio";
 export type SessionStatus = "running" | "exited" | "unknown";
 export interface LaunchSpec {
@@ -32,7 +32,13 @@ export interface RuntimeProcessMetadata {
 	startedAt: string;
 	executable: string;
 }
+export interface RuntimeListInput {
+	status?: SessionStatus;
+	activity?: "ready" | "working" | "idle";
+	hasError?: boolean;
+}
 export interface RuntimeProcessStatus extends RuntimeSession {
+	elapsedMs: number | null;
 	result: { id: string; text: string } | null;
 	acknowledgedMessageIds: string[];
 	activity: { state: "ready" | "working" | "idle"; updatedAt: string } | null;
@@ -82,7 +88,7 @@ export interface RuntimeMethods {
 	shutdown: { params: Record<string, never>; result: null };
 	deliver: { params: { id: string; messageId: string; data: string; requireIdle?: boolean }; result: RuntimeDelivery };
 	hello: { params: Record<string, never>; result: RuntimeHello };
-	list: { params: Record<string, never>; result: RuntimeProcessStatus[] };
+	list: { params: RuntimeListInput; result: RuntimeProcessStatus[] };
 	start: { params: LaunchSpec; result: RuntimeSession };
 	input: { params: { id: string; data: string; userInput?: boolean }; result: null };
 	resize: { params: { id: string; cols: number; rows: number }; result: null };

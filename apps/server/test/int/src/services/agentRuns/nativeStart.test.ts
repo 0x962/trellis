@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
 import { join } from "node:path";
 import { ProjectManagerConfigSchema } from "@trellis/api";
+import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { startNative } from "../../../../../src/services/agentRuns/nativeStart.ts";
@@ -125,7 +126,8 @@ test("an uncertain launch reply keeps the assignment open for process inspection
 			buffer += chunk;
 			if (!buffer.includes("\n")) return;
 			const request = JSON.parse(buffer.split("\n")[0]!);
-			if (request.method === "hello") socket.end(`${JSON.stringify({ id: request.id, result: { version: 5 } })}\n`);
+			if (request.method === "hello")
+				socket.end(`${JSON.stringify({ id: request.id, result: { version: RUNTIME_PROTOCOL_VERSION } })}\n`);
 			else {
 				submitted = true;
 				launchPath = request.params.env.PATH;
@@ -184,7 +186,8 @@ test.each(["acknowledged", "unknown"])("a Claude start waits for its initial pro
 			if (!buffer.includes("\n")) return;
 			const request = JSON.parse(buffer.split("\n")[0]!);
 			const session = { id: attemptId, status: "running", error: null, acknowledgedMessageIds: [] };
-			if (request.method === "hello") socket.end(`${JSON.stringify({ id: request.id, result: { version: 5 } })}\n`);
+			if (request.method === "hello")
+				socket.end(`${JSON.stringify({ id: request.id, result: { version: RUNTIME_PROTOCOL_VERSION } })}\n`);
 			else if (request.method === "start") socket.end(`${JSON.stringify({ id: request.id, result: session })}\n`);
 			else if (request.method === "subscribe") {
 				acknowledge = () =>

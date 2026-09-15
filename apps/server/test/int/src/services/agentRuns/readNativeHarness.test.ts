@@ -14,6 +14,7 @@ const processStatus = (change: Partial<RuntimeProcessStatus> = {}): RuntimeProce
 	exitCode: null,
 	error: null,
 	checkedAt: "2026-09-15T12:01:00Z",
+	elapsedMs: 0,
 	controllable: true,
 	process: null,
 	launch: null,

@@ -30,6 +30,7 @@ const session = (change: Partial<RuntimeProcessStatus> = {}): RuntimeProcessStat
 	exitCode: null,
 	error: null,
 	checkedAt: "now",
+	elapsedMs: 0,
 	controllable: true,
 	process: null,
 	launch: { command: "/bin/zsh", args: ['claude --settings {"UserPromptSubmit":"/tmp/claudeHook.ts"}'], cwd: "/tmp" },

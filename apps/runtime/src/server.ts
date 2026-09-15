@@ -46,7 +46,7 @@ export async function startRuntime(home: string) {
 			case "hello":
 				return hello;
 			case "list":
-				return store.list();
+				return store.list(request.params as RuntimeMethods["list"]["params"]);
 			case "inspect":
 				return store.inspect((request.params as RuntimeMethods["inspect"]["params"]).id);
 			case "turn":

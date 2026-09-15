@@ -1,11 +1,19 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { LaunchSpec, RuntimeMethods, RuntimeProcessStatus, RuntimeSession } from "@trellis/runtime-protocol";
+import type {
+	LaunchSpec,
+	RuntimeListInput,
+	RuntimeMethods,
+	RuntimeProcessStatus,
+	RuntimeSession,
+} from "@trellis/runtime-protocol";
 import { CompletionStore } from "./completionStore.ts";
+import { fingerprintLaunch } from "./fingerprintLaunch.ts";
 import { InputLedger } from "./inputLedger.ts";
 import { inspectProcess } from "./inspectProcess.ts";
 import { inspectSessionRecord } from "./inspectSessionRecord.ts";
+import { matchesProcessFilters } from "./matchesProcessFilters.ts";
 import { ProcessExitWatcher } from "./processExitWatcher.ts";
 import { createProcessHandle } from "./processHandle.ts";
 import { SessionLog } from "./sessionLog.ts";
@@ -71,8 +79,10 @@ export class SessionStore {
 		if (!record) throw Object.assign(new Error(`Session ${id} does not exist`), { code: "SESSION_NOT_FOUND" });
 		return record;
 	}
-	list() {
-		return [...this.records.keys()].map((id) => this.inspect(id));
+	list(input: RuntimeListInput = {}) {
+		return [...this.records.keys()]
+			.map((id) => this.inspect(id))
+			.filter((session) => matchesProcessFilters(session, input));
 	}
 	inspect(id: string): RuntimeProcessStatus {
 		return inspectSessionRecord(this.get(id));
@@ -100,21 +110,7 @@ export class SessionStore {
 		};
 	}
 	start(spec: LaunchSpec): RuntimeSession {
-		const fingerprint = createHash("sha256")
-			.update(
-				JSON.stringify([
-					spec.command,
-					spec.args,
-					spec.cwd,
-					spec.mode,
-					Object.entries(spec.env ?? {}).sort(),
-					spec.cols ?? 80,
-					spec.rows ?? 24,
-					spec.separateStderr ?? false,
-					spec.timeoutMs ?? null,
-				]),
-			)
-			.digest("hex");
+		const fingerprint = fingerprintLaunch(spec);
 		const existing = this.records.get(spec.id);
 		if (existing) {
 			if (existing.fingerprint !== null && existing.fingerprint !== fingerprint)
@@ -163,7 +159,8 @@ export class SessionStore {
 			clearTimeout(record.timer);
 			session.status = "exited";
 			session.exitCode = code;
-			session.error = error;
+			session.error =
+				error ?? (code !== null && code !== 0 ? `Process ${spec.command} exited with code ${code}` : null);
 			session.endedAt = new Date().toISOString();
 			record.process = undefined;
 			this.save(record);

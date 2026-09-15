@@ -16,6 +16,7 @@ const sessionSchema = z.object({
 	exitCode: z.number().nullable(),
 	error: z.string().nullable(),
 	checkedAt: z.string(),
+	elapsedMs: z.number().nullable(),
 	controllable: z.boolean(),
 	process: z
 		.object({

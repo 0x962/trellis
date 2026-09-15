@@ -65,7 +65,10 @@ test.each(["before", "after"])(
 							if (next.value.type === "session" && next.value.session.status === "unknown") return next.value;
 						}
 					})();
-		expect(unknown).toMatchObject({ type: "session", session: { status: "unknown", controllable: false } });
+		expect(unknown).toMatchObject({
+			type: "session",
+			session: { status: "unknown", controllable: false, elapsedMs: null },
+		});
 		await Bun.sleep(50);
 		process.kill(childPid, "SIGKILL");
 		const completion = (async () => {
@@ -77,7 +80,7 @@ test.each(["before", "after"])(
 				await kill(daemon);
 				rmSync(home, { recursive: true, force: true });
 			}),
-		).resolves.toMatchObject({ type: "session", session: { status: "exited" } });
+		).resolves.toMatchObject({ type: "session", session: { status: "exited", elapsedMs: null } });
 	},
 );
 

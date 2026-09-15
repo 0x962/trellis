@@ -24,10 +24,14 @@ export function inspectSessionRecord(record: SessionRecord): RuntimeProcessStatu
 						: `Process session ${record.session.pid} still has live child processes: ${members.pids.join(", ")}`,
 			};
 	}
+	const checkedAt = new Date().toISOString();
+	const elapsedEnd =
+		observed.status === "running" ? checkedAt : observed.status === "exited" ? record.session.endedAt : null;
 	return {
 		...record.session,
 		...observed,
-		checkedAt: new Date().toISOString(),
+		checkedAt,
+		elapsedMs: elapsedEnd === null ? null : Date.parse(elapsedEnd) - Date.parse(record.session.startedAt),
 		launch: record.launch,
 		activity: record.activity,
 		acknowledgedMessageIds: record.ledger.acknowledgedMessageIds(),

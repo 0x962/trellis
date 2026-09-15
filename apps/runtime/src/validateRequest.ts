@@ -17,9 +17,16 @@ export function validateRequest(value: unknown): RuntimeRequest {
 	switch (request.method) {
 		case "shutdown":
 		case "hello":
-		case "list":
 		case "inspect":
 		case "stop":
+			break;
+		case "list":
+			if (params.status !== undefined && !["running", "exited", "unknown"].includes(params.status as string))
+				throw new Error("Unknown process status filter");
+			if (params.activity !== undefined && !["ready", "working", "idle"].includes(params.activity as string))
+				throw new Error("Unknown process activity filter");
+			if (params.hasError !== undefined && typeof params.hasError !== "boolean")
+				throw new Error("The process error filter must be a boolean");
 			break;
 		case "turn":
 			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
