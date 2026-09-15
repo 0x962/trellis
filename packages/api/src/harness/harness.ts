@@ -22,6 +22,7 @@ export type HarnessPreset = z.infer<typeof HarnessPresetSchema>;
 export const HarnessSchema = z
 	.strictObject({
 		preset: HarnessPresetSchema,
+		model: z.string().trim().min(1).optional(),
 		startCommand: AgentCommandSchema.optional(),
 		resumeCommand: AgentCommandSchema.optional(),
 	})
@@ -33,6 +34,7 @@ export const HarnessSchema = z
 	})
 	.transform((value) => ({
 		preset: value.preset,
+		...(value.model === undefined ? {} : { model: value.model }),
 		startCommand: value.startCommand ?? HARNESS_PRESETS[value.preset as keyof typeof HARNESS_PRESETS].startCommand,
 		resumeCommand: value.resumeCommand ?? HARNESS_PRESETS[value.preset as keyof typeof HARNESS_PRESETS].resumeCommand,
 	}));

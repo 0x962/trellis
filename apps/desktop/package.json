@@ -10,7 +10,7 @@
 		"dev": "bun run build:main && electron .",
 		"start": "electron .",
 		"build:main": "bun scripts/build.ts",
-		"build": "bun run --cwd ../web build && bun run --cwd ../runtime build && bun run build:main && bun scripts/stage.ts",
+		"build": "bun run --cwd ../web build && bun run --cwd ../runtime build && bun run --cwd ../server build:harnesses && bun run build:main && bun scripts/stage.ts",
 		"package": "bun run build && electron-builder --config electron-builder.json --mac --dir",
 		"dist:mac": "bun run build && electron-builder --config electron-builder.json --mac dmg zip",
 		"test": "bun test ./src --path-ignore-patterns '**/test/int/**'",

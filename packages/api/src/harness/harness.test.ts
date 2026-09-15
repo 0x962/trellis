@@ -1,5 +1,10 @@
 import { expect, test } from "bun:test";
-import { HARNESS_PRESETS, HarnessPresetSchema } from "./harness.ts";
+import { HARNESS_PRESETS, HarnessPresetSchema, HarnessSchema } from "./harness.ts";
+
+test("built-in harness settings retain an explicit model", () => {
+	expect(HarnessSchema.parse({ preset: "codex", model: " gpt-5.6-sol " }).model).toBe("gpt-5.6-sol");
+	expect(HarnessSchema.safeParse({ preset: "codex", model: " " }).success).toBe(false);
+});
 
 test("project harness choices contain the supported programs and custom commands", () => {
 	expect(Object.keys(HARNESS_PRESETS)).toEqual(["claude", "codex", "opencode", "pi"]);

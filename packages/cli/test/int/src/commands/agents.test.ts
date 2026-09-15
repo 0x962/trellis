@@ -90,6 +90,13 @@ describe("agents start", () => {
 });
 
 describe("agents refresh, stop, send, and output", () => {
+	test("agents interrupt targets the current turn and preserves the assignment", async () => {
+		const result = await runCli(["agents", "interrupt", agentRunId, "--json"], { "agentRuns.interrupt": {} });
+		expect(result.code).toBe(0);
+		expect(result.calls).toHaveLength(1);
+		expect(result.calls[0]).toMatchObject({ path: "agentRuns.interrupt", input: { id: agentRunId } });
+		expect(JSON.parse(result.stdout)).toEqual({});
+	});
 	// CLI-127
 	test("the id verbs map their args and print the row", async () => {
 		const refresh = await runCli(["agents", "refresh", agentRunId], { "agentRuns.refresh": agentRun() });

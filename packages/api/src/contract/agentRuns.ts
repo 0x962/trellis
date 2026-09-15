@@ -46,6 +46,11 @@ const sessionSchema = z.object({
 	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
+	interrupt: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({ method: "POST", path: "/agent-runs/{id}/interrupt", summary: "Interrupt the current agent turn" })
+		.input(idInput.extend({ expectedTerminalId: z.string().optional(), expectedSessionId: z.string().optional() }))
+		.output(z.object({})),
 	session: base
 		.route({ method: "GET", path: "/agent-runs/{id}/session", summary: "Read the local process" })
 		.input(idInput)

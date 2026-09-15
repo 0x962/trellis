@@ -104,6 +104,16 @@ const stop = defineCommand({
 	},
 });
 
+const interrupt = defineCommand({
+	meta: { name: "interrupt", description: "Interrupt the current turn and keep the agent session" },
+	args: { id: { type: "positional", required: true, description: "Agent id" } },
+	async run(context) {
+		const ctx = contextOf(context);
+		const result = await clientOf(ctx).agentRuns.interrupt({ id: context.args.id });
+		ctx.out.write(wantsJson(ctx) ? json(result) : "Interrupted the current turn.\n");
+	},
+});
+
 const send = defineCommand({
 	meta: { name: "send", description: "Send an agent a follow-up" },
 	args: {
@@ -135,6 +145,6 @@ const output = defineCommand({
 });
 
 export default defineCommand({
-	meta: { name: "agents", description: "List, start, refresh, stop, or talk to agents" },
-	subCommands: { list, start, refresh, stop, send, output },
+	meta: { name: "agents", description: "List, start, refresh, interrupt, stop, or talk to agents" },
+	subCommands: { list, start, refresh, interrupt, stop, send, output },
 });
