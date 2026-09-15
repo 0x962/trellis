@@ -173,7 +173,7 @@ previewElectron.app.on("browser-window-created", (_event, window) => {
 				expect(result.defaultUserData).toBe(join(result.appData, "Trellis"));
 				expect(result.order).toEqual(["data", "lock"]);
 				expect(result.lockSawUserData).toBe(userData);
-				expect(result.windowButtons).toEqual({ x: 16, y: 14 });
+				expect(result.windowButtons).toEqual({ x: 16, y: 20 });
 				expect(result.contentBounds.height).toBe(result.windowBounds.height);
 				const host = await adoptHost(home);
 				expect(result.url).toBe(`${host.origin}/`);
