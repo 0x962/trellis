@@ -65,7 +65,7 @@ Provider errors retain `willRetry`. A temporary error keeps the turn active; a f
 | Real lifecycle with native terminal, hooks, tools, interrupt, follow-up, stop, and exact resume | 1 test, 29 assertions pass, including real hosted WebSearch | `/tmp/trellis-codex-appserver-final-real.log` |
 | Native provider failures, dropped streams, retry interruption, hooks, engine crashes, transport loss, and terminal cleanup | 11 tests, 43 assertions pass | `/tmp/trellis-tool-errors-native-faults-final.log` |
 | Tool failures and receipt waits after a failed turn | Deterministic regressions pass | `/tmp/trellis-tool-errors-and-delivery-host-final.log` |
-| Packaged desktop and manager ticket workflow | 64d9dc12 installed; 13 packaged checks pass; TRL-71 reaches Human Review | Installed manager gate passes follow-up delivery and two heartbeats with one process and session |
+| Packaged desktop and manager ticket workflow | Product changes through 6fef93c3 installed; 13 packaged checks pass; TRL-71 is Done | Installed manager gate passes follow-up delivery and two heartbeats with one process and session |
 
 The native failure tests use the installed Codex engine with isolated local Responses endpoints.
 They verify final failure through native events, including `willRetry: false`.
@@ -112,8 +112,10 @@ The production host cases and interrupt boundary regression pass: 12 tests and 8
 They cover all four harnesses, missing executables, assignment authentication, stale interrupt targets, and actionable errors when the runtime is unavailable.
 Evidence: `/tmp/trellis-interrupt-boundary-green.log`.
 
-The installed c440232f desktop drives TRL-71 through builder work, review fixes, and Human Review. Both agents stop with retained workspaces and output.
-Desktop source 64d9dc12 includes the final runtime and UI fixes. The [feedback record](feedback.md#final-installation) tracks the installed checks.
+The installed desktop drives TRL-71 through builder work, review fixes, and Human Review. Both agents stop with retained workspaces and output.
+The user merges PR 30. After the app update, the lead completes TRL-71 through the CLI at 20:08:44 UTC.
+The installed app includes product changes through 6fef93c3. Hana and four workers retain their PIDs and provider sessions through the final UI update.
+The [feedback record](feedback.md#final-installation) tracks the installed checks and the manual install command timeout.
 
 [superset-builtins]: https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/packages/shared/src/builtin-terminal-agents.ts
 [superset-hooks]: https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/packages/agent-setup/src/agent-wrappers-claude-codex-opencode.ts

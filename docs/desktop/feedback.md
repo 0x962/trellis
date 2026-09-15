@@ -4,27 +4,27 @@ Owner: lead agent. Integration branch: `trellis-readiness-audit`.
 Last update: 2026-09-15.
 
 `Integrated` means that the source contains the change. It does not establish that the installed desktop uses that source.
-Desktop source `64d9dc12` is installed and opens. The installed release includes the final trust, receipt, and process-status fixes.
-The user starts Hana and enables TRL dispatch at 19:50 UTC. Restoration of that choice awaits the installed heartbeat check.
+The installed desktop includes product changes through `6fef93c3` and opens. The release includes the final trust, receipt, process-status, and UI fixes.
+Hana resumes at 20:02:37 UTC with the same provider session. TRL dispatch is enabled, and OP dispatch stays paused.
 
 ## Current work
 
 | Feedback | Status | Owner | Verification |
 | --- | --- | --- | --- |
-| Show agent names instead of identifiers in activity and comments, including old entries. | Installed at 64d9dc12 | Lead and API agent | 26 API integration tests pass. The browser shows names in activity, comments, and thread labels. |
-| Center the ticket content within the main panel. Keep the text left aligned. | Installed at 64d9dc12 | Layout agent | Browser geometry passes at wide desktop and mobile widths. |
-| Make Activity the first and default ticket tab. | Installed at 64d9dc12 | Layout agent | Browser test passes. |
-| Rename Overview to Agent. Show only agent content in Agent. | Installed at 64d9dc12 | Layout agent | Browser test passes; shared ticket details remain above the tabs. |
-| Remove red bars from ticket cards. | Installed at 64d9dc12 | Card agent | Bars indicated failing CI. Two board browser tests pass after removal. |
-| Show a full interactive CLI, like Superset, wherever agent output appears. | Installed at 64d9dc12; external reviews show results | Lead and UI agent | Tickets, managers, and native flow tasks open interactive terminals. Dots owns separate processes; its review page links to the external run. |
-| Remove output polls and the last-30-message view. | Installed at 64d9dc12 | Transport and UI agents | Native terminals use push streams. Dots results refresh on explicit action and do not expose a polled output panel. |
-| Remove the manager queue from the manager page. | Installed at 64d9dc12 | UI agent | Manager page browser test passes. Durable dispatch stays in the host. |
-| Use the actual process as the authority for agent status and metadata. Remove database state used to track process status. | Installed at 64d9dc12 | Runtime agent and lead | Migration 37 removes the state column and harness snapshots. API and page status uses live process inspection. |
-| Remove the agent-attempt dropdown. Show the CLI of the agent assigned to the ticket. | Installed at 64d9dc12 | UI agent | The assigned-agent browser test passes. |
-| Remove green dots next to agent avatars. | Installed at 64d9dc12 | UI agent | Shared avatar components and consumers updated. Component and browser checks pass. |
+| Show agent names instead of identifiers in activity and comments, including old entries. | Installed | Lead and API agent | 26 API integration tests pass. The browser shows names in activity, comments, and thread labels. |
+| Center the ticket content within the main panel. Keep the text left aligned. | Installed | Layout agent | Browser geometry passes at wide desktop and mobile widths. |
+| Make Activity the first and default ticket tab. | Installed | Layout agent | Browser test passes. |
+| Rename Overview to Agent. Show only agent content in Agent. | Installed | Layout agent | Browser test passes; shared ticket details remain above the tabs. |
+| Remove red bars from ticket cards. | Installed | Card agent | Bars indicated failing CI. Two board browser tests pass after removal. |
+| Show a full interactive CLI, like Superset, wherever agent output appears. | Installed; external reviews show results | Lead and UI agent | Tickets, managers, and native flow tasks open interactive terminals. Dots owns separate processes; its review page links to the external run. |
+| Remove output polls and the last-30-message view. | Installed | Transport and UI agents | Native terminals use push streams. Dots results refresh on explicit action and do not expose a polled output panel. |
+| Remove the manager queue from the manager page. | Installed | UI agent | Manager page browser test passes. Durable dispatch stays in the host. |
+| Use the actual process as the authority for agent status and metadata. Remove database state used to track process status. | Installed | Runtime agent and lead | Migration 37 removes the state column and harness snapshots. API and page status uses live process inspection. |
+| Remove the agent-attempt dropdown. Show the CLI of the agent assigned to the ticket. | Installed | UI agent | The assigned-agent browser test passes. |
+| Remove green dots next to agent avatars. | Installed | UI agent | Shared avatar components and consumers updated. Component and browser checks pass. |
 | Update builder prompts. Remove name prefixes, routine logs, and evidence bookkeeping from comments. | Saved and verified | Lead | Removed the instruction that requests name prefixes. The live builder persona limits comments and requires checks before review; its latest update is 17:25 UTC. |
-| Every harness start command includes its permission-bypass flag or equivalent. | Installed at 64d9dc12 and saved | Lead | Claude, Codex, OpenCode, and Pi have native permission configuration. Both saved projects use bypass flags for start and resume. |
-| Track all feedback in a Markdown file. Use subagents to fix and merge the work. | First batch merged and installed | Lead | Main contains the first batch. Live acceptance tests found further defects below. |
+| Every harness start command includes its permission-bypass flag or equivalent. | Installed and saved | Lead | Claude, Codex, OpenCode, and Pi have native permission configuration. Both saved projects use bypass flags for start and resume. |
+| Track all feedback in a Markdown file. Use subagents to fix and merge the work. | Merged and installed | Lead | Main and the integration branch contain the fixes and this checklist. |
 
 ## Completed foundation and earlier feedback
 
@@ -39,7 +39,7 @@ The user starts Hana and enables TRL dispatch at 19:50 UTC. Restoration of that 
 | Give the manager periodic heartbeats. Read and follow the manager prompt. | Installed | The installed manager test receives two automatic heartbeats with the same process and provider session. |
 | Keep manager comments useful. Send builder details directly, follow ticket scope, and avoid repeated blockers or questions. | Saved and verified after reinstall | The live manager persona contains the rules and reports an update at 17:16 UTC. |
 | Do not repeat agent names and roles inside comments. | Manager and builder updated | The UI supplies the author name. |
-| Rebuild, reinstall, and open the app after the changes. | 64d9dc12 installed and open | The lead owns the current desktop build, installation, and installed acceptance. |
+| Rebuild, reinstall, and open the app after the changes. | Installed and open | The final UI refresh preserves Hana and four worker processes. |
 
 ## Completion checks
 
@@ -56,19 +56,19 @@ The user starts Hana and enables TRL dispatch at 19:50 UTC. Restoration of that 
 
 The earlier UI and reliability changes have focused API, browser, runtime, CLI, and schema checks.
 Evidence includes `/tmp/trellis-real-cli-smoke.log`, `/tmp/trellis-actor-names-green.log`, and the current source checks below.
-Candidate `64d9dc12` passes all 13 packaged smoke checks and is installed. Evidence: `/tmp/trellis-final-reliability-smoke.log` and `/tmp/trellis-final-reliability-install.log`.
+The earlier host candidate `64d9dc12` passes all 13 packaged smoke checks. Its installation is verified. Evidence: `/tmp/trellis-final-reliability-smoke.log` and `/tmp/trellis-final-reliability-install.log`.
 
 ## Reliability acceptance
 
 | Finding or request | Status | Evidence |
 | --- | --- | --- |
-| Ticket summaries and actor filters still show IDs. | Installed at 64d9dc12 | Commit d54e58d4; 18 API tests and the filtered board browser test pass. |
-| GitHub PR batch timeouts incorrectly report authentication failure. | Installed at 64d9dc12 | Commit dceff745; 131 GitHub integration tests pass. |
-| TRL-70: send returns success before the initial CLI prompt exists. | Installed at 64d9dc12 | Commits f510bfac and 595b0016; initial and follow-up receipts are required. Busy sends write no text. |
-| A failed first controller tick prevents future ticks. | Installed at 64d9dc12 | Commit 595b0016; the normal periodic tick continues after its logged error. |
+| Ticket summaries and actor filters still show IDs. | Installed | Commit d54e58d4; 18 API tests and the filtered board browser test pass. |
+| GitHub PR batch timeouts incorrectly report authentication failure. | Installed | Commit dceff745; 131 GitHub integration tests pass. |
+| TRL-70: send returns success before the initial CLI prompt exists. | Installed | Commits f510bfac and 595b0016; initial and follow-up receipts are required. Busy sends write no text. |
+| A failed first controller tick prevents future ticks. | Installed | Commit 595b0016; the normal periodic tick continues after its logged error. |
 | TRL-69: some agent commands return 401. | Installed builder and reviewer verified | The live agents read the brief, health, and local review list. Builder HTTP evidence: `/tmp/trellis-host-live-builder-http.log`. |
-| Act as manager and drive a ticket through the installed CLI. | Live workflow reaches Human Review | Esme opens PR 30, addresses Wren's two findings, and Wren approves the fixes at 349dd33b. Both agents stop through the CLI. |
-| Preserve the user's manager choice. | User resumes Hana at 19:50 UTC | The earlier pause stays in effect until the user starts the manager and enables TRL dispatch. Final installed state requires another check. |
+| Act as manager and drive a ticket through the installed CLI. | Complete; TRL-71 is Done | Esme opens PR 30, addresses Wren's two findings, and Wren approves the fixes. The user merges the PR; the lead installs it and completes the ticket. |
+| Preserve the user's manager choice. | Restored at 20:02:37 UTC | Hana retains provider session f8584a45-27db-465c-8008-a4eaa12dc273. TRL dispatch is enabled; OP dispatch stays paused. |
 | No hacks, shortcuts, or fallbacks. | Acceptance constraint | Each reproduced defect requires a regression test and a fix to its owning component. |
 
 The final installed manager test receives two automatic heartbeats in process 82463 with provider session `80527f5b-a082-413b-ae2c-fa84eec6e118`.
@@ -127,14 +127,14 @@ Evidence: `/tmp/trellis-tool-errors-native-faults-final.log`. The [acceptance re
 
 | Request or finding | Status | Evidence or next check |
 | --- | --- | --- |
-| Connect the independent host to the app and manager. | Installed at 64d9dc12 | Production host tests cover start, send, interrupt, stop, exact resume, and the single-manager constraint. |
-| Complete Codex through one local app-server and its native terminal. | Installed at 64d9dc12 | Shared-engine lifecycle passes 29 assertions. Native failure tests pass 43 assertions. |
-| Remove the unsupported harness entirely. | Installed at 64d9dc12 | The supported list contains Claude, Codex, OpenCode, and Pi. |
+| Connect the independent host to the app and manager. | Installed | Production host tests cover start, send, interrupt, stop, exact resume, and the single-manager constraint. |
+| Complete Codex through one local app-server and its native terminal. | Installed | Shared-engine lifecycle passes 29 assertions. Native failure tests pass 43 assertions. |
+| Remove the unsupported harness entirely. | Installed | The supported list contains Claude, Codex, OpenCode, and Pi. |
 | Use the updated OpenCode executable. | Installed executable and complete host sequence verified | Version 1.18.31 passes 27 assertions, including file edit, shell tools, interruption, and resume. |
-| Show native flow tasks through their own terminal. | Installed at 64d9dc12 | Six flow browser tests pass, including exact attempt selection and refusal to attach a replaced attempt. |
-| Remove the polled Dots output panel. | Installed at 64d9dc12 | The browser test verifies retained results, explicit refresh, the external Dots link, and no output polling. |
+| Show native flow tasks through their own terminal. | Installed | Six flow browser tests pass, including exact attempt selection and refusal to attach a replaced attempt. |
+| Remove the polled Dots output panel. | Installed | The browser test verifies retained results, explicit refresh, the external Dots link, and no output polling. |
 | Verify the saved manager and builder prompt rules. | Live read verified | Both prompts prohibit name prefixes, routine logs, repeated blockers, and questions about adjacent scope. |
-| Preserve the user's current manager choice. | Final state check pending | The user manually resumes Hana and TRL dispatch at 19:50 UTC. The final update must retain her session and restore that choice. |
+| Preserve the user's current manager choice. | Restored | Hana runs as PID 13113 after the host update. Evidence: `/tmp/trellis-final-reliability-restored.json`. |
 
 The source audit confirms the centered ticket body, Activity default, Agent tab, assigned-agent terminal, avatar changes, and board card changes.
 The manager page excludes the queue. The data selector and native macOS title bar remain present.
@@ -149,7 +149,7 @@ The final three-case run verifies terminal identity, focus, and explicit review 
 
 ## Live ticket acceptance and final fixes
 
-TRL-71 reaches Human Review with [PR 30](https://github.com/0x962/trellis/pull/30) at commit `349dd33b`.
+TRL-71 completes the installed workflow with [PR 30](https://github.com/0x962/trellis/pull/30). Wren approves the final changes at commit `349dd33b`.
 Esme writes the guide, links the PR, registers evidence, and receives follow-up instructions through the installed CLI.
 Wren reviews the guide, posts two Margin findings, and approves the fixes after a second review. Both findings are resolved.
 The CLI stops both agents and retains their worktrees, provider IDs, and all 520,531 bytes of builder output.
@@ -157,28 +157,34 @@ Evidence: `/tmp/trellis-host-live-rereview-result.json` and `/tmp/trellis-host-l
 
 | Defect or condition | Status | Evidence |
 | --- | --- | --- |
-| A fresh approved repository still prompts for native Claude trust. | Installed at 64d9dc12 | a6740542 and a077219a. Fresh-repository lifecycle passes 28 assertions; profile preservation and relative-path tests pass. |
-| A tool failure poisons agent status and makes an accepted follow-up report failure. | Installed at 64d9dc12 | f1a258ca. Tool errors stay in the tool journal; receipt waits ignore earlier turn errors. Five delivery regressions pass. |
-| A failed turn hides its live terminal; an unlaunched manager can incorrectly show Stop. | Installed at 64d9dc12 | Runtime-derived processStatus separates process state from turn failure. Browser tests cover continued input, confirmed exit, and retry after a trust error. |
+| A fresh approved repository still prompts for native Claude trust. | Installed | a6740542 and a077219a. Fresh-repository lifecycle passes 28 assertions; profile preservation and relative-path tests pass. |
+| A tool failure poisons agent status and makes an accepted follow-up report failure. | Installed | f1a258ca. Tool errors stay in the tool journal; receipt waits ignore earlier turn errors. Five delivery regressions pass. |
+| A failed turn hides its live terminal; an unlaunched manager can incorrectly show Stop. | Installed | Runtime-derived processStatus separates process state from turn failure. Browser tests cover continued input, confirmed exit, and retry after a trust error. |
 | Host stability after live evidence scans | Verified on c440232f | 248 open file records and zero agent workspace files: `/tmp/trellis-host-live-open-files.json`. |
 | GitHub CI for PR 30 | External account limitation | Jobs fail before execution because recent account payments fail or the spending limit needs an increase. Annotation for job 104536278957: `/tmp/trellis-pr30-ci-annotations.json`. |
 
 The first follow-up reaches Esme despite a CLI error from stale tool state. Its native receipt confirms delivery.
 Evidence: `/tmp/trellis-host-live-followup.error` and `/tmp/trellis-host-live-builder-followup-result.json`.
 The installed gate verifies fresh-repository trust, a deliberate tool failure without a failed agent, successful follow-up delivery, and two automatic heartbeats.
-The user merges PR 30 after the test reaches Human Review. Origin main includes the merged guide.
-The acceptance test does not change billing. The live ticket status requires a final check after the user's merge.
+The user merges PR 30 after the test reaches Human Review. Main contains the merged guide.
+After installation, the lead moves the test ticket to Done at 20:08:44 UTC. Evidence: `/tmp/trellis-final-test-ticket-done.json`.
+The acceptance test does not change billing.
 
 Process-status verification: 11 projection/API tests pass with 51 assertions. Terminal and manager browser cases pass, including pre-launch retry and continued input after failure.
 Evidence: `/tmp/trellis-process-projection-green.log`, `/tmp/trellis-process-controls-final.log`, and `/tmp/trellis-failed-terminal-hook-final.log`.
 
 ## Final installation
 
-The desktop app runs source `64d9dc12` on the macOS arm64 host.
-The signed release ID is `ae02d6f5b5b0d72fa11cf124c73bfb20edf74bbb0bd9a6b78f2b283073276ce1`.
-The installed HTTP host reports PID 78957 at `http://127.0.0.1:4521`.
-The active signed release matches the source server files and rebuilt runtime. Evidence: `/tmp/trellis-final-reliability-candidate.json`.
-Build, package, signature verification, all 13 packaged smoke checks, installation, and app launch pass.
+The desktop app includes product changes through `6fef93c3` on the macOS arm64 host.
+The signed release ID is `2cba138f1eed2145b7e4a9a4891424fdc34118e48b808d6bdd6fe1393b30dd6a`.
+The installed HTTP host reports PID 35176 at `http://127.0.0.1:4521`. The authenticated CLI reports healthy database and GitHub connections.
+The app opens. Hana and four workers retain their PIDs and provider sessions through the UI update.
+Evidence from 20:08:21 UTC: `/tmp/trellis-ui-refresh-preserved.json`.
+At 20:09:19 UTC, Hana continues authenticated ticket work with no agent error. Her restored turn remains active.
+The scratch manager proves heartbeat delivery. Evidence for Hana: `/tmp/trellis-hana-restored-monitor.jsonl`.
+
+The prior host installation at `64d9dc12` matches the source server files and rebuilt runtime. Evidence: `/tmp/trellis-final-reliability-candidate.json`.
+Its build, package, signature verification, all 13 packaged smoke checks, installation, and app launch pass.
 Logs: `/tmp/trellis-final-reliability-{build,package,sign,smoke,install}.log`.
 
 All nine workspace typechecks pass. Biome checks 2,251 files, and 15 repository tests pass with 106 assertions.
@@ -197,4 +203,9 @@ The scratch manager stops, its project is archived, and its persona is deleted. 
 Evidence: `/tmp/trellis-installed-heartbeat-t8cE7s/evidence.json` and `/tmp/trellis-installed-heartbeat-acceptance-final.log`.
 
 The user also merges PR 27 and PR 28 while final checks run. Origin main advances to `eaa1ac2e`.
-The lead must integrate those UI changes and rebuild the desktop candidate. Native host code is unchanged by those pull requests.
+Merge 6fef93c3 integrates those UI changes. Test-only commit b346e0a5 corrects the collapsed-sidebar assertion.
+The UI checks pass: 56 command and keyboard tests with 190 assertions, 13 browser cases, and the web typecheck.
+Evidence: `/tmp/trellis-web-merge-command-tests.log` and `/tmp/trellis-web-merge-e2e-final.log`.
+The UI package passes all 13 smoke checks. The manual install script times out while the launcher verifies and copies the resource bundle.
+The launcher then finishes. The lead confirms the active package, healthy HTTP host, retained processes, and open app.
+The initial install command does not pass. Evidence: `/tmp/trellis-ui-final-install.log` and `/tmp/trellis-ui-refresh-preserved.json`.
