@@ -29,7 +29,7 @@ test.each([
 	const original = { ...record, state: "exited", instruction: "Historical manager persona and personal UI policy" };
 	const tools = managerTools(async () => (action === "list" ? [original] : original));
 	const result = await tools.call(`trellis_agentRuns_${action}`, input);
-	expect(result).toEqual(action === "list" ? [record] : record);
+	expect(result).toEqual(action === "list" ? { items: [record], total: 1, nextOffset: null } : record);
 	expect(JSON.stringify(result)).not.toContain("Historical manager persona");
 	expect(original.instruction).toBe("Historical manager persona and personal UI policy");
 });
@@ -135,8 +135,10 @@ test.each([
 		};
 		const tools = managerTools(async () => [record]);
 		const result = await tools.call("trellis_agentRuns_list", { project: "TRL" });
-		expect(result).toMatchObject([{ processStatus, working, replacementAllowed, observation: record.observation }]);
-		expect(result).not.toMatchObject([{ state: "running" }]);
+		expect(result).toMatchObject({
+			items: [{ processStatus, working, replacementAllowed, observation: record.observation }],
+		});
+		expect(result).not.toMatchObject({ items: [{ state: "running" }] });
 	},
 );
 
@@ -166,7 +168,9 @@ test("a native assignment with no launched attempt permits a corrected start", a
 			error: "Executable not found",
 		},
 	]);
-	expect(await tools.call("trellis_agentRuns_list", {})).toMatchObject([{ working: false, replacementAllowed: true }]);
+	expect(await tools.call("trellis_agentRuns_list", {})).toMatchObject({
+		items: [{ working: false, replacementAllowed: true }],
+	});
 });
 
 test("session and list agree when an assignment never launched a process", async () => {

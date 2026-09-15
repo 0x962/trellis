@@ -1,3 +1,4 @@
+import { AgentRunListInputSchema } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { contract } from "@trellis/api/contract";
 import { z } from "zod";
@@ -17,6 +18,11 @@ const operations = {
 	controller: ["list", "handle"],
 } as const;
 
+const agentListInput = AgentRunListInputSchema.extend({
+	limit: z.number().int().min(1).max(20).default(10),
+	offset: z.number().int().nonnegative().default(0),
+});
+
 type Invoke = (operation: string, input: unknown) => Promise<unknown>;
 type Procedure = { "~orpc": { inputSchema: z.ZodType; route: { summary?: string } } };
 type AgentRun = Awaited<ReturnType<TrellisClient["agentRuns"]["start"]>>;
@@ -35,14 +41,17 @@ export const managerTools = (invoke: Invoke) => {
 		Object.entries(operations).flatMap(([group, names]) =>
 			names.map((action) => {
 				const procedure = (contract[group as keyof typeof contract] as unknown as Record<string, Procedure>)[action]!;
-				const schema = procedure["~orpc"].inputSchema;
+				const paginated = group === "agentRuns" && action === "list";
+				const schema = paginated ? agentListInput : procedure["~orpc"].inputSchema;
 				const name = `trellis_${group}_${action}`;
 				return [
 					name,
 					{
 						name,
 						operation: `${group}.${action}`,
-						description: procedure["~orpc"].route.summary ?? `${group}.${action}`,
+						description: paginated
+							? "List agents in pages. Returns items, total, and nextOffset. Pass nextOffset as offset until nextOffset is null."
+							: (procedure["~orpc"].route.summary ?? `${group}.${action}`),
 						schema,
 						inputSchema: z.toJSONSchema(schema, { io: "input" }),
 					},
@@ -55,8 +64,17 @@ export const managerTools = (invoke: Invoke) => {
 		async call(name: string, input: unknown) {
 			const tool = tools.get(name);
 			if (!tool) throw new Error(`Unknown manager tool: ${name}`);
+			if (tool.operation === "agentRuns.list") {
+				const { limit, offset, ...filters } = agentListInput.parse(input);
+				const runs = (await invoke(tool.operation, filters)) as AgentRun[];
+				const items = runs.slice(offset, offset + limit).map(assignmentRecord);
+				return {
+					items,
+					total: runs.length,
+					nextOffset: offset + items.length < runs.length ? offset + items.length : null,
+				};
+			}
 			const result = await invoke(tool.operation, tool.schema.parse(input));
-			if (tool.operation === "agentRuns.list") return (result as AgentRun[]).map(assignmentRecord);
 			if (["agentRuns.start", "agentRuns.send", "agentRuns.stop", "agentRuns.refresh"].includes(tool.operation))
 				return assignmentRecord(result as AgentRun);
 			if (tool.operation !== "agentRuns.session") return result;

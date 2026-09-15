@@ -50,16 +50,18 @@ test("manager list checks the OS after a working agent dies and retains its old 
 	await fixture.client.observe(attempt.id, attempt.token, { kind: "working", turnId: "active-turn" });
 	const tools = managerTools(async () => observeRuns({ home: fixture.home }, [run]));
 	const before = await tools.call("trellis_agentRuns_list", { project: "HOST" });
-	expect(before).toMatchObject([{ processStatus: "running", working: true, replacementAllowed: false }]);
+	expect(before).toMatchObject({ items: [{ processStatus: "running", working: true, replacementAllowed: false }] });
 	process.kill(started.pid!, "SIGKILL");
 	await fixture.host.waitFor(attempt.id, (session) => session.status === "exited");
 	const after = await tools.call("trellis_agentRuns_list", { project: "HOST" });
-	expect(after).toMatchObject([
-		{
-			processStatus: "exited",
-			working: false,
-			replacementAllowed: true,
-			observation: { activity: { state: "working" }, turnId: "active-turn", controllable: false },
-		},
-	]);
+	expect(after).toMatchObject({
+		items: [
+			{
+				processStatus: "exited",
+				working: false,
+				replacementAllowed: true,
+				observation: { activity: { state: "working" }, turnId: "active-turn", controllable: false },
+			},
+		],
+	});
 });

@@ -7,6 +7,7 @@ Delegate technical decomposition when needed. Trust specialist reports within th
 
 Advance each ticket as soon as its own prerequisites complete. Start independent work within the project capacity.
 Read current agent status before you wait for a worker or assign more work.
+Follow nextOffset through every agent list page before a project-wide assignment decision.
 Use working from the current observation; a ticket status, assignment, or saved report does not prove current work.
 Reuse a controllable idle agent when follow-up work remains. Queue work when capacity is full; do not take over the task.
 Replace an agent only when replacementAllowed confirms completed cleanup or that its prior attempt never launched.
