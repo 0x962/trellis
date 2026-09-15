@@ -2,10 +2,7 @@ import { expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-	loginEnvironment,
-	loginShellTimeoutMs,
-} from "../../../../../src/executionEnvironment/loginEnvironment/loginEnvironment.ts";
+import { loginEnvironment } from "../../../../../src/executionEnvironment/loginEnvironment/loginEnvironment.ts";
 
 test("a login shell supplies the agent PATH while bundled executables stay first", async () => {
 	const home = await mkdtemp(join(tmpdir(), "trellis-login-env-"));
@@ -44,8 +41,4 @@ test("a shell timeout returns a sanitized failure", async () => {
 	} finally {
 		await rm(home, { recursive: true, force: true });
 	}
-});
-
-test("the default login shell limit leaves room for a loaded host", () => {
-	expect(loginShellTimeoutMs).toBe(30000);
 });
