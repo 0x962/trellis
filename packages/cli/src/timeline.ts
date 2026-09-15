@@ -18,14 +18,14 @@ export const renderComments = (comments: CommentItem[]): string =>
 		.map((comment) => {
 			const state = comment.resolvedAt ? " [resolved]" : "";
 			const parent = comment.parentId ? ` reply to ${comment.parentId}` : "";
-			return `${comment.id}${state}${parent}\n${comment.actor.kind}:${comment.actor.name}  ${comment.createdAt}\n${comment.body}\n\n`;
+			return `${comment.id}${state}${parent}\n${comment.actor.kind}:${comment.actor.displayName ?? comment.actor.name}  ${comment.createdAt}\n${comment.body}\n\n`;
 		})
 		.join("");
 
 export const commentList: ListSpec<CommentItem> = {
 	columns: [
 		{ name: "id", value: (row) => row.id },
-		{ name: "actor", value: (row) => `${row.actor.kind}:${row.actor.name}` },
+		{ name: "actor", value: (row) => `${row.actor.kind}:${row.actor.displayName ?? row.actor.name}` },
 		{ name: "created", value: (row) => row.createdAt },
 		{ name: "body", value: (row) => cell(row.body) },
 	],
@@ -36,7 +36,7 @@ export const commentList: ListSpec<CommentItem> = {
 export const activityList: ListSpec<ActivityItem> = {
 	columns: [
 		{ name: "at", value: (row) => row.createdAt },
-		{ name: "actor", value: (row) => `${row.actor.kind}:${row.actor.name}` },
+		{ name: "actor", value: (row) => `${row.actor.kind}:${row.actor.displayName ?? row.actor.name}` },
 		{ name: "action", value: (row) => row.action },
 		{ name: "field", value: (row) => cell(row.field) },
 		{ name: "change", value: (row) => (row.field === null ? "-" : `${cell(row.fromValue)} -> ${cell(row.toValue)}`) },

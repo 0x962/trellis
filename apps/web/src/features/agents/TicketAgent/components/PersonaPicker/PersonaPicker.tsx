@@ -2,10 +2,11 @@ import { ORPCError } from "@orpc/client";
 import { Plus } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Button, Command, type CommandGroup, Popover } from "@trellis/ui";
+import { Avatar, Button, Command, type CommandGroup, Popover } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { personaKinds } from "../../../../personas/PersonasPage/kinds";
+import { hasAssignedProcess } from "../../../hasAssignedProcess";
 
 export function PersonaPicker({ ticket, disabled }: { ticket: string; disabled: boolean }) {
 	const { client, orpc, queryClient } = useApp();
@@ -25,7 +26,12 @@ export function PersonaPicker({ ticket, disabled }: { ticket: string; disabled: 
 			busy.current = false;
 		},
 	});
-	const choices = (personas.data ?? []).filter((persona) => persona.kind !== "manager");
+	const assigned = new Set(
+		(history.data ?? [])
+			.filter((run) => (run.ticketId === ticket || run.ticketIdentifier === ticket) && hasAssignedProcess(run))
+			.map((run) => run.personaId),
+	);
+	const choices = (personas.data ?? []).filter((persona) => persona.kind !== "manager" && !assigned.has(persona.id));
 	const counts = new Map<string, number>();
 	for (const run of history.data ?? []) {
 		if (run.personaId !== null && run.state !== "failed")
@@ -38,7 +44,8 @@ export function PersonaPicker({ ticket, disabled }: { ticket: string; disabled: 
 	const frequentIds = new Set(frequent.map((persona) => persona.id));
 	const item = (persona: (typeof choices)[number]) => ({
 		id: persona.id,
-		label: persona.name,
+		label: `Add ${persona.name}`,
+		icon: <Avatar kind="agent" name={persona.name} />,
 		keywords: [persona.kind],
 	});
 	const groups: CommandGroup[] = [
@@ -78,7 +85,7 @@ export function PersonaPicker({ ticket, disabled }: { ticket: string; disabled: 
 			className="w-80 max-w-[calc(100vw-var(--spacing)*8)] p-0"
 			trigger={
 				<Button variant="quiet" align="start" icon={<Plus />} className="-ml-2.5" disabled={disabled}>
-					New agent
+					Add persona
 				</Button>
 			}
 		>
@@ -126,7 +133,7 @@ export function PersonaPicker({ ticket, disabled }: { ticket: string; disabled: 
 				)}
 				{!loading && !loadError && choices.length === 0 && (
 					<p className="px-3 py-2 text-sm text-fg-muted">
-						Create a builder or reviewer persona first.{" "}
+						No unassigned personas.{" "}
 						<Link to="/ai/personas" className="text-accent underline">
 							Open Personas
 						</Link>

@@ -3,6 +3,7 @@ import {
 	CommentCreateInputSchema,
 	type CommentDeleteOutputSchema,
 	CommentIdInputSchema,
+	type CommentNotification,
 	CommentResolveInputSchema,
 	type CommentThread,
 	CommentUpdateInputSchema,
@@ -12,12 +13,14 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { z } from "zod";
 import { requireActor, type ServiceCtx } from "../context.ts";
+import { commentNotifications } from "../db/queries/commentNotifications.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import { ticketSummary } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail, invalidInput } from "../errors.ts";
 import { record } from "./activity.ts";
 import { upsert } from "./actors.ts";
+import { enqueue } from "./commentMentions/enqueue.ts";
 import { assertProjectActive, resolveTicket, type TicketRow } from "./refs.ts";
 
 type RawComment = {
@@ -26,6 +29,7 @@ type RawComment = {
 	parent_id: string | null;
 	resolved_at: string | null;
 	body: string;
+	notifications: CommentNotification[];
 	actor_name: string;
 	actor_kind: StoredActorKind;
 	actor_display_name: string | null;
@@ -33,7 +37,7 @@ type RawComment = {
 	updated_at: string;
 };
 
-const commentSelect = sql`SELECT c.id, c.ticket_id, c.parent_id, ${iso(sql`c.resolved_at`)} AS resolved_at, c.body, c.actor_name, c.actor_kind, r.name AS actor_display_name,
+const commentSelect = sql`SELECT c.id, c.ticket_id, c.parent_id, ${iso(sql`c.resolved_at`)} AS resolved_at, c.body, ${commentNotifications(sql`c.id`)} AS notifications, c.actor_name, c.actor_kind, r.persona_name AS actor_display_name,
 	${iso(sql`c.created_at`)} AS created_at, ${iso(sql`c.updated_at`)} AS updated_at FROM comments c
 	LEFT JOIN agent_runs r ON c.actor_kind = 'agent' AND r.id = c.actor_name`;
 
@@ -43,6 +47,7 @@ const toComment = (row: RawComment): Comment => ({
 	parentId: row.parent_id,
 	resolvedAt: row.resolved_at,
 	body: row.body,
+	...(row.notifications.length === 0 ? {} : { notifications: row.notifications }),
 	actor: {
 		name: row.actor_name,
 		kind: row.actor_kind,
@@ -134,6 +139,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 		sql`INSERT INTO comments (id, ticket_id, parent_id, body, dedupe_key, actor_name, actor_kind, created_at, updated_at)
 			VALUES (${id}, ${row.id}, ${parentId}, ${input.body}, ${input.dedupeKey ?? null}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
 	);
+	await enqueue(tx, { commentId: id, ticketId: row.id, projectId: row.projectId, body: input.body });
 	await record(ctx, tx, activityFor(row, "comment.created", batchId, id, parentId));
 	ctx.emit({
 		type: "comment.created",
@@ -153,6 +159,13 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const row = await ticketOfComment(ctx, tx, comment);
 	const batchId = ulid();
 	await tx.execute(sql`UPDATE comments SET body = ${input.body}, updated_at = ${ctx.now} WHERE id = ${comment.id}`);
+	await enqueue(tx, {
+		commentId: comment.id,
+		ticketId: row.id,
+		projectId: row.projectId,
+		body: input.body,
+		previousBody: comment.body,
+	});
 	await record(ctx, tx, activityFor(row, "comment.updated", batchId, comment.id, comment.parentId));
 	ctx.emit({
 		type: "comment.updated",

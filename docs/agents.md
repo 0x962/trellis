@@ -174,10 +174,10 @@ template without it runs the agent in a private tmux session, which survives a
 restart of the trellis server.
 
 `{{prompt}}` is the instruction of the persona, plus an assignment block with the
-agent name, its actor, the trellis URL, the persona, the ticket or the project,
+persona name, its actor, the trellis URL, the ticket or the project,
 the concurrency limit, the project directory, and the repositories.
 `{{agentCommand}}` wraps that prompt: it exports `TRELLIS_URL` and
-`TRELLIS_ACTOR`, then runs `claude` with the agent name and the prompt. The actor
+`TRELLIS_ACTOR`, then runs `claude` with the persona name and the prompt. The actor
 of a run is `agent:<run id>`.
 
 The runner-driven agent manager takes the other path. Its command reads the
@@ -194,3 +194,16 @@ A manager prompt holds the status descriptions of the project, so
 
 CAUTION: The template is a shell command that the server runs as your account.
 The server has no sign-in, so anyone who reaches the API sets that template.
+
+## Persona identity and mentions
+
+Each agent uses its persona name as its label. Each persona has a stable shape and color.
+Each assignment retains a separate internal ID. Its actor is `agent:<run id>`.
+A ticket permits one active assignment per persona. Different personas can work on the same ticket.
+
+Use `@Builder` in a ticket comment to notify its Builder assignment.
+Use the manager persona name, such as `@Trellis`, to notify the project manager.
+Persona names can contain spaces, such as `@Code separation`. Mentions ignore letter case.
+The notification retains the assignment ID and session from the comment write.
+An edit notifies only newly mentioned personas. Code spans and code blocks do not notify agents.
+The comment shows whether the notification is queued, delivered, failed, or uncertain.

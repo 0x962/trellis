@@ -130,6 +130,8 @@ test("OpenCode preserves prompt receipts, tool progress, response text and inter
 		{ event: "tool-start", tool: { id: "call_1", name: "bash" } },
 		{ event: "tool-update", tool: { id: "call_1", output: { output: "partial" } } },
 		{ event: "tool-end", tool: { id: "call_1", output: "complete" } },
+		{ event: "message", message: { text: "First" } },
+		{ event: "message", message: { text: "Second" } },
 		{ event: "idle", result: "First\nSecond", outcome: "interrupted" },
 	]);
 });
