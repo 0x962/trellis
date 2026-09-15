@@ -3,6 +3,7 @@ import type { RuntimeSession } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { nativeClient } from "../../agents/native/connection.ts";
 import { rows } from "../../db/queries/support.ts";
+import { checkOutput } from "./checkOutput.ts";
 import { revision } from "./revision.ts";
 import type { EvidenceCtx } from "./types.ts";
 
@@ -21,10 +22,13 @@ export const finishCheck = async (
 	try {
 		if (session?.status === "exited") {
 			const client = nativeClient(ctx.home);
-			const [result, stderr] = await Promise.all([client.output(record.id), client.output(record.id, 0, "stderr")]);
+			const [result, stderr] = await Promise.all([
+				checkOutput(client, record.id, "stdout"),
+				checkOutput(client, record.id, "stderr"),
+			]);
 			const bytes = Buffer.concat([
-				Buffer.from(result.data, "base64"),
-				...(stderr.data ? [Buffer.from("\n[stderr]\n"), Buffer.from(stderr.data, "base64")] : []),
+				result.bytes,
+				...(stderr.bytes.length ? [Buffer.from("\n[stderr]\n"), stderr.bytes] : []),
 			]);
 			output = bytes.subarray(Math.max(0, bytes.length - 262144)).toString("utf8");
 			truncated = result.truncated || stderr.truncated || bytes.length > 262144;

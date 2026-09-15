@@ -96,10 +96,11 @@ test("current artifacts and checks permit review, then same-HEAD changes invalid
 });
 
 test("check timeout and bounded output persist without a shell", async () => {
-	const failed = await check(ctx, command('process.stdout.write("x".repeat(300000)); process.exitCode=3'));
+	const failed = await check(ctx, command('process.stdout.write("x".repeat(300000) + "tail"); process.exitCode=3'));
 	expect(failed.state).toBe("failed");
 	expect(failed.exitCode).toBe(3);
 	expect(failed.output.length).toBe(262144);
+	expect(failed.output.endsWith("tail")).toBe(true);
 	expect(failed.truncated).toBe(true);
 	const timeout = await check(ctx, { ...command("setInterval(() => {}, 1000)"), timeoutMs: 100 });
 	expect(timeout.state).toBe("timed_out");

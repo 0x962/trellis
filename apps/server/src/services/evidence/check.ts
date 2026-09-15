@@ -87,13 +87,11 @@ export const check = async (ctx: EvidenceCtx, input: EvidenceCheckInput) => {
 			),
 		);
 		const deadline = Date.now() + input.timeoutMs + 5000;
-		while (session.status === "running" && Date.now() < deadline) {
+		while (session.status !== "exited" && Date.now() < deadline) {
 			await Bun.sleep(50);
-			const observed = (await client.list()).find((item) => item.id === id);
-			if (!observed) break;
-			session = observed;
+			session = await client.inspect(id);
 		}
-		if (session.status === "running") session = await client.stop(id);
+		if (session.status !== "exited") session = await client.stop(id);
 		document = await finishCheck(ctx, document, selected.workspace, session);
 	} catch (cause) {
 		document = await finishCheck(

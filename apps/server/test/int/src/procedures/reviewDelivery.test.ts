@@ -56,7 +56,7 @@ test("retains unread submissions when an agent is stopped and sends only after a
 	await deliver();
 	const failed = await t.api(`/api/reviews/submissions/${submitted.body.id}`);
 	expect(failed.body.deliveries[0].state).toBe("failed");
-	expect(failed.body.deliveries[0].error).toContain("Only a running agent");
+	expect(failed.body.deliveries[0].error).toContain("The execution service cannot control this agent process.");
 	const inbox = await t.api("/api/reviews/inbox", {
 		method: "POST",
 		body: { runId },
