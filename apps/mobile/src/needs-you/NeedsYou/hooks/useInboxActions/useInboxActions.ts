@@ -4,6 +4,7 @@ import { eventApplierFor, type Ticket, type TicketSummary } from "@trellis/api";
 import * as Haptics from "expo-haptics";
 import { useCallback, useRef, useState } from "react";
 import { getClient } from "../../../../lib/orpc";
+import { showsReviewActions } from "../../../../ticket/reviewTargets";
 import { approve, type SendBackProgress, sendBack } from "../../utils/approve";
 import { type DroppedRow, dropInboxRow, restoreInboxRow } from "../../utils/inboxCache";
 
@@ -94,16 +95,21 @@ export const useInboxActions = (): InboxActions => {
 			void run(
 				ticket,
 				() => approve(getClient(), ticket),
+				// Approve moves a ticket one column on from its current status. A
+				// ticket that has left Human Review gets no Retry, so a Retry never
+				// moves it past the column that follows Human Review.
 				(current) => ({
 					tone: "error",
-					title: `Cannot move ${ticket.identifier} to Done`,
-					action: {
-						label: "Retry",
-						onPress: () => {
-							setToast(undefined);
-							approveRow(current);
-						},
-					},
+					title: `Cannot approve ${ticket.identifier}`,
+					action: showsReviewActions(current.status)
+						? {
+								label: "Retry",
+								onPress: () => {
+									setToast(undefined);
+									approveRow(current);
+								},
+							}
+						: undefined,
 				}),
 			);
 		},
