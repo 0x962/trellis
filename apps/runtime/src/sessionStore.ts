@@ -41,7 +41,7 @@ export class SessionStore {
 				launch?: RuntimeProcessStatus["launch"];
 			};
 			if (saved.session.status === "running") saved.session.status = "unknown";
-			const record = {
+			const record: Record = {
 				...saved,
 				identity: saved.identity ?? null,
 				launch: saved.launch ?? null,
@@ -54,6 +54,7 @@ export class SessionStore {
 				stopped: Promise.resolve(undefined),
 				resolveStop: () => {},
 			};
+			record.activity = record.observations.activity;
 			this.records.set(saved.session.id, record);
 			this.save(record);
 			watchRecoveredSession(record, this.exits);

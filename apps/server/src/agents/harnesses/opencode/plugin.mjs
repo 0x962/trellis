@@ -129,7 +129,10 @@ export const TrellisPlugin = async ({ client }) => {
 				});
 		},
 		"experimental.text.complete": async (input, output) => {
-			if (matches(input.sessionID)) parts.set(input.partID, output.text);
+			if (matches(input.sessionID)) {
+				parts.set(input.partID, output.text);
+				await send({ event: "message", sessionId, turnId, message: { text: output.text } });
+			}
 		},
 		event: async ({ event }) => {
 			const p = event.properties;

@@ -4,6 +4,7 @@ import { prepareSend } from "../agentRuns/communication.ts";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
 import { dispatchMentions } from "../commentMentions/dispatch.ts";
 import type { ServiceCtx } from "../support.ts";
+import { agentContext } from "./agentContext/index.ts";
 import { claim, complete, defer } from "./controller.ts";
 import { coordination } from "./coordination.ts";
 import { managerMessage } from "./message.ts";
@@ -38,11 +39,14 @@ export const dispatch = async (ctx: Ctx) => {
 					return;
 				}
 				const context = await ctx.newTx((tx) => coordination(tx, delivery));
+				const agents = await ctx.newTx((tx) =>
+					agentContext({ now: ctx.now() }, tx, { sessions, projectId: delivery.projectId, runId: delivery.runId! }),
+				);
 				attempted = true;
 				await sendDeadline(
 					prepareSend(ctx, {
 						id: delivery.runId!,
-						text: managerMessage(delivery, context),
+						text: managerMessage(delivery, context, agents),
 						messageId: dispatchMessageId(delivery),
 						requireIdle: true,
 						expectedTerminalId: delivery.terminalId!,

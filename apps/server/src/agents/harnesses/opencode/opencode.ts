@@ -7,7 +7,8 @@ import { managerInstructions } from "../../launchCommand/managerInstructions.ts"
 import type { HarnessEvent, HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 const envelope = z.object({
-	event: z.enum(["session", "prompt", "working", "idle", "tool-start", "tool-update", "tool-end", "error"]),
+	event: z.enum(["session", "prompt", "working", "idle", "message", "tool-start", "tool-update", "tool-end", "error"]),
+	message: z.object({ text: z.string() }).optional(),
 	sessionId: z.string(),
 	turnId: z.string().optional(),
 	model: z.string().optional(),

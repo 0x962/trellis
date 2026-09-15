@@ -74,7 +74,7 @@ The explicit Stop local work action pauses native dispatch, stops owned processe
 An unconfirmed process prevents a successful stop.
 
 The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 6. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 7. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 Output readers receive bounded chunks with byte offsets.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
@@ -279,6 +279,24 @@ A heartbeat uses the same durable queue and receipt checks as ticket events. Its
 Ticket events take precedence. The queue holds at most one pending or unresolved message per project.
 Heartbeats respect project dispatch pause, the global work pause, and archived projects.
 The heartbeat asks the manager to follow its current persona and status descriptions, inspect work, and avoid comments that only acknowledge the heartbeat.
+
+Each heartbeat and ticket dispatch includes `agentContext` from the runtime observations at dispatch time.
+The JSON envelope retains policy references, ticket events, and unfinished work. Agent names use the assigned persona.
+The context covers native assignments in the manager's project scope and excludes the recipient manager.
+It includes open assignments and closed assignments whose processes still run.
+Each entry carries assignment identifiers, process status, the process check time, harness activity, the last activity time, and `isWorking`.
+It also includes the turn identifier, current tool name and identifier, exit code, error, and up to 2,000 characters of the latest result.
+The latest tool record retains its input, output, start time, update time, and status after completion.
+
+The latest assistant message retains its text and timestamp. Each tool input, tool output, and message excerpt has a 2,000-character limit.
+The runtime restores tool records, messages, and native turn activity from its event journal after a restart.
+Codex, Pi, and OpenCode report completed assistant messages during a turn.
+Claude reads the latest assistant text and timestamp from its transcript at tool and stop hooks.
+
+`isWorking` is true when a controllable live process reports a working turn. It is false for ready or idle turns and exited processes.
+Missing processes, unknown process status, lost process control, and unobserved turn activity produce a null work state.
+Harness events establish turn activity. Terminal output alone does not establish active work, and a working turn does not prove progress.
+
 A host interruption changes an unfinished send to `unknown`.
 A durable receipt can confirm the original delivery. An explicit resend uses a new generation and message identifier.
 

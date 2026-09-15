@@ -20,6 +20,8 @@ const processStatus = (change: Partial<RuntimeProcessStatus> = {}): RuntimeProce
 		model: "explicit-model",
 		turnId: "turn",
 		tool: null,
+		lastTool: null,
+		lastMessage: null,
 		error: null,
 		outcome: "completed",
 	},
