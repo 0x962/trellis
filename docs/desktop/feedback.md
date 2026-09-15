@@ -3,6 +3,8 @@
 Owner: lead agent. Integration branch: `trellis-readiness-audit`.
 Last update: 2026-09-15.
 
+The project subitems use text labels for Tickets, Manager, and Settings. The user tests this UI change after deployment.
+
 `Integrated` means that the source contains the change. It does not establish that the installed desktop uses that source.
 The desktop opens with release `d345422e`. The release includes the host fixes, manager settings move, terminal layout, sidebar, and window changes.
 Hana resumes at 20:02:37 UTC with the same provider session. TRL dispatch is enabled, and OP dispatch stays paused.

@@ -1,4 +1,3 @@
-import { Gear, TerminalWindow, Ticket } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { cx } from "@trellis/ui";
@@ -23,10 +22,10 @@ export function ProjectPages({
 			<nav aria-label={`${project.name} pages`}>
 				<ul className="flex flex-col gap-0.5">
 					{[
-						{ label: "Tickets", icon: <Ticket />, suffix: "", active: current && !settings && !manager },
-						{ label: "Manager", icon: <TerminalWindow />, suffix: "/settings/manager", active: current && manager },
-						{ label: "Settings", icon: <Gear />, suffix: "/settings", active: current && settings },
-					].map(({ label, icon, suffix, active }) => (
+						{ label: "Tickets", suffix: "", active: current && !settings && !manager },
+						{ label: "Manager", suffix: "/settings/manager", active: current && manager },
+						{ label: "Settings", suffix: "/settings", active: current && settings },
+					].map(({ label, suffix, active }) => (
 						<li key={label}>
 							<Link
 								to="/p/$"
@@ -39,9 +38,6 @@ export function ProjectPages({
 									active && "sidebar-selected font-medium",
 								)}
 							>
-								<span aria-hidden="true" className="sidebar-leading *:size-4">
-									{icon}
-								</span>
 								<span className="sidebar-label">{label}</span>
 							</Link>
 						</li>
