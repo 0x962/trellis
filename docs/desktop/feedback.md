@@ -39,6 +39,19 @@ The first run stops at an outdated title-bar position assertion. The corrected a
 The test removes its temporary service and data. The installed commit stays unchanged during both runs.
 Evidence: `/tmp/trellis-background-installed.json` and `/tmp/trellis-background-live-health.json`.
 
+## Startup output limit
+
+At 23:42 UTC, the restart capture prints 1,270,865 bytes through a child process with a 1,048,576-byte output limit.
+It includes launch arguments and agent messages from 273 retained sessions, although only five sessions remain active.
+The error occurs after the desktop stops the HTTP host and before it saves the restart plan. The agent runtime remains active.
+Evidence: `/tmp/trellis-startup-maxbuffer-before.json` records the exact error and byte counts.
+
+The restart capture transfers only active session identifiers, process ownership, provider identifiers, and model names through the child output.
+It still rejects unknown processes and sessions without a confirmed provider identifier.
+The focused capture and activation suites pass: 31 tests and 61 assertions. Desktop typecheck and scoped Biome checks pass.
+A read-only check against the live runtime saves all five sessions to a scratch plan of 2,561 bytes.
+Provider identifiers and process identities remain unchanged. Evidence: `/tmp/trellis-startup-maxbuffer-after.json`.
+
 ## Automatic session resume
 
 A package update saves the active provider sessions before runtime shutdown. Workers resume before managers, in the same directories and conversations.
