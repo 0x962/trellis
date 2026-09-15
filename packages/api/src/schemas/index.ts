@@ -9,7 +9,6 @@ export * from "./enums.ts";
 export * from "./evidence.ts";
 export * from "./flow.ts";
 export * from "./flowExecution.ts";
-export * from "./inbox.ts";
 export * from "./persona.ts";
 export * from "./primitives.ts";
 export * from "./project.ts";

@@ -1,1 +1,0 @@
-export { EmptyInbox } from "./EmptyInbox";

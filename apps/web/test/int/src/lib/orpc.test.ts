@@ -19,9 +19,9 @@ describe("lib/orpc", () => {
 				return server.request(request, init);
 			},
 		});
-		const [projects, inbox] = await Promise.all([client.projects.list({}), client.inbox.get({})]);
+		const [projects, settings] = await Promise.all([client.projects.list({}), client.settings.get()]);
 		expect(projects.length).toBeGreaterThan(0);
-		expect(inbox.review.total).toBeGreaterThan(0);
+		expect(settings.defaultActorName).toBe("dana");
 		expect(requests).toHaveLength(1);
 		expect(new URL(requests[0]!.url).pathname).toBe("/rpc/__batch__");
 		expect(requests[0]!.headers.get("x-trellis-actor")).toBe("human:dana");
@@ -38,7 +38,7 @@ describe("lib/orpc", () => {
 				return server.request(request, init);
 			},
 		});
-		await Promise.all([client.statuses.list({ project: "CDE" }), client.projects.list({}), client.inbox.get({})]);
+		await Promise.all([client.statuses.list({ project: "CDE" }), client.projects.list({}), client.settings.get()]);
 		expect(paths.sort()).toEqual(["/rpc/__batch__", "/rpc/statuses/list"]);
 	});
 

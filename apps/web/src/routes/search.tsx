@@ -85,7 +85,6 @@ function SearchPage() {
 					{q === undefined ? (
 						<EmptyState
 							variant="page"
-							image="/search-poster.jpg"
 							title="Search tickets and projects"
 							description="A ticket ID such as CDE-42 opens the ticket. A word matches ticket titles, descriptions, and project names."
 						/>

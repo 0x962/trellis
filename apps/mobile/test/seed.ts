@@ -15,12 +15,6 @@ export type Seeder = {
 	setGhReply: (key: string, stdout: string) => void;
 };
 
-// Replaces the stalled threshold and keeps the other two settings.
-export const setStalledHours = async (seeder: Seeder, hours: number) => {
-	const settings = await seeder.human.settings.get();
-	return seeder.human.settings.set({ ...settings, stalledHours: hours });
-};
-
 // Drops every project the server holds, and the tickets under them. `keep`
 // names the project keys that stay.
 export const reset = async (seeder: Seeder, keep: readonly string[] = []) => {

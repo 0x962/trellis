@@ -28,7 +28,6 @@ import { get as getFlowExecution } from "./flowExecutions/queries.ts";
 import { start as startFlowExecution } from "./flowExecutions/start.ts";
 import * as flows from "./flows/flows.ts";
 import * as flowSave from "./flows/save.ts";
-import * as inbox from "./inbox.ts";
 import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
@@ -203,7 +202,6 @@ export const services = {
 	"pullRequests.refresh": prepared("mutation", pullRequests.prepareRefresh, pullRequests.refresh),
 	"pullRequests.diff": prepared("read", pullRequests.prepareDiff, pullRequests.diff),
 	"search.query": core("search", search.query),
-	"inbox.get": core("read", inbox.get),
 	"brief.get": core("read", brief.get),
 	"actors.list": core("read", actors.list),
 	"actors.default": core("read", actors.default),

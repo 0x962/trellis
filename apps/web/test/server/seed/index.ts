@@ -38,7 +38,7 @@ import {
 //   CDE-41 "Sandbox tab reads the live checkout from tmux" in-progress,
 //          medium, parent CDE-43, 1 attachment; claude-code 3 h ago.
 //   CDE-38 "Databases page: cancel button for long statements" in-progress,
-//          medium; claude-code 2 days ago, which is stalled.
+//          medium; claude-code 2 days ago.
 //   CDE-37 "Console tabs survive an app restart" human-review, medium,
 //          2 comments, PR de#115 with four passing checks; codex 5 h ago.
 //   CDE-45 "Setup module skips a hand-run launchd agent" agent-review, high,
@@ -49,7 +49,7 @@ import {
 //          PR de#116 with four pending checks; dana 41 min ago.
 //   CDE-47 "Console tab rename by double click" todo, low, 2 attachments.
 //   CDE-48, CDE-49, CDE-33, CDE-34, TRL-7, TRL-8 were moved to Done by an
-//   agent today, so the Needs you page lists six rows there.
+//   agent today.
 //   TRL-9 "PR polling: one batched GraphQL query or per-PR REST calls"
 //          human-review, low, parent TRL-4; claude-code 6 h ago.
 //   TRL-4 "PR and CI polling" in-progress, medium; dana 20 h ago.
@@ -148,7 +148,6 @@ export const seedData = async ({ transport, gh, base }: SeedOptions) => {
 	await seedProjects(s);
 	await s.call("settings.set", "dana", s.at(30 * day), {
 		defaultActorName: "dana",
-		stalledHours: 24,
 	});
 	const steps: Step[] = [];
 	for (const spec of allSpecs()) {

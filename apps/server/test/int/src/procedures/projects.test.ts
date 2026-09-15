@@ -29,7 +29,6 @@ const SUMMARY_KEYS = [
 	"depth",
 	"position",
 	"openCount",
-	"needsYouCount",
 	"archivedAt",
 ];
 

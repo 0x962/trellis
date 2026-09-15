@@ -1,5 +1,4 @@
 import type { QueryKey } from "@tanstack/query-core";
-import type { InboxSection } from "./schemas/inbox.ts";
 import type { SearchOutput } from "./schemas/search.ts";
 import type { BoardOutput, ListOutput, Ticket, TicketSummary } from "./schemas/ticket.ts";
 
@@ -57,22 +56,6 @@ const patchBoard = (data: BoardOutput, change: TicketChange) => {
 	return changed ? { ...data, columns } : undefined;
 };
 
-// Every inbox section is `{items, total}`, so the sections are walked by name.
-const patchInbox = (data: Record<string, InboxSection>, change: TicketChange) => {
-	let changed = false;
-	const sections: Record<string, InboxSection> = {};
-	for (const [name, section] of Object.entries(data)) {
-		const items = patchItems(section.items, change);
-		if (items === undefined) {
-			sections[name] = section;
-			continue;
-		}
-		changed = true;
-		sections[name] = { ...section, items, total: section.total - (section.items.length - items.length) };
-	}
-	return changed ? sections : undefined;
-};
-
 const patchSearch = (data: SearchOutput, change: TicketChange) => {
 	const tickets = patchItems(data.tickets, change);
 	return tickets === undefined ? undefined : { ...data, tickets };
@@ -101,7 +84,6 @@ const patchDetail = (data: Ticket, change: TicketChange): Ticket | undefined => 
 const patchers: Record<string, (data: unknown, change: TicketChange) => unknown> = {
 	"tickets.list": (data, change) => patchList(data as ListOutput, change),
 	"tickets.board": (data, change) => patchBoard(data as BoardOutput, change),
-	"inbox.get": (data, change) => patchInbox(data as Record<string, InboxSection>, change),
 	"search.query": (data, change) => patchSearch(data as SearchOutput, change),
 	"tickets.get": (data, change) => patchDetail(data as Ticket, change),
 };
@@ -124,7 +106,6 @@ export const isCounts = (queryKey: QueryKey) => pathName(queryKey) === "tickets.
 const rowReaders: Record<string, (data: unknown) => TicketSummary[]> = {
 	"tickets.list": (data) => (data as ListOutput).items,
 	"tickets.board": (data) => (data as BoardOutput).columns.flatMap((column) => column.items),
-	"inbox.get": (data) => Object.values(data as Record<string, InboxSection>).flatMap((section) => section.items),
 	"search.query": (data) => (data as SearchOutput).tickets,
 	"tickets.get": (data) => [data as Ticket, ...(data as Ticket).children],
 };

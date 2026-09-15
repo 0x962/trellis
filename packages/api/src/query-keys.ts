@@ -6,8 +6,6 @@ import {
 	family,
 	forQuery,
 	forTicket,
-	INBOX_MAX_WAIT_MS,
-	INBOX_TRAILING_MS,
 	type Matcher,
 	ticketDetail,
 } from "./invalidationCoalescer.ts";
@@ -25,7 +23,7 @@ import {
 } from "./ticketPatches.ts";
 import { createTombstones } from "./tombstones.ts";
 
-export { INBOX_MAX_WAIT_MS, INBOX_TRAILING_MS, MAX_WAIT_MS, TRAILING_MS } from "./invalidationCoalescer.ts";
+export { MAX_WAIT_MS, TRAILING_MS } from "./invalidationCoalescer.ts";
 export { realScheduler, type Scheduler } from "./scheduler.ts";
 export { TOMBSTONE_MS } from "./tombstones.ts";
 
@@ -51,17 +49,14 @@ type TicketEvent = Extract<TrellisEvent, { type: "ticket.created" | "ticket.upda
 // A ticket change with the event kind the cache reacts to.
 type HeldChange = TicketChange & { created: boolean };
 
-// The projects list carries `openCount` and `needsYouCount`, and no
+// The projects list carries `openCount`, and no
 // project event follows a ticket change. So it refetches with the lists.
 const membershipMatchers = [
 	family("tickets", "list"),
 	family("tickets", "board"),
 	family("tickets", "counts"),
-	family("inbox", "get"),
 	family("projects", "list"),
 ];
-
-const isInboxMatcher = (matcher: Matcher) => matcher.path[0] === "inbox";
 
 // True when the change can move a ticket into or out of a filtered list.
 const changesMembership = (change: HeldChange) =>
@@ -94,27 +89,17 @@ export type EventApplier = {
 // Deleted ticket IDs block late responses for `TOMBSTONE_MS`.
 export const createEventApplier = (queryClient: QueryClient, options: { scheduler?: Scheduler } = {}): EventApplier => {
 	const scheduler = options.scheduler ?? realScheduler;
-	const general = createInvalidationCoalescer(queryClient, scheduler);
-	const inbox = createInvalidationCoalescer(queryClient, scheduler, {
-		trailingMs: INBOX_TRAILING_MS,
-		maxWaitMs: INBOX_MAX_WAIT_MS,
-	});
+	const coalescer = createInvalidationCoalescer(queryClient, scheduler);
 	const inFlight = new Map<string, number>();
 	const waiting = new Map<string, HeldChange[]>();
 	const tombstones = createTombstones(scheduler);
 	const settle = createSettleCheck(queryClient);
 
 	const enqueue = (matchers: Matcher[]) => {
-		const inboxMatchers = matchers.filter(isInboxMatcher);
-		const generalMatchers = matchers.filter((matcher) => !isInboxMatcher(matcher));
-		if (inboxMatchers.length > 0) inbox.enqueue(inboxMatchers);
-		if (generalMatchers.length > 0) general.enqueue(generalMatchers);
+		if (matchers.length > 0) coalescer.enqueue(matchers);
 	};
 
-	const invalidateAll = () => {
-		inbox.invalidateAll();
-		general.invalidateAll();
-	};
+	const invalidateAll = () => coalescer.invalidateAll();
 
 	// Returns the id of every cached parent whose `children` lost a row. One
 	// change walks the cache once, however many queries the cache holds. A
@@ -226,12 +211,11 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 					]),
 					family("tickets", "list"),
 					family("tickets", "board"),
-					family("inbox", "get"),
 				]);
 				return;
 			// A status rename or a reviewer change alters the `status` inside
-			// every cached summary and the Needs you sections. No ticket row
-			// changes, so no ticket event follows. A project rename alters
+			// every cached summary. No ticket row changes, so no ticket event
+			// follows. A project rename alters
 			// `project.path` the same way. So every query that holds a summary
 			// refetches.
 			case "statuses.changed":
@@ -239,7 +223,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "project.updated":
 			case "project.deleted":
 			case "project.moved":
-				enqueue([family("statuses"), family("projects"), family("tickets"), family("inbox", "get"), family("search")]);
+				enqueue([family("statuses"), family("projects"), family("tickets"), family("search")]);
 				return;
 			case "gh.status":
 				enqueue([family("system", "gh")]);

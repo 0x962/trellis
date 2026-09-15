@@ -10,7 +10,6 @@ import { queryClient } from "../src/lib/queryClient";
 import { restoreClient, subscribePersist } from "../src/lib/storage";
 import { keys, store } from "../src/lib/store";
 import { useStoredString } from "../src/lib/useStoredString";
-import { useInboxBadge } from "../src/needs-you/NeedsYou/hooks/useInboxBadge";
 import { tokens } from "../src/theme/tokens";
 import { usePalette } from "../src/theme/usePalette";
 import { useTheme } from "../src/theme/useTheme";
@@ -30,7 +29,6 @@ export default function RootLayout() {
 	const configured = Boolean(url) && Boolean(name);
 	const { resolved } = useTheme();
 	const palette = usePalette();
-	const badge = useInboxBadge(queryClient);
 	// Identifiers, branch names, and versions paint in JetBrains Mono. React
 	// Native draws a family it holds no file for in the system font, so the
 	// screens wait for the file.
@@ -38,11 +36,9 @@ export default function RootLayout() {
 
 	// A tab's options. The accessibility label is the title itself, so a
 	// screen reader and a test both find the tab by its name.
-	const tab = (title: string, icon: IconName, tabBarBadge?: number) => ({
+	const tab = (title: string, icon: IconName) => ({
 		title,
 		tabBarAccessibilityLabel: title,
-		tabBarBadge,
-		tabBarBadgeStyle: { backgroundColor: palette.danger, color: tokens.onSaturated, fontSize: tokens.text.xs },
 		tabBarIcon: ({ focused, size }: { focused: boolean; size: number }) => (
 			<Ionicons name={icon} size={size} color={focused ? palette.accent : palette.fgMuted} />
 		),
@@ -87,7 +83,7 @@ export default function RootLayout() {
 				}}
 			>
 				<Tabs.Protected guard={configured}>
-					<Tabs.Screen name="(needs-you)" options={tab("Needs you", "file-tray-outline", badge)} />
+					<Tabs.Screen name="(needs-you)" options={tab("Needs you", "file-tray-outline")} />
 					<Tabs.Screen name="(search)" options={tab("Search", "search-outline")} />
 					<Tabs.Screen name="(projects)" options={tab("Projects", "folder-outline")} />
 					<Tabs.Screen name="(settings)" options={tab("Settings", "settings-outline")} />

@@ -10,10 +10,9 @@ import type { Tx } from "../db/tx.ts";
 // the default opens the Files changed tab of that pull request on GitHub.
 export const defaults = (): Settings => ({
 	defaultActorName: userInfo().username,
-	stalledHours: 24,
 });
 
-const KEYS = ["defaultActorName", "stalledHours"] as const satisfies (keyof Settings)[];
+const KEYS = ["defaultActorName"] as const satisfies (keyof Settings)[];
 
 // One row per key with a jsonb value; a key the table lacks reads as its
 // default. The table holds other keys too, such as the agent settings, so
