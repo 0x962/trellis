@@ -63,7 +63,15 @@ printf 'Add a section on stop behavior.\n' | trellis agents send <id> --text -
 
 A send to a busy agent fails before any text reaches the terminal. The error states "Agent is busy. No message was sent." Wait for the current turn to finish, then send again.
 
-A send can also end with an uncertain response: a timeout, a lost connection, or the error "Terminal input delivery is uncertain." The text can be in the terminal. Do not send again at once. Run `trellis agents output <id>` first, and send again only when the output does not show the text.
+A send can also end with an uncertain response: a timeout, a lost connection, or the error "Terminal input delivery is uncertain." Treat the delivery as unknown. The runtime can write the text before the connection fails, and each send uses a new message ID. Another send can therefore duplicate the work. Run `trellis agents output <id>` to inspect the terminal, but do not treat missing text as proof of non-delivery. Send again only after a confirmed rejection, such as the busy error. If the delivery stays unknown, keep the attempt and ask a person to inspect it.
+
+## Interrupt the current turn
+
+```sh
+trellis agents interrupt <id>
+```
+
+The interrupt stops the current turn and keeps the agent session. The agent retains the conversation, and the next `trellis agents send` continues it.
 
 ## Inspect local PR comments
 
