@@ -101,6 +101,7 @@ previewElectron.dialog.showErrorBox = (title, message) => {
  previewElectron.app.exit(1);
 };
 previewElectron.app.on("browser-window-created", (_event, window) => {
+ const initialWindowButtons = window.getWindowButtonPosition();
  window.once("ready-to-show", () => {
   if (window.webContents.getURL().endsWith("/startup.html")) {
    previewResult.progressSeen = true;
@@ -109,7 +110,7 @@ previewElectron.app.on("browser-window-created", (_event, window) => {
   setImmediate(() => {
   previewResult.openWindows = previewElectron.BrowserWindow.getAllWindows().length;
   previewResult.url = window.webContents.getURL();
-  previewResult.windowButtons = window.getWindowButtonPosition();
+  previewResult.windowButtons = initialWindowButtons;
   previewResult.windowBounds = window.getBounds();
   previewResult.contentBounds = window.getContentBounds();
   previewFs.writeFileSync(${JSON.stringify(resultPath)}, JSON.stringify(previewResult));
