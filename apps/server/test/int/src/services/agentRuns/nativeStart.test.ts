@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { createServer } from "node:net";
 import { join } from "node:path";
 import { ProjectManagerConfigSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
@@ -32,7 +33,7 @@ beforeEach(async () => {
 		await seedActors(tx);
 		const project = await seedRoot(tx, "FENCE");
 		await tx.execute(
-			sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,state,terminal_id,session_id,created_at,updated_at) VALUES (${id},'Manager','native','Manager','manager','Wait',${project},'FENCE','starting',${attemptId},${randomUUID()},now(),now())`,
+			sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,terminal_id,session_id,created_at,updated_at) VALUES (${id},'Manager','native','Manager','manager','Wait',${project},'FENCE',${attemptId},${randomUUID()},now(),now())`,
 		);
 	});
 });
@@ -65,7 +66,7 @@ test.each(["stopped", "replaced"])("a %s start cannot commit its workspace or la
 		{
 			workspace: async () => {
 				await h.rows(
-					sql`UPDATE agent_runs SET terminal_id=${replacement},state=${kind === "stopped" ? "stopped" : "starting"} WHERE id=${id}`,
+					sql`UPDATE agent_runs SET terminal_id=${replacement},closed_at=${kind === "stopped" ? new Date() : null} WHERE id=${id}`,
 				);
 				return "/tmp/retired-workspace";
 			},
@@ -74,6 +75,93 @@ test.each(["stopped", "replaced"])("a %s start cannot commit its workspace or la
 	const after = await h.read((tx) => getRun(tx, id));
 	expect(after.terminalId).toBe(replacement);
 	expect(after.workspaceId).toBeNull();
-	expect(after.state).toBe(kind === "stopped" ? "stopped" : "starting");
+	expect(after.closedAt !== null).toBe(kind === "stopped");
 	expect(existsSync(join(home, "runtime"))).toBe(false);
+});
+
+test("a workspace failure closes the unlaunched assignment and preserves its cause", async () => {
+	const run = await h.read((tx) => getRun(tx, id));
+	const ctx = {
+		...h.ctx(() => {}),
+		newTx: h.read,
+		home,
+		now: () => new Date(),
+		localUrl: "http://127.0.0.1:4521",
+	} as unknown as Parameters<typeof startNative>[0];
+	await startNative(
+		ctx,
+		{
+			run,
+			config: ProjectManagerConfigSchema.parse({
+				personaId: null,
+				concurrency: 1,
+				directory: "/missing",
+				trustedDirectory: true,
+			}),
+			resume: false,
+			context: "Fixture",
+			attempt: { id: attemptId, generation: 1, token: "fixture-token" },
+		},
+		{
+			workspace: async () => {
+				throw new Error("Repository directory /missing does not exist");
+			},
+		},
+	);
+	const after = await h.read((tx) => getRun(tx, id));
+	expect(after.closedAt).not.toBeNull();
+	expect(after.error).toBe("Repository directory /missing does not exist");
+	expect(existsSync(join(home, "runtime"))).toBe(false);
+});
+
+test("an uncertain launch reply keeps the assignment open for process inspection", async () => {
+	mkdirSync(join(home, "runtime"));
+	let submitted = false;
+	const server = createServer((socket) => {
+		socket.setEncoding("utf8");
+		let buffer = "";
+		socket.on("data", (chunk) => {
+			buffer += chunk;
+			if (!buffer.includes("\n")) return;
+			const request = JSON.parse(buffer.split("\n")[0]!);
+			if (request.method === "hello") socket.end(`${JSON.stringify({ id: request.id, result: { version: 5 } })}\n`);
+			else {
+				submitted = true;
+				socket.destroy();
+			}
+		});
+	});
+	await new Promise<void>((resolve) => server.listen(join(home, "runtime", "runtime.sock"), resolve));
+	try {
+		const run = await h.read((tx) => getRun(tx, id));
+		const ctx = {
+			...h.ctx(() => {}),
+			newTx: h.read,
+			home,
+			now: () => new Date(),
+			localUrl: "http://127.0.0.1:4521",
+		} as unknown as Parameters<typeof startNative>[0];
+		await startNative(
+			ctx,
+			{
+				run,
+				config: ProjectManagerConfigSchema.parse({
+					personaId: null,
+					concurrency: 1,
+					directory: "/tmp",
+					trustedDirectory: true,
+				}),
+				resume: false,
+				context: "Fixture",
+				attempt: { id: attemptId, generation: 1, token: "fixture-token" },
+			},
+			{ workspace: async () => "/tmp" },
+		);
+		const after = await h.read((tx) => getRun(tx, id));
+		expect(submitted).toBe(true);
+		expect(after.closedAt).toBeNull();
+		expect(after.error).toContain("response is unknown");
+	} finally {
+		await new Promise<void>((resolve) => server.close(() => resolve()));
+	}
 });

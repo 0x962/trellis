@@ -1,19 +1,21 @@
-import type { AgentRun, ProjectManagerConfig } from "@trellis/api";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { ProjectManagerConfig } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { launchCommand } from "../../agents/launchCommand/launchCommand.ts";
 import { ensureNativeRuntime } from "../../agents/native/connection.ts";
-import { startClaude } from "../../agents/native/startClaude.ts";
+import { interactiveLaunchSpec } from "../../agents/native/interactiveLaunchSpec.ts";
 import { nativeWorkspace } from "../../agents/native/workspace.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { ExecutionAttempt } from "../assignments/attempts.ts";
 import type { ServiceCtx } from "../support.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
-import { waitForNativeHarness } from "./waitForNativeHarness.ts";
+import type { StoredRun } from "./queries.ts";
 
 export const startNative = async (
 	ctx: ServiceCtx & { localUrl: string },
 	input: {
-		run: AgentRun;
+		run: StoredRun;
 		config: ProjectManagerConfig;
 		resume: boolean;
 		context: string;
@@ -27,12 +29,13 @@ export const startNative = async (
 	if (config.harness.preset === "claude" && !config.trustedDirectory) {
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET state = 'failed', error = 'Trust this repository in project settings before a structured agent starts.', updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND state='starting'`,
+				sql`UPDATE agent_runs SET closed_at = ${ctx.now()}, error = 'Trust this repository in project settings before an agent starts.', updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 		return { id: run.id };
 	}
 
+	let launchSubmitted = false;
 	try {
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
@@ -40,7 +43,7 @@ export const startNative = async (
 		const owned = await ctx.newTx((tx) =>
 			rows<{ id: string }>(
 				tx,
-				sql`UPDATE agent_runs SET workspace_id=${workspaceId} WHERE id=${run.id} AND terminal_id=${terminalId} AND state='starting' RETURNING id`,
+				sql`UPDATE agent_runs SET workspace_id=${workspaceId} WHERE id=${run.id} AND terminal_id=${terminalId} AND closed_at IS NULL RETURNING id`,
 			),
 		);
 		if (owned.length === 0) return { id: run.id };
@@ -48,6 +51,7 @@ export const startNative = async (
 			run,
 			url: ctx.localUrl,
 			context,
+			messageId: terminalId,
 			directory: workspaceId,
 			resume,
 			template: resume ? config.harness.resumeCommand : config.harness.startCommand,
@@ -60,40 +64,34 @@ export const startNative = async (
 			TRELLIS_URL: ctx.localUrl,
 			TRELLIS_ACTOR: `agent:${run.id}`,
 			TRELLIS_RUN_ID: run.id,
+			TRELLIS_ATTEMPT_ID: terminalId,
+			TRELLIS_RUNTIME_HOME: join(ctx.home, "runtime"),
 			TRELLIS_ATTEMPT_TOKEN: input.attempt.token,
 			...(process.env.TRELLIS_AUTH_TOKEN === undefined ? {} : { TRELLIS_AUTH_TOKEN: process.env.TRELLIS_AUTH_TOKEN }),
 		};
-		const session =
-			config.harness.preset === "claude"
-				? await startClaude(client, {
-						attemptId: terminalId,
-						sessionId: run.sessionId!,
-						cwd: workspaceId,
-						env,
-						resume,
-						prompt: launch.prompt,
-						deadlineAt: input.deadlineAt,
-						wait: (predicate, options) => waitForNativeHarness(ctx, run, predicate, options),
-					})
-				: await client.start({
-						id: terminalId,
-						command: "/bin/zsh",
-						args: ["-l", "-c", launch.command],
-						cwd: workspaceId,
-						env,
-						mode: "pty",
-						cols: 120,
-						rows: 32,
-					});
+		const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+		const hook = fileURLToPath(new URL("../../agents/native/claudeHook.ts", import.meta.url));
+		launchSubmitted = true;
+		const session = await client.start(
+			interactiveLaunchSpec({
+				id: terminalId,
+				command: launch.command,
+				cwd: workspaceId,
+				env,
+				preset: config.harness.preset,
+				hookCommand: `${quote(process.execPath)} ${quote(hook)}`,
+				timeoutMs: input.deadlineAt === undefined ? undefined : input.deadlineAt - Date.now(),
+			}),
+		);
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET state = ${session.status === "running" ? "running" : "interrupted"}, error = ${session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND state = 'starting'`,
+				sql`UPDATE agent_runs SET closed_at = ${session.status === "exited" ? ctx.now() : null}, error = ${session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 	} catch (error) {
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET state = 'interrupted', error = ${error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND state = 'starting'`,
+				sql`UPDATE agent_runs SET closed_at = ${launchSubmitted ? null : ctx.now()}, error = ${error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 	}

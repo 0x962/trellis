@@ -77,8 +77,8 @@ const managerActor = { name: managerId, kind: "agent", displayName: "Hana" };
 const seedStoppedManager = () =>
 	t.editServerTx(async (tx) => {
 		await tx.execute(sql`INSERT INTO agent_runs
-			(id, name, persona_name, kind, instruction, project_path, state, created_at, updated_at)
-			VALUES (${managerId}, 'Hana', 'Manager', 'manager', 'Manage', 'CDE', 'stopped', now(), now())`);
+			(id, name, persona_name, kind, instruction, project_path, closed_at, created_at, updated_at)
+			VALUES (${managerId}, 'Hana', 'Manager', 'manager', 'Manage', 'CDE', now(), now(), now())`);
 	});
 
 test("historical timeline actors expose a stopped manager name and retain their identity", async () => {

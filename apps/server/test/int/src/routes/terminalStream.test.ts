@@ -29,8 +29,8 @@ beforeEach(async () => {
 	await h.reset();
 	t = await createTestApp({ db: h, authToken: token });
 	await t.editServerTx(async (tx) => {
-		await tx.execute(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_path,state,terminal_id,session_id,created_at,updated_at)
-			VALUES (${runId},'Hana','Manager','manager','Manage','TRL','running','attempt','conversation',now(),now())`);
+		await tx.execute(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_path,terminal_id,session_id,created_at,updated_at)
+			VALUES (${runId},'Hana','Manager','manager','Manage','TRL','attempt','conversation',now(),now())`);
 	});
 	mkdirSync(join(t.home, "runtime"), { recursive: true });
 	server = createServer((socket) => {
