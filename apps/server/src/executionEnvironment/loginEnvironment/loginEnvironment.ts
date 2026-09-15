@@ -5,6 +5,9 @@ const execute = promisify(execFile);
 
 // A loaded host runs the interactive startup files in 6 s or more. The limit
 // leaves room for that load and still ends a shell that hangs in a startup file.
+// A startup file can start a background process that keeps stdout open. Then a
+// successful read waits for the full limit, because execute settles only when
+// every process closes stdout or the limit destroys the pipe.
 const loginShellTimeoutMs = 30000;
 
 export const loginEnvironment = async (
@@ -17,6 +20,9 @@ export const loginEnvironment = async (
 		env,
 		cwd: env.HOME,
 		timeout: timeoutMs,
+		// An interactive zsh that waits on a child in a startup file ignores
+		// SIGTERM. SIGKILL ends the shell at the limit.
+		killSignal: "SIGKILL",
 		maxBuffer: 1024 * 1024,
 	}).catch((error: { code?: string | number; killed?: boolean }) => {
 		throw new Error(

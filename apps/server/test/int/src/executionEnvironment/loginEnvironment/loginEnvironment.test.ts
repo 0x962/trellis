@@ -42,3 +42,17 @@ test("a shell timeout returns a sanitized failure", async () => {
 		await rm(home, { recursive: true, force: true });
 	}
 });
+
+test("an interactive zsh that hangs in a startup file ends at the limit", async () => {
+	const home = await mkdtemp(join(tmpdir(), "trellis-login-hang-"));
+	try {
+		await writeFile(join(home, ".zshrc"), "/bin/sleep 5\n");
+		const startedAt = performance.now();
+		await expect(loginEnvironment("/bin/zsh", "/bundled/bin", { HOME: home, ZDOTDIR: home }, 200)).rejects.toThrow(
+			"Login shell exceeded 200 ms.",
+		);
+		expect(performance.now() - startedAt).toBeLessThan(2000);
+	} finally {
+		await rm(home, { recursive: true, force: true });
+	}
+});
