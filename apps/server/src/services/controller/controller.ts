@@ -1,11 +1,10 @@
 import { sql } from "drizzle-orm";
-import { rows } from "../../db/queries/support.ts";
+import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { notFound } from "../support.ts";
-import { columns } from "./columns.ts";
 import type { ControllerCtx, Dispatch } from "./types.ts";
 
-export { cancel } from "./cancel.ts";
+const columns = sql`id, project_id AS "projectId", run_id AS "runId", terminal_id AS "terminalId", session_id AS "sessionId", generation, state, events, ${iso(sql`due_at`)} AS "dueAt", error`;
 
 export const list = (_ctx: ControllerCtx, tx: Tx, input: { projectId?: string }) =>
 	rows<Dispatch>(
@@ -28,17 +27,16 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, _input: Record<string, n
 			WHERE d.state = 'pending' AND d.due_at <= ${ctx.now} AND r.terminal_id IS NOT NULL
 			AND p.manager_config->>'personaId' IS NOT NULL AND p.archived_at IS NULL
 			AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
-			AND (r.runtime <> 'native' OR EXISTS (
+			AND r.runtime = 'native' AND EXISTS (
 				SELECT 1 FROM agent_harness_observations observation WHERE observation.attempt_id = r.terminal_id
 				AND observation.snapshot->>'sessionId' = r.session_id
 				AND observation.snapshot->>'state' IN ('ready', 'idle')
 				AND observation.snapshot->'pendingPermissions' = '[]'::jsonb
-			))
+			)
 			AND NOT EXISTS (WITH RECURSIVE ancestors AS (
 				SELECT id, parent_id, archived_at FROM projects WHERE id = p.id
 				UNION ALL SELECT parent.id, parent.parent_id, parent.archived_at FROM projects parent JOIN ancestors child ON parent.id = child.parent_id
 			) SELECT 1 FROM ancestors WHERE archived_at IS NOT NULL)
-			AND NOT EXISTS (SELECT 1 FROM agent_sessions s WHERE s.project_id = p.id AND s.role = 'manager' AND s.state IN ('starting', 'running', 'waiting'))
 			ORDER BY d.due_at, d.id LIMIT 1`,
 	);
 	if (!next) return null;

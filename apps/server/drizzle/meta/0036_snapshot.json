@@ -1,5 +1,5 @@
 {
-  "id": "1386ce29-ed3c-4071-80b4-05b8386456fd",
+  "id": "074e8216-5d1b-4e1d-96ae-4168061c55af",
   "prevId": "16ee3ffa-ab99-4609-89c1-92944b252261",
   "version": "7",
   "dialect": "postgresql",
@@ -1366,7 +1366,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'superset'"
+          "default": "'native'"
         },
         "persona_id": {
           "name": "persona_id",
@@ -1978,12 +1978,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "resolution": {
-          "name": "resolution",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp (3) with time zone",
@@ -2036,11 +2030,7 @@
       "checkConstraints": {
         "manager_dispatches_state_check": {
           "name": "manager_dispatches_state_check",
-          "value": "\"manager_dispatches\".\"state\" IN ('pending', 'sending', 'sent', 'unknown', 'cancelled')"
-        },
-        "manager_dispatches_cancellation_check": {
-          "name": "manager_dispatches_cancellation_check",
-          "value": "\"manager_dispatches\".\"state\" <> 'cancelled' OR \"manager_dispatches\".\"resolution\" IS NOT NULL"
+          "value": "\"manager_dispatches\".\"state\" IN ('pending', 'sending', 'sent', 'unknown')"
         }
       },
       "isRLSEnabled": false

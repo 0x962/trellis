@@ -16,13 +16,13 @@ export const assertNoLiveProcesses = (home: string) => {
 			} catch (error) {
 				if ((error as NodeJS.ErrnoException).code === "ESRCH")
 					throw new Error(
-						`Runtime session ${session.id} has an unresolved process record. Reconcile it before import or rollback.`,
+						`Runtime session ${session.id} has an unresolved process record. Reconcile it before the data-directory handoff.`,
 					);
 				throw error;
 			}
 		}
 		throw new Error(
-			`Runtime session ${session.id} still records process ${session.pid}. Stop or reconcile it before import or rollback.`,
+			`Runtime session ${session.id} still records process ${session.pid}. Stop or reconcile it before the data-directory handoff.`,
 		);
 	}
 };

@@ -2,9 +2,9 @@ import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, open, readdir, readlink } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import { version } from "../services/nativeMigration/version.ts";
 import { canonicalTarget, inside } from "./paths.ts";
 import type { CopyEntry, CopyPlan } from "./types.ts";
+import { version } from "./version.ts";
 
 const excludedNames = new Set([
 	"trellis.lock",

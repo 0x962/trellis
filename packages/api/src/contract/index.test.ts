@@ -36,26 +36,12 @@ describe("contract", () => {
 			"agentRuns.permission POST /agent-runs/{id}/permission",
 			"agentRuns.refresh POST /agent-runs/{id}/refresh",
 			"agentRuns.resize POST /agent-runs/{id}/terminal/resize",
-			"agentRuns.retireExternal POST /agent-runs/retire-external",
 			"agentRuns.send POST /agent-runs/{id}/send",
 			"agentRuns.session GET /agent-runs/{id}/session",
 			"agentRuns.start POST /agent-runs",
 			"agentRuns.stop POST /agent-runs/{id}/stop",
 			"agentRuns.terminalInput POST /agent-runs/{id}/terminal/input",
 			"agentRuns.terminalOutput GET /agent-runs/{id}/terminal/output",
-			"agents.inbox POST /agents/inbox",
-			"agents.overview GET /agents/overview",
-			"agents.register POST /agents/register",
-			"agents.retryManager POST /agents/manager/retry",
-			"agents.runnerHosts GET /agents/runner-hosts",
-			"agents.runnerProjects GET /agents/runner-projects",
-			"agents.sessions GET /agents/sessions",
-			"agents.setSettings PUT /agents/settings",
-			"agents.settings GET /agents/settings",
-			"agents.startBuilder POST /agents/builder",
-			"agents.startReviewer POST /agents/reviewer",
-			"agents.stop POST /agents/sessions/{id}/stop",
-			"agents.wake POST /agents/wake",
 			"attachments.delete DELETE /attachments/{id}",
 			"attachments.get GET /attachments/{id}",
 			"attachments.list GET /tickets/{ticket}/attachments",
@@ -66,7 +52,6 @@ describe("contract", () => {
 			"comments.resolve POST /comments/{id}/resolve",
 			"comments.thread GET /comments/{id}/thread",
 			"comments.update PATCH /comments/{id}",
-			"controller.cancel POST /manager-dispatches/{id}/cancel",
 			"controller.list GET /manager-dispatches",
 			"controller.resolveUnknown POST /manager-dispatches/{id}/received",
 			"controller.retry POST /manager-dispatches/{id}/retry",
@@ -87,9 +72,6 @@ describe("contract", () => {
 			"flows.save PUT /flows/{flow}/graph",
 			"flows.update PATCH /flows/{flow}",
 			"inbox.get GET /inbox",
-			"nativeMigration.apply POST /native-migrations",
-			"nativeMigration.inventory GET /native-migrations/inventory",
-			"nativeMigration.rollback POST /native-migrations/{migrationId}/rollback",
 			"personas.create POST /personas",
 			"personas.delete DELETE /personas/{id}",
 			"personas.list GET /personas",
@@ -160,7 +142,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(131);
+		expect(table).toHaveLength(113);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

@@ -1,14 +1,9 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
-import { chmodSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { collect } from "../../../../../src/services/controller/collect.ts";
 import { claim, complete, recover, resolveUnknown, retry } from "../../../../../src/services/controller/controller.ts";
-import { dispatch } from "../../../../../src/services/controller/dispatch.ts";
 import { seedActor, seedActors, seedChild, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedActivity, seedTicket } from "../../../../fixtures/tickets.ts";
-import { testCtx } from "../../../../helpers/ctx.ts";
-import { freshHome } from "../../../../helpers/home.ts";
 import { type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
@@ -31,8 +26,14 @@ beforeEach(async () => {
 		await seedActors(tx);
 		await seedActor(tx, { kind: "agent", name: "manager-run" });
 		await seedActor(tx, { kind: "agent", name: "01M2GJ634MAAPPB8JDZVDYWX3B" });
-		await tx.execute(sql`INSERT INTO agent_runs (id, name, persona_name, kind, instruction, project_id, project_path, state, terminal_id, session_id, created_at, updated_at)
-			VALUES ('manager-run', 'Manager', 'Manager', 'manager', 'Manage.', ${projectId}, 'CTL', 'running', 'terminal-1', 'session-1', ${NOW}, ${NOW})`);
+		await tx.execute(sql`INSERT INTO agent_runs (id, name, persona_name, kind, instruction, project_id, project_path, runtime, state, terminal_id, session_id, created_at, updated_at)
+			VALUES ('manager-run', 'Manager', 'Manager', 'manager', 'Manage.', ${projectId}, 'CTL', 'native', 'running', 'terminal-1', 'session-1', ${NOW}, ${NOW})`);
+		await tx.execute(
+			sql`INSERT INTO agent_execution_attempts (id,run_id,generation,token_hash,created_at) VALUES ('terminal-1','manager-run',1,'fixture',${NOW})`,
+		);
+		await tx.execute(
+			sql`INSERT INTO agent_harness_observations (attempt_id,snapshot,updated_at) VALUES ('terminal-1','{"state":"idle","sessionId":"session-1","pendingPermissions":[]}'::jsonb,${NOW})`,
+		);
 	});
 });
 const event = (name = "dana", seconds = 0) =>
@@ -129,16 +130,6 @@ test("pause preserves queued events until the manager resumes dispatch", async (
 	expect((await take(30))!.events).toHaveLength(2);
 });
 
-test("the controller waits until a legacy manager stops", async () => {
-	await h.rows(sql`INSERT INTO agent_sessions (id, project_id, role, runner, state, name, title, created_at, updated_at)
-		VALUES ('legacy', ${projectId}, 'manager', 'superset', 'running', 'Legacy', 'Legacy', ${NOW}, ${NOW})`);
-	await event();
-	await gather();
-	expect(await take()).toBeNull();
-	await h.rows(sql`UPDATE agent_sessions SET state = 'stopped'`);
-	expect(await take()).not.toBeNull();
-});
-
 test("a rollback preserves the activity cursor and creates no dispatch", async () => {
 	await event();
 	await expect(
@@ -173,26 +164,4 @@ test("explicit confirmation unblocks the next batch without a resend", async () 
 	await h.run((ctx, tx) => resolveUnknown(ctx, tx, { id: first.id }));
 	await gather(30);
 	expect((await take(40))!.id).not.toBe(first.id);
-});
-
-test("a transport failure records unknown once and never automatically resends", async () => {
-	const home = freshHome();
-	const bin = join(home, "send.ts");
-	writeFileSync(
-		bin,
-		'#!/usr/bin/env bun\nimport { appendFileSync } from "node:fs";\nappendFileSync(import.meta.dir + "/calls.txt", "send\\n");\nprocess.stderr.write("connection closed after write");\nprocess.exit(1);\n',
-	);
-	chmodSync(bin, 0o755);
-	await h.rows(sql`UPDATE agent_runs SET workspace_id = 'workspace-1'`);
-	await event();
-	await gather();
-	const { ctx } = testCtx({ db: h.db, home, now: () => secondsAfter(10) });
-	await dispatch({ ...ctx, supersetBin: bin, publicUrl: "http://127.0.0.1:4521" });
-	expect(await h.one(sql`SELECT state, error FROM manager_dispatches`)).toMatchObject({
-		state: "unknown",
-		error: expect.stringContaining("connection closed after write"),
-	});
-	expect(readFileSync(join(home, "calls.txt"), "utf8")).toBe("send\n");
-	await dispatch({ ...ctx, supersetBin: bin, publicUrl: "http://127.0.0.1:4521" });
-	expect(readFileSync(join(home, "calls.txt"), "utf8")).toBe("send\n");
 });

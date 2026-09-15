@@ -26,13 +26,11 @@ export const managerDispatches = pgTable(
 		events: jsonb().notNull(),
 		dueAt: at("due_at").notNull(),
 		error: text(),
-		resolution: jsonb(),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		check("manager_dispatches_state_check", sql`${t.state} IN ('pending', 'sending', 'sent', 'unknown', 'cancelled')`),
-		check("manager_dispatches_cancellation_check", sql`${t.state} <> 'cancelled' OR ${t.resolution} IS NOT NULL`),
+		check("manager_dispatches_state_check", sql`${t.state} IN ('pending', 'sending', 'sent', 'unknown')`),
 		uniqueIndex("manager_dispatches_active_project_idx")
 			.on(t.projectId)
 			.where(sql`${t.state} IN ('pending', 'sending', 'unknown')`),

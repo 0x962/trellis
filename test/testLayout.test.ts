@@ -23,7 +23,6 @@ const BUILDERS = [
 	"apps/server/test/helpers/db.ts",
 	"apps/server/test/helpers/app.ts",
 	"apps/server/test/helpers/server.ts",
-	"apps/server/test/helpers/agentsHost.ts",
 	"apps/web/test/server/index.ts",
 ];
 

@@ -4,14 +4,12 @@ import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { sql } from "drizzle-orm";
 import { openDatabase } from "../db/open.ts";
-import { assertHomeImportReady } from "../homeImport/bootGuard.ts";
 import { copyEntries } from "../homeImport/copy.ts";
 import { syncDirectory, writeJson } from "../homeImport/durable.ts";
 import { canonicalTarget } from "../homeImport/paths.ts";
 import { assertNoLiveProcesses } from "../homeImport/processes.ts";
 import { readOnlyLocks } from "../homeImport/readOnlyLocks.ts";
 import { scan } from "../homeImport/scan.ts";
-import { readAgentSettings } from "../services/agentSettings.ts";
 import { assertStandaloneHandoffReady } from "./bootGuard.ts";
 
 export const prepareStandaloneHandoff = async (input: {
@@ -30,7 +28,6 @@ export const prepareStandaloneHandoff = async (input: {
 		throw new Error(`Home ${home} must contain its own db/PG_VERSION.`);
 	const release = readOnlyLocks(home);
 	try {
-		assertHomeImportReady(home);
 		assertStandaloneHandoffReady(home);
 		assertNoLiveProcesses(home);
 		await mkdir(backupRoot, { recursive: true, mode: 0o700 });
@@ -65,9 +62,11 @@ export const prepareStandaloneHandoff = async (input: {
 		const database = await openDatabase(join(home, "db"));
 		try {
 			await database.db.transaction(async (tx) => {
-				const agents = await readAgentSettings(tx);
 				await tx.execute(
-					sql`INSERT INTO settings (key,value,updated_at) VALUES ('agents',${JSON.stringify({ ...agents, enabled: false })}::jsonb,now()),('nativeWorkPaused','true'::jsonb,now()) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value,updated_at=EXCLUDED.updated_at`,
+					sql`INSERT INTO settings (key,value,updated_at) VALUES ('nativeWorkPaused','true'::jsonb,now()) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value,updated_at=EXCLUDED.updated_at`,
+				);
+				await tx.execute(
+					sql`UPDATE settings SET value=jsonb_set(value,'{enabled}','false'::jsonb),updated_at=now() WHERE key='agents'`,
 				);
 				await tx.execute(
 					sql`UPDATE projects SET manager_config=manager_config || '{"dispatchPaused":true,"trustedDirectory":false}'::jsonb`,
