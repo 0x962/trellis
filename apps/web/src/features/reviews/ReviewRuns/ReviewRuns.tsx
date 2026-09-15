@@ -1,4 +1,4 @@
-import { ArrowClockwise, ArrowRight, Play } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowRight, ArrowSquareOut, Play } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Badge, Button, EmptyState, IconButton, Input, Sheet, Textarea, Tooltip } from "@trellis/ui";
 import { useState } from "react";
@@ -21,17 +21,14 @@ export function ReviewRuns({ pr }: { pr: string }) {
 	const [note, setNote] = useState("");
 	const list = useQuery({
 		...orpc.reviews.runs.queryOptions({ input: { pr, action: "list" } }),
-		refetchInterval: 5000,
 	});
 	const run = useQuery({
 		...orpc.reviews.runs.queryOptions({ input: { pr, action: "show", runId } }),
 		enabled: !!runId,
-		refetchInterval: 5000,
 	});
 	const node = useQuery({
 		...orpc.reviews.runs.queryOptions({ input: { pr, action: "node", runId, nodeId } }),
 		enabled: !!nodeId,
-		refetchInterval: 5000,
 	});
 	const action = useMutation({
 		mutationFn: (args: { action: "start" | "resume" | "retry" | "answer"; approve?: boolean }) =>
@@ -57,6 +54,28 @@ export function ReviewRuns({ pr }: { pr: string }) {
 			<div className="review-list">
 				<div className="review-header">
 					<h2>Agent reviews</h2>
+					<Tooltip content="Refresh review results">
+						<IconButton
+							label="Refresh review results"
+							icon={<ArrowClockwise />}
+							onClick={() => void queryClient.invalidateQueries({ queryKey: orpc.reviews.runs.key() })}
+						/>
+					</Tooltip>
+					<Tooltip content="Open in Dots">
+						<IconButton
+							label="Open in Dots"
+							icon={<ArrowSquareOut />}
+							role="link"
+							nativeButton={false}
+							render={
+								<a
+									href={`http://dots.localhost/runs?g=review${runId ? `&run=${encodeURIComponent(runId)}` : ""}`}
+									target="_blank"
+									rel="noreferrer"
+								/>
+							}
+						/>
+					</Tooltip>
 					<Tooltip content="Start a review run">
 						<IconButton label="Start a review run" icon={<Play />} onClick={() => setStartOpen(true)} />
 					</Tooltip>
@@ -139,10 +158,6 @@ export function ReviewRuns({ pr }: { pr: string }) {
 							<details className="review-disclosure">
 								<summary>Input</summary>
 								<pre className="review-output">{String(node.data?.input ?? "")}</pre>
-							</details>
-							<details className="review-disclosure">
-								<summary>Live output</summary>
-								<pre className="review-output">{String(node.data?.stream ?? "")}</pre>
 							</details>
 							{selected?.status === "waiting" && (
 								<form className="review-form" onSubmit={(e) => e.preventDefault()}>

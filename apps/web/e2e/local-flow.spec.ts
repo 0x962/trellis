@@ -191,3 +191,62 @@ test("a human decision shows completed output from the frozen execution", async 
 	await dialog.getByRole("button", { name: "Approve step", exact: true }).click();
 	await expect(dialog).toHaveCount(0);
 });
+
+for (const replaced of [false, true]) {
+	test(`a flow terminal ${replaced ? "rejects a replaced attempt" : "opens its task attempt"}`, async ({
+		page,
+	}, testInfo) => {
+		const { ticket, flow, doc } = await fixture(`Terminal identity ${replaced}`);
+		const started = await post<FlowExecutionRecord>("/flow-executions", {
+			flow: flow.id,
+			ticket: ticket.identifier,
+			defaultPersonaId: persona.id,
+			expectedVersion: doc.flow.version,
+			requestId: crypto.randomUUID(),
+		});
+		const runId = ulid();
+		const attemptId = crypto.randomUUID();
+		started.tasks = [{ key: started.state.steps[0]!.actionKey, runId, attemptId, resultId: null }];
+		await page.route("**/rpc/flowExecutions/list*", (route) => route.fulfill({ json: { json: [started] } }));
+		await page.route("**/rpc/agentRuns/list*", (route) =>
+			route.fulfill({
+				json: {
+					json: [
+						{
+							id: runId,
+							name: "Task worker",
+							runtime: "native",
+							terminalId: replaced ? crypto.randomUUID() : attemptId,
+							sessionId: null,
+							state: "running",
+						},
+					],
+				},
+			}),
+		);
+		const terminalRequests: string[] = [];
+		await page.route(`**/api/agent-runs/${runId}/terminal/stream?*`, async (route) => {
+			terminalRequests.push(new URL(route.request().url()).searchParams.get("attemptId")!);
+			const output = "The matching task terminal\r\n";
+			await route.fulfill({
+				contentType: "text/event-stream",
+				body: `event: session\ndata: ${JSON.stringify({ session: { status: "exited", controllable: false } })}\n\nevent: output\ndata: ${JSON.stringify({ data: btoa(output), startOffset: 0, nextOffset: output.length, truncated: false })}\n\n`,
+			});
+		});
+		await signIn(page, `/t/${ticket.identifier}`);
+		await page.getByRole("tab", { name: "Flows", exact: true }).click();
+		await page.getByRole("button", { name: "Open terminal for Review the result", exact: true }).click();
+		const dialog = page.getByRole("dialog", { name: "Flow task terminal", exact: true });
+		if (replaced) {
+			await expect(
+				dialog.getByText("This task's terminal is no longer attached to this assignment.", { exact: true }),
+			).toBeVisible();
+			expect(terminalRequests).toHaveLength(0);
+		} else {
+			await expect(dialog.locator(".xterm-accessibility-tree")).toContainText("The matching task terminal");
+			expect(terminalRequests).toEqual([attemptId]);
+			await expect(dialog.getByRole("button", { name: "Close terminal", exact: true })).toBeFocused();
+			await page.screenshot({ path: testInfo.outputPath("flow-task-terminal.png") });
+		}
+	});
+}

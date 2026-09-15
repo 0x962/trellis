@@ -13,12 +13,14 @@ import {
 } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../../../lib/appContext";
+import { FlowTaskTerminal } from "./components/FlowTaskTerminal";
 
 export function FlowRun({ execution }: { execution: FlowExecutionRecord }) {
 	const { client, orpc, queryClient } = useApp();
 	const [decision, setDecision] = useState<string | null>(null);
 	const [output, setOutput] = useState("");
 	const [confirmCancel, setConfirmCancel] = useState(false);
+	const [terminalTask, setTerminalTask] = useState<FlowExecutionRecord["tasks"][number] | null>(null);
 	const refresh = () => queryClient.invalidateQueries({ queryKey: orpc.flowExecutions.list.key() });
 	const decide = useMutation({
 		mutationFn: (approved: boolean) =>
@@ -82,9 +84,12 @@ export function FlowRun({ execution }: { execution: FlowExecutionRecord }) {
 					state: step.state,
 					output: step.output,
 					error: step.error,
+					hasTerminal: execution.tasks.some((task) => task.key === step.actionKey),
 				}))}
 				onDecide={setDecision}
+				onOpenTerminal={(key) => setTerminalTask(execution.tasks.find((task) => task.key === key)!)}
 			/>
+			{terminalTask && <FlowTaskTerminal task={terminalTask} onClose={() => setTerminalTask(null)} />}
 			{decision !== null && (
 				<Dialog
 					open
