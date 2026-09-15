@@ -11,6 +11,12 @@ test("Restart waits for the host before it relaunches and quits the desktop", as
 			await ready.promise;
 		},
 		() => calls.push("error"),
+		{
+			show: async (stage) => {
+				calls.push(stage);
+			},
+			close: () => calls.push("close progress"),
+		},
 	);
 	const nativeItem = { enabled: true };
 
@@ -18,10 +24,11 @@ test("Restart waits for the host before it relaunches and quits the desktop", as
 	expect(calls).toEqual([]);
 	const pending = item.click(nativeItem);
 	expect(nativeItem.enabled).toBe(false);
-	expect(calls).toEqual(["restart host"]);
+	await Promise.resolve();
+	expect(calls).toEqual(["Prepare restart", "restart host"]);
 	ready.resolve();
 	await pending;
-	expect(calls).toEqual(["restart host", "relaunch", "quit"]);
+	expect(calls).toEqual(["Prepare restart", "restart host", "Relaunch desktop", "relaunch", "quit"]);
 });
 
 test("a failed host restart leaves the desktop open and reports the error", async () => {
@@ -32,9 +39,15 @@ test("a failed host restart leaves the desktop open and reports the error", asyn
 			throw new Error("Package update is blocked");
 		},
 		(error) => calls.push(error.message),
+		{
+			show: async (stage) => {
+				calls.push(stage);
+			},
+			close: () => calls.push("close progress"),
+		},
 	);
 	const nativeItem = { enabled: true };
 	await item.click(nativeItem);
 	expect(nativeItem.enabled).toBe(true);
-	expect(calls).toEqual(["Package update is blocked"]);
+	expect(calls).toEqual(["Prepare restart", "close progress", "Package update is blocked"]);
 });

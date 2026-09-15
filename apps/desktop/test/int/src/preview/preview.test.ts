@@ -102,13 +102,20 @@ previewElectron.dialog.showErrorBox = (title, message) => {
  previewElectron.app.exit(1);
 };
 previewElectron.app.on("browser-window-created", (_event, window) => {
- window.webContents.once("did-finish-load", () => {
+ window.once("ready-to-show", () => {
+  if (window.webContents.getURL().endsWith("/startup.html")) {
+   previewResult.progressSeen = true;
+   return;
+  }
+  setImmediate(() => {
+  previewResult.openWindows = previewElectron.BrowserWindow.getAllWindows().length;
   previewResult.url = window.webContents.getURL();
   previewResult.windowButtons = window.getWindowButtonPosition();
   previewResult.windowBounds = window.getBounds();
   previewResult.contentBounds = window.getContentBounds();
   previewFs.writeFileSync(${JSON.stringify(resultPath)}, JSON.stringify(previewResult));
   previewElectron.app.quit();
+  });
  });
 });
 `;
@@ -174,6 +181,8 @@ previewElectron.app.on("browser-window-created", (_event, window) => {
 				expect(result.defaultUserData).toBe(join(result.appData, "Trellis"));
 				expect(result.order).toEqual(["data", "lock"]);
 				expect(result.lockSawUserData).toBe(userData);
+				expect(result.progressSeen).toBe(true);
+				expect(result.openWindows).toBe(1);
 				expect(result.windowButtons).toEqual({ x: 16, y: 14 });
 				expect(result.contentBounds.height).toBe(result.windowBounds.height);
 				const host = await adoptHost(home);

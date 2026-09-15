@@ -7,6 +7,7 @@ import { writeDesktopBuild } from "./desktopBuild.ts";
 
 const files = [
 	"dist/main.cjs",
+	"dist/startup.html",
 	"dist/preload.cjs",
 	"dist/host-service.cjs",
 	"dist/TrellisHost",

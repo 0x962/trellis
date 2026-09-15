@@ -5,6 +5,7 @@ import { join } from "node:path";
 export async function writeDesktopBuild(desktop: string, host: string) {
 	const files = [
 		"dist/main.cjs",
+		"dist/startup.html",
 		"dist/preload.cjs",
 		"dist/host-service.cjs",
 		"dist/TrellisHost",

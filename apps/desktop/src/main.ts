@@ -13,9 +13,11 @@ import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResour
 import { prepareHome } from "./prepareHome/prepareHome.ts";
 import { restartHost } from "./restartHost/index.ts";
 import { restartMenuItem } from "./restartMenuItem/index.ts";
-import { readConfiguredHome, readSelectedHome } from "./selectedHome/selectedHome.ts";
+import { readSelectedHome } from "./selectedHome/selectedHome.ts";
 import { requireService, resumeLocalWork, showServiceStatus, stopLocalWork } from "./serviceActions/serviceActions.ts";
 import { showMaximizedWindow } from "./showMaximizedWindow/showMaximizedWindow.ts";
+import { showStartupError } from "./showStartupError/index.ts";
+import { startupProgress } from "./startupProgress/index.ts";
 import { showUpdateStatus } from "./updateActions/updateActions.ts";
 import { readUpdateStatus } from "./updateStatus/updateStatus.ts";
 import { windowOptions } from "./windowOptions/windowOptions.ts";
@@ -24,6 +26,7 @@ let window: BrowserWindow | undefined;
 let host: HostConnection;
 let availableRelease: PinnedRelease | undefined;
 let pendingPath = "/";
+const progress = startupProgress(join(app.getAppPath(), "dist/startup.html"));
 const desktopHome = () => process.env.TRELLIS_DESKTOP_HOME ?? readSelectedHome(app.getPath("userData"));
 const paths = () => desktopPaths(app.getAppPath(), process.resourcesPath, app.isPackaged);
 const developmentHostOptions = () => ({
@@ -36,6 +39,7 @@ const developmentHostOptions = () => ({
 const openWindow = async () => {
 	if (window) {
 		showMaximizedWindow(window);
+		progress.close();
 		return;
 	}
 	window = new BrowserWindow({
@@ -56,7 +60,10 @@ const openWindow = async () => {
 		},
 	});
 	const createdWindow = window;
-	window.once("ready-to-show", () => showMaximizedWindow(createdWindow));
+	window.once("ready-to-show", () => {
+		showMaximizedWindow(createdWindow);
+		progress.close();
+	});
 	window.on("closed", () => {
 		window = undefined;
 	});
@@ -70,7 +77,6 @@ const openWindow = async () => {
 	});
 	await window.loadURL(`${host.origin}${pendingPath}`);
 };
-
 const chooseHome = (current = desktopHome()) =>
 	chooseDataHome({
 		current,
@@ -84,7 +90,7 @@ const chooseHome = (current = desktopHome()) =>
 		},
 	});
 
-const connect = async () => {
+const connect = async (report: (stage: string) => Promise<void> = async () => {}) => {
 	const hostRoot = paths().hostRoot;
 	if (app.isPackaged) {
 		if (process.env.TRELLIS_DESKTOP_HOME)
@@ -102,11 +108,13 @@ const connect = async () => {
 			app.quit();
 			return;
 		}
+		await report("Check installed app");
 		availableRelease = await pinResources(hostRoot, app.getPath("userData"));
-		host = await activateHostRelease(desktopHome(), paths().helper, availableRelease, {
+		const service = {
 			ensureService: () => requireService(paths().helper, desktopHome()),
 			register: () => requireService(paths().helper, desktopHome(), true),
-		});
+		};
+		host = await activateHostRelease(desktopHome(), paths().helper, availableRelease, service, report);
 		const update = await readUpdateStatus(desktopHome(), availableRelease);
 		if (!update.active) throw new Error("The background host has no active release.");
 		await installCli({
@@ -117,6 +125,7 @@ const connect = async () => {
 		if (update.state === "blocked") await showUpdateStatus(desktopHome(), availableRelease);
 		return;
 	}
+	await report("Start background host");
 	host = await connectHost(developmentHostOptions());
 };
 
@@ -134,6 +143,7 @@ configureDesktopIdentity(app);
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
 	app.setAsDefaultProtocolClient("trellis");
+	app.on("window-all-closed", () => {});
 	app.on("open-url", (event, url) => {
 		event.preventDefault();
 		void navigate(url);
@@ -149,6 +159,7 @@ else {
 	void app
 		.whenReady()
 		.then(async () => {
+			await progress.show("Prepare Trellis");
 			const rendererSession = session.fromPartition("persist:trellis");
 			rendererSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
 			rendererSession.setPermissionCheckHandler(() => false);
@@ -169,7 +180,7 @@ else {
 				const result = await dialog.showOpenDialog(window, { properties: ["openDirectory"] });
 				return result.canceled ? null : result.filePaths[0];
 			});
-			await connect();
+			await connect(progress.show);
 			if (!host) return;
 			Menu.setApplicationMenu(
 				Menu.buildFromTemplate([
@@ -231,9 +242,11 @@ else {
 													userData: app.getPath("userData"),
 												}
 											: { mode: "development", options: developmentHostOptions() },
+										progress.show,
 									);
 								},
 								(error) => dialog.showErrorBox("Trellis did not restart", error.message),
+								progress,
 							),
 							{ label: "Quit Trellis (keep agents running)", accelerator: "Cmd+Q", click: () => app.quit() },
 						],
@@ -277,24 +290,11 @@ else {
 					},
 				]),
 			);
+			await progress.show("Open Trellis");
 			await openWindow();
 		})
 		.catch(async (error: Error) => {
-			const { response } = await dialog.showMessageBox({
-				type: "error",
-				message: "Trellis cannot start",
-				detail: error.message,
-				buttons: app.isPackaged ? ["Quit", "Choose data directory…"] : ["Quit"],
-				defaultId: 0,
-				cancelId: 0,
-			});
-			if (response === 1) {
-				try {
-					await chooseHome(readConfiguredHome(app.getPath("userData")));
-				} catch (selectionError) {
-					dialog.showErrorBox("The saved data directory needs attention", (selectionError as Error).message);
-				}
-			}
-			app.quit();
+			progress.close();
+			await showStartupError(error, chooseHome);
 		});
 }

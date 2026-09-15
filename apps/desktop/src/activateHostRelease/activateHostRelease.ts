@@ -24,6 +24,7 @@ export const activateHostRelease = async (
 	helper: string,
 	available: PinnedRelease,
 	overrides: Partial<Actions> = {},
+	report: (stage: string) => Promise<void> = async () => {},
 ): Promise<HostConnection> => {
 	const actions: Actions = {
 		ensureService: async () => {
@@ -50,15 +51,19 @@ export const activateHostRelease = async (
 		...overrides,
 	};
 	assertManagedHome(home);
+	await report("Check host compatibility");
 	const status = await readUpdateStatus(home, available);
 	if (!status.active || status.state === "current") {
+		await report("Start background host");
 		await actions.ensureService();
+		await report("Wait for background host");
 		const host = await actions.adopt();
 		if (restartPending(home)) {
 			const adopted = await readUpdateStatus(home, available);
 			if (adopted.state !== "current" || adopted.active?.manifest.id !== available.manifest.id)
 				throw new Error("The background service did not start the expected release. Inspect the local host log.");
 		}
+		await report("Restore agent sessions");
 		await actions.resume(host);
 		return host;
 	}
@@ -68,22 +73,30 @@ export const activateHostRelease = async (
 		pending &&
 		(pending.sourceReleaseId !== status.active.manifest.id || pending.sessions.some((session) => session.done))
 	) {
+		await report("Wait for background host");
 		const host = await actions.adopt();
 		const previous = await readUpdateStatus(home, status.active);
 		if (previous.state !== "current" || previous.active?.manifest.id !== status.active.manifest.id)
 			throw new Error("Finish the pending agent restart with its active host before another package update.");
+		await report("Restore agent sessions");
 		await actions.resume(host);
 		if (restartPending(home)) throw new Error("Finish the pending agent restart before another package update.");
 	}
+	await report("Stop background host");
 	await actions.unregister();
 	await actions.wait();
+	await report("Save agent sessions");
 	await actions.capture(status.active);
+	await report("Restart agent runtime");
 	await actions.shutdown(status.active);
+	await report("Start background host");
 	await actions.register();
+	await report("Wait for background host");
 	const host = await actions.adopt();
 	const activated = await readUpdateStatus(home, available);
 	if (activated.state !== "current" || activated.active?.manifest.id !== available.manifest.id)
 		throw new Error("The background service did not start the expected release. Inspect the local host log.");
+	await report("Restore agent sessions");
 	await actions.resume(host);
 	return host;
 };

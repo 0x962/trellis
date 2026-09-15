@@ -292,3 +292,30 @@ test("an interrupted attempt start also completes before another package switch"
 		await rm(f.directory, { recursive: true, force: true });
 	}
 });
+
+test("release activation reports each stage before its work starts", async () => {
+	const f = await fixture();
+	try {
+		await activateHostRelease(f.home, "helper", f.next, f.actions, async (stage) => {
+			f.calls.push(stage);
+		});
+		expect(f.calls).toEqual([
+			"Check host compatibility",
+			"Stop background host",
+			"unregister",
+			"wait",
+			"Save agent sessions",
+			"capture",
+			"Restart agent runtime",
+			"shutdown",
+			"Start background host",
+			"register",
+			"Wait for background host",
+			"adopt",
+			"Restore agent sessions",
+			"resume",
+		]);
+	} finally {
+		await rm(f.directory, { recursive: true, force: true });
+	}
+});
