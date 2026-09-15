@@ -53,7 +53,6 @@ export function BoardCard({
 		{ ticket, showStatus },
 		readOnly,
 	);
-	const failing = ticket.pr?.state === "open" && ticket.pr.ciState === "fail";
 
 	return (
 		<li
@@ -63,7 +62,6 @@ export function BoardCard({
 			aria-label={`${ticket.identifier} ${ticket.title}`}
 			data-card=""
 			data-ticket-id={ticket.id}
-			data-ci={failing ? "failing" : undefined}
 			data-dragging={dragging ? "true" : undefined}
 			onClick={onOpen}
 			onFocus={onFocus}
@@ -72,7 +70,6 @@ export function BoardCard({
 				"relative flex min-h-19 shrink-0 cursor-grab flex-col gap-1.5 rounded-md border bg-surface p-3 text-base shadow-none transition-[box-shadow,border-color] duration-hover ease-out hover:shadow-sm active:cursor-grabbing",
 				"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset",
 				dragging ? "border-dashed border-border-strong opacity-40" : "border-border",
-				failing && "border-t-2 border-t-danger",
 			)}
 		>
 			{dropBefore && <DragIndicator />}

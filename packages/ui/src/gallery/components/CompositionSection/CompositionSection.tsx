@@ -72,7 +72,7 @@ export function CompositionSection() {
 			<div className="flex gap-6 bg-bg p-5">
 				<div
 					data-testid="board-card"
-					className="grid w-75 shrink-0 gap-1.5 self-start rounded-md border border-border border-t-2 border-t-danger bg-surface px-3 pt-2.25 pb-2.5 shadow-sm transition-shadow duration-hover hover:shadow-md"
+					className="grid w-75 shrink-0 gap-1.5 self-start rounded-md border border-border bg-surface px-3 pt-2.25 pb-2.5 shadow-sm transition-shadow duration-hover hover:shadow-md"
 				>
 					<div className="flex items-center justify-between">
 						<TicketId id="CDE-44" size="sm" />

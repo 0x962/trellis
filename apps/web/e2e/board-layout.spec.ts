@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { createTicket, ensureProject, moveTicket } from "./cli";
+import { createTicket, ensureProject, moveTicket, trellis } from "./cli";
+import { failingPrUrl } from "./ghReplies";
 import { cardOf, columnOf, signIn } from "./support";
 
 // Sixteen Todo cards are taller than a 900 px board, so Todo overflows and
@@ -9,6 +10,21 @@ test.beforeAll(() => {
 	for (let n = 1; n <= 16; n++) createTicket("BRD", `Fill the Todo column past the board height ${n}`);
 	createTicket("BRD", "Keep one ticket in progress");
 	moveTicket("BRD-17", "in-progress");
+	createTicket("BRD", "Keep the card border consistent when checks fail");
+	trellis(["pr", "add", "BRD-18", failingPrUrl]);
+});
+
+test("failed checks keep the same board card border as other tickets", async ({ page }) => {
+	await signIn(page, "/p/BRD/board");
+	const failed = cardOf(page, "BRD-18");
+	const ordinary = cardOf(page, "BRD-17");
+	await expect(failed).toBeAttached();
+	await expect(ordinary).toBeVisible();
+	const border = (element: HTMLElement | SVGElement) => {
+		const style = getComputedStyle(element);
+		return [style.borderTopColor, style.borderTopWidth, style.borderBottomColor, style.borderBottomWidth];
+	};
+	expect(await failed.evaluate(border)).toEqual(await ordinary.evaluate(border));
 });
 
 // A flex column shrinks its children when its content overflows. A header
