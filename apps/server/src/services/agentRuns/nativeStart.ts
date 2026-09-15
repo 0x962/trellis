@@ -64,6 +64,7 @@ export const startNative = async (
 		await ctx.newTx(assertNativeWorkEnabled);
 		const client = await ensureNativeRuntime(ctx.home);
 		const env = {
+			...(process.env.PATH === undefined ? {} : { PATH: process.env.PATH }),
 			TRELLIS_URL: ctx.localUrl,
 			TRELLIS_ACTOR: `agent:${run.id}`,
 			TRELLIS_RUN_ID: run.id,

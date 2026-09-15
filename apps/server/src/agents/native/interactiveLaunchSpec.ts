@@ -23,7 +23,7 @@ export const interactiveLaunchSpec = (input: {
 	return {
 		id: input.id,
 		command: "/bin/zsh",
-		args: ["-l", "-c", command],
+		args: ["-f", "-c", command],
 		cwd: input.cwd,
 		env: input.env,
 		mode: "pty",

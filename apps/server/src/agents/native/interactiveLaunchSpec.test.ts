@@ -31,5 +31,5 @@ test("other interactive commands use the same PTY without Claude settings", () =
 		hookCommand: "hook",
 	});
 	expect(spec.mode).toBe("pty");
-	expect(spec.args).toEqual(["-l", "-c", "exec pi"]);
+	expect(spec.args).toEqual(["-f", "-c", "exec pi"]);
 });

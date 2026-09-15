@@ -117,6 +117,7 @@ test("a workspace failure closes the unlaunched assignment and preserves its cau
 test("an uncertain launch reply keeps the assignment open for process inspection", async () => {
 	mkdirSync(join(home, "runtime"));
 	let submitted = false;
+	let launchPath: string | undefined;
 	const server = createServer((socket) => {
 		socket.setEncoding("utf8");
 		let buffer = "";
@@ -127,6 +128,7 @@ test("an uncertain launch reply keeps the assignment open for process inspection
 			if (request.method === "hello") socket.end(`${JSON.stringify({ id: request.id, result: { version: 5 } })}\n`);
 			else {
 				submitted = true;
+				launchPath = request.params.env.PATH;
 				socket.destroy();
 			}
 		});
@@ -159,6 +161,7 @@ test("an uncertain launch reply keeps the assignment open for process inspection
 		);
 		const after = await h.read((tx) => getRun(tx, id));
 		expect(submitted).toBe(true);
+		expect(launchPath).toBe(process.env.PATH);
 		expect(after.closedAt).toBeNull();
 		expect(after.error).toContain("response is unknown");
 	} finally {
