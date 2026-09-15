@@ -109,3 +109,38 @@ test("a manager without a launched process can start after its settings are fixe
 	await expect(page.getByRole("button", { name: "Start manager", exact: true })).toBeEnabled();
 	await expect(page.getByRole("button", { name: "Stop manager", exact: true })).toHaveCount(0);
 });
+
+test("the manager page does not show the manager queue", async ({ page }) => {
+	const project = await post<Project>("/projects", { key: "MQH", name: "Manager queue hidden" });
+	// The route gives the queue a row, so an empty queue cannot hide the section.
+	await page.route("**/rpc/controller/list", async (route) => {
+		const response = await route.fetch();
+		const body = await response.json();
+		await route.fulfill({
+			response,
+			json: {
+				...body,
+				json: [
+					{
+						id: "hidden-queue-fixture",
+						projectId: project.id,
+						runId: null,
+						terminalId: null,
+						sessionId: null,
+						generation: 1,
+						state: "unknown",
+						events: [],
+						dueAt: new Date().toISOString(),
+						error: null,
+					},
+				],
+			},
+		});
+	});
+	await signIn(page, "/p/MQH/settings/manager");
+	await expect(page.getByRole("switch", { name: "Automatic dispatch", exact: true })).toBeVisible();
+	await expect(page.getByText("This project has no manager yet. Press Play to start one.")).toBeVisible();
+	await expect(page.getByRole("region", { name: "Manager queue", exact: true })).toHaveCount(0);
+	await expect(page.getByText("Receipt unknown", { exact: true })).toHaveCount(0);
+	await expect(page.getByRole("button", { name: "Resend message", exact: true })).toHaveCount(0);
+});
