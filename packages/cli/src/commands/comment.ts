@@ -24,12 +24,18 @@ export default defineCommand({
 		ticket: { type: "positional", required: true, description: "Ticket ref" },
 		body: { type: "string", required: true, description: "Comment text, or - for stdin" },
 		"reply-to": { type: "string", description: "Comment ID of the thread to reply to" },
+		"dedupe-key": { type: "string", description: "Stable key for this comment subject and revision" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
 		const comment = await clientOf(ctx).comments.create(
-			compact({ ticket: args.ticket, body: await readText(ctx, args.body), parentId: args["reply-to"] }),
+			compact({
+				ticket: args.ticket,
+				body: await readText(ctx, args.body),
+				parentId: args["reply-to"],
+				dedupeKey: args["dedupe-key"],
+			}),
 		);
 		printRecord(ctx.out, ctx.format, comment, commentRecord);
 	},

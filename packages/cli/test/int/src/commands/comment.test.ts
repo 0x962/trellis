@@ -3,6 +3,18 @@ import { runCli } from "../../../deps.ts";
 import { activity, comment, commentId, timeline } from "../../../fixtures.ts";
 
 describe("comment", () => {
+	test("comment passes a stable deduplication key", async () => {
+		const result = await runCli(
+			["comment", "CDE-42", "--body", "Decision required", "--dedupe-key", "release:revision-1"],
+			{ "comments.create": comment() },
+		);
+		expect(result.code).toBe(0);
+		expect(result.calls[0]!.input).toEqual({
+			ticket: "CDE-42",
+			body: "Decision required",
+			dedupeKey: "release:revision-1",
+		});
+	});
 	// CLI-95
 	test("comment maps --body and stdin", async () => {
 		const flagged = await runCli(["comment", "CDE-42", "--body", "Done"], { "comments.create": comment() });

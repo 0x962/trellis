@@ -83,7 +83,11 @@ Natural leader exit stops the remaining members of its OS session. Explicit stop
 The runtime reports exit only after cleanup and output completion. Failed cleanup records an unknown result.
 A descendant that leaves its session and loses its parent before inspection requires separate process inspection.
 
-Built-in harnesses launch through `HarnessHost` with an interactive CLI in a PTY and native permission bypass settings.
+Built-in harnesses launch through `HarnessHost` with an interactive CLI in a PTY.
+Builders and reviewers use native permission bypass settings.
+Managers use a private workspace and a Trellis tool allowlist.
+The manager delegates technical work and records coordination outcomes through these tools.
+Claude, OpenCode, and Pi support this boundary. Codex and custom manager launches return an explicit error.
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
 Codex runs one private app-server per attempt. Its native terminal and Trellis event client connect to that engine.
 The Codex adapter maps native thread, turn, tool, result, and error events into the runtime journal.
@@ -105,6 +109,11 @@ The controller stores ticket events in `manager_dispatches` with a fixed coalesc
 It sends a native manager one batch after the initial prompt receipt, when the runtime reports a controllable process with idle turn activity.
 An exact durable receipt can resolve an unknown delivery without another send.
 Stable assignment request identifiers prevent repeated worker starts from producing duplicate attempts.
+Each dispatch tracks delivery separately from its per-ticket coordination outcomes.
+Data-only envelopes include policy versions, stable assignment identifiers, and unfinished dispatches.
+The manager records an assignment, queue entry, blocker, or reason for no action for each affected ticket.
+A handled dispatch does not prove that a worker completed the ticket.
+Optional comment keys suppress duplicate writes for the same ticket and actor without new activity events.
 A partial database index permits one active manager per project.
 
 Native ticket agents use Git worktrees under `agents/<run id>/work`.

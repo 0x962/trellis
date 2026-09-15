@@ -66,6 +66,7 @@ const configFor = (harness: "claude" | "codex" | "pi" | "opencode") =>
 test.each(["claude", "codex", "pi", "opencode"] as const)(
 	"production %s start, send, terminal output, stop, and exact resume use the host",
 	async (harness) => {
+		if (harness === "codex") await h.rows(sql`UPDATE agent_runs SET kind='builder' WHERE id='assignment'`);
 		const ctx = context();
 		const config = configFor(harness);
 		const first = attempt;
@@ -178,6 +179,7 @@ test("the assignment token remains the runtime authentication token", async () =
 test.each(["claude", "codex", "pi", "opencode"] as const)(
 	"production %s interrupt preserves the process and confirms native interruption",
 	async (harness) => {
+		if (harness === "codex") await h.rows(sql`UPDATE agent_runs SET kind='builder' WHERE id='assignment'`);
 		const ctx = context();
 		const deps = { ...dependencies(), env: { ...dependencies().env, HARNESS_FIXTURE_BEHAVIOR: "busy" } };
 		await startNative(

@@ -15,7 +15,7 @@ import { requireActor, type ServiceCtx } from "../context.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import { ticketSummary } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
-import { fail } from "../errors.ts";
+import { fail, invalidInput } from "../errors.ts";
 import { record } from "./activity.ts";
 import { upsert } from "./actors.ts";
 import { assertProjectActive, resolveTicket, type TicketRow } from "./refs.ts";
@@ -108,14 +108,31 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	if (parent !== null && parent.ticketId !== row.id) throw fail("COMMENT_PARENT_MISMATCH");
 	const parentId = parent === null ? null : (parent.parentId ?? parent.id);
 	const actor = requireActor(ctx);
+	if (input.dedupeKey !== undefined) {
+		await tx.execute(sql`SELECT id FROM tickets WHERE id=${row.id} FOR UPDATE`);
+		const [existing] = await rows<RawComment>(
+			tx,
+			sql`${commentSelect}
+			WHERE c.ticket_id=${row.id} AND c.actor_kind=${actor.kind} AND c.actor_name=${actor.name}
+			AND c.dedupe_key=${input.dedupeKey}`,
+		);
+		if (existing) {
+			if (existing.body !== input.body || existing.parent_id !== parentId)
+				throw invalidInput(
+					"dedupeKey",
+					"This key already identifies another comment. Update that comment or use a new revision key.",
+				);
+			return toComment(existing);
+		}
+	}
 	const batchId = ulid();
 	const id = ulid();
 	// The comment row names its actor, and a foreign key needs the actor row
 	// first. The comment can be the first write of a new actor.
 	await upsert(ctx, tx, actor);
 	await tx.execute(
-		sql`INSERT INTO comments (id, ticket_id, parent_id, body, actor_name, actor_kind, created_at, updated_at)
-			VALUES (${id}, ${row.id}, ${parentId}, ${input.body}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
+		sql`INSERT INTO comments (id, ticket_id, parent_id, body, dedupe_key, actor_name, actor_kind, created_at, updated_at)
+			VALUES (${id}, ${row.id}, ${parentId}, ${input.body}, ${input.dedupeKey ?? null}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
 	);
 	await record(ctx, tx, activityFor(row, "comment.created", batchId, id, parentId));
 	ctx.emit({
