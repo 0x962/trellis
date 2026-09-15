@@ -1,4 +1,4 @@
-import { GitPullRequest, ListBullets, MagnifyingGlass, Tray } from "@phosphor-icons/react";
+import { FlowArrow, GitPullRequest, ListBullets, MagnifyingGlass, Sparkle, Tray } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
@@ -13,6 +13,8 @@ const rows = [
 	{ to: "/search", label: "Search", icon: <MagnifyingGlass /> },
 	{ to: "/all", label: "All tickets", icon: <ListBullets /> },
 	{ to: "/reviews", label: "Pull requests", icon: <GitPullRequest /> },
+	{ to: "/ai/personas", label: "Personas", icon: <Sparkle /> },
+	{ to: "/ai/flows", label: "Flows", icon: <FlowArrow /> },
 ] as const;
 
 // The shell with no data in it: the sidebar header, the fixed rows,

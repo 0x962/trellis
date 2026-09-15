@@ -3,11 +3,11 @@ import { del, post } from "./api";
 import { ensureProject, trellis } from "./cli";
 import { signIn } from "./support";
 
-// TRL-41. The AI section is the only route to /ai/personas. It used to sit
-// inside the scroller that holds the project tree, so a tree taller than the
-// sidebar pushed the Personas link out of the clip box: at 1440x900 the link
-// measured top 864 against a scroller that clips at 835, and
-// document.elementFromPoint at its centre returned the actor footer.
+// TRL-41. The sidebar Personas link is the only route to /ai/personas. A
+// link inside the scroller that holds the project tree leaves the clip box
+// when the tree is taller than the sidebar: at 1440x900 the link measured top
+// 864 against a scroller that clips at 835, and document.elementFromPoint at
+// its centre returned the actor footer.
 
 // A desktop at the width and the height the audit measured.
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -145,6 +145,28 @@ test.describe("on a touch screen", () => {
 		expect(circle.x).toBeGreaterThanOrEqual(rail.x);
 		expect(circle.x + circle.width).toBeLessThanOrEqual(rail.x + rail.width);
 	});
+});
+
+// TRL-68. Personas and Flows are fixed destinations, listed right after Pull
+// requests with no group title above them.
+test("sidebar > Personas and Flows follow Pull requests in the fixed destinations", async ({ page }) => {
+	await signIn(page, "/all");
+	const sidebar = page.getByRole("complementary", { name: "Sidebar" });
+	const workspace = sidebar.getByRole("navigation", { name: "Workspace" });
+	await expect(workspace.getByRole("link")).toHaveText([
+		"Needs you",
+		/^Search/,
+		"All tickets",
+		"Pull requests",
+		"Personas",
+		"Flows",
+	]);
+	await expect(sidebar.getByRole("heading", { name: "AI", exact: true })).toHaveCount(0);
+	await expect(sidebar.getByRole("navigation", { name: "AI", exact: true })).toHaveCount(0);
+
+	await workspace.getByRole("link", { name: "Flows" }).click();
+	await expect(page).toHaveURL(/\/ai\/flows$/);
+	await expect(workspace.getByRole("link", { name: "Flows" })).toHaveAttribute("aria-current", "page");
 });
 
 test("sidebar > the Personas link stays inside the viewport while the project tree scrolls", async ({ page }) => {

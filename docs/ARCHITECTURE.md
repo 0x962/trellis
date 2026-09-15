@@ -145,8 +145,8 @@ Read the [implementation status](desktop/implementation-status.md), [desktop pla
 ## Domain rules
 
 Personas are local records shared across projects. Each persona has a name and
-an instruction, and a kind: builder, reviewer, or manager. The AI section of the
-sidebar opens the Personas page at `/ai/personas`, with cards grouped by kind and
+an instruction, and a kind: builder, reviewer, or manager. The Personas link of
+the sidebar opens the Personas page at `/ai/personas`, with cards grouped by kind and
 a slideout to create, edit, and delete these records. The API exposes
 `personas.list`, `personas.create`, `personas.update`, and `personas.delete`.
 There is no route that reads one persona, so a client reads the list and matches
@@ -272,7 +272,7 @@ It also shows manager deliveries that require attention. Ticket status changes u
 ### Flows
 
 A flow is a graph of agent steps that trellis runs against a target, such as a
-pull request. Flows are local records shared across projects. The AI section of
+pull request. Flows are local records shared across projects. The Flows link of
 the sidebar opens the Flows page at `/ai/flows`, and each flow opens in a canvas
 editor at `/ai/flows/<slug>`. The slug comes from the name at create time, and
 a collision takes the next free suffix: `review`, `review-2`.
@@ -374,10 +374,10 @@ time. The first section of each page carries no hash.
 The Manager page holds the manager persona, repository directory, trust, dispatch state, concurrency limit, and harness commands.
 It writes `projects.managerConfig` through `projects.update`.
 
-The sidebar holds the workspace row, Needs you, Search, All tickets, the project
-tree, the AI section with the Personas and Flows links, and the actor footer. The
-project tree is the one region that scrolls, so the AI links keep their place at
-any tree height.
+The sidebar holds the workspace row, Needs you, Search, All tickets, Pull
+requests, Personas, Flows, the project tree, and the actor footer. The project
+tree is the one region that scrolls, so the fixed links keep their place at any
+tree height.
 
 ## Database schema
 

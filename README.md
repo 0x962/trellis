@@ -87,7 +87,7 @@ trellis list --project TRL --json
 ### The pages
 
 `/` sends you to Needs you. The sidebar holds Needs you, Search, All tickets,
-the project tree, and the AI section with the Personas page.
+Pull requests, Personas, Flows, and the project tree.
 
 | Path | Page |
 |---|---|
