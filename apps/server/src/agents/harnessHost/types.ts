@@ -12,6 +12,8 @@ export type HarnessHostOptions = {
 export type HarnessStartInput = {
 	id: string;
 	harness: BuiltInHarness;
+	kind?: "manager" | "builder" | "reviewer";
+	managerId?: string;
 	cwd: string;
 	prompt: string;
 	model?: string;
@@ -20,6 +22,8 @@ export type HarnessStartInput = {
 };
 export type HarnessDescriptor = {
 	fingerprint: string;
+	prompt: string;
+	sessionId?: string;
 	spec: LaunchSpec;
 	harness: BuiltInHarness;
 };

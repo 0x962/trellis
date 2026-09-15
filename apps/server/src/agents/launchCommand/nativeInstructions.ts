@@ -16,5 +16,5 @@ trellis evidence list "$TRELLIS_RUN_ID"
 Use a new UUID for an intentional check rerun. Reuse the UUID to retrieve a check after an uncertain response.
 Confirm readyForReview is true before you report evidence ready. Report failed or outdated checks with their retained output.
 Any later file change requires current checks and artifact registration again.
-For a pull request review, read margin list <pr-url> first. Post review findings to margin, as the repository rules require.
+Follow the project review policy for review tools, findings, and approval.
 `;

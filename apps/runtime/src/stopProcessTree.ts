@@ -1,22 +1,18 @@
-import { execFileSync } from "node:child_process";
 import { constants } from "node:os";
 import { errno, load } from "koffi";
+import { processSnapshot } from "./processSnapshot/index.ts";
 import { terminateSession } from "./terminateSession.ts";
 
-let sessionOf: ((pid: number) => number) | undefined;
+const library = load(null);
+const sessionOf = library.func("int getsid(int pid)");
+const listPids = library.func("int proc_listpids(uint32_t type, uint32_t typeinfo, void *buffer, int buffersize)");
+const pidInfo = library.func("int proc_pidinfo(int pid, int flavor, uint64_t arg, void *buffer, int buffersize)");
+
 export async function stopProcessTree(sessionId: number) {
-	sessionOf ??= load(null).func("int getsid(int pid)");
 	return terminateSession(sessionId, {
-		processes: () =>
-			execFileSync("/bin/ps", ["-ax", "-o", "pid=,ppid=,pgid=,stat="], { encoding: "utf8", timeout: 1000 })
-				.trim()
-				.split("\n")
-				.map((line) => {
-					const [pid, parent, group, state] = line.trim().split(/\s+/);
-					return { pid: Number(pid), parent: Number(parent), group: Number(group), state: state! };
-				}),
+		processes: () => processSnapshot({ listPids, pidInfo, errno }),
 		sessionOf: (pid) => {
-			const session = sessionOf!(pid);
+			const session = sessionOf(pid);
 			if (session !== -1) return session;
 			const failure = errno();
 			if (failure === constants.errno.ESRCH) return -1;

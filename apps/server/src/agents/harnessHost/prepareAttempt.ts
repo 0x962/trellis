@@ -27,6 +27,7 @@ export async function prepareAttempt(
 		input.model ?? null,
 		input.token ?? null,
 		input.timeoutMs ?? null,
+		...(input.kind === "manager" ? ["manager-tools-v1", input.managerId ?? input.id] : []),
 		sessionId ?? null,
 		env,
 		options.bun,
@@ -45,23 +46,38 @@ export async function prepareAttempt(
 	}
 	const executable = await resolveExecutable(input.harness, env.PATH ?? "");
 	if (input.harness === "opencode") await checkOpenCodeVersion(executable, input.cwd, env);
-	if (input.harness === "claude") await claudeTrust(input.cwd, env);
 	await mkdir(directory, { recursive: true, mode: 0o700 });
 	const hookCommand = `${quote(options.bun)} ${quote(fileURLToPath(new URL("./hook.ts", import.meta.url)))}`;
 	const configDirectory = await mkdtemp(join(directory, "config-"));
+	const cwd =
+		input.kind === "manager" && sessionId === undefined
+			? join(options.directory, "manager-workspaces", input.managerId ?? input.id)
+			: input.cwd;
+	if (input.kind === "manager" && sessionId === undefined) await mkdir(cwd, { recursive: true, mode: 0o700 });
+	if (input.harness === "claude") await claudeTrust(cwd, env);
 	const common = {
 		env,
-		cwd: input.cwd,
+		cwd,
 		prompt: `trellis-message:${input.id}\n${input.prompt}`,
 		model: input.model,
 		configDirectory,
 		hookCommand,
+		...(input.kind === "manager"
+			? {
+					managerTools: {
+						command: options.bun,
+						args: [fileURLToPath(new URL("../managerTools/entry.ts", import.meta.url))],
+					},
+				}
+			: {}),
 	};
 	const launch = await providers[input.harness].prepare(
 		sessionId === undefined ? { ...common, resume: false } : { ...common, resume: true, sessionId },
 	);
 	const descriptor: HarnessDescriptor = {
 		harness: input.harness,
+		prompt: input.prompt,
+		sessionId,
 		fingerprint,
 		spec: {
 			id: input.id,
@@ -72,7 +88,7 @@ export async function prepareAttempt(
 						: await resolveExecutable(launch.executable, env.PATH ?? "")
 					: executable,
 			args: launch.args,
-			cwd: input.cwd,
+			cwd,
 			mode: "pty",
 			timeoutMs: input.timeoutMs,
 			env: {

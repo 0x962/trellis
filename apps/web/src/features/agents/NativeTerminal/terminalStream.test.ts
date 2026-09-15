@@ -24,7 +24,8 @@ test("terminal stream preserves split events and waits for each output write", a
 		),
 		async (frame) => {
 			await Promise.resolve();
-			events.push(atob(frame.data));
+			expect(frame.data).toBeTypeOf("string");
+			events.push(atob(frame.data as string));
 		},
 		(session) => events.push(session.status),
 	);

@@ -28,7 +28,7 @@ export function MobileSidebar() {
 			width={280}
 			motion="popover"
 			bare
-			className="gap-0.5 bg-bg px-2 py-2.5 text-base"
+			className="gap-0.5 bg-surface px-2 py-2.5 text-sm"
 		>
 			<div className="flex h-full flex-col gap-0.5">
 				<SidebarBody />

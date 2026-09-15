@@ -42,7 +42,14 @@ async function reconcile(ctx: FlowCtx, deps: Dependencies) {
 		);
 		for (const task of tasks) {
 			const run = await ctx.newTx((tx) => getRun(tx, task.run_id));
-			const snapshot = await deps.observe(ctx, run);
+			let snapshot: HarnessSnapshot | null;
+			try {
+				snapshot = await deps.observe(ctx, run);
+			} catch (cause) {
+				const error = cause instanceof Error ? cause.message : String(cause);
+				errors.push(error);
+				snapshot = { state: "unknown", sessionId: run.sessionId, result: null, acknowledgedMessageIds: [], error };
+			}
 			if (snapshot !== null)
 				await ctx.newTx((tx) =>
 					recordTaskObservation(ctx.core, tx, {

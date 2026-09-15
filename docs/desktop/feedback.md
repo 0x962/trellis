@@ -3,11 +3,119 @@
 Owner: lead agent. Integration branch: `trellis-readiness-audit`.
 Last update: 2026-09-15.
 
-`Integrated` means that the source contains the change. It does not establish that the installed desktop uses that source.
-The installed desktop includes product changes through `6fef93c3` and opens. The release includes the final trust, receipt, process-status, and UI fixes.
-Hana resumes at 20:02:37 UTC with the same provider session. TRL dispatch is enabled, and OP dispatch stays paused.
+The user tests the installed UI. The production app lives at `~/Applications/Trellis.app`.
+The production verification at 22:17 UTC uses source `49e4191e` and release `b78b2dc3`.
+The production install workflow passes a live copy and restart check. The desktop guide records the command.
 
-## Current work
+The Needs you error burst has one shared server error: `connect ENOENT ~/.trellis/runtime/runtime.sock`.
+At 21:40:38 UTC, the page subscribes to 54 old terminal attempts after the runtime stops for the package update.
+The page features are outside the requested scope and are removed. Ticket terminals still need access to retained output after a restart.
+Evidence: `/tmp/trellis-needs-you-500-before.json` records the affected attempts and a reproduced 500 for TRL-65 / Esme.
+
+The terminal fix starts the runtime after it validates the requested terminal. It reads retained output without a new agent process.
+The socket client attaches its error handlers before it starts the connection. An isolated Bun HTTP test reproduces the earlier uncaught error.
+All 34 focused regressions pass. Server and protocol typechecks pass.
+The installed server returns 200 for all 54 previously failed terminal streams. Each stream reports an exited process.
+A fresh terminal passes input, output, resize, and Stop checks on release `c2826d27`. The final runtime list contains zero active sessions.
+The installed route asset contains only the Needs you heading and an empty body. The browser regression is not run; the user tests the UI.
+Evidence: `/tmp/trellis-terminal-recovery-acceptance.json`, `/tmp/trellis-installed-runtime-check.json`, and `/tmp/trellis-needs-you-production-install.log`.
+
+## Automatic session resume
+
+A package update saves the active provider sessions before runtime shutdown. Workers resume before managers, in the same directories and conversations.
+The first resumed prompt states that the system restarted and tells the agent to continue unfinished work. Managers also receive the current role instructions.
+Manually stopped assignments stay stopped. Completed flow results keep their original output and decisions.
+A saved restart plan and fixed attempt IDs prevent duplicate launches after an interrupted update. A failed resume retains its plan.
+An unchanged package keeps the active processes and sends no restart message.
+
+The restart checks pass: 58 integration tests, eight protocol, contract, and layout tests, and 36 desktop tests.
+Four integration cases stop a real runtime and resume Claude, Codex, OpenCode, and Pi fixture executables on a new runtime.
+These cases retain the provider ID, working directory, model, assignment, and one restart receipt. They do not call authenticated model providers.
+All nine workspace typechecks and repository lint pass. The installed package passes all 13 smoke checks and signature verification.
+Both native macOS service tests pass with temporary homes and service labels. The real-home guard passes.
+At 22:17:05 UTC, an atomic ditto reinstall preserves the desktop, HTTP host, runtime, and active agent process identities. Health returns 200.
+Evidence: `/tmp/trellis-restart-integration.log`, `/tmp/trellis-restart-unit.log`, `/tmp/trellis-restart-installed-smoke.log`, and `/tmp/trellis-restart-install-evidence.json`.
+
+## Manager conversation reset
+
+At 22:25:52 UTC, a coding agent explicitly stops Hana before the package restart.
+At 22:27:23 UTC, desktop activation completes the resume of seven active workers.
+At 22:27:29 UTC, the coding agent starts Hana with `--new-session` for a prompt update.
+The provider session changes from `122bc235-9f0d-4c75-a5a7-c34567a2144f` to `2b500365-7259-4a97-bd3d-c107743aa729`.
+The old transcript remains on disk. The new transcript begins a separate conversation.
+The same caller requests another fresh conversation at 22:31:28 UTC.
+
+Evidence: `~/.trellis/desktop-host.log`, lines 18549, 18557, and 18563, records Stop, desktop resume, and ordinary Start.
+The descriptor for attempt `ba1947a0-16cd-4982-84cf-136eba2e286a` contains `--session-id` with the new provider ID.
+The caller transcript records the explicit `trellis agents start ... --new-session` command.
+
+Agent callers cannot reset an existing manager conversation. Default starts resume its saved conversation with the current persona instructions.
+A person can explicitly request a fresh conversation. A failed launch before process creation retains the previous attempt for resume.
+The repository install instructions require conversation preservation during prompt updates and deployment.
+
+An isolated authenticated Claude 2.1.273 test recalls a random marker after stop and resume with a changed system prompt.
+The resumed prompt contains no marker. Both turns use provider session `149b12b5-245e-45fb-94ba-43757d9515c3`.
+The test uses `--system-prompt-snapshot off`. An additional instruction to change the reply prefix fails; memory recall passes.
+Evidence: `/tmp/trl-real-claude-memory-jbKfJE/memory-verification.json`. Both test processes and the isolated runtime exit after the check.
+
+All 51 focused integration tests pass, with 240 assertions. All nine workspace typechecks and scoped Biome checks pass.
+Evidence: `/tmp/trellis-continuity-integration.log` and `/tmp/trellis-continuity-typecheck.log`.
+The production package at `71838d83` passes 13 smoke checks and signature verification.
+At 22:37:21 UTC, ditto installation preserves the desktop, host, runtime, and all eight active agent process identities. Health returns 200.
+The package is installed in `~/Applications/Trellis.app`. The next restart activates its changes.
+Evidence: `/tmp/trellis-continuity-production.log`, `/tmp/trellis-continuity-install-evidence.json`, and `/tmp/trellis-manager-reset-evidence.json`.
+
+## Current verification
+
+| Follow-up feedback | Status | Verification |
+| --- | --- | --- |
+| Add a manager button to start fresh context after prompt changes. | Implemented; user UI check pending | Restart with new context confirms a manager Stop before a fresh Start. Four unit tests and nine integration tests pass. The new conversation uses the saved persona and project instructions. Resume preserves the current conversation. |
+| The window appears hung. The manager cannot accept input or resize. | Installed | Failed cleanup retains the live PTY handle. Regression tests cover input, resize, repeated Stop, and a later natural exit. |
+| Fix the manager terminal width. | Installed; user UI check pending | The installed runtime accepts input and returns `80 200` after a resize to 200 columns and 80 rows. |
+| Remove the rounded inner page cards. | Installed; user UI check pending | Shared page frames have no rounded border or outer inset. Ticket properties use a straight divider. |
+| Make project submenu items more compact. | Installed; user UI check pending | Desktop rows use 28 px; touch rows use 44 px. |
+| Align and redesign the Archived submenu. | Installed; user UI check pending | The caret, label, and count use the same slots as project rows. Expanded projects use nested indentation. |
+| Remove the manager settings icon. | Installed; user UI check pending | The manager toolbar holds its process control. Control+] returns focus to that control. |
+| Stop and restart report a schema error. | Installed | Failed cleanup reports RUNNER_UNAVAILABLE. Three API regression tests pass. The nine live Stop requests each return 200. |
+| Fix the broken Agent tab terminal. | Installed; user UI check pending | A padding-free host gives FitAddon the available size. Runtime failures remain visible. |
+| Use Astra subagents. | Applied | Astra agents cover the UI, lifecycle, native process inspection, production install, and restart workflow. |
+| Address root causes. | Installed | Native process inspection replaces the spawned ps command. HTTP startup stays independent of shell setup. launchd reports `spawn type = interactive (4)`. |
+| Keep Needs you empty until a later design. | Installed; user UI check pending | The page contains its heading and an empty body. The route and menu entry remain. No page features or subscriptions remain. |
+| Build production and use ditto to install in ~/Applications without closing Trellis. | Verified | The copy preserves the desktop, HTTP host, and runtime PIDs. See the [production install guide](../../apps/desktop/README.md#production-install). |
+| Stop active agents and load all changes when a new package starts. | Implemented and tested | Activation saves active sessions, stops the old host and runtime, and resumes those sessions on the new release. An unchanged package preserves active sessions. |
+| Resume agents after a system restart and tell them to continue. | Installed and tested | A durable restart plan preserves the conversation, workspace, harness, and model. The first resumed prompt gives the restart notice. Manually stopped agents stay stopped. |
+
+The production build at `14132bac` passes all 13 packaged smoke checks and signature verification.
+The atomic copy preserves the real Electron and HTTP host process identities.
+The app restart stops the previous HTTP host, runtime, and test PTY. The final app launch activates release `c2826d27`.
+Evidence: `/tmp/trellis-final-copy-evidence.json` and `/tmp/trellis-final-activation-check.json`.
+The runtime passes 52 unit tests and 65 integration tests. The shell changes pass 61 focused tests.
+Independent Astra reviews cover failed cleanup, natural exit, shell setup, and HTTP startup.
+
+The first activation reaches the legacy runtime shutdown error. That runtime contains the process cleanup bug.
+The user authorizes the stop. Native process checks confirm all nine agent processes and the old runtime have exited.
+The new HTTP host starts on port 4521. Authentication rejects an absent token and accepts the desktop token.
+All nine API Stop requests return 200. The new runtime reports release `309bd1ac`.
+A live PTY check verifies start, input, streamed output, 200-by-80 resize, process inspection, and confirmed Stop.
+The runtime list after the PTY check contains zero active sessions. Hana stays stopped.
+Evidence: `/tmp/trellis-production-copy-evidence.json`, `/tmp/trellis-approved-stop-evidence.json`, `/tmp/trellis-production-stop-api.json`, and `/tmp/trellis-installed-runtime-check.json`.
+
+The previous launchd plist selected `ProcessType=Background`. Its runtime had scheduler priority 4 under system load above 100.
+The runtime gained about 0.07 CPU seconds over 100 wall seconds. Native checks finished in milliseconds in a separate process.
+The installed host now uses Interactive. Its runtime has scheduler priority 31, and the live terminal check finishes in 160 ms.
+[Apple's launchd manual](https://github.com/apple-oss-distributions/launchd/blob/main/man/launchd.plist.5) defines Interactive for services that an app needs to remain responsive.
+
+| New feedback | Status | Owner | Verification |
+| --- | --- | --- | --- |
+| Open Trellis at the maximum window size without native fullscreen. | Installed; user UI check pending | Desktop agent | 6a1b1deb. Five tests and the desktop typecheck pass. Every open restores a minimized window, exits fullscreen, and maximizes the window. |
+| Improve the sidebar using the Superset screenshot. | Installed; user UI check pending | Lead | Sidebar changes cover icons, row spacing, selected rows, and separation between root projects. |
+| Remove the space above the app content. Extend the content to the top. | Installed; user UI check pending | Lead | The topbar and sidebar reserve space for native controls within their own rows. |
+| Move all manager configuration into project settings. | Installed; user UI check pending | Settings agent | All four settings browser cases pass. They cover saved values, one shared unsaved draft, default models, and trust recovery. |
+| Keep the manager page focused on its interactive CLI and process controls. | Installed; user UI check pending | Lead | The terminal size, process controls, empty state, and error cases pass. The user will check the installed terminal. |
+
+The latest UI run reports 18 of 20 cases passed: `/tmp/trellis-full-manager-browser-final.log`. All four settings and four desktop workspace cases pass.
+The failed assertions concern transient titlebar geometry and the lazy settings route. Test-only corrections are not rerun.
+Five window tests, eight terminal UI tests, and the typechecks pass. The user requests deployment and will test the installed UI.
 
 | Feedback | Status | Owner | Verification |
 | --- | --- | --- | --- |
@@ -175,7 +283,16 @@ Evidence: `/tmp/trellis-process-projection-green.log`, `/tmp/trellis-process-con
 
 ## Final installation
 
-The desktop app includes product changes through `6fef93c3` on the macOS arm64 host.
+The latest desktop release opens at 20:27:36 UTC on the macOS arm64 host.
+The release ID is `d345422e628c94280f70488528e23bf2d0f78ce948f83e50fe7fe6c32593d035`, and the HTTP host reports PID 89102.
+Hana retains PID 13113 and provider session `f8584a45-27db-465c-8008-a4eaa12dc273`. Seven other native processes also survive the HTTP host update.
+The independent check confirms a healthy active release and open app. Evidence: `/tmp/trellis-full-manager-installed.json`.
+
+The manual install script fails an assertion that expects a starting session's provider ID to stay empty.
+The first launcher attempt reaches its 10-second login environment timeout and exits. launchd then starts the host.
+The independent confirmation establishes the installed state. The user will perform the remaining UI check.
+
+The earlier UI refresh includes product changes through `6fef93c3`.
 The signed release ID is `2cba138f1eed2145b7e4a9a4891424fdc34118e48b808d6bdd6fe1393b30dd6a`.
 The installed HTTP host reports PID 35176 at `http://127.0.0.1:4521`. The authenticated CLI reports healthy database and GitHub connections.
 The app opens. Hana and four workers retain their PIDs and provider sessions through the UI update.

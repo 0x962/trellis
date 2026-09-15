@@ -24,7 +24,9 @@ const sessionFlag = {
 const resumed = args.includes(sessionFlag);
 const sessionId = resumed
 	? args[harness === "codex" ? args.indexOf("--") + 1 : args.indexOf(sessionFlag) + 1]!
-	: `provider-${harness}`;
+	: harness === "claude" && process.env.HARNESS_FIXTURE_SESSION_FROM_ARGS === "1"
+		? args[args.indexOf("--session-id") + 1]!
+		: `provider-${harness}`;
 let sequence = Promise.resolve();
 let outcome = "completed";
 const native = (kind: string, prompt?: string) => {

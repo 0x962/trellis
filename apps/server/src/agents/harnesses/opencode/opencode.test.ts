@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { managerInstructions } from "../../launchCommand/managerInstructions.ts";
 import { parseOpenCodeEvent, prepareOpenCode } from "./opencode.ts";
 
 const homes: string[] = [];
@@ -65,4 +66,29 @@ test("OpenCode exposes native IDs, exact prompt, model, tool calls and idle resu
 	expect(
 		parseOpenCodeEvent({ event: "idle", sessionId: "ses_1", turnId: "msg_1", result: "Done", outcome: "completed" })[0],
 	).toMatchObject({ kind: "idle", result: "Done", outcome: "completed" });
+});
+
+test("OpenCode managers use only the Trellis bridge and deny native tools", async () => {
+	const options = await input();
+	const managerTools = { command: "/bin/trellis-host", args: ["manager-tools"] };
+	const launch = await prepareOpenCode({ ...options, managerTools });
+	expect(JSON.parse(launch.env.OPENCODE_PERMISSION!)).toEqual({ "*": "deny", "trellis_trellis_*": "allow" });
+	expect(JSON.parse(launch.env.TRELLIS_MANAGER_TOOLS!)).toEqual(managerTools);
+	const config = JSON.parse(launch.env.OPENCODE_CONFIG_CONTENT!);
+	expect(config.mcp).toEqual({
+		trellis: { type: "local", command: [managerTools.command, ...managerTools.args], enabled: true },
+	});
+	expect(config.agent["trellis-manager"].permission).toEqual({ "*": "deny", "trellis_trellis_*": "allow" });
+	expect(config.agent["trellis-manager"].prompt).toBe(managerInstructions);
+	expect(launch.args).toContain("--agent");
+	expect(launch.args[launch.args.indexOf("--agent") + 1]).toBe("trellis-manager");
+});
+
+test("OpenCode resumed managers receive the current manager system contract", async () => {
+	const launch = await prepareOpenCode({
+		...(await input()),
+		resume: true,
+		managerTools: { command: "/bin/trellis-host", args: ["manager-tools"] },
+	});
+	expect(JSON.parse(launch.env.OPENCODE_CONFIG_CONTENT!).agent["trellis-manager"].prompt).toBe(managerInstructions);
 });

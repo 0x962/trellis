@@ -4,22 +4,24 @@ import { openServiceSettings, serviceCommand } from "../service/service.ts";
 import { serviceNeedsRegistration } from "../serviceRegistration/serviceRegistration.ts";
 import { stopHostWork } from "../stopHostWork/stopHostWork.ts";
 
-export const requireService = async (helper: string, home: string) => {
+export const requireService = async (helper: string, home: string, registrationAuthorized = false) => {
 	ensureHostToken(home);
 	assertManagedHome(home);
 	let state = await serviceCommand(helper, "status");
 	if (serviceNeedsRegistration(state.status)) {
-		const { response } = await dialog.showMessageBox({
-			type: "info",
-			message: "Enable Trellis background work?",
-			detail:
-				"The local host starts at login and keeps agents active after you close Trellis. macOS restarts the host after a crash. Use the Trellis menu to stop local work and disable the service.",
-			buttons: ["Cancel", "Enable background work"],
-			defaultId: 1,
-			cancelId: 0,
-		});
-		if (response !== 1)
-			throw new Error("Trellis needs its local background service. Enable it when you reopen the app.");
+		if (!registrationAuthorized) {
+			const { response } = await dialog.showMessageBox({
+				type: "info",
+				message: "Enable Trellis background work?",
+				detail:
+					"The local host starts at login and keeps agents active after you close Trellis. macOS restarts the host after a crash. Use the Trellis menu to stop local work and disable the service.",
+				buttons: ["Cancel", "Enable background work"],
+				defaultId: 1,
+				cancelId: 0,
+			});
+			if (response !== 1)
+				throw new Error("Trellis needs its local background service. Enable it when you reopen the app.");
+		}
 		state = await serviceCommand(helper, "register");
 	}
 	if (state.status === "requiresApproval") {

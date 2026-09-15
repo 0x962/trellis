@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createConnection } from "node:net";
+import { Socket } from "node:net";
 import {
 	RUNTIME_PROTOCOL_VERSION,
 	type RuntimeMethods,
@@ -13,7 +13,7 @@ export async function* subscribeOutput(
 	signal?: AbortSignal,
 ): AsyncGenerator<RuntimeOutputEvent> {
 	signal?.throwIfAborted();
-	const socket = createConnection(socketPath);
+	const socket = new Socket();
 	const id = randomUUID();
 	const abort = () => socket.destroy(new Error("Terminal subscription aborted"));
 	signal?.addEventListener("abort", abort, { once: true });
@@ -24,8 +24,11 @@ export async function* subscribeOutput(
 	let buffer = "";
 	let ended = false;
 	try {
-		for await (const chunk of socket) {
-			buffer += chunk;
+		const chunks = socket[Symbol.asyncIterator]();
+		const firstChunk = chunks.next();
+		socket.connect(socketPath);
+		for (let chunk = await firstChunk; !chunk.done; chunk = await chunks.next()) {
+			buffer += chunk.value;
 			let end = buffer.indexOf("\n");
 			while (end >= 0) {
 				const reply = JSON.parse(buffer.slice(0, end)) as RuntimeResponse;

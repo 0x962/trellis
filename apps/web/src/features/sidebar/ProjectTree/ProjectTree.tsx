@@ -43,7 +43,7 @@ export function ProjectTree() {
 
 	return (
 		<nav aria-label="Projects" data-project-tree="">
-			<ul className="flex flex-col gap-0.5">{level(null, 0)}</ul>
+			<ul className="sidebar-project-tree flex flex-col gap-0.5">{level(null, 0)}</ul>
 		</nav>
 	);
 }

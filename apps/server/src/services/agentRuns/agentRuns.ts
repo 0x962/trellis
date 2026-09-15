@@ -31,8 +31,9 @@ export const observeResult = async (ctx: Ctx, input: { id: string }) =>
 	(await observeRuns(ctx, [await ctx.newTx((tx) => getRun(tx, input.id))]))[0]!;
 
 export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
-	await closeExitedAssignments(ctx);
-	const reservation = await ctx.newTx((tx) => reserve(ctx.core, tx, input));
+	const sessions = await closeExitedAssignments(ctx);
+	const exited = sessions.filter((session) => session.status === "exited").map((session) => session.id);
+	const reservation = await ctx.newTx((tx) => reserve(ctx.core, tx, input, exited));
 	if (reservation.replay) return { id: reservation.run.id };
 	const { run, context, config, resume, attempt, previousAttemptId } = reservation;
 	ctx.emit({ type: "agent-runs.changed", id: run.id });

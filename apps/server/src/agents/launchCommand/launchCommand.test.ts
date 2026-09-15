@@ -16,6 +16,7 @@ const run: AgentRun = {
 	ticketIdentifier: null,
 	state: "starting",
 	processStatus: null,
+	observation: null,
 	workspaceId: null,
 	terminalId: null,
 	url: null,
@@ -27,9 +28,9 @@ const run: AgentRun = {
 };
 const url = "http://127.0.0.1:4521";
 
-test("native assignments explain CLI discovery and current workspace evidence", () => {
+test("worker assignments explain CLI discovery and current workspace evidence", () => {
 	const launch = launchCommand({
-		run,
+		run: { ...run, kind: "builder" },
 		url,
 		context: "Project: TRL",
 		template: DEFAULT_AGENT_START_COMMAND,
@@ -38,7 +39,7 @@ test("native assignments explain CLI discovery and current workspace evidence", 
 	expect(launch.prompt).toContain('trellis evidence register "$TRELLIS_RUN_ID" --path');
 	expect(launch.prompt).toContain('trellis evidence check "$TRELLIS_RUN_ID" --request-id');
 	expect(launch.prompt).toContain("readyForReview");
-	expect(launch.prompt).toContain("margin list <pr-url>");
+	expect(launch.prompt).toContain("Follow the project review policy");
 });
 
 test("the default start command hands Claude the session id of the run and the whole prompt", () => {
@@ -87,4 +88,16 @@ test("initial and resumed prompts identify the runtime message", () => {
 		const launch = launchCommand({ run, url, context: "Project: TRL", template, messageId: "attempt-123" });
 		expect(launch.command).toContain("trellis-message:attempt-123\nManage the project.");
 	}
+});
+
+test("manager assignment messages contain persona and context without a duplicate system contract", () => {
+	const { prompt } = launchCommand({ run, url, context: "Project: TRL", template: DEFAULT_AGENT_START_COMMAND });
+	expect(prompt).toContain(run.instruction);
+	expect(prompt).toContain("Your name is Wren");
+	expect(prompt).toContain("Project: TRL");
+	expect(prompt).not.toContain("## Manager role");
+	expect(prompt).not.toContain("trellis evidence check");
+	expect(prompt).not.toContain("Read the repository's AGENTS.md");
+	expect(prompt).not.toContain("margin list");
+	expect(prompt).not.toContain("Navid");
 });

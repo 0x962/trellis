@@ -1,10 +1,12 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from "electron";
+import { activateHostRelease } from "./activateHostRelease/activateHostRelease.ts";
 import { chooseDataHome } from "./chooseDataHome/chooseDataHome.ts";
 import { configureDesktopIdentity } from "./desktopIdentity/desktopIdentity.ts";
 import { desktopPaths } from "./desktopPaths/desktopPaths.ts";
-import { adoptHost, connectHost, type HostConnection } from "./host/host.ts";
+import { connectHost, type HostConnection } from "./host/host.ts";
+import { hostRequest } from "./hostRequest/hostRequest.ts";
 import { installCli } from "./installCli/installCli.ts";
 import { deepLinkPath, externalUrl, sameOrigin } from "./navigation/navigation.ts";
 import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResources.ts";
@@ -13,6 +15,7 @@ import { restartHost } from "./restartHost/index.ts";
 import { restartMenuItem } from "./restartMenuItem/index.ts";
 import { readConfiguredHome, readSelectedHome } from "./selectedHome/selectedHome.ts";
 import { requireService, resumeLocalWork, showServiceStatus, stopLocalWork } from "./serviceActions/serviceActions.ts";
+import { showMaximizedWindow } from "./showMaximizedWindow/showMaximizedWindow.ts";
 import { showUpdateStatus } from "./updateActions/updateActions.ts";
 import { readUpdateStatus } from "./updateStatus/updateStatus.ts";
 import { windowOptions } from "./windowOptions/windowOptions.ts";
@@ -32,8 +35,7 @@ const developmentHostOptions = () => ({
 
 const openWindow = async () => {
 	if (window) {
-		window.show();
-		window.focus();
+		showMaximizedWindow(window);
 		return;
 	}
 	window = new BrowserWindow({
@@ -53,7 +55,8 @@ const openWindow = async () => {
 			partition: "persist:trellis",
 		},
 	});
-	window.once("ready-to-show", () => window?.show());
+	const createdWindow = window;
+	window.once("ready-to-show", () => showMaximizedWindow(createdWindow));
 	window.on("closed", () => {
 		window = undefined;
 	});
@@ -100,8 +103,10 @@ const connect = async () => {
 			return;
 		}
 		availableRelease = await pinResources(hostRoot, app.getPath("userData"));
-		await requireService(paths().helper, desktopHome());
-		host = await adoptHost(desktopHome());
+		host = await activateHostRelease(desktopHome(), paths().helper, availableRelease, {
+			ensureService: () => requireService(paths().helper, desktopHome()),
+			register: () => requireService(paths().helper, desktopHome(), true),
+		});
 		const update = await readUpdateStatus(desktopHome(), availableRelease);
 		if (!update.active) throw new Error("The background host has no active release.");
 		await installCli({
@@ -148,7 +153,7 @@ else {
 			rendererSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
 			rendererSession.setPermissionCheckHandler(() => false);
 			rendererSession.webRequest.onBeforeSendHeaders((details, callback) => {
-				if (host && window && details.webContentsId === window.webContents.id && sameOrigin(details.url, host.origin))
+				if (host && window && details.webContentsId === window.webContents.id && hostRequest(details.url, host.origin))
 					details.requestHeaders.Authorization = `Bearer ${host.token}`;
 				else delete details.requestHeaders.Authorization;
 				callback({ requestHeaders: details.requestHeaders });

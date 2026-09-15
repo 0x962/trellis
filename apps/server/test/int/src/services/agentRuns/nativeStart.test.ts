@@ -38,7 +38,54 @@ beforeEach(async () => {
 		);
 	});
 });
-test.each(["stopped", "replaced"])("a %s start cannot commit its workspace or launch", async (kind) => {
+test.each(["custom", "codex"] as const)(
+	"a %s manager fails before launch when the harness cannot enforce its tool boundary",
+	async (preset) => {
+		let prepared = false;
+		const run = await h.read((tx) => getRun(tx, id));
+		const ctx = {
+			...h.ctx(() => {}),
+			newTx: h.read,
+			home,
+			now: () => new Date(),
+			localUrl: "http://127.0.0.1:4521",
+		} as unknown as Parameters<typeof startNative>[0];
+		await startNative(
+			ctx,
+			{
+				run,
+				config: ProjectManagerConfigSchema.parse({
+					personaId: null,
+					concurrency: 1,
+					directory: "/tmp",
+					trustedDirectory: true,
+					harness: { preset, startCommand: "/bin/true", resumeCommand: "/bin/true" },
+				}),
+				resume: false,
+				context: "Fixture",
+				attempt: { id: attemptId, generation: 1, token: "fixture-token" },
+			},
+			{
+				environment: async () => {
+					prepared = true;
+					throw new Error("Unexpected environment lookup");
+				},
+			},
+		);
+		const after = await h.read((tx) => getRun(tx, id));
+		expect(after.error).toBe(
+			`The ${preset} harness cannot enforce the manager tool boundary. Select Claude, OpenCode, or Pi for managers. Workers can use any harness.`,
+		);
+		expect(after.closedAt).not.toBeNull();
+		expect(prepared).toBe(false);
+	},
+);
+test.each([
+	["stopped", "workspace"],
+	["replaced", "workspace"],
+	["stopped", "environment"],
+	["replaced", "environment"],
+])("a %s start during %s cannot commit its workspace or launch", async (kind, boundary) => {
 	const run = await h.read((tx) => getRun(tx, id));
 	const ctx = {
 		...h.ctx((event) => h.flushed.push(event)),
@@ -55,6 +102,10 @@ test.each(["stopped", "replaced"])("a %s start cannot commit its workspace or la
 		trustedDirectory: true,
 	});
 	const replacement = kind === "replaced" ? randomUUID() : attemptId;
+	const retire = () =>
+		h.rows(
+			sql`UPDATE agent_runs SET terminal_id=${replacement},closed_at=${kind === "stopped" ? new Date() : null} WHERE id=${id}`,
+		);
 	await startNative(
 		ctx,
 		{
@@ -66,10 +117,12 @@ test.each(["stopped", "replaced"])("a %s start cannot commit its workspace or la
 		},
 		{
 			workspace: async () => {
-				await h.rows(
-					sql`UPDATE agent_runs SET terminal_id=${replacement},closed_at=${kind === "stopped" ? new Date() : null} WHERE id=${id}`,
-				);
+				if (boundary === "workspace") await retire();
 				return "/tmp/retired-workspace";
+			},
+			environment: async () => {
+				if (boundary === "environment") await retire();
+				return { ...process.env };
 			},
 		},
 	);
@@ -80,45 +133,56 @@ test.each(["stopped", "replaced"])("a %s start cannot commit its workspace or la
 	expect(existsSync(join(home, "runtime"))).toBe(false);
 });
 
-test("a workspace failure closes the unlaunched assignment and preserves its cause", async () => {
-	const run = await h.read((tx) => getRun(tx, id));
-	const ctx = {
-		...h.ctx(() => {}),
-		newTx: h.read,
-		home,
-		now: () => new Date(),
-		localUrl: "http://127.0.0.1:4521",
-	} as unknown as Parameters<typeof startNative>[0];
-	await startNative(
-		ctx,
-		{
-			run,
-			config: ProjectManagerConfigSchema.parse({
-				personaId: null,
-				concurrency: 1,
-				directory: "/missing",
-				trustedDirectory: true,
-			}),
-			resume: false,
-			context: "Fixture",
-			attempt: { id: attemptId, generation: 1, token: "fixture-token" },
-		},
-		{
-			workspace: async () => {
-				throw new Error("Repository directory /missing does not exist");
+test.each(["workspace", "environment"])(
+	"a failure in %s closes the unlaunched assignment and preserves its cause",
+	async (boundary) => {
+		const run = await h.read((tx) => getRun(tx, id));
+		const ctx = {
+			...h.ctx(() => {}),
+			newTx: h.read,
+			home,
+			now: () => new Date(),
+			localUrl: "http://127.0.0.1:4521",
+		} as unknown as Parameters<typeof startNative>[0];
+		await startNative(
+			ctx,
+			{
+				run,
+				config: ProjectManagerConfigSchema.parse({
+					personaId: null,
+					concurrency: 1,
+					directory: "/missing",
+					trustedDirectory: true,
+				}),
+				resume: false,
+				context: "Fixture",
+				attempt: { id: attemptId, generation: 1, token: "fixture-token" },
 			},
-		},
-	);
-	const after = await h.read((tx) => getRun(tx, id));
-	expect(after.closedAt).not.toBeNull();
-	expect(after.error).toBe("Repository directory /missing does not exist");
-	expect(existsSync(join(home, "runtime"))).toBe(false);
-});
+			{
+				workspace: async () => {
+					if (boundary === "workspace") throw new Error("Repository directory /missing does not exist");
+					return "/tmp";
+				},
+				environment: async () => {
+					if (boundary === "environment") throw new Error("Login shell failed (exit 42).");
+					return { ...process.env };
+				},
+			},
+		);
+		const after = await h.read((tx) => getRun(tx, id));
+		expect(after.closedAt).not.toBeNull();
+		expect(after.error).toBe(
+			boundary === "workspace" ? "Repository directory /missing does not exist" : "Login shell failed (exit 42).",
+		);
+		expect(existsSync(join(home, "runtime"))).toBe(false);
+	},
+);
 
 test("an uncertain launch reply keeps the assignment open for process inspection", async () => {
 	mkdirSync(join(home, "runtime"));
 	let submitted = false;
 	let launchPath: string | undefined;
+	let launchCredential: string | undefined;
 	const server = createServer((socket) => {
 		socket.setEncoding("utf8");
 		let buffer = "";
@@ -131,6 +195,7 @@ test("an uncertain launch reply keeps the assignment open for process inspection
 			else {
 				submitted = true;
 				launchPath = request.params.env.PATH;
+				launchCredential = request.params.env.OPENAI_API_KEY;
 				socket.destroy();
 			}
 		});
@@ -160,12 +225,16 @@ test("an uncertain launch reply keeps the assignment open for process inspection
 					context: "Fixture",
 					attempt: { id: attemptId, generation: 1, token: "fixture-token" },
 				},
-				{ workspace: async () => "/tmp" },
+				{
+					workspace: async () => "/tmp",
+					environment: async () => ({ ...process.env, OPENAI_API_KEY: "fixture-provider-credential" }),
+				},
 			),
 		).rejects.toMatchObject({ code: "RUNNER_UNAVAILABLE" });
 		const after = await h.read((tx) => getRun(tx, id));
 		expect(submitted).toBe(true);
 		expect(launchPath).toBe(process.env.PATH);
+		expect(launchCredential).toBe("fixture-provider-credential");
 		expect(after.closedAt).toBeNull();
 		expect(after.error).toContain("response is unknown");
 		expect(after.sessionLost).toBe(false);

@@ -35,6 +35,39 @@ const commentRow = async (id: string) =>
 	(await query<CommentRow>(h.db, sql`SELECT * FROM comments WHERE id = ${id}`))[0];
 
 describe("comments", () => {
+	test("a repeated comment key returns the existing comment without new activity", async () => {
+		const { id } = await seed();
+		const input = { ticket: id, body: "Which region should receive the release?", dedupeKey: "release-region:1" };
+		const { result: first } = await create(claude, input);
+		const { result: replay, events } = await create(claude, input);
+		expect(replay.id).toBe(first.id);
+		expect(events).toEqual([]);
+		expect(await count(h.db, "comments")).toBe(1);
+		expect((await ticketRow(h.db, id))!.version).toBe(2);
+		expect(await activityOf(h.db, id)).toHaveLength(1);
+	});
+
+	test("comment keys belong to one ticket and actor, and a new revision creates a comment", async () => {
+		const { id, rootId, statuses } = await seed();
+		const other = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo });
+		const input = { ticket: id, body: "A decision is required.", dedupeKey: "scope:1" };
+		await create(claude, input);
+		await create(dana, input);
+		await create(claude, { ...input, ticket: other });
+		await create(claude, { ...input, dedupeKey: "scope:2" });
+		expect(await count(h.db, "comments")).toBe(4);
+	});
+
+	test("a reused comment key with a different body requires an explicit update", async () => {
+		const { id } = await seed();
+		await create(claude, { ticket: id, body: "First decision", dedupeKey: "scope:1" });
+		await expectErrorData(
+			create(claude, { ticket: id, body: "Different decision", dedupeKey: "scope:1" }),
+			"INPUT_VALIDATION_FAILED",
+		);
+		expect(await count(h.db, "comments")).toBe(1);
+	});
+
 	test("a comment moves the ticket updated_at and bumps the version", async () => {
 		const { id } = await seed();
 		const { result: comment } = await create(claude, { ticket: id, body: "Started on it." });

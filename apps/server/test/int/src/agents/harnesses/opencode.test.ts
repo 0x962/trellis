@@ -133,3 +133,59 @@ test("OpenCode preserves prompt receipts, tool progress, response text and inter
 		{ event: "idle", result: "First\nSecond", outcome: "interrupted" },
 	]);
 });
+
+test("OpenCode manager hooks replace inherited tools and block non-Trellis calls", async () => {
+	const home = await mkdtemp(join(tmpdir(), "trellis-opencode-manager-"));
+	homes.push(home);
+	const managerTools = { command: "/bin/trellis-host", args: ["manager-tools"] };
+	const launch = await prepareOpenCode({
+		cwd: home,
+		configDirectory: home,
+		resume: false,
+		prompt: "Manage",
+		hookCommand: "/usr/bin/true",
+		managerTools,
+	});
+	const child = Bun.spawn(
+		[
+			process.execPath,
+			"--eval",
+			`
+const {TrellisPlugin}=await import(process.argv[1]);
+const hooks=await TrellisPlugin({client:{session:{}}});
+const config={permission:{bash:'allow'},agent:{build:{permission:{'*':'allow'}}},mcp:{unrelated:{type:'local',command:['/bin/false']}}};
+await hooks.config(config);
+const system={system:[process.env.TRELLIS_MANAGER_SYSTEM_PROMPT+'\\nGlobal instructions: ask the user in the terminal.']};
+await hooks['experimental.chat.system.transform']({},system);
+const auxiliary={system:['Create a session title.']};
+await hooks['experimental.chat.system.transform']({},auxiliary);
+const denied=[];
+for(const tool of ['bash','read','edit','other_mcp_read']) {
+ try {await hooks['tool.execute.before']({sessionID:'other',tool},{args:{}})} catch(error) {denied.push(tool)}
+}
+await hooks['tool.execute.before']({sessionID:'other',tool:'trellis_trellis_tickets_list'},{args:{}});
+console.log(JSON.stringify({config,denied,system,auxiliary}));
+`,
+			JSON.parse(launch.env.OPENCODE_CONFIG_CONTENT!).plugin[0],
+		],
+		{ env: { ...process.env, ...launch.env }, stdout: "pipe", stderr: "pipe" },
+	);
+	const [code, stdout, stderr] = await Promise.all([
+		child.exited,
+		new Response(child.stdout).text(),
+		new Response(child.stderr).text(),
+	]);
+	expect(stderr).toBe("");
+	expect(code).toBe(0);
+	const result = JSON.parse(stdout);
+	expect(result.system.system).toEqual([launch.env.TRELLIS_MANAGER_SYSTEM_PROMPT]);
+	expect(result.system.system[0]).toContain("Use ticket comments for all user communication");
+	expect(result.auxiliary.system).toEqual(["Create a session title."]);
+	expect(result.denied).toEqual(["bash", "read", "edit", "other_mcp_read"]);
+	expect(result.config.permission).toEqual({ "*": "deny", "trellis_trellis_*": "allow" });
+	expect(result.config.agent.build.permission).toEqual(result.config.permission);
+	expect(result.config.tools).toEqual({ "*": false, "trellis_trellis_*": true });
+	expect(result.config.mcp).toEqual({
+		trellis: { type: "local", command: [managerTools.command, ...managerTools.args], enabled: true },
+	});
+});

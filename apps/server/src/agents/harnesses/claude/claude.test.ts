@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { managerInstructions } from "../../launchCommand/managerInstructions.ts";
 import { parseClaudeEvent } from "./parseClaudeEvent.ts";
 import { parseClaudeStatus } from "./parseClaudeStatus.ts";
 import { prepareClaude } from "./prepareClaude.ts";
@@ -17,6 +18,7 @@ test("Claude starts its native TUI with exact arguments and per-attempt hooks", 
 	const launch = await prepareClaude(input);
 	expect(launch.executable).toBe("claude");
 	expect(launch.args).toContain("--dangerously-skip-permissions");
+	expect(launch.args).not.toContain("--system-prompt");
 	expect(launch.args.slice(launch.args.indexOf("--model"), launch.args.indexOf("--model") + 2)).toEqual([
 		"--model",
 		"sonnet",
@@ -45,6 +47,26 @@ test("Claude resumes the supplied vendor ID with bypass and model", async () => 
 	]);
 	expect(launch.args).toContain("--dangerously-skip-permissions");
 	expect(launch.args).toContain("sonnet");
+});
+
+test("Claude managers expose only the Trellis bridge and remove native execution tools on start and resume", async () => {
+	const managerTools = { command: "/bin/bun", args: ["/app/manager.ts"] };
+	for (const resume of [false, true] as const) {
+		const launch = await prepareClaude({ ...input, managerTools, resume });
+		expect(launch.args[launch.args.indexOf("--system-prompt") + 1]).toBe(managerInstructions);
+		expect(launch.args[launch.args.indexOf("--system-prompt-snapshot") + 1]).toBe("off");
+		expect(launch.args).not.toContain("--dangerously-skip-permissions");
+		expect(launch.args).toContain("--strict-mcp-config");
+		expect(launch.args[launch.args.indexOf("--tools") + 1]).toBe("");
+		expect(launch.args[launch.args.indexOf("--permission-mode") + 1]).toBe("dontAsk");
+		expect(JSON.parse(launch.args[launch.args.indexOf("--mcp-config") + 1]!)).toEqual({
+			mcpServers: { trellis: { type: "stdio", ...managerTools } },
+		});
+		const settings = JSON.parse(launch.args[launch.args.indexOf("--settings") + 1]!);
+		expect(settings.permissions.allow).toEqual(["mcp__trellis__*"]);
+		expect(launch.args).toContain("--disable-slash-commands");
+		expect(launch.args[launch.args.indexOf("--setting-sources") + 1]).toBe("");
+	}
 });
 
 test("Claude events preserve native identity, prompt, tool data, and final response", () => {

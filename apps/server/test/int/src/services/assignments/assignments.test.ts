@@ -95,9 +95,10 @@ test("a replacement manager attempt rejects the prior generation token", async (
 	).id;
 	const first = await h.run((ctx, tx) => reserve(ctx, tx, { personaId: managerId, project, requestId: "manager-one" }));
 	if (first.replay) throw new Error("Expected a new assignment");
+	expect(first.context).not.toContain("--request-id");
 	await h.rows(sql`UPDATE agent_runs SET closed_at = now() WHERE id = ${first.run.id}`);
 	const second = await h.run((ctx, tx) =>
-		reserve(ctx, tx, { personaId: managerId, project, requestId: "manager-two" }),
+		reserve(ctx, tx, { personaId: managerId, project, requestId: "manager-two" }, [first.attempt.id]),
 	);
 	if (second.replay) throw new Error("Expected a new attempt");
 	expect(second.run.id).toBe(first.run.id);

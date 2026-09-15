@@ -5,11 +5,13 @@ import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { launchCommand } from "../../agents/launchCommand/launchCommand.ts";
 import { launchPrompt } from "../../agents/launchCommand/launchPrompt.ts";
+import { managerInstructions } from "../../agents/launchCommand/managerInstructions.ts";
 import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { customLaunch } from "../../agents/native/customLaunch.ts";
 import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
 import { nativeWorkspace } from "../../agents/native/workspace.ts";
 import { rows } from "../../db/queries/support.ts";
+import { executionEnvironment } from "../../executionEnvironment";
 import type { ExecutionAttempt } from "../assignments/attempts.ts";
 import type { ServiceCtx } from "../support.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
@@ -21,6 +23,7 @@ type Dependencies = {
 	workspace: typeof nativeWorkspace;
 	runtime: typeof ensureNativeRuntime;
 	env: Record<string, string | undefined>;
+	environment: () => Promise<NodeJS.ProcessEnv>;
 };
 export const startNative = async (
 	ctx: ServiceCtx & { localUrl: string },
@@ -32,23 +35,31 @@ export const startNative = async (
 		context: string;
 		attempt: ExecutionAttempt;
 		deadlineAt?: number;
+		resumePrompt?: string;
+		preserveAssignmentOnFailure?: boolean;
 	},
 	deps: Partial<Dependencies> = {},
 ) => {
 	const { run, config, resume, context } = input;
 	const terminalId = input.attempt.id;
+	const previousTerminalId = resume ? (input.previousAttemptId ?? null) : null;
 	if (config.harness.preset === "claude" && !config.trustedDirectory) {
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET closed_at = ${ctx.now()}, error = 'Trust this repository in project settings before an agent starts.', updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET terminal_id = ${input.preserveAssignmentOnFailure ? terminalId : previousTerminalId}, closed_at = ${input.preserveAssignmentOnFailure ? null : ctx.now()}, error = 'Trust this repository in project settings before an agent starts.', updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 		return { id: run.id };
 	}
 	let launchSubmitted = false;
 	try {
+		if (run.kind === "manager" && ["custom", "codex"].includes(config.harness.preset))
+			throw new Error(
+				`The ${config.harness.preset} harness cannot enforce the manager tool boundary. Select Claude, OpenCode, or Pi for managers. Workers can use any harness.`,
+			);
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
+		const baseEnv = deps.env ?? (await (deps.environment ?? executionEnvironment)());
 		const workspaceId = await (deps.workspace ?? nativeWorkspace)(ctx.home, run, config.directory);
 		const owned = await ctx.newTx((tx) =>
 			rows<{ id: string }>(
@@ -58,9 +69,8 @@ export const startNative = async (
 		);
 		if (owned.length === 0) return { id: run.id };
 		await ctx.newTx(assertNativeWorkEnabled);
-		const client = await (deps.runtime ?? ensureNativeRuntime)(ctx.home);
 		const env = {
-			...(deps.env ?? process.env),
+			...baseEnv,
 			TRELLIS_URL: ctx.localUrl,
 			TRELLIS_ACTOR: `agent:${run.id}`,
 			TRELLIS_RUN_ID: run.id,
@@ -68,9 +78,11 @@ export const startNative = async (
 			TRELLIS_RUNTIME_HOME: join(ctx.home, "runtime"),
 			TRELLIS_ATTEMPT_TOKEN: input.attempt.token,
 		};
+		const client = await (deps.runtime ?? ensureNativeRuntime)(ctx.home);
 		const timeoutMs = input.deadlineAt === undefined ? undefined : input.deadlineAt - Date.now();
 		if (timeoutMs !== undefined && timeoutMs <= 0) throw new Error("The flow group deadline elapsed before launch");
 		let session: RuntimeProcessStatus;
+		let launchWorkspace = workspaceId;
 		if (config.harness.preset === "custom") {
 			const launch = launchCommand({
 				run,
@@ -95,9 +107,16 @@ export const startNative = async (
 			const host = nativeHost(ctx.home, env, client);
 			const launch = {
 				id: terminalId,
+				kind: run.kind,
+				...(run.kind === "manager" ? { managerId: run.id } : {}),
 				harness: config.harness.preset,
 				cwd: workspaceId,
-				prompt: launchPrompt({ run, url: ctx.localUrl, context }),
+				prompt:
+					input.resumePrompt === undefined
+						? launchPrompt({ run, url: ctx.localUrl, context })
+						: run.kind === "manager"
+							? `${managerInstructions}\n\n${input.resumePrompt}`
+							: input.resumePrompt,
 				model: config.harness.model,
 				token: input.attempt.token,
 				timeoutMs,
@@ -117,21 +136,23 @@ export const startNative = async (
 						"The prior attempt has no confirmed session for this harness. Start a new session.",
 					);
 				sessionId = previous.agent.sessionId;
+				launch.cwd = previous.launch!.cwd;
 			}
-			await host.prepare(launch, sessionId);
+			const descriptor = await host.prepare(launch, sessionId);
+			launchWorkspace = descriptor.spec.cwd;
 			launchSubmitted = true;
 			({ process: session } =
 				sessionId === undefined ? await host.start(launch) : await host.resume({ ...launch, sessionId }));
 		}
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = ${session.status === "exited" ? ctx.now() : null}, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET workspace_id = ${launchWorkspace}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = ${session.status === "exited" ? ctx.now() : null}, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 	} catch (error) {
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET session_lost = session_lost OR ${error instanceof MissingNativeSessionIdentity}, closed_at = ${launchSubmitted ? null : ctx.now()}, error = ${error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET terminal_id = ${launchSubmitted || input.preserveAssignmentOnFailure ? terminalId : previousTerminalId}, session_lost = session_lost OR ${error instanceof MissingNativeSessionIdentity}, closed_at = ${launchSubmitted || input.preserveAssignmentOnFailure ? null : ctx.now()}, error = ${error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 		if (launchSubmitted)
