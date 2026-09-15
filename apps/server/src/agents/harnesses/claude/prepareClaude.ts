@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import type { HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 export async function prepareClaude(input: HarnessLaunchInput): Promise<HarnessLaunch> {
@@ -26,7 +27,7 @@ export async function prepareClaude(input: HarnessLaunchInput): Promise<HarnessL
 				"dontAsk",
 				"--strict-mcp-config",
 				"--mcp-config",
-				JSON.stringify({ mcpServers: { trellis: { type: "stdio", ...input.managerTools } } }),
+				JSON.stringify({ mcpServers: { trellis: { type: "stdio", alwaysLoad: true, ...input.managerTools } } }),
 				"--disable-slash-commands",
 				"--setting-sources",
 				"",
@@ -40,5 +41,11 @@ export async function prepareClaude(input: HarnessLaunchInput): Promise<HarnessL
 		input.resume ? input.sessionId! : (input.sessionId ?? crypto.randomUUID()),
 	);
 	args.push("--", input.prompt);
-	return { executable: "claude", args, env: {} };
+	return {
+		executable: "claude",
+		args,
+		env: input.managerTools
+			? { TRELLIS_MANAGER_TOOLS_READY: join(input.configDirectory, "manager-tools-ready.json") }
+			: {},
+	};
 }

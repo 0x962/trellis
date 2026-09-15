@@ -57,10 +57,11 @@ test("Claude managers expose only the Trellis bridge and remove native execution
 		expect(launch.args[launch.args.indexOf("--system-prompt-snapshot") + 1]).toBe("off");
 		expect(launch.args).not.toContain("--dangerously-skip-permissions");
 		expect(launch.args).toContain("--strict-mcp-config");
+		expect(launch.env.TRELLIS_MANAGER_TOOLS_READY).toBe("/tmp/attempt/manager-tools-ready.json");
 		expect(launch.args[launch.args.indexOf("--tools") + 1]).toBe("");
 		expect(launch.args[launch.args.indexOf("--permission-mode") + 1]).toBe("dontAsk");
 		expect(JSON.parse(launch.args[launch.args.indexOf("--mcp-config") + 1]!)).toEqual({
-			mcpServers: { trellis: { type: "stdio", ...managerTools } },
+			mcpServers: { trellis: { type: "stdio", alwaysLoad: true, ...managerTools } },
 		});
 		const settings = JSON.parse(launch.args[launch.args.indexOf("--settings") + 1]!);
 		expect(settings.permissions.allow).toEqual(["mcp__trellis__*"]);
