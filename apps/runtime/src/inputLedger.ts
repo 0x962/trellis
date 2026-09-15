@@ -16,7 +16,12 @@ export class InputLedger {
 	acknowledgedMessageIds() {
 		return [...this.entries.values()].filter((entry) => entry.acknowledged).map((entry) => entry.messageId);
 	}
-	acknowledge(messageId: string) {
+	has(messageId: string) {
+		return this.entries.has(messageId);
+	}
+	acknowledge(messageId: string, initial = false) {
+		if (initial && !this.entries.has(messageId))
+			this.entries.set(messageId, { messageId, hash: `initial:${messageId}`, status: "written" });
 		const entry = this.entries.get(messageId);
 		if (!entry || entry.acknowledged) return;
 		entry.acknowledged = true;

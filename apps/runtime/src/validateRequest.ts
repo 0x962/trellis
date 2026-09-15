@@ -68,6 +68,8 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			break;
 		case "deliver":
 		case "input":
+			if (params.requireIdle !== undefined && typeof params.requireIdle !== "boolean")
+				throw new Error("The idle requirement must be a boolean");
 			if (
 				request.method === "deliver" &&
 				(typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))

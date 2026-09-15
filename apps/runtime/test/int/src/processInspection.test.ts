@@ -108,3 +108,48 @@ test("authenticated completion retains the result after the process exits", asyn
 	await client.stop(session.id);
 	expect((await client.inspect(session.id)).result).toEqual(completed.result);
 });
+
+test("automatic delivery claims an idle turn before it writes any bytes", async () => {
+	const id = "idle-delivery";
+	await client.start({
+		id,
+		command: "/bin/cat",
+		args: [],
+		cwd: home,
+		mode: "pty",
+		env: { TRELLIS_ATTEMPT_TOKEN: "idle-token" },
+	});
+	await client.turn(id, "idle-token", "SessionStart");
+	const bytes = Buffer.from("one\n").toString("base64");
+	const outcomes = await Promise.allSettled([
+		client.deliver(id, "first", bytes, true),
+		client.deliver(id, "second", bytes, true),
+	]);
+	expect(outcomes.map((outcome) => outcome.status).sort()).toEqual(["fulfilled", "rejected"]);
+	const rejected = outcomes.find((outcome) => outcome.status === "rejected") as PromiseRejectedResult;
+	expect(rejected.reason.code).toBe("RUNTIME_BUSY");
+	const second = outcomes[1]!.status === "rejected" ? "second" : "first";
+	await client.turn(id, "idle-token", "Stop");
+	expect((await client.deliver(id, second, bytes, true)).status).toBe("written");
+	await client.turn(id, "idle-token", "Stop");
+	await client.input(id, Buffer.from("typed without submit").toString("base64"));
+	await expect(client.deliver(id, "third", bytes, true)).rejects.toMatchObject({ code: "RUNTIME_BUSY" });
+	await client.stop(id);
+});
+
+test("the authenticated initial prompt acknowledges only its own attempt ID", async () => {
+	const id = "initial-prompt";
+	await client.start({
+		id,
+		command: "/bin/cat",
+		args: [],
+		cwd: home,
+		mode: "pty",
+		env: { TRELLIS_ATTEMPT_TOKEN: "initial-token" },
+	});
+	await client.turn(id, "initial-token", "UserPromptSubmit", "another-attempt");
+	expect((await client.inspect(id)).acknowledgedMessageIds).toEqual([]);
+	await client.turn(id, "initial-token", "UserPromptSubmit", id);
+	expect((await client.inspect(id)).acknowledgedMessageIds).toEqual([id]);
+	await client.stop(id);
+});

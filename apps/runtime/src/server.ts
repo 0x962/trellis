@@ -59,7 +59,7 @@ export async function startRuntime(home: string) {
 			}
 			case "deliver": {
 				const p = request.params as RuntimeMethods["deliver"]["params"];
-				return store.deliver(p.id, p.messageId, p.data);
+				return store.deliver(p.id, p.messageId, p.data, p.requireIdle);
 			}
 			case "resize": {
 				const p = request.params as RuntimeMethods["resize"]["params"];

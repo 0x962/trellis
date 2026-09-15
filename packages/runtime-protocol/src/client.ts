@@ -66,7 +66,13 @@ export class RuntimeClient {
 	subscribe(id: string, offset = 0, signal?: AbortSignal, stream: "stdout" | "stderr" = "stdout") {
 		return subscribeOutput(this.socketPath, { id, offset, stream }, signal);
 	}
-	turn(id: string, token: string, event: "SessionStart" | "UserPromptSubmit" | "Stop", messageId?: string, result?: string) {
+	turn(
+		id: string,
+		token: string,
+		event: "SessionStart" | "UserPromptSubmit" | "Stop",
+		messageId?: string,
+		result?: string,
+	) {
 		return this.call("turn", { id, token, event, messageId, result });
 	}
 	inspect(id: string) {
@@ -87,8 +93,8 @@ export class RuntimeClient {
 	input(id: string, data: string) {
 		return this.call("input", { id, data });
 	}
-	deliver(id: string, messageId: string, data: string) {
-		return this.call("deliver", { id, messageId, data });
+	deliver(id: string, messageId: string, data: string, requireIdle?: boolean) {
+		return this.call("deliver", { id, messageId, data, requireIdle });
 	}
 	resize(id: string, cols: number, rows: number) {
 		return this.call("resize", { id, cols, rows });

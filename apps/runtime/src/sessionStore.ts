@@ -6,26 +6,10 @@ import { CompletionStore } from "./completionStore.ts";
 import { InputLedger } from "./inputLedger.ts";
 import { inspectProcess } from "./inspectProcess.ts";
 import { observedSession } from "./observedSession.ts";
-import { createProcessHandle, type ProcessHandle } from "./processHandle.ts";
+import { createProcessHandle } from "./processHandle.ts";
 import { SessionLog } from "./sessionLog.ts";
+import type { SessionRecord as Record } from "./sessionRecord.ts";
 
-type Record = {
-	session: RuntimeSession;
-	fingerprint: string | null;
-	identity: string | null;
-	launch: RuntimeProcessStatus["launch"];
-	listeners: Set<() => void>;
-	tokenHash: Buffer | null;
-	activity: RuntimeProcessStatus["activity"];
-	log: SessionLog;
-	stderr: SessionLog;
-	ledger: InputLedger;
-	completion: CompletionStore;
-	process?: ProcessHandle;
-	timer?: ReturnType<typeof setTimeout>;
-	stopped: Promise<void>;
-	resolveStop: () => void;
-};
 export class SessionStore {
 	private readonly records = new Map<string, Record>();
 	constructor(
@@ -104,7 +88,7 @@ export class SessionStore {
 		if (!this.inspect(id).controllable) throw new Error("The process is not controllable");
 		const state = { SessionStart: "ready", UserPromptSubmit: "working", Stop: "idle" } as const;
 		record.activity = { state: state[event], updatedAt: new Date().toISOString() };
-		if (event === "UserPromptSubmit" && messageId !== undefined) record.ledger.acknowledge(messageId);
+		if (event === "UserPromptSubmit" && messageId !== undefined) record.ledger.acknowledge(messageId, messageId === id);
 		if (event === "Stop" && result !== undefined) record.completion.append(result);
 		for (const listener of record.listeners) listener();
 		return this.inspect(id);
@@ -226,11 +210,21 @@ export class SessionStore {
 	async input(id: string, data: string) {
 		const record = this.get(id);
 		if (!record.process) throw new Error(`Session ${id} is ${record.session.status}`);
+		if (record.tokenHash !== null) {
+			record.activity = { state: "working", updatedAt: new Date().toISOString() };
+			for (const listener of record.listeners) listener();
+		}
 		await record.process.input(Buffer.from(data, "base64"));
 		return null;
 	}
-	deliver(id: string, messageId: string, data: string) {
-		return this.get(id).ledger.deliver(messageId, data, () => this.input(id, data));
+	deliver(id: string, messageId: string, data: string, requireIdle = false) {
+		const record = this.get(id);
+		if (requireIdle && !record.ledger.has(messageId)) {
+			const current = this.inspect(id);
+			if (!current.controllable || !current.activity || !["ready", "idle"].includes(current.activity.state))
+				throw Object.assign(new Error("The agent is not idle"), { code: "RUNTIME_BUSY" });
+		}
+		return record.ledger.deliver(messageId, data, () => this.input(id, data));
 	}
 	resize(id: string, cols: number, rows: number) {
 		const record = this.get(id);

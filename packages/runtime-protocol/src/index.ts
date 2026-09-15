@@ -65,13 +65,19 @@ export interface RuntimeDelivery {
 }
 export interface RuntimeMethods {
 	turn: {
-		params: { id: string; token: string; event: "SessionStart" | "UserPromptSubmit" | "Stop"; messageId?: string; result?: string };
+		params: {
+			id: string;
+			token: string;
+			event: "SessionStart" | "UserPromptSubmit" | "Stop";
+			messageId?: string;
+			result?: string;
+		};
 		result: RuntimeProcessStatus;
 	};
 	inspect: { params: { id: string }; result: RuntimeProcessStatus };
 	subscribe: { params: { id: string; offset: number; stream?: "stdout" | "stderr" }; result: RuntimeOutputEvent };
 	shutdown: { params: Record<string, never>; result: null };
-	deliver: { params: { id: string; messageId: string; data: string }; result: RuntimeDelivery };
+	deliver: { params: { id: string; messageId: string; data: string; requireIdle?: boolean }; result: RuntimeDelivery };
 	hello: { params: Record<string, never>; result: RuntimeHello };
 	list: { params: Record<string, never>; result: RuntimeProcessStatus[] };
 	start: { params: LaunchSpec; result: RuntimeSession };
