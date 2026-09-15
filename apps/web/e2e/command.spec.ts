@@ -85,13 +85,12 @@ test("g then h shows the hint and lands on Needs you", async ({ page }) => {
 });
 
 // E2E-05
-test("the help sheet opens over any route and closes on Escape", async ({ page }) => {
+test("the sidebar draws no help button and the question mark opens no dialog", async ({ page }) => {
 	await signIn(page, "/all");
 	await expect(page.getByRole("heading", { name: "All tickets" })).toBeVisible();
+	const sidebar = page.getByRole("complementary", { name: "Sidebar" });
+	await expect(sidebar.getByRole("link", { name: "Settings" })).toBeVisible();
+	await expect(sidebar.getByRole("button", { name: "Keyboard shortcuts" })).toHaveCount(0);
 	await page.keyboard.press("?");
-	const sheet = page.getByRole("dialog", { name: /Keyboard shortcuts/ });
-	await expect(sheet).toBeVisible();
-	await expect(sheet.getByText("Open the ticket", { exact: true })).toBeVisible();
-	await page.keyboard.press("Escape");
-	await expect(sheet).toBeHidden();
+	await expect(page.getByRole("dialog")).toHaveCount(0);
 });

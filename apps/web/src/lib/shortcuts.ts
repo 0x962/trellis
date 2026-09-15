@@ -1,5 +1,5 @@
-// The one shortcut map. The hotkey registrations, the palette items, and
-// the help sheet read their keys from here, so a key exists in one place.
+// The one shortcut map. The hotkey registrations and the palette items read
+// their keys from here, so a key exists in one place.
 
 // `global` fires wherever the app is. Every other scope belongs to the
 // focused surface: the list, the board, the ticket page, or the
@@ -15,18 +15,15 @@ export type Shortcut = {
 	// `mod` is Command on a Mac and Control elsewhere.
 	keys: string;
 	scope: ShortcutScope;
-	// The line the help sheet prints. Rows of one scope with the same label
-	// are one action, and the sheet prints them as one row with every key.
+	// The action in words. Rows of one scope with the same label are one
+	// action with several keys.
 	label: string;
 };
 
-// The rows keep their scope order, because the help sheet groups them in
-// the order it reads them.
 export const shortcuts: readonly Shortcut[] = [
 	{ id: "palette", keys: "mod+k", scope: "global", label: "Open the command palette" },
 	{ id: "search", keys: "/", scope: "global", label: "Search tickets" },
 	{ id: "create", keys: "c", scope: "global", label: "New ticket" },
-	{ id: "help", keys: "?", scope: "global", label: "Show the keyboard shortcuts" },
 	{ id: "gotoNeedsYou", keys: "g h", scope: "global", label: "Go to Needs you" },
 	{ id: "gotoAll", keys: "g a", scope: "global", label: "Go to All tickets" },
 	{ id: "gotoProject", keys: "g p", scope: "global", label: "Go to a project" },

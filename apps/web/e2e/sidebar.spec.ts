@@ -81,6 +81,72 @@ const overflow = (page: Page) =>
 		};
 	});
 
+// TRL-66. The sidebar draws no wordmark, open or collapsed. A round button at
+// its top collapses it to the rail of icons and opens it again.
+test("sidebar > a round button collapses and expands the sidebar, and no wordmark shows", async ({ page }) => {
+	await signIn(page, "/all");
+	const sidebar = page.getByRole("complementary", { name: "Sidebar" });
+	await expect(sidebar.getByRole("link", { name: "All tickets" })).toBeVisible();
+	await expect(sidebar.getByRole("img", { name: "trellis" })).toHaveCount(0);
+
+	await sidebar.getByRole("button", { name: "Collapse sidebar" }).click();
+	await expect(sidebar).toHaveAttribute("data-collapsed", "true");
+	await expect(sidebar.getByRole("img", { name: "trellis" })).toHaveCount(0);
+
+	await sidebar.getByRole("button", { name: "Expand sidebar" }).click();
+	await expect(sidebar).not.toHaveAttribute("data-collapsed");
+	await expect(sidebar.getByRole("button", { name: "Collapse sidebar" })).toBeVisible();
+});
+
+// TRL-66. While the app loads, the placeholder of the sidebar draws no
+// wordmark either. Its header row has the height of the loaded header, so
+// the fixed rows stay in place when the loaded sidebar replaces it.
+test("sidebar > the loading sidebar shows no wordmark, and its rows stay in place when the app loads", async ({
+	page,
+}) => {
+	let release!: () => void;
+	const serverAnswers = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	await page.route("**/rpc/**", async (route) => {
+		await serverAnswers;
+		await route.continue();
+	});
+	await signIn(page, "/all");
+	const frame = page.locator("[data-shell-frame]");
+	const placeholder = frame.getByRole("complementary", { name: "Sidebar" });
+	const pendingRow = placeholder.getByRole("link", { name: "Needs you" });
+	await expect(pendingRow).toBeVisible();
+	await expect(placeholder.getByRole("img", { name: "trellis" })).toHaveCount(0);
+	const pendingTop = (await pendingRow.boundingBox())!.y;
+
+	release();
+	await expect(frame).toHaveCount(0);
+	const row = page.getByRole("complementary", { name: "Sidebar" }).getByRole("link", { name: "Needs you" });
+	await expect(row).toBeVisible();
+	expect((await row.boundingBox())!.y).toBe(pendingTop);
+});
+
+// TRL-66. A coarse pointer draws the collapse button at 44 px. The collapsed
+// rail is 48 px wide and clips what it does not hold, so the whole circle
+// must sit inside the rail.
+test.describe("on a touch screen", () => {
+	test.use({ viewport: { width: 1024, height: 768 }, hasTouch: true, isMobile: true });
+
+	test("sidebar > the collapsed rail holds the whole 44 px collapse button", async ({ page }) => {
+		await signIn(page, "/all");
+		const sidebar = page.getByRole("complementary", { name: "Sidebar" });
+		await sidebar.getByRole("button", { name: "Collapse sidebar" }).tap();
+		await expect(sidebar).toHaveAttribute("data-collapsed", "true");
+		await expect.poll(async () => (await sidebar.boundingBox())!.width).toBe(48);
+		const rail = (await sidebar.boundingBox())!;
+		const circle = (await sidebar.getByRole("button", { name: "Expand sidebar" }).boundingBox())!;
+		expect(circle.width).toBe(44);
+		expect(circle.x).toBeGreaterThanOrEqual(rail.x);
+		expect(circle.x + circle.width).toBeLessThanOrEqual(rail.x + rail.width);
+	});
+});
+
 test("sidebar > the Personas link stays inside the viewport while the project tree scrolls", async ({ page }) => {
 	await signIn(page, "/all");
 	const tree = page.getByRole("navigation", { name: "Projects" });

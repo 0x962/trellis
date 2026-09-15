@@ -4,7 +4,6 @@ import { useApp } from "../../../lib/appContext";
 import { useGlobalHotkeys } from "../../../lib/hotkeys";
 import { commandActions } from "../../command/commandStore";
 import { SequenceHint } from "../../command/SequenceHint";
-import { openShortcutHelp } from "../../command/ShortcutHelp";
 import { routeDefaults } from "../../command/utils/routeDefaults";
 import { composerActions } from "../../composer";
 
@@ -32,7 +31,6 @@ export function GlobalHotkeys() {
 		onPalette,
 		onSearch,
 		onCompose,
-		onHelp: openShortcutHelp,
 		onProjectPicker,
 		scheduler,
 	});

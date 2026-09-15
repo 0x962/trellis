@@ -9,10 +9,10 @@ import { SidebarBody } from "./components/SidebarBody";
 const MobileSidebar = lazy(async () => ({ default: (await import("./components/MobileSidebar")).MobileSidebar }));
 
 // The 240 px sidebar. `[` collapses it to a 48 px rail of icons, and the
-// width animates between the two. The rail keeps the mark, which opens the
-// sidebar again, so the aside never leaves the layout or the accessibility
-// tree. Below 768 px the aside leaves the layout, and the same content opens
-// in a sheet from the topbar.
+// width animates between the two. The rail keeps the collapse button, which
+// opens the sidebar again, so the aside never leaves the layout or the
+// accessibility tree. Below 768 px the aside leaves the layout, and the same
+// content opens in a sheet from the topbar.
 export function Sidebar() {
 	const collapsed = useUiStore((state) => state.sidebarCollapsed);
 	const mobileOpen = useUiStore((state) => state.mobileSidebarOpen);
