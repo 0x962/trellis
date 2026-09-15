@@ -7,6 +7,7 @@ export function processCompletion(
 	let cleanupFailed = false;
 	let clean = false;
 	let streamsClosed = false;
+	let leaderExitObserved = false;
 	let finished = false;
 	let code: number | null = null;
 	const finish = () => {
@@ -15,7 +16,8 @@ export function processCompletion(
 			exited(code);
 		}
 	};
-	const startCleanup = () => {
+	const startCleanup = (newAttempt = false) => {
+		if (newAttempt && cleanupFailed) cleanupStarted = false;
 		if (cleanupStarted || finished) return;
 		cleanupStarted = true;
 		cleanupFailed = false;
@@ -32,18 +34,18 @@ export function processCompletion(
 		);
 	};
 	return {
-		stop: () => {
-			if (cleanupFailed) cleanupStarted = false;
-			startCleanup();
-		},
+		stop: () => startCleanup(true),
 		leaderExited: (exitCode: number | null) => {
 			code = exitCode;
-			startCleanup();
+			const firstExit = !leaderExitObserved;
+			leaderExitObserved = true;
+			startCleanup(firstExit);
 		},
 		closed: (exitCode: number | null) => {
 			code = exitCode;
+			const firstClose = !streamsClosed;
 			streamsClosed = true;
-			startCleanup();
+			startCleanup(firstClose);
 			finish();
 		},
 		failed: () => {
