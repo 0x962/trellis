@@ -108,6 +108,19 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /agent-runs/{id}/terminal/resize": { cols: 100, rows: 32 },
 	"POST /manager-dispatches/{id}/retry": {},
 	"POST /manager-dispatches/{id}/received": {},
+	"POST /manager-dispatches/{id}/cancel": {
+		expectedGeneration: 1,
+		reason: "The owner workspace no longer exists.",
+	},
+	"POST /agent-runs/retire-external": {
+		source: "persona",
+		id: "01J9Z0000000000000000000A1",
+		runtime: "superset",
+		workspaceId: "saved-workspace-id",
+		terminalId: "saved-terminal-id",
+		sessionId: "saved-session-id",
+		externalProcessStopped: true,
+	},
 	"POST /native-work/resume": {},
 	"POST /native-work/stop": {},
 	"POST /flow-executions": {

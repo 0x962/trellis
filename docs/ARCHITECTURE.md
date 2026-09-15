@@ -124,6 +124,14 @@ An incomplete import marker prevents host boot. Rollback archives the target, in
 `trellis native-migration` inventories one project's execution ownership and applies a versioned native configuration.
 Its rollback restores the original configuration after active owners and unresolved deliveries clear.
 
+The project manager page previews local execution with the repository directory, saved assignments, and migration blockers.
+A human can retire an external assignment after its process stops. The audit retains its host, workspace, terminal, and conversation identifiers.
+Retirement preserves terminal captures and prevents the assignment from reuse.
+A missing external workspace interrupts its manager and blocks automatic replacement.
+A human can cancel an unknown delivery with its current generation and a reason.
+Cancellation preserves the unknown receipt, original events, error, and assignment identifiers.
+The migration keeps project history and starts with dispatch paused and repository trust disabled.
+
 Settings exports browser drafts and imports them as separate recovery copies.
 A flow recovery copy remains until the host acknowledges its saved graph.
 

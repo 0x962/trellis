@@ -2,6 +2,7 @@ import type { Tx } from "../db/tx.ts";
 import * as actors from "./actors.ts";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import * as agentCommunication from "./agentRuns/communication.ts";
+import { retireExternal } from "./agentRuns/externalRetirement/externalRetirement.ts";
 import * as agentHarness from "./agentRuns/harness.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
 import { readNativeWork, setNativeWork } from "./agentRuns/nativeControl.ts";
@@ -151,9 +152,11 @@ export const services = {
 	"controller.recover": core("mutation", controller.recover),
 	"controller.list": core("read", controller.list),
 	"controller.retry": core("mutation", controller.retry),
+	"controller.cancel": core("mutation", controller.cancel),
 	"controller.resolveUnknown": core("mutation", controller.resolveUnknown),
 	"controller.dispatch": prepared("mutation", controllerDispatch.dispatch, controllerDispatch.finished),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
+	"agentRuns.retireExternal": core("mutation", retireExternal),
 	"agentRuns.list": core("read", agentRuns.list),
 	"agentRuns.start": prepared("mutation", agentRuns.prepareStart, agentRuns.finish),
 	"agentRuns.stop": prepared("mutation", agentLifecycle.prepareStop, agentRuns.finish),
