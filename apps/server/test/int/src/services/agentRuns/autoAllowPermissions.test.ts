@@ -60,7 +60,7 @@ beforeEach(async () => {
 });
 test("the default allows the original tool input through a stable permission key", async () => {
 	const pending = snapshot();
-	expect(await invoke(pending)).toEqual(pending);
+	expect(await invoke(pending)).toEqual({ snapshot: pending, suppressPermissionAttention: true });
 	expect(calls).toEqual([
 		{
 			id: "attempt",
@@ -120,7 +120,8 @@ test("the setting is read again between tool requests", async () => {
 });
 test("an unknown delivery retains the pending tool and prevents another automatic response", async () => {
 	outcome = "unknown";
-	const observed = await invoke();
+	const { snapshot: observed, suppressPermissionAttention } = await invoke();
+	expect(suppressPermissionAttention).toBe(false);
 	expect(observed.state).toBe("unknown");
 	expect(observed.error).toContain("permission response");
 	expect(observed.pendingPermissions).toEqual(snapshot().pendingPermissions);
@@ -134,12 +135,19 @@ test("a saved config without the checkbox uses its enabled default", async () =>
 	expect(calls).toHaveLength(1);
 });
 test("a failed runtime write retains the pending tool as unknown", async () => {
-	const observed = await invoke(snapshot(), {
+	const { snapshot: observed, suppressPermissionAttention } = await invoke(snapshot(), {
 		deliver: async () => {
 			throw new Error("Runtime unavailable");
 		},
 	});
 	expect(observed.state).toBe("unknown");
+	expect(suppressPermissionAttention).toBe(false);
 	expect(observed.error).toContain("Runtime unavailable");
 	expect(observed.pendingPermissions).toEqual(snapshot().pendingPermissions);
+});
+
+test("a pending tool does not suppress a retained permission error", async () => {
+	const pending = { ...snapshot(), error: "An earlier permission was denied" };
+	expect(await invoke(pending)).toEqual({ snapshot: pending, suppressPermissionAttention: false });
+	expect(calls).toHaveLength(1);
 });

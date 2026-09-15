@@ -19,6 +19,7 @@ export const reconcileNativeObservation = async (
 		runId: string;
 		attemptId: string;
 		snapshot: HarnessSnapshot;
+		suppressPermissionAttention?: boolean;
 		checkpoint?: ClaudeCheckpoint;
 		expectedOffset?: number;
 		receipts?: string[];
@@ -51,14 +52,17 @@ export const reconcileNativeObservation = async (
 		snapshot.state === "idle" && snapshot.result !== null
 			? JSON.stringify([snapshot.resultId ?? null, snapshot.acknowledgedMessageIds.at(-1) ?? null, snapshot.result])
 			: (previous?.result_key ?? null);
-	const attentionKey = ["needs_input", "failed", "unknown"].includes(snapshot.state)
-		? JSON.stringify([
-				snapshot.state,
-				snapshot.acknowledgedMessageIds.at(-1) ?? null,
-				snapshot.pendingPermissions.map((permission) => permission.requestId).sort(),
-				snapshot.error,
-			])
-		: (previous?.attention_key ?? null);
+	const attentionKey =
+		snapshot.state === "needs_input" && snapshot.pendingPermissions.length > 0 && input.suppressPermissionAttention
+			? null
+			: ["needs_input", "failed", "unknown"].includes(snapshot.state)
+				? JSON.stringify([
+						snapshot.state,
+						snapshot.acknowledgedMessageIds.at(-1) ?? null,
+						snapshot.pendingPermissions.map((permission) => permission.requestId).sort(),
+						snapshot.error,
+					])
+				: (previous?.attention_key ?? null);
 	const serialized = JSON.stringify(snapshot);
 	const snapshotChanged = !isDeepStrictEqual(previous?.snapshot, JSON.parse(serialized));
 	for (const messageId of input.receipts ?? [])
@@ -72,10 +76,11 @@ export const reconcileNativeObservation = async (
  VALUES (${input.attemptId},${serialized}::jsonb,${JSON.stringify(checkpoint)}::jsonb,${resultKey},${attentionKey},${ctx.now()})
  ON CONFLICT (attempt_id) DO UPDATE SET snapshot=EXCLUDED.snapshot,checkpoint=EXCLUDED.checkpoint,result_key=EXCLUDED.result_key,attention_key=EXCLUDED.attention_key,updated_at=EXCLUDED.updated_at
  WHERE agent_harness_observations.snapshot IS DISTINCT FROM EXCLUDED.snapshot OR agent_harness_observations.checkpoint IS DISTINCT FROM EXCLUDED.checkpoint
+ OR agent_harness_observations.attention_key IS DISTINCT FROM EXCLUDED.attention_key
  RETURNING attempt_id`,
 	);
-	if (changed.length === 0 || !snapshotChanged) return false;
-	ctx.emit({ type: "agent-runs.changed", id: run.id });
+	if (changed.length === 0) return false;
+	if (snapshotChanged) ctx.emit({ type: "agent-runs.changed", id: run.id });
 	if (run.kind === "manager" || run.ticket_id === null) return true;
 	const action =
 		resultKey !== null && resultKey !== previous?.result_key

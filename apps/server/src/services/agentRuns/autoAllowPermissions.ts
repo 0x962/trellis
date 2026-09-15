@@ -11,14 +11,14 @@ export async function autoAllowPermissions(
 	run: AgentRun,
 	snapshot: HarnessSnapshot,
 	client: Pick<RuntimeClient, "deliver">,
-): Promise<HarnessSnapshot> {
+): Promise<{ snapshot: HarnessSnapshot; suppressPermissionAttention: boolean }> {
 	if (
 		run.runtime !== "native" ||
 		run.terminalId === null ||
 		snapshot.sessionId !== run.sessionId ||
 		snapshot.state !== "needs_input"
 	)
-		return snapshot;
+		return { snapshot, suppressPermissionAttention: false };
 	for (const permission of snapshot.pendingPermissions) {
 		const [current] = await ctx.newTx((tx) =>
 			rows(
@@ -32,7 +32,7 @@ export async function autoAllowPermissions(
 		`,
 			),
 		);
-		if (!current) return snapshot;
+		if (!current) return { snapshot, suppressPermissionAttention: false };
 		try {
 			const result = await client.deliver(
 				run.terminalId,
@@ -41,17 +41,23 @@ export async function autoAllowPermissions(
 			);
 			if (result.status === "unknown")
 				return {
-					...snapshot,
-					state: "unknown",
-					error: "The permission response is uncertain. Inspect the agent before another response.",
+					suppressPermissionAttention: false,
+					snapshot: {
+						...snapshot,
+						state: "unknown",
+						error: "The permission response is uncertain. Inspect the agent before another response.",
+					},
 				};
 		} catch (error) {
 			return {
-				...snapshot,
-				state: "unknown",
-				error: `The permission response failed: ${error instanceof Error ? error.message : String(error)}`,
+				suppressPermissionAttention: false,
+				snapshot: {
+					...snapshot,
+					state: "unknown",
+					error: `The permission response failed: ${error instanceof Error ? error.message : String(error)}`,
+				},
 			};
 		}
 	}
-	return snapshot;
+	return { snapshot, suppressPermissionAttention: snapshot.pendingPermissions.length > 0 && snapshot.error === null };
 }

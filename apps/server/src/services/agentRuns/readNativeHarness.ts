@@ -72,12 +72,15 @@ async function read(ctx: ServiceCtx, run: AgentRun, client: Reader) {
 			error: error instanceof Error ? error.message : String(error),
 		};
 	}
-	if (!checkpoint?.processExited) snapshot = await autoAllowPermissions(ctx, run, snapshot, client);
+	let suppressPermissionAttention = false;
+	if (!checkpoint?.processExited)
+		({ snapshot, suppressPermissionAttention } = await autoAllowPermissions(ctx, run, snapshot, client));
 	await ctx.newTx((tx) =>
 		reconcileNativeObservation(ctx, tx, {
 			runId: run.id,
 			attemptId,
 			snapshot,
+			suppressPermissionAttention,
 			checkpoint,
 			expectedOffset: offset,
 			receipts,

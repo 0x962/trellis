@@ -62,7 +62,7 @@ let permissionReplies: string[] = [];
 const reader = {
 	deliver: async (_id: string, messageId: string) => {
 		permissionReplies.push(messageId);
-		return { status: "delivered" };
+		return { messageId, status: "written" };
 	},
 	list: async () => {
 		if (!available) throw new Error("Runtime unavailable");
@@ -216,4 +216,62 @@ test("a running agent uses the current project permission checkbox", async () =>
 	await h.rows(sql`UPDATE projects SET manager_config=${JSON.stringify(config)}::jsonb WHERE key='OBS'`);
 	await read();
 	expect(permissionReplies).toEqual(["permission-bash-request"]);
+});
+
+test("auto-approved tools stay visible without manager attention and disabling approval exposes the same request", async () => {
+	const config = { ...DEFAULT_PROJECT_MANAGER_CONFIG, trustedDirectory: true, allowAllPermissions: true };
+	await h.rows(sql`UPDATE projects SET manager_config=${JSON.stringify(config)}::jsonb WHERE key='OBS'`);
+	for (const requestId of ["first", "second"]) {
+		log = Buffer.concat([
+			log,
+			line({
+				type: "control_request",
+				request_id: requestId,
+				request: { subtype: "can_use_tool", tool_name: "Bash", input: { command: "pwd" } },
+			}),
+		]);
+		const observed = await read();
+		expect(observed?.state).toBe("needs_input");
+		expect(observed?.pendingPermissions.at(-1)?.requestId).toBe(requestId);
+	}
+	expect(await h.rows(sql`SELECT * FROM activity WHERE action='agent.harness.needs_input'`)).toHaveLength(0);
+	await h.rows(
+		sql`UPDATE projects SET manager_config=${JSON.stringify({ ...config, allowAllPermissions: false })}::jsonb WHERE key='OBS'`,
+	);
+	await read();
+	await read();
+	expect(await h.rows(sql`SELECT * FROM activity WHERE action='agent.harness.needs_input'`)).toHaveLength(1);
+});
+
+test("an uncertain automatic permission response still requests manager attention", async () => {
+	await h.rows(
+		sql`UPDATE projects SET manager_config=${JSON.stringify({ ...DEFAULT_PROJECT_MANAGER_CONFIG, trustedDirectory: true })}::jsonb WHERE key='OBS'`,
+	);
+	log = line({
+		type: "control_request",
+		request_id: "uncertain",
+		request: { subtype: "can_use_tool", tool_name: "Bash", input: { command: "pwd" } },
+	});
+	const observed = await readNativeHarness(context(), await h.read((tx) => getRun(tx, runId)), {
+		...reader,
+		deliver: async (_id, messageId) => ({ messageId, status: "unknown" }),
+	});
+	expect(observed?.state).toBe("unknown");
+	expect(observed?.pendingPermissions).toHaveLength(1);
+	expect(await h.rows(sql`SELECT * FROM activity WHERE action='agent.harness.unknown'`)).toHaveLength(1);
+});
+
+test("a denied tool result still requests attention when automatic permission is enabled", async () => {
+	await h.rows(
+		sql`UPDATE projects SET manager_config=${JSON.stringify({ ...DEFAULT_PROJECT_MANAGER_CONFIG, trustedDirectory: true })}::jsonb WHERE key='OBS'`,
+	);
+	log = line({
+		type: "result",
+		uuid: "denied",
+		subtype: "success",
+		result: "Blocked",
+		permission_denials: [{ tool_name: "Write" }],
+	});
+	expect((await read())?.state).toBe("needs_input");
+	expect(await h.rows(sql`SELECT * FROM activity WHERE action='agent.harness.needs_input'`)).toHaveLength(1);
 });
