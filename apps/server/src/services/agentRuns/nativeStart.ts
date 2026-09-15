@@ -45,7 +45,7 @@ export const startNative = async (
 	if (config.harness.preset === "claude" && !config.trustedDirectory) {
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET closed_at = ${input.preserveAssignmentOnFailure ? null : ctx.now()}, error = 'Trust this repository in project settings before an agent starts.', updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET terminal_id = ${input.preserveAssignmentOnFailure ? terminalId : null}, closed_at = ${input.preserveAssignmentOnFailure ? null : ctx.now()}, error = 'Trust this repository in project settings before an agent starts.', updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 		return { id: run.id };
@@ -151,7 +151,7 @@ export const startNative = async (
 	} catch (error) {
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET session_lost = session_lost OR ${error instanceof MissingNativeSessionIdentity}, closed_at = ${launchSubmitted || input.preserveAssignmentOnFailure ? null : ctx.now()}, error = ${error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET terminal_id = ${launchSubmitted || input.preserveAssignmentOnFailure ? terminalId : null}, session_lost = session_lost OR ${error instanceof MissingNativeSessionIdentity}, closed_at = ${launchSubmitted || input.preserveAssignmentOnFailure ? null : ctx.now()}, error = ${error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 		if (launchSubmitted)

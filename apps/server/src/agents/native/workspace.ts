@@ -9,7 +9,7 @@ import { runBranch } from "../launchCommand/branch.ts";
 const exec = promisify(execFile);
 export const nativeWorkspace = async (
 	home: string,
-	run: Omit<AgentRun, "state" | "processStatus">,
+	run: Omit<AgentRun, "state" | "processStatus" | "observation">,
 	directory: string,
 ) => {
 	if (directory === "") throw new Error("Select the local repository directory before you start a native agent.");

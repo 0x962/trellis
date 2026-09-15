@@ -157,7 +157,22 @@ test("a missing harness closes the unlaunched assignment and preserves its clear
 	expect(run.closedAt).not.toBeNull();
 	expect(run.error).toContain("claude");
 	expect(run.error).toContain("PATH");
+	expect(run.terminalId).toBeNull();
 	expect(await fixture.client.list()).toEqual([]);
+	attempt = await h.read((tx) => reserveAttempt({ now: new Date() }, tx, { runId: "assignment" }));
+	await h.rows(sql`UPDATE agent_runs SET terminal_id=${attempt.id},closed_at=NULL WHERE id='assignment'`);
+	await startNative(
+		context(),
+		{
+			run: await h.read((tx) => getRun(tx, "assignment")),
+			config: configFor("claude"),
+			resume: false,
+			context: "Corrected configuration",
+			attempt,
+		},
+		dependencies(),
+	);
+	expect((await fixture.client.inspect(attempt.id)).status).toBe("running");
 });
 
 test("the assignment token remains the runtime authentication token", async () => {

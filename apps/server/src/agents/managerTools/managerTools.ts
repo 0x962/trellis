@@ -20,7 +20,15 @@ const operations = {
 type Invoke = (operation: string, input: unknown) => Promise<unknown>;
 type Procedure = { "~orpc": { inputSchema: z.ZodType; route: { summary?: string } } };
 type AgentRun = Awaited<ReturnType<TrellisClient["agentRuns"]["start"]>>;
-const assignmentRecord = ({ instruction: _instruction, ...record }: AgentRun) => record;
+const assignmentRecord = ({ instruction: _instruction, state: _state, ...record }: AgentRun) => ({
+	...record,
+	working:
+		record.processStatus === "running" &&
+		record.observation?.controllable === true &&
+		record.observation.activity?.state === "working" &&
+		record.observation.outcome === null,
+	replacementAllowed: record.processStatus === "exited" || (record.runtime === "native" && record.terminalId === null),
+});
 
 export const managerTools = (invoke: Invoke) => {
 	const tools = new Map(
@@ -53,19 +61,39 @@ export const managerTools = (invoke: Invoke) => {
 				return assignmentRecord(result as AgentRun);
 			if (tool.operation !== "agentRuns.session") return result;
 			const session = result as Awaited<ReturnType<TrellisClient["agentRuns"]["session"]>>;
-			return session === null
-				? null
-				: {
-						id: session.id,
-						status: session.status,
-						activity: session.activity,
-						result: session.result,
-						sessionId: session.agent?.sessionId ?? null,
-						turnId: session.agent?.turnId ?? null,
-						acknowledgedMessageIds: session.acknowledgedMessageIds,
-						outcome: session.agent?.outcome ?? null,
-						error: session.agent?.error ?? session.error,
-					};
+			if (session === null) {
+				const runs = (await invoke("agentRuns.list", {})) as AgentRun[];
+				const run = runs.find((run) => run.id === (input as { id: string }).id);
+				return {
+					status: "unknown",
+					checkedAt: null,
+					controllable: false,
+					working: false,
+					replacementAllowed: run?.runtime === "native" && run.terminalId === null,
+					activity: null,
+					result: null,
+					error: run?.error ?? "The execution service has no live record of this attempt.",
+				};
+			}
+			return {
+				id: session.id,
+				status: session.status,
+				checkedAt: session.checkedAt,
+				controllable: session.controllable,
+				working:
+					session.status === "running" &&
+					session.controllable &&
+					session.activity?.state === "working" &&
+					session.agent?.outcome == null,
+				replacementAllowed: session.status === "exited",
+				activity: session.activity,
+				result: session.result,
+				sessionId: session.agent?.sessionId ?? null,
+				turnId: session.agent?.turnId ?? null,
+				acknowledgedMessageIds: session.acknowledgedMessageIds,
+				outcome: session.agent?.outcome ?? null,
+				error: session.agent?.error ?? session.error,
+			};
 		},
 	};
 };

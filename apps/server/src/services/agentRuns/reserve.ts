@@ -24,7 +24,7 @@ export const managerRowOf = async (tx: Tx, projectId: string) =>
 		)
 	).at(0);
 
-export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
+export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, confirmedExited: string[] = []) => {
 	const actor = requireActor(ctx);
 	const [persona] = await rows<Persona>(
 		tx,
@@ -72,6 +72,8 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 	if (existing !== undefined && existing.runtime === "native" && existing.closedAt === null)
 		throw fail("DUPLICATE", { field: "active agent" });
 	if (existing && existing.runtime !== "native") existing = undefined;
+	if (existing?.terminalId && !confirmedExited.includes(existing.terminalId))
+		throw invalidInput("project", "Confirm the prior process stopped before you replace this manager.");
 	const resume =
 		existing !== undefined &&
 		existing.terminalId !== null &&
