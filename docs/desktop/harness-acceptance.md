@@ -64,7 +64,7 @@ OpenCode's installed `run --help` exposes `--dangerously-skip-permissions`; its 
 | OpenCode | Plugin events include `session.created`, `session.status`, `session.idle`, and `session.error`. The session API returns the native ID. | Message and message-part events expose structured content. Plugins expose tool callbacks. | `/session/:id/abort` requests cancellation; session events establish completion. Default TUI interrupt is Escape. [Server][opencode-server], [plugins][opencode-plugins], [keys][opencode-keys] |
 | Pi | An explicit `--extension` accesses `ctx.sessionManager.getSessionId()`, `before_agent_start`, `agent_start`, and `agent_end`. `ctx.isIdle()` exposes current activity. | `message_update` and `agent_end` expose messages. `tool_execution_start/update/end` expose correlated tool events. | The extension API exposes `ctx.abort()`. Escape aborts in the TUI. RPC mode has `abort`, but RPC replaces the TUI and is not the selected UI. |
 
-Claude 2.1.272 adds `claude agents --json` for active interactive and background sessions. A read-only probe returned interactive `sessionId`, `pid`, `startedAt`, `status`, and optional `waitingFor` fields. Observed statuses included `idle` and `waiting`. This is a candidate for a targeted status read after interruption. Its update timing and completion semantics still need a real interrupt test. Background entries use a different `id` and `state` shape.
+Claude 2.1.272 adds `claude agents --json` for active interactive and background sessions. A read-only probe returned interactive `sessionId`, `pid`, `startedAt`, `status`, and optional `waitingFor` fields. Observed statuses included `idle` and `waiting`. Two real acceptance runs confirmed `idle` after Ctrl+C through one targeted query with the exact native session ID and PID. Background entries use a different `id` and `state` shape.
 
 Pi's installed `docs/rpc.md` also defines `prompt`, `get_state`, and structured events. Its prompt response means accepted, queued, or handled; it is not necessarily an active turn. Use the extension API to retain the native TUI. Installed references: `docs/extensions.md`, `dist/core/extensions/types.d.ts`, and `dist/core/session-manager.d.ts`.
 
@@ -82,6 +82,27 @@ The installed CLI lacks an isolated hook configuration argument. A separate dire
 
 `prepareAgy` supplies interactive launch, model, bypass, and exact resume arguments. `parseAgyEvent` handles the verified structured payloads. `agyCapabilityGaps` prevents these pieces from representing full acceptance. Autonomous dispatch requires isolated hook configuration, a confirmed initial receipt, effective-model evidence, and a reliable interruption event. Terminal appearance does not satisfy those requirements.
 
+
+### Claude and Codex native acceptance
+
+The opt-in suite starts each native TUI with its Trellis adapter and explicit model. It checks the native session ID, exact effective model, file edit, shell command, tool events, final response, and terminal bytes. A filesystem event confirms that a long shell command starts before Ctrl+C. The next message must complete in the same session. After process shutdown, exact-ID resume must recall the earlier private marker without tools.
+
+Run from `apps/server`:
+
+```sh
+TRELLIS_REAL_HARNESS_ACCEPTANCE=1 TRELLIS_NATIVE_ACCEPTANCE_HOME=/path/to/authenticated/home TRELLIS_NATIVE_CLAUDE_MODEL=claude-sonnet-5 TRELLIS_NATIVE_CODEX_MODEL=gpt-5.6-sol bun test test/int/src/agents/harnesses/nativeAcceptance.test.ts
+```
+
+Both model variables require the full effective model ID. This suite makes real provider requests. Without the opt-in flag, both tests skip. The fixture retains native JSONL events, terminal bytes, and version metadata. Its shutdown waits for the owned process tree to exit.
+
+Two runs passed on Claude 2.1.272 and Codex 0.154.0. The first took 57.75 seconds with 17 assertions. The second took 83.48 seconds with 18 assertions, including the production Claude status reader. Logs: `/tmp/trellis-native-acceptance-persisted.log` and `/tmp/trellis-native-acceptance-repeat.log`. The second run retains evidence in these directories:
+
+- `/var/folders/zc/q6614tmx3tx362p94vvrfn0w0000gn/T/trellis-native-claude-qMnykl`
+- `/var/folders/zc/q6614tmx3tx362p94vvrfn0w0000gn/T/trellis-native-codex-BhjJEJ`
+
+The native events exposed two identity constraints. Claude can report the previous `prompt_id` in `UserPromptSubmit`, then report a new ID in `PreToolUse`. Codex can reuse a `turn_id` across an immediate follow-up. Both parsers omit the prompt receipt's turn ID. Tool and result events retain their native IDs. An interrupt must also match the activity timestamp; a turn ID alone does not identify the current operation.
+
+These tests establish adapter behavior with real providers. They do not establish manager dispatch, missing-install errors, or all provider error and hosted-tool events.
 
 ### Pi native acceptance
 
