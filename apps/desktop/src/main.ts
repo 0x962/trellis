@@ -295,6 +295,6 @@ else {
 		})
 		.catch(async (error: Error) => {
 			progress.close();
-			await showStartupError(error, chooseHome);
+			await showStartupError(error);
 		});
 }

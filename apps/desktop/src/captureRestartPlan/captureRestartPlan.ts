@@ -9,7 +9,10 @@ import { type RestartSession, readRestartPlan, writeRestartPlan } from "@trellis
 import type { PinnedRelease } from "../pinnedResources/pinnedResources.ts";
 
 const execute = promisify(execFile);
-type Observed = Pick<RuntimeProcessStatus, "id" | "status" | "controllable" | "process" | "agent" | "launch">;
+type Observed = Pick<RuntimeProcessStatus, "id" | "status" | "controllable"> & {
+	process: Pick<NonNullable<RuntimeProcessStatus["process"]>, "identity"> | null;
+	agent: Pick<NonNullable<RuntimeProcessStatus["agent"]>, "sessionId" | "model"> | null;
+};
 type Descriptor = { harness: RestartSession["harness"] | "custom"; spec: LaunchSpec; fingerprint: string };
 
 export const captureRestartPlan = async (home: string, source: PinnedRelease, target: PinnedRelease) => {
@@ -34,13 +37,18 @@ export const captureRestartPlan = async (home: string, source: PinnedRelease, ta
 		join(source.root, "bin/bun"),
 		[
 			"--eval",
-			`const { RuntimeClient } = await import(${JSON.stringify(client)}); const sessions = await new RuntimeClient(${JSON.stringify(socket)}).list(); console.log(JSON.stringify(sessions.map(({id,status,controllable,process,agent,launch}) => ({id,status,controllable,process,agent,launch}))));`,
+			`const { RuntimeClient } = await import(${JSON.stringify(client)});
+const sessions = await new RuntimeClient(${JSON.stringify(socket)}).list();
+console.log(JSON.stringify(sessions.filter(({status}) => status !== "exited").map(({id,status,controllable,process,agent}) => ({
+ id, status, controllable,
+ process: process && {identity: process.identity},
+ agent: agent && {sessionId: agent.sessionId, model: agent.model},
+}))));`,
 		],
 		{ timeout: 60000 },
 	);
 	const sessions: RestartSession[] = [];
 	for (const observed of JSON.parse(stdout) as Observed[]) {
-		if (observed.status === "exited") continue;
 		if (observed.status !== "running" || !observed.controllable || !observed.process)
 			throw new Error(`Cannot confirm ownership of terminal ${observed.id}. Inspect its process before the update.`);
 		const path = join(home, "harness-attempts", observed.id, "launch.json");

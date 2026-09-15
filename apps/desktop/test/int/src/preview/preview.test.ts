@@ -182,8 +182,7 @@ previewElectron.app.on("browser-window-created", (_event, window) => {
 				expect(result.lockSawUserData).toBe(userData);
 				expect(result.progressSeen).toBe(true);
 				expect(result.openWindows).toBe(1);
-				expect(result.windowButtons.x).toBe(16);
-				expect(result.windowButtons.y).toBeGreaterThan(0);
+				expect(result.windowButtons).toEqual({ x: 16, y: 20 });
 				expect(result.contentBounds.height).toBe(result.windowBounds.height);
 				const host = await adoptHost(home);
 				expect(result.url).toBe(`${host.origin}/`);

@@ -76,6 +76,42 @@ test("capture saves only OS-confirmed active agents and fresh resume identities"
 	expect(plan.sessions[0].attempt.id).not.toBe("active");
 	expect(plan.sessions[0].attempt.token.length).toBeGreaterThan(20);
 });
+const largeSessions = () => {
+	const active = session("active");
+	const stopped = session("stopped");
+	sessions = [
+		{ ...active, launch: { ...active.launch, args: ["x".repeat(1_100_000)] } },
+		{
+			...stopped,
+			status: "exited",
+			agent: { ...stopped.agent, lastMessage: { text: "y".repeat(1_100_000), at: "2026-09-15T00:00:00.000Z" } },
+		},
+	];
+	expect(Buffer.byteLength(JSON.stringify(sessions))).toBeLessThan(3_000_000);
+};
+test("large active launch arguments and retired metadata preserve only the active resume identity", async () => {
+	largeSessions();
+	await captureRestartPlan(home, source, target);
+	const saved = await readFile(join(home, "restart-plan.json"), "utf8");
+	const plan = JSON.parse(saved);
+	expect(plan.sessions).toHaveLength(1);
+	expect(plan.sessions[0]).toMatchObject({
+		runId: "run-active",
+		previousAttemptId: "active",
+		providerSessionId: "provider-active",
+		harness: "codex",
+		model: "observed-model",
+		workspace: "/saved/work",
+		processIdentity: "kernel-active",
+	});
+	expect(Buffer.byteLength(saved)).toBeLessThan(2000);
+});
+test("large runtime metadata still blocks capture for an unknown process", async () => {
+	largeSessions();
+	sessions[0]!.status = "unknown";
+	await expect(captureRestartPlan(home, source, target)).rejects.toThrow("Cannot confirm ownership of terminal active");
+	await expect(readFile(join(home, "restart-plan.json"))).rejects.toMatchObject({ code: "ENOENT" });
+});
 test("capture preserves a pending plan after the runtime stops", async () => {
 	await captureRestartPlan(home, source, target);
 	const saved = await readFile(join(home, "restart-plan.json"), "utf8");

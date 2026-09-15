@@ -20,6 +20,38 @@ A fresh terminal passes input, output, resize, and Stop checks on release `c2826
 The installed route asset contains only the Needs you heading and an empty body. The browser regression is not run; the user tests the UI.
 Evidence: `/tmp/trellis-terminal-recovery-acceptance.json`, `/tmp/trellis-installed-runtime-check.json`, and `/tmp/trellis-needs-you-production-install.log`.
 
+## Automatic background service
+
+Trellis enables its background service at startup. It asks for approval only when macOS requires approval in Login Items.
+The startup regression tests cover initial registration, repeated launches, an enabled service, and required macOS approval.
+The focused desktop tests pass: 24 tests and 55 assertions. Desktop typecheck and scoped Biome checks pass.
+
+At 23:28:02 UTC, macOS reports a missing plist for the bare `apps/desktop/dist/TrellisHost` executable.
+That executable sits outside an app bundle. Both packaged helpers contain their LaunchAgent plist and report `enabled`.
+The caller of the bare helper remains unconfirmed. Evidence: `/tmp/trellis-plist-processes.json`.
+At the same time, two coding sessions install separate builds. A direct copy into the installed path fails with `Operation not permitted`.
+The production workflow copies into a temporary directory, verifies the copy, and publishes the complete bundle through an atomic exchange.
+
+The installed build `21572c5e` includes automatic service startup and the manager context button.
+Its signature and plist checks pass. The host reports HTTP 200, and the active release matches the installed release.
+An isolated copy passes the signed-app startup test with 21 assertions. It registers its temporary service and opens the renderer without the extra prompt.
+The first run stops at an outdated title-bar position assertion. The corrected assertion matches `windowOptions.ts`, and the complete rerun passes.
+The test removes its temporary service and data. The installed commit stays unchanged during both runs.
+Evidence: `/tmp/trellis-background-installed.json` and `/tmp/trellis-background-live-health.json`.
+
+## Startup output limit
+
+At 23:42 UTC, the restart capture prints 1,270,865 bytes through a child process with a 1,048,576-byte output limit.
+It includes launch arguments and agent messages from 273 retained sessions, although only five sessions remain active.
+The error occurs after the desktop stops the HTTP host and before it saves the restart plan. The agent runtime remains active.
+Evidence: `/tmp/trellis-startup-maxbuffer-before.json` records the exact error and byte counts.
+
+The restart capture transfers only active session identifiers, process ownership, provider identifiers, and model names through the child output.
+It still rejects unknown processes and sessions without a confirmed provider identifier.
+The focused capture and activation suites pass: 31 tests and 61 assertions. Desktop typecheck and scoped Biome checks pass.
+A read-only check against the live runtime saves all five sessions to a scratch plan of 2,561 bytes.
+Provider identifiers and process identities remain unchanged. Evidence: `/tmp/trellis-startup-maxbuffer-after.json`.
+
 ## Automatic session resume
 
 A package update saves the active provider sessions before runtime shutdown. Workers resume before managers, in the same directories and conversations.
@@ -69,7 +101,7 @@ Evidence: `/tmp/trellis-continuity-production.log`, `/tmp/trellis-continuity-ins
 
 | Follow-up feedback | Status | Verification |
 | --- | --- | --- |
-| Add a manager button to start fresh context after prompt changes. | Implemented; user UI check pending | Restart with new context confirms a manager Stop before a fresh Start. Four unit tests and nine integration tests pass. The new conversation uses the saved persona and project instructions. Resume preserves the current conversation. |
+| Add a manager button to start fresh context after prompt changes. | Installed; user UI check pending | Restart with new context confirms a manager Stop before a fresh Start. Four unit tests and nine integration tests pass. The new conversation uses the saved persona and project instructions. Resume preserves the current conversation. |
 | The window appears hung. The manager cannot accept input or resize. | Installed | Failed cleanup retains the live PTY handle. Regression tests cover input, resize, repeated Stop, and a later natural exit. |
 | Fix the manager terminal width. | Installed; user UI check pending | The installed runtime accepts input and returns `80 200` after a resize to 200 columns and 80 rows. |
 | Remove the rounded inner page cards. | Installed; user UI check pending | Shared page frames have no rounded border or outer inset. Ticket properties use a straight divider. |
