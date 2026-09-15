@@ -8,8 +8,16 @@ export function inspectSessionRecord(record: SessionRecord): RuntimeProcessStatu
 	const observation = record.session.pid === null ? { kind: "missing" as const } : inspectProcess(record.session.pid);
 	let observed = observedSession(record.session, record.identity, observation, record.process !== undefined);
 	if (observed.status === "exited" && record.session.pid !== null && record.session.endedAt === null) {
-		const error = inspectProcessSession(record.session.pid);
-		if (error !== null) observed = { ...observed, status: "unknown", error };
+		const members = inspectProcessSession(record.session.pid);
+		if (members.kind !== "empty")
+			observed = {
+				...observed,
+				status: "unknown",
+				error:
+					members.kind === "unknown"
+						? members.error
+						: `Process session ${record.session.pid} still has live child processes: ${members.pids.join(", ")}`,
+			};
 	}
 	return {
 		...record.session,

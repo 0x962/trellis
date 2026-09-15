@@ -10,6 +10,7 @@ import { ProcessExitWatcher } from "./processExitWatcher.ts";
 import { createProcessHandle } from "./processHandle.ts";
 import { SessionLog } from "./sessionLog.ts";
 import type { SessionRecord as Record } from "./sessionRecord.ts";
+import { watchRecoveredSession } from "./watchRecoveredSession.ts";
 
 export class SessionStore {
 	private readonly records = new Map<string, Record>();
@@ -32,6 +33,7 @@ export class SessionStore {
 				identity: saved.identity ?? null,
 				launch: saved.launch ?? null,
 				listeners: new Set<() => void>(),
+				watchedPids: new Set<number>(),
 				tokenHash: null,
 				activity: null,
 				inputPending: false,
@@ -44,11 +46,7 @@ export class SessionStore {
 			};
 			this.records.set(saved.session.id, record);
 			this.save(record);
-			const observed = this.inspect(saved.session.id);
-			if (observed.status === "running")
-				this.exits.watch(observed.pid!, () => {
-					for (const listener of record.listeners) listener();
-				});
+			watchRecoveredSession(record, this.exits);
 		}
 	}
 	private save(record: Record) {
@@ -146,6 +144,7 @@ export class SessionStore {
 			identity: null,
 			launch: { command: spec.command, args: spec.args, cwd: spec.cwd },
 			listeners: new Set(),
+			watchedPids: new Set(),
 			tokenHash: spec.env?.TRELLIS_ATTEMPT_TOKEN
 				? createHash("sha256").update(spec.env.TRELLIS_ATTEMPT_TOKEN).digest()
 				: null,
@@ -257,6 +256,7 @@ export class SessionStore {
 				identity: null,
 				launch: null,
 				listeners: new Set(),
+				watchedPids: new Set(),
 				tokenHash: null,
 				activity: null,
 				inputPending: false,
@@ -281,7 +281,8 @@ export class SessionStore {
 		return (stream === "stderr" ? this.get(id).stderr : this.get(id).log).read(offset);
 	}
 	outputComplete(id: string) {
-		return this.get(id).process === undefined;
+		const record = this.get(id);
+		return record.process === undefined && record.watchedPids.size === 0;
 	}
 	closeWatchers() {
 		this.exits.close();

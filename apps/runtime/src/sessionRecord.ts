@@ -10,6 +10,7 @@ export type SessionRecord = {
 	identity: string | null;
 	launch: RuntimeProcessStatus["launch"];
 	listeners: Set<() => void>;
+	watchedPids: Set<number>;
 	tokenHash: Buffer | null;
 	activity: RuntimeProcessStatus["activity"];
 	inputPending: boolean;
