@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import type { RuntimeDelivery } from "@trellis/runtime-protocol";
 
-type Entry = RuntimeDelivery & { hash: string };
+type Entry = RuntimeDelivery & { hash: string; acknowledged?: boolean };
 export class InputLedger {
 	private readonly entries: Map<string, Entry>;
 	private readonly pending = new Map<string, Promise<void>>();
@@ -12,6 +12,15 @@ export class InputLedger {
 	private save() {
 		writeFileSync(`${this.path}.tmp`, JSON.stringify([...this.entries]), { mode: 0o600, flush: true });
 		renameSync(`${this.path}.tmp`, this.path);
+	}
+	acknowledgedMessageIds() {
+		return [...this.entries.values()].filter((entry) => entry.acknowledged).map((entry) => entry.messageId);
+	}
+	acknowledge(messageId: string) {
+		const entry = this.entries.get(messageId);
+		if (!entry || entry.acknowledged) return;
+		entry.acknowledged = true;
+		this.save();
 	}
 	async deliver(messageId: string, data: string, write: () => Promise<unknown>): Promise<RuntimeDelivery> {
 		const hash = createHash("sha256").update(data).digest("hex");

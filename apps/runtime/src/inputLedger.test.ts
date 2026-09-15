@@ -53,3 +53,19 @@ test("a delayed failed write remains unknown after restart and never repeats", a
 		rmSync(home, { recursive: true, force: true });
 	}
 });
+
+test("known delivery acknowledgements persist and unknown IDs do not create receipts", async () => {
+	const home = mkdtempSync("/tmp/trl-ledger-");
+	try {
+		const path = join(home, "input.json");
+		const ledger = new InputLedger(path);
+		await ledger.deliver("known", "bytes", async () => {});
+		ledger.acknowledge("unknown");
+		expect(ledger.acknowledgedMessageIds()).toEqual([]);
+		ledger.acknowledge("known");
+		expect(ledger.acknowledgedMessageIds()).toEqual(["known"]);
+		expect(new InputLedger(path).acknowledgedMessageIds()).toEqual(["known"]);
+	} finally {
+		rmSync(home, { recursive: true, force: true });
+	}
+});

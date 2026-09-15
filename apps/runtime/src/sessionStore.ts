@@ -1,14 +1,21 @@
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { LaunchSpec, RuntimeSession } from "@trellis/runtime-protocol";
+import type { LaunchSpec, RuntimeMethods, RuntimeProcessStatus, RuntimeSession } from "@trellis/runtime-protocol";
 import { InputLedger } from "./inputLedger.ts";
+import { inspectProcess } from "./inspectProcess.ts";
+import { observedSession } from "./observedSession.ts";
 import { createProcessHandle, type ProcessHandle } from "./processHandle.ts";
 import { SessionLog } from "./sessionLog.ts";
 
 type Record = {
 	session: RuntimeSession;
 	fingerprint: string | null;
+	identity: string | null;
+	launch: RuntimeProcessStatus["launch"];
+	listeners: Set<() => void>;
+	tokenHash: Buffer | null;
+	activity: RuntimeProcessStatus["activity"];
 	log: SessionLog;
 	stderr: SessionLog;
 	ledger: InputLedger;
@@ -28,10 +35,17 @@ export class SessionStore {
 			const saved = JSON.parse(readFileSync(join(home, file), "utf8")) as {
 				session: RuntimeSession;
 				fingerprint: string | null;
+				identity?: string | null;
+				launch?: RuntimeProcessStatus["launch"];
 			};
 			if (saved.session.status === "running") saved.session.status = "unknown";
 			const record = {
 				...saved,
+				identity: saved.identity ?? null,
+				launch: saved.launch ?? null,
+				listeners: new Set<() => void>(),
+				tokenHash: null,
+				activity: null,
 				log: new SessionLog(join(home, `${saved.session.id}.output.json`)),
 				stderr: new SessionLog(join(home, `${saved.session.id}.stderr.json`)),
 				ledger: new InputLedger(join(home, `${saved.session.id}.input.json`)),
@@ -44,10 +58,20 @@ export class SessionStore {
 	}
 	private save(record: Record) {
 		const path = join(this.home, `${record.session.id}.session.json`);
-		writeFileSync(`${path}.tmp`, JSON.stringify({ session: record.session, fingerprint: record.fingerprint }), {
-			mode: 0o600,
-		});
+		writeFileSync(
+			`${path}.tmp`,
+			JSON.stringify({
+				session: record.session,
+				fingerprint: record.fingerprint,
+				identity: record.identity,
+				launch: record.launch,
+			}),
+			{
+				mode: 0o600,
+			},
+		);
 		renameSync(`${path}.tmp`, path);
+		for (const listener of record.listeners) listener();
 	}
 	private get(id: string) {
 		const record = this.records.get(id);
@@ -55,7 +79,39 @@ export class SessionStore {
 		return record;
 	}
 	list() {
-		return [...this.records.values()].map((record) => record.session);
+		return [...this.records.keys()].map((id) => this.inspect(id));
+	}
+	inspect(id: string): RuntimeProcessStatus {
+		const record = this.get(id);
+		const observation = record.session.pid === null ? { kind: "missing" as const } : inspectProcess(record.session.pid);
+		return {
+			...record.session,
+			...observedSession(record.session, record.identity, observation, record.process !== undefined),
+			checkedAt: new Date().toISOString(),
+			launch: record.launch,
+			activity: record.activity,
+			acknowledgedMessageIds: record.ledger.acknowledgedMessageIds(),
+		};
+	}
+	turn({ id, token, event, messageId }: RuntimeMethods["turn"]["params"]): RuntimeProcessStatus {
+		const record = this.get(id);
+		if (record.tokenHash === null || !timingSafeEqual(record.tokenHash, createHash("sha256").update(token).digest()))
+			throw new Error("The attempt token does not match this process");
+		if (!this.inspect(id).controllable) throw new Error("The process is not controllable");
+		const state = { SessionStart: "ready", UserPromptSubmit: "working", Stop: "idle" } as const;
+		record.activity = { state: state[event], updatedAt: new Date().toISOString() };
+		if (event === "UserPromptSubmit" && messageId !== undefined) record.ledger.acknowledge(messageId);
+		for (const listener of record.listeners) listener();
+		return this.inspect(id);
+	}
+	subscribe(id: string, listener: () => void, stream: "stdout" | "stderr" = "stdout") {
+		const record = this.get(id);
+		record.listeners.add(listener);
+		const unsubscribe = (stream === "stderr" ? record.stderr : record.log).subscribe(listener);
+		return () => {
+			record.listeners.delete(listener);
+			unsubscribe();
+		};
 	}
 	start(spec: LaunchSpec): RuntimeSession {
 		const fingerprint = createHash("sha256")
@@ -79,7 +135,7 @@ export class SessionStore {
 				throw Object.assign(new Error(`Launch ${spec.id} already has a different command`), {
 					code: "LAUNCH_CONFLICT",
 				});
-			return existing.session;
+			return this.inspect(spec.id);
 		}
 		let resolveStop!: () => void;
 		const stopped = new Promise<void>((resolve) => {
@@ -99,6 +155,13 @@ export class SessionStore {
 		const record: Record = {
 			session,
 			fingerprint,
+			identity: null,
+			launch: { command: spec.command, args: spec.args, cwd: spec.cwd },
+			listeners: new Set(),
+			tokenHash: spec.env?.TRELLIS_ATTEMPT_TOKEN
+				? createHash("sha256").update(spec.env.TRELLIS_ATTEMPT_TOKEN).digest()
+				: null,
+			activity: null,
 			log: new SessionLog(join(this.home, `${spec.id}.output.json`)),
 			stderr: new SessionLog(join(this.home, `${spec.id}.stderr.json`)),
 			ledger: new InputLedger(join(this.home, `${spec.id}.input.json`)),
@@ -139,9 +202,11 @@ export class SessionStore {
 			);
 		} catch (error) {
 			exit(null, (error as Error).message);
-			return session;
+			return this.inspect(spec.id);
 		}
-		session.pid = record.process.pid;
+		session.pid = record.process.pid > 0 ? record.process.pid : null;
+		const observation = session.pid === null ? { kind: "missing" as const } : inspectProcess(session.pid);
+		if (observation.kind === "live") record.identity = observation.process.identity;
 		session.status = "running";
 		this.save(record);
 		if (spec.timeoutMs !== undefined)
@@ -150,7 +215,7 @@ export class SessionStore {
 				this.save(record);
 				record.process!.stop();
 			}, spec.timeoutMs);
-		return session;
+		return this.inspect(spec.id);
 	}
 	async input(id: string, data: string) {
 		const record = this.get(id);
@@ -183,6 +248,11 @@ export class SessionStore {
 					error: "Canceled before launch",
 				},
 				fingerprint: null,
+				identity: null,
+				launch: null,
+				listeners: new Set(),
+				tokenHash: null,
+				activity: null,
 				log: new SessionLog(join(this.home, `${id}.output.json`)),
 				stderr: new SessionLog(join(this.home, `${id}.stderr.json`)),
 				ledger: new InputLedger(join(this.home, `${id}.input.json`)),
@@ -197,7 +267,7 @@ export class SessionStore {
 			record.process.stop();
 			await record.stopped;
 		}
-		return record.session;
+		return this.inspect(id);
 	}
 	output(id: string, offset: number, stream: "stdout" | "stderr" = "stdout") {
 		return (stream === "stderr" ? this.get(id).stderr : this.get(id).log).read(offset);
