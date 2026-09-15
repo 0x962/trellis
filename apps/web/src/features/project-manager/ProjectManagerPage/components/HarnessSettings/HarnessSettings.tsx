@@ -7,7 +7,6 @@ import { AgentCommandField } from "../AgentCommandField";
 const presets = [
 	{ value: "claude", label: "Claude" },
 	{ value: "codex", label: "Codex" },
-	{ value: "agy", label: "agy" },
 	{ value: "opencode", label: "OpenCode" },
 	{ value: "pi", label: "pi" },
 	{ value: "custom", label: "Custom" },
@@ -68,7 +67,7 @@ export function HarnessSettings({
 					onCommit={(resumeCommand) => commit({ ...draft, harness: { ...draft.harness, resumeCommand } })}
 					hint="Continue the manager after a pause. {{resumeText}} contains its next instruction."
 				/>
-				{["codex", "agy", "opencode", "pi"].includes(draft.harness.preset) && (
+				{["codex", "opencode", "pi"].includes(draft.harness.preset) && (
 					<p className="manager-settings-hint">
 						This preset resumes the most recent conversation. Set a specific conversation in the resume command when
 						agents share a directory.

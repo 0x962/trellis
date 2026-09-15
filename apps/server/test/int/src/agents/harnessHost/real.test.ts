@@ -82,7 +82,6 @@ for (const harness of ["claude", "codex", "pi", "opencode"] as const) {
 					model,
 					prompt: `Remember ${marker}. Use the file edit tool to write ${proof} with exactly ${marker}. Use the shell tool to run /bin/pwd. Then reply exactly ${marker}. Modify no other files.`,
 				});
-				expect(started.capabilityGaps).toEqual([]);
 				expect(started.process.status).toBe("running");
 				expect(started.process.controllable).toBe(true);
 				expect(started.process.acknowledgedMessageIds).toContain(id);

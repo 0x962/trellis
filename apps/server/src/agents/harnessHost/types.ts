@@ -15,12 +15,10 @@ export type HarnessStartInput = {
 	cwd: string;
 	prompt: string;
 	model?: string;
-	mode?: "autonomous" | "manual";
 };
 export type HarnessDescriptor = {
 	fingerprint: string;
 	spec: LaunchSpec;
 	harness: BuiltInHarness;
-	mode: "autonomous" | "manual";
 };
-export type HarnessStarted = { process: RuntimeProcessStatus; capabilityGaps: readonly string[] };
+export type HarnessStarted = { process: RuntimeProcessStatus };

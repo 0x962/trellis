@@ -11,7 +11,7 @@ export async function harnessHostFixture() {
 	const home = await mkdtemp("/tmp/trl-hhost-");
 	const bin = join(home, "bin");
 	await mkdir(bin);
-	for (const harness of ["claude", "codex", "pi", "opencode", "agy"]) {
+	for (const harness of ["claude", "codex", "pi", "opencode"]) {
 		const executable = join(bin, harness);
 		await writeFile(
 			executable,

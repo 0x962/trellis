@@ -24,7 +24,6 @@ export async function prepareAttempt(
 		input.cwd,
 		input.prompt,
 		input.model ?? null,
-		input.mode ?? "autonomous",
 		sessionId ?? null,
 		env,
 		options.bun,
@@ -58,7 +57,6 @@ export async function prepareAttempt(
 	);
 	const descriptor: HarnessDescriptor = {
 		harness: input.harness,
-		mode: input.mode ?? "autonomous",
 		fingerprint,
 		spec: {
 			id: input.id,

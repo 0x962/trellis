@@ -8,10 +8,6 @@ export const HARNESS_PRESETS = {
 		startCommand: "codex --dangerously-bypass-approvals-and-sandbox {{prompt}}",
 		resumeCommand: "codex resume --dangerously-bypass-approvals-and-sandbox --last {{resumeText}}",
 	},
-	agy: {
-		startCommand: "agy --dangerously-skip-permissions --prompt-interactive {{prompt}}",
-		resumeCommand: "agy --dangerously-skip-permissions --continue --prompt-interactive {{resumeText}}",
-	},
 	opencode: {
 		startCommand: `OPENCODE_PERMISSION='{"*":"allow"}' opencode --prompt {{prompt}}`,
 		resumeCommand: `OPENCODE_PERMISSION='{"*":"allow"}' opencode --continue --prompt {{resumeText}}`,
@@ -21,7 +17,7 @@ export const HARNESS_PRESETS = {
 		resumeCommand: "pi --tools read,bash,edit,write,grep,find,ls --continue {{resumeText}}",
 	},
 };
-export const HarnessPresetSchema = z.enum(["claude", "codex", "agy", "opencode", "pi", "custom"]);
+export const HarnessPresetSchema = z.enum(["claude", "codex", "opencode", "pi", "custom"]);
 export type HarnessPreset = z.infer<typeof HarnessPresetSchema>;
 export const HarnessSchema = z
 	.strictObject({

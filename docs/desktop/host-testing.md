@@ -45,12 +45,6 @@ Native tests create provider sessions and use the provider account. Each test st
 Server tests live under `apps/server/test/int/src/agents/`. Runtime tests live under `apps/runtime/test/int/src/`.
 The [acceptance record](harness-acceptance.md) contains versions, models, evidence paths, and provider limits.
 
-## AGY limit
-
-AGY permits an explicit manual terminal launch. Its autonomous host operations report missing capabilities.
-The tested CLI cannot isolate its hooks per attempt. An interrupt can also cancel its Stop hook before an idle confirmation.
-These cases remain unverified for autonomous use.
-
 ## Codex error limit
 
 The verified error tests cover runtime failures and explicit native error events.

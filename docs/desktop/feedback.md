@@ -82,12 +82,12 @@ Hana acknowledged idle heartbeat generations 107 and 108 in process 17974 before
 
 ## Required harness tests
 
-Run the host gate before the manager acceptance ticket. Cover Claude, Codex, AGY, OpenCode, and Pi separately.
+Run the host gate before the manager acceptance ticket. Cover Claude, Codex, OpenCode, and Pi separately.
 
 | Required behavior | Acceptance evidence |
 | --- | --- |
 | Start an agent | A real child process and initial provider readiness. |
-| Start every supported harness | Separate cases for all five built-in harnesses. |
+| Start every supported harness | Separate cases for all four built-in harnesses. |
 | Report a missing harness | A named executable and actionable error before a false successful start. |
 | Always bypass permissions | Actual start and resume arguments or native permission configuration. |
 | Get the session ID | The provider conversation ID, distinct from the Trellis attempt ID. |
@@ -113,13 +113,18 @@ The process gate passes independently of a manager: 100 process/reconnect cycles
 - Host tests also verify pushed output, retained events, process lists, and elapsed time.
 - Twelve concurrent starts produce one process. Twelve concurrent native resume requests produce one prompt.
 - An uncertain native send remains inspectable and is not sent again after a host restart.
-- AGY remains limited to manual terminal use because its tested hooks cannot establish the complete autonomous contract.
-- The installed OpenCode 1.4.11 fails initial prompt submission. The host requires the tested minimum, 1.18.31.
+- The host requires OpenCode 1.18.31. The installed executable now resolves to that version.
 - The packaged host smoke test passes authentication, CLI, PTY, process ownership, reconnect, stop, and host restart checks.
 - Hana remains stopped. The independent tests do not dispatch manager work.
 
 Commands and coverage: [Host tests](host-testing.md). Detailed evidence: [Harness acceptance](harness-acceptance.md).
 
-Final checks: `bun run test:host` passes 155 deterministic tests. Its eight native cases are opt-in and pass in the separate recorded runs. All nine workspace typechecks, lint, 15 repository checks, the desktop build, and the packaged host smoke test pass.
+Current checks: `bun run test:host` passes 149 deterministic tests and skips eight native cases. Ten focused API tests, all nine workspace typechecks, lint, and 15 repository checks pass. The desktop build and packaged host smoke test passed at commit b3290a48. The current source changes await a desktop build and installation.
 
 Codex provider failures remain outside the verified error contract. Local 401 and 503 probes produce session and prompt hooks but no error or Stop hook within 15 seconds. The CLI continues requests in that interval. Final failure behavior remains unverified.
+
+The supported built-in harnesses are Claude, Codex, OpenCode, and Pi. The host requires native prompt receipts for each launch.
+
+The latest installed OpenCode test failed because the model omitted the requested file edit and shell command. Launch, prompt receipt, and response observations succeeded. Evidence: `/tmp/trellis-opencode-updated-host.log`.
+
+The [Codex plan](harness-acceptance.md#codex-work-to-complete) uses a private app-server with the native terminal attached. Its event mapping and failure tests remain pending.

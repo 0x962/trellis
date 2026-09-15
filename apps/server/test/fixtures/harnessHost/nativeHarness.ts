@@ -20,7 +20,6 @@ const sessionFlag = {
 	codex: "resume",
 	pi: "--session",
 	opencode: "--session",
-	agy: "--conversation",
 }[harness]!;
 const resumed = args.includes(sessionFlag);
 const sessionId = resumed
@@ -82,7 +81,7 @@ const hook = (kind: string, prompt?: string) => {
 			statusFile,
 			JSON.stringify([{ pid: process.pid, sessionId, status: kind === "idle" ? "idle" : "working" }]),
 		);
-	if (process.env.HARNESS_FIXTURE_BEHAVIOR === "silent" || harness === "agy") return Promise.resolve();
+	if (process.env.HARNESS_FIXTURE_BEHAVIOR === "silent") return Promise.resolve();
 	return new Promise<void>((resolve, reject) => {
 		const child = spawn(process.env.TRELLIS_HARNESS_HOOK!, [], { shell: true, stdio: ["pipe", "ignore", "inherit"] });
 		child.once("error", reject);

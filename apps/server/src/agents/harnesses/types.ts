@@ -1,6 +1,6 @@
 export type { HarnessEvent, HarnessTool } from "@trellis/runtime-protocol";
 
-export type BuiltInHarness = "claude" | "codex" | "agy" | "opencode" | "pi";
+export type BuiltInHarness = "claude" | "codex" | "opencode" | "pi";
 
 export type HarnessLaunchInput = {
 	cwd: string;

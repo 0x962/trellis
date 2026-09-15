@@ -10,7 +10,7 @@ test("new projects use the local runtime and require repository trust", () => {
 });
 
 test("each harness preset keeps its commands within the local runtime", () => {
-	for (const preset of ["claude", "codex", "agy", "opencode", "pi"] as const) {
+	for (const preset of ["claude", "codex", "opencode", "pi"] as const) {
 		const config = ProjectManagerConfigSchema.parse({ ...base, harness: { preset } });
 		expect(config.ade).toBe("native");
 		expect(config.harness.startCommand).toMatch(new RegExp(`(^| )${preset} `));

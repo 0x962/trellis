@@ -10,7 +10,6 @@ export async function interruptHarness(
 	before: RuntimeProcessStatus,
 ) {
 	const provider = providers[descriptor.harness];
-	if (provider.capabilityGaps.length) throw new Error(provider.capabilityGaps.join(" "));
 	if (before.status !== "running" || !before.controllable || before.activity === null || before.agent === null)
 		throw new Error(`Harness attempt ${before.id} has no controllable observed turn`);
 	if (before.activity.state === "idle") return before;

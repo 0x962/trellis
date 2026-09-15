@@ -5,19 +5,16 @@ import type { RuntimeListInput, RuntimeProcessStatus, RuntimeStream } from "@tre
 import { z } from "zod";
 import { interruptHarness } from "./interruptHarness.ts";
 import { prepareAttempt } from "./prepareAttempt.ts";
-import { providers } from "./providers.ts";
-import { resolveExecutable } from "./resolveExecutable.ts";
 import { sendNativePrompt } from "./sendNativePrompt.ts";
 import type { HarnessDescriptor, HarnessHostOptions, HarnessStarted, HarnessStartInput } from "./types.ts";
 
 const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/);
 const launchInput = z.object({
 	id: identifier,
-	harness: z.enum(["claude", "codex", "pi", "opencode", "agy"]),
+	harness: z.enum(["claude", "codex", "pi", "opencode"]),
 	cwd: z.string().startsWith("/"),
 	prompt: z.string().min(1),
 	model: z.string().min(1).optional(),
-	mode: z.enum(["autonomous", "manual"]).optional(),
 });
 export class HarnessHost {
 	constructor(private readonly options: HarnessHostOptions) {}
@@ -30,11 +27,6 @@ export class HarnessHost {
 	}
 	private async launch(input: HarnessStartInput, sessionId?: string): Promise<HarnessStarted> {
 		launchInput.parse(input);
-		const provider = providers[input.harness];
-		if (provider.capabilityGaps.length && input.mode !== "manual") {
-			await resolveExecutable(input.harness, this.options.env.PATH ?? "");
-			throw Object.assign(new Error(provider.capabilityGaps.join(" ")), { code: "HARNESS_CAPABILITY_UNAVAILABLE" });
-		}
 		const descriptor = await prepareAttempt(this.options, input, sessionId);
 		await this.options.runtime.start(descriptor.spec);
 		if (input.harness === "opencode" && sessionId !== undefined) {
@@ -48,17 +40,15 @@ export class HarnessHost {
 					`trellis-message:${input.id}\n${input.prompt}`,
 				);
 		}
-		const process = provider.capabilityGaps.length
-			? await this.status(input.id)
-			: await this.waitFor(
-					input.id,
-					(state) => state.agent?.sessionId != null && state.acknowledgedMessageIds.includes(input.id),
-				);
-		if (sessionId !== undefined && process.agent?.sessionId !== sessionId && provider.capabilityGaps.length === 0)
+		const process = await this.waitFor(
+			input.id,
+			(state) => state.agent?.sessionId != null && state.acknowledgedMessageIds.includes(input.id),
+		);
+		if (sessionId !== undefined && process.agent?.sessionId !== sessionId)
 			throw new Error(
 				`Harness attempt ${input.id} resumed provider session ${process.agent?.sessionId}, expected ${sessionId}`,
 			);
-		return { process, capabilityGaps: provider.capabilityGaps };
+		return { process };
 	}
 	async waitFor(id: string, matches: (session: RuntimeProcessStatus) => boolean): Promise<RuntimeProcessStatus> {
 		const signal = AbortSignal.timeout(this.options.observationTimeoutMs ?? 15000);
@@ -110,8 +100,6 @@ export class HarnessHost {
 	async send(id: string, text: string, messageId: string = randomUUID()) {
 		identifier.parse(messageId);
 		const descriptor = await this.descriptor(id);
-		const provider = providers[descriptor.harness];
-		if (provider.capabilityGaps.length) throw new Error(provider.capabilityGaps.join(" "));
 		if (descriptor.harness === "opencode") {
 			const sessionId = (await this.status(id)).agent?.sessionId;
 			if (sessionId == null) throw new Error(`Harness attempt ${id} has no provider session identity`);

@@ -1,6 +1,6 @@
 # Agent harness commands
 
-Open **Project → Manager → Harness** to choose Claude, Codex, agy, OpenCode, pi, or custom commands.
+Open **Project → Manager → Harness** to choose Claude, Codex, OpenCode, pi, or custom commands.
 The harness preset fills the start and resume commands.
 Edit either command to change the executable, model, or flags.
 
@@ -20,7 +20,7 @@ A multiline field also saves on Ctrl+Enter or Command+Enter.
 The default start command is `claude -n {{name}} --session-id {{sessionId}} {{prompt}}`.
 The default manager resume command is `claude -n {{name}} --resume {{sessionId}} {{resumeText}}`.
 `managerConfig.harness` holds `preset`, `startCommand`, and `resumeCommand`.
-The Codex, agy, OpenCode, and pi presets resume the most recent conversation.
+The Codex, OpenCode, and pi presets resume the most recent conversation.
 Set a specific conversation in the resume command when agents share a directory.
 Trellis adds `TRELLIS_URL` and `TRELLIS_ACTOR` to the process environment.
 A manager also starts in its configured project directory.

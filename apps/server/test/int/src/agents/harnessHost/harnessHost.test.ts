@@ -5,6 +5,7 @@ import { mkdir, readdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import type { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { HarnessHost } from "../../../../../src/agents/harnessHost/harnessHost.ts";
+import { providers } from "../../../../../src/agents/harnessHost/providers.ts";
 import { harnessHostFixture } from "../../../../helpers/harnessHostFixture.ts";
 
 let home: string, daemon: ChildProcess, client: RuntimeClient, host: HarnessHost;
@@ -15,6 +16,10 @@ afterEach(async () => {
 	await client.shutdown();
 	await new Promise<void>((done) => daemon.once("exit", () => done()));
 	await rm(home, { recursive: true, force: true });
+});
+
+test("the host registers the supported native harnesses", () => {
+	expect(Object.keys(providers).sort()).toEqual(["claude", "codex", "opencode", "pi"]);
 });
 
 test.each(["claude", "codex", "pi", "opencode"] as const)(
@@ -55,7 +60,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 	10000,
 );
 
-test.each(["claude", "codex", "pi", "opencode", "agy"] as const)(
+test.each(["claude", "codex", "pi", "opencode"] as const)(
 	"missing %s executable fails before process launch with its name and PATH",
 	async (harness) => {
 		const empty = join(home, "empty");
@@ -102,14 +107,6 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 		expect((await host.status("busy")).pid).toBe(pid);
 	},
 );
-
-test("AGY reports capability gaps and requires explicit manual mode", async () => {
-	await expect(host.start({ id: "agy-auto", harness: "agy", cwd: home, prompt: "hello" })).rejects.toThrow("hooks");
-	const result = await host.start({ id: "agy-manual", harness: "agy", cwd: home, prompt: "hello", mode: "manual" });
-	expect(result.capabilityGaps.length).toBeGreaterThan(0);
-	expect(result.process.agent).toBeNull();
-	await expect(host.send("agy-manual", "hello", "message")).rejects.toThrow("hooks");
-});
 
 test("a crashed executable stays visible in the error list", async () => {
 	host = new HarnessHost({
@@ -194,7 +191,7 @@ test.each(["codex", "pi", "opencode"] as const)(
 );
 
 test("invalid public launch input fails before it creates attempt files", async () => {
-	for (const change of [{ harness: "unknown" }, { cwd: "relative" }, { prompt: 42 }, { mode: "unsafe" }])
+	for (const change of [{ harness: "unknown" }, { cwd: "relative" }, { prompt: 42 }])
 		await expect(
 			host.start({ id: "invalid", harness: "claude", cwd: home, prompt: "hello", ...change } as never),
 		).rejects.toThrow();
