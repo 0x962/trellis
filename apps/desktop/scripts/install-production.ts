@@ -17,11 +17,12 @@ const build = await mkdtemp(join(tmpdir(), "trellis-production-"));
 const source = join(build, "source");
 const output = join(build, "package");
 const destination = values.prepare ? resolve(values.prepare) : join(homedir(), "Applications/Trellis.app");
+const cache = join(homedir(), "Library/Caches/Trellis");
 const env = {
 	...process.env,
 	CSC_IDENTITY_AUTO_DISCOVERY: "false",
-	electron_config_cache: join(build, "electron-cache"),
-	ELECTRON_BUILDER_CACHE: join(build, "builder-cache"),
+	electron_config_cache: join(cache, "electron"),
+	ELECTRON_BUILDER_CACHE: join(cache, "electron-builder"),
 };
 console.log(`Build ${commit} in ${build}`);
 const run = async (command: string[], cwd = source) => {

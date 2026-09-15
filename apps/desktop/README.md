@@ -82,7 +82,7 @@ Commit the source changes. Run this command from the repository root:
 bun run desktop:install
 ```
 
-The command rejects uncommitted changes. It exports one commit into a fresh directory and installs the frozen dependency lockfile. It builds the renderer, runtime, harnesses, desktop, and complete host package. It records the commit in `build.json`.
+The command rejects uncommitted changes. It exports one commit into a fresh directory and installs the frozen dependency lockfile. It builds the renderer, runtime, harnesses, desktop, and complete host package. It records the commit in `build.json`. Electron downloads use `~/Library/Caches/Trellis` across builds.
 
 The command signs the local package and runs the packaged smoke checks. It copies the app with `ditto` into a temporary directory beside `~/Applications/Trellis.app`, then replaces the complete bundle. Deleted source files cannot remain in the installed bundle. The running app and its services stay open during the copy.
 
