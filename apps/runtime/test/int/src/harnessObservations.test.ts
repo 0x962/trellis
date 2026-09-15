@@ -201,3 +201,34 @@ test("a provider model update preserves active work and an unsubmitted terminal 
 		agent: { sessionId: "provider", model: "third", turnId: "turn" },
 	});
 });
+
+test("an interrupt cannot write to or finish a newer turn", async () => {
+	await start();
+	await client.observe("attempt", "secret", { kind: "prompt", prompt: "first", turnId: "first" });
+	const old = await client.inspect("attempt");
+	await Bun.sleep(2);
+	await client.observe("attempt", "secret", { kind: "prompt", prompt: "second", turnId: "second" });
+	const expected = { turnId: old.agent!.turnId, activityAt: old.activity!.updatedAt };
+	await expect(
+		client.input("attempt", Buffer.from("stale interrupt").toString("base64"), false, expected),
+	).rejects.toThrow("changed");
+	await expect(client.observe("attempt", "secret", { kind: "idle", outcome: "interrupted" }, expected)).rejects.toThrow(
+		"changed",
+	);
+	expect((await client.inspect("attempt")).activity?.state).toBe("working");
+	expect(Buffer.from((await client.output("attempt")).data, "base64").toString()).not.toContain("stale interrupt");
+});
+
+test("a new prompt clears an unreliable old turn ID and binds the first native tool ID", async () => {
+	await start();
+	await client.observe("attempt", "secret", { kind: "prompt", prompt: "first", turnId: "first" });
+	await client.observe("attempt", "secret", { kind: "idle", turnId: "first", outcome: "completed" });
+	await client.observe("attempt", "secret", { kind: "prompt", prompt: "second" });
+	expect((await client.inspect("attempt")).agent?.turnId).toBeNull();
+	await client.observe("attempt", "secret", {
+		kind: "tool-start",
+		turnId: "second",
+		tool: { id: "tool", name: "read" },
+	});
+	expect((await client.inspect("attempt")).agent?.turnId).toBe("second");
+});

@@ -3,18 +3,21 @@ import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 
 import { join } from "node:path";
 import type {
 	LaunchSpec,
+	RuntimeExpectedTurn,
 	RuntimeListInput,
 	RuntimeMethods,
 	RuntimeProcessStatus,
 	RuntimeSession,
 	RuntimeStream,
 } from "@trellis/runtime-protocol";
+import { assertExpectedTurn } from "./assertExpectedTurn.ts";
 import { authenticateSession } from "./authenticateSession.ts";
 import { fingerprintLaunch } from "./fingerprintLaunch.ts";
 import { inspectProcess } from "./inspectProcess.ts";
 import { inspectSessionRecord } from "./inspectSessionRecord.ts";
 import { matchesProcessFilters } from "./matchesProcessFilters.ts";
 import { observeHarness } from "./observeHarness.ts";
+import { observeLegacyTurn } from "./observeLegacyTurn.ts";
 import { ProcessExitWatcher } from "./processExitWatcher.ts";
 import { createProcessHandle } from "./processHandle.ts";
 import type { SessionRecord as Record } from "./sessionRecord.ts";
@@ -85,21 +88,17 @@ export class SessionStore {
 	inspect(id: string): RuntimeProcessStatus {
 		return inspectSessionRecord(this.get(id));
 	}
-	observe({ id, token, event }: RuntimeMethods["observe"]["params"]): RuntimeProcessStatus {
+	observe({ id, token, event, expected }: RuntimeMethods["observe"]["params"]): RuntimeProcessStatus {
 		const record = this.get(id);
 		authenticateSession(record, token);
+		assertExpectedTurn(record, expected);
 		observeHarness(record, event);
 		return this.inspect(id);
 	}
 	turn({ id, token, event, messageId, result }: RuntimeMethods["turn"]["params"]): RuntimeProcessStatus {
 		const record = this.get(id);
 		authenticateSession(record, token);
-		const state = { SessionStart: "ready", UserPromptSubmit: "working", Stop: "idle" } as const;
-		record.activity = { state: state[event], updatedAt: new Date().toISOString() };
-		record.inputPending = false;
-		if (event === "UserPromptSubmit" && messageId !== undefined) record.ledger.acknowledge(messageId, messageId === id);
-		if (event === "Stop" && result !== undefined) record.completion.append(result);
-		for (const listener of record.listeners) listener();
+		observeLegacyTurn(record, { id, token, event, messageId, result });
 		return this.inspect(id);
 	}
 	subscribe(id: string, listener: () => void, stream: RuntimeStream = "stdout", output = true) {
@@ -206,9 +205,10 @@ export class SessionStore {
 			}, spec.timeoutMs);
 		return this.inspect(spec.id);
 	}
-	async input(id: string, data: string, userInput = false) {
+	async input(id: string, data: string, userInput = false, expected?: RuntimeExpectedTurn) {
 		const record = this.get(id);
 		if (!record.process) throw new Error(`Session ${id} is ${record.session.status}`);
+		assertExpectedTurn(record, expected);
 		const bytes = Buffer.from(data, "base64");
 		if (userInput && record.tokenHash !== null) record.inputPending = bytes.toString() !== "\x03";
 		await record.process.input(bytes);

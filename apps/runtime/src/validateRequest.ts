@@ -18,6 +18,16 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		if (typeof params.id !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.id))
 			throw new Error("Session identifier must contain letters, numbers, underscores, or hyphens");
 	}
+	if (params.expected !== undefined) {
+		const expected = params.expected as Record<string, unknown>;
+		if (
+			!expected ||
+			typeof expected !== "object" ||
+			(expected.turnId !== null && typeof expected.turnId !== "string") ||
+			typeof expected.activityAt !== "string"
+		)
+			throw new Error("An expected provider turn requires turnId and activityAt");
+	}
 	switch (request.method) {
 		case "shutdown":
 		case "hello":

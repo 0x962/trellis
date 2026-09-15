@@ -102,8 +102,15 @@ export interface RuntimeDelivery {
 	messageId: string;
 	status: "written" | "unknown";
 }
+export interface RuntimeExpectedTurn {
+	turnId: string | null;
+	activityAt: string;
+}
 export interface RuntimeMethods {
-	observe: { params: { id: string; token: string; event: HarnessEvent }; result: RuntimeProcessStatus };
+	observe: {
+		params: { id: string; token: string; event: HarnessEvent; expected?: RuntimeExpectedTurn };
+		result: RuntimeProcessStatus;
+	};
 	turn: {
 		params: {
 			id: string;
@@ -124,7 +131,7 @@ export interface RuntimeMethods {
 	hello: { params: Record<string, never>; result: RuntimeHello };
 	list: { params: RuntimeListInput; result: RuntimeProcessStatus[] };
 	start: { params: LaunchSpec; result: RuntimeSession };
-	input: { params: { id: string; data: string; userInput?: boolean }; result: null };
+	input: { params: { id: string; data: string; userInput?: boolean; expected?: RuntimeExpectedTurn }; result: null };
 	resize: { params: { id: string; cols: number; rows: number }; result: null };
 	stop: { params: { id: string }; result: RuntimeSession };
 	output: { params: { id: string; offset: number; stream?: RuntimeStream }; result: RuntimeOutput };

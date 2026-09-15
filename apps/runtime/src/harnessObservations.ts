@@ -50,6 +50,7 @@ export class HarnessObservations {
 			agent.outcome = null;
 			agent.tool = null;
 		}
+		if (event.kind === "prompt") agent.turnId = null;
 		if (event.sessionId !== undefined) agent.sessionId = event.sessionId;
 		if (event.model !== undefined) agent.model = event.model;
 		if (event.turnId !== undefined) agent.turnId = event.turnId;

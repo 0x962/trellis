@@ -4,6 +4,7 @@ import {
 	type HarnessEvent,
 	type LaunchSpec,
 	RUNTIME_PROTOCOL_VERSION,
+	type RuntimeExpectedTurn,
 	type RuntimeListInput,
 	type RuntimeMethod,
 	type RuntimeMethods,
@@ -72,8 +73,8 @@ export class RuntimeClient {
 	subscribeSession(id: string, signal?: AbortSignal) {
 		return subscribeOutput(this.socketPath, { id, offset: 0, output: false }, signal);
 	}
-	observe(id: string, token: string, event: HarnessEvent) {
-		return this.call("observe", { id, token, event });
+	observe(id: string, token: string, event: HarnessEvent, expected?: RuntimeExpectedTurn) {
+		return this.call("observe", { id, token, event, expected });
 	}
 	turn(
 		id: string,
@@ -99,8 +100,8 @@ export class RuntimeClient {
 	start(spec: LaunchSpec) {
 		return this.call("start", spec);
 	}
-	input(id: string, data: string, userInput?: boolean) {
-		return this.call("input", { id, data, userInput });
+	input(id: string, data: string, userInput?: boolean, expected?: RuntimeExpectedTurn) {
+		return this.call("input", { id, data, userInput, expected });
 	}
 	deliver(id: string, messageId: string, data: string, requireIdle?: boolean) {
 		return this.call("deliver", { id, messageId, data, requireIdle });
