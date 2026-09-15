@@ -1,0 +1,9 @@
+[data-desktop-chrome] > .desktop-title-strip {
+	-webkit-app-region: drag;
+	app-region: drag;
+}
+
+[data-desktop-content] {
+	-webkit-app-region: no-drag;
+	app-region: no-drag;
+}

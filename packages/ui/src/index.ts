@@ -1,3 +1,4 @@
+export { DesktopChrome } from "./desktop/DesktopChrome/index.ts";
 export { ActorChip, type ActorChipProps } from "./domain/ActorChip";
 export { AgentConversation } from "./domain/AgentConversation";
 export { CheckResults } from "./domain/CheckResults";
