@@ -50,6 +50,14 @@ describe("EmptyState", () => {
 		expect(poster.getAttribute("alt")).toBe("");
 	});
 
+	// An img with a width and no height is 0 px tall until its file loads, and
+	// then pushes the title down. The poster keeps its 192x306 shape from the
+	// first paint, so the text under it never moves.
+	test("the default poster holds its height before the file loads", () => {
+		const { container } = render(<EmptyState variant="page" title="Page not found" />);
+		expectClasses(container.querySelector("img")!, "w-24 aspect-[192/306]");
+	});
+
 	test("a page can show its own picture in place of the poster", () => {
 		const { container } = render(<EmptyState variant="page" image="/flows.jpg" title="No flows yet" />);
 		const pictures = container.querySelectorAll("img");

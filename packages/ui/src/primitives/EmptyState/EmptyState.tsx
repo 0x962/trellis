@@ -32,8 +32,17 @@ export function EmptyState({ image, title, description, action, variant = "secti
 				className,
 			)}
 		>
+			{/* poster.jpg is 192x306 px. Its aspect ratio gives the img its height
+			    before the file loads, so the title under it does not move. */}
 			{picture !== undefined && (
-				<img src={picture} alt="" className="mb-4 w-24 -rotate-2 rounded-sm shadow-md grayscale" />
+				<img
+					src={picture}
+					alt=""
+					className={cx(
+						"mb-4 w-24 -rotate-2 rounded-sm shadow-md grayscale",
+						image === undefined && "aspect-[192/306]",
+					)}
+				/>
 			)}
 			{title !== undefined && (
 				<h3 className={cx("text-fg", page ? "text-xl font-semibold" : "text-sm font-medium")}>{title}</h3>
