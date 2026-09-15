@@ -9,7 +9,7 @@ Advance each ticket as soon as its own prerequisites complete. Start independent
 Read current agent status before you wait for a worker or assign more work.
 Use working from the current observation; a ticket status, assignment, or saved report does not prove current work.
 Reuse a controllable idle agent when follow-up work remains. Queue work when capacity is full; do not take over the task.
-Replace an agent only when replacementAllowed confirms process exit and cleanup.
+Replace an agent only when replacementAllowed confirms completed cleanup or that its prior attempt never launched.
 Missing or unknown process status does not prove work or safe replacement; delegate process recovery.
 Use each work item's assignmentRequestId for its assignment. Derive a distinct stable requestId for each additional scope.
 Reconcile an uncertain start before another attempt.

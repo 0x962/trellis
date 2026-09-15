@@ -86,6 +86,8 @@ A descendant that leaves its session and loses its parent before inspection requ
 Built-in harnesses launch through `HarnessHost` with an interactive CLI in a PTY.
 Builders and reviewers use native permission bypass settings.
 Managers use a private workspace and a Trellis tool allowlist.
+Each supported manager harness uses the manager role as its system prompt.
+The assignment message holds the saved persona and project context.
 The manager delegates technical work and records coordination outcomes through these tools.
 Claude, OpenCode, and Pi support this boundary. Codex and custom manager launches return an explicit error.
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
@@ -98,6 +100,9 @@ Each launch selects the active host release on PATH, including when the runtime 
 `HarnessHost` exposes start, resume, send, interrupt, stop, status, and output APIs for native agent assignments.
 Its immutable launch descriptors retain configuration. The runtime supplies process status and observed provider identity.
 Assignment responses expose runtime-derived `processStatus` separately from the agent turn result. Terminal selection and process controls use that process status.
+Current observations include the process check time, control availability, turn activity, and turn outcome.
+Manager tools report `working` only for a controllable process with an active turn and no final outcome.
+They permit replacement after confirmed cleanup or proof that the prior attempt never launched.
 An exact prompt receipt confirms delivery. A provider turn and its observed activity time protect interrupt requests.
 `bun run test:host` tests this module and the runtime with isolated processes.
 `bun run test:host:real` also runs authenticated native CLI tests with explicit models and a configured credential home.
