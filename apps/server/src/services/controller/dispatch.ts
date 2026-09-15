@@ -3,6 +3,7 @@ import type { Tx } from "../../db/tx.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
 import type { ServiceCtx } from "../support.ts";
+import { agentContext } from "./agentContext/index.ts";
 import { claim, complete, defer } from "./controller.ts";
 import { managerMessage } from "./message.ts";
 import { dispatchMessageId } from "./messageId.ts";
@@ -34,11 +35,14 @@ export const dispatch = async (ctx: Ctx) => {
 					);
 					return;
 				}
+				const context = await ctx.newTx((tx) =>
+					agentContext({ now: ctx.now() }, tx, { sessions, projectId: delivery.projectId, runId: delivery.runId! }),
+				);
 				attempted = true;
 				await sendDeadline(
 					prepareSend(ctx, {
 						id: delivery.runId!,
-						text: managerMessage(delivery),
+						text: managerMessage(delivery, context),
 						messageId: dispatchMessageId(delivery),
 						requireIdle: true,
 						expectedTerminalId: delivery.terminalId!,

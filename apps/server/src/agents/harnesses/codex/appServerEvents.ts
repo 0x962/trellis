@@ -87,6 +87,8 @@ export class CodexAppServerEvents {
 				answers.set(item.id, z.string().parse(item.text));
 				this.answers.set(turnId, answers);
 			}
+			if (item.type === "agentMessage" && method === "item/completed")
+				return [{ kind: "message", ...identity, message: { text: z.string().parse(item.text) } }];
 			if (tools.has(item.type))
 				return [
 					{
