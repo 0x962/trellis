@@ -1,7 +1,12 @@
 import { spawn } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+if (process.argv[2] === "--version") {
+	appendFileSync(join(dirname(process.argv[1]!), "version-reads.txt"), "version\n");
+	process.stdout.write(`${process.env.HARNESS_FIXTURE_VERSION ?? "1.18.31"}\n`);
+	process.exit(0);
+}
 const statusFile = join(dirname(process.argv[1]!), "claude-status.json");
 if (process.argv[2] === "agents") {
 	process.stdout.write(readFileSync(statusFile, "utf8"));

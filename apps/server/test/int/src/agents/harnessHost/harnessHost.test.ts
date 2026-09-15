@@ -1,43 +1,15 @@
-import { afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
-import { type ChildProcess, spawn } from "node:child_process";
+import { afterEach, beforeEach, expect, test } from "bun:test";
+import type { ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmod, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
-import { RuntimeClient } from "@trellis/runtime-protocol/client";
-import { originDir } from "../../../../../../../test/originDir.ts";
-import { buildRuntime } from "../../../../../../runtime/test/runtimeBuild.ts";
+import { mkdir, readdir, readFile, rm } from "node:fs/promises";
+import { join } from "node:path";
+import type { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { HarnessHost } from "../../../../../src/agents/harnessHost/harnessHost.ts";
+import { harnessHostFixture } from "../../../../helpers/harnessHostFixture.ts";
 
-const sourceDir = originDir(import.meta.dir);
-const repo = resolve(sourceDir, "../../../../..");
 let home: string, daemon: ChildProcess, client: RuntimeClient, host: HarnessHost;
-beforeAll(buildRuntime);
 beforeEach(async () => {
-	home = await mkdtemp("/tmp/trl-hhost-");
-	const bin = join(home, "bin");
-	await mkdir(bin);
-	for (const harness of ["claude", "codex", "pi", "opencode", "agy"]) {
-		const executable = join(bin, harness);
-		await writeFile(
-			executable,
-			`#!${process.execPath}\nimport ${JSON.stringify(resolve(repo, "apps/server/test/fixtures/harnessHost/nativeHarness.ts"))};\n`,
-		);
-		await chmod(executable, 0o700);
-	}
-	client = new RuntimeClient(join(home, "runtime.sock"));
-	daemon = spawn(
-		process.env.TRELLIS_RUNTIME_NODE ?? "node",
-		[resolve(repo, "apps/runtime/dist/index.js"), "--home", home],
-		{ stdio: ["ignore", "pipe", "inherit"] },
-	);
-	await new Promise<void>((done) => daemon.stdout!.once("data", () => done()));
-	host = new HarnessHost({
-		runtime: client,
-		directory: join(home, "attempts"),
-		env: { ...process.env, PATH: bin },
-		bun: process.execPath,
-		observationTimeoutMs: 1500,
-	});
+	({ home, client, daemon, host } = await harnessHostFixture());
 });
 afterEach(async () => {
 	await client.shutdown();
@@ -270,4 +242,44 @@ test("an uncertain native delivery is not sent again after host recreation", asy
 	expect(Buffer.from((await host.output("unknown-native")).data, "base64").toString()).not.toContain(
 		"native prompt accepted",
 	);
+});
+
+test("an older OpenCode version fails before attempt files or processes exist", async () => {
+	host = new HarnessHost({
+		runtime: client,
+		directory: join(home, "attempts"),
+		env: { ...process.env, PATH: join(home, "bin"), HARNESS_FIXTURE_VERSION: "1.4.11" },
+		bun: process.execPath,
+	});
+	await expect(host.start({ id: "old", harness: "opencode", cwd: home, prompt: "hello" })).rejects.toMatchObject({
+		code: "HARNESS_VERSION_UNSUPPORTED",
+		message: expect.stringContaining("1.4.11"),
+	});
+	await expect(host.start({ id: "old", harness: "opencode", cwd: home, prompt: "hello" })).rejects.toThrow(
+		"tested minimum is 1.18.31",
+	);
+	expect(await client.list()).toEqual([]);
+	await expect(readdir(join(home, "attempts"))).rejects.toMatchObject({ code: "ENOENT" });
+});
+
+test("a duplicate OpenCode attempt does not repeat the version command", async () => {
+	const input = { id: "version-once", harness: "opencode" as const, cwd: home, prompt: "hello" };
+	const first = await host.start(input);
+	const duplicate = await host.start(input);
+	expect(duplicate.process.pid).toBe(first.process.pid);
+	expect(await readFile(join(home, "bin", "version-reads.txt"), "utf8")).toBe("version\n");
+});
+
+test("empty OpenCode version output fails without launch artifacts", async () => {
+	host = new HarnessHost({
+		runtime: client,
+		directory: join(home, "attempts"),
+		env: { ...process.env, PATH: join(home, "bin"), HARNESS_FIXTURE_VERSION: "" },
+		bun: process.execPath,
+	});
+	await expect(host.start({ id: "unknown-version", harness: "opencode", cwd: home, prompt: "hello" })).rejects.toThrow(
+		"version",
+	);
+	expect(await client.list()).toEqual([]);
+	await expect(readdir(join(home, "attempts"))).rejects.toMatchObject({ code: "ENOENT" });
 });
