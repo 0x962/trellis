@@ -19,6 +19,14 @@ export const HARNESS_PRESETS = {
 };
 export const HarnessPresetSchema = z.enum(["claude", "codex", "opencode", "pi", "custom"]);
 export type HarnessPreset = z.infer<typeof HarnessPresetSchema>;
+// The harness programs trellis launches itself. Each one answers a query for
+// the models it offers.
+export const BuiltInHarnessSchema = HarnessPresetSchema.exclude(["custom"]);
+export type BuiltInHarness = z.infer<typeof BuiltInHarnessSchema>;
+// One choice in the model picker. `value` is what the harness takes on its
+// model flag. `label` is what a person reads.
+export const HarnessModelSchema = z.object({ value: z.string().min(1), label: z.string().min(1) });
+export type HarnessModel = z.infer<typeof HarnessModelSchema>;
 export const HarnessSchema = z
 	.strictObject({
 		preset: HarnessPresetSchema,

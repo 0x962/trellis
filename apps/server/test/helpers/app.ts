@@ -1,5 +1,13 @@
 import { mkdirSync } from "node:fs";
-import { createTrellisClient, type GhStatus, type Project, type Ticket, type TrellisClient } from "@trellis/api";
+import {
+	type BuiltInHarness,
+	createTrellisClient,
+	type GhStatus,
+	type HarnessModel,
+	type Project,
+	type Ticket,
+	type TrellisClient,
+} from "@trellis/api";
 import { ulid } from "ulid";
 import { createApp } from "../../src/app.ts";
 import { type Config, loadConfig } from "../../src/config.ts";
@@ -81,6 +89,9 @@ export type TestAppOptions = {
 	// The folder picker `system.chooseDirectory` opens. The default answers
 	// the way a canceled dialog does, so no test waits on one.
 	chooseDirectory?: () => Promise<string | null>;
+	// What `system.harnessModels` answers. The default lists no model, so no
+	// test runs a harness program.
+	harnessModels?: (harness: BuiltInHarness) => Promise<HarnessModel[]>;
 };
 
 export const createTestApp = async (options: TestAppOptions = {}) => {
@@ -135,6 +146,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		runtime,
 		clock,
 		chooseDirectory: options.chooseDirectory ?? (async () => null),
+		harnessModels: options.harnessModels ?? (async () => []),
 	});
 
 	const fetchThroughApp = (request: Request) => Promise.resolve(app.request(request));

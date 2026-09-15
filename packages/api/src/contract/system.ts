@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BuiltInHarnessSchema, HarnessModelSchema } from "../harness/harness.ts";
 import { DiagnosticsSchema } from "../schemas/diagnostics.ts";
 import { BackupOutputSchema, GhStatusSchema, HealthSchema } from "../schemas/system.ts";
 import { base } from "./base.ts";
@@ -32,4 +33,8 @@ export const system = {
 	backup: base
 		.route({ method: "POST", path: "/backup", summary: "Write a backup archive under the data home" })
 		.output(BackupOutputSchema),
+	harnessModels: base
+		.route({ method: "GET", path: "/harnesses/{harness}/models", summary: "List the models a harness offers" })
+		.input(z.strictObject({ harness: BuiltInHarnessSchema }))
+		.output(z.array(HarnessModelSchema)),
 };

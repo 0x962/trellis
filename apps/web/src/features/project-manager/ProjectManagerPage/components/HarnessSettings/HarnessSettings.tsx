@@ -1,8 +1,9 @@
 import { HARNESS_PRESETS, type HarnessPreset, type ProjectManagerConfig } from "@trellis/api";
-import { Input, Select } from "@trellis/ui";
+import { Select } from "@trellis/ui";
 import { useState } from "react";
 import { SettingsSection } from "../../../../project-settings/SettingsSection";
 import { AgentCommandField } from "../AgentCommandField";
+import { ModelSelect } from "./components/ModelSelect";
 
 const presets = [
 	{ value: "claude", label: "Claude" },
@@ -25,12 +26,6 @@ export function HarnessSettings({
 	readOnly: boolean;
 }) {
 	const [revision, setRevision] = useState(0);
-	const saveModel = () => {
-		const model = draft.harness.model?.trim() || undefined;
-		const next = { ...draft, harness: { ...draft.harness, model } };
-		if (model !== saved.harness.model) commit(next);
-		else setDraft(next);
-	};
 	return (
 		<fieldset disabled={readOnly} className="manager-settings-groups">
 			<SettingsSection title="Harness" hint="The agent program that does the work.">
@@ -48,23 +43,11 @@ export function HarnessSettings({
 					}}
 				/>
 				{draft.harness.preset !== "custom" && (
-					<>
-						<Input
-							label="Model"
-							value={draft.harness.model ?? ""}
-							onChange={(event) => setDraft({ ...draft, harness: { ...draft.harness, model: event.target.value } })}
-							onBlur={saveModel}
-							onKeyDown={(event) => {
-								if (event.key === "Enter") {
-									event.preventDefault();
-									saveModel();
-								}
-							}}
-						/>
-						<p className="manager-settings-hint">
-							Leave blank to use the harness default. OpenCode and pi accept provider/model.
-						</p>
-					</>
+					<ModelSelect
+						harness={draft.harness.preset}
+						value={draft.harness.model}
+						onChange={(model) => commit({ ...draft, harness: { ...draft.harness, model } })}
+					/>
 				)}
 			</SettingsSection>
 			{draft.harness.preset === "custom" && (

@@ -1,5 +1,12 @@
 import { implement, ORPCError, ValidationError } from "@orpc/server";
-import { ActorHeaderSchema, type ActorRef, actorHeaderGrammar, contract } from "@trellis/api";
+import {
+	ActorHeaderSchema,
+	type ActorRef,
+	actorHeaderGrammar,
+	type BuiltInHarness,
+	contract,
+	type HarnessModel,
+} from "@trellis/api";
 import type { RequestContext } from "../context.ts";
 import type { ServiceTransport } from "../db/transport.ts";
 import { fail, invalidInput } from "../errors.ts";
@@ -16,7 +23,8 @@ import type { ServiceName } from "../services/registry.ts";
 // not in a service, because the picker blocks until a person answers and the
 // database worker must serve every other request while it waits. `gh` reads
 // and checks the gh state for the same reason: `gh auth status` can take
-// seconds.
+// seconds. `harnessModels` runs a harness program for its model list, which
+// takes seconds as well.
 export type ProcedureContext = {
 	headers: Headers;
 	reqId: string;
@@ -26,6 +34,7 @@ export type ProcedureContext = {
 	resHeaders?: Headers;
 	chooseDirectory: () => Promise<string | null>;
 	gh: GhAccess;
+	harnessModels: (harness: BuiltInHarness) => Promise<HarnessModel[]>;
 };
 
 const base = implement(contract).$context<ProcedureContext>();

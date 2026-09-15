@@ -5,8 +5,8 @@ import type { GhRunner } from "../../../../src/gh/run.ts";
 import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { noGh, signedInGh } from "../../../helpers/ctx.ts";
 
-// GET /api/health, GET /api/gh, POST /api/gh/check, and POST /api/backup over
-// the test app.
+// GET /api/health, GET /api/gh, POST /api/gh/check, POST /api/backup, and
+// GET /api/harnesses/{harness}/models over the test app.
 
 // A transport that writes the name of every service call into `names`.
 const recordNames =
@@ -61,6 +61,29 @@ describe("system", () => {
 		expect(response.body.db.ok).toBe(true);
 		expect(response.body.db.sizeBytes).toBeGreaterThan(0);
 		expect(response.body.gh).toEqual(signedInGh());
+	});
+
+	test("system.harnessModels answers with the list of the harness and no service call", async () => {
+		const names: string[] = [];
+		const asked: string[] = [];
+		const app = await createTestApp({
+			wrapTransport: recordNames(names),
+			harnessModels: async (harness) => {
+				asked.push(harness);
+				return [{ value: "sonnet", label: "Sonnet" }];
+			},
+		});
+
+		const response = await app.api("/api/harnesses/claude/models", { actor: null });
+		const unknown = await app.api("/api/harnesses/custom/models", { actor: null });
+		await app.close();
+
+		expect(response.status).toBe(200);
+		expect(response.body).toEqual([{ value: "sonnet", label: "Sonnet" }]);
+		expect(asked).toEqual(["claude"]);
+		expect(names).toEqual([]);
+		expect(unknown.status).toBe(400);
+		expect(unknown.body.code).toBe("INPUT_VALIDATION_FAILED");
 	});
 
 	test("system.gh returns the gh state", async () => {

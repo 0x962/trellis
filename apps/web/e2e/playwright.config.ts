@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@playwright/test";
 import { createRunRoot, sweepDeadRoots } from "../../../test/runRoot.ts";
+import { writeHarnessModelsBin } from "../../server/test/helpers/harnessModelsBin.ts";
 import { ghReplies } from "./ghReplies";
 
 const ROOT_PREFIX = "trellis-e2e-";
@@ -37,6 +38,7 @@ if (process.env.TRELLIS_E2E_ROOT === undefined) {
 	mkdirSync(join(root, "gh"));
 	mkdirSync(join(root, "user"));
 	writeFileSync(join(root, "gh", "replies.json"), JSON.stringify(ghReplies));
+	writeHarnessModelsBin(join(root, "bin"));
 	process.env.TRELLIS_E2E_ROOT = root;
 	process.env.TRELLIS_E2E_API_PORT = await freePort();
 	process.env.TRELLIS_E2E_WEB_PORT = await freePort();
@@ -48,9 +50,9 @@ const webPort = process.env.TRELLIS_E2E_WEB_PORT!;
 const apiUrl = `http://127.0.0.1:${apiPort}`;
 const webUrl = `http://127.0.0.1:${webPort}`;
 
-// The real server with a fresh data home and the gh stub, and vite in front
-// of it. onboarding runs alone first, because the first-run flow needs a
-// server with no project. Every other spec seeds its own project through
+// The real server with a fresh data home, the gh stub, and the harness
+// stand-ins first on PATH, and vite in front of it. onboarding runs alone
+// first, because the first-run flow needs a server with no project. Every other spec seeds its own project through
 // the CLI. Every spec gets a fresh browser context, so localStorage starts
 // empty.
 export default defineConfig({
@@ -95,6 +97,9 @@ export default defineConfig({
 				TRELLIS_GH_BIN: ghStub,
 				TRELLIS_GH_STUB_FILE: join(root, "gh", "replies.json"),
 				TRELLIS_GH_STUB_LOG: join(root, "gh", "spawns.log"),
+				// `system.harnessModels` runs a harness program from PATH. The
+				// stand-ins answer the model query, so no spec needs a real one.
+				PATH: `${join(root, "bin")}:${process.env.PATH}`,
 				// paint.spec.ts writes the production build here. The server
 				// looks for it on each request, so the build can come after boot.
 				TRELLIS_WEB_DIST: join(root, "dist"),

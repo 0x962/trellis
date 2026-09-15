@@ -26,12 +26,14 @@ test("local manager settings preserve directory trust, model, and custom command
 	await page.getByRole("combobox", { name: "Harness preset" }).click();
 	await page.getByRole("option", { name: "Codex", exact: true }).click();
 	await expect(page.getByRole("textbox", { name: "Start command", exact: true })).toHaveCount(0);
-	await page.getByRole("textbox", { name: "Model", exact: true }).fill("gpt-5.6-sol");
-	await page.getByRole("textbox", { name: "Model", exact: true }).press("Tab");
+	// The model list comes from the codex stand-in on the PATH of the server.
+	await page.getByRole("combobox", { name: "Model", exact: true }).click();
+	await expect(page.getByRole("option", { name: "Harness default", exact: true })).toBeVisible();
+	await page.getByRole("option", { name: "GPT-5.6-Sol", exact: true }).click();
 	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.harness.model).toBe("gpt-5.6-sol");
 	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.harness.preset).toBe("codex");
 	await page.reload();
-	await expect(page.getByRole("textbox", { name: "Model", exact: true })).toHaveValue("gpt-5.6-sol");
+	await expect(page.getByRole("combobox", { name: "Model", exact: true })).toHaveText("GPT-5.6-Sol");
 	await page.getByRole("combobox", { name: "Harness preset" }).click();
 	await page.getByRole("option", { name: "Custom", exact: true }).click();
 	await expect(page.getByRole("textbox", { name: "Start command", exact: true })).toHaveValue(
@@ -52,7 +54,7 @@ test("local manager settings preserve directory trust, model, and custom command
 	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.concurrency).toBe(5);
 });
 
-test("a blank default model remains valid after an edit", async ({ page }) => {
+test("the harness default stays valid after a model is chosen and cleared", async ({ page }) => {
 	const persona = await post<Persona>("/personas", {
 		name: "Model default fixture",
 		kind: "manager",
@@ -72,12 +74,15 @@ test("a blank default model remains valid after an edit", async ({ page }) => {
 	await signIn(page, "/p/MDF/settings/manager#harness");
 	const start = page.getByRole("button", { name: "Start manager", exact: true });
 	await expect(start).toBeEnabled();
-	const model = page.getByRole("textbox", { name: "Model", exact: true });
-	await model.fill(" ");
-	await model.press("Tab");
-	await expect(model).toHaveValue("");
+	const model = page.getByRole("combobox", { name: "Model", exact: true });
+	await model.click();
+	await page.getByRole("option", { name: "Sonnet", exact: true }).click();
+	await expect.poll(async () => (await get<Project>("/projects/MDF")).managerConfig?.harness.model).toBe("sonnet");
+	await model.click();
+	await page.getByRole("option", { name: "Harness default", exact: true }).click();
+	await expect(model).toHaveText("Harness default");
+	await expect.poll(async () => (await get<Project>("/projects/MDF")).managerConfig?.harness.model).toBeUndefined();
 	await expect(start).toBeEnabled();
-	expect((await get<Project>("/projects/MDF")).managerConfig?.harness.model).toBeUndefined();
 });
 
 test("a manager without a launched process can start after its settings are fixed", async ({ page }) => {

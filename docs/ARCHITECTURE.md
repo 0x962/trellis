@@ -370,7 +370,7 @@ time. The first section of each page carries no hash.
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
 `/settings` holds the actor name, theme, GitHub state, phone pair code, drafts, and runtime diagnostics.
-The Manager page holds the manager persona, repository directory, trust, dispatch state, concurrency limit, and harness commands.
+The Manager page holds the manager persona, repository directory, trust, dispatch state, concurrency limit, harness commands, and the model picker that `system.harnessModels` fills.
 It writes `projects.managerConfig` through `projects.update`.
 
 The sidebar holds the workspace row, Needs you, Search, All tickets, the project
@@ -488,6 +488,7 @@ returns one canonical spelling.
 | settings.get, set | GET, PUT /api/settings | |
 | system.health, gh, checkGh, backup | GET /api/health, /api/gh; POST /api/gh/check, /api/backup | gh and checkGh run in the HTTP process, not the database worker |
 | system.chooseDirectory | POST /api/choose-directory | it opens the folder picker of the server computer |
+| system.harnessModels | GET /api/harnesses/{harness}/models | it runs the harness program for its model list, in the HTTP process |
 | export | GET /api/export | a Hono route, not a contract procedure: an NDJSON stream with `Content-Disposition: attachment` |
 
 `TicketSummary` is the shape that list, board, and events carry. It holds the

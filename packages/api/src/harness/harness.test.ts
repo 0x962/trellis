@@ -1,5 +1,11 @@
 import { expect, test } from "bun:test";
-import { HARNESS_PRESETS, HarnessPresetSchema, HarnessSchema } from "./harness.ts";
+import {
+	BuiltInHarnessSchema,
+	HARNESS_PRESETS,
+	HarnessModelSchema,
+	HarnessPresetSchema,
+	HarnessSchema,
+} from "./harness.ts";
 
 test("built-in harness settings retain an explicit model", () => {
 	expect(HarnessSchema.parse({ preset: "codex", model: " gpt-5.6-sol " }).model).toBe("gpt-5.6-sol");
@@ -9,6 +15,12 @@ test("built-in harness settings retain an explicit model", () => {
 test("project harness choices contain the supported programs and custom commands", () => {
 	expect(Object.keys(HARNESS_PRESETS)).toEqual(["claude", "codex", "opencode", "pi"]);
 	expect(HarnessPresetSchema.options).toEqual(["claude", "codex", "opencode", "pi", "custom"]);
+	expect(BuiltInHarnessSchema.options).toEqual(["claude", "codex", "opencode", "pi"]);
+});
+
+test("a harness model carries the flag value and a label", () => {
+	expect(HarnessModelSchema.parse({ value: "sonnet", label: "Sonnet" })).toEqual({ value: "sonnet", label: "Sonnet" });
+	expect(HarnessModelSchema.safeParse({ value: "", label: "Sonnet" }).success).toBe(false);
 });
 
 test.each(["claude", "codex", "opencode"] as const)("%s starts and resumes without tool approval prompts", (preset) => {
