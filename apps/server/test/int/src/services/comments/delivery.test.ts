@@ -48,6 +48,52 @@ test("a mention delivers once to its captured assignment and session", async () 
 	expect(send).toHaveBeenCalledTimes(1);
 });
 
+test.each([false, true])("a manager mention carries only event data with reply=%s", async (reply) => {
+	const worker = await h.one(sql`SELECT project_id, ticket_id FROM agent_runs WHERE id='537'`);
+	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,terminal_id,session_id,created_at,updated_at)
+		VALUES ('manager','Manager','Manager','manager','Database policy',${worker.project_id},'APP','manager-terminal','manager-conversation',now(),now())`);
+	const comment = await h.run((ctx, tx) =>
+		create(ctx, tx, {
+			ticket: worker.ticket_id as string,
+			body: "@Manager the dependency is ready",
+			...(reply ? { parentId: commentId } : {}),
+		}),
+	);
+	const send = sent();
+	await dispatchMentions(
+		ctx(),
+		[
+			controllerSession("manager-terminal", {
+				agent: {
+					sessionId: "manager-conversation",
+					model: null,
+					turnId: null,
+					tool: null,
+					lastTool: null,
+					lastMessage: null,
+					error: null,
+					outcome: null,
+				},
+			}),
+		],
+		send,
+	);
+	expect(send).toHaveBeenCalledTimes(1);
+	expect(send.mock.calls[0]![1]).toMatchObject({
+		id: "manager",
+		expectedTerminalId: "manager-terminal",
+		expectedSessionId: "manager-conversation",
+	});
+	expect(JSON.parse(send.mock.calls[0]![1].text)).toEqual({
+		type: "trellis.comment.mentioned",
+		commentId: comment.id,
+		threadId: reply ? commentId : comment.id,
+		ticketId: worker.ticket_id,
+		projectId: worker.project_id,
+		recipient: { runId: "manager", personaName: "Manager" },
+	});
+});
+
 test("a busy assignment retains its pending mention", async () => {
 	const send = sent();
 	await dispatchMentions(

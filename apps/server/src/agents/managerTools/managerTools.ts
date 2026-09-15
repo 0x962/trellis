@@ -50,7 +50,7 @@ export const managerTools = (invoke: Invoke) => {
 						name,
 						operation: `${group}.${action}`,
 						description: paginated
-							? "List agents in pages. Returns items, total, and nextOffset. Pass nextOffset as offset until nextOffset is null."
+							? "List agents in pages. Returns items, total, and nextOffset."
 							: (procedure["~orpc"].route.summary ?? `${group}.${action}`),
 						schema,
 						inputSchema: z.toJSONSchema(schema, { io: "input" }),

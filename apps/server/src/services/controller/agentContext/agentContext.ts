@@ -42,7 +42,7 @@ export const agentContext = async (
 				session?.status === "exited"
 					? false
 					: session?.status === "running" && session.controllable && session.activity !== null
-						? session.activity.state === "working"
+						? session.activity.state === "working" && session.agent?.outcome == null
 						: null;
 			const tool = session?.agent?.tool;
 			const lastTool = session?.agent?.lastTool;

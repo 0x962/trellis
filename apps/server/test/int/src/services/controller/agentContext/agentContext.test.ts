@@ -36,6 +36,29 @@ const assignment = (tx: Tx, id: string, project = projectId, overrides: Record<s
 const snapshot = (sessions: ReturnType<typeof controllerSession>[]) =>
 	h.read((tx) => agentContext({ now: secondsAfter(60) }, tx, { projectId, runId: "manager", sessions }));
 
+test.each(["failed", "interrupted", "completed"] as const)(
+	"a turn with outcome %s cannot report active work after a late tool event",
+	async (outcome) => {
+		await h.read((tx) => assignment(tx, "worker"));
+		const context = await snapshot([
+			controllerSession("worker", {
+				activity: { state: "working", updatedAt: NOW.toISOString() },
+				agent: {
+					sessionId: "conversation",
+					model: null,
+					turnId: "turn",
+					error: null,
+					outcome,
+					tool: { id: "late-tool", name: "Bash" },
+					lastTool: null,
+					lastMessage: null,
+				},
+			}),
+		]);
+		expect(context.agents[0]).toMatchObject({ isWorking: false, tool: null });
+	},
+);
+
 test("the context separates process status from turn activity and retains assignment identifiers", async () => {
 	let ticketId: string;
 	await h.read(async (tx) => {
