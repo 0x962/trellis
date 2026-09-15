@@ -6,13 +6,12 @@ export const agyCapabilityGaps = [
 ] as const;
 
 export async function prepareAgy(input: HarnessLaunchInput): Promise<HarnessLaunch> {
-	if (input.resume && !input.sessionId) throw new Error("AGY resume requires an exact conversation ID.");
 	return {
 		executable: "agy",
 		args: [
 			"--dangerously-skip-permissions",
 			...(input.model ? ["--model", input.model] : []),
-			...(input.resume ? ["--conversation", input.sessionId!] : []),
+			...(input.resume ? ["--conversation", input.sessionId] : []),
 			"--prompt-interactive",
 			input.prompt,
 		],

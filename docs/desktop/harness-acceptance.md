@@ -10,7 +10,7 @@ Inspection date: 2026-09-15. Commands executed: `command -v <binary>`, `<binary>
 |---|---|---|
 | Claude Code | 2.1.272 | `/Users/navidkhan/.local/bin/claude` |
 | Codex | 0.154.0 | `/opt/homebrew/bin/codex` |
-| AGY | 1.0.6 | `/Users/navidkhan/.local/bin/agy` |
+| AGY | 1.2.3 (probe began on 1.0.6) | `/Users/navidkhan/.local/bin/agy` |
 | OpenCode | 1.4.11 | `/opt/homebrew/bin/opencode` |
 | Pi | 0.73.1 | `/opt/homebrew/bin/pi` |
 
@@ -60,7 +60,7 @@ OpenCode's installed `run --help` exposes `--dangerously-skip-permissions`; its 
 |---|---|---|---|
 | Claude | `SessionStart.session_id`; `UserPromptSubmit.prompt`; `Stop`; `StopFailure`. | `Stop.last_assistant_message`; `PreToolUse`, `PostToolUse`, `PostToolUseFailure`. The current Trellis bridge registers only three events. | Ctrl+C interrupts an active operation. Stop does not fire for user interruption. A confirmed interruption needs an additional supported signal. [Hooks][claude-hooks], [controls][claude-controls] |
 | Codex | Hooks provide `session_id`, `turn_id`, `model`, prompt submission, Stop, and Interrupt. | Tool hooks cover local function tools; hosted tools do not use that path. Stop provides `last_assistant_message`. | Native `Interrupt` confirms the interrupted turn. The app-server exposes `turn/interrupt(threadId, turnId)` and a completed event. [Hooks][codex-hooks], [app-server][codex-server] |
-| AGY | Official hooks expose `conversationId`, `modelName`, `PreInvocation`, and `Stop`. Stop includes `terminationReason`, `error`, and `fullyIdle`. | `PreToolUse` and `PostToolUse` expose tool data. The documented hooks do not expose an exact submitted prompt receipt or final response field. | Escape halts active streams. Ctrl+C exits the CLI. No supported local cancellation API was established for installed 1.0.6. [Hooks][agy-hooks], [controls][agy-controls] |
+| AGY | Official hooks expose `conversationId`, `modelName`, `PreInvocation`, and `Stop`. Stop includes `terminationReason`, `error`, and `fullyIdle`. | `PreToolUse` and `PostToolUse` expose tool data. The documented hooks do not expose an exact submitted prompt receipt or final response field. | Escape returns the TUI to its prompt. A native event must confirm idle. Tested releases do not meet that condition. [Hooks][agy-hooks], [controls][agy-controls] |
 | OpenCode | Plugin events include `session.created`, `session.status`, `session.idle`, and `session.error`. The session API returns the native ID. | Message and message-part events expose structured content. Plugins expose tool callbacks. | `/session/:id/abort` requests cancellation; session events establish completion. Default TUI interrupt is Escape. [Server][opencode-server], [plugins][opencode-plugins], [keys][opencode-keys] |
 | Pi | An explicit `--extension` accesses `ctx.sessionManager.getSessionId()`, `before_agent_start`, `agent_start`, and `agent_end`. `ctx.isIdle()` exposes current activity. | `message_update` and `agent_end` expose messages. `tool_execution_start/update/end` expose correlated tool events. | The extension API exposes `ctx.abort()`. Escape aborts in the TUI. RPC mode has `abort`, but RPC replaces the TUI and is not the selected UI. |
 
@@ -70,7 +70,36 @@ Pi's installed `docs/rpc.md` also defines `prompt`, `get_state`, and structured 
 
 Codex's installed schemas distinguish thread, turn, and item events. A local app-server connection can supplement hooks while the native TUI remains attached. The adapter must connect to the same engine that owns the TUI session. A second engine must not resume or mutate that session concurrently.
 
-AGY's current documentation can describe a newer release than installed 1.0.6. The binary contains the hook names, `conversationId`, and `transcriptPath`, as verified with `strings`. This proves identifiers exist, not event semantics. Do not infer prompt receipts from an invocation counter or parse the terminal for a response. Treat these acceptance cases as unresolved until a versioned native protocol or real hook evidence establishes them.
+### AGY 1.2.3 acceptance limits
+
+The first native probe ran AGY 1.0.6. Its updater replaced the executable with 1.2.3 during that probe, despite `AGY_CLI_DISABLE_AUTO_UPDATE=1`. No agent issued an update command. Subsequent probes ran 1.2.3.
+
+AGY 1.0.6 executed scratch workspace hooks for a successful prompt. `PreInvocation` supplied `conversationId` and `transcriptPath`, but no `modelName`. The path selected `transcript_full.jsonl`. Explicit user entries and model response entries supplied the receipt text and result. `Stop` supplied `fullyIdle: true`. During interruption, the vendor canceled the Stop command before the script ran. Evidence: `/tmp/trellis-agy-native-probe.log`.
+
+AGY 1.2.3 accepted the exact conversation ID on resume. Escape returned the same TUI to its prompt. However, neither the trusted start nor the resumed turn executed the scratch hook handlers. The log reported one loaded hook configuration. These runs do not establish authoritative idle after interruption. Evidence: `/tmp/trellis-agy-123-trusted.log` and `/tmp/trellis-agy-123-resume.log`.
+
+The installed CLI lacks an isolated hook configuration argument. A separate directory supplied through `--add-dir` did not load its hooks. `JETSKI_APP_DATA_DIR` did not change the CLI configuration directory. The tests did not alter existing workspace or global hook files. AGY 1.2.3 also displayed a workspace trust prompt with `--dangerously-skip-permissions`.
+
+`prepareAgy` supplies interactive launch, model, bypass, and exact resume arguments. `parseAgyEvent` handles the verified structured payloads. `agyCapabilityGaps` prevents these pieces from representing full acceptance. Autonomous dispatch requires isolated hook configuration, a confirmed initial receipt, effective-model evidence, and a reliable interruption event. Terminal appearance does not satisfy those requirements.
+
+
+### Pi native acceptance
+
+The opt-in test starts the installed Pi TUI with the generated Trellis extension. It uses an explicit authenticated home and model. The test requires a file write, shell output, a completed result, a long tool interruption, and a successful follow-up. It then creates another session in the same directory and resumes the first session by its exact ID. The resumed model must recall the first session's private marker without a file read.
+
+Run from `apps/server`:
+
+```sh
+TRELLIS_REAL_HARNESS_ACCEPTANCE=1 TRELLIS_NATIVE_ACCEPTANCE_HOME=/path/to/authenticated/home TRELLIS_NATIVE_PI_MODEL=vercel-ai-gateway/openai/gpt-4.1-mini bun test test/int/src/agents/harnesses/piReal.test.ts
+```
+
+`TRELLIS_NATIVE_PI_MODEL` requires an explicit provider/model. This test makes real provider requests and can incur charges. Without `TRELLIS_REAL_HARNESS_ACCEPTANCE=1`, the suite skips it. The helper retains terminal output and native event JSONL in its temporary evidence directory. It never derives activity from terminal text.
+
+The repeatable test passed on Pi 0.73.1 in 19.57 seconds with 10 assertions and 27 native events. The explicit model was `vercel-ai-gateway/openai/gpt-4.1-mini`. A filesystem event confirmed the long shell command's marker before Escape. Session A was `01a0a643-3df2-710a-895b-aaf88760a56b`; session B was `01a0a643-735a-71c1-bde4-abdcf920b07f`. Evidence: `/tmp/trellis-real-pi-marker-final.log` and `/var/folders/zc/q6614tmx3tx362p94vvrfn0w0000gn/T/trellis-native-pi-OkJlqg`.
+
+### OpenCode native acceptance
+
+The current OpenCode 1.4.11 probe did not submit its initial `--prompt` argument. This occurred with explicit OpenAI and Vercel models. A manual Enter produced native prompt and tool events. The OpenAI request then returned a provider credential error. These observations do not establish a successful Trellis start or completed acceptance sequence. A provider credential error and a missing native prompt receipt are separate failures.
 
 ## What Superset supplies
 
@@ -82,7 +111,7 @@ Its [OpenCode plugin][superset-opencode] filters child sessions and maps busy/id
 
 These notification adapters do not implement Trellis's full receipt, response, interruption, and elapsed-time contract.
 
-## Trellis gaps at audit time
+## Trellis gaps before adapter work
 
 Source: [presets](../../packages/api/src/harness/harness.ts), [launch specification](../../apps/server/src/agents/native/interactiveLaunchSpec.ts), and [hook bridge](../../apps/server/src/agents/native/claudeHook.ts).
 

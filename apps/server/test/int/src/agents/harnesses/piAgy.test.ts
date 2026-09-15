@@ -19,7 +19,7 @@ test("Pi extension forwards native events while launch selects exact session and
 			configDirectory,
 			prompt: "a ' quoted prompt",
 			model: "provider/model",
-			resume: false,
+			resume: false as const,
 			hookCommand: `node '${sink}'`,
 		};
 		const launch = await preparePi(input);
@@ -79,14 +79,14 @@ test("Pi extension forwards native events while launch selects exact session and
 	}
 });
 
-test("AGY keeps interactive flags and requires an exact resume ID without config mutation", async () => {
+test("AGY keeps interactive flags and selects an exact resume ID without config mutation", async () => {
 	const input = {
 		cwd: "/workspace",
 		configDirectory: "/does/not/exist",
 		prompt: "hello",
 		model: "gemini-model",
 		sessionId: "exact-conversation",
-		resume: true,
+		resume: true as const,
 		hookCommand: "not-used",
 	};
 	expect(await prepareAgy(input)).toEqual({
@@ -103,6 +103,4 @@ test("AGY keeps interactive flags and requires an exact resume ID without config
 		env: {},
 	});
 	expect(agyCapabilityGaps).toHaveLength(2);
-	await expect(prepareAgy({ ...input, sessionId: undefined })).rejects.toThrow("exact conversation ID");
-	await expect(preparePi({ ...input, sessionId: undefined })).rejects.toThrow("exact session ID");
 });

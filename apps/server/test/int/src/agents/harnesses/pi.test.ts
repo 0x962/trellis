@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { parsePiEvent } from "./pi.ts";
+import { parsePiEvent } from "../../../../../src/agents/harnesses/pi/pi.ts";
 
 test("Pi preserves native identity, receipts, tools and turn completion", () => {
 	const base = { sessionId: "vendor-id", model: "provider/model" };

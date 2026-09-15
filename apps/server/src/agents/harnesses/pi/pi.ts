@@ -3,7 +3,6 @@ import { join } from "node:path";
 import type { HarnessEvent, HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 export async function preparePi(input: HarnessLaunchInput): Promise<HarnessLaunch> {
-	if (input.resume && !input.sessionId) throw new Error("Pi resume requires an exact session ID or session file.");
 	await mkdir(input.configDirectory, { recursive: true });
 	const extension = join(input.configDirectory, "trellis-pi.mjs");
 	await writeFile(
@@ -37,7 +36,7 @@ export default function(pi) {
 			"--extension",
 			extension,
 			...(input.model ? ["--model", input.model] : []),
-			...(input.resume ? ["--session", input.sessionId!] : []),
+			...(input.resume ? ["--session", input.sessionId] : []),
 			input.prompt,
 		],
 		env: {},
