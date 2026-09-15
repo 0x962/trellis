@@ -28,7 +28,6 @@ export const TAGS = [
 	{ name: "attachments", description: "Files on a ticket. The bytes are served at GET /api/attachments/{id}/file." },
 	{ name: "pull requests", description: "GitHub pull requests linked to a ticket, with their CI state." },
 	{ name: "search", description: "Full text search over tickets and projects." },
-	{ name: "inbox", description: "The Needs you sections: reviews, failing CI, stalled work, and agent completions." },
 	{ name: "brief", description: "The markdown brief an agent starts from." },
 	{ name: "actors", description: "Every human and agent a mutation has carried." },
 	{ name: "settings", description: "The server settings." },
@@ -220,7 +219,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /tickets/{ticket}/prs": { url: "https://github.com/acme/web/pull/12" },
 	"PUT /settings": {
 		defaultActorName: "dana",
-		stalledHours: 24,
 	},
 	"POST /agent-runs": { personaId: "01J9Z0000000000000000000A1", ticket: "CDE-42" },
 	"POST /agent-runs/{id}/send": { text: "The CI run is red. Read the failing step and fix it." },

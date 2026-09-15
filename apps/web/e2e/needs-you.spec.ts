@@ -14,23 +14,26 @@ test.afterEach(async () => {
 	await put("/settings", before);
 });
 
-// NYO-1 links a pull request with a failed check.
+// NYO-1 links a pull request with a failed check, and NYO-2 waits in Human
+// Review.
 test.beforeAll(() => {
 	if (!ensureProject("NYO", "Needs you")) return;
 	createTicket("NYO", "Fix the desktop typecheck", ["--status", "in-progress"]);
 	trellis(["pr", "add", "NYO-1", failingPrUrl]);
+	createTicket("NYO", "Read the release notes", ["--status", "human-review"]);
 });
 
-// TRL-27. A failed check puts the ticket in the Failing checks section, and
-// the row opens the ticket page.
-test("needs-you > a failed check lists the ticket and the row opens it", async ({ page }) => {
+// TRL-62. No ticket goes to Needs you. The page shows its title over an
+// empty body, and the sidebar still links to it.
+test("needs-you > the page stays empty and the sidebar keeps its item", async ({ page }) => {
 	await signIn(page, "/needs-you");
 	await expect(page.getByRole("heading", { name: "Needs you", exact: true })).toBeVisible();
-	const row = page.locator('[data-inbox-row="NYO-1"]');
-	await expect(row).toBeVisible();
-	await expect(page.getByRole("region", { name: "Failing checks" })).toContainText("Fix the desktop typecheck");
-	await row.click();
-	await expect(page).toHaveURL(/\/t\/NYO-1$/);
+	await expect(
+		page.getByRole("navigation", { name: "Workspace" }).getByRole("link", { name: "Needs you" }),
+	).toBeVisible();
+	await expect(page.getByText("Fix the desktop typecheck")).toHaveCount(0);
+	await expect(page.getByText("Read the release notes")).toHaveCount(0);
+	await expect(page.getByTestId("needs-you-body")).toBeEmpty();
 });
 
 // E2E-04. The settings live on the server, so a reload shows them again.

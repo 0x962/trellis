@@ -30,11 +30,6 @@ export const del = async <T>(path: string): Promise<T> => {
 	return (await response.json()) as T;
 };
 
-export type Section = { items: { identifier: string }[]; total: number };
-export type Inbox = { review: Section; failingCi: Section; stalled: Section; doneByAgentsToday: Section };
-
-export const inbox = () => get<Inbox>("/inbox");
-
 export const statusOf = async (identifier: string) => {
 	const ticket = await get<{ status: { name: string } }>(`/tickets/${identifier}`);
 	return ticket.status.name;

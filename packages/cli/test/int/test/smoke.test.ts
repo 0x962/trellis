@@ -94,8 +94,6 @@ describe("the live CLI", () => {
 			expect(JSON.parse(linked.stdout).title).toBe("Smoke PR");
 			const brief = await ok(url, ["brief", "CDE-1"], env);
 			expect(JSON.parse(brief.stdout).markdown).toContain("# CDE-1");
-			const inbox = await ok(url, ["inbox"], env);
-			expect(JSON.parse(inbox.stdout)).toHaveProperty("review");
 			const backup = await ok(url, ["backup"], env);
 			expect(existsSync(JSON.parse(backup.stdout).path)).toBe(true);
 			const exported = await ok(url, ["export"], env);
