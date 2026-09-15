@@ -32,7 +32,7 @@ export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartIn
 	if (ticket.completedAt !== null) throw invalidInput("ticket", "Reopen the ticket before a flow starts.");
 	const config = managerConfigOf(await projectRow(tx, ticket.projectId));
 	if (config.ade !== "native" || config.harness.preset !== "claude")
-		throw invalidInput("project", "Native flows require the structured native harness.");
+		throw invalidInput("project", "Native flows require the Claude preset.");
 	if (!config.trustedDirectory) throw invalidInput("project", "Trust the project directory before a flow starts.");
 	const resolved = await resolveFlow(tx, input.flow);
 	await tx.execute(sql`SELECT id FROM flows WHERE id=${resolved.id} FOR SHARE`);

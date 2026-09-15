@@ -7,7 +7,6 @@ import type { HarnessSnapshot } from "../../agents/nativeHarness/types.ts";
 import type { ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { hasNativeReceipt } from "../agentRuns/nativeReceipt.ts";
 import { readExecution } from "./queries.ts";
 import { saveState } from "./saveState.ts";
 export async function recordTaskObservation(
@@ -35,20 +34,14 @@ export async function recordTaskObservation(
 		event = unknown("The result does not belong to the current flow attempt");
 	else if (snapshot.state === "failed")
 		event = { type: "fail", key: input.key, error: snapshot.error ?? "The flow worker failed" };
-	else if (snapshot.state === "unknown" || snapshot.state === "needs_input")
-		event = unknown(snapshot.error ?? "The flow worker needs attention");
+	else if (snapshot.state === "unknown") event = unknown(snapshot.error ?? "The flow worker needs attention");
 	else if (snapshot.state === "idle") {
-		if (
-			!snapshot.resultId ||
-			snapshot.result === null ||
-			!(await hasNativeReceipt(tx, input.attemptId, input.attemptId))
-		)
+		if (!snapshot.resultId || snapshot.result === null || !snapshot.acknowledgedMessageIds.includes(input.attemptId))
 			event = unknown("The assignment receipt or final result is not established");
 		else {
 			const decision =
 				node.kind === "gate" || step.phase === "condition" ? parseFlowDecision(snapshot.result) : undefined;
-			if (decision === null || (snapshot.resultTruncated && (node.kind === "gate" || step.phase === "condition")))
-				event = unknown("The condition must return a complete YES or NO response");
+			if (decision === null) event = unknown("The condition must return a complete YES or NO response");
 			else {
 				event = { type: "complete", key: input.key, output: snapshot.result, decision };
 				await tx.execute(

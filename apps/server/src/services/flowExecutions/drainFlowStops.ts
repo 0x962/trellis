@@ -1,15 +1,14 @@
-import type { AgentRun } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
 import { rows } from "../../db/queries/support.ts";
-import { getRun } from "../agentRuns/queries.ts";
+import { getRun, type StoredRun } from "../agentRuns/queries.ts";
 import { readExecution } from "./queries.ts";
 import { recordStopError } from "./recordStopError.ts";
 import type { FlowCtx } from "./types.ts";
 export async function drainFlowStops(
 	ctx: FlowCtx,
 	id: string,
-	stop: (ctx: FlowCtx, run: AgentRun) => Promise<unknown>,
+	stop: (ctx: FlowCtx, run: StoredRun) => Promise<unknown>,
 ) {
 	const execution = await ctx.newTx((tx) => readExecution(tx, id));
 	const tasks = await ctx.newTx((tx) =>
@@ -31,7 +30,7 @@ export async function drainFlowStops(
 		}
 		let failure: string | null = null;
 		try {
-			if (!["stopped", "exited", "failed"].includes(run.state)) await stop(ctx, run);
+			if (run.closedAt === null) await stop(ctx, run);
 		} catch (error) {
 			failure = error instanceof Error ? error.message : String(error);
 		}

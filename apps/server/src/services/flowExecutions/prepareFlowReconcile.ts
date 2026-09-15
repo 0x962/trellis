@@ -1,12 +1,12 @@
 import { ORPCError } from "@orpc/server";
-import type { AgentRun } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
 import type { HarnessSnapshot } from "../../agents/nativeHarness/types.ts";
 import { rows } from "../../db/queries/support.ts";
+import { closeExitedAssignments } from "../agentRuns/closeExitedAssignments.ts";
 import { stopNative } from "../agentRuns/nativeLifecycle.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
-import { getRun } from "../agentRuns/queries.ts";
+import { getRun, type StoredRun } from "../agentRuns/queries.ts";
 import { readNativeHarness } from "../agentRuns/readNativeHarness.ts";
 import { claimNext } from "./claimNext.ts";
 import { drainFlowStops } from "./drainFlowStops.ts";
@@ -18,16 +18,17 @@ import type { FlowCtx } from "./types.ts";
 type Claim = NonNullable<Awaited<ReturnType<typeof claimNext>>>;
 type Dependencies = {
 	start: (ctx: FlowCtx, claim: Claim) => Promise<unknown>;
-	observe: (ctx: FlowCtx, run: AgentRun) => Promise<HarnessSnapshot | null>;
-	stop: (ctx: FlowCtx, run: AgentRun) => Promise<unknown>;
+	observe: (ctx: FlowCtx, run: StoredRun) => Promise<HarnessSnapshot | null>;
+	stop: (ctx: FlowCtx, run: StoredRun) => Promise<unknown>;
 };
 const defaults: Dependencies = { start: startNative, observe: readNativeHarness, stop: stopNative };
 const active = new Map<string, Promise<{ observed: number; launched: number; errors: string[] }>>();
 async function reconcile(ctx: FlowCtx, deps: Dependencies) {
+	await closeExitedAssignments(ctx);
 	const executions = await ctx.newTx((tx) =>
 		rows<{ id: string }>(
 			tx,
-			sql`SELECT id FROM flow_executions e WHERE e.state->>'status' IN ('running','waiting') OR EXISTS (SELECT 1 FROM jsonb_array_elements(e.state->'steps') s WHERE s->>'needsStop'='true') OR EXISTS (SELECT 1 FROM flow_execution_tasks t JOIN agent_runs r ON r.id=t.run_id WHERE t.execution_id=e.id AND (t.result_id IS NOT NULL OR e.state->>'status'='failed') AND r.state IN ('starting','running','interrupted')) ORDER BY created_at,id`,
+			sql`SELECT id FROM flow_executions e WHERE e.state->>'status' IN ('running','waiting') OR EXISTS (SELECT 1 FROM jsonb_array_elements(e.state->'steps') s WHERE s->>'needsStop'='true') OR EXISTS (SELECT 1 FROM flow_execution_tasks t JOIN agent_runs r ON r.id=t.run_id WHERE t.execution_id=e.id AND (t.result_id IS NOT NULL OR e.state->>'status'='failed') AND r.closed_at IS NULL) ORDER BY created_at,id`,
 		),
 	);
 	let launched = 0;
@@ -100,8 +101,6 @@ async function reconcile(ctx: FlowCtx, deps: Dependencies) {
 							result: null,
 							error,
 							acknowledgedMessageIds: [],
-							pendingPermissions: [],
-							transcript: [],
 						},
 					}),
 				);

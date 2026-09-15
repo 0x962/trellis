@@ -22,7 +22,7 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		await seedStatus(tx, { projectId: project, name: "Todo", category: "todo", position: 0, isDefault: true });
 		await tx.execute(
-			sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,state,runtime,workspace_id,terminal_id,session_id,created_at,updated_at) VALUES ('history','Wren','Manager','manager','Manage',${project},'HIS','failed','superset','old-workspace','old-terminal','old-session',now(),now())`,
+			sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,closed_at,runtime,workspace_id,terminal_id,session_id,created_at,updated_at) VALUES ('history','Wren','Manager','manager','Manage',${project},'HIS',now(),'superset','old-workspace','old-terminal','old-session',now(),now())`,
 		);
 	});
 });
@@ -39,9 +39,11 @@ test("saved conversation output stays readable from historical records", async (
 	expect(result.text).toContain("The saved agent result.");
 	expect(result.text).toContain("old-workspace");
 	expect(
-		await h.one(sql`SELECT state,workspace_id,terminal_id,session_id FROM agent_runs WHERE id='history'`),
+		await h.one(
+			sql`SELECT closed_at IS NOT NULL AS closed,workspace_id,terminal_id,session_id FROM agent_runs WHERE id='history'`,
+		),
 	).toMatchObject({
-		state: "failed",
+		closed: true,
 		workspace_id: "old-workspace",
 		terminal_id: "old-terminal",
 		session_id: "old-session",

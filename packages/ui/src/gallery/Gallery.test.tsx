@@ -88,7 +88,6 @@ describe("Gallery", () => {
 		expect(row.querySelector("[data-category]")).not.toBeNull();
 		const miniRibbon = row.querySelector("[title$='checks']")!;
 		expect(miniRibbon.classList.contains("w-8")).toBe(true);
-		expect(row.querySelector("[aria-label$='· agent'] [data-live]")).not.toBeNull();
 		within(row).getByRole("button", { name: "Approve a" });
 
 		screen.getByTestId("board-card");

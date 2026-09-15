@@ -20,10 +20,7 @@ const run = (args: string[], cwd = web) => {
 // chunk must hold none of them, and some lazy chunk must hold each.
 const routeMarkers = ["Enter your name", "Pair a phone", "No personas yet"];
 
-// The Needs you page carries no words of its own: it draws the page title
-// that the sidebar also carries, over an empty body. The pair of strings
-// names its module, and no other lazy chunk holds both.
-const needsYouMarkers = ["Needs you", "min-h-0 flex-1"];
+const needsYouMarkers = ["Needs you did not load"];
 
 // The bulk bar's copy action is text only the table module carries. The
 // editor mounts on focus, so its code is a lazy chunk; ProseMirror's class

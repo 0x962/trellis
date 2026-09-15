@@ -1,31 +1,37 @@
 #!/usr/bin/env node
-import { randomUUID } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
-import { createInterface } from "node:readline";
 
-if (process.argv.includes("--version")) {
-	process.stdout.write("2.1.270 (Claude Code)\n");
-	process.exit(0);
-}
-const sessionId = process.argv[process.argv.indexOf("--session-id") + 1];
-const emit = (row) => process.stdout.write(`${JSON.stringify(row)}\n`);
-createInterface({ input: process.stdin }).on("line", (line) => {
-	const row = JSON.parse(line);
-	if (row.type === "control_request")
-		emit({ type: "control_response", response: { subtype: "success", request_id: row.request_id, response: {} } });
-	if (row.type === "user") {
-		emit({ ...row, isReplay: true });
-		if (row.message.content.includes("WAIT_FOREVER")) return;
-		const result = row.message.content.includes("Answer the condition with exactly YES or NO")
-			? "YES"
-			: "Flow fixture output";
-		writeFileSync("flow-artifact.txt", result);
-		emit({
-			type: "assistant",
-			uuid: randomUUID(),
-			session_id: sessionId,
-			message: { content: [{ type: "text", text: result }] },
-		});
-		emit({ type: "result", uuid: randomUUID(), session_id: sessionId, subtype: "success", is_error: false, result });
-	}
+const settings = JSON.parse(process.argv[process.argv.indexOf("--settings") + 1]);
+const sessionIndex = process.argv.indexOf("--session-id");
+const sessionId = process.argv[sessionIndex + 1];
+const initialPrompt = process.argv[sessionIndex + 2];
+const hook = (name, extra = {}) => {
+	const command = settings.hooks[name][0].hooks[0].command;
+	const result = spawnSync(command, {
+		shell: "/bin/sh",
+		input: JSON.stringify({ hook_event_name: name, session_id: sessionId, ...extra }),
+		encoding: "utf8",
+	});
+	if (result.status !== 0) throw new Error(result.stderr);
+};
+const turn = (prompt) => {
+	hook("UserPromptSubmit", { prompt });
+	if (prompt.includes("WAIT_FOREVER")) return;
+	const result = prompt.includes("Answer the condition with exactly YES or NO") ? "YES" : "Flow fixture output";
+	writeFileSync("flow-artifact.txt", result);
+	process.stdout.write(`${result}\r\n`);
+	hook("Stop", { last_assistant_message: result });
+};
+process.stdin.setRawMode(true);
+let pending = "";
+process.stdin.on("data", (bytes) => {
+	pending += bytes.toString();
+	const end = pending.indexOf("\x1b[201~\r");
+	if (end === -1) return;
+	const prompt = pending.slice(pending.startsWith("\x1b[200~") ? 6 : 0, end);
+	pending = pending.slice(end + 7);
+	turn(prompt);
 });
+hook("SessionStart");
+turn(initialPrompt);

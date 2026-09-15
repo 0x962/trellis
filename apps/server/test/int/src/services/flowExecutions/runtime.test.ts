@@ -12,7 +12,6 @@ import { assertStatusInvariant } from "../../../../invariants.ts";
 
 let app: TestApp;
 const paths: string[] = [];
-const previousClaude = process.env.TRELLIS_CLAUDE_BIN;
 afterEach(async () => {
 	if (app) {
 		await app.close();
@@ -20,8 +19,6 @@ afterEach(async () => {
 			await new RuntimeClient(join(app.home, "runtime", "runtime.sock")).shutdown();
 		await Bun.sleep(50);
 	}
-	if (previousClaude === undefined) delete process.env.TRELLIS_CLAUDE_BIN;
-	else process.env.TRELLIS_CLAUDE_BIN = previousClaude;
 	for (const path of paths) rmSync(path, { recursive: true, force: true });
 	paths.length = 0;
 });
@@ -58,7 +55,7 @@ test("a real runtime completes a flow through a gate and human decision", async 
 		"-qm",
 		"Fixture",
 	]);
-	process.env.TRELLIS_CLAUDE_BIN = resolve(import.meta.dir, "../../../../fixtures/nativeHarness/flowWorker.mjs");
+	const worker = resolve(import.meta.dir, "../../../../fixtures/nativeHarness/flowWorker.mjs");
 	app = await createTestApp({ home });
 	await app.seedProject("FLOW");
 	await app.client.projects.update({
@@ -69,7 +66,11 @@ test("a real runtime completes a flow through a gate and human decision", async 
 			directory,
 			ade: "native",
 			trustedDirectory: true,
-			harness: { preset: "claude" },
+			harness: {
+				preset: "claude",
+				startCommand: `'${worker}' --session-id {{sessionId}} {{prompt}}`,
+				resumeCommand: `'${worker}' --session-id {{sessionId}} {{prompt}}`,
+			},
 		},
 	});
 	const ticket = await app.createTicket({ project: "FLOW", title: "Native flow" });
@@ -106,9 +107,10 @@ test("a real runtime completes a flow through a gate and human decision", async 
 		requestId: randomUUID(),
 		expectedVersion: doc.flow.version,
 	});
-	for (let i = 0; i < 10 && !execution.state.steps.some((step) => step.state === "waiting_human"); i++) {
+	for (let i = 0; i < 100 && !execution.state.steps.some((step) => step.state === "waiting_human"); i++) {
 		await app.transport.call("flowExecutions.reconcile", systemContext(), {});
 		execution = await app.client.flowExecutions.get({ id: execution.id });
+		await Bun.sleep(20);
 	}
 	expect(execution.state.steps.find((step) => step.nodeId === skipped.id)?.state).toBe("skipped");
 	const decision = execution.state.steps.find((step) => step.state === "waiting_human")!;
@@ -120,19 +122,24 @@ test("a real runtime completes a flow through a gate and human decision", async 
 		output: "Proceed",
 		expectedRevision: execution.revision,
 	});
-	for (let i = 0; i < 10 && execution.state.status !== "succeeded"; i++) {
+	for (let i = 0; i < 100 && execution.state.status !== "succeeded"; i++) {
 		await app.transport.call("flowExecutions.reconcile", systemContext(), {});
 		execution = await app.client.flowExecutions.get({ id: execution.id });
+		await Bun.sleep(20);
 	}
 	expect(execution.state.status).toBe("succeeded");
 	expect(execution.tasks).toHaveLength(3);
 	await app.transport.call("flowExecutions.reconcile", systemContext(), {});
 	const runs = await app.client.agentRuns.list({ ticket: ticket.identifier });
 	expect(runs).toHaveLength(3);
-	expect(runs.every((run) => run.state === "stopped")).toBe(true);
+	expect(runs.every((run) => run.state === "exited" || run.state === "failed")).toBe(true);
 	for (const run of runs) {
 		expect(readFileSync(join(run.workspaceId!, "flow-artifact.txt"), "utf8")).not.toBe("");
-		expect((await app.client.agentRuns.harness({ id: run.id }))?.state).toBe("idle");
+		const session = await new RuntimeClient(join(home, "runtime", "runtime.sock")).inspect(run.terminalId!);
+		expect(session.mode).toBe("pty");
+		expect(session.activity?.state).toBe("idle");
+		expect(session.result?.text).not.toBe("");
+		expect(session.acknowledgedMessageIds).toContain(run.terminalId!);
 	}
 	expect(
 		(await new RuntimeClient(join(home, "runtime", "runtime.sock")).list()).every(
@@ -159,7 +166,7 @@ test("cancel stops a claimed native flow without another launch", async () => {
 		"-qm",
 		"Fixture",
 	]);
-	process.env.TRELLIS_CLAUDE_BIN = resolve(import.meta.dir, "../../../../fixtures/nativeHarness/flowWorker.mjs");
+	const worker = resolve(import.meta.dir, "../../../../fixtures/nativeHarness/flowWorker.mjs");
 	app = await createTestApp({ home });
 	await app.seedProject("CANCEL");
 	await app.client.projects.update({
@@ -170,7 +177,11 @@ test("cancel stops a claimed native flow without another launch", async () => {
 			directory,
 			ade: "native",
 			trustedDirectory: true,
-			harness: { preset: "claude" },
+			harness: {
+				preset: "claude",
+				startCommand: `'${worker}' --session-id {{sessionId}} {{prompt}}`,
+				resumeCommand: `'${worker}' --session-id {{sessionId}} {{prompt}}`,
+			},
 		},
 	});
 	const ticket = await app.createTicket({ project: "CANCEL", title: "Cancel native flow" });

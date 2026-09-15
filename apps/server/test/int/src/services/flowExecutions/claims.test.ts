@@ -97,9 +97,7 @@ test("a task result requires its current attempt and durable first-message recei
 		resultId: "result",
 		result: "YES",
 		error: null,
-		acknowledgedMessageIds: [],
-		pendingPermissions: [],
-		transcript: [],
+		acknowledgedMessageIds: [] as string[],
 	};
 	const record = (value = snapshot) =>
 		h.run((ctx, tx) =>
@@ -112,9 +110,7 @@ test("a task result requires its current attempt and durable first-message recei
 		);
 	await record();
 	expect((await h.run((ctx, tx) => get(ctx, tx, { id: execution.id }))).state.status).toBe("waiting");
-	await h.rows(
-		sql`INSERT INTO agent_harness_receipts (attempt_id,message_id,observed_at) VALUES (${claim.attempt.id},${claim.attempt.id},now())`,
-	);
+	snapshot.acknowledgedMessageIds.push(claim.attempt.id);
 	await record({ ...snapshot, result: "Probably YES" });
 	expect((await h.run((ctx, tx) => get(ctx, tx, { id: execution.id }))).state.status).toBe("waiting");
 	await h.rows(sql`UPDATE agent_runs SET terminal_id='replacement' WHERE id=${claim.run.id}`);
@@ -153,8 +149,6 @@ test("a host restart observes a claimed attempt without another launch", async (
 			result: null,
 			error: "Runtime response unknown",
 			acknowledgedMessageIds: [],
-			pendingPermissions: [],
-			transcript: [],
 		}),
 		stop: async () => {},
 	};
@@ -175,7 +169,7 @@ test("ordinary starts and flow claims share the project capacity lock", async ()
 		h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id })),
 		h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: persona, requestId: randomUUID() })),
 	]);
-	expect(await h.rows(sql`SELECT * FROM agent_runs WHERE state='starting' AND project_id=${project}`)).toHaveLength(1);
+	expect(await h.rows(sql`SELECT * FROM agent_runs WHERE closed_at IS NULL AND project_id=${project}`)).toHaveLength(1);
 });
 test("an expired flow deadline prevents a native launch", async () => {
 	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);

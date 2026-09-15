@@ -21,10 +21,10 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	const config = managerConfigOf(await projectRow(tx, execution.project_id));
 	if (config.dispatchPaused) return null;
 	if (config.ade !== "native" || config.harness.preset !== "claude" || !config.trustedDirectory)
-		throw invalidInput("project", "The flow requires a trusted project with the structured native harness.");
+		throw invalidInput("project", "The flow requires a trusted project with the Claude preset.");
 	const [active] = await rows<{ count: number }>(
 		tx,
-		sql`SELECT count(*)::int AS count FROM agent_runs WHERE project_id=${execution.project_id} AND kind<>'manager' AND state IN ('starting','running','interrupted')`,
+		sql`SELECT count(*)::int AS count FROM agent_runs WHERE project_id=${execution.project_id} AND kind<>'manager' AND closed_at IS NULL`,
 	);
 	if (active!.count >= config.concurrency) return null;
 	const personaId = action.personaId ?? execution.default_persona_id;
