@@ -20,6 +20,18 @@ A fresh terminal passes input, output, resize, and Stop checks on release `c2826
 The installed route asset contains only the Needs you heading and an empty body. The browser regression is not run; the user tests the UI.
 Evidence: `/tmp/trellis-terminal-recovery-acceptance.json`, `/tmp/trellis-installed-runtime-check.json`, and `/tmp/trellis-needs-you-production-install.log`.
 
+## Automatic background service
+
+Trellis enables its background service at startup. It asks for approval only when macOS requires approval in Login Items.
+The startup regression tests cover initial registration, repeated launches, an enabled service, and required macOS approval.
+The focused desktop tests pass: 24 tests and 55 assertions. Desktop typecheck and scoped Biome checks pass.
+
+At 23:28:02 UTC, macOS reports a missing plist for the bare `apps/desktop/dist/TrellisHost` executable.
+That executable sits outside an app bundle. Both packaged helpers contain their LaunchAgent plist and report `enabled`.
+The caller of the bare helper remains unconfirmed. Evidence: `/tmp/trellis-plist-processes.json`.
+At the same time, two coding sessions install separate builds. A direct copy into the installed path fails with `Operation not permitted`.
+The production workflow copies into a temporary directory, verifies the copy, and publishes the complete bundle through an atomic exchange.
+
 ## Automatic session resume
 
 A package update saves the active provider sessions before runtime shutdown. Workers resume before managers, in the same directories and conversations.
