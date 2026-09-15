@@ -12,6 +12,9 @@ import { writeSelectedHome } from "../../../../src/selectedHome/selectedHome.ts"
 import { serviceCommand } from "../../../../src/service/service.ts";
 
 const root = resolve(originDir(import.meta.dir), "../..");
+const isolatedEnvironment = ["HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_STATE_HOME"]
+	.map((key) => `<key>${key}</key><string>${process.env[key]}</string>`)
+	.join("\n");
 
 const launchctl = async (...args: string[]) => {
 	const command = Bun.spawn(["/bin/launchctl", ...args], { stdout: "pipe", stderr: "pipe" });
@@ -42,7 +45,7 @@ test("an isolated launchd service uses the selected home and restarts without a 
 			`<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict>
 		<key>Label</key><string>${label}</string>
 		<key>ProgramArguments</key><array><string>${helper}</string><string>serve</string></array>
-		<key>EnvironmentVariables</key><dict><key>TRELLIS_DESKTOP_USER_DATA</key><string>${userData}</string></dict>
+		<key>EnvironmentVariables</key><dict>${isolatedEnvironment}<key>TRELLIS_DESKTOP_USER_DATA</key><string>${userData}</string></dict>
 		<key>RunAtLoad</key><true/><key>KeepAlive</key><true/><key>ThrottleInterval</key><integer>1</integer>
 		</dict></plist>`,
 		);
@@ -137,7 +140,7 @@ test("SMAppService activates a relocated package after its previous runtime and 
 			`<?xml version="1.0"?><plist version="1.0"><dict>
 		<key>Label</key><string>${label}</string><key>BundleProgram</key><string>Contents/MacOS/TrellisHost</string>
 		<key>ProgramArguments</key><array><string>TrellisHost</string><string>serve</string></array>
-		<key>EnvironmentVariables</key><dict><key>TRELLIS_DESKTOP_HOME</key><string>${home}</string></dict>
+		<key>EnvironmentVariables</key><dict>${isolatedEnvironment}<key>TRELLIS_DESKTOP_HOME</key><string>${home}</string></dict>
 		<key>RunAtLoad</key><true/><key>KeepAlive</key><true/><key>ThrottleInterval</key><integer>1</integer>
 		<key>ProcessType</key><string>Interactive</string>
 		</dict></plist>`,
