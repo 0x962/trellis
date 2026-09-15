@@ -108,7 +108,6 @@ describe("service modules", () => {
 			"settings.set": (ctx, tx) =>
 				settings.set(ctx, tx, {
 					defaultActorName: "dana",
-					stalledHours: 24,
 				}),
 		};
 		for (const [name, mutation] of Object.entries(mutations)) {

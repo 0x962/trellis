@@ -18,8 +18,8 @@ const styles = StyleSheet.create({
 	actions: { alignSelf: "stretch", gap: tokens.space[2], marginTop: tokens.space[3] },
 });
 
-// The whole tab when the server does not answer and the cache holds no
-// inbox. Retry asks the server again; Change server opens the setup screen.
+// The whole screen when the server does not answer and the cache holds no
+// data. Retry asks the server again; Change server opens the setup screen.
 export function UnreachableServer({ host, onRetry, onChangeServer }: UnreachableServerProps) {
 	const palette = usePalette();
 	return (

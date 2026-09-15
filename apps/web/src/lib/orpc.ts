@@ -42,8 +42,10 @@ const unbatched = new Set([
 
 // The typed client, the TanStack Query utils over it, and a QueryClient.
 // The batch link folds calls from one tick, except the reads above. The
-// actor header is read from localStorage on every request, so a rename
-// takes effect on the next call.
+// batch streams: each answer reaches its query when its own call finishes,
+// so a slow call in a batch never holds back the others. The actor header
+// is read from localStorage on every request, so a rename takes effect on
+// the next call.
 export const createOrpc = (options: OrpcOptions = {}) => {
 	const fetch: FetchLike = options.fetch ?? ((request, init) => globalThis.fetch(request, init));
 	const baseUrl = options.baseUrl ?? window.location.origin;
@@ -51,7 +53,7 @@ export const createOrpc = (options: OrpcOptions = {}) => {
 		plugins: [
 			new BatchLinkPlugin({
 				groups: [{ condition: () => true, context: {} }],
-				mode: "buffered",
+				mode: "streaming",
 				exclude: ({ path }) => unbatched.has(path.join(".")),
 			}),
 		],

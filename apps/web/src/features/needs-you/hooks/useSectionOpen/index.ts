@@ -1,1 +1,0 @@
-export { useSectionOpen } from "./useSectionOpen";

@@ -6,7 +6,6 @@ import {
 	createdEvent,
 	deletedEvent,
 	detailKey,
-	inboxKey,
 	isInvalidated,
 	listKey,
 	listPage,
@@ -127,21 +126,6 @@ describe("applyEvent on a query whose fetch settles without a row the cache hold
 		expect(isInvalidated(queryClient, boardKey)).toBe(false);
 	});
 
-	test("an inbox whose result lacks the row after an event at the cached version refetches", async () => {
-		const section = (...items: Summary[]) => ({ review: { items, total: items.length } });
-		const { queryClient, applier } = setup((queryClient) => {
-			queryClient.setQueryData(inboxKey, section(v5));
-		});
-		const { queryFn, answer, observer } = observeQuery(queryClient, inboxKey);
-		void observer.refetch();
-		applier.applyEvent(updatedEvent(v5, ["title"]));
-		await answer(0, section());
-		expect(queryFn).toHaveBeenCalledTimes(2);
-		await answer(1, section(v5));
-		expect(cached(queryClient, inboxKey)).toEqual(section(v5));
-		expect(isInvalidated(queryClient, inboxKey)).toBe(false);
-	});
-
 	test("a detail whose result lacks a child after an event at the cached version refetches", async () => {
 		const child = summaryAt(5, { id: t2, identifier: "CDE-43", number: 43, parent: { id: t1, identifier: "CDE-42" } });
 		const { queryClient, applier } = setup((queryClient) => {
@@ -160,9 +144,9 @@ describe("applyEvent on a query whose fetch settles without a row the cache hold
 
 // A result can hold one id in more than one place. An infinite list holds
 // a row per page. A board holds a row per column while a status change is
-// in flight. An inbox holds a row per section. The settle check compares
-// every row, so one row below the recorded version marks the query behind.
-// A deleted row leaves every place before the refetch.
+// in flight. The settle check compares every row, so one row below the
+// recorded version marks the query behind. A deleted row leaves every place
+// before the refetch.
 describe("applyEvent on a query whose settled result holds one id in two places", () => {
 	const infiniteListKey = infiniteQueryKey(["tickets", "list"], { project: "CDE" });
 	const status2 = "01J8Z6X4Q3M2K1H0G9F8E7D6S2";
@@ -172,10 +156,6 @@ describe("applyEvent on a query whose settled result holds one id in two places"
 			{ statusId, count: first.length, items: first },
 			{ statusId: status2, count: second.length, items: second },
 		],
-	});
-	const twoSections = (review: Summary[], failingCi: Summary[]) => ({
-		review: { items: review, total: review.length },
-		failingCi: { items: failingCi, total: failingCi.length },
 	});
 
 	// The refetch reads page 1 before the event's commit and page 2 after
@@ -219,41 +199,6 @@ describe("applyEvent on a query whose settled result holds one id in two places"
 		await answer(1, twoColumns([], [v5]));
 		expect(cached(queryClient, boardKey)).toEqual(twoColumns([], [v5]));
 		expect(isInvalidated(queryClient, boardKey)).toBe(false);
-	});
-
-	test("an inbox whose sections hold the row at versions 3 and 5 after a version 5 event refetches", async () => {
-		const { queryClient, applier } = setup((queryClient) => {
-			queryClient.setQueryData(inboxKey, twoSections([summaryAt(3)], []));
-		});
-		const { queryFn, answer, observer } = observeQuery(queryClient, inboxKey);
-		void observer.refetch();
-		applier.applyEvent(updatedEvent(v5, ["title"]));
-		await answer(0, twoSections([summaryAt(3)], [v5]));
-		expect(queryFn).toHaveBeenCalledTimes(2);
-		await answer(1, twoSections([], [v5]));
-		expect(cached(queryClient, inboxKey)).toEqual(twoSections([], [v5]));
-		expect(isInvalidated(queryClient, inboxKey)).toBe(false);
-	});
-
-	// The refetch reads both sections before the delete's commit. The
-	// second copy has nothing left to patch, so the patch of the first copy
-	// stands and the result lands empty. The cache never shows the row.
-	test("an inbox whose two sections hold a deleted row after the delete refetches and never shows it", async () => {
-		const { queryClient, applier } = setup((queryClient) => {
-			queryClient.setQueryData(inboxKey, twoSections([summaryAt(3)], [summaryAt(3)]));
-		});
-		const { queryFn, answer, observer, seen } = observeQuery(queryClient, inboxKey);
-		void observer.refetch();
-		applier.applyEvent(deletedEvent(summaryAt(3)));
-		expect(cached(queryClient, inboxKey)).toEqual(twoSections([], []));
-		await answer(0, twoSections([summaryAt(3)], [summaryAt(3)]));
-		expect(cached(queryClient, inboxKey)).toEqual(twoSections([], []));
-		expect(queryFn).toHaveBeenCalledTimes(2);
-		await answer(1, twoSections([], []));
-		expect(isInvalidated(queryClient, inboxKey)).toBe(false);
-		const sectionIds = (data: unknown) =>
-			Object.values(data as Record<string, { items: { id: string }[] }>).flatMap((s) => s.items.map((row) => row.id));
-		expect(seen.flatMap(sectionIds)).not.toContain(t1);
 	});
 
 	test("an infinite list whose two pages hold a deleted row after the delete refetches and never shows it", async () => {

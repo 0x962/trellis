@@ -25,7 +25,6 @@ export const ProjectSummarySchema = ProjectLinkSchema.extend({
 	depth: CountSchema,
 	position: z.number().int(),
 	openCount: CountSchema,
-	needsYouCount: CountSchema,
 	archivedAt: IsoDateTimeSchema.nullable(),
 });
 export type ProjectSummary = z.infer<typeof ProjectSummarySchema>;

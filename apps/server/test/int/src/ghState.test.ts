@@ -80,6 +80,33 @@ describe("createGhState", () => {
 		expect(state.current()).toMatchObject({ ok: true, user: "dana" });
 	});
 
+	test("read() during a check waits for the check and answers with its result", async () => {
+		const { state } = setup();
+		const checking = state.check();
+
+		const read = await state.read();
+
+		expect(read).toMatchObject({ ok: true, user: "dana" });
+		expect(await checking).toEqual(read);
+	});
+
+	test("read() with no check running answers with the kept state and runs no gh", async () => {
+		const { state, gh } = setup();
+		await state.check();
+
+		expect(await state.read()).toMatchObject({ ok: true, user: "dana" });
+		expect(gh.calls).toHaveLength(1);
+	});
+
+	test("two checks at the same time run one gh auth status", async () => {
+		const { state, gh } = setup();
+
+		const [first, second] = await Promise.all([state.check(), state.check()]);
+
+		expect(gh.calls).toEqual([["auth", "status"]]);
+		expect(second).toEqual(first);
+	});
+
 	// The poller also sends { ok: true } when the rate limit budget changes.
 	test("a gh.status ok event while gh is ready changes nothing", async () => {
 		const { bus, state, gh } = setup();

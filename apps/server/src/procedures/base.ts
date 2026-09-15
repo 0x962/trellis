@@ -3,6 +3,7 @@ import { ActorHeaderSchema, type ActorRef, actorHeaderGrammar, contract } from "
 import type { RequestContext } from "../context.ts";
 import type { ServiceTransport } from "../db/transport.ts";
 import { fail, invalidInput } from "../errors.ts";
+import type { GhAccess } from "../ghState.ts";
 import type { DbTiming } from "../serverTiming.ts";
 import type { ServiceName } from "../services/registry.ts";
 
@@ -13,7 +14,9 @@ import type { ServiceName } from "../services/registry.ts";
 // HTTP request, so every procedure of a batch adds to the same one.
 // `chooseDirectory` opens the folder picker of the machine. It is here and
 // not in a service, because the picker blocks until a person answers and the
-// database worker must serve every other request while it waits.
+// database worker must serve every other request while it waits. `gh` reads
+// and checks the gh state for the same reason: `gh auth status` can take
+// seconds.
 export type ProcedureContext = {
 	headers: Headers;
 	reqId: string;
@@ -22,6 +25,7 @@ export type ProcedureContext = {
 	timing: DbTiming;
 	resHeaders?: Headers;
 	chooseDirectory: () => Promise<string | null>;
+	gh: GhAccess;
 };
 
 const base = implement(contract).$context<ProcedureContext>();
