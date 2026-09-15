@@ -4,12 +4,14 @@ import { collect } from "../../../../../src/services/controller/collect.ts";
 import { claim, complete, recover } from "../../../../../src/services/controller/controller.ts";
 import { seedActors, seedChild, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedActivity, seedTicket } from "../../../../fixtures/tickets.ts";
+import { controllerSession } from "../../../../helpers/controllerSession.ts";
 import { type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
 let h: Harness;
 let projectId: string;
 let ticketId: string;
+let sessions: ReturnType<typeof controllerSession>[];
 beforeAll(async () => {
 	h = await serviceHarness();
 });
@@ -17,28 +19,25 @@ afterAll(() => h.close());
 afterEach(() => h.read(assertStatusInvariant));
 beforeEach(async () => {
 	await h.reset();
+	sessions = [controllerSession()];
 	await h.read(async (tx) => {
 		await seedActors(tx);
 		projectId = await seedRoot(tx, "HBT", { manager_config: { personaId: "persona", ade: "native" } });
 		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
 		ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
-		await tx.execute(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,state,terminal_id,session_id,created_at,updated_at)
-			VALUES ('manager','Manager','Manager','manager','Manage',${projectId},'HBT','native','running','attempt','session',${NOW},${NOW})`);
+		await tx.execute(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,session_id,created_at,updated_at)
+			VALUES ('manager','Manager','Manager','manager','Manage',${projectId},'HBT','native','attempt','session',${NOW},${NOW})`);
 		await tx.execute(
 			sql`INSERT INTO agent_execution_attempts (id,run_id,generation,token_hash,created_at) VALUES ('attempt','manager',1,'hash',${NOW})`,
 		);
-		await tx.execute(
-			sql`INSERT INTO agent_harness_observations (attempt_id,snapshot,updated_at) VALUES ('attempt','{"state":"idle","sessionId":"session","pendingPermissions":[]}'::jsonb,${NOW})`,
-		);
 	});
 });
-const gather = (seconds: number) => h.run((ctx, tx) => collect(ctx, tx, {}), { now: secondsAfter(seconds) });
-const take = (seconds: number) => h.run((ctx, tx) => claim(ctx, tx, {}), { now: secondsAfter(seconds) });
+const gather = (seconds: number) => h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(seconds) });
+const take = (seconds: number) => h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(seconds) });
 const batches = () => h.rows(sql`SELECT * FROM manager_dispatches ORDER BY created_at,id`);
-const observation = (state: string, seconds = 0, pendingPermissions: unknown[] = [], sessionId = "session") =>
-	h.rows(
-		sql`UPDATE agent_harness_observations SET snapshot=${JSON.stringify({ state, sessionId, pendingPermissions })}::jsonb,updated_at=${secondsAfter(seconds)}`,
-	);
+const observation = (state: "ready" | "working" | "idle", seconds = 0) => {
+	sessions[0]!.activity = { state, updatedAt: secondsAfter(seconds).toISOString() };
+};
 const pause = (paused: boolean) =>
 	h.rows(
 		sql`INSERT INTO settings(key,value,updated_at) VALUES ('nativeWorkPaused',${JSON.stringify(paused)}::jsonb,${NOW}) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value`,
@@ -91,25 +90,31 @@ test("a long turn gets a full quiet minute after its latest observation", async 
 	await gather(1060);
 	expect((await take(1060))?.events).toEqual([]);
 });
-for (const state of ["working", "needs_input", "unknown", "failed"]) {
-	test(`a ${state} harness receives no heartbeat`, async () => {
-		await observation(state);
-		await gather(600);
-		expect(await batches()).toHaveLength(0);
-	});
-}
-for (const state of ["stopped", "starting", "interrupted", "failed", "exited"]) {
-	test(`a ${state} manager receives no heartbeat`, async () => {
-		await h.rows(sql`UPDATE agent_runs SET state=${state}`);
-		await gather(600);
-		expect(await batches()).toHaveLength(0);
-	});
-}
-test("permissions and a mismatched conversation prevent heartbeat creation", async () => {
-	await observation("idle", 0, [{ requestId: "pending" }]);
+test("a working manager receives no heartbeat", async () => {
+	observation("working");
 	await gather(600);
 	expect(await batches()).toHaveLength(0);
-	await observation("idle", 0, [], "different");
+});
+for (const status of ["exited", "unknown"] as const) {
+	test(`a ${status} process receives no heartbeat`, async () => {
+		sessions[0]!.status = status;
+		await gather(600);
+		expect(await batches()).toHaveLength(0);
+	});
+}
+test("missing, uncontrollable, and uninitialized processes receive no heartbeat", async () => {
+	sessions = [];
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+	sessions = [controllerSession("attempt", { controllable: false })];
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+	sessions = [controllerSession("attempt", { activity: null })];
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+});
+test("a different attempt cannot wake the assignment", async () => {
+	sessions = [controllerSession("different")];
 	await gather(600);
 	expect(await batches()).toHaveLength(0);
 });
@@ -160,7 +165,7 @@ test("a project without a configured manager and a non-native run receive no hea
 	expect(await batches()).toHaveLength(0);
 });
 
-test("a new manager waits one minute even when its saved observation is older", async () => {
+test("a new manager waits one minute even when its runtime turn is older", async () => {
 	await h.rows(sql`UPDATE agent_runs SET created_at=${secondsAfter(100)}`);
 	await gather(159);
 	expect(await batches()).toHaveLength(0);
@@ -178,4 +183,18 @@ test("uncollected ticket work beyond a page of manager activity takes precedence
 	expect(await batches()).toHaveLength(0);
 	await gather(61);
 	expect((await take(61))?.events).toHaveLength(1);
+});
+
+test("a closed assignment never receives a heartbeat even if its process remains live", async () => {
+	await h.rows(sql`UPDATE agent_runs SET closed_at=${NOW}`);
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+});
+
+test("a queued heartbeat waits when the runtime starts a turn before claim", async () => {
+	await gather(60);
+	observation("working", 60);
+	expect(await take(61)).toBeNull();
+	observation("idle", 62);
+	expect((await take(62))?.events).toEqual([]);
 });

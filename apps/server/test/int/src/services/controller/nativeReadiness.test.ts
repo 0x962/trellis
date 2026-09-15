@@ -7,12 +7,14 @@ import { dispatchMessageId } from "../../../../../src/services/controller/messag
 import { reconcile } from "../../../../../src/services/controller/reconcile.ts";
 import { seedActors, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedActivity, seedTicket } from "../../../../fixtures/tickets.ts";
+import { controllerSession } from "../../../../helpers/controllerSession.ts";
 import { type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
 let h: Harness;
 let projectId: string;
 let attemptId: string;
+let sessions: ReturnType<typeof controllerSession>[];
 beforeAll(async () => {
 	h = await serviceHarness();
 });
@@ -20,6 +22,7 @@ afterAll(() => h.close());
 afterEach(() => h.read(assertStatusInvariant));
 beforeEach(async () => {
 	await h.reset();
+	sessions = [];
 	await h.run(async (ctx, tx) => {
 		projectId = await seedRoot(tx, "NRD", {
 			manager_config: { personaId: "persona", concurrency: 1, ade: "native", harness: { preset: "claude" } },
@@ -28,7 +31,7 @@ beforeEach(async () => {
 		const ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
 		await seedActors(tx);
 		await tx.execute(
-			sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,state,session_id,created_at,updated_at) VALUES ('manager','Manager','native','Manager','manager','',${projectId},'NRD','running','session',${NOW},${NOW})`,
+			sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,session_id,created_at,updated_at) VALUES ('manager','Manager','native','Manager','manager','',${projectId},'NRD','session',${NOW},${NOW})`,
 		);
 		const attempt = await reserveAttempt(ctx, tx, { runId: "manager" });
 		attemptId = attempt.id;
@@ -40,34 +43,38 @@ beforeEach(async () => {
 			actor: { name: "dana", kind: "human" },
 			createdAt: NOW,
 		});
-		await collect(ctx, tx, {});
+		await collect(ctx, tx, { sessions });
 	});
 });
-const take = () => h.run((ctx, tx) => claim(ctx, tx, {}), { now: secondsAfter(20) });
-const observation = (state: string, pendingPermissions: unknown[] = [], sessionId = "session") =>
-	h.read((tx) =>
-		tx.execute(
-			sql`INSERT INTO agent_harness_observations (attempt_id,snapshot,updated_at) VALUES (${attemptId},${JSON.stringify({ state, pendingPermissions, sessionId })}::jsonb,${NOW}) ON CONFLICT (attempt_id) DO UPDATE SET snapshot=EXCLUDED.snapshot`,
-		),
-	);
-const receipt = (messageId: string, id = attemptId) =>
-	h.read((tx) =>
-		tx.execute(
-			sql`INSERT INTO agent_harness_receipts (attempt_id,message_id,observed_at) VALUES (${id},${messageId},${NOW})`,
-		),
-	);
+const take = () => h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(20) });
+const observation = (state: "ready" | "working" | "idle") => {
+	sessions = [controllerSession(attemptId, { activity: { state, updatedAt: NOW.toISOString() } })];
+};
+const receipt = (messageId: string, id = attemptId) => {
+	let session = sessions.find((item) => item.id === id);
+	if (!session) {
+		session = controllerSession(id);
+		sessions.push(session);
+	}
+	session.acknowledgedMessageIds.push(messageId);
+};
 
-test("native dispatch waits for the current conversation to become idle without permissions", async () => {
+test("dispatch requires a live controllable PTY with a ready or idle runtime turn", async () => {
 	expect(await take()).toBeNull();
-	for (const state of ["working", "needs_input", "unknown", "failed"]) {
-		await observation(state);
+	observation("working");
+	expect(await take()).toBeNull();
+	for (const overrides of [
+		{ status: "exited" as const },
+		{ status: "unknown" as const },
+		{ controllable: false },
+		{ activity: null },
+		{ mode: "stdio" as const },
+		{ id: "another-attempt" },
+	]) {
+		sessions = [controllerSession(attemptId, overrides)];
 		expect(await take()).toBeNull();
 	}
-	await observation("idle", [{ requestId: "permission" }]);
-	expect(await take()).toBeNull();
-	await observation("idle", [], "another-session");
-	expect(await take()).toBeNull();
-	await observation("idle");
+	observation("idle");
 	expect(await take()).toMatchObject({ state: "sending", terminalId: attemptId });
 });
 
@@ -75,10 +82,10 @@ test("a durable late receipt clears unknown after host recovery without another 
 	await observation("ready");
 	const delivery = (await take())!;
 	await h.run((ctx, tx) => recover(ctx, tx, {}));
-	await h.run((ctx, tx) => reconcile(ctx, tx));
+	await h.run((ctx, tx) => reconcile(ctx, tx, { sessions }));
 	expect((await h.one(sql`SELECT state FROM manager_dispatches`)).state).toBe("unknown");
 	await receipt(dispatchMessageId(delivery));
-	await h.run((ctx, tx) => reconcile(ctx, tx));
+	await h.run((ctx, tx) => reconcile(ctx, tx, { sessions }));
 	expect(await h.one(sql`SELECT state,generation,error FROM manager_dispatches`)).toMatchObject({
 		state: "sent",
 		generation: delivery.generation,
@@ -99,10 +106,10 @@ test("an old dispatch generation receipt cannot confirm an explicit retry", asyn
 		complete(ctx, tx, { id: second.id, generation: second.generation, state: "unknown", error: "lost again" }),
 	);
 	await receipt(dispatchMessageId(first));
-	await h.run((ctx, tx) => reconcile(ctx, tx));
+	await h.run((ctx, tx) => reconcile(ctx, tx, { sessions }));
 	expect((await h.one(sql`SELECT state FROM manager_dispatches`)).state).toBe("unknown");
 	await receipt(dispatchMessageId(second));
-	await h.run((ctx, tx) => reconcile(ctx, tx));
+	await h.run((ctx, tx) => reconcile(ctx, tx, { sessions }));
 	expect((await h.one(sql`SELECT state FROM manager_dispatches`)).state).toBe("sent");
 });
 
@@ -114,6 +121,6 @@ test("a receipt from a different attempt cannot confirm the dispatch", async () 
 	);
 	const other = await h.run((ctx, tx) => reserveAttempt(ctx, tx, { runId: "manager" }));
 	await receipt(dispatchMessageId(delivery), other.id);
-	await h.run((ctx, tx) => reconcile(ctx, tx));
+	await h.run((ctx, tx) => reconcile(ctx, tx, { sessions }));
 	expect((await h.one(sql`SELECT state FROM manager_dispatches`)).state).toBe("unknown");
 });

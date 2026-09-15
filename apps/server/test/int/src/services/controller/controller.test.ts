@@ -1,15 +1,24 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { collect } from "../../../../../src/services/controller/collect.ts";
-import { claim, complete, recover, resolveUnknown, retry } from "../../../../../src/services/controller/controller.ts";
+import {
+	claim,
+	complete,
+	defer,
+	recover,
+	resolveUnknown,
+	retry,
+} from "../../../../../src/services/controller/controller.ts";
 import { seedActor, seedActors, seedChild, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedActivity, seedTicket } from "../../../../fixtures/tickets.ts";
+import { controllerSession } from "../../../../helpers/controllerSession.ts";
 import { type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
 let h: Harness;
 let projectId: string;
 let ticketId: string;
+let sessions: ReturnType<typeof controllerSession>[];
 beforeAll(async () => {
 	h = await serviceHarness();
 });
@@ -17,6 +26,7 @@ afterAll(() => h.close());
 afterEach(() => h.read(assertStatusInvariant));
 beforeEach(async () => {
 	await h.reset();
+	sessions = [controllerSession("terminal-1")];
 	await h.read(async (tx) => {
 		projectId = await seedRoot(tx, "CTL", {
 			manager_config: { personaId: "01M2GHTTXSHPZDFTJQW1MC28N2", concurrency: 3, directory: "" },
@@ -26,13 +36,10 @@ beforeEach(async () => {
 		await seedActors(tx);
 		await seedActor(tx, { kind: "agent", name: "manager-run" });
 		await seedActor(tx, { kind: "agent", name: "01M2GJ634MAAPPB8JDZVDYWX3B" });
-		await tx.execute(sql`INSERT INTO agent_runs (id, name, persona_name, kind, instruction, project_id, project_path, runtime, state, terminal_id, session_id, created_at, updated_at)
-			VALUES ('manager-run', 'Manager', 'Manager', 'manager', 'Manage.', ${projectId}, 'CTL', 'native', 'running', 'terminal-1', 'session-1', ${NOW}, ${NOW})`);
+		await tx.execute(sql`INSERT INTO agent_runs (id, name, persona_name, kind, instruction, project_id, project_path, runtime, terminal_id, session_id, created_at, updated_at)
+			VALUES ('manager-run', 'Manager', 'Manager', 'manager', 'Manage.', ${projectId}, 'CTL', 'native', 'terminal-1', 'session-1', ${NOW}, ${NOW})`);
 		await tx.execute(
 			sql`INSERT INTO agent_execution_attempts (id,run_id,generation,token_hash,created_at) VALUES ('terminal-1','manager-run',1,'fixture',${NOW})`,
-		);
-		await tx.execute(
-			sql`INSERT INTO agent_harness_observations (attempt_id,snapshot,updated_at) VALUES ('terminal-1','{"state":"idle","sessionId":"session-1","pendingPermissions":[]}'::jsonb,${NOW})`,
 		);
 	});
 });
@@ -46,15 +53,15 @@ const event = (name = "dana", seconds = 0) =>
 			createdAt: secondsAfter(seconds),
 		}),
 	);
-const gather = (seconds = 0) => h.run((ctx, tx) => collect(ctx, tx, {}), { now: secondsAfter(seconds) });
-const take = (seconds = 10) => h.run((ctx, tx) => claim(ctx, tx, {}), { now: secondsAfter(seconds) });
+const gather = (seconds = 0) => h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(seconds) });
+const take = (seconds = 10) => h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(seconds) });
 
 test("activity survives a stopped manager and a later controller instance", async () => {
-	await h.rows(sql`UPDATE agent_runs SET state = 'stopped'`);
+	sessions[0]!.status = "exited";
 	await event();
 	await gather();
 	expect(await take()).toBeNull();
-	await h.rows(sql`UPDATE agent_runs SET state = 'running'`);
+	sessions[0]!.status = "running";
 	const delivery = await take(12);
 	expect(delivery).toMatchObject({ projectId, runId: "manager-run", terminalId: "terminal-1", state: "sending" });
 	expect(delivery!.events).toHaveLength(1);
@@ -134,7 +141,7 @@ test("a rollback preserves the activity cursor and creates no dispatch", async (
 	await event();
 	await expect(
 		h.run(async (ctx, tx) => {
-			await collect(ctx, tx, {});
+			await collect(ctx, tx, { sessions });
 			throw new Error("rollback");
 		}),
 	).rejects.toThrow("rollback");
@@ -164,4 +171,25 @@ test("explicit confirmation unblocks the next batch without a resend", async () 
 	await h.run((ctx, tx) => resolveUnknown(ctx, tx, { id: first.id }));
 	await gather(30);
 	expect((await take(40))!.id).not.toBe(first.id);
+});
+
+test("a pre-send busy result returns the same batch to pending", async () => {
+	await event();
+	await gather();
+	const first = (await take())!;
+	await h.run((ctx, tx) => defer(ctx, tx, { id: first.id, generation: first.generation, error: "Process is busy" }));
+	expect((await h.one(sql`SELECT state FROM manager_dispatches`)).state).toBe("pending");
+	const next = (await take())!;
+	expect(next.id).toBe(first.id);
+	expect(next.generation).toBeGreaterThan(first.generation);
+	expect(next.events).toEqual(first.events);
+});
+
+test("an old pre-send result cannot clear a recovered unknown delivery", async () => {
+	await event();
+	await gather();
+	const first = (await take())!;
+	await h.run((ctx, tx) => recover(ctx, tx, {}));
+	await h.run((ctx, tx) => defer(ctx, tx, { id: first.id, generation: first.generation, error: null }));
+	expect((await h.one(sql`SELECT state FROM manager_dispatches`)).state).toBe("unknown");
 });

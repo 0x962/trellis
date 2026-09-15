@@ -1,9 +1,12 @@
+import { nativeClient } from "../../agents/native/connection.ts";
 import type { Tx } from "../../db/tx.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
+import { readRuntimeSessions } from "../agentRuns/liveState.ts";
 import type { ServiceCtx } from "../support.ts";
-import { claim, complete } from "./controller.ts";
+import { claim, complete, defer } from "./controller.ts";
 import { managerMessage } from "./message.ts";
 import { dispatchMessageId } from "./messageId.ts";
+import { readySession } from "./readySession.ts";
 import { reconcile } from "./reconcile.ts";
 import { sendDeadline } from "./sendDeadline.ts";
 import type { Dispatch } from "./types.ts";
@@ -11,23 +14,33 @@ import type { Dispatch } from "./types.ts";
 type Ctx = ServiceCtx & { publicUrl: string };
 
 export const dispatch = async (ctx: Ctx) => {
-	await ctx.newTx((tx) => reconcile({ now: ctx.now() }, tx));
+	const sessions = await readRuntimeSessions(ctx.home);
+	await ctx.newTx((tx) => reconcile({ now: ctx.now() }, tx, { sessions }));
 	const deliveries: Dispatch[] = [];
 	for (let i = 0; i < 20; i++) {
-		const delivery = await ctx.newTx((tx) => claim({ now: ctx.now() }, tx, {}));
+		const delivery = await ctx.newTx((tx) => claim({ now: ctx.now() }, tx, { sessions }));
 		if (!delivery) break;
 		deliveries.push(delivery);
 	}
 	await Promise.all(
 		deliveries.map(async (delivery) => {
 			let state: "sent" | "unknown" = "sent";
+			let attempted = false;
 			let error: string | null = null;
 			try {
+				if (!readySession(await nativeClient(ctx.home).inspect(delivery.terminalId!))) {
+					await ctx.newTx((tx) =>
+						defer({ now: ctx.now() }, tx, { id: delivery.id, generation: delivery.generation, error: null }),
+					);
+					return;
+				}
+				attempted = true;
 				await sendDeadline(
 					prepareSend(ctx, {
 						id: delivery.runId!,
 						text: managerMessage(delivery),
 						messageId: dispatchMessageId(delivery),
+						requireIdle: true,
 						expectedTerminalId: delivery.terminalId!,
 						expectedSessionId: delivery.sessionId,
 					}),
@@ -35,6 +48,12 @@ export const dispatch = async (ctx: Ctx) => {
 			} catch (cause) {
 				state = "unknown";
 				error = cause instanceof Error ? cause.message : String(cause);
+				if (!attempted || (cause as { code?: string }).code === "RUNTIME_BUSY") {
+					await ctx.newTx((tx) =>
+						defer({ now: ctx.now() }, tx, { id: delivery.id, generation: delivery.generation, error }),
+					);
+					return;
+				}
 			}
 			await ctx.newTx((tx) =>
 				complete({ now: ctx.now() }, tx, { id: delivery.id, generation: delivery.generation, state, error }),

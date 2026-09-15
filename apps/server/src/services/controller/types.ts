@@ -1,5 +1,7 @@
+import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import type { RequestContext } from "../../context.ts";
 
+export type ControllerInput = { sessions: RuntimeProcessStatus[] };
 export type ControllerCtx = Pick<RequestContext, "now">;
 export type ControllerEvent = {
 	id: number;

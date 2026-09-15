@@ -2,18 +2,16 @@ import type { Tx } from "../db/tx.ts";
 import * as actors from "./actors.ts";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import * as agentCommunication from "./agentRuns/communication.ts";
-import * as agentHarness from "./agentRuns/harness.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
 import { readNativeWork, setNativeWork } from "./agentRuns/nativeControl.ts";
-import { prepareNativeReconcile } from "./agentRuns/nativeReconcile.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
 import * as comments from "./comments.ts";
-import { collect as collectController } from "./controller/collect.ts";
 import * as controller from "./controller/controller.ts";
 import * as controllerDispatch from "./controller/dispatch.ts";
+import * as controllerPrepare from "./controller/prepare.ts";
 import { diagnostics } from "./diagnostics.ts";
 import { check as evidenceCheck } from "./evidence/check.ts";
 import { file as evidenceFile } from "./evidence/file.ts";
@@ -79,6 +77,12 @@ const prepared = (kind: ServiceKind, prepare: Prepare, run: Run): ServiceEntry =
 	prepare,
 	run,
 });
+const agentMutation = (prepare: Prepare) =>
+	prepared(
+		"mutation",
+		async (ctx, input) => agentRuns.observeResult(ctx, (await prepare(ctx, input)) as { id: string }),
+		agentRuns.finish,
+	);
 
 export const services = {
 	"flowExecutions.start": core("mutation", startFlowExecution),
@@ -97,9 +101,6 @@ export const services = {
 	"evidence.check": prepared("mutation", evidenceCheck, evidenceResult),
 	"evidence.register": prepared("mutation", evidenceRegister, evidenceResult),
 	"evidence.recover": core("mutation", evidenceRecover),
-	"agentRuns.reconcileNative": prepared("mutation", (ctx) => prepareNativeReconcile(ctx), agentTerminal.result),
-	"agentRuns.harness": prepared("read", agentHarness.harness, agentTerminal.result),
-	"agentRuns.permission": prepared("mutation", agentHarness.permission, agentTerminal.result),
 	"agentRuns.session": prepared("read", agentTerminal.session, agentTerminal.result),
 	"agentRuns.terminalTarget": core("read", agentTerminal.streamTarget),
 	"agentRuns.terminalOutput": prepared("read", agentTerminal.output, agentTerminal.result),
@@ -133,9 +134,9 @@ export const services = {
 	"reviews.resend": io("mutation", reviewDelivery.resend),
 	"reviews.deliverPending": prepared("mutation", reviewDelivery.preparePending, reviewDelivery.finished),
 
-	"agentRuns.send": prepared("mutation", agentCommunication.prepareSend, agentRuns.finish),
-	"controller.collect": core("mutation", collectController),
-	"controller.claim": core("mutation", controller.claim),
+	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
+	"controller.collect": prepared("mutation", controllerPrepare.prepare, controllerPrepare.collect),
+	"controller.claim": prepared("mutation", controllerPrepare.prepare, controllerPrepare.claim),
 	"controller.complete": core("mutation", controller.complete),
 	"controller.recover": core("mutation", controller.recover),
 	"controller.list": core("read", controller.list),
@@ -143,10 +144,10 @@ export const services = {
 	"controller.resolveUnknown": core("mutation", controller.resolveUnknown),
 	"controller.dispatch": prepared("mutation", controllerDispatch.dispatch, controllerDispatch.finished),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
-	"agentRuns.list": core("read", agentRuns.list),
-	"agentRuns.start": prepared("mutation", agentRuns.prepareStart, agentRuns.finish),
-	"agentRuns.stop": prepared("mutation", agentLifecycle.prepareStop, agentRuns.finish),
-	"agentRuns.refresh": prepared("mutation", agentLifecycle.prepareRefresh, agentRuns.finish),
+	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
+	"agentRuns.start": agentMutation(agentRuns.prepareStart),
+	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
+	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
 	"personas.list": core("read", personas.list),
 	"personas.create": core("mutation", personas.create),
 	"personas.update": core("mutation", personas.update),

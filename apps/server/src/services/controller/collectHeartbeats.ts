@@ -2,24 +2,26 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import type { ControllerCtx } from "./types.ts";
+import { readySession } from "./readySession.ts";
+import type { ControllerCtx, ControllerInput } from "./types.ts";
 
-export const collectHeartbeats = async (ctx: ControllerCtx, tx: Tx) => {
+export const collectHeartbeats = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput) => {
+	const ready = input.sessions
+		.filter(readySession)
+		.map((session) => ({ id: session.id, idleAt: session.activity!.updatedAt }));
+	if (ready.length === 0) return;
 	const quietBefore = new Date(ctx.now.getTime() - 60_000);
 	const projects = await rows<{ id: string }>(
 		tx,
 		sql`
 		SELECT p.id FROM projects p
 		JOIN manager_controller_cursors cursor ON cursor.project_id=p.id
-		JOIN agent_runs r ON r.project_id=p.id AND r.kind='manager' AND r.runtime='native' AND r.state='running'
-		JOIN agent_harness_observations observation ON observation.attempt_id=r.terminal_id
+		JOIN agent_runs r ON r.project_id=p.id AND r.kind='manager' AND r.runtime='native' AND r.closed_at IS NULL
+		JOIN jsonb_to_recordset(${JSON.stringify(ready)}::jsonb) AS live(id text, "idleAt" timestamptz) ON live.id=r.terminal_id
 		WHERE p.manager_config->>'personaId' IS NOT NULL AND p.archived_at IS NULL
 		AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
 		AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
-		AND observation.snapshot->>'sessionId'=r.session_id
-		AND observation.snapshot->>'state' IN ('ready','idle')
-		AND observation.snapshot->'pendingPermissions'='[]'::jsonb
-		AND GREATEST(r.created_at, observation.updated_at,
+		AND GREATEST(r.created_at, live."idleAt",
 			(SELECT max(updated_at) FROM manager_dispatches WHERE project_id=p.id AND state='sent')) <= ${quietBefore}
 		AND NOT EXISTS (SELECT 1 FROM manager_dispatches WHERE project_id=p.id AND state IN ('pending','sending','unknown'))
 		AND NOT EXISTS (WITH RECURSIVE ancestors AS (
