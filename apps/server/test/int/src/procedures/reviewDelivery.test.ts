@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
+import { existsSync, mkdtempSync } from "node:fs";
+import { join } from "node:path";
+import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { ulid } from "ulid";
 import { createTestApp, type TestApp } from "../../../helpers/app";
 import { assertStatusInvariant } from "../../../invariants";
@@ -6,33 +9,32 @@ import { assertStatusInvariant } from "../../../invariants";
 let t: TestApp;
 let runId: string;
 beforeEach(async () => {
-	t = await createTestApp();
+	t = await createTestApp({ home: mkdtempSync("/tmp/trellis-review-delivery-") });
 	await t.seedProject("RVD");
 	await t.client.projects.setRepos({ project: "RVD", repos: [{ owner: "example", repo: "code" }] });
 	const persona = await t.client.personas.create({ name: "Manager", kind: "manager", instruction: "Manage." });
-	const commands = {
-		start: 'printf \'%s\' \'{"workspaceId":"w","terminalId":"t"}\'',
-		resume: "true",
-		send: "true",
-		output: "true",
-		stop: "true",
-		healthcheck: "printf '%s' '{\"state\":\"running\"}'",
-		projects: "printf '[]'",
-		open: "true",
-		recover: "true",
-	};
 	const configured = await t.api("/api/projects/RVD", {
 		method: "PATCH",
-		body: { managerConfig: { personaId: persona.id, directory: t.home, concurrency: 1, harnessCommands: commands } },
+		body: {
+			managerConfig: {
+				personaId: persona.id,
+				directory: t.home,
+				concurrency: 1,
+				harness: { preset: "custom", startCommand: "/bin/cat", resumeCommand: "/bin/cat" },
+			},
+		},
 	});
 	expect(configured.status, JSON.stringify(configured.body)).toBe(200);
 	const started = await t.api("/api/agent-runs", { method: "POST", body: { personaId: persona.id, project: "RVD" } });
 	expect(started.status, JSON.stringify(started.body)).toBe(201);
 	const run = started.body;
+	expect(run).toMatchObject({ runtime: "native", state: "running" });
 	runId = run.id;
 	await t.client.agentRuns.stop({ id: run.id });
 });
 afterEach(async () => {
+	const socket = join(t.home, "runtime", "runtime.sock");
+	if (existsSync(socket)) await new RuntimeClient(socket).shutdown();
 	await t.serverTx(assertStatusInvariant);
 	await t.close();
 });
