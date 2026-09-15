@@ -62,6 +62,8 @@ export async function prepareAttempt(
 	);
 	const descriptor: HarnessDescriptor = {
 		harness: input.harness,
+		prompt: input.prompt,
+		sessionId,
 		fingerprint,
 		spec: {
 			id: input.id,

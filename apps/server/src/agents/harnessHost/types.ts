@@ -20,6 +20,8 @@ export type HarnessStartInput = {
 };
 export type HarnessDescriptor = {
 	fingerprint: string;
+	prompt: string;
+	sessionId?: string;
 	spec: LaunchSpec;
 	harness: BuiltInHarness;
 };

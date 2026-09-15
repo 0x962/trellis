@@ -34,28 +34,36 @@ export class HarnessHost {
 	}
 	private async launch(input: HarnessStartInput, sessionId?: string): Promise<HarnessStarted> {
 		const descriptor = await this.prepare(input, sessionId);
-		await this.options.runtime.start(descriptor.spec);
-		if (input.harness === "opencode" && sessionId !== undefined) {
-			const current = await this.waitFor(input.id, (state) => state.agent?.sessionId === sessionId);
-			if (!current.acknowledgedMessageIds.includes(input.id))
-				await sendNativePrompt(
-					this.options,
-					descriptor,
-					sessionId,
-					input.id,
-					`trellis-message:${input.id}\n${input.prompt}`,
-				);
+		return this.launchDescriptor({ ...descriptor, prompt: input.prompt, sessionId });
+	}
+	async startPrepared(id: string, timeoutMs?: number): Promise<HarnessStarted> {
+		const descriptor = await this.descriptor(id);
+		const exists = (await this.options.runtime.list()).some((process) => process.id === id);
+		return this.launchDescriptor(descriptor, timeoutMs, !exists);
+	}
+	private async launchDescriptor(
+		descriptor: HarnessDescriptor,
+		timeoutMs?: number,
+		start = true,
+	): Promise<HarnessStarted> {
+		const { spec, harness, sessionId, prompt } = descriptor;
+		if (start) await this.options.runtime.start(timeoutMs === undefined ? spec : { ...spec, timeoutMs });
+		if (harness === "opencode" && sessionId !== undefined) {
+			const current = await this.waitFor(spec.id, (state) => state.agent?.sessionId === sessionId);
+			if (!current.acknowledgedMessageIds.includes(spec.id))
+				await sendNativePrompt(this.options, descriptor, sessionId, spec.id, `trellis-message:${spec.id}\n${prompt}`);
 		}
 		const process = await this.waitFor(
-			input.id,
-			(state) => state.agent?.sessionId != null && state.acknowledgedMessageIds.includes(input.id),
+			spec.id,
+			(state) => state.agent?.sessionId != null && state.acknowledgedMessageIds.includes(spec.id),
 		);
 		if (sessionId !== undefined && process.agent?.sessionId !== sessionId)
 			throw new Error(
-				`Harness attempt ${input.id} resumed provider session ${process.agent?.sessionId}, expected ${sessionId}`,
+				`Harness attempt ${spec.id} resumed provider session ${process.agent?.sessionId}, expected ${sessionId}`,
 			);
 		return { process };
 	}
+
 	async waitFor(
 		id: string,
 		matches: (session: RuntimeProcessStatus) => boolean,
