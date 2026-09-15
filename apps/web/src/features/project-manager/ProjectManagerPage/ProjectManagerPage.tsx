@@ -1,68 +1,33 @@
-import { Play, Stop } from "@phosphor-icons/react";
+import { ArrowClockwise, Gear, Play, Stop } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Link, useLocation } from "@tanstack/react-router";
-import {
-	DEFAULT_PROJECT_MANAGER_CONFIG,
-	type Project,
-	type ProjectManagerConfig,
-	ProjectManagerConfigSchema,
-} from "@trellis/api";
-import { Button, IconButton, Switch, Tooltip, toast } from "@trellis/ui";
-import { useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { DEFAULT_PROJECT_MANAGER_CONFIG, type Project } from "@trellis/api";
+import { ConfirmDialog, EmptyState, IconButton, Tooltip, toast } from "@trellis/ui";
+import { useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
-import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
+import { NativeTerminal } from "../../agents/NativeTerminal";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
-import { GeneralSettings } from "./components/GeneralSettings";
-import { HarnessSettings } from "./components/HarnessSettings";
 import { managerResumes } from "./managerResumes";
-
-// The empty hash opens Operation at `/p/<path>/settings/manager`.
-const sections = [
-	{ id: "", label: "Operation" },
-	{ id: "settings", label: "General" },
-	{ id: "harness", label: "Harness" },
-];
 
 export function ProjectManagerPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
-	const hash = useLocation({ select: (location) => location.hash });
-	const section = sections.some((item) => item.id === hash) ? hash : "";
+	const settingsLink = useRef<HTMLAnchorElement>(null);
+	const leaveTerminal = useCallback(() => settingsLink.current?.focus(), []);
+	const [confirmNewSession, setConfirmNewSession] = useState(false);
 	const saved = project.managerConfig ?? DEFAULT_PROJECT_MANAGER_CONFIG;
-	const [draft, setDraft] = useState(saved);
-	const personas = useQuery(orpc.personas.list.queryOptions({ input: {} }));
 	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: { project: project.path } }));
-	// The list orders manager assignments from newest to oldest.
 	const manager = runs.data?.find((run) => run.kind === "manager");
 	const active = manager !== undefined && hasAssignedProcess(manager);
-	// True when Play continues the Claude session the manager had before its
-	// pause. A manager with no session yet, or none that ran, starts new.
 	const resumes = managerResumes(manager);
-	const parsedDraft = ProjectManagerConfigSchema.safeParse(draft);
-	const dirty = !parsedDraft.success || JSON.stringify(parsedDraft.data) !== JSON.stringify(saved);
-	const save = useMutation({
-		scope: { id: `project-manager-${project.id}` },
-		mutationFn: (managerConfig: ProjectManagerConfig) =>
-			client.projects.update({ project: project.path, managerConfig }),
-		onSuccess: async () => {
-			await queryClient.invalidateQueries({ queryKey: orpc.projects.get.key() });
-		},
-		onError: (error) => toast.error("Could not save the manager settings", { description: error.message }),
-	});
-	const commit = (next: ProjectManagerConfig) => {
-		setDraft(next);
-		const parsed = ProjectManagerConfigSchema.safeParse(next);
-		if (parsed.success) save.mutate(parsed.data);
-	};
-
-	// `newSession` true gives the manager a new session. A person sends it
-	// from the lost-session notice, after a resume found none.
+	const readOnly = project.archivedAt !== null;
 	const start = useMutation({
 		mutationFn: (newSession: boolean) =>
 			client.agentRuns.start({ project: project.path, personaId: saved.personaId!, newSession }),
 		onSuccess: async (run, newSession) => {
+			setConfirmNewSession(false);
 			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
 			const verb = resumes && !newSession ? "resume" : "start";
 			if (run.state === "failed") toast.error(`Could not ${verb} the manager`, { description: run.error ?? undefined });
@@ -70,7 +35,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 		},
 		onError: (error) => toast.error("Could not start the manager", { description: error.message }),
 	});
-	const pause = useMutation({
+	const stop = useMutation({
 		mutationFn: () => client.agentRuns.stop({ id: manager!.id }),
 		onSuccess: async () => {
 			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
@@ -78,38 +43,49 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 		},
 		onError: (error) => toast.error("Could not stop the manager", { description: error.message }),
 	});
-	const persona = personas.data?.find((item) => item.id === draft.personaId);
-	const readOnly = project.archivedAt !== null;
-
+	const startLabel = manager?.sessionLost ? "Start a new session" : resumes ? "Resume manager" : "Start manager";
 	return (
 		<>
 			<Topbar
 				actions={
-					active ? (
-						<Tooltip content="Stop the manager process">
+					<>
+						<Tooltip content={active ? "Stop the manager process" : startLabel}>
 							<IconButton
-								label="Stop manager"
-								icon={<Stop weight="fill" />}
-								size="sm"
-								variant="default"
-								disabled={readOnly || manager.state === "starting" || pause.isPending}
-								onClick={() => pause.mutate()}
-							/>
-						</Tooltip>
-					) : (
-						<Tooltip content={resumes ? "Resume the manager" : "Start the manager"}>
-							<IconButton
-								label={resumes ? "Resume manager" : "Start manager"}
-								icon={<Play weight="fill" />}
-								size="sm"
-								variant="default"
+								label={active ? "Stop manager" : startLabel}
+								icon={active ? <Stop weight="fill" /> : <Play weight="fill" />}
 								disabled={
-									readOnly || dirty || save.isPending || !persona || runs.isPending || runs.isError || start.isPending
+									readOnly ||
+									runs.isPending ||
+									runs.isError ||
+									start.isPending ||
+									stop.isPending ||
+									(active ? manager.state === "starting" : !saved.personaId)
 								}
-								onClick={() => start.mutate(false)}
+								onClick={() => {
+									if (active) stop.mutate();
+									else if (manager?.sessionLost) setConfirmNewSession(true);
+									else start.mutate(false);
+								}}
 							/>
 						</Tooltip>
-					)
+						<Tooltip content="Manager settings">
+							<IconButton
+								label="Manager settings"
+								role="link"
+								icon={<Gear />}
+								nativeButton={false}
+								render={
+									<Link
+										ref={settingsLink}
+										to="/p/$"
+										params={{ _splat: `${projectSlashPath(project.path)}/settings` }}
+										search={{}}
+										hash="manager"
+									/>
+								}
+							/>
+						</Tooltip>
+					</>
 				}
 			>
 				<PageTitle
@@ -120,104 +96,46 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 					}
 					title="Manager"
 				/>
+				{manager && <span className="truncate text-sm text-fg-muted">{manager.name}</span>}
 			</Topbar>
-			<div className="page-card project-settings-layout">
-				<nav aria-label="Manager navigation" className="project-settings-nav">
-					<p className="project-settings-nav-title">Manager</p>
-					<ul className="project-settings-nav-list">
-						{sections.map(({ id, label }) => (
-							<li key={id}>
-								<Link
-									to="/p/$"
-									params={{ _splat: `${projectSlashPath(project.path)}/settings/manager` }}
-									search={{}}
-									hash={id}
-									hashScrollIntoView={false}
-									activeOptions={{ exact: true, includeHash: true }}
-									aria-current={section === id ? "page" : undefined}
-									className="project-settings-nav-link"
-								>
-									{label}
-								</Link>
-							</li>
-						))}
-					</ul>
-				</nav>
-				<div className="project-settings-content">
-					<div hidden={section !== ""} className="project-settings-page">
-						<section aria-label="Status" className="project-settings-section">
-							<Switch
-								label="Automatic dispatch"
-								checked={!draft.dispatchPaused}
-								disabled={readOnly || save.isPending}
-								onCheckedChange={(enabled) => commit({ ...draft, dispatchPaused: !enabled })}
-							/>
-							<p className="text-sm text-fg-muted">
-								Pause automatic dispatch to keep new messages queued. The current process continues.
-							</p>
-							{runs.isPending && (
-								<p role="status" className="text-sm text-fg-muted">
-									Load manager…
-								</p>
-							)}
-							{runs.isError && (
-								<p role="alert" className="text-sm text-danger">
-									Could not load manager.{" "}
-									<Button variant="quiet" onClick={() => void runs.refetch()}>
-										Retry
-									</Button>
-								</p>
-							)}
-							{manager?.sessionLost && manager.runtime === "native" && (
-								<div className="flex flex-col gap-3 rounded-md border border-border p-3">
-									<p className="text-sm">
-										The manager could not resume its session. The error below names the session and where the agent ran.
-										Start a new session? The new session does not hold the chat of the old one. Trellis reuses the
-										workspace if it exists.
-									</p>
-									<Button
-										variant="primary"
-										align="start"
-										disabled={readOnly || dirty || save.isPending || !persona}
-										processing={start.isPending}
-										onClick={() => start.mutate(true)}
-									>
-										Start a new session
-									</Button>
-								</div>
-							)}
-							{manager !== undefined && <AgentRunDetails run={manager} heading controls={false} />}
-							{manager === undefined && !runs.isPending && !runs.isError && (
-								<p className="text-sm text-fg-muted">This project has no manager yet. Press Play to start one.</p>
-							)}
-						</section>
+			<section aria-label="Manager terminal" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+				{runs.isPending && (
+					<p role="status" className="p-5 text-sm text-fg-muted">
+						Load manager…
+					</p>
+				)}
+				{runs.isError && (
+					<div role="alert" className="flex items-center gap-3 p-5 text-sm text-danger">
+						<p>Could not load manager. {runs.error.message}</p>
+						<Tooltip content="Reload manager">
+							<IconButton label="Reload manager" icon={<ArrowClockwise />} onClick={() => void runs.refetch()} />
+						</Tooltip>
 					</div>
-					<div hidden={section !== "harness"} className="project-settings-page">
-						<HarnessSettings readOnly={readOnly} draft={draft} saved={saved} commit={commit} setDraft={setDraft} />
-					</div>
-					<div hidden={section !== "settings"} className="project-settings-page">
-						<GeneralSettings
-							project={project}
-							readOnly={readOnly}
-							draft={draft}
-							saved={saved}
-							commit={commit}
-							setDraft={setDraft}
+				)}
+				{!runs.isPending &&
+					!runs.isError &&
+					(manager?.runtime === "native" && manager.terminalId !== null ? (
+						<NativeTerminal key={manager.terminalId} run={manager} layout="fill" onLeave={leaveTerminal} />
+					) : (
+						<EmptyState
+							variant="page"
+							title={manager?.error ? "The manager could not start" : "No manager session"}
+							description={
+								manager?.error ??
+								(saved.personaId ? "Press Play to start the manager." : "Choose a manager persona in project settings.")
+							}
 						/>
-					</div>
-					{section !== "" && (
-						<p role={save.error ? "alert" : "status"} className="manager-save-status">
-							{save.isPending
-								? "Save in progress…"
-								: save.error
-									? save.error.message
-									: dirty
-										? "Unsaved changes"
-										: "All changes saved"}
-						</p>
-					)}
-				</div>
-			</div>
+					))}
+			</section>
+			<ConfirmDialog
+				open={confirmNewSession}
+				title="Start a new manager session?"
+				description="The saved conversation is unavailable. A new session starts with the project instructions and reuses the existing workspace."
+				confirmLabel="Start a new session"
+				processing={start.isPending}
+				onConfirm={() => start.mutate(true)}
+				onCancel={() => setConfirmNewSession(false)}
+			/>
 		</>
 	);
 }

@@ -13,7 +13,7 @@ test("the browser renders its content without a desktop title strip", () => {
 	expect(screen.getByRole("main").textContent).toBe("Tickets");
 });
 
-test("the desktop separates its drag strip from interactive content", async () => {
+test("the desktop keeps interactive content without a separate title strip", async () => {
 	const click = mock();
 	render(
 		<DesktopChrome enabled>
@@ -22,10 +22,9 @@ test("the desktop separates its drag strip from interactive content", async () =
 			</button>
 		</DesktopChrome>,
 	);
-	const title = screen.getByText("Trellis");
 	const button = screen.getByRole("button");
-	expect(title.textContent).toBe("Trellis");
-	expect(title.contains(button)).toBe(false);
+	expect(screen.queryByText("Trellis")).toBeNull();
+	expect(document.querySelector("[data-desktop-titlebar]")).toBeNull();
 	expect(button.closest("[data-desktop-content]")).not.toBeNull();
 	await userEvent.setup().click(button);
 	expect(click).toHaveBeenCalledTimes(1);
