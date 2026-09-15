@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
 import { cx } from "../../utils/cx";
+import poster from "./poster.jpg";
 
 export type EmptyStateProps = {
 	// A small picture above the title, pinned a little crooked like a print
-	// on a wall. It is decoration, so screen readers skip it.
+	// on a wall. It is decoration, so screen readers skip it. The page
+	// variant draws poster.jpg when this is not set, so every page-level
+	// state shows the same picture.
 	image?: string;
 	title?: string;
 	description?: ReactNode;
@@ -20,6 +23,7 @@ export type EmptyStateProps = {
 // starts at the left edge under a heading.
 export function EmptyState({ image, title, description, action, variant = "section", className }: EmptyStateProps) {
 	const page = variant === "page";
+	const picture = image ?? (page ? poster : undefined);
 	return (
 		<div
 			className={cx(
@@ -28,7 +32,9 @@ export function EmptyState({ image, title, description, action, variant = "secti
 				className,
 			)}
 		>
-			{image !== undefined && <img src={image} alt="" className="mb-4 w-24 -rotate-2 rounded-sm shadow-md grayscale" />}
+			{picture !== undefined && (
+				<img src={picture} alt="" className="mb-4 w-24 -rotate-2 rounded-sm shadow-md grayscale" />
+			)}
 			{title !== undefined && (
 				<h3 className={cx("text-fg", page ? "text-xl font-semibold" : "text-sm font-medium")}>{title}</h3>
 			)}
