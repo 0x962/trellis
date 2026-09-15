@@ -18,8 +18,9 @@ describe("agents list", () => {
 			.trim()
 			.split(/\s{2,}/)
 			.map((name) => name.toLowerCase());
-		for (const name of ["id", "name", "kind", "persona", "state", "ticket"]) expect(names, name).toContain(name);
-		expect(rows[0]).toContain("Iris Brooks");
+		for (const name of ["id", "kind", "persona", "state", "ticket"]) expect(names, name).toContain(name);
+		expect(rows[0]).toContain("Feature Builder");
+		expect(rows[0]).not.toContain("Iris Brooks");
 		expect(rows[0]).toContain("running");
 
 		const project = await runCli(["agents", "list", "--project", "CDE"], { "agentRuns.list": [] });

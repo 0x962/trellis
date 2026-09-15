@@ -75,6 +75,9 @@ export const complete = async (
 export const recover = async (ctx: ControllerCtx, tx: Tx, _input: Record<string, never>) => {
 	await tx.execute(sql`UPDATE manager_controller_cursors SET generation = generation + 1`);
 	await tx.execute(
+		sql`UPDATE comment_deliveries SET state='unknown',error='The server stopped before it recorded the delivery result.' WHERE state='sending'`,
+	);
+	await tx.execute(
 		sql`UPDATE manager_dispatches SET state = 'unknown', error = 'The host stopped before it recorded the send result. Confirm the agent received the message before a resend.', updated_at = ${ctx.now} WHERE state = 'sending'`,
 	);
 	return {};

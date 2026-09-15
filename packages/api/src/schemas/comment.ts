@@ -3,6 +3,14 @@ import { TicketRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
+export const CommentNotificationSchema = z.object({
+	runId: z.string(),
+	personaName: z.string(),
+	state: z.enum(["pending", "sending", "sent", "failed", "unknown"]),
+	error: z.string().nullable(),
+});
+export type CommentNotification = z.infer<typeof CommentNotificationSchema>;
+
 const BodySchema = z.string().min(1).max(200_000);
 
 export const CommentSchema = z.object({
@@ -11,6 +19,7 @@ export const CommentSchema = z.object({
 	parentId: UlidSchema.nullable().default(null),
 	resolvedAt: IsoDateTimeSchema.nullable().default(null),
 	body: BodySchema,
+	notifications: z.array(CommentNotificationSchema).optional(),
 	actor: ActorRefSchema,
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,

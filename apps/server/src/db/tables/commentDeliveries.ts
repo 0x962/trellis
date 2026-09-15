@@ -1,0 +1,25 @@
+import { index, pgTable, text, unique } from "drizzle-orm/pg-core";
+import { comments } from "../schema.ts";
+import { agentRuns } from "./agentRuns.ts";
+
+export const commentDeliveries = pgTable(
+	"comment_deliveries",
+	{
+		id: text().primaryKey(),
+		commentId: text("comment_id")
+			.notNull()
+			.references(() => comments.id, { onDelete: "cascade" }),
+		runId: text("run_id")
+			.notNull()
+			.references(() => agentRuns.id, { onDelete: "cascade" }),
+		personaName: text("persona_name").notNull(),
+		terminalId: text("terminal_id"),
+		sessionId: text("session_id"),
+		state: text().notNull().default("pending"),
+		error: text(),
+	},
+	(t) => [
+		unique("comment_deliveries_recipient").on(t.commentId, t.runId),
+		index("comment_deliveries_state_idx").on(t.state),
+	],
+);

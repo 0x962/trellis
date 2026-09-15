@@ -69,3 +69,16 @@ describe("comments", () => {
 		expect(result.stdout).toContain("Body A");
 	});
 });
+
+test("comment output shows the persona and preserves the internal actor in JSON", async () => {
+	const row = comment({ actor: { name: "agent-537", kind: "agent", displayName: "Builder" } });
+	const result = await runCli(
+		["comments", "CDE-42"],
+		{ "timeline.list": { items: [row], nextCursor: null } },
+		{ tty: true },
+	);
+	expect(result.stdout).toContain("agent:Builder");
+	expect(result.stdout).not.toContain("agent-537");
+	const json = await runCli(["comments", "CDE-42", "--json"], { "timeline.list": { items: [row], nextCursor: null } });
+	expect(JSON.parse(json.stdout)[0].actor.name).toBe("agent-537");
+});

@@ -31,7 +31,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
 			const verb = resumes && !newSession ? "resume" : "start";
 			if (run.state === "failed") toast.error(`Could not ${verb} the manager`, { description: run.error ?? undefined });
-			else toast.success(`${run.name} ${verb}s now`);
+			else toast.success(`${run.personaName} ${verb}s now`);
 		},
 		onError: (error) => toast.error("Could not start the manager", { description: error.message }),
 	});
