@@ -11,12 +11,12 @@ The first package target is Apple Silicon.
 | Desktop | Native window controls, sandboxed renderer, folder picker, ticket links, and persistent host origin |
 | Background service | `SMAppService` registration, login controls, host crash restart, and explicit stop and resume |
 | Package | Bundled Bun, Node, CLI, renderer, PGlite assets, database worker, schema migrations, and native terminal modules |
-| Runtime | Protocol 5, one owner lock, durable process identifiers, PTYs, structured processes, bounded output, keyed input, deadlines, and confirmed stop |
-| Controller | Durable event batches, fixed deadlines, harness readiness, assignment deduplication, attempt tokens, and durable receipts |
-| Harness | Claude 2.1.270 structured adapter, repository trust, tool permission decisions, conversation state, and retained results |
+| Runtime | Protocol 5, one owner lock, durable process identifiers, PTYs, streamed output, live process inspection, keyed input, deadlines, and confirmed stop |
+| Controller | Durable event batches, fixed deadlines, runtime turn activity, assignment deduplication, attempt tokens, and durable receipts |
+| Harness | Interactive CLI presets, permission bypass flags, repository trust, Claude turn hooks, exact message receipts, and retained results |
 | Evidence | Worktree diff and files, command results, artifact hashes, revision checks, and confirmed check exit recovery |
 | Flows | Frozen graph and persona versions, agent attempts, YES/NO gates, human decisions, joins, deadlines, and cancellation |
-| Work area | Attempt selection, conversation, terminal, local changes, checks, flow decisions, and diagnostics |
+| Work area | Activity first, assigned-agent terminal, local changes, checks, flow decisions, and diagnostics |
 | Drafts | Browser export/import, independent recovery copies, collision preservation, and save acknowledgement |
 | Data directory | New data or an existing home, confirmed service handoff, database backup, and paused automation |
 | App replacement | Retained host resources and protocol checks before activation |

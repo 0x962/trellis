@@ -73,7 +73,7 @@ Close or quit detaches the window. The background host and agent processes conti
 The explicit Stop local work action pauses native dispatch, stops owned processes, and unregisters the helper.
 An unconfirmed process prevents a successful stop.
 
-The Bun host owns PGlite and the manager queue. A separate Node runtime owns PTYs and structured agent processes.
+The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
 Its private Unix socket uses protocol 5. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, bounded output, and a process record.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
@@ -82,15 +82,14 @@ Natural leader exit stops the remaining members of its OS session. Explicit stop
 The runtime reports exit only after cleanup and output completion. Failed cleanup records an unknown result.
 A descendant that leaves its session and loses its parent before inspection requires separate process inspection.
 
-The native Claude adapter uses structured input, output, and explicit tool decisions.
-It supports Claude 2.1.270. Repository trust requires a human action before the structured harness starts.
-The Allow all permissions checkbox defaults to on and automatically approves Claude tool requests.
-The host reads this setting for pending requests, so a change applies to running agents.
-Durable parser checkpoints preserve partial bytes, conversation output, permissions, and receipt identifiers.
-The host distinguishes an idle agent, an active turn, a required decision, and an unconfirmed result.
+All harness presets launch an interactive CLI in a PTY. Start and resume commands include each CLI's permission bypass flag.
+The Claude preset installs SessionStart, UserPromptSubmit, and Stop hooks through its settings argument.
+The hooks report turn activity, exact message receipts, and the final assistant result to the runtime.
+The runtime inspects the OS process before it reports status or permits input.
+The host uses these observations for manager dispatch and flow completion.
 
 The controller stores ticket events in `manager_dispatches` with a fixed coalescing deadline.
-It sends a native manager one batch when the current harness reports ready or idle without pending permissions.
+It sends a native manager one batch when the runtime reports a controllable process with ready or idle turn activity.
 An exact durable receipt can resolve an unknown delivery without another send.
 Stable assignment request identifiers prevent repeated worker starts from producing duplicate attempts.
 A partial database index permits one active manager per project.
@@ -98,7 +97,10 @@ A partial database index permits one active manager per project.
 Native ticket agents use Git worktrees under `agents/<run id>/work`.
 Workspace evidence binds checks and registered files to an attempt, HEAD, and a hash of the current file contents.
 A later file change makes earlier evidence outdated. A passed process alone does not mark a ticket complete.
-The ticket page shows its attempts, structured conversation, local diff, files, checks, and flow runs.
+The ticket page centers its content and opens Activity first. Shared ticket details stay above the tabs.
+The Agent tab shows the assigned agent's interactive terminal. Changes, Checks, and Flows hold their corresponding evidence.
+The authenticated terminal stream replays retained bytes and then pushes output and process observations.
+The terminal sends keyboard input and resize events to the runtime. An explicit reconnect resumes from the last displayed byte.
 Settings includes runtime diagnostics. `trellis doctor --json` reads the same report without starting the runtime.
 
 Native flows freeze the saved graph and persona instructions for each execution.
@@ -206,28 +208,31 @@ An agent run copies its persona name, kind, and instruction at launch. Later per
 A builder or reviewer names one ticket. A manager names one project.
 The row retains the project path and ticket identifier so its history remains readable.
 
-`agentRuns` exposes start, stop, refresh, send, output, terminal, harness, and permission operations.
+`agentRuns` exposes start, stop, refresh, send, output, session inspection, terminal input, and terminal resize operations.
+`GET /api/agent-runs/:id/terminal/stream` pushes terminal bytes and inspected process status through an authenticated SSE connection.
 The runtime owns each process through a distinct execution attempt. Each attempt has an identifier, generation, and token hash.
 A stable start request identifier returns its existing run before the concurrency check.
 A changed target or persona rejects reuse of that identifier.
 
 The Manager page at `/p/<project path>/settings/manager` has Operation, General, and Harness sections.
-Operation shows the process, conversation, and durable queue. The dispatch switch pauses automatic messages while events remain stored.
+Operation shows the manager's interactive terminal. The dispatch switch pauses automatic messages while events remain stored.
 General selects the manager persona, repository directory, trust, and concurrency limit.
 Harness selects the agent preset and its start and resume commands.
 `projects.managerConfig` stores these fields with `ade: native`.
 
-The Claude preset uses the structured adapter. Other presets run their commands through a local PTY.
+Every preset runs its command through a local PTY. Claude hooks identify ready, active, and completed turns.
 `launchCommand.ts` combines the persona instruction with the project or ticket context.
 The launch supplies the server URL, actor, run identifier, and attempt token through environment variables.
 A manager uses the configured repository. A ticket agent uses a Git worktree under its run directory.
 
 A stopped manager can resume its conversation. An explicit new session gets a new conversation identifier.
 An interrupted manager requires reconciliation before another start.
-Run states are `starting`, `running`, `interrupted`, `failed`, `stopped`, and `exited`.
+API run states come from inspected runtime processes. The database records assignment closure in `closed_at`.
+A missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
 A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.
 
-The concurrency limit counts active ticket runs, including interrupted attempts. It excludes the manager.
+The concurrency limit counts ticket assignments with `closed_at IS NULL`. It excludes the manager.
+A confirmed process exit closes its assignment before the next claim.
 The limit runs from 1 to 64 and defaults to 3. A partial unique index permits one active manager per project.
 
 ### Manager controller
@@ -236,13 +241,13 @@ The limit runs from 1 to 64 and defaults to 3. A partial unique index permits on
 `manager_dispatches` retains event batches and their send state. The first event fixes the batch deadline at ten seconds.
 The collector continues while dispatch pauses. It excludes the manager's own activity and respects child projects with their own manager.
 
-The controller sends a batch only to the current native attempt with a matching conversation and a ready or idle harness.
+The controller sends a batch only to the current native attempt with a matching conversation and ready or idle runtime activity.
 After one minute without manager activity or a successful dispatch, the controller queues a heartbeat for an idle manager.
 A heartbeat uses the same durable queue and receipt checks as ticket events. Its event list is empty.
 Ticket events take precedence. The queue holds at most one pending or unresolved message per project.
 Heartbeats respect project dispatch pause, the global work pause, and archived projects.
 The heartbeat asks the manager to follow its current persona and status descriptions, inspect work, and avoid comments that only acknowledge the heartbeat.
-Pending permissions prevent dispatch. A host interruption changes an unfinished send to `unknown`.
+A host interruption changes an unfinished send to `unknown`.
 A durable receipt can confirm the original delivery. An explicit resend uses a new generation and message identifier.
 
 The Needs you page shows review, failing CI, stalled work, and work completed by agents today.
@@ -385,7 +390,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), version (CHECK > 0), created_at, updated_at. |
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
-| agent_runs | id PK, name, runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, state (CHECK starting, interrupted, running, failed, stopped, exited), workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE the state is live. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND the state is live. Index (created_at). |
+| agent_runs | id PK, name, runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND `closed_at IS NULL`. Index (created_at). |
 | agent_sessions (stored history) | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |
 | agent_cursors | project_id PK (CASCADE), activity_id bigint, updated_at. Stored activity cursor from earlier data homes. |
 
@@ -403,7 +408,7 @@ The kanban position of a new card is the maximum plus 1024. A move takes the
 midpoint of its neighbors. The column renumbers in steps of 1024 when the gap
 falls below 1. A list sorts and pages by `(position, id)`.
 
-The schema migrations live in `apps/server/drizzle/`, through `0036_native_runtime_default`.
+The schema migrations live in `apps/server/drizzle/`, through `0037_agent_assignment_closure`.
 `meta/_journal.json` defines their order. Applied migrations preserve upgrades for existing data homes.
 The migrator applies schema changes at boot in one transaction, then runs `ANALYZE` and sets `pg_trgm.word_similarity_threshold`.
 The schema drift check requires `drizzle-kit generate` to leave the migration directory unchanged.
