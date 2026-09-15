@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ORPCError } from "@orpc/server";
 import type { ProjectManagerConfig } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { launchCommand } from "../../agents/launchCommand/launchCommand.ts";
@@ -11,6 +12,7 @@ import type { ExecutionAttempt } from "../assignments/attempts.ts";
 import type { ServiceCtx } from "../support.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import type { StoredRun } from "./queries.ts";
+import { waitForReceipt } from "./waitForReceipt.ts";
 
 export const startNative = async (
 	ctx: ServiceCtx & { localUrl: string },
@@ -36,6 +38,7 @@ export const startNative = async (
 	}
 
 	let launchSubmitted = false;
+	let awaitingReceipt = false;
 	try {
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
@@ -72,7 +75,7 @@ export const startNative = async (
 		const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 		const hook = fileURLToPath(new URL("../../agents/native/claudeHook.ts", import.meta.url));
 		launchSubmitted = true;
-		const session = await client.start(
+		let session = await client.start(
 			interactiveLaunchSpec({
 				id: terminalId,
 				command: launch.command,
@@ -83,6 +86,16 @@ export const startNative = async (
 				timeoutMs: input.deadlineAt === undefined ? undefined : input.deadlineAt - Date.now(),
 			}),
 		);
+		if (config.harness.preset === "claude") {
+			awaitingReceipt = true;
+			session = await waitForReceipt(
+				client,
+				terminalId,
+				terminalId,
+				Math.max(1, Math.min(60_000, (input.deadlineAt ?? Infinity) - Date.now())),
+			);
+			awaitingReceipt = false;
+		}
 		await ctx.newTx((tx) =>
 			tx.execute(
 				sql`UPDATE agent_runs SET closed_at = ${session.status === "exited" ? ctx.now() : null}, error = ${session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
@@ -94,6 +107,13 @@ export const startNative = async (
 				sql`UPDATE agent_runs SET closed_at = ${launchSubmitted ? null : ctx.now()}, error = ${error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
+		if (awaitingReceipt)
+			throw new ORPCError("RUNNER_UNAVAILABLE", {
+				defined: true,
+				status: 503,
+				message: error instanceof Error ? error.message : String(error),
+				data: { reason: "error" },
+			});
 	}
 	return { id: run.id };
 };

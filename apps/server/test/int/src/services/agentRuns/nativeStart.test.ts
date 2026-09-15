@@ -165,3 +165,73 @@ test("an uncertain launch reply keeps the assignment open for process inspection
 		await new Promise<void>((resolve) => server.close(() => resolve()));
 	}
 });
+
+test.each(["acknowledged", "unknown"])("a Claude start waits for its initial prompt receipt: %s", async (outcome) => {
+	mkdirSync(join(home, "runtime"));
+	let subscribed!: () => void;
+	const subscription = new Promise<void>((resolve) => {
+		subscribed = resolve;
+	});
+	let acknowledge!: () => void;
+	const server = createServer((socket) => {
+		socket.setEncoding("utf8");
+		let buffer = "";
+		socket.on("data", (chunk) => {
+			buffer += chunk;
+			if (!buffer.includes("\n")) return;
+			const request = JSON.parse(buffer.split("\n")[0]!);
+			const session = { id: attemptId, status: "running", error: null, acknowledgedMessageIds: [] };
+			if (request.method === "hello") socket.end(`${JSON.stringify({ id: request.id, result: { version: 5 } })}\n`);
+			else if (request.method === "start") socket.end(`${JSON.stringify({ id: request.id, result: session })}\n`);
+			else if (request.method === "subscribe") {
+				acknowledge = () =>
+					socket.write(
+						`${JSON.stringify({ id: request.id, result: { type: "session", session: { ...session, status: outcome === "unknown" ? "unknown" : "running", acknowledgedMessageIds: outcome === "acknowledged" ? [attemptId] : [] } } })}\n`,
+					);
+				subscribed();
+			}
+		});
+	});
+	await new Promise<void>((resolve) => server.listen(join(home, "runtime", "runtime.sock"), resolve));
+	try {
+		const run = await h.read((tx) => getRun(tx, id));
+		const ctx = {
+			...h.ctx(() => {}),
+			newTx: h.read,
+			home,
+			now: () => new Date(),
+			localUrl: "http://127.0.0.1:4521",
+		} as unknown as Parameters<typeof startNative>[0];
+		const start = startNative(
+			ctx,
+			{
+				run,
+				config: ProjectManagerConfigSchema.parse({
+					personaId: null,
+					concurrency: 1,
+					directory: "/tmp",
+					trustedDirectory: true,
+				}),
+				resume: false,
+				context: "Fixture",
+				attempt: { id: attemptId, generation: 1, token: "fixture-token" },
+			},
+			{ workspace: async () => "/tmp" },
+		);
+		expect(await Promise.race([subscription.then(() => "subscribed"), start.then(() => "returned")])).toBe(
+			"subscribed",
+		);
+		acknowledge();
+		if (outcome === "acknowledged") {
+			await start;
+			expect((await h.read((tx) => getRun(tx, id))).error).toBeNull();
+		} else {
+			await expect(start).rejects.toMatchObject({ code: "RUNNER_UNAVAILABLE" });
+			const after = await h.read((tx) => getRun(tx, id));
+			expect(after.closedAt).toBeNull();
+			expect(after.error).toContain("did not acknowledge");
+		}
+	} finally {
+		await new Promise<void>((resolve) => server.close(() => resolve()));
+	}
+});

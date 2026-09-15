@@ -28,6 +28,7 @@ beforeEach(async () => {
 	home = mkdtempSync("/tmp/trl-dispatch-");
 	mkdirSync(join(home, "runtime"));
 	session = controllerSession();
+	session.acknowledgedMessageIds.push(session.id);
 	onInspect = () => {};
 	busyOnDelivery = false;
 	deliveries = [];
@@ -106,7 +107,7 @@ test("a live manager receives one heartbeat and confirms its durable message rec
 	expect(deliveries).toHaveLength(1);
 	expect(deliveries[0]?.requireIdle).toBe(true);
 	expect(Buffer.from(deliveries[0]!.data, "base64").toString()).toContain("Manager heartbeat");
-	expect(session.acknowledgedMessageIds).toEqual([deliveries[0]!.messageId]);
+	expect(session.acknowledgedMessageIds).toEqual([session.id, deliveries[0]!.messageId]);
 	await send();
 	expect(deliveries).toHaveLength(1);
 });
