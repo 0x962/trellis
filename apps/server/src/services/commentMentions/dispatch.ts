@@ -17,6 +17,7 @@ type Delivery = {
 	projectId: string;
 	parentId: string | null;
 	personaName: string;
+	kind: string;
 };
 
 export const dispatchMentions = async (
@@ -48,8 +49,8 @@ export const dispatchMentions = async (
 		rows<Delivery>(
 			tx,
 			sql`SELECT d.id,d.run_id AS "runId",d.terminal_id AS "terminalId",d.session_id AS "sessionId",d.persona_name AS "personaName",
-		c.id AS "commentId",c.ticket_id AS "ticketId",c.parent_id AS "parentId",t.project_id AS "projectId"
-		FROM comment_deliveries d JOIN comments c ON c.id=d.comment_id JOIN tickets t ON t.id=c.ticket_id
+			c.id AS "commentId",c.ticket_id AS "ticketId",c.parent_id AS "parentId",t.project_id AS "projectId",r.kind
+			FROM comment_deliveries d JOIN comments c ON c.id=d.comment_id JOIN tickets t ON t.id=c.ticket_id JOIN agent_runs r ON r.id=d.run_id
 		WHERE d.state='pending' AND d.terminal_id IN (${sql.join(
 			ready.map((id) => sql`${id}`),
 			sql`,`,
@@ -78,7 +79,17 @@ export const dispatchMentions = async (
 			await sendDeadline(
 				send(ctx, {
 					id: delivery.runId,
-					text: `trellis: @${delivery.personaName} has a ticket comment. Read: trellis thread show ${delivery.parentId ?? delivery.commentId}\nRespond to the comment on your assigned ticket.`,
+					text:
+						delivery.kind === "manager"
+							? JSON.stringify({
+									type: "trellis.comment.mentioned",
+									commentId: delivery.commentId,
+									threadId: delivery.parentId ?? delivery.commentId,
+									ticketId: delivery.ticketId,
+									projectId: delivery.projectId,
+									recipient: { runId: delivery.runId, personaName: delivery.personaName },
+								})
+							: `trellis: @${delivery.personaName} has a ticket comment. Read: trellis thread show ${delivery.parentId ?? delivery.commentId}\nRespond to the comment on your assigned ticket.`,
 					messageId: delivery.id,
 					requireIdle: !custom,
 					expectedTerminalId: delivery.terminalId,
