@@ -82,7 +82,7 @@ const reserveBuilder = (ctx: AgentsCtx, ticketRef: string) =>
 		}
 		const [failed] = await selectSessions(
 			tx,
-			sql`s.ticket_id = ${ticket.id} AND s.role = 'builder' AND s.state = 'failed' AND s.workspace_id IS NULL`,
+			sql`s.ticket_id = ${ticket.id} AND s.role = 'builder' AND s.state = 'failed' AND s.workspace_id IS NULL AND NOT EXISTS (SELECT 1 FROM activity a WHERE a.action='agent.external-retired' AND a.meta->'retirement'->>'source'='legacy' AND a.meta->'retirement'->>'id'=s.id)`,
 		);
 		const id = failed === undefined ? newSessionId() : failed.id;
 		// A failed start holds no terminal, so another agent can take the

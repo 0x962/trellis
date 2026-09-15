@@ -16,6 +16,7 @@ import { resolveProject, resolveTicket } from "../refs.ts";
 import { get as getSettings } from "../settings.ts";
 import type { ServiceCtx } from "../support.ts";
 import { startAde } from "./adeStart.ts";
+import { assignmentNotRetired } from "./externalRetirement/assignmentNotRetired.ts";
 import { startNative } from "./nativeStart.ts";
 import { columns, getRun } from "./queries.ts";
 import { reserve } from "./reserve.ts";
@@ -37,7 +38,7 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 const recordError = (ctx: Ctx, id: string, error: string, state: AgentRun["state"]) =>
 	ctx.newTx((tx) =>
 		tx.execute(
-			sql`UPDATE agent_runs SET state = ${state}, error = ${error}, updated_at = ${ctx.now()} WHERE id = ${id}`,
+			sql`UPDATE agent_runs SET state = ${state}, error = ${error}, updated_at = ${ctx.now()} WHERE id = ${id} AND ${assignmentNotRetired(id)}`,
 		),
 	);
 
@@ -143,7 +144,7 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 	});
 	await ctx.newTx((tx) =>
 		tx.execute(
-			sql`UPDATE agent_runs SET runtime = ${runtime}, workspace_id = ${attaching ? run.workspaceId : tracksSuperset ? null : workDir} WHERE id = ${run.id}`,
+			sql`UPDATE agent_runs SET runtime = ${runtime}, workspace_id = ${attaching ? run.workspaceId : tracksSuperset ? null : workDir} WHERE id = ${run.id} AND ${assignmentNotRetired(run.id)}`,
 		),
 	);
 	// Where the server told the agent to run, for the error of a resume that
@@ -168,7 +169,7 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 		if (attaching)
 			await ctx.newTx((tx) =>
 				tx.execute(
-					sql`UPDATE agent_runs SET state = 'failed', session_lost = true, error = ${`Could not open a terminal in ${where(run.workspaceId!)}: ${launched.error}`}, updated_at = ${ctx.now()} WHERE id = ${run.id}`,
+					sql`UPDATE agent_runs SET state = 'failed', session_lost = true, error = ${`Could not open a terminal in ${where(run.workspaceId!)}: ${launched.error}`}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND ${assignmentNotRetired(run.id)}`,
 				),
 			);
 		else await recordError(ctx, run.id, launched.error, "interrupted");
@@ -180,7 +181,16 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 			runtime === "tmux"
 				? managedTerminal(ctx.home).exited(terminal.terminalId)
 				: runner.exited(terminal.workspaceId, terminal.terminalId);
-		if (await exitedSoon(exited)) {
+		const observed = await attempt(() => exitedSoon(exited));
+		if (!observed.ok) {
+			await ctx.newTx((tx) =>
+				tx.execute(
+					sql`UPDATE agent_runs SET state='interrupted', error=${`External session unavailable: ${observed.error}`}, workspace_id=${terminal.workspaceId}, terminal_id=${terminal.terminalId}, updated_at=${ctx.now()} WHERE id=${run.id} AND state='starting' AND ${assignmentNotRetired(run.id)}`,
+				),
+			);
+			return { id: run.id };
+		}
+		if (observed.value) {
 			const printed =
 				runtime === "tmux"
 					? await managedTerminal(ctx.home).output(terminal.terminalId)
@@ -192,7 +202,7 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 			});
 			await ctx.newTx((tx) =>
 				tx.execute(
-					sql`UPDATE agent_runs SET state = 'failed', session_lost = true, error = ${error}, workspace_id = ${terminal.workspaceId}, terminal_id = ${terminal.terminalId}, updated_at = ${ctx.now()} WHERE id = ${run.id}`,
+					sql`UPDATE agent_runs SET state = 'failed', session_lost = true, error = ${error}, workspace_id = ${terminal.workspaceId}, terminal_id = ${terminal.terminalId}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND ${assignmentNotRetired(run.id)}`,
 				),
 			);
 			return { id: run.id };
@@ -200,12 +210,17 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 	}
 	await ctx.newTx((tx) =>
 		tx.execute(
-			sql`UPDATE agent_runs SET state = 'running', workspace_id = ${terminal.workspaceId}, terminal_id = ${terminal.terminalId}, updated_at = ${ctx.now()} WHERE id = ${run.id}`,
+			sql`UPDATE agent_runs SET state = 'running', workspace_id = ${terminal.workspaceId}, terminal_id = ${terminal.terminalId}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND ${assignmentNotRetired(run.id)}`,
 		),
 	);
 	if (!tracksSuperset) return { id: run.id };
 	const url = await attempt(() => runner.url(terminal.workspaceId));
-	if (url.ok) await ctx.newTx((tx) => tx.execute(sql`UPDATE agent_runs SET url = ${url.value} WHERE id = ${run.id}`));
+	if (url.ok)
+		await ctx.newTx((tx) =>
+			tx.execute(
+				sql`UPDATE agent_runs SET url = ${url.value} WHERE id = ${run.id} AND ${assignmentNotRetired(run.id)}`,
+			),
+		);
 	else await recordError(ctx, run.id, url.error, "running");
 	return { id: run.id };
 };

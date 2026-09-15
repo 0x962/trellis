@@ -43,7 +43,7 @@ describe("agents host", () => {
 		expect((await sessions()).map(({ id, state }) => ({ id, state }))).toEqual([{ id: manager!.id, state: "running" }]);
 	});
 
-	test("at start a session whose terminal exited or is gone becomes exited", async () => {
+	test("at start only an observed terminal exit releases the session", async () => {
 		await enable();
 		await h.t.createTicket({ project: "CDE", title: "One" });
 		h.stub.update((state) => {
@@ -85,7 +85,7 @@ describe("agents host", () => {
 		expect(states).toEqual([
 			["t-live", "running"],
 			["t-dead", "exited"],
-			["t-gone", "exited"],
+			["t-gone", "waiting"],
 		]);
 	});
 

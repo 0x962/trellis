@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { AgentRun } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { commandAde } from "../../agents/commandAde/commandAde.ts";
 import { runBranch } from "../../agents/launchCommand/branch.ts";
@@ -10,20 +11,23 @@ import { invalidInput } from "../../errors.ts";
 import { managerConfigOf, projectRow } from "../projectRows.ts";
 import type { ServiceCtx } from "../support.ts";
 import { refreshAde } from "./adeRefresh.ts";
+import { assignmentMatches } from "./externalRetirement/assignmentMatches.ts";
+import { retirementOf } from "./externalRetirement/retirementOf.ts";
 import { refreshNative, stopNative } from "./nativeLifecycle.ts";
 import { getRun } from "./queries.ts";
 
 type Ctx = ServiceCtx & { supersetBin: string };
-const recordError = (ctx: Ctx, id: string, error: string, state: string) =>
+const recordError = (ctx: Ctx, run: AgentRun, error: string, state: string) =>
 	ctx.newTx((tx) =>
 		tx.execute(
-			sql`UPDATE agent_runs SET state = ${state}, error = ${error}, updated_at = ${ctx.now()} WHERE id = ${id}`,
+			sql`UPDATE agent_runs SET state = ${state}, error = ${error}, updated_at = ${ctx.now()} WHERE ${assignmentMatches(run)}`,
 		),
 	);
 
 export const prepareStop = async (ctx: Ctx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	if (run.runtime === "native") return stopNative(ctx, run);
+	if (await ctx.newTx((tx) => retirementOf(tx, "persona", run.id))) return input;
 	const host =
 		run.runtime === "commands"
 			? null
@@ -48,7 +52,7 @@ export const prepareStop = async (ctx: Ctx, input: { id: string }) => {
 		else await superset(ctx.supersetBin, host).stop(run.workspaceId, run.terminalId);
 	}
 	await ctx.newTx((tx) =>
-		tx.execute(sql`UPDATE agent_runs SET state = 'stopped', updated_at = ${ctx.now()} WHERE id = ${input.id}`),
+		tx.execute(sql`UPDATE agent_runs SET state = 'stopped', updated_at = ${ctx.now()} WHERE ${assignmentMatches(run)}`),
 	);
 	return input;
 };
@@ -56,42 +60,46 @@ export const prepareStop = async (ctx: Ctx, input: { id: string }) => {
 export const prepareRefresh = async (ctx: Ctx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	if (run.runtime === "native") return refreshNative(ctx, run);
+	if (await ctx.newTx((tx) => retirementOf(tx, "persona", run.id))) return input;
 	if (run.runtime === "commands") return refreshAde(ctx, run);
 	const host = await ctx.newTx(async (tx) => managerConfigOf(await projectRow(tx, run.projectId!)).supersetHostId);
 	const runner = superset(ctx.supersetBin, host);
-	if (run.state === "interrupted" && run.runtime === "superset") {
+	if (
+		run.state === "interrupted" &&
+		run.runtime === "superset" &&
+		(run.workspaceId === null || run.terminalId === null)
+	) {
 		const recovered = await attempt(() => runner.recover(runBranch(run), run.name));
 		if (!recovered.ok) {
-			await recordError(ctx, run.id, recovered.error, "interrupted");
+			await recordError(ctx, run, `External session unavailable: ${recovered.error}`, "interrupted");
 			return input;
 		}
 		const found = recovered.value;
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET workspace_id = ${found.workspaceId}, terminal_id = ${found.terminalId}, state = ${found.exited ? "exited" : "running"}, error = NULL WHERE id = ${run.id}`,
+				sql`UPDATE agent_runs SET workspace_id = ${found.workspaceId}, terminal_id = ${found.terminalId}, state = ${found.exited ? "exited" : "running"}, error = NULL WHERE ${assignmentMatches(run)}`,
 			),
 		);
 		const url = await attempt(() => runner.url(found.workspaceId));
-		if (url.ok) await ctx.newTx((tx) => tx.execute(sql`UPDATE agent_runs SET url = ${url.value} WHERE id = ${run.id}`));
+		if (url.ok)
+			await ctx.newTx((tx) =>
+				tx.execute(
+					sql`UPDATE agent_runs SET url = ${url.value} WHERE id=${run.id} AND state IN ('running','exited') AND workspace_id=${found.workspaceId} AND terminal_id=${found.terminalId} AND session_id IS NOT DISTINCT FROM ${run.sessionId}`,
+				),
+			);
 		return input;
 	}
 	if (run.state !== "running" && run.state !== "interrupted") return input;
-	if (run.state === "interrupted" && run.runtime === "tmux")
-		await ctx.newTx((tx) =>
-			tx.execute(
-				sql`UPDATE agent_runs SET terminal_id = ${run.id}, workspace_id = COALESCE(workspace_id, ${join(ctx.home, "agents", run.id, "work")}) WHERE id = ${run.id}`,
-			),
-		);
 	const exited = await attempt(() =>
 		run.runtime === "tmux"
 			? managedTerminal(ctx.home).exited(run.id)
 			: runner.exited(run.workspaceId!, run.terminalId!),
 	);
-	if (!exited.ok) await recordError(ctx, run.id, exited.error, run.state);
+	if (!exited.ok) await recordError(ctx, run, `External session unavailable: ${exited.error}`, "interrupted");
 	else
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET state = ${exited.value ? "exited" : "running"}, error = NULL, updated_at = ${ctx.now()} WHERE id = ${input.id}`,
+				sql`UPDATE agent_runs SET state = ${exited.value ? "exited" : "running"}, terminal_id=${run.runtime === "tmux" ? run.id : run.terminalId}, workspace_id=${run.runtime === "tmux" ? (run.workspaceId ?? join(ctx.home, "agents", run.id, "work")) : run.workspaceId}, error = NULL, updated_at = ${ctx.now()} WHERE ${assignmentMatches(run)}`,
 			),
 		);
 	return input;

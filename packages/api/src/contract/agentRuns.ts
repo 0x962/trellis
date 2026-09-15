@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import { AgentRunListInputSchema, AgentRunSchema, AgentRunStartInputSchema } from "../schemas/agentRun.ts";
+import { ExternalRetirementInputSchema, ExternalRetirementSchema } from "../schemas/externalRetirement.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
 import { base } from "./base.ts";
 
@@ -37,6 +38,15 @@ const harnessSchema = z.object({
 	),
 });
 export const agentRuns = {
+	retireExternal: base
+		.errors(pickErrors(["NOT_FOUND", "ACTOR_REQUIRED", "INPUT_VALIDATION_FAILED"]))
+		.route({
+			method: "POST",
+			path: "/agent-runs/retire-external",
+			summary: "Retire an external assignment after human confirmation",
+		})
+		.input(ExternalRetirementInputSchema)
+		.output(ExternalRetirementSchema),
 	harness: base
 		.route({ method: "GET", path: "/agent-runs/{id}/harness", summary: "Read agent turn state" })
 		.input(idInput)

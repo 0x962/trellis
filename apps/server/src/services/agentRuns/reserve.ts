@@ -11,14 +11,12 @@ import { reserveAttempt } from "../assignments/attempts.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { managerConfigOf, projectRow } from "../projectRows.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
+import { retirementOf } from "./externalRetirement/retirementOf.ts";
 import { randomAgentName } from "./names.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { columns } from "./queries.ts";
 
-// The one manager row of a project: the newest row of the kind. A project
-// keeps one manager, so every start takes this row again. A database from
-// before that rule can hold older manager rows, which a start leaves as
-// history.
+// The newest manager row is the current assignment; older rows retain their history.
 export const managerRowOf = async (tx: Tx, projectId: string) =>
 	(
 		await rows<AgentRun>(
@@ -98,17 +96,15 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 			existing = undefined;
 		}
 	}
-	if (existing?.runtime === "native" && existing.state === "interrupted")
-		throw invalidInput("project", "Reconcile the interrupted native manager before you start a replacement.");
-	// A manager that holds its terminal is the one that runs. A second start
-	// would take its row and leave that terminal with no row. An interrupted
-	// manager has no terminal the server can find, so a start takes it.
+	if (existing?.state === "interrupted")
+		throw invalidInput("project", "Reconcile or retire the interrupted manager before you start a replacement.");
 	if (existing !== undefined && (existing.state === "starting" || existing.state === "running"))
 		throw fail("DUPLICATE", { field: "active agent" });
-	// The row keeps its session across every pause, so the person keeps the
-	// chat they had. A new session replaces it on request, and when the row
-	// never had one. A row with no workspace never ran an agent, so its
-	// session holds no chat to continue.
+	if (
+		existing &&
+		((config.ade === "native" && existing.runtime !== "native") || (await retirementOf(tx, "persona", existing.id)))
+	)
+		existing = undefined;
 	const resume =
 		existing !== undefined && existing.sessionId !== null && existing.workspaceId !== null && input.newSession !== true;
 	const sessionId = resume ? existing!.sessionId! : randomUUID();

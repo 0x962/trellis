@@ -4,6 +4,8 @@ import { terminalTitleMatches } from "../agents/runner.ts";
 import { requireActor, type ServiceCtx } from "../context.ts";
 import { rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
+import { invalidInput } from "../errors.ts";
+import { retirementOf } from "./agentRuns/externalRetirement/retirementOf.ts";
 import {
 	type AgentsCtx,
 	announce,
@@ -62,6 +64,11 @@ export const register = async (ctx: ServiceCtx, tx: Tx, input: AgentRegisterInpu
 	).at(-1);
 	const mine = held ?? unclaimed;
 	if (mine !== undefined) {
+		if (await retirementOf(tx, "legacy", mine.id))
+			throw invalidInput(
+				"terminalId",
+				"This external assignment is retired. Start a new assignment before you register another process.",
+			);
 		await tx.execute(sql`
 			UPDATE agent_sessions SET terminal_id = ${input.terminalId}, claude_session_id = ${input.claudeSessionId},
 				state = 'running', error = NULL, updated_at = ${ctx.now}
@@ -130,7 +137,8 @@ export const prepareStop = async (ctx: AgentsCtx, input: { id: string }): Promis
 			host: hostOf(await readAgentSettings(tx), found.projectId),
 		};
 	});
-	if (session.state === "stopped") return { id: session.id, changed: false, removed: null };
+	if (session.state === "stopped" || (await ctx.newTx((tx) => retirementOf(tx, "legacy", session.id))))
+		return { id: session.id, changed: false, removed: null };
 	if (session.workspaceId !== null && session.terminalId !== null) {
 		const terminalIds =
 			session.role === "manager"
@@ -152,7 +160,7 @@ export const prepareStop = async (ctx: AgentsCtx, input: { id: string }): Promis
 };
 
 export const stop = async (ctx: AgentsCtx, tx: Tx, plan: StopPlan): Promise<AgentSession> => {
-	if (!plan.changed) return toSession(await sessionById(tx, plan.id));
+	if (!plan.changed || (await retirementOf(tx, "legacy", plan.id))) return toSession(await sessionById(tx, plan.id));
 	const others =
 		plan.removed === null
 			? []

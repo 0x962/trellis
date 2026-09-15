@@ -221,3 +221,24 @@ test.skipIf(!Bun.which("tmux"))(
 		expect(stopped.body.state).toBe("stopped");
 	},
 );
+
+test("a missing resumed terminal leaves an interrupted assignment with its returned locator", async () => {
+	const first = await start({ personaId: manager, project: "RUN" });
+	await t.client.agentRuns.stop({ id: first.body.id });
+	const bin = join(dir, "superset.ts");
+	writeFileSync(
+		bin,
+		readFileSync(bin, "utf8").replace(
+			"const args = process.argv.slice(2);",
+			'const args = process.argv.slice(2); if (args[0] === "terminals" && args[1] === "list" && existsSync(join(dir, "resumed"))) { console.log(JSON.stringify({sessions:[]})); process.exit(0); }',
+		),
+	);
+	const resumed = await start({ personaId: manager, project: "RUN" });
+	expect(resumed.status).toBe(201);
+	expect(resumed.body).toMatchObject({
+		state: "interrupted",
+		workspaceId: first.body.workspaceId,
+		terminalId: "resumed-terminal",
+		error: expect.stringContaining("unavailable"),
+	});
+});

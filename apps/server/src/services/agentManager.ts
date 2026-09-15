@@ -1,9 +1,11 @@
 import { type AgentRetryManagerInput, type AgentSession, type AgentState, agentTitle, restartText } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { type AgentPlace, isStartFailure, runnerUnavailable } from "../agents/runner.ts";
+import { attempt } from "../agents/superset/attempt.ts";
 import { requireActor } from "../context.ts";
-import { textArray } from "../db/queries/support.ts";
+import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
+import { retirementOf } from "./agentRuns/externalRetirement/retirementOf.ts";
 import {
 	type AgentsCtx,
 	announce,
@@ -13,6 +15,7 @@ import {
 	managerOf,
 	newSessionId,
 	reserveName,
+	type SessionRow,
 	selectSessions,
 } from "./agentSessions.ts";
 import { hostOf, managedProject, readAgentSettings } from "./agentSettings.ts";
@@ -24,12 +27,9 @@ import { pathOf, resolveProject } from "./refs.ts";
 // reconcile and ensureManager as the system actor, and a person runs
 // retryManager through the API.
 
-export type ReconcilePlan = { exited: string[]; running: string[] };
+type Observation = { session: SessionRow; state: AgentState; error: string | null };
+export type ReconcilePlan = { observations: Observation[] };
 
-// A session holds its terminal only while the runner lists that terminal as
-// running. The runner lists each workspace once, on the machine the
-// project's settings name. A tab that shows the agent's name runs that
-// agent, so a session that waits for the agent's first word runs.
 export const prepareReconcile = async (ctx: AgentsCtx): Promise<ReconcilePlan> => {
 	const { live, settings } = await ctx.newTx(async (tx) => ({
 		live: await selectSessions(
@@ -38,32 +38,46 @@ export const prepareReconcile = async (ctx: AgentsCtx): Promise<ReconcilePlan> =
 		),
 		settings: await readAgentSettings(tx),
 	}));
-	const exited: string[] = [];
-	const running: string[] = [];
-	for (const workspaceId of new Set(live.map((session) => session.workspaceId!))) {
-		const owner = live.find((found) => found.workspaceId === workspaceId)!;
-		const tabs = await ctx.runner.terminals(workspaceId, hostOf(settings, owner.projectId));
-		for (const session of live.filter((found) => found.workspaceId === workspaceId)) {
-			const tab = tabs.find((found) => found.terminalId === session.terminalId);
-			if (tab === undefined || tab.exited) exited.push(session.id);
-			else if (session.state === "starting" && tab.title === session.title) running.push(session.id);
+	const observations: Observation[] = [];
+	for (const projectId of new Set(live.map((session) => session.projectId))) {
+		const project = live.filter((session) => session.projectId === projectId);
+		for (const workspaceId of new Set(project.map((session) => session.workspaceId!))) {
+			const result = await attempt(() => ctx.runner.terminals(workspaceId, hostOf(settings, projectId)));
+			for (const session of project.filter((found) => found.workspaceId === workspaceId)) {
+				const tab = result.ok ? result.value.find((found) => found.terminalId === session.terminalId) : undefined;
+				if (!tab)
+					observations.push({
+						session,
+						state: "waiting",
+						error: `External session unavailable: ${result.ok ? `Terminal ${session.terminalId} is missing from workspace ${workspaceId}.` : result.error} Its process exit is unconfirmed.`,
+					});
+				else if (tab.exited) observations.push({ session, state: "exited", error: null });
+				else if (
+					(session.state === "starting" && tab.title === session.title) ||
+					session.error?.startsWith("External session unavailable:")
+				)
+					observations.push({ session, state: "running", error: null });
+			}
 		}
 	}
-	return { exited, running };
-};
-
-const setState = async (ctx: AgentsCtx, tx: Tx, state: AgentState, ids: string[]) => {
-	if (ids.length === 0) return;
-	await tx.execute(
-		sql`UPDATE agent_sessions SET state = ${state}, updated_at = ${ctx.now} WHERE id = ANY(${textArray(ids)})`,
-	);
-	for (const id of ids) await announce(ctx, tx, id);
+	return { observations };
 };
 
 export const reconcile = async (ctx: AgentsCtx, tx: Tx, plan: ReconcilePlan) => {
-	await setState(ctx, tx, "exited", plan.exited);
-	await setState(ctx, tx, "running", plan.running);
-	return { exited: plan.exited.length };
+	let exited = 0;
+	for (const { session, state, error } of plan.observations) {
+		const changed = await rows<{ id: string }>(
+			tx,
+			sql`UPDATE agent_sessions SET state=${state}, error=${error}, updated_at=${ctx.now}
+			WHERE id=${session.id} AND state=${session.state} AND workspace_id IS NOT DISTINCT FROM ${session.workspaceId} AND terminal_id IS NOT DISTINCT FROM ${session.terminalId} AND claude_session_id IS NOT DISTINCT FROM ${session.claudeSessionId}
+			RETURNING id`,
+		);
+		if (changed.length) {
+			if (state === "exited") exited++;
+			await announce(ctx, tx, session.id);
+		}
+	}
+	return { exited };
 };
 
 // `manager` is the row the start writes to, or null for a new row. The
@@ -82,7 +96,7 @@ const failedManagerOf = async (tx: Tx, projectId: string) =>
 	(
 		await selectSessions(
 			tx,
-			sql`s.project_id = ${projectId} AND s.role = 'manager' AND s.state = 'failed' AND s.workspace_id IS NULL`,
+			sql`s.project_id = ${projectId} AND s.role = 'manager' AND s.state = 'failed' AND s.workspace_id IS NULL AND NOT EXISTS (SELECT 1 FROM activity a WHERE a.action='agent.external-retired' AND a.meta->'retirement'->>'source'='legacy' AND a.meta->'retirement'->>'id'=s.id)`,
 		)
 	).at(-1);
 
@@ -98,6 +112,11 @@ export const prepareManager = async (ctx: AgentsCtx, input: { project: string })
 		return { managed, manager, config, repos: await effectiveRepos(ctx, tx, managed.projectId) };
 	});
 	const project = pathOf(ctx.cache, found.managed.projectId);
+	if (found.manager?.error?.startsWith("External session unavailable:"))
+		throw runnerUnavailable(
+			"error",
+			"The external manager is unavailable. Refresh or retire its assignment before you start a replacement.",
+		);
 	if (found.config.personaId !== null)
 		throw runnerUnavailable("disabled", `${project} uses its selected manager persona.`);
 	const plan = {
@@ -141,6 +160,7 @@ const LIVE = new Set<AgentState>(["starting", "running", "waiting"]);
 // whose agent still runs: a runner that cannot answer now does not stop it.
 export const recordManager = async (ctx: AgentsCtx, tx: Tx, plan: ManagerPlan): Promise<AgentSession> => {
 	const { manager } = plan;
+	if (manager && (await retirementOf(tx, "legacy", manager.id))) return announce(ctx, tx, manager.id);
 	if ("error" in plan.outcome) {
 		if (manager !== null && LIVE.has(manager.state)) return announce(ctx, tx, manager.id);
 		if (manager !== null) return failSession(ctx, tx, manager.id, plan.outcome.error);

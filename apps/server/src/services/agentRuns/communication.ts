@@ -13,6 +13,8 @@ import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { managerConfigOf, projectRow } from "../projectRows.ts";
 import type { ServiceCtx } from "../support.ts";
+import { historicalOutput } from "./externalRetirement/historicalOutput.ts";
+import { retirementOf } from "./externalRetirement/retirementOf.ts";
 import { harness } from "./harness.ts";
 import { nativeOutput } from "./nativeLifecycle.ts";
 import { getRun } from "./queries.ts";
@@ -59,6 +61,11 @@ export const prepareSend = async (ctx: Ctx, input: { id: string; text: string; m
 };
 export const prepareOutput = async (ctx: Ctx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
+	if (
+		run.runtime !== "native" &&
+		(run.state === "interrupted" || (await ctx.newTx((tx) => retirementOf(tx, "persona", run.id))))
+	)
+		return historicalOutput(ctx.home, run);
 	if (run.state === "stopped" && run.terminalId)
 		return { text: await readFile(join(ctx.home, "agents", run.id, "output.txt"), "utf8") };
 	if (!run.terminalId) return { text: "The agent has no terminal yet." };

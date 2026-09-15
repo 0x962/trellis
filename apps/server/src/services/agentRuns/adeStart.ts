@@ -10,6 +10,7 @@ import { managedTerminal } from "../../agents/managedTerminal/managedTerminal.ts
 import { attempt } from "../../agents/superset/attempt.ts";
 import { shellTarget, superset } from "../../agents/superset/superset.ts";
 import type { ServiceCtx } from "../support.ts";
+import { assignmentNotRetired } from "./externalRetirement/assignmentNotRetired.ts";
 import { getRun } from "./queries.ts";
 import { exitedSoon, lostSessionMessage, outputTail } from "./resume.ts";
 
@@ -73,7 +74,7 @@ export const startAde = async (
 	await saveAde(ctx.home, run.id, { commands, values, agentCommand: config.harness.startCommand });
 	await ctx.newTx((tx) =>
 		tx.execute(
-			sql`UPDATE agent_runs SET runtime = 'commands', session_id = ${run.sessionId}, workspace_id = ${run.workspaceId}, terminal_id = ${run.terminalId}, url = NULL WHERE id = ${run.id}`,
+			sql`UPDATE agent_runs SET runtime = 'commands', session_id = ${run.sessionId}, workspace_id = ${run.workspaceId}, terminal_id = ${run.terminalId}, url = NULL WHERE id = ${run.id} AND ${assignmentNotRetired(run.id)}`,
 		),
 	);
 	let failureState = "failed";
@@ -90,7 +91,9 @@ export const startAde = async (
 			values.terminalId = "";
 			await saveAde(ctx.home, run.id, { commands, values, agentCommand: config.harness.startCommand });
 			await ctx.newTx((tx) =>
-				tx.execute(sql`UPDATE agent_runs SET workspace_id = NULL, terminal_id = NULL, url = NULL WHERE id = ${run.id}`),
+				tx.execute(
+					sql`UPDATE agent_runs SET workspace_id = NULL, terminal_id = NULL, url = NULL WHERE id = ${run.id} AND ${assignmentNotRetired(run.id)}`,
+				),
 			);
 		}
 		const ade = await commandAde(ctx.home, run);
@@ -111,14 +114,14 @@ export const startAde = async (
 	if (!started.ok) {
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET state = ${failureState}, error = ${started.error}, updated_at = ${ctx.now()} WHERE id = ${run.id}`,
+				sql`UPDATE agent_runs SET state = ${failureState}, error = ${started.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND ${assignmentNotRetired(run.id)}`,
 			),
 		);
 		return { id: run.id };
 	}
 	await ctx.newTx((tx) =>
 		tx.execute(
-			sql`UPDATE agent_runs SET state = 'running', workspace_id = ${started.value.workspaceId}, terminal_id = ${started.value.terminalId}, url = NULL, updated_at = ${ctx.now()} WHERE id = ${run.id}`,
+			sql`UPDATE agent_runs SET state = 'running', workspace_id = ${started.value.workspaceId}, terminal_id = ${started.value.terminalId}, url = NULL, updated_at = ${ctx.now()} WHERE id = ${run.id} AND ${assignmentNotRetired(run.id)}`,
 		),
 	);
 	const current = await ctx.newTx((tx) => getRun(tx, run.id));
@@ -135,7 +138,7 @@ export const startAde = async (
 		if (!checked.ok || checked.value !== null) {
 			await ctx.newTx((tx) =>
 				tx.execute(
-					sql`UPDATE agent_runs SET state = ${checked.ok ? "failed" : "running"}, session_lost = ${checked.ok}, error = ${checked.ok ? checked.value : checked.error}, updated_at = ${ctx.now()} WHERE id = ${run.id}`,
+					sql`UPDATE agent_runs SET state = ${checked.ok ? "failed" : "running"}, session_lost = ${checked.ok}, error = ${checked.ok ? checked.value : checked.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND ${assignmentNotRetired(run.id)}`,
 				),
 			);
 			return { id: run.id };
@@ -145,8 +148,12 @@ export const startAde = async (
 	const url = await attempt(async () => (await commandAde(ctx.home, current)).url());
 	await ctx.newTx((tx) =>
 		url.ok
-			? tx.execute(sql`UPDATE agent_runs SET url = ${url.value}, error = NULL WHERE id = ${run.id}`)
-			: tx.execute(sql`UPDATE agent_runs SET error = ${url.error} WHERE id = ${run.id}`),
+			? tx.execute(
+					sql`UPDATE agent_runs SET url = ${url.value}, error = NULL WHERE id = ${run.id} AND ${assignmentNotRetired(run.id)}`,
+				)
+			: tx.execute(
+					sql`UPDATE agent_runs SET error = ${url.error} WHERE id = ${run.id} AND ${assignmentNotRetired(run.id)}`,
+				),
 	);
 	return { id: run.id };
 };

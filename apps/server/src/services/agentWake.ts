@@ -1,7 +1,9 @@
 import type { AgentSession, AgentWakeInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { runnerUnavailable } from "../agents/runner.ts";
 import type { Tx } from "../db/tx.ts";
 import { type ManagerPlan, prepareManager, recordManager } from "./agentManager.ts";
+import { retirementOf } from "./agentRuns/externalRetirement/retirementOf.ts";
 import { type AgentsCtx, announce, managerOf } from "./agentSessions.ts";
 import { managedProject, readAgentSettings } from "./agentSettings.ts";
 import { pathOf, resolveProject } from "./refs.ts";
@@ -27,6 +29,11 @@ export const prepareWake = async (ctx: AgentsCtx, input: AgentWakeInput): Promis
 		};
 	});
 	const { manager } = found;
+	if (manager?.error?.startsWith("External session unavailable:"))
+		throw runnerUnavailable(
+			"error",
+			"The external manager is unavailable. Refresh or retire its assignment before you send more work.",
+		);
 	if (manager === undefined)
 		return { kind: "started", manager: await prepareManager(ctx, { project: found.projectId }) };
 	const woken = await ctx.runner.wake(
@@ -46,6 +53,7 @@ export const prepareWake = async (ctx: AgentsCtx, input: AgentWakeInput): Promis
 // terminal and the running state.
 export const wake = async (ctx: AgentsCtx, tx: Tx, plan: WakePlan): Promise<AgentSession> => {
 	if (plan.kind === "started") return recordManager(ctx, tx, plan.manager);
+	if (await retirementOf(tx, "legacy", plan.id)) return announce(ctx, tx, plan.id);
 	await tx.execute(sql`
 		UPDATE agent_sessions SET terminal_id = ${plan.terminalId}, state = 'running', error = NULL,
 			last_woken_at = ${ctx.now}, updated_at = ${ctx.now}

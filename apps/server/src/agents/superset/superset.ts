@@ -99,7 +99,12 @@ export const superset = (bin: string, host: string | null = null) => {
 			const result = terminalsSchema.parse(
 				JSON.parse(await call(["terminals", "list", ...on, "--workspace", workspaceId, "--json"])),
 			);
-			return result.sessions.find((item) => item.terminalId === terminalId)?.exited ?? true;
+			const terminal = result.sessions.find((item) => item.terminalId === terminalId);
+			if (!terminal)
+				throw new Error(
+					`Terminal ${terminalId} is unavailable in workspace ${workspaceId}. Its process exit is unconfirmed.`,
+				);
+			return terminal.exited;
 		},
 	};
 };

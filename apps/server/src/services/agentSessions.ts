@@ -151,7 +151,8 @@ export const managerOf = async (tx: Tx, projectId: string) =>
 		await selectSessions(
 			tx,
 			sql`s.project_id = ${projectId} AND s.role = 'manager' AND s.state <> 'stopped'
-				AND s.workspace_id IS NOT NULL AND s.terminal_id IS NOT NULL`,
+				AND s.workspace_id IS NOT NULL AND s.terminal_id IS NOT NULL
+				AND NOT EXISTS (SELECT 1 FROM activity a WHERE a.action='agent.external-retired' AND a.meta->'retirement'->>'source'='legacy' AND a.meta->'retirement'->>'id'=s.id)`,
 		)
 	).at(-1);
 
