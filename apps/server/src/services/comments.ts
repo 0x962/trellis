@@ -28,12 +28,14 @@ type RawComment = {
 	body: string;
 	actor_name: string;
 	actor_kind: StoredActorKind;
+	actor_display_name: string | null;
 	created_at: string;
 	updated_at: string;
 };
 
-const commentSelect = sql`SELECT c.id, c.ticket_id, c.parent_id, ${iso(sql`c.resolved_at`)} AS resolved_at, c.body, c.actor_name, c.actor_kind,
-	${iso(sql`c.created_at`)} AS created_at, ${iso(sql`c.updated_at`)} AS updated_at FROM comments c`;
+const commentSelect = sql`SELECT c.id, c.ticket_id, c.parent_id, ${iso(sql`c.resolved_at`)} AS resolved_at, c.body, c.actor_name, c.actor_kind, r.name AS actor_display_name,
+	${iso(sql`c.created_at`)} AS created_at, ${iso(sql`c.updated_at`)} AS updated_at FROM comments c
+	LEFT JOIN agent_runs r ON c.actor_kind = 'agent' AND r.id = c.actor_name`;
 
 const toComment = (row: RawComment): Comment => ({
 	id: row.id,
@@ -41,7 +43,11 @@ const toComment = (row: RawComment): Comment => ({
 	parentId: row.parent_id,
 	resolvedAt: row.resolved_at,
 	body: row.body,
-	actor: { name: row.actor_name, kind: row.actor_kind },
+	actor: {
+		name: row.actor_name,
+		kind: row.actor_kind,
+		...(row.actor_display_name === null ? {} : { displayName: row.actor_display_name }),
+	},
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,
 });

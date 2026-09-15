@@ -18,6 +18,7 @@ type RawItem = {
 	resolved_at: string | null;
 	actor_name: string;
 	actor_kind: StoredActorKind;
+	actor_display_name: string | null;
 	created_at: string;
 	updated_at: string | null;
 	batch_id: string | null;
@@ -35,15 +36,17 @@ type RawItem = {
 // The activity id is zero-padded so its text order equals its number order.
 const stream = (ticketId: string) => sql`
 	SELECT 'comment' AS kind, 1 AS kind_rank, c.id AS sort_key, c.id, c.ticket_id, c.body, c.parent_id, c.resolved_at,
-		c.actor_name, c.actor_kind, c.created_at, c.updated_at,
+		c.actor_name, c.actor_kind, r.name AS actor_display_name, c.created_at, c.updated_at,
 		NULL AS batch_id, NULL AS root_id, NULL AS project_id, NULL AS action, NULL AS field,
 		NULL AS from_value, NULL AS to_value, NULL::jsonb AS meta
-	FROM comments c WHERE c.ticket_id = ${ticketId}
+	FROM comments c LEFT JOIN agent_runs r ON c.actor_kind = 'agent' AND r.id = c.actor_name
+	WHERE c.ticket_id = ${ticketId}
 	UNION ALL
 	SELECT 'activity', 0, lpad(a.id::text, 19, '0'), a.id::text, a.ticket_id, NULL, NULL, NULL,
-		a.actor_name, a.actor_kind, a.created_at, NULL,
+		a.actor_name, a.actor_kind, r.name, a.created_at, NULL,
 		a.batch_id, a.root_id, a.project_id, a.action, a.field, a.from_value, a.to_value, a.meta
-	FROM activity a WHERE a.ticket_id = ${ticketId}`;
+	FROM activity a LEFT JOIN agent_runs r ON a.actor_kind = 'agent' AND r.id = a.actor_name
+	WHERE a.ticket_id = ${ticketId}`;
 
 // The last row of the previous page: its created_at as `iso` writes it, its
 // kind_rank (0 activity, 1 comment), and its sort_key.
@@ -68,7 +71,11 @@ const afterCursor = (cursor: Cursor) =>
 	sql`(created_at, kind_rank, sort_key) < (${cursor.at}::timestamptz, ${cursor.kind}::int, ${cursor.key})`;
 
 const toItem = (row: RawItem): TimelineItem => {
-	const actor = { name: row.actor_name, kind: row.actor_kind };
+	const actor = {
+		name: row.actor_name,
+		kind: row.actor_kind,
+		...(row.actor_display_name === null ? {} : { displayName: row.actor_display_name }),
+	};
 	if (row.kind === "comment") {
 		return {
 			kind: "comment",
@@ -106,7 +113,7 @@ export const timeline = async (tx: Tx, input: TimelineInput): Promise<TimelineLi
 	const start = input.before === undefined ? sql`true` : afterCursor(readCursor(input.before));
 	const found = await rows<RawItem>(
 		tx,
-		sql`SELECT kind, kind_rank, sort_key, id, ticket_id, body, parent_id, ${iso(sql`resolved_at`)} AS resolved_at, actor_name, actor_kind,
+		sql`SELECT kind, kind_rank, sort_key, id, ticket_id, body, parent_id, ${iso(sql`resolved_at`)} AS resolved_at, actor_name, actor_kind, actor_display_name,
 			${iso(sql`created_at`)} AS created_at, ${iso(sql`updated_at`)} AS updated_at,
 			batch_id, root_id, project_id, action, field, from_value, to_value, meta
 		FROM (${stream(input.ticketId)}) stream

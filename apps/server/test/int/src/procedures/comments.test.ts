@@ -1,6 +1,8 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { sql } from "drizzle-orm";
 import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
+import { assertStatusInvariant } from "../../../invariants.ts";
 
 // The comment procedures over /api: create with its Location, update, and a
 // delete that takes no request body.
@@ -67,4 +69,81 @@ test("comment thread endpoints preserve replies, resolution, and delete protecti
 	const deleted = await t.api(`/api/comments/${root.body.id}`, { method: "DELETE" });
 	expect(deleted.status).toBe(409);
 	expect(deleted.body.code).toBe("COMMENT_HAS_REPLIES");
+});
+
+const managerId = "01M2HGY58VB4J2AYRVGDFHHB3P";
+const managerActor = { name: managerId, kind: "agent", displayName: "Hana" };
+
+const seedStoppedManager = () =>
+	t.editServerTx(async (tx) => {
+		await tx.execute(sql`INSERT INTO agent_runs
+			(id, name, persona_name, kind, instruction, project_path, state, created_at, updated_at)
+			VALUES (${managerId}, 'Hana', 'Manager', 'manager', 'Manage', 'CDE', 'stopped', now(), now())`);
+	});
+
+test("historical timeline actors expose a stopped manager name and retain their identity", async () => {
+	const created = await t.api("/api/tickets/CDE-1/comments", {
+		method: "POST",
+		actor: `agent:${managerId}`,
+		body: { body: "Ready for review." },
+	});
+	expect(created.status).toBe(201);
+	await seedStoppedManager();
+	const timeline = await t.api("/api/tickets/CDE-1/timeline");
+	const managerItems = timeline.body.items.filter((item: { actor: { name: string } }) => item.actor.name === managerId);
+	expect(managerItems).toHaveLength(2);
+	for (const item of managerItems) expect(item.actor).toEqual(managerActor);
+	await t.serverTx(async (tx) => {
+		const stored = await tx.execute(sql`SELECT actor_name, actor_kind FROM comments WHERE id = ${created.body.id}`);
+		expect(stored.rows).toEqual([{ actor_name: managerId, actor_kind: "agent" }]);
+		await assertStatusInvariant(tx);
+	});
+});
+
+test("comment create, update, thread, and resolve return the manager display name", async () => {
+	await seedStoppedManager();
+	const actor = `agent:${managerId}`;
+	const created = await t.api("/api/tickets/CDE-1/comments", { method: "POST", actor, body: { body: "Question" } });
+	expect(created.status).toBe(201);
+	expect(created.body.actor).toEqual(managerActor);
+	const reply = await t.api("/api/tickets/CDE-1/comments", {
+		method: "POST",
+		actor,
+		body: { body: "Answer", parentId: created.body.id },
+	});
+	expect(reply.body.actor).toEqual(managerActor);
+	const updated = await t.api(`/api/comments/${reply.body.id}`, { method: "PATCH", body: { body: "Final answer" } });
+	expect(updated.body.actor).toEqual(managerActor);
+	const thread = await t.api(`/api/comments/${reply.body.id}/thread`);
+	expect(thread.body.root.actor).toEqual(managerActor);
+	expect(thread.body.replies.map((item: { actor: unknown }) => item.actor)).toEqual([managerActor]);
+	const resolved = await t.api(`/api/comments/${reply.body.id}/resolve`, { method: "POST", body: { resolved: true } });
+	expect(resolved.body.actor).toEqual(managerActor);
+	const unchanged = await t.api(`/api/comments/${created.body.id}/resolve`, {
+		method: "POST",
+		body: { resolved: true },
+	});
+	expect(unchanged.body.actor).toEqual(managerActor);
+	await t.serverTx((tx) => assertStatusInvariant(tx));
+});
+
+test("human identities and external agent names retain their names without a display name", async () => {
+	await seedStoppedManager();
+	for (const actor of [
+		{ kind: "human", name: managerId },
+		{ kind: "agent", name: "external-reviewer" },
+	]) {
+		const created = await t.api("/api/tickets/CDE-1/comments", {
+			method: "POST",
+			actor: `${actor.kind}:${actor.name}`,
+			body: { body: "Context" },
+		});
+		expect(created.status).toBe(201);
+		expect(created.body.actor).toEqual(actor);
+		const timeline = await t.api("/api/tickets/CDE-1/timeline");
+		const matching = timeline.body.items.filter((item: { actor: { name: string } }) => item.actor.name === actor.name);
+		expect(matching).toHaveLength(2);
+		for (const item of matching) expect(item.actor).toEqual(actor);
+	}
+	await t.serverTx((tx) => assertStatusInvariant(tx));
 });

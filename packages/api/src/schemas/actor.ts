@@ -10,6 +10,7 @@ const ActorNameSchema = z.string().min(1).max(64);
 export const ActorRefSchema = z.object({
 	name: ActorNameSchema,
 	kind: StoredActorKindSchema,
+	displayName: z.string().min(1).optional(),
 });
 export type ActorRef = z.infer<typeof ActorRefSchema>;
 
