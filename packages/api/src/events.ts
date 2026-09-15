@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { AgentSessionSchema } from "./schemas/agent.ts";
 import { CiStateSchema, GhReasonSchema, PrStateSchema } from "./schemas/enums.ts";
 import { UlidSchema } from "./schemas/primitives.ts";
 import { TicketSummarySchema } from "./schemas/ticket.ts";
@@ -28,8 +27,6 @@ export const eventNames = [
 	"flows.changed",
 	"reviews.changed",
 	"agent-runs.changed",
-	"agents.session",
-	"agents.batch",
 	"reset",
 	"ready",
 	"bye",
@@ -108,18 +105,6 @@ export const GhStatusPayloadSchema = z.object({
 	reason: GhReasonSchema.optional(),
 });
 
-// A session row after any change to it: a start, a register, a state
-// change, a wake, or a stop.
-export const AgentSessionEventPayloadSchema = z.object({
-	session: AgentSessionSchema,
-});
-
-// The dispatcher woke the manager of `projectId` for `count` queued changes.
-export const AgentBatchPayloadSchema = z.object({
-	projectId: UlidSchema,
-	count: z.number().int().positive(),
-});
-
 // `restart`: the id came from another boot. `gap`: the id fell below the
 // ring buffer floor. Either way the client invalidates every query.
 export const ResetPayloadSchema = z.object({
@@ -168,8 +153,6 @@ export const EventSchema = z.discriminatedUnion("type", [
 		z.object({ id: UlidSchema, ticketIds: z.array(UlidSchema), projectIds: z.array(UlidSchema) }),
 	),
 	typed("agent-runs.changed", PersonasChangedPayloadSchema),
-	typed("agents.session", AgentSessionEventPayloadSchema),
-	typed("agents.batch", AgentBatchPayloadSchema),
 	typed("reset", ResetPayloadSchema),
 	typed("ready", ReadyPayloadSchema),
 	typed("bye", ByePayloadSchema),

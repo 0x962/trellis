@@ -83,13 +83,6 @@ describe("config", () => {
 		expect(config.logFile).toBe("/var/data/trellis/server.log");
 	});
 
-	test("the agents runner spawns the superset of the home unless TRELLIS_SUPERSET_BIN names another binary", () => {
-		expect(loadConfig({}).supersetBin).toBe(join(homedir(), ".superset", "bin", "superset"));
-		expect(loadConfig({ TRELLIS_SUPERSET_BIN: "/opt/superset/bin/superset" }).supersetBin).toBe(
-			"/opt/superset/bin/superset",
-		);
-	});
-
 	// The agents reach the server at this URL. A server that listens on every
 	// address still answers on the loopback address.
 	test("the agents URL is the loopback address and the port of the server", () => {

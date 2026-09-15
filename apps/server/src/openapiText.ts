@@ -11,7 +11,6 @@ export const ACTOR_HEADER_EXAMPLE = "agent:claude-code";
 export const SERVERS = [{ url: "http://127.0.0.1:4521/api", description: "The local server" }];
 
 export const TAGS = [
-	{ name: "native migration", description: "Project ownership inventory and reversible local runtime configuration." },
 	{ name: "evidence", description: "Workspace files, retained checks, and artifacts for a native attempt." },
 	{ name: "controller", description: "Durable manager messages and uncertain delivery decisions." },
 	{ name: "flow executions", description: "Saved flow versions, local worker attempts, and human decisions." },
@@ -34,10 +33,6 @@ export const TAGS = [
 	{ name: "actors", description: "Every human and agent a mutation has carried." },
 	{ name: "settings", description: "The server settings." },
 	{ name: "system", description: "Health, the gh state, and backups." },
-	{
-		name: "agents",
-		description: "The manager, builder, and reviewer agents of a project, their inbox, and the agent settings.",
-	},
 	{
 		name: "agent runs",
 		description: "The agents a persona starts on a ticket or a project, their output, and their follow-ups.",
@@ -89,13 +84,6 @@ Every response carries \`x-trellis-api-version\`. Every error is JSON with \`cod
 
 // One example per request body, keyed by `<METHOD> <path>`.
 export const BODY_EXAMPLES: Record<string, unknown> = {
-	"POST /native-migrations": {
-		project: "CDE",
-		expectedVersion: "reviewed-inventory-sha256",
-		directory: "/Users/me/projects/cde",
-		requestId: "5178cacf-d5b1-4223-8e2f-4fb3fb3f7710",
-	},
-	"POST /native-migrations/{migrationId}/rollback": { expectedVersion: "reviewed-inventory-sha256" },
 	"POST /agent-runs/{runId}/checks": {
 		command: "bun",
 		args: ["test"],
@@ -108,19 +96,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /agent-runs/{id}/terminal/resize": { cols: 100, rows: 32 },
 	"POST /manager-dispatches/{id}/retry": {},
 	"POST /manager-dispatches/{id}/received": {},
-	"POST /manager-dispatches/{id}/cancel": {
-		expectedGeneration: 1,
-		reason: "The owner workspace no longer exists.",
-	},
-	"POST /agent-runs/retire-external": {
-		source: "persona",
-		id: "01J9Z0000000000000000000A1",
-		runtime: "superset",
-		workspaceId: "saved-workspace-id",
-		terminalId: "saved-terminal-id",
-		sessionId: "saved-session-id",
-		externalProcessStopped: true,
-	},
 	"POST /native-work/resume": {},
 	"POST /native-work/stop": {},
 	"POST /flow-executions": {
@@ -249,32 +224,4 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	},
 	"POST /agent-runs": { personaId: "01J9Z0000000000000000000A1", ticket: "CDE-42" },
 	"POST /agent-runs/{id}/send": { text: "The CI run is red. Read the failing step and fix it." },
-	"POST /agents/inbox": { project: "CDE" },
-	"POST /agents/register": {
-		role: "builder",
-		project: "CDE",
-		ticket: "CDE-42",
-		workspaceId: "ws-7f3a",
-		terminalId: "term-1",
-		claudeSessionId: "9b1f0c3e-2d4a-4f7b-8c6d-1a2b3c4d5e6f",
-	},
-	"POST /agents/builder": { ticket: "CDE-42" },
-	"POST /agents/reviewer": { ticket: "CDE-42", prUrl: "https://github.com/acme/web/pull/12" },
-	"POST /agents/wake": { project: "CDE", text: "trellis: 2 changes in CDE. Run: trellis list --project CDE --json" },
-	"POST /agents/manager/retry": { project: "CDE" },
-	"PUT /agents/settings": {
-		runner: "superset",
-		enabled: true,
-		projects: [
-			{
-				projectId: "01J9Z0000000000000000000P1",
-				enabled: true,
-				supersetProjectId: null,
-				supersetHostId: null,
-				baseBranch: "main",
-				maxConcurrent: 3,
-				removeWorkspaceOnDone: true,
-			},
-		],
-	},
 };

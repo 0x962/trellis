@@ -21,7 +21,6 @@ import {
 	projectView,
 } from "./projectRows.ts";
 import { assertProjectActive, pathOf, resolveProject } from "./refs.ts";
-import { assertRuntimeReleased } from "./runtimeOwnership.ts";
 import { deriveSlug } from "./slug.ts";
 import { seedRootStatuses } from "./statusSet.ts";
 
@@ -93,8 +92,6 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	const project = await resolveProject(ctx, tx, input.project);
 	if (input.archived !== false) assertProjectActive(ctx, project.id);
 	const row = await projectRow(tx, project.id);
-	if (input.managerConfig && input.managerConfig.ade !== managerConfigOf(row).ade)
-		await assertRuntimeReleased(tx, project.id);
 	if (
 		ctx.actor?.kind !== "human" &&
 		input.managerConfig?.trustedDirectory &&

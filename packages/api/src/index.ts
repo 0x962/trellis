@@ -1,5 +1,3 @@
-export * from "./adeCommands/adeCommands.ts";
-export * from "./adeCommands/presets.ts";
 export * from "./agentCommand/agentCommand.ts";
 export * from "./agentLaunch/agentLaunch.ts";
 export * from "./client.ts";

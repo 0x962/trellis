@@ -2,14 +2,12 @@ import type { Tx } from "../db/tx.ts";
 import * as actors from "./actors.ts";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import * as agentCommunication from "./agentRuns/communication.ts";
-import { retireExternal } from "./agentRuns/externalRetirement/externalRetirement.ts";
 import * as agentHarness from "./agentRuns/harness.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
 import { readNativeWork, setNativeWork } from "./agentRuns/nativeControl.ts";
 import { prepareNativeReconcile } from "./agentRuns/nativeReconcile.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
-import * as agents from "./agents.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
 import * as comments from "./comments.ts";
@@ -33,9 +31,6 @@ import { start as startFlowExecution } from "./flowExecutions/start.ts";
 import * as flows from "./flows/flows.ts";
 import * as flowSave from "./flows/save.ts";
 import * as inbox from "./inbox.ts";
-import { apply as migrationApply } from "./nativeMigration/apply.ts";
-import { inventory as migrationInventory } from "./nativeMigration/inventory.ts";
-import { rollback as migrationRollback } from "./nativeMigration/rollback.ts";
 import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
@@ -69,16 +64,12 @@ type Stream = (ctx: any, tx: Tx, input: any) => AsyncGenerator<string>;
 // biome-ignore lint/suspicious/noExplicitAny: same as Run, with no transaction.
 type Prepare = (ctx: any, input: any) => Promise<unknown>;
 
-// The `agents` family gets the core context plus the agents runner; its
-// `prepare` step is where the runner works.
 export type ServiceKind = "mutation" | "read" | "search";
 export type ServiceEntry =
 	| { family: "core"; kind: ServiceKind; run: Run }
 	| { family: "io"; kind: ServiceKind; run: Run }
 	| { family: "io"; kind: ServiceKind; prepare: Prepare; run: Run }
-	| { family: "io"; kind: ServiceKind; stream: Stream }
-	| { family: "agents"; kind: ServiceKind; prepare: Prepare; run: Run }
-	| { family: "agents"; kind: ServiceKind; run: Run };
+	| { family: "io"; kind: ServiceKind; stream: Stream };
 
 const core = (kind: ServiceKind, run: Run): ServiceEntry => ({ family: "core", kind, run });
 const io = (kind: ServiceKind, run: Run): ServiceEntry => ({ family: "io", kind, run });
@@ -88,12 +79,8 @@ const prepared = (kind: ServiceKind, prepare: Prepare, run: Run): ServiceEntry =
 	prepare,
 	run,
 });
-const runner = (prepare: Prepare, run: Run): ServiceEntry => ({ family: "agents", kind: "mutation", prepare, run });
 
 export const services = {
-	"nativeMigration.inventory": core("read", migrationInventory),
-	"nativeMigration.apply": core("mutation", migrationApply),
-	"nativeMigration.rollback": core("mutation", migrationRollback),
 	"flowExecutions.start": core("mutation", startFlowExecution),
 	"flowExecutions.get": core("read", getFlowExecution),
 	"flowExecutions.list": core("read", listFlowExecutions),
@@ -152,11 +139,9 @@ export const services = {
 	"controller.recover": core("mutation", controller.recover),
 	"controller.list": core("read", controller.list),
 	"controller.retry": core("mutation", controller.retry),
-	"controller.cancel": core("mutation", controller.cancel),
 	"controller.resolveUnknown": core("mutation", controller.resolveUnknown),
 	"controller.dispatch": prepared("mutation", controllerDispatch.dispatch, controllerDispatch.finished),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
-	"agentRuns.retireExternal": core("mutation", retireExternal),
 	"agentRuns.list": core("read", agentRuns.list),
 	"agentRuns.start": prepared("mutation", agentRuns.prepareStart, agentRuns.finish),
 	"agentRuns.stop": prepared("mutation", agentLifecycle.prepareStop, agentRuns.finish),
@@ -220,32 +205,6 @@ export const services = {
 	"system.gh": io("read", system.gh),
 	"system.snapshot": io("mutation", system.snapshot),
 	"system.export": { family: "io", kind: "read", stream: system.exportNdjson } as ServiceEntry,
-	"agents.sessions": core("read", agents.sessions),
-	"agents.inbox": core("mutation", agents.inbox),
-	"agents.register": core("mutation", agents.register),
-	"agents.startBuilder": runner(agents.prepareBuilder, agents.startBuilder),
-	"agents.startReviewer": runner(agents.prepareReviewer, agents.startReviewer),
-	"agents.stop": runner(agents.prepareStop, agents.stop),
-	"agents.wake": runner(agents.prepareWake, agents.wake),
-	"agents.settings": core("read", agents.settings),
-	"agents.setSettings": { family: "agents", kind: "mutation", run: agents.setSettings } as ServiceEntry,
-	"agents.runnerProjects": {
-		family: "agents",
-		kind: "read",
-		prepare: agents.prepareRunnerProjects,
-		run: agents.runnerProjects,
-	} as ServiceEntry,
-	"agents.runnerHosts": {
-		family: "agents",
-		kind: "read",
-		prepare: agents.prepareRunnerHosts,
-		run: agents.runnerHosts,
-	} as ServiceEntry,
-	"agents.retryManager": runner(agents.prepareRetry, agents.recordManager),
-	"agents.overview": { family: "agents", kind: "read", run: agents.overview } as ServiceEntry,
-	// The agents host runs these two. They are not on the API.
-	"agents.reconcile": runner(agents.prepareReconcile, agents.reconcile),
-	"agents.ensureManager": runner(agents.prepareManager, agents.recordManager),
 } satisfies Record<string, ServiceEntry>;
 
 export type ServiceName = keyof typeof services;

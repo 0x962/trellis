@@ -7,7 +7,7 @@ import { reconcile } from "./reconcile.ts";
 import { sendDeadline } from "./sendDeadline.ts";
 import type { Dispatch } from "./types.ts";
 
-type Ctx = ServiceCtx & { supersetBin: string; publicUrl: string };
+type Ctx = ServiceCtx & { publicUrl: string };
 const message = (delivery: Dispatch) => `trellis: Manager dispatch ${delivery.id}, generation ${delivery.generation}.
 ${delivery.events.length} ticket changes need your attention in project ${delivery.projectId}.
 Read the affected tickets and their comments with the trellis CLI. Continue available work and report concrete results.

@@ -1,5 +1,4 @@
 import { agentRuns } from "./agentRuns.ts";
-import { agents } from "./agents.ts";
 import { attachments } from "./attachments.ts";
 import { os } from "./base.ts";
 import { comments } from "./comments.ts";
@@ -7,7 +6,6 @@ import { controller } from "./controller.ts";
 import { evidence } from "./evidence.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
-import { nativeMigration } from "./nativeMigration.ts";
 import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
@@ -26,7 +24,6 @@ export const router = os.router({
 	reviews,
 	agentRuns,
 	personas,
-	nativeMigration,
 	flows,
 	flowExecutions,
 	projects,
@@ -42,5 +39,4 @@ export const router = os.router({
 	actors,
 	settings,
 	system,
-	agents,
 });

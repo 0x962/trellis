@@ -8,7 +8,7 @@ import { notFound, type ServiceCtx } from "../support";
 import { changed } from "./queries";
 import { show } from "./submissions";
 
-type Ctx = ServiceCtx & { supersetBin: string; publicUrl: string };
+type Ctx = ServiceCtx & { publicUrl: string };
 export async function preparePending(ctx: Ctx) {
 	const ids = await ctx.newTx((tx) =>
 		rows<{ id: string }>(tx, sql`SELECT id FROM review_deliveries WHERE state = 'pending' ORDER BY id LIMIT 20`),

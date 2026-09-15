@@ -1,5 +1,5 @@
 import { userInfo } from "node:os";
-import { DEFAULT_AGENT_LAUNCH_COMMAND, type Settings, type SettingsSetInput } from "@trellis/api";
+import type { Settings, SettingsSetInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { requireActor, type ServiceCtx } from "../context.ts";
 import { rows, textArray } from "../db/queries/support.ts";
@@ -11,10 +11,9 @@ import type { Tx } from "../db/tx.ts";
 export const defaults = (): Settings => ({
 	defaultActorName: userInfo().username,
 	stalledHours: 24,
-	agentLaunchCommand: DEFAULT_AGENT_LAUNCH_COMMAND,
 });
 
-const KEYS = ["defaultActorName", "stalledHours", "agentLaunchCommand"] as const satisfies (keyof Settings)[];
+const KEYS = ["defaultActorName", "stalledHours"] as const satisfies (keyof Settings)[];
 
 // One row per key with a jsonb value; a key the table lacks reads as its
 // default. The table holds other keys too, such as the agent settings, so

@@ -1,13 +1,5 @@
 import { z } from "zod";
-import { AdeCommandsSchema } from "../adeCommands/adeCommands.ts";
-import { ADE_PRESETS, SUPERSET_ADE_COMMANDS } from "../adeCommands/presets.ts";
-import { AgentCommandSchema } from "../agentCommand/agentCommand.ts";
-import {
-	DEFAULT_AGENT_RESUME_COMMAND,
-	DEFAULT_AGENT_START_COMMAND,
-	unknownLaunchVariables,
-} from "../agentLaunch/agentLaunch.ts";
-import { HarnessSchema, harnessFromCommands } from "../harness/harness.ts";
+import { HarnessSchema } from "../harness/harness.ts";
 import { ProjectRefStringSchema } from "../refs.ts";
 import { booleanString, CountSchema, IsoDateTimeSchema, KeySchema, SlugSchema, UlidSchema } from "./primitives.ts";
 import { StatusSchema } from "./status.ts";
@@ -51,63 +43,21 @@ const AncestorSchema = ProjectLinkSchema.extend({
 	name: ProjectNameSchema,
 });
 
-// `statuses` is the effective set: the project's own, or the nearest
-// ancestor's, named by `statusesInheritedFrom`.
-export const AdeSchema = z.enum(["native", "superset", "terminal", "tmux", "custom"]);
+export const AdeSchema = z.literal("native");
 export type Ade = z.infer<typeof AdeSchema>;
 
-const ProjectManagerConfigInputSchema = z.strictObject({
+export const ProjectManagerConfigSchema = z.strictObject({
 	personaId: UlidSchema.nullable(),
 	concurrency: z.number().int().min(1).max(64),
 	directory: z
 		.string()
 		.trim()
 		.refine((value) => value === "" || value.startsWith("/"), "Use an absolute directory path."),
-	enabled: z.boolean().optional(),
 	trustedDirectory: z.boolean().default(false),
 	dispatchPaused: z.boolean().default(false),
-	// The Superset machine that runs the project's agents, by its machine id.
-	// Null runs them on the machine that runs the trellis server.
-	supersetHostId: z.string().min(1).nullable().default(null),
-	// The Agentic Development Environment that runs this project's agents.
-	// "superset" opens a Superset workspace. "custom" runs adeCommand.
-	ade: AdeSchema.default("superset"),
-	// The command that starts one agent, for a project whose ADE is custom.
-	// Empty means the machine's own launch command, which starts Superset.
-	adeCommand: z.string().trim().default(""),
-	// The command that opens an agent again in the workspace its run has,
-	// for a project whose ADE is custom. Empty runs adeCommand again.
-	adeResumeCommand: z
-		.string()
-		.trim()
-		.refine((value) => unknownLaunchVariables(value).length === 0, "The command has an unknown template variable.")
-		.default(""),
-	harness: HarnessSchema.optional(),
-	adeCommands: AdeCommandsSchema.nullable().optional(),
-	agentCommand: z.union([AgentCommandSchema, z.literal("").transform(() => DEFAULT_AGENT_START_COMMAND)]).optional(),
-	agentResumeCommand: z
-		.union([AgentCommandSchema, z.literal("").transform(() => DEFAULT_AGENT_RESUME_COMMAND)])
-		.optional(),
-	harnessCommands: AdeCommandsSchema.nullable().optional(),
+	ade: AdeSchema.default("native"),
+	harness: HarnessSchema.default(HarnessSchema.parse({ preset: "claude" })),
 });
-export const ProjectManagerConfigSchema = ProjectManagerConfigInputSchema.transform(
-	({ enabled: _enabled, agentCommand, agentResumeCommand, harnessCommands, harness, adeCommands, ...config }) => ({
-		...config,
-		adeCommands:
-			(harnessCommands?.start === SUPERSET_ADE_COMMANDS.start.replace("{{createTarget}}", "{{target}}")
-				? { ...harnessCommands, start: SUPERSET_ADE_COMMANDS.start }
-				: harnessCommands) ??
-			adeCommands ??
-			(config.ade === "tmux" || config.ade === "terminal" ? ADE_PRESETS[config.ade] : null),
-		harness:
-			agentCommand !== undefined || agentResumeCommand !== undefined
-				? harnessFromCommands(
-						agentCommand ?? DEFAULT_AGENT_START_COMMAND,
-						agentResumeCommand ?? DEFAULT_AGENT_RESUME_COMMAND,
-					)
-				: (harness ?? HarnessSchema.parse({ preset: "claude" })),
-	}),
-);
 export type ProjectManagerConfig = z.infer<typeof ProjectManagerConfigSchema>;
 export const DEFAULT_PROJECT_MANAGER_CONFIG = ProjectManagerConfigSchema.parse({
 	personaId: null,

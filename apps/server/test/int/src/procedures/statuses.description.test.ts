@@ -26,12 +26,17 @@ afterAll(() => t.close());
 const descriptionsByName = (statuses: Status[]) =>
 	Object.fromEntries(statuses.map((status) => [status.name, status.description]));
 
-// The activity rows of the project after the previous read, through the
-// manager inbox, which returns every row of the project.
+let lastActivity = 0;
 const readActivity = async (): Promise<Activity[]> => {
-	const response = await t.api("/api/agents/inbox", { method: "POST", body: { project: key } });
-	expect(response.status).toBe(200);
-	return response.body.events;
+	const project = await t.client.projects.get({ project: key });
+	return t.editServerTx(async (tx) => {
+		const result = await tx.execute(
+			sql`SELECT id, action, field, from_value AS "fromValue", to_value AS "toValue", meta FROM activity WHERE project_id=${project.id} AND id>${lastActivity} ORDER BY id`,
+		);
+		const rows = result.rows as unknown as Activity[];
+		if (rows.length) lastActivity = Number(rows.at(-1)!.id);
+		return rows;
+	});
 };
 
 describe("status descriptions", () => {

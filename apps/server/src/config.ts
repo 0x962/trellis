@@ -25,8 +25,6 @@ export type Config = {
 	// How many times faster than the wall clock the poller and the
 	// maintenance timer run. The server runs at 1; a test sets 100.
 	clockRate: number;
-	// The superset binary the agents runner spawns.
-	supersetBin: string;
 	// The trellis URL the agents talk to. It names this machine, because
 	// the runner starts every agent on this machine.
 	agentsUrl: string;
@@ -103,7 +101,6 @@ export const loadConfig = (env: Env): Config => {
 		maxUploadMb:
 			env.TRELLIS_MAX_UPLOAD_MB === undefined ? 50 : numberOf("TRELLIS_MAX_UPLOAD_MB", env.TRELLIS_MAX_UPLOAD_MB),
 		ghBin: env.TRELLIS_GH_BIN ?? "gh",
-		supersetBin: env.TRELLIS_SUPERSET_BIN ?? join(homedir(), ".superset", "bin", "superset"),
 		webDist: env.TRELLIS_WEB_DIST === undefined ? defaultWebDist : resolve(expandHome(env.TRELLIS_WEB_DIST)),
 		logLevel: env.TRELLIS_LOG_LEVEL === undefined ? "info" : levelOf(env.TRELLIS_LOG_LEVEL),
 		dbInline: env.TRELLIS_DB_INLINE === "true",

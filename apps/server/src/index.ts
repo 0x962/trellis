@@ -9,7 +9,6 @@ import { createInlineTransport, createWorkerTransport } from "./db/transport.ts"
 import { createBus } from "./events/bus.ts";
 import { createGhRunner } from "./gh/run.ts";
 import { createGhState } from "./ghState.ts";
-import { assertHomeImportReady } from "./homeImport/bootGuard.ts";
 import { lockHome } from "./homeLock.ts";
 import { listenAddresses } from "./listen.ts";
 import { createLogger, createRotatingSink, type LogSink, stdoutSink, teeSink } from "./log.ts";
@@ -67,7 +66,6 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 
 	const run = async () => {
 		const lock = lockHome(config.home, "server", config.port);
-		assertHomeImportReady(config.home);
 		assertStandaloneHandoffReady(config.home);
 		let handler: Fetch = () =>
 			new Response("The trellis server is not ready. Try again in a few seconds.", { status: 503 });

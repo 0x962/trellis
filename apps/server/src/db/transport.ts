@@ -1,10 +1,7 @@
-import type { AgentBatchRecord, GhStatus, TrellisEvent } from "@trellis/api";
+import type { GhStatus, TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { createController } from "../agents/controller/controller.ts";
-import type { DispatcherClock } from "../agents/dispatcher.ts";
-import { type AgentsHost, createAgentsHost } from "../agents/host.ts";
 import { startNativeReconcile } from "../agents/nativeReconcile/host.ts";
-import { createSupersetRunner } from "../agents/supersetRunner.ts";
 import type { Config } from "../config.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR, systemContext } from "../context.ts";
 import type { Bus } from "../events/bus.ts";
@@ -13,7 +10,6 @@ import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs 
 import type { DbTiming } from "../serverTiming.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcAttachmentBlobs } from "../services/attachments.ts";
-import { pathOf } from "../services/refs.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
@@ -57,11 +53,7 @@ export type JobsStart = { clockRate: number; log: JobsLog };
 
 export type InlineTransportOptions = { db: Db; bus: Bus; config: Config; runtime: Runtime; applied?: number };
 
-export type AgentsStart = { clock: DispatcherClock; log: JobsLog };
-
-// `startAgents` builds the agents host in the thread that owns the
-// database. `start` with jobs calls it; a test calls it with a fake clock.
-export type InlineTransport = ServiceTransport & { startAgents: (options: AgentsStart) => AgentsHost };
+export type InlineTransport = ServiceTransport;
 
 export type WorkerTransportOptions = { bus: Bus; config: Config; runtime: Runtime };
 
@@ -95,7 +87,6 @@ export const createInlineTransport = ({
 	// carries the system actor there.
 	const ioCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => ({
 		core: coreCtx(ctx, emit, tasks),
-		supersetBin: config.supersetBin,
 		localUrl: config.agentsUrl,
 		publicUrl: config.publicUrl,
 		actor: ctx.actor ?? SYSTEM_ACTOR,
@@ -121,34 +112,9 @@ export const createInlineTransport = ({
 		vacuum: () => createMaintenance(db).runNow(),
 	});
 
-	// The runner spawns the superset binary from the thread that owns the
-	// database, so a service reaches it the way it reaches the database.
-	// Before startAgents builds the agents host, a settings change has no
-	// host to tell, so `hooks.settingsChanged` does nothing, and no batch
-	// went out.
-	const runner = createSupersetRunner({ bin: config.supersetBin, url: config.agentsUrl });
-	const hooks = {
-		settingsChanged: (): void => undefined,
-		batches: (): AgentBatchRecord[] => [],
-	};
-	const agentsCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => ({
-		...coreCtx(ctx, emit, tasks),
-		runner,
-		newTx: <T>(fn: (tx: Tx) => Promise<T>) =>
-			newTx(async (tx) => {
-				await assertCurrentAttempt(ctx, tx);
-				return fn(tx);
-			}),
-		afterCommit: (task: () => Promise<void>) => {
-			tasks.push(task);
-		},
-		settingsChanged: () => hooks.settingsChanged(),
-		batches: () => hooks.batches(),
-	});
-
 	const buildCtx = (entry: ServiceEntry, ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => {
 		if (entry.family === "core") return coreCtx(ctx, emit, tasks);
-		return entry.family === "agents" ? agentsCtx(ctx, emit, tasks) : ioCtx(ctx, emit, tasks);
+		return ioCtx(ctx, emit, tasks);
 	};
 
 	// A `prepare` step runs first, with no transaction open. The commit comes
@@ -200,28 +166,6 @@ export const createInlineTransport = ({
 		return promise;
 	};
 
-	// The agents host calls the services as the system actor, and reads the
-	// project tree from the cache the services keep.
-	let agents: AgentsHost | null = null;
-	const startAgents = (options: AgentsStart) => {
-		const host = createAgentsHost({
-			bus,
-			clock: options.clock,
-			log: options.log,
-			call: (name, input) => call(name, systemContext(), input),
-			projects: {
-				scope: (projectId) => cache.resolveSubtree(projectId),
-				path: (projectId) => pathOf(cache, projectId),
-			},
-		});
-		hooks.settingsChanged = () => void host.reload();
-		hooks.batches = () => host.dispatcher.recent();
-		agents = host;
-		return host;
-	};
-
-	// The agents host starts beside the jobs and does not hold up the boot:
-	// its first superset calls can take seconds.
 	let jobs: Jobs | null = null;
 	let controller: ReturnType<typeof createController> | null = null;
 	let nativeReconcile: ReturnType<typeof startNativeReconcile> | null = null;
@@ -266,7 +210,6 @@ export const createInlineTransport = ({
 			});
 			await controller.start();
 			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });
-			void startAgents({ clock, log: options.log }).start();
 		}
 		return { applied, liveShas: found.rows.map((row) => row.sha256 as string) };
 	};
@@ -276,10 +219,9 @@ export const createInlineTransport = ({
 		await controller?.stop();
 		await nativeReconcile?.stop();
 		await flowReconcile?.stop();
-		agents?.stop();
 		if (jobs !== null) await jobs.stop();
 		await Promise.allSettled([...inFlight]);
 	};
 
-	return { call, start, close, startAgents };
+	return { call, start, close };
 };

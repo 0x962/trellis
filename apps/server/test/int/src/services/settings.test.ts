@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { DEFAULT_AGENT_LAUNCH_COMMAND, type Settings, SettingsSchema } from "@trellis/api";
+import { type Settings, SettingsSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import * as settings from "../../../../src/services/settings.ts";
 import { count } from "../../../fixtures";
@@ -38,7 +38,7 @@ describe("settings", () => {
 	test("get returns the defaults on an empty table", async () => {
 		const defaults = await get();
 		const parsed = SettingsSchema.parse(defaults);
-		expect(Object.keys(parsed).sort()).toEqual(["agentLaunchCommand", "defaultActorName", "stalledHours"]);
+		expect(Object.keys(parsed).sort()).toEqual(["defaultActorName", "stalledHours"]);
 		expect(parsed.stalledHours).toBe(24);
 		expect(await count(h.db, "settings")).toBe(0);
 	});
@@ -49,7 +49,7 @@ describe("settings", () => {
 		const rows = await settingRows();
 		expect(rows.map((row) => row.key)).toEqual(["defaultActorName", "stalledHours"]);
 		expect(rows.map((row) => row.value)).toEqual(["dana", 48]);
-		expect(await get()).toEqual({ ...written, agentLaunchCommand: DEFAULT_AGENT_LAUNCH_COMMAND });
+		expect(await get()).toEqual(written);
 	});
 
 	test("get fills a missing key with its default", async () => {

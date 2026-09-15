@@ -87,20 +87,13 @@ test("concurrent identical starts create one frozen execution", async () => {
 		code: "INPUT_VALIDATION_FAILED",
 	});
 });
-test("new starts enforce flow version, worker persona, native runtime, and pause", async () => {
+test("new starts enforce flow version, worker persona, and pause", async () => {
 	await expect(h.run((ctx, tx) => start(ctx, tx, { ...input(), expectedVersion: 1 }))).rejects.toMatchObject({
 		code: "FLOW_VERSION_CONFLICT",
 	});
 	await h.rows(sql`UPDATE personas SET kind='manager' WHERE id=${persona}`);
 	await expect(h.run((ctx, tx) => start(ctx, tx, input()))).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 	await h.rows(sql`UPDATE personas SET kind='builder' WHERE id=${persona}`);
-	await h.rows(
-		sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"directory":"/tmp","ade":"superset"}'::jsonb WHERE id=${project}`,
-	);
-	await expect(h.run((ctx, tx) => start(ctx, tx, input()))).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
-	await h.rows(
-		sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"ade":"native","trustedDirectory":true}'::jsonb WHERE id=${project}`,
-	);
 	await h.rows(sql`INSERT INTO settings (key,value,updated_at) VALUES ('nativeWorkPaused','true'::jsonb,now())`);
 	await expect(h.run((ctx, tx) => start(ctx, tx, input()))).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 });
