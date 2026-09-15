@@ -6,7 +6,6 @@ import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
 import { useUploads } from "../../attachments/hooks/useUploads";
-import { PullRequests } from "../../prs";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { Description } from "../Description";
 import { Header } from "../Header";
@@ -64,7 +63,10 @@ export function TicketView({ identifier }: TicketViewProps) {
 	// The disabled fieldset and the edit keys enforce `readOnly`.
 	const main = (
 		<article className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto page-card">
-			<div data-ticket-content="" className="flex min-w-0 max-w-[856px] flex-col px-5 pt-6 pb-8 max-md:px-4">
+			<div
+				data-ticket-content=""
+				className="mx-auto flex w-full min-w-0 max-w-[856px] flex-col px-5 pt-6 pb-8 max-md:px-4"
+			>
 				<div className="flex flex-col gap-1">
 					{ticket.parent !== null && <ParentChip ancestors={ticket.ancestors} title={parentSummary?.title ?? ""} />}
 					<Title key={ticket.identifier} ticket={ticket} />
@@ -77,19 +79,13 @@ export function TicketView({ identifier }: TicketViewProps) {
 				<div data-ticket-description="" className={cx("min-h-24", inlineRail ? "mt-4" : "mt-3")}>
 					<Description key={ticket.identifier} ticket={ticket} />
 				</div>
-				<div className="mt-8">
+				<div className="mt-8 flex flex-col gap-8">
+					<SubTickets ticket={ticket} />
+					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
 					<TicketWorkArea
 						key={ticket.id}
 						ticket={ticket}
 						activity={<Timeline ticket={ticket} onAttachFiles={uploads.start} />}
-						overview={
-							<>
-								<SubTickets ticket={ticket} />
-								<PullRequests ticket={ticket} initialPrs={ticket.prs} />
-								<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
-								<Timeline ticket={ticket} onAttachFiles={uploads.start} />
-							</>
-						}
 					/>
 				</div>
 			</div>

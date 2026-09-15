@@ -10,21 +10,16 @@ import { FlowRuns } from "./components/FlowRuns";
 import { LocalChanges } from "./components/LocalChanges";
 import { LocalChecks } from "./components/LocalChecks";
 
-export function TicketWorkArea({
-	ticket,
-	overview,
-	activity,
-}: {
-	ticket: Ticket;
-	overview: ReactNode;
-	activity: ReactNode;
-}) {
+export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity: ReactNode }) {
 	const { orpc } = useApp();
-	const [tab, setTab] = useState("overview");
+	const [tab, setTab] = useState("activity");
 	const [selected, setSelected] = useState<string | null>(null);
 	const hash = useLocation({ select: (location) => location.hash });
 	useEffect(() => {
-		if (hash.startsWith("attempt-")) setSelected(hash.slice(8));
+		if (hash.startsWith("attempt-")) {
+			setSelected(hash.slice(8));
+			setTab("agent");
+		}
 	}, [hash]);
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: ticket.identifier } }),
@@ -69,16 +64,8 @@ export function TicketWorkArea({
 				value={tab}
 				onValueChange={setTab}
 				items={[
-					{
-						value: "overview",
-						label: "Overview",
-						content: (
-							<div className="flex flex-col gap-8">
-								{execution}
-								{overview}
-							</div>
-						),
-					},
+					{ value: "activity", label: "Activity", content: activity },
+					{ value: "agent", label: "Agent", content: execution },
 					{
 						value: "changes",
 						label: "Changes",
@@ -106,7 +93,6 @@ export function TicketWorkArea({
 							</div>
 						),
 					},
-					{ value: "activity", label: "Activity", content: activity },
 					{ value: "flows", label: "Flows", content: <FlowRuns ticket={ticket.identifier} /> },
 				]}
 			/>

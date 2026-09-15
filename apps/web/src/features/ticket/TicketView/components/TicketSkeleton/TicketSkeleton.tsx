@@ -2,7 +2,7 @@ import { Skeleton } from "@trellis/ui";
 
 export function TicketSkeleton() {
 	const main = (
-		<div className="flex min-w-0 max-w-[856px] flex-col px-5 pt-6 pb-8 max-md:px-4">
+		<div className="mx-auto flex w-full min-w-0 max-w-[856px] flex-col px-5 pt-6 pb-8 max-md:px-4">
 			<Skeleton width="w-3/4" height="h-8" className="mt-1" />
 			<Skeleton lines={6} width="w-2/3" className="mt-3" />
 			<Skeleton height="h-14" className="mt-8" />

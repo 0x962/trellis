@@ -70,9 +70,13 @@ test("the ticket sections use the same Add button", async ({ page }) => {
 	await signIn(page, "/t/TKT-1");
 	for (const width of [1280, 375]) {
 		await page.setViewportSize({ width, height: 812 });
-		for (const name of [/Sub-tickets/, "PRs", "Attachments for TKT-1"]) {
+		for (const name of [/Sub-tickets/, "Attachments for TKT-1"]) {
 			await expect(page.getByRole("region", { name }).getByRole("button", { name: "Add", exact: true })).toBeVisible();
 		}
+		await page.getByRole("tab", { name: "Changes", exact: true }).click();
+		await expect(
+			page.getByRole("region", { name: "PRs" }).getByRole("button", { name: "Add", exact: true }),
+		).toBeVisible();
 	}
 });
 
@@ -94,6 +98,7 @@ test("empty ticket sections use the same empty state", async ({ page }) => {
 	];
 
 	for (const expected of sections) {
+		if (expected.name === "PRs") await page.getByRole("tab", { name: "Changes", exact: true }).click();
 		const section = page.getByRole("region", { name: expected.name });
 		const title = section.getByRole("heading", { level: 2 });
 		const helper = section.getByText(expected.description, { exact: true });
@@ -117,4 +122,52 @@ test("the desktop ticket cards use the compact gap", async ({ page }) => {
 	expect(pageBox).not.toBeNull();
 	expect(cardBox).not.toBeNull();
 	expect(cardBox!.x - pageBox!.x).toBeCloseTo(8, 0);
+});
+
+for (const width of [1920, 1280, 900, 390]) {
+	test(`the ticket body stays centered at ${width} px`, async ({ page }, testInfo) => {
+		await page.setViewportSize({ width, height: 900 });
+		await signIn(page, "/t/TKT-1");
+		const content = page.locator("[data-ticket-content]");
+		await expect(content).toBeVisible();
+		const bounds = await content.evaluate((element) => {
+			const article = element.parentElement!;
+			const bodyBox = element.getBoundingClientRect();
+			const articleBox = article.getBoundingClientRect();
+			const left = bodyBox.left - articleBox.left - article.clientLeft;
+			return {
+				left,
+				right: article.clientWidth - left - bodyBox.width,
+				width: bodyBox.width,
+				available: article.clientWidth,
+				overflow: article.scrollWidth - article.clientWidth,
+			};
+		});
+		expect(bounds.left).toBeCloseTo(bounds.right, 0);
+		expect(bounds.width).toBeCloseTo(Math.min(856, bounds.available), 0);
+		expect(bounds.overflow).toBe(0);
+		await expect(page.getByRole("textbox", { name: "Title", exact: true })).toHaveCSS("text-align", "start");
+		await expect(page.getByRole("complementary", { name: "Properties" })).toHaveCount(width >= 768 ? 1 : 0);
+		expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+		await page.screenshot({ path: testInfo.outputPath("centered-ticket.png") });
+	});
+}
+
+test("Activity opens first and Agent contains only execution details", async ({ page }) => {
+	await signIn(page, "/t/TKT-1");
+	const work = page.getByRole("region", { name: "Ticket work area" });
+	await expect(work.getByRole("tab")).toHaveText(["Activity", "Agent", "Changes", "Checks", "Flows"]);
+	await expect(work.getByRole("tab", { name: "Activity", exact: true })).toHaveAttribute("aria-selected", "true");
+	await expect(work.locator('[data-kind="activity"]').first()).toBeVisible();
+	await expect(work.getByRole("region", { name: "Execution", exact: true })).toHaveCount(0);
+	await work.getByRole("tab", { name: "Agent", exact: true }).click();
+	const panel = work.getByRole("tabpanel");
+	await expect(panel.getByRole("region", { name: "Execution", exact: true })).toBeVisible();
+	await expect(panel.getByText("No execution attempts", { exact: true })).toBeVisible();
+	await expect(panel.locator('[data-kind="activity"]')).toHaveCount(0);
+	await expect(panel.getByRole("region", { name: /Sub-tickets|PRs|Attachments/ })).toHaveCount(0);
+	await expect(page.getByRole("region", { name: "Sub-tickets", exact: true })).toBeVisible();
+	await expect(page.getByRole("region", { name: "Attachments for TKT-1", exact: true })).toBeVisible();
+	await page.goto("/t/TKT-1#attempt-example");
+	await expect(work.getByRole("tab", { name: "Agent", exact: true })).toHaveAttribute("aria-selected", "true");
 });
