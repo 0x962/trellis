@@ -27,7 +27,7 @@ const LastActorSchema = ActorRefSchema.extend({
 	at: IsoDateTimeSchema,
 });
 
-// The row every list, board, inbox section, and ticket event carries. About
+// The row every list, board, and ticket event carries. About
 // 300 bytes; the description lives only on `Ticket`. `version` bumps on every
 // row change and is the guard `applyEvent` compares before a patch.
 export const TicketSummarySchema = z.object({

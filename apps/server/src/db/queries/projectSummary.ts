@@ -13,7 +13,6 @@ export type ProjectSummaryRow = {
 	depth: number;
 	position: number;
 	open_count: number;
-	needs_you_count: number;
 	archived_at: string | null;
 };
 
@@ -30,18 +29,11 @@ const closureCte = sql`closure AS (
 export const projectCtes = sql`${pathsCte}, ${closureCte}`;
 
 // The columns of ProjectSummary for the alias `p`. `openCount` is the open
-// tickets of the subtree; `needsYouCount` is the open tickets of the
-// subtree waiting on a human: in a human-review status, or with an open
-// pull request whose CI fails.
+// tickets of the subtree.
 export const projectSummaryColumns = sql`
 	p.id, p.parent_id, p.root_id, root.key, p.slug, pp.path, p.name, pp.depth, p.position,
 	(SELECT count(*)::int FROM tickets t JOIN closure c ON c.des = t.project_id
 		WHERE c.anc = p.id AND t.completed_at IS NULL) AS open_count,
-	(SELECT count(*)::int FROM tickets t JOIN closure c ON c.des = t.project_id JOIN statuses s ON s.id = t.status_id
-		WHERE c.anc = p.id AND t.completed_at IS NULL AND (
-			(s.category = 'review' AND s.reviewer = 'human')
-			OR EXISTS (SELECT 1 FROM ticket_pull_requests l JOIN pull_requests pr ON pr.id = l.pull_request_id
-				WHERE l.ticket_id = t.id AND pr.state = 'open' AND pr.ci_state = 'fail'))) AS needs_you_count,
 	${iso(sql`p.archived_at`)} AS archived_at`;
 
 export const projectSummaryJoins = sql`
@@ -60,6 +52,5 @@ export const toProjectSummary = (row: ProjectSummaryRow): ProjectSummary => ({
 	depth: row.depth,
 	position: row.position,
 	openCount: row.open_count,
-	needsYouCount: row.needs_you_count,
 	archivedAt: row.archived_at,
 });

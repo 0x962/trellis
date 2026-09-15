@@ -52,11 +52,11 @@ export const priorityInput = (ticket: Ticket, priority: Priority): TicketUpdateI
 	expectedVersion: ticket.version,
 });
 
-// The `tickets.update` input Approve sends: the lowest done status and the
-// ticket's version.
+// The `tickets.update` input Approve sends: the status after the ticket's
+// status in column order, and the ticket's version.
 export const approveInput = (ticket: Ticket, statuses: readonly Status[]): TicketUpdateInput => ({
 	ticket: ticket.identifier,
-	status: approveTarget(statuses).id,
+	status: approveTarget(statuses, ticket.status).id,
 	expectedVersion: ticket.version,
 });
 

@@ -92,6 +92,8 @@ test("initial and resumed prompts identify the runtime message", () => {
 test("managers receive coordination tools and no worker execution instructions", () => {
 	const { prompt } = launchCommand({ run, url, context: "Project: TRL", template: DEFAULT_AGENT_START_COMMAND });
 	expect(prompt).toContain("Use the provided Trellis tools");
+	expect(prompt).toContain("End every turn without a terminal message");
+	expect(prompt).toContain("If Trellis writes fail, leave the dispatch unhandled");
 	expect(prompt).toContain("Advance each ticket as soon as its own prerequisites complete");
 	expect(prompt).not.toContain("trellis evidence check");
 	expect(prompt).not.toContain("Read the repository's AGENTS.md");

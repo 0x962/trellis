@@ -1,7 +1,7 @@
 import { ArrowClockwise, ArrowDown, ArrowUp, Copy } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import type { ReviewRevision, ReviewSubmission, ReviewThread } from "@trellis/api";
-import { IconButton, Input, Select, Tooltip } from "@trellis/ui";
+import { EmptyState, IconButton, Input, Select, Tooltip } from "@trellis/ui";
 import { type ConversationMeta, ReviewConversation } from "@trellis/ui/review";
 import { type ReactNode, useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -97,7 +97,7 @@ export function ReviewDiscussion({ drafts, threads, revision, submissions, rende
 								{renderThread(draft.id)}
 							</section>
 						))}
-						{visible.length === 0 && visibleDrafts.length === 0 && <p>No threads match.</p>}
+						{visible.length === 0 && visibleDrafts.length === 0 && <EmptyState description="No threads match." />}
 						{visible.map((t) => (
 							<section key={t.id}>
 								<div className="review-thread-location">

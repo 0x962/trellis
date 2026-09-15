@@ -53,8 +53,6 @@ export const checkGh = async (runner: GhRunner, at: Date): Promise<GhStatus> => 
 	return { ok: true, user: ACCOUNT.exec(result.stdout)?.[1] ?? null, reason: null, message: null, checkedAt };
 };
 
-export const gh = (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promise<GhStatus> => checkGh(ctx.gh, ctx.now());
-
 // `2026-09-09T10-00-00-000Z`: the ISO stamp with every colon and dot as a
 // dash, so the name is a file name on every platform and sorts by time.
 const stampOf = (at: Date) => at.toISOString().replace(/[:.]/g, "-");

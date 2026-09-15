@@ -104,6 +104,7 @@ export function ReviewsPage() {
 						</p>
 					) : visible.length === 0 ? (
 						<EmptyState
+							variant="page"
 							title={filter ? "No reviews match" : "No reviews yet"}
 							description={
 								filter ? "Try another title, repository, or PR number." : "Open a pull request to start a local review."

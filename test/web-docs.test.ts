@@ -36,7 +36,6 @@ const cliCommands = [
 	"search",
 	"activity",
 	"brief",
-	"inbox",
 	"watch",
 	"open",
 	"whoami",
