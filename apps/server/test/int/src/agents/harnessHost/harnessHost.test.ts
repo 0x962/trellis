@@ -82,18 +82,23 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 	10000,
 );
 
-test("missing executable fails before process launch with its name and PATH", async () => {
-	const empty = join(home, "empty");
-	await mkdir(empty);
-	host = new HarnessHost({
-		runtime: client,
-		directory: join(home, "attempts"),
-		env: { PATH: empty },
-		bun: process.execPath,
-	});
-	await expect(host.start({ id: "missing", harness: "claude", cwd: home, prompt: "hello" })).rejects.toThrow("claude");
-	expect(await client.list()).toEqual([]);
-});
+test.each(["claude", "codex", "pi", "opencode", "agy"] as const)(
+	"missing %s executable fails before process launch with its name and PATH",
+	async (harness) => {
+		const empty = join(home, "empty");
+		await mkdir(empty);
+		host = new HarnessHost({
+			runtime: client,
+			directory: join(home, "attempts"),
+			env: { PATH: empty },
+			bun: process.execPath,
+		});
+		await expect(host.start({ id: "missing", harness, cwd: home, prompt: "hello" })).rejects.toMatchObject({
+			code: "HARNESS_NOT_INSTALLED",
+		});
+		expect(await client.list()).toEqual([]);
+	},
+);
 
 test("silent native hooks time out with the retained attempt ID", async () => {
 	host = new HarnessHost({
@@ -198,3 +203,28 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 		await expect(host.start({ ...input, prompt: "different" })).rejects.toThrow("different");
 	},
 );
+
+test.each(["codex", "pi", "opencode"] as const)(
+	"a normal %s completion does not confirm interruption",
+	async (harness) => {
+		host = new HarnessHost({
+			runtime: client,
+			directory: join(home, "attempts"),
+			env: { ...process.env, PATH: join(home, "bin"), HARNESS_FIXTURE_BEHAVIOR: "normal-interrupt" },
+			bun: process.execPath,
+			observationTimeoutMs: 500,
+		});
+		await host.start({ id: "normal", harness, cwd: home, prompt: "hello" });
+		await expect(host.interrupt("normal")).rejects.toMatchObject({ code: "HARNESS_OBSERVATION_TIMEOUT" });
+		expect((await host.status("normal")).status).toBe("running");
+	},
+);
+
+test("invalid public launch input fails before it creates attempt files", async () => {
+	for (const change of [{ harness: "unknown" }, { cwd: "relative" }, { prompt: 42 }, { mode: "unsafe" }])
+		await expect(
+			host.start({ id: "invalid", harness: "claude", cwd: home, prompt: "hello", ...change } as never),
+		).rejects.toThrow();
+	expect(await client.list()).toEqual([]);
+	await expect(readdir(join(home, "attempts"))).rejects.toMatchObject({ code: "ENOENT" });
+});

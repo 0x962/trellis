@@ -6,9 +6,18 @@ import { z } from "zod";
 import { interruptHarness } from "./interruptHarness.ts";
 import { prepareAttempt } from "./prepareAttempt.ts";
 import { providers } from "./providers.ts";
+import { resolveExecutable } from "./resolveExecutable.ts";
 import type { HarnessDescriptor, HarnessHostOptions, HarnessStarted, HarnessStartInput } from "./types.ts";
 
 const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/);
+const launchInput = z.object({
+	id: identifier,
+	harness: z.enum(["claude", "codex", "pi", "opencode", "agy"]),
+	cwd: z.string().startsWith("/"),
+	prompt: z.string().min(1),
+	model: z.string().min(1).optional(),
+	mode: z.enum(["autonomous", "manual"]).optional(),
+});
 export class HarnessHost {
 	constructor(private readonly options: HarnessHostOptions) {}
 	start(input: HarnessStartInput): Promise<HarnessStarted> {
@@ -19,9 +28,12 @@ export class HarnessHost {
 		return this.launch(input, input.sessionId);
 	}
 	private async launch(input: HarnessStartInput, sessionId?: string): Promise<HarnessStarted> {
-		identifier.parse(input.id);
+		launchInput.parse(input);
 		const provider = providers[input.harness];
-		if (provider.capabilityGaps.length && input.mode !== "manual") throw new Error(provider.capabilityGaps.join(" "));
+		if (provider.capabilityGaps.length && input.mode !== "manual") {
+			await resolveExecutable(input.harness, this.options.env.PATH ?? "");
+			throw Object.assign(new Error(provider.capabilityGaps.join(" ")), { code: "HARNESS_CAPABILITY_UNAVAILABLE" });
+		}
 		const descriptor = await prepareAttempt(this.options, input, sessionId);
 		await this.options.runtime.start(descriptor.spec);
 		const process = provider.capabilityGaps.length
@@ -100,13 +112,7 @@ export class HarnessHost {
 		const descriptor = await this.descriptor(id);
 		const result = await interruptHarness(this.options, descriptor, await this.status(id));
 		return (
-			result ??
-			this.waitFor(
-				id,
-				(state) =>
-					state.activity?.state === "idle" &&
-					(descriptor.harness !== "opencode" || state.agent?.outcome === "interrupted"),
-			)
+			result ?? this.waitFor(id, (state) => state.activity?.state === "idle" && state.agent?.outcome === "interrupted")
 		);
 	}
 }

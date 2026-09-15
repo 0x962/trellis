@@ -33,7 +33,13 @@ const native = (kind: string, prompt?: string) => {
 			model,
 			payload: {
 				text: prompt,
-				messages: [{ role: "assistant", content: [{ type: "text", text: "fixture result" }] }],
+				messages: [
+					{
+						role: "assistant",
+						stopReason: outcome === "interrupted" ? "aborted" : "stop",
+						content: [{ type: "text", text: "fixture result" }],
+					},
+				],
 				toolCallId: "tool",
 				toolName: "read",
 				args: { path: "fixture" },
@@ -52,7 +58,10 @@ const native = (kind: string, prompt?: string) => {
 			tool: kind === "tool" ? { id: "tool", name: "read", input: { path: "fixture" } } : undefined,
 		};
 	return {
-		hook_event_name: { session: "SessionStart", prompt: "UserPromptSubmit", idle: "Stop", tool: "PreToolUse" }[kind],
+		hook_event_name:
+			kind === "idle" && harness === "codex" && outcome === "interrupted"
+				? "Interrupt"
+				: { session: "SessionStart", prompt: "UserPromptSubmit", idle: "Stop", tool: "PreToolUse" }[kind],
 		session_id: sessionId,
 		model,
 		prompt,
@@ -87,7 +96,7 @@ if (harness === "opencode")
 			const input = (await request.json()) as { sessionId: string; turnId: string };
 			if (input.sessionId !== sessionId || input.turnId !== "fixture-turn")
 				return new Response("stale", { status: 409 });
-			outcome = "interrupted";
+			outcome = process.env.HARNESS_FIXTURE_BEHAVIOR === "normal-interrupt" ? "completed" : "interrupted";
 			await hook("idle");
 			return Response.json({ accepted: true, sessionId, turnId: input.turnId });
 		},
@@ -96,7 +105,7 @@ process.stdin.setRawMode(true);
 await hook("session");
 const prompt = harness === "opencode" ? args[args.indexOf("--prompt") + 1]! : args.at(-1)!;
 await hook("prompt", prompt);
-if (process.env.HARNESS_FIXTURE_BEHAVIOR !== "busy") await hook("idle");
+if (!["busy", "normal-interrupt"].includes(process.env.HARNESS_FIXTURE_BEHAVIOR!)) await hook("idle");
 process.stdin.resume();
 let input = "";
 process.stdin.on("data", (chunk: Buffer) => {
@@ -105,7 +114,11 @@ process.stdin.on("data", (chunk: Buffer) => {
 		input = "";
 		if (harness === "claude")
 			writeFileSync(statusFile, JSON.stringify([{ pid: process.pid, sessionId, status: "idle" }]));
-		else sequence = sequence.then(() => hook("idle"));
+		else
+			sequence = sequence.then(() => {
+				outcome = process.env.HARNESS_FIXTURE_BEHAVIOR === "normal-interrupt" ? "completed" : "interrupted";
+				return hook("idle");
+			});
 	} else if (input.endsWith("\r")) {
 		const submitted = input.slice(0, -1);
 		input = "";
