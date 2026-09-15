@@ -90,3 +90,21 @@ test("authenticated hooks update live turn activity and reject the wrong token",
 	await client.stop(session.id);
 	await expect(client.turn(session.id, "correct-token", "SessionStart")).rejects.toThrow("controllable");
 });
+
+test("authenticated completion retains the result after the process exits", async () => {
+	const session = await client.start({
+		id: "result",
+		command: "/bin/cat",
+		args: [],
+		cwd: home,
+		mode: "pty",
+		env: { TRELLIS_ATTEMPT_TOKEN: "result-token" },
+	});
+	await client.turn(session.id, "result-token", "UserPromptSubmit", undefined, "Not a completion");
+	expect((await client.inspect(session.id)).result).toBeNull();
+	const completed = await client.turn(session.id, "result-token", "Stop", undefined, "The task is complete.");
+	expect(completed.result?.text).toBe("The task is complete.");
+	expect(completed.result?.id).toBeTruthy();
+	await client.stop(session.id);
+	expect((await client.inspect(session.id)).result).toEqual(completed.result);
+});

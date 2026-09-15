@@ -33,6 +33,7 @@ export interface RuntimeProcessMetadata {
 	executable: string;
 }
 export interface RuntimeProcessStatus extends RuntimeSession {
+	result: { id: string; text: string } | null;
 	acknowledgedMessageIds: string[];
 	activity: { state: "ready" | "working" | "idle"; updatedAt: string } | null;
 	checkedAt: string;
@@ -64,7 +65,7 @@ export interface RuntimeDelivery {
 }
 export interface RuntimeMethods {
 	turn: {
-		params: { id: string; token: string; event: "SessionStart" | "UserPromptSubmit" | "Stop"; messageId?: string };
+		params: { id: string; token: string; event: "SessionStart" | "UserPromptSubmit" | "Stop"; messageId?: string; result?: string };
 		result: RuntimeProcessStatus;
 	};
 	inspect: { params: { id: string }; result: RuntimeProcessStatus };

@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { LaunchSpec, RuntimeMethods, RuntimeProcessStatus, RuntimeSession } from "@trellis/runtime-protocol";
+import { CompletionStore } from "./completionStore.ts";
 import { InputLedger } from "./inputLedger.ts";
 import { inspectProcess } from "./inspectProcess.ts";
 import { observedSession } from "./observedSession.ts";
@@ -19,6 +20,7 @@ type Record = {
 	log: SessionLog;
 	stderr: SessionLog;
 	ledger: InputLedger;
+	completion: CompletionStore;
 	process?: ProcessHandle;
 	timer?: ReturnType<typeof setTimeout>;
 	stopped: Promise<void>;
@@ -49,6 +51,7 @@ export class SessionStore {
 				log: new SessionLog(join(home, `${saved.session.id}.output.json`)),
 				stderr: new SessionLog(join(home, `${saved.session.id}.stderr.json`)),
 				ledger: new InputLedger(join(home, `${saved.session.id}.input.json`)),
+				completion: new CompletionStore(join(home, `${saved.session.id}.results.jsonl`)),
 				stopped: Promise.resolve(),
 				resolveStop: () => {},
 			};
@@ -91,9 +94,10 @@ export class SessionStore {
 			launch: record.launch,
 			activity: record.activity,
 			acknowledgedMessageIds: record.ledger.acknowledgedMessageIds(),
+			result: record.completion.latest,
 		};
 	}
-	turn({ id, token, event, messageId }: RuntimeMethods["turn"]["params"]): RuntimeProcessStatus {
+	turn({ id, token, event, messageId, result }: RuntimeMethods["turn"]["params"]): RuntimeProcessStatus {
 		const record = this.get(id);
 		if (record.tokenHash === null || !timingSafeEqual(record.tokenHash, createHash("sha256").update(token).digest()))
 			throw new Error("The attempt token does not match this process");
@@ -101,6 +105,7 @@ export class SessionStore {
 		const state = { SessionStart: "ready", UserPromptSubmit: "working", Stop: "idle" } as const;
 		record.activity = { state: state[event], updatedAt: new Date().toISOString() };
 		if (event === "UserPromptSubmit" && messageId !== undefined) record.ledger.acknowledge(messageId);
+		if (event === "Stop" && result !== undefined) record.completion.append(result);
 		for (const listener of record.listeners) listener();
 		return this.inspect(id);
 	}
@@ -165,6 +170,7 @@ export class SessionStore {
 			log: new SessionLog(join(this.home, `${spec.id}.output.json`)),
 			stderr: new SessionLog(join(this.home, `${spec.id}.stderr.json`)),
 			ledger: new InputLedger(join(this.home, `${spec.id}.input.json`)),
+			completion: new CompletionStore(join(this.home, `${spec.id}.results.jsonl`)),
 			stopped,
 			resolveStop,
 		};
@@ -256,6 +262,7 @@ export class SessionStore {
 				log: new SessionLog(join(this.home, `${id}.output.json`)),
 				stderr: new SessionLog(join(this.home, `${id}.stderr.json`)),
 				ledger: new InputLedger(join(this.home, `${id}.input.json`)),
+				completion: new CompletionStore(join(this.home, `${id}.results.jsonl`)),
 				stopped: Promise.resolve(),
 				resolveStop: () => {},
 			};

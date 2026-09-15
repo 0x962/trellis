@@ -66,8 +66,8 @@ export class RuntimeClient {
 	subscribe(id: string, offset = 0, signal?: AbortSignal, stream: "stdout" | "stderr" = "stdout") {
 		return subscribeOutput(this.socketPath, { id, offset, stream }, signal);
 	}
-	turn(id: string, token: string, event: "SessionStart" | "UserPromptSubmit" | "Stop", messageId?: string) {
-		return this.call("turn", { id, token, event, messageId });
+	turn(id: string, token: string, event: "SessionStart" | "UserPromptSubmit" | "Stop", messageId?: string, result?: string) {
+		return this.call("turn", { id, token, event, messageId, result });
 	}
 	inspect(id: string) {
 		return this.call("inspect", { id });
