@@ -1,6 +1,6 @@
 import { beforeAll, expect, test } from "bun:test";
-import { spawn } from "node:child_process";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { spawn, spawnSync } from "node:child_process";
+import { mkdir, mkdtemp, readFile, realpath, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import type { RuntimeHarnessObservation, RuntimeStream } from "@trellis/runtime-protocol";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
@@ -68,7 +68,15 @@ for (const harness of ["claude", "codex", "pi", "opencode"] as const) {
 					CODEX_THREAD_ID: undefined,
 				},
 			});
-			const cwd = harness === "pi" || harness === "opencode" ? home : repo;
+			const cwd = harness === "codex" ? repo : harness === "claude" ? join(home, "repo") : home;
+			if (harness === "claude") {
+				await mkdir(cwd);
+				const git = spawnSync("git", ["init", "--quiet", cwd], { env: process.env });
+				if (git.status !== 0) throw new Error(git.stderr.toString());
+				const stateFile = join(process.env.CLAUDE_CONFIG_DIR || authHome, ".claude.json");
+				const state = JSON.parse(await readFile(stateFile, "utf8"));
+				expect(state.projects?.[await realpath(cwd)]?.hasTrustDialogAccepted).not.toBe(true);
+			}
 			const id = `initial-${crypto.randomUUID()}`;
 			const resumedId = `resumed-${crypto.randomUUID()}`;
 			const marker = `HOST_${crypto.randomUUID().replaceAll("-", "")}`;

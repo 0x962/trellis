@@ -1,0 +1,50 @@
+import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
+import { chmod, mkdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
+import { lock } from "proper-lockfile";
+
+type NativeState = {
+	projects?: Record<string, { hasTrustDialogAccepted?: boolean; [key: string]: unknown }>;
+	[key: string]: unknown;
+};
+
+export async function claudeTrust(cwd: string, env: Record<string, string>) {
+	const home = env.HOME ?? homedir();
+	const configDirectory = env.CLAUDE_CONFIG_DIR || join(home, ".claude");
+	const legacy = join(configDirectory, ".config.json");
+	const suffix = env.CLAUDE_CODE_CUSTOM_OAUTH_URL ? "-custom-oauth" : "";
+	const statePath = existsSync(legacy) ? legacy : join(env.CLAUDE_CONFIG_DIR || home, `.claude${suffix}.json`);
+	const canonicalDirectory = (await realpath(cwd)).normalize("NFC");
+	if (existsSync(statePath)) {
+		const state: NativeState = JSON.parse(await readFile(statePath, "utf8"));
+		if (state.projects?.[canonicalDirectory]?.hasTrustDialogAccepted === true) return;
+	}
+	await mkdir(dirname(statePath), { recursive: true, mode: 0o700 });
+	const release = await lock(statePath, {
+		lockfilePath: `${statePath}.lock`,
+		realpath: false,
+		retries: { retries: 80, minTimeout: 25, maxTimeout: 250 },
+	});
+	let temporary: string | undefined;
+	try {
+		const exists = existsSync(statePath);
+		const file = exists ? await realpath(statePath) : statePath;
+		const state: NativeState = exists ? JSON.parse(await readFile(file, "utf8")) : {};
+		const project = state.projects?.[canonicalDirectory];
+		if (project?.hasTrustDialogAccepted === true) return;
+		state.projects = { ...state.projects, [canonicalDirectory]: { ...project, hasTrustDialogAccepted: true } };
+		const mode = exists ? (await stat(file)).mode & 0o777 : 0o600;
+		temporary = join(dirname(file), `.trellis-claude-trust-${randomUUID()}`);
+		await writeFile(temporary, JSON.stringify(state, null, 2), { flag: "wx", mode });
+		await chmod(temporary, mode);
+		await rename(temporary, file);
+	} finally {
+		try {
+			if (temporary) await rm(temporary, { force: true });
+		} finally {
+			await release();
+		}
+	}
+}

@@ -3,6 +3,7 @@ import { link, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/p
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkOpenCodeVersion } from "./checkOpenCodeVersion.ts";
+import { claudeTrust } from "./claudeTrust.ts";
 import { providers } from "./providers.ts";
 import { resolveExecutable } from "./resolveExecutable.ts";
 import type { HarnessDescriptor, HarnessHostOptions, HarnessStartInput } from "./types.ts";
@@ -44,6 +45,7 @@ export async function prepareAttempt(
 	}
 	const executable = await resolveExecutable(input.harness, env.PATH ?? "");
 	if (input.harness === "opencode") await checkOpenCodeVersion(executable, input.cwd, env);
+	if (input.harness === "claude") await claudeTrust(input.cwd, env);
 	await mkdir(directory, { recursive: true, mode: 0o700 });
 	const hookCommand = `${quote(options.bun)} ${quote(fileURLToPath(new URL("./hook.ts", import.meta.url)))}`;
 	const configDirectory = await mkdtemp(join(directory, "config-"));
