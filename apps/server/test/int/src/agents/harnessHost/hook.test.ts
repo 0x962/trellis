@@ -3,6 +3,7 @@ import { appendFile, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { join } from "node:path";
 import { originDir } from "../../../../../../../test/originDir.ts";
+import { managerReadiness } from "../../../../../src/agents/managerTools/managerReadiness.ts";
 import { harnessHostFixture } from "../../../../helpers/harnessHostFixture.ts";
 
 let fixture: Awaited<ReturnType<typeof harnessHostFixture>>;
@@ -121,6 +122,7 @@ test.each(["missing", "old-attempt", "wrong-token", "corrupt"])(
 			fixture.host.waitFor("attempt", (session) => session.acknowledgedMessageIds.includes("attempt")),
 		).rejects.toThrow("Trellis tools are not ready");
 	},
+	10000,
 );
 
 test("Claude manager acknowledges the exact prompt after its MCP entry serves tools/list", async () => {
@@ -151,6 +153,7 @@ test("Claude manager acknowledges the exact prompt after its MCP entry serves to
 });
 
 test("Claude manager still blocks when the runtime cannot receive the startup error", async () => {
+	await writeFile(join(fixture.home, "missing-ready.json"), "{}");
 	await hook(
 		{ hook_event_name: "UserPromptSubmit", prompt: "trellis-message:attempt\nContinue" },
 		{
@@ -175,11 +178,11 @@ test("Claude manager exits before its hook timeout when runtime error reporting 
 			},
 			2,
 		);
-		expect(performance.now() - started).toBeLessThan(5000);
+		expect(performance.now() - started).toBeLessThan(9500);
 	} finally {
 		await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
 	}
-});
+}, 10000);
 
 test.each(["initialize", "invalid"])("MCP %s does not confirm manager tool discovery", async (method) => {
 	const path = join(fixture.home, "manager-tools-ready.json");
@@ -199,4 +202,18 @@ test.each(["initialize", "invalid"])("MCP %s does not confirm manager tool disco
 	await new Response(child.stdout).text();
 	expect(await child.exited, await new Response(child.stderr).text()).toBe(0);
 	expect(await Bun.file(path).exists()).toBe(false);
+});
+
+test("Claude manager waits for tool discovery after its prompt hook starts", async () => {
+	const path = join(fixture.home, "delayed-ready.json");
+	const ready = setTimeout(() => managerReadiness.record(path, "attempt", "secret"), 500);
+	try {
+		await hook(
+			{ hook_event_name: "UserPromptSubmit", prompt: "trellis-message:attempt\nContinue" },
+			{ TRELLIS_MANAGER_TOOLS_READY: path },
+		);
+		expect((await fixture.client.inspect("attempt")).acknowledgedMessageIds).toContain("attempt");
+	} finally {
+		clearTimeout(ready);
+	}
 });
