@@ -88,7 +88,8 @@ Claude hooks, the OpenCode plugin, and the Pi extension report provider identity
 Codex runs one private app-server per attempt. Its native terminal and Trellis event client connect to that engine.
 The Codex adapter maps native thread, turn, tool, result, and error events into the runtime journal.
 Every built-in start waits for the initial native prompt receipt. Each follow-up requires an idle process and its own receipt.
-Agent shells inherit the desktop login environment without another login startup.
+The desktop starts HTTP before it resolves the login environment. Git, GitHub, and new agent launches await the cached environment in their server thread.
+A failed login shell returns a tool error. Existing agent controls use their saved launch environment.
 Each launch selects the active host release on PATH, including when the runtime predates that host.
 `HarnessHost` exposes start, resume, send, interrupt, stop, status, and output APIs for native agent assignments.
 Its immutable launch descriptors retain configuration. The runtime supplies process status and observed provider identity.

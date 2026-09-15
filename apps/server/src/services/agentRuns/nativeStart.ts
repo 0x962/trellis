@@ -10,6 +10,7 @@ import { customLaunch } from "../../agents/native/customLaunch.ts";
 import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
 import { nativeWorkspace } from "../../agents/native/workspace.ts";
 import { rows } from "../../db/queries/support.ts";
+import { executionEnvironment } from "../../executionEnvironment";
 import type { ExecutionAttempt } from "../assignments/attempts.ts";
 import type { ServiceCtx } from "../support.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
@@ -21,6 +22,7 @@ type Dependencies = {
 	workspace: typeof nativeWorkspace;
 	runtime: typeof ensureNativeRuntime;
 	env: Record<string, string | undefined>;
+	environment: () => Promise<NodeJS.ProcessEnv>;
 };
 export const startNative = async (
 	ctx: ServiceCtx & { localUrl: string },
@@ -49,6 +51,7 @@ export const startNative = async (
 	try {
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
+		const baseEnv = deps.env ?? (await (deps.environment ?? executionEnvironment)());
 		const workspaceId = await (deps.workspace ?? nativeWorkspace)(ctx.home, run, config.directory);
 		const owned = await ctx.newTx((tx) =>
 			rows<{ id: string }>(
@@ -58,9 +61,8 @@ export const startNative = async (
 		);
 		if (owned.length === 0) return { id: run.id };
 		await ctx.newTx(assertNativeWorkEnabled);
-		const client = await (deps.runtime ?? ensureNativeRuntime)(ctx.home);
 		const env = {
-			...(deps.env ?? process.env),
+			...baseEnv,
 			TRELLIS_URL: ctx.localUrl,
 			TRELLIS_ACTOR: `agent:${run.id}`,
 			TRELLIS_RUN_ID: run.id,
@@ -68,6 +70,7 @@ export const startNative = async (
 			TRELLIS_RUNTIME_HOME: join(ctx.home, "runtime"),
 			TRELLIS_ATTEMPT_TOKEN: input.attempt.token,
 		};
+		const client = await (deps.runtime ?? ensureNativeRuntime)(ctx.home);
 		const timeoutMs = input.deadlineAt === undefined ? undefined : input.deadlineAt - Date.now();
 		if (timeoutMs !== undefined && timeoutMs <= 0) throw new Error("The flow group deadline elapsed before launch");
 		let session: RuntimeProcessStatus;

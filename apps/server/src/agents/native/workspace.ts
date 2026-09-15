@@ -3,6 +3,7 @@ import { mkdir, realpath, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import type { AgentRun } from "@trellis/api";
+import { executionEnvironment } from "../../executionEnvironment";
 import { runBranch } from "../launchCommand/branch.ts";
 
 const exec = promisify(execFile);
@@ -21,6 +22,8 @@ export const nativeWorkspace = async (
 	if (run.kind === "manager") return source;
 	const destination = join(home, "agents", run.id, "work");
 	await mkdir(join(home, "agents", run.id), { recursive: true, mode: 0o700 });
-	await exec("git", ["-C", source, "worktree", "add", "-b", runBranch(run), destination, "HEAD"]);
+	await exec("git", ["-C", source, "worktree", "add", "-b", runBranch(run), destination, "HEAD"], {
+		env: await executionEnvironment(),
+	});
 	return destination;
 };
