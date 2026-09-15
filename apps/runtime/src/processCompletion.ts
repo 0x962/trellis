@@ -4,6 +4,7 @@ export function processCompletion(
 	unconfirmed: (error: Error) => void,
 ) {
 	let cleanupStarted = false;
+	let cleanupFailed = false;
 	let clean = false;
 	let streamsClosed = false;
 	let finished = false;
@@ -14,9 +15,10 @@ export function processCompletion(
 			exited(code);
 		}
 	};
-	const stop = () => {
+	const startCleanup = () => {
 		if (cleanupStarted || finished) return;
 		cleanupStarted = true;
+		cleanupFailed = false;
 		cleanup().then(
 			() => {
 				clean = true;
@@ -24,21 +26,24 @@ export function processCompletion(
 			},
 			(error: Error) => {
 				if (finished) return;
-				finished = true;
+				cleanupFailed = true;
 				unconfirmed(error);
 			},
 		);
 	};
 	return {
-		stop,
+		stop: () => {
+			if (cleanupFailed) cleanupStarted = false;
+			startCleanup();
+		},
 		leaderExited: (exitCode: number | null) => {
 			code = exitCode;
-			stop();
+			startCleanup();
 		},
 		closed: (exitCode: number | null) => {
 			code = exitCode;
 			streamsClosed = true;
-			stop();
+			startCleanup();
 			finish();
 		},
 		failed: () => {

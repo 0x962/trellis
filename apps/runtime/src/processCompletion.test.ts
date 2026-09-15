@@ -49,3 +49,25 @@ test("stop and exit share one cleanup", async () => {
 	expect(calls).toBe(1);
 	expect(exits).toEqual([null]);
 });
+
+test("an explicit stop can repeat failed cleanup and waits for stream closure", async () => {
+	let calls = 0;
+	const second = Promise.withResolvers<void>();
+	const errors: string[] = [];
+	const exits: (number | null)[] = [];
+	const lifecycle = processCompletion(
+		() => (++calls === 1 ? Promise.reject(new Error("spawnSync /bin/ps ETIMEDOUT")) : second.promise),
+		(code) => exits.push(code),
+		(error) => errors.push(error.message),
+	);
+	lifecycle.stop();
+	await Promise.resolve();
+	expect(errors).toEqual(["spawnSync /bin/ps ETIMEDOUT"]);
+	lifecycle.stop();
+	expect(calls).toBe(2);
+	second.resolve();
+	await second.promise;
+	expect(exits).toEqual([]);
+	lifecycle.closed(null);
+	expect(exits).toEqual([null]);
+});
