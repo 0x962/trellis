@@ -1,4 +1,4 @@
-import type { AgentRun, AgentRunListInput, AgentRunStartInput } from "@trellis/api";
+import type { AgentRun, AgentRunListInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
@@ -9,7 +9,7 @@ import { closeExitedAssignments } from "./closeExitedAssignments.ts";
 import { observeRuns } from "./liveState.ts";
 import { startNative } from "./nativeStart.ts";
 import { columns, getRun, type StoredRun } from "./queries.ts";
-import { reserve } from "./reserve.ts";
+import { reserve, type StartInput } from "./reserve.ts";
 
 type Ctx = ServiceCtx & { core: CoreCtx; localUrl: string };
 
@@ -30,7 +30,7 @@ export const prepareList = async (ctx: Ctx, input: AgentRunListInput) =>
 export const observeResult = async (ctx: Ctx, input: { id: string }) =>
 	(await observeRuns(ctx, [await ctx.newTx((tx) => getRun(tx, input.id))]))[0]!;
 
-export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
+export const prepareStart = async (ctx: Ctx, input: StartInput) => {
 	const sessions = await closeExitedAssignments(ctx);
 	const exited = sessions.filter((session) => session.status === "exited").map((session) => session.id);
 	const reservation = await ctx.newTx((tx) => reserve(ctx.core, tx, input, exited));

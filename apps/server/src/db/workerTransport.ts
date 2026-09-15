@@ -175,10 +175,14 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 		return gate.promise;
 	};
 
+	const inFlight = new Set<Promise<unknown>>();
+
 	const call = (name: ServiceName, ctx: RequestContext, input: unknown, timing?: DbTiming) => {
 		if (worker === null) return Promise.reject(new Error("the database worker is not running"));
 		const id = nextId++;
 		const promise = new Promise<unknown>((resolve, reject) => pending.set(id, { resolve, reject, timing }));
+		inFlight.add(promise);
+		promise.finally(() => inFlight.delete(promise)).catch(() => undefined);
 		const entry = services[name];
 		outgoing.push({
 			type: "call",
@@ -195,6 +199,10 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			queueMicrotask(flush);
 		}
 		return promise;
+	};
+
+	const settle = async () => {
+		await Promise.allSettled([...inFlight]);
 	};
 
 	// The worker drains the poller before it closes the database. This side
@@ -216,5 +224,5 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 		closed = null;
 	};
 
-	return { call, start, close };
+	return { call, start, close, settle };
 };

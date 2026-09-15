@@ -1,8 +1,15 @@
 import { useMutation } from "@tanstack/react-query";
-import { type Persona, type PersonaCreateInput, PersonaCreateInputSchema, type PersonaKind } from "@trellis/api";
+import {
+	type ColorToken,
+	type Persona,
+	type PersonaCreateInput,
+	PersonaCreateInputSchema,
+	type PersonaKind,
+} from "@trellis/api";
 import { Button, Input, Select, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
+import { colorTokens } from "../../../../../lib/colorTokens";
 import { personaKinds } from "../../kinds";
 
 type PersonaSheetProps = { persona?: Persona; kind: PersonaKind; onClose: () => void };
@@ -12,9 +19,11 @@ export function PersonaSheet({ persona, kind: initialKind, onClose }: PersonaShe
 	const nameRef = useRef<HTMLInputElement>(null);
 	const [name, setName] = useState(persona?.name ?? "");
 	const [kind, setKind] = useState(persona?.kind ?? initialKind);
+	const [color, setColor] = useState<ColorToken>(persona?.color ?? "accent");
+	const [description, setDescription] = useState(persona?.description ?? "");
 	const [instruction, setInstruction] = useState(persona?.instruction ?? "");
 	const [confirmDelete, setConfirmDelete] = useState(false);
-	const input = PersonaCreateInputSchema.safeParse({ name, kind, instruction });
+	const input = PersonaCreateInputSchema.safeParse({ name, kind, color, description, instruction });
 	const saved = async () => {
 		await queryClient.invalidateQueries({ queryKey: orpc.personas.list.key() });
 		onClose();
@@ -27,7 +36,12 @@ export function PersonaSheet({ persona, kind: initialKind, onClose }: PersonaShe
 	const remove = useMutation({ mutationFn: () => client.personas.delete({ id: persona!.id }), onSuccess: saved });
 	const pending = save.isPending || remove.isPending;
 	const dirty =
-		persona !== undefined && (name !== persona.name || kind !== persona.kind || instruction !== persona.instruction);
+		persona !== undefined &&
+		(name !== persona.name ||
+			kind !== persona.kind ||
+			color !== persona.color ||
+			description !== persona.description ||
+			instruction !== persona.instruction);
 
 	return (
 		<Sheet
@@ -68,6 +82,27 @@ export function PersonaSheet({ persona, kind: initialKind, onClose }: PersonaShe
 							className="w-full pointer-coarse:h-11"
 						/>
 						<p className="text-xs text-fg-faint">{personaKinds.find((item) => item.value === kind)!.description}</p>
+					</div>
+					<Input
+						label="Description"
+						autoComplete="off"
+						maxLength={2000}
+						disabled={pending}
+						value={description}
+						onChange={(event) => setDescription(event.target.value)}
+						placeholder="One line that says what this persona does."
+						className="pointer-coarse:h-11"
+					/>
+					<div className="flex flex-col items-start gap-2">
+						<span className="text-sm text-fg-muted">Color</span>
+						<Select
+							label="Color"
+							items={colorTokens}
+							value={color}
+							onValueChange={setColor}
+							disabled={pending}
+							className="w-full pointer-coarse:h-11"
+						/>
 					</div>
 					<Textarea
 						label="Instruction"

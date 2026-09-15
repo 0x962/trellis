@@ -164,8 +164,8 @@ Read the [implementation status](desktop/implementation-status.md), [desktop pla
 
 ## Domain rules
 
-Personas are local records shared across projects. Each persona has a name and
-an instruction, and a kind: builder, reviewer, or manager. The AI section of the
+Personas are local records shared across projects. Each persona has a name, an
+instruction, a color, a description, and a kind: builder, reviewer, or manager. The AI section of the
 sidebar opens the Personas page at `/ai/personas`, with cards grouped by kind and
 a slideout to create, edit, and delete these records. The API exposes
 `personas.list`, `personas.create`, `personas.update`, and `personas.delete`.
@@ -173,7 +173,11 @@ There is no route that reads one persona, so a client reads the list and matches
 on the id or the name. `personas.list` sorts by name, then id. The
 `personas.changed` event invalidates the cached persona list after a committed
 mutation. A persona name holds 120 characters and an instruction holds 200,000
-characters. Both fields are required and neither may be blank. A persona that
+characters. Both fields are required and neither may be blank. A description
+holds 2000 characters and is optional; a card with no description shows the
+instruction. A color is a palette token name from `packages/ui`, never a raw
+color value, so one name draws right in light and dark mode. The default is
+accent, and a CHECK keeps a direct write inside that set. A persona that
 existed before the kind column takes the reviewer kind. A create without a kind
 takes builder. A delete keeps the snapshots of the runs that used the persona.
 
@@ -270,6 +274,23 @@ A failed launch retains its error. A stop retains the workspace and output after
 The concurrency limit counts ticket assignments with `closed_at IS NULL`. It excludes the manager.
 A confirmed process exit closes its assignment before the next claim.
 The limit runs from 1 to 64 and defaults to 3. A partial unique index permits one active manager per project.
+
+A comment by a human that holds `@<persona slug>` mentions a persona.
+A comment by an agent or by trellis runs no mention, so two agents cannot send each other text with no end.
+The slug is the persona name in lower case, with each run of other characters as one dash, so "Feature Builder" answers to `@feature-builder`.
+A mention of a persona with no open assignment on the ticket starts that persona there, with the comment text in the launch prompt.
+A mention of a persona with an open assignment sends the comment text to the terminal of the newest one.
+When the runtime cannot take the text, trellis says so.
+Two mentions that arrive at the same time can both find no open assignment, and then both start a run, as two assignments can.
+The text is cut to 20,000 characters, the cap of the follow-up route.
+Inline code, a fenced block, an indented code block, and a URL hold no mention, so a comment that writes about a mention starts no agent.
+A fence may open after quote markers and a list marker, and a fence with no closing line holds code to the end of the body.
+A quoted line outside a fence still holds a mention.
+The run a mention starts is the whole record of that mention. Its start request identifier names the comment and the persona, so a repeated call starts no second run.
+An edit to a comment runs no mention, because an edit that launches an agent surprises the person who edits.
+The comment answers before its agents launch.
+When two personas share a slug, or a rule refuses the start, trellis replies as `system:trellis` in the thread of the comment that holds the mention, and names the reason.
+The manager learns of the comment through its normal ticket events.
 
 ### Manager controller
 
@@ -439,7 +460,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | activity | id bigint IDENTITY PK, batch_id, root_id (CASCADE), project_id (CASCADE), ticket_id (CASCADE), actor_name, actor_kind, action, field, from_value, to_value, meta jsonb, created_at. FK to actors. CHECK `field <> 'description' OR (from_value IS NULL AND to_value IS NULL)`. Indexes (ticket_id, id), (ticket_id, created_at DESC, id DESC), (root_id, id), (project_id, id), (created_at). |
 | actors | name (CHECK 1 to 64, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
 | settings | key PK, value jsonb, updated_at. |
-| personas | id PK, name (CHECK 1 to 120, not blank), kind (CHECK builder, reviewer, or manager; default reviewer), instruction (CHECK 1 to 200000, not blank), created_at, updated_at. |
+| personas | id PK, name (CHECK 1 to 120, not blank), kind (CHECK builder, reviewer, or manager; default reviewer), color (CHECK the eight palette tokens; default accent), description (CHECK up to 2000; default empty), instruction (CHECK 1 to 200000, not blank), created_at, updated_at. |
 | flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), version (CHECK > 0), created_at, updated_at. |
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |

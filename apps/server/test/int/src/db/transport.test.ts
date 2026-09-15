@@ -186,7 +186,8 @@ describe("inline transport", () => {
 		expect(typeof checked.call).toBe("function");
 		expect(typeof checked.start).toBe("function");
 		expect(typeof checked.close).toBe("function");
-		expect(Object.keys(checked).sort()).toEqual(["call", "close", "start"]);
+		expect(typeof checked.settle).toBe("function");
+		expect(Object.keys(checked).sort()).toEqual(["call", "close", "settle", "start"]);
 	});
 
 	test("a service query through the given tx never deadlocks", async () => {

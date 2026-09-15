@@ -23,7 +23,12 @@ export const managerRowOf = async (tx: Tx, projectId: string) =>
 		)
 	).at(0);
 
-export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, confirmedExited: string[] = []) => {
+// `note` is the text of the comment that mentioned this persona. The
+// mention path puts it in the launch prompt, so the agent reads it as it
+// starts and no follow-up races the startup.
+export type StartInput = AgentRunStartInput & { note?: string };
+
+export const reserve = async (ctx: CoreCtx, tx: Tx, input: StartInput, confirmedExited: string[] = []) => {
 	const actor = requireActor(ctx);
 	const [persona] = await rows<Persona>(
 		tx,
@@ -117,6 +122,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 		ticket === null
 			? `Project: ${projectPath}\nEffective statuses:\n${JSON.stringify(ctx.cache.effectiveStatuses(project.id).statuses)}`
 			: `Ticket: ${ticket.identifier}: ${ticket.title}\nProject: ${projectPath}\n\n${ticket.description}\n\nRead the current ticket, comments, and linked pull requests before you act.\nUse trellis brief ${ticket.identifier} for the full task context.`;
+	const note = input.note === undefined ? "" : `\n\nA comment on this ticket mentioned you:\n\n${input.note}`;
 	return {
 		replay: false as const,
 		run,
@@ -125,6 +131,6 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 		config,
 		resume,
 		previousAttemptId,
-		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || (ticket === null ? "Not configured" : "Use the agent workspace.")}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}`,
+		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || (ticket === null ? "Not configured" : "Use the agent workspace.")}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}${note}`,
 	};
 };

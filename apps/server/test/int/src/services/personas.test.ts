@@ -55,12 +55,25 @@ describe("personas", () => {
 		expect(changed).toEqual({
 			...change,
 			kind: first.kind,
+			color: first.color,
+			description: first.description,
 			createdAt: first.createdAt,
 			updatedAt: secondsAfter(60).toISOString(),
 		});
 		const listed = await h.run((ctx, tx) => personas.list(ctx, tx, {}));
 		expect(listed).toHaveLength(2);
 		expect(listed).toEqual(expect.arrayContaining([changed, second]));
+		await h.read(assertStatusInvariant);
+	});
+
+	test("the database refuses a color outside the palette", async () => {
+		const created = await h.run((ctx, tx) => personas.create(ctx, tx, { name: "Plain", instruction: "Work." }));
+		// personas.list parses every row against one schema, so one row outside
+		// the palette would take the whole response down, not one card.
+		expect(
+			h.run((_ctx, tx) => tx.execute(sql`UPDATE personas SET color = 'purple' WHERE id = ${created.id}`)),
+		).rejects.toThrow(/personas_color_check/);
+		expect((await h.run((ctx, tx) => personas.list(ctx, tx, {})))[0]).toMatchObject({ color: "accent" });
 		await h.read(assertStatusInvariant);
 	});
 

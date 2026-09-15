@@ -54,3 +54,48 @@ describe("persona kinds and deletion", () => {
 		expect((await t.api(`/api/personas/${created.id}`, { method: "DELETE" })).status).toBe(404);
 	});
 });
+
+describe("persona color and description", () => {
+	test("a persona keeps its color and description through create, update, and a fresh read", async () => {
+		const created = await t.api("/api/personas", {
+			method: "POST",
+			body: {
+				name: "Docs writer",
+				kind: "builder",
+				color: "agent",
+				description: "  Writes the reference pages.  ",
+				instruction: "Write the docs.",
+			},
+		});
+		expect(created.status).toBe(201);
+		expect(created.body).toMatchObject({ color: "agent", description: "Writes the reference pages." });
+		const changed = await t.client.personas.update({
+			id: created.body.id,
+			name: "Docs writer",
+			color: "success",
+			description: "",
+			instruction: "Write the docs.",
+		});
+		expect(changed).toMatchObject({ color: "success", description: "" });
+		expect(await t.client.personas.list({})).toContainEqual(changed);
+	});
+
+	test("a persona without a color takes accent and an empty description", async () => {
+		const created = await t.client.personas.create({ name: "Plain", instruction: "Work." });
+		expect(created).toMatchObject({ color: "accent", description: "" });
+	});
+
+	test("a raw color value and an oversized description are refused", async () => {
+		const before = await t.client.personas.list({});
+		for (const body of [
+			{ name: "Bad", instruction: "Work.", color: "#ff0000" },
+			{ name: "Bad", instruction: "Work.", color: "purple" },
+			{ name: "Bad", instruction: "Work.", description: "d".repeat(2001) },
+		]) {
+			const response = await t.api("/api/personas", { method: "POST", body });
+			expect(response.status).toBe(400);
+			expect(response.body.code).toBe("INPUT_VALIDATION_FAILED");
+		}
+		expect(await t.client.personas.list({})).toEqual(before);
+	});
+});

@@ -71,7 +71,9 @@ export function PersonasPage() {
 														<EntityCard
 															key={persona.id}
 															title={persona.name}
-															description={persona.instruction}
+															// A persona with no description shows its instruction, so the
+															// card never stands empty.
+															description={persona.description || persona.instruction}
 															onEdit={() => setEditor({ persona, kind: persona.kind })}
 														/>
 													))}

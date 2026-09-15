@@ -3,6 +3,7 @@ import type { ColorToken, Reviewer, Status } from "@trellis/api";
 import { Button, Checkbox, Input, Menu, Select, StatusIcon, Textarea } from "@trellis/ui";
 import { type FormEvent, useId, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { colorTokens, colorTokenText } from "../../../lib/colorTokens";
 import { formatCount } from "../../../lib/format";
 
 export type StatusRowProps = {
@@ -20,32 +21,10 @@ export type StatusRowProps = {
 	onDelete: (status: Status) => void;
 };
 
-const colors: { value: ColorToken; label: string }[] = [
-	{ value: "fg", label: "Foreground" },
-	{ value: "fg-muted", label: "Muted" },
-	{ value: "fg-faint", label: "Faint" },
-	{ value: "accent", label: "Accent" },
-	{ value: "agent", label: "Agent" },
-	{ value: "success", label: "Success" },
-	{ value: "warning", label: "Warning" },
-	{ value: "danger", label: "Danger" },
-];
-
 const reviewers: { value: Reviewer; label: string }[] = [
 	{ value: "agent", label: "Agent" },
 	{ value: "human", label: "Human" },
 ];
-
-const iconColors: Record<ColorToken, string> = {
-	fg: "!text-fg",
-	"fg-muted": "!text-fg-muted",
-	"fg-faint": "!text-fg-faint",
-	accent: "!text-accent",
-	agent: "!text-agent",
-	success: "!text-success",
-	warning: "!text-warning",
-	danger: "!text-danger",
-};
 
 type StatusEditorProps = Pick<StatusRowProps, "project" | "status" | "onChanged" | "onCancel">;
 
@@ -100,7 +79,7 @@ function StatusEditor({ project, status, onChanged, onCancel }: StatusEditorProp
 					</span>
 					<Select
 						label={`Color for ${status.name}`}
-						items={colors}
+						items={colorTokens}
 						value={color}
 						onValueChange={setColor}
 						className="h-8"
@@ -205,7 +184,7 @@ export function StatusRow({
 				<StatusIcon
 					category={status.category}
 					reviewer={status.reviewer ?? undefined}
-					className={iconColors[status.color]}
+					className={colorTokenText[status.color]}
 				/>
 			</span>
 			<span className="status-row-copy">

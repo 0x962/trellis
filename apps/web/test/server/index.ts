@@ -98,6 +98,7 @@ const actorHeader = (ctx: RequestContext) =>
 const recording = (inner: ServiceTransport, calls: Call[], hooks: Hooks): ServiceTransport => ({
 	start: inner.start,
 	close: inner.close,
+	settle: inner.settle,
 	call: async (name, ctx, input, timing) => {
 		calls.push({ path: name.split("."), input, actor: actorHeader(ctx) });
 		const hold = hooks.takeHold(name);

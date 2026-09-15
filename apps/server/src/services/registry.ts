@@ -3,6 +3,7 @@ import * as actors from "./actors.ts";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
+import * as agentMentions from "./agentRuns/mentions.ts";
 import { readNativeWork, setNativeWork } from "./agentRuns/nativeControl.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
@@ -155,6 +156,7 @@ export const services = {
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
 	"agentRuns.start": agentMutation(agentRuns.prepareStart),
+	"agentRuns.mention": prepared("mutation", agentMentions.prepareMention, agentMentions.mention),
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
 	"personas.list": core("read", personas.list),
