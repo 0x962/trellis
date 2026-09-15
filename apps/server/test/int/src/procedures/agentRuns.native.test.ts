@@ -115,7 +115,7 @@ test("native agents use an isolated Git worktree and retain output after stop", 
 	expect(await t.client.system.stopNativeWork({})).toEqual({ stopped: 1 });
 	expect((await t.client.projects.get({ project: "NAT" })).managerConfig?.dispatchPaused).toBe(true);
 	expect(
-		await t.serverTx(
+		await t.editServerTx(
 			async (tx) =>
 				(await tx.execute(sql`SELECT closed_at IS NOT NULL AS closed FROM agent_runs WHERE id=${run.id}`)).rows[0],
 		),
