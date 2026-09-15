@@ -5,7 +5,8 @@ Native ticket work and native flows use these services without a Superset host, 
 The first target is macOS. The package tests use Apple Silicon.
 
 The branch is `trellis-readiness-audit`. The starting revision is `3cd9e78d56365e0b349880ba659f0d55e06c7129`.
-All acceptance jobs use scratch repositories and data homes. No existing project has migrated, and no production service has changed.
+All acceptance jobs use scratch repositories and data homes. No existing project has migrated.
+The local desktop package was replaced and reopened with its existing data directory.
 
 ## Implemented paths
 
@@ -24,6 +25,7 @@ All acceptance jobs use scratch repositories and data homes. No existing project
 | Migration | Offline home copy, incomplete-copy boot guard, preserved source, archived rollback, and versioned project configuration changes |
 | App replacement | Complete resource versions remain outside the app bundle; incompatible protocols retain the previous host |
 
+The [directory and title bar report](acceptance/2026-09-14-directory/report.md) records the selected-home tests and local app replacement.
 The [Superset study](superset-research.md) records the source investigation.
 The [desktop acceptance report](acceptance/2026-09-14-desktop/report.md) includes package logs and inspected browser screenshots.
 The [full server log](acceptance/2026-09-14-desktop/trellis-server-final-tests.log) records all 1,173 integration results.
@@ -97,10 +99,16 @@ The app test uses its packaged archive, a separate service identifier, and a scr
 ## Use and migration
 
 Build and package commands live in [the desktop README](../../apps/desktop/README.md).
-The development command accepts an explicit scratch home. Packaged service registration uses the desktop application data directory.
+The development command accepts an explicit scratch home. The packaged app and service share a persisted data directory choice.
 Close or quit detaches the UI and leaves background work active.
 Use the native stop action to pause dispatch, stop known local processes, and remove the background service.
 An unknown process blocks a successful stop.
+
+File > Choose data directory opens an existing home in place.
+The confirmation shows both directories, the backup path, and the service changes.
+The handoff checks the standalone service PID and configured home before it disables that service.
+It backs up the database before migrations and pauses automation while it preserves external agent records.
+The native macOS controls sit in the app title bar.
 
 Import requires a stopped source and an empty, separate target.
 Review the preview before the import. The source version must still match when the copy starts.

@@ -63,7 +63,11 @@ of a ticket agent under `work/`, and `output.txt` after a stop. The port is 4521
 
 ## Desktop execution
 
-The macOS app uses a separate host data directory under its application data directory.
+The macOS app stores its profile in `~/Library/Application Support/Trellis`.
+Its default database directory is `host` under that profile.
+File > Choose data directory selects an existing home in place.
+The app and Swift helper read the same `selected-home.json` file in the profile.
+The selection resolves to an absolute path and persists across restarts.
 Its Swift helper registers through `SMAppService` and starts the bundled host through launchd.
 The host keeps its port across restarts, so the renderer retains its origin.
 Close or quit detaches the window. The background host and agent processes continue.
@@ -102,9 +106,17 @@ Gate results use complete YES or NO responses. Skipped branches remain explicit,
 Group deadlines also reach the runtime process, so they remain effective after a host crash.
 Cancellation retains files and output and records any worker whose stop remains unconfirmed.
 
-The desktop retains each host resource version under its application data directory, beside the host data directory.
+The desktop retains each host resource version under `releases` in its application data directory.
 An application replacement can reuse that version while its runtime owns active sessions.
 The update status blocks an incompatible runtime protocol and retains the prior host until work stops.
+
+A directory handoff verifies the recorded owner against the standalone launchd service.
+After confirmation, it disables that service and waits for the owner to exit.
+The offline helper holds the database and runtime locks before it copies the database into `backups/desktop-handoff-<id>`.
+It then applies schema migrations. It pauses automation in one transaction.
+External agent records retain their states. External clients need the desktop bearer token to update tickets.
+An incomplete handoff marker blocks startup until the retained backup and operation state receive review.
+The previous desktop home retains its files when the selected home changes.
 
 `trellis home-import` previews and copies an offline data home into a separate empty directory.
 The copy starts with automation paused and repository trust disabled. Its source stays unchanged.

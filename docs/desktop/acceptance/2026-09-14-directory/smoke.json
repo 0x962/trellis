@@ -1,0 +1,17 @@
+{
+	"workerDatabase": "pass",
+	"authenticatedHost": "pass",
+	"rendererAssets": "pass",
+	"bundledCli": "pass",
+	"bundledPty": "pass",
+	"bundledProcessOwnership": "pass",
+	"ptySurvivesHostRestart": "pass",
+	"stableRendererOrigin": "pass",
+	"build": {
+		"bun": "1.3.13",
+		"node": "26.8.2",
+		"platform": "darwin",
+		"arch": "arm64",
+		"packages": 61
+	}
+}

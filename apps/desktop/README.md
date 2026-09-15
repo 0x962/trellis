@@ -12,9 +12,13 @@ bun run --cwd apps/desktop build
 TRELLIS_DESKTOP_HOME=/tmp/trellis-desktop-dev bun run --cwd apps/desktop dev
 ```
 
-In development, `TRELLIS_DESKTOP_HOME` selects the host data directory. Packaged service registration uses the fixed application data directory. The default is `~/Library/Application Support/Trellis/host`. Trellis sets its data directory before it requests the single-instance lock. This release does not import `~/.trellis` automatically.
+In development, `TRELLIS_DESKTOP_HOME` selects the host data directory. The packaged app stores its profile in `~/Library/Application Support/Trellis`. Its default database directory is `host` under that profile. Trellis sets its profile directory before it requests the single-instance lock.
 
-On first launch, choose New Trellis data or Import existing Trellis data. The import preview shows the source and target paths, file size, ticket counts, and active work blockers. Stop the source host before you import. Trellis requests confirmation before it copies the reviewed source version.
+Use **File > Choose data directory** to select an existing home in place. The app and background helper read `selected-home.json` in the profile. The confirmation shows both directories and the backup path. A matching standalone service stops and stays disabled before the desktop opens its database.
+
+The handoff backs up the database before schema migrations. It pauses automation and keeps external agent records intact. External clients need the desktop access token to update tickets. Both data directories retain their files.
+
+On first launch, choose New Trellis data, Use existing directory, or Import a copy. The import preview shows the source and target paths, file size, ticket counts, and active work blockers. Stop the source host before you import. Trellis requests confirmation before it copies the reviewed source version.
 
 The imported data starts with local work paused and repositories untrusted. Workspace paths still point to their original folders. The import keeps a copy of the files in the new home. If an import fails, the app retains its target and shows an exact command to archive it before another import.
 
@@ -40,7 +44,7 @@ bun run --cwd apps/desktop smoke
 bun run --cwd apps/desktop package
 ```
 
-The staging step copies the server, database worker, migrations, PGlite assets, CLI, web assets, and execution runtime. It includes Bun and Node binaries for the build machine's architecture. The package records a SHA-256 hash for the complete dependency tree, binaries, and relative links. Before host launch, Trellis copies that release into the `releases` directory beside its `host` data directory. Host processes use these retained files. Links cannot point outside the release.
+The staging step copies the server, database worker, migrations, PGlite assets, CLI, web assets, and execution runtime. It includes Bun and Node binaries for the build machine's architecture. The package records a SHA-256 hash for the complete dependency tree, binaries, and relative links. Before host launch, Trellis copies that release into the profile’s `releases` directory. Host processes use these retained files. Links cannot point outside the release.
 
 `smoke` copies the full package into a temporary directory outside the repository. It opens a fresh database and tests authenticated HTTP, web assets, the bundled CLI, the native PTY, and process ownership calls. It also restarts the host and checks that the same PTY remains active.
 
@@ -70,7 +74,7 @@ To verify actual Electron startup with an isolated service and data home:
 TRELLIS_DESKTOP_PREVIEW_APP="$PWD/apps/desktop/release/mac-arm64/Trellis.app" bun test apps/desktop/test/int/src/preview/preview.test.ts
 ```
 
-The test copies the app and uses a unique service label. It redirects the production data path to a scratch directory before any directory creation. It also disables protocol registration and answers only the fixture's two startup prompts. It verifies renderer load and removes the temporary service.
+The test copies the app and uses a unique service label. It redirects the production data path to a scratch directory before any directory creation. It disables protocol registration and answers the fixture's native dialogs. It verifies new data and an existing project in a selected directory. It checks the native title bar and removes the temporary service.
 
 ## Manual app replacement
 

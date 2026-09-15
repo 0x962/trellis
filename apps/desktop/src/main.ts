@@ -1,20 +1,23 @@
 import { join } from "node:path";
 import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from "electron";
+import { chooseDataHome } from "./chooseDataHome/chooseDataHome.ts";
 import { configureDesktopIdentity } from "./desktopIdentity/desktopIdentity.ts";
 import { desktopPaths } from "./desktopPaths/desktopPaths.ts";
 import { adoptHost, connectHost, type HostConnection } from "./host/host.ts";
 import { deepLinkPath, externalUrl, sameOrigin } from "./navigation/navigation.ts";
 import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResources.ts";
 import { prepareHome } from "./prepareHome/prepareHome.ts";
+import { readConfiguredHome, readSelectedHome } from "./selectedHome/selectedHome.ts";
 import { requireService, resumeLocalWork, showServiceStatus, stopLocalWork } from "./serviceActions/serviceActions.ts";
 import { showUpdateStatus } from "./updateActions/updateActions.ts";
 import { readUpdateStatus } from "./updateStatus/updateStatus.ts";
+import { windowOptions } from "./windowOptions/windowOptions.ts";
 
 let window: BrowserWindow | undefined;
 let host: HostConnection;
 let availableRelease: PinnedRelease | undefined;
 let pendingPath = "/";
-const desktopHome = () => process.env.TRELLIS_DESKTOP_HOME ?? join(app.getPath("userData"), "host");
+const desktopHome = () => process.env.TRELLIS_DESKTOP_HOME ?? readSelectedHome(app.getPath("userData"));
 const paths = () => desktopPaths(app.getAppPath(), process.resourcesPath, app.isPackaged);
 
 const openWindow = async () => {
@@ -30,6 +33,7 @@ const openWindow = async () => {
 		minHeight: 650,
 		show: false,
 		title: "Trellis",
+		...windowOptions(process.platform),
 		webPreferences: {
 			preload: paths().preload,
 			contextIsolation: true,
@@ -54,6 +58,19 @@ const openWindow = async () => {
 	await window.loadURL(`${host.origin}${pendingPath}`);
 };
 
+const chooseHome = (current = desktopHome()) =>
+	chooseDataHome({
+		current,
+		userData: app.getPath("userData"),
+		host,
+		helper: paths().helper,
+		resources: paths().hostRoot,
+		relaunch: () => {
+			app.relaunch();
+			app.exit();
+		},
+	});
+
 const connect = async () => {
 	const hostRoot = paths().hostRoot;
 	if (app.isPackaged) {
@@ -65,6 +82,7 @@ const connect = async () => {
 			{ home: desktopHome(), resources: hostRoot },
 			{
 				message: (options) => dialog.showMessageBox(options),
+				useExisting: () => chooseHome(),
 				chooseSource: async () => {
 					const source = await dialog.showOpenDialog({
 						title: "Choose a stopped Trellis data home",
@@ -78,7 +96,7 @@ const connect = async () => {
 			app.quit();
 			return;
 		}
-		availableRelease = await pinResources(hostRoot, desktopHome());
+		availableRelease = await pinResources(hostRoot, app.getPath("userData"));
 		await requireService(paths().helper, desktopHome());
 		host = await adoptHost(desktopHome());
 		if ((await readUpdateStatus(desktopHome(), availableRelease)).state === "blocked")
@@ -198,6 +216,8 @@ else {
 						label: "File",
 						submenu: [
 							{ label: "Open Trellis", accelerator: "Cmd+N", click: () => void openWindow() },
+							{ label: "Choose data directory…", enabled: app.isPackaged, click: () => void chooseHome() },
+							{ label: "Show data directory", click: () => void shell.openPath(desktopHome()) },
 							{ role: "close" },
 						],
 					},
@@ -233,8 +253,22 @@ else {
 			);
 			await openWindow();
 		})
-		.catch((error: Error) => {
-			dialog.showErrorBox("Trellis cannot start", error.message);
+		.catch(async (error: Error) => {
+			const { response } = await dialog.showMessageBox({
+				type: "error",
+				message: "Trellis cannot start",
+				detail: error.message,
+				buttons: app.isPackaged ? ["Quit", "Choose data directory…"] : ["Quit"],
+				defaultId: 0,
+				cancelId: 0,
+			});
+			if (response === 1) {
+				try {
+					await chooseHome(readConfiguredHome(app.getPath("userData")));
+				} catch (selectionError) {
+					dialog.showErrorBox("The saved data directory needs attention", (selectionError as Error).message);
+				}
+			}
 			app.quit();
 		});
 }
