@@ -3,7 +3,7 @@ import { get, put } from "./api";
 
 const actorName = "dana";
 
-type Settings = { defaultActorName: string; stalledHours: number };
+type Settings = { defaultActorName: string };
 
 // The localStorage key and value the setup name step writes
 // (src/lib/actor.ts). The init script runs before any page script, so the

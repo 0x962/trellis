@@ -7,7 +7,7 @@ import { API_VERSION, type RequestContext, SYSTEM_ACTOR, systemContext } from ".
 import type { Bus } from "../events/bus.ts";
 import type { GhRunner } from "../gh/run.ts";
 import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs } from "../jobs.ts";
-import type { DbTiming } from "../serverTiming.ts";
+import { type DbTiming, LONG_TRANSACTION_MS } from "../serverTiming.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcAttachmentBlobs } from "../services/attachments.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
@@ -51,7 +51,18 @@ export type TransportStart = { applied: number; liveShas: string[] };
 
 export type JobsStart = { clockRate: number; log: JobsLog };
 
-export type InlineTransportOptions = { db: Db; bus: Bus; config: Config; runtime: Runtime; applied?: number };
+// `log` receives the `long transaction` lines. A transport without it, as in
+// most tests, writes none. `longTransactionMs` is LONG_TRANSACTION_MS unless
+// a test sets it.
+export type InlineTransportOptions = {
+	db: Db;
+	bus: Bus;
+	config: Config;
+	runtime: Runtime;
+	applied?: number;
+	log?: JobsLog;
+	longTransactionMs?: number;
+};
 
 export type InlineTransport = ServiceTransport;
 
@@ -59,12 +70,20 @@ export type WorkerTransportOptions = { bus: Bus; config: Config; runtime: Runtim
 
 const MB = 1024 * 1024;
 
+// Two clock readings of one service call, from `performance.now()`. 0 means
+// the call has not reached that point.
+type Span = { opened: number; locked: number };
+
+const roundMs = (ms: number) => Math.round(ms * 10) / 10;
+
 export const createInlineTransport = ({
 	db,
 	bus,
 	config,
 	runtime,
 	applied = 0,
+	log = () => undefined,
+	longTransactionMs = LONG_TRANSACTION_MS,
 }: InlineTransportOptions): InlineTransport => {
 	const cache = createCache();
 	const actorCache = new Map<string, number>();
@@ -97,7 +116,6 @@ export const createInlineTransport = ({
 		apiVersion: API_VERSION,
 		bootId: runtime.bootId,
 		now: () => ctx.now,
-		gh: runtime.gh,
 		ghStatus: runtime.ghStatus,
 		addresses: runtime.addresses,
 		emit,
@@ -112,39 +130,45 @@ export const createInlineTransport = ({
 		vacuum: () => createMaintenance(db).runNow(),
 	});
 
-	const buildCtx = (entry: ServiceEntry, ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => {
-		if (entry.family === "core") return coreCtx(ctx, emit, tasks);
-		return ioCtx(ctx, emit, tasks);
-	};
-
-	// A `prepare` step runs first, with no transaction open. The commit comes
-	// next, then the work queued for after it, then the events. A throw rolls
-	// back the transaction of `run`, and none of its events reach the bus.
-	// The events of `prepare` describe writes that its own short transactions
-	// committed, so they reach the bus also when the call throws.
-	const run = async (entry: ServiceEntry, ctx: RequestContext, rawInput: unknown) => {
+	// A `prepare` step runs first, with no transaction open. Only its context
+	// carries the gh runner. The commit comes next, then the work queued for
+	// after it, then the events. A throw rolls back the transaction of `run`,
+	// and none of its events reach the bus. The events of `prepare` describe
+	// writes that its own short transactions committed, so they reach the bus
+	// also when the call throws.
+	// `span` records when the call asked for its transaction and when the
+	// transaction got the database lock. A transaction that holds the lock
+	// for `longTransactionMs` or more writes one log line with the service
+	// name, because every other call waited for it.
+	const run = async (name: ServiceName, ctx: RequestContext, rawInput: unknown, span: Span) => {
+		const entry: ServiceEntry = services[name];
 		const tasks: Array<() => Promise<void>> = [];
 		const early: TrellisEvent[] = [];
 		try {
 			if (entry.kind === "mutation" && "prepare" in entry) await newTx((tx) => assertCurrentAttempt(ctx, tx));
 			const input =
 				"prepare" in entry
-					? await entry.prepare(
-							buildCtx(entry, ctx, (event) => void early.push(event), tasks),
-							rawInput,
-						)
+					? await entry.prepare({ ...ioCtx(ctx, (event) => void early.push(event), tasks), gh: runtime.gh }, rawInput)
 					: rawInput;
+			span.opened = performance.now();
 			if ("stream" in entry) {
 				return pullStream((push) =>
 					withTx(db, async (tx, emit) => {
-						for await (const line of entry.stream(buildCtx(entry, ctx, emit, tasks), tx, input)) await push(line);
+						span.locked = performance.now();
+						for await (const line of entry.stream(ioCtx(ctx, emit, tasks), tx, input)) await push(line);
 					}).then(() => undefined),
 				);
 			}
 			const { result, events } = await withTx(db, async (tx, emit) => {
+				span.locked = performance.now();
 				if (entry.kind === "mutation") await assertCurrentAttempt(ctx, tx);
-				return entry.run(buildCtx(entry, ctx, emit, tasks), tx, input);
+				if (entry.family === "core") return entry.run(coreCtx(ctx, emit, tasks), tx, input);
+				return entry.run(ioCtx(ctx, emit, tasks), tx, input);
 			});
+			const heldMs = performance.now() - span.locked;
+			if (heldMs >= longTransactionMs) {
+				log("long transaction", { service: name, heldMs: roundMs(heldMs), lockMs: roundMs(span.locked - span.opened) });
+			}
 			for (const task of tasks) await task();
 			for (const event of [...early.splice(0), ...events]) bus.emit(event, ctx.actor);
 			return result;
@@ -154,12 +178,16 @@ export const createInlineTransport = ({
 		}
 	};
 
-	// The time covers the transaction and the after-commit work, and counts
-	// for a call that rejects as well.
+	// `timing` gains the wait for the lock, then the time from the lock to the
+	// end of the after-commit work. A call that rejects inside its transaction
+	// counts as well. A call that fails before its transaction opens counts
+	// nothing.
 	const call = (name: ServiceName, ctx: RequestContext, input: unknown, timing?: DbTiming) => {
-		const started = performance.now();
-		const promise = run(services[name], ctx, input).finally(() => {
-			if (timing !== undefined) timing.ms += performance.now() - started;
+		const span: Span = { opened: 0, locked: 0 };
+		const promise = run(name, ctx, input, span).finally(() => {
+			if (timing === undefined || span.locked === 0) return;
+			timing.lockMs += span.locked - span.opened;
+			timing.ms += performance.now() - span.locked;
 		});
 		inFlight.add(promise);
 		promise.finally(() => inFlight.delete(promise)).catch(() => undefined);

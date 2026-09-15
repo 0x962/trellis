@@ -1,6 +1,6 @@
 # trellis
 
-![The Needs you page in dark theme, with a review queue and a failing CI section](docs/images/needs-you.png)
+![The Needs you page in dark theme, with the page title over an empty body](docs/images/needs-you.png)
 
 ## What it is
 
@@ -10,7 +10,7 @@ trellis is a local ticket tracker for work that humans give to coding agents. On
 - comments and attachments
 - linked pull requests and their CI results
 
-Agents use the `trellis` CLI or the HTTP API. Each write records the name of the actor that made it. You use the desktop app, the web app, or the mobile app on your phone. The Needs you page shows the tickets that wait for a human: reviews, failing CI, and stalled work. An agent can move a ticket to review. Only a human can move a ticket to Done.
+Agents use the `trellis` CLI or the HTTP API. Each write records the name of the actor that made it. You use the desktop app, the web app, or the mobile app on your phone. An agent can move a ticket to review. Only a human can move a ticket to Done.
 
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the stack, the domain rules, the schema, and the API.
 
@@ -91,7 +91,7 @@ the project tree, and the AI section with the Personas page.
 
 | Path | Page |
 |---|---|
-| `/needs-you` | Needs you: review, failing CI, stalled, and done today |
+| `/needs-you` | Needs you: the page title over an empty body |
 | `/all` | Every ticket as a board |
 | `/all/table` | Every ticket as a table |
 | `/p/TRL` | The board of a project, which is the view a project opens in |
@@ -323,7 +323,6 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 | `trellis search` | Search tickets. |
 | `trellis activity` | List ticket activity. |
 | `trellis brief` | Print an agent brief. |
-| `trellis inbox` | Show work that needs a human. |
 | `trellis watch` | Stream events. |
 | `trellis open` | Print or open a ticket URL. |
 | `trellis whoami` | Show how the CLI chose the actor. |
@@ -345,7 +344,6 @@ section into the URL hash, and Account carries no hash.
 | Hash | Section | Contents |
 |---|---|---|
 | none | Account | Your name and the theme |
-| `#agents` | Agents | The stalled threshold |
 | `#integrations` | Integrations | The gh state, the diff URL template, and Pair a phone |
 
 A setting that belongs to one project lives on that project's pages.

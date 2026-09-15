@@ -54,6 +54,17 @@ describe("request id and cors", () => {
 		expect(line?.reqId).toBe(reqId);
 	});
 
+	test("a procedure request line carries its queue, lock, and database time", async () => {
+		const response = await t.api("/api/health");
+
+		const line = t.records.find(
+			(entry) => entry.msg === "request" && entry.reqId === response.headers.get("x-request-id"),
+		);
+		expect(line?.dbMs).toBeGreaterThan(0);
+		expect(line?.lockMs).toBeGreaterThanOrEqual(0);
+		expect(line?.queueMs).toBeGreaterThanOrEqual(0);
+	});
+
 	test("cors allows the two development origins", async () => {
 		for (const origin of ["http://localhost:5173", "http://trellis.localhost"]) {
 			const response = await t.api("/api/health", { headers: { origin } });

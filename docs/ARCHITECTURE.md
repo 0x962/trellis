@@ -266,8 +266,7 @@ The heartbeat asks the manager to follow its current persona and status descript
 A host interruption changes an unfinished send to `unknown`.
 A durable receipt can confirm the original delivery. An explicit resend uses a new generation and message identifier.
 
-The Needs you page shows review, failing CI, stalled work, and work completed by agents today.
-It also shows manager deliveries that require attention. Ticket status changes use the status picker.
+The Needs you page shows its title over an empty body. Ticket status changes use the status picker.
 
 ### Flows
 
@@ -326,7 +325,7 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | route | file | page |
 |---|---|---|
 | `/` | `index.tsx` | a replace redirect to `/needs-you` |
-| `/needs-you` | `needs-you/route.tsx` | review, failing CI, stalled, and done today |
+| `/needs-you` | `needs-you/route.tsx` | the page title over an empty body |
 | `/all` | `all/route.tsx` | every ticket as a board |
 | `/all/table` | `all_.table.tsx` | every ticket as a table |
 | `/p/$` | `p/$/route.tsx` | a project as a board, a table, its settings, or its manager |
@@ -366,11 +365,11 @@ time. The first section of each page carries no hash.
 
 | page | sections |
 |---|---|
-| `/settings` | Account (no hash), `#agents`, `#integrations` |
+| `/settings` | Account (no hash), `#integrations` |
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
-`/settings` holds the actor name, theme, stalled threshold, GitHub state, phone pair code, drafts, and runtime diagnostics.
+`/settings` holds the actor name, theme, GitHub state, phone pair code, drafts, and runtime diagnostics.
 The Manager page holds the manager persona, repository directory, trust, dispatch state, concurrency limit, and harness commands.
 It writes `projects.managerConfig` through `projects.update`.
 
@@ -453,7 +452,7 @@ returns one canonical spelling.
 
 | procedure | route | notes |
 |---|---|---|
-| projects.list | GET /api/projects | flat list with path, depth, open count, and needs-you count |
+| projects.list | GET /api/projects | flat list with path, depth, and open count |
 | projects.get | GET /api/projects/{project} | ancestors, children, repos, effective statuses, ticket template |
 | projects.create | POST /api/projects | 201 and `Location`; a root needs a key, a child rejects one |
 | projects.update | PATCH /api/projects/{project} | name, slug, description, ticket template, archived |
@@ -484,11 +483,10 @@ returns one canonical spelling.
 | agentRuns.stop, refresh, send | POST /api/agent-runs/{id}/stop, /refresh, /send | send takes 1 to 20000 characters |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
 | search.query | GET /api/search | tickets and projects |
-| inbox.get | GET /api/inbox | `{review, failingCi, stalled, doneByAgentsToday}` |
 | brief.get | GET /api/tickets/{ticket}/brief | the markdown brief an agent starts from |
 | actors.list, default | GET /api/actors, /api/actors/default | |
 | settings.get, set | GET, PUT /api/settings | |
-| system.health, gh, backup | GET /api/health, /api/gh; POST /api/backup | |
+| system.health, gh, checkGh, backup | GET /api/health, /api/gh; POST /api/gh/check, /api/backup | gh and checkGh run in the HTTP process, not the database worker |
 | system.chooseDirectory | POST /api/choose-directory | it opens the folder picker of the server computer |
 | export | GET /api/export | a Hono route, not a contract procedure: an NDJSON stream with `Content-Disposition: attachment` |
 
@@ -565,7 +563,7 @@ parameter takes a name or a `prefix.*` form.
 
 The client rule is patch first and invalidate rarely, in
 `packages/api/src/query-keys.ts`. A `ticket.*` event patches every cached list,
-board, inbox, search, and detail entry that holds the id. A patch applies per
+board, search, and detail entry that holds the id. A patch applies per
 entry only when `incoming.version > entry.version`, and then sets the entry
 version. A queued or in-flight refetch never blocks a patch.
 
@@ -577,8 +575,7 @@ order after it settles.
 
 Invalidation happens only when membership or order can change: status, project,
 priority, parent, completed, create, and delete. It runs through a coalescer
-with a 250 ms trailing delay and a 1 s maximum. Inbox invalidation is debounced
-by 1 s. A mutation writes its response with `setQueryData` and invalidates on an
+with a 250 ms trailing delay and a 1 s maximum. A mutation writes its response with `setQueryData` and invalidates on an
 error only. SSE-patched entities use `staleTime: Infinity`, and a `reset` or a
 reconnect invalidates everything.
 
@@ -689,6 +686,13 @@ migration diff. It runs no performance test.
 
 These budgets shape the design. The database worker keeps the synchronous WASM
 execution of PGlite off the thread that serves HTTP, SSE, gh pipes, and uploads.
+PGlite has one lock, so one slow transaction makes every other call wait. A
+service runs gh only in its `prepare` step, before its transaction opens. The
+context of a transaction has no gh runner, so a gh call there fails the
+typecheck. `system.gh` and `system.checkGh` run in the HTTP process and never
+reach the worker. The server logs `long transaction` with the service name
+when a transaction holds the lock for 250 ms or more. Server-Timing and the
+request log split the database time into `queue`, `lock`, and `db`.
 A search request carries a client id, and a newer request drops a superseded one
 before it runs. Lists carry `TicketSummary` and never the description. The board
 and the counts replace a total and a large limit. Events patch first and carry a

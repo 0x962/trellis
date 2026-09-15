@@ -8,7 +8,7 @@ import { projectSlashPath } from "../../../lib/projectPath";
 
 const labels = { pending: "Queued", sending: "Send in progress", sent: "Written to agent", unknown: "Receipt unknown" };
 
-export function ManagerQueue({ projectId, attentionOnly = false }: { projectId?: string; attentionOnly?: boolean }) {
+export function ManagerQueue({ projectId }: { projectId?: string }) {
 	const { client, orpc, queryClient } = useApp();
 	const queue = useQuery({
 		...orpc.controller.list.queryOptions({ input: { projectId } }),
@@ -28,11 +28,10 @@ export function ManagerQueue({ projectId, attentionOnly = false }: { projectId?:
 		},
 		onError: (error) => toast.error("Could not update the manager queue", { description: error.message }),
 	});
-	const rows = queue.data?.filter((row) => !attentionOnly || row.state === "unknown" || row.error !== null) ?? [];
-	if (attentionOnly && !queue.isPending && !queue.isError && rows.length === 0) return null;
+	const rows = queue.data ?? [];
 	return (
-		<section aria-label={attentionOnly ? "Manager needs attention" : "Manager queue"} className="flex flex-col gap-3">
-			<h2 className="text-base font-medium">{attentionOnly ? "Manager needs attention" : "Manager queue"}</h2>
+		<section aria-label="Manager queue" className="flex flex-col gap-3">
+			<h2 className="text-base font-medium">Manager queue</h2>
 			{queue.isPending && (
 				<p role="status" className="text-sm text-fg-muted">
 					Load the manager queue…

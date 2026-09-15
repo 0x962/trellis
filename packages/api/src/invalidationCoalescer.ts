@@ -4,12 +4,9 @@ import type { Scheduler } from "./scheduler.ts";
 
 // A flush runs `trailingMs` after the last queued invalidation. It runs at
 // most `maxWaitMs` after the first one, so a constant event stream still
-// refetches. The general queue flushes at 250 ms and at most 1 s. The inbox
-// queue is slower: its query runs four sections, so it debounces 1 s.
+// refetches. The queue flushes at 250 ms and at most 1 s.
 export const TRAILING_MS = 250;
 export const MAX_WAIT_MS = 1000;
-export const INBOX_TRAILING_MS = 1000;
-export const INBOX_MAX_WAIT_MS = 4000;
 
 export type CoalescerTiming = { trailingMs: number; maxWaitMs: number };
 

@@ -12,6 +12,7 @@ import {
 	type ServiceTransport,
 } from "../../../../src/db/transport.ts";
 import { createBus } from "../../../../src/events/bus.ts";
+import { createDbTiming } from "../../../../src/serverTiming.ts";
 import { noGh, signedInGh } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
@@ -56,6 +57,69 @@ const ctx = (): RequestContext => ({
 
 const count = async (table: string) =>
 	(await h.db.execute(sql`SELECT count(*)::int AS n FROM ${sql.identifier(table)}`)).rows[0]!.n as number;
+
+// An inline transport that sends its log lines to `lines`. The start runs
+// `evidence.recover`, so the lines of the start are cleared.
+const loggingTransport = async (lines: Array<{ msg: string; fields?: Record<string, unknown> }>, limit?: number) => {
+	const logged = createInlineTransport({
+		db: h.db,
+		bus,
+		config: loadConfig({ TRELLIS_HOME: freshHomeWithDirs(), TRELLIS_DB_INLINE: "true" }),
+		runtime: {
+			version: "0.1.0-test",
+			bootId: ulid(),
+			gh: noGh,
+			ghStatus: signedInGh,
+			addresses: async () => ["http://127.0.0.1:4521"],
+		},
+		log: (msg, fields) => void lines.push({ msg, fields }),
+		longTransactionMs: limit,
+	});
+	await logged.start();
+	lines.length = 0;
+	return logged;
+};
+
+describe("database timing", () => {
+	test("a call that waits for the database lock counts the wait as lock and not as db", async () => {
+		const locked = Promise.withResolvers<void>();
+		const holder = h.db.transaction(async () => {
+			locked.resolve();
+			await Bun.sleep(300);
+		});
+		await locked.promise;
+		const timing = createDbTiming();
+
+		await transport.call("projects.list", ctx(), {}, timing);
+		await holder;
+
+		expect(timing.lockMs).toBeGreaterThanOrEqual(250);
+		expect(timing.ms).toBeLessThan(250);
+	});
+
+	test("a transaction that holds the lock for the limit or more logs the service name", async () => {
+		const lines: Array<{ msg: string; fields?: Record<string, unknown> }> = [];
+		const logged = await loggingTransport(lines, 0);
+
+		await logged.call("projects.list", ctx(), {});
+
+		expect(lines).toEqual([
+			{
+				msg: "long transaction",
+				fields: { service: "projects.list", heldMs: expect.any(Number), lockMs: expect.any(Number) },
+			},
+		]);
+	});
+
+	test("a transaction under the default limit logs nothing", async () => {
+		const lines: Array<{ msg: string; fields?: Record<string, unknown> }> = [];
+		const logged = await loggingTransport(lines);
+
+		await logged.call("projects.list", ctx(), {});
+
+		expect(lines).toEqual([]);
+	});
+});
 
 describe("inline transport", () => {
 	test("the inline transport runs a service in one transaction", async () => {

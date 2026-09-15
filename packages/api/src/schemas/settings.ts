@@ -1,10 +1,7 @@
 import { z } from "zod";
 
-// `stalledHours` is how long a started ticket may sit without activity
-// before Needs you lists it.
 export const SettingsSchema = z.object({
 	defaultActorName: z.string().max(64),
-	stalledHours: z.number().positive(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 

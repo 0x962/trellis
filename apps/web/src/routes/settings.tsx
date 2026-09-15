@@ -6,16 +6,15 @@ import { Diagnostics } from "../features/settings/Diagnostics";
 import { DraftTransfer } from "../features/settings/DraftTransfer";
 import { GhBanner } from "../features/settings/GhBanner";
 import { PairPhone } from "../features/settings/PairPhone";
-import { StalledThresholdField } from "../features/settings/StalledThresholdField";
 import { ThemeField } from "../features/settings/ThemeField";
 import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
 import { type DesktopBridge, desktopSettingsBridge } from "../lib/desktopBridge";
 
-// Who you are, how the app looks, when a ticket counts as stalled, whether gh
-// is available, and how a phone reaches the server. Inside the macOS app, the
-// Desktop section also holds the data directory, the background service, the
-// update status, and the local work actions.
+// Who you are, how the app looks, whether gh is available, and how a phone
+// reaches the server. Inside the macOS app, the Desktop section also holds
+// the data directory, the background service, the update status, and the
+// local work actions.
 // Each setting here holds for the whole machine. A setting that belongs to one
 // project, such as its manager persona, its Superset host, and its agent
 // switch, lives on that project's Manager page.
@@ -53,12 +52,6 @@ const sections: SettingsSection[] = [
 				<ThemeField />
 			</>
 		),
-	},
-	{
-		id: "agents",
-		title: "Agents",
-		hint: "Choose when a ticket counts as stalled. Each project picks its own ADE and manager on its Manager page.",
-		rows: <StalledThresholdField />,
 	},
 	{
 		id: "drafts",
