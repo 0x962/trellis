@@ -30,10 +30,8 @@ describe("contract", () => {
 		expect(table).toEqual([
 			"actors.default GET /actors/default",
 			"actors.list GET /actors",
-			"agentRuns.harness GET /agent-runs/{id}/harness",
 			"agentRuns.list GET /agent-runs",
 			"agentRuns.output GET /agent-runs/{id}/output",
-			"agentRuns.permission POST /agent-runs/{id}/permission",
 			"agentRuns.refresh POST /agent-runs/{id}/refresh",
 			"agentRuns.resize POST /agent-runs/{id}/terminal/resize",
 			"agentRuns.send POST /agent-runs/{id}/send",
@@ -142,7 +140,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(113);
+		expect(table).toHaveLength(111);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has
