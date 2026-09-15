@@ -51,7 +51,7 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		const project = await seedRoot(tx, "EVD");
 		await tx.execute(
-			sql`INSERT INTO agent_runs (id, name, runtime, persona_name, kind, instruction, project_id, project_path, state, workspace_id, terminal_id, created_at, updated_at) VALUES (${runId}, 'Fixture', 'native', 'Builder', 'builder', '', ${project}, 'evd', 'running', ${workspace}, ${randomUUID()}, now(), now())`,
+			sql`INSERT INTO agent_runs (id, name, runtime, persona_name, kind, instruction, project_id, project_path, workspace_id, terminal_id, created_at, updated_at) VALUES (${runId}, 'Fixture', 'native', 'Builder', 'builder', '', ${project}, 'evd', ${workspace}, ${randomUUID()}, now(), now())`,
 		);
 	});
 	await h.rebuild();

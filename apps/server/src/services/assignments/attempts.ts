@@ -22,15 +22,16 @@ export const reserveAttempt = async (ctx: Pick<RequestContext, "now">, tx: Tx, i
 
 export const assertCurrentAttempt = async (ctx: Pick<RequestContext, "actor" | "attemptToken">, tx: Tx) => {
 	if (ctx.actor?.kind !== "agent") return;
-	const [attempt] = await rows<{ token_hash: string; state: string }>(
+	const [attempt] = await rows<{ token_hash: string; closed_at: string | null; terminal_id: string; id: string }>(
 		tx,
-		sql`SELECT a.token_hash, r.state FROM agent_execution_attempts a JOIN agent_runs r ON r.id = a.run_id
+		sql`SELECT a.token_hash, r.closed_at, r.terminal_id, a.id FROM agent_execution_attempts a JOIN agent_runs r ON r.id = a.run_id
 		WHERE a.run_id = ${ctx.actor.name} ORDER BY a.generation DESC LIMIT 1`,
 	);
 	if (!attempt) return;
 	if (
 		!ctx.attemptToken ||
-		!["starting", "running"].includes(attempt.state) ||
+		attempt.closed_at !== null ||
+		attempt.terminal_id !== attempt.id ||
 		!timingSafeEqual(Buffer.from(attempt.token_hash, "hex"), Buffer.from(tokenHash(ctx.attemptToken), "hex"))
 	)
 		throw invalidInput("attempt", "This agent execution attempt cannot change Trellis. Use the current attempt token.");

@@ -1,4 +1,3 @@
-import type { AgentRun } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
@@ -6,7 +5,7 @@ import { rows } from "../../db/queries/support.ts";
 import type { ServiceCtx } from "../support.ts";
 import { setNativeWork } from "./nativeControl.ts";
 import { stopNative } from "./nativeLifecycle.ts";
-import { columns } from "./queries.ts";
+import { columns, type StoredRun } from "./queries.ts";
 
 export const stopNativeWork = async (ctx: ServiceCtx & { core: CoreCtx }) => {
 	const runs = await ctx.newTx(async (tx) => {
@@ -17,10 +16,7 @@ export const stopNativeWork = async (ctx: ServiceCtx & { core: CoreCtx }) => {
 		);
 		await ctx.core.cache.rebuild(tx);
 		for (const project of projects) ctx.emit({ type: "project.updated", id: project.id });
-		return rows<AgentRun>(
-			tx,
-			sql`SELECT ${columns} FROM agent_runs WHERE runtime = 'native' AND state IN ('starting', 'running', 'interrupted')`,
-		);
+		return rows<StoredRun>(tx, sql`SELECT ${columns} FROM agent_runs WHERE runtime = 'native' AND closed_at IS NULL`);
 	});
 	for (const run of runs) await stopNative(ctx, run);
 	const client = await ensureNativeRuntime(ctx.home);

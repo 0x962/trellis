@@ -14,8 +14,6 @@ const readJournal = (dir: string) => JSON.parse(readFileSync(join(dir, "meta/_jo
 
 const tables = [
 	"agent_execution_attempts",
-	"agent_harness_observations",
-	"agent_harness_receipts",
 	"agent_start_requests",
 	"evidence_artifacts",
 	"evidence_checks",

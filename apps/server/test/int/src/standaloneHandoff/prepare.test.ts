@@ -24,7 +24,7 @@ test("handoff backs up original settings and preserves unresolved external runs 
 			sql`INSERT INTO settings (key,value,updated_at) VALUES ('agents','{"enabled":true,"runner":"superset","projects":[]}'::jsonb,now())`,
 		);
 		await initial.db.execute(
-			sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,state,runtime,workspace_id,session_id,created_at,updated_at) VALUES ('external','Keep','Keep','manager','',${project},'KEEP','running','superset','original-workspace','original-conversation',now(),now())`,
+			sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,closed_at,runtime,workspace_id,session_id,created_at,updated_at) VALUES ('external','Keep','Keep','manager','',${project},'KEEP',NULL,'superset','original-workspace','original-conversation',now(),now())`,
 		);
 		await initial.db.transaction(assertStatusInvariant);
 		await initial.close();
@@ -57,8 +57,8 @@ test("handoff backs up original settings and preserves unresolved external runs 
 				dispatchPaused: true,
 				trustedDirectory: false,
 			});
-			expect((await live.db.execute(sql`SELECT state,workspace_id,session_id FROM agent_runs`)).rows[0]).toEqual({
-				state: "running",
+			expect((await live.db.execute(sql`SELECT closed_at,workspace_id,session_id FROM agent_runs`)).rows[0]).toEqual({
+				closed_at: null,
 				workspace_id: "original-workspace",
 				session_id: "original-conversation",
 			});

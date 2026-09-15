@@ -16,8 +16,8 @@ beforeEach(async () => {
 	ticket = work.identifier;
 	runId = ulid();
 	await t.editServerTx(async (tx) => {
-		await tx.execute(sql`INSERT INTO agent_runs (id, name, runtime, persona_name, kind, instruction, project_id, project_path, ticket_id, state, created_at, updated_at)
-			VALUES (${runId}, 'Builder', 'native', 'Builder', 'builder', 'Build.', ${project.id}, 'TOK', ${work.id}, 'running', NOW(), NOW())`);
+		await tx.execute(sql`INSERT INTO agent_runs (id, name, runtime, persona_name, kind, instruction, project_id, project_path, ticket_id, created_at, updated_at)
+			VALUES (${runId}, 'Builder', 'native', 'Builder', 'builder', 'Build.', ${project.id}, 'TOK', ${work.id}, NOW(), NOW())`);
 		const attempt = await reserveAttempt({ now: new Date() }, tx, { runId });
 		token = attempt.token;
 		await tx.execute(sql`UPDATE agent_runs SET terminal_id = ${attempt.id} WHERE id = ${runId}`);

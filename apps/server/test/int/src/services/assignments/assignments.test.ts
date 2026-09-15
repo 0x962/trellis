@@ -95,7 +95,7 @@ test("a replacement manager attempt rejects the prior generation token", async (
 	).id;
 	const first = await h.run((ctx, tx) => reserve(ctx, tx, { personaId: managerId, project, requestId: "manager-one" }));
 	if (first.replay) throw new Error("Expected a new assignment");
-	await h.rows(sql`UPDATE agent_runs SET state = 'stopped' WHERE id = ${first.run.id}`);
+	await h.rows(sql`UPDATE agent_runs SET closed_at = now() WHERE id = ${first.run.id}`);
 	const second = await h.run((ctx, tx) =>
 		reserve(ctx, tx, { personaId: managerId, project, requestId: "manager-two" }),
 	);
@@ -117,4 +117,18 @@ test("human and untracked external agent sessions do not need an attempt token",
 	await h.read((tx) =>
 		assertCurrentAttempt({ actor: { kind: "agent", name: "external-session" }, attemptToken: null }, tx),
 	);
+});
+
+test("historical external manager metadata does not reserve a native manager slot", async () => {
+	const managerId = (
+		await h.run((ctx, tx) => personas.create(ctx, tx, { name: "Manager", kind: "manager", instruction: "Manage." }))
+	).id;
+	await h.rows(
+		sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,created_at,updated_at) VALUES ('external','Old manager','superset','Manager','manager','Manage',${project},'ASG',now(),now())`,
+	);
+	const current = await h.run((ctx, tx) =>
+		reserve(ctx, tx, { personaId: managerId, project, requestId: "native-manager" }),
+	);
+	expect(current.run.runtime).toBe("native");
+	expect(current.run.id).not.toBe("external");
 });

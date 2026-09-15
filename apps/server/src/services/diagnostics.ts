@@ -1,16 +1,20 @@
 import { join } from "node:path";
 import type { Diagnostics } from "@trellis/api";
-import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
+import { RUNTIME_PROTOCOL_VERSION, type RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { nativeClient } from "../agents/native/connection.ts";
 import { rows } from "../db/queries/support.ts";
+import { projectRun } from "./agentRuns/liveState.ts";
 import { readNativeWork } from "./agentRuns/nativeControl.ts";
+import { columns, type StoredRun } from "./agentRuns/queries.ts";
 import type { ServiceCtx } from "./support.ts";
 
 export const diagnostics = async (ctx: ServiceCtx): Promise<Diagnostics> => {
 	let runtime: Diagnostics["runtime"];
+	let sessions: RuntimeProcessStatus[] = [];
 	try {
 		const hello = await nativeClient(ctx.home).hello();
+		sessions = await nativeClient(ctx.home).list();
 		runtime = {
 			state: "running",
 			pid: hello.pid,
@@ -38,21 +42,24 @@ export const diagnostics = async (ctx: ServiceCtx): Promise<Diagnostics> => {
 			min(due_at) FILTER (WHERE state IN ('pending','sending','unknown')) AS "oldestDueAt"
 			FROM manager_dispatches`,
 		);
-		const [observations] = await rows<{ at: string | null }>(
+		const runs = await rows<StoredRun>(
 			tx,
-			sql`SELECT max(updated_at) AS at FROM agent_harness_observations`,
+			sql`SELECT ${columns} FROM agent_runs WHERE runtime='native' ORDER BY updated_at DESC LIMIT 100`,
 		);
-		const unresolvedAttempts = await rows<Diagnostics["unresolvedAttempts"][number]>(
-			tx,
-			sql`
-			SELECT id,state,error FROM agent_runs WHERE runtime='native' AND state IN ('interrupted','failed') ORDER BY updated_at DESC LIMIT 100`,
-		);
+		const unresolvedAttempts = runs
+			.map((run) => projectRun(run, sessions))
+			.filter((run) => ["interrupted", "failed"].includes(run.state))
+			.map(({ id, state, error }) => ({ id, state, error }));
 		return {
 			host: { bootId: ctx.bootId, version: ctx.version, home: ctx.home },
 			runtime,
 			...(await readNativeWork(tx)),
 			queue: queue!,
-			lastObservationAt: observations!.at,
+			lastObservationAt:
+				sessions
+					.map((session) => session.checkedAt)
+					.sort()
+					.at(-1) ?? null,
 			unresolvedAttempts,
 			logs: [join(ctx.home, "server.log"), join(ctx.home, "runtime", "runtime.log")],
 		};

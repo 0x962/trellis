@@ -168,16 +168,10 @@ export const createInlineTransport = ({
 
 	let jobs: Jobs | null = null;
 	let controller: ReturnType<typeof createController> | null = null;
-	let nativeReconcile: ReturnType<typeof startNativeReconcile> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
 	let reviewTimer: ReturnType<typeof setInterval> | undefined;
 	const start = async (options?: JobsStart) => {
 		await db.transaction((tx) => cache.rebuild(tx));
-		await db.transaction((tx) =>
-			tx.execute(
-				sql`UPDATE agent_runs SET state = 'interrupted', error = 'Trellis stopped during startup. Refresh the status to reconnect to the workspace.' WHERE state = 'starting'`,
-			),
-		);
 		await call("evidence.recover", systemContext(), {});
 		await warmWrites(db, cache);
 		const found = await db.execute(sql`SELECT DISTINCT sha256 FROM attachments`);
@@ -191,12 +185,6 @@ export const createInlineTransport = ({
 				void call("reviews.deliverPending", systemContext(), {});
 			}, 3000);
 			const clock = scaledClock(options.clockRate);
-			nativeReconcile = startNativeReconcile({
-				tick: () => call("agentRuns.reconcileNative", systemContext(), {}),
-				setTimer: clock.setTimer,
-				clearTimer: clock.clearTimer,
-				log: options.log,
-			});
 			flowReconcile = startNativeReconcile({
 				tick: () => call("flowExecutions.reconcile", systemContext(), {}),
 				setTimer: clock.setTimer,
@@ -217,7 +205,6 @@ export const createInlineTransport = ({
 	const close = async () => {
 		clearInterval(reviewTimer);
 		await controller?.stop();
-		await nativeReconcile?.stop();
 		await flowReconcile?.stop();
 		if (jobs !== null) await jobs.stop();
 		await Promise.allSettled([...inFlight]);

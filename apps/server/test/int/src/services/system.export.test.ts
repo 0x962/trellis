@@ -85,7 +85,7 @@ const seedEveryTable = async () => {
 		project_path: "CDE",
 		ticket_id: ticket,
 		ticket_identifier: "CDE-1",
-		state: "exited",
+		closed_at: new Date(),
 		created_at: new Date(),
 		updated_at: new Date(),
 	});

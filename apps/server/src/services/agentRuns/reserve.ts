@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AgentRun, AgentRunStartInput, Persona } from "@trellis/api";
+import type { AgentRunStartInput, Persona } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { type ServiceCtx as CoreCtx, requireActor } from "../../context.ts";
@@ -13,12 +13,12 @@ import { managerConfigOf, projectRow } from "../projectRows.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
 import { randomAgentName } from "./names.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
-import { columns } from "./queries.ts";
+import { columns, type StoredRun } from "./queries.ts";
 
 // The newest manager row is the current assignment; older rows retain their history.
 export const managerRowOf = async (tx: Tx, projectId: string) =>
 	(
-		await rows<AgentRun>(
+		await rows<StoredRun>(
 			tx,
 			sql`SELECT ${columns} FROM agent_runs WHERE project_id = ${projectId} AND kind = 'manager' ORDER BY created_at DESC, id DESC LIMIT 1`,
 		)
@@ -51,20 +51,13 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 	const replay = await replayRequest(ctx, tx, request);
 	if (replay) return { replay: true as const, run: replay };
 	assertProjectActive(ctx, project.id);
-	if (persona.kind === "manager") {
-		const [legacy] = await rows<{ id: string }>(
-			tx,
-			sql`SELECT id FROM agent_sessions WHERE project_id = ${project.id} AND role = 'manager' AND state IN ('starting', 'running', 'waiting') LIMIT 1`,
-		);
-		if (legacy !== undefined) throw fail("DUPLICATE", { field: "active manager" });
-	}
 	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
 	const config = managerConfigOf(await projectRow(tx, project.id));
 	await assertNativeWorkEnabled(tx);
 	if (ticket !== null) {
 		const [active] = await rows<{ count: number }>(
 			tx,
-			sql`SELECT count(*)::int AS count FROM agent_runs WHERE project_id = ${project.id} AND kind <> 'manager' AND state IN ('starting', 'running', 'interrupted')`,
+			sql`SELECT count(*)::int AS count FROM agent_runs WHERE project_id = ${project.id} AND kind <> 'manager' AND runtime = 'native' AND closed_at IS NULL`,
 		);
 		if (active!.count >= config.concurrency) throw fail("DUPLICATE", { field: "project concurrency limit" });
 	}
@@ -79,9 +72,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 	);
 	await upsert(ctx, tx, actor);
 	let existing = persona.kind === "manager" ? await managerRowOf(tx, project.id) : undefined;
-	if (existing?.state === "interrupted")
-		throw invalidInput("project", "Reconcile the interrupted manager before you start a replacement.");
-	if (existing !== undefined && (existing.state === "starting" || existing.state === "running"))
+	if (existing !== undefined && existing.runtime === "native" && existing.closedAt === null)
 		throw fail("DUPLICATE", { field: "active agent" });
 	if (existing && existing.runtime !== "native") existing = undefined;
 	const resume =
@@ -89,18 +80,18 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 	const sessionId = resume ? existing!.sessionId! : randomUUID();
 	const [run] =
 		existing === undefined
-			? await rows<AgentRun>(
+			? await rows<StoredRun>(
 					tx,
-					sql`INSERT INTO agent_runs (id, name, persona_id, persona_name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, runtime, state, session_id, created_at, updated_at)
-		VALUES (${ulid()}, ${randomAgentName()}, ${persona.id}, ${persona.name}, ${persona.kind}, ${persona.instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', 'starting', ${sessionId}, ${ctx.now}, ${ctx.now})
+					sql`INSERT INTO agent_runs (id, name, persona_id, persona_name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
+		VALUES (${ulid()}, ${randomAgentName()}, ${persona.id}, ${persona.name}, ${persona.kind}, ${persona.instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
 		ON CONFLICT DO NOTHING RETURNING ${columns}`,
 				)
 			: // A person can change the persona between two starts, so the row
 				// takes the current persona and its instruction. The error of the
 				// last start goes.
-				await rows<AgentRun>(
+				await rows<StoredRun>(
 					tx,
-					sql`UPDATE agent_runs SET state = 'starting', error = NULL, session_lost = false, session_id = ${sessionId},
+					sql`UPDATE agent_runs SET closed_at = NULL, error = NULL, session_lost = false, session_id = ${sessionId},
 			persona_id = ${persona.id}, persona_name = ${persona.name}, instruction = ${persona.instruction}, updated_at = ${ctx.now}
 			WHERE id = ${existing.id} RETURNING ${columns}`,
 				);

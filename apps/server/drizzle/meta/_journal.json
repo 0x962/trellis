@@ -239,6 +239,13 @@
       "when": 1789441318031,
       "tag": "0036_native_runtime_default",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1789490003565,
+      "tag": "0037_agent_assignment_closure",
+      "breakpoints": true
     }
   ]
 }

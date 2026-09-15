@@ -18,7 +18,7 @@ export const agentRuns = pgTable(
 		projectPath: text("project_path").notNull(),
 		ticketId: text("ticket_id").references(() => tickets.id, { onDelete: "set null" }),
 		ticketIdentifier: text("ticket_identifier"),
-		state: text().notNull(),
+		closedAt: at("closed_at"),
 		workspaceId: text("workspace_id"),
 		terminalId: text("terminal_id"),
 		url: text(),
@@ -34,18 +34,12 @@ export const agentRuns = pgTable(
 	},
 	(t) => [
 		check("agent_runs_kind_check", sql`${t.kind} IN ('builder', 'reviewer', 'manager')`),
-		check(
-			"agent_runs_state_check",
-			sql`${t.state} IN ('starting', 'interrupted', 'running', 'failed', 'stopped', 'exited')`,
-		),
 		// A ticket carries as many agents at once as the project concurrency
 		// limit allows, which agentRuns.reserve counts before every insert.
-		index("agent_runs_active_ticket_idx")
-			.on(t.ticketId)
-			.where(sql`${t.state} IN ('starting', 'interrupted', 'running')`),
+		index("agent_runs_active_ticket_idx").on(t.ticketId).where(sql`${t.runtime} = 'native' AND ${t.closedAt} IS NULL`),
 		uniqueIndex("agent_runs_active_manager_idx")
 			.on(t.projectId)
-			.where(sql`${t.kind} = 'manager' AND ${t.state} IN ('starting', 'interrupted', 'running')`),
+			.where(sql`${t.kind} = 'manager' AND ${t.runtime} = 'native' AND ${t.closedAt} IS NULL`),
 		index("agent_runs_created_at_idx").on(t.createdAt),
 	],
 );
