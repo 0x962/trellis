@@ -106,6 +106,12 @@ The app retains earlier releases. The release identity includes the desktop laun
 
 Runtime files stay outside the host database directory, so a database export does not include application binaries. A package replacement does not remove the files of an active runtime. The integration test removes the source app, retains a live PTY, starts another child with the pinned native modules, and restarts the host.
 
+### Fresh manager conversation
+
+Save your prompt changes. Open the project's Manager page. Select **Restart with new context** beside the process control. Confirm the restart. The manager starts a fresh conversation with the saved persona and project instructions. Existing workers keep their processes, and the manager keeps its workspace.
+
+Use **Resume manager** to continue the current conversation after a manual stop. A desktop app restart also preserves the current conversation.
+
 ## Release limits
 
 The detached development host has no crash supervisor. The packaged app requires its registered macOS service and does not start an unmanaged replacement.
