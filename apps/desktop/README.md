@@ -14,7 +14,7 @@ TRELLIS_DESKTOP_HOME=/tmp/trellis-desktop-dev bun run --cwd apps/desktop dev
 
 In development, `TRELLIS_DESKTOP_HOME` selects the host data directory. The packaged app stores its profile in `~/Library/Application Support/Trellis`. Its default database directory is `host` under that profile. Trellis sets its profile directory before it requests the single-instance lock.
 
-Use **File > Choose data directory** to select an existing home in place. The app and background helper read `selected-home.json` in the profile. The confirmation shows both directories and the backup path. A matching standalone service stops and stays disabled before the desktop opens its database.
+Use **Settings > Desktop > Choose data directory** to select an existing home in place. The app and background helper read `selected-home.json` in the profile. The confirmation shows both directories and the backup path. A matching standalone service stops and stays disabled before the desktop opens its database.
 
 The handoff backs up the database before schema migrations. It pauses automation and keeps external agent records intact. External clients need the desktop access token to update tickets. Both data directories retain their files.
 
@@ -24,13 +24,15 @@ The host keeps its selected port across restarts. This preserves the renderer or
 
 Close a window to detach its view. Quit Trellis to close the desktop process. Both actions keep the host and agents active. Use the Help menu to reconnect to the host or open its logs.
 
-The packaged app requests permission to enable its background service. `SMAppService` registers the bundled LaunchAgent. macOS starts it at login and restarts it after a crash. The Trellis menu shows its status and opens Login Items when approval is required. The separate Open Trellis at login option controls the desktop window.
+The Desktop section of the Settings page holds the data directory, Open Trellis at login, the background service status, the update status, and the local work actions. **Trellis > Settings…** (Command-comma) opens that section. The menus keep Open Trellis, Quit Trellis, and the Help items. The Help items work when the Settings page cannot load.
 
-Stop local work and background service pauses local dispatch, stops known local processes, and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Resume local work allows new local launches. Each project keeps its saved dispatch setting.
+The packaged app requests permission to enable its background service. `SMAppService` registers the bundled LaunchAgent. macOS starts it at login and restarts it after a crash. Settings > Desktop shows its status and opens Login Items when approval is required. The separate Open Trellis at login switch controls the desktop window.
+
+In Settings > Desktop, Stop local work and background service pauses local dispatch, stops known local processes, and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Resume local work allows new local launches. Each project keeps its saved dispatch setting.
 
 The helper reads the user login shell environment with a ten-second limit. It places the bundled executable directory first in PATH. Shell errors omit captured output because startup scripts can expose secrets.
 
-The preload bridge exposes only `trellisDesktop.chooseDirectory()`. The renderer uses a sandbox and context isolation. The desktop session adds the host token only to requests from its window to its exact host origin. The token does not enter the renderer.
+The preload bridge exposes `trellisDesktop.chooseDirectory()` and the Settings calls `status()`, `setOpenAtLogin()`, and `run()`. The main process accepts these calls only from its window at its host origin, and `run()` accepts only the named Settings actions. The renderer uses a sandbox and context isolation. The desktop session adds the host token only to requests from its window to its exact host origin. The token does not enter the renderer.
 
 `trellis://open/t/KEY-1` opens a ticket. External HTTP and HTTPS links open in the system browser.
 
@@ -76,7 +78,7 @@ The test copies the app and uses a unique service label. It redirects the produc
 
 ## Manual app replacement
 
-Use the Trellis menu to open Update status. Before you replace the app, use Stop local work and background service. Replace `Trellis.app`, reopen it, and enable its service. Resume local work when you want to permit new launches. Each project keeps its saved dispatch setting.
+Open Settings > Desktop to read the update status. Before you replace the app, use Stop local work and background service. Replace `Trellis.app`, reopen it, and enable its service. Resume local work when you want to permit new launches. Each project keeps its saved dispatch setting.
 
 The app retains earlier releases. A live execution service with a different protocol blocks the new host. The previous pinned host remains available to stop local work. An unknown service state also blocks activation.
 

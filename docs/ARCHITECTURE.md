@@ -64,7 +64,7 @@ The standalone port is 4521 (`TRELLIS_PORT`) and the host is `127.0.0.1` (`TRELL
 
 The macOS app stores its profile in `~/Library/Application Support/Trellis`.
 Its default database directory is `host` under that profile.
-File > Choose data directory selects an existing home in place.
+Settings > Desktop > Choose data directory selects an existing home in place.
 The app and Swift helper read the same `selected-home.json` file in the profile.
 The selection resolves to an absolute path and persists across restarts.
 Its Swift helper registers through `SMAppService` and starts the bundled host through launchd.

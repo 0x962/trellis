@@ -4,6 +4,8 @@ import { deepLinkPath, externalUrl, sameOrigin } from "./navigation.ts";
 test("deep links preserve ticket paths and reject credentials and unknown routes", () => {
 	expect(deepLinkPath("trellis://open/t/RDT-1")).toBe("/t/RDT-1");
 	expect(deepLinkPath("trellis://open/p/team?view=board")).toBe("/p/team?view=board");
+	expect(deepLinkPath("trellis://open/settings#desktop")).toBe("/settings#desktop");
+	expect(deepLinkPath("trellis://open/settings/extra")).toBeNull();
 	expect(deepLinkPath("trellis://user@open/t/RDT-1")).toBeNull();
 	expect(deepLinkPath("trellis://evil/t/RDT-1")).toBeNull();
 	expect(deepLinkPath("trellis://open/api/tickets")).toBeNull();

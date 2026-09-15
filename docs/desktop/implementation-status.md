@@ -63,7 +63,7 @@ Close or quit detaches the window and leaves background work active.
 Use the native stop action to pause dispatch, stop owned processes, and remove the background service.
 An unconfirmed process prevents a successful stop.
 
-Use File > Choose data directory to open an existing home in place.
+Use Settings > Desktop > Choose data directory to open an existing home in place.
 The confirmation shows both directories, the backup path, and the service changes.
 The handoff verifies the standalone service PID and configured home before it disables that service.
 It backs up the database before schema changes and pauses automation. Both directories retain their files.
@@ -79,4 +79,4 @@ VoiceOver, 200% zoom, and a full keyboard accessibility pass remain release chec
 The 24-hour unattended soak and a real PR with CI and Margin feedback remain unverified.
 
 Git and the selected agent executable remain local prerequisites. Model access follows the agent's account requirements.
-The app provides a manual replacement path through its Update status menu.
+The app provides a manual replacement path through the update status in Settings > Desktop.

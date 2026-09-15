@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
+import { DesktopSettings } from "../features/settings/DesktopSettings";
 import { Diagnostics } from "../features/settings/Diagnostics";
 import { DraftTransfer } from "../features/settings/DraftTransfer";
 import { GhBanner } from "../features/settings/GhBanner";
@@ -9,9 +10,12 @@ import { StalledThresholdField } from "../features/settings/StalledThresholdFiel
 import { ThemeField } from "../features/settings/ThemeField";
 import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
+import { type DesktopBridge, desktopSettingsBridge } from "../lib/desktopBridge";
 
 // Who you are, how the app looks, when a ticket counts as stalled, whether gh
-// is available, and how a phone reaches the server.
+// is available, and how a phone reaches the server. Inside the macOS app, the
+// Desktop section also holds the data directory, the background service, the
+// update status, and the local work actions.
 // Each setting here holds for the whole machine. A setting that belongs to one
 // project, such as its manager persona, its Superset host, and its agent
 // switch, lives on that project's Manager page.
@@ -75,9 +79,18 @@ const sections: SettingsSection[] = [
 	},
 ];
 
+const desktopSection = (bridge: DesktopBridge): SettingsSection => ({
+	id: "desktop",
+	title: "Desktop",
+	hint: "Choose the data directory, check the background service and the update, and stop or resume local work.",
+	rows: <DesktopSettings bridge={bridge} />,
+});
+
 function SettingsPage() {
 	const hash = useLocation({ select: (location) => location.hash });
-	const selected = sections.some((section) => section.id === hash) ? hash : "account";
+	const bridge = desktopSettingsBridge((window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop);
+	const pages = bridge ? [...sections, desktopSection(bridge)] : sections;
+	const selected = pages.some((section) => section.id === hash) ? hash : "account";
 	return (
 		<>
 			<Topbar>
@@ -87,7 +100,7 @@ function SettingsPage() {
 				<nav aria-label="Settings" className="project-settings-nav">
 					<p className="project-settings-nav-title">Settings</p>
 					<ul className="project-settings-nav-list">
-						{sections.map(({ id, title }) => (
+						{pages.map(({ id, title }) => (
 							<li key={id}>
 								<Link
 									to="/settings"
@@ -105,7 +118,7 @@ function SettingsPage() {
 					</ul>
 				</nav>
 				<div className="project-settings-content">
-					{sections.map(({ id, title, hint, rows }) => (
+					{pages.map(({ id, title, hint, rows }) => (
 						<div key={id} hidden={selected !== id} className="project-settings-page">
 							<section aria-label={title} className="project-settings-section">
 								<header className="project-settings-heading">

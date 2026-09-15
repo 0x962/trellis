@@ -1,16 +1,25 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from "electron";
+import { app, BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain, Menu, session, shell } from "electron";
+import { appMenu } from "./appMenu/appMenu.ts";
 import { chooseDataHome } from "./chooseDataHome/chooseDataHome.ts";
 import { configureDesktopIdentity } from "./desktopIdentity/desktopIdentity.ts";
 import { desktopPaths } from "./desktopPaths/desktopPaths.ts";
+import {
+	type DesktopAction,
+	type DesktopStatus,
+	parseDesktopAction,
+	parseOpenAtLogin,
+	updateSummary,
+} from "./desktopSettings/desktopSettings.ts";
 import { adoptHost, connectHost, type HostConnection } from "./host/host.ts";
 import { installCli } from "./installCli/installCli.ts";
 import { deepLinkPath, externalUrl, sameOrigin } from "./navigation/navigation.ts";
 import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResources.ts";
 import { prepareHome } from "./prepareHome/prepareHome.ts";
 import { readConfiguredHome, readSelectedHome } from "./selectedHome/selectedHome.ts";
-import { requireService, resumeLocalWork, showServiceStatus, stopLocalWork } from "./serviceActions/serviceActions.ts";
+import { openServiceSettings, serviceCommand } from "./service/service.ts";
+import { requireService, resumeLocalWork, stopLocalWork } from "./serviceActions/serviceActions.ts";
 import { showUpdateStatus } from "./updateActions/updateActions.ts";
 import { readUpdateStatus } from "./updateStatus/updateStatus.ts";
 import { windowOptions } from "./windowOptions/windowOptions.ts";
@@ -122,6 +131,52 @@ const navigate = async (url: string) => {
 	}
 };
 
+// Only the Trellis window, showing a page of its own host, may call the main process.
+const trustRenderer = (event: IpcMainInvokeEvent) => {
+	if (
+		!window ||
+		event.sender !== window.webContents ||
+		!event.senderFrame ||
+		!sameOrigin(event.senderFrame.url, host.origin)
+	)
+		throw new Error("Untrusted desktop request.");
+};
+
+// The development app has no background service helper and no pinned package.
+const requirePackaged = () => {
+	if (!app.isPackaged) throw new Error("The development app uses TRELLIS_DESKTOP_HOME and has no background service.");
+};
+
+const desktopStatus = async (): Promise<DesktopStatus> => ({
+	packaged: app.isPackaged,
+	dataDirectory: desktopHome(),
+	openAtLogin: app.getLoginItemSettings().openAtLogin,
+	service: app.isPackaged ? (await serviceCommand(paths().helper, "status")).status : null,
+	update: app.isPackaged ? updateSummary(await readUpdateStatus(desktopHome(), availableRelease!)) : null,
+});
+
+// Each action rejects with the message that the Settings page shows.
+const desktopActions: Record<DesktopAction, () => Promise<unknown>> = {
+	chooseDataDirectory: async () => {
+		requirePackaged();
+		await chooseHome();
+	},
+	showDataDirectory: () => shell.openPath(desktopHome()),
+	openServiceSettings: async () => {
+		requirePackaged();
+		await openServiceSettings(paths().helper);
+	},
+	stopLocalWork: async () => {
+		if (await stopLocalWork(host, desktopHome(), app.isPackaged ? paths().helper : undefined)) app.quit();
+	},
+	resumeLocalWork: () => resumeLocalWork(host),
+	reconnectHost: async () => {
+		await connect();
+		await window?.loadURL(`${host.origin}${pendingPath}`);
+	},
+	quit: async () => app.quit(),
+};
+
 configureDesktopIdentity(app);
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
@@ -151,106 +206,38 @@ else {
 				callback({ requestHeaders: details.requestHeaders });
 			});
 			ipcMain.handle("trellis:choose-directory", async (event) => {
-				if (
-					!window ||
-					event.sender !== window.webContents ||
-					!event.senderFrame ||
-					!sameOrigin(event.senderFrame.url, host.origin)
-				)
-					throw new Error("Untrusted desktop request.");
-				const result = await dialog.showOpenDialog(window, { properties: ["openDirectory"] });
+				trustRenderer(event);
+				const result = await dialog.showOpenDialog(window!, { properties: ["openDirectory"] });
 				return result.canceled ? null : result.filePaths[0];
+			});
+			ipcMain.handle("trellis:desktop-status", (event) => {
+				trustRenderer(event);
+				return desktopStatus();
+			});
+			ipcMain.handle("trellis:set-open-at-login", (event, enabled: unknown) => {
+				trustRenderer(event);
+				requirePackaged();
+				app.setLoginItemSettings({ openAtLogin: parseOpenAtLogin(enabled) });
+			});
+			ipcMain.handle("trellis:desktop-action", async (event, action: unknown) => {
+				trustRenderer(event);
+				await desktopActions[parseDesktopAction(action)]();
 			});
 			await connect();
 			if (!host) return;
 			Menu.setApplicationMenu(
-				Menu.buildFromTemplate([
-					{
-						label: "Trellis",
-						submenu: [
-							{ role: "about" },
-							{
-								label: "Update status",
-								enabled: app.isPackaged,
-								click: () =>
-									void showUpdateStatus(desktopHome(), availableRelease!).catch((error: Error) =>
-										dialog.showErrorBox("Update status unavailable", error.message),
-									),
-							},
-							{
-								label: "Background service status",
-								enabled: app.isPackaged,
-								click: () => void showServiceStatus(paths().helper),
-							},
-							{
-								label: "Open Trellis at login",
-								type: "checkbox",
-								enabled: app.isPackaged,
-								checked: app.getLoginItemSettings().openAtLogin,
-								click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
-							},
-							{
-								label: "Stop local work and background service",
-								click: () =>
-									void stopLocalWork(host, desktopHome(), app.isPackaged ? paths().helper : undefined)
-										.then((stopped) => {
-											if (stopped) app.quit();
-										})
-										.catch((error: Error) => dialog.showErrorBox("Local work did not stop", error.message)),
-							},
-							{
-								label: "Resume local work",
-								click: () =>
-									void resumeLocalWork(host).catch((error: Error) =>
-										dialog.showErrorBox("Local work stays paused", error.message),
-									),
-							},
-							{ type: "separator" },
-							{ role: "hide" },
-							{ role: "hideOthers" },
-							{ role: "unhide" },
-							{ type: "separator" },
-							{ label: "Quit Trellis (keep agents running)", accelerator: "Cmd+Q", click: () => app.quit() },
-						],
-					},
-					{
-						label: "File",
-						submenu: [
-							{ label: "Open Trellis", accelerator: "Cmd+N", click: () => void openWindow() },
-							{ label: "Choose data directory…", enabled: app.isPackaged, click: () => void chooseHome() },
-							{ label: "Show data directory", click: () => void shell.openPath(desktopHome()) },
-							{ role: "close" },
-						],
-					},
-					{ role: "editMenu" },
-					{
-						label: "View",
-						submenu: [
-							{ role: "reload" },
-							{ role: "toggleDevTools" },
-							{ type: "separator" },
-							{ role: "resetZoom" },
-							{ role: "zoomIn" },
-							{ role: "zoomOut" },
-							{ type: "separator" },
-							{ role: "togglefullscreen" },
-						],
-					},
-					{ role: "windowMenu" },
-					{
-						label: "Help",
-						submenu: [
-							{ label: "Open local logs", click: () => void shell.openPath(desktopHome()) },
-							{
-								label: "Reconnect host",
-								click: () =>
-									void connect()
-										.then(() => window?.loadURL(`${host.origin}${pendingPath}`))
-										.catch((error: Error) => dialog.showErrorBox("Trellis host", error.message)),
-							},
-						],
-					},
-				]),
+				Menu.buildFromTemplate(
+					appMenu({
+						openSettings: () => void navigate("trellis://open/settings#desktop"),
+						openWindow: () => void openWindow(),
+						openLogs: () => void shell.openPath(desktopHome()),
+						reconnectHost: () =>
+							void desktopActions
+								.reconnectHost()
+								.catch((error: Error) => dialog.showErrorBox("Trellis host", error.message)),
+						quit: () => app.quit(),
+					}),
+				),
 			);
 			await openWindow();
 		})
