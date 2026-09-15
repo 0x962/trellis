@@ -4,7 +4,7 @@ Owner: lead agent. Integration branch: `trellis-readiness-audit`.
 Last update: 2026-09-15.
 
 The user tests the installed UI. The production app lives at `~/Applications/Trellis.app`.
-The installed app uses source `14132bac` and release `c2826d27`. The HTTP host and runtime report that release.
+The installed app uses source `49e4191e` and release `b78b2dc3`. The HTTP host and runtime report that release.
 The production install workflow passes a live copy and restart check. The desktop guide records the command.
 
 The Needs you error burst has one shared server error: `connect ENOENT ~/.trellis/runtime/runtime.sock`.
@@ -19,6 +19,22 @@ The installed server returns 200 for all 54 previously failed terminal streams. 
 A fresh terminal passes input, output, resize, and Stop checks on release `c2826d27`. The final runtime list contains zero active sessions.
 The installed route asset contains only the Needs you heading and an empty body. The browser regression is not run; the user tests the UI.
 Evidence: `/tmp/trellis-terminal-recovery-acceptance.json`, `/tmp/trellis-installed-runtime-check.json`, and `/tmp/trellis-needs-you-production-install.log`.
+
+## Automatic session resume
+
+A package update saves the active provider sessions before runtime shutdown. Workers resume before managers, in the same directories and conversations.
+The first resumed prompt states that the system restarted and tells the agent to continue unfinished work. Managers also receive the current role instructions.
+Manually stopped assignments stay stopped. Completed flow results keep their original output and decisions.
+A saved restart plan and fixed attempt IDs prevent duplicate launches after an interrupted update. A failed resume retains its plan.
+An unchanged package keeps the active processes and sends no restart message.
+
+The restart checks pass: 58 integration tests, eight protocol, contract, and layout tests, and 36 desktop tests.
+Four integration cases stop a real runtime and resume Claude, Codex, OpenCode, and Pi fixture executables on a new runtime.
+These cases retain the provider ID, working directory, model, assignment, and one restart receipt. They do not call authenticated model providers.
+All nine workspace typechecks and repository lint pass. The installed package passes all 13 smoke checks and signature verification.
+Both native macOS service tests pass with temporary homes and service labels. The real-home guard passes.
+At 22:17:05 UTC, an atomic ditto reinstall preserves the desktop, HTTP host, runtime, and active agent process identities. Health returns 200.
+Evidence: `/tmp/trellis-restart-integration.log`, `/tmp/trellis-restart-unit.log`, `/tmp/trellis-restart-installed-smoke.log`, and `/tmp/trellis-restart-install-evidence.json`.
 
 ## Current verification
 
@@ -37,7 +53,7 @@ Evidence: `/tmp/trellis-terminal-recovery-acceptance.json`, `/tmp/trellis-instal
 | Keep Needs you empty until a later design. | Installed; user UI check pending | The page contains its heading and an empty body. The route and menu entry remain. No page features or subscriptions remain. |
 | Build production and use ditto to install in ~/Applications without closing Trellis. | Verified | The copy preserves the desktop, HTTP host, and runtime PIDs. See the [production install guide](../../apps/desktop/README.md#production-install). |
 | Stop active agents and load all changes when a new package starts. | Implemented and tested | Activation saves active sessions, stops the old host and runtime, and resumes those sessions on the new release. An unchanged package preserves active sessions. |
-| Resume agents after a system restart and tell them to continue. | Implemented; package verification pending | A durable restart plan preserves the conversation, workspace, harness, and model. The first resumed prompt gives the restart notice. Manually stopped agents stay stopped. |
+| Resume agents after a system restart and tell them to continue. | Installed and tested | A durable restart plan preserves the conversation, workspace, harness, and model. The first resumed prompt gives the restart notice. Manually stopped agents stay stopped. |
 
 The production build at `14132bac` passes all 13 packaged smoke checks and signature verification.
 The atomic copy preserves the real Electron and HTTP host process identities.
