@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { FlowNode } from "@trellis/api";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
@@ -12,7 +12,9 @@ import { assertStatusInvariant } from "../../../../invariants.ts";
 
 let app: TestApp;
 const paths: string[] = [];
+const originalPath = process.env.PATH;
 afterEach(async () => {
+	process.env.PATH = originalPath;
 	if (app) {
 		await app.close();
 		if (existsSync(join(app.home, "runtime", "runtime.sock")))
@@ -56,6 +58,10 @@ test("a real runtime completes a flow through a gate and human decision", async 
 		"Fixture",
 	]);
 	const worker = resolve(import.meta.dir, "../../../../fixtures/nativeHarness/flowWorker.mjs");
+	const bin = join(home, "bin");
+	mkdirSync(bin);
+	symlinkSync(worker, join(bin, "claude"));
+	process.env.PATH = `${bin}:${originalPath}`;
 	app = await createTestApp({ home });
 	await app.seedProject("FLOW");
 	await app.client.projects.update({
@@ -68,8 +74,8 @@ test("a real runtime completes a flow through a gate and human decision", async 
 			trustedDirectory: true,
 			harness: {
 				preset: "claude",
-				startCommand: `'${worker}' --session-id {{sessionId}} {{prompt}}`,
-				resumeCommand: `'${worker}' --session-id {{sessionId}} {{prompt}}`,
+				startCommand: "unused",
+				resumeCommand: "unused",
 			},
 		},
 	});
@@ -167,6 +173,10 @@ test("cancel stops a claimed native flow without another launch", async () => {
 		"Fixture",
 	]);
 	const worker = resolve(import.meta.dir, "../../../../fixtures/nativeHarness/flowWorker.mjs");
+	const bin = join(home, "bin");
+	mkdirSync(bin);
+	symlinkSync(worker, join(bin, "claude"));
+	process.env.PATH = `${bin}:${originalPath}`;
 	app = await createTestApp({ home });
 	await app.seedProject("CANCEL");
 	await app.client.projects.update({
@@ -179,8 +189,8 @@ test("cancel stops a claimed native flow without another launch", async () => {
 			trustedDirectory: true,
 			harness: {
 				preset: "claude",
-				startCommand: `'${worker}' --session-id {{sessionId}} {{prompt}}`,
-				resumeCommand: `'${worker}' --session-id {{sessionId}} {{prompt}}`,
+				startCommand: "unused",
+				resumeCommand: "unused",
 			},
 		},
 	});

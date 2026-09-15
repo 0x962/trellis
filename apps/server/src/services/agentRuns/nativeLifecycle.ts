@@ -2,12 +2,13 @@ import { access, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { ensureNativeRuntime, nativeClient } from "../../agents/native/connection.ts";
+import { nativeHost } from "../../agents/native/harnessHost.ts";
 import { invalidInput } from "../../errors.ts";
 import type { ServiceCtx } from "../support.ts";
 import type { StoredRun } from "./queries.ts";
 
 export const nativeOutput = async (home: string, terminalId: string) => {
-	const client = nativeClient(home);
+	const client = nativeHost(home);
 	const end = (await client.output(terminalId, Number.MAX_SAFE_INTEGER)).nextOffset;
 	const chunks: Buffer[] = [];
 	let offset = 0;
@@ -33,7 +34,7 @@ export const stopNative = async (ctx: ServiceCtx, run: StoredRun) => {
 		client = await ensureNativeRuntime(ctx.home);
 	}
 	if (run.terminalId !== null) {
-		const stopped = await client.stop(run.terminalId);
+		const stopped = await nativeHost(ctx.home, process.env, client).stop(run.terminalId);
 		if (stopped.status !== "exited")
 			throw invalidInput(
 				"id",
@@ -58,7 +59,7 @@ export const stopNative = async (ctx: ServiceCtx, run: StoredRun) => {
 
 export const refreshNative = async (ctx: ServiceCtx, run: StoredRun) => {
 	if (run.terminalId !== null) {
-		const process = await nativeClient(ctx.home).inspect(run.terminalId);
+		const process = await nativeHost(ctx.home).status(run.terminalId);
 		if (process.status === "exited")
 			await ctx.newTx((tx) =>
 				tx.execute(

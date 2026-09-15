@@ -34,9 +34,9 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 	await closeExitedAssignments(ctx);
 	const reservation = await ctx.newTx((tx) => reserve(ctx.core, tx, input));
 	if (reservation.replay) return { id: reservation.run.id };
-	const { run, context, config, resume, attempt } = reservation;
+	const { run, context, config, resume, attempt, previousAttemptId } = reservation;
 	ctx.emit({ type: "agent-runs.changed", id: run.id });
-	return startNative(ctx, { run, context, config, resume, attempt });
+	return startNative(ctx, { run, context, config, resume, attempt, previousAttemptId });
 };
 
 export const finish = async (ctx: Ctx, _tx: Tx, input: AgentRun) => {

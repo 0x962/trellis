@@ -1,4 +1,4 @@
-import { nativeClient } from "../../agents/native/connection.ts";
+import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { Tx } from "../../db/tx.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
@@ -28,7 +28,7 @@ export const dispatch = async (ctx: Ctx) => {
 			let attempted = false;
 			let error: string | null = null;
 			try {
-				if (!readySession(await nativeClient(ctx.home).inspect(delivery.terminalId!))) {
+				if (!readySession(await nativeHost(ctx.home).status(delivery.terminalId!))) {
 					await ctx.newTx((tx) =>
 						defer({ now: ctx.now() }, tx, { id: delivery.id, generation: delivery.generation, error: null }),
 					);

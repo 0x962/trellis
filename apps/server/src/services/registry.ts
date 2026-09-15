@@ -105,6 +105,7 @@ export const services = {
 	"agentRuns.terminalTarget": core("read", agentTerminal.streamTarget),
 	"agentRuns.terminalOutput": prepared("read", agentTerminal.output, agentTerminal.result),
 	"agentRuns.terminalInput": prepared("mutation", agentTerminal.input, agentTerminal.result),
+	"agentRuns.interrupt": prepared("mutation", agentTerminal.interrupt, agentTerminal.result),
 	"agentRuns.resize": prepared("mutation", agentTerminal.resize, agentTerminal.result),
 	"reviews.image": prepared("read", reviewImage.image, reviewRemote.result),
 	"reviews.status": prepared("read", reviewRevision.status, reviewRemote.result),

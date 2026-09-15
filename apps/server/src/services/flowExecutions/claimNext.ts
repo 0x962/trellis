@@ -20,8 +20,8 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	await tx.execute(sql`SELECT id FROM projects WHERE id=${execution.project_id} FOR UPDATE`);
 	const config = managerConfigOf(await projectRow(tx, execution.project_id));
 	if (config.dispatchPaused) return null;
-	if (config.ade !== "native" || config.harness.preset !== "claude" || !config.trustedDirectory)
-		throw invalidInput("project", "The flow requires a trusted project with the Claude preset.");
+	if (config.ade !== "native" || config.harness.preset === "custom" || !config.trustedDirectory)
+		throw invalidInput("project", "The flow requires a trusted project with a built-in harness.");
 	const [active] = await rows<{ count: number }>(
 		tx,
 		sql`SELECT count(*)::int AS count FROM agent_runs WHERE project_id=${execution.project_id} AND kind<>'manager' AND closed_at IS NULL`,

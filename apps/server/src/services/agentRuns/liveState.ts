@@ -1,12 +1,12 @@
 import type { AgentRun } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { nativeClient } from "../../agents/native/connection.ts";
+import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ServiceCtx } from "../support.ts";
 import type { StoredRun } from "./queries.ts";
 
 export async function readRuntimeSessions(home: string): Promise<RuntimeProcessStatus[]> {
 	try {
-		return await nativeClient(home).list();
+		return await nativeHost(home).list();
 	} catch (error) {
 		if (["ENOENT", "ECONNREFUSED"].includes((error as NodeJS.ErrnoException).code ?? "")) return [];
 		throw error;
@@ -23,14 +23,16 @@ export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[]): Ag
 			error: run.error ?? "The execution service has no live record of this attempt.",
 		};
 	const state =
-		process.status === "running"
-			? "running"
-			: process.status === "unknown"
-				? "interrupted"
-				: process.exitCode !== null && process.exitCode !== 0
-					? "failed"
-					: "exited";
-	return { ...metadata, state, error: process.error };
+		process.agent?.error || process.agent?.outcome === "failed"
+			? "failed"
+			: process.status === "running"
+				? "running"
+				: process.status === "unknown"
+					? "interrupted"
+					: process.exitCode !== null && process.exitCode !== 0
+						? "failed"
+						: "exited";
+	return { ...metadata, state, error: process.agent?.error ?? process.error };
 }
 
 export async function observeRuns(ctx: Pick<ServiceCtx, "home">, runs: StoredRun[]): Promise<AgentRun[]> {

@@ -145,22 +145,24 @@ test("an uncertain launch reply keeps the assignment open for process inspection
 			now: () => new Date(),
 			localUrl: "http://127.0.0.1:4521",
 		} as unknown as Parameters<typeof startNative>[0];
-		await startNative(
-			ctx,
-			{
-				run,
-				config: ProjectManagerConfigSchema.parse({
-					personaId: null,
-					concurrency: 1,
-					directory: "/tmp",
-					trustedDirectory: true,
-				}),
-				resume: false,
-				context: "Fixture",
-				attempt: { id: attemptId, generation: 1, token: "fixture-token" },
-			},
-			{ workspace: async () => "/tmp" },
-		);
+		await expect(
+			startNative(
+				ctx,
+				{
+					run,
+					config: ProjectManagerConfigSchema.parse({
+						personaId: null,
+						concurrency: 1,
+						directory: "/tmp",
+						trustedDirectory: true,
+					}),
+					resume: false,
+					context: "Fixture",
+					attempt: { id: attemptId, generation: 1, token: "fixture-token" },
+				},
+				{ workspace: async () => "/tmp" },
+			),
+		).rejects.toMatchObject({ code: "RUNNER_UNAVAILABLE" });
 		const after = await h.read((tx) => getRun(tx, id));
 		expect(submitted).toBe(true);
 		expect(launchPath).toBe(process.env.PATH);
@@ -192,7 +194,7 @@ test.each(["acknowledged", "unknown"])("a Claude start waits for its initial pro
 			else if (request.method === "subscribe") {
 				acknowledge = () =>
 					socket.write(
-						`${JSON.stringify({ id: request.id, result: { type: "session", session: { ...session, status: outcome === "unknown" ? "unknown" : "running", acknowledgedMessageIds: outcome === "acknowledged" ? [attemptId] : [] } } })}\n`,
+						`${JSON.stringify({ id: request.id, result: { type: "session", session: { ...session, agent: { sessionId: "provider-conversation" }, error: outcome === "unknown" ? "The agent did not acknowledge this message" : null, status: outcome === "unknown" ? "unknown" : "running", acknowledgedMessageIds: outcome === "acknowledged" ? [attemptId] : [] } } })}\n`,
 					);
 				subscribed();
 			}
@@ -231,6 +233,7 @@ test.each(["acknowledged", "unknown"])("a Claude start waits for its initial pro
 		if (outcome === "acknowledged") {
 			await start;
 			expect((await h.read((tx) => getRun(tx, id))).error).toBeNull();
+			expect((await h.read((tx) => getRun(tx, id))).sessionId).toBe("provider-conversation");
 		} else {
 			await expect(start).rejects.toMatchObject({ code: "RUNNER_UNAVAILABLE" });
 			const after = await h.read((tx) => getRun(tx, id));

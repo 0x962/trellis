@@ -15,7 +15,14 @@ const processStatus = (change: Partial<RuntimeProcessStatus> = {}): RuntimeProce
 	error: null,
 	checkedAt: "2026-09-15T12:01:00Z",
 	elapsedMs: 0,
-	agent: null,
+	agent: {
+		sessionId: "provider-session",
+		model: "explicit-model",
+		turnId: "turn",
+		tool: null,
+		error: null,
+		outcome: "completed",
+	},
 	controllable: true,
 	process: null,
 	launch: null,
@@ -30,7 +37,7 @@ const read = (session: RuntimeProcessStatus) =>
 test("flow observation uses the inspected PTY turn, result, and receipt", async () => {
 	expect(await read(processStatus())).toEqual({
 		state: "idle",
-		sessionId: "conversation",
+		sessionId: "provider-session",
 		resultId: "completion",
 		result: "YES",
 		acknowledgedMessageIds: ["attempt"],
@@ -64,4 +71,16 @@ test("an exit during a later active turn does not reuse the prior turn result", 
 		activity: { state: "working", updatedAt: "2026-09-15T12:02:00Z" },
 	});
 	expect((await read(interrupted))?.state).toBe("failed");
+});
+
+test("native failures and interruption cannot complete a flow with an earlier result", async () => {
+	for (const outcome of ["failed", "interrupted"] as const) {
+		const session = processStatus();
+		session.agent = {
+			...session.agent!,
+			outcome,
+			error: outcome === "failed" ? "Provider rejected the request" : null,
+		};
+		expect(await read(session)).toMatchObject({ state: "failed", result: null, resultId: null });
+	}
 });

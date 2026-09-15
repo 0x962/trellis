@@ -123,3 +123,15 @@ test("a late launch error cannot replace a person's cancellation", async () => {
 	await h.run((ctx, tx) => recordFlowFailure(ctx, tx, { id: execution.id, error: "Late error" }));
 	expect((await h.run((ctx, tx) => get(ctx, tx, { id: execution.id }))).state.status).toBe("canceled");
 });
+
+test.each(["codex", "pi", "opencode"])("native flows can reserve a %s worker", async (preset) => {
+	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
+	await h.rows(
+		sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{harness}',${JSON.stringify({ preset, model: "explicit-model" })}::jsonb) WHERE id=${project}`,
+	);
+	const record = await h.run((ctx, tx) => start(ctx, tx, input()));
+	const { claimNext } = await import("../../../../../src/services/flowExecutions/claimNext.ts");
+	const claim = await h.run((ctx, tx) => claimNext(ctx, tx, { id: record.id }));
+	expect(claim?.config.harness.preset).toBe(preset);
+	expect(claim?.config.harness.model).toBe("explicit-model");
+});

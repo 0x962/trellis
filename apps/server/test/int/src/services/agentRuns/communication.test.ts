@@ -34,7 +34,7 @@ const session = (change: Partial<RuntimeProcessStatus> = {}): RuntimeProcessStat
 	agent: null,
 	controllable: true,
 	process: null,
-	launch: { command: "/bin/zsh", args: ['claude --settings {"UserPromptSubmit":"/tmp/claudeHook.ts"}'], cwd: "/tmp" },
+	launch: { command: "/fixture/claude", args: [], cwd: "/tmp" },
 	activity: null,
 	acknowledgedMessageIds: [],
 	result: null,
@@ -43,7 +43,26 @@ const session = (change: Partial<RuntimeProcessStatus> = {}): RuntimeProcessStat
 const context = () =>
 	({ ...h.ctx(() => {}), newTx: h.read, home: "/tmp/unused" }) as unknown as Parameters<typeof prepareSend>[0];
 
-test("a preinitialization send waits for the initial receipt before it writes input", async () => {
+type Dependencies = NonNullable<Parameters<typeof prepareSend>[2]>;
+const dependencies = (
+	send: Dependencies["host"]["send"],
+	overrides: Partial<Dependencies["client"]> = {},
+): Dependencies => ({
+	client: {
+		inspect: async () => session({ acknowledgedMessageIds: ["attempt"] }),
+		deliver: async () => {
+			throw new Error("Built-in messages must use HarnessHost.send");
+		},
+		subscribeSession: async function* () {
+			yield { type: "session", session: session({ acknowledgedMessageIds: ["attempt"] }) };
+		},
+		...overrides,
+	},
+	host: { send },
+	preset: async () => "claude",
+});
+
+test("a preinitialization send waits for the initial receipt before it reaches the host", async () => {
 	let release!: () => void;
 	const ready = new Promise<void>((resolve) => {
 		release = resolve;
@@ -53,57 +72,40 @@ test("a preinitialization send waits for the initial receipt before it writes in
 		listening = resolve;
 	});
 	let writes = 0;
-	let idleRequired: boolean | undefined;
-	let observations = 0;
 	const sent = prepareSend(
 		context(),
 		{ id: "run", text: "Follow up", messageId: "followup" },
-		{
-			inspect: async () => session(),
-			deliver: async (_id, _message, _data, requireIdle) => {
+		dependencies(
+			async (id, text, messageId) => {
 				writes++;
-				idleRequired = requireIdle;
-				return { status: "written", messageId: "followup" };
+				expect([id, text, messageId]).toEqual(["attempt", "Follow up", "followup"]);
+				return session();
 			},
-			subscribeSession: async function* () {
-				observations++;
-				if (observations === 1) {
+			{
+				inspect: async () => session(),
+				subscribeSession: async function* () {
 					listening();
 					await ready;
-				}
-				yield {
-					type: "session",
-					session: session({ acknowledgedMessageIds: observations === 1 ? ["attempt"] : ["attempt", "followup"] }),
-				};
+					yield { type: "session", session: session({ acknowledgedMessageIds: ["attempt"] }) };
+				},
 			},
-		},
+		),
 	);
 	expect(await Promise.race([subscribed.then(() => "waiting"), sent.then(() => "returned")])).toBe("waiting");
 	expect(writes).toBe(0);
 	release();
 	await sent;
 	expect(writes).toBe(1);
-	expect(idleRequired).toBe(true);
-	expect(observations).toBe(2);
 });
 
-test.each([false, true])("a busy hook-enabled send reports not sent with controller=%s", async (controller) => {
+test.each([false, true])("a busy native host reports not sent with controller=%s", async (controller) => {
 	const busy = Object.assign(new Error("busy"), { code: "RUNTIME_BUSY" });
 	const send = prepareSend(
 		context(),
 		{ id: "run", text: "Follow up", requireIdle: controller },
-		{
-			inspect: async () =>
-				session({ acknowledgedMessageIds: ["attempt"], activity: { state: "working", updatedAt: "now" } }),
-			deliver: async (_id, _message, _data, requireIdle) => {
-				expect(requireIdle).toBe(true);
-				throw busy;
-			},
-			subscribeSession: async function* () {
-				expect.unreachable("A rejected write has no receipt stream");
-				yield { type: "session", session: session() };
-			},
-		},
+		dependencies(async () => {
+			throw busy;
+		}),
 	);
 	if (controller) await expect(send).rejects.toMatchObject({ code: "RUNTIME_BUSY" });
 	else
@@ -113,45 +115,41 @@ test.each([false, true])("a busy hook-enabled send reports not sent with control
 		});
 });
 
-test("a written message without its receipt does not return success", async () => {
+test("an unconfirmed host delivery cannot return success", async () => {
 	await expect(
 		prepareSend(
 			context(),
 			{ id: "run", text: "Follow up" },
-			{
-				inspect: async () =>
-					session({ acknowledgedMessageIds: ["attempt"], activity: { state: "idle", updatedAt: "now" } }),
-				deliver: async () => ({ status: "written", messageId: "followup" }),
-				subscribeSession: async function* () {
-					yield { type: "session", session: session({ status: "exited", acknowledgedMessageIds: ["attempt"] }) };
-				},
-			},
+			dependencies(async () => {
+				throw Object.assign(new Error("The provider did not confirm its message receipt"), {
+					code: "HARNESS_OBSERVATION_TIMEOUT",
+				});
+			}),
 		),
-	).rejects.toMatchObject({
-		code: "RUNNER_UNAVAILABLE",
-		message:
-			"The agent process is not confirmed running. It did not acknowledge this message. Inspect its terminal before a resend.",
-	});
+	).rejects.toMatchObject({ code: "RUNNER_UNAVAILABLE", message: "The provider did not confirm its message receipt" });
 });
 
-test("an interactive custom PTY sends raw input without a hook receipt", async () => {
+test("an explicit custom PTY sends raw input without a hook receipt", async () => {
 	let writes = 0;
-	await prepareSend(
-		context(),
-		{ id: "run", text: "Input" },
+	const deps = dependencies(
+		async () => {
+			throw new Error("A custom terminal has no native host adapter");
+		},
 		{
-			inspect: async () => session({ launch: { command: "/bin/cat", args: [], cwd: "/tmp" } }),
-			deliver: async (_id, messageId, _data, requireIdle) => {
+			deliver: async (_id, messageId, data, requireIdle) => {
 				writes++;
-				expect(requireIdle).not.toBe(true);
+				expect(requireIdle).toBe(false);
+				expect(Buffer.from(data, "base64").toString()).toBe("\x1b[200~Input\x1b[201~\r");
 				return { status: "written", messageId };
-			},
-			subscribeSession: async function* () {
-				expect.unreachable("A raw terminal has no message receipt");
-				yield { type: "session", session: session() };
 			},
 		},
 	);
+	deps.preset = async () => "custom";
+	await prepareSend(context(), { id: "run", text: "Input" }, deps);
+	expect(writes).toBe(1);
+	await expect(
+		prepareSend(context(), { id: "run", text: "Automatic input", requireIdle: true }, deps),
+	).rejects.toMatchObject({ code: "RUNNER_UNAVAILABLE" });
 	expect(writes).toBe(1);
 });
 
@@ -162,16 +160,12 @@ test("a closed assignment rejects a send before it contacts the runtime", async 
 		prepareSend(
 			context(),
 			{ id: "run", text: "Do more work" },
-			{
+			dependencies(async () => session(), {
 				inspect: async () => {
 					inspected = true;
-					return session({ launch: { command: "/bin/cat", args: [], cwd: "/tmp" } });
+					return session();
 				},
-				deliver: async (_id, messageId) => ({ status: "written", messageId }),
-				subscribeSession: async function* () {
-					yield { type: "session", session: session() };
-				},
-			},
+			}),
 		),
 	).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 	expect(inspected).toBe(false);

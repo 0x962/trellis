@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server, type Socket } from "node:net";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
@@ -27,6 +27,8 @@ beforeEach(async () => {
 	await h.reset();
 	home = mkdtempSync("/tmp/trl-dispatch-");
 	mkdirSync(join(home, "runtime"));
+	mkdirSync(join(home, "harness-attempts", "attempt"), { recursive: true });
+	writeFileSync(join(home, "harness-attempts", "attempt", "launch.json"), JSON.stringify({ harness: "claude" }));
 	session = controllerSession();
 	onInspect = () => {};
 	busyOnDelivery = false;

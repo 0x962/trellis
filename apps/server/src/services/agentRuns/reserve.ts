@@ -24,9 +24,6 @@ export const managerRowOf = async (tx: Tx, projectId: string) =>
 		)
 	).at(0);
 
-// Writes the row a start runs, and answers it with what the launch needs.
-// `resume` is true when the row keeps its Claude session: the launch then
-// continues that session in place of a new one.
 export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
 	const actor = requireActor(ctx);
 	const [persona] = await rows<Persona>(
@@ -76,8 +73,12 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 		throw fail("DUPLICATE", { field: "active agent" });
 	if (existing && existing.runtime !== "native") existing = undefined;
 	const resume =
-		existing !== undefined && existing.sessionId !== null && existing.workspaceId !== null && input.newSession !== true;
-	const sessionId = resume ? existing!.sessionId! : randomUUID();
+		existing !== undefined &&
+		existing.terminalId !== null &&
+		existing.workspaceId !== null &&
+		input.newSession !== true;
+	const previousAttemptId = existing?.terminalId ?? null;
+	const sessionId = resume ? existing!.sessionId! : config.harness.preset === "custom" ? randomUUID() : null;
 	const [run] =
 		existing === undefined
 			? await rows<StoredRun>(
@@ -112,6 +113,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 		repos,
 		config,
 		resume,
+		previousAttemptId,
 		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || "Use the agent workspace."}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}`,
 	};
 };

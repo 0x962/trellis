@@ -5,7 +5,7 @@ import { writeFileSync } from "node:fs";
 const settings = JSON.parse(process.argv[process.argv.indexOf("--settings") + 1]);
 const sessionIndex = process.argv.indexOf("--session-id");
 const sessionId = process.argv[sessionIndex + 1];
-const initialPrompt = process.argv[sessionIndex + 2];
+const initialPrompt = process.argv.at(-1);
 const hook = (name, extra = {}) => {
 	const command = settings.hooks[name][0].hooks[0].command;
 	const result = spawnSync(command, {

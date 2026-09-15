@@ -7,6 +7,7 @@ export const agentRuns = os.agentRuns.router({
 	terminalInput: os.agentRuns.terminalInput.handler(({ context, input }) =>
 		call(context, "agentRuns.terminalInput", input),
 	),
+	interrupt: os.agentRuns.interrupt.handler(({ context, input }) => call(context, "agentRuns.interrupt", input)),
 	resize: os.agentRuns.resize.handler(({ context, input }) => call(context, "agentRuns.resize", input)),
 	send: os.agentRuns.send.handler(({ context, input }) => call(context, "agentRuns.send", input)),
 	output: os.agentRuns.output.handler(({ context, input }) => call(context, "agentRuns.output", input)),
