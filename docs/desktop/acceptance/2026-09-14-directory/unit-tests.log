@@ -1,0 +1,63 @@
+$ bun test ./src --path-ignore-patterns '**/test/int/**'
+bun test v1.3.13 (bf2e2cec)
+
+src/serviceRegistration/serviceRegistration.test.ts:
+(pass) a fresh bundle with notFound can request explicit service registration
+
+src/changeHome/handoffFailure.test.ts:
+(pass) a later failure identifies the prepared home, backup, and service restoration commands [0.09ms]
+
+src/changeHome/changeHome.test.ts:
+(pass) directory change preserves both homes and orders the owner handoff before selection [0.19ms]
+(pass) picker leaves the current service and selection alone [0.05ms]
+(pass) same directory leaves the current service and selection alone [0.01ms]
+(pass) confirmation leaves the current service and selection alone [0.03ms]
+(pass) a failed target handoff leaves the current host and selection alone [0.09ms]
+(pass) a failed current stop never changes the selected home [0.09ms]
+(pass) an owner that appears after confirmation blocks persistence [0.11ms]
+(pass) registration failure reports the saved selection and reopens startup recovery [0.09ms]
+(pass) a directory replaced after confirmation cannot redirect the saved selection
+
+src/selectedHome/selectedHome.test.ts:
+(pass) selection persists the canonical home without writing inside it [1.34ms]
+(pass) invalid or missing selections fail without replacing the saved choice [0.93ms]
+(pass) a removed selected directory remains readable for service recovery without recreation [0.42ms]
+
+src/updateStatus/updateStatus.test.ts:
+(pass) an incompatible live runtime retains the pinned host until local work stops [2.61ms]
+(pass) an unknown execution service blocks activation without an older host [0.75ms]
+(pass) a copied home uses the available release unless an incompatible runtime needs its missing cache [0.99ms]
+
+src/navigation/navigation.test.ts:
+(pass) deep links preserve ticket paths and reject credentials and unknown routes [0.11ms]
+(pass) renderer navigation and external links have separate allowlists
+
+src/desktopPaths/desktopPaths.test.ts:
+(pass) packaged preload and helper paths belong to the installed bundle [0.07ms]
+
+src/pinnedResources/pinnedResources.test.ts:
+(pass) concurrent pins keep relative links and retain earlier versions [9.53ms]
+(pass) a changed package cannot reuse its recorded release hash [1.52ms]
+
+src/resourceBundle/resourceBundle.test.ts:
+(pass) the release hash covers dependency bytes and protocol [1.84ms]
+(pass) the release rejects links outside its closure [0.63ms]
+
+src/inspectExistingHome/inspectExistingHome.test.ts:
+(pass) an existing home resolves aliases and reports a live owner without changing its lock [1.42ms]
+(pass) a directory without a Trellis database cannot become an existing home [0.22ms]
+
+src/windowOptions/windowOptions.test.ts:
+(pass) macOS keeps native window controls inside the application title strip
+(pass) other platforms keep the system title bar
+
+src/desktopIdentity/desktopIdentity.test.ts:
+(pass) desktop identity creates and sets its fixed data path [0.02ms]
+
+src/packageClosure/packageClosure.test.ts:
+(pass) the closure copies installed optional runtime packages and only required optional peers [5.43ms]
+
+ 30 pass
+ 0 fail
+ 88 expect() calls
+Ran 30 tests across 13 files. [57.00ms]

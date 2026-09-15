@@ -1,0 +1,87 @@
+$ bun test test/int --timeout=60000
+bun test v1.3.13 (bf2e2cec)
+
+test/int/src/host/host.test.ts:
+(pass) a desktop host opens a worker database and reconnects to its existing owner [2533.06ms]
+(pass) a second desktop waits for an existing host during its cold boot [1038.20ms]
+
+test/int/src/selectedHome/selectedHome.test.ts:
+(pass) the native helper refuses a missing selected home before it creates files [289.12ms]
+
+test/int/src/prepareHome/prepareHome.real.test.ts:
+(pass) the packaged maintenance entry imports a stopped scratch host through the desktop preview [4735.60ms]
+
+test/int/src/prepareHome/prepareHome.test.ts:
+(pass) import confirms concrete paths before any host token exists [0.61ms]
+(pass) active work blocks import and never starts a copy [0.52ms]
+(pass) a failed import retains its target and shows an archive rollback command [0.97ms]
+(pass) Cancel leaves first launch without data or maintenance work [0.34ms]
+(pass) Use existing directory delegates selection without an import or new data [0.34ms]
+
+test/int/src/desktopPaths/preload.test.ts:
+(pass) the compiled preload exposes its narrow bridge inside a sandboxed Electron renderer [728.48ms]
+
+test/int/src/pinnedResources/pinnedResources.test.ts:
+(pass) app removal preserves the runtime and new native children from pinned resources [9794.78ms]
+
+test/int/src/homeImportClient/homeImportClient.test.ts:
+(pass) maintenance passes selected paths as literal arguments and preserves errors [34.01ms]
+
+test/int/src/stopHostWork/stopHostWork.test.ts:
+(pass) an uncertain local stop leaves the background service registered [1.53ms]
+(pass) the service stops only after the host confirms the local processes stopped [0.92ms]
+
+test/int/src/standaloneHandoff/standaloneHandoff.test.ts:
+(pass) confirmed handoff disables and stops only the matching service before offline preparation [1.46ms]
+(pass) a changed owner rejects before it stops any service [0.82ms]
+(pass) a copied lock cannot hand off the service that owns a different home [1.41ms]
+(pass) offline homes receive a backup and pause without service commands [0.74ms]
+(pass) a replacement after disable is not stopped [0.89ms]
+(pass) preparation failure retains actionable restoration steps without a restart [0.86ms]
+(pass) an unresolved native process rejects before any service action [1.24ms]
+(pass) a live runtime, orphan socket, and invalid ownership refuse preflight [1.20ms]
+(pass) the maintenance process receives literal reviewed paths and returns its error [33.60ms]
+
+test/int/src/stopCurrentService/inspectCurrentService.test.ts:
+(pass) inspection never creates a missing home or token [1.29ms]
+(pass) a registered stopped service can unregister before its data home exists [194.23ms]
+(pass) a retained running session blocks a directory switch without a live daemon [1.52ms]
+(pass) a retained unknown session blocks a directory switch without a live daemon [1.05ms]
+(pass) an owner with no matching desktop service record is not adopted [0.82ms]
+(pass) authenticated host inspection preserves the existing token [2.82ms]
+(pass) authenticated host inspection rejects changed ownership [1.81ms]
+(pass) a stopped service with a removed selected directory can unregister without recreation [161.85ms]
+(pass) a null ownership record cannot prove that the host stopped [0.71ms]
+
+test/int/src/stopCurrentService/stopCurrentService.test.ts:
+(pass) a connected host stops its work before its service [0.10ms]
+(pass) an unregistered service does not inspect or create a data home [0.05ms]
+(pass) a verified host can stop after initial adoption failed [0.05ms]
+(pass) a registered service with no process or runtime stops without a launch [0.04ms]
+(pass) a different configured home blocks service changes [0.05ms]
+(pass) a runtime without a verified host blocks service changes [0.05ms]
+(pass) unknown ownership blocks service changes [0.05ms]
+(pass) a runtime that appears during unregister prevents a directory switch [0.05ms]
+(pass) a fresh bundle with no service registration can select existing data [0.03ms]
+
+test/int/src/loginEnvironment/loginEnvironment.test.ts:
+(pass) a login shell supplies the agent PATH while bundled executables stay first [21.40ms]
+(pass) shell startup errors do not expose environment values in the desktop error [190.96ms]
+
+test/int/src/preview/preview.test.ts:
+(skip) the signed Electron app starts its isolated service and loads its renderer
+(skip) the signed Electron app selects an existing database in place
+
+test/int/src/service/service.test.ts:
+(pass) an isolated launchd service uses the selected home and restarts without a desktop process [10121.38ms]
+(pass) SMAppService registers an isolated app and supervises its relocated host [9150.06ms]
+
+2 tests skipped:
+(skip) the signed Electron app starts its isolated service and loads its renderer
+(skip) the signed Electron app selects an existing database in place
+
+ 45 pass
+ 2 skip
+ 0 fail
+ 128 expect() calls
+Ran 47 tests across 14 files. [39.14s]

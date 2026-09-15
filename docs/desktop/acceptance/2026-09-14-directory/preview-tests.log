@@ -1,0 +1,12 @@
+bun test v1.3.13 (bf2e2cec)
+
+apps/desktop/test/int/src/preview/preview.test.ts:
+{"appData":"/Users/navidkhan/Library/Application Support","beforeName":"/Users/navidkhan/Library/Application Support/@trellis/desktop","order":["data","lock"],"defaultUserData":"/Users/navidkhan/Library/Application Support/Trellis","lockSawUserData":"/tmp/trl-preview-ZmUhrr/data","url":"http://127.0.0.1:53510/","windowButtons":{"x":16,"y":14},"windowBounds":{"x":224,"y":95,"width":1280,"height":800},"contentBounds":{"x":224,"y":95,"width":1280,"height":800}}
+(pass) the signed Electron app starts its isolated service and loads its renderer [16217.53ms]
+{"appData":"/Users/navidkhan/Library/Application Support","beforeName":"/Users/navidkhan/Library/Application Support/@trellis/desktop","order":["data","lock"],"defaultUserData":"/Users/navidkhan/Library/Application Support/Trellis","lockSawUserData":"/tmp/trl-preview-pMFM8N/data","url":"http://127.0.0.1:53681/","windowButtons":{"x":16,"y":14},"windowBounds":{"x":224,"y":95,"width":1280,"height":800},"contentBounds":{"x":224,"y":95,"width":1280,"height":800}}
+(pass) the signed Electron app selects an existing database in place [15683.67ms]
+
+ 2 pass
+ 0 fail
+ 57 expect() calls
+Ran 2 tests across 1 file. [31.98s]
