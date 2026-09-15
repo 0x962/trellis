@@ -83,6 +83,28 @@ The installed CLI lacks an isolated hook configuration argument. A separate dire
 `prepareAgy` supplies interactive launch, model, bypass, and exact resume arguments. `parseAgyEvent` handles the verified structured payloads. `agyCapabilityGaps` prevents these pieces from representing full acceptance. Autonomous dispatch requires isolated hook configuration, a confirmed initial receipt, effective-model evidence, and a reliable interruption event. Terminal appearance does not satisfy those requirements.
 
 
+### Complete host acceptance
+
+`apps/server/test/int/src/agents/harnessHost/real.test.ts` exercises `HarnessHost`, `RuntimeClient`, the native hook entry, and a separate runtime socket. Each case starts the installed native TUI with real provider credentials. The public host methods must confirm the initial receipt, effective model, provider session ID, file proof, tool events, and final response. The test also checks lists, elapsed duration, terminal resize, retained output, and streamed terminal bytes.
+
+A filesystem event confirms that a shell command starts before `host.interrupt`. The host must report an interrupted outcome and preserve the process. A subsequent message must produce a response. After stop, exact-ID resume must recall the earlier private marker without tools.
+
+Run from `apps/server`:
+
+```sh
+TRELLIS_REAL_HARNESS_ACCEPTANCE=1 TRELLIS_NATIVE_ACCEPTANCE_HOME=/path/to/authenticated/home TRELLIS_NATIVE_CLAUDE_MODEL=claude-sonnet-5 TRELLIS_NATIVE_CODEX_MODEL=gpt-5.6-sol TRELLIS_NATIVE_PI_MODEL=vercel-ai-gateway/openai/gpt-4.1-mini bun test test/int/src/agents/harnessHost/real.test.ts
+```
+
+The complete sequence passed for all three providers: 3 tests, 84 assertions, 53.43 seconds. Log: `/tmp/trellis-real-host-acceptance-fixed.log`. Each test retains its runtime files and evidence:
+
+- Claude: `/tmp/trl-real-host-claude-oTLYlG`
+- Codex: `/tmp/trl-real-host-codex-VHR9xQ`
+- Pi: `/tmp/trl-real-host-pi-jzZCPV`
+
+The first run exposed a Pi parser bug. Pi reported an aborted assistant message, but the parser omitted the interruption outcome. The regression maps native `stopReason: "aborted"` to `outcome: "interrupted"`. The host also requires that outcome before it confirms a hook-based interruption.
+
+OpenCode requires a separate control-path acceptance run. AGY retains the capability gaps below. These host tests do not start ticket agents or exercise manager dispatch.
+
 ### Claude and Codex native acceptance
 
 The opt-in suite starts each native TUI with its Trellis adapter and explicit model. It checks the native session ID, exact effective model, file edit, shell command, tool events, final response, and terminal bytes. A filesystem event confirms that a long shell command starts before Ctrl+C. The next message must complete in the same session. After process shutdown, exact-ID resume must recall the earlier private marker without tools.

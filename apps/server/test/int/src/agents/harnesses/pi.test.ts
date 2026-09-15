@@ -38,5 +38,5 @@ test("Pi distinguishes provider errors and aborted turns from successful output"
 				messages: [{ role: "assistant", stopReason: "aborted", content: [{ type: "text", text: "partial" }] }],
 			},
 		}),
-	).toEqual([{ kind: "idle" }]);
+	).toEqual([{ kind: "idle", outcome: "interrupted" }]);
 });

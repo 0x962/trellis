@@ -88,7 +88,14 @@ export function parsePiEvent(envelope: PiEnvelope): HarnessEvent[] {
 						?.filter((part) => part.type === "text")
 						.map((part) => part.text)
 						.join("\n");
-		return [{ kind: "idle", ...identity, ...(result ? { result } : {}) }];
+		return [
+			{
+				kind: "idle",
+				...identity,
+				...(result ? { result } : {}),
+				...(assistant?.stopReason === "aborted" ? { outcome: "interrupted" as const } : {}),
+			},
+		];
 	}
 	const kind = {
 		tool_execution_start: "tool-start",
