@@ -86,6 +86,21 @@ describe("system", () => {
 		expect(unknown.body.code).toBe("INPUT_VALIDATION_FAILED");
 	});
 
+	test("system.harnessModels answers a lister failure with the message of the program", async () => {
+		const app = await createTestApp({
+			harnessModels: async () => {
+				throw new Error("Harness executable claude was not found on PATH: /usr/bin");
+			},
+		});
+
+		const response = await app.api("/api/harnesses/claude/models", { actor: null });
+		await app.close();
+
+		expect(response.status).toBe(503);
+		expect(response.body.code).toBe("HARNESS_MODELS_FAILED");
+		expect(response.body.data).toEqual({ message: "Harness executable claude was not found on PATH: /usr/bin" });
+	});
+
 	test("system.gh returns the gh state", async () => {
 		const response = await t.api("/api/gh", { actor: null });
 

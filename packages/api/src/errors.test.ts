@@ -19,6 +19,7 @@ describe("errors", () => {
 			["DUPLICATE", 409],
 			["FLOW_VERSION_CONFLICT", 412],
 			["GH_UNAVAILABLE", 503],
+			["HARNESS_MODELS_FAILED", 503],
 			["INPUT_VALIDATION_FAILED", 400],
 			["INVALID_ANCHOR", 409],
 			["INVALID_CURSOR", 400],
@@ -50,6 +51,7 @@ describe("errors", () => {
 			["VERSION_CONFLICT", { current: ticket() }],
 			["STATUS_NOT_IN_PROJECT", { valid: [statusSummary()] }],
 			["GH_UNAVAILABLE", { reason: "missing" }],
+			["HARNESS_MODELS_FAILED", { message: "codex exited 1: no auth" }],
 			["INPUT_VALIDATION_FAILED", { issues: [{ message: "Required", path: ["title"] }] }],
 		];
 		for (const [code, payload] of cases) {

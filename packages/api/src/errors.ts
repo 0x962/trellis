@@ -165,6 +165,13 @@ export const errors = {
 		message: "The agent runner cannot serve the request.",
 		data: z.object({ reason: RunnerReasonSchema }),
 	},
+	// `message` is what the harness program or its parser said, in full. The
+	// picker shows it beside the field.
+	HARNESS_MODELS_FAILED: {
+		status: 503,
+		message: "The harness program did not list its models.",
+		data: z.object({ message: z.string().min(1) }),
+	},
 } satisfies ErrorMap;
 
 export type ErrorCode = keyof typeof errors;

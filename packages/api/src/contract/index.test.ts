@@ -170,5 +170,6 @@ describe("contract", () => {
 		expects("tickets.list", ["INVALID_CURSOR"]);
 		expects("pullRequests.link", ["INVALID_PR_URL", "GH_UNAVAILABLE"]);
 		expects("attachments.upload", ["PAYLOAD_TOO_LARGE"]);
+		expects("system.harnessModels", ["HARNESS_MODELS_FAILED"]);
 	});
 });

@@ -33,6 +33,7 @@ const exitCodes: Record<ErrorCode, number> = {
 	GH_UNAVAILABLE: 6,
 	CONCURRENCY_LIMIT: 4,
 	RUNNER_UNAVAILABLE: 6,
+	HARNESS_MODELS_FAILED: 6,
 };
 
 // An error the contract does not declare comes from a crashed handler, so it
@@ -103,6 +104,8 @@ const detail = (code: string, message: string, data: Data): string => {
 		case "GH_UNAVAILABLE":
 		case "RUNNER_UNAVAILABLE":
 			return `${message} Reason: ${data.reason}.`;
+		case "HARNESS_MODELS_FAILED":
+			return `${message} ${data.message}`;
 		case "CONCURRENCY_LIMIT":
 			return `${message} ${data.running} of ${data.limit} builders are running.`;
 		case "INPUT_VALIDATION_FAILED": {

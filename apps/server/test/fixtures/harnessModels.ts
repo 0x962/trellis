@@ -1,4 +1,5 @@
-import { basename } from "node:path";
+import { writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
 
 // A stand-in for a harness program that answers only the model query. The
 // file name of the launcher script names the harness: `bin/claude` answers as
@@ -9,7 +10,10 @@ const harness = basename(process.argv[1]!);
 const args = process.argv.slice(2);
 const stdin = async () => await Bun.stdin.text();
 
+// The claude stand-in leaves a marker in its working directory, so a test
+// can check where the session ran.
 if (harness === "claude") {
+	writeFileSync(join(process.cwd(), "claude-models-cwd"), "");
 	const request = JSON.parse((await stdin()).trim());
 	process.stdout.write(`${JSON.stringify({ type: "system", subtype: "hook_started", hook_name: "SessionStart" })}\n`);
 	process.stdout.write(

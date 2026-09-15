@@ -39,6 +39,7 @@ const expected: Record<string, number> = {
 	GH_UNAVAILABLE: 6,
 	CONCURRENCY_LIMIT: 4,
 	RUNNER_UNAVAILABLE: 6,
+	HARNESS_MODELS_FAILED: 6,
 };
 
 const declared = (code: keyof typeof errors, data?: unknown, message = errors[code].message) =>

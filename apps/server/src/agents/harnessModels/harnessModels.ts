@@ -8,16 +8,20 @@ import { resolveExecutable } from "../harnessHost/resolveExecutable.ts";
 // The models a built-in harness offers, asked from the harness program on
 // PATH. Each query runs the program once and takes one to two seconds. A
 // program that runs longer than TIMEOUT_MS is killed, and its partial
-// output fails the parse.
+// output fails the parse. The claude query starts a session, and a claude
+// session runs the SessionStart hooks of its working directory. Every
+// program runs in `cwd`, the data home, so no hook of a project runs.
 
 const TIMEOUT_MS = 30000;
 
 type Env = Record<string, string | undefined>;
+// Where the harness program runs and what it reads from its environment.
+type Spawn = { cwd: string; env: Env };
 
 // Runs a program to its end and returns both output streams. `stdin` is
 // written whole and then closed.
-const capture = async (command: string[], env: Env, stdin?: string) => {
-	const proc = Bun.spawn(command, { env, stdin: "pipe", stdout: "pipe", stderr: "pipe", timeout: TIMEOUT_MS });
+const capture = async (command: string[], { cwd, env }: Spawn, stdin?: string) => {
+	const proc = Bun.spawn(command, { cwd, env, stdin: "pipe", stdout: "pipe", stderr: "pipe", timeout: TIMEOUT_MS });
 	if (stdin !== undefined) proc.stdin.write(stdin);
 	proc.stdin.end();
 	const [stdout, stderr, code] = await Promise.all([
@@ -31,8 +35,9 @@ const capture = async (command: string[], env: Env, stdin?: string) => {
 
 // Reads stdout line by line until `parse` returns the models, then closes
 // stdin so the app server exits.
-const listCodex = async (executable: string, env: Env): Promise<HarnessModel[]> => {
+const listCodex = async (executable: string, { cwd, env }: Spawn): Promise<HarnessModel[]> => {
 	const proc = Bun.spawn([executable, ...CODEX_MODELS_ARGS], {
+		cwd,
 		env,
 		stdin: "pipe",
 		stdout: "pipe",
@@ -59,18 +64,18 @@ const listCodex = async (executable: string, env: Env): Promise<HarnessModel[]> 
 	throw new Error(`codex exited ${proc.exitCode} before it listed its models: ${(await stderr).trim()}`);
 };
 
-const listers: Record<BuiltInHarness, (executable: string, env: Env) => Promise<HarnessModel[]>> = {
-	claude: async (executable, env) =>
-		parseClaudeModels((await capture([executable, ...CLAUDE_MODELS_ARGS], env, CLAUDE_MODELS_REQUEST)).stdout),
+const listers: Record<BuiltInHarness, (executable: string, spawn: Spawn) => Promise<HarnessModel[]>> = {
+	claude: async (executable, spawn) =>
+		parseClaudeModels((await capture([executable, ...CLAUDE_MODELS_ARGS], spawn, CLAUDE_MODELS_REQUEST)).stdout),
 	codex: listCodex,
-	opencode: async (executable, env) =>
-		parseOpenCodeModels((await capture([executable, ...OPENCODE_MODELS_ARGS], env)).stdout),
+	opencode: async (executable, spawn) =>
+		parseOpenCodeModels((await capture([executable, ...OPENCODE_MODELS_ARGS], spawn)).stdout),
 	// pi writes the table to stderr when stdout is not a terminal.
-	pi: async (executable, env) => {
-		const output = await capture([executable, ...PI_MODELS_ARGS], env);
+	pi: async (executable, spawn) => {
+		const output = await capture([executable, ...PI_MODELS_ARGS], spawn);
 		return parsePiModels(`${output.stdout}\n${output.stderr}`);
 	},
 };
 
-export const listHarnessModels = async (harness: BuiltInHarness, env: Env): Promise<HarnessModel[]> =>
-	listers[harness](await resolveExecutable(harness, env.PATH ?? ""), env);
+export const listHarnessModels = async (harness: BuiltInHarness, spawn: Spawn): Promise<HarnessModel[]> =>
+	listers[harness](await resolveExecutable(harness, spawn.env.PATH ?? ""), spawn);

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pickErrors } from "../errors.ts";
 import { BuiltInHarnessSchema, HarnessModelSchema } from "../harness/harness.ts";
 import { DiagnosticsSchema } from "../schemas/diagnostics.ts";
 import { BackupOutputSchema, GhStatusSchema, HealthSchema } from "../schemas/system.ts";
@@ -36,5 +37,6 @@ export const system = {
 	harnessModels: base
 		.route({ method: "GET", path: "/harnesses/{harness}/models", summary: "List the models a harness offers" })
 		.input(z.strictObject({ harness: BuiltInHarnessSchema }))
+		.errors(pickErrors(["HARNESS_MODELS_FAILED"]))
 		.output(z.array(HarnessModelSchema)),
 };

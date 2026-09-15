@@ -44,7 +44,8 @@ export type AppOptions = {
 	// `gh auth status` through `runtime.gh` and keeps no answer.
 	gh?: GhAccess;
 	// What `system.harnessModels` answers with. The default runs the harness
-	// program on the PATH of this process. A test gives its own list.
+	// program on the PATH of this process, in the data home. A test gives its
+	// own list.
 	harnessModels?: (harness: BuiltInHarness) => Promise<HarnessModel[]>;
 };
 
@@ -109,7 +110,7 @@ export const createApp = ({
 	clock = realClock,
 	chooseDirectory: chooseFolder = chooseDirectory,
 	gh = { read: async () => runtime.ghStatus(), check: () => checkGh(runtime.gh, new Date()) },
-	harnessModels = (harness) => listHarnessModels(harness, process.env),
+	harnessModels = (harness) => listHarnessModels(harness, { cwd: config.home, env: process.env }),
 }: AppOptions) => {
 	const app = new Hono();
 	// The database timing of each procedure request, by its request. The

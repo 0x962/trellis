@@ -1,7 +1,9 @@
 import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const fixture = resolve(import.meta.dir, "../fixtures/harnessModels.ts");
+// Playwright loads this file under Node, so the path comes from `import.meta.url`.
+const fixture = fileURLToPath(new URL("../fixtures/harnessModels.ts", import.meta.url));
 
 // Writes a `claude`, `codex`, `opencode`, and `pi` launcher into `bin`, each
 // one running the model fixture under the bun on PATH. Returns `bin`.
