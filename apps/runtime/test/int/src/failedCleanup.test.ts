@@ -47,15 +47,15 @@ test.each(["stop", "natural exit"] as const)(
 			});
 			pid = launched.pid;
 			writeFileSync(join(home, "fail-cleanup"), "");
-			await expect(client.stop(launched.id)).rejects.toThrow("spawnSync /bin/ps ETIMEDOUT");
+			await expect(client.stop(launched.id)).rejects.toThrow("Native process snapshot failed");
 			writeFileSync(join(home, "fail-cleanup"), "");
-			await expect(client.stop(launched.id)).rejects.toThrow("spawnSync /bin/ps ETIMEDOUT");
+			await expect(client.stop(launched.id)).rejects.toThrow("Native process snapshot failed");
 			const failed = await client.inspect(launched.id);
 			expect(failed).toMatchObject({
 				pid,
 				status: "running",
 				controllable: true,
-				error: "Process cleanup is unconfirmed: spawnSync /bin/ps ETIMEDOUT",
+				error: "Process cleanup is unconfirmed: Native process snapshot failed",
 			});
 			await expect(
 				client.observe(launched.id, "wrong-token", { kind: "session", sessionId: "provider" }),
