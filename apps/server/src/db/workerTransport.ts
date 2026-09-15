@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import type { RequestContext } from "../context.ts";
 import type { JobsLog } from "../jobs.ts";
-import type { DbTiming } from "../serverTiming.ts";
+import { addTiming, type DbTiming } from "../serverTiming.ts";
 import { type ServiceName, services } from "../services/registry.ts";
 import type { JobsStart, ServiceTransport, TransportStart, WorkerTransportOptions } from "./transport.ts";
 import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./worker.ts";
@@ -12,7 +12,8 @@ import { workerError } from "./workerError/workerError.ts";
 // batches the calls, relays gh spawns and log lines, and puts the events of
 // the worker on the bus of the HTTP process.
 
-// `timing` gains the database time the worker reports with the answer.
+// `timing` gains the queue, lock, and database time the worker reports with
+// the answer.
 type PendingCall = { resolve: (value: unknown) => void; reject: (error: unknown) => void; timing?: DbTiming };
 
 type StreamState = {
@@ -76,7 +77,7 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 		}
 		if (data.type === "result") {
 			const call = pending.get(data.id)!;
-			if (call.timing !== undefined) call.timing.ms += data.dbMs;
+			if (call.timing !== undefined) addTiming(call.timing, data.timing);
 			call.resolve(data.result);
 			pending.delete(data.id);
 			return;
@@ -90,7 +91,7 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 				streams.delete(data.id);
 			} else {
 				const call = pending.get(data.id)!;
-				if (call.timing !== undefined) call.timing.ms += data.dbMs;
+				if (call.timing !== undefined) addTiming(call.timing, data.timing);
 				call.reject(error);
 				pending.delete(data.id);
 			}

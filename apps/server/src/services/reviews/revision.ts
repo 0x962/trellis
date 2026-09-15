@@ -4,10 +4,10 @@ import { ulid } from "ulid";
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
-import { fail, notFound, type ServiceCtx } from "../support";
+import { fail, notFound, type PrepareCtx, type ServiceCtx } from "../support";
 import { changed, ensurePr, parseRef } from "./queries";
 
-export async function gh(ctx: ServiceCtx, args: string[]) {
+export async function gh(ctx: PrepareCtx, args: string[]) {
 	const result = await ctx.gh("interactive", args);
 	if (!result.ok) {
 		const error = fail("GH_UNAVAILABLE", { reason: result.reason });
@@ -18,11 +18,11 @@ export async function gh(ctx: ServiceCtx, args: string[]) {
 }
 const fields =
 	"title,state,isDraft,author,headRepository,headRefName,baseRefName,headRefOid,baseRefOid,additions,deletions,changedFiles,mergeable,autoMergeRequest,body,comments,reviews,statusCheckRollup,labels";
-export async function status(ctx: ServiceCtx, input: { pr: string }) {
+export async function status(ctx: PrepareCtx, input: { pr: string }) {
 	const ref = parseRef(input.pr);
 	return JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", fields])) as Record<string, unknown>;
 }
-export async function prepare(ctx: ServiceCtx, input: { pr: string }) {
+export async function prepare(ctx: PrepareCtx, input: { pr: string }) {
 	const ref = parseRef(input.pr);
 	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", fields])) as Record<string, unknown> & {
 		headRefOid: string;
@@ -80,7 +80,7 @@ export async function revision(_ctx: ServiceCtx, tx: Tx, input: { pr: string; id
 	return row?.document ?? null;
 }
 export async function prepareFile(
-	ctx: ServiceCtx,
+	ctx: PrepareCtx,
 	input: { pr: string; revisionId: string; path: string; side: "old" | "new" },
 ) {
 	const doc = await ctx.newTx((tx) => revision(ctx, tx, { pr: input.pr, id: input.revisionId }));
