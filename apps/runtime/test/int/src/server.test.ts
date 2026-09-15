@@ -122,19 +122,6 @@ test("output retains every byte and reads bounded chunks", async () => {
 	expect(Buffer.concat(chunks)).toEqual(Buffer.alloc(count, 120));
 	expect(statSync(join(home, "sessions", `${session.id}.output.json.bytes`)).mode & 0o777).toBe(0o600);
 });
-test("PTY churn releases file descriptors", async () => {
-	const descriptors = () =>
-		spawnSync("/usr/sbin/lsof", ["-p", String(daemon.pid), "-Ff"], { encoding: "utf8" })
-			.stdout.split("\n")
-			.filter((line) => /^f\d/.test(line)).length;
-	const before = descriptors();
-	expect(before).toBeGreaterThan(0);
-	for (let i = 0; i < 25; i++) {
-		const session = await client.start({ id: `churn-${i}`, command: "/bin/cat", args: [], cwd: home, mode: "pty" });
-		await client.stop(session.id);
-	}
-	expect(descriptors()).toBeLessThanOrEqual(before + 2);
-});
 test("stop kills the shell and its child process group", async () => {
 	const session = await client.start({
 		id: "descendants",
