@@ -77,3 +77,22 @@ test("Codex preserves the interrupted turn ID and distinguishes it from completi
 		{ kind: "idle", outcome: "interrupted", sessionId: "s", turnId: "t" },
 	]);
 });
+
+test("Codex does not bind a prompt receipt to the preceding turn ID", () => {
+	const event = parseCodexEvent({
+		session_id: "s",
+		hook_event_name: "UserPromptSubmit",
+		turn_id: "preceding-turn",
+		prompt: "trellis-message:new\nrun",
+	})[0]!;
+	expect(event).toEqual({ kind: "prompt", sessionId: "s", prompt: "trellis-message:new\nrun" });
+	expect(
+		parseCodexEvent({
+			session_id: "s",
+			hook_event_name: "PreToolUse",
+			turn_id: "current-turn",
+			tool_use_id: "tool",
+			tool_name: "Bash",
+		})[0]?.turnId,
+	).toBe("current-turn");
+});

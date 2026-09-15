@@ -110,11 +110,12 @@ test("Claude status selects the exact interactive process and does not infer idl
 	).toEqual({ status: "waiting", waitingFor: "permission" });
 });
 
-test("Claude uses its native prompt ID to associate tools and completion with a turn", () => {
+test("Claude keeps prompt receipts independent from a stale native prompt ID", () => {
 	const base = { session_id: input.sessionId, prompt_id: "native-prompt-id" };
-	expect(parseClaudeEvent({ ...base, hook_event_name: "UserPromptSubmit", prompt: "hello" })[0]).toMatchObject({
+	expect(parseClaudeEvent({ ...base, hook_event_name: "UserPromptSubmit", prompt: "hello" })[0]).toEqual({
 		kind: "prompt",
-		turnId: "native-prompt-id",
+		sessionId: input.sessionId,
+		prompt: "hello",
 	});
 	expect(parseClaudeEvent({ ...base, hook_event_name: "Stop", last_assistant_message: "done" })[0]).toMatchObject({
 		kind: "idle",
@@ -132,4 +133,23 @@ test("Claude model changes update metadata without a turn transition", () => {
 			source: "resume",
 		}),
 	).toEqual([{ kind: "session", sessionId: "s", model: "claude-sonnet-5" }]);
+});
+
+test("Claude associates the first tool with its current native prompt ID", () => {
+	const receipt = parseClaudeEvent({
+		session_id: "s",
+		hook_event_name: "UserPromptSubmit",
+		prompt_id: "completed-prompt",
+		prompt: "trellis-message:new\nrun",
+	})[0]!;
+	const tool = parseClaudeEvent({
+		session_id: "s",
+		hook_event_name: "PreToolUse",
+		prompt_id: "current-prompt",
+		tool_use_id: "tool",
+		tool_name: "Bash",
+		tool_input: { command: "sleep 30" },
+	})[0]!;
+	expect(receipt.turnId).toBeUndefined();
+	expect(tool.turnId).toBe("current-prompt");
 });

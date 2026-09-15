@@ -21,7 +21,14 @@ export function parseClaudeEvent(payload: unknown): HarnessEvent[] {
 		case "SessionStart":
 			return [{ kind: "session", ...identity }];
 		case "UserPromptSubmit":
-			return [{ kind: "prompt", ...identity, prompt: z.string().parse(event.prompt) }];
+			return [
+				{
+					kind: "prompt",
+					sessionId: event.session_id,
+					...(event.model ? { model: event.model } : {}),
+					prompt: z.string().parse(event.prompt),
+				},
+			];
 		case "Stop":
 			return [
 				{
