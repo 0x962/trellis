@@ -4,7 +4,7 @@ Owner: lead agent. Integration branch: `trellis-readiness-audit`.
 Last update: 2026-09-15.
 
 `Integrated` means that the source contains the change. It does not establish that the installed desktop uses that source.
-The current release still awaits the host integration and installed acceptance checks. Hana stays stopped, and TRL and OP dispatch stay paused.
+The source integrates the host. The current desktop build and installed acceptance checks remain in progress. Hana stays stopped, and TRL and OP dispatch stay paused.
 
 ## Current work
 
@@ -38,7 +38,7 @@ The current release still awaits the host integration and installed acceptance c
 | Give the manager periodic heartbeats. Read and follow the manager prompt. | Installed | One idle minute; generation 50 acknowledged by Hana without a new process. |
 | Keep manager comments useful. Send builder details directly, follow ticket scope, and avoid repeated blockers or questions. | Saved and verified after reinstall | The live manager persona contains the rules and reports an update at 17:16 UTC. |
 | Do not repeat agent names and roles inside comments. | Manager and builder updated | The UI supplies the author name. |
-| Rebuild, reinstall, and open the app after the changes. | Previous batch installed; current integration in progress | The lead owns the current desktop build, installation, and installed acceptance. |
+| Rebuild, reinstall, and open the app after the changes. | Previous batch installed; current build and acceptance in progress | The lead owns the current desktop build, installation, and installed acceptance. |
 
 ## Completion checks
 
@@ -51,22 +51,11 @@ The current release still awaits the host integration and installed acceptance c
 - Rebuild, sign, reinstall, open, and verify the installed app.
 
 
-## Verification record for this batch
+## Verification evidence
 
-- Real CLI smoke: `/tmp/trellis-real-cli-smoke.log`.
-- Actor names in the browser: `/tmp/trellis-actor-names-green.log`.
-- All nine workspace type checks pass.
-- Controller: 37 integration tests and 95 assertions pass.
-- Runtime socket and status subscriptions: 24 tests and 136 assertions pass.
-- The broad integration run stops at web bundle-size tests. Those performance checks are optional under the repository rules.
-- Database migrations and schema checks pass. Drizzle reports no schema changes.
-- Flow execution: 18 focused tests and 85 assertions pass, including PTY hooks, gates, cancellation, and retained output.
-- CLI integration: 208 tests and 1,169 assertions pass.
-- Runtime integration after review: 40 tests and 323 assertions pass.
-- Server review fixes: 29 focused tests and 133 assertions pass.
-- Repository checks: 15 tests and 106 assertions pass.
-- Three Button/IconButton unit assertions fail in files unchanged since this batch started.
-- Final server integration and installation checks continue.
+The earlier UI and reliability changes have focused API, browser, runtime, CLI, and schema checks.
+Evidence includes `/tmp/trellis-real-cli-smoke.log`, `/tmp/trellis-actor-names-green.log`, and the current source checks below.
+Current desktop installation and the manager acceptance ticket require separate verification.
 
 ## Reliability acceptance
 
@@ -106,13 +95,13 @@ Run the host gate before the manager acceptance ticket. Cover Claude, Codex, Ope
 | Read elapsed run time | Time advances while the process runs and stops after confirmed exit. |
 | Interrupt a session | The current turn stops, the conversation remains, and the next message works. |
 
-The process gate passes independently of a manager: 100 process/reconnect cycles retain 16 file descriptors. Two readers and replay match 2,097,409 binary bytes. The packaged host test confirms one PID for 12 concurrent starts, rejects a conflicting start, and preserves the PTY through an HTTP host restart. The four normal harness lifecycles have passed independent tests. Codex failure visibility and the installed OpenCode repeat remain incomplete.
+The process gate passes independently of a manager: 100 process/reconnect cycles retain 16 file descriptors. Two readers and replay match 2,097,409 binary bytes. The packaged host test confirms one PID for 12 concurrent starts, rejects a conflicting start, and preserves the PTY through an HTTP host restart. All four harness lifecycles pass independent tests. Codex native failure checks and the updated OpenCode repeat also pass. Installed desktop acceptance remains pending.
 
 ## Independent host results
 
 - Earlier independent runs pass on Claude 2.1.272, Codex 0.154.0, Pi 0.73.1, and OpenCode 1.18.31.
-- The latest installed OpenCode repeat does not pass; see the result below.
-- The four host cases contain 112 assertions across separate verified runs.
+- The latest installed OpenCode repeat passes 27 assertions in 22.37 seconds: `/tmp/trellis-host-wire-real-opencode.log`.
+- The current Codex shared-engine lifecycle passes 27 assertions in 31.66 seconds: `/tmp/trellis-codex-appserver-hooks-real.log`.
 - Native tests cover file edits, shell output, provider IDs, explicit models, prompt receipts, tool events, interruption, follow-up, stop, and exact-ID resume.
 - Host tests also verify pushed output, retained events, process lists, and elapsed time.
 - Twelve concurrent starts produce one process. Twelve concurrent native resume requests produce one prompt.
@@ -123,24 +112,23 @@ The process gate passes independently of a manager: 100 process/reconnect cycles
 
 Commands and coverage: [Host tests](host-testing.md). Detailed evidence: [Harness acceptance](harness-acceptance.md).
 
-Checks at commit 141794b9: `bun run test:host` passes 149 deterministic tests and skips eight native cases. Ten focused API tests, all nine workspace typechecks, lint, and 15 repository checks pass. The desktop build and packaged host smoke test passed at commit b3290a48. The current source changes await a desktop build and installation.
+Current source checks include 212 CLI integration tests with 1,191 assertions and 39 desktop tests with 98 assertions. Two desktop preview cases skip.
+The production host cases and interrupt boundary regression pass: 12 tests with 86 assertions.
+The model settings browser cases pass, including a blank model that uses the harness default without disabling Start.
+The source supports Claude, Codex, OpenCode, and Pi. Every built-in launch requires a native prompt receipt.
 
-Codex provider failures remain outside the verified error contract. Local 401 and 503 probes produce session and prompt hooks but no error or Stop hook within 15 seconds. The CLI continues requests in that interval. Final failure behavior remains unverified.
-
-The supported built-in harnesses are Claude, Codex, OpenCode, and Pi. The host requires native prompt receipts for each launch.
-
-The latest installed OpenCode test failed because the model omitted the requested file edit and shell command. Launch, prompt receipt, and response observations succeeded. Evidence: `/tmp/trellis-opencode-updated-host.log`.
-
-The [Codex plan](harness-acceptance.md#codex-work-to-complete) uses a private app-server with the native terminal attached. Its event mapping and failure tests remain pending.
+Codex final HTTP 400, 401, 429, and 503 failures, dropped streams, and interruption during retries pass native engine tests.
+The same suite confirms that terminal exit stops its engine: seven tests with 30 assertions.
+Evidence: `/tmp/trellis-codex-native-failures-final.log`. The [acceptance record](harness-acceptance.md#codex-acceptance) tracks remaining checks.
 
 ## Current integration audit
 
 | Request or finding | Status | Evidence or next check |
 | --- | --- | --- |
-| Connect the independent host to the app and manager. | In progress | Built-in launches must use HarnessHost through the existing agent APIs. |
-| Complete Codex through one local app-server and its native terminal. | Delegated | Native errors, hosted tools, interruption, and engine ownership need acceptance tests. |
+| Connect the independent host to the app and manager. | Integrated at 6efadd86; installation pending | Production host tests cover start, send, interrupt, stop, exact resume, and the single-manager constraint. |
+| Complete Codex through one local app-server and its native terminal. | Native lifecycle and failure checks pass; final checks in progress | Shared-engine lifecycle passes 27 assertions. Native failure tests pass 30 assertions. |
 | Remove the unsupported harness entirely. | Integrated at 141794b9; installation pending | The supported list contains Claude, Codex, OpenCode, and Pi. |
-| Use the updated OpenCode executable. | Installed executable verified | `opencode --version` returns 1.18.31. The latest file-edit acceptance assertion fails. |
+| Use the updated OpenCode executable. | Installed executable and complete host sequence verified | Version 1.18.31 passes 27 assertions, including file edit, shell tools, interruption, and resume. |
 | Show native flow tasks through their own terminal. | Source verified; installation pending | Six flow browser tests pass, including exact attempt selection and refusal to attach a replaced attempt. |
 | Remove the polled Dots output panel. | Source verified; installation pending | The browser test verifies retained results, explicit refresh, the external Dots link, and no output polling. |
 | Verify the saved manager and builder prompt rules. | Live read verified | Both prompts prohibit name prefixes, routine logs, repeated blockers, and questions about adjacent scope. |

@@ -83,15 +83,15 @@ Natural leader exit stops the remaining members of its OS session. Explicit stop
 The runtime reports exit only after cleanup and output completion. Failed cleanup records an unknown result.
 A descendant that leaves its session and loses its parent before inspection requires separate process inspection.
 
-All harness presets launch an interactive CLI in a PTY. Start and resume commands include each CLI's permission bypass flag.
-The Claude preset installs SessionStart, UserPromptSubmit, and Stop hooks through its settings argument.
-The hooks report turn activity, exact message receipts, and the final assistant result to the runtime.
-Claude startup waits for its initial prompt receipt. A follow-up requires an idle process and its own receipt.
+Built-in harnesses launch through `HarnessHost` with an interactive CLI in a PTY and native permission bypass settings.
+Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
+Codex runs one private app-server per attempt. Its native terminal and Trellis event client connect to that engine.
+The Codex adapter maps native thread, turn, tool, result, and error events into the runtime journal.
+Every built-in start waits for the initial native prompt receipt. Each follow-up requires an idle process and its own receipt.
 Agent shells inherit the desktop login environment without another login startup.
 Each launch selects the active host release on PATH, including when the runtime predates that host.
-The independent `HarnessHost` module exposes start, resume, send, interrupt, stop, status, and output APIs.
+`HarnessHost` exposes start, resume, send, interrupt, stop, status, and output APIs for native agent assignments.
 Its immutable launch descriptors retain configuration. The runtime supplies process status and observed provider identity.
-Native hooks and extensions produce a complete event journal with provider IDs, tool events, results, and errors.
 An exact prompt receipt confirms delivery. A provider turn and its observed activity time protect interrupt requests.
 `bun run test:host` tests this module and the runtime with isolated processes.
 `bun run test:host:real` also runs authenticated native CLI tests with explicit models and a configured credential home.

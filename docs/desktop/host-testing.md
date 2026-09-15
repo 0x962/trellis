@@ -19,7 +19,7 @@ bun run test:host:real
 
 These model names match the recorded acceptance runs. Select models available to each authenticated CLI.
 `TRELLIS_NATIVE_OPENCODE_BIN` selects an explicit OpenCode executable for its real tests.
-OpenCode 1.18.31 passes the native control test. Version 1.4.11 fails initial prompt submission.
+OpenCode 1.18.31 passes the complete native host sequence.
 Native tests create provider sessions and use the provider account. Each test stops its owned processes.
 
 ## Coverage
@@ -45,8 +45,16 @@ Native tests create provider sessions and use the provider account. Each test st
 Server tests live under `apps/server/test/int/src/agents/`. Runtime tests live under `apps/runtime/test/int/src/`.
 The [acceptance record](harness-acceptance.md) contains versions, models, evidence paths, and provider limits.
 
-## Codex error limit
+## Codex engine checks
 
-The verified error tests cover runtime failures and explicit native error events.
-Codex does not emit an error or Stop hook during the bounded local 401 and 503 probes. It continues requests in that interval.
-Final provider failure behavior remains unverified. The acceptance record contains the probe evidence.
+The native failure suite uses the installed Codex engine with temporary local provider settings:
+
+```sh
+cd apps/server
+TRELLIS_REAL_HARNESS_ACCEPTANCE=1 bun test test/int/src/agents/harnessHost/codexFailures.test.ts
+```
+
+It tests HTTP 400, 401, 429, and 503 responses, dropped response streams, and interruption during a provider retry.
+Native events must distinguish temporary errors from final failures through `willRetry`.
+The suite also verifies that terminal exit stops the owned engine.
+The acceptance record distinguishes these source checks from installed desktop and manager acceptance.
