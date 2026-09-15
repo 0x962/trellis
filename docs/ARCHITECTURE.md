@@ -74,8 +74,9 @@ The explicit Stop local work action pauses native dispatch, stops owned processe
 An unconfirmed process prevents a successful stop.
 
 The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 5. A lifetime file lock permits one runtime owner.
-Each attempt has one immutable identifier, a token hash, bounded output, and a process record.
+Its private Unix socket uses protocol 6. A lifetime file lock permits one runtime owner.
+Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
+Output readers receive bounded chunks with byte offsets.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
 A runtime restart never substitutes a new process for an unresolved attempt.
 Natural leader exit stops the remaining members of its OS session. Explicit stop also includes descendant sessions observed while the leader remains live.
@@ -85,11 +86,21 @@ A descendant that leaves its session and loses its parent before inspection requ
 All harness presets launch an interactive CLI in a PTY. Start and resume commands include each CLI's permission bypass flag.
 The Claude preset installs SessionStart, UserPromptSubmit, and Stop hooks through its settings argument.
 The hooks report turn activity, exact message receipts, and the final assistant result to the runtime.
+Claude startup waits for its initial prompt receipt. A follow-up requires an idle process and its own receipt.
+Agent shells inherit the desktop login environment without another login startup.
+Each launch selects the active host release on PATH, including when the runtime predates that host.
+The independent `HarnessHost` module exposes start, resume, send, interrupt, stop, status, and output APIs.
+Its immutable launch descriptors retain configuration. The runtime supplies process status and observed provider identity.
+Native hooks and extensions produce a complete event journal with provider IDs, tool events, results, and errors.
+An exact prompt receipt confirms delivery. A provider turn and its observed activity time protect interrupt requests.
+`bun run test:host` tests this module and the runtime with isolated processes.
+`bun run test:host:real` also runs authenticated native CLI tests with explicit models and a configured credential home.
+
 The runtime inspects the OS process before it reports status or permits input.
 The host uses these observations for manager dispatch and flow completion.
 
 The controller stores ticket events in `manager_dispatches` with a fixed coalescing deadline.
-It sends a native manager one batch when the runtime reports a controllable process with ready or idle turn activity.
+It sends a native manager one batch after the initial prompt receipt, when the runtime reports a controllable process with idle turn activity.
 An exact durable receipt can resolve an unknown delivery without another send.
 Stable assignment request identifiers prevent repeated worker starts from producing duplicate attempts.
 A partial database index permits one active manager per project.
@@ -108,6 +119,10 @@ Each node occurrence binds to an ordinary agent attempt or a versioned human dec
 Gate results use complete YES or NO responses. Skipped branches remain explicit, and joins wait for their incoming paths to settle.
 Group deadlines also reach the runtime process, so they remain effective after a host crash.
 Cancellation retains files and output and records any worker whose stop remains unconfirmed.
+
+The desktop installs `~/.local/bin/trellis` from the active host release.
+Its default connection reads the selected data directory's current port and token on each invocation.
+An explicit URL uses explicitly supplied credentials and does not read the selected desktop connection.
 
 The desktop retains each host resource version under `releases` in its application data directory.
 An application replacement can reuse that version while its runtime owns active sessions.

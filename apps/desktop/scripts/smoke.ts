@@ -59,13 +59,18 @@ try {
 	const deadline = Date.now() + 10000;
 	while (!existsSync(join(runtimeHome, "manifest.json")) && Date.now() < deadline) await Bun.sleep(50);
 	const runtime = new RuntimeClient(join(runtimeHome, "runtime.sock"));
-	const running = await runtime.start({
+	const spec = {
 		id: "desktop-restart-probe",
 		command: "/bin/cat",
 		args: [],
 		cwd: home,
-		mode: "pty",
-	});
+		mode: "pty" as const,
+	};
+	const starts = await Promise.all(Array.from({ length: 12 }, () => runtime.start(spec)));
+	assert.equal(new Set(starts.map((session) => session.pid)).size, 1);
+	const running = starts[0]!;
+	await assert.rejects(runtime.start({ ...spec, args: ["different-command"] }), /different command/);
+	await runtime.resize(running.id, 120, 40);
 	process.kill(pid, "SIGTERM");
 	pid = undefined;
 	await Bun.sleep(1000);
@@ -74,9 +79,30 @@ try {
 	assert.equal(restarted.origin, host.origin);
 	assert.equal((await runtime.list())[0]?.pid, running.pid);
 	await runtime.input(running.id, Buffer.from("survived-host-restart\n").toString("base64"));
-	await Bun.sleep(100);
-	assert.match(Buffer.from((await runtime.output(running.id)).data, "base64").toString(), /survived-host-restart/);
-	await runtime.stop(running.id);
+	let streamed = "";
+	let nextOffset = 0;
+	for await (const event of runtime.subscribe(running.id, 0, AbortSignal.timeout(5000))) {
+		if (event.type !== "output") continue;
+		assert.equal(event.startOffset, nextOffset);
+		nextOffset = event.nextOffset;
+		streamed += Buffer.from(event.data, "base64").toString();
+		if (streamed.includes("survived-host-restart")) break;
+	}
+	assert.match(streamed, /survived-host-restart/);
+	const reconnected = new RuntimeClient(join(runtimeHome, "runtime.sock"));
+	assert.equal((await reconnected.inspect(running.id)).pid, running.pid);
+	await reconnected.input(running.id, Buffer.from("after-reconnect\n").toString("base64"));
+	let resumed = "";
+	for await (const event of reconnected.subscribe(running.id, nextOffset, AbortSignal.timeout(5000))) {
+		if (event.type !== "output") continue;
+		assert.equal(event.startOffset, nextOffset);
+		nextOffset = event.nextOffset;
+		resumed += Buffer.from(event.data, "base64").toString();
+		if (resumed.includes("after-reconnect")) break;
+	}
+	assert.match(resumed, /after-reconnect/);
+	assert.equal((await runtime.stop(running.id)).status, "exited");
+	assert.equal((await runtime.inspect(running.id)).process, null);
 	console.log(
 		JSON.stringify(
 			{
@@ -86,6 +112,10 @@ try {
 				bundledCli: "pass",
 				bundledPty: "pass",
 				bundledProcessOwnership: "pass",
+				concurrentStartDeduplication: "pass",
+				conflictingStartRejected: "pass",
+				terminalPushAndReconnect: "pass",
+				confirmedProcessExit: "pass",
 				ptySurvivesHostRestart: "pass",
 				stableRendererOrigin: "pass",
 				build: JSON.parse(await readFile(join(staged, "build.json"), "utf8")),

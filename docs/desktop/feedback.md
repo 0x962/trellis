@@ -20,7 +20,7 @@ Last update: 2026-09-15.
 | Remove green dots next to agent avatars. | Integrated | UI agent | Shared avatar components and consumers updated. Component and browser checks pass. |
 | Update builder prompts. Remove name prefixes, routine logs, and evidence bookkeeping from comments. | Saved and verified | Lead | Removed the instruction that requests name prefixes. The builder persona now limits comments and requires checks before review. |
 | Every harness start command includes its permission-bypass flag or equivalent. | Integrated and saved | Lead | Six preset tests pass. Both existing projects have verified start and resume commands with permission bypass. |
-| Track all feedback in a Markdown file. Use subagents to fix and merge the work. | In progress | Lead | This file tracks each request. Merge and reinstall follow integration checks. |
+| Track all feedback in a Markdown file. Use subagents to fix and merge the work. | First batch merged and installed | Lead | Main contains the first batch. Live acceptance tests found further defects below. |
 
 ## Completed foundation and earlier feedback
 
@@ -64,3 +64,43 @@ Last update: 2026-09-15.
 - Repository checks: 15 tests and 106 assertions pass.
 - Three Button/IconButton unit assertions fail in files unchanged since this batch started.
 - Final server integration and installation checks continue.
+
+## Reliability acceptance
+
+| Finding or request | Status | Evidence |
+| --- | --- | --- |
+| Ticket summaries and actor filters still show IDs. | Fixed; final install pending | Commit d54e58d4; 18 API tests and the filtered board browser test pass. |
+| GitHub PR batch timeouts incorrectly report authentication failure. | Fixed; final install pending | Commit dceff745; 131 GitHub integration tests pass. |
+| TRL-70: send returns success before the initial CLI prompt exists. | Fixed; final install pending | Commits f510bfac and 595b0016; initial and follow-up receipts are required. Busy sends write no text. |
+| A failed first controller tick prevents future ticks. | Fixed; final install pending | Commit 595b0016; the normal periodic tick continues after its logged error. |
+| TRL-69: some agent commands return 401. | Agent path fixed; desktop launcher under review | Commit 411110f0; the second login shell selected the old source CLI. Four authenticated procedure tests pass. |
+| Act as manager and drive a ticket through the installed CLI. | In progress | TRL-71 covers a builder, follow-up, PR, reviewer, and final handoff. |
+| Keep Hana stopped. | Applied | The live runtime no longer lists Hana as running. Do not resume her as part of this test. |
+| No hacks, shortcuts, or fallbacks. | Acceptance constraint | Each reproduced defect requires a regression test and a fix to its owning component. |
+
+Hana acknowledged idle heartbeat generations 107 and 108 in process 17974 before the user stopped her. Both dispatches contain zero ticket events. Evidence: `/tmp/trellis-feedback-live-check.log`.
+
+## Required harness tests
+
+Run the host gate before the manager acceptance ticket. Cover Claude, Codex, AGY, OpenCode, and Pi separately.
+
+| Required behavior | Acceptance evidence |
+| --- | --- |
+| Start an agent | A real child process and initial provider readiness. |
+| Start every supported harness | Separate cases for all five built-in harnesses. |
+| Report a missing harness | A named executable and actionable error before a false successful start. |
+| Always bypass permissions | Actual start and resume arguments or native permission configuration. |
+| Get the session ID | The provider conversation ID, distinct from the Trellis attempt ID. |
+| Resume by ID | The requested conversation resumes with its prior context. |
+| Stop by ID | The matching process and its owned children exit. |
+| Select the model | The provider confirms the requested model. |
+| Send messages | The target session receives the requested message. |
+| Read responses and output | Complete output reaches a subscriber and survives reconnect. |
+| Read status and tool activity | Provider lifecycle events and actual process inspection supply the display. |
+| List running sessions | Results contain only live matching processes. |
+| List idle sessions | Results contain only live sessions whose provider reports idle. |
+| List crashed or errored sessions | Exit codes and errors remain inspectable. |
+| Read elapsed run time | Time advances while the process runs and stops after confirmed exit. |
+| Interrupt a session | The current turn stops, the conversation remains, and the next message works. |
+
+The process gate passes independently of a manager: 100 process/reconnect cycles retain 16 file descriptors. Two readers and replay match 2,097,409 binary bytes. The packaged host test confirms one PID for 12 concurrent starts, rejects a conflicting start, and preserves the PTY through an HTTP host restart. Harness-specific gates remain in progress.
