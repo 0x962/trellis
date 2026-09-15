@@ -1,7 +1,5 @@
 import { call, os } from "./base.ts";
 export const agentRuns = os.agentRuns.router({
-	harness: os.agentRuns.harness.handler(({ context, input }) => call(context, "agentRuns.harness", input)),
-	permission: os.agentRuns.permission.handler(({ context, input }) => call(context, "agentRuns.permission", input)),
 	session: os.agentRuns.session.handler(({ context, input }) => call(context, "agentRuns.session", input)),
 	terminalOutput: os.agentRuns.terminalOutput.handler(({ context, input }) =>
 		call(context, "agentRuns.terminalOutput", input),
