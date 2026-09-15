@@ -59,13 +59,13 @@ export function NativeTerminal({
 		return <EmptyState title="No local terminal" description="This assignment has no local process." />;
 	return (
 		<section
-			aria-label={`Terminal for ${run.name}`}
+			aria-label={`Terminal for ${run.personaName}`}
 			data-layout={layout}
 			className={cx("flex min-w-0 flex-col", layout === "fill" ? "min-h-0 flex-1 overflow-hidden" : "gap-3")}
 		>
 			<header className={layout === "fill" ? "sr-only" : "flex items-center gap-2"}>
 				<h3 ref={heading} tabIndex={-1} className="flex-1 text-sm font-medium">
-					{run.name}
+					{run.personaName}
 				</h3>
 				<Badge>
 					{session?.status === "exited"
@@ -88,7 +88,7 @@ export function NativeTerminal({
 			>
 				<TerminalSurface
 					layout={layout}
-					label={`Terminal input for ${run.name}`}
+					label={`Terminal input for ${run.personaName}`}
 					connected={connection === "open" && session?.controllable === true}
 					stopped={run.processStatus === "exited" || session?.status === "exited"}
 					unavailableReason={terminalUnavailable(session)}

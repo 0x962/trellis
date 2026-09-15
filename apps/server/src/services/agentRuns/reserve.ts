@@ -11,7 +11,6 @@ import { reserveAttempt } from "../assignments/attempts.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { managerConfigOf, projectRow } from "../projectRows.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
-import { randomAgentName } from "./names.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { columns, type StoredRun } from "./queries.ts";
 
@@ -52,6 +51,11 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 	const config = managerConfigOf(await projectRow(tx, project.id));
 	await assertNativeWorkEnabled(tx);
 	if (ticket !== null) {
+		const assigned = await rows(
+			tx,
+			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket.id} AND persona_id=${persona.id} AND runtime='native' AND closed_at IS NULL LIMIT 1`,
+		);
+		if (assigned.length > 0) throw fail("DUPLICATE", { field: "active persona assignment on this ticket" });
 		const [active] = await rows<{ count: number }>(
 			tx,
 			sql`SELECT count(*)::int AS count FROM agent_runs WHERE project_id = ${project.id} AND kind <> 'manager' AND runtime = 'native' AND closed_at IS NULL`,
@@ -91,7 +95,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 			? await rows<StoredRun>(
 					tx,
 					sql`INSERT INTO agent_runs (id, name, persona_id, persona_name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
-		VALUES (${ulid()}, ${randomAgentName()}, ${persona.id}, ${persona.name}, ${persona.kind}, ${persona.instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
+		VALUES (${ulid()}, ${persona.name}, ${persona.id}, ${persona.name}, ${persona.kind}, ${persona.instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
 		ON CONFLICT DO NOTHING RETURNING ${columns}`,
 				)
 			: // A person can change the persona between two starts, so the row
@@ -100,7 +104,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 				await rows<StoredRun>(
 					tx,
 					sql`UPDATE agent_runs SET closed_at = NULL, error = NULL, session_lost = false, session_id = ${sessionId},
-			persona_id = ${persona.id}, persona_name = ${persona.name}, instruction = ${persona.instruction}, updated_at = ${ctx.now}
+			name = ${persona.name}, persona_id = ${persona.id}, persona_name = ${persona.name}, instruction = ${persona.instruction}, updated_at = ${ctx.now}
 			WHERE id = ${existing.id} RETURNING ${columns}`,
 				);
 	if (run === undefined) throw fail("DUPLICATE", { field: "active agent" });

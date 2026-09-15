@@ -8,7 +8,6 @@ import { resolvePersona } from "./personas.ts";
 const agentList: ListSpec<AgentRun> = {
 	columns: [
 		{ name: "id", value: (row) => row.id },
-		{ name: "name", value: (row) => row.name },
 		{ name: "kind", value: (row) => row.kind },
 		{ name: "persona", value: (row) => cell(row.personaName) },
 		{ name: "state", value: (row) => row.state },
@@ -21,7 +20,6 @@ const agentList: ListSpec<AgentRun> = {
 const agentRecord: RecordSpec<AgentRun> = {
 	fields: [
 		{ name: "id", value: (row) => row.id },
-		{ name: "name", value: (row) => row.name },
 		{ name: "kind", value: (row) => row.kind },
 		{ name: "persona", value: (row) => cell(row.personaName) },
 		{ name: "state", value: (row) => row.state },

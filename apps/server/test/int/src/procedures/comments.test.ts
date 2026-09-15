@@ -72,7 +72,7 @@ test("comment thread endpoints preserve replies, resolution, and delete protecti
 });
 
 const managerId = "01M2HGY58VB4J2AYRVGDFHHB3P";
-const managerActor = { name: managerId, kind: "agent", displayName: "Hana" };
+const managerActor = { name: managerId, kind: "agent", displayName: "Manager" };
 
 const seedStoppedManager = () =>
 	t.editServerTx(async (tx) => {
@@ -146,4 +146,21 @@ test("human identities and external agent names retain their names without a dis
 		for (const item of matching) expect(item.actor).toEqual(actor);
 	}
 	await t.serverTx((tx) => assertStatusInvariant(tx));
+});
+
+test("comment and timeline responses expose the captured persona notification", async () => {
+	const ticket = await t.client.tickets.get({ ticket: "CDE-1" });
+	await t.editServerTx((tx) =>
+		tx.execute(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,ticket_id,terminal_id,created_at,updated_at)
+	VALUES (${managerId},'Old name','Builder','builder','Build',${ticket.project.id},'CDE',${ticket.id},'attempt',now(),now())`),
+	);
+	const comment = await t.client.comments.create({ ticket: "CDE-1", body: "@builder please check" });
+	const expected = [{ runId: managerId, personaName: "Builder", state: "pending" as const, error: null }];
+	expect(comment.notifications).toEqual(expected);
+	expect((await t.client.comments.thread({ id: comment.id })).root.notifications).toEqual(expected);
+	const timeline = await t.client.timeline.list({ ticket: "CDE-1" });
+	expect(timeline.items.find((item) => item.kind === "comment" && item.id === comment.id)).toMatchObject({
+		notifications: expected,
+	});
+	await t.serverTx(assertStatusInvariant);
 });

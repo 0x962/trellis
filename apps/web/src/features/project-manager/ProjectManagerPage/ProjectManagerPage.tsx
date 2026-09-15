@@ -33,7 +33,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 			setConfirmNewSession(false);
 			const verb = newSession ? "restart" : resumes ? "resume" : "start";
 			if (run.state === "failed") toast.error(`Could not ${verb} the manager`, { description: run.error ?? undefined });
-			else toast.success(`${run.name} ${verb}s now`);
+			else toast.success(`${run.personaName} ${verb}s now`);
 		},
 		onError: (error, newSession) =>
 			toast.error(`Could not ${newSession ? "restart" : "start"} the manager`, { description: error.message }),
