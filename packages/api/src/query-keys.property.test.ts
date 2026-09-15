@@ -6,7 +6,6 @@ import {
 	cached,
 	createdEvent,
 	detailKey,
-	inboxKey,
 	listKey,
 	listPage,
 	type Summary,
@@ -71,12 +70,6 @@ const ENTRIES: Record<string, Entry> = {
 		detail: false,
 		seed: (s) => boardPage(s),
 		row: (d) => (d as { columns: { items: unknown[] }[] }).columns[0]!.items[0],
-	},
-	inbox: {
-		key: inboxKey,
-		detail: false,
-		seed: (s) => ({ review: { items: [s], total: 1 } }),
-		row: (d) => (d as { review: { items: unknown[] } }).review.items[0],
 	},
 	search: {
 		key: searchKey,

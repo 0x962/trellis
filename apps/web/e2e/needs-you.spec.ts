@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { get, put } from "./api";
+import { createTicket, ensureProject, trellis } from "./cli";
+import { failingPrUrl } from "./ghReplies";
 import { signIn } from "./support";
 
 // Both tests change the server settings, and every spec shares one server.
@@ -12,17 +14,26 @@ test.afterEach(async () => {
 	await put("/settings", before);
 });
 
-test("needs-you > an empty page opens without agent or inbox requests", async ({ page }) => {
-	const featureRequests: string[] = [];
-	page.on("request", (request) => {
-		const path = new URL(request.url()).pathname;
-		if (/\/(?:agentRuns|agent-runs|manager-dispatches|controller\/list|inbox)(?:\/|$)/.test(path))
-			featureRequests.push(path);
-	});
+// NYO-1 links a pull request with a failed check, and NYO-2 waits in Human
+// Review.
+test.beforeAll(() => {
+	if (!ensureProject("NYO", "Needs you")) return;
+	createTicket("NYO", "Fix the desktop typecheck", ["--status", "in-progress"]);
+	trellis(["pr", "add", "NYO-1", failingPrUrl]);
+	createTicket("NYO", "Read the release notes", ["--status", "human-review"]);
+});
+
+// TRL-62. No ticket goes to Needs you. The page shows its title over an
+// empty body, and the sidebar still links to it.
+test("needs-you > the page stays empty and the sidebar keeps its item", async ({ page }) => {
 	await signIn(page, "/needs-you");
 	await expect(page.getByRole("heading", { name: "Needs you", exact: true })).toBeVisible();
-	await expect(page.locator(".page-card")).toBeEmpty();
-	expect(featureRequests).toEqual([]);
+	await expect(
+		page.getByRole("navigation", { name: "Workspace" }).getByRole("link", { name: "Needs you" }),
+	).toBeVisible();
+	await expect(page.getByText("Fix the desktop typecheck")).toHaveCount(0);
+	await expect(page.getByText("Read the release notes")).toHaveCount(0);
+	await expect(page.getByTestId("needs-you-body")).toBeEmpty();
 });
 
 // E2E-04. The settings live on the server, so a reload shows them again.

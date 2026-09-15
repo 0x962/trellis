@@ -13,6 +13,7 @@ import type { Config } from "./config.ts";
 import { API_VERSION } from "./context.ts";
 import type { Runtime, ServiceTransport } from "./db/transport.ts";
 import type { Bus } from "./events/bus.ts";
+import type { GhAccess } from "./ghState.ts";
 import { isAllowedHost } from "./hostCheck.ts";
 import type { Logger } from "./log.ts";
 import { chooseDirectory } from "./native/chooseDirectory";
@@ -25,7 +26,8 @@ import { reviewImageRoute } from "./routes/reviewImage";
 import { staticRoute } from "./routes/static.ts";
 import { terminalSocketRoute } from "./routes/terminalSocket/terminalSocket.ts";
 import { terminalStreamRoute } from "./routes/terminalStream.ts";
-import { createDbTiming, serverTimingHeader } from "./serverTiming.ts";
+import { createDbTiming, type DbTiming, serverTimingHeader } from "./serverTiming.ts";
+import { checkGh } from "./services/system.ts";
 
 export type AppOptions = {
 	config: Config;
@@ -37,6 +39,10 @@ export type AppOptions = {
 	// The folder picker `system.chooseDirectory` opens. A test gives its own,
 	// so no suite waits on a dialog nobody can answer.
 	chooseDirectory?: () => Promise<string | null>;
+	// What `system.gh` and `system.checkGh` answer with. The boot gives the gh
+	// state it keeps. The default reads `runtime.ghStatus`, and its check runs
+	// `gh auth status` through `runtime.gh` and keeps no answer.
+	gh?: GhAccess;
 };
 
 // The Vite dev server and the localhost gateway. Every other origin gets no
@@ -47,6 +53,16 @@ const MB = 1024 * 1024;
 
 const HOST_REFUSED =
 	"The Host header names a hostname this server does not serve. Use 127.0.0.1, localhost, or the TRELLIS_HOST name. To allow a proxy hostname, add it to TRELLIS_ALLOWED_HOSTS.";
+
+const roundMs = (ms: number) => Math.round(ms * 10) / 10;
+
+// The request log fields of a procedure request: the wait in the queue of
+// the database worker, the wait for the database lock, and the database
+// time. A request that reached no procedure has no timing and no fields.
+const timingFields = (timing: DbTiming | undefined) =>
+	timing === undefined
+		? {}
+		: { queueMs: roundMs(timing.queueMs), lockMs: roundMs(timing.lockMs), dbMs: roundMs(timing.ms) };
 
 // The wire shape of every error, the same one the oRPC handlers write.
 const errorBody = (code: keyof typeof errors, data?: unknown) => ({
@@ -89,8 +105,13 @@ export const createApp = ({
 	runtime,
 	clock = realClock,
 	chooseDirectory: chooseFolder = chooseDirectory,
+	gh = { read: async () => runtime.ghStatus(), check: () => checkGh(runtime.gh, new Date()) },
 }: AppOptions) => {
 	const app = new Hono();
+	// The database timing of each procedure request, by its request. The
+	// request log line reads it. A streaming batch writes its line when its
+	// headers go out, so that line counts only the calls done by then.
+	const timings = new WeakMap<Request, DbTiming>();
 	const events = createEventsRoute({ bus, runtime, transport, clock });
 	const docs = docsRoutes();
 
@@ -110,6 +131,7 @@ export const createApp = ({
 			status: c.res.status,
 			ms: Math.round((performance.now() - started) * 10) / 10,
 			actor: c.req.header("x-trellis-actor") ?? null,
+			...timingFields(timings.get(c.req.raw)),
 		};
 		if (c.req.method === "GET") log.debug("request", line);
 		else log.info("request", line);
@@ -153,14 +175,19 @@ export const createApp = ({
 		plugins: [new BatchHandlerPlugin<ProcedureContext>(), ...plugins],
 	});
 	const api = new OpenAPIHandler<ProcedureContext>(router, { plugins });
-	const contextOf = (c: Context): ProcedureContext => ({
-		headers: c.req.raw.headers,
-		reqId: c.get("requestId"),
-		transport,
-		actor: null,
-		timing: createDbTiming(),
-		chooseDirectory: chooseFolder,
-	});
+	const contextOf = (c: Context): ProcedureContext => {
+		const timing = createDbTiming();
+		timings.set(c.req.raw, timing);
+		return {
+			headers: c.req.raw.headers,
+			reqId: c.get("requestId"),
+			transport,
+			actor: null,
+			timing,
+			chooseDirectory: chooseFolder,
+			gh,
+		};
+	};
 	// Every procedure response carries the database time of its request. A
 	// request that fails before any service call reports 0.
 	const timed = (response: Response, context: ProcedureContext) => {

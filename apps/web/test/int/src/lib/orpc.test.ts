@@ -19,9 +19,9 @@ describe("lib/orpc", () => {
 				return server.request(request, init);
 			},
 		});
-		const [projects, inbox] = await Promise.all([client.projects.list({}), client.inbox.get({})]);
+		const [projects, settings] = await Promise.all([client.projects.list({}), client.settings.get()]);
 		expect(projects.length).toBeGreaterThan(0);
-		expect(inbox.review.total).toBeGreaterThan(0);
+		expect(settings.defaultActorName).toBe("dana");
 		expect(requests).toHaveLength(1);
 		expect(new URL(requests[0]!.url).pathname).toBe("/rpc/__batch__");
 		expect(requests[0]!.headers.get("x-trellis-actor")).toBe("human:dana");
@@ -38,8 +38,27 @@ describe("lib/orpc", () => {
 				return server.request(request, init);
 			},
 		});
-		await Promise.all([client.statuses.list({ project: "CDE" }), client.projects.list({}), client.inbox.get({})]);
+		await Promise.all([client.statuses.list({ project: "CDE" }), client.projects.list({}), client.settings.get()]);
 		expect(paths.sort()).toEqual(["/rpc/__batch__", "/rpc/statuses/list"]);
+	});
+
+	test("a slow call in a batch never holds back the answer of another call in the batch", async () => {
+		setActorName("dana");
+		const server = createTestServer();
+		const { client } = createOrpc({ fetch: (request, init) => server.request(request, init) });
+		const hold = server.holdNext("tickets.list");
+
+		const slow = client.tickets.list({});
+		const fast = client.projects.list({});
+		let slowSettled = false;
+		void slow.finally(() => {
+			slowSettled = true;
+		});
+
+		expect((await fast).length).toBeGreaterThan(0);
+		expect(slowSettled).toBe(false);
+		hold.release();
+		expect((await slow).items.length).toBeGreaterThan(0);
 	});
 
 	// WS-18. applyEvent patches the cache under the keys the tanstack utils

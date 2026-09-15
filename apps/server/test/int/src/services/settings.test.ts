@@ -31,15 +31,13 @@ const set = (input: Settings) => h.run((ctx, tx) => settings.set(ctx, tx, input)
 
 const written: Settings = {
 	defaultActorName: "dana",
-	stalledHours: 48,
 };
 
 describe("settings", () => {
 	test("get returns the defaults on an empty table", async () => {
 		const defaults = await get();
 		const parsed = SettingsSchema.parse(defaults);
-		expect(Object.keys(parsed).sort()).toEqual(["defaultActorName", "stalledHours"]);
-		expect(parsed.stalledHours).toBe(24);
+		expect(Object.keys(parsed).sort()).toEqual(["defaultActorName"]);
 		expect(await count(h.db, "settings")).toBe(0);
 	});
 
@@ -47,21 +45,31 @@ describe("settings", () => {
 		const returned = await set(written);
 		expect(returned).toEqual(written);
 		const rows = await settingRows();
-		expect(rows.map((row) => row.key)).toEqual(["defaultActorName", "stalledHours"]);
-		expect(rows.map((row) => row.value)).toEqual(["dana", 48]);
+		expect(rows.map((row) => row.key)).toEqual(["defaultActorName"]);
+		expect(rows.map((row) => row.value)).toEqual(["dana"]);
 		expect(await get()).toEqual(written);
 	});
 
 	test("get fills a missing key with its default", async () => {
 		const defaults = await get();
+		await h.db.execute(
+			sql`INSERT INTO settings (key, value, updated_at) VALUES ('defaultActorName', '"other"'::jsonb, ${NOW})`,
+		);
+		expect(await get()).toEqual({ ...defaults, defaultActorName: "other" });
+	});
+
+	// The table keeps a row for a key that no setting names any more, and
+	// `get` returns only the keys of `Settings`.
+	test("get leaves out a stored key that Settings does not name", async () => {
+		const defaults = await get();
 		await h.db.execute(sql`INSERT INTO settings (key, value, updated_at) VALUES ('stalledHours', '72'::jsonb, ${NOW})`);
-		expect(await get()).toEqual({ ...defaults, stalledHours: 72 });
+		expect(await get()).toEqual(defaults);
 	});
 
 	test("set moves updated_at and writes no activity", async () => {
 		await set(written);
 		await h.db.execute(sql`UPDATE settings SET updated_at = ${minutesAgo(30)}`);
-		await set({ ...written, stalledHours: 12, defaultActorName: "other" });
+		await set({ ...written, defaultActorName: "other" });
 		const rows = await settingRows();
 		expect(rows).toHaveLength(2);
 		for (const row of rows) expect(row.updated_at, row.key).toBe(NOW.toISOString());

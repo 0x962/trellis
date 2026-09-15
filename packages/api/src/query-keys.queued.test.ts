@@ -4,7 +4,6 @@ import {
 	boardPage,
 	cached,
 	detailKey,
-	inboxKey,
 	isInvalidated,
 	listKey,
 	listPage,
@@ -15,23 +14,17 @@ import {
 } from "../test/applierHarness.ts";
 import { queryKey, t1, ticket, ulid } from "../test/fixtures.ts";
 
-// Patch first, always. A queued invalidation covers a query for up to 1 s,
-// and the inbox for up to 4 s. Every event in that window still patches
-// the row, so a burst of events never leaves a row behind. The queued
-// invalidation still fires.
+// Patch first, always. A queued invalidation covers a query for up to 1 s.
+// Every event in that window still patches the row, so a burst of events
+// never leaves a row behind. The queued invalidation still fires.
 describe("applyEvent while an invalidation waits", () => {
 	const searchKey = queryKey(["search", "query"], { q: "first" });
-	const inboxSection = (...items: ReturnType<typeof summaryAt>[]) => ({
-		review: { items, total: items.length },
-		failingCi: { items: [], total: 0 },
-	});
 	const seedEveryCache = (queryClient: Parameters<ReturnType<typeof seedTicketCaches>>[0]) => {
 		seedTicketCaches(summaryAt(3))(queryClient);
-		queryClient.setQueryData(inboxKey, inboxSection(summaryAt(3)));
 		queryClient.setQueryData(searchKey, { tickets: [summaryAt(3)], projects: [] });
 	};
 
-	test("a title event patches every cached list, board, inbox section, search result, and detail while a status invalidation waits", () => {
+	test("a title event patches every cached list, board, search result, and detail while a status invalidation waits", () => {
 		const { queryClient, advanceTo, applier, invalidateQueries } = setup(seedEveryCache);
 		applier.applyEvent(updatedEvent(summaryAt(4), ["status"]));
 		advanceTo(100);
@@ -39,15 +32,12 @@ describe("applyEvent while an invalidation waits", () => {
 		applier.applyEvent(updatedEvent(v5, ["title"]));
 		expect(cached(queryClient, listKey)).toEqual(listPage(v5));
 		expect(cached(queryClient, boardKey)).toEqual(boardPage(v5));
-		expect(cached(queryClient, inboxKey)).toEqual(inboxSection(v5));
 		expect(cached(queryClient, searchKey)).toEqual({ tickets: [v5], projects: [] });
 		expect(cached(queryClient, detailKey)).toEqual(ticket(v5));
 		expect(invalidateQueries).not.toHaveBeenCalled();
 		advanceTo(350);
 		expect(isInvalidated(queryClient, listKey)).toBe(true);
 		expect(isInvalidated(queryClient, boardKey)).toBe(true);
-		advanceTo(1100);
-		expect(isInvalidated(queryClient, inboxKey)).toBe(true);
 	});
 
 	test("a title event patches the detail while a comment invalidation waits for it", () => {
@@ -60,22 +50,6 @@ describe("applyEvent while an invalidation waits", () => {
 		expect(cached(queryClient, listKey)).toEqual(listPage(v4));
 		advanceTo(300);
 		expect(isInvalidated(queryClient, detailKey)).toBe(true);
-	});
-
-	test("an inbox row follows every status event of a 3 s stream while its 4 s invalidation waits", () => {
-		const { queryClient, advanceTo, applier } = setup(seedEveryCache);
-		for (let at = 0; at <= 3000; at += 100) {
-			advanceTo(at);
-			const version = 4 + at / 100;
-			applier.applyEvent(updatedEvent(summaryAt(version), ["status"]));
-			expect(
-				(cached(queryClient, inboxKey) as ReturnType<typeof inboxSection>).review.items[0]!.version,
-				`t=${at}`,
-			).toBe(version);
-		}
-		expect(isInvalidated(queryClient, inboxKey)).toBe(false);
-		advanceTo(4000);
-		expect(isInvalidated(queryClient, inboxKey)).toBe(true);
 	});
 
 	// The detail holds the description and a summary event does not carry it.

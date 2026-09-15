@@ -104,10 +104,6 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "Print the markdown brief of a ticket",
 		load: () => import("./commands/brief.ts").then((m) => command(m.default)),
 	},
-	inbox: {
-		description: "Show what needs a human",
-		load: () => import("./commands/inbox.ts").then((m) => command(m.default)),
-	},
 	watch: {
 		description: "Print events as JSON lines",
 		load: () => import("./commands/watch.ts").then((m) => command(m.default)),

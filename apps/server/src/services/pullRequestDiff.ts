@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fetchDiff } from "../gh/diff.ts";
-import { fail, notFound, type ServiceCtx } from "./support.ts";
+import { fail, notFound, type PrepareCtx } from "./support.ts";
 
 // The diff of one pull request lives in gh, not in the database.
 // prepareDiff reads it before the service transaction opens, so no other
@@ -24,7 +24,7 @@ export type DiffInput = { id: string };
 // The pull request id with its diff.
 export type PreparedDiff = { id: string; value: PullRequestDiffOutput };
 
-export const prepareDiff = async (ctx: ServiceCtx, input: DiffInput): Promise<PreparedDiff> => {
+export const prepareDiff = async (ctx: PrepareCtx, input: DiffInput): Promise<PreparedDiff> => {
 	const row = await ctx.newTx((tx) => findUrl(tx, input.id));
 	const at = ctx.now().getTime();
 	const cached = diffCache.get(row.id);

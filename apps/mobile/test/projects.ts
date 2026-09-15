@@ -31,7 +31,6 @@ export const projectSummary = ({ path, name, position = 0, openCount = 0, id }: 
 		depth: segments.length - 1,
 		position,
 		openCount,
-		needsYouCount: 0,
 		archivedAt: null,
 	};
 };

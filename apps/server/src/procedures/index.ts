@@ -9,7 +9,7 @@ import { flows } from "./flows.ts";
 import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
-import { actors, brief, inbox, search, settings, timeline } from "./reads.ts";
+import { actors, brief, search, settings, timeline } from "./reads.ts";
 import { reviews } from "./reviews";
 import { statuses } from "./statuses.ts";
 import { system } from "./system.ts";
@@ -34,7 +34,6 @@ export const router = os.router({
 	attachments,
 	pullRequests,
 	search,
-	inbox,
 	brief,
 	actors,
 	settings,

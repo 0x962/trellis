@@ -81,11 +81,8 @@ const routes: Array<[string, (page: Page) => Locator]> = [
 ];
 
 // The screens TRL-31 covers, with the element that shows each one has
-// painted. TRL-44 adds Needs you, which the audit measured at 36 px rows
-// and 32 px section headers. MOB-2 sits in a human review status, so the
-// Review section holds a row whenever this spec has seeded its project.
+// painted.
 const screens: Array<[string, string, (page: Page) => Locator]> = [
-	["needs you", "/needs-you", (page) => page.locator('[data-inbox-row="MOB-2"]')],
 	["all tickets", "/all/table", (page) => page.locator('[role="row"][data-identifier]').first()],
 	["the project board", "/p/MOB", (page) => cardOf(columnOf(page, "Todo"), "MOB-1")],
 	["the ticket page", "/t/MOB-1", (page) => page.getByRole("textbox", { name: "Title" })],

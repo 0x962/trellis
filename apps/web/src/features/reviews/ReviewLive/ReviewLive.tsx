@@ -1,4 +1,5 @@
 import type { ReviewRevision } from "@trellis/api";
+import { EmptyState } from "@trellis/ui";
 import { ReviewActions } from "../ReviewActions/ReviewActions";
 import { ReviewMarkdown } from "../ReviewPage/ReviewMarkdown";
 export function ReviewLive({
@@ -36,7 +37,7 @@ export function ReviewLive({
 						</dd>
 					</div>
 				</dl>
-				{status ? <ReviewMarkdown body={status.body} /> : <p className="review-meta">No deployment report yet.</p>}
+				{status ? <ReviewMarkdown body={status.body} /> : <EmptyState description="No deployment report yet." />}
 			</div>
 		</div>
 	);

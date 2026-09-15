@@ -25,6 +25,10 @@ export const system = {
 		.output(z.string().nullable()),
 	health: base.route({ method: "GET", path: "/health", summary: "Read server health" }).output(HealthSchema),
 	gh: base.route({ method: "GET", path: "/gh", summary: "Read the gh state" }).output(GhStatusSchema),
+	checkGh: base
+		.route({ method: "POST", path: "/gh/check", summary: "Run gh auth status and read the new gh state" })
+		.input(z.object({}))
+		.output(GhStatusSchema),
 	backup: base
 		.route({ method: "POST", path: "/backup", summary: "Write a backup archive under the data home" })
 		.output(BackupOutputSchema),

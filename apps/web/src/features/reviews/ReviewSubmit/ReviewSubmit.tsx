@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewThread } from "@trellis/api";
-import { Button, Checkbox, Dialog, Select, Textarea } from "@trellis/ui";
+import { Button, Checkbox, Dialog, EmptyState, Select, Textarea } from "@trellis/ui";
 import { useEffect, useId, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import type { DraftFinding } from "../ReviewComposer/ReviewComposer";
@@ -97,7 +97,7 @@ export function ReviewSubmit({
 					<p className="review-form-hint">Choose who receives this review. Stopped agents keep it in their inbox.</p>
 					{agents.isPending && <p role="status">Load agent recipients…</p>}
 					{agents.isError && <p role="alert">{agents.error.message}</p>}
-					{agents.data?.length === 0 && <p className="review-meta">No agent runs are available.</p>}
+					{agents.data?.length === 0 && <EmptyState description="No agent runs are available." />}
 					<div className="review-choice-list">
 						{agents.data?.map((agent) => (
 							<Checkbox

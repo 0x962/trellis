@@ -4,8 +4,7 @@ import { failingPrUrl } from "./ghReplies";
 import { signIn } from "./support";
 
 // PRS-2 is the child of PRS-1 and links the pull request that the gh stub
-// answers with one failing check. This file sorts after needs-you.spec.ts,
-// so the Failing CI section of that spec holds only its own ticket.
+// answers with one failing check.
 test.beforeAll(() => {
 	if (!ensureProject("PRS", "Pull requests")) return;
 	createTicket("PRS", "Ship the typecheck fix");

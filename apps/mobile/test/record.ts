@@ -27,7 +27,6 @@ export type Recorder = {
 
 // The procedures a screen reads with. A call to any other procedure writes.
 const reads = new Set([
-	"inbox.get",
 	"settings.get",
 	"projects.list",
 	"projects.get",

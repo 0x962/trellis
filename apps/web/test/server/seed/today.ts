@@ -2,9 +2,8 @@ import { ulid } from "ulid";
 import type { ServiceTransport } from "../../../../server/src/db/transport.ts";
 import { actors, minute } from "./support.ts";
 
-// The six tickets an agent finished today. The Needs you page counts what an
-// agent moved into a done status since local midnight, so a fixed age would
-// fall on yesterday for a run in the first minutes of a day. These moves are
+// The six tickets an agent finished today, counted from local midnight. A
+// fixed age would fall on yesterday for a run in the first minutes of a day. These moves are
 // written after the snapshot is restored, against the clock of the run.
 //
 // They always land inside today, and always inside the last six minutes, so

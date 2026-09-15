@@ -1,10 +1,10 @@
 import { reviewImage } from "@trellis/api";
 import { invalidInput } from "../../errors";
-import type { ServiceCtx } from "../support";
+import type { PrepareCtx } from "../support";
 import { gh } from "./revision";
 
 const limit = 10 * 1024 * 1024;
-export async function image(ctx: ServiceCtx, input: { url: string }) {
+export async function image(ctx: PrepareCtx, input: { url: string }) {
 	const source = reviewImage(input.url);
 	if (!source) throw invalidInput("url", "Use a GitHub image URL.");
 	const token = (await gh(ctx, ["auth", "token", "--hostname", "github.com"])).trim();
