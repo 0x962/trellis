@@ -4,6 +4,7 @@ import type { TerminalFrame, TerminalSurfaceProps } from "@trellis/ui/terminal";
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { followTerminal, type TerminalProcess } from "./terminalStream";
+import { terminalUnavailable } from "./terminalUnavailable";
 
 const TerminalSurface = lazy(async () => ({ default: (await import("@trellis/ui/terminal")).TerminalSurface }));
 
@@ -89,6 +90,7 @@ export function NativeTerminal({
 					layout={layout}
 					label={`Terminal input for ${run.name}`}
 					connected={connection === "open" && session?.controllable === true}
+					unavailableReason={terminalUnavailable(session)}
 					follow={follow}
 					send={send}
 					resize={resize}

@@ -11,6 +11,7 @@ export type TerminalSurfaceProps = {
 	layout?: "panel" | "fill";
 	label: string;
 	connected: boolean;
+	unavailableReason?: string | null;
 	follow: (offset: number, onOutput: (frame: TerminalFrame) => Promise<void>, signal: AbortSignal) => Promise<void>;
 	send: (text: string, userInput: boolean) => Promise<unknown>;
 	resize: (cols: number, rows: number) => Promise<unknown>;
@@ -21,6 +22,7 @@ export function TerminalSurface({
 	layout = "panel",
 	label,
 	connected,
+	unavailableReason,
 	follow,
 	send,
 	resize,
@@ -160,6 +162,11 @@ export function TerminalSurface({
 			{error && (
 				<p role="alert" className="terminal-error">
 					{error}
+				</p>
+			)}
+			{unavailableReason && !error && (
+				<p role="alert" className="terminal-error">
+					{unavailableReason}
 				</p>
 			)}
 			<div ref={container} className="terminal-canvas" />
