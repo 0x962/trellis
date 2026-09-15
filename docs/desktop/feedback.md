@@ -58,6 +58,9 @@ The resumed prompt contains no marker. Both turns use provider session `149b12b5
 The test uses `--system-prompt-snapshot off`. An additional instruction to change the reply prefix fails; memory recall passes.
 Evidence: `/tmp/trl-real-claude-memory-jbKfJE/memory-verification.json`. Both test processes and the isolated runtime exit after the check.
 
+All 51 focused integration tests pass, with 240 assertions. All nine workspace typechecks and scoped Biome checks pass.
+Evidence: `/tmp/trellis-continuity-integration.log` and `/tmp/trellis-continuity-typecheck.log`.
+
 ## Current verification
 
 | Follow-up feedback | Status | Verification |
