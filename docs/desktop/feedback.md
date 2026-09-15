@@ -60,6 +60,10 @@ Evidence: `/tmp/trl-real-claude-memory-jbKfJE/memory-verification.json`. Both te
 
 All 51 focused integration tests pass, with 240 assertions. All nine workspace typechecks and scoped Biome checks pass.
 Evidence: `/tmp/trellis-continuity-integration.log` and `/tmp/trellis-continuity-typecheck.log`.
+The production package at `71838d83` passes 13 smoke checks and signature verification.
+At 22:37:21 UTC, ditto installation preserves the desktop, host, runtime, and all eight active agent process identities. Health returns 200.
+The package is installed in `~/Applications/Trellis.app`. The next restart activates its changes.
+Evidence: `/tmp/trellis-continuity-production.log`, `/tmp/trellis-continuity-install-evidence.json`, and `/tmp/trellis-manager-reset-evidence.json`.
 
 ## Current verification
 
