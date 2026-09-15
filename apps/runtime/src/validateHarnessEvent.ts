@@ -12,6 +12,8 @@ export function validateHarnessEvent(value: unknown): asserts value is HarnessEv
 	for (const field of ["sessionId", "model", "prompt", "result", "error", "turnId"])
 		if (event[field] !== undefined && (typeof event[field] !== "string" || (event[field] as string).length > 200000))
 			throw new Error(`Provider ${field} must be a string of at most 200000 characters`);
+	if (event.willRetry !== undefined && typeof event.willRetry !== "boolean")
+		throw new Error("Provider willRetry must be a boolean");
 	if (event.outcome !== undefined && !["completed", "interrupted", "failed"].includes(event.outcome as string))
 		throw new Error("Unknown provider turn outcome");
 	if (event.kind === "prompt" && typeof event.prompt !== "string") throw new Error("A provider prompt is required");

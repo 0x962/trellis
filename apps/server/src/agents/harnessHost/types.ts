@@ -15,6 +15,8 @@ export type HarnessStartInput = {
 	cwd: string;
 	prompt: string;
 	model?: string;
+	token?: string;
+	timeoutMs?: number;
 };
 export type HarnessDescriptor = {
 	fingerprint: string;

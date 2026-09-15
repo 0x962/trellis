@@ -106,6 +106,25 @@ for (const harness of ["claude", "codex", "pi", "opencode"] as const) {
 				).toBe(true);
 				expect(initialEvents.some(({ event }) => event.kind === "tool-start")).toBe(true);
 				expect(initialEvents.some(({ event }) => event.kind === "tool-end")).toBe(true);
+				if (harness === "codex") {
+					await host.send(
+						id,
+						"Use the native web search tool to search for OpenAI Codex app-server documentation. Then reply exactly HOST_WEBSEARCH_DONE.",
+						`web-${crypto.randomUUID()}`,
+					);
+					await host.waitFor(
+						id,
+						(state) => state.activity?.state === "idle" && state.result?.text.includes("HOST_WEBSEARCH_DONE") === true,
+					);
+					const events = (await readAll(host, id, "events"))
+						.trim()
+						.split("\n")
+						.map((line) => JSON.parse(line) as RuntimeHarnessObservation);
+					expect(events.some(({ event }) => event.kind === "tool-start" && event.tool?.name === "webSearch")).toBe(
+						true,
+					);
+					expect(events.some(({ event }) => event.kind === "tool-end" && event.tool?.name === "webSearch")).toBe(true);
+				}
 				await host.resize(id, 132, 40);
 
 				const messageId = `sleep-${crypto.randomUUID()}`;

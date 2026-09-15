@@ -15,9 +15,16 @@ const launchInput = z.object({
 	cwd: z.string().startsWith("/"),
 	prompt: z.string().min(1),
 	model: z.string().min(1).optional(),
+	token: z.string().min(1).optional(),
+	timeoutMs: z.number().positive().optional(),
 });
 export class HarnessHost {
 	constructor(private readonly options: HarnessHostOptions) {}
+	prepare(input: HarnessStartInput, sessionId?: string): Promise<HarnessDescriptor> {
+		launchInput.parse(input);
+		if (sessionId !== undefined) z.string().min(1).parse(sessionId);
+		return prepareAttempt(this.options, input, sessionId);
+	}
 	start(input: HarnessStartInput): Promise<HarnessStarted> {
 		return this.launch(input);
 	}
@@ -26,8 +33,7 @@ export class HarnessHost {
 		return this.launch(input, input.sessionId);
 	}
 	private async launch(input: HarnessStartInput, sessionId?: string): Promise<HarnessStarted> {
-		launchInput.parse(input);
-		const descriptor = await prepareAttempt(this.options, input, sessionId);
+		const descriptor = await this.prepare(input, sessionId);
 		await this.options.runtime.start(descriptor.spec);
 		if (input.harness === "opencode" && sessionId !== undefined) {
 			const current = await this.waitFor(input.id, (state) => state.agent?.sessionId === sessionId);
@@ -84,8 +90,8 @@ export class HarnessHost {
 	subscribe(id: string, offset = 0, signal?: AbortSignal, stream: RuntimeStream = "stdout") {
 		return this.options.runtime.subscribe(id, offset, signal, stream);
 	}
-	input(id: string, text: string) {
-		return this.options.runtime.input(id, Buffer.from(text).toString("base64"), true);
+	input(id: string, text: string, userInput = true) {
+		return this.options.runtime.input(id, Buffer.from(text).toString("base64"), userInput);
 	}
 	resize(id: string, cols: number, rows: number) {
 		return this.options.runtime.resize(id, cols, rows);
@@ -100,7 +106,7 @@ export class HarnessHost {
 	async send(id: string, text: string, messageId: string = randomUUID()) {
 		identifier.parse(messageId);
 		const descriptor = await this.descriptor(id);
-		if (descriptor.harness === "opencode") {
+		if (descriptor.harness === "opencode" || descriptor.harness === "codex") {
 			const sessionId = (await this.status(id)).agent?.sessionId;
 			if (sessionId == null) throw new Error(`Harness attempt ${id} has no provider session identity`);
 			await sendNativePrompt(this.options, descriptor, sessionId, messageId, `trellis-message:${messageId}\n${text}`);

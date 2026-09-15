@@ -1,16 +1,27 @@
+import { randomUUID } from "node:crypto";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 export async function prepareCodex(input: HarnessLaunchInput): Promise<HarnessLaunch> {
-	const args = input.resume ? ["resume"] : [];
-	args.push("--dangerously-bypass-approvals-and-sandbox", "--dangerously-bypass-hook-trust", "--enable", "hooks");
-	if (input.model) args.push("--model", input.model);
-	for (const event of ["SessionStart", "UserPromptSubmit", "Stop", "Interrupt", "PreToolUse", "PostToolUse"])
-		args.push(
-			"-c",
-			`hooks.${event}=[{hooks=[{type="command",command=${JSON.stringify(input.hookCommand)},timeout=${event === "Interrupt" ? 3 : 10}}]}]`,
-		);
-	args.push("--");
-	if (input.resume) args.push(input.sessionId!);
-	args.push(input.prompt);
-	return { executable: "codex", args, env: {} };
+	const bridge =
+		input.env?.TRELLIS_CODEX_BRIDGE ?? fileURLToPath(new URL("../../../../dist/codex-bridge.js", import.meta.url));
+	const directory = join("/tmp", `trl-codex-${randomUUID()}`);
+	return {
+		executable: input.env?.TRELLIS_RUNTIME_NODE ?? "node",
+		args: [
+			bridge,
+			JSON.stringify({
+				cwd: input.cwd,
+				prompt: input.prompt,
+				model: input.model,
+				...(input.resume ? { sessionId: input.sessionId } : {}),
+			}),
+		],
+		env: {
+			TRELLIS_CODEX_ENGINE_SOCKET: join(directory, "engine.sock"),
+			TRELLIS_CODEX_CONTROL_SOCKET: join(directory, "control.sock"),
+			TRELLIS_CODEX_CONTROL_TOKEN: randomUUID(),
+		},
+	};
 }

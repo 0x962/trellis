@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { requestCodex } from "../harnesses/codex/requestCodex.ts";
 import { sendOpenCode } from "../harnesses/opencode/interruptOpenCode.ts";
 import type { HarnessDescriptor, HarnessHostOptions } from "./types.ts";
 
@@ -19,12 +20,20 @@ export async function sendNativePrompt(
 	);
 	if (!reservation.claimed) return reservation;
 	try {
-		await sendOpenCode(
-			descriptor.spec.env!.TRELLIS_OPENCODE_CONTROL_SOCKET!,
-			descriptor.spec.env!.TRELLIS_OPENCODE_CONTROL_TOKEN!,
-			sessionId,
-			prompt,
-		);
+		if (descriptor.harness === "codex")
+			await requestCodex(
+				descriptor.spec.env!.TRELLIS_CODEX_CONTROL_SOCKET!,
+				descriptor.spec.env!.TRELLIS_CODEX_CONTROL_TOKEN!,
+				"/prompt",
+				{ sessionId, prompt },
+			);
+		else
+			await sendOpenCode(
+				descriptor.spec.env!.TRELLIS_OPENCODE_CONTROL_SOCKET!,
+				descriptor.spec.env!.TRELLIS_OPENCODE_CONTROL_TOKEN!,
+				sessionId,
+				prompt,
+			);
 	} catch (error) {
 		throw Object.assign(
 			new Error(

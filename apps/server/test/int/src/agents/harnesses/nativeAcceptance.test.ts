@@ -2,7 +2,6 @@ import { expect, test } from "bun:test";
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { parseClaudeEvent, prepareClaude, readClaudeStatus } from "../../../../../src/agents/harnesses/claude/index.ts";
-import { parseCodexEvent, prepareCodex } from "../../../../../src/agents/harnesses/codex/index.ts";
 import { createNativeHarnessAcceptance } from "../../../../nativeHarnessAcceptance.ts";
 import { waitForNativeHarnessFile } from "../../../../nativeHarnessFile.ts";
 
@@ -10,16 +9,16 @@ const enabled = process.env.TRELLIS_REAL_HARNESS_ACCEPTANCE === "1";
 const realHome = process.env.TRELLIS_NATIVE_ACCEPTANCE_HOME;
 const cwd = resolve(import.meta.dir, "../../../../../../..");
 
-for (const harness of ["claude", "codex"] as const) {
+for (const harness of ["claude"] as const) {
 	test.skipIf(!enabled)(
 		`${harness} native TUI accepts tools, follow-up, interrupt, and exact-ID resume`,
 		async () => {
 			if (!realHome) throw new Error("Set TRELLIS_NATIVE_ACCEPTANCE_HOME to the authenticated CLI home.");
-			const model = process.env[harness === "claude" ? "TRELLIS_NATIVE_CLAUDE_MODEL" : "TRELLIS_NATIVE_CODEX_MODEL"];
+			const model = process.env.TRELLIS_NATIVE_CLAUDE_MODEL;
 			if (!model) throw new Error(`Set TRELLIS_NATIVE_${harness.toUpperCase()}_MODEL to an available model.`);
 			const fixture = await createNativeHarnessAcceptance({
 				name: harness,
-				parse: harness === "claude" ? parseClaudeEvent : parseCodexEvent,
+				parse: parseClaudeEvent,
 				env: {
 					HOME: realHome,
 					XDG_CONFIG_HOME: `${realHome}/.config`,
@@ -27,7 +26,7 @@ for (const harness of ["claude", "codex"] as const) {
 					XDG_CACHE_HOME: `${realHome}/.cache`,
 				},
 			});
-			const prepare = harness === "claude" ? prepareClaude : prepareCodex;
+			const prepare = prepareClaude;
 			const version = Bun.spawn([harness, "--version"], {
 				env: { ...process.env, HOME: realHome },
 				stdout: "pipe",
@@ -69,19 +68,14 @@ for (const harness of ["claude", "codex"] as const) {
 				fixture.write(
 					`\u001b[200~Use the shell tool to run this exact command in the foreground: printf started > ${started}; /bin/sleep 30. Do not run it in the background. Then reply SLEEP_DONE.\u001b[201~\r`,
 				);
-				const active = await fixture.waitFor((event) => event.kind === "tool-start", { after });
+				await fixture.waitFor((event) => event.kind === "tool-start", { after });
 				await running;
 				fixture.write("\u0003");
-				if (harness === "codex") {
-					const interrupted = await fixture.waitFor((event) => event.outcome === "interrupted", { after });
-					expect(interrupted.turnId).toBe(active.turnId);
-				} else {
-					const status = await readClaudeStatus({ sessionId: session.sessionId!, pid: launched.pid }, "claude", {
-						...process.env,
-						HOME: realHome,
-					});
-					expect(status?.status).toBe("idle");
-				}
+				const status = await readClaudeStatus({ sessionId: session.sessionId!, pid: launched.pid }, "claude", {
+					...process.env,
+					HOME: realHome,
+				});
+				expect(status?.status).toBe("idle");
 				const interruptedAfter = fixture.events.length;
 				fixture.write("\u001b[200~Reply exactly AFTER_INTERRUPT. Do not use tools.\u001b[201~\r");
 				const continued = await fixture.waitFor(

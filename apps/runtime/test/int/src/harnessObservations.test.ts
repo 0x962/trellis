@@ -258,3 +258,27 @@ test("native API delivery reserves once and only a provider prompt confirms rece
 	});
 	await expect(client.registerNativeDelivery("attempt", "wrong", "bad", digest, false)).rejects.toThrow("token");
 });
+
+test("a retryable native error retains active work until a final outcome", async () => {
+	await start();
+	await client.observe("attempt", "secret", { kind: "prompt", prompt: "request", turnId: "t" });
+	await client.observe("attempt", "secret", { kind: "error", turnId: "t", error: "HTTP 503", willRetry: true });
+	expect(await client.inspect("attempt")).toMatchObject({
+		activity: { state: "working" },
+		agent: { error: null, outcome: null },
+	});
+	expect(Buffer.from((await client.output("attempt", 0, "events")).data, "base64").toString()).toContain(
+		'"willRetry":true',
+	);
+	await client.observe("attempt", "secret", {
+		kind: "error",
+		turnId: "t",
+		error: "Provider exhausted retries",
+		willRetry: false,
+		outcome: "failed",
+	});
+	expect(await client.inspect("attempt")).toMatchObject({
+		activity: { state: "idle" },
+		agent: { error: "Provider exhausted retries", outcome: "failed" },
+	});
+});

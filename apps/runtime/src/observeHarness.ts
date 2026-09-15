@@ -16,7 +16,11 @@ export function observeHarness(record: SessionRecord, event: HarnessEvent) {
 	)
 		record.completion.append(event.result);
 	const state =
-		event.kind === "session" ? "ready" : event.kind === "idle" || event.kind === "error" ? "idle" : "working";
+		event.kind === "session"
+			? "ready"
+			: event.kind === "idle" || (event.kind === "error" && !event.willRetry)
+				? "idle"
+				: "working";
 	if (event.kind !== "session" || record.activity === null) record.activity = { state, updatedAt };
 	if (event.kind !== "session") record.inputPending = false;
 	for (const listener of record.listeners) listener();

@@ -55,9 +55,9 @@ export class HarnessObservations {
 		if (event.model !== undefined) agent.model = event.model;
 		if (event.turnId !== undefined) agent.turnId = event.turnId;
 		if (event.outcome !== undefined) agent.outcome = event.outcome;
-		if (event.error !== undefined) agent.error = event.error;
+		if (event.error !== undefined && !event.willRetry) agent.error = event.error;
 		if (event.kind === "tool-start" || event.kind === "tool-update") agent.tool = event.tool!;
-		if (event.kind === "idle" || event.kind === "error") agent.tool = null;
+		if (event.kind === "idle" || (event.kind === "error" && !event.willRetry)) agent.tool = null;
 		if (event.kind === "tool-end" && agent.tool?.id === event.tool!.id) agent.tool = null;
 		return true;
 	}

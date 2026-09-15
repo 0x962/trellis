@@ -7,6 +7,7 @@ export type HarnessTool = {
 };
 
 export type HarnessEvent = {
+	willRetry?: boolean;
 	turnId?: string;
 	outcome?: "completed" | "interrupted" | "failed";
 	kind: "session" | "prompt" | "working" | "idle" | "tool-start" | "tool-update" | "tool-end" | "error";

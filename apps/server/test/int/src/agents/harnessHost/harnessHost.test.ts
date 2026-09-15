@@ -22,6 +22,20 @@ test("the host registers the supported native harnesses", () => {
 	expect(Object.keys(providers).sort()).toEqual(["claude", "codex", "opencode", "pi"]);
 });
 
+test("the host preserves the assignment token and process deadline", async () => {
+	await host.start({
+		id: "assignment",
+		harness: "pi",
+		cwd: home,
+		prompt: "initial",
+		token: "assignment-token",
+		timeoutMs: 60000,
+	});
+	const descriptor = JSON.parse(await readFile(join(home, "attempts", "assignment", "launch.json"), "utf8"));
+	expect(descriptor.spec.env.TRELLIS_ATTEMPT_TOKEN).toBe("assignment-token");
+	expect(descriptor.spec.timeoutMs).toBe(60000);
+});
+
 test.each(["claude", "codex", "pi", "opencode"] as const)(
 	"%s host supports identity, model, input, output, events, lists, elapsed, resume, and stop",
 	async (harness) => {
@@ -32,7 +46,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 		expect(started.process.elapsedMs).toBeNumber();
 		const args = started.process.launch!.args;
 		if (harness === "claude") expect(args).toContain("--dangerously-skip-permissions");
-		if (harness === "codex") expect(args).toContain("--dangerously-bypass-approvals-and-sandbox");
+		if (harness === "codex") expect(JSON.parse(args[1]!).model).toBe("explicit-model");
 		if (harness === "pi") expect(args).toContain("read,bash,edit,write,grep,find,ls");
 		if (harness === "opencode") expect(args).toContain("--model");
 		await host.waitFor("attempt", (s) => s.activity?.state === "idle");
@@ -40,7 +54,12 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 		expect((await host.list({ activity: "idle" })).map((s) => s.id)).toEqual(["attempt"]);
 		await host.send("attempt", "hello", "message");
 		await host.waitFor("attempt", (s) => s.activity?.state === "idle");
-		expect(Buffer.from((await host.output("attempt")).data, "base64").toString()).toContain("fixture response");
+		let response = "";
+		for await (const event of host.subscribe("attempt", 0, AbortSignal.timeout(3000))) {
+			if (event.type === "output") response += Buffer.from(event.data, "base64").toString();
+			if (response.includes("fixture response")) break;
+		}
+		expect(response).toContain("fixture response");
 		expect(Buffer.from((await host.output("attempt", 0, "events")).data, "base64").toString()).toContain(
 			'"tool-start"',
 		);

@@ -1,5 +1,6 @@
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { readClaudeStatus } from "../harnesses/claude/readClaudeStatus.ts";
+import { requestCodex } from "../harnesses/codex/requestCodex.ts";
 import { interruptOpenCode } from "../harnesses/opencode/interruptOpenCode.ts";
 import { providers } from "./providers.ts";
 import type { HarnessDescriptor, HarnessHostOptions } from "./types.ts";
@@ -13,6 +14,17 @@ export async function interruptHarness(
 	if (before.status !== "running" || !before.controllable || before.activity === null || before.agent === null)
 		throw new Error(`Harness attempt ${before.id} has no controllable observed turn`);
 	if (before.activity.state === "idle") return before;
+	if (descriptor.harness === "codex") {
+		if (before.agent.sessionId === null || before.agent.turnId === null)
+			throw new Error(`Harness attempt ${before.id} has no active provider turn identity`);
+		await requestCodex(
+			descriptor.spec.env!.TRELLIS_CODEX_CONTROL_SOCKET!,
+			descriptor.spec.env!.TRELLIS_CODEX_CONTROL_TOKEN!,
+			"/interrupt",
+			{ sessionId: before.agent.sessionId, turnId: before.agent.turnId },
+		);
+		return null;
+	}
 	if (descriptor.harness === "opencode") {
 		if (before.agent.sessionId === null || before.agent.turnId === null)
 			throw new Error(`Harness attempt ${before.id} has no active provider turn identity`);

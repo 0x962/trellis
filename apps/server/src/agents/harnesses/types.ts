@@ -8,6 +8,7 @@ export type HarnessLaunchInput = {
 	model?: string;
 	hookCommand: string;
 	configDirectory: string;
+	env?: Record<string, string>;
 } & ({ resume: false; sessionId?: string } | { resume: true; sessionId: string });
 
 export type HarnessLaunch = {

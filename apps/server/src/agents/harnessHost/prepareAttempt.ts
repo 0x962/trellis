@@ -24,6 +24,8 @@ export async function prepareAttempt(
 		input.cwd,
 		input.prompt,
 		input.model ?? null,
+		input.token ?? null,
+		input.timeoutMs ?? null,
 		sessionId ?? null,
 		env,
 		options.bun,
@@ -46,6 +48,7 @@ export async function prepareAttempt(
 	const hookCommand = `${quote(options.bun)} ${quote(fileURLToPath(new URL("./hook.ts", import.meta.url)))}`;
 	const configDirectory = await mkdtemp(join(directory, "config-"));
 	const common = {
+		env,
 		cwd: input.cwd,
 		prompt: `trellis-message:${input.id}\n${input.prompt}`,
 		model: input.model,
@@ -60,18 +63,25 @@ export async function prepareAttempt(
 		fingerprint,
 		spec: {
 			id: input.id,
-			command: executable,
+			command:
+				input.harness === "codex"
+					? launch.executable.startsWith("/")
+						? launch.executable
+						: await resolveExecutable(launch.executable, env.PATH ?? "")
+					: executable,
 			args: launch.args,
 			cwd: input.cwd,
 			mode: "pty",
+			timeoutMs: input.timeoutMs,
 			env: {
 				...env,
 				...launch.env,
+				...(input.harness === "codex" ? { TRELLIS_CODEX_EXECUTABLE: executable } : {}),
 				TRELLIS_HARNESS: input.harness,
 				TRELLIS_HARNESS_SOCKET: options.runtime.socketPath,
 				TRELLIS_HARNESS_HOOK: hookCommand,
 				TRELLIS_ATTEMPT_ID: input.id,
-				TRELLIS_ATTEMPT_TOKEN: randomUUID(),
+				TRELLIS_ATTEMPT_TOKEN: input.token ?? randomUUID(),
 			},
 		},
 	};
