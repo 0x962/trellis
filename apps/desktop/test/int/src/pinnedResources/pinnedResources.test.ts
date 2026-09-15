@@ -12,14 +12,15 @@ const desktop = resolve(originDir(import.meta.dir), "../..");
 test("app removal preserves the runtime and new native children from pinned resources", async () => {
 	const directory = await mkdtemp("/tmp/trl-pin-");
 	const source = join(directory, "Trellis.app/Contents/Resources/host");
-	const home = join(directory, "home");
+	const home = join(directory, "external-data");
+	const userData = join(directory, "desktop");
 	let host: HostConnection | undefined;
 	let daemon: ReturnType<typeof Bun.spawn> | undefined;
 	let runtime: RuntimeClient | undefined;
 	try {
 		await mkdir(source, { recursive: true });
 		await cp(join(desktop, "dist/host"), source, { recursive: true, verbatimSymlinks: true });
-		const pinned = await pinResources(source, home);
+		const pinned = await pinResources(source, userData);
 		const options = {
 			home,
 			executable: join(pinned.root, "bin/bun"),

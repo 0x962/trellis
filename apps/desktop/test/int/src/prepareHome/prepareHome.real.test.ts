@@ -54,7 +54,7 @@ test("the packaged maintenance entry imports a stopped scratch host through the 
 			{
 				message: async (options) => {
 					messages.push(options);
-					return { response: messages.length < 3 ? 1 : 0 };
+					return { response: messages.length === 1 ? 2 : messages.length === 2 ? 1 : 0 };
 				},
 				chooseSource: async () => source,
 			},

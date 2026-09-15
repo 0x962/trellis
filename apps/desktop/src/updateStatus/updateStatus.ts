@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { readFile, rename, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { PinnedRelease } from "../pinnedResources/pinnedResources.ts";
 import { readBundleManifest } from "../resourceBundle/resourceBundle.ts";
 
@@ -19,11 +19,12 @@ export const recordActiveRelease = async (home: string, release: PinnedRelease) 
 	await rename(pending, join(home, activeFile));
 };
 
-const readActiveRelease = async (home: string): Promise<PinnedRelease | null> => {
+const readActiveRelease = async (home: string, releases: string): Promise<PinnedRelease | null> => {
 	if (!existsSync(join(home, activeFile))) return null;
 	const { id } = JSON.parse(await readFile(join(home, activeFile), "utf8"));
 	if (!/^[a-f0-9]{64}$/.test(id)) throw new Error("The active release identifier is invalid.");
-	const root = join(home, "../releases", id);
+	const root = join(releases, id);
+	if (!existsSync(join(root, "release.json"))) return null;
 	return { root, manifest: await readBundleManifest(root) };
 };
 
@@ -46,7 +47,7 @@ const runtimeProtocol = async (home: string): Promise<number | null> => {
 };
 
 export const readUpdateStatus = async (home: string, available: PinnedRelease): Promise<UpdateStatus> => {
-	const active = await readActiveRelease(home);
+	const active = await readActiveRelease(home, dirname(available.root));
 	let protocol: number | null;
 	try {
 		protocol = await runtimeProtocol(home);
@@ -74,8 +75,8 @@ export const readUpdateStatus = async (home: string, available: PinnedRelease): 
 		active,
 		runtimeProtocol: protocol,
 		detail: current
-			? "The host uses this package. To replace the app manually, stop local work and the background service, replace Trellis.app, then reopen it. Saved files and prior runtime versions remain in the data folder."
-			: "The previous host still runs. Use Stop local work and background service, then reopen Trellis to activate this package. Saved files and prior runtime versions remain in the data folder.",
+			? "The host uses this package. To replace the app manually, stop local work and the background service, replace Trellis.app, then reopen it. Saved files stay in the selected data directory. Prior runtime versions stay in the application data directory."
+			: "The previous host still runs. Use Stop local work and background service, then reopen Trellis to activate this package. Saved files stay in the selected data directory. Prior runtime versions stay in the application data directory.",
 	};
 };
 

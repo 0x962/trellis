@@ -29,7 +29,7 @@ test("import confirms concrete paths before any host token exists", async () => 
 			{
 				message: async (options) => {
 					messages.push(options);
-					return { response: messages.length < 3 ? 1 : 0 };
+					return { response: messages.length === 1 ? 2 : messages.length === 2 ? 1 : 0 };
 				},
 				chooseSource: async () => source,
 				maintenance: async (_resources, request) => {
@@ -61,7 +61,7 @@ test("active work blocks import and never starts a copy", async () => {
 			{
 				message: async (options) => {
 					messages.push(options);
-					return { response: messages.length === 1 ? 1 : 0 };
+					return { response: messages.length === 1 ? 2 : 0 };
 				},
 				chooseSource: async () => join(directory, "source"),
 				maintenance: async (_resources, request) => {
@@ -93,7 +93,7 @@ test("a failed import retains its target and shows an archive rollback command",
 			{
 				message: async (options) => {
 					messages.push(options);
-					return { response: 1 };
+					return { response: messages.length === 1 ? 2 : 1 };
 				},
 				chooseSource: async () => join(directory, "source"),
 				maintenance: async (_resources, request) => {
@@ -123,7 +123,7 @@ test("Cancel leaves first launch without data or maintenance work", async () => 
 		const accepted = await prepareHome(
 			{ home, resources: directory },
 			{
-				message: async () => ({ response: 2 }),
+				message: async () => ({ response: 3 }),
 				chooseSource: async () => {
 					throw new Error("Cancel must not open the source picker.");
 				},
@@ -133,6 +133,37 @@ test("Cancel leaves first launch without data or maintenance work", async () => 
 			},
 		);
 		expect(accepted).toBe(false);
+		expect(existsSync(home)).toBe(false);
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+});
+
+test("Use existing directory delegates selection without an import or new data", async () => {
+	const directory = await mkdtemp("/tmp/trl-use-existing-");
+	const home = join(directory, "host");
+	let selected = false;
+	try {
+		const accepted = await prepareHome(
+			{ home, resources: directory },
+			{
+				message: async (options) => {
+					expect(options.buttons).toEqual(["New Trellis data", "Use existing directory", "Import a copy", "Cancel"]);
+					return { response: 1 };
+				},
+				useExisting: async () => {
+					selected = true;
+				},
+				chooseSource: async () => {
+					throw new Error("Selection must not choose an import source.");
+				},
+				maintenance: async () => {
+					throw new Error("Selection must not import data.");
+				},
+			},
+		);
+		expect(accepted).toBe(false);
+		expect(selected).toBe(true);
 		expect(existsSync(home)).toBe(false);
 	} finally {
 		await rm(directory, { recursive: true, force: true });

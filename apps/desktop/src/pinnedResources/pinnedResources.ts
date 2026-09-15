@@ -4,11 +4,11 @@ import { join } from "node:path";
 import { type BundleManifest, hashBundle, readBundleManifest } from "../resourceBundle/resourceBundle.ts";
 
 export type PinnedRelease = { root: string; manifest: BundleManifest };
-export const pinResources = async (source: string, home: string): Promise<PinnedRelease> => {
+export const pinResources = async (source: string, userData: string): Promise<PinnedRelease> => {
 	source = await realpath(source);
 	const manifest = await readBundleManifest(source);
 	if (!/^[a-f0-9]{64}$/.test(manifest.id)) throw new Error("The package release hash is invalid.");
-	const releases = join(home, "../releases");
+	const releases = join(userData, "releases");
 	await mkdir(releases, { recursive: true, mode: 0o700 });
 	const root = join(releases, manifest.id);
 	if (existsSync(root)) return { root, manifest: await readBundleManifest(root) };

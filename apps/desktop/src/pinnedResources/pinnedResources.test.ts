@@ -16,6 +16,7 @@ test("concurrent pins keep relative links and retain earlier versions", async ()
 		await writeBundleManifest(source, "1", 4);
 		const [a, b] = await Promise.all([pinResources(source, home), pinResources(source, home)]);
 		expect(a.root).toBe(b.root);
+		expect(a.root).toBe(join(home, "releases", a.manifest.id));
 		expect(await readlink(join(a.root, "link"))).toBe("dependency");
 		await writeFile(join(source, "dependency"), "replacement");
 		await writeBundleManifest(source, "2", 4);

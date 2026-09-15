@@ -1,18 +1,21 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir, userInfo } from "node:os";
+import { userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import { assertHostStopped, ensureHostToken } from "./host/host.ts";
 import { loginEnvironment } from "./loginEnvironment/loginEnvironment.ts";
 import { pinResources } from "./pinnedResources/pinnedResources.ts";
+import { defaultDesktopUserData, readSelectedHome } from "./selectedHome/selectedHome.ts";
 import { chooseHostRelease, recordActiveRelease } from "./updateStatus/updateStatus.ts";
 
 const start = async () => {
 	const resources = dirname(process.argv[1]!);
 	const source = join(resources, "host");
-	const home = process.env.TRELLIS_DESKTOP_HOME ?? join(homedir(), "Library/Application Support/Trellis/host");
-	const token = ensureHostToken(home);
+	const override = process.env.TRELLIS_DESKTOP_HOME;
+	const userData = process.env.TRELLIS_DESKTOP_USER_DATA ?? (override ? dirname(override) : defaultDesktopUserData());
+	const home = override ?? readSelectedHome(userData);
 	assertHostStopped(home);
-	const available = await pinResources(source, home);
+	const token = ensureHostToken(home);
+	const available = await pinResources(source, userData);
 	const release = await chooseHostRelease(home, available);
 	const root = release.root;
 	const env = await loginEnvironment(userInfo().shell!, join(root, "bin"));

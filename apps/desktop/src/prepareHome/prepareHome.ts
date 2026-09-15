@@ -7,12 +7,13 @@ import { rollbackCommand, runHomeMaintenance } from "../homeImportClient/homeImp
 export type HomeImportDialogs = {
 	message: (options: MessageBoxOptions) => Promise<{ response: number }>;
 	chooseSource: () => Promise<string | null>;
+	useExisting?: () => Promise<void>;
 	maintenance?: typeof runHomeMaintenance;
 };
 
 export const prepareHome = async (
 	{ home, resources }: { home: string; resources: string },
-	{ message, chooseSource, maintenance = runHomeMaintenance }: HomeImportDialogs,
+	{ message, chooseSource, useExisting, maintenance = runHomeMaintenance }: HomeImportDialogs,
 ): Promise<boolean> => {
 	const recovery = () =>
 		`The imported target stays at ${home}. Archive it before another import:\n\n${rollbackCommand(resources, home)}`;
@@ -28,13 +29,17 @@ export const prepareHome = async (
 	if (existsSync(home) && (await readdir(home)).length > 0) return true;
 	const choice = await message({
 		message: "Choose Trellis data",
-		detail: `Create new data, or copy data from a stopped Trellis host.\n\nTarget: ${home}`,
-		buttons: ["New Trellis data", "Import existing Trellis data", "Cancel"],
+		detail: `Use a Trellis data directory directly, create new data, or import a copy.\n\nNew data: ${home}`,
+		buttons: ["New Trellis data", "Use existing directory", "Import a copy", "Cancel"],
 		defaultId: 0,
-		cancelId: 2,
+		cancelId: 3,
 	});
 	if (choice.response === 0) return true;
-	if (choice.response !== 1) return false;
+	if (choice.response === 1) {
+		await useExisting?.();
+		return false;
+	}
+	if (choice.response !== 2) return false;
 	const source = await chooseSource();
 	if (source === null) return false;
 	try {

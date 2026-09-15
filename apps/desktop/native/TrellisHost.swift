@@ -4,6 +4,11 @@ import ServiceManagement
 
 let plistName = "com.trellis.desktop.host.plist"
 let service = SMAppService.agent(plistName: plistName)
+struct SelectedHome: Decodable {
+	let version: Int
+	let home: String
+}
+
 let command = CommandLine.arguments.dropFirst().first ?? "status"
 
 func emitStatus() throws {
@@ -38,11 +43,29 @@ func run() throws {
 		_NSGetExecutablePath(&executable, &size)
 		let contents = URL(fileURLWithPath: String(cString: executable)).resolvingSymlinksInPath()
 			.deletingLastPathComponent().deletingLastPathComponent()
-		let home =
-			ProcessInfo.processInfo.environment["TRELLIS_DESKTOP_HOME"]
+		let environment = ProcessInfo.processInfo.environment
+		let userData = environment["TRELLIS_DESKTOP_USER_DATA"]
+			?? environment["TRELLIS_DESKTOP_HOME"].map { URL(fileURLWithPath: $0).deletingLastPathComponent().path }
 			?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(
-				"Library/Application Support/Trellis/host"
+				"Library/Application Support/Trellis"
 			).path
+		let selectionPath = URL(fileURLWithPath: userData).appendingPathComponent("selected-home.json")
+		let home: String
+		if let override = environment["TRELLIS_DESKTOP_HOME"] {
+			home = override
+		} else if FileManager.default.fileExists(atPath: selectionPath.path) {
+			let selected = try JSONDecoder().decode(SelectedHome.self, from: Data(contentsOf: selectionPath))
+			guard selected.version == 1 && selected.home.hasPrefix("/") else {
+				throw NSError(domain: "Trellis", code: 1, userInfo: [NSLocalizedDescriptionKey: "The selected Trellis data directory is invalid."])
+			}
+			var isDirectory: ObjCBool = false
+			guard FileManager.default.fileExists(atPath: selected.home, isDirectory: &isDirectory) && isDirectory.boolValue else {
+				throw NSError(domain: "Trellis", code: 1, userInfo: [NSLocalizedDescriptionKey: "The selected Trellis data directory does not exist."])
+			}
+			home = URL(fileURLWithPath: selected.home).resolvingSymlinksInPath().path
+		} else {
+			home = URL(fileURLWithPath: userData).appendingPathComponent("host").path
+		}
 		try FileManager.default.createDirectory(
 			atPath: home, withIntermediateDirectories: true,
 			attributes: [.posixPermissions: 0o700])

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { originDir } from "../../../../../../test/originDir.ts";
 import { adoptHost, ensureHostToken, waitForHostExit } from "../../../../src/host/host.ts";
+import { writeSelectedHome } from "../../../../src/selectedHome/selectedHome.ts";
 import { serviceCommand } from "../../../../src/service/service.ts";
 
 const root = resolve(originDir(import.meta.dir), "../..");
@@ -14,9 +15,10 @@ const launchctl = async (...args: string[]) => {
 	if (code) throw new Error(`launchctl ${args[0]} failed: ${stderr}`);
 };
 
-test("an isolated launchd service restarts the host without a desktop process", async () => {
+test("an isolated launchd service uses the selected home and restarts without a desktop process", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "trellis-launchd-"));
 	const home = join(directory, "home");
+	const userData = join(directory, "desktop");
 	const contents = join(directory, "Trellis.app/Contents");
 	const helper = join(contents, "MacOS/TrellisHost");
 	const label = `com.trellis.test.${process.pid}.${Date.now()}`;
@@ -30,12 +32,13 @@ test("an isolated launchd service restarts the host without a desktop process", 
 		await copyFile(join(root, "dist/host-service.cjs"), join(contents, "Resources/host-service.cjs"));
 		await symlink(join(root, "dist/host"), join(contents, "Resources/host"));
 		ensureHostToken(home);
+		await writeSelectedHome(userData, home);
 		await writeFile(
 			plist,
 			`<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict>
 		<key>Label</key><string>${label}</string>
 		<key>ProgramArguments</key><array><string>${helper}</string><string>serve</string></array>
-		<key>EnvironmentVariables</key><dict><key>TRELLIS_DESKTOP_HOME</key><string>${home}</string></dict>
+		<key>EnvironmentVariables</key><dict><key>TRELLIS_DESKTOP_USER_DATA</key><string>${userData}</string></dict>
 		<key>RunAtLoad</key><true/><key>KeepAlive</key><true/><key>ThrottleInterval</key><integer>1</integer>
 		</dict></plist>`,
 		);
@@ -43,6 +46,17 @@ test("an isolated launchd service restarts the host without a desktop process", 
 		loaded = true;
 		const first = await adoptHost(home);
 		expect(first.pid).toBe(Number(await readFile(join(home, "desktop-service.pid"), "utf8")));
+		expect(await readFile(join(userData, "selected-home.json"), "utf8")).toContain(home);
+		expect(
+			await Bun.file(
+				join(
+					userData,
+					"releases",
+					JSON.parse(await readFile(join(home, "desktop-active-release.json"), "utf8")).id,
+					"release.json",
+				),
+			).exists(),
+		).toBe(true);
 		process.kill(first.pid, "SIGKILL");
 		let second = first;
 		for (let step = 0; step < 100 && second.pid === first.pid; step++) {

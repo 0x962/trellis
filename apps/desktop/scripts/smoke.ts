@@ -12,7 +12,7 @@ const home = join(directory, "home");
 let pid: number | undefined;
 let daemon: ReturnType<typeof Bun.spawn> | undefined;
 try {
-	const { root: staged } = await pinResources(source, home);
+	const { root: staged } = await pinResources(source, directory);
 	const options = {
 		home,
 		executable: join(staged, "bin/bun"),
