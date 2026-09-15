@@ -18,14 +18,15 @@ const delivery: Dispatch = {
 	dueAt: "2026-09-15T00:00:00.000Z",
 	error: null,
 };
+const agents = { observedAt: delivery.dueAt, agents: [] };
 const context = {
 	policy: { personaId: "manager-policy", updatedAt: "2026-09-15T00:00:00.000Z" },
 	unfinished: [],
 	unfinishedCount: 0,
 };
 
-test("a heartbeat contains only its event envelope", () => {
-	const message = managerMessage(delivery, context);
+test("a heartbeat includes coordination and current agent observations", () => {
+	const message = managerMessage(delivery, context, agents);
 	expect(JSON.parse(message)).toEqual({
 		type: "trellis.manager.heartbeat",
 		id: delivery.id,
@@ -34,6 +35,7 @@ test("a heartbeat contains only its event envelope", () => {
 		events: [],
 		workItems: workItems(delivery),
 		...context,
+		agentContext: agents,
 	});
 });
 
@@ -45,7 +47,7 @@ test("a dispatch contains its event envelope and unmodified ticket events", () =
 		actor: { name: "navid", kind: "human" },
 		createdAt: delivery.dueAt,
 	};
-	const message = managerMessage({ ...delivery, events: [event] }, context);
+	const message = managerMessage({ ...delivery, events: [event] }, context, agents);
 	expect(JSON.parse(message)).toEqual({
 		type: "trellis.manager.dispatch",
 		id: delivery.id,
@@ -54,6 +56,7 @@ test("a dispatch contains its event envelope and unmodified ticket events", () =
 		events: [event],
 		workItems: workItems({ ...delivery, events: [event] }),
 		...context,
+		agentContext: agents,
 	});
 });
 
@@ -71,6 +74,6 @@ test("assignment identifiers survive a retry generation and completed tickets le
 	expect(
 		workItems({ ...delivery, events, outcomes: [{ ticketId: "one", status: "queued", reason: "Capacity is full." }] }),
 	).toEqual([first[1]!]);
-	const next = JSON.parse(managerMessage({ ...delivery, generation: 8, events }, context));
+	const next = JSON.parse(managerMessage({ ...delivery, generation: 8, events }, context, agents));
 	expect(next.workItems).toEqual(first);
 });

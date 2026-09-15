@@ -12,13 +12,13 @@ export const launchPrompt = (input: {
 	const prefix = input.messageId ? `trellis-message:${input.messageId}\n` : "";
 	if (run.kind === "manager")
 		return `${prefix}${JSON.stringify({
-			agent: { id: run.id, name: run.name },
+			agent: { id: run.id, name: run.personaName },
 			actor,
 			trellisUrl: url,
 			persona: { id: run.personaId, name: run.personaName },
 			context,
 		})}`;
 	const instructions = `Use TRELLIS_URL and TRELLIS_ACTOR for every Trellis command. Read the repository's AGENTS.md before work.\n${nativeInstructions}`;
-	const prompt = `${prefix}${run.instruction}\n\n# Assignment\n\nYour name is ${run.name}. Your Trellis actor is ${actor}.\nTrellis URL: ${url}\nPersona: ${run.personaName} (${run.kind})\n\n${context}\n\n${instructions}`;
+	const prompt = `${prefix}${run.instruction}\n\n# Assignment\n\nYour persona is ${run.personaName}. Your Trellis actor is ${actor}.\nTrellis URL: ${url}\nPersona: ${run.personaName} (${run.kind})\n\n${context}\n\n${instructions}`;
 	return prompt;
 };

@@ -89,7 +89,6 @@ previewElectron.app.requestSingleInstanceLock = () => { previewResult.order.push
 previewElectron.dialog.showMessageBox = async (options) => {
  if (options.message === "Choose Trellis data") return {response: ${useExisting ? 1 : 0}};
  if (options.message === "Use this Trellis data directory?") { previewResult.confirmation = options; return {response: 1}; }
- if (options.message === "Enable Trellis background work?") return {response: 1};
  throw new Error("Unexpected preview prompt: " + options.message);
 };
 previewElectron.dialog.showOpenDialog = async (options) => {

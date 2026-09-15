@@ -11,7 +11,7 @@ export const commentRecord: RecordSpec<Comment> = {
 		{ name: "ticketId", value: (row) => row.ticketId },
 		{ name: "parentId", value: (row) => cell(row.parentId) },
 		{ name: "resolved", value: (row) => cell(row.resolvedAt) },
-		{ name: "actor", value: (row) => `${row.actor.kind}:${row.actor.name}` },
+		{ name: "actor", value: (row) => `${row.actor.kind}:${row.actor.displayName ?? row.actor.name}` },
 		{ name: "created", value: (row) => row.createdAt },
 		{ name: "body", value: (row) => cell(row.body) },
 	],

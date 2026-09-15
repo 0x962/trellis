@@ -66,11 +66,19 @@ test("a request cannot change its persona or target", async () => {
 	).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 });
 
-test("distinct request IDs permit intentional parallel assignments", async () => {
-	await h.rows(sql`UPDATE projects SET manager_config = manager_config || '{"concurrency":2}'::jsonb`);
+test("one ticket permits only one active assignment per persona", async () => {
+	await h.rows(sql`UPDATE projects SET manager_config = manager_config || '{"concurrency":3}'::jsonb`);
 	const first = await start("builder:part-one");
-	const second = await start("builder:part-two");
-	expect(first.run.id).not.toBe(second.run.id);
+	expect(first.run.name).toBe("Builder");
+	await expect(start("builder:part-two")).rejects.toMatchObject({ code: "DUPLICATE" });
+	const reviewer = await h.run((ctx, tx) =>
+		personas.create(ctx, tx, { name: "Code separation", kind: "reviewer", instruction: "Review." }),
+	);
+	const second = await h.run((ctx, tx) => reserve(ctx, tx, { personaId: reviewer.id, ticket, requestId: "review" }));
+	expect(second.run.name).toBe("Code separation");
+	expect(second.run.id).not.toBe(first.run.id);
+	await h.rows(sql`UPDATE agent_runs SET closed_at=now() WHERE id=${first.run.id}`);
+	expect((await start("builder:replacement")).run.id).not.toBe(first.run.id);
 });
 
 test("native attempts keep a durable terminal ID and store only a token hash", async () => {

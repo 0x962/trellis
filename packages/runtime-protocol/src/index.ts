@@ -1,4 +1,4 @@
-export const RUNTIME_PROTOCOL_VERSION = 6;
+export const RUNTIME_PROTOCOL_VERSION = 7;
 export type HarnessTool = {
 	id: string;
 	name: string;
@@ -10,7 +10,8 @@ export type HarnessEvent = {
 	willRetry?: boolean;
 	turnId?: string;
 	outcome?: "completed" | "interrupted" | "failed";
-	kind: "session" | "prompt" | "working" | "idle" | "tool-start" | "tool-update" | "tool-end" | "error";
+	kind: "session" | "prompt" | "working" | "idle" | "message" | "tool-start" | "tool-update" | "tool-end" | "error";
+	message?: { text: string; at?: string };
 	sessionId?: string;
 	model?: string;
 	prompt?: string;
@@ -29,6 +30,15 @@ export interface RuntimeAgentMetadata {
 	model: string | null;
 	turnId: string | null;
 	tool: HarnessTool | null;
+	lastTool:
+		| (HarnessTool & {
+				startedAt: string | null;
+				updatedAt: string;
+				status: "running" | "completed" | "failed";
+				error: string | null;
+		  })
+		| null;
+	lastMessage: { text: string; at: string } | null;
 	error: string | null;
 	outcome: NonNullable<HarnessEvent["outcome"]> | null;
 }

@@ -112,7 +112,7 @@ const connect = async (report: (stage: string) => Promise<void> = async () => {}
 		availableRelease = await pinResources(hostRoot, app.getPath("userData"));
 		const service = {
 			ensureService: () => requireService(paths().helper, desktopHome()),
-			register: () => requireService(paths().helper, desktopHome(), true),
+			register: () => requireService(paths().helper, desktopHome()),
 		};
 		host = await activateHostRelease(desktopHome(), paths().helper, availableRelease, service, report);
 		const update = await readUpdateStatus(desktopHome(), availableRelease);

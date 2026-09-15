@@ -22,7 +22,7 @@ afterEach(async () => {
 });
 
 test.each<ActorRef>([
-	{ name: runId, kind: "agent", displayName: "Hana" },
+	{ name: runId, kind: "agent", displayName: "Manager" },
 	{ name: runId, kind: "human" },
 	{ name: "external-builder", kind: "agent" },
 ])("ticket summaries, attachments and filters retain actor identity for $kind:$name", async (actor) => {

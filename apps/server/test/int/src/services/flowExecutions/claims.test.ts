@@ -264,3 +264,15 @@ test("a changed project configuration records a visible flow failure", async () 
 	expect(result.state.status).toBe("failed");
 	expect(result.state.error).toContain("trusted");
 });
+
+test("a flow waits until its persona assignment closes", async () => {
+	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
+	const execution = await h.run((ctx, tx) => start(ctx, tx, input()));
+	const { claimNext } = await import("../../../../../src/services/flowExecutions/claimNext.ts");
+	const { reserve } = await import("../../../../../src/services/agentRuns/reserve.ts");
+	const assigned = await h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: persona, requestId: "manual" }));
+	expect(await h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id }))).toBeNull();
+	await h.rows(sql`UPDATE agent_runs SET closed_at=now() WHERE id=${assigned.run.id}`);
+	const claim = await h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id }));
+	expect(claim?.run.personaId).toBe(persona);
+});

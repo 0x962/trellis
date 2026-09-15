@@ -21,7 +21,7 @@ export const launchCommand = (input: {
 	const prefix = input.messageId ? `trellis-message:${input.messageId}\n` : "";
 	const prompt = launchPrompt(input);
 	const agent = expandLaunchTemplate(input.template, {
-		name: run.name,
+		name: run.personaName,
 		id: run.id,
 		workspaceId: run.workspaceId ?? "",
 		terminalId: run.terminalId ?? "",

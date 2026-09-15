@@ -45,7 +45,7 @@ test("worker assignments explain CLI discovery and current workspace evidence", 
 test("the default start command hands Claude the session id of the run and the whole prompt", () => {
 	const launch = launchCommand({ run, url, context: "Project: TRL", template: DEFAULT_AGENT_START_COMMAND });
 	expect(launch.command).toContain(
-		"claude --dangerously-skip-permissions -n 'Wren' --session-id '3f1c9a7e-8b2d-4c6e-9f0a-1b2c3d4e5f60' '",
+		"claude --dangerously-skip-permissions -n 'Trellis Manager' --session-id '3f1c9a7e-8b2d-4c6e-9f0a-1b2c3d4e5f60' '",
 	);
 	expect(launch.command).not.toContain("--resume");
 	expect(launch.command).toContain("Manage the project.");
@@ -63,7 +63,7 @@ test("the default resume command continues the session with the resume text as i
 	});
 	expect(launch.command).toStartWith("cd '/Users/me/it'\\''s here' && exec env ");
 	expect(launch.command).toContain(
-		"claude --dangerously-skip-permissions -n 'Wren' --resume '3f1c9a7e-8b2d-4c6e-9f0a-1b2c3d4e5f60' '",
+		"claude --dangerously-skip-permissions -n 'Trellis Manager' --resume '3f1c9a7e-8b2d-4c6e-9f0a-1b2c3d4e5f60' '",
 	);
 	expect(launch.command).toEndWith(`'${run.instruction}\n\n${resumeText}'`);
 	expect(launch.command).not.toContain("--session-id");
@@ -99,7 +99,7 @@ test("manager assignment messages contain only identity and context facts", () =
 		template: DEFAULT_AGENT_START_COMMAND,
 	});
 	expect(JSON.parse(prompt)).toEqual({
-		agent: { id: run.id, name: run.name },
+		agent: { id: run.id, name: run.personaName },
 		actor: `agent:${run.id}`,
 		trellisUrl: url,
 		persona: { id: run.personaId, name: run.personaName },
@@ -122,4 +122,11 @@ test("manager resume messages contain restart facts without behavioral instructi
 	);
 	expect(launch.command).not.toContain(instruction);
 	expect(launch.command).not.toContain(resumeText);
+});
+
+test("the persona labels the agent while its actor retains the assignment ID", () => {
+	const launch = launchCommand({ run, url, context: "Project: TRL", template: DEFAULT_AGENT_START_COMMAND });
+	expect(launch.prompt).not.toContain("Wren");
+	expect(launch.prompt).toContain("Your persona is Trellis Manager.");
+	expect(launch.prompt).toContain(`Your Trellis actor is agent:${run.id}`);
 });

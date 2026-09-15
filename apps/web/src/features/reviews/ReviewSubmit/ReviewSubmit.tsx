@@ -102,7 +102,7 @@ export function ReviewSubmit({
 						{agents.data?.map((agent) => (
 							<Checkbox
 								key={agent.id}
-								label={`${agent.name} · ${agent.ticketIdentifier ?? agent.projectPath} · ${agent.state}`}
+								label={`${agent.personaName} · ${agent.ticketIdentifier ?? agent.projectPath} · ${agent.state}`}
 								disabled={noNotify}
 								checked={recipients.includes(agent.id)}
 								onCheckedChange={(checked) =>
