@@ -78,8 +78,8 @@ export function parsePiEvent(envelope: PiEnvelope): HarnessEvent[] {
 		const assistant = payload.messages?.findLast((message) => message.role === "assistant");
 		if (assistant?.stopReason === "error")
 			return [
-				{ kind: "error", ...identity, error: assistant.errorMessage },
-				{ kind: "idle", ...identity },
+				{ kind: "error", ...identity, error: assistant.errorMessage, outcome: "failed" },
+				{ kind: "idle", ...identity, outcome: "failed" },
 			];
 		const result =
 			assistant?.stopReason === "aborted"
@@ -93,7 +93,7 @@ export function parsePiEvent(envelope: PiEnvelope): HarnessEvent[] {
 				kind: "idle",
 				...identity,
 				...(result ? { result } : {}),
-				...(assistant?.stopReason === "aborted" ? { outcome: "interrupted" as const } : {}),
+				outcome: assistant?.stopReason === "aborted" ? "interrupted" : "completed",
 			},
 		];
 	}

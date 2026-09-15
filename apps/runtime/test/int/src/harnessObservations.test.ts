@@ -79,8 +79,18 @@ test("provider metadata and errors stay distinct from actual process status", as
 	});
 	await client.observe("attempt", "secret", {
 		kind: "tool-end",
-		tool: { id: "tool-one", name: "read", output: "content" },
+		tool: { id: "tool-one", name: "read" },
+		error: "File not found",
 	});
+	expect(await client.inspect("attempt")).toMatchObject({
+		status: "running",
+		activity: { state: "working" },
+		agent: { error: null, outcome: null, tool: null },
+	});
+	expect(await client.list({ hasError: true })).toEqual([]);
+	expect(Buffer.from((await client.output("attempt", 0, "events")).data, "base64").toString()).toContain(
+		"File not found",
+	);
 	await client.observe("attempt", "secret", { kind: "error", error: "Provider quota exhausted", outcome: "failed" });
 	await client.observe("attempt", "secret", { kind: "idle", outcome: "failed" });
 	expect(await client.inspect("attempt")).toMatchObject({

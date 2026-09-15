@@ -71,6 +71,7 @@ const terminated = new Promise<void>((resolve) => {
 	process.once("SIGINT", resolve);
 });
 let eventQueue = Promise.resolve();
+let acceptingEvents = true;
 let reportFailure!: (error: unknown) => void;
 const observationFailed = new Promise<never>((_, reject) => {
 	reportFailure = reject;
@@ -84,7 +85,7 @@ async function start() {
 		submitted = resolve;
 	});
 	client = new CodexAppServerClient(env.TRELLIS_CODEX_ENGINE_SOCKET, (notification) => {
-		if (!parser) return;
+		if (!parser || !acceptingEvents) return;
 		for (const event of parser.parse(notification)) {
 			applyCodexActivity(current, event);
 			eventQueue = eventQueue.then(async () => {
@@ -146,6 +147,8 @@ async function start() {
 try {
 	await Promise.race([start().then(() => terminated), engineFailed, observationFailed]);
 } catch (error) {
+	acceptingEvents = false;
+	await eventQueue;
 	await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, {
 		kind: "error",
 		outcome: "failed",
@@ -153,6 +156,7 @@ try {
 	});
 	process.exitCode = 1;
 } finally {
+	acceptingEvents = false;
 	await Promise.all(
 		[engine, ...(terminal ? [terminal] : [])].map(async (child) => {
 			if (child.exitCode !== null || child.signalCode !== null) return;

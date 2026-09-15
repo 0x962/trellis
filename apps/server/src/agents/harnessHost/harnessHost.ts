@@ -56,13 +56,21 @@ export class HarnessHost {
 			);
 		return { process };
 	}
-	async waitFor(id: string, matches: (session: RuntimeProcessStatus) => boolean): Promise<RuntimeProcessStatus> {
+	async waitFor(
+		id: string,
+		matches: (session: RuntimeProcessStatus) => boolean,
+		options: { rejectAgentError?: boolean } = {},
+	): Promise<RuntimeProcessStatus> {
 		const signal = AbortSignal.timeout(this.options.observationTimeoutMs ?? 15000);
 		try {
 			for await (const event of this.options.runtime.subscribeSession(id, signal)) {
 				if (event.type !== "session") continue;
 				if (matches(event.session)) return event.session;
-				if (event.session.status === "exited" || event.session.error || event.session.agent?.error)
+				if (
+					event.session.status === "exited" ||
+					event.session.error ||
+					(options.rejectAgentError !== false && event.session.agent?.error)
+				)
 					throw new Error(
 						`Harness attempt ${id}: ${event.session.agent?.error ?? event.session.error ?? event.session.status}`,
 					);
@@ -118,7 +126,7 @@ export class HarnessHost {
 				true,
 			);
 		}
-		return this.waitFor(id, (state) => state.acknowledgedMessageIds.includes(messageId));
+		return this.waitFor(id, (state) => state.acknowledgedMessageIds.includes(messageId), { rejectAgentError: false });
 	}
 	async interrupt(id: string) {
 		const descriptor = await this.descriptor(id);

@@ -98,7 +98,7 @@ test("Pi preserves native identity, receipts, tools and turn completion", () => 
 			event: "agent_end",
 			payload: { messages: [{ role: "assistant", content: [{ type: "text", text: "done" }], stopReason: "stop" }] },
 		}),
-	).toEqual([{ kind: "idle", ...base, result: "done" }]);
+	).toEqual([{ kind: "idle", ...base, result: "done", outcome: "completed" }]);
 });
 
 test("Pi distinguishes provider errors and aborted turns from successful output", () => {
@@ -107,7 +107,10 @@ test("Pi distinguishes provider errors and aborted turns from successful output"
 			event: "agent_end",
 			payload: { messages: [{ role: "assistant", stopReason: "error", errorMessage: "quota" }] },
 		}),
-	).toEqual([{ kind: "error", error: "quota" }, { kind: "idle" }]);
+	).toEqual([
+		{ kind: "error", error: "quota", outcome: "failed" },
+		{ kind: "idle", outcome: "failed" },
+	]);
 	expect(
 		parsePiEvent({
 			event: "agent_end",
