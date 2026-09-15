@@ -7,6 +7,7 @@ import {
 	type RuntimeMethods,
 	type RuntimeResponse,
 } from "./index.ts";
+import { subscribeOutput } from "./subscribeOutput.ts";
 
 export class RuntimeClient {
 	constructor(
@@ -61,6 +62,15 @@ export class RuntimeClient {
 				else resolve(reply.result as RuntimeMethods[M]["result"]);
 			});
 		});
+	}
+	subscribe(id: string, offset = 0, signal?: AbortSignal, stream: "stdout" | "stderr" = "stdout") {
+		return subscribeOutput(this.socketPath, { id, offset, stream }, signal);
+	}
+	turn(id: string, token: string, event: "SessionStart" | "UserPromptSubmit" | "Stop", messageId?: string) {
+		return this.call("turn", { id, token, event, messageId });
+	}
+	inspect(id: string) {
+		return this.call("inspect", { id });
 	}
 	shutdown() {
 		return this.call("shutdown", {});

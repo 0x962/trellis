@@ -94,7 +94,7 @@ test("same launch identifier cannot change its command", async () => {
 		client.start({ id: "dedup", command: "/bin/echo", args: ["duplicate"], cwd: home, mode: "stdio" }),
 	).rejects.toThrow("different command");
 });
-test("output is bounded and reports the missing byte interval", async () => {
+test("output retains every byte and reads bounded chunks", async () => {
 	const count = 1200000;
 	const session = await client.start({
 		id: "large-output",
@@ -107,12 +107,18 @@ test("output is bounded and reports the missing byte interval", async () => {
 		() => client.list(),
 		(sessions) => sessions.find((item) => item.id === session.id)?.status === "exited",
 	);
-	const result = await client.output(session.id);
-	expect(result.nextOffset).toBe(count);
-	expect(result.startOffset).toBe(count - 1024 * 1024);
-	expect(result.truncated).toBe(true);
-	expect(Buffer.from(result.data, "base64").length).toBe(1024 * 1024);
-	expect(statSync(join(home, "sessions", `${session.id}.output.json`)).mode & 0o777).toBe(0o600);
+	let offset = 0;
+	const chunks: Buffer[] = [];
+	while (offset < count) {
+		const result = await client.output(session.id, offset);
+		expect(result.startOffset).toBe(offset);
+		expect(result.truncated).toBe(false);
+		chunks.push(Buffer.from(result.data, "base64"));
+		expect(chunks.at(-1)!.length).toBeLessThanOrEqual(65536);
+		offset = result.nextOffset;
+	}
+	expect(Buffer.concat(chunks)).toEqual(Buffer.alloc(count, 120));
+	expect(statSync(join(home, "sessions", `${session.id}.output.json.bytes`)).mode & 0o777).toBe(0o600);
 });
 test("PTY churn releases file descriptors", async () => {
 	const descriptors = () =>
@@ -155,7 +161,7 @@ test("a second daemon cannot change the live runtime identity", async () => {
 	expect(code).not.toBe(0);
 	expect((await client.hello()).daemonId).toBe(before.daemonId);
 });
-test("hard crash retains output and marks prior processes unknown", async () => {
+test("hard crash retains output and inspects the prior process", async () => {
 	const spec = {
 		id: "crash",
 		command: runtimeNode,
@@ -181,7 +187,7 @@ test("hard crash retains output and marks prior processes unknown", async () => 
 		daemon.once("exit", (code) => reject(new Error(`Runtime exited ${code}`)));
 	});
 	expect((await client.hello()).daemonId).not.toBe(oldId);
-	expect((await client.start(spec)).status).toBe("unknown");
+	expect((await client.start(spec)).status).toBe("exited");
 	expect((await client.start(spec)).pid).toBe(session.pid);
 	expect(Buffer.from((await client.output(session.id)).data, "base64").toString()).toBe("durable bytes\n");
 	expect((await client.stop("canceled-before-start")).pid).toBeNull();
@@ -271,4 +277,69 @@ test("keyed input records survive a daemon restart", async () => {
 	expect(
 		(await client.deliver("keyed-input", "message-1", Buffer.from("one message\n").toString("base64"))).status,
 	).toBe("written");
+});
+
+test("push subscription replays retained bytes then streams input and process exit", async () => {
+	const session = await client.start({ id: "push-output", command: "/bin/cat", args: [], cwd: home, mode: "stdio" });
+	await client.input(session.id, Buffer.from("before").toString("base64"));
+	await waitFor(
+		() => client.output(session.id),
+		(output) => output.nextOffset === 6,
+	);
+	const events = client.subscribe(session.id);
+	expect((await events.next()).value).toMatchObject({
+		type: "session",
+		session: { id: session.id, status: "running" },
+	});
+	let text = "";
+	let offset = 0;
+	for await (const event of events) {
+		if (event.type === "output") {
+			expect(event.startOffset).toBe(offset);
+			offset = event.nextOffset;
+			text += Buffer.from(event.data, "base64").toString();
+			if (text === "before") await client.input(session.id, Buffer.from("after").toString("base64"));
+			if (text === "beforeafter") await client.stop(session.id);
+		} else if (event.session.status === "exited") {
+			expect(text).toBe("beforeafter");
+		}
+	}
+	expect(text).toBe("beforeafter");
+	const replay: Buffer[] = [];
+	for await (const event of client.subscribe(session.id, 6)) {
+		if (event.type === "output") replay.push(Buffer.from(event.data, "base64"));
+	}
+	expect(Buffer.concat(replay).toString()).toBe("after");
+});
+
+test("push subscription accepts a slow reader and resumes beyond one megabyte", async () => {
+	const bytes: Buffer[] = [];
+	let offset = 0;
+	for await (const event of client.subscribe("large-output")) {
+		if (event.type !== "output") continue;
+		expect(event.startOffset).toBe(offset);
+		bytes.push(Buffer.from(event.data, "base64"));
+		offset = event.nextOffset;
+		await Bun.sleep(2);
+	}
+	expect(Buffer.concat(bytes)).toEqual(Buffer.alloc(1200000, 120));
+});
+
+test("push subscription cancellation releases idle socket descriptors", async () => {
+	const session = await client.start({ id: "push-cancel", command: "/bin/cat", args: [], cwd: home, mode: "stdio" });
+	const descriptors = () =>
+		spawnSync("/usr/sbin/lsof", ["-p", String(daemon.pid), "-Ff"], { encoding: "utf8" })
+			.stdout.split("\n")
+			.filter((line) => /^f\d/.test(line)).length;
+	const before = descriptors();
+	for (let index = 0; index < 12; index += 1) {
+		const controller = new AbortController();
+		const events = client.subscribe(session.id, 0, controller.signal);
+		await events.next();
+		controller.abort();
+		await events.return(undefined);
+	}
+	await Bun.sleep(50);
+	expect(descriptors()).toBeLessThanOrEqual(before + 2);
+	await client.stop(session.id);
 });

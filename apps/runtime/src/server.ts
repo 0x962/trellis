@@ -8,6 +8,7 @@ import {
 	type RuntimeMethods,
 	type RuntimeRequest,
 } from "@trellis/runtime-protocol";
+import { outputSubscription } from "./outputSubscription.ts";
 import { acquireRuntimeLock } from "./runtimeLock.ts";
 import { SessionStore } from "./sessionStore.ts";
 import { validateSocketPath } from "./socketPath.ts";
@@ -25,6 +26,7 @@ export async function startRuntime(home: string) {
 		pid: process.pid,
 		startedAt: new Date().toISOString(),
 		socketPath,
+		capabilities: ["terminal-stream"],
 	};
 	let store: SessionStore;
 	const sockets = new Set<Socket>();
@@ -34,7 +36,7 @@ export async function startRuntime(home: string) {
 		if (closing && request.method === "start") throw new Error("Runtime is shutting down");
 		switch (request.method) {
 			case "shutdown":
-				if (store.list().some((session) => session.status === "unknown"))
+				if (store.list().some((session) => session.status !== "exited" && !session.controllable))
 					throw new Error("Cannot shut down: a session has an unknown process owner");
 				closing = true;
 				await store.stopAll();
@@ -45,6 +47,10 @@ export async function startRuntime(home: string) {
 				return hello;
 			case "list":
 				return store.list();
+			case "inspect":
+				return store.inspect((request.params as RuntimeMethods["inspect"]["params"]).id);
+			case "turn":
+				return store.turn(request.params as RuntimeMethods["turn"]["params"]);
 			case "start":
 				return store.start(request.params as RuntimeMethods["start"]["params"]);
 			case "input": {
@@ -88,6 +94,35 @@ export async function startRuntime(home: string) {
 				const value = JSON.parse(buffer.slice(0, end));
 				id = typeof value?.id === "string" ? value.id : "";
 				const request = validateRequest(value);
+				if (request.method === "subscribe") {
+					socket.setTimeout(0);
+					const controller = new AbortController();
+					const abort = () => controller.abort();
+					socket.once("close", abort);
+					try {
+						await outputSubscription(
+							store,
+							request.params as RuntimeMethods["subscribe"]["params"],
+							(result) =>
+								new Promise<void>((resolve, reject) => {
+									const timer = setTimeout(() => {
+										socket.destroy();
+										reject(new Error("Terminal subscriber did not accept output within 30 seconds"));
+									}, 30_000);
+									socket.write(`${JSON.stringify({ id, result })}\n`, (error) => {
+										clearTimeout(timer);
+										if (error) reject(error);
+										else resolve();
+									});
+								}),
+							controller.signal,
+						);
+						socket.end();
+					} finally {
+						socket.off("close", abort);
+					}
+					return;
+				}
 				const result = await dispatch(request);
 				socket.end(`${JSON.stringify({ id, result })}\n`, () => {
 					if (request.method === "shutdown") void close();

@@ -24,12 +24,29 @@ export interface RuntimeSession {
 	exitCode: number | null;
 	error: string | null;
 }
+export interface RuntimeProcessMetadata {
+	pid: number;
+	parentPid: number;
+	groupId: number;
+	identity: string;
+	startedAt: string;
+	executable: string;
+}
+export interface RuntimeProcessStatus extends RuntimeSession {
+	acknowledgedMessageIds: string[];
+	activity: { state: "ready" | "working" | "idle"; updatedAt: string } | null;
+	checkedAt: string;
+	controllable: boolean;
+	process: RuntimeProcessMetadata | null;
+	launch: Pick<LaunchSpec, "command" | "args" | "cwd"> | null;
+}
 export interface RuntimeHello {
 	version: typeof RUNTIME_PROTOCOL_VERSION;
 	daemonId: string;
 	pid: number;
 	startedAt: string;
 	socketPath: string;
+	capabilities?: string[];
 }
 export interface RuntimeOutput {
 	data: string;
@@ -37,15 +54,25 @@ export interface RuntimeOutput {
 	nextOffset: number;
 	truncated: boolean;
 }
+export type RuntimeOutputEvent =
+	| ({ type: "output" } & RuntimeOutput)
+	| { type: "session"; session: RuntimeProcessStatus };
+
 export interface RuntimeDelivery {
 	messageId: string;
 	status: "written" | "unknown";
 }
 export interface RuntimeMethods {
+	turn: {
+		params: { id: string; token: string; event: "SessionStart" | "UserPromptSubmit" | "Stop"; messageId?: string };
+		result: RuntimeProcessStatus;
+	};
+	inspect: { params: { id: string }; result: RuntimeProcessStatus };
+	subscribe: { params: { id: string; offset: number; stream?: "stdout" | "stderr" }; result: RuntimeOutputEvent };
 	shutdown: { params: Record<string, never>; result: null };
 	deliver: { params: { id: string; messageId: string; data: string }; result: RuntimeDelivery };
 	hello: { params: Record<string, never>; result: RuntimeHello };
-	list: { params: Record<string, never>; result: RuntimeSession[] };
+	list: { params: Record<string, never>; result: RuntimeProcessStatus[] };
 	start: { params: LaunchSpec; result: RuntimeSession };
 	input: { params: { id: string; data: string }; result: null };
 	resize: { params: { id: string; cols: number; rows: number }; result: null };

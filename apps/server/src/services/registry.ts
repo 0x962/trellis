@@ -101,6 +101,7 @@ export const services = {
 	"agentRuns.harness": prepared("read", agentHarness.harness, agentTerminal.result),
 	"agentRuns.permission": prepared("mutation", agentHarness.permission, agentTerminal.result),
 	"agentRuns.session": prepared("read", agentTerminal.session, agentTerminal.result),
+	"agentRuns.terminalTarget": core("read", agentTerminal.streamTarget),
 	"agentRuns.terminalOutput": prepared("read", agentTerminal.output, agentTerminal.result),
 	"agentRuns.terminalInput": prepared("mutation", agentTerminal.input, agentTerminal.result),
 	"agentRuns.resize": prepared("mutation", agentTerminal.resize, agentTerminal.result),

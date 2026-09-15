@@ -40,3 +40,10 @@ export const resize = async (ctx: ServiceCtx, input: { id: string; cols: number;
 };
 
 export const result = async (_ctx: ServiceCtx, _tx: Tx, value: unknown) => value;
+
+export const streamTarget = async (_ctx: ServiceCtx, tx: Tx, input: { id: string } & SendTarget) => {
+	const run = await getRun(tx, input.id);
+	if (run.runtime !== "native" || !run.terminalId) throw invalidInput("id", "This agent has no local terminal.");
+	assertSendTarget(run, input);
+	return { terminalId: run.terminalId, sessionId: run.sessionId };
+};

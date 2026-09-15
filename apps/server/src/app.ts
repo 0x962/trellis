@@ -23,6 +23,7 @@ import { exportRoute } from "./routes/export.ts";
 import { filesRoute } from "./routes/files.ts";
 import { reviewImageRoute } from "./routes/reviewImage";
 import { staticRoute } from "./routes/static.ts";
+import { terminalStreamRoute } from "./routes/terminalStream.ts";
 import { createDbTiming, serverTimingHeader } from "./serverTiming.ts";
 
 export type AppOptions = {
@@ -177,6 +178,7 @@ export const createApp = ({
 
 	app.get("/api/review-image", reviewImageRoute(transport));
 	app.get("/api/events", events.handler);
+	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport));
 	app.get("/api/attachments/:id/file", filesRoute({ config, transport }));
 	app.get("/api/export", exportRoute({ transport }));
 	app.get("/api/openapi.json", docs.spec);

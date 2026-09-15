@@ -8,7 +8,9 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		throw Object.assign(new Error("Runtime protocol version is incompatible"), { code: "PROTOCOL_MISMATCH" });
 	const params = request.params as Record<string, unknown>;
 	if (!params || typeof params !== "object") throw new Error("Request parameters are required");
-	if (["start", "input", "deliver", "resize", "stop", "output"].includes(request.method)) {
+	if (
+		["start", "inspect", "turn", "input", "deliver", "resize", "stop", "output", "subscribe"].includes(request.method)
+	) {
 		if (typeof params.id !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.id))
 			throw new Error("Session identifier must contain letters, numbers, underscores, or hyphens");
 	}
@@ -16,7 +18,19 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		case "shutdown":
 		case "hello":
 		case "list":
+		case "inspect":
 		case "stop":
+			break;
+		case "turn":
+			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
+				throw new Error("An attempt token is required");
+			if (!["SessionStart", "UserPromptSubmit", "Stop"].includes(params.event as string))
+				throw new Error("Unknown turn event");
+			if (
+				params.messageId !== undefined &&
+				(typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))
+			)
+				throw new Error("Message identifier must contain letters, numbers, underscores, or hyphens");
 			break;
 		case "start":
 			if (
@@ -68,6 +82,7 @@ export function validateRequest(value: unknown): RuntimeRequest {
 				if (!Number.isInteger(params[key]) || (params[key] as number) < 1 || (params[key] as number) > 1000)
 					throw new Error("Terminal dimensions must be between 1 and 1000");
 			break;
+		case "subscribe":
 		case "output":
 			if (params.stream !== undefined && params.stream !== "stdout" && params.stream !== "stderr")
 				throw new Error("Output stream must be stdout or stderr");

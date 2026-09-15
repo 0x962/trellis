@@ -1,39 +1,50 @@
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { appendFileSync, closeSync, existsSync, openSync, readFileSync, readSync, statSync } from "node:fs";
 import type { RuntimeOutput } from "@trellis/runtime-protocol";
 
 export class SessionLog {
-	private startOffset = 0;
-	private bytes = Buffer.alloc(0);
-	constructor(
-		private readonly path: string,
-		private readonly limit = 1024 * 1024,
-	) {
-		if (existsSync(path)) {
-			const stored = JSON.parse(readFileSync(path, "utf8")) as { offset: number; data: string };
-			this.startOffset = stored.offset;
-			this.bytes = Buffer.from(stored.data, "base64");
-		}
+	private readonly startOffset: number;
+	private readonly legacy: Buffer;
+	private readonly bytesPath: string;
+	private readonly listeners = new Set<() => void>();
+	private length: number;
+	constructor(path: string) {
+		const stored = existsSync(path)
+			? (JSON.parse(readFileSync(path, "utf8")) as { offset: number; data: string })
+			: { offset: 0, data: "" };
+		this.startOffset = stored.offset;
+		this.legacy = Buffer.from(stored.data, "base64");
+		this.bytesPath = `${path}.bytes`;
+		appendFileSync(this.bytesPath, Buffer.alloc(0), { mode: 0o600 });
+		this.length = this.legacy.length + statSync(this.bytesPath).size;
 	}
 	append(bytes: Buffer) {
-		this.bytes = Buffer.concat([this.bytes, bytes]);
-		if (this.bytes.length > this.limit) {
-			const excess = this.bytes.length - this.limit;
-			this.bytes = this.bytes.subarray(excess);
-			this.startOffset += excess;
-		}
-		const tmp = `${this.path}.tmp`;
-		writeFileSync(tmp, JSON.stringify({ offset: this.startOffset, data: this.bytes.toString("base64") }), {
-			mode: 0o600,
-		});
-		renameSync(tmp, this.path);
+		appendFileSync(this.bytesPath, bytes);
+		this.length += bytes.length;
+		for (const listener of this.listeners) listener();
 	}
-	read(offset: number): RuntimeOutput {
-		const startOffset = Math.max(offset, this.startOffset);
-		const nextOffset = this.startOffset + this.bytes.length;
+	subscribe(listener: () => void) {
+		this.listeners.add(listener);
+		return () => this.listeners.delete(listener);
+	}
+	read(offset: number, maxBytes = 65536): RuntimeOutput {
+		const startOffset = Math.min(Math.max(offset, this.startOffset), this.startOffset + this.length);
+		const local = startOffset - this.startOffset;
+		const size = Math.min(maxBytes, this.length - local);
+		const bytes = Buffer.alloc(size);
+		const legacySize = Math.min(size, Math.max(0, this.legacy.length - local));
+		if (legacySize > 0) this.legacy.copy(bytes, 0, local, local + legacySize);
+		if (size > legacySize) {
+			const descriptor = openSync(this.bytesPath, "r");
+			try {
+				readSync(descriptor, bytes, legacySize, size - legacySize, Math.max(0, local - this.legacy.length));
+			} finally {
+				closeSync(descriptor);
+			}
+		}
 		return {
-			data: this.bytes.subarray(Math.min(startOffset - this.startOffset, this.bytes.length)).toString("base64"),
-			startOffset: Math.min(startOffset, nextOffset),
-			nextOffset,
+			data: bytes.toString("base64"),
+			startOffset,
+			nextOffset: startOffset + size,
 			truncated: offset < this.startOffset,
 		};
 	}
