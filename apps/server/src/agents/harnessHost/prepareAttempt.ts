@@ -50,8 +50,10 @@ export async function prepareAttempt(
 	const hookCommand = `${quote(options.bun)} ${quote(fileURLToPath(new URL("./hook.ts", import.meta.url)))}`;
 	const configDirectory = await mkdtemp(join(directory, "config-"));
 	const cwd =
-		input.kind === "manager" ? join(options.directory, "manager-workspaces", input.managerId ?? input.id) : input.cwd;
-	if (input.kind === "manager") await mkdir(cwd, { recursive: true, mode: 0o700 });
+		input.kind === "manager" && sessionId === undefined
+			? join(options.directory, "manager-workspaces", input.managerId ?? input.id)
+			: input.cwd;
+	if (input.kind === "manager" && sessionId === undefined) await mkdir(cwd, { recursive: true, mode: 0o700 });
 	if (input.harness === "claude") await claudeTrust(cwd, env);
 	const common = {
 		env,

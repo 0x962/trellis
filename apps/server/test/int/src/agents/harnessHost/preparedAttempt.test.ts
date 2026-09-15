@@ -53,3 +53,29 @@ test("OpenCode resumes its prepared prompt after process launch and keeps the pr
 	expect((await client.list()).filter((p) => p.id === "prepared")).toHaveLength(1);
 	await host.stop("prepared");
 });
+
+test.each(["claude", "pi", "opencode"] as const)(
+	"%s manager resume preserves the prior directory and restricts its tools",
+	async (harness) => {
+		const started = await host.prepare({
+			id: "new-manager",
+			managerId: "manager",
+			kind: "manager",
+			harness,
+			cwd: home,
+			prompt: "Coordinate",
+		});
+		expect(started.spec.cwd).toBe(join(home, "attempts", "manager-workspaces", "manager"));
+		const resumed = await host.prepare(
+			{ id: "old-manager-resumed", managerId: "manager", kind: "manager", harness, cwd: home, prompt: "Continue" },
+			`provider-${harness}`,
+		);
+		expect(resumed.spec.cwd).toBe(home);
+		if (harness === "claude") {
+			expect(resumed.spec.args).toContain("--strict-mcp-config");
+			expect(resumed.spec.args).not.toContain("--dangerously-skip-permissions");
+		} else if (harness === "pi") expect(resumed.spec.args).toContain("--no-builtin-tools");
+		else
+			expect(JSON.parse(resumed.spec.env!.OPENCODE_PERMISSION!)).toEqual({ "*": "deny", "trellis_trellis_*": "allow" });
+	},
+);

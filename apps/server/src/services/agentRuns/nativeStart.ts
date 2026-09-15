@@ -5,6 +5,7 @@ import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { launchCommand } from "../../agents/launchCommand/launchCommand.ts";
 import { launchPrompt } from "../../agents/launchCommand/launchPrompt.ts";
+import { managerInstructions } from "../../agents/launchCommand/managerInstructions.ts";
 import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { customLaunch } from "../../agents/native/customLaunch.ts";
 import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
@@ -80,6 +81,7 @@ export const startNative = async (
 		const timeoutMs = input.deadlineAt === undefined ? undefined : input.deadlineAt - Date.now();
 		if (timeoutMs !== undefined && timeoutMs <= 0) throw new Error("The flow group deadline elapsed before launch");
 		let session: RuntimeProcessStatus;
+		let launchWorkspace = workspaceId;
 		if (config.harness.preset === "custom") {
 			const launch = launchCommand({
 				run,
@@ -108,7 +110,12 @@ export const startNative = async (
 				...(run.kind === "manager" ? { managerId: run.id } : {}),
 				harness: config.harness.preset,
 				cwd: workspaceId,
-				prompt: input.resumePrompt ?? launchPrompt({ run, url: ctx.localUrl, context }),
+				prompt:
+					input.resumePrompt === undefined
+						? launchPrompt({ run, url: ctx.localUrl, context })
+						: run.kind === "manager"
+							? `${managerInstructions}\n\n${input.resumePrompt}`
+							: input.resumePrompt,
 				model: config.harness.model,
 				token: input.attempt.token,
 				timeoutMs,
@@ -128,15 +135,17 @@ export const startNative = async (
 						"The prior attempt has no confirmed session for this harness. Start a new session.",
 					);
 				sessionId = previous.agent.sessionId;
+				launch.cwd = previous.launch!.cwd;
 			}
-			await host.prepare(launch, sessionId);
+			const descriptor = await host.prepare(launch, sessionId);
+			launchWorkspace = descriptor.spec.cwd;
 			launchSubmitted = true;
 			({ process: session } =
 				sessionId === undefined ? await host.start(launch) : await host.resume({ ...launch, sessionId }));
 		}
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = ${session.status === "exited" ? ctx.now() : null}, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET workspace_id = ${launchWorkspace}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = ${session.status === "exited" ? ctx.now() : null}, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 	} catch (error) {
