@@ -2,7 +2,6 @@ import { createRootRouteWithContext, Link, Outlet, redirect, useRouterState } fr
 import { EmptyState, Toaster } from "@trellis/ui";
 import { useEffect } from "react";
 import { CommandPalette } from "../features/command/CommandPalette";
-import { ShortcutHelp } from "../features/command/ShortcutHelp";
 import { ComposerHost } from "../features/composer/ComposerHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { linkButtonClass } from "../features/shell/linkButtonClass";
@@ -93,7 +92,6 @@ function RootComponent() {
 			<div data-command-palette="" hidden />
 			<GlobalHotkeys />
 			<CommandPalette />
-			<ShortcutHelp />
 			<ComposerHost />
 			<Toaster />
 		</div>

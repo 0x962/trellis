@@ -25,8 +25,6 @@ export type GlobalHotkeyOptions = {
 	onSearch: () => void;
 	// `c`.
 	onCompose: () => void;
-	// `?`.
-	onHelp: () => void;
 	// `g p`.
 	onProjectPicker: () => void;
 	scheduler?: Scheduler;
@@ -139,7 +137,7 @@ export const useEscapeLayer = (layer: EscapeLayer, active: boolean, onEscape: ()
 // Binds every global row. Returns the first key of a pending sequence, so
 // the shell can draw the hint, or null.
 export const useGlobalHotkeys = (options: GlobalHotkeyOptions): string | null => {
-	const { navigate, pathname, onPalette, onSearch, onCompose, onHelp, onProjectPicker } = options;
+	const { navigate, pathname, onPalette, onSearch, onCompose, onProjectPicker } = options;
 	const scheduler = options.scheduler ?? realScheduler;
 	const [pending, setPending] = useState<string | null>(null);
 	const timer = useRef<unknown>(undefined);
@@ -153,7 +151,6 @@ export const useGlobalHotkeys = (options: GlobalHotkeyOptions): string | null =>
 	useHotkey("mod+k", onPalette);
 	useHotkey("/", onSearch);
 	useHotkey("c", onCompose);
-	useHotkey("?", onHelp);
 	useHotkey("mod+\\", toggleTheme);
 	useHotkey("[", (event) => {
 		if (holdsBoardKeys(pathname)) return;

@@ -50,10 +50,14 @@ describe("lib/hotkeys", () => {
 	});
 
 	// HK-04
-	test("the question mark runs the help handler", () => {
-		const { onHelp } = mountScope();
+	test("the question mark runs no global handler", () => {
+		const scope = mountScope();
 		press("?", { shiftKey: true });
-		expect(onHelp).toHaveBeenCalledTimes(1);
+		expect(scope.navigate).not.toHaveBeenCalled();
+		expect(scope.onPalette).not.toHaveBeenCalled();
+		expect(scope.onSearch).not.toHaveBeenCalled();
+		expect(scope.onCompose).not.toHaveBeenCalled();
+		expect(scope.onProjectPicker).not.toHaveBeenCalled();
 	});
 
 	// HK-05
@@ -271,11 +275,9 @@ describe("lib/hotkeys", () => {
 		press("k", { metaKey: true });
 		press("/");
 		press("c");
-		press("?", { shiftKey: true });
 		expect(scope.onPalette).toHaveBeenCalledTimes(1);
 		expect(scope.onSearch).toHaveBeenCalledTimes(1);
 		expect(scope.onCompose).toHaveBeenCalledTimes(1);
-		expect(scope.onHelp).toHaveBeenCalledTimes(1);
 	});
 
 	// HK-26

@@ -121,16 +121,14 @@ Read [Local pull request reviews](docs/reviews.md) for the CLI, Margin import, a
 
 ### Keyboard map
 
-Press `?` in the web app for the full list. `Cmd` is `Ctrl` outside macOS.
-`packages/api` holds no key map. The one map is `apps/web/src/lib/shortcuts.ts`,
-and the help sheet reads it.
+`Cmd` is `Ctrl` outside macOS. `packages/api` holds no key map. The one map
+is `apps/web/src/lib/shortcuts.ts`.
 
 | Keys | Scope | Action |
 |---|---|---|
 | `Cmd+K` | Global | Open the command palette |
 | `/` | Global | Search tickets |
 | `c` | Global | New ticket |
-| `?` | Global | Show the keyboard shortcuts |
 | `g h`, `g a`, `g p` | Global | Go to Needs you, All tickets, or a project |
 | `g b`, `g t` | Global | Switch to the board or the table |
 | `g s` | Global | Focus the filter bar |
