@@ -2,8 +2,8 @@ import type { AgentRun } from "@trellis/api";
 import { Badge, cx, EmptyState } from "@trellis/ui";
 import type { TerminalFrame, TerminalSurfaceProps } from "@trellis/ui/terminal";
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
-import { useApp } from "../../../lib/appContext";
-import { followTerminal, type TerminalProcess } from "./terminalStream";
+import { createTerminalSocket } from "./terminalSocket";
+import type { TerminalProcess } from "./terminalStream";
 import { terminalUnavailable } from "./terminalUnavailable";
 
 const TerminalSurface = lazy(async () => ({ default: (await import("@trellis/ui/terminal")).TerminalSurface }));
@@ -17,7 +17,7 @@ export function NativeTerminal({
 	layout?: TerminalSurfaceProps["layout"];
 	onLeave?: () => void;
 }) {
-	const { client } = useApp();
+	const transport = useRef<ReturnType<typeof createTerminalSocket> | null>(null);
 	const heading = useRef<HTMLHeadingElement>(null);
 	const [session, setSession] = useState<TerminalProcess | null>(null);
 	const [connection, setConnection] = useState<"connecting" | "open" | "closed">("connecting");
@@ -25,32 +25,32 @@ export function NativeTerminal({
 		async (offset: number, onOutput: (frame: TerminalFrame) => Promise<void>, signal: AbortSignal) => {
 			setConnection("connecting");
 			try {
-				await followTerminal(
-					{ id: run.id, terminalId: run.terminalId, sessionId: run.sessionId },
+				const current = createTerminalSocket({
+					run: { id: run.id, terminalId: run.terminalId, sessionId: run.sessionId },
 					offset,
 					signal,
 					onOutput,
-					(next) => {
+					onSession: (next) => {
 						setSession(next);
 						setConnection("open");
 					},
-				);
+				});
+				transport.current = current;
+				await current.done;
 			} finally {
 				if (!signal.aborted) setConnection("closed");
 			}
 		},
 		[run.id, run.terminalId, run.sessionId],
 	);
-	const send = useCallback(
-		(text: string, userInput: boolean) =>
-			client.agentRuns.terminalInput({ id: run.id, text, userInput, expectedTerminalId: run.terminalId! }),
-		[client, run.id, run.terminalId],
-	);
-	const resize = useCallback(
-		(cols: number, rows: number) =>
-			client.agentRuns.resize({ id: run.id, cols, rows, expectedTerminalId: run.terminalId! }),
-		[client, run.id, run.terminalId],
-	);
+	const send = useCallback(async (text: string, userInput: boolean) => {
+		if (!transport.current) throw new Error("The terminal is not connected.");
+		await transport.current.send(text, userInput);
+	}, []);
+	const resize = useCallback(async (cols: number, rows: number) => {
+		if (!transport.current) throw new Error("The terminal is not connected.");
+		await transport.current.resize(cols, rows);
+	}, []);
 	const leave = useCallback(() => {
 		if (onLeave) onLeave();
 		else heading.current?.focus();

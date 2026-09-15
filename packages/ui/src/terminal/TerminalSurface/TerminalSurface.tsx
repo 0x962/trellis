@@ -4,8 +4,10 @@ import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
 import "@xterm/xterm/css/xterm.css";
 import "../terminal.css";
-import { type TerminalFrame, terminalChunk } from "./terminalChunk.ts";
+import type { TerminalFrame } from "./terminalChunk.ts";
 import { terminalInputSource } from "./terminalInputSource.ts";
+import { terminalOutput } from "./terminalOutput";
+import { terminalWebgl } from "./terminalWebgl";
 
 export type TerminalSurfaceProps = {
 	layout?: "panel" | "fill";
@@ -44,7 +46,11 @@ export function TerminalSurface({
 		let dispose = () => {};
 		let connection: AbortController;
 		const start = async () => {
-			const [{ Terminal }, { FitAddon }] = await Promise.all([import("@xterm/xterm"), import("@xterm/addon-fit")]);
+			const [{ Terminal }, { FitAddon }, { WebglAddon }] = await Promise.all([
+				import("@xterm/xterm"),
+				import("@xterm/addon-fit"),
+				import("@xterm/addon-webgl"),
+			]);
 			if (disposed) return;
 			const styles = getComputedStyle(container.current!.parentElement!);
 			const terminal = new Terminal({
@@ -58,6 +64,7 @@ export function TerminalSurface({
 			const fit = new FitAddon();
 			terminal.loadAddon(fit);
 			terminal.open(container.current!);
+			const disposeWebgl = terminalWebgl(terminal, () => new WebglAddon());
 			terminal.textarea?.setAttribute("aria-label", label);
 			terminal.attachCustomKeyEventHandler((event) => {
 				event.stopPropagation();
@@ -91,25 +98,13 @@ export function TerminalSurface({
 			const observer = new ResizeObserver(fitTerminal);
 			observer.observe(container.current!);
 			fitTerminal();
-			let offset = 0;
-			const pendingWrites = new Set<() => void>();
-			const write = async (frame: TerminalFrame) => {
-				if (disposed) return;
-				const chunk = terminalChunk(frame, offset);
-				if (chunk.reset) {
+			const output = terminalOutput({
+				write: (bytes, complete) => terminal.write(bytes, complete),
+				reset: () => {
 					terminal.reset();
 					setGap(true);
-				}
-				if (chunk.bytes.length)
-					await new Promise<void>((resolve) => {
-						pendingWrites.add(resolve);
-						terminal.write(chunk.bytes, () => {
-							pendingWrites.delete(resolve);
-							resolve();
-						});
-					});
-				offset = chunk.nextOffset;
-			};
+				},
+			});
 			const connect = () => {
 				connection?.abort();
 				enabled.current = false;
@@ -117,7 +112,7 @@ export function TerminalSurface({
 				connection = current;
 				failed.current = false;
 				setError(null);
-				void follow(offset, write, current.signal).catch((failure) => {
+				void follow(output.offset(), output.push, current.signal).catch((failure) => {
 					if (!current.signal.aborted) fail(failure);
 				});
 			};
@@ -127,8 +122,8 @@ export function TerminalSurface({
 				observer.disconnect();
 				data.dispose();
 				source.dispose();
-				for (const resolve of pendingWrites) resolve();
-				pendingWrites.clear();
+				output.dispose();
+				disposeWebgl();
 				terminal.dispose();
 			};
 			connect();

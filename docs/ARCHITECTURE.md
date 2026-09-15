@@ -113,6 +113,7 @@ A later file change makes earlier evidence outdated. A passed process alone does
 The ticket page centers its content and opens Activity first. Shared ticket details stay above the tabs.
 The Agent tab shows the assigned agent's interactive terminal. Changes, Checks, and Flows hold their corresponding evidence.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
+The terminal WebSocket carries ordered input and binary output outside the database request path after attachment. See [terminal transport](terminal-transport.md).
 The terminal sends keyboard input and resize events to the runtime. An explicit reconnect resumes from the last displayed byte.
 Settings includes runtime diagnostics. `trellis doctor --json` reads the same report without starting the runtime.
 

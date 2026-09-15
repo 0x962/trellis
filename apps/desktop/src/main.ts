@@ -5,6 +5,7 @@ import { chooseDataHome } from "./chooseDataHome/chooseDataHome.ts";
 import { configureDesktopIdentity } from "./desktopIdentity/desktopIdentity.ts";
 import { desktopPaths } from "./desktopPaths/desktopPaths.ts";
 import { adoptHost, connectHost, type HostConnection } from "./host/host.ts";
+import { hostRequest } from "./hostRequest/hostRequest.ts";
 import { installCli } from "./installCli/installCli.ts";
 import { deepLinkPath, externalUrl, sameOrigin } from "./navigation/navigation.ts";
 import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResources.ts";
@@ -146,7 +147,7 @@ else {
 			rendererSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
 			rendererSession.setPermissionCheckHandler(() => false);
 			rendererSession.webRequest.onBeforeSendHeaders((details, callback) => {
-				if (host && window && details.webContentsId === window.webContents.id && sameOrigin(details.url, host.origin))
+				if (host && window && details.webContentsId === window.webContents.id && hostRequest(details.url, host.origin))
 					details.requestHeaders.Authorization = `Bearer ${host.token}`;
 				else delete details.requestHeaders.Authorization;
 				callback({ requestHeaders: details.requestHeaders });

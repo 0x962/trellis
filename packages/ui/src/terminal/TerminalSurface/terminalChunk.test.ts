@@ -30,3 +30,10 @@ test("replayed terminal bytes keep the rendered offset and append only new bytes
 	expect(terminalChunk(frame, 13)).toEqual({ bytes: new TextEncoder().encode("def"), reset: false, nextOffset: 16 });
 	expect(terminalChunk(frame, 18)).toEqual({ bytes: new Uint8Array(), reset: false, nextOffset: 18 });
 });
+
+test("binary terminal frames trim replay bytes without a base64 conversion", () => {
+	const data = new Uint8Array([0xe2, 0x9c, 0x93]);
+	const chunk = terminalChunk({ data, startOffset: 4, nextOffset: 7, truncated: false }, 5);
+	expect(chunk.bytes).toEqual(new Uint8Array([0x9c, 0x93]));
+	expect(chunk.bytes.buffer).toBe(data.buffer);
+});
