@@ -1,1 +1,0 @@
-export { StalledSection } from "./StalledSection";

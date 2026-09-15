@@ -1,7 +1,5 @@
 import { expect, test } from "@playwright/test";
 import { get, put } from "./api";
-import { createTicket, ensureProject, trellis } from "./cli";
-import { failingPrUrl } from "./ghReplies";
 import { signIn } from "./support";
 
 // Both tests change the server settings, and every spec shares one server.
@@ -14,23 +12,17 @@ test.afterEach(async () => {
 	await put("/settings", before);
 });
 
-// NYO-1 links a pull request with a failed check.
-test.beforeAll(() => {
-	if (!ensureProject("NYO", "Needs you")) return;
-	createTicket("NYO", "Fix the desktop typecheck", ["--status", "in-progress"]);
-	trellis(["pr", "add", "NYO-1", failingPrUrl]);
-});
-
-// TRL-27. A failed check puts the ticket in the Failing checks section, and
-// the row opens the ticket page.
-test("needs-you > a failed check lists the ticket and the row opens it", async ({ page }) => {
+test("needs-you > an empty page opens without agent or inbox requests", async ({ page }) => {
+	const featureRequests: string[] = [];
+	page.on("request", (request) => {
+		const path = new URL(request.url()).pathname;
+		if (/\/(?:agentRuns|agent-runs|manager-dispatches|controller\/list|inbox)(?:\/|$)/.test(path))
+			featureRequests.push(path);
+	});
 	await signIn(page, "/needs-you");
 	await expect(page.getByRole("heading", { name: "Needs you", exact: true })).toBeVisible();
-	const row = page.locator('[data-inbox-row="NYO-1"]');
-	await expect(row).toBeVisible();
-	await expect(page.getByRole("region", { name: "Failing checks" })).toContainText("Fix the desktop typecheck");
-	await row.click();
-	await expect(page).toHaveURL(/\/t\/NYO-1$/);
+	await expect(page.locator(".page-card")).toBeEmpty();
+	expect(featureRequests).toEqual([]);
 });
 
 // E2E-04. The settings live on the server, so a reload shows them again.
