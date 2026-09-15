@@ -1,6 +1,5 @@
 import { GitPullRequest, ListBullets, MagnifyingGlass, Tray } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
-import { TrellisWordmark } from "@trellis/ui";
 import type { ReactNode } from "react";
 
 export type ShellFrameProps = {
@@ -27,9 +26,9 @@ export function ShellFrame({ children }: ShellFrameProps) {
 				aria-busy="true"
 				className="relative flex h-full w-60 shrink-0 flex-col gap-0.5 bg-bg px-2 pb-2 text-base max-md:hidden"
 			>
-				<div className="mb-1 flex h-13 shrink-0 items-center gap-2 pl-2">
-					<TrellisWordmark className="h-4.5" />
-				</div>
+				{/* The loaded sidebar puts its collapse button in a row of this
+				    height, so the rows below stay in place when it replaces this frame. */}
+				<div className="mb-1 h-13 shrink-0" />
 				{rows.map((row) => (
 					<Link
 						key={row.to}

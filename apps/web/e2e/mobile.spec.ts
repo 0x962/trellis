@@ -120,6 +120,7 @@ test("the sidebar starts closed and the menu button opens it over the page", asy
 	await page.getByRole("button", { name: "Open the sidebar" }).click();
 	const sheet = page.getByRole("dialog", { name: "Navigation" });
 	await expect(sheet).toBeVisible();
+	await expect(sheet.getByRole("img", { name: "trellis" })).toHaveCount(0);
 	await sheet.getByRole("link", { name: "All tickets" }).click();
 	await expect(page).toHaveURL(/\/all$/);
 	await expect(sheet).toBeHidden();
