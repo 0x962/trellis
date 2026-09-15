@@ -4,15 +4,12 @@ import { dirname, join } from "node:path";
 import { createTrellisClient, type FetchLike, type GhStatus, type TrellisClient } from "@trellis/api";
 import { ulid } from "ulid";
 import type { RequestContext } from "../../../server/src/context.ts";
-import type { InlineTransport, ServiceTransport } from "../../../server/src/db/transport.ts";
+import type { ServiceTransport } from "../../../server/src/db/transport.ts";
 import { fail } from "../../../server/src/errors.ts";
 import { createGhRunner, type GhResult, type GhRunner } from "../../../server/src/gh/run.ts";
 import { blobPath } from "../../../server/src/storage/blobs.ts";
 import { createTestApp, type TestApp } from "../../../server/test/helpers/app.ts";
-import { fakeTimerClock } from "../../../server/test/helpers/clock.ts";
 import { ghStub } from "../../../server/test/helpers/gh-stub.ts";
-import { gitRepo } from "../../../server/test/helpers/gitRepo.ts";
-import { SUPERSET_STUB_BIN, supersetStub } from "../../../server/test/helpers/superset-stub.ts";
 import { seedSnapshot } from "./cache.ts";
 import { sharedDb } from "./db.ts";
 import { createHooks, type Hooks } from "./hooks.ts";
@@ -53,28 +50,6 @@ const origin = "http://trellis.local";
 
 // The script that stands in for the gh binary.
 const GH_STUB_BIN = join(import.meta.dir, "..", "..", "..", "server", "test", "stubs", "gh.ts");
-
-// The Superset projects `agents.runnerProjects` lists. The runner reads the
-// default branch of each one with `git symbolic-ref` in its checkout, so each
-// path is a real repository whose origin/HEAD names `main`. The two
-// repositories are made once and every server of the process shares them.
-let repos: Array<{ id: string; name: string; repo: string; path: string }> | undefined;
-
-const runnerProjects = () => {
-	repos ??= [
-		{ id: "sp-web", name: "web", repo: "https://github.com/acme/web", path: gitRepo("main") },
-		{ id: "sp-trellis", name: "trellis", repo: "https://github.com/0x962/trellis", path: gitRepo("main") },
-	];
-	return repos;
-};
-
-// The machines `agents.runnerHosts` reads from `superset hosts list`. Only
-// the online one reaches the host picker of a project block.
-const runnerHosts = () =>
-	[
-		{ id: "host-mini", name: "Mac mini", online: "yes" },
-		{ id: "host-canary", name: "Canary", online: "no" },
-	] as const;
 
 const missingGh: GhStatus = {
 	ok: false,
@@ -212,15 +187,8 @@ const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh
 	copyFileSync(GH_STUB_BIN, ghBin);
 	chmodSync(ghBin, 0o755);
 	process.env.TRELLIS_GH_BIN = ghBin;
-	// The agents runner spawns this copy of the superset stub. A test deletes
-	// it to prove what the page shows when the CLI is not on the machine.
-	const supersetBin = join(dir, "superset");
-	copyFileSync(SUPERSET_STUB_BIN, supersetBin);
-	chmodSync(supersetBin, 0o755);
-	const superset = supersetStub(dir, { projects: runnerProjects(), hosts: [...runnerHosts()] });
 	const app = await createTestApp({
 		db: h,
-		supersetBin,
 		gh: ghRunner(createGhRunner(), gh),
 		maxUploadMb: (options.maxUploadBytes ?? defaultMaxUploadBytes) / (1024 * 1024),
 		ghStatus: () => gh.status,
@@ -242,7 +210,7 @@ const build = async (options: TestServerOptions, calls: Call[], hooks: Hooks, gh
 	open.push(live);
 	if (options.prepare !== undefined) await options.prepare(app.client);
 	calls.length = 0;
-	return { app, live, stub, superset, supersetBin, ghBin };
+	return { app, live, stub, ghBin };
 };
 
 export type TestServer = ReturnType<typeof createTestServer>;
@@ -302,34 +270,10 @@ export const createTestServer = (options: TestServerOptions = {}) => {
 		bootId: async () => (await ready).app.bootId,
 		home: async () => (await ready).app.home,
 		request: async (input: Request | string, init?: RequestInit) => (await ready).app.app.request(input, init),
-		// The agents host, on a clock the test moves. It watches every enabled
-		// project, batches the changes it sees, and wakes the managers.
-		startAgents: async () => {
-			const { app } = await ready;
-			const clock = fakeTimerClock(new Date());
-			const host = (app.transport as InlineTransport).startAgents({ clock, log: () => {} });
-			await host.start();
-			return { host, clock };
-		},
-		// The default branch the runner reads from each Superset project's
-		// checkout, which is what `git symbolic-ref origin/HEAD` names.
-		setRunnerBranch: async (branch: string) => {
-			const { superset } = await ready;
-			superset.update((state) => {
-				state.projects = state.projects.map((project) => ({ ...project, path: gitRepo(branch) }));
-			});
-		},
-		// The state of the fake superset the agents runner spawns.
-		superset: async () => (await ready).superset,
 		// Takes the gh binary off the machine, so every gh call answers with
 		// the reason `missing`.
 		removeGh: async () => {
 			rmSync((await ready).ghBin, { force: true });
-		},
-		// Takes the superset binary off the machine, so every runner call
-		// answers RUNNER_UNAVAILABLE with the reason `missing`.
-		removeSuperset: async () => {
-			rmSync((await ready).supersetBin, { force: true });
 		},
 		// The answer the gh stub gives the next pull request fetch.
 		armPr: async (pr: PrSpec) => {

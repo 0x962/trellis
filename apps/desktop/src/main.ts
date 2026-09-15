@@ -79,17 +79,10 @@ const connect = async () => {
 				"The registered service uses the Trellis application data directory. Use the desktop dev command for a scratch home.",
 			);
 		const prepared = await prepareHome(
-			{ home: desktopHome(), resources: hostRoot },
+			{ home: desktopHome() },
 			{
 				message: (options) => dialog.showMessageBox(options),
 				useExisting: () => chooseHome(),
-				chooseSource: async () => {
-					const source = await dialog.showOpenDialog({
-						title: "Choose a stopped Trellis data home",
-						properties: ["openDirectory"],
-					});
-					return source.canceled ? null : source.filePaths[0]!;
-				},
 			},
 		);
 		if (!prepared) {

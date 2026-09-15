@@ -6,13 +6,7 @@ import { signIn } from "./support";
 test("native execution settings and ticket work tabs retain the ticket context", async ({ page }) => {
 	await post("/projects", { key: "DUX", name: "Desktop workspace" });
 	await post("/tickets", { project: "DUX", title: "Verify local output" });
-	await signIn(page, "/p/DUX/settings/manager#ade");
-	await page.getByRole("combobox", { name: "ADE preset" }).click();
-	await page.getByRole("option", { name: "Trellis (local)", exact: true }).click();
-	await expect.poll(async () => (await get<Project>("/projects/DUX")).managerConfig?.ade).toBe("native");
-	await expect(page.getByText("Trellis owns the terminal and workspace on this Mac.", { exact: true })).toBeVisible();
-	await expect(page.getByText("Advanced commands", { exact: false })).toBeHidden();
-	await page.getByRole("link", { name: "General", exact: true }).click();
+	await signIn(page, "/p/DUX/settings/manager#settings");
 	await page.getByRole("textbox", { name: "Project directory", exact: true }).fill("/tmp/trellis-trust-one");
 	await page.getByRole("textbox", { name: "Project directory", exact: true }).press("Tab");
 	await page.getByRole("checkbox", { name: "Trust this repository", exact: true }).check();

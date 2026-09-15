@@ -1,1 +1,0 @@
-export { desktopProjectConfig } from "./desktopProjectConfig";

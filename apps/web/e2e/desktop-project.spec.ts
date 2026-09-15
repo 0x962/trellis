@@ -21,11 +21,11 @@ test("desktop project creation selects local execution and preserves existing pr
 	await expect.poll(async () => (await get<Project>("/projects/NEWX.child")).managerConfig?.ade).toBe("native");
 });
 
-test("browser project creation keeps its existing execution defaults", async ({ page }) => {
+test("browser project creation uses local execution", async ({ page }) => {
 	await signIn(page, "/setup?step=project");
 	await page.getByRole("textbox", { name: "Project name", exact: true }).fill("Browser creation");
 	await page.getByRole("textbox", { name: "Key", exact: true }).fill("WEBX");
 	await page.getByRole("button", { name: /^Create/ }).click();
 	await expect(page).toHaveURL(/\/p\/WEBX$/);
-	expect((await get<Project>("/projects/WEBX")).managerConfig?.ade).toBe("superset");
+	expect((await get<Project>("/projects/WEBX")).managerConfig?.ade).toBe("native");
 });

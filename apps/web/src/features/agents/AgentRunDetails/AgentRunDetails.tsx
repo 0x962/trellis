@@ -39,17 +39,16 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 		},
 		onError: (error) => toast.error("Could not stop the agent", { description: error.message }),
 	});
-	const retired = run.error?.startsWith("External assignment retired by") ?? false;
-	const unavailable = run.runtime !== "native" && run.state === "interrupted";
-	const active = !unavailable && (run.state === "running" || run.state === "starting" || run.state === "interrupted");
-	const status = unavailable ? "External session unavailable" : run.state;
+	const historical = run.runtime !== "native";
+	const active = !historical && (run.state === "running" || run.state === "starting" || run.state === "interrupted");
+	const status = historical ? "Historical assignment" : run.state;
 
 	// The server learns that a terminal exited only when somebody asks it, so
 	// the page asks while it is open and the agent is at work. The answer
 	// updates the row, and the state above follows with no button to press.
 	// A hidden tab asks nothing.
 	useEffect(() => {
-		if (!active && !unavailable) return;
+		if (!active) return;
 		const handle = setInterval(() => {
 			if (document.visibilityState !== "visible") return;
 			void client.agentRuns.refresh({ id: run.id }).then(() => {
@@ -57,7 +56,7 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 			});
 		}, followEveryMs);
 		return () => clearInterval(handle);
-	}, [active, unavailable, run.id, client, queryClient, orpc]);
+	}, [active, run.id, client, queryClient, orpc]);
 	return (
 		<div className="flex min-w-0 flex-col gap-6">
 			{heading ? (
@@ -71,12 +70,12 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 							</p>
 						</div>
 					</div>
-					<Badge tone={unavailable ? "bad" : "neutral"}>{status}</Badge>
+					<Badge>{status}</Badge>
 				</header>
 			) : (
 				<>
 					<div className="flex flex-wrap items-center gap-2">
-						<Badge tone={unavailable ? "bad" : "neutral"}>{status}</Badge>
+						<Badge>{status}</Badge>
 						<span className="text-sm text-fg-muted">
 							{run.personaName} · {run.kind}
 						</span>
@@ -91,7 +90,7 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 			)}
 			<AgentTerminal run={run} />
 			<div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
-				{controls && !retired && (active || (run.state === "failed" && run.workspaceId)) && (
+				{controls && !historical && (active || (run.state === "failed" && run.workspaceId)) && (
 					<Button
 						variant="quiet"
 						disabled={run.state === "starting"}
@@ -101,7 +100,7 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 						Stop agent
 					</Button>
 				)}
-				{run.url && (
+				{!historical && run.url && (
 					<a
 						href={run.url}
 						className="ml-auto inline-flex min-h-7 items-center rounded-md border border-border px-3 text-sm text-accent hover:bg-bg focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11"

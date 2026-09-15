@@ -28,7 +28,7 @@ export function HarnessSettings({
 	const [revision, setRevision] = useState(0);
 	return (
 		<fieldset disabled={readOnly} className="manager-settings-groups">
-			<SettingsSection title="Harness" hint="The agent program that does the work inside your ADE.">
+			<SettingsSection title="Harness" hint="The agent program that does the work.">
 				<Select
 					label="Harness preset"
 					items={presets}

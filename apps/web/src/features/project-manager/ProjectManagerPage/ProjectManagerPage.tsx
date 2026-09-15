@@ -15,9 +15,7 @@ import { projectSlashPath } from "../../../lib/projectPath";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
-import { LocalExecutionRecovery } from "../LocalExecutionRecovery";
 import { ManagerQueue } from "../ManagerQueue";
-import { AgentEnvironment } from "./components/AgentEnvironment";
 import { GeneralSettings } from "./components/GeneralSettings";
 import { HarnessSettings } from "./components/HarnessSettings";
 import { managerResumes } from "./managerResumes";
@@ -26,12 +24,11 @@ import { managerResumes } from "./managerResumes";
 const sections = [
 	{ id: "", label: "Operation" },
 	{ id: "settings", label: "General" },
-	{ id: "ade", label: "ADE" },
 	{ id: "harness", label: "Harness" },
 ];
 
 // A starting or running manager holds a process that Stop can close.
-const atWork = (run: AgentRun) => run.state === "starting" || run.state === "running";
+const atWork = (run: AgentRun) => run.runtime === "native" && (run.state === "starting" || run.state === "running");
 
 export function ProjectManagerPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
@@ -44,12 +41,9 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 	// The list orders manager assignments from newest to oldest.
 	const manager = runs.data?.find((run) => run.kind === "manager");
 	const active = manager !== undefined && atWork(manager);
-	const retired = manager?.error?.startsWith("External assignment retired by") ?? false;
-	const externalBlocked =
-		manager?.runtime !== "native" && (manager?.state === "interrupted" || (retired && saved.ade !== "native"));
 	// True when Play continues the Claude session the manager had before its
 	// pause. A manager with no session yet, or none that ran, starts new.
-	const resumes = managerResumes(manager, saved.ade);
+	const resumes = managerResumes(manager);
 	const parsedDraft = ProjectManagerConfigSchema.safeParse(draft);
 	const dirty = !parsedDraft.success || JSON.stringify(parsedDraft.data) !== JSON.stringify(saved);
 	const save = useMutation({
@@ -114,14 +108,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 								size="sm"
 								variant="default"
 								disabled={
-									readOnly ||
-									externalBlocked ||
-									dirty ||
-									save.isPending ||
-									!persona ||
-									runs.isPending ||
-									runs.isError ||
-									start.isPending
+									readOnly || dirty || save.isPending || !persona || runs.isPending || runs.isError || start.isPending
 								}
 								onClick={() => start.mutate(false)}
 							/>
@@ -172,13 +159,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 							<p className="text-sm text-fg-muted">
 								Pause automatic dispatch to keep new messages queued. The current process continues.
 							</p>
-							{saved.ade !== "native" && (
-								<LocalExecutionRecovery
-									project={project}
-									onMigrated={setDraft}
-									onRetired={(dispatchPaused) => setDraft((current) => ({ ...current, dispatchPaused }))}
-								/>
-							)}
 							<ManagerQueue projectId={project.id} />
 							{runs.isPending && (
 								<p role="status" className="text-sm text-fg-muted">
@@ -193,7 +173,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 									</Button>
 								</p>
 							)}
-							{manager?.sessionLost && !externalBlocked && (
+							{manager?.sessionLost && manager.runtime === "native" && (
 								<div className="flex flex-col gap-3 rounded-md border border-border p-3">
 									<p className="text-sm">
 										The manager could not resume its session. The error below names the session and where the agent ran.
@@ -216,16 +196,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 								<p className="text-sm text-fg-muted">This project has no manager yet. Press Play to start one.</p>
 							)}
 						</section>
-					</div>
-					<div hidden={section !== "ade"} className="project-settings-page">
-						<AgentEnvironment
-							setDraft={setDraft}
-							active={section === "ade"}
-							readOnly={readOnly}
-							draft={draft}
-							saved={saved}
-							commit={commit}
-						/>
 					</div>
 					<div hidden={section !== "harness"} className="project-settings-page">
 						<HarnessSettings readOnly={readOnly} draft={draft} saved={saved} commit={commit} setDraft={setDraft} />

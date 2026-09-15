@@ -56,12 +56,12 @@ export function GeneralSettings({
 					</p>
 				)}
 			</SettingsSection>
-			<SettingsSection title="General" hint="These settings apply with any ADE or harness.">
+			<SettingsSection title="General" hint="Trellis runs agents locally in this repository.">
 				<div className="manager-settings-field">
 					<div className="manager-directory-row">
 						<Input
 							label="Project directory"
-							placeholder="Use the agent workspace"
+							placeholder="Choose a local repository"
 							value={draft.directory}
 							onChange={(event) => setDraft({ ...draft, directory: event.target.value, trustedDirectory: false })}
 							onBlur={() => {
@@ -78,22 +78,18 @@ export function GeneralSettings({
 							/>
 						</Tooltip>
 					</div>
-					<p className="manager-settings-hint">
-						The manager starts in this directory on its host. Leave it empty to use its agent workspace.
-					</p>
-					{draft.ade === "native" && (
-						<div className="flex flex-col gap-2">
-							<Checkbox
-								label="Trust this repository"
-								checked={draft.trustedDirectory}
-								disabled={!draft.directory || invalidDirectory}
-								onCheckedChange={(trustedDirectory) => commit({ ...draft, trustedDirectory })}
-							/>
-							<p className="manager-settings-hint">
-								Agent tools still ask for permission. A directory change clears this trust.
-							</p>
-						</div>
-					)}
+					<p className="manager-settings-hint">Choose a repository for the manager and its local workspaces.</p>
+					<div className="flex flex-col gap-2">
+						<Checkbox
+							label="Trust this repository"
+							checked={draft.trustedDirectory}
+							disabled={!draft.directory || invalidDirectory}
+							onCheckedChange={(trustedDirectory) => commit({ ...draft, trustedDirectory })}
+						/>
+						<p className="manager-settings-hint">
+							Agent tools still ask for permission. A directory change clears this trust.
+						</p>
+					</div>
 					{invalidDirectory && (
 						<p role="alert" className="text-sm text-danger">
 							Use an absolute directory path.
