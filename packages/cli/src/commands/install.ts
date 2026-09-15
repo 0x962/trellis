@@ -1,5 +1,6 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import type { Health } from "@trellis/api";
 import { defineCommand } from "citty";
 import { type CliContext, contextOf } from "../context.ts";
 import { CliFailure } from "../errors.ts";
@@ -37,15 +38,44 @@ const gatewayServes = async (ctx: CliContext) => {
 	}
 };
 
-const waitForHealth = async (ctx: CliContext) => {
-	for (let attempt = 0; attempt < 50; attempt++) {
-		try {
-			const response = await ctx.deps.fetch(new Request(`${ctx.url}/api/health`), {});
-			if (response.ok) return;
-		} catch {}
-		await ctx.deps.sleep(200);
+// The checkout that the server at ctx.url names in its health answer.
+// undefined means that no server gave a 2xx answer. null means an answer with
+// no `source`, which a server of an earlier release sends.
+const answeringCheckout = async (ctx: CliContext): Promise<string | null | undefined> => {
+	try {
+		const response = await ctx.deps.fetch(new Request(`${ctx.url}/api/health`), {});
+		if (!response.ok) return undefined;
+		return ((await response.json()) as Partial<Health>).source?.checkout ?? null;
+	} catch {
+		return undefined;
 	}
-	throw new CliFailure("UNREACHABLE", 5, `trellis server not running at ${ctx.url}`);
+};
+
+const describeAnswer = (checkout: string | null | undefined) =>
+	checkout === undefined
+		? "no server answers"
+		: `the server that answers runs ${checkout ?? "a checkout that it does not name"}`;
+
+// A boot of the launchd server on a data home in daily use takes about 30 s,
+// and the migrations run inside that time. The wait is twice as long.
+const HEALTH_POLL_MS = 200;
+const HEALTH_WAIT_MS = 60_000;
+
+// Another process can hold the port of the server, and its answer does not
+// prove that the server install started runs. `accept` decides whether the
+// checkout in an answer belongs to that server.
+const waitForHealth = async (ctx: CliContext, accept: (checkout: string | null) => boolean, advice = "") => {
+	let checkout: string | null | undefined;
+	for (let waited = 0; waited < HEALTH_WAIT_MS; waited += HEALTH_POLL_MS) {
+		checkout = await answeringCheckout(ctx);
+		if (checkout !== undefined && accept(checkout)) return;
+		await ctx.deps.sleep(HEALTH_POLL_MS);
+	}
+	throw new CliFailure(
+		"UNREACHABLE",
+		5,
+		`the trellis server did not answer at ${ctx.url} in 60 s: ${describeAnswer(checkout)}${advice}`,
+	);
 };
 
 // launchctl bootout returns before launchd removes the job. A bootstrap of
@@ -68,16 +98,16 @@ const waitForUnload = async (ctx: CliContext, service: string) => {
 	);
 };
 
-// Stops the com.trellis.server job, starts the job that the plist file
-// describes, and returns when the server answers health.
-const startService = async (ctx: CliContext, plist: string) => {
+// Stops the com.trellis.server job and loads the job that the plist file
+// describes. When this function throws, launchd holds no server, and the
+// server of that plist did not start.
+const loadService = async (ctx: CliContext, plist: string) => {
 	const domain = ctx.deps.launchdDomain;
 	const service = `${domain}/${LABEL}`;
 	await ctx.deps.run(["launchctl", "bootout", service]);
 	await waitForUnload(ctx, service);
 	const loaded = await ctx.deps.run(["launchctl", "bootstrap", domain, plist]);
 	if (loaded.code !== 0) throw new CliFailure("INSTALL_FAILED", 1, loaded.stderr);
-	await waitForHealth(ctx);
 };
 
 // The plist and the shim on disk before install writes its own. null means
@@ -86,17 +116,25 @@ type Replaced = { plist: string | null; shim: string | null };
 
 const readIfExists = (path: string) => (existsSync(path) ? readFileSync(path, "utf8") : null);
 
-// A failed step can leave launchd with no server. install writes back the
-// plist and the shim it replaced and starts that service again, so the
-// machine keeps the server it had. The failure still ends the install.
+// Only a failure of `loadService` calls this function. The new server did
+// not start, so it applied no migration, and the old server finds the
+// database schema that it left. install writes back the plist and the shim it
+// replaced and starts that service again, so the machine keeps the server it
+// had. The failure still ends the install.
+//
+// A server of an earlier release names no checkout in its health answer, so
+// an answer with no checkout also counts as the old server.
 const restore = async (ctx: CliContext, paths: Paths, replaced: Replaced, failure: CliFailure) => {
 	if (replaced.plist === null) throw failure;
 	writeFileSync(paths.plist, replaced.plist);
 	if (replaced.shim !== null) writeFileSync(paths.shim, replaced.shim);
-	const outcome = await startService(ctx, paths.plist).then(
-		() => "install restored the previous service",
-		(error: Error) => `install could not restore the previous service: ${error.message}`,
-	);
+	const previous = readPlist(replaced.plist).checkout;
+	const outcome = await loadService(ctx, paths.plist)
+		.then(() => waitForHealth(ctx, (checkout) => checkout === null || checkout === previous))
+		.then(
+			() => "install restored the previous service",
+			(error: Error) => `install could not restore the previous service: ${error.message}`,
+		);
 	throw new CliFailure(failure.code, failure.exitCode, `${failure.message}; ${outcome}`);
 };
 
@@ -116,13 +154,15 @@ const refuseTakeover = async (ctx: CliContext, paths: Paths, plist: string, rawA
 	if (found.checkout === paths.repoRoot) return;
 	const printed = await ctx.deps.run(["launchctl", "print", `${ctx.deps.launchdDomain}/${LABEL}`]);
 	const pid = printed.code === 0 ? PID.exec(printed.stdout)?.[1] : undefined;
+	const answer = await answeringCheckout(ctx);
 	ctx.err.write(
 		[
 			`${LABEL} runs the server of another checkout`,
 			`  plist:          ${paths.plist}`,
 			`  checkout:       ${found.checkout}`,
 			`  commit:         ${found.commit ?? "not recorded"}`,
-			`  server:         ${pid === undefined ? "not running" : `pid ${pid}, port ${found.port}`}`,
+			`  launchd job:    ${pid === undefined ? "not running" : `pid ${pid}, port ${found.port}`}`,
+			`  ${ctx.url}: ${describeAnswer(answer)}`,
 			`  this checkout:  ${paths.repoRoot}`,
 			"To replace that service with the server of this checkout, run:",
 			`  ${["trellis", "install", ...rawArgs, "--force"].map(shellWord).join(" ")}`,
@@ -191,11 +231,19 @@ export default defineCommand({
 
 		if (context.args.launchd) {
 			try {
-				await startService(ctx, paths.plist);
+				await loadService(ctx, paths.plist);
 			} catch (failure) {
 				if (!(failure instanceof CliFailure)) throw failure;
 				await restore(ctx, paths, replaced, failure);
 			}
+			// The new server can be in the middle of its migrations when the
+			// wait ends. launchd keeps the job and starts it again when it exits,
+			// so install leaves it to finish its boot and runs no restore.
+			await waitForHealth(
+				ctx,
+				(checkout) => checkout === paths.repoRoot,
+				`. launchd keeps the new job and starts it again when it exits. Read ${paths.log}, then run trellis status.`,
+			);
 			if (await gatewayServes(ctx)) {
 				ctx.out.write("trellis: http://trellis.localhost\n");
 			} else {

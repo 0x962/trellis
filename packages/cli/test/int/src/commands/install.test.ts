@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, symlinkSync, writeFileSy
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { defaultEnv, lines, makeDeps, runCli } from "../../../deps.ts";
-import { launchctlCalls, setup, temp } from "../../../installEnv.ts";
+import { healthFrom, launchctlCalls, setup, temp } from "../../../installEnv.ts";
 import { cliEntry, repoRoot } from "../../../process.ts";
 
 describe("install", () => {
@@ -72,7 +72,7 @@ describe("install", () => {
 		const fetch = async (request: Request) => {
 			const url = new URL(request.url);
 			asked.push(`${url.host}${url.pathname}`);
-			return new Response("{}");
+			return healthFrom();
 		};
 		const result = await runCli(["install", "--prefix", prefix], {}, { env, launchdDomain: "gui/test", fetch });
 		expect(result.code, result.stderr).toBe(0);
@@ -99,7 +99,7 @@ describe("install", () => {
 				? { code: 0, stdout: "", stderr: "" }
 				: { code: 113, stdout: "", stderr: "Could not find service" };
 		};
-		const fetch = async () => new Response("{}");
+		const fetch = async () => healthFrom();
 		const result = await runCli(["install", "--prefix", prefix], {}, { env, launchdDomain: "gui/test", run, fetch });
 		expect(result.code, result.stderr).toBe(0);
 		expect(calls.filter((args) => args[0] === "launchctl")).toEqual([

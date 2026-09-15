@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { defaultEnv, lines, runCli } from "../../../deps.ts";
-import { setup, temp } from "../../../installEnv.ts";
+import { healthFrom, setup, temp } from "../../../installEnv.ts";
 
 // The routes file of the gateway on port 80, and what install prints about
 // the URL a browser can open.
@@ -46,7 +46,7 @@ describe("install and the localhost gateway", () => {
 		const probes: Array<{ url: string; host: string | null }> = [];
 		const fetch = async (request: Request) => {
 			probes.push({ url: request.url, host: request.headers.get("host") });
-			return new Response("{}");
+			return healthFrom();
 		};
 		const result = await runCli(["install", "--prefix", prefix], {}, { env, fetch });
 		expect(result.code, result.stderr).toBe(0);
@@ -62,7 +62,7 @@ describe("install and the localhost gateway", () => {
 		const noRoute = () => new Response("no route", { status: 502 });
 		for (const gateway of [refused, noRoute]) {
 			const { prefix, env, routes } = setup();
-			const fetch = async (request: Request) => (new URL(request.url).port === "" ? gateway() : new Response("{}"));
+			const fetch = async (request: Request) => (new URL(request.url).port === "" ? gateway() : healthFrom());
 			const result = await runCli(["install", "--prefix", prefix], {}, { env, fetch });
 			expect(result.code, result.stderr).toBe(0);
 			const out = lines(result.stdout);
