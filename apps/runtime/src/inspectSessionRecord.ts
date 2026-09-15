@@ -7,7 +7,12 @@ import type { SessionRecord } from "./sessionRecord.ts";
 export function inspectSessionRecord(record: SessionRecord): RuntimeProcessStatus {
 	const observation = record.session.pid === null ? { kind: "missing" as const } : inspectProcess(record.session.pid);
 	let observed = observedSession(record.session, record.identity, observation, record.process !== undefined);
-	if (observed.status === "exited" && record.session.pid !== null && record.session.endedAt === null) {
+	if (
+		observation.kind === "missing" &&
+		observed.status === "exited" &&
+		record.session.pid !== null &&
+		record.session.endedAt === null
+	) {
 		const members = inspectProcessSession(record.session.pid);
 		if (members.kind !== "empty")
 			observed = {

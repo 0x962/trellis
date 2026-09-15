@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { type ChildProcess, spawn } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { originDir } from "../../../../../test/originDir.ts";
@@ -129,4 +129,48 @@ test("a recovered live process pushes its exit without a status poll", async () 
 			rmSync(home, { recursive: true, force: true });
 		}),
 	).resolves.toMatchObject({ type: "session", session: { status: "exited" } });
+});
+
+test("a recovered PID with another kernel identity does not claim or watch the replacement process", async () => {
+	await buildRuntime();
+	const home = mkdtempSync("/tmp/trl-reused-pid-");
+	const replacement = spawn("/bin/sleep", ["60"], { detached: true, stdio: "ignore" });
+	await new Promise<void>((done) => replacement.once("spawn", done));
+	let daemon: ChildProcess | undefined;
+	try {
+		mkdirSync(join(home, "sessions"));
+		writeFileSync(
+			join(home, "sessions", "previous.session.json"),
+			JSON.stringify({
+				fingerprint: null,
+				identity: `${replacement.pid}:0:0`,
+				session: {
+					id: "previous",
+					daemonId: "old-daemon",
+					pid: replacement.pid,
+					mode: "stdio",
+					status: "running",
+					startedAt: "2000-01-01T00:00:00Z",
+					endedAt: null,
+					exitCode: null,
+					error: null,
+				},
+			}),
+		);
+		daemon = await boot(home);
+		const client = new RuntimeClient(join(home, "runtime.sock"));
+		expect(await client.inspect("previous")).toMatchObject({ status: "exited", controllable: false, process: null });
+		const events = [];
+		for await (const event of client.subscribeSession("previous", AbortSignal.timeout(1000))) events.push(event);
+		expect(events.at(-1)).toMatchObject({ type: "session", session: { status: "exited" } });
+		expect(() => process.kill(replacement.pid!, 0)).not.toThrow();
+		const exited = new Promise<void>((done) => daemon!.once("exit", () => done()));
+		await client.shutdown();
+		await exited;
+		expect(() => process.kill(replacement.pid!, 0)).not.toThrow();
+	} finally {
+		if (daemon && daemon.exitCode === null && daemon.signalCode === null) await kill(daemon);
+		await kill(replacement);
+		rmSync(home, { recursive: true, force: true });
+	}
 });
