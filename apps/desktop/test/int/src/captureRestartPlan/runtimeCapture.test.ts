@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { spawn } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { originDir } from "../../../../../../test/originDir.ts";
 import { buildRuntime } from "../../../../../runtime/test/runtimeBuild.ts";
@@ -11,7 +12,10 @@ test("capture reads kernel identity from a live runtime and excludes an explicit
 	await buildRuntime();
 	const root = resolve(originDir(import.meta.dir), "../../../..");
 	const home = await mkdtemp("/tmp/trl-os-plan-");
-	const source = { root: join(home, "release"), manifest: { id: "a".repeat(64), protocol: 6, version: "0.0.0" } };
+	const source = {
+		root: join(home, "release"),
+		manifest: { id: "a".repeat(64), protocol: RUNTIME_PROTOCOL_VERSION, version: "0.0.0" },
+	};
 	await mkdir(join(source.root, "bin"), { recursive: true });
 	await mkdir(join(source.root, "packages"));
 	await symlink(process.execPath, join(source.root, "bin/bun"));
