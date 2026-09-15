@@ -46,7 +46,7 @@ export function TerminalSurface({
 		const start = async () => {
 			const [{ Terminal }, { FitAddon }] = await Promise.all([import("@xterm/xterm"), import("@xterm/addon-fit")]);
 			if (disposed) return;
-			const styles = getComputedStyle(container.current!);
+			const styles = getComputedStyle(container.current!.parentElement!);
 			const terminal = new Terminal({
 				fontFamily: styles.fontFamily,
 				fontSize: Number.parseFloat(styles.fontSize),
@@ -169,7 +169,9 @@ export function TerminalSurface({
 					{unavailableReason}
 				</p>
 			)}
-			<div ref={container} className="terminal-canvas" />
+			<div className="terminal-canvas">
+				<div ref={container} className="terminal-host" />
+			</div>
 		</div>
 	);
 }
