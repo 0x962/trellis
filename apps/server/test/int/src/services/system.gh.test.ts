@@ -1,24 +1,13 @@
-import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { createGhRunner } from "../../../../src/gh/run.ts";
-import { gh } from "../../../../src/services/system.ts";
-import { testCtx } from "../../../helpers/ctx.ts";
-import { freshDb, type TestDb } from "../../../helpers/db.ts";
+import { checkGh } from "../../../../src/services/system.ts";
 import { ghStub, type StubReply } from "../../../helpers/gh-stub.ts";
-import { freshHomeWithDirs } from "../../../helpers/home.ts";
-import { assertStatusInvariant } from "../../../invariants.ts";
 
-// The gh status runs `gh auth status` and reports what the web banner and
-// the CLI line print. A missing binary and a signed out gh are answers, not
+// `checkGh` runs `gh auth status` and reports what the web banner and the
+// CLI line print. A missing binary and a signed out gh are answers, not
 // failures, so the server never crashes when gh is away.
-
-let h: TestDb;
-beforeAll(async () => {
-	h = await freshDb();
-});
-afterEach(() => h.db.transaction(assertStatusInvariant));
-afterAll(() => h.close());
 
 const restores: Array<() => void> = [];
 afterEach(() => {
@@ -30,14 +19,11 @@ const stub = (replies: Record<string, StubReply>) => {
 	return handle;
 };
 
-const run = () => {
-	const ctx = testCtx({ db: h.db, home: freshHomeWithDirs(), gh: createGhRunner() }).ctx;
-	return h.db.transaction((tx) => gh(ctx, tx, {}));
-};
+const run = () => checkGh(createGhRunner(), new Date());
 
 const signedIn = "github.com\n  ✓ Logged in to github.com account dana (keyring)\n  - Token scopes: 'repo'\n";
 
-describe("system.gh", () => {
+describe("checkGh", () => {
 	test("the gh status reports the signed in user", async () => {
 		stub({ "auth status": { stdout: signedIn, stderr: "", exitCode: 0 } });
 

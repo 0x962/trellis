@@ -122,6 +122,7 @@ describe("contract", () => {
 			"statuses.reorder PUT /projects/{project}/statuses/order",
 			"statuses.update PATCH /projects/{project}/statuses/{status}",
 			"system.backup POST /backup",
+			"system.checkGh POST /gh/check",
 			"system.chooseDirectory POST /choose-directory",
 			"system.doctor GET /doctor",
 			"system.gh GET /gh",

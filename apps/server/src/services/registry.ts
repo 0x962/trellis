@@ -45,31 +45,36 @@ import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
 import * as settings from "./settings.ts";
 import * as statuses from "./statuses.ts";
+import type { IoCtx, PrepareCtx } from "./support.ts";
 import * as system from "./system.ts";
 import * as tickets from "./tickets.ts";
 import * as timeline from "./timeline.ts";
 
 // The `family` selects the context shape. The `kind` sets the worker queue
 // priority before the service starts its transaction.
-// biome-ignore lint/suspicious/noExplicitAny: each family has its own ctx type; the transport builds the right one.
-type Run = (ctx: any, tx: Tx, input: any) => Promise<unknown>;
+// biome-ignore lint/suspicious/noExplicitAny: the core context comes from context.ts; the transport builds it.
+type CoreRun = (ctx: any, tx: Tx, input: any) => Promise<unknown>;
+// An `io` transaction gets an IoCtx, which has no gh runner. A run step that
+// asks for `gh` fails the typecheck here.
+// biome-ignore lint/suspicious/noExplicitAny: each service parses its own input.
+export type Run = (ctx: IoCtx, tx: Tx, input: any) => Promise<unknown>;
 // biome-ignore lint/suspicious/noExplicitAny: same as Run, for a service that yields lines.
-type Stream = (ctx: any, tx: Tx, input: any) => AsyncGenerator<string>;
+type Stream = (ctx: IoCtx, tx: Tx, input: any) => AsyncGenerator<string>;
 // `prepare` does the slow work outside the database, such as a gh call,
 // before the transaction of `run` opens. Its result is the input of `run`.
 // It reads the database through `ctx.newTx`, in short transactions of its
 // own, so other calls use the database while gh runs.
 // biome-ignore lint/suspicious/noExplicitAny: same as Run, with no transaction.
-type Prepare = (ctx: any, input: any) => Promise<unknown>;
+type Prepare = (ctx: IoCtx & PrepareCtx, input: any) => Promise<unknown>;
 
 export type ServiceKind = "mutation" | "read" | "search";
 export type ServiceEntry =
-	| { family: "core"; kind: ServiceKind; run: Run }
+	| { family: "core"; kind: ServiceKind; run: CoreRun }
 	| { family: "io"; kind: ServiceKind; run: Run }
 	| { family: "io"; kind: ServiceKind; prepare: Prepare; run: Run }
 	| { family: "io"; kind: ServiceKind; stream: Stream };
 
-const core = (kind: ServiceKind, run: Run): ServiceEntry => ({ family: "core", kind, run });
+const core = (kind: ServiceKind, run: CoreRun): ServiceEntry => ({ family: "core", kind, run });
 const io = (kind: ServiceKind, run: Run): ServiceEntry => ({ family: "io", kind, run });
 const prepared = (kind: ServiceKind, prepare: Prepare, run: Run): ServiceEntry => ({
 	family: "io",
@@ -205,7 +210,6 @@ export const services = {
 	"settings.get": core("read", settings.get),
 	"settings.set": core("mutation", settings.set),
 	"system.health": io("read", system.health),
-	"system.gh": io("read", system.gh),
 	"system.snapshot": io("mutation", system.snapshot),
 	"system.export": { family: "io", kind: "read", stream: system.exportNdjson } as ServiceEntry,
 } satisfies Record<string, ServiceEntry>;
