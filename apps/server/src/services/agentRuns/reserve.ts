@@ -111,7 +111,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 	await recordRequest(ctx, tx, { ...request, runId: run.id });
 	const context =
 		ticket === null
-			? `Project: ${projectPath}\nEffective statuses:\n${JSON.stringify(ctx.cache.effectiveStatuses(project.id).statuses)}\nRead the project and its tickets from Trellis before you act.`
+			? `Project: ${projectPath}\nEffective statuses:\n${JSON.stringify(ctx.cache.effectiveStatuses(project.id).statuses)}`
 			: `Ticket: ${ticket.identifier}: ${ticket.title}\nProject: ${projectPath}\n\n${ticket.description}\n\nRead the current ticket, comments, and linked pull requests before you act.\nUse trellis brief ${ticket.identifier} for the full task context.`;
 	return {
 		replay: false as const,
@@ -121,6 +121,6 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 		config,
 		resume,
 		previousAttemptId,
-		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || "Use the agent workspace."}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}`,
+		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || (ticket === null ? "Not configured" : "Use the agent workspace.")}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}`,
 	};
 };

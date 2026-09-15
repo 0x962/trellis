@@ -127,7 +127,10 @@ test.each([true, undefined])(
 		const descriptor = JSON.parse(
 			await readFile(join(fixture.home, "harness-attempts", next.process.id, "launch.json"), "utf8"),
 		);
-		expect(descriptor.prompt).toContain("Latest saved persona instruction.");
+		expect(descriptor.spec.args[descriptor.spec.args.indexOf("--system-prompt") + 1]).toBe(
+			"Latest saved persona instruction.",
+		);
+		expect(descriptor.prompt).not.toContain("Latest saved persona instruction.");
 		expect(descriptor.prompt).not.toContain("Original persona instruction.");
 		if (newSession) {
 			expect(descriptor.spec.args).toContain("--session-id");

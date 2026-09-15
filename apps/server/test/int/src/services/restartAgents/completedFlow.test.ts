@@ -251,7 +251,13 @@ test("workers resume before a manager captured first", async () => {
 		previousAttemptId: "worker-previous",
 		attempt: { id: "worker-next", token: "worker-token" },
 	};
-	await h.rows(sql`UPDATE agent_runs SET kind='manager',ticket_id=NULL WHERE id=${manager.runId}`);
+	const managerPersonaId = ulid();
+	await h.rows(
+		sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at) VALUES (${managerPersonaId},'Manager','manager','Stored manager policy',now(),now())`,
+	);
+	await h.rows(
+		sql`UPDATE agent_runs SET kind='manager',persona_id=${managerPersonaId},ticket_id=NULL WHERE id=${manager.runId}`,
+	);
 	await h.rows(
 		sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,ticket_id,terminal_id,session_id,workspace_id,created_at,updated_at) VALUES (${worker.runId},'Second','native','Builder','builder','Task',${project},'FLOW',${ticket},${worker.previousAttemptId},'provider-session',${home},now(),now())`,
 	);

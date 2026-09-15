@@ -79,7 +79,17 @@ async function resume(ctx: Ctx, input: { restartId: string }, deps: Dependencies
 						previousAttemptId: entry.previousAttemptId,
 						resume: true,
 						context: "",
-						resumePrompt,
+						resumePrompt:
+							reservation.run.kind === "manager"
+								? JSON.stringify({
+										type: "trellis.system_restarted",
+										restartId: plan.id,
+										runId: entry.runId,
+										previousAttemptId: entry.previousAttemptId,
+										attemptId: entry.attempt.id,
+										providerSessionId: entry.providerSessionId,
+									})
+								: resumePrompt,
 						preserveAssignmentOnFailure: true,
 					});
 				}
