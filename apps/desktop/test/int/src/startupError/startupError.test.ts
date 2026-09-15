@@ -23,6 +23,7 @@ beforeAll(async () => {
 const calls = [];
 export const app = {
  isPackaged: process.argv[2] === "packaged",
+ getAppPath() { return ${JSON.stringify(directory)}; },
  setName() {}, getPath() { return ${JSON.stringify(directory)}; }, setPath() {},
  requestSingleInstanceLock() { return true; }, setAsDefaultProtocolClient() {}, on() {},
  whenReady() { return Promise.reject(new Error("stdout maxBuffer length exceeded")); },
