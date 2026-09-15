@@ -4,6 +4,7 @@ import type { Config } from "../config.ts";
 import type { RequestContext } from "../context.ts";
 import { createBus } from "../events/bus.ts";
 import type { GhResult, GhRunner, GhSlot } from "../gh/run.ts";
+import { createDbTiming, type DbTiming } from "../serverTiming.ts";
 import { type ServiceKind, type ServiceName, services } from "../services/registry.ts";
 import { openDb } from "./client.ts";
 import { migrate } from "./migrate.ts";
@@ -46,8 +47,8 @@ export type SerializedError = {
 export type WorkerOutput =
 	| { type: "ready"; applied: number; liveShas: string[] }
 	| { type: "startError"; error: SerializedError }
-	| { type: "result"; id: number; result: unknown; dbMs: number }
-	| { type: "error"; id: number; error: SerializedError; dbMs: number }
+	| { type: "result"; id: number; result: unknown; timing: DbTiming }
+	| { type: "error"; id: number; error: SerializedError; timing: DbTiming }
 	| { type: "event"; event: TrellisEvent }
 	| { type: "gh"; id: number; slot: GhSlot; args: string[] }
 	| { type: "addresses"; id: number }
@@ -111,6 +112,9 @@ const superseded = (): SerializedError => ({ name: "AbortError", message: "A new
 
 const startHost = () => {
 	const queue = new ServiceQueue();
+	// The clock reading when each queued call arrived, by call id. The time
+	// from that reading to the start of the call is its wait in the queue.
+	const received = new Map<number, number>();
 	const ghCalls = new Map<number, (result: GhResult) => void>();
 	// The listen addresses live in the HTTP process, which alone knows the
 	// port. A service that reads them asks for them by id.
@@ -153,13 +157,15 @@ const startHost = () => {
 
 	const run = async (call: WorkerCall) => {
 		currentGhStatus = call.ghStatus;
-		const timing = { ms: 0 };
+		const timing = createDbTiming();
+		timing.queueMs = performance.now() - received.get(call.id)!;
+		received.delete(call.id);
 		try {
 			const result = await transport!.call(call.name, call.ctx, call.input, timing);
 			if (result instanceof ReadableStream) await relayStream(call.id, result);
-			else send({ type: "result", id: call.id, result, dbMs: timing.ms });
+			else send({ type: "result", id: call.id, result, timing });
 		} catch (error) {
-			send({ type: "error", id: call.id, error: errorOf(error), dbMs: timing.ms });
+			send({ type: "error", id: call.id, error: errorOf(error), timing });
 		}
 	};
 
@@ -175,8 +181,10 @@ const startHost = () => {
 		);
 		while (queue.size > 0) {
 			const call = queue.shift()!;
-			if (startError !== undefined) send({ type: "error", id: call.id, error: errorOf(startError), dbMs: 0 });
-			else if ("prepare" in services[call.name]) void run(call);
+			if (startError !== undefined) {
+				received.delete(call.id);
+				send({ type: "error", id: call.id, error: errorOf(startError), timing: createDbTiming() });
+			} else if ("prepare" in services[call.name]) void run(call);
 			else await run(call);
 		}
 		draining = false;
@@ -232,9 +240,17 @@ const startHost = () => {
 							send({ type: "addresses", id });
 						}),
 				};
-				transport = createInlineTransport({ db: database.db, bus, config: data.config, runtime });
 				const jobs = data.jobs;
 				const log = (msg: string, fields?: Record<string, unknown>) => send({ type: "log", msg, fields });
+				// The HTTP side has a logger only when the start carries jobs, so
+				// the services send log lines only then.
+				transport = createInlineTransport({
+					db: database.db,
+					bus,
+					config: data.config,
+					runtime,
+					log: jobs === null ? undefined : log,
+				});
 				const started = await transport.start(jobs === null ? undefined : { clockRate: jobs.clockRate, log });
 				send({ type: "ready", applied: database.applied, liveShas: started.liveShas });
 				booted.resolve();
@@ -246,8 +262,12 @@ const startHost = () => {
 		}
 		if (data.type === "calls") {
 			for (const call of data.calls) {
+				received.set(call.id, performance.now());
 				const dropped = queue.push(call);
-				if (dropped) send({ type: "error", id: dropped.id, error: superseded(), dbMs: 0 });
+				if (dropped) {
+					received.delete(dropped.id);
+					send({ type: "error", id: dropped.id, error: superseded(), timing: createDbTiming() });
+				}
 			}
 			schedule();
 			return;

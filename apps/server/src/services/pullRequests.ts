@@ -13,6 +13,7 @@ import {
 	assertProjectActive,
 	fail,
 	notFound,
+	type PrepareCtx,
 	resolveTicket,
 	type ServiceCtx,
 	type TicketRow,
@@ -114,7 +115,7 @@ const findRow = async (tx: Tx, id: string): Promise<PrRow> => {
 // the row, so the web shows why the fields are stale.
 type Fetched = { row: PullRequestRow } | { error: string };
 
-const fetchOne = async (ctx: ServiceCtx, ref: PullRequestRef): Promise<Fetched> => {
+const fetchOne = async (ctx: PrepareCtx, ref: PullRequestRef): Promise<Fetched> => {
 	const result = await fetchPullRequests(ctx.gh, [ref], "interactive");
 	if (!result.ok) return { error: result.message };
 	const first = result.results[0]!;
@@ -158,7 +159,7 @@ export type PreparedLink = LinkInput & { ref: PullRequestRef; fetched: Fetched }
 
 // The URL and the ticket are checked before gh runs, so a refused link
 // spawns no process.
-export const prepareLink = async (ctx: ServiceCtx, input: LinkInput): Promise<PreparedLink> => {
+export const prepareLink = async (ctx: PrepareCtx, input: LinkInput): Promise<PreparedLink> => {
 	const ref = parsePullRequestUrl(input.url);
 	if (ref === null) throw fail("INVALID_PR_URL");
 	await ctx.newTx(async (tx) => assertProjectActive(await resolveTicket(tx, input.ticket)));
@@ -247,7 +248,7 @@ export type IdInput = { id: string };
 // The pull request id with the gh answer for it.
 export type PreparedRefresh = { id: string; first: PullRequestResult };
 
-export const prepareRefresh = async (ctx: ServiceCtx, input: IdInput): Promise<PreparedRefresh> => {
+export const prepareRefresh = async (ctx: PrepareCtx, input: IdInput): Promise<PreparedRefresh> => {
 	const row = await ctx.newTx((tx) => findRow(tx, input.id));
 	const ref = { owner: row.owner, repo: row.repo, number: row.number };
 	const result = await fetchPullRequests(ctx.gh, [ref], "interactive");

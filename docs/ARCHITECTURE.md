@@ -486,7 +486,7 @@ returns one canonical spelling.
 | brief.get | GET /api/tickets/{ticket}/brief | the markdown brief an agent starts from |
 | actors.list, default | GET /api/actors, /api/actors/default | |
 | settings.get, set | GET, PUT /api/settings | |
-| system.health, gh, backup | GET /api/health, /api/gh; POST /api/backup | |
+| system.health, gh, checkGh, backup | GET /api/health, /api/gh; POST /api/gh/check, /api/backup | gh and checkGh run in the HTTP process, not the database worker |
 | system.chooseDirectory | POST /api/choose-directory | it opens the folder picker of the server computer |
 | export | GET /api/export | a Hono route, not a contract procedure: an NDJSON stream with `Content-Disposition: attachment` |
 
@@ -686,6 +686,13 @@ migration diff. It runs no performance test.
 
 These budgets shape the design. The database worker keeps the synchronous WASM
 execution of PGlite off the thread that serves HTTP, SSE, gh pipes, and uploads.
+PGlite has one lock, so one slow transaction makes every other call wait. A
+service runs gh only in its `prepare` step, before its transaction opens. The
+context of a transaction has no gh runner, so a gh call there fails the
+typecheck. `system.gh` and `system.checkGh` run in the HTTP process and never
+reach the worker. The server logs `long transaction` with the service name
+when a transaction holds the lock for 250 ms or more. Server-Timing and the
+request log split the database time into `queue`, `lock`, and `db`.
 A search request carries a client id, and a newer request drops a superseded one
 before it runs. Lists carry `TicketSummary` and never the description. The board
 and the counts replace a total and a large limit. Events patch first and carry a
