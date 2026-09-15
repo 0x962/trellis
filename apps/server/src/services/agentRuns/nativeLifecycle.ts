@@ -17,7 +17,7 @@ const stopFailure = (run: StoredRun, message: string) =>
 	});
 
 export const nativeOutput = async (home: string, terminalId: string) => {
-	const client = nativeHost(home);
+	const client = nativeHost(home, process.env, await ensureNativeRuntime(home));
 	const end = (await client.output(terminalId, Number.MAX_SAFE_INTEGER)).nextOffset;
 	const chunks: Buffer[] = [];
 	let offset = 0;

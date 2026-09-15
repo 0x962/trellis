@@ -61,7 +61,10 @@ beforeEach(async () => {
 			buffer += chunk;
 			if (!buffer.includes("\n")) return;
 			const request = JSON.parse(buffer.split("\n")[0]!);
-			if (request.method === "subscribe") {
+			if (request.method === "hello") {
+				send(socket, request.id, { capabilities: ["terminal-stream"] });
+				socket.end();
+			} else if (request.method === "subscribe") {
 				subscription = socket;
 				subscriptionId = request.id;
 				send(socket, request.id, { type: "session", session });
