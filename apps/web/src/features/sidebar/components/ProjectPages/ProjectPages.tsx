@@ -20,7 +20,7 @@ export function ProjectPages({
 	return (
 		<li>
 			<nav aria-label={`${project.name} pages`}>
-				<ul className="flex flex-col gap-0.5">
+				<ul className="flex flex-col">
 					{[
 						{ label: "Tickets", suffix: "", active: current && !settings && !manager },
 						{ label: "Manager", suffix: "/settings/manager", active: current && manager },
@@ -28,6 +28,7 @@ export function ProjectPages({
 					].map(({ label, suffix, active }) => (
 						<li key={label}>
 							<Link
+								data-project-page=""
 								to="/p/$"
 								params={{ _splat: `${projectSlashPath(project.path)}${suffix}` }}
 								activeOptions={{ exact: true, includeSearch: false }}
