@@ -114,3 +114,19 @@ test("temporary unknown process status waits for the final output before stream 
 	expect(output.join("")).toBe("replayfinal");
 	expect(f.count()).toBe(0);
 });
+
+test("a status subscription receives receipts without replay of retained terminal bytes", async () => {
+	const f = fixture();
+	f.exit();
+	const events: RuntimeOutputEvent[] = [];
+	await outputSubscription(
+		f.store,
+		{ id: "attempt", offset: 0, output: false },
+		async (event) => {
+			events.push(event);
+		},
+		new AbortController().signal,
+	);
+	expect(events.every((event) => event.type === "session")).toBe(true);
+	expect(events.at(-1)).toMatchObject({ type: "session", session: { status: "exited" } });
+});

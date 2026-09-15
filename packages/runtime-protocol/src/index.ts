@@ -75,7 +75,10 @@ export interface RuntimeMethods {
 		result: RuntimeProcessStatus;
 	};
 	inspect: { params: { id: string }; result: RuntimeProcessStatus };
-	subscribe: { params: { id: string; offset: number; stream?: "stdout" | "stderr" }; result: RuntimeOutputEvent };
+	subscribe: {
+		params: { id: string; offset: number; stream?: "stdout" | "stderr"; output?: boolean };
+		result: RuntimeOutputEvent;
+	};
 	shutdown: { params: Record<string, never>; result: null };
 	deliver: { params: { id: string; messageId: string; data: string; requireIdle?: boolean }; result: RuntimeDelivery };
 	hello: { params: Record<string, never>; result: RuntimeHello };

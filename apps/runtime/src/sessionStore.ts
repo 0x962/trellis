@@ -93,10 +93,10 @@ export class SessionStore {
 		for (const listener of record.listeners) listener();
 		return this.inspect(id);
 	}
-	subscribe(id: string, listener: () => void, stream: "stdout" | "stderr" = "stdout") {
+	subscribe(id: string, listener: () => void, stream: "stdout" | "stderr" = "stdout", output = true) {
 		const record = this.get(id);
 		record.listeners.add(listener);
-		const unsubscribe = (stream === "stderr" ? record.stderr : record.log).subscribe(listener);
+		const unsubscribe = output ? (stream === "stderr" ? record.stderr : record.log).subscribe(listener) : () => {};
 		return () => {
 			record.listeners.delete(listener);
 			unsubscribe();

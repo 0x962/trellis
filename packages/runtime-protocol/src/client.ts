@@ -66,6 +66,9 @@ export class RuntimeClient {
 	subscribe(id: string, offset = 0, signal?: AbortSignal, stream: "stdout" | "stderr" = "stdout") {
 		return subscribeOutput(this.socketPath, { id, offset, stream }, signal);
 	}
+	subscribeSession(id: string, signal?: AbortSignal) {
+		return subscribeOutput(this.socketPath, { id, offset: 0, output: false }, signal);
+	}
 	turn(
 		id: string,
 		token: string,

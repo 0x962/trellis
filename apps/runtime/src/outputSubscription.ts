@@ -16,14 +16,14 @@ export async function outputSubscription(
 		dirty = true;
 		wake?.();
 	};
-	const unsubscribe = store.subscribe(params.id, notify, params.stream);
+	const unsubscribe = store.subscribe(params.id, notify, params.stream, params.output);
 	signal.addEventListener("abort", notify);
 	try {
 		await send({ type: "session", session: store.inspect(params.id) });
 		while (true) {
 			signal.throwIfAborted();
 			dirty = false;
-			while (true) {
+			while (params.output !== false) {
 				signal.throwIfAborted();
 				const output = store.output(params.id, offset, params.stream);
 				if (output.data === "" && !output.truncated) break;

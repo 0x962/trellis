@@ -88,6 +88,8 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			break;
 		case "subscribe":
 		case "output":
+			if (params.output !== undefined && typeof params.output !== "boolean")
+				throw new Error("The output subscription flag must be a boolean");
 			if (params.stream !== undefined && params.stream !== "stdout" && params.stream !== "stderr")
 				throw new Error("Output stream must be stdout or stderr");
 			if (!Number.isSafeInteger(params.offset) || (params.offset as number) < 0)

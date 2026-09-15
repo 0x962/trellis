@@ -343,3 +343,32 @@ test("push subscription cancellation releases idle socket descriptors", async ()
 	expect(descriptors()).toBeLessThanOrEqual(before + 2);
 	await client.stop(session.id);
 });
+
+test("status subscriptions skip retained output and push authenticated turn receipts", async () => {
+	const session = await client.start({
+		id: "status-only",
+		command: "/bin/cat",
+		args: [],
+		cwd: home,
+		mode: "stdio",
+		env: { TRELLIS_ATTEMPT_TOKEN: "token" },
+	});
+	await client.input(session.id, Buffer.from("terminal bytes\n").toString("base64"));
+	await waitFor(
+		() => client.output(session.id),
+		(output) => output.nextOffset > 0,
+	);
+	const events = client.subscribeSession(session.id);
+	expect((await events.next()).value).toMatchObject({ type: "session", session: { id: session.id } });
+	await client.turn(session.id, "token", "UserPromptSubmit", session.id);
+	const seen: string[] = [];
+	for await (const event of events) {
+		expect(event.type).toBe("session");
+		if (event.type === "session" && event.session.acknowledgedMessageIds.includes(session.id)) {
+			seen.push(...event.session.acknowledgedMessageIds);
+			break;
+		}
+	}
+	expect(seen).toContain(session.id);
+	await client.stop(session.id);
+});
