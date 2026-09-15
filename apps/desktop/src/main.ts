@@ -114,7 +114,7 @@ const connect = async (report: (stage: string) => Promise<void> = async () => {}
 			ensureService: () => requireService(paths().helper, desktopHome()),
 			register: () => requireService(paths().helper, desktopHome()),
 		};
-		host = await activateHostRelease(desktopHome(), paths().helper, availableRelease, service, report);
+		const connectedHost = await activateHostRelease(desktopHome(), paths().helper, availableRelease, service, report);
 		const update = await readUpdateStatus(desktopHome(), availableRelease);
 		if (!update.active) throw new Error("The background host has no active release.");
 		await installCli({
@@ -123,6 +123,7 @@ const connect = async (report: (stage: string) => Promise<void> = async () => {}
 			home: desktopHome(),
 		});
 		if (update.state === "blocked") await showUpdateStatus(desktopHome(), availableRelease);
+		host = connectedHost;
 		return;
 	}
 	await report("Start background host");
