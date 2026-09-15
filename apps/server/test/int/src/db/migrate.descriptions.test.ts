@@ -2,6 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
+import { migrate as applyMigrations } from "drizzle-orm/pglite/migrator";
 import { originDir } from "../../../../../../test/originDir.ts";
 import { openDb } from "../../../../src/db/client.ts";
 import { migrate } from "../../../../src/db/migrate.ts";
@@ -38,7 +39,7 @@ describe("the status description data step", () => {
 	test("fills the empty description of each default status and keeps a written or custom one", async () => {
 		const db = await openDb(":memory:");
 		closers.push(() => db.$client.close());
-		await migrate(db, foldersBefore("0006_status_descriptions"));
+		await applyMigrations(db, { migrationsFolder: foldersBefore("0006_status_descriptions") });
 
 		await seedActors(db);
 		const rootId = await seedRoot(db, "CDE");

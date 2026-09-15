@@ -2,10 +2,10 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
+import { migrate as applyMigrations } from "drizzle-orm/pglite/migrator";
 import { ulid } from "ulid";
 import { originDir } from "../../../../../../test/originDir.ts";
 import { openDb } from "../../../../src/db/client.ts";
-import { migrate } from "../../../../src/db/migrate.ts";
 import { seedProject, seedTicket } from "../../../fixtures";
 
 // A database that agents already ran in holds sessions without a name.
@@ -47,14 +47,14 @@ const session = (db: Awaited<ReturnType<typeof openDb>>, projectId: string, tick
 
 test("server builder: migration 0012 names every session that the database already holds", async () => {
 	const db = await openDb(":memory:");
-	expect(await migrate(db, journalUntil("before", false))).toBeGreaterThan(0);
+	await applyMigrations(db, { migrationsFolder: journalUntil("before", false) });
 	const { rootId, statuses } = await seedProject(db);
 	const ticketId = await seedTicket(db, { projectId: rootId, rootId, statusId: statuses.todo });
 	const start = new Date("2026-09-01T10:00:00.000Z");
 	for (const minute of [0, 1, 2]) {
 		await session(db, rootId, ticketId, new Date(start.getTime() + minute * 60_000));
 	}
-	expect(await migrate(db, journalUntil("named", true))).toBe(1);
+	await applyMigrations(db, { migrationsFolder: journalUntil("named", true) });
 	const found = await db.execute(sql`SELECT name FROM agent_sessions ORDER BY created_at`);
 	const names = found.rows.map((row) => row.name as string);
 	expect(names).toHaveLength(3);

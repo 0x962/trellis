@@ -2,10 +2,10 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
+import { migrate as applyMigrations } from "drizzle-orm/pglite/migrator";
 import { ulid } from "ulid";
 import { originDir } from "../../../../../../test/originDir.ts";
 import { openDb } from "../../../../src/db/client.ts";
-import { migrate } from "../../../../src/db/migrate.ts";
 import { seedActors, seedRoot, seedStatuses } from "../../../fixtures";
 import { SEEDED_DESCRIPTIONS } from "../../../fixtures/statusDescriptions.ts";
 
@@ -64,7 +64,7 @@ const tableExists = async (db: TestDb, name: string) => {
 const beforeRemoval = async () => {
 	const db = await openDb(":memory:");
 	closers.push(() => db.$client.close());
-	await migrate(db, foldersBefore(REMOVE));
+	await applyMigrations(db, { migrationsFolder: foldersBefore(REMOVE) });
 	await seedActors(db);
 	const rootId = await seedRoot(db, "CDE");
 	await seedStatuses(db, rootId);
