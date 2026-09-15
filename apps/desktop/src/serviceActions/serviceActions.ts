@@ -54,7 +54,7 @@ export const stopLocalWork = async (host: HostConnection, home: string, helper?:
 		type: "warning",
 		message: "Stop local work and the background service?",
 		detail:
-			"Trellis pauses automatic dispatch for local projects, stops their known processes, and disables its background service. Superset and other external sessions remain active.",
+			"Trellis pauses new local work, stops the known processes of local projects, and disables its background service. Superset and other external sessions remain active.",
 		buttons: ["Cancel", "Stop local work"],
 		defaultId: 0,
 		cancelId: 0,
@@ -81,7 +81,7 @@ export const resumeLocalWork = async (host: HostConnection) => {
 	if (!result.ok) throw new Error(await result.text());
 	await dialog.showMessageBox({
 		message: "Local work is enabled",
-		detail: "You can start local agents. Each project's Automatic dispatch switch keeps its saved setting.",
+		detail: "You can start local agents. Trellis sends queued ticket events to each running manager again.",
 		buttons: ["Done"],
 	});
 };

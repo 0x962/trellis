@@ -20,7 +20,6 @@ test.beforeAll(async () => {
 			directory,
 			ade: "native",
 			trustedDirectory: true,
-			dispatchPaused: true,
 		},
 	});
 	persona = await post<Persona>("/personas", { name: "Flow control fixture", kind: "builder", instruction: "Wait." });

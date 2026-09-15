@@ -19,7 +19,6 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	if (!action || (await readNativeWork(tx)).paused) return null;
 	await tx.execute(sql`SELECT id FROM projects WHERE id=${execution.project_id} FOR UPDATE`);
 	const config = managerConfigOf(await projectRow(tx, execution.project_id));
-	if (config.dispatchPaused) return null;
 	if (config.ade !== "native" || config.harness.preset === "custom" || !config.trustedDirectory)
 		throw invalidInput("project", "The flow requires a trusted project with a built-in harness.");
 	const [active] = await rows<{ count: number }>(

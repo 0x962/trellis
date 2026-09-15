@@ -19,7 +19,6 @@ export const collectHeartbeats = async (ctx: ControllerCtx, tx: Tx, input: Contr
 		JOIN agent_runs r ON r.project_id=p.id AND r.kind='manager' AND r.runtime='native' AND r.closed_at IS NULL
 		JOIN jsonb_to_recordset(${JSON.stringify(ready)}::jsonb) AS live(id text, "idleAt" timestamptz) ON live.id=r.terminal_id
 		WHERE p.manager_config->>'personaId' IS NOT NULL AND p.archived_at IS NULL
-		AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
 		AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 		AND GREATEST(r.created_at, live."idleAt",
 			(SELECT max(updated_at) FROM manager_dispatches WHERE project_id=p.id AND state='sent')) <= ${quietBefore}

@@ -23,7 +23,6 @@ test("project manager settings persist the local directory and harness", async (
 		personaId: manager,
 		concurrency: 2,
 		directory: "/tmp/project",
-		dispatchPaused: true,
 		harness: {
 			preset: "custom",
 			startCommand: "other-agent {{prompt}}",
@@ -43,6 +42,7 @@ test("the project rejects a non-manager persona and invalid configuration", asyn
 		{ personaId: builder, concurrency: 2, directory: "/tmp/project" },
 		{ personaId: manager, concurrency: 0, directory: "/tmp/project" },
 		{ personaId: manager, concurrency: 2, directory: "relative/path" },
+		{ personaId: manager, concurrency: 2, directory: "/tmp/project", dispatchPaused: true },
 	])
 		expect((await configure(config)).status).toBe(400);
 });

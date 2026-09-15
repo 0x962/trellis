@@ -29,7 +29,6 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput):
 			JOIN agent_runs r ON r.project_id = p.id AND r.kind = 'manager' AND r.closed_at IS NULL
 			WHERE d.state = 'pending' AND d.due_at <= ${ctx.now} AND r.terminal_id IS NOT NULL
 			AND p.manager_config->>'personaId' IS NOT NULL AND p.archived_at IS NULL
-			AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
 			AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 			AND r.runtime = 'native' AND r.terminal_id IN (${sql.join(
 				ready.map((id) => sql`${id}`),

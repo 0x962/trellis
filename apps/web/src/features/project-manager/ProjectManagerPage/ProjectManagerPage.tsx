@@ -7,7 +7,7 @@ import {
 	type ProjectManagerConfig,
 	ProjectManagerConfigSchema,
 } from "@trellis/api";
-import { Button, IconButton, Switch, Tooltip, toast } from "@trellis/ui";
+import { Button, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
@@ -146,15 +146,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 				<div className="project-settings-content">
 					<div hidden={section !== ""} className="project-settings-page">
 						<section aria-label="Status" className="project-settings-section">
-							<Switch
-								label="Automatic dispatch"
-								checked={!draft.dispatchPaused}
-								disabled={readOnly || save.isPending}
-								onCheckedChange={(enabled) => commit({ ...draft, dispatchPaused: !enabled })}
-							/>
-							<p className="text-sm text-fg-muted">
-								Pause automatic dispatch to keep new messages queued. The current process continues.
-							</p>
 							{runs.isPending && (
 								<p role="status" className="text-sm text-fg-muted">
 									Load manager…

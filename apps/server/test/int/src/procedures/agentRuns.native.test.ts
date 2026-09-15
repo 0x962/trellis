@@ -124,7 +124,7 @@ test("native agents use an isolated Git worktree and retain output after stop", 
 		tx.execute(sql`UPDATE projects SET manager_config=manager_config - 'ade' WHERE key='NAT'`),
 	);
 	expect(await t.client.system.stopNativeWork({})).toEqual({ stopped: 1 });
-	expect((await t.client.projects.get({ project: "NAT" })).managerConfig?.dispatchPaused).toBe(true);
+	expect((await t.client.projects.get({ project: "NAT" })).managerConfig).not.toHaveProperty("dispatchPaused");
 	expect(
 		await t.editServerTx(
 			async (tx) =>

@@ -26,7 +26,6 @@ test("the assigned agent opens an interactive terminal and receives live output"
 				concurrency: 3,
 				directory: repo,
 				ade: "native",
-				dispatchPaused: true,
 				harness: {
 					preset: "custom",
 					startCommand: "/bin/sh -c 'stty -echoctl; exec /bin/cat'",

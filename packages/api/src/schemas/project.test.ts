@@ -32,6 +32,11 @@ test("directory trust requires an explicit project choice", () => {
 	expect(ProjectManagerConfigSchema.parse({ ...base, trustedDirectory: true }).trustedDirectory).toBe(true);
 });
 
+test("a project has no setting to pause automatic dispatch", () => {
+	expect(DEFAULT_PROJECT_MANAGER_CONFIG).not.toHaveProperty("dispatchPaused");
+	expect(ProjectManagerConfigSchema.safeParse({ ...base, dispatchPaused: true }).success).toBe(false);
+});
+
 test("tool permissions default to allowed and preserve an explicit opt out", () => {
 	expect(DEFAULT_PROJECT_MANAGER_CONFIG.allowAllPermissions).toBe(true);
 	expect(ProjectManagerConfigSchema.parse(base).allowAllPermissions).toBe(true);

@@ -22,7 +22,7 @@ The first package target is Apple Silicon.
 | App replacement | Retained host resources and protocol checks before activation |
 
 The Manager page has Operation, General, and Harness sections.
-Operation separates automatic dispatch from the manager process. General holds the repository directory, trust, persona, and concurrency limit.
+Operation shows the manager process. General holds the repository directory, trust, persona, and concurrency limit.
 Harness selects the agent executable and commands.
 
 ## Current verification

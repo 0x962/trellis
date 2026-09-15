@@ -66,7 +66,6 @@ test("a blank default model remains valid after an edit", async ({ page }) => {
 			concurrency: 1,
 			directory: "/tmp",
 			trustedDirectory: true,
-			dispatchPaused: true,
 		},
 	});
 	await signIn(page, "/p/MDF/settings/manager#harness");
@@ -94,7 +93,6 @@ test("a manager without a launched process can start after its settings are fixe
 			concurrency: 1,
 			directory: "/tmp",
 			trustedDirectory: false,
-			dispatchPaused: true,
 		},
 	});
 	await signIn(page, "/p/MTR/settings/manager");

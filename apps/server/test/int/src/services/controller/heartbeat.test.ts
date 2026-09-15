@@ -118,11 +118,8 @@ test("a different attempt cannot wake the assignment", async () => {
 	await gather(600);
 	expect(await batches()).toHaveLength(0);
 });
-test("project pause suppresses heartbeats until dispatch resumes", async () => {
+test("a stored dispatchPaused key does not suppress heartbeats", async () => {
 	await h.rows(sql`UPDATE projects SET manager_config=manager_config || '{"dispatchPaused":true}'::jsonb`);
-	await gather(600);
-	expect(await batches()).toHaveLength(0);
-	await h.rows(sql`UPDATE projects SET manager_config=manager_config || '{"dispatchPaused":false}'::jsonb`);
 	await gather(601);
 	expect((await take(601))?.events).toEqual([]);
 });

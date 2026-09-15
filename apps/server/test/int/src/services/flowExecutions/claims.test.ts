@@ -195,16 +195,6 @@ test("an expired flow deadline prevents a native launch", async () => {
 	expect(existsSync(join(home, "runtime"))).toBe(false);
 	rmSync(home, { recursive: true, force: true });
 });
-test("project dispatch pause prevents a new flow claim", async () => {
-	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
-	const execution = await h.run((ctx, tx) => start(ctx, tx, input()));
-	await h.rows(
-		sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{dispatchPaused}','true') WHERE id=${project}`,
-	);
-	const { claimNext } = await import("../../../../../src/services/flowExecutions/claimNext.ts");
-	expect(await h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id }))).toBeNull();
-	expect(await h.rows(sql`SELECT * FROM agent_runs`)).toHaveLength(0);
-});
 test("an unconfirmed cancellation persists its error and refuses a success response", async () => {
 	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
 	const execution = await h.run((ctx, tx) => start(ctx, tx, input()));

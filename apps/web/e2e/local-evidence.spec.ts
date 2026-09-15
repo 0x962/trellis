@@ -25,7 +25,6 @@ test("local files return to the diff and changed output invalidates passed evide
 				concurrency: 3,
 				directory: repo,
 				ade: "native",
-				dispatchPaused: true,
 				harness: { preset: "custom", startCommand: "/bin/cat", resumeCommand: "/bin/cat" },
 			},
 		});
