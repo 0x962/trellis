@@ -156,7 +156,7 @@ previewElectron.app.on("browser-window-created", (_event, window) => {
 						stdout: "pipe",
 						stderr: "pipe",
 					});
-					const deadline = Date.now() + 45000;
+					const deadline = Date.now() + 120000;
 					while (
 						!existsSync(resultPath) &&
 						!existsSync(errorPath) &&
@@ -228,5 +228,5 @@ previewElectron.app.on("browser-window-created", (_event, window) => {
 				await rm(directory, { recursive: true, force: true });
 			}
 		},
-		120000,
+		300000,
 	);
