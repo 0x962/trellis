@@ -8,7 +8,10 @@ import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
 import { invalidInput } from "../../errors.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
+import { readNativeHarness } from "../agentRuns/readNativeHarness.ts";
 import type { ServiceCtx } from "../support.ts";
+import { orderRestartSessions } from "./orderRestartSessions.ts";
+import { preserveCompletedFlow } from "./preserveCompletedFlow.ts";
 import { reserveRestart } from "./reserveRestart.ts";
 
 type Ctx = ServiceCtx & { core: CoreCtx; localUrl: string };
@@ -34,7 +37,7 @@ async function resume(ctx: Ctx, input: { restartId: string }, deps: Dependencies
 	const host = await deps.host(ctx.home);
 	let resumed = 0;
 	let skipped = 0;
-	for (const entry of plan.sessions) {
+	for (const entry of await ctx.newTx((tx) => orderRestartSessions(tx, plan.sessions))) {
 		if (entry.done) continue;
 		const eligible = await ctx.newTx((tx) => reserveRestart({ ...ctx.core, now: ctx.now() }, tx, entry, false));
 		if (eligible === null) {
@@ -48,7 +51,16 @@ async function resume(ctx: Ctx, input: { restartId: string }, deps: Dependencies
 					throw new Error(`Confirm that restart attempt ${entry.previousAttemptId} stopped before resume.`);
 				if (previous.agent?.sessionId !== entry.providerSessionId)
 					throw new Error("The provider session does not match the saved restart plan.");
-				const reservation = await ctx.newTx((tx) => reserveRestart({ ...ctx.core, now: ctx.now() }, tx, entry, true));
+				const snapshot = await readNativeHarness(
+					ctx,
+					{ runtime: "native", terminalId: entry.previousAttemptId, sessionId: entry.providerSessionId },
+					{ inspect: (id) => host.status(id) },
+				);
+				const reservation = await ctx.newTx(async (tx) => {
+					const core = { ...ctx.core, now: ctx.now() };
+					await preserveCompletedFlow(core, tx, { entry, snapshot });
+					return reserveRestart(core, tx, entry, true);
+				});
 				if (reservation === null) {
 					skipped++;
 					entry.done = true;

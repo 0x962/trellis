@@ -62,7 +62,14 @@ beforeEach(async () => {
 	});
 	await writeRestartPlan(home, plan);
 	processes = [
-		{ id: previousAttemptId, status: "exited", agent: { sessionId: "provider-session" } } as RuntimeProcessStatus,
+		{
+			id: previousAttemptId,
+			status: "exited",
+			agent: { sessionId: "provider-session" },
+			result: null,
+			activity: null,
+			acknowledgedMessageIds: [],
+		} as unknown as RuntimeProcessStatus,
 	];
 	launches = [];
 	loseReply = false;
