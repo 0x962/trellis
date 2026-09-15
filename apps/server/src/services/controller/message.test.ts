@@ -15,15 +15,18 @@ const delivery: Dispatch = {
 	error: null,
 };
 
-test("an empty dispatch wakes the manager without inventing ticket changes", () => {
+test("a heartbeat contains only its event envelope", () => {
 	const message = managerMessage(delivery);
-	expect(message).toStartWith("trellis: Manager heartbeat dispatch-1, generation 2.");
-	expect(message).toContain("current manager persona");
-	expect(message).toContain("Do not post a comment just to acknowledge this heartbeat.");
-	expect(message).not.toContain("0 ticket changes");
+	expect(JSON.parse(message)).toEqual({
+		type: "trellis.manager.heartbeat",
+		id: delivery.id,
+		projectId: delivery.projectId,
+		generation: delivery.generation,
+		events: [],
+	});
 });
 
-test("ticket activity keeps its identifiers and dispatch instructions", () => {
+test("a dispatch contains its event envelope and unmodified ticket events", () => {
 	const event = {
 		id: 42,
 		ticketId: "ticket-1",
@@ -32,8 +35,11 @@ test("ticket activity keeps its identifiers and dispatch instructions", () => {
 		createdAt: delivery.dueAt,
 	};
 	const message = managerMessage({ ...delivery, events: [event] });
-	expect(message).toStartWith("trellis: Manager dispatch dispatch-1, generation 2.");
-	expect(message).toContain("1 ticket changes");
-	expect(message).toContain(JSON.stringify([event]));
-	expect(message).toContain("stable --request-id");
+	expect(JSON.parse(message)).toEqual({
+		type: "trellis.manager.dispatch",
+		id: delivery.id,
+		projectId: delivery.projectId,
+		generation: delivery.generation,
+		events: [event],
+	});
 });
