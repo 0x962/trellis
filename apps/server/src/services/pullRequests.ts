@@ -1,6 +1,7 @@
 import type { Check, CiState, LinkedPullRequest, PrState, PullRequest, PullRequestDiffOutput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fetchPullRequests, type PullRequestRef, type PullRequestResult, type PullRequestRow } from "../gh/graphql.ts";
@@ -56,7 +57,12 @@ type PrRow = {
 	updated_at: string;
 };
 
-type LinkRow = PrRow & { source: LinkedPullRequest["source"]; actor_name: string; actor_kind: ActorRef["kind"] };
+type LinkRow = PrRow & {
+	source: LinkedPullRequest["source"];
+	actor_name: string;
+	actor_display_name: string | null;
+	actor_kind: ActorRef["kind"];
+};
 
 const prColumns = sql`
 	p.id, p.owner, p.repo, p.number, p.url, p.title, p.state, p.is_draft, p.head_ref, p.base_ref, p.review_state,
@@ -90,7 +96,11 @@ const toPullRequest = (row: PrRow): PullRequest => ({
 const toLinked = (row: LinkRow, linkedAt: string): LinkedPullRequest => ({
 	...toPullRequest(row),
 	source: row.source,
-	linkedBy: { name: row.actor_name, kind: row.actor_kind },
+	linkedBy: {
+		name: row.actor_name,
+		kind: row.actor_kind,
+		...(row.actor_display_name === null ? {} : { displayName: row.actor_display_name }),
+	},
 	linkedAt,
 });
 
@@ -179,7 +189,7 @@ export const link = async (ctx: ServiceCtx, tx: Tx, input: PreparedLink): Promis
 	const [linked] = await rows<LinkRow & { linked_at: string }>(
 		tx,
 		sql`
-			SELECT ${prColumns}, l.source, l.actor_name, l.actor_kind, ${iso(sql`l.created_at`)} AS linked_at
+			SELECT ${prColumns}, l.source, l.actor_name, l.actor_kind, ${actorDisplayName(sql`l.actor_name`, sql`l.actor_kind`)} AS actor_display_name, ${iso(sql`l.created_at`)} AS linked_at
 			FROM ticket_pull_requests l JOIN pull_requests p ON p.id = l.pull_request_id
 			WHERE l.ticket_id = ${ticket.id} AND l.pull_request_id = ${stored!.id}
 		`,
@@ -285,7 +295,7 @@ export const list = async (ctx: ServiceCtx, tx: Tx, input: ListInput): Promise<L
 	const found = await rows<LinkRow & { linked_at: string }>(
 		tx,
 		sql`
-			SELECT ${prColumns}, l.source, l.actor_name, l.actor_kind, ${iso(sql`l.created_at`)} AS linked_at
+			SELECT ${prColumns}, l.source, l.actor_name, l.actor_kind, ${actorDisplayName(sql`l.actor_name`, sql`l.actor_kind`)} AS actor_display_name, ${iso(sql`l.created_at`)} AS linked_at
 			FROM ticket_pull_requests l JOIN pull_requests p ON p.id = l.pull_request_id
 			WHERE l.ticket_id = ${ticket.id}
 			ORDER BY l.created_at DESC, p.id DESC

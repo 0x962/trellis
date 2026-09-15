@@ -143,7 +143,9 @@ export const Row = memo(function Row({
 			/>
 		),
 		actor:
-			lastActor === null || lastActor.kind === "system" ? null : <Avatar kind={lastActor.kind} name={lastActor.name} />,
+			lastActor === null || lastActor.kind === "system" ? null : (
+				<Avatar kind={lastActor.kind} name={lastActor.displayName ?? lastActor.name} />
+			),
 		updated: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.updatedAt)}</span>,
 		created: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.createdAt)}</span>,
 		parent: ticket.parent === null ? null : <TicketId id={ticket.parent.identifier} size="sm" />,

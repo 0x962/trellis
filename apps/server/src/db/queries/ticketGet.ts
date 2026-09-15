@@ -1,6 +1,7 @@
 import type { Attachment, LinkedPullRequest, StoredActorKind, Ticket, TicketSummary } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import type { Tx } from "../tx.ts";
+import { actorDisplayName } from "./actorDisplayName.ts";
 import { iso, rows } from "./support.ts";
 import { type SummaryRow, summaryStatement, toSummary } from "./ticketSummary.ts";
 
@@ -44,6 +45,7 @@ type RawLinkedPr = {
 	updated_at: string;
 	source: LinkedPullRequest["source"];
 	actor_name: string;
+	actor_display_name: string | null;
 	actor_kind: StoredActorKind;
 	linked_at: string;
 };
@@ -56,7 +58,7 @@ export const linkedPullRequests = async (tx: Tx, ticketId: string): Promise<Link
 			p.review_state, ${iso(sql`p.merged_at`)} AS merged_at, ${iso(sql`p.closed_at`)} AS closed_at, p.checks,
 			p.ci_state, ${iso(sql`p.fetched_at`)} AS fetched_at, p.fetch_error,
 			${iso(sql`p.created_at`)} AS created_at, ${iso(sql`p.updated_at`)} AS updated_at,
-			l.source, l.actor_name, l.actor_kind, ${iso(sql`l.created_at`)} AS linked_at
+			l.source, l.actor_name, l.actor_kind, ${actorDisplayName(sql`l.actor_name`, sql`l.actor_kind`)} AS actor_display_name, ${iso(sql`l.created_at`)} AS linked_at
 		FROM ticket_pull_requests l JOIN pull_requests p ON p.id = l.pull_request_id
 		WHERE l.ticket_id = ${ticketId}
 		ORDER BY l.created_at, p.id`,
@@ -82,7 +84,11 @@ export const linkedPullRequests = async (tx: Tx, ticketId: string): Promise<Link
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
 		source: row.source,
-		linkedBy: { name: row.actor_name, kind: row.actor_kind },
+		linkedBy: {
+			name: row.actor_name,
+			kind: row.actor_kind,
+			...(row.actor_display_name === null ? {} : { displayName: row.actor_display_name }),
+		},
 		linkedAt: row.linked_at,
 	}));
 };
@@ -95,6 +101,7 @@ type RawAttachment = {
 	size: number;
 	sha256: string;
 	actor_name: string;
+	actor_display_name: string | null;
 	actor_kind: StoredActorKind;
 	created_at: string;
 };
@@ -106,7 +113,7 @@ export const attachmentUrl = (id: string) => `/api/attachments/${id}/file`;
 export const attachmentsOf = async (tx: Tx, ticketId: string): Promise<Attachment[]> => {
 	const found = await rows<RawAttachment>(
 		tx,
-		sql`SELECT a.id, a.ticket_id, a.filename, a.mime, a.size, a.sha256, a.actor_name, a.actor_kind,
+		sql`SELECT a.id, a.ticket_id, a.filename, a.mime, a.size, a.sha256, a.actor_name, a.actor_kind, ${actorDisplayName(sql`a.actor_name`, sql`a.actor_kind`)} AS actor_display_name,
 			${iso(sql`a.created_at`)} AS created_at
 		FROM attachments a WHERE a.ticket_id = ${ticketId} ORDER BY a.created_at, a.id`,
 	);
@@ -117,7 +124,11 @@ export const attachmentsOf = async (tx: Tx, ticketId: string): Promise<Attachmen
 		mime: row.mime,
 		size: row.size,
 		sha256: row.sha256,
-		actor: { name: row.actor_name, kind: row.actor_kind },
+		actor: {
+			name: row.actor_name,
+			kind: row.actor_kind,
+			...(row.actor_display_name === null ? {} : { displayName: row.actor_display_name }),
+		},
 		createdAt: row.created_at,
 		url: attachmentUrl(row.id),
 	}));

@@ -79,7 +79,7 @@ export function InboxRow({ ticket, checks, onPress }: InboxRowProps) {
 						</Chip>
 					)}
 					{lastActor !== null && lastActor.kind !== "system" && (
-						<ActorChip name={lastActor.name} kind={lastActor.kind} muted />
+						<ActorChip name={lastActor.displayName ?? lastActor.name} kind={lastActor.kind} muted />
 					)}
 				</>
 			}

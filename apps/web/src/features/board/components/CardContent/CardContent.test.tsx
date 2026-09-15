@@ -19,7 +19,12 @@ describe("CardContent", () => {
 		render(
 			<CardContent
 				ticket={ticketSummary({
-					lastActor: { name: "Kenji", kind: "agent", at: "2026-09-10T20:00:00.000Z" },
+					lastActor: {
+						name: "01M2HGY58VB4J2AYRVGDFHHB3P",
+						displayName: "Kenji",
+						kind: "agent",
+						at: "2026-09-10T20:00:00.000Z",
+					},
 					pr: { state: "open", ciState: "fail", pass: 1, fail: 2, pending: 0 },
 				})}
 			/>,

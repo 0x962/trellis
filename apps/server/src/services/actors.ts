@@ -1,6 +1,7 @@
 import type { Actor, ActorRef, DefaultActor } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { ServiceCtx } from "../context.ts";
+import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import * as settings from "./settings.ts";
@@ -27,16 +28,23 @@ export const upsert = async (ctx: ServiceCtx, tx: Tx, actor: ActorRef) => {
 	ctx.actorCache.set(key, ctx.now.getTime());
 };
 
-type ActorRow = { name: string; kind: Actor["kind"]; first_seen_at: string; last_seen_at: string };
+type ActorRow = {
+	display_name: string | null;
+	name: string;
+	kind: Actor["kind"];
+	first_seen_at: string;
+	last_seen_at: string;
+};
 
 export const list = async (_ctx: ServiceCtx, tx: Tx): Promise<Actor[]> => {
 	const found = await rows<ActorRow>(
 		tx,
-		sql`SELECT name, kind, ${iso(sql`first_seen_at`)} AS first_seen_at, ${iso(sql`last_seen_at`)} AS last_seen_at
-			FROM actors ORDER BY last_seen_at DESC, name, kind`,
+		sql`SELECT a.name, a.kind, ${actorDisplayName(sql`a.name`, sql`a.kind`)} AS display_name, ${iso(sql`first_seen_at`)} AS first_seen_at, ${iso(sql`last_seen_at`)} AS last_seen_at
+			FROM actors a ORDER BY last_seen_at DESC, name, kind`,
 	);
 	return found.map((row) => ({
 		name: row.name,
+		...(row.display_name === null ? {} : { displayName: row.display_name }),
 		kind: row.kind,
 		firstSeenAt: row.first_seen_at,
 		lastSeenAt: row.last_seen_at,

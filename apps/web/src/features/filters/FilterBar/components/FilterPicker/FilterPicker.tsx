@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { CiState, PrFilter, Priority, StatusSummary } from "@trellis/api";
+import type { Actor, CiState, PrFilter, Priority, StatusSummary } from "@trellis/api";
 import { Command, type CommandItem, Popover } from "@trellis/ui";
 import { type ReactElement, useRef } from "react";
 import { useApp } from "../../../../../lib/appContext";
@@ -155,7 +155,6 @@ export function FilterPicker({
 const checkedStatusIds = (view: View, statuses: readonly StatusSummary[]) =>
 	statuses.filter((status) => view.status?.includes(status.slug)).map((status) => status.id);
 
-type Actor = { name: string; kind: string };
 type ProjectRow = Parameters<typeof projectItems>[0][number];
 
 const valueItems = (
@@ -192,7 +191,11 @@ const valueItems = (
 			return [
 				{ id: "@agent", label: "Agents", current: view.actor === "@agent" },
 				{ id: "@human", label: "Humans", current: view.actor === "@human" },
-				...actors.map((actor) => ({ id: `${actor.kind}:${actor.name}`, label: actor.name, hint: actor.kind })),
+				...actors.map((actor) => ({
+					id: `${actor.kind}:${actor.name}`,
+					label: actor.displayName ?? actor.name,
+					hint: actor.kind,
+				})),
 			];
 		default:
 			return [];

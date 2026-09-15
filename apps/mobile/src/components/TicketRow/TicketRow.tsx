@@ -43,7 +43,7 @@ export function TicketRow({ ticket, onPress, testID = "ticket-row" }: TicketRowP
 			meta={
 				<>
 					{pr !== null && <CheckRibbon size="mini" checks={prChecks(pr)} />}
-					{lastActor !== null && <ActorChip name={lastActor.name} kind={lastActor.kind} />}
+					{lastActor !== null && <ActorChip name={lastActor.displayName ?? lastActor.name} kind={lastActor.kind} />}
 				</>
 			}
 			onPress={() => onPress(ticket.identifier)}

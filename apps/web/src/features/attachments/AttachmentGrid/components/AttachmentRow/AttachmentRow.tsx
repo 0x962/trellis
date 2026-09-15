@@ -37,7 +37,9 @@ export function AttachmentRow({ attachment, onDelete, onRename }: AttachmentRowP
 			</span>
 			<span className="min-w-0 flex-1 truncate text-sm font-medium text-fg">{attachment.filename}</span>
 			<span className="text-sm text-fg-muted tabular">{formatBytes(attachment.size)}</span>
-			{attachment.actor.kind !== "system" && <ActorChip name={attachment.actor.name} kind={attachment.actor.kind} />}
+			{attachment.actor.kind !== "system" && (
+				<ActorChip name={attachment.actor.displayName ?? attachment.actor.name} kind={attachment.actor.kind} />
+			)}
 			<time dateTime={attachment.createdAt} className="text-sm text-fg-muted tabular">
 				{relativeTime(attachment.createdAt)}
 			</time>

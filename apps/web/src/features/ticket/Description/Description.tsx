@@ -33,7 +33,9 @@ const baseOf = (row: Ticket): Base => ({
 // The name of the last writer of the row, for the "changed the description"
 // banner. The system actor and a row with no actor read as another actor.
 const writerName = (row: Ticket) =>
-	row.lastActor === null || row.lastActor.kind === "system" ? "Another actor" : row.lastActor.name;
+	row.lastActor === null || row.lastActor.kind === "system"
+		? "Another actor"
+		: (row.lastActor.displayName ?? row.lastActor.name);
 
 // The description: formatted markdown until `e` or a click mounts the
 // editor. While the editor is open, every save sends the version of the

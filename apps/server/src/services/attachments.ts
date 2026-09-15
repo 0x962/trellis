@@ -1,6 +1,7 @@
 import type { Attachment, AttachmentUploadOutput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import { ticketSummary } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
@@ -73,6 +74,7 @@ type AttachmentRow = {
 	size: number;
 	sha256: string;
 	actor_name: string;
+	actor_display_name: string | null;
 	actor_kind: ActorKind;
 	created_at: string;
 };
@@ -80,7 +82,7 @@ type AttachmentRow = {
 type ActorKind = Attachment["actor"]["kind"];
 
 const columns = sql`
-	a.id, a.ticket_id, a.filename, a.mime, a.size, a.sha256, a.actor_name, a.actor_kind,
+	a.id, a.ticket_id, a.filename, a.mime, a.size, a.sha256, a.actor_name, a.actor_kind, ${actorDisplayName(sql`a.actor_name`, sql`a.actor_kind`)} AS actor_display_name,
 	${iso(sql`a.created_at`)} AS created_at
 `;
 
@@ -91,7 +93,11 @@ const toAttachment = (row: AttachmentRow): Attachment => ({
 	mime: row.mime,
 	size: row.size,
 	sha256: row.sha256,
-	actor: { name: row.actor_name, kind: row.actor_kind },
+	actor: {
+		name: row.actor_name,
+		kind: row.actor_kind,
+		...(row.actor_display_name === null ? {} : { displayName: row.actor_display_name }),
+	},
 	createdAt: row.created_at,
 	url: fileUrl(row.id),
 });
@@ -172,17 +178,7 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promi
 	await writeActivity(ctx, tx, { ticket, action: "attachment.created", meta: { filename, attachmentId: id }, at });
 	ctx.emit({ type: "attachment.created", id, ticketId: ticket.id, projectId: ticket.project_id });
 	await emitCount(ctx, tx, ticket.id);
-	const attachment: Attachment = {
-		id,
-		ticketId: ticket.id,
-		filename,
-		mime,
-		size: stored.size,
-		sha256: stored.sha256,
-		actor: ctx.actor,
-		createdAt: at.toISOString(),
-		url: fileUrl(id),
-	};
+	const attachment = toAttachment(await findAttachment(tx, id));
 	return { attachment, url: attachment.url, markdown: markdownFor(attachment) };
 };
 

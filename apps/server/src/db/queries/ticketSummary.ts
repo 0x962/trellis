@@ -1,5 +1,6 @@
 import type { CiState, PrState, StoredActorKind, TicketSummary } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
+import { actorDisplayName } from "./actorDisplayName.ts";
 import { ciRank, iso, pathsCte, prStateRank } from "./support.ts";
 
 export type SummaryRow = {
@@ -30,6 +31,7 @@ export type SummaryRow = {
 	pr_fail: number | null;
 	pr_pending: number | null;
 	last_actor_name: string | null;
+	last_actor_display_name: string | null;
 	last_actor_kind: StoredActorKind | null;
 	last_actor_at: string | null;
 	position: number;
@@ -63,6 +65,7 @@ export const summaryColumns = sql`
 	(SELECT count(*)::int FROM comments c WHERE c.ticket_id = t.id) AS comment_count,
 	(SELECT count(*)::int FROM attachments a WHERE a.ticket_id = t.id) AS attachment_count,
 	pr.state AS pr_state, pr.ci_state AS pr_ci_state, pr.pass AS pr_pass, pr.fail AS pr_fail, pr.pending AS pr_pending,
+	${actorDisplayName(sql`la.actor_name`, sql`la.actor_kind`)} AS last_actor_display_name,
 	la.actor_name AS last_actor_name, la.actor_kind AS last_actor_kind, ${iso(sql`la.created_at`)} AS last_actor_at,
 	t.position, t.version,
 	${iso(sql`t.created_at`)} AS created_at,
@@ -141,6 +144,7 @@ export const toSummary = (row: SummaryRow): TicketSummary => ({
 			? null
 			: {
 					name: row.last_actor_name,
+					...(row.last_actor_display_name === null ? {} : { displayName: row.last_actor_display_name }),
 					kind: row.last_actor_kind as StoredActorKind,
 					at: row.last_actor_at as string,
 				},

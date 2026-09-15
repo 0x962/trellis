@@ -78,7 +78,9 @@ export function InboxRow({ ticket, showStatus = true }: InboxRowProps) {
 				)}
 			</span>
 			<span className="flex w-10 shrink-0 justify-center max-md:hidden">
-				{lastActor !== null && lastActor.kind !== "system" && <Avatar kind={lastActor.kind} name={lastActor.name} />}
+				{lastActor !== null && lastActor.kind !== "system" && (
+					<Avatar kind={lastActor.kind} name={lastActor.displayName ?? lastActor.name} />
+				)}
 			</span>
 			<span className="w-10 shrink-0 text-right text-sm text-fg-muted tabular">
 				{compactRelativeTime(ticket.updatedAt)}

@@ -22,7 +22,10 @@ export function ConflictNotice({ current, onOverwrite, onClose }: ConflictNotice
 	const { orpc, queryClient } = useApp();
 	const [confirming, setConfirming] = useState(false);
 	const last = current.lastActor;
-	const actor = last !== null && last.kind !== "system" ? { name: last.name, kind: last.kind, at: last.at } : null;
+	const actor =
+		last !== null && last.kind !== "system"
+			? { name: last.displayName ?? last.name, kind: last.kind, at: last.at }
+			: null;
 	const reload = () => {
 		queryClient.setQueryData(orpc.tickets.get.queryKey({ input: { ticket: current.identifier } }), current);
 		onClose();

@@ -1,7 +1,9 @@
 import { ArrowElbowDownRight, Clock, FolderOpen, GitPullRequest, User } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
 import type { StatusSummary } from "@trellis/api";
 import { Chip, PriorityIcon, StatusIcon } from "@trellis/ui";
 import type { ReactElement } from "react";
+import { useApp } from "../../../lib/appContext";
 import {
 	type FilterField,
 	fieldLabels,
@@ -64,17 +66,26 @@ const shortList = (names: string[]) =>
 // the remove button. The operator flips between is and is not on a
 // negatable field; the values reopen the picker.
 export function FilterChip({ field, view, statuses, onChange, onEdit }: FilterChipProps) {
+	const { orpc } = useApp();
+	const actors = useQuery({ ...orpc.actors.list.queryOptions({ input: {} }), enabled: field === "actor" }).data ?? [];
 	const values = valuesOf(view, field);
 	const negated = view.not?.includes(field as NegatableField) ?? false;
 	const canNegate = negatable.includes(field as NegatableField);
 	const label = fieldLabels[field];
+	const names =
+		field === "actor"
+			? values.map((value) => {
+					const actor = actors.find((entry) => `${entry.kind}:${entry.name}` === value);
+					return actor?.displayName ?? valueLabel(field, value, statuses);
+				})
+			: namesOf(field, values, statuses);
 	return (
 		<span data-filter-chip={field} className="contents">
 			<Chip
 				icon={iconOf(field, values, statuses)}
 				label={label}
 				op={opLabel(field, negated)}
-				value={shortList(namesOf(field, values, statuses))}
+				value={shortList(names)}
 				onOpClick={canNegate ? () => onChange(toggleNegation(view, field as NegatableField)) : undefined}
 				onValueClick={() => onEdit(field)}
 				onRemove={() => onChange(withoutField(view, field))}

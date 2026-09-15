@@ -47,7 +47,7 @@ export function CardContent({ ticket, showStatus = false }: CardContentProps) {
 				{showStatus && <span className="truncate">{ticket.status.name}</span>}
 				{ticket.lastActor !== null && ticket.lastActor.kind !== "system" && (
 					<span className="ml-auto shrink-0">
-						<Avatar kind={ticket.lastActor.kind} name={ticket.lastActor.name} />
+						<Avatar kind={ticket.lastActor.kind} name={ticket.lastActor.displayName ?? ticket.lastActor.name} />
 					</span>
 				)}
 			</div>
