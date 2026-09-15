@@ -42,3 +42,18 @@ test("local manager settings preserve directory trust and harness commands", asy
 	await page.getByLabel("Concurrency", { exact: true }).press("Tab");
 	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.concurrency).toBe(5);
 });
+
+test("project tool permissions default to allow and save an explicit choice", async ({ page }) => {
+	await post("/projects", { key: "PER", name: "Project permissions" });
+	await signIn(page, "/p/PER/settings/manager#settings");
+	const permissions = page.getByRole("checkbox", { name: "Allow all permissions", exact: true });
+	await expect(permissions).toBeChecked();
+	await permissions.uncheck();
+	await expect.poll(async () => (await get<Project>("/projects/PER")).managerConfig?.allowAllPermissions).toBe(false);
+	await page.reload();
+	await expect(permissions).not.toBeChecked();
+	await permissions.check();
+	await expect.poll(async () => (await get<Project>("/projects/PER")).managerConfig?.allowAllPermissions).toBe(true);
+	await page.reload();
+	await expect(permissions).toBeChecked();
+});

@@ -86,15 +86,23 @@ export function GeneralSettings({
 							disabled={!draft.directory || invalidDirectory}
 							onCheckedChange={(trustedDirectory) => commit({ ...draft, trustedDirectory })}
 						/>
-						<p className="manager-settings-hint">
-							Agent tools still ask for permission. A directory change clears this trust.
-						</p>
+						<p className="manager-settings-hint">A directory change clears this trust.</p>
 					</div>
 					{invalidDirectory && (
 						<p role="alert" className="text-sm text-danger">
 							Use an absolute directory path.
 						</p>
 					)}
+				</div>
+				<div className="manager-settings-field">
+					<Checkbox
+						label="Allow all permissions"
+						checked={draft.allowAllPermissions}
+						onCheckedChange={(allowAllPermissions) => commit({ ...draft, allowAllPermissions })}
+					/>
+					<p className="manager-settings-hint">
+						Automatically approve tools for the Claude harness. Turn this off to approve each request.
+					</p>
 				</div>
 				<div className="manager-settings-field">
 					<Input
