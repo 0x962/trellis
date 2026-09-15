@@ -1,11 +1,11 @@
 import { expect, test } from "bun:test";
 import { windowOptions } from "./windowOptions.ts";
 
-test("macOS keeps native window controls inside the application title strip", () => {
+test("macOS centers native window controls in the application header", () => {
 	expect(windowOptions("darwin")).toEqual({
 		fullscreen: false,
 		titleBarStyle: "hiddenInset",
-		trafficLightPosition: { x: 16, y: 14 },
+		trafficLightPosition: { x: 16, y: 20 },
 	});
 });
 
