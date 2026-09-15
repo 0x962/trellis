@@ -12,7 +12,7 @@ import {
 	type ServiceTransport,
 } from "../../../../src/db/transport.ts";
 import { createBus } from "../../../../src/events/bus.ts";
-import { noGh, signedInGh } from "../../../helpers/ctx.ts";
+import { noGh, signedInGh, testSource } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 
@@ -41,6 +41,7 @@ beforeEach(async () => {
 		gh: noGh,
 		ghStatus: signedInGh,
 		addresses: async () => ["http://127.0.0.1:4521"],
+		source: testSource,
 	};
 	transport = createInlineTransport({ db: h.db, bus, config, runtime });
 	await transport.start();

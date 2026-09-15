@@ -165,6 +165,7 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			runtime: {
 				version: runtime.version,
 				bootId: runtime.bootId,
+				source: runtime.source,
 				ghBin: runtime.gh.bin,
 				ghTimeoutMs: runtime.gh.timeoutMs,
 			},

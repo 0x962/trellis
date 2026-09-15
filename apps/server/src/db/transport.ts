@@ -1,4 +1,4 @@
-import type { AgentBatchRecord, GhStatus, TrellisEvent } from "@trellis/api";
+import type { AgentBatchRecord, GhStatus, ServerSource, TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { DispatcherClock } from "../agents/dispatcher.ts";
 import { type AgentsHost, createAgentsHost } from "../agents/host.ts";
@@ -22,14 +22,15 @@ import { warmWrites } from "./warmWrites.ts";
 export { createWorkerTransport } from "./workerTransport.ts";
 
 // The facts of the running process a service reports or uses: the package
-// version, the boot id, the gh runner, the gh state the poller keeps, and
-// the URLs the listener answers on.
+// version, the boot id, the gh runner, the gh state the poller keeps, the
+// URLs the listener answers on, and the checkout and the commit it runs.
 export type Runtime = {
 	version: string;
 	bootId: string;
 	gh: GhRunner;
 	ghStatus: () => GhStatus;
 	addresses: () => Promise<string[]>;
+	source: ServerSource;
 };
 
 // How the HTTP process reaches the services. `call` runs one service in
@@ -106,6 +107,7 @@ export const createInlineTransport = ({
 		gh: runtime.gh,
 		ghStatus: runtime.ghStatus,
 		addresses: runtime.addresses,
+		source: runtime.source,
 		emit,
 		afterCommit: (task: () => Promise<void>) => {
 			tasks.push(task);

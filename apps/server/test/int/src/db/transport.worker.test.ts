@@ -5,7 +5,7 @@ import { loadConfig } from "../../../../src/config.ts";
 import type { RequestContext } from "../../../../src/context.ts";
 import { createWorkerTransport, type Runtime, type ServiceTransport } from "../../../../src/db/transport.ts";
 import { createBus } from "../../../../src/events/bus.ts";
-import { noGh, signedInGh } from "../../../helpers/ctx.ts";
+import { noGh, signedInGh, testSource } from "../../../helpers/ctx.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 
 const transports: ServiceTransport[] = [];
@@ -24,6 +24,7 @@ const startWorker = async () => {
 		gh: noGh,
 		ghStatus: signedInGh,
 		addresses: async () => ["http://127.0.0.1:4521"],
+		source: testSource,
 	};
 	const transport = createWorkerTransport({ bus, config, runtime });
 	transports.push(transport);
@@ -95,6 +96,7 @@ describe("worker transport", () => {
 			gh: noGh,
 			ghStatus: signedInGh,
 			addresses: async () => ["http://127.0.0.1:4521"],
+			source: testSource,
 		};
 		const transport = createWorkerTransport({ bus, config, runtime });
 		transports.push(transport);

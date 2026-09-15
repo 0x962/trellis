@@ -237,6 +237,7 @@ export const health = (overrides: Overrides = {}) => ({
 	addresses: ["http://127.0.0.1:4521"],
 	db: { ok: true, sizeBytes: 4_567_890 },
 	gh: ghOk(),
+	source: { checkout: "/Users/dana/projects/trellis", commit: "0123456789abcdef0123456789abcdef01234567" },
 	...overrides,
 });
 

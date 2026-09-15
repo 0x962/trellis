@@ -1,4 +1,4 @@
-import type { GhStatus, TrellisEvent } from "@trellis/api";
+import type { GhStatus, ServerSource, TrellisEvent } from "@trellis/api";
 import { ulid } from "ulid";
 import type { Db } from "../../src/db/client.ts";
 import { createMaintenance } from "../../src/db/maintenance.ts";
@@ -25,6 +25,7 @@ export type ServiceCtx = {
 	gh: GhRunner;
 	ghStatus: () => GhStatus;
 	addresses: () => Promise<string[]>;
+	source: ServerSource;
 	emit: Emit;
 	afterCommit: (task: () => Promise<void>) => void;
 	newTx: <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
@@ -50,6 +51,12 @@ export const signedInGh = (): GhStatus => ({
 	checkedAt: "2026-09-09T10:00:00.000Z",
 });
 
+// The checkout and the commit a test server reports in health.
+export const testSource: ServerSource = {
+	checkout: "/test/checkout",
+	commit: "0123456789abcdef0123456789abcdef01234567",
+};
+
 export type CtxHandle = {
 	ctx: ServiceCtx;
 	tasks: Array<() => Promise<void>>;
@@ -63,6 +70,7 @@ export type CtxOptions = {
 	gh?: GhRunner;
 	ghStatus?: () => GhStatus;
 	addresses?: () => string[];
+	source?: ServerSource;
 	now?: () => Date;
 	maxUploadBytes?: number;
 };
@@ -81,6 +89,7 @@ export const testCtx = (options: CtxOptions): CtxHandle => {
 		gh: options.gh ?? noGh,
 		ghStatus: options.ghStatus ?? signedInGh,
 		addresses: async () => (options.addresses ?? (() => ["http://127.0.0.1:4521"]))(),
+		source: options.source ?? testSource,
 		emit: () => {},
 		afterCommit: (task) => {
 			tasks.push(task);

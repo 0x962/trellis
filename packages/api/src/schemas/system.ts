@@ -12,7 +12,17 @@ export const GhStatusSchema = z.object({
 });
 export type GhStatus = z.infer<typeof GhStatusSchema>;
 
-// `bootId` changes on every server start; event ids carry it.
+// The checkout the server runs from, and the commit at the HEAD of that
+// checkout when the server started. `commit` is null when the checkout is
+// not a git work tree.
+export const ServerSourceSchema = z.object({
+	checkout: z.string(),
+	commit: z.string().nullable(),
+});
+export type ServerSource = z.infer<typeof ServerSourceSchema>;
+
+// `bootId` changes on every server start; event ids carry it. A server of an
+// earlier release sends no `source`, and the phone app still reads its health.
 export const HealthSchema = z.object({
 	ok: z.boolean(),
 	version: z.string(),
@@ -27,6 +37,7 @@ export const HealthSchema = z.object({
 		sizeBytes: CountSchema,
 	}),
 	gh: GhStatusSchema,
+	source: ServerSourceSchema.optional(),
 });
 export type Health = z.infer<typeof HealthSchema>;
 

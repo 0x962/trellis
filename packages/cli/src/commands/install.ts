@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { defineCommand } from "citty";
 import { type CliContext, contextOf } from "../context.ts";
@@ -6,87 +6,22 @@ import { CliFailure } from "../errors.ts";
 import { repeatedFlag } from "../flags.ts";
 import { setRoute } from "../gatewayRoutes.ts";
 import { installationPaths, supersetBin } from "../installation.ts";
-
-// The plist sets no TRELLIS_PORT, so the launchd server listens on 4521.
-const serverPort = 4521;
+import { plistText, readPlist, serverPort } from "../servicePlist.ts";
 
 type Paths = ReturnType<typeof installationPaths>;
 
-const xml = (value: string) =>
-	value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
-
-// The server binds 127.0.0.1 when the plist sets no TRELLIS_HOST.
-const hostEntry = (host: string | undefined) =>
-	host === undefined ? "" : `\t\t<key>TRELLIS_HOST</key>\n\t\t<string>${xml(host)}</string>\n`;
-
-// The server refuses a Host header that names a hostname it does not know.
-// Each --allow-host name, such as a Tailscale Serve hostname, passes that
-// check.
-const allowedHostsEntry = (names: string[]) =>
-	names.length === 0 ? "" : `\t\t<key>TRELLIS_ALLOWED_HOSTS</key>\n\t\t<string>${xml(names.join(","))}</string>\n`;
-
-// launchd gives the server a PATH that holds only the bun directory and the
-// system directories. The Superset CLI sits in ~/.superset/bin, outside that
-// PATH. Without this key the server spawns "superset" from PATH, and every
-// agents call fails as RUNNER_UNAVAILABLE.
-const supersetEntry = (bin: string | null) =>
-	bin === null ? "" : `\t\t<key>TRELLIS_SUPERSET_BIN</key>\n\t\t<string>${xml(bin)}</string>\n`;
-
-// `bun` is the path that `which` finds on PATH, with no symlink resolved. A
-// Homebrew bun on PATH is a symlink that `brew upgrade` moves to the new
-// version. `process.execPath` names the versioned Cellar directory, which
-// the upgrade deletes, and the agent then has no program to run.
-const plistText = (
-	paths: Paths,
-	host: string | undefined,
-	allowedHosts: string[],
-	bun: string,
-	superset: string | null,
-) => `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>Label</key>
-	<string>com.trellis.server</string>
-	<key>ProgramArguments</key>
-	<array>
-		<string>${xml(bun)}</string>
-		<string>${xml(paths.serverEntry)}</string>
-	</array>
-	<key>EnvironmentVariables</key>
-	<dict>
-		<key>PATH</key>
-		<string>${xml(dirname(bun))}:${xml(paths.userHome)}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
-		<key>HOME</key>
-		<string>${xml(paths.userHome)}</string>
-		<key>TRELLIS_HOME</key>
-		<string>${xml(paths.dataHome)}</string>
-		<key>NODE_ENV</key>
-		<string>production</string>
-		<key>TRELLIS_WEB_DIST</key>
-		<string>${xml(paths.webDist)}</string>
-${supersetEntry(superset)}${hostEntry(host)}${allowedHostsEntry(allowedHosts)}	</dict>
-	<key>RunAtLoad</key>
-	<true/>
-	<key>KeepAlive</key>
-	<dict>
-		<key>SuccessfulExit</key>
-		<false/>
-	</dict>
-	<key>ThrottleInterval</key>
-	<integer>10</integer>
-	<key>StandardOutPath</key>
-	<string>${xml(paths.log)}</string>
-	<key>StandardErrorPath</key>
-	<string>${xml(paths.log)}</string>
-</dict>
-</plist>
-`;
+const LABEL = "com.trellis.server";
 
 const buildWeb = async (ctx: CliContext, paths: Paths) => {
 	if (!existsSync(paths.webDir)) return;
 	const result = await ctx.deps.run([process.execPath, "run", "build"], paths.webDir);
 	if (result.code !== 0) throw new CliFailure("INSTALL_FAILED", 1, result.stderr);
+};
+
+// The commit at HEAD of this checkout, or null when git finds no work tree.
+const commitOf = async (ctx: CliContext, dir: string) => {
+	const head = await ctx.deps.run(["git", "rev-parse", "HEAD"], dir);
+	return head.code === 0 ? head.stdout.trim() : null;
 };
 
 // A gateway on port 80 that reads the routes file sends trellis.localhost to
@@ -133,6 +68,70 @@ const waitForUnload = async (ctx: CliContext, service: string) => {
 	);
 };
 
+// Stops the com.trellis.server job, starts the job that the plist file
+// describes, and returns when the server answers health.
+const startService = async (ctx: CliContext, plist: string) => {
+	const domain = ctx.deps.launchdDomain;
+	const service = `${domain}/${LABEL}`;
+	await ctx.deps.run(["launchctl", "bootout", service]);
+	await waitForUnload(ctx, service);
+	const loaded = await ctx.deps.run(["launchctl", "bootstrap", domain, plist]);
+	if (loaded.code !== 0) throw new CliFailure("INSTALL_FAILED", 1, loaded.stderr);
+	await waitForHealth(ctx);
+};
+
+// The plist and the shim on disk before install writes its own. null means
+// that no file was there.
+type Replaced = { plist: string | null; shim: string | null };
+
+const readIfExists = (path: string) => (existsSync(path) ? readFileSync(path, "utf8") : null);
+
+// A failed step can leave launchd with no server. install writes back the
+// plist and the shim it replaced and starts that service again, so the
+// machine keeps the server it had. The failure still ends the install.
+const restore = async (ctx: CliContext, paths: Paths, replaced: Replaced, failure: CliFailure) => {
+	if (replaced.plist === null) throw failure;
+	writeFileSync(paths.plist, replaced.plist);
+	if (replaced.shim !== null) writeFileSync(paths.shim, replaced.shim);
+	const outcome = await startService(ctx, paths.plist).then(
+		() => "install restored the previous service",
+		(error: Error) => `install could not restore the previous service: ${error.message}`,
+	);
+	throw new CliFailure(failure.code, failure.exitCode, `${failure.message}; ${outcome}`);
+};
+
+// `launchctl print` lists `pid = <n>` for a job that runs.
+const PID = /^\s*pid = (\d+)$/m;
+
+// A shell word stays bare when it holds only these characters.
+const BARE = /^[\w@%+=:,./-]+$/;
+const shellWord = (word: string) => (BARE.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`);
+
+// An install replaces the server that launchd runs, and every agent that
+// talks to that server loses it until the new one answers. A plist that runs
+// the server of another checkout belongs to another install, so install
+// stops before it changes a file.
+const refuseTakeover = async (ctx: CliContext, paths: Paths, plist: string, rawArgs: string[]) => {
+	const found = readPlist(plist);
+	if (found.checkout === paths.repoRoot) return;
+	const printed = await ctx.deps.run(["launchctl", "print", `${ctx.deps.launchdDomain}/${LABEL}`]);
+	const pid = printed.code === 0 ? PID.exec(printed.stdout)?.[1] : undefined;
+	ctx.err.write(
+		[
+			`${LABEL} runs the server of another checkout`,
+			`  plist:          ${paths.plist}`,
+			`  checkout:       ${found.checkout}`,
+			`  commit:         ${found.commit ?? "not recorded"}`,
+			`  server:         ${pid === undefined ? "not running" : `pid ${pid}, port ${found.port}`}`,
+			`  this checkout:  ${paths.repoRoot}`,
+			"To replace that service with the server of this checkout, run:",
+			`  ${["trellis", "install", ...rawArgs, "--force"].map(shellWord).join(" ")}`,
+			"",
+		].join("\n"),
+	);
+	throw new CliFailure("INSTALL_REFUSED", 1, "install changed no file");
+};
+
 export default defineCommand({
 	meta: { name: "install", description: "Install the server as a launchd agent" },
 	args: {
@@ -150,6 +149,11 @@ export default defineCommand({
 			type: "string",
 			description: "Run agents with this superset binary; the default is the superset on PATH",
 		},
+		force: {
+			type: "boolean",
+			default: false,
+			description: "Replace a service that runs the server of another checkout",
+		},
 		// citty parses `--no-launchd` as launchd=false, so the flag carries its
 		// positive name and defaults to on.
 		launchd: {
@@ -163,6 +167,9 @@ export default defineCommand({
 		const paths = installationPaths(ctx.deps.env, ctx.deps.home, context.args.prefix);
 		const bun = ctx.deps.which("bun");
 		if (bun === null) throw new CliFailure("INSTALL_FAILED", 1, "bun is not on PATH");
+		const replaced: Replaced = { plist: readIfExists(paths.plist), shim: readIfExists(paths.shim) };
+		if (replaced.plist !== null && !context.args.force)
+			await refuseTakeover(ctx, paths, replaced.plist, context.rawArgs);
 		const superset = supersetBin(ctx.deps, context.args["superset-bin"]);
 		if (superset === null) {
 			ctx.err.write(
@@ -170,6 +177,7 @@ export default defineCommand({
 			);
 		}
 		await buildWeb(ctx, paths);
+		const commit = await commitOf(ctx, paths.repoRoot);
 		mkdirSync(dirname(paths.shim), { recursive: true });
 		// The shim and the plist run the same bun, so a machine that serves
 		// trellis also runs every `trellis` command.
@@ -177,18 +185,17 @@ export default defineCommand({
 		chmodSync(paths.shim, 0o755);
 		mkdirSync(dirname(paths.plist), { recursive: true });
 		const allowedHosts = repeatedFlag(context.rawArgs, "allow-host");
-		writeFileSync(paths.plist, plistText(paths, context.args.host, allowedHosts, bun, superset));
+		writeFileSync(paths.plist, plistText(paths, { host: context.args.host, allowedHosts, bun, superset, commit }));
 
 		setRoute(paths.routes, "trellis", serverPort);
 
 		if (context.args.launchd) {
-			const domain = ctx.deps.launchdDomain;
-			const service = `${domain}/com.trellis.server`;
-			await ctx.deps.run(["launchctl", "bootout", service]);
-			await waitForUnload(ctx, service);
-			const loaded = await ctx.deps.run(["launchctl", "bootstrap", domain, paths.plist]);
-			if (loaded.code !== 0) throw new CliFailure("INSTALL_FAILED", 1, loaded.stderr);
-			await waitForHealth(ctx);
+			try {
+				await startService(ctx, paths.plist);
+			} catch (failure) {
+				if (!(failure instanceof CliFailure)) throw failure;
+				await restore(ctx, paths, replaced, failure);
+			}
 			if (await gatewayServes(ctx)) {
 				ctx.out.write("trellis: http://trellis.localhost\n");
 			} else {

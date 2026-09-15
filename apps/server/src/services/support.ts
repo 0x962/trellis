@@ -1,5 +1,12 @@
 import { ORPCError } from "@orpc/server";
-import { type ErrorCode, errors, type GhStatus, TicketRefSchema, type TrellisEvent } from "@trellis/api";
+import {
+	type ErrorCode,
+	errors,
+	type GhStatus,
+	type ServerSource,
+	TicketRefSchema,
+	type TrellisEvent,
+} from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { rows } from "../db/queries/support.ts";
@@ -30,6 +37,7 @@ export type ServiceCtx = {
 	ghStatus: () => GhStatus;
 	// Every URL the server answers on, network addresses first.
 	addresses: () => Promise<string[]>;
+	source: ServerSource;
 	emit: Emit;
 	afterCommit: (task: () => Promise<void>) => void;
 	newTx: <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;

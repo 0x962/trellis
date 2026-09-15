@@ -1,5 +1,12 @@
 import { mkdirSync } from "node:fs";
-import { createTrellisClient, type GhStatus, type Project, type Ticket, type TrellisClient } from "@trellis/api";
+import {
+	createTrellisClient,
+	type GhStatus,
+	type Project,
+	type ServerSource,
+	type Ticket,
+	type TrellisClient,
+} from "@trellis/api";
 import { ulid } from "ulid";
 import { createApp } from "../../src/app.ts";
 import { type Config, loadConfig } from "../../src/config.ts";
@@ -15,7 +22,7 @@ import { createBus } from "../../src/events/bus.ts";
 import { createGhRunner, type GhRunner } from "../../src/gh/run.ts";
 import { createLogger, type LogLevel, type LogRecord } from "../../src/log.ts";
 import { fakeIntervalClock } from "./clock.ts";
-import { signedInGh } from "./ctx.ts";
+import { signedInGh, testSource } from "./ctx.ts";
 import { freshDb, type TestDb } from "./db.ts";
 import { freshHomeWithDirs } from "./home.ts";
 import { SUPERSET_STUB_BIN } from "./superset-stub.ts";
@@ -72,6 +79,8 @@ export type TestAppOptions = {
 	home?: string;
 	// The URLs `system.health` lists.
 	addresses?: () => Promise<string[]>;
+	// The checkout and the commit `system.health` reports.
+	source?: ServerSource;
 	bootId?: string;
 	// Wraps the transport every procedure calls. The wrapper sees the service
 	// name, the request context, and the input of every call, so a test
@@ -118,6 +127,7 @@ export const createTestApp = async (options: TestAppOptions = {}) => {
 		gh: options.gh ?? createGhRunner(),
 		ghStatus: options.ghStatus ?? signedInGh,
 		addresses: options.addresses ?? (async () => ["http://192.168.1.20:4521", "http://127.0.0.1:4521"]),
+		source: options.source ?? testSource,
 	};
 	const clock = fakeIntervalClock();
 	const inner = config.dbInline

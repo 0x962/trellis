@@ -28,9 +28,10 @@ export type Deps = {
 	open: (url: string) => void;
 	signal: AbortSignal;
 	apiVersion: string;
-	// Runs a program to its end. install and uninstall send launchctl and the
-	// web build through it, so a test records the calls and starts nothing.
-	run: (args: string[], cwd?: string) => Promise<{ code: number; stderr: string }>;
+	// Runs a program to its end. install and uninstall send launchctl, git,
+	// and the web build through it, so a test records the calls and starts
+	// nothing.
+	run: (args: string[], cwd?: string) => Promise<{ code: number; stdout: string; stderr: string }>;
 	// The launchd domain that install and uninstall address: `gui/<uid>`.
 	launchdDomain: string;
 	// The user home. install, uninstall, serve, and restore derive every path
@@ -283,9 +284,13 @@ if (import.meta.main) {
 		signal: controller.signal,
 		apiVersion: apiPkg.version,
 		run: async (args, cwd) => {
-			const proc = Bun.spawn(args, { cwd, stdin: "ignore", stdout: "ignore", stderr: "pipe" });
-			const [code, stderr] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
-			return { code, stderr: stderr.trim() };
+			const proc = Bun.spawn(args, { cwd, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+			const [code, stdout, stderr] = await Promise.all([
+				proc.exited,
+				new Response(proc.stdout).text(),
+				new Response(proc.stderr).text(),
+			]);
+			return { code, stdout, stderr: stderr.trim() };
 		},
 		launchdDomain: `gui/${process.getuid!()}`,
 		home: homedir(),

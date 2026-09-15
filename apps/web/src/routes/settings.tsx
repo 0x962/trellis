@@ -3,13 +3,15 @@ import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
 import { GhBanner } from "../features/settings/GhBanner";
 import { PairPhone } from "../features/settings/PairPhone";
+import { ServerSource } from "../features/settings/ServerSource";
 import { StalledThresholdField } from "../features/settings/StalledThresholdField";
 import { ThemeField } from "../features/settings/ThemeField";
 import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
 
 // Who you are, how the app looks, when a ticket counts as stalled, whether gh
-// is available, and how a phone reaches the server.
+// is available, how a phone reaches the server, and which checkout the server
+// runs.
 // Each setting here holds for the whole machine. A setting that belongs to one
 // project, such as its manager persona, its Superset host, and its agent
 // switch, lives on that project's Manager page.
@@ -58,6 +60,12 @@ const sections: SettingsSection[] = [
 				<PairPhone />
 			</>
 		),
+	},
+	{
+		id: "server",
+		title: "Server",
+		hint: "See which checkout and commit the running server comes from.",
+		rows: <ServerSource />,
 	},
 ];
 

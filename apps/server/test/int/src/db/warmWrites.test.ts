@@ -6,7 +6,7 @@ import { loadConfig } from "../../../../src/config.ts";
 import type { RequestContext } from "../../../../src/context.ts";
 import { createInlineTransport, type Runtime } from "../../../../src/db/transport.ts";
 import { createBus } from "../../../../src/events/bus.ts";
-import { noGh, signedInGh } from "../../../helpers/ctx.ts";
+import { noGh, signedInGh, testSource } from "../../../helpers/ctx.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 import { freshHomeWithDirs } from "../../../helpers/home.ts";
 import { captureStatements } from "../../../helpers/statements.ts";
@@ -29,6 +29,7 @@ const runtime: Runtime = {
 	gh: noGh,
 	ghStatus: signedInGh,
 	addresses: async () => ["http://127.0.0.1:4521"],
+	source: testSource,
 };
 
 const transportOf = (events: TrellisEvent[]) => {

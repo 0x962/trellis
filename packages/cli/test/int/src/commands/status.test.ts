@@ -8,10 +8,12 @@ describe("status", () => {
 		const tty = await runCli(["status"], { "system.health": health(), "system.gh": health().gh }, { tty: true });
 		expect(tty.code).toBe(0);
 		expect(tty.calls.map((call) => call.path)).toEqual(["system.health", "system.gh"]);
-		for (const key of ["ok", "version", "apiVersion", "bootId", "rss", "db", "gh"]) {
+		for (const key of ["ok", "version", "apiVersion", "bootId", "rss", "db", "gh", "checkout", "commit"]) {
 			expect(tty.stdout, key).toMatch(new RegExp(`^${key}\\b`, "m"));
 		}
 		expect(tty.stdout).toContain(bootId);
+		expect(tty.stdout).toContain("/Users/dana/projects/trellis");
+		expect(tty.stdout).toContain("0123456789abcdef0123456789abcdef01234567");
 		expect(tty.stdout).toContain("0x962");
 
 		const json = await runCli(["status", "--json"], { "system.health": health(), "system.gh": health().gh });

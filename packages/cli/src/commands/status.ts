@@ -16,6 +16,8 @@ const healthRecord: RecordSpec<Health> = {
 		{ name: "rss", value: (row) => megabytes(row.rss) },
 		{ name: "db", value: (row) => `${row.db.ok ? "ok" : "failed"}, ${megabytes(row.db.sizeBytes)}` },
 		{ name: "gh", value: (row) => (row.gh.ok ? `ok, ${row.gh.user}` : ghBanner(row.gh)) },
+		{ name: "checkout", value: (row) => row.source?.checkout ?? "unknown" },
+		{ name: "commit", value: (row) => row.source?.commit ?? "unknown" },
 	],
 	identifier: (row) => row.bootId,
 };

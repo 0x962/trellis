@@ -36,6 +36,7 @@ export const health = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promis
 		addresses: await ctx.addresses(),
 		db: { ok: true, sizeBytes: Number(row!.bytes) },
 		gh: ctx.ghStatus(),
+		source: ctx.source,
 	};
 };
 

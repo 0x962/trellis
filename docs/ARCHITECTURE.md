@@ -758,7 +758,7 @@ the Expo SDK, so the app runs in Expo Go and needs no build step.
 
 `packages/cli` holds `index.ts` (the citty root), `verbs.ts` (one row per verb,
 each with a lazy import), `actor.ts`, `client.ts`, `context.ts`, `output.ts`,
-`errors.ts`, `flags.ts`, `sse.ts`, `installation.ts`, `gatewayRoutes.ts`,
+`errors.ts`, `flags.ts`, `sse.ts`, `installation.ts`, `servicePlist.ts`, `gatewayRoutes.ts`,
 `instructions.md`, and `commands/` with one file per verb. A verb loads its
 module on dispatch, so `--help` loads no command module. A new verb needs both a
 file under `commands/` and a row in `verbs.ts`.

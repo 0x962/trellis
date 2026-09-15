@@ -137,7 +137,7 @@ Perform the cutover after the source snapshot and new review workflow pass your 
 
 1. Stop review producers that write to Margin.
 2. Back up Trellis and copy the Margin data directory to a fixed snapshot path.
-3. Install this Trellis checkout with `bun packages/cli/src/index.ts install`.
+3. Install this Trellis checkout with `bun packages/cli/src/index.ts install`. When the service runs the server of another checkout, the install stops and prints the `--force` command that replaces it.
 4. Preview and apply the import from that snapshot.
 5. Compare PR, thread, reply, resolved, session, and range counts.
 6. Repeat the import and verify that it adds no records.

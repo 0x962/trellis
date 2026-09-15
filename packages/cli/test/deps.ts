@@ -65,6 +65,9 @@ export type RunResult = {
 // session `session_abc` and no git lookup happens. Both streams are pipes.
 export const defaultEnv = { CLAUDECODE: "1", CLAUDE_SESSION_ID: "session_abc" };
 
+// The commit that the default runner answers to `git rev-parse HEAD`.
+export const testCommit = "0123456789abcdef0123456789abcdef01234567";
+
 export const makeDeps = (routes: Routes = {}, options: RunOptions = {}) => {
 	let out = "";
 	let err = "";
@@ -104,8 +107,10 @@ export const makeDeps = (routes: Routes = {}, options: RunOptions = {}) => {
 				// launchctl print exits 113 when launchd holds no job with the
 				// label. The default runner thus reports the job gone right after
 				// bootout.
-				if (args[0] === "launchctl" && args[1] === "print") return { code: 113, stderr: "Could not find service" };
-				return { code: 0, stderr: "" };
+				if (args[0] === "launchctl" && args[1] === "print")
+					return { code: 113, stdout: "", stderr: "Could not find service" };
+				if (args[0] === "git") return { code: 0, stdout: `${testCommit}\n`, stderr: "" };
+				return { code: 0, stdout: "", stderr: "" };
 			}),
 		launchdDomain: options.launchdDomain ?? "gui/test",
 		home: options.home ?? mkdtempSync(join(process.env.TRELLIS_HOME!, "user-home-")),

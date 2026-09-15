@@ -61,7 +61,9 @@ describe("install", () => {
 	test("the web build runs through the injected runner in apps/web", async () => {
 		const { prefix, env } = setup();
 		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env });
-		expect(result.commands).toEqual([{ args: [process.execPath, "run", "build"], cwd: join(repoRoot, "apps", "web") }]);
+		expect(result.commands.filter((call) => call.args[0] !== "git")).toEqual([
+			{ args: [process.execPath, "run", "build"], cwd: join(repoRoot, "apps", "web") },
+		]);
 	});
 
 	test("without --no-launchd it boots out and bootstraps the injected domain, then waits for health", async () => {
@@ -91,9 +93,11 @@ describe("install", () => {
 		let prints = 0;
 		const run = async (args: string[]) => {
 			calls.push(args);
-			if (args[1] !== "print") return { code: 0, stderr: "" };
+			if (args[1] !== "print") return { code: 0, stdout: "", stderr: "" };
 			prints += 1;
-			return prints <= 2 ? { code: 0, stderr: "" } : { code: 113, stderr: "Could not find service" };
+			return prints <= 2
+				? { code: 0, stdout: "", stderr: "" }
+				: { code: 113, stdout: "", stderr: "Could not find service" };
 		};
 		const fetch = async () => new Response("{}");
 		const result = await runCli(["install", "--prefix", prefix], {}, { env, launchdDomain: "gui/test", run, fetch });
@@ -113,7 +117,7 @@ describe("install", () => {
 		const calls: string[][] = [];
 		const run = async (args: string[]) => {
 			calls.push(args);
-			return { code: 0, stderr: "" };
+			return { code: 0, stdout: "", stderr: "" };
 		};
 		const result = await runCli(["install", "--prefix", prefix], {}, { env, launchdDomain: "gui/test", run });
 		expect(result.code).toBe(1);
@@ -232,9 +236,9 @@ describe("install", () => {
 	test("a failed bootstrap fails as INSTALL_FAILED with the launchctl message", async () => {
 		const { prefix, env } = setup();
 		const run = async (args: string[]) => {
-			if (args[1] === "bootstrap") return { code: 5, stderr: "Bootstrap failed: 5: Input/output error" };
-			if (args[1] === "print") return { code: 113, stderr: "Could not find service" };
-			return { code: 0, stderr: "" };
+			if (args[1] === "bootstrap") return { code: 5, stdout: "", stderr: "Bootstrap failed: 5: Input/output error" };
+			if (args[1] === "print") return { code: 113, stdout: "", stderr: "Could not find service" };
+			return { code: 0, stdout: "", stderr: "" };
 		};
 		const result = await runCli(["install", "--prefix", prefix], {}, { env, launchdDomain: "gui/test", run });
 		expect(result.code).toBe(1);

@@ -12,6 +12,7 @@ import { createGhState } from "./ghState.ts";
 import { lockHome } from "./homeLock.ts";
 import { listenAddresses } from "./listen.ts";
 import { createLogger, createRotatingSink, type LogSink, stdoutSink, teeSink } from "./log.ts";
+import { serverSource } from "./source.ts";
 import { sweepBackups } from "./storage/backups.ts";
 import { sweep } from "./storage/blobs.ts";
 
@@ -98,6 +99,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			gh,
 			ghStatus: ghState.current,
 			addresses: async () => listenAddresses(config.host, server.port!, networkInterfaces()),
+			source: serverSource(),
 		};
 		const database = config.dbInline ? await openDatabase(config.dbDir) : undefined;
 		const transport = database
@@ -109,7 +111,13 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		log.info("sweep", { removedBlobs: swept.removedBlobs.length, removedTemp: swept.removedTemp.length });
 		const { app, bye } = createApp({ config, log, transport, bus, runtime });
 		handler = app.fetch;
-		log.info("listening", { host: config.host, port: server.port, home: config.home, version: pkg.version });
+		log.info("listening", {
+			host: config.host,
+			port: server.port,
+			home: config.home,
+			version: pkg.version,
+			...runtime.source,
+		});
 		for (const hook of hooks) await hook.start();
 
 		let stopping = false;
