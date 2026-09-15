@@ -6,6 +6,7 @@ import apiPkg from "../../api/package.json" with { type: "json" };
 import cliPkg from "../package.json" with { type: "json" };
 import { type ActorResolution, actorHint, resolveActor } from "./actor.ts";
 import type { CliContext } from "./context.ts";
+import { desktopConnection } from "./desktopConnection/desktopConnection.ts";
 import { CliFailure, exitCodeFor, formatError, formatFailure, usageError } from "./errors.ts";
 import { checkFlags, valuedSpellings } from "./flags.ts";
 import { type Format, type Mode, stripAnsi } from "./output.ts";
@@ -217,13 +218,17 @@ export const run = async (argv: string[], deps: Deps): Promise<number> => {
 		return 0;
 	}
 
+	const explicitUrl = globals.url ?? deps.env.TRELLIS_URL;
+	const desktop = explicitUrl === undefined ? desktopConnection(deps.env.TRELLIS_DESKTOP_HOME) : undefined;
+	const url = explicitUrl ?? desktop?.url ?? defaultUrl;
 	let resolved: ActorResolution | undefined;
 	const ctx: CliContext = {
 		deps,
 		format,
 		flags: { json: globals.json, jsonl: globals.jsonl, quiet: globals.quiet },
-		url: globals.url ?? deps.env.TRELLIS_URL ?? defaultUrl,
-		publicUrl: publicOrigin(deps.env, globals.url ?? deps.env.TRELLIS_URL ?? defaultUrl),
+		url,
+		desktopToken: desktop?.token,
+		publicUrl: publicOrigin(deps.env, url),
 		out: deps.stdout,
 		err: deps.stderr,
 		actor: () => {

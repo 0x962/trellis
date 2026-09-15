@@ -14,6 +14,7 @@ export type CliContext = {
 	// of these is true.
 	flags: { json: boolean; jsonl: boolean; quiet: boolean };
 	url: string;
+	desktopToken?: string;
 	// The origin `trellis open` prints. It is `url` until TRELLIS_PUBLIC_URL
 	// names another one, which a gateway or a proxy in front of the server
 	// needs.

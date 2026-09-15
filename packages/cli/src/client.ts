@@ -73,7 +73,7 @@ export const clientOptions = (ctx: CliContext): ClientOptions => {
 	return {
 		url: ctx.url,
 		actor: actor.actor,
-		token: ctx.deps.env.TRELLIS_AUTH_TOKEN,
+		token: ctx.deps.env.TRELLIS_AUTH_TOKEN ?? ctx.desktopToken,
 		attemptToken: ctx.deps.env.TRELLIS_ATTEMPT_TOKEN,
 		session: ctx.deps.env.TRELLIS_SESSION ?? actor.session ?? undefined,
 		fetch: ctx.deps.fetch,
