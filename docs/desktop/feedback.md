@@ -3,42 +3,41 @@
 Owner: lead agent. Integration branch: `trellis-readiness-audit`.
 Last update: 2026-09-15.
 
-The project subitems use text labels for Tickets, Manager, and Settings. The user tests this UI change after deployment.
+The user tests the installed UI. The production app lives at `~/Applications/Trellis.app`.
+The first full production install uses source `3a8be2a1` and release `309bd1ac`.
 
-`Integrated` means that the source contains the change. It does not establish that the installed desktop uses that source.
-The desktop opens with release `a2be8054`. It includes text-only project links, manager settings move, terminal layout, sidebar, and window changes.
-Hana resumes at 20:02:37 UTC with the same provider session. TRL dispatch is enabled, and OP dispatch stays paused.
-
-## Current work
-
-The user tests the installed UI. The following follow-up fixes await deployment.
+## Current verification
 
 | Follow-up feedback | Status | Verification |
 | --- | --- | --- |
-| The window appears hung. The manager cannot accept input or resize. | Runtime fix integrated | Failed process cleanup retains the live PTY handle. Regression tests cover input, resize, repeated Stop, and a later natural exit. |
-| Fix the manager terminal width. | Runtime fix integrated | The failed manager remained at 98 columns because the runtime rejected resize. The live-PTY regression resizes to 200 columns after failed cleanup. |
-| Remove the rounded inner page cards. | Integrated | Shared page frames have no rounded border or outer inset. Ticket properties use a straight divider. |
-| Make project submenu items more compact. | Integrated | Desktop rows use 28 px; touch rows use 44 px. |
-| Align and redesign the Archived submenu. | Integrated | The caret, label, and count use the same slots as project rows. Expanded projects use nested indentation. |
-| Remove the manager settings icon. | Integrated | The manager toolbar holds its process control. Control+] returns focus to that control. |
-| Stop and restart report a schema error. | API fix integrated | Failed cleanup reports RUNNER_UNAVAILABLE with the runtime error. Three focused API integration tests pass. |
-| Fix the broken Agent tab terminal. | Integrated | A padding-free host gives FitAddon the correct available size. Aside confirms that the terminal screen stays inside its frame. Runtime failures remain visible. |
-| Use Astra subagents. | Applied | Astra agents own the sidebar, terminal UI, lifecycle review, native process inspection, and shell environment work. |
-| Address root causes. | Integrated; runtime restart pending | Native process inspection replaces the spawned ps command. HTTP startup and the first manager dispatch stay independent of shell setup. |
+| The window appears hung. The manager cannot accept input or resize. | Installed | Failed cleanup retains the live PTY handle. Regression tests cover input, resize, repeated Stop, and a later natural exit. |
+| Fix the manager terminal width. | Installed; user UI check pending | The installed runtime accepts input and returns `80 200` after a resize to 200 columns and 80 rows. |
+| Remove the rounded inner page cards. | Installed; user UI check pending | Shared page frames have no rounded border or outer inset. Ticket properties use a straight divider. |
+| Make project submenu items more compact. | Installed; user UI check pending | Desktop rows use 28 px; touch rows use 44 px. |
+| Align and redesign the Archived submenu. | Installed; user UI check pending | The caret, label, and count use the same slots as project rows. Expanded projects use nested indentation. |
+| Remove the manager settings icon. | Installed; user UI check pending | The manager toolbar holds its process control. Control+] returns focus to that control. |
+| Stop and restart report a schema error. | Installed | Failed cleanup reports RUNNER_UNAVAILABLE. Three API regression tests pass. The nine live Stop requests each return 200. |
+| Fix the broken Agent tab terminal. | Installed; user UI check pending | A padding-free host gives FitAddon the available size. Runtime failures remain visible. |
+| Use Astra subagents. | Applied | Astra agents cover the UI, lifecycle, native process inspection, production install, and restart workflow. |
+| Address root causes. | Installed | Native process inspection replaces the spawned ps command. HTTP startup stays independent of shell setup. launchd reports `spawn type = interactive (4)`. |
+| Build production and use ditto to install in ~/Applications without closing Trellis. | Verified | The copy preserves the desktop, HTTP host, and runtime PIDs. See the [production install guide](../../apps/desktop/README.md#production-install). |
+| Stop active agents and load all changes when a new package starts. | Implemented and tested | Activation stops the old HTTP host and runtime before it registers the new service. An unchanged package preserves active sessions. |
 
-The signed candidate `47fba317` passes all 13 package checks. The runtime passes 52 unit tests and 65 integration tests.
-The shell changes pass 61 focused tests. Independent Astra reviews cover failed cleanup, natural exit, shell setup, and HTTP startup.
-Evidence: `/tmp/trellis-reliability-smoke.log`, `/tmp/trellis-stop-error-green.log`, and `/tmp/trellis-controller-boot-green.log`.
+The full production build passes all 13 packaged smoke checks and signature verification.
+The runtime passes 52 unit tests and 65 integration tests. The shell changes pass 61 focused tests.
+Independent Astra reviews cover failed cleanup, natural exit, shell setup, and HTTP startup.
 
-The installer stops before it changes the app or HTTP host. The live runtime does not answer its session-list request within ten seconds.
-Evidence: `/tmp/trellis-reliability-install.log`. Nine agent processes remain active on runtime release `ae02d6f5`.
-The root runtime fixes require a terminal-service restart. The user has a pending choice about interruption of those processes.
+The first activation reaches the legacy runtime shutdown error. That runtime contains the process cleanup bug.
+The user authorizes the stop. Native process checks confirm all nine agent processes and the old runtime have exited.
+The new HTTP host starts on port 4521. Authentication rejects an absent token and accepts the desktop token.
+All nine API Stop requests return 200. The new runtime reports release `309bd1ac`.
+A live PTY check verifies start, input, streamed output, 200-by-80 resize, process inspection, and confirmed Stop.
+The final runtime list contains zero active sessions. Hana stays stopped.
+Evidence: `/tmp/trellis-production-copy-evidence.json`, `/tmp/trellis-approved-stop-evidence.json`, `/tmp/trellis-production-stop-api.json`, and `/tmp/trellis-installed-runtime-check.json`.
 
-The live launchd job reports `spawn type = background (5)`. The shipped plist selects `ProcessType=Background`.
-The runtime and its agents have scheduler priority 4 under system load above 100. The runtime gains about 0.07 CPU seconds over 100 wall seconds.
-Native checks finish in milliseconds in a separate process. Repeated scans do not explain the observed delay.
-Commit `b6b69b6a` selects Interactive. An isolated launchd regression confirms `spawn type = interactive`; it changes no live job.
-The signed candidate includes this plist. Evidence: `apps/desktop/test/int/src/service/hostProcessType.test.ts` and `/tmp/trellis-runtime-82217.sample.txt`.
+The previous launchd plist selected `ProcessType=Background`. Its runtime had scheduler priority 4 under system load above 100.
+The runtime gained about 0.07 CPU seconds over 100 wall seconds. Native checks finished in milliseconds in a separate process.
+The installed host now uses Interactive. Its runtime has scheduler priority 31, and the live terminal check finishes in 160 ms.
 [Apple's launchd manual](https://github.com/apple-oss-distributions/launchd/blob/main/man/launchd.plist.5) defines Interactive for services that an app needs to remain responsive.
 
 | New feedback | Status | Owner | Verification |
