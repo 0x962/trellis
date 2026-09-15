@@ -11,6 +11,7 @@ import { NativeTerminal } from "../../agents/NativeTerminal";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { managerResumes } from "./managerResumes";
+import { restartManager } from "./restartManager";
 
 export function ProjectManagerPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
@@ -25,15 +26,18 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 	const readOnly = project.archivedAt !== null;
 	const start = useMutation({
 		mutationFn: (newSession: boolean) =>
-			client.agentRuns.start({ project: project.path, personaId: saved.personaId!, newSession }),
-		onSuccess: async (run, newSession) => {
+			newSession && manager?.runtime === "native"
+				? restartManager(client.agentRuns, { id: manager.id, project: project.path, personaId: saved.personaId! })
+				: client.agentRuns.start({ project: project.path, personaId: saved.personaId!, newSession }),
+		onSuccess: (run, newSession) => {
 			setConfirmNewSession(false);
-			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
-			const verb = resumes && !newSession ? "resume" : "start";
+			const verb = newSession ? "restart" : resumes ? "resume" : "start";
 			if (run.state === "failed") toast.error(`Could not ${verb} the manager`, { description: run.error ?? undefined });
 			else toast.success(`${run.name} ${verb}s now`);
 		},
-		onError: (error) => toast.error("Could not start the manager", { description: error.message }),
+		onError: (error, newSession) =>
+			toast.error(`Could not ${newSession ? "restart" : "start"} the manager`, { description: error.message }),
+		onSettled: () => queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() }),
 	});
 	const stop = useMutation({
 		mutationFn: () => client.agentRuns.stop({ id: manager!.id }),
@@ -44,30 +48,36 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 		onError: (error) => toast.error("Could not stop the manager", { description: error.message }),
 	});
 	const startLabel = manager?.sessionLost ? "Start a new session" : resumes ? "Resume manager" : "Start manager";
+	const controlsDisabled = readOnly || runs.isPending || runs.isError || start.isPending || stop.isPending;
 	return (
 		<>
 			<Topbar
 				actions={
-					<Tooltip content={active ? "Stop the manager process" : startLabel}>
-						<IconButton
-							ref={processControl}
-							label={active ? "Stop manager" : startLabel}
-							icon={active ? <Stop weight="fill" /> : <Play weight="fill" />}
-							disabled={
-								readOnly ||
-								runs.isPending ||
-								runs.isError ||
-								start.isPending ||
-								stop.isPending ||
-								(active ? manager.state === "starting" : !saved.personaId)
-							}
-							onClick={() => {
-								if (active) stop.mutate();
-								else if (manager?.sessionLost) setConfirmNewSession(true);
-								else start.mutate(false);
-							}}
-						/>
-					</Tooltip>
+					<>
+						<Tooltip content={active ? "Stop the manager process" : startLabel}>
+							<IconButton
+								ref={processControl}
+								label={active ? "Stop manager" : startLabel}
+								icon={active ? <Stop weight="fill" /> : <Play weight="fill" />}
+								disabled={controlsDisabled || (active ? manager.state === "starting" : !saved.personaId)}
+								onClick={() => {
+									if (active) stop.mutate();
+									else if (manager?.sessionLost) setConfirmNewSession(true);
+									else start.mutate(false);
+								}}
+							/>
+						</Tooltip>
+						{manager?.runtime === "native" && (
+							<Tooltip content="Restart with new context">
+								<IconButton
+									label="Restart with new context"
+									icon={<ArrowClockwise />}
+									disabled={controlsDisabled || !saved.personaId || manager.state === "starting"}
+									onClick={() => setConfirmNewSession(true)}
+								/>
+							</Tooltip>
+						)}
+					</>
 				}
 			>
 				<PageTitle
@@ -111,12 +121,17 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 			</section>
 			<ConfirmDialog
 				open={confirmNewSession}
-				title="Start a new manager session?"
-				description="The saved conversation is unavailable. A new session starts with the project instructions and reuses the existing workspace."
-				confirmLabel="Start a new session"
+				title="Restart manager with new context?"
+				description="This stops the manager and starts a fresh conversation with the latest saved persona and project instructions. The workers and workspace stay unchanged."
+				confirmLabel="Restart with new context"
+				danger
 				processing={start.isPending}
-				onConfirm={() => start.mutate(true)}
-				onCancel={() => setConfirmNewSession(false)}
+				onConfirm={() => {
+					if (!controlsDisabled && saved.personaId) start.mutate(true);
+				}}
+				onCancel={() => {
+					if (!start.isPending) setConfirmNewSession(false);
+				}}
 			/>
 		</>
 	);
