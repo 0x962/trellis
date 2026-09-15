@@ -8,7 +8,7 @@ export const defaultDesktopUserData = () => join(userInfo().homedir, "Library/Ap
 
 export type SelectedHome = { version: 1; home: string };
 
-export const readSelectedHome = (userData: string): string => {
+export const readConfiguredHome = (userData: string): string => {
 	const path = join(userData, "selected-home.json");
 	if (!existsSync(path)) {
 		const home = join(userData, "host");
@@ -17,7 +17,13 @@ export const readSelectedHome = (userData: string): string => {
 	const selected: SelectedHome | null = JSON.parse(readFileSync(path, "utf8"));
 	if (selected === null || selected.version !== 1 || typeof selected.home !== "string" || !isAbsolute(selected.home))
 		throw new Error(`The selected Trellis data directory is invalid. Review ${path}.`);
-	const home = realpathSync(selected.home);
+	return existsSync(selected.home) ? realpathSync(selected.home) : selected.home;
+};
+
+export const readSelectedHome = (userData: string): string => {
+	const home = readConfiguredHome(userData);
+	const path = join(userData, "selected-home.json");
+	if (!existsSync(path)) return home;
 	if (!statSync(home).isDirectory()) throw new Error(`The selected Trellis data directory is invalid. Review ${path}.`);
 	return home;
 };

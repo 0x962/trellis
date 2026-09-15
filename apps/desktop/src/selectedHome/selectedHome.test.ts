@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { readSelectedHome, writeSelectedHome } from "./selectedHome.ts";
+import { readConfiguredHome, readSelectedHome, writeSelectedHome } from "./selectedHome.ts";
 
 test("selection persists the canonical home without writing inside it", async () => {
 	const directory = await mkdtemp("/tmp/trl-selection-");
@@ -36,6 +36,19 @@ test("invalid or missing selections fail without replacing the saved choice", as
 		expect(readSelectedHome(directory)).toBe(await realpath(home));
 		await writeFile(join(directory, "selected-home.json"), "null");
 		expect(() => readSelectedHome(directory)).toThrow("selected Trellis data directory");
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+});
+
+test("a removed selected directory remains readable for service recovery without recreation", async () => {
+	const directory = await mkdtemp("/tmp/trl-selection-missing-");
+	try {
+		const home = join(directory, "removed");
+		await writeFile(join(directory, "selected-home.json"), JSON.stringify({ version: 1, home }));
+		expect(readConfiguredHome(directory)).toBe(home);
+		expect(() => readSelectedHome(directory)).toThrow();
+		expect(existsSync(home)).toBe(false);
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}
