@@ -34,6 +34,13 @@ The installer stops before it changes the app or HTTP host. The live runtime doe
 Evidence: `/tmp/trellis-reliability-install.log`. Nine agent processes remain active on runtime release `ae02d6f5`.
 The root runtime fixes require a terminal-service restart. The user has a pending choice about interruption of those processes.
 
+The live launchd job reports `spawn type = background (5)`. The shipped plist selects `ProcessType=Background`.
+The runtime and its agents have scheduler priority 4 under system load above 100. The runtime gains about 0.07 CPU seconds over 100 wall seconds.
+Native checks finish in milliseconds in a separate process. Repeated scans do not explain the observed delay.
+Commit `b6b69b6a` selects Interactive. An isolated launchd regression confirms `spawn type = interactive`; it changes no live job.
+The signed candidate includes this plist. Evidence: `apps/desktop/test/int/src/service/hostProcessType.test.ts` and `/tmp/trellis-runtime-82217.sample.txt`.
+[Apple's launchd manual](https://github.com/apple-oss-distributions/launchd/blob/main/man/launchd.plist.5) defines Interactive for services that an app needs to remain responsive.
+
 | New feedback | Status | Owner | Verification |
 | --- | --- | --- | --- |
 | Open Trellis at the maximum window size without native fullscreen. | Installed; user UI check pending | Desktop agent | 6a1b1deb. Five tests and the desktop typecheck pass. Every open restores a minimized window, exits fullscreen, and maximizes the window. |
