@@ -98,12 +98,12 @@ test("an interrupted start uses the recovery command and then the healthcheck", 
 	expect(await t.client.agentRuns.refresh({ id: run.id })).toMatchObject({ state: "running", terminalId: "recovered" });
 });
 
-test("an invalid healthcheck reply preserves the state and exposes its error", async () => {
+test("an invalid healthcheck reply records uncertainty and exposes its error", async () => {
 	expect((await configure()).status).toBe(200);
 	const run = await t.client.agentRuns.start({ personaId, project: "CMD" });
 	writeFileSync(join(directory, "health.json"), JSON.stringify({ state: "banana" }));
 	const refreshed = await t.client.agentRuns.refresh({ id: run.id });
-	expect(refreshed.state).toBe("running");
+	expect(refreshed.state).toBe("interrupted");
 	expect(refreshed.error).toContain("state");
 });
 

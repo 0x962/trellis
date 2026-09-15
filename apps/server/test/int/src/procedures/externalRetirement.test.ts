@@ -13,13 +13,13 @@ beforeAll(async () => {
 	t = await createTestApp();
 	const project = await t.seedProject("RET");
 	id = ulid();
-	await t.serverTx((tx) =>
+	await t.editServerTx((tx) =>
 		tx.execute(
 			sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,state,runtime,workspace_id,terminal_id,session_id,created_at,updated_at) VALUES (${id},'Wren','Manager','manager','Manage',${project.id},'RET','running','superset','workspace','terminal','conversation',now(),now())`,
 		),
 	);
 });
-afterEach(() => t.serverTx(assertStatusInvariant));
+afterEach(() => t.editServerTx(assertStatusInvariant));
 afterAll(() => t.close());
 const input = () => ({
 	source: "persona",
