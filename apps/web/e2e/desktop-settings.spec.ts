@@ -24,17 +24,20 @@ const packaged: Status = {
 };
 
 // A stand-in for the preload bridge of the macOS app. Each call goes to
-// window.desktopCalls. Resume local work fails the way an Electron IPC call
-// fails, with the channel prefix before the message of the main process.
+// window.desktopCalls, and each status call returns window.desktopStatus, so
+// a test can change the status after the page loads. Resume local work fails
+// the way an Electron IPC call fails, with the channel prefix before the
+// message of the main process.
 const installBridge = (page: Page, status: Status) =>
 	page.addInitScript((value) => {
 		const calls: unknown[][] = [];
 		Object.defineProperty(window, "desktopCalls", { value: calls });
+		Object.defineProperty(window, "desktopStatus", { value, writable: true });
 		Object.defineProperty(window, "trellisDesktop", {
 			value: {
 				platform: "darwin",
 				chooseDirectory: async () => null,
-				status: async () => value,
+				status: async () => (window as unknown as { desktopStatus: Status }).desktopStatus,
 				setOpenAtLogin: async (enabled: boolean) => {
 					calls.push(["setOpenAtLogin", enabled]);
 				},
@@ -81,6 +84,23 @@ test("desktop settings show the app state and run each former menu action", asyn
 		.toEqual([["setOpenAtLogin", true], ...actions.map(([, action]) => ["run", action])]);
 	await section.getByRole("button", { name: "Resume local work", exact: true }).click();
 	await expect(page.getByText("Local work stays paused.", { exact: true })).toBeVisible();
+});
+
+// The user approves the service in System Settings and returns to the app.
+// The window regains focus, which fires visibilitychange, and the section
+// reads the status again.
+test("desktop settings read the status again when the window regains focus", async ({ page }) => {
+	await installBridge(page, packaged);
+	await signIn(page, "/settings#desktop");
+	const section = page.getByRole("region", { name: "Desktop" });
+	await expect(section.getByText("Needs approval in Login Items", { exact: true })).toBeVisible();
+	await page.evaluate(() => {
+		const target = window as unknown as { desktopStatus: Status };
+		target.desktopStatus = { ...target.desktopStatus, service: "enabled" };
+		document.dispatchEvent(new Event("visibilitychange", { bubbles: true }));
+	});
+	await expect(section.getByText("Enabled", { exact: true })).toBeVisible();
+	await expect(calls(page)).resolves.toEqual([]);
 });
 
 test("the development app disables the package settings", async ({ page }) => {

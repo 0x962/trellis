@@ -60,7 +60,7 @@ The [directory report](acceptance/2026-09-14-directory/report.md) records the se
 
 Read [the desktop guide](../../apps/desktop/README.md) for build and package commands.
 Close or quit detaches the window and leaves background work active.
-Use the native stop action to pause dispatch, stop owned processes, and remove the background service.
+Use Stop local work in Settings > Desktop to pause dispatch, stop owned processes, and remove the background service.
 An unconfirmed process prevents a successful stop.
 
 Use Settings > Desktop > Choose data directory to open an existing home in place.

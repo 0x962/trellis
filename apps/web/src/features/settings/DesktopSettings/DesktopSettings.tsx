@@ -32,7 +32,14 @@ const statusKey = ["desktop-status"];
 // confirmation before they change anything.
 export function DesktopSettings({ bridge }: { bridge: DesktopBridge }) {
 	const queryClient = useQueryClient();
-	const status = useQuery({ queryKey: statusKey, queryFn: () => bridge.status() });
+	// The QueryClient never marks data stale. The user changes the service
+	// approval and the update outside this window, in System Settings or in
+	// the menu bar, so the page reads the status again on each return.
+	const status = useQuery({
+		queryKey: statusKey,
+		queryFn: () => bridge.status(),
+		refetchOnWindowFocus: "always",
+	});
 	const refresh = () => queryClient.invalidateQueries({ queryKey: statusKey });
 	const onError = (error: Error) =>
 		toast.error("The desktop action failed", { description: desktopErrorMessage(error) });
