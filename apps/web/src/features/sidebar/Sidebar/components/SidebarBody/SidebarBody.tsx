@@ -1,6 +1,15 @@
-import { FlowArrow, GitPullRequest, MagnifyingGlass, Plus, Sparkle, Ticket, Tray } from "@phosphor-icons/react";
+import {
+	FlowArrow,
+	GitPullRequest,
+	MagnifyingGlass,
+	Plus,
+	SidebarSimple,
+	Sparkle,
+	Ticket,
+	Tray,
+} from "@phosphor-icons/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { cx, IconButton, Kbd, TrellisWordmark } from "@trellis/ui";
+import { cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
 import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
@@ -51,9 +60,10 @@ export type SidebarBodyProps = {
 	onCollapse?: () => void;
 };
 
-// What the sidebar holds: the mark, the four fixed destinations, the
-// project tree, and the actor footer. The desktop aside and the phone sheet
-// both draw it.
+// What the sidebar holds: the collapse button, the four fixed destinations,
+// the project tree, and the actor footer. The desktop aside and the phone
+// sheet both draw it. The phone sheet closes in its own way, so it has no
+// collapse button.
 //
 // The project tree is the one region that scrolls and takes the spare
 // height. Every fixed destination sits above it, so none of them moves when
@@ -67,25 +77,27 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	const status = useLiveStatus(live);
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
+	const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
 
 	return (
 		<>
-			<div className="mb-1 flex h-13 shrink-0 items-center pl-2">
-				{onCollapse ? (
-					// The mark is the control that opens and closes the sidebar.
-					// A closed sidebar keeps the first two letters of it.
-					<button
-						type="button"
-						aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-						onClick={onCollapse}
-						className="inline-flex h-7 cursor-pointer items-center rounded-md transition-opacity duration-hover ease-out hover:opacity-70 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+			{onCollapse && (
+				<div className="mb-1 flex h-13 shrink-0 items-center">
+					<Tooltip
+						side="right"
+						content={
+							<span className="inline-flex items-center gap-1.5">
+								{toggleLabel}
+								<Kbd>[</Kbd>
+							</span>
+						}
 					>
-						<TrellisWordmark short={collapsed} className="h-4.5" />
-					</button>
-				) : (
-					<TrellisWordmark className="h-4.5" />
-				)}
-			</div>
+						<span className="inline-flex">
+							<IconButton label={toggleLabel} icon={<SidebarSimple />} className="ml-0.5" onClick={onCollapse} />
+						</span>
+					</Tooltip>
+				</div>
+			)}
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
 				<NavRow to="/needs-you" icon={<Tray />} label="Needs you" active={isActive(pathname, "/needs-you")} />
 				<NavRow

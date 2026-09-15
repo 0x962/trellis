@@ -81,6 +81,23 @@ const overflow = (page: Page) =>
 		};
 	});
 
+// TRL-66. The sidebar draws no wordmark, open or collapsed. A round button at
+// its top collapses it to the rail of icons and opens it again.
+test("sidebar > a round button collapses and expands the sidebar, and no wordmark shows", async ({ page }) => {
+	await signIn(page, "/all");
+	const sidebar = page.getByRole("complementary", { name: "Sidebar" });
+	await expect(sidebar.getByRole("link", { name: "All tickets" })).toBeVisible();
+	await expect(sidebar.getByRole("img", { name: "trellis" })).toHaveCount(0);
+
+	await sidebar.getByRole("button", { name: "Collapse sidebar" }).click();
+	await expect(sidebar).toHaveAttribute("data-collapsed", "true");
+	await expect(sidebar.getByRole("img", { name: "trellis" })).toHaveCount(0);
+
+	await sidebar.getByRole("button", { name: "Expand sidebar" }).click();
+	await expect(sidebar).not.toHaveAttribute("data-collapsed");
+	await expect(sidebar.getByRole("button", { name: "Collapse sidebar" })).toBeVisible();
+});
+
 test("sidebar > the Personas link stays inside the viewport while the project tree scrolls", async ({ page }) => {
 	await signIn(page, "/all");
 	const tree = page.getByRole("navigation", { name: "Projects" });
