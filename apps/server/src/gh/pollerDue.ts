@@ -23,6 +23,7 @@ export type DueRow = {
 	state: PrState;
 	ci_state: CiState;
 	content_hash: string | null;
+	fetch_error: string | null;
 	fetched_at: string | null;
 	interval_ms: number;
 };
@@ -37,7 +38,7 @@ export const selectCandidates = (tx: Tx, at: Date): Promise<DueRow[]> =>
 	rows<DueRow>(
 		tx,
 		sql`
-			SELECT p.id, p.owner, p.repo, p.number, p.state, p.ci_state, p.content_hash,
+			SELECT p.id, p.owner, p.repo, p.number, p.state, p.ci_state, p.content_hash, p.fetch_error,
 				${iso(sql`p.fetched_at`)} AS fetched_at,
 				CASE
 					WHEN p.state <> 'open' THEN ${literal(SETTLED_INTERVAL_MS)}

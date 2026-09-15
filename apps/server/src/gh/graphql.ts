@@ -2,7 +2,7 @@ import type { Check, CiState, PrState, ReviewState } from "@trellis/api";
 import { deriveCiState, normalizeChecks, type RawContext } from "./parse.ts";
 import type { GhFailure, GhRunner, GhSlot } from "./run.ts";
 
-// One `gh api graphql` request fetches up to 50 pull requests. Each ref gets
+// One `gh api graphql` request fetches a batch of pull requests. Each ref gets
 // the alias prN, so the response maps back to refs[N] by index. The response
 // carries no owner or repo, so the row takes both from the ref.
 //
@@ -141,7 +141,7 @@ export const mapPullRequestResponse = (refs: PullRequestRef[], response: PullReq
 // that timed out or lost its connection holds a cut body, which is not JSON,
 // so the run failure stands.
 //
-// The poller passes 50 refs on the poller slot. link and refresh pass one ref
+// The poller passes 10 refs on the poller slot. link and refresh pass one ref
 // on the interactive slot, so a user action never waits behind a tick.
 export const fetchPullRequests = async (
 	runGh: GhRunner,

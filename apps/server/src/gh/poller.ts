@@ -3,7 +3,7 @@ import { withTx } from "../db/tx.ts";
 import { run as detect } from "./detect.ts";
 import { fetchPullRequests } from "./graphql.ts";
 import { type DueRow, isDue, refOf, selectCandidates } from "./pollerDue.ts";
-import { type Polled, type PolledFailure, writePolled } from "./pollerWrite.ts";
+import { type Polled, type PolledFailure, storeFetchErrors, writePolled } from "./pollerWrite.ts";
 import { readRateLimit } from "./ratelimit.ts";
 import type { GhRunner } from "./run.ts";
 
@@ -38,9 +38,9 @@ export const AUTH_RECHECK_MS = 60_000;
 export const RATE_LIMIT_MS = 300_000;
 export const DETECT_MS = 120_000;
 
-// GitHub answers up to 50 aliased pull requests in one graphql request, so
-// one tick spawns one gh process per 50 due pull requests.
-export const BATCH_SIZE = 50;
+// Each request includes up to 100 check contexts per pull request.
+// Ten pull requests limit the work in each nested check query.
+export const BATCH_SIZE = 10;
 
 // `checkedAt` is the clock reading of the last `gh auth status` call.
 // `rateReadAt` is the reading of the last budget read. `multiplier`
@@ -115,10 +115,21 @@ const dropStale = (state: PollerState, candidates: DueRow[]) => {
 };
 
 // Fetches one batch and writes what gh answered. Returns false when gh
-// itself failed, which stops the tick and reports the new gh state.
+// is missing or signed out, which stops the tick and reports the new gh state.
 const fetchBatch = async (hook: PollerHook, state: PollerState, at: Date, batch: DueRow[]) => {
 	const result = await fetchPullRequests(hook.gh, batch.map(refOf), "poller");
 	if (!result.ok) {
+		if (result.reason === "error") {
+			for (const row of batch) state.lastFetch.set(row.id, at.getTime());
+			await withTx(hook.db, (tx) =>
+				storeFetchErrors(
+					tx,
+					batch.map((row) => ({ id: row.id, error: result.message })),
+				),
+			);
+			hook.log("PR batch fetch failed", { message: result.message, refs: batch.map(refOf) });
+			return true;
+		}
 		setGhState(hook, state, result.reason);
 		return false;
 	}
@@ -128,7 +139,8 @@ const fetchBatch = async (hook: PollerHook, state: PollerState, at: Date, batch:
 		const stored = batch[index]!;
 		state.lastFetch.set(stored.id, at.getTime());
 		if (!("row" in entry)) failed.push({ id: stored.id, error: entry.error });
-		else if (entry.row.contentHash !== stored.content_hash) written.push({ stored, row: entry.row });
+		else if (entry.row.contentHash !== stored.content_hash || stored.fetch_error !== null)
+			written.push({ stored, row: entry.row });
 	}
 	await withTx(hook.db, (tx, emit) => writePolled(tx, emit, { at, written, failed }), hook.sink);
 	return true;

@@ -15,8 +15,8 @@ import {
 	spawnKey,
 } from "../../../helpers/poller.ts";
 
-// One `gh api graphql` request carries up to 50 pull requests, so a tick
-// spawns one process per 50 due pull requests whatever number of repositories
+// One `gh api graphql` request carries up to 10 pull requests, so a tick
+// spawns one process per 10 due pull requests whatever number of repositories
 // they sit in. Alias prN answers the ref at index N, so every answer lands on
 // the row of its own pull request.
 //
@@ -58,34 +58,34 @@ const seedDue = async (count: number) => {
 };
 
 describe("poller batching", () => {
-	test("40 due pull requests cost one gh spawn per tick", async () => {
+	test("40 due pull requests use four batches of ten", async () => {
 		await seedDue(40);
 		const p = harness({ "api graphql": errorsReply(50) });
 		const handle = poller.start(p.hook);
 
 		await handle.tick();
 
-		expect(p.spawns().map(spawnKey)).toEqual(["auth status", "api graphql"]);
+		expect(p.spawns().map(spawnKey)).toEqual(["auth status", ...Array(4).fill("api graphql")]);
 		const [spawn] = p.spawnsOf("api graphql");
 		expect(spawn!.args.slice(0, 2)).toEqual(["api", "graphql"]);
-		expect(aliasCount(spawn!)).toBe(40);
-		expect(queriedRefs(spawn!)).toHaveLength(40);
+		expect(aliasCount(spawn!)).toBe(10);
+		expect(queriedRefs(spawn!)).toHaveLength(10);
 		await handle.stop();
 	}, 30_000);
 
-	test("60 due pull requests split into one request of 50 and one of 10", async () => {
+	test("60 due pull requests split into six batches of ten", async () => {
 		await seedDue(60);
 		const p = harness({ "api graphql": errorsReply(50) });
 		const handle = poller.start(p.hook);
 
 		await handle.tick();
 
-		expect(p.countOf("api graphql")).toBe(2);
+		expect(p.countOf("api graphql")).toBe(6);
 		const sizes = p
 			.spawnsOf("api graphql")
 			.map(aliasCount)
 			.sort((a, b) => a - b);
-		expect(sizes).toEqual([10, 50]);
+		expect(sizes).toEqual([10, 10, 10, 10, 10, 10]);
 		await handle.stop();
 	}, 30_000);
 
@@ -135,4 +135,56 @@ describe("poller batching", () => {
 		expect(p.countOf("api graphql")).toBe(1);
 		await handle.stop();
 	});
+});
+
+test("a gateway timeout retains its message and permits the next batch without an auth failure", async () => {
+	await seedDue(11);
+	const p = harness({});
+	const original = p.hook.gh;
+	let batches = 0;
+	p.hook.gh = Object.assign(
+		async (slot: Parameters<typeof original>[0], args: string[]) => {
+			if (args[0] === "api" && args[1] === "graphql" && ++batches === 1)
+				return { ok: false as const, reason: "error" as const, code: 1, stdout: "", message: "gh: HTTP 504" };
+			if (args[0] === "api" && args[1] === "graphql") {
+				const refs = queriedRefs({ args, env: {}, at: 0, pid: 0 });
+				p.stub.reply(
+					"api graphql",
+					graphqlReply(
+						refs.map((ref) => {
+							const [repository, number] = ref.split("#");
+							return { number: Number(number), url: `https://github.com/${repository}/pull/${number}` };
+						}),
+					),
+				);
+			}
+			return original(slot, args);
+		},
+		{ bin: original.bin, timeoutMs: original.timeoutMs },
+	);
+	const handle = poller.start(p.hook);
+	await handle.tick();
+	const rows = (await h.db.execute(sql`SELECT fetch_error, content_hash FROM pull_requests ORDER BY id`)).rows;
+	expect(batches).toBe(2);
+	expect(rows.filter((row) => row.fetch_error === "gh: HTTP 504")).toHaveLength(10);
+	expect(rows[10]!.content_hash).not.toBeNull();
+	expect(p.events.filter((event) => event.type === "gh.status" && !event.ok)).toEqual([]);
+	expect(JSON.stringify(p.logs)).toContain("gh: HTTP 504");
+	await p.clock.advance(10_000);
+	expect(batches).toBe(2);
+	await handle.stop();
+});
+
+test("a successful unchanged PR clears its prior fetch error", async () => {
+	await seedDue(1);
+	const p = harness({ "api graphql": graphqlReply([{ number: 1 }]) });
+	const handle = poller.start(p.hook);
+	await handle.tick();
+	const before = (await h.db.execute(sql`SELECT content_hash FROM pull_requests`)).rows[0]!.content_hash;
+	await h.db.execute(sql`UPDATE pull_requests SET fetch_error='gh: HTTP 504'`);
+	await p.clock.advance(120_000);
+	const after = (await h.db.execute(sql`SELECT content_hash,fetch_error FROM pull_requests`)).rows[0]!;
+	expect(after.content_hash).toBe(before);
+	expect(after.fetch_error).toBeNull();
+	await handle.stop();
 });
