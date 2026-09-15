@@ -43,20 +43,35 @@ const lowest = async (category: string) => {
 };
 
 describe("approve", () => {
-	// MI-23
-	test("approve moves the ticket to the lowest-position done status", async () => {
+	// MI-23. The seeded set has no status between Human Review and Done.
+	test("approve moves the ticket to the status after Human Review", async () => {
 		const summary = await reviewRow();
 		expect(summary.status.slug).toBe("human-review");
+		const done = await lowest("done");
 		const before = app.calls.length;
 		const ticket = await approve(app.client, summary);
 		const moves = app.calls.slice(before).filter((call) => call.procedure === "tickets.move");
 		expect(moves).toHaveLength(1);
 		const input = moves[0]!.input as { ticket: string; status: string; expectedVersion?: number };
 		expect([summary.id, summary.identifier]).toContain(input.ticket);
-		expect(input.status).toBe("category:done");
+		expect(input.status).toBe(done.id);
 		expect(input.expectedVersion).toBe(summary.version);
-		expect(ticket.status.id).toBe((await lowest("done")).id);
+		expect(ticket.status.id).toBe(done.id);
 		expect(ticket.version).toBe(summary.version + 1);
+	});
+
+	// TRL-15. The TRL set: Deploy Queue sits between Human Review and Done.
+	test("approve moves the ticket to a status between Human Review and Done", async () => {
+		await app.client.statuses.create({
+			project: projectKey,
+			name: "Deploy Queue",
+			category: "review",
+			reviewer: "agent",
+			position: 4,
+		});
+		const ticket = await approve(app.client, await reviewRow());
+		expect(ticket.status.slug).toBe("deploy-queue");
+		expect(ticket.status.category).toBe("review");
 	});
 
 	// MI-24

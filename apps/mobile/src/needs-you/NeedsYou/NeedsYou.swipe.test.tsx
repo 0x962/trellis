@@ -31,12 +31,17 @@ const renderSeeded = async () => {
 const moveInput = (index: number) =>
 	net!.callsTo("tickets.move")[index]!.input as { ticket: string; status: string; expectedVersion?: number };
 
+// The seeded set has no status between Human Review and Done, so Done is
+// the status an approve moves to.
+const doneId = async () =>
+	(await human.statuses.list({ project: data.project })).statuses.find((status) => status.slug === "done")!.id;
+
 // A 412 on the approve: the server row moved on without an event.
 const conflict = async () => {
 	await renderSeeded();
 	await bumpVersion(first());
 	await act(() => swipeRight(first()));
-	expect(await screen.findByText(`Cannot move ${first()} to Done`)).toBeOnTheScreen();
+	expect(await screen.findByText(`Cannot approve ${first()}`)).toBeOnTheScreen();
 };
 
 describe("NeedsYou swipes", () => {
@@ -51,13 +56,13 @@ describe("NeedsYou swipes", () => {
 	});
 
 	// MI-26. The client speaks RPC, so the move is the `tickets.move` call
-	// with the review row and category:done, and no other write follows.
-	test("a right swipe on a review row sends one move to the done status", async () => {
+	// with the review row and the id of the next status, and no other write follows.
+	test("a right swipe on a review row sends one move to the next status", async () => {
 		await renderSeeded();
 		await act(() => swipeRight(first()));
 		await waitFor(() => expect(net!.callsTo("tickets.move")).toHaveLength(1));
 		const input = moveInput(0);
-		expect(input.status).toBe("category:done");
+		expect(input.status).toBe(await doneId());
 		const id = (await human.tickets.get({ ticket: first() })).id;
 		expect([id, first()]).toContain(input.ticket);
 		await settle(100);
@@ -103,7 +108,7 @@ describe("NeedsYou swipes", () => {
 		await fireEvent.press(within(screen.getByTestId("toast")).getByRole("button", { name: "Retry" }));
 		await waitFor(() => expect(net!.callsTo("tickets.move")).toHaveLength(2));
 		expect(moveInput(1).expectedVersion).toBe(current);
-		expect(moveInput(1).status).toBe("category:done");
+		expect(moveInput(1).status).toBe(await doneId());
 		await waitFor(() => expect(row(first())).toBeNull());
 		expect((await human.tickets.get({ ticket: first() })).status.category).toBe("done");
 	});

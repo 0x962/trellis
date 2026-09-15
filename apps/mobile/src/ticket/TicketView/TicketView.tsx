@@ -90,7 +90,7 @@ export function TicketView({ ticket }: TicketViewProps) {
 		void run(withPriority(ticket, priority), () => client.tickets.update(priorityInput(ticket, priority)));
 	};
 	const onApprove = () => {
-		void run(withStatus(ticket, approveTarget(statuses)), () => approve(client, ticket, statuses));
+		void run(withStatus(ticket, approveTarget(statuses, ticket.status)), () => approve(client, ticket, statuses));
 	};
 	const onSendBack = (reason: string) => {
 		void run(withStatus(ticket, sendBackTarget(statuses)), () => sendBack(client, ticket, statuses, reason));

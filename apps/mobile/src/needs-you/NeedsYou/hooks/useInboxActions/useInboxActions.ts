@@ -96,7 +96,7 @@ export const useInboxActions = (): InboxActions => {
 				() => approve(getClient(), ticket),
 				(current) => ({
 					tone: "error",
-					title: `Cannot move ${ticket.identifier} to Done`,
+					title: `Cannot approve ${ticket.identifier}`,
 					action: {
 						label: "Retry",
 						onPress: () => {

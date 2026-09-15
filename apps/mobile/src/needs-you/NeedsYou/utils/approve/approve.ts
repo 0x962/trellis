@@ -1,9 +1,14 @@
 import type { Ticket, TicketSummary, TrellisClient } from "@trellis/api";
+import { approveTarget } from "../../../../ticket/reviewTargets";
 
-// Moves the ticket to the lowest-position done status. The summary's
-// version travels as `expectedVersion`, so a stale row is VERSION_CONFLICT.
-export const approve = (client: TrellisClient, summary: TicketSummary): Promise<Ticket> =>
-	client.tickets.move({ ticket: summary.id, status: "category:done", expectedVersion: summary.version });
+// Moves the ticket to the status after its own in column order. The
+// summary's version travels as `expectedVersion`, so a stale row is
+// VERSION_CONFLICT.
+export const approve = async (client: TrellisClient, summary: TicketSummary): Promise<Ticket> => {
+	const { statuses } = await client.statuses.list({ project: summary.project.id });
+	const target = approveTarget(statuses, summary.status);
+	return client.tickets.move({ ticket: summary.id, status: target.id, expectedVersion: summary.version });
+};
 
 // How far one send back got. `posted` turns true once the comment is on the
 // server, so a second run with the same object moves the ticket only and
