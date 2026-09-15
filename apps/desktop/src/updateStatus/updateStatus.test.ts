@@ -71,3 +71,27 @@ test("a copied home uses the available release unless an incompatible runtime ne
 		await rm(directory, { recursive: true, force: true });
 	}
 });
+
+test("a current host still needs activation when its runtime belongs to another package", async () => {
+	const directory = await mkdtemp("/tmp/trl-runtime-release-");
+	const home = join(directory, "home");
+	const available = {
+		root: join(directory, "releases", "a".repeat(64)),
+		manifest: { id: "a".repeat(64), version: "1", protocol: 6 },
+	};
+	try {
+		await mkdir(join(home, "runtime"), { recursive: true });
+		await mkdir(available.root, { recursive: true });
+		await writeFile(join(available.root, "release.json"), JSON.stringify(available.manifest));
+		await recordActiveRelease(home, available);
+		const runtime = join(home, "runtime/manifest.json");
+		await writeFile(runtime, JSON.stringify({ pid: process.pid, version: 6, releaseId: "b".repeat(64) }));
+		expect((await readUpdateStatus(home, available)).state).toBe("restart-required");
+		await writeFile(runtime, JSON.stringify({ pid: process.pid, version: 6 }));
+		expect((await readUpdateStatus(home, available)).state).toBe("restart-required");
+		await writeFile(runtime, JSON.stringify({ pid: process.pid, version: 6, releaseId: available.manifest.id }));
+		expect((await readUpdateStatus(home, available)).state).toBe("current");
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+});

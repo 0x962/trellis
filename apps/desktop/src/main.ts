@@ -1,10 +1,11 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from "electron";
+import { activateHostRelease } from "./activateHostRelease/activateHostRelease.ts";
 import { chooseDataHome } from "./chooseDataHome/chooseDataHome.ts";
 import { configureDesktopIdentity } from "./desktopIdentity/desktopIdentity.ts";
 import { desktopPaths } from "./desktopPaths/desktopPaths.ts";
-import { adoptHost, connectHost, type HostConnection } from "./host/host.ts";
+import { connectHost, type HostConnection } from "./host/host.ts";
 import { hostRequest } from "./hostRequest/hostRequest.ts";
 import { installCli } from "./installCli/installCli.ts";
 import { deepLinkPath, externalUrl, sameOrigin } from "./navigation/navigation.ts";
@@ -95,7 +96,7 @@ const connect = async () => {
 		}
 		availableRelease = await pinResources(hostRoot, app.getPath("userData"));
 		await requireService(paths().helper, desktopHome());
-		host = await adoptHost(desktopHome());
+		host = await activateHostRelease(desktopHome(), paths().helper, availableRelease);
 		const update = await readUpdateStatus(desktopHome(), availableRelease);
 		if (!update.active) throw new Error("The background host has no active release.");
 		await installCli({

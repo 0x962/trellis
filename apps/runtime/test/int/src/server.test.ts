@@ -26,6 +26,7 @@ beforeAll(async () => {
 	await buildRuntime();
 	daemon = spawn(runtimeNode, [resolve(sourceDir, "../dist/index.js"), "--home", home], {
 		stdio: ["ignore", "pipe", "inherit"],
+		env: { ...process.env, TRELLIS_RELEASE_ID: "a".repeat(64) },
 	});
 	await new Promise<void>((resolve, reject) => {
 		daemon.stdout!.once("data", () => resolve());
@@ -57,6 +58,7 @@ test("repeated concurrent starts and client reconnect keep one child", async () 
 test("socket, manifest and output use owner-only permissions", async () => {
 	expect(statSync(join(home, "runtime.sock")).mode & 0o777).toBe(0o600);
 	expect(statSync(join(home, "manifest.json")).mode & 0o777).toBe(0o600);
+	expect(JSON.parse(readFileSync(join(home, "manifest.json"), "utf8")).releaseId).toBe("a".repeat(64));
 	expect(JSON.parse(readFileSync(join(home, "manifest.json"), "utf8")).daemonId).toBe((await client.hello()).daemonId);
 });
 test("PTY input, resize and stop work in Node", async () => {
