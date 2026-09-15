@@ -233,5 +233,28 @@ test("a manager resume cannot create a second process for a live provider sessio
 		dependencies(),
 	);
 	expect((await h.read((tx) => getRun(tx, "assignment"))).error).toContain("Confirm the prior process stopped");
+	expect((await h.read((tx) => getRun(tx, "assignment"))).sessionLost).toBe(false);
 	expect((await fixture.client.list()).map((session) => session.id)).toEqual([first.id]);
+});
+
+test("a stopped legacy manager without native identity enables a new conversation", async () => {
+	await fixture.client.start({ id: "legacy", command: "/bin/cat", args: [], cwd: fixture.home, mode: "pty" });
+	await fixture.client.stop("legacy");
+	await startNative(
+		context(),
+		{
+			run: await h.read((tx) => getRun(tx, "assignment")),
+			config: configFor("claude"),
+			resume: true,
+			previousAttemptId: "legacy",
+			context: "Resume",
+			attempt,
+		},
+		dependencies(),
+	);
+	const run = await h.read((tx) => getRun(tx, "assignment"));
+	expect(run.sessionLost).toBe(true);
+	expect(run.closedAt).not.toBeNull();
+	expect(run.error).toContain("no confirmed session");
+	expect((await fixture.client.list()).map((session) => session.id)).toEqual(["legacy"]);
 });

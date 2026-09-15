@@ -15,6 +15,8 @@ import type { ServiceCtx } from "../support.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import type { StoredRun } from "./queries.ts";
 
+class MissingNativeSessionIdentity extends Error {}
+
 type Dependencies = {
 	workspace: typeof nativeWorkspace;
 	runtime: typeof ensureNativeRuntime;
@@ -111,7 +113,9 @@ export const startNative = async (
 					previous.agent?.sessionId == null ||
 					(await nativePreset(ctx.home, input.previousAttemptId)) !== config.harness.preset
 				)
-					throw new Error("The prior attempt has no confirmed session for this harness. Start a new session.");
+					throw new MissingNativeSessionIdentity(
+						"The prior attempt has no confirmed session for this harness. Start a new session.",
+					);
 				sessionId = previous.agent.sessionId;
 			}
 			await host.prepare(launch, sessionId);
@@ -127,7 +131,7 @@ export const startNative = async (
 	} catch (error) {
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET closed_at = ${launchSubmitted ? null : ctx.now()}, error = ${error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET session_lost = session_lost OR ${error instanceof MissingNativeSessionIdentity}, closed_at = ${launchSubmitted ? null : ctx.now()}, error = ${error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 		if (launchSubmitted)

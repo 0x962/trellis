@@ -168,6 +168,7 @@ test("an uncertain launch reply keeps the assignment open for process inspection
 		expect(launchPath).toBe(process.env.PATH);
 		expect(after.closedAt).toBeNull();
 		expect(after.error).toContain("response is unknown");
+		expect(after.sessionLost).toBe(false);
 	} finally {
 		await new Promise<void>((resolve) => server.close(() => resolve()));
 	}
@@ -239,6 +240,7 @@ test.each(["acknowledged", "unknown"])("a Claude start waits for its initial pro
 			const after = await h.read((tx) => getRun(tx, id));
 			expect(after.closedAt).toBeNull();
 			expect(after.error).toContain("did not acknowledge");
+			expect(after.sessionLost).toBe(false);
 		}
 	} finally {
 		await new Promise<void>((resolve) => server.close(() => resolve()));
