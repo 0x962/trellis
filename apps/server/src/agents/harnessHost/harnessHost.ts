@@ -7,6 +7,7 @@ import { interruptHarness } from "./interruptHarness.ts";
 import { prepareAttempt } from "./prepareAttempt.ts";
 import { providers } from "./providers.ts";
 import { resolveExecutable } from "./resolveExecutable.ts";
+import { sendNativePrompt } from "./sendNativePrompt.ts";
 import type { HarnessDescriptor, HarnessHostOptions, HarnessStarted, HarnessStartInput } from "./types.ts";
 
 const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/);
@@ -36,6 +37,17 @@ export class HarnessHost {
 		}
 		const descriptor = await prepareAttempt(this.options, input, sessionId);
 		await this.options.runtime.start(descriptor.spec);
+		if (input.harness === "opencode" && sessionId !== undefined) {
+			const current = await this.waitFor(input.id, (state) => state.agent?.sessionId === sessionId);
+			if (!current.acknowledgedMessageIds.includes(input.id))
+				await sendNativePrompt(
+					this.options,
+					descriptor,
+					sessionId,
+					input.id,
+					`trellis-message:${input.id}\n${input.prompt}`,
+				);
+		}
 		const process = provider.capabilityGaps.length
 			? await this.status(input.id)
 			: await this.waitFor(
@@ -100,12 +112,18 @@ export class HarnessHost {
 		const descriptor = await this.descriptor(id);
 		const provider = providers[descriptor.harness];
 		if (provider.capabilityGaps.length) throw new Error(provider.capabilityGaps.join(" "));
-		await this.options.runtime.deliver(
-			id,
-			messageId,
-			Buffer.from(`\u001b[200~trellis-message:${messageId}\n${text}\u001b[201~\r`).toString("base64"),
-			true,
-		);
+		if (descriptor.harness === "opencode") {
+			const sessionId = (await this.status(id)).agent?.sessionId;
+			if (sessionId == null) throw new Error(`Harness attempt ${id} has no provider session identity`);
+			await sendNativePrompt(this.options, descriptor, sessionId, messageId, `trellis-message:${messageId}\n${text}`);
+		} else {
+			await this.options.runtime.deliver(
+				id,
+				messageId,
+				Buffer.from(`\u001b[200~trellis-message:${messageId}\n${text}\u001b[201~\r`).toString("base64"),
+				true,
+			);
+		}
 		return this.waitFor(id, (state) => state.acknowledgedMessageIds.includes(messageId));
 	}
 	async interrupt(id: string) {

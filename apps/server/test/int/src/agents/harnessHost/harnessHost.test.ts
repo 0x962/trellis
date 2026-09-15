@@ -1,6 +1,7 @@
 import { afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
 import { type ChildProcess, spawn } from "node:child_process";
-import { chmod, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { chmod, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { originDir } from "../../../../../../../test/originDir.ts";
@@ -227,4 +228,46 @@ test("invalid public launch input fails before it creates attempt files", async 
 		).rejects.toThrow();
 	expect(await client.list()).toEqual([]);
 	await expect(readdir(join(home, "attempts"))).rejects.toMatchObject({ code: "ENOENT" });
+});
+
+test("concurrent OpenCode resumes send one native initial prompt", async () => {
+	const input = {
+		id: "resume-once",
+		harness: "opencode" as const,
+		cwd: home,
+		prompt: "initial resume",
+		sessionId: "provider-original",
+	};
+	const results = await Promise.all(Array.from({ length: 12 }, () => host.resume(input)));
+	expect(new Set(results.map((row) => row.process.pid)).size).toBe(1);
+	const output = Buffer.from((await host.output(input.id)).data, "base64").toString();
+	expect(output.match(/native prompt accepted/g)).toHaveLength(1);
+	expect(results.every((row) => row.process.acknowledgedMessageIds.includes(input.id))).toBe(true);
+});
+
+test("an uncertain native delivery is not sent again after host recreation", async () => {
+	await host.start({ id: "unknown-native", harness: "opencode", cwd: home, prompt: "first" });
+	await host.waitFor("unknown-native", (state) => state.activity?.state === "idle");
+	const descriptor = JSON.parse(await readFile(join(home, "attempts", "unknown-native", "launch.json"), "utf8"));
+	const prompt = "trellis-message:uncertain\nnext";
+	await client.registerNativeDelivery(
+		"unknown-native",
+		descriptor.spec.env.TRELLIS_ATTEMPT_TOKEN,
+		"uncertain",
+		createHash("sha256").update(prompt).digest("hex"),
+		true,
+	);
+	host = new HarnessHost({
+		runtime: client,
+		directory: join(home, "attempts"),
+		env: { ...process.env, PATH: join(home, "bin") },
+		bun: process.execPath,
+		observationTimeoutMs: 100,
+	});
+	await expect(host.send("unknown-native", "next", "uncertain")).rejects.toMatchObject({
+		code: "HARNESS_OBSERVATION_TIMEOUT",
+	});
+	expect(Buffer.from((await host.output("unknown-native")).data, "base64").toString()).not.toContain(
+		"native prompt accepted",
+	);
 });

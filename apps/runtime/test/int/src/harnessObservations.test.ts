@@ -232,3 +232,29 @@ test("a new prompt clears an unreliable old turn ID and binds the first native t
 	});
 	expect((await client.inspect("attempt")).agent?.turnId).toBe("second");
 });
+
+test("native API delivery reserves once and only a provider prompt confirms receipt", async () => {
+	await start();
+	await client.observe("attempt", "secret", { kind: "session", sessionId: "provider" });
+	const digest = "a".repeat(64);
+	await expect(client.registerNativeDelivery("attempt", "secret", "before-first-prompt", digest, true)).rejects.toThrow(
+		"idle",
+	);
+	await client.observe("attempt", "secret", { kind: "idle", outcome: "completed" });
+	const reservations = await Promise.all(
+		Array.from({ length: 12 }, () => client.registerNativeDelivery("attempt", "secret", "native", digest, true)),
+	);
+	expect(reservations.filter((result) => result.claimed)).toHaveLength(1);
+	expect(reservations.every((result) => result.status === "unknown")).toBe(true);
+	expect((await client.inspect("attempt")).acknowledgedMessageIds).toEqual([]);
+	await expect(client.registerNativeDelivery("attempt", "secret", "native", "b".repeat(64), true)).rejects.toThrow(
+		"different",
+	);
+	await expect(client.registerNativeDelivery("attempt", "secret", "other", digest, true)).rejects.toThrow("idle");
+	await client.observe("attempt", "secret", { kind: "prompt", prompt: "trellis-message:native\nhello" });
+	expect(await client.registerNativeDelivery("attempt", "secret", "native", digest, true)).toMatchObject({
+		claimed: false,
+		status: "acknowledged",
+	});
+	await expect(client.registerNativeDelivery("attempt", "wrong", "bad", digest, false)).rejects.toThrow("token");
+});

@@ -11,9 +11,19 @@ export function validateRequest(value: unknown): RuntimeRequest {
 	const params = request.params as Record<string, unknown>;
 	if (!params || typeof params !== "object") throw new Error("Request parameters are required");
 	if (
-		["start", "inspect", "observe", "turn", "input", "deliver", "resize", "stop", "output", "subscribe"].includes(
-			request.method,
-		)
+		[
+			"start",
+			"inspect",
+			"registerNativeDelivery",
+			"observe",
+			"turn",
+			"input",
+			"deliver",
+			"resize",
+			"stop",
+			"output",
+			"subscribe",
+		].includes(request.method)
 	) {
 		if (typeof params.id !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.id))
 			throw new Error("Session identifier must contain letters, numbers, underscores, or hyphens");
@@ -41,6 +51,15 @@ export function validateRequest(value: unknown): RuntimeRequest {
 				throw new Error("Unknown process activity filter");
 			if (params.hasError !== undefined && typeof params.hasError !== "boolean")
 				throw new Error("The process error filter must be a boolean");
+			break;
+		case "registerNativeDelivery":
+			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
+				throw new Error("An attempt token is required");
+			if (typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))
+				throw new Error("A message identifier is required");
+			if (typeof params.promptDigest !== "string" || !/^[a-f0-9]{64}$/.test(params.promptDigest))
+				throw new Error("A SHA256 prompt digest is required");
+			if (typeof params.requireIdle !== "boolean") throw new Error("The idle requirement must be a boolean");
 			break;
 		case "observe":
 			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)

@@ -93,7 +93,18 @@ if (harness === "opencode")
 		async fetch(request) {
 			if (request.headers.get("authorization") !== `Bearer ${process.env.TRELLIS_OPENCODE_CONTROL_TOKEN}`)
 				return new Response("unauthorized", { status: 401 });
-			const input = (await request.json()) as { sessionId: string; turnId: string };
+			const input = (await request.json()) as { sessionId: string; turnId: string; prompt?: string };
+			if (new URL(request.url).pathname === "/prompt") {
+				if (input.sessionId !== sessionId || typeof input.prompt !== "string")
+					return new Response("wrong session", { status: 409 });
+				process.stdout.write("native prompt accepted\n");
+				outcome = "completed";
+				await hook("prompt", input.prompt);
+				await hook("tool");
+				process.stdout.write("fixture response\n");
+				await hook("idle");
+				return Response.json({ accepted: true, sessionId });
+			}
 			if (input.sessionId !== sessionId || input.turnId !== "fixture-turn")
 				return new Response("stale", { status: 409 });
 			outcome = process.env.HARNESS_FIXTURE_BEHAVIOR === "normal-interrupt" ? "completed" : "interrupted";
@@ -104,8 +115,12 @@ if (harness === "opencode")
 process.stdin.setRawMode(true);
 await hook("session");
 const prompt = harness === "opencode" ? args[args.indexOf("--prompt") + 1]! : args.at(-1)!;
-await hook("prompt", prompt);
-if (!["busy", "normal-interrupt"].includes(process.env.HARNESS_FIXTURE_BEHAVIOR!)) await hook("idle");
+if (harness !== "opencode" || !resumed) await hook("prompt", prompt);
+if (
+	(harness !== "opencode" || !resumed) &&
+	!["busy", "normal-interrupt"].includes(process.env.HARNESS_FIXTURE_BEHAVIOR!)
+)
+	await hook("idle");
 process.stdin.resume();
 let input = "";
 process.stdin.on("data", (chunk: Buffer) => {

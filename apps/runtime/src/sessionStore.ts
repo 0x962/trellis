@@ -20,6 +20,7 @@ import { observeHarness } from "./observeHarness.ts";
 import { observeLegacyTurn } from "./observeLegacyTurn.ts";
 import { ProcessExitWatcher } from "./processExitWatcher.ts";
 import { createProcessHandle } from "./processHandle.ts";
+import { registerNativeDelivery } from "./registerNativeDelivery.ts";
 import type { SessionRecord as Record } from "./sessionRecord.ts";
 import { sessionResources } from "./sessionResources.ts";
 import { watchRecoveredSession } from "./watchRecoveredSession.ts";
@@ -88,6 +89,9 @@ export class SessionStore {
 	inspect(id: string): RuntimeProcessStatus {
 		return inspectSessionRecord(this.get(id));
 	}
+	registerNativeDelivery(input: RuntimeMethods["registerNativeDelivery"]["params"]) {
+		return registerNativeDelivery(this.get(input.id), input);
+	}
 	observe({ id, token, event, expected }: RuntimeMethods["observe"]["params"]): RuntimeProcessStatus {
 		const record = this.get(id);
 		authenticateSession(record, token);
@@ -95,11 +99,10 @@ export class SessionStore {
 		observeHarness(record, event);
 		return this.inspect(id);
 	}
-	turn({ id, token, event, messageId, result }: RuntimeMethods["turn"]["params"]): RuntimeProcessStatus {
-		const record = this.get(id);
-		authenticateSession(record, token);
-		observeLegacyTurn(record, { id, token, event, messageId, result });
-		return this.inspect(id);
+	turn(input: RuntimeMethods["turn"]["params"]): RuntimeProcessStatus {
+		const record = this.get(input.id);
+		observeLegacyTurn(record, input);
+		return this.inspect(input.id);
 	}
 	subscribe(id: string, listener: () => void, stream: RuntimeStream = "stdout", output = true) {
 		const record = this.get(id);

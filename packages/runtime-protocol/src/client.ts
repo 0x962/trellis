@@ -73,6 +73,16 @@ export class RuntimeClient {
 	subscribeSession(id: string, signal?: AbortSignal) {
 		return subscribeOutput(this.socketPath, { id, offset: 0, output: false }, signal);
 	}
+	registerNativeDelivery(
+		id: string,
+		token: string,
+		messageId: string,
+		promptDigest: string,
+		requireIdle = true,
+		expected?: RuntimeExpectedTurn,
+	) {
+		return this.call("registerNativeDelivery", { id, token, messageId, promptDigest, requireIdle, expected });
+	}
 	observe(id: string, token: string, event: HarnessEvent, expected?: RuntimeExpectedTurn) {
 		return this.call("observe", { id, token, event, expected });
 	}

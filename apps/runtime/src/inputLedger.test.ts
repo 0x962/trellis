@@ -69,3 +69,38 @@ test("known delivery acknowledgements persist and unknown IDs do not create rece
 		rmSync(home, { recursive: true, force: true });
 	}
 });
+
+test("native reservations retain uncertainty across reload and reject a transport change", async () => {
+	const home = mkdtempSync("/tmp/trl-native-ledger-");
+	try {
+		const path = join(home, "input.json");
+		let claims = 0;
+		const first = new InputLedger(path);
+		expect(
+			first.registerNative("native", "digest", () => {
+				claims++;
+			}),
+		).toMatchObject({ claimed: true, status: "unknown" });
+		const loaded = new InputLedger(path);
+		expect(
+			loaded.registerNative("native", "digest", () => {
+				claims++;
+			}),
+		).toMatchObject({ claimed: false, status: "unknown" });
+		expect(claims).toBe(1);
+		await expect(
+			loaded.deliver("native", "digest", async () => {
+				claims++;
+			}),
+		).rejects.toThrow("different");
+		loaded.acknowledge("native");
+		expect(
+			new InputLedger(path).registerNative("native", "digest", () => {
+				claims++;
+			}),
+		).toMatchObject({ claimed: false, status: "acknowledged" });
+		expect(claims).toBe(1);
+	} finally {
+		rmSync(home, { recursive: true, force: true });
+	}
+});

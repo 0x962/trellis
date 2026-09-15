@@ -106,7 +106,23 @@ export interface RuntimeExpectedTurn {
 	turnId: string | null;
 	activityAt: string;
 }
+export interface RuntimeNativeDelivery {
+	messageId: string;
+	claimed: boolean;
+	status: "unknown" | "acknowledged";
+}
 export interface RuntimeMethods {
+	registerNativeDelivery: {
+		params: {
+			id: string;
+			token: string;
+			messageId: string;
+			promptDigest: string;
+			requireIdle: boolean;
+			expected?: RuntimeExpectedTurn;
+		};
+		result: RuntimeNativeDelivery;
+	};
 	observe: {
 		params: { id: string; token: string; event: HarnessEvent; expected?: RuntimeExpectedTurn };
 		result: RuntimeProcessStatus;

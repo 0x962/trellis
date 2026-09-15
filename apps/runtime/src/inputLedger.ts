@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import type { RuntimeDelivery } from "@trellis/runtime-protocol";
+import type { RuntimeDelivery, RuntimeNativeDelivery } from "@trellis/runtime-protocol";
 
-type Entry = RuntimeDelivery & { hash: string; acknowledged?: boolean };
+type Entry = RuntimeDelivery & { hash: string; acknowledged?: boolean; transport?: "native" };
 export class InputLedger {
 	private readonly entries: Map<string, Entry>;
 	private readonly pending = new Map<string, Promise<void>>();
@@ -27,11 +27,24 @@ export class InputLedger {
 		entry.acknowledged = true;
 		this.save();
 	}
+	registerNative(messageId: string, promptDigest: string, claim: () => void): RuntimeNativeDelivery {
+		const existing = this.entries.get(messageId);
+		if (existing) {
+			if (existing.transport !== "native" || existing.hash !== promptDigest)
+				throw new Error(`Message ${messageId} already has different bytes or transport`);
+			return { messageId, claimed: false, status: existing.acknowledged ? "acknowledged" : "unknown" };
+		}
+		claim();
+		this.entries.set(messageId, { messageId, hash: promptDigest, status: "unknown", transport: "native" });
+		this.save();
+		return { messageId, claimed: true, status: "unknown" };
+	}
 	async deliver(messageId: string, data: string, write: () => Promise<unknown>): Promise<RuntimeDelivery> {
 		const hash = createHash("sha256").update(data).digest("hex");
 		const existing = this.entries.get(messageId);
 		if (existing) {
-			if (existing.hash !== hash) throw new Error(`Message ${messageId} already has different bytes`);
+			if (existing.transport === "native" || existing.hash !== hash)
+				throw new Error(`Message ${messageId} already has different bytes`);
 			await this.pending.get(messageId);
 			return { messageId, status: existing.status };
 		}

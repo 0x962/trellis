@@ -1,7 +1,9 @@
 import type { RuntimeMethods } from "@trellis/runtime-protocol";
+import { authenticateSession } from "./authenticateSession.ts";
 import type { SessionRecord } from "./sessionRecord.ts";
 
 export function observeLegacyTurn(record: SessionRecord, input: RuntimeMethods["turn"]["params"]) {
+	authenticateSession(record, input.token);
 	const state = { SessionStart: "ready", UserPromptSubmit: "working", Stop: "idle" } as const;
 	record.activity = { state: state[input.event], updatedAt: new Date().toISOString() };
 	record.inputPending = false;
