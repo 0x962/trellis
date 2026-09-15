@@ -4,23 +4,24 @@ Owner: lead agent. Integration branch: `trellis-readiness-audit`.
 Last update: 2026-09-15.
 
 `Integrated` means that the source contains the change. It does not establish that the installed desktop uses that source.
-The installed desktop includes product changes through `6fef93c3` and opens. The release includes the final trust, receipt, process-status, and UI fixes.
+The desktop opens with release `d345422e`. The release includes the host fixes, manager settings move, terminal layout, sidebar, and window changes.
 Hana resumes at 20:02:37 UTC with the same provider session. TRL dispatch is enabled, and OP dispatch stays paused.
 
 ## Current work
 
-The next UI changes are in progress. They are not part of the installed release recorded above.
+All five new UI changes are installed. The user will check the installed UI.
 
 | New feedback | Status | Owner | Verification |
 | --- | --- | --- | --- |
-| Open Trellis at the maximum window size without native fullscreen. | Integrated; installation pending | Desktop agent | 6a1b1deb. Five tests and the desktop typecheck pass. Every open restores a minimized window, exits fullscreen, and maximizes the window. |
-| Improve the sidebar using the Superset screenshot. | In progress; checks pending | Lead | Sidebar changes cover icons, row spacing, selected rows, and separation between root projects. |
-| Remove the space above the app content. Extend the content to the top. | In progress; checks pending | Lead | The topbar and sidebar reserve space for native controls within their own rows. |
-| Move all manager configuration into project settings. | Verified source; installation pending | Settings agent | All four settings browser cases pass. They cover saved values, one shared unsaved draft, default models, and trust recovery. |
-| Keep the manager page focused on its interactive CLI and process controls. | Source ready; installation pending | Lead | The terminal size, process controls, empty state, and error cases pass. The latest run reports one failure in its output continuity case. |
+| Open Trellis at the maximum window size without native fullscreen. | Installed; user UI check pending | Desktop agent | 6a1b1deb. Five tests and the desktop typecheck pass. Every open restores a minimized window, exits fullscreen, and maximizes the window. |
+| Improve the sidebar using the Superset screenshot. | Installed; user UI check pending | Lead | Sidebar changes cover icons, row spacing, selected rows, and separation between root projects. |
+| Remove the space above the app content. Extend the content to the top. | Installed; user UI check pending | Lead | The topbar and sidebar reserve space for native controls within their own rows. |
+| Move all manager configuration into project settings. | Installed; user UI check pending | Settings agent | All four settings browser cases pass. They cover saved values, one shared unsaved draft, default models, and trust recovery. |
+| Keep the manager page focused on its interactive CLI and process controls. | Installed; user UI check pending | Lead | The terminal size, process controls, empty state, and error cases pass. The user will check the installed terminal. |
 
-The latest UI run uses `/tmp/trellis-full-manager-browser-final.log`. All four settings cases and four desktop workspace cases pass.
-The titlebar and terminal continuity cases report failures in that run. The user requests deployment and will test the installed UI.
+The latest UI run reports 18 of 20 cases passed: `/tmp/trellis-full-manager-browser-final.log`. All four settings and four desktop workspace cases pass.
+The failed assertions concern transient titlebar geometry and the lazy settings route. Test-only corrections are not rerun.
+Five window tests, eight terminal UI tests, and the typechecks pass. The user requests deployment and will test the installed UI.
 
 | Feedback | Status | Owner | Verification |
 | --- | --- | --- | --- |
@@ -188,7 +189,16 @@ Evidence: `/tmp/trellis-process-projection-green.log`, `/tmp/trellis-process-con
 
 ## Final installation
 
-The desktop app includes product changes through `6fef93c3` on the macOS arm64 host.
+The latest desktop release opens at 20:27:36 UTC on the macOS arm64 host.
+The release ID is `d345422e628c94280f70488528e23bf2d0f78ce948f83e50fe7fe6c32593d035`, and the HTTP host reports PID 89102.
+Hana retains PID 13113 and provider session `f8584a45-27db-465c-8008-a4eaa12dc273`. Seven other native processes also survive the HTTP host update.
+The independent check confirms a healthy active release and open app. Evidence: `/tmp/trellis-full-manager-installed.json`.
+
+The manual install script fails an assertion that expects a starting session's provider ID to stay empty.
+The first launcher attempt reaches its 10-second login environment timeout and exits. launchd then starts the host.
+The independent confirmation establishes the installed state. The user will perform the remaining UI check.
+
+The earlier UI refresh includes product changes through `6fef93c3`.
 The signed release ID is `2cba138f1eed2145b7e4a9a4891424fdc34118e48b808d6bdd6fe1393b30dd6a`.
 The installed HTTP host reports PID 35176 at `http://127.0.0.1:4521`. The authenticated CLI reports healthy database and GitHub connections.
 The app opens. Hana and four workers retain their PIDs and provider sessions through the UI update.
