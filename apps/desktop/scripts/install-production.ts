@@ -34,8 +34,9 @@ await mkdir(source);
 await run(["/usr/bin/git", "archive", "--format=tar", `--output=${join(build, "source.tar")}`, commit], repo);
 await run(["/usr/bin/tar", "-xf", join(build, "source.tar"), "-C", source]);
 await run([process.execPath, "install", "--frozen-lockfile"]);
-await run([process.execPath, "installArchSpecificPackage.js"], join(source, "node_modules/node"));
-await run([process.execPath, "install.js"], join(source, "node_modules/electron"));
+await run(["node", "installArchSpecificPackage.js"], join(source, "node_modules/node"));
+const node = join(source, "node_modules/node/bin/node");
+await run([node, "install.js"], join(source, "node_modules/electron"));
 await run([process.execPath, "run", "build"], join(source, "apps/desktop"));
 const resources = join(source, "apps/desktop/dist/host");
 const metadata = JSON.parse(await readFile(join(resources, "build.json"), "utf8"));
@@ -44,6 +45,7 @@ const manifest = await readBundleManifest(resources);
 await writeBundleManifest(resources, manifest.version, manifest.protocol);
 await run(
 	[
+		node,
 		join(source, "node_modules/.bin/electron-builder"),
 		"--config",
 		"electron-builder.json",

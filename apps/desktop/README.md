@@ -94,7 +94,7 @@ To prepare a verified candidate without a production install:
 bun run desktop:install --prepare /tmp/trellis-preview/Trellis.app
 ```
 
-This command uses the local ad-hoc signature described above. It requires the macOS developer tools and network access for dependencies. A failed build leaves its temporary directory for inspection.
+This command uses the local ad-hoc signature described above. It requires Node, npm, the macOS developer tools, and network access for dependencies. A failed build leaves its temporary directory for inspection.
 
 The app retains earlier releases. The release identity includes the desktop launcher, preload bridge, service launcher, native helper, and LaunchAgent configuration. An unknown service state blocks activation.
 
