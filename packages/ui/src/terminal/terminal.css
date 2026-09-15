@@ -32,10 +32,6 @@
 	font-size: var(--text-sm);
 	border: 1px solid var(--border);
 }
-.terminal-canvas:focus-within {
-	outline: 2px solid var(--accent);
-	outline-offset: 2px;
-}
 .terminal-host {
 	height: 100%;
 }
@@ -65,5 +61,4 @@
 	padding: var(--spacing);
 	overflow: hidden;
 	border: 0;
-	outline-offset: -2px;
 }

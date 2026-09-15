@@ -1,5 +1,6 @@
 import { ArrowClockwise } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
+import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
 import "@xterm/xterm/css/xterm.css";
@@ -13,6 +14,7 @@ export type TerminalSurfaceProps = {
 	layout?: "panel" | "fill";
 	label: string;
 	connected: boolean;
+	stopped?: boolean;
 	unavailableReason?: string | null;
 	follow: (offset: number, onOutput: (frame: TerminalFrame) => Promise<void>, signal: AbortSignal) => Promise<void>;
 	send: (text: string, userInput: boolean) => Promise<unknown>;
@@ -24,6 +26,7 @@ export function TerminalSurface({
 	layout = "panel",
 	label,
 	connected,
+	stopped = false,
 	unavailableReason,
 	follow,
 	send,
@@ -35,13 +38,14 @@ export function TerminalSurface({
 	const failed = useRef(false);
 	const reconnect = useRef(() => {});
 	const fitCurrent = useRef(() => {});
-	enabled.current = connected;
+	enabled.current = connected && !stopped;
 	const [error, setError] = useState<string | null>(null);
 	const [gap, setGap] = useState(false);
 	useEffect(() => {
-		if (connected) fitCurrent.current();
-	}, [connected]);
+		if (connected && !stopped) fitCurrent.current();
+	}, [connected, stopped]);
 	useEffect(() => {
+		if (stopped) return;
 		let disposed = false;
 		let dispose = () => {};
 		let connection: AbortController;
@@ -97,7 +101,6 @@ export function TerminalSurface({
 			fitCurrent.current = fitTerminal;
 			const observer = new ResizeObserver(fitTerminal);
 			observer.observe(container.current!);
-			fitTerminal();
 			const output = terminalOutput({
 				write: (bytes, complete) => terminal.write(bytes, complete),
 				reset: () => {
@@ -127,6 +130,7 @@ export function TerminalSurface({
 				terminal.dispose();
 			};
 			connect();
+			fitTerminal();
 		};
 		void start().catch((failure: Error) => {
 			if (!disposed) {
@@ -138,7 +142,8 @@ export function TerminalSurface({
 			disposed = true;
 			dispose();
 		};
-	}, [label, follow, send, resize, onLeave]);
+	}, [label, follow, send, resize, onLeave, stopped]);
+	if (stopped) return <EmptyState title="Agent not running" variant={layout === "fill" ? "page" : "section"} />;
 	return (
 		<div className="terminal-surface" data-layout={layout}>
 			<div className="terminal-toolbar">

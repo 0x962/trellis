@@ -90,6 +90,7 @@ export function NativeTerminal({
 					layout={layout}
 					label={`Terminal input for ${run.name}`}
 					connected={connection === "open" && session?.controllable === true}
+					stopped={run.processStatus === "exited" || session?.status === "exited"}
 					unavailableReason={terminalUnavailable(session)}
 					follow={follow}
 					send={send}
