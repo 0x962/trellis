@@ -9,7 +9,8 @@ export const system = os.system.router({
 
 	chooseDirectory: os.system.chooseDirectory.handler(({ context }) => context.chooseDirectory()),
 	health: os.system.health.handler(({ context }) => call(context, "system.health", {})),
-	gh: os.system.gh.handler(({ context }) => call(context, "system.gh", {})),
+	gh: os.system.gh.handler(({ context }) => context.gh.read()),
+	checkGh: os.system.checkGh.handler(({ context }) => context.gh.check()),
 	// The snapshot holds the database worker for a CHECKPOINT and a copy. The
 	// compression runs here, so the worker serves every other request while
 	// the archive is written.

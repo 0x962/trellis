@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type { GhReason } from "@trellis/api";
 import { Badge, Button } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
@@ -18,14 +18,22 @@ const badges: Record<GhReason, string> = {
 // time of the last check. A gh that does not work shows its state, one line
 // from ghCopy, the command to run, and the raw server message behind
 // Details.
+//
+// `system.gh` answers with the state the server keeps. Check again asks the
+// server to run `gh auth status` now, and every `system.gh` reader in the
+// page gets the new answer.
 export function GhBanner() {
 	const { orpc, queryClient } = useApp();
 	const gh = useQuery(orpc.system.gh.queryOptions({})).data;
+	const check = useMutation({
+		...orpc.system.checkGh.mutationOptions(),
+		onSuccess: (status) => queryClient.setQueryData(orpc.system.gh.queryKey({}), status),
+	});
 	if (gh === undefined) return null;
 
 	const reason = gh.reason ?? "error";
 	const copy = ghCopy[reason];
-	const checkAgain = () => void queryClient.invalidateQueries({ queryKey: orpc.system.gh.key() });
+	const checkAgain = () => check.mutate({});
 	return (
 		<SettingsRow label="GitHub" hint="PR state and checks come from the gh CLI.">
 			{gh.ok ? (
@@ -44,7 +52,7 @@ export function GhBanner() {
 					</div>
 					<div className="flex flex-wrap items-center gap-2">
 						{copy.command !== null && <CliLine command={copy.command} />}
-						<Button variant="quiet" onClick={checkAgain}>
+						<Button variant="quiet" onClick={checkAgain} disabled={check.isPending}>
 							Check again
 						</Button>
 					</div>

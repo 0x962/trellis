@@ -42,6 +42,25 @@ describe("lib/orpc", () => {
 		expect(paths.sort()).toEqual(["/rpc/__batch__", "/rpc/statuses/list"]);
 	});
 
+	test("a slow call in a batch never holds back the answer of another call in the batch", async () => {
+		setActorName("dana");
+		const server = createTestServer();
+		const { client } = createOrpc({ fetch: (request, init) => server.request(request, init) });
+		const hold = server.holdNext("tickets.list");
+
+		const slow = client.tickets.list({});
+		const fast = client.projects.list({});
+		let slowSettled = false;
+		void slow.finally(() => {
+			slowSettled = true;
+		});
+
+		expect((await fast).length).toBeGreaterThan(0);
+		expect(slowSettled).toBe(false);
+		hold.release();
+		expect((await slow).items.length).toBeGreaterThan(0);
+	});
+
 	// WS-18. applyEvent patches the cache under the keys the tanstack utils
 	// build, so the app must query through those utils. SSE keeps every
 	// entity current, so a query never goes stale by time and never retries.

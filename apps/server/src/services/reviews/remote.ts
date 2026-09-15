@@ -1,6 +1,6 @@
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
-import type { ServiceCtx } from "../support";
+import type { PrepareCtx, ServiceCtx } from "../support";
 import { parseRef } from "./queries";
 import { gh } from "./revision";
 export const actionNames = [
@@ -25,7 +25,7 @@ export const actionNames = [
 	"live-unpersist",
 ] as const;
 export type Action = (typeof actionNames)[number];
-export async function action(ctx: ServiceCtx, input: { pr: string; action: Action; headSha: string }) {
+export async function action(ctx: PrepareCtx, input: { pr: string; action: Action; headSha: string }) {
 	const ref = parseRef(input.pr);
 	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", "id,headRefOid,state,headRefName"])) as {
 		id: string;
@@ -77,7 +77,7 @@ export async function action(ctx: ServiceCtx, input: { pr: string; action: Actio
 	}
 	return { ok: true as const };
 }
-export async function mine(ctx: ServiceCtx) {
+export async function mine(ctx: PrepareCtx) {
 	const raw = await gh(ctx, [
 		"search",
 		"prs",
@@ -100,7 +100,7 @@ export async function mine(ctx: ServiceCtx) {
 		url: string;
 	}[];
 }
-export async function metadata(ctx: ServiceCtx, input: { pr: string }) {
+export async function metadata(ctx: PrepareCtx, input: { pr: string }) {
 	const ref = parseRef(input.pr);
 	const query =
 		"query($owner:String!,$repo:String!,$num:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$num){mergeQueueEntry{position enqueuedAt} stack{entries(first:50){nodes{position pullRequest{number title state url isDraft}}}}}}}";

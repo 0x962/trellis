@@ -104,13 +104,20 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		};
 		const database = config.dbInline ? await openDatabase(config.dbDir) : undefined;
 		const transport = database
-			? createInlineTransport({ db: database.db, bus, config, runtime, applied: database.applied })
+			? createInlineTransport({
+					db: database.db,
+					bus,
+					config,
+					runtime,
+					applied: database.applied,
+					log: (msg, fields) => log.info(msg, fields),
+				})
 			: createWorkerTransport({ bus, config, runtime });
 		const started = await transport.start({ clockRate: config.clockRate, log: (msg, fields) => log.info(msg, fields) });
 		log.info("migrate", { applied: started.applied });
 		const swept = await sweep(config.home, started.liveShas);
 		log.info("sweep", { removedBlobs: swept.removedBlobs.length, removedTemp: swept.removedTemp.length });
-		const { app, bye } = createApp({ config, log, transport, bus, runtime });
+		const { app, bye } = createApp({ config, log, transport, bus, runtime, gh: ghState });
 		handler = app.fetch;
 		log.info("listening", { host: config.host, port: server.port, home: config.home, version: pkg.version });
 		for (const hook of hooks) await hook.start();
