@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { copyFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -21,17 +22,17 @@ export const parseOpenCodeEvent = (payload: unknown): HarnessEvent[] => {
 	const { event, ...fields } = envelope.parse(payload);
 	return [{ kind: event, ...fields }];
 };
-export const openCodeInterrupt = "\u001b";
 export const prepareOpenCode = async (input: HarnessLaunchInput): Promise<HarnessLaunch> => {
 	await mkdir(input.configDirectory, { recursive: true, mode: 0o700 });
 	const plugin = join(input.configDirectory, "trellis-opencode.mjs");
 	await copyFile(fileURLToPath(new URL("./plugin.mjs", import.meta.url)), plugin);
+	await copyFile(fileURLToPath(new URL("./control.mjs", import.meta.url)), join(input.configDirectory, "control.mjs"));
 	const args: string[] = [];
 	if (input.model !== undefined) args.push("--model", input.model);
 	if (input.resume) {
 		args.push("--session", input.sessionId);
 	}
-	args.push("--prompt", input.prompt);
+	if (!input.resume) args.push("--prompt", input.prompt);
 	return {
 		executable: "opencode",
 		args,
@@ -44,6 +45,9 @@ export const prepareOpenCode = async (input: HarnessLaunchInput): Promise<Harnes
 				plugin: [pathToFileURL(plugin).href],
 			}),
 			TRELLIS_HARNESS_HOOK: input.hookCommand,
+			TRELLIS_OPENCODE_CONTROL_SOCKET: `/tmp/trellis-oc-${randomUUID()}.sock`,
+			TRELLIS_OPENCODE_CONTROL_TOKEN: randomUUID(),
+			...(input.model ? { TRELLIS_OPENCODE_MODEL: input.model } : {}),
 			TRELLIS_PROVIDER_SESSION: input.resume ? input.sessionId : "",
 		},
 	};

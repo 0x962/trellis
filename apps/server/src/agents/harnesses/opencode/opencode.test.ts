@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { openCodeInterrupt, parseOpenCodeEvent, prepareOpenCode } from "./opencode.ts";
+import { parseOpenCodeEvent, prepareOpenCode } from "./opencode.ts";
 
 const homes: string[] = [];
 afterEach(async () => {
@@ -31,15 +31,16 @@ test("OpenCode starts with explicit model, permission bypass and a private plugi
 	expect(config.permission).toBe("allow");
 	expect(config.autoupdate).toBe(false);
 	expect(launch.env.OPENCODE_DISABLE_AUTOUPDATE).toBe("1");
+	expect(launch.env.TRELLIS_OPENCODE_CONTROL_SOCKET).toStartWith("/tmp/trellis-oc-");
+	expect(launch.env.TRELLIS_OPENCODE_CONTROL_TOKEN).toBeTruthy();
 	expect(await readFile(new URL(config.plugin[0]), "utf8")).toContain("chat.message");
 });
-test("OpenCode resumes only the selected session and interrupts with Escape", async () => {
+test("OpenCode resumes only the selected session", async () => {
 	const options = await input();
 	const launch = await prepareOpenCode({ ...options, resume: true });
 	expect(launch.args).toContain("--session");
 	expect(launch.args[launch.args.indexOf("--session") + 1]).toBe("ses_exact");
 	expect(launch.args).not.toContain("--continue");
-	expect(openCodeInterrupt).toBe("\u001b");
 });
 test("OpenCode exposes native IDs, exact prompt, model, tool calls and idle result", () => {
 	expect(

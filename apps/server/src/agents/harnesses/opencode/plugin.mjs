@@ -1,8 +1,28 @@
 import { spawn } from "node:child_process";
+import { openCodeControl } from "./control.mjs";
 
 export const TrellisPlugin = async ({ client }) => {
-	let sessionId = process.env.TRELLIS_PROVIDER_SESSION || null;
+	let sessionId = null;
 	let turnId;
+	let working = false;
+	const control = await openCodeControl({
+		socket: process.env.TRELLIS_OPENCODE_CONTROL_SOCKET,
+		token: process.env.TRELLIS_OPENCODE_CONTROL_TOKEN,
+		current: () => ({ sessionId, turnId, working }),
+		abort: (id) => client.session.abort({ path: { id } }),
+		prompt: (id, text) => {
+			working = true;
+			const model = process.env.TRELLIS_OPENCODE_MODEL;
+			const split = model?.indexOf("/");
+			return client.session.promptAsync({
+				path: { id },
+				body: {
+					parts: [{ type: "text", text }],
+					...(model ? { model: { providerID: model.slice(0, split), modelID: model.slice(split + 1) } } : {}),
+				},
+			});
+		},
+	});
 	let agent;
 	let outcome = "completed";
 	const parts = new Map();
@@ -28,6 +48,16 @@ export const TrellisPlugin = async ({ client }) => {
 		);
 		return pending;
 	};
+	if (process.env.TRELLIS_PROVIDER_SESSION) {
+		queueMicrotask(async () => {
+			const found = await client.session.get({ path: { id: process.env.TRELLIS_PROVIDER_SESSION } });
+			if (found.error) throw new Error(JSON.stringify(found.error));
+			if (found.data.id !== process.env.TRELLIS_PROVIDER_SESSION || found.data.parentID)
+				throw new Error("OpenCode did not return the selected root session");
+			sessionId = found.data.id;
+			await send({ event: "session", sessionId });
+		});
+	}
 	const matches = (id) => id === sessionId;
 	return {
 		config: async (config) => {
@@ -35,6 +65,7 @@ export const TrellisPlugin = async ({ client }) => {
 			for (const agent of Object.values(config.agent ?? {})) agent.permission = { "*": "allow" };
 		},
 		"chat.message": async (input, output) => {
+			await control.beforePrompt();
 			if (children.has(input.sessionID)) return;
 			if (sessionId !== input.sessionID) {
 				const found = await client.session.get({ path: { id: input.sessionID } });
@@ -46,6 +77,7 @@ export const TrellisPlugin = async ({ client }) => {
 			}
 			sessionId = input.sessionID;
 			turnId = output.message.id;
+			working = true;
 			agent = output.message.agent;
 			parts.clear();
 			outcome = "completed";
@@ -116,9 +148,14 @@ export const TrellisPlugin = async ({ client }) => {
 					await send({ event: "error", sessionId, turnId, error: JSON.stringify(p.error), outcome });
 			}
 			if (event.type === "session.status") {
-				if (p.status.type === "busy") await send({ event: "working", sessionId, turnId });
-				if (p.status.type === "idle")
+				if (p.status.type === "busy") {
+					working = true;
+					await send({ event: "working", sessionId, turnId });
+				}
+				if (p.status.type === "idle") {
+					working = false;
 					await send({ event: "idle", sessionId, turnId, result: [...parts.values()].join("\n"), outcome });
+				}
 			}
 		},
 	};

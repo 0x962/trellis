@@ -25,26 +25,51 @@ const openPlugin = async () => {
 		prompt: "test",
 		hookCommand: `${process.execPath} ${receiver}`,
 	});
-	const plugin = await import(JSON.parse(launch.env.OPENCODE_CONFIG_CONTENT!).plugin[0]);
-	const previous = process.env.TRELLIS_HARNESS_HOOK;
-	process.env.TRELLIS_HARNESS_HOOK = launch.env.TRELLIS_HARNESS_HOOK;
-	const hooks = await plugin.TrellisPlugin({ client: { session: { get: async () => ({ data: {} }) } } });
+	const actions: { name: string; args: unknown[] }[] = [];
+	type HookName =
+		| "chat.message"
+		| "chat.params"
+		| "tool.execute.before"
+		| "tool.execute.after"
+		| "experimental.text.complete"
+		| "event";
+	const hooks = new Proxy({} as Record<HookName, (...args: unknown[]) => Promise<void>>, {
+		get:
+			(_target, name: string) =>
+			async (...args: unknown[]) => {
+				actions.push({ name, args });
+			},
+	});
 	return {
 		hooks,
-		rows: async () =>
-			(await readFile(events, "utf8"))
+		rows: async () => {
+			const child = Bun.spawn(
+				[
+					process.execPath,
+					"--eval",
+					`const {url,actions}=JSON.parse(await Bun.stdin.text()); const {TrellisPlugin}=await import(url); const hooks=await TrellisPlugin({client:{session:{get:async()=>({data:{}})}}}); for(const action of actions) await hooks[action.name](...action.args);`,
+				],
+				{
+					stdin: new Blob([
+						JSON.stringify({ url: JSON.parse(launch.env.OPENCODE_CONFIG_CONTENT!).plugin[0], actions }),
+					]),
+					env: { ...process.env, ...launch.env },
+					stdout: "pipe",
+					stderr: "pipe",
+				},
+			);
+			const [code, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()]);
+			if (code !== 0) throw new Error(stderr);
+			return (await readFile(events, "utf8"))
 				.trim()
 				.split("\n")
-				.map((line) => JSON.parse(line)),
-		restore: () => {
-			if (previous === undefined) delete process.env.TRELLIS_HARNESS_HOOK;
-			else process.env.TRELLIS_HARNESS_HOOK = previous;
+				.map((line) => JSON.parse(line));
 		},
 	};
 };
 
 test("OpenCode reports the selected agent model and filters auxiliary model calls", async () => {
-	const { hooks, rows, restore } = await openPlugin();
+	const { hooks, rows } = await openPlugin();
 	await hooks["chat.message"](
 		{ sessionID: "ses_test" },
 		{ message: { id: "msg_test", agent: "build" }, parts: [{ type: "text", text: "test" }] },
@@ -63,12 +88,11 @@ test("OpenCode reports the selected agent model and filters auxiliary model call
 		provider: { id: "p" },
 		model: { id: "selected" },
 	});
-	restore();
 	expect((await rows()).filter((row) => row.event === "session").map((row) => row.model)).toEqual(["p/selected"]);
 });
 
 test("OpenCode preserves prompt receipts, tool progress, response text and interruption", async () => {
-	const { hooks, rows, restore } = await openPlugin();
+	const { hooks, rows } = await openPlugin();
 	const message = { id: "msg_test", agent: "build" };
 	await hooks["chat.message"](
 		{ sessionID: "ses_test" },
@@ -101,7 +125,6 @@ test("OpenCode preserves prompt receipts, tool progress, response text and inter
 	await hooks.event({
 		event: { type: "session.status", properties: { sessionID: "ses_test", status: { type: "idle" } } },
 	});
-	restore();
 	expect(await rows()).toMatchObject([
 		{ event: "prompt", prompt: "trellis-message:exact\nRun this", turnId: "msg_test" },
 		{ event: "tool-start", tool: { id: "call_1", name: "bash" } },
