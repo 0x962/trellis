@@ -237,6 +237,11 @@ The limit runs from 1 to 64 and defaults to 3. A partial unique index permits on
 The collector continues while dispatch pauses. It excludes the manager's own activity and respects child projects with their own manager.
 
 The controller sends a batch only to the current native attempt with a matching conversation and a ready or idle harness.
+After one minute without manager activity or a successful dispatch, the controller queues a heartbeat for an idle manager.
+A heartbeat uses the same durable queue and receipt checks as ticket events. Its event list is empty.
+Ticket events take precedence. The queue holds at most one pending or unresolved message per project.
+Heartbeats respect project dispatch pause, the global work pause, and archived projects.
+The heartbeat asks the manager to follow its current persona and status descriptions, inspect work, and avoid comments that only acknowledge the heartbeat.
 Pending permissions prevent dispatch. A host interruption changes an unfinished send to `unknown`.
 A durable receipt can confirm the original delivery. An explicit resend uses a new generation and message identifier.
 

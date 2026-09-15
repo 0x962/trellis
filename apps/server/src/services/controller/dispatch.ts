@@ -2,18 +2,13 @@ import type { Tx } from "../../db/tx.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import type { ServiceCtx } from "../support.ts";
 import { claim, complete } from "./controller.ts";
+import { managerMessage } from "./message.ts";
 import { dispatchMessageId } from "./messageId.ts";
 import { reconcile } from "./reconcile.ts";
 import { sendDeadline } from "./sendDeadline.ts";
 import type { Dispatch } from "./types.ts";
 
 type Ctx = ServiceCtx & { publicUrl: string };
-const message = (delivery: Dispatch) => `trellis: Manager dispatch ${delivery.id}, generation ${delivery.generation}.
-${delivery.events.length} ticket changes need your attention in project ${delivery.projectId}.
-Read the affected tickets and their comments with the trellis CLI. Continue available work and report concrete results.
-Do not start a second agent for an assignment that already has an active agent.
-Use a stable --request-id for each worker assignment. Reuse it when a start result is uncertain.
-Events: ${JSON.stringify(delivery.events)}`;
 
 export const dispatch = async (ctx: Ctx) => {
 	await ctx.newTx((tx) => reconcile({ now: ctx.now() }, tx));
@@ -31,7 +26,7 @@ export const dispatch = async (ctx: Ctx) => {
 				await sendDeadline(
 					prepareSend(ctx, {
 						id: delivery.runId!,
-						text: message(delivery),
+						text: managerMessage(delivery),
 						messageId: dispatchMessageId(delivery),
 						expectedTerminalId: delivery.terminalId!,
 						expectedSessionId: delivery.sessionId,
