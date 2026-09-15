@@ -1,13 +1,21 @@
 import type { AgentRun } from "@trellis/api";
-import { Badge, EmptyState } from "@trellis/ui";
-import type { TerminalFrame } from "@trellis/ui/terminal";
+import { Badge, cx, EmptyState } from "@trellis/ui";
+import type { TerminalFrame, TerminalSurfaceProps } from "@trellis/ui/terminal";
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { followTerminal, type TerminalProcess } from "./terminalStream";
 
 const TerminalSurface = lazy(async () => ({ default: (await import("@trellis/ui/terminal")).TerminalSurface }));
 
-export function NativeTerminal({ run }: { run: AgentRun }) {
+export function NativeTerminal({
+	run,
+	layout = "panel",
+	onLeave,
+}: {
+	run: AgentRun;
+	layout?: TerminalSurfaceProps["layout"];
+	onLeave?: () => void;
+}) {
 	const { client } = useApp();
 	const heading = useRef<HTMLHeadingElement>(null);
 	const [session, setSession] = useState<TerminalProcess | null>(null);
@@ -42,12 +50,19 @@ export function NativeTerminal({ run }: { run: AgentRun }) {
 			client.agentRuns.resize({ id: run.id, cols, rows, expectedTerminalId: run.terminalId! }),
 		[client, run.id, run.terminalId],
 	);
-	const leave = useCallback(() => heading.current?.focus(), []);
+	const leave = useCallback(() => {
+		if (onLeave) onLeave();
+		else heading.current?.focus();
+	}, [onLeave]);
 	if (run.terminalId === null || run.runtime !== "native")
 		return <EmptyState title="No local terminal" description="This assignment has no local process." />;
 	return (
-		<section aria-label={`Terminal for ${run.name}`} className="flex min-w-0 flex-col gap-3">
-			<header className="flex items-center gap-2">
+		<section
+			aria-label={`Terminal for ${run.name}`}
+			data-layout={layout}
+			className={cx("flex min-w-0 flex-col", layout === "fill" ? "min-h-0 flex-1 overflow-hidden" : "gap-3")}
+		>
+			<header className={layout === "fill" ? "sr-only" : "flex items-center gap-2"}>
 				<h3 ref={heading} tabIndex={-1} className="flex-1 text-sm font-medium">
 					{run.name}
 				</h3>
@@ -71,6 +86,7 @@ export function NativeTerminal({ run }: { run: AgentRun }) {
 				}
 			>
 				<TerminalSurface
+					layout={layout}
 					label={`Terminal input for ${run.name}`}
 					connected={connection === "open" && session?.controllable === true}
 					follow={follow}

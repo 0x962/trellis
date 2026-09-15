@@ -8,6 +8,7 @@ import { type TerminalFrame, terminalChunk } from "./terminalChunk.ts";
 import { terminalInputSource } from "./terminalInputSource.ts";
 
 export type TerminalSurfaceProps = {
+	layout?: "panel" | "fill";
 	label: string;
 	connected: boolean;
 	follow: (offset: number, onOutput: (frame: TerminalFrame) => Promise<void>, signal: AbortSignal) => Promise<void>;
@@ -16,7 +17,15 @@ export type TerminalSurfaceProps = {
 	onLeave: () => void;
 };
 
-export function TerminalSurface({ label, connected, follow, send, resize, onLeave }: TerminalSurfaceProps) {
+export function TerminalSurface({
+	layout = "panel",
+	label,
+	connected,
+	follow,
+	send,
+	resize,
+	onLeave,
+}: TerminalSurfaceProps) {
 	const container = useRef<HTMLDivElement>(null);
 	const enabled = useRef(connected);
 	const failed = useRef(false);
@@ -134,7 +143,7 @@ export function TerminalSurface({ label, connected, follow, send, resize, onLeav
 		};
 	}, [label, follow, send, resize, onLeave]);
 	return (
-		<div className="terminal-surface">
+		<div className="terminal-surface" data-layout={layout}>
 			<div className="terminal-toolbar">
 				<p className="terminal-hint">Press Control+] to leave the terminal.</p>
 				{error && (
