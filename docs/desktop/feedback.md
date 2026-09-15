@@ -24,7 +24,15 @@ The user tests the installed UI. The following follow-up fixes await deployment.
 | Stop and restart report a schema error. | API fix integrated | Failed cleanup reports RUNNER_UNAVAILABLE with the runtime error. Three focused API integration tests pass. |
 | Fix the broken Agent tab terminal. | Integrated | A padding-free host gives FitAddon the correct available size. Aside confirms that the terminal screen stays inside its frame. Runtime failures remain visible. |
 | Use Astra subagents. | Applied | Astra agents own the sidebar, terminal UI, lifecycle review, native process inspection, and shell environment work. |
-| Address root causes. | In progress | Native process inspection replaces the spawned ps command. Host startup and the first manager dispatch must remain independent of shell setup. |
+| Address root causes. | Integrated; runtime restart pending | Native process inspection replaces the spawned ps command. HTTP startup and the first manager dispatch stay independent of shell setup. |
+
+The signed candidate `47fba317` passes all 13 package checks. The runtime passes 52 unit tests and 65 integration tests.
+The shell changes pass 61 focused tests. Independent Astra reviews cover failed cleanup, natural exit, shell setup, and HTTP startup.
+Evidence: `/tmp/trellis-reliability-smoke.log`, `/tmp/trellis-stop-error-green.log`, and `/tmp/trellis-controller-boot-green.log`.
+
+The installer stops before it changes the app or HTTP host. The live runtime does not answer its session-list request within ten seconds.
+Evidence: `/tmp/trellis-reliability-install.log`. Nine agent processes remain active on runtime release `ae02d6f5`.
+The root runtime fixes require a terminal-service restart. The user has a pending choice about interruption of those processes.
 
 | New feedback | Status | Owner | Verification |
 | --- | --- | --- | --- |
