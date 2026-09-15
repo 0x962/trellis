@@ -1,0 +1,90 @@
+import { randomUUID } from "node:crypto";
+import { link, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { providers } from "./providers.ts";
+import { resolveExecutable } from "./resolveExecutable.ts";
+import type { HarnessDescriptor, HarnessHostOptions, HarnessStartInput } from "./types.ts";
+
+const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+export async function prepareAttempt(
+	options: HarnessHostOptions,
+	input: HarnessStartInput,
+	sessionId?: string,
+): Promise<HarnessDescriptor> {
+	const directory = join(options.directory, input.id);
+	const env = Object.fromEntries(
+		Object.entries(options.env)
+			.filter((entry): entry is [string, string] => entry[1] !== undefined)
+			.sort(([a], [b]) => a.localeCompare(b)),
+	);
+	const fingerprint = JSON.stringify([
+		input.harness,
+		input.cwd,
+		input.prompt,
+		input.model ?? null,
+		input.mode ?? "autonomous",
+		sessionId ?? null,
+		env,
+		options.bun,
+		options.runtime.socketPath,
+	]);
+	const path = join(directory, "launch.json");
+	const verify = (record: HarnessDescriptor) => {
+		if (record.fingerprint !== fingerprint)
+			throw new Error(`Harness attempt ${input.id} already has a different launch request`);
+		return record;
+	};
+	try {
+		return verify(JSON.parse(await readFile(path, "utf8")));
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+	}
+	const executable = await resolveExecutable(input.harness, env.PATH ?? "");
+	await mkdir(directory, { recursive: true, mode: 0o700 });
+	const hookCommand = `${quote(options.bun)} ${quote(fileURLToPath(new URL("./hook.ts", import.meta.url)))}`;
+	const configDirectory = await mkdtemp(join(directory, "config-"));
+	const common = {
+		cwd: input.cwd,
+		prompt: `trellis-message:${input.id}\n${input.prompt}`,
+		model: input.model,
+		configDirectory,
+		hookCommand,
+	};
+	const launch = await providers[input.harness].prepare(
+		sessionId === undefined ? { ...common, resume: false } : { ...common, resume: true, sessionId },
+	);
+	const descriptor: HarnessDescriptor = {
+		harness: input.harness,
+		mode: input.mode ?? "autonomous",
+		fingerprint,
+		spec: {
+			id: input.id,
+			command: executable,
+			args: launch.args,
+			cwd: input.cwd,
+			mode: "pty",
+			env: {
+				...env,
+				...launch.env,
+				TRELLIS_HARNESS: input.harness,
+				TRELLIS_HARNESS_SOCKET: options.runtime.socketPath,
+				TRELLIS_HARNESS_HOOK: hookCommand,
+				TRELLIS_ATTEMPT_ID: input.id,
+				TRELLIS_ATTEMPT_TOKEN: randomUUID(),
+			},
+		},
+	};
+	const temporary = join(directory, `launch-${randomUUID()}.tmp`);
+	await writeFile(temporary, JSON.stringify(descriptor), { flag: "wx", mode: 0o600 });
+	try {
+		await link(temporary, path);
+		return descriptor;
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+		await rm(configDirectory, { recursive: true, force: true });
+		return verify(JSON.parse(await readFile(path, "utf8")));
+	} finally {
+		await unlink(temporary);
+	}
+}

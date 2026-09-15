@@ -1,0 +1,112 @@
+import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import type { RuntimeListInput, RuntimeProcessStatus, RuntimeStream } from "@trellis/runtime-protocol";
+import { z } from "zod";
+import { interruptHarness } from "./interruptHarness.ts";
+import { prepareAttempt } from "./prepareAttempt.ts";
+import { providers } from "./providers.ts";
+import type { HarnessDescriptor, HarnessHostOptions, HarnessStarted, HarnessStartInput } from "./types.ts";
+
+const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/);
+export class HarnessHost {
+	constructor(private readonly options: HarnessHostOptions) {}
+	start(input: HarnessStartInput): Promise<HarnessStarted> {
+		return this.launch(input);
+	}
+	resume(input: HarnessStartInput & { sessionId: string }): Promise<HarnessStarted> {
+		z.string().min(1).parse(input.sessionId);
+		return this.launch(input, input.sessionId);
+	}
+	private async launch(input: HarnessStartInput, sessionId?: string): Promise<HarnessStarted> {
+		identifier.parse(input.id);
+		const provider = providers[input.harness];
+		if (provider.capabilityGaps.length && input.mode !== "manual") throw new Error(provider.capabilityGaps.join(" "));
+		const descriptor = await prepareAttempt(this.options, input, sessionId);
+		await this.options.runtime.start(descriptor.spec);
+		const process = provider.capabilityGaps.length
+			? await this.status(input.id)
+			: await this.waitFor(
+					input.id,
+					(state) => state.agent?.sessionId != null && state.acknowledgedMessageIds.includes(input.id),
+				);
+		if (sessionId !== undefined && process.agent?.sessionId !== sessionId && provider.capabilityGaps.length === 0)
+			throw new Error(
+				`Harness attempt ${input.id} resumed provider session ${process.agent?.sessionId}, expected ${sessionId}`,
+			);
+		return { process, capabilityGaps: provider.capabilityGaps };
+	}
+	async waitFor(id: string, matches: (session: RuntimeProcessStatus) => boolean): Promise<RuntimeProcessStatus> {
+		const signal = AbortSignal.timeout(this.options.observationTimeoutMs ?? 15000);
+		try {
+			for await (const event of this.options.runtime.subscribeSession(id, signal)) {
+				if (event.type !== "session") continue;
+				if (matches(event.session)) return event.session;
+				if (event.session.status === "exited" || event.session.error || event.session.agent?.error)
+					throw new Error(
+						`Harness attempt ${id}: ${event.session.agent?.error ?? event.session.error ?? event.session.status}`,
+					);
+			}
+		} catch (error) {
+			if (!signal.aborted) throw error;
+			throw Object.assign(
+				new Error(
+					`Harness attempt ${id} did not confirm the requested provider observation within ${this.options.observationTimeoutMs ?? 15000} ms; inspect or stop this attempt before resending`,
+				),
+				{ code: "HARNESS_OBSERVATION_TIMEOUT" },
+			);
+		}
+		throw new Error(`Harness attempt ${id} closed before the requested provider observation`);
+	}
+	status(id: string) {
+		return this.options.runtime.inspect(id);
+	}
+	list(input: RuntimeListInput = {}) {
+		return this.options.runtime.list(input);
+	}
+	output(id: string, offset = 0, stream: RuntimeStream = "stdout") {
+		return this.options.runtime.output(id, offset, stream);
+	}
+	subscribe(id: string, offset = 0, signal?: AbortSignal, stream: RuntimeStream = "stdout") {
+		return this.options.runtime.subscribe(id, offset, signal, stream);
+	}
+	input(id: string, text: string) {
+		return this.options.runtime.input(id, Buffer.from(text).toString("base64"), true);
+	}
+	resize(id: string, cols: number, rows: number) {
+		return this.options.runtime.resize(id, cols, rows);
+	}
+	stop(id: string) {
+		return this.options.runtime.stop(id);
+	}
+	private async descriptor(id: string): Promise<HarnessDescriptor> {
+		identifier.parse(id);
+		return JSON.parse(await readFile(join(this.options.directory, id, "launch.json"), "utf8"));
+	}
+	async send(id: string, text: string, messageId: string = randomUUID()) {
+		identifier.parse(messageId);
+		const descriptor = await this.descriptor(id);
+		const provider = providers[descriptor.harness];
+		if (provider.capabilityGaps.length) throw new Error(provider.capabilityGaps.join(" "));
+		await this.options.runtime.deliver(
+			id,
+			messageId,
+			Buffer.from(`\u001b[200~trellis-message:${messageId}\n${text}\u001b[201~\r`).toString("base64"),
+			true,
+		);
+		return this.waitFor(id, (state) => state.acknowledgedMessageIds.includes(messageId));
+	}
+	async interrupt(id: string) {
+		const descriptor = await this.descriptor(id);
+		const result = await interruptHarness(this.options, descriptor, await this.status(id));
+		return (
+			result ??
+			this.waitFor(
+				id,
+				(state) =>
+					state.activity?.state === "idle" &&
+					(descriptor.harness !== "opencode" || state.agent?.outcome === "interrupted"),
+			)
+		);
+	}
+}
