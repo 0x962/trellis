@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { SessionLog } from "../../../src/sessionLog.ts";
+import { SessionLog } from "./sessionLog.ts";
 
 const homes: string[] = [];
 const path = () => {

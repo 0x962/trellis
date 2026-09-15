@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { projectRun } from "./liveState.ts";
-import type { StoredRun } from "./queries.ts";
+import { projectRun } from "../../../../../src/services/agentRuns/liveState.ts";
+import type { StoredRun } from "../../../../../src/services/agentRuns/queries.ts";
 
 const run: StoredRun = {
 	id: "run",

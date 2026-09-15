@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { readNativeHarness } from "./readNativeHarness.ts";
+import { readNativeHarness } from "../../../../../src/services/agentRuns/readNativeHarness.ts";
 
 const run = { runtime: "native" as const, terminalId: "attempt", sessionId: "conversation" };
 const processStatus = (change: Partial<RuntimeProcessStatus> = {}): RuntimeProcessStatus => ({
