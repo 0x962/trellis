@@ -54,6 +54,7 @@ export const ProjectManagerConfigSchema = z.strictObject({
 		.trim()
 		.refine((value) => value === "" || value.startsWith("/"), "Use an absolute directory path."),
 	trustedDirectory: z.boolean().default(false),
+	allowAllPermissions: z.boolean().default(true),
 	dispatchPaused: z.boolean().default(false),
 	ade: AdeSchema.default("native"),
 	harness: HarnessSchema.default(HarnessSchema.parse({ preset: "claude" })),

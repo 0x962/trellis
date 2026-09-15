@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { DEFAULT_PROJECT_MANAGER_CONFIG } from "@trellis/api";
 import type { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { sql } from "drizzle-orm";
 import { hasNativeReceipt } from "../../../../../src/services/agentRuns/nativeReceipt.ts";
@@ -57,7 +58,12 @@ let requested: number[] = [];
 let available = true;
 let processExited = false;
 let exitCode: number | null = 0;
+let permissionReplies: string[] = [];
 const reader = {
+	deliver: async (_id: string, messageId: string) => {
+		permissionReplies.push(messageId);
+		return { status: "delivered" };
+	},
 	list: async () => {
 		if (!available) throw new Error("Runtime unavailable");
 		return [
@@ -79,10 +85,11 @@ const reader = {
 			truncated: offset < retainedFrom,
 		};
 	},
-} as unknown as Pick<RuntimeClient, "list" | "output">;
+} as unknown as Pick<RuntimeClient, "list" | "output" | "deliver">;
 const read = async () => readNativeHarness(context(), await h.read((tx) => getRun(tx, runId)), reader);
 beforeEach(() => {
 	log = Buffer.alloc(0);
+	permissionReplies = [];
 	retainedFrom = 0;
 	requested = [];
 	available = true;
@@ -189,4 +196,24 @@ test("a deliberate stop preserves a completed structured result", async () => {
 	await h.rows(sql`UPDATE agent_runs SET state='stopped' WHERE id=${runId}`);
 	expect((await read())?.state).toBe("idle");
 	expect((await read())?.result).toBe("Useful output");
+});
+
+test("a running agent uses the current project permission checkbox", async () => {
+	const config = { ...DEFAULT_PROJECT_MANAGER_CONFIG, trustedDirectory: true, allowAllPermissions: false };
+	await h.rows(sql`UPDATE projects SET manager_config=${JSON.stringify(config)}::jsonb WHERE key='OBS'`);
+	log = line({
+		type: "control_request",
+		request_id: "bash-request",
+		request: { subtype: "can_use_tool", tool_name: "Bash", input: { command: "pwd" } },
+	});
+	expect((await read())?.state).toBe("needs_input");
+	expect(permissionReplies).toEqual([]);
+	await h.rows(
+		sql`UPDATE projects SET manager_config=${JSON.stringify({ ...config, allowAllPermissions: true })}::jsonb WHERE key='OBS'`,
+	);
+	await read();
+	expect(permissionReplies).toEqual(["permission-bash-request"]);
+	await h.rows(sql`UPDATE projects SET manager_config=${JSON.stringify(config)}::jsonb WHERE key='OBS'`);
+	await read();
+	expect(permissionReplies).toEqual(["permission-bash-request"]);
 });

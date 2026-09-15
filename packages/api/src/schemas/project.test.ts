@@ -31,3 +31,9 @@ test("directory trust requires an explicit project choice", () => {
 	expect(ProjectManagerConfigSchema.parse(base).trustedDirectory).toBe(false);
 	expect(ProjectManagerConfigSchema.parse({ ...base, trustedDirectory: true }).trustedDirectory).toBe(true);
 });
+
+test("tool permissions default to allowed and preserve an explicit opt out", () => {
+	expect(DEFAULT_PROJECT_MANAGER_CONFIG.allowAllPermissions).toBe(true);
+	expect(ProjectManagerConfigSchema.parse(base).allowAllPermissions).toBe(true);
+	expect(ProjectManagerConfigSchema.parse({ ...base, allowAllPermissions: false }).allowAllPermissions).toBe(false);
+});

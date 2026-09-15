@@ -7,9 +7,10 @@ import { ClaudeStream } from "../../agents/nativeHarness/claudeStream.ts";
 import type { HarnessSnapshot } from "../../agents/nativeHarness/types.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { ServiceCtx } from "../support.ts";
+import { autoAllowPermissions } from "./autoAllowPermissions.ts";
 import { reconcileNativeObservation } from "./reconcileNativeObservation.ts";
 
-type Reader = Pick<RuntimeClient, "list" | "output">;
+type Reader = Pick<RuntimeClient, "list" | "output" | "deliver">;
 const pending = new Map<string, Promise<HarnessSnapshot | null>>();
 async function read(ctx: ServiceCtx, run: AgentRun, client: Reader) {
 	if (run.runtime !== "native" || run.terminalId === null || run.sessionId === null) return null;
@@ -71,6 +72,7 @@ async function read(ctx: ServiceCtx, run: AgentRun, client: Reader) {
 			error: error instanceof Error ? error.message : String(error),
 		};
 	}
+	if (!checkpoint?.processExited) snapshot = await autoAllowPermissions(ctx, run, snapshot, client);
 	await ctx.newTx((tx) =>
 		reconcileNativeObservation(ctx, tx, {
 			runId: run.id,

@@ -94,6 +94,12 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	const row = await projectRow(tx, project.id);
 	if (
 		ctx.actor?.kind !== "human" &&
+		input.managerConfig?.allowAllPermissions &&
+		!managerConfigOf(row).allowAllPermissions
+	)
+		throw invalidInput("managerConfig.allowAllPermissions", "A person must enable automatic tool permissions.");
+	if (
+		ctx.actor?.kind !== "human" &&
 		input.managerConfig?.trustedDirectory &&
 		(!managerConfigOf(row).trustedDirectory || managerConfigOf(row).directory !== input.managerConfig.directory)
 	)

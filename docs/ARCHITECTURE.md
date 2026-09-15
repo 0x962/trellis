@@ -84,6 +84,8 @@ A descendant that leaves its session and loses its parent before inspection requ
 
 The native Claude adapter uses structured input, output, and explicit tool decisions.
 It supports Claude 2.1.270. Repository trust requires a human action before the structured harness starts.
+The Allow all permissions checkbox defaults to on and automatically approves Claude tool requests.
+The host reads this setting for pending requests, so a change applies to running agents.
 Durable parser checkpoints preserve partial bytes, conversation output, permissions, and receipt identifiers.
 The host distinguishes an idle agent, an active turn, a required decision, and an unconfirmed result.
 

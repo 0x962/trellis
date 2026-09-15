@@ -2,7 +2,7 @@
 
 The adapter targets Claude Code 2.1.270. It uses persistent standard streams and keeps the conversation UUID separate from the runtime attempt identifier. Custom command templates retain their interactive transport until they pass an adapter contract.
 
-`claudeLaunchSpec` selects print mode, JSON input and output, verbose records, user replay, manual permissions, and the standard-stream permission handler. It selects `--resume` for an existing conversation. It never enables permission bypass.
+`claudeLaunchSpec` selects print mode, JSON input and output, verbose records, user replay, manual permissions, and the standard-stream permission handler. It selects `--resume` for an existing conversation. The host applies the project tool-permission setting to each pending request.
 
 Claude print mode skips its workspace trust dialog. The host must obtain a trusted-project choice before it selects this adapter. A Git worktree is not a sandbox.
 
@@ -13,7 +13,7 @@ Claude print mode skips its workspace trust dialog. The host must obtain a trust
 3. Wait for the matching control response through `observeClaude` or `waitForClaude`.
 4. Call `sendClaude` with a persistent message UUID and the prompt.
 5. Mark delivery accepted only after `acknowledgedMessageIds` contains that UUID.
-6. Expose each pending permission request for an explicit decision.
+6. Approve pending tools when the project enables Allow all permissions. Otherwise, expose requests for a human decision.
 7. Deliver `claudePermissionResponse` with a distinct persistent response identifier.
 8. Treat a result as turn completion and evaluate the ticket's required evidence separately.
 
