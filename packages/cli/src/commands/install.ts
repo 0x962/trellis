@@ -39,9 +39,11 @@ const gatewayServes = async (ctx: CliContext) => {
 };
 
 // The health answer of the server at ctx.url. `status` is null when no
-// server answers. `checkout` is the checkout that a 2xx answer names. It is
-// null for an answer that is not 2xx, and for an answer with no `source`,
-// which a server of an earlier release sends.
+// server answers. `ok` is false for an answer that is not 2xx, and for a
+// body that is not JSON, because a process that is not a trellis server can
+// hold the port. `checkout` is the checkout that a 2xx answer names. It is
+// null when `ok` is false, and for an answer with no `source`, which a server
+// of an earlier release sends.
 type HealthAnswer = { status: number | null; ok: boolean; checkout: string | null };
 
 const readHealth = async (ctx: CliContext): Promise<HealthAnswer> => {
@@ -52,7 +54,8 @@ const readHealth = async (ctx: CliContext): Promise<HealthAnswer> => {
 		return { status: null, ok: false, checkout: null };
 	}
 	if (!response.ok) return { status: response.status, ok: false, checkout: null };
-	const health = (await response.json().catch(() => ({}))) as Partial<Health>;
+	const health = (await response.json().catch(() => null)) as Partial<Health> | null;
+	if (health === null) return { status: response.status, ok: false, checkout: null };
 	return { status: response.status, ok: true, checkout: health.source?.checkout ?? null };
 };
 

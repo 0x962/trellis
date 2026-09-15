@@ -295,6 +295,25 @@ describe("install restores the service it replaced", () => {
 		expect(result.stderr).toContain("install restored the previous service");
 	});
 
+	// Another process can hold the port and answer with a page that is not
+	// JSON. That answer does not prove that the old server runs.
+	test("a 200 answer with an HTML body after a failed bootstrap is not a restore", async () => {
+		const { prefix, env, plist } = setup();
+		writeFile(plist, plistOf(otherCheckout));
+		const { run } = scriptedRun({ bootstrap: [bootstrapFailed, ok] });
+		const html = async () =>
+			new Response("<!doctype html><html><body>Hello</body></html>", {
+				status: 200,
+				headers: { "content-type": "text/html" },
+			});
+
+		const result = await runCli(["install", "--prefix", prefix, "--force"], {}, { env, run, fetch: html });
+
+		expect(result.code).toBe(1);
+		expect(result.stderr).toContain("could not restore");
+		expect(result.stderr).not.toContain("install restored the previous service");
+	});
+
 	test("a restore that fails too reports both failures", async () => {
 		const { prefix, env, plist } = setup();
 		writeFile(plist, plistOf(otherCheckout));
