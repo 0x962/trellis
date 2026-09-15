@@ -15,6 +15,7 @@ let h: Harness;
 let home: string;
 let server: Server;
 let session = controllerSession();
+let workers: ReturnType<typeof controllerSession>[];
 let onInspect: () => void;
 let busyOnDelivery: boolean;
 let deliveries: Array<{ messageId: string; requireIdle?: boolean; data: string }>;
@@ -30,6 +31,7 @@ beforeEach(async () => {
 	mkdirSync(join(home, "harness-attempts", "attempt"), { recursive: true });
 	writeFileSync(join(home, "harness-attempts", "attempt", "launch.json"), JSON.stringify({ harness: "claude" }));
 	session = controllerSession();
+	workers = [];
 	onInspect = () => {};
 	busyOnDelivery = false;
 	deliveries = [];
@@ -66,7 +68,7 @@ beforeEach(async () => {
 				request.method === "subscribe"
 					? { type: "session", session }
 					: request.method === "list"
-						? [session]
+						? [session, ...workers]
 						: request.method === "deliver"
 							? { messageId: request.params.messageId, status: "written" }
 							: session;
@@ -111,4 +113,31 @@ test("a live manager receives one heartbeat and confirms its durable message rec
 	expect(session.acknowledgedMessageIds).toEqual([session.id, deliveries[0]!.messageId]);
 	await send();
 	expect(deliveries).toHaveLength(1);
+});
+
+test("a heartbeat reports the current worker turn after the heartbeat enters the queue", async () => {
+	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,terminal_id,created_at,updated_at)
+		SELECT 'worker','Builder','Builder','builder','Build',project_id,project_path,'worker-attempt',${NOW},${NOW}
+		FROM agent_runs WHERE id='manager'`);
+	workers = [
+		controllerSession("worker-attempt", {
+			activity: { state: "idle", updatedAt: secondsAfter(60).toISOString() },
+			checkedAt: secondsAfter(61).toISOString(),
+			result: { id: "result-1", text: "The change is ready for review." },
+		}),
+	];
+	await send();
+	const message = Buffer.from(deliveries[0]!.data, "base64").toString();
+	const context = JSON.parse(message.split("Agent context: ")[1]!.replaceAll("\x1b[201~", "").trim());
+	expect(context.observedAt).toBe(secondsAfter(61).toISOString());
+	expect(context.agents).toHaveLength(1);
+	expect(context.agents[0]).toMatchObject({
+		runId: "worker",
+		attemptId: "worker-attempt",
+		processStatus: "running",
+		activity: "idle",
+		isWorking: false,
+		lastActivityAt: secondsAfter(60).toISOString(),
+		lastResult: "The change is ready for review.",
+	});
 });
