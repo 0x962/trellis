@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { HARNESS_PRESETS, type Persona, type Project } from "@trellis/api";
+import { type AgentRun, HARNESS_PRESETS, type Persona, type Project } from "@trellis/api";
 import { get, post } from "./api";
 import { signIn } from "./support";
 
@@ -78,4 +78,34 @@ test("a blank default model remains valid after an edit", async ({ page }) => {
 	await expect(model).toHaveValue("");
 	await expect(start).toBeEnabled();
 	expect((await get<Project>("/projects/MDF")).managerConfig?.harness.model).toBeUndefined();
+});
+
+test("a manager without a launched process can start after its settings are fixed", async ({ page }) => {
+	const persona = await post<Persona>("/personas", {
+		name: "Trust fixture",
+		kind: "manager",
+		instruction: "Wait.",
+	});
+	await post("/projects", {
+		key: "MTR",
+		name: "Manager trust",
+		managerConfig: {
+			personaId: persona.id,
+			concurrency: 1,
+			directory: "/tmp",
+			trustedDirectory: false,
+			dispatchPaused: true,
+		},
+	});
+	await signIn(page, "/p/MTR/settings/manager");
+	await page.getByRole("button", { name: "Start manager", exact: true }).click();
+	await expect
+		.poll(async () => (await get<AgentRun[]>("/agent-runs?project=MTR"))[0]?.error)
+		.toContain("Trust this repository");
+	expect((await get<AgentRun[]>("/agent-runs?project=MTR"))[0]?.processStatus).toBeNull();
+	await page.getByRole("link", { name: "General", exact: true }).click();
+	await page.getByRole("checkbox", { name: "Trust this repository", exact: true }).check();
+	await expect.poll(async () => (await get<Project>("/projects/MTR")).managerConfig?.trustedDirectory).toBe(true);
+	await expect(page.getByRole("button", { name: "Start manager", exact: true })).toBeEnabled();
+	await expect(page.getByRole("button", { name: "Stop manager", exact: true })).toHaveCount(0);
 });

@@ -5,6 +5,7 @@ import { CheckResults, EmptyState, Tabs } from "@trellis/ui";
 import { type ReactNode, useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
+import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
 import { PullRequests } from "../../prs";
 import { FlowRuns } from "./components/FlowRuns";
 import { LocalChanges } from "./components/LocalChanges";
@@ -27,9 +28,7 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 		initialData: ticket.prs,
 	});
 	const run = runs.data?.[0];
-	const assigned = runs.data?.find(
-		(item) => item.runtime === "native" && ["starting", "running", "interrupted"].includes(item.state),
-	);
+	const assigned = runs.data?.find(hasAssignedProcess);
 	const execution = (
 		<section aria-label="Execution" className="flex flex-col gap-3">
 			{runs.isError ? (

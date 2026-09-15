@@ -2,7 +2,7 @@ import type { AgentRun } from "@trellis/api";
 import { nativeInstructions } from "./nativeInstructions.ts";
 
 export const launchPrompt = (input: {
-	run: Omit<AgentRun, "state">;
+	run: Omit<AgentRun, "state" | "processStatus">;
 	url: string;
 	context: string;
 	messageId?: string;

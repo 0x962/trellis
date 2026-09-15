@@ -4,6 +4,7 @@ import type { AgentRun } from "@trellis/api";
 import { Avatar, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { hasAssignedProcess } from "../hasAssignedProcess";
 import { NativeTerminal } from "../NativeTerminal";
 
 export type AgentRunDetailsProps = {
@@ -27,8 +28,8 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 		onError: (error) => toast.error("Could not stop the agent", { description: error.message }),
 	});
 	const historical = run.runtime !== "native";
-	const active = !historical && (run.state === "running" || run.state === "starting" || run.state === "interrupted");
-	const canStop = controls && !historical && (active || (run.state === "failed" && run.workspaceId));
+	const active = hasAssignedProcess(run);
+	const canStop = controls && active;
 	const workspaceUrl = historical ? null : run.url;
 
 	return (
@@ -67,7 +68,7 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 				</div>
 			)}
 			<ConfirmDialog
-				open={confirmStop && (active || run.state === "failed")}
+				open={confirmStop && active}
 				title={`Stop ${run.name}?`}
 				description="The workspace and its files stay available."
 				confirmLabel="Stop agent"

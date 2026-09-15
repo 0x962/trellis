@@ -47,13 +47,39 @@ const process: RuntimeProcessStatus = {
 };
 
 test("live process status overrides assignment closure and old errors", () => {
-	expect(projectRun(run, [process])).toMatchObject({ state: "running", error: null });
+	expect(projectRun(run, [process])).toMatchObject({ state: "running", processStatus: "running", error: null });
 });
 test("an open assignment cannot make an exited process appear running", () => {
-	expect(projectRun({ ...run, closedAt: null }, [{ ...process, status: "exited", exitCode: 0 }]).state).toBe("exited");
+	expect(projectRun({ ...run, closedAt: null }, [{ ...process, status: "exited", exitCode: 0 }])).toMatchObject({
+		state: "exited",
+		processStatus: "exited",
+	});
 });
 test("a missing runtime attempt has unknown process status", () => {
-	expect(projectRun(run, []).state).toBe("interrupted");
+	expect(projectRun(run, [])).toMatchObject({ state: "interrupted", processStatus: null });
+});
+
+test("a failed provider turn retains its live process status and attempt identity", () => {
+	const agent = {
+		sessionId: "conversation",
+		turnId: "failed-turn",
+		model: "fixture-model",
+		tool: null,
+		error: "Provider request failed.",
+		outcome: "failed" as const,
+	};
+	for (const status of ["running", "exited", "unknown"] as const) {
+		expect(projectRun(run, [{ ...process, status, agent }])).toMatchObject({
+			state: "failed",
+			processStatus: status,
+			terminalId: "attempt",
+		});
+	}
+	expect(projectRun(run, [{ ...process, id: "replaced-attempt", agent }])).toMatchObject({
+		state: "interrupted",
+		processStatus: null,
+		terminalId: "attempt",
+	});
 });
 
 test("a missing process retains the specific launch failure", () => {

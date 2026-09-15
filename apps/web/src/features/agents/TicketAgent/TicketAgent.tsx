@@ -1,12 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import type { AgentRun } from "@trellis/api";
 import { Avatar, Button } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentRunSheet } from "../AgentRunSheet";
+import { hasAssignedProcess } from "../hasAssignedProcess";
 import { PersonaPicker } from "./components/PersonaPicker";
-
-const atWork = (run: AgentRun) => run.state === "starting" || run.state === "running" || run.state === "interrupted";
 
 // A person calls an agent by one name. Agents the server named before it
 // dropped surnames still carry two words, so the row takes the first one.
@@ -20,7 +18,7 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 	const query = useQuery(orpc.agentRuns.list.queryOptions({ input: { ticket }, retry: false }));
 	const [openId, setOpenId] = useState<string | null>(null);
 	const runs = query.data ?? [];
-	const shown = runs.filter(atWork);
+	const shown = runs.filter(hasAssignedProcess);
 	const open = runs.find((run) => run.id === openId) ?? null;
 	return (
 		<section aria-label="Agent assignment" className="flex flex-col border-t border-border pt-3 pb-1">

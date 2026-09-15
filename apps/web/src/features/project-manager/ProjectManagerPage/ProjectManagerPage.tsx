@@ -2,7 +2,6 @@ import { Play, Stop } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
-	type AgentRun,
 	DEFAULT_PROJECT_MANAGER_CONFIG,
 	type Project,
 	type ProjectManagerConfig,
@@ -13,6 +12,7 @@ import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
+import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { GeneralSettings } from "./components/GeneralSettings";
@@ -26,9 +26,6 @@ const sections = [
 	{ id: "harness", label: "Harness" },
 ];
 
-// A starting or running manager holds a process that Stop can close.
-const atWork = (run: AgentRun) => run.runtime === "native" && (run.state === "starting" || run.state === "running");
-
 export function ProjectManagerPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
 	const hash = useLocation({ select: (location) => location.hash });
@@ -39,7 +36,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: { project: project.path } }));
 	// The list orders manager assignments from newest to oldest.
 	const manager = runs.data?.find((run) => run.kind === "manager");
-	const active = manager !== undefined && atWork(manager);
+	const active = manager !== undefined && hasAssignedProcess(manager);
 	// True when Play continues the Claude session the manager had before its
 	// pause. A manager with no session yet, or none that ran, starts new.
 	const resumes = managerResumes(manager);

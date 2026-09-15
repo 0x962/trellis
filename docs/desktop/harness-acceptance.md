@@ -62,10 +62,10 @@ Provider errors retain `willRetry`. A temporary error keeps the turn active; a f
 
 | Check | Result | Evidence |
 | --- | --- | --- |
-| Real lifecycle with native terminal, hooks, tools, interrupt, follow-up, stop, and exact resume | 1 test, 27 assertions pass in 31.66 seconds | `/tmp/trellis-codex-appserver-hooks-real.log` |
-| Native HTTP 400, 401, 429, and 503 failures; dropped response stream; interrupt during retry; terminal exit stops engine | 7 tests, 30 assertions pass in 3.61 seconds | `/tmp/trellis-codex-native-failures-final.log` |
-| Hosted tool events, engine crash, and event transport disconnect | Final checks in progress | Adapter fixtures and isolated native probes |
-| Packaged desktop and manager ticket workflow | Pending | Lead-owned installation and acceptance |
+| Real lifecycle with native terminal, hooks, tools, interrupt, follow-up, stop, and exact resume | 1 test, 29 assertions pass, including real hosted WebSearch | `/tmp/trellis-codex-appserver-final-real.log` |
+| Native provider failures, dropped streams, retry interruption, hooks, engine crashes, transport loss, and terminal cleanup | 11 tests, 43 assertions pass | `/tmp/trellis-tool-errors-native-faults-final.log` |
+| Tool failures and receipt waits after a failed turn | Deterministic regressions pass | `/tmp/trellis-tool-errors-and-delivery-host-final.log` |
+| Packaged desktop and manager ticket workflow | c440232f installed; TRL-71 reaches Human Review | Final runtime fixes still require installed acceptance |
 
 The native failure tests use the installed Codex engine with isolated local Responses endpoints.
 They verify final failure through native events, including `willRetry: false`.
@@ -83,7 +83,7 @@ The suite also checks process lists, elapsed time, resize, retained output, and 
 | Harness | Measured result | Evidence |
 | --- | --- | --- |
 | Claude 2.1.272 | Complete host sequence passes; the native adapter repeat confirms interruption through the production status reader. | `/tmp/trellis-real-host-acceptance-fixed.log`, `/tmp/trellis-native-acceptance-repeat.log` |
-| Codex 0.154.0 | Current shared-engine sequence passes: 27 assertions, 31.66 seconds. | `/tmp/trellis-codex-appserver-hooks-real.log` |
+| Codex 0.154.0 | Current shared-engine sequence passes: 29 assertions, including hosted WebSearch. | `/tmp/trellis-codex-appserver-final-real.log` |
 | OpenCode 1.18.31 | Current installed executable passes: 27 assertions, 22.37 seconds. | `/tmp/trellis-host-wire-real-opencode.log` |
 | Pi 0.73.1 | Complete host sequence passes; the separate native test records 10 assertions and 27 events. | `/tmp/trellis-real-host-acceptance-fixed.log`, `/tmp/trellis-real-pi-marker-final.log` |
 
@@ -112,8 +112,8 @@ The production host cases and interrupt boundary regression pass: 12 tests and 8
 They cover all four harnesses, missing executables, assignment authentication, stale interrupt targets, and actionable errors when the runtime is unavailable.
 Evidence: `/tmp/trellis-interrupt-boundary-green.log`.
 
-Installed desktop acceptance and the complete manager ticket workflow remain required.
-Independent host tests do not establish that the installed release contains the source under test.
+The installed c440232f desktop drives TRL-71 through builder work, review fixes, and Human Review. Both agents stop with retained workspaces and output.
+Final runtime and UI fixes require installed regression checks. The [feedback record](feedback.md#live-ticket-acceptance-and-final-fixes) tracks these checks.
 
 [superset-builtins]: https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/packages/shared/src/builtin-terminal-agents.ts
 [superset-hooks]: https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/packages/agent-setup/src/agent-wrappers-claude-codex-opencode.ts

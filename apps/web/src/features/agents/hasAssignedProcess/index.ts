@@ -1,0 +1,1 @@
+export { hasAssignedProcess } from "./hasAssignedProcess";

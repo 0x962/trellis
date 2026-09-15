@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import type { AgentRun, Persona, Ticket } from "@trellis/api";
 import { get, patch, post } from "./api";
@@ -96,7 +97,41 @@ test("the assigned agent opens an interactive terminal and receives live output"
 		await page.screenshot({ path: testInfo.outputPath("interactive-terminal.png") });
 		await page.keyboard.press("Control+]");
 		await expect(terminal.getByRole("heading", { name: run.name, exact: true })).toBeFocused();
+		const home = join(process.env.TRELLIS_E2E_ROOT!, "home");
+		const descriptor = JSON.parse(
+			await readFile(join(home, "harness-attempts", run.terminalId!, "launch.json"), "utf8"),
+		);
+		execFileSync("bun", [fileURLToPath(new URL("../../server/src/agents/harnessHost/hook.ts", import.meta.url))], {
+			env: {
+				...process.env,
+				TRELLIS_HARNESS: "claude",
+				TRELLIS_HARNESS_SOCKET: join(home, "runtime/runtime.sock"),
+				TRELLIS_ATTEMPT_ID: run.terminalId!,
+				TRELLIS_ATTEMPT_TOKEN: descriptor.spec.env.TRELLIS_ATTEMPT_TOKEN,
+			},
+			input: JSON.stringify({
+				hook_event_name: "StopFailure",
+				session_id: run.sessionId,
+				error: "Provider request failed.",
+			}),
+		});
+		expect((await get<AgentRun[]>(`/agent-runs?ticket=${ticket.identifier}`))[0]?.state).toBe("failed");
+		await page.reload();
+		await page.getByRole("tab", { name: "Agent", exact: true }).click();
+		await expect(terminal.getByRole("textbox", { name: `Terminal input for ${run.name}`, exact: true })).toBeVisible();
+		await expect(
+			page.getByRole("region", { name: "Agent assignment" }).getByText("failed", { exact: true }),
+		).toBeVisible();
+		await terminal.locator(".xterm-screen").click();
+		await page.keyboard.type("Continue after the failed turn");
+		await page.keyboard.press("Enter");
+		await expect(terminal.locator(".xterm-accessibility-tree")).toContainText("Continue after the failed turn");
 		await post(`/agent-runs/${run.id}/stop`, {});
+		expect((await get<AgentRun[]>(`/agent-runs?ticket=${ticket.identifier}`))[0]).toMatchObject({
+			terminalId: run.terminalId,
+			state: "failed",
+			processStatus: "exited",
+		});
 		await page.reload();
 		await page.getByRole("tab", { name: "Agent", exact: true }).click();
 		await expect(page.getByText("No assigned agent", { exact: true })).toBeVisible();

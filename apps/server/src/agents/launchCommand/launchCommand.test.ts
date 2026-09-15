@@ -15,6 +15,7 @@ const run: AgentRun = {
 	ticketId: null,
 	ticketIdentifier: null,
 	state: "starting",
+	processStatus: null,
 	workspaceId: null,
 	terminalId: null,
 	url: null,

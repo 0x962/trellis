@@ -92,6 +92,7 @@ Agent shells inherit the desktop login environment without another login startup
 Each launch selects the active host release on PATH, including when the runtime predates that host.
 `HarnessHost` exposes start, resume, send, interrupt, stop, status, and output APIs for native agent assignments.
 Its immutable launch descriptors retain configuration. The runtime supplies process status and observed provider identity.
+Assignment responses expose runtime-derived `processStatus` separately from the agent turn result. Terminal selection and process controls use that process status.
 An exact prompt receipt confirms delivery. A provider turn and its observed activity time protect interrupt requests.
 `bun run test:host` tests this module and the runtime with isolated processes.
 `bun run test:host:real` also runs authenticated native CLI tests with explicit models and a configured credential home.

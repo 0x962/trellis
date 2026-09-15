@@ -6,7 +6,11 @@ import type { AgentRun } from "@trellis/api";
 import { runBranch } from "../launchCommand/branch.ts";
 
 const exec = promisify(execFile);
-export const nativeWorkspace = async (home: string, run: Omit<AgentRun, "state">, directory: string) => {
+export const nativeWorkspace = async (
+	home: string,
+	run: Omit<AgentRun, "state" | "processStatus">,
+	directory: string,
+) => {
 	if (directory === "") throw new Error("Select the local repository directory before you start a native agent.");
 	const source = await realpath(directory);
 	if (!(await stat(source)).isDirectory()) throw new Error(`Not a directory: ${source}`);

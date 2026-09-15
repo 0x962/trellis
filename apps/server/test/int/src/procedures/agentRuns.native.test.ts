@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
@@ -55,7 +55,7 @@ test("native agents use an isolated Git worktree and retain output after stop", 
 		instruction: "Read the fixture.",
 	});
 	const run = await t.client.agentRuns.start({ ticket: ticket.identifier, personaId: persona.id });
-	expect(run).toMatchObject({ runtime: "native", state: "running" });
+	expect(run).toMatchObject({ runtime: "native", state: "running", processStatus: "running" });
 	expect(run.workspaceId).not.toBe(directory);
 	expect(
 		execFileSync("git", ["-C", run.workspaceId!, "rev-parse", "--is-inside-work-tree"], { encoding: "utf8" }).trim(),
@@ -109,6 +109,17 @@ test("native agents use an isolated Git worktree and retain output after stop", 
 		body: { text: "stale-input\r" },
 	});
 	expect(deniedInput.status).toBe(400);
+	const descriptor = JSON.parse(readFileSync(join(t.home, "harness-attempts", run.terminalId!, "launch.json"), "utf8"));
+	await client.observe(run.terminalId!, descriptor.spec.env.TRELLIS_ATTEMPT_TOKEN, {
+		kind: "error",
+		error: "Fixture provider failure",
+		outcome: "failed",
+	});
+	expect((await t.client.agentRuns.list({ ticket: ticket.identifier }))[0]).toMatchObject({
+		terminalId: run.terminalId,
+		state: "failed",
+		processStatus: "running",
+	});
 	await t.editServerTx((tx) =>
 		tx.execute(sql`UPDATE projects SET manager_config=manager_config - 'ade' WHERE key='NAT'`),
 	);
@@ -127,5 +138,9 @@ test("native agents use an isolated Git worktree and retain output after stop", 
 	expect(await t.client.system.resumeNativeWork({})).toEqual({ paused: false });
 	expect((await t.client.agentRuns.output({ id: run.id })).text).toContain("native-probe");
 	await t.client.agentRuns.stop({ id: run.id });
+	expect((await t.client.agentRuns.list({ ticket: ticket.identifier }))[0]).toMatchObject({
+		terminalId: run.terminalId,
+		processStatus: null,
+	});
 	expect((await t.client.system.doctor({})).runtime.state).toBe("stopped");
 }, 20000);
