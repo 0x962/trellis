@@ -1,25 +1,24 @@
 import { FolderOpen } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import type { Project, ProjectManagerConfig } from "@trellis/api";
-import { Checkbox, IconButton, Input, Select, Tooltip, toast } from "@trellis/ui";
+import type { ProjectManagerConfig } from "@trellis/api";
+import { Checkbox, IconButton, Input, Select, Switch, Tooltip, toast } from "@trellis/ui";
 import { useApp } from "../../../../../lib/appContext";
-import { RepoSettings } from "../../../../project-settings/RepoSettings";
-import { SettingsSection } from "../../../../project-settings/SettingsSection";
+import { SettingsSection } from "../../../SettingsSection";
 
 export function GeneralSettings({
-	project,
 	draft,
 	saved,
 	commit,
 	setDraft,
 	readOnly,
+	saving,
 }: {
-	project: Project;
 	draft: ProjectManagerConfig;
 	saved: ProjectManagerConfig;
 	commit: (config: ProjectManagerConfig) => void;
 	setDraft: (config: ProjectManagerConfig) => void;
 	readOnly: boolean;
+	saving: boolean;
 }) {
 	const { client, orpc } = useApp();
 	const folder = useMutation({
@@ -116,7 +115,17 @@ export function GeneralSettings({
 					)}
 				</div>
 			</SettingsSection>
-			<RepoSettings project={project} />
+			<SettingsSection title="Automatic dispatch" hint="Send ticket events and periodic heartbeats to the manager.">
+				<Switch
+					label="Automatic dispatch"
+					checked={!draft.dispatchPaused}
+					disabled={saving}
+					onCheckedChange={(enabled) => commit({ ...draft, dispatchPaused: !enabled })}
+				/>
+				<p className="manager-settings-hint">
+					Pause automatic dispatch to keep new messages queued. The current process continues.
+				</p>
+			</SettingsSection>
 		</fieldset>
 	);
 }

@@ -1,7 +1,7 @@
 import { HARNESS_PRESETS, type HarnessPreset, type ProjectManagerConfig } from "@trellis/api";
 import { Input, Select } from "@trellis/ui";
 import { useState } from "react";
-import { SettingsSection } from "../../../../project-settings/SettingsSection";
+import { SettingsSection } from "../../../SettingsSection";
 import { AgentCommandField } from "../AgentCommandField";
 
 const presets = [

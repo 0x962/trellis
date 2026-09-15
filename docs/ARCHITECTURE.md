@@ -230,11 +230,11 @@ The runtime owns each process through a distinct execution attempt. Each attempt
 A stable start request identifier returns its existing run before the concurrency check.
 A changed target or persona rejects reuse of that identifier.
 
-The Manager page at `/p/<project path>/settings/manager` has Operation, General, and Harness sections.
-Operation shows the manager's interactive terminal. The dispatch switch pauses automatic messages while events remain stored.
-General selects the manager persona, repository directory, trust, and concurrency limit.
-Harness selects the agent preset and its start and resume commands.
-`projects.managerConfig` stores these fields with `ade: native`.
+The Manager page at `/p/<project path>/settings/manager` shows the manager's interactive terminal and process controls.
+Project settings at `/p/<project path>/settings#manager` selects the persona, repository directory, trust, concurrency limit, and automatic dispatch.
+The dispatch switch pauses automatic messages while events remain stored.
+The `#harness` section selects the preset, model, and custom start and resume commands.
+Both settings sections share one draft and save status. `projects.managerConfig` stores these fields with `ade: native`.
 
 Every preset runs its command through a local PTY. Claude hooks identify ready, active, and completed turns.
 `launchCommand.ts` combines the persona instruction with the project or ticket context.

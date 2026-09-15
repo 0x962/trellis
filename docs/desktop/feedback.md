@@ -9,6 +9,19 @@ Hana resumes at 20:02:37 UTC with the same provider session. TRL dispatch is ena
 
 ## Current work
 
+The next UI changes are in progress. They are not part of the installed release recorded above.
+
+| New feedback | Status | Owner | Verification |
+| --- | --- | --- | --- |
+| Open Trellis at the maximum window size without native fullscreen. | Integrated; installation pending | Desktop agent | 6a1b1deb. Five tests and the desktop typecheck pass. Every open restores a minimized window, exits fullscreen, and maximizes the window. |
+| Improve the sidebar using the Superset screenshot. | In progress; checks pending | Lead | Sidebar changes cover icons, row spacing, selected rows, and separation between root projects. |
+| Remove the space above the app content. Extend the content to the top. | In progress; checks pending | Lead | The topbar and sidebar reserve space for native controls within their own rows. |
+| Move all manager configuration into project settings. | Verified source; installation pending | Settings agent | All four settings browser cases pass. They cover saved values, one shared unsaved draft, default models, and trust recovery. |
+| Keep the manager page focused on its interactive CLI and process controls. | Source ready; installation pending | Lead | The terminal size, process controls, empty state, and error cases pass. The latest run reports one failure in its output continuity case. |
+
+The latest UI run uses `/tmp/trellis-full-manager-browser-final.log`. All four settings cases and four desktop workspace cases pass.
+The titlebar and terminal continuity cases report failures in that run. The user requests deployment and will test the installed UI.
+
 | Feedback | Status | Owner | Verification |
 | --- | --- | --- | --- |
 | Show agent names instead of identifiers in activity and comments, including old entries. | Installed | Lead and API agent | 26 API integration tests pass. The browser shows names in activity, comments, and thread labels. |
