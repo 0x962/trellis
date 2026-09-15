@@ -4,6 +4,7 @@ export function matchesProcessFilters(session: RuntimeProcessStatus, input: Runt
 	if (input.status !== undefined && session.status !== input.status) return false;
 	if (input.activity !== undefined && (session.status !== "running" || session.activity?.state !== input.activity))
 		return false;
-	const hasError = session.error !== null || (session.exitCode !== null && session.exitCode !== 0);
+	const hasError =
+		session.error !== null || session.agent?.error != null || (session.exitCode !== null && session.exitCode !== 0);
 	return input.hasError === undefined || input.hasError === hasError;
 }

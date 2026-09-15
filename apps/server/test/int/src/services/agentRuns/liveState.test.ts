@@ -37,6 +37,7 @@ const process: RuntimeProcessStatus = {
 	error: null,
 	checkedAt: run.updatedAt,
 	elapsedMs: 0,
+	agent: null,
 	controllable: true,
 	process: null,
 	launch: null,

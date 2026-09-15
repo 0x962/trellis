@@ -1,4 +1,36 @@
 export const RUNTIME_PROTOCOL_VERSION = 6;
+export type HarnessTool = {
+	id: string;
+	name: string;
+	input?: unknown;
+	output?: unknown;
+};
+
+export type HarnessEvent = {
+	turnId?: string;
+	outcome?: "completed" | "interrupted" | "failed";
+	kind: "session" | "prompt" | "working" | "idle" | "tool-start" | "tool-update" | "tool-end" | "error";
+	sessionId?: string;
+	model?: string;
+	prompt?: string;
+	result?: string;
+	tool?: HarnessTool;
+	error?: string;
+};
+
+export type RuntimeStream = "stdout" | "stderr" | "events";
+export interface RuntimeHarnessObservation {
+	observedAt: string;
+	event: HarnessEvent;
+}
+export interface RuntimeAgentMetadata {
+	sessionId: string | null;
+	model: string | null;
+	turnId: string | null;
+	tool: HarnessTool | null;
+	error: string | null;
+	outcome: NonNullable<HarnessEvent["outcome"]> | null;
+}
 export type SessionMode = "pty" | "stdio";
 export type SessionStatus = "running" | "exited" | "unknown";
 export interface LaunchSpec {
@@ -39,6 +71,7 @@ export interface RuntimeListInput {
 }
 export interface RuntimeProcessStatus extends RuntimeSession {
 	elapsedMs: number | null;
+	agent: RuntimeAgentMetadata | null;
 	result: { id: string; text: string } | null;
 	acknowledgedMessageIds: string[];
 	activity: { state: "ready" | "working" | "idle"; updatedAt: string } | null;
@@ -70,6 +103,7 @@ export interface RuntimeDelivery {
 	status: "written" | "unknown";
 }
 export interface RuntimeMethods {
+	observe: { params: { id: string; token: string; event: HarnessEvent }; result: RuntimeProcessStatus };
 	turn: {
 		params: {
 			id: string;
@@ -82,7 +116,7 @@ export interface RuntimeMethods {
 	};
 	inspect: { params: { id: string }; result: RuntimeProcessStatus };
 	subscribe: {
-		params: { id: string; offset: number; stream?: "stdout" | "stderr"; output?: boolean };
+		params: { id: string; offset: number; stream?: RuntimeStream; output?: boolean };
 		result: RuntimeOutputEvent;
 	};
 	shutdown: { params: Record<string, never>; result: null };
@@ -93,7 +127,7 @@ export interface RuntimeMethods {
 	input: { params: { id: string; data: string; userInput?: boolean }; result: null };
 	resize: { params: { id: string; cols: number; rows: number }; result: null };
 	stop: { params: { id: string }; result: RuntimeSession };
-	output: { params: { id: string; offset: number; stream?: "stdout" | "stderr" }; result: RuntimeOutput };
+	output: { params: { id: string; offset: number; stream?: RuntimeStream }; result: RuntimeOutput };
 }
 export type RuntimeMethod = keyof RuntimeMethods;
 export interface RuntimeRequest {

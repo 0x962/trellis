@@ -1,5 +1,6 @@
 import type { RuntimeProcessStatus, RuntimeSession } from "@trellis/runtime-protocol";
 import type { CompletionStore } from "./completionStore.ts";
+import type { HarnessObservations } from "./harnessObservations.ts";
 import type { InputLedger } from "./inputLedger.ts";
 import type { ProcessHandle } from "./processHandle.ts";
 import type { SessionLog } from "./sessionLog.ts";
@@ -17,6 +18,7 @@ export type SessionRecord = {
 	log: SessionLog;
 	stderr: SessionLog;
 	ledger: InputLedger;
+	observations: HarnessObservations;
 	completion: CompletionStore;
 	process?: ProcessHandle;
 	timer?: ReturnType<typeof setTimeout>;

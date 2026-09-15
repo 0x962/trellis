@@ -33,6 +33,7 @@ export function inspectSessionRecord(record: SessionRecord): RuntimeProcessStatu
 		checkedAt,
 		elapsedMs: elapsedEnd === null ? null : Date.parse(elapsedEnd) - Date.parse(record.session.startedAt),
 		launch: record.launch,
+		agent: record.observations.agent,
 		activity: record.activity,
 		acknowledgedMessageIds: record.ledger.acknowledgedMessageIds(),
 		result: record.completion.latest,

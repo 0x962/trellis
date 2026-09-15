@@ -1,12 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { createConnection } from "node:net";
 import {
+	type HarnessEvent,
 	type LaunchSpec,
 	RUNTIME_PROTOCOL_VERSION,
 	type RuntimeListInput,
 	type RuntimeMethod,
 	type RuntimeMethods,
 	type RuntimeResponse,
+	type RuntimeStream,
 } from "./index.ts";
 import { subscribeOutput } from "./subscribeOutput.ts";
 
@@ -64,11 +66,14 @@ export class RuntimeClient {
 			});
 		});
 	}
-	subscribe(id: string, offset = 0, signal?: AbortSignal, stream: "stdout" | "stderr" = "stdout") {
+	subscribe(id: string, offset = 0, signal?: AbortSignal, stream: RuntimeStream = "stdout") {
 		return subscribeOutput(this.socketPath, { id, offset, stream }, signal);
 	}
 	subscribeSession(id: string, signal?: AbortSignal) {
 		return subscribeOutput(this.socketPath, { id, offset: 0, output: false }, signal);
+	}
+	observe(id: string, token: string, event: HarnessEvent) {
+		return this.call("observe", { id, token, event });
 	}
 	turn(
 		id: string,
@@ -106,7 +111,7 @@ export class RuntimeClient {
 	stop(id: string) {
 		return this.call("stop", { id });
 	}
-	output(id: string, offset = 0, stream: "stdout" | "stderr" = "stdout") {
+	output(id: string, offset = 0, stream: RuntimeStream = "stdout") {
 		return this.call("output", { id, offset, stream });
 	}
 }

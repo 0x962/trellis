@@ -17,6 +17,18 @@ const sessionSchema = z.object({
 	error: z.string().nullable(),
 	checkedAt: z.string(),
 	elapsedMs: z.number().nullable(),
+	agent: z
+		.object({
+			sessionId: z.string().nullable(),
+			model: z.string().nullable(),
+			turnId: z.string().nullable(),
+			tool: z
+				.object({ id: z.string(), name: z.string(), input: z.unknown().optional(), output: z.unknown().optional() })
+				.nullable(),
+			error: z.string().nullable(),
+			outcome: z.enum(["completed", "interrupted", "failed"]).nullable(),
+		})
+		.nullable(),
 	controllable: z.boolean(),
 	process: z
 		.object({

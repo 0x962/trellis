@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type {
@@ -7,17 +7,18 @@ import type {
 	RuntimeMethods,
 	RuntimeProcessStatus,
 	RuntimeSession,
+	RuntimeStream,
 } from "@trellis/runtime-protocol";
-import { CompletionStore } from "./completionStore.ts";
+import { authenticateSession } from "./authenticateSession.ts";
 import { fingerprintLaunch } from "./fingerprintLaunch.ts";
-import { InputLedger } from "./inputLedger.ts";
 import { inspectProcess } from "./inspectProcess.ts";
 import { inspectSessionRecord } from "./inspectSessionRecord.ts";
 import { matchesProcessFilters } from "./matchesProcessFilters.ts";
+import { observeHarness } from "./observeHarness.ts";
 import { ProcessExitWatcher } from "./processExitWatcher.ts";
 import { createProcessHandle } from "./processHandle.ts";
-import { SessionLog } from "./sessionLog.ts";
 import type { SessionRecord as Record } from "./sessionRecord.ts";
+import { sessionResources } from "./sessionResources.ts";
 import { watchRecoveredSession } from "./watchRecoveredSession.ts";
 
 export class SessionStore {
@@ -45,10 +46,7 @@ export class SessionStore {
 				tokenHash: null,
 				activity: null,
 				inputPending: false,
-				log: new SessionLog(join(home, `${saved.session.id}.output.json`)),
-				stderr: new SessionLog(join(home, `${saved.session.id}.stderr.json`)),
-				ledger: new InputLedger(join(home, `${saved.session.id}.input.json`)),
-				completion: new CompletionStore(join(home, `${saved.session.id}.results.jsonl`)),
+				...sessionResources(home, saved.session.id),
 				stopped: Promise.resolve(),
 				resolveStop: () => {},
 			};
@@ -87,11 +85,15 @@ export class SessionStore {
 	inspect(id: string): RuntimeProcessStatus {
 		return inspectSessionRecord(this.get(id));
 	}
+	observe({ id, token, event }: RuntimeMethods["observe"]["params"]): RuntimeProcessStatus {
+		const record = this.get(id);
+		authenticateSession(record, token);
+		observeHarness(record, event);
+		return this.inspect(id);
+	}
 	turn({ id, token, event, messageId, result }: RuntimeMethods["turn"]["params"]): RuntimeProcessStatus {
 		const record = this.get(id);
-		if (record.tokenHash === null || !timingSafeEqual(record.tokenHash, createHash("sha256").update(token).digest()))
-			throw new Error("The attempt token does not match this process");
-		if (!this.inspect(id).controllable) throw new Error("The process is not controllable");
+		authenticateSession(record, token);
 		const state = { SessionStart: "ready", UserPromptSubmit: "working", Stop: "idle" } as const;
 		record.activity = { state: state[event], updatedAt: new Date().toISOString() };
 		record.inputPending = false;
@@ -100,10 +102,14 @@ export class SessionStore {
 		for (const listener of record.listeners) listener();
 		return this.inspect(id);
 	}
-	subscribe(id: string, listener: () => void, stream: "stdout" | "stderr" = "stdout", output = true) {
+	subscribe(id: string, listener: () => void, stream: RuntimeStream = "stdout", output = true) {
 		const record = this.get(id);
 		record.listeners.add(listener);
-		const unsubscribe = output ? (stream === "stderr" ? record.stderr : record.log).subscribe(listener) : () => {};
+		const unsubscribe = output
+			? (stream === "events" ? record.observations.log : stream === "stderr" ? record.stderr : record.log).subscribe(
+					listener,
+				)
+			: () => {};
 		return () => {
 			record.listeners.delete(listener);
 			unsubscribe();
@@ -146,10 +152,7 @@ export class SessionStore {
 				: null,
 			activity: null,
 			inputPending: false,
-			log: new SessionLog(join(this.home, `${spec.id}.output.json`)),
-			stderr: new SessionLog(join(this.home, `${spec.id}.stderr.json`)),
-			ledger: new InputLedger(join(this.home, `${spec.id}.input.json`)),
-			completion: new CompletionStore(join(this.home, `${spec.id}.results.jsonl`)),
+			...sessionResources(this.home, spec.id),
 			stopped,
 			resolveStop,
 		};
@@ -257,10 +260,7 @@ export class SessionStore {
 				tokenHash: null,
 				activity: null,
 				inputPending: false,
-				log: new SessionLog(join(this.home, `${id}.output.json`)),
-				stderr: new SessionLog(join(this.home, `${id}.stderr.json`)),
-				ledger: new InputLedger(join(this.home, `${id}.input.json`)),
-				completion: new CompletionStore(join(this.home, `${id}.results.jsonl`)),
+				...sessionResources(this.home, id),
 				stopped: Promise.resolve(),
 				resolveStop: () => {},
 			};
@@ -274,8 +274,11 @@ export class SessionStore {
 		}
 		return this.inspect(id);
 	}
-	output(id: string, offset: number, stream: "stdout" | "stderr" = "stdout") {
-		return (stream === "stderr" ? this.get(id).stderr : this.get(id).log).read(offset);
+	output(id: string, offset: number, stream: RuntimeStream = "stdout") {
+		const record = this.get(id);
+		return (stream === "events" ? record.observations.log : stream === "stderr" ? record.stderr : record.log).read(
+			offset,
+		);
 	}
 	outputComplete(id: string) {
 		const record = this.get(id);

@@ -1,5 +1,7 @@
 import { RUNTIME_PROTOCOL_VERSION, type RuntimeRequest } from "@trellis/runtime-protocol";
 
+import { validateHarnessEvent } from "./validateHarnessEvent.ts";
+
 export function validateRequest(value: unknown): RuntimeRequest {
 	const request = value as RuntimeRequest;
 	if (!request || typeof request.id !== "string" || request.id.length > 128)
@@ -9,7 +11,9 @@ export function validateRequest(value: unknown): RuntimeRequest {
 	const params = request.params as Record<string, unknown>;
 	if (!params || typeof params !== "object") throw new Error("Request parameters are required");
 	if (
-		["start", "inspect", "turn", "input", "deliver", "resize", "stop", "output", "subscribe"].includes(request.method)
+		["start", "inspect", "observe", "turn", "input", "deliver", "resize", "stop", "output", "subscribe"].includes(
+			request.method,
+		)
 	) {
 		if (typeof params.id !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.id))
 			throw new Error("Session identifier must contain letters, numbers, underscores, or hyphens");
@@ -27,6 +31,11 @@ export function validateRequest(value: unknown): RuntimeRequest {
 				throw new Error("Unknown process activity filter");
 			if (params.hasError !== undefined && typeof params.hasError !== "boolean")
 				throw new Error("The process error filter must be a boolean");
+			break;
+		case "observe":
+			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
+				throw new Error("An attempt token is required");
+			validateHarnessEvent(params.event);
 			break;
 		case "turn":
 			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
@@ -99,8 +108,13 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		case "output":
 			if (params.output !== undefined && typeof params.output !== "boolean")
 				throw new Error("The output subscription flag must be a boolean");
-			if (params.stream !== undefined && params.stream !== "stdout" && params.stream !== "stderr")
-				throw new Error("Output stream must be stdout or stderr");
+			if (
+				params.stream !== undefined &&
+				params.stream !== "stdout" &&
+				params.stream !== "stderr" &&
+				params.stream !== "events"
+			)
+				throw new Error("Output stream must be stdout, stderr, or events");
 			if (!Number.isSafeInteger(params.offset) || (params.offset as number) < 0)
 				throw new Error("Output offset must be a positive byte count");
 			break;

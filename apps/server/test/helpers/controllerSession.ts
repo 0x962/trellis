@@ -16,6 +16,7 @@ export const controllerSession = (
 	error: null,
 	checkedAt: NOW.toISOString(),
 	elapsedMs: 0,
+	agent: null,
 	controllable: true,
 	process: {
 		pid: 123,
