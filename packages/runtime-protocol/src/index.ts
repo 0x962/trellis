@@ -84,7 +84,7 @@ export interface RuntimeMethods {
 	hello: { params: Record<string, never>; result: RuntimeHello };
 	list: { params: Record<string, never>; result: RuntimeProcessStatus[] };
 	start: { params: LaunchSpec; result: RuntimeSession };
-	input: { params: { id: string; data: string }; result: null };
+	input: { params: { id: string; data: string; userInput?: boolean }; result: null };
 	resize: { params: { id: string; cols: number; rows: number }; result: null };
 	stop: { params: { id: string }; result: RuntimeSession };
 	output: { params: { id: string; offset: number; stream?: "stdout" | "stderr" }; result: RuntimeOutput };

@@ -14,7 +14,12 @@ const target = async (ctx: ServiceCtx, id: string) => {
 export const session = async (ctx: ServiceCtx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	if (run.runtime !== "native" || !run.terminalId) return null;
-	return (await nativeClient(ctx.home).list()).find((session) => session.id === run.terminalId) ?? null;
+	try {
+		return await nativeClient(ctx.home).inspect(run.terminalId);
+	} catch (error) {
+		if ((error as { code?: string }).code === "SESSION_NOT_FOUND") return null;
+		throw error;
+	}
 };
 
 export const output = async (ctx: ServiceCtx, input: { id: string; offset?: number }) => {
@@ -22,13 +27,13 @@ export const output = async (ctx: ServiceCtx, input: { id: string; offset?: numb
 	return client.output(run.terminalId!, input.offset ?? 0);
 };
 
-export const input = async (ctx: ServiceCtx, input: { id: string; text: string } & SendTarget) => {
+export const input = async (ctx: ServiceCtx, input: { id: string; text: string; userInput?: boolean } & SendTarget) => {
 	const { run, client } = await target(ctx, input.id);
 	assertSendTarget(run, input);
-	const process = (await client.list()).find((session) => session.id === run.terminalId);
+	const process = await client.inspect(run.terminalId!);
 	if (process?.mode !== "pty" || process.status !== "running")
 		throw invalidInput("id", "This agent does not have a running interactive terminal.");
-	await client.input(run.terminalId!, Buffer.from(input.text).toString("base64"));
+	await client.input(run.terminalId!, Buffer.from(input.text).toString("base64"), input.userInput);
 	return {};
 };
 

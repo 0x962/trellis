@@ -55,7 +55,7 @@ export async function startRuntime(home: string) {
 				return store.start(request.params as RuntimeMethods["start"]["params"]);
 			case "input": {
 				const p = request.params as RuntimeMethods["input"]["params"];
-				return store.input(p.id, p.data);
+				return store.input(p.id, p.data, p.userInput);
 			}
 			case "deliver": {
 				const p = request.params as RuntimeMethods["deliver"]["params"];

@@ -32,6 +32,7 @@ export class SessionStore {
 				listeners: new Set<() => void>(),
 				tokenHash: null,
 				activity: null,
+				inputPending: false,
 				log: new SessionLog(join(home, `${saved.session.id}.output.json`)),
 				stderr: new SessionLog(join(home, `${saved.session.id}.stderr.json`)),
 				ledger: new InputLedger(join(home, `${saved.session.id}.input.json`)),
@@ -88,6 +89,7 @@ export class SessionStore {
 		if (!this.inspect(id).controllable) throw new Error("The process is not controllable");
 		const state = { SessionStart: "ready", UserPromptSubmit: "working", Stop: "idle" } as const;
 		record.activity = { state: state[event], updatedAt: new Date().toISOString() };
+		record.inputPending = false;
 		if (event === "UserPromptSubmit" && messageId !== undefined) record.ledger.acknowledge(messageId, messageId === id);
 		if (event === "Stop" && result !== undefined) record.completion.append(result);
 		for (const listener of record.listeners) listener();
@@ -151,6 +153,7 @@ export class SessionStore {
 				? createHash("sha256").update(spec.env.TRELLIS_ATTEMPT_TOKEN).digest()
 				: null,
 			activity: null,
+			inputPending: false,
 			log: new SessionLog(join(this.home, `${spec.id}.output.json`)),
 			stderr: new SessionLog(join(this.home, `${spec.id}.stderr.json`)),
 			ledger: new InputLedger(join(this.home, `${spec.id}.input.json`)),
@@ -207,24 +210,30 @@ export class SessionStore {
 			}, spec.timeoutMs);
 		return this.inspect(spec.id);
 	}
-	async input(id: string, data: string) {
+	async input(id: string, data: string, userInput = false) {
 		const record = this.get(id);
 		if (!record.process) throw new Error(`Session ${id} is ${record.session.status}`);
-		if (record.tokenHash !== null) {
-			record.activity = { state: "working", updatedAt: new Date().toISOString() };
-			for (const listener of record.listeners) listener();
-		}
-		await record.process.input(Buffer.from(data, "base64"));
+		const bytes = Buffer.from(data, "base64");
+		if (userInput && record.tokenHash !== null) record.inputPending = bytes.toString() !== "\x03";
+		await record.process.input(bytes);
 		return null;
 	}
 	deliver(id: string, messageId: string, data: string, requireIdle = false) {
 		const record = this.get(id);
 		if (requireIdle && !record.ledger.has(messageId)) {
 			const current = this.inspect(id);
-			if (!current.controllable || !current.activity || !["ready", "idle"].includes(current.activity.state))
+			if (
+				record.inputPending ||
+				!current.controllable ||
+				!current.activity ||
+				!["ready", "idle"].includes(current.activity.state)
+			)
 				throw Object.assign(new Error("The agent is not idle"), { code: "RUNTIME_BUSY" });
 		}
-		return record.ledger.deliver(messageId, data, () => this.input(id, data));
+		return record.ledger.deliver(messageId, data, () => {
+			record.inputPending = true;
+			return this.input(id, data);
+		});
 	}
 	resize(id: string, cols: number, rows: number) {
 		const record = this.get(id);
@@ -253,6 +262,7 @@ export class SessionStore {
 				listeners: new Set(),
 				tokenHash: null,
 				activity: null,
+				inputPending: false,
 				log: new SessionLog(join(this.home, `${id}.output.json`)),
 				stderr: new SessionLog(join(this.home, `${id}.stderr.json`)),
 				ledger: new InputLedger(join(this.home, `${id}.input.json`)),

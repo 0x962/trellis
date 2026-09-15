@@ -132,7 +132,7 @@ test("automatic delivery claims an idle turn before it writes any bytes", async 
 	await client.turn(id, "idle-token", "Stop");
 	expect((await client.deliver(id, second, bytes, true)).status).toBe("written");
 	await client.turn(id, "idle-token", "Stop");
-	await client.input(id, Buffer.from("typed without submit").toString("base64"));
+	await client.input(id, Buffer.from("typed without submit").toString("base64"), true);
 	await expect(client.deliver(id, "third", bytes, true)).rejects.toMatchObject({ code: "RUNTIME_BUSY" });
 	await client.stop(id);
 });
@@ -151,5 +151,39 @@ test("the authenticated initial prompt acknowledges only its own attempt ID", as
 	expect((await client.inspect(id)).acknowledgedMessageIds).toEqual([]);
 	await client.turn(id, "initial-token", "UserPromptSubmit", id);
 	expect((await client.inspect(id)).acknowledgedMessageIds).toEqual([id]);
+	await client.stop(id);
+});
+
+test("terminal replies preserve idle activity while explicit drafts block automatic input", async () => {
+	const id = "terminal-replies";
+	await client.start({
+		id,
+		command: "/bin/sh",
+		args: ["-c", "trap '' INT; printf ready; exec /bin/cat"],
+		cwd: home,
+		mode: "pty",
+		env: { TRELLIS_ATTEMPT_TOKEN: "reply-token" },
+	});
+	for await (const event of client.subscribe(id, 0, AbortSignal.timeout(5000))) {
+		if (event.type === "output" && Buffer.from(event.data, "base64").toString().includes("ready")) break;
+	}
+	await client.turn(id, "reply-token", "Stop");
+	const idle = (await client.inspect(id)).activity;
+	for (const reply of ["\x1b[1;1R", "\x1b[?1;2c", "\x1b]10;rgb:ffff/ffff/ffff\x07", "\x1b[I"]) {
+		await client.input(id, Buffer.from(reply).toString("base64"));
+	}
+	expect((await client.inspect(id)).activity).toEqual(idle);
+	await client.input(id, Buffer.from("draft").toString("base64"), true);
+	expect((await client.inspect(id)).activity).toEqual(idle);
+	await expect(
+		client.deliver(id, "blocked", Buffer.from("automatic\n").toString("base64"), true),
+	).rejects.toMatchObject({ code: "RUNTIME_BUSY" });
+	await client.input(id, Buffer.from("\x03").toString("base64"), true);
+	expect((await client.deliver(id, "accepted", Buffer.from("automatic\n").toString("base64"), true)).status).toBe(
+		"written",
+	);
+	expect((await client.inspect(id)).activity).toEqual(idle);
+	await client.turn(id, "reply-token", "UserPromptSubmit", "accepted");
+	expect((await client.inspect(id)).activity?.state).toBe("working");
 	await client.stop(id);
 });

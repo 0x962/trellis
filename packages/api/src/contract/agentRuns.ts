@@ -15,36 +15,24 @@ const sessionSchema = z.object({
 	endedAt: z.string().nullable(),
 	exitCode: z.number().nullable(),
 	error: z.string().nullable(),
-});
-const harnessSchema = z.object({
-	state: z.enum(["ready", "working", "idle", "needs_input", "failed", "unknown"]),
-	sessionId: z.string(),
+	checkedAt: z.string(),
+	controllable: z.boolean(),
+	process: z
+		.object({
+			pid: z.number(),
+			parentPid: z.number(),
+			groupId: z.number(),
+			identity: z.string(),
+			startedAt: z.string(),
+			executable: z.string(),
+		})
+		.nullable(),
+	launch: z.object({ command: z.string(), args: z.array(z.string()), cwd: z.string() }).nullable(),
+	activity: z.object({ state: z.enum(["ready", "working", "idle"]), updatedAt: z.string() }).nullable(),
 	acknowledgedMessageIds: z.array(z.string()),
-	resultTruncated: z.boolean().optional(),
-	transcriptTruncated: z.boolean().optional(),
-	result: z.string().nullable(),
-	error: z.string().nullable(),
-	transcript: z.array(
-		z.object({ role: z.enum(["user", "assistant"]), text: z.string(), messageId: z.string().optional() }),
-	),
-	pendingPermissions: z.array(
-		z.object({
-			requestId: z.string(),
-			toolName: z.string(),
-			toolUseId: z.string().nullable(),
-			input: z.record(z.string(), z.unknown()),
-		}),
-	),
+	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
-	harness: base
-		.route({ method: "GET", path: "/agent-runs/{id}/harness", summary: "Read agent turn state" })
-		.input(idInput)
-		.output(harnessSchema.nullable()),
-	permission: base
-		.route({ method: "POST", path: "/agent-runs/{id}/permission", summary: "Decide a tool permission request" })
-		.input(idInput.extend({ requestId: z.string().min(1), behavior: z.enum(["allow", "deny"]) }))
-		.output(z.object({})),
 	session: base
 		.route({ method: "GET", path: "/agent-runs/{id}/session", summary: "Read the local process" })
 		.input(idInput)
@@ -55,7 +43,13 @@ export const agentRuns = {
 		.output(z.object({ data: z.string(), startOffset: z.number(), nextOffset: z.number(), truncated: z.boolean() })),
 	terminalInput: base
 		.route({ method: "POST", path: "/agent-runs/{id}/terminal/input", summary: "Write terminal bytes" })
-		.input(idInput.extend({ text: z.string().min(1).max(65536), expectedTerminalId: z.string().optional() }))
+		.input(
+			idInput.extend({
+				text: z.string().min(1).max(65536),
+				userInput: z.boolean().optional(),
+				expectedTerminalId: z.string().optional(),
+			}),
+		)
 		.output(z.object({})),
 	resize: base
 		.route({ method: "POST", path: "/agent-runs/{id}/terminal/resize", summary: "Resize a terminal" })

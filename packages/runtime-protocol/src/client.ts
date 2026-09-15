@@ -93,8 +93,8 @@ export class RuntimeClient {
 	start(spec: LaunchSpec) {
 		return this.call("start", spec);
 	}
-	input(id: string, data: string) {
-		return this.call("input", { id, data });
+	input(id: string, data: string, userInput?: boolean) {
+		return this.call("input", { id, data, userInput });
 	}
 	deliver(id: string, messageId: string, data: string, requireIdle?: boolean) {
 		return this.call("deliver", { id, messageId, data, requireIdle });

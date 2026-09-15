@@ -12,6 +12,7 @@ export type SessionRecord = {
 	listeners: Set<() => void>;
 	tokenHash: Buffer | null;
 	activity: RuntimeProcessStatus["activity"];
+	inputPending: boolean;
 	log: SessionLog;
 	stderr: SessionLog;
 	ledger: InputLedger;

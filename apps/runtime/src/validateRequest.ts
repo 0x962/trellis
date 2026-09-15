@@ -68,6 +68,8 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			break;
 		case "deliver":
 		case "input":
+			if (params.userInput !== undefined && typeof params.userInput !== "boolean")
+				throw new Error("The user input flag must be a boolean");
 			if (params.requireIdle !== undefined && typeof params.requireIdle !== "boolean")
 				throw new Error("The idle requirement must be a boolean");
 			if (
