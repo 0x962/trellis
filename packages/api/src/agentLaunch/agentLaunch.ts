@@ -22,8 +22,10 @@ export const AGENT_COMMAND_VARIABLES = [
 // The agent commands a project runs when it names none: Claude Code, which
 // takes the session id of the run on a new start and resumes it after a
 // pause.
-export const DEFAULT_AGENT_START_COMMAND = "claude -n {{name}} --session-id {{sessionId}} {{prompt}}";
-export const DEFAULT_AGENT_RESUME_COMMAND = "claude -n {{name}} --resume {{sessionId}} {{resumeText}}";
+export const DEFAULT_AGENT_START_COMMAND =
+	"claude --dangerously-skip-permissions -n {{name}} --session-id {{sessionId}} {{prompt}}";
+export const DEFAULT_AGENT_RESUME_COMMAND =
+	"claude --dangerously-skip-permissions -n {{name}} --resume {{sessionId}} {{resumeText}}";
 
 const unknownVariables = (template: string, known: readonly string[]) =>
 	[...template.matchAll(/\{\{([^{}]+)\}\}/g)].map((match) => match[1]!).filter((name) => !known.includes(name));

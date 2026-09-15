@@ -4,16 +4,22 @@ import { DEFAULT_AGENT_RESUME_COMMAND, DEFAULT_AGENT_START_COMMAND } from "../ag
 
 export const HARNESS_PRESETS = {
 	claude: { startCommand: DEFAULT_AGENT_START_COMMAND, resumeCommand: DEFAULT_AGENT_RESUME_COMMAND },
-	codex: { startCommand: "codex {{prompt}}", resumeCommand: "codex resume --last {{resumeText}}" },
+	codex: {
+		startCommand: "codex --dangerously-bypass-approvals-and-sandbox {{prompt}}",
+		resumeCommand: "codex resume --dangerously-bypass-approvals-and-sandbox --last {{resumeText}}",
+	},
 	agy: {
-		startCommand: "agy --prompt-interactive {{prompt}}",
-		resumeCommand: "agy --continue --prompt-interactive {{resumeText}}",
+		startCommand: "agy --dangerously-skip-permissions --prompt-interactive {{prompt}}",
+		resumeCommand: "agy --dangerously-skip-permissions --continue --prompt-interactive {{resumeText}}",
 	},
 	opencode: {
-		startCommand: "opencode --prompt {{prompt}}",
-		resumeCommand: "opencode --continue --prompt {{resumeText}}",
+		startCommand: `OPENCODE_PERMISSION='{"*":"allow"}' opencode --prompt {{prompt}}`,
+		resumeCommand: `OPENCODE_PERMISSION='{"*":"allow"}' opencode --continue --prompt {{resumeText}}`,
 	},
-	pi: { startCommand: "pi {{prompt}}", resumeCommand: "pi --continue {{resumeText}}" },
+	pi: {
+		startCommand: "pi --tools read,bash,edit,write,grep,find,ls {{prompt}}",
+		resumeCommand: "pi --tools read,bash,edit,write,grep,find,ls --continue {{resumeText}}",
+	},
 };
 export const HarnessPresetSchema = z.enum(["claude", "codex", "agy", "opencode", "pi", "custom"]);
 export type HarnessPreset = z.infer<typeof HarnessPresetSchema>;
