@@ -7,13 +7,16 @@ test("native execution settings and ticket work tabs retain the ticket context",
 	await post("/projects", { key: "DUX", name: "Desktop workspace" });
 	await post("/tickets", { project: "DUX", title: "Verify local output" });
 	await signIn(page, "/p/DUX/settings/manager#settings");
-	await page.getByRole("textbox", { name: "Project directory", exact: true }).fill("/tmp/trellis-trust-one");
+	await page.getByRole("textbox", { name: "Project directory", exact: true }).fill("/tmp/trellis-directory-one");
 	await page.getByRole("textbox", { name: "Project directory", exact: true }).press("Tab");
-	await page.getByRole("checkbox", { name: "Trust this repository", exact: true }).check();
-	await expect.poll(async () => (await get<Project>("/projects/DUX")).managerConfig?.trustedDirectory).toBe(true);
-	await page.getByRole("textbox", { name: "Project directory", exact: true }).fill("/tmp/trellis-trust-two");
+	await expect
+		.poll(async () => (await get<Project>("/projects/DUX")).managerConfig?.directory)
+		.toBe("/tmp/trellis-directory-one");
+	await page.getByRole("textbox", { name: "Project directory", exact: true }).fill("/tmp/trellis-directory-two");
 	await page.getByRole("textbox", { name: "Project directory", exact: true }).press("Tab");
-	await expect.poll(async () => (await get<Project>("/projects/DUX")).managerConfig?.trustedDirectory).toBe(false);
+	await expect
+		.poll(async () => (await get<Project>("/projects/DUX")).managerConfig?.directory)
+		.toBe("/tmp/trellis-directory-two");
 	await page.getByRole("link", { name: "Operation", exact: true }).click();
 	await page.getByRole("switch", { name: "Automatic dispatch", exact: true }).uncheck();
 	await expect.poll(async () => (await get<Project>("/projects/DUX")).managerConfig?.dispatchPaused).toBe(true);

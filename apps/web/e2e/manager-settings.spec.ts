@@ -3,11 +3,11 @@ import { type AgentRun, HARNESS_PRESETS, type Persona, type Project } from "@tre
 import { get, post } from "./api";
 import { signIn } from "./support";
 
-test("local manager settings preserve directory trust, model, and custom commands", async ({ page }) => {
+test("local manager settings preserve the directory, model, and custom commands", async ({ page }) => {
 	await post("/projects", {
 		key: "HAR",
 		name: "Harness settings",
-		managerConfig: { personaId: null, concurrency: 3, directory: "", ade: "native", trustedDirectory: false },
+		managerConfig: { personaId: null, concurrency: 3, directory: "", ade: "native" },
 	});
 	await page.addInitScript(() =>
 		Object.defineProperty(window, "trellisDesktop", {
@@ -20,8 +20,10 @@ test("local manager settings preserve directory trust, model, and custom command
 	await expect(page.getByRole("textbox", { name: "Project directory", exact: true })).toHaveValue(
 		"/tmp/trellis-native-settings",
 	);
-	await page.getByRole("checkbox", { name: "Trust this repository", exact: true }).check();
-	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.trustedDirectory).toBe(true);
+	await expect
+		.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.directory)
+		.toBe("/tmp/trellis-native-settings");
+	await expect(page.getByRole("checkbox", { name: "Trust this repository", exact: true })).toHaveCount(0);
 	await page.getByRole("link", { name: "Harness", exact: true }).click();
 	await page.getByRole("combobox", { name: "Harness preset" }).click();
 	await page.getByRole("option", { name: "Codex", exact: true }).click();
@@ -43,10 +45,11 @@ test("local manager settings preserve directory trust, model, and custom command
 		.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.harness.startCommand)
 		.toBe("custom-agent {{prompt}}");
 	await page.getByRole("link", { name: "General", exact: true }).click();
-	await expect(page.getByRole("checkbox", { name: "Trust this repository", exact: true })).toBeChecked();
 	await page.getByRole("textbox", { name: "Project directory", exact: true }).fill("/tmp/trellis-native-other");
 	await page.getByRole("textbox", { name: "Project directory", exact: true }).press("Tab");
-	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.trustedDirectory).toBe(false);
+	await expect
+		.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.directory)
+		.toBe("/tmp/trellis-native-other");
 	await page.getByLabel("Concurrency", { exact: true }).fill("5");
 	await page.getByLabel("Concurrency", { exact: true }).press("Tab");
 	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.concurrency).toBe(5);
@@ -65,7 +68,6 @@ test("a blank default model remains valid after an edit", async ({ page }) => {
 			personaId: persona.id,
 			concurrency: 1,
 			directory: "/tmp",
-			trustedDirectory: true,
 			dispatchPaused: true,
 		},
 	});
@@ -82,18 +84,17 @@ test("a blank default model remains valid after an edit", async ({ page }) => {
 
 test("a manager without a launched process can start after its settings are fixed", async ({ page }) => {
 	const persona = await post<Persona>("/personas", {
-		name: "Trust fixture",
+		name: "Directory fixture",
 		kind: "manager",
 		instruction: "Wait.",
 	});
 	await post("/projects", {
 		key: "MTR",
-		name: "Manager trust",
+		name: "Manager directory",
 		managerConfig: {
 			personaId: persona.id,
 			concurrency: 1,
-			directory: "/tmp",
-			trustedDirectory: false,
+			directory: "/tmp/trellis-missing-manager-directory",
 			dispatchPaused: true,
 		},
 	});
@@ -101,11 +102,12 @@ test("a manager without a launched process can start after its settings are fixe
 	await page.getByRole("button", { name: "Start manager", exact: true }).click();
 	await expect
 		.poll(async () => (await get<AgentRun[]>("/agent-runs?project=MTR"))[0]?.error)
-		.toContain("Trust this repository");
+		.toContain("/tmp/trellis-missing-manager-directory");
 	expect((await get<AgentRun[]>("/agent-runs?project=MTR"))[0]?.processStatus).toBeNull();
 	await page.getByRole("link", { name: "General", exact: true }).click();
-	await page.getByRole("checkbox", { name: "Trust this repository", exact: true }).check();
-	await expect.poll(async () => (await get<Project>("/projects/MTR")).managerConfig?.trustedDirectory).toBe(true);
+	await page.getByRole("textbox", { name: "Project directory", exact: true }).fill("/tmp");
+	await page.getByRole("textbox", { name: "Project directory", exact: true }).press("Tab");
+	await expect.poll(async () => (await get<Project>("/projects/MTR")).managerConfig?.directory).toBe("/tmp");
 	await expect(page.getByRole("button", { name: "Start manager", exact: true })).toBeEnabled();
 	await expect(page.getByRole("button", { name: "Stop manager", exact: true })).toHaveCount(0);
 });

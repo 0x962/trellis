@@ -71,7 +71,6 @@ test("a real runtime completes a flow through a gate and human decision", async 
 			concurrency: 2,
 			directory,
 			ade: "native",
-			trustedDirectory: true,
 			harness: {
 				preset: "claude",
 				startCommand: "unused",
@@ -186,7 +185,6 @@ test("cancel stops a claimed native flow without another launch", async () => {
 			concurrency: 2,
 			directory,
 			ade: "native",
-			trustedDirectory: true,
 			harness: {
 				preset: "claude",
 				startCommand: "unused",

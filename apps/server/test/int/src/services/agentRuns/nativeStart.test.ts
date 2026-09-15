@@ -52,7 +52,6 @@ test.each(["stopped", "replaced"])("a %s start cannot commit its workspace or la
 		concurrency: 1,
 		directory: "/tmp",
 		ade: "native",
-		trustedDirectory: true,
 	});
 	const replacement = kind === "replaced" ? randomUUID() : attemptId;
 	await startNative(
@@ -97,7 +96,6 @@ test("a workspace failure closes the unlaunched assignment and preserves its cau
 				personaId: null,
 				concurrency: 1,
 				directory: "/missing",
-				trustedDirectory: true,
 			}),
 			resume: false,
 			context: "Fixture",
@@ -113,6 +111,38 @@ test("a workspace failure closes the unlaunched assignment and preserves its cau
 	expect(after.closedAt).not.toBeNull();
 	expect(after.error).toBe("Repository directory /missing does not exist");
 	expect(existsSync(join(home, "runtime"))).toBe(false);
+});
+
+test("a Claude start with the default project config reaches its workspace", async () => {
+	const run = await h.read((tx) => getRun(tx, id));
+	const ctx = {
+		...h.ctx(() => {}),
+		newTx: h.read,
+		home,
+		now: () => new Date(),
+		localUrl: "http://127.0.0.1:4521",
+	} as unknown as Parameters<typeof startNative>[0];
+	const config = ProjectManagerConfigSchema.parse({ personaId: null, concurrency: 1, directory: "/tmp" });
+	expect(config.harness.preset).toBe("claude");
+	let workspaceDirectory: string | undefined;
+	await startNative(
+		ctx,
+		{
+			run,
+			config,
+			resume: false,
+			context: "Fixture",
+			attempt: { id: attemptId, generation: 1, token: "fixture-token" },
+		},
+		{
+			workspace: async (_home, _run, directory) => {
+				workspaceDirectory = directory;
+				throw new Error("The fixture stops after the workspace step");
+			},
+		},
+	);
+	expect(workspaceDirectory).toBe("/tmp");
+	expect((await h.read((tx) => getRun(tx, id))).error).toBe("The fixture stops after the workspace step");
 });
 
 test("an uncertain launch reply keeps the assignment open for process inspection", async () => {
@@ -154,7 +184,6 @@ test("an uncertain launch reply keeps the assignment open for process inspection
 						personaId: null,
 						concurrency: 1,
 						directory: "/tmp",
-						trustedDirectory: true,
 					}),
 					resume: false,
 					context: "Fixture",
@@ -219,7 +248,6 @@ test.each(["acknowledged", "unknown"])("a Claude start waits for its initial pro
 					personaId: null,
 					concurrency: 1,
 					directory: "/tmp",
-					trustedDirectory: true,
 				}),
 				resume: false,
 				context: "Fixture",

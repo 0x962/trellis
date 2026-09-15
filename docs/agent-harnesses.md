@@ -8,7 +8,8 @@ The host reads native session events and checks the actual process.
 
 Open **Project → Manager → General** to select the repository directory and persona.
 Set the concurrency limit for the project.
-Trust the repository before a Claude agent starts.
+Trellis trusts the project directory for Claude, so no trust prompt blocks an agent start.
+Only a person can set or change the project directory.
 
 Open **Project → Manager → Harness** to select the harness and model.
 Leave **Model** blank to use the harness default.

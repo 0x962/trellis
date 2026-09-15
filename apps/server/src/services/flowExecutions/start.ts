@@ -33,7 +33,6 @@ export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartIn
 	const config = managerConfigOf(await projectRow(tx, ticket.projectId));
 	if (config.ade !== "native" || config.harness.preset === "custom")
 		throw invalidInput("project", "Native flows require a built-in harness with native session events.");
-	if (!config.trustedDirectory) throw invalidInput("project", "Trust the project directory before a flow starts.");
 	const resolved = await resolveFlow(tx, input.flow);
 	await tx.execute(sql`SELECT id FROM flows WHERE id=${resolved.id} FOR SHARE`);
 	const flow = await resolveFlow(tx, resolved.id);

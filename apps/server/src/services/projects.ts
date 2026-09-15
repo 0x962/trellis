@@ -48,8 +48,9 @@ export const DEFAULT_TICKET_TEMPLATE = "## Context\n\n## Acceptance criteria\n- 
 
 export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput): Promise<Project> => {
 	requireActor(ctx);
-	if (ctx.actor?.kind !== "human" && input.managerConfig?.trustedDirectory)
-		throw invalidInput("managerConfig.trustedDirectory", "A person must trust the repository before an agent uses it.");
+	// Trellis runs agents in the project directory with no trust prompt, so only a person chooses it.
+	if (ctx.actor?.kind !== "human" && input.managerConfig?.directory)
+		throw invalidInput("managerConfig.directory", "A person must choose the project directory.");
 	if (input.managerConfig?.personaId != null) {
 		const [persona] = await rows<{ kind: string }>(
 			tx,
@@ -100,10 +101,10 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 		throw invalidInput("managerConfig.allowAllPermissions", "A person must enable automatic tool permissions.");
 	if (
 		ctx.actor?.kind !== "human" &&
-		input.managerConfig?.trustedDirectory &&
-		(!managerConfigOf(row).trustedDirectory || managerConfigOf(row).directory !== input.managerConfig.directory)
+		input.managerConfig !== undefined &&
+		input.managerConfig.directory !== managerConfigOf(row).directory
 	)
-		throw invalidInput("managerConfig.trustedDirectory", "A person must trust the repository before an agent uses it.");
+		throw invalidInput("managerConfig.directory", "A person must choose the project directory.");
 	if (input.managerConfig?.personaId != null) {
 		const [persona] = await rows<{ kind: string }>(
 			tx,

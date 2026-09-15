@@ -37,14 +37,6 @@ export const startNative = async (
 ) => {
 	const { run, config, resume, context } = input;
 	const terminalId = input.attempt.id;
-	if (config.harness.preset === "claude" && !config.trustedDirectory) {
-		await ctx.newTx((tx) =>
-			tx.execute(
-				sql`UPDATE agent_runs SET closed_at = ${ctx.now()}, error = 'Trust this repository in project settings before an agent starts.', updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
-			),
-		);
-		return { id: run.id };
-	}
 	let launchSubmitted = false;
 	try {
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())

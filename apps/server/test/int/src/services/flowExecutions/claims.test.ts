@@ -35,7 +35,7 @@ beforeEach(async () => {
 		ticket = await seedTicket(tx, { projectId: project, rootId: project, statusId: status });
 		persona = ulid();
 		await tx.execute(
-			sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"ade":"native","directory":"/tmp","trustedDirectory":true}'::jsonb WHERE id=${project}`,
+			sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"ade":"native","directory":"/tmp"}'::jsonb WHERE id=${project}`,
 		);
 		await tx.execute(
 			sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at) VALUES (${persona},'Flow worker','builder','Frozen persona',now(),now())`,
@@ -236,7 +236,7 @@ test("a changed project configuration records a visible flow failure", async () 
 	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
 	const execution = await h.run((ctx, tx) => start(ctx, tx, input()));
 	await h.rows(
-		sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{trustedDirectory}','false') WHERE id=${project}`,
+		sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{harness}','{"preset":"custom","startCommand":"agent {{prompt}}","resumeCommand":"agent resume {{sessionId}}"}') WHERE id=${project}`,
 	);
 	const { prepareFlowReconcile } = await import("../../../../../src/services/flowExecutions/prepareFlowReconcile.ts");
 	const { get } = await import("../../../../../src/services/flowExecutions/queries.ts");
@@ -262,5 +262,5 @@ test("a changed project configuration records a visible flow failure", async () 
 	);
 	const result = await h.run((ctx, tx) => get(ctx, tx, { id: execution.id }));
 	expect(result.state.status).toBe("failed");
-	expect(result.state.error).toContain("trusted");
+	expect(result.state.error).toContain("built-in harness");
 });
