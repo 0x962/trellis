@@ -1,89 +1,83 @@
-import { Terminal, X } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
 import type { AgentRun } from "@trellis/api";
-import { Badge, IconButton, Tooltip } from "@trellis/ui";
+import { Badge, EmptyState } from "@trellis/ui";
+import type { TerminalFrame } from "@trellis/ui/terminal";
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { StructuredAgent } from "../StructuredAgent";
+import { followTerminal, type TerminalProcess } from "./terminalStream";
 
 const TerminalSurface = lazy(async () => ({ default: (await import("@trellis/ui/terminal")).TerminalSurface }));
 
 export function NativeTerminal({ run }: { run: AgentRun }) {
-	const { client, orpc } = useApp();
-	const [open, setOpen] = useState(false);
-	const close = useRef<HTMLButtonElement>(null);
-	const session = useQuery({
-		...orpc.agentRuns.session.queryOptions({ input: { id: run.id } }),
-		refetchInterval: 2000,
-		retry: false,
-	});
-	const load = useCallback(
-		(offset: number) => client.agentRuns.terminalOutput({ id: run.id, offset }),
-		[client, run.id],
+	const { client } = useApp();
+	const heading = useRef<HTMLHeadingElement>(null);
+	const [session, setSession] = useState<TerminalProcess | null>(null);
+	const [connection, setConnection] = useState<"connecting" | "open" | "closed">("connecting");
+	const follow = useCallback(
+		async (offset: number, onOutput: (frame: TerminalFrame) => Promise<void>, signal: AbortSignal) => {
+			setConnection("connecting");
+			try {
+				await followTerminal(
+					{ id: run.id, terminalId: run.terminalId, sessionId: run.sessionId },
+					offset,
+					signal,
+					onOutput,
+					(next) => {
+						setSession(next);
+						setConnection("open");
+					},
+				);
+			} finally {
+				if (!signal.aborted) setConnection("closed");
+			}
+		},
+		[run.id, run.terminalId, run.sessionId],
 	);
 	const send = useCallback(
-		(text: string) =>
-			client.agentRuns.terminalInput({ id: run.id, text, expectedTerminalId: run.terminalId ?? undefined }),
+		(text: string) => client.agentRuns.terminalInput({ id: run.id, text, expectedTerminalId: run.terminalId! }),
 		[client, run.id, run.terminalId],
 	);
 	const resize = useCallback(
 		(cols: number, rows: number) =>
-			client.agentRuns.resize({ id: run.id, cols, rows, expectedTerminalId: run.terminalId ?? undefined }),
+			client.agentRuns.resize({ id: run.id, cols, rows, expectedTerminalId: run.terminalId! }),
 		[client, run.id, run.terminalId],
 	);
-	const leave = useCallback(() => close.current?.focus(), []);
-	if (session.data?.mode === "stdio") return <StructuredAgent run={run} />;
+	const leave = useCallback(() => heading.current?.focus(), []);
+	if (run.terminalId === null || run.runtime !== "native")
+		return <EmptyState title="No local terminal" description="This assignment has no local process." />;
 	return (
 		<section aria-label={`Terminal for ${run.name}`} className="flex min-w-0 flex-col gap-3">
 			<header className="flex items-center gap-2">
-				<h3 className="flex-1 text-sm font-medium">Local terminal</h3>
+				<h3 ref={heading} tabIndex={-1} className="flex-1 text-sm font-medium">
+					{run.name}
+				</h3>
 				<Badge>
-					{session.isPending
-						? "Read process…"
-						: session.isError
-							? "Connection unknown"
-							: session.data?.status === "running"
-								? "Process active"
-								: (session.data?.status ?? "No process")}
+					{session?.status === "exited"
+						? "Process exited"
+						: connection === "connecting"
+							? "Connect terminal…"
+							: connection === "closed"
+								? "Disconnected"
+								: session?.controllable
+									? "Process active"
+									: "Process unknown"}
 				</Badge>
-				<Tooltip content={open ? "Close terminal view" : "Open terminal view"}>
-					<IconButton
-						ref={close}
-						label={open ? "Close terminal view" : "Open terminal view"}
-						icon={open ? <X /> : <Terminal />}
-						onClick={() => setOpen(!open)}
-					/>
-				</Tooltip>
 			</header>
-			{session.isError && (
-				<p role="alert" className="text-sm text-danger">
-					{session.error.message}
-				</p>
-			)}
-			{open && (
-				<Suspense
-					fallback={
-						<p role="status" className="text-sm text-fg-muted">
-							Load terminal…
-						</p>
-					}
-				>
-					<TerminalSurface
-						key={run.terminalId}
-						label={`Terminal input for ${run.name}`}
-						connected={run.terminalId !== null && session.data?.status === "running"}
-						load={load}
-						send={send}
-						resize={resize}
-						onLeave={leave}
-					/>
-				</Suspense>
-			)}
-			{!open && (
-				<p className="text-sm text-fg-muted">
-					The process continues when this view closes. Process activity does not confirm a completed task.
-				</p>
-			)}
+			<Suspense
+				fallback={
+					<p role="status" className="text-sm text-fg-muted">
+						Load terminal…
+					</p>
+				}
+			>
+				<TerminalSurface
+					label={`Terminal input for ${run.name}`}
+					connected={connection === "open" && session?.controllable === true}
+					follow={follow}
+					send={send}
+					resize={resize}
+					onLeave={leave}
+				/>
+			</Suspense>
 		</section>
 	);
 }

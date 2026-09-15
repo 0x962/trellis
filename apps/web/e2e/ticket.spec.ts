@@ -163,7 +163,7 @@ test("Activity opens first and Agent contains only execution details", async ({ 
 	await work.getByRole("tab", { name: "Agent", exact: true }).click();
 	const panel = work.getByRole("tabpanel");
 	await expect(panel.getByRole("region", { name: "Execution", exact: true })).toBeVisible();
-	await expect(panel.getByText("No execution attempts", { exact: true })).toBeVisible();
+	await expect(panel.getByText("No assigned agent", { exact: true })).toBeVisible();
 	await expect(panel.locator('[data-kind="activity"]')).toHaveCount(0);
 	await expect(panel.getByRole("region", { name: /Sub-tickets|PRs|Attachments/ })).toHaveCount(0);
 	await expect(page.getByRole("region", { name: "Sub-tickets", exact: true })).toBeVisible();

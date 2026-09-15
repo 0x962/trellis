@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
-import { CheckResults, EmptyState, Select, Tabs } from "@trellis/ui";
+import { CheckResults, EmptyState, Tabs } from "@trellis/ui";
 import { type ReactNode, useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
@@ -13,23 +13,23 @@ import { LocalChecks } from "./components/LocalChecks";
 export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity: ReactNode }) {
 	const { orpc } = useApp();
 	const [tab, setTab] = useState("activity");
-	const [selected, setSelected] = useState<string | null>(null);
 	const hash = useLocation({ select: (location) => location.hash });
 	useEffect(() => {
 		if (hash.startsWith("attempt-")) {
-			setSelected(hash.slice(8));
 			setTab("agent");
 		}
 	}, [hash]);
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: ticket.identifier } }),
-		refetchInterval: 3000,
 	});
 	const prs = useQuery({
 		...orpc.pullRequests.list.queryOptions({ input: { ticket: ticket.id } }),
 		initialData: ticket.prs,
 	});
-	const run = runs.data?.find((item) => item.id === selected) ?? runs.data?.[0];
+	const run = runs.data?.[0];
+	const assigned = runs.data?.find(
+		(item) => item.runtime === "native" && ["starting", "running", "interrupted"].includes(item.state),
+	);
 	const execution = (
 		<section aria-label="Execution" className="flex flex-col gap-3">
 			{runs.isError ? (
@@ -40,21 +40,10 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 				<p role="status" className="text-sm text-fg-muted">
 					Load attempts…
 				</p>
-			) : run ? (
-				<>
-					<Select
-						label="Execution attempt"
-						value={run.id}
-						items={runs.data!.map((item) => ({ value: item.id, label: `${item.name} · ${item.state}` }))}
-						onValueChange={setSelected}
-					/>
-					<AgentRunDetails key={run.id} run={run} />
-				</>
+			) : assigned ? (
+				<AgentRunDetails key={assigned.id} run={assigned} />
 			) : (
-				<EmptyState
-					title="No execution attempts"
-					description="Choose an agent in the ticket properties to start work."
-				/>
+				<EmptyState title="No assigned agent" description="Choose an agent in the ticket properties to start work." />
 			)}
 		</section>
 	);

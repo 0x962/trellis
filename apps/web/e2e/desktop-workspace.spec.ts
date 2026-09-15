@@ -25,7 +25,7 @@ test("native execution settings and ticket work tabs retain the ticket context",
 	await page.getByRole("tab", { name: "Activity", exact: true }).click();
 	await expect(page.getByRole("tab", { name: "Activity", exact: true })).toHaveAttribute("aria-selected", "true");
 	await page.getByRole("tab", { name: "Agent", exact: true }).click();
-	await expect(page.getByText("No execution attempts", { exact: true })).toBeVisible();
+	await expect(page.getByText("No assigned agent", { exact: true })).toBeVisible();
 });
 
 for (const viewport of [

@@ -6,9 +6,6 @@ import { useApp } from "../../../lib/appContext";
 import { AgentRunSheet } from "../AgentRunSheet";
 import { PersonaPicker } from "./components/PersonaPicker";
 
-// True while an agent still holds the ticket: it starts up, it works, or it
-// waits for an answer. The Agent section puts a green dot on the picture of
-// every such agent, and one ticket can hold more than one of them.
 const atWork = (run: AgentRun) => run.state === "starting" || run.state === "running" || run.state === "interrupted";
 
 // A person calls an agent by one name. Agents the server named before it
@@ -23,10 +20,7 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 	const query = useQuery(orpc.agentRuns.list.queryOptions({ input: { ticket }, retry: false }));
 	const [openId, setOpenId] = useState<string | null>(null);
 	const runs = query.data ?? [];
-	const working = runs.filter(atWork);
-	// agentRuns.list gives the newest run first. When no agent works, the row
-	// keeps the newest one, so its output and its error stay one click away.
-	const shown = working.length > 0 ? working : runs.slice(0, 1);
+	const shown = runs.filter(atWork);
 	const open = runs.find((run) => run.id === openId) ?? null;
 	return (
 		<section aria-label="Agent assignment" className="flex flex-col border-t border-border pt-3 pb-1">
@@ -54,7 +48,7 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 							onClick={() => setOpenId(run.id)}
 						>
 							<span className="flex min-w-0 items-center gap-2">
-								<Avatar kind="agent" name={run.name} live={atWork(run)} />
+								<Avatar kind="agent" name={run.name} />
 								<span className="truncate text-fg">{shortName(run.name)}</span>
 								<span className="text-xs text-fg-faint">{run.kind}</span>
 								{run.state === "failed" && <span className="text-xs text-danger">failed</span>}

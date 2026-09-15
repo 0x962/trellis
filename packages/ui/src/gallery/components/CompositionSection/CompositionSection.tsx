@@ -58,7 +58,7 @@ export function CompositionSection() {
 					<CheckRibbon size="mini" checks={checks} />
 				</span>
 				<span className="flex w-7 justify-center">
-					<Avatar kind="agent" name="claude-code" live />
+					<Avatar kind="agent" name="claude-code" />
 				</span>
 				<span className="w-13 text-right text-sm text-fg-muted tabular">2h</span>
 				<span className="absolute inset-y-0 right-5 flex items-center gap-1.5 bg-accent-soft pl-3">
@@ -84,7 +84,7 @@ export function CompositionSection() {
 						<CheckRibbon size="mini" checks={cardChecks} />
 						<Badge icon={<ChatCircle />}>2</Badge>
 						<span className="ml-auto inline-flex items-center gap-1.5 tabular">
-							<Avatar kind="agent" name="claude-code" live />
+							<Avatar kind="agent" name="claude-code" />
 							9m
 						</span>
 					</div>

@@ -35,22 +35,4 @@ describe("Avatar", () => {
 		expect(image).toContain("radial-gradient");
 		expect(screen.getByLabelText("codex · agent").getAttribute("style")).not.toBe(image);
 	});
-
-	test("the live dot renders only when live and stops under reduced motion", () => {
-		render(
-			<>
-				<Avatar kind="agent" name="claude-code" live />
-				<Avatar kind="agent" name="codex" live={false} />
-				<Avatar kind="human" name="dana" live />
-			</>,
-		);
-		const dot = screen.getByLabelText("claude-code · agent").querySelector("[data-live]")!;
-		expect(dot).not.toBeNull();
-		expectClasses(dot, "bg-success border-surface animate-pulse-live motion-reduce:animate-none");
-		expect(screen.getByLabelText("codex · agent").querySelector("[data-live]")).toBeNull();
-		expect(screen.getByLabelText("dana").querySelector("[data-live]")).not.toBeNull();
-		// The dot sits over the top right corner. A clip on the avatar would cut
-		// it down to a speck inside the picture.
-		expect(dot.parentElement!.className).not.toContain("overflow-hidden");
-	});
 });

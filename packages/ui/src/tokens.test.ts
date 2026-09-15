@@ -198,9 +198,7 @@ describe("tokens.css", () => {
 		expect(rule.declarations["transition-duration"]).toBe("0ms");
 	});
 
-	// The live dot on an agent avatar shrinks and dims. A skeleton line shares
-	// the animation but must keep its size, so the shrink reads a custom
-	// property that the pulse-in-place utility pins to 1.
+	// The pulse-in-place utility keeps skeleton lines at a fixed size.
 	test("pulse-live shrinks through --pulse-scale and pulse-in-place pins it to 1", async () => {
 		const pieces = await tokens();
 		const pulse = keyframes(pieces, "pulse-live");

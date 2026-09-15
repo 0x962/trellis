@@ -13,18 +13,14 @@ describe("ActorChip", () => {
 		expect(container.textContent).not.toContain("· agent");
 	});
 
-	test("agent actor shows the standard name color, the agent suffix, and the live dot only when live", () => {
-		const { container, rerender } = render(<ActorChip name="claude-code" kind="agent" live />);
+	test("agent actor shows the standard name color and the agent suffix", () => {
+		render(<ActorChip name="claude-code" kind="agent" />);
 		const avatar = screen.getByLabelText("claude-code · agent");
 		// The agent mark is the picture its name picks, not a glyph.
 		expect(avatar.querySelector("svg")).toBeNull();
 		expect(avatar.getAttribute("style")).toContain("radial-gradient");
-		expect(avatar.querySelector("[data-live]")).not.toBeNull();
 		expectClasses(screen.getByText("claude-code"), "text-sm text-fg");
 		expectClasses(screen.getByText("· agent"), "text-fg-faint");
-
-		rerender(<ActorChip name="claude-code" kind="agent" />);
-		expect(container.querySelector("[data-live]")).toBeNull();
 	});
 
 	test("compact drops the agent suffix and keeps the standard name color", () => {

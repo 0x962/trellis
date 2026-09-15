@@ -91,7 +91,7 @@ export function DomainSections() {
 			<Section name="ActorChip" note="human; agent; agent live; compact">
 				<ActorChip name="dana" kind="human" />
 				<ActorChip name="codex" kind="agent" />
-				<ActorChip name="claude-code" kind="agent" live />
+				<ActorChip name="claude-code" kind="agent" />
 				<ActorChip name="claude-code" kind="agent" compact />
 			</Section>
 			<Section name="TicketId" note="md in a row; sm on a card">

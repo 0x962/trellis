@@ -244,9 +244,8 @@
 	--animate-glimmer: glimmer 7s ease-in-out infinite;
 
 	/*
-	 * The live dot on an agent avatar breathes: it shrinks and dims. The
-	 * shrink reads --pulse-scale, so an element that must keep its size (a
-	 * skeleton line, through the pulse-in-place utility) only dims.
+	 * Skeleton lines use --pulse-scale through pulse-in-place to keep their
+	 * size fixed while their opacity changes.
 	 */
 	@keyframes pulse-live {
 		0%,

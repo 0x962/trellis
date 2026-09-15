@@ -46,8 +46,8 @@ export function DisplaySections() {
 				<Avatar kind="human" name="Dana Lee" />
 				<Avatar kind="human" name="dana" />
 				<Avatar kind="agent" name="claude-code" />
-				<Avatar kind="agent" name="claude-code" live />
-				<Avatar kind="human" name="dana" live />
+				<Avatar kind="agent" name="claude-code" />
+				<Avatar kind="human" name="dana" />
 			</Section>
 			<Section name="Kbd" note="one style, in a row and inside every button">
 				<Kbd>⌘K</Kbd>

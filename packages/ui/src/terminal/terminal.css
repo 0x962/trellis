@@ -8,6 +8,12 @@
 	color: var(--fg-muted);
 	font-size: var(--text-xs);
 }
+.terminal-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: calc(var(--spacing) * 2);
+}
 .terminal-notice {
 	color: var(--warning);
 	font-size: var(--text-sm);
@@ -18,7 +24,7 @@
 }
 .terminal-canvas {
 	min-width: 0;
-	height: 20rem;
+	height: clamp(20rem, 60vh, 44rem);
 	padding: calc(var(--spacing) * 3);
 	background: var(--bg);
 	color: var(--fg);

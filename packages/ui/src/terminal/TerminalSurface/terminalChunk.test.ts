@@ -24,3 +24,9 @@ test("a missing retained prefix resets the screen and exposes the gap", () => {
 	expect(chunk.reset).toBe(true);
 	expect(chunk.nextOffset).toBe(94);
 });
+
+test("replayed terminal bytes keep the rendered offset and append only new bytes", () => {
+	const frame = { data: btoa("abcdef"), startOffset: 10, nextOffset: 16, truncated: false };
+	expect(terminalChunk(frame, 13)).toEqual({ bytes: new TextEncoder().encode("def"), reset: false, nextOffset: 16 });
+	expect(terminalChunk(frame, 18)).toEqual({ bytes: new Uint8Array(), reset: false, nextOffset: 18 });
+});

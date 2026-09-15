@@ -15,7 +15,6 @@ import { projectSlashPath } from "../../../lib/projectPath";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
-import { ManagerQueue } from "../ManagerQueue";
 import { GeneralSettings } from "./components/GeneralSettings";
 import { HarnessSettings } from "./components/HarnessSettings";
 import { managerResumes } from "./managerResumes";
@@ -159,7 +158,6 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 							<p className="text-sm text-fg-muted">
 								Pause automatic dispatch to keep new messages queued. The current process continues.
 							</p>
-							<ManagerQueue projectId={project.id} />
 							{runs.isPending && (
 								<p role="status" className="text-sm text-fg-muted">
 									Load manager…
