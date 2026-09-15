@@ -6,12 +6,14 @@ import { CompletionStore } from "./completionStore.ts";
 import { InputLedger } from "./inputLedger.ts";
 import { inspectProcess } from "./inspectProcess.ts";
 import { inspectSessionRecord } from "./inspectSessionRecord.ts";
+import { ProcessExitWatcher } from "./processExitWatcher.ts";
 import { createProcessHandle } from "./processHandle.ts";
 import { SessionLog } from "./sessionLog.ts";
 import type { SessionRecord as Record } from "./sessionRecord.ts";
 
 export class SessionStore {
 	private readonly records = new Map<string, Record>();
+	private readonly exits = new ProcessExitWatcher();
 	constructor(
 		private readonly home: string,
 		private readonly daemonId: string,
@@ -42,6 +44,11 @@ export class SessionStore {
 			};
 			this.records.set(saved.session.id, record);
 			this.save(record);
+			const observed = this.inspect(saved.session.id);
+			if (observed.status === "running")
+				this.exits.watch(observed.pid!, () => {
+					for (const listener of record.listeners) listener();
+				});
 		}
 	}
 	private save(record: Record) {
@@ -275,6 +282,9 @@ export class SessionStore {
 	}
 	outputComplete(id: string) {
 		return this.get(id).process === undefined;
+	}
+	closeWatchers() {
+		this.exits.close();
 	}
 	async stopAll() {
 		await Promise.all(

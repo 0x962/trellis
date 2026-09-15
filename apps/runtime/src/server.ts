@@ -146,6 +146,7 @@ export async function startRuntime(home: string) {
 		closePromise ??= (async () => {
 			closing = true;
 			await store.stopAll();
+			store.closeWatchers();
 			for (const socket of sockets) socket.destroy();
 			await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
 			rmSync(join(home, "manifest.json"), { force: true });
