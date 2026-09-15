@@ -4,12 +4,21 @@ Owner: lead agent. Integration branch: `trellis-readiness-audit`.
 Last update: 2026-09-15.
 
 The user tests the installed UI. The production app lives at `~/Applications/Trellis.app`.
+The installed app uses source `14132bac` and release `c2826d27`. The HTTP host and runtime report that release.
 The production install workflow passes a live copy and restart check. The desktop guide records the command.
 
 The Needs you error burst has one shared server error: `connect ENOENT ~/.trellis/runtime/runtime.sock`.
 At 21:40:38 UTC, the page subscribes to 54 old terminal attempts after the runtime stops for the package update.
 The page features are outside the requested scope and are removed. Ticket terminals still need access to retained output after a restart.
 Evidence: `/tmp/trellis-needs-you-500-before.json` records the affected attempts and a reproduced 500 for TRL-65 / Esme.
+
+The terminal fix starts the runtime after it validates the requested terminal. It reads retained output without a new agent process.
+The socket client attaches its error handlers before it starts the connection. An isolated Bun HTTP test reproduces the earlier uncaught error.
+All 34 focused regressions pass. Server and protocol typechecks pass.
+The installed server returns 200 for all 54 previously failed terminal streams. Each stream reports an exited process.
+A fresh terminal passes input, output, resize, and Stop checks on release `c2826d27`. The final runtime list contains zero active sessions.
+The installed route asset contains only the Needs you heading and an empty body. The browser regression is not run; the user tests the UI.
+Evidence: `/tmp/trellis-terminal-recovery-acceptance.json`, `/tmp/trellis-installed-runtime-check.json`, and `/tmp/trellis-needs-you-production-install.log`.
 
 ## Current verification
 
@@ -25,13 +34,13 @@ Evidence: `/tmp/trellis-needs-you-500-before.json` records the affected attempts
 | Fix the broken Agent tab terminal. | Installed; user UI check pending | A padding-free host gives FitAddon the available size. Runtime failures remain visible. |
 | Use Astra subagents. | Applied | Astra agents cover the UI, lifecycle, native process inspection, production install, and restart workflow. |
 | Address root causes. | Installed | Native process inspection replaces the spawned ps command. HTTP startup stays independent of shell setup. launchd reports `spawn type = interactive (4)`. |
-| Keep Needs you empty until a later design. | Integrated; deployment pending | The page contains its heading and an empty body. The route and menu entry remain. No page features or subscriptions remain. |
+| Keep Needs you empty until a later design. | Installed; user UI check pending | The page contains its heading and an empty body. The route and menu entry remain. No page features or subscriptions remain. |
 | Build production and use ditto to install in ~/Applications without closing Trellis. | Verified | The copy preserves the desktop, HTTP host, and runtime PIDs. See the [production install guide](../../apps/desktop/README.md#production-install). |
 | Stop active agents and load all changes when a new package starts. | Implemented and tested | Activation stops the old HTTP host and runtime before it registers the new service. An unchanged package preserves active sessions. |
 
-The production build at `35cc3c47` passes all 13 packaged smoke checks and signature verification.
+The production build at `14132bac` passes all 13 packaged smoke checks and signature verification.
 The atomic copy preserves the real Electron and HTTP host process identities.
-The next app launch activates release `1609d8e4` and stops the previous HTTP host, runtime, and test PTY.
+The app restart stops the previous HTTP host, runtime, and test PTY. The final app launch activates release `c2826d27`.
 Evidence: `/tmp/trellis-final-copy-evidence.json` and `/tmp/trellis-final-activation-check.json`.
 The runtime passes 52 unit tests and 65 integration tests. The shell changes pass 61 focused tests.
 Independent Astra reviews cover failed cleanup, natural exit, shell setup, and HTTP startup.
