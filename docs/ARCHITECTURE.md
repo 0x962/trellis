@@ -289,7 +289,7 @@ A quoted line outside a fence still holds a mention.
 The run a mention starts is the whole record of that mention. Its start request identifier names the comment and the persona, so a repeated call starts no second run.
 An edit to a comment runs no mention, because an edit that launches an agent surprises the person who edits.
 The comment answers before its agents launch.
-When two personas share a slug, or a rule refuses the start, trellis replies as `system:trellis` in the thread of the comment that holds the mention, and names the reason.
+When two personas share a slug, a rule refuses the start, or the run closes before its process starts, trellis replies as `system:trellis` in the thread of the comment that holds the mention, and names the reason.
 The manager learns of the comment through its normal ticket events.
 
 ### Manager controller

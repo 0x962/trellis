@@ -191,6 +191,27 @@ test("a refused start keeps the comment and names the reason", async () => {
 	expect(all.find((body) => body.includes("Feature Builder"))).toContain("Local work is paused.");
 });
 
+test("a start that closes before the process runs names the reason in a reply", async () => {
+	// The default project config has the claude preset and trustedDirectory
+	// false, so startNative closes the run with an error and throws nothing.
+	await t.client.projects.update({
+		project: "RUN",
+		managerConfig: { personaId: null, concurrency: 3, directory, ade: "native", harness: { preset: "claude" } },
+	});
+	await comment("@feature-builder please start.");
+	const runs = await t.client.agentRuns.list({ ticket });
+	expect(runs).toHaveLength(1);
+	// No process ever ran, so the execution service holds no record of the
+	// run, and the list reports it as interrupted with the stored error.
+	expect(runs[0]).toMatchObject({
+		personaId: builder,
+		state: "interrupted",
+		error: "Trust this repository in project settings before an agent starts.",
+	});
+	const refusal = (await bodies()).find((body) => body.includes("Feature Builder") && body.startsWith("trellis"))!;
+	expect(refusal).toContain("Trust this repository in project settings before an agent starts.");
+});
+
 test("a refusal from the concurrency limit names the limit", async () => {
 	await configure(1, directory);
 	await t.client.personas.create({ name: "Code Clarity", kind: "reviewer", instruction: "Review." });

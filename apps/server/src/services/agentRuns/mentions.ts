@@ -11,6 +11,7 @@ import { prepareStart } from "./agentRuns.ts";
 import { closeExitedAssignments } from "./closeExitedAssignments.ts";
 import { prepareSend } from "./communication.ts";
 import { mentionSlugs } from "./mentionSlugs.ts";
+import { getRun } from "./queries.ts";
 
 type Ctx = ServiceCtx & { core: CoreCtx; localUrl: string };
 
@@ -114,15 +115,24 @@ const act = async (ctx: Ctx, input: MentionInput) => {
 		// that a start enforces. The comment is saved already, and the reply
 		// below is what tells the person why no agent came.
 		try {
-			if (target.runId === null)
-				await prepareStart(ctx, {
+			if (target.runId === null) {
+				const { id } = await prepareStart(ctx, {
 					personaId: target.personaId,
 					ticket: input.ticket,
 					note: text,
 					// One comment starts one persona once, when the call runs again.
 					requestId: `mention-${input.commentId}-${target.personaId}`,
 				});
-			else await prepareSend(ctx, { id: target.runId, text });
+				// startNative throws only after it submits a launch. When the
+				// process never starts, such as an untrusted directory with the
+				// claude preset, it closes the run with the reason and returns.
+				// The run row is then the only record of that reason.
+				const run = await ctx.newTx((tx) => getRun(tx, id));
+				if (run.closedAt !== null && run.error !== null) {
+					await reply(ctx, input, `trellis could not reach ${target.personaName}. ${run.error}`);
+					continue;
+				}
+			} else await prepareSend(ctx, { id: target.runId, text });
 			started += 1;
 		} catch (error) {
 			await reply(ctx, input, `trellis could not reach ${target.personaName}. ${refusalReason(error)}`);
