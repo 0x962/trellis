@@ -12,7 +12,6 @@ import { queryKey, statusId, ticket, ticketSummary, ulid } from "./fixtures.ts";
 export const listKey = queryKey(["tickets", "list"], { project: "CDE" });
 export const boardKey = queryKey(["tickets", "board"], { project: "CDE" });
 export const countsKey = queryKey(["tickets", "counts"], { project: "CDE" });
-export const inboxKey = queryKey(["inbox", "get"], { project: "CDE" });
 export const detailKey = queryKey(["tickets", "get"], { ticket: "CDE-42" });
 export const healthKey = queryKey(["system", "health"]);
 

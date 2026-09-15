@@ -2,7 +2,7 @@ import type { Priority } from "@trellis/api";
 import { type ActorName, day, hour, type TicketSpec } from "./support.ts";
 
 // The unnamed rows the canvas needs for density. No filler sits in a started
-// or a review status, so the Needs you sections hold only the named rows.
+// or a review status.
 
 const titles = [
 	"Keep the terminal font size after a restart",

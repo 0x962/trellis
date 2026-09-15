@@ -8,7 +8,6 @@ import { controller } from "./controller.ts";
 import { evidence } from "./evidence.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
-import { inbox } from "./inbox.ts";
 import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
@@ -39,7 +38,6 @@ export const contract = {
 	attachments: oc.tag("attachments").router(attachments),
 	pullRequests: oc.tag("pull requests").router(pullRequests),
 	search: oc.tag("search").router(search),
-	inbox: oc.tag("inbox").router(inbox),
 	brief: oc.tag("brief").router(brief),
 	actors: oc.tag("actors").router(actors),
 	settings: oc.tag("settings").router(settings),

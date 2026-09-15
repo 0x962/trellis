@@ -183,7 +183,7 @@ describe("scaffold", () => {
 		const components = componentDirs("src");
 		expect(components.length).toBeGreaterThan(0);
 		expect(components).toContain("src/needs-you/NeedsYou");
-		expect(components).toContain("src/needs-you/NeedsYou/components/InboxRow");
+		expect(components).toContain("src/ticket/ReviewActions/components/SendBackSheet");
 		const incompleteComponents = components.filter(
 			(path) =>
 				!existsSync(join(root, path, `${path.split("/").pop()}.tsx`)) || !existsSync(join(root, path, "index.ts")),

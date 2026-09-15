@@ -44,7 +44,7 @@ beforeEach(() => {
 });
 
 // The event applier of @trellis/api waits on timers from `realScheduler`
-// before it refetches the queries an event touched, up to 4 s for the inbox.
+// before it refetches the queries an event touched, up to 1 s.
 // A timer that is still pending when the last test of a file ends keeps the
 // jest worker alive, and jest kills the worker. This wrapper records every
 // pending timer and cancels it after each test. The applier reads

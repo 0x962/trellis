@@ -1,7 +1,6 @@
 // The answers of the gh stub (apps/server/test/stubs/gh.ts), keyed by the
 // first two arguments of a gh call. gh is signed out, so the web shows the
-// banner. A link still reads the pull request, and its one failing check
-// puts the ticket in the Failing CI section of Needs you.
+// banner. A link still reads the pull request, and it has one failing check.
 
 const signedOut = {
 	stdout: "",

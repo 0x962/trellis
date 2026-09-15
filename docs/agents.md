@@ -146,8 +146,7 @@ Every agent setting of a project sits on its Manager page, at
 manager in the page: its state, its output, a follow-up box, and Stop. The ADE
 section
 picks the ADE, its command template, the Superset host, the concurrency limit,
-and the project directory. The Agents section of `/settings` holds only the
-stalled threshold.
+and the project directory.
 
 ### The launch command
 

@@ -107,7 +107,6 @@ export const projectSummary = (overrides: Overrides = {}) => ({
 	depth: 0,
 	position: 0,
 	openCount: 3,
-	needsYouCount: 1,
 	archivedAt: null,
 	...overrides,
 });
@@ -238,13 +237,6 @@ export const health = (overrides: Overrides = {}) => ({
 	db: { ok: true, sizeBytes: 4_567_890 },
 	gh: ghOk(),
 	...overrides,
-});
-
-export const inbox = () => ({
-	review: { items: [ticketSummary()], total: 1 },
-	failingCi: { items: [ticketSummary({ id: ticketId2, identifier: "CDE-43", number: 43 })], total: 1 },
-	stalled: { items: [], total: 0 },
-	doneByAgentsToday: { items: [ticketSummary({ identifier: "CDE-44", number: 44 })], total: 5 },
 });
 
 export const persona = (overrides: Overrides = {}) => ({
