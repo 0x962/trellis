@@ -1,3 +1,4 @@
+import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 const envelope = z.object({
@@ -8,6 +9,17 @@ const envelope = z.object({
 });
 const toolCall = z.object({ name: z.string(), arguments: z.unknown() });
 type Tools = { list: () => unknown[]; call: (name: string, input: unknown) => Promise<unknown> };
+
+const toolError = (error: unknown) => {
+	if (error instanceof ORPCError) return JSON.stringify({ code: error.code, message: error.message, data: error.data });
+	if (error instanceof z.ZodError)
+		return JSON.stringify({
+			code: "INPUT_VALIDATION_FAILED",
+			message: "The tool input does not match its schema.",
+			data: { issues: error.issues.map(({ code, path, message }) => ({ code, path, message })) },
+		});
+	return error instanceof Error ? error.message : String(error);
+};
 
 export const managerProtocol = (tools: Tools) => async (line: string) => {
 	let value: unknown;
@@ -42,7 +54,7 @@ export const managerProtocol = (tools: Tools) => async (line: string) => {
 			const result = await tools.call(input.name, input.arguments);
 			return reply({ content: [{ type: "text", text: JSON.stringify(result) }] });
 		} catch (error) {
-			return reply({ isError: true, content: [{ type: "text", text: (error as Error).message }] });
+			return reply({ isError: true, content: [{ type: "text", text: toolError(error) }] });
 		}
 	}
 	return { jsonrpc: "2.0", id, error: { code: -32601, message: `Unknown method: ${method}` } };

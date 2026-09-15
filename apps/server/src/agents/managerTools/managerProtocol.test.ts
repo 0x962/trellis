@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test";
+import { ORPCError } from "@orpc/server";
+import { z } from "zod";
 import { managerProtocol } from "./managerProtocol";
 
 test("manager protocol initializes and advertises only the configured tool catalog", async () => {
@@ -17,6 +19,59 @@ test("manager protocol initializes and advertises only the configured tool catal
 		id: 2,
 		result: { tools: [{ name: "trellis_tickets_get" }] },
 	});
+});
+
+test("manager tool errors preserve API codes and actionable details without error internals", async () => {
+	const data = {
+		issues: [{ path: ["id"], message: "This assignment is closed. Start a new attempt before sending a message." }],
+	};
+	const failure = new ORPCError("INPUT_VALIDATION_FAILED", {
+		message: "The input does not match the schema",
+		data,
+		cause: new Error("private internal cause"),
+	});
+	const handle = managerProtocol({
+		list: () => [],
+		call: async () => {
+			throw failure;
+		},
+	});
+	const response = await handle(
+		JSON.stringify({
+			jsonrpc: "2.0",
+			id: 1,
+			method: "tools/call",
+			params: { name: "trellis_agentRuns_send", arguments: {} },
+		}),
+	);
+	expect(response).toMatchObject({
+		result: {
+			isError: true,
+			content: [{ type: "text", text: JSON.stringify({ code: failure.code, message: failure.message, data }) }],
+		},
+	});
+	expect(JSON.stringify(response)).not.toContain("private internal cause");
+	expect(JSON.stringify(response)).not.toContain("stack");
+});
+
+test("manager tool errors identify the invalid input field", async () => {
+	const handle = managerProtocol({
+		list: () => [],
+		call: async (_name, input) => z.object({ generation: z.number() }).parse(input),
+	});
+	const response = await handle(
+		JSON.stringify({
+			jsonrpc: "2.0",
+			id: 1,
+			method: "tools/call",
+			params: { name: "trellis_controller_handle", arguments: { generation: "old" } },
+		}),
+	);
+	const serialized = JSON.stringify(response);
+	expect(response).toMatchObject({ result: { isError: true } });
+	expect(serialized).toContain("INPUT_VALIDATION_FAILED");
+	expect(serialized).toContain("generation");
+	expect(serialized).toContain("expected number");
 });
 
 test("manager protocol returns API results and tool errors as data", async () => {
