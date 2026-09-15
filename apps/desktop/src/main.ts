@@ -105,7 +105,7 @@ const connect = async () => {
 		availableRelease = await pinResources(hostRoot, app.getPath("userData"));
 		host = await activateHostRelease(desktopHome(), paths().helper, availableRelease, {
 			ensureService: () => requireService(paths().helper, desktopHome()),
-			register: () => requireService(paths().helper, desktopHome(), true),
+			register: () => requireService(paths().helper, desktopHome()),
 		});
 		const update = await readUpdateStatus(desktopHome(), availableRelease);
 		if (!update.active) throw new Error("The background host has no active release.");
