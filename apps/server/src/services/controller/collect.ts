@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { collectHeartbeats } from "./collectHeartbeats.ts";
 import type { ControllerCtx, ControllerEvent } from "./types.ts";
 
 export const collect = async (ctx: ControllerCtx, tx: Tx, _input: Record<string, never>) => {
@@ -64,5 +65,6 @@ export const collect = async (ctx: ControllerCtx, tx: Tx, _input: Record<string,
 			sql`UPDATE manager_controller_cursors SET activity_id = ${found.at(-1)!.id} WHERE project_id = ${project.id}`,
 		);
 	}
+	await collectHeartbeats(ctx, tx);
 	return {};
 };

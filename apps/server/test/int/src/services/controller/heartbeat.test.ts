@@ -1,0 +1,181 @@
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
+import { sql } from "drizzle-orm";
+import { collect } from "../../../../../src/services/controller/collect.ts";
+import { claim, complete, recover } from "../../../../../src/services/controller/controller.ts";
+import { seedActors, seedChild, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
+import { seedActivity, seedTicket } from "../../../../fixtures/tickets.ts";
+import { type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
+import { assertStatusInvariant } from "../../../../invariants.ts";
+
+let h: Harness;
+let projectId: string;
+let ticketId: string;
+beforeAll(async () => {
+	h = await serviceHarness();
+});
+afterAll(() => h.close());
+afterEach(() => h.read(assertStatusInvariant));
+beforeEach(async () => {
+	await h.reset();
+	await h.read(async (tx) => {
+		await seedActors(tx);
+		projectId = await seedRoot(tx, "HBT", { manager_config: { personaId: "persona", ade: "native" } });
+		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
+		ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
+		await tx.execute(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,state,terminal_id,session_id,created_at,updated_at)
+			VALUES ('manager','Manager','Manager','manager','Manage',${projectId},'HBT','native','running','attempt','session',${NOW},${NOW})`);
+		await tx.execute(
+			sql`INSERT INTO agent_execution_attempts (id,run_id,generation,token_hash,created_at) VALUES ('attempt','manager',1,'hash',${NOW})`,
+		);
+		await tx.execute(
+			sql`INSERT INTO agent_harness_observations (attempt_id,snapshot,updated_at) VALUES ('attempt','{"state":"idle","sessionId":"session","pendingPermissions":[]}'::jsonb,${NOW})`,
+		);
+	});
+});
+const gather = (seconds: number) => h.run((ctx, tx) => collect(ctx, tx, {}), { now: secondsAfter(seconds) });
+const take = (seconds: number) => h.run((ctx, tx) => claim(ctx, tx, {}), { now: secondsAfter(seconds) });
+const batches = () => h.rows(sql`SELECT * FROM manager_dispatches ORDER BY created_at,id`);
+const observation = (state: string, seconds = 0, pendingPermissions: unknown[] = [], sessionId = "session") =>
+	h.rows(
+		sql`UPDATE agent_harness_observations SET snapshot=${JSON.stringify({ state, sessionId, pendingPermissions })}::jsonb,updated_at=${secondsAfter(seconds)}`,
+	);
+const pause = (paused: boolean) =>
+	h.rows(
+		sql`INSERT INTO settings(key,value,updated_at) VALUES ('nativeWorkPaused',${JSON.stringify(paused)}::jsonb,${NOW}) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value`,
+	);
+const event = (seconds: number) =>
+	h.read((tx) => seedActivity(tx, { projectId, rootId: projectId, ticketId, createdAt: secondsAfter(seconds) }));
+
+test("a quiet manager receives one durable heartbeat after one minute without new activity", async () => {
+	await gather(59);
+	expect(await batches()).toHaveLength(0);
+	await gather(60);
+	const first = (await batches())[0]!;
+	expect(first).toMatchObject({ state: "pending", events: [] });
+	await h.run((ctx, tx) => recover(ctx, tx, {}), { now: secondsAfter(61) });
+	await Promise.all([gather(600), gather(600)]);
+	expect(await batches()).toHaveLength(1);
+	expect((await take(600))?.id).toBe(first.id);
+	expect(await h.rows(sql`SELECT * FROM agent_runs`)).toHaveLength(1);
+});
+test("heartbeat cadence starts from the last sent ticket batch", async () => {
+	await event(59);
+	await gather(60);
+	expect((await batches())[0]?.events).toHaveLength(1);
+	expect(await take(68)).toBeNull();
+	const delivery = (await take(69))!;
+	await h.run(
+		(ctx, tx) => complete(ctx, tx, { id: delivery.id, generation: delivery.generation, state: "sent", error: null }),
+		{ now: secondsAfter(70) },
+	);
+	await gather(129);
+	expect(await batches()).toHaveLength(1);
+	await gather(130);
+	expect(await batches()).toHaveLength(2);
+	expect((await take(130))?.events).toEqual([]);
+});
+test("new ticket activity joins a pending heartbeat without moving its deadline", async () => {
+	await gather(60);
+	await event(60);
+	await gather(61);
+	expect(await batches()).toHaveLength(1);
+	expect((await take(61))?.events).toHaveLength(1);
+});
+test("a long turn gets a full quiet minute after its latest observation", async () => {
+	await observation("working", 10);
+	await gather(1000);
+	expect(await batches()).toHaveLength(0);
+	await observation("idle", 1000);
+	await gather(1059);
+	expect(await batches()).toHaveLength(0);
+	await gather(1060);
+	expect((await take(1060))?.events).toEqual([]);
+});
+for (const state of ["working", "needs_input", "unknown", "failed"]) {
+	test(`a ${state} harness receives no heartbeat`, async () => {
+		await observation(state);
+		await gather(600);
+		expect(await batches()).toHaveLength(0);
+	});
+}
+for (const state of ["stopped", "starting", "interrupted", "failed", "exited"]) {
+	test(`a ${state} manager receives no heartbeat`, async () => {
+		await h.rows(sql`UPDATE agent_runs SET state=${state}`);
+		await gather(600);
+		expect(await batches()).toHaveLength(0);
+	});
+}
+test("permissions and a mismatched conversation prevent heartbeat creation", async () => {
+	await observation("idle", 0, [{ requestId: "pending" }]);
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+	await observation("idle", 0, [], "different");
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+});
+test("project pause suppresses heartbeats until dispatch resumes", async () => {
+	await h.rows(sql`UPDATE projects SET manager_config=manager_config || '{"dispatchPaused":true}'::jsonb`);
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+	await h.rows(sql`UPDATE projects SET manager_config=manager_config || '{"dispatchPaused":false}'::jsonb`);
+	await gather(601);
+	expect((await take(601))?.events).toEqual([]);
+});
+test("global pause blocks both heartbeat creation and a previously queued heartbeat", async () => {
+	await pause(true);
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+	await pause(false);
+	await gather(601);
+	await pause(true);
+	expect(await take(602)).toBeNull();
+	await pause(false);
+	expect((await take(603))?.events).toEqual([]);
+});
+test("an unknown send blocks further heartbeats across recovery", async () => {
+	await gather(60);
+	const first = (await take(60))!;
+	await h.run((ctx, tx) => recover(ctx, tx, {}), { now: secondsAfter(61) });
+	await gather(3600);
+	expect(await batches()).toHaveLength(1);
+	expect((await batches())[0]).toMatchObject({ id: first.id, state: "unknown" });
+	expect(await take(3600)).toBeNull();
+});
+test("archived projects and descendants receive no heartbeat", async () => {
+	const child = await h.read((tx) =>
+		seedChild(tx, projectId, projectId, "child", { manager_config: { personaId: "persona", ade: "native" } }),
+	);
+	await h.rows(sql`UPDATE agent_runs SET project_id=${child}`);
+	await h.rows(sql`UPDATE projects SET archived_at=${NOW} WHERE id=${projectId}`);
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+});
+test("a project without a configured manager and a non-native run receive no heartbeat", async () => {
+	await h.rows(sql`UPDATE agent_runs SET runtime='superset'`);
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+	await h.rows(sql`UPDATE agent_runs SET runtime='native'`);
+	await h.rows(sql`UPDATE projects SET manager_config='{}'::jsonb`);
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+});
+
+test("a new manager waits one minute even when its saved observation is older", async () => {
+	await h.rows(sql`UPDATE agent_runs SET created_at=${secondsAfter(100)}`);
+	await gather(159);
+	expect(await batches()).toHaveLength(0);
+	await gather(160);
+	expect((await take(160))?.events).toEqual([]);
+});
+
+test("uncollected ticket work beyond a page of manager activity takes precedence", async () => {
+	await h.read(async (tx) => {
+		for (let index = 0; index < 100; index++)
+			await seedActivity(tx, { projectId, rootId: projectId, ticketId: null, createdAt: NOW });
+	});
+	await event(0);
+	await gather(60);
+	expect(await batches()).toHaveLength(0);
+	await gather(61);
+	expect((await take(61))?.events).toHaveLength(1);
+});

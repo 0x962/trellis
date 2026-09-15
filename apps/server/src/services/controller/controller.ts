@@ -27,6 +27,7 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, _input: Record<string, n
 			WHERE d.state = 'pending' AND d.due_at <= ${ctx.now} AND r.terminal_id IS NOT NULL
 			AND p.manager_config->>'personaId' IS NOT NULL AND p.archived_at IS NULL
 			AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
+			AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 			AND r.runtime = 'native' AND EXISTS (
 				SELECT 1 FROM agent_harness_observations observation WHERE observation.attempt_id = r.terminal_id
 				AND observation.snapshot->>'sessionId' = r.session_id
