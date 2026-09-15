@@ -9,7 +9,6 @@ const planRows = [
 	"mod+k@global",
 	"/@global",
 	"c@global",
-	"?@global",
 	"g h@global",
 	"g a@global",
 	"g p@global",

@@ -39,7 +39,6 @@ export const mountScope = (pathname = "/needs-you", scheduler?: GlobalHotkeyOpti
 		onPalette: mock(() => {}),
 		onSearch: mock(() => {}),
 		onCompose: mock(() => {}),
-		onHelp: mock(() => {}),
 		onProjectPicker: mock(() => {}),
 	};
 	const options: GlobalHotkeyOptions = { ...spies, pathname, scheduler };
