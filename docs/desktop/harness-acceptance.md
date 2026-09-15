@@ -92,7 +92,7 @@ A filesystem event confirms that a shell command starts before `host.interrupt`.
 Run from `apps/server`:
 
 ```sh
-TRELLIS_REAL_HARNESS_ACCEPTANCE=1 TRELLIS_NATIVE_ACCEPTANCE_HOME=/path/to/authenticated/home TRELLIS_NATIVE_CLAUDE_MODEL=claude-sonnet-5 TRELLIS_NATIVE_CODEX_MODEL=gpt-5.6-sol TRELLIS_NATIVE_PI_MODEL=vercel-ai-gateway/openai/gpt-4.1-mini bun test test/int/src/agents/harnessHost/real.test.ts
+TRELLIS_REAL_HARNESS_ACCEPTANCE=1 TRELLIS_NATIVE_ACCEPTANCE_HOME=/path/to/authenticated/home TRELLIS_NATIVE_CLAUDE_MODEL=claude-sonnet-5 TRELLIS_NATIVE_CODEX_MODEL=gpt-5.6-sol TRELLIS_NATIVE_PI_MODEL=vercel-ai-gateway/openai/gpt-4.1-mini bun test test/int/src/agents/harnessHost/real.test.ts --test-name-pattern 'claude host|codex host|pi host'
 ```
 
 The complete sequence passed for all three providers: 3 tests, 84 assertions, 53.43 seconds. Log: `/tmp/trellis-real-host-acceptance-fixed.log`. Each test retains its runtime files and evidence:
@@ -103,7 +103,15 @@ The complete sequence passed for all three providers: 3 tests, 84 assertions, 53
 
 The first run exposed a Pi parser bug. Pi reported an aborted assistant message, but the parser omitted the interruption outcome. The regression maps native `stopReason: "aborted"` to `outcome: "interrupted"`. The host also requires that outcome before it confirms a hook-based interruption.
 
-OpenCode requires a separate control-path acceptance run. AGY retains the capability gaps below. These host tests do not start ticket agents or exercise manager dispatch.
+OpenCode 1.18.31 passed the same complete host sequence separately: 1 test, 28 assertions, 19.74 seconds. This case exercises the native control socket for prompt submission, interruption, and the resume prompt. Log: `/tmp/trellis-real-host-opencode.log`. Evidence: `/tmp/trl-real-host-opencode-dlvxQh`.
+
+Run the OpenCode case with a verified 1.18.31 executable:
+
+```sh
+TRELLIS_REAL_HARNESS_ACCEPTANCE=1 TRELLIS_NATIVE_ACCEPTANCE_HOME=/path/to/authenticated/home TRELLIS_NATIVE_OPENCODE_MODEL=vercel/anthropic/claude-sonnet-4.6 TRELLIS_NATIVE_OPENCODE_BIN=/path/to/opencode-1.18.31/bin/opencode bun test test/int/src/agents/harnessHost/real.test.ts --test-name-pattern 'opencode host'
+```
+
+The override adds that executable's directory to the test host's PATH. The test does not update the installed CLI. The 1.4.11 result below does not satisfy acceptance. AGY retains its capability gaps. These host tests do not start ticket agents or exercise manager dispatch.
 
 ### Claude and Codex native acceptance
 

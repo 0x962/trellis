@@ -1,7 +1,7 @@
 import { beforeAll, expect, test } from "bun:test";
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import type { RuntimeHarnessObservation, RuntimeStream } from "@trellis/runtime-protocol";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { originDir } from "../../../../../../../test/originDir.ts";
@@ -26,7 +26,7 @@ async function readAll(host: HarnessHost, id: string, stream: RuntimeStream) {
 	}
 }
 
-for (const harness of ["claude", "codex", "pi"] as const) {
+for (const harness of ["claude", "codex", "pi", "opencode"] as const) {
 	test.skipIf(!enabled)(
 		`${harness} host accepts real native receipts, tools, interrupt, follow-up, stop, and exact resume`,
 		async () => {
@@ -35,6 +35,7 @@ for (const harness of ["claude", "codex", "pi"] as const) {
 			const model = process.env[`TRELLIS_NATIVE_${harness.toUpperCase()}_MODEL`];
 			if (!model) throw new Error(`Set TRELLIS_NATIVE_${harness.toUpperCase()}_MODEL to the effective model ID.`);
 			const expectedModel = harness === "pi" ? model.slice(model.indexOf("/") + 1) : model;
+			const executable = harness === "opencode" ? process.env.TRELLIS_NATIVE_OPENCODE_BIN : undefined;
 			const home = await mkdtemp(`/tmp/trl-real-host-${harness}-`);
 			console.log(`${harness} real host evidence: ${home}`);
 			const runtime = new RuntimeClient(join(home, "runtime.sock"));
@@ -56,16 +57,18 @@ for (const harness of ["claude", "codex", "pi"] as const) {
 				env: {
 					...process.env,
 					HOME: authHome,
+					PATH: executable ? `${dirname(executable)}:${process.env.PATH}` : process.env.PATH,
 					XDG_CONFIG_HOME: join(authHome, ".config"),
 					XDG_DATA_HOME: join(authHome, ".local/share"),
 					XDG_CACHE_HOME: join(authHome, ".cache"),
+					XDG_STATE_HOME: join(authHome, ".local/state"),
 					PI_OFFLINE: "1",
 					CLAUDECODE: undefined,
 					CLAUDE_SESSION_ID: undefined,
 					CODEX_THREAD_ID: undefined,
 				},
 			});
-			const cwd = harness === "pi" ? home : repo;
+			const cwd = harness === "pi" || harness === "opencode" ? home : repo;
 			const id = `initial-${crypto.randomUUID()}`;
 			const resumedId = `resumed-${crypto.randomUUID()}`;
 			const marker = `HOST_${crypto.randomUUID().replaceAll("-", "")}`;
