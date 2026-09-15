@@ -57,6 +57,22 @@ test("Claude uses the selected profile and preserves its existing project settin
 	expect(await Bun.file(join(fixture.home, ".claude.json")).exists()).toBe(false);
 });
 
+test("Claude resolves a relative profile from the agent directory", async () => {
+	const cwd = join(fixture.home, "project");
+	const serverDirectory = join(fixture.home, "server");
+	await mkdir(cwd);
+	await mkdir(serverDirectory);
+	const previousDirectory = process.cwd();
+	process.chdir(serverDirectory);
+	try {
+		await prepare(hostFor({ CLAUDE_CONFIG_DIR: "profile" }), cwd);
+		expect(await Bun.file(join(cwd, "profile/.claude.json")).exists()).toBe(true);
+		expect(await Bun.file(join(serverDirectory, "profile/.claude.json")).exists()).toBe(false);
+	} finally {
+		process.chdir(previousDirectory);
+	}
+});
+
 test("Claude preserves its legacy state file and rejects corrupt native state", async () => {
 	const config = join(fixture.home, ".claude");
 	await mkdir(config);

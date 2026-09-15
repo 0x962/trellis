@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { chmod, mkdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { lock } from "proper-lockfile";
 
 type NativeState = {
@@ -12,10 +12,10 @@ type NativeState = {
 
 export async function claudeTrust(cwd: string, env: Record<string, string>) {
 	const home = env.HOME ?? homedir();
-	const configDirectory = env.CLAUDE_CONFIG_DIR || join(home, ".claude");
+	const configDirectory = resolve(cwd, env.CLAUDE_CONFIG_DIR || join(home, ".claude"));
 	const legacy = join(configDirectory, ".config.json");
 	const suffix = env.CLAUDE_CODE_CUSTOM_OAUTH_URL ? "-custom-oauth" : "";
-	const statePath = existsSync(legacy) ? legacy : join(env.CLAUDE_CONFIG_DIR || home, `.claude${suffix}.json`);
+	const statePath = existsSync(legacy) ? legacy : resolve(cwd, env.CLAUDE_CONFIG_DIR || home, `.claude${suffix}.json`);
 	const canonicalDirectory = (await realpath(cwd)).normalize("NFC");
 	if (existsSync(statePath)) {
 		const state: NativeState = JSON.parse(await readFile(statePath, "utf8"));
