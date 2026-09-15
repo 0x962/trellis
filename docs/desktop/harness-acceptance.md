@@ -134,6 +134,19 @@ The native events exposed two identity constraints. Claude can report the previo
 
 These tests establish adapter behavior with real providers. They do not establish manager dispatch, missing-install errors, or all provider error and hosted-tool events.
 
+### Codex provider-error observation
+
+A bounded Codex 0.154.0 probe used two local Responses endpoints. One returned HTTP 401; the other returned HTTP 503. Each invocation selected a temporary provider with its own `base_url`, `requires_openai_auth=false`, and `request_max_retries=0`. These are native [provider configuration fields](https://learn.chatgpt.com/docs/config-file/config-reference). The probe changed no global configuration.
+
+Both cases emitted `SessionStart` and `UserPromptSubmit`. Neither emitted Stop or an error hook within 15 seconds after the first local response. The 401 endpoint received 36 Responses requests; the 503 endpoint received 12. Codex continued requests despite the request retry setting. The probe stopped both owned process trees after approximately 17 seconds.
+
+This result does not establish the final event after Codex exhausts its retries. It establishes that the current hook stream omitted provider failures during the observed interval. Provider errors therefore remain outside the verified errored-session contract. A live process with a received prompt does not prove that its provider request succeeds. Terminal text does not fill this gap.
+
+Probe: `/tmp/trellis-codex-provider-error.ts`. Log: `/tmp/trellis-codex-provider-error.log`. The log records request methods, paths, response codes, and native events. Evidence:
+
+- HTTP 401: `/var/folders/zc/q6614tmx3tx362p94vvrfn0w0000gn/T/trellis-native-codex-error-401-9cnZbe`
+- HTTP 503: `/var/folders/zc/q6614tmx3tx362p94vvrfn0w0000gn/T/trellis-native-codex-error-503-5Pfrov`
+
 ### Pi native acceptance
 
 The opt-in test starts the installed Pi TUI with the generated Trellis extension. It uses an explicit authenticated home and model. The test requires a file write, shell output, a completed result, a long tool interruption, and a successful follow-up. It then creates another session in the same directory and resumes the first session by its exact ID. The resumed model must recall the first session's private marker without a file read.
