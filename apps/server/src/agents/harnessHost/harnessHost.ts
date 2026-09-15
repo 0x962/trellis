@@ -12,6 +12,8 @@ const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/);
 const launchInput = z.object({
 	id: identifier,
 	harness: z.enum(["claude", "codex", "pi", "opencode"]),
+	kind: z.enum(["manager", "builder", "reviewer"]).optional(),
+	managerId: identifier.optional(),
 	cwd: z.string().startsWith("/"),
 	prompt: z.string().min(1),
 	model: z.string().min(1).optional(),

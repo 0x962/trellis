@@ -21,6 +21,7 @@ export const CommentCreateInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 	parentId: UlidSchema.optional(),
 	body: BodySchema,
+	dedupeKey: z.string().trim().min(1).max(200).optional(),
 });
 export type CommentCreateInput = z.input<typeof CommentCreateInputSchema>;
 

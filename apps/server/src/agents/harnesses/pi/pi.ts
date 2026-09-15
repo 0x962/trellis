@@ -1,14 +1,20 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { HarnessEvent, HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 export async function preparePi(input: HarnessLaunchInput): Promise<HarnessLaunch> {
 	await mkdir(input.configDirectory, { recursive: true });
 	const extension = join(input.configDirectory, "trellis-pi.mjs");
+	if (input.managerTools)
+		await copyFile(
+			fileURLToPath(new URL("./managerTools.mjs", import.meta.url)),
+			join(input.configDirectory, "managerTools.mjs"),
+		);
 	await writeFile(
 		extension,
 		`import { spawn } from "node:child_process";
-export default function(pi) {
+export default async function(pi) {
  const command = ${JSON.stringify(input.hookCommand)};
  let pending = Promise.resolve();
  for (const event of ["session_start", "input", "agent_start", "agent_end", "tool_execution_start", "tool_execution_update", "tool_execution_end", "model_select"]) {
@@ -25,14 +31,16 @@ export default function(pi) {
    return pending;
   });
  }
+ ${input.managerTools ? `const { registerManagerTools } = await import("./managerTools.mjs"); await registerManagerTools(pi, ${JSON.stringify(input.managerTools)});` : ""}
 }
 `,
 	);
 	return {
 		executable: "pi",
 		args: [
-			"--tools",
-			"read,bash,edit,write,grep,find,ls",
+			...(input.managerTools
+				? ["--no-builtin-tools", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-context-files"]
+				: ["--tools", "read,bash,edit,write,grep,find,ls"]),
 			"--extension",
 			extension,
 			...(input.model ? ["--model", input.model] : []),

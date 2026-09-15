@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, check, integer, jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigint, check, index, integer, jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { at } from "./actors.ts";
 import { projects } from "./projects.ts";
 
@@ -23,6 +23,9 @@ export const managerDispatches = pgTable(
 		sessionId: text("session_id"),
 		generation: integer().notNull().default(0),
 		state: text().notNull().default("pending"),
+		workState: text("work_state").notNull().default("open"),
+		outcomes: jsonb().notNull().default([]),
+		handledAt: at("handled_at"),
 		events: jsonb().notNull(),
 		dueAt: at("due_at").notNull(),
 		error: text(),
@@ -31,6 +34,8 @@ export const managerDispatches = pgTable(
 	},
 	(t) => [
 		check("manager_dispatches_state_check", sql`${t.state} IN ('pending', 'sending', 'sent', 'unknown')`),
+		check("manager_dispatches_work_state_check", sql`${t.workState} IN ('untracked', 'open', 'handled')`),
+		index("manager_dispatches_open_work_idx").on(t.projectId, t.createdAt).where(sql`${t.workState} = 'open'`),
 		uniqueIndex("manager_dispatches_active_project_idx")
 			.on(t.projectId)
 			.where(sql`${t.state} IN ('pending', 'sending', 'unknown')`),

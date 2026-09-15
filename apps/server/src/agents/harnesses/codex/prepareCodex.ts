@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 import type { HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 export async function prepareCodex(input: HarnessLaunchInput): Promise<HarnessLaunch> {
+	if (input.managerTools)
+		throw new Error(
+			"Codex cannot enforce the manager tool boundary. Select Claude, OpenCode, or Pi for managers. Codex workers remain available.",
+		);
 	const bridge =
 		input.env?.TRELLIS_CODEX_BRIDGE ?? fileURLToPath(new URL("../../../../dist/codex-bridge.js", import.meta.url));
 	const directory = join("/tmp", `trl-codex-${randomUUID()}`);

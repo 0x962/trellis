@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { openCodeControl } from "./control.mjs";
 
 export const TrellisPlugin = async ({ client }) => {
+	const managerTools = process.env.TRELLIS_MANAGER_TOOLS ? JSON.parse(process.env.TRELLIS_MANAGER_TOOLS) : null;
 	let sessionId = null;
 	let turnId;
 	let working = false;
@@ -61,8 +62,15 @@ export const TrellisPlugin = async ({ client }) => {
 	const matches = (id) => id === sessionId;
 	return {
 		config: async (config) => {
-			config.permission = { "*": "allow" };
-			for (const agent of Object.values(config.agent ?? {})) agent.permission = { "*": "allow" };
+			const permission = managerTools ? { "*": "deny", "trellis_trellis_*": "allow" } : { "*": "allow" };
+			config.permission = permission;
+			for (const agent of Object.values(config.agent ?? {})) agent.permission = permission;
+			if (managerTools) {
+				config.tools = { "*": false, "trellis_trellis_*": true };
+				config.mcp = {
+					trellis: { type: "local", command: [managerTools.command, ...managerTools.args], enabled: true },
+				};
+			}
 		},
 		"chat.message": async (input, output) => {
 			await control.beforePrompt();
@@ -97,6 +105,8 @@ export const TrellisPlugin = async ({ client }) => {
 				await send({ event: "session", sessionId, turnId, model: `${input.provider.id}/${input.model.id}` });
 		},
 		"tool.execute.before": async (input, output) => {
+			if (managerTools && !input.tool.startsWith("trellis_trellis_"))
+				throw new Error("Managers use Trellis tools. Delegate technical work to a worker.");
 			if (matches(input.sessionID))
 				await send({
 					event: "tool-start",

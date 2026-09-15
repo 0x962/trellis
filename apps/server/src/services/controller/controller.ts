@@ -5,12 +5,19 @@ import { notFound } from "../support.ts";
 import { readySession } from "./readySession.ts";
 import type { ControllerCtx, ControllerInput, Dispatch } from "./types.ts";
 
-const columns = sql`id, project_id AS "projectId", run_id AS "runId", terminal_id AS "terminalId", session_id AS "sessionId", generation, state, events, ${iso(sql`due_at`)} AS "dueAt", error`;
+export const dispatchColumns = sql`id, project_id AS "projectId", run_id AS "runId", terminal_id AS "terminalId", session_id AS "sessionId", generation, state, work_state AS "workState", outcomes, ${iso(sql`handled_at`)} AS "handledAt", events, ${iso(sql`due_at`)} AS "dueAt", error`;
+const columns = dispatchColumns;
 
-export const list = (_ctx: ControllerCtx, tx: Tx, input: { projectId?: string }) =>
+export const list = (
+	_ctx: ControllerCtx,
+	tx: Tx,
+	input: { projectId?: string; unhandled?: boolean; before?: string },
+) =>
 	rows<Dispatch>(
 		tx,
-		sql`SELECT ${columns} FROM manager_dispatches WHERE ${input.projectId ? sql`project_id = ${input.projectId}` : sql`true`} ORDER BY created_at DESC, id DESC LIMIT 100`,
+		sql`SELECT ${columns} FROM manager_dispatches WHERE ${input.projectId ? sql`project_id = ${input.projectId}` : sql`true`}
+		AND ${input.unhandled ? sql`work_state = 'open'` : sql`true`}
+		AND ${input.before ? sql`id < ${input.before}` : sql`true`} ORDER BY id DESC LIMIT 100`,
 	);
 
 export const claim = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput): Promise<Dispatch | null> => {

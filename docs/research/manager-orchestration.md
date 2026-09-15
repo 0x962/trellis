@@ -4,7 +4,7 @@ Reviewed on 2026-09-15 against Claude Code 2.1.273 and the live Trellis Manager 
 The installed binary contains the workflow reference at byte 189212964.
 The inspection covers that reference and Anthropic's current documentation, not a third-party skill with the same name.
 Read the persona with `trellis personas list --json`; its ID is `01M277VFQA2HAWB58T9NTW4MX5`.
-This document proposes changes. It does not change the saved persona or controller.
+The implementation follows the approved changes below. Shared instructions contain no personal acceptance policy.
 
 ## Findings from other systems
 
@@ -46,7 +46,7 @@ Keep this distinction in Trellis and send technical diagnosis to a worker.
 | --- | --- |
 | The persona prohibits technical work, but `prepareClaude.ts:17` launches with permission bypass and no manager-specific tool restriction. | Give managers Trellis record and agent controls. Put repository, shell, merge, and deploy tools behind worker assignments. Enforce this across harnesses. |
 | `controller/dispatch.ts` records delivery as sent or unknown. Its `finished` function does not record a coordination result. | Distinguish delivery from handled work. Record the resulting assignment, decision, or reason for no action. Preserve unfinished coordination across interruption. |
-| The UI section says to ask Navid to refresh and test. The final section prohibits terminal questions. | Name the channel explicitly: put the deployed result and test request on the ticket. |
+| The saved persona includes a personal UI acceptance policy. | Keep shared instructions generic. Apply each project's acceptance and communication policy. |
 | The persona requests all open tickets at startup and a persona read on each heartbeat. `collectHeartbeats.ts` uses a one-minute interval. | Supply a compact change summary and policy version. Fetch further records only when they affect a decision. |
 | Quiet operation depends on prose. Three short sentences can still repeat existing records. | Deduplicate decision requests and comments by ticket, subject, and revision. Routine successful actions produce no comment. |
 | The role requests parallel starts but does not explicitly prohibit a wait for all builders before review. | Advance each ticket independently. Wait for multiple results only when the next task depends on all of them. |
@@ -55,7 +55,7 @@ Keep this distinction in Trellis and send technical diagnosis to a worker.
 The event envelope already contains only data in `controller/message.ts`. Keep that design.
 The persona already separates merged, deployed, and complete outcomes. Keep that distinction too.
 
-## Proposed core role
+## Core role
 
 > You coordinate project work through Trellis. Own priorities, scope, assignments, dependencies, decisions, and accurate status.
 >
@@ -84,7 +84,35 @@ The persona already separates merged, deployed, and complete outcomes. Keep that
 - A repeated event produces no duplicate worker or comment.
 - An interruption preserves unfinished coordination and its stable assignment ID.
 - Worker exit alone does not close a ticket.
-- A UI deployment produces one ticket update for Navid to test.
+- Shared manager instructions contain no personal name or mandatory UI testing policy.
 - An unchanged heartbeat produces no public message.
 
-Implement the tool boundary and handled-work record before adding more instructions to the prompt.
+The role contract lives in `apps/server/src/agents/launchCommand/managerInstructions.ts`.
+Manager tools enforce the role boundary. Dispatch outcomes preserve unfinished coordination.
+Comment keys suppress repeated writes for the same actor, ticket, subject, and revision.
+
+## Harness boundary and limits
+
+Managers receive a dedicated Trellis tool catalog for records, assignments, flow controls, and dispatch outcomes.
+Each tool validates the existing API input schema and uses the manager's actor and attempt token.
+The session tool returns process status, receipts, and the worker's final report. It omits native tool details and terminal history.
+Manager processes use a private directory that remains stable across attempts for the same assignment.
+Workers retain their existing tools and repository directories.
+
+Claude managers disable built-in tools and load only the Trellis MCP server.
+Their permission mode denies unapproved tools instead of bypassing permissions.
+A local API fixture captured Claude Code 2.1.273's model request and confirmed that its tool list contains only Trellis tools.
+The fixture uses a temporary credential directory and sends no request to Anthropic.
+
+OpenCode managers use a private plugin that denies other tools and supplies only the Trellis MCP server.
+Pi managers disable built-in tools and automatic extensions. Their private extension registers the Trellis catalog and rejects other tool names.
+Adapter and integration tests cover these restrictions. They do not prove behavior on every provider version.
+
+Codex and custom managers fail before process launch with an error that names the supported alternatives: Claude, OpenCode, and Pi.
+Codex remains available for workers. Its current configuration lacks a complete built-in tool allowlist.
+Its hook documentation states that some tool paths bypass hooks, so a hook alone cannot enforce this boundary.
+A custom launch command provides no verifiable tool contract.
+[Source: Codex hook coverage](https://developers.openai.com/codex/hooks#tool-coverage).
+
+These controls restrict tools available to the agent model. They are not an operating-system sandbox.
+Existing manager processes retain their launch configuration until a new attempt starts.

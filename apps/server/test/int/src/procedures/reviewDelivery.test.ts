@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { existsSync, mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
+import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { createTestApp, type TestApp } from "../../../helpers/app";
 import { assertStatusInvariant } from "../../../invariants";
@@ -10,27 +11,14 @@ let t: TestApp;
 let runId: string;
 beforeEach(async () => {
 	t = await createTestApp({ home: mkdtempSync("/tmp/trellis-review-delivery-") });
-	await t.seedProject("RVD");
+	const project = await t.seedProject("RVD");
 	await t.client.projects.setRepos({ project: "RVD", repos: [{ owner: "example", repo: "code" }] });
-	const persona = await t.client.personas.create({ name: "Manager", kind: "manager", instruction: "Manage." });
-	const configured = await t.api("/api/projects/RVD", {
-		method: "PATCH",
-		body: {
-			managerConfig: {
-				personaId: persona.id,
-				directory: t.home,
-				concurrency: 1,
-				harness: { preset: "custom", startCommand: "/bin/cat", resumeCommand: "/bin/cat" },
-			},
-		},
-	});
-	expect(configured.status, JSON.stringify(configured.body)).toBe(200);
-	const started = await t.api("/api/agent-runs", { method: "POST", body: { personaId: persona.id, project: "RVD" } });
-	expect(started.status, JSON.stringify(started.body)).toBe(201);
-	const run = started.body;
-	expect(run).toMatchObject({ runtime: "native", state: "running" });
-	runId = run.id;
-	await t.client.agentRuns.stop({ id: run.id });
+	runId = ulid();
+	await t.editServerTx((tx) =>
+		tx.execute(sql`INSERT INTO agent_runs
+		(id,name,runtime,persona_name,kind,instruction,project_id,project_path,terminal_id,closed_at,created_at,updated_at)
+		VALUES (${runId},'Manager','native','Manager','manager','Manage.',${project.id},'RVD',${ulid()},NOW(),NOW(),NOW())`),
+	);
 });
 afterEach(async () => {
 	const socket = join(t.home, "runtime", "runtime.sock");

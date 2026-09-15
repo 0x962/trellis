@@ -51,6 +51,7 @@ describe("contract", () => {
 			"comments.resolve POST /comments/{id}/resolve",
 			"comments.thread GET /comments/{id}/thread",
 			"comments.update PATCH /comments/{id}",
+			"controller.handle POST /manager-dispatches/{id}/handle",
 			"controller.list GET /manager-dispatches",
 			"controller.resolveUnknown POST /manager-dispatches/{id}/received",
 			"controller.retry POST /manager-dispatches/{id}/retry",

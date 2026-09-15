@@ -38,6 +38,48 @@ beforeEach(async () => {
 		);
 	});
 });
+test.each(["custom", "codex"] as const)(
+	"a %s manager fails before launch when the harness cannot enforce its tool boundary",
+	async (preset) => {
+		let prepared = false;
+		const run = await h.read((tx) => getRun(tx, id));
+		const ctx = {
+			...h.ctx(() => {}),
+			newTx: h.read,
+			home,
+			now: () => new Date(),
+			localUrl: "http://127.0.0.1:4521",
+		} as unknown as Parameters<typeof startNative>[0];
+		await startNative(
+			ctx,
+			{
+				run,
+				config: ProjectManagerConfigSchema.parse({
+					personaId: null,
+					concurrency: 1,
+					directory: "/tmp",
+					trustedDirectory: true,
+					harness: { preset, startCommand: "/bin/true", resumeCommand: "/bin/true" },
+				}),
+				resume: false,
+				context: "Fixture",
+				attempt: { id: attemptId, generation: 1, token: "fixture-token" },
+			},
+			{
+				environment: async () => {
+					prepared = true;
+					throw new Error("Unexpected environment lookup");
+				},
+			},
+		);
+		const after = await h.read((tx) => getRun(tx, id));
+		expect(after.error).toBe(
+			`The ${preset} harness cannot enforce the manager tool boundary. Select Claude, OpenCode, or Pi for managers. Workers can use any harness.`,
+		);
+		expect(after.closedAt).not.toBeNull();
+		expect(prepared).toBe(false);
+	},
+);
 test.each([
 	["stopped", "workspace"],
 	["replaced", "workspace"],
