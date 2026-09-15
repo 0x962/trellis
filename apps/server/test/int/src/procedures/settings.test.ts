@@ -13,7 +13,6 @@ describe("settings", () => {
 	test("settings round-trip through PUT and GET", async () => {
 		const settings = {
 			defaultActorName: "dana",
-			stalledHours: 12,
 		};
 
 		const written = await t.api("/api/settings", { method: "PUT", body: settings });

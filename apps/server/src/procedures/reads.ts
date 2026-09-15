@@ -1,7 +1,7 @@
 import { call, os } from "./base.ts";
 
-// The routers with one or two procedures each: timeline, search, inbox,
-// brief, actors, and settings.
+// The routers with one or two procedures each: timeline, search, brief,
+// actors, and settings.
 
 export const timeline = os.timeline.router({
 	list: os.timeline.list.handler(({ context, input }) => call(context, "timeline.list", input)),
@@ -9,10 +9,6 @@ export const timeline = os.timeline.router({
 
 export const search = os.search.router({
 	query: os.search.query.handler(({ context, input }) => call(context, "search.query", input)),
-});
-
-export const inbox = os.inbox.router({
-	get: os.inbox.get.handler(({ context, input }) => call(context, "inbox.get", input)),
 });
 
 export const brief = os.brief.router({

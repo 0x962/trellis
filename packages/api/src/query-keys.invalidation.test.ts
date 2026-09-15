@@ -8,7 +8,6 @@ import {
 	deletedEvent,
 	detailKey,
 	healthKey,
-	inboxKey,
 	isInvalidated,
 	listKey,
 	listPage,
@@ -27,12 +26,11 @@ describe("invalidation", () => {
 		queryClient.setQueryData(filteredListKey, listPage(v3));
 		queryClient.setQueryData(boardKey, boardPage(v3));
 		queryClient.setQueryData(countsKey, { total: 1, byStatus: [{ statusId, count: 1 }] });
-		queryClient.setQueryData(inboxKey, { review: { items: [], total: 0 } });
 		queryClient.setQueryData(detailKey, ticket(v3));
 		queryClient.setQueryData(healthKey, { ok: true });
 	};
 
-	const membershipKeys = [filteredListKey, boardKey, countsKey, inboxKey];
+	const membershipKeys = [filteredListKey, boardKey, countsKey];
 
 	// A patch keeps a row current. A filtered list cannot know whether the row
 	// still belongs to it after a status, project, priority, parent, or
@@ -72,9 +70,9 @@ describe("invalidation", () => {
 		}
 	});
 
-	// The sidebar reads `openCount` and `needsYouCount` from the projects
-	// list. A create, a delete, or a membership change moves those counts,
-	// and no project event follows. A title change moves no count.
+	// The sidebar reads `openCount` from the projects list. A create, a
+	// delete, or a membership change moves that count, and no project event
+	// follows. A title change moves no count.
 	test("a create, a delete, or a membership change invalidates the projects list, and a title change does not", () => {
 		const projectsListKey = queryKey(["projects", "list"]);
 		const cases = [
@@ -100,25 +98,10 @@ describe("invalidation", () => {
 		}
 	});
 
-	// The inbox is the Needs you page. Its query runs four sections, so it
-	// refetches on its own, slower timer.
-	test("the inbox invalidation debounces 1 s while the other membership keys flush at 250 ms", () => {
-		const { queryClient, advanceTo, applier } = setup(seedMembershipCaches);
-		applier.applyEvent(updatedEvent(summaryAt(4), ["status"]));
-		advanceTo(250);
-		for (const key of [filteredListKey, boardKey, countsKey]) {
-			expect(isInvalidated(queryClient, key), JSON.stringify(key[0])).toBe(true);
-		}
-		advanceTo(999);
-		expect(isInvalidated(queryClient, inboxKey)).toBe(false);
-		advanceTo(1000);
-		expect(isInvalidated(queryClient, inboxKey)).toBe(true);
-	});
-
 	// One flush is one `invalidateQueries` call that covers every queued key,
 	// so the call count is the flush count.
 	test("the coalescer folds three invalidations within 250 ms into one trailing call", () => {
-		const { queryClient, advanceTo, applier, invalidateQueries } = setup(seedMembershipCaches);
+		const { advanceTo, applier, invalidateQueries } = setup(seedMembershipCaches);
 		for (const [at, version] of [
 			[0, 4],
 			[100, 5],
@@ -131,18 +114,12 @@ describe("invalidation", () => {
 		expect(invalidateQueries).not.toHaveBeenCalled();
 		advanceTo(450);
 		expect(invalidateQueries).toHaveBeenCalledTimes(1);
-		expect(isInvalidated(queryClient, inboxKey)).toBe(false);
-		advanceTo(1199);
-		expect(invalidateQueries).toHaveBeenCalledTimes(1);
-		advanceTo(1200);
-		expect(invalidateQueries).toHaveBeenCalledTimes(2);
-		expect(isInvalidated(queryClient, inboxKey)).toBe(true);
 		advanceTo(5000);
-		expect(invalidateQueries).toHaveBeenCalledTimes(2);
+		expect(invalidateQueries).toHaveBeenCalledTimes(1);
 	});
 
 	test("the coalescer forces one invalidation at 1 s under a constant event stream", () => {
-		const { queryClient, advanceTo, applier, invalidateQueries } = setup(seedMembershipCaches);
+		const { advanceTo, applier, invalidateQueries } = setup(seedMembershipCaches);
 		for (let at = 0; at <= 1500; at += 100) {
 			advanceTo(at);
 			applier.applyEvent(updatedEvent(summaryAt(4 + at / 100), ["status"]));
@@ -152,14 +129,8 @@ describe("invalidation", () => {
 		expect(invalidateQueries).toHaveBeenCalledTimes(1);
 		advanceTo(1750);
 		expect(invalidateQueries).toHaveBeenCalledTimes(2);
-		advanceTo(2499);
-		expect(invalidateQueries).toHaveBeenCalledTimes(2);
-		expect(isInvalidated(queryClient, inboxKey)).toBe(false);
-		advanceTo(2500);
-		expect(invalidateQueries).toHaveBeenCalledTimes(3);
-		expect(isInvalidated(queryClient, inboxKey)).toBe(true);
 		advanceTo(5000);
-		expect(invalidateQueries).toHaveBeenCalledTimes(3);
+		expect(invalidateQueries).toHaveBeenCalledTimes(2);
 	});
 
 	// While an invalidation waits, every event asks which cached queries the
@@ -202,7 +173,6 @@ describe("invalidation", () => {
 	const seedResourceCaches = (queryClient: QueryClient) => {
 		queryClient.setQueryData(detailKey, ticket(summaryAt(3)));
 		queryClient.setQueryData(listKey, listPage(summaryAt(3)));
-		queryClient.setQueryData(inboxKey, { review: { items: [], total: 0 } });
 		queryClient.setQueryData(searchKey, { tickets: [summaryAt(3)], projects: [] });
 		for (const id of [t1, t2, "CDE-42", "CDE-43", "cde-42", lowerT1]) {
 			queryClient.setQueryData(prsKey(id), []);
@@ -251,11 +221,10 @@ describe("invalidation", () => {
 				untouched: [prsKey(t2), prsKey("CDE-43"), attachmentsKey(t1), timelineKey(t1), healthKey],
 			},
 			// A status rename or a reviewer change alters the `status` inside
-			// every cached summary, and the Needs you sections, without a ticket
-			// row change. So every query that holds a summary refetches.
+			// every cached summary without a ticket row change. So every query that holds a summary refetches.
 			{
 				event: { type: "statuses.changed" as const, projectId },
-				invalidated: [statusesKey, projectsListKey, projectKey, listKey, detailKey, inboxKey, searchKey],
+				invalidated: [statusesKey, projectsListKey, projectKey, listKey, detailKey, searchKey],
 				untouched: [ghKey, healthKey, timelineKey(t1)],
 			},
 			{

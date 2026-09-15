@@ -1,1 +1,0 @@
-export { InboxSkeleton } from "./InboxSkeleton";

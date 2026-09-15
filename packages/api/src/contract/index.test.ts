@@ -70,7 +70,6 @@ describe("contract", () => {
 			"flows.list GET /flows",
 			"flows.save PUT /flows/{flow}/graph",
 			"flows.update PATCH /flows/{flow}",
-			"inbox.get GET /inbox",
 			"personas.create POST /personas",
 			"personas.delete DELETE /personas/{id}",
 			"personas.list GET /personas",

@@ -32,7 +32,6 @@ const verbs = [
 	"search",
 	"activity",
 	"brief",
-	"inbox",
 	"watch",
 	"open",
 	"whoami",
