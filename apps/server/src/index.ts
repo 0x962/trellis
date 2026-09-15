@@ -13,6 +13,7 @@ import { assertHomeImportReady } from "./homeImport/bootGuard.ts";
 import { lockHome } from "./homeLock.ts";
 import { listenAddresses } from "./listen.ts";
 import { createLogger, createRotatingSink, type LogSink, stdoutSink, teeSink } from "./log.ts";
+import { assertStandaloneHandoffReady } from "./standaloneHandoff/bootGuard.ts";
 import { sweepBackups } from "./storage/backups.ts";
 import { sweep } from "./storage/blobs.ts";
 
@@ -67,6 +68,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 	const run = async () => {
 		const lock = lockHome(config.home, "server", config.port);
 		assertHomeImportReady(config.home);
+		assertStandaloneHandoffReady(config.home);
 		let handler: Fetch = () =>
 			new Response("The trellis server is not ready. Try again in a few seconds.", { status: 503 });
 
