@@ -4,7 +4,12 @@ Owner: lead agent. Integration branch: `trellis-readiness-audit`.
 Last update: 2026-09-15.
 
 The user tests the installed UI. The production app lives at `~/Applications/Trellis.app`.
-The first full production install uses source `3a8be2a1` and release `309bd1ac`.
+The production install workflow passes a live copy and restart check. The desktop guide records the command.
+
+The Needs you error burst has one shared server error: `connect ENOENT ~/.trellis/runtime/runtime.sock`.
+At 21:40:38 UTC, the page subscribes to 54 old terminal attempts after the runtime stops for the package update.
+The page features are outside the requested scope and are removed. Ticket terminals still need access to retained output after a restart.
+Evidence: `/tmp/trellis-needs-you-500-before.json` records the affected attempts and a reproduced 500 for TRL-65 / Esme.
 
 ## Current verification
 
@@ -20,10 +25,14 @@ The first full production install uses source `3a8be2a1` and release `309bd1ac`.
 | Fix the broken Agent tab terminal. | Installed; user UI check pending | A padding-free host gives FitAddon the available size. Runtime failures remain visible. |
 | Use Astra subagents. | Applied | Astra agents cover the UI, lifecycle, native process inspection, production install, and restart workflow. |
 | Address root causes. | Installed | Native process inspection replaces the spawned ps command. HTTP startup stays independent of shell setup. launchd reports `spawn type = interactive (4)`. |
+| Keep Needs you empty until a later design. | Integrated; deployment pending | The page contains its heading and an empty body. The route and menu entry remain. No page features or subscriptions remain. |
 | Build production and use ditto to install in ~/Applications without closing Trellis. | Verified | The copy preserves the desktop, HTTP host, and runtime PIDs. See the [production install guide](../../apps/desktop/README.md#production-install). |
 | Stop active agents and load all changes when a new package starts. | Implemented and tested | Activation stops the old HTTP host and runtime before it registers the new service. An unchanged package preserves active sessions. |
 
-The full production build passes all 13 packaged smoke checks and signature verification.
+The production build at `35cc3c47` passes all 13 packaged smoke checks and signature verification.
+The atomic copy preserves the real Electron and HTTP host process identities.
+The next app launch activates release `1609d8e4` and stops the previous HTTP host, runtime, and test PTY.
+Evidence: `/tmp/trellis-final-copy-evidence.json` and `/tmp/trellis-final-activation-check.json`.
 The runtime passes 52 unit tests and 65 integration tests. The shell changes pass 61 focused tests.
 Independent Astra reviews cover failed cleanup, natural exit, shell setup, and HTTP startup.
 
@@ -32,7 +41,7 @@ The user authorizes the stop. Native process checks confirm all nine agent proce
 The new HTTP host starts on port 4521. Authentication rejects an absent token and accepts the desktop token.
 All nine API Stop requests return 200. The new runtime reports release `309bd1ac`.
 A live PTY check verifies start, input, streamed output, 200-by-80 resize, process inspection, and confirmed Stop.
-The final runtime list contains zero active sessions. Hana stays stopped.
+The runtime list after the PTY check contains zero active sessions. Hana stays stopped.
 Evidence: `/tmp/trellis-production-copy-evidence.json`, `/tmp/trellis-approved-stop-evidence.json`, `/tmp/trellis-production-stop-api.json`, and `/tmp/trellis-installed-runtime-check.json`.
 
 The previous launchd plist selected `ProcessType=Background`. Its runtime had scheduler priority 4 under system load above 100.
