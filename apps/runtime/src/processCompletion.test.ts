@@ -56,13 +56,13 @@ test("an explicit stop can repeat failed cleanup and waits for stream closure", 
 	const errors: string[] = [];
 	const exits: (number | null)[] = [];
 	const lifecycle = processCompletion(
-		() => (++calls === 1 ? Promise.reject(new Error("spawnSync /bin/ps ETIMEDOUT")) : second.promise),
+		() => (++calls === 1 ? Promise.reject(new Error("Native process snapshot failed")) : second.promise),
 		(code) => exits.push(code),
 		(error) => errors.push(error.message),
 	);
 	lifecycle.stop();
 	await Promise.resolve();
-	expect(errors).toEqual(["spawnSync /bin/ps ETIMEDOUT"]);
+	expect(errors).toEqual(["Native process snapshot failed"]);
 	lifecycle.stop();
 	expect(calls).toBe(2);
 	second.resolve();
@@ -79,14 +79,14 @@ test("natural PTY exit confirms cleanup after an earlier stop failed", async () 
 	const lifecycle = processCompletion(
 		async () => {
 			calls++;
-			if (calls === 1) throw new Error("spawnSync /bin/ps ETIMEDOUT");
+			if (calls === 1) throw new Error("Native process snapshot failed");
 		},
 		(code) => exits.push(code),
 		(error) => errors.push(error.message),
 	);
 	lifecycle.stop();
 	await Promise.resolve();
-	expect(errors).toEqual(["spawnSync /bin/ps ETIMEDOUT"]);
+	expect(errors).toEqual(["Native process snapshot failed"]);
 	lifecycle.closed(0);
 	await Promise.resolve();
 	expect(calls).toBe(2);
