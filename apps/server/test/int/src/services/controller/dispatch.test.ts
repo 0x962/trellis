@@ -28,7 +28,6 @@ beforeEach(async () => {
 	home = mkdtempSync("/tmp/trl-dispatch-");
 	mkdirSync(join(home, "runtime"));
 	session = controllerSession();
-	session.acknowledgedMessageIds.push(session.id);
 	onInspect = () => {};
 	busyOnDelivery = false;
 	deliveries = [];

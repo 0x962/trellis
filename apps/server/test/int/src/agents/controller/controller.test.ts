@@ -71,3 +71,28 @@ test("a tick waits for its send before the next timer", async () => {
 	expect(dispatches).toBe(2);
 	expect(time.timers.size).toBe(0);
 });
+
+test("a failed first tick logs its error and preserves the next scheduled tick", async () => {
+	const time = clock();
+	const errors: unknown[] = [];
+	let collections = 0;
+	let dispatches = 0;
+	const host = createController({
+		clock: time,
+		log: (_message, data) => {
+			errors.push(data);
+		},
+		call: async (name) => {
+			if (name === "controller.collect" && ++collections === 1) throw new Error("Runtime socket unavailable");
+			if (name === "controller.dispatch") dispatches++;
+		},
+	});
+	await host.start();
+	expect(errors).toEqual([{ error: "Runtime socket unavailable" }]);
+	expect(time.timers.size).toBe(1);
+	await time.fire();
+	await host.stop();
+	expect(collections).toBe(2);
+	expect(dispatches).toBe(1);
+	expect(time.timers.size).toBe(0);
+});

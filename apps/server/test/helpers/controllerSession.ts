@@ -26,7 +26,7 @@ export const controllerSession = (
 	},
 	launch: { command: "/bin/agent", args: [], cwd: "/tmp" },
 	activity: { state: "idle", updatedAt: NOW.toISOString() },
-	acknowledgedMessageIds: [],
+	acknowledgedMessageIds: [id],
 	result: null,
 	...overrides,
 });

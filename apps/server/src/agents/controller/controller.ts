@@ -17,15 +17,13 @@ export const createController = (options: ControllerOptions) => {
 		await options.call("controller.collect", {});
 		await options.call("controller.dispatch", {});
 	};
+	const tickFailed = (cause: unknown) =>
+		options.log("controller tick failed", { error: cause instanceof Error ? cause.message : String(cause) });
 	const schedule = () => {
 		if (stopped) return;
 		timer = options.clock.setTimer(() => {
 			timer = null;
-			running = tick()
-				.catch((cause: unknown) => {
-					options.log("controller tick failed", { error: cause instanceof Error ? cause.message : String(cause) });
-				})
-				.then(schedule);
+			running = tick().catch(tickFailed).then(schedule);
 		}, 1000);
 	};
 	return {
@@ -33,7 +31,7 @@ export const createController = (options: ControllerOptions) => {
 			if (!stopped) return;
 			stopped = false;
 			await options.call("controller.recover", {});
-			running = tick();
+			running = tick().catch(tickFailed);
 			await running;
 			schedule();
 		},

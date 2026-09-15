@@ -152,3 +152,25 @@ test("an interactive custom PTY sends raw input without a hook receipt", async (
 	);
 	expect(writes).toBe(1);
 });
+
+test("a closed assignment rejects a send before it contacts the runtime", async () => {
+	await h.rows(sql`UPDATE agent_runs SET closed_at=now() WHERE id='run'`);
+	let inspected = false;
+	await expect(
+		prepareSend(
+			context(),
+			{ id: "run", text: "Do more work" },
+			{
+				inspect: async () => {
+					inspected = true;
+					return session({ launch: { command: "/bin/cat", args: [], cwd: "/tmp" } });
+				},
+				deliver: async (_id, messageId) => ({ status: "written", messageId }),
+				subscribeSession: async function* () {
+					yield { type: "session", session: session() };
+				},
+			},
+		),
+	).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
+	expect(inspected).toBe(false);
+});

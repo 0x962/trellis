@@ -28,6 +28,8 @@ export const prepareSend = async (
 ) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	assertSendTarget(run, input);
+	if (run.closedAt !== null)
+		throw invalidInput("id", "This assignment is closed. Start a new attempt before sending a message.");
 	if (run.runtime !== "native") throw invalidInput("id", "This historical assignment cannot receive new messages.");
 	if (!run.terminalId) throw invalidInput("id", "The agent has no terminal yet.");
 	try {

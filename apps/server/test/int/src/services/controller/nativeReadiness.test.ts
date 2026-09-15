@@ -68,6 +68,7 @@ test("dispatch requires a live controllable PTY with a ready or idle runtime tur
 		{ status: "unknown" as const },
 		{ controllable: false },
 		{ activity: null },
+		{ acknowledgedMessageIds: [] },
 		{ mode: "stdio" as const },
 		{ id: "another-attempt" },
 	]) {
