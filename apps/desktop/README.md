@@ -28,7 +28,7 @@ The packaged app requests permission to enable its background service. `SMAppSer
 
 Stop local work and background service pauses local dispatch, stops known local processes, and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Resume local work allows new local launches. Each project keeps its saved dispatch setting.
 
-The helper reads the user login shell environment with a ten-second limit. It places the bundled executable directory first in PATH. Shell errors omit captured output because startup scripts can expose secrets.
+The host starts HTTP before it resolves the user login environment. External tools await the cached environment in their server thread. The shell has a ten-second limit. The bundled executable directory comes first in PATH. Shell errors omit captured output because startup scripts can expose secrets.
 
 The preload bridge exposes only `trellisDesktop.chooseDirectory()`. The renderer uses a sandbox and context isolation. The desktop session adds the host token only to requests from its window to its exact host origin. The token does not enter the renderer.
 
@@ -74,11 +74,29 @@ TRELLIS_DESKTOP_PREVIEW_APP="$PWD/apps/desktop/release/mac-arm64/Trellis.app" bu
 
 The test copies the app and uses a unique service label. It redirects the production data path to a scratch directory before any directory creation. It disables protocol registration and answers the fixture's native dialogs. It verifies new data and an existing project in a selected directory. It checks the native title bar and removes the temporary service.
 
-## Manual app replacement
+## Production install
 
-Use the Trellis menu to open Update status. Before you replace the app, use Stop local work and background service. Replace `Trellis.app`, reopen it, and enable its service. Resume local work when you want to permit new launches. Each project keeps its saved dispatch setting.
+Commit the source changes. Run this command from the repository root:
 
-The app retains earlier releases. A live execution service with a different protocol blocks the new host. The previous pinned host remains available to stop local work. An unknown service state also blocks activation.
+```sh
+bun run desktop:install
+```
+
+The command rejects uncommitted changes. It exports one commit into a fresh directory and installs the frozen dependency lockfile. It builds the renderer, runtime, harnesses, desktop, and complete host package. It records the commit in `build.json`.
+
+The command signs the local package and runs the packaged smoke checks. It copies the app with `ditto` into a temporary directory beside `~/Applications/Trellis.app`, then replaces the complete bundle. Deleted source files cannot remain in the installed bundle. The running app and its services stay open during the copy.
+
+Restart Trellis to activate the installed build. If the package changes, the restart stops active agents before it starts the new runtime.
+
+To prepare a verified candidate without a production install:
+
+```sh
+bun run desktop:install --prepare /tmp/trellis-preview/Trellis.app
+```
+
+This command uses the local ad-hoc signature described above. It requires the macOS developer tools and network access for dependencies. A failed build leaves its temporary directory for inspection.
+
+The app retains earlier releases. The release identity includes the desktop launcher, preload bridge, service launcher, native helper, and LaunchAgent configuration. An unknown service state blocks activation.
 
 Runtime files stay outside the host database directory, so a database export does not include application binaries. A package replacement does not remove the files of an active runtime. The integration test removes the source app, retains a live PTY, starts another child with the pinned native modules, and restarts the host.
 

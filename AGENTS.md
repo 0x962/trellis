@@ -14,6 +14,10 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 - Every pull request description states what broke, what changed, and one verification sentence. No headers, no tables, no checklists.
 - Pin exact versions when you add a dependency. Prefer the current release on npm.
 
+## Desktop install
+
+Commit the source changes, then run `bun run desktop:install` from the repository root. The command builds and verifies a fresh package, then copies it to `~/Applications/Trellis.app`. The copy leaves Trellis open. Restart Trellis to activate the package; a changed package stops active agents before the new runtime starts. See [the desktop guide](apps/desktop/README.md#production-install) for candidate builds and verification.
+
 ## Prose and comments
 
 - Write every sentence in ASD-STE100 Simplified Technical English (STE): one topic per sentence, active voice, simple present tense.
