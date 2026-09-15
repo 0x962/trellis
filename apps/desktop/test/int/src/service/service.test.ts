@@ -1,9 +1,13 @@
 import { expect, test } from "bun:test";
-import { copyFile, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { copyFile, cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { originDir } from "../../../../../../test/originDir.ts";
 import { adoptHost, ensureHostToken, waitForHostExit } from "../../../../src/host/host.ts";
+import { readBundleManifest, writeBundleManifest } from "../../../../src/resourceBundle/resourceBundle.ts";
+import { restartHost } from "../../../../src/restartHost/index.ts";
 import { writeSelectedHome } from "../../../../src/selectedHome/selectedHome.ts";
 import { serviceCommand } from "../../../../src/service/service.ts";
 
@@ -74,13 +78,15 @@ test("an isolated launchd service uses the selected home and restarts without a 
 	}
 }, 120000);
 
-test("SMAppService registers an isolated app and supervises its relocated host", async () => {
+test("SMAppService restarts with the latest package and preserves compatible agent processes", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "trellis-sm-service-"));
 	const home = join(directory, "home");
 	const contents = join(directory, "Trellis Probe.app/Contents");
 	const helper = join(contents, "MacOS/TrellisHost");
 	const label = `com.trellis.test.sm.${process.pid}.${Date.now()}`;
 	const domain = `gui/${process.getuid!()}`;
+	const resources = join(contents, "Resources/host");
+	let daemon: ReturnType<typeof Bun.spawn> | undefined;
 	let registered = false;
 	try {
 		await mkdir(join(contents, "MacOS"), { recursive: true });
@@ -96,7 +102,7 @@ test("SMAppService registers an isolated app and supervises its relocated host",
 		expect(await compile.exited).toBe(0);
 		await copyFile(helper, join(contents, "MacOS/Trellis"));
 		await copyFile(join(root, "dist/host-service.cjs"), join(contents, "Resources/host-service.cjs"));
-		await symlink(join(root, "dist/host"), join(contents, "Resources/host"));
+		await cp(join(root, "dist/host"), resources, { recursive: true, verbatimSymlinks: true });
 		await writeFile(
 			join(contents, "Info.plist"),
 			`<?xml version="1.0"?><plist version="1.0"><dict>
@@ -127,7 +133,67 @@ test("SMAppService registers an isolated app and supervises its relocated host",
 		const second = await adoptHost(home);
 		expect(second.pid).not.toBe(first.pid);
 		expect(second.origin).toBe(first.origin);
+		const active = JSON.parse(await readFile(join(home, "desktop-active-release.json"), "utf8"));
+		const activeRoot = join(directory, "releases", active.id);
+		const runtimeHome = join(home, "runtime");
+		daemon = Bun.spawn(
+			[join(activeRoot, "bin/node"), join(activeRoot, "apps/runtime/dist/index.js"), "--home", runtimeHome],
+			{
+				stdout: "ignore",
+				stderr: "inherit",
+			},
+		);
+		const deadline = Date.now() + 10000;
+		while (!existsSync(join(runtimeHome, "manifest.json")) && Date.now() < deadline) await Bun.sleep(50);
+		const runtime = new RuntimeClient(join(runtimeHome, "runtime.sock"));
+		const agent = await runtime.start({
+			id: "restart-survivor",
+			command: "/bin/cat",
+			args: [],
+			cwd: home,
+			mode: "pty",
+		});
+		const previousRuntime = await runtime.hello();
+		const manifest = await readBundleManifest(resources);
+		await writeFile(join(resources, "apps/web/dist/restart-probe.txt"), "updated interface");
+		const updated = await writeBundleManifest(resources, "restart-test", manifest.protocol);
+		const resign = Bun.spawn(["/usr/bin/codesign", "--force", "--sign", "-", resolve(contents, "..")], {
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		expect(await resign.exited).toBe(0);
+		const restarted = await restartHost({
+			mode: "packaged",
+			home,
+			helper,
+			resources,
+			userData: directory,
+		});
+		expect(restarted.pid).not.toBe(second.pid);
+		expect(restarted.origin).toBe(second.origin);
+		expect((await serviceCommand(helper, "status")).status).toBe("enabled");
+		expect(JSON.parse(await readFile(join(home, "desktop-active-release.json"), "utf8")).id).toBe(updated.id);
+		expect(
+			await (
+				await fetch(`${restarted.origin}/restart-probe.txt`, {
+					headers: { Authorization: `Bearer ${restarted.token}` },
+				})
+			).text(),
+		).toBe("updated interface");
+		expect((await runtime.hello()).pid).toBe(previousRuntime.pid);
+		expect((await runtime.list()).find((session) => session.id === agent.id)?.pid).toBe(agent.pid);
+		await runtime.input(agent.id, Buffer.from("after restart\n").toString("base64"));
+		let output = "";
+		for (let step = 0; step < 100 && !output.includes("after restart"); step++) {
+			await Bun.sleep(50);
+			output = Buffer.from((await runtime.output(agent.id)).data, "base64").toString();
+		}
+		expect(output).toContain("after restart");
 	} finally {
+		if (daemon) {
+			daemon.kill("SIGTERM");
+			await daemon.exited;
+		}
 		if (registered) {
 			await serviceCommand(helper, "unregister");
 			await waitForHostExit(home);

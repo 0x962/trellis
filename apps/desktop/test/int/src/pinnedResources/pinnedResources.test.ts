@@ -6,6 +6,7 @@ import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { originDir } from "../../../../../../test/originDir.ts";
 import { connectHost, type HostConnection, waitForHostExit } from "../../../../src/host/host.ts";
 import { pinResources } from "../../../../src/pinnedResources/pinnedResources.ts";
+import { restartHost } from "../../../../src/restartHost/index.ts";
 
 const desktop = resolve(originDir(import.meta.dir), "../..");
 
@@ -75,9 +76,10 @@ test("app removal preserves the runtime and new native children from pinned reso
 			output = Buffer.from((await runtime.output(next.id)).data, "base64").toString();
 		}
 		expect(output).toContain("pinned native modules work");
-		process.kill(host.pid, "SIGTERM");
-		await waitForHostExit(home);
-		host = await connectHost(options);
+		const previousHost = host;
+		host = await restartHost({ mode: "development", options });
+		expect(host.pid).not.toBe(previousHost.pid);
+		expect(host.origin).toBe(previousHost.origin);
 		expect((await runtime.hello()).pid).toBe(originalDaemon.pid);
 		expect((await runtime.list()).find((session) => session.id === first.id)?.pid).toBe(first.pid);
 		expect((await fetch(host.origin, { headers: { Authorization: `Bearer ${host.token}` } })).status).toBe(200);
