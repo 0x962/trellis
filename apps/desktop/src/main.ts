@@ -11,6 +11,8 @@ import { installCli } from "./installCli/installCli.ts";
 import { deepLinkPath, externalUrl, sameOrigin } from "./navigation/navigation.ts";
 import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResources.ts";
 import { prepareHome } from "./prepareHome/prepareHome.ts";
+import { restartHost } from "./restartHost/index.ts";
+import { restartMenuItem } from "./restartMenuItem/index.ts";
 import { readConfiguredHome, readSelectedHome } from "./selectedHome/selectedHome.ts";
 import { requireService, resumeLocalWork, showServiceStatus, stopLocalWork } from "./serviceActions/serviceActions.ts";
 import { showMaximizedWindow } from "./showMaximizedWindow/showMaximizedWindow.ts";
@@ -24,6 +26,12 @@ let availableRelease: PinnedRelease | undefined;
 let pendingPath = "/";
 const desktopHome = () => process.env.TRELLIS_DESKTOP_HOME ?? readSelectedHome(app.getPath("userData"));
 const paths = () => desktopPaths(app.getAppPath(), process.resourcesPath, app.isPackaged);
+const developmentHostOptions = () => ({
+	home: desktopHome(),
+	executable: process.env.TRELLIS_BUN_BIN ?? "bun",
+	entry: join(paths().hostRoot, "apps/server/src/index.ts"),
+	webDist: join(paths().hostRoot, "apps/web/dist"),
+});
 
 const openWindow = async () => {
 	if (window) {
@@ -109,12 +117,7 @@ const connect = async () => {
 		if (update.state === "blocked") await showUpdateStatus(desktopHome(), availableRelease);
 		return;
 	}
-	host = await connectHost({
-		home: desktopHome(),
-		executable: process.env.TRELLIS_BUN_BIN ?? "bun",
-		entry: join(hostRoot, "apps/server/src/index.ts"),
-		webDist: join(hostRoot, "apps/web/dist"),
-	});
+	host = await connectHost(developmentHostOptions());
 };
 
 const navigate = async (url: string) => {
@@ -215,6 +218,23 @@ else {
 							{ role: "hideOthers" },
 							{ role: "unhide" },
 							{ type: "separator" },
+							restartMenuItem(
+								app,
+								async () => {
+									host = await restartHost(
+										app.isPackaged
+											? {
+													mode: "packaged",
+													home: desktopHome(),
+													helper: paths().helper,
+													resources: paths().hostRoot,
+													userData: app.getPath("userData"),
+												}
+											: { mode: "development", options: developmentHostOptions() },
+									);
+								},
+								(error) => dialog.showErrorBox("Trellis did not restart", error.message),
+							),
 							{ label: "Quit Trellis (keep agents running)", accelerator: "Cmd+Q", click: () => app.quit() },
 						],
 					},

@@ -34,6 +34,8 @@ The preload bridge exposes only `trellisDesktop.chooseDirectory()`. The renderer
 
 `trellis://open/t/KEY-1` opens a ticket. External HTTP and HTTPS links open in the system browser.
 
+Use **Trellis > Restart** to restart the host and desktop from the installed package. Compatible agents keep their processes and terminal output. If the packaged app detects an incompatible or unknown runtime, it blocks the restart and shows the reason.
+
 ## Package and verification
 
 ```sh
