@@ -1,4 +1,4 @@
-import { access, mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ORPCError } from "@orpc/server";
 import { errors } from "@trellis/api";
@@ -36,10 +36,6 @@ export const stopNative = async (ctx: ServiceCtx, run: StoredRun) => {
 		await client.hello();
 	} catch (error) {
 		if (!["ENOENT", "ECONNREFUSED"].includes((error as NodeJS.ErrnoException).code ?? "")) throw error;
-		if (run.closedAt !== null) {
-			if (run.terminalId !== null) await access(join(ctx.home, "agents", run.id, `output-${run.terminalId}.txt`));
-			return { id: run.id };
-		}
 		client = await ensureNativeRuntime(ctx.home);
 	}
 	if (run.terminalId !== null) {
