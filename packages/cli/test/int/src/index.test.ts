@@ -9,9 +9,7 @@ import { comment, statusSummary, ticket, ticketSummary } from "../../fixtures.ts
 
 const verbs = [
 	"doctor",
-	"home-import",
 	"evidence",
-	"native-migration",
 	"gateway",
 	"projects",
 	"statuses",
