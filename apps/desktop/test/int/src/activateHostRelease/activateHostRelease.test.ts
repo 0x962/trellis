@@ -21,6 +21,9 @@ const fixture = async () => {
 	const calls: string[] = [];
 	const host = { pid: process.pid, origin: "http://127.0.0.1:4521", token: "test" };
 	const actions = {
+		ensureService: async () => {
+			calls.push("ensure");
+		},
 		adopt: async () => {
 			calls.push("adopt");
 			return host;
@@ -59,7 +62,7 @@ test("app startup adopts a current host without a service restart", async () => 
 	const f = await fixture();
 	try {
 		await activateHostRelease(f.home, "helper", f.old, f.actions);
-		expect(f.calls).toEqual(["adopt"]);
+		expect(f.calls).toEqual(["ensure", "adopt"]);
 	} finally {
 		await rm(f.directory, { recursive: true, force: true });
 	}
@@ -128,6 +131,31 @@ test("app startup rejects a new host that still uses a previous runtime", async 
 			);
 		};
 		await expect(activateHostRelease(f.home, "helper", f.next, f.actions)).rejects.toThrow("expected release");
+	} finally {
+		await rm(f.directory, { recursive: true, force: true });
+	}
+});
+
+test("a fresh app completes service registration before it adopts the host", async () => {
+	const f = await fixture();
+	try {
+		await rm(join(f.home, "desktop-active-release.json"));
+		await activateHostRelease(f.home, "helper", f.next, f.actions);
+		expect(f.calls).toEqual(["ensure", "adopt"]);
+	} finally {
+		await rm(f.directory, { recursive: true, force: true });
+	}
+});
+
+test("macOS approval prevents host adoption until service preparation succeeds", async () => {
+	const f = await fixture();
+	try {
+		f.actions.ensureService = async () => {
+			f.calls.push("approval");
+			throw new Error("requiresApproval");
+		};
+		await expect(activateHostRelease(f.home, "helper", f.old, f.actions)).rejects.toThrow("requiresApproval");
+		expect(f.calls).toEqual(["approval"]);
 	} finally {
 		await rm(f.directory, { recursive: true, force: true });
 	}

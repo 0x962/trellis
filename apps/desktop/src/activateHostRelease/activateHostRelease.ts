@@ -1,10 +1,12 @@
-import { adoptHost, type HostConnection, waitForHostExit } from "../host/host.ts";
+import { adoptHost, assertManagedHome, type HostConnection, waitForHostExit } from "../host/host.ts";
 import type { PinnedRelease } from "../pinnedResources/pinnedResources.ts";
 import { serviceCommand } from "../service/service.ts";
+import { serviceNeedsRegistration } from "../serviceRegistration/serviceRegistration.ts";
 import { stopReleaseRuntime } from "../stopReleaseRuntime/stopReleaseRuntime.ts";
 import { readUpdateStatus } from "../updateStatus/updateStatus.ts";
 
 type Actions = {
+	ensureService: () => Promise<void>;
 	adopt: () => Promise<HostConnection>;
 	unregister: () => Promise<void>;
 	wait: () => Promise<void>;
@@ -16,9 +18,20 @@ export const activateHostRelease = async (
 	home: string,
 	helper: string,
 	available: PinnedRelease,
-	actions: Actions = {
+	overrides: Partial<Actions> = {},
+): Promise<HostConnection> => {
+	const actions: Actions = {
+		ensureService: async () => {
+			const state = await serviceCommand(helper, "status");
+			if (serviceNeedsRegistration(state.status)) await actions.register();
+			else if (state.status !== "enabled") throw new Error(`Background service status: ${state.status}.`);
+		},
 		adopt: () => adoptHost(home),
 		unregister: async () => {
+			const state = await serviceCommand(helper, "status");
+			if (serviceNeedsRegistration(state.status)) return;
+			if (state.status !== "enabled" && state.status !== "requiresApproval")
+				throw new Error(`Background service status: ${state.status}.`);
 			await serviceCommand(helper, "unregister");
 		},
 		wait: () => waitForHostExit(home),
@@ -27,10 +40,14 @@ export const activateHostRelease = async (
 			const state = await serviceCommand(helper, "register");
 			if (state.status !== "enabled") throw new Error(`Background service status: ${state.status}.`);
 		},
-	},
-): Promise<HostConnection> => {
+		...overrides,
+	};
+	assertManagedHome(home);
 	const status = await readUpdateStatus(home, available);
-	if (!status.active || status.state === "current") return actions.adopt();
+	if (!status.active || status.state === "current") {
+		await actions.ensureService();
+		return actions.adopt();
+	}
 	if (status.state === "blocked" && status.runtimeProtocol === null) throw new Error(status.detail);
 	await actions.unregister();
 	await actions.wait();

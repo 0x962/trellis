@@ -168,6 +168,15 @@ test("SMAppService activates a relocated package after its previous runtime and 
 		helper = join(contents, "MacOS/TrellisHost");
 		source = join(contents, "Resources/host");
 		const release = await pinResources(source, directory);
+		await expect(
+			activateHostRelease(home, helper, release, {
+				shutdown: async () => {
+					throw new Error("Unconfirmed old runtime stop");
+				},
+			}),
+		).rejects.toThrow("Unconfirmed old runtime stop");
+		expect((await serviceCommand(helper, "status")).status).toBe("notRegistered");
+		expect((await runtime.hello()).pid).toBe(daemon.pid);
 		const updated = await activateHostRelease(home, helper, release);
 		expect(updated.pid).not.toBe(second.pid);
 		expect(updated.origin).toBe(first.origin);
