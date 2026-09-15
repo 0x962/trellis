@@ -50,10 +50,11 @@ test("sidebar collapse persists and g h navigates", async ({ page }) => {
 	const sidebar = page.getByRole("complementary", { name: "Sidebar" });
 	await expect(sidebar).toBeVisible();
 	await page.keyboard.press("[");
-	await expect(sidebar).toBeHidden();
+	await expect(sidebar).toHaveAttribute("data-collapsed", "true");
 	await page.reload();
 	await expect(page.getByRole("heading", { name: "All tickets" })).toBeVisible();
-	await expect(sidebar).toBeHidden();
+	await expect(sidebar).toHaveAttribute("data-collapsed", "true");
+	await expect(sidebar.getByRole("button", { name: "Expand sidebar" })).toBeVisible();
 	await page.keyboard.press("g");
 	await page.keyboard.press("h");
 	await expect(page).toHaveURL(/\/needs-you$/);
