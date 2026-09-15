@@ -72,6 +72,11 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 	if (existing !== undefined && existing.runtime === "native" && existing.closedAt === null)
 		throw fail("DUPLICATE", { field: "active agent" });
 	if (existing && existing.runtime !== "native") existing = undefined;
+	if (existing !== undefined && input.newSession === true && actor.kind !== "human")
+		throw invalidInput(
+			"newSession",
+			"Only a person can reset an existing manager conversation. Resume it without newSession to preserve its context.",
+		);
 	if (existing?.terminalId && !confirmedExited.includes(existing.terminalId))
 		throw invalidInput("project", "Confirm the prior process stopped before you replace this manager.");
 	const resume =

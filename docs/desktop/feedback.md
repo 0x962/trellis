@@ -4,7 +4,7 @@ Owner: lead agent. Integration branch: `trellis-readiness-audit`.
 Last update: 2026-09-15.
 
 The user tests the installed UI. The production app lives at `~/Applications/Trellis.app`.
-The installed app uses source `49e4191e` and release `b78b2dc3`. The HTTP host and runtime report that release.
+The production verification at 22:17 UTC uses source `49e4191e` and release `b78b2dc3`.
 The production install workflow passes a live copy and restart check. The desktop guide records the command.
 
 The Needs you error burst has one shared server error: `connect ENOENT ~/.trellis/runtime/runtime.sock`.
@@ -35,6 +35,28 @@ All nine workspace typechecks and repository lint pass. The installed package pa
 Both native macOS service tests pass with temporary homes and service labels. The real-home guard passes.
 At 22:17:05 UTC, an atomic ditto reinstall preserves the desktop, HTTP host, runtime, and active agent process identities. Health returns 200.
 Evidence: `/tmp/trellis-restart-integration.log`, `/tmp/trellis-restart-unit.log`, `/tmp/trellis-restart-installed-smoke.log`, and `/tmp/trellis-restart-install-evidence.json`.
+
+## Manager conversation reset
+
+At 22:25:52 UTC, a coding agent explicitly stops Hana before the package restart.
+At 22:27:23 UTC, desktop activation completes the resume of seven active workers.
+At 22:27:29 UTC, the coding agent starts Hana with `--new-session` for a prompt update.
+The provider session changes from `122bc235-9f0d-4c75-a5a7-c34567a2144f` to `2b500365-7259-4a97-bd3d-c107743aa729`.
+The old transcript remains on disk. The new transcript begins a separate conversation.
+The same caller requests another fresh conversation at 22:31:28 UTC.
+
+Evidence: `~/.trellis/desktop-host.log`, lines 18549, 18557, and 18563, records Stop, desktop resume, and ordinary Start.
+The descriptor for attempt `ba1947a0-16cd-4982-84cf-136eba2e286a` contains `--session-id` with the new provider ID.
+The caller transcript records the explicit `trellis agents start ... --new-session` command.
+
+Agent callers cannot reset an existing manager conversation. Default starts resume its saved conversation with the current persona instructions.
+A person can explicitly request a fresh conversation. A failed launch before process creation retains the previous attempt for resume.
+The repository install instructions require conversation preservation during prompt updates and deployment.
+
+An isolated authenticated Claude 2.1.273 test recalls a random marker after stop and resume with a changed system prompt.
+The resumed prompt contains no marker. Both turns use provider session `149b12b5-245e-45fb-94ba-43757d9515c3`.
+The test uses `--system-prompt-snapshot off`. An additional instruction to change the reply prefix fails; memory recall passes.
+Evidence: `/tmp/trl-real-claude-memory-jbKfJE/memory-verification.json`. Both test processes and the isolated runtime exit after the check.
 
 ## Current verification
 
