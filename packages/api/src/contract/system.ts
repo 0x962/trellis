@@ -16,6 +16,10 @@ export const system = {
 		.route({ method: "POST", path: "/native-work/resume", summary: "Allow new local work" })
 		.input(z.object({}))
 		.output(z.object({ paused: z.boolean() })),
+	resumeRestart: base
+		.route({ method: "POST", path: "/native-work/restart/resume", summary: "Resume agents after a desktop restart" })
+		.input(z.object({ restartId: z.string().min(1) }).strict())
+		.output(z.object({ resumed: z.number(), skipped: z.number() })),
 	stopNativeWork: base
 		.route({ method: "POST", path: "/native-work/stop", summary: "Stop local work and its execution service" })
 		.input(z.object({}))

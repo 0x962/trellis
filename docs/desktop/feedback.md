@@ -36,7 +36,8 @@ Evidence: `/tmp/trellis-terminal-recovery-acceptance.json`, `/tmp/trellis-instal
 | Address root causes. | Installed | Native process inspection replaces the spawned ps command. HTTP startup stays independent of shell setup. launchd reports `spawn type = interactive (4)`. |
 | Keep Needs you empty until a later design. | Installed; user UI check pending | The page contains its heading and an empty body. The route and menu entry remain. No page features or subscriptions remain. |
 | Build production and use ditto to install in ~/Applications without closing Trellis. | Verified | The copy preserves the desktop, HTTP host, and runtime PIDs. See the [production install guide](../../apps/desktop/README.md#production-install). |
-| Stop active agents and load all changes when a new package starts. | Implemented and tested | Activation stops the old HTTP host and runtime before it registers the new service. An unchanged package preserves active sessions. |
+| Stop active agents and load all changes when a new package starts. | Implemented and tested | Activation saves active sessions, stops the old host and runtime, and resumes those sessions on the new release. An unchanged package preserves active sessions. |
+| Resume agents after a system restart and tell them to continue. | Implemented; package verification pending | A durable restart plan preserves the conversation, workspace, harness, and model. The first resumed prompt gives the restart notice. Manually stopped agents stay stopped. |
 
 The production build at `14132bac` passes all 13 packaged smoke checks and signature verification.
 The atomic copy preserves the real Electron and HTTP host process identities.

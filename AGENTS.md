@@ -16,7 +16,7 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 
 ## Desktop install
 
-Commit the source changes, then run `bun run desktop:install` from the repository root. The command builds and verifies a fresh package, then copies it to `~/Applications/Trellis.app`. The copy leaves Trellis open. Restart Trellis to activate the package; a changed package stops active agents before the new runtime starts. See [the desktop guide](apps/desktop/README.md#production-install) for candidate builds and verification.
+Commit the source changes, then run `bun run desktop:install` from the repository root. The command builds and verifies a fresh package, then copies it to `~/Applications/Trellis.app`. The copy leaves Trellis open. Restart Trellis to activate the package. A changed package stops active agents and resumes their saved sessions on the new runtime. Manually stopped agents stay stopped. See [the desktop guide](apps/desktop/README.md#production-install) for candidate builds and verification.
 
 ## Prose and comments
 
