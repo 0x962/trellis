@@ -87,7 +87,8 @@ The persona already separates merged, deployed, and complete outcomes. Keep that
 - Shared manager instructions contain no personal name or mandatory UI testing policy.
 - An unchanged heartbeat produces no public message.
 
-The role contract lives in `apps/server/src/agents/launchCommand/managerInstructions.ts`.
+The manager role lives in the selected persona's `instruction` field in the database.
+The persona editor shows the full text that each supported harness receives as its system prompt.
 Manager tools enforce the role boundary. Dispatch outcomes preserve unfinished coordination.
 Comment keys suppress repeated writes for the same actor, ticket, subject, and revision.
 
@@ -124,8 +125,8 @@ That system prompt described an interactive software agent and terminal communic
 The Trellis manager contract previously occupied the user message, below those instructions.
 The capture excluded a canary `CLAUDE.md`, so it did not reproduce global instruction leakage in this harness.
 
-Managers now receive the shared role contract as their native system prompt.
-Assignment messages carry the selected persona and project context without a duplicate role contract.
+Managers receive the selected database persona instruction as their exact native system prompt.
+Assignment messages carry identity and project facts.
 Claude uses `--system-prompt` and `--system-prompt-snapshot off` on start and resume.
 The provider recommends replacement when the agent's identity or communication surface differs from its coding assistant.
 [Source: system prompt replacement and resume behavior](https://code.claude.com/docs/en/cli-reference#system-prompt-flags).

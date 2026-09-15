@@ -86,8 +86,9 @@ A descendant that leaves its session and loses its parent before inspection requ
 Built-in harnesses launch through `HarnessHost` with an interactive CLI in a PTY.
 Builders and reviewers use native permission bypass settings.
 Managers use a private workspace and a Trellis tool allowlist.
-Each supported manager harness uses the manager role as its system prompt.
-The assignment message holds the saved persona and project context.
+Each supported manager harness uses the selected persona instruction from the database as its exact system prompt.
+The persona editor shows this instruction. Manager start and restart read the current saved persona.
+The assignment message carries identity and project facts.
 The manager delegates technical work and records coordination outcomes through these tools.
 Claude, OpenCode, and Pi support this boundary. Codex and custom manager launches return an explicit error.
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
