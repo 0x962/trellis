@@ -8,7 +8,7 @@ const input = {
 	prompt: "a 'quoted' prompt",
 	model: "sonnet",
 	sessionId: "e2c9257e-f163-4904-81bd-21c03de6f711",
-	resume: false,
+	resume: false as const,
 	hookCommand: "/bin/bun '/tmp/hook file.ts'",
 	configDirectory: "/tmp/attempt",
 };
@@ -121,4 +121,15 @@ test("Claude uses its native prompt ID to associate tools and completion with a 
 		turnId: "native-prompt-id",
 		outcome: "completed",
 	});
+});
+
+test("Claude model changes update metadata without a turn transition", () => {
+	expect(
+		parseClaudeEvent({
+			hook_event_name: "PostModelSwitch",
+			session_id: "s",
+			to_model: "claude-sonnet-5",
+			source: "resume",
+		}),
+	).toEqual([{ kind: "session", sessionId: "s", model: "claude-sonnet-5" }]);
 });

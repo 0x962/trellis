@@ -16,6 +16,8 @@ export function parseClaudeEvent(payload: unknown): HarnessEvent[] {
 		...(event.model ? { model: event.model } : {}),
 	};
 	switch (event.hook_event_name) {
+		case "PostModelSwitch":
+			return [{ kind: "session", ...identity, model: z.string().parse(event.to_model) }];
 		case "SessionStart":
 			return [{ kind: "session", ...identity }];
 		case "UserPromptSubmit":

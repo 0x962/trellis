@@ -7,7 +7,7 @@ const input = {
 	prompt: "a 'quoted' prompt",
 	model: "gpt-6",
 	sessionId: "vendor-session",
-	resume: false,
+	resume: false as const,
 	hookCommand: "/bin/bun '/tmp/hook file.ts'",
 	configDirectory: "/tmp/attempt",
 };

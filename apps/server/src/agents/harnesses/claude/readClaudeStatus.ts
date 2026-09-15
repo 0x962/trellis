@@ -1,7 +1,11 @@
 import { parseClaudeStatus } from "./parseClaudeStatus.ts";
 
-export async function readClaudeStatus(target: { sessionId: string; pid: number }, executable = "claude") {
-	const process = Bun.spawn([executable, "agents", "--json"], { stdout: "pipe", stderr: "pipe" });
+export async function readClaudeStatus(
+	target: { sessionId: string; pid: number },
+	executable = "claude",
+	env = process.env,
+) {
+	const process = Bun.spawn([executable, "agents", "--json"], { env, stdout: "pipe", stderr: "pipe" });
 	const [output, error, exitCode] = await Promise.all([
 		new Response(process.stdout).text(),
 		new Response(process.stderr).text(),

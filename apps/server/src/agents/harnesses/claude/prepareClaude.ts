@@ -3,6 +3,7 @@ import type { HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 export async function prepareClaude(input: HarnessLaunchInput): Promise<HarnessLaunch> {
 	const events = [
 		"SessionStart",
+		"PostModelSwitch",
 		"UserPromptSubmit",
 		"Stop",
 		"StopFailure",
