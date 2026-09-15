@@ -18,9 +18,9 @@ afterAll(async () => {
 		rmSync(home, { recursive: true, force: true });
 	}
 });
-async function start(unknown = false) {
+async function start(pid?: number) {
 	const home = mkdtempSync("/tmp/trl-shutdown-");
-	if (unknown) {
+	if (pid !== undefined) {
 		mkdirSync(join(home, "sessions"));
 		writeFileSync(
 			join(home, "sessions", "unknown.session.json"),
@@ -29,7 +29,7 @@ async function start(unknown = false) {
 				session: {
 					id: "unknown",
 					daemonId: "previous",
-					pid: 999999,
+					pid,
 					mode: "stdio",
 					status: "unknown",
 					startedAt: new Date().toISOString(),
@@ -83,7 +83,14 @@ test("shutdown stops agents and check descendants before it acknowledges", async
 		);
 });
 test("shutdown refuses an unknown process and leaves the service available", async () => {
-	const { client } = await start(true);
+	const { client } = await start(process.pid);
 	await expect(client.shutdown()).rejects.toThrow("unknown");
 	expect((await client.hello()).pid).toBeGreaterThan(0);
+});
+test("shutdown accepts a saved unknown process after the OS proves its PID is gone", async () => {
+	const { client, daemon } = await start(999999);
+	expect((await client.inspect("unknown")).status).toBe("exited");
+	const exited = new Promise<void>((done) => daemon.once("exit", () => done()));
+	expect(await client.shutdown()).toBeNull();
+	await exited;
 });

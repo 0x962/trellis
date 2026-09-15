@@ -272,6 +272,9 @@ export class SessionStore {
 	output(id: string, offset: number, stream: "stdout" | "stderr" = "stdout") {
 		return (stream === "stderr" ? this.get(id).stderr : this.get(id).log).read(offset);
 	}
+	outputComplete(id: string) {
+		return this.get(id).process === undefined;
+	}
 	async stopAll() {
 		await Promise.all(
 			this.list()
