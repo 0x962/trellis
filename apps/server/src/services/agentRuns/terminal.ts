@@ -1,3 +1,5 @@
+import { ORPCError } from "@orpc/server";
+import { errors } from "@trellis/api";
 import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
@@ -42,7 +44,16 @@ export const interrupt = async (ctx: ServiceCtx, input: { id: string } & SendTar
 	assertSendTarget(run, input);
 	if ((await nativePreset(ctx.home, run.terminalId!)) === "custom")
 		throw invalidInput("id", "Use the custom terminal controls to interrupt its process.");
-	await client.interrupt(run.terminalId!);
+	try {
+		await client.interrupt(run.terminalId!);
+	} catch (cause) {
+		throw new ORPCError("RUNNER_UNAVAILABLE", {
+			defined: true,
+			status: errors.RUNNER_UNAVAILABLE.status,
+			message: cause instanceof Error ? cause.message : String(cause),
+			data: { reason: "error" },
+		});
+	}
 	return {};
 };
 
