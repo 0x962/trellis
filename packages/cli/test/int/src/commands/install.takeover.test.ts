@@ -197,7 +197,7 @@ describe("install waits for its own server", () => {
 		const result = await runCli(["install", "--prefix", prefix], {}, { env, fetch: answersFrom(null) });
 
 		expect(result.code).toBe(5);
-		expect(result.stderr).toContain("a checkout that it does not name");
+		expect(result.stderr).toContain("a server answers with HTTP 200 and names no checkout");
 	});
 
 	// The new server can be in the middle of its migrations when the wait
@@ -222,6 +222,33 @@ describe("install waits for its own server", () => {
 			["launchctl", "bootstrap", "gui/test", plist],
 		]);
 		expect(slept(result.sleeps)).toBe(60_000);
+	});
+});
+
+// The desktop release on port 4521 answers health with HTTP 401 when a
+// request carries no host token.
+describe("install names the status of a server that refuses health", () => {
+	const unauthorized = async () => new Response("The Trellis host token is missing or incorrect", { status: 401 });
+
+	test("the refusal names a server that answers with HTTP 401", async () => {
+		const { prefix, env, plist } = setup();
+		writeFile(plist, plistOf(otherCheckout));
+
+		const result = await runCli(["install", "--prefix", prefix, "--no-launchd"], {}, { env, fetch: unauthorized });
+
+		expect(result.code).toBe(1);
+		expect(result.stderr).toContain("http://127.0.0.1:4521: a server answers with HTTP 401 and names no checkout");
+		expect(result.stderr).not.toContain("no server answers");
+	});
+
+	test("a 401 answer is not a success, and the timeout names its status", async () => {
+		const { prefix, env } = setup();
+
+		const result = await runCli(["install", "--prefix", prefix], {}, { env, fetch: unauthorized });
+
+		expect(result.code).toBe(5);
+		expect(result.stderr).toContain("in 60 s: a server answers with HTTP 401 and names no checkout");
+		expect(result.stdout).not.toContain("trellis: http");
 	});
 });
 

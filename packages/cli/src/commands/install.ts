@@ -38,23 +38,31 @@ const gatewayServes = async (ctx: CliContext) => {
 	}
 };
 
-// The checkout that the server at ctx.url names in its health answer.
-// undefined means that no server gave a 2xx answer. null means an answer with
-// no `source`, which a server of an earlier release sends.
-const answeringCheckout = async (ctx: CliContext): Promise<string | null | undefined> => {
+// The health answer of the server at ctx.url. `status` is null when no
+// server answers. `checkout` is the checkout that a 2xx answer names. It is
+// null for an answer that is not 2xx, and for an answer with no `source`,
+// which a server of an earlier release sends.
+type HealthAnswer = { status: number | null; ok: boolean; checkout: string | null };
+
+const readHealth = async (ctx: CliContext): Promise<HealthAnswer> => {
+	let response: Response;
 	try {
-		const response = await ctx.deps.fetch(new Request(`${ctx.url}/api/health`), {});
-		if (!response.ok) return undefined;
-		return ((await response.json()) as Partial<Health>).source?.checkout ?? null;
+		response = await ctx.deps.fetch(new Request(`${ctx.url}/api/health`), {});
 	} catch {
-		return undefined;
+		return { status: null, ok: false, checkout: null };
 	}
+	if (!response.ok) return { status: response.status, ok: false, checkout: null };
+	const health = (await response.json().catch(() => ({}))) as Partial<Health>;
+	return { status: response.status, ok: true, checkout: health.source?.checkout ?? null };
 };
 
-const describeAnswer = (checkout: string | null | undefined) =>
-	checkout === undefined
-		? "no server answers"
-		: `the server that answers runs ${checkout ?? "a checkout that it does not name"}`;
+// A desktop release on the port answers health with HTTP 401, so the text
+// keeps the status of an answer that names no checkout.
+const describeAnswer = ({ status, checkout }: HealthAnswer) => {
+	if (status === null) return "no server answers";
+	if (checkout !== null) return `the server that answers runs ${checkout}`;
+	return `a server answers with HTTP ${status} and names no checkout`;
+};
 
 // A boot of the launchd server on a data home in daily use takes about 30 s,
 // and the migrations run inside that time. The wait is twice as long.
@@ -65,16 +73,16 @@ const HEALTH_WAIT_MS = 60_000;
 // prove that the server install started runs. `accept` decides whether the
 // checkout in an answer belongs to that server.
 const waitForHealth = async (ctx: CliContext, accept: (checkout: string | null) => boolean, advice = "") => {
-	let checkout: string | null | undefined;
+	let answer: HealthAnswer = { status: null, ok: false, checkout: null };
 	for (let waited = 0; waited < HEALTH_WAIT_MS; waited += HEALTH_POLL_MS) {
-		checkout = await answeringCheckout(ctx);
-		if (checkout !== undefined && accept(checkout)) return;
+		answer = await readHealth(ctx);
+		if (answer.ok && accept(answer.checkout)) return;
 		await ctx.deps.sleep(HEALTH_POLL_MS);
 	}
 	throw new CliFailure(
 		"UNREACHABLE",
 		5,
-		`the trellis server did not answer at ${ctx.url} in 60 s: ${describeAnswer(checkout)}${advice}`,
+		`the trellis server did not answer at ${ctx.url} in 60 s: ${describeAnswer(answer)}${advice}`,
 	);
 };
 
@@ -154,7 +162,7 @@ const refuseTakeover = async (ctx: CliContext, paths: Paths, plist: string, rawA
 	if (found.checkout === paths.repoRoot) return;
 	const printed = await ctx.deps.run(["launchctl", "print", `${ctx.deps.launchdDomain}/${LABEL}`]);
 	const pid = printed.code === 0 ? PID.exec(printed.stdout)?.[1] : undefined;
-	const answer = await answeringCheckout(ctx);
+	const answer = await readHealth(ctx);
 	ctx.err.write(
 		[
 			`${LABEL} runs the server of another checkout`,
