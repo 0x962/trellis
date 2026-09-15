@@ -79,7 +79,7 @@ test("the manager terminal fills the page and resizes its native PTY", async ({ 
 		await expect(page.getByRole("region", { name: "Manager terminal", exact: true })).toBeVisible();
 		await terminal.locator(".xterm-screen").click();
 		await page.keyboard.press("Control+]");
-		await expect(page.getByRole("link", { name: "Manager settings", exact: true })).toBeFocused();
+		await expect(page.getByRole("button", { name: "Stop manager", exact: true })).toBeFocused();
 		await page.screenshot({ path: testInfo.outputPath("manager-terminal.png") });
 	} finally {
 		await fixture.close();
@@ -115,8 +115,11 @@ test("manager settings leave the terminal page and preserve its process and outp
 		const before = await get<{ id: string; pid: number }>(`/agent-runs/${fixture.run.id}/session`);
 		expect(before).toMatchObject({ id: fixture.run.terminalId, status: "running", pid: expect.any(Number) });
 		expect(before.pid).toBeGreaterThan(0);
-		await page.getByRole("link", { name: "Manager settings", exact: true }).click();
-		await expect(page).toHaveURL(/\/p\/MTP\/settings#manager$/);
+		await page
+			.getByRole("navigation", { name: "MTP manager terminal pages", exact: true })
+			.getByRole("link", { name: "Settings", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/p\/MTP\/settings$/);
 		await expect(page.getByRole("navigation", { name: "Project settings", exact: true })).toBeVisible();
 		await expect(terminal).toHaveCount(0);
 		await post(`/agent-runs/${fixture.run.id}/terminal/input`, {
@@ -147,7 +150,7 @@ test("a stopped manager offers a start control without another process", async (
 		await signIn(page, "/p/MTS/settings/manager");
 		await expect(page.getByRole("button", { name: /^(Start|Resume) manager$/ })).toBeEnabled();
 		await expect(page.getByRole("button", { name: "Stop manager", exact: true })).toHaveCount(0);
-		await expect(page.getByRole("link", { name: "Manager settings", exact: true })).toBeVisible();
+		await expect(page.getByRole("link", { name: "Manager settings", exact: true })).toHaveCount(0);
 		expect((await get<AgentRun[]>("/agent-runs?project=MTS"))[0]).toMatchObject({
 			id: fixture.run.id,
 			terminalId: fixture.run.terminalId,
@@ -163,10 +166,12 @@ test("an unconfigured manager directs the user to project settings", async ({ pa
 	await signIn(page, "/p/MTU/settings/manager");
 	await expect(page.getByText("Choose a manager persona in project settings.", { exact: true })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Start manager", exact: true })).toBeDisabled();
-	await expect(page.getByRole("link", { name: "Manager settings", exact: true })).toHaveAttribute(
-		"href",
-		"/p/MTU/settings#manager",
-	);
+	await expect(page.getByRole("link", { name: "Manager settings", exact: true })).toHaveCount(0);
+	await expect(
+		page
+			.getByRole("navigation", { name: "Unconfigured manager pages", exact: true })
+			.getByRole("link", { name: "Settings", exact: true }),
+	).toHaveAttribute("href", "/p/MTU/settings");
 	await expect(page.getByRole("navigation", { name: "Manager navigation", exact: true })).toHaveCount(0);
 });
 

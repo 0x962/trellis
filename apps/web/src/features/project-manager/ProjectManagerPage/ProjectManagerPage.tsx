@@ -1,4 +1,4 @@
-import { ArrowClockwise, Gear, Play, Stop } from "@phosphor-icons/react";
+import { ArrowClockwise, Play, Stop } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { DEFAULT_PROJECT_MANAGER_CONFIG, type Project } from "@trellis/api";
@@ -14,8 +14,8 @@ import { managerResumes } from "./managerResumes";
 
 export function ProjectManagerPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
-	const settingsLink = useRef<HTMLAnchorElement>(null);
-	const leaveTerminal = useCallback(() => settingsLink.current?.focus(), []);
+	const processControl = useRef<HTMLButtonElement>(null);
+	const leaveTerminal = useCallback(() => processControl.current?.focus(), []);
 	const [confirmNewSession, setConfirmNewSession] = useState(false);
 	const saved = project.managerConfig ?? DEFAULT_PROJECT_MANAGER_CONFIG;
 	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: { project: project.path } }));
@@ -48,44 +48,26 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 		<>
 			<Topbar
 				actions={
-					<>
-						<Tooltip content={active ? "Stop the manager process" : startLabel}>
-							<IconButton
-								label={active ? "Stop manager" : startLabel}
-								icon={active ? <Stop weight="fill" /> : <Play weight="fill" />}
-								disabled={
-									readOnly ||
-									runs.isPending ||
-									runs.isError ||
-									start.isPending ||
-									stop.isPending ||
-									(active ? manager.state === "starting" : !saved.personaId)
-								}
-								onClick={() => {
-									if (active) stop.mutate();
-									else if (manager?.sessionLost) setConfirmNewSession(true);
-									else start.mutate(false);
-								}}
-							/>
-						</Tooltip>
-						<Tooltip content="Manager settings">
-							<IconButton
-								label="Manager settings"
-								role="link"
-								icon={<Gear />}
-								nativeButton={false}
-								render={
-									<Link
-										ref={settingsLink}
-										to="/p/$"
-										params={{ _splat: `${projectSlashPath(project.path)}/settings` }}
-										search={{}}
-										hash="manager"
-									/>
-								}
-							/>
-						</Tooltip>
-					</>
+					<Tooltip content={active ? "Stop the manager process" : startLabel}>
+						<IconButton
+							ref={processControl}
+							label={active ? "Stop manager" : startLabel}
+							icon={active ? <Stop weight="fill" /> : <Play weight="fill" />}
+							disabled={
+								readOnly ||
+								runs.isPending ||
+								runs.isError ||
+								start.isPending ||
+								stop.isPending ||
+								(active ? manager.state === "starting" : !saved.personaId)
+							}
+							onClick={() => {
+								if (active) stop.mutate();
+								else if (manager?.sessionLost) setConfirmNewSession(true);
+								else start.mutate(false);
+							}}
+						/>
+					</Tooltip>
 				}
 			>
 				<PageTitle
