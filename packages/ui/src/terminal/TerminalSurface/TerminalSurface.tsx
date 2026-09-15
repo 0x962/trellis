@@ -5,12 +5,13 @@ import { Tooltip } from "../../primitives/Tooltip";
 import "@xterm/xterm/css/xterm.css";
 import "../terminal.css";
 import { type TerminalFrame, terminalChunk } from "./terminalChunk.ts";
+import { terminalInputSource } from "./terminalInputSource.ts";
 
 export type TerminalSurfaceProps = {
 	label: string;
 	connected: boolean;
 	follow: (offset: number, onOutput: (frame: TerminalFrame) => Promise<void>, signal: AbortSignal) => Promise<void>;
-	send: (text: string) => Promise<unknown>;
+	send: (text: string, userInput: boolean) => Promise<unknown>;
 	resize: (cols: number, rows: number) => Promise<unknown>;
 	onLeave: () => void;
 };
@@ -62,9 +63,13 @@ export function TerminalSurface({ label, connected, follow, send, resize, onLeav
 				setError((failure as Error).message);
 			};
 			let input = Promise.resolve<unknown>(undefined);
+			const source = terminalInputSource(container.current!);
 			const data = terminal.onData((text) => {
+				const userInput = source.isUserInput(text);
 				if (enabled.current && !failed.current)
-					input = input.then(() => (enabled.current && !failed.current ? send(text) : undefined)).catch(fail);
+					input = input
+						.then(() => (enabled.current && !failed.current ? send(text, userInput) : undefined))
+						.catch(fail);
 			});
 			const fitTerminal = () => {
 				if (!container.current?.clientWidth || !container.current.clientHeight) return;
@@ -110,6 +115,7 @@ export function TerminalSurface({ label, connected, follow, send, resize, onLeav
 				connection?.abort();
 				observer.disconnect();
 				data.dispose();
+				source.dispose();
 				for (const resolve of pendingWrites) resolve();
 				pendingWrites.clear();
 				terminal.dispose();

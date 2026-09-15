@@ -95,16 +95,6 @@ export function GeneralSettings({
 					)}
 				</div>
 				<div className="manager-settings-field">
-					<Checkbox
-						label="Allow all permissions"
-						checked={draft.allowAllPermissions}
-						onCheckedChange={(allowAllPermissions) => commit({ ...draft, allowAllPermissions })}
-					/>
-					<p className="manager-settings-hint">
-						Automatically approve tools for the Claude harness. Turn this off to approve each request.
-					</p>
-				</div>
-				<div className="manager-settings-field">
 					<Input
 						label="Concurrency"
 						type="number"

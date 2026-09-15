@@ -33,7 +33,8 @@ export function NativeTerminal({ run }: { run: AgentRun }) {
 		[run.id, run.terminalId, run.sessionId],
 	);
 	const send = useCallback(
-		(text: string) => client.agentRuns.terminalInput({ id: run.id, text, expectedTerminalId: run.terminalId! }),
+		(text: string, userInput: boolean) =>
+			client.agentRuns.terminalInput({ id: run.id, text, userInput, expectedTerminalId: run.terminalId! }),
 		[client, run.id, run.terminalId],
 	);
 	const resize = useCallback(

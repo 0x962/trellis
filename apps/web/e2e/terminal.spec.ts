@@ -26,7 +26,11 @@ test("the assigned agent opens an interactive terminal and receives live output"
 				directory: repo,
 				ade: "native",
 				dispatchPaused: true,
-				harness: { preset: "custom", startCommand: "/bin/cat", resumeCommand: "/bin/cat" },
+				harness: {
+					preset: "custom",
+					startCommand: "/bin/sh -c 'stty -echoctl; exec /bin/cat'",
+					resumeCommand: "/bin/sh -c 'stty -echoctl; exec /bin/cat'",
+				},
 			},
 		});
 		const ticket = await post<Ticket>("/tickets", { project: "PTY", title: "Use the agent CLI" });
@@ -38,8 +42,10 @@ test("the assigned agent opens an interactive terminal and receives live output"
 		run = await post<AgentRun>("/agent-runs", { ticket: ticket.identifier, personaId: persona.id });
 		expect(run.state).toBe("running");
 		const sizes: { cols: number; rows: number }[] = [];
+		const inputs: { text: string; userInput?: boolean }[] = [];
 		page.on("request", (request) => {
 			if (new URL(request.url()).pathname === "/rpc/agentRuns/resize") sizes.push(request.postDataJSON().json);
+			if (new URL(request.url()).pathname === "/rpc/agentRuns/terminalInput") inputs.push(request.postDataJSON().json);
 		});
 		await post(`/agent-runs/${run.id}/terminal/input`, {
 			text: "Earlier retained output\n",
@@ -73,6 +79,11 @@ test("the assigned agent opens an interactive terminal and receives live output"
 		await page.keyboard.type("First interactive message");
 		await page.keyboard.press("Enter");
 		await expect(terminal.locator(".xterm-accessibility-tree")).toContainText("First interactive message");
+		const typed = inputs.filter((input) => "First interactive message".includes(input.text));
+		expect(typed.length).toBeGreaterThan(0);
+		expect(typed.every((input) => input.userInput === true)).toBe(true);
+		await post(`/agent-runs/${run.id}/terminal/input`, { text: "\x1b[6n", expectedTerminalId: run.terminalId });
+		await expect.poll(() => inputs.some((input) => input.text.endsWith("R") && input.userInput === false)).toBe(true);
 		await post(`/agent-runs/${run.id}/terminal/input`, {
 			text: "Second pushed message\n",
 			expectedTerminalId: run.terminalId,
