@@ -45,7 +45,7 @@ export function CommentCard({ comment }: CommentCardProps) {
 			]}
 		>
 			<View style={styles.head}>
-				<ActorChip name={actor.name} kind={actor.kind} />
+				<ActorChip name={actor.displayName ?? actor.name} kind={actor.kind} />
 				<Text style={[styles.when, { color: palette.fgFaint }]}>{compactRelativeTime(comment.createdAt)}</Text>
 			</View>
 			<Markdown source={comment.body} />

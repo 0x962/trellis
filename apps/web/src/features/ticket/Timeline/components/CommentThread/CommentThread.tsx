@@ -110,7 +110,7 @@ export function CommentThread({ id, identifier, comments, onEdited, onDeleted, o
 				</Button>
 			)}
 			{(!resolved || expandedResolved) && (
-				<fieldset aria-label={`Thread started by ${root.actor.name}`} className="contents">
+				<fieldset aria-label={`Thread started by ${root.actor.displayName ?? root.actor.name}`} className="contents">
 					<ul aria-label="Thread comment">
 						<CommentCard
 							comment={root}

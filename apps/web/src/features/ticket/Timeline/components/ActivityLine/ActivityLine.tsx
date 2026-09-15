@@ -1,6 +1,5 @@
 import type { Activity } from "@trellis/api";
 import { ActorChip, type StatusCategory, StatusIcon } from "@trellis/ui";
-import { isLiveActor } from "../../../../../lib/actorLive";
 import { compactRelativeTime } from "../../../../../lib/format";
 import { absoluteTime } from "../../utils/absoluteTime";
 import { describeActivity } from "../../utils/describeActivity";
@@ -60,13 +59,7 @@ export function ActivityLine({ item, reviewer = humanReviewer }: ActivityLinePro
 			className="relative flex h-8 items-center gap-2 text-sm text-fg-muted"
 		>
 			{actor.kind !== "system" && (
-				<ActorChip
-					compact
-					className="gap-2.5"
-					name={actor.name}
-					kind={actor.kind}
-					live={isLiveActor({ kind: actor.kind, at: item.createdAt })}
-				/>
+				<ActorChip compact className="gap-2.5" name={actor.displayName ?? actor.name} kind={actor.kind} />
 			)}
 			{statusMove ? (
 				<StatusMove item={item} reviewer={reviewer} />

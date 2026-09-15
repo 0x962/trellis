@@ -1,7 +1,6 @@
 import type { Comment } from "@trellis/api";
 import { ActorChip, Button, cx, Menu, type MenuItem, Textarea } from "@trellis/ui";
 import { type ReactNode, useState } from "react";
-import { isLiveActor } from "../../../../../lib/actorLive";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
 import { compactRelativeTime } from "../../../../../lib/format";
@@ -85,7 +84,7 @@ export function CommentCard({
 	return (
 		<li>
 			<article
-				aria-label={`Comment by ${comment.actor.name}`}
+				aria-label={`Comment by ${comment.actor.displayName ?? comment.actor.name}`}
 				data-kind="comment"
 				className={cx("relative", !threadSurface && "py-3", className)}
 			>
@@ -94,9 +93,8 @@ export function CommentCard({
 						<ActorChip
 							compact
 							className="gap-2.5"
-							name={comment.actor.name}
+							name={comment.actor.displayName ?? comment.actor.name}
 							kind={comment.actor.kind}
-							live={isLiveActor({ kind: comment.actor.kind, at: comment.createdAt })}
 						/>
 					)}
 					<time dateTime={comment.createdAt} title={absoluteTime(comment.createdAt)} className="text-fg-muted tabular">
