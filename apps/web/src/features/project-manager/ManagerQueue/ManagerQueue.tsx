@@ -68,8 +68,10 @@ export function ManagerQueue({ projectId, attentionOnly = false }: { projectId?:
 								<Badge tone={row.state === "unknown" ? "bad" : "neutral"}>{labels[row.state]}</Badge>
 							</div>
 							<p className="text-sm text-fg-muted">
-								{row.events.length} ticket {row.events.length === 1 ? "event" : "events"} · Due{" "}
-								{new Date(row.dueAt).toLocaleString()}
+								{row.events.length === 0
+									? "Heartbeat"
+									: `${row.events.length} ticket ${row.events.length === 1 ? "event" : "events"}`}{" "}
+								· Due {new Date(row.dueAt).toLocaleString()}
 							</p>
 							{row.error && <p className="break-words text-sm text-danger">{row.error}</p>}
 							{row.state === "unknown" && (
