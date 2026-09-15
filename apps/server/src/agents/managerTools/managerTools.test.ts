@@ -1,6 +1,38 @@
 import { expect, test } from "bun:test";
 import { managerTools } from "./managerTools";
 
+test.each([
+	["list", { project: "TRL" }],
+	["start", { personaId: "01M277VFQA2HAWB58T9NTW4MX5", ticket: "TRL-42" }],
+	["send", { id: "01M277VFQA2HAWB58T9NTW4MX5", text: "Continue the assignment." }],
+	["stop", { id: "01M277VFQA2HAWB58T9NTW4MX5" }],
+	["refresh", { id: "01M277VFQA2HAWB58T9NTW4MX5" }],
+] as const)("manager agentRuns.%s omits stored instructions and retains assignment records", async (action, input) => {
+	const record = {
+		id: "01M277VFQA2HAWB58T9NTW4MX5",
+		name: "Builder",
+		personaId: "persona",
+		personaName: "Builder",
+		kind: "builder",
+		state: "exited",
+		processStatus: "exited",
+		projectId: "project",
+		projectPath: "/project",
+		ticketId: "ticket",
+		ticketIdentifier: "TRL-42",
+		workspaceId: "workspace",
+		terminalId: "attempt",
+		sessionId: "session",
+		error: "Worker exit status 1",
+	};
+	const original = { ...record, instruction: "Historical manager persona and personal UI policy" };
+	const tools = managerTools(async () => (action === "list" ? [original] : original));
+	const result = await tools.call(`trellis_agentRuns_${action}`, input);
+	expect(result).toEqual(action === "list" ? [record] : record);
+	expect(JSON.stringify(result)).not.toContain("Historical manager persona");
+	expect(original.instruction).toBe("Historical manager persona and personal UI policy");
+});
+
 test("manager tools expose record and assignment operations without terminal or repository operations", () => {
 	const tools = managerTools(async () => ({}));
 	const names = tools.list().map((tool) => tool.name);

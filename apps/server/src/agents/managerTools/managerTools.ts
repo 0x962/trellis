@@ -19,6 +19,8 @@ const operations = {
 
 type Invoke = (operation: string, input: unknown) => Promise<unknown>;
 type Procedure = { "~orpc": { inputSchema: z.ZodType; route: { summary?: string } } };
+type AgentRun = Awaited<ReturnType<TrellisClient["agentRuns"]["start"]>>;
+const assignmentRecord = ({ instruction: _instruction, ...record }: AgentRun) => record;
 
 export const managerTools = (invoke: Invoke) => {
 	const tools = new Map(
@@ -46,6 +48,9 @@ export const managerTools = (invoke: Invoke) => {
 			const tool = tools.get(name);
 			if (!tool) throw new Error(`Unknown manager tool: ${name}`);
 			const result = await invoke(tool.operation, tool.schema.parse(input));
+			if (tool.operation === "agentRuns.list") return (result as AgentRun[]).map(assignmentRecord);
+			if (["agentRuns.start", "agentRuns.send", "agentRuns.stop", "agentRuns.refresh"].includes(tool.operation))
+				return assignmentRecord(result as AgentRun);
 			if (tool.operation !== "agentRuns.session") return result;
 			const session = result as Awaited<ReturnType<TrellisClient["agentRuns"]["session"]>>;
 			return session === null
