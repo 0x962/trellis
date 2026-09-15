@@ -16,16 +16,18 @@ export const resumeText =
 // that ran before: the template is then the resume command of the
 // project, and `resumeText` is what the agent reads first.
 export const launchCommand = (input: {
-	run: AgentRun;
+	run: Omit<AgentRun, "state">;
 	url: string;
 	context: string;
 	directory?: string;
 	resume?: boolean;
 	template: string;
+	messageId?: string;
 }) => {
 	const { run, url, context } = input;
 	const actor = `agent:${run.id}`;
-	const prompt = `${run.instruction}\n\n# Assignment\n\nYour name is ${run.name}. Your Trellis actor is ${actor}.\nTrellis URL: ${url}\nPersona: ${run.personaName} (${run.kind})\n\n${context}\n\nUse TRELLIS_URL and TRELLIS_ACTOR for every Trellis command. Read the repository's AGENTS.md before work.\n${nativeInstructions}`;
+	const prefix = input.messageId ? `trellis-message:${input.messageId}\n` : "";
+	const prompt = `${prefix}${run.instruction}\n\n# Assignment\n\nYour name is ${run.name}. Your Trellis actor is ${actor}.\nTrellis URL: ${url}\nPersona: ${run.personaName} (${run.kind})\n\n${context}\n\nUse TRELLIS_URL and TRELLIS_ACTOR for every Trellis command. Read the repository's AGENTS.md before work.\n${nativeInstructions}`;
 	const agent = expandLaunchTemplate(input.template, {
 		name: run.name,
 		id: run.id,
@@ -33,7 +35,7 @@ export const launchCommand = (input: {
 		terminalId: run.terminalId ?? "",
 		prompt,
 		sessionId: run.sessionId!,
-		resumeText,
+		resumeText: `${prefix}${run.instruction}\n\n${resumeText}`,
 		actor,
 		trellisUrl: url,
 		directory: input.directory ?? "",

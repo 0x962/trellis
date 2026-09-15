@@ -42,7 +42,9 @@ test("native assignments explain CLI discovery and current workspace evidence", 
 
 test("the default start command hands Claude the session id of the run and the whole prompt", () => {
 	const launch = launchCommand({ run, url, context: "Project: TRL", template: DEFAULT_AGENT_START_COMMAND });
-	expect(launch.command).toContain("claude -n 'Wren' --session-id '3f1c9a7e-8b2d-4c6e-9f0a-1b2c3d4e5f60' '");
+	expect(launch.command).toContain(
+		"claude --dangerously-skip-permissions -n 'Wren' --session-id '3f1c9a7e-8b2d-4c6e-9f0a-1b2c3d4e5f60' '",
+	);
 	expect(launch.command).not.toContain("--resume");
 	expect(launch.command).toContain("Manage the project.");
 	expect(launch.prompt).toContain("Project: TRL");
@@ -58,10 +60,12 @@ test("the default resume command continues the session with the resume text as i
 		template: DEFAULT_AGENT_RESUME_COMMAND,
 	});
 	expect(launch.command).toStartWith("cd '/Users/me/it'\\''s here' && exec env ");
-	expect(launch.command).toContain("claude -n 'Wren' --resume '3f1c9a7e-8b2d-4c6e-9f0a-1b2c3d4e5f60' '");
-	expect(launch.command).toEndWith(`'${resumeText}'`);
+	expect(launch.command).toContain(
+		"claude --dangerously-skip-permissions -n 'Wren' --resume '3f1c9a7e-8b2d-4c6e-9f0a-1b2c3d4e5f60' '",
+	);
+	expect(launch.command).toEndWith(`'${run.instruction}\n\n${resumeText}'`);
 	expect(launch.command).not.toContain("--session-id");
-	expect(launch.command).not.toContain("Manage the project.");
+	expect(launch.command).toContain("Manage the project.");
 });
 
 test("a project's own agent command runs in place of Claude, with each value as one argument", () => {
@@ -75,4 +79,11 @@ test("a project's own agent command runs in place of Claude, with each value as 
 	expect(launch.command).toStartWith("cd '/srv/trl' && exec env TRELLIS_URL='http://127.0.0.1:4521' TRELLIS_ACTOR=");
 	expect(launch.command).toContain("codex --session '3f1c9a7e-8b2d-4c6e-9f0a-1b2c3d4e5f60' --cd '/srv/trl' '");
 	expect(launch.command).not.toContain("claude");
+});
+
+test("initial and resumed prompts identify the runtime message", () => {
+	for (const template of [DEFAULT_AGENT_START_COMMAND, DEFAULT_AGENT_RESUME_COMMAND]) {
+		const launch = launchCommand({ run, url, context: "Project: TRL", template, messageId: "attempt-123" });
+		expect(launch.command).toContain("trellis-message:attempt-123\nManage the project.");
+	}
 });

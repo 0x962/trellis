@@ -13,8 +13,8 @@ test("each harness preset keeps its commands within the local runtime", () => {
 	for (const preset of ["claude", "codex", "agy", "opencode", "pi"] as const) {
 		const config = ProjectManagerConfigSchema.parse({ ...base, harness: { preset } });
 		expect(config.ade).toBe("native");
-		expect(config.harness.startCommand).toStartWith(`${preset} `);
-		expect(config.harness.resumeCommand).toStartWith(`${preset} `);
+		expect(config.harness.startCommand).toMatch(new RegExp(`(^| )${preset} `));
+		expect(config.harness.resumeCommand).toMatch(new RegExp(`(^| )${preset} `));
 	}
 });
 
