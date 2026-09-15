@@ -113,6 +113,22 @@ describe("NeedsYou swipes", () => {
 		expect((await human.tickets.get({ ticket: first() })).status.category).toBe("done");
 	});
 
+	// Another person moves the ticket out of Human Review while the approve is
+	// in flight. A Retry would approve from the new status and skip a column,
+	// so the toast offers none.
+	test("a 412 from a ticket that left Human Review shows the toast with no Retry", async () => {
+		await renderSeeded();
+		const hold = net!.hold("tickets.move");
+		await act(() => swipeRight(first()));
+		await waitFor(() => expect(hold.state.held).toBe(1));
+		await human.tickets.move({ ticket: first(), status: "category:started" });
+		hold.release();
+		const toast = await screen.findByTestId("toast");
+		expect(within(toast).getByText(`Cannot approve ${first()}`)).toBeOnTheScreen();
+		expect(within(toast).queryByRole("button", { name: "Retry" })).toBeNull();
+		expect((await human.tickets.get({ ticket: first() })).status.slug).toBe("in-progress");
+	});
+
 	// MI-35
 	test("a left swipe opens the send-back sheet and sends nothing", async () => {
 		await renderSeeded();
