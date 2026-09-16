@@ -5,17 +5,10 @@ import { pinResources } from "../pinnedResources/pinnedResources.ts";
 type RestartOptions =
 	| { mode: "development"; options: HostOptions }
 	| { mode: "packaged"; home: string; helper: string; resources: string; userData: string };
-type Dependencies = {
-	pinResources: typeof pinResources;
-	activateHostRelease: typeof activateHostRelease;
-};
-const defaults: Dependencies = { pinResources, activateHostRelease };
 
-export const restartHost = async (
-	input: RestartOptions,
-	report: (stage: string) => Promise<void> = async () => {},
-	deps: Dependencies = defaults,
-) => {
+// A packaged Restart runs the same save-and-restore release path as an
+// update, in restart mode, so every running manager resumes before it returns.
+export const restartHost = async (input: RestartOptions, report: (stage: string) => Promise<void> = async () => {}) => {
 	if (input.mode === "development") {
 		await report("Connect to background host");
 		const host = await connectHost(input.options);
@@ -27,6 +20,6 @@ export const restartHost = async (
 	}
 	const { home, helper, resources, userData } = input;
 	await report("Check installed app");
-	const available = await deps.pinResources(resources, userData);
-	return deps.activateHostRelease(home, helper, available, {}, report, "restart");
+	const available = await pinResources(resources, userData);
+	return activateHostRelease(home, helper, available, {}, report, "restart");
 };

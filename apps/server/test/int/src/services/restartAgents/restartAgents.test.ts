@@ -9,6 +9,12 @@ import { startNative } from "../../../../../src/services/agentRuns/nativeStart.t
 import { prepareResumeRestart, restartStatus } from "../../../../../src/services/restartAgents/restartAgents.ts";
 import { seedActors, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
+import {
+	type RestartLaunch,
+	recordRestartLaunch,
+	restartResumeContext,
+	stubRestartHost,
+} from "../../../../helpers/restartResume.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
@@ -16,7 +22,7 @@ let h: Harness;
 let home: string;
 let plan: RestartPlan;
 let processes: RuntimeProcessStatus[];
-let launches: Parameters<NonNullable<Parameters<typeof prepareResumeRestart>[2]>["start"]>[1][];
+let launches: RestartLaunch[];
 let loseReply: boolean;
 beforeAll(async () => {
 	h = await serviceHarness();
@@ -74,35 +80,13 @@ beforeEach(async () => {
 	launches = [];
 	loseReply = false;
 });
-const ctx = () =>
-	({
-		...h.ctx(() => {}),
-		core: h.ctx(() => {}),
-		newTx: h.read,
-		home,
-		now: () => new Date(),
-		localUrl: "http://127.0.0.1:4521",
-	}) as unknown as Parameters<typeof prepareResumeRestart>[0];
+const ctx = () => restartResumeContext(h, home);
 const deps = () => ({
-	host: () => ({
-		list: async () => processes,
-		status: async (id: string) => processes.find((p) => p.id === id)!,
-		waitFor: async (id: string) => processes.find((p) => p.id === id)!,
-		startPrepared: async () => {
-			throw new Error("unexpected prepared launch");
-		},
-	}),
+	host: stubRestartHost(processes),
 	start: async (_ctx: unknown, input: (typeof launches)[number]) => {
-		launches.push(input);
-		processes.push({
-			id: input.attempt.id,
-			status: "running",
-			controllable: true,
-			agent: { sessionId: "provider-session" },
-			acknowledgedMessageIds: [input.attempt.id],
-		} as RuntimeProcessStatus);
+		const launched = recordRestartLaunch(processes, launches, input);
 		if (loseReply) throw new Error("response lost");
-		return { id: input.run.id };
+		return launched;
 	},
 });
 test("restart retains the assignment, workspace, provider, model, and frozen instruction", async () => {

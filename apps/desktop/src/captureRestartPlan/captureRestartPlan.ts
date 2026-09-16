@@ -125,16 +125,13 @@ console.log(JSON.stringify(sessions.filter(({status}) => status !== "exited").ma
 			);
 			continue;
 		}
-		if (!observed.agent?.sessionId) {
-			sessions.push(
-				unsaved(
-					observed,
-					descriptor,
-					`Agent ${runId} has no confirmed provider session yet. It was not saved for resume.`,
-				),
+		// The agent runs now under a resumable harness, but its provider
+		// session is unconfirmed. Stopping its runtime loses it, so the
+		// capture aborts before the shutdown and the caller retries later.
+		if (!observed.agent?.sessionId)
+			throw new Error(
+				`Agent ${runId} has no confirmed provider session yet. Wait for its session, then restart again.`,
 			);
-			continue;
-		}
 		sessions.push({
 			runId,
 			previousAttemptId: observed.id,

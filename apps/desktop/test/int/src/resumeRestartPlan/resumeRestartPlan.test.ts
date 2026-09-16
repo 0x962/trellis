@@ -6,6 +6,7 @@ import { resumeRestartPlan } from "../../../../src/resumeRestartPlan/resumeResta
 let home: string;
 let requests: { body: unknown; authorization: string | null; path: string }[];
 let status: number;
+let outcome: { resumed: number; skipped: number; failed: number };
 let server: ReturnType<typeof Bun.serve>;
 const plan = {
 	version: 1,
@@ -19,6 +20,7 @@ beforeEach(async () => {
 	home = await mkdtemp("/tmp/trl-resume-");
 	requests = [];
 	status = 200;
+	outcome = { resumed: 1, skipped: 0, failed: 0 };
 	server = Bun.serve({
 		port: 0,
 		fetch: async (request) => {
@@ -29,7 +31,7 @@ beforeEach(async () => {
 			});
 			if (status !== 200) return new Response("Resume failed", { status });
 			await rm(join(home, "restart-plan.json"));
-			return Response.json({ resumed: 1, skipped: 0 });
+			return Response.json(outcome);
 		},
 	});
 });
@@ -59,5 +61,19 @@ test("a failed resume retains the plan for the next app launch", async () => {
 	status = 500;
 	await expect(resume()).rejects.toThrow("Resume failed");
 	expect(JSON.parse(await readFile(join(home, "restart-plan.json"), "utf8"))).toEqual(plan);
+	expect(requests).toHaveLength(1);
+});
+test("a waited restart fails when the host leaves an agent unrestored", async () => {
+	await writeFile(join(home, "restart-plan.json"), JSON.stringify(plan));
+	outcome = { resumed: 1, skipped: 0, failed: 1 };
+	const host = { origin: server.url.origin, token: "desktop-token", pid: process.pid };
+	await expect(resumeRestartPlan(home, host, true)).rejects.toThrow("1 agent");
+	expect(requests).toHaveLength(1);
+});
+test("a background resume without wait ignores a pending agent outcome", async () => {
+	await writeFile(join(home, "restart-plan.json"), JSON.stringify(plan));
+	outcome = { resumed: 0, skipped: 0, failed: 1 };
+	const host = { origin: server.url.origin, token: "desktop-token", pid: process.pid };
+	await resumeRestartPlan(home, host);
 	expect(requests).toHaveLength(1);
 });

@@ -8,16 +8,20 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { prepareResumeRestart } from "../../../../../src/services/restartAgents/restartAgents.ts";
 import { seedActors, seedChild, seedRoot } from "../../../../fixtures/projects.ts";
+import {
+	type RestartLaunch,
+	recordRestartLaunch,
+	restartResumeContext,
+	stubRestartHost,
+} from "../../../../helpers/restartResume.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
-type Launch = Parameters<NonNullable<Parameters<typeof prepareResumeRestart>[2]>["start"]>[1];
-
-let h: Harness;
+let harness: Harness;
 let home: string;
 let plan: RestartPlan;
 let processes: RuntimeProcessStatus[];
-let launches: Launch[];
+let launches: RestartLaunch[];
 let parentRunId: string;
 let childRunId: string;
 let parentProjectId: string;
@@ -25,20 +29,20 @@ let childProjectId: string;
 let failOnce: string | null;
 
 beforeAll(async () => {
-	h = await serviceHarness();
+	harness = await serviceHarness();
 });
 
-afterAll(() => h.close());
+afterAll(() => harness.close());
 
 beforeEach(async () => {
-	await h.reset();
+	await harness.reset();
 	home = await mkdtemp(join(process.env.TRELLIS_TEST_ROOT!, "manager-restart-"));
 	parentRunId = ulid();
 	childRunId = ulid();
 	const personaId = ulid();
 	const parentPrevious = randomUUID();
 	const childPrevious = randomUUID();
-	await h.read(async (tx) => {
+	await harness.read(async (tx) => {
 		await seedActors(tx);
 		parentProjectId = await seedRoot(tx, "MGR");
 		childProjectId = await seedChild(tx, parentProjectId, parentProjectId, "child");
@@ -106,43 +110,21 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-	await h.read(assertStatusInvariant);
+	await harness.read(assertStatusInvariant);
 	await rm(home, { recursive: true, force: true });
 });
 
-const context = () =>
-	({
-		...h.ctx(() => {}),
-		core: h.ctx(() => {}),
-		newTx: h.read,
-		home,
-		now: () => new Date(),
-		localUrl: "http://127.0.0.1:4521",
-	}) as unknown as Parameters<typeof prepareResumeRestart>[0];
+const context = () => restartResumeContext(harness, home);
 
 const dependencies = () => ({
-	host: () => ({
-		list: async () => processes,
-		status: async (id: string) => processes.find((process) => process.id === id)!,
-		waitFor: async (id: string) => processes.find((process) => process.id === id)!,
-		startPrepared: async () => {
-			throw new Error("Unexpected prepared launch.");
-		},
-	}),
-	start: async (_ctx: unknown, input: Launch) => {
-		launches.push(input);
+	host: stubRestartHost(processes),
+	start: async (_ctx: unknown, input: RestartLaunch) => {
 		if (failOnce === input.run.id) {
 			failOnce = null;
+			launches.push(input);
 			throw new Error("The restoration was interrupted.");
 		}
-		processes.push({
-			id: input.attempt.id,
-			status: "running",
-			controllable: true,
-			agent: { sessionId: input.run.sessionId },
-			acknowledgedMessageIds: [input.attempt.id],
-		} as RuntimeProcessStatus);
-		return { id: input.run.id };
+		return recordRestartLaunch(processes, launches, input);
 	},
 });
 
@@ -152,7 +134,7 @@ test("restart restores every manager and preserves the delegated project state",
 		skipped: 0,
 		failed: 0,
 	});
-	const runs = await h.rows(
+	const runs = await harness.rows(
 		sql`SELECT id,project_id,project_path,terminal_id,session_id,workspace_id,closed_at FROM agent_runs ORDER BY project_path`,
 	);
 	expect(runs).toEqual([
@@ -176,7 +158,7 @@ test("restart restores every manager and preserves the delegated project state",
 		},
 	]);
 	expect(
-		await h.rows(sql`SELECT run_id,parent_run_id,project_id,capacity,brief,retired_at FROM manager_delegations`),
+		await harness.rows(sql`SELECT run_id,parent_run_id,project_id,capacity,brief,retired_at FROM manager_delegations`),
 	).toEqual([
 		{
 			run_id: childRunId,
@@ -193,7 +175,7 @@ test("restart restores every manager and preserves the delegated project state",
 		failed: 0,
 	});
 	expect(launches).toHaveLength(2);
-	expect(await h.rows(sql`SELECT id FROM agent_runs WHERE kind='manager' AND closed_at IS NULL`)).toHaveLength(2);
+	expect(await harness.rows(sql`SELECT id FROM agent_runs WHERE kind='manager' AND closed_at IS NULL`)).toHaveLength(2);
 });
 
 test("an interrupted manager restore keeps partial progress and retries without duplicates", async () => {
@@ -217,6 +199,6 @@ test("an interrupted manager restore keeps partial progress and retries without 
 	expect(await readRestartPlan(home)).toBeNull();
 	expect(launches.filter((launch) => launch.run.id === parentRunId)).toHaveLength(1);
 	expect(launches.filter((launch) => launch.run.id === childRunId)).toHaveLength(2);
-	expect(await h.rows(sql`SELECT id FROM agent_execution_attempts`)).toHaveLength(2);
-	expect(await h.rows(sql`SELECT id FROM agent_runs WHERE kind='manager' AND closed_at IS NULL`)).toHaveLength(2);
+	expect(await harness.rows(sql`SELECT id FROM agent_execution_attempts`)).toHaveLength(2);
+	expect(await harness.rows(sql`SELECT id FROM agent_runs WHERE kind='manager' AND closed_at IS NULL`)).toHaveLength(2);
 });

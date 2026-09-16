@@ -190,13 +190,6 @@ for (const [name, change, error] of [
 		"Trellis cannot confirm which process owns terminal active (status running). It was not saved for resume.",
 	],
 	[
-		"missing provider session",
-		() => {
-			sessions[0]!.agent = null;
-		},
-		"Agent run-active has no confirmed provider session yet. It was not saved for resume.",
-	],
-	[
 		"custom harness",
 		() => descriptor("active", "custom"),
 		"Agent run-active runs a custom harness, which cannot resume a conversation. It was not saved for resume.",
@@ -214,3 +207,10 @@ for (const [name, change, error] of [
 		expect(plan.sessions).toHaveLength(1);
 		expect(plan.sessions[0]).toMatchObject({ previousAttemptId: "active", done: true, outcome: "failed", error });
 	});
+test("a running agent without a confirmed provider session aborts the capture", async () => {
+	sessions[0]!.agent = null;
+	await expect(captureRestartPlan(home, source, target)).rejects.toThrow(
+		"Agent run-active has no confirmed provider session yet",
+	);
+	await expect(readFile(join(home, "restart-plan.json"), "utf8")).rejects.toThrow();
+});
