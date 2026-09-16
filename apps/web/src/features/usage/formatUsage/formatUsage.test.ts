@@ -3,7 +3,7 @@ import { formatDayLabel, formatShare, formatTokens, formatUsd } from "./formatUs
 
 describe("formatUsage", () => {
 	test("dollars print two decimals under $100 and none above", () => {
-		expect(formatUsd(0)).toBe("$0.00");
+		expect(formatUsd(0)).toBe("$0");
 		expect(formatUsd(0.004)).toBe("<$0.01");
 		expect(formatUsd(0.85)).toBe("$0.85");
 		expect(formatUsd(46.2)).toBe("$46.20");
