@@ -25,6 +25,7 @@ export * from "./tables/flows.ts";
 export * from "./tables/personas.ts";
 export * from "./tables/projects.ts";
 export * from "./tables/reviews.ts";
+export * from "./tables/sessions.ts";
 
 // drizzle-kit reads this file and every table it exports. Each table is
 // text plus a named CHECK where the wire has a closed set. The migration

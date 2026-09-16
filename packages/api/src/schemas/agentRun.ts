@@ -3,6 +3,11 @@ import { ModelIdSchema } from "../models/models.ts";
 import { PersonaKindSchema } from "./persona.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
+// The kinds of an agent run: the three persona kinds, and `session` for the
+// agent of a scratch session, which has no persona, no project, and no
+// ticket.
+export const AgentRunKindSchema = z.enum([...PersonaKindSchema.options, "session"]);
+export type AgentRunKind = z.infer<typeof AgentRunKindSchema>;
 export const AgentRunSchema = z.object({
 	id: UlidSchema,
 	name: z.string(),
@@ -10,7 +15,7 @@ export const AgentRunSchema = z.object({
 	runtime: z.enum(["native", "superset", "tmux", "commands"]),
 	personaId: UlidSchema.nullable(),
 	personaName: z.string(),
-	kind: PersonaKindSchema,
+	kind: AgentRunKindSchema,
 	instruction: z.string(),
 	projectId: UlidSchema.nullable(),
 	projectPath: z.string(),

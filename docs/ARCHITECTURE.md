@@ -379,6 +379,21 @@ A new launch reserves a slot until its first prompt receipt. Missing, unknown, o
 A confirmed process exit closes its assignment before the next claim.
 The limit runs from 1 to 64 and defaults to 3. A partial unique index permits one active manager per project.
 
+### Sessions
+
+A session is a scratch git repository with one agent, outside every project and ticket.
+It answers the same need as a session in Superset: a place to try something with an agent and no ticket.
+The directory is `sessions/<name>` in the data home, a repository on `main` with one empty commit.
+The name is the directory name: lowercase letters, digits, and dashes, at most 40 characters.
+A typed name takes that form; an omitted name takes a generated `<adjective>-<noun>`. A taken name gets a numeric suffix.
+The `sessions` row keeps the name, the directory, the harness, and the run.
+The run has the kind `session`, no persona, no project, and no ticket. Its name is the session name and its instruction is the prompt.
+The agent receives the prompt as its first message and nothing else. It runs with the worker permission settings of its harness.
+A session takes no worker capacity and receives no comment or chat delivery.
+`sessions.start` resumes the saved conversation when the previous process confirmed one for the same harness, and otherwise starts the agent again from the prompt in the same directory.
+A desktop restart stops a session agent with the other native agents and does not resume it; Start on the session page resumes it.
+`sessions.delete` stops the agent, removes the directory, and deletes the row. The run stays as history with its retained output.
+
 ### Manager delegation
 
 A manager delegates a child project subtree through `submanagers.start` with a brief, worker capacity, and stable request identifier.
@@ -562,6 +577,7 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/all/table` | `all_.table.tsx` | every ticket as a table |
 | `/p/$` | `p/$/route.tsx` | a project as a board, a table, its settings, or its manager |
 | `/t/$identifier` | `t/$identifier/route.tsx` | one ticket |
+| `/sessions/$id` | `sessions.$id.tsx` | one session: the terminal of its agent and the process controls |
 | `/search` | `search.tsx` | search |
 | `/ai/personas` | `ai.personas.tsx` | the personas |
 | `/ai/flows` | `ai.flows.tsx` | the flows |
@@ -606,9 +622,13 @@ The Manager page holds the manager persona, repository directory, dispatch state
 It writes `projects.managerConfig` through `projects.update`.
 
 The sidebar holds the workspace row, Needs you, Search, All tickets, Pull
-requests, Personas, Flows, Usage, the project tree, and the actor footer. The project
-tree is the one region that scrolls, so the fixed links keep their place at any
-tree height.
+requests, Personas, Flows, Usage, the sessions, the project tree, and the actor footer.
+The sessions and the project tree share the one region that scrolls, so the fixed
+links keep their place at any height.
+The Sessions section sits above the Projects section. Its New session button opens
+a sheet with the prompt, an optional name, and the harness. Each session row shows
+the avatar of its agent with the work state and opens `/sessions/<id>`. Its row
+menu deletes the session.
 Each project row shows the Trellis mark and opens the manager terminal at
 `/p/<path>/settings/manager`. Tickets and Settings appear below it.
 The selected state follows the current page for root, nested, and archived projects.
@@ -641,9 +661,10 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | harness_accounts | id PK, name, harness, profile_path, is_default, enabled, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
-| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND `closed_at IS NULL`. Index (created_at). |
+| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds and `session`), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND `closed_at IS NULL`. Index (created_at). |
 | agent_sessions (stored history) | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |
 | agent_cursors | project_id PK (CASCADE), activity_id bigint, updated_at. Stored activity cursor from earlier data homes. |
+| sessions | id PK, name (UNIQUE, CHECK lowercase letters, digits, and dashes, 1 to 40), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), created_at, updated_at. The run has the kind `session`, no persona, no project, and no ticket. |
 
 The `id` column of `activity` is the cursor and the sort key of every activity
 feed. A description row carries `meta.deltaChars` and no text. A status row
@@ -722,6 +743,10 @@ returns one canonical spelling.
 | harnessAccounts.quota | GET /api/harness-accounts/{id}/quota | cached usage windows and reset times |
 | usage.report | GET /api/usage | token cost from the harness transcripts, joined to runs, tickets, personas, projects, and accounts; cached for five minutes |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
+| sessions.list, get | GET /api/sessions, /api/sessions/{id} | newest first; get carries the observed run |
+| sessions.create | POST /api/sessions | 201 and `Location`; a prompt, an optional name, an optional harness and account |
+| sessions.start | POST /api/sessions/{id}/start | resumes the saved conversation, or starts again from the prompt |
+| sessions.delete | DELETE /api/sessions/{id} | stops the agent and removes the directory; the run stays as history |
 | search.query | GET /api/search | tickets and projects |
 | brief.get | GET /api/tickets/{ticket}/brief | the markdown brief an agent starts from |
 | actors.list, default | GET /api/actors, /api/actors/default | |
@@ -797,7 +822,7 @@ Payloads:
 `attachment.created | deleted {id, ticketId, projectId}`,
 `statuses.changed {projectId}`,
 `project.created | updated | deleted | moved {id}`, `gh.status {ok, reason}`,
-`personas.changed {id}`, `flows.changed {id}`, `agent-runs.changed {id}`, and `needs-you.changed {actorName}`.
+`personas.changed {id}`, `flows.changed {id}`, `agent-runs.changed {id}`, `sessions.changed {id}`, and `needs-you.changed {actorName}`.
 `packages/api/src/events.ts` holds the one list of names, and the `types=`
 parameter takes a name or a `prefix.*` form.
 

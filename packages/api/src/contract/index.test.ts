@@ -138,6 +138,11 @@ describe("contract", () => {
 			"reviews.submit POST /reviews/submit",
 			"reviews.thread GET /reviews/threads/{id}",
 			"search.query GET /search",
+			"sessions.create POST /sessions",
+			"sessions.delete DELETE /sessions/{id}",
+			"sessions.get GET /sessions/{id}",
+			"sessions.list GET /sessions",
+			"sessions.start POST /sessions/{id}/start",
 			"settings.get GET /settings",
 			"settings.set PUT /settings",
 			"statuses.clear DELETE /projects/{project}/statuses",
@@ -173,7 +178,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(144);
+		expect(table).toHaveLength(149);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

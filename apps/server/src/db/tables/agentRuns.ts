@@ -35,7 +35,7 @@ export const agentRuns = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		check("agent_runs_kind_check", sql`${t.kind} IN ('builder', 'reviewer', 'manager')`),
+		check("agent_runs_kind_check", sql`${t.kind} IN ('builder', 'reviewer', 'manager', 'session')`),
 		// A ticket carries as many agents at once as the project concurrency
 		// limit allows, which agentRuns.reserve counts before every insert.
 		index("agent_runs_active_ticket_idx").on(t.ticketId).where(sql`${t.runtime} = 'native' AND ${t.closedAt} IS NULL`),
