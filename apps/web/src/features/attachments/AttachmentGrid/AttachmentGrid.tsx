@@ -3,11 +3,13 @@ import type { Attachment } from "@trellis/api";
 import { Dialog, EmptyState, SectionHeader } from "@trellis/ui";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { failToast } from "../../ticket/utils/failToast";
 import { AttachmentBox } from "../AttachmentBox";
 import { DropTarget } from "../DropTarget";
 import { type Uploads, useUploads } from "../hooks/useUploads";
 import { UploadProgress } from "../UploadProgress";
 import { isThumbnailImage } from "../utils/isThumbnailImage";
+import { renameAttachment } from "../utils/renameAttachment";
 import { AttachmentActions } from "./components/AttachmentActions";
 import { AttachmentRow } from "./components/AttachmentRow";
 
@@ -67,16 +69,36 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 
 	const refresh = () => queryClient.invalidateQueries({ queryKey: listKey, refetchType: "all" });
 	const remove = async (attachment: Attachment) => {
-		await client.attachments.delete({ id: attachment.id });
-		await refresh();
+		try {
+			await client.attachments.delete({ id: attachment.id });
+			await refresh();
+		} catch (error) {
+			failToast(`${attachment.filename} is not deleted.`, error, () => void remove(attachment));
+		}
 	};
 	const rename = async (attachment: Attachment, name: string) => {
-		const response = await fetch(attachment.url);
-		const blob = await response.blob();
-		const file = new File([blob], attachment.filename, { type: attachment.mime });
-		await client.attachments.upload({ ticket, file, name });
-		await client.attachments.delete({ id: attachment.id });
+		const failure = await renameAttachment({
+			copy: async () => {
+				const response = await fetch(attachment.url);
+				const blob = await response.blob();
+				const file = new File([blob], attachment.filename, { type: attachment.mime });
+				await client.attachments.upload({ ticket, file, name });
+			},
+			removeOriginal: async () => {
+				await client.attachments.delete({ id: attachment.id });
+			},
+		});
 		await refresh();
+		if (failure === null) return;
+		// A failed delete leaves the copy and the original file. Retry then
+		// deletes the original file, because a second rename uploads one
+		// more copy.
+		if (failure.step === "removeOriginal") {
+			const kept = `${attachment.filename} is not renamed. The copy ${name} exists, and the original file stays.`;
+			failToast(kept, failure.error, () => void remove(attachment));
+			return;
+		}
+		failToast(`${attachment.filename} is not renamed.`, failure.error, () => void rename(attachment, name));
 	};
 	const closeLightbox = () => {
 		const id = shown!.id;
