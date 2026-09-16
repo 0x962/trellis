@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { link, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { HARNESS_DEFAULT_MODELS } from "@trellis/api";
 import { checkOpenCodeVersion } from "./checkOpenCodeVersion.ts";
 import { claudeTrust } from "./claudeTrust.ts";
 import { providers } from "./providers.ts";
@@ -15,6 +16,7 @@ export async function prepareAttempt(
 	sessionId?: string,
 ): Promise<HarnessDescriptor> {
 	const directory = join(options.directory, input.id);
+	const model = input.model ?? (sessionId === undefined ? HARNESS_DEFAULT_MODELS[input.harness] : undefined);
 	const env = Object.fromEntries(
 		Object.entries(options.env)
 			.filter((entry): entry is [string, string] => entry[1] !== undefined)
@@ -24,7 +26,7 @@ export async function prepareAttempt(
 		input.harness,
 		input.cwd,
 		input.prompt,
-		input.model ?? null,
+		model ?? null,
 		input.token ?? null,
 		input.timeoutMs ?? null,
 		...(input.kind === "manager" ? ["manager-tools-v1", input.managerId ?? input.id, input.managerSystemPrompt] : []),
@@ -59,7 +61,7 @@ export async function prepareAttempt(
 		env,
 		cwd,
 		prompt: `trellis-message:${input.id}\n${input.prompt}`,
-		model: input.model,
+		model,
 		configDirectory,
 		hookCommand,
 		...(input.kind === "manager"

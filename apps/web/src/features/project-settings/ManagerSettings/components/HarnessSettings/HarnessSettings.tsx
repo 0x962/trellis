@@ -1,4 +1,4 @@
-import { HARNESS_PRESETS, type HarnessPreset, type ProjectManagerConfig } from "@trellis/api";
+import { HARNESS_DEFAULT_MODELS, HARNESS_PRESETS, type HarnessPreset, type ProjectManagerConfig } from "@trellis/api";
 import { Input, Select } from "@trellis/ui";
 import { useState } from "react";
 import { SettingsSection } from "../../../SettingsSection";
@@ -62,7 +62,8 @@ export function HarnessSettings({
 							}}
 						/>
 						<p className="manager-settings-hint">
-							Leave blank to use the harness default. OpenCode and pi accept provider/model.
+							Leave blank to use {HARNESS_DEFAULT_MODELS[draft.harness.preset]} for a new session. Resume keeps its
+							saved model.
 						</p>
 					</>
 				)}

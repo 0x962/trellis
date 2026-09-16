@@ -2,6 +2,13 @@ import { z } from "zod";
 import { AgentCommandSchema } from "../agentCommand/agentCommand.ts";
 import { DEFAULT_AGENT_RESUME_COMMAND, DEFAULT_AGENT_START_COMMAND } from "../agentLaunch/agentLaunch.ts";
 
+export const HARNESS_DEFAULT_MODELS = {
+	claude: "claude-opus-5",
+	codex: "gpt-5.6-sol",
+	opencode: "vercel/anthropic/claude-opus-5",
+	pi: "vercel-ai-gateway/openai/gpt-5.6-sol",
+} as const;
+
 export const HARNESS_PRESETS = {
 	claude: { startCommand: DEFAULT_AGENT_START_COMMAND, resumeCommand: DEFAULT_AGENT_RESUME_COMMAND },
 	codex: {

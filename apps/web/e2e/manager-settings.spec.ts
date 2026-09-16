@@ -39,8 +39,14 @@ test("local manager settings preserve directory trust, model, and custom command
 	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.trustedDirectory).toBe(true);
 	await navigation.getByRole("link", { name: "Harness", exact: true }).click();
 	await expect(page).toHaveURL(/\/p\/HAR\/settings#harness$/);
+	await expect(
+		page.getByText("Leave blank to use claude-opus-5 for a new session. Resume keeps its saved model."),
+	).toBeVisible();
 	await page.getByRole("combobox", { name: "Harness preset" }).click();
 	await page.getByRole("option", { name: "Codex", exact: true }).click();
+	await expect(
+		page.getByText("Leave blank to use gpt-5.6-sol for a new session. Resume keeps its saved model."),
+	).toBeVisible();
 	await expect(page.getByRole("textbox", { name: "Start command", exact: true })).toHaveCount(0);
 	await page.getByRole("textbox", { name: "Model", exact: true }).fill("gpt-5.6-sol");
 	await page.getByRole("textbox", { name: "Model", exact: true }).press("Tab");

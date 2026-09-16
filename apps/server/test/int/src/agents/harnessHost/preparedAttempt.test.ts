@@ -96,3 +96,32 @@ test.each(["claude", "pi", "opencode"] as const)(
 			expect(JSON.parse(resumed.spec.env!.OPENCODE_PERMISSION!)).toEqual({ "*": "deny", "trellis_trellis_*": "allow" });
 	},
 );
+
+test.each([
+	["claude", "claude-opus-5"],
+	["codex", "gpt-5.6-sol"],
+	["opencode", "vercel/anthropic/claude-opus-5"],
+	["pi", "vercel-ai-gateway/openai/gpt-5.6-sol"],
+] as const)("%s defaults fresh sessions to %s without changing explicit or resumed models", async (harness, model) => {
+	const selectedModel = (args: string[]) =>
+		harness === "codex"
+			? JSON.parse(args[1]!).model
+			: args.includes("--model")
+				? args[args.indexOf("--model") + 1]
+				: undefined;
+	const input = { harness, cwd: home, prompt: "Work" };
+	const fresh = await host.prepare({ ...input, id: "default-model" });
+	expect(selectedModel(fresh.spec.args)).toBe(model);
+	const started = await host.startPrepared("default-model");
+	expect(started.process.agent?.model).toBe(model);
+	await host.stop("default-model");
+	const resumed = await host.prepare({ ...input, id: "saved-session-model" }, `provider-${harness}`);
+	expect(selectedModel(resumed.spec.args)).toBeUndefined();
+	for (const resume of [false, true]) {
+		const explicit = await host.prepare(
+			{ ...input, id: `explicit-model-${resume}`, model: "selected-model" },
+			resume ? `provider-${harness}` : undefined,
+		);
+		expect(selectedModel(explicit.spec.args)).toBe("selected-model");
+	}
+});

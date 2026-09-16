@@ -25,3 +25,7 @@ test("Pi enables its tools without an unsupported permission flag", () => {
 	expect(HARNESS_PRESETS.pi.startCommand).toContain("--tools read,bash,edit,write,grep,find,ls");
 	expect(HARNESS_PRESETS.pi.resumeCommand).toContain("--tools read,bash,edit,write,grep,find,ls");
 });
+
+test("an unset model stays unset in saved settings so resumed sessions keep their own model", () => {
+	for (const preset of Object.keys(HARNESS_PRESETS)) expect(HarnessSchema.parse({ preset }).model).toBeUndefined();
+});
