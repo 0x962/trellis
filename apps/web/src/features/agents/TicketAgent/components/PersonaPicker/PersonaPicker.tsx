@@ -45,7 +45,7 @@ export function PersonaPicker({ ticket, disabled }: { ticket: string; disabled: 
 	const item = (persona: (typeof choices)[number]) => ({
 		id: persona.id,
 		label: `Add ${persona.name}`,
-		icon: <Avatar kind="agent" name={persona.name} />,
+		icon: <Avatar kind="agent" name={persona.name} personaKind={persona.kind} />,
 		keywords: [persona.kind],
 	});
 	const groups: CommandGroup[] = [
