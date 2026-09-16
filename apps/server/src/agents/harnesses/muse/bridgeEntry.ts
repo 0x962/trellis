@@ -55,6 +55,7 @@ const approval = z.looseObject({
 	availableChoices: z.array(z.looseObject({ choiceId: z.string(), decision: z.string() })),
 });
 const userInput = z.looseObject({ userInputId: z.string(), sessionId: z.string() });
+const turnStart = z.looseObject({ turnId: z.string(), disposition: z.string() });
 
 // A manager runs with the workspace shell and file writes disabled by the
 // host, so its only way to act is the Trellis tool server. A worker runs
@@ -78,8 +79,49 @@ const observationFailed = new Promise<never>((_, reject) => {
 });
 let client: MspClient | undefined;
 let control: Awaited<ReturnType<typeof museControl>> | undefined;
+let parser: MuseSessionEvents | undefined;
 const current = { turnId: null as string | null, working: false };
 let sessionId: string | undefined;
+// Muse drains a message that arrives during a turn at a point of its own
+// choice, and that point can be the middle of a model step, which it then
+// cancels. The bridge therefore starts a turn only while the session is
+// idle. A prompt that arrives during a turn, or while a start is in flight,
+// waits here, and the next turn carries every waiting prompt at once.
+const held: string[] = [];
+let starting = false;
+async function startTurn(prompts: string[]) {
+	starting = true;
+	try {
+		const commandId = uuid7();
+		parser!.expectBatch(commandId, prompts);
+		const result = turnStart.parse(
+			await client!.request("turn/start", {
+				commandId,
+				sessionId,
+				input: prompts.map((text) => ({ type: "text", text })),
+				ifBusy: "queue",
+			}),
+		);
+		current.working = true;
+		current.turnId = result.turnId;
+		if (result.disposition !== "started")
+			process.stderr.write(`Muse ${result.disposition} a turn that the bridge started on an idle session\n`);
+	} finally {
+		starting = false;
+	}
+}
+async function submit(prompt: string) {
+	if (current.working || starting || held.length > 0) {
+		held.push(prompt);
+		return;
+	}
+	await startTurn([prompt]);
+}
+function flushHeld() {
+	if (current.working || starting || held.length === 0) return;
+	const prompts = held.splice(0);
+	startTurn(prompts).catch(reportFailure);
+}
 let submitted!: () => void;
 const firstPrompt = new Promise<void>((resolve) => {
 	submitted = resolve;
@@ -94,6 +136,7 @@ function record(event: HarnessEvent) {
 		if (event.kind === "prompt") submitted();
 	});
 	eventQueue.catch(reportFailure);
+	if (!current.working) flushHeld();
 }
 async function answerRequest(request: { method: string; params?: unknown }) {
 	// The reply to a host request only confirms that the bridge saw it. The
@@ -158,14 +201,7 @@ function readTerminal() {
 				const prompt = line;
 				line = "";
 				if (prompt.trim() === "") continue;
-				void client!
-					.request("turn/start", {
-						commandId: uuid7(),
-						sessionId,
-						input: [{ type: "text", text: prompt }],
-						ifBusy: "queue",
-					})
-					.catch(reportFailure);
+				void submit(prompt).catch(reportFailure);
 			} else if (character === "\x7f" || character === "\b") {
 				if (line.length > 0) {
 					line = line.slice(0, -1);
@@ -179,7 +215,6 @@ function readTerminal() {
 	});
 }
 async function start() {
-	let parser: MuseSessionEvents | undefined;
 	let museHome: string | undefined;
 	client = new MspClient(
 		host,
@@ -255,12 +290,9 @@ async function start() {
 		sessionId,
 		client,
 		current: () => current,
+		submit,
 	});
-	await client.request("turn/start", {
-		commandId: uuid7(),
-		sessionId,
-		input: [{ type: "text", text: launch.prompt }],
-	});
+	await startTurn([launch.prompt]);
 	await firstPrompt;
 	print(museTerminalHint);
 	readTerminal();
