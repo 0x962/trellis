@@ -32,6 +32,11 @@ The installer verifies that the candidate includes the installed source before t
 A macOS advisory lock permits one publication at a time. Publication also verifies that `origin/main` still contains the candidate.
 All 21 installer checks pass with 53 assertions. A direct branch install command rejects `trellis-readiness-audit` before the build starts.
 
+A failed native launch during restoration returns `RESTART_FAILED` with its cause and request ID.
+Both API transports log failed procedures with the same request ID. Unexpected errors retain their private details in the server log.
+The combined source passes 78 server integration tests, five API contract tests, and all nine workspace typechecks.
+All three project navigation tests pass after integration with the installed source.
+
 ## Project navigation
 
 The project name opens its manager terminal. Each project row uses the Trellis mark.
