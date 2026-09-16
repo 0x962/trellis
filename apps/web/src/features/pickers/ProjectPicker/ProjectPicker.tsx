@@ -5,6 +5,11 @@ import { projectSlashPath } from "../../../lib/projectPath";
 
 const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.position;
 
+// The projects of one root. A ticket moves within its root only, so the
+// ticket picker hides every project of another root.
+export const projectsOfRoot = (projects: readonly ProjectSummary[], rootId: string): ProjectSummary[] =>
+	projects.filter((project) => project.rootId === rootId);
+
 // The projects in tree order: roots by position, then each root's subtree
 // depth first. The option id is the dotted ref; the hint is the slash path.
 export const projectItems = (projects: readonly ProjectSummary[], current?: string): CommandItem[] => {

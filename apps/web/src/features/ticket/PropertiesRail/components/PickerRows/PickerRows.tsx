@@ -8,7 +8,7 @@ import { useApp } from "../../../../../lib/appContext";
 import { failToast } from "../../../../../lib/failToast";
 import { projectSlashPath } from "../../../../../lib/projectPath";
 import { PriorityPicker, priorityLabels } from "../../../../pickers/PriorityPicker";
-import { ProjectPicker } from "../../../../pickers/ProjectPicker";
+import { ProjectPicker, projectsOfRoot } from "../../../../pickers/ProjectPicker";
 import { StatusPicker } from "../../../../pickers/StatusPicker";
 import { TicketPicker } from "../../../../pickers/TicketPicker";
 import { ProjectKey } from "../../../../shell/ProjectKey";
@@ -34,14 +34,20 @@ const summaryOf = (status: Status) => ({
 
 // The four rows a person changes through a picker: status, priority,
 // project, and parent. Each pick paints at once and rolls back with a
-// toast on failure. A cross-root move shows its reason inside the picker.
-// The s, p, Shift+P, and m keys open the pickers from anywhere on the page.
-// The status picker lists the effective statuses of the ticket's project.
+// toast on failure. The project picker lists the ticket root only, because
+// a ticket cannot move to another root. A refused move shows its reason
+// inside the picker. The s, p, Shift+P, and m keys open the pickers from
+// anywhere on the page. The status picker lists the effective statuses of
+// the ticket's project.
 export function PickerRows({ ticket }: PickerRowsProps) {
 	const { orpc } = useApp();
 	const { write } = useTicketWrite(ticket.identifier);
 	const statuses = useStatuses(ticket.project.path);
 	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? [];
+	// The root of the ticket project, read from the loaded list. The list
+	// starts empty, so the picker lists nothing until the list arrives.
+	const ticketRootId = projects.find((entry) => entry.id === ticket.project.id)?.rootId;
+	const rootProjects = ticketRootId === undefined ? [] : projectsOfRoot(projects, ticketRootId);
 	const open = usePickerStore((state) => state.open);
 	const setOpen = usePickerStore((state) => state.setOpen);
 	const [projectError, setProjectError] = useState<string | null>(null);
@@ -88,7 +94,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 
 	// The picker stays open through the write, so a refusal shows inside it.
 	const pickProject = async (ref: string) => {
-		const project = projects.find((entry) => entry.path === ref)!;
+		const project = rootProjects.find((entry) => entry.path === ref)!;
 		setProjectError(null);
 		try {
 			await write((client) => client.tickets.update({ ticket: ticket.identifier, project: project.path }), {
@@ -167,7 +173,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 							</span>
 						</Button>
 					}
-					projects={projects}
+					projects={rootProjects}
 					value={ticket.project.path}
 					onPick={(ref) => void pickProject(ref)}
 					open={open === "project"}

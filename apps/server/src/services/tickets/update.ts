@@ -65,7 +65,12 @@ const projectAndStatusChanges = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, 
 	if (input.project !== undefined) {
 		const project = await resolveProject(ctx, tx, input.project);
 		if (project.id !== row.projectId) {
-			if (project.rootId !== row.rootId) throw fail("CROSS_ROOT_MOVE");
+			if (project.rootId !== row.rootId)
+				throw fail(
+					"CROSS_ROOT_MOVE",
+					undefined,
+					"A ticket cannot move to a project in another root. Create the ticket again in the other root.",
+				);
 			assertProjectActive(ctx, project.id);
 			projectId = project.id;
 			changes.push({

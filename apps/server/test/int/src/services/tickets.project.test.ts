@@ -9,7 +9,7 @@ import {
 	seedStatuses,
 	seedTicket,
 } from "../../../fixtures";
-import { activityOf, expectErrorData, ticketHarness, ticketRow } from "../../../helpers/services.ts";
+import { activityOf, expectError, expectErrorData, ticketHarness, ticketRow } from "../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
 
 const h = ticketHarness();
@@ -65,6 +65,13 @@ describe("tickets.update project", () => {
 		await seedRootWithStatuses(h.db, "OPS");
 		await expectErrorData(moveTo(id, "OPS"), "CROSS_ROOT_MOVE");
 		expect((await ticketRow(h.db, id))!.project_id).toBe(rootId);
+	});
+
+	test("a project move across roots tells the user to create the ticket again", async () => {
+		const { id } = await seed();
+		await seedRootWithStatuses(h.db, "OPS");
+		const error = await expectError(moveTo(id, "OPS"), "CROSS_ROOT_MOVE");
+		expect(error.message).toContain("Create the ticket again in the other root.");
 	});
 
 	test("a project move writes the project row and the remap row in one batch", async () => {
