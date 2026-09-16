@@ -1,9 +1,7 @@
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
-import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
-import { readySession } from "../controller/readySession.ts";
 import { sendDeadline } from "../controller/sendDeadline.ts";
 import type { ServiceCtx } from "../support.ts";
 import { chatBatchText, type PendingLine } from "./text.ts";
@@ -23,13 +21,9 @@ type Recipient = {
 // all of its pending lines in one send, so a busy room costs one turn and
 // not one turn per line. The rules of a comment mention apply: a closed or
 // replaced session fails its rows, a paused host and an archived room hold
-// them, and a send with no receipt leaves the rows unknown.
-export const dispatchChat = async (
-	ctx: ServiceCtx,
-	sessions: RuntimeProcessStatus[],
-	send = prepareSend,
-	preset = nativePreset,
-) => {
+// them, a working agent receives its lines at once, and a send with no
+// receipt leaves the rows unknown.
+export const dispatchChat = async (ctx: ServiceCtx, sessions: RuntimeProcessStatus[], send = prepareSend) => {
 	await ctx.newTx((tx) =>
 		tx.execute(sql`UPDATE chat_deliveries d SET session_id=r.session_id FROM agent_runs r
 		WHERE d.run_id=r.id AND d.state='pending' AND d.session_id IS NULL AND r.session_id IS NOT NULL
@@ -65,8 +59,6 @@ export const dispatchChat = async (
 		),
 	);
 	for (const recipient of recipients) {
-		const custom = (await preset(ctx.home, recipient.terminalId)) === "custom";
-		if (!custom && !readySession(sessions.find((session) => session.id === recipient.terminalId)!)) continue;
 		const claimed = await ctx.newTx((tx) =>
 			rows<PendingLine & Delivery>(
 				tx,
@@ -88,13 +80,12 @@ export const dispatchChat = async (
 					id: recipient.runId,
 					text: chatBatchText(recipient, claimed),
 					messageId: claimed[0]!.id,
-					requireIdle: !custom,
 					expectedTerminalId: recipient.terminalId,
 					expectedSessionId: recipient.sessionId,
 				}),
 			);
 		} catch (cause) {
-			state = (cause as { code?: string }).code === "RUNTIME_BUSY" ? "pending" : "unknown";
+			state = "unknown";
 			error = cause instanceof Error ? cause.message : String(cause);
 		}
 		await ctx.newTx((tx) =>

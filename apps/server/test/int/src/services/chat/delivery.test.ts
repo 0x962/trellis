@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, mock, test } from "
 import { sql } from "drizzle-orm";
 import type { prepareSend } from "../../../../../src/services/agentRuns/communication.ts";
 import { seedDefaultChannels } from "../../../../../src/services/chat/channels.ts";
-import { dispatchChat as dispatch } from "../../../../../src/services/chat/dispatch.ts";
+import { dispatchChat } from "../../../../../src/services/chat/dispatch.ts";
 import { post } from "../../../../../src/services/chat/messages.ts";
 import { recover } from "../../../../../src/services/controller/controller.ts";
 import { seedProject } from "../../../../fixtures";
@@ -11,8 +11,6 @@ import { testCtx } from "../../../../helpers/ctx.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
-const dispatchChat = (...args: Parameters<typeof dispatch>) =>
-	dispatch(args[0], args[1], args[2], async () => "claude");
 let h: Harness;
 let rootId: string;
 beforeAll(async () => {
@@ -62,7 +60,6 @@ test("one agent receives all of its pending lines in one send", async () => {
 		id: "builder",
 		expectedTerminalId: "terminal",
 		expectedSessionId: "conversation",
-		requireIdle: true,
 	});
 	const text = send.mock.calls[0]![1].text;
 	expect(text).toContain("2 new messages in the CDE room");
@@ -95,20 +92,21 @@ test("an agent line names the persona and the run id, so a reader can mention it
 	expect(await states()).toEqual(["manager:sent"]);
 });
 
-test("a busy agent keeps its pending lines", async () => {
-	await say("hold");
+test("a working agent receives its lines at once, and a failed send leaves them unknown", async () => {
+	await say("now");
 	const send = sent();
 	await dispatchChat(
 		ctx(),
 		[controllerSession("terminal", { activity: { state: "working", updatedAt: new Date().toISOString() } })],
 		send,
 	);
-	expect(send).not.toHaveBeenCalled();
-	expect(await states()).toContain("builder:pending");
+	expect(send).toHaveBeenCalledTimes(1);
+	expect(await states()).toContain("builder:sent");
+	await say("again");
 	await dispatchChat(ctx(), [controllerSession("terminal")], async () => {
-		throw Object.assign(new Error("Busy"), { code: "RUNTIME_BUSY" });
+		throw new Error("The connection closed");
 	});
-	expect(await states()).toContain("builder:pending");
+	expect(await states()).toContain("builder:unknown");
 });
 
 test("a replaced session fails its lines and a restart marks an interrupted send unknown", async () => {
@@ -132,9 +130,9 @@ test("the global pause holds every line", async () => {
 	expect(await states()).toEqual(["builder:pending", "manager:pending"]);
 });
 
-test("a custom terminal receives the lines without idle observations", async () => {
-	await say("custom");
+test("a terminal without activity observations receives the lines", async () => {
+	await say("no observations");
 	const send = sent();
-	await dispatch(ctx(), [controllerSession("terminal", { activity: null })], send, async () => "custom");
-	expect(send.mock.calls.find((call) => call[1].id === "builder")![1].requireIdle).toBe(false);
+	await dispatchChat(ctx(), [controllerSession("terminal", { activity: null })], send);
+	expect(send.mock.calls.map((call) => call[1].id)).toContain("builder");
 });
