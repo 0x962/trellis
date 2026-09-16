@@ -4,8 +4,8 @@ import { type ReactNode, useState } from "react";
 import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
+import { failToast } from "../../../../../lib/failToast";
 import { compactRelativeTime } from "../../../../../lib/format";
-import { failToast } from "../../../utils/failToast";
 import { absoluteTime } from "../../utils/absoluteTime";
 
 export type CommentCardProps = {

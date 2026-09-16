@@ -14,7 +14,9 @@ export type ActionContext = {
 	// The page origin a copied link starts with.
 	origin: string;
 	copy: (text: string) => Promise<void>;
-	confirm: (message: string) => Promise<boolean>;
+	// Asks the person a question with two answers and waits for one. The
+	// palette host draws the dialog. False stops the action.
+	confirm: (question: string) => Promise<boolean>;
 	notify: (message: string, options?: NotifyOptions) => void;
 	// Opens a URL outside the app.
 	openUrl: (url: string) => void;

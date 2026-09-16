@@ -1,5 +1,5 @@
 import type { ORPCError } from "@orpc/client";
-import type { ErrorCode, GhReason } from "@trellis/api";
+import { type ErrorCode, type GhReason, ghCopy } from "@trellis/api";
 
 // The process exit code for every error the contract declares. A code the
 // contract adds without a row here fails errors.test.ts.
@@ -134,9 +134,10 @@ export const formatError = (error: ORPCError<string, unknown>): string => {
 
 export const formatFailure = (failure: CliFailure): string => `error: ${oneLine(failure.message)} (${failure.code})`;
 
-// The line the web shows for a gh outage, so a person knows what to run.
+// The line the web shows for a gh outage, so a person knows what to run. A
+// reason with no command in `ghCopy` carries the server's own message
+// instead.
 export const ghBanner = (gh: { reason: GhReason | null; message: string | null }): string => {
-	if (gh.reason === "unauthenticated") return "GitHub CLI not authenticated: run gh auth login in a terminal";
-	if (gh.reason === "missing") return "gh not found: brew install gh";
-	return `gh error: ${gh.message ?? "unknown"}`;
+	const { line, command } = ghCopy[gh.reason ?? "error"];
+	return command === null ? `${line} ${gh.message ?? "unknown"}` : `${line} Run ${command}.`;
 };

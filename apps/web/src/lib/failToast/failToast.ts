@@ -1,5 +1,5 @@
 import { toast } from "@trellis/ui";
-import { errorMessage } from "../../../../lib/conflict";
+import { errorMessage } from "../conflict";
 
 // The toast a failed write shows: what failed on the first line, the
 // server's message on the second, and a Retry. An error toast stays 6 s.
