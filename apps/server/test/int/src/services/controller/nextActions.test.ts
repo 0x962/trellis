@@ -7,14 +7,14 @@ import { cancel } from "../../../../../src/services/controller/nextActions/cance
 import { handle } from "../../../../../src/services/controller/work.ts";
 import { seedActors, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
-import { controllerSession } from "../../../../helpers/controllerSession.ts";
+import { controllerSession, workingSession } from "../../../../helpers/controllerSession.ts";
 import { type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
 let h: Harness;
 let projectId: string;
 let ticketId: string;
-const sessions = [controllerSession()];
+const sessions = [controllerSession(), workingSession("busy-attempt")];
 beforeAll(async () => {
 	h = await serviceHarness();
 });
@@ -203,7 +203,7 @@ test("completed tickets retire their waits and deleted tickets remove them", asy
 	expect(await h.rows(sql`SELECT * FROM manager_next_actions`)).toEqual([]);
 });
 
-test("two eligible tickets compete for one slot without losing the second action", async () => {
+test("simultaneous launches can exceed the target before sustained work starts", async () => {
 	await queue();
 	const otherId = await h.read(async (tx) => {
 		const [row] = (await tx.execute(sql`SELECT status_id FROM tickets WHERE id=${ticketId}`)).rows;
@@ -229,9 +229,9 @@ test("two eligible tickets compete for one slot without losing the second action
 			),
 		),
 	);
-	expect(starts.filter((result) => result.status === "fulfilled")).toHaveLength(1);
-	expect(await h.rows(sql`SELECT id FROM manager_next_actions WHERE state='waiting'`)).toHaveLength(1);
-	expect(await h.rows(sql`SELECT id FROM manager_next_actions WHERE state='assigned'`)).toHaveLength(1);
+	expect(starts.filter((result) => result.status === "fulfilled")).toHaveLength(2);
+	expect(await h.rows(sql`SELECT id FROM manager_next_actions WHERE state='waiting'`)).toHaveLength(0);
+	expect(await h.rows(sql`SELECT id FROM manager_next_actions WHERE state='assigned'`)).toHaveLength(2);
 });
 
 test("a bad queued ticket rolls back every outcome and action in its dispatch", async () => {
@@ -283,7 +283,7 @@ test("a new status decision replaces the old wait without repeated immediate wak
 
 test("an idle worker releases capacity without closing its assignment", async () => {
 	await queue();
-	const observed = [...sessions, controllerSession("busy-attempt")];
+	const observed = [controllerSession(), controllerSession("busy-attempt")];
 	await h.run((ctx, tx) => collect(ctx, tx, { sessions: observed }), { now: secondsAfter(1) });
 	const delivery = await h.run((ctx, tx) => claim(ctx, tx, { sessions: observed }), { now: secondsAfter(1) });
 	expect(delivery?.nextActions.map((action) => action.ticketId)).toEqual([ticketId]);
@@ -292,12 +292,12 @@ test("an idle worker releases capacity without closing its assignment", async ()
 	});
 });
 
-test("a start uses an idle worker's free slot and reserves it before launch", async () => {
+test("a launch keeps capacity free until sustained work starts and retains persona ownership", async () => {
 	const observed = [controllerSession("busy-attempt")];
 	const input = { ticket: ticketId, personaId: "builder" };
 	const first = await h.run((ctx, tx) => reserve(ctx, tx, input, [], { sessions: observed }));
 	expect(first.replay).toBe(false);
 	const { capacityAvailable } = await import("../../../../../src/services/assignments/capacity.ts");
-	expect(await h.read((tx) => capacityAvailable(tx, { projectId, sessions: observed }))).toBe(false);
+	expect(await h.read((tx) => capacityAvailable(tx, { projectId, sessions: observed }))).toBe(true);
 	await expect(h.run((ctx, tx) => reserve(ctx, tx, input, [], { sessions: observed }))).rejects.toThrow();
 });

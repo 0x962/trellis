@@ -70,11 +70,11 @@ The selection resolves to an absolute path and persists across restarts.
 Its Swift helper registers through `SMAppService` and starts the bundled host through launchd.
 The host keeps its port across restarts, so the renderer retains its origin.
 Close or quit detaches the window. The background host and agent processes continue.
-The explicit Stop local work action pauses native dispatch, stops owned processes, and unregisters the helper.
+The explicit Quit Trellis Completely action pauses native dispatch, stops owned processes, and unregisters the helper.
 An unconfirmed process prevents a successful stop.
 
 The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 8. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 9. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 Output readers receive bounded chunks with byte offsets.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
@@ -90,13 +90,15 @@ Each supported manager harness uses the selected persona instruction from the da
 The persona editor shows this instruction. Manager start and restart read the current saved persona.
 The assignment message carries identity and project facts.
 The manager delegates technical work and records coordination outcomes through these tools.
-Claude, Codex, OpenCode, and Pi support this boundary. Custom manager launches return an explicit error.
+Claude, Codex, OpenCode, Pi, and Muse support this boundary. Custom manager launches return an explicit error.
+A Muse manager reads its persona from `AGENTS.md` in its private workspace, runs without shell and file writes, and reaches Trellis through the Trellis MCP server of its session.
 Codex managers require CLI version 0.154.0 or later and run with no selected environments.
 Their engine receives the shared Trellis allowlist as dynamic tools. Code-mode execution can call those tools without filesystem or shell access.
 Clock and clarification tools remain available. The native terminal sends requests through the host, which preserves the manager policy and provider thread.
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
 Codex runs one private app-server per attempt. Its native terminal and Trellis event client connect to that engine.
 The Codex adapter maps native thread, turn, tool, result, and error events into the runtime journal.
+Muse runs one private `muse serve` session host per attempt. The Muse bridge speaks the Muse Session Protocol over its stdio, maps session, turn, item, and result notifications into the runtime journal, and prints the transcript to the terminal.
 Every built-in start waits for the initial native prompt receipt. Each follow-up requires its own receipt. Busy providers queue follow-ups for their next turn.
 The desktop starts HTTP before it resolves the login environment. Git, GitHub, and new agent launches await the cached environment in their server thread.
 A failed login shell returns a tool error. Existing agent controls use their saved launch environment.
@@ -234,11 +236,15 @@ either attachment table names.
 
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
 holds one row per post and live native agent of the room's project, except
-the author.
+the author. A post in `general` with no mention writes rows for the live
+managers only.
 A post that mentions a live agent by run id, by persona name, or by role
 (`@manager`, `@builders`, `@reviewers`) reaches only the mentioned agents,
 and each of those rows is `direct`. The controller tick sends every pending
-row of one agent in one message, so a busy room costs an agent one turn. A
+row of one agent in one message, so a busy room costs an agent one turn.
+The message carries, per channel, the messages before the first new line as
+context: at most `CONTEXT_LIMIT` of them from the `CONTEXT_WINDOW_MINUTES`
+before it. A
 batch with a direct row interrupts the agent's current turn first; a custom
 terminal has no interrupt and receives the lines as typed input. A manager
 receives a `trellis.chat.messages` JSON document; a worker receives IRC style
@@ -355,7 +361,9 @@ Managers can inspect the observed model through `trellis_agentRuns_session` with
 The Manager page at `/p/<project path>/settings/manager` shows the manager's interactive terminal and process controls.
 Project settings at `/p/<project path>/settings#manager` selects the persona, repository directory, concurrency limit, and automatic dispatch.
 The dispatch switch pauses automatic messages while events remain stored.
-The `#harness` section selects the preset, model, and custom start and resume commands.
+The `#harness` section selects the preset, model, account, and custom start and resume commands.
+The account applies to the manager and to every worker of the project that no request names an account for. A sub-project with no account uses the nearest ancestor that names one.
+A running manager keeps its login until its next restart; the restart transfers its session to the new profile.
 An empty child repository directory uses the nearest configured ancestor directory at launch.
 An explicit child directory takes precedence. Persona, harness, and concurrency settings remain local to each project.
 Trellis trusts configured repository directories and agent workspaces.
@@ -372,12 +380,29 @@ API run states come from inspected runtime processes. The database records assig
 A missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
 A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.
 
-The concurrency limit counts concurrent active worker turns. Idle workers retain their open assignments without occupying slots. Managers are outside this count.
+The concurrency target counts workers with at least 10 seconds of continuous work. Idle workers retain their open assignments without occupying slots. Managers are outside this count.
 `occupiesSlot` uses runtime observations for starts, resumes, flow claims, saved waits, heartbeat counts, and delegated budgets.
 A confirmed idle turn or process exit releases its slot. A completed turn outcome also releases its slot.
-A new launch reserves a slot until its first prompt receipt. Missing, unknown, or uncontrollable observations retain capacity until reconciliation.
+Only live, controllable workers with observed continuous work count toward the target. Pending launches and unobserved attempts consume no slots.
+The runtime records `activity.workingSince` when work begins. Tool and message events preserve it; idle clears it.
+Capacity uses each snapshot's `checkedAt` to measure that duration. Simultaneous starts and short turns can temporarily exceed the target.
 A confirmed process exit closes its assignment before the next claim.
 The limit runs from 1 to 64 and defaults to 3. A partial unique index permits one active manager per project.
+
+### Sessions
+
+A session is a scratch git repository with one agent, outside every project and ticket.
+It answers the same need as a session in Superset: a place to try something with an agent and no ticket.
+The directory is `sessions/<name>` in the data home, a repository on `main` with one empty commit.
+The name is the directory name: lowercase letters, digits, and dashes, at most 40 characters.
+A typed name takes that form; an omitted name takes a generated `<adjective>-<noun>`. A taken name gets a numeric suffix.
+The `sessions` row keeps the name, the directory, the harness, and the run.
+The run has the kind `session`, no persona, no project, and no ticket. Its name is the session name and its instruction is the prompt.
+The agent receives the prompt as its first message and nothing else. It runs with the worker permission settings of its harness.
+A session takes no worker capacity and receives no comment or chat delivery.
+`sessions.start` resumes the saved conversation when the previous process confirmed one for the same harness, and otherwise starts the agent again from the prompt in the same directory.
+A desktop restart stops a session agent with the other native agents and does not resume it; Start on the session page resumes it.
+`sessions.delete` stops the agent, removes the directory, and deletes the row. The run stays as history with its retained output.
 
 ### Manager delegation
 
@@ -389,7 +414,7 @@ The project configuration remains unchanged. A configured manager or active dele
 Each submanager receives its own controller queue and heartbeats. Parent heartbeat context includes its direct submanagers and their process state.
 Normal human agent lists omit submanager assignments. The `submanagers` API retains inspection and control for diagnosis.
 `submanagers.list` gives a manager its own delegation and direct children. `resize` changes a child's budget.
-The aggregate budget counts active worker turns across the delegated scope. Idle workers consume no budget. Existing per-project limits also apply.
+The aggregate budget counts workers with at least 10 seconds of continuous work across the delegated scope. Idle workers consume no budget. Existing per-project limits also apply.
 Nested delegations reserve part of their parent's budget. Direct workers cannot consume those reserved slots.
 Independent managers allocate separate subtree budgets. These budgets do not change provider limits or project concurrency settings.
 Worker starts, resumes, flow steps, and capacity waits use the same budget rule.
@@ -406,33 +431,37 @@ The instructions live in the `## Autonomous project delegation` section of the m
 The main Settings page stores several accounts per harness at `/settings#agent-accounts`.
 An account names an existing profile directory or a managed profile under `accounts/<id>/profile` in the data home.
 Each managed profile keeps separate credentials. Shared directories retain sessions and skills. The provider CLI owns sign-in and token renewal.
-Claude uses `CLAUDE_CONFIG_DIR`; Codex uses `CODEX_HOME`; Pi uses `PI_CODING_AGENT_DIR`; OpenCode uses `XDG_DATA_HOME`.
+Claude uses `CLAUDE_CONFIG_DIR`; Codex uses `CODEX_HOME`; Pi uses `PI_CODING_AGENT_DIR`; OpenCode uses `XDG_DATA_HOME`; Muse uses one directory as `XDG_CONFIG_HOME` and `XDG_DATA_HOME`, so `muse/auth.json` and `muse/sessions` sit under the profile.
 Removal archives the account record and retains its files.
 
 `harnessAccounts.list` returns account metadata, login commands, and capabilities. Account mutation requires a human actor.
 `harnessAccounts.quota` reads Claude or Codex subscription usage outside database transactions and caches results for five minutes.
-A manual refresh has a ten-second minimum interval. OpenCode and Pi return `unsupported` quota.
+A manual refresh has a ten-second minimum interval. OpenCode and Pi return `unlimited` quota. Muse returns `signed_out` for a profile without `muse/auth.json`. Muse announces its subscription windows to its session client after each model call, so the Muse bridge saves the latest announcement to `muse/trellis-usage.json` in the Muse home of the run, and the account reads `ok` with the open windows from there. Before the first run, or after every saved window has reset, the account is `unavailable` with a sentence that asks for a run.
 An unavailable quota result contains no allowance estimate. Credentials stay on the host and do not enter API responses.
 
 ### Usage
 
 The Usage page at `/usage` shows what every agent on the machine consumed.
-`usage.report` reads the transcript files that each harness CLI writes: `projects/` of a Claude profile, `sessions/` of a Codex or Pi profile, and `opencode/storage/` of an OpenCode data home.
+`usage.report` reads the transcript files that each harness CLI writes: `projects/` of a Claude profile, `sessions/` of a Codex or Pi profile, `opencode/storage/` of an OpenCode data home, and `muse/sessions/` of a Muse data home, the default XDG data home or a Muse account profile.
 The scan covers the default profile of each harness and the profile of every account, resolved to real paths, so a shared directory counts once.
 The scan runs in the `prepare` step, outside every database transaction, and its result is cached for five minutes per range. A refresh is served from the cache for ten seconds.
-Every turn is priced at the API list rate in `services/usage/pricing.ts`. A harness that records its own cost, such as Pi or OpenCode, keeps that cost. A model outside the table takes the cheapest rate of its harness and marks the row approximate.
+Every turn is priced at the API list rate in `services/usage/pricing.ts`. A harness that records its own cost, such as Pi or OpenCode, keeps that cost. Muse Spark has no list price, so a Muse turn counts its tokens at zero dollars. A model outside the table takes the cheapest rate of its harness and marks the row approximate.
 A session joins the agent run whose `session_id` it carries. A session whose cwd is inside `agents/<run id>/work` joins that run. A session whose cwd is inside a project directory joins that project. Every other session is outside Trellis.
 The report holds the day series by harness, the totals, one row list per grouping (ticket, persona, project, kind, account, model, harness), and the top 200 sessions with one key per grouping.
+`usage.accounts` lists every configured account and the default login of each harness that no account names, each with its quota. A login whose provider reports no quota window is `unlimited`: an API key, a plan without limits, or a harness with no quota endpoint. The default Muse login comes from `muse/auth.json` under the XDG config home, and a Muse account profile holds its own `muse/auth.json`; its windows come from the `muse/trellis-usage.json` that the last Muse agent run saved. The page joins each login to its cost through the account grouping of the report.
 The page keeps the range, the metric, the grouping, the selected row, and the selected day in the URL.
+
+The default login of a harness resolves the way SuperSet resolves it. SuperSet keeps one pointer file per harness under `~/.superset/state/`: `default-claude-config-dir` and `default-codex-home`, each with the profile directory of the default, or nothing for the plain login. When the file exists it wins. Otherwise the account with the Trellis default flag wins. Otherwise the plain login of the harness is the default. A pointer whose directory is gone counts as the plain login. A default picked in Settings also writes the pointer, so both tools agree. A run with no account reads the pointer again at every launch, and a profile exported in the login shell wins over the pointer.
 
 `agentRuns.start` accepts an optional `accountId`. A new assignment otherwise selects its harness default account.
 The assignment retains its account across process restarts. An explicit account also selects its harness for a new assignment.
 `agentRuns.resume` requires the stopped attempt identifier and a stable request identifier.
 A resume retains the assignment, workspace, and provider conversation. Its target account must use the same harness.
-Claude, Codex, and Pi transfer the selected session file. OpenCode exports and imports that session through its CLI.
+Claude, Codex, and Pi transfer the selected session file. Muse copies the session directory. OpenCode exports and imports that session through its CLI.
 The runtime checks the resumed provider session identifier before it accepts the process.
 Existing manager personas receive the account instructions in migration `0048_harness_accounts`.
 The instructions live in the `## Harness accounts` section of the manager persona.
+Migration `0060_muse_harness` adds the `## Muse harness` section, which names the Muse preset, its models, its quota states, and its manager limits.
 
 ### Manager controller
 
@@ -562,6 +591,7 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/all/table` | `all_.table.tsx` | every ticket as a table |
 | `/p/$` | `p/$/route.tsx` | a project as a board, a table, its settings, or its manager |
 | `/t/$identifier` | `t/$identifier/route.tsx` | one ticket |
+| `/sessions/$id` | `sessions.$id.tsx` | one session: the terminal of its agent and the process controls |
 | `/search` | `search.tsx` | search |
 | `/ai/personas` | `ai.personas.tsx` | the personas |
 | `/ai/flows` | `ai.flows.tsx` | the flows |
@@ -606,9 +636,13 @@ The Manager page holds the manager persona, repository directory, dispatch state
 It writes `projects.managerConfig` through `projects.update`.
 
 The sidebar holds the workspace row, Needs you, Search, All tickets, Pull
-requests, Personas, Flows, Usage, the project tree, and the actor footer. The project
-tree is the one region that scrolls, so the fixed links keep their place at any
-tree height.
+requests, Personas, Flows, Usage, the sessions, the project tree, and the actor footer.
+The sessions and the project tree share the one region that scrolls, so the fixed
+links keep their place at any height.
+The Sessions section sits above the Projects section. Its New session button opens
+a sheet with the prompt, an optional name, and the harness. Each session row shows
+the avatar of its agent with the work state and opens `/sessions/<id>`. Its row
+menu deletes the session.
 Each project row shows the Trellis mark and opens the manager terminal at
 `/p/<path>/settings/manager`. Tickets and Settings appear below it.
 The selected state follows the current page for root, nested, and archived projects.
@@ -641,9 +675,10 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | harness_accounts | id PK, name, harness, profile_path, is_default, enabled, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
-| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND `closed_at IS NULL`. Index (created_at). |
+| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds and `session`), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND `closed_at IS NULL`. Index (created_at). |
 | agent_sessions (stored history) | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |
 | agent_cursors | project_id PK (CASCADE), activity_id bigint, updated_at. Stored activity cursor from earlier data homes. |
+| sessions | id PK, name (UNIQUE, CHECK lowercase letters, digits, and dashes, 1 to 40), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), created_at, updated_at. The run has the kind `session`, no persona, no project, and no ticket. |
 
 The `id` column of `activity` is the cursor and the sort key of every activity
 feed. A description row carries `meta.deltaChars` and no text. A status row
@@ -715,13 +750,18 @@ returns one canonical spelling.
 | pullRequests.diff | GET /api/prs/{id}/diff | `gh pr diff`, cut at 1 MB, cached for 60 s |
 | personas.list, get, create, update, delete | GET, POST /api/personas; GET, PATCH, DELETE /api/personas/{id} | the manager tool list omits instructions; get reads one |
 | flows.list, get, create, update, save, delete | GET, POST /api/flows; GET, PATCH, DELETE /api/flows/{flow}; PUT /api/flows/{flow}/graph | `{flow}` is a ULID or a slug; save replaces every node and edge |
-| agentRuns.list, start | GET, POST /api/agent-runs | start answers 201 with the row in any state |
+| agentRuns.capacity, list, start | GET /api/agent-runs/capacity, GET and POST /api/agent-runs | capacity returns the scheduler's used slots and limit; start answers 201 with the row in any state |
 | agentRuns.stop, refresh, send | POST /api/agent-runs/{id}/stop, /refresh, /send | send takes 1 to 20000 characters |
 | agentRuns.resume | POST /api/agent-runs/{id}/resume | existing assignment, accountId, expectedTerminalId, requestId |
 | harnessAccounts.list, create, update, remove | GET, POST /api/harness-accounts; PATCH, DELETE /api/harness-accounts/{id} | account metadata and profile selection |
 | harnessAccounts.quota | GET /api/harness-accounts/{id}/quota | cached usage windows and reset times |
 | usage.report | GET /api/usage | token cost from the harness transcripts, joined to runs, tickets, personas, projects, and accounts; cached for five minutes |
+| usage.accounts | GET /api/usage/accounts | every configured account and each default login with its subscription quota; cached for five minutes |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
+| sessions.list, get | GET /api/sessions, /api/sessions/{id} | newest first; get carries the observed run |
+| sessions.create | POST /api/sessions | 201 and `Location`; a prompt, an optional name, an optional harness and account |
+| sessions.start | POST /api/sessions/{id}/start | resumes the saved conversation, or starts again from the prompt |
+| sessions.delete | DELETE /api/sessions/{id} | stops the agent and removes the directory; the run stays as history |
 | search.query | GET /api/search | tickets and projects |
 | brief.get | GET /api/tickets/{ticket}/brief | the markdown brief an agent starts from |
 | actors.list, default | GET /api/actors, /api/actors/default | |
@@ -797,7 +837,7 @@ Payloads:
 `attachment.created | deleted {id, ticketId, projectId}`,
 `statuses.changed {projectId}`,
 `project.created | updated | deleted | moved {id}`, `gh.status {ok, reason}`,
-`personas.changed {id}`, `flows.changed {id}`, `agent-runs.changed {id}`, and `needs-you.changed {actorName}`.
+`personas.changed {id}`, `flows.changed {id}`, `agent-runs.changed {id}`, `sessions.changed {id}`, and `needs-you.changed {actorName}`.
 `packages/api/src/events.ts` holds the one list of names, and the `types=`
 parameter takes a name or a `prefix.*` form.
 

@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { cx } from "../../utils/cx";
+import { type ChartTone, chartFillClass, chartToneClass } from "../chartTones";
 
-// A tone is a palette color a series draws in. The four harnesses take the
-// four tones in this order, so a harness keeps its color on every page.
-export type UsageChartTone = "agent" | "accent" | "success" | "warning";
+export type UsageChartTone = ChartTone;
 
 export type UsageChartSeries = {
 	key: string;
 	label: string;
-	tone: UsageChartTone;
+	tone: ChartTone;
 	// One value per day of `days`, in the same order.
 	values: readonly number[];
 };
@@ -26,13 +25,6 @@ export type UsageChartProps = {
 	className?: string;
 };
 
-const toneClass: Record<UsageChartTone, string> = {
-	agent: "text-agent",
-	accent: "text-accent",
-	success: "text-success",
-	warning: "text-warning",
-};
-
 // The gridlines, top first, as the share of the top value each one marks.
 const GRID_LINES = [1, 0.75, 0.5, 0.25, 0] as const;
 
@@ -42,23 +34,17 @@ const niceMax = (max: number) => {
 	if (max <= 0) return 1;
 	const power = 10 ** Math.floor(Math.log10(max));
 	const unit = max / power;
-	const step = unit <= 1 ? 1 : unit <= 2 ? 2 : unit <= 5 ? 5 : 10;
+	const step = unit <= 1 ? 1 : unit <= 2 ? 2 : unit <= 2.5 ? 2.5 : unit <= 4 ? 4 : unit <= 5 ? 5 : 10;
 	return step * power;
 };
 
-// The x of day `index` on a 100-wide box, and the y of `value` on a
-// 100-tall box with 0 at the bottom.
-const x = (index: number, count: number) => (count === 1 ? 50 : (index / (count - 1)) * 100);
-const y = (value: number, top: number) => 100 - (value / top) * 100;
-
-// The layered area chart of the usage page. Every series is measured from
-// zero, and none is stacked on another: a stacked chart draws one series
-// above the other on every day, which reads as "that one is larger" also on
-// a day where it is not. The paths sit in an SVG that stretches to the box,
-// with a stroke that keeps its width. The axis labels are HTML, so they
-// never stretch. One button per day covers the chart, so a keyboard and a
-// screen reader reach every day, and a click selects a day for the caption
-// below the chart.
+// The stacked bar chart of the usage page: one bar per day, one segment per
+// series, bottom to top in series order. A stack is right for a sum such as
+// cost or tokens, because the top of the bar is the day total and each
+// segment is its share. The bars sit in an SVG that stretches to the box,
+// and the axis labels are HTML, so they never stretch. One button per day
+// covers the chart, so a keyboard and a screen reader reach every day, and
+// a click selects a day for the caption below the chart.
 export function UsageChart({
 	label,
 	days,
@@ -70,12 +56,15 @@ export function UsageChart({
 	className,
 }: UsageChartProps) {
 	const [hoverDay, setHoverDay] = useState<string | null>(null);
-	const top = niceMax(Math.max(0, ...series.flatMap((row) => row.values)));
 	const count = days.length;
+	const dayTotal = (index: number) => series.reduce((sum, row) => sum + (row.values[index] ?? 0), 0);
+	const top = niceMax(Math.max(0, ...days.map((_, index) => dayTotal(index))));
 	const captionDay = hoverDay ?? selectedDay;
 	const captionIndex = captionDay === null ? -1 : days.indexOf(captionDay);
 	const ticks = count >= 3 ? [0, Math.floor(count / 2), count - 1] : days.map((_, index) => index);
-	const dayTotal = (index: number) => series.reduce((sum, row) => sum + (row.values[index] ?? 0), 0);
+	// A bar takes 70% of its day slot, so a short range keeps a gap between bars.
+	const slot = 100 / Math.max(1, count);
+	const barWidth = slot * 0.7;
 
 	return (
 		<figure className={cx("flex min-w-0 flex-col gap-2", className)}>
@@ -98,39 +87,33 @@ export function UsageChart({
 						aria-label={label}
 						viewBox="0 0 100 100"
 						preserveAspectRatio="none"
-						className="absolute inset-0 size-full overflow-visible"
+						className="absolute inset-0 size-full"
 					>
-						{series.map((row) => {
-							const points = row.values.map((value, index) => `${x(index, count)},${y(value, top)}`);
-							const line = `M${points.join(" L")}`;
-							const area = `${line} L100,100 L0,100 Z`;
+						{days.map((day, index) => {
+							let stacked = 0;
+							const dim = captionIndex >= 0 && captionIndex !== index;
 							return (
-								<g key={row.key} className={toneClass[row.tone]} data-series={row.key}>
-									<path d={area} fill="currentColor" fillOpacity={0.12} stroke="none" />
-									<path
-										d={line}
-										fill="none"
-										stroke="currentColor"
-										strokeWidth={2}
-										strokeLinejoin="round"
-										vectorEffect="non-scaling-stroke"
-									/>
+								<g key={day} data-day={day} className={cx(dim && "opacity-60")}>
+									{series.map((row) => {
+										const value = row.values[index] ?? 0;
+										if (value <= 0) return null;
+										const height = (value / top) * 100;
+										stacked += height;
+										return (
+											<rect
+												key={row.key}
+												data-series={row.key}
+												x={index * slot + (slot - barWidth) / 2}
+												y={100 - stacked}
+												width={barWidth}
+												height={height}
+												className={chartFillClass[row.tone]}
+											/>
+										);
+									})}
 								</g>
 							);
 						})}
-						{captionIndex >= 0 && (
-							<line
-								x1={x(captionIndex, count)}
-								x2={x(captionIndex, count)}
-								y1={0}
-								y2={100}
-								stroke="currentColor"
-								strokeOpacity={0.5}
-								strokeDasharray="4 3"
-								vectorEffect="non-scaling-stroke"
-								className="text-fg"
-							/>
-						)}
 					</svg>
 					<div className="absolute inset-0 flex">
 						{days.map((day, index) => (
@@ -144,7 +127,10 @@ export function UsageChart({
 								onFocus={() => setHoverDay(day)}
 								onBlur={() => setHoverDay(null)}
 								onClick={() => onSelectDay(selectedDay === day ? null : day)}
-								className="min-w-0 flex-1 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+								className={cx(
+									"min-w-0 flex-1 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
+									selectedDay === day && "border-b-2 border-fg",
+								)}
 							/>
 						))}
 					</div>
@@ -164,31 +150,21 @@ export function UsageChart({
 				))}
 			</div>
 			<figcaption role="status" className="flex min-h-5 flex-wrap items-center gap-x-4 gap-y-1 pl-14 text-sm">
-				{captionIndex >= 0 ? (
-					<>
-						<span className="font-medium text-fg">{formatDay(days[captionIndex]!)}</span>
-						{series.map((row) => (
-							<span key={row.key} className="inline-flex items-center gap-1.5 text-fg-muted">
-								<span
-									aria-hidden="true"
-									className={cx("inline-block size-2 rounded-hairline bg-current", toneClass[row.tone])}
-								/>
-								{row.label}
-								<span className="text-fg tabular">{format(row.values[captionIndex] ?? 0)}</span>
-							</span>
-						))}
-					</>
-				) : (
-					series.map((row) => (
-						<span key={row.key} className="inline-flex items-center gap-1.5 text-fg-muted">
-							<span
-								aria-hidden="true"
-								className={cx("inline-block size-2 rounded-hairline bg-current", toneClass[row.tone])}
-							/>
-							{row.label}
-						</span>
-					))
+				{captionIndex >= 0 && (
+					<span className="font-medium text-fg tabular">
+						{formatDay(days[captionIndex]!)} · {format(dayTotal(captionIndex))}
+					</span>
 				)}
+				{series.map((row) => (
+					<span key={row.key} className="inline-flex min-w-0 items-center gap-1.5 text-fg-muted">
+						<span
+							aria-hidden="true"
+							className={cx("inline-block size-2 shrink-0 rounded-hairline bg-current", chartToneClass[row.tone])}
+						/>
+						<span className="truncate">{row.label}</span>
+						{captionIndex >= 0 && <span className="text-fg tabular">{format(row.values[captionIndex] ?? 0)}</span>}
+					</span>
+				))}
 			</figcaption>
 		</figure>
 	);

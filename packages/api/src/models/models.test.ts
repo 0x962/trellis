@@ -21,6 +21,8 @@ test("harness names round trip to canonical IDs", () => {
 		["codex", "openai/gpt-5.6-sol", "gpt-5.6-sol"],
 		["opencode", "google/gemini-3.8-flash", "vercel/google/gemini-3.8-flash"],
 		["pi", "meta/llama-4-scout", "vercel-ai-gateway/meta/llama-4-scout"],
+		["muse", "meta/muse-spark-1.3", "muse-spark-1.3"],
+		["muse", "meta/muse-spark-1.3-contributor", "muse-spark-1.3-contributor"],
 	] as const) {
 		expect(toHarnessModel(harness, canonical)).toBe(native);
 		expect(fromHarnessModel(harness, native)).toBe(canonical);
@@ -30,5 +32,15 @@ test("harness names round trip to canonical IDs", () => {
 	expect(fromHarnessModel("pi", "openai/gpt-5.6-sol")).toBe("openai/gpt-5.6-sol");
 	expect(fromHarnessModel("opencode", "anthropic/claude-sonnet-4-6")).toBe("anthropic/claude-sonnet-4.6");
 	expect(fromHarnessModel("codex", "openai/future-model")).toBe("openai/future-model");
+	expect(fromHarnessModel("muse", "meta/muse-spark-1.2")).toBe("meta/muse-spark-1.2");
 	expect(() => toHarnessModel("codex", "meta/llama-4-scout")).toThrow();
+});
+
+test("Muse offers only the Muse Spark models of the catalog", () => {
+	const ids = modelsForHarness("muse").map((model) => model.id);
+	expect(ids).toEqual(ids.filter((id) => id.startsWith("meta/muse-spark-")));
+	expect(ids).toContain("meta/muse-spark-1.3");
+	expect(ids).not.toContain("meta/llama-4-scout");
+	expect(HarnessSchema.safeParse({ preset: "muse", model: "anthropic/claude-opus-5" }).success).toBe(false);
+	expect(() => toHarnessModel("muse", "anthropic/claude-opus-5")).toThrow();
 });

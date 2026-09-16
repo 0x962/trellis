@@ -8,7 +8,10 @@ import type { UsageAccountRow } from "./roots.ts";
 // Every account, archived ones included: an archived account keeps its
 // transcripts on disk, and its name still belongs on the rows it produced.
 export const listUsageAccounts = (tx: Tx) =>
-	rows<UsageAccountRow>(tx, sql`SELECT name, harness, profile_path AS "profilePath" FROM harness_accounts`);
+	rows<UsageAccountRow>(
+		tx,
+		sql`SELECT name, harness, profile_path AS "profilePath", (is_default AND archived_at IS NULL) AS "isDefault" FROM harness_accounts`,
+	);
 
 type RunRow = Omit<UsageRun, "workDir">;
 

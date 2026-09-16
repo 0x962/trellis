@@ -27,6 +27,7 @@ test("a worker batch holds every line and the two commands", () => {
 	const text = chatBatchText(
 		{ runId: "r", personaName: "Reviewer", kind: "reviewer", projectPath: "TRL.web" },
 		[line(), line({ channel: "general", body: "second" })],
+		[],
 		{ locale: "en-CA", timeZone: "America/Toronto" },
 	);
 	expect(text.split("\n")).toEqual([
@@ -34,6 +35,37 @@ test("a worker batch holds every line and the two commands", () => {
 		"#ai Sep 09, 2026 at 08:34:56 AM EDT <Builder 01J8Z6X4Q3M2K1H0G9F8E7D6G1> rebase on main",
 		"#general Sep 09, 2026 at 08:34:56 AM EDT <Builder 01J8Z6X4Q3M2K1H0G9F8E7D6G1> second",
 		'Reply: trellis chat post TRL.web <channel> --body "..." Read more: trellis chat read TRL.web <channel>',
+	]);
+});
+
+test("context lines come before the new lines, for a worker and for a manager", () => {
+	const earlier = {
+		...line({ body: "who owns the migration?", actorKind: "human", actorName: "dana", actorDisplayName: null }),
+		direct: undefined,
+	} as unknown as PendingLine;
+	const worker = chatBatchText(
+		{ runId: "r", personaName: "Builder", kind: "builder", projectPath: "TRL" },
+		[line()],
+		[earlier],
+		{ locale: "en-CA", timeZone: "America/Toronto" },
+	);
+	expect(worker.split("\n").slice(0, 4)).toEqual([
+		"trellis chat: 1 new message in the TRL room.",
+		"Earlier, for context:",
+		"#ai Sep 09, 2026 at 08:34:56 AM EDT <dana> who owns the migration?",
+		"New:",
+	]);
+	const manager = JSON.parse(
+		chatBatchText({ runId: "m", personaName: "Trellis", kind: "manager", projectPath: "TRL" }, [line()], [earlier]),
+	);
+	expect(manager.context).toEqual([
+		{
+			id: "01J8Z6X4Q3M2K1H0G9F8E7D6M1",
+			channel: "ai",
+			body: "who owns the migration?",
+			createdAt: "2026-09-09T12:34:56.000Z",
+			actor: { kind: "human", name: "dana" },
+		},
 	]);
 });
 
@@ -53,6 +85,7 @@ test("a manager batch is one JSON document", () => {
 			},
 		],
 		mentioned: false,
+		context: [],
 		recipient: { runId: "m", personaName: "Trellis" },
 	});
 });

@@ -145,7 +145,7 @@ export const errors = {
 	},
 	INVALID_ANCHOR: {
 		status: 409,
-		message: "The after or before ticket is not in the target column.",
+		message: "The after or before item is not in the target list.",
 		data: z.undefined(),
 	},
 	CONCURRENCY_LIMIT: {
@@ -164,6 +164,23 @@ export const errors = {
 		status: 412,
 		message: "The flow changed since the version you sent. Read the flow again before you save.",
 		data: z.object({ version: z.number().int().positive() }),
+	},
+	// The database runs one search of a client at a time. A search that
+	// arrives while an earlier search of the same client still waits takes its
+	// place, and the earlier call ends with this code. The newer search is
+	// already running, so the client waits for it and reports no failure.
+	SEARCH_REPLACED: {
+		status: 409,
+		message: "A newer search replaced this search.",
+		data: z.undefined(),
+	},
+	// `command` is the tool the backup ran, `code` its exit status, and
+	// `stderr` the text it wrote. The message states all three, so a person
+	// reads why the copy or the archive stopped.
+	BACKUP_FAILED: {
+		status: 500,
+		message: "The backup command failed.",
+		data: z.object({ command: z.string().min(1), code: z.number().int(), stderr: z.string() }),
 	},
 	PAYLOAD_TOO_LARGE: {
 		status: 413,

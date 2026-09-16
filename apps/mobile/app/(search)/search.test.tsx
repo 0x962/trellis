@@ -9,7 +9,7 @@ import { layout } from "../../src/theme/layout";
 import { appContext } from "../../test/appContext";
 import { type BrowseData, oauthTitles, rootName, seedBrowse } from "../../test/browse";
 import { connect } from "../../test/connect";
-import type { Recorder } from "../../test/record";
+import { failureMessage, type Recorder } from "../../test/record";
 import { renderRoute } from "../../test/renderRoute";
 import { human } from "../../test/server";
 
@@ -150,6 +150,17 @@ describe("the Search tab", () => {
 		await waitFor(() => expect(shown()).toEqual([data.named]));
 		expect(screen.queryByText(rootName)).toBeNull();
 		expect(screen.queryByTestId(`project-row-${data.root}`)).toBeNull();
+	});
+
+	test("a refused search shows the reason the server sent", async () => {
+		await openSearch();
+		const restore = net.fail("search.query");
+		await search("oauth");
+
+		expect(await screen.findByText("Search failed")).toBeOnTheScreen();
+		expect(screen.getByText(failureMessage)).toBeOnTheScreen();
+		expect(shown()).toEqual([]);
+		restore();
 	});
 
 	test("a search with no hit shows an empty state", async () => {

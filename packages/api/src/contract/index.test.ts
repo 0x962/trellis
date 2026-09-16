@@ -30,6 +30,7 @@ describe("contract", () => {
 		expect(table).toEqual([
 			"actors.default GET /actors/default",
 			"actors.list GET /actors",
+			"agentRuns.capacity GET /agent-runs/capacity",
 			"agentRuns.interrupt POST /agent-runs/{id}/interrupt",
 			"agentRuns.list GET /agent-runs",
 			"agentRuns.output GET /agent-runs/{id}/output",
@@ -138,6 +139,11 @@ describe("contract", () => {
 			"reviews.submit POST /reviews/submit",
 			"reviews.thread GET /reviews/threads/{id}",
 			"search.query GET /search",
+			"sessions.create POST /sessions",
+			"sessions.delete DELETE /sessions/{id}",
+			"sessions.get GET /sessions/{id}",
+			"sessions.list GET /sessions",
+			"sessions.start POST /sessions/{id}/start",
 			"settings.get GET /settings",
 			"settings.set PUT /settings",
 			"statuses.clear DELETE /projects/{project}/statuses",
@@ -172,8 +178,10 @@ describe("contract", () => {
 			"tickets.update PATCH /tickets/{ticket}",
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
+			"usage.accounts GET /usage/accounts",
+			"usage.report GET /usage",
 		]);
-		expect(table).toHaveLength(144);
+		expect(table).toHaveLength(152);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has
@@ -201,5 +209,10 @@ describe("contract", () => {
 		expects("tickets.list", ["INVALID_CURSOR"]);
 		expects("pullRequests.link", ["INVALID_PR_URL", "GH_UNAVAILABLE"]);
 		expects("attachments.upload", ["PAYLOAD_TOO_LARGE"]);
+		expects("agentRuns.start", ["CONCURRENCY_LIMIT"]);
+		expects("agentRuns.resume", ["CONCURRENCY_LIMIT"]);
+		expects("agentRuns.setModel", ["CONCURRENCY_LIMIT"]);
+		expects("system.backup", ["BACKUP_FAILED"]);
+		expects("search.query", ["SEARCH_REPLACED"]);
 	});
 });

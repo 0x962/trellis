@@ -31,8 +31,8 @@ const serviceKey = [...desktopKey, "service"];
 const updateKey = [...desktopKey, "update"];
 
 // The settings and service actions of the macOS app. The desktop main process
-// runs each action. Choose data directory and Stop local work ask for a native
-// confirmation before they change anything.
+// runs each action. Choose data directory and Quit Trellis Completely ask for
+// a native confirmation before they change anything.
 export function DesktopSettings({ bridge }: { bridge: DesktopBridge }) {
 	const queryClient = useQueryClient();
 	const status = useQuery({
@@ -159,20 +159,20 @@ export function DesktopSettings({ bridge }: { bridge: DesktopBridge }) {
 					<p className="text-sm text-fg-muted">The development app has no package.</p>
 				)}
 			</SettingsRow>
-			<SettingsRow
-				label="Local work"
-				hint="Stop pauses local dispatch, stops local agent processes, disables the background service, and quits Trellis. Resume allows new local launches."
-			>
-				<div className="flex items-center gap-2">
-					{button("Stop local work and background service", "stopLocalWork", <StopCircle />, { danger: true })}
-					{button("Resume local work", "resumeLocalWork", <Play />)}
-				</div>
+			<SettingsRow label="Local work" hint="Resume allows new local launches after a complete quit.">
+				<div className="flex items-center gap-2">{button("Resume local work", "resumeLocalWork", <Play />)}</div>
 			</SettingsRow>
 			<SettingsRow label="Host connection" hint="Connect to the local host again and reload this window.">
 				<div className="flex items-center gap-2">{button("Reconnect host", "reconnectHost", <ArrowsClockwise />)}</div>
 			</SettingsRow>
-			<SettingsRow label="Quit" hint="Close the Trellis app. The host and its agents keep running.">
-				<div className="flex items-center gap-2">{button("Quit Trellis (keep agents running)", "quit", <Power />)}</div>
+			<SettingsRow
+				label="Quit"
+				hint="Quit Trellis closes the app; the host and its agents keep running. Quit Trellis Completely pauses local dispatch, stops the local agent processes, disables the background service, and quits."
+			>
+				<div className="flex items-center gap-2">
+					{button("Quit Trellis", "quit", <Power />)}
+					{button("Quit Trellis Completely", "stopLocalWork", <StopCircle />, { danger: true })}
+				</div>
 			</SettingsRow>
 		</>
 	);

@@ -33,6 +33,37 @@ test("a failed shell cannot supply a reduced execution environment", async () =>
 	);
 	await expect(get()).rejects.toThrow("Login shell failed (exit 42).");
 	await expect(get()).rejects.toThrow("Login shell failed (exit 42).");
+	expect(resolve).toHaveBeenCalledTimes(2);
+});
+
+test("a later tool request runs the login shell again after a failed run", async () => {
+	let runs = 0;
+	const resolve = mock(async () => {
+		runs += 1;
+		if (runs === 1) throw new Error("The login shell did not answer within 20000 ms.");
+		return { PATH: "/release/bin:/user/bin" };
+	});
+	const get = createExecutionEnvironment(
+		{ TRELLIS_EXECUTION_SHELL: "/bin/zsh", TRELLIS_EXECUTION_BIN: "/release/bin", PATH: "/usr/bin" },
+		resolve,
+	);
+	await expect(get()).rejects.toThrow("The login shell did not answer within 20000 ms.");
+	expect(await get()).toMatchObject({ PATH: "/release/bin:/user/bin" });
+	expect(resolve).toHaveBeenCalledTimes(2);
+});
+
+test("two callers that wait at the same time share one login shell run", async () => {
+	const pending = Promise.withResolvers<NodeJS.ProcessEnv>();
+	const resolve = mock(() => pending.promise);
+	const get = createExecutionEnvironment(
+		{ TRELLIS_EXECUTION_SHELL: "/bin/zsh", TRELLIS_EXECUTION_BIN: "/release/bin" },
+		resolve,
+	);
+	const both = Promise.all([get(), get()]);
+	pending.resolve({ PATH: "/release/bin:/user/bin" });
+	const [first, second] = await both;
+	expect(first).toMatchObject({ PATH: "/release/bin:/user/bin" });
+	expect(second).toEqual(first!);
 	expect(resolve).toHaveBeenCalledTimes(1);
 });
 

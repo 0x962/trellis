@@ -46,6 +46,23 @@ export async function transferSession(input: Input) {
 			throw new Error("OpenCode did not confirm the imported session.");
 		return;
 	}
+	if (harness === "muse") {
+		// A Muse session is one directory under `muse/sessions/<date>/<id>/`
+		// that holds `session.jsonl` and its sidecar files. The resumed host
+		// reads the copied directory without the session index of the source.
+		const candidates = await Array.fromAsync(
+			new Bun.Glob(`muse/sessions/**/${sessionId}/session.jsonl`).scan({ cwd: from, followSymlinks: true }),
+		);
+		if (candidates.length !== 1)
+			throw new Error(`Cannot identify one saved muse session ${sessionId} in its account profile.`);
+		const relative = dirname(candidates[0]!);
+		const source = join(from, relative),
+			target = join(to, relative);
+		if (existsSync(target) && (await realpath(source)) === (await realpath(target))) return;
+		await mkdir(dirname(target), { recursive: true, mode: 0o700 });
+		await cp(source, target, { recursive: true });
+		return;
+	}
 	const pattern = harness === "claude" ? "projects/*/*.jsonl" : "sessions/**/*.jsonl";
 	const candidates = await Array.fromAsync(new Bun.Glob(pattern).scan({ cwd: from, followSymlinks: true }));
 	const matches = candidates.filter((path) => {

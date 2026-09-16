@@ -8,6 +8,7 @@ export const HARNESS_DEFAULT_MODELS = {
 	codex: "openai/gpt-5.6-sol",
 	opencode: "anthropic/claude-opus-5",
 	pi: "openai/gpt-5.6-sol",
+	muse: "meta/muse-spark-1.3",
 } as const;
 
 export const HARNESS_PRESETS = {
@@ -24,8 +25,14 @@ export const HARNESS_PRESETS = {
 		startCommand: "pi --tools read,bash,edit,write,grep,find,ls {{prompt}}",
 		resumeCommand: "pi --tools read,bash,edit,write,grep,find,ls --continue {{resumeText}}",
 	},
+	// `muse resume` takes no prompt argument, so a custom Muse resume opens
+	// the last session and a person types the instruction.
+	muse: {
+		startCommand: "muse --yolo {{prompt}}",
+		resumeCommand: "muse --yolo resume --last",
+	},
 };
-export const HarnessPresetSchema = z.enum(["claude", "codex", "opencode", "pi", "custom"]);
+export const HarnessPresetSchema = z.enum(["claude", "codex", "opencode", "pi", "muse", "custom"]);
 export type HarnessPreset = z.infer<typeof HarnessPresetSchema>;
 export const HarnessSchema = z
 	.strictObject({

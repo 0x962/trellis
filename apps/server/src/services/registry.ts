@@ -56,6 +56,10 @@ import * as reviewSubmissions from "./reviews/submissions";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
+import { prepareCreate as createSession } from "./sessions/create.ts";
+import { prepareDelete as deleteSession } from "./sessions/remove.ts";
+import * as sessions from "./sessions/sessions.ts";
+import { prepareStart as startSession } from "./sessions/start.ts";
 import * as settings from "./settings.ts";
 import * as statuses from "./statuses.ts";
 import { list as listSubmanagers } from "./submanagers/list.ts";
@@ -66,6 +70,7 @@ import type { IoCtx, PrepareCtx } from "./support.ts";
 import * as system from "./system.ts";
 import * as tickets from "./tickets.ts";
 import * as timeline from "./timeline.ts";
+import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
 import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
 
 // The `family` selects the context shape. The `kind` sets the worker queue
@@ -107,7 +112,19 @@ const agentMutation = (prepare: Prepare) =>
 		agentRuns.finish,
 	);
 
+const sessionMutation = (prepare: Prepare) =>
+	prepared(
+		"mutation",
+		async (ctx, input) => sessions.observe(ctx, (await prepare(ctx, input)) as { id: string }),
+		sessions.finish,
+	);
+
 export const services = {
+	"sessions.list": core("read", sessions.list),
+	"sessions.get": prepared("read", sessions.observe, agentTerminal.result),
+	"sessions.create": sessionMutation(createSession),
+	"sessions.start": sessionMutation(startSession),
+	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
 	"submanagers.list": prepared(
 		"read",
 		async (ctx, input) => ({ ...input, sessions: await readRuntimeSessions(ctx.home) }),
@@ -126,6 +143,7 @@ export const services = {
 	"harnessAccounts.remove": io("mutation", harnessAccounts.remove),
 	"harnessAccounts.quota": prepared("read", prepareQuota, agentTerminal.result),
 	"usage.report": prepared("read", prepareUsageReport, agentTerminal.result),
+	"usage.accounts": prepared("read", prepareUsageAccounts, agentTerminal.result),
 	"flowExecutions.start": core("mutation", startFlowExecution),
 	"flowExecutions.get": core("read", getFlowExecution),
 	"flowExecutions.list": core("read", listFlowExecutions),
@@ -191,6 +209,7 @@ export const services = {
 	"controller.resolveUnknown": core("mutation", controller.resolveUnknown),
 	"controller.dispatch": prepared("mutation", controllerDispatch.dispatch, controllerDispatch.finished),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
+	"agentRuns.capacity": prepared("read", agentRuns.prepareCapacity, agentTerminal.result),
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
 	"agentRuns.start": agentMutation(agentRuns.prepareStart),
 	"agentRuns.resume": agentMutation(prepareResume),

@@ -1,4 +1,5 @@
 import type { RuntimeClient } from "@trellis/runtime-protocol/client";
+import { unconfirmedDelivery } from "../deliveries/sentences.ts";
 
 export async function waitForReceipt(
 	client: Pick<RuntimeClient, "subscribeSession">,
@@ -11,17 +12,11 @@ export async function waitForReceipt(
 		for await (const event of client.subscribeSession(attemptId, signal)) {
 			if (event.type !== "session") continue;
 			if (event.session.acknowledgedMessageIds.includes(messageId)) return event.session;
-			if (event.session.status !== "running")
-				throw new Error(
-					"The agent process is not confirmed running. It did not acknowledge this message. Inspect its terminal before a resend.",
-				);
+			if (event.session.status !== "running") throw new Error(unconfirmedDelivery);
 		}
-		throw new Error("The agent did not acknowledge this message. Inspect its terminal before a resend.");
+		throw new Error(unconfirmedDelivery);
 	} catch (error) {
-		if (signal.aborted)
-			throw new Error(
-				`The agent did not acknowledge this message within ${timeoutMs / 1000} seconds. Inspect its terminal before a resend.`,
-			);
+		if (signal.aborted) throw new Error(unconfirmedDelivery);
 		throw error;
 	}
 }

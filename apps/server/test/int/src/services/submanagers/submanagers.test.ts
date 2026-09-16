@@ -13,8 +13,8 @@ import { resize } from "../../../../../src/services/submanagers/resize.ts";
 import { release } from "../../../../../src/services/submanagers/retire.ts";
 import { seedActors, seedChild, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
-import { controllerSession } from "../../../../helpers/controllerSession.ts";
-import { type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
+import { controllerSession, workingSession } from "../../../../helpers/controllerSession.ts";
+import { expectErrorData, type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
 let h: Harness;
@@ -82,17 +82,21 @@ test("a submanager receives its subtree events without a configured manager or p
 
 test("the dedicated capacity covers workers across the whole delegated subtree", async () => {
 	const { run } = await delegate();
-	await h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: "builder" }), {
+	const worker = await h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: "builder" }), {
 		actor: { kind: "agent", name: run.id },
 	});
-	expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf }))).toBe(false);
-	await expect(
-		h.run((ctx, tx) => reserve(ctx, tx, { ticket: otherTicket, personaId: "builder" }), {
-			actor: { kind: "agent", name: run.id },
-		}),
-	).rejects.toThrow();
-	await h.run((ctx, tx) => resize(ctx, tx, { id: run.id, capacity: 2 }), parent);
-	expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf }))).toBe(true);
+	const sessions = [workingSession(worker.run.terminalId!)];
+	expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf, sessions }))).toBe(false);
+	// The leaf project permits 3 concurrent worker turns and runs none. The
+	// budget of the delegation stops this start, so the refusal states that
+	// budget and the worker turns of the whole subtree.
+	const refused = h.run(
+		(ctx, tx) => reserve(ctx, tx, { ticket: otherTicket, personaId: "builder" }, [], { sessions }),
+		{ actor: { kind: "agent", name: run.id } },
+	);
+	expect(await expectErrorData(refused, "CONCURRENCY_LIMIT")).toEqual({ limit: 1, running: 1 });
+	await h.run((ctx, tx) => resize(ctx, tx, { id: run.id, capacity: 2, sessions }), parent);
+	expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf, sessions }))).toBe(true);
 });
 
 test("a repeated start preserves one submanager and rejects a changed request", async () => {
@@ -149,16 +153,19 @@ test("nested delegations reserve capacity that the parent cannot consume", async
 			}),
 		{ actor: { kind: "agent", name: run.id } },
 	);
-	await h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: "builder" }), {
+	const worker = await h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: "builder" }), {
 		actor: { kind: "agent", name: run.id },
 	});
-	expect(await h.read((tx) => capacityAvailable(tx, { projectId: child }))).toBe(false);
+	const sessions = [workingSession(worker.run.terminalId!)];
+	expect(await h.read((tx) => capacityAvailable(tx, { projectId: child, sessions }))).toBe(false);
 	if (!nested.replay) expect(nested.config.harness).toMatchObject({ preset: "codex", model: "openai/gpt-5.6-sol" });
-	expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf }))).toBe(true);
+	expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf, sessions }))).toBe(true);
 	await expect(
-		h.run((ctx, tx) => resize(ctx, tx, { id: nested.run.id, capacity: 2 }), { actor: { kind: "agent", name: run.id } }),
+		h.run((ctx, tx) => resize(ctx, tx, { id: nested.run.id, capacity: 2, sessions }), {
+			actor: { kind: "agent", name: run.id },
+		}),
 	).rejects.toThrow();
-	await expect(h.run((ctx, tx) => resize(ctx, tx, { id: run.id, capacity: 1 }), parent)).rejects.toThrow();
+	await expect(h.run((ctx, tx) => resize(ctx, tx, { id: run.id, capacity: 1, sessions }), parent)).rejects.toThrow();
 });
 
 test("a handoff preserves a saved wait and its assignment request through delegation and retirement", async () => {
@@ -276,11 +283,12 @@ test("a parent cannot start another delegation while its dispatch is paused", as
 	await expect(delegate()).rejects.toThrow();
 });
 
-test("an archived descendant retains its wait and still consumes its reserved worker slot", async () => {
+test("an archived descendant retains its wait and still consumes its active worker slot", async () => {
 	const { run } = await delegate();
-	await h.run((ctx, tx) => reserve(ctx, tx, { ticket: otherTicket, personaId: "builder" }), {
+	const worker = await h.run((ctx, tx) => reserve(ctx, tx, { ticket: otherTicket, personaId: "builder" }), {
 		actor: { kind: "agent", name: run.id },
 	});
+	const sessions = [workingSession(worker.run.terminalId!)];
 	await h.rows(sql`INSERT INTO manager_next_actions (id,project_id,ticket_id,status_id,assignment_request_id,reason,created_at)
 		SELECT 'archived-wait',${child},id,status_id,'later','Wait.',${NOW} FROM tickets WHERE id=${otherTicket}`);
 	await h.rows(sql`UPDATE projects SET archived_at=${NOW} WHERE id=${leaf}`);
@@ -289,7 +297,7 @@ test("an archived descendant retains its wait and still consumes its reserved wo
 		state: "waiting",
 		eligible_at: null,
 	});
-	expect(await h.read((tx) => capacityAvailable(tx, { projectId: child }))).toBe(false);
+	expect(await h.read((tx) => capacityAvailable(tx, { projectId: child, sessions }))).toBe(false);
 });
 
 test("idle workers retain ownership without consuming a delegated budget", async () => {
@@ -307,4 +315,19 @@ test("idle workers retain ownership without consuming a delegated budget", async
 	await expect(
 		h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: "builder" }, [], { sessions }), { actor }),
 	).rejects.toThrow();
+});
+
+test("delegated budgets count a worker only after ten seconds of continuous work", async () => {
+	const { run } = await delegate();
+	const worker = await h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: "builder" }), {
+		actor: { kind: "agent", name: run.id },
+	});
+	const { usage } = await import("../../../../../src/services/submanagers/queries.ts");
+	for (const duration of [9_999, 10_000]) {
+		const sessions = [workingSession(worker.run.terminalId!, duration)];
+		expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf, sessions }))).toBe(duration < 10_000);
+		expect(await h.read((tx) => usage(tx, { projectId: child, runId: run.id, sessions }))).toMatchObject({
+			activeWorkers: duration < 10_000 ? 0 : 1,
+		});
+	}
 });

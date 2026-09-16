@@ -89,7 +89,9 @@ trellis list --project TRL --json
 ### The pages
 
 `/` sends you to Needs you. The sidebar holds Needs you, Search, All tickets,
-Pull requests, Personas, Flows, Usage, and the project tree.
+Pull requests, Personas, Flows, Usage, the sessions, and the project tree.
+A session is a scratch git repository with one agent, outside every project.
+The New session button in the sidebar starts one from a prompt.
 
 | Path | Page |
 |---|---|
@@ -102,6 +104,7 @@ Pull requests, Personas, Flows, Usage, and the project tree.
 | `/p/TRL/settings` | The settings of a project |
 | `/p/TRL/settings/manager` | The manager agent of a project |
 | `/t/TRL-42` | One ticket |
+| `/sessions/<id>` | One session: the terminal of its agent and the process controls |
 | `/search` | Search |
 | `/ai/personas` | The personas |
 | `/usage` | Subscription quota, token cost per day, and a breakdown by ticket, persona, project, kind, account, model, or harness |

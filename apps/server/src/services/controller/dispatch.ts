@@ -3,6 +3,8 @@ import { prepareSend } from "../agentRuns/communication.ts";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
 import { dispatchChat } from "../chat/dispatch.ts";
 import { dispatchMentions } from "../commentMentions/dispatch.ts";
+import { reconcileUnknownDeliveries } from "../deliveries/reconcileUnknown.ts";
+import { unconfirmedDelivery } from "../deliveries/sentences.ts";
 import type { ServiceCtx } from "../support.ts";
 import { agentContext } from "./agentContext/index.ts";
 import { claim, complete, defer } from "./controller.ts";
@@ -20,6 +22,7 @@ export const dispatch = async (ctx: Ctx) => {
 	await dispatchMentions(ctx, sessions);
 	await dispatchChat(ctx, sessions);
 	await ctx.newTx((tx) => reconcile({ now: ctx.now() }, tx, { sessions }));
+	await reconcileUnknownDeliveries(ctx, { sessions });
 	const deliveries: Dispatch[] = [];
 	for (let i = 0; i < 20; i++) {
 		const delivery = await ctx.newTx((tx) => claim({ now: ctx.now() }, tx, { sessions }));
@@ -50,10 +53,14 @@ export const dispatch = async (ctx: Ctx) => {
 				if (sent.skipped) state = "canceled";
 			} catch (cause) {
 				state = "unknown";
-				error = cause instanceof Error ? cause.message : String(cause);
+				error = unconfirmedDelivery;
 				if (!attempted) {
 					await ctx.newTx((tx) =>
-						defer({ now: ctx.now() }, tx, { id: delivery.id, generation: delivery.generation, error }),
+						defer({ now: ctx.now() }, tx, {
+							id: delivery.id,
+							generation: delivery.generation,
+							error: cause instanceof Error ? cause.message : String(cause),
+						}),
 					);
 					return;
 				}

@@ -1,10 +1,10 @@
 import { basename } from "node:path";
 import type {
-	AccountHarness,
 	UsageDay,
 	UsageDays,
 	UsageGroupBy,
 	UsageGroupRow,
+	UsageHarness,
 	UsageReport,
 	UsageSession,
 	UsageTotals,
@@ -39,6 +39,13 @@ export type UsageReportInputs = {
 	scannedFiles: number;
 	runs: readonly UsageRun[];
 	projects: readonly UsageProject[];
+	// The account that owns a session, by session id, from the state file of
+	// each profile. Several profiles can share one transcript directory, so
+	// the directory alone cannot name the account.
+	sessionAccounts: ReadonlyMap<string, string>;
+	// The default account of each harness. A run with no account of its own
+	// launched with the default profile, so its usage belongs to that account.
+	defaultAccounts: Partial<Record<UsageHarness, string>>;
 	days: UsageDays;
 	cutoffMs: number;
 	now: Date;
@@ -49,11 +56,12 @@ const MAX_GROUP_ROWS = 100;
 const MAX_SESSIONS = 200;
 const OUTSIDE = "outside";
 
-const HARNESS_LABELS: Record<AccountHarness, string> = {
+const HARNESS_LABELS: Record<UsageHarness, string> = {
 	claude: "Claude Code",
 	codex: "Codex",
 	pi: "Pi",
 	opencode: "OpenCode",
+	muse: "Muse",
 };
 
 const KIND_LABELS: Record<string, string> = { builder: "Builders", reviewer: "Reviewers", manager: "Managers" };
@@ -82,7 +90,7 @@ const isUnder = (path: string, prefix: string) => path === prefix || path.starts
 
 const projectHref = (path: string) => `/p/${path.split(".").join("/")}`;
 
-type RowLabel = { label: string; detail: string | null; href: string | null; harness: AccountHarness | null };
+type RowLabel = { label: string; detail: string | null; href: string | null; harness: UsageHarness | null };
 
 type Attribution = { run: UsageRun | null; project: { path: string; name: string } | null; other: string | null };
 
@@ -112,6 +120,7 @@ function attribute(
 function groupKeys(
 	entry: CollectedEntry,
 	attribution: Attribution,
+	input: Pick<UsageReportInputs, "sessionAccounts" | "defaultAccounts">,
 ): Record<UsageGroupBy, { key: string; label: RowLabel }> {
 	const { run, project, other } = attribution;
 	const outside: RowLabel = {
@@ -148,7 +157,11 @@ function groupKeys(
 	const kind = run
 		? { key: `kind:${run.kind}`, label: plain(KIND_LABELS[run.kind] ?? run.kind) }
 		: { key: OUTSIDE, label: outside };
-	const accountName = run?.accountName ?? (entry.accounts.length === 1 ? entry.accounts[0]! : null);
+	const accountName =
+		run?.accountName ??
+		(run ? input.defaultAccounts[entry.harness] : undefined) ??
+		input.sessionAccounts.get(entry.sessionId) ??
+		(entry.accounts.length === 1 ? entry.accounts[0]! : null);
 	const account = accountName
 		? { key: `account:${accountName}`, label: plain(accountName, HARNESS_LABELS[entry.harness]) }
 		: entry.accounts.length > 1
@@ -183,7 +196,7 @@ type GroupAccumulator = {
 
 type SessionAccumulator = {
 	sessionId: string;
-	harness: AccountHarness;
+	harness: UsageHarness;
 	usd: number;
 	tokens: number;
 	turns: number;
@@ -237,7 +250,7 @@ export function computeUsageReport(input: UsageReportInputs): UsageReport {
 		const tokens = entryTokens(entry);
 		const day = dayKey(entry.timestampMs);
 		const attribution = attribute(entry, runsBySession, runsByWorkDir, projectsByDirectory);
-		const keys = groupKeys(entry, attribution);
+		const keys = groupKeys(entry, attribution, input);
 
 		let bucket = bucketsByDay.get(day);
 		if (!bucket) {

@@ -1,8 +1,25 @@
 import { z } from "zod";
 import { ModelIdSchema } from "../models/models.ts";
+import { ProjectRefStringSchema } from "../refs.ts";
 import { PersonaKindSchema } from "./persona.ts";
-import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
+export const AgentCapacitySchema = z.object({
+	used: CountSchema,
+	limit: CountSchema,
+});
+export type AgentCapacity = z.infer<typeof AgentCapacitySchema>;
+
+export const AgentCapacityInputSchema = z.strictObject({
+	project: ProjectRefStringSchema,
+});
+export type AgentCapacityInput = z.input<typeof AgentCapacityInputSchema>;
+
+// The kinds of an agent run: the three persona kinds, and `session` for the
+// agent of a scratch session, which has no persona, no project, and no
+// ticket.
+export const AgentRunKindSchema = z.enum([...PersonaKindSchema.options, "session"]);
+export type AgentRunKind = z.infer<typeof AgentRunKindSchema>;
 export const AgentRunSchema = z.object({
 	id: UlidSchema,
 	name: z.string(),
@@ -10,7 +27,7 @@ export const AgentRunSchema = z.object({
 	runtime: z.enum(["native", "superset", "tmux", "commands"]),
 	personaId: UlidSchema.nullable(),
 	personaName: z.string(),
-	kind: PersonaKindSchema,
+	kind: AgentRunKindSchema,
 	instruction: z.string(),
 	projectId: UlidSchema.nullable(),
 	projectPath: z.string(),

@@ -44,6 +44,9 @@ const NotesPage = lazy(async () => ({
 const projectOptions = (context: AppContext, ref: string) =>
 	context.orpc.projects.get.queryOptions({ input: { project: ref } });
 
+const capacityOptions = (context: AppContext, ref: string) =>
+	context.orpc.agentRuns.capacity.queryOptions({ input: { project: ref } });
+
 // A negated status goes out as the rest of `statuses`, so every counts
 // query of the route takes the project's statuses.
 const countsOptions = (context: AppContext, ref: string, search: Partial<View>, statuses: readonly Status[]) =>
@@ -76,7 +79,10 @@ export const Route = createFileRoute("/p/$")({
 			return;
 		}
 		if (view !== "settings") {
-			await context.queryClient.ensureQueryData(countsOptions(context, ref, deps, project.statuses));
+			await Promise.all([
+				context.queryClient.ensureQueryData(countsOptions(context, ref, deps, project.statuses)),
+				...(view === "board" ? [context.queryClient.ensureQueryData(capacityOptions(context, ref))] : []),
+			]);
 		}
 	},
 	component: ProjectPage,
@@ -101,6 +107,7 @@ function ProjectPage() {
 	const routeKey = projectHref(ref);
 	// The loader fills this cache entry, so the board footer reads it on the first paint.
 	const counts = useQuery(countsOptions(context, ref, search, project.statuses)).data;
+	const capacity = useQuery({ ...capacityOptions(context, ref), enabled: view === "board" }).data;
 
 	if (view === "settings" || view === "manager" || view === "chat" || view === "notes") {
 		return (
@@ -183,6 +190,7 @@ function ProjectPage() {
 									projectRef={ref}
 									filters={toCountsQuery(full, { statuses: project.statuses })}
 									storageKey={ref}
+									capacity={capacity}
 									onOpenTicket={openTicket}
 								/>
 							</div>

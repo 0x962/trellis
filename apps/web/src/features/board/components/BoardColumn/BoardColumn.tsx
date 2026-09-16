@@ -1,5 +1,5 @@
 import { CaretRight, DotsThree, Plus } from "@phosphor-icons/react";
-import { Button, cx, IconButton, Menu, StatusIcon } from "@trellis/ui";
+import { AgentCapacityBadge, Button, cx, IconButton, Menu, StatusIcon } from "@trellis/ui";
 import { type KeyboardEvent, useCallback, useRef } from "react";
 import { useBoardAutoScroll, useColumnDnd } from "../../hooks/useBoardDnd";
 import type { BoardColumnModel } from "../../types";
@@ -17,6 +17,9 @@ export type BoardColumnProps = {
 	width: string;
 	// True in the light theme: the column is a grey well that holds white cards.
 	well: boolean;
+	// The concurrency slots of the project, shown in the header of the column
+	// whose tickets occupy them.
+	capacity?: { used: number; limit: number };
 	onToggle: () => void;
 	onShowAllDone: () => void;
 	// Opens the New ticket form with the project and the column's status.
@@ -44,6 +47,7 @@ export function BoardColumn({
 	categoryMode,
 	width,
 	well,
+	capacity,
 	onToggle,
 	onShowAllDone,
 	onNewTicket,
@@ -111,6 +115,7 @@ export function BoardColumn({
 				<h2 className="truncate text-base font-medium">{column.name}</h2>
 				<span className="text-sm text-fg-faint tabular">{count}</span>
 				{column.wipLimit !== null && <WipBadge count={column.count} limit={column.wipLimit} />}
+				{capacity !== undefined && <AgentCapacityBadge used={capacity.used} limit={capacity.limit} />}
 				<span className={cx("ml-auto flex items-center gap-0.5", revealed)}>
 					<IconButton
 						label={`New ticket in ${column.name}`}

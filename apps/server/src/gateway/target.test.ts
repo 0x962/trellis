@@ -13,3 +13,15 @@ test("preserves unrelated routes and redirects legacy Margin links into Trellis"
 	expect(gatewayTarget("http://dots.localhost/runs", { dots: 4517 })?.kind).toBe("proxy");
 	expect(gatewayTarget("http://unregistered.localhost/", {})).toBeNull();
 });
+
+// A person writes the routes file, so it can hold a value that is no TCP
+// port. The gateway answers 502 with this message instead of a crash.
+test("a routes entry that holds no TCP port names itself in an invalid target", () => {
+	expect(gatewayTarget("http://dots.localhost/runs", { dots: 0 })).toEqual({
+		kind: "invalid",
+		message: "Invalid gateway port for dots.",
+	});
+	for (const port of [-1, 65536, 4517.5, Number.NaN, "4517" as unknown as number]) {
+		expect(gatewayTarget("http://dots.localhost/runs", { dots: port })?.kind, String(port)).toBe("invalid");
+	}
+});

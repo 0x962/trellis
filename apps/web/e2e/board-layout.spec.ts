@@ -46,3 +46,12 @@ test("every column name sits at the same height when one column overflows", asyn
 	const top = names[0]!.split(" ").pop();
 	expect(names).toEqual(names.map((name) => name.replace(/\d+$/, top!)));
 });
+
+// The concurrency slots of a project belong to the column whose tickets
+// occupy them, so the badge sits in the In Progress header and nowhere else.
+test("the agent capacity badge sits in the In Progress column header", async ({ page }) => {
+	await signIn(page, "/p/BRD/board");
+	const badge = page.getByRole("status", { name: /concurrency slots in use$/ });
+	await expect(badge).toHaveCount(1);
+	await expect(page.locator('section[data-category="started"] header').getByRole("status")).toHaveText(/^\d+\/\d+$/);
+});

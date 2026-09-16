@@ -8,6 +8,7 @@ import { projectSlashPath } from "../../../lib/projectPath";
 
 const labels = {
 	canceled: "Canceled",
+	failed: "Not delivered",
 	pending: "Queued",
 	sending: "Send in progress",
 	sent: "Written to agent",
@@ -70,7 +71,9 @@ export function ManagerQueue({ projectId }: { projectId?: string }) {
 										"Project manager"
 									)}
 								</span>
-								<Badge tone={row.state === "unknown" ? "bad" : "neutral"}>{labels[row.state]}</Badge>
+								<Badge tone={row.state === "unknown" || row.state === "failed" ? "bad" : "neutral"}>
+									{labels[row.state]}
+								</Badge>
 							</div>
 							<p className="text-sm text-fg-muted">
 								{row.events.length === 0

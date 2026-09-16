@@ -20,6 +20,7 @@ export * from "./pullRequest.ts";
 export * from "./review.ts";
 export * from "./reviewImport";
 export * from "./search.ts";
+export * from "./session.ts";
 export * from "./settings.ts";
 export * from "./status.ts";
 export * from "./system.ts";

@@ -31,7 +31,7 @@ const dispatch = z.object({
 	terminalId: z.string().nullable(),
 	sessionId: z.string().nullable(),
 	generation: z.number(),
-	state: z.enum(["pending", "sending", "sent", "unknown", "canceled"]),
+	state: z.enum(["pending", "sending", "sent", "unknown", "canceled", "failed"]),
 	workState: z.enum(["untracked", "open", "handled"]),
 	outcomes: z.array(outcome),
 	nextActions: z.array(managerNextAction),

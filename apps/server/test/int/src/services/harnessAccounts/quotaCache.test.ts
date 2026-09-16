@@ -25,7 +25,7 @@ test("quota reads share a cached result and enforce the refresh interval", async
 		calls++;
 		return {
 			accountId: "cache",
-			status: "unsupported",
+			status: "unlimited",
 			email: null,
 			plan: null,
 			detail: null,

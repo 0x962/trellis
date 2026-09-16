@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { ticketSummary } from "../../test/fixtures.ts";
-import { ListQuerySchema, TicketSummarySchema } from "./ticket.ts";
+import { ListQuerySchema, TicketCreateInputSchema, TicketSummarySchema } from "./ticket.ts";
 
 describe("ListQuerySchema", () => {
 	// The same string reaches the server from the web URL, the CLI flags, and
@@ -65,4 +65,19 @@ describe("TicketSummarySchema", () => {
 		expect(TicketSummarySchema.safeParse({ ...summary, createdAt: "not a date" }).success).toBe(false);
 		expect(TicketSummarySchema.safeParse({ ...summary, priority: "critical" }).success).toBe(false);
 	});
+});
+
+// A person types a title in a form and on the command line. Zod words a broken
+// bound as "Too small: expected string to have >=1 characters", so each bound
+// carries a sentence instead.
+test("a title out of bounds reads as a sentence", () => {
+	const message = (title: string) =>
+		TicketCreateInputSchema.safeParse({ project: "CDE", title }).error!.issues[0]!.message;
+	expect(message("")).toBe("Enter a title of 1 to 500 characters.");
+	expect(message("t".repeat(501))).toBe("Enter a title of 1 to 500 characters.");
+});
+
+test("a ticket list limit out of bounds reads as a sentence", () => {
+	expect(ListQuerySchema.safeParse({ limit: "0" }).error!.issues[0]!.message).toBe("Enter a limit of 1 to 200.");
+	expect(ListQuerySchema.safeParse({ limit: "201" }).error!.issues[0]!.message).toBe("Enter a limit of 1 to 200.");
 });

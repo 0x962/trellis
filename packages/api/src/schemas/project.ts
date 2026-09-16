@@ -4,7 +4,10 @@ import { ProjectRefStringSchema } from "../refs.ts";
 import { booleanString, CountSchema, IsoDateTimeSchema, KeySchema, SlugSchema, UlidSchema } from "./primitives.ts";
 import { StatusSchema } from "./status.ts";
 
-const ProjectNameSchema = z.string().min(1).max(120);
+const ProjectNameSchema = z
+	.string()
+	.min(1, "Enter a project name of 1 to 120 characters.")
+	.max(120, "Enter a project name of 1 to 120 characters.");
 
 // The project fields a ticket row carries. `path` is the canonical project
 // ref, `CDE.web.auth`.
@@ -47,7 +50,11 @@ export type Ade = z.infer<typeof AdeSchema>;
 
 export const ProjectManagerConfigSchema = z.strictObject({
 	personaId: UlidSchema.nullable(),
-	concurrency: z.number().int().min(1).max(64),
+	concurrency: z
+		.number()
+		.int("Enter a whole number for the concurrency.")
+		.min(1, "Enter a concurrency of 1 to 64.")
+		.max(64, "Enter a concurrency of 1 to 64."),
 	directory: z
 		.string()
 		.trim()
@@ -55,6 +62,11 @@ export const ProjectManagerConfigSchema = z.strictObject({
 	dispatchPaused: z.boolean().default(false),
 	ade: AdeSchema.default("native"),
 	harness: HarnessSchema.default(HarnessSchema.parse({ preset: "claude" })),
+	// The account the manager and the workers of this project launch with
+	// when no one names another. Null means the default login of the
+	// harness. A sub-project with null uses the nearest ancestor that names
+	// one, the way it uses the ancestor directory.
+	accountId: UlidSchema.nullable().default(null),
 });
 export type ProjectManagerConfig = z.infer<typeof ProjectManagerConfigSchema>;
 export const DEFAULT_PROJECT_MANAGER_CONFIG = ProjectManagerConfigSchema.parse({

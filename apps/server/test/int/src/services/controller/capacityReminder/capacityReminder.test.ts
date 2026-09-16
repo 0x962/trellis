@@ -8,13 +8,14 @@ import { capacityReminder } from "../../../../../../src/services/controller/capa
 import { coordination } from "../../../../../../src/services/controller/coordination.ts";
 import { insertRow, seedChild, seedRoot, seedStatus } from "../../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../../fixtures/tickets.ts";
-import { controllerSession } from "../../../../../helpers/controllerSession.ts";
+import { controllerSession, workingSession } from "../../../../../helpers/controllerSession.ts";
 import { type Harness, NOW, serviceHarness } from "../../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../../invariants.ts";
 
 let h: Harness;
 let projectId: string;
 let statusId: string;
+let sessions: RuntimeProcessStatus[];
 beforeAll(async () => {
 	h = await serviceHarness();
 });
@@ -22,6 +23,7 @@ afterAll(() => h.close());
 afterEach(() => h.read(assertStatusInvariant));
 beforeEach(async () => {
 	await h.reset();
+	sessions = [];
 	await h.read(async (tx) => {
 		projectId = await seedRoot(tx, "CAP", {
 			manager_config: { ...DEFAULT_PROJECT_MANAGER_CONFIG, personaId: ulid(), concurrency: 3 },
@@ -31,8 +33,9 @@ beforeEach(async () => {
 });
 const ticket = (project = projectId) =>
 	h.read((tx) => seedTicket(tx, { projectId: project, rootId: projectId, statusId }));
-const worker = (id: string, project = projectId, overrides: Record<string, unknown> = {}) =>
-	h.read((tx) =>
+const worker = (id: string, project = projectId, overrides: Record<string, unknown> = {}) => {
+	sessions.push(workingSession(id));
+	return h.read((tx) =>
 		insertRow(tx, "agent_runs", {
 			id,
 			name: id,
@@ -42,12 +45,14 @@ const worker = (id: string, project = projectId, overrides: Record<string, unkno
 			project_id: project,
 			project_path: "CAP",
 			runtime: "native",
+			terminal_id: id,
 			created_at: NOW,
 			updated_at: NOW,
 			...overrides,
 		}),
 	);
-const reminder = () => h.read((tx) => capacityReminder(tx, { projectId }));
+};
+const reminder = () => h.read((tx) => capacityReminder(tx, { projectId, sessions }));
 
 test("a heartbeat exposes unused slots while tickets remain unfinished", async () => {
 	await ticket();
@@ -55,7 +60,7 @@ test("a heartbeat exposes unused slots while tickets remain unfinished", async (
 	await ticket();
 	await worker("worker");
 	await worker("manager", projectId, { kind: "manager" });
-	const context = await h.read((tx) => coordination(tx, { id: "dispatch", projectId }));
+	const context = await h.read((tx) => coordination(tx, { id: "dispatch", projectId, sessions }));
 	expect(context.capacityReminder).toMatchObject({
 		type: "below_worker_capacity",
 		freeSlots: 2,
@@ -82,7 +87,7 @@ test("done and canceled tickets do not count as unfinished work", async () => {
 	expect(await reminder()).toBeNull();
 });
 
-test("review tickets and unobserved assignments still count", async () => {
+test("review tickets count as work while unobserved assignments consume no slots", async () => {
 	await h.read(async (tx) => {
 		const status = await seedStatus(tx, {
 			projectId,
@@ -93,10 +98,11 @@ test("review tickets and unobserved assignments still count", async () => {
 		});
 		await seedTicket(tx, { projectId, rootId: projectId, statusId: status });
 	});
-	await worker("idle");
+	await worker("unobserved");
+	sessions = [];
 	await worker("closed", projectId, { closed_at: NOW });
 	await worker("external", projectId, { runtime: "external" });
-	expect(await reminder()).toMatchObject({ freeSlots: 2, unfinishedTickets: 1 });
+	expect(await reminder()).toMatchObject({ freeSlots: 3, unfinishedTickets: 1 });
 });
 
 test("only owned projects with work contribute free slots", async () => {
@@ -165,12 +171,34 @@ test("global and ancestor pauses suppress the reminder", async () => {
 });
 
 test.each([
+	["missing activity", { activity: null }, 3],
+	["ready", { activity: { state: "ready", updatedAt: NOW.toISOString() } }, 3],
+	["working without a start time", { activity: { state: "working", updatedAt: NOW.toISOString() } }, 3],
 	["idle", { activity: { state: "idle", updatedAt: NOW.toISOString() } }, 3],
-	["working", { activity: { state: "working", updatedAt: NOW.toISOString() } }, 2],
-	["exited", { status: "exited" }, 3],
-	["unknown", { status: "unknown" }, 2],
-	["uncontrollable", { controllable: false }, 2],
-	["launch pending", { acknowledgedMessageIds: [] }, 2],
+	["working under ten seconds", workingSession("worker-attempt", 9_999), 3],
+	["working for ten seconds", workingSession("worker-attempt"), 2],
+	["working longer than ten seconds", workingSession("worker-attempt", 60_000), 2],
+	["exited", { ...workingSession("worker-attempt"), status: "exited" }, 3],
+	["unknown", { ...workingSession("worker-attempt"), status: "unknown" }, 3],
+	["uncontrollable", { ...workingSession("worker-attempt"), controllable: false }, 3],
+	[
+		"completed",
+		{
+			...workingSession("worker-attempt"),
+			agent: {
+				sessionId: null,
+				model: null,
+				turnId: null,
+				tool: null,
+				lastTool: null,
+				lastMessage: null,
+				error: null,
+				outcome: "completed",
+			},
+		},
+		3,
+	],
+	["launch pending", { acknowledgedMessageIds: [] }, 3],
 ] as const)("%s workers have consistent capacity and heartbeat counts", async (_name, overrides, freeSlots) => {
 	await ticket();
 	await worker("worker", projectId, { terminal_id: "worker-attempt" });
@@ -182,12 +210,16 @@ test.each([
 	expect(await h.read((tx) => capacityAvailable(tx, { projectId, sessions }))).toBe(freeSlots === 3);
 });
 
-test("an idle worker occupies a slot again when its next turn starts", async () => {
+test("an idle worker occupies a slot after ten seconds of its next turn", async () => {
 	await ticket();
 	await worker("worker", projectId, { terminal_id: "worker-attempt" });
 	const idle = controllerSession("worker-attempt");
 	expect(await h.read((tx) => capacityReminder(tx, { projectId, sessions: [idle] }))).toMatchObject({ freeSlots: 3 });
-	const working = controllerSession("worker-attempt", { activity: { state: "working", updatedAt: NOW.toISOString() } });
+	const working = workingSession("worker-attempt", 9_999);
+	expect(await h.read((tx) => capacityReminder(tx, { projectId, sessions: [working] }))).toMatchObject({
+		freeSlots: 3,
+	});
+	working.checkedAt = new Date(NOW.getTime() + 1).toISOString();
 	expect(await h.read((tx) => capacityReminder(tx, { projectId, sessions: [working] }))).toMatchObject({
 		freeSlots: 2,
 	});

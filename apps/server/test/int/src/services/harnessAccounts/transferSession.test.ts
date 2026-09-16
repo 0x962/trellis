@@ -39,6 +39,32 @@ for (const [harness, relative] of [
 	});
 }
 
+test("muse copies the whole session directory and leaves the target login alone", async () => {
+	const home = await mkdtemp("/tmp/trellis-account-transfer-");
+	homes.push(home);
+	const from = join(home, "from"),
+		to = join(home, "to");
+	const relative = "muse/sessions/2026/09/16/session-123";
+	await mkdir(join(from, relative, "subagent"), { recursive: true });
+	await mkdir(join(to, "muse"), { recursive: true });
+	await writeFile(join(from, relative, "session.jsonl"), "conversation\n");
+	await writeFile(join(from, relative, "subagent", "child.jsonl"), "child\n");
+	await writeFile(join(from, "muse", "auth.json"), "source-secret");
+	await writeFile(join(to, "muse", "auth.json"), "target-secret");
+	await transferSession({
+		harness: "muse",
+		from,
+		to,
+		sessionId: "session-123",
+		cwd: "/tmp/work",
+		env: {},
+		directory: home,
+	});
+	expect(await readFile(join(to, relative, "session.jsonl"), "utf8")).toBe("conversation\n");
+	expect(await readFile(join(to, relative, "subagent", "child.jsonl"), "utf8")).toBe("child\n");
+	expect(await readFile(join(to, "muse", "auth.json"), "utf8")).toBe("target-secret");
+});
+
 test("managed profiles find conversations through shared session directories", async () => {
 	const home = await mkdtemp("/tmp/trellis-account-transfer-");
 	homes.push(home);

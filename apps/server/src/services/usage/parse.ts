@@ -16,11 +16,11 @@
 
 import { createReadStream } from "node:fs";
 import { basename } from "node:path";
-import type { AccountHarness } from "@trellis/api";
+import type { UsageHarness } from "@trellis/api";
 import type { LogFile } from "./logs.ts";
 
 export type UsageLogEntry = {
-	harness: AccountHarness;
+	harness: UsageHarness;
 	model: string;
 	timestampMs: number;
 	cwd: string | null;

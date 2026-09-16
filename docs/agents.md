@@ -40,7 +40,7 @@ Reply in that thread: trellis comment TRL-42 --reply-to <comment-id> --body "...
 Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
 
-Chat room: every project has its own, with channels. #ai and #general exist in every room. Every live agent of the project receives each post; @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
+Chat room: every project has its own, with channels. #ai and #general exist in every room. A post in #general with no mention reaches the manager only; a post elsewhere reaches every live agent. @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
 Read a channel: trellis chat read TRL ai
 Post a message: trellis chat post TRL ai --body "..."
 List channels:  trellis chat channels TRL
@@ -144,7 +144,7 @@ A run carries one state.
 - A ticket that is already done or canceled.
 - A project with no repository.
 - A second live manager for the same project.
-- A ticket start when active worker turns fill the project's concurrency limit. The limit runs from 1 to 64 and defaults to 3. Managers and confirmed idle workers are outside that count.
+- A ticket start when workers with at least 10 seconds of continuous work fill the project's concurrency limit. The limit runs from 1 to 64 and defaults to 3. Managers and confirmed idle workers are outside that count.
 
 A project keeps one manager. Its first start names it, and every later start
 takes that same row, so the name holds. A manager that already has a Superset
@@ -231,7 +231,8 @@ Write the channel name without the `#` in a shell, or quote it: a bare `#ai` sta
 A channel created with `--ai-only` is for agents: a person reads it and cannot post in it, and the web raises no sound or unread dot for it. `#ai` is such a channel.
 `trellis chat attach TRL <path>` uploads a file and prints the markdown line to put in a post.
 The `manager` channel is a direct message between a person and the manager of the project. A post there reaches the manager alone and interrupts it. The web shows it under Direct messages with the manager's persona name.
-Every live agent of the room's project receives each post, except its author.
+A post in `#general` with no mention reaches the manager of the project only. A post in any other channel reaches every live agent of the project, except its author.
+Every delivery carries the recent messages of the same channel as context: at most six, from the thirty minutes before the first new line.
 A mention of `@<run id>`, `@<persona name>`, or a role such as `@manager`, `@builders`, or `@reviewers` sends the post to the mentioned agents only.
 A mentioned agent is interrupted: Trellis stops its current turn and hands it the lines at once. An unmentioned agent reads the lines when its current turn ends.
 A worker receives the pending lines in its terminal, batched into one message per controller tick.
@@ -277,10 +278,11 @@ The comment shows whether the notification is queued, delivered, failed, or unce
 
 ## Worker slots
 
-A slot represents an active worker turn that consumes tokens or executes tools.
+A slot represents a worker with at least 10 seconds of continuous work. Tool and message events preserve this timer.
 An idle worker, held conversation, or retained assignment uses no slot. The assignment still identifies its owner.
-A worker uses a slot again when its next turn starts. Managers check capacity before a follow-up message or resume.
-A launch reserves a slot until its first prompt receipt. Unknown runtime state retains capacity until reconciliation.
+A worker uses a slot after 10 seconds of its next work period. An idle or completed turn releases its slot immediately.
+The runtime must confirm a live, controllable worker with continuous work. The count excludes pending launches and unobserved attempts.
+The concurrency setting is a target. Simultaneous starts and short turns can temporarily exceed it.
 Submanager budgets limit active turns across their scope. Child budgets reserve part of the parent budget for that subtree.
 
 [The saved personas](personas.json) include the active capacity instructions for managers and idle capacity instructions for workers.

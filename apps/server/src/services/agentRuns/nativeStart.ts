@@ -14,6 +14,7 @@ import { nativeWorkspace } from "../../agents/native/workspace.ts";
 import { rows } from "../../db/queries/support.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import type { ExecutionAttempt } from "../assignments/attempts.ts";
+import { readHostDefault } from "../harnessAccounts/hostDefault.ts";
 import { profileDefault, profileEnvironment } from "../harnessAccounts/profiles.ts";
 import { getAccount } from "../harnessAccounts/queries.ts";
 import { transferSession } from "../harnessAccounts/transferSession.ts";
@@ -29,6 +30,18 @@ type Dependencies = {
 	env: Record<string, string | undefined>;
 	environment: () => Promise<NodeJS.ProcessEnv>;
 };
+const exportedProfile: Partial<Record<string, string>> = { claude: "CLAUDE_CONFIG_DIR", codex: "CODEX_HOME" };
+
+async function hostDefaultProfile(
+	preset: string,
+	env: NodeJS.ProcessEnv,
+): Promise<{ harness: "claude" | "codex"; profilePath: string } | null> {
+	if (preset !== "claude" && preset !== "codex") return null;
+	if (env[exportedProfile[preset]!]) return null;
+	const pointer = await readHostDefault(preset, env);
+	return pointer.profilePath ? { harness: preset, profilePath: pointer.profilePath } : null;
+}
+
 export const startNative = async (
 	ctx: ServiceCtx & { localUrl: string },
 	input: {
@@ -52,7 +65,7 @@ export const startNative = async (
 	try {
 		if (run.kind === "manager" && config.harness.preset === "custom")
 			throw new Error(
-				`The ${config.harness.preset} harness cannot enforce the manager tool boundary. Select Claude, Codex, OpenCode, or Pi for managers. Workers can use any harness.`,
+				`The ${config.harness.preset} harness cannot enforce the manager tool boundary. Select Claude, Codex, OpenCode, Pi, or Muse for managers. Workers can use any harness.`,
 			);
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
@@ -60,7 +73,11 @@ export const startNative = async (
 		const account = run.accountId ? await ctx.newTx((tx) => getAccount(tx, { id: run.accountId! })) : null;
 		if (account && (!account.enabled || account.harness !== config.harness.preset))
 			throw new Error("The selected account is disabled or belongs to another harness.");
-		const baseEnv = account ? await profileEnvironment(account, ambientEnv) : ambientEnv;
+		// A run with no account reads the SuperSet pointer at every launch, so
+		// a switch made in SuperSet reaches the next Trellis launch. A profile
+		// the person exported in the login shell wins over the pointer.
+		const profile = account ?? (await hostDefaultProfile(config.harness.preset, ambientEnv));
+		const baseEnv = profile ? await profileEnvironment(profile, ambientEnv) : ambientEnv;
 		const workspaceId = await (deps.workspace ?? nativeWorkspace)(ctx.home, run, config.directory);
 		const owned = await ctx.newTx((tx) =>
 			rows<{ id: string }>(
@@ -110,7 +127,9 @@ export const startNative = async (
 				id: terminalId,
 				...(run.kind === "manager"
 					? { kind: "manager", managerId: run.id, managerSystemPrompt: run.instruction }
-					: { kind: run.kind }),
+					: run.kind === "session"
+						? {}
+						: { kind: run.kind }),
 				harness: config.harness.preset,
 				cwd: workspaceId,
 				prompt: input.resumePrompt ?? launchPrompt({ run, url: ctx.localUrl, context }),

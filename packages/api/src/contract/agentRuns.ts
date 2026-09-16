@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import { ModelIdSchema } from "../models/models.ts";
-import { AgentRunListInputSchema, AgentRunSchema, AgentRunStartInputSchema } from "../schemas/agentRun.ts";
+import {
+	AgentCapacityInputSchema,
+	AgentCapacitySchema,
+	AgentRunListInputSchema,
+	AgentRunSchema,
+	AgentRunStartInputSchema,
+} from "../schemas/agentRun.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
 import { base } from "./base.ts";
 
@@ -61,7 +67,7 @@ const sessionSchema = z.object({
 });
 export const agentRuns = {
 	setModel: base
-		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.errors(pickErrors(["RUNNER_UNAVAILABLE", "CONCURRENCY_LIMIT"]))
 		.route({
 			method: "POST",
 			path: "/agent-runs/{id}/model",
@@ -75,8 +81,12 @@ export const agentRuns = {
 			}),
 		)
 		.output(AgentRunSchema),
+	capacity: base
+		.route({ method: "GET", path: "/agent-runs/capacity", summary: "Read project agent capacity" })
+		.input(AgentCapacityInputSchema)
+		.output(AgentCapacitySchema),
 	resume: base
-		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.errors(pickErrors(["RUNNER_UNAVAILABLE", "CONCURRENCY_LIMIT"]))
 		.route({
 			method: "POST",
 			path: "/agent-runs/{id}/resume",
@@ -146,6 +156,7 @@ export const agentRuns = {
 		.input(AgentRunListInputSchema)
 		.output(z.array(AgentRunSchema)),
 	start: base
+		.errors(pickErrors(["CONCURRENCY_LIMIT"]))
 		.route({ method: "POST", path: "/agent-runs", successStatus: 201, summary: "Start an agent from a persona" })
 		.input(AgentRunStartInputSchema)
 		.output(AgentRunSchema),
