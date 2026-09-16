@@ -14,3 +14,8 @@ export const deepLinkPath = (url: string) => {
 		return null;
 	return `${parsed.pathname}${parsed.search}${parsed.hash}`;
 };
+
+export const rendererPath = (url: string) => {
+	const parsed = new URL(url);
+	return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+};

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { deepLinkPath, externalUrl, sameOrigin } from "./navigation.ts";
+import { deepLinkPath, externalUrl, rendererPath, sameOrigin } from "./navigation.ts";
 
 test("deep links preserve ticket paths and reject credentials and unknown routes", () => {
 	expect(deepLinkPath("trellis://open/t/RDT-1")).toBe("/t/RDT-1");
@@ -19,4 +19,8 @@ test("renderer navigation and external links have separate allowlists", () => {
 	expect(externalUrl("file:///etc/passwd")).toBe(false);
 	expect(externalUrl("javascript:alert(1)")).toBe(false);
 	expect(externalUrl("https://user:secret@example.com")).toBe(false);
+});
+
+test("renderer paths preserve the current page across a host reconnect", () => {
+	expect(rendererPath("http://127.0.0.1:4521/t/TRL-64?tab=activity#comment")).toBe("/t/TRL-64?tab=activity#comment");
 });

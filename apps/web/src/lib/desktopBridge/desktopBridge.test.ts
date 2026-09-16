@@ -8,11 +8,15 @@ test("only a desktop bridge with the status call enables the Desktop settings", 
 		status: async () => {
 			throw new Error("unused");
 		},
+		serviceStatus: async () => null,
+		updateStatus: async () => null,
 		setOpenAtLogin: async () => {},
 		run: async () => {},
+		onNavigate: () => () => {},
 	};
 	expect(desktopSettingsBridge(bridge)).toBe(bridge);
 	expect(desktopSettingsBridge({ platform: "darwin", chooseDirectory: async () => null })).toBeUndefined();
+	expect(desktopSettingsBridge({ ...bridge, serviceStatus: undefined })).toBeUndefined();
 	expect(desktopSettingsBridge(undefined)).toBeUndefined();
 });
 

@@ -6,7 +6,6 @@ const settingsPageItems = [
 	"Update status",
 	"Background service status",
 	"Open Trellis at login",
-	"Stop local work and background service",
 	"Resume local work",
 	"Choose data directory…",
 	"Show data directory",
@@ -18,13 +17,14 @@ const names = (items: MenuItemConstructorOptions[]) =>
 	items.filter((item) => item.type !== "separator").map((item) => item.label ?? item.role);
 const click = (item: MenuItemConstructorOptions | undefined) => (item!.click as () => void)();
 
-test("the application menu opens Settings and keeps only window, quit, and recovery items", () => {
+test("the application menu opens Settings and keeps the stop action available for package upgrades", () => {
 	const calls: string[] = [];
 	const menu = appMenu({
 		openSettings: () => calls.push("settings"),
 		openWindow: () => calls.push("window"),
 		openLogs: () => calls.push("logs"),
 		reconnectHost: () => calls.push("reconnect"),
+		stopLocalWork: () => calls.push("stop"),
 		quit: () => calls.push("quit"),
 	});
 	const trellis = submenu(menu, "Trellis");
@@ -34,6 +34,7 @@ test("the application menu opens Settings and keeps only window, quit, and recov
 		"hide",
 		"hideOthers",
 		"unhide",
+		"Stop local work and background service",
 		"Quit Trellis (keep agents running)",
 	]);
 	expect(names(submenu(menu, "File"))).toEqual(["Open Trellis", "close"]);
@@ -47,6 +48,7 @@ test("the application menu opens Settings and keeps only window, quit, and recov
 	click(submenu(menu, "File")[0]);
 	click(submenu(menu, "Help")[0]);
 	click(submenu(menu, "Help")[1]);
+	click(trellis.find((item) => item.label === "Stop local work and background service"));
 	click(trellis.at(-1));
-	expect(calls).toEqual(["settings", "window", "logs", "reconnect", "quit"]);
+	expect(calls).toEqual(["settings", "window", "logs", "reconnect", "stop", "quit"]);
 });

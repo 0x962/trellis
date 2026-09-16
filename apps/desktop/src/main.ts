@@ -7,14 +7,17 @@ import { configureDesktopIdentity } from "./desktopIdentity/desktopIdentity.ts";
 import { desktopPaths } from "./desktopPaths/desktopPaths.ts";
 import {
 	type DesktopAction,
+	type DesktopServiceStatus,
 	type DesktopStatus,
+	type DesktopUpdateStatus,
 	parseDesktopAction,
 	parseOpenAtLogin,
+	requireOpenedPath,
 	updateSummary,
 } from "./desktopSettings/desktopSettings.ts";
 import { adoptHost, connectHost, type HostConnection } from "./host/host.ts";
 import { installCli } from "./installCli/installCli.ts";
-import { deepLinkPath, externalUrl, sameOrigin } from "./navigation/navigation.ts";
+import { deepLinkPath, externalUrl, rendererPath, sameOrigin } from "./navigation/navigation.ts";
 import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResources.ts";
 import { prepareHome } from "./prepareHome/prepareHome.ts";
 import { readConfiguredHome, readSelectedHome } from "./selectedHome/selectedHome.ts";
@@ -27,7 +30,7 @@ import { windowOptions } from "./windowOptions/windowOptions.ts";
 let window: BrowserWindow | undefined;
 let host: HostConnection;
 let availableRelease: PinnedRelease | undefined;
-let pendingPath = "/";
+let pendingPath: string | undefined = "/";
 const desktopHome = () => process.env.TRELLIS_DESKTOP_HOME ?? readSelectedHome(app.getPath("userData"));
 const paths = () => desktopPaths(app.getAppPath(), process.resourcesPath, app.isPackaged);
 
@@ -66,7 +69,8 @@ const openWindow = async () => {
 		if (externalUrl(url)) void shell.openExternal(url);
 		return { action: "deny" };
 	});
-	await window.loadURL(`${host.origin}${pendingPath}`);
+	await window.loadURL(`${host.origin}${pendingPath ?? "/"}`);
+	pendingPath = undefined;
 };
 
 const chooseHome = (current = desktopHome()) =>
@@ -124,11 +128,14 @@ const connect = async () => {
 const navigate = async (url: string) => {
 	const path = deepLinkPath(url);
 	if (!path) return;
-	pendingPath = path;
-	if (host) {
-		await openWindow();
-		await window!.loadURL(`${host.origin}${path}`);
+	if (window) {
+		window.show();
+		window.focus();
+		window.webContents.send("trellis:navigate", path);
+		return;
 	}
+	pendingPath = path;
+	if (host) await openWindow();
 };
 
 // Only the Trellis window, showing a page of its own host, may call the main process.
@@ -147,13 +154,22 @@ const requirePackaged = () => {
 	if (!app.isPackaged) throw new Error("The development app uses TRELLIS_DESKTOP_HOME and has no background service.");
 };
 
-const desktopStatus = async (): Promise<DesktopStatus> => ({
+const desktopStatus = (): DesktopStatus => ({
 	packaged: app.isPackaged,
 	dataDirectory: desktopHome(),
 	openAtLogin: app.getLoginItemSettings().openAtLogin,
-	service: app.isPackaged ? (await serviceCommand(paths().helper, "status")).status : null,
-	update: app.isPackaged ? updateSummary(await readUpdateStatus(desktopHome(), availableRelease!)) : null,
 });
+
+const desktopServiceStatus = async (): Promise<DesktopServiceStatus> =>
+	app.isPackaged ? (await serviceCommand(paths().helper, "status")).status : null;
+
+const desktopUpdateStatus = async (): Promise<DesktopUpdateStatus> =>
+	app.isPackaged ? updateSummary(await readUpdateStatus(desktopHome(), availableRelease!)) : null;
+
+const openPath = async (path: string) => {
+	const error = await shell.openPath(path);
+	requireOpenedPath(error);
+};
 
 // Each action rejects with the message that the Settings page shows.
 const desktopActions: Record<DesktopAction, () => Promise<unknown>> = {
@@ -161,7 +177,7 @@ const desktopActions: Record<DesktopAction, () => Promise<unknown>> = {
 		requirePackaged();
 		await chooseHome();
 	},
-	showDataDirectory: () => shell.openPath(desktopHome()),
+	showDataDirectory: () => openPath(desktopHome()),
 	openServiceSettings: async () => {
 		requirePackaged();
 		await openServiceSettings(paths().helper);
@@ -171,11 +187,15 @@ const desktopActions: Record<DesktopAction, () => Promise<unknown>> = {
 	},
 	resumeLocalWork: () => resumeLocalWork(host),
 	reconnectHost: async () => {
+		const path = window ? rendererPath(window.webContents.getURL()) : (pendingPath ?? "/");
 		await connect();
-		await window?.loadURL(`${host.origin}${pendingPath}`);
+		await window?.loadURL(`${host.origin}${path}`);
 	},
 	quit: async () => app.quit(),
 };
+
+const menuAction = (name: DesktopAction, title: string) => () =>
+	void desktopActions[name]().catch((error: Error) => dialog.showErrorBox(title, error.message));
 
 configureDesktopIdentity(app);
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -214,6 +234,14 @@ else {
 				trustRenderer(event);
 				return desktopStatus();
 			});
+			ipcMain.handle("trellis:desktop-service-status", (event) => {
+				trustRenderer(event);
+				return desktopServiceStatus();
+			});
+			ipcMain.handle("trellis:desktop-update-status", (event) => {
+				trustRenderer(event);
+				return desktopUpdateStatus();
+			});
 			ipcMain.handle("trellis:set-open-at-login", (event, enabled: unknown) => {
 				trustRenderer(event);
 				requirePackaged();
@@ -230,12 +258,10 @@ else {
 					appMenu({
 						openSettings: () => void navigate("trellis://open/settings#desktop"),
 						openWindow: () => void openWindow(),
-						openLogs: () => void shell.openPath(desktopHome()),
-						reconnectHost: () =>
-							void desktopActions
-								.reconnectHost()
-								.catch((error: Error) => dialog.showErrorBox("Trellis host", error.message)),
-						quit: () => app.quit(),
+						openLogs: menuAction("showDataDirectory", "Local logs"),
+						reconnectHost: menuAction("reconnectHost", "Trellis host"),
+						stopLocalWork: menuAction("stopLocalWork", "Local work"),
+						quit: menuAction("quit", "Quit Trellis"),
 					}),
 				),
 			);

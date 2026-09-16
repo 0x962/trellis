@@ -5,13 +5,13 @@ export type AppMenuActions = {
 	openWindow: () => void;
 	openLogs: () => void;
 	reconnectHost: () => void;
+	stopLocalWork: () => void;
 	quit: () => void;
 };
 
-// The Desktop section of the Settings page holds the app settings and the
-// service actions. The menu keeps the standard macOS items, Open Trellis for
-// a closed window, and the Help items. The Help items work when the Settings
-// page cannot load because the host does not answer.
+// The Help items work when the host cannot load the Settings page. Stop local
+// work also stays here because an older active host can serve an older page
+// without the Desktop section after an application upgrade.
 export const appMenu = (actions: AppMenuActions): MenuItemConstructorOptions[] => [
 	{
 		label: "Trellis",
@@ -24,6 +24,7 @@ export const appMenu = (actions: AppMenuActions): MenuItemConstructorOptions[] =
 			{ role: "hideOthers" },
 			{ role: "unhide" },
 			{ type: "separator" },
+			{ label: "Stop local work and background service", click: actions.stopLocalWork },
 			{ label: "Quit Trellis (keep agents running)", accelerator: "Cmd+Q", click: actions.quit },
 		],
 	},

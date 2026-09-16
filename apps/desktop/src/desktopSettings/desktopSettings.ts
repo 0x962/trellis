@@ -1,10 +1,8 @@
 import type { ServiceStatus } from "../service/service.ts";
 import type { UpdateStatus } from "../updateStatus/updateStatus.ts";
 
-// The actions that the Desktop section of the Settings page can ask the main
-// process to run. The web app keeps its own copy of these names and of
-// DesktopStatus in apps/web/src/lib/desktopBridge, because the web app cannot
-// import the desktop package.
+// The web app copies these IPC names and types because it cannot import the
+// desktop package.
 export const desktopActions = [
 	"chooseDataDirectory",
 	"showDataDirectory",
@@ -20,10 +18,10 @@ export type DesktopStatus = {
 	packaged: boolean;
 	dataDirectory: string;
 	openAtLogin: boolean;
-	// The development app has no background service and no package, so both are null.
-	service: ServiceStatus | null;
-	update: UpdateSummary | null;
 };
+
+export type DesktopServiceStatus = ServiceStatus | null;
+export type DesktopUpdateStatus = UpdateSummary | null;
 
 export type UpdateSummary = {
 	state: UpdateStatus["state"];
@@ -43,6 +41,10 @@ export const parseDesktopAction = (value: unknown): DesktopAction => {
 export const parseOpenAtLogin = (value: unknown): boolean => {
 	if (typeof value !== "boolean") throw new Error("Open at login takes true or false.");
 	return value;
+};
+
+export const requireOpenedPath = (error: string) => {
+	if (error) throw new Error(error);
 };
 
 export const updateSummary = (status: UpdateStatus): UpdateSummary => ({
