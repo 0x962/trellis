@@ -35,7 +35,7 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 		if (runs.isPending || handledHash.current === hash) return;
 		const matching = agentTabs.find((item) => item.run.terminalId === hash);
 		setTab(matching?.value ?? agentTabs[0]?.value ?? "agent");
-		handledHash.current = hash;
+		if (matching) handledHash.current = hash;
 	}, [agentTabs, hash, runs.isPending]);
 	const prs = useQuery({
 		...orpc.pullRequests.list.queryOptions({ input: { ticket: ticket.id } }),

@@ -223,17 +223,19 @@ test("each assigned agent has a stable tab with its current work state", async (
 			},
 		},
 	] satisfies AgentRun[];
+	let includeSecondRun = false;
 	await page.route("**/rpc/**", async (route) => {
 		const request = route.request();
 		if (!request.url().includes("agentRuns/list") && !request.postData()?.includes("agentRuns/list"))
 			return route.continue();
-		if (!request.url().includes("__batch__")) return route.fulfill({ json: { json: runs } });
+		const visibleRuns = includeSecondRun ? runs : runs.slice(0, 1);
+		if (!request.url().includes("__batch__")) return route.fulfill({ json: { json: visibleRuns } });
 		const calls = JSON.parse(request.postData()!) as { url: string }[];
 		const indexes = new Set(calls.flatMap((call, index) => (call.url.includes("agentRuns/list") ? [index] : [])));
 		const response = await route.fetch();
 		const body = (await response.text()).replace(/^data: (.+)$/gm, (_, data: string) => {
 			const event = JSON.parse(data) as { index: number; body: { json: unknown } };
-			if (indexes.has(event.index)) event.body.json = runs;
+			if (indexes.has(event.index)) event.body.json = visibleRuns;
 			return `data: ${JSON.stringify(event)}`;
 		});
 		await route.fulfill({ response, body });
@@ -245,6 +247,9 @@ test("each assigned agent has a stable tab with its current work state", async (
 	const first = work.getByRole("tab", { name: "Senior Software Engineer 1", exact: true });
 	const second = work.getByRole("tab", { name: "Senior Software Engineer 2", exact: true });
 	await expect(first).toBeVisible();
+	await expect(first).toHaveAttribute("aria-selected", "true");
+	await expect(second).toHaveCount(0);
+	includeSecondRun = true;
 	await expect(second).toHaveAttribute("aria-selected", "true");
 	await expect(first.locator("svg")).toHaveAttribute("data-state", "working-mild");
 	await expect(second.locator("svg")).toHaveAttribute("data-state", "static");
