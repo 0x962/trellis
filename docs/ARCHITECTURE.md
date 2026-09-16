@@ -74,7 +74,7 @@ The explicit Stop local work action pauses native dispatch, stops owned processe
 An unconfirmed process prevents a successful stop.
 
 The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 7. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 8. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 Output readers receive bounded chunks with byte offsets.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
@@ -202,7 +202,7 @@ takes builder. A delete keeps the snapshots of the runs that used the persona.
 - Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is printable ASCII without a colon, 1 to 64 characters.
 - A missing header is `ACTOR_REQUIRED` and a malformed one is `ACTOR_INVALID`. A GET ignores the header. The header rejects the kind `system`, which trellis reserves for `system:trellis`.
 - The optional header `x-trellis-session` is stored in `activity.meta.session`. trellis stores the name and the kind of an actor, and nothing else.
-- The service enforces the agent policy, so curl obeys it too. An agent cannot move a ticket to a done status (`AGENT_CANNOT_COMPLETE`, 403) and cannot delete a ticket or a project (`AGENT_CANNOT_DELETE`, 403) without `force`.
+- The service enforces the agent policy, so curl obeys it too. Agents and managers can move tickets to Done. An agent cannot delete a ticket or a project (`AGENT_CANNOT_DELETE`, 403) without `force`.
 - An archived project serves reads. Every mutation on it fails with `PROJECT_ARCHIVED`.
 - `tickets.version` rises on every row change. `update` and `move` accept `expectedVersion` or the header `If-Match`. A mismatch is `VERSION_CONFLICT` (412) with the current row.
 - `updated_at` moves only on user-visible activity: a ticket field, a comment, an attachment, or a pull request link. A reorder, a remap, and a poller CI change raise `version` only.
@@ -219,18 +219,29 @@ address it by its project and its lower-case name, with an optional `#`.
 
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
 holds one row per post and live native agent of the tree, except the author.
-A post that mentions a live agent by run id or by persona name reaches only
-the mentioned agents. The controller tick sends every pending row of one
-agent in one message, so a busy room costs an agent one turn. A manager
+A post that mentions a live agent by run id, by persona name, or by role
+(`@manager`, `@builders`, `@reviewers`) reaches only the mentioned agents,
+and each of those rows is `direct`. The controller tick sends every pending
+row of one agent in one message, so a busy room costs an agent one turn. A
+batch with a direct row interrupts the agent's current turn first; a custom
+terminal has no interrupt and receives the lines as typed input. A manager
 receives a `trellis.chat.messages` JSON document; a worker receives IRC style
 lines and the two CLI commands. The states and the session pinning are the
 states and the pinning of a comment mention.
 
 The web route `/p/<project path>/chat` shows the room of the tree with an
-IRC style log. `/join <name>` in its input creates a channel. The API is
-`chat.channels`, `chat.createChannel`, `chat.list`, and `chat.post`. The
-events `chat.message` and `chat.channels` invalidate the chat queries. The
-CLI verb is `trellis chat`, and the manager tools are `trellis_chat_*`.
+IRC style log: the clock, the nick in a fixed right-aligned column, and the
+body. A click on a nick inserts a mention. `/join <name>` in its input
+creates a channel. The browser keeps the open channel, the unsent text of
+each channel, and the read position of each channel in localStorage under
+`trellis-chat`. A channel whose newest message id is above the read position
+shows a dot, and so does the Chat link of every project in the tree. A new
+message from someone else plays a short tone; Settings > Account switches it
+off for that browser. The API is `chat.channels`, `chat.createChannel`,
+`chat.list`, and `chat.post`. The events `chat.message`, `chat.delivery`,
+and `chat.channels` invalidate the chat queries; `chat.message` carries the
+actor, so a client knows its own posts. The CLI verb is `trellis chat`, and
+the manager tools are `trellis_chat_*`.
 What an agent is told about the room lives in `personas.instruction`, which
 the migration `0047_persona_chat_instructions` appends to. Code injects no
 prompt text.
@@ -384,7 +395,10 @@ The source instructions live in [manager-harness-accounts.md](personas/manager-h
 The collector continues while dispatch pauses. It excludes the manager's own activity and respects child projects with their own manager.
 
 The controller sends a batch only to the current native attempt with a matching conversation and a live controllable process.
-After one minute without manager activity or a successful dispatch, the controller queues a heartbeat for an idle manager.
+The controller queues a heartbeat after more than 120 seconds of idle time.
+The manager creation time and last successful dispatch must also be more than 120 seconds old.
+The controller skips a queued heartbeat if the manager becomes busy or reports new activity.
+The runtime checks the observed idle turn before it accepts heartbeat input.
 A heartbeat uses the same durable queue and receipt checks as ticket events. Its event list is empty.
 Ticket events take precedence. The queue holds at most one pending or unresolved message per project.
 Heartbeats respect project dispatch pause, the global work pause, and archived projects.
@@ -395,10 +409,12 @@ The JSON envelope retains policy references, ticket events, and unfinished work.
 The context covers native assignments in the manager's project scope and excludes the recipient manager.
 It includes open assignments and closed assignments whose processes still run.
 Each entry carries assignment identifiers, process status, the process check time, harness activity, the last activity time, and `isWorking`.
-It also includes the turn identifier, current tool name and identifier, exit code, error, and up to 2,000 characters of the latest result.
-The latest tool record retains its input, output, start time, update time, and status after completion.
+Each entry also carries the current tool name when the agent reports active work.
+`trellis_agentRuns_session` returns activity details by default.
+Its optional `include` list accepts `tool`, `lastTool`, `lastMessage`, `result`, `error`, and `process`.
+The tool fields include stored input and output. The `process` field includes process, attempt, session, and turn identifiers.
+For example, `{"id":"<runId>","include":["lastTool","error"]}` retrieves the latest tool record and agent error.
 
-The latest assistant message retains its text and timestamp. Each tool input, tool output, and message excerpt has a 2,000-character limit.
 The runtime restores tool records, messages, and native turn activity from its event journal after a restart.
 Codex, Pi, and OpenCode report completed assistant messages during a turn.
 Claude reads the latest assistant text and timestamp from its transcript at tool and stop hooks.
@@ -688,7 +704,7 @@ trellis list --project CDE --status in-progress,agent-review --parent none --ci 
 The contract declares every error as `{defined, code, status, message, data}`.
 The map lives in `packages/api/src/errors.ts`: INPUT_VALIDATION_FAILED 400,
 ACTOR_REQUIRED 400, ACTOR_INVALID 400, INVALID_CURSOR 400, INVALID_PR_URL 400,
-AGENT_CANNOT_COMPLETE 403, AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
+AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
 409, KEY_LOCKED 409, STATUS_NOT_IN_PROJECT 409, STATUS_IN_USE 409, LAST_STATUS
 409, ROOT_STATUSES 409, STATUS_CATEGORY_IMMUTABLE 409, CROSS_ROOT_MOVE 409,
 PARENT_CYCLE 409, PROJECT_NOT_EMPTY 409, PROJECT_ARCHIVED 409,

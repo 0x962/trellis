@@ -19,7 +19,7 @@ let server: Server;
 let session = controllerSession();
 let workers: ReturnType<typeof controllerSession>[];
 let onInspect: () => void;
-let failDelivery: boolean;
+let deliveryError: string | null;
 let deliveries: Array<{ messageId: string; data: string }>;
 const sockets = new Set<Socket>();
 beforeAll(async () => {
@@ -35,7 +35,7 @@ beforeEach(async () => {
 	session = controllerSession();
 	workers = [];
 	onInspect = () => {};
-	failDelivery = false;
+	deliveryError = null;
 	deliveries = [];
 	await h.run(
 		async (ctx, tx) => {
@@ -44,7 +44,7 @@ beforeEach(async () => {
 			VALUES ('manager','Hana','Manager','manager','Manage',${project},'DSP','attempt','conversation',${NOW},${NOW})`);
 			await collect(ctx, tx, { sessions: [session] });
 		},
-		{ now: secondsAfter(60) },
+		{ now: secondsAfter(121) },
 	);
 	server = createServer((socket) => {
 		sockets.add(socket);
@@ -58,9 +58,9 @@ beforeEach(async () => {
 			if (request.method === "inspect") onInspect();
 			if (request.method === "deliver") {
 				deliveries.push(request.params);
-				if (failDelivery) {
+				if (deliveryError) {
 					socket.end(
-						`${JSON.stringify({ id: request.id, error: { code: "RUNTIME_CLOSED", message: "The process exited" } })}\n`,
+						`${JSON.stringify({ id: request.id, error: { code: deliveryError, message: "The process exited" } })}\n`,
 					);
 					return;
 				}
@@ -86,20 +86,28 @@ afterEach(async () => {
 	await h.read(assertStatusInvariant);
 });
 const send = () =>
-	dispatch({ ...testCtx({ db: h.db, home, now: () => secondsAfter(61) }).ctx, publicUrl: "http://trellis.test" });
+	dispatch({ ...testCtx({ db: h.db, home, now: () => secondsAfter(122) }).ctx, publicUrl: "http://trellis.test" });
 const queue = () => h.one(sql`SELECT state,generation FROM manager_dispatches`);
 
-test("a manager that starts a turn after claim still receives the heartbeat", async () => {
+test.each(["working", "idle", "ready"] as const)("new %s activity after claim skips the heartbeat", async (state) => {
 	onInspect = () => {
-		session.activity = { state: "working", updatedAt: secondsAfter(61).toISOString() };
+		session.activity = { state, updatedAt: secondsAfter(122).toISOString() };
 	};
 	await send();
-	expect((await queue()).state).toBe("sent");
-	expect(deliveries).toHaveLength(1);
+	expect((await queue()).state).toBe("canceled");
+	expect(deliveries).toHaveLength(0);
+});
+
+test("a changed turn at the transport boundary cancels the heartbeat", async () => {
+	deliveryError = "RUNTIME_TURN_CHANGED";
+	await send();
+	expect((await queue()).state).toBe("canceled");
+	expect(session.acknowledgedMessageIds).toEqual([session.id]);
+	expect(deliveries[0]).toHaveProperty("expected.idleBefore", secondsAfter(2).toISOString());
 });
 
 test("a runtime error on delivery records an uncertain receipt", async () => {
-	failDelivery = true;
+	deliveryError = "RUNTIME_CLOSED";
 	await send();
 	expect((await queue()).state).toBe("unknown");
 	expect(deliveries).toHaveLength(1);
@@ -124,29 +132,27 @@ test("a heartbeat reports the current worker turn after the heartbeat enters the
 		FROM agent_runs WHERE id='manager'`);
 	workers = [
 		controllerSession("worker-attempt", {
-			activity: { state: "idle", updatedAt: secondsAfter(60).toISOString() },
-			checkedAt: secondsAfter(61).toISOString(),
+			activity: { state: "idle", updatedAt: secondsAfter(121).toISOString() },
+			checkedAt: secondsAfter(122).toISOString(),
 			result: { id: "result-1", text: "The change is ready for review." },
 		}),
 	];
 	await send();
 	const message = Buffer.from(deliveries[0]!.data, "base64").toString();
 	const context = JSON.parse(message.slice(message.indexOf("{"), message.lastIndexOf("}") + 1)).agentContext;
-	expect(context.observedAt).toBe(secondsAfter(61).toISOString());
+	expect(context.observedAt).toBe(secondsAfter(122).toISOString());
 	expect(context.agents).toHaveLength(1);
 	expect(context.agents[0]).toMatchObject({
 		runId: "worker",
-		attemptId: "worker-attempt",
 		processStatus: "running",
 		activity: "idle",
 		isWorking: false,
-		lastActivityAt: secondsAfter(60).toISOString(),
-		lastResult: "The change is ready for review.",
+		lastActivityAt: secondsAfter(121).toISOString(),
 	});
 });
 
 test("a timed wait reaches the native manager with its wake condition and assignment identity", async () => {
-	const waitFor = { type: "time" as const, at: secondsAfter(60).toISOString() };
+	const waitFor = { type: "time" as const, at: secondsAfter(121).toISOString() };
 	const ticketId = await h.run(async (ctx, tx) => {
 		const manager = await tx.execute(sql`SELECT project_id FROM agent_runs WHERE id='manager'`);
 		const projectId = manager.rows[0]!.project_id as string;
@@ -161,7 +167,8 @@ test("a timed wait reaches the native manager with its wake condition and assign
 		});
 		return ticketId;
 	});
-	await h.run((ctx, tx) => collect(ctx, tx, { sessions: [session] }), { now: secondsAfter(61) });
+	await h.run((ctx, tx) => collect(ctx, tx, { sessions: [session] }), { now: secondsAfter(122) });
+	session.activity = { state: "working", updatedAt: secondsAfter(122).toISOString() };
 	await send();
 	expect(deliveries).toHaveLength(1);
 	const message = Buffer.from(deliveries[0]!.data, "base64").toString();

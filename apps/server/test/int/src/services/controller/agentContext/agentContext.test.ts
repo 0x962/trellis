@@ -104,38 +104,28 @@ test("the context separates process status from turn activity and retains assign
 		}),
 		controllerSession("unobserved", { activity: null }),
 	]);
+	for (const agent of context.agents)
+		for (const field of ["attemptId", "pid", "turnId", "lastTool", "lastMessage", "lastResult", "error"])
+			expect(agent).not.toHaveProperty(field);
 	expect(context.observedAt).toBe(secondsAfter(60).toISOString());
 	const byId = new Map(context.agents.map((agent) => [agent.runId, agent]));
 	expect(byId.get("idle")).toMatchObject({
 		name: "Builder",
 		ticketId: ticketId!,
 		ticketIdentifier: "CTX-1",
-		attemptId: "idle",
 		processStatus: "running",
-		pid: 123,
 		controllable: true,
 		checkedAt: NOW.toISOString(),
 		activity: "idle",
 		lastActivityAt: NOW.toISOString(),
 		isWorking: false,
-		lastResult: "The change is ready.",
-		lastTool: {
-			name: "Bash",
-			input: '{"command":"bun test"}',
-			output: "44 pass",
-			startedAt: NOW.toISOString(),
-			updatedAt: secondsAfter(5).toISOString(),
-			status: "completed",
-		},
-		lastMessage: { text: "Tests pass.", at: secondsAfter(6).toISOString() },
 		tool: null,
 	});
 	expect(byId.get("working")).toMatchObject({
 		isWorking: true,
-		turnId: "turn-1",
-		tool: { id: "tool-1", name: "Bash" },
+		tool: { name: "Bash" },
 	});
-	expect(byId.get("working")!.tool).toEqual({ id: "tool-1", name: "Bash" });
+	expect(byId.get("working")!.tool).toEqual({ name: "Bash" });
 	expect(byId.get("ready")).toMatchObject({ activity: "ready", isWorking: false });
 	expect(byId.get("unknown")).toMatchObject({ processStatus: "unknown", isWorking: null });
 	expect(byId.get("missing")).toMatchObject({
@@ -148,8 +138,6 @@ test("the context separates process status from turn activity and retains assign
 	expect(byId.get("exited")).toMatchObject({
 		processStatus: "exited",
 		isWorking: false,
-		exitCode: 1,
-		error: "Process failed",
 	});
 	expect(byId.get("unobserved")).toMatchObject({ activity: "unknown", isWorking: null, lastActivityAt: null });
 });
@@ -180,7 +168,7 @@ test("the context follows manager scope and includes a live process even after a
 	expect(context.agents.map((agent) => agent.runId)).toEqual(["child", "closed-live", "grandchild", "root"]);
 });
 
-test("the context uses the exact attempt and limits result text", async () => {
+test("the context uses the exact attempt and omits diagnostic details", async () => {
 	await h.read(async (tx) => {
 		await assignment(tx, "worker", projectId, { terminal_id: "current-attempt" });
 		await assignment(tx, "unstarted", projectId, { terminal_id: null, error: "Launch failed" });
@@ -194,12 +182,12 @@ test("the context uses the exact attempt and limits result text", async () => {
 		old,
 		controllerSession("current-attempt", { result: { id: "result", text: "x".repeat(3000) } }),
 	]);
-	expect(context.agents.find((agent) => agent.runId === "worker")!.lastResult).toHaveLength(2000);
+	for (const agent of context.agents)
+		for (const field of ["attemptId", "pid", "turnId", "lastTool", "lastMessage", "lastResult", "error", "exitCode"])
+			expect(agent).not.toHaveProperty(field);
 	expect(context.agents.find((agent) => agent.runId === "unstarted")).toMatchObject({
-		attemptId: null,
 		processStatus: "missing",
 		isWorking: null,
-		error: "Launch failed",
 	});
 });
 

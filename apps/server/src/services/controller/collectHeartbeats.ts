@@ -11,7 +11,7 @@ export const collectHeartbeats = async (ctx: ControllerCtx, tx: Tx, input: Contr
 		.filter(readySession)
 		.map((session) => ({ id: session.id, idleAt: session.activity!.updatedAt }));
 	if (ready.length === 0) return;
-	const quietBefore = new Date(ctx.now.getTime() - 60_000);
+	const quietBefore = new Date(ctx.now.getTime() - 120_000);
 	const projects = await rows<{ id: string }>(
 		tx,
 		sql`
@@ -23,7 +23,7 @@ export const collectHeartbeats = async (ctx: ControllerCtx, tx: Tx, input: Contr
 		AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
 		AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 		AND GREATEST(r.created_at, live."idleAt",
-			(SELECT max(updated_at) FROM manager_dispatches WHERE project_id=p.id AND state='sent')) <= ${quietBefore}
+			(SELECT max(updated_at) FROM manager_dispatches WHERE project_id=p.id AND state='sent')) < ${quietBefore}
 		AND NOT EXISTS (SELECT 1 FROM manager_dispatches WHERE project_id=p.id AND state IN ('pending','sending','unknown'))
 		AND NOT EXISTS (WITH RECURSIVE ancestors AS (
 			SELECT id,parent_id,archived_at,manager_config FROM projects WHERE id=p.id

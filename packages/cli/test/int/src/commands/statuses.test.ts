@@ -157,7 +157,7 @@ describe("statuses", () => {
 		expect(inUse.stderr).toEndWith(" (STATUS_IN_USE)\n");
 	});
 
-	test("statuses rm --force sends force, so an agent can move the tickets into a done status", async () => {
+	test("statuses rm accepts the legacy force flag", async () => {
 		const result = await runCli(["statuses", "rm", "CDE", "blocked", "--move-to", "done", "--force"], {
 			"statuses.delete": { deleted: status().id, moved: 2 },
 		});

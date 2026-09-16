@@ -17,10 +17,10 @@ import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
 import { assertProjectActive, pathOf, resolveProject, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
-import { assertAgentMayComplete, assertVersion, outsideRoot, remapStatus, stampColumns } from "./rules.ts";
+import { assertVersion, outsideRoot, remapStatus, stampColumns } from "./rules.ts";
 
 // The fields `update` and `updateMany` share. A ref is a canonical string;
-// `parent: null` clears the parent; `force` lets an agent reach a done status.
+// `parent: null` clears the parent.
 type ChangeInput = {
 	title?: string;
 	description?: string;
@@ -86,7 +86,6 @@ const projectAndStatusChanges = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, 
 		if (!target.some((status) => status.id === current.id)) next = remapStatus(target, current);
 	}
 	if (next.id !== current.id) {
-		assertAgentMayComplete(ctx, next, input.force);
 		changes.push({
 			field: "status",
 			from: current.name,

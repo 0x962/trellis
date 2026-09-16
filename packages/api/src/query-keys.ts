@@ -206,6 +206,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			// A message changes the count and the last time of its channel, so
 			// the channel list refetches with the message list.
 			case "chat.message":
+			case "chat.delivery":
 			case "chat.channels":
 				enqueue([family("chat")]);
 				return;

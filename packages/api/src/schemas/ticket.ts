@@ -182,8 +182,7 @@ export const TicketUpdateInputSchema = z.strictObject({
 });
 export type TicketUpdateInput = z.input<typeof TicketUpdateInputSchema>;
 
-// `after` and `before` must sit in the target column. `force` lets an agent
-// move a ticket to a done status.
+// `after` and `before` must sit in the target column.
 export const TicketMoveInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 	status: StatusRefStringSchema,
