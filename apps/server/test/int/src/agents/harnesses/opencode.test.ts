@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { prepareOpenCode } from "../../../../../src/agents/harnesses/opencode/opencode.ts";
 
 const homes: string[] = [];
+const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 afterEach(async () => {
 	for (const home of homes.splice(0)) await rm(home, { recursive: true });
 });
@@ -23,7 +24,7 @@ const openPlugin = async () => {
 		configDirectory: home,
 		resume: false,
 		prompt: "test",
-		hookCommand: `${process.execPath} ${receiver}`,
+		hookCommand: `${quote(process.execPath)} ${quote(receiver)}`,
 	});
 	const actions: { name: string; args: unknown[] }[] = [];
 	type HookName =
