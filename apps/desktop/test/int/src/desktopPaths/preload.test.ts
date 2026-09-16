@@ -14,7 +14,16 @@ test("the compiled preload exposes its narrow bridge inside a sandboxed Electron
 	expect(code).toBe(0);
 	const result = JSON.parse(stdout.trim());
 	expect(result).toEqual({
-		bridge: ["platform", "chooseDirectory", "status", "setOpenAtLogin", "run"],
+		bridge: [
+			"platform",
+			"chooseDirectory",
+			"status",
+			"serviceStatus",
+			"updateStatus",
+			"setOpenAtLogin",
+			"run",
+			"onNavigate",
+		],
 		platform: "darwin",
 		require: "undefined",
 		process: "undefined",
