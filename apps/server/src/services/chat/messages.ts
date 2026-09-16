@@ -43,22 +43,31 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 };
 
 // A post to a channel the room lacks creates the channel first, as a JOIN
-// does on IRC. A person cannot post in a channel marked for agents only.
+// does on IRC. A person cannot post in a channel marked for agents only. In
+// the direct channel, only a person and the manager of the project post,
+// and a post reaches that manager alone.
 export const post = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<ChatMessage> => {
 	const input = ChatPostInputSchema.parse(rawInput);
 	const root = await resolveRoom(ctx, tx, input.project);
 	assertProjectActive(ctx, root.id);
 	const actor = requireActor(ctx);
 	const name = chatChannelName(input.channel);
-	const { aiOnly } = await ensureChannel(ctx, tx, root.id, name);
+	const { aiOnly, direct } = await ensureChannel(ctx, tx, root.id, name);
 	if (aiOnly && actor.kind === "human") throw fail("CHAT_AI_ONLY");
+	if (direct && actor.kind === "agent") {
+		const manager = await rows(
+			tx,
+			sql`SELECT 1 FROM agent_runs WHERE id = ${actor.name} AND kind = 'manager' AND project_id = ${root.id}`,
+		);
+		if (manager.length === 0) throw fail("CHAT_DIRECT");
+	}
 	await upsert(ctx, tx, actor);
 	const id = ulid();
 	await tx.execute(
 		sql`INSERT INTO chat_messages (id, project_id, channel, body, actor_name, actor_kind, created_at)
 			VALUES (${id}, ${root.id}, ${name}, ${input.body}, ${actor.name}, ${actor.kind}, ${ctx.now})`,
 	);
-	await enqueue(tx, { messageId: id, rootId: root.id, body: input.body, actor });
+	await enqueue(tx, { messageId: id, rootId: root.id, body: input.body, actor, toManager: direct });
 	ctx.emit({ type: "chat.message", id, projectId: root.id, channel: name, aiOnly, actor });
 	return messageById(tx, id);
 };

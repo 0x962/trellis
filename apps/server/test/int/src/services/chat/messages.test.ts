@@ -79,6 +79,43 @@ test("a sub-project has its own room, and its post reaches its own agents only",
 	});
 });
 
+test("the manager channel is a direct message: it reaches the manager alone, and a builder cannot post there", async () => {
+	const posted = await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "manager", body: "status?" }));
+	expect(posted.notifications).toEqual([
+		{ runId: "manager", personaName: "Trellis", state: "pending", error: null, direct: true },
+	]);
+	await h.rows(sql`DELETE FROM chat_deliveries`);
+	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "manager", body: "all green" }), {
+		actor: { kind: "agent", name: "manager" },
+	});
+	expect(await deliveries()).toEqual([]);
+	await expectError(
+		h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "manager", body: "me too" }), {
+			actor: { kind: "agent", name: "builder" },
+		}),
+		"CHAT_DIRECT",
+	);
+});
+
+test("a person cannot post in a channel for agents only, and an agent can", async () => {
+	await expectError(
+		h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "hi agents" })),
+		"CHAT_AI_ONLY",
+	);
+	const posted = await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "plan" }), {
+		actor: { kind: "agent", name: "builder" },
+	});
+	expect(h.flushed).toContainEqual(expect.objectContaining({ type: "chat.message", id: posted.id, aiOnly: true }));
+	const created = await h.run((ctx, tx) => createChannel(ctx, tx, { project: "CDE", channel: "plans", aiOnly: true }), {
+		actor: { kind: "agent", name: "builder" },
+	});
+	expect(created.aiOnly).toBe(true);
+	await expectError(
+		h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "plans", body: "me too" })),
+		"CHAT_AI_ONLY",
+	);
+});
+
 test("a post reaches every live agent of the project except its author", async () => {
 	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "who owns the migration?" }), {
 		actor: { kind: "agent", name: "builder" },
