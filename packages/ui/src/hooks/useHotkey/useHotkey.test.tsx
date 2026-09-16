@@ -170,6 +170,24 @@ describe("useHotkey", () => {
 		expect(onModK).toHaveBeenCalledTimes(1);
 	});
 
+	test("a plain key does not fire from a text entry", () => {
+		const onA = mock();
+		const onModK = mock();
+		render(<Probe onA={onA} onModK={onModK} />);
+		const input = document.createElement("input");
+		const textarea = document.createElement("textarea");
+		const contenteditable = document.createElement("div");
+		contenteditable.contentEditable = "true";
+		const textbox = document.createElement("div");
+		textbox.setAttribute("role", "textbox");
+		for (const target of [input, textarea, contenteditable, textbox]) {
+			document.body.appendChild(target);
+			fireEvent.keyDown(target, { key: "a" });
+		}
+
+		expect(onA).not.toHaveBeenCalled();
+	});
+
 	// A letter binding matches the character the layout produces whenever that
 	// character is a Latin letter. On Dvorak the physical S key produces "o";
 	// on AZERTY the physical A key produces "q". The physical key never wins

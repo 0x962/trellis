@@ -1,5 +1,5 @@
 import { realScheduler, type Scheduler } from "@trellis/api";
-import { useHotkey } from "@trellis/ui";
+import { isTextEntry, useHotkey } from "@trellis/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { parseProjectSplat, projectHref } from "./projectPath";
 import { toggleSidebarOnce } from "./sidebarHotkey";
@@ -29,13 +29,6 @@ export type GlobalHotkeyOptions = {
 	onProjectPicker: () => void;
 	scheduler?: Scheduler;
 };
-
-const editable = (target: EventTarget | null) =>
-	target instanceof HTMLElement &&
-	(target.isContentEditable ||
-		target.tagName === "INPUT" ||
-		target.tagName === "TEXTAREA" ||
-		target.tagName === "SELECT");
 
 // The view `g b` and `g t` switch to, on a project route only.
 const viewHref = (pathname: string, view: "board" | "table") => {
@@ -76,7 +69,7 @@ const chordOf = (event: KeyboardEvent) => {
 const runTarget = (event: KeyboardEvent) => {
 	const chord = chordOf(event);
 	const mod = event.metaKey || event.ctrlKey;
-	if (!mod && editable(event.target)) return;
+	if (!mod && isTextEntry(event.target)) return;
 	for (let index = targets.length - 1; index >= 0; index -= 1) {
 		const handler = targets[index]!.handlers.current[chord];
 		if (handler === undefined) continue;
@@ -171,7 +164,7 @@ export const useGlobalHotkeys = (options: GlobalHotkeyOptions): string | null =>
 	useEffect(() => {
 		if (pending === null) return;
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.metaKey || event.ctrlKey || event.altKey || editable(event.target)) return;
+			if (event.metaKey || event.ctrlKey || event.altKey || isTextEntry(event.target)) return;
 			const key = event.key.toLowerCase();
 			if (key === "g") return;
 			clear();

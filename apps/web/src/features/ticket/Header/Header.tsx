@@ -2,7 +2,7 @@ import { ArrowLeft, Copy, GitBranch } from "@phosphor-icons/react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
-import { IconButton, Tooltip, useHotkey, useMediaQuery } from "@trellis/ui";
+import { IconButton, isTextEntry, Tooltip, useHotkey, useMediaQuery } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { copyText } from "../../../lib/clipboard";
 import { lastListHref } from "../../../lib/lastList";
@@ -15,13 +15,9 @@ import { MoreMenu, ticketLink } from "./components/MoreMenu";
 
 export type HeaderProps = { ticket: Ticket };
 
-const editable = (target: EventTarget | null) =>
-	target instanceof HTMLElement &&
-	(target.isContentEditable || target.tagName === "INPUT" || target.tagName === "TEXTAREA");
-
 // A copy chord in a text field or over a selection copies the selected text.
 const claims = (event: KeyboardEvent) => {
-	if (editable(event.target) || (window.getSelection()?.toString() ?? "") !== "") return false;
+	if (isTextEntry(event.target) || (window.getSelection()?.toString() ?? "") !== "") return false;
 	event.preventDefault();
 	return true;
 };

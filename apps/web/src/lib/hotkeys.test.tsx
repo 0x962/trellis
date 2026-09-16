@@ -213,6 +213,23 @@ describe("lib/hotkeys", () => {
 		for (const key of keys) expect(list.spies[key], key).toHaveBeenCalledTimes(1);
 	});
 
+	test("o does not reach a list target from a text entry", () => {
+		mountScope();
+		const list = mountTarget("list", ["o"]);
+		const input = document.createElement("input");
+		const textarea = document.createElement("textarea");
+		const contenteditable = document.createElement("div");
+		contenteditable.contentEditable = "true";
+		const textbox = document.createElement("div");
+		textbox.setAttribute("role", "textbox");
+		for (const target of [input, textarea, contenteditable, textbox]) {
+			document.body.appendChild(target);
+			press("o", {}, target);
+		}
+
+		expect(list.spies.o).not.toHaveBeenCalled();
+	});
+
 	// HK-20
 	test("the ticket keys reach the registered ticket target", () => {
 		mountScope();
