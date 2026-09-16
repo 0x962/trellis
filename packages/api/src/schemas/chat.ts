@@ -16,8 +16,13 @@ export const ChatChannelRefSchema = z
 export const chatChannelName = (ref: string) => ref.trim().replace(/^#/, "").toLowerCase();
 
 // The channels every project has. The project create and the migration
-// insert them, and a delete of them is not offered.
-export const DEFAULT_CHAT_CHANNELS = ["ai", "general"] as const;
+// insert them, and a delete of them is not offered. `manager` is the direct
+// message between a person and the manager of the project.
+export const DEFAULT_CHAT_CHANNELS = [
+	{ name: "ai", aiOnly: true, direct: false },
+	{ name: "general", aiOnly: false, direct: false },
+	{ name: "manager", aiOnly: false, direct: true },
+] as const;
 
 const BodySchema = z.string().min(1).max(20_000);
 
@@ -37,6 +42,9 @@ export const ChatChannelSchema = z.object({
 	// True for a channel that only agents post in. A person reads it; the web
 	// shows no input for it and raises no sound or unread dot for it.
 	aiOnly: z.boolean(),
+	// True for the direct message channel. A post there reaches the manager
+	// of the project only, and only a person or that manager posts in it.
+	direct: z.boolean(),
 	messageCount: z.number().int().nonnegative(),
 	// The id and the time of the newest message, or null for an empty channel.
 	// A reader compares `latestId` with the last id it saw to know what is unread.

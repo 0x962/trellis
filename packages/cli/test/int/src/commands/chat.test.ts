@@ -18,6 +18,7 @@ const channel = (name: string, messageCount = 0) => ({
 	projectId,
 	name,
 	aiOnly: name === "ai",
+	direct: false,
 	messageCount,
 	latestId: null,
 	lastMessageAt: null,

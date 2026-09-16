@@ -22,7 +22,7 @@ describe("chat", () => {
 	test("a new root answers its two default channels", async () => {
 		const response = await t.api("/api/projects/CDE/chat");
 		expect(response.status).toBe(200);
-		expect(response.body.map((channel: { name: string }) => channel.name)).toEqual(["ai", "general"]);
+		expect(response.body.map((channel: { name: string }) => channel.name)).toEqual(["ai", "general", "manager"]);
 	});
 
 	test("chat.createChannel and chat.post answer 201 with a Location header", async () => {

@@ -22,16 +22,16 @@ export const resolveRoom = (ctx: ServiceCtx, tx: Tx, ref: string) => resolveProj
 // for every new project.
 export const seedDefaultChannels = async (ctx: ServiceCtx, tx: Tx, rootId: string) => {
 	await upsert(ctx, tx, SYSTEM_ACTOR);
-	for (const name of DEFAULT_CHAT_CHANNELS) {
+	for (const channel of DEFAULT_CHAT_CHANNELS) {
 		await tx.execute(
-			sql`INSERT INTO chat_channels (project_id, name, ai_only, actor_name, actor_kind, created_at)
-				VALUES (${rootId}, ${name}, ${name === "ai"}, ${SYSTEM_ACTOR.name}, ${SYSTEM_ACTOR.kind}, ${ctx.now}) ON CONFLICT DO NOTHING`,
+			sql`INSERT INTO chat_channels (project_id, name, ai_only, direct, actor_name, actor_kind, created_at)
+				VALUES (${rootId}, ${channel.name}, ${channel.aiOnly}, ${channel.direct}, ${SYSTEM_ACTOR.name}, ${SYSTEM_ACTOR.kind}, ${ctx.now}) ON CONFLICT DO NOTHING`,
 		);
 	}
 };
 
 // Inserts a channel when the room has none of that name. Returns the row's
-// `ai_only` flag and whether this call inserted it.
+// flags and whether this call inserted it.
 export const ensureChannel = async (ctx: ServiceCtx, tx: Tx, rootId: string, name: string, aiOnly = false) => {
 	const actor = requireActor(ctx);
 	await upsert(ctx, tx, actor);
@@ -42,13 +42,13 @@ export const ensureChannel = async (ctx: ServiceCtx, tx: Tx, rootId: string, nam
 	);
 	if (inserted.length > 0) {
 		ctx.emit({ type: "chat.channels", projectId: rootId });
-		return { inserted: true, aiOnly };
+		return { inserted: true, aiOnly, direct: false };
 	}
-	const [existing] = await rows<{ ai_only: boolean }>(
+	const [existing] = await rows<{ ai_only: boolean; direct: boolean }>(
 		tx,
-		sql`SELECT ai_only FROM chat_channels WHERE project_id = ${rootId} AND name = ${name}`,
+		sql`SELECT ai_only, direct FROM chat_channels WHERE project_id = ${rootId} AND name = ${name}`,
 	);
-	return { inserted: false, aiOnly: existing!.ai_only };
+	return { inserted: false, aiOnly: existing!.ai_only, direct: existing!.direct };
 };
 
 export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<ChatChannel[]> => {

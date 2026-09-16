@@ -218,7 +218,11 @@ migration insert them. A post to a channel the
 room lacks creates the channel. A channel has no id: the API and the CLI
 address it by its project and its lower-case name, with an optional `#`.
 A channel can be for agents only (`aiOnly`); `ai` is one, and an agent can
-create more with `trellis chat create <project> <name> --ai-only`. A person
+create more with `trellis chat create <project> <name> --ai-only`. The
+`manager` channel is `direct`: a direct message between a person and the
+manager of the project. A post there reaches the live manager alone and
+interrupts it; an agent other than that manager gets `CHAT_DIRECT`. The web
+lists it under Direct messages with the manager's persona name. A person
 who posts in such a channel gets `CHAT_AI_ONLY`. The web shows no composer,
 no unread dot, and plays no sound for it.
 

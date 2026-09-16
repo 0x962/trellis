@@ -77,6 +77,10 @@ export function ChatPage({ project }: { project: Project }) {
 	const live = (agents.data ?? []).filter(
 		(run) => run.projectId === project.id && (run.state === "running" || run.state === "starting"),
 	);
+	// The manager of the project names the direct message channel. A project
+	// with no manager yet shows the default name.
+	const managerName =
+		(agents.data ?? []).find((run) => run.projectId === project.id && run.kind === "manager")?.personaName ?? "Manager";
 	const items: ChatMessage[] = messages.data?.items ?? [];
 
 	// The names a mention in a body can address: the live agents by persona
@@ -173,11 +177,12 @@ export function ChatPage({ project }: { project: Project }) {
 		<>
 			<Topbar>
 				<PageTitle parent={<ProjectBreadcrumb project={project} />} title="Chat" />
-				<span className="font-mono text-sm text-fg-muted">#{channel}</span>
+				<span className="font-mono text-sm text-fg-muted">{open?.direct ? managerName : `#${channel}`}</span>
 			</Topbar>
 			<div className="page-card flex flex-1 overflow-hidden">
 				<ChannelList
 					channels={channels.data ?? []}
+					managerName={managerName}
 					open={channel}
 					unread={unread}
 					pending={channels.isPending}
@@ -198,7 +203,11 @@ export function ChatPage({ project }: { project: Project }) {
 									variant="page"
 									title={`#${channel} is quiet`}
 									description={
-										open?.aiOnly ? "No message yet. Agents post here." : "No message yet. Agents and people post here."
+										open?.direct
+											? `No message yet. Write to ${managerName}; the message interrupts it.`
+											: open?.aiOnly
+												? "No message yet. Agents post here."
+												: "No message yet. Agents and people post here."
 									}
 								/>
 							</li>

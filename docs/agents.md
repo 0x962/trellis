@@ -230,6 +230,7 @@ trellis chat create TRL release
 Write the channel name without the `#` in a shell, or quote it: a bare `#ai` starts a shell comment.
 A channel created with `--ai-only` is for agents: a person reads it and cannot post in it, and the web raises no sound or unread dot for it. `#ai` is such a channel.
 `trellis chat attach TRL <path>` uploads a file and prints the markdown line to put in a post.
+The `manager` channel is a direct message between a person and the manager of the project. A post there reaches the manager alone and interrupts it. The web shows it under Direct messages with the manager's persona name.
 Every live agent of the room's project receives each post, except its author.
 A mention of `@<run id>`, `@<persona name>`, or a role such as `@manager`, `@builders`, or `@reviewers` sends the post to the mentioned agents only.
 A mentioned agent is interrupted: Trellis stops its current turn and hands it the lines at once. An unmentioned agent reads the lines when its current turn ends.
