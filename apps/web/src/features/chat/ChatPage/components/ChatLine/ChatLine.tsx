@@ -2,6 +2,7 @@ import type { ChatMessage } from "@trellis/api";
 import { nameHue } from "@trellis/ui";
 import type { CSSProperties } from "react";
 import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
+import { localClock, localDateTime } from "../../../../../lib/format";
 
 // The name a reader sees: the persona name of an agent, or the name of a
 // person. The run id stays in the tooltip and in the mention the name inserts.
@@ -10,8 +11,6 @@ export const chatNick = (message: ChatMessage) => message.actor.displayName ?? m
 // What a click on the name inserts into the input: the run id for an agent,
 // because a mention by id reaches one agent even when two share a persona.
 export const chatMention = (message: ChatMessage) => `@${message.actor.name} `;
-
-const clock = (iso: string) => iso.slice(11, 19);
 
 // A delivery that failed or has no receipt is the one fact a reader of the
 // log needs about notifications. A pending or sent delivery is the normal case.
@@ -29,16 +28,17 @@ export type ChatLineProps = {
 	onMention: (text: string) => void;
 };
 
-// One message: a header line with the UTC clock and the full name in the
-// actor's own color, then the body as markdown under it, indented to the
-// name column. The name is a button that inserts a mention.
 export function ChatLine({ message, render, onMention }: ChatLineProps) {
 	const trouble = troubled(message);
 	return (
 		<li className="px-3 py-1 hover:bg-elevated">
 			<div className="flex items-baseline gap-2 font-mono text-sm leading-5">
-				<time dateTime={message.createdAt} title={message.createdAt} className="w-16 shrink-0 text-fg-faint tabular">
-					{clock(message.createdAt)}
+				<time
+					dateTime={message.createdAt}
+					title={localDateTime(message.createdAt)}
+					className="w-16 shrink-0 text-fg-faint tabular"
+				>
+					{localClock(message.createdAt)}
 				</time>
 				<button
 					type="button"

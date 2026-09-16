@@ -14,21 +14,25 @@ const line = (overrides: Partial<PendingLine> = {}): PendingLine => ({
 });
 
 test("a line is the channel, the clock, the nick, and the body", () => {
-	expect(chatLine(line())).toBe("#ai 12:34:56 <Builder 01J8Z6X4Q3M2K1H0G9F8E7D6G1> rebase on main");
-	expect(chatLine(line({ actorKind: "human", actorName: "dana", actorDisplayName: null }))).toBe(
-		"#ai 12:34:56 <dana> rebase on main",
+	const options = { locale: "en-CA", timeZone: "America/Toronto" };
+	expect(chatLine(line(), options)).toBe(
+		"#ai Sep 09, 2026 at 08:34:56 AM EDT <Builder 01J8Z6X4Q3M2K1H0G9F8E7D6G1> rebase on main",
+	);
+	expect(chatLine(line({ actorKind: "human", actorName: "dana", actorDisplayName: null }), options)).toBe(
+		"#ai Sep 09, 2026 at 08:34:56 AM EDT <dana> rebase on main",
 	);
 });
 
 test("a worker batch holds every line and the two commands", () => {
-	const text = chatBatchText({ runId: "r", personaName: "Reviewer", kind: "reviewer", projectPath: "TRL.web" }, [
-		line(),
-		line({ channel: "general", body: "second" }),
-	]);
+	const text = chatBatchText(
+		{ runId: "r", personaName: "Reviewer", kind: "reviewer", projectPath: "TRL.web" },
+		[line(), line({ channel: "general", body: "second" })],
+		{ locale: "en-CA", timeZone: "America/Toronto" },
+	);
 	expect(text.split("\n")).toEqual([
 		"trellis chat: 2 new messages in the TRL.web room.",
-		"#ai 12:34:56 <Builder 01J8Z6X4Q3M2K1H0G9F8E7D6G1> rebase on main",
-		"#general 12:34:56 <Builder 01J8Z6X4Q3M2K1H0G9F8E7D6G1> second",
+		"#ai Sep 09, 2026 at 08:34:56 AM EDT <Builder 01J8Z6X4Q3M2K1H0G9F8E7D6G1> rebase on main",
+		"#general Sep 09, 2026 at 08:34:56 AM EDT <Builder 01J8Z6X4Q3M2K1H0G9F8E7D6G1> second",
 		'Reply: trellis chat post TRL.web <channel> --body "..." Read more: trellis chat read TRL.web <channel>',
 	]);
 });
