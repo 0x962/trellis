@@ -8,7 +8,9 @@ import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
+import { capacityAvailable } from "../assignments/capacity.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
+import { assignment } from "../controller/nextActions/assignment.ts";
 import { managerConfigOf, projectRow } from "../projectRows.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
@@ -44,7 +46,9 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 			newSession: input.newSession === true,
 		},
 	};
-	const replay = await replayRequest(ctx, tx, request);
+	const replay =
+		(await assignment(ctx, tx, { requestId: input.requestId, ticketId: ticket?.id ?? null, personaId: persona.id })) ??
+		(await replayRequest(ctx, tx, request));
 	if (replay) return { replay: true as const, run: replay };
 	assertProjectActive(ctx, project.id);
 	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
@@ -56,11 +60,8 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket.id} AND persona_id=${persona.id} AND runtime='native' AND closed_at IS NULL LIMIT 1`,
 		);
 		if (assigned.length > 0) throw fail("DUPLICATE", { field: "active persona assignment on this ticket" });
-		const [active] = await rows<{ count: number }>(
-			tx,
-			sql`SELECT count(*)::int AS count FROM agent_runs WHERE project_id = ${project.id} AND kind <> 'manager' AND runtime = 'native' AND closed_at IS NULL`,
-		);
-		if (active!.count >= config.concurrency) throw fail("DUPLICATE", { field: "project concurrency limit" });
+		if (!(await capacityAvailable(tx, { projectId: project.id })))
+			throw fail("DUPLICATE", { field: "project concurrency limit" });
 	}
 	const projectPath = pathOf(ctx.cache, project.id);
 	const ids = chainOf(ctx.cache, project.id).map((item) => item.id);
@@ -113,6 +114,11 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 	run.runtime = "native";
 	run.terminalId = attempt.id;
 	await recordRequest(ctx, tx, { ...request, runId: run.id });
+	if (ticket !== null)
+		await tx.execute(sql`UPDATE manager_next_actions a SET state='assigned',run_id=${run.id},assigned_at=${ctx.now}
+ WHERE ticket_id=${ticket.id} AND state='waiting' AND status_id=${ticket.statusId}
+ AND (${actor.kind === "human"} OR EXISTS (SELECT 1 FROM agent_runs manager WHERE manager.id=${actor.name}
+ AND manager.kind='manager' AND manager.project_id=a.project_id AND manager.closed_at IS NULL))`);
 	const context =
 		ticket === null
 			? `Project: ${projectPath}\nEffective statuses:\n${JSON.stringify(ctx.cache.effectiveStatuses(project.id).statuses)}`

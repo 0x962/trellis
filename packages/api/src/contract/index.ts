@@ -44,3 +44,5 @@ export const contract = {
 	system: oc.tag("system").router(system),
 };
 export type TrellisContract = typeof contract;
+
+export type { ManagerNextAction } from "./managerNextAction.ts";

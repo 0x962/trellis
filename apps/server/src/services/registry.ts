@@ -11,6 +11,8 @@ import * as brief from "./brief.ts";
 import * as comments from "./comments.ts";
 import * as controller from "./controller/controller.ts";
 import * as controllerDispatch from "./controller/dispatch.ts";
+import { cancel as cancelManagerAction } from "./controller/nextActions/cancel.ts";
+import { list as listManagerActions } from "./controller/nextActions/list.ts";
 import * as controllerPrepare from "./controller/prepare.ts";
 import * as controllerWork from "./controller/work.ts";
 import { diagnostics } from "./diagnostics.ts";
@@ -148,6 +150,8 @@ export const services = {
 	"controller.complete": core("mutation", controller.complete),
 	"controller.recover": core("mutation", controller.recover),
 	"controller.list": core("read", controller.list),
+	"controller.actions": core("read", listManagerActions),
+	"controller.cancelAction": core("mutation", cancelManagerAction),
 	"controller.handle": core("mutation", controllerWork.handle),
 	"controller.retry": core("mutation", controller.retry),
 	"controller.resolveUnknown": core("mutation", controller.resolveUnknown),

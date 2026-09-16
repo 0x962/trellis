@@ -13,6 +13,7 @@ const delivery: Dispatch = {
 	state: "sending",
 	workState: "open",
 	outcomes: [],
+	nextActions: [],
 	handledAt: null,
 	events: [],
 	dueAt: "2026-09-15T00:00:00.000Z",
@@ -33,6 +34,7 @@ test("a heartbeat includes coordination and current agent observations", () => {
 		projectId: delivery.projectId,
 		generation: delivery.generation,
 		events: [],
+		nextActions: [],
 		workItems: workItems(delivery),
 		...context,
 		agentContext: agents,
@@ -54,6 +56,7 @@ test("a dispatch contains its event envelope and unmodified ticket events", () =
 		projectId: delivery.projectId,
 		generation: delivery.generation,
 		events: [event],
+		nextActions: [],
 		workItems: workItems({ ...delivery, events: [event] }),
 		...context,
 		agentContext: agents,
@@ -76,4 +79,34 @@ test("assignment identifiers survive a retry generation and completed tickets le
 	).toEqual([first[1]!]);
 	const next = JSON.parse(managerMessage({ ...delivery, generation: 8, events }, context, agents));
 	expect(next.workItems).toEqual(first);
+});
+
+test("a capacity wake names its ticket and keeps the saved assignment identity", () => {
+	const message = JSON.parse(
+		managerMessage(
+			{
+				...delivery,
+				nextActions: [
+					{
+						id: "action",
+						projectId: delivery.projectId,
+						ticketId: "ticket",
+						assignmentRequestId: "original-request",
+						reason: "Start its reviewer.",
+						wakeCondition: "capacity",
+						state: "waiting",
+						runId: null,
+						createdAt: delivery.dueAt,
+						eligibleAt: delivery.dueAt,
+						assignedAt: null,
+					},
+				],
+			},
+			context,
+			agents,
+		),
+	);
+	expect(message.type).toBe("trellis.manager.dispatch");
+	expect(message.workItems).toEqual([{ ticketId: "ticket", assignmentRequestId: "original-request" }]);
+	expect(message.nextActions[0].reason).toBe("Start its reviewer.");
 });

@@ -15,7 +15,7 @@ const operations = {
 	agentRuns: ["list", "start", "send", "stop", "interrupt", "session", "refresh"],
 	flows: ["list", "get"],
 	flowExecutions: ["list", "get", "start", "cancel"],
-	controller: ["list", "handle"],
+	controller: ["list", "handle", "actions", "cancelAction"],
 } as const;
 
 const agentListInput = AgentRunListInputSchema.extend({

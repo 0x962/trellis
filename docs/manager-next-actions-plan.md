@@ -1,15 +1,18 @@
 # Manager next actions
 
-Status: proposed first improvement, 2026-09-15. Source baseline: `23de0f70`.
+Status: capacity-wait implementation in this branch, 2026-09-15. Research baseline: `23de0f70`.
+
+The [manager guide](agents.md#manager-capacity-waits) describes the implemented API and CLI behavior.
+Deployment and production measurements remain separate steps.
 
 Create a durable queue for the next action on each ticket. Start with tickets that wait for worker capacity.
 The intended outcome is less time between a free worker slot and the next useful assignment.
 Navid should not need to remind the manager about work it already agreed to continue.
 
-## Evidence in this checkout
+## Evidence at the research baseline
 
-The controller already stores dispatch receipts, stable assignment identifiers, and per-ticket outcomes.
-The gap concerns what happens after the manager records a deferred outcome:
+At `23de0f70`, the controller stores dispatch receipts, stable assignment identifiers, and per-ticket outcomes.
+The following observations describe that revision, before the capacity-wait implementation:
 
 - The [outcome contract](../packages/api/src/contract/controller.ts) stores a status, reason, and optional reference. It has no structured next action or wake condition.
 - [handle](../apps/server/src/services/controller/work.ts) marks a dispatch as handled once every ticket has an outcome. A `queued` or `blocked` outcome counts toward that result.
@@ -18,7 +21,7 @@ The gap concerns what happens after the manager records a deferred outcome:
 
 A later heartbeat or ticket event can prompt the manager to inspect the board again.
 These mechanisms do not record a durable instruction to revisit this ticket when capacity becomes available.
-This finding concerns the source checkout, not the revision in the installed service.
+This finding concerns the research baseline, not the revision in the installed service.
 
 ## Why this comes first
 

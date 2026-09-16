@@ -119,6 +119,13 @@ Each dispatch tracks delivery separately from its per-ticket coordination outcom
 Data-only envelopes include policy versions, stable assignment identifiers, and unfinished dispatches.
 The manager records an assignment, queue entry, blocker, or reason for no action for each affected ticket.
 A handled dispatch does not prove that a worker completed the ticket.
+For a ticket, a `queued` outcome also saves a capacity wait in `manager_next_actions` in the same transaction.
+The controller presents eligible waits as ticket work when capacity opens. It uses the assignment service's capacity rule.
+Each wait retains its assignment identifier across dispatches and manager replacement.
+An assignment reserves the worker and records the action's assigned state in one transaction.
+Pause and archive states prevent new assignments from saved actions. Ticket completion, a changed status, or a changed manager scope retires obsolete waits.
+The manager can inspect waits through `controller.actions` and cancel one through `controller.cancelAction`.
+The timestamps record creation, current eligibility, notification, and assignment. Historical outcomes remain receipts and do not create waits during migration.
 Optional comment keys suppress duplicate writes for the same ticket and actor without new activity events.
 A partial database index permits one active manager per project.
 
