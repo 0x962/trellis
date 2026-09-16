@@ -19,6 +19,7 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	return rows<StoredRun>(
 		tx,
 		sql`SELECT ${columns} FROM agent_runs WHERE
+		${ctx.actor?.kind === "agent" ? sql`true` : sql`NOT EXISTS (SELECT 1 FROM manager_delegations WHERE run_id=agent_runs.id)`} AND
 		${ticket === null ? sql`true` : sql`ticket_id = ${ticket.id}`} AND
 		${project === null ? sql`true` : sql`project_id = ${project.id}`} ORDER BY created_at DESC, id DESC`,
 	);

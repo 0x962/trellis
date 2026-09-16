@@ -14,6 +14,7 @@ import { pullRequests } from "./pullRequests.ts";
 import { actors, brief, search, settings, timeline } from "./reads.ts";
 import { reviews } from "./reviews";
 import { statuses } from "./statuses.ts";
+import { submanagers } from "./submanagers.ts";
 import { system } from "./system.ts";
 import { tickets } from "./tickets.ts";
 
@@ -21,6 +22,7 @@ export type { ProcedureContext } from "./base.ts";
 
 // The whole contract, implemented. Both HTTP handlers serve this one router.
 export const router = os.router({
+	submanagers,
 	harnessAccounts,
 	needsYou,
 	evidence,

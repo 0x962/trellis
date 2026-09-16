@@ -52,6 +52,10 @@ import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
 import * as settings from "./settings.ts";
 import * as statuses from "./statuses.ts";
+import { list as listSubmanagers } from "./submanagers/list.ts";
+import { prepareStart as startSubmanager } from "./submanagers/prepareStart.ts";
+import { resize as resizeSubmanager } from "./submanagers/resize.ts";
+import { prepareRetire as retireSubmanager } from "./submanagers/retire.ts";
 import type { IoCtx, PrepareCtx } from "./support.ts";
 import * as system from "./system.ts";
 import * as tickets from "./tickets.ts";
@@ -97,6 +101,10 @@ const agentMutation = (prepare: Prepare) =>
 	);
 
 export const services = {
+	"submanagers.list": core("read", listSubmanagers),
+	"submanagers.start": agentMutation(startSubmanager),
+	"submanagers.resize": core("mutation", resizeSubmanager),
+	"submanagers.retire": prepared("mutation", retireSubmanager, agentTerminal.result),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
 	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),

@@ -13,6 +13,7 @@ import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive } from "../refs.ts";
 import { reserveRestart } from "../restartAgents/reserveRestart.ts";
+import { assertResume } from "../submanagers/assertResume.ts";
 import type { IoCtx } from "../support.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { startNative } from "./nativeStart.ts";
@@ -21,6 +22,7 @@ import { getRun } from "./queries.ts";
 type Input = { id: string; accountId?: string; expectedTerminalId: string; requestId: string };
 export async function prepareResume(ctx: IoCtx, input: Input, start: typeof startNative = startNative) {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
+	await ctx.newTx((tx) => assertResume(ctx.core, tx, run));
 	if (run.runtime !== "native" || !run.projectId || !run.personaId)
 		throw invalidInput("id", "This assignment has no resumable native session.");
 	const target = {
@@ -55,6 +57,7 @@ export async function prepareResume(ctx: IoCtx, input: Input, start: typeof star
 		await assertNativeWorkEnabled(tx);
 		assertProjectActive(ctx.core, run.projectId!);
 		const current = await getRun(tx, input.id);
+		await assertResume(ctx.core, tx, current);
 		if (current.terminalId !== input.expectedTerminalId)
 			throw invalidInput("expectedTerminalId", "Another call already replaced this attempt.");
 		if (current.ticketId) {

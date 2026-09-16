@@ -31,6 +31,8 @@ test("account instructions extend manager personas and preserve existing convers
 	const result = await db.execute(sql`SELECT instruction FROM personas WHERE id='manager'`);
 	expect(result.rows[0]!.instruction).toContain("Keep this policy.\n\n## Harness accounts");
 	expect(result.rows[0]!.instruction).toContain("agentRuns.resume");
+	expect(result.rows[0]!.instruction).toContain("submanagers.start");
+	expect(result.rows[0]!.instruction).toContain("## Autonomous project delegation");
 	expect((await db.execute(sql`SELECT instruction FROM personas WHERE id='builder'`)).rows[0]!.instruction).toBe(
 		"Build.",
 	);

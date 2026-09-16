@@ -4,6 +4,7 @@ import { contract } from "@trellis/api/contract";
 import { z } from "zod";
 
 const operations = {
+	submanagers: ["list", "start", "resize", "retire"],
 	projects: ["list", "get"],
 	harnessAccounts: ["list", "quota"],
 	statuses: ["list"],
@@ -77,9 +78,14 @@ export const managerTools = (invoke: Invoke) => {
 			}
 			const result = await invoke(tool.operation, tool.schema.parse(input));
 			if (
-				["agentRuns.start", "agentRuns.resume", "agentRuns.send", "agentRuns.stop", "agentRuns.refresh"].includes(
-					tool.operation,
-				)
+				[
+					"submanagers.start",
+					"agentRuns.start",
+					"agentRuns.resume",
+					"agentRuns.send",
+					"agentRuns.stop",
+					"agentRuns.refresh",
+				].includes(tool.operation)
 			)
 				return assignmentRecord(result as AgentRun);
 			if (tool.operation !== "agentRuns.session") return result;

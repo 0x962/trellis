@@ -309,6 +309,13 @@
       "when": 1789568754886,
       "tag": "0046_harness_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1789571941305,
+      "tag": "0047_manager_delegations",
+      "breakpoints": true
     }
   ]
 }

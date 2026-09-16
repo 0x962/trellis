@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { isManaged, managerScope } from "../submanagers/scope.ts";
 import { collectHeartbeats } from "./collectHeartbeats.ts";
 import { collect as collectNextActions } from "./nextActions/collect.ts";
 import type { ControllerCtx, ControllerEvent, ControllerInput } from "./types.ts";
@@ -9,7 +10,7 @@ import type { ControllerCtx, ControllerEvent, ControllerInput } from "./types.ts
 export const collect = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput) => {
 	const projects = await rows<{ id: string }>(
 		tx,
-		sql`SELECT id FROM projects WHERE manager_config->>'personaId' IS NOT NULL AND archived_at IS NULL`,
+		sql`SELECT p.id FROM projects p WHERE ${isManaged(sql`p`)} AND p.archived_at IS NULL`,
 	);
 	for (const project of projects) {
 		const [active] = await rows<{ id: string; state: string; events: ControllerEvent[] }>(
@@ -34,13 +35,9 @@ export const collect = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput
 			manager: boolean;
 		}>(
 			tx,
-			sql`WITH RECURSIVE scope AS (
-				SELECT id FROM projects WHERE id = ${project.id}
-				UNION ALL SELECT p.id FROM projects p JOIN scope s ON p.parent_id = s.id
-				WHERE p.manager_config->>'personaId' IS NULL AND p.archived_at IS NULL
-			) SELECT a.id, a.ticket_id, a.action, a.actor_name, a.actor_kind, ${iso(sql`a.created_at`)} AS created_at,
+			sql` SELECT a.id, a.ticket_id, a.action, a.actor_name, a.actor_kind, ${iso(sql`a.created_at`)} AS created_at,
 				EXISTS (SELECT 1 FROM agent_runs r WHERE r.id = a.actor_name AND r.kind = 'manager' AND r.project_id = ${project.id} AND a.actor_kind = 'agent') AS manager
-			FROM activity a WHERE a.project_id IN (SELECT id FROM scope) AND a.id > ${cursor!.activity_id}
+			FROM activity a WHERE a.project_id IN (${managerScope(project.id)}) AND a.id > ${cursor!.activity_id}
 			ORDER BY a.id LIMIT ${100 - (active?.events.length ?? 0)}`,
 		);
 		if (found.length === 0) continue;

@@ -6,7 +6,13 @@ import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
 
-const labels = { pending: "Queued", sending: "Send in progress", sent: "Written to agent", unknown: "Receipt unknown" };
+const labels = {
+	canceled: "Canceled",
+	pending: "Queued",
+	sending: "Send in progress",
+	sent: "Written to agent",
+	unknown: "Receipt unknown",
+};
 
 export function ManagerQueue({ projectId }: { projectId?: string }) {
 	const { client, orpc, queryClient } = useApp();

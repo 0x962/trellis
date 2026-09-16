@@ -15,20 +15,31 @@ import { assignment } from "../controller/nextActions/assignment.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
+import { assertAssignmentOwner } from "../submanagers/access.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { columns, type StoredRun } from "./queries.ts";
 
 // The newest manager row is the current assignment; older rows retain their history.
-export const managerRowOf = async (tx: Tx, projectId: string) =>
+export const managerRowOf = async (tx: Tx, projectId: string, delegated = false) =>
 	(
 		await rows<StoredRun>(
 			tx,
-			sql`SELECT ${columns} FROM agent_runs WHERE project_id = ${projectId} AND kind = 'manager' ORDER BY created_at DESC, id DESC LIMIT 1`,
+			sql`SELECT ${columns} FROM agent_runs WHERE project_id = ${projectId} AND kind = 'manager' AND ${delegated ? sql`EXISTS (SELECT 1 FROM manager_delegations d WHERE d.run_id=agent_runs.id AND d.retired_at IS NULL)` : sql`NOT EXISTS (SELECT 1 FROM manager_delegations d WHERE d.run_id=agent_runs.id)`} ORDER BY created_at DESC, id DESC LIMIT 1`,
 		)
 	).at(0);
 
-export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, confirmedExited: string[] = []) => {
+export const reserve = async (
+	ctx: CoreCtx,
+	tx: Tx,
+	input: AgentRunStartInput,
+	confirmedExited: string[] = [],
+	options?: { delegated: boolean; config: Awaited<ReturnType<typeof projectLaunchConfig>> },
+) => {
 	const actor = requireActor(ctx);
+	if (input.project && actor.kind === "agent" && !options?.delegated) {
+		const manager = await rows(tx, sql`SELECT id FROM agent_runs WHERE id=${actor.name} AND kind='manager'`);
+		if (manager.length) throw invalidInput("project", "Use submanagers.start to delegate a project subtree.");
+	}
 	const [persona] = await rows<Persona>(
 		tx,
 		sql`SELECT id, name, kind, instruction FROM personas WHERE id = ${input.personaId}`,
@@ -38,6 +49,14 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 		throw invalidInput("personaId", "Select a manager for a project, or a builder or reviewer for a ticket.");
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const project = await resolveMutableProject(ctx, tx, ticket?.projectId ?? input.project!);
+	if (ticket === null && !options?.delegated) {
+		const delegated = await rows(
+			tx,
+			sql`SELECT run_id FROM manager_delegations WHERE project_id=${project.id} AND retired_at IS NULL`,
+		);
+		if (delegated.length)
+			throw invalidInput("project", "Retire the current delegation before you start an independent manager.");
+	}
 	await tx.execute(sql`SELECT id FROM projects WHERE id = ${project.id} FOR UPDATE`);
 	const request = {
 		requestId: input.requestId,
@@ -59,9 +78,10 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 	if (replay) return { replay: true as const, run: replay };
 	assertProjectActive(ctx, project.id);
 	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
-	let config = await projectLaunchConfig(tx, { projectId: project.id });
+	let config = options?.config ?? (await projectLaunchConfig(tx, { projectId: project.id }));
 	await assertNativeWorkEnabled(tx);
 	if (ticket !== null) {
+		await assertAssignmentOwner(ctx, tx, project.id);
 		await assertTicketReady(ctx, tx, { ticketId: ticket.id, projectId: project.id });
 		const assigned = await rows(
 			tx,
@@ -81,7 +101,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 		)})`,
 	);
 	await upsert(ctx, tx, actor);
-	let existing = persona.kind === "manager" ? await managerRowOf(tx, project.id) : undefined;
+	let existing = persona.kind === "manager" ? await managerRowOf(tx, project.id, options?.delegated) : undefined;
 	if (existing !== undefined && existing.runtime === "native" && existing.closedAt === null)
 		throw fail("DUPLICATE", { field: "active agent" });
 	if (existing && existing.runtime !== "native") existing = undefined;

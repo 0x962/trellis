@@ -286,6 +286,28 @@ The concurrency limit counts ticket assignments with `closed_at IS NULL`. It exc
 A confirmed process exit closes its assignment before the next claim.
 The limit runs from 1 to 64 and defaults to 3. A partial unique index permits one active manager per project.
 
+### Manager delegation
+
+A manager delegates a child project subtree through `submanagers.start` with a brief, worker capacity, and stable request identifier.
+The submanager uses the parent's persona and supports an explicit harness account. Its assignment preserves the parent identifier and delegated scope.
+`manager_delegations` stores the assignment, parent, project, capacity, brief, and retirement time.
+The project configuration remains unchanged. A configured manager or active delegation marks a scope boundary.
+
+Each submanager receives its own controller queue and heartbeats. Parent heartbeat context includes its direct submanagers and their process state.
+Normal human agent lists omit submanager assignments. The `submanagers` API retains inspection and control for diagnosis.
+`submanagers.list` gives a manager its own delegation and direct children. `resize` changes a child's budget.
+The aggregate budget counts ticket workers across the delegated scope. Existing per-project limits also apply.
+Nested delegations reserve part of their parent's budget. Direct workers cannot consume those reserved slots.
+Independent managers allocate separate subtree budgets. These budgets do not change provider limits or project concurrency settings.
+Worker starts, resumes, flow steps, and capacity waits use the same budget rule.
+
+Only the current scope owner can assign workers inside a delegation. A parent can resume, resize, or retire its direct submanagers.
+`submanagers.retire` confirms process exit before it returns scope ownership and waits to the parent.
+Ticket workers remain assigned. Wait handoff retains each assignment request identifier. Retired deliveries retain their history with a canceled send state when needed.
+An unexpected manager exit retains its delegation. The parent sees that exit and can resume the saved conversation.
+Migration `0047_manager_delegations` extends saved manager instructions without a conversation reset.
+The source instructions live in [manager-delegation.md](personas/manager-delegation.md).
+
 ### Harness accounts
 
 The main Settings page stores several accounts per harness at `/settings#agent-accounts`.
