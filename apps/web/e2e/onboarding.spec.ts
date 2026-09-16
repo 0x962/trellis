@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { get } from "./api";
 import { signIn } from "./support";
 
@@ -12,6 +12,21 @@ const captureTheme = `document.addEventListener("DOMContentLoaded", () => {
 	window.__themeAtLoad = document.documentElement.getAttribute("data-theme");
 });`;
 
+const installDesktopBridge = (page: Page) =>
+	page.addInitScript(() => {
+		Object.defineProperty(window, "trellisDesktop", {
+			value: {
+				platform: "darwin",
+				chooseDirectory: async () => null,
+				status: async () => ({ packaged: true, dataDirectory: "/Users/dana/.trellis", openAtLogin: false }),
+				serviceStatus: async () => "enabled",
+				updateStatus: async () => null,
+				setOpenAtLogin: async () => {},
+				run: async () => {},
+			},
+		});
+	});
+
 // WS-142
 test("first run paints dark and lands on setup", async ({ page }) => {
 	await page.addInitScript(captureTheme);
@@ -19,6 +34,15 @@ test("first run paints dark and lands on setup", async ({ page }) => {
 	await expect(page).toHaveURL(/\/setup$/);
 	const theme = await page.evaluate(() => (window as unknown as { __themeAtLoad: string | null }).__themeAtLoad);
 	expect(theme).toBe("dark");
+});
+
+test("desktop settings open before the first project exists", async ({ page }) => {
+	await installDesktopBridge(page);
+	await page.goto("/settings#desktop");
+	await expect(page).toHaveURL(/\/settings#desktop$/);
+	const section = page.getByRole("region", { name: "Desktop" });
+	await expect(section).toBeVisible();
+	await expect(section.getByRole("button", { name: "Choose data directory", exact: true })).toBeEnabled();
 });
 
 // WS-143. The name step stores the actor; the project step creates the

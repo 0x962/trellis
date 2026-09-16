@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld(
 		onNavigate: (listener: (path: string) => void) => {
 			const handler = (_event: IpcRendererEvent, path: string) => listener(path);
 			ipcRenderer.on("trellis:navigate", handler);
+			void ipcRenderer.invoke("trellis:navigation-ready");
 			return () => ipcRenderer.removeListener("trellis:navigate", handler);
 		},
 	}),

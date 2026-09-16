@@ -1,4 +1,5 @@
 export {
+	canOpenDesktopSettingsBeforeSetup,
 	type DesktopAction,
 	type DesktopBridge,
 	type DesktopServiceStatus,

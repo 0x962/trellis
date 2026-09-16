@@ -22,6 +22,7 @@ import { installCli } from "./installCli/installCli.ts";
 import { deepLinkPath, externalUrl, rendererPath, sameOrigin } from "./navigation/navigation.ts";
 import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResources.ts";
 import { prepareHome } from "./prepareHome/prepareHome.ts";
+import { createRendererNavigation } from "./rendererNavigation";
 import { restartHost } from "./restartHost/index.ts";
 import { restartMenuItem } from "./restartMenuItem/index.ts";
 import { readSelectedHome } from "./selectedHome/selectedHome.ts";
@@ -37,7 +38,7 @@ import { windowOptions } from "./windowOptions/windowOptions.ts";
 let window: BrowserWindow | undefined;
 let host: HostConnection;
 let availableRelease: PinnedRelease | undefined;
-let pendingPath: string | undefined = "/";
+const rendererNavigation = createRendererNavigation((path) => window?.webContents.send("trellis:navigate", path));
 const progress = startupProgress(join(app.getAppPath(), "dist/startup.html"));
 const desktopHome = () => process.env.TRELLIS_DESKTOP_HOME ?? readSelectedHome(app.getPath("userData"));
 const paths = () => desktopPaths(app.getAppPath(), process.resourcesPath, app.isPackaged);
@@ -71,12 +72,15 @@ const openWindow = async () => {
 		},
 	});
 	const createdWindow = window;
+	rendererNavigation.startLoad();
 	window.once("ready-to-show", () => {
 		void progress.finish(() => showMaximizedWindow(createdWindow));
 	});
 	window.on("closed", () => {
+		rendererNavigation.startLoad();
 		window = undefined;
 	});
+	window.webContents.on("did-start-loading", rendererNavigation.startLoad);
 	window.webContents.on("will-navigate", (event, url) => {
 		if (!sameOrigin(url, host.origin)) event.preventDefault();
 	});
@@ -85,8 +89,7 @@ const openWindow = async () => {
 		if (externalUrl(url)) void shell.openExternal(url);
 		return { action: "deny" };
 	});
-	await window.loadURL(`${host.origin}${pendingPath ?? "/"}`);
-	pendingPath = undefined;
+	await window.loadURL(`${host.origin}${rendererNavigation.initialPath()}`);
 };
 const chooseHome = (current = desktopHome()) =>
 	chooseDataHome({
@@ -146,10 +149,10 @@ const navigate = async (url: string) => {
 	if (window) {
 		window.show();
 		window.focus();
-		window.webContents.send("trellis:navigate", path);
+		rendererNavigation.navigate(path);
 		return;
 	}
-	pendingPath = path;
+	rendererNavigation.navigate(path);
 	if (host) await openWindow();
 };
 
@@ -202,7 +205,7 @@ const desktopActions: Record<DesktopAction, () => Promise<unknown>> = {
 	},
 	resumeLocalWork: () => resumeLocalWork(host),
 	reconnectHost: async () => {
-		const path = window ? rendererPath(window.webContents.getURL()) : (pendingPath ?? "/");
+		const path = window ? rendererPath(window.webContents.getURL()) : "/";
 		await connect();
 		await window?.loadURL(`${host.origin}${path}`);
 	},
@@ -246,6 +249,10 @@ else {
 				trustRenderer(event);
 				const result = await dialog.showOpenDialog(window!, { properties: ["openDirectory"] });
 				return result.canceled ? null : result.filePaths[0];
+			});
+			ipcMain.handle("trellis:navigation-ready", (event) => {
+				trustRenderer(event);
+				rendererNavigation.rendererReady();
 			});
 			ipcMain.handle("trellis:desktop-status", (event) => {
 				trustRenderer(event);

@@ -51,6 +51,14 @@ export function desktopSettingsBridge(bridge: Partial<DesktopBridge> | undefined
 		: undefined;
 }
 
+export function canOpenDesktopSettingsBeforeSetup(
+	bridge: Partial<DesktopBridge> | undefined,
+	pathname: string,
+	hash: string,
+): boolean {
+	return pathname === "/settings" && hash === "desktop" && desktopSettingsBridge(bridge) !== undefined;
+}
+
 // Electron puts "Error invoking remote method '<channel>': Error: " before the
 // message that the main process threw.
 export function desktopErrorMessage(error: Error): string {

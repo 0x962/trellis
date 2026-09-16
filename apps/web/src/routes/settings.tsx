@@ -9,7 +9,8 @@ import { PairPhone } from "../features/settings/PairPhone";
 import { ThemeField } from "../features/settings/ThemeField";
 import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
-import { type DesktopBridge, desktopSettingsBridge } from "../lib/desktopBridge";
+import { readActor, useActor } from "../lib/actor";
+import { canOpenDesktopSettingsBeforeSetup, type DesktopBridge, desktopSettingsBridge } from "../lib/desktopBridge";
 
 // Who you are, how the app looks, whether gh is available, and how a phone
 // reaches the server. Inside the macOS app, the Desktop section also holds
@@ -19,12 +20,15 @@ import { type DesktopBridge, desktopSettingsBridge } from "../lib/desktopBridge"
 // project, such as its manager persona, its Superset host, and its agent
 // switch, lives on that project's Manager page.
 export const Route = createFileRoute("/settings")({
-	loader: ({ context }) =>
-		Promise.all([
+	loader: ({ context, location }) => {
+		const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
+		if (readActor() === null && canOpenDesktopSettingsBeforeSetup(desktop, location.pathname, location.hash)) return;
+		return Promise.all([
 			context.queryClient.ensureQueryData(context.orpc.settings.get.queryOptions({})),
 			context.queryClient.ensureQueryData(context.orpc.system.gh.queryOptions({})),
 			context.queryClient.ensureQueryData(context.orpc.system.health.queryOptions({})),
-		]),
+		]);
+	},
 	component: SettingsPage,
 });
 
@@ -81,8 +85,9 @@ const desktopSection = (bridge: DesktopBridge): SettingsSection => ({
 
 function SettingsPage() {
 	const hash = useLocation({ select: (location) => location.hash });
+	const actor = useActor();
 	const bridge = desktopSettingsBridge((window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop);
-	const pages = bridge ? [...sections, desktopSection(bridge)] : sections;
+	const pages = bridge ? (actor === null ? [desktopSection(bridge)] : [...sections, desktopSection(bridge)]) : sections;
 	const selected = pages.some((section) => section.id === hash) ? hash : "account";
 	return (
 		<>
