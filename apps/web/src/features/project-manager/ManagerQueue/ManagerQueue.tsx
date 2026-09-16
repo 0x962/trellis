@@ -75,7 +75,7 @@ export function ManagerQueue({ projectId }: { projectId?: string }) {
 							<p className="text-sm text-fg-muted">
 								{row.events.length === 0
 									? "Heartbeat"
-									: `${row.events.length} ticket ${row.events.length === 1 ? "event" : "events"}`}{" "}
+									: `${row.events.length} ${row.events.length === 1 ? "event" : "events"}`}{" "}
 								· Due {new Date(row.dueAt).toLocaleString()}
 							</p>
 							{row.error && <p className="break-words text-sm text-danger">{row.error}</p>}
