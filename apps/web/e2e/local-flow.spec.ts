@@ -19,7 +19,6 @@ test.beforeAll(async () => {
 			concurrency: 3,
 			directory,
 			ade: "native",
-			trustedDirectory: true,
 			dispatchPaused: true,
 		},
 	});

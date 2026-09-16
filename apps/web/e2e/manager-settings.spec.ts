@@ -3,7 +3,9 @@ import { type AgentRun, HARNESS_PRESETS, type Persona, type Project } from "@tre
 import { get, post } from "./api";
 import { signIn } from "./support";
 
-test("local manager settings preserve directory trust, model, and custom commands", async ({ page }) => {
+test("local manager settings save directories without approval and preserve model and custom commands", async ({
+	page,
+}) => {
 	const persona = await post<Persona>("/personas", {
 		name: "Settings manager",
 		kind: "manager",
@@ -12,7 +14,7 @@ test("local manager settings preserve directory trust, model, and custom command
 	await post("/projects", {
 		key: "HAR",
 		name: "Harness settings",
-		managerConfig: { personaId: null, concurrency: 3, directory: "", ade: "native", trustedDirectory: false },
+		managerConfig: { personaId: null, concurrency: 3, directory: "", ade: "native" },
 	});
 	await page.addInitScript(() =>
 		Object.defineProperty(window, "trellisDesktop", {
@@ -35,8 +37,10 @@ test("local manager settings preserve directory trust, model, and custom command
 	await expect(page.getByRole("textbox", { name: "Project directory", exact: true })).toHaveValue(
 		"/tmp/trellis-native-settings",
 	);
-	await page.getByRole("checkbox", { name: "Trust this repository", exact: true }).check();
-	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.trustedDirectory).toBe(true);
+	await expect(page.getByRole("checkbox", { name: "Trust this repository", exact: true })).toHaveCount(0);
+	await expect
+		.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.directory)
+		.toBe("/tmp/trellis-native-settings");
 	await navigation.getByRole("link", { name: "Harness", exact: true }).click();
 	await expect(page).toHaveURL(/\/p\/HAR\/settings#harness$/);
 	await expect(
@@ -67,10 +71,12 @@ test("local manager settings preserve directory trust, model, and custom command
 	await navigation.getByRole("link", { name: "Manager", exact: true }).click();
 	await expect(page.getByRole("combobox", { name: "Manager persona", exact: true })).toContainText(persona.name);
 	await expect(page.getByRole("switch", { name: "Automatic dispatch", exact: true })).not.toBeChecked();
-	await expect(page.getByRole("checkbox", { name: "Trust this repository", exact: true })).toBeChecked();
+	await expect(page.getByRole("checkbox", { name: "Trust this repository", exact: true })).toHaveCount(0);
 	await page.getByRole("textbox", { name: "Project directory", exact: true }).fill("/tmp/trellis-native-other");
 	await page.getByRole("textbox", { name: "Project directory", exact: true }).press("Tab");
-	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.trustedDirectory).toBe(false);
+	await expect
+		.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.directory)
+		.toBe("/tmp/trellis-native-other");
 	await page.getByLabel("Concurrency", { exact: true }).fill("5");
 	await page.getByLabel("Concurrency", { exact: true }).press("Tab");
 	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.concurrency).toBe(5);
@@ -115,7 +121,6 @@ test("a blank default model remains valid after an edit", async ({ page }) => {
 			personaId: persona.id,
 			concurrency: 1,
 			directory: "/tmp",
-			trustedDirectory: true,
 			dispatchPaused: true,
 		},
 	});
@@ -154,33 +159,86 @@ test("manager and harness settings retain one unsaved draft", async ({ page }) =
 	expect(project.managerConfig?.harness.model).toBe("draft-model");
 });
 
-test("a manager without a launched process can start after its settings are fixed", async ({ page }) => {
+test("a saved directory lets the manager start without repository approval", async ({ page }) => {
 	const persona = await post<Persona>("/personas", {
-		name: "Trust fixture",
+		name: "Directory fixture",
 		kind: "manager",
 		instruction: "Wait.",
 	});
-	await post("/projects", {
+	const project = await post<Project>("/projects", {
 		key: "MTR",
-		name: "Manager trust",
-		managerConfig: {
-			personaId: persona.id,
-			concurrency: 1,
-			directory: "/tmp",
-			trustedDirectory: false,
-			dispatchPaused: true,
-		},
+		name: "Manager directory",
+		managerConfig: { personaId: persona.id, concurrency: 1, directory: "", dispatchPaused: true },
 	});
-	await signIn(page, "/p/MTR/settings/manager");
-	await page.getByRole("button", { name: "Start manager", exact: true }).click();
+	let started: unknown;
+	let run: AgentRun | null = null;
+	await page.routeWebSocket("**/api/agent-runs/**", (socket) => socket.close());
+	await page.route("**/rpc/agentRuns/list*", (route) => route.fulfill({ json: { json: run ? [run] : [] } }));
+	await page.route("**/rpc/agentRuns/start", async (route) => {
+		started = route.request().postDataJSON().json;
+		run = {
+			id: "01K00000000000000000000001",
+			name: persona.name,
+			runtime: "native",
+			personaId: persona.id,
+			personaName: persona.name,
+			kind: "manager",
+			instruction: persona.instruction,
+			projectId: project.id,
+			projectPath: "MTR",
+			ticketId: null,
+			ticketIdentifier: null,
+			state: "running",
+			processStatus: "running",
+			observation: null,
+			workspaceId: "/tmp/trellis-directory-start",
+			terminalId: "directory-attempt",
+			url: null,
+			error: null,
+			sessionId: "directory-session",
+			sessionLost: false,
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+		};
+		await route.fulfill({ json: { json: run } });
+	});
+	await signIn(page, "/p/MTR/settings#manager");
+	await page.getByRole("textbox", { name: "Project directory", exact: true }).fill("/tmp/trellis-directory-start");
+	await page.getByRole("textbox", { name: "Project directory", exact: true }).press("Tab");
 	await expect
-		.poll(async () => (await get<AgentRun[]>("/agent-runs?project=MTR"))[0]?.error)
-		.toContain("Trust this repository");
-	expect((await get<AgentRun[]>("/agent-runs?project=MTR"))[0]?.processStatus).toBeNull();
-	await page.goto("/p/MTR/settings#manager");
-	await page.getByRole("checkbox", { name: "Trust this repository", exact: true }).check();
-	await expect.poll(async () => (await get<Project>("/projects/MTR")).managerConfig?.trustedDirectory).toBe(true);
+		.poll(async () => (await get<Project>("/projects/MTR")).managerConfig?.directory)
+		.toBe("/tmp/trellis-directory-start");
+	await expect(page.getByRole("checkbox", { name: "Trust this repository", exact: true })).toHaveCount(0);
 	await page.goto("/p/MTR/settings/manager");
-	await expect(page.getByRole("button", { name: "Start manager", exact: true })).toBeEnabled();
-	await expect(page.getByRole("button", { name: "Stop manager", exact: true })).toHaveCount(0);
+	await page.getByRole("button", { name: "Start manager", exact: true }).click();
+	await expect.poll(() => started).toEqual({ project: "MTR", personaId: persona.id, newSession: false });
+	await expect(page.getByRole("button", { name: "Stop manager", exact: true })).toBeEnabled();
+});
+
+test("a child can clear its directory to use its parent repository", async ({ page }) => {
+	await post("/projects", {
+		key: "MDP",
+		name: "Parent repository",
+		managerConfig: { personaId: null, concurrency: 3, directory: "/tmp/trellis-parent" },
+	});
+	const child = await post<Project>("/projects", {
+		parent: "MDP",
+		name: "Child repository",
+		slug: "child",
+		managerConfig: { personaId: null, concurrency: 3, directory: "/tmp/trellis-child" },
+	});
+	await signIn(page, "/p/MDP/child/settings#manager");
+	const directory = page.getByRole("textbox", { name: "Project directory", exact: true });
+	await directory.fill("");
+	await directory.press("Tab");
+	await expect.poll(async () => (await get<Project>(`/projects/${child.id}`)).managerConfig?.directory).toBe("");
+	await expect(
+		page.getByText("Leave blank to use the nearest parent project's repository directory.", { exact: true }),
+	).toBeVisible();
+	await page.reload();
+	await expect(directory).toHaveValue("");
+	await page.goto("/p/MDP/settings#manager");
+	await expect(
+		page.getByText("Leave blank to use the nearest parent project's repository directory.", { exact: true }),
+	).toHaveCount(0);
 });

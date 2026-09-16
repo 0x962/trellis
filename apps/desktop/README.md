@@ -34,6 +34,8 @@ The packaged app enables its background service at startup. `SMAppService` regis
 
 In Settings > Desktop, Stop local work and background service pauses local dispatch, stops known local processes, and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Resume local work allows new local launches. Each project keeps its saved dispatch setting.
 
+Project settings select the repository directory. A blank child directory uses the nearest ancestor with a configured directory. Trellis trusts configured repositories and agent workspaces.
+
 The host starts HTTP before it resolves the user login environment. External tools await the cached environment in their server thread. The shell has a ten-second limit. The bundled executable directory comes first in PATH. Shell errors omit captured output because startup scripts can expose secrets.
 
 The preload bridge exposes `trellisDesktop.chooseDirectory()`, the Settings calls, and the route listener. The main process accepts the Settings calls only from its window at its host origin. `run()` accepts only the named Settings actions. The renderer uses a sandbox and context isolation. The desktop session adds the host token only to requests from its window to its exact host origin. The token does not enter the renderer.
