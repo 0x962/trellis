@@ -19,6 +19,22 @@ test("a login shell supplies the agent PATH while bundled executables stay first
 	}
 });
 
+test("an omitted NODE_ENV stays absent from the login environment", async () => {
+	const home = await mkdtemp(join(process.env.TRELLIS_TEST_ROOT!, "login-env-"));
+	const shell = join(home, "shell");
+	const originalNodeEnv = process.env.NODE_ENV;
+	try {
+		await writeFile(shell, "#!/bin/sh\n/usr/bin/env -0\n", { mode: 0o700 });
+		process.env.NODE_ENV = "ambient";
+		const env = await loginEnvironment(shell, "/bundled/bin", { HOME: home, PATH: "/usr/bin:/bin" });
+		expect(env.NODE_ENV).toBeUndefined();
+	} finally {
+		if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+		else process.env.NODE_ENV = originalNodeEnv;
+		await rm(home, { recursive: true, force: true });
+	}
+});
+
 test("shell startup errors do not expose environment values in the execution error", async () => {
 	const home = await mkdtemp(join(tmpdir(), "trellis-login-error-"));
 	const shell = join(home, "shell");

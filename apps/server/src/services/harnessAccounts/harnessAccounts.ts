@@ -24,7 +24,7 @@ export const prepareCreate = async (ctx: IoCtx, input: HarnessAccountCreate) => 
 	requirePerson(ctx);
 	const id = ulid();
 	const env = await executionEnvironment();
-	return { ...input, id, profilePath: await provisionProfile(ctx.home, id, input, env) };
+	return { ...input, id, profilePath: await provisionProfile(ctx.home, id, input, env as NodeJS.ProcessEnv) };
 };
 export const create = async (ctx: IoCtx, tx: Tx, input: HarnessAccountCreate & { id: string; profilePath: string }) => {
 	requirePerson(ctx);

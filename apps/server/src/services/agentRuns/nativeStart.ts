@@ -12,7 +12,7 @@ import { customLaunch } from "../../agents/native/customLaunch.ts";
 import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
 import { nativeWorkspace } from "../../agents/native/workspace.ts";
 import { rows } from "../../db/queries/support.ts";
-import { executionEnvironment } from "../../executionEnvironment";
+import { type ExecutionEnvironment, executionEnvironment } from "../../executionEnvironment";
 import type { ExecutionAttempt } from "../assignments/attempts.ts";
 import { profileDefault, profileEnvironment } from "../harnessAccounts/profiles.ts";
 import { getAccount } from "../harnessAccounts/queries.ts";
@@ -27,7 +27,7 @@ type Dependencies = {
 	workspace: typeof nativeWorkspace;
 	runtime: typeof ensureNativeRuntime;
 	env: Record<string, string | undefined>;
-	environment: () => Promise<NodeJS.ProcessEnv>;
+	environment: () => Promise<ExecutionEnvironment>;
 };
 export const startNative = async (
 	ctx: ServiceCtx & { localUrl: string },
@@ -60,7 +60,7 @@ export const startNative = async (
 		const account = run.accountId ? await ctx.newTx((tx) => getAccount(tx, { id: run.accountId! })) : null;
 		if (account && (!account.enabled || account.harness !== config.harness.preset))
 			throw new Error("The selected account is disabled or belongs to another harness.");
-		const baseEnv = account ? await profileEnvironment(account, ambientEnv) : ambientEnv;
+		const baseEnv = account ? await profileEnvironment(account, ambientEnv as NodeJS.ProcessEnv) : ambientEnv;
 		const workspaceId = await (deps.workspace ?? nativeWorkspace)(ctx.home, run, config.directory);
 		const owned = await ctx.newTx((tx) =>
 			rows<{ id: string }>(
@@ -70,7 +70,7 @@ export const startNative = async (
 		);
 		if (owned.length === 0) return { id: run.id };
 		await ctx.newTx(assertNativeWorkEnabled);
-		const env = {
+		const env: ExecutionEnvironment = {
 			...baseEnv,
 			TRELLIS_URL: ctx.localUrl,
 			TRELLIS_ACTOR: `agent:${run.id}`,
@@ -98,7 +98,7 @@ export const startNative = async (
 				id: terminalId,
 				command: launch.command,
 				cwd: workspaceId,
-				env,
+				env: env as Record<string, string>,
 				timeoutMs,
 			});
 			launchSubmitted = true;
@@ -136,8 +136,8 @@ export const startNative = async (
 				const old: HarnessDescriptor = JSON.parse(
 					await readFile(join(ctx.home, "harness-attempts", input.previousAttemptId, "launch.json"), "utf8"),
 				);
-				const from = profileDefault(config.harness.preset, old.spec.env!);
-				const to = profileDefault(config.harness.preset, env);
+				const from = profileDefault(config.harness.preset, old.spec.env! as NodeJS.ProcessEnv);
+				const to = profileDefault(config.harness.preset, env as NodeJS.ProcessEnv);
 				if (from !== to)
 					await transferSession({
 						harness: config.harness.preset,
@@ -145,7 +145,7 @@ export const startNative = async (
 						to,
 						sessionId,
 						cwd: previous.launch!.cwd,
-						env,
+						env: env as NodeJS.ProcessEnv,
 						directory: join(ctx.home, "harness-attempts", terminalId, "transfer"),
 					});
 				launch.cwd = previous.launch!.cwd;

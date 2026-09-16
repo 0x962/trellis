@@ -11,7 +11,7 @@ export const loginEnvironment = async (
 	timeoutMs = 10000,
 ): Promise<ExecutionEnvironment> => {
 	const { stdout } = await execute(shell, ["-ilc", "/usr/bin/env -0"], {
-		env: { NODE_ENV: process.env.NODE_ENV, ...env },
+		env: env as NodeJS.ProcessEnv,
 		cwd: env.HOME,
 		timeout: timeoutMs,
 		maxBuffer: 1024 * 1024,
