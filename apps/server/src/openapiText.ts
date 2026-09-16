@@ -36,7 +36,6 @@ export const TAGS = [
 	{ name: "pull requests", description: "GitHub pull requests linked to a ticket, with their CI state." },
 	{ name: "search", description: "Full text search over tickets and projects." },
 	{ name: "brief", description: "The markdown brief an agent starts from." },
-	{ name: "needs you", description: "Personal review requests, mentions, and saved visibility choices." },
 	{ name: "actors", description: "Every human and agent a mutation has carried." },
 	{ name: "settings", description: "The server settings." },
 	{ name: "system", description: "Health, the gh state, and backups." },
