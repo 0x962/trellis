@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, foreignKey, index, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
+import { boolean, check, foreignKey, index, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
 import { actorColumns, actorFk, at } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
 import { projects } from "./projects.ts";
@@ -52,6 +52,8 @@ export const chatMessages = pgTable(
 // One row per message and receiving agent. `terminal_id` and `session_id`
 // pin the attempt that was live at the write, so a replaced session never
 // receives an old message. The states are the states of comment_deliveries.
+// `direct` marks a delivery the message addressed by a mention; the send of
+// a direct delivery interrupts the agent's current turn.
 export const chatDeliveries = pgTable(
 	"chat_deliveries",
 	{
@@ -67,6 +69,7 @@ export const chatDeliveries = pgTable(
 		sessionId: text("session_id"),
 		state: text().notNull().default("pending"),
 		error: text(),
+		direct: boolean().notNull().default(false),
 	},
 	(t) => [
 		unique("chat_deliveries_recipient").on(t.messageId, t.runId),

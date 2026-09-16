@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, mock, test } from "
 import { sql } from "drizzle-orm";
 import type { prepareSend } from "../../../../../src/services/agentRuns/communication.ts";
 import { seedDefaultChannels } from "../../../../../src/services/chat/channels.ts";
-import { dispatchChat } from "../../../../../src/services/chat/dispatch.ts";
+import { dispatchChat as dispatch } from "../../../../../src/services/chat/dispatch.ts";
 import { post } from "../../../../../src/services/chat/messages.ts";
 import { recover } from "../../../../../src/services/controller/controller.ts";
 import { seedProject } from "../../../../fixtures";
@@ -11,6 +11,8 @@ import { testCtx } from "../../../../helpers/ctx.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
+const dispatchChat = (...args: Parameters<typeof dispatch>) =>
+	dispatch(args[0], args[1], args[2], async () => "claude");
 let h: Harness;
 let rootId: string;
 beforeAll(async () => {
@@ -60,6 +62,7 @@ test("one agent receives all of its pending lines in one send", async () => {
 		id: "builder",
 		expectedTerminalId: "terminal",
 		expectedSessionId: "conversation",
+		interrupt: false,
 	});
 	const text = send.mock.calls[0]![1].text;
 	expect(text).toContain("2 new messages in the CDE room");
@@ -85,11 +88,36 @@ test("an agent line names the persona and the run id, so a reader can mention it
 				body: "done with TRL-1",
 				createdAt: "2026-09-09T12:00:00.000Z",
 				actor: { kind: "agent", name: "builder", displayName: "Builder" },
+				mention: false,
 			},
 		],
+		mentioned: false,
 		recipient: { runId: "manager", personaName: "Trellis" },
 	});
 	expect(await states()).toEqual(["manager:sent"]);
+});
+
+test("a mention interrupts the mentioned agent, and only that agent", async () => {
+	await say("@manager where are we?");
+	await say("fyi all");
+	const send = sent();
+	await dispatchChat(ctx(), [controllerSession("terminal"), managerSession()], send);
+	const byRun = Object.fromEntries(send.mock.calls.map((call) => [call[1].id, call[1]]));
+	expect(byRun.manager!.interrupt).toBe(true);
+	expect(JSON.parse(byRun.manager!.text)).toMatchObject({
+		mentioned: true,
+		messages: [
+			{ body: "@manager where are we?", mention: true },
+			{ body: "fyi all", mention: false },
+		],
+	});
+	expect(byRun.builder!.interrupt).toBe(false);
+	expect(byRun.builder!.text).not.toContain("mentions you");
+	await say("@Builder rebase now");
+	const again = sent();
+	await dispatchChat(ctx(), [controllerSession("terminal")], again);
+	expect(again.mock.calls[0]![1].interrupt).toBe(true);
+	expect(again.mock.calls[0]![1].text).toContain("One mentions you. Answer it now.");
 });
 
 test("a working agent receives its lines at once, and a failed send leaves them unknown", async () => {
@@ -135,4 +163,11 @@ test("a terminal without activity observations receives the lines", async () => 
 	const send = sent();
 	await dispatchChat(ctx(), [controllerSession("terminal", { activity: null })], send);
 	expect(send.mock.calls.map((call) => call[1].id)).toContain("builder");
+});
+
+test("a custom terminal receives a mention as typed input, without an interrupt", async () => {
+	await say("@Builder look");
+	const send = sent();
+	await dispatch(ctx(), [controllerSession("terminal", { activity: null })], send, async () => "custom");
+	expect(send.mock.calls[0]![1]).toMatchObject({ id: "builder", interrupt: false });
 });

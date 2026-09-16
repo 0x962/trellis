@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ActorRefSchema } from "./schemas/actor.ts";
 import { CiStateSchema, GhReasonSchema, PrStateSchema } from "./schemas/enums.ts";
 import { UlidSchema } from "./schemas/primitives.ts";
 import { TicketSummarySchema } from "./schemas/ticket.ts";
@@ -17,6 +18,7 @@ export const eventNames = [
 	"comment.updated",
 	"comment.deleted",
 	"chat.message",
+	"chat.delivery",
 	"chat.channels",
 	"attachment.created",
 	"attachment.deleted",
@@ -85,8 +87,18 @@ export const CommentEventPayloadSchema = TicketChildEventPayloadSchema.extend({
 	resolved: z.boolean().optional(),
 });
 
-// `id` is the message. `channel` is the stored channel name, without `#`.
+// A new post. `id` is the message, `channel` is the stored channel name
+// without `#`, and `actor` is its author, so a client knows whether the
+// post is its own.
 export const ChatMessageEventPayloadSchema = z.object({
+	id: UlidSchema,
+	projectId: UlidSchema,
+	channel: z.string(),
+	actor: ActorRefSchema,
+});
+
+// The delivery state of one message to an agent changed.
+export const ChatDeliveryEventPayloadSchema = z.object({
 	id: UlidSchema,
 	projectId: UlidSchema,
 	channel: z.string(),
@@ -154,6 +166,7 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("comment.updated", CommentEventPayloadSchema),
 	typed("comment.deleted", CommentEventPayloadSchema),
 	typed("chat.message", ChatMessageEventPayloadSchema),
+	typed("chat.delivery", ChatDeliveryEventPayloadSchema),
 	typed("chat.channels", ChatChannelsEventPayloadSchema),
 	typed("attachment.created", TicketChildEventPayloadSchema),
 	typed("attachment.deleted", TicketChildEventPayloadSchema),

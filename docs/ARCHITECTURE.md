@@ -219,18 +219,29 @@ address it by its project and its lower-case name, with an optional `#`.
 
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
 holds one row per post and live native agent of the tree, except the author.
-A post that mentions a live agent by run id or by persona name reaches only
-the mentioned agents. The controller tick sends every pending row of one
-agent in one message, so a busy room costs an agent one turn. A manager
+A post that mentions a live agent by run id, by persona name, or by role
+(`@manager`, `@builders`, `@reviewers`) reaches only the mentioned agents,
+and each of those rows is `direct`. The controller tick sends every pending
+row of one agent in one message, so a busy room costs an agent one turn. A
+batch with a direct row interrupts the agent's current turn first; a custom
+terminal has no interrupt and receives the lines as typed input. A manager
 receives a `trellis.chat.messages` JSON document; a worker receives IRC style
 lines and the two CLI commands. The states and the session pinning are the
 states and the pinning of a comment mention.
 
 The web route `/p/<project path>/chat` shows the room of the tree with an
-IRC style log. `/join <name>` in its input creates a channel. The API is
-`chat.channels`, `chat.createChannel`, `chat.list`, and `chat.post`. The
-events `chat.message` and `chat.channels` invalidate the chat queries. The
-CLI verb is `trellis chat`, and the manager tools are `trellis_chat_*`.
+IRC style log: the clock, the nick in a fixed right-aligned column, and the
+body. A click on a nick inserts a mention. `/join <name>` in its input
+creates a channel. The browser keeps the open channel, the unsent text of
+each channel, and the read position of each channel in localStorage under
+`trellis-chat`. A channel whose newest message id is above the read position
+shows a dot, and so does the Chat link of every project in the tree. A new
+message from someone else plays a short tone; Settings > Account switches it
+off for that browser. The API is `chat.channels`, `chat.createChannel`,
+`chat.list`, and `chat.post`. The events `chat.message`, `chat.delivery`,
+and `chat.channels` invalidate the chat queries; `chat.message` carries the
+actor, so a client knows its own posts. The CLI verb is `trellis chat`, and
+the manager tools are `trellis_chat_*`.
 What an agent is told about the room lives in `personas.instruction`, which
 the migration `0047_persona_chat_instructions` appends to. Code injects no
 prompt text.
