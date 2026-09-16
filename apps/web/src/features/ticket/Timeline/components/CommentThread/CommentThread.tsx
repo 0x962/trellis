@@ -5,7 +5,7 @@ import { Avatar, Button, IconButton } from "@trellis/ui";
 import { useState } from "react";
 import { useActor } from "../../../../../lib/actor";
 import { useApp } from "../../../../../lib/appContext";
-import { failToast } from "../../../utils/failToast";
+import { failToast } from "../../../../../lib/failToast";
 import { CommentCard } from "../CommentCard";
 
 type CommentThreadProps = {

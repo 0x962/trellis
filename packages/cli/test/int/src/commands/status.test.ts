@@ -31,7 +31,7 @@ describe("status", () => {
 			{ tty: true },
 		);
 		expect(unauthenticated.code).toBe(0);
-		expect(unauthenticated.stdout).toContain("GitHub CLI not authenticated: run gh auth login in a terminal");
+		expect(unauthenticated.stdout).toContain("gh is not signed in. Run gh auth login.");
 
 		const missing = await runCli(
 			["status"],
@@ -42,6 +42,6 @@ describe("status", () => {
 			{ tty: true },
 		);
 		expect(missing.code).toBe(0);
-		expect(missing.stdout).toContain("gh not found: brew install gh");
+		expect(missing.stdout).toContain("trellis cannot find the GitHub CLI. Run brew install gh.");
 	});
 });

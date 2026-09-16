@@ -6,10 +6,10 @@ import { ReadOnlyMarkdown } from "../../../components/ReadOnlyMarkdown";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
 import { conflictCurrent } from "../../../lib/conflict";
+import { failToast } from "../../../lib/failToast";
 import { ConflictNotice } from "../components/ConflictNotice";
 import { useTicketWrite } from "../hooks/useTicketWrite";
 import { useSaveStatusStore } from "../stores/saveStatusStore";
-import { failToast } from "../utils/failToast";
 import { type EditorHandle, editorChunk, LazyEditor } from "./components/LazyEditor";
 import { useDescriptionAutosave } from "./hooks/useDescriptionAutosave";
 
