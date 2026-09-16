@@ -6,6 +6,7 @@ import type { Tx } from "../../db/tx.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import { readCredential } from "../harnessAccounts/credentials.ts";
 import { type Credential, fetchAccountQuota } from "../harnessAccounts/fetchQuota.ts";
+import { loginCommandFor } from "../harnessAccounts/presentation.ts";
 import { profileDefault } from "../harnessAccounts/profiles.ts";
 import type { AccountRow } from "../harnessAccounts/queries.ts";
 import type { IoCtx } from "../support.ts";
@@ -40,6 +41,7 @@ export async function usageLogins(accounts: readonly AccountRow[], env: NodeJS.P
 		harness: account.harness,
 		profilePath: account.profilePath,
 		isDefault: account.isDefault,
+		loginCommand: loginCommandFor(account.harness, account.profilePath),
 	}));
 	const configured = new Set<string>();
 	for (const account of accounts) {
@@ -65,6 +67,7 @@ export async function usageLogins(accounts: readonly AccountRow[], env: NodeJS.P
 			harness,
 			profilePath,
 			isDefault: !accounts.some((account) => account.harness === harness && account.isDefault),
+			loginCommand: loginCommandFor(harness, profilePath),
 		});
 	}
 	return logins;

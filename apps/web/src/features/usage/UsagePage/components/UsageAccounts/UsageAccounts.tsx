@@ -1,7 +1,8 @@
+import { Copy } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { UsageGroupRow, UsageMetric } from "@trellis/api";
-import { QuotaWindows, SectionHeader, Skeleton } from "@trellis/ui";
+import { IconButton, QuotaWindows, SectionHeader, Skeleton, Tooltip, toast } from "@trellis/ui";
 import { useApp } from "../../../../../lib/appContext";
 import { formatMetric, formatShare, harnessLabel } from "../../../formatUsage";
 
@@ -16,9 +17,22 @@ export type UsageAccountsProps = {
 
 const statusLabel: Record<string, string> = {
 	signed_out: "Sign in required",
-	expired: "Sign-in refresh required",
+	expired: "Sign-in expired",
 	unavailable: "Quota unavailable",
 	unsupported: "Quota not supported",
+};
+
+// The statuses a new sign-in fixes. The card prints the login command for
+// them, so the person runs it without a trip to Settings.
+const needsLogin = new Set(["signed_out", "expired"]);
+
+const copy = async (text: string) => {
+	try {
+		await navigator.clipboard.writeText(text);
+		toast("Login command copied");
+	} catch (error) {
+		toast(error instanceof Error ? error.message : "Could not copy the command.");
+	}
 };
 
 // One card per login on this machine: its subscription quota windows from
@@ -90,6 +104,24 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 							</div>
 							{account.quota.status === "ok" ? (
 								<QuotaWindows name={account.name} windows={account.quota.windows} />
+							) : needsLogin.has(account.quota.status) && account.loginCommand ? (
+								<div className="flex flex-col gap-2">
+									<p role="status" className="text-sm text-warning">
+										{statusLabel[account.quota.status]}. Run this in a terminal on this machine, then refresh.
+									</p>
+									<div className="flex min-w-0 items-start gap-2">
+										<code className="min-w-0 flex-1 whitespace-pre-wrap break-all rounded-sm bg-elevated px-2 py-1 font-mono text-xs text-fg">
+											{account.loginCommand}
+										</code>
+										<Tooltip content="Copy login command">
+											<IconButton
+												label={`Copy the login command of ${account.name}`}
+												icon={<Copy />}
+												onClick={() => void copy(account.loginCommand!)}
+											/>
+										</Tooltip>
+									</div>
+								</div>
 							) : (
 								<p role="status" className="text-sm text-fg-muted">
 									{statusLabel[account.quota.status]}

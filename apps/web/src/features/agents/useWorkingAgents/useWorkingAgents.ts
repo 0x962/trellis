@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useApp } from "../../../lib/appContext";
 import { workingTargets } from "../workingTargets";
 
-const empty = { ticketIds: [], projectIds: [] };
+const empty = { ticketIds: [], projectIds: [], runIds: [] };
 
 export function useWorkingAgents() {
 	const { orpc } = useApp();
