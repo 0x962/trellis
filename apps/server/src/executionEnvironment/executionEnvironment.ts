@@ -6,8 +6,9 @@ const values = (env: NodeJS.ProcessEnv) =>
 // resolve runs the login shell. pending holds its promise, and every spawn
 // awaits that promise. A successful promise stays cached for the life of the
 // process. When the promise rejects, pending is cleared, so the next spawn
-// runs resolve again. The gh poller is one such spawn: while gh is not ok, it
-// runs gh auth status once per minute, and each run starts a new login shell.
+// runs resolve again. The gh poller is one such caller. While gh is not ok,
+// the poller runs gh auth status once per minute. Each run starts a new login
+// shell.
 export function createExecutionEnvironment(env: NodeJS.ProcessEnv, resolve: ResolveEnvironment) {
 	let pending: Promise<Record<string, string>> | undefined;
 	return () => {

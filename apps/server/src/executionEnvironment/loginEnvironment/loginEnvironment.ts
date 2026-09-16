@@ -1,7 +1,56 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { spawn } from "node:child_process";
 
-const execute = promisify(execFile);
+const maxBufferBytes = 1024 * 1024;
+
+type LoginShellFailure = { code?: string | number | null; killed?: boolean };
+
+const killProcessGroup = (pid: number) => {
+	try {
+		process.kill(-pid, "SIGKILL");
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+	}
+};
+
+const executeLoginShell = (shell: string, env: NodeJS.ProcessEnv, timeoutMs: number) =>
+	new Promise<string>((resolve, reject) => {
+		const child = spawn(shell, ["-ilc", "/usr/bin/env -0"], {
+			cwd: env.HOME,
+			detached: true,
+			env,
+			stdio: ["ignore", "pipe", "pipe"],
+		});
+		const stdout: Buffer[] = [];
+		let stdoutBytes = 0;
+		let failure: LoginShellFailure | undefined;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		child.once("spawn", () => {
+			timer = setTimeout(() => {
+				failure = { killed: true };
+				killProcessGroup(child.pid!);
+			}, timeoutMs);
+		});
+		child.once("error", (error) => {
+			if (timer) clearTimeout(timer);
+			reject(error);
+		});
+		child.stdout.on("data", (chunk: Buffer) => {
+			stdoutBytes += chunk.length;
+			if (stdoutBytes > maxBufferBytes) {
+				failure = { code: "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" };
+				killProcessGroup(child.pid!);
+				return;
+			}
+			stdout.push(chunk);
+		});
+		child.stderr.resume();
+		child.once("close", (code) => {
+			if (timer) clearTimeout(timer);
+			if (failure) reject(failure);
+			else if (code !== 0) reject({ code });
+			else resolve(Buffer.concat(stdout).toString("utf8"));
+		});
+	});
 
 // A loaded host runs the interactive startup files in 6 s or more. The limit
 // leaves room for that load and still ends a shell that hangs in a startup file.
@@ -16,15 +65,7 @@ export const loginEnvironment = async (
 	env: NodeJS.ProcessEnv = process.env,
 	timeoutMs = loginShellTimeoutMs,
 ): Promise<NodeJS.ProcessEnv> => {
-	const { stdout } = await execute(shell, ["-ilc", "/usr/bin/env -0"], {
-		env,
-		cwd: env.HOME,
-		timeout: timeoutMs,
-		// An interactive zsh that waits on a child in a startup file ignores
-		// SIGTERM. SIGKILL ends the shell at the limit.
-		killSignal: "SIGKILL",
-		maxBuffer: 1024 * 1024,
-	}).catch((error: { code?: string | number; killed?: boolean }) => {
+	const stdout = await executeLoginShell(shell, env, timeoutMs).catch((error: LoginShellFailure) => {
 		throw new Error(
 			error.killed ? `Login shell exceeded ${timeoutMs} ms.` : `Login shell failed (exit ${error.code}).`,
 		);

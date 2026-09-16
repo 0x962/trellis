@@ -28,7 +28,7 @@ The packaged app requests permission to enable its background service. `SMAppSer
 
 Stop local work and background service pauses local dispatch, stops known local processes, and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Resume local work allows new local launches. Each project keeps its saved dispatch setting.
 
-The host starts HTTP before it resolves the user login environment. External tools await the cached environment in their server thread. The shell has a ten-second limit. The bundled executable directory comes first in PATH. Shell errors omit captured output because startup scripts can expose secrets.
+The host starts HTTP before it resolves the user login environment. External tools await the cached environment in their server thread. The shell has a thirty-second limit. The bundled executable directory comes first in PATH. Shell errors omit captured output because startup scripts can expose secrets.
 
 The preload bridge exposes only `trellisDesktop.chooseDirectory()`. The renderer uses a sandbox and context isolation. The desktop session adds the host token only to requests from its window to its exact host origin. The token does not enter the renderer.
 

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loginEnvironment } from "../../../../../src/executionEnvironment/loginEnvironment/loginEnvironment.ts";
@@ -46,12 +46,14 @@ test("a shell timeout returns a sanitized failure", async () => {
 test("an interactive zsh that hangs in a startup file ends at the limit", async () => {
 	const home = await mkdtemp(join(tmpdir(), "trellis-login-hang-"));
 	try {
-		await writeFile(join(home, ".zshrc"), "/bin/sleep 5\n");
+		await writeFile(join(home, ".zshrc"), '/bin/sleep 5 &\necho $! > "$HOME/child-pid"\nwait\n');
 		const startedAt = performance.now();
 		await expect(loginEnvironment("/bin/zsh", "/bundled/bin", { HOME: home, ZDOTDIR: home }, 200)).rejects.toThrow(
 			"Login shell exceeded 200 ms.",
 		);
 		expect(performance.now() - startedAt).toBeLessThan(2000);
+		const childPid = Number(await readFile(join(home, "child-pid"), "utf8"));
+		expect(() => process.kill(childPid, 0)).toThrow();
 	} finally {
 		await rm(home, { recursive: true, force: true });
 	}
