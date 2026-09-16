@@ -1,9 +1,8 @@
-import { FolderSimple } from "@phosphor-icons/react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
-import { cx } from "@trellis/ui";
+import { cx, TrellisMark } from "@trellis/ui";
 import { lazy, Suspense } from "react";
-import { projectSlashPath } from "../../../../lib/projectPath";
+import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectPath";
 
 const ProjectRowActions = lazy(async () => ({ default: (await import("../../ProjectRowActions")).ProjectRowActions }));
 
@@ -19,22 +18,26 @@ const indent = ["pl-2", "pl-5", "pl-8", "pl-11"] as const;
 
 // The trailing slot reserves space for the project menu on hover and focus.
 export function TreeRow({ project, depth, archived = false }: TreeRowProps) {
+	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
+	const active = projectRefOfPathname(pathname) === project.path && pathname.endsWith("/settings/manager");
 	return (
 		<li
 			className={cx(
 				"group/row sidebar-row relative text-sm hover:bg-elevated",
 				indent[Math.min(depth, indent.length - 1)],
 				archived ? "text-fg-faint" : "font-medium text-fg",
+				active && "sidebar-selected",
 			)}
 		>
 			<Link
 				to="/p/$"
-				params={{ _splat: projectSlashPath(project.path) }}
+				params={{ _splat: `${projectSlashPath(project.path)}/settings/manager` }}
 				activeOptions={{ exact: true, includeSearch: false }}
+				aria-current={active ? "page" : undefined}
 				className="flex h-8 min-w-0 flex-1 items-center rounded-md transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11"
 			>
 				<span aria-hidden="true" className="sidebar-leading text-fg-faint">
-					<FolderSimple className="size-4" />
+					<TrellisMark />
 				</span>
 				<span data-slot="label" title={project.name} className="sidebar-label">
 					{project.name}

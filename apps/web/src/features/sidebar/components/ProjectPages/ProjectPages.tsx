@@ -23,7 +23,6 @@ export function ProjectPages({
 				<ul className="flex flex-col">
 					{[
 						{ label: "Tickets", suffix: "", active: current && !settings && !manager },
-						{ label: "Manager", suffix: "/settings/manager", active: current && manager },
 						{ label: "Settings", suffix: "/settings", active: current && settings },
 					].map(({ label, suffix, active }) => (
 						<li key={label}>
