@@ -12,10 +12,14 @@ test.beforeAll(() => {
 	moveTicket("BRD-17", "in-progress");
 	createTicket("BRD", "Keep the card border consistent when checks fail");
 	trellis(["pr", "add", "BRD-18", failingPrUrl]);
+	createTicket("BRD", "Show the drag preview without a top edge");
 });
 
-test("board cards omit the top border and keep the other borders", async ({ page }) => {
+test("board card states omit the top edge and keep the other edges", async ({ page }) => {
 	await signIn(page, "/p/BRD/board");
+	await page.evaluate(() => {
+		document.documentElement.dataset.theme = "dark";
+	});
 	const failed = cardOf(page, "BRD-18");
 	const ordinary = cardOf(page, "BRD-17");
 	await expect(failed).toBeAttached();
@@ -33,6 +37,36 @@ test("board cards omit the top border and keep the other borders", async ({ page
 	const ordinaryBorder = await ordinary.evaluate(border);
 	expect(await failed.evaluate(border)).toEqual(ordinaryBorder);
 	expect(ordinaryBorder).toMatchObject({ top: "0px", right: "1px", bottom: "1px", left: "1px" });
+	await ordinary.hover();
+	await expect
+		.poll(() => ordinary.evaluate((element) => getComputedStyle(element).boxShadow))
+		.toContain("1px 0px 0px 0px");
+	const hoverShadow = await ordinary.evaluate((element) => getComputedStyle(element).boxShadow);
+	expect(hoverShadow).not.toContain("0px 0px 0px 1px");
+	expect(hoverShadow).toContain("1px 0px 0px 0px");
+	expect(hoverShadow).toContain("0px 1px 0px 0px");
+	expect(hoverShadow).toContain("-1px 0px 0px 0px");
+
+	await page.evaluate(() => {
+		const state = window as typeof window & { __cardPreviewVisual?: { border: string; shadow: string } };
+		const observer = new MutationObserver(() => {
+			const preview = document.querySelector<HTMLElement>("[data-card-preview]");
+			if (preview === null) return;
+			const style = getComputedStyle(preview);
+			state.__cardPreviewVisual = { border: style.borderTopWidth, shadow: style.boxShadow };
+			observer.disconnect();
+		});
+		observer.observe(document.body, { childList: true, subtree: true });
+	});
+	await cardOf(page, "BRD-19").dragTo(columnOf(page, "In Progress"));
+	const preview = await page.evaluate(
+		() => (window as typeof window & { __cardPreviewVisual?: { border: string; shadow: string } }).__cardPreviewVisual,
+	);
+	expect(preview?.border).toBe("0px");
+	expect(preview?.shadow).not.toContain("0px 0px 0px 1px");
+	expect(preview?.shadow).toContain("1px 0px 0px 0px");
+	expect(preview?.shadow).toContain("0px 1px 0px 0px");
+	expect(preview?.shadow).toContain("-1px 0px 0px 0px");
 });
 
 // A flex column shrinks its children when its content overflows. A header

@@ -30,7 +30,7 @@ const colorTokens = [
 	"--on-accent",
 ];
 
-const shadowTokens = ["--shadow-sm", "--shadow-md", "--shadow-lg"];
+const shadowTokens = ["--shadow-sm", "--shadow-md", "--shadow-lg", "--shadow-kanban-hover", "--shadow-kanban-drag"];
 
 const fontTokens = ["--sans", "--mono"];
 
@@ -75,9 +75,12 @@ const lightPalette: Record<string, string> = {
 	"--shadow-sm": "0 1px 2px rgba(0,0,0,.06)",
 	"--shadow-md": "0 4px 12px rgba(0,0,0,.10)",
 	"--shadow-lg": "0 12px 32px rgba(0,0,0,.16)",
+	"--shadow-kanban-hover": "0 1px 2px rgba(0,0,0,.06)",
+	"--shadow-kanban-drag": "0 12px 32px rgba(0,0,0,.16)",
 };
 
-// Dark has no visible shadow, so each shadow starts with a strong-border ring.
+// Dark elevation shadows use a strong-border ring. The Kanban shadows use
+// separate right, bottom, and left lines because a card has no top border.
 const darkPalette: Record<string, string> = {
 	"--bg": "#070707",
 	"--surface": "#151516",
@@ -105,6 +108,9 @@ const darkPalette: Record<string, string> = {
 	"--shadow-sm": "0 0 0 1px var(--border-strong)",
 	"--shadow-md": "0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4)",
 	"--shadow-lg": "0 0 0 1px var(--border-strong), 0 12px 32px rgba(0,0,0,.5)",
+	"--shadow-kanban-hover": "1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), -1px 0 0 var(--border-strong)",
+	"--shadow-kanban-drag":
+		"1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), -1px 0 0 var(--border-strong), 0 12px 32px rgba(0,0,0,.5)",
 };
 
 // The dark blocks redefine the colors and shadows only. The font stacks and
@@ -300,6 +306,8 @@ describe("tokens.css", () => {
 			"text-agent": ["var(--color-agent)", "var(--agent)"],
 			"bg-accent-soft": ["var(--color-accent-soft)", "var(--accent-soft)"],
 			"shadow-md": ["var(--shadow-md)"],
+			"shadow-kanban-hover": ["var(--shadow-kanban-hover)"],
+			"shadow-kanban-drag": ["var(--shadow-kanban-drag)"],
 			"rounded-md": ["var(--radius-md)"],
 			"font-mono": ["var(--font-mono)", "var(--mono)"],
 		};

@@ -16,7 +16,7 @@ export function CardPreview({ ticket, width, showStatus }: CardPreviewProps) {
 		<div
 			data-card-preview=""
 			style={{ width: `${width}px`, transform: "rotate(2deg)" }}
-			className="flex min-h-19 flex-col gap-1.5 rounded-md border border-border-strong bg-elevated p-3 shadow-lg"
+			className="flex min-h-19 flex-col gap-1.5 rounded-md border-x border-b border-border-strong bg-elevated p-3 shadow-kanban-drag"
 		>
 			<CardContent ticket={ticket} showStatus={showStatus} />
 		</div>
