@@ -143,7 +143,10 @@ export const useGlobalHotkeys = (options: GlobalHotkeyOptions): string | null =>
 
 	useHotkey("mod+k", onPalette);
 	useHotkey("/", onSearch);
-	useHotkey("c", onCompose);
+	useHotkey("c", (event) => {
+		event.preventDefault();
+		onCompose();
+	});
 	useHotkey("mod+\\", toggleTheme);
 	useHotkey("[", (event) => {
 		if (holdsBoardKeys(pathname)) return;

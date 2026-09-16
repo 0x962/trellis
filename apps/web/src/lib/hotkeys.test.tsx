@@ -43,9 +43,9 @@ describe("lib/hotkeys", () => {
 	});
 
 	// HK-03
-	test("c runs the create composer handler", () => {
+	test("c opens the composer and cancels the key's default text entry", () => {
 		const { onCompose } = mountScope();
-		press("c");
+		expect(press("c")).toBe(false);
 		expect(onCompose).toHaveBeenCalledTimes(1);
 	});
 
