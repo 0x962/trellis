@@ -108,7 +108,7 @@ test("OpenCode interrupt crosses the authenticated socket boundary in a separate
 	}
 });
 
-test("OpenCode prompt API accepts only the selected idle session and waits for native acknowledgement", async () => {
+test("OpenCode prompt API accepts only the selected session and hands a prompt to a working session", async () => {
 	const socket = `/tmp/trellis-oc-test-${randomUUID()}.sock`;
 	const prompts: string[] = [];
 	let working = false;
@@ -129,8 +129,8 @@ test("OpenCode prompt API accepts only the selected idle session and waits for n
 			accepted: true,
 			sessionId: "s",
 		});
-		await expect(sendOpenCode(socket, "secret", "s", "second")).rejects.toThrow("SESSION_BUSY");
-		expect(prompts).toEqual(["s:exact prompt"]);
+		await expect(sendOpenCode(socket, "secret", "s", "second")).resolves.toEqual({ accepted: true, sessionId: "s" });
+		expect(prompts).toEqual(["s:exact prompt", "s:second"]);
 	} finally {
 		await control.close();
 	}

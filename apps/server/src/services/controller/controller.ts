@@ -5,7 +5,7 @@ import type { Tx } from "../../db/tx.ts";
 import { isManaged } from "../submanagers/scope.ts";
 import { notFound } from "../support.ts";
 import { pending, refresh } from "./nextActions/queries.ts";
-import { readySession } from "./readySession.ts";
+import { liveSession } from "./readySession.ts";
 import type { ControllerCtx, ControllerInput, Dispatch } from "./types.ts";
 
 export const dispatchColumns = sql`id, project_id AS "projectId", run_id AS "runId", terminal_id AS "terminalId", session_id AS "sessionId", generation, state, work_state AS "workState", outcomes, next_actions AS "nextActions", ${iso(sql`handled_at`)} AS "handledAt", events, ${iso(sql`due_at`)} AS "dueAt", error`;
@@ -25,7 +25,7 @@ export const list = (
 	);
 
 export const claim = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput): Promise<Dispatch | null> => {
-	const ready = input.sessions.filter(readySession).map((session) => session.id);
+	const ready = input.sessions.filter(liveSession).map((session) => session.id);
 	if (ready.length === 0) return null;
 	const [next] = await rows<{
 		id: string;
@@ -87,6 +87,9 @@ export const recover = async (ctx: ControllerCtx, tx: Tx, _input: Record<string,
 	await tx.execute(sql`UPDATE manager_controller_cursors SET generation = generation + 1`);
 	await tx.execute(
 		sql`UPDATE comment_deliveries SET state='unknown',error='The server stopped before it recorded the delivery result.' WHERE state='sending'`,
+	);
+	await tx.execute(
+		sql`UPDATE chat_deliveries SET state='unknown',error='The server stopped before it recorded the delivery result.' WHERE state='sending'`,
 	);
 	await tx.execute(
 		sql`UPDATE manager_dispatches SET state = 'unknown', error = 'The host stopped before it recorded the send result. Confirm the agent received the message before a resend.', updated_at = ${ctx.now} WHERE state = 'sending'`,

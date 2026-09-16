@@ -9,6 +9,8 @@ import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
+import * as chatChannels from "./chat/channels.ts";
+import * as chatMessages from "./chat/messages.ts";
 import * as comments from "./comments.ts";
 import * as controller from "./controller/controller.ts";
 import * as controllerDispatch from "./controller/dispatch.ts";
@@ -180,6 +182,7 @@ export const services = {
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
 	"personas.list": core("read", personas.list),
+	"personas.get": core("read", personas.get),
 	"personas.create": core("mutation", personas.create),
 	"personas.update": core("mutation", personas.update),
 	"personas.delete": core("mutation", personas.remove),
@@ -221,6 +224,10 @@ export const services = {
 	"comments.create": core("mutation", comments.create),
 	"comments.update": core("mutation", comments.update),
 	"comments.delete": core("mutation", comments.delete),
+	"chat.channels": core("read", chatChannels.list),
+	"chat.createChannel": core("mutation", chatChannels.create),
+	"chat.list": core("read", chatMessages.list),
+	"chat.post": core("mutation", chatMessages.post),
 	"attachments.list": io("read", attachments.list),
 	"attachments.upload": io("mutation", attachments.upload),
 	"attachments.get": io("read", attachments.get),

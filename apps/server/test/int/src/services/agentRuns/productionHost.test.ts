@@ -100,7 +100,10 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 		);
 		await terminal.input(ctx, { id: "assignment", text: "", userInput: false });
 		await prepareSend(ctx, { id: "assignment", text: "Follow up", messageId: "followup" });
-		await host.waitFor(first.id, (state) => state.activity?.state === "idle");
+		await host.waitFor(
+			first.id,
+			(state) => state.activity?.state === "idle" && state.acknowledgedMessageIds.includes("followup"),
+		);
 		expect((await terminal.session(ctx, { id: "assignment" }))?.acknowledgedMessageIds).toContain("followup");
 		let visible = "";
 		for await (const event of host.subscribe(first.id, 0, AbortSignal.timeout(1500))) {

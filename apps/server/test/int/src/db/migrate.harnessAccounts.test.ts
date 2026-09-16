@@ -17,7 +17,7 @@ test("account instructions extend manager personas and preserve existing convers
 	cpSync(join(originDir(import.meta.dir), "../../drizzle"), temp, { recursive: true });
 	const path = join(temp, "meta/_journal.json");
 	const journal = JSON.parse(readFileSync(path, "utf8"));
-	journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx < 46);
+	journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx < 48);
 	writeFileSync(path, JSON.stringify(journal));
 	db = await openDb(":memory:");
 	await applyMigrations(db, { migrationsFolder: temp });

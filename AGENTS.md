@@ -14,6 +14,12 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 - Every pull request description states what broke, what changed, and one verification sentence. No headers, no tables, no checklists.
 - Pin exact versions when you add a dependency. Prefer the current release on npm.
 
+## Prompts
+
+- Every instruction an agent reads lives in the database, in `personas.instruction`. Code never composes, hardcodes, or injects prompt text.
+- A change to what an agent is told is a data migration on `personas.instruction`, plus the same text in the matching `docs/personas/*.md` file that a person pastes from.
+- A migration appends a titled section and skips a persona that already holds that title, so a rerun and a hand edit stay safe.
+
 ## Desktop install
 
 The Trellis SRE persona owns production releases for TRL. Route approved Deploy Queue tickets to one SRE through the project manager. Group eligible tickets into one merge, test, build, install, and restart cycle. Other workers hand off release work instead of deploying independently. Read [the SRE instructions](docs/personas/trellis-sre.md) before a deployment assignment.

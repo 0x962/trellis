@@ -49,7 +49,6 @@ export class SessionStore {
 				watchedPids: new Set<number>(),
 				tokenHash: null,
 				activity: null,
-				inputPending: false,
 				...sessionResources(home, saved.session.id),
 				stopped: Promise.resolve(undefined),
 				resolveStop: () => {},
@@ -150,7 +149,6 @@ export class SessionStore {
 				? createHash("sha256").update(spec.env.TRELLIS_ATTEMPT_TOKEN).digest()
 				: null,
 			activity: null,
-			inputPending: false,
 			...sessionResources(this.home, spec.id),
 			...stopAttempt(),
 		};
@@ -207,31 +205,17 @@ export class SessionStore {
 			}, spec.timeoutMs);
 		return this.inspect(spec.id);
 	}
-	async input(id: string, data: string, userInput = false, expected?: RuntimeExpectedTurn) {
+	async input(id: string, data: string, expected?: RuntimeExpectedTurn) {
 		const record = this.get(id);
 		if (!record.process) throw new Error(`Session ${id} is ${record.session.status}`);
 		assertExpectedTurn(record, expected);
 		const bytes = Buffer.from(data, "base64");
-		if (userInput && record.tokenHash !== null) record.inputPending = bytes.toString() !== "\x03";
 		await record.process.input(bytes);
 		return null;
 	}
-	deliver(id: string, messageId: string, data: string, requireIdle = false) {
+	deliver(id: string, messageId: string, data: string) {
 		const record = this.get(id);
-		if (requireIdle && !record.ledger.has(messageId)) {
-			const current = this.inspect(id);
-			if (
-				record.inputPending ||
-				!current.controllable ||
-				!current.activity ||
-				!["ready", "idle"].includes(current.activity.state)
-			)
-				throw Object.assign(new Error("The agent is not idle"), { code: "RUNTIME_BUSY" });
-		}
-		return record.ledger.deliver(messageId, data, () => {
-			record.inputPending = true;
-			return this.input(id, data);
-		});
+		return record.ledger.deliver(messageId, data, () => this.input(id, data));
 	}
 	resize(id: string, cols: number, rows: number) {
 		const record = this.get(id);
@@ -261,7 +245,6 @@ export class SessionStore {
 				watchedPids: new Set(),
 				tokenHash: null,
 				activity: null,
-				inputPending: false,
 				...sessionResources(this.home, id),
 				stopped: Promise.resolve(undefined),
 				resolveStop: () => {},

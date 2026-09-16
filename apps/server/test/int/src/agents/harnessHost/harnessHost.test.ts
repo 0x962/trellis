@@ -52,6 +52,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 		expect((await host.list({ status: "running" })).map((s) => s.id)).toEqual(["attempt"]);
 		expect((await host.list({ activity: "idle" })).map((s) => s.id)).toEqual(["attempt"]);
 		await host.send("attempt", "hello", "message");
+		await host.waitFor("attempt", (s) => s.acknowledgedMessageIds.includes("message"));
 		await host.waitFor("attempt", (s) => s.activity?.state === "idle");
 		let response = "";
 		for await (const event of host.subscribe("attempt", 0, AbortSignal.timeout(3000))) {
@@ -242,7 +243,6 @@ test("an uncertain native delivery is not sent again after host recreation", asy
 		descriptor.spec.env.TRELLIS_ATTEMPT_TOKEN,
 		"uncertain",
 		createHash("sha256").update(prompt).digest("hex"),
-		true,
 	);
 	host = new HarnessHost({
 		runtime: client,
@@ -252,7 +252,7 @@ test("an uncertain native delivery is not sent again after host recreation", asy
 		observationTimeoutMs: 100,
 	});
 	await expect(host.send("unknown-native", "next", "uncertain")).rejects.toMatchObject({
-		code: "HARNESS_OBSERVATION_TIMEOUT",
+		code: "HARNESS_DELIVERY_UNKNOWN",
 	});
 	expect(Buffer.from((await host.output("unknown-native")).data, "base64").toString()).not.toContain(
 		"native prompt accepted",

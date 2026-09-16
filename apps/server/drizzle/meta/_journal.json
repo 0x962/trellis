@@ -306,15 +306,29 @@
     {
       "idx": 46,
       "version": "7",
-      "when": 1789568754886,
-      "tag": "0046_harness_accounts",
+      "when": 1789566940876,
+      "tag": "0046_chat_rooms",
       "breakpoints": true
     },
     {
       "idx": 47,
       "version": "7",
+      "when": 1789566940877,
+      "tag": "0047_persona_chat_instructions",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1789568754886,
+      "tag": "0048_harness_accounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
       "when": 1789571941305,
-      "tag": "0047_manager_delegations",
+      "tag": "0049_manager_delegations",
       "breakpoints": true
     }
   ]

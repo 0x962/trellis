@@ -16,7 +16,6 @@ export async function sendNativePrompt(
 		descriptor.spec.env!.TRELLIS_ATTEMPT_TOKEN!,
 		messageId,
 		createHash("sha256").update(prompt).digest("hex"),
-		true,
 	);
 	if (!reservation.claimed) return reservation;
 	try {

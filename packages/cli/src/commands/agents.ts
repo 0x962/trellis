@@ -144,11 +144,16 @@ const send = defineCommand({
 	args: {
 		id: { type: "positional", required: true, description: "Agent id" },
 		text: { type: "string", required: true, description: "Follow-up text, or - for stdin" },
+		interrupt: { type: "boolean", default: false, description: "Stop the current turn before the message" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
-		const run = await clientOf(ctx).agentRuns.send({ id: args.id, text: await readText(ctx, args.text) });
+		const run = await clientOf(ctx).agentRuns.send({
+			id: args.id,
+			text: await readText(ctx, args.text),
+			...(args.interrupt ? { interrupt: true } : {}),
+		});
 		printRecord(ctx.out, ctx.format, run, agentRecord);
 	},
 });

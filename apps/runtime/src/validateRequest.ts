@@ -59,7 +59,6 @@ export function validateRequest(value: unknown): RuntimeRequest {
 				throw new Error("A message identifier is required");
 			if (typeof params.promptDigest !== "string" || !/^[a-f0-9]{64}$/.test(params.promptDigest))
 				throw new Error("A SHA256 prompt digest is required");
-			if (typeof params.requireIdle !== "boolean") throw new Error("The idle requirement must be a boolean");
 			break;
 		case "observe":
 			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
@@ -115,8 +114,6 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		case "input":
 			if (params.userInput !== undefined && typeof params.userInput !== "boolean")
 				throw new Error("The user input flag must be a boolean");
-			if (params.requireIdle !== undefined && typeof params.requireIdle !== "boolean")
-				throw new Error("The idle requirement must be a boolean");
 			if (
 				request.method === "deliver" &&
 				(typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))

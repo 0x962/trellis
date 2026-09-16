@@ -22,7 +22,7 @@ test("account commands list profiles and read quota without credential access", 
 });
 test("start and resume pass account choice and retain resume guards", async () => {
 	const started = await runCli(["agents", "start", personaId, "--ticket", "CDE-42", "--account", agentRunId], {
-		"personas.list": [persona()],
+		"personas.get": persona(),
 		"agentRuns.start": agentRun(),
 	});
 	expect(started.code).toBe(0);

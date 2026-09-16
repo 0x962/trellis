@@ -13,6 +13,11 @@ import {
 } from "./index.ts";
 import { subscribeOutput } from "./subscribeOutput.ts";
 
+// A list reply holds one entry per process record, and the runtime keeps the record of every exited
+// process, so the reply grows with the age of the data directory. A directory with a few hundred
+// records already produces a reply of about 3 MB. The cap only stops a runaway stream from filling memory.
+const RESPONSE_LIMIT_CHARS = 64_000_000;
+
 export class RuntimeClient {
 	constructor(
 		readonly socketPath: string,
@@ -43,7 +48,7 @@ export class RuntimeClient {
 			);
 			socket.on("data", (chunk) => {
 				buffer += chunk;
-				if (buffer.length > 3_000_000) {
+				if (buffer.length > RESPONSE_LIMIT_CHARS) {
 					fail(new Error("Runtime response exceeds the byte limit"));
 					return;
 				}
@@ -79,10 +84,9 @@ export class RuntimeClient {
 		token: string,
 		messageId: string,
 		promptDigest: string,
-		requireIdle = true,
 		expected?: RuntimeExpectedTurn,
 	) {
-		return this.call("registerNativeDelivery", { id, token, messageId, promptDigest, requireIdle, expected });
+		return this.call("registerNativeDelivery", { id, token, messageId, promptDigest, expected });
 	}
 	observe(id: string, token: string, event: HarnessEvent, expected?: RuntimeExpectedTurn) {
 		return this.call("observe", { id, token, event, expected });
@@ -114,8 +118,8 @@ export class RuntimeClient {
 	input(id: string, data: string, userInput?: boolean, expected?: RuntimeExpectedTurn) {
 		return this.call("input", { id, data, userInput, expected });
 	}
-	deliver(id: string, messageId: string, data: string, requireIdle?: boolean) {
-		return this.call("deliver", { id, messageId, data, requireIdle });
+	deliver(id: string, messageId: string, data: string) {
+		return this.call("deliver", { id, messageId, data });
 	}
 	resize(id: string, cols: number, rows: number) {
 		return this.call("resize", { id, cols, rows });

@@ -40,6 +40,8 @@ const scopeOf = (event: TrellisEvent): Scope => {
 		case "attachment.deleted":
 			return { projectIds: event.projectId === undefined ? [] : [event.projectId], ticketIds: [event.ticketId] };
 		case "statuses.changed":
+		case "chat.message":
+		case "chat.channels":
 			return { projectIds: [event.projectId], ticketIds: [] };
 		case "project.created":
 		case "project.updated":

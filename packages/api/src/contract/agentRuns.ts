@@ -97,8 +97,12 @@ export const agentRuns = {
 		.output(z.object({})),
 	send: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
-		.route({ method: "POST", path: "/agent-runs/{id}/send", summary: "Send an agent a follow-up" })
-		.input(idInput.extend({ text: z.string().trim().min(1).max(20000) }))
+		.route({
+			method: "POST",
+			path: "/agent-runs/{id}/send",
+			summary: "Send an agent a follow-up. With interrupt, stop the current turn first.",
+		})
+		.input(idInput.extend({ text: z.string().trim().min(1).max(20000), interrupt: z.boolean().optional() }))
 		.output(AgentRunSchema),
 	output: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))

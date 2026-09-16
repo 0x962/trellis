@@ -127,22 +127,44 @@ export class HarnessHost {
 		identifier.parse(id);
 		return JSON.parse(await readFile(join(this.options.directory, id, "launch.json"), "utf8"));
 	}
+	// A message that arrives during a turn waits in the harness's own input
+	// queue. The harness hook acknowledges the message id when that message
+	// starts a turn, so `acknowledgedMessageIds` proves a started turn. A
+	// return from send proves only that the harness accepted the text. A
+	// message id that an earlier send registered without a confirmed write
+	// stays uncertain: the text may already be in the queue, so send refuses
+	// to hand it over again.
 	async send(id: string, text: string, messageId: string = randomUUID()) {
 		identifier.parse(messageId);
 		const descriptor = await this.descriptor(id);
+		let status: "unknown" | "written" | "acknowledged";
 		if (descriptor.harness === "opencode" || descriptor.harness === "codex") {
 			const sessionId = (await this.status(id)).agent?.sessionId;
 			if (sessionId == null) throw new Error(`Harness attempt ${id} has no provider session identity`);
-			await sendNativePrompt(this.options, descriptor, sessionId, messageId, `trellis-message:${messageId}\n${text}`);
+			const reservation = await sendNativePrompt(
+				this.options,
+				descriptor,
+				sessionId,
+				messageId,
+				`trellis-message:${messageId}\n${text}`,
+			);
+			status = reservation.claimed ? "written" : reservation.status;
 		} else {
-			await this.options.runtime.deliver(
+			const delivery = await this.options.runtime.deliver(
 				id,
 				messageId,
 				Buffer.from(`\u001b[200~trellis-message:${messageId}\n${text}\u001b[201~\r`).toString("base64"),
-				true,
 			);
+			status = delivery.status;
 		}
-		return this.waitFor(id, (state) => state.acknowledgedMessageIds.includes(messageId), { rejectAgentError: false });
+		if (status === "unknown")
+			throw Object.assign(
+				new Error(
+					`Harness attempt ${id} message ${messageId} has an unconfirmed earlier delivery; inspect the agent before a resend`,
+				),
+				{ code: "HARNESS_DELIVERY_UNKNOWN" },
+			);
+		return this.status(id);
 	}
 	async interrupt(id: string) {
 		const descriptor = await this.descriptor(id);

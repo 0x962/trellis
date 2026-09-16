@@ -24,6 +24,8 @@ describe("lib/projectPath", () => {
 	test("a trailing reserved segment is the view", () => {
 		expect(parseProjectSplat("CDE/board")).toEqual({ ref: "CDE", view: "board" });
 		expect(parseProjectSplat("CDE/settings")).toEqual({ ref: "CDE", view: "settings" });
+		expect(parseProjectSplat("CDE/web/chat")).toEqual({ ref: "CDE.web", view: "chat" });
+		expect(projectHref("CDE.web", "chat")).toBe("/p/CDE/web/chat");
 	});
 
 	// WS-39. The URL keeps slashes; the API ref joins with dots. The

@@ -17,12 +17,14 @@ export function ProjectPages({
 	const current = projectRefOfPathname(pathname) === project.path;
 	const manager = pathname.endsWith("/settings/manager");
 	const settings = pathname.endsWith("/settings");
+	const chat = pathname.endsWith("/chat");
 	return (
 		<li>
 			<nav aria-label={`${project.name} pages`}>
 				<ul className="flex flex-col">
 					{[
-						{ label: "Tickets", suffix: "", active: current && !settings && !manager },
+						{ label: "Tickets", suffix: "", active: current && !settings && !manager && !chat },
+						{ label: "Chat", suffix: "/chat", active: current && chat },
 						{ label: "Settings", suffix: "/settings", active: current && settings },
 					].map(({ label, suffix, active }) => (
 						<li key={label}>

@@ -269,6 +269,7 @@ export const activity = pgTable(
 );
 
 export * from "./tables/assignments.ts";
+export * from "./tables/chat.ts";
 export * from "./tables/commentDeliveries.ts";
 export * from "./tables/evidence.ts";
 export * from "./tables/flowExecutions.ts";

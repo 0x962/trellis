@@ -97,7 +97,7 @@ Clock and clarification tools remain available. The native terminal sends reques
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
 Codex runs one private app-server per attempt. Its native terminal and Trellis event client connect to that engine.
 The Codex adapter maps native thread, turn, tool, result, and error events into the runtime journal.
-Every built-in start waits for the initial native prompt receipt. Each follow-up requires an idle process and its own receipt.
+Every built-in start waits for the initial native prompt receipt. Each follow-up requires its own receipt. Busy providers queue follow-ups for their next turn.
 The desktop starts HTTP before it resolves the login environment. Git, GitHub, and new agent launches await the cached environment in their server thread.
 A failed login shell returns a tool error. Existing agent controls use their saved launch environment.
 Each launch selects the active host release on PATH, including when the runtime predates that host.
@@ -115,7 +115,7 @@ The runtime inspects the OS process before it reports status or permits input.
 The host uses these observations for manager dispatch and flow completion.
 
 The controller stores ticket events in `manager_dispatches` with a fixed coalescing deadline.
-It sends a native manager one batch after the initial prompt receipt, when the runtime reports a controllable process with idle turn activity.
+It sends a native manager one batch after the initial prompt receipt, when the runtime reports a live controllable process.
 An exact durable receipt can resolve an unknown delivery without another send.
 Stable assignment request identifiers prevent repeated worker starts from producing duplicate attempts.
 Each dispatch tracks delivery separately from its per-ticket coordination outcomes.
@@ -177,12 +177,12 @@ Read the [implementation status](desktop/implementation-status.md), [desktop pla
 ## Domain rules
 
 Personas are local records shared across projects. Each persona has a name and
-an instruction, and a kind: builder, reviewer, or manager. The AI section of the
-sidebar opens the Personas page at `/ai/personas`, with cards grouped by kind and
+an instruction, and a kind: builder, reviewer, or manager. The Personas link of
+the sidebar opens the Personas page at `/ai/personas`, with cards grouped by kind and
 a slideout to create, edit, and delete these records. The API exposes
-`personas.list`, `personas.create`, `personas.update`, and `personas.delete`.
-There is no route that reads one persona, so a client reads the list and matches
-on the id or the name. `personas.list` sorts by name, then id. The
+`personas.list`, `personas.get`, `personas.create`, `personas.update`, and
+`personas.delete`. `personas.get` reads one persona by id. A client with a name
+reads the list and matches on the name. `personas.list` sorts by name, then id. The
 `personas.changed` event invalidates the cached persona list after a committed
 mutation. A persona name holds 120 characters and an instruction holds 200,000
 characters. Both fields are required and neither may be blank. A persona that
@@ -208,6 +208,32 @@ takes builder. A delete keeps the snapshots of the runs that used the persona.
 - `updated_at` moves only on user-visible activity: a ticket field, a comment, an attachment, or a pull request link. A reorder, a remap, and a poller CI change raise `version` only.
 - A delete is a hard delete. A ticket delete nulls the `parent_id` of its children, then cascades comments, attachments, pull request links, and activity. The blob collector then removes unused files.
 - A project delete needs an empty subtree or `force`.
+
+### Chat rooms
+
+Every root project owns one chat room, and every project of the tree shares
+it. The room holds named channels. `ai` and `general` exist in every room;
+the project create and the migration insert them. A post to a channel the
+room lacks creates the channel. A channel has no id: the API and the CLI
+address it by its project and its lower-case name, with an optional `#`.
+
+`chat_messages` holds one row per post with its actor. `chat_deliveries`
+holds one row per post and live native agent of the tree, except the author.
+A post that mentions a live agent by run id or by persona name reaches only
+the mentioned agents. The controller tick sends every pending row of one
+agent in one message, so a busy room costs an agent one turn. A manager
+receives a `trellis.chat.messages` JSON document; a worker receives IRC style
+lines and the two CLI commands. The states and the session pinning are the
+states and the pinning of a comment mention.
+
+The web route `/p/<project path>/chat` shows the room of the tree with an
+IRC style log. `/join <name>` in its input creates a channel. The API is
+`chat.channels`, `chat.createChannel`, `chat.list`, and `chat.post`. The
+events `chat.message` and `chat.channels` invalidate the chat queries. The
+CLI verb is `trellis chat`, and the manager tools are `trellis_chat_*`.
+What an agent is told about the room lives in `personas.instruction`, which
+the migration `0047_persona_chat_instructions` appends to. Code injects no
+prompt text.
 
 ### Pull request reviews
 
@@ -305,7 +331,7 @@ Only the current scope owner can assign workers inside a delegation. A parent ca
 `submanagers.retire` confirms process exit before it returns scope ownership and waits to the parent.
 Ticket workers remain assigned. Wait handoff retains each assignment request identifier. Retired deliveries retain their history with a canceled send state when needed.
 An unexpected manager exit retains its delegation. The parent sees that exit and can resume the saved conversation.
-Migration `0047_manager_delegations` extends saved manager instructions without a conversation reset.
+Migration `0049_manager_delegations` extends saved manager instructions without a conversation reset.
 The source instructions live in [manager-delegation.md](personas/manager-delegation.md).
 
 ### Harness accounts
@@ -327,7 +353,7 @@ The assignment retains its account across process restarts. An explicit account 
 A resume retains the assignment, workspace, and provider conversation. Its target account must use the same harness.
 Claude, Codex, and Pi transfer the selected session file. OpenCode exports and imports that session through its CLI.
 The runtime checks the resumed provider session identifier before it accepts the process.
-Existing manager personas receive the account instructions in migration `0046_harness_accounts`.
+Existing manager personas receive the account instructions in migration `0048_harness_accounts`.
 The source instructions live in [manager-harness-accounts.md](personas/manager-harness-accounts.md).
 
 ### Manager controller
@@ -336,7 +362,7 @@ The source instructions live in [manager-harness-accounts.md](personas/manager-h
 `manager_dispatches` retains event batches and their send state. The first event fixes the batch deadline at ten seconds.
 The collector continues while dispatch pauses. It excludes the manager's own activity and respects child projects with their own manager.
 
-The controller sends a batch only to the current native attempt with a matching conversation and ready or idle runtime activity.
+The controller sends a batch only to the current native attempt with a matching conversation and a live controllable process.
 After one minute without manager activity or a successful dispatch, the controller queues a heartbeat for an idle manager.
 A heartbeat uses the same durable queue and receipt checks as ticket events. Its event list is empty.
 Ticket events take precedence. The queue holds at most one pending or unresolved message per project.
@@ -380,7 +406,7 @@ Suffix `m` means minutes; prefix `m` means months. Past times require a future d
 ### Flows
 
 A flow is a graph of agent steps that trellis runs against a target, such as a
-pull request. Flows are local records shared across projects. The AI section of
+pull request. Flows are local records shared across projects. The Flows link of
 the sidebar opens the Flows page at `/ai/flows`, and each flow opens in a canvas
 editor at `/ai/flows/<slug>`. The slug comes from the name at create time, and
 a collision takes the next free suffix: `review`, `review-2`.
@@ -482,10 +508,10 @@ time. The first section of each page carries no hash.
 The Manager page holds the manager persona, repository directory, dispatch state, concurrency limit, and harness commands.
 It writes `projects.managerConfig` through `projects.update`.
 
-The sidebar holds the workspace row, Needs you, Search, All tickets, the project
-tree, the AI section with the Personas and Flows links, and the actor footer. The
-project tree is the one region that scrolls, so the AI links keep their place at
-any tree height.
+The sidebar holds the workspace row, Needs you, Search, All tickets, Pull
+requests, Personas, Flows, the project tree, and the actor footer. The project
+tree is the one region that scrolls, so the fixed links keep their place at any
+tree height.
 Each project row shows the Trellis mark and opens the manager terminal at
 `/p/<path>/settings/manager`. Tickets and Settings appear below it.
 The selected state follows the current page for root, nested, and archived projects.
@@ -590,7 +616,7 @@ returns one canonical spelling.
 | attachments.list, upload, get, delete | GET, POST /api/tickets/{ticket}/attachments; GET, DELETE /api/attachments/{id} | the bytes come from GET /api/attachments/{id}/file |
 | pullRequests.list, link, unlink, refresh | GET, POST /api/tickets/{ticket}/prs; DELETE /api/tickets/{ticket}/prs/{id}; POST /api/prs/{id}/refresh | a link is idempotent |
 | pullRequests.diff | GET /api/prs/{id}/diff | `gh pr diff`, cut at 1 MB, cached for 60 s |
-| personas.list, create, update, delete | GET, POST /api/personas; PATCH, DELETE /api/personas/{id} | no route reads one persona |
+| personas.list, get, create, update, delete | GET, POST /api/personas; GET, PATCH, DELETE /api/personas/{id} | the manager tool list omits instructions; get reads one |
 | flows.list, get, create, update, save, delete | GET, POST /api/flows; GET, PATCH, DELETE /api/flows/{flow}; PUT /api/flows/{flow}/graph | `{flow}` is a ULID or a slug; save replaces every node and edge |
 | agentRuns.list, start | GET, POST /api/agent-runs | start answers 201 with the row in any state |
 | agentRuns.stop, refresh, send | POST /api/agent-runs/{id}/stop, /refresh, /send | send takes 1 to 20000 characters |
