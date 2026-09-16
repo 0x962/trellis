@@ -127,11 +127,12 @@ const sourceWithoutText = (source: string) => {
 	return code.join("");
 };
 
-// The file a relative specifier names. Bun resolves a bare directory to its
-// index file and adds the extension, so this tries the same order.
-const fileFor = (from: string, specifier: string) => {
+// The classifier follows TypeScript sources only. Bun resolves extensionless
+// source paths and directories, so these candidates include both forms.
+const sourceFileFor = (from: string, specifier: string) => {
 	const base = resolve(dirname(from), specifier);
-	const tries = [`${base}.ts`, `${base}.tsx`, base, join(base, "index.ts"), join(base, "index.tsx")];
+	const exact = base.endsWith(".ts") || base.endsWith(".tsx") ? [base] : [];
+	const tries = [...exact, `${base}.ts`, `${base}.tsx`, join(base, "index.ts"), join(base, "index.tsx")];
 	return tries.find((candidate) => statSync(candidate, { throwIfNoEntry: false })?.isFile());
 };
 
@@ -156,7 +157,7 @@ const buildsInfrastructure = (file: string, visiting: Set<string> = new Set()): 
 	let answer = false;
 	for (const { path: specifier } of imports) {
 		if (!specifier.startsWith(".")) continue;
-		const imported = fileFor(file, specifier);
+		const imported = sourceFileFor(file, specifier);
 		if (imported && buildsInfrastructure(imported, visiting)) {
 			answer = true;
 			break;
@@ -192,6 +193,10 @@ describe("test layout", () => {
 	test("the import scan ignores type-only imports", () => {
 		const imports = transpiler.scanImports('import type { Process } from "./process.ts";');
 		expect(imports).toEqual([]);
+	});
+
+	test("the source resolver ignores asset imports", () => {
+		expect(sourceFileFor(import.meta.path, "../packages/ui/src/base.css")).toBeUndefined();
 	});
 
 	test("the repository holds test files to check", () => {
