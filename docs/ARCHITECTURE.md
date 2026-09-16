@@ -202,7 +202,7 @@ takes builder. A delete keeps the snapshots of the runs that used the persona.
 - Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is printable ASCII without a colon, 1 to 64 characters.
 - A missing header is `ACTOR_REQUIRED` and a malformed one is `ACTOR_INVALID`. A GET ignores the header. The header rejects the kind `system`, which trellis reserves for `system:trellis`.
 - The optional header `x-trellis-session` is stored in `activity.meta.session`. trellis stores the name and the kind of an actor, and nothing else.
-- The service enforces the agent policy, so curl obeys it too. An agent cannot move a ticket to a done status (`AGENT_CANNOT_COMPLETE`, 403) and cannot delete a ticket or a project (`AGENT_CANNOT_DELETE`, 403) without `force`.
+- The service enforces the agent policy, so curl obeys it too. Agents and managers can move tickets to Done. An agent cannot delete a ticket or a project (`AGENT_CANNOT_DELETE`, 403) without `force`.
 - An archived project serves reads. Every mutation on it fails with `PROJECT_ARCHIVED`.
 - `tickets.version` rises on every row change. `update` and `move` accept `expectedVersion` or the header `If-Match`. A mismatch is `VERSION_CONFLICT` (412) with the current row.
 - `updated_at` moves only on user-visible activity: a ticket field, a comment, an attachment, or a pull request link. A reorder, a remap, and a poller CI change raise `version` only.
@@ -667,7 +667,7 @@ trellis list --project CDE --status in-progress,agent-review --parent none --ci 
 The contract declares every error as `{defined, code, status, message, data}`.
 The map lives in `packages/api/src/errors.ts`: INPUT_VALIDATION_FAILED 400,
 ACTOR_REQUIRED 400, ACTOR_INVALID 400, INVALID_CURSOR 400, INVALID_PR_URL 400,
-AGENT_CANNOT_COMPLETE 403, AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
+AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
 409, KEY_LOCKED 409, STATUS_NOT_IN_PROJECT 409, STATUS_IN_USE 409, LAST_STATUS
 409, ROOT_STATUSES 409, STATUS_CATEGORY_IMMUTABLE 409, CROSS_ROOT_MOVE 409,
 PARENT_CYCLE 409, PROJECT_NOT_EMPTY 409, PROJECT_ARCHIVED 409,

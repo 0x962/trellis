@@ -11,10 +11,9 @@ The name uses printable ASCII, contains no colon, and has 1 to 64 characters.
 An agent cannot use `system`. trellis reserves `system:trellis` for its own writes.
 If an agent run has a session identifier, send it in `x-trellis-session`.
 
-## Never Done
+## Ticket completion
 
-An agent moves finished work to `human-review`. An agent never moves a ticket to Done.
-A human reviews the result and decides when the ticket moves to Done.
+Agents and managers can move completed tickets to Done.
 An agent never deletes tickets.
 
 ## Instructions for another repository
@@ -34,7 +33,7 @@ Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `T
 6. Ask a question:   trellis comment TRL-42 --body "..." and then wait for the reply: trellis watch --ticket TRL-42
 7. Finish coding:    trellis move TRL-42 agent-review
 8. When CI is green and the self-review is done: trellis move TRL-42 human-review
-Never move a ticket to Done; a human does that. Never delete tickets.
+Never delete tickets.
 
 Read a comment thread: trellis thread show <comment-id>
 Reply in that thread: trellis comment TRL-42 --reply-to <comment-id> --body "..."

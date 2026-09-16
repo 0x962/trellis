@@ -153,7 +153,7 @@ describe("brief.get", () => {
 			expect(protocol).toContain(text);
 		}
 		expect(protocol).toContain("agent-review");
-		expect(protocol).toMatch(/(never|do not)[^.\n]*\bdone\b/i);
+		expect(protocol).not.toMatch(/(never|do not)[^.\n]*\bdone\b/i);
 	});
 
 	test("the brief output is byte-stable for the same state", async () => {

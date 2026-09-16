@@ -185,7 +185,7 @@ describe("contract", () => {
 				expect(declared.get(name), `${name} declares ${code}`).toHaveProperty(code);
 			}
 		};
-		expects("tickets.move", ["AGENT_CANNOT_COMPLETE", "INVALID_ANCHOR", "VERSION_CONFLICT", "PROJECT_ARCHIVED"]);
+		expects("tickets.move", ["INVALID_ANCHOR", "VERSION_CONFLICT", "PROJECT_ARCHIVED"]);
 		expects("tickets.delete", ["AGENT_CANNOT_DELETE"]);
 		expects("projects.delete", ["AGENT_CANNOT_DELETE"]);
 		expects("tickets.list", ["INVALID_CURSOR"]);

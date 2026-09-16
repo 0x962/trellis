@@ -73,7 +73,7 @@ Example: \`GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=n
 
 ## Rules for agents
 
-An agent never moves a ticket to a done status without \`force\`. A human does that. An agent never deletes a ticket or a project without \`force\`. The server enforces both rules: 403 AGENT_CANNOT_COMPLETE and 403 AGENT_CANNOT_DELETE.
+An agent never deletes a ticket or a project without \`force\`. The server enforces this rule with 403 AGENT_CANNOT_DELETE.
 
 ## Two calls
 
