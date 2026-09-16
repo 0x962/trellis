@@ -23,7 +23,7 @@ const REFRESH_FLOOR_MS = 10 * 1000;
 export type UsageLogin = Omit<UsageAccount, "quota">;
 export type UsageQuota = UsageAccount["quota"];
 
-type MuseAuth = { providers?: Record<string, { user_email?: string; obtained_via?: string }> };
+type MuseAuth = { providers?: Record<string, { user_email?: string }> };
 
 // The Muse login of this machine, from `<config>/muse/auth.json`. Meta
 // exposes no quota endpoint, so a signed-in Muse login is unlimited.
@@ -36,7 +36,7 @@ export async function museQuota(configDir: string, now = Date.now()): Promise<Us
 	return {
 		status: "unlimited",
 		email: meta.user_email ?? null,
-		plan: meta.obtained_via ?? null,
+		plan: null,
 		detail: null,
 		windows: [],
 		fetchedAt,
