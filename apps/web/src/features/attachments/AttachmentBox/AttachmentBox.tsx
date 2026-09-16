@@ -4,18 +4,24 @@ import { type ChangeEvent, type DragEvent, useRef, useState } from "react";
 import { type Uploads, useUploads } from "../hooks/useUploads";
 import { UploadProgress } from "../UploadProgress";
 
-export type AttachmentBoxProps = {
+type OwnedAttachmentBoxProps = {
 	// The ticket a picked file attaches to: CDE-42.
 	ticket: string;
-	// The uploads of the surface that owns the section. With them, the
-	// surface draws the upload progress, so the box draws only its control.
-	uploads?: Uploads;
+	uploads?: undefined;
 };
 
-type ViewProps = { uploads: Uploads; showProgress: boolean };
+type ManagedAttachmentBoxProps = {
+	// The uploads of the surface that owns the section. With them, the
+	// surface draws the upload progress, so the box draws only its control.
+	uploads: Uploads;
+};
+
+export type AttachmentBoxProps = OwnedAttachmentBoxProps | ManagedAttachmentBoxProps;
+
+type ViewProps = { uploads: Uploads; showProgress: boolean; retryTicket?: string };
 
 // The control that picks files and takes a drop from the attachment header.
-function AttachmentBoxView({ uploads, showProgress }: ViewProps) {
+function AttachmentBoxView({ uploads, showProgress, retryTicket }: ViewProps) {
 	const picker = useRef<HTMLInputElement>(null);
 	const [over, setOver] = useState(false);
 	const { uploads: entries, start, dismiss } = uploads;
@@ -54,21 +60,29 @@ function AttachmentBoxView({ uploads, showProgress }: ViewProps) {
 			<input ref={picker} type="file" multiple className="hidden" onChange={selected} />
 			{control}
 			{showProgress &&
-				entries.map((upload) => <UploadProgress key={upload.id} upload={upload} showName onDismiss={dismiss} />)}
+				entries.map((upload) => (
+					<UploadProgress
+						key={upload.id}
+						upload={upload}
+						showName
+						onDismiss={dismiss}
+						onRetry={retryTicket === undefined ? undefined : (id) => void uploads.retry(id, retryTicket)}
+					/>
+				))}
 		</>
 	);
 }
 
 function OwnedAttachmentBox({ ticket }: { ticket: string }) {
 	const uploads = useUploads(ticket, false);
-	return <AttachmentBoxView uploads={uploads} showProgress />;
+	return <AttachmentBoxView uploads={uploads} showProgress retryTicket={ticket} />;
 }
 
 // The file picker and drop control of the attachments section.
-export function AttachmentBox({ ticket, uploads }: AttachmentBoxProps) {
-	return uploads === undefined ? (
-		<OwnedAttachmentBox ticket={ticket} />
+export function AttachmentBox(props: AttachmentBoxProps) {
+	return props.uploads === undefined ? (
+		<OwnedAttachmentBox ticket={props.ticket} />
 	) : (
-		<AttachmentBoxView uploads={uploads} showProgress={false} />
+		<AttachmentBoxView uploads={props.uploads} showProgress={false} />
 	);
 }

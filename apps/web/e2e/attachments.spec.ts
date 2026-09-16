@@ -17,9 +17,9 @@ test.beforeAll(() => {
 
 const region = (page: Page, ticket: string) => page.getByRole("region", { name: `Attachments for ${ticket}` });
 
-// Drops `files` on the attachments region of the ticket page, the way a
-// file dragged from the desktop arrives: dragenter, dragover, then drop.
-const dropFiles = async (page: Page, ticket: string, files: DroppedFile[]) => {
+// Drops `files` on the ticket body. A desktop drag sends dragenter,
+// dragover, and drop events in that order.
+const dropFiles = async (page: Page, files: DroppedFile[]) => {
 	const dataTransfer = await page.evaluateHandle((entries: DroppedFile[]) => {
 		const transfer = new DataTransfer();
 		for (const entry of entries) {
@@ -29,7 +29,7 @@ const dropFiles = async (page: Page, ticket: string, files: DroppedFile[]) => {
 		}
 		return transfer;
 	}, files);
-	const target = region(page, ticket);
+	const target = page.locator("[data-ticket-content]");
 	for (const type of ["dragenter", "dragover", "drop"]) await target.dispatchEvent(type, { dataTransfer });
 };
 
@@ -38,7 +38,7 @@ const dropFiles = async (page: Page, ticket: string, files: DroppedFile[]) => {
 test("attachments > a dropped image and an extensionless file show, and the ticket page reloads", async ({ page }) => {
 	await signIn(page, "/t/ATT-1");
 	await expect(region(page, "ATT-1")).toBeAttached();
-	await dropFiles(page, "ATT-1", [
+	await dropFiles(page, [
 		{ name: "board.png", type: "image/png", base64: png },
 		{ name: "NOTES", type: "", text: "plain notes" },
 	]);
@@ -56,7 +56,7 @@ test("attachments > a dropped image and an extensionless file show, and the tick
 test("attachments > an uploaded SVG downloads with its name and bytes", async ({ page }) => {
 	await signIn(page, "/t/ATT-2");
 	await expect(region(page, "ATT-2")).toBeAttached();
-	await dropFiles(page, "ATT-2", [{ name: "logo.svg", type: "image/svg+xml", text: svg }]);
+	await dropFiles(page, [{ name: "logo.svg", type: "image/svg+xml", text: svg }]);
 	const link = page.getByRole("link", { name: "Download logo.svg" });
 	await expect(link).toBeVisible();
 	await expect(region(page, "ATT-2").locator('img[alt="logo.svg"]')).toHaveCount(0);

@@ -1,9 +1,13 @@
 import { useRouter } from "@tanstack/react-router";
 import type { Priority, Ticket, TicketSummary } from "@trellis/api";
-import { Button, Dialog, Switch, toast, useHotkey } from "@trellis/ui";
+import { Button, Dialog, SectionHeader, Switch, toast, useHotkey } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useApp } from "../../../lib/appContext";
+import { AttachmentBox } from "../../attachments/AttachmentBox";
+import { DropTarget } from "../../attachments/DropTarget";
+import { useUploads } from "../../attachments/hooks/useUploads";
+import { UploadProgress } from "../../attachments/UploadProgress";
 import { insertRow } from "../../table/utils/cacheRows";
 import { failToast } from "../../ticket/utils/failToast";
 import { composerActions, useComposerStore } from "../composerStore";
@@ -18,10 +22,8 @@ const summaryOf = (ticket: Ticket): TicketSummary => {
 	return summary;
 };
 
-// The quick composer: title, description from the
-// template, the chip row, Cmd+Enter to create, Cmd+Shift+Enter to create
-// and stay. With Create more on, every create stays. The draft survives an
-// Escape.
+// The quick composer keeps its text and selected files until create or
+// discard. It uploads the files only after the server creates the ticket.
 export function CreateTicketDialog() {
 	const options = useComposerStore((state) => state.options);
 	const { client, queryClient, orpc } = useApp();
@@ -40,6 +42,8 @@ export function CreateTicketDialog() {
 	const [editorKey, setEditorKey] = useState(0);
 	const [creating, setCreating] = useState(false);
 	const [createMore, setCreateMore] = useState(false);
+	const [created, setCreated] = useState<Ticket | null>(null);
+	const uploads = useUploads(undefined, false);
 	const inFlight = useRef(false);
 	const titleRef = useRef<HTMLInputElement>(null);
 
@@ -48,53 +52,68 @@ export function CreateTicketDialog() {
 	const chosenStatus = bySlug(status ?? defaults.status) ?? defaultStatus(defaults.statuses);
 	const chosenPriority = priority ?? defaults.priority;
 	const description = draft.description === "" ? defaults.template : draft.description;
-	const dirty = draft.title.trim() !== "" || (draft.description !== "" && draft.description !== defaults.template);
+	const dirty =
+		draft.title.trim() !== "" ||
+		(draft.description !== "" && draft.description !== defaults.template) ||
+		uploads.uploads.length > 0;
+	const needsUpload = uploads.uploads.some((upload) => upload.status !== "complete");
 
 	const openTicket = (identifier: string) => void router.navigate({ href: `/t/${identifier}` });
 
-	// One create at a time. Two hotkey presses can land in one tick, before
-	// `creating` renders, so the ref holds the guard and the state disables
-	// the buttons. A refused create keeps the draft and the dialog open.
-	const create = async (stay: boolean) => {
-		const title = draft.title.trim();
-		if (chosenProject === undefined) {
-			setProjectMissing(true);
-			return;
-		}
-		if (title === "" || inFlight.current) return;
-		const parentRef = parent === undefined ? defaults.parent : (parent?.identifier ?? undefined);
-		inFlight.current = true;
-		setCreating(true);
-		let ticket: Ticket;
-		try {
-			ticket = await client.tickets.create({
-				project: chosenProject,
-				title,
-				status: chosenStatus?.slug,
-				priority: chosenPriority,
-				...(parentRef === undefined ? {} : { parent: parentRef }),
-				...(editing ? { description } : {}),
-			});
-		} catch (error) {
-			failToast("The ticket did not save.", error, () => void create(stay));
-			return;
-		} finally {
-			inFlight.current = false;
-			setCreating(false);
-		}
-		insertRow(queryClient, summaryOf(ticket));
-		void queryClient.invalidateQueries({ queryKey: orpc.tickets.counts.key() });
-		void queryClient.invalidateQueries({ queryKey: orpc.projects.key() });
-		toast.success(`Created ${ticket.identifier}`, {
-			action: { label: "Open", onClick: () => openTicket(ticket.identifier) },
-		});
+	const finish = (stay: boolean) => {
 		clearDraft();
+		uploads.clear();
+		setCreated(null);
 		if (!stay) {
 			composerActions.close();
 			return;
 		}
 		setEditing(false);
 		setEditorKey((key) => key + 1);
+	};
+
+	// The ref blocks two hotkey events that arrive before `creating` renders.
+	// A failed ticket create leaves each selected file pending on this form.
+	const create = async (stay: boolean) => {
+		const title = draft.title.trim();
+		if ((created === null && title === "") || inFlight.current) return;
+		const parentRef = parent === undefined ? defaults.parent : (parent?.identifier ?? undefined);
+		inFlight.current = true;
+		setCreating(true);
+		try {
+			let ticket = created;
+			if (ticket === null) {
+				if (chosenProject === undefined) {
+					setProjectMissing(true);
+					return;
+				}
+				try {
+					ticket = await client.tickets.create({
+						project: chosenProject,
+						title,
+						status: chosenStatus?.slug,
+						priority: chosenPriority,
+						...(parentRef === undefined ? {} : { parent: parentRef }),
+						...(editing ? { description } : {}),
+					});
+				} catch (error) {
+					failToast("The ticket did not save.", error, () => void create(stay));
+					return;
+				}
+				insertRow(queryClient, summaryOf(ticket));
+				void queryClient.invalidateQueries({ queryKey: orpc.tickets.counts.key() });
+				void queryClient.invalidateQueries({ queryKey: orpc.projects.key() });
+				const identifier = ticket.identifier;
+				toast.success(`Created ${identifier}`, {
+					action: { label: "Open", onClick: () => openTicket(identifier) },
+				});
+				setCreated(ticket);
+			}
+			if (await uploads.uploadPending(ticket.identifier)) finish(stay);
+		} finally {
+			inFlight.current = false;
+			setCreating(false);
+		}
 	};
 
 	const requestClose = () => {
@@ -118,64 +137,83 @@ export function CreateTicketDialog() {
 			initialFocus={titleRef}
 			className="gap-0 bg-surface p-0"
 		>
-			<div className="flex min-h-0 flex-col">
-				<div className="border-b border-border p-4">
-					<ComposerHeader project={chosenProject} onClose={requestClose} />
+			<DropTarget identifier={created?.identifier ?? "new ticket"} onFiles={uploads.start}>
+				<div className="flex min-h-0 flex-col">
+					<div className="border-b border-border p-4">
+						<ComposerHeader project={chosenProject} onClose={requestClose} />
+					</div>
+					<div className="flex flex-1 flex-col gap-4 p-6 max-md:p-4">
+						<fieldset disabled={created !== null} className="contents">
+							<input
+								ref={titleRef}
+								aria-label="Title"
+								autoComplete="off"
+								maxLength={500}
+								placeholder="Ticket title"
+								value={draft.title}
+								onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+								className="h-7 w-full bg-transparent text-xl font-semibold text-fg outline-none placeholder:text-fg-faint"
+							/>
+							<DescriptionField
+								key={editorKey}
+								markdown={description}
+								editing={editing}
+								onEdit={() => setEditing(true)}
+								onChange={(markdown) => setDraft({ ...draft, description: markdown })}
+							/>
+							<ChipRow
+								project={chosenProject}
+								projectMissing={projectMissing && chosenProject === undefined}
+								statuses={defaults.statuses}
+								status={chosenStatus}
+								priority={chosenPriority}
+								parent={parent ?? null}
+								parentRef={parent === undefined ? defaults.parent : undefined}
+								onProject={setProject}
+								onStatus={(next) => setStatus(next.slug)}
+								onPriority={setPriority}
+								onParent={setParent}
+							/>
+						</fieldset>
+						<div className="flex flex-col gap-2">
+							<SectionHeader
+								title="Attachments"
+								count={uploads.uploads.length > 0 ? uploads.uploads.length : undefined}
+								actions={<AttachmentBox uploads={uploads} />}
+							/>
+							{uploads.uploads.map((upload) => (
+								<UploadProgress key={upload.id} upload={upload} onDismiss={uploads.dismiss} />
+							))}
+						</div>
+					</div>
+					<div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-border bg-surface p-4">
+						<Switch
+							label="Create more"
+							checked={createMore}
+							onCheckedChange={setCreateMore}
+							className="text-xs text-fg-muted"
+						/>
+						<Button variant="primary" size="md" disabled={creating} onClick={() => void create(createMore)} kbd="⌘↩">
+							{created === null ? "Create" : needsUpload ? "Retry attachments" : "Finish"}
+						</Button>
+					</div>
 				</div>
-				<div className="flex flex-1 flex-col gap-4 p-6 max-md:p-4">
-					<input
-						ref={titleRef}
-						aria-label="Title"
-						autoComplete="off"
-						maxLength={500}
-						placeholder="Ticket title"
-						value={draft.title}
-						onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-						className="h-7 w-full bg-transparent text-xl font-semibold text-fg outline-none placeholder:text-fg-faint"
-					/>
-					<DescriptionField
-						key={editorKey}
-						markdown={description}
-						editing={editing}
-						onEdit={() => setEditing(true)}
-						onChange={(markdown) => setDraft({ ...draft, description: markdown })}
-					/>
-					<ChipRow
-						project={chosenProject}
-						projectMissing={projectMissing && chosenProject === undefined}
-						statuses={defaults.statuses}
-						status={chosenStatus}
-						priority={chosenPriority}
-						parent={parent ?? null}
-						parentRef={parent === undefined ? defaults.parent : undefined}
-						onProject={setProject}
-						onStatus={(next) => setStatus(next.slug)}
-						onPriority={setPriority}
-						onParent={setParent}
-					/>
-				</div>
-				<div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-border bg-surface p-4">
-					<Switch
-						label="Create more"
-						checked={createMore}
-						onCheckedChange={setCreateMore}
-						className="text-xs text-fg-muted"
-					/>
-					<Button variant="primary" size="md" disabled={creating} onClick={() => void create(createMore)} kbd="⌘↩">
-						Create
-					</Button>
-				</div>
-			</div>
+			</DropTarget>
 			<ConfirmDialog
 				open={asking}
 				modal={false}
-				title="Discard the draft?"
-				description="trellis deletes the title and the description."
+				title={created === null ? "Discard the draft?" : "Discard selected attachments?"}
+				description={
+					created === null
+						? "Trellis deletes the title, the description, and the selected attachments."
+						: `Trellis keeps ${created.identifier} and removes files that are not attached.`
+				}
 				confirmLabel="Discard"
 				danger
 				onConfirm={() => {
 					setAsking(false);
 					clearDraft();
+					uploads.clear();
 					composerActions.close();
 				}}
 				onCancel={() => setAsking(false)}

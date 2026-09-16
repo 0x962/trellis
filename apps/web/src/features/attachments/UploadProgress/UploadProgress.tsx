@@ -7,11 +7,12 @@ export type UploadProgressProps = {
 	showName?: boolean;
 	// Takes a failed upload off the list.
 	onDismiss: (id: string) => void;
+	onRetry?: (id: string) => void;
 };
 
-// One upload: a determinate bar while it runs, an inline message when the
-// server refuses it.
-export function UploadProgress({ upload, showName = true, onDismiss }: UploadProgressProps) {
+// One upload: a determinate bar while it runs, or an inline message after a
+// failed upload.
+export function UploadProgress({ upload, showName = true, onDismiss, onRetry }: UploadProgressProps) {
 	if (upload.error !== null) {
 		return (
 			<div
@@ -19,8 +20,23 @@ export function UploadProgress({ upload, showName = true, onDismiss }: UploadPro
 				className="flex h-10 items-center gap-3 rounded-md border border-danger bg-danger-soft px-3 text-sm text-danger"
 			>
 				<span className="min-w-0 flex-1 truncate">{uploadErrorText(upload.name, upload.error)}</span>
+				{upload.error.code === "UPLOAD_FAILED" && onRetry !== undefined && (
+					<Button size="sm" variant="quiet" onClick={() => onRetry(upload.id)}>
+						Retry
+					</Button>
+				)}
 				<Button size="sm" variant="quiet" onClick={() => onDismiss(upload.id)}>
 					Dismiss
+				</Button>
+			</div>
+		);
+	}
+	if (upload.status === "pending") {
+		return (
+			<div className="flex h-10 items-center gap-3 rounded-md border border-border bg-surface px-3">
+				<span className="min-w-0 flex-1 truncate text-sm text-fg">{upload.name}</span>
+				<Button size="sm" variant="quiet" onClick={() => onDismiss(upload.id)}>
+					Remove
 				</Button>
 			</div>
 		);
