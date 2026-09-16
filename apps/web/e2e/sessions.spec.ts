@@ -51,6 +51,6 @@ test("the New session button opens a form that needs a prompt", async ({ page })
 	await expect(create).toBeDisabled();
 	await dialog.getByLabel("Prompt").fill("Say hello.");
 	await expect(create).toBeEnabled();
-	await dialog.getByRole("button", { name: "Cancel" }).click();
+	await page.keyboard.press("Escape");
 	await expect(dialog).toBeHidden();
 });
