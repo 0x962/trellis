@@ -37,6 +37,12 @@ Both API transports log failed procedures with the same request ID. Unexpected e
 The combined source passes 78 server integration tests, five API contract tests, and all nine workspace typechecks.
 All three project navigation tests pass after integration with the installed source.
 
+At 13:45 UTC on September 16, the production installer publishes source `c6e7542c` from clean, published `main`.
+The installed release is `d9df9d36`. Signature verification and all 13 packaged smoke checks pass.
+The HTTP host, runtime, and five active agent processes retain their IDs during the copy. Their provider session IDs also remain unchanged.
+The host returns HTTP 200. A separate check process exits with code zero during the build.
+Restart Trellis to activate this package. Evidence: `/tmp/trellis-main-production-install.log` and `/tmp/trellis-main-install-evidence.json`.
+
 ## Project navigation
 
 The project name opens its manager terminal. Each project row uses the Trellis mark.
