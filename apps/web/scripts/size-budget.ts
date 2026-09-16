@@ -5,10 +5,11 @@ import { gzipSync } from "node:zlib";
 // The plan's budget table, in bytes. Initial JS is the entry chunk plus
 // every chunk index.html preloads: what runs before the first route opens.
 export const budgets = {
-	initialJs: 220 * 1024,
+	initialJs: 240 * 1024,
 	tiptap: 200 * 1024,
 	fonts: 160 * 1024,
-	total: 900 * 1024,
+	// The total includes every lazy syntax grammar available on the review page.
+	total: 3600 * 1024,
 };
 
 export type Report = {

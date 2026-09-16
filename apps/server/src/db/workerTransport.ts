@@ -4,8 +4,8 @@ import type { JobsLog } from "../jobs.ts";
 import { addTiming, type DbTiming } from "../serverTiming.ts";
 import { type ServiceName, services } from "../services/registry.ts";
 import type { JobsStart, ServiceTransport, TransportStart, WorkerTransportOptions } from "./transport.ts";
-import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./worker.ts";
 import { workerError } from "./workerError/workerError.ts";
+import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./workerProtocol.ts";
 
 // The production ServiceTransport. The database, the services, the poller,
 // and the maintenance timer run on one Bun Worker, `worker.ts`. This side
