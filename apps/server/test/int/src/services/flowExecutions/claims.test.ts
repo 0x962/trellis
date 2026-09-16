@@ -7,7 +7,6 @@ import * as flows from "../../../../../src/services/flows/flows.ts";
 import { save } from "../../../../../src/services/flows/save.ts";
 import { seedActors, seedChild, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
-import { workingSession } from "../../../../helpers/controllerSession.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
@@ -26,17 +25,23 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		await seedActors(tx);
 		project = await seedRoot(tx, "FLW");
-		const status = await seedStatus(tx, {
+		await seedStatus(tx, {
 			projectId: project,
 			name: "Todo",
 			category: "todo",
 			position: 0,
 			isDefault: true,
 		});
+		const status = await seedStatus(tx, {
+			projectId: project,
+			name: "In Progress",
+			category: "started",
+			position: 1,
+		});
 		ticket = await seedTicket(tx, { projectId: project, rootId: project, statusId: status });
 		persona = ulid();
 		await tx.execute(
-			sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"ade":"native","directory":"/tmp"}'::jsonb WHERE id=${project}`,
+			sql`UPDATE projects SET manager_config='{"personaId":null,"ade":"native","directory":"/tmp"}'::jsonb WHERE id=${project}`,
 		);
 		await tx.execute(
 			sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at) VALUES (${persona},'Flow worker','builder','Frozen persona',now(),now())`,
@@ -172,9 +177,6 @@ test("a host restart observes a claimed attempt without another launch", async (
 });
 test("ordinary starts and flow claims preserve exclusive persona ownership", async () => {
 	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
-	await h.rows(
-		sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{concurrency}','1') WHERE id=${project}`,
-	);
 	const execution = await h.run((ctx, tx) => start(ctx, tx, input()));
 	const { claimNext } = await import("../../../../../src/services/flowExecutions/claimNext.ts");
 	const { reserve } = await import("../../../../../src/services/agentRuns/reserve.ts");
@@ -290,20 +292,30 @@ test("a flow waits until its persona assignment closes", async () => {
 	expect(claim?.run.personaId).toBe(persona);
 });
 
-test("a flow can claim capacity held by an idle worker on another ticket", async () => {
-	await h.rows(
-		sql`UPDATE projects SET manager_config=manager_config || '{"concurrency":1}'::jsonb WHERE id=${project}`,
-	);
+test("a flow claims its step while another worker runs on another ticket", async () => {
 	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
-	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,created_at,updated_at)
-		VALUES ('idle','Builder','Builder','builder','Wait',${project},'FLW','native','idle-attempt',now(),now())`);
+	const other = await h.read(async (tx) => {
+		const [status] = (await tx.execute(sql`SELECT id FROM statuses WHERE category='started'`)).rows;
+		return seedTicket(tx, { projectId: project, rootId: project, statusId: status!.id as string });
+	});
+	const { reserve } = await import("../../../../../src/services/agentRuns/reserve.ts");
+	await h.run((ctx, tx) => reserve(ctx, tx, { ticket: other, personaId: persona, requestId: "other-work" }));
 	const execution = await h.run((ctx, tx) => start(ctx, tx, input()));
 	const { claimNext } = await import("../../../../../src/services/flowExecutions/claimNext.ts");
-	const { controllerSession } = await import("../../../../helpers/controllerSession.ts");
-	expect(
-		await h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id, sessions: [workingSession("idle-attempt")] })),
-	).toBeNull();
-	const sessions = [controllerSession("idle-attempt")];
-	const claim = await h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id, sessions }));
+	const claim = await h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id }));
 	expect(claim?.attempt.id).toBeTruthy();
+	expect(await h.rows(sql`SELECT id FROM agent_runs WHERE closed_at IS NULL`)).toHaveLength(2);
+});
+
+test("a flow cannot reserve an agent after its ticket returns to Todo", async () => {
+	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
+	const execution = await h.run((ctx, tx) => start(ctx, tx, input()));
+	await h.rows(
+		sql`UPDATE tickets SET status_id=(SELECT id FROM statuses WHERE project_id=${project} AND category='todo') WHERE id=${ticket}`,
+	);
+	const { claimNext } = await import("../../../../../src/services/flowExecutions/claimNext.ts");
+	await expect(h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id }))).rejects.toMatchObject({
+		code: "INPUT_VALIDATION_FAILED",
+	});
+	expect(await h.rows(sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket}`)).toEqual([]);
 });

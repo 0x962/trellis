@@ -13,7 +13,7 @@ type Observed = Pick<RuntimeProcessStatus, "id" | "status" | "controllable"> & {
 	process: Pick<NonNullable<RuntimeProcessStatus["process"]>, "identity"> | null;
 	agent: Pick<NonNullable<RuntimeProcessStatus["agent"]>, "sessionId" | "model"> | null;
 };
-type Descriptor = { harness: RestartSession["harness"]; spec: LaunchSpec; fingerprint: string };
+type Descriptor = { harness: RestartSession["harness"]; spec: LaunchSpec; fingerprint: string; effort?: string };
 
 // An agent the update cannot save gets a plan entry that is already done
 // and failed, with the reason in plain words. The resume skips it, and the
@@ -141,6 +141,7 @@ console.log(JSON.stringify(sessions.filter(({status}) => status !== "exited").ma
 			providerSessionId: observed.agent.sessionId,
 			harness: descriptor.harness,
 			model: observed.agent.model ?? JSON.parse(descriptor.fingerprint)[3] ?? undefined,
+			effort: descriptor.effort,
 			workspace: descriptor.spec.cwd,
 			processIdentity: observed.process.identity,
 			attempt: { id: randomUUID(), token: randomBytes(32).toString("hex") },

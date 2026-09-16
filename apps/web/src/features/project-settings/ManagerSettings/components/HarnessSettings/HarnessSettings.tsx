@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { SettingsSection } from "../../../SettingsSection";
 import { AgentCommandField } from "../AgentCommandField";
+import { BuilderSettings } from "../BuilderSettings";
 
 const presets = [
 	{ value: "claude", label: "Claude" },
@@ -94,6 +95,7 @@ export function HarnessSettings({
 					</>
 				)}
 			</SettingsSection>
+			<BuilderSettings draft={draft} commit={commit} />
 			{draft.harness.preset === "custom" && (
 				<SettingsSection
 					title="Agent commands"

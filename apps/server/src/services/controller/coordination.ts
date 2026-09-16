@@ -1,8 +1,6 @@
 import { sql } from "drizzle-orm";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import type { CapacityObservation } from "../assignments/occupiesSlot/index.ts";
-import { capacityReminder } from "./capacityReminder/capacityReminder.ts";
 import { dispatchMessageId } from "./messageId.ts";
 import type { Dispatch } from "./types.ts";
 
@@ -24,7 +22,7 @@ export const workItems = (dispatch: Pick<Dispatch, "id" | "events" | "outcomes" 
 		}));
 };
 
-export const coordination = async (tx: Tx, dispatch: Pick<Dispatch, "id" | "projectId"> & CapacityObservation) => {
+export const coordination = async (tx: Tx, dispatch: Pick<Dispatch, "id" | "projectId">) => {
 	const [policy] = await rows<{ personaId: string; updatedAt: string }>(
 		tx,
 		sql`SELECT persona.id AS "personaId", ${iso(sql`persona.updated_at`)} AS "updatedAt"
@@ -42,7 +40,6 @@ export const coordination = async (tx: Tx, dispatch: Pick<Dispatch, "id" | "proj
 		WHERE project_id=${dispatch.projectId} AND id<>${dispatch.id} AND work_state='open' AND state IN ('sent','unknown')`,
 	);
 	return {
-		capacityReminder: await capacityReminder(tx, { projectId: dispatch.projectId, sessions: dispatch.sessions }),
 		policy: policy ?? null,
 		unfinished: unfinished.map((item) => ({ id: item.id, generation: item.generation, workItems: workItems(item) })),
 		unfinishedCount: count!.count,

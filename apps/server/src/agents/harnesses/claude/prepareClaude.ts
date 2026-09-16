@@ -36,6 +36,7 @@ export async function prepareClaude(input: HarnessLaunchInput): Promise<HarnessL
 			]
 		: ["--dangerously-skip-permissions", "--settings", JSON.stringify({ hooks })];
 	if (input.model) args.push("--model", input.model);
+	if (input.effort) args.push("--effort", input.effort);
 	args.push(
 		input.resume ? "--resume" : "--session-id",
 		input.resume ? input.sessionId! : (input.sessionId ?? crypto.randomUUID()),

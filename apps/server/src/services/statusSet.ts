@@ -119,7 +119,7 @@ export const seedRootStatuses = async (ctx: ServiceCtx, tx: Tx, projectId: strin
 			projectId,
 			slug: seed.name.toLowerCase().replace(/ /g, "-"),
 			position,
-			wipLimit: null,
+			wipLimit: seed.category === "started" ? 9 : null,
 		});
 	}
 };

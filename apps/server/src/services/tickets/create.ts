@@ -7,6 +7,8 @@ import { ticketGet, ticketSummary } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
+import { assertStatusRoom } from "../manager/admitTicket.ts";
+import { queueBuilderStart } from "../manager/builderStarts/queue.ts";
 import { assertProjectActive, resolveProject, resolveStatus, resolveTicket } from "../refs.ts";
 import { lastPosition } from "./position.ts";
 import { outsideRoot } from "./rules.ts";
@@ -45,6 +47,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 		input.status === undefined
 			? (statuses.find((candidate) => candidate.isDefault) as (typeof statuses)[number])
 			: await resolveStatus(ctx, tx, { projectId: project.id, status: input.status });
+	await assertStatusRoom(ctx, tx, status.id, project.id);
 	const parent = input.parent === undefined ? null : await resolveTicket(ctx, tx, input.parent);
 	if (parent !== null && outsideRoot(parent, project.rootId)) throw fail("CROSS_ROOT_MOVE");
 
@@ -71,6 +74,8 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 		changes: [{ field: null, from: null, to: null }],
 	});
 
+	if (status.category === "started")
+		await queueBuilderStart(ctx, tx, { ticketId: id, projectId: project.id, category: status.category });
 	const fields = ["title", "description", "priority", "status", "project", ...(parent === null ? [] : ["parent"])];
 	ctx.emit({ type: "ticket.created", summary: await ticketSummary(tx, id), fields, batchId });
 	return ticketGet(tx, id);

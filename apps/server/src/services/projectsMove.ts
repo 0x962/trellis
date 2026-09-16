@@ -5,6 +5,7 @@ import type { CachedProject } from "../db/cache.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail } from "../errors.ts";
 import type { Change } from "./activity.ts";
+import { assertBuilderDefaults } from "./projectLaunchConfig/assertBuilderDefaults.ts";
 import { assertSlugFree, projectActivity, projectView, siblingIds } from "./projectRows.ts";
 import { assertProjectActive, resolveMutableProject, resolveProject } from "./refs.ts";
 import { remapScope } from "./statusRemap.ts";
@@ -65,6 +66,7 @@ export const move = async (ctx: ServiceCtx, tx: Tx, input: ProjectMoveInput): Pr
 			emitStatusesChanged(ctx, project.id);
 		}
 	}
+	if (parentChanged) await assertBuilderDefaults(tx, { projectId: project.id });
 	await ctx.cache.rebuild(tx);
 	ctx.emit({ type: "project.moved", id: project.id });
 	return projectView(ctx, tx, project.id);

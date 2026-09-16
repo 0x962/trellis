@@ -126,7 +126,7 @@ test("a delayed acknowledgement cannot replace a recorded ticket outcome", async
 	expect((await record([outcome("one")])).outcomes).toEqual([outcome("one")]);
 });
 
-test("an older dispatch cannot cancel a capacity wait it never presented", async () => {
+test("an older dispatch cannot cancel a queued wait it never presented", async () => {
 	const ticketId = await h.read(async (tx) => {
 		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
 		return seedTicket(tx, { projectId, rootId: projectId, statusId });
@@ -138,7 +138,7 @@ test("an older dispatch cannot cancel a capacity wait it never presented", async
 		handle(ctx, tx, {
 			id: "newer",
 			generation: 5,
-			outcomes: [{ ticketId, status: "queued", reason: "Start a worker when capacity opens." }],
+			outcomes: [{ ticketId, status: "queued", reason: "Start a worker for this ticket." }],
 		}),
 	);
 	await record([outcome(ticketId)]);

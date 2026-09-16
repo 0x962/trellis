@@ -1,7 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import type { TrellisEvent } from "@trellis/api";
 import * as tickets from "../../../../src/services/tickets.ts";
-import { count, dana, seedChild, seedProject, seedRoot, seedStatuses, seedTicket } from "../../../fixtures";
+import {
+	count,
+	dana,
+	seedChild,
+	seedDefaultBuilder,
+	seedProject,
+	seedRoot,
+	seedStatuses,
+	seedTicket,
+} from "../../../fixtures";
 import {
 	activityOf,
 	distinct,
@@ -17,6 +26,7 @@ const h = ticketHarness();
 // A root with its six statuses and three tickets in Todo, In Progress, and Done.
 const seed = async () => {
 	const { rootId, statuses } = await seedProject(h.db);
+	await seedDefaultBuilder(h.db, rootId);
 	const base = { projectId: rootId, rootId };
 	const ids = [
 		await seedTicket(h.db, { ...base, statusId: statuses.todo, number: 1 }),

@@ -21,7 +21,6 @@ const delivery: Dispatch = {
 };
 const agents = { observedAt: delivery.dueAt, agents: [] };
 const context = {
-	capacityReminder: null,
 	policy: { personaId: "manager-policy", updatedAt: "2026-09-15T00:00:00.000Z" },
 	unfinished: [],
 	unfinishedCount: 0,
@@ -97,7 +96,7 @@ test("assignment identifiers survive a retry generation and completed tickets le
 	expect(next.workItems).toEqual(first);
 });
 
-test("a capacity wake names its ticket and keeps the saved assignment identity", () => {
+test("a ready wake names its ticket and keeps the saved assignment identity", () => {
 	const message = JSON.parse(
 		managerMessage(
 			{
@@ -109,7 +108,7 @@ test("a capacity wake names its ticket and keeps the saved assignment identity",
 						ticketId: "ticket",
 						assignmentRequestId: "original-request",
 						reason: "Start its reviewer.",
-						wakeCondition: "capacity",
+						wakeCondition: "ready",
 						state: "waiting",
 						runId: null,
 						createdAt: delivery.dueAt,

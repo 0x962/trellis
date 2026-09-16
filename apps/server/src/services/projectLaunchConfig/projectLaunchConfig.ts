@@ -16,6 +16,7 @@ export async function projectLaunchConfig(tx: Tx, input: { projectId: string }) 
 	const config = configs[0]!;
 	return {
 		...config,
+		builder: configs.find((item) => item.builder !== null)?.builder ?? null,
 		directory: configs.find((item) => item.directory !== "")?.directory ?? "",
 		accountId: configs.find((item) => item.accountId !== null)?.accountId ?? null,
 	};

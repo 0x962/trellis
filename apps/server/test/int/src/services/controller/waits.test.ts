@@ -7,7 +7,7 @@ import type { WorkOutcome } from "../../../../../src/services/controller/types.t
 import { handle } from "../../../../../src/services/controller/work.ts";
 import { seedActors, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
-import { controllerSession, workingSession } from "../../../../helpers/controllerSession.ts";
+import { controllerSession } from "../../../../helpers/controllerSession.ts";
 import { type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
@@ -27,12 +27,13 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		await seedActors(tx);
 		projectId = await seedRoot(tx, "WAIT", {
-			manager_config: { personaId: "01ARZ3NDEKTSV4RRFFQ69G5FAV", directory: "/tmp/trellis-test", concurrency: 1 },
+			manager_config: { personaId: "01ARZ3NDEKTSV4RRFFQ69G5FAV", directory: "/tmp/trellis-test" },
 		});
-		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
-		doneId = await seedStatus(tx, { projectId, name: "Done", category: "done", position: 1 });
-		ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
-		dependencyId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
+		await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
+		const startedId = await seedStatus(tx, { projectId, name: "In Progress", category: "started", position: 1 });
+		doneId = await seedStatus(tx, { projectId, name: "Done", category: "done", position: 2 });
+		ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId: startedId });
+		dependencyId = await seedTicket(tx, { projectId, rootId: projectId, statusId: startedId });
 		await tx.execute(sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at)
 			VALUES ('builder','Builder','builder','Build',${NOW},${NOW})`);
 		await tx.execute(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,session_id,created_at,updated_at)
@@ -146,31 +147,22 @@ test("a human reply received before the wait is recorded still wakes its questio
 	expect((await take(1))?.nextActions[0]?.wakeCondition).toBe("human_response");
 });
 
-test("a due wait wakes the manager at full worker capacity but cannot exceed its worker limit", async () => {
+test("a due wait wakes the manager and its ticket reserves on a started status", async () => {
 	await wait({ type: "time", at: secondsAfter(1).toISOString() });
-	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,created_at,updated_at)
-		VALUES ('busy','Builder','Builder','builder','Build',${projectId},'WAIT','native','busy-attempt',${NOW},${NOW})`);
-	const observed = [...sessions, workingSession("busy-attempt")];
-	await h.run((ctx, tx) => collect(ctx, tx, { sessions: observed }), { now: secondsAfter(1) });
-	const delivery = (await h.run((ctx, tx) => claim(ctx, tx, { sessions: observed }), { now: secondsAfter(1) }))!;
+	await gather(1);
+	const delivery = (await take(1))!;
 	expect(delivery.nextActions).toHaveLength(1);
-	await expect(
-		h.run(
-			(ctx, tx) =>
-				reserve(
-					ctx,
-					tx,
-					{
-						personaId: "builder",
-						ticket: ticketId,
-						requestId: delivery.nextActions[0]!.assignmentRequestId,
-					},
-					[],
-					{ sessions: [workingSession("busy-attempt")] },
-				),
-			{ now: secondsAfter(1) },
-		),
-	).rejects.toThrow();
+	const started = await h.run(
+		(ctx, tx) =>
+			reserve(ctx, tx, {
+				personaId: "builder",
+				ticket: ticketId,
+				requestId: delivery.nextActions[0]!.assignmentRequestId,
+			}),
+		{ now: secondsAfter(1) },
+	);
+	expect(started.run.ticketId).toBe(ticketId);
+	expect(await h.one<{ state: string }>(sql`SELECT state FROM manager_next_actions`)).toEqual({ state: "assigned" });
 });
 
 test("a pause holds a timed wait past its deadline and resume makes it eligible", async () => {

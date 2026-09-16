@@ -10,7 +10,7 @@ import { dispatch } from "../../../../../src/services/controller/dispatch.ts";
 import { handle } from "../../../../../src/services/controller/work.ts";
 import { seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
-import { controllerSession, workingSession } from "../../../../helpers/controllerSession.ts";
+import { controllerSession } from "../../../../helpers/controllerSession.ts";
 import { testCtx } from "../../../../helpers/ctx.ts";
 import { type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
@@ -90,7 +90,12 @@ afterEach(async () => {
 	await h.read(assertStatusInvariant);
 });
 const send = () =>
-	dispatch({ ...testCtx({ db: h.db, home, now: () => secondsAfter(122) }).ctx, publicUrl: "http://trellis.test" });
+	dispatch({
+		...testCtx({ db: h.db, home, now: () => secondsAfter(122) }).ctx,
+		publicUrl: "http://trellis.test",
+		localUrl: "http://trellis.test",
+		core: h.ctx(() => {}, { now: secondsAfter(122) }),
+	});
 const queue = () => h.one(sql`SELECT state,generation FROM manager_dispatches`);
 
 test.each(["working", "idle", "ready"] as const)("new %s activity after claim skips the heartbeat", async (state) => {
@@ -125,35 +130,10 @@ test("a live manager receives one heartbeat and confirms its durable message rec
 	const payload = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
 	expect(payload.type).toBe("trellis.manager.heartbeat");
 	expect(payload.events).toEqual([]);
-	expect(payload.capacityReminder).toBeNull();
+	expect(payload).not.toHaveProperty("capacityReminder");
 	expect(session.acknowledgedMessageIds).toEqual([session.id, deliveries[0]!.messageId]);
 	await send();
 	expect(deliveries).toHaveLength(1);
-});
-
-test("a heartbeat reports unused capacity from tickets and assignments added after collection", async () => {
-	const projectId = await h.read(async (tx) => {
-		const manager = await tx.execute(sql`SELECT project_id FROM agent_runs WHERE id='manager'`);
-		const projectId = manager.rows[0]!.project_id as string;
-		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
-		await seedTicket(tx, { projectId, rootId: projectId, statusId });
-		return projectId;
-	});
-	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,terminal_id,created_at,updated_at)
-		SELECT 'worker','Builder','Builder','builder','Build',project_id,project_path,'worker-attempt',${NOW},${NOW}
-		FROM agent_runs WHERE id='manager'`);
-	workers = [workingSession("worker-attempt")];
-	await send();
-	const message = Buffer.from(deliveries[0]!.data, "base64").toString();
-	const payload = JSON.parse(message.slice(message.indexOf("{"), message.lastIndexOf("}") + 1));
-	expect(payload.type).toBe("trellis.manager.heartbeat");
-	expect(payload.capacityReminder).toEqual({
-		type: "below_worker_capacity",
-		message: "Work is below full worker capacity while unfinished tickets remain.",
-		freeSlots: 2,
-		unfinishedTickets: 1,
-		projects: [{ projectId, workerLimit: 3, occupiedSlots: 1, freeSlots: 2, unfinishedTickets: 1 }],
-	});
 });
 
 test("a heartbeat reports the current worker turn after the heartbeat enters the queue", async () => {

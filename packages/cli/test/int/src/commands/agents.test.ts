@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { lines, runCli } from "../../../deps.ts";
-import { rpcError } from "../../../fakeServer.ts";
 import { agentRun, agentRunId, persona, personaId, personaId2 } from "../../../fixtures.ts";
 
 describe("agents list", () => {
@@ -78,14 +77,6 @@ describe("agents start", () => {
 		expect(result.stdout).toContain("failed");
 		expect(lines(result.stderr)).toHaveLength(1);
 		expect(result.stderr).toContain("no Superset project matches the repositories");
-
-		const busy = await runCli(["agents", "start", personaId, "--ticket", "CDE-42"], {
-			"personas.get": persona(),
-			"agentRuns.start": rpcError("CONCURRENCY_LIMIT", { limit: 3, running: 3 }),
-		});
-		expect(busy.code).toBe(4);
-		expect(busy.stderr).toContain("3 of 3 builders are running.");
-		expect(busy.stderr).toEndWith(" (CONCURRENCY_LIMIT)\n");
 	});
 });
 

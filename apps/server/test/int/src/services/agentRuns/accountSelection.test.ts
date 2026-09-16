@@ -1,16 +1,23 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
+import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { reserve } from "../../../../../src/services/agentRuns/reserve.ts";
 import { seedActors, seedRoot, seedStatuses } from "../../../../fixtures/projects.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
+const supersetHome = process.env.SUPERSET_HOME_DIR;
 let h: Harness;
 let ticket: string;
 beforeAll(async () => {
+	process.env.SUPERSET_HOME_DIR = join(process.env.TRELLIS_TEST_ROOT!, "superset");
 	h = await serviceHarness();
 });
-afterAll(() => h.close());
+afterAll(async () => {
+	if (supersetHome === undefined) delete process.env.SUPERSET_HOME_DIR;
+	else process.env.SUPERSET_HOME_DIR = supersetHome;
+	await h.close();
+});
 beforeEach(async () => {
 	await h.reset();
 	await h.read(async (tx) => {
@@ -26,7 +33,7 @@ beforeEach(async () => {
 	});
 	await h.rebuild();
 	const { create } = await import("../../../../../src/services/tickets.ts");
-	ticket = (await h.run((ctx, tx) => create(ctx, tx, { project: "ACCT", title: "Work" }))).id;
+	ticket = (await h.run((ctx, tx) => create(ctx, tx, { project: "ACCT", title: "Work", status: "In Progress" }))).id;
 });
 afterEach(() => h.read(assertStatusInvariant));
 test("the default account is retained on the assignment", async () => {

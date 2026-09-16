@@ -5,23 +5,17 @@ import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { getRun } from "../agentRuns/queries.ts";
 import { reserve } from "../agentRuns/reserve.ts";
-import type { CapacityObservation } from "../assignments/occupiesSlot/index.ts";
 import { enabled } from "../controller/nextActions/queries.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { resolveMutableProject } from "../refs.ts";
 import { requireManager } from "./access.ts";
 import { handoff } from "./handoff.ts";
 import { launchConfig } from "./launchConfig.ts";
-import { columns, type Delegation, getDelegation, usage } from "./queries.ts";
+import { columns, type Delegation } from "./queries.ts";
 import { isManaged, managerScope } from "./scope.ts";
 
-export type Input = { project: string; capacity: number; brief: string; requestId: string; accountId?: string };
-export const reserveSubmanager = async (
-	ctx: ServiceCtx,
-	tx: Tx,
-	input: Input & CapacityObservation,
-	exited: string[] = [],
-) => {
+export type Input = { project: string; brief: string; requestId: string; accountId?: string };
+export const reserveSubmanager = async (ctx: ServiceCtx, tx: Tx, input: Input, exited: string[] = []) => {
 	const parent = await requireManager(ctx, tx);
 	const project = await resolveMutableProject(ctx, tx, input.project);
 	const [existing] = await rows<Delegation>(
@@ -33,7 +27,6 @@ export const reserveSubmanager = async (
 		throw invalidInput("project", "Another manager owns this delegation.");
 	const [request] = await rows<{
 		target: {
-			capacity: number;
 			brief: string;
 			accountId?: string | null;
 			requestedAccountId?: string | null;
@@ -46,9 +39,7 @@ export const reserveSubmanager = async (
 	);
 	if (
 		request &&
-		(request.target.capacity !== input.capacity ||
-			request.target.brief !== input.brief ||
-			(request.target.requestedAccountId ?? null) !== (input.accountId ?? null))
+		(request.target.brief !== input.brief || (request.target.requestedAccountId ?? null) !== (input.accountId ?? null))
 	)
 		throw invalidInput("requestId", "This request ID already belongs to a different delegation.");
 	if (request && (!existing || request.run_id !== existing.runId))
@@ -85,32 +76,22 @@ export const reserveSubmanager = async (
 		exited,
 		{
 			delegated: true,
-			sessions: input.sessions,
-			config: { ...parentConfig, directory: childConfig.directory, concurrency: childConfig.concurrency },
+			config: { ...parentConfig, directory: childConfig.directory },
 		},
 	);
 	if (reservation.replay) return reservation;
 	if (existing) {
-		if (existing.capacity !== input.capacity || existing.brief !== input.brief)
-			throw invalidInput("capacity", "Resume with the saved capacity and brief. Use resize to change capacity.");
+		if (existing.brief !== input.brief)
+			throw invalidInput("brief", "Resume with the saved brief. Retire this delegation for new work.");
 	} else {
-		await tx.execute(sql`INSERT INTO manager_delegations (run_id,parent_run_id,project_id,capacity,brief,created_at)
-			VALUES (${reservation.run.id},${parent.id},${project.id},${input.capacity},${input.brief},${ctx.now})`);
-		const ownUsage = await usage(tx, { runId: reservation.run.id, projectId: project.id, sessions: input.sessions });
-		if (ownUsage.activeWorkers > input.capacity)
-			throw invalidInput("capacity", "The budget must cover the active workers in this subtree.");
-		const parentDelegation = await getDelegation(tx, parent.id);
-		if (parentDelegation) {
-			const parentUsage = await usage(tx, { runId: parent.id, projectId: parent.projectId, sessions: input.sessions });
-			if (parentUsage.activeWorkers + parentUsage.childCapacity > parentDelegation.capacity)
-				throw invalidInput("capacity", "The parent budget must cover its workers and its submanager reservations.");
-		}
+		await tx.execute(sql`INSERT INTO manager_delegations (run_id,parent_run_id,project_id,brief,created_at)
+			VALUES (${reservation.run.id},${parent.id},${project.id},${input.brief},${ctx.now})`);
 		await handoff(tx, { from: parent.projectId, to: project.id, scope: project.id, now: ctx.now });
 	}
-	await tx.execute(sql`UPDATE agent_start_requests SET target=target || ${JSON.stringify({ capacity: input.capacity, brief: input.brief, requestedAccountId: input.accountId ?? null })}::jsonb
+	await tx.execute(sql`UPDATE agent_start_requests SET target=target || ${JSON.stringify({ brief: input.brief, requestedAccountId: input.accountId ?? null })}::jsonb
 		WHERE actor_kind='agent' AND actor_name=${parent.id} AND request_id=${input.requestId}`);
 	return {
 		...reservation,
-		context: `${reservation.context}\nParent manager: ${parent.id}\nDelegated subtree: ${project.id}\nDedicated worker capacity: ${input.capacity}\nAssignment: ${input.brief}`,
+		context: `${reservation.context}\nParent manager: ${parent.id}\nDelegated subtree: ${project.id}\nAssignment: ${input.brief}`,
 	};
 };

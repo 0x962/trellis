@@ -160,6 +160,23 @@ export const seedProject = async (tx: Executor, key = "CDE") => {
 	return { rootId, statuses };
 };
 
+export const seedDefaultBuilder = async (tx: Executor, projectId: string) => {
+	const personaId = ulid();
+	await insertRow(tx, "personas", {
+		id: personaId,
+		name: `Builder ${personaId}`,
+		kind: "builder",
+		instruction: "Build.",
+		created_at: now(),
+		updated_at: now(),
+	});
+	const builder = { personaId, harness: { preset: "claude" } };
+	await tx.execute(
+		sql`UPDATE projects SET manager_config = manager_config || jsonb_build_object('builder', ${JSON.stringify(builder)}::jsonb) WHERE id = ${projectId}`,
+	);
+	return personaId;
+};
+
 // Every call measures from the instant this module loaded, so two calls
 // with the same argument give the same instant and a test compares them.
 const loadedAt = Date.now();

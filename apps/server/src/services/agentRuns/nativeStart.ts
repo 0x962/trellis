@@ -55,6 +55,7 @@ export const startNative = async (
 		deadlineAt?: number;
 		resumePrompt?: string;
 		preserveAssignmentOnFailure?: boolean;
+		requiredTicketCategory?: "started";
 	},
 	deps: Partial<Dependencies> = {},
 ) => {
@@ -79,12 +80,28 @@ export const startNative = async (
 		const profile = account ?? (await hostDefaultProfile(config.harness.preset, ambientEnv));
 		const baseEnv = profile ? await profileEnvironment(profile, ambientEnv) : ambientEnv;
 		const workspaceId = await (deps.workspace ?? nativeWorkspace)(ctx.home, run, config.directory);
-		const owned = await ctx.newTx((tx) =>
-			rows<{ id: string }>(
+		const owned = await ctx.newTx(async (tx) => {
+			if (run.ticketId !== null) {
+				const [ticket] = await rows<{ category: string }>(
+					tx,
+					sql`SELECT s.category FROM tickets t JOIN statuses s ON s.id=t.status_id WHERE t.id=${run.ticketId}`,
+				);
+				if (
+					!ticket ||
+					ticket.category === "todo" ||
+					(input.requiredTicketCategory && ticket.category !== input.requiredTicketCategory)
+				) {
+					await tx.execute(
+						sql`UPDATE agent_runs SET closed_at=${ctx.now()},error='The ticket status does not permit this agent start.' WHERE id=${run.id} AND terminal_id=${terminalId} AND closed_at IS NULL`,
+					);
+					return [];
+				}
+			}
+			return rows<{ id: string }>(
 				tx,
 				sql`UPDATE agent_runs SET workspace_id=${workspaceId} WHERE id=${run.id} AND terminal_id=${terminalId} AND closed_at IS NULL RETURNING id`,
-			),
-		);
+			);
+		});
 		if (owned.length === 0) return { id: run.id };
 		await ctx.newTx(assertNativeWorkEnabled);
 		const env = {
@@ -134,6 +151,7 @@ export const startNative = async (
 				cwd: workspaceId,
 				prompt: input.resumePrompt ?? launchPrompt({ run, url: ctx.localUrl, context }),
 				model: config.harness.model,
+				effort: config.harness.effort,
 				token: input.attempt.token,
 				timeoutMs,
 			};
@@ -177,7 +195,7 @@ export const startNative = async (
 		}
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET workspace_id = ${launchWorkspace}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = ${session.status === "exited" ? ctx.now() : null}, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET workspace_id = ${launchWorkspace}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND NOT (kind='builder' AND EXISTS (SELECT 1 FROM tickets t JOIN statuses s ON s.id=t.status_id WHERE t.id=agent_runs.ticket_id AND s.category='started') AND NOT EXISTS (SELECT 1 FROM flow_execution_tasks task WHERE task.run_id=agent_runs.id)) THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 	} catch (error) {

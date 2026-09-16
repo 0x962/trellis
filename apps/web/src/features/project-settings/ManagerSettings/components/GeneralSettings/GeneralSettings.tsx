@@ -12,7 +12,7 @@ const subprojectManagerNotes = [
 	"The parent manager receives no events from this sub-project and starts no agents for its tickets.",
 	"The parent manager receives one event about this change.",
 	"Start the new manager on the Manager page of this sub-project.",
-	"Persona, harness, and concurrency stay local to this sub-project. An empty project directory uses the nearest parent directory.",
+	"Persona and harness stay local to this sub-project. An empty project directory uses the nearest parent directory.",
 	"Clear the persona to return this sub-project to the parent manager.",
 ];
 
@@ -50,7 +50,6 @@ export function GeneralSettings({
 	// pick waits in the dialog; Cancel drops it and the picker keeps its
 	// saved empty value.
 	const [pendingPersonaId, setPendingPersonaId] = useState<string | null>(null);
-	const invalidConcurrency = !Number.isInteger(draft.concurrency) || draft.concurrency < 1 || draft.concurrency > 64;
 	const invalidDirectory = draft.directory !== "" && !draft.directory.startsWith("/");
 	return (
 		<fieldset disabled={readOnly} className="manager-settings-groups">
@@ -121,29 +120,6 @@ export function GeneralSettings({
 					{invalidDirectory && (
 						<p role="alert" className="text-sm text-danger">
 							Use an absolute directory path.
-						</p>
-					)}
-				</div>
-				<div className="manager-settings-field">
-					<Input
-						label="Concurrency"
-						type="number"
-						min={1}
-						max={64}
-						step={1}
-						value={draft.concurrency || ""}
-						onChange={(event) => setDraft({ ...draft, concurrency: Number(event.target.value) })}
-						onBlur={() => {
-							if (draft.concurrency !== saved.concurrency) commit(draft);
-						}}
-						invalid={invalidConcurrency}
-					/>
-					<p className="manager-settings-hint">
-						Maximum concurrent worker turns. Idle workers and managers do not count.
-					</p>
-					{invalidConcurrency && (
-						<p role="alert" className="text-sm text-danger">
-							Enter a whole number from 1 to 64.
 						</p>
 					)}
 				</div>
