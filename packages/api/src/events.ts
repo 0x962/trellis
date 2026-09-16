@@ -20,6 +20,7 @@ export const eventNames = [
 	"chat.message",
 	"chat.delivery",
 	"chat.channels",
+	"notes.changed",
 	"attachment.created",
 	"attachment.deleted",
 	"statuses.changed",
@@ -113,6 +114,13 @@ export const StatusesChangedPayloadSchema = z.object({
 	projectId: UlidSchema,
 });
 
+// `projectId` is the project that owns the created, changed, or deleted note.
+// Every project below it reads that note too, so a client refetches every
+// note list.
+export const NotesChangedPayloadSchema = z.object({
+	projectId: UlidSchema,
+});
+
 export const ProjectEventPayloadSchema = z.object({
 	id: UlidSchema,
 });
@@ -168,6 +176,7 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("chat.message", ChatMessageEventPayloadSchema),
 	typed("chat.delivery", ChatDeliveryEventPayloadSchema),
 	typed("chat.channels", ChatChannelsEventPayloadSchema),
+	typed("notes.changed", NotesChangedPayloadSchema),
 	typed("attachment.created", TicketChildEventPayloadSchema),
 	typed("attachment.deleted", TicketChildEventPayloadSchema),
 	typed("statuses.changed", StatusesChangedPayloadSchema),

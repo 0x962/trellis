@@ -36,6 +36,10 @@ const ChatPage = lazy(async () => ({
 	default: (await import("../../../features/chat/ChatPage")).ChatPage,
 }));
 
+const NotesPage = lazy(async () => ({
+	default: (await import("../../../features/notes/NotesPage")).NotesPage,
+}));
+
 const projectOptions = (context: AppContext, ref: string) =>
 	context.orpc.projects.get.queryOptions({ input: { project: ref } });
 
@@ -46,7 +50,7 @@ const countsOptions = (context: AppContext, ref: string, search: Partial<View>, 
 		input: { project: ref, ...toCountsQuery(viewOf(search), { statuses }) },
 	});
 
-// `/p/CDE`, `/p/CDE/board`, `/p/CDE/web/auth`, `/p/CDE/settings`, `/p/CDE/chat`. The splat
+// `/p/CDE`, `/p/CDE/board`, `/p/CDE/web/auth`, `/p/CDE/settings`, `/p/CDE/chat`, `/p/CDE/notes`. The splat
 // is `[key, ...slugs, view?]`; the URL keeps slashes and the API ref joins
 // with dots. The URL carries the view state with no default written.
 export const Route = createFileRoute("/p/$")({
@@ -67,7 +71,7 @@ export const Route = createFileRoute("/p/$")({
 	loader: async ({ context, params, deps }) => {
 		const { ref, view } = parseProjectSplat(params._splat ?? "");
 		const project = await context.queryClient.ensureQueryData(projectOptions(context, ref));
-		if (view === "manager" || view === "chat") {
+		if (view === "manager" || view === "chat" || view === "notes") {
 			return;
 		}
 		if (view !== "settings") {
@@ -97,12 +101,18 @@ function ProjectPage() {
 	// The loader fills this cache entry, so the board footer reads it on the first paint.
 	const counts = useQuery(countsOptions(context, ref, search, project.statuses)).data;
 
-	if (view === "settings" || view === "manager" || view === "chat") {
+	if (view === "settings" || view === "manager" || view === "chat" || view === "notes") {
 		return (
 			<Suspense
 				fallback={
 					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-muted">
-						{view === "manager" ? "Load manager…" : view === "chat" ? "Load chat…" : "Load settings…"}
+						{view === "manager"
+							? "Load manager…"
+							: view === "chat"
+								? "Load chat…"
+								: view === "notes"
+									? "Load notes…"
+									: "Load settings…"}
 					</div>
 				}
 			>
@@ -110,6 +120,8 @@ function ProjectPage() {
 					<ProjectManagerPage key={project.id} project={project} />
 				) : view === "chat" ? (
 					<ChatPage key={project.rootId} project={project} />
+				) : view === "notes" ? (
+					<NotesPage key={project.id} project={project} />
 				) : (
 					<ProjectSettingsPage project={project} />
 				)}

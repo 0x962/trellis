@@ -12,6 +12,7 @@ export * from "./flow.ts";
 export * from "./flowExecution.ts";
 export * from "./harnessAccount.ts";
 export * from "./needsYou.ts";
+export * from "./note.ts";
 export * from "./persona.ts";
 export * from "./primitives.ts";
 export * from "./project.ts";
