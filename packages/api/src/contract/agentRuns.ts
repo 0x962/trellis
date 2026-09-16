@@ -61,7 +61,7 @@ const sessionSchema = z.object({
 });
 export const agentRuns = {
 	setModel: base
-		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.errors(pickErrors(["RUNNER_UNAVAILABLE", "CONCURRENCY_LIMIT"]))
 		.route({
 			method: "POST",
 			path: "/agent-runs/{id}/model",
@@ -76,7 +76,7 @@ export const agentRuns = {
 		)
 		.output(AgentRunSchema),
 	resume: base
-		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.errors(pickErrors(["RUNNER_UNAVAILABLE", "CONCURRENCY_LIMIT"]))
 		.route({
 			method: "POST",
 			path: "/agent-runs/{id}/resume",
@@ -146,6 +146,7 @@ export const agentRuns = {
 		.input(AgentRunListInputSchema)
 		.output(z.array(AgentRunSchema)),
 	start: base
+		.errors(pickErrors(["CONCURRENCY_LIMIT"]))
 		.route({ method: "POST", path: "/agent-runs", successStatus: 201, summary: "Start an agent from a persona" })
 		.input(AgentRunStartInputSchema)
 		.output(AgentRunSchema),

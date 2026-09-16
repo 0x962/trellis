@@ -6,7 +6,7 @@ import * as notes from "../../../../../src/services/notes/notes.ts";
 import * as personas from "../../../../../src/services/personas.ts";
 import { seedActors, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
-import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
+import { expectError, type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
 let h: Harness;
@@ -48,6 +48,28 @@ test("one request returns its reserved run again even when the project is at cap
 	expect(second.replay).toBe(true);
 	expect(await h.rows(sql`SELECT id FROM agent_runs`)).toHaveLength(1);
 	expect(await h.rows(sql`SELECT id FROM agent_execution_attempts`)).toHaveLength(1);
+});
+
+// The project permits 1 concurrent worker turn here. The refusal carries
+// that limit and the number of turns that hold a slot of it, so the caller
+// knows how many turns must finish before this one starts.
+test("a start over the project concurrency answers the limit and the running count", async () => {
+	await start("builder:first");
+	const nextTicket = await h.read(async (tx) => {
+		const [status] = (await tx.execute(sql`SELECT id FROM statuses`)).rows;
+		return seedTicket(tx, { projectId: project, rootId: project, statusId: status!.id as string });
+	});
+	const refused = h.run((ctx, tx) => reserve(ctx, tx, { personaId, ticket: nextTicket, requestId: "builder:second" }));
+	const error = await expectError(refused, "CONCURRENCY_LIMIT");
+	expect(error.message).toBe(
+		"The project runs its maximum number of builders. Start this one when a builder finishes.",
+	);
+	expect(error.data).toEqual({ limit: 1, running: 1 });
+	await h.rows(sql`UPDATE projects SET manager_config = manager_config || '{"concurrency":2}'::jsonb`);
+	const started = await h.run((ctx, tx) =>
+		reserve(ctx, tx, { personaId, ticket: nextTicket, requestId: "builder:second" }),
+	);
+	expect(started.replay).toBe(false);
 });
 
 test("a request cannot change its persona or target", async () => {

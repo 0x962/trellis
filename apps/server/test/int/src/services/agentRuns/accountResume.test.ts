@@ -260,8 +260,8 @@ test("a stopped open assignment must acquire capacity before its next turn", asy
 	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,created_at,updated_at)
 		VALUES ('other','Builder','Builder','builder','Work',${run.projectId},'SWITCH','native','other-attempt',now(),now())`);
 	await expect(prepareResume(ctx(), request(), start)).rejects.toMatchObject({
-		code: "INPUT_VALIDATION_FAILED",
-		data: { issues: [{ path: ["id"], message: "The project has no available worker capacity." }] },
+		code: "CONCURRENCY_LIMIT",
+		data: { limit: 1, running: 1 },
 	});
 	expect((await h.read((tx) => getRun(tx, runId))).terminalId).toBe(attemptId);
 });

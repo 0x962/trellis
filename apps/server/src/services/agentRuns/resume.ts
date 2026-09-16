@@ -6,8 +6,8 @@ import { sql } from "drizzle-orm";
 import type { HarnessDescriptor } from "../../agents/harnessHost/types.ts";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
-import { invalidInput } from "../../errors.ts";
-import { capacityAvailable } from "../assignments/capacity.ts";
+import { fail, invalidInput } from "../../errors.ts";
+import { capacityCounts } from "../assignments/capacity.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
@@ -67,10 +67,10 @@ export async function prepareResume(
 			throw invalidInput("id", "The runtime cannot control this agent. Inspect its current session.");
 		if (run.ticketId) {
 			const sessions = await readRuntimeSessions(ctx.home);
-			if (
-				!(await ctx.newTx((tx) => capacityAvailable(tx, { projectId: run.projectId!, excludeRunId: run.id, sessions })))
-			)
-				throw invalidInput("id", "The project has no available worker capacity.");
+			const capacity = await ctx.newTx((tx) =>
+				capacityCounts(tx, { projectId: run.projectId!, excludeRunId: run.id, sessions }),
+			);
+			if (!capacity.available) throw fail("CONCURRENCY_LIMIT", { limit: capacity.limit, running: capacity.running });
 		}
 		const eligible = await ctx.newTx((tx) =>
 			reserveRestart(
@@ -112,8 +112,12 @@ export async function prepareResume(
 				sql`SELECT id FROM agent_runs WHERE ticket_id=${current.ticketId} AND persona_id=${current.personaId} AND id<>${current.id} AND closed_at IS NULL`,
 			);
 			if (duplicates.length) throw invalidInput("id", "Another agent already owns this ticket and persona.");
-			if (!(await capacityAvailable(tx, { projectId: current.projectId!, excludeRunId: current.id, sessions })))
-				throw invalidInput("id", "The project has no available worker capacity.");
+			const capacity = await capacityCounts(tx, {
+				projectId: current.projectId!,
+				excludeRunId: current.id,
+				sessions,
+			});
+			if (!capacity.available) throw fail("CONCURRENCY_LIMIT", { limit: capacity.limit, running: capacity.running });
 		}
 		const config = await projectLaunchConfig(tx, { projectId: run.projectId! });
 		const selected = await selectAccount(tx, {
