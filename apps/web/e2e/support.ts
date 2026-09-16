@@ -22,8 +22,9 @@ export const signIn = async (page: Page, path: string) => {
 	await page.goto(path);
 };
 
-// The list row of a ticket in the project table.
-export const rowOf = (page: Page, identifier: string) => page.locator(`[role="row"][data-identifier="${identifier}"]`);
+// A ticket row in a project table or the Needs you list.
+export const rowOf = (page: Page, identifier: string) =>
+	page.locator(`[data-identifier="${identifier}"]:is([role="row"], [data-inbox-item])`);
 
 // A board column. Its accessible name is the column name, a comma, and
 // the ticket count.

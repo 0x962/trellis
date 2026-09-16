@@ -274,3 +274,5 @@ export * from "./tables/evidence.ts";
 export * from "./tables/flowExecutions.ts";
 export * from "./tables/flowExecutionTasks.ts";
 export * from "./tables/nativeMigrations.ts";
+
+export * from "./tables/needsYouStates.ts";

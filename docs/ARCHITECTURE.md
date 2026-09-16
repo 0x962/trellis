@@ -303,7 +303,15 @@ A durable receipt can confirm the original delivery. An explicit resend uses a n
 
 The web Needs you page lists tickets in review statuses with a human reviewer across every project.
 The list includes inherited and custom statuses, with or without a linked pull request.
-Ticket and status changes update the list through server events. Each row opens the ticket page.
+The Mentioned section lists comments that name the current human actor outside code.
+A resolved thread or a completed ticket removes its mentions. A mention opens its thread on the ticket page.
+Each person can snooze or ignore individual items. The database stores these choices in `needs_you_states`.
+A new comment or a new review cycle creates a separate item. Completed work leaves all inbox views.
+The default order is highest priority, then oldest ticket. Other orders use age, update time, or title.
+The server sorts before pagination and uses the item ID to break ties. The URL stores the selected order and view.
+The sidebar dot marks active items. Server events, snooze expiry, and window focus refresh the inbox.
+The command palette accepts `Snooze TR-123 1d` and natural dates, with an exact date preview before confirmation.
+Suffix `m` means minutes; prefix `m` means months. Past times require a future date.
 
 ### Flows
 
@@ -362,7 +370,7 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | route | file | page |
 |---|---|---|
 | `/` | `index.tsx` | a replace redirect to `/needs-you` |
-| `/needs-you` | `needs-you/route.tsx` | human review tickets across every project |
+| `/needs-you` | `needs-you/route.tsx` | human review tickets and personal mentions across every project |
 | `/all` | `all/route.tsx` | every ticket as a board |
 | `/all/table` | `all_.table.tsx` | every ticket as a table |
 | `/p/$` | `p/$/route.tsx` | a project as a board, a table, its settings, or its manager |
@@ -594,7 +602,7 @@ Payloads:
 `attachment.created | deleted {id, ticketId, projectId}`,
 `statuses.changed {projectId}`,
 `project.created | updated | deleted | moved {id}`, `gh.status {ok, reason}`,
-`personas.changed {id}`, `flows.changed {id}`, and `agent-runs.changed {id}`.
+`personas.changed {id}`, `flows.changed {id}`, `agent-runs.changed {id}`, and `needs-you.changed {actorName}`.
 `packages/api/src/events.ts` holds the one list of names, and the `types=`
 parameter takes a name or a `prefix.*` form.
 

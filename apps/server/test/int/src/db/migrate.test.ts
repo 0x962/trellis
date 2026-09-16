@@ -22,6 +22,7 @@ const tables = [
 	"manager_controller_cursors",
 	"manager_dispatches",
 	"native_migrations",
+	"needs_you_states",
 	"flow_edges",
 	"flow_nodes",
 	"flows",

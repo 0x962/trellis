@@ -71,6 +71,9 @@ describe("contract", () => {
 			"flows.list GET /flows",
 			"flows.save PUT /flows/{flow}/graph",
 			"flows.update PATCH /flows/{flow}",
+			"needsYou.list POST /needs-you/list",
+			"needsYou.summary POST /needs-you/summary",
+			"needsYou.update POST /needs-you/update",
 			"personas.create POST /personas",
 			"personas.delete DELETE /personas/{id}",
 			"personas.list GET /personas",
@@ -143,7 +146,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(114);
+		expect(table).toHaveLength(117);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

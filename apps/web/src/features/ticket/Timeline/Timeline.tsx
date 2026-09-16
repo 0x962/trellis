@@ -6,12 +6,14 @@ import { timelineOptions, useTimeline } from "../hooks/useTimeline";
 import { ActivityLine } from "./components/ActivityLine";
 import { CommentThread } from "./components/CommentThread";
 import { Composer } from "./components/Composer";
+import { MentionedThread } from "./components/MentionedThread";
 import { prependTimeline, updateTimeline } from "./utils/timelineCache";
 
 export type TimelineProps = {
 	// Uploads files the composer picks to the ticket.
 	onAttachFiles?: (files: File[]) => void;
 	ticket: Ticket;
+	thread?: string;
 };
 
 // The server writes a `comment.created` activity row for each comment. The
@@ -19,7 +21,7 @@ export type TimelineProps = {
 const shownInStream = (item: TimelineItem) => item.kind === "comment" || item.action !== "comment.created";
 
 // Each section shows its items oldest first. The API pages newest first.
-export function Timeline({ ticket, onAttachFiles }: TimelineProps) {
+export function Timeline({ ticket, onAttachFiles, thread }: TimelineProps) {
 	const { orpc, queryClient } = useApp();
 	const key = timelineOptions(orpc, ticket.identifier).queryKey;
 	const timeline = useTimeline(ticket.identifier);
@@ -40,7 +42,7 @@ export function Timeline({ ticket, onAttachFiles }: TimelineProps) {
 	const streamItems = items.filter((item) => {
 		if (item.kind === "activity") return true;
 		const rootId = item.parentId ?? item.id;
-		if (seenThreads.has(rootId)) return false;
+		if (seenThreads.has(rootId) || rootId === thread) return false;
 		seenThreads.add(rootId);
 		return true;
 	});
@@ -56,6 +58,7 @@ export function Timeline({ ticket, onAttachFiles }: TimelineProps) {
 
 	return (
 		<section aria-label="Timeline" className="flex flex-col gap-2">
+			{thread && <MentionedThread key={thread} id={thread} ticket={ticket} />}
 			<ul aria-label="Timeline">
 				<li>
 					<SectionHeader title="Activity" />

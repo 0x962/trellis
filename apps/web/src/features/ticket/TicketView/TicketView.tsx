@@ -22,9 +22,10 @@ import { TicketSkeleton } from "./components/TicketSkeleton";
 export type TicketViewProps = {
 	// The canonical identifier, `CDE-42`.
 	identifier: string;
+	thread?: string;
 };
 
-export function TicketView({ identifier }: TicketViewProps) {
+export function TicketView({ identifier, thread }: TicketViewProps) {
 	const { orpc } = useApp();
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
 	const uploads = useUploads(identifier);
@@ -85,7 +86,7 @@ export function TicketView({ identifier }: TicketViewProps) {
 					<TicketWorkArea
 						key={ticket.id}
 						ticket={ticket}
-						activity={<Timeline ticket={ticket} onAttachFiles={uploads.start} />}
+						activity={<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.start} />}
 					/>
 				</div>
 			</div>

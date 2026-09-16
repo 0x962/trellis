@@ -84,11 +84,11 @@ test("needs-you > an empty review list explains which tickets qualify", async ({
 test("needs-you > a failed request shows an error instead of an empty review list", async ({ page }) => {
 	await page.route("**/rpc/**", (route) => {
 		const request = route.request();
-		const hasList = request.url().includes("/tickets/list") || request.postData()?.includes("/tickets/list");
+		const hasList = request.url().includes("/needsYou/list") || request.postData()?.includes("/needsYou/list");
 		return hasList ? route.abort("failed") : route.continue();
 	});
 	await signIn(page, "/needs-you");
-	await expect(page.getByRole("heading", { name: "The tickets did not load." })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "The items did not load." }).first()).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Nothing needs review" })).toHaveCount(0);
 });
 
@@ -99,7 +99,9 @@ test("needs-you > settings persist across a reload and the gh banner matches the
 	const name = page.getByRole("textbox", { name: /your name/i });
 	await name.fill("Nav");
 	const saved = page.waitForResponse(
-		(response) => response.url().includes("settings/set") && (response.request().postData() ?? "").includes("Nav"),
+		(response) =>
+			(response.url().includes("settings/set") || (response.request().postData() ?? "").includes("settings/set")) &&
+			(response.request().postData() ?? "").includes("Nav"),
 	);
 	await page.keyboard.press("Tab");
 	await saved;
@@ -112,4 +114,91 @@ test("needs-you > settings persist across a reload and the gh banner matches the
 	await expect(banner).toContainText("gh is not signed in");
 	// gh's own message names the command too, so the check finds the chip.
 	await expect(page.getByText("gh auth login", { exact: true })).toBeVisible();
+});
+
+test("needs-you > sections, sort, mentions, ignore, and palette snooze", async ({ page }) => {
+	ensureProject("NYI", "Inbox actions");
+	const ticket = createTicket("NYI", "Inbox action ticket", ["--status", "human-review", "--priority", "urgent"]);
+	const comment = await post<{ id: string }>(`/tickets/${ticket.identifier}/comments`, {
+		body: "@dana please verify the change",
+	});
+	await signIn(page, "/needs-you");
+	const review = page.getByRole("region", { name: "Needs review", exact: true });
+	const mentions = page.getByRole("region", { name: "Mentioned", exact: true });
+	await expect(review.getByText("Inbox action ticket", { exact: true })).toBeVisible();
+	await expect(mentions.getByText("@dana please verify the change", { exact: false })).toBeVisible();
+	await mentions.getByText("Inbox action ticket", { exact: true }).click();
+	await expect(page).toHaveURL(new RegExp(`thread=${comment.id}`));
+	await expect(page.getByRole("region", { name: "Mentioned comment" })).toContainText("@dana please verify the change");
+	await page.goBack();
+	await expect(page.getByLabel("Needs you has items")).toBeVisible();
+	await page.getByRole("combobox", { name: "Sort items" }).click();
+	await page.getByRole("option", { name: "Title: A to Z", exact: true }).click();
+	await expect(page).toHaveURL(/sort=title/);
+	await page.reload();
+	await expect(page.getByRole("combobox", { name: "Sort items" })).toHaveText("Title: A to Z");
+	const item = review.locator(`[data-identifier="${ticket.identifier}"]`);
+	await item.getByRole("button", { name: "Item options" }).click();
+	await page.getByRole("menuitem", { name: "Snooze", exact: true }).click();
+	const field = page.getByRole("dialog").getByRole("combobox");
+	await expect(field).toHaveValue(`Snooze ${ticket.identifier} `);
+	await field.fill(`Snooze ${ticket.identifier} 5m`);
+	await expect(page.getByRole("option", { name: /Snooze until/ })).toBeVisible();
+	await page.getByRole("dialog").getByRole("combobox").press("Enter");
+	await expect(item).toHaveCount(0);
+	await expect(mentions.getByText("Inbox action ticket", { exact: true })).toBeVisible();
+	await page.getByRole("combobox", { name: "Show items" }).click();
+	await page.getByRole("option", { name: "Snoozed", exact: true }).click();
+	await expect(item).toBeVisible();
+	await item.getByRole("button", { name: "Item options" }).click();
+	await page.getByRole("menuitem", { name: "Restore", exact: true }).click();
+	await page.getByRole("combobox", { name: "Show items" }).click();
+	await page.getByRole("option", { name: "Active", exact: true }).click();
+	await expect(item).toBeVisible();
+	await item.getByRole("button", { name: "Item options" }).click();
+	await page.getByRole("menuitem", { name: "Ignore", exact: true }).click();
+	await expect(item).toHaveCount(0);
+	await post(`/comments/${comment.id}/resolve`, { resolved: true });
+	await expect(mentions.getByText("Inbox action ticket", { exact: true })).toHaveCount(0);
+});
+
+test("needs-you > the dot clears when empty and returns at snooze expiry", async ({ page }) => {
+	const hidden: string[] = [];
+	let ticket: ReturnType<typeof createTicket> | undefined;
+	try {
+		while (true) {
+			const list = await post<{ items: { id: string }[] }>("/needs-you/list", { limit: 200 });
+			if (list.items.length === 0) break;
+			for (const item of list.items) {
+				await post("/needs-you/update", { id: item.id, action: "ignore" });
+				hidden.push(item.id);
+			}
+		}
+		await signIn(page, "/needs-you");
+		await expect(page.getByLabel("Needs you has items")).toHaveCount(0);
+		ensureProject("NYW", "Snooze wake");
+		ticket = createTicket("NYW", "Wake automatically", ["--status", "human-review"]);
+		await expect(page.getByLabel("Needs you has items")).toBeVisible();
+		const list = await post<{ items: { id: string }[] }>("/needs-you/list", { ticket: ticket.identifier });
+		await post("/needs-you/update", {
+			id: list.items[0]!.id,
+			action: "snooze",
+			until: new Date(Date.now() + 4000).toISOString(),
+		});
+		await expect(rowOf(page, ticket.identifier)).toHaveCount(0);
+		await expect(page.getByLabel("Needs you has items")).toHaveCount(0);
+		await expect(rowOf(page, ticket.identifier)).toBeVisible({ timeout: 7000 });
+		await expect(page.getByLabel("Needs you has items")).toBeVisible();
+		await page.keyboard.press("Meta+k");
+		await page.getByRole("dialog").getByRole("combobox").fill(`Snooze ${ticket.identifier} yesterday`);
+		await expect(page.getByText("Choose a future time.")).toBeVisible();
+		await page.getByRole("dialog").getByRole("combobox").fill(`Snooze ${ticket.identifier} m1`);
+		await expect(page.getByRole("option", { name: /Snooze until/ })).toBeVisible();
+		await page.getByRole("dialog").getByRole("combobox").press("Enter");
+		await expect(rowOf(page, ticket.identifier)).toHaveCount(0);
+		await expect(page.getByLabel("Needs you has items")).toHaveCount(0);
+	} finally {
+		for (const id of hidden) await post("/needs-you/update", { id, action: "restore" });
+		if (ticket) moveTicket(ticket.identifier, "done", "human:dana");
+	}
 });

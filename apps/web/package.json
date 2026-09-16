@@ -39,6 +39,7 @@
 		"@trellis/api": "workspace:*",
 		"@trellis/ui": "workspace:*",
 		"@xyflow/react": "12.11.6",
+		"chrono-node": "2.10.1",
 		"marked": "18.0.12",
 		"motion": "13.2.0",
 		"react": "19.2.8",
