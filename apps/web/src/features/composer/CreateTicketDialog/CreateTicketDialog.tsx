@@ -4,6 +4,8 @@ import { Button, ConfirmDialog, Dialog, Switch, toast, useHotkey } from "@trelli
 import { useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { failToast } from "../../../lib/failToast";
+import { PendingFiles, uploadPendingFiles } from "../../attachments/PendingFiles";
+import { uploadErrorText } from "../../attachments/utils/uploadErrorText";
 import { insertRow } from "../../table/utils/cacheRows";
 import { composerActions, useComposerStore } from "../composerStore";
 import { defaultStatus, useComposerDefaults } from "../hooks/useComposerDefaults";
@@ -39,6 +41,9 @@ export function CreateTicketDialog() {
 	const [editorKey, setEditorKey] = useState(0);
 	const [creating, setCreating] = useState(false);
 	const [createMore, setCreateMore] = useState(false);
+	// Files picked before the ticket exists. They stay in the browser and
+	// upload after the create answers.
+	const [pending, setPending] = useState<File[]>([]);
 	const inFlight = useRef(false);
 	const titleRef = useRef<HTMLInputElement>(null);
 
@@ -47,7 +52,10 @@ export function CreateTicketDialog() {
 	const chosenStatus = bySlug(status ?? defaults.status) ?? defaultStatus(defaults.statuses);
 	const chosenPriority = priority ?? defaults.priority;
 	const description = draft.description === "" ? defaults.template : draft.description;
-	const dirty = draft.title.trim() !== "" || (draft.description !== "" && draft.description !== defaults.template);
+	const dirty =
+		draft.title.trim() !== "" ||
+		(draft.description !== "" && draft.description !== defaults.template) ||
+		pending.length > 0;
 
 	const openTicket = (identifier: string) => void router.navigate({ href: `/t/${identifier}` });
 
@@ -64,30 +72,48 @@ export function CreateTicketDialog() {
 		const parentRef = parent === undefined ? defaults.parent : (parent?.identifier ?? undefined);
 		inFlight.current = true;
 		setCreating(true);
-		let ticket: Ticket;
 		try {
-			ticket = await client.tickets.create({
-				project: chosenProject,
-				title,
-				status: chosenStatus?.slug,
-				priority: chosenPriority,
-				...(parentRef === undefined ? {} : { parent: parentRef }),
-				...(editing ? { description } : {}),
-			});
-		} catch (error) {
-			failToast("The ticket did not save.", error, () => void create(stay));
-			return;
+			let ticket: Ticket;
+			try {
+				ticket = await client.tickets.create({
+					project: chosenProject,
+					title,
+					status: chosenStatus?.slug,
+					priority: chosenPriority,
+					...(parentRef === undefined ? {} : { parent: parentRef }),
+					...(editing ? { description } : {}),
+				});
+			} catch (error) {
+				failToast("The ticket did not save.", error, () => void create(stay));
+				return;
+			}
+			// The guard stays up while the held files upload, so a second
+			// submit cannot create the ticket twice.
+			const failed = await uploadPendingFiles((input) => client.attachments.upload(input), ticket.identifier, pending);
+			setPending([]);
+			if (failed.length > 0) {
+				await queryClient.invalidateQueries({
+					queryKey: orpc.attachments.list.queryKey({ input: { ticket: ticket.identifier } }),
+					refetchType: "all",
+				});
+			}
+			insertRow(queryClient, summaryOf(ticket));
+			void queryClient.invalidateQueries({ queryKey: orpc.tickets.counts.key() });
+			void queryClient.invalidateQueries({ queryKey: orpc.projects.key() });
+			const open = { label: "Open", onClick: () => openTicket(ticket.identifier) };
+			if (failed.length === 0) {
+				toast.success(`Created ${ticket.identifier}`, { action: open });
+			} else {
+				toast.error(`Created ${ticket.identifier} without ${failed.length === 1 ? "one file" : "some files"}.`, {
+					description: failed.map((entry) => uploadErrorText(entry.name, entry.error)).join(" "),
+					action: open,
+				});
+			}
+			clearDraft();
 		} finally {
 			inFlight.current = false;
 			setCreating(false);
 		}
-		insertRow(queryClient, summaryOf(ticket));
-		void queryClient.invalidateQueries({ queryKey: orpc.tickets.counts.key() });
-		void queryClient.invalidateQueries({ queryKey: orpc.projects.key() });
-		toast.success(`Created ${ticket.identifier}`, {
-			action: { label: "Open", onClick: () => openTicket(ticket.identifier) },
-		});
-		clearDraft();
 		if (!stay) {
 			composerActions.close();
 			return;
@@ -152,6 +178,11 @@ export function CreateTicketDialog() {
 						onPriority={setPriority}
 						onParent={setParent}
 					/>
+					<PendingFiles
+						files={pending}
+						onAdd={(next) => setPending((current) => [...current, ...next])}
+						onRemove={(index) => setPending((current) => current.filter((_, at) => at !== index))}
+					/>
 				</div>
 				<div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-border bg-surface p-4">
 					<Switch
@@ -175,6 +206,7 @@ export function CreateTicketDialog() {
 				onConfirm={() => {
 					setAsking(false);
 					clearDraft();
+					setPending([]);
 					composerActions.close();
 				}}
 				onCancel={() => setAsking(false)}
