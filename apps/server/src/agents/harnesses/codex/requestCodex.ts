@@ -1,4 +1,5 @@
 import { request } from "node:http";
+import { controlReplyText } from "../controlReplyText/controlReplyText.ts";
 export function requestCodex(
 	socket: string,
 	token: string,
@@ -20,9 +21,11 @@ export function requestCodex(
 					text += chunk;
 				});
 				response.on("error", reject);
-				response.on("end", () =>
-					response.statusCode === 200 ? resolve() : reject(new Error(`Codex control failed: ${text}`)),
-				);
+				response.on("end", () => {
+					if (response.statusCode === 200) return resolve();
+					const reply = controlReplyText("codex", response.statusCode!, text);
+					reject(Object.assign(new Error(reply.message), { code: reply.code }));
+				});
 			},
 		);
 		req.on("error", reject);

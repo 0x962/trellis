@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import type { AgentRun } from "@trellis/api";
 import { executionEnvironment } from "../../executionEnvironment";
 import { runBranch } from "../launchCommand/branch.ts";
+import { workspaceErrorText } from "./workspaceError/workspaceError.ts";
 
 const exec = promisify(execFile);
 export const nativeWorkspace = async (
@@ -24,6 +25,8 @@ export const nativeWorkspace = async (
 	await mkdir(join(home, "agents", run.id), { recursive: true, mode: 0o700 });
 	await exec("git", ["-C", source, "worktree", "add", "-b", runBranch(run), destination, "HEAD"], {
 		env: { NODE_ENV: process.env.NODE_ENV, ...(await executionEnvironment()) },
+	}).catch((error: { stderr?: string }) => {
+		throw new Error(workspaceErrorText(error.stderr ?? ""), { cause: error });
 	});
 	return destination;
 };
