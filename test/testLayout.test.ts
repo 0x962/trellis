@@ -26,13 +26,19 @@ const BUILDERS = [
 	"apps/web/test/server/index.ts",
 ];
 
-const transpiler = new Bun.Transpiler({ loader: "tsx" });
+const transpilers = {
+	".mjs": new Bun.Transpiler({ loader: "js" }),
+	".ts": new Bun.Transpiler({ loader: "ts" }),
+	".tsx": new Bun.Transpiler({ loader: "tsx" }),
+};
 const STARTS_PROCESS = /\bBun\s*\.\s*(?:serve|spawn)\b|\b(?:createServer|execFileSync|spawnSync)\b/;
 const OPENS_DATABASE = /\b(?:diskDb|openDb)\s*\(|\bnew\s+PGlite\b/;
 const REGEX_PREFIX = /[([{,:;=!?&|+*%^~<>-]/;
 const REGEX_KEYWORD =
 	/\b(?:await|case|delete|do|else|in|instanceof|new|of|return|throw|typeof|void|yield)$/;
 const SOURCE_EXTENSIONS = new Set([".mjs", ".ts", ".tsx"]);
+const scanImports = (file: string, source: string) =>
+	transpilers[extname(file) as keyof typeof transpilers].scanImports(source);
 
 const sourceWithoutText = (source: string) => {
 	const code = source.split("");
@@ -161,7 +167,7 @@ const buildsInfrastructure = (file: string, visiting: Set<string> = new Set()): 
 	if (BUILDERS.includes(path)) return true;
 
 	const source = readFileSync(file, "utf8");
-	const imports = transpiler.scanImports(source);
+	const imports = scanImports(file, source);
 	const executable = sourceWithoutText(source);
 	if (STARTS_PROCESS.test(executable) || OPENS_DATABASE.test(executable)) return true;
 	if (imports.some(({ path }) => path === "node:child_process")) return true;
@@ -197,14 +203,19 @@ describe("test layout", () => {
 			const generated = \`import { spawn } from "node:child_process"; Bun.spawn([]);\`;
 		`;
 		expect(STARTS_PROCESS.test(sourceWithoutText(textOnly))).toBe(false);
-		expect(transpiler.scanImports(textOnly)).toEqual([]);
+		expect(scanImports("fixture.ts", textOnly)).toEqual([]);
 		expect(STARTS_PROCESS.test(sourceWithoutText("Bun.serve({ fetch() {} });"))).toBe(true);
 		expect(STARTS_PROCESS.test(sourceWithoutText("const server = `${Bun.serve({ fetch() {} })}`;"))).toBe(true);
 	});
 
 	test("the import scan ignores type-only imports", () => {
-		const imports = transpiler.scanImports('import type { Process } from "./process.ts";');
+		const imports = scanImports("fixture.ts", 'import type { Process } from "./process.ts";');
 		expect(imports).toEqual([]);
+	});
+
+	test("the import scan parses TypeScript generic arrow functions", () => {
+		const source = 'import { value } from "./value.ts"; const run = <T>(input: T) => input;';
+		expect(scanImports("fixture.ts", source).map(({ path }) => path)).toEqual(["./value.ts"]);
 	});
 
 	test("the source resolver ignores asset imports", () => {
