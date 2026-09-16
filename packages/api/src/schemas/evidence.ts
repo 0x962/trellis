@@ -3,12 +3,6 @@ import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const EvidenceRunInputSchema = z.object({ runId: UlidSchema });
 export const EvidenceFileInputSchema = EvidenceRunInputSchema.extend({ path: z.string().min(1).max(4096) });
-export const EvidenceCheckInputSchema = EvidenceRunInputSchema.extend({
-	requestId: z.uuid().optional(),
-	command: z.string().min(1).max(4096),
-	args: z.array(z.string().max(20000)).max(100),
-	timeoutMs: z.number().int().min(100).max(600000),
-});
 export const EvidenceRevisionSchema = z.object({ head: z.string(), fingerprint: z.string() });
 export const EvidenceWorkspaceSchema = EvidenceRevisionSchema.extend({
 	runId: UlidSchema,
@@ -47,7 +41,7 @@ export const EvidenceCheckSchema = EvidenceRevisionSchema.extend({
 	finishedFingerprint: z.string().nullable(),
 	createdAt: IsoDateTimeSchema,
 	finishedAt: IsoDateTimeSchema.nullable(),
-	current: z.boolean(),
+	historical: z.literal(true),
 });
 export const EvidenceArtifactSchema = EvidenceRevisionSchema.extend({
 	id: UlidSchema,
@@ -62,8 +56,6 @@ export const EvidenceArtifactSchema = EvidenceRevisionSchema.extend({
 export const EvidenceListSchema = EvidenceRevisionSchema.extend({
 	checks: z.array(EvidenceCheckSchema),
 	artifacts: z.array(EvidenceArtifactSchema),
-	readyForReview: z.boolean(),
 });
-export type EvidenceCheckInput = z.infer<typeof EvidenceCheckInputSchema>;
 export type EvidenceCheck = z.infer<typeof EvidenceCheckSchema>;
 export type EvidenceArtifact = z.infer<typeof EvidenceArtifactSchema>;

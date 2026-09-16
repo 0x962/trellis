@@ -11,7 +11,6 @@ export { GroupHeader, type GroupHeaderProps, groupHeaderHeight, phoneGroupHeader
 export * from "./domain/HarnessAccountCard";
 export * from "./domain/HarnessAccountForm";
 export { InboxRow, type InboxRowProps } from "./domain/InboxRow";
-export { LocalEvidence } from "./domain/LocalEvidence";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps } from "./domain/QuotaWindows";
 export { RuntimeDiagnostics } from "./domain/RuntimeDiagnostics";

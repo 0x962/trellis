@@ -171,6 +171,7 @@ describe("contract", () => {
 			"tickets.update PATCH /tickets/{ticket}",
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
+			"usage.report GET /usage",
 		]);
 		expect(table).toHaveLength(144);
 	});

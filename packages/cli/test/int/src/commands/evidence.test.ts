@@ -3,9 +3,11 @@ import { runCli } from "../../../deps.ts";
 import { agentRunId } from "../../../fixtures.ts";
 
 test("evidence has no check command", async () => {
-	const result = await runCli(["evidence", "check", agentRunId], {});
-	expect(result.code).not.toBe(0);
+	const result = await runCli(["evidence", "--help"], {});
+	expect(result.code).toBe(0);
 	expect(result.calls).toHaveLength(0);
+	expect(result.stdout).toContain("USAGE trellis evidence list|workspace|file|register");
+	expect(result.stdout).not.toContain("list|workspace|file|register|check");
 });
 
 test("evidence commands preserve workspace-relative paths", async () => {

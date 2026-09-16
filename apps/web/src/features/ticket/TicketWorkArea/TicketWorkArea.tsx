@@ -9,7 +9,6 @@ import { isAgentWorking } from "../../agents/isAgentWorking";
 import { PullRequests } from "../../prs";
 import { FlowRuns } from "./components/FlowRuns";
 import { LocalChanges } from "./components/LocalChanges";
-import { LocalChecks } from "./components/LocalChecks";
 import { assignedAgentTabs } from "./utils/assignedAgentTabs";
 
 export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity: ReactNode }) {
@@ -93,17 +92,14 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 						value: "checks",
 						label: "Checks",
 						content: (
-							<div className="flex flex-col gap-8">
-								{run?.runtime === "native" && run.workspaceId && <LocalChecks key={run.terminalId} run={run} />}
-								<CheckResults
-									groups={(prs.data ?? []).map((pr) => ({
-										id: pr.id,
-										title: `${pr.owner}/${pr.repo} #${pr.number}`,
-										checks: pr.checks,
-										error: pr.fetchError,
-									}))}
-								/>
-							</div>
+							<CheckResults
+								groups={(prs.data ?? []).map((pr) => ({
+									id: pr.id,
+									title: `${pr.owner}/${pr.repo} #${pr.number}`,
+									checks: pr.checks,
+									error: pr.fetchError,
+								}))}
+							/>
 						),
 					},
 					{ value: "flows", label: "Flows", content: <FlowRuns ticket={ticket.identifier} /> },

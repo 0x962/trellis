@@ -22,7 +22,6 @@ import { list as listManagerActions } from "./controller/nextActions/list.ts";
 import * as controllerPrepare from "./controller/prepare.ts";
 import * as controllerWork from "./controller/work.ts";
 import { diagnostics } from "./diagnostics.ts";
-import { check as evidenceCheck } from "./evidence/check.ts";
 import { file as evidenceFile } from "./evidence/file.ts";
 import { list as evidenceList } from "./evidence/list.ts";
 import { recover as evidenceRecover } from "./evidence/recover.ts";
@@ -141,7 +140,6 @@ export const services = {
 	"evidence.workspace": prepared("read", evidenceWorkspace, evidenceResult),
 	"evidence.file": prepared("read", evidenceFile, evidenceResult),
 	"evidence.list": prepared("read", evidenceList, evidenceResult),
-	"evidence.check": prepared("mutation", evidenceCheck, evidenceResult),
 	"evidence.register": prepared("mutation", evidenceRegister, evidenceResult),
 	"evidence.recover": core("mutation", evidenceRecover),
 	"agentRuns.session": prepared("read", agentTerminal.session, agentTerminal.result),
