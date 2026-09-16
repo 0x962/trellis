@@ -37,14 +37,14 @@ const REGEX_PREFIX = /[([{,:;=!?&|+*%^~<>-]/;
 const REGEX_KEYWORD =
 	/\b(?:await|case|delete|do|else|in|instanceof|new|of|return|throw|typeof|void|yield)$/;
 const SOURCE_EXTENSIONS = new Set([".mjs", ".ts", ".tsx"]);
-const sourceForImports = (source: string) => {
+const sourceWithoutShebang = (source: string) => {
 	if (!source.startsWith("#!")) return source;
 	return source.replace(/^#![^\n]*/, (shebang) => " ".repeat(shebang.length));
 };
 const scanImports = (file: string, source: string) =>
-	transpilers[extname(file) as keyof typeof transpilers].scanImports(sourceForImports(source));
-
-const sourceWithoutText = (source: string) => {
+	transpilers[extname(file) as keyof typeof transpilers].scanImports(sourceWithoutShebang(source));
+const sourceWithoutText = (input: string) => {
+	const source = sourceWithoutShebang(input);
 	const code = source.split("");
 	const hide = (start: number, end: number) => {
 		for (let index = start; index < end; index += 1) {
