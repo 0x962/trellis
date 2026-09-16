@@ -1,12 +1,13 @@
-import type { AgentRun, AgentRunListInput, AgentRunStartInput } from "@trellis/api";
+import type { AgentCapacityInput, AgentRun, AgentRunListInput, AgentRunStartInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { capacityOf } from "../assignments/capacity.ts";
 import { resolveProject, resolveTicket } from "../refs.ts";
 import type { ServiceCtx } from "../support.ts";
 import { closeExitedAssignments } from "./closeExitedAssignments.ts";
-import { observeRuns } from "./liveState.ts";
+import { observeRuns, readRuntimeSessions } from "./liveState.ts";
 import { startNative } from "./nativeStart.ts";
 import { columns, getRun, type StoredRun } from "./queries.ts";
 import { reserve } from "./reserve.ts";
@@ -23,6 +24,14 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 		${ticket === null ? sql`true` : sql`ticket_id = ${ticket.id}`} AND
 		${project === null ? sql`true` : sql`project_id = ${project.id}`} ORDER BY created_at DESC, id DESC`,
 	);
+};
+
+export const prepareCapacity = async (ctx: Ctx, input: AgentCapacityInput) => {
+	const sessions = await readRuntimeSessions(ctx.home);
+	return ctx.newTx(async (tx) => {
+		const project = await resolveProject(ctx.core, tx, input.project);
+		return capacityOf(tx, { projectId: project.id, sessions });
+	});
 };
 
 export const prepareList = async (ctx: Ctx, input: AgentRunListInput) =>

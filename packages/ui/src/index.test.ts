@@ -36,6 +36,7 @@ const names = [
 	"StatusIcon",
 	"PriorityIcon",
 	"CheckRibbon",
+	"AgentCapacityBadge",
 	"ActorChip",
 	"TicketId",
 	"TrellisMark",

@@ -36,4 +36,9 @@ describe("features/shell/ListFooter", () => {
 		render(<ListFooter total={undefined} sort="Manual order" />);
 		expect([...footer().querySelectorAll("span")][0]!.textContent).toBe("");
 	});
+
+	test("shows a supplied status beside the ticket count", () => {
+		render(<ListFooter total={43} sort="Manual order" status={<span role="status">5/22</span>} />);
+		expect(footer().querySelector('[role="status"]')?.textContent).toBe("5/22");
+	});
 });
