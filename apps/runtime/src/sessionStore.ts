@@ -5,6 +5,7 @@ import type {
 	LaunchSpec,
 	RuntimeExpectedTurn,
 	RuntimeListInput,
+	RuntimeMessageState,
 	RuntimeMethods,
 	RuntimeProcessStatus,
 	RuntimeSession,
@@ -124,6 +125,10 @@ export class SessionStore {
 	}
 	inspect(id: string): RuntimeProcessStatus {
 		return inspectSessionRecord(this.get(id));
+	}
+	hasMessage({ id, messageId }: RuntimeMethods["hasMessage"]["params"]): RuntimeMessageState {
+		const record = this.get(id);
+		return { messageId, delivered: record.ledger.delivered(messageId), status: this.inspect(id).status };
 	}
 	registerNativeDelivery(input: RuntimeMethods["registerNativeDelivery"]["params"]) {
 		return registerNativeDelivery(this.get(input.id), input);

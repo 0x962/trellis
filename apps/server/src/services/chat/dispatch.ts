@@ -4,7 +4,9 @@ import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { sendDeadline } from "../controller/sendDeadline.ts";
+import { unconfirmedDelivery } from "../deliveries/sentences.ts";
 import type { ServiceCtx } from "../support.ts";
+import { chatBatchMessageId } from "./batchMessageId.ts";
 import { type ContextLine, chatBatchText, type PendingLine } from "./text.ts";
 
 // The context that travels with a delivery: the messages of the same
@@ -124,15 +126,15 @@ export const dispatchChat = async (
 				send(ctx, {
 					id: recipient.runId,
 					text: chatBatchText(recipient, claimed, context),
-					messageId: claimed[0]!.id,
+					messageId: chatBatchMessageId(claimed.map((line) => line.id)),
 					interrupt,
 					expectedTerminalId: recipient.terminalId,
 					expectedSessionId: recipient.sessionId,
 				}),
 			);
-		} catch (cause) {
+		} catch {
 			state = "unknown";
-			error = cause instanceof Error ? cause.message : String(cause);
+			error = unconfirmedDelivery;
 		}
 		await ctx.newTx((tx) =>
 			tx.execute(
