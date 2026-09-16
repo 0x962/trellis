@@ -15,6 +15,7 @@ import { assertProjectActive } from "../refs.ts";
 import { reserveRestart } from "../restartAgents/reserveRestart.ts";
 import { assertResume } from "../submanagers/assertResume.ts";
 import type { IoCtx } from "../support.ts";
+import { readRuntimeSessions } from "./liveState.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { startNative } from "./nativeStart.ts";
 import { getRun } from "./queries.ts";
@@ -64,6 +65,13 @@ export async function prepareResume(
 		assertProjectActive(ctx.core, run.projectId);
 		if (previous.status !== "running" || !previous.controllable)
 			throw invalidInput("id", "The runtime cannot control this agent. Inspect its current session.");
+		if (run.ticketId) {
+			const sessions = await readRuntimeSessions(ctx.home);
+			if (
+				!(await ctx.newTx((tx) => capacityAvailable(tx, { projectId: run.projectId!, excludeRunId: run.id, sessions })))
+			)
+				throw invalidInput("id", "The project has no available worker capacity.");
+		}
 		const eligible = await ctx.newTx((tx) =>
 			reserveRestart(
 				ctx.core,
@@ -87,6 +95,7 @@ export async function prepareResume(
 		previous = await host.status(input.expectedTerminalId);
 		if (previous.status !== "exited") throw invalidInput("id", "The previous process has not stopped.");
 	}
+	const sessions = await readRuntimeSessions(ctx.home);
 	const reservation = await ctx.newTx(async (tx) => {
 		await tx.execute(sql`SELECT id FROM projects WHERE id=${run.projectId} FOR UPDATE`);
 		const replay = await replayRequest(ctx.core, tx, request);
@@ -103,7 +112,7 @@ export async function prepareResume(
 				sql`SELECT id FROM agent_runs WHERE ticket_id=${current.ticketId} AND persona_id=${current.personaId} AND id<>${current.id} AND closed_at IS NULL`,
 			);
 			if (duplicates.length) throw invalidInput("id", "Another agent already owns this ticket and persona.");
-			if (current.closedAt && !(await capacityAvailable(tx, { projectId: current.projectId! })))
+			if (!(await capacityAvailable(tx, { projectId: current.projectId!, excludeRunId: current.id, sessions })))
 				throw invalidInput("id", "The project has no available worker capacity.");
 		}
 		const config = await projectLaunchConfig(tx, { projectId: run.projectId! });

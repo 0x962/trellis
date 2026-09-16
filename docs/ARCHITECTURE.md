@@ -198,7 +198,7 @@ takes builder. A delete keeps the snapshots of the runs that used the persona.
 - The remap matches on name and category first, then on the lowest-position status of the same category, then on the default status of the owner.
 - Every status-to-status move is legal. A WIP limit is advisory. The `category` of a status is immutable after creation.
 - `started_at` is set once, when a ticket leaves todo. `completed_at` is set when a ticket enters done or canceled, and cleared when it leaves.
-- Priority is none, urgent, high, medium, or low. There are no labels. A ticket carries as many active agents as the concurrency limit of its project allows.
+- Priority is none, urgent, high, medium, or low. There are no labels. A project limits concurrent active worker turns. Idle assignments retain their ticket ownership.
 - Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is printable ASCII without a colon, 1 to 64 characters.
 - A missing header is `ACTOR_REQUIRED` and a malformed one is `ACTOR_INVALID`. A GET ignores the header. The header rejects the kind `system`, which trellis reserves for `system:trellis`.
 - The optional header `x-trellis-session` is stored in `activity.meta.session`. trellis stores the name and the kind of an actor, and nothing else.
@@ -368,7 +368,10 @@ API run states come from inspected runtime processes. The database records assig
 A missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
 A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.
 
-The concurrency limit counts ticket assignments with `closed_at IS NULL`. It excludes the manager.
+The concurrency limit counts concurrent active worker turns. Idle workers retain their open assignments without occupying slots. Managers are outside this count.
+`occupiesSlot` uses runtime observations for starts, resumes, flow claims, saved waits, heartbeat counts, and delegated budgets.
+A confirmed idle turn or process exit releases its slot. A completed turn outcome also releases its slot.
+A new launch reserves a slot until its first prompt receipt. Missing, unknown, or uncontrollable observations retain capacity until reconciliation.
 A confirmed process exit closes its assignment before the next claim.
 The limit runs from 1 to 64 and defaults to 3. A partial unique index permits one active manager per project.
 
@@ -382,7 +385,7 @@ The project configuration remains unchanged. A configured manager or active dele
 Each submanager receives its own controller queue and heartbeats. Parent heartbeat context includes its direct submanagers and their process state.
 Normal human agent lists omit submanager assignments. The `submanagers` API retains inspection and control for diagnosis.
 `submanagers.list` gives a manager its own delegation and direct children. `resize` changes a child's budget.
-The aggregate budget counts ticket workers across the delegated scope. Existing per-project limits also apply.
+The aggregate budget counts active worker turns across the delegated scope. Idle workers consume no budget. Existing per-project limits also apply.
 Nested delegations reserve part of their parent's budget. Direct workers cannot consume those reserved slots.
 Independent managers allocate separate subtree budgets. These budgets do not change provider limits or project concurrency settings.
 Worker starts, resumes, flow steps, and capacity waits use the same budget rule.
@@ -439,7 +442,8 @@ The heartbeat asks the manager to follow its current persona and status descript
 Each heartbeat and ticket dispatch includes `capacityReminder` when projects with unfinished tickets have free worker slots.
 The reminder reports `below_worker_capacity`, free slots, unfinished tickets, and counts for each eligible project.
 Blocked and review tickets count as unfinished. Done and canceled tickets do not count.
-Open native worker assignments occupy slots even when their processes are idle or stopped.
+The reminder uses the same runtime observations as the dispatch. Idle workers and confirmed process exits consume no slots.
+Open assignments preserve ownership independently of capacity. Managers preserve idle conversations and advance independent work.
 
 The counts respect project limits, submanager reservations, manager scope, archives, and dispatch pauses.
 A submanager's shared capacity caps the total free slots across its projects.

@@ -10,6 +10,7 @@ import { fail, invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
 import { capacityAvailable } from "../assignments/capacity.ts";
+import type { CapacityObservation } from "../assignments/occupiesSlot/index.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { assertTicketReady } from "../controller/nextActions/assertTicketReady.ts";
 import { assignment } from "../controller/nextActions/assignment.ts";
@@ -36,7 +37,7 @@ export const reserve = async (
 	tx: Tx,
 	input: AgentRunStartInput,
 	confirmedExited: string[] = [],
-	options?: { delegated: boolean; config: Awaited<ReturnType<typeof projectLaunchConfig>> },
+	options?: { delegated?: boolean; config?: Awaited<ReturnType<typeof projectLaunchConfig>> } & CapacityObservation,
 ) => {
 	const actor = requireActor(ctx);
 	if (input.project && actor.kind === "agent" && !options?.delegated) {
@@ -91,7 +92,7 @@ export const reserve = async (
 			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket.id} AND persona_id=${persona.id} AND runtime='native' AND closed_at IS NULL LIMIT 1`,
 		);
 		if (assigned.length > 0) throw fail("DUPLICATE", { field: "active persona assignment on this ticket" });
-		if (!(await capacityAvailable(tx, { projectId: project.id })))
+		if (!(await capacityAvailable(tx, { projectId: project.id, sessions: options?.sessions })))
 			throw fail("DUPLICATE", { field: "project concurrency limit" });
 	}
 	const projectPath = pathOf(ctx.cache, project.id);
@@ -185,6 +186,6 @@ export const reserve = async (
 		resume,
 		previousAttemptId,
 		previousAccountId: existing?.accountId ?? null,
-		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || (ticket === null ? "Not configured" : "Use the agent workspace.")}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}${notes.length === 0 ? "" : `\n\n${notes.join("\n")}`}`,
+		context: `${context}\nConcurrency limit: ${config.concurrency} concurrent active worker turns in this project.\nProject directory: ${config.directory || (ticket === null ? "Not configured" : "Use the agent workspace.")}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}${notes.length === 0 ? "" : `\n\n${notes.join("\n")}`}`,
 	};
 };

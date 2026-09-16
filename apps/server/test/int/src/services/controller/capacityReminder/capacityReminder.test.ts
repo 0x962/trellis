@@ -1,11 +1,14 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
 import { DEFAULT_PROJECT_MANAGER_CONFIG } from "@trellis/api";
+import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { capacityAvailable } from "../../../../../../src/services/assignments/capacity.ts";
 import { capacityReminder } from "../../../../../../src/services/controller/capacityReminder/capacityReminder.ts";
 import { coordination } from "../../../../../../src/services/controller/coordination.ts";
 import { insertRow, seedChild, seedRoot, seedStatus } from "../../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../../fixtures/tickets.ts";
+import { controllerSession } from "../../../../../helpers/controllerSession.ts";
 import { type Harness, NOW, serviceHarness } from "../../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../../invariants.ts";
 
@@ -79,7 +82,7 @@ test("done and canceled tickets do not count as unfinished work", async () => {
 	expect(await reminder()).toBeNull();
 });
 
-test("review tickets still count, and open idle assignments still occupy capacity", async () => {
+test("review tickets and unobserved assignments still count", async () => {
 	await h.read(async (tx) => {
 		const status = await seedStatus(tx, {
 			projectId,
@@ -159,4 +162,33 @@ test("global and ancestor pauses suppress the reminder", async () => {
 		sql`UPDATE projects SET manager_config=manager_config || '{"dispatchPaused":true}'::jsonb WHERE id=${projectId}`,
 	);
 	expect(await reminder()).toBeNull();
+});
+
+test.each([
+	["idle", { activity: { state: "idle", updatedAt: NOW.toISOString() } }, 3],
+	["working", { activity: { state: "working", updatedAt: NOW.toISOString() } }, 2],
+	["exited", { status: "exited" }, 3],
+	["unknown", { status: "unknown" }, 2],
+	["uncontrollable", { controllable: false }, 2],
+	["launch pending", { acknowledgedMessageIds: [] }, 2],
+] as const)("%s workers have consistent capacity and heartbeat counts", async (_name, overrides, freeSlots) => {
+	await ticket();
+	await worker("worker", projectId, { terminal_id: "worker-attempt" });
+	const sessions = [controllerSession("worker-attempt", overrides as Partial<RuntimeProcessStatus>)];
+	expect(await h.read((tx) => capacityReminder(tx, { projectId, sessions }))).toMatchObject({ freeSlots });
+	await h.rows(
+		sql`UPDATE projects SET manager_config=manager_config || '{"concurrency":1}'::jsonb WHERE id=${projectId}`,
+	);
+	expect(await h.read((tx) => capacityAvailable(tx, { projectId, sessions }))).toBe(freeSlots === 3);
+});
+
+test("an idle worker occupies a slot again when its next turn starts", async () => {
+	await ticket();
+	await worker("worker", projectId, { terminal_id: "worker-attempt" });
+	const idle = controllerSession("worker-attempt");
+	expect(await h.read((tx) => capacityReminder(tx, { projectId, sessions: [idle] }))).toMatchObject({ freeSlots: 3 });
+	const working = controllerSession("worker-attempt", { activity: { state: "working", updatedAt: NOW.toISOString() } });
+	expect(await h.read((tx) => capacityReminder(tx, { projectId, sessions: [working] }))).toMatchObject({
+		freeSlots: 2,
+	});
 });

@@ -3,12 +3,12 @@
 For project TRL, delegate production releases to the Trellis SRE persona.
 One SRE owns all eligible Deploy Queue tickets in one batch. Do not assign a deployment worker per ticket.
 Before assignment, inspect every page of project agent observations and any unfinished release checkpoint in its anchor ticket.
-Reuse the current controllable SRE. An idle process keeps its assignment; an unknown process requires investigation before replacement.
+Reuse the current controllable SRE. An idle process keeps its assignment and uses no worker slot. An unknown process requires investigation before replacement.
 Use one approved queue ticket as the batch anchor. Give the SRE every included ticket, approval, PR, dependency, and acceptance condition.
 Keep that assignment open until the whole batch has a verified result. Use a stable assignment request ID for the batch.
 The backend's duplicate guard applies per ticket and persona. Coordinate one owner across the project yourself.
 Record dispatch outcomes through controller.handle. Included tickets use assigned with the same SRE assignment reference after it accepts the batch.
-Use queued only when project capacity prevents assignment of the next batch owner.
+Use queued only when active worker turns or reserved budgets prevent assignment of the next batch owner.
 Use blocked for later batches that wait on the current release, and no_action for verified changes already active in production.
 
 The SRE integrates all eligible current queue changes, checks their combined revision, merges and pushes main, builds once, installs once, and restarts once.

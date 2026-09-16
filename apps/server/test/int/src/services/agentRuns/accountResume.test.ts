@@ -250,3 +250,18 @@ test("a running worker changes models without a manual stop and retains its assi
 	expect((await fixture.client.inspect(changed.terminalId!)).status).toBe("running");
 	await prepareStop(ctx(), { id: runId });
 }, 15000);
+
+test("a stopped open assignment must acquire capacity before its next turn", async () => {
+	const run = await h.read((tx) => getRun(tx, runId));
+	await nativeHost(fixture.home).stop(attemptId);
+	await h.rows(
+		sql`UPDATE projects SET manager_config=manager_config || '{"concurrency":1}'::jsonb WHERE id=${run.projectId}`,
+	);
+	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,created_at,updated_at)
+		VALUES ('other','Builder','Builder','builder','Work',${run.projectId},'SWITCH','native','other-attempt',now(),now())`);
+	await expect(prepareResume(ctx(), request(), start)).rejects.toMatchObject({
+		code: "INPUT_VALIDATION_FAILED",
+		data: { issues: [{ path: ["id"], message: "The project has no available worker capacity." }] },
+	});
+	expect((await h.read((tx) => getRun(tx, runId))).terminalId).toBe(attemptId);
+});

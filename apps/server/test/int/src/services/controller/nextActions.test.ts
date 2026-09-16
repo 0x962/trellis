@@ -280,3 +280,24 @@ test("a new status decision replaces the old wait without repeated immediate wak
 	await gather(2);
 	expect(await take(2)).toBeNull();
 });
+
+test("an idle worker releases capacity without closing its assignment", async () => {
+	await queue();
+	const observed = [...sessions, controllerSession("busy-attempt")];
+	await h.run((ctx, tx) => collect(ctx, tx, { sessions: observed }), { now: secondsAfter(1) });
+	const delivery = await h.run((ctx, tx) => claim(ctx, tx, { sessions: observed }), { now: secondsAfter(1) });
+	expect(delivery?.nextActions.map((action) => action.ticketId)).toEqual([ticketId]);
+	expect(await h.one<{ closed_at: string | null }>(sql`SELECT closed_at FROM agent_runs WHERE id='busy'`)).toEqual({
+		closed_at: null,
+	});
+});
+
+test("a start uses an idle worker's free slot and reserves it before launch", async () => {
+	const observed = [controllerSession("busy-attempt")];
+	const input = { ticket: ticketId, personaId: "builder" };
+	const first = await h.run((ctx, tx) => reserve(ctx, tx, input, [], { sessions: observed }));
+	expect(first.replay).toBe(false);
+	const { capacityAvailable } = await import("../../../../../src/services/assignments/capacity.ts");
+	expect(await h.read((tx) => capacityAvailable(tx, { projectId, sessions: observed }))).toBe(false);
+	await expect(h.run((ctx, tx) => reserve(ctx, tx, input, [], { sessions: observed }))).rejects.toThrow();
+});

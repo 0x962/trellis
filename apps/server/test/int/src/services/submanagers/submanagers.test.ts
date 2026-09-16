@@ -291,3 +291,20 @@ test("an archived descendant retains its wait and still consumes its reserved wo
 	});
 	expect(await h.read((tx) => capacityAvailable(tx, { projectId: child }))).toBe(false);
 });
+
+test("idle workers retain ownership without consuming a delegated budget", async () => {
+	const { run } = await delegate(2);
+	const actor = { kind: "agent" as const, name: run.id };
+	const first = await h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: "builder" }), { actor });
+	const second = await h.run((ctx, tx) => reserve(ctx, tx, { ticket: otherTicket, personaId: "builder" }), { actor });
+	const sessions = [controllerSession(first.run.terminalId!), controllerSession(second.run.terminalId!)];
+	expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf, sessions }))).toBe(true);
+	await h.run((ctx, tx) => resize(ctx, tx, { id: run.id, capacity: 1, sessions }), parent);
+	const { usage } = await import("../../../../../src/services/submanagers/queries.ts");
+	expect(await h.read((tx) => usage(tx, { projectId: child, runId: run.id, sessions }))).toMatchObject({
+		activeWorkers: 0,
+	});
+	await expect(
+		h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: "builder" }, [], { sessions }), { actor }),
+	).rejects.toThrow();
+});

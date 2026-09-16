@@ -1,12 +1,13 @@
 import { sql } from "drizzle-orm";
 import { rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
+import { type CapacityObservation, occupiesSlot } from "../../assignments/occupiesSlot/index.ts";
 import { managerConfigOf } from "../../projectRows.ts";
 import { columns, type Delegation, usage } from "../../submanagers/queries.ts";
 import { managerScope } from "../../submanagers/scope.ts";
 import { enabled } from "../nextActions/queries.ts";
 
-export const capacityReminder = async (tx: Tx, input: { projectId: string }) => {
+export const capacityReminder = async (tx: Tx, input: { projectId: string } & CapacityObservation) => {
 	const candidates = await rows<{
 		projectId: string;
 		manager_config: unknown;
@@ -16,7 +17,7 @@ export const capacityReminder = async (tx: Tx, input: { projectId: string }) => 
 		tx,
 		sql`SELECT p.id AS "projectId",p.manager_config,
 		(SELECT count(*)::int FROM agent_runs r WHERE r.project_id=p.id
-		 AND r.kind<>'manager' AND r.runtime='native' AND r.closed_at IS NULL) AS "occupiedSlots",
+		 AND r.kind<>'manager' AND r.runtime='native' AND r.closed_at IS NULL AND ${occupiesSlot(sql`r.terminal_id`, input)}) AS "occupiedSlots",
 		(SELECT count(*)::int FROM tickets t WHERE t.project_id=p.id AND t.completed_at IS NULL) AS "unfinishedTickets"
 		FROM projects p WHERE p.id IN (${managerScope(input.projectId)})
 		AND EXISTS (SELECT 1 FROM tickets t WHERE t.project_id=p.id AND t.completed_at IS NULL)
@@ -43,7 +44,7 @@ export const capacityReminder = async (tx: Tx, input: { projectId: string }) => 
 		sql`SELECT ${columns} FROM manager_delegations WHERE project_id=${input.projectId} AND retired_at IS NULL`,
 	);
 	if (delegation) {
-		const counts = await usage(tx, delegation);
+		const counts = await usage(tx, { ...delegation, sessions: input.sessions });
 		freeSlots = Math.min(freeSlots, Math.max(0, delegation.capacity - counts.activeWorkers - counts.childCapacity));
 	}
 	if (!freeSlots) return null;

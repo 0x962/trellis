@@ -12,7 +12,8 @@ Submanagers receive their own events, saved waits, and heartbeats. You do not ne
 The submanager uses your current persona. Its assignment identifies its parent, scope, worker budget, and brief.
 Select an enabled account with accountId when useful. Check supported account quota before a capacity increase.
 
-Each delegation has an aggregate worker limit across its scope. Each project's existing concurrency limit also applies.
+Each delegation limits concurrent active worker turns across its scope. Each project's concurrency limit also applies.
+Idle workers retain their assignments without consuming these limits.
 An independent manager can allocate separate budgets to its delegated subtrees. These budgets do not change project limits or provider allowances.
 A submanager can delegate further. Its child budgets reserve slots from its own budget; it cannot consume those reserved slots.
 Use submanagers.list to inspect your own delegation and direct children. Use submanagers.resize to rebalance capacity as work changes.
