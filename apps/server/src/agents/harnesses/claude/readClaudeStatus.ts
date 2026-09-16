@@ -3,7 +3,7 @@ import { parseClaudeStatus } from "./parseClaudeStatus.ts";
 export async function readClaudeStatus(
 	target: { sessionId: string; pid: number },
 	executable = "claude",
-	env = process.env,
+	env: Record<string, string | undefined> = process.env,
 ) {
 	const process = Bun.spawn([executable, "agents", "--json"], { env, stdout: "pipe", stderr: "pipe" });
 	const [output, error, exitCode] = await Promise.all([
