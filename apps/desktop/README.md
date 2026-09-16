@@ -84,13 +84,17 @@ The test copies the app and uses a unique service label. It redirects the produc
 
 ## Production install
 
-Commit the source changes. Run this command from the repository root:
+Merge the source changes into `main`. Push `main` to `origin`. Run this command from a clean `main` checkout at the current `origin/main` commit:
 
 ```sh
 bun run desktop:install
 ```
 
-The command rejects uncommitted changes. It exports one commit into a fresh directory and installs the frozen dependency lockfile. It builds the renderer, runtime, harnesses, desktop, and complete host package. It records the commit in `build.json`. Electron downloads use `~/Library/Caches/Trellis` across builds.
+The command rejects uncommitted changes, feature branches, detached commits, and a `main` checkout that differs from the refreshed `origin/main`. These requirements also apply to `--prepare` candidates. Do not bypass the production installer.
+
+The candidate must include the installed app's source commit. The installer checks this before the build and before publication. A macOS advisory lock permits one publication at a time.
+
+The command exports one commit into a fresh directory and installs the frozen dependency lockfile. It builds the renderer, runtime, harnesses, desktop, and complete host package. It records the commit in `build.json`. Electron downloads use `~/Library/Caches/Trellis` across builds.
 
 The command signs the local package and runs the packaged smoke checks. It copies the app with `ditto` into a temporary directory beside `~/Applications/Trellis.app` and verifies that copy. It publishes the copy through an atomic directory exchange when an installed app exists. Deleted source files cannot remain in the installed bundle. The running app and its services stay open during the copy.
 

@@ -16,7 +16,9 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 
 ## Desktop install
 
-Commit the source changes, then run `bun run desktop:install` from the repository root. The command builds and verifies a fresh package, then copies it to `~/Applications/Trellis.app`. The copy leaves Trellis open. Restart Trellis to activate the package. A changed package stops active agents and resumes their saved sessions on the new runtime. Manually stopped agents stay stopped. See [the desktop guide](apps/desktop/README.md#production-install) for candidate builds and verification.
+Production builds require a clean `main` checkout at the current `origin/main` commit. Merge each feature branch into `main` and push it before a production build. Never build a production app from a feature branch or a detached commit. This rule also applies to `--prepare` candidates. Do not bypass the production installer.
+
+Run `bun run desktop:install` from the `main` checkout. The command builds and verifies a fresh package, then copies it to `~/Applications/Trellis.app`. The copy leaves Trellis open. Restart Trellis to activate the package. A changed package stops active agents and resumes their saved sessions on the new runtime. Manually stopped agents stay stopped. See [the desktop guide](apps/desktop/README.md#production-install) for candidate builds and verification.
 
 Preserve the manager conversation during prompt updates and deployment. Resume a stopped manager with `trellis agents start` and its existing persona and project. The `--new-session` flag resets the conversation and requires an explicit human reset. Keep the observed provider session ID before and after a resume to verify continuity.
 
