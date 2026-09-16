@@ -1,13 +1,21 @@
-import { adoptHost, connectHost, type HostOptions, waitForHostExit } from "../host/host.ts";
+import { activateHostRelease } from "../activateHostRelease/activateHostRelease.ts";
+import { connectHost, type HostOptions, waitForHostExit } from "../host/host.ts";
 import { pinResources } from "../pinnedResources/pinnedResources.ts";
-import { serviceCommand } from "../service/service.ts";
-import { readUpdateStatus } from "../updateStatus/updateStatus.ts";
 
 type RestartOptions =
 	| { mode: "development"; options: HostOptions }
 	| { mode: "packaged"; home: string; helper: string; resources: string; userData: string };
+type Dependencies = {
+	pinResources: typeof pinResources;
+	activateHostRelease: typeof activateHostRelease;
+};
+const defaults: Dependencies = { pinResources, activateHostRelease };
 
-export const restartHost = async (input: RestartOptions, report: (stage: string) => Promise<void> = async () => {}) => {
+export const restartHost = async (
+	input: RestartOptions,
+	report: (stage: string) => Promise<void> = async () => {},
+	deps: Dependencies = defaults,
+) => {
 	if (input.mode === "development") {
 		await report("Connect to background host");
 		const host = await connectHost(input.options);
@@ -19,18 +27,6 @@ export const restartHost = async (input: RestartOptions, report: (stage: string)
 	}
 	const { home, helper, resources, userData } = input;
 	await report("Check installed app");
-	const available = await pinResources(resources, userData);
-	await report("Check host compatibility");
-	const update = await readUpdateStatus(home, available);
-	if (update.state === "blocked") throw new Error(update.detail);
-	await report("Connect to background host");
-	await adoptHost(home);
-	await report("Stop background host");
-	await serviceCommand(helper, "unregister");
-	await waitForHostExit(home);
-	await report("Start background host");
-	const service = await serviceCommand(helper, "register");
-	if (service.status !== "enabled") throw new Error(`Background service status: ${service.status}.`);
-	await report("Wait for background host");
-	return adoptHost(home);
+	const available = await deps.pinResources(resources, userData);
+	return deps.activateHostRelease(home, helper, available, {}, report, "restart");
 };

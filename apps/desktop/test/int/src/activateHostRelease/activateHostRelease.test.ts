@@ -19,6 +19,7 @@ const fixture = async () => {
 	const next = await release("b");
 	await recordActiveRelease(home, old);
 	const calls: string[] = [];
+	const resumeWaits: (boolean | undefined)[] = [];
 	const host = { pid: process.pid, origin: "http://127.0.0.1:4521", token: "test" };
 	const actions = {
 		ensureService: async () => {
@@ -41,15 +42,16 @@ const fixture = async () => {
 		capture: async () => {
 			calls.push("capture");
 		},
-		resume: async () => {
+		resume: async (_host: unknown, wait?: boolean) => {
 			calls.push("resume");
+			resumeWaits.push(wait);
 		},
 		register: async () => {
 			calls.push("register");
 			await recordActiveRelease(home, next);
 		},
 	};
-	return { directory, home, old, next, calls, host, actions };
+	return { directory, home, old, next, calls, resumeWaits, host, actions };
 };
 
 test("app startup replaces a different host release and keeps its connection", async () => {
@@ -69,6 +71,21 @@ test("app startup adopts a current host without a service restart", async () => 
 	try {
 		await activateHostRelease(f.home, "helper", f.old, f.actions);
 		expect(f.calls).toEqual(["ensure", "adopt", "resume"]);
+	} finally {
+		await rm(f.directory, { recursive: true, force: true });
+	}
+});
+
+test("macOS Restart saves and restores the sessions of the current release before it returns", async () => {
+	const f = await fixture();
+	try {
+		f.actions.register = async () => {
+			f.calls.push("register");
+			await recordActiveRelease(f.home, f.old);
+		};
+		await activateHostRelease(f.home, "helper", f.old, f.actions, async () => {}, "restart");
+		expect(f.calls).toEqual(["unregister", "wait", "capture", "shutdown", "register", "adopt", "resume"]);
+		expect(f.resumeWaits).toEqual([true]);
 	} finally {
 		await rm(f.directory, { recursive: true, force: true });
 	}
