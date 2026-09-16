@@ -75,6 +75,21 @@ A provider turn failure after confirmed resume remains visible on the agent. It 
 Process ownership errors and absent prompt receipts still block restoration. The regression first fails with `rate_limit` at the restart gate.
 All 26 restart service tests pass after the fix. Evidence: `/tmp/trellis-provider-startup-red.log` and `/tmp/trellis-provider-startup-green.log`.
 
+## Default models
+
+New sessions with no model selection use explicit models:
+
+| Harness | Default model |
+| --- | --- |
+| Claude | `claude-opus-5` |
+| Codex | `gpt-5.6-sol` |
+| OpenCode | `vercel/anthropic/claude-opus-5` |
+| Pi | `vercel-ai-gateway/openai/gpt-5.6-sol` |
+
+Explicit selections and resumed sessions retain their models. The settings hint shows the default for the selected harness.
+Four process-fixture checks pass with 20 assertions. Seven API tests pass with 16 assertions.
+API, server, and web typechecks pass. Browser assertions for the settings hints are added; the user tests the installed UI.
+
 ## Automatic session resume
 
 A package update saves the active provider sessions before runtime shutdown. Workers resume before managers, in the same directories and conversations.
