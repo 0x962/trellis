@@ -3,7 +3,7 @@ import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { applyEvent } from "@trellis/api";
 import { type BrowseData, seedBrowse } from "../../../../test/browse";
 import { connect } from "../../../../test/connect";
-import type { Recorder } from "../../../../test/record";
+import { failureMessage, type Recorder } from "../../../../test/record";
 import { renderWithClient } from "../../../../test/renderWithClient";
 import { human, serverHost } from "../../../../test/server";
 import { queryClient } from "../../../lib/queryClient";
@@ -99,8 +99,22 @@ describe("the ticket list", () => {
 	});
 
 	// A list the server did not send is not an empty list.
-	test("a failed list shows the unreachable server state, and Retry loads the list", async () => {
+	test("a refused list shows the server's reason, and Retry loads the list", async () => {
 		const restore = net.fail("tickets.list");
+		await renderWithClient(<ProjectTicketList project={data.root} />);
+		expect(await screen.findByText(failureMessage)).toBeOnTheScreen();
+		expect(screen.queryByText("No tickets here")).toBeNull();
+		expect(screen.queryByText(`Cannot reach ${serverHost}`)).toBeNull();
+		restore();
+		await fireEvent.press(screen.getByRole("button", { name: "Retry" }));
+		await waitForRows();
+		expect(screen.queryByText(failureMessage)).toBeNull();
+	});
+
+	// A request that gets no answer carries no reason from the server, so the
+	// screen names the host and offers the server actions.
+	test("a list that reaches no server shows the unreachable state", async () => {
+		const restore = net.reject("tickets.list");
 		await renderWithClient(<ProjectTicketList project={data.root} />);
 		expect(await screen.findByText(`Cannot reach ${serverHost}`)).toBeOnTheScreen();
 		expect(screen.queryByText("No tickets here")).toBeNull();

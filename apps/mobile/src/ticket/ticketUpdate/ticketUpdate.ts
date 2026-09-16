@@ -34,14 +34,3 @@ export const runTicketUpdate = async (
 		throw error;
 	}
 };
-
-// The text the screen shows for a rejected write. A VERSION_CONFLICT names
-// the ticket, because the screen already holds the row the other actor
-// wrote. The web table, board, and command palette show this same
-// sentence. Another rejection shows the server's message for a declared
-// error, else the runtime's own.
-export const updateMessage = (error: unknown): string => {
-	const current = conflictRow(error);
-	if (current !== undefined) return `${current.identifier} changed first. The row shows the other version.`;
-	return error instanceof Error ? error.message : String(error);
-};
