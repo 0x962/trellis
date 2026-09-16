@@ -17,15 +17,15 @@ test("the evidence retirement migration removes stale readiness instructions", a
 	writeFileSync(journalPath, JSON.stringify(journal));
 	const db = await openDb(":memory:");
 	await migrate(db, before);
-	const stale = "If a required check fails or remains unrun, keep the ticket out of Agent Review even when evidence reports readyForReview.";
+	const stale =
+		"If a required check fails or remains unrun, keep the ticket out of Agent Review even when evidence reports readyForReview.";
 	await db.execute(
 		sql`INSERT INTO personas (id, name, kind, instruction, created_at, updated_at) VALUES ('01ARZ3NDEKTSV4RRFFQ69G5FA1', 'Builder', 'builder', ${`Build. ${stale}`}, now(), now())`,
 	);
 	await migrate(db, migrations);
 	const read = async () =>
-		(
-			await db.execute(sql`SELECT instruction FROM personas WHERE id='01ARZ3NDEKTSV4RRFFQ69G5FA1'`)
-		).rows[0]!.instruction as string;
+		(await db.execute(sql`SELECT instruction FROM personas WHERE id='01ARZ3NDEKTSV4RRFFQ69G5FA1'`)).rows[0]!
+			.instruction as string;
 	const current = await read();
 	expect(current).toBe("Build. If a required check fails or remains unrun, keep the ticket out of Agent Review.");
 	expect(current).not.toContain("readyForReview");
