@@ -94,6 +94,9 @@ export class RuntimeClient {
 	inspect(id: string) {
 		return this.call("inspect", { id });
 	}
+	hasMessage(id: string, messageId: string) {
+		return this.call("hasMessage", { id, messageId });
+	}
 	shutdown() {
 		return this.call("shutdown", {});
 	}
