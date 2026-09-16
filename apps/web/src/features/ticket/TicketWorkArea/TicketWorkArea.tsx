@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { isAgentWorking } from "../../agents/isAgentWorking";
+import { personaKindOf } from "../../agents/personaKindOf";
 import { PullRequests } from "../../prs";
 import { FlowRuns } from "./components/FlowRuns";
 import { LocalChanges } from "./components/LocalChanges";
@@ -72,7 +73,7 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 									<Avatar
 										kind="agent"
 										name={item.run.personaName}
-										personaKind={item.run.kind}
+										personaKind={personaKindOf(item.run.kind)}
 										state={isAgentWorking(item.run) ? "working" : "static"}
 									/>
 								),
