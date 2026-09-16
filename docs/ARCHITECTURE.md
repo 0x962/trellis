@@ -301,7 +301,9 @@ Harness events establish turn activity. Terminal output alone does not establish
 A host interruption changes an unfinished send to `unknown`.
 A durable receipt can confirm the original delivery. An explicit resend uses a new generation and message identifier.
 
-The Needs you page shows its title over an empty body. Ticket status changes use the status picker.
+The web Needs you page lists tickets in review statuses with a human reviewer across every project.
+The list includes inherited and custom statuses, with or without a linked pull request.
+Ticket and status changes update the list through server events. Each row opens the ticket page.
 
 ### Flows
 
@@ -360,7 +362,7 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | route | file | page |
 |---|---|---|
 | `/` | `index.tsx` | a replace redirect to `/needs-you` |
-| `/needs-you` | `needs-you/route.tsx` | the page title over an empty body |
+| `/needs-you` | `needs-you/route.tsx` | human review tickets across every project |
 | `/all` | `all/route.tsx` | every ticket as a board |
 | `/all/table` | `all_.table.tsx` | every ticket as a table |
 | `/p/$` | `p/$/route.tsx` | a project as a board, a table, its settings, or its manager |
