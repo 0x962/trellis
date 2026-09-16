@@ -21,6 +21,7 @@ const delivery: Dispatch = {
 };
 const agents = { observedAt: delivery.dueAt, agents: [] };
 const context = {
+	capacityReminder: null,
 	policy: { personaId: "manager-policy", updatedAt: "2026-09-15T00:00:00.000Z" },
 	unfinished: [],
 	unfinishedCount: 0,
