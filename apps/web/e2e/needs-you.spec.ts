@@ -132,11 +132,14 @@ test("needs-you > sections, sort, mentions, ignore, and palette snooze", async (
 	await expect(page.getByRole("region", { name: "Mentioned comment" })).toContainText("@dana please verify the change");
 	await page.goBack();
 	await expect(page.getByLabel("Needs you has items")).toBeVisible();
-	await page.getByRole("combobox", { name: "Sort items" }).click();
-	await page.getByRole("option", { name: "Title: A to Z", exact: true }).click();
+	await page.getByRole("button", { name: "Display", exact: true }).click();
+	await page.getByRole("combobox", { name: "Sort by" }).click();
+	await page.getByRole("option", { name: "Title", exact: true }).click();
 	await expect(page).toHaveURL(/sort=title/);
 	await page.reload();
-	await expect(page.getByRole("combobox", { name: "Sort items" })).toHaveText("Title: A to Z");
+	await page.getByRole("button", { name: "Display", exact: true }).click();
+	await expect(page.getByRole("combobox", { name: "Sort by" })).toHaveText("Title");
+	await page.keyboard.press("Escape");
 	const item = review.locator(`[data-identifier="${ticket.identifier}"]`);
 	await item.getByRole("button", { name: "Item options" }).click();
 	await page.getByRole("menuitem", { name: "Snooze", exact: true }).click();
@@ -147,12 +150,12 @@ test("needs-you > sections, sort, mentions, ignore, and palette snooze", async (
 	await page.getByRole("dialog").getByRole("combobox").press("Enter");
 	await expect(item).toHaveCount(0);
 	await expect(mentions.getByText("Inbox action ticket", { exact: true })).toBeVisible();
-	await page.getByRole("combobox", { name: "Show items" }).click();
+	await page.getByRole("button", { name: "Filter", exact: true }).click();
 	await page.getByRole("option", { name: "Snoozed", exact: true }).click();
 	await expect(item).toBeVisible();
 	await item.getByRole("button", { name: "Item options" }).click();
 	await page.getByRole("menuitem", { name: "Restore", exact: true }).click();
-	await page.getByRole("combobox", { name: "Show items" }).click();
+	await page.getByRole("button", { name: "Filter", exact: true }).click();
 	await page.getByRole("option", { name: "Active", exact: true }).click();
 	await expect(item).toBeVisible();
 	await item.getByRole("button", { name: "Item options" }).click();
@@ -201,4 +204,59 @@ test("needs-you > the dot clears when empty and returns at snooze expiry", async
 		for (const id of hidden) await post("/needs-you/update", { id, action: "restore" });
 		if (ticket) moveTicket(ticket.identifier, "done", "human:dana");
 	}
+});
+
+test("needs-you > shared controls, group counts, and row columns work at desktop and phone widths", async ({
+	page,
+}) => {
+	ensureProject("NYD", "Inbox display");
+	createTicket(
+		"NYD",
+		"Review a very long ticket title that must truncate without moving the project, actor, age, or menu columns",
+		["--status", "human-review"],
+	);
+	await signIn(page, "/needs-you");
+	const topbar = page.locator("[data-page-topbar]");
+	await expect(topbar.getByRole("button", { name: "Filter", exact: true })).toBeVisible();
+	await expect(topbar.getByRole("button", { name: "Display", exact: true })).toBeVisible();
+	await expect(topbar.getByRole("combobox")).toHaveCount(0);
+	const review = page.getByRole("region", { name: "Needs review", exact: true });
+	const group = review.getByRole("button", { name: "Needs review", exact: true });
+	const total = await post<{ total: number }>("/needs-you/list", { section: "review" });
+	await expect(review.locator("[data-count]")).toHaveText(String(total.total));
+	await group.click();
+	await expect(group).toHaveAttribute("aria-expanded", "false");
+	await expect(review.locator("[data-inbox-item]").first()).toBeHidden();
+	await page.reload();
+	await expect(group).toHaveAttribute("aria-expanded", "false");
+	await group.click();
+	await expect(review.locator("[data-inbox-item]").first()).toBeVisible();
+	await topbar.getByRole("button", { name: "Display", exact: true }).click();
+	await page.getByRole("button", { name: "Sort direction" }).click();
+	await expect(page).toHaveURL(/sort=-priority/);
+	await page.keyboard.press("Escape");
+	const cells = review.locator("[data-inbox-item] [data-column=age]");
+	const first = await cells.nth(0).boundingBox();
+	const second = await cells.nth(1).boundingBox();
+	expect(first!.x).toBe(second!.x);
+	expect(first!.width).toBe(second!.width);
+	await page.setViewportSize({ width: 390, height: 844 });
+	const item = review.locator("[data-inbox-item]").first();
+	await expect(item).toBeVisible();
+	await expect(item.getByRole("link")).toHaveAccessibleName(new RegExp((await item.getAttribute("data-identifier"))!));
+	await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+	await item.getByRole("button", { name: "Item options" }).click();
+	await expect(page.getByRole("menuitem", { name: "Snooze", exact: true })).toBeVisible();
+	await page.keyboard.press("Escape");
+	await expect(item.getByRole("button", { name: "Item options" })).toBeFocused();
+	await page.setViewportSize({ width: 320, height: 844 });
+	await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+	await page.getByRole("button", { name: "Filter", exact: true }).click();
+	await page.getByRole("option", { name: "Snoozed", exact: true }).click();
+	await expect(page.getByRole("button", { name: "Remove items filter" })).toBeVisible();
+	await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+	await page.getByRole("button", { name: "Remove items filter" }).click();
+	await expect(page).toHaveURL(/visibility=active/);
+	await page.keyboard.press("Meta+Backslash");
+	await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 });
