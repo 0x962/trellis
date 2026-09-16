@@ -25,7 +25,7 @@ export class BrowserWindow {
  constructor() { globalThis.calls.push("create main window"); this.events = {}; this.webContents = { on() {}, setWindowOpenHandler() {} }; }
  once(name, callback) { this.events[name] = callback; }
  on() {} isMinimized() { return false; } isFullScreen() { return false; }
- maximize() {} show() {} focus() {}
+ maximize() {} show() { globalThis.calls.push("show main window"); } focus() {}
  async loadURL(url) {
   globalThis.calls.push("load " + url);
   this.events["ready-to-show"]();
@@ -47,6 +47,11 @@ export const dialog = {async showMessageBox(options) {globalThis.calls.push("err
 			"export const readUpdateStatus = async () => ({state: 'current', active: {root: 'fixture'}});",
 		"./startupProgress/index.ts": `export const startupProgress = () => ({
  show: async (stage) => globalThis.calls.push("progress " + stage),
+ finish: async (reveal) => {
+  globalThis.calls.push("finish progress");
+  reveal();
+  globalThis.calls.push("close progress");
+ },
  close: () => globalThis.calls.push("close progress")
 });`,
 		"./installCli/installCli.ts": `export const installCli = async () => {
@@ -97,7 +102,11 @@ test.each(["activate", "second-instance", "open-url"])(
 		expect(code, stderr).toBe(0);
 		const calls = JSON.parse(stdout) as string[];
 		expect(calls.indexOf("create main window")).toBeGreaterThan(calls.indexOf("tools ready"));
-		expect(calls.indexOf("close progress")).toBeGreaterThan(calls.indexOf("tools ready"));
+		expect(calls.indexOf("finish progress")).toBeGreaterThan(calls.indexOf("tools ready"));
+		expect(calls.indexOf("show main window")).toBeGreaterThan(calls.indexOf("finish progress"));
+		expect(calls.indexOf("close progress")).toBeGreaterThan(calls.indexOf("show main window"));
+		expect(calls.filter((call) => call.startsWith("error "))).toEqual([]);
+		expect(calls).not.toContain("quit");
 		expect(calls.filter((call) => call === "create main window")).toHaveLength(1);
 		expect(calls).toContain(event === "open-url" ? "load http://fixture/p/READY" : "load http://fixture/");
 	},
@@ -113,5 +122,7 @@ test("a failed tool setup closes progress and reports the error without opening 
 	expect(code, stderr).toBe(0);
 	const calls = JSON.parse(stdout) as string[];
 	expect(calls).not.toContain("create main window");
+	expect(calls).not.toContain("show main window");
+	expect(calls).not.toContain("finish progress");
 	expect(calls.slice(-3)).toEqual(["close progress", "error CLI installation failed", "quit"]);
 });
