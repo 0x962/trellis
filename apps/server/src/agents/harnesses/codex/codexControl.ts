@@ -2,11 +2,13 @@ import { chmod } from "node:fs/promises";
 import { createServer } from "node:http";
 import { z } from "zod";
 import type { CodexAppServerClient } from "./appServerClient.ts";
+import { managerPolicy } from "./managerPolicy/managerPolicy.ts";
 
 export async function codexControl(input: {
 	socket: string;
 	token: string;
 	sessionId: string;
+	manager?: boolean;
 	client: CodexAppServerClient;
 	current: () => { turnId: string | null; working: boolean };
 }) {
@@ -50,6 +52,7 @@ export async function codexControl(input: {
 					input: [{ type: "text", text: prompt }],
 					approvalPolicy: "never",
 					sandboxPolicy: { type: "dangerFullAccess" },
+					...(input.manager ? managerPolicy.turn : {}),
 				});
 			}
 			reply(200, { accepted: true, sessionId: input.sessionId });

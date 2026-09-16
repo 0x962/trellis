@@ -53,9 +53,9 @@ export const startNative = async (
 	}
 	let launchSubmitted = false;
 	try {
-		if (run.kind === "manager" && ["custom", "codex"].includes(config.harness.preset))
+		if (run.kind === "manager" && config.harness.preset === "custom")
 			throw new Error(
-				`The ${config.harness.preset} harness cannot enforce the manager tool boundary. Select Claude, OpenCode, or Pi for managers. Workers can use any harness.`,
+				`The ${config.harness.preset} harness cannot enforce the manager tool boundary. Select Claude, Codex, OpenCode, or Pi for managers. Workers can use any harness.`,
 			);
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");

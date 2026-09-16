@@ -90,7 +90,10 @@ Each supported manager harness uses the selected persona instruction from the da
 The persona editor shows this instruction. Manager start and restart read the current saved persona.
 The assignment message carries identity and project facts.
 The manager delegates technical work and records coordination outcomes through these tools.
-Claude, OpenCode, and Pi support this boundary. Codex and custom manager launches return an explicit error.
+Claude, Codex, OpenCode, and Pi support this boundary. Custom manager launches return an explicit error.
+Codex managers require CLI version 0.154.0 or later and run with no selected environments.
+Their engine receives the shared Trellis allowlist as dynamic tools. Code-mode execution can call those tools without filesystem or shell access.
+Clock and clarification tools remain available. The native terminal sends requests through the host, which preserves the manager policy and provider thread.
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
 Codex runs one private app-server per attempt. Its native terminal and Trellis event client connect to that engine.
 The Codex adapter maps native thread, turn, tool, result, and error events into the runtime journal.
