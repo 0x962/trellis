@@ -113,6 +113,7 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	},
 	"POST /agent-runs/{runId}/artifacts": { path: "src/result.ts" },
 	"POST /agent-runs/{id}/permission": { requestId: "tool-request-1", behavior: "deny" },
+	"POST /agent-runs/{id}/interrupt": {},
 	"POST /agent-runs/{id}/terminal/input": { text: "pwd\r" },
 	"POST /agent-runs/{id}/terminal/resize": { cols: 100, rows: 32 },
 	"POST /manager-dispatches/{id}/retry": {},
@@ -124,7 +125,9 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 		],
 	},
 	"POST /native-work/resume": {},
+	"POST /native-work/restart/resume": {},
 	"POST /native-work/stop": {},
+	"POST /gh/check": {},
 	"POST /flow-executions": {
 		flow: "review",
 		ticket: "CDE-1",
