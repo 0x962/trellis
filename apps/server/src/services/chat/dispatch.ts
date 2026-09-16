@@ -101,4 +101,4 @@ export const dispatchChat = async (ctx: ServiceCtx, sessions: RuntimeProcessStat
 };
 
 const emitChanged = (ctx: ServiceCtx, delivery: Delivery) =>
-	ctx.emit({ type: "chat.message", id: delivery.messageId, projectId: delivery.projectId, channel: delivery.channel });
+	ctx.emit({ type: "chat.delivery", id: delivery.messageId, projectId: delivery.projectId, channel: delivery.channel });

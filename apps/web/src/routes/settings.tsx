@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
+import { ChatSoundField } from "../features/settings/ChatSoundField";
 import { DesktopSettings } from "../features/settings/DesktopSettings";
 import { Diagnostics } from "../features/settings/Diagnostics";
 import { DraftTransfer } from "../features/settings/DraftTransfer";
@@ -49,11 +50,12 @@ const sections: SettingsSection[] = [
 	{
 		id: "account",
 		title: "Account",
-		hint: "Set your name and choose how trellis looks.",
+		hint: "Set your name, choose how trellis looks, and choose whether chat makes a sound.",
 		rows: (
 			<>
 				<ActorNameField />
 				<ThemeField />
+				<ChatSoundField />
 			</>
 		),
 	},

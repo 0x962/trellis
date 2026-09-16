@@ -221,6 +221,8 @@ A mention of `@<run id>` or `@<persona name>` sends the post to the mentioned ag
 A worker receives the pending lines in its terminal, batched into one message per controller tick.
 A manager receives a `trellis.chat.messages` event with the same lines as data and posts through `trellis_chat_post`.
 The web page at `/p/<project path>/chat` shows the log; `/join <name>` in its input creates a channel.
+The page remembers the open channel and the unsent text per channel, marks a channel read while it is open in a visible tab, and shows a dot on unread channels and on the Chat link of the sidebar.
+A new message from someone else plays a tone. Settings > Account > Chat sound switches it off for that browser.
 
 ## Persona identity and mentions
 

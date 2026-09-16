@@ -33,6 +33,9 @@ export const ChatChannelSchema = z.object({
 	projectId: UlidSchema,
 	name: z.string(),
 	messageCount: z.number().int().nonnegative(),
+	// The id and the time of the newest message, or null for an empty channel.
+	// A reader compares `latestId` with the last id it saw to know what is unread.
+	latestId: UlidSchema.nullable(),
 	lastMessageAt: IsoDateTimeSchema.nullable(),
 	createdAt: IsoDateTimeSchema,
 });

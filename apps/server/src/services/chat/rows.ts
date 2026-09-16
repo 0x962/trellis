@@ -7,12 +7,14 @@ export type RawChannel = {
 	project_id: string;
 	name: string;
 	message_count: number;
+	latest_id: string | null;
 	last_message_at: string | null;
 	created_at: string;
 };
 
 export const channelSelect = sql`SELECT c.project_id, c.name,
 	(SELECT count(*)::int FROM chat_messages m WHERE m.project_id = c.project_id AND m.channel = c.name) AS message_count,
+	(SELECT max(m.id) FROM chat_messages m WHERE m.project_id = c.project_id AND m.channel = c.name) AS latest_id,
 	(SELECT ${iso(sql`max(m.created_at)`)} FROM chat_messages m WHERE m.project_id = c.project_id AND m.channel = c.name) AS last_message_at,
 	${iso(sql`c.created_at`)} AS created_at FROM chat_channels c`;
 
@@ -20,6 +22,7 @@ export const toChannel = (row: RawChannel): ChatChannel => ({
 	projectId: row.project_id,
 	name: row.name,
 	messageCount: row.message_count,
+	latestId: row.latest_id,
 	lastMessageAt: row.last_message_at,
 	createdAt: row.created_at,
 });
