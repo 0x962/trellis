@@ -133,6 +133,11 @@ export const errors = {
 		message: "This channel is for agents only. A person reads it and does not post in it.",
 		data: z.undefined(),
 	},
+	CHAT_DIRECT: {
+		status: 403,
+		message: "This channel is a direct message between a person and the manager. Other agents post elsewhere.",
+		data: z.undefined(),
+	},
 	COMMENT_HAS_REPLIES: {
 		status: 409,
 		message: "This comment has replies. Delete its replies before you delete the comment.",

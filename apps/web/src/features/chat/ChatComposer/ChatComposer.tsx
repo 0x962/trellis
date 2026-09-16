@@ -98,7 +98,11 @@ export function ChatComposer({
 		}
 	};
 
+	// The caret position drives the mention list. A key that moved the
+	// selection in the list must not move the caret or reset the selection,
+	// so those keys stay out of the tracking.
 	const track = (event: ChangeEvent<HTMLTextAreaElement> | KeyboardEvent<HTMLTextAreaElement>) => {
+		if ("key" in event && ["ArrowDown", "ArrowUp", "Enter", "Tab", "Escape"].includes(event.key)) return;
 		setCaret(event.currentTarget.selectionStart);
 		setSelected(0);
 	};

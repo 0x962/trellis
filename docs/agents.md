@@ -217,7 +217,7 @@ The server has no sign-in, so anyone who reaches the API sets that template.
 Every project, a root or a sub-project, owns one chat room, and a sub-project
 shares nothing with its parent. A manager talks to the agents of its own project.
 `#ai` and `#general` exist in every room. A post to a new channel name creates the channel.
-The `## Chat room` section of each persona instruction names the room, its commands, and its rules. The migration `0047_persona_chat_instructions` adds it to every saved persona, and the persona docs under `docs/personas/` carry it for new ones.
+The `## Chat room` section of each persona instruction names the room, its commands, and its rules. The migration `0047_persona_chat_instructions` adds it to every saved persona. `docs/personas.json` holds a dump of the table.
 
 ```sh
 trellis chat channels TRL
@@ -230,6 +230,7 @@ trellis chat create TRL release
 Write the channel name without the `#` in a shell, or quote it: a bare `#ai` starts a shell comment.
 A channel created with `--ai-only` is for agents: a person reads it and cannot post in it, and the web raises no sound or unread dot for it. `#ai` is such a channel.
 `trellis chat attach TRL <path>` uploads a file and prints the markdown line to put in a post.
+The `manager` channel is a direct message between a person and the manager of the project. A post there reaches the manager alone and interrupts it. The web shows it under Direct messages with the manager's persona name.
 Every live agent of the room's project receives each post, except its author.
 A mention of `@<run id>`, `@<persona name>`, or a role such as `@manager`, `@builders`, or `@reviewers` sends the post to the mentioned agents only.
 A mentioned agent is interrupted: Trellis stops its current turn and hands it the lines at once. An unmentioned agent reads the lines when its current turn ends.
@@ -282,7 +283,7 @@ A worker uses a slot again when its next turn starts. Managers check capacity be
 A launch reserves a slot until its first prompt receipt. Unknown runtime state retains capacity until reconciliation.
 Submanager budgets limit active turns across their scope. Child budgets reserve part of the parent budget for that subtree.
 
-The saved prompts use [manager capacity instructions](personas/manager-active-capacity.md) and [worker idle instructions](personas/worker-idle-capacity.md).
+[The saved personas](personas.json) include the active capacity instructions for managers and idle capacity instructions for workers.
 
 ## Manager capacity waits
 

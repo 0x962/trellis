@@ -104,7 +104,11 @@ test.each(["claude", "codex", "opencode", "pi"] as const)(
 			start: (c: Parameters<typeof startNative>[0], input: Parameters<typeof startNative>[1]) =>
 				startNative(c, input, { env, runtime: async () => client, workspace: async () => home }),
 		};
-		expect(await prepareResumeRestart(ctx, { restartId: plan.id }, deps)).toEqual({ resumed: 1, skipped: 0 });
+		expect(await prepareResumeRestart(ctx, { restartId: plan.id, wait: true }, deps)).toMatchObject({
+			resumed: 1,
+			skipped: 0,
+			failed: 0,
+		});
 		const sessions = await client.list({ status: "running" });
 		expect(sessions).toHaveLength(1);
 		expect(sessions[0]!.pid).not.toBe(previous.pid);
@@ -119,7 +123,11 @@ test.each(["claude", "codex", "opencode", "pi"] as const)(
 		expect(descriptor.spec.env.TRELLIS_RUN_ID).toBe(runId);
 		expect(descriptor.spec.env.TRELLIS_ATTEMPT_TOKEN).toBe("restart-token");
 		expect(await readRestartPlan(home)).toBeNull();
-		expect(await prepareResumeRestart(ctx, { restartId: plan.id }, deps)).toEqual({ resumed: 0, skipped: 0 });
+		expect(await prepareResumeRestart(ctx, { restartId: plan.id, wait: true }, deps)).toMatchObject({
+			resumed: 0,
+			skipped: 0,
+			failed: 0,
+		});
 		expect((await client.list({ status: "running" }))[0]!.pid).toBe(sessions[0]!.pid);
 	},
 	20000,

@@ -3,7 +3,9 @@ import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 
-export async function orderRestartSessions(tx: Tx, sessions: RestartSession[]) {
+// Two waves: every worker first, then every manager. A manager that comes
+// back after its workers sees them running on its first heartbeat.
+export async function orderRestartSessions(tx: Tx, sessions: RestartSession[]): Promise<RestartSession[][]> {
 	if (sessions.length === 0) return [];
 	const managers = await rows<{ id: string }>(
 		tx,
@@ -13,5 +15,7 @@ export async function orderRestartSessions(tx: Tx, sessions: RestartSession[]) {
 		)})`,
 	);
 	const ids = new Set(managers.map((run) => run.id));
-	return sessions.toSorted((a, b) => Number(ids.has(a.runId)) - Number(ids.has(b.runId)));
+	const workers = sessions.filter((entry) => !ids.has(entry.runId));
+	const waves = [workers, sessions.filter((entry) => ids.has(entry.runId))];
+	return waves.filter((wave) => wave.length > 0);
 }
