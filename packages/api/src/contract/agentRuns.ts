@@ -59,6 +59,21 @@ const sessionSchema = z.object({
 	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
+	setModel: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "POST",
+			path: "/agent-runs/{id}/model",
+			summary: "Change an agent's model, interrupt its active turn, and resume the same conversation and workspace.",
+		})
+		.input(
+			idInput.extend({
+				model: z.string().trim().min(1),
+				expectedTerminalId: z.string().min(1),
+				requestId: z.string().min(1).max(200),
+			}),
+		)
+		.output(AgentRunSchema),
 	resume: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({
@@ -70,6 +85,12 @@ export const agentRuns = {
 		.input(
 			idInput.extend({
 				accountId: UlidSchema.optional(),
+				model: z
+					.string()
+					.trim()
+					.min(1)
+					.optional()
+					.describe("Model ID or alias for this resume. Defaults to the previous attempt's model."),
 				expectedTerminalId: z.string().min(1),
 				requestId: z.string().min(1).max(200),
 			}),

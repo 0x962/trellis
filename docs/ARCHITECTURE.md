@@ -334,6 +334,18 @@ The runtime owns each process through a distinct execution attempt. Each attempt
 A stable start request identifier returns its existing run before the concurrency check.
 A changed target or persona rejects reuse of that identifier.
 
+`agentRuns.start` accepts an optional model ID or alias for the assignment, after account selection determines its harness.
+An omitted model uses the project setting. Custom commands reject explicit model overrides.
+`agentRuns.resume` accepts a model override and otherwise retains the previous attempt's model.
+
+`agentRuns.setModel` interrupts a running turn, stops its process, and resumes the same assignment with the selected model.
+The assignment retains its ticket, workspace, account, and provider conversation.
+The project and account defaults stay unchanged.
+
+Each model change requires the current attempt ID and a request ID. A repeated request returns the existing attempt.
+The CLI exposes `agents start --model`, `agents resume --model`, and `agents model <id> --model`.
+Managers can inspect the observed model through `trellis_agentRuns_session` with `include: ["model"]`.
+
 The Manager page at `/p/<project path>/settings/manager` shows the manager's interactive terminal and process controls.
 Project settings at `/p/<project path>/settings#manager` selects the persona, repository directory, concurrency limit, and automatic dispatch.
 The dispatch switch pauses automatic messages while events remain stored.
@@ -438,7 +450,7 @@ It includes open assignments and closed assignments whose processes still run.
 Each entry carries assignment identifiers, process status, the process check time, harness activity, the last activity time, and `isWorking`.
 Each entry also carries the current tool name when the agent reports active work.
 `trellis_agentRuns_session` returns activity details by default.
-Its optional `include` list accepts `tool`, `lastTool`, `lastMessage`, `result`, `error`, and `process`.
+Its optional `include` list accepts `model`, `tool`, `lastTool`, `lastMessage`, `result`, `error`, and `process`.
 The tool fields include stored input and output. The `process` field includes process, attempt, session, and turn identifiers.
 For example, `{"id":"<runId>","include":["lastTool","error"]}` retrieves the latest tool record and agent error.
 

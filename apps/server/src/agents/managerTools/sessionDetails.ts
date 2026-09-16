@@ -3,7 +3,7 @@ import { contract } from "@trellis/api/contract";
 import { z } from "zod";
 
 export const sessionInput = contract.agentRuns.session["~orpc"].inputSchema!.extend({
-	include: z.array(z.enum(["tool", "lastTool", "lastMessage", "result", "error", "process"])).default([]),
+	include: z.array(z.enum(["model", "tool", "lastTool", "lastMessage", "result", "error", "process"])).default([]),
 });
 
 type Session = Awaited<ReturnType<TrellisClient["agentRuns"]["session"]>>;
@@ -11,6 +11,7 @@ type Field = z.infer<typeof sessionInput>["include"][number];
 
 export const sessionDetails = (session: Session, include: Field[], missingError?: string | null) => {
 	const details = {
+		model: session?.agent?.model ?? null,
 		tool: session?.agent?.tool ?? null,
 		lastTool: session?.agent?.lastTool ?? null,
 		lastMessage: session?.agent?.lastMessage ?? null,

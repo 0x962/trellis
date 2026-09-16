@@ -9,6 +9,7 @@ import { startNative } from "../../../../../src/services/agentRuns/nativeStart.t
 import { getRun } from "../../../../../src/services/agentRuns/queries.ts";
 import { reserve } from "../../../../../src/services/agentRuns/reserve.ts";
 import { prepareResume } from "../../../../../src/services/agentRuns/resume.ts";
+import { prepareSetModel } from "../../../../../src/services/agentRuns/setModel/setModel.ts";
 import { reserveRestart } from "../../../../../src/services/restartAgents/reserveRestart.ts";
 import type { IoCtx } from "../../../../../src/services/support.ts";
 import { create } from "../../../../../src/services/tickets.ts";
@@ -24,6 +25,7 @@ let attemptId: string;
 let sessionId: string;
 let from: string;
 let to: string;
+let behavior: string | undefined;
 beforeAll(async () => {
 	h = await serviceHarness();
 });
@@ -40,12 +42,13 @@ const ctx = (): IoCtx =>
 const deps = () => ({
 	workspace: async () => fixture.home,
 	runtime: async () => fixture.client,
-	env: { ...process.env, PATH: join(fixture.home, "bin") },
+	env: { ...process.env, PATH: join(fixture.home, "bin"), HARNESS_FIXTURE_BEHAVIOR: behavior },
 });
 const start: typeof startNative = (context, input) => startNative(context, input, deps());
 const request = () => ({ id: runId, accountId: "two", expectedTerminalId: attemptId, requestId: "account-switch" });
 beforeEach(async () => {
 	await h.reset();
+	behavior = undefined;
 	fixture = await harnessHostFixture({ nestedRuntime: true });
 	from = join(fixture.home, "one");
 	to = join(fixture.home, "two");
@@ -65,7 +68,7 @@ beforeEach(async () => {
 	await h.rebuild();
 	const ticket = await h.run((context, tx) => create(context, tx, { project: "SWITCH", title: "Continue this work" }));
 	const reserved = await h.run((context, tx) =>
-		reserve(context, tx, { ticket: ticket.id, personaId: "builder", accountId: "one" }),
+		reserve(context, tx, { ticket: ticket.id, personaId: "builder", accountId: "one", model: "sonnet" }),
 	);
 	if (reserved.replay) throw new Error("Expected a new assignment");
 	runId = reserved.run.id;
@@ -179,5 +182,61 @@ test("a system restart retains the assigned account after the default changes", 
 		await readFile(join(fixture.home, "harness-attempts", run.terminalId!, "launch.json"), "utf8"),
 	);
 	expect(descriptor.spec.env.CLAUDE_CONFIG_DIR).toBe(from);
+	await prepareStop(ctx(), { id: runId });
+}, 15000);
+
+test("a model override reaches start and resume without a new conversation", async () => {
+	const initial = JSON.parse(await readFile(join(fixture.home, "harness-attempts", attemptId, "launch.json"), "utf8"));
+	expect(initial.spec.args[initial.spec.args.indexOf("--model") + 1]).toBe("sonnet");
+	await prepareStop(ctx(), { id: runId });
+	const input = { ...request(), model: "opus" };
+	await prepareResume(ctx(), input, start);
+	const resumed = await h.read((tx) => getRun(tx, runId));
+	expect(resumed.sessionId).toBe(sessionId);
+	expect(resumed.workspaceId).toBe(fixture.home);
+	const launch = JSON.parse(
+		await readFile(join(fixture.home, "harness-attempts", resumed.terminalId!, "launch.json"), "utf8"),
+	);
+	expect(launch.spec.args[launch.spec.args.indexOf("--model") + 1]).toBe("opus");
+	await prepareResume(ctx(), input, start);
+	expect(await fixture.client.list()).toHaveLength(2);
+	await prepareStop(ctx(), { id: runId });
+	await prepareResume(
+		ctx(),
+		{ ...input, model: "sonnet", expectedTerminalId: resumed.terminalId!, requestId: "change-back" },
+		start,
+	);
+	const changedBack = await h.read((tx) => getRun(tx, runId));
+	expect(changedBack.sessionId).toBe(sessionId);
+	const lastLaunch = JSON.parse(
+		await readFile(join(fixture.home, "harness-attempts", changedBack.terminalId!, "launch.json"), "utf8"),
+	);
+	expect(lastLaunch.spec.args[lastLaunch.spec.args.indexOf("--model") + 1]).toBe("sonnet");
+	await prepareStop(ctx(), { id: runId });
+}, 15000);
+
+test("a running worker changes models without a manual stop and retains its assignment", async () => {
+	await prepareStop(ctx(), { id: runId });
+	behavior = "busy";
+	await prepareResume(ctx(), { id: runId, expectedTerminalId: attemptId, requestId: "busy-attempt" }, start);
+	const busy = await h.read((tx) => getRun(tx, runId));
+	expect((await fixture.client.inspect(busy.terminalId!)).activity?.state).toBe("working");
+	behavior = undefined;
+	const input = { id: runId, model: "opus", expectedTerminalId: busy.terminalId!, requestId: "live-model" };
+	await prepareSetModel(ctx(), input, start);
+	const changed = await h.read((tx) => getRun(tx, runId));
+	expect(changed.id).toBe(runId);
+	expect(changed.sessionId).toBe(sessionId);
+	expect(changed.workspaceId).toBe(fixture.home);
+	expect(changed.accountId).toBe("one");
+	expect(changed.closedAt).toBeNull();
+	expect((await fixture.client.inspect(busy.terminalId!)).status).toBe("exited");
+	expect((await fixture.client.inspect(changed.terminalId!)).agent?.model).toBe("opus");
+	await prepareSetModel(ctx(), input, start);
+	expect(await fixture.client.list()).toHaveLength(3);
+	await expect(prepareSetModel(ctx(), { ...input, requestId: "stale" }, start)).rejects.toMatchObject({
+		code: "INPUT_VALIDATION_FAILED",
+	});
+	expect((await fixture.client.inspect(changed.terminalId!)).status).toBe("running");
 	await prepareStop(ctx(), { id: runId });
 }, 15000);

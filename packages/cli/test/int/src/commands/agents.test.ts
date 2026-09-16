@@ -142,3 +142,47 @@ describe("agents refresh, stop, send, and output", () => {
 		expect(JSON.parse(asJson.stdout)).toEqual({ text });
 	});
 });
+
+test("agents start and resume pass their model overrides", async () => {
+	const started = await runCli(["agents", "start", personaId, "--ticket", "CDE-42", "--model", "sonnet"], {
+		"personas.get": persona(),
+		"agentRuns.start": agentRun(),
+	});
+	expect(started.code).toBe(0);
+	expect(started.calls[1]!.input).toEqual({ personaId, ticket: "CDE-42", model: "sonnet" });
+	const resumed = await runCli(
+		[
+			"agents",
+			"resume",
+			agentRunId,
+			"--model",
+			"opus",
+			"--expected-terminal-id",
+			"attempt",
+			"--request-id",
+			"model-switch",
+		],
+		{ "agentRuns.resume": agentRun() },
+	);
+	expect(resumed.code).toBe(0);
+	expect(resumed.calls[0]!.input).toEqual({
+		id: agentRunId,
+		model: "opus",
+		expectedTerminalId: "attempt",
+		requestId: "model-switch",
+	});
+});
+
+test("agents model changes a running agent", async () => {
+	const result = await runCli(
+		["agents", "model", agentRunId, "--model", "opus", "--expected-terminal-id", "attempt", "--request-id", "switch"],
+		{ "agentRuns.setModel": agentRun() },
+	);
+	expect(result.code).toBe(0);
+	expect(result.calls[0]!.input).toEqual({
+		id: agentRunId,
+		model: "opus",
+		expectedTerminalId: "attempt",
+		requestId: "switch",
+	});
+});

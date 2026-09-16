@@ -19,8 +19,13 @@ import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { startNative } from "./nativeStart.ts";
 import { getRun } from "./queries.ts";
 
-type Input = { id: string; accountId?: string; expectedTerminalId: string; requestId: string };
-export async function prepareResume(ctx: IoCtx, input: Input, start: typeof startNative = startNative) {
+type Input = { id: string; accountId?: string; model?: string; expectedTerminalId: string; requestId: string };
+export async function prepareResume(
+	ctx: IoCtx,
+	input: Input,
+	start: typeof startNative = startNative,
+	switchRunning = false,
+) {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	await ctx.newTx((tx) => assertResume(ctx.core, tx, run));
 	if (run.runtime !== "native" || !run.projectId || !run.personaId)
@@ -42,14 +47,42 @@ export async function prepareResume(ctx: IoCtx, input: Input, start: typeof star
 			"expectedTerminalId",
 			"This assignment has another attempt. Read its current session before you resume it.",
 		);
-	const previous = await nativeHost(ctx.home).status(input.expectedTerminalId);
-	if (previous.status !== "exited")
+	const host = nativeHost(ctx.home);
+	let previous = await host.status(input.expectedTerminalId);
+	if (previous.status !== "exited" && !switchRunning)
 		throw invalidInput("id", "Stop the prior process and confirm it exited before you resume the session.");
 	if (!previous.agent?.sessionId || !previous.launch)
 		throw invalidInput("id", "The prior attempt has no confirmed provider session to resume.");
 	const descriptor: HarnessDescriptor = JSON.parse(
 		await readFile(join(ctx.home, "harness-attempts", input.expectedTerminalId, "launch.json"), "utf8"),
 	);
+	if (switchRunning && previous.status !== "exited") {
+		assertProjectActive(ctx.core, run.projectId);
+		if (previous.status !== "running" || !previous.controllable)
+			throw invalidInput("id", "The runtime cannot control this agent. Inspect its current session.");
+		const eligible = await ctx.newTx((tx) =>
+			reserveRestart(
+				ctx.core,
+				tx,
+				{
+					runId: run.id,
+					previousAttemptId: input.expectedTerminalId,
+					attempt: { id: input.expectedTerminalId, token: "" },
+					providerSessionId: previous.agent!.sessionId!,
+					workspace: previous.launch!.cwd,
+					harness: descriptor.harness,
+					model: input.model,
+					done: false,
+				},
+				false,
+			),
+		);
+		if (!eligible) throw invalidInput("id", "This assignment or flow no longer permits a model change.");
+		if (previous.activity?.state === "working") await host.interrupt(input.expectedTerminalId);
+		await host.stop(input.expectedTerminalId);
+		previous = await host.status(input.expectedTerminalId);
+		if (previous.status !== "exited") throw invalidInput("id", "The previous process has not stopped.");
+	}
 	const reservation = await ctx.newTx(async (tx) => {
 		await tx.execute(sql`SELECT id FROM projects WHERE id=${run.projectId} FOR UPDATE`);
 		const replay = await replayRequest(ctx.core, tx, request);
@@ -74,7 +107,10 @@ export async function prepareResume(ctx: IoCtx, input: Input, start: typeof star
 			accountId: input.accountId ?? run.accountId,
 			config: {
 				...config,
-				harness: HarnessSchema.parse({ preset: descriptor.harness, model: previous.agent?.model ?? undefined }),
+				harness: HarnessSchema.parse({
+					preset: descriptor.harness,
+					model: input.model ?? previous.agent?.model ?? undefined,
+				}),
 			},
 			useDefault: false,
 		});
@@ -91,7 +127,7 @@ export async function prepareResume(ctx: IoCtx, input: Input, start: typeof star
 				providerSessionId: previous.agent!.sessionId!,
 				workspace: previous.launch!.cwd,
 				harness: descriptor.harness,
-				model: previous.agent?.model ?? undefined,
+				model: input.model ?? previous.agent?.model ?? undefined,
 				done: false,
 			},
 			true,

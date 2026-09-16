@@ -125,6 +125,11 @@ export const reserve = async (
 		useDefault: !resume,
 	});
 	config = selected.config;
+	if (input.model !== undefined) {
+		if (config.harness.preset === "custom")
+			throw invalidInput("model", "A custom command does not support a model override. Select a native harness.");
+		config = { ...config, harness: { ...config.harness, model: input.model } };
+	}
 	const previousAttemptId = existing?.terminalId ?? null;
 	const sessionId = resume ? existing!.sessionId! : config.harness.preset === "custom" ? randomUUID() : null;
 	const [run] =

@@ -246,3 +246,32 @@ test("managers can inspect accounts and select one without account administratio
 		{ id: accountId, accountId, expectedTerminalId: "old-attempt", requestId: "switch" },
 	]);
 });
+
+test.each(["start", "resume"])("manager %s accepts and forwards a model override", async (action) => {
+	const calls: unknown[] = [];
+	const tools = managerTools(async (_operation, input) => {
+		calls.push(input);
+		return {};
+	});
+	const id = "01M277VFQA2HAWB58T9NTW4MX5";
+	const input =
+		action === "start"
+			? { personaId: id, ticket: "TRL-42", model: " sonnet " }
+			: { id, expectedTerminalId: "attempt", requestId: "resume-model", model: " opus " };
+	await tools.call(`trellis_agentRuns_${action}`, input);
+	expect(calls[0]).toEqual({ ...input, model: input.model.trim() });
+	await expect(tools.call(`trellis_agentRuns_${action}`, { ...input, model: "  " })).rejects.toThrow();
+});
+
+test("manager can change and inspect an active agent model", async () => {
+	const calls: unknown[] = [];
+	const tools = managerTools(async (operation, input) => {
+		calls.push({ operation, input });
+		return operation === "agentRuns.session" ? { agent: { model: "opus" } } : {};
+	});
+	const id = "01M277VFQA2HAWB58T9NTW4MX5";
+	const input = { id, model: "opus", expectedTerminalId: "attempt", requestId: "model-change" };
+	await tools.call("trellis_agentRuns_setModel", input);
+	expect(calls[0]).toEqual({ operation: "agentRuns.setModel", input });
+	expect(await tools.call("trellis_agentRuns_session", { id, include: ["model"] })).toMatchObject({ model: "opus" });
+});

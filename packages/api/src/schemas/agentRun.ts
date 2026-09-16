@@ -44,6 +44,12 @@ export type AgentRun = z.infer<typeof AgentRunSchema>;
 export const AgentRunStartInputSchema = z
 	.strictObject({
 		personaId: UlidSchema,
+		model: z
+			.string()
+			.trim()
+			.min(1)
+			.optional()
+			.describe("Model ID or alias for this assignment. Defaults to the project's harness model."),
 		accountId: UlidSchema.optional().describe(
 			"Configured harness account. Select an enabled account from harnessAccounts.list.",
 		),
