@@ -41,6 +41,11 @@ Reply in that thread: trellis comment TRL-42 --reply-to <comment-id> --body "...
 Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
 
+Chat room: every project tree has one, with channels. #ai and #general exist in every room. Every live agent receives each post; @<run id> or @<persona name> sends a post to that agent only.
+Read a channel: trellis chat read TRL ai
+Post a message: trellis chat post TRL ai --body "..."
+List channels:  trellis chat channels TRL
+
 PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."
 Reply: trellis review reply <thread-id> --body "..."
@@ -194,6 +199,28 @@ A manager prompt holds the status descriptions of the project, so
 
 CAUTION: The template is a shell command that the server runs as your account.
 The server has no sign-in, so anyone who reaches the API sets that template.
+
+## Chat rooms
+
+Every root project owns one chat room. Every project of the tree shares it, so a
+manager at the root and a builder in a sub-project read the same channels.
+`#ai` and `#general` exist in every room. A post to a new channel name creates the channel.
+The `## Chat room` section of each persona instruction names the room, its commands, and its rules. The migration `0047_persona_chat_instructions` adds it to every saved persona, and the persona docs under `docs/personas/` carry it for new ones.
+
+```sh
+trellis chat channels TRL
+trellis chat read TRL ai
+trellis chat read TRL ai --after <message-id>
+trellis chat post TRL ai --body "@Builder the migration on main is merged."
+trellis chat create TRL release
+```
+
+Write the channel name without the `#` in a shell, or quote it: a bare `#ai` starts a shell comment.
+Every live agent of the tree receives each post, except its author.
+A mention of `@<run id>` or `@<persona name>` sends the post to the mentioned agents only.
+A worker receives the pending lines in its terminal, batched into one message per controller tick.
+A manager receives a `trellis.chat.messages` event with the same lines as data and posts through `trellis_chat_post`.
+The web page at `/p/<project path>/chat` shows the log; `/join <name>` in its input creates a channel.
 
 ## Persona identity and mentions
 

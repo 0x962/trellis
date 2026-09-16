@@ -2,6 +2,7 @@ import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { Tx } from "../../db/tx.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
+import { dispatchChat } from "../chat/dispatch.ts";
 import { dispatchMentions } from "../commentMentions/dispatch.ts";
 import type { ServiceCtx } from "../support.ts";
 import { agentContext } from "./agentContext/index.ts";
@@ -19,6 +20,7 @@ type Ctx = ServiceCtx & { publicUrl: string };
 export const dispatch = async (ctx: Ctx) => {
 	const sessions = await readRuntimeSessions(ctx.home);
 	await dispatchMentions(ctx, sessions);
+	await dispatchChat(ctx, sessions);
 	await ctx.newTx((tx) => reconcile({ now: ctx.now() }, tx, { sessions }));
 	const deliveries: Dispatch[] = [];
 	for (let i = 0; i < 20; i++) {

@@ -1,6 +1,7 @@
 import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
 import { os } from "./base.ts";
+import { chat } from "./chat.ts";
 import { comments } from "./comments.ts";
 import { controller } from "./controller.ts";
 import { evidence } from "./evidence.ts";
@@ -33,6 +34,7 @@ export const router = os.router({
 	tickets,
 	timeline,
 	comments,
+	chat,
 	attachments,
 	pullRequests,
 	search,

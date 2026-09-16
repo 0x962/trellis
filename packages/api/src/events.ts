@@ -16,6 +16,8 @@ export const eventNames = [
 	"comment.created",
 	"comment.updated",
 	"comment.deleted",
+	"chat.message",
+	"chat.channels",
 	"attachment.created",
 	"attachment.deleted",
 	"statuses.changed",
@@ -83,6 +85,18 @@ export const CommentEventPayloadSchema = TicketChildEventPayloadSchema.extend({
 	resolved: z.boolean().optional(),
 });
 
+// `id` is the message. `channel` is the stored channel name, without `#`.
+export const ChatMessageEventPayloadSchema = z.object({
+	id: UlidSchema,
+	projectId: UlidSchema,
+	channel: z.string(),
+});
+
+// The channel list of `projectId` changed.
+export const ChatChannelsEventPayloadSchema = z.object({
+	projectId: UlidSchema,
+});
+
 export const StatusesChangedPayloadSchema = z.object({
 	projectId: UlidSchema,
 });
@@ -139,6 +153,8 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("comment.created", CommentEventPayloadSchema),
 	typed("comment.updated", CommentEventPayloadSchema),
 	typed("comment.deleted", CommentEventPayloadSchema),
+	typed("chat.message", ChatMessageEventPayloadSchema),
+	typed("chat.channels", ChatChannelsEventPayloadSchema),
 	typed("attachment.created", TicketChildEventPayloadSchema),
 	typed("attachment.deleted", TicketChildEventPayloadSchema),
 	typed("statuses.changed", StatusesChangedPayloadSchema),

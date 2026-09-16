@@ -9,6 +9,7 @@ const operations = {
 	personas: ["list"],
 	tickets: ["list", "counts", "get", "create", "update", "move", "updateMany"],
 	comments: ["thread", "create", "update", "resolve"],
+	chat: ["channels", "createChannel", "list", "post"],
 	timeline: ["list"],
 	brief: ["get"],
 	pullRequests: ["list", "link", "unlink", "refresh"],
