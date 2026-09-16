@@ -5,6 +5,7 @@ import { Dialog } from "../../primitives/Dialog";
 import { IconButton } from "../../primitives/IconButton";
 import { Switch } from "../../primitives/Switch";
 import { Tooltip } from "../../primitives/Tooltip";
+import { QuotaWindows } from "../QuotaWindows";
 
 type Account = {
 	id: string;
@@ -104,24 +105,7 @@ export function HarnessAccountCard({
 				{label}
 			</p>
 			{quota?.detail && <p className="text-sm text-fg-muted text-pretty">{quota.detail}</p>}
-			{quota?.windows.map((window) => (
-				<div key={window.id} className="flex flex-col gap-1">
-					<div className="flex justify-between gap-2 text-sm">
-						<span>{window.label}</span>
-						<span className="tnum">{window.usedPercent}% used</span>
-					</div>
-					<meter
-						className="harness-account-meter"
-						min={0}
-						max={100}
-						value={window.usedPercent}
-						aria-label={`${account.name}: ${window.label}`}
-					/>
-					{window.resetsAt && (
-						<p className="text-xs text-fg-muted tnum">Resets {new Date(window.resetsAt).toLocaleString()}</p>
-					)}
-				</div>
-			))}
+			{quota && <QuotaWindows name={account.name} windows={quota.windows} />}
 			<p className="break-all font-mono text-xs text-fg-faint">{account.profilePath}</p>
 			<Switch
 				label={`Allow managers to use ${account.name}`}

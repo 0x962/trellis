@@ -89,7 +89,7 @@ trellis list --project TRL --json
 ### The pages
 
 `/` sends you to Needs you. The sidebar holds Needs you, Search, All tickets,
-Pull requests, Personas, Flows, and the project tree.
+Pull requests, Personas, Flows, Usage, and the project tree.
 
 | Path | Page |
 |---|---|
@@ -104,6 +104,7 @@ Pull requests, Personas, Flows, and the project tree.
 | `/t/TRL-42` | One ticket |
 | `/search` | Search |
 | `/ai/personas` | The personas |
+| `/usage` | Subscription quota, token cost per day, and a breakdown by ticket, persona, project, kind, account, model, or harness |
 | `/settings` | The settings |
 | `/setup` | The first visit, and the new project step |
 

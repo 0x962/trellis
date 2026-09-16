@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { AgentRunStartInput, Persona } from "@trellis/api";
+import { supportsModel } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { type ServiceCtx as CoreCtx, requireActor } from "../../context.ts";
@@ -9,8 +10,8 @@ import { fail, invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
 import { capacityAvailable } from "../assignments/capacity.ts";
+import type { CapacityObservation } from "../assignments/occupiesSlot/index.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
-import { assertTicketReady } from "../controller/nextActions/assertTicketReady.ts";
 import { assignment } from "../controller/nextActions/assignment.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { activeNotes } from "../notes/notes.ts";
@@ -35,7 +36,7 @@ export const reserve = async (
 	tx: Tx,
 	input: AgentRunStartInput,
 	confirmedExited: string[] = [],
-	options?: { delegated: boolean; config: Awaited<ReturnType<typeof projectLaunchConfig>> },
+	options?: { delegated?: boolean; config?: Awaited<ReturnType<typeof projectLaunchConfig>> } & CapacityObservation,
 ) => {
 	const actor = requireActor(ctx);
 	if (input.project && actor.kind === "agent" && !options?.delegated) {
@@ -84,13 +85,12 @@ export const reserve = async (
 	await assertNativeWorkEnabled(tx);
 	if (ticket !== null) {
 		await assertAssignmentOwner(ctx, tx, project.id);
-		await assertTicketReady(ctx, tx, { ticketId: ticket.id, projectId: project.id });
 		const assigned = await rows(
 			tx,
 			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket.id} AND persona_id=${persona.id} AND runtime='native' AND closed_at IS NULL LIMIT 1`,
 		);
 		if (assigned.length > 0) throw fail("DUPLICATE", { field: "active persona assignment on this ticket" });
-		if (!(await capacityAvailable(tx, { projectId: project.id })))
+		if (!(await capacityAvailable(tx, { projectId: project.id, sessions: options?.sessions })))
 			throw fail("DUPLICATE", { field: "project concurrency limit" });
 	}
 	const projectPath = pathOf(ctx.cache, project.id);
@@ -125,6 +125,13 @@ export const reserve = async (
 		useDefault: !resume,
 	});
 	config = selected.config;
+	if (input.model !== undefined) {
+		if (config.harness.preset === "custom")
+			throw invalidInput("model", "A custom command does not support a model override. Select a native harness.");
+		if (!supportsModel(config.harness.preset, input.model))
+			throw invalidInput("model", `Select a model supported by ${config.harness.preset} from models.list.`);
+		config = { ...config, harness: { ...config.harness, model: input.model } };
+	}
 	const previousAttemptId = existing?.terminalId ?? null;
 	const sessionId = resume ? existing!.sessionId! : config.harness.preset === "custom" ? randomUUID() : null;
 	const [run] =
@@ -177,6 +184,6 @@ export const reserve = async (
 		resume,
 		previousAttemptId,
 		previousAccountId: existing?.accountId ?? null,
-		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || (ticket === null ? "Not configured" : "Use the agent workspace.")}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}${notes.length === 0 ? "" : `\n\n${notes.join("\n")}`}`,
+		context: `${context}\nConcurrency limit: ${config.concurrency} concurrent active worker turns in this project.\nProject directory: ${config.directory || (ticket === null ? "Not configured" : "Use the agent workspace.")}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}${notes.length === 0 ? "" : `\n\n${notes.join("\n")}`}`,
 	};
 };

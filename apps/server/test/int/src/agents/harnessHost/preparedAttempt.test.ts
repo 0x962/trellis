@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import type { ChildProcess } from "node:child_process";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { fromHarnessModel, HARNESS_DEFAULT_MODELS, toHarnessModel } from "@trellis/api";
 import type { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { HarnessHost } from "../../../../../src/agents/harnessHost/harnessHost.ts";
 import { harnessHostFixture } from "../../../../helpers/harnessHostFixture.ts";
@@ -20,7 +21,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 	"%s resumes a prepared attempt after the host exits before process launch",
 	async (harness) => {
 		await host.prepare(
-			{ id: "prepared", harness, cwd: home, prompt: "restart notice", model: "saved-model" },
+			{ id: "prepared", harness, cwd: home, prompt: "restart notice", model: HARNESS_DEFAULT_MODELS[harness] },
 			`provider-${harness}`,
 		);
 		const replacement = new HarnessHost({
@@ -32,7 +33,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 		});
 		const result = await replacement.startPrepared("prepared");
 		expect(result.process.agent?.sessionId).toBe(`provider-${harness}`);
-		expect(result.process.agent?.model).toBe("saved-model");
+		expect(result.process.agent?.model).toBe(HARNESS_DEFAULT_MODELS[harness]);
 		expect(result.process.acknowledgedMessageIds).toContain("prepared");
 		expect((await client.list()).filter((p) => p.id === "prepared")).toHaveLength(1);
 		await host.stop("prepared");
@@ -113,15 +114,15 @@ test.each([
 	const fresh = await host.prepare({ ...input, id: "default-model" });
 	expect(selectedModel(fresh.spec.args)).toBe(model);
 	const started = await host.startPrepared("default-model");
-	expect(started.process.agent?.model).toBe(model);
+	expect(started.process.agent?.model).toBe(fromHarnessModel(harness, model));
 	await host.stop("default-model");
 	const resumed = await host.prepare({ ...input, id: "saved-session-model" }, `provider-${harness}`);
 	expect(selectedModel(resumed.spec.args)).toBeUndefined();
 	for (const resume of [false, true]) {
 		const explicit = await host.prepare(
-			{ ...input, id: `explicit-model-${resume}`, model: "selected-model" },
+			{ ...input, id: `explicit-model-${resume}`, model: HARNESS_DEFAULT_MODELS[harness] },
 			resume ? `provider-${harness}` : undefined,
 		);
-		expect(selectedModel(explicit.spec.args)).toBe("selected-model");
+		expect(selectedModel(explicit.spec.args)).toBe(toHarnessModel(harness, HARNESS_DEFAULT_MODELS[harness]));
 	}
 });

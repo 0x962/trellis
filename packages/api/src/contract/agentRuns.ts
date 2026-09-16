@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
+import { ModelIdSchema } from "../models/models.ts";
 import { AgentRunListInputSchema, AgentRunSchema, AgentRunStartInputSchema } from "../schemas/agentRun.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
 import { base } from "./base.ts";
@@ -59,6 +60,21 @@ const sessionSchema = z.object({
 	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
+	setModel: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "POST",
+			path: "/agent-runs/{id}/model",
+			summary: "Change an agent's model, interrupt its active turn, and resume the same conversation and workspace.",
+		})
+		.input(
+			idInput.extend({
+				model: ModelIdSchema,
+				expectedTerminalId: z.string().min(1),
+				requestId: z.string().min(1).max(200),
+			}),
+		)
+		.output(AgentRunSchema),
 	resume: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({
@@ -70,6 +86,9 @@ export const agentRuns = {
 		.input(
 			idInput.extend({
 				accountId: UlidSchema.optional(),
+				model: ModelIdSchema.optional().describe(
+					"Canonical model ID from models.list for this resume. Defaults to the previous attempt's model.",
+				),
 				expectedTerminalId: z.string().min(1),
 				requestId: z.string().min(1).max(200),
 			}),

@@ -7,6 +7,7 @@ export * from "./events.ts";
 export * from "./flowGraph.ts";
 export * from "./harness/harness.ts";
 export * from "./instructions.ts";
+export * from "./models/models.ts";
 export * from "./pair.ts";
 export * from "./query-keys.ts";
 export * from "./refs.ts";

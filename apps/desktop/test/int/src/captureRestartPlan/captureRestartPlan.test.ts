@@ -106,11 +106,48 @@ test("large active launch arguments and retired metadata preserve only the activ
 	});
 	expect(Buffer.byteLength(saved)).toBeLessThan(2000);
 });
-test("large runtime metadata still blocks capture for an unknown process", async () => {
+test("large runtime metadata still records an unknown process as not saved", async () => {
 	largeSessions();
 	sessions[0]!.status = "unknown";
-	await expect(captureRestartPlan(home, source, target)).rejects.toThrow("Cannot confirm ownership of terminal active");
-	await expect(readFile(join(home, "restart-plan.json"))).rejects.toMatchObject({ code: "ENOENT" });
+	await captureRestartPlan(home, source, target);
+	const plan = JSON.parse(await readFile(join(home, "restart-plan.json"), "utf8"));
+	expect(plan.sessions).toHaveLength(1);
+	expect(plan.sessions[0]).toMatchObject({
+		runId: "run-active",
+		previousAttemptId: "active",
+		done: true,
+		outcome: "failed",
+		error: "Trellis cannot confirm which process owns terminal active (status unknown). It was not saved for resume.",
+	});
+});
+test("a plan keeps the failed agents of the previous update beside the new live ones", async () => {
+	await captureRestartPlan(home, source, target);
+	const first = JSON.parse(await readFile(join(home, "restart-plan.json"), "utf8"));
+	first.sessions.push({
+		...first.sessions[0],
+		runId: "run-lost",
+		previousAttemptId: "lost",
+		error: "The previous process of this agent (attempt lost) is still unknown, not stopped.",
+	});
+	await writeFile(join(home, "restart-plan.json"), JSON.stringify(first));
+	sessions = [session("fresh")];
+	await descriptor("fresh");
+	await captureRestartPlan(home, source, target);
+	const plan = JSON.parse(await readFile(join(home, "restart-plan.json"), "utf8"));
+	expect(plan.id).not.toBe(first.id);
+	expect(plan.sessions.map((entry: { runId: string }) => entry.runId).sort()).toEqual([
+		"run-active",
+		"run-fresh",
+		"run-lost",
+	]);
+	expect(plan.sessions.find((entry: { runId: string }) => entry.runId === "run-lost")).toMatchObject({
+		done: true,
+		outcome: "failed",
+		error: "The previous process of this agent (attempt lost) is still unknown, not stopped.",
+	});
+	expect(plan.sessions.find((entry: { runId: string }) => entry.runId === "run-active")).toMatchObject({
+		attempt: first.sessions[0].attempt,
+	});
 });
 test("capture preserves a pending plan after the runtime stops", async () => {
 	await captureRestartPlan(home, source, target);
@@ -137,30 +174,43 @@ test("raw terminals without agent ownership do not become resumed agents", async
 	await captureRestartPlan(home, source, target);
 	expect(JSON.parse(await readFile(join(home, "restart-plan.json"), "utf8")).sessions).toEqual([]);
 });
-for (const [name, change] of [
+for (const [name, change, error] of [
 	[
 		"unknown process",
 		() => {
 			sessions[0]!.status = "unknown";
 		},
+		"Trellis cannot confirm which process owns terminal active (status unknown). It was not saved for resume.",
 	],
 	[
 		"uncontrolled process",
 		() => {
 			sessions[0]!.controllable = false;
 		},
+		"Trellis cannot confirm which process owns terminal active (status running). It was not saved for resume.",
 	],
 	[
 		"missing provider session",
 		() => {
 			sessions[0]!.agent = null;
 		},
+		"Agent run-active has no confirmed provider session yet. It was not saved for resume.",
 	],
-	["custom harness", () => descriptor("active", "custom")],
-	["unknown assignment", () => descriptor("active", "codex", "")],
+	[
+		"custom harness",
+		() => descriptor("active", "custom"),
+		"Agent run-active runs a custom harness, which cannot resume a conversation. It was not saved for resume.",
+	],
+	[
+		"unknown assignment",
+		() => descriptor("active", "codex", ""),
+		"Terminal active has no saved agent assignment. It was not saved for resume.",
+	],
 ] as const)
-	test(`${name} blocks capture before shutdown`, async () => {
+	test(`${name} is recorded as not saved and the update continues`, async () => {
 		await change();
-		await expect(captureRestartPlan(home, source, target)).rejects.toThrow();
-		await expect(readFile(join(home, "restart-plan.json"))).rejects.toMatchObject({ code: "ENOENT" });
+		await captureRestartPlan(home, source, target);
+		const plan = JSON.parse(await readFile(join(home, "restart-plan.json"), "utf8"));
+		expect(plan.sessions).toHaveLength(1);
+		expect(plan.sessions[0]).toMatchObject({ previousAttemptId: "active", done: true, outcome: "failed", error });
 	});

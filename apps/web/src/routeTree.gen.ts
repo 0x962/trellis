@@ -17,6 +17,7 @@ import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SetupRouteImport } from './routes/setup'
+import { Route as UsageRouteImport } from './routes/usage'
 import { Route as AiFlowsRouteImport } from './routes/ai.flows'
 import { Route as AiPersonasRouteImport } from './routes/ai.personas'
 import { Route as AllTableRouteImport } from './routes/all_.table'
@@ -65,6 +66,11 @@ const SetupRoute = SetupRouteImport.update({
   path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UsageRoute = UsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AiFlowsRoute = AiFlowsRouteImport.update({
   id: '/ai/flows',
   path: '/ai/flows',
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
+  '/usage': typeof UsageRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
   '/ai/flows': typeof AiFlowsRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
+  '/usage': typeof UsageRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
   '/ai/flows': typeof AiFlowsRoute
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
+  '/usage': typeof UsageRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
   '/ai/flows': typeof AiFlowsRoute
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/setup'
+    | '/usage'
     | '/p/$'
     | '/t/$identifier'
     | '/ai/flows'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/setup'
+    | '/usage'
     | '/p/$'
     | '/t/$identifier'
     | '/ai/flows'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/setup'
+    | '/usage'
     | '/p/$'
     | '/t/$identifier'
     | '/ai/flows'
@@ -216,6 +228,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SetupRoute: typeof SetupRoute
+  UsageRoute: typeof UsageRoute
   PSplatRouteRoute: typeof PSplatRouteRoute
   TIdentifierRouteRoute: typeof TIdentifierRouteRoute
   AiFlowsRoute: typeof AiFlowsRoute
@@ -283,6 +296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/usage': {
+      id: '/usage'
+      path: '/usage'
+      fullPath: '/usage'
+      preLoaderRoute: typeof UsageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ai/flows': {
       id: '/ai/flows'
       path: '/ai/flows'
@@ -344,6 +364,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SetupRoute: SetupRoute,
+  UsageRoute: UsageRoute,
   PSplatRouteRoute: PSplatRouteRoute,
   TIdentifierRouteRoute: TIdentifierRouteRoute,
   AiFlowsRoute: AiFlowsRoute,

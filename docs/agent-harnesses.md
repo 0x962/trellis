@@ -7,7 +7,7 @@ The host reads native session events and checks the actual process.
 ## Project settings
 
 Open **Project → Manager → General** to select the repository directory and persona.
-Set the concurrency limit for the project.
+Set the limit for concurrent active worker turns in the project. Idle workers keep their assignments without occupying slots.
 A child project with an empty directory uses the nearest parent with a configured directory.
 Trellis trusts configured directories and agent workspaces.
 

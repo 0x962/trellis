@@ -8,6 +8,7 @@ import { evidence } from "./evidence.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
+import { models } from "./models.ts";
 import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
 import { personas } from "./personas.ts";
@@ -19,13 +20,16 @@ import { statuses } from "./statuses.ts";
 import { submanagers } from "./submanagers.ts";
 import { system } from "./system.ts";
 import { tickets } from "./tickets.ts";
+import { usage } from "./usage.ts";
 
 export type { ProcedureContext } from "./base.ts";
 
 // The whole contract, implemented. Both HTTP handlers serve this one router.
 export const router = os.router({
+	models,
 	submanagers,
 	harnessAccounts,
+	usage,
 	needsYou,
 	evidence,
 	controller,

@@ -1,5 +1,6 @@
 import {
 	ArrowsDownUp,
+	ChartLine,
 	FolderOpen,
 	FolderPlus,
 	Funnel,
@@ -34,6 +35,7 @@ const icons: Record<string, ReactNode> = {
 	"goto.all": <ListBullets />,
 	"goto.board": <SquaresFour />,
 	"goto.table": <Table />,
+	"goto.usage": <ChartLine />,
 	"goto.settings": <Gear />,
 	"goto.project": <FolderOpen />,
 	"view.filter": <Funnel />,
@@ -83,6 +85,7 @@ export const gotoRows = (deps: RowDeps): PaletteRow[] => {
 	const runs: Record<string, () => void> = {
 		"goto.needsYou": run(deps, () => deps.action.navigate("/needs-you")),
 		"goto.all": run(deps, () => deps.action.navigate("/all")),
+		"goto.usage": run(deps, () => deps.action.navigate("/usage")),
 		"goto.settings": run(deps, () => deps.action.navigate("/settings")),
 		"goto.project": () => deps.openSubmenu({ kind: "goto" }),
 	};

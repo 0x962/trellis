@@ -3,8 +3,10 @@ import * as actors from "./actors.ts";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
+import { readRuntimeSessions } from "./agentRuns/liveState.ts";
 import { readNativeWork, setNativeWork } from "./agentRuns/nativeControl.ts";
 import { prepareResume } from "./agentRuns/resume.ts";
+import { prepareSetModel } from "./agentRuns/setModel/setModel.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
 import * as attachments from "./attachments.ts";
@@ -64,6 +66,7 @@ import type { IoCtx, PrepareCtx } from "./support.ts";
 import * as system from "./system.ts";
 import * as tickets from "./tickets.ts";
 import * as timeline from "./timeline.ts";
+import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
 
 // The `family` selects the context shape. The `kind` sets the worker queue
 // priority before the service starts its transaction.
@@ -105,15 +108,24 @@ const agentMutation = (prepare: Prepare) =>
 	);
 
 export const services = {
-	"submanagers.list": core("read", listSubmanagers),
+	"submanagers.list": prepared(
+		"read",
+		async (ctx, input) => ({ ...input, sessions: await readRuntimeSessions(ctx.home) }),
+		(ctx, tx, input) => listSubmanagers(ctx.core, tx, input),
+	),
 	"submanagers.start": agentMutation(startSubmanager),
-	"submanagers.resize": core("mutation", resizeSubmanager),
+	"submanagers.resize": prepared(
+		"mutation",
+		async (ctx, input) => ({ ...input, sessions: await readRuntimeSessions(ctx.home) }),
+		(ctx, tx, input) => resizeSubmanager(ctx.core, tx, input),
+	),
 	"submanagers.retire": prepared("mutation", retireSubmanager, agentTerminal.result),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
 	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),
 	"harnessAccounts.remove": io("mutation", harnessAccounts.remove),
 	"harnessAccounts.quota": prepared("read", prepareQuota, agentTerminal.result),
+	"usage.report": prepared("read", prepareUsageReport, agentTerminal.result),
 	"flowExecutions.start": core("mutation", startFlowExecution),
 	"flowExecutions.get": core("read", getFlowExecution),
 	"flowExecutions.list": core("read", listFlowExecutions),
@@ -182,6 +194,7 @@ export const services = {
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
 	"agentRuns.start": agentMutation(agentRuns.prepareStart),
 	"agentRuns.resume": agentMutation(prepareResume),
+	"agentRuns.setModel": agentMutation(prepareSetModel),
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
 	"personas.list": core("read", personas.list),

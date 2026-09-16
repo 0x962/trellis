@@ -144,7 +144,7 @@ A run carries one state.
 - A ticket that is already done or canceled.
 - A project with no repository.
 - A second live manager for the same project.
-- A ticket start when the project already runs its concurrency limit of ticket agents. The limit runs from 1 to 64 and defaults to 3. The manager is outside that count.
+- A ticket start when active worker turns fill the project's concurrency limit. The limit runs from 1 to 64 and defaults to 3. Managers and confirmed idle workers are outside that count.
 
 A project keeps one manager. Its first start names it, and every later start
 takes that same row, so the name holds. A manager that already has a Superset
@@ -276,6 +276,16 @@ The notification retains the assignment ID and session from the comment write.
 An edit notifies only newly mentioned personas. Code spans and code blocks do not notify agents.
 The comment shows whether the notification is queued, delivered, failed, or uncertain.
 
+## Worker slots
+
+A slot represents an active worker turn that consumes tokens or executes tools.
+An idle worker, held conversation, or retained assignment uses no slot. The assignment still identifies its owner.
+A worker uses a slot again when its next turn starts. Managers check capacity before a follow-up message or resume.
+A launch reserves a slot until its first prompt receipt. Unknown runtime state retains capacity until reconciliation.
+Submanager budgets limit active turns across their scope. Child budgets reserve part of the parent budget for that subtree.
+
+[The saved personas](personas.json) include the active capacity instructions for managers and idle capacity instructions for workers.
+
 ## Manager capacity waits
 
 Record each notification outcome with `trellis manager handle` or the `trellis_controller_handle` tool.
@@ -316,7 +326,7 @@ A human response prompts the manager to read the answer. It does not grant appro
 These conditions notify the manager even when worker capacity is full. A worker assignment still requires a free slot.
 Each saved wait survives a restart and appears through `trellis manager actions` and `trellis_controller_actions`.
 The manager receives its `waitFor` details in `nextActions`. Reuse its `assignmentRequestId` for the resulting worker assignment.
-An outstanding condition blocks `agentRuns.start` even with a different request ID. Cancel the wait to withdraw that prerequisite.
+A wait never blocks `agentRuns.start`. A start during a wait assigns the waiting action to the new worker and retires the wait.
 
 If the condition changes, record the new `waitFor` in a later dispatch that includes the action.
 Trellis cancels the previous action and gives the replacement a new assignment identifier.

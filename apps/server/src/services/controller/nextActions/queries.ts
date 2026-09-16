@@ -5,6 +5,7 @@ import { iso, rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
 import { invalidInput } from "../../../errors.ts";
 import { capacityAvailable } from "../../assignments/capacity.ts";
+import type { CapacityObservation } from "../../assignments/occupiesSlot/index.ts";
 import { isManaged, managerScope } from "../../submanagers/scope.ts";
 import { conditionMet } from "./condition.ts";
 
@@ -50,7 +51,7 @@ export const enabled = async (tx: Tx, input: { projectId: string; ticketProjectI
 	return state!.allowed;
 };
 
-export const refresh = async (tx: Tx, input: { now: Date; projectId?: string }) => {
+export const refresh = async (tx: Tx, input: { now: Date; projectId?: string } & CapacityObservation) => {
 	const capacity = new Map<string, boolean>();
 	const permissions = new Map<string, boolean>();
 	for (const action of await pending(tx, input)) {
@@ -63,7 +64,10 @@ export const refresh = async (tx: Tx, input: { now: Date; projectId?: string }) 
 		if (!permissions.has(scope))
 			permissions.set(scope, await enabled(tx, { projectId: action.projectId, ticketProjectId: ticket.projectId }));
 		if (permissions.get(scope) && !action.waitFor && !capacity.has(ticket.projectId))
-			capacity.set(ticket.projectId, await capacityAvailable(tx, { projectId: ticket.projectId }));
+			capacity.set(
+				ticket.projectId,
+				await capacityAvailable(tx, { projectId: ticket.projectId, sessions: input.sessions }),
+			);
 		const ready =
 			permissions.get(scope) &&
 			(action.waitFor
