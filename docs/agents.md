@@ -217,7 +217,7 @@ The server has no sign-in, so anyone who reaches the API sets that template.
 Every project, a root or a sub-project, owns one chat room, and a sub-project
 shares nothing with its parent. A manager talks to the agents of its own project.
 `#ai` and `#general` exist in every room. A post to a new channel name creates the channel.
-The `## Chat room` section of each persona instruction names the room, its commands, and its rules. The migration `0047_persona_chat_instructions` adds it to every saved persona, and the persona docs under `docs/personas/` carry it for new ones.
+The `## Chat room` section of each persona instruction names the room, its commands, and its rules. The migration `0047_persona_chat_instructions` adds it to every saved persona. `docs/personas.json` holds a dump of the table.
 
 ```sh
 trellis chat channels TRL

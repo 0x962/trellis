@@ -382,7 +382,7 @@ Only the current scope owner can assign workers inside a delegation. A parent ca
 Ticket workers remain assigned. Wait handoff retains each assignment request identifier. Retired deliveries retain their history with a canceled send state when needed.
 An unexpected manager exit retains its delegation. The parent sees that exit and can resume the saved conversation.
 Migration `0049_manager_delegations` extends saved manager instructions without a conversation reset.
-The source instructions live in [manager-delegation.md](personas/manager-delegation.md).
+The instructions live in the `## Autonomous project delegation` section of the manager persona.
 
 ### Harness accounts
 
@@ -404,7 +404,7 @@ A resume retains the assignment, workspace, and provider conversation. Its targe
 Claude, Codex, and Pi transfer the selected session file. OpenCode exports and imports that session through its CLI.
 The runtime checks the resumed provider session identifier before it accepts the process.
 Existing manager personas receive the account instructions in migration `0048_harness_accounts`.
-The source instructions live in [manager-harness-accounts.md](personas/manager-harness-accounts.md).
+The instructions live in the `## Harness accounts` section of the manager persona.
 
 ### Manager controller
 
