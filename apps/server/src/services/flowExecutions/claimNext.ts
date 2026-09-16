@@ -9,10 +9,11 @@ import { invalidInput } from "../../errors.ts";
 import { readNativeWork } from "../agentRuns/nativeControl.ts";
 import { reserve } from "../agentRuns/reserve.ts";
 import { capacityAvailable } from "../assignments/capacity.ts";
+import type { CapacityObservation } from "../assignments/occupiesSlot/index.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { readExecution } from "./queries.ts";
 import { saveState } from "./saveState.ts";
-export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) {
+export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string } & CapacityObservation) {
 	const execution = await readExecution(tx, input.id, true);
 	const state = advanceFlow(execution.doc, execution.state, { type: "tick" }, ctx.now.getTime());
 	await saveState(ctx, tx, execution, state);
@@ -23,7 +24,7 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	if (config.dispatchPaused) return null;
 	if (config.ade !== "native" || config.harness.preset === "custom")
 		throw invalidInput("project", "The flow requires a built-in harness.");
-	if (!(await capacityAvailable(tx, { projectId: execution.project_id }))) return null;
+	if (!(await capacityAvailable(tx, { projectId: execution.project_id, sessions: input.sessions }))) return null;
 	const assigned = await rows<{ personaId: string | null }>(
 		tx,
 		sql`SELECT persona_id AS "personaId" FROM agent_runs
@@ -34,11 +35,17 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	);
 	if (!action) return null;
 	const personaId = action.personaId ?? execution.default_persona_id;
-	const reservation = await reserve(ctx, tx, {
-		ticket: execution.ticket_id,
-		personaId,
-		requestId: createHash("sha256").update(`${execution.id}:${action.key}`).digest("hex"),
-	});
+	const reservation = await reserve(
+		ctx,
+		tx,
+		{
+			ticket: execution.ticket_id,
+			personaId,
+			requestId: createHash("sha256").update(`${execution.id}:${action.key}`).digest("hex"),
+		},
+		[],
+		{ sessions: input.sessions },
+	);
 	if (reservation.replay || reservation.attempt === null)
 		throw new Error("A flow claim must reserve a new native attempt");
 	const persona = execution.personas[personaId]!;

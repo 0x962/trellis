@@ -19,12 +19,12 @@ Create a scratch checkout or a temporary directory only under `$TMPDIR`, with th
 ## Prompts
 
 - Every instruction an agent reads lives in the database, in `personas.instruction`. Code never composes, hardcodes, or injects prompt text.
-- A change to what an agent is told is a data migration on `personas.instruction`, plus the same text in the matching `docs/personas/*.md` file that a person pastes from.
+- A change to what an agent is told is a data migration on `personas.instruction`. `docs/personas.json` is a dump of the table; refresh it with `trellis personas list --json` after a change.
 - A migration appends a titled section and skips a persona that already holds that title, so a rerun and a hand edit stay safe.
 
 ## Desktop install
 
-The Trellis SRE persona owns production releases for TRL. Route approved Deploy Queue tickets to one SRE through the project manager. Group eligible tickets into one merge, test, build, install, and restart cycle. Other workers hand off release work instead of deploying independently. Read [the SRE instructions](docs/personas/trellis-sre.md) before a deployment assignment.
+The Trellis SRE persona owns production releases for TRL. Route approved Deploy Queue tickets to one SRE through the project manager. Group eligible tickets into one merge, test, build, install, and restart cycle. Other workers hand off release work instead of deploying independently. Read the SRE instructions with `trellis personas show "Trellis SRE"` before a deployment assignment.
 
 Production builds require a clean `main` checkout at the current `origin/main` commit. Merge each feature branch into `main` and push it before a production build. Never build a production app from a feature branch or a detached commit. This rule also applies to `--prepare` candidates. Do not bypass the production installer.
 

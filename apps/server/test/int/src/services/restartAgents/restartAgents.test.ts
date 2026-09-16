@@ -43,7 +43,7 @@ beforeEach(async () => {
 				previousAttemptId,
 				providerSessionId: "provider-session",
 				harness: "claude",
-				model: "saved-model",
+				model: "anthropic/claude-sonnet-5",
 				workspace: "/tmp/saved-workspace",
 				processIdentity: "identity",
 				attempt: { id: randomUUID(), token: "next-token" },
@@ -114,7 +114,7 @@ test("restart retains the assignment, workspace, provider, model, and frozen ins
 	expect(launches).toHaveLength(1);
 	expect(launches[0]).toMatchObject({
 		run: { id: plan.sessions[0]!.runId, workspaceId: "/tmp/saved-workspace", instruction: "Frozen instruction" },
-		config: { harness: { preset: "claude", model: "saved-model" } },
+		config: { harness: { preset: "claude", model: "anthropic/claude-sonnet-5" } },
 		resume: true,
 		previousAttemptId: plan.sessions[0]!.previousAttemptId,
 		resumePrompt: expect.stringContaining("Trellis performed a system restart."),
@@ -175,7 +175,7 @@ test("concurrent recovery calls share one launch and reject an agent or another 
 			dependency,
 		),
 	).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
-	await expect(prepareResumeRestart(ctx(), { restartId: "other" }, dependency)).rejects.toThrow("match");
+	expect(await prepareResumeRestart(ctx(), { restartId: "other" }, dependency)).toMatchObject({ restartId: plan.id });
 	release();
 	expect(await first).toMatchObject({ resumed: 1, failed: 0 });
 	expect(await second).toMatchObject({ resumed: 1, failed: 0 });
@@ -241,6 +241,34 @@ test("a prelaunch failure keeps the assignment and plan available for repair", a
 	});
 	expect(await h.rows(sql`SELECT * FROM agent_execution_attempts`)).toHaveLength(1);
 });
+test("an agent the update could not save is reported and never launched", async () => {
+	const lostRunId = ulid();
+	plan.sessions.unshift({
+		runId: lostRunId,
+		previousAttemptId: randomUUID(),
+		providerSessionId: "",
+		harness: "custom",
+		workspace: "",
+		processIdentity: "",
+		attempt: { id: randomUUID(), token: "" },
+		done: true,
+		outcome: "failed",
+		error: "This agent runs a custom harness, which cannot resume a conversation.",
+	});
+	await writeRestartPlan(home, plan);
+	expect(await prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, deps())).toMatchObject({
+		resumed: 1,
+		failed: 0,
+	});
+	expect(launches).toHaveLength(1);
+	const status = await restartStatus(ctx());
+	expect(status?.sessions.find((session) => session.runId === lostRunId)).toMatchObject({
+		state: "failed",
+		error: "This agent runs a custom harness, which cannot resume a conversation.",
+	});
+	expect(await readRestartPlan(home)).toBeNull();
+});
+
 test("a failed agent does not block the next one, and the status names both", async () => {
 	const secondRunId = ulid();
 	const secondPrevious = randomUUID();
@@ -278,6 +306,44 @@ test("a failed agent does not block the next one, and the status names both", as
 	]);
 	expect(status!.sessions[0]!.error).toContain("stopped");
 	expect(status!.sessions[0]!.projectPath).toBe("RST");
+});
+test("two workers of one plan launch at the same time", async () => {
+	const secondRunId = ulid();
+	const secondPrevious = randomUUID();
+	await h.read(async (tx) => {
+		const [project] = await tx
+			.execute(sql`SELECT id FROM projects LIMIT 1`)
+			.then((result) => result.rows as { id: string }[]);
+		await tx.execute(
+			sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,terminal_id,session_id,workspace_id,created_at,updated_at) VALUES (${secondRunId},'Second','native','Builder','builder','Frozen instruction',${project!.id},'RST',${secondPrevious},'provider-session','/tmp/saved-workspace',now(),now())`,
+		);
+	});
+	plan.sessions.push({
+		...plan.sessions[0]!,
+		runId: secondRunId,
+		previousAttemptId: secondPrevious,
+		attempt: { id: randomUUID(), token: "second-token" },
+	});
+	await writeRestartPlan(home, plan);
+	processes.push({ ...processes[0]!, id: secondPrevious });
+	let release!: () => void;
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const dependency = deps();
+	const start = dependency.start;
+	let started = 0;
+	dependency.start = async (...args) => {
+		started++;
+		await gate;
+		return start(...args);
+	};
+	const result = prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, dependency);
+	while (started < 2) await Bun.sleep(10);
+	expect((await restartStatus(ctx()))?.sessions.map((session) => session.state)).toEqual(["resuming", "resuming"]);
+	release();
+	expect(await result).toMatchObject({ resumed: 2, skipped: 0, failed: 0 });
+	expect(await readRestartPlan(home)).toBeNull();
 });
 async function seedFlow(deadlineAt = Date.now() + 60000) {
 	const session = plan.sessions[0]!;

@@ -1,3 +1,4 @@
+import { fromHarnessModel } from "@trellis/api";
 import type { RestartSession } from "@trellis/runtime-protocol/restart-plan";
 import { sql } from "drizzle-orm";
 import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
@@ -19,6 +20,10 @@ export async function reserveRestart(
 	session: Omit<RestartSession, "processIdentity"> & { processIdentity?: string },
 	reserve: boolean,
 ) {
+	// The capture writes a `custom` entry only as done and failed, and the
+	// resume never reserves a done entry. The check keeps the harness type
+	// narrow for the model lookup below.
+	if (session.harness === "custom") return null;
 	const [run] = await rows<StoredRun>(tx, sql`SELECT ${columns} FROM agent_runs WHERE id=${session.runId} FOR UPDATE`);
 	if (
 		!run ||
@@ -101,7 +106,14 @@ export async function reserveRestart(
 	}
 	return {
 		run,
-		config: { ...config, harness: { ...config.harness, preset: session.harness, model: session.model } },
+		config: {
+			...config,
+			harness: {
+				...config.harness,
+				preset: session.harness,
+				model: session.model ? fromHarnessModel(session.harness, session.model) : undefined,
+			},
+		},
 		attempt,
 		deadlineAt,
 	};

@@ -42,7 +42,7 @@ The preload bridge exposes `trellisDesktop.chooseDirectory()`, the Settings call
 
 `trellis://open/t/KEY-1` opens a ticket. External HTTP and HTTPS links open in the system browser.
 
-Use **Trellis > Restart** to load the installed package. A changed package stops active agent processes and resumes their saved provider conversations. An unchanged package keeps those processes. An agent without a confirmed provider session blocks the update and shows the reason.
+Use **Trellis > Restart** to load the installed package. A changed package stops active agent processes and resumes their saved provider conversations. An unchanged package keeps those processes. An agent the update cannot save keeps running until the runtime stops, and the restart status shows the reason beside its name.
 
 ## Package and verification
 
@@ -86,7 +86,7 @@ The test copies the app and uses a unique service label. It redirects the produc
 
 ## Production install
 
-The [Trellis SRE persona](../../docs/personas/trellis-sre.md) owns release batches for the TRL project.
+The Trellis SRE persona owns release batches for the TRL project.
 The manager assigns one SRE to all eligible Deploy Queue tickets, with one build, install, and restart for the batch.
 The SRE saves a release checkpoint before restart and verifies restored sessions afterward.
 
@@ -108,9 +108,9 @@ Use this command for each production install. Keep the installed bundle in place
 
 Restart Trellis to activate the installed build. For a changed package, Trellis saves the confirmed active agent sessions before it stops the previous runtime. After the new host starts, Trellis resumes those provider sessions in their saved workspaces. Agents that you stopped stay stopped. An unchanged package keeps the existing processes.
 
-Trellis stores pending resumes in `restart-plan.json` inside the selected data directory. A failed activation preserves this plan for the next app launch. Each saved attempt has one resume identity, which prevents duplicate processes and restart messages. A later package must complete any partial resume before it stops another runtime.
+Trellis stores pending resumes in `restart-plan.json` inside the selected data directory. A failed activation preserves this plan for the next app launch. Each saved attempt has one resume identity, which prevents duplicate processes and restart messages. A later package gives a partial resume one more pass, then merges the entries that still failed into its own plan, so the restart status keeps their reasons.
 
-A custom agent or an agent without a confirmed provider session blocks the update before runtime shutdown. Stop that agent, or wait for its provider session, then reopen Trellis.
+A custom agent, an agent without a confirmed provider session, or a terminal whose process the app cannot confirm is recorded in the plan as not saved, with the reason. The update continues. Agent starts, the manager controller, and review delivery keep running while a resume is in progress.
 
 To prepare a verified candidate without a production install:
 

@@ -2,6 +2,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { watch } from "node:fs";
 import { chmod, mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { fromHarnessModel } from "@trellis/api/models";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { z } from "zod";
 import { authenticatedManagerTools } from "../../managerTools/authenticatedManagerTools/authenticatedManagerTools.ts";
@@ -162,7 +163,7 @@ async function start() {
 	await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, {
 		kind: "session",
 		sessionId: result.thread.id,
-		model: result.model,
+		model: fromHarnessModel("codex", result.model),
 	});
 	control = await codexControl({
 		socket: env.TRELLIS_CODEX_CONTROL_SOCKET,

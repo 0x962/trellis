@@ -107,11 +107,11 @@ test("Codex tracks native model changes without a new turn", () => {
 			method: "thread/settings/updated",
 			params: { threadId: "s", threadSettings: { model: "selected-model" } },
 		}),
-	).toEqual([{ kind: "session", sessionId: "s", model: "selected-model" }]);
+	).toEqual([{ kind: "session", sessionId: "s", model: "openai/selected-model" }]);
 	expect(
 		events.parse({
 			method: "model/rerouted",
 			params: { threadId: "s", turnId: "t", fromModel: "selected-model", toModel: "effective-model" },
 		}),
-	).toEqual([{ kind: "session", sessionId: "s", turnId: "t", model: "effective-model" }]);
+	).toEqual([{ kind: "session", sessionId: "s", turnId: "t", model: "openai/effective-model" }]);
 });

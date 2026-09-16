@@ -1,5 +1,11 @@
-import { HARNESS_DEFAULT_MODELS, HARNESS_PRESETS, type HarnessPreset, type ProjectManagerConfig } from "@trellis/api";
-import { Input, Select } from "@trellis/ui";
+import {
+	HARNESS_DEFAULT_MODELS,
+	HARNESS_PRESETS,
+	type HarnessPreset,
+	modelsForHarness,
+	type ProjectManagerConfig,
+} from "@trellis/api";
+import { Select } from "@trellis/ui";
 import { useState } from "react";
 import { SettingsSection } from "../../../SettingsSection";
 import { AgentCommandField } from "../AgentCommandField";
@@ -25,12 +31,6 @@ export function HarnessSettings({
 	readOnly: boolean;
 }) {
 	const [revision, setRevision] = useState(0);
-	const saveModel = () => {
-		const model = draft.harness.model?.trim() || undefined;
-		const next = { ...draft, harness: { ...draft.harness, model } };
-		if (model !== saved.harness.model) commit(next);
-		else setDraft(next);
-	};
 	return (
 		<fieldset disabled={readOnly} className="manager-settings-groups">
 			<SettingsSection title="Harness" hint="The agent program that does the work.">
@@ -43,27 +43,26 @@ export function HarnessSettings({
 						setRevision(revision + 1);
 						commit({
 							...draft,
-							harness: { ...(preset === "custom" ? draft.harness : HARNESS_PRESETS[preset]), preset },
+							harness: { ...(preset === "custom" ? draft.harness : HARNESS_PRESETS[preset]), preset, model: undefined },
 						});
 					}}
 				/>
 				{draft.harness.preset !== "custom" && (
 					<>
-						<Input
+						<Select
 							label="Model"
-							value={draft.harness.model ?? ""}
-							onChange={(event) => setDraft({ ...draft, harness: { ...draft.harness, model: event.target.value } })}
-							onBlur={saveModel}
-							onKeyDown={(event) => {
-								if (event.key === "Enter") {
-									event.preventDefault();
-									saveModel();
-								}
-							}}
+							alignItemWithTrigger={false}
+							items={[
+								{ value: "default", label: `Default (${HARNESS_DEFAULT_MODELS[draft.harness.preset]})` },
+								...modelsForHarness(draft.harness.preset).map(({ id }) => ({ value: id, label: id })),
+							]}
+							value={draft.harness.model ?? "default"}
+							onValueChange={(model) =>
+								commit({ ...draft, harness: { ...draft.harness, model: model === "default" ? undefined : model } })
+							}
 						/>
 						<p className="manager-settings-hint">
-							Leave blank to use {HARNESS_DEFAULT_MODELS[draft.harness.preset]} for a new session. Resume keeps its
-							saved model.
+							A resume keeps its saved model unless you select another model for that resume.
 						</p>
 					</>
 				)}

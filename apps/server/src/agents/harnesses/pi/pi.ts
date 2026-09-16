@@ -1,6 +1,7 @@
 import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fromHarnessModel } from "@trellis/api/models";
 import type { HarnessEvent, HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 export async function preparePi(input: HarnessLaunchInput): Promise<HarnessLaunch> {
@@ -87,10 +88,12 @@ export function parsePiEvent(envelope: PiEnvelope): HarnessEvent[] {
 	const { event, payload } = envelope;
 	const identity = {
 		...(envelope.sessionId ? { sessionId: envelope.sessionId } : {}),
-		...(envelope.model ? { model: envelope.model } : {}),
+		...(envelope.model ? { model: fromHarnessModel("pi", envelope.model) } : {}),
 	};
 	if (event === "session_start" || event === "model_select")
-		return [{ kind: "session", ...identity, ...(payload.model ? { model: payload.model.id } : {}) }];
+		return [
+			{ kind: "session", ...identity, ...(payload.model ? { model: fromHarnessModel("pi", payload.model.id) } : {}) },
+		];
 	if (event === "input") return [{ kind: "prompt", ...identity, prompt: payload.text }];
 	if (event === "agent_start") return [{ kind: "working", ...identity }];
 	if (event === "message_end" && payload.message?.role === "assistant") {

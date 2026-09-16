@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { copyFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { fromHarnessModel } from "@trellis/api/models";
 import { z } from "zod";
 import type { HarnessEvent, HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
@@ -21,7 +22,7 @@ const envelope = z.object({
 });
 export const parseOpenCodeEvent = (payload: unknown): HarnessEvent[] => {
 	const { event, ...fields } = envelope.parse(payload);
-	return [{ kind: event, ...fields }];
+	return [{ kind: event, ...fields, ...(fields.model ? { model: fromHarnessModel("opencode", fields.model) } : {}) }];
 };
 export const prepareOpenCode = async (input: HarnessLaunchInput): Promise<HarnessLaunch> => {
 	await mkdir(input.configDirectory, { recursive: true, mode: 0o700 });

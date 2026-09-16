@@ -24,7 +24,7 @@ type Dependencies = {
 const defaults: Dependencies = { start: startNative, observe: readNativeHarness, stop: stopNative };
 const active = new Map<string, Promise<{ observed: number; launched: number; errors: string[] }>>();
 async function reconcile(ctx: FlowCtx, deps: Dependencies) {
-	await closeExitedAssignments(ctx);
+	const sessions = await closeExitedAssignments(ctx);
 	const executions = await ctx.newTx((tx) =>
 		rows<{ id: string }>(
 			tx,
@@ -68,7 +68,7 @@ async function reconcile(ctx: FlowCtx, deps: Dependencies) {
 		while (true) {
 			let claim: Claim | null;
 			try {
-				claim = await ctx.newTx((tx) => claimNext(ctx.core, tx, { id: execution.id }));
+				claim = await ctx.newTx((tx) => claimNext(ctx.core, tx, { id: execution.id, sessions }));
 			} catch (cause) {
 				if (!(cause instanceof ORPCError)) throw cause;
 				const data = cause.data as { issues?: { message: string }[] } | undefined;

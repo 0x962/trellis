@@ -13,12 +13,34 @@ type Observed = Pick<RuntimeProcessStatus, "id" | "status" | "controllable"> & {
 	process: Pick<NonNullable<RuntimeProcessStatus["process"]>, "identity"> | null;
 	agent: Pick<NonNullable<RuntimeProcessStatus["agent"]>, "sessionId" | "model"> | null;
 };
-type Descriptor = { harness: RestartSession["harness"] | "custom"; spec: LaunchSpec; fingerprint: string };
+type Descriptor = { harness: RestartSession["harness"]; spec: LaunchSpec; fingerprint: string };
 
+// An agent the update cannot save gets a plan entry that is already done
+// and failed, with the reason in plain words. The resume skips it, and the
+// restart status shows the reason beside the agent. The update goes on.
+const unsaved = (observed: Observed, descriptor: Descriptor | null, error: string): RestartSession => ({
+	runId: descriptor?.spec.env?.TRELLIS_RUN_ID || observed.id,
+	previousAttemptId: observed.id,
+	providerSessionId: observed.agent?.sessionId ?? "",
+	harness: descriptor?.harness ?? "custom",
+	workspace: descriptor?.spec.cwd ?? "",
+	processIdentity: observed.process?.identity ?? "",
+	attempt: { id: randomUUID(), token: "" },
+	done: true,
+	outcome: "failed",
+	error,
+});
+
+// Saves every live agent of the running runtime into `restart-plan.json`.
+// A plan that an earlier update left behind is merged, not replaced: its
+// entries that never resumed keep their identities, so the same process is
+// never resumed twice, and its failed entries stay listed with their
+// reasons. A stopped runtime leaves the previous plan untouched.
 export const captureRestartPlan = async (home: string, source: PinnedRelease, target: PinnedRelease) => {
-	if (await readRestartPlan(home)) return;
+	const previous = await readRestartPlan(home);
 	const ownerPath = join(home, "runtime/manifest.json");
 	if (!existsSync(ownerPath)) {
+		if (previous) return;
 		if (existsSync(join(home, "runtime/runtime.sock"))) throw new Error("The execution service has no owner record.");
 		return;
 	}
@@ -47,22 +69,72 @@ console.log(JSON.stringify(sessions.filter(({status}) => status !== "exited").ma
 		],
 		{ timeout: 60000 },
 	);
+	const carried = (previous?.sessions ?? []).filter((entry) => !entry.done || entry.outcome === "failed");
+	// A carried entry whose previous process still runs stays resumable
+	// under its saved identity. Every other carried entry that never
+	// resumed loses its process when this runtime stops, so it is closed
+	// as failed with its last reason.
+	const alive = new Set<string>();
 	const sessions: RestartSession[] = [];
 	for (const observed of JSON.parse(stdout) as Observed[]) {
-		if (observed.status !== "running" || !observed.controllable || !observed.process)
-			throw new Error(`Cannot confirm ownership of terminal ${observed.id}. Inspect its process before the update.`);
-		const path = join(home, "harness-attempts", observed.id, "launch.json");
-		if (!existsSync(path)) {
-			if (observed.agent) throw new Error(`Agent terminal ${observed.id} has no saved launch descriptor.`);
+		if (carried.some((entry) => !entry.done && entry.previousAttemptId === observed.id)) {
+			alive.add(observed.id);
 			continue;
 		}
-		const descriptor = JSON.parse(await readFile(path, "utf8")) as Descriptor;
+		const path = join(home, "harness-attempts", observed.id, "launch.json");
+		const descriptor = existsSync(path) ? (JSON.parse(await readFile(path, "utf8")) as Descriptor) : null;
+		if (observed.status !== "running" || !observed.controllable || !observed.process) {
+			sessions.push(
+				unsaved(
+					observed,
+					descriptor,
+					`Trellis cannot confirm which process owns terminal ${observed.id} (status ${observed.status}). It was not saved for resume.`,
+				),
+			);
+			continue;
+		}
+		if (descriptor === null) {
+			if (observed.agent)
+				sessions.push(
+					unsaved(
+						observed,
+						null,
+						`Terminal ${observed.id} has no saved launch record. Its agent was not saved for resume.`,
+					),
+				);
+			continue;
+		}
 		const runId = descriptor.spec.env?.TRELLIS_RUN_ID;
-		if (!runId) throw new Error(`Terminal ${observed.id} has no saved agent assignment.`);
-		if (descriptor.harness === "custom")
-			throw new Error(`Custom agent ${runId} cannot resume its session. Stop it before the update.`);
-		if (!observed.agent?.sessionId)
-			throw new Error(`Agent ${runId} has no confirmed provider session. Wait for it to start before the update.`);
+		if (!runId) {
+			sessions.push(
+				unsaved(
+					observed,
+					descriptor,
+					`Terminal ${observed.id} has no saved agent assignment. It was not saved for resume.`,
+				),
+			);
+			continue;
+		}
+		if (descriptor.harness === "custom") {
+			sessions.push(
+				unsaved(
+					observed,
+					descriptor,
+					`Agent ${runId} runs a custom harness, which cannot resume a conversation. It was not saved for resume.`,
+				),
+			);
+			continue;
+		}
+		if (!observed.agent?.sessionId) {
+			sessions.push(
+				unsaved(
+					observed,
+					descriptor,
+					`Agent ${runId} has no confirmed provider session yet. It was not saved for resume.`,
+				),
+			);
+			continue;
+		}
 		sessions.push({
 			runId,
 			previousAttemptId: observed.id,
@@ -74,12 +146,26 @@ console.log(JSON.stringify(sessions.filter(({status}) => status !== "exited").ma
 			attempt: { id: randomUUID(), token: randomBytes(32).toString("hex") },
 		});
 	}
+	if (previous && sessions.length === 0) return;
+	const fresh = new Set(sessions.map((entry) => entry.runId));
+	const closed = carried
+		.filter((entry) => !fresh.has(entry.runId))
+		.map((entry) =>
+			entry.done || alive.has(entry.previousAttemptId)
+				? entry
+				: {
+						...entry,
+						done: true,
+						outcome: "failed" as const,
+						error: entry.error ?? "Not resumed before the next restart stopped its runtime.",
+					},
+		);
 	await writeRestartPlan(home, {
 		version: 1,
 		id: randomUUID(),
 		sourceReleaseId: source.manifest.id,
 		targetReleaseId: target.manifest.id,
 		createdAt: new Date().toISOString(),
-		sessions,
+		sessions: [...closed, ...sessions],
 	});
 };

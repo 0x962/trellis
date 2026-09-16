@@ -54,7 +54,7 @@ export const chat = {
 		.input(ChatAttachmentIdInputSchema)
 		.output(ChatAttachmentSchema),
 	post: base
-		.errors({ ...archived, ...pickErrors(["CHAT_AI_ONLY"]) })
+		.errors({ ...archived, ...pickErrors(["CHAT_AI_ONLY", "CHAT_DIRECT"]) })
 		.route({
 			method: "POST",
 			path: "/projects/{project}/chat/{channel}/messages",

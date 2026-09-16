@@ -144,7 +144,7 @@ A run carries one state.
 - A ticket that is already done or canceled.
 - A project with no repository.
 - A second live manager for the same project.
-- A ticket start when the project already runs its concurrency limit of ticket agents. The limit runs from 1 to 64 and defaults to 3. The manager is outside that count.
+- A ticket start when active worker turns fill the project's concurrency limit. The limit runs from 1 to 64 and defaults to 3. Managers and confirmed idle workers are outside that count.
 
 A project keeps one manager. Its first start names it, and every later start
 takes that same row, so the name holds. A manager that already has a Superset
@@ -217,7 +217,7 @@ The server has no sign-in, so anyone who reaches the API sets that template.
 Every project, a root or a sub-project, owns one chat room, and a sub-project
 shares nothing with its parent. A manager talks to the agents of its own project.
 `#ai` and `#general` exist in every room. A post to a new channel name creates the channel.
-The `## Chat room` section of each persona instruction names the room, its commands, and its rules. The migration `0047_persona_chat_instructions` adds it to every saved persona, and the persona docs under `docs/personas/` carry it for new ones.
+The `## Chat room` section of each persona instruction names the room, its commands, and its rules. The migration `0047_persona_chat_instructions` adds it to every saved persona. `docs/personas.json` holds a dump of the table.
 
 ```sh
 trellis chat channels TRL
@@ -230,6 +230,7 @@ trellis chat create TRL release
 Write the channel name without the `#` in a shell, or quote it: a bare `#ai` starts a shell comment.
 A channel created with `--ai-only` is for agents: a person reads it and cannot post in it, and the web raises no sound or unread dot for it. `#ai` is such a channel.
 `trellis chat attach TRL <path>` uploads a file and prints the markdown line to put in a post.
+The `manager` channel is a direct message between a person and the manager of the project. A post there reaches the manager alone and interrupts it. The web shows it under Direct messages with the manager's persona name.
 Every live agent of the room's project receives each post, except its author.
 A mention of `@<run id>`, `@<persona name>`, or a role such as `@manager`, `@builders`, or `@reviewers` sends the post to the mentioned agents only.
 A mentioned agent is interrupted: Trellis stops its current turn and hands it the lines at once. An unmentioned agent reads the lines when its current turn ends.
@@ -274,6 +275,16 @@ The notification retains the assignment ID and session from the comment write.
 An edit notifies only newly mentioned personas. Code spans and code blocks do not notify agents.
 The comment shows whether the notification is queued, delivered, failed, or uncertain.
 
+## Worker slots
+
+A slot represents an active worker turn that consumes tokens or executes tools.
+An idle worker, held conversation, or retained assignment uses no slot. The assignment still identifies its owner.
+A worker uses a slot again when its next turn starts. Managers check capacity before a follow-up message or resume.
+A launch reserves a slot until its first prompt receipt. Unknown runtime state retains capacity until reconciliation.
+Submanager budgets limit active turns across their scope. Child budgets reserve part of the parent budget for that subtree.
+
+[The saved personas](personas.json) include the active capacity instructions for managers and idle capacity instructions for workers.
+
 ## Manager capacity waits
 
 Record each notification outcome with `trellis manager handle` or the `trellis_controller_handle` tool.
@@ -314,7 +325,7 @@ A human response prompts the manager to read the answer. It does not grant appro
 These conditions notify the manager even when worker capacity is full. A worker assignment still requires a free slot.
 Each saved wait survives a restart and appears through `trellis manager actions` and `trellis_controller_actions`.
 The manager receives its `waitFor` details in `nextActions`. Reuse its `assignmentRequestId` for the resulting worker assignment.
-An outstanding condition blocks `agentRuns.start` even with a different request ID. Cancel the wait to withdraw that prerequisite.
+A wait never blocks `agentRuns.start`. A start during a wait assigns the waiting action to the new worker and retires the wait.
 
 If the condition changes, record the new `waitFor` in a later dispatch that includes the action.
 Trellis cancels the previous action and gives the replacement a new assignment identifier.

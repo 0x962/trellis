@@ -138,7 +138,9 @@ export function GeneralSettings({
 						}}
 						invalid={invalidConcurrency}
 					/>
-					<p className="manager-settings-hint">Maximum active ticket agents. The manager does not count.</p>
+					<p className="manager-settings-hint">
+						Maximum concurrent worker turns. Idle workers and managers do not count.
+					</p>
 					{invalidConcurrency && (
 						<p role="alert" className="text-sm text-danger">
 							Enter a whole number from 1 to 64.

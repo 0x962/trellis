@@ -75,23 +75,17 @@ test("a timed wait wakes at its deadline, never early, and retains one assignmen
 	expect(again.replay).toBe(true);
 });
 
-test("a saved assignment identifier cannot bypass a wait deadline", async () => {
+test("a saved assignment identifier starts its worker before the wait deadline", async () => {
 	await wait({ type: "time", at: secondsAfter(10).toISOString() });
 	const action = await h.one<{ assignment_request_id: string }>(
 		sql`SELECT assignment_request_id FROM manager_next_actions`,
 	);
-	await expect(
-		h.run(
-			(ctx, tx) =>
-				reserve(ctx, tx, {
-					personaId: "builder",
-					ticket: ticketId,
-					requestId: action.assignment_request_id,
-				}),
-			{ now: secondsAfter(9) },
-		),
-	).rejects.toThrow();
-	expect(await h.rows(sql`SELECT id FROM agent_runs WHERE ticket_id=${ticketId}`)).toEqual([]);
+	const started = await h.run(
+		(ctx, tx) => reserve(ctx, tx, { personaId: "builder", ticket: ticketId, requestId: action.assignment_request_id }),
+		{ now: secondsAfter(9) },
+	);
+	expect(await h.rows(sql`SELECT id FROM agent_runs WHERE ticket_id=${ticketId}`)).toEqual([{ id: started.run.id }]);
+	expect(await h.one<{ state: string }>(sql`SELECT state FROM manager_next_actions`)).toEqual({ state: "assigned" });
 });
 
 test("a dependency wait wakes when its ticket reaches Done and rechecks a reopened dependency", async () => {
@@ -104,15 +98,15 @@ test("a dependency wait wakes when its ticket reaches Done and rechecks a reopen
 	const delivery = (await take(2))!;
 	expect(delivery.nextActions[0]).toMatchObject({ ticketId, wakeCondition: "dependency" });
 	await h.rows(sql`UPDATE tickets SET status_id=${previous.status_id},completed_at=NULL WHERE id=${dependencyId}`);
-	await expect(
-		h.run((ctx, tx) =>
-			reserve(ctx, tx, {
-				personaId: "builder",
-				ticket: ticketId,
-				requestId: delivery.nextActions[0]!.assignmentRequestId,
-			}),
-		),
-	).rejects.toThrow();
+	const started = await h.run((ctx, tx) =>
+		reserve(ctx, tx, {
+			personaId: "builder",
+			ticket: ticketId,
+			requestId: delivery.nextActions[0]!.assignmentRequestId,
+		}),
+	);
+	expect(started.run.ticketId).toBe(ticketId);
+	expect(await h.one<{ state: string }>(sql`SELECT state FROM manager_next_actions`)).toEqual({ state: "assigned" });
 });
 
 test("a canceled dependency does not count as successful completion", async () => {
@@ -193,19 +187,19 @@ test("invalid dependency and question references roll back the outcome", async (
 	expect((await h.one(sql`SELECT outcomes FROM manager_dispatches`)).outcomes).toEqual([]);
 });
 
-test("a different assignment identifier cannot bypass an outstanding timed wait", async () => {
+test("a start during a timed wait assigns the waiting action and retires the wait", async () => {
 	await wait({ type: "time", at: secondsAfter(10).toISOString() });
-	await expect(
-		h.run(
-			(ctx, tx) =>
-				reserve(ctx, tx, {
-					personaId: "builder",
-					ticket: ticketId,
-					requestId: "new-event",
-				}),
-			{ now: secondsAfter(9) },
-		),
-	).rejects.toThrow();
+	const assigned = await h.run(
+		(ctx, tx) => reserve(ctx, tx, { personaId: "builder", ticket: ticketId, requestId: "new-event" }),
+		{ now: secondsAfter(9) },
+	);
+	expect(assigned.run.ticketId).toBe(ticketId);
+	expect(await h.one(sql`SELECT state,run_id FROM manager_next_actions`)).toMatchObject({
+		state: "assigned",
+		run_id: assigned.run.id,
+	});
+	await gather(10);
+	expect(await take(10)).toBeNull();
 });
 
 test("a status change supersedes an old timed wait before the next controller tick", async () => {

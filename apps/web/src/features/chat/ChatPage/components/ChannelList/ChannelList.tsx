@@ -1,9 +1,12 @@
 import { LockSimple } from "@phosphor-icons/react";
 import type { ChatChannel } from "@trellis/api";
-import { ActivityDot, cx, SectionHeader } from "@trellis/ui";
+import { ActivityDot, Avatar, cx, SectionHeader } from "@trellis/ui";
 
 export type ChannelListProps = {
 	channels: ChatChannel[];
+	// The persona name of the manager of the project, which labels the
+	// direct message channel.
+	managerName: string;
 	open: string;
 	unread: ReadonlySet<string>;
 	pending: boolean;
@@ -11,13 +14,16 @@ export type ChannelListProps = {
 	onOpen: (name: string) => void;
 };
 
-// The channels of the room in two groups: the channels everyone posts in
-// first, with no heading, then the AI heading and the channels for agents
-// only. A channel for agents carries a lock in place of the `#`. A row
-// shows a dot when the channel holds unread messages, and its message count.
-export function ChannelList({ channels, open, unread, pending, error, onOpen }: ChannelListProps) {
-	const shared = channels.filter((channel) => !channel.aiOnly);
-	const agents = channels.filter((channel) => channel.aiOnly);
+// The channels of the room in three groups: the channels everyone posts in
+// first, with no heading, then Direct messages with the manager, then the
+// AI heading and the channels for agents only. A channel for agents carries
+// a lock in place of the `#`; the direct message carries the manager's mark
+// and name. A row shows a dot when the channel holds unread messages, and
+// its message count.
+export function ChannelList({ channels, managerName, open, unread, pending, error, onOpen }: ChannelListProps) {
+	const shared = channels.filter((channel) => !channel.aiOnly && !channel.direct);
+	const directs = channels.filter((channel) => channel.direct);
+	const agents = channels.filter((channel) => channel.aiOnly && !channel.direct);
 	const row = (channel: ChatChannel) => {
 		const current = channel.name === open;
 		const dot = !current && unread.has(channel.name);
@@ -33,12 +39,20 @@ export function ChannelList({ channels, open, unread, pending, error, onOpen }: 
 					)}
 				>
 					<span className="flex min-w-0 flex-1 items-center gap-1 text-left">
-						{channel.aiOnly ? (
+						{channel.direct ? (
+							<Avatar
+								kind="agent"
+								name={managerName}
+								personaKind="manager"
+								state="static"
+								className="size-4 shrink-0"
+							/>
+						) : channel.aiOnly ? (
 							<LockSimple aria-label="agents only" weight="fill" className="size-3 shrink-0" />
 						) : (
 							<span aria-hidden="true">#</span>
 						)}
-						<span className="min-w-0 truncate">{channel.name}</span>
+						<span className="min-w-0 truncate">{channel.direct ? managerName : channel.name}</span>
 					</span>
 					{dot && <ActivityDot label="Unread messages" placement="inline" />}
 					<span className="text-xs text-fg-faint tabular">{channel.messageCount}</span>
@@ -58,6 +72,12 @@ export function ChannelList({ channels, open, unread, pending, error, onOpen }: 
 				</p>
 			)}
 			<ul className="flex flex-col">{shared.map(row)}</ul>
+			{directs.length > 0 && (
+				<>
+					<SectionHeader title="Direct messages" level={3} className="mt-3 px-3" />
+					<ul className="flex flex-col">{directs.map(row)}</ul>
+				</>
+			)}
 			{agents.length > 0 && (
 				<>
 					<SectionHeader title="AI" level={3} className="mt-3 px-3" />

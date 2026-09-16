@@ -16,6 +16,9 @@ export const chatChannels = pgTable(
 		name: text().notNull(),
 		// Only agents post in such a channel. `ai` is one.
 		aiOnly: boolean("ai_only").notNull().default(false),
+		// The direct message between a person and the manager. `manager` is
+		// the one such channel of every room.
+		direct: boolean().notNull().default(false),
 		...actorColumns(),
 		createdAt: at("created_at").notNull(),
 	},
