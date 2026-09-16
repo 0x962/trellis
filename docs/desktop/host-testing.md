@@ -13,7 +13,7 @@ TRELLIS_NATIVE_ACCEPTANCE_HOME="$HOME" \
 TRELLIS_NATIVE_CLAUDE_MODEL=claude-opus-5 \
 TRELLIS_NATIVE_CODEX_MODEL=gpt-5.6-sol \
 TRELLIS_NATIVE_PI_MODEL=vercel-ai-gateway/openai/gpt-5.6-sol \
-TRELLIS_NATIVE_OPENCODE_MODEL=anthropic/claude-opus-5 \
+TRELLIS_NATIVE_OPENCODE_MODEL=vercel/anthropic/claude-opus-5 \
 bun run test:host:real
 ```
 

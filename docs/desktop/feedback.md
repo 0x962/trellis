@@ -52,6 +52,25 @@ The focused capture and activation suites pass: 31 tests and 61 assertions. Desk
 A read-only check against the live runtime saves all five sessions to a scratch plan of 2,561 bytes.
 Provider identifiers and process identities remain unchanged. Evidence: `/tmp/trellis-startup-maxbuffer-after.json`.
 
+## Startup readiness
+
+At 23:45:17 UTC, the manager accepts its restart prompt while its transcript lists `trellis` under `pendingMcpServers`.
+At 23:45:26 UTC, it says that the tools still connect. The HTTP server already accepts requests.
+The startup completion signal confirms a received prompt but does not confirm tool discovery.
+
+Each Claude manager loads the Trellis tool catalog before it accepts a prompt.
+The bridge publishes a discovery receipt for the exact attempt. The prompt hook requires that receipt and a successful runtime acknowledgment.
+A failed connection or acknowledgment blocks the prompt and reports the cause. One eight-second deadline covers both operations.
+The desktop publishes its connected host after agent restoration, CLI setup, and update checks complete.
+Early activate, second-instance, and deep-link events keep the startup window open until that sequence finishes.
+
+The desktop readiness and output-capture tests pass: 19 tests and 54 assertions.
+All 20 release activation tests pass. The native startup progress test passes with six assertions after the desktop assets build.
+The restart and manager service checks pass: 34 tests and 190 assertions.
+The authenticated Claude test confirms delayed discovery and prompt acknowledgment. The account then returns its session usage limit.
+The real missing-discovery test passes. The provider limit prevents the real tool-call and exact-resume assertions from completion.
+Evidence: `/tmp/trellis-manager-ready-live-green.log`, `/tmp/trellis-startup-combined-desktop.log`, and `/tmp/trellis-startup-combined-server-green.log`.
+
 ## Automatic session resume
 
 A package update saves the active provider sessions before runtime shutdown. Workers resume before managers, in the same directories and conversations.
