@@ -24,7 +24,7 @@ export async function harnessHostFixture(options: { nestedRuntime?: boolean } = 
 		await writeFile(
 			executable,
 			harness === "codex"
-				? `#!${Bun.which("node")}\n${await codexBuild.outputs[0]!.text()}`
+				? `#!/usr/bin/env node\n${await codexBuild.outputs[0]!.text()}`
 				: `#!/usr/bin/env bun\nimport ${JSON.stringify(resolve(repo, "apps/server/test/fixtures/harnessHost/nativeHarness.ts"))};\n`,
 		);
 		await chmod(executable, 0o700);
