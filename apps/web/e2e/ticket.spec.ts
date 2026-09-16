@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import type { AgentRun } from "@trellis/api";
 import { createTicket, ensureProject } from "./cli";
 import { cardOf, rowOf, signIn } from "./support";
 
@@ -158,6 +159,7 @@ test("Activity opens first and Agent contains only execution details", async ({ 
 	const work = page.getByRole("region", { name: "Ticket work area" });
 	await expect(work.getByRole("tab")).toHaveText(["Activity", "Agent", "Changes", "Checks", "Flows"]);
 	await expect(work.getByRole("tab", { name: "Activity", exact: true })).toHaveAttribute("aria-selected", "true");
+	await expect(work.getByRole("tabpanel").getByRole("heading", { name: "Activity", exact: true })).toHaveCount(0);
 	await expect(work.locator('[data-kind="activity"]').first()).toBeVisible();
 	await expect(work.getByRole("region", { name: "Execution", exact: true })).toHaveCount(0);
 	await work.getByRole("tab", { name: "Agent", exact: true }).click();
@@ -170,4 +172,88 @@ test("Activity opens first and Agent contains only execution details", async ({ 
 	await expect(page.getByRole("region", { name: "Attachments for TKT-1", exact: true })).toBeVisible();
 	await page.goto("/t/TKT-1#attempt-example");
 	await expect(work.getByRole("tab", { name: "Agent", exact: true })).toHaveAttribute("aria-selected", "true");
+});
+
+test("each assigned agent has a stable tab with its current work state", async ({ page }) => {
+	const base = {
+		name: "Senior Software Engineer",
+		runtime: "native",
+		personaId: "01K00000000000000000000001",
+		personaName: "Senior Software Engineer",
+		kind: "builder",
+		instruction: "Build the ticket.",
+		projectId: "01K00000000000000000000002",
+		projectPath: "TKT",
+		ticketId: "01K00000000000000000000003",
+		ticketIdentifier: "TKT-1",
+		state: "running",
+		processStatus: "running",
+		workspaceId: "/tmp/trellis-agent-tab",
+		error: null,
+		sessionId: null,
+		sessionLost: false,
+		createdAt: "2026-09-16T12:00:00.000Z",
+		updatedAt: "2026-09-16T12:00:00.000Z",
+	} satisfies Partial<AgentRun>;
+	const runs = [
+		{
+			...base,
+			id: "01K00000000000000000000011",
+			terminalId: "attempt-one",
+			url: "https://example.test/one",
+			observation: {
+				checkedAt: "2026-09-16T12:00:00.000Z",
+				controllable: true,
+				activity: { state: "working", updatedAt: "2026-09-16T12:00:00.000Z" },
+				outcome: null,
+				turnId: "turn-one",
+			},
+		},
+		{
+			...base,
+			id: "01K00000000000000000000012",
+			terminalId: "attempt-two",
+			url: "https://example.test/two",
+			observation: {
+				checkedAt: "2026-09-16T12:00:00.000Z",
+				controllable: true,
+				activity: { state: "idle", updatedAt: "2026-09-16T12:00:00.000Z" },
+				outcome: null,
+				turnId: null,
+			},
+		},
+	] satisfies AgentRun[];
+	await page.route("**/rpc/**", async (route) => {
+		const request = route.request();
+		if (!request.url().includes("agentRuns/list") && !request.postData()?.includes("agentRuns/list"))
+			return route.continue();
+		if (!request.url().includes("__batch__")) return route.fulfill({ json: { json: runs } });
+		const calls = JSON.parse(request.postData()!) as { url: string }[];
+		const indexes = new Set(calls.flatMap((call, index) => (call.url.includes("agentRuns/list") ? [index] : [])));
+		const response = await route.fetch();
+		const body = (await response.text()).replace(/^data: (.+)$/gm, (_, data: string) => {
+			const event = JSON.parse(data) as { index: number; body: { json: unknown } };
+			if (indexes.has(event.index)) event.body.json = runs;
+			return `data: ${JSON.stringify(event)}`;
+		});
+		await route.fulfill({ response, body });
+	});
+	await page.emulateMedia({ reducedMotion: "reduce" });
+	await signIn(page, "/t/TKT-1#attempt-two");
+
+	const work = page.getByRole("region", { name: "Ticket work area" });
+	const first = work.getByRole("tab", { name: "Senior Software Engineer 1", exact: true });
+	const second = work.getByRole("tab", { name: "Senior Software Engineer 2", exact: true });
+	await expect(first).toBeVisible();
+	await expect(second).toHaveAttribute("aria-selected", "true");
+	await expect(first.locator("svg")).toHaveAttribute("data-state", "working-mild");
+	await expect(second.locator("svg")).toHaveAttribute("data-state", "static");
+	await expect(first.locator(".persona-effect")).toHaveCSS("opacity", "0");
+	await expect(first.locator(".persona-work-dot")).toHaveCSS("opacity", "1");
+	await expect(work.getByRole("link", { name: "Open workspace" })).toHaveAttribute("href", "https://example.test/two");
+
+	await second.focus();
+	await page.keyboard.press("ArrowLeft");
+	await expect(first).toHaveAttribute("aria-selected", "true");
+	await expect(work.getByRole("link", { name: "Open workspace" })).toHaveAttribute("href", "https://example.test/one");
 });

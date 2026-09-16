@@ -1,5 +1,4 @@
 import type { Comment, Ticket, TimelineItem } from "@trellis/api";
-import { SectionHeader } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { useStatuses } from "../hooks/useStatuses";
 import { timelineOptions, useTimeline } from "../hooks/useTimeline";
@@ -59,32 +58,27 @@ export function Timeline({ ticket, onAttachFiles, thread }: TimelineProps) {
 	return (
 		<section aria-label="Timeline" className="flex flex-col gap-2">
 			{thread && <MentionedThread key={thread} id={thread} ticket={ticket} />}
-			<ul aria-label="Timeline">
-				<li>
-					<SectionHeader title="Activity" />
-					<ul
-						aria-label="Activity"
-						className="relative flex flex-col gap-3 before:absolute before:top-4 before:bottom-4 before:left-2 before:w-px before:bg-border"
-					>
-						{streamItems.map((item) => {
-							if (item.kind === "activity") {
-								return <ActivityLine key={item.id} item={item} reviewer={reviewer} />;
-							}
-							const id = item.parentId ?? item.id;
-							return (
-								<CommentThread
-									key={id}
-									id={id}
-									identifier={ticket.identifier}
-									comments={threads.get(id)!}
-									onEdited={onEdited}
-									onDeleted={onDeleted}
-									onCreated={(comment) => prependTimeline(queryClient, key, { kind: "comment", ...comment })}
-								/>
-							);
-						})}
-					</ul>
-				</li>
+			<ul
+				aria-label="Activity"
+				className="relative flex flex-col gap-3 before:absolute before:top-4 before:bottom-4 before:left-2 before:w-px before:bg-border"
+			>
+				{streamItems.map((item) => {
+					if (item.kind === "activity") {
+						return <ActivityLine key={item.id} item={item} reviewer={reviewer} />;
+					}
+					const id = item.parentId ?? item.id;
+					return (
+						<CommentThread
+							key={id}
+							id={id}
+							identifier={ticket.identifier}
+							comments={threads.get(id)!}
+							onEdited={onEdited}
+							onDeleted={onDeleted}
+							onCreated={(comment) => prependTimeline(queryClient, key, { kind: "comment", ...comment })}
+						/>
+					);
+				})}
 			</ul>
 			<Composer ticket={ticket} onAttachFiles={onAttachFiles} />
 		</section>
