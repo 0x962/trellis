@@ -11,6 +11,7 @@ import { assertStatusInvariant } from "../../../../invariants.ts";
 let h: Harness;
 let projectId: string;
 let ticketId: string;
+let todoStatusId: string;
 let sessions: ReturnType<typeof controllerSession>[];
 beforeAll(async () => {
 	h = await serviceHarness();
@@ -23,8 +24,14 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		await seedActors(tx);
 		projectId = await seedRoot(tx, "HBT", { manager_config: { personaId: "persona", ade: "native" } });
-		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
-		ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
+		todoStatusId = await seedStatus(tx, {
+			projectId,
+			name: "Todo",
+			category: "todo",
+			position: 0,
+			isDefault: true,
+		});
+		ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId: todoStatusId });
 		await tx.execute(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,session_id,created_at,updated_at)
 			VALUES ('manager','Manager','Manager','manager','Manage',${projectId},'HBT','native','attempt','session',${NOW},${NOW})`);
 		await tx.execute(
@@ -56,6 +63,81 @@ test("a quiet manager receives one durable heartbeat after one minute without ne
 	expect(await batches()).toHaveLength(1);
 	expect((await take(600))?.id).toBe(first.id);
 	expect(await h.rows(sql`SELECT * FROM agent_runs`)).toHaveLength(1);
+});
+test("an empty project receives no heartbeat", async () => {
+	await h.rows(sql`DELETE FROM tickets`);
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+});
+test("a project with only done and canceled tickets receives no heartbeat", async () => {
+	await h.read(async (tx) => {
+		const doneId = await seedStatus(tx, { projectId, name: "Done", category: "done", position: 1 });
+		const canceledId = await seedStatus(tx, { projectId, name: "Canceled", category: "canceled", position: 2 });
+		await tx.execute(sql`UPDATE tickets SET status_id=${doneId},completed_at=${NOW} WHERE id=${ticketId}`);
+		await seedTicket(tx, { projectId, rootId: projectId, statusId: canceledId, completedAt: NOW });
+	});
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+});
+test("an active worker keeps heartbeats active after its ticket reaches a terminal status", async () => {
+	const doneId = await h.read((tx) => seedStatus(tx, { projectId, name: "Done", category: "done", position: 1 }));
+	await h.rows(sql`UPDATE tickets SET status_id=${doneId},completed_at=${NOW} WHERE id=${ticketId}`);
+	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,ticket_id,ticket_identifier,runtime,terminal_id,session_id,created_at,updated_at)
+		VALUES ('worker','Builder','Builder','builder','Build',${projectId},'HBT',${ticketId},'HBT-1','native','worker-attempt','worker-session',${NOW},${NOW})`);
+	await gather(600);
+	expect((await take(600))?.events).toEqual([]);
+});
+test("a reopened ticket resumes heartbeats", async () => {
+	const doneId = await h.read((tx) => seedStatus(tx, { projectId, name: "Done", category: "done", position: 1 }));
+	await h.rows(sql`UPDATE tickets SET status_id=${doneId},completed_at=${NOW} WHERE id=${ticketId}`);
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+	await h.rows(
+		sql`UPDATE tickets SET status_id=(SELECT id FROM statuses WHERE project_id=${projectId} AND category='todo'),completed_at=NULL WHERE id=${ticketId}`,
+	);
+	await gather(601);
+	expect((await take(601))?.events).toEqual([]);
+});
+test("a new unfinished ticket resumes heartbeats for an empty project", async () => {
+	await h.rows(sql`DELETE FROM tickets`);
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+	await h.read((tx) => seedTicket(tx, { projectId, rootId: projectId, statusId: todoStatusId }));
+	await gather(601);
+	expect((await take(601))?.events).toEqual([]);
+});
+test("an unfinished ticket in an unmanaged child keeps the parent heartbeat active", async () => {
+	await h.rows(sql`DELETE FROM tickets`);
+	const child = await h.read((tx) => seedChild(tx, projectId, projectId, "child"));
+	await h.read((tx) => seedTicket(tx, { projectId: child, rootId: projectId, statusId: todoStatusId }));
+	await gather(600);
+	expect((await take(600))?.events).toEqual([]);
+});
+test("an unfinished ticket below another manager does not keep the parent heartbeat active", async () => {
+	await h.rows(sql`DELETE FROM tickets`);
+	const child = await h.read((tx) =>
+		seedChild(tx, projectId, projectId, "child", { manager_config: { personaId: "other", ade: "native" } }),
+	);
+	await h.read((tx) => seedTicket(tx, { projectId: child, rootId: projectId, statusId: todoStatusId }));
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
+});
+test("an active direct submanager keeps the parent heartbeat active", async () => {
+	await h.rows(sql`DELETE FROM tickets`);
+	const child = await h.read((tx) => seedChild(tx, projectId, projectId, "child"));
+	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,session_id,created_at,updated_at)
+		VALUES ('submanager','Manager','Manager','manager','Manage',${child},'HBT.child','native','sub-attempt','sub-session',${NOW},${NOW})`);
+	await h.rows(sql`INSERT INTO manager_delegations (run_id,parent_run_id,project_id,capacity,brief,created_at)
+		VALUES ('submanager','manager',${child},1,'Own the child scope.',${NOW})`);
+	await gather(600);
+	expect((await take(600))?.events).toEqual([]);
+});
+test("a terminal ticket event still reaches the manager", async () => {
+	const doneId = await h.read((tx) => seedStatus(tx, { projectId, name: "Done", category: "done", position: 1 }));
+	await h.rows(sql`UPDATE tickets SET status_id=${doneId},completed_at=${NOW} WHERE id=${ticketId}`);
+	await event(0);
+	await gather(60);
+	expect((await take(60))?.events).toHaveLength(1);
 });
 test("heartbeat cadence starts from the last sent ticket batch", async () => {
 	await event(59);

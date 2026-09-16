@@ -22,6 +22,12 @@ export const collectHeartbeats = async (ctx: ControllerCtx, tx: Tx, input: Contr
 		WHERE ${isManaged(sql`p`)} AND p.archived_at IS NULL
 		AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
 		AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
+		AND (EXISTS (SELECT 1 FROM tickets t JOIN statuses s ON s.id=t.status_id
+			WHERE t.project_id IN (${managerScope(sql`p.id`)}) AND s.category NOT IN ('done','canceled'))
+			OR EXISTS (SELECT 1 FROM agent_runs worker WHERE worker.project_id IN (${managerScope(sql`p.id`)})
+				AND worker.kind IN ('builder','reviewer') AND worker.closed_at IS NULL)
+			OR EXISTS (SELECT 1 FROM manager_delegations delegation
+				WHERE delegation.parent_run_id=r.id AND delegation.retired_at IS NULL))
 		AND GREATEST(r.created_at, live."idleAt",
 			(SELECT max(updated_at) FROM manager_dispatches WHERE project_id=p.id AND state='sent')) <= ${quietBefore}
 		AND NOT EXISTS (SELECT 1 FROM manager_dispatches WHERE project_id=p.id AND state IN ('pending','sending','unknown'))

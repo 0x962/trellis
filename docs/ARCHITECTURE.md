@@ -365,6 +365,8 @@ The collector continues while dispatch pauses. It excludes the manager's own act
 The controller sends a batch only to the current native attempt with a matching conversation and a live controllable process.
 After one minute without manager activity or a successful dispatch, the controller queues a heartbeat for an idle manager.
 A heartbeat uses the same durable queue and receipt checks as ticket events. Its event list is empty.
+The controller pauses heartbeats when a manager owns no unfinished ticket, open worker assignment, or direct delegation.
+Done and Canceled statuses are terminal for this check.
 Ticket events take precedence. The queue holds at most one pending or unresolved message per project.
 Heartbeats respect project dispatch pause, the global work pause, and archived projects.
 The heartbeat asks the manager to follow its current persona and status descriptions, inspect work, and avoid comments that only acknowledge the heartbeat.
