@@ -2,7 +2,6 @@ import { ORPCError } from "@orpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
-import { AgentCapacityBadge } from "@trellis/ui";
 import { lazy, Suspense } from "react";
 import { RestartStatus } from "../../../features/agents/RestartStatus";
 import { Board, boardSortLabel } from "../../../features/board";
@@ -161,9 +160,6 @@ function ProjectPage() {
 					parent={project.ancestors.length > 0 ? <ProjectBreadcrumb project={project.ancestors.at(-1)!} /> : undefined}
 					title={project.name}
 				/>
-				{view === "board" && capacity !== undefined && (
-					<AgentCapacityBadge used={capacity.used} limit={capacity.limit} className="max-sm:hidden" />
-				)}
 				<FilterBar
 					lead={<ViewSwitch value={view} onChange={switchView} />}
 					project={ref}
@@ -194,18 +190,11 @@ function ProjectPage() {
 									projectRef={ref}
 									filters={toCountsQuery(full, { statuses: project.statuses })}
 									storageKey={ref}
+									capacity={capacity}
 									onOpenTicket={openTicket}
 								/>
 							</div>
-							<ListFooter
-								total={counts?.total}
-								sort={boardSortLabel}
-								status={
-									capacity === undefined ? undefined : (
-										<AgentCapacityBadge used={capacity.used} limit={capacity.limit} className="sm:hidden" />
-									)
-								}
-							/>
+							<ListFooter total={counts?.total} sort={boardSortLabel} />
 						</>
 					) : (
 						<TicketTable
