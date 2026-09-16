@@ -1,6 +1,13 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { type BoardOutput, type BoardQueryInput, eventApplierFor, type Status, type StatusSummary } from "@trellis/api";
+import {
+	type BoardOutput,
+	type BoardQueryInput,
+	eventApplierFor,
+	type ListOutput,
+	type Status,
+	type StatusSummary,
+} from "@trellis/api";
 import { toast, useMediaQuery, useTheme } from "@trellis/ui";
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -156,9 +163,18 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 			limit: 100,
 		};
 		let cursor = cursors[column.id];
-		if (cursor === undefined) cursor = (await context.client.tickets.list(input)).nextCursor;
-		if (cursor === null) return;
-		const page = await context.client.tickets.list({ ...input, cursor });
+		let page: ListOutput;
+		try {
+			if (cursor === undefined) cursor = (await context.client.tickets.list(input)).nextCursor;
+			if (cursor === null) return;
+			page = await context.client.tickets.list({ ...input, cursor });
+		} catch (error) {
+			toast.error("The column did not load more tickets.", {
+				description: error instanceof Error ? error.message : String(error),
+				action: { label: "Retry", onClick: () => void showMore(column) },
+			});
+			return;
+		}
 		setCursors((current) => ({ ...current, [column.id]: page.nextCursor }));
 		context.queryClient.setQueryData<BoardOutput>(boardOptions.queryKey, (current) => ({
 			columns: current!.columns.map((entry) => ({

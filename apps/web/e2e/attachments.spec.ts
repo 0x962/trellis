@@ -13,6 +13,7 @@ test.beforeAll(() => {
 	if (!ensureProject("ATT", "Attachments")) return;
 	createTicket("ATT", "Attach the board screenshot");
 	createTicket("ATT", "Attach the logo");
+	createTicket("ATT", "Delete the notes file");
 });
 
 const region = (page: Page, ticket: string) => page.getByRole("region", { name: `Attachments for ${ticket}` });
@@ -65,4 +66,28 @@ test("attachments > an uploaded SVG downloads with its name and bytes", async ({
 	const download = await pending;
 	expect(download.suggestedFilename()).toBe("logo.svg");
 	expect(readFileSync(await download.path(), "utf8")).toBe(svg);
+});
+
+// A delete is permanent, so the row menu asks first. Cancel keeps the file.
+test("attachments > Delete asks for a confirm, and the confirm removes the row", async ({ page }) => {
+	await signIn(page, "/t/ATT-3");
+	await expect(region(page, "ATT-3")).toBeAttached();
+	await dropFiles(page, "ATT-3", [{ name: "notes.txt", type: "text/plain", text: "plain notes" }]);
+	const link = page.getByRole("link", { name: "Download notes.txt" });
+	await expect(link).toBeVisible();
+
+	await region(page, "ATT-3").getByRole("button", { name: "Actions for notes.txt" }).click();
+	await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
+	const dialog = page.getByRole("dialog", { name: "Delete notes.txt?" });
+	await expect(dialog).toContainText("trellis cannot restore a deleted file.");
+	await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+	await expect(link).toBeVisible();
+
+	await region(page, "ATT-3").getByRole("button", { name: "Actions for notes.txt" }).click();
+	await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
+	await page
+		.getByRole("dialog", { name: "Delete notes.txt?" })
+		.getByRole("button", { name: "Delete", exact: true })
+		.click();
+	await expect(link).toHaveCount(0);
 });

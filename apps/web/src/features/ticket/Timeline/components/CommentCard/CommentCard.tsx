@@ -1,5 +1,5 @@
 import type { Comment } from "@trellis/api";
-import { ActorChip, Button, cx, Menu, type MenuItem, Textarea } from "@trellis/ui";
+import { ActorChip, Button, ConfirmDialog, cx, Menu, type MenuItem, Textarea } from "@trellis/ui";
 import { type ReactNode, useState } from "react";
 import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
 import { useApp } from "../../../../../lib/appContext";
@@ -36,6 +36,7 @@ export function CommentCard({
 }: CommentCardProps) {
 	const { client } = useApp();
 	const [editing, setEditing] = useState(false);
+	const [confirming, setConfirming] = useState(false);
 	const [draft, setDraft] = useState(comment.body);
 
 	const save = async () => {
@@ -119,7 +120,7 @@ export function CommentCard({
 								...actions,
 								{ label: "Edit", onSelect: () => setEditing(true) },
 								{ label: "Copy markdown", onSelect: () => void copyText(comment.body, "Copied the comment") },
-								{ label: "Delete", onSelect: () => void remove(), danger: true },
+								{ label: "Delete", onSelect: () => setConfirming(true), danger: true },
 							]}
 						/>
 					</div>
@@ -134,6 +135,18 @@ export function CommentCard({
 				) : (
 					body
 				)}
+				<ConfirmDialog
+					open={confirming}
+					title="Delete this comment?"
+					description="trellis cannot restore a deleted comment."
+					confirmLabel="Delete"
+					danger
+					onConfirm={() => {
+						setConfirming(false);
+						void remove();
+					}}
+					onCancel={() => setConfirming(false)}
+				/>
 			</article>
 		</li>
 	);
