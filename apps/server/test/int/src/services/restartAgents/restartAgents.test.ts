@@ -279,6 +279,44 @@ test("a failed agent does not block the next one, and the status names both", as
 	expect(status!.sessions[0]!.error).toContain("stopped");
 	expect(status!.sessions[0]!.projectPath).toBe("RST");
 });
+test("two workers of one plan launch at the same time", async () => {
+	const secondRunId = ulid();
+	const secondPrevious = randomUUID();
+	await h.read(async (tx) => {
+		const [project] = await tx
+			.execute(sql`SELECT id FROM projects LIMIT 1`)
+			.then((result) => result.rows as { id: string }[]);
+		await tx.execute(
+			sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,terminal_id,session_id,workspace_id,created_at,updated_at) VALUES (${secondRunId},'Second','native','Builder','builder','Frozen instruction',${project!.id},'RST',${secondPrevious},'provider-session','/tmp/saved-workspace',now(),now())`,
+		);
+	});
+	plan.sessions.push({
+		...plan.sessions[0]!,
+		runId: secondRunId,
+		previousAttemptId: secondPrevious,
+		attempt: { id: randomUUID(), token: "second-token" },
+	});
+	await writeRestartPlan(home, plan);
+	processes.push({ ...processes[0]!, id: secondPrevious });
+	let release!: () => void;
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const dependency = deps();
+	const start = dependency.start;
+	let started = 0;
+	dependency.start = async (...args) => {
+		started++;
+		await gate;
+		return start(...args);
+	};
+	const result = prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, dependency);
+	while (started < 2) await Bun.sleep(10);
+	expect((await restartStatus(ctx()))?.sessions.map((session) => session.state)).toEqual(["resuming", "resuming"]);
+	release();
+	expect(await result).toMatchObject({ resumed: 2, skipped: 0, failed: 0 });
+	expect(await readRestartPlan(home)).toBeNull();
+});
 async function seedFlow(deadlineAt = Date.now() + 60000) {
 	const session = plan.sessions[0]!;
 	const executionId = ulid();
