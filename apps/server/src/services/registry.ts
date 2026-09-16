@@ -3,8 +3,10 @@ import * as actors from "./actors.ts";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
+import { readRuntimeSessions } from "./agentRuns/liveState.ts";
 import { readNativeWork, setNativeWork } from "./agentRuns/nativeControl.ts";
 import { prepareResume } from "./agentRuns/resume.ts";
+import { prepareSetModel } from "./agentRuns/setModel/setModel.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
 import * as attachments from "./attachments.ts";
@@ -105,9 +107,17 @@ const agentMutation = (prepare: Prepare) =>
 	);
 
 export const services = {
-	"submanagers.list": core("read", listSubmanagers),
+	"submanagers.list": prepared(
+		"read",
+		async (ctx, input) => ({ ...input, sessions: await readRuntimeSessions(ctx.home) }),
+		(ctx, tx, input) => listSubmanagers(ctx.core, tx, input),
+	),
 	"submanagers.start": agentMutation(startSubmanager),
-	"submanagers.resize": core("mutation", resizeSubmanager),
+	"submanagers.resize": prepared(
+		"mutation",
+		async (ctx, input) => ({ ...input, sessions: await readRuntimeSessions(ctx.home) }),
+		(ctx, tx, input) => resizeSubmanager(ctx.core, tx, input),
+	),
 	"submanagers.retire": prepared("mutation", retireSubmanager, agentTerminal.result),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
 	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),
@@ -182,6 +192,7 @@ export const services = {
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
 	"agentRuns.start": agentMutation(agentRuns.prepareStart),
 	"agentRuns.resume": agentMutation(prepareResume),
+	"agentRuns.setModel": agentMutation(prepareSetModel),
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
 	"personas.list": core("read", personas.list),

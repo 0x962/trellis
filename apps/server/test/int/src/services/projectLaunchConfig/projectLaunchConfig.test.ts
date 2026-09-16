@@ -76,7 +76,7 @@ test("restart preparation resolves the inherited directory and keeps the saved s
 				previousAttemptId: first.attempt.id,
 				providerSessionId: "saved-session",
 				harness: "claude",
-				model: "saved-model",
+				model: "anthropic/claude-sonnet-5",
 				workspace: "/tmp/saved-workspace",
 				processIdentity: "identity",
 				attempt: { id: "restart-attempt", token: "restart-token" },
@@ -85,5 +85,5 @@ test("restart preparation resolves the inherited directory and keeps the saved s
 		),
 	);
 	expect(result?.config.directory).toBe("/tmp/restart-root");
-	expect(result?.config.harness.model).toBe("saved-model");
+	expect(result?.config.harness.model).toBe("anthropic/claude-sonnet-5");
 });

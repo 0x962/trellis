@@ -5,6 +5,7 @@ import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { getRun } from "../agentRuns/queries.ts";
 import { reserve } from "../agentRuns/reserve.ts";
+import type { CapacityObservation } from "../assignments/occupiesSlot/index.ts";
 import { enabled } from "../controller/nextActions/queries.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { resolveMutableProject } from "../refs.ts";
@@ -15,7 +16,12 @@ import { columns, type Delegation, getDelegation, usage } from "./queries.ts";
 import { isManaged, managerScope } from "./scope.ts";
 
 export type Input = { project: string; capacity: number; brief: string; requestId: string; accountId?: string };
-export const reserveSubmanager = async (ctx: ServiceCtx, tx: Tx, input: Input, exited: string[] = []) => {
+export const reserveSubmanager = async (
+	ctx: ServiceCtx,
+	tx: Tx,
+	input: Input & CapacityObservation,
+	exited: string[] = [],
+) => {
 	const parent = await requireManager(ctx, tx);
 	const project = await resolveMutableProject(ctx, tx, input.project);
 	const [existing] = await rows<Delegation>(
@@ -79,6 +85,7 @@ export const reserveSubmanager = async (ctx: ServiceCtx, tx: Tx, input: Input, e
 		exited,
 		{
 			delegated: true,
+			sessions: input.sessions,
 			config: { ...parentConfig, directory: childConfig.directory, concurrency: childConfig.concurrency },
 		},
 	);
@@ -89,12 +96,12 @@ export const reserveSubmanager = async (ctx: ServiceCtx, tx: Tx, input: Input, e
 	} else {
 		await tx.execute(sql`INSERT INTO manager_delegations (run_id,parent_run_id,project_id,capacity,brief,created_at)
 			VALUES (${reservation.run.id},${parent.id},${project.id},${input.capacity},${input.brief},${ctx.now})`);
-		const ownUsage = await usage(tx, { runId: reservation.run.id, projectId: project.id });
+		const ownUsage = await usage(tx, { runId: reservation.run.id, projectId: project.id, sessions: input.sessions });
 		if (ownUsage.activeWorkers > input.capacity)
-			throw invalidInput("capacity", "The budget must cover the workers already assigned in this subtree.");
+			throw invalidInput("capacity", "The budget must cover the active workers in this subtree.");
 		const parentDelegation = await getDelegation(tx, parent.id);
 		if (parentDelegation) {
-			const parentUsage = await usage(tx, { runId: parent.id, projectId: parent.projectId });
+			const parentUsage = await usage(tx, { runId: parent.id, projectId: parent.projectId, sessions: input.sessions });
 			if (parentUsage.activeWorkers + parentUsage.childCapacity > parentDelegation.capacity)
 				throw invalidInput("capacity", "The parent budget must cover its workers and its submanager reservations.");
 		}

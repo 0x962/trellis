@@ -43,7 +43,7 @@ beforeEach(async () => {
 				previousAttemptId,
 				providerSessionId: "provider-session",
 				harness: "claude",
-				model: "saved-model",
+				model: "anthropic/claude-sonnet-5",
 				workspace: "/tmp/saved-workspace",
 				processIdentity: "identity",
 				attempt: { id: randomUUID(), token: "next-token" },
@@ -114,7 +114,7 @@ test("restart retains the assignment, workspace, provider, model, and frozen ins
 	expect(launches).toHaveLength(1);
 	expect(launches[0]).toMatchObject({
 		run: { id: plan.sessions[0]!.runId, workspaceId: "/tmp/saved-workspace", instruction: "Frozen instruction" },
-		config: { harness: { preset: "claude", model: "saved-model" } },
+		config: { harness: { preset: "claude", model: "anthropic/claude-sonnet-5" } },
 		resume: true,
 		previousAttemptId: plan.sessions[0]!.previousAttemptId,
 		resumePrompt: expect.stringContaining("Trellis performed a system restart."),

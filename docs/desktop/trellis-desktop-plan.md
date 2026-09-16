@@ -173,7 +173,7 @@ One active controller generation owns a project. One manager identity belongs to
 
 An assignment identity includes the ticket, role, scope, and input revision. A repeated request returns the existing assignment. Deliberate parallel work uses different scopes or roles. Two reviewers or a builder and reviewer remain possible when the policy permits them.
 
-The controller counts all live attempts for concurrency. An unresolved old attempt consumes its slot until reconciliation proves its state. Manager capacity is separate from worker capacity.
+The controller counts active worker turns for concurrency. Confirmed idle workers retain their assignments without occupying slots. An unresolved attempt reserves capacity until reconciliation proves its state. Manager capacity is separate from worker capacity.
 
 Reject Trellis mutations from a stale generation. This protects the database, but it cannot revoke arbitrary filesystem writes from a surviving process. Therefore, a replacement writable attempt requires confirmed termination or a separate workspace with explicit reconciliation.
 

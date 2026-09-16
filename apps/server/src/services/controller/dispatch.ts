@@ -32,7 +32,7 @@ export const dispatch = async (ctx: Ctx) => {
 			let attempted = false;
 			let error: string | null = null;
 			try {
-				const context = await ctx.newTx((tx) => coordination(tx, delivery));
+				const context = await ctx.newTx((tx) => coordination(tx, { ...delivery, sessions }));
 				const agents = await ctx.newTx((tx) =>
 					agentContext({ now: ctx.now() }, tx, { sessions, projectId: delivery.projectId, runId: delivery.runId! }),
 				);

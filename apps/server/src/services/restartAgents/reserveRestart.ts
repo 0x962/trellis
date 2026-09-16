@@ -1,3 +1,4 @@
+import { fromHarnessModel } from "@trellis/api";
 import type { RestartSession } from "@trellis/runtime-protocol/restart-plan";
 import { sql } from "drizzle-orm";
 import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
@@ -101,7 +102,14 @@ export async function reserveRestart(
 	}
 	return {
 		run,
-		config: { ...config, harness: { ...config.harness, preset: session.harness, model: session.model } },
+		config: {
+			...config,
+			harness: {
+				...config.harness,
+				preset: session.harness,
+				model: session.model ? fromHarnessModel(session.harness, session.model) : undefined,
+			},
+		},
 		attempt,
 		deadlineAt,
 	};

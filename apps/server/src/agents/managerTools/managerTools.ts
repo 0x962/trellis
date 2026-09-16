@@ -5,6 +5,7 @@ import { z } from "zod";
 import { sessionDetails, sessionInput } from "./sessionDetails.ts";
 
 const operations = {
+	models: ["list"],
 	submanagers: ["list", "start", "resize", "retire"],
 	projects: ["list", "get"],
 	harnessAccounts: ["list", "quota"],
@@ -17,7 +18,7 @@ const operations = {
 	timeline: ["list"],
 	brief: ["get"],
 	pullRequests: ["list", "link", "unlink", "refresh"],
-	agentRuns: ["list", "start", "resume", "send", "stop", "interrupt", "session", "refresh"],
+	agentRuns: ["list", "start", "resume", "setModel", "send", "stop", "interrupt", "session", "refresh"],
 	flows: ["list", "get"],
 	flowExecutions: ["list", "get", "start", "cancel"],
 	controller: ["list", "handle", "actions", "cancelAction"],
@@ -58,7 +59,7 @@ export const managerTools = (invoke: Invoke) => {
 						description: paginated
 							? "List agents in pages. Returns items, total, and nextOffset."
 							: inspect
-								? "Inspect agent activity. Request optional include fields: tool, lastTool (with input and output), lastMessage, result, error, process."
+								? "Inspect agent activity. Request optional include fields: model, tool, lastTool (with input and output), lastMessage, result, error, process."
 								: (procedure["~orpc"].route.summary ?? `${group}.${action}`),
 						schema,
 						inputSchema: z.toJSONSchema(schema, { io: "input" }),
@@ -96,6 +97,7 @@ export const managerTools = (invoke: Invoke) => {
 					"submanagers.start",
 					"agentRuns.start",
 					"agentRuns.resume",
+					"agentRuns.setModel",
 					"agentRuns.send",
 					"agentRuns.stop",
 					"agentRuns.refresh",

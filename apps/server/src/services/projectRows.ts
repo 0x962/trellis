@@ -1,4 +1,5 @@
 import {
+	fromHarnessModel,
 	type Project,
 	type ProjectManagerConfig,
 	ProjectManagerConfigSchema,
@@ -41,8 +42,18 @@ const projectColumns = sql`${projectSummaryColumns}, p.description, p.manager_co
 // The manager settings of a project row. A row the database wrote before a
 // setting existed holds no key for it, so the schema fills each missing key
 // with its default value.
-export const managerConfigOf = (row: { manager_config: unknown }): ProjectManagerConfig =>
-	ProjectManagerConfigSchema.parse(row.manager_config);
+export const managerConfigOf = (row: { manager_config: unknown }): ProjectManagerConfig => {
+	const config = row.manager_config as ProjectManagerConfig;
+	const harness = config?.harness;
+	return ProjectManagerConfigSchema.parse(
+		harness?.model && harness.preset !== "custom"
+			? {
+					...config,
+					harness: { ...harness, model: fromHarnessModel(harness.preset, harness.model) },
+				}
+			: config,
+	);
+};
 
 export const projectRow = async (tx: Tx, projectId: string) => {
 	const found = await rows<ProjectRow>(
