@@ -13,6 +13,7 @@ export { LocalEvidence } from "./domain/LocalEvidence";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { RuntimeDiagnostics } from "./domain/RuntimeDiagnostics";
 export { type StatusCategory, StatusIcon, type StatusIconProps } from "./domain/StatusIcon";
+export { TicketGlimmer } from "./domain/TicketGlimmer";
 export { TicketId, type TicketIdProps } from "./domain/TicketId";
 export { TrellisMark, type TrellisMarkProps } from "./domain/TrellisMark";
 export { TrellisWordmark, type TrellisWordmarkProps } from "./domain/TrellisWordmark";

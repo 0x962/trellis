@@ -40,7 +40,6 @@ const noSelection: string[] = [];
 
 export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: BoardProps) {
 	const context = useApp();
-	useQuery({ ...context.orpc.agentRuns.list.queryOptions({ input: {} }), refetchInterval: 2000 });
 	const boardRef = useRef<HTMLDivElement>(null);
 	const [announcement, setAnnouncement] = useState("");
 	const [showAllDone, setShowAllDone] = useState(false);

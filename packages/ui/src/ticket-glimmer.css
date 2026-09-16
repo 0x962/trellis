@@ -1,0 +1,29 @@
+.ticket-glimmer {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	border-radius: inherit;
+	pointer-events: none;
+	box-shadow: inset 0 1px 0 var(--agent);
+}
+.ticket-glimmer-film {
+	position: absolute;
+	inset: 0;
+	opacity: 0.12;
+	transform: translateX(-110%);
+	background: linear-gradient(
+		110deg,
+		transparent 15%,
+		var(--film-pink) 32%,
+		var(--film-violet) 42%,
+		var(--film-blue) 50%,
+		var(--film-mint) 58%,
+		var(--film-gold) 68%,
+		transparent 85%
+	);
+}
+@media (prefers-reduced-motion: reduce) {
+	.ticket-glimmer-film {
+		display: none;
+	}
+}

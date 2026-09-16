@@ -8,10 +8,16 @@ export function PersonaMark({
 	name,
 	kind,
 	state = "static",
+	background = true,
+	label,
+	className = "size-full",
 }: {
 	name: string;
 	kind?: PersonaKind;
 	state?: PersonaState;
+	background?: boolean;
+	label?: string;
+	className?: string;
 }) {
 	const appearance = personaAppearance(name, kind);
 	const mode = state === "working" && appearance.kind !== "manager" ? "working-mild" : state;
@@ -22,13 +28,16 @@ export function PersonaMark({
 	return (
 		<svg
 			ref={ref}
-			aria-hidden="true"
+			role={label === undefined ? undefined : "img"}
+			aria-label={label}
+			aria-hidden={label === undefined ? "true" : undefined}
 			viewBox="0 0 32 32"
-			className="persona-mark size-full"
+			className={`persona-mark shrink-0 ${className}`}
+			data-background={background}
 			data-persona-kind={appearance.kind}
 			data-state={mode}
 		>
-			{appearance.kind === "manager" && <rect className="persona-ground" width="32" height="32" rx="7" />}
+			{appearance.kind === "manager" && background && <rect className="persona-ground" width="32" height="32" rx="7" />}
 			<g className="persona-static">
 				<PersonaArtwork {...appearance} />
 			</g>
