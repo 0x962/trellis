@@ -153,7 +153,7 @@ test("native agents use an isolated Git worktree and retain output after stop", 
 	await t.client.agentRuns.stop({ id: run.id });
 	expect((await t.client.agentRuns.list({ ticket: ticket.identifier }))[0]).toMatchObject({
 		terminalId: run.terminalId,
-		processStatus: null,
+		processStatus: "exited",
 	});
-	expect((await t.client.system.doctor({})).runtime.state).toBe("stopped");
+	expect((await t.client.system.doctor({})).runtime.state).toBe("running");
 }, 20000);

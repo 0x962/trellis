@@ -51,6 +51,21 @@ for (const [key, dir] of Object.entries(dirs)) {
 	mkdirSync(dir, { recursive: true });
 	process.env[key] = dir;
 }
+for (const key of [
+	"TRELLIS_ACTOR",
+	"TRELLIS_ATTEMPT_ID",
+	"TRELLIS_ATTEMPT_TOKEN",
+	"TRELLIS_AUTH_TOKEN",
+	"TRELLIS_EXECUTION_BIN",
+	"TRELLIS_EXECUTION_SHELL",
+	"TRELLIS_RUN_ID",
+	"TRELLIS_RUNTIME_HOME",
+	"TRELLIS_RUNTIME_NODE",
+	"TRELLIS_RUNTIME_SCRIPT",
+	"TRELLIS_URL",
+]) {
+	delete process.env[key];
+}
 const home = dirs.TRELLIS_HOME;
 
 // This file runs before any test file loads, so a named import of homedir in
