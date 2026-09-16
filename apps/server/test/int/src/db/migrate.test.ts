@@ -94,6 +94,24 @@ describe("migrations on disk", () => {
 });
 
 describe("migrate", () => {
+	test("an upgrade adds capacity waits after a later migration already ran", async () => {
+		const temp = mkdtempSync(join(process.env.TRELLIS_HOME as string, "migrate-"));
+		cpSync(drizzleDir, temp, { recursive: true });
+		const journal = readJournal(temp);
+		journal.entries = journal.entries.filter((entry) => entry.idx <= 42 && entry.tag !== "0041_manager_next_actions");
+		writeFileSync(join(temp, "meta/_journal.json"), JSON.stringify(journal));
+		const db = await openDb(":memory:");
+		closers.push(() => db.$client.close());
+		await migrate(db, temp);
+		expect(await tableNames(db)).not.toContain("manager_next_actions");
+
+		await migrate(db);
+		expect(await tableNames(db)).toEqual([...tables].sort());
+		const dispatches = await db.execute(sql`SELECT next_actions FROM manager_dispatches`);
+		expect(dispatches.rows).toEqual([]);
+		expect(await migrate(db)).toBe(0);
+	});
+
 	test("migrate creates every table on an empty database", async () => {
 		const db = await openMigrated();
 		expect(await tableNames(db)).toEqual([...tables].sort());
