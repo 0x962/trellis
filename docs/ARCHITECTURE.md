@@ -359,7 +359,9 @@ Managers can inspect the observed model through `trellis_agentRuns_session` with
 The Manager page at `/p/<project path>/settings/manager` shows the manager's interactive terminal and process controls.
 Project settings at `/p/<project path>/settings#manager` selects the persona, repository directory, concurrency limit, and automatic dispatch.
 The dispatch switch pauses automatic messages while events remain stored.
-The `#harness` section selects the preset, model, and custom start and resume commands.
+The `#harness` section selects the preset, model, account, and custom start and resume commands.
+The account applies to the manager and to every worker of the project that no request names an account for. A sub-project with no account uses the nearest ancestor that names one.
+A running manager keeps its login until its next restart; the restart transfers its session to the new profile.
 An empty child repository directory uses the nearest configured ancestor directory at launch.
 An explicit child directory takes precedence. Persona, harness, and concurrency settings remain local to each project.
 Trellis trusts configured repository directories and agent workspaces.

@@ -55,6 +55,11 @@ export const ProjectManagerConfigSchema = z.strictObject({
 	dispatchPaused: z.boolean().default(false),
 	ade: AdeSchema.default("native"),
 	harness: HarnessSchema.default(HarnessSchema.parse({ preset: "claude" })),
+	// The account the manager and the workers of this project launch with
+	// when no one names another. Null means the default login of the
+	// harness. A sub-project with null uses the nearest ancestor that names
+	// one, the way it uses the ancestor directory.
+	accountId: UlidSchema.nullable().default(null),
 });
 export type ProjectManagerConfig = z.infer<typeof ProjectManagerConfigSchema>;
 export const DEFAULT_PROJECT_MANAGER_CONFIG = ProjectManagerConfigSchema.parse({

@@ -119,8 +119,11 @@ export const reserve = async (
 		existing.terminalId !== null &&
 		existing.workspaceId !== null &&
 		input.newSession !== true;
+	// An account named on the request wins, then the account of the project,
+	// then the account a resumed manager already has. A project account moves
+	// a manager at its next restart; the launch transfers its session.
 	const selected = await selectAccount(tx, {
-		accountId: input.accountId ?? (resume ? existing?.accountId : undefined),
+		accountId: input.accountId ?? config.accountId ?? (resume ? existing?.accountId : undefined),
 		config,
 		useDefault: !resume,
 	});

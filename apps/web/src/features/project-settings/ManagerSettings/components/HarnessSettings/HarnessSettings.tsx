@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import {
 	HARNESS_DEFAULT_MODELS,
 	HARNESS_PRESETS,
@@ -7,6 +8,7 @@ import {
 } from "@trellis/api";
 import { Select } from "@trellis/ui";
 import { useState } from "react";
+import { useApp } from "../../../../../lib/appContext";
 import { SettingsSection } from "../../../SettingsSection";
 import { AgentCommandField } from "../AgentCommandField";
 
@@ -31,6 +33,19 @@ export function HarnessSettings({
 	readOnly: boolean;
 }) {
 	const [revision, setRevision] = useState(0);
+	const { orpc } = useApp();
+	const accounts = useQuery(orpc.harnessAccounts.list.queryOptions({ input: {} }));
+	// The accounts a project can name: the enabled ones of the selected
+	// preset. The saved account stays in the list while it is disabled, so
+	// the field shows what the project holds instead of a blank.
+	const accountItems = [
+		{ value: "default", label: "Harness default" },
+		...(accounts.data ?? [])
+			.filter(
+				(account) => account.harness === draft.harness.preset && (account.enabled || account.id === draft.accountId),
+			)
+			.map((account) => ({ value: account.id, label: account.enabled ? account.name : `${account.name} (disabled)` })),
+	];
 	return (
 		<fieldset disabled={readOnly} className="manager-settings-groups">
 			<SettingsSection title="Harness" hint="The agent program that does the work.">
@@ -44,6 +59,7 @@ export function HarnessSettings({
 						commit({
 							...draft,
 							harness: { ...(preset === "custom" ? draft.harness : HARNESS_PRESETS[preset]), preset, model: undefined },
+							accountId: null,
 						});
 					}}
 				/>
@@ -63,6 +79,16 @@ export function HarnessSettings({
 						/>
 						<p className="manager-settings-hint">
 							A resume keeps its saved model unless you select another model for that resume.
+						</p>
+						<Select
+							label="Account"
+							items={accountItems}
+							value={draft.accountId ?? "default"}
+							onValueChange={(value) => commit({ ...draft, accountId: value === "default" ? null : value })}
+						/>
+						<p className="manager-settings-hint">
+							The login the manager and the workers of this project launch with. A running manager keeps its login until
+							you restart it. Add and sign in accounts in Settings.
 						</p>
 					</>
 				)}
