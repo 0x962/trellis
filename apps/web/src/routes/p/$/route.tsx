@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
+import { AgentCapacityBadge } from "@trellis/ui";
 import { lazy, Suspense } from "react";
 import { Board, boardSortLabel } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
@@ -35,6 +36,9 @@ const ProjectManagerPage = lazy(async () => ({
 const projectOptions = (context: AppContext, ref: string) =>
 	context.orpc.projects.get.queryOptions({ input: { project: ref } });
 
+const capacityOptions = (context: AppContext, ref: string) =>
+	context.orpc.agentRuns.capacity.queryOptions({ input: { project: ref } });
+
 // A negated status goes out as the rest of `statuses`, so every counts
 // query of the route takes the project's statuses.
 const countsOptions = (context: AppContext, ref: string, search: Partial<View>, statuses: readonly Status[]) =>
@@ -67,7 +71,10 @@ export const Route = createFileRoute("/p/$")({
 			return;
 		}
 		if (view !== "settings") {
-			await context.queryClient.ensureQueryData(countsOptions(context, ref, deps, project.statuses));
+			await Promise.all([
+				context.queryClient.ensureQueryData(countsOptions(context, ref, deps, project.statuses)),
+				...(view === "board" ? [context.queryClient.ensureQueryData(capacityOptions(context, ref))] : []),
+			]);
 		}
 	},
 	component: ProjectPage,
@@ -92,6 +99,7 @@ function ProjectPage() {
 	const routeKey = projectHref(ref);
 	// The loader fills this cache entry, so the board footer reads it on the first paint.
 	const counts = useQuery(countsOptions(context, ref, search, project.statuses)).data;
+	const capacity = useQuery({ ...capacityOptions(context, ref), enabled: view === "board" }).data;
 
 	if (view === "settings" || view === "manager") {
 		return (
@@ -134,6 +142,9 @@ function ProjectPage() {
 					parent={project.ancestors.length > 0 ? <ProjectBreadcrumb project={project.ancestors.at(-1)!} /> : undefined}
 					title={project.name}
 				/>
+				{view === "board" && capacity !== undefined && (
+					<AgentCapacityBadge used={capacity.used} limit={capacity.limit} className="max-sm:hidden" />
+				)}
 				<FilterBar
 					lead={<ViewSwitch value={view} onChange={switchView} />}
 					project={ref}
@@ -166,7 +177,15 @@ function ProjectPage() {
 									onOpenTicket={openTicket}
 								/>
 							</div>
-							<ListFooter total={counts?.total} sort={boardSortLabel} />
+							<ListFooter
+								total={counts?.total}
+								sort={boardSortLabel}
+								status={
+									capacity === undefined ? undefined : (
+										<AgentCapacityBadge used={capacity.used} limit={capacity.limit} className="sm:hidden" />
+									)
+								}
+							/>
 						</>
 					) : (
 						<TicketTable

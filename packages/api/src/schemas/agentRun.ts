@@ -1,6 +1,18 @@
 import { z } from "zod";
+import { ProjectRefStringSchema } from "../refs.ts";
 import { PersonaKindSchema } from "./persona.ts";
-import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+
+export const AgentCapacitySchema = z.object({
+	used: CountSchema,
+	limit: CountSchema,
+});
+export type AgentCapacity = z.infer<typeof AgentCapacitySchema>;
+
+export const AgentCapacityInputSchema = z.strictObject({
+	project: ProjectRefStringSchema,
+});
+export type AgentCapacityInput = z.input<typeof AgentCapacityInputSchema>;
 
 export const AgentRunSchema = z.object({
 	id: UlidSchema,

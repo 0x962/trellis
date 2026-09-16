@@ -158,6 +158,7 @@ export const services = {
 	"controller.resolveUnknown": core("mutation", controller.resolveUnknown),
 	"controller.dispatch": prepared("mutation", controllerDispatch.dispatch, controllerDispatch.finished),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
+	"agentRuns.capacity": core("read", agentRuns.capacity),
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
 	"agentRuns.start": agentMutation(agentRuns.prepareStart),
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),

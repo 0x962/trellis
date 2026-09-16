@@ -1,4 +1,5 @@
 import { ActorChip } from "../../../domain/ActorChip";
+import { AgentCapacityBadge } from "../../../domain/AgentCapacityBadge";
 import { type Check, CheckRibbon } from "../../../domain/CheckRibbon";
 import { type Priority, PriorityIcon } from "../../../domain/PriorityIcon";
 import { StatusIcon } from "../../../domain/StatusIcon";
@@ -23,6 +24,11 @@ const packed = ribbon(Array.from({ length: 80 }, (_, index) => (index === 39 ? "
 export function DomainSections() {
 	return (
 		<>
+			<Section name="AgentCapacityBadge" note="low, medium, and high project load">
+				<AgentCapacityBadge used={5} limit={22} />
+				<AgentCapacityBadge used={11} limit={22} />
+				<AgentCapacityBadge used={18} limit={22} />
+			</Section>
 			<Section name="StatusIcon" note="by category; review by reviewer; started by progress">
 				<span className="inline-flex items-center gap-2 text-sm">
 					<StatusIcon category="todo" /> Todo

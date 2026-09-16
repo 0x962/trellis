@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
-import { AgentRunListInputSchema, AgentRunSchema, AgentRunStartInputSchema } from "../schemas/agentRun.ts";
+import {
+	AgentCapacityInputSchema,
+	AgentCapacitySchema,
+	AgentRunListInputSchema,
+	AgentRunSchema,
+	AgentRunStartInputSchema,
+} from "../schemas/agentRun.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
 import { base } from "./base.ts";
 
@@ -46,6 +52,10 @@ const sessionSchema = z.object({
 	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
+	capacity: base
+		.route({ method: "GET", path: "/agent-runs/capacity", summary: "Read project agent capacity" })
+		.input(AgentCapacityInputSchema)
+		.output(AgentCapacitySchema),
 	interrupt: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/agent-runs/{id}/interrupt", summary: "Interrupt the current agent turn" })
