@@ -629,7 +629,7 @@ returns one canonical spelling.
 | pullRequests.diff | GET /api/prs/{id}/diff | `gh pr diff`, cut at 1 MB, cached for 60 s |
 | personas.list, get, create, update, delete | GET, POST /api/personas; GET, PATCH, DELETE /api/personas/{id} | the manager tool list omits instructions; get reads one |
 | flows.list, get, create, update, save, delete | GET, POST /api/flows; GET, PATCH, DELETE /api/flows/{flow}; PUT /api/flows/{flow}/graph | `{flow}` is a ULID or a slug; save replaces every node and edge |
-| agentRuns.capacity, list, start | GET /api/agent-runs/capacity, GET and POST /api/agent-runs | capacity returns used native ticket assignments and the configured limit; start answers 201 with the row in any state |
+| agentRuns.capacity, list, start | GET /api/agent-runs/capacity, GET and POST /api/agent-runs | capacity returns the scheduler's used slots and limit; start answers 201 with the row in any state |
 | agentRuns.stop, refresh, send | POST /api/agent-runs/{id}/stop, /refresh, /send | send takes 1 to 20000 characters |
 | agentRuns.resume | POST /api/agent-runs/{id}/resume | existing assignment, accountId, expectedTerminalId, requestId |
 | harnessAccounts.list, create, update, remove | GET, POST /api/harness-accounts; PATCH, DELETE /api/harness-accounts/{id} | account metadata and profile selection |
