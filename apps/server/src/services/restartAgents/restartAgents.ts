@@ -104,10 +104,8 @@ async function resume(ctx: Ctx, input: { restartId: string }, deps: Dependencies
 				({ process: next } = await host.startPrepared(entry.attempt.id));
 			}
 			if (!acknowledged(next)) throw new Error(`Restart attempt ${entry.attempt.id} has no confirmed prompt receipt.`);
-			if (next.status === "unknown" || next.error || next.agent?.error)
-				throw new Error(
-					next.error ?? next.agent?.error ?? `Restart attempt ${entry.attempt.id} has unknown process ownership.`,
-				);
+			if (next.status === "unknown" || next.error)
+				throw new Error(next.error ?? `Restart attempt ${entry.attempt.id} has unknown process ownership.`);
 			resumed++;
 			ctx.emit({ type: "agent-runs.changed", id: entry.runId });
 		}

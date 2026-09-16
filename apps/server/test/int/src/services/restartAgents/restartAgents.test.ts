@@ -174,6 +174,23 @@ test("an acknowledged process with an execution error preserves the plan", async
 	);
 	expect(await readRestartPlan(home)).not.toBeNull();
 });
+test("a provider turn failure after confirmed resume retains its error without blocking desktop startup", async () => {
+	const dependency = deps();
+	const start = dependency.start;
+	dependency.start = async (...args) => {
+		const result = await start(...args);
+		processes[1]!.agent = {
+			...processes[1]!.agent!,
+			error: "rate_limit",
+			outcome: "failed",
+		};
+		return result;
+	};
+	expect(await prepareResumeRestart(ctx(), { restartId: plan.id }, dependency)).toEqual({ resumed: 1, skipped: 0 });
+	expect(await readRestartPlan(home)).toBeNull();
+	expect(processes[1]!.agent).toMatchObject({ sessionId: "provider-session", error: "rate_limit", outcome: "failed" });
+	expect(launches).toHaveLength(1);
+});
 test("a prelaunch failure keeps the assignment and plan available for repair", async () => {
 	const dependency = deps();
 	const broken = {

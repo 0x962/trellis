@@ -71,6 +71,10 @@ The authenticated Claude test confirms delayed discovery and prompt acknowledgme
 The real missing-discovery test passes. The provider limit prevents the real tool-call and exact-resume assertions from completion.
 Evidence: `/tmp/trellis-manager-ready-live-green.log`, `/tmp/trellis-startup-combined-desktop.log`, and `/tmp/trellis-startup-combined-server-green.log`.
 
+A provider turn failure after confirmed resume remains visible on the agent. It does not block the desktop from opening.
+Process ownership errors and absent prompt receipts still block restoration. The regression first fails with `rate_limit` at the restart gate.
+All 26 restart service tests pass after the fix. Evidence: `/tmp/trellis-provider-startup-red.log` and `/tmp/trellis-provider-startup-green.log`.
+
 ## Automatic session resume
 
 A package update saves the active provider sessions before runtime shutdown. Workers resume before managers, in the same directories and conversations.
