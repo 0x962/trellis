@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { contentDisposition, isInlineMime } from "../../../../src/services/attachments.ts";
+import { contentDisposition, isInlineMime } from "./attachments.ts";
 
 // The files route serves a blob inline only for the ten types on the
 // allowlist. An SVG or an HTML file on the app origin runs as script, so

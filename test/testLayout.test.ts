@@ -17,15 +17,15 @@ import { dirname, extname, join, relative, resolve } from "node:path";
 // reaches none of them does not.
 
 const root = resolve(import.meta.dir, "..");
-
 // A file that opens a database, boots the app, or starts a server process.
 const BUILDERS = [
 	"apps/server/test/helpers/db.ts",
 	"apps/server/test/helpers/app.ts",
 	"apps/server/test/helpers/server.ts",
+	"apps/server/test/int/src/agents/harnesses/pi.test.ts",
+	"apps/server/test/int/src/agents/harnesses/piManager.test.ts",
 	"apps/web/test/server/index.ts",
 ];
-
 const transpilers = {
 	".mjs": new Bun.Transpiler({ loader: "js" }),
 	".ts": new Bun.Transpiler({ loader: "ts" }),

@@ -1,6 +1,6 @@
 import { afterEach, expect, spyOn, test } from "bun:test";
-import { image } from "../../../../../src/services/reviews/image";
-import type { PrepareCtx } from "../../../../../src/services/support";
+import { image } from "./image";
+import type { PrepareCtx } from "../support";
 
 const ctx = { gh: async () => ({ ok: true, stdout: "fixture-token", stderr: "", code: 0 }) } as unknown as PrepareCtx;
 let fetchSpy: ReturnType<typeof spyOn>;

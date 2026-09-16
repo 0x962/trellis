@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import { createClient } from "../../../src/client.ts";
-import { apiVersion, fakeServer } from "../../fakeServer.ts";
-import { ticket } from "../../fixtures.ts";
+import { apiVersion, fakeServer } from "../test/fakeServer.ts";
+import { ticket } from "../test/fixtures.ts";
+import { createClient } from "./client.ts";
 
 test("the CLI authenticates requests to its desktop host", async () => {
 	const server = fakeServer({ "tickets.get": ticket() });

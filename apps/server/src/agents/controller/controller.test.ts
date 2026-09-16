@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createController } from "../../../../../src/agents/controller/controller.ts";
+import { createController } from "./controller.ts";
 
 const clock = () => {
 	const timers = new Map<number, () => unknown>();

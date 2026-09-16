@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import type { Run } from "../../../../src/services/registry.ts";
-import type { PrepareCtx } from "../../../../src/services/support.ts";
+import type { Run } from "./registry.ts";
+import type { PrepareCtx } from "./support.ts";
 
 // The typecheck proves this file, not the test run. A run step holds the
 // database lock, so a run step that asks for gh must not fit an `io` entry.

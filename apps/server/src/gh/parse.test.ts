@@ -7,7 +7,7 @@ import {
 	findTicketIdentifiers,
 	normalizeChecks,
 	TICKET_IDENTIFIER_PATTERN,
-} from "../../../../src/gh/parse.ts";
+} from "./parse.ts";
 
 // The raw nodes below are the shapes `gh api graphql` returns for the
 // contexts(first: 100) selection in graphql.ts, discriminated by __typename.

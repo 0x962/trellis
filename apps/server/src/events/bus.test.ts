@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { ulid } from "ulid";
-import { type BusEntry, createBus } from "../../../../src/events/bus.ts";
-import { prEvent, projectEvent, ticketEvent } from "../../../fixtures";
+import { type BusEntry, createBus } from "./bus.ts";
+import { prEvent, projectEvent, ticketEvent } from "../../test/fixtures";
 
 // The bus numbers every event `<bootId>.<seq>`, keeps the last 1000 in a
 // ring, and replays from an id with `since`. A null from `since` tells the

@@ -1,14 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { originDir } from "../../../../../../test/originDir.ts";
-import { contentHash, mapPullRequestResponse } from "../../../../src/gh/graphql.ts";
-import { deriveCiState } from "../../../../src/gh/parse.ts";
+import { contentHash, mapPullRequestResponse } from "./graphql.ts";
+import { deriveCiState } from "./parse.ts";
 
 // test/fixtures/graphql-50.json is one `gh api graphql` response for the 50
 // refs below: pr0..pr24 in acme/web, pr25..pr49 in acme/api, numbers 100..149.
 // Alias prN answers refs[N]; the response carries no owner or repo, so the
 // mapper takes them from the ref.
-const fixturePath = join(originDir(import.meta.dir), "..", "..", "test", "fixtures", "graphql-50.json");
+const fixturePath = join(import.meta.dir, "..", "..", "test", "fixtures", "graphql-50.json");
 const fixture = await Bun.file(fixturePath).json();
 const refs = Array.from({ length: 50 }, (_, i) => ({ owner: "acme", repo: i < 25 ? "web" : "api", number: 100 + i }));
 

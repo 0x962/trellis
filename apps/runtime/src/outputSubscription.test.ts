@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { RuntimeOutputEvent, RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { outputSubscription } from "../../../src/outputSubscription.ts";
+import { outputSubscription } from "./outputSubscription.ts";
 
 const fixture = () => {
 	let bytes = Buffer.from("replay");
