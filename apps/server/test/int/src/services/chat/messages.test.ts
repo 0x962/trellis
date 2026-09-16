@@ -63,17 +63,17 @@ test("a sub-project has its own room, and its post reaches its own agents only",
 		body: "hello",
 		actor: { name: "dana", kind: "human" },
 	});
-	const child = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE.web", channel: "general" }));
+	const child = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE.web", channel: "release" }));
 	expect(child.items.map((message) => message.id)).toEqual([posted.id]);
 	expect(child.latestId).toBe(posted.id);
-	const root = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE", channel: "general" }));
+	const root = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE", channel: "release" }));
 	expect(root.items).toEqual([]);
 	expect((await deliveries()).map((row) => row.run_id)).toEqual(["web-builder", "web-reviewer"]);
 	expect(h.flushed).toContainEqual({
 		type: "chat.message",
 		id: posted.id,
 		projectId: childId,
-		channel: "general",
+		channel: "release",
 		aiOnly: false,
 		actor: { name: "dana", kind: "human" },
 	});
@@ -116,6 +116,14 @@ test("a person cannot post in a channel for agents only, and an agent can", asyn
 	);
 });
 
+test("a post in #general with no mention reaches the manager only, and one with a mention reaches its agent", async () => {
+	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body: "how is it going?" }));
+	expect((await deliveries()).map((row) => `${row.run_id}:${row.state}`)).toEqual(["manager:pending"]);
+	await h.rows(sql`DELETE FROM chat_deliveries`);
+	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body: "@Builder rebase" }));
+	expect((await deliveries()).map((row) => row.run_id)).toEqual(["builder"]);
+});
+
 test("a post reaches every live agent of the project except its author", async () => {
 	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "who owns the migration?" }), {
 		actor: { kind: "agent", name: "builder" },
@@ -135,7 +143,7 @@ test("a mention by run id, persona name, or role restricts the recipients and ma
 	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body: "@Careful Reviewer take TRL-1" }));
 	expect((await deliveries()).map((row) => row.run_id)).toEqual(["reviewer"]);
 	await h.rows(sql`DELETE FROM chat_deliveries`);
-	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body: "@nobody is here" }));
+	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "release", body: "@nobody is here" }));
 	expect((await deliveries()).map((row) => row.run_id)).toEqual(["builder", "manager", "reviewer"]);
 	expect(await h.rows(sql`SELECT DISTINCT direct FROM chat_deliveries`)).toEqual([{ direct: false }]);
 });
