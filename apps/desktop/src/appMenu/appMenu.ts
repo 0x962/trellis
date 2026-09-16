@@ -6,6 +6,7 @@ export type AppMenuActions = {
 	openLogs: () => void;
 	reconnectHost: () => void;
 	stopLocalWork: () => void;
+	restart: MenuItemConstructorOptions;
 	quit: () => void;
 };
 
@@ -25,6 +26,7 @@ export const appMenu = (actions: AppMenuActions): MenuItemConstructorOptions[] =
 			{ role: "unhide" },
 			{ type: "separator" },
 			{ label: "Stop local work and background service", click: actions.stopLocalWork },
+			actions.restart,
 			{ label: "Quit Trellis (keep agents running)", accelerator: "Cmd+Q", click: actions.quit },
 		],
 	},

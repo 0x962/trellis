@@ -95,6 +95,12 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /agent-runs/{id}/terminal/resize": { cols: 100, rows: 32 },
 	"POST /manager-dispatches/{id}/retry": {},
 	"POST /manager-dispatches/{id}/received": {},
+	"POST /manager-dispatches/{id}/handle": {
+		generation: 1,
+		outcomes: [
+			{ ticketId: "01J9Z0000000000000000000A1", status: "queued", reason: "An active worker owns this ticket." },
+		],
+	},
 	"POST /native-work/resume": {},
 	"POST /native-work/stop": {},
 	"POST /flow-executions": {

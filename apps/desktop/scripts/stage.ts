@@ -1,6 +1,7 @@
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
+import { writeDesktopBuild } from "../src/desktopBuild/desktopBuild.ts";
 import { stagePackages } from "../src/packageClosure/packageClosure.ts";
 import { writeBundleManifest } from "../src/resourceBundle/resourceBundle.ts";
 
@@ -33,5 +34,6 @@ await writeFile(
 	),
 );
 const desktop = JSON.parse(await readFile(join(repo, "apps/desktop/package.json"), "utf8"));
+await writeDesktopBuild(join(repo, "apps/desktop"), target);
 await writeBundleManifest(target, desktop.version, RUNTIME_PROTOCOL_VERSION);
 console.log(`Staged ${copies} packages at ${target}`);

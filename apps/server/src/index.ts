@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { networkInterfaces } from "node:os";
+import { websocket } from "hono/bun";
 import { ulid } from "ulid";
 import pkg from "../package.json";
 import { createApp } from "./app.ts";
@@ -40,7 +41,7 @@ const SHUTDOWN_GRACE_MS = 100;
 // A request in flight when the listener closes gets this long to finish.
 const SHUTDOWN_DEADLINE_MS = 4000;
 
-type Fetch = (request: Request) => Response | Promise<Response>;
+type Fetch = ReturnType<typeof createApp>["app"]["fetch"];
 
 // Boot: config, the data home lock, the port, the data home directories,
 // the gh check off the boot path, the database and its migrations with the
@@ -77,7 +78,13 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			port: config.port,
 			hostname: config.host,
 			idleTimeout: 0,
-			fetch: (request) => handler(request),
+			fetch: (request, server) => handler(request, server),
+			websocket: {
+				...websocket,
+				maxPayloadLength: 1024 * 1024,
+				backpressureLimit: 8 * 1024 * 1024,
+				closeOnBackpressureLimit: true,
+			},
 		});
 		lock.setPort(server.port!);
 		Object.assign(config, loadConfig({ ...env, TRELLIS_PORT: String(server.port) }));

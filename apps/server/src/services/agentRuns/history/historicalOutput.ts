@@ -2,7 +2,10 @@ import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentRun } from "@trellis/api";
 
-export const historicalOutput = async (home: string, run: Omit<AgentRun, "state" | "processStatus">) => {
+export const historicalOutput = async (
+	home: string,
+	run: Omit<AgentRun, "state" | "processStatus" | "observation">,
+) => {
 	const identity = `Assignment ${run.id}; ${run.runtime}; workspace ${run.workspaceId ?? "not recorded"}; terminal ${run.terminalId ?? "not recorded"}.`;
 	const path = join(home, "agents", run.id, "output.txt");
 	try {

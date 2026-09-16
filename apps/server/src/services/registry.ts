@@ -12,6 +12,7 @@ import * as comments from "./comments.ts";
 import * as controller from "./controller/controller.ts";
 import * as controllerDispatch from "./controller/dispatch.ts";
 import * as controllerPrepare from "./controller/prepare.ts";
+import * as controllerWork from "./controller/work.ts";
 import { diagnostics } from "./diagnostics.ts";
 import { check as evidenceCheck } from "./evidence/check.ts";
 import { file as evidenceFile } from "./evidence/file.ts";
@@ -31,6 +32,7 @@ import * as flowSave from "./flows/save.ts";
 import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
+import { prepareResumeRestart } from "./restartAgents/restartAgents.ts";
 import * as reviewDelivery from "./reviews/delivery";
 import * as reviewImage from "./reviews/image";
 import * as reviewMessages from "./reviews/messages";
@@ -98,6 +100,7 @@ export const services = {
 	"system.doctor": prepared("read", diagnostics, agentTerminal.result),
 	"system.nativeWork": core("read", (_ctx, tx) => readNativeWork(tx)),
 	"system.resumeNativeWork": core("mutation", (ctx, tx) => setNativeWork(ctx, tx, { paused: false })),
+	"system.resumeRestart": prepared("mutation", prepareResumeRestart, agentTerminal.result),
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
 	"evidence.workspace": prepared("read", evidenceWorkspace, evidenceResult),
 	"evidence.file": prepared("read", evidenceFile, evidenceResult),
@@ -145,6 +148,7 @@ export const services = {
 	"controller.complete": core("mutation", controller.complete),
 	"controller.recover": core("mutation", controller.recover),
 	"controller.list": core("read", controller.list),
+	"controller.handle": core("mutation", controllerWork.handle),
 	"controller.retry": core("mutation", controller.retry),
 	"controller.resolveUnknown": core("mutation", controller.resolveUnknown),
 	"controller.dispatch": prepared("mutation", controllerDispatch.dispatch, controllerDispatch.finished),

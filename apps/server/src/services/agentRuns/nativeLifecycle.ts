@@ -1,14 +1,23 @@
-import { access, mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { ORPCError } from "@orpc/server";
+import { errors } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ensureNativeRuntime, nativeClient } from "../../agents/native/connection.ts";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
-import { invalidInput } from "../../errors.ts";
 import type { ServiceCtx } from "../support.ts";
 import type { StoredRun } from "./queries.ts";
 
+const stopFailure = (run: StoredRun, message: string) =>
+	new ORPCError("RUNNER_UNAVAILABLE", {
+		defined: true,
+		status: errors.RUNNER_UNAVAILABLE.status,
+		message: `Could not stop ${run.name}. ${message}`,
+		data: { reason: "error" },
+	});
+
 export const nativeOutput = async (home: string, terminalId: string) => {
-	const client = nativeHost(home);
+	const client = nativeHost(home, process.env, await ensureNativeRuntime(home));
 	const end = (await client.output(terminalId, Number.MAX_SAFE_INTEGER)).nextOffset;
 	const chunks: Buffer[] = [];
 	let offset = 0;
@@ -27,19 +36,16 @@ export const stopNative = async (ctx: ServiceCtx, run: StoredRun) => {
 		await client.hello();
 	} catch (error) {
 		if (!["ENOENT", "ECONNREFUSED"].includes((error as NodeJS.ErrnoException).code ?? "")) throw error;
-		if (run.closedAt !== null) {
-			if (run.terminalId !== null) await access(join(ctx.home, "agents", run.id, `output-${run.terminalId}.txt`));
-			return { id: run.id };
-		}
 		client = await ensureNativeRuntime(ctx.home);
 	}
 	if (run.terminalId !== null) {
-		const stopped = await nativeHost(ctx.home, process.env, client).stop(run.terminalId);
+		const stopped = await nativeHost(ctx.home, process.env, client)
+			.stop(run.terminalId)
+			.catch((error: Error) => {
+				throw stopFailure(run, error.message);
+			});
 		if (stopped.status !== "exited")
-			throw invalidInput(
-				"id",
-				"The execution service cannot confirm this process stopped. Inspect the process before a replacement.",
-			);
+			throw stopFailure(run, stopped.error ?? "The host cannot confirm that the process stopped.");
 		const directory = join(ctx.home, "agents", run.id);
 		await mkdir(directory, { recursive: true, mode: 0o700 });
 		const output = await nativeOutput(ctx.home, run.terminalId);

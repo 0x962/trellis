@@ -36,6 +36,7 @@ test("Pi extension forwards native events while launch selects exact session and
 		const callbacks = new Map();
 		module.default({ on: (event: string, callback: unknown) => callbacks.set(event, callback) });
 		const context = { sessionManager: { getSessionId: () => "exact-vendor-id" }, model: { id: "provider/model" } };
+		expect(callbacks.has("message_end")).toBe(true);
 		for (const event of [
 			"session_start",
 			"input",
@@ -85,6 +86,16 @@ test("Pi preserves native identity, receipts, tools and turn completion", () => 
 		{ kind: "prompt", ...base, prompt: "trellis-message:123\nhello" },
 	]);
 	expect(parsePiEvent({ ...base, event: "agent_start", payload: {} })).toEqual([{ kind: "working", ...base }]);
+	expect(
+		parsePiEvent({
+			...base,
+			event: "message_end",
+			payload: {
+				message: { role: "assistant", content: [{ type: "text", text: "I will run the tests." }] },
+			},
+		}),
+	).toEqual([{ kind: "message", ...base, message: { text: "I will run the tests." } }]);
+	expect(parsePiEvent({ ...base, event: "message_end", payload: { message: { role: "user" } } })).toEqual([]);
 	expect(
 		parsePiEvent({
 			...base,

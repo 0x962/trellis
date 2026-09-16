@@ -145,7 +145,9 @@ export async function startRuntime(home: string) {
 	});
 	store = new SessionStore(join(home, "sessions"), hello.daemonId);
 	chmodSync(socketPath, 0o600);
-	writeFileSync(join(home, "manifest.json"), JSON.stringify(hello), { mode: 0o600 });
+	writeFileSync(join(home, "manifest.json"), JSON.stringify({ ...hello, releaseId: process.env.TRELLIS_RELEASE_ID }), {
+		mode: 0o600,
+	});
 	function close() {
 		closePromise ??= (async () => {
 			closing = true;

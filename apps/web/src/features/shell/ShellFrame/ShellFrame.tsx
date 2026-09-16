@@ -24,7 +24,7 @@ export function ShellFrame({ children }: ShellFrameProps) {
 			<aside
 				aria-label="Sidebar"
 				aria-busy="true"
-				className="relative flex h-full w-60 shrink-0 flex-col gap-0.5 bg-bg px-2 pb-2 text-base max-md:hidden"
+				className="relative flex h-full w-60 shrink-0 flex-col gap-0.5 border-r border-border bg-surface px-2 pb-2 text-sm max-md:hidden"
 			>
 				{/* The loaded sidebar puts its collapse button in a row of this
 				    height, so the rows below stay in place when it replaces this frame. */}
@@ -33,7 +33,7 @@ export function ShellFrame({ children }: ShellFrameProps) {
 					<Link
 						key={row.to}
 						to={row.to}
-						className="flex h-7 items-center gap-2 rounded-md px-2 text-fg-muted transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+						className="flex h-8 items-center gap-2 rounded-md px-2 text-fg-muted transition-colors duration-hover ease-out hover:bg-elevated hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 					>
 						<span aria-hidden="true" className="inline-flex size-4 shrink-0 *:size-full">
 							{row.icon}

@@ -15,8 +15,8 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	const execution = await readExecution(tx, input.id, true);
 	const state = advanceFlow(execution.doc, execution.state, { type: "tick" }, ctx.now.getTime());
 	await saveState(ctx, tx, execution, state);
-	const action = pendingFlowActions(execution.doc, state).find((action) => action.type === "agent");
-	if (!action || (await readNativeWork(tx)).paused) return null;
+	const actions = pendingFlowActions(execution.doc, state).filter((action) => action.type === "agent");
+	if (actions.length === 0 || (await readNativeWork(tx)).paused) return null;
 	await tx.execute(sql`SELECT id FROM projects WHERE id=${execution.project_id} FOR UPDATE`);
 	const config = managerConfigOf(await projectRow(tx, execution.project_id));
 	if (config.dispatchPaused) return null;
@@ -27,6 +27,15 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 		sql`SELECT count(*)::int AS count FROM agent_runs WHERE project_id=${execution.project_id} AND kind<>'manager' AND closed_at IS NULL`,
 	);
 	if (active!.count >= config.concurrency) return null;
+	const assigned = await rows<{ personaId: string | null }>(
+		tx,
+		sql`SELECT persona_id AS "personaId" FROM agent_runs
+		WHERE ticket_id=${execution.ticket_id} AND runtime='native' AND closed_at IS NULL`,
+	);
+	const action = actions.find(
+		(action) => !assigned.some((run) => run.personaId === (action.personaId ?? execution.default_persona_id)),
+	);
+	if (!action) return null;
 	const personaId = action.personaId ?? execution.default_persona_id;
 	const reservation = await reserve(ctx, tx, {
 		ticket: execution.ticket_id,
@@ -47,10 +56,11 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 		.filter(Boolean)
 		.join("\n\n");
 	await tx.execute(
-		sql`UPDATE agent_runs SET instruction=${instruction},persona_name=${persona.name} WHERE id=${reservation.run.id}`,
+		sql`UPDATE agent_runs SET instruction=${instruction},name=${persona.name},persona_name=${persona.name} WHERE id=${reservation.run.id}`,
 	);
 	reservation.run.instruction = instruction;
 	reservation.run.personaName = persona.name;
+	reservation.run.name = persona.name;
 	await tx.execute(
 		sql`INSERT INTO flow_execution_tasks (execution_id,key,run_id,attempt_id,created_at) VALUES (${execution.id},${action.key},${reservation.run.id},${reservation.attempt.id},${ctx.now})`,
 	);

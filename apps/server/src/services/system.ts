@@ -4,6 +4,7 @@ import type { BackupOutput, GhStatus, Health } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
+import { executionEnvironment } from "../executionEnvironment";
 import type { GhRunner } from "../gh/run.ts";
 import { PARTIAL_SUFFIX, SNAPSHOT_PREFIX } from "../storage/backups.ts";
 import type { ServiceCtx } from "./support.ts";
@@ -72,7 +73,7 @@ export type Snapshot = { staging: string; path: string };
 // Runs a copy or an archive command and throws with its stderr when it
 // exits nonzero.
 const run = async (command: string[]) => {
-	const proc = Bun.spawn(command, { stdout: "ignore", stderr: "pipe" });
+	const proc = Bun.spawn(command, { env: await executionEnvironment(), stdout: "ignore", stderr: "pipe" });
 	const [code, stderr] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
 	if (code !== 0) throw new Error(`${command[0]} exited ${code}: ${stderr.trim()}`);
 };

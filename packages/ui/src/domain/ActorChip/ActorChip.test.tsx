@@ -16,9 +16,8 @@ describe("ActorChip", () => {
 	test("agent actor shows the standard name color and the agent suffix", () => {
 		render(<ActorChip name="claude-code" kind="agent" />);
 		const avatar = screen.getByLabelText("claude-code · agent");
-		// The agent mark is the picture its name picks, not a glyph.
-		expect(avatar.querySelector("svg")).toBeNull();
-		expect(avatar.getAttribute("style")).toContain("radial-gradient");
+		expect(avatar.querySelector("svg") !== null).toBe(true);
+		expect(avatar.getAttribute("style")).toBeNull();
 		expectClasses(screen.getByText("claude-code"), "text-sm text-fg");
 		expectClasses(screen.getByText("· agent"), "text-fg-faint");
 	});

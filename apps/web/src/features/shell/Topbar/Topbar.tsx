@@ -1,7 +1,7 @@
 import { SidebarSimple } from "@phosphor-icons/react";
-import { IconButton, useMediaQuery } from "@trellis/ui";
+import { IconButton, Tooltip, useMediaQuery } from "@trellis/ui";
 import type { ReactNode } from "react";
-import { uiActions } from "../../../stores/uiStore";
+import { uiActions, useUiStore } from "../../../stores/uiStore";
 
 export type TopbarProps = {
 	// The heading and its marks.
@@ -10,14 +10,24 @@ export type TopbarProps = {
 	actions?: ReactNode;
 };
 
-// A collapsed sidebar leaves a rail of icons behind, which carries the
-// control that opens it again, so the header adds nothing for it. A phone
-// never shows the sidebar, so there the header leads with the button that
-// opens it in a sheet.
 export function Topbar({ children, actions }: TopbarProps) {
 	const phone = useMediaQuery("(max-width: 767px)");
+	const collapsed = useUiStore((state) => state.sidebarCollapsed);
 	return (
-		<header className="relative flex h-13 shrink-0 items-center gap-3 border-x border-transparent px-5 max-md:px-2 max-sm:gap-2">
+		<header
+			data-page-topbar=""
+			className="relative flex h-13 shrink-0 items-center gap-3 border-x border-transparent px-5 max-md:px-2 max-sm:gap-2"
+		>
+			{!phone && collapsed && (
+				<Tooltip content="Expand sidebar">
+					<IconButton
+						data-desktop-sidebar-toggle=""
+						label="Expand sidebar"
+						icon={<SidebarSimple />}
+						onClick={uiActions.toggleSidebar}
+					/>
+				</Tooltip>
+			)}
 			{phone ? (
 				<IconButton
 					label="Open the sidebar"

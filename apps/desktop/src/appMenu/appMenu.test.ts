@@ -25,6 +25,7 @@ test("the application menu opens Settings and keeps the stop action available fo
 		openLogs: () => calls.push("logs"),
 		reconnectHost: () => calls.push("reconnect"),
 		stopLocalWork: () => calls.push("stop"),
+		restart: { label: "Restart", click: () => calls.push("restart") },
 		quit: () => calls.push("quit"),
 	});
 	const trellis = submenu(menu, "Trellis");
@@ -35,6 +36,7 @@ test("the application menu opens Settings and keeps the stop action available fo
 		"hideOthers",
 		"unhide",
 		"Stop local work and background service",
+		"Restart",
 		"Quit Trellis (keep agents running)",
 	]);
 	expect(names(submenu(menu, "File"))).toEqual(["Open Trellis", "close"]);
@@ -49,6 +51,7 @@ test("the application menu opens Settings and keeps the stop action available fo
 	click(submenu(menu, "Help")[0]);
 	click(submenu(menu, "Help")[1]);
 	click(trellis.find((item) => item.label === "Stop local work and background service"));
+	click(trellis.find((item) => item.label === "Restart"));
 	click(trellis.at(-1));
-	expect(calls).toEqual(["settings", "window", "logs", "reconnect", "stop", "quit"]);
+	expect(calls).toEqual(["settings", "window", "logs", "reconnect", "stop", "restart", "quit"]);
 });

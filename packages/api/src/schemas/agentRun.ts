@@ -16,6 +16,15 @@ export const AgentRunSchema = z.object({
 	ticketIdentifier: z.string().nullable(),
 	state: z.enum(["starting", "interrupted", "running", "failed", "stopped", "exited"]),
 	processStatus: z.enum(["running", "exited", "unknown"]).nullable(),
+	observation: z
+		.object({
+			checkedAt: z.string(),
+			controllable: z.boolean(),
+			activity: z.object({ state: z.enum(["ready", "working", "idle"]), updatedAt: z.string() }).nullable(),
+			outcome: z.enum(["completed", "interrupted", "failed"]).nullable(),
+			turnId: z.string().nullable(),
+		})
+		.nullable(),
 	workspaceId: z.string().nullable(),
 	terminalId: z.string().nullable(),
 	url: z.string().nullable(),

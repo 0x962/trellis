@@ -66,6 +66,7 @@ const configFor = (harness: "claude" | "codex" | "pi" | "opencode") =>
 test.each(["claude", "codex", "pi", "opencode"] as const)(
 	"production %s start, send, terminal output, stop, and exact resume use the host",
 	async (harness) => {
+		if (harness === "codex") await h.rows(sql`UPDATE agent_runs SET kind='builder' WHERE id='assignment'`);
 		const ctx = context();
 		const config = configFor(harness);
 		const first = attempt;
@@ -156,7 +157,22 @@ test("a missing harness closes the unlaunched assignment and preserves its clear
 	expect(run.closedAt).not.toBeNull();
 	expect(run.error).toContain("claude");
 	expect(run.error).toContain("PATH");
+	expect(run.terminalId).toBeNull();
 	expect(await fixture.client.list()).toEqual([]);
+	attempt = await h.read((tx) => reserveAttempt({ now: new Date() }, tx, { runId: "assignment" }));
+	await h.rows(sql`UPDATE agent_runs SET terminal_id=${attempt.id},closed_at=NULL WHERE id='assignment'`);
+	await startNative(
+		context(),
+		{
+			run: await h.read((tx) => getRun(tx, "assignment")),
+			config: configFor("claude"),
+			resume: false,
+			context: "Corrected configuration",
+			attempt,
+		},
+		dependencies(),
+	);
+	expect((await fixture.client.inspect(attempt.id)).status).toBe("running");
 });
 
 test("the assignment token remains the runtime authentication token", async () => {
@@ -178,6 +194,7 @@ test("the assignment token remains the runtime authentication token", async () =
 test.each(["claude", "codex", "pi", "opencode"] as const)(
 	"production %s interrupt preserves the process and confirms native interruption",
 	async (harness) => {
+		if (harness === "codex") await h.rows(sql`UPDATE agent_runs SET kind='builder' WHERE id='assignment'`);
 		const ctx = context();
 		const deps = { ...dependencies(), env: { ...dependencies().env, HARNESS_FIXTURE_BEHAVIOR: "busy" } };
 		await startNative(

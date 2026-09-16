@@ -9,15 +9,23 @@ import { sendNativePrompt } from "./sendNativePrompt.ts";
 import type { HarnessDescriptor, HarnessHostOptions, HarnessStarted, HarnessStartInput } from "./types.ts";
 
 const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/);
-const launchInput = z.object({
-	id: identifier,
-	harness: z.enum(["claude", "codex", "pi", "opencode"]),
-	cwd: z.string().startsWith("/"),
-	prompt: z.string().min(1),
-	model: z.string().min(1).optional(),
-	token: z.string().min(1).optional(),
-	timeoutMs: z.number().positive().optional(),
-});
+const launchInput = z
+	.object({
+		id: identifier,
+		harness: z.enum(["claude", "codex", "pi", "opencode"]),
+		managerId: identifier.optional(),
+		cwd: z.string().startsWith("/"),
+		prompt: z.string().min(1),
+		model: z.string().min(1).optional(),
+		token: z.string().min(1).optional(),
+		timeoutMs: z.number().positive().optional(),
+	})
+	.and(
+		z.union([
+			z.object({ kind: z.literal("manager"), managerSystemPrompt: z.string().min(1) }),
+			z.object({ kind: z.enum(["builder", "reviewer"]).optional() }),
+		]),
+	);
 export class HarnessHost {
 	constructor(private readonly options: HarnessHostOptions) {}
 	prepare(input: HarnessStartInput, sessionId?: string): Promise<HarnessDescriptor> {
@@ -34,28 +42,36 @@ export class HarnessHost {
 	}
 	private async launch(input: HarnessStartInput, sessionId?: string): Promise<HarnessStarted> {
 		const descriptor = await this.prepare(input, sessionId);
-		await this.options.runtime.start(descriptor.spec);
-		if (input.harness === "opencode" && sessionId !== undefined) {
-			const current = await this.waitFor(input.id, (state) => state.agent?.sessionId === sessionId);
-			if (!current.acknowledgedMessageIds.includes(input.id))
-				await sendNativePrompt(
-					this.options,
-					descriptor,
-					sessionId,
-					input.id,
-					`trellis-message:${input.id}\n${input.prompt}`,
-				);
+		return this.launchDescriptor({ ...descriptor, prompt: input.prompt, sessionId });
+	}
+	async startPrepared(id: string, timeoutMs?: number): Promise<HarnessStarted> {
+		const descriptor = await this.descriptor(id);
+		const exists = (await this.options.runtime.list()).some((process) => process.id === id);
+		return this.launchDescriptor(descriptor, timeoutMs, !exists);
+	}
+	private async launchDescriptor(
+		descriptor: HarnessDescriptor,
+		timeoutMs?: number,
+		start = true,
+	): Promise<HarnessStarted> {
+		const { spec, harness, sessionId, prompt } = descriptor;
+		if (start) await this.options.runtime.start(timeoutMs === undefined ? spec : { ...spec, timeoutMs });
+		if (harness === "opencode" && sessionId !== undefined) {
+			const current = await this.waitFor(spec.id, (state) => state.agent?.sessionId === sessionId);
+			if (!current.acknowledgedMessageIds.includes(spec.id))
+				await sendNativePrompt(this.options, descriptor, sessionId, spec.id, `trellis-message:${spec.id}\n${prompt}`);
 		}
 		const process = await this.waitFor(
-			input.id,
-			(state) => state.agent?.sessionId != null && state.acknowledgedMessageIds.includes(input.id),
+			spec.id,
+			(state) => state.agent?.sessionId != null && state.acknowledgedMessageIds.includes(spec.id),
 		);
 		if (sessionId !== undefined && process.agent?.sessionId !== sessionId)
 			throw new Error(
-				`Harness attempt ${input.id} resumed provider session ${process.agent?.sessionId}, expected ${sessionId}`,
+				`Harness attempt ${spec.id} resumed provider session ${process.agent?.sessionId}, expected ${sessionId}`,
 			);
 		return { process };
 	}
+
 	async waitFor(
 		id: string,
 		matches: (session: RuntimeProcessStatus) => boolean,

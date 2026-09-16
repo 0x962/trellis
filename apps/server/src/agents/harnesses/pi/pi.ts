@@ -1,17 +1,23 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { HarnessEvent, HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 export async function preparePi(input: HarnessLaunchInput): Promise<HarnessLaunch> {
 	await mkdir(input.configDirectory, { recursive: true });
 	const extension = join(input.configDirectory, "trellis-pi.mjs");
+	if (input.managerTools)
+		await copyFile(
+			fileURLToPath(new URL("./managerTools.mjs", import.meta.url)),
+			join(input.configDirectory, "managerTools.mjs"),
+		);
 	await writeFile(
 		extension,
 		`import { spawn } from "node:child_process";
-export default function(pi) {
+export default async function(pi) {
  const command = ${JSON.stringify(input.hookCommand)};
  let pending = Promise.resolve();
- for (const event of ["session_start", "input", "agent_start", "agent_end", "tool_execution_start", "tool_execution_update", "tool_execution_end", "model_select"]) {
+ for (const event of ["session_start", "input", "agent_start", "agent_end", "message_end", "tool_execution_start", "tool_execution_update", "tool_execution_end", "model_select"]) {
   pi.on(event, (payload, ctx) => {
    const envelope = {harness:"pi",event,sessionId:ctx.sessionManager.getSessionId(),model:ctx.model?.id,payload};
    pending = pending.then(() => new Promise((resolve, reject) => {
@@ -25,14 +31,26 @@ export default function(pi) {
    return pending;
   });
  }
+ ${input.managerTools ? `const { registerManagerTools } = await import("./managerTools.mjs"); await registerManagerTools(pi, ${JSON.stringify(input.managerTools)});` : ""}
 }
 `,
 	);
 	return {
 		executable: "pi",
 		args: [
-			"--tools",
-			"read,bash,edit,write,grep,find,ls",
+			...(input.managerTools
+				? [
+						"--system-prompt",
+						input.managerSystemPrompt,
+						"--append-system-prompt",
+						"",
+						"--no-builtin-tools",
+						"--no-extensions",
+						"--no-skills",
+						"--no-prompt-templates",
+						"--no-context-files",
+					]
+				: ["--tools", "read,bash,edit,write,grep,find,ls"]),
 			"--extension",
 			extension,
 			...(input.model ? ["--model", input.model] : []),
@@ -56,6 +74,7 @@ type PiEnvelope = {
 	payload: {
 		text?: string;
 		messages?: PiMessage[];
+		message?: PiMessage;
 		toolCallId?: string;
 		toolName?: string;
 		args?: unknown;
@@ -74,6 +93,13 @@ export function parsePiEvent(envelope: PiEnvelope): HarnessEvent[] {
 		return [{ kind: "session", ...identity, ...(payload.model ? { model: payload.model.id } : {}) }];
 	if (event === "input") return [{ kind: "prompt", ...identity, prompt: payload.text }];
 	if (event === "agent_start") return [{ kind: "working", ...identity }];
+	if (event === "message_end" && payload.message?.role === "assistant") {
+		const text = payload.message.content
+			?.filter((part) => part.type === "text")
+			.map((part) => part.text)
+			.join("\n");
+		return text ? [{ kind: "message", ...identity, message: { text } }] : [];
+	}
 	if (event === "agent_end") {
 		const assistant = payload.messages?.findLast((message) => message.role === "assistant");
 		if (assistant?.stopReason === "error")

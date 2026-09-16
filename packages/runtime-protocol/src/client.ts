@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createConnection } from "node:net";
+import { Socket } from "node:net";
 import {
 	type HarnessEvent,
 	type LaunchSpec,
@@ -20,7 +20,7 @@ export class RuntimeClient {
 	) {}
 	call<M extends RuntimeMethod>(method: M, params: RuntimeMethods[M]["params"]): Promise<RuntimeMethods[M]["result"]> {
 		return new Promise((resolve, reject) => {
-			const socket = createConnection(this.socketPath);
+			const socket = new Socket();
 			const id = randomUUID();
 			let buffer = "";
 			let settled = false;
@@ -65,6 +65,7 @@ export class RuntimeClient {
 				if ("error" in reply) reject(Object.assign(new Error(reply.error.message), { code: reply.error.code }));
 				else resolve(reply.result as RuntimeMethods[M]["result"]);
 			});
+			socket.connect(this.socketPath);
 		});
 	}
 	subscribe(id: string, offset = 0, signal?: AbortSignal, stream: RuntimeStream = "stdout") {

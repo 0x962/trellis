@@ -1,41 +1,62 @@
 import { ArrowClockwise } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
+import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
 import "@xterm/xterm/css/xterm.css";
 import "../terminal.css";
-import { type TerminalFrame, terminalChunk } from "./terminalChunk.ts";
+import type { TerminalFrame } from "./terminalChunk.ts";
 import { terminalInputSource } from "./terminalInputSource.ts";
+import { terminalOutput } from "./terminalOutput";
+import { terminalWebgl } from "./terminalWebgl";
 
 export type TerminalSurfaceProps = {
+	layout?: "panel" | "fill";
 	label: string;
 	connected: boolean;
+	stopped?: boolean;
+	unavailableReason?: string | null;
 	follow: (offset: number, onOutput: (frame: TerminalFrame) => Promise<void>, signal: AbortSignal) => Promise<void>;
 	send: (text: string, userInput: boolean) => Promise<unknown>;
 	resize: (cols: number, rows: number) => Promise<unknown>;
 	onLeave: () => void;
 };
 
-export function TerminalSurface({ label, connected, follow, send, resize, onLeave }: TerminalSurfaceProps) {
+export function TerminalSurface({
+	layout = "panel",
+	label,
+	connected,
+	stopped = false,
+	unavailableReason,
+	follow,
+	send,
+	resize,
+	onLeave,
+}: TerminalSurfaceProps) {
 	const container = useRef<HTMLDivElement>(null);
 	const enabled = useRef(connected);
 	const failed = useRef(false);
 	const reconnect = useRef(() => {});
 	const fitCurrent = useRef(() => {});
-	enabled.current = connected;
+	enabled.current = connected && !stopped;
 	const [error, setError] = useState<string | null>(null);
 	const [gap, setGap] = useState(false);
 	useEffect(() => {
-		if (connected) fitCurrent.current();
-	}, [connected]);
+		if (connected && !stopped) fitCurrent.current();
+	}, [connected, stopped]);
 	useEffect(() => {
+		if (stopped) return;
 		let disposed = false;
 		let dispose = () => {};
 		let connection: AbortController;
 		const start = async () => {
-			const [{ Terminal }, { FitAddon }] = await Promise.all([import("@xterm/xterm"), import("@xterm/addon-fit")]);
+			const [{ Terminal }, { FitAddon }, { WebglAddon }] = await Promise.all([
+				import("@xterm/xterm"),
+				import("@xterm/addon-fit"),
+				import("@xterm/addon-webgl"),
+			]);
 			if (disposed) return;
-			const styles = getComputedStyle(container.current!);
+			const styles = getComputedStyle(container.current!.parentElement!);
 			const terminal = new Terminal({
 				fontFamily: styles.fontFamily,
 				fontSize: Number.parseFloat(styles.fontSize),
@@ -47,6 +68,7 @@ export function TerminalSurface({ label, connected, follow, send, resize, onLeav
 			const fit = new FitAddon();
 			terminal.loadAddon(fit);
 			terminal.open(container.current!);
+			const disposeWebgl = terminalWebgl(terminal, () => new WebglAddon());
 			terminal.textarea?.setAttribute("aria-label", label);
 			terminal.attachCustomKeyEventHandler((event) => {
 				event.stopPropagation();
@@ -79,26 +101,13 @@ export function TerminalSurface({ label, connected, follow, send, resize, onLeav
 			fitCurrent.current = fitTerminal;
 			const observer = new ResizeObserver(fitTerminal);
 			observer.observe(container.current!);
-			fitTerminal();
-			let offset = 0;
-			const pendingWrites = new Set<() => void>();
-			const write = async (frame: TerminalFrame) => {
-				if (disposed) return;
-				const chunk = terminalChunk(frame, offset);
-				if (chunk.reset) {
+			const output = terminalOutput({
+				write: (bytes, complete) => terminal.write(bytes, complete),
+				reset: () => {
 					terminal.reset();
 					setGap(true);
-				}
-				if (chunk.bytes.length)
-					await new Promise<void>((resolve) => {
-						pendingWrites.add(resolve);
-						terminal.write(chunk.bytes, () => {
-							pendingWrites.delete(resolve);
-							resolve();
-						});
-					});
-				offset = chunk.nextOffset;
-			};
+				},
+			});
 			const connect = () => {
 				connection?.abort();
 				enabled.current = false;
@@ -106,7 +115,7 @@ export function TerminalSurface({ label, connected, follow, send, resize, onLeav
 				connection = current;
 				failed.current = false;
 				setError(null);
-				void follow(offset, write, current.signal).catch((failure) => {
+				void follow(output.offset(), output.push, current.signal).catch((failure) => {
 					if (!current.signal.aborted) fail(failure);
 				});
 			};
@@ -116,11 +125,12 @@ export function TerminalSurface({ label, connected, follow, send, resize, onLeav
 				observer.disconnect();
 				data.dispose();
 				source.dispose();
-				for (const resolve of pendingWrites) resolve();
-				pendingWrites.clear();
+				output.dispose();
+				disposeWebgl();
 				terminal.dispose();
 			};
 			connect();
+			fitTerminal();
 		};
 		void start().catch((failure: Error) => {
 			if (!disposed) {
@@ -132,9 +142,10 @@ export function TerminalSurface({ label, connected, follow, send, resize, onLeav
 			disposed = true;
 			dispose();
 		};
-	}, [label, follow, send, resize, onLeave]);
+	}, [label, follow, send, resize, onLeave, stopped]);
+	if (stopped) return <EmptyState title="Agent not running" variant={layout === "fill" ? "page" : "section"} />;
 	return (
-		<div className="terminal-surface">
+		<div className="terminal-surface" data-layout={layout}>
 			<div className="terminal-toolbar">
 				<p className="terminal-hint">Press Control+] to leave the terminal.</p>
 				{error && (
@@ -153,7 +164,14 @@ export function TerminalSurface({ label, connected, follow, send, resize, onLeav
 					{error}
 				</p>
 			)}
-			<div ref={container} className="terminal-canvas" />
+			{unavailableReason && !error && (
+				<p role="alert" className="terminal-error">
+					{unavailableReason}
+				</p>
+			)}
+			<div className="terminal-canvas">
+				<div ref={container} className="terminal-host" />
+			</div>
 		</div>
 	);
 }

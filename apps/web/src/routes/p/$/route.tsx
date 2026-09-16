@@ -70,10 +70,6 @@ export const Route = createFileRoute("/p/$")({
 		const { ref, view } = parseProjectSplat(params._splat ?? "");
 		const project = await context.queryClient.ensureQueryData(projectOptions(context, ref));
 		if (view === "manager") {
-			// The Manager page opens with the persona picker filled, so the
-			// route waits for the personas. A prefetch keeps a failed read out
-			// of the route: the picker then opens empty and says so.
-			await context.queryClient.prefetchQuery(context.orpc.personas.list.queryOptions({ input: {} }));
 			return;
 		}
 		if (view !== "settings") {
@@ -107,7 +103,9 @@ function ProjectPage() {
 		return (
 			<Suspense
 				fallback={
-					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-muted">Loading settings…</div>
+					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-muted">
+						{view === "manager" ? "Load manager…" : "Load settings…"}
+					</div>
 				}
 			>
 				{view === "manager" ? (

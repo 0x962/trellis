@@ -15,6 +15,7 @@ const verbs = [
 	"statuses",
 	"personas",
 	"agents",
+	"manager",
 	"create",
 	"show",
 	"list",

@@ -151,7 +151,7 @@ export function CommentThread({ id, identifier, comments, onEdited, onDeleted, o
 								<Avatar name={actor.name} kind={actor.kind} className="mt-1.5" />
 								<textarea
 									aria-label="Reply"
-									placeholder="Leave a reply…"
+									placeholder="Reply. Use @persona to notify an assigned agent."
 									value={draft}
 									onChange={(event) => setDraft(event.target.value)}
 									rows={1}

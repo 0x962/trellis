@@ -2,16 +2,12 @@ import { Gear } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ActorHeaderSchema } from "@trellis/api";
-import { Avatar, Button, Input, Popover, toast } from "@trellis/ui";
+import { Avatar, Button, IconButton, Input, Popover, Tooltip, toast } from "@trellis/ui";
 import { type FormEvent, useId, useState } from "react";
 import { useActor } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
 import { ghCopy } from "../../../lib/ghCopy";
 import { saveActorName } from "../../../lib/identity";
-
-// 28 px on a mouse and 44 px on a touch screen, the two hit area minimums.
-const iconLinkClass =
-	"relative inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-fg-muted transition duration-hover ease-out hover:bg-bg hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 pointer-coarse:size-11";
 
 // The bottom of the sidebar: who you are and the settings. The actor chip
 // opens a rename popover; Enter stores the new name on the server and in
@@ -51,7 +47,7 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 	};
 
 	return (
-		<div className="flex shrink-0 items-center gap-0.5 pt-1">
+		<div className="flex shrink-0 items-center gap-1 border-t border-border pt-2">
 			<Popover
 				open={open}
 				onOpenChange={onOpenChange}
@@ -59,7 +55,7 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 				trigger={
 					<button
 						type="button"
-						className="flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left transition-colors duration-hover ease-out hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+						className="flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left transition-colors duration-hover ease-out hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 					>
 						<Avatar kind="human" name={actor.name} className="size-6 shrink-0 text-xs" />
 						<span title={actor.name} className="min-w-0 truncate text-sm font-medium text-fg">
@@ -77,15 +73,17 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 				</form>
 			</Popover>
 			{!collapsed && (
-				<Link
-					to="/settings"
-					aria-label="Settings"
-					aria-describedby={ghWarning ? warningId : undefined}
-					className={iconLinkClass}
-				>
-					<span aria-hidden="true" className="inline-flex size-4 *:size-full">
-						<Gear />
-					</span>
+				<span className="relative">
+					<Tooltip content="Settings">
+						<IconButton
+							label="Settings"
+							role="link"
+							icon={<Gear />}
+							nativeButton={false}
+							aria-describedby={ghWarning ? warningId : undefined}
+							render={<Link to="/settings" />}
+						/>
+					</Tooltip>
 					{ghWarning && (
 						<>
 							<span
@@ -98,7 +96,7 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 							</span>
 						</>
 					)}
-				</Link>
+				</span>
 			)}
 		</div>
 	);

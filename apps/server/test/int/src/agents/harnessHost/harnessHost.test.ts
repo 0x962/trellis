@@ -21,7 +21,6 @@ afterEach(async () => {
 test("the host registers the supported native harnesses", () => {
 	expect(Object.keys(providers).sort()).toEqual(["claude", "codex", "opencode", "pi"]);
 });
-
 test("the host preserves the assignment token and process deadline", async () => {
 	await host.start({
 		id: "assignment",

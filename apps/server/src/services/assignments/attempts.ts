@@ -8,9 +8,13 @@ import { invalidInput } from "../../errors.ts";
 export type ExecutionAttempt = { id: string; generation: number; token: string };
 const tokenHash = (token: string) => createHash("sha256").update(token).digest("hex");
 
-export const reserveAttempt = async (ctx: Pick<RequestContext, "now">, tx: Tx, input: { runId: string }) => {
-	const id = randomUUID();
-	const token = randomBytes(32).toString("base64url");
+export const reserveAttempt = async (
+	ctx: Pick<RequestContext, "now">,
+	tx: Tx,
+	input: { runId: string; attempt?: { id: string; token: string } },
+) => {
+	const id = input.attempt?.id ?? randomUUID();
+	const token = input.attempt?.token ?? randomBytes(32).toString("base64url");
 	const [attempt] = await rows<{ generation: number }>(
 		tx,
 		sql`INSERT INTO agent_execution_attempts (id, run_id, generation, token_hash, created_at)
