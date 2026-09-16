@@ -114,6 +114,11 @@ describe("agents refresh, stop, send, and output", () => {
 		});
 		expect(send.code).toBe(0);
 		expect(send.calls[0]!.input).toEqual({ id: agentRunId, text: "CI is red" });
+		const interrupt = await runCli(["agents", "send", agentRunId, "--text", "Stop. CI is red", "--interrupt"], {
+			"agentRuns.send": agentRun(),
+		});
+		expect(interrupt.code).toBe(0);
+		expect(interrupt.calls[0]!.input).toEqual({ id: agentRunId, text: "Stop. CI is red", interrupt: true });
 
 		const piped = await runCli(
 			["agents", "send", agentRunId, "--text", "-"],

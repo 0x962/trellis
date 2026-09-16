@@ -24,8 +24,8 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 		await host.waitFor("attempt", (state) => state.activity?.state === "idle");
 		await client.observe("attempt", "secret", { kind: "error", error: "Previous turn failed", outcome: "failed" });
 		const before = await host.status("attempt");
-		const received = await host.send("attempt", "next request", "next");
-		expect(received.acknowledgedMessageIds).toContain("next");
+		await host.send("attempt", "next request", "next");
+		const received = await host.waitFor("attempt", (state) => state.acknowledgedMessageIds.includes("next"));
 		expect(received.agent?.error).toBeNull();
 		expect(received.pid).toBe(before.pid);
 	},
@@ -41,7 +41,6 @@ test("a prior turn failure cannot turn uncertain delivery into a rejection", asy
 		"secret",
 		"uncertain",
 		createHash("sha256").update("trellis-message:uncertain\nnext request").digest("hex"),
-		true,
 	);
 	const reconnected = new HarnessHost({
 		runtime: client,
@@ -51,7 +50,7 @@ test("a prior turn failure cannot turn uncertain delivery into a rejection", asy
 		observationTimeoutMs: 100,
 	});
 	await expect(reconnected.send("attempt", "next request", "uncertain")).rejects.toMatchObject({
-		code: "HARNESS_OBSERVATION_TIMEOUT",
+		code: "HARNESS_DELIVERY_UNKNOWN",
 	});
 	expect((await host.status("attempt")).acknowledgedMessageIds).not.toContain("uncertain");
 	expect(Buffer.from((await host.output("attempt")).data, "base64").toString()).not.toContain("native prompt accepted");

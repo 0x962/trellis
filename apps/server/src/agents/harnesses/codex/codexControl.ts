@@ -43,7 +43,6 @@ export async function codexControl(input: {
 				interrupted = value.turnId!;
 				await input.client.request("turn/interrupt", { threadId: input.sessionId, turnId: value.turnId });
 			} else {
-				if (current.working) return reply(409, { error: "SESSION_BUSY" });
 				const prompt = z.string().min(1).parse(value.prompt);
 				pending = true;
 				ownsPending = true;

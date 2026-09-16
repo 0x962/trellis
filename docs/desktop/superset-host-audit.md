@@ -49,7 +49,7 @@ Superset's `terminal-agents.getOrCreate` waits for the first lifecycle hook. Its
 
 Superset serializes follow-up input, applies bracketed paste when supported, and waits 500 ms before Enter. Success means the write completes. It does not prove that the agent accepts the message. Its initial-command path also uses timing, echo checks, and bounded retypes. Daemon adoption estimates replay completion from a quiet interval. [Terminal service][terminal]
 
-These mechanisms do not replace Trellis receipts. Trellis starts the CLI with its initial prompt as an argument. Authenticated hooks acknowledge exact message IDs. `nativeStart.ts` waits for the initial receipt; `communication.ts` rejects busy sends before input. An uncertain receipt remains unknown instead of successful. See [start](../../apps/server/src/services/agentRuns/nativeStart.ts), [send](../../apps/server/src/services/agentRuns/communication.ts), and [delivery records](../../apps/runtime/src/inputLedger.ts).
+These mechanisms do not replace Trellis receipts. Trellis starts the CLI with its initial prompt as an argument. Authenticated hooks acknowledge exact message IDs. `nativeStart.ts` waits for the initial receipt; `communication.ts` hands a follow-up to the harness, which queues it during a turn. An uncertain receipt remains unknown instead of successful. See [start](../../apps/server/src/services/agentRuns/nativeStart.ts), [send](../../apps/server/src/services/agentRuns/communication.ts), and [delivery records](../../apps/runtime/src/inputLedger.ts).
 
 Superset's event bus broadcasts to connected clients. The inspected code does not establish a durable manager queue, manager heartbeat, or ticket-completion guarantee. [Event bus][events]
 

@@ -17,8 +17,8 @@ let server: Server;
 let session = controllerSession();
 let workers: ReturnType<typeof controllerSession>[];
 let onInspect: () => void;
-let busyOnDelivery: boolean;
-let deliveries: Array<{ messageId: string; requireIdle?: boolean; data: string }>;
+let failDelivery: boolean;
+let deliveries: Array<{ messageId: string; data: string }>;
 const sockets = new Set<Socket>();
 beforeAll(async () => {
 	h = await serviceHarness();
@@ -33,7 +33,7 @@ beforeEach(async () => {
 	session = controllerSession();
 	workers = [];
 	onInspect = () => {};
-	busyOnDelivery = false;
+	failDelivery = false;
 	deliveries = [];
 	await h.run(
 		async (ctx, tx) => {
@@ -56,9 +56,9 @@ beforeEach(async () => {
 			if (request.method === "inspect") onInspect();
 			if (request.method === "deliver") {
 				deliveries.push(request.params);
-				if (busyOnDelivery) {
+				if (failDelivery) {
 					socket.end(
-						`${JSON.stringify({ id: request.id, error: { code: "RUNTIME_BUSY", message: "The process is busy" } })}\n`,
+						`${JSON.stringify({ id: request.id, error: { code: "RUNTIME_CLOSED", message: "The process exited" } })}\n`,
 					);
 					return;
 				}
@@ -87,28 +87,26 @@ const send = () =>
 	dispatch({ ...testCtx({ db: h.db, home, now: () => secondsAfter(61) }).ctx, publicUrl: "http://trellis.test" });
 const queue = () => h.one(sql`SELECT state,generation FROM manager_dispatches`);
 
-test("a manager that starts a turn after claim keeps its heartbeat pending without input", async () => {
+test("a manager that starts a turn after claim still receives the heartbeat", async () => {
 	onInspect = () => {
 		session.activity = { state: "working", updatedAt: secondsAfter(61).toISOString() };
 	};
 	await send();
-	expect((await queue()).state).toBe("pending");
-	expect(deliveries).toHaveLength(0);
+	expect((await queue()).state).toBe("sent");
+	expect(deliveries).toHaveLength(1);
 });
 
-test("an atomic runtime busy rejection defers the heartbeat without an unknown receipt", async () => {
-	busyOnDelivery = true;
+test("a runtime error on delivery records an uncertain receipt", async () => {
+	failDelivery = true;
 	await send();
-	expect((await queue()).state).toBe("pending");
+	expect((await queue()).state).toBe("unknown");
 	expect(deliveries).toHaveLength(1);
-	expect(deliveries[0]?.requireIdle).toBe(true);
 });
 
 test("a live manager receives one heartbeat and confirms its durable message receipt", async () => {
 	await send();
 	expect((await queue()).state).toBe("sent");
 	expect(deliveries).toHaveLength(1);
-	expect(deliveries[0]?.requireIdle).toBe(true);
 	const text = Buffer.from(deliveries[0]!.data, "base64").toString();
 	const payload = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
 	expect(payload.type).toBe("trellis.manager.heartbeat");

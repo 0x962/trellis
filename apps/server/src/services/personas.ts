@@ -13,6 +13,12 @@ const columns = sql`id, name, kind, instruction,
 export const list = (_ctx: ServiceCtx, tx: Tx, _input: Record<string, never>): Promise<Persona[]> =>
 	rows<Persona>(tx, sql`SELECT ${columns} FROM personas ORDER BY name, id`);
 
+export const get = async (_ctx: ServiceCtx, tx: Tx, input: { id: string }): Promise<Persona> => {
+	const [persona] = await rows<Persona>(tx, sql`SELECT ${columns} FROM personas WHERE id = ${input.id}`);
+	if (persona === undefined) throw fail("NOT_FOUND", { kind: "persona", ref: input.id });
+	return persona;
+};
+
 export const create = async (ctx: ServiceCtx, tx: Tx, input: PersonaCreateInput): Promise<Persona> => {
 	const actor = requireActor(ctx);
 	await upsert(ctx, tx, actor);

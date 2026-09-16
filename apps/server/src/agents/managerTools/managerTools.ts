@@ -6,7 +6,7 @@ import { z } from "zod";
 const operations = {
 	projects: ["list", "get"],
 	statuses: ["list"],
-	personas: ["list"],
+	personas: ["list", "get"],
 	tickets: ["list", "counts", "get", "create", "update", "move", "updateMany"],
 	comments: ["thread", "create", "update", "resolve"],
 	timeline: ["list"],
@@ -75,6 +75,10 @@ export const managerTools = (invoke: Invoke) => {
 				};
 			}
 			const result = await invoke(tool.operation, tool.schema.parse(input));
+			// The full instruction of every persona is too long for one tool
+			// result, so the list carries names only and personas.get reads one.
+			if (tool.operation === "personas.list")
+				return (result as { instruction: string }[]).map(({ instruction: _instruction, ...persona }) => persona);
 			if (["agentRuns.start", "agentRuns.send", "agentRuns.stop", "agentRuns.refresh"].includes(tool.operation))
 				return assignmentRecord(result as AgentRun);
 			if (tool.operation !== "agentRuns.session") return result;

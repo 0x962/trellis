@@ -24,4 +24,5 @@ export const PersonaSchema = z.object({
 });
 export type Persona = z.infer<typeof PersonaSchema>;
 
-export const PersonaDeleteInputSchema = z.strictObject({ id: UlidSchema });
+export const PersonaIdInputSchema = z.strictObject({ id: UlidSchema });
+export const PersonaDeleteInputSchema = PersonaIdInputSchema;
