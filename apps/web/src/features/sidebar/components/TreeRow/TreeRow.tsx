@@ -40,7 +40,7 @@ export function TreeRow({ project, depth, archived = false }: TreeRowProps) {
 				className="flex h-8 min-w-0 flex-1 items-center rounded-md transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11"
 			>
 				<span aria-hidden="true" className="sidebar-leading text-fg-faint">
-					<TrellisMark background={false} working={working} />
+					<TrellisMark className="size-6" background={false} working={working} />
 				</span>
 				{working && <span className="sr-only">Manager working: </span>}
 				<span data-slot="label" title={project.name} className="sidebar-label">
