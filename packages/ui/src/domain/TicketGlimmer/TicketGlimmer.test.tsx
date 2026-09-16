@@ -11,3 +11,10 @@ test("only active work has a glimmer and an accessible work label", () => {
 	rerender(<TicketGlimmer active={false} />);
 	expect(container.firstChild).toBeNull();
 });
+
+test("the glimmer adds no top edge to a card", async () => {
+	const css = await Bun.file(new URL("../../ticket-glimmer.css", import.meta.url)).text();
+	const rule = css.match(/\.ticket-glimmer \{([^}]*)\}/)?.[1];
+	expect(rule).toBeDefined();
+	expect(rule).not.toContain("box-shadow");
+});

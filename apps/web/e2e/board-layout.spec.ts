@@ -14,7 +14,7 @@ test.beforeAll(() => {
 	trellis(["pr", "add", "BRD-18", failingPrUrl]);
 });
 
-test("failed checks keep the same board card border as other tickets", async ({ page }) => {
+test("board cards omit the top border and keep the other borders", async ({ page }) => {
 	await signIn(page, "/p/BRD/board");
 	const failed = cardOf(page, "BRD-18");
 	const ordinary = cardOf(page, "BRD-17");
@@ -22,9 +22,17 @@ test("failed checks keep the same board card border as other tickets", async ({ 
 	await expect(ordinary).toBeVisible();
 	const border = (element: HTMLElement | SVGElement) => {
 		const style = getComputedStyle(element);
-		return [style.borderTopColor, style.borderTopWidth, style.borderBottomColor, style.borderBottomWidth];
+		return {
+			top: style.borderTopWidth,
+			right: style.borderRightWidth,
+			bottom: style.borderBottomWidth,
+			left: style.borderLeftWidth,
+			colors: [style.borderRightColor, style.borderBottomColor, style.borderLeftColor],
+		};
 	};
-	expect(await failed.evaluate(border)).toEqual(await ordinary.evaluate(border));
+	const ordinaryBorder = await ordinary.evaluate(border);
+	expect(await failed.evaluate(border)).toEqual(ordinaryBorder);
+	expect(ordinaryBorder).toMatchObject({ top: "0px", right: "1px", bottom: "1px", left: "1px" });
 });
 
 // A flex column shrinks its children when its content overflows. A header
