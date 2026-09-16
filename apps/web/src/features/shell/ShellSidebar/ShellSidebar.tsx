@@ -10,8 +10,7 @@ const rows = [
 	{ to: "/ai/flows", label: "Flows", icon: <FlowArrow /> },
 ] as const;
 
-// ShellSidebar reads no query, so the root route can paint it while the
-// server or the full sidebar code loads.
+// ShellSidebar uses the static rows list, so the root route can paint it before route data arrives.
 export function ShellSidebar() {
 	return (
 		<aside

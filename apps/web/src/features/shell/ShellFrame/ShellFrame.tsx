@@ -2,14 +2,11 @@ import type { ReactNode } from "react";
 import { ShellSidebar } from "../ShellSidebar";
 
 export type ShellFrameProps = {
-	// What the main pane shows: nothing while a cold load waits, the error
-	// state when the load failed.
+	// children holds the main pane content. An omitted value shows the loading placeholder.
 	children?: ReactNode;
 };
 
-// The shell with no data in it: the sidebar header, the fixed rows,
-// the Projects label, and an empty main pane. It reads no query, so it
-// paints while the server is slow or down, and the page never flashes white.
+// ShellFrame renders the static sidebar and main pane before route data arrives.
 export function ShellFrame({ children }: ShellFrameProps) {
 	return (
 		<div data-shell-frame="" className="flex h-full bg-bg text-fg">
