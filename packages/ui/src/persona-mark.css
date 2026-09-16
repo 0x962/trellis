@@ -8,6 +8,16 @@
 	--film-blue: #5b9bca;
 	--film-mint: #5cb5a4;
 	--film-gold: #bf9e53;
+	--film-gradient: linear-gradient(
+		110deg,
+		transparent 15%,
+		var(--film-pink) 32%,
+		var(--film-violet) 42%,
+		var(--film-blue) 50%,
+		var(--film-mint) 58%,
+		var(--film-gold) 68%,
+		transparent 85%
+	);
 }
 :root[data-theme="dark"] {
 	--persona-builder: #c7b8de;

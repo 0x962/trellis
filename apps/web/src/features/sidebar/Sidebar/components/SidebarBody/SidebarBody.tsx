@@ -83,6 +83,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
+	const needsYouUnread = (inbox.data?.active ?? 0) > 0;
 
 	return (
 		<>
@@ -110,15 +111,24 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				</div>
 			)}
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
+				{/* The rail clips the trailing slot, so a collapsed sidebar keeps
+				    the mark on the icon. An open sidebar carries it at the right
+				    edge, where the Search row carries its slash. */}
 				{navRows.map((row) => (
 					<NavRow
 						key={row.to}
 						to={row.to}
-						hasItems={row.to === "/needs-you" ? (inbox.data?.active ?? 0) > 0 : undefined}
+						hasItems={row.to === "/needs-you" && collapsed && needsYouUnread ? true : undefined}
 						icon={row.icon}
 						label={row.label}
 						active={isActive(pathname, row.to)}
-						trailing={row.to === "/search" && !collapsed ? <Kbd>/</Kbd> : undefined}
+						trailing={
+							row.to === "/search" && !collapsed ? (
+								<Kbd>/</Kbd>
+							) : row.to === "/needs-you" && !collapsed && needsYouUnread ? (
+								<ActivityDot label="Needs you has items" placement="inline" tone="metal" />
+							) : undefined
+						}
 					/>
 				))}
 			</nav>
