@@ -1,11 +1,10 @@
 import { Plus } from "@phosphor-icons/react";
-import type { FileDiffMetadata, Hunk } from "@pierre/diffs";
 import { createElement, type ReactNode, useEffect, useMemo, useRef } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
 import { lineAnnotations } from "./lineAnnotations";
-import { parseReviewFiles } from "./parseReviewFiles";
+import { parseReviewFiles, type ReviewFile, type ReviewHunk } from "./parseReviewFiles";
 
 export type DiffAnchor = { path: string; side: "old" | "new"; line: number; startLine: number };
 export type DiffThread = DiffAnchor & { id: string; version: number; updatedAt: string; revisionId: string | null };
@@ -35,7 +34,7 @@ type Line = {
 
 const text = (value: string) => value.replace(/\r?\n$/, "");
 
-const hunkLines = (file: FileDiffMetadata, hunk: Hunk): Line[] =>
+const hunkLines = (file: ReviewFile, hunk: ReviewHunk): Line[] =>
 	hunk.hunkContent.flatMap<Line>((content): Line[] => {
 		if (content.type === "context")
 			return Array.from({ length: content.lines }, (_, index) => ({

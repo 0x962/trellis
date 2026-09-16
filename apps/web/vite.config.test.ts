@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { PluginOption } from "vite";
-import config, { assetChunk, createConfig, routerPluginOptions } from "./vite.config";
+import config, { chunkGroups, createConfig, routerPluginOptions, stripPhosphorWeights } from "./vite.config";
 
 type Named = { name: string };
 
@@ -49,9 +49,54 @@ describe("vite.config", () => {
 		expect(proxy["/rpc"]!.target).toBe("http://127.0.0.1:4599");
 	});
 
-	test("the production bundle uses terser and keeps the shell modules together", () => {
-		expect(createConfig({}).build?.minify).toBe("terser");
-		expect(assetChunk("/repo/packages/ui/src/primitives/Button/Button.tsx")).toBe("ui-core");
-		expect(assetChunk("/repo/node_modules/react/index.js")).toBeUndefined();
+	test("the production bundle uses terser and entry-aware chunk groups", () => {
+		const production = createConfig({});
+		const build = production.build;
+		expect(build?.minify).toBe("terser");
+		expect(production.resolve?.dedupe).toContain("marked");
+		expect(chunkGroups).toEqual([
+			{
+				name: "initial",
+				test: expect.any(Function),
+				tags: ["$initial"],
+			},
+			{
+				name: "app",
+				test: expect.any(Function),
+				entriesAware: true,
+				entriesAwareMergeThreshold: 32 * 1024,
+			},
+		]);
+		const output = Array.isArray(build?.rollupOptions?.output)
+			? build.rollupOptions.output[0]
+			: build?.rollupOptions?.output;
+		expect(output?.codeSplitting).toEqual({ groups: chunkGroups });
+	});
+
+	test("the production bundle keeps only icon weights that the app uses", () => {
+		const source = `const weights = new Map([
+  [
+    "bold",
+    bold
+  ],
+  [
+    "light",
+    light
+  ],
+  [
+    "regular",
+    regular
+  ],
+  [
+    "thin",
+    thin
+  ]
+]);`;
+		const check = stripPhosphorWeights(source, "/node_modules/@phosphor-icons/react/dist/defs/Check.es.js");
+		expect(check).toContain('"bold"');
+		expect(check).toContain('"regular"');
+		expect(check).not.toContain('"light"');
+		expect(check).not.toContain('"thin"');
+		expect(stripPhosphorWeights(source, "/src/Check.tsx")).toBe(source);
 	});
 });

@@ -1,13 +1,15 @@
-import type { DiffLineAnnotation, FileDiffMetadata } from "@pierre/diffs";
 import type { DiffAnchor, DiffThread } from "./ReviewDiff";
+import type { ReviewFile } from "./parseReviewFiles";
+
+type DiffLineAnnotation = { side: "deletions" | "additions"; lineNumber: number; metadata: string };
 
 export function lineAnnotations(
-	file: FileDiffMetadata,
+	file: ReviewFile,
 	threads: DiffThread[],
 	revisionId: string,
 	composer: DiffAnchor | null,
-): DiffLineAnnotation<string>[] {
-	const annotations: DiffLineAnnotation<string>[] = threads
+): DiffLineAnnotation[] {
+	const annotations: DiffLineAnnotation[] = threads
 		.filter((thread) => thread.path === file.name && thread.revisionId === revisionId)
 		.map((thread) => {
 			const shown = file.hunks.some((hunk) =>

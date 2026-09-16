@@ -9,8 +9,8 @@
  * machine, so this repo ships no file for it and declares no face. A machine
  * with the font installed picks it up from the stack. Every other machine
  * falls through to JetBrains Mono from fontsource. Only the latin subset of
- * each font is declared. JetBrains Mono uses one file for the 400, 500, and
- * 600 faces, so the browser synthesizes the two heavier faces. The Inter
+ * each font is declared. JetBrains Mono maps 400, 500, and 600 requests to
+ * one file, so the browser downloads one mono face. The Inter
  * face below is the latin entry of @fontsource-variable/inter/wght.css, with
  * its unicode-range. Each fallback face is metric-matched to its web font, so
  * text set before that font arrives occupies the same lines and nothing

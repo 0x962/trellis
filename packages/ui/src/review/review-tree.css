@@ -34,36 +34,60 @@
 .review-tree-mount[hidden] {
 	display: none;
 }
-.review-pierre-tree {
+.review-native-tree {
 	flex: 1;
 	min-height: 0;
 	width: 100%;
 	padding: 0 4px 8px;
-	--trees-bg-override: var(--bg);
-	--trees-bg-muted-override: var(--surface);
-	--trees-fg-override: var(--fg);
-	--trees-fg-muted-override: var(--fg-muted);
-	--trees-border-color-override: var(--border);
-	--trees-border-radius-override: var(--radius-sm);
-	--trees-font-family-override: var(--font-sans);
-	--trees-font-size-override: 12px;
-	--trees-padding-inline-override: 4px;
-	--trees-item-padding-x-override: 4px;
-	--trees-item-margin-x-override: 0px;
-	--trees-icon-width-override: 12px;
-	--trees-item-row-gap-override: 4px;
-	--trees-level-gap-override: 2px;
-	--trees-indent-guide-bg-override: transparent;
-	--trees-selected-bg-override: var(--accent-soft);
-	--trees-selected-fg-override: var(--fg);
-	--trees-selected-focused-border-color-override: var(--border-strong);
-	--trees-focus-ring-color-override: var(--accent);
-	--trees-accent-override: var(--accent);
-	--trees-status-added-override: var(--success);
-	--trees-status-modified-override: var(--fg-muted);
-	--trees-status-deleted-override: var(--danger);
-	--trees-status-renamed-override: var(--fg-muted);
-	--trees-file-icon-color: var(--fg-muted);
+	overflow: auto;
+	font-size: 12px;
+}
+.review-tree-row {
+	display: grid;
+	grid-template-columns: 12px minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 4px;
+	min-height: 28px;
+	padding: 4px 6px 4px calc(4px + (var(--review-tree-depth) - 1) * 14px);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+}
+.review-tree-row:hover {
+	background: var(--surface);
+}
+.review-tree-row:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: -2px;
+}
+.review-tree-row[aria-selected="true"] {
+	background: var(--accent-soft);
+}
+.review-tree-caret {
+	color: var(--fg-faint);
+	text-align: center;
+}
+.review-tree-name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.review-tree-row[data-file-status="added"] .review-tree-name {
+	color: var(--success);
+}
+.review-tree-row[data-file-status="deleted"] .review-tree-name {
+	color: var(--danger);
+}
+.review-tree-count {
+	min-width: 18px;
+	padding-inline: 5px;
+	border: 0.5px solid var(--border);
+	border-radius: var(--radius-round);
+	color: var(--fg-muted);
+	font-size: 11px;
+	line-height: 16px;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
 }
 .review-file-empty {
 	padding: 12px 16px;
@@ -77,5 +101,10 @@
 @media (max-width: 767px) {
 	.review-files {
 		display: none;
+	}
+}
+@media (pointer: coarse) {
+	.review-tree-row {
+		min-height: 44px;
 	}
 }

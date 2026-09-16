@@ -1,9 +1,30 @@
-import type { CodeViewReactOptions } from "@pierre/diffs/react";
 import type { DiffAnchor } from "./ReviewDiff";
+
+type DiffContext = { type: string; item: { type: string; fileDiff: { name: string } } };
+type DiffLine = {
+	type: string;
+	annotationSide: "deletions" | "additions";
+	lineNumber: number;
+	numberColumn: boolean;
+	lineType?: string;
+	lineElement?: HTMLElement;
+	numberElement?: HTMLElement;
+	event?: PointerEvent;
+};
+type DiffRange = {
+	start: number;
+	end: number;
+	side: "deletions" | "additions";
+	endSide?: "deletions" | "additions";
+};
+type CommentOptions = {
+	onLineClick: (line: DiffLine, context: DiffContext) => void;
+	onLineSelectionEnd: (range: DiffRange | null, context: DiffContext) => void;
+};
 
 export function commentInteractions<Annotation = string>(
 	onSelect: (anchor: DiffAnchor) => void,
-): CodeViewReactOptions<Annotation, undefined> {
+): CommentOptions {
 	return {
 		onLineClick: (line, context) => {
 			if (context.type !== "diff" || line.type !== "diff-line" || line.numberColumn) return;
