@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { discoverManagerTools } from "./discoverManagerTools.ts";
 
 if (process.argv[2] === "--version") {
 	appendFileSync(join(dirname(process.argv[1]!), "version-reads.txt"), "version\n");
@@ -120,6 +121,8 @@ if (harness === "opencode")
 	});
 process.stdin.setRawMode(true);
 await hook("session");
+if (harness === "claude" && args.includes("--mcp-config"))
+	await discoverManagerTools(args[args.indexOf("--mcp-config") + 1]!);
 const prompt = harness === "opencode" ? args[args.indexOf("--prompt") + 1]! : args.at(-1)!;
 if (harness !== "opencode" || !resumed) await hook("prompt", prompt);
 if (

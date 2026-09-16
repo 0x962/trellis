@@ -10,14 +10,14 @@ The tests use temporary directories and separate runtime processes. Native CLI t
 
 ```sh
 TRELLIS_NATIVE_ACCEPTANCE_HOME="$HOME" \
-TRELLIS_NATIVE_CLAUDE_MODEL=claude-sonnet-5 \
+TRELLIS_NATIVE_CLAUDE_MODEL=claude-opus-5 \
 TRELLIS_NATIVE_CODEX_MODEL=gpt-5.6-sol \
-TRELLIS_NATIVE_PI_MODEL=vercel-ai-gateway/openai/gpt-4.1-mini \
-TRELLIS_NATIVE_OPENCODE_MODEL=vercel/anthropic/claude-sonnet-4.6 \
+TRELLIS_NATIVE_PI_MODEL=vercel-ai-gateway/openai/gpt-5.6-sol \
+TRELLIS_NATIVE_OPENCODE_MODEL=anthropic/claude-opus-5 \
 bun run test:host:real
 ```
 
-These model names match the recorded acceptance runs. Select models available to each authenticated CLI.
+The examples use Opus 5 for Anthropic and Sol for OpenAI. Select models available to each authenticated CLI.
 `TRELLIS_NATIVE_OPENCODE_BIN` selects an explicit OpenCode executable for its real tests.
 OpenCode 1.18.31 passes the complete native host sequence.
 Native tests create provider sessions and use the provider account. Each test stops its owned processes.
@@ -67,7 +67,7 @@ Run the interactive Claude manager tests with an authenticated home and an avail
 cd apps/server
 TRELLIS_REAL_MANAGER_READY=1 \
 TRELLIS_NATIVE_ACCEPTANCE_HOME="$HOME" \
-TRELLIS_NATIVE_CLAUDE_MODEL=claude-sonnet-5 \
+TRELLIS_NATIVE_CLAUDE_MODEL=claude-opus-5 \
 bun test test/int/src/agents/harnessHost/managerReady.real.test.ts
 ```
 
