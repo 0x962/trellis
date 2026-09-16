@@ -267,6 +267,13 @@
       "when": 1789514828433,
       "tag": "0040_persona_mentions",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1789521153322,
+      "tag": "0041_majestic_riptide",
+      "breakpoints": true
     }
   ]
 }

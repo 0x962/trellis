@@ -7,6 +7,7 @@ import { compactRelativeTime } from "../../../../../lib/format";
 import { ReadOnlyMarkdown } from "../../../Description/components/ReadOnlyMarkdown";
 import { failToast } from "../../../utils/failToast";
 import { absoluteTime } from "../../utils/absoluteTime";
+import { notificationText } from "../../utils/notificationText";
 
 export type CommentCardProps = {
 	comment: Comment;
@@ -79,15 +80,11 @@ export function CommentCard({
 		<div className="text-base">
 			<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
 			{comment.notifications?.map((notification) => (
-				<p key={notification.runId} className="mt-2 text-xs text-fg-muted" title={notification.error ?? undefined}>
-					@{notification.personaName}:{" "}
-					{notification.state === "sent"
-						? "Notified"
-						: notification.state === "failed"
-							? "Not delivered. The assignment closed or changed."
-							: notification.state === "unknown"
-								? "Delivery uncertain. Check the agent before another mention."
-								: "Queued"}
+				<p
+					key={`${notification.personaName}-${notification.runId ?? "pending"}`}
+					className="mt-2 text-xs text-fg-muted"
+				>
+					@{notification.personaName}: {notificationText(notification)}
 				</p>
 			))}
 		</div>

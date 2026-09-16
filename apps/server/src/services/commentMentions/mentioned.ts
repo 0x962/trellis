@@ -1,5 +1,26 @@
+const fenceLine = String.raw`^(?:[ \t]*(?:>|[-*+]|\d+[.)]))*[ \t]{0,3}`;
+const fences = new RegExp(
+	`${fenceLine}\`\`\`[\\s\\S]*?(?:${fenceLine}\`\`\`|(?![\\s\\S]))|${fenceLine}~~~[\\s\\S]*?(?:${fenceLine}~~~|(?![\\s\\S]))`,
+	"gm",
+);
+const codeSpans = /`+[^`\n]*`+/g;
+const urls = /[a-z][a-z0-9+.-]*:\/\/\S+|(?:^|\s)\S*\/\S*@\S*/gi;
+
+const withoutIndentedCode = (body: string) => {
+	let code = false;
+	let blank = true;
+	return body
+		.split(/\r?\n/)
+		.map((line) => {
+			code = /^( {4}|\t)/.test(line) && (code || blank);
+			blank = line.trim() === "";
+			return code ? "" : line;
+		})
+		.join("\n");
+};
+
 const prose = (body: string) =>
-	body.replace(/(`{3,}|~{3,})[^\n]*\n[\s\S]*?(?:\1|$)/g, " ").replace(/(`+)[^`]*?\1/g, " ");
+	withoutIndentedCode(body.replace(fences, " ")).replace(codeSpans, " ").replace(urls, " ");
 
 export const mentionedNames = (body: string, names: string[]) => {
 	if (names.length === 0) return new Set<string>();

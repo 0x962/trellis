@@ -10,4 +10,4 @@
 "@trellis/web": minor
 ---
 
-A persona takes a color and a description, and the Personas page edits both. A comment that holds `@<persona slug>` starts that persona on the ticket, or sends the comment text to the agent of that persona that already runs there.
+A persona takes a color and a description, and the Personas page edits both. A comment that mentions a full persona name starts that persona or notifies its active agent through the saved delivery queue.

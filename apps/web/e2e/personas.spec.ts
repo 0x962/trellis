@@ -19,11 +19,10 @@ test("a persona saves a color and a description, and the card shows the descript
 		color: "success",
 		description: "Writes the reference pages.",
 	});
-	// The card carries the description a person wrote, and keeps the long
-	// instruction for the editor.
 	const card = page.getByRole("article", { name, exact: true });
 	await expect(card).toContainText("Writes the reference pages.");
 	await expect(card).not.toContainText("Write the docs.");
+	await expect(card.getByRole("heading", { name, exact: true })).toHaveClass(/text-success/);
 	await card.getByRole("button", { name: `Edit ${name}`, exact: true }).click();
 	const editor = page.getByRole("dialog", { name: "Edit persona", exact: true });
 	await expect(editor.getByRole("textbox", { name: "Description", exact: true })).toHaveValue(

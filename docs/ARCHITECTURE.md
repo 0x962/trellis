@@ -275,22 +275,21 @@ The concurrency limit counts ticket assignments with `closed_at IS NULL`. It exc
 A confirmed process exit closes its assignment before the next claim.
 The limit runs from 1 to 64 and defaults to 3. A partial unique index permits one active manager per project.
 
-A comment by a human that holds `@<persona slug>` mentions a persona.
-A comment by an agent or by trellis runs no mention, so two agents cannot send each other text with no end.
-The slug is the persona name in lower case, with each run of other characters as one dash, so "Feature Builder" answers to `@feature-builder`.
-A mention of a persona with no open assignment on the ticket starts that persona there, with the comment text in the launch prompt.
-A mention of a persona with an open assignment sends the comment text to the terminal of the newest one.
-When the runtime cannot take the text, trellis says so.
-Two mentions that arrive at the same time can both find no open assignment, and then both start a run, as two assignments can.
-The text is cut to 20,000 characters, the cap of the follow-up route.
-Inline code, a fenced block, an indented code block, and a URL hold no mention, so a comment that writes about a mention starts no agent.
-A fence may open after quote markers and a list marker, and a fence with no closing line holds code to the end of the body.
+A comment mentions a persona with `@` and the full persona name, without regard to letter case.
+The comment transaction saves one `comment_deliveries` row for each mentioned persona before it returns.
+A comment edit saves a delivery only for a new mention.
+A delivery for an active assignment keeps its run, terminal, and session identifiers.
+The controller sends that delivery only to the saved assignment and session.
+A delivery for a persona without an assignment keeps its persona identifier and starts the persona after the comment commits.
+A builder or reviewer starts on the ticket. A manager starts on the ticket's project.
+The start request identifier names the comment and the persona, so a repeated dispatch returns the same assignment.
+The launch prompt includes at most 20,000 characters of the comment body.
+Inline code, a fenced block, an indented code block, and a URL hold no mention.
+A fence can open after quote markers or a list marker. An unclosed fence holds code through the end of the comment.
 A quoted line outside a fence still holds a mention.
-The run a mention starts is the whole record of that mention. Its start request identifier names the comment and the persona, so a repeated call starts no second run.
-An edit to a comment runs no mention, because an edit that launches an agent surprises the person who edits.
-The comment answers before its agents launch.
-When two personas share a slug, a rule refuses the start, or the run closes before its process starts, trellis replies as `system:trellis` in the thread of the comment that holds the mention, and names the reason.
-The manager learns of the comment through its normal ticket events.
+A refused start records the specific reason on the delivery.
+A host restart changes a sending delivery to unknown and does not repeat it automatically.
+The manager learns of the comment through the normal ticket event queue.
 
 ### Manager controller
 
@@ -454,6 +453,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, wip_limit (CHECK > 0), is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
 | tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. FK to actors. UNIQUE (id, ticket_id). FK (parent_id, ticket_id) CASCADE, so a reply stays on the ticket of its root. CHECK `parent_id <> id` and `parent_id IS NULL OR resolved_at IS NULL`, so only a root carries the resolved mark. Index (ticket_id, created_at) and (parent_id). GIN (search). |
+| comment_deliveries | id PK, comment_id (CASCADE), persona_id snapshot, run_id (CASCADE, nullable), persona_name, terminal_id, session_id, state, error. CHECK persona_id or run_id exists. Partial UNIQUE indexes on (comment_id, persona_id) and (comment_id, run_id). Index (state). |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
 | pull_requests | id PK, owner, repo (CHECK lowercase), number (CHECK > 0), url, title, state, is_draft, head_ref, base_ref, review_state, merged_at, closed_at, checks jsonb (CHECK array), ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at. UNIQUE (owner, repo, number). Index (state, ci_state). |
 | ticket_pull_requests | ticket_id (CASCADE), pull_request_id (CASCADE), source (manual or auto), actor_name, actor_kind, created_at. PK (ticket_id, pull_request_id). Index (pull_request_id). |

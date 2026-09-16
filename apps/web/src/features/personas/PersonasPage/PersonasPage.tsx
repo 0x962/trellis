@@ -71,6 +71,7 @@ export function PersonasPage() {
 														<EntityCard
 															key={persona.id}
 															title={persona.name}
+															tone={persona.color}
 															// A persona with no description shows its instruction, so the
 															// card never stands empty.
 															description={persona.description || persona.instruction}

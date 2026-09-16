@@ -1,1 +1,1 @@
-export { EntityCard, type EntityCardProps } from "./EntityCard";
+export { EntityCard, type EntityCardProps, type EntityCardTone } from "./EntityCard";

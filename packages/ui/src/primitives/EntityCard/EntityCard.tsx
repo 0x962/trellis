@@ -2,22 +2,36 @@ import { PencilSimple } from "@phosphor-icons/react";
 import { type ComponentProps, cloneElement, type ReactElement } from "react";
 import { IconButton } from "../IconButton";
 
+export type EntityCardTone = "fg" | "fg-muted" | "fg-faint" | "accent" | "agent" | "success" | "warning" | "danger";
+
 export type EntityCardProps = {
 	title: string;
 	description: string;
+	tone?: EntityCardTone;
 } & (
 	| { link: ReactElement<ComponentProps<"a">>; onEdit?: never; editLabel?: never }
 	| { link?: never; onEdit: () => void; editLabel?: string }
 );
 
-export function EntityCard({ title, description, onEdit, editLabel, link }: EntityCardProps) {
+const titleTone: Record<EntityCardTone, string> = {
+	fg: "text-fg",
+	"fg-muted": "text-fg-muted",
+	"fg-faint": "text-fg-faint",
+	accent: "text-accent",
+	agent: "text-agent",
+	success: "text-success",
+	warning: "text-warning",
+	danger: "text-danger",
+};
+
+export function EntityCard({ title, description, tone = "fg", onEdit, editLabel, link }: EntityCardProps) {
 	return (
 		<article
 			aria-label={title}
 			className="group relative flex min-w-0 flex-col gap-4 rounded-lg border border-border bg-surface p-4 transition-colors duration-hover hover:border-border-strong focus-within:border-accent"
 		>
 			<div className="flex items-start gap-3">
-				<h3 className="min-w-0 flex-1 break-words text-base font-medium text-fg">
+				<h3 className={`min-w-0 flex-1 break-words text-base font-medium ${titleTone[tone]}`}>
 					{link
 						? cloneElement(link, {
 								className:

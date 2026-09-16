@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
+import { ulid } from "ulid";
 import { create, update } from "../../../../../src/services/comments.ts";
 import { seedProject, seedTicket } from "../../../../fixtures";
 import { serviceHarness } from "../../../../helpers/services.ts";
@@ -65,4 +66,37 @@ test("email addresses, code, and longer names do not notify agents", async () =>
 		create(ctx, tx, { ticket, body: "me@builder.com @builder-extra `@builder`\n```\n@Trellis\n```" }),
 	);
 	expect(await h.rows(sql`SELECT id FROM comment_deliveries`)).toHaveLength(0);
+});
+
+test("a mention queues a persona that has no ticket assignment", async () => {
+	const ticket = await seed();
+	const personaId = ulid();
+	await h.db.execute(sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at)
+		VALUES (${personaId},'Release Builder','builder','Ship the change.',now(),now())`);
+	const comment = await h.run((ctx, tx) => create(ctx, tx, { ticket, body: "@Release Builder ship this." }));
+	expect(comment.notifications).toEqual([
+		{
+			runId: null,
+			personaName: "Release Builder",
+			state: "pending",
+			error: null,
+		},
+	]);
+	expect(
+		await h.rows(
+			sql`SELECT persona_id,run_id,state FROM comment_deliveries WHERE comment_id=${comment.id} ORDER BY id`,
+		),
+	).toEqual([{ persona_id: personaId, run_id: null, state: "pending" }]);
+});
+
+test("an edit queues a new persona mention that has no ticket assignment", async () => {
+	const ticket = await seed();
+	const personaId = ulid();
+	await h.db.execute(sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at)
+		VALUES (${personaId},'Release Builder','builder','Ship the change.',now(),now())`);
+	const comment = await h.run((ctx, tx) => create(ctx, tx, { ticket, body: "Ship this." }));
+	await h.run((ctx, tx) => update(ctx, tx, { id: comment.id, body: "@Release Builder ship this." }));
+	expect(
+		await h.rows(sql`SELECT persona_id,run_id,state FROM comment_deliveries WHERE comment_id=${comment.id}`),
+	).toEqual([{ persona_id: personaId, run_id: null, state: "pending" }]);
 });

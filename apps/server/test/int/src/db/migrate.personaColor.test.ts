@@ -28,7 +28,7 @@ const journalUnder = (max: number) => {
 test("a persona from before the color column takes accent and an empty description", async () => {
 	const db = await openDb(":memory:");
 	closers.push(() => db.$client.close());
-	await migrate(db, journalUnder(38));
+	await migrate(db, journalUnder(41));
 	await db.execute(sql`INSERT INTO personas (id, name, kind, instruction, created_at, updated_at)
 		VALUES ('persona-1', 'Feature Builder', 'builder', 'Build carefully.', now(), now())`);
 	await migrate(db);

@@ -47,10 +47,6 @@ export type ServiceTransport = {
 	call: (name: ServiceName, ctx: RequestContext, input: unknown, timing?: DbTiming) => Promise<unknown>;
 	start: (jobs?: JobsStart) => Promise<TransportStart>;
 	close: () => Promise<void>;
-	// Waits for the calls in flight and leaves the transport open. A caller
-	// that starts a call without waiting for it, such as the mention path of
-	// comments.create, is finished when this resolves.
-	settle: () => Promise<void>;
 };
 
 export type TransportStart = { applied: number; liveShas: string[] };
@@ -245,17 +241,13 @@ export const createInlineTransport = ({
 		return { applied, liveShas: found.rows.map((row) => row.sha256 as string) };
 	};
 
-	const settle = async () => {
-		await Promise.allSettled([...inFlight]);
-	};
-
 	const close = async () => {
 		clearInterval(reviewTimer);
 		await controller?.stop();
 		await flowReconcile?.stop();
 		if (jobs !== null) await jobs.stop();
-		await settle();
+		await Promise.allSettled([...inFlight]);
 	};
 
-	return { call, start, close, settle };
+	return { call, start, close };
 };

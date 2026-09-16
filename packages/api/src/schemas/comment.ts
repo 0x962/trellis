@@ -4,7 +4,7 @@ import { ActorRefSchema } from "./actor.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const CommentNotificationSchema = z.object({
-	runId: z.string(),
+	runId: z.string().nullable(),
 	personaName: z.string(),
 	state: z.enum(["pending", "sending", "sent", "failed", "unknown"]),
 	error: z.string().nullable(),

@@ -4,14 +4,11 @@ import { invalidInput } from "../errors.ts";
 // dash, no dash at either end. "Web Auth" gives "web-auth"; "Done!" gives
 // "done". A name with no letter or digit gives no slug at all, which the
 // slug CHECK refuses, so the caller gets a validation error instead.
-export const slugOf = (name: string) =>
-	name
+export const deriveSlug = (name: string) => {
+	const slug = name
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-+|-+$/g, "");
-
-export const deriveSlug = (name: string) => {
-	const slug = slugOf(name);
 	if (slug === "")
 		throw invalidInput(
 			"slug",

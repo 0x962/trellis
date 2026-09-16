@@ -1,5 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, mock, test } from "bun:test";
+import { ORPCError } from "@orpc/server";
 import { sql } from "drizzle-orm";
+import { ulid } from "ulid";
 import type { prepareSend } from "../../../../../src/services/agentRuns/communication.ts";
 import { dispatchMentions as dispatch } from "../../../../../src/services/commentMentions/dispatch.ts";
 import { create } from "../../../../../src/services/comments.ts";
@@ -150,4 +152,141 @@ test("a mention during startup binds the conversation of the same terminal attem
 	await dispatchMentions(ctx(), [controllerSession("terminal")], send);
 	expect(await state()).toBe("sent");
 	expect(send.mock.calls[0]![1].expectedSessionId).toBe("conversation");
+});
+
+test("a pending persona mention starts an assignment from the saved delivery", async () => {
+	const target = await h.one<{ project_id: string; ticket_id: string }>(
+		sql`SELECT project_id,ticket_id FROM agent_runs WHERE id='537'`,
+	);
+	const personaId = ulid();
+	await h.rows(sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at)
+		VALUES (${personaId},'Release Builder','builder','Ship the change.',now(),now())`);
+	const comment = await h.run((ctx, tx) =>
+		create(ctx, tx, { ticket: target.ticket_id, body: "@Release Builder ship this." }),
+	);
+	const start = mock(async (_ctx: unknown, _input: Record<string, unknown>) => {
+		await h.rows(sql`INSERT INTO agent_runs (id,name,persona_id,persona_name,kind,instruction,project_id,project_path,ticket_id,terminal_id,session_id,created_at,updated_at)
+			VALUES ('started','Release Builder',${personaId},'Release Builder','builder','Ship the change.',${target.project_id},'APP',${target.ticket_id},'started-terminal','started-session',now(),now())`);
+		return { id: "started" };
+	});
+	await dispatch(ctx(), [], sent(), async () => "claude", start);
+	expect(start).toHaveBeenCalledTimes(1);
+	expect(start.mock.calls[0]![1]).toMatchObject({
+		personaId,
+		ticket: target.ticket_id,
+		note: "@Release Builder ship this.",
+		requestId: `mention-${comment.id}-${personaId}`,
+	});
+	expect(
+		await h.one<{ run_id: string | null; state: string; error: string | null }>(
+			sql`SELECT run_id,state,error FROM comment_deliveries WHERE comment_id=${comment.id}`,
+		),
+	).toEqual({
+		run_id: "started",
+		state: "sent",
+		error: null,
+	});
+});
+
+test("a pending manager mention starts a project assignment", async () => {
+	const target = await h.one<{ project_id: string; ticket_id: string }>(
+		sql`SELECT project_id,ticket_id FROM agent_runs WHERE id='537'`,
+	);
+	const personaId = ulid();
+	await h.rows(sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at)
+		VALUES (${personaId},'Release Manager','manager','Manage releases.',now(),now())`);
+	const comment = await h.run((ctx, tx) =>
+		create(ctx, tx, { ticket: target.ticket_id, body: "@Release Manager coordinate this." }),
+	);
+	const start = mock(async (_ctx: unknown, _input: Record<string, unknown>) => {
+		await h.rows(sql`INSERT INTO agent_runs (id,name,persona_id,persona_name,kind,instruction,project_id,project_path,terminal_id,session_id,created_at,updated_at)
+			VALUES ('started-manager','Release Manager',${personaId},'Release Manager','manager','Manage releases.',${target.project_id},'APP','manager-terminal','manager-session',now(),now())`);
+		return { id: "started-manager" };
+	});
+	await dispatch(ctx(), [], sent(), async () => "claude", start);
+	expect(start.mock.calls[0]![1]).toMatchObject({
+		personaId,
+		project: target.project_id,
+		note: "@Release Manager coordinate this.",
+		requestId: `mention-${comment.id}-${personaId}`,
+	});
+	expect(start.mock.calls[0]![1]).not.toHaveProperty("ticket");
+});
+
+test("a start that closes before dispatch saves the run error", async () => {
+	const target = await h.one<{ project_id: string; ticket_id: string }>(
+		sql`SELECT project_id,ticket_id FROM agent_runs WHERE id='537'`,
+	);
+	const personaId = ulid();
+	await h.rows(sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at)
+		VALUES (${personaId},'Release Builder','builder','Ship the change.',now(),now())`);
+	const comment = await h.run((ctx, tx) =>
+		create(ctx, tx, { ticket: target.ticket_id, body: "@Release Builder ship this." }),
+	);
+	const start = mock(async () => {
+		await h.rows(sql`INSERT INTO agent_runs (id,name,persona_id,persona_name,kind,instruction,project_id,project_path,ticket_id,terminal_id,closed_at,error,created_at,updated_at)
+			VALUES ('closed-start','Release Builder',${personaId},'Release Builder','builder','Ship the change.',${target.project_id},'APP',${target.ticket_id},'closed-terminal',now(),'The start command failed.',now(),now())`);
+		return { id: "closed-start" };
+	});
+	await dispatch(ctx(), [], sent(), async () => "claude", start);
+	expect(
+		await h.one<{ run_id: string | null; state: string; error: string | null }>(
+			sql`SELECT run_id,state,error FROM comment_deliveries WHERE comment_id=${comment.id}`,
+		),
+	).toEqual({
+		run_id: "closed-start",
+		state: "failed",
+		error: "The start command failed.",
+	});
+});
+
+test("a refused persona start saves the specific reason", async () => {
+	const target = await h.one<{ project_id: string; ticket_id: string }>(
+		sql`SELECT project_id,ticket_id FROM agent_runs WHERE id='537'`,
+	);
+	const personaId = ulid();
+	await h.rows(sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at)
+		VALUES (${personaId},'Release Builder','builder','Ship the change.',now(),now())`);
+	const comment = await h.run((ctx, tx) =>
+		create(ctx, tx, { ticket: target.ticket_id, body: "@Release Builder ship this." }),
+	);
+	const start = mock(async () => {
+		throw new ORPCError("DUPLICATE", {
+			defined: true,
+			status: 409,
+			message: "A row with this value exists.",
+			data: { field: "project concurrency limit" },
+		});
+	});
+	await dispatch(ctx(), [], sent(), async () => "claude", start);
+	expect(
+		await h.one<{ run_id: string | null; state: string; error: string | null }>(
+			sql`SELECT run_id,state,error FROM comment_deliveries WHERE comment_id=${comment.id}`,
+		),
+	).toEqual({
+		run_id: null,
+		state: "failed",
+		error: "The project concurrency limit stopped the start.",
+	});
+});
+
+test("persona deletion leaves a failed delivery instead of blocking the delete", async () => {
+	const target = await h.one<{ ticket_id: string }>(sql`SELECT ticket_id FROM agent_runs WHERE id='537'`);
+	const personaId = ulid();
+	await h.rows(sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at)
+		VALUES (${personaId},'Release Builder','builder','Ship the change.',now(),now())`);
+	const comment = await h.run((ctx, tx) =>
+		create(ctx, tx, { ticket: target.ticket_id, body: "@Release Builder ship this." }),
+	);
+	await h.rows(sql`DELETE FROM personas WHERE id=${personaId}`);
+	await dispatch(ctx(), [], sent(), async () => "claude");
+	expect(
+		await h.one<{ run_id: string | null; state: string; error: string | null }>(
+			sql`SELECT run_id,state,error FROM comment_deliveries WHERE comment_id=${comment.id}`,
+		),
+	).toEqual({
+		run_id: null,
+		state: "failed",
+		error: "The persona was deleted before Trellis started the assignment.",
+	});
 });
