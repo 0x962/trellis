@@ -17,6 +17,7 @@ const message = (overrides: Record<string, unknown> = {}) => ({
 const channel = (name: string, messageCount = 0) => ({
 	projectId,
 	name,
+	aiOnly: name === "ai",
 	messageCount,
 	latestId: null,
 	lastMessageAt: null,
@@ -76,5 +77,9 @@ describe("chat", () => {
 		});
 		expect(created.calls[0]!.input).toEqual({ project: "TRL", channel: "release" });
 		expect(created.stdout).toBe("release\n");
+		const agentsOnly = await runCli(["chat", "create", "TRL", "plans", "--ai-only", "--quiet"], {
+			"chat.createChannel": { ...channel("plans"), aiOnly: true },
+		});
+		expect(agentsOnly.calls[0]!.input).toEqual({ project: "TRL", channel: "plans", aiOnly: true });
 	});
 });

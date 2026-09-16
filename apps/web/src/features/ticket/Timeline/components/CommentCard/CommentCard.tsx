@@ -1,10 +1,10 @@
 import type { Comment } from "@trellis/api";
 import { ActorChip, Button, cx, Menu, type MenuItem, Textarea } from "@trellis/ui";
 import { type ReactNode, useState } from "react";
+import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
 import { compactRelativeTime } from "../../../../../lib/format";
-import { ReadOnlyMarkdown } from "../../../Description/components/ReadOnlyMarkdown";
 import { failToast } from "../../../utils/failToast";
 import { absoluteTime } from "../../utils/absoluteTime";
 

@@ -21,6 +21,7 @@ import {
 	projectRow,
 	projectView,
 } from "./projectRows.ts";
+import { recordManagerScopeChange } from "./projectsManagerScope.ts";
 import { assertProjectActive, pathOf, resolveProject } from "./refs.ts";
 import { deriveSlug } from "./slug.ts";
 import { seedRootStatuses } from "./statusSet.ts";
@@ -72,14 +73,18 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput)
 			VALUES (${id}, ${parent?.id ?? null}, ${parent?.rootId ?? id}, ${key}, ${slug}, ${input.name},
 				${input.description ?? ""}, ${template}, 0, ${position}, NULL, ${ctx.now}, ${ctx.now}, ${JSON.stringify(input.managerConfig ?? DEFAULT_PROJECT_MANAGER_CONFIG)}::jsonb)`,
 	);
-	if (parent === null) {
-		await seedRootStatuses(ctx, tx, id);
-		await seedDefaultChannels(ctx, tx, id);
-	}
+	if (parent === null) await seedRootStatuses(ctx, tx, id);
+	await seedDefaultChannels(ctx, tx, id);
 	await ctx.cache.rebuild(tx);
 	await projectActivity(ctx, tx, id, "project.created", [
 		{ field: null, from: null, to: input.name, meta: { path: pathOf(ctx.cache, id) } },
 	]);
+	await recordManagerScopeChange(ctx, tx, {
+		projectId: id,
+		parentId: parent?.id ?? null,
+		before: null,
+		after: input.managerConfig?.personaId ?? null,
+	});
 	ctx.emit({ type: "project.created", id });
 	return projectView(ctx, tx, id);
 };
@@ -139,6 +144,13 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	);
 	await projectActivity(ctx, tx, project.id, "project.updated", changes);
 	await ctx.cache.rebuild(tx);
+	if (input.managerConfig !== undefined)
+		await recordManagerScopeChange(ctx, tx, {
+			projectId: project.id,
+			parentId: project.parentId,
+			before: managerConfigOf(row).personaId,
+			after: input.managerConfig.personaId,
+		});
 	ctx.emit({ type: "project.updated", id: project.id });
 	return projectView(ctx, tx, project.id);
 };

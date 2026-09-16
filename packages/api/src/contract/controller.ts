@@ -39,10 +39,17 @@ const dispatch = z.object({
 	events: z.array(
 		z.object({
 			id: z.number(),
-			ticketId: z.string(),
+			ticketId: z
+				.string()
+				.nullable()
+				.describe("Null for a project event. A project event names the sub-project in `project`."),
 			action: z.string(),
 			actor: z.object({ name: z.string(), kind: z.string() }),
 			createdAt: z.string(),
+			project: z
+				.object({ id: UlidSchema, path: z.string() })
+				.optional()
+				.describe("The sub-project that gained or lost its own manager. Present only on a project event."),
 		}),
 	),
 	dueAt: z.string(),

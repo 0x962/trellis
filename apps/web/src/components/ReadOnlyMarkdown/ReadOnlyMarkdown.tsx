@@ -1,11 +1,14 @@
 import { cx, Dialog } from "@trellis/ui";
 import { type MouseEvent, useMemo, useState } from "react";
-import { renderMarkdown } from "../../../../../lib/markdown";
+import { renderMarkdown } from "../../lib/markdown";
 
 export type ReadOnlyMarkdownProps = {
 	markdown: string;
 	className?: string;
-	formatClassName?: "markdown" | "comment-markdown";
+	formatClassName?: "markdown" | "comment-markdown" | "chat-markdown";
+	// The renderer, when a surface needs more than `renderMarkdown`, such as
+	// the chat log with its mention marks. It must sanitize what it returns.
+	render?: (markdown: string) => string;
 };
 
 type Shown = { src: string; alt: string };
@@ -16,14 +19,19 @@ const imageClass = "[&_img]:max-w-full [&_img]:cursor-zoom-in [&_img]:rounded-md
 // every script, event handler, and unsafe URL before the HTML is set. An
 // image, such as a pasted attachment, fits the column and opens large in a
 // lightbox on click.
-export function ReadOnlyMarkdown({ markdown, className, formatClassName = "markdown" }: ReadOnlyMarkdownProps) {
+export function ReadOnlyMarkdown({
+	markdown,
+	className,
+	formatClassName = "markdown",
+	render = renderMarkdown,
+}: ReadOnlyMarkdownProps) {
 	const [shown, setShown] = useState<Shown | null>(null);
 
 	// React writes the inner HTML again whenever the object under
 	// `dangerouslySetInnerHTML` is a new one, which replaces every rendered
 	// node. One object per text keeps the nodes across a repaint, so a
 	// selection holds and an image keeps its pixels.
-	const html = useMemo(() => ({ __html: renderMarkdown(markdown) }), [markdown]);
+	const html = useMemo(() => ({ __html: render(markdown) }), [markdown, render]);
 
 	const onClick = (event: MouseEvent) => {
 		const target = event.target as HTMLElement;

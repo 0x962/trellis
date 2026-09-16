@@ -35,15 +35,17 @@ export const playChatSound = (create: () => AudioContextLike = () => new AudioCo
 	}
 };
 
-// True for a new chat message from someone else while the sound is on. The
-// event stream reaches every open tab, so every open tab plays it.
+// True for a new chat message from someone else while the sound is on. A
+// message in a channel for agents only stays silent. The event stream
+// reaches every open tab, so every open tab plays it.
 export const wantsChatSound = (
 	event: unknown,
 	options: { sound: boolean; actor: { name: string; kind: string } | null },
 ) => {
 	const typed = event as Partial<TrellisEvent>;
 	if (typed.type !== "chat.message" || !options.sound) return false;
-	const { actor } = typed as Extract<TrellisEvent, { type: "chat.message" }>;
+	const { actor, aiOnly } = typed as Extract<TrellisEvent, { type: "chat.message" }>;
+	if (aiOnly) return false;
 	return options.actor === null || actor.kind !== options.actor.kind || actor.name !== options.actor.name;
 };
 

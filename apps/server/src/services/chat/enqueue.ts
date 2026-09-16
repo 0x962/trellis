@@ -9,8 +9,7 @@ export const enqueue = async (tx: Tx, input: { messageId: string; rootId: string
 	const live = await rows<Recipient>(
 		tx,
 		sql`SELECT r.id, r.persona_name AS "personaName", r.kind, r.terminal_id AS "terminalId", r.session_id AS "sessionId"
-		FROM agent_runs r JOIN projects p ON p.id = r.project_id
-		WHERE r.runtime = 'native' AND r.closed_at IS NULL AND p.root_id = ${input.rootId}`,
+		FROM agent_runs r WHERE r.runtime = 'native' AND r.closed_at IS NULL AND r.project_id = ${input.rootId}`,
 	);
 	for (const { run, direct } of recipientsOf(live, input.body, input.actor)) {
 		await tx.execute(sql`INSERT INTO chat_deliveries (id, message_id, run_id, persona_name, terminal_id, session_id, direct)

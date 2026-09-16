@@ -211,14 +211,26 @@ takes builder. A delete keeps the snapshots of the runs that used the persona.
 
 ### Chat rooms
 
-Every root project owns one chat room, and every project of the tree shares
-it. The room holds named channels. `ai` and `general` exist in every room;
-the project create and the migration insert them. A post to a channel the
+Every project, a root or a sub-project, owns one chat room, and a
+sub-project shares nothing with its parent. The room holds named channels.
+`ai` and `general` exist in every room; the project create and the
+migration insert them. A post to a channel the
 room lacks creates the channel. A channel has no id: the API and the CLI
 address it by its project and its lower-case name, with an optional `#`.
+A channel can be for agents only (`aiOnly`); `ai` is one, and an agent can
+create more with `trellis chat create <project> <name> --ai-only`. A person
+who posts in such a channel gets `CHAT_AI_ONLY`. The web shows no composer,
+no unread dot, and plays no sound for it.
+
+`chat_attachments` holds one row per file posted in a room. The upload
+stores the blob as a ticket attachment does, shares the blob of equal
+bytes, and returns the markdown line the message carries. The bytes serve at
+`/api/chat/attachments/{id}/file`. The boot sweep keeps every hash a row of
+either attachment table names.
 
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
-holds one row per post and live native agent of the tree, except the author.
+holds one row per post and live native agent of the room's project, except
+the author.
 A post that mentions a live agent by run id, by persona name, or by role
 (`@manager`, `@builders`, `@reviewers`) reaches only the mentioned agents,
 and each of those rows is `direct`. The controller tick sends every pending
@@ -229,10 +241,12 @@ receives a `trellis.chat.messages` JSON document; a worker receives IRC style
 lines and the two CLI commands. The states and the session pinning are the
 states and the pinning of a comment mention.
 
-The web route `/p/<project path>/chat` shows the room of the tree with an
-IRC style log: the clock, the nick in a fixed right-aligned column, and the
-body. A click on a nick inserts a mention. `/join <name>` in its input
-creates a channel. The browser keeps the open channel, the unsent text of
+The web route `/p/<project path>/chat` shows the room of the project as a log:
+the clock and the full name on one line, the body as markdown under it,
+with a dated rule where the day changes. A known `@name` renders as a mark.
+A click on a name inserts a mention. The composer takes several lines, a
+dropped, pasted, or picked file, and completes `@` from the live agents and
+the roles. `/join <name>` in it creates a channel. The browser keeps the open channel, the unsent text of
 each channel, and the read position of each channel in localStorage under
 `trellis-chat`. A channel whose newest message id is above the read position
 shows a dot, and so does the Chat link of every project in the tree. A new
@@ -245,6 +259,27 @@ the manager tools are `trellis_chat_*`.
 What an agent is told about the room lives in `personas.instruction`, which
 the migration `0047_persona_chat_instructions` appends to. Code injects no
 prompt text.
+
+### Project notes
+
+A note is titled markdown on one project. Every agent of that project and of
+its sub-projects reads it at start: a worker in its launch prompt and in
+`trellis brief`, a manager in its launch context. `notes` holds one row per
+note with its `audience` (`all`, `manager`, or `worker`), an optional
+`expires_at`, and the actor of the last write. A read collects the notes of
+the project and of every ancestor, newest change first, and drops an expired
+note. A title is unique in its project without case; a repeated title is
+`DUPLICATE`. A human and an agent can create, update, and delete a note. An
+archived project serves reads and refuses writes. A project delete cascades
+to its notes.
+
+The API is `notes.list`, `notes.get`, `notes.create`, `notes.update`, and
+`notes.delete`. The event `notes.changed` names the owning project and
+invalidates every note query. The CLI verb is `trellis notes`, the manager
+tools are `trellis_notes_*`, and the web route is `/p/<project path>/notes`.
+What an agent is told about notes lives in `personas.instruction`, which the
+migration `0053_persona_notes_instructions` appends to. Code injects no prompt
+text; the launch prompt and the brief carry note content only.
 
 ### Pull request reviews
 
@@ -372,6 +407,10 @@ The source instructions live in [manager-harness-accounts.md](personas/manager-h
 `manager_controller_cursors` records the last collected activity identifier for each project.
 `manager_dispatches` retains event batches and their send state. The first event fixes the batch deadline at ten seconds.
 The collector continues while dispatch pauses. It excludes the manager's own activity and respects child projects with their own manager.
+A child project with its own manager persona is outside the scope of every manager above it. Its own manager receives its ticket events.
+The project settings of a child ask for confirmation before the first persona is saved.
+The change writes one activity row on the direct parent project: `project.subproject_manager_enabled` or `project.subproject_manager_disabled`, with a null ticket, the child path in `to_value`, and the child id in `meta.projectId`.
+The collector delivers that row to the nearest manager above as an event with a null `ticketId` and the child under `project`. The manager records its outcome under a null ticket.
 
 The controller sends a batch only to the current native attempt with a matching conversation and a live controllable process.
 The controller queues a heartbeat after more than 120 seconds of idle time.

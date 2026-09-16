@@ -6,7 +6,8 @@ const message = (actor: { name: string; kind: string }) => ({
 	type: "chat.message",
 	id: "01J8Z6X4Q3M2K1H0G9F8E7D6M1",
 	projectId: "01J8Z6X4Q3M2K1H0G9F8E7D6P1",
-	channel: "ai",
+	channel: "general",
+	aiOnly: false,
 	actor,
 });
 
@@ -24,5 +25,11 @@ describe("lib/chatSound", () => {
 			wantsChatSound({ ...message({ name: "x", kind: "agent" }), type: "chat.delivery" }, { sound: true, actor: dana }),
 		).toBe(false);
 		expect(wantsChatSound(message({ name: "x", kind: "agent" }), { sound: false, actor: dana })).toBe(false);
+		expect(
+			wantsChatSound(
+				{ ...message({ name: "x", kind: "agent" }), channel: "ai", aiOnly: true },
+				{ sound: true, actor: dana },
+			),
+		).toBe(false);
 	});
 });

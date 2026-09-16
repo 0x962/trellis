@@ -64,6 +64,21 @@ test("a dispatch contains its event envelope and unmodified ticket events", () =
 	});
 });
 
+test("a project event yields one project work item", () => {
+	const event = {
+		id: 7,
+		ticketId: null,
+		action: "project.subproject_manager_enabled",
+		actor: { name: "navid", kind: "human" },
+		createdAt: delivery.dueAt,
+		project: { id: "child-1", path: "CDE.web" },
+	};
+	const message = JSON.parse(managerMessage({ ...delivery, events: [event] }, context, agents));
+	expect(message.type).toBe("trellis.manager.dispatch");
+	expect(message.events).toEqual([event]);
+	expect(message.workItems).toEqual([{ ticketId: null, assignmentRequestId: expect.any(String) }]);
+});
+
 test("assignment identifiers survive a retry generation and completed tickets leave the work list", () => {
 	const events = ["one", "two", "one"].map((ticketId, id) => ({
 		id,

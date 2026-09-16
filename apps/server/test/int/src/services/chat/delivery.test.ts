@@ -31,7 +31,7 @@ beforeEach(async () => {
 });
 const ctx = () => testCtx({ db: h.db, home: "/unused" }).ctx;
 const say = (body: string, actor: { kind: "human" | "agent"; name: string } = { kind: "human", name: "dana" }) =>
-	h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body }), { actor });
+	h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body }), { actor });
 const states = async () =>
 	(
 		await h.rows<{ run_id: string; state: string }>(sql`SELECT run_id, state FROM chat_deliveries ORDER BY run_id, id`)
@@ -66,8 +66,8 @@ test("one agent receives all of its pending lines in one send", async () => {
 	});
 	const text = send.mock.calls[0]![1].text;
 	expect(text).toContain("2 new messages in the CDE room");
-	expect(text).toContain("#ai 12:00:00 <dana> first");
-	expect(text).toContain("#ai 12:00:00 <dana> second");
+	expect(text).toContain("#general 12:00:00 <dana> first");
+	expect(text).toContain("#general 12:00:00 <dana> second");
 	expect(text).toContain("trellis chat post CDE <channel> --body");
 	expect(await states()).toEqual(["builder:sent", "builder:sent", "manager:pending", "manager:pending"]);
 	await dispatchChat(ctx(), [controllerSession("terminal")], send);
@@ -84,7 +84,7 @@ test("an agent line names the persona and the run id, so a reader can mention it
 		messages: [
 			{
 				id: expect.any(String),
-				channel: "ai",
+				channel: "general",
 				body: "done with TRL-1",
 				createdAt: "2026-09-09T12:00:00.000Z",
 				actor: { kind: "agent", name: "builder", displayName: "Builder" },

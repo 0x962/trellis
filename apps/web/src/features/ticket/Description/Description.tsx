@@ -2,6 +2,7 @@ import { ArrowsClockwise } from "@phosphor-icons/react";
 import type { Ticket } from "@trellis/api";
 import { Button, cx, useHotkey } from "@trellis/ui";
 import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
+import { ReadOnlyMarkdown } from "../../../components/ReadOnlyMarkdown";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
 import { conflictCurrent } from "../../../lib/conflict";
@@ -10,7 +11,6 @@ import { useTicketWrite } from "../hooks/useTicketWrite";
 import { useSaveStatusStore } from "../stores/saveStatusStore";
 import { failToast } from "../utils/failToast";
 import { type EditorHandle, editorChunk, LazyEditor } from "./components/LazyEditor";
-import { ReadOnlyMarkdown } from "./components/ReadOnlyMarkdown";
 import { useDescriptionAutosave } from "./hooks/useDescriptionAutosave";
 
 export type DescriptionProps = {

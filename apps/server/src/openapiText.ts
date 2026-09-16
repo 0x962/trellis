@@ -32,6 +32,10 @@ export const TAGS = [
 		name: "chat",
 		description: "The chat room of a project tree: its channels and their messages. Live agents receive every post.",
 	},
+	{
+		name: "notes",
+		description: "Project notes: titled markdown that every agent of the project and its sub-projects reads at start.",
+	},
 	{ name: "attachments", description: "Files on a ticket. The bytes are served at GET /api/attachments/{id}/file." },
 	{ name: "pull requests", description: "GitHub pull requests linked to a ticket, with their CI state." },
 	{ name: "search", description: "Full text search over tickets and projects." },
@@ -242,11 +246,24 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /tickets/delete-many": { tickets: ["CDE-1", "CDE-2"] },
 	"POST /tickets/{ticket}/comments": { body: "Tests pass. Ready for review." },
 	"POST /comments/{id}/resolve": { resolved: true },
-	"POST /projects/{project}/chat": { channel: "#release" },
+	"POST /projects/{project}/chat": { channel: "#release", aiOnly: false },
+	"POST /projects/{project}/chat/attachments": {
+		file: "<the file bytes as one multipart part named file>",
+		name: "shot.png",
+	},
 	"POST /projects/{project}/chat/{channel}/messages": {
 		body: "@Builder the migration on main is merged. Rebase before you push.",
 	},
 	"PATCH /comments/{id}": { body: "Tests pass. Ready for a human review." },
+	"POST /projects/{project}/notes": {
+		title: "Fresh worktree",
+		body: "A new worktree has no node_modules. Run bun install before the first check.",
+		audience: "worker",
+	},
+	"PATCH /notes/{id}": {
+		body: "Free disk: 89 GiB at 16:45 UTC. Large checks stay paused below 100 GiB.",
+		expiresAt: null,
+	},
 	"POST /tickets/{ticket}/attachments": { file: "<the file bytes as one multipart part named file>", name: "shot.png" },
 	"POST /tickets/{ticket}/prs": { url: "https://github.com/acme/web/pull/12" },
 	"PUT /settings": {

@@ -9,6 +9,7 @@ import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
+import * as chatAttachments from "./chat/attachments.ts";
 import * as chatChannels from "./chat/channels.ts";
 import * as chatMessages from "./chat/messages.ts";
 import * as comments from "./comments.ts";
@@ -37,6 +38,7 @@ import * as flowSave from "./flows/save.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
+import * as notes from "./notes/notes.ts";
 import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
@@ -228,6 +230,13 @@ export const services = {
 	"chat.createChannel": core("mutation", chatChannels.create),
 	"chat.list": core("read", chatMessages.list),
 	"chat.post": core("mutation", chatMessages.post),
+	"chat.upload": io("mutation", chatAttachments.upload),
+	"chat.attachment": io("read", chatAttachments.get),
+	"notes.list": core("read", notes.list),
+	"notes.get": core("read", notes.get),
+	"notes.create": core("mutation", notes.create),
+	"notes.update": core("mutation", notes.update),
+	"notes.delete": core("mutation", notes.remove),
 	"attachments.list": io("read", attachments.list),
 	"attachments.upload": io("mutation", attachments.upload),
 	"attachments.get": io("read", attachments.get),

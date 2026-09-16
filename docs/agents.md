@@ -40,10 +40,17 @@ Reply in that thread: trellis comment TRL-42 --reply-to <comment-id> --body "...
 Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
 
-Chat room: every project tree has one, with channels. #ai and #general exist in every room. Every live agent receives each post; @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
+Chat room: every project has its own, with channels. #ai and #general exist in every room. Every live agent of the project receives each post; @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
 Read a channel: trellis chat read TRL ai
 Post a message: trellis chat post TRL ai --body "..."
 List channels:  trellis chat channels TRL
+Create a channel for agents only: trellis chat create TRL <name> --ai-only
+Attach a file:  trellis chat attach TRL <path>, then put the printed markdown in a post
+
+Project notes: facts, current state, and decisions that every agent of the project reads at start. Write one when you learn something the next agent must know.
+Read the notes: trellis notes list TRL
+Write a note: trellis notes add TRL --title "..." --body "..."
+Update or remove one: trellis notes edit <id> --body "..." / trellis notes rm <id>
 
 PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."
@@ -145,6 +152,12 @@ workspace resumes: the start opens one more terminal in that workspace and
 continues the chat the stop left behind. A start still reads the persona the
 project names now, so a change of persona takes effect on the next start.
 
+A sub-project can name its own manager persona in its project settings. Trellis asks for confirmation before it saves the first persona.
+From then on the parent manager receives no events from that sub-project and starts no agents for its tickets. The sub-project's manager owns them.
+The parent manager receives one event with a null ticket ID: `project.subproject_manager_enabled`, with the sub-project under `project`.
+A cleared persona returns the sub-project to the parent manager and sends `project.subproject_manager_disabled`.
+Persona, harness, and concurrency stay local to the sub-project. An empty directory uses the nearest configured ancestor directory.
+
 Every agent setting of a project sits on its Manager page, at
 `/p/<project path>/settings/manager`. The header holds one Play/Pause button. Play starts or resumes the manager. Pause stops its terminal. The Status section picks the manager persona and draws the
 manager in the page: its state, its output, a follow-up box, and Stop. The ADE
@@ -201,8 +214,8 @@ The server has no sign-in, so anyone who reaches the API sets that template.
 
 ## Chat rooms
 
-Every root project owns one chat room. Every project of the tree shares it, so a
-manager at the root and a builder in a sub-project read the same channels.
+Every project, a root or a sub-project, owns one chat room, and a sub-project
+shares nothing with its parent. A manager talks to the agents of its own project.
 `#ai` and `#general` exist in every room. A post to a new channel name creates the channel.
 The `## Chat room` section of each persona instruction names the room, its commands, and its rules. The migration `0047_persona_chat_instructions` adds it to every saved persona, and the persona docs under `docs/personas/` carry it for new ones.
 
@@ -215,7 +228,9 @@ trellis chat create TRL release
 ```
 
 Write the channel name without the `#` in a shell, or quote it: a bare `#ai` starts a shell comment.
-Every live agent of the tree receives each post, except its author.
+A channel created with `--ai-only` is for agents: a person reads it and cannot post in it, and the web raises no sound or unread dot for it. `#ai` is such a channel.
+`trellis chat attach TRL <path>` uploads a file and prints the markdown line to put in a post.
+Every live agent of the room's project receives each post, except its author.
 A mention of `@<run id>`, `@<persona name>`, or a role such as `@manager`, `@builders`, or `@reviewers` sends the post to the mentioned agents only.
 A mentioned agent is interrupted: Trellis stops its current turn and hands it the lines at once. An unmentioned agent reads the lines when its current turn ends.
 A worker receives the pending lines in its terminal, batched into one message per controller tick.
@@ -223,6 +238,28 @@ A manager receives a `trellis.chat.messages` event with the same lines as data a
 The web page at `/p/<project path>/chat` shows the log; `/join <name>` in its input creates a channel.
 The page remembers the open channel and the unsent text per channel, marks a channel read while it is open in a visible tab, and shows a dot on unread channels and on the Chat link of the sidebar.
 A new message from someone else plays a tone. Settings > Account > Chat sound switches it off for that browser.
+
+## Project notes
+
+A note is a titled markdown text on a project. Every agent of that project and of
+its sub-projects reads the note at start: the launch prompt and `trellis brief` carry
+a `## Project notes` section. A human or an agent writes a note for the agents that
+come later: a fact about the repository or the machine, the current state of a
+shared resource, or a decision that later work must respect.
+
+```sh
+trellis notes list TRL
+trellis notes show <note-id>
+trellis notes add TRL --title "Fresh worktree" --body "Run bun install before the first check."
+trellis notes edit <note-id> --body "Free disk: 89 GiB at 16:45 UTC." --expires 2026-09-17T00:00:00Z
+trellis notes rm <note-id>
+```
+
+The audience of a note is `all`, `manager`, or `worker`. A manager reads `all` and `manager`; a builder or a reviewer reads `all` and `worker`.
+`--expires` marks a note about a passing state. An expired note leaves every read on its own, so nobody has to delete it.
+Two notes of one project never share a title. A second `add` with the same title answers `DUPLICATE`; edit the note instead.
+The web page at `/p/<project path>/notes` lists the notes of the project and its ancestors.
+A manager writes and reads notes through the `trellis_notes_list`, `trellis_notes_get`, `trellis_notes_create`, `trellis_notes_update`, and `trellis_notes_delete` tools.
 
 ## Persona identity and mentions
 
@@ -245,7 +282,7 @@ Use `blocked` with `waitFor` for the conditions below. A `blocked` outcome witho
 
 When capacity opens, the manager receives the ticket in `workItems` and the saved action in `nextActions`.
 Use its `assignmentRequestId` when you start the worker. That identifier retains the assignment across retries and manager replacement.
-Record an outcome for each ticket in the notification. Use a null ticket ID only for an empty heartbeat.
+Record an outcome for each ticket in the notification. Use a null ticket ID for an empty heartbeat and for a project event.
 
 ```sh
 trellis manager actions --project TRL --state waiting
