@@ -1,5 +1,4 @@
 import { realpath } from "node:fs/promises";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import type { AccountHarness, UsageHarness } from "@trellis/api";
 import { profileDefault } from "../harnessAccounts/profiles.ts";
@@ -11,21 +10,15 @@ export type UsageRoot = { harness: UsageHarness; path: string; accounts: string[
 
 export type UsageAccountRow = { harness: AccountHarness; profilePath: string; name: string; isDefault: boolean };
 
-const HARNESSES: readonly AccountHarness[] = ["claude", "codex", "pi", "opencode"];
+const HARNESSES: readonly AccountHarness[] = ["claude", "codex", "pi", "opencode", "muse"];
 
-// Where Muse keeps its sessions: under the XDG data home. Its login lives
-// apart, under the XDG config home, which museConfigDir names.
-export const museDataDir = (env: NodeJS.ProcessEnv) =>
-	join(env.XDG_DATA_HOME?.trim() || join(env.HOME ?? homedir(), ".local", "share"), "muse");
-export const museConfigDir = (env: NodeJS.ProcessEnv) =>
-	join(env.XDG_CONFIG_HOME?.trim() || join(env.HOME ?? homedir(), ".config"), "muse");
-
-// Where a profile keeps its transcripts.
+// Where a profile keeps its transcripts. A Muse profile is an XDG data home,
+// so its sessions sit under `muse/sessions`.
 export const transcriptDir = (harness: UsageHarness, profilePath: string) => {
 	if (harness === "claude") return join(profilePath, "projects");
 	if (harness === "codex") return join(profilePath, "sessions");
 	if (harness === "pi") return join(profilePath, "sessions");
-	if (harness === "muse") return join(profilePath, "sessions");
+	if (harness === "muse") return join(profilePath, "muse", "sessions");
 	return join(profilePath, "opencode", "storage");
 };
 
@@ -37,7 +30,6 @@ export async function usageRoots(accounts: readonly UsageAccountRow[], env: Node
 	for (const harness of HARNESSES) {
 		candidates.push({ harness, dir: transcriptDir(harness, profileDefault(harness, env)), account: null });
 	}
-	candidates.push({ harness: "muse", dir: transcriptDir("muse", museDataDir(env)), account: null });
 	for (const account of accounts) {
 		candidates.push({
 			harness: account.harness,

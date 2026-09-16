@@ -28,6 +28,21 @@ test("a known Codex refusal reads as a sentence and keeps its code", () => {
 	});
 });
 
+test("a known Muse refusal reads as a sentence and keeps its code", () => {
+	expect(controlReplyText("muse", 409, '{"error":"STALE_TURN"}')).toEqual({
+		message: "Muse finished that turn. Read the current turn before another interrupt.",
+		code: "STALE_TURN",
+	});
+	expect(controlReplyText("muse", 401, '{"error":"Unauthorized"}')).toEqual({
+		message: "The Muse control token does not match this session.",
+		code: "Unauthorized",
+	});
+	expect(controlReplyText("muse", 500, '{"error":"turn/start failed"}')).toEqual({
+		message: "Muse reported: turn/start failed",
+		code: null,
+	});
+});
+
 // The 500 reply carries the message of whatever threw inside the control
 // server. That text is unknown, so the sentence names Codex and quotes it.
 test("an unknown Codex error message reads as a quote and carries no code", () => {

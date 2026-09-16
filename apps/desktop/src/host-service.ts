@@ -34,6 +34,7 @@ const start = async () => {
 		TRELLIS_RUNTIME_NODE: join(root, "bin/node"),
 		TRELLIS_RUNTIME_SCRIPT: join(root, "apps/runtime/dist/index.js"),
 		TRELLIS_CODEX_BRIDGE: join(root, "apps/server/dist/codex-bridge.js"),
+		TRELLIS_MUSE_BRIDGE: join(root, "apps/server/dist/muse-bridge.js"),
 	});
 };
 void start();

@@ -34,7 +34,7 @@ afterEach(async () => {
 	await rm(fixture.home, { recursive: true, force: true });
 });
 
-test.each(["claude", "codex", "opencode", "pi"] as const)(
+test.each(["claude", "codex", "opencode", "pi", "muse"] as const)(
 	"%s assignment resumes on a new runtime with one restart notice",
 	async (harness) => {
 		const { home, client } = fixture;

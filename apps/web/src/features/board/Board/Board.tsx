@@ -30,6 +30,9 @@ export type BoardProps = {
 	projectRef?: string;
 	filters?: BoardQueryInput;
 	storageKey: string;
+	// The concurrency slots of the project. The first started column shows
+	// them, because its tickets are the ones agents work on.
+	capacity?: { used: number; limit: number };
 	onOpenTicket: (identifier: string) => void;
 };
 
@@ -45,7 +48,7 @@ const closedCategories = ["done", "canceled"];
 // stays empty on it.
 const noSelection: string[] = [];
 
-export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: BoardProps) {
+export function Board({ projectRef, filters = {}, storageKey, capacity, onOpenTicket }: BoardProps) {
 	const context = useApp();
 	const boardRef = useRef<HTMLDivElement>(null);
 	const [announcement, setAnnouncement] = useState("");
@@ -232,6 +235,8 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 		? "85vw"
 		: columnWidth(columns.length, columns.filter((column) => collapsed.includes(column.id)).length);
 
+	const capacityColumn = columns.find((column) => column.category === "started")?.id;
+
 	return (
 		<>
 			<div ref={boardRef} data-board="" className="flex min-h-0 flex-1 snap-x gap-3 overflow-x-auto px-5 py-4">
@@ -244,6 +249,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 						categoryMode={projectRef === undefined}
 						width={width}
 						well={well}
+						capacity={column.id === capacityColumn ? capacity : undefined}
 						onToggle={() => uiActions.setGroupCollapsed(storageKey, column.id, !collapsed.includes(column.id))}
 						onShowAllDone={() => setShowAllDone(true)}
 						onNewTicket={() => openComposer(column)}

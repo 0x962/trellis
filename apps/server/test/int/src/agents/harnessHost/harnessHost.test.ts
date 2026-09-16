@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import type { ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { HARNESS_DEFAULT_MODELS, toHarnessModel } from "@trellis/api";
 import type { RuntimeClient } from "@trellis/runtime-protocol/client";
+import { MUSE_USAGE_FILE, readMuseUsage } from "../../../../../src/agents/harnesses/muse/museUsage.ts";
 import { HarnessHost } from "../../../../../src/agents/harnessHost/harnessHost.ts";
 import { providers } from "../../../../../src/agents/harnessHost/providers.ts";
+import { fetchAccountQuota } from "../../../../../src/services/harnessAccounts/fetchQuota.ts";
 import { harnessHostFixture } from "../../../../helpers/harnessHostFixture.ts";
 
 let home: string, daemon: ChildProcess, client: RuntimeClient, host: HarnessHost;
@@ -20,7 +23,7 @@ afterEach(async () => {
 });
 
 test("the host registers the supported native harnesses", () => {
-	expect(Object.keys(providers).sort()).toEqual(["claude", "codex", "opencode", "pi"]);
+	expect(Object.keys(providers).sort()).toEqual(["claude", "codex", "muse", "opencode", "pi"]);
 });
 test("the host preserves the assignment token and process deadline", async () => {
 	await host.start({
@@ -36,7 +39,7 @@ test("the host preserves the assignment token and process deadline", async () =>
 	expect(descriptor.spec.timeoutMs).toBe(60000);
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"%s host supports identity, model, input, output, events, lists, elapsed, resume, and stop",
 	async (harness) => {
 		const started = await host.start({
@@ -52,7 +55,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 		expect(started.process.elapsedMs).toBeNumber();
 		const args = started.process.launch!.args;
 		if (harness === "claude") expect(args).toContain("--dangerously-skip-permissions");
-		if (harness === "codex")
+		if (harness === "codex" || harness === "muse")
 			expect(JSON.parse(args[1]!).model).toBe(toHarnessModel(harness, HARNESS_DEFAULT_MODELS[harness]));
 		if (harness === "pi") expect(args).toContain("read,bash,edit,write,grep,find,ls");
 		if (harness === "opencode") expect(args).toContain("--model");
@@ -87,7 +90,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 	10000,
 );
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"missing %s executable fails before process launch with its name and PATH",
 	async (harness) => {
 		const empty = join(home, "empty");
@@ -118,7 +121,7 @@ test("silent native hooks time out with the retained attempt ID", async () => {
 	await host.stop("silent");
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"%s interrupt preserves the actual process and waits for a provider idle event",
 	async (harness) => {
 		host = new HarnessHost({
@@ -173,7 +176,7 @@ test("a new host instance reconnects to the same process and streams output from
 	await host.stop("retained");
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"twelve concurrent %s starts share one process and reject a conflicting request",
 	async (harness) => {
 		const second = new HarnessHost({
@@ -201,7 +204,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 	},
 );
 
-test.each(["codex", "pi", "opencode"] as const)(
+test.each(["codex", "pi", "opencode", "muse"] as const)(
 	"a normal %s completion does not confirm interruption",
 	async (harness) => {
 		host = new HarnessHost({
@@ -305,4 +308,77 @@ test("empty OpenCode version output fails without launch artifacts", async () =>
 	);
 	expect(await client.list()).toEqual([]);
 	await expect(readdir(join(home, "attempts"))).rejects.toMatchObject({ code: "ENOENT" });
+});
+
+test("a Muse turn saves the usage windows of its login where the account card reads them", async () => {
+	const museHome = join(home, "muse");
+	await mkdir(museHome);
+	host = new HarnessHost({
+		runtime: client,
+		directory: join(home, "attempts"),
+		env: { ...process.env, PATH: join(home, "bin"), HARNESS_FIXTURE_MUSE_HOME: museHome },
+		bun: process.execPath,
+		observationTimeoutMs: 1500,
+	});
+	await host.start({ id: "usage", harness: "muse", cwd: home, prompt: "hello" });
+	await host.waitFor("usage", (state) => state.activity?.state === "idle");
+	const deadline = Date.now() + 2000;
+	while (!existsSync(join(museHome, MUSE_USAGE_FILE)) && Date.now() < deadline) await Bun.sleep(25);
+	const usage = await readMuseUsage(museHome);
+	expect(usage?.window?.usedPercent).toBe(12);
+	const quota = await fetchAccountQuota(
+		{
+			id: "01M00000000000000000000000",
+			name: "Muse",
+			harness: "muse",
+			profilePath: home,
+			enabled: true,
+			isDefault: false,
+			createdAt: "",
+			updatedAt: "",
+		},
+		fetch,
+		async () => ({ token: null, email: "work@example.com", plan: "oauth" }),
+	);
+	expect(quota.status).toBe("ok");
+	expect(quota.windows.map((window) => window.id)).toEqual(["window", "weekly"]);
+	await host.stop("usage");
+});
+
+test("a Muse manager starts its session with the Trellis tool server and the granted MCP capability", async () => {
+	const museHome = join(home, "muse");
+	await mkdir(museHome);
+	host = new HarnessHost({
+		runtime: client,
+		directory: join(home, "attempts"),
+		env: {
+			...process.env,
+			PATH: join(home, "bin"),
+			HARNESS_FIXTURE_MUSE_HOME: museHome,
+			TRELLIS_URL: "http://127.0.0.1:1",
+		},
+		bun: process.execPath,
+		observationTimeoutMs: 1500,
+	});
+	await host.start({
+		id: "muse-manager",
+		managerId: "manager",
+		kind: "manager",
+		managerSystemPrompt: "Coordinate the project.",
+		harness: "muse",
+		cwd: home,
+		prompt: "Start",
+	});
+	await host.waitFor("muse-manager", (state) => state.activity?.state === "idle");
+	const started = JSON.parse(await readFile(join(museHome, "session-start.json"), "utf8"));
+	expect(started.config.mcpServers.trellis).toMatchObject({
+		transport: "stdio",
+		command: process.execPath,
+		framing: "lineDelimitedJson",
+		mode: "required",
+		env: { TRELLIS_URL: "http://127.0.0.1:1", TRELLIS_ATTEMPT_ID: "muse-manager" },
+	});
+	expect(started.config.mcpServers.trellis.args[0]).toEndWith("entry.ts");
+	expect(started.approvalMode).toBe("allowAll");
+	await host.stop("muse-manager");
 });
