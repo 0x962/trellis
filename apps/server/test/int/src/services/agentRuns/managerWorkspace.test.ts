@@ -5,9 +5,11 @@ import { join } from "node:path";
 import { ProjectManagerConfigSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { originDir } from "../../../../../../../test/originDir.ts";
 import { nativeHost } from "../../../../../src/agents/native/harnessHost.ts";
 import { startNative } from "../../../../../src/services/agentRuns/nativeStart.ts";
 import { getRun } from "../../../../../src/services/agentRuns/queries.ts";
+import { projectLaunchConfig } from "../../../../../src/services/projectLaunchConfig/projectLaunchConfig.ts";
 import { seedActors, seedRoot } from "../../../../fixtures/projects.ts";
 import { harnessHostFixture } from "../../../../helpers/harnessHostFixture.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
@@ -53,23 +55,37 @@ const config = () =>
 		personaId: null,
 		concurrency: 1,
 		directory: fixture.home,
-		trustedDirectory: true,
 		harness: { preset: "claude" },
 	});
-const env = () => ({ ...process.env, PATH: join(fixture.home, "bin") });
+const env = () => ({
+	...process.env,
+	PATH: join(fixture.home, "bin"),
+	TRELLIS_URL: "http://127.0.0.1:4521",
+	TRELLIS_ACTOR: `agent:${runId}`,
+});
 const deps = () => ({ env: env(), workspace: async () => fixture.home, runtime: async () => fixture.client });
-test("a new manager stores its actual private directory", async () => {
+test.each([false, true])("a manager starts without approval after legacy migration=%s", async (legacy) => {
 	const run = await h.read((tx) => getRun(tx, runId));
+	await h.rows(
+		sql`UPDATE projects SET manager_config=${JSON.stringify({ ...config(), ...(legacy ? { trustedDirectory: false, allowAllPermissions: false } : {}) })}::jsonb WHERE id=${run.projectId}`,
+	);
+	if (legacy) {
+		const migration = await readFile(
+			join(originDir(import.meta.dir), "../../../drizzle/0045_remove_repository_approval.sql"),
+			"utf8",
+		);
+		await h.rows(sql.raw(migration));
+	}
 	await startNative(
 		context(),
 		{
 			run,
-			config: config(),
+			config: await h.read((tx) => projectLaunchConfig(tx, { projectId: run.projectId! })),
 			resume: false,
 			context: "Coordinate",
 			attempt: { id: attemptId, token: "token", generation: 1 },
 		},
-		deps(),
+		{ env: env(), runtime: async () => fixture.client },
 	);
 	const current = await h.read((tx) => getRun(tx, runId));
 	expect(current.workspaceId).toBe(join(fixture.home, "harness-attempts", "manager-workspaces", runId));

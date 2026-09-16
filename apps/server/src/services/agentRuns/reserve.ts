@@ -10,8 +10,9 @@ import { upsert } from "../actors.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
 import { capacityAvailable } from "../assignments/capacity.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
+import { assertTicketReady } from "../controller/nextActions/assertTicketReady.ts";
 import { assignment } from "../controller/nextActions/assignment.ts";
-import { managerConfigOf, projectRow } from "../projectRows.ts";
+import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { columns, type StoredRun } from "./queries.ts";
@@ -52,9 +53,10 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 	if (replay) return { replay: true as const, run: replay };
 	assertProjectActive(ctx, project.id);
 	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
-	const config = managerConfigOf(await projectRow(tx, project.id));
+	const config = await projectLaunchConfig(tx, { projectId: project.id });
 	await assertNativeWorkEnabled(tx);
 	if (ticket !== null) {
+		await assertTicketReady(ctx, tx, { ticketId: ticket.id, projectId: project.id });
 		const assigned = await rows(
 			tx,
 			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket.id} AND persona_id=${persona.id} AND runtime='native' AND closed_at IS NULL LIMIT 1`,

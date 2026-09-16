@@ -40,7 +40,7 @@ beforeEach(async () => {
 		await seedActors(tx);
 		const project = await seedRoot(tx, "STOP");
 		await tx.execute(
-			sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"directory":"/tmp/work","trustedDirectory":true}'::jsonb WHERE id=${project}`,
+			sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"directory":"/tmp/work"}'::jsonb WHERE id=${project}`,
 		);
 		await tx.execute(
 			sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,terminal_id,session_id,workspace_id,created_at,updated_at) VALUES ('assignment','Worker','native','Builder','builder','Task',${project},'STOP','previous','provider-session','/tmp/work',now(),now())`,

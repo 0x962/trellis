@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { check, jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
@@ -18,6 +18,7 @@ export const managerNextActions = pgTable(
 		statusId: text("status_id").notNull(),
 		assignmentRequestId: text("assignment_request_id").notNull().unique(),
 		reason: text().notNull(),
+		waitFor: jsonb("wait_for"),
 		state: text().notNull().default("waiting"),
 		runId: text("run_id").references(() => agentRuns.id, { onDelete: "set null" }),
 		createdAt: at("created_at").notNull(),

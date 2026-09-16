@@ -124,7 +124,12 @@ The manager records an assignment, queue entry, blocker, or reason for no action
 A handled dispatch does not prove that a worker completed the ticket.
 For a ticket, a `queued` outcome also saves a capacity wait in `manager_next_actions` in the same transaction.
 The controller presents eligible waits as ticket work when capacity opens. It uses the assignment service's capacity rule.
+An explicit `waitFor` on a `queued` or `blocked` outcome saves a time, dependency, or human-response condition.
+Time waits use an absolute timestamp. Dependency waits require the named ticket to reach Done.
+Human-response waits require a human reply to a root question on the deferred ticket. A reply prompts review and does not grant approval.
+These conditions can notify the manager at full worker capacity. Worker starts still enforce capacity and the current wait condition.
 Each wait retains its assignment identifier across dispatches and manager replacement.
+Changing a wait condition cancels that action and creates a replacement with a new assignment identifier.
 An assignment reserves the worker and records the action's assigned state in one transaction.
 Pause and archive states prevent new assignments from saved actions. Ticket completion, a changed status, or a changed manager scope retires obsolete waits.
 The manager can inspect waits through `controller.actions` and cancel one through `controller.cancelAction`.
@@ -258,9 +263,12 @@ A stable start request identifier returns its existing run before the concurrenc
 A changed target or persona rejects reuse of that identifier.
 
 The Manager page at `/p/<project path>/settings/manager` shows the manager's interactive terminal and process controls.
-Project settings at `/p/<project path>/settings#manager` selects the persona, repository directory, trust, concurrency limit, and automatic dispatch.
+Project settings at `/p/<project path>/settings#manager` selects the persona, repository directory, concurrency limit, and automatic dispatch.
 The dispatch switch pauses automatic messages while events remain stored.
 The `#harness` section selects the preset, model, and custom start and resume commands.
+An empty child repository directory uses the nearest configured ancestor directory at launch.
+An explicit child directory takes precedence. Persona, harness, and concurrency settings remain local to each project.
+Trellis trusts configured repository directories and agent workspaces.
 Both settings sections share one draft and save status. `projects.managerConfig` stores these fields with `ade: native`.
 
 Every preset runs its command through a local PTY. Claude hooks identify ready, active, and completed turns.
@@ -427,7 +435,7 @@ time. The first section of each page carries no hash.
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
 `/settings` holds the actor name, theme, GitHub state, phone pair code, drafts, and runtime diagnostics.
-The Manager page holds the manager persona, repository directory, trust, dispatch state, concurrency limit, and harness commands.
+The Manager page holds the manager persona, repository directory, dispatch state, concurrency limit, and harness commands.
 It writes `projects.managerConfig` through `projects.update`.
 
 The sidebar holds the workspace row, Needs you, Search, All tickets, the project
@@ -450,7 +458,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `trustedDirectory`, `dispatchPaused`, `ade: native`, `harness` (`preset`, `startCommand`, `resumeCommand`)), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
+| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `dispatchPaused`, `ade: native`, `harness` (`preset`, `startCommand`, `resumeCommand`)), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). The effective repos of a project are its own plus those of its ancestors. |
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, wip_limit (CHECK > 0), is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
 | tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
@@ -861,9 +869,12 @@ pair link, beside the ticket, board, table, and live paths.
 `packages/ui` owns every visual. Base UI gives behavior and accessibility. There
 is no shadcn and no Radix.
 
+[UI patterns](UI_PATTERNS.md) lists the canonical controls, group headers, and row patterns.
+Reuse these elements across pages. Ask the user for advice before adding a new UI element or interaction pattern.
+
 - Type: two typefaces carry the interface. `--sans` is Inter Variable, then a metric-matched Arial fallback, and it sets the prose: labels, buttons, menus, descriptions, and comments. `--mono` is BerkeleyMono, then JetBrains Mono, then a metric-matched local fallback, and it sets ticket ids through `font-mono`, plus code blocks and raw terminal output. The build preloads Inter and JetBrains Mono 400 only. BerkeleyMono is licensed per machine, so the repo ships no file for it and declares no face. A machine without it falls through to JetBrains Mono from fontsource, in the latin subset and the weights 400, 500, and 600. `tnum` lines up ids, counts, and times.
 - The type scale is 11, 12, 13, 14, 16, 20, and 24 px, plus the two micro steps `text-kbd` at 10 px and `text-initials` at 9 px.
-- Spacing has a 4 px base. Every radius token is 0 px, so controls and surfaces have square corners, including avatars, badges, and switch thumbs.
+- Spacing has a 4 px base. Radius tokens range from 3 to 16 px, with `round` for circles and pills. Icon actions use the circular `IconButton`.
 - The tokens carry a light and a dark palette in `tokens.css`. Every neutral is one seed grey mixed with white or with black, and a step keeps its position in the ramp across the two themes. The light `--success`, `--warning`, and `--danger` are dark enough for 4.5:1 on their own soft grounds. `tokens.test.ts` computes the ratio of every text and ground pair, and pins every value in the file, so Biome skips it.
 - The bare `:root` block is the light palette. A media block serves the system preference and a `data-theme` block serves an explicit choice. A fresh profile starts dark: an inline head script reads `trellis-theme` from local storage, writes `dark` when the key is absent, and stamps `data-theme` before the first paint.
 - Dark mode swaps every shadow for a 1 px strong border.
@@ -874,7 +885,7 @@ is no shadcn and no Radix.
 - Never animate a re-sort, a text change, a counter, a skeleton swap, or the theme switch. Use `motion/mini` and CSS transitions only.
 - Focus uses a 2 px accent outline on `:focus-visible`. A row or a card uses an inset left bar.
 - The primitives are Avatar, Badge, Button, Checkbox, Chip, Command, ConfirmDialog, Dialog, EmptyState, EntityCard, IconButton, Input, Kbd, Menu, Popover, ScrollArea, SectionHeader, Segmented, Select, Separator, Sheet, Skeleton, Spinner, Switch, Tabs, Textarea, Toast, and Tooltip.
-- The domain visuals are StatusIcon, PriorityIcon, CheckRibbon, ActorChip, TicketId, and TrellisMark.
+- Domain visuals include StatusIcon, PriorityIcon, CheckRibbon, ActorChip, TicketId, TrellisMark, InboxRow, FilterBar, FilterPopover, DisplayPopover, and GroupHeader.
 - The route `/_gallery` renders every primitive in every state, in both themes.
 - No raw color or spacing literal appears outside `packages/ui`. The Tailwind theme clears `--color-*`, so a utility such as `bg-red-500` does not exist. A Biome rule and a test enforce the tokens.
 

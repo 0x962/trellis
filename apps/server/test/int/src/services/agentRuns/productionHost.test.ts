@@ -59,7 +59,6 @@ const configFor = (harness: "claude" | "codex" | "pi" | "opencode") =>
 		personaId: null,
 		concurrency: 1,
 		directory: fixture.home,
-		trustedDirectory: true,
 		harness: { preset: harness, model: "explicit-model", startCommand: "/bin/false", resumeCommand: "/bin/false" },
 	});
 

@@ -18,7 +18,7 @@ test("handoff backs up original settings and preserves unresolved external runs 
 		const lock = await readFile(join(home, "trellis.lock"), "utf8");
 		const initial = await openDatabase(join(home, "db"));
 		const project = await seedRoot(initial.db, "KEEP", {
-			manager_config: { ade: "superset", directory: "/tmp/retained", trustedDirectory: true, dispatchPaused: false },
+			manager_config: { ade: "superset", directory: "/tmp/retained", dispatchPaused: false },
 		});
 		await initial.db.execute(
 			sql`INSERT INTO settings (key,value,updated_at) VALUES ('agents','{"enabled":true,"runner":"superset","projects":[]}'::jsonb,now())`,
@@ -55,8 +55,10 @@ test("handoff backs up original settings and preserves unresolved external runs 
 				ade: "superset",
 				directory: "/tmp/retained",
 				dispatchPaused: true,
-				trustedDirectory: false,
 			});
+			expect(
+				(await live.db.execute(sql`SELECT manager_config FROM projects`)).rows[0]!.manager_config,
+			).not.toHaveProperty("trustedDirectory");
 			expect((await live.db.execute(sql`SELECT closed_at,workspace_id,session_id FROM agent_runs`)).rows[0]).toEqual({
 				closed_at: null,
 				workspace_id: "original-workspace",

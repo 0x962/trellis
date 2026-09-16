@@ -85,3 +85,29 @@ test("filters > Copy as CLI copies the trellis list command that returns the tab
 	const listed = runPasted<CliTicket[]>(command);
 	expect(listed.map((ticket) => ticket.identifier).sort()).toEqual(await rowIds(page));
 });
+
+test("display > table sort and groups use the shared controls", async ({ page }) => {
+	await signIn(page, "/p/FLT/table");
+	await expect(rowOf(page, "FLT-5")).toBeVisible();
+	await page.getByRole("button", { name: "Display", exact: true }).click();
+	await page.getByRole("combobox", { name: "Sort by" }).click();
+	await page.getByRole("option", { name: "Priority", exact: true }).click();
+	await expect(page).toHaveURL(/sort=-priority/);
+	await page.getByRole("button", { name: "Sort direction" }).click();
+	await expect(page).toHaveURL(/sort=priority/);
+	await page.getByRole("combobox", { name: "Group by" }).click();
+	await page.getByRole("option", { name: "Priority", exact: true }).click();
+	await expect(page).toHaveURL(/group=priority/);
+	await page.keyboard.press("Escape");
+	const high = page.locator('[data-group="high"]');
+	await expect(high.locator("[data-count]")).toHaveText("3");
+	await high.getByRole("button", { name: "High", exact: true }).click();
+	await expect(high).toHaveAttribute("aria-expanded", "false");
+	await expect(rowOf(page, "FLT-1")).toHaveCount(0);
+	await high.getByRole("button", { name: "Show 3", exact: true }).click();
+	await expect(rowOf(page, "FLT-1")).toBeVisible();
+	await page.reload();
+	await page.getByRole("button", { name: "Display", exact: true }).click();
+	await expect(page.getByRole("combobox", { name: "Sort by" })).toHaveText("Priority");
+	await expect(page.getByRole("button", { name: "Sort direction" })).toHaveAttribute("aria-description", "Ascending");
+});

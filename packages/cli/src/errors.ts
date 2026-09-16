@@ -33,6 +33,7 @@ const exitCodes: Record<ErrorCode, number> = {
 	GH_UNAVAILABLE: 6,
 	CONCURRENCY_LIMIT: 4,
 	RUNNER_UNAVAILABLE: 6,
+	RESTART_FAILED: 6,
 };
 
 // An error the contract does not declare comes from a crashed handler, so it

@@ -24,6 +24,10 @@ Run `bun run desktop:install` from the `main` checkout. The command builds and v
 
 Preserve the manager conversation during prompt updates and deployment. Resume a stopped manager with `trellis agents start` and its existing persona and project. The `--new-session` flag resets the conversation and requires an explicit human reset. Keep the observed provider session ID before and after a resume to verify continuity.
 
+## Repository access
+
+Trellis automatically trusts configured project repositories and directories required by assigned work. Do not ask for a separate repository or directory trust approval. A subproject with no directory uses its nearest configured parent directory. Ask for a repository location only when neither project context nor an ancestor identifies it.
+
 ## Prose and comments
 
 - Write every sentence in ASD-STE100 Simplified Technical English (STE): one topic per sentence, active voice, simple present tense.
@@ -44,6 +48,9 @@ Preserve the manager conversation during prompt updates and deployment. Resume a
 
 ## UI
 
+- Read [UI patterns](docs/UI_PATTERNS.md) before a UI change. Reuse the canonical components and the matching board or table pattern.
+- Do not invent a page-specific control, group header, icon treatment, or row layout when a canonical element covers the need.
+- Before adding a new UI element or interaction pattern, explain the gap and ask the user for advice. Wait for the answer.
 - No shadcn, no Radix. Base UI gives behavior and accessibility. Every visual lives in `packages/ui`.
 - Every icon button is a circle. `IconButton` always draws one. Give an icon action an `IconButton` and a `Tooltip` that names it. Do not put an icon and a word on one `Button` in a bar, on a canvas, or in a panel.
 - A `Button` with text is for a form action in a dialog or a sheet, such as Save, Cancel, or Delete.

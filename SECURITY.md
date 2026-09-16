@@ -28,7 +28,8 @@ The host stores the token hash. A stopped or replaced attempt cannot use its old
 The actor header remains a caller-supplied label. This check does not sandbox a process with the user's filesystem and host credentials.
 
 The native runtime uses an owner-only Unix socket and a lifetime file lock.
-The structured Claude harness requires explicit repository trust and human tool permission decisions.
+Trellis trusts the configured repository directories and agent workspaces.
+Built-in worker harnesses bypass tool permission prompts. Managers use a Trellis tool allowlist.
 Worktrees separate file changes. They do not restrict operating system access.
 
 ## The network flag

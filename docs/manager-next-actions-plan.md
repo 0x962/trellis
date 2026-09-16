@@ -1,6 +1,6 @@
 # Manager next actions
 
-Status: capacity-wait implementation in this branch, 2026-09-15. Research baseline: `23de0f70`.
+Status: capacity waits implemented; time, dependency, and human-response waits added in this branch, 2026-09-16. Research baseline: `23de0f70`.
 
 The [manager guide](agents.md#manager-capacity-waits) describes the implemented API and CLI behavior.
 Deployment and production measurements remain separate steps.
@@ -50,7 +50,7 @@ Respect project scope, pause states, ticket deletion, and completed or supersede
 Preserve the existing manager conversation.
 
 This slice does not add account rotation, automatic approval, review batches, or a new priority algorithm.
-Later slices can add time and event conditions to the same model.
+The [manager wait guide](agents.md#manager-waits-for-time-dependencies-and-responses) describes time and event conditions in the same model.
 A deadline for a required human decision must never count as approval.
 
 ## Acceptance and measurement

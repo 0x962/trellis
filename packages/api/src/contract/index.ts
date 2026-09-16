@@ -48,3 +48,4 @@ export const contract = {
 export type TrellisContract = typeof contract;
 
 export type { ManagerNextAction } from "./managerNextAction.ts";
+export type { ManagerWait } from "./managerWait.ts";

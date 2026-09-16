@@ -2,10 +2,22 @@ import { ArrowCounterClockwise, ArrowDown, Clock, EyeSlash } from "@phosphor-ico
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { NeedsYouListInput } from "@trellis/api";
-import { EmptyState, IconButton, InboxRow, SectionHeader, Skeleton, StatusIcon, Tooltip } from "@trellis/ui";
+import {
+	EmptyState,
+	GroupHeader,
+	IconButton,
+	InboxRow,
+	Skeleton,
+	StatusIcon,
+	Tooltip,
+	useMediaQuery,
+} from "@trellis/ui";
+import { useId } from "react";
 import { useActor } from "../../../../../lib/actor";
 import { useApp } from "../../../../../lib/appContext";
 import { compactRelativeTime } from "../../../../../lib/format";
+import { uiActions, useUiStore } from "../../../../../stores/uiStore";
+import { ActorAvatar } from "../../../../agents/ActorAvatar";
 import { commandActions } from "../../../../command/commandStore";
 import { useNeedsYouUpdate } from "../../../useNeedsYou";
 
@@ -16,6 +28,9 @@ export function InboxSection({
 }: Required<Pick<NeedsYouListInput, "section" | "sort" | "visibility">>) {
 	const { orpc } = useApp();
 	const actor = useActor();
+	const contentId = useId();
+	const phone = useMediaQuery("(max-width: 767px)");
+	const collapsed = useUiStore((state) => state.collapsedGroups["/needs-you"]?.includes(section) ?? false);
 	const mutation = useNeedsYouUpdate();
 	const options = orpc.needsYou.list.infiniteOptions({
 		input: (cursor: NeedsYouListInput["cursor"]) => ({ section, sort, visibility, cursor }),
@@ -26,110 +41,114 @@ export function InboxSection({
 	const items = query.data?.pages.flatMap((page) => page.items) ?? [];
 	const title = section === "review" ? "Needs review" : "Mentioned";
 	return (
-		<section aria-label={title} className="py-3">
-			<SectionHeader title={title} className="px-4 mb-2" />
-			{query.isPending && (
-				<div className="px-4">
-					<Skeleton className="h-11 w-full" />
-					<Skeleton className="mt-2 h-11 w-full" />
-				</div>
-			)}
-			{query.isError && (
-				<EmptyState className="px-4" title="The items did not load." description={query.error.message} />
-			)}
-			{!query.isPending && !query.isError && items.length === 0 && (
-				<EmptyState
-					className="px-4"
-					title={
-						visibility === "active"
-							? section === "review"
-								? "Nothing needs review"
-								: "No mentions"
-							: `No ${visibility} items`
-					}
-					description={
-						visibility === "active"
-							? section === "review"
-								? "Tickets in human review appear here."
-								: "Mentions clear when the comment or thread is resolved, or the ticket is marked Done after the comment."
-							: undefined
-					}
-				/>
-			)}
-			<ul aria-label={`${title} items`}>
-				{items.map((item) => (
-					<InboxRow
-						key={item.id}
-						identifier={item.ticket.identifier}
-						title={item.ticket.title}
-						priority={item.ticket.priority}
-						project={item.ticket.project.path}
-						status={
-							<StatusIcon
-								category={item.ticket.status.category}
-								reviewer={item.ticket.status.reviewer ?? undefined}
-								label={item.ticket.status.name}
-							/>
+		<section aria-label={title}>
+			<GroupHeader
+				group={section}
+				label={title}
+				count={query.data?.pages[0]?.total}
+				expanded={!collapsed}
+				onToggle={() => uiActions.toggleGroup("/needs-you", section)}
+				phone={phone}
+				controls={contentId}
+				sticky
+			/>
+			<div id={contentId} hidden={collapsed}>
+				{query.isPending && (
+					<div className="px-4">
+						<Skeleton className="h-11 w-full" />
+						<Skeleton className="mt-2 h-11 w-full" />
+					</div>
+				)}
+				{query.isError && (
+					<EmptyState className="px-4" title="The items did not load." description={query.error.message} />
+				)}
+				{!query.isPending && !query.isError && items.length === 0 && (
+					<EmptyState
+						className="px-4"
+						title={
+							visibility === "active"
+								? section === "review"
+									? "Nothing needs review"
+									: "No mentions"
+								: `No ${visibility} items`
 						}
-						age={compactRelativeTime(item.ticket.createdAt)}
-						createdAt={item.ticket.createdAt}
-						actor={
-							item.ticket.lastActor && item.ticket.lastActor.kind !== "system"
-								? {
-										name: item.ticket.lastActor.displayName ?? item.ticket.lastActor.name,
-										kind: item.ticket.lastActor.kind,
-									}
+						description={
+							visibility === "active"
+								? section === "review"
+									? "Tickets in human review appear here."
+									: "Mentions clear when the comment or thread is resolved, or the ticket is marked Done after the comment."
 								: undefined
 						}
-						snippet={item.comment?.body}
-						sender={item.comment?.actorName}
-						wake={visibility === "snoozed" ? (item.snoozedUntil ?? undefined) : undefined}
-						link={
-							<Link
-								to="/t/$identifier"
-								params={{ identifier: item.ticket.identifier }}
-								search={{ thread: item.comment?.threadId }}
-							/>
-						}
-						actions={[
-							{
-								label: "Snooze",
-								icon: <Clock />,
-								disabled: mutation.isPending,
-								onSelect: () => commandActions.snooze({ id: item.id, identifier: item.ticket.identifier }),
-							},
-							{
-								label: "Ignore",
-								icon: <EyeSlash />,
-								disabled: mutation.isPending || visibility === "ignored",
-								onSelect: () => mutation.mutate({ id: item.id, action: "ignore" }),
-							},
-							...(visibility === "active"
-								? []
-								: [
-										{
-											label: "Restore",
-											icon: <ArrowCounterClockwise />,
-											disabled: mutation.isPending,
-											onSelect: () => mutation.mutate({ id: item.id, action: "restore" }),
-										},
-									]),
-						]}
 					/>
-				))}
-			</ul>
-			{query.hasNextPage && (
-				<div className="flex justify-center py-2">
-					<Tooltip content={`Load more ${title.toLowerCase()} items`}>
-						<IconButton
-							label={`Load more ${title.toLowerCase()} items`}
-							icon={<ArrowDown />}
-							disabled={query.isFetchingNextPage}
-							onClick={() => void query.fetchNextPage()}
+				)}
+				<ul aria-label={`${title} items`}>
+					{items.map((item) => (
+						<InboxRow
+							key={item.id}
+							identifier={item.ticket.identifier}
+							title={item.ticket.title}
+							priority={item.ticket.priority}
+							project={item.ticket.project.path}
+							status={
+								<StatusIcon
+									category={item.ticket.status.category}
+									reviewer={item.ticket.status.reviewer ?? undefined}
+									label={item.ticket.status.name}
+								/>
+							}
+							age={compactRelativeTime(item.ticket.createdAt)}
+							createdAt={item.ticket.createdAt}
+							actor={item.ticket.lastActor && <ActorAvatar actor={item.ticket.lastActor} ticketId={item.ticket.id} />}
+							snippet={item.comment?.body}
+							sender={item.comment?.actorName}
+							wake={visibility === "snoozed" ? (item.snoozedUntil ?? undefined) : undefined}
+							link={
+								<Link
+									to="/t/$identifier"
+									params={{ identifier: item.ticket.identifier }}
+									search={{ thread: item.comment?.threadId }}
+								/>
+							}
+							actions={[
+								{
+									label: "Snooze",
+									icon: <Clock />,
+									disabled: mutation.isPending,
+									onSelect: () => commandActions.snooze({ id: item.id, identifier: item.ticket.identifier }),
+								},
+								{
+									label: "Ignore",
+									icon: <EyeSlash />,
+									disabled: mutation.isPending || visibility === "ignored",
+									onSelect: () => mutation.mutate({ id: item.id, action: "ignore" }),
+								},
+								...(visibility === "active"
+									? []
+									: [
+											{
+												label: "Restore",
+												icon: <ArrowCounterClockwise />,
+												disabled: mutation.isPending,
+												onSelect: () => mutation.mutate({ id: item.id, action: "restore" }),
+											},
+										]),
+							]}
 						/>
-					</Tooltip>
-				</div>
-			)}
+					))}
+				</ul>
+				{query.hasNextPage && (
+					<div className="flex justify-center py-2">
+						<Tooltip content={`Load more ${title.toLowerCase()} items`}>
+							<IconButton
+								label={`Load more ${title.toLowerCase()} items`}
+								icon={<ArrowDown />}
+								disabled={query.isFetchingNextPage}
+								onClick={() => void query.fetchNextPage()}
+							/>
+						</Tooltip>
+					</div>
+				)}
+			</div>
 		</section>
 	);
 }

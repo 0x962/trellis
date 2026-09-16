@@ -1,6 +1,27 @@
 import { expect, test } from "bun:test";
 import { managerTools } from "./managerTools";
 
+test("the manager handle tool preserves each explicit wake condition", async () => {
+	const inputs: unknown[] = [];
+	const tools = managerTools(async (_operation, input) => {
+		inputs.push(input);
+		return {};
+	});
+	for (const waitFor of [
+		{ type: "time", at: "2030-01-01T00:00:00Z" },
+		{ type: "dependency", ticketId: "dependency" },
+		{ type: "human_response", commentId: "question" },
+	]) {
+		const input = {
+			id: "dispatch",
+			generation: 1,
+			outcomes: [{ ticketId: "ticket", status: "blocked", reason: "Wait.", waitFor }],
+		};
+		await tools.call("trellis_controller_handle", input);
+		expect(inputs.at(-1)).toEqual(input);
+	}
+});
+
 test.each([
 	["list", { project: "TRL" }],
 	["start", { personaId: "01M277VFQA2HAWB58T9NTW4MX5", ticket: "TRL-42" }],

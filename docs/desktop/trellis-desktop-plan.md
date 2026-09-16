@@ -128,7 +128,7 @@ If an adapter cannot establish acknowledgement, classify it as interactive-only.
 
 Install hooks at a supported scope. Preserve unrelated account configuration and existing integrations. Bind hook events to a specific attempt with a scoped token or verified launch identity. Ignore stale events from an earlier generation.
 
-Expose folder trust, missing executable, expired authentication, unsupported version, and missing conversation as separate setup or run states. Use the harness's supported approval interface. Do not dismiss trust prompts through blind terminal keystrokes.
+Trust configured repository directories and agent workspaces through each harness's supported configuration. Expose missing executable, expired authentication, unsupported version, and missing conversation as separate setup or run states.
 
 ## 5. Durable coordination
 
@@ -369,7 +369,7 @@ Use signed and notarized macOS distribution. Test the background helper's identi
 | Deliberate builder and reviewer scopes | Both allowed within project capacity |
 | Old generation posts a mutation | Host rejects it; current state remains unchanged |
 | Runtime dies with descendants | Replacement waits for confirmed termination or explicit reconciliation |
-| Folder trust or authentication blocks launch | Needs you shows the cause; Working does not appear |
+| Authentication blocks launch | Needs you shows the cause; Working does not appear |
 | Turn stops without required output | Ticket does not advance to Ready for review |
 | Agent produces repetitive output | UI separates activity from evidence and exposes the elapsed condition |
 | Source changes after tests pass | Check evidence becomes stale |

@@ -29,7 +29,6 @@ async function managerFixture(key: string) {
 			concurrency: 1,
 			directory: repo,
 			ade: "native",
-			trustedDirectory: true,
 			dispatchPaused: true,
 			harness: {
 				preset: "custom",

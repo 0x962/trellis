@@ -5,7 +5,9 @@ import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { collect } from "../../../../../src/services/controller/collect.ts";
 import { dispatch } from "../../../../../src/services/controller/dispatch.ts";
-import { seedRoot } from "../../../../fixtures/projects.ts";
+import { handle } from "../../../../../src/services/controller/work.ts";
+import { seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
+import { seedTicket } from "../../../../fixtures/tickets.ts";
 import { controllerSession } from "../../../../helpers/controllerSession.ts";
 import { testCtx } from "../../../../helpers/ctx.ts";
 import { type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
@@ -141,4 +143,32 @@ test("a heartbeat reports the current worker turn after the heartbeat enters the
 		lastActivityAt: secondsAfter(60).toISOString(),
 		lastResult: "The change is ready for review.",
 	});
+});
+
+test("a timed wait reaches the native manager with its wake condition and assignment identity", async () => {
+	const waitFor = { type: "time" as const, at: secondsAfter(60).toISOString() };
+	const ticketId = await h.run(async (ctx, tx) => {
+		const manager = await tx.execute(sql`SELECT project_id FROM agent_runs WHERE id='manager'`);
+		const projectId = manager.rows[0]!.project_id as string;
+		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
+		const ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
+		await tx.execute(sql`UPDATE manager_dispatches SET state='sent',events=${JSON.stringify([{ ticketId }])}::jsonb`);
+		const result = await tx.execute(sql`SELECT id FROM manager_dispatches`);
+		await handle(ctx, tx, {
+			id: result.rows[0]!.id as string,
+			generation: 0,
+			outcomes: [{ ticketId, status: "blocked", reason: "Resume after the reset.", waitFor }],
+		});
+		return ticketId;
+	});
+	await h.run((ctx, tx) => collect(ctx, tx, { sessions: [session] }), { now: secondsAfter(61) });
+	await send();
+	expect(deliveries).toHaveLength(1);
+	const message = Buffer.from(deliveries[0]!.data, "base64").toString();
+	const payload = JSON.parse(message.slice(message.indexOf("{"), message.lastIndexOf("}") + 1));
+	expect(payload.type).toBe("trellis.manager.dispatch");
+	expect(payload.nextActions[0]).toMatchObject({ ticketId, wakeCondition: "time", waitFor });
+	expect(payload.workItems).toEqual([{ ticketId, assignmentRequestId: payload.nextActions[0].assignmentRequestId }]);
+	await send();
+	expect(deliveries).toHaveLength(1);
 });

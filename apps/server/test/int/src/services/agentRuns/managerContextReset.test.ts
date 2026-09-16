@@ -58,7 +58,6 @@ const config = () =>
 		personaId: null,
 		concurrency: 2,
 		directory: fixture.home,
-		trustedDirectory: true,
 		harness: { preset: "claude" },
 	});
 const dependencies = () => ({

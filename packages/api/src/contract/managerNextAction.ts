@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { managerWait } from "./managerWait.ts";
 
 export const managerNextAction = z.object({
 	id: z.string(),
@@ -6,7 +7,8 @@ export const managerNextAction = z.object({
 	ticketId: z.string(),
 	assignmentRequestId: z.string(),
 	reason: z.string(),
-	wakeCondition: z.literal("capacity"),
+	wakeCondition: z.enum(["capacity", "time", "dependency", "human_response"]),
+	waitFor: managerWait.nullish(),
 	state: z.enum(["waiting", "assigned", "canceled"]),
 	runId: z.string().nullable(),
 	createdAt: z.string(),

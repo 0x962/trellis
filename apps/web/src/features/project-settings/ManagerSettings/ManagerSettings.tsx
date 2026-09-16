@@ -37,6 +37,7 @@ export function ManagerSettings({ project, section }: { project: Project; sectio
 		<>
 			<div hidden={section !== "manager"} className="project-settings-page">
 				<GeneralSettings
+					hasParent={project.parentId !== null}
 					readOnly={readOnly}
 					saving={save.isPending}
 					draft={draft}
