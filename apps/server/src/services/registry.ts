@@ -42,7 +42,7 @@ import * as notes from "./notes/notes.ts";
 import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
-import { prepareResumeRestart } from "./restartAgents/restartAgents.ts";
+import { prepareResumeRestart, restartStatus } from "./restartAgents/restartAgents.ts";
 import * as reviewDelivery from "./reviews/delivery";
 import * as reviewImage from "./reviews/image";
 import * as reviewMessages from "./reviews/messages";
@@ -124,6 +124,7 @@ export const services = {
 	"system.nativeWork": core("read", (_ctx, tx) => readNativeWork(tx)),
 	"system.resumeNativeWork": core("mutation", (ctx, tx) => setNativeWork(ctx, tx, { paused: false })),
 	"system.resumeRestart": prepared("mutation", prepareResumeRestart, agentTerminal.result),
+	"system.restartStatus": prepared("read", restartStatus, agentTerminal.result),
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
 	"evidence.workspace": prepared("read", evidenceWorkspace, evidenceResult),
 	"evidence.file": prepared("read", evidenceFile, evidenceResult),
