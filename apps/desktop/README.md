@@ -114,7 +114,7 @@ Runtime files stay outside the host database directory, so a database export doe
 
 ### Fresh manager conversation
 
-Save your prompt changes. Open the project's Manager page. Select **Restart with new context** beside the process control. Confirm the restart. The manager starts a fresh conversation with the saved persona and project instructions. Existing workers keep their processes, and the manager keeps its workspace.
+Save your prompt changes. Select the project name in the sidebar to open its manager terminal. Select **Restart with new context** beside the process control. Confirm the restart. The manager starts a fresh conversation with the saved persona and project instructions. Existing workers keep their processes, and the manager keeps its workspace.
 
 Use **Resume manager** to continue the current conversation after a manual stop. A desktop app restart also preserves the current conversation.
 

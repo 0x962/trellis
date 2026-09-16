@@ -389,7 +389,7 @@ API ref joins the same segments with dots, so `/p/CDE/web/auth` reads
 `table`, `settings`, or `board`. A `CHECK` on `projects.slug` refuses `board` and
 `settings`, so a sub-project never takes one of those names.
 
-The board is the view a project opens in and writes no segment. An older link
+The board uses the bare project URL. An older link
 that ends in `/board` redirects to the same path with the segment dropped. The
 manager page is the two segments `settings/manager`. `parseProjectSplat` and
 `projectHref` in `apps/web/src/lib/projectPath.ts` hold both directions.
@@ -415,6 +415,9 @@ The sidebar holds the workspace row, Needs you, Search, All tickets, the project
 tree, the AI section with the Personas and Flows links, and the actor footer. The
 project tree is the one region that scrolls, so the AI links keep their place at
 any tree height.
+Each project row shows the Trellis mark and opens the manager terminal at
+`/p/<path>/settings/manager`. Tickets and Settings appear below it.
+The selected state follows the current page for root, nested, and archived projects.
 
 ## Database schema
 

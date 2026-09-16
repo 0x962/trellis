@@ -20,6 +20,14 @@ A fresh terminal passes input, output, resize, and Stop checks on release `c2826
 The installed route asset contains only the Needs you heading and an empty body. The browser regression is not run; the user tests the UI.
 Evidence: `/tmp/trellis-terminal-recovery-acceptance.json`, `/tmp/trellis-installed-runtime-check.json`, and `/tmp/trellis-needs-you-production-install.log`.
 
+## Project navigation
+
+The project name opens its manager terminal. Each project row uses the Trellis mark.
+Tickets and Settings remain below the project name. The project row shows the selected state on its manager page.
+Root, nested, and archived projects use this navigation.
+All three navigation browser tests first fail on the old project destination and pass after the change.
+Web typecheck and scoped Biome checks pass. The user tests the installed appearance.
+
 ## Automatic background service
 
 Trellis enables its background service at startup. It asks for approval only when macOS requires approval in Login Items.
