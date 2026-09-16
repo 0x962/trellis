@@ -5,6 +5,7 @@ import { z } from "zod";
 import { sessionDetails, sessionInput } from "./sessionDetails.ts";
 
 const operations = {
+	models: ["list"],
 	submanagers: ["list", "start", "resize", "retire"],
 	projects: ["list", "get"],
 	harnessAccounts: ["list", "quota"],

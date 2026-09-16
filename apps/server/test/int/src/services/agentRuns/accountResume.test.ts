@@ -68,7 +68,12 @@ beforeEach(async () => {
 	await h.rebuild();
 	const ticket = await h.run((context, tx) => create(context, tx, { project: "SWITCH", title: "Continue this work" }));
 	const reserved = await h.run((context, tx) =>
-		reserve(context, tx, { ticket: ticket.id, personaId: "builder", accountId: "one", model: "sonnet" }),
+		reserve(context, tx, {
+			ticket: ticket.id,
+			personaId: "builder",
+			accountId: "one",
+			model: "anthropic/claude-sonnet-5",
+		}),
 	);
 	if (reserved.replay) throw new Error("Expected a new assignment");
 	runId = reserved.run.id;
@@ -187,9 +192,9 @@ test("a system restart retains the assigned account after the default changes", 
 
 test("a model override reaches start and resume without a new conversation", async () => {
 	const initial = JSON.parse(await readFile(join(fixture.home, "harness-attempts", attemptId, "launch.json"), "utf8"));
-	expect(initial.spec.args[initial.spec.args.indexOf("--model") + 1]).toBe("sonnet");
+	expect(initial.spec.args[initial.spec.args.indexOf("--model") + 1]).toBe("claude-sonnet-5");
 	await prepareStop(ctx(), { id: runId });
-	const input = { ...request(), model: "opus" };
+	const input = { ...request(), model: "anthropic/claude-opus-5" };
 	await prepareResume(ctx(), input, start);
 	const resumed = await h.read((tx) => getRun(tx, runId));
 	expect(resumed.sessionId).toBe(sessionId);
@@ -197,13 +202,13 @@ test("a model override reaches start and resume without a new conversation", asy
 	const launch = JSON.parse(
 		await readFile(join(fixture.home, "harness-attempts", resumed.terminalId!, "launch.json"), "utf8"),
 	);
-	expect(launch.spec.args[launch.spec.args.indexOf("--model") + 1]).toBe("opus");
+	expect(launch.spec.args[launch.spec.args.indexOf("--model") + 1]).toBe("claude-opus-5");
 	await prepareResume(ctx(), input, start);
 	expect(await fixture.client.list()).toHaveLength(2);
 	await prepareStop(ctx(), { id: runId });
 	await prepareResume(
 		ctx(),
-		{ ...input, model: "sonnet", expectedTerminalId: resumed.terminalId!, requestId: "change-back" },
+		{ ...input, model: "anthropic/claude-sonnet-5", expectedTerminalId: resumed.terminalId!, requestId: "change-back" },
 		start,
 	);
 	const changedBack = await h.read((tx) => getRun(tx, runId));
@@ -211,7 +216,7 @@ test("a model override reaches start and resume without a new conversation", asy
 	const lastLaunch = JSON.parse(
 		await readFile(join(fixture.home, "harness-attempts", changedBack.terminalId!, "launch.json"), "utf8"),
 	);
-	expect(lastLaunch.spec.args[lastLaunch.spec.args.indexOf("--model") + 1]).toBe("sonnet");
+	expect(lastLaunch.spec.args[lastLaunch.spec.args.indexOf("--model") + 1]).toBe("claude-sonnet-5");
 	await prepareStop(ctx(), { id: runId });
 }, 15000);
 
@@ -222,7 +227,12 @@ test("a running worker changes models without a manual stop and retains its assi
 	const busy = await h.read((tx) => getRun(tx, runId));
 	expect((await fixture.client.inspect(busy.terminalId!)).activity?.state).toBe("working");
 	behavior = undefined;
-	const input = { id: runId, model: "opus", expectedTerminalId: busy.terminalId!, requestId: "live-model" };
+	const input = {
+		id: runId,
+		model: "anthropic/claude-opus-5",
+		expectedTerminalId: busy.terminalId!,
+		requestId: "live-model",
+	};
 	await prepareSetModel(ctx(), input, start);
 	const changed = await h.read((tx) => getRun(tx, runId));
 	expect(changed.id).toBe(runId);
@@ -231,7 +241,7 @@ test("a running worker changes models without a manual stop and retains its assi
 	expect(changed.accountId).toBe("one");
 	expect(changed.closedAt).toBeNull();
 	expect((await fixture.client.inspect(busy.terminalId!)).status).toBe("exited");
-	expect((await fixture.client.inspect(changed.terminalId!)).agent?.model).toBe("opus");
+	expect((await fixture.client.inspect(changed.terminalId!)).agent?.model).toBe("anthropic/claude-opus-5");
 	await prepareSetModel(ctx(), input, start);
 	expect(await fixture.client.list()).toHaveLength(3);
 	await expect(prepareSetModel(ctx(), { ...input, requestId: "stale" }, start)).rejects.toMatchObject({

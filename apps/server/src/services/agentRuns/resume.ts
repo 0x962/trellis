@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { HarnessSchema } from "@trellis/api";
+import { fromHarnessModel, HarnessSchema, supportsModel } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { HarnessDescriptor } from "../../agents/harnessHost/types.ts";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
@@ -56,6 +56,10 @@ export async function prepareResume(
 	const descriptor: HarnessDescriptor = JSON.parse(
 		await readFile(join(ctx.home, "harness-attempts", input.expectedTerminalId, "launch.json"), "utf8"),
 	);
+	if (input.model && !supportsModel(descriptor.harness, input.model))
+		throw invalidInput("model", `Select a model supported by ${descriptor.harness} from models.list.`);
+	const model =
+		input.model ?? (previous.agent?.model ? fromHarnessModel(descriptor.harness, previous.agent.model) : undefined);
 	if (switchRunning && previous.status !== "exited") {
 		assertProjectActive(ctx.core, run.projectId);
 		if (previous.status !== "running" || !previous.controllable)
@@ -71,7 +75,7 @@ export async function prepareResume(
 					providerSessionId: previous.agent!.sessionId!,
 					workspace: previous.launch!.cwd,
 					harness: descriptor.harness,
-					model: input.model,
+					model,
 					done: false,
 				},
 				false,
@@ -109,7 +113,7 @@ export async function prepareResume(
 				...config,
 				harness: HarnessSchema.parse({
 					preset: descriptor.harness,
-					model: input.model ?? previous.agent?.model ?? undefined,
+					model,
 				}),
 			},
 			useDefault: false,
@@ -127,7 +131,7 @@ export async function prepareResume(
 				providerSessionId: previous.agent!.sessionId!,
 				workspace: previous.launch!.cwd,
 				harness: descriptor.harness,
-				model: input.model ?? previous.agent?.model ?? undefined,
+				model,
 				done: false,
 			},
 			true,

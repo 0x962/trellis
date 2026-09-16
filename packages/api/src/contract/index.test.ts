@@ -38,6 +38,7 @@ describe("contract", () => {
 			"agentRuns.resume POST /agent-runs/{id}/resume",
 			"agentRuns.send POST /agent-runs/{id}/send",
 			"agentRuns.session GET /agent-runs/{id}/session",
+			"agentRuns.setModel POST /agent-runs/{id}/model",
 			"agentRuns.start POST /agent-runs",
 			"agentRuns.stop POST /agent-runs/{id}/stop",
 			"agentRuns.terminalInput POST /agent-runs/{id}/terminal/input",
@@ -85,6 +86,7 @@ describe("contract", () => {
 			"harnessAccounts.quota GET /harness-accounts/{id}/quota",
 			"harnessAccounts.remove DELETE /harness-accounts/{id}",
 			"harnessAccounts.update PATCH /harness-accounts/{id}",
+			"models.list GET /models",
 			"needsYou.list POST /needs-you/list",
 			"needsYou.summary POST /needs-you/summary",
 			"needsYou.update POST /needs-you/update",
@@ -170,7 +172,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(134);
+		expect(table).toHaveLength(143);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

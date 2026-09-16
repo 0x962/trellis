@@ -136,7 +136,7 @@ test("an idle submanager gets its own heartbeat and appears in its parent's runt
 
 test("nested delegations reserve capacity that the parent cannot consume", async () => {
 	await h.rows(
-		sql`UPDATE projects SET manager_config=manager_config || '{"harness":{"preset":"codex","model":"test-model"}}'::jsonb WHERE id=${root}`,
+		sql`UPDATE projects SET manager_config=manager_config || '{"harness":{"preset":"codex","model":"openai/gpt-5.6-sol"}}'::jsonb WHERE id=${root}`,
 	);
 	const { run } = await delegate(2);
 	const nested = await h.run(
@@ -153,7 +153,7 @@ test("nested delegations reserve capacity that the parent cannot consume", async
 		actor: { kind: "agent", name: run.id },
 	});
 	expect(await h.read((tx) => capacityAvailable(tx, { projectId: child }))).toBe(false);
-	if (!nested.replay) expect(nested.config.harness).toMatchObject({ preset: "codex", model: "test-model" });
+	if (!nested.replay) expect(nested.config.harness).toMatchObject({ preset: "codex", model: "openai/gpt-5.6-sol" });
 	expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf }))).toBe(true);
 	await expect(
 		h.run((ctx, tx) => resize(ctx, tx, { id: nested.run.id, capacity: 2 }), { actor: { kind: "agent", name: run.id } }),

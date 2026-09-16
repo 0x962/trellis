@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
+import { ModelIdSchema } from "../models/models.ts";
 import { AgentRunListInputSchema, AgentRunSchema, AgentRunStartInputSchema } from "../schemas/agentRun.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
 import { base } from "./base.ts";
@@ -68,7 +69,7 @@ export const agentRuns = {
 		})
 		.input(
 			idInput.extend({
-				model: z.string().trim().min(1),
+				model: ModelIdSchema,
 				expectedTerminalId: z.string().min(1),
 				requestId: z.string().min(1).max(200),
 			}),
@@ -85,12 +86,9 @@ export const agentRuns = {
 		.input(
 			idInput.extend({
 				accountId: UlidSchema.optional(),
-				model: z
-					.string()
-					.trim()
-					.min(1)
-					.optional()
-					.describe("Model ID or alias for this resume. Defaults to the previous attempt's model."),
+				model: ModelIdSchema.optional().describe(
+					"Canonical model ID from models.list for this resume. Defaults to the previous attempt's model.",
+				),
 				expectedTerminalId: z.string().min(1),
 				requestId: z.string().min(1).max(200),
 			}),

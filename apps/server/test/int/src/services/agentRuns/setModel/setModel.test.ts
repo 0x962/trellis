@@ -62,20 +62,30 @@ test.each(["claude", "codex"] as const)(
 		await h.rows(
 			sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{harness}',${JSON.stringify({ preset })}::jsonb)`,
 		);
-		const reserved = await h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: "builder", model: "first-model" }));
+		const reserved = await h.run((ctx, tx) =>
+			reserve(ctx, tx, {
+				ticket,
+				personaId: "builder",
+				model: preset === "claude" ? "anthropic/claude-sonnet-5" : "openai/gpt-5.6-luna",
+			}),
+		);
 		if (reserved.replay) throw new Error("Expected a new assignment");
 		await startNative(context(), reserved, dependencies(true));
 		const host = nativeHost(fixture.home, dependencies().env, fixture.client);
 		const before = await host.waitFor(reserved.attempt.id, (state) => state.activity?.state === "working");
 		const input = {
 			id: reserved.run.id,
-			model: "second-model",
+			model: preset === "claude" ? "anthropic/claude-opus-5" : "openai/gpt-5.6-sol",
 			expectedTerminalId: reserved.attempt.id,
 			requestId: "switch",
 		};
 		await expect(prepareSetModel(context(), { ...input, expectedTerminalId: "stale" }, start)).rejects.toMatchObject({
 			code: "INPUT_VALIDATION_FAILED",
 		});
+		await expect(prepareSetModel(context(), { ...input, model: "meta/muse-spark-1.3" }, start)).rejects.toMatchObject({
+			code: "INPUT_VALIDATION_FAILED",
+		});
+		expect((await host.status(reserved.attempt.id)).activity?.state).toBe("working");
 		await h.rows(sql`INSERT INTO settings (key,value,updated_at) VALUES ('nativeWorkPaused','true',now())`);
 		await expect(prepareSetModel(context(), input, start)).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 		expect((await host.status(reserved.attempt.id)).activity?.state).toBe("working");
@@ -83,7 +93,7 @@ test.each(["claude", "codex"] as const)(
 		await prepareSetModel(context(), input, start);
 		const run = await h.read((tx) => getRun(tx, input.id));
 		const after = await host.waitFor(run.terminalId!, (state) => state.activity?.state === "idle");
-		expect(after.agent?.model).toBe("second-model");
+		expect(after.agent?.model).toBe(input.model);
 		expect(after.agent?.sessionId).toBe(before.agent?.sessionId);
 		expect(run.ticketId).toBe(ticket);
 		expect(run.workspaceId).toBe(fixture.home);

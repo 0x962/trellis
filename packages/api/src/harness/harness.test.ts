@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { HARNESS_PRESETS, HarnessPresetSchema, HarnessSchema } from "./harness.ts";
 
 test("built-in harness settings retain an explicit model", () => {
-	expect(HarnessSchema.parse({ preset: "codex", model: " gpt-5.6-sol " }).model).toBe("gpt-5.6-sol");
+	expect(HarnessSchema.parse({ preset: "codex", model: " openai/gpt-5.6-sol " }).model).toBe("openai/gpt-5.6-sol");
 	expect(HarnessSchema.safeParse({ preset: "codex", model: " " }).success).toBe(false);
 });
 

@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { HARNESS_DEFAULT_MODELS } from "@trellis/api";
 import { type RestartPlan, readRestartPlan, writeRestartPlan } from "@trellis/runtime-protocol/restart-plan";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
@@ -47,7 +48,7 @@ test.each(["claude", "codex", "opencode", "pi"] as const)(
 				harness,
 				cwd: home,
 				prompt: "Work on the assignment.",
-				model: "saved-model",
+				model: HARNESS_DEFAULT_MODELS[harness],
 				token: "previous-token",
 			})
 		).process;
@@ -73,7 +74,7 @@ test.each(["claude", "codex", "opencode", "pi"] as const)(
 					previousAttemptId,
 					providerSessionId: previous.agent!.sessionId!,
 					harness,
-					model: "saved-model",
+					model: HARNESS_DEFAULT_MODELS[harness],
 					workspace: home,
 					processIdentity: previous.process!.identity,
 					attempt: { id: randomUUID(), token: "restart-token" },
@@ -108,7 +109,7 @@ test.each(["claude", "codex", "opencode", "pi"] as const)(
 		expect(sessions).toHaveLength(1);
 		expect(sessions[0]!.pid).not.toBe(previous.pid);
 		expect(sessions[0]!.agent?.sessionId).toBe(previous.agent!.sessionId);
-		expect(sessions[0]!.agent?.model).toBe("saved-model");
+		expect(sessions[0]!.agent?.model).toBe(HARNESS_DEFAULT_MODELS[harness]);
 		expect(sessions[0]!.launch!.cwd).toBe(home);
 		expect(sessions[0]!.acknowledgedMessageIds).toEqual([plan.sessions[0]!.attempt.id]);
 		const descriptor = JSON.parse(

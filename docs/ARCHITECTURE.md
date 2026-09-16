@@ -338,6 +338,8 @@ A changed target or persona rejects reuse of that identifier.
 An omitted model uses the project setting. Custom commands reject explicit model overrides.
 `agentRuns.resume` accepts a model override and otherwise retains the previous attempt's model.
 
+Model IDs use Vercel AI Gateway names throughout Trellis. [The model catalog and guide](MODELS.md) describe the choices and harness mappings.
+
 `agentRuns.setModel` interrupts a running turn, stops its process, and resumes the same assignment with the selected model.
 The assignment retains its ticket, workspace, account, and provider conversation.
 The project and account defaults stay unchanged.

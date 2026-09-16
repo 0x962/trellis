@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { link, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { HARNESS_DEFAULT_MODELS } from "@trellis/api";
+import { HARNESS_DEFAULT_MODELS, toHarnessModel } from "@trellis/api";
 import { checkCodexManagerVersion } from "./checkCodexManagerVersion/checkCodexManagerVersion.ts";
 import { checkOpenCodeVersion } from "./checkOpenCodeVersion.ts";
 import { claudeTrust } from "./claudeTrust.ts";
@@ -63,7 +63,7 @@ export async function prepareAttempt(
 		env,
 		cwd,
 		prompt: `trellis-message:${input.id}\n${input.prompt}`,
-		model,
+		model: model === undefined ? undefined : toHarnessModel(input.harness, model),
 		configDirectory,
 		hookCommand,
 		...(input.kind === "manager"

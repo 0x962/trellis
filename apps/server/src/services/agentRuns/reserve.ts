@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { AgentRunStartInput, Persona } from "@trellis/api";
+import { supportsModel } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { type ServiceCtx as CoreCtx, requireActor } from "../../context.ts";
@@ -128,6 +129,8 @@ export const reserve = async (
 	if (input.model !== undefined) {
 		if (config.harness.preset === "custom")
 			throw invalidInput("model", "A custom command does not support a model override. Select a native harness.");
+		if (!supportsModel(config.harness.preset, input.model))
+			throw invalidInput("model", `Select a model supported by ${config.harness.preset} from models.list.`);
 		config = { ...config, harness: { ...config.harness, model: input.model } };
 	}
 	const previousAttemptId = existing?.terminalId ?? null;

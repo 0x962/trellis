@@ -22,10 +22,32 @@ test("model changes reach the service and reject an outdated attempt before runt
 		VALUES (${id},'Builder','native',${personaId},'Builder','builder','Build',${project.id},'MOD','current-attempt',now(),now())`);
 	});
 	await expect(
-		t.client.agentRuns.setModel({ id, model: "opus", expectedTerminalId: "old-attempt", requestId: "switch" }),
+		t.client.agentRuns.setModel({
+			id,
+			model: "anthropic/claude-opus-5",
+			expectedTerminalId: "old-attempt",
+			requestId: "switch",
+		}),
 	).rejects.toMatchObject({
 		code: "INPUT_VALIDATION_FAILED",
 		status: 400,
 		data: { issues: [{ path: ["expectedTerminalId"], message: expect.stringContaining("another attempt") }] },
+	});
+});
+
+test("the model catalog filters harness choices and rejects freeform IDs", async () => {
+	t = await createTestApp();
+	const all = await t.client.models.list({});
+	expect(new Set(all.map((model) => model.id.split("/")[0]))).toEqual(
+		new Set(["google", "anthropic", "meta", "openai"]),
+	);
+	const models = await t.client.models.list({ harness: "codex" });
+	expect(models).toContainEqual({ id: "openai/gpt-6-astra", name: "GPT-6 Astra" });
+	expect(models.every((model) => model.id.startsWith("openai/"))).toBe(true);
+	await expect(
+		t.client.agentRuns.setModel({ id: ulid(), model: "opus", expectedTerminalId: "attempt", requestId: "invalid" }),
+	).rejects.toMatchObject({
+		code: "INPUT_VALIDATION_FAILED",
+		data: { issues: [{ path: ["model"], message: expect.stringContaining("canonical") }] },
 	});
 });

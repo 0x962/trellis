@@ -144,19 +144,22 @@ describe("agents refresh, stop, send, and output", () => {
 });
 
 test("agents start and resume pass their model overrides", async () => {
-	const started = await runCli(["agents", "start", personaId, "--ticket", "CDE-42", "--model", "sonnet"], {
-		"personas.get": persona(),
-		"agentRuns.start": agentRun(),
-	});
+	const started = await runCli(
+		["agents", "start", personaId, "--ticket", "CDE-42", "--model", "anthropic/claude-sonnet-5"],
+		{
+			"personas.get": persona(),
+			"agentRuns.start": agentRun(),
+		},
+	);
 	expect(started.code).toBe(0);
-	expect(started.calls[1]!.input).toEqual({ personaId, ticket: "CDE-42", model: "sonnet" });
+	expect(started.calls[1]!.input).toEqual({ personaId, ticket: "CDE-42", model: "anthropic/claude-sonnet-5" });
 	const resumed = await runCli(
 		[
 			"agents",
 			"resume",
 			agentRunId,
 			"--model",
-			"opus",
+			"anthropic/claude-opus-5",
 			"--expected-terminal-id",
 			"attempt",
 			"--request-id",
@@ -167,7 +170,7 @@ test("agents start and resume pass their model overrides", async () => {
 	expect(resumed.code).toBe(0);
 	expect(resumed.calls[0]!.input).toEqual({
 		id: agentRunId,
-		model: "opus",
+		model: "anthropic/claude-opus-5",
 		expectedTerminalId: "attempt",
 		requestId: "model-switch",
 	});
@@ -175,14 +178,33 @@ test("agents start and resume pass their model overrides", async () => {
 
 test("agents model changes a running agent", async () => {
 	const result = await runCli(
-		["agents", "model", agentRunId, "--model", "opus", "--expected-terminal-id", "attempt", "--request-id", "switch"],
+		[
+			"agents",
+			"model",
+			agentRunId,
+			"--model",
+			"anthropic/claude-opus-5",
+			"--expected-terminal-id",
+			"attempt",
+			"--request-id",
+			"switch",
+		],
 		{ "agentRuns.setModel": agentRun() },
 	);
 	expect(result.code).toBe(0);
 	expect(result.calls[0]!.input).toEqual({
 		id: agentRunId,
-		model: "opus",
+		model: "anthropic/claude-opus-5",
 		expectedTerminalId: "attempt",
 		requestId: "switch",
 	});
+});
+
+test("models list passes a harness filter and prints canonical IDs", async () => {
+	const result = await runCli(["models", "list", "--harness", "codex", "--json"], {
+		"models.list": [{ id: "openai/gpt-6-astra", name: "GPT-6 Astra" }],
+	});
+	expect(result.code).toBe(0);
+	expect(result.calls[0]).toMatchObject({ path: "models.list", input: { harness: "codex" } });
+	expect(JSON.parse(result.stdout)).toEqual([{ id: "openai/gpt-6-astra", name: "GPT-6 Astra" }]);
 });

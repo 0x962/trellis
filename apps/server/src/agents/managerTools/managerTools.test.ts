@@ -256,8 +256,8 @@ test.each(["start", "resume"])("manager %s accepts and forwards a model override
 	const id = "01M277VFQA2HAWB58T9NTW4MX5";
 	const input =
 		action === "start"
-			? { personaId: id, ticket: "TRL-42", model: " sonnet " }
-			: { id, expectedTerminalId: "attempt", requestId: "resume-model", model: " opus " };
+			? { personaId: id, ticket: "TRL-42", model: " anthropic/claude-sonnet-5 " }
+			: { id, expectedTerminalId: "attempt", requestId: "resume-model", model: " anthropic/claude-opus-5 " };
 	await tools.call(`trellis_agentRuns_${action}`, input);
 	expect(calls[0]).toEqual({ ...input, model: input.model.trim() });
 	await expect(tools.call(`trellis_agentRuns_${action}`, { ...input, model: "  " })).rejects.toThrow();
@@ -267,11 +267,25 @@ test("manager can change and inspect an active agent model", async () => {
 	const calls: unknown[] = [];
 	const tools = managerTools(async (operation, input) => {
 		calls.push({ operation, input });
-		return operation === "agentRuns.session" ? { agent: { model: "opus" } } : {};
+		return operation === "agentRuns.session" ? { agent: { model: "anthropic/claude-opus-5" } } : {};
 	});
 	const id = "01M277VFQA2HAWB58T9NTW4MX5";
-	const input = { id, model: "opus", expectedTerminalId: "attempt", requestId: "model-change" };
+	const input = { id, model: "anthropic/claude-opus-5", expectedTerminalId: "attempt", requestId: "model-change" };
 	await tools.call("trellis_agentRuns_setModel", input);
 	expect(calls[0]).toEqual({ operation: "agentRuns.setModel", input });
-	expect(await tools.call("trellis_agentRuns_session", { id, include: ["model"] })).toMatchObject({ model: "opus" });
+	expect(await tools.call("trellis_agentRuns_session", { id, include: ["model"] })).toMatchObject({
+		model: "anthropic/claude-opus-5",
+	});
+});
+
+test("manager discovers canonical model choices by harness", async () => {
+	const calls: unknown[] = [];
+	const tools = managerTools(async (operation, input) => {
+		calls.push({ operation, input });
+		return [{ id: "meta/muse-spark-1.3", name: "Muse Spark 1.3" }];
+	});
+	expect(await tools.call("trellis_models_list", { harness: "pi" })).toEqual([
+		{ id: "meta/muse-spark-1.3", name: "Muse Spark 1.3" },
+	]);
+	expect(calls).toEqual([{ operation: "models.list", input: { harness: "pi" } }]);
 });

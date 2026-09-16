@@ -73,7 +73,7 @@ test("Claude managers expose only the Trellis bridge and remove native execution
 test("Claude events preserve native identity, prompt, tool data, and final response", () => {
 	const base = { session_id: input.sessionId, model: "sonnet" };
 	expect(parseClaudeEvent({ ...base, hook_event_name: "SessionStart" })).toEqual([
-		{ kind: "session", sessionId: input.sessionId, model: "sonnet" },
+		{ kind: "session", sessionId: input.sessionId, model: "anthropic/claude-sonnet-5" },
 	]);
 	expect(
 		parseClaudeEvent({ ...base, hook_event_name: "UserPromptSubmit", prompt: "trellis-message:id\nhello" })[0],
@@ -155,7 +155,7 @@ test("Claude model changes update metadata without a turn transition", () => {
 			to_model: "claude-sonnet-5",
 			source: "resume",
 		}),
-	).toEqual([{ kind: "session", sessionId: "s", model: "claude-sonnet-5" }]);
+	).toEqual([{ kind: "session", sessionId: "s", model: "anthropic/claude-sonnet-5" }]);
 });
 
 test("Claude associates the first tool with its current native prompt ID", () => {

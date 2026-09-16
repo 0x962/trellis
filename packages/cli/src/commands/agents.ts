@@ -57,7 +57,7 @@ const start = defineCommand({
 		project: { type: "string", description: "Project ref, for a manager" },
 		"request-id": { type: "string", description: "Stable assignment ID to prevent a duplicate start" },
 		account: { type: "string", description: "Account ID from trellis accounts list" },
-		model: { type: "string", description: "Model ID or alias for this assignment" },
+		model: { type: "string", description: "Canonical model ID from trellis models list for this assignment" },
 		"new-session": {
 			type: "boolean",
 			description: "Give a manager a new agent session in place of the one it keeps",
@@ -92,7 +92,7 @@ const resume = defineCommand({
 	args: {
 		id: { type: "positional", required: true, description: "Agent ID" },
 		account: { type: "string", description: "Account ID for the same harness" },
-		model: { type: "string", description: "Model ID or alias for this resume" },
+		model: { type: "string", description: "Canonical model ID from trellis models list for this resume" },
 		"expected-terminal-id": { type: "string", required: true, description: "Stopped attempt ID from the agent record" },
 		"request-id": { type: "string", required: true, description: "Stable request ID for this resume" },
 	},
@@ -117,7 +117,7 @@ const model = defineCommand({
 	meta: { name: "model", description: "Change a running agent's model and continue its conversation" },
 	args: {
 		id: { type: "positional", required: true, description: "Agent ID" },
-		model: { type: "string", required: true, description: "Model ID or alias" },
+		model: { type: "string", required: true, description: "Canonical model ID from trellis models list" },
 		"expected-terminal-id": { type: "string", required: true, description: "Current attempt ID from the agent record" },
 		"request-id": { type: "string", required: true, description: "Stable request ID for this model change" },
 	},
