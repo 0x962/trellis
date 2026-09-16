@@ -27,11 +27,12 @@ const BUILDERS = [
 ];
 
 const transpiler = new Bun.Transpiler({ loader: "tsx" });
-const STARTS_PROCESS = /\bBun\s*\.\s*(?:serve|spawn)\b|\b(?:execFileSync|spawnSync)\b/;
+const STARTS_PROCESS = /\bBun\s*\.\s*(?:serve|spawn)\b|\b(?:createServer|execFileSync|spawnSync)\b/;
 const OPENS_DATABASE = /\b(?:diskDb|openDb)\s*\(|\bnew\s+PGlite\b/;
 const REGEX_PREFIX = /[([{,:;=!?&|+*%^~<>-]/;
 const REGEX_KEYWORD =
 	/\b(?:await|case|delete|do|else|in|instanceof|new|of|return|throw|typeof|void|yield)$/;
+const SOURCE_EXTENSIONS = new Set([".mjs", ".ts", ".tsx"]);
 
 const sourceWithoutText = (source: string) => {
 	const code = source.split("");
@@ -127,16 +128,23 @@ const sourceWithoutText = (source: string) => {
 	return code.join("");
 };
 
-// The classifier follows TypeScript sources only. Bun resolves extensionless
-// source paths and directories, so these candidates include both forms.
+// The classifier follows executable source modules only. Bun resolves
+// extensionless source paths and directories, so these candidates include both forms.
 const sourceFileFor = (from: string, specifier: string) => {
 	const base = resolve(dirname(from), specifier);
 	const extension = extname(base);
 	if (extension) {
-		if (extension !== ".ts" && extension !== ".tsx") return;
+		if (!SOURCE_EXTENSIONS.has(extension)) return;
 		return statSync(base, { throwIfNoEntry: false })?.isFile() ? base : undefined;
 	}
-	const tries = [`${base}.ts`, `${base}.tsx`, join(base, "index.ts"), join(base, "index.tsx")];
+	const tries = [
+		`${base}.ts`,
+		`${base}.tsx`,
+		`${base}.mjs`,
+		join(base, "index.ts"),
+		join(base, "index.tsx"),
+		join(base, "index.mjs"),
+	];
 	return tries.find((candidate) => statSync(candidate, { throwIfNoEntry: false })?.isFile());
 };
 
@@ -201,6 +209,12 @@ describe("test layout", () => {
 
 	test("the source resolver ignores asset imports", () => {
 		expect(sourceFileFor(import.meta.path, "../packages/ui/src/base.css")).toBeUndefined();
+	});
+
+	test("the source resolver follows JavaScript modules that start servers", () => {
+		const server = sourceFileFor(import.meta.path, "../apps/server/src/agents/harnesses/opencode/control.mjs");
+		expect(server).toEndWith("control.mjs");
+		expect(STARTS_PROCESS.test(sourceWithoutText(readFileSync(server!, "utf8")))).toBe(true);
 	});
 
 	test("the repository holds test files to check", () => {
