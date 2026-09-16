@@ -61,6 +61,7 @@ const HARNESS_LABELS: Record<AccountHarness, string> = {
 	codex: "Codex",
 	pi: "Pi",
 	opencode: "OpenCode",
+	muse: "Muse",
 };
 
 const KIND_LABELS: Record<string, string> = { builder: "Builders", reviewer: "Reviewers", manager: "Managers" };

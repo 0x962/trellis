@@ -73,3 +73,28 @@ test("unsupported quota and API billing remain explicit", async () => {
 		"unsupported",
 	);
 });
+
+test("a Muse profile reports its sign-in state and no allowance windows", async () => {
+	const muse = { ...account, harness: "muse" as const };
+	const signedIn = await fetchAccountQuota(
+		muse,
+		fetcher(() => Response.error()),
+		async () => ({
+			token: null,
+			email: "work@example.com",
+			plan: "oauth",
+		}),
+	);
+	expect(signedIn).toMatchObject({ status: "unsupported", email: "work@example.com", windows: [] });
+	expect(signedIn.detail).toContain("running session");
+	const signedOut = await fetchAccountQuota(
+		muse,
+		fetcher(() => Response.error()),
+		async () => ({
+			token: null,
+			email: null,
+			plan: null,
+		}),
+	);
+	expect(signedOut).toMatchObject({ status: "signed_out", email: null, windows: [] });
+});

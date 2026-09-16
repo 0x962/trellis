@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
-export const AccountHarnessSchema = z.enum(["claude", "codex", "opencode", "pi"]);
+export const AccountHarnessSchema = z.enum(["claude", "codex", "opencode", "pi", "muse"]);
 export type AccountHarness = z.infer<typeof AccountHarnessSchema>;
 export const HarnessAccountSchema = z.object({
 	id: UlidSchema,

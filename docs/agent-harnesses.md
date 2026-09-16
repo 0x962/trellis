@@ -1,8 +1,14 @@
 # Agent harnesses
 
-Trellis runs Claude, Codex, OpenCode, and pi through its local host.
+Trellis runs Claude, Codex, OpenCode, pi, and Muse through its local host.
 Each built-in harness has an interactive terminal.
 The host reads native session events and checks the actual process.
+
+Muse runs through its session protocol. The Trellis bridge starts one `muse serve` host per attempt, owns one session in it, and prints the transcript to the terminal.
+Type a message into that terminal and press Enter to send it. Press Ctrl+C to interrupt the turn.
+A Muse worker runs with the Muse sandbox disabled and every approval granted. A Muse manager runs without shell and file writes, and reaches Trellis through the Trellis tool server only.
+A Muse manager reads its persona from `AGENTS.md` in its private workspace. Muse keeps its own base instructions in front of that file.
+Trellis sets `MUSE_NO_AUTO_UPDATE=1` for every launch, so the Muse launcher does not replace its binary during a run. Update Muse by hand.
 
 ## Project settings
 
@@ -14,6 +20,7 @@ Trellis trusts configured directories and agent workspaces.
 Open **Project → Manager → Harness** to select the harness and model.
 Leave **Model** blank to use the harness default.
 OpenCode and pi accept a `provider/model` identifier.
+Muse accepts the Muse Spark models of the catalog, such as `meta/muse-spark-1.3`.
 Changes apply to the next agent start.
 Built-in harnesses bypass tool permission prompts.
 
@@ -55,6 +62,7 @@ Custom commands run in a local terminal.
 Automatic dispatch and native flow tasks require a built-in harness with native session observations.
 
 Command fields accept the variables from the [agent command contract](../packages/api/src/agentCommand/agentCommand.ts).
+The Muse preset resumes with `muse --yolo resume --last`, because `muse resume` takes no prompt argument. Type the next instruction into the terminal after a custom Muse resume.
 Use `{{prompt}}` for the initial assignment and `{{resumeText}}` for the next instruction.
 Trellis quotes each variable as one shell argument.
 Do not add quotes around a template variable.

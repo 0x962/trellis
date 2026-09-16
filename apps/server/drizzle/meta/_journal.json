@@ -400,6 +400,13 @@
       "when": 1789592545315,
       "tag": "0059_manager_dispatch_failed_state",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1789596395596,
+      "tag": "0060_muse_harness",
+      "breakpoints": true
     }
   ]
 }

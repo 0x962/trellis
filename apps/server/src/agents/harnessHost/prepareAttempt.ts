@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HARNESS_DEFAULT_MODELS, toHarnessModel } from "@trellis/api";
 import { checkCodexManagerVersion } from "./checkCodexManagerVersion/checkCodexManagerVersion.ts";
+import { checkMuseVersion } from "./checkMuseVersion.ts";
 import { checkOpenCodeVersion } from "./checkOpenCodeVersion.ts";
 import { claudeTrust } from "./claudeTrust.ts";
 import { providers } from "./providers.ts";
@@ -50,6 +51,7 @@ export async function prepareAttempt(
 	const executable = await resolveExecutable(input.harness, env.PATH ?? "");
 	if (input.harness === "codex" && input.kind === "manager") await checkCodexManagerVersion(executable, input.cwd, env);
 	if (input.harness === "opencode") await checkOpenCodeVersion(executable, input.cwd, env);
+	if (input.harness === "muse") await checkMuseVersion(executable, input.cwd, env);
 	await mkdir(directory, { recursive: true, mode: 0o700 });
 	const hookCommand = `${quote(options.bun)} ${quote(fileURLToPath(new URL("./hook.ts", import.meta.url)))}`;
 	const configDirectory = await mkdtemp(join(directory, "config-"));
@@ -87,7 +89,7 @@ export async function prepareAttempt(
 		spec: {
 			id: input.id,
 			command:
-				input.harness === "codex"
+				input.harness === "codex" || input.harness === "muse"
 					? launch.executable.startsWith("/")
 						? launch.executable
 						: await resolveExecutable(launch.executable, env.PATH ?? "")
@@ -100,6 +102,7 @@ export async function prepareAttempt(
 				...env,
 				...launch.env,
 				...(input.harness === "codex" ? { TRELLIS_CODEX_EXECUTABLE: executable } : {}),
+				...(input.harness === "muse" ? { TRELLIS_MUSE_EXECUTABLE: executable } : {}),
 				TRELLIS_HARNESS: input.harness,
 				TRELLIS_HARNESS_SOCKET: options.runtime.socketPath,
 				TRELLIS_HARNESS_HOOK: hookCommand,

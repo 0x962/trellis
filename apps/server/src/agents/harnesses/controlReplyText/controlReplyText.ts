@@ -1,5 +1,5 @@
-// The Codex and OpenCode control sockets answer a refused prompt or a refused
-// interrupt with a JSON body, such as `{"error":"STALE_TURN"}`. A person sees
+// The Codex, OpenCode, and Muse control sockets answer a refused prompt or a
+// refused interrupt with a JSON body, such as `{"error":"STALE_TURN"}`. A person sees
 // that body in a toast when a send or an interrupt fails. This module turns one
 // body into a sentence.
 //
@@ -8,14 +8,15 @@
 // puts `code` on the Error it throws, so a later caller can branch on the
 // refusal and never has to match the sentence.
 
-export type ControlHarness = "codex" | "opencode";
+export type ControlHarness = "codex" | "opencode" | "muse";
 
 export type ControlReply = { message: string; code: string | null };
 
-const names: Record<ControlHarness, string> = { codex: "Codex", opencode: "OpenCode" };
+const names: Record<ControlHarness, string> = { codex: "Codex", opencode: "OpenCode", muse: "Muse" };
 
 // One sentence for each value a control socket puts in the `error` field. The
-// keys come from codex/codexControl.ts and from opencode/control.mjs.
+// keys come from codex/codexControl.ts, opencode/control.mjs, and
+// muse/museControl.ts.
 const sentences: Record<ControlHarness, Record<string, string>> = {
 	codex: {
 		STALE_TURN: "Codex finished that turn. Read the current turn before another interrupt.",
@@ -34,6 +35,14 @@ const sentences: Record<ControlHarness, Record<string, string>> = {
 		Unauthorized: "The OpenCode control token does not match this session.",
 		"Not found": "The OpenCode control path does not exist.",
 		"Request too large": "The message exceeds the 1 MiB OpenCode control limit.",
+	},
+	muse: {
+		STALE_TURN: "Muse finished that turn. Read the current turn before another interrupt.",
+		CONTROL_PENDING: "Muse is still handling the previous control request. Wait for it to finish.",
+		STALE_SESSION: "The Muse session changed. Read the current session before a resend.",
+		Unauthorized: "The Muse control token does not match this session.",
+		"Not found": "The Muse control path does not exist.",
+		"Request too large": "The message exceeds the 1 MiB Muse control limit.",
 	},
 };
 

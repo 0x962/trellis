@@ -14,7 +14,9 @@ export const loginCommandFor = (harness: string, profilePath: string): string | 
 				? `PI_CODING_AGENT_DIR=${quote(profilePath)} pi`
 				: harness === "opencode"
 					? `XDG_DATA_HOME=${quote(profilePath)} opencode auth login`
-					: null;
+					: harness === "muse"
+						? `XDG_CONFIG_HOME=${quote(profilePath)} XDG_DATA_HOME=${quote(profilePath)} muse login`
+						: null;
 
 export const presentAccount = (account: AccountRow): HarnessAccount => ({
 	...account,

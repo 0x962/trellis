@@ -22,7 +22,7 @@ const kindLabel: Record<string, string> = { builder: "Builder", reviewer: "Revie
 
 // The most expensive sessions of the range. A session that Trellis started
 // names its ticket, persona, and kind. The session id copies for
-// `claude --resume` or `codex resume`.
+// `claude --resume`, `codex resume`, or `muse resume`.
 export function UsageSessions({ sessions, metric, filtered }: UsageSessionsProps) {
 	const [shown, setShown] = useState(PAGE);
 	const visible = sessions.slice(0, shown);

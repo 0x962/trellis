@@ -1,0 +1,280 @@
+import { type ChildProcess, spawn } from "node:child_process";
+import { chmod, mkdir, rm } from "node:fs/promises";
+import { dirname } from "node:path";
+import { fromHarnessModel } from "@trellis/api/models";
+import { RuntimeClient } from "@trellis/runtime-protocol/client";
+import { z } from "zod";
+import { applyTurnActivity } from "../turnActivity/turnActivity.ts";
+import type { HarnessEvent } from "../types.ts";
+import { MspClient } from "./mspClient.ts";
+import { MuseSessionEvents } from "./mspEvents.ts";
+import { museControl } from "./museControl.ts";
+import { museTerminalHint, museTranscriptLine } from "./museTerminal.ts";
+import { uuid7 } from "./uuid7.ts";
+
+// The Muse bridge owns one `muse serve` session host and one session in
+// it. It speaks the Muse Session Protocol to that host, reports every
+// session, turn, tool, message, and result to the runtime, answers the
+// host's control socket, and prints the transcript to the terminal it runs
+// in. A person types a follow-up into that terminal; Trellis sends one
+// through the control socket.
+
+const env = z
+	.object({
+		TRELLIS_MUSE_EXECUTABLE: z.string(),
+		TRELLIS_MUSE_CONTROL_SOCKET: z.string(),
+		TRELLIS_MUSE_CONTROL_TOKEN: z.string(),
+		TRELLIS_HARNESS_SOCKET: z.string(),
+		TRELLIS_ATTEMPT_ID: z.string(),
+		TRELLIS_ATTEMPT_TOKEN: z.string(),
+		TRELLIS_URL: z.string().optional(),
+		TRELLIS_ACTOR: z.string().optional(),
+		TRELLIS_AUTH_TOKEN: z.string().optional(),
+	})
+	.parse(process.env);
+const launch = z
+	.object({
+		cwd: z.string(),
+		prompt: z.string(),
+		model: z.string().optional(),
+		sessionId: z.string().optional(),
+		managerTools: z.object({ command: z.string(), args: z.array(z.string()) }).optional(),
+	})
+	.parse(JSON.parse(process.argv[2]!));
+const manager = launch.managerTools !== undefined;
+const runtime = new RuntimeClient(env.TRELLIS_HARNESS_SOCKET);
+const directory = dirname(env.TRELLIS_MUSE_CONTROL_SOCKET);
+await mkdir(directory, { mode: 0o700 });
+await chmod(directory, 0o700);
+const session = z.looseObject({ session: z.looseObject({ sessionId: z.string(), modelId: z.string().nullable() }) });
+const approval = z.looseObject({
+	approvalId: z.string(),
+	sessionId: z.string(),
+	currentRequirementId: z.unknown(),
+	availableChoices: z.array(z.looseObject({ choiceId: z.string(), decision: z.string() })),
+});
+const userInput = z.looseObject({ userInputId: z.string(), sessionId: z.string() });
+
+// A manager runs with the workspace shell and file writes disabled by the
+// host, so its only way to act is the Trellis tool server. A worker runs
+// with the sandbox disabled and every approval granted.
+const host: ChildProcess = spawn(
+	env.TRELLIS_MUSE_EXECUTABLE,
+	["serve", "--trust-workspace", ...(manager ? ["--disable-shell", "--disable-write"] : ["--disable-sandbox"])],
+	{ cwd: launch.cwd, env: process.env, stdio: ["pipe", "pipe", "inherit"] },
+);
+let stopNormally!: () => void;
+const terminated = new Promise<void>((resolve) => {
+	stopNormally = resolve;
+	process.once("SIGTERM", resolve);
+	process.once("SIGHUP", resolve);
+});
+let eventQueue = Promise.resolve();
+let acceptingEvents = true;
+let reportFailure!: (error: unknown) => void;
+const observationFailed = new Promise<never>((_, reject) => {
+	reportFailure = reject;
+});
+let client: MspClient | undefined;
+let control: Awaited<ReturnType<typeof museControl>> | undefined;
+const current = { turnId: null as string | null, working: false };
+let sessionId: string | undefined;
+let submitted!: () => void;
+const firstPrompt = new Promise<void>((resolve) => {
+	submitted = resolve;
+});
+const print = (text: string) => process.stdout.write(`${text}\n`);
+function record(event: HarnessEvent) {
+	applyTurnActivity(current, event);
+	const line = museTranscriptLine(event);
+	if (line !== null) print(line);
+	eventQueue = eventQueue.then(async () => {
+		await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, event);
+		if (event.kind === "prompt") submitted();
+	});
+	eventQueue.catch(reportFailure);
+}
+async function answerRequest(request: { method: string; params?: unknown }) {
+	// The reply to a host request only confirms that the bridge saw it. The
+	// decision travels as its own command. Every approval is granted, and
+	// every question is cancelled: nobody sits at this terminal to answer.
+	if (request.method === "approval/request") {
+		const value = approval.parse(request.params);
+		const choice =
+			value.availableChoices.find((item) => item.decision === "approved" || item.decision === "approvedForSession") ??
+			value.availableChoices[0];
+		if (choice)
+			void client!
+				.request("approval/decide", {
+					commandId: uuid7(),
+					sessionId: value.sessionId,
+					approvalId: value.approvalId,
+					requirementId: value.currentRequirementId,
+					choiceId: choice.choiceId,
+				})
+				.catch(reportFailure);
+		return {};
+	}
+	if (request.method === "userInput/request") {
+		const value = userInput.parse(request.params);
+		void client!
+			.request("userInput/cancel", {
+				commandId: uuid7(),
+				sessionId: value.sessionId,
+				userInputId: value.userInputId,
+				reason: "The Trellis bridge runs without a person at the terminal.",
+			})
+			.catch(reportFailure);
+		return {};
+	}
+	return {};
+}
+const ESCAPE = "\u001b";
+const escapeSequence = new RegExp(`${ESCAPE}\\[[0-9;?]*[A-Za-z]`, "g");
+function readTerminal() {
+	// The terminal is in raw mode, so Ctrl+C reaches the bridge as a byte
+	// and never as a signal to the session host. Text collects until Enter
+	// and then starts a turn. A bracketed paste keeps its text only.
+	if (!process.stdin.isTTY) return;
+	process.stdin.setRawMode(true);
+	process.stdin.resume();
+	let line = "";
+	process.stdin.on("data", (chunk: Buffer) => {
+		const text = chunk
+			.toString()
+			.replaceAll(`${ESCAPE}[200~`, "")
+			.replaceAll(`${ESCAPE}[201~`, "")
+			.replace(escapeSequence, "");
+		for (const character of text) {
+			if (character === "\x03") {
+				line = "";
+				if (current.working && current.turnId !== null)
+					void client!
+						.request("turn/interrupt", { commandId: uuid7(), sessionId, turnId: current.turnId })
+						.catch(reportFailure);
+			} else if (character === "\r" || character === "\n") {
+				process.stdout.write("\n");
+				const prompt = line;
+				line = "";
+				if (prompt.trim() === "") continue;
+				void client!
+					.request("turn/start", {
+						commandId: uuid7(),
+						sessionId,
+						input: [{ type: "text", text: prompt }],
+						ifBusy: "queue",
+					})
+					.catch(reportFailure);
+			} else if (character === "\x7f" || character === "\b") {
+				if (line.length > 0) {
+					line = line.slice(0, -1);
+					process.stdout.write("\b \b");
+				}
+			} else if (character >= " ") {
+				line += character;
+				process.stdout.write(character);
+			}
+		}
+	});
+}
+async function start() {
+	let parser: MuseSessionEvents | undefined;
+	client = new MspClient(
+		host,
+		(notification) => {
+			if (!parser || !acceptingEvents) return;
+			for (const event of parser.parse(notification)) record(event);
+		},
+		answerRequest,
+	);
+	client.closed.catch(reportFailure);
+	await client.initialize();
+	const config = manager
+		? {
+				mcpServers: {
+					trellis: {
+						transport: "stdio",
+						command: launch.managerTools!.command,
+						args: launch.managerTools!.args,
+						framing: "lineDelimitedJson",
+						mode: "required",
+						env: {
+							...(env.TRELLIS_URL ? { TRELLIS_URL: env.TRELLIS_URL } : {}),
+							...(env.TRELLIS_ACTOR ? { TRELLIS_ACTOR: env.TRELLIS_ACTOR } : {}),
+							...(env.TRELLIS_AUTH_TOKEN ? { TRELLIS_AUTH_TOKEN: env.TRELLIS_AUTH_TOKEN } : {}),
+							TRELLIS_ATTEMPT_ID: env.TRELLIS_ATTEMPT_ID,
+							TRELLIS_ATTEMPT_TOKEN: env.TRELLIS_ATTEMPT_TOKEN,
+						},
+					},
+				},
+			}
+		: undefined;
+	const result = session.parse(
+		await client.request(
+			launch.sessionId ? "session/resume" : "session/start",
+			launch.sessionId
+				? { commandId: uuid7(), sessionId: launch.sessionId, excludeItems: true, config }
+				: {
+						commandId: uuid7(),
+						workspaceRoot: launch.cwd,
+						approvalMode: "allowAll",
+						providerId: "meta",
+						...(launch.model ? { modelId: launch.model } : {}),
+						config,
+					},
+		),
+	);
+	if (launch.sessionId && result.session.sessionId !== launch.sessionId)
+		throw new Error("Muse resumed a different session");
+	sessionId = result.session.sessionId;
+	if (launch.sessionId && launch.model)
+		await client.request("session/setModel", {
+			commandId: uuid7(),
+			sessionId,
+			model: { modelId: launch.model, providerId: "meta" },
+		});
+	await client.request("view/subscribe", { sessionId });
+	parser = new MuseSessionEvents(sessionId);
+	const model = launch.sessionId && launch.model ? launch.model : (result.session.modelId ?? launch.model);
+	record({ kind: "session", sessionId, ...(model ? { model: fromHarnessModel("muse", model) } : {}) });
+	control = await museControl({
+		socket: env.TRELLIS_MUSE_CONTROL_SOCKET,
+		token: env.TRELLIS_MUSE_CONTROL_TOKEN,
+		sessionId,
+		client,
+		current: () => current,
+	});
+	await client.request("turn/start", {
+		commandId: uuid7(),
+		sessionId,
+		input: [{ type: "text", text: launch.prompt }],
+	});
+	await firstPrompt;
+	print(museTerminalHint);
+	readTerminal();
+}
+try {
+	await Promise.race([start().then(() => terminated), observationFailed]);
+} catch (error) {
+	acceptingEvents = false;
+	await eventQueue;
+	await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, {
+		kind: "error",
+		outcome: "failed",
+		error: (error as Error).message,
+	});
+	process.exitCode = 1;
+} finally {
+	acceptingEvents = false;
+	if (host.exitCode === null && host.signalCode === null) {
+		const exited = new Promise<void>((resolve) => host.once("exit", () => resolve()));
+		client?.close();
+		host.kill("SIGTERM");
+		const timer = setTimeout(() => host.kill("SIGKILL"), 5000);
+		await exited;
+		clearTimeout(timer);
+	}
+	control?.close();
+	await rm(directory, { recursive: true, force: true });
+	stopNormally();
+}

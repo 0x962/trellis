@@ -10,13 +10,14 @@ export type UsageRoot = { harness: AccountHarness; path: string; accounts: strin
 
 export type UsageAccountRow = { harness: AccountHarness; profilePath: string; name: string; isDefault: boolean };
 
-const HARNESSES: readonly AccountHarness[] = ["claude", "codex", "pi", "opencode"];
+const HARNESSES: readonly AccountHarness[] = ["claude", "codex", "pi", "opencode", "muse"];
 
 // Where a profile keeps its transcripts.
 export const transcriptDir = (harness: AccountHarness, profilePath: string) => {
 	if (harness === "claude") return join(profilePath, "projects");
 	if (harness === "codex") return join(profilePath, "sessions");
 	if (harness === "pi") return join(profilePath, "sessions");
+	if (harness === "muse") return join(profilePath, "muse", "sessions");
 	return join(profilePath, "opencode", "storage");
 };
 

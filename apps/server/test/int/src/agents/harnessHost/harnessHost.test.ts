@@ -20,7 +20,7 @@ afterEach(async () => {
 });
 
 test("the host registers the supported native harnesses", () => {
-	expect(Object.keys(providers).sort()).toEqual(["claude", "codex", "opencode", "pi"]);
+	expect(Object.keys(providers).sort()).toEqual(["claude", "codex", "muse", "opencode", "pi"]);
 });
 test("the host preserves the assignment token and process deadline", async () => {
 	await host.start({
@@ -36,7 +36,7 @@ test("the host preserves the assignment token and process deadline", async () =>
 	expect(descriptor.spec.timeoutMs).toBe(60000);
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"%s host supports identity, model, input, output, events, lists, elapsed, resume, and stop",
 	async (harness) => {
 		const started = await host.start({
@@ -52,7 +52,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 		expect(started.process.elapsedMs).toBeNumber();
 		const args = started.process.launch!.args;
 		if (harness === "claude") expect(args).toContain("--dangerously-skip-permissions");
-		if (harness === "codex")
+		if (harness === "codex" || harness === "muse")
 			expect(JSON.parse(args[1]!).model).toBe(toHarnessModel(harness, HARNESS_DEFAULT_MODELS[harness]));
 		if (harness === "pi") expect(args).toContain("read,bash,edit,write,grep,find,ls");
 		if (harness === "opencode") expect(args).toContain("--model");
@@ -87,7 +87,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 	10000,
 );
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"missing %s executable fails before process launch with its name and PATH",
 	async (harness) => {
 		const empty = join(home, "empty");
@@ -118,7 +118,7 @@ test("silent native hooks time out with the retained attempt ID", async () => {
 	await host.stop("silent");
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"%s interrupt preserves the actual process and waits for a provider idle event",
 	async (harness) => {
 		host = new HarnessHost({
@@ -173,7 +173,7 @@ test("a new host instance reconnects to the same process and streams output from
 	await host.stop("retained");
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"twelve concurrent %s starts share one process and reject a conflicting request",
 	async (harness) => {
 		const second = new HarnessHost({
@@ -201,7 +201,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 	},
 );
 
-test.each(["codex", "pi", "opencode"] as const)(
+test.each(["codex", "pi", "opencode", "muse"] as const)(
 	"a normal %s completion does not confirm interruption",
 	async (harness) => {
 		host = new HarnessHost({

@@ -1,5 +1,9 @@
 import type { HarnessEvent } from "../types.ts";
-export function applyCodexActivity(current: { turnId: string | null; working: boolean }, event: HarnessEvent) {
+
+// The turn a bridge control socket may interrupt, and whether that turn is
+// still running. A bridge feeds every mapped harness event through here so
+// its control socket refuses a stale turn id.
+export function applyTurnActivity(current: { turnId: string | null; working: boolean }, event: HarnessEvent) {
 	const begins = event.kind === "prompt" || event.kind === "working";
 	if (!begins && event.turnId !== undefined && current.turnId !== null && current.turnId !== event.turnId) return;
 	if (event.turnId !== undefined) current.turnId = event.turnId;

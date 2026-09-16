@@ -56,6 +56,7 @@ export const harnessLabel: Record<AccountHarness, string> = {
 	codex: "Codex",
 	opencode: "OpenCode",
 	pi: "Pi",
+	muse: "Muse",
 };
 
 // Each harness keeps one tone on every chart, so Claude Code is purple on
@@ -65,6 +66,7 @@ export const harnessTone: Record<AccountHarness, ChartTone> = {
 	codex: "fg",
 	opencode: "success",
 	pi: "warning",
+	muse: "accent",
 };
 
 // The tone of a breakdown row. Under the harness grouping a row keeps its

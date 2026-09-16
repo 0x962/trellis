@@ -24,6 +24,20 @@ export async function fetchAccountQuota(
 		windows: [],
 		fetchedAt: new Date(now).toISOString(),
 	};
+	if (account.harness === "muse") {
+		// Muse reports its subscription windows only inside a running session
+		// host, so a profile shows its sign-in state and nothing more.
+		const auth = await read(account);
+		return auth.email === null && auth.plan === null
+			? { ...base, status: "signed_out", detail: "Sign in with the account's login command." }
+			: {
+					...base,
+					email: auth.email,
+					plan: auth.plan,
+					status: "unsupported",
+					detail: "Muse reports subscription usage only inside a running session.",
+				};
+	}
 	if (!["claude", "codex"].includes(account.harness))
 		return {
 			...base,

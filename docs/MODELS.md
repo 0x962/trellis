@@ -5,12 +5,14 @@ The UI, API, CLI, project settings, and manager tools use these IDs.
 The catalog includes tool-capable language models from Google, Anthropic, Meta, and OpenAI.
 
 `trellis models list` and the manager's `models.list` tool return the catalog.
-Use `trellis models list --harness codex` to restrict the choices to a harness.
+Use `trellis models list --harness codex` to restrict the choices to a harness. Use `--harness muse` for the Muse Spark models.
 The settings page uses a model selector.
 An omitted model uses the harness default for a new session and the saved model for a resume.
 
 The launch adapter converts a canonical ID to the harness's model name.
 Claude uses its native model IDs. Codex uses its OpenAI model IDs.
+Muse uses the bare Muse Spark name, so `meta/muse-spark-1.3` becomes `muse-spark-1.3`. Its default is `meta/muse-spark-1.3`.
+The `-contributor` variants share content with Meta for product improvement, so a project selects one on purpose.
 OpenCode uses `vercel/<canonical-id>`. Pi uses `vercel-ai-gateway/<canonical-id>`.
 These two harnesses require a configured Vercel AI Gateway account.
 Catalog membership does not grant account access to a model.

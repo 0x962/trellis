@@ -64,6 +64,13 @@ const GEMINI_RATES: Record<string, ModelRate> = {
 	"gemini-2.5-flash": { inputPerM: 0.3, outputPerM: 2.5 },
 };
 
+// Muse Spark has no per-token list price. A Muse login is a subscription
+// with usage windows, and the Muse model catalog reports no cost, so the
+// report counts its tokens and prices them at zero.
+const MUSE_RATES: Record<string, ModelRate> = {
+	"muse-spark": { inputPerM: 0, outputPerM: 0 },
+};
+
 // Pi and OpenCode route to many providers. They record their own cost, and
 // this table is the fallback for a message without one.
 const MULTI_PROVIDER_RATES: Record<string, ModelRate> = { ...CLAUDE_RATES, ...CODEX_RATES, ...GEMINI_RATES };
@@ -73,6 +80,7 @@ const RATES_BY_HARNESS: Record<AccountHarness, Record<string, ModelRate>> = {
 	codex: CODEX_RATES,
 	pi: MULTI_PROVIDER_RATES,
 	opencode: MULTI_PROVIDER_RATES,
+	muse: MUSE_RATES,
 };
 
 const cheapestByHarness = new Map<AccountHarness, ModelRate>();

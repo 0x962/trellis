@@ -1,10 +1,15 @@
 import { existsSync } from "node:fs";
 import { cp, mkdir, realpath, stat, symlink } from "node:fs/promises";
 import { homedir } from "node:os";
-import { isAbsolute, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import type { AccountHarness, HarnessAccountCreate } from "@trellis/api";
 import { invalidInput } from "../../errors.ts";
 
+// The profile directory of a harness: the directory its CLI reads its
+// login and its sessions from. Muse splits the two across the XDG config
+// and data homes. Its profile is the data home, which holds `muse/sessions`,
+// and a managed Muse profile serves as both homes so `muse/auth.json` sits
+// next to them.
 export const profileDefault = (harness: AccountHarness, env: NodeJS.ProcessEnv) => {
 	const home = env.HOME ?? homedir();
 	if (harness === "claude") return env.CLAUDE_CONFIG_DIR ?? join(home, ".claude");
@@ -12,13 +17,17 @@ export const profileDefault = (harness: AccountHarness, env: NodeJS.ProcessEnv) 
 	if (harness === "pi") return env.PI_CODING_AGENT_DIR ?? join(home, ".pi", "agent");
 	return env.XDG_DATA_HOME ?? join(home, ".local", "share");
 };
+// The config home of the default Muse login, which holds `muse/auth.json`.
+export const museConfigDefault = (env: NodeJS.ProcessEnv) =>
+	env.XDG_CONFIG_HOME ?? join(env.HOME ?? homedir(), ".config");
 const sharedEntries = {
 	claude: ["projects", "sessions", "file-history", "todos", "tasks", "plans", "skills", "commands", "plugins"],
 	codex: ["sessions", "archived_sessions", "shell_snapshots", "skills", "prompts"],
 	pi: ["sessions", "skills", "extensions", "prompts"],
 	opencode: [],
+	muse: ["muse/sessions", "muse/skills", "muse/plugins"],
 };
-const configFiles = { claude: ["CLAUDE.md"], codex: ["AGENTS.md"], pi: [], opencode: [] };
+const configFiles = { claude: ["CLAUDE.md"], codex: ["AGENTS.md"], pi: [], opencode: [], muse: [] };
 export async function provisionProfile(home: string, id: string, input: HarnessAccountCreate, env: NodeJS.ProcessEnv) {
 	if (input.profilePath) {
 		if (!isAbsolute(input.profilePath)) throw invalidInput("profilePath", "Enter an absolute profile directory.");
@@ -38,8 +47,16 @@ export async function provisionProfile(home: string, id: string, input: HarnessA
 		const existing = join(source, name);
 		const origin = existsSync(existing) ? existing : join(home, "accounts", "shared", input.harness, name);
 		if (!existsSync(existing)) await mkdir(origin, { recursive: true, mode: 0o700 });
+		await mkdir(dirname(join(target, name)), { recursive: true, mode: 0o700 });
 		await symlink(origin, join(target, name));
 	}
+	// A managed Muse profile keeps the settings and the trusted directories
+	// of the default login, and only its login differs.
+	if (input.harness === "muse")
+		for (const name of ["settings.json", "trust.json"]) {
+			const file = join(museConfigDefault(env), "muse", name);
+			if (await Bun.file(file).exists()) await cp(file, join(target, "muse", name));
+		}
 	for (const name of configFiles[input.harness]) {
 		if (await Bun.file(join(source, name)).exists()) await cp(join(source, name), join(target, name));
 	}
@@ -52,7 +69,13 @@ export async function profileEnvironment(
 	if (!(await stat(account.profilePath)).isDirectory())
 		throw new Error("The selected account profile directory is missing.");
 	const result = { ...env };
-	if (account.harness === "pi" || account.harness === "opencode") {
+	if (account.harness === "muse") {
+		// An API key in the environment outranks the login of the profile.
+		delete result.META_API_KEY;
+		result.XDG_CONFIG_HOME = account.profilePath;
+		result.XDG_DATA_HOME = account.profilePath;
+	}
+	if (account.harness === "pi" || account.harness === "opencode" || account.harness === "muse") {
 		for (const key of [
 			"OPENAI_API_KEY",
 			"ANTHROPIC_API_KEY",

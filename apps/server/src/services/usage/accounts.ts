@@ -38,7 +38,7 @@ const listAccounts = (tx: Tx) =>
 // harness is the one hostDefault.ts resolves, with its source.
 export async function usageLogins(accounts: readonly AccountRow[], env: NodeJS.ProcessEnv): Promise<UsageLogin[]> {
 	const defaults = new Map<AccountHarness, Awaited<ReturnType<typeof resolveHostDefault<AccountRow>>>>();
-	for (const harness of ["claude", "codex", "pi", "opencode"] as const)
+	for (const harness of ["claude", "codex", "pi", "opencode", "muse"] as const)
 		defaults.set(harness, await resolveHostDefault(harness, accounts, env));
 	const defaultOf = (harness: AccountHarness, profilePath: string, id: string | null) => {
 		const resolved = defaults.get(harness)!;

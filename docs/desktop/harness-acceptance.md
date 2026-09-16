@@ -2,7 +2,7 @@
 
 ## Scope and evidence
 
-This contract covers Claude Code, Codex, OpenCode, and Pi. The terminal remains each harness's interactive CLI. Native hooks, plugins, and local control APIs supply structured observations. Terminal text and stored ticket state do not establish agent activity.
+This contract covers Claude Code, Codex, OpenCode, Pi, and Muse. The terminal remains each harness's interactive CLI, except for Muse, whose terminal is the transcript that the Trellis bridge prints. Native hooks, plugins, session protocols, and local control APIs supply structured observations. Terminal text and stored ticket state do not establish agent activity.
 
 Inspection date: 2026-09-15. Commands executed: `command -v <binary>`, `<binary> --version`, and `<binary> --help` for each harness. Additional help: `codex resume`, `codex app-server`, `opencode run`, and `opencode serve`. These commands do not prove authenticated model execution.
 
@@ -12,6 +12,7 @@ Inspection date: 2026-09-15. Commands executed: `command -v <binary>`, `<binary>
 | Codex | 0.154.0 | `/opt/homebrew/bin/codex` |
 | OpenCode | 1.18.31 | `/opt/homebrew/bin/opencode` |
 | Pi | 0.73.1 | `/opt/homebrew/bin/pi` |
+| Muse Code | 1.3.0 (1.3.0-R3233.1) | `/Users/navidkhan/.local/bin/muse` |
 
 Superset source: `/Users/navidkhan/projects/superset`, commit `1019540c0be5069eb5ff3ebb22e5707a42e0999d`. Pi package source: `/opt/homebrew/lib/node_modules/@mariozechner/pi-coding-agent`, version 0.73.1.
 
@@ -49,8 +50,25 @@ Each adapter preserves the harness's interactive terminal. The runtime owns term
 | Codex | One private app-server with `approval_policy="never"` and `sandbox_mode="danger-full-access"`; the native terminal attaches with `--remote`. | Native thread and turn APIs provide exact IDs, prompts, results, tools, errors, and interruption. Thread creation and resume validate effective model and permissions. |
 | OpenCode | `OPENCODE_PERMISSION='{"*":"allow"}'`; generated configuration sets `permission: "allow"`; optional `--model` and exact `--session`. | The generated plugin reports session and tool events. A private control socket handles prompt submission and interruption. |
 | Pi | Explicit built-in tools and a generated extension; optional `--model` and exact `--session`. | The extension reports native session identity, prompts, tool events, results, and abort outcomes. Built-in tools execute without approval prompts. |
+| Muse | One private `muse serve` host per attempt with `--trust-workspace`; workers add `--disable-sandbox`, managers add `--disable-shell --disable-write`; `session/start` with `approvalMode: allowAll` and the model, or `session/resume` with the exact session id. | The Muse Session Protocol provides exact session and turn ids, prompt receipts, tool items, agent messages, results, failures, retries, and interruption. A private control socket handles prompt submission and interruption. |
 
-Sources: [Claude](../../apps/server/src/agents/harnesses/claude/prepareClaude.ts), [Codex](../../apps/server/src/agents/harnesses/codex/bridgeEntry.ts), [OpenCode](../../apps/server/src/agents/harnesses/opencode/opencode.ts), and [Pi](../../apps/server/src/agents/harnesses/pi/pi.ts).
+Sources: [Claude](../../apps/server/src/agents/harnesses/claude/prepareClaude.ts), [Codex](../../apps/server/src/agents/harnesses/codex/bridgeEntry.ts), [OpenCode](../../apps/server/src/agents/harnesses/opencode/opencode.ts), [Pi](../../apps/server/src/agents/harnesses/pi/pi.ts), and [Muse](../../apps/server/src/agents/harnesses/muse/bridgeEntry.ts).
+
+## Muse acceptance
+
+Inspection date: 2026-09-16. Muse Code 1.3.0 exports its wire schema with `muse schema generate-ts`. The stable surface holds `session/start`, `session/resume`, `turn/start`, `turn/interrupt`, `turn/completed`, `item/started`, `item/completed`, `session/modelChanged`, `model/list`, and `usage/read`.
+The session host speaks line-delimited JSON-RPC over stdio and accepts one client. Every command carries a UUIDv7 `commandId`. A session directory copied into another XDG data home resumes there.
+Muse has no terminal client that attaches to a session host, and its plugin hooks did not run under `exec` or the TUI in this inspection. The bridge prints the transcript and reads typed input in raw mode.
+The session protocol has no field for a system prompt or a tool allowlist. A manager gets its persona through `AGENTS.md` in its private workspace, and the host flags remove shell and file writes. Muse keeps its base instructions and its read tools.
+`usage/read` returns no window until a turn runs in the same host, so a Muse profile reports `signed_out` or `unsupported` quota.
+The macOS Keychain holds the token of a Muse login. A managed Muse profile keeps its own `auth.json`, settings, and trust file; whether two profiles keep separate Keychain tokens is not verified.
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Deterministic host fixtures: identity, model, receipts, tools, terminal output, lists, resume, interrupt, prepared attempts, heartbeats, delivery errors, production host, restart | Written, not run in this change | `harnessHost.test.ts`, `preparedAttempt.test.ts`, `heartbeat.test.ts`, `deliveryErrors.test.ts`, `productionHost.test.ts`, `restartAgents.process.test.ts` with the `museServe.ts` fixture |
+| Real worker through `muse serve` on `meta/muse-spark-1.3`: session id, model, prompt receipt, shell tool call with its file result, follow-up through the control socket, stop | Passes on 2026-09-16 in 28 seconds through `HarnessHost` with the installed runtime | `/tmp/trellis-muse-smoke-cSexof/events.jsonl` |
+| Real interrupt of a sleeping shell tool and exact-session resume that recalls its marker | Passes on 2026-09-16 in 28 seconds; the tool ends with `cancelled by tool cancellation` and the resumed session answers with the marker | `/tmp/trellis-muse-smoke-Ywt7Zn` |
+| Real lifecycle in the acceptance suite | Pending | `real.test.ts` with `TRELLIS_NATIVE_MUSE_MODEL` |
 
 ## Codex acceptance
 
@@ -109,7 +127,7 @@ The host retains exact attempt and provider identities through send, interrupt, 
 A live provider session prevents a second manager process.
 
 The production host cases and interrupt boundary regression pass: 12 tests and 86 assertions.
-They cover all four harnesses, missing executables, assignment authentication, stale interrupt targets, and actionable errors when the runtime is unavailable.
+They cover all five harnesses, missing executables, assignment authentication, stale interrupt targets, and actionable errors when the runtime is unavailable.
 Evidence: `/tmp/trellis-interrupt-boundary-green.log`.
 
 The installed desktop drives TRL-71 through builder work, review fixes, and Human Review. Both agents stop with retained workspaces and output.

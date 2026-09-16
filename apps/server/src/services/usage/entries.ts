@@ -1,4 +1,5 @@
 import { collectLogFiles, dedupeLogFiles } from "./logs.ts";
+import { collectMuseEntries } from "./muse.ts";
 import { collectOpencodeEntries } from "./opencode.ts";
 import { parseClaudeLogFile, parseCodexLogFile, type UsageLogEntry } from "./parse.ts";
 import { collectPiEntries } from "./pi.ts";
@@ -47,6 +48,8 @@ export async function collectUsageEntries(
 			for (const file of files) await parseCodexLogFile(file, cutoffMs, out, sessionLabels);
 		} else if (root.harness === "pi") {
 			scannedFiles += await collectPiEntries(root.path, days, cutoffMs, out, sessionLabels);
+		} else if (root.harness === "muse") {
+			scannedFiles += await collectMuseEntries(root.path, days, cutoffMs, out, sessionLabels);
 		} else {
 			scannedFiles += await collectOpencodeEntries(root.path, cutoffMs, out, sessionLabels);
 		}
