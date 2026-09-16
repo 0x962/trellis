@@ -330,6 +330,13 @@
       "when": 1789571941305,
       "tag": "0049_manager_delegations",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1789575520000,
+      "tag": "0050_manager_disk_hygiene",
+      "breakpoints": true
     }
   ]
 }
