@@ -107,8 +107,15 @@ export const UsageReportSchema = z.object({
 });
 export type UsageReport = z.infer<typeof UsageReportSchema>;
 
+// The range as a query string carries digits, so the input accepts the
+// number and its text form.
+const UsageDaysInputSchema = z.union([
+	UsageDaysSchema,
+	z.enum(["7", "30", "90"]).transform((value) => Number(value) as UsageDays),
+]);
+
 export const UsageReportInputSchema = z.strictObject({
-	days: UsageDaysSchema.optional().describe("The range in local calendar days, ending today. Default 30."),
+	days: UsageDaysInputSchema.optional().describe("The range in local calendar days, ending today. Default 30."),
 	refresh: z.boolean().optional().describe("Scan the transcripts again instead of the cached report."),
 });
 export type UsageReportInput = z.infer<typeof UsageReportInputSchema>;
@@ -127,6 +134,9 @@ export const UsageAccountSchema = z.object({
 	// The shell command that signs the profile in again. The card shows it
 	// when the quota reports an expired or missing sign-in.
 	loginCommand: z.string().nullable(),
+	// The other accounts whose profile holds the same transcript directory.
+	// The usage of such a directory is one shared row of the report.
+	sharedWith: z.array(z.string()),
 	quota: z.object({
 		status: z.enum(["ok", "signed_out", "expired", "unavailable", "unsupported"]),
 		email: z.string().nullable(),

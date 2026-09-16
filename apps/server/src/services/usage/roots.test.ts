@@ -18,9 +18,9 @@ test("a managed profile that links its projects to the default login shares one 
 	await mkdir(join(home, "codex-home", "sessions"), { recursive: true });
 	const roots = await usageRoots(
 		[
-			{ harness: "claude", profilePath: join(home, "accounts", "work", "profile"), name: "Work" },
-			{ harness: "codex", profilePath: join(home, "codex-home"), name: "Codex Work" },
-			{ harness: "pi", profilePath: join(home, "missing"), name: "Pi" },
+			{ harness: "claude", profilePath: join(home, "accounts", "work", "profile"), name: "Work", isDefault: true },
+			{ harness: "codex", profilePath: join(home, "codex-home"), name: "Codex Work", isDefault: false },
+			{ harness: "pi", profilePath: join(home, "missing"), name: "Pi", isDefault: false },
 		],
 		{ HOME: home },
 	);
