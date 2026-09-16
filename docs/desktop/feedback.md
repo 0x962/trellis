@@ -43,6 +43,22 @@ The HTTP host, runtime, and five active agent processes retain their IDs during 
 The host returns HTTP 200. A separate check process exits with code zero during the build.
 Restart Trellis to activate this package. Evidence: `/tmp/trellis-main-production-install.log` and `/tmp/trellis-main-install-evidence.json`.
 
+## Trellis SRE persona
+
+The live Trellis SRE persona is `01M2N80YVHB63B85798BJPT4G4`, with kind `builder`.
+Its instructions live in [trellis-sre.md](../personas/trellis-sre.md).
+The TRL manager persona and Deploy Queue description route eligible tickets to one SRE batch owner.
+The SRE merges and tests the combined batch, builds from published main, installs once, and coordinates one restart with the manager.
+It retains a durable release record and a checkpoint comment that the manager can read.
+After resume, it verifies the active release, health, and saved provider conversations before a deployment result.
+Required human acceptance stays separate from release completion.
+
+The persona, manager instructions, and status description pass exact API readback on September 16 at 13:55 UTC.
+The running manager receives the coordination policy without a context reset.
+Six documentation checks and both API input schemas pass. Two Astra agents review the workflow and role boundaries.
+The quit-and-reopen command passes shell syntax and disabled AppleScript checks. This configuration task does not execute a deployment or restart.
+Evidence: `/tmp/trellis-sre-config-proof.json` and `/tmp/trellis-sre-docs-check.log`.
+
 ## Project navigation
 
 The project name opens its manager terminal. Each project row uses the Trellis mark.
