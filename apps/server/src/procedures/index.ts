@@ -9,6 +9,7 @@ import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
 import { needsYou } from "./needsYou.ts";
+import { notes } from "./notes.ts";
 import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
@@ -39,6 +40,7 @@ export const router = os.router({
 	timeline,
 	comments,
 	chat,
+	notes,
 	attachments,
 	pullRequests,
 	search,

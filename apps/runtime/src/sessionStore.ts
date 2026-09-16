@@ -249,8 +249,9 @@ export class SessionStore {
 		await record.process.input(bytes);
 		return null;
 	}
-	deliver(id: string, messageId: string, data: string) {
+	deliver(id: string, messageId: string, data: string, expected?: RuntimeExpectedTurn) {
 		const record = this.get(id);
+		if (!record.ledger.has(messageId)) assertExpectedTurn(record, expected);
 		return record.ledger.deliver(messageId, data, () => this.input(id, data));
 	}
 	resize(id: string, cols: number, rows: number) {

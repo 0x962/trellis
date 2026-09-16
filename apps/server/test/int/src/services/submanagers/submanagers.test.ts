@@ -122,8 +122,10 @@ test("a manager cannot delegate its own project or another root", async () => {
 test("an idle submanager gets its own heartbeat and appears in its parent's runtime context", async () => {
 	const { run } = await delegate();
 	const sessions = [controllerSession(run.terminalId!)];
-	await h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(61) });
-	const heartbeat = await h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(61) });
+	await h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(120) });
+	expect(await h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(120) })).toBeNull();
+	await h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(121) });
+	const heartbeat = await h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(121) });
 	expect(heartbeat?.runId).toBe(run.id);
 	expect(heartbeat?.events).toEqual([]);
 	const context = await h.run((ctx, tx) => agentContext(ctx, tx, { sessions, projectId: root, runId: "manager" }));
@@ -219,8 +221,8 @@ test("a paused ancestor prevents submanager heartbeats", async () => {
 		sql`UPDATE projects SET manager_config=manager_config || '{"dispatchPaused":true}'::jsonb WHERE id=${root}`,
 	);
 	const sessions = [controllerSession(run.terminalId!)];
-	await h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(61) });
-	expect(await h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(61) })).toBeNull();
+	await h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(121) });
+	expect(await h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(121) })).toBeNull();
 });
 
 test("a retired delegation gets a new assignment on the next delegation", async () => {

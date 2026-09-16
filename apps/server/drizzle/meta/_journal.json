@@ -348,8 +348,22 @@
     {
       "idx": 52,
       "version": "7",
-      "when": 1789575520002,
-      "tag": "0052_chat_ai_only_attachments",
+      "when": 1789582895293,
+      "tag": "0052_project_notes",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1789582900000,
+      "tag": "0053_persona_notes_instructions",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1789582900001,
+      "tag": "0054_chat_ai_only_attachments",
       "breakpoints": true
     }
   ]

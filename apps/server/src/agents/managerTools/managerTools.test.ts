@@ -87,7 +87,7 @@ test("manager tools expose record and assignment operations without terminal or 
 	expect(names.some((name) => name.includes("settings"))).toBe(false);
 });
 
-test("manager session reports contain the worker result and omit native tool and launch details", async () => {
+test("manager session reports omit diagnostic details by default", async () => {
 	const tools = managerTools(async () => ({
 		id: "attempt",
 		status: "running",
@@ -102,19 +102,13 @@ test("manager session reports contain the worker result and omit native tool and
 		process: { pid: 123 },
 	}));
 	expect(await tools.call("trellis_agentRuns_session", { id: "01M277VFQA2HAWB58T9NTW4MX5" })).toEqual({
-		id: "attempt",
-		sessionId: "provider",
-		turnId: "turn",
-		acknowledgedMessageIds: ["dispatch"],
 		status: "running",
 		checkedAt: "2026-09-15T22:00:00.000Z",
 		controllable: true,
 		working: false,
 		replacementAllowed: false,
 		activity: { state: "idle" },
-		result: { id: "result", text: "Worker verified the fix." },
 		outcome: "completed",
-		error: null,
 	});
 });
 
@@ -188,8 +182,6 @@ test("a missing manager session explicitly reports unknown work and unconfirmed 
 		working: false,
 		replacementAllowed: false,
 		activity: null,
-		result: null,
-		error: "The execution service has no live record of this attempt.",
 	});
 });
 
@@ -222,7 +214,7 @@ test("session and list agree when an assignment never launched a process", async
 		error: "Executable not found",
 	};
 	const tools = managerTools(async (operation) => (operation === "agentRuns.session" ? null : [record]));
-	expect(await tools.call("trellis_agentRuns_session", { id: record.id })).toMatchObject({
+	expect(await tools.call("trellis_agentRuns_session", { id: record.id, include: ["error"] })).toMatchObject({
 		working: false,
 		replacementAllowed: true,
 		error: "Executable not found",

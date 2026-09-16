@@ -34,7 +34,9 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			!expected ||
 			typeof expected !== "object" ||
 			(expected.turnId !== null && typeof expected.turnId !== "string") ||
-			typeof expected.activityAt !== "string"
+			typeof expected.activityAt !== "string" ||
+			(expected.idleBefore !== undefined &&
+				(typeof expected.idleBefore !== "string" || !Number.isFinite(Date.parse(expected.idleBefore))))
 		)
 			throw new Error("An expected provider turn requires turnId and activityAt");
 	}

@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:te
 import { sql } from "drizzle-orm";
 import { reserve } from "../../../../../src/services/agentRuns/reserve.ts";
 import { assertCurrentAttempt } from "../../../../../src/services/assignments/attempts.ts";
+import * as notes from "../../../../../src/services/notes/notes.ts";
 import * as personas from "../../../../../src/services/personas.ts";
 import { seedActors, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
@@ -140,4 +141,33 @@ test("historical external manager metadata does not reserve a native manager slo
 	);
 	expect(current.run.runtime).toBe("native");
 	expect(current.run.id).not.toBe("external");
+});
+
+// The launch context ends with the notes of the project for the kind of
+// agent that starts: the worker audience for a ticket agent, the manager
+// audience for a manager. A note for the other audience stays out.
+test("the launch context carries the project notes for the agent's audience", async () => {
+	const write = (input: Record<string, unknown>) => h.run((ctx, tx) => notes.create(ctx, tx, input));
+	await write({ project: "ASG", title: "Fresh worktree", body: "Run bun install first.", audience: "worker" });
+	await write({ project: "ASG", title: "Release policy", body: "One SRE owns the queue.", audience: "manager" });
+	await write({ project: "ASG", title: "CI", body: "GitHub Actions runs no job: billing hold." });
+	const worker = await start("notes:worker");
+	if (worker.replay) throw new Error("Expected a new assignment");
+	expect(worker.context).toContain("## Project notes");
+	expect(worker.context).toContain("- Fresh worktree (ASG, dana, updated ");
+	expect(worker.context).toContain("  Run bun install first.");
+	expect(worker.context).toContain("- CI (ASG, dana, updated ");
+	expect(worker.context).not.toContain("Release policy");
+	expect(worker.context.indexOf("Repositories:")).toBeLessThan(worker.context.indexOf("## Project notes"));
+
+	const managerId = (
+		await h.run((ctx, tx) => personas.create(ctx, tx, { name: "Manager", kind: "manager", instruction: "Manage." }))
+	).id;
+	const manager = await h.run((ctx, tx) =>
+		reserve(ctx, tx, { personaId: managerId, project, requestId: "notes:manager" }),
+	);
+	if (manager.replay) throw new Error("Expected a new assignment");
+	expect(manager.context).toContain("- Release policy (ASG, dana, updated ");
+	expect(manager.context).toContain("- CI (ASG, dana, updated ");
+	expect(manager.context).not.toContain("Fresh worktree");
 });

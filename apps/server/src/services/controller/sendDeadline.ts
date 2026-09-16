@@ -1,4 +1,4 @@
-export const sendDeadline = async (send: Promise<unknown>, milliseconds = 15_000) => {
+export const sendDeadline = async <T>(send: Promise<T>, milliseconds = 15_000) => {
 	let timer: ReturnType<typeof setTimeout>;
 	const deadline = new Promise<never>((_resolve, reject) => {
 		timer = setTimeout(
@@ -9,5 +9,5 @@ export const sendDeadline = async (send: Promise<unknown>, milliseconds = 15_000
 			milliseconds,
 		);
 	});
-	await Promise.race([send, deadline]).finally(() => clearTimeout(timer));
+	return Promise.race([send, deadline]).finally(() => clearTimeout(timer));
 };
