@@ -26,7 +26,12 @@ export const NeedsYouListInputSchema = z.object({
 	visibility: NeedsYouVisibilitySchema.default("active"),
 	sort: NeedsYouSortSchema.default("priority"),
 	ticket: z.string().optional(),
-	limit: z.number().int().min(1).max(200).default(50),
+	limit: z
+		.number()
+		.int("Enter a whole number for the limit.")
+		.min(1, "Enter a limit of 1 to 200.")
+		.max(200, "Enter a limit of 1 to 200.")
+		.default(50),
 	cursor: NeedsYouCursorSchema.nullish(),
 });
 export type NeedsYouListInput = z.input<typeof NeedsYouListInputSchema>;

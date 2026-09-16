@@ -28,3 +28,17 @@ test("a post needs a body of 1 to 20000 characters", () => {
 	);
 	expect(ChatPostInputSchema.safeParse({ project: "TRL", channel: "ai", body: "ok" }).success).toBe(true);
 });
+
+// A person types a chat message and a page limit, so each bound reads as a
+// sentence.
+test("a chat body out of bounds reads as a sentence", () => {
+	const message = (body: string) =>
+		ChatPostInputSchema.safeParse({ project: "TRL", channel: "ai", body }).error!.issues[0]!.message;
+	expect(message("")).toBe("Enter a message of 1 to 20,000 characters.");
+	expect(message("b".repeat(20_001))).toBe("Enter a message of 1 to 20,000 characters.");
+});
+
+test("a chat list limit out of bounds reads as a sentence", () => {
+	const input = { project: "TRL", channel: "ai", limit: "201" };
+	expect(ChatListInputSchema.safeParse(input).error!.issues[0]!.message).toBe("Enter a limit of 1 to 200.");
+});
