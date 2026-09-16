@@ -25,6 +25,19 @@ const sessionSchema = z.object({
 			tool: z
 				.object({ id: z.string(), name: z.string(), input: z.unknown().optional(), output: z.unknown().optional() })
 				.nullable(),
+			lastTool: z
+				.object({
+					id: z.string(),
+					name: z.string(),
+					input: z.unknown().optional(),
+					output: z.unknown().optional(),
+					startedAt: z.string().nullable(),
+					updatedAt: z.string(),
+					status: z.enum(["running", "completed", "failed"]),
+					error: z.string().nullable(),
+				})
+				.nullable(),
+			lastMessage: z.object({ text: z.string(), at: z.string() }).nullable(),
 			error: z.string().nullable(),
 			outcome: z.enum(["completed", "interrupted", "failed"]).nullable(),
 		})
@@ -46,6 +59,22 @@ const sessionSchema = z.object({
 	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
+	resume: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "POST",
+			path: "/agent-runs/{id}/resume",
+			summary:
+				"Resume a stopped assignment with its exact conversation and workspace, optionally with another account of the same harness. Stop and inspect the prior attempt first.",
+		})
+		.input(
+			idInput.extend({
+				accountId: UlidSchema.optional(),
+				expectedTerminalId: z.string().min(1),
+				requestId: z.string().min(1).max(200),
+			}),
+		)
+		.output(AgentRunSchema),
 	interrupt: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/agent-runs/{id}/interrupt", summary: "Interrupt the current agent turn" })
@@ -81,8 +110,12 @@ export const agentRuns = {
 		.output(z.object({})),
 	send: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
-		.route({ method: "POST", path: "/agent-runs/{id}/send", summary: "Send an agent a follow-up" })
-		.input(idInput.extend({ text: z.string().trim().min(1).max(20000) }))
+		.route({
+			method: "POST",
+			path: "/agent-runs/{id}/send",
+			summary: "Send an agent a follow-up. With interrupt, stop the current turn first.",
+		})
+		.input(idInput.extend({ text: z.string().trim().min(1).max(20000), interrupt: z.boolean().optional() }))
 		.output(AgentRunSchema),
 	output: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))

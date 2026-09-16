@@ -43,10 +43,6 @@ export class RuntimeClient {
 			);
 			socket.on("data", (chunk) => {
 				buffer += chunk;
-				if (buffer.length > 3_000_000) {
-					fail(new Error("Runtime response exceeds the byte limit"));
-					return;
-				}
 				const end = buffer.indexOf("\n");
 				if (end < 0) return;
 				let reply: RuntimeResponse;
@@ -79,10 +75,9 @@ export class RuntimeClient {
 		token: string,
 		messageId: string,
 		promptDigest: string,
-		requireIdle = true,
 		expected?: RuntimeExpectedTurn,
 	) {
-		return this.call("registerNativeDelivery", { id, token, messageId, promptDigest, requireIdle, expected });
+		return this.call("registerNativeDelivery", { id, token, messageId, promptDigest, expected });
 	}
 	observe(id: string, token: string, event: HarnessEvent, expected?: RuntimeExpectedTurn) {
 		return this.call("observe", { id, token, event, expected });
@@ -114,8 +109,8 @@ export class RuntimeClient {
 	input(id: string, data: string, userInput?: boolean, expected?: RuntimeExpectedTurn) {
 		return this.call("input", { id, data, userInput, expected });
 	}
-	deliver(id: string, messageId: string, data: string, requireIdle?: boolean) {
-		return this.call("deliver", { id, messageId, data, requireIdle });
+	deliver(id: string, messageId: string, data: string, expected?: RuntimeExpectedTurn) {
+		return this.call("deliver", { id, messageId, data, expected });
 	}
 	resize(id: string, cols: number, rows: number) {
 		return this.call("resize", { id, cols, rows });

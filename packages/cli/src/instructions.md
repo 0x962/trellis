@@ -11,12 +11,17 @@ Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `T
 6. Ask a question:   trellis comment KEY-42 --body "..." and then wait for the reply: trellis watch --ticket KEY-42
 7. Finish coding:    trellis move KEY-42 agent-review
 8. When CI is green and the self-review is done: trellis move KEY-42 human-review
-Never move a ticket to Done; a human does that. Never delete tickets.
+Never delete tickets.
 
 Read a comment thread: trellis thread show <comment-id>
 Reply in that thread: trellis comment KEY-42 --reply-to <comment-id> --body "..."
 Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
+
+Chat room: every project tree has one, with channels. #ai and #general exist in every room. Every live agent receives each post; @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
+Read a channel: trellis chat read KEY ai
+Post a message: trellis chat post KEY ai --body "..."
+List channels:  trellis chat channels KEY
 
 PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."

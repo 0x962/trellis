@@ -1,7 +1,7 @@
-import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { Tx } from "../../db/tx.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
+import { dispatchChat } from "../chat/dispatch.ts";
 import { dispatchMentions } from "../commentMentions/dispatch.ts";
 import type { ServiceCtx } from "../support.ts";
 import { agentContext } from "./agentContext/index.ts";
@@ -9,7 +9,6 @@ import { claim, complete, defer } from "./controller.ts";
 import { coordination } from "./coordination.ts";
 import { managerMessage } from "./message.ts";
 import { dispatchMessageId } from "./messageId.ts";
-import { readySession } from "./readySession.ts";
 import { reconcile } from "./reconcile.ts";
 import { sendDeadline } from "./sendDeadline.ts";
 import type { Dispatch } from "./types.ts";
@@ -19,6 +18,7 @@ type Ctx = ServiceCtx & { publicUrl: string };
 export const dispatch = async (ctx: Ctx) => {
 	const sessions = await readRuntimeSessions(ctx.home);
 	await dispatchMentions(ctx, sessions);
+	await dispatchChat(ctx, sessions);
 	await ctx.newTx((tx) => reconcile({ now: ctx.now() }, tx, { sessions }));
 	const deliveries: Dispatch[] = [];
 	for (let i = 0; i < 20; i++) {
@@ -28,35 +28,30 @@ export const dispatch = async (ctx: Ctx) => {
 	}
 	await Promise.all(
 		deliveries.map(async (delivery) => {
-			let state: "sent" | "unknown" = "sent";
+			let state: "sent" | "unknown" | "canceled" = "sent";
 			let attempted = false;
 			let error: string | null = null;
 			try {
-				if (!readySession(await nativeHost(ctx.home).status(delivery.terminalId!))) {
-					await ctx.newTx((tx) =>
-						defer({ now: ctx.now() }, tx, { id: delivery.id, generation: delivery.generation, error: null }),
-					);
-					return;
-				}
 				const context = await ctx.newTx((tx) => coordination(tx, delivery));
 				const agents = await ctx.newTx((tx) =>
 					agentContext({ now: ctx.now() }, tx, { sessions, projectId: delivery.projectId, runId: delivery.runId! }),
 				);
 				attempted = true;
-				await sendDeadline(
+				const sent = await sendDeadline(
 					prepareSend(ctx, {
 						id: delivery.runId!,
 						text: managerMessage(delivery, context, agents),
 						messageId: dispatchMessageId(delivery),
-						requireIdle: true,
 						expectedTerminalId: delivery.terminalId!,
 						expectedSessionId: delivery.sessionId,
+						idleForMs: delivery.events.length === 0 && delivery.nextActions.length === 0 ? 120_000 : undefined,
 					}),
 				);
+				if (sent.skipped) state = "canceled";
 			} catch (cause) {
 				state = "unknown";
 				error = cause instanceof Error ? cause.message : String(cause);
-				if (!attempted || (cause as { code?: string }).code === "RUNTIME_BUSY") {
+				if (!attempted) {
 					await ctx.newTx((tx) =>
 						defer({ now: ctx.now() }, tx, { id: delivery.id, generation: delivery.generation, error }),
 					);

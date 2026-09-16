@@ -23,7 +23,7 @@ export const nativeWorkspace = async (
 	const destination = join(home, "agents", run.id, "work");
 	await mkdir(join(home, "agents", run.id), { recursive: true, mode: 0o700 });
 	await exec("git", ["-C", source, "worktree", "add", "-b", runBranch(run), destination, "HEAD"], {
-		env: await executionEnvironment(),
+		env: { NODE_ENV: process.env.NODE_ENV, ...(await executionEnvironment()) },
 	});
 	return destination;
 };

@@ -123,7 +123,6 @@ const protocol = (identifier: string) => [
 	`- Split the work: trellis sub ${identifier} -t "..."`,
 	"",
 	`When your work is ready for review, run: trellis move ${identifier} agent-review`,
-	"Never move the ticket to done. A human does that after the review.",
 ];
 
 const sections = (parts: string[][]) => parts.filter((part) => part.length > 0).map((part) => part.join("\n"));

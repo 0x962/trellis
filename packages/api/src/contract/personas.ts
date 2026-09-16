@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
 	PersonaCreateInputSchema,
 	PersonaDeleteInputSchema,
+	PersonaIdInputSchema,
 	PersonaSchema,
 	PersonaUpdateInputSchema,
 } from "../schemas/persona.ts";
@@ -12,6 +13,10 @@ export const personas = {
 		.route({ method: "GET", path: "/personas", summary: "List personas" })
 		.input(z.strictObject({}))
 		.output(z.array(PersonaSchema)),
+	get: base
+		.route({ method: "GET", path: "/personas/{id}", summary: "Read one persona" })
+		.input(PersonaIdInputSchema)
+		.output(PersonaSchema),
 	create: base
 		.route({ method: "POST", path: "/personas", successStatus: 201, summary: "Create a persona" })
 		.input(PersonaCreateInputSchema)

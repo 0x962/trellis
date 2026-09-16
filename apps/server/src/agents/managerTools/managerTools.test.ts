@@ -55,6 +55,22 @@ test.each([
 	expect(original.instruction).toBe("Historical manager persona and personal UI policy");
 });
 
+test("manager personas list omits instructions and personas get returns one full persona", async () => {
+	const persona = {
+		id: "01M277VFQA2HAWB58T9NTW4MX5",
+		name: "Trellis",
+		kind: "manager",
+		instruction: "A".repeat(90_000),
+		createdAt: "2026-09-11T03:23:20.679Z",
+		updatedAt: "2026-09-16T14:11:23.810Z",
+	};
+	const tools = managerTools(async (operation) => (operation === "personas.list" ? [persona] : persona));
+	const { instruction, ...summary } = persona;
+	expect(await tools.call("trellis_personas_list", {})).toEqual([summary]);
+	expect(await tools.call("trellis_personas_get", { id: persona.id })).toEqual(persona);
+	expect(instruction).toHaveLength(90_000);
+});
+
 test("manager tools expose record and assignment operations without terminal or repository operations", () => {
 	const tools = managerTools(async () => ({}));
 	const names = tools.list().map((tool) => tool.name);
@@ -71,7 +87,7 @@ test("manager tools expose record and assignment operations without terminal or 
 	expect(names.some((name) => name.includes("settings"))).toBe(false);
 });
 
-test("manager session reports contain the worker result and omit native tool and launch details", async () => {
+test("manager session reports omit diagnostic details by default", async () => {
 	const tools = managerTools(async () => ({
 		id: "attempt",
 		status: "running",
@@ -86,19 +102,13 @@ test("manager session reports contain the worker result and omit native tool and
 		process: { pid: 123 },
 	}));
 	expect(await tools.call("trellis_agentRuns_session", { id: "01M277VFQA2HAWB58T9NTW4MX5" })).toEqual({
-		id: "attempt",
-		sessionId: "provider",
-		turnId: "turn",
-		acknowledgedMessageIds: ["dispatch"],
 		status: "running",
 		checkedAt: "2026-09-15T22:00:00.000Z",
 		controllable: true,
 		working: false,
 		replacementAllowed: false,
 		activity: { state: "idle" },
-		result: { id: "result", text: "Worker verified the fix." },
 		outcome: "completed",
-		error: null,
 	});
 });
 
@@ -172,8 +182,6 @@ test("a missing manager session explicitly reports unknown work and unconfirmed 
 		working: false,
 		replacementAllowed: false,
 		activity: null,
-		result: null,
-		error: "The execution service has no live record of this attempt.",
 	});
 });
 
@@ -206,9 +214,35 @@ test("session and list agree when an assignment never launched a process", async
 		error: "Executable not found",
 	};
 	const tools = managerTools(async (operation) => (operation === "agentRuns.session" ? null : [record]));
-	expect(await tools.call("trellis_agentRuns_session", { id: record.id })).toMatchObject({
+	expect(await tools.call("trellis_agentRuns_session", { id: record.id, include: ["error"] })).toMatchObject({
 		working: false,
 		replacementAllowed: true,
 		error: "Executable not found",
 	});
+});
+
+test("managers can inspect accounts and select one without account administration", async () => {
+	const calls: { operation: string; input: unknown }[] = [];
+	const tools = managerTools(async (operation, input) => {
+		calls.push({ operation, input });
+		return {};
+	});
+	const names = tools.list().map((tool) => tool.name);
+	expect(names).toContain("trellis_harnessAccounts_list");
+	expect(names).toContain("trellis_harnessAccounts_quota");
+	expect(names).not.toContain("trellis_harnessAccounts_create");
+	expect(names).not.toContain("trellis_harnessAccounts_update");
+	expect(names).not.toContain("trellis_harnessAccounts_remove");
+	const accountId = "01M277VFQA2HAWB58T9NTW4MX5";
+	await tools.call("trellis_agentRuns_start", { personaId: accountId, ticket: "TRL-42", accountId });
+	await tools.call("trellis_agentRuns_resume", {
+		id: accountId,
+		accountId,
+		expectedTerminalId: "old-attempt",
+		requestId: "switch",
+	});
+	expect(calls.map((call) => call.input)).toEqual([
+		{ personaId: accountId, ticket: "TRL-42", accountId },
+		{ id: accountId, accountId, expectedTerminalId: "old-attempt", requestId: "switch" },
+	]);
 });

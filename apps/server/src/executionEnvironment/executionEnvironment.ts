@@ -1,9 +1,15 @@
-type ResolveEnvironment = (shell: string, bundledBin: string, env: NodeJS.ProcessEnv) => Promise<NodeJS.ProcessEnv>;
+export type ExecutionEnvironment = Record<string, string | undefined>;
 
-const values = (env: NodeJS.ProcessEnv) =>
+type ResolveEnvironment = (
+	shell: string,
+	bundledBin: string,
+	env: ExecutionEnvironment,
+) => Promise<ExecutionEnvironment>;
+
+const values = (env: ExecutionEnvironment) =>
 	Object.fromEntries(Object.entries(env).filter((entry): entry is [string, string] => entry[1] !== undefined));
 
-export function createExecutionEnvironment(env: NodeJS.ProcessEnv, resolve: ResolveEnvironment) {
+export function createExecutionEnvironment(env: ExecutionEnvironment, resolve: ResolveEnvironment) {
 	let pending: Promise<Record<string, string>> | undefined;
 	return () => {
 		if (!env.TRELLIS_EXECUTION_SHELL) return Promise.resolve(values(env));

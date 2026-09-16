@@ -11,6 +11,8 @@ describe("events", () => {
 			"attachment.created",
 			"attachment.deleted",
 			"bye",
+			"chat.channels",
+			"chat.message",
 			"comment.created",
 			"comment.deleted",
 			"comment.updated",

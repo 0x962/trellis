@@ -4,10 +4,13 @@ import * as agentRuns from "./agentRuns/agentRuns.ts";
 import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
 import { readNativeWork, setNativeWork } from "./agentRuns/nativeControl.ts";
+import { prepareResume } from "./agentRuns/resume.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
+import * as chatChannels from "./chat/channels.ts";
+import * as chatMessages from "./chat/messages.ts";
 import * as comments from "./comments.ts";
 import * as controller from "./controller/controller.ts";
 import * as controllerDispatch from "./controller/dispatch.ts";
@@ -31,6 +34,8 @@ import { get as getFlowExecution } from "./flowExecutions/queries.ts";
 import { start as startFlowExecution } from "./flowExecutions/start.ts";
 import * as flows from "./flows/flows.ts";
 import * as flowSave from "./flows/save.ts";
+import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
+import { prepareQuota } from "./harnessAccounts/quota.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
@@ -49,6 +54,10 @@ import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
 import * as settings from "./settings.ts";
 import * as statuses from "./statuses.ts";
+import { list as listSubmanagers } from "./submanagers/list.ts";
+import { prepareStart as startSubmanager } from "./submanagers/prepareStart.ts";
+import { resize as resizeSubmanager } from "./submanagers/resize.ts";
+import { prepareRetire as retireSubmanager } from "./submanagers/retire.ts";
 import type { IoCtx, PrepareCtx } from "./support.ts";
 import * as system from "./system.ts";
 import * as tickets from "./tickets.ts";
@@ -94,6 +103,15 @@ const agentMutation = (prepare: Prepare) =>
 	);
 
 export const services = {
+	"submanagers.list": core("read", listSubmanagers),
+	"submanagers.start": agentMutation(startSubmanager),
+	"submanagers.resize": core("mutation", resizeSubmanager),
+	"submanagers.retire": prepared("mutation", retireSubmanager, agentTerminal.result),
+	"harnessAccounts.list": io("read", harnessAccounts.list),
+	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),
+	"harnessAccounts.update": io("mutation", harnessAccounts.update),
+	"harnessAccounts.remove": io("mutation", harnessAccounts.remove),
+	"harnessAccounts.quota": prepared("read", prepareQuota, agentTerminal.result),
 	"flowExecutions.start": core("mutation", startFlowExecution),
 	"flowExecutions.get": core("read", getFlowExecution),
 	"flowExecutions.list": core("read", listFlowExecutions),
@@ -160,9 +178,11 @@ export const services = {
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
 	"agentRuns.start": agentMutation(agentRuns.prepareStart),
+	"agentRuns.resume": agentMutation(prepareResume),
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
 	"personas.list": core("read", personas.list),
+	"personas.get": core("read", personas.get),
 	"personas.create": core("mutation", personas.create),
 	"personas.update": core("mutation", personas.update),
 	"personas.delete": core("mutation", personas.remove),
@@ -204,6 +224,10 @@ export const services = {
 	"comments.create": core("mutation", comments.create),
 	"comments.update": core("mutation", comments.update),
 	"comments.delete": core("mutation", comments.delete),
+	"chat.channels": core("read", chatChannels.list),
+	"chat.createChannel": core("mutation", chatChannels.create),
+	"chat.list": core("read", chatMessages.list),
+	"chat.post": core("mutation", chatMessages.post),
 	"attachments.list": io("read", attachments.list),
 	"attachments.upload": io("mutation", attachments.upload),
 	"attachments.get": io("read", attachments.get),

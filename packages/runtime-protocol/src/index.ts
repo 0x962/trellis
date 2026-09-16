@@ -1,4 +1,4 @@
-export const RUNTIME_PROTOCOL_VERSION = 7;
+export const RUNTIME_PROTOCOL_VERSION = 8;
 export type HarnessTool = {
 	id: string;
 	name: string;
@@ -116,6 +116,7 @@ export interface RuntimeDelivery {
 export interface RuntimeExpectedTurn {
 	turnId: string | null;
 	activityAt: string;
+	idleBefore?: string;
 }
 export interface RuntimeNativeDelivery {
 	messageId: string;
@@ -129,7 +130,6 @@ export interface RuntimeMethods {
 			token: string;
 			messageId: string;
 			promptDigest: string;
-			requireIdle: boolean;
 			expected?: RuntimeExpectedTurn;
 		};
 		result: RuntimeNativeDelivery;
@@ -154,7 +154,10 @@ export interface RuntimeMethods {
 		result: RuntimeOutputEvent;
 	};
 	shutdown: { params: Record<string, never>; result: null };
-	deliver: { params: { id: string; messageId: string; data: string; requireIdle?: boolean }; result: RuntimeDelivery };
+	deliver: {
+		params: { id: string; messageId: string; data: string; expected?: RuntimeExpectedTurn };
+		result: RuntimeDelivery;
+	};
 	hello: { params: Record<string, never>; result: RuntimeHello };
 	list: { params: RuntimeListInput; result: RuntimeProcessStatus[] };
 	start: { params: LaunchSpec; result: RuntimeSession };

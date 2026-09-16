@@ -29,7 +29,7 @@ export type Dispatch = {
 	terminalId: string | null;
 	sessionId: string | null;
 	generation: number;
-	state: "pending" | "sending" | "sent" | "unknown";
+	state: "pending" | "sending" | "sent" | "unknown" | "canceled";
 	workState: "untracked" | "open" | "handled";
 	outcomes: WorkOutcome[];
 	nextActions: ManagerNextAction[];

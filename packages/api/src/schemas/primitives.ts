@@ -22,7 +22,7 @@ export const KeySchema = z
 // path, so a sub-project cannot take those names.
 export const slugPattern = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-export const reservedSlugs: ReadonlySet<string> = new Set(["board", "settings"]);
+export const reservedSlugs: ReadonlySet<string> = new Set(["board", "settings", "chat"]);
 
 export const SlugSchema = z
 	.string()

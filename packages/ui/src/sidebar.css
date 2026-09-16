@@ -1,5 +1,5 @@
 @utility sidebar-leading {
-	@apply flex w-4 shrink-0 items-center justify-center mr-2;
+	@apply flex w-4 shrink-0 items-center justify-center mr-1.5;
 }
 
 @utility sidebar-label {
@@ -10,10 +10,10 @@
 	@apply flex w-6 shrink-0 items-center justify-center text-xs tabular pointer-coarse:w-11;
 }
 
-/* A group title: small, spaced capitals, quiet enough that the rows under
-   it read first. */
+/* A group title: one step larger and heavier than the rows
+   under it. */
 @utility sidebar-section {
-	@apply flex h-7 pointer-coarse:h-11 items-center justify-between pl-2 pr-1 text-[11.5px] font-medium tracking-wider uppercase text-fg-faint;
+	@apply flex h-8 pointer-coarse:h-11 items-center justify-between pl-2 pr-1 text-base font-semibold text-fg;
 }
 
 @utility sidebar-selected {

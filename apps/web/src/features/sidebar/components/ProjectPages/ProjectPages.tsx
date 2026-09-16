@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
-import { cx } from "@trellis/ui";
+import { ActivityDot, cx } from "@trellis/ui";
 import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectPath";
+import { useChatUnread } from "../../../chat/useChatUnread";
 
 const indent = ["pl-8", "pl-8", "pl-11", "pl-14", "pl-17"] as const;
 
@@ -17,14 +18,17 @@ export function ProjectPages({
 	const current = projectRefOfPathname(pathname) === project.path;
 	const manager = pathname.endsWith("/settings/manager");
 	const settings = pathname.endsWith("/settings");
+	const chat = pathname.endsWith("/chat");
+	const { unread } = useChatUnread(project.rootId);
 	return (
 		<li>
 			<nav aria-label={`${project.name} pages`}>
 				<ul className="flex flex-col">
 					{[
-						{ label: "Tickets", suffix: "", active: current && !settings && !manager },
-						{ label: "Settings", suffix: "/settings", active: current && settings },
-					].map(({ label, suffix, active }) => (
+						{ label: "Tickets", suffix: "", active: current && !settings && !manager && !chat, dot: false },
+						{ label: "Chat", suffix: "/chat", active: current && chat, dot: unread.size > 0 },
+						{ label: "Settings", suffix: "/settings", active: current && settings, dot: false },
+					].map(({ label, suffix, active, dot }) => (
 						<li key={label}>
 							<Link
 								data-project-page=""
@@ -39,6 +43,11 @@ export function ProjectPages({
 								)}
 							>
 								<span className="sidebar-label">{label}</span>
+								{dot && (
+									<span data-slot="trailing" className="sidebar-trailing">
+										<ActivityDot label="Unread chat messages" placement="inline" />
+									</span>
+								)}
 							</Link>
 						</li>
 					))}
