@@ -111,6 +111,8 @@ test("all sort orders apply before pagination and use stable ties", async () => 
 	for (const [sort, expected] of Object.entries(orders)) {
 		const first = await read({ sort, limit: 2 });
 		const second = await read({ sort, limit: 2, cursor: first.nextCursor });
+		expect(first.total).toBe(4);
+		expect(second.total).toBe(4);
 		expect([...first.items, ...second.items].map((item) => item.ticket.title)).toEqual(expected);
 		expect(second.nextCursor).toBeNull();
 	}

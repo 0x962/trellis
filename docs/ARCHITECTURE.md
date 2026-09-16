@@ -861,9 +861,12 @@ pair link, beside the ticket, board, table, and live paths.
 `packages/ui` owns every visual. Base UI gives behavior and accessibility. There
 is no shadcn and no Radix.
 
+[UI patterns](UI_PATTERNS.md) lists the canonical controls, group headers, and row patterns.
+Reuse these elements across pages. Ask the user for advice before adding a new UI element or interaction pattern.
+
 - Type: two typefaces carry the interface. `--sans` is Inter Variable, then a metric-matched Arial fallback, and it sets the prose: labels, buttons, menus, descriptions, and comments. `--mono` is BerkeleyMono, then JetBrains Mono, then a metric-matched local fallback, and it sets ticket ids through `font-mono`, plus code blocks and raw terminal output. The build preloads Inter and JetBrains Mono 400 only. BerkeleyMono is licensed per machine, so the repo ships no file for it and declares no face. A machine without it falls through to JetBrains Mono from fontsource, in the latin subset and the weights 400, 500, and 600. `tnum` lines up ids, counts, and times.
 - The type scale is 11, 12, 13, 14, 16, 20, and 24 px, plus the two micro steps `text-kbd` at 10 px and `text-initials` at 9 px.
-- Spacing has a 4 px base. Every radius token is 0 px, so controls and surfaces have square corners, including avatars, badges, and switch thumbs.
+- Spacing has a 4 px base. Radius tokens range from 3 to 16 px, with `round` for circles and pills. Icon actions use the circular `IconButton`.
 - The tokens carry a light and a dark palette in `tokens.css`. Every neutral is one seed grey mixed with white or with black, and a step keeps its position in the ramp across the two themes. The light `--success`, `--warning`, and `--danger` are dark enough for 4.5:1 on their own soft grounds. `tokens.test.ts` computes the ratio of every text and ground pair, and pins every value in the file, so Biome skips it.
 - The bare `:root` block is the light palette. A media block serves the system preference and a `data-theme` block serves an explicit choice. A fresh profile starts dark: an inline head script reads `trellis-theme` from local storage, writes `dark` when the key is absent, and stamps `data-theme` before the first paint.
 - Dark mode swaps every shadow for a 1 px strong border.
@@ -874,7 +877,7 @@ is no shadcn and no Radix.
 - Never animate a re-sort, a text change, a counter, a skeleton swap, or the theme switch. Use `motion/mini` and CSS transitions only.
 - Focus uses a 2 px accent outline on `:focus-visible`. A row or a card uses an inset left bar.
 - The primitives are Avatar, Badge, Button, Checkbox, Chip, Command, ConfirmDialog, Dialog, EmptyState, EntityCard, IconButton, Input, Kbd, Menu, Popover, ScrollArea, SectionHeader, Segmented, Select, Separator, Sheet, Skeleton, Spinner, Switch, Tabs, Textarea, Toast, and Tooltip.
-- The domain visuals are StatusIcon, PriorityIcon, CheckRibbon, ActorChip, TicketId, and TrellisMark.
+- Domain visuals include StatusIcon, PriorityIcon, CheckRibbon, ActorChip, TicketId, TrellisMark, InboxRow, FilterBar, FilterPopover, DisplayPopover, and GroupHeader.
 - The route `/_gallery` renders every primitive in every state, in both themes.
 - No raw color or spacing literal appears outside `packages/ui`. The Tailwind theme clears `--color-*`, so a utility such as `bg-red-500` does not exist. A Biome rule and a test enforce the tokens.
 
