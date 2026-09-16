@@ -38,16 +38,15 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 	const direction = input.sort.startsWith("-") && input.sort !== "-priority" ? -1 : 1;
 	const compare = (a: { key: string; age: string; id: string }, b: { key: string; age: string; id: string }) =>
 		direction * compareText(a.key, b.key) || compareText(a.age, b.age) || compareText(a.id, b.id);
-	const sorted = (await candidates(tx, actor))
+	const matching = (await candidates(tx, actor))
 		.filter(
 			(item) =>
 				(!input.section || item.section === input.section) &&
 				visibility(item, ctx.now) === input.visibility &&
 				(!input.ticket || item.identifier === input.ticket.toUpperCase() || item.ticketId === input.ticket),
 		)
-		.map((item) => ({ item, key: key(item, input.sort), age: item.createdAt, id: item.id }))
-		.filter((item) => !input.cursor || compare(item, input.cursor) > 0)
-		.sort(compare);
+		.map((item) => ({ item, key: key(item, input.sort), age: item.createdAt, id: item.id }));
+	const sorted = matching.filter((item) => !input.cursor || compare(item, input.cursor) > 0).sort(compare);
 	const page = sorted.slice(0, input.limit);
 	const summaries = new Map(
 		(await ticketSummaries(tx, [...new Set(page.map(({ item }) => item.ticketId))])).map((ticket) => [
@@ -57,6 +56,7 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 	);
 	const last = page.at(-1);
 	return {
+		total: matching.length,
 		items: page.map(({ item }) => ({
 			id: item.id,
 			section: item.section,

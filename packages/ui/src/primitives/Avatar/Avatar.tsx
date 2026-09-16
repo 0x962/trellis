@@ -1,6 +1,6 @@
 import { cx } from "../../utils/cx";
-import { PersonaMark } from "./components/PersonaMark";
-import type { PersonaKind, PersonaState } from "./components/PersonaMark/personaAppearance";
+import { PersonaMark } from "../PersonaMark";
+import type { PersonaKind, PersonaState } from "../PersonaMark/personaAppearance";
 
 export type ActorKind = "human" | "agent";
 

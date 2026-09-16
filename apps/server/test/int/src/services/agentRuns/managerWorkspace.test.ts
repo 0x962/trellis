@@ -67,11 +67,11 @@ const deps = () => ({ env: env(), workspace: async () => fixture.home, runtime: 
 test.each([false, true])("a manager starts without approval after legacy migration=%s", async (legacy) => {
 	const run = await h.read((tx) => getRun(tx, runId));
 	await h.rows(
-		sql`UPDATE projects SET manager_config=${JSON.stringify({ ...config(), ...(legacy ? { trustedDirectory: false } : {}) })}::jsonb WHERE id=${run.projectId}`,
+		sql`UPDATE projects SET manager_config=${JSON.stringify({ ...config(), ...(legacy ? { trustedDirectory: false, allowAllPermissions: false } : {}) })}::jsonb WHERE id=${run.projectId}`,
 	);
 	if (legacy) {
 		const migration = await readFile(
-			join(originDir(import.meta.dir), "../../../drizzle/0044_remove_repository_approval.sql"),
+			join(originDir(import.meta.dir), "../../../drizzle/0045_remove_repository_approval.sql"),
 			"utf8",
 		);
 		await h.rows(sql.raw(migration));

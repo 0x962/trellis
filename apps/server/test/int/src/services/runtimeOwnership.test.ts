@@ -1,4 +1,8 @@
 import { afterEach, expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { sql } from "drizzle-orm";
+import { originDir } from "../../../../../../test/originDir.ts";
 import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
 
@@ -23,18 +27,23 @@ test("people and agents create native projects without repository approval", asy
 	expect(defaults.managerConfig!.ade).toBe("native");
 });
 
-test("a person can change tool permissions but an agent cannot enable them", async () => {
+test("an agent updates a migrated project with legacy false permissions without human approval", async () => {
 	t = await createTestApp();
 	const project = await t.client.projects.create({ key: "PER", name: "Permissions" });
-	expect(project.managerConfig?.allowAllPermissions).toBe(true);
-	const managerConfig = { ...project.managerConfig!, allowAllPermissions: false };
-	await t.client.projects.update({ project: "PER", managerConfig });
-	expect((await t.client.projects.get({ project: "PER" })).managerConfig?.allowAllPermissions).toBe(false);
-	await expect(
-		t
-			.as("agent:fixture")
-			.projects.update({ project: "PER", managerConfig: { ...managerConfig, allowAllPermissions: true } }),
-	).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
-	await t.client.projects.update({ project: "PER", managerConfig: { ...managerConfig, allowAllPermissions: true } });
-	expect((await t.client.projects.get({ project: "PER" })).managerConfig?.allowAllPermissions).toBe(true);
+	const migration = await readFile(
+		join(originDir(import.meta.dir), "../../drizzle/0045_remove_repository_approval.sql"),
+		"utf8",
+	);
+	await t.editServerTx(async (tx) => {
+		await tx.execute(
+			sql`UPDATE projects SET manager_config=manager_config || '{"trustedDirectory":false,"allowAllPermissions":false}'::jsonb WHERE id=${project.id}`,
+		);
+		await tx.execute(sql.raw(migration));
+	});
+	const updated = await t
+		.as("agent:fixture")
+		.projects.update({ project: "PER", managerConfig: { personaId: null, concurrency: 7, directory: "/tmp/moved" } });
+	expect(updated.managerConfig).not.toHaveProperty("allowAllPermissions");
+	expect(updated.managerConfig).not.toHaveProperty("trustedDirectory");
+	expect(updated.managerConfig).toMatchObject({ directory: "/tmp/moved", concurrency: 7 });
 });

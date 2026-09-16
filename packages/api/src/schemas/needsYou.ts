@@ -41,6 +41,7 @@ export const NeedsYouItemSchema = z.object({
 });
 export type NeedsYouItem = z.infer<typeof NeedsYouItemSchema>;
 export const NeedsYouListOutputSchema = z.object({
+	total: z.number().int(),
 	items: z.array(NeedsYouItemSchema),
 	nextCursor: NeedsYouCursorSchema.nullable(),
 });

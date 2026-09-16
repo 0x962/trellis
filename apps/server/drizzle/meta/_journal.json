@@ -292,8 +292,15 @@
     {
       "idx": 44,
       "version": "7",
-      "when": 1789565921145,
-      "tag": "0044_remove_repository_approval",
+      "when": 1789566940874,
+      "tag": "0044_manager_wait_conditions",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1789566940875,
+      "tag": "0045_remove_repository_approval",
       "breakpoints": true
     }
   ]

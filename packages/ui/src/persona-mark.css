@@ -53,6 +53,10 @@
 	--film-mint: #a5e5d2;
 	--film-gold: #efdb9f;
 }
+.persona-mark[data-persona-kind="manager"][data-background="false"] {
+	--persona-stroke: var(--fg-muted);
+	--persona-ink: var(--fg-muted);
+}
 .persona-ground {
 	fill: #161617;
 }

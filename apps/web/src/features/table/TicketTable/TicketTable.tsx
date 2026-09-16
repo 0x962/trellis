@@ -51,7 +51,6 @@ const focusFilter = () => document.querySelector<HTMLElement>("[data-filter-bar]
 // the inline pickers, and the bulk bar.
 export function TicketTable({ project, routeKey, search, onOpenPage, emptyState }: TicketTableProps) {
 	const { orpc } = useApp();
-	useQuery({ ...orpc.agentRuns.list.queryOptions({ input: {} }), refetchInterval: 2000 });
 	const view = viewOf(search);
 	const storedDensity = useUiStore((state) => state.density);
 	const density = search.density ?? storedDensity;

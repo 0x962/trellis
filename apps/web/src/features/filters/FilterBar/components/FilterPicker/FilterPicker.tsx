@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Actor, CiState, PrFilter, Priority, StatusSummary } from "@trellis/api";
-import { Command, type CommandItem, Popover } from "@trellis/ui";
-import { type ReactElement, useRef } from "react";
+import { type CommandItem, FilterPopover } from "@trellis/ui";
+import type { ReactElement } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { priorityItems } from "../../../../pickers/PriorityPicker";
 import { projectItems } from "../../../../pickers/ProjectPicker";
@@ -64,7 +64,6 @@ export function FilterPicker({
 	trigger,
 }: FilterPickerProps) {
 	const { orpc } = useApp();
-	const input = useRef<HTMLInputElement>(null);
 	const projects = useQuery({ ...orpc.projects.list.queryOptions({ input: {} }), enabled: open }).data ?? [];
 	const actors =
 		useQuery({
@@ -120,35 +119,27 @@ export function FilterPicker({
 	};
 
 	return (
-		<Popover
+		<FilterPopover
 			trigger={trigger}
-			label="Filter"
 			open={open}
 			onOpenChange={onOpenChange}
-			initialFocus={input}
-			className="w-72 p-0"
-		>
-			<Command
-				key={stage.kind === "values" ? stage.field : stage.kind}
-				inputRef={input}
-				autoFocus
-				label={
-					stage.kind === "values"
-						? `Search ${fieldLabels[stage.field]} values`
-						: stage.kind === "scope"
-							? "Search the reach of the list"
-							: "Search fields"
-				}
-				placeholder={
-					stage.kind === "values" ? fieldLabels[stage.field] : stage.kind === "scope" ? "Projects" : "Filter by"
-				}
-				items={stage.kind === "values" && stage.field === "status" ? [] : items}
-				groups={groups}
-				onSelect={(id) =>
-					stage.kind === "values" ? pickValue(stage.field, id) : stage.kind === "scope" ? pickScope(id) : pickField(id)
-				}
-			/>
-		</Popover>
+			stage={stage.kind === "values" ? stage.field : stage.kind}
+			label={
+				stage.kind === "values"
+					? `Search ${fieldLabels[stage.field]} values`
+					: stage.kind === "scope"
+						? "Search the reach of the list"
+						: "Search fields"
+			}
+			placeholder={
+				stage.kind === "values" ? fieldLabels[stage.field] : stage.kind === "scope" ? "Projects" : "Filter by"
+			}
+			items={stage.kind === "values" && stage.field === "status" ? [] : items}
+			groups={groups}
+			onSelect={(id) =>
+				stage.kind === "values" ? pickValue(stage.field, id) : stage.kind === "scope" ? pickScope(id) : pickField(id)
+			}
+		/>
 	);
 }
 

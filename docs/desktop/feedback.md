@@ -67,7 +67,8 @@ The lead applies Navid's automatic-trust authorization to live project settings 
 At 14:14 UTC on September 16, worker `01M2N91KAYSS4YAVG0SQN2YX2W` runs with a confirmed provider session and no error.
 The shared manager persona includes [the automatic repository access policy](../personas/automatic-repository-access.md).
 
-Project settings have no repository approval field. A database migration removes the saved approval flag without changing other settings.
+Project settings have no repository approval field. A database migration removes the saved repository approval flag and the unused tool permission flag.
+An agent can update its project directory without a separate human approval. Native harnesses apply permission bypass at launch.
 Agent and flow launches use the nearest configured ancestor directory when a subproject has no directory.
 An explicit child directory takes precedence. Other launch settings remain specific to the child project.
 Settings show the inheritance rule beside the directory field for subprojects.
@@ -80,6 +81,14 @@ Five other flow browser cases pass. The user checks the installed appearance.
 The existing Trellis SRE owns the coordinated production release after the source reaches tested main.
 Evidence: `/tmp/trellis-trust-live-proof.json`, `/tmp/trellis-trust-child-after.json`, and `/tmp/trellis-auto-trust-harness-checks.log`.
 The backend verification record is `/tmp/trellis-auto-trust-backend-validation.txt`.
+The combined source retains the manager-wait migration as `0044` and applies the approval removal as `0045`.
+All nine browser cases pass again on the combined source. The CLI now classifies `RESTART_FAILED` as a runtime failure with exit code 6.
+All eight CLI error tests pass with 83 assertions. All nine workspace typechecks pass after the merge corrections.
+Logs: `/tmp/trellis-auto-trust-merged-ui.log`, `/tmp/trellis-auto-trust-merged-typecheck.log`, and `/tmp/trellis-auto-trust-cli-errors-green.log`.
+The final migration and launch checks pass 52 cases with 175 assertions after both obsolete flags are removed.
+Those checks include all four saved flag combinations and an agent directory update after migration.
+Five final API tests pass. The independent review reports no remaining findings.
+Evidence: `/tmp/trellis-auto-trust-and-permissions-final.log` and `/tmp/trellis-auto-trust-api-final.log`.
 
 ## Project navigation
 

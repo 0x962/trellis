@@ -1,4 +1,4 @@
-import type { ManagerNextAction } from "@trellis/api/contract";
+import type { ManagerNextAction, ManagerWait } from "@trellis/api/contract";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import type { RequestContext } from "../../context.ts";
 
@@ -9,6 +9,7 @@ export type WorkOutcome = {
 	status: "assigned" | "queued" | "blocked" | "no_action";
 	reference?: string;
 	reason: string;
+	waitFor?: ManagerWait;
 };
 export type ControllerEvent = {
 	id: number;

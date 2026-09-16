@@ -5,8 +5,9 @@ import { iso, rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
 import { invalidInput } from "../../../errors.ts";
 import { capacityAvailable } from "../../assignments/capacity.ts";
+import { conditionMet } from "./condition.ts";
 
-export const columns = sql`id,project_id AS "projectId",ticket_id AS "ticketId",assignment_request_id AS "assignmentRequestId",'capacity' AS "wakeCondition",
+export const columns = sql`id,project_id AS "projectId",ticket_id AS "ticketId",assignment_request_id AS "assignmentRequestId",COALESCE(wait_for->>'type','capacity') AS "wakeCondition",wait_for AS "waitFor",
  reason,state,run_id AS "runId",${iso(sql`created_at`)} AS "createdAt",${iso(sql`eligible_at`)} AS "eligibleAt",${iso(sql`assigned_at`)} AS "assignedAt"`;
 export const pending = (tx: Tx, input: { projectId?: string }) =>
 	rows<ManagerNextAction & { statusId: string }>(
@@ -63,9 +64,13 @@ export const refresh = async (tx: Tx, input: { now: Date; projectId?: string }) 
 		const scope = `${action.projectId}:${ticket.projectId}`;
 		if (!permissions.has(scope))
 			permissions.set(scope, await enabled(tx, { projectId: action.projectId, ticketProjectId: ticket.projectId }));
-		if (permissions.get(scope) && !capacity.has(ticket.projectId))
+		if (permissions.get(scope) && !action.waitFor && !capacity.has(ticket.projectId))
 			capacity.set(ticket.projectId, await capacityAvailable(tx, { projectId: ticket.projectId }));
-		const ready = permissions.get(scope) && capacity.get(ticket.projectId);
+		const ready =
+			permissions.get(scope) &&
+			(action.waitFor
+				? await conditionMet(tx, { waitFor: action.waitFor, ticketId: action.ticketId, now: input.now })
+				: capacity.get(ticket.projectId));
 		const eligibleAt = ready ? sql`COALESCE(eligible_at,${input.now})` : sql`NULL`;
 		await tx.execute(
 			sql`UPDATE manager_next_actions SET eligible_at=${eligibleAt} WHERE id=${action.id} AND eligible_at IS DISTINCT FROM ${eligibleAt}`,
