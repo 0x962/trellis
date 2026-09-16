@@ -5,7 +5,40 @@ import { rows } from "../../db/queries/support.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { sendDeadline } from "../controller/sendDeadline.ts";
 import type { ServiceCtx } from "../support.ts";
-import { chatBatchText, type PendingLine } from "./text.ts";
+import { type ContextLine, chatBatchText, type PendingLine } from "./text.ts";
+
+// The context that travels with a delivery: the messages of the same
+// channel that came before the first pending line, at most this many and
+// no older than this window before that line.
+export const CONTEXT_LIMIT = 6;
+export const CONTEXT_WINDOW_MINUTES = 30;
+
+// The recent messages of each channel a batch touches, oldest first, so the
+// agent reads what the new lines answer. A pending line is never context.
+const contextFor = async (ctx: ServiceCtx, projectId: string, claimed: PendingLine[]) => {
+	const context: ContextLine[] = [];
+	const channels = new Map<string, PendingLine>();
+	for (const line of claimed) {
+		const first = channels.get(line.channel);
+		if (first === undefined || line.messageId < first.messageId) channels.set(line.channel, line);
+	}
+	for (const [channel, first] of channels) {
+		const found = await ctx.newTx((tx) =>
+			rows<ContextLine>(
+				tx,
+				sql`SELECT m.id AS "messageId", m.channel, m.body, m.actor_name AS "actorName", m.actor_kind AS "actorKind",
+				author.persona_name AS "actorDisplayName",
+				to_char(m.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "createdAt"
+				FROM chat_messages m LEFT JOIN agent_runs author ON m.actor_kind='agent' AND author.id=m.actor_name
+				WHERE m.project_id=${projectId} AND m.channel=${channel} AND m.id < ${first.messageId}
+				AND m.created_at >= ${first.createdAt}::timestamptz - make_interval(mins => ${CONTEXT_WINDOW_MINUTES})
+				ORDER BY m.id DESC LIMIT ${CONTEXT_LIMIT}`,
+			),
+		);
+		context.push(...found.reverse());
+	}
+	return context.sort((a, b) => (a.messageId < b.messageId ? -1 : 1));
+};
 
 type Delivery = { id: string; messageId: string; projectId: string; channel: string };
 
@@ -81,6 +114,7 @@ export const dispatchChat = async (
 		);
 		if (claimed.length === 0) continue;
 		claimed.sort((a, b) => (a.messageId < b.messageId ? -1 : 1));
+		const context = await contextFor(ctx, claimed[0]!.projectId, claimed);
 		const direct = claimed.some((line) => line.direct);
 		const interrupt = direct && (await preset(ctx.home, recipient.terminalId)) !== "custom";
 		let state = "sent";
@@ -89,7 +123,7 @@ export const dispatchChat = async (
 			await sendDeadline(
 				send(ctx, {
 					id: recipient.runId,
-					text: chatBatchText(recipient, claimed),
+					text: chatBatchText(recipient, claimed, context),
 					messageId: claimed[0]!.id,
 					interrupt,
 					expectedTerminalId: recipient.terminalId,
