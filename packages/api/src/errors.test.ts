@@ -62,7 +62,7 @@ describe("errors", () => {
 	// The manager reads `reason` to decide between a retry, a comment, and a
 	// wait. `running` against `limit` is what the queued comment quotes.
 	test("the runner errors carry a closed reason and the limit with the running count", () => {
-		for (const reason of ["missing", "disabled", "unmapped", "error"]) {
+		for (const reason of ["missing", "disabled", "unmapped", "outdated", "error"]) {
 			expect(errors.RUNNER_UNAVAILABLE.data.safeParse({ reason }).success, reason).toBe(true);
 		}
 		expect(errors.RUNNER_UNAVAILABLE.data.safeParse({ reason: "busy" }).success).toBe(false);
@@ -70,5 +70,12 @@ describe("errors", () => {
 		expect(errors.CONCURRENCY_LIMIT.data.safeParse({ limit: 3, running: 3 }).success).toBe(true);
 		expect(errors.CONCURRENCY_LIMIT.data.safeParse({ limit: 0, running: 0 }).success).toBe(false);
 		expect(errors.CONCURRENCY_LIMIT.data.safeParse({ limit: 3 }).success).toBe(false);
+	});
+
+	// Two services throw INVALID_ANCHOR: a ticket move, and a project
+	// reorder. A project reorder holds no ticket and no column, so the
+	// sentence names an item and a list.
+	test("the invalid anchor sentence fits a ticket move and a project reorder", () => {
+		expect(errors.INVALID_ANCHOR.message).toBe("The after or before item is not in the target list.");
 	});
 });

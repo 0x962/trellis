@@ -145,7 +145,7 @@ export const errors = {
 	},
 	INVALID_ANCHOR: {
 		status: 409,
-		message: "The after or before ticket is not in the target column.",
+		message: "The after or before item is not in the target list.",
 		data: z.undefined(),
 	},
 	CONCURRENCY_LIMIT: {
