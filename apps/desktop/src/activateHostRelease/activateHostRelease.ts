@@ -16,7 +16,7 @@ type Actions = {
 	capture: (release: PinnedRelease) => Promise<void>;
 	shutdown: (release: PinnedRelease) => Promise<void>;
 	register: () => Promise<void>;
-	resume: (host: HostConnection) => Promise<void>;
+	resume: (host: HostConnection, wait?: boolean) => Promise<void>;
 };
 
 export const activateHostRelease = async (
@@ -43,7 +43,7 @@ export const activateHostRelease = async (
 		wait: () => waitForHostExit(home),
 		capture: (release) => captureRestartPlan(home, release, available),
 		shutdown: (release) => stopReleaseRuntime(home, release),
-		resume: (host) => resumeRestartPlan(home, host),
+		resume: (host, wait) => resumeRestartPlan(home, host, wait),
 		register: async () => {
 			const state = await serviceCommand(helper, "register");
 			if (state.status !== "enabled") throw new Error(`Background service status: ${state.status}.`);
@@ -79,7 +79,7 @@ export const activateHostRelease = async (
 		if (previous.state !== "current" || previous.active?.manifest.id !== status.active.manifest.id)
 			throw new Error("Finish the pending agent restart with its active host before another package update.");
 		await report("Restore agent sessions");
-		await actions.resume(host);
+		await actions.resume(host, true);
 		if (restartPending(home)) throw new Error("Finish the pending agent restart before another package update.");
 	}
 	await report("Stop background host");

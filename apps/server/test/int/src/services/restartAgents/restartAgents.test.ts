@@ -6,7 +6,7 @@ import { type RestartPlan, readRestartPlan, writeRestartPlan } from "@trellis/ru
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { startNative } from "../../../../../src/services/agentRuns/nativeStart.ts";
-import { prepareResumeRestart } from "../../../../../src/services/restartAgents/restartAgents.ts";
+import { prepareResumeRestart, restartStatus } from "../../../../../src/services/restartAgents/restartAgents.ts";
 import { seedActors, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
@@ -106,7 +106,11 @@ const deps = () => ({
 	},
 });
 test("restart retains the assignment, workspace, provider, model, and frozen instruction", async () => {
-	expect(await prepareResumeRestart(ctx(), { restartId: plan.id }, deps())).toEqual({ resumed: 1, skipped: 0 });
+	expect(await prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, deps())).toMatchObject({
+		resumed: 1,
+		skipped: 0,
+		failed: 0,
+	});
 	expect(launches).toHaveLength(1);
 	expect(launches[0]).toMatchObject({
 		run: { id: plan.sessions[0]!.runId, workspaceId: "/tmp/saved-workspace", instruction: "Frozen instruction" },
@@ -120,22 +124,35 @@ test("restart retains the assignment, workspace, provider, model, and frozen ins
 });
 test("a lost response resumes recovery without another process or attempt", async () => {
 	loseReply = true;
-	await expect(prepareResumeRestart(ctx(), { restartId: plan.id }, deps())).rejects.toThrow("response lost");
-	expect(await readRestartPlan(home)).not.toBeNull();
+	expect(await prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, deps())).toMatchObject({
+		finished: true,
+		resumed: 0,
+		skipped: 0,
+		failed: 1,
+	});
+	expect((await readRestartPlan(home))?.sessions[0]).toMatchObject({ error: "response lost" });
 	loseReply = false;
-	expect(await prepareResumeRestart(ctx(), { restartId: plan.id }, deps())).toEqual({ resumed: 1, skipped: 0 });
+	expect(await prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, deps())).toMatchObject({
+		resumed: 1,
+		skipped: 0,
+		failed: 0,
+	});
 	expect(launches).toHaveLength(1);
 	expect(await h.rows(sql`SELECT * FROM agent_execution_attempts`)).toHaveLength(1);
 });
 test("manual stops and replaced assignments stay stopped", async () => {
 	await h.rows(sql`UPDATE agent_runs SET closed_at=now()`);
-	expect(await prepareResumeRestart(ctx(), { restartId: plan.id }, deps())).toEqual({ resumed: 0, skipped: 1 });
+	expect(await prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, deps())).toMatchObject({
+		resumed: 0,
+		skipped: 1,
+		failed: 0,
+	});
 	expect(launches).toHaveLength(0);
 });
 test("an unresolved old process preserves the plan and cannot start a replacement", async () => {
 	processes[0]!.status = "unknown";
-	await expect(prepareResumeRestart(ctx(), { restartId: plan.id }, deps())).rejects.toThrow("stopped");
-	expect(await readRestartPlan(home)).not.toBeNull();
+	expect(await prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, deps())).toMatchObject({ failed: 1 });
+	expect((await readRestartPlan(home))?.sessions[0]?.error).toContain("stopped");
 	expect(launches).toHaveLength(0);
 });
 test("concurrent recovery calls share one launch and reject an agent or another restart", async () => {
@@ -149,15 +166,19 @@ test("concurrent recovery calls share one launch and reject an agent or another 
 		await gate;
 		return start(...args);
 	};
-	const first = prepareResumeRestart(ctx(), { restartId: plan.id }, dependency);
-	const second = prepareResumeRestart(ctx(), { restartId: plan.id }, dependency);
-	expect(first).toBe(second);
+	const first = prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, dependency);
+	const second = prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, dependency);
 	await expect(
-		prepareResumeRestart({ ...ctx(), actor: { kind: "agent", name: "Worker" } }, { restartId: plan.id }, dependency),
+		prepareResumeRestart(
+			{ ...ctx(), actor: { kind: "agent", name: "Worker" } },
+			{ restartId: plan.id, wait: true },
+			dependency,
+		),
 	).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 	await expect(prepareResumeRestart(ctx(), { restartId: "other" }, dependency)).rejects.toThrow("match");
 	release();
-	await first;
+	expect(await first).toMatchObject({ resumed: 1, failed: 0 });
+	expect(await second).toMatchObject({ resumed: 1, failed: 0 });
 	expect(launches).toHaveLength(1);
 });
 test("an acknowledged process with an execution error preserves the plan", async () => {
@@ -169,10 +190,10 @@ test("an acknowledged process with an execution error preserves the plan", async
 		processes[1]!.status = "unknown";
 		return result;
 	};
-	await expect(prepareResumeRestart(ctx(), { restartId: plan.id }, dependency)).rejects.toThrow(
-		"process ownership lost",
-	);
-	expect(await readRestartPlan(home)).not.toBeNull();
+	expect(await prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, dependency)).toMatchObject({
+		failed: 1,
+	});
+	expect((await readRestartPlan(home))?.sessions[0]).toMatchObject({ error: "process ownership lost" });
 });
 test("a provider turn failure after confirmed resume retains its error without blocking desktop startup", async () => {
 	const dependency = deps();
@@ -186,7 +207,11 @@ test("a provider turn failure after confirmed resume retains its error without b
 		};
 		return result;
 	};
-	expect(await prepareResumeRestart(ctx(), { restartId: plan.id }, dependency)).toEqual({ resumed: 1, skipped: 0 });
+	expect(await prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, dependency)).toMatchObject({
+		resumed: 1,
+		skipped: 0,
+		failed: 0,
+	});
 	expect(await readRestartPlan(home)).toBeNull();
 	expect(processes[1]!.agent).toMatchObject({ sessionId: "provider-session", error: "rate_limit", outcome: "failed" });
 	expect(launches).toHaveLength(1);
@@ -203,23 +228,56 @@ test("a prelaunch failure keeps the assignment and plan available for repair", a
 				},
 			}),
 	};
-	await expect(prepareResumeRestart(ctx(), { restartId: plan.id }, broken)).rejects.toMatchObject({
-		code: "RESTART_FAILED",
-		status: 503,
-		message: expect.stringContaining("Workspace temporarily unavailable"),
-		data: {
-			restartId: plan.id,
-			runId: plan.sessions[0]!.runId,
-			attemptId: plan.sessions[0]!.attempt.id,
-			requestId: "req-1",
-		},
-	});
+	expect(await prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, broken)).toMatchObject({ failed: 1 });
+	expect((await readRestartPlan(home))?.sessions[0]?.error).toContain("Workspace temporarily unavailable");
 	const [run] = await h.rows(sql`SELECT closed_at,error,terminal_id FROM agent_runs`);
 	expect(run!.closed_at).toBeNull();
 	expect(run!.error).toContain("Workspace temporarily unavailable");
 	expect(await readRestartPlan(home)).not.toBeNull();
-	expect(await prepareResumeRestart(ctx(), { restartId: plan.id }, dependency)).toEqual({ resumed: 1, skipped: 0 });
+	expect(await prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, dependency)).toMatchObject({
+		resumed: 1,
+		skipped: 0,
+		failed: 0,
+	});
 	expect(await h.rows(sql`SELECT * FROM agent_execution_attempts`)).toHaveLength(1);
+});
+test("a failed agent does not block the next one, and the status names both", async () => {
+	const secondRunId = ulid();
+	const secondPrevious = randomUUID();
+	await h.read(async (tx) => {
+		const [project] = await tx
+			.execute(sql`SELECT id FROM projects LIMIT 1`)
+			.then((result) => result.rows as { id: string }[]);
+		await tx.execute(
+			sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,terminal_id,session_id,workspace_id,created_at,updated_at) VALUES (${secondRunId},'Second','native','Builder','builder','Frozen instruction',${project!.id},'RST',${secondPrevious},'provider-session','/tmp/saved-workspace',now(),now())`,
+		);
+	});
+	plan.sessions.push({
+		...plan.sessions[0]!,
+		runId: secondRunId,
+		previousAttemptId: secondPrevious,
+		attempt: { id: randomUUID(), token: "second-token" },
+	});
+	await writeRestartPlan(home, plan);
+	processes.push({ ...processes[0]!, id: secondPrevious });
+	processes[0]!.status = "unknown";
+	expect(await prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, deps())).toMatchObject({
+		finished: true,
+		resumed: 1,
+		skipped: 0,
+		failed: 1,
+	});
+	expect(launches).toHaveLength(1);
+	expect(await readRestartPlan(home)).not.toBeNull();
+	const status = await restartStatus(ctx());
+	expect(status).toMatchObject({ restartId: plan.id, error: null });
+	expect(status!.finishedAt).not.toBeNull();
+	expect(status!.sessions.map((session) => [session.runName, session.state])).toEqual([
+		["Worker", "failed"],
+		["Second", "resumed"],
+	]);
+	expect(status!.sessions[0]!.error).toContain("stopped");
+	expect(status!.sessions[0]!.projectPath).toBe("RST");
 });
 async function seedFlow(deadlineAt = Date.now() + 60000) {
 	const session = plan.sessions[0]!;
@@ -301,7 +359,7 @@ test("a flow resume maps the attempt atomically and preserves its state and abso
 		expect(args[1].deadlineAt).toBe(flow.deadlineAt);
 		return start(...args);
 	};
-	await prepareResumeRestart(ctx(), { restartId: plan.id }, dependency);
+	await prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, dependency);
 	expect((await h.rows(sql`SELECT state FROM flow_executions WHERE id=${flow.executionId}`))[0]!.state).toEqual(
 		flow.state,
 	);
@@ -312,7 +370,11 @@ test.each(["canceled", "succeeded", "deadline"])("a %s flow cannot resume", asyn
 		await h.rows(
 			sql`UPDATE flow_executions SET state=jsonb_set(state,'{status}',${JSON.stringify(reason)}::jsonb) WHERE id=${flow.executionId}`,
 		);
-	expect(await prepareResumeRestart(ctx(), { restartId: plan.id }, deps())).toEqual({ resumed: 0, skipped: 1 });
+	expect(await prepareResumeRestart(ctx(), { restartId: plan.id, wait: true }, deps())).toMatchObject({
+		resumed: 0,
+		skipped: 1,
+		failed: 0,
+	});
 	expect(launches).toHaveLength(0);
 	expect((await h.rows(sql`SELECT attempt_id FROM flow_execution_tasks`))[0]!.attempt_id).toBe(
 		plan.sessions[0]!.previousAttemptId,

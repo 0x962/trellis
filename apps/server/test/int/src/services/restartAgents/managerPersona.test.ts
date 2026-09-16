@@ -88,13 +88,13 @@ test("automatic manager restart launches the current database persona as the exa
 	expect(
 		await prepareResumeRestart(
 			ctx,
-			{ restartId },
+			{ restartId, wait: true },
 			{
 				host: () => host,
 				start: (context, input) => startNative(context, input, dependencies),
 			},
 		),
-	).toEqual({ resumed: 1, skipped: 0 });
+	).toMatchObject({ resumed: 1, skipped: 0, failed: 0 });
 	const run = await h.read((tx) => getRun(tx, reserved.run.id));
 	expect(run.instruction).toBe(instruction);
 	expect(run.personaName).toBe("Updated manager");

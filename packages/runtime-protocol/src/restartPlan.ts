@@ -12,7 +12,12 @@ export type RestartSession = {
 	workspace: string;
 	processIdentity: string;
 	attempt: { id: string; token: string };
+	// `done` with an `outcome` records a finished entry. An entry that failed
+	// keeps `done` unset and carries the failure in `error`, so a later resume
+	// tries it again.
 	done?: boolean;
+	outcome?: "resumed" | "skipped";
+	error?: string;
 };
 
 export type RestartPlan = {

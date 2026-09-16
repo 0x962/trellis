@@ -3,6 +3,7 @@ import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
 import { lazy, Suspense } from "react";
+import { RestartStatus } from "../../../features/agents/RestartStatus";
 import { Board, boardSortLabel } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
@@ -173,6 +174,7 @@ function ProjectPage() {
 			</Topbar>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{archived && <ArchivedBanner project={project} />}
+				<RestartStatus project={project} />
 				<fieldset disabled={archived} className="contents">
 					{view === "board" ? (
 						<>
