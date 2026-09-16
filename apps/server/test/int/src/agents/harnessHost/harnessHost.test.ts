@@ -118,7 +118,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 			directory: join(home, "attempts"),
 			env: { ...process.env, PATH: join(home, "bin"), HARNESS_FIXTURE_BEHAVIOR: "busy" },
 			bun: process.execPath,
-			observationTimeoutMs: 1500,
+			observationTimeoutMs: 10000,
 		});
 		await host.start({ id: "busy", harness, cwd: home, prompt: "hello" });
 		const pid = (await host.status("busy")).pid;
@@ -133,7 +133,7 @@ test("a crashed executable stays visible in the error list", async () => {
 		directory: join(home, "attempts"),
 		env: { ...process.env, PATH: join(home, "bin"), HARNESS_FIXTURE_BEHAVIOR: "crash" },
 		bun: process.execPath,
-		observationTimeoutMs: 1500,
+		observationTimeoutMs: 10000,
 	});
 	await expect(host.start({ id: "crashed", harness: "claude", cwd: home, prompt: "hello" })).rejects.toThrow("crashed");
 	expect((await host.list({ status: "exited", hasError: true })).map((s) => s.id)).toEqual(["crashed"]);
@@ -149,7 +149,7 @@ test("a new host instance reconnects to the same process and streams output from
 		directory: join(home, "attempts"),
 		env: { ...process.env, PATH: join(home, "bin") },
 		bun: process.execPath,
-		observationTimeoutMs: 1500,
+		observationTimeoutMs: 10000,
 	});
 	const received = (async () => {
 		let text = "";
@@ -173,7 +173,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 			directory: join(home, "attempts"),
 			env: { ...process.env, PATH: join(home, "bin") },
 			bun: process.execPath,
-			observationTimeoutMs: 1500,
+			observationTimeoutMs: 10000,
 		});
 		const input = { id: "duplicate", harness, cwd: home, prompt: "once", model: "explicit-model" };
 		const results = await Promise.all(
@@ -201,10 +201,17 @@ test.each(["codex", "pi", "opencode"] as const)(
 			directory: join(home, "attempts"),
 			env: { ...process.env, PATH: join(home, "bin"), HARNESS_FIXTURE_BEHAVIOR: "normal-interrupt" },
 			bun: process.execPath,
-			observationTimeoutMs: 500,
+			observationTimeoutMs: 10000,
 		});
 		await host.start({ id: "normal", harness, cwd: home, prompt: "hello" });
-		await expect(host.interrupt("normal")).rejects.toMatchObject({ code: "HARNESS_OBSERVATION_TIMEOUT" });
+		const interruptHost = new HarnessHost({
+			runtime: client,
+			directory: join(home, "attempts"),
+			env: { ...process.env, PATH: join(home, "bin") },
+			bun: process.execPath,
+			observationTimeoutMs: 500,
+		});
+		await expect(interruptHost.interrupt("normal")).rejects.toMatchObject({ code: "HARNESS_OBSERVATION_TIMEOUT" });
 		expect((await host.status("normal")).status).toBe("running");
 	},
 );

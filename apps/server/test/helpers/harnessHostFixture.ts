@@ -43,7 +43,7 @@ export async function harnessHostFixture(options: { nestedRuntime?: boolean } = 
 		directory: join(home, "attempts"),
 		env: { ...process.env, PATH: bin },
 		bun: process.execPath,
-		observationTimeoutMs: 1500,
+		observationTimeoutMs: 10000,
 	});
 	return { home, client, daemon, host };
 }

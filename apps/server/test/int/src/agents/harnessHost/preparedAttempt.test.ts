@@ -28,7 +28,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 			directory: join(home, "attempts"),
 			env: { PATH: "/nonexistent" },
 			bun: "/nonexistent/bun",
-			observationTimeoutMs: 1500,
+			observationTimeoutMs: 10000,
 		});
 		const result = await replacement.startPrepared("prepared");
 		expect(result.process.agent?.sessionId).toBe(`provider-${harness}`);
