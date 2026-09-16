@@ -6,6 +6,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./app.css";
 import { type AppContext, AppProvider } from "./lib/appContext";
+import type { DesktopBridge } from "./lib/desktopBridge";
 import { hasMacDesktopChrome } from "./lib/desktopChrome";
 import { createLive } from "./lib/live";
 import { client, orpc, queryClient } from "./lib/orpc";
@@ -26,7 +27,8 @@ live.start();
 
 const context: AppContext = { queryClient, orpc, client, live, scheduler: realScheduler };
 const router = createAppRouter(context);
-const desktop = (window as Window & { trellisDesktop?: { platform?: string } }).trellisDesktop;
+const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
+desktop?.onNavigate?.((path) => void router.navigate({ href: path }));
 preloadOnIdle(() => preloadRouteChunks(router));
 
 createRoot(document.getElementById("root")!).render(

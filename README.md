@@ -19,7 +19,7 @@ Agents use the `trellis` CLI or the HTTP API. Each write records the name of the
 The desktop includes Bun, Node, a local host, and a separate execution runtime. Native ticket work uses Git and the selected agent executable.
 Its manager queue persists ticket events. The ticket work area shows agent output, local changes, checks, artifacts, and required decisions.
 
-Use **File > Choose data directory** to open an existing Trellis home, such as `~/.trellis`, in place.
+Use **Settings > Desktop > Choose data directory** to open an existing Trellis home, such as `~/.trellis`, in place.
 The confirmation shows the current directory, selected directory, and backup path.
 The desktop disables the matching standalone service, backs up the database, and starts with automation paused.
 Both data directories keep their files. The macOS window uses native controls in the app title bar.

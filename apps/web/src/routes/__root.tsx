@@ -10,7 +10,9 @@ import { RouteProgress } from "../features/shell/RouteProgress";
 import { ShellFrame } from "../features/shell/ShellFrame";
 import { Sidebar } from "../features/sidebar/Sidebar";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { useActor } from "../lib/actor";
 import type { RouterContext } from "../lib/appContext";
+import { canOpenDesktopSettingsBeforeSetup, type DesktopBridge } from "../lib/desktopBridge";
 import { resolveActor } from "../lib/identity";
 import { rememberList } from "../lib/lastList";
 import { parseProjectSplat } from "../lib/projectPath";
@@ -27,7 +29,8 @@ const bare = (pathname: string) => pathname === "/setup" || pathname.startsWith(
 // first Cmd+K.
 export const Route = createRootRouteWithContext<RouterContext>()({
 	beforeLoad: async ({ context, location }) => {
-		if (bare(location.pathname)) return;
+		const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
+		if (bare(location.pathname) || canOpenDesktopSettingsBeforeSetup(desktop, location.pathname, location.hash)) return;
 		const [projects, identity] = await Promise.all([
 			context.queryClient.fetchQuery(context.orpc.projects.list.queryOptions({ input: {} })),
 			context.queryClient.ensureQueryData(context.orpc.actors.default.queryOptions({})),
@@ -59,6 +62,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function RootComponent() {
 	const location = useRouterState({ select: (state) => state.resolvedLocation ?? state.location });
 	const pathname = location.pathname;
+	const actor = useActor();
+	const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
+	const desktopSetup = actor === null && canOpenDesktopSettingsBeforeSetup(desktop, pathname, location.hash);
 	useEffect(() => {
 		const projectView = pathname.startsWith("/p/") ? parseProjectSplat(pathname.slice(3)).view : undefined;
 		if (
@@ -71,7 +77,7 @@ function RootComponent() {
 	}, [location.href, pathname]);
 	useDocumentTitle();
 
-	if (bare(pathname)) {
+	if (bare(pathname) || desktopSetup) {
 		return (
 			<>
 				<Outlet />
