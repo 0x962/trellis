@@ -1,8 +1,9 @@
 import type { Priority, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
-import { Avatar, cx, TicketId } from "@trellis/ui";
+import { cx, TicketId } from "@trellis/ui";
 import { type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
+import { ActorAvatar } from "../../agents/ActorAvatar";
 import { PriorityPicker } from "../../pickers/PriorityPicker";
 import { ProjectPicker } from "../../pickers/ProjectPicker";
 import { StatusPicker } from "../../pickers/StatusPicker";
@@ -143,9 +144,7 @@ export const Row = memo(function Row({
 			/>
 		),
 		actor:
-			lastActor === null || lastActor.kind === "system" ? null : (
-				<Avatar kind={lastActor.kind} name={lastActor.displayName ?? lastActor.name} />
-			),
+			lastActor === null || lastActor.kind === "system" ? null : <ActorAvatar actor={lastActor} ticketId={ticket.id} />,
 		updated: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.updatedAt)}</span>,
 		created: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.createdAt)}</span>,
 		parent: ticket.parent === null ? null : <TicketId id={ticket.parent.identifier} size="sm" />,

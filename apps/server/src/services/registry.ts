@@ -11,6 +11,8 @@ import * as brief from "./brief.ts";
 import * as comments from "./comments.ts";
 import * as controller from "./controller/controller.ts";
 import * as controllerDispatch from "./controller/dispatch.ts";
+import { cancel as cancelManagerAction } from "./controller/nextActions/cancel.ts";
+import { list as listManagerActions } from "./controller/nextActions/list.ts";
 import * as controllerPrepare from "./controller/prepare.ts";
 import * as controllerWork from "./controller/work.ts";
 import { diagnostics } from "./diagnostics.ts";
@@ -29,6 +31,7 @@ import { get as getFlowExecution } from "./flowExecutions/queries.ts";
 import { start as startFlowExecution } from "./flowExecutions/start.ts";
 import * as flows from "./flows/flows.ts";
 import * as flowSave from "./flows/save.ts";
+import * as needsYou from "./needsYou/needsYou.ts";
 import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
@@ -148,6 +151,8 @@ export const services = {
 	"controller.complete": core("mutation", controller.complete),
 	"controller.recover": core("mutation", controller.recover),
 	"controller.list": core("read", controller.list),
+	"controller.actions": core("read", listManagerActions),
+	"controller.cancelAction": core("mutation", cancelManagerAction),
 	"controller.handle": core("mutation", controllerWork.handle),
 	"controller.retry": core("mutation", controller.retry),
 	"controller.resolveUnknown": core("mutation", controller.resolveUnknown),
@@ -191,6 +196,9 @@ export const services = {
 	"tickets.deleteMany": core("mutation", tickets.deleteMany),
 	"tickets.delete": core("mutation", tickets.delete),
 	"timeline.list": core("read", timeline.list),
+	"needsYou.list": core("read", needsYou.list),
+	"needsYou.summary": core("read", needsYou.summary),
+	"needsYou.update": core("mutation", needsYou.update),
 	"comments.thread": core("read", comments.thread),
 	"comments.resolve": core("mutation", comments.resolve),
 	"comments.create": core("mutation", comments.create),

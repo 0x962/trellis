@@ -42,12 +42,23 @@ export function DisplaySections() {
 				<Chip icon={<Funnel />} label="Priority" op="is" value="High" onRemove={() => {}} />
 				<Chip label="Actor" op="is" value="claude-code" />
 			</Section>
-			<Section name="Avatar" note="human; agent; live">
+			<Section name="Avatar" note="Human initials and persona states">
 				<Avatar kind="human" name="Dana Lee" />
-				<Avatar kind="human" name="dana" />
-				<Avatar kind="agent" name="claude-code" />
-				<Avatar kind="agent" name="claude-code" />
-				<Avatar kind="human" name="dana" />
+				{(["static", "working-mild", "working"] as const).map((state) => (
+					<div key={state} className="flex flex-col gap-3 p-3">
+						<span className="text-xs text-fg-muted">{state}</span>
+						<div className="flex items-center gap-6">
+							{["Trellis", "Builder", "Risk-Based Code Review"].map((name) => (
+								<Avatar key={name} kind="agent" name={name} state={state} className="size-16" />
+							))}
+						</div>
+						<div className="flex items-center gap-3">
+							{["Trellis", "Builder", "Risk-Based Code Review"].map((name) => (
+								<Avatar key={name} kind="agent" name={name} state={state} />
+							))}
+						</div>
+					</div>
+				))}
 			</Section>
 			<Section name="Kbd" note="one style, in a row and inside every button">
 				<Kbd>⌘K</Kbd>

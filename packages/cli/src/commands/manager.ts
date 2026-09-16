@@ -32,7 +32,7 @@ const handle = defineCommand({
 		outcomes: {
 			type: "string",
 			required: true,
-			description: "JSON array: ticketId (null for heartbeat), status, reason, optional reference",
+			description: "JSON array: ticketId (null for empty heartbeat), status, reason, optional reference",
 		},
 	},
 	async run(context) {
@@ -56,7 +56,42 @@ const handle = defineCommand({
 		);
 	},
 });
+const actions = defineCommand({
+	meta: { description: "Read saved capacity waits" },
+	args: {
+		project: { type: "string", description: "Manager project ref" },
+		before: { type: "string", description: "Read the next page before this action ID" },
+		state: { type: "string", description: "waiting, assigned, or canceled" },
+	},
+	async run(context) {
+		const ctx = contextOf(context);
+		const client = clientOf(ctx);
+		const project = context.args.project ? await client.projects.get({ project: context.args.project }) : undefined;
+		const state = context.args.state;
+		if (state !== undefined && !["waiting", "assigned", "canceled"].includes(state))
+			throw usageError("--state must be waiting, assigned, or canceled");
+		ctx.out.write(
+			json(
+				await client.controller.actions(
+					compact({
+						projectId: project?.id,
+						before: context.args.before,
+						state: state as "waiting" | "assigned" | "canceled" | undefined,
+					}),
+				),
+			),
+		);
+	},
+});
+const cancelAction = defineCommand({
+	meta: { description: "Cancel a pending capacity wait" },
+	args: { id: { type: "positional", required: true, description: "Next action ID" } },
+	async run(context) {
+		const ctx = contextOf(context);
+		ctx.out.write(json(await clientOf(ctx).controller.cancelAction({ id: context.args.id })));
+	},
+});
 export default defineCommand({
 	meta: { name: "manager", description: "Read manager work and record coordination outcomes" },
-	subCommands: { list, handle },
+	subCommands: { list, handle, actions, "cancel-action": cancelAction },
 });

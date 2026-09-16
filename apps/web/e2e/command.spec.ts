@@ -89,7 +89,7 @@ test("the sidebar draws no help button and the question mark opens no dialog", a
 	await signIn(page, "/all");
 	await expect(page.getByRole("heading", { name: "All tickets" })).toBeVisible();
 	const sidebar = page.getByRole("complementary", { name: "Sidebar" });
-	await expect(sidebar.getByRole("link", { name: "Settings" })).toBeVisible();
+	await expect(sidebar.locator('a[href="/settings"]')).toBeVisible();
 	await expect(sidebar.getByRole("button", { name: "Keyboard shortcuts" })).toHaveCount(0);
 	await page.keyboard.press("?");
 	await expect(page.getByRole("dialog")).toHaveCount(0);

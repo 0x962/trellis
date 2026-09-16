@@ -207,3 +207,23 @@ Persona names can contain spaces, such as `@Code separation`. Mentions ignore le
 The notification retains the assignment ID and session from the comment write.
 An edit notifies only newly mentioned personas. Code spans and code blocks do not notify agents.
 The comment shows whether the notification is queued, delivered, failed, or uncertain.
+
+## Manager capacity waits
+
+Record each notification outcome with `trellis manager handle` or the `trellis_controller_handle` tool.
+For a ticket, `queued` saves an action that waits for worker capacity. Put the intended next step in `reason`.
+Use `blocked` for a prerequisite such as human approval; it does not create a capacity wait.
+
+When capacity opens, the manager receives the ticket in `workItems` and the saved action in `nextActions`.
+Use its `assignmentRequestId` when you start the worker. That identifier retains the assignment across retries and manager replacement.
+Record an outcome for each ticket in the notification. Use a null ticket ID only for an empty heartbeat.
+
+```sh
+trellis manager actions --project TRL --state waiting
+trellis manager cancel-action ACTION_ID
+```
+
+The list accepts `--before ACTION_ID` for the next page.
+A canceled action cannot start a worker. A new ticket decision can create a new action.
+An assigned action identifies the reserved worker; inspect that worker to verify launch and task progress.
+Existing historical `queued` outcomes remain receipts. The migration does not infer pending work from those records.

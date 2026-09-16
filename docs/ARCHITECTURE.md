@@ -122,6 +122,13 @@ Each dispatch tracks delivery separately from its per-ticket coordination outcom
 Data-only envelopes include policy versions, stable assignment identifiers, and unfinished dispatches.
 The manager records an assignment, queue entry, blocker, or reason for no action for each affected ticket.
 A handled dispatch does not prove that a worker completed the ticket.
+For a ticket, a `queued` outcome also saves a capacity wait in `manager_next_actions` in the same transaction.
+The controller presents eligible waits as ticket work when capacity opens. It uses the assignment service's capacity rule.
+Each wait retains its assignment identifier across dispatches and manager replacement.
+An assignment reserves the worker and records the action's assigned state in one transaction.
+Pause and archive states prevent new assignments from saved actions. Ticket completion, a changed status, or a changed manager scope retires obsolete waits.
+The manager can inspect waits through `controller.actions` and cancel one through `controller.cancelAction`.
+The timestamps record creation, current eligibility, notification, and assignment. Historical outcomes remain receipts and do not create waits during migration.
 Optional comment keys suppress duplicate writes for the same ticket and actor without new activity events.
 A partial database index permits one active manager per project.
 
@@ -304,7 +311,19 @@ Harness events establish turn activity. Terminal output alone does not establish
 A host interruption changes an unfinished send to `unknown`.
 A durable receipt can confirm the original delivery. An explicit resend uses a new generation and message identifier.
 
-The Needs you page shows its title over an empty body. Ticket status changes use the status picker.
+The web Needs you page lists tickets in review statuses with a human reviewer across every project.
+The list includes inherited and custom statuses, with or without a linked pull request.
+The Mentioned section lists comments that name the current human actor outside code.
+A resolved comment or thread removes its mentions. A Done transition clears comments created before that transition, even if the ticket reopens.
+Comments created after that transition remain eligible, including comments on Done tickets. Canceled transitions do not clear mentions.
+A mention opens its thread on the ticket page.
+Each person can snooze or ignore individual items. The database stores these choices in `needs_you_states`.
+A new comment or a new review cycle creates a separate item. Completed work leaves all inbox views.
+The default order is highest priority, then oldest ticket. Other orders use age, update time, or title.
+The server sorts before pagination and uses the item ID to break ties. The URL stores the selected order and view.
+The sidebar dot marks active items. Server events, snooze expiry, and window focus refresh the inbox.
+The command palette accepts `Snooze TR-123 1d` and natural dates, with an exact date preview before confirmation.
+Suffix `m` means minutes; prefix `m` means months. Past times require a future date.
 
 ### Flows
 
@@ -363,7 +382,7 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | route | file | page |
 |---|---|---|
 | `/` | `index.tsx` | a replace redirect to `/needs-you` |
-| `/needs-you` | `needs-you/route.tsx` | the page title over an empty body |
+| `/needs-you` | `needs-you/route.tsx` | human review tickets and personal mentions across every project |
 | `/all` | `all/route.tsx` | every ticket as a board |
 | `/all/table` | `all_.table.tsx` | every ticket as a table |
 | `/p/$` | `p/$/route.tsx` | a project as a board, a table, its settings, or its manager |
@@ -598,7 +617,7 @@ Payloads:
 `attachment.created | deleted {id, ticketId, projectId}`,
 `statuses.changed {projectId}`,
 `project.created | updated | deleted | moved {id}`, `gh.status {ok, reason}`,
-`personas.changed {id}`, `flows.changed {id}`, and `agent-runs.changed {id}`.
+`personas.changed {id}`, `flows.changed {id}`, `agent-runs.changed {id}`, and `needs-you.changed {actorName}`.
 `packages/api/src/events.ts` holds the one list of names, and the `types=`
 parameter takes a name or a `prefix.*` form.
 

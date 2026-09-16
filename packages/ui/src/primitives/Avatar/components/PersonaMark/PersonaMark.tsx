@@ -1,28 +1,44 @@
-const colors = ["text-accent", "text-agent", "text-success", "text-warning", "text-danger"] as const;
-const shapes = [
-	"M12 2 22 12 12 22 2 12Z",
-	"M4 4H20V20H4Z",
-	"M12 2 23 21H1Z",
-	"M7 2H17L23 12 17 22H7L1 12Z",
-	"M9 2H15V9H22V15H15V22H9V15H2V9H9Z",
-] as const;
+import { useId, useRef } from "react";
+import { PersonaArtwork } from "./components/PersonaArtwork";
+import { PersonaGlimmer } from "./components/PersonaGlimmer";
+import { type PersonaKind, type PersonaState, personaAppearance } from "./personaAppearance";
+import { usePersonaMotion } from "./usePersonaMotion";
 
-export function PersonaMark({ name }: { name: string }) {
-	const key = name.trim().toLowerCase();
-	let hash = 0;
-	for (const character of key) hash = (Math.imul(hash, 31) + character.codePointAt(0)!) >>> 0;
-	const index = key === "trellis" ? 0 : key === "builder" ? 1 : key === "reviewer" ? 2 : hash % shapes.length;
-	const color =
-		key === "trellis"
-			? 0
-			: key === "builder"
-				? 1
-				: key === "reviewer"
-					? 2
-					: Math.floor(hash / shapes.length) % colors.length;
+export function PersonaMark({
+	name,
+	kind,
+	state = "static",
+}: {
+	name: string;
+	kind?: PersonaKind;
+	state?: PersonaState;
+}) {
+	const appearance = personaAppearance(name, kind);
+	const mode = state === "working" && appearance.kind !== "manager" ? "working-mild" : state;
+	const id = useId();
+	const ref = useRef<SVGSVGElement>(null);
+	usePersonaMotion(ref, mode, id);
+	const artwork = <PersonaArtwork {...appearance} moving={mode === "working"} />;
 	return (
-		<svg aria-hidden="true" viewBox="0 0 24 24" className={`size-full ${colors[color]}`} fill="currentColor">
-			<path d={shapes[index]} />
+		<svg
+			ref={ref}
+			aria-hidden="true"
+			viewBox="0 0 32 32"
+			className="persona-mark size-full"
+			data-persona-kind={appearance.kind}
+			data-state={mode}
+		>
+			{appearance.kind === "manager" && <rect className="persona-ground" width="32" height="32" rx="7" />}
+			<g className="persona-static">
+				<PersonaArtwork {...appearance} />
+			</g>
+			{mode !== "static" && (
+				<g className="persona-effect">
+					{mode === "working" && artwork}
+					<PersonaGlimmer id={id}>{artwork}</PersonaGlimmer>
+				</g>
+			)}
+			{mode !== "static" && <circle className="persona-work-dot" cx="28" cy="4" r="2" />}
 		</svg>
 	);
 }

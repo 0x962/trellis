@@ -51,6 +51,8 @@ describe("contract", () => {
 			"comments.resolve POST /comments/{id}/resolve",
 			"comments.thread GET /comments/{id}/thread",
 			"comments.update PATCH /comments/{id}",
+			"controller.actions GET /manager-actions",
+			"controller.cancelAction POST /manager-actions/{id}/cancel",
 			"controller.handle POST /manager-dispatches/{id}/handle",
 			"controller.list GET /manager-dispatches",
 			"controller.resolveUnknown POST /manager-dispatches/{id}/received",
@@ -71,6 +73,9 @@ describe("contract", () => {
 			"flows.list GET /flows",
 			"flows.save PUT /flows/{flow}/graph",
 			"flows.update PATCH /flows/{flow}",
+			"needsYou.list POST /needs-you/list",
+			"needsYou.summary POST /needs-you/summary",
+			"needsYou.update POST /needs-you/update",
 			"personas.create POST /personas",
 			"personas.delete DELETE /personas/{id}",
 			"personas.list GET /personas",
@@ -143,7 +148,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(114);
+		expect(table).toHaveLength(119);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

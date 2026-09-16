@@ -10,6 +10,8 @@ export type CommandMode = "commands" | "search" | "projects";
 
 export type CommandState = {
 	open: boolean;
+	initialQuery: string;
+	snoozeItem: { id: string; identifier: string } | null;
 	mode: CommandMode;
 	// The route the context belongs to.
 	pathname: string;
@@ -21,6 +23,8 @@ export type CommandState = {
 
 const initial: CommandState = {
 	open: false,
+	initialQuery: "",
+	snoozeItem: null,
 	mode: "commands",
 	pathname: "",
 	focusedTicket: null,
@@ -41,9 +45,13 @@ const rememberOpener = () => {
 };
 
 export const commandActions = {
+	snooze: (item: { id: string; identifier: string }) => {
+		rememberOpener();
+		set({ open: true, mode: "commands", initialQuery: `Snooze ${item.identifier} `, snoozeItem: item });
+	},
 	open: (mode: CommandMode) => {
 		rememberOpener();
-		set({ open: true, mode });
+		set({ open: true, mode, initialQuery: "", snoozeItem: null });
 	},
 	// The focus goes back at once, so the row the palette covered keeps
 	// the keyboard before the panel finishes its exit.
@@ -55,7 +63,9 @@ export const commandActions = {
 	// here while the palette is open.
 	toggle: (mode: CommandMode) => {
 		if (!useCommandStore.getState().open) rememberOpener();
-		set((state) => (state.open && state.mode === mode ? { open: false } : { open: true, mode }));
+		set((state) =>
+			state.open && state.mode === mode ? { open: false } : { open: true, mode, initialQuery: "", snoozeItem: null },
+		);
 	},
 	// The shell that draws the palette is gone, so nothing it held is
 	// still true.

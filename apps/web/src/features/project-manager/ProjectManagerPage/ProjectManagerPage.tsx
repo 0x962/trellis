@@ -2,11 +2,12 @@ import { ArrowClockwise, Play, Stop } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { DEFAULT_PROJECT_MANAGER_CONFIG, type Project } from "@trellis/api";
-import { ConfirmDialog, EmptyState, IconButton, Tooltip, toast } from "@trellis/ui";
+import { Avatar, ConfirmDialog, EmptyState, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
+import { isAgentWorking } from "../../agents/isAgentWorking";
 import { NativeTerminal } from "../../agents/NativeTerminal";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
@@ -19,7 +20,10 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 	const leaveTerminal = useCallback(() => processControl.current?.focus(), []);
 	const [confirmNewSession, setConfirmNewSession] = useState(false);
 	const saved = project.managerConfig ?? DEFAULT_PROJECT_MANAGER_CONFIG;
-	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: { project: project.path } }));
+	const runs = useQuery({
+		...orpc.agentRuns.list.queryOptions({ input: { project: project.path } }),
+		refetchInterval: 2000,
+	});
 	const manager = runs.data?.find((run) => run.kind === "manager");
 	const active = manager !== undefined && hasAssignedProcess(manager);
 	const resumes = managerResumes(manager);
@@ -88,7 +92,18 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 					}
 					title="Manager"
 				/>
-				{manager && <span className="truncate text-sm text-fg-muted">{manager.name}</span>}
+				{manager && (
+					<span className="inline-flex min-w-0 items-center gap-2 text-sm text-fg-muted">
+						<Avatar
+							kind="agent"
+							name={manager.personaName}
+							personaKind="manager"
+							state={isAgentWorking(manager) ? "working" : "static"}
+							className="size-7"
+						/>
+						<span className="truncate">{manager.personaName}</span>
+					</span>
+				)}
 			</Topbar>
 			<section aria-label="Manager terminal" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 				{runs.isPending && (

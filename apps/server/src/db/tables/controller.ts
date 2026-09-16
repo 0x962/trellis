@@ -25,6 +25,7 @@ export const managerDispatches = pgTable(
 		state: text().notNull().default("pending"),
 		workState: text("work_state").notNull().default("open"),
 		outcomes: jsonb().notNull().default([]),
+		nextActions: jsonb("next_actions").notNull().default([]),
 		handledAt: at("handled_at"),
 		events: jsonb().notNull(),
 		dueAt: at("due_at").notNull(),
