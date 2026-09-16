@@ -217,3 +217,35 @@ test("Claude manager waits for tool discovery after its prompt hook starts", asy
 		clearTimeout(ready);
 	}
 });
+
+test("Claude manager blocks a discovered prompt when runtime acknowledgment fails", async () => {
+	const path = join(fixture.home, "ready.json");
+	managerReadiness.record(path, "attempt", "secret");
+	const error = await hook(
+		{ hook_event_name: "UserPromptSubmit", prompt: "trellis-message:attempt\nContinue" },
+		{ TRELLIS_MANAGER_TOOLS_READY: path, TRELLIS_HARNESS_SOCKET: join(fixture.home, "missing.sock") },
+		2,
+	);
+	expect(error).toContain("Trellis");
+});
+
+test("Claude manager shares one deadline between discovery and prompt acknowledgment", async () => {
+	const socket = join(fixture.home, "stalled-ack.sock");
+	const path = join(fixture.home, "delayed-ready.json");
+	const server = createServer((connection) => connection.resume());
+	await new Promise<void>((resolve) => server.listen(socket, resolve));
+	const ready = setTimeout(() => managerReadiness.record(path, "attempt", "secret"), 500);
+	try {
+		const started = performance.now();
+		const error = await hook(
+			{ hook_event_name: "UserPromptSubmit", prompt: "trellis-message:attempt\nContinue" },
+			{ TRELLIS_MANAGER_TOOLS_READY: path, TRELLIS_HARNESS_SOCKET: socket },
+			2,
+		);
+		expect(error).toContain("Trellis");
+		expect(performance.now() - started).toBeLessThan(9500);
+	} finally {
+		clearTimeout(ready);
+		await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+	}
+}, 15000);
