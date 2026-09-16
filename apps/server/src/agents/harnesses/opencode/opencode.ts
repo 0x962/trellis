@@ -51,11 +51,22 @@ export const prepareOpenCode = async (input: HarnessLaunchInput): Promise<Harnes
 				: {}),
 			OPENCODE_CONFIG_CONTENT: JSON.stringify({
 				autoupdate: false,
+				...(input.effort && !input.managerTools
+					? { agent: { build: { model: input.model, variant: input.effort } } }
+					: {}),
 				permission: input.managerTools ? permission : "allow",
 				...(input.managerTools
 					? {
 							default_agent: "trellis-manager",
-							agent: { "trellis-manager": { mode: "primary", permission, prompt: input.managerSystemPrompt } },
+							agent: {
+								"trellis-manager": {
+									mode: "primary",
+									permission,
+									prompt: input.managerSystemPrompt,
+									model: input.model,
+									variant: input.effort,
+								},
+							},
 							mcp: {
 								trellis: {
 									type: "local",
@@ -71,6 +82,7 @@ export const prepareOpenCode = async (input: HarnessLaunchInput): Promise<Harnes
 			TRELLIS_OPENCODE_CONTROL_SOCKET: `/tmp/trellis-oc-${randomUUID()}.sock`,
 			TRELLIS_OPENCODE_CONTROL_TOKEN: randomUUID(),
 			...(input.model ? { TRELLIS_OPENCODE_MODEL: input.model } : {}),
+			...(input.effort ? { TRELLIS_OPENCODE_VARIANT: input.effort } : {}),
 			TRELLIS_PROVIDER_SESSION: input.resume ? input.sessionId : "",
 		},
 	};

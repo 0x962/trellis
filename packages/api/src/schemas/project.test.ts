@@ -1,7 +1,12 @@
 import { expect, test } from "bun:test";
 import { DEFAULT_PROJECT_MANAGER_CONFIG, ProjectCreateInputSchema, ProjectManagerConfigSchema } from "./project.ts";
 
-const base = { personaId: null, concurrency: 3, directory: "" };
+const base = { personaId: null, directory: "" };
+
+test("the manager config holds no worker concurrency field", () => {
+	expect(DEFAULT_PROJECT_MANAGER_CONFIG).not.toHaveProperty("concurrency");
+	expect(ProjectManagerConfigSchema.safeParse({ ...base, concurrency: 3 }).success).toBe(false);
+});
 
 test("new projects use the local runtime without a repository approval flag", () => {
 	expect(DEFAULT_PROJECT_MANAGER_CONFIG.ade).toBe("native");
@@ -36,18 +41,10 @@ test("project settings contain no tool permission approval field", () => {
 	expect(ProjectManagerConfigSchema.safeParse({ ...base, allowAllPermissions: false }).success).toBe(false);
 });
 
-// A person types the name in the project dialog and the concurrency in the
-// manager settings, so each bound reads as a sentence.
+// A person types the name in the project dialog, so the bound reads as a
+// sentence.
 test("a project name out of bounds reads as a sentence", () => {
 	const message = (name: string) => ProjectCreateInputSchema.safeParse({ key: "CDE", name }).error!.issues[0]!.message;
 	expect(message("")).toBe("Enter a project name of 1 to 120 characters.");
 	expect(message("n".repeat(121))).toBe("Enter a project name of 1 to 120 characters.");
-});
-
-test("a concurrency out of bounds reads as a sentence", () => {
-	const message = (concurrency: number) =>
-		ProjectManagerConfigSchema.safeParse({ ...base, concurrency }).error!.issues[0]!.message;
-	expect(message(0)).toBe("Enter a concurrency of 1 to 64.");
-	expect(message(65)).toBe("Enter a concurrency of 1 to 64.");
-	expect(message(2.5)).toBe("Enter a whole number for the concurrency.");
 });

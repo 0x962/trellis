@@ -55,6 +55,7 @@ export default async function(pi) {
 			"--extension",
 			extension,
 			...(input.model ? ["--model", input.model] : []),
+			...(input.effort ? ["--thinking", input.effort] : []),
 			...(input.resume ? ["--session", input.sessionId] : []),
 			input.prompt,
 		],

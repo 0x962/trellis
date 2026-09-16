@@ -9,7 +9,8 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { startNative } from "../../../../../src/services/agentRuns/nativeStart.ts";
 import { getRun } from "../../../../../src/services/agentRuns/queries.ts";
-import { seedActors, seedRoot } from "../../../../fixtures/projects.ts";
+import { seedActors, seedRoot, seedStatuses } from "../../../../fixtures/projects.ts";
+import { seedTicket } from "../../../../fixtures/tickets.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
@@ -58,7 +59,6 @@ test.each(["custom", "codex"] as const)(
 				run,
 				config: ProjectManagerConfigSchema.parse({
 					personaId: null,
-					concurrency: 1,
 					directory: "/tmp",
 					harness: { preset, startCommand: "/bin/true", resumeCommand: "/bin/true" },
 				}),
@@ -93,7 +93,6 @@ test.each([
 	const ctx = context((event) => h.flushed.push(event));
 	const config = ProjectManagerConfigSchema.parse({
 		personaId: null,
-		concurrency: 1,
 		directory: "/tmp",
 		ade: "native",
 	});
@@ -140,7 +139,6 @@ test.each(["workspace", "environment"])(
 				run,
 				config: ProjectManagerConfigSchema.parse({
 					personaId: null,
-					concurrency: 1,
 					directory: "/missing",
 				}),
 				resume: false,
@@ -200,7 +198,6 @@ test("an uncertain launch reply keeps the assignment open for process inspection
 					run,
 					config: ProjectManagerConfigSchema.parse({
 						personaId: null,
-						concurrency: 1,
 						directory: "/tmp",
 					}),
 					resume: false,
@@ -225,71 +222,86 @@ test("an uncertain launch reply keeps the assignment open for process inspection
 	}
 });
 
-test.each(["acknowledged", "unknown"])("a Claude start waits for its initial prompt receipt: %s", async (outcome) => {
-	mkdirSync(join(home, "runtime"));
-	let subscribed!: () => void;
-	const subscription = new Promise<void>((resolve) => {
-		subscribed = resolve;
-	});
-	let acknowledge!: () => void;
-	const server = createServer((socket) => {
-		socket.setEncoding("utf8");
-		let buffer = "";
-		socket.on("data", (chunk) => {
-			buffer += chunk;
-			if (!buffer.includes("\n")) return;
-			const request = JSON.parse(buffer.split("\n")[0]!);
-			const session = { id: attemptId, status: "running", error: null, acknowledgedMessageIds: [] };
-			if (request.method === "hello")
-				socket.end(`${JSON.stringify({ id: request.id, result: { version: RUNTIME_PROTOCOL_VERSION } })}\n`);
-			else if (request.method === "start") socket.end(`${JSON.stringify({ id: request.id, result: session })}\n`);
-			else if (request.method === "subscribe") {
-				acknowledge = () =>
-					socket.write(
-						`${JSON.stringify({ id: request.id, result: { type: "session", session: { ...session, agent: { sessionId: "provider-conversation" }, error: outcome === "unknown" ? "The agent did not acknowledge this message" : null, status: outcome === "unknown" ? "unknown" : "running", acknowledgedMessageIds: outcome === "acknowledged" ? [attemptId] : [] } } })}\n`,
-					);
-				subscribed();
-			}
+test.each(["acknowledged", "exited", "unknown"])(
+	"a Claude start waits for its initial prompt receipt: %s",
+	async (outcome) => {
+		mkdirSync(join(home, "runtime"));
+		let subscribed!: () => void;
+		const subscription = new Promise<void>((resolve) => {
+			subscribed = resolve;
 		});
-	});
-	await new Promise<void>((resolve) => server.listen(join(home, "runtime", "runtime.sock"), resolve));
-	try {
-		const run = await h.read((tx) => getRun(tx, id));
-		const ctx = context();
-		const start = startNative(
-			ctx,
-			{
-				run,
-				config: ProjectManagerConfigSchema.parse({
-					personaId: null,
-					concurrency: 1,
-					directory: "/tmp",
-				}),
-				resume: false,
-				context: "Fixture",
-				attempt: { id: attemptId, generation: 1, token: "fixture-token" },
-			},
-			{ workspace: async () => "/tmp" },
-		);
-		expect(await Promise.race([subscription.then(() => "subscribed"), start.then(() => "returned")])).toBe(
-			"subscribed",
-		);
-		acknowledge();
-		if (outcome === "acknowledged") {
-			await start;
-			expect((await h.read((tx) => getRun(tx, id))).error).toBeNull();
-			expect((await h.read((tx) => getRun(tx, id))).sessionId).toBe("provider-conversation");
-		} else {
-			await expect(start).rejects.toMatchObject({ code: "RUNNER_UNAVAILABLE" });
-			const after = await h.read((tx) => getRun(tx, id));
-			expect(after.closedAt).toBeNull();
-			expect(after.error).toContain("did not acknowledge");
-			expect(after.sessionLost).toBe(false);
+		let acknowledge!: () => void;
+		const server = createServer((socket) => {
+			socket.setEncoding("utf8");
+			let buffer = "";
+			socket.on("data", (chunk) => {
+				buffer += chunk;
+				if (!buffer.includes("\n")) return;
+				const request = JSON.parse(buffer.split("\n")[0]!);
+				const session = { id: attemptId, status: "running", error: null, acknowledgedMessageIds: [] };
+				if (request.method === "hello")
+					socket.end(`${JSON.stringify({ id: request.id, result: { version: RUNTIME_PROTOCOL_VERSION } })}\n`);
+				else if (request.method === "start") socket.end(`${JSON.stringify({ id: request.id, result: session })}\n`);
+				else if (request.method === "subscribe") {
+					acknowledge = () =>
+						socket.write(
+							`${JSON.stringify({ id: request.id, result: { type: "session", session: { ...session, agent: { sessionId: "provider-conversation" }, error: outcome === "unknown" ? "The agent did not acknowledge this message" : null, status: outcome === "unknown" ? "unknown" : outcome === "exited" ? "exited" : "running", acknowledgedMessageIds: outcome !== "unknown" ? [attemptId] : [] } } })}\n`,
+						);
+					subscribed();
+				}
+			});
+		});
+		await new Promise<void>((resolve) => server.listen(join(home, "runtime", "runtime.sock"), resolve));
+		try {
+			if (outcome === "exited") {
+				await h.read(async (tx) => {
+					const current = await getRun(tx, id);
+					const statuses = await seedStatuses(tx, current.projectId!);
+					const ticketId = await seedTicket(tx, {
+						projectId: current.projectId!,
+						rootId: current.projectId!,
+						statusId: statuses.started,
+					});
+					await tx.execute(sql`UPDATE agent_runs SET kind='builder',ticket_id=${ticketId} WHERE id=${id}`);
+				});
+			}
+			const run = await h.read((tx) => getRun(tx, id));
+			const ctx = context();
+			const start = startNative(
+				ctx,
+				{
+					run,
+					config: ProjectManagerConfigSchema.parse({
+						personaId: null,
+						directory: "/tmp",
+					}),
+					resume: false,
+					context: "Fixture",
+					attempt: { id: attemptId, generation: 1, token: "fixture-token" },
+				},
+				{ workspace: async () => "/tmp" },
+			);
+			expect(await Promise.race([subscription.then(() => "subscribed"), start.then(() => "returned")])).toBe(
+				"subscribed",
+			);
+			acknowledge();
+			if (outcome !== "unknown") {
+				await start;
+				expect((await h.read((tx) => getRun(tx, id))).error).toBeNull();
+				expect((await h.read((tx) => getRun(tx, id))).sessionId).toBe("provider-conversation");
+				expect((await h.read((tx) => getRun(tx, id))).closedAt).toBeNull();
+			} else {
+				await expect(start).rejects.toMatchObject({ code: "RUNNER_UNAVAILABLE" });
+				const after = await h.read((tx) => getRun(tx, id));
+				expect(after.closedAt).toBeNull();
+				expect(after.error).toContain("did not acknowledge");
+				expect(after.sessionLost).toBe(false);
+			}
+		} finally {
+			await new Promise<void>((resolve) => server.close(() => resolve()));
 		}
-	} finally {
-		await new Promise<void>((resolve) => server.close(() => resolve()));
-	}
-});
+	},
+);
 
 test("an empty root directory reports a configuration error before runtime launch", async () => {
 	let runtimeCalled = false;
@@ -297,7 +309,7 @@ test("an empty root directory reports a configuration error before runtime launc
 		context(),
 		{
 			run: await h.read((tx) => getRun(tx, id)),
-			config: ProjectManagerConfigSchema.parse({ personaId: null, concurrency: 3, directory: "" }),
+			config: ProjectManagerConfigSchema.parse({ personaId: null, directory: "" }),
 			resume: false,
 			context: "Fixture",
 			attempt: { id: attemptId, generation: 1, token: "fixture-token" },
@@ -315,3 +327,40 @@ test("an empty root directory reports a configuration error before runtime launc
 		"Select the local repository directory before you start a native agent.",
 	);
 });
+
+test.each(["todo", "agentReview"] as const)(
+	"an automatic builder cannot start after its ticket moves to %s",
+	async (next) => {
+		const run = await h.read((tx) => getRun(tx, id));
+		const statuses = await h.read((tx) => seedStatuses(tx, run.projectId!));
+		const ticket = await h.read((tx) =>
+			seedTicket(tx, { projectId: run.projectId!, rootId: run.projectId!, statusId: statuses.started }),
+		);
+		await h.rows(sql`UPDATE agent_runs SET kind='builder',ticket_id=${ticket} WHERE id=${id}`);
+		let runtimeCalled = false;
+		await startNative(
+			context(),
+			{
+				run: await h.read((tx) => getRun(tx, id)),
+				config: ProjectManagerConfigSchema.parse({ personaId: null, directory: "/tmp" }),
+				resume: false,
+				context: "Fixture",
+				attempt: { id: attemptId, generation: 1, token: "fixture-token" },
+				requiredTicketCategory: "started",
+			},
+			{
+				env: {},
+				workspace: async () => {
+					await h.rows(sql`UPDATE tickets SET status_id=${statuses[next]} WHERE id=${ticket}`);
+					return "/tmp";
+				},
+				runtime: async () => {
+					runtimeCalled = true;
+					throw new Error("Unexpected runtime launch");
+				},
+			},
+		);
+		expect(runtimeCalled).toBe(false);
+		expect((await h.read((tx) => getRun(tx, id))).closedAt).not.toBeNull();
+	},
+);

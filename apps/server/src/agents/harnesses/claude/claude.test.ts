@@ -176,3 +176,14 @@ test("Claude associates the first tool with its current native prompt ID", () =>
 	expect(receipt.turnId).toBeUndefined();
 	expect(tool.turnId).toBe("current-prompt");
 });
+
+test("Claude forwards effort on start and resume", async () => {
+	for (const resume of [false, true] as const) {
+		const launch = await prepareClaude({
+			...input,
+			...(resume ? { resume: true as const } : { resume: false as const }),
+			effort: "max",
+		});
+		expect(launch.args[launch.args.indexOf("--effort") + 1]).toBe("max");
+	}
+});

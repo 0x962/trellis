@@ -3,6 +3,7 @@ import * as tickets from "../../../../src/services/tickets.ts";
 import {
 	dana,
 	seedChild,
+	seedDefaultBuilder,
 	seedProject,
 	seedRootWithStatuses,
 	seedStatus,
@@ -21,6 +22,7 @@ const moveTo = (id: string, project: string) =>
 // root's In Progress.
 const seed = async () => {
 	const { rootId, statuses } = await seedProject(h.db);
+	await seedDefaultBuilder(h.db, rootId);
 	const webId = await seedChild(h.db, rootId, rootId, "web");
 	const id = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.started });
 	return { rootId, statuses, webId, id };

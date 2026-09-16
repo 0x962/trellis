@@ -72,7 +72,7 @@ export const collect = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput
 			sql`UPDATE manager_controller_cursors SET activity_id = ${found.at(-1)!.id} WHERE project_id = ${project.id}`,
 		);
 	}
-	await collectNextActions(ctx, tx, input);
+	await collectNextActions(ctx, tx);
 	await collectHeartbeats(ctx, tx, input);
 	return {};
 };

@@ -400,6 +400,34 @@
       "when": 1789592545315,
       "tag": "0059_manager_dispatch_failed_state",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1789597000000,
+      "tag": "0060_remove_slot_capacity",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1789597500000,
+      "tag": "0061_builder_heartbeats",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1789597989131,
+      "tag": "0062_remove_slot_instructions",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1789599000000,
+      "tag": "0065_builder_start_requests",
+      "breakpoints": true
     }
   ]
 }

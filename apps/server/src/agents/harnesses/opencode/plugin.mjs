@@ -19,6 +19,7 @@ export const TrellisPlugin = async ({ client }) => {
 				path: { id },
 				body: {
 					parts: [{ type: "text", text }],
+					...(process.env.TRELLIS_OPENCODE_VARIANT ? { variant: process.env.TRELLIS_OPENCODE_VARIANT } : {}),
 					...(managerTools ? { agent: "trellis-manager" } : {}),
 					...(model ? { model: { providerID: model.slice(0, split), modelID: model.slice(split + 1) } } : {}),
 				},

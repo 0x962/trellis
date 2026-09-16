@@ -94,3 +94,17 @@ test("OpenCode resumed managers receive the current database persona", async () 
 	});
 	expect(JSON.parse(launch.env.OPENCODE_CONFIG_CONTENT!).agent["trellis-manager"].prompt).toBe(managerSystemPrompt);
 });
+
+test("OpenCode sets the selected variant for initial and follow-up prompts", async () => {
+	const options = await input();
+	for (const resume of [false, true] as const) {
+		const launch = await prepareOpenCode({
+			...options,
+			...(resume ? { resume: true as const } : { resume: false as const }),
+			effort: "high",
+		});
+		const config = JSON.parse(launch.env.OPENCODE_CONFIG_CONTENT!);
+		expect(config.agent.build).toMatchObject({ model: options.model, variant: "high" });
+		expect(launch.env.TRELLIS_OPENCODE_VARIANT).toBe("high");
+	}
+});

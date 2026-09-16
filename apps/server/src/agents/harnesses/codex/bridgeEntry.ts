@@ -31,6 +31,7 @@ const launch = z
 		cwd: z.string(),
 		prompt: z.string(),
 		model: z.string().optional(),
+		effort: z.string().optional(),
 		sessionId: z.string().optional(),
 		managerSystemPrompt: z.string().optional(),
 	})
@@ -41,6 +42,7 @@ const adapter = manager ? managerAdapter(authenticatedManagerTools(process.env),
 const engineConfig = manager
 	? Object.entries(managerPolicy.config).map(([key, value]) => `${key}=${JSON.stringify(value)}`)
 	: [await inspectCodexHooks(env.TRELLIS_CODEX_EXECUTABLE, launch.cwd)];
+if (launch.effort) engineConfig.push(`model_reasoning_effort=${JSON.stringify(launch.effort)}`);
 const runtime = new RuntimeClient(env.TRELLIS_HARNESS_SOCKET);
 const directory = dirname(env.TRELLIS_CODEX_ENGINE_SOCKET);
 await mkdir(directory, { mode: 0o700 });
@@ -171,11 +173,13 @@ async function start() {
 		sessionId: result.thread.id,
 		client,
 		manager,
+		effort: launch.effort,
 		current: () => current,
 	});
 	await client.request("turn/start", {
 		threadId: result.thread.id,
 		input: [{ type: "text", text: launch.prompt }],
+		effort: launch.effort,
 		approvalPolicy: "never",
 		sandboxPolicy: { type: "dangerFullAccess" },
 		...(manager ? managerPolicy.turn : {}),

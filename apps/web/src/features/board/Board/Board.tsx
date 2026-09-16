@@ -152,6 +152,30 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 	const onDropped = useDropMotion(columns);
 	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce, onDropped);
 
+	const setWipLimit = useCallback(
+		async (statusId: string, limit: number | null) => {
+			if (projectRef === undefined) return;
+			try {
+				await context.client.statuses.update({ project: projectRef, status: statusId, wipLimit: limit });
+				await context.queryClient.invalidateQueries({ queryKey: boardOptions.queryKey });
+				await context.queryClient.invalidateQueries({ queryKey: projectOptions.queryKey });
+			} catch (error) {
+				const message = errorMessage(error);
+				announce(message);
+				toast.error(message);
+				throw error;
+			}
+		},
+		[
+			announce,
+			boardOptions.queryKey,
+			context.client.statuses,
+			context.queryClient,
+			projectOptions.queryKey,
+			projectRef,
+		],
+	);
+
 	const openComposer = (column: BoardColumnModel) => {
 		const status = column.statuses[0];
 		composerActions.open(
@@ -252,6 +276,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 						onFocusTicket={setFocusedCard}
 						onCardKeyDown={keyDown}
 						onAnnounce={announce}
+						onSetWipLimit={setWipLimit}
 					/>
 				))}
 			</div>

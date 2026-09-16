@@ -29,7 +29,7 @@ export const projects = pgTable(
 		slug: text().notNull(),
 		name: text().notNull(),
 		description: text().notNull().default(""),
-		managerConfig: jsonb("manager_config").notNull().default({ personaId: null, concurrency: 3, directory: "" }),
+		managerConfig: jsonb("manager_config").notNull().default({ personaId: null, directory: "" }),
 		ticketTemplate: text("ticket_template").notNull().default(""),
 		ticketCounter: integer("ticket_counter").notNull().default(0),
 		position: integer().notNull().default(0),

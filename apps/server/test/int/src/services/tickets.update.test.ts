@@ -1,13 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import * as tickets from "../../../../src/services/tickets.ts";
 import {
+	claude,
 	count,
 	dana,
 	hoursAgo,
 	seedActors,
+	seedDefaultBuilder,
 	seedProject,
 	seedRoot,
 	seedRootWithStatuses,
+	seedStatus,
 	seedStatuses,
 	seedTicket,
 	type TicketSeed,
@@ -22,6 +25,7 @@ const update = (input: Record<string, unknown>) => h.as(dana)((ctx, tx) => ticke
 const seed = async (extra: Partial<TicketSeed> = {}, overrides: Record<string, unknown> = {}) => {
 	const project = await seedProject(h.db);
 	const { rootId, statuses } = project;
+	await seedDefaultBuilder(h.db, rootId);
 	const id = await seedTicket(
 		h.db,
 		{ projectId: rootId, rootId, statusId: statuses.todo, title: "Alpha", ...extra },
@@ -53,6 +57,7 @@ describe("tickets.update", () => {
 	test("started_at is set once and never overwritten", async () => {
 		const yesterday = hoursAgo(24);
 		const { rootId, statuses } = await seedProject(h.db);
+		await seedDefaultBuilder(h.db, rootId);
 		const id = await seedTicket(h.db, {
 			projectId: rootId,
 			rootId,
@@ -66,6 +71,7 @@ describe("tickets.update", () => {
 
 	test("completed_at is set on entering done and cleared on leaving", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
+		await seedDefaultBuilder(h.db, rootId);
 		const id = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.started });
 		const before = Date.now();
 		await update({ ticket: id, status: "done" });
@@ -76,6 +82,7 @@ describe("tickets.update", () => {
 
 	test("a move into canceled sets completed_at", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
+		await seedDefaultBuilder(h.db, rootId);
 		const id = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.started });
 		const before = Date.now();
 		await update({ ticket: id, status: "canceled" });
@@ -151,5 +158,63 @@ describe("tickets.update", () => {
 		if (event.type !== "ticket.updated") return;
 		expect(event.summary).toMatchObject({ id, title: "Beta", priority: "high", version: 5 });
 		expect([...event.fields].sort()).toEqual(["priority", "title"]);
+	});
+
+	test("an agent move into a full status fails with STATUS_FULL", async () => {
+		await seedActors(h.db);
+		const rootId = await seedRoot(h.db, "WIP");
+		await seedDefaultBuilder(h.db, rootId);
+		const todo = await seedStatus(h.db, { projectId: rootId, name: "Todo", category: "todo", position: 0 });
+		const started = await seedStatus(h.db, {
+			projectId: rootId,
+			name: "In Progress",
+			category: "started",
+			position: 1,
+			wipLimit: 1,
+		});
+		await seedTicket(h.db, { projectId: rootId, rootId, statusId: started, title: "Alpha" });
+		const id = await seedTicket(h.db, { projectId: rootId, rootId, statusId: todo, title: "Beta" });
+		const data = await expectErrorData(
+			h.as(claude)((ctx, tx) => tickets.update(ctx, tx, { ticket: id, status: "in-progress" })),
+			"STATUS_FULL",
+		);
+		expect(data).toEqual({ statusId: started, limit: 1, count: 1 });
+		expect((await ticketRow(h.db, id))!.status_id).toBe(todo);
+	});
+
+	test("a human move into a full status succeeds", async () => {
+		await seedActors(h.db);
+		const rootId = await seedRoot(h.db, "WIP");
+		await seedDefaultBuilder(h.db, rootId);
+		const todo = await seedStatus(h.db, { projectId: rootId, name: "Todo", category: "todo", position: 0 });
+		const started = await seedStatus(h.db, {
+			projectId: rootId,
+			name: "In Progress",
+			category: "started",
+			position: 1,
+			wipLimit: 1,
+		});
+		await seedTicket(h.db, { projectId: rootId, rootId, statusId: started, title: "Alpha" });
+		const id = await seedTicket(h.db, { projectId: rootId, rootId, statusId: todo, title: "Beta" });
+		await update({ ticket: id, status: "in-progress" });
+		expect((await ticketRow(h.db, id))!.status_id).toBe(started);
+	});
+
+	test("a move out of a full status always succeeds", async () => {
+		await seedActors(h.db);
+		const rootId = await seedRoot(h.db, "WIP");
+		await seedDefaultBuilder(h.db, rootId);
+		await seedStatus(h.db, { projectId: rootId, name: "Todo", category: "todo", position: 0 });
+		const started = await seedStatus(h.db, {
+			projectId: rootId,
+			name: "In Progress",
+			category: "started",
+			position: 1,
+			wipLimit: 1,
+		});
+		const done = await seedStatus(h.db, { projectId: rootId, name: "Done", category: "done", position: 2 });
+		const id = await seedTicket(h.db, { projectId: rootId, rootId, statusId: started, title: "Alpha" });
+		await h.as(claude)((ctx, tx) => tickets.update(ctx, tx, { ticket: id, status: "done" }));
+		expect((await ticketRow(h.db, id))!.status_id).toBe(done);
 	});
 });

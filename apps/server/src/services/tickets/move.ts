@@ -7,6 +7,8 @@ import { ticketGet, ticketSummary } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { type Change, record } from "../activity.ts";
+import { assertStatusRoom } from "../manager/admitTicket.ts";
+import { queueBuilderStart } from "../manager/builderStarts/queue.ts";
 import { assertProjectActive, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
 import { type Anchor, type Anchors, placeBetween, renumberColumn } from "./position.ts";
 import { assertVersion, stampColumns } from "./rules.ts";
@@ -29,6 +31,7 @@ export const move = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 	await assertVersion(tx, row, input.expectedVersion);
 	const next = await resolveStatus(ctx, tx, { projectId: row.projectId, status: input.status });
 	const statusChanged = next.id !== row.statusId;
+	if (statusChanged) await assertStatusRoom(ctx, tx, next.id, row.projectId);
 	const anchors: Anchors = {
 		after: await resolveAnchor(ctx, tx, row, next.id, input.after),
 		before: await resolveAnchor(ctx, tx, row, next.id, input.before),
@@ -67,6 +70,8 @@ export const move = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 		batchId,
 		changes,
 	});
+	if (statusChanged)
+		await queueBuilderStart(ctx, tx, { ticketId: row.id, projectId: row.projectId, category: next.category });
 	ctx.emit({ type: "ticket.updated", summary: await ticketSummary(tx, row.id), fields, batchId });
 	return ticketGet(tx, row.id);
 };
