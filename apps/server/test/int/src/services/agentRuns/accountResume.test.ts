@@ -259,9 +259,20 @@ test("a stopped open assignment must acquire capacity before its next turn", asy
 	);
 	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,created_at,updated_at)
 		VALUES ('other','Builder','Builder','builder','Work',${run.projectId},'SWITCH','native','other-attempt',now(),now())`);
+	await fixture.client.start({
+		id: "other-attempt",
+		command: "/bin/cat",
+		args: [],
+		cwd: fixture.home,
+		mode: "pty",
+		env: { TRELLIS_ATTEMPT_TOKEN: "other-token" },
+	});
+	await fixture.client.observe("other-attempt", "other-token", { kind: "prompt", prompt: "Work" });
+	await new Promise((resolve) => setTimeout(resolve, 10_010));
+
 	await expect(prepareResume(ctx(), request(), start)).rejects.toMatchObject({
 		code: "INPUT_VALIDATION_FAILED",
 		data: { issues: [{ path: ["id"], message: "The project has no available worker capacity." }] },
 	});
 	expect((await h.read((tx) => getRun(tx, runId))).terminalId).toBe(attemptId);
-});
+}, 30_000);

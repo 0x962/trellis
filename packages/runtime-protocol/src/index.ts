@@ -1,4 +1,4 @@
-export const RUNTIME_PROTOCOL_VERSION = 8;
+export const RUNTIME_PROTOCOL_VERSION = 9;
 export type HarnessTool = {
 	id: string;
 	name: string;
@@ -85,7 +85,12 @@ export interface RuntimeProcessStatus extends RuntimeSession {
 	agent: RuntimeAgentMetadata | null;
 	result: { id: string; text: string } | null;
 	acknowledgedMessageIds: string[];
-	activity: { state: "ready" | "working" | "idle"; updatedAt: string } | null;
+	activity: {
+		state: "ready" | "working" | "idle";
+		updatedAt: string;
+		// The start of continuous work. Tool and message events preserve this time.
+		workingSince?: string;
+	} | null;
 	checkedAt: string;
 	controllable: boolean;
 	process: RuntimeProcessMetadata | null;

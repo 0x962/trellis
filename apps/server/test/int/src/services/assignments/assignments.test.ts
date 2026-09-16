@@ -6,6 +6,7 @@ import * as notes from "../../../../../src/services/notes/notes.ts";
 import * as personas from "../../../../../src/services/personas.ts";
 import { seedActors, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
+import { workingSession } from "../../../../helpers/controllerSession.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
@@ -43,7 +44,11 @@ const start = (requestId: string) => h.run((ctx, tx) => reserve(ctx, tx, { perso
 
 test("one request returns its reserved run again even when the project is at capacity", async () => {
 	const first = await start("ASG-1:builder");
-	const second = await start("ASG-1:builder");
+	const second = await h.run((ctx, tx) =>
+		reserve(ctx, tx, { personaId, ticket, requestId: "ASG-1:builder" }, [], {
+			sessions: [workingSession(first.run.terminalId!)],
+		}),
+	);
 	expect(second.run.id).toBe(first.run.id);
 	expect(second.replay).toBe(true);
 	expect(await h.rows(sql`SELECT id FROM agent_runs`)).toHaveLength(1);
@@ -170,4 +175,25 @@ test("the launch context carries the project notes for the agent's audience", as
 	expect(manager.context).toContain("- Release policy (ASG, dana, updated ");
 	expect(manager.context).toContain("- CI (ASG, dana, updated ");
 	expect(manager.context).not.toContain("Fresh worktree");
+});
+
+test("starts enforce the capacity target after ten seconds of observed work", async () => {
+	const first = await start("first");
+	const reviewer = await h.run((ctx, tx) =>
+		personas.create(ctx, tx, { name: "Reviewer", kind: "reviewer", instruction: "Review." }),
+	);
+	const input = { personaId: reviewer.id, ticket, requestId: "review" };
+	await expect(
+		h.run((ctx, tx) =>
+			reserve(ctx, tx, input, [], {
+				sessions: [workingSession(first.run.terminalId!)],
+			}),
+		),
+	).rejects.toMatchObject({ code: "DUPLICATE", data: { field: "project concurrency limit" } });
+	const started = await h.run((ctx, tx) =>
+		reserve(ctx, tx, input, [], {
+			sessions: [workingSession(first.run.terminalId!, 9_999)],
+		}),
+	);
+	expect(started.run.personaId).toBe(reviewer.id);
 });

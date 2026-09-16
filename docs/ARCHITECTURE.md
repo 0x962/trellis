@@ -74,7 +74,7 @@ The explicit Stop local work action pauses native dispatch, stops owned processe
 An unconfirmed process prevents a successful stop.
 
 The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 8. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 9. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 Output readers receive bounded chunks with byte offsets.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
@@ -376,10 +376,12 @@ API run states come from inspected runtime processes. The database records assig
 A missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
 A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.
 
-The concurrency limit counts concurrent active worker turns. Idle workers retain their open assignments without occupying slots. Managers are outside this count.
+The concurrency target counts workers with at least 10 seconds of continuous work. Idle workers retain their open assignments without occupying slots. Managers are outside this count.
 `occupiesSlot` uses runtime observations for starts, resumes, flow claims, saved waits, heartbeat counts, and delegated budgets.
 A confirmed idle turn or process exit releases its slot. A completed turn outcome also releases its slot.
-A new launch reserves a slot until its first prompt receipt. Missing, unknown, or uncontrollable observations retain capacity until reconciliation.
+Only live, controllable workers with observed continuous work count toward the target. Pending launches and unobserved attempts consume no slots.
+The runtime records `activity.workingSince` when work begins. Tool and message events preserve it; idle clears it.
+Capacity uses each snapshot's `checkedAt` to measure that duration. Simultaneous starts and short turns can temporarily exceed the target.
 A confirmed process exit closes its assignment before the next claim.
 The limit runs from 1 to 64 and defaults to 3. A partial unique index permits one active manager per project.
 
@@ -393,7 +395,7 @@ The project configuration remains unchanged. A configured manager or active dele
 Each submanager receives its own controller queue and heartbeats. Parent heartbeat context includes its direct submanagers and their process state.
 Normal human agent lists omit submanager assignments. The `submanagers` API retains inspection and control for diagnosis.
 `submanagers.list` gives a manager its own delegation and direct children. `resize` changes a child's budget.
-The aggregate budget counts active worker turns across the delegated scope. Idle workers consume no budget. Existing per-project limits also apply.
+The aggregate budget counts workers with at least 10 seconds of continuous work across the delegated scope. Idle workers consume no budget. Existing per-project limits also apply.
 Nested delegations reserve part of their parent's budget. Direct workers cannot consume those reserved slots.
 Independent managers allocate separate subtree budgets. These budgets do not change provider limits or project concurrency settings.
 Worker starts, resumes, flow steps, and capacity waits use the same budget rule.
