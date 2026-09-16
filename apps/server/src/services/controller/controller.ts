@@ -5,7 +5,7 @@ import type { Tx } from "../../db/tx.ts";
 import { isManaged } from "../submanagers/scope.ts";
 import { notFound } from "../support.ts";
 import { pending, refresh } from "./nextActions/queries.ts";
-import { liveSession } from "./readySession.ts";
+import { liveSession, readySession } from "./readySession.ts";
 import type { ControllerCtx, ControllerInput, Dispatch } from "./types.ts";
 
 export const dispatchColumns = sql`id, project_id AS "projectId", run_id AS "runId", terminal_id AS "terminalId", session_id AS "sessionId", generation, state, work_state AS "workState", outcomes, next_actions AS "nextActions", ${iso(sql`handled_at`)} AS "handledAt", events, ${iso(sql`due_at`)} AS "dueAt", error`;
@@ -54,14 +54,25 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput):
 			ORDER BY d.due_at, d.id LIMIT 1`,
 	);
 	if (!next) return null;
-	const [cursor] = await rows<{ generation: number }>(
-		tx,
-		sql`UPDATE manager_controller_cursors SET generation = generation + 1 WHERE project_id = ${next.project_id} RETURNING generation`,
-	);
 	await refresh(tx, { now: ctx.now, projectId: next.project_id });
 	const nextActions = (await pending(tx, { projectId: next.project_id }))
 		.filter((action) => action.eligibleAt !== null || next.events.some((event) => event.ticketId === action.ticketId))
 		.slice(0, 100);
+	const session = input.sessions.find((session) => session.id === next.terminal_id)!;
+	if (
+		next.events.length === 0 &&
+		nextActions.length === 0 &&
+		(!readySession(session) || ctx.now.getTime() - Date.parse(session.activity!.updatedAt) <= 120_000)
+	) {
+		await tx.execute(
+			sql`UPDATE manager_dispatches SET state='canceled',work_state='handled',handled_at=${ctx.now},updated_at=${ctx.now} WHERE id=${next.id}`,
+		);
+		return null;
+	}
+	const [cursor] = await rows<{ generation: number }>(
+		tx,
+		sql`UPDATE manager_controller_cursors SET generation = generation + 1 WHERE project_id = ${next.project_id} RETURNING generation`,
+	);
 	for (const action of nextActions.filter((action) => action.eligibleAt !== null))
 		await tx.execute(sql`UPDATE manager_next_actions SET notified_at=${ctx.now} WHERE id=${action.id}`);
 	const [delivery] = await rows<Dispatch>(
@@ -75,9 +86,9 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput):
 export const complete = async (
 	ctx: ControllerCtx,
 	tx: Tx,
-	input: { id: string; generation: number; state: "sent" | "unknown"; error: string | null },
+	input: { id: string; generation: number; state: "sent" | "unknown" | "canceled"; error: string | null },
 ) => {
-	await tx.execute(sql`UPDATE manager_dispatches SET state = ${input.state}, error = ${input.error}, updated_at = ${ctx.now}
+	await tx.execute(sql`UPDATE manager_dispatches SET state = ${input.state}, work_state=CASE WHEN ${input.state}='canceled' THEN 'handled' ELSE work_state END, handled_at=CASE WHEN ${input.state}='canceled' THEN ${ctx.now} ELSE handled_at END, error = ${input.error}, updated_at = ${ctx.now}
 		WHERE id = ${input.id} AND generation = ${input.generation} AND state = 'sending'
 		AND generation = (SELECT generation FROM manager_controller_cursors WHERE project_id = manager_dispatches.project_id)`);
 	return {};

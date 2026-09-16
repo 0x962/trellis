@@ -28,7 +28,7 @@ export const dispatch = async (ctx: Ctx) => {
 	}
 	await Promise.all(
 		deliveries.map(async (delivery) => {
-			let state: "sent" | "unknown" = "sent";
+			let state: "sent" | "unknown" | "canceled" = "sent";
 			let attempted = false;
 			let error: string | null = null;
 			try {
@@ -37,15 +37,17 @@ export const dispatch = async (ctx: Ctx) => {
 					agentContext({ now: ctx.now() }, tx, { sessions, projectId: delivery.projectId, runId: delivery.runId! }),
 				);
 				attempted = true;
-				await sendDeadline(
+				const sent = await sendDeadline(
 					prepareSend(ctx, {
 						id: delivery.runId!,
 						text: managerMessage(delivery, context, agents),
 						messageId: dispatchMessageId(delivery),
 						expectedTerminalId: delivery.terminalId!,
 						expectedSessionId: delivery.sessionId,
+						idleForMs: delivery.events.length === 0 && delivery.nextActions.length === 0 ? 120_000 : undefined,
 					}),
 				);
+				if (sent.skipped) state = "canceled";
 			} catch (cause) {
 				state = "unknown";
 				error = cause instanceof Error ? cause.message : String(cause);

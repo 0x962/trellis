@@ -25,6 +25,19 @@ const sessionSchema = z.object({
 			tool: z
 				.object({ id: z.string(), name: z.string(), input: z.unknown().optional(), output: z.unknown().optional() })
 				.nullable(),
+			lastTool: z
+				.object({
+					id: z.string(),
+					name: z.string(),
+					input: z.unknown().optional(),
+					output: z.unknown().optional(),
+					startedAt: z.string().nullable(),
+					updatedAt: z.string(),
+					status: z.enum(["running", "completed", "failed"]),
+					error: z.string().nullable(),
+				})
+				.nullable(),
+			lastMessage: z.object({ text: z.string(), at: z.string() }).nullable(),
 			error: z.string().nullable(),
 			outcome: z.enum(["completed", "interrupted", "failed"]).nullable(),
 		})

@@ -11,7 +11,6 @@ type Assignment = {
 	ticketId: string | null;
 	ticketIdentifier: string | null;
 	attemptId: string | null;
-	error: string | null;
 };
 
 export const agentContext = async (
@@ -24,7 +23,7 @@ export const agentContext = async (
 	const assignments = await rows<Assignment>(
 		tx,
 		sql` SELECT r.id AS "runId", r.persona_name AS name, r.kind, r.ticket_id AS "ticketId",
-			r.ticket_identifier AS "ticketIdentifier", r.terminal_id AS "attemptId", r.error
+			r.ticket_identifier AS "ticketIdentifier", r.terminal_id AS "attemptId"
 		FROM agent_runs r WHERE (r.project_id IN (${managerScope(input.projectId)}) OR r.id IN (SELECT run_id FROM manager_delegations WHERE parent_run_id=${input.runId} AND retired_at IS NULL))
 		AND r.id<>${input.runId} AND r.runtime='native'
 		AND (r.id IN (SELECT run_id FROM manager_delegations WHERE parent_run_id=${input.runId} AND retired_at IS NULL) OR r.closed_at IS NULL OR r.terminal_id IN (
@@ -33,8 +32,8 @@ export const agentContext = async (
 	);
 	return {
 		observedAt: ctx.now.toISOString(),
-		agents: assignments.map(({ error, ...assignment }) => {
-			const session = assignment.attemptId === null ? undefined : sessions.get(assignment.attemptId);
+		agents: assignments.map(({ attemptId, ...assignment }) => {
+			const session = attemptId === null ? undefined : sessions.get(attemptId);
 			const isWorking =
 				session?.status === "exited"
 					? false
@@ -42,26 +41,15 @@ export const agentContext = async (
 						? session.activity.state === "working" && session.agent?.outcome == null
 						: null;
 			const tool = session?.agent?.tool;
-			const lastTool = session?.agent?.lastTool;
-			const lastMessage = session?.agent?.lastMessage;
-			const excerpt = (value: unknown) =>
-				value === undefined ? null : (typeof value === "string" ? value : JSON.stringify(value)).slice(0, 2000);
 			return {
 				...assignment,
 				processStatus: session?.status ?? "missing",
-				pid: session?.pid ?? null,
 				controllable: session?.controllable ?? false,
 				checkedAt: session?.checkedAt ?? null,
 				activity: session?.activity?.state ?? "unknown",
 				lastActivityAt: session?.activity?.updatedAt ?? null,
 				isWorking,
-				turnId: session?.agent?.turnId ?? null,
-				tool: isWorking && tool ? { id: tool.id, name: tool.name } : null,
-				lastTool: lastTool ? { ...lastTool, input: excerpt(lastTool.input), output: excerpt(lastTool.output) } : null,
-				lastMessage: lastMessage ? { ...lastMessage, text: lastMessage.text.slice(0, 2000) } : null,
-				lastResult: session?.result?.text.slice(0, 2000) ?? null,
-				exitCode: session?.exitCode ?? null,
-				error: session?.agent?.error ?? session?.error ?? error,
+				tool: isWorking && tool ? { name: tool.name } : null,
 			};
 		}),
 	};

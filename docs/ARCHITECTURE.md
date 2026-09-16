@@ -74,7 +74,7 @@ The explicit Stop local work action pauses native dispatch, stops owned processe
 An unconfirmed process prevents a successful stop.
 
 The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 7. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 8. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 Output readers receive bounded chunks with byte offsets.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
@@ -374,7 +374,10 @@ The source instructions live in [manager-harness-accounts.md](personas/manager-h
 The collector continues while dispatch pauses. It excludes the manager's own activity and respects child projects with their own manager.
 
 The controller sends a batch only to the current native attempt with a matching conversation and a live controllable process.
-After one minute without manager activity or a successful dispatch, the controller queues a heartbeat for an idle manager.
+The controller queues a heartbeat after more than 120 seconds of idle time.
+The manager creation time and last successful dispatch must also be more than 120 seconds old.
+The controller skips a queued heartbeat if the manager becomes busy or reports new activity.
+The runtime checks the observed idle turn before it accepts heartbeat input.
 A heartbeat uses the same durable queue and receipt checks as ticket events. Its event list is empty.
 Ticket events take precedence. The queue holds at most one pending or unresolved message per project.
 Heartbeats respect project dispatch pause, the global work pause, and archived projects.
@@ -385,10 +388,12 @@ The JSON envelope retains policy references, ticket events, and unfinished work.
 The context covers native assignments in the manager's project scope and excludes the recipient manager.
 It includes open assignments and closed assignments whose processes still run.
 Each entry carries assignment identifiers, process status, the process check time, harness activity, the last activity time, and `isWorking`.
-It also includes the turn identifier, current tool name and identifier, exit code, error, and up to 2,000 characters of the latest result.
-The latest tool record retains its input, output, start time, update time, and status after completion.
+Each entry also carries the current tool name when the agent reports active work.
+`trellis_agentRuns_session` returns activity details by default.
+Its optional `include` list accepts `tool`, `lastTool`, `lastMessage`, `result`, `error`, and `process`.
+The tool fields include stored input and output. The `process` field includes process, attempt, session, and turn identifiers.
+For example, `{"id":"<runId>","include":["lastTool","error"]}` retrieves the latest tool record and agent error.
 
-The latest assistant message retains its text and timestamp. Each tool input, tool output, and message excerpt has a 2,000-character limit.
 The runtime restores tool records, messages, and native turn activity from its event journal after a restart.
 Codex, Pi, and OpenCode report completed assistant messages during a turn.
 Claude reads the latest assistant text and timestamp from its transcript at tool and stop hooks.

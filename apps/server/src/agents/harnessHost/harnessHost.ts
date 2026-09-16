@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { RuntimeListInput, RuntimeProcessStatus, RuntimeStream } from "@trellis/runtime-protocol";
+import type {
+	RuntimeExpectedTurn,
+	RuntimeListInput,
+	RuntimeProcessStatus,
+	RuntimeStream,
+} from "@trellis/runtime-protocol";
 import { z } from "zod";
 import { interruptHarness } from "./interruptHarness.ts";
 import { prepareAttempt } from "./prepareAttempt.ts";
@@ -134,7 +139,7 @@ export class HarnessHost {
 	// message id that an earlier send registered without a confirmed write
 	// stays uncertain: the text may already be in the queue, so send refuses
 	// to hand it over again.
-	async send(id: string, text: string, messageId: string = randomUUID()) {
+	async send(id: string, text: string, messageId: string = randomUUID(), expected?: RuntimeExpectedTurn) {
 		identifier.parse(messageId);
 		const descriptor = await this.descriptor(id);
 		let status: "unknown" | "written" | "acknowledged";
@@ -147,6 +152,7 @@ export class HarnessHost {
 				sessionId,
 				messageId,
 				`trellis-message:${messageId}\n${text}`,
+				expected,
 			);
 			status = reservation.claimed ? "written" : reservation.status;
 		} else {
@@ -154,6 +160,7 @@ export class HarnessHost {
 				id,
 				messageId,
 				Buffer.from(`\u001b[200~trellis-message:${messageId}\n${text}\u001b[201~\r`).toString("base64"),
+				expected,
 			);
 			status = delivery.status;
 		}

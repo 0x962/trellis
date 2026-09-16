@@ -8,7 +8,7 @@ test("controller readiness requires the current attempt's initial prompt receipt
 		status: "running",
 		mode: "pty",
 		controllable: true,
-		activity: { state: "ready", updatedAt: "now" },
+		activity: { state: "idle", updatedAt: "now" },
 		acknowledgedMessageIds: [],
 	} as unknown as RuntimeProcessStatus;
 	expect(readySession(session)).toBe(false);

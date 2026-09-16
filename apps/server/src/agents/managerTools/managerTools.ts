@@ -2,6 +2,7 @@ import { AgentRunListInputSchema } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { contract } from "@trellis/api/contract";
 import { z } from "zod";
+import { sessionDetails, sessionInput } from "./sessionDetails.ts";
 
 const operations = {
 	submanagers: ["list", "start", "resize", "retire"],
@@ -45,7 +46,8 @@ export const managerTools = (invoke: Invoke) => {
 			names.map((action) => {
 				const procedure = (contract[group as keyof typeof contract] as unknown as Record<string, Procedure>)[action]!;
 				const paginated = group === "agentRuns" && action === "list";
-				const schema = paginated ? agentListInput : procedure["~orpc"].inputSchema;
+				const inspect = group === "agentRuns" && action === "session";
+				const schema = paginated ? agentListInput : inspect ? sessionInput : procedure["~orpc"].inputSchema;
 				const name = `trellis_${group}_${action}`;
 				return [
 					name,
@@ -54,7 +56,9 @@ export const managerTools = (invoke: Invoke) => {
 						operation: `${group}.${action}`,
 						description: paginated
 							? "List agents in pages. Returns items, total, and nextOffset."
-							: (procedure["~orpc"].route.summary ?? `${group}.${action}`),
+							: inspect
+								? "Inspect agent activity. Request optional include fields: tool, lastTool (with input and output), lastMessage, result, error, process."
+								: (procedure["~orpc"].route.summary ?? `${group}.${action}`),
 						schema,
 						inputSchema: z.toJSONSchema(schema, { io: "input" }),
 					},
@@ -77,7 +81,11 @@ export const managerTools = (invoke: Invoke) => {
 					nextOffset: offset + items.length < runs.length ? offset + items.length : null,
 				};
 			}
-			const result = await invoke(tool.operation, tool.schema.parse(input));
+			const parsed = tool.schema.parse(input);
+			const result = await invoke(
+				tool.operation,
+				tool.operation === "agentRuns.session" ? { id: (parsed as { id: string }).id } : parsed,
+			);
 			// The full instruction of every persona is too long for one tool
 			// result, so the list carries names only and personas.get reads one.
 			if (tool.operation === "personas.list")
@@ -94,6 +102,7 @@ export const managerTools = (invoke: Invoke) => {
 			)
 				return assignmentRecord(result as AgentRun);
 			if (tool.operation !== "agentRuns.session") return result;
+			const { include } = sessionInput.parse(input);
 			const session = result as Awaited<ReturnType<TrellisClient["agentRuns"]["session"]>>;
 			if (session === null) {
 				const runs = (await invoke("agentRuns.list", {})) as AgentRun[];
@@ -105,12 +114,10 @@ export const managerTools = (invoke: Invoke) => {
 					working: false,
 					replacementAllowed: run?.runtime === "native" && run.terminalId === null,
 					activity: null,
-					result: null,
-					error: run?.error ?? "The execution service has no live record of this attempt.",
+					...sessionDetails(null, include, run?.error ?? "The execution service has no live record of this attempt."),
 				};
 			}
 			return {
-				id: session.id,
 				status: session.status,
 				checkedAt: session.checkedAt,
 				controllable: session.controllable,
@@ -121,12 +128,8 @@ export const managerTools = (invoke: Invoke) => {
 					session.agent?.outcome == null,
 				replacementAllowed: session.status === "exited",
 				activity: session.activity,
-				result: session.result,
-				sessionId: session.agent?.sessionId ?? null,
-				turnId: session.agent?.turnId ?? null,
-				acknowledgedMessageIds: session.acknowledgedMessageIds,
 				outcome: session.agent?.outcome ?? null,
-				error: session.agent?.error ?? session.error,
+				...sessionDetails(session, include),
 			};
 		},
 	};
