@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, statSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, extname, join, relative, resolve } from "node:path";
 
 // A test that builds real infrastructure belongs under `<workspace>/test/int/`.
 // `bun run test` skips that directory and `bun run test:int` runs only it, so an
@@ -131,8 +131,12 @@ const sourceWithoutText = (source: string) => {
 // source paths and directories, so these candidates include both forms.
 const sourceFileFor = (from: string, specifier: string) => {
 	const base = resolve(dirname(from), specifier);
-	const exact = base.endsWith(".ts") || base.endsWith(".tsx") ? [base] : [];
-	const tries = [...exact, `${base}.ts`, `${base}.tsx`, join(base, "index.ts"), join(base, "index.tsx")];
+	const extension = extname(base);
+	if (extension) {
+		if (extension !== ".ts" && extension !== ".tsx") return;
+		return statSync(base, { throwIfNoEntry: false })?.isFile() ? base : undefined;
+	}
+	const tries = [`${base}.ts`, `${base}.tsx`, join(base, "index.ts"), join(base, "index.tsx")];
 	return tries.find((candidate) => statSync(candidate, { throwIfNoEntry: false })?.isFile());
 };
 
