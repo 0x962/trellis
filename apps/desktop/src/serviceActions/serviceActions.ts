@@ -1,5 +1,6 @@
 import { dialog } from "electron";
 import { assertManagedHome, ensureHostToken, type HostConnection, waitForHostExit } from "../host/host.ts";
+import { hostError } from "../hostError/hostError.ts";
 import { openServiceSettings, serviceCommand } from "../service/service.ts";
 import { serviceNeedsRegistration } from "../serviceRegistration/serviceRegistration.ts";
 import { stopHostWork } from "../stopHostWork/stopHostWork.ts";
@@ -50,7 +51,7 @@ export const resumeLocalWork = async (host: HostConnection) => {
 		},
 		body: "{}",
 	});
-	if (!result.ok) throw new Error(await result.text());
+	if (!result.ok) throw await hostError(result);
 	await dialog.showMessageBox({
 		message: "Local work is enabled",
 		detail: "You can start local agents. Each project's Automatic dispatch switch keeps its saved setting.",
