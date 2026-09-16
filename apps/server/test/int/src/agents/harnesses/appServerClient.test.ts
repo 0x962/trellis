@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { EventEmitter, once } from "node:events";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { CodexAppServerClient } from "./appServerClient.ts";
+import { CodexAppServerClient } from "../../../../../src/agents/harnesses/codex/appServerClient.ts";
 
 async function fixture(handleRequest?: ConstructorParameters<typeof CodexAppServerClient>[2]) {
 	const home = await mkdtemp("/tmp/trl-codex-client-");

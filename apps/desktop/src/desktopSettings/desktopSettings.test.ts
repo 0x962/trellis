@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
-import type { UpdateStatus } from "../../../../src/updateStatus/updateStatus.ts";
+import type { UpdateStatus } from "../updateStatus/updateStatus.ts";
 import {
 	desktopActions,
 	parseDesktopAction,
 	parseOpenAtLogin,
 	requireOpenedPath,
 	updateSummary,
-} from "../../../../src/desktopSettings/desktopSettings.ts";
+} from "./desktopSettings.ts";
 
 test("the main process accepts only the named Settings actions from the renderer", () => {
 	for (const action of desktopActions) expect(parseDesktopAction(action)).toBe(action);

@@ -1,6 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
+import {
+	createSourceFile,
+	forEachChild,
+	isCallExpression,
+	isIdentifier,
+	isNewExpression,
+	isPropertyAccessExpression,
+	ScriptTarget,
+	type Node,
+} from "typescript";
 
 // A test that builds real infrastructure belongs under `<workspace>/test/int/`.
 // `bun run test` skips that directory and `bun run test:int` runs only it, so an
@@ -10,7 +20,7 @@ import { dirname, join, relative, resolve } from "node:path";
 // or more every time a file asks for one:
 //   - a PGlite database (test/helpers/db.ts, or a direct openDb call)
 //   - the Hono app (test/helpers/app.ts, apps/web/test/server)
-//   - a spawned process (Bun.spawn, node:child_process)
+//   - a spawned process or server (Bun.spawn, Bun.serve, node:child_process)
 //
 // This test reads every test file, follows its relative imports, and checks that
 // a file which reaches one of those sits under test/int/, and that a file which
@@ -26,11 +36,31 @@ const BUILDERS = [
 	"apps/web/test/server/index.ts",
 ];
 
-const SPAWNS = /Bun\.spawn|spawnSync|execFileSync|node:child_process/;
-// A test can also open a database without a helper, by calling the same
-// function the server calls at boot.
-const OPENS_DATABASE = /\bopenDb\(|\bdiskDb\(|new PGlite\b/;
-const SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*|\bimport\s*)["'](\.[^"']*)["']/g;
+const transpiler = new Bun.Transpiler({ loader: "tsx" });
+const INFRASTRUCTURE_CALLS = new Set(["diskDb", "execFileSync", "openDb", "spawnSync"]);
+const BUN_INFRASTRUCTURE_CALLS = new Set(["serve", "spawn"]);
+
+const callsInfrastructure = (file: string, source: string) => {
+	let answer = false;
+	const visit = (node: Node) => {
+		if (isCallExpression(node)) {
+			const callee = node.expression;
+			if (isIdentifier(callee) && INFRASTRUCTURE_CALLS.has(callee.text)) answer = true;
+			if (
+				isPropertyAccessExpression(callee) &&
+				isIdentifier(callee.expression) &&
+				callee.expression.text === "Bun" &&
+				BUN_INFRASTRUCTURE_CALLS.has(callee.name.text)
+			) {
+				answer = true;
+			}
+		}
+		if (isNewExpression(node) && isIdentifier(node.expression) && node.expression.text === "PGlite") answer = true;
+		if (!answer) forEachChild(node, visit);
+	};
+	visit(createSourceFile(file, source, ScriptTarget.Latest));
+	return answer;
+};
 
 // The file a relative specifier names. Bun resolves a bare directory to its
 // index file and adds the extension, so this tries the same order.
@@ -53,11 +83,14 @@ const buildsInfrastructure = (file: string, visiting: Set<string> = new Set()): 
 	if (BUILDERS.includes(path)) return true;
 
 	const source = readFileSync(file, "utf8");
-	if (SPAWNS.test(source) || OPENS_DATABASE.test(source)) return true;
+	const imports = transpiler.scanImports(source);
+	if (callsInfrastructure(file, source)) return true;
+	if (imports.some(({ path }) => path === "node:child_process")) return true;
 
 	let answer = false;
-	for (const match of source.matchAll(SPECIFIER)) {
-		const imported = fileFor(file, match[1]!);
+	for (const { path: specifier } of imports) {
+		if (!specifier.startsWith(".")) continue;
+		const imported = fileFor(file, specifier);
 		if (imported && buildsInfrastructure(imported, visiting)) {
 			answer = true;
 			break;
@@ -69,9 +102,7 @@ const buildsInfrastructure = (file: string, visiting: Set<string> = new Set()): 
 	return answer;
 };
 
-// This file writes the names of the infrastructure calls to look for, so a
-// search of its own source finds them and calls it an integration test. It
-// skips itself.
+// The repository rule is not one of the test files that it classifies.
 const testFiles = [...new Bun.Glob("**/*.test.{ts,tsx}").scanSync({ cwd: root, absolute: true })].filter(
 	(file) => !file.includes("/node_modules/") && !file.includes("/e2e/") && file !== import.meta.path,
 );
