@@ -18,8 +18,8 @@ import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { CHART_TOP_ROWS, formatDayLabel, formatMetric, localDayKey, rowTone } from "../formatUsage";
+import { UsageAccounts } from "./components/UsageAccounts";
 import { UsageGroups } from "./components/UsageGroups";
-import { UsageQuota } from "./components/UsageQuota";
 import { UsageSessions } from "./components/UsageSessions";
 import { UsageTotals } from "./components/UsageTotals";
 
@@ -124,12 +124,18 @@ export function UsagePage() {
 			</Topbar>
 			<div className="page-card flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
 				<div className="flex max-w-7xl flex-col gap-8">
-					<UsageQuota />
+					<UsageAccounts
+						rows={report.data?.groups.account ?? []}
+						metric={metric}
+						total={report.data?.totals[metric] ?? 0}
+						pending={report.isPending}
+					/>
 					{report.isPending ? (
 						<div role="status" aria-label="Load usage" className="flex flex-col gap-3">
 							<span className="sr-only">Load usage</span>
-							<Skeleton className="h-48 w-full" />
-							<Skeleton className="h-24 w-full" />
+							<Skeleton height="h-24" />
+							<Skeleton height="h-48" />
+							<Skeleton height="h-64" />
 						</div>
 					) : report.isError ? (
 						<div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-border p-4">
