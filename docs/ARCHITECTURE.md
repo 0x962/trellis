@@ -218,7 +218,11 @@ migration insert them. A post to a channel the
 room lacks creates the channel. A channel has no id: the API and the CLI
 address it by its project and its lower-case name, with an optional `#`.
 A channel can be for agents only (`aiOnly`); `ai` is one, and an agent can
-create more with `trellis chat create <project> <name> --ai-only`. A person
+create more with `trellis chat create <project> <name> --ai-only`. The
+`manager` channel is `direct`: a direct message between a person and the
+manager of the project. A post there reaches the live manager alone and
+interrupts it; an agent other than that manager gets `CHAT_DIRECT`. The web
+lists it under Direct messages with the manager's persona name. A person
 who posts in such a channel gets `CHAT_AI_ONLY`. The web shows no composer,
 no unread dot, and plays no sound for it.
 
@@ -378,7 +382,7 @@ Only the current scope owner can assign workers inside a delegation. A parent ca
 Ticket workers remain assigned. Wait handoff retains each assignment request identifier. Retired deliveries retain their history with a canceled send state when needed.
 An unexpected manager exit retains its delegation. The parent sees that exit and can resume the saved conversation.
 Migration `0049_manager_delegations` extends saved manager instructions without a conversation reset.
-The source instructions live in [manager-delegation.md](personas/manager-delegation.md).
+The instructions live in the `## Autonomous project delegation` section of the manager persona.
 
 ### Harness accounts
 
@@ -400,7 +404,7 @@ A resume retains the assignment, workspace, and provider conversation. Its targe
 Claude, Codex, and Pi transfer the selected session file. OpenCode exports and imports that session through its CLI.
 The runtime checks the resumed provider session identifier before it accepts the process.
 Existing manager personas receive the account instructions in migration `0048_harness_accounts`.
-The source instructions live in [manager-harness-accounts.md](personas/manager-harness-accounts.md).
+The instructions live in the `## Harness accounts` section of the manager persona.
 
 ### Manager controller
 

@@ -64,7 +64,7 @@ export function ChatLine({ message, render, onMention }: ChatLineProps) {
 				markdown={message.body}
 				render={render}
 				formatClassName="chat-markdown"
-				className="pl-18 text-sm"
+				className="pl-18 font-mono text-sm"
 			/>
 		</li>
 	);
