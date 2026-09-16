@@ -47,7 +47,7 @@ beforeEach(async () => {
 	});
 });
 test.each(["custom", "codex"] as const)(
-	"a %s manager fails before launch when the harness cannot enforce its tool boundary",
+	"a %s manager reaches preparation only when the harness enforces its tool boundary",
 	async (preset) => {
 		let prepared = false;
 		const run = await h.read((tx) => getRun(tx, id));
@@ -76,10 +76,12 @@ test.each(["custom", "codex"] as const)(
 		);
 		const after = await h.read((tx) => getRun(tx, id));
 		expect(after.error).toBe(
-			`The ${preset} harness cannot enforce the manager tool boundary. Select Claude, OpenCode, or Pi for managers. Workers can use any harness.`,
+			preset === "codex"
+				? "Unexpected environment lookup"
+				: `The ${preset} harness cannot enforce the manager tool boundary. Select Claude, Codex, OpenCode, or Pi for managers. Workers can use any harness.`,
 		);
 		expect(after.closedAt).not.toBeNull();
-		expect(prepared).toBe(false);
+		expect(prepared).toBe(preset === "codex");
 	},
 );
 test.each([
