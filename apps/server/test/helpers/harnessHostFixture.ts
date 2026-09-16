@@ -11,6 +11,7 @@ export async function harnessHostFixture(options: { nestedRuntime?: boolean } = 
 	const home = await mkdtemp("/tmp/trl-hhost-");
 	const bin = join(home, "bin");
 	await mkdir(bin);
+	await symlink(process.execPath, join(bin, "bun"));
 	await symlink(Bun.which("node")!, join(bin, "node"));
 	const codexBuild = await Bun.build({
 		entrypoints: [resolve(repo, "apps/server/test/fixtures/harnessHost/codexAppServer.ts")],
@@ -24,7 +25,7 @@ export async function harnessHostFixture(options: { nestedRuntime?: boolean } = 
 			executable,
 			harness === "codex"
 				? `#!${Bun.which("node")}\n${await codexBuild.outputs[0]!.text()}`
-				: `#!${process.execPath}\nimport ${JSON.stringify(resolve(repo, "apps/server/test/fixtures/harnessHost/nativeHarness.ts"))};\n`,
+				: `#!/usr/bin/env bun\nimport ${JSON.stringify(resolve(repo, "apps/server/test/fixtures/harnessHost/nativeHarness.ts"))};\n`,
 		);
 		await chmod(executable, 0o700);
 	}
