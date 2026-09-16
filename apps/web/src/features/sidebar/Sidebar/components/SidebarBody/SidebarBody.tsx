@@ -1,4 +1,5 @@
 import {
+	ChartLine,
 	FlowArrow,
 	GitPullRequest,
 	MagnifyingGlass,
@@ -22,7 +23,7 @@ import { ConnectionPanel } from "../ConnectionPanel";
 const rowClass =
 	"sidebar-row pl-2 text-sm text-fg-muted hover:bg-elevated hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
-type NavTarget = "/reviews" | "/needs-you" | "/search" | "/all" | "/ai/personas" | "/ai/flows";
+type NavTarget = "/reviews" | "/needs-you" | "/search" | "/all" | "/ai/personas" | "/ai/flows" | "/usage";
 
 type NavRowProps = {
 	to: NavTarget;
@@ -71,7 +72,7 @@ export type SidebarBodyProps = {
 	onCollapse?: () => void;
 };
 
-// What the sidebar holds: the collapse button, the six fixed destinations,
+// What the sidebar holds: the collapse button, the seven fixed destinations,
 // the project tree, and the actor footer. The desktop aside and the phone
 // sheet both draw it. The phone sheet closes in its own way, so it has no
 // collapse button.
@@ -135,6 +136,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				<NavRow to="/reviews" icon={<GitPullRequest />} label="Pull requests" active={isActive(pathname, "/reviews")} />
 				<NavRow to="/ai/personas" icon={<Sparkle />} label="Personas" active={isActive(pathname, "/ai/personas")} />
 				<NavRow to="/ai/flows" icon={<FlowArrow />} label="Flows" active={isActive(pathname, "/ai/flows")} />
+				<NavRow to="/usage" icon={<ChartLine />} label="Usage" active={isActive(pathname, "/usage")} />
 			</nav>
 			<div hidden={collapsed} className="mt-3 min-h-0 flex-1 overflow-y-auto pb-2">
 				<div className="sidebar-section">

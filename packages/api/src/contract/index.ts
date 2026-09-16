@@ -23,6 +23,7 @@ import { submanagers } from "./submanagers.ts";
 import { system } from "./system.ts";
 import { tickets } from "./tickets.ts";
 import { timeline } from "./timeline.ts";
+import { usage } from "./usage.ts";
 
 // The whole API. Paths are relative to the `/api` mount of the OpenAPI
 // handler; the RPC handler at `/rpc` addresses a procedure by its dotted
@@ -30,6 +31,7 @@ import { timeline } from "./timeline.ts";
 export const contract = {
 	submanagers: oc.tag("submanagers").router(submanagers),
 	harnessAccounts: oc.tag("harness accounts").router(harnessAccounts),
+	usage: oc.tag("usage").router(usage),
 	needsYou: oc.tag("needs you").router(needsYou),
 	evidence: oc.tag("evidence").router(evidence),
 	controller: oc.tag("controller").router(controller),

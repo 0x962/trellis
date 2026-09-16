@@ -64,6 +64,7 @@ import type { IoCtx, PrepareCtx } from "./support.ts";
 import * as system from "./system.ts";
 import * as tickets from "./tickets.ts";
 import * as timeline from "./timeline.ts";
+import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
 
 // The `family` selects the context shape. The `kind` sets the worker queue
 // priority before the service starts its transaction.
@@ -114,6 +115,7 @@ export const services = {
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),
 	"harnessAccounts.remove": io("mutation", harnessAccounts.remove),
 	"harnessAccounts.quota": prepared("read", prepareQuota, agentTerminal.result),
+	"usage.report": prepared("read", prepareUsageReport, agentTerminal.result),
 	"flowExecutions.start": core("mutation", startFlowExecution),
 	"flowExecutions.get": core("read", getFlowExecution),
 	"flowExecutions.list": core("read", listFlowExecutions),

@@ -393,6 +393,17 @@ Removal archives the account record and retains its files.
 A manual refresh has a ten-second minimum interval. OpenCode and Pi return `unsupported` quota.
 An unavailable quota result contains no allowance estimate. Credentials stay on the host and do not enter API responses.
 
+### Usage
+
+The Usage page at `/usage` shows what every agent on the machine consumed.
+`usage.report` reads the transcript files that each harness CLI writes: `projects/` of a Claude profile, `sessions/` of a Codex or Pi profile, and `opencode/storage/` of an OpenCode data home.
+The scan covers the default profile of each harness and the profile of every account, resolved to real paths, so a shared directory counts once.
+The scan runs in the `prepare` step, outside every database transaction, and its result is cached for five minutes per range. A refresh is served from the cache for ten seconds.
+Every turn is priced at the API list rate in `services/usage/pricing.ts`. A harness that records its own cost, such as Pi or OpenCode, keeps that cost. A model outside the table takes the cheapest rate of its harness and marks the row approximate.
+A session joins the agent run whose `session_id` it carries. A session whose cwd is inside `agents/<run id>/work` joins that run. A session whose cwd is inside a project directory joins that project. Every other session is outside Trellis.
+The report holds the day series by harness, the totals, one row list per grouping (ticket, persona, project, kind, account, model, harness), and the top 200 sessions with one key per grouping.
+The page keeps the range, the metric, the grouping, the selected row, and the selected day in the URL.
+
 `agentRuns.start` accepts an optional `accountId`. A new assignment otherwise selects its harness default account.
 The assignment retains its account across process restarts. An explicit account also selects its harness for a new assignment.
 `agentRuns.resume` requires the stopped attempt identifier and a stable request identifier.
@@ -573,7 +584,7 @@ The Manager page holds the manager persona, repository directory, dispatch state
 It writes `projects.managerConfig` through `projects.update`.
 
 The sidebar holds the workspace row, Needs you, Search, All tickets, Pull
-requests, Personas, Flows, the project tree, and the actor footer. The project
+requests, Personas, Flows, Usage, the project tree, and the actor footer. The project
 tree is the one region that scrolls, so the fixed links keep their place at any
 tree height.
 Each project row shows the Trellis mark and opens the manager terminal at
@@ -687,6 +698,7 @@ returns one canonical spelling.
 | agentRuns.resume | POST /api/agent-runs/{id}/resume | existing assignment, accountId, expectedTerminalId, requestId |
 | harnessAccounts.list, create, update, remove | GET, POST /api/harness-accounts; PATCH, DELETE /api/harness-accounts/{id} | account metadata and profile selection |
 | harnessAccounts.quota | GET /api/harness-accounts/{id}/quota | cached usage windows and reset times |
+| usage.report | GET /api/usage | token cost from the harness transcripts, joined to runs, tickets, personas, projects, and accounts; cached for five minutes |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
 | search.query | GET /api/search | tickets and projects |
 | brief.get | GET /api/tickets/{ticket}/brief | the markdown brief an agent starts from |

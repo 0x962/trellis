@@ -19,6 +19,7 @@ import { statuses } from "./statuses.ts";
 import { submanagers } from "./submanagers.ts";
 import { system } from "./system.ts";
 import { tickets } from "./tickets.ts";
+import { usage } from "./usage.ts";
 
 export type { ProcedureContext } from "./base.ts";
 
@@ -26,6 +27,7 @@ export type { ProcedureContext } from "./base.ts";
 export const router = os.router({
 	submanagers,
 	harnessAccounts,
+	usage,
 	needsYou,
 	evidence,
 	controller,
