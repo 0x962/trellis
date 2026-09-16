@@ -17,6 +17,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 	const query = useQuery(orpc.labelGroups.list.queryOptions({ input: { project: project.path } }));
 	const [addingGroup, setAddingGroup] = useState(false);
 	const [addingLabel, setAddingLabel] = useState<string | null>(null);
+	const addGroupRef = useRef<HTMLButtonElement>(null);
 	const groupsRef = useRef<HTMLDivElement>(null);
 
 	const refresh = async () => {
@@ -26,6 +27,9 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 		requestAnimationFrame(() => {
 			groupsRef.current?.querySelector<HTMLButtonElement>(`[data-label-group="${group}"] button`)?.focus();
 		});
+	};
+	const focusAddGroup = () => {
+		requestAnimationFrame(() => addGroupRef.current?.focus());
 	};
 
 	if (query.error !== null) {
@@ -53,6 +57,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 			actions={
 				<Tooltip content="Add label group">
 					<IconButton
+						ref={addGroupRef}
 						size="sm"
 						label="Add label group"
 						icon={<Plus />}
@@ -113,7 +118,10 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 										setAddingLabel(null);
 										focusGroupAction(group.id);
 									}}
-									onCancel={() => setAddingLabel(null)}
+									onCancel={() => {
+										setAddingLabel(null);
+										focusGroupAction(group.id);
+									}}
 								/>
 							)}
 						</section>
@@ -128,7 +136,10 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 						setAddingGroup(false);
 						focusGroupAction(group.id);
 					}}
-					onCancel={() => setAddingGroup(false)}
+					onCancel={() => {
+						setAddingGroup(false);
+						focusAddGroup();
+					}}
 				/>
 			)}
 		</SettingsSection>

@@ -1,6 +1,6 @@
 import type { ColorToken } from "@trellis/api";
 import { Button, Input, Select } from "@trellis/ui";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useId, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 
 export type LabelCreateFormProps = {
@@ -24,6 +24,7 @@ const colors: { value: ColorToken; label: string }[] = [
 export function LabelCreateForm({ project, group, onCreated, onCancel }: LabelCreateFormProps) {
 	const { client } = useApp();
 	const messageId = useId();
+	const nameRef = useRef<HTMLInputElement>(null);
 	const [name, setName] = useState("");
 	const [color, setColor] = useState<ColorToken>("fg-muted");
 	const [message, setMessage] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export function LabelCreateForm({ project, group, onCreated, onCancel }: LabelCr
 		event.preventDefault();
 		if (name.trim() === "") {
 			setMessage("Enter a label name.");
+			nameRef.current?.focus();
 			return;
 		}
 		setSubmitting(true);
@@ -46,6 +48,7 @@ export function LabelCreateForm({ project, group, onCreated, onCancel }: LabelCr
 					? "Use a different label name in this group."
 					: (error as Error).message,
 			);
+			nameRef.current?.focus();
 		}
 	};
 
@@ -53,6 +56,7 @@ export function LabelCreateForm({ project, group, onCreated, onCancel }: LabelCr
 		<form onSubmit={(event) => void submit(event)} className="label-create-form">
 			<div className="label-create-fields">
 				<Input
+					ref={nameRef}
 					label="Label name"
 					value={name}
 					maxLength={80}

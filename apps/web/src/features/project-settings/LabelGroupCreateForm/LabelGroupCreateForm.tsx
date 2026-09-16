@@ -1,6 +1,6 @@
 import type { LabelGroup } from "@trellis/api";
 import { Button, Input } from "@trellis/ui";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useId, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 
 export type LabelGroupCreateFormProps = {
@@ -12,6 +12,7 @@ export type LabelGroupCreateFormProps = {
 export function LabelGroupCreateForm({ project, onCreated, onCancel }: LabelGroupCreateFormProps) {
 	const { client } = useApp();
 	const messageId = useId();
+	const nameRef = useRef<HTMLInputElement>(null);
 	const [name, setName] = useState("");
 	const [message, setMessage] = useState<string | null>(null);
 	const [submitting, setSubmitting] = useState(false);
@@ -20,6 +21,7 @@ export function LabelGroupCreateForm({ project, onCreated, onCancel }: LabelGrou
 		event.preventDefault();
 		if (name.trim() === "") {
 			setMessage("Enter a group name.");
+			nameRef.current?.focus();
 			return;
 		}
 		setSubmitting(true);
@@ -31,12 +33,14 @@ export function LabelGroupCreateForm({ project, onCreated, onCancel }: LabelGrou
 			setMessage(
 				(error as { code?: string }).code === "DUPLICATE" ? "Use a different group name." : (error as Error).message,
 			);
+			nameRef.current?.focus();
 		}
 	};
 
 	return (
 		<form onSubmit={(event) => void submit(event)} className="status-create-form">
 			<Input
+				ref={nameRef}
 				label="Group name"
 				value={name}
 				maxLength={80}
