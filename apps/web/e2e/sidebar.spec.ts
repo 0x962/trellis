@@ -98,6 +98,19 @@ test("sidebar > a round button collapses and expands the sidebar, and no wordmar
 	await expect(sidebar.getByRole("button", { name: "Collapse sidebar" })).toBeVisible();
 });
 
+test("sidebar > the actor footer uses a clear settings icon with no divider", async ({ page }) => {
+	await signIn(page, "/all");
+	const sidebar = page.getByRole("complementary", { name: "Sidebar" });
+	const footer = sidebar.locator('[data-sidebar-actor-footer=""]');
+	const settings = footer.getByRole("link", { name: "Settings" });
+	await expect(settings).toBeVisible();
+	await expect(settings).toHaveAttribute("href", "/settings");
+	await expect(settings.locator('svg[data-icon="gear-six"]')).toBeVisible();
+
+	await expect(footer).toBeVisible();
+	await expect(footer).toHaveCSS("border-top-width", "0px");
+});
+
 // TRL-66. While the app loads, the placeholder of the sidebar draws no
 // wordmark either. Its header row has the height of the loaded header, so
 // the fixed rows stay in place when the loaded sidebar replaces it.

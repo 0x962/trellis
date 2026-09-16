@@ -4,7 +4,7 @@ import { expectClasses } from "../../../test/classes";
 import { Avatar } from "./Avatar";
 
 describe("Avatar", () => {
-	test("human avatar renders initials in a circle", () => {
+	test("human avatar renders initials on static metal film", () => {
 		render(
 			<>
 				<Avatar kind="human" name="Dana Lee" />
@@ -14,7 +14,9 @@ describe("Avatar", () => {
 		const full = screen.getByLabelText("Dana Lee");
 		expect(full.textContent).toBe("DL");
 		expect(screen.getByLabelText("dana").textContent).toBe("D");
-		expectClasses(full, "size-4.5 rounded-round bg-fg-muted text-surface text-initials font-semibold");
+		expectClasses(full, "size-4.5 rounded-round profile-metal text-initials font-semibold");
+		expect(full.className).not.toContain("animate-");
+		expect(full.querySelector("span")?.textContent).toBe("DL");
 		expect(full.querySelector("svg")).toBeNull();
 	});
 
@@ -28,6 +30,7 @@ describe("Avatar", () => {
 		);
 		const builder = screen.getByLabelText("Builder · agent");
 		const trellis = screen.getByLabelText("Trellis · agent");
+		expect(builder.className).not.toContain("profile-metal");
 		expect(builder.querySelector("svg") !== null).toBe(true);
 		expect(builder.innerHTML).toBe(screen.getByLabelText("builder · agent").innerHTML);
 		expect(builder.innerHTML).not.toBe(trellis.innerHTML);
