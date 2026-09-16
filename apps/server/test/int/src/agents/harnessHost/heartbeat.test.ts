@@ -13,7 +13,7 @@ afterEach(async () => {
 	await rm(fixture.home, { recursive: true, force: true });
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"%s skips a heartbeat when the observed idle turn changes",
 	async (harness) => {
 		const { host, client, home } = fixture;

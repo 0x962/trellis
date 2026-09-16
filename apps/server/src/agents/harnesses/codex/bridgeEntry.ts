@@ -6,9 +6,9 @@ import { fromHarnessModel } from "@trellis/api/models";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { z } from "zod";
 import { authenticatedManagerTools } from "../../managerTools/authenticatedManagerTools/authenticatedManagerTools.ts";
+import { applyTurnActivity } from "../turnActivity/turnActivity.ts";
 import { CodexAppServerClient } from "./appServerClient.ts";
 import { CodexAppServerEvents } from "./appServerEvents.ts";
-import { applyCodexActivity } from "./codexActivity.ts";
 import { codexControl } from "./codexControl.ts";
 import { inspectCodexHooks } from "./inspectCodexHooks.ts";
 import { managerAdapter } from "./managerAdapter/managerAdapter.ts";
@@ -108,7 +108,7 @@ async function start() {
 		(notification) => {
 			if (!parser || !acceptingEvents) return;
 			for (const event of parser.parse(notification)) {
-				applyCodexActivity(current, event);
+				applyTurnActivity(current, event);
 				eventQueue = eventQueue.then(async () => {
 					await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, event);
 					if (event.kind === "prompt") submitted();

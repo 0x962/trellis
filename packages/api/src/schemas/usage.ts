@@ -3,9 +3,8 @@ import { AccountHarnessSchema } from "./harnessAccount.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 // The harnesses whose transcripts the usage scan reads: every account
-// harness, and Muse, the Meta coding agent, which Trellis reads but does
-// not launch.
-export const UsageHarnessSchema = z.enum([...AccountHarnessSchema.options, "muse"]);
+// harness.
+export const UsageHarnessSchema = AccountHarnessSchema;
 export type UsageHarness = z.infer<typeof UsageHarnessSchema>;
 
 // The usage report reads the transcript files that each harness CLI writes

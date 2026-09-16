@@ -16,8 +16,8 @@ const optionLabels: Record<HarnessEffort, string> = {
 	ultra: "Ultra",
 };
 
-export const effortForHarness = (preset: keyof typeof labels | "custom", model: string) => {
-	if (preset === "custom") return null;
+export const effortForHarness = (preset: keyof typeof labels | "muse" | "custom", model: string) => {
+	if (preset === "custom" || preset === "muse") return null;
 	const values = (catalog[preset] as Record<string, HarnessEffort[]>)[model];
 	if (!values) return null;
 	return { label: labels[preset], options: values.map((value) => ({ value, label: optionLabels[value] })) };

@@ -1,5 +1,9 @@
 import { expect, test } from "bun:test";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { HarnessAccount } from "@trellis/api";
+import { writeMuseUsage } from "../../agents/harnesses/muse/museUsage.ts";
 
 type AccountRow = Omit<HarnessAccount, "loginCommand" | "capabilities">;
 
@@ -72,4 +76,60 @@ test("a harness without a quota endpoint and API billing count as unlimited", as
 	expect((await fetchAccountQuota(account, fetch, async () => ({ ...(await read()), apiKey: true }))).status).toBe(
 		"unlimited",
 	);
+});
+
+test("a Muse profile shows the windows its last agent run saved, and asks for a run without them", async () => {
+	const profilePath = await mkdtemp(join(tmpdir(), "trellis-muse-quota-"));
+	try {
+		const muse = { ...account, harness: "muse" as const, profilePath };
+		const signedIn = async () => ({ token: null, email: "work@example.com", plan: "oauth" });
+		const empty = await fetchAccountQuota(
+			muse,
+			fetcher(() => Response.error()),
+			signedIn,
+		);
+		expect(empty).toMatchObject({ status: "unavailable", email: "work@example.com", plan: null, windows: [] });
+		expect(empty.detail).toContain("Start one");
+		const now = Date.UTC(2026, 8, 16, 22, 0, 0);
+		await mkdir(join(profilePath, "muse"));
+		await writeMuseUsage(join(profilePath, "muse"), {
+			observedAtMs: now - 60_000,
+			window: { usedPercent: 40, windowDurationMins: 300, resetsAtMs: now + 3600_000 },
+			weekly: { usedPercent: 7, resetsAtMs: now + 86400_000 },
+		});
+		const filled = await fetchAccountQuota(
+			muse,
+			fetcher(() => Response.error()),
+			signedIn,
+			now,
+		);
+		expect(filled).toMatchObject({
+			status: "ok",
+			fetchedAt: new Date(now - 60_000).toISOString(),
+			windows: [
+				{ id: "window", label: "Session (5h)", usedPercent: 40 },
+				{ id: "weekly", label: "Weekly", usedPercent: 7 },
+			],
+		});
+		const reset = await fetchAccountQuota(
+			muse,
+			fetcher(() => Response.error()),
+			signedIn,
+			now + 2 * 86400_000,
+		);
+		expect(reset.status).toBe("unavailable");
+		expect(reset.detail).toContain("have reset");
+		const signedOut = await fetchAccountQuota(
+			muse,
+			fetcher(() => Response.error()),
+			async () => ({
+				token: null,
+				email: null,
+				plan: null,
+			}),
+		);
+		expect(signedOut).toMatchObject({ status: "signed_out", email: null, windows: [] });
+	} finally {
+		await rm(profilePath, { recursive: true, force: true });
+	}
 });

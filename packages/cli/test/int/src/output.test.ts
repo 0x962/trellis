@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { run } from "../../../src/index.ts";
 import { type Format, printList, printRecord, ticketList, ticketRecord } from "../../../src/output.ts";
+import { localDateTime } from "../../../src/time.ts";
 import { ansiPattern, stripAnsi } from "../../ansi.ts";
 import { defaultEnv, lines, makeDeps, runCli } from "../../deps.ts";
 import {
@@ -51,6 +52,7 @@ describe("a TTY", () => {
 			expect(line.indexOf(row.identifier)).toBe(0);
 			expect(line.slice(columnStart(headers[2]!))).toStartWith(row.priority);
 			expect(line.slice(columnStart(headers[3]!))).toStartWith(row.title);
+			expect(line).toContain(localDateTime(row.updatedAt));
 		}
 	});
 
@@ -69,6 +71,8 @@ describe("a TTY", () => {
 			valueColumns.add(match![1]!.length + 1 + match![2]!.length);
 		}
 		expect(valueColumns.size).toBe(1);
+		expect(block.find((line) => line.startsWith("created:"))).toContain(localDateTime(ticket().createdAt));
+		expect(block.find((line) => line.startsWith("completed:"))).toEndWith("-");
 	});
 });
 
@@ -79,6 +83,7 @@ describe("json", () => {
 		const flagged = await runCli(["show", "CDE-42", "--json"], { "tickets.get": ticket() }, { tty: true });
 		expect(piped.stdout).toBe(flagged.stdout);
 		expect(JSON.parse(piped.stdout)).toEqual(ticket());
+		expect(JSON.parse(piped.stdout).updatedAt).toBe("2026-09-09T10:05:00.000Z");
 	});
 
 	// CLI-43

@@ -20,6 +20,8 @@ test.beforeAll(async () => {
 	}
 	createTicket("CMT", "Delete one comment");
 	trellis(["comment", "CMT-4", "--body", "This comment goes away."], "human:dana");
+	createTicket("CMT", "Align a resolved thread");
+	trellis(["comment", "CMT-5", "--body", "This thread can close."], "human:dana");
 });
 
 test("a long comment renders its full body", async ({ page }) => {
@@ -47,6 +49,19 @@ test("timeline actor names align with the comment surface", async ({ page }) => 
 	expect(activityNameBox).not.toBeNull();
 	expect(commentNameBox!.x).toBeCloseTo(surfaceBox!.x, 0);
 	expect(activityNameBox!.x).toBeCloseTo(surfaceBox!.x, 0);
+});
+
+test("a resolved thread control aligns with its open surface", async ({ page }) => {
+	await signIn(page, "/t/CMT-5");
+	const comment = page.getByRole("article", { name: "Comment by dana" });
+	const surfaceBox = await comment.locator("[data-thread-surface]").boundingBox();
+	expect(surfaceBox).not.toBeNull();
+
+	await comment.getByRole("button", { name: "Comment actions" }).click();
+	await page.getByRole("menuitem", { name: "Resolve thread" }).click();
+	const resolvedBox = await page.getByRole("button", { name: /Resolved thread/ }).boundingBox();
+	expect(resolvedBox).not.toBeNull();
+	expect(resolvedBox!.x).toBeCloseTo(surfaceBox!.x, 0);
 });
 
 test("every activity item renders as its own timeline row", async ({ page }) => {

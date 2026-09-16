@@ -9,7 +9,7 @@ export default defineCommand({
 	subCommands: {
 		list: defineCommand({
 			meta: { name: "list", description: "List canonical model IDs" },
-			args: { harness: { type: "string", description: "claude, codex, pi, opencode, or custom" } },
+			args: { harness: { type: "string", description: "claude, codex, pi, opencode, muse, or custom" } },
 			async run(context) {
 				const ctx = contextOf(context);
 				const harness = HarnessPresetSchema.optional().parse(context.args.harness);

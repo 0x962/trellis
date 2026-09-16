@@ -77,7 +77,7 @@ test.each(["custom", "codex"] as const)(
 		expect(after.error).toBe(
 			preset === "codex"
 				? "Unexpected environment lookup"
-				: `The ${preset} harness cannot enforce the manager tool boundary. Select Claude, Codex, OpenCode, or Pi for managers. Workers can use any harness.`,
+				: `The ${preset} harness cannot enforce the manager tool boundary. Select Claude, Codex, OpenCode, Pi, or Muse for managers. Workers can use any harness.`,
 		);
 		expect(after.closedAt).not.toBeNull();
 		expect(prepared).toBe(preset === "codex");

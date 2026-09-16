@@ -147,7 +147,7 @@ export function UsagePage() {
 					) : report.data.totals.sessions === 0 ? (
 						<EmptyState
 							title="No usage in this range"
-							description={`No Claude Code, Codex, Pi, or OpenCode transcript on this machine has a turn in the last ${days} days.`}
+							description={`No Claude Code, Codex, Pi, OpenCode, or Muse transcript on this machine has a turn in the last ${days} days.`}
 						/>
 					) : (
 						<>

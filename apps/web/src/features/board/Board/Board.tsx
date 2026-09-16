@@ -30,6 +30,8 @@ export type BoardProps = {
 	projectRef?: string;
 	filters?: BoardQueryInput;
 	storageKey: string;
+	// The concurrency slots of the project. The first started column shows
+	// them, because its tickets are the ones agents work on.
 	onOpenTicket: (identifier: string) => void;
 };
 

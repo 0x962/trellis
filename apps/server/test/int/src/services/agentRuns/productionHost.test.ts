@@ -54,7 +54,7 @@ const dependencies = () => ({
 	runtime: async () => fixture.client,
 	env: { ...process.env, PATH: join(fixture.home, "bin"), TRELLIS_AUTH_TOKEN: "fixture-host-token" },
 });
-const configFor = (harness: "claude" | "codex" | "pi" | "opencode") =>
+const configFor = (harness: "claude" | "codex" | "pi" | "opencode" | "muse") =>
 	ProjectManagerConfigSchema.parse({
 		personaId: null,
 		directory: fixture.home,
@@ -66,7 +66,7 @@ const configFor = (harness: "claude" | "codex" | "pi" | "opencode") =>
 		},
 	});
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"production %s start, send, terminal output, stop, and exact resume use the host",
 	async (harness) => {
 		if (harness === "codex") await h.rows(sql`UPDATE agent_runs SET kind='builder' WHERE id='assignment'`);
@@ -197,7 +197,7 @@ test("the assignment token remains the runtime authentication token", async () =
 	expect((await fixture.client.inspect(attempt.id)).agent?.model).toBe("observed-model");
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"production %s interrupt preserves the process and confirms native interruption",
 	async (harness) => {
 		if (harness === "codex") await h.rows(sql`UPDATE agent_runs SET kind='builder' WHERE id='assignment'`);

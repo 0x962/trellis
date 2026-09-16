@@ -38,5 +38,5 @@ test("each harness keeps its transcripts in its own directory of the profile", (
 	expect(transcriptDir("codex", "/p")).toBe("/p/sessions");
 	expect(transcriptDir("pi", "/p")).toBe("/p/sessions");
 	expect(transcriptDir("opencode", "/p")).toBe("/p/opencode/storage");
-	expect(transcriptDir("muse", "/p")).toBe("/p/sessions");
+	expect(transcriptDir("muse", "/p")).toBe("/p/muse/sessions");
 });

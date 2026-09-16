@@ -404,29 +404,36 @@
     {
       "idx": 60,
       "version": "7",
-      "when": 1789597000000,
-      "tag": "0060_remove_slot_capacity",
+      "when": 1789596395596,
+      "tag": "0060_muse_harness",
       "breakpoints": true
     },
     {
       "idx": 61,
       "version": "7",
-      "when": 1789597500000,
-      "tag": "0061_builder_heartbeats",
+      "when": 1789597863735,
+      "tag": "0061_muse_quota_windows",
       "breakpoints": true
     },
     {
       "idx": 62,
       "version": "7",
-      "when": 1789597989131,
-      "tag": "0062_remove_slot_instructions",
+      "when": 1789599000000,
+      "tag": "0062_remove_slot_capacity",
       "breakpoints": true
     },
     {
-      "idx": 65,
+      "idx": 63,
       "version": "7",
-      "when": 1789599000000,
-      "tag": "0065_builder_start_requests",
+      "when": 1789599000001,
+      "tag": "0063_builder_heartbeats",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1789599000003,
+      "tag": "0064_builder_start_requests",
       "breakpoints": true
     }
   ]

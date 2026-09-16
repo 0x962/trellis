@@ -18,6 +18,7 @@ const presets = [
 	{ value: "codex", label: "Codex" },
 	{ value: "opencode", label: "OpenCode" },
 	{ value: "pi", label: "pi" },
+	{ value: "muse", label: "Muse" },
 	{ value: "custom", label: "Custom" },
 ];
 export function HarnessSettings({
