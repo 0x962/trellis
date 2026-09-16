@@ -75,20 +75,27 @@ test("a post reaches every live agent of the tree except its author", async () =
 	expect((await deliveries()).every((row) => row.state === "pending")).toBe(true);
 });
 
-test("a mention by run id or persona name restricts the recipients", async () => {
+test("a mention by run id, persona name, or role restricts the recipients and marks them direct", async () => {
 	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "@builder rebase first" }));
 	expect((await deliveries()).map((row) => row.run_id)).toEqual(["builder"]);
+	expect(await h.rows(sql`SELECT direct FROM chat_deliveries`)).toEqual([{ direct: true }]);
+	await h.rows(sql`DELETE FROM chat_deliveries`);
+	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "@manager where are we?" }));
+	expect((await deliveries()).map((row) => row.run_id)).toEqual(["manager"]);
 	await h.rows(sql`DELETE FROM chat_deliveries`);
 	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "@Careful Reviewer take TRL-1" }));
 	expect((await deliveries()).map((row) => row.run_id)).toEqual(["reviewer"]);
 	await h.rows(sql`DELETE FROM chat_deliveries`);
 	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "@nobody is here" }));
 	expect((await deliveries()).map((row) => row.run_id)).toEqual(["builder", "manager", "reviewer"]);
+	expect(await h.rows(sql`SELECT DISTINCT direct FROM chat_deliveries`)).toEqual([{ direct: false }]);
 });
 
 test("a message shows the delivery state of each recipient", async () => {
 	const posted = await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "@Trellis ping" }));
-	expect(posted.notifications).toEqual([{ runId: "manager", personaName: "Trellis", state: "pending", error: null }]);
+	expect(posted.notifications).toEqual([
+		{ runId: "manager", personaName: "Trellis", state: "pending", error: null, direct: true },
+	]);
 	const page = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE", channel: "ai" }));
 	expect(page.items[0]!.actor).toEqual({ name: "dana", kind: "human" });
 });

@@ -26,6 +26,8 @@ export const ChatNotificationSchema = z.object({
 	personaName: z.string(),
 	state: z.enum(["pending", "sending", "sent", "failed", "unknown"]),
 	error: z.string().nullable(),
+	// True when the message mentioned this agent. The send interrupts its turn.
+	direct: z.boolean(),
 });
 export type ChatNotification = z.infer<typeof ChatNotificationSchema>;
 

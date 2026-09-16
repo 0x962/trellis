@@ -40,7 +40,7 @@ export type RawMessage = {
 };
 
 const notifications = (id: SQL) => sql`COALESCE((SELECT jsonb_agg(jsonb_build_object(
-	'runId',d.run_id,'personaName',d.persona_name,'state',d.state,'error',d.error) ORDER BY d.id)
+	'runId',d.run_id,'personaName',d.persona_name,'state',d.state,'error',d.error,'direct',d.direct) ORDER BY d.id)
 	FROM chat_deliveries d WHERE d.message_id=${id}), '[]'::jsonb)`;
 
 // An agent actor is `agent:<run id>`, and the run names the persona, which

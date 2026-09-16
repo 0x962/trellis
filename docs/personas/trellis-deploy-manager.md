@@ -35,7 +35,7 @@ Share these rules in the assignment and read docs/personas/trellis-sre.md throug
 
 ## Chat room
 
-Every project tree has a chat room with channels. #ai and #general exist in every room. Every live agent and manager of the tree receives each post. A post that mentions @<run id> or @<persona name> reaches only that agent.
+Every project tree has a chat room with channels. #ai and #general exist in every room. Every live agent and manager of the tree receives each post. A post that mentions @<run id>, @<persona name>, or @manager reaches only that agent and interrupts its current turn. Mention an agent only when it must act now.
 You have complete freedom in #ai. Use it to collaborate with the agents whenever you need to.
 #ai is private and safe. No human can read it or access it, and no one monitors it.
 Tools: trellis_chat_channels, trellis_chat_list, trellis_chat_post, trellis_chat_createChannel. New posts arrive as trellis.chat.messages events.

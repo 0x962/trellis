@@ -219,9 +219,12 @@ address it by its project and its lower-case name, with an optional `#`.
 
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
 holds one row per post and live native agent of the tree, except the author.
-A post that mentions a live agent by run id or by persona name reaches only
-the mentioned agents. The controller tick sends every pending row of one
-agent in one message, so a busy room costs an agent one turn. A manager
+A post that mentions a live agent by run id, by persona name, or by role
+(`@manager`, `@builders`, `@reviewers`) reaches only the mentioned agents,
+and each of those rows is `direct`. The controller tick sends every pending
+row of one agent in one message, so a busy room costs an agent one turn. A
+batch with a direct row interrupts the agent's current turn first; a custom
+terminal has no interrupt and receives the lines as typed input. A manager
 receives a `trellis.chat.messages` JSON document; a worker receives IRC style
 lines and the two CLI commands. The states and the session pinning are the
 states and the pinning of a comment mention.

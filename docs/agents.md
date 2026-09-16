@@ -40,7 +40,7 @@ Reply in that thread: trellis comment TRL-42 --reply-to <comment-id> --body "...
 Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
 
-Chat room: every project tree has one, with channels. #ai and #general exist in every room. Every live agent receives each post; @<run id> or @<persona name> sends a post to that agent only.
+Chat room: every project tree has one, with channels. #ai and #general exist in every room. Every live agent receives each post; @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
 Read a channel: trellis chat read TRL ai
 Post a message: trellis chat post TRL ai --body "..."
 List channels:  trellis chat channels TRL
@@ -216,7 +216,8 @@ trellis chat create TRL release
 
 Write the channel name without the `#` in a shell, or quote it: a bare `#ai` starts a shell comment.
 Every live agent of the tree receives each post, except its author.
-A mention of `@<run id>` or `@<persona name>` sends the post to the mentioned agents only.
+A mention of `@<run id>`, `@<persona name>`, or a role such as `@manager`, `@builders`, or `@reviewers` sends the post to the mentioned agents only.
+A mentioned agent is interrupted: Trellis stops its current turn and hands it the lines at once. An unmentioned agent reads the lines when its current turn ends.
 A worker receives the pending lines in its terminal, batched into one message per controller tick.
 A manager receives a `trellis.chat.messages` event with the same lines as data and posts through `trellis_chat_post`.
 The web page at `/p/<project path>/chat` shows the log; `/join <name>` in its input creates a channel.

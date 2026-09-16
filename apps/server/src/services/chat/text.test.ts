@@ -3,6 +3,7 @@ import { chatBatchText, chatLine, type PendingLine } from "./text.ts";
 
 const line = (overrides: Partial<PendingLine> = {}): PendingLine => ({
 	messageId: "01J8Z6X4Q3M2K1H0G9F8E7D6M1",
+	direct: false,
 	channel: "ai",
 	body: "rebase on main",
 	actorName: "01J8Z6X4Q3M2K1H0G9F8E7D6G1",
@@ -44,8 +45,17 @@ test("a manager batch is one JSON document", () => {
 				body: "rebase on main",
 				createdAt: "2026-09-09T12:34:56.000Z",
 				actor: { kind: "agent", name: "01J8Z6X4Q3M2K1H0G9F8E7D6G1", displayName: "Builder" },
+				mention: false,
 			},
 		],
+		mentioned: false,
 		recipient: { runId: "m", personaName: "Trellis" },
 	});
+});
+
+test("a batch with a mention says so in its first line", () => {
+	const text = chatBatchText({ runId: "r", personaName: "Builder", kind: "builder", projectPath: "TRL" }, [
+		line({ direct: true }),
+	]);
+	expect(text.split("\n")[0]).toBe("trellis chat: 1 new message in the TRL room. One mentions you. Answer it now.");
 });

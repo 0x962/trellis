@@ -20,7 +20,7 @@ Reply in that thread: trellis comment ${key}-42 --reply-to <comment-id> --body "
 Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
 
-Chat room: every project tree has one, with channels. #ai and #general exist in every room. Every live agent receives each post; @<run id> or @<persona name> sends a post to that agent only.
+Chat room: every project tree has one, with channels. #ai and #general exist in every room. Every live agent receives each post; @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
 Read a channel: trellis chat read ${key} ai
 Post a message: trellis chat post ${key} ai --body "..."
 List channels:  trellis chat channels ${key}

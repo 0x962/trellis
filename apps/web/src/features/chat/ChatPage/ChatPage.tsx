@@ -184,7 +184,11 @@ export function ChatPage({ project }: { project: Project }) {
 								hideLabel
 								value={draft}
 								disabled={readOnly}
-								placeholder={readOnly ? "The project is archived." : "Message, or /join <channel>"}
+								placeholder={
+									readOnly
+										? "The project is archived."
+										: "Message, @manager to interrupt the manager, or /join <channel>"
+								}
 								autoComplete="off"
 								className="font-mono"
 								onChange={(event) => setDraft(rootId, channel, event.target.value)}
