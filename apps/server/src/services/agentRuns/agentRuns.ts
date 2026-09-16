@@ -4,7 +4,7 @@ import type { z } from "zod";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { listExecutionAttempts } from "../assignments/attempts.ts";
+import { listExecutionAttempts } from "../assignments.ts";
 import { resolveProject, resolveTicket } from "../refs.ts";
 import type { ServiceCtx } from "../support.ts";
 import { closeExitedAssignments } from "./closeExitedAssignments.ts";
