@@ -1,4 +1,5 @@
 import { realpath } from "node:fs/promises";
+import { join } from "node:path";
 import type { AccountHarness, UsageAccount, UsageAccountsInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
@@ -8,7 +9,7 @@ import { readCredential } from "../harnessAccounts/credentials.ts";
 import { type Credential, fetchAccountQuota } from "../harnessAccounts/fetchQuota.ts";
 import { resolveHostDefault } from "../harnessAccounts/hostDefault.ts";
 import { loginCommandFor } from "../harnessAccounts/presentation.ts";
-import { profileDefault } from "../harnessAccounts/profiles.ts";
+import { museConfigDefault, profileDefault } from "../harnessAccounts/profiles.ts";
 import type { AccountRow } from "../harnessAccounts/queries.ts";
 import type { IoCtx } from "../support.ts";
 import { usageRoots } from "./roots.ts";
@@ -71,7 +72,13 @@ export async function usageLogins(accounts: readonly AccountRow[], env: NodeJS.P
 			// The profile directory of this account is gone.
 		}
 	}
-	for (const harness of QUOTA_HARNESSES) {
+	// The default Muse login joins the list when it is signed in: its login
+	// sits under the XDG config home, while its profile is the data home.
+	const museSignedIn = await realpath(join(museConfigDefault(env), "muse", "auth.json")).then(
+		() => true,
+		() => false,
+	);
+	for (const harness of [...QUOTA_HARNESSES, ...(museSignedIn ? (["muse"] as const) : [])]) {
 		const profilePath = profileDefault(harness, env);
 		let real: string;
 		try {

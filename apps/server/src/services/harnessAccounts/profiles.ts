@@ -62,6 +62,12 @@ export async function provisionProfile(home: string, id: string, input: HarnessA
 	}
 	return target;
 }
+const isDefaultClaudeDirectory = async (profilePath: string, env: NodeJS.ProcessEnv) => {
+	const defaultDirectory = join(env.HOME ?? homedir(), ".claude");
+	if (!existsSync(defaultDirectory)) return false;
+	return (await realpath(profilePath)) === (await realpath(defaultDirectory));
+};
+
 export async function profileEnvironment(
 	account: { harness: AccountHarness; profilePath: string },
 	env: NodeJS.ProcessEnv,
@@ -99,7 +105,14 @@ export async function profileEnvironment(
 		delete result.ANTHROPIC_API_KEY;
 		delete result.ANTHROPIC_AUTH_TOKEN;
 		delete result.CLAUDE_CODE_OAUTH_TOKEN;
-		result.CLAUDE_CONFIG_DIR = account.profilePath;
+		// Claude keeps the state of its default directory `~/.claude` in
+		// `~/.claude.json` and in the default keychain entry. Once
+		// CLAUDE_CONFIG_DIR is set, it reads `$CLAUDE_CONFIG_DIR/.claude.json`
+		// instead, so `CLAUDE_CONFIG_DIR=~/.claude` opens a profile that has
+		// never onboarded or logged in. The default directory therefore maps
+		// to an unset variable, and every other profile to the variable.
+		if (await isDefaultClaudeDirectory(account.profilePath, env)) delete result.CLAUDE_CONFIG_DIR;
+		else result.CLAUDE_CONFIG_DIR = account.profilePath;
 	} else if (account.harness === "codex") {
 		delete result.OPENAI_API_KEY;
 		result.CODEX_HOME = account.profilePath;

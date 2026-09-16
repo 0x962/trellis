@@ -1,10 +1,10 @@
 import { basename } from "node:path";
 import type {
-	AccountHarness,
 	UsageDay,
 	UsageDays,
 	UsageGroupBy,
 	UsageGroupRow,
+	UsageHarness,
 	UsageReport,
 	UsageSession,
 	UsageTotals,
@@ -45,7 +45,7 @@ export type UsageReportInputs = {
 	sessionAccounts: ReadonlyMap<string, string>;
 	// The default account of each harness. A run with no account of its own
 	// launched with the default profile, so its usage belongs to that account.
-	defaultAccounts: Partial<Record<AccountHarness, string>>;
+	defaultAccounts: Partial<Record<UsageHarness, string>>;
 	days: UsageDays;
 	cutoffMs: number;
 	now: Date;
@@ -56,7 +56,7 @@ const MAX_GROUP_ROWS = 100;
 const MAX_SESSIONS = 200;
 const OUTSIDE = "outside";
 
-const HARNESS_LABELS: Record<AccountHarness, string> = {
+const HARNESS_LABELS: Record<UsageHarness, string> = {
 	claude: "Claude Code",
 	codex: "Codex",
 	pi: "Pi",
@@ -90,7 +90,7 @@ const isUnder = (path: string, prefix: string) => path === prefix || path.starts
 
 const projectHref = (path: string) => `/p/${path.split(".").join("/")}`;
 
-type RowLabel = { label: string; detail: string | null; href: string | null; harness: AccountHarness | null };
+type RowLabel = { label: string; detail: string | null; href: string | null; harness: UsageHarness | null };
 
 type Attribution = { run: UsageRun | null; project: { path: string; name: string } | null; other: string | null };
 
@@ -196,7 +196,7 @@ type GroupAccumulator = {
 
 type SessionAccumulator = {
 	sessionId: string;
-	harness: AccountHarness;
+	harness: UsageHarness;
 	usd: number;
 	tokens: number;
 	turns: number;

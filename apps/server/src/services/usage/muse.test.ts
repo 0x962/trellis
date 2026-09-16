@@ -9,85 +9,97 @@ const dirs: string[] = [];
 afterEach(async () => {
 	for (const dir of dirs.splice(0)) await rm(dir, { recursive: true, force: true });
 });
+
+const record = (payloadType: string, payload: unknown, recordedAt = 1789594157161904) => ({
+	stream: { kind: "session", id: "01a0ac1f-be03-7753-8bc0-ec2b98901115" },
+	recorded_at: recordedAt,
+	payload_type: payloadType,
+	payload,
+});
 const lines = (...values: unknown[]) => `${values.map((value) => JSON.stringify(value)).join("\n")}\n`;
 
-test("Muse counts each completed model call with its cached share, model, cwd, and first prompt", async () => {
+test("a Muse session yields one entry per model call, with its model, directory, and prompt", async () => {
 	const root = await mkdtemp(join(tmpdir(), "trellis-usage-muse-"));
 	dirs.push(root);
-	const sessionId = "01a0ac20-9e77-7270-8acc-36ec0dd2b6e8";
-	const dir = join(root, "2026", "09", "16", sessionId);
+	const dir = join(root, "2026", "09", "16", "01a0ac1f-be03-7753-8bc0-ec2b98901115");
 	await mkdir(dir, { recursive: true });
-	const stream = { kind: "session", id: sessionId };
-	const at = Date.UTC(2026, 8, 16, 21, 30, 0) * 1000;
 	await writeFile(
 		join(dir, "session.jsonl"),
 		lines(
+			// A frame holds several records as JSON text.
 			{
-				stream,
-				payload_type: "runtime.session.metadata",
-				payload: { kind: "metadata", record: { workspace_root: "/work/repo", model_id: "muse-spark-1.3" } },
-			},
-			{
-				stream,
-				payload_type: "runtime.user_intent.accepted",
-				payload: { refill_blocks: [{ kind: "text", text: "Run pwd, then reply ok." }] },
-			},
-			{
-				stream,
-				recorded_at: at,
-				payload_type: "runtime.session",
-				payload: {
-					kind: "run",
-					event: {
-						kind: "model_completed",
-						usage: {
-							input_tokens: 25944,
-							output_tokens: 89,
-							cached_tokens: 1000,
-							cache_write_tokens: 0,
-							cache_read_tokens: 1000,
-							reasoning_tokens: 8,
-						},
-						model: "muse-spark-1.3",
+				retained_frame: "session_permission_transaction",
+				children: [
+					{
+						child_index: 0,
+						record_json: JSON.stringify(
+							record("runtime.session.metadata", {
+								kind: "metadata",
+								record: { workspace_root: "/repo", provider_id: "meta" },
+							}),
+						),
 					},
+				],
+			},
+			record("run.model.configured", { kind: "run_model", record: { model_id: "muse-spark-1.3-contributor" } }),
+			record("runtime.command_intake.received", {
+				kind: "command_intake",
+				record: { kind: "received", command: { kind: "turn_submit", prompt: "Fix the flaky test" } },
+			}),
+			record("runtime.session", {
+				kind: "run",
+				event: {
+					kind: "model_completed",
+					usage: { input_tokens: 1200, output_tokens: 300, cached_tokens: 1000, reasoning_tokens: 50 },
 				},
-			},
-			{
-				stream,
-				recorded_at: at,
-				payload_type: "runtime.session",
-				payload: { kind: "run", event: { kind: "resource_usage_sampled", usage: { rss_self_bytes: 1 } } },
-			},
-			{
-				stream,
-				recorded_at: at - 40 * 24 * 60 * 60 * 1000 * 1000,
-				payload_type: "runtime.session",
-				payload: {
-					kind: "run",
-					event: { kind: "model_completed", usage: { input_tokens: 5, output_tokens: 5 }, model: "muse-spark-1.3" },
-				},
-			},
+			}),
+			record("runtime.session", {
+				kind: "run",
+				event: { kind: "resource_usage_sampled", usage: { rss_self_bytes: 1 } },
+			}),
 		),
 	);
-	await writeFile(join(dir, "cli-abc.log"), "not a session log\n");
 	const out: UsageLogEntry[] = [];
 	const labels = new Map<string, string>();
-	const scanned = await collectMuseEntries(root, 30, Date.UTC(2026, 8, 1), out, labels);
+	const scanned = await collectMuseEntries(root, 7, 0, out, labels);
 	expect(scanned).toBe(1);
 	expect(out).toEqual([
 		{
 			harness: "muse",
-			model: "muse-spark-1.3",
-			timestampMs: Date.UTC(2026, 8, 16, 21, 30, 0),
-			cwd: "/work/repo",
-			sessionId,
-			uncachedInput: 24944,
+			model: "muse-spark-1.3-contributor",
+			timestampMs: 1789594157161,
+			cwd: "/repo",
+			sessionId: "01a0ac1f-be03-7753-8bc0-ec2b98901115",
+			uncachedInput: 200,
 			cachedInput: 1000,
 			cacheWrite5m: 0,
 			cacheWrite1h: 0,
-			output: 89,
-			reasoningOutput: 8,
+			output: 300,
+			reasoningOutput: 50,
 		},
 	]);
-	expect(labels.get(sessionId)).toBe("Run pwd, then reply ok.");
+	expect(labels.get("01a0ac1f-be03-7753-8bc0-ec2b98901115")).toBe("Fix the flaky test");
+});
+
+test("a session on the echo provider is a local test and adds nothing", async () => {
+	const root = await mkdtemp(join(tmpdir(), "trellis-usage-muse-"));
+	dirs.push(root);
+	const dir = join(root, "2026", "09", "16", "echo-session");
+	await mkdir(dir, { recursive: true });
+	await writeFile(
+		join(dir, "session.jsonl"),
+		lines(
+			record("runtime.session.metadata", {
+				kind: "metadata",
+				record: { workspace_root: "/repo", provider_id: "echo" },
+			}),
+			record("runtime.session", {
+				kind: "run",
+				event: { kind: "model_completed", usage: { input_tokens: 5, output_tokens: 5 } },
+			}),
+		),
+	);
+	const out: UsageLogEntry[] = [];
+	await collectMuseEntries(root, 7, 0, out, new Map());
+	expect(out).toEqual([]);
 });

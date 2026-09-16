@@ -1,39 +1,45 @@
-// Muse writes one directory per session under `<data>/muse/sessions/<year>/
-// <month>/<day>/<session id>/`, with the durable log in `session.jsonl`.
-// Each line is an envelope with a `payload_type`. A `runtime.session` line
-// whose run event is `model_completed` holds the tokens of one model call
-// and the model that answered. The first `runtime.user_intent.accepted`
-// line holds the first prompt. `runtime.session.metadata` names the
-// workspace. `recorded_at` counts microseconds since the epoch.
+// Muse, the Meta coding agent, keeps one directory per session under
+// `<data>/muse/sessions/<year>/<month>/<day>/<session id>/`, with the
+// transcript in `session.jsonl`. Every line is one event record, or a
+// frame whose `children` hold several records as JSON text. The events the
+// scan reads:
+// - `runtime.session.metadata`: the working directory and the provider.
+// - `run.model.configured`: the model of the runs that follow.
+// - `runtime.session` with `event.kind === "model_completed"`: the tokens of
+//   one model call. `input_tokens` includes `cached_tokens`.
+// - `runtime.command_intake.received` with a `turn_submit` command: a prompt.
+// A session on the `echo` provider is a local test with no model, so it
+// adds nothing.
 
-import { basename, dirname } from "node:path";
+import { basename } from "node:path";
 import type { LogFile } from "./logs.ts";
 import { collectLogFiles } from "./logs.ts";
 import type { UsageLogEntry } from "./parse.ts";
 import { forEachLine, num, toSessionLabel } from "./parse.ts";
 
-type MuseLine = {
+type MuseRecord = {
 	stream?: { id?: string };
 	recorded_at?: number;
 	payload_type?: string;
 	payload?: {
 		kind?: string;
-		record?: { workspace_root?: string };
-		refill_blocks?: Array<{ kind?: string; text?: string }>;
+		record?: {
+			workspace_root?: string;
+			provider_id?: string;
+			model_id?: string;
+			command?: { kind?: string; prompt?: string };
+		};
 		event?: {
 			kind?: string;
-			model?: string;
-			usage?: {
-				input_tokens?: number;
-				output_tokens?: number;
-				cached_tokens?: number;
-				cache_write_tokens?: number;
-				cache_read_tokens?: number;
-				reasoning_tokens?: number;
-			};
+			usage?: { input_tokens?: number; output_tokens?: number; cached_tokens?: number; reasoning_tokens?: number };
 		};
 	};
+	children?: Array<{ record_json?: string }>;
 };
+
+// Muse records time in microseconds since the epoch.
+const toMs = (recordedAt: number | undefined, mtimeMs: number) =>
+	typeof recordedAt === "number" && recordedAt > 0 ? Math.floor(recordedAt / 1000) : mtimeMs;
 
 async function parseMuseLogFile(
 	file: LogFile,
@@ -41,56 +47,78 @@ async function parseMuseLogFile(
 	out: UsageLogEntry[],
 	sessionLabels: Map<string, string>,
 ): Promise<void> {
-	let sessionId = basename(dirname(file.path));
+	let sessionId = basename(file.path.slice(0, -"/session.jsonl".length));
 	let cwd: string | null = null;
+	let provider: string | null = null;
+	let model = "unknown";
+	const apply = (record: MuseRecord) => {
+		if (typeof record.stream?.id === "string") sessionId = record.stream.id;
+		const payload = record.payload;
+		if (!payload) return;
+		if (record.payload_type === "runtime.session.metadata") {
+			if (typeof payload.record?.workspace_root === "string") cwd = payload.record.workspace_root;
+			if (typeof payload.record?.provider_id === "string") provider = payload.record.provider_id;
+			return;
+		}
+		if (record.payload_type === "run.model.configured") {
+			if (payload.record?.model_id) model = payload.record.model_id;
+			return;
+		}
+		if (record.payload_type === "runtime.command_intake.received") {
+			if (payload.record?.command?.kind === "turn_submit" && !sessionLabels.has(sessionId)) {
+				const label = toSessionLabel(payload.record.command.prompt);
+				if (label) sessionLabels.set(sessionId, label);
+			}
+			return;
+		}
+		if (record.payload_type !== "runtime.session" || payload.event?.kind !== "model_completed") return;
+		if (provider === "echo") return;
+		const usage = payload.event.usage;
+		if (!usage) return;
+		const timestampMs = toMs(record.recorded_at, file.mtimeMs);
+		if (timestampMs < cutoffMs) return;
+		const input = num(usage.input_tokens);
+		const cached = num(usage.cached_tokens);
+		out.push({
+			harness: "muse",
+			model,
+			timestampMs,
+			cwd,
+			sessionId,
+			uncachedInput: Math.max(0, input - cached),
+			cachedInput: cached,
+			cacheWrite5m: 0,
+			cacheWrite1h: 0,
+			output: num(usage.output_tokens),
+			reasoningOutput: num(usage.reasoning_tokens),
+		});
+	};
 	await forEachLine(file.path, (line) => {
-		const usage = line.includes('"model_completed"');
-		const metadata = line.includes('"runtime.session.metadata"');
-		const intent = line.includes('"runtime.user_intent.accepted"');
-		if (!usage && !metadata && !intent) return;
-		let parsed: MuseLine;
+		if (
+			!line.includes("model_completed") &&
+			!line.includes("runtime.session.metadata") &&
+			!line.includes("run.model.configured") &&
+			!line.includes("turn_submit")
+		)
+			return;
+		let parsed: MuseRecord;
 		try {
 			parsed = JSON.parse(line);
 		} catch {
 			return;
 		}
-		if (typeof parsed.stream?.id === "string") sessionId = parsed.stream.id;
-		if (parsed.payload_type === "runtime.session.metadata") {
-			const root = parsed.payload?.record?.workspace_root;
-			if (typeof root === "string") cwd = root;
-			return;
-		}
-		if (parsed.payload_type === "runtime.user_intent.accepted") {
-			if (!sessionLabels.has(sessionId)) {
-				const label = toSessionLabel(parsed.payload?.refill_blocks?.find((block) => block.kind === "text")?.text);
-				if (label) sessionLabels.set(sessionId, label);
+		if (parsed.children) {
+			for (const child of parsed.children) {
+				if (typeof child.record_json !== "string") continue;
+				try {
+					apply(JSON.parse(child.record_json));
+				} catch {
+					// A frame with a broken child stays out of the count.
+				}
 			}
 			return;
 		}
-		const event = parsed.payload?.event;
-		if (parsed.payload_type !== "runtime.session" || event?.kind !== "model_completed" || !event.usage) return;
-		const timestampMs =
-			typeof parsed.recorded_at === "number" && parsed.recorded_at > 0
-				? Math.floor(parsed.recorded_at / 1000)
-				: file.mtimeMs;
-		if (timestampMs < cutoffMs) return;
-		const tokens = event.usage;
-		// The cached count of a Muse call is a part of its input count, and
-		// the cache read count repeats the cached count.
-		const cached = Math.max(num(tokens.cached_tokens), num(tokens.cache_read_tokens));
-		out.push({
-			harness: "muse",
-			model: event.model ?? "unknown",
-			timestampMs,
-			cwd,
-			sessionId,
-			uncachedInput: Math.max(0, num(tokens.input_tokens) - cached),
-			cachedInput: cached,
-			cacheWrite5m: num(tokens.cache_write_tokens),
-			cacheWrite1h: 0,
-			output: num(tokens.output_tokens),
-			reasoningOutput: num(tokens.reasoning_tokens),
-		});
+		apply(parsed);
 	});
 }
 

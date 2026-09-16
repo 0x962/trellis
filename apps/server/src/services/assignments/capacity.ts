@@ -46,3 +46,8 @@ export const capacityAvailable = async (
 	tx: Tx,
 	input: { projectId: string; excludeRunId?: string } & CapacityObservation,
 ) => (await capacityCounts(tx, input)).available;
+
+export const capacityOf = async (tx: Tx, input: { projectId: string; excludeRunId?: string } & CapacityObservation) => {
+	const counts = await capacityCounts(tx, input);
+	return { used: counts.running, limit: counts.limit };
+};

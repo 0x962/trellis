@@ -14,6 +14,8 @@ export type RankedBarRow = {
 	// The share of the whole, 0 to 1, printed after the value.
 	share: number;
 	tone: ChartTone;
+	// A mark before the label, such as the icon of a model provider.
+	icon?: ReactNode;
 	// A sparse day series behind the bar, oldest first. Empty for none.
 	spark?: readonly number[];
 	// An IconButton at the end of the row, outside the select button: the
@@ -81,7 +83,8 @@ export function RankedBars({ label, rows, selected, onSelect, limit = 8, classNa
 									pressed ? "bg-accent-soft" : "hover:bg-elevated",
 								)}
 							>
-								<span className="flex min-w-0 items-baseline gap-2">
+								<span className="flex min-w-0 items-center gap-2">
+									{row.icon !== undefined && <span className="inline-flex shrink-0 text-fg-muted">{row.icon}</span>}
 									<span className="truncate text-sm font-medium text-fg">{row.label}</span>
 									{row.detail !== undefined && (
 										<span className="min-w-0 truncate text-xs text-fg-muted">{row.detail}</span>

@@ -11,13 +11,14 @@ import {
 } from "@phosphor-icons/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ActivityDot, cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
-import { type ReactElement, type ReactNode, useState } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
+import { uiActions } from "../../../../../stores/uiStore";
 import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
+import { sessionComposerActions } from "../../../../sessions/sessionComposerStore";
 import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
-import { NewSessionDialog } from "../../../NewSessionDialog";
 import { ProjectTree } from "../../../ProjectTree";
 import { SessionList } from "../../../SessionList";
 import { ConnectionPanel } from "../ConnectionPanel";
@@ -93,7 +94,6 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
-	const [newSession, setNewSession] = useState(false);
 
 	return (
 		<>
@@ -150,7 +150,12 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 							className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
 							label="New session"
 							icon={<Plus />}
-							onClick={() => setNewSession(true)}
+							onClick={() => {
+								// The dialog mounts from the root shell. The phone sheet
+								// closes first, so no second modal sits under the dialog.
+								uiActions.setMobileSidebarOpen(false);
+								sessionComposerActions.open();
+							}}
 						/>
 					</Tooltip>
 				</div>
@@ -170,7 +175,6 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				<ProjectTree />
 				<ArchivedProjects />
 			</div>
-			{newSession && <NewSessionDialog onClose={() => setNewSession(false)} />}
 			<div className="mt-auto shrink-0">
 				<ConnectionPanel status={status} />
 				<ActorFooter collapsed={collapsed} />

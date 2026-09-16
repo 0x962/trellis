@@ -70,7 +70,7 @@ The selection resolves to an absolute path and persists across restarts.
 Its Swift helper registers through `SMAppService` and starts the bundled host through launchd.
 The host keeps its port across restarts, so the renderer retains its origin.
 Close or quit detaches the window. The background host and agent processes continue.
-The explicit Stop local work action pauses native dispatch, stops owned processes, and unregisters the helper.
+The explicit Quit Trellis Completely action pauses native dispatch, stops owned processes, and unregisters the helper.
 An unconfirmed process prevents a successful stop.
 
 The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
@@ -442,13 +442,13 @@ An unavailable quota result contains no allowance estimate. Credentials stay on 
 ### Usage
 
 The Usage page at `/usage` shows what every agent on the machine consumed.
-`usage.report` reads the transcript files that each harness CLI writes: `projects/` of a Claude profile, `sessions/` of a Codex or Pi profile, `opencode/storage/` of an OpenCode data home, and `muse/sessions/` of a Muse data home.
+`usage.report` reads the transcript files that each harness CLI writes: `projects/` of a Claude profile, `sessions/` of a Codex or Pi profile, `opencode/storage/` of an OpenCode data home, and `muse/sessions/` of a Muse data home, the default XDG data home or a Muse account profile.
 The scan covers the default profile of each harness and the profile of every account, resolved to real paths, so a shared directory counts once.
 The scan runs in the `prepare` step, outside every database transaction, and its result is cached for five minutes per range. A refresh is served from the cache for ten seconds.
 Every turn is priced at the API list rate in `services/usage/pricing.ts`. A harness that records its own cost, such as Pi or OpenCode, keeps that cost. Muse Spark has no list price, so a Muse turn counts its tokens at zero dollars. A model outside the table takes the cheapest rate of its harness and marks the row approximate.
 A session joins the agent run whose `session_id` it carries. A session whose cwd is inside `agents/<run id>/work` joins that run. A session whose cwd is inside a project directory joins that project. Every other session is outside Trellis.
 The report holds the day series by harness, the totals, one row list per grouping (ticket, persona, project, kind, account, model, harness), and the top 200 sessions with one key per grouping.
-`usage.accounts` lists every configured account and the default login of each harness that no account names, each with its quota. The page joins each login to its cost through the account grouping of the report.
+`usage.accounts` lists every configured account and the default login of each harness that no account names, each with its quota. A login whose provider reports no quota window is `unlimited`: an API key, a plan without limits, or a harness with no quota endpoint. The default Muse login comes from `muse/auth.json` under the XDG config home, and a Muse account profile holds its own `muse/auth.json`; a signed-in Muse login is `unlimited`. The page joins each login to its cost through the account grouping of the report.
 The page keeps the range, the metric, the grouping, the selected row, and the selected day in the URL.
 
 The default login of a harness resolves the way SuperSet resolves it. SuperSet keeps one pointer file per harness under `~/.superset/state/`: `default-claude-config-dir` and `default-codex-home`, each with the profile directory of the default, or nothing for the plain login. When the file exists it wins. Otherwise the account with the Trellis default flag wins. Otherwise the plain login of the harness is the default. A pointer whose directory is gone counts as the plain login. A default picked in Settings also writes the pointer, so both tools agree. A run with no account reads the pointer again at every launch, and a profile exported in the login shell wins over the pointer.
@@ -750,7 +750,7 @@ returns one canonical spelling.
 | pullRequests.diff | GET /api/prs/{id}/diff | `gh pr diff`, cut at 1 MB, cached for 60 s |
 | personas.list, get, create, update, delete | GET, POST /api/personas; GET, PATCH, DELETE /api/personas/{id} | the manager tool list omits instructions; get reads one |
 | flows.list, get, create, update, save, delete | GET, POST /api/flows; GET, PATCH, DELETE /api/flows/{flow}; PUT /api/flows/{flow}/graph | `{flow}` is a ULID or a slug; save replaces every node and edge |
-| agentRuns.list, start | GET, POST /api/agent-runs | start answers 201 with the row in any state |
+| agentRuns.capacity, list, start | GET /api/agent-runs/capacity, GET and POST /api/agent-runs | capacity returns the scheduler's used slots and limit; start answers 201 with the row in any state |
 | agentRuns.stop, refresh, send | POST /api/agent-runs/{id}/stop, /refresh, /send | send takes 1 to 20000 characters |
 | agentRuns.resume | POST /api/agent-runs/{id}/resume | existing assignment, accountId, expectedTerminalId, requestId |
 | harnessAccounts.list, create, update, remove | GET, POST /api/harness-accounts; PATCH, DELETE /api/harness-accounts/{id} | account metadata and profile selection |

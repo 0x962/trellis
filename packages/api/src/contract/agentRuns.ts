@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import { ModelIdSchema } from "../models/models.ts";
-import { AgentRunListInputSchema, AgentRunSchema, AgentRunStartInputSchema } from "../schemas/agentRun.ts";
+import {
+	AgentCapacityInputSchema,
+	AgentCapacitySchema,
+	AgentRunListInputSchema,
+	AgentRunSchema,
+	AgentRunStartInputSchema,
+} from "../schemas/agentRun.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
 import { base } from "./base.ts";
 
@@ -75,6 +81,10 @@ export const agentRuns = {
 			}),
 		)
 		.output(AgentRunSchema),
+	capacity: base
+		.route({ method: "GET", path: "/agent-runs/capacity", summary: "Read project agent capacity" })
+		.input(AgentCapacityInputSchema)
+		.output(AgentCapacitySchema),
 	resume: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE", "CONCURRENCY_LIMIT"]))
 		.route({

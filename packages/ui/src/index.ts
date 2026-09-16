@@ -1,5 +1,6 @@
 export { DesktopChrome } from "./desktop/DesktopChrome/index.ts";
 export { ActorChip, type ActorChipProps } from "./domain/ActorChip";
+export { AgentCapacityBadge, type AgentCapacityBadgeProps } from "./domain/AgentCapacityBadge";
 export { CheckResults } from "./domain/CheckResults";
 export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from "./domain/CheckRibbon";
 export { type ChartTone, otherTone, rankedTones } from "./domain/chartTones";
@@ -14,7 +15,8 @@ export * from "./domain/HarnessAccountForm";
 export { InboxRow, type InboxRowProps } from "./domain/InboxRow";
 export { LocalEvidence } from "./domain/LocalEvidence";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
-export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps } from "./domain/QuotaWindows";
+export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
+export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps, quotaFillClass } from "./domain/QuotaWindows";
 export { type RankedBarRow, RankedBars, type RankedBarsProps } from "./domain/RankedBars";
 export { RuntimeDiagnostics } from "./domain/RuntimeDiagnostics";
 export { StackedBar, type StackedBarProps, type StackedBarSegment } from "./domain/StackedBar";

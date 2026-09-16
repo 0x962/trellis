@@ -25,10 +25,10 @@ export const requireService = async (helper: string, home: string) => {
 export const stopLocalWork = async (host: HostConnection, home: string, helper?: string): Promise<boolean> => {
 	const { response } = await dialog.showMessageBox({
 		type: "warning",
-		message: "Stop local work and the background service?",
+		message: "Quit Trellis completely?",
 		detail:
 			"Trellis pauses automatic dispatch for local projects, stops their known processes, and disables its background service. Superset and other external sessions remain active.",
-		buttons: ["Cancel", "Stop local work"],
+		buttons: ["Cancel", "Quit Completely"],
 		defaultId: 0,
 		cancelId: 0,
 	});

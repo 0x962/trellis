@@ -5,17 +5,20 @@ test("the longest prefix wins and a vendor-qualified id matches on its last segm
 	expect(matchModelRate("claude", "claude-opus-4-8-20260301")).toMatchObject({ inputPerM: 5, approximate: false });
 	expect(matchModelRate("claude", "claude-opus-4-20250514")).toMatchObject({ inputPerM: 15, approximate: false });
 	expect(matchModelRate("pi", "anthropic/claude-sonnet-5")).toMatchObject({ inputPerM: 2, approximate: false });
-	expect(matchModelRate("muse", "muse-spark-1.3-contributor")).toMatchObject({
-		inputPerM: 0,
-		outputPerM: 0,
-		approximate: false,
-	});
 });
 
 test("an unknown model takes the cheapest rate of its harness and is approximate", () => {
 	const rate = matchModelRate("codex", "o9-preview");
 	expect(rate.approximate).toBe(true);
 	expect(rate.inputPerM).toBe(0.2);
+});
+
+test("a Muse model counts its tokens at no cost and stays approximate", () => {
+	const rate = matchModelRate("muse", "muse-spark-1.3-contributor");
+	expect(rate).toMatchObject({ inputPerM: 0, outputPerM: 0, approximate: true });
+	expect(costUsd(rate, { uncachedInput: 1e6, cachedInput: 1e6, cacheWrite5m: 0, cacheWrite1h: 0, output: 1e6 })).toBe(
+		0,
+	);
 });
 
 test("a long prompt on a model with a long-context rate takes that rate", () => {

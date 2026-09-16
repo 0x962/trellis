@@ -100,7 +100,7 @@ export class HarnessHost {
 			if (!signal.aborted) throw error;
 			throw Object.assign(
 				new Error(
-					`Harness attempt ${id} did not confirm the requested provider observation within ${this.options.observationTimeoutMs ?? 15000} ms; inspect or stop this attempt before resending`,
+					`Harness attempt ${id} did not report the requested provider observation within ${this.options.observationTimeoutMs ?? 15000} ms. Open its terminal: the program may wait on a login or a first-run question. Stop the attempt before you send again.`,
 				),
 				{ code: "HARNESS_OBSERVATION_TIMEOUT" },
 			);

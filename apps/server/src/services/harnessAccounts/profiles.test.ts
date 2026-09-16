@@ -76,3 +76,19 @@ test("a managed Muse profile links the shared sessions and copies the settings o
 	expect(await readFile(join(profile, "muse", "settings.json"), "utf8")).toBe('{"model":"muse-spark-1.3"}');
 	expect(existsSync(join(profile, "muse", "auth.json"))).toBe(false);
 });
+test("the default Claude directory leaves CLAUDE_CONFIG_DIR unset, and an alias of it counts as the default", async () => {
+	const home = await mkdtemp("/tmp/trellis-profile-env-");
+	homes.push(home);
+	const defaultDirectory = join(home, ".claude");
+	await mkdir(defaultDirectory);
+	const alias = join(home, "alias");
+	await symlink(defaultDirectory, alias);
+	const env = { HOME: home, CLAUDE_CONFIG_DIR: join(home, ".claude-other") };
+	for (const profilePath of [defaultDirectory, alias]) {
+		const result = await profileEnvironment({ harness: "claude", profilePath }, env);
+		expect(result.CLAUDE_CONFIG_DIR).toBeUndefined();
+	}
+	const other = join(home, "other");
+	await mkdir(other);
+	expect((await profileEnvironment({ harness: "claude", profilePath: other }, env)).CLAUDE_CONFIG_DIR).toBe(other);
+});
