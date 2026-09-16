@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { projectRun } from "../../../../../src/services/agentRuns/liveState.ts";
+import { executionMetrics, projectRun } from "../../../../../src/services/agentRuns/liveState.ts";
 import type { StoredRun } from "../../../../../src/services/agentRuns/queries.ts";
 
 const run: StoredRun = {
@@ -45,6 +45,16 @@ const process: RuntimeProcessStatus = {
 	result: null,
 	acknowledgedMessageIds: [],
 };
+const agent = {
+	sessionId: "conversation",
+	model: "fixture-model",
+	turnId: "turn",
+	tool: null,
+	lastTool: null,
+	lastMessage: null,
+	error: null,
+	outcome: null,
+};
 
 test("live process status overrides assignment closure and old errors", () => {
 	expect(projectRun(run, [process])).toMatchObject({ state: "running", processStatus: "running", error: null });
@@ -60,7 +70,7 @@ test("a missing runtime attempt has unknown process status", () => {
 });
 
 test("a failed provider turn retains its live process status and attempt identity", () => {
-	const agent = {
+	const failedAgent = {
 		sessionId: "conversation",
 		turnId: "failed-turn",
 		model: "fixture-model",
@@ -71,13 +81,13 @@ test("a failed provider turn retains its live process status and attempt identit
 		outcome: "failed" as const,
 	};
 	for (const status of ["running", "exited", "unknown"] as const) {
-		expect(projectRun(run, [{ ...process, status, agent }])).toMatchObject({
+		expect(projectRun(run, [{ ...process, status, agent: failedAgent }])).toMatchObject({
 			state: "failed",
 			processStatus: status,
 			terminalId: "attempt",
 		});
 	}
-	expect(projectRun(run, [{ ...process, id: "replaced-attempt", agent }])).toMatchObject({
+	expect(projectRun(run, [{ ...process, id: "replaced-attempt", agent: failedAgent }])).toMatchObject({
 		state: "interrupted",
 		processStatus: null,
 		terminalId: "attempt",
@@ -104,4 +114,34 @@ test.each(["ready", "working", "idle"] as const)(
 
 test("missing attempts have no current observation, even with a saved session and old error", () => {
 	expect(projectRun(run, [])).toMatchObject({ processStatus: null, observation: null });
+});
+
+test("execution metrics sum attempt time and count cumulative session tokens once", () => {
+	const attempts = ["attempt-1", "attempt-2", "attempt-3"];
+	const sessions = [
+		{
+			...process,
+			id: "attempt-1",
+			elapsedMs: 100,
+			agent: { ...agent, sessionId: "session-1", tokenUsage: { totalTokens: 100 } },
+		},
+		{
+			...process,
+			id: "attempt-2",
+			elapsedMs: 200,
+			agent: { ...agent, sessionId: "session-1", tokenUsage: { totalTokens: 150 } },
+		},
+		{
+			...process,
+			id: "attempt-3",
+			elapsedMs: 300,
+			agent: { ...agent, sessionId: "session-2", tokenUsage: { totalTokens: 40 } },
+		},
+	] satisfies RuntimeProcessStatus[];
+	expect(executionMetrics(attempts, sessions)).toEqual({ durationMs: 600, tokenCount: 190 });
+});
+
+test("execution metrics mark missing usage as unavailable", () => {
+	expect(executionMetrics(["attempt"], [process])).toEqual({ durationMs: 0, tokenCount: null });
+	expect(executionMetrics(["missing"], [process])).toEqual({ durationMs: null, tokenCount: null });
 });

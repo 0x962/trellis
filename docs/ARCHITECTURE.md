@@ -312,6 +312,12 @@ The concurrency limit counts ticket assignments with `closed_at IS NULL`. It exc
 A confirmed process exit closes its assignment before the next claim.
 The limit runs from 1 to 64 and defaults to 3. A partial unique index permits one active manager per project.
 
+The ticket page uses three separate metric definitions. Tokens burned sums the latest provider-recorded cumulative total for each agent session.
+Multiple execution attempts for one agent session contribute only the largest cumulative total. A ticket shows Unavailable when any agent run has no recorded total.
+Time burned sums `elapsedMs` for every execution attempt on the ticket. It measures process time, not ticket age.
+A ticket with no agent run has zero time burned. An attempt without a runtime duration makes time burned unavailable.
+Age is the current time minus `tickets.created_at`.
+
 ### Manager controller
 
 `manager_controller_cursors` records the last collected activity identifier for each project.

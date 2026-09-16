@@ -191,6 +191,7 @@ test("a saved directory lets the manager start without repository approval", asy
 			state: "running",
 			processStatus: "running",
 			observation: null,
+			metrics: { durationMs: 0, tokenCount: null },
 			workspaceId: "/tmp/trellis-directory-start",
 			terminalId: "directory-attempt",
 			url: null,

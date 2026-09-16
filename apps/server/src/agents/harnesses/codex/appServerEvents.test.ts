@@ -115,3 +115,35 @@ test("Codex tracks native model changes without a new turn", () => {
 		}),
 	).toEqual([{ kind: "session", sessionId: "s", turnId: "t", model: "effective-model" }]);
 });
+
+test("Codex reports the recorded cumulative token total", () => {
+	const events = new CodexAppServerEvents("s");
+	expect(
+		events.parse({
+			method: "thread/tokenUsage/updated",
+			params: {
+				threadId: "s",
+				turnId: "t",
+				tokenUsage: {
+					total: {
+						totalTokens: 321,
+						inputTokens: 250,
+						cachedInputTokens: 100,
+						cacheWriteInputTokens: 0,
+						outputTokens: 71,
+						reasoningOutputTokens: 30,
+					},
+					last: {
+						totalTokens: 80,
+						inputTokens: 60,
+						cachedInputTokens: 20,
+						cacheWriteInputTokens: 0,
+						outputTokens: 20,
+						reasoningOutputTokens: 10,
+					},
+					modelContextWindow: 200000,
+				},
+			},
+		}),
+	).toEqual([{ kind: "session", sessionId: "s", turnId: "t", tokenUsage: { totalTokens: 321 } }]);
+});

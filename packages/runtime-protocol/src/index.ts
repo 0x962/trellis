@@ -1,4 +1,5 @@
-export const RUNTIME_PROTOCOL_VERSION = 7;
+export const RUNTIME_PROTOCOL_VERSION = 8;
+export type RecordedTokenUsage = { totalTokens: number };
 export type HarnessTool = {
 	id: string;
 	name: string;
@@ -18,6 +19,7 @@ export type HarnessEvent = {
 	result?: string;
 	tool?: HarnessTool;
 	error?: string;
+	tokenUsage?: RecordedTokenUsage;
 };
 
 export type RuntimeStream = "stdout" | "stderr" | "events";
@@ -39,6 +41,7 @@ export interface RuntimeAgentMetadata {
 		  })
 		| null;
 	lastMessage: { text: string; at: string } | null;
+	tokenUsage?: RecordedTokenUsage | null;
 	error: string | null;
 	outcome: NonNullable<HarnessEvent["outcome"]> | null;
 }

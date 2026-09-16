@@ -124,6 +124,17 @@ test("the desktop ticket cards use the compact gap", async ({ page }) => {
 	expect(cardBox!.x - pageBox!.x).toBeCloseTo(8, 0);
 });
 
+test("the ticket properties show usage, work time, and age", async ({ page }) => {
+	await signIn(page, "/t/TKT-1");
+	const properties = page.getByRole("complementary", { name: "Properties" });
+	await expect(properties.getByText("Tokens burned", { exact: true })).toBeVisible();
+	await expect(properties.getByText("Unavailable", { exact: true })).toBeVisible();
+	await expect(properties.getByText("Time burned", { exact: true })).toBeVisible();
+	await expect(properties.getByText("0s", { exact: true })).toBeVisible();
+	await expect(properties.getByText("Age", { exact: true })).toBeVisible();
+	await expect(properties.locator("dd").last()).toHaveText(/^\d+[smhd]$/);
+});
+
 for (const width of [1920, 1280, 900, 390]) {
 	test(`the ticket body stays centered at ${width} px`, async ({ page }, testInfo) => {
 		await page.setViewportSize({ width, height: 900 });

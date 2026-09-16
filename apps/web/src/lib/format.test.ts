@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { compactRelativeTime, formatCount, relativeTime, tabularClass } from "./format";
+import { compactRelativeTime, formatCount, formatDuration, relativeTime, tabularClass } from "./format";
 
 const now = new Date("2026-09-09T12:00:00.000Z");
 
@@ -35,5 +35,12 @@ describe("lib/format", () => {
 		expect(formatCount(1234)).toBe("1,234");
 		expect(formatCount(0)).toBe("0");
 		expect(tabularClass).toBe("tabular");
+	});
+
+	test("formatDuration uses the shared time buckets", () => {
+		expect(formatDuration(12 * second)).toBe("12s");
+		expect(formatDuration(5 * minute)).toBe("5m");
+		expect(formatDuration(3 * hour)).toBe("3h");
+		expect(formatDuration(3 * day)).toBe("3d");
 	});
 });

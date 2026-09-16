@@ -17,6 +17,7 @@ const run: AgentRun = {
 	state: "starting",
 	processStatus: null,
 	observation: null,
+	metrics: { durationMs: null, tokenCount: null },
 	workspaceId: null,
 	terminalId: null,
 	url: null,

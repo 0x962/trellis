@@ -18,6 +18,8 @@ const bucket = (elapsed: number) => {
 	return `${Math.floor(elapsed / day)}d`;
 };
 
+export const formatDuration = (elapsed: number) => bucket(elapsed);
+
 // "just now" under 10 s, then "12s ago" up to 30 days, then a short date.
 export const relativeTime = (iso: string, now = new Date()) => {
 	const elapsed = now.getTime() - Date.parse(iso);

@@ -8,7 +8,7 @@ export const resumeText =
 	"trellis: your session resumed after a pause. Read the project, its tickets, and its agents again before you act.";
 
 export const launchCommand = (input: {
-	run: Omit<AgentRun, "state" | "processStatus" | "observation">;
+	run: Omit<AgentRun, "state" | "processStatus" | "observation" | "metrics">;
 	url: string;
 	context: string;
 	directory?: string;

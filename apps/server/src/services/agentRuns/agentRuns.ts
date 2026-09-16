@@ -8,7 +8,7 @@ import type { ServiceCtx } from "../support.ts";
 import { closeExitedAssignments } from "./closeExitedAssignments.ts";
 import { observeRuns } from "./liveState.ts";
 import { startNative } from "./nativeStart.ts";
-import { columns, getRun, type StoredRun } from "./queries.ts";
+import { columns, getRun, listAttempts, type StoredRun } from "./queries.ts";
 import { reserve } from "./reserve.ts";
 
 type Ctx = ServiceCtx & { core: CoreCtx; localUrl: string };
@@ -24,11 +24,27 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	);
 };
 
-export const prepareList = async (ctx: Ctx, input: AgentRunListInput) =>
-	observeRuns(ctx, await ctx.newTx((tx) => list(ctx.core, tx, input)));
+export const prepareList = async (ctx: Ctx, input: AgentRunListInput) => {
+	const { runs, attempts } = await ctx.newTx(async (tx) => {
+		const runs = await list(ctx.core, tx, input);
+		return {
+			runs,
+			attempts: await listAttempts(
+				tx,
+				runs.map((run) => run.id),
+			),
+		};
+	});
+	return observeRuns(ctx, runs, attempts);
+};
 
-export const observeResult = async (ctx: Ctx, input: { id: string }) =>
-	(await observeRuns(ctx, [await ctx.newTx((tx) => getRun(tx, input.id))]))[0]!;
+export const observeResult = async (ctx: Ctx, input: { id: string }) => {
+	const { run, attempts } = await ctx.newTx(async (tx) => {
+		const run = await getRun(tx, input.id);
+		return { run, attempts: await listAttempts(tx, [run.id]) };
+	});
+	return (await observeRuns(ctx, [run], attempts))[0]!;
+};
 
 export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 	const sessions = await closeExitedAssignments(ctx);

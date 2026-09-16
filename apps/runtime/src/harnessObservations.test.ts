@@ -85,3 +85,11 @@ test("a failed native completion retains its error through interruption", () => 
 	observations.append({ kind: "idle", outcome: "interrupted" }, "now");
 	expect(observations.agent).toMatchObject({ error: "Provider failure", outcome: "interrupted" });
 });
+
+test("the last cumulative token total survives journal replay", () => {
+	observations.append({ kind: "session", sessionId: "provider", tokenUsage: { totalTokens: 120 } }, "now");
+	observations.append({ kind: "session", sessionId: "provider", tokenUsage: { totalTokens: 175 } }, "now");
+	for (const current of [observations, new HarnessObservations(path)]) {
+		expect(current.agent?.tokenUsage).toEqual({ totalTokens: 175 });
+	}
+});

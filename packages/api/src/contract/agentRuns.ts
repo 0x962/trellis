@@ -21,6 +21,7 @@ const sessionSchema = z.object({
 		.object({
 			sessionId: z.string().nullable(),
 			model: z.string().nullable(),
+			tokenUsage: z.object({ totalTokens: z.number().int().nonnegative() }).nullable().optional(),
 			turnId: z.string().nullable(),
 			tool: z
 				.object({ id: z.string(), name: z.string(), input: z.unknown().optional(), output: z.unknown().optional() })

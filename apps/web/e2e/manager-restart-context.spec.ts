@@ -43,6 +43,7 @@ async function restartFixture(
 		state: options.stopped ? "stopped" : "running",
 		processStatus: options.stopped ? "exited" : "running",
 		observation: null,
+		metrics: { durationMs: 0, tokenCount: null },
 		workspaceId: "/fixture/manager",
 		terminalId: "previous-attempt",
 		url: null,
