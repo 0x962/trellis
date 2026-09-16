@@ -1,0 +1,137 @@
+.review-index-toolbar {
+	padding-inline: 24px;
+}
+.review-index-toolbar > div:last-child {
+	width: 260px;
+}
+.review-index-body {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	padding-block: 8px 20px;
+}
+.review-repository {
+	margin-bottom: 16px;
+}
+.review-repository > header {
+	justify-content: start;
+	min-height: 44px;
+	padding: 12px 24px;
+}
+.review-repository > header h2 {
+	font-size: 12px;
+	color: var(--fg-muted);
+	font-weight: 500;
+}
+.review-index-row {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	min-height: 44px;
+	padding: 10px 24px;
+	font-size: 13px;
+}
+.review-index-row:hover {
+	background: var(--surface);
+}
+.review-pr-number {
+	width: 64px;
+	flex-shrink: 0;
+	color: var(--fg-faint);
+	font-family: var(--font-mono);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+}
+.review-row-title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.review-row-count {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 11px;
+	color: var(--fg-muted);
+	font-variant-numeric: tabular-nums;
+}
+.review-row-count svg,
+.review-row-arrow {
+	width: 14px;
+	height: 14px;
+	flex-shrink: 0;
+}
+.review-row-arrow {
+	color: var(--fg-faint);
+	opacity: 0;
+}
+.review-index-row:is(:hover, :focus-visible) .review-row-arrow {
+	opacity: 1;
+}
+.review-index-footer {
+	padding: 10px 24px;
+	border-top: 0.5px solid var(--border);
+	color: var(--fg-faint);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+}
+.review-empty {
+	padding: 24px;
+	color: var(--fg-muted);
+	font-size: 13px;
+}
+.review-file {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-height: 40px;
+	width: 100%;
+	padding: 8px 12px;
+	border-radius: var(--radius-sm);
+	font-size: 13px;
+	text-align: start;
+}
+button.review-file:is(:hover, [aria-current="true"]) {
+	background: var(--surface);
+}
+.review-file > span:first-child {
+	flex: 1;
+	min-width: 0;
+}
+.review-mobile-files {
+	display: none;
+}
+@media (max-width: 767px) {
+	.review-mobile-files {
+		display: inline-flex;
+	}
+	.review-index-toolbar {
+		flex-wrap: wrap;
+		padding: 12px 16px;
+		gap: 12px;
+	}
+	.review-index-toolbar > div:last-child {
+		width: 100%;
+	}
+	.review-index-row {
+		gap: 8px;
+		padding-inline: 16px;
+	}
+	.review-pr-number {
+		width: 52px;
+	}
+	.review-repository > header,
+	.review-index-footer {
+		padding-inline: 16px;
+	}
+	.review-row-arrow {
+		display: none;
+	}
+}
+@media (pointer: coarse) {
+	.review-file {
+		min-height: 44px;
+	}
+}

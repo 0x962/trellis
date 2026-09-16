@@ -8,11 +8,12 @@ export function lineAnnotations(
 	threads: DiffThread[],
 	revisionId: string,
 	composer: DiffAnchor | null,
+	fullFile = false,
 ): DiffLineAnnotation[] {
 	const annotations: DiffLineAnnotation[] = threads
 		.filter((thread) => thread.path === file.name && thread.revisionId === revisionId)
 		.map((thread) => {
-			const shown = file.hunks.some((hunk) =>
+			const shown = fullFile || file.hunks.some((hunk) =>
 				thread.side === "old"
 					? thread.line >= hunk.deletionStart && thread.line < hunk.deletionStart + hunk.deletionCount
 					: thread.line >= hunk.additionStart && thread.line < hunk.additionStart + hunk.additionCount,

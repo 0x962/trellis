@@ -52,3 +52,25 @@ test("review files keep added, deleted, and renamed file metadata", () => {
 		{ name: "after.ts", prevName: "before.ts", type: "rename-pure" },
 	]);
 });
+
+test("review files use the diff header for binary files", () => {
+	const [file] = parseReviewFiles(
+		"diff --git a/assets/logo.png b/assets/logo.png\nnew file mode 100644\nindex 0000000..1234567\nBinary files /dev/null and b/assets/logo.png differ\n",
+	);
+	expect(file).toMatchObject({ name: "assets/logo.png", type: "new", hunks: [] });
+});
+
+test("review files decode quoted Git paths", () => {
+	const [file] = parseReviewFiles(
+		'diff --git "a/src/space\\tname.ts" "b/src/space\\tname.ts"\n--- "a/src/space\\tname.ts"\n+++ "b/src/space\\tname.ts"\n@@ -1 +1 @@\n-old\n+new\n',
+	);
+	expect(file).toMatchObject({ name: "src/space\tname.ts", prevName: "src/space\tname.ts" });
+});
+
+test("review files reject hunk counts that do not match their lines", () => {
+	expect(() =>
+		parseReviewFiles(
+			"diff --git a/a.ts b/a.ts\n--- a/a.ts\n+++ b/a.ts\n@@ -1,2 +1,2 @@\n-old\n+new\n",
+		),
+	).toThrow("hunk line counts");
+});

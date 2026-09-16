@@ -41,3 +41,24 @@ test("an empty file search has no folder rows and shows its message next to the 
 	expect(container.querySelector(".review-tree-mount")?.hasAttribute("hidden")).toBe(true);
 	expect(container.querySelector(".review-file-search")?.textContent).toContain("No files match.");
 });
+
+test("the changed-file tree mounts only visible rows", () => {
+	const files = Array.from({ length: 200 }, (_, index) => ({
+		path: `file-${String(index).padStart(3, "0")}.ts`,
+		type: "change",
+		additions: 1,
+		deletions: 0,
+	}));
+	const { container } = render(
+		<ReviewFiles
+			files={files}
+			selected="file-150.ts"
+			counts={{}}
+			onSelect={() => {}}
+			search=""
+			onSearch={() => {}}
+		/>,
+	);
+	expect(container.querySelectorAll('[role="treeitem"]').length).toBeLessThan(100);
+	expect(container.querySelector('[data-item-path="file-150.ts"]')).not.toBeNull();
+});

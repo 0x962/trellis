@@ -1,5 +1,6 @@
 @import "./review-tree.css";
 @import "./review-comments.css";
+@import "./review-index.css";
 
 :root {
 	--review-sheet-width: min(100vw, 32rem);
@@ -104,100 +105,6 @@
 .review-diff-toolbar {
 	justify-content: flex-end;
 }
-.review-code {
-	display: block;
-	height: 100%;
-	overflow: auto;
-	--diffs-font-family: var(--font-mono);
-	--diffs-font-size: 12px;
-	--diffs-line-height: 20px;
-	--diffs-addition-color-override: var(--success);
-	--diffs-deletion-color-override: var(--danger);
-	--diffs-selection-color-override: var(--accent);
-}
-.review-diff-file {
-	margin: 16px;
-	border: 0.5px solid var(--border);
-	border-radius: var(--radius-md);
-	overflow: hidden;
-}
-.review-diff-file > header {
-	position: sticky;
-	top: 0;
-	z-index: 1;
-	padding: 8px 12px;
-	border-bottom: 0.5px solid var(--border);
-	background: var(--surface);
-	font-family: var(--font-mono);
-	font-size: 12px;
-	font-weight: 500;
-}
-.review-diff-hunk-header {
-	padding: 4px 52px;
-	border-block: 0.5px solid var(--border);
-	background: var(--surface);
-	color: var(--fg-muted);
-	font-family: var(--font-mono);
-	font-size: 11px;
-}
-.review-diff-hunk:first-of-type .review-diff-hunk-header {
-	border-top: 0;
-}
-.review-diff-line {
-	display: grid;
-	grid-template-columns: 44px minmax(0, 1fr) 32px;
-	min-height: 24px;
-	align-items: stretch;
-	font-family: var(--font-mono);
-	font-size: 12px;
-	line-height: 20px;
-	cursor: pointer;
-}
-.review-diff-line[data-line-type="change-addition"] {
-	background: color-mix(in srgb, var(--success) 10%, transparent);
-}
-.review-diff-line[data-line-type="change-deletion"] {
-	background: color-mix(in srgb, var(--danger) 10%, transparent);
-}
-.review-diff-line:is(:hover, :focus-visible) {
-	background: var(--surface);
-	outline: 0;
-}
-.review-diff-line-empty {
-	cursor: default;
-	background: var(--surface);
-}
-.review-diff-number {
-	padding: 2px 8px;
-	border-right: 0.5px solid var(--border);
-	color: var(--fg-faint);
-	text-align: end;
-	font-variant-numeric: tabular-nums;
-	user-select: none;
-}
-.review-diff-line code {
-	min-width: 0;
-	padding: 2px 8px;
-	overflow-x: auto;
-	white-space: pre;
-}
-.review-diff-line > button {
-	opacity: 0;
-}
-.review-diff-line:is(:hover, :focus-within) > button {
-	opacity: 1;
-}
-.review-diff-split-row {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.review-diff-split-row > div:first-child {
-	border-right: 0.5px solid var(--border);
-}
-.review-diff-annotation {
-	padding: 8px 12px 8px 52px;
-	background: var(--surface);
-}
 .review-scroll {
 	flex: 1;
 	min-height: 0;
@@ -297,111 +204,6 @@ button.review-notice:hover {
 	color: var(--fg);
 	font-weight: 600;
 }
-.review-index-toolbar {
-	padding-inline: 24px;
-}
-.review-index-toolbar > div:last-child {
-	width: 260px;
-}
-.review-index-body {
-	flex: 1;
-	min-height: 0;
-	overflow: auto;
-	padding-block: 8px 20px;
-}
-.review-repository {
-	margin-bottom: 16px;
-}
-.review-repository > header {
-	justify-content: start;
-	min-height: 44px;
-	padding: 12px 24px;
-}
-.review-repository > header h2 {
-	font-size: 12px;
-	color: var(--fg-muted);
-	font-weight: 500;
-}
-.review-index-row {
-	display: flex;
-	align-items: center;
-	gap: 16px;
-	min-height: 44px;
-	padding: 10px 24px;
-	font-size: 13px;
-}
-.review-index-row:hover {
-	background: var(--surface);
-}
-.review-pr-number {
-	width: 64px;
-	flex-shrink: 0;
-	color: var(--fg-faint);
-	font-family: var(--font-mono);
-	font-size: 11px;
-	font-variant-numeric: tabular-nums;
-}
-.review-row-title {
-	flex: 1;
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-.review-row-count {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	font-size: 11px;
-	color: var(--fg-muted);
-	font-variant-numeric: tabular-nums;
-}
-.review-row-count svg,
-.review-row-arrow {
-	width: 14px;
-	height: 14px;
-	flex-shrink: 0;
-}
-.review-row-arrow {
-	color: var(--fg-faint);
-	opacity: 0;
-}
-.review-index-row:is(:hover, :focus-visible) .review-row-arrow {
-	opacity: 1;
-}
-.review-index-footer {
-	padding: 10px 24px;
-	border-top: 0.5px solid var(--border);
-	color: var(--fg-faint);
-	font-size: 11px;
-	font-variant-numeric: tabular-nums;
-}
-.review-empty {
-	padding: 24px;
-	color: var(--fg-muted);
-	font-size: 13px;
-}
-.review-file {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	min-height: 40px;
-	width: 100%;
-	padding: 8px 12px;
-	border-radius: var(--radius-sm);
-	font-size: 13px;
-	text-align: start;
-}
-button.review-file:is(:hover, [aria-current="true"]) {
-	background: var(--surface);
-}
-.review-file > span:first-child {
-	flex: 1;
-	min-width: 0;
-}
-.review-mobile-files {
-	display: none;
-}
 .review-page :focus-visible,
 .review-thread :focus-visible {
 	outline: 2px solid var(--accent);
@@ -435,48 +237,9 @@ button.review-file:is(:hover, [aria-current="true"]) {
 	.review-notice {
 		margin-inline: 16px;
 	}
-	.review-diff-toolbar {
-		padding-inline: 12px;
-	}
 	.review-stack {
 		padding-inline: 16px;
 	}
-	.review-mobile-files {
-		display: inline-flex;
-	}
-	.review-index-toolbar {
-		flex-wrap: wrap;
-		padding: 12px 16px;
-		gap: 12px;
-	}
-	.review-index-toolbar > div:last-child {
-		width: 100%;
-	}
-	.review-index-row {
-		gap: 8px;
-		padding-inline: 16px;
-	}
-	.review-pr-number {
-		width: 52px;
-	}
-	.review-repository > header,
-	.review-index-footer {
-		padding-inline: 16px;
-	}
-	.review-row-arrow {
-		display: none;
-	}
-}
-@media (pointer: coarse) {
-	.review-file {
-		min-height: 44px;
-	}
-}
-
-.review-diff-empty {
-	display: grid;
-	flex: 1;
-	place-items: center;
 }
 
 .review-workspace,

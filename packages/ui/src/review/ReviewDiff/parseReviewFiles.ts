@@ -24,8 +24,45 @@ export type ReviewFile = {
 	hunks: ReviewHunk[];
 };
 
+const escapeBytes: Record<string, number> = {
+	b: 8,
+	f: 12,
+	n: 10,
+	r: 13,
+	t: 9,
+	v: 11,
+};
+
+const decodeGitPath = (value: string) => {
+	if (!value.startsWith('"')) return value;
+	const bytes: number[] = [];
+	const quoted = value.slice(1, -1);
+	for (let index = 0; index < quoted.length; index += 1) {
+		const character = quoted[index]!;
+		if (character !== "\\") {
+			bytes.push(...new TextEncoder().encode(character));
+			continue;
+		}
+		const escape = quoted[++index]!;
+		if (/[0-7]/.test(escape)) {
+			const octal = `${escape}${quoted[index + 1] ?? ""}${quoted[index + 2] ?? ""}`.match(/^[0-7]{1,3}/)![0];
+			bytes.push(Number.parseInt(octal, 8));
+			index += octal.length - 1;
+			continue;
+		}
+		bytes.push(escapeBytes[escape] ?? escape.charCodeAt(0));
+	}
+	return new TextDecoder().decode(Uint8Array.from(bytes));
+};
+
+const headerPaths = (line: string) => {
+	const values = line.slice("diff --git ".length).match(/"(?:\\.|[^"])*"|\S+/g)!;
+	return values.map(decodeGitPath) as [string, string];
+};
+
 const pathFromHeader = (line: string | undefined, prefix: "a/" | "b/") => {
-	const value = line?.slice(4).split("\t", 1)[0];
+	const raw = line?.slice(4).split("\t", 1)[0];
+	const value = raw ? decodeGitPath(raw) : undefined;
 	if (!value || value === "/dev/null") return undefined;
 	return value.startsWith(prefix) ? value.slice(2) : value;
 };
@@ -36,6 +73,7 @@ const parseFile = (source: string): ReviewFile => {
 	const lines = source.split("\n");
 	const firstHunk = lines.findIndex((line) => line.startsWith("@@ "));
 	const headers = lines.slice(0, firstHunk === -1 ? lines.length : firstHunk);
+	const [headerOldPath, headerNewPath] = headerPaths(lines[0]!);
 	const oldPath = pathFromHeader(
 		headers.find((line) => line.startsWith("--- ")),
 		"a/",
@@ -44,15 +82,19 @@ const parseFile = (source: string): ReviewFile => {
 		headers.find((line) => line.startsWith("+++ ")),
 		"b/",
 	);
-	const renamedFrom = headers.find((line) => line.startsWith("rename from "))?.slice(12);
-	const renamedTo = headers.find((line) => line.startsWith("rename to "))?.slice(10);
+	const renamedFromValue = headers.find((line) => line.startsWith("rename from "))?.slice(12);
+	const renamedToValue = headers.find((line) => line.startsWith("rename to "))?.slice(10);
+	const renamedFrom = renamedFromValue ? decodeGitPath(renamedFromValue) : undefined;
+	const renamedTo = renamedToValue ? decodeGitPath(renamedToValue) : undefined;
 	const added = headers.some((line) => line.startsWith("new file mode"));
 	const deleted = headers.some((line) => line.startsWith("deleted file mode"));
 	const renamed = renamedFrom !== undefined || renamedTo !== undefined;
-	const name = renamedTo ?? newPath ?? oldPath!;
+	const fallbackOldPath = headerOldPath.startsWith("a/") ? headerOldPath.slice(2) : headerOldPath;
+	const fallbackNewPath = headerNewPath.startsWith("b/") ? headerNewPath.slice(2) : headerNewPath;
+	const name = renamedTo ?? newPath ?? oldPath ?? fallbackNewPath;
 	const file: ReviewFile = {
 		name,
-		...(added ? {} : { prevName: renamedFrom ?? oldPath ?? name }),
+		...(added ? {} : { prevName: renamedFrom ?? oldPath ?? fallbackOldPath }),
 		type: added
 			? "new"
 			: deleted
@@ -123,6 +165,16 @@ const parseFile = (source: string): ReviewFile => {
 				file.additionLines.push(value);
 			}
 		}
+		const deletionCount = hunk.hunkContent.reduce(
+			(total, content) => total + (content.type === "context" ? content.lines : content.deletions),
+			0,
+		);
+		const additionCount = hunk.hunkContent.reduce(
+			(total, content) => total + (content.type === "context" ? content.lines : content.additions),
+			0,
+		);
+		if (deletionCount !== hunk.deletionCount || additionCount !== hunk.additionCount)
+			throw new Error(`Invalid hunk line counts in ${name}`);
 		file.hunks.push(hunk);
 	}
 	return file;

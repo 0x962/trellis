@@ -27,12 +27,13 @@ export const chunkGroups = [
 	},
 ];
 
-const phosphorSpecialWeights: Record<string, readonly string[]> = {
+export const phosphorSpecialWeights: Record<string, readonly string[]> = {
 	Check: ["bold"],
 	CheckCircle: ["fill"],
 	CircleDashed: ["duotone"],
 	CircleNotch: ["bold"],
 	ExclamationMark: ["bold"],
+	LockSimple: ["fill"],
 	Minus: ["bold"],
 	Play: ["fill"],
 	Robot: ["bold"],

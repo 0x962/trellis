@@ -1,5 +1,6 @@
 import { type CSSProperties, type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "../../primitives/Input";
+import { useVirtualRows } from "../useVirtualRows";
 
 type FileRow = { path: string; type: string; additions: number; deletions: number };
 type Props = {
@@ -79,10 +80,17 @@ export function ReviewFiles({ files, selected, counts, onSelect, search, onSearc
 	useEffect(() => {
 		setExpanded((current) => new Set([...current, ...folderPaths(files)]));
 	}, [files]);
-	const rows = visibleRows(nodes, expanded, search);
+	const rows = useMemo(() => visibleRows(nodes, expanded, search), [nodes, expanded, search]);
 	const rowElements = useRef(new Map<string, HTMLElement>());
+	const treeRef = useRef<HTMLDivElement>(null);
 	const hasMatches = rows.some((row) => row.type === "file");
 	const focusPath = rows.some((row) => row.path === selected) ? selected : rows[0]?.path;
+	const sizes = useMemo(() => Array.from({ length: rows.length }, () => 28), [rows.length]);
+	const virtual = useVirtualRows(treeRef, sizes);
+	useEffect(() => {
+		const index = rows.findIndex((row) => row.path === selected);
+		if (index >= 0) virtual.scrollToIndex(index);
+	}, [rows, selected, virtual.scrollToIndex]);
 	const toggle = (path: string) =>
 		setExpanded((current) => {
 			const next = new Set(current);
@@ -90,7 +98,12 @@ export function ReviewFiles({ files, selected, counts, onSelect, search, onSearc
 			else next.add(path);
 			return next;
 		});
-	const focus = (path: string | undefined) => path && rowElements.current.get(path)?.focus();
+	const focus = (path: string | undefined) => {
+		if (!path) return;
+		const index = rows.findIndex((row) => row.path === path);
+		if (index < virtual.start || index >= virtual.end) virtual.scrollToIndex(index);
+		requestAnimationFrame(() => rowElements.current.get(path)?.focus());
+	};
 	const keyDown = (event: KeyboardEvent<HTMLElement>, row: TreeRow, index: number) => {
 		if (event.key === "ArrowDown") focus(rows[index + 1]?.path);
 		else if (event.key === "ArrowUp") focus(rows[index - 1]?.path);
@@ -124,8 +137,10 @@ export function ReviewFiles({ files, selected, counts, onSelect, search, onSearc
 				{search && !hasMatches && <p className="review-file-empty">No files match.</p>}
 			</div>
 			<div className="review-tree-mount" hidden={!hasMatches}>
-				<div className="review-native-tree" role="tree" aria-label="Changed files">
-					{rows.map((row, index) => {
+				<div className="review-native-tree" role="tree" aria-label="Changed files" ref={treeRef}>
+					<div aria-hidden="true" style={{ height: virtual.before }} />
+					{rows.slice(virtual.start, virtual.end).map((row, visibleIndex) => {
+						const index = virtual.start + visibleIndex;
 						const count = counts[row.path];
 						return (
 							<div
@@ -158,6 +173,7 @@ export function ReviewFiles({ files, selected, counts, onSelect, search, onSearc
 							</div>
 						);
 					})}
+					<div aria-hidden="true" style={{ height: virtual.after }} />
 				</div>
 			</div>
 		</div>

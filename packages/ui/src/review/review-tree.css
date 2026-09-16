@@ -5,7 +5,7 @@
 	max-width: 400px;
 	resize: horizontal;
 	overflow: hidden;
-	border-right: 0.5px solid var(--border);
+	border-right: var(--border-width-hairline) solid var(--border);
 	background: var(--bg);
 }
 .review-file-navigation {
@@ -16,14 +16,14 @@
 }
 .review-file-search {
 	flex-shrink: 0;
-	padding: 16px 12px 12px;
+	padding: calc(var(--spacing) * 4) calc(var(--spacing) * 3) calc(var(--spacing) * 3);
 }
 .review-file-search > .review-section-heading {
-	padding: 0 4px 12px;
+	padding: 0 var(--spacing) calc(var(--spacing) * 3);
 }
 .review-file-search h2 {
 	color: var(--fg-muted);
-	font-size: 12px;
+	font-size: var(--text-sm);
 	font-weight: 500;
 }
 .review-tree-mount {
@@ -38,17 +38,18 @@
 	flex: 1;
 	min-height: 0;
 	width: 100%;
-	padding: 0 4px 8px;
+	padding: 0 var(--spacing) calc(var(--spacing) * 2);
 	overflow: auto;
-	font-size: 12px;
+	font-size: var(--text-sm);
 }
 .review-tree-row {
 	display: grid;
-	grid-template-columns: 12px minmax(0, 1fr) auto;
+	grid-template-columns: calc(var(--spacing) * 3) minmax(0, 1fr) auto;
 	align-items: center;
-	gap: 4px;
+	gap: var(--spacing);
 	min-height: 28px;
-	padding: 4px 6px 4px calc(4px + (var(--review-tree-depth) - 1) * 14px);
+	padding: var(--spacing) calc(var(--spacing) * 2);
+	padding-inline-start: calc(var(--spacing) + (var(--review-tree-depth) - 1) * 4 * var(--spacing));
 	border-radius: var(--radius-sm);
 	cursor: pointer;
 }
@@ -80,19 +81,19 @@
 }
 .review-tree-count {
 	min-width: 18px;
-	padding-inline: 5px;
-	border: 0.5px solid var(--border);
+	padding-inline: var(--spacing);
+	border: var(--border-width-hairline) solid var(--border);
 	border-radius: var(--radius-round);
 	color: var(--fg-muted);
-	font-size: 11px;
-	line-height: 16px;
+	font-size: var(--text-xs);
+	line-height: var(--text-xs--line-height);
 	text-align: center;
 	font-variant-numeric: tabular-nums;
 }
 .review-file-empty {
-	padding: 12px 16px;
+	padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
 	color: var(--fg-muted);
-	font-size: 12px;
+	font-size: var(--text-sm);
 }
 .review-file-sheet {
 	height: 100%;

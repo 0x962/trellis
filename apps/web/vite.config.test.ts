@@ -1,6 +1,13 @@
 import { describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import type { PluginOption } from "vite";
-import config, { chunkGroups, createConfig, routerPluginOptions, stripPhosphorWeights } from "./vite.config";
+import config, {
+	chunkGroups,
+	createConfig,
+	phosphorSpecialWeights,
+	routerPluginOptions,
+	stripPhosphorWeights,
+} from "./vite.config";
 
 type Named = { name: string };
 
@@ -98,5 +105,30 @@ describe("vite.config", () => {
 		expect(check).not.toContain('"light"');
 		expect(check).not.toContain('"thin"');
 		expect(stripPhosphorWeights(source, "/src/Check.tsx")).toBe(source);
+	});
+
+	test("the production bundle keeps every non-regular icon weight used by the web and UI source", async () => {
+		const roots = [join(import.meta.dir, "src"), join(import.meta.dir, "../../packages/ui/src")];
+		const used = new Map<string, Set<string>>();
+		for (const root of roots) {
+			for await (const path of new Bun.Glob("**/*.tsx").scan({ cwd: root, absolute: true })) {
+				const source = await Bun.file(path).text();
+				const imported = new Set(
+					[...source.matchAll(/import\s*{([^}]+)}\s*from\s*["']@phosphor-icons\/react["']/g)].flatMap((match) =>
+						match[1]!.split(",").map((name) => name.trim().split(/\s+as\s+/).at(-1)!),
+					),
+				);
+				for (const match of source.matchAll(/<([A-Z]\w*)\b[^>]*\bweight="(bold|duotone|fill|light|thin)"/g)) {
+					if (!imported.has(match[1]!)) continue;
+					const weights = used.get(match[1]!) ?? new Set<string>();
+					weights.add(match[2]!);
+					used.set(match[1]!, weights);
+				}
+			}
+		}
+		for (const [icon, weights] of used) {
+			for (const weight of weights) expect(phosphorSpecialWeights[icon]).toContain(weight);
+		}
+		expect(phosphorSpecialWeights.LockSimple).toContain("fill");
 	});
 });
