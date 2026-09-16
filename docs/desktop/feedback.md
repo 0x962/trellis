@@ -59,6 +59,28 @@ Six documentation checks and both API input schemas pass. Two Astra agents revie
 The quit-and-reopen command passes shell syntax and disabled AppleScript checks. This configuration task does not execute a deployment or restart.
 Evidence: `/tmp/trellis-sre-config-proof.json` and `/tmp/trellis-sre-docs-check.log`.
 
+## Automatic repository access
+
+The Workbench manager could not launch WO-1 because its child project had an empty directory and `trustedDirectory: false`.
+The Workbench parent already specified `/Users/navidkhan/projects/workbench`.
+The lead applies Navid's automatic-trust authorization to live project settings and supplies the existing parent directory to that child.
+At 14:14 UTC on September 16, worker `01M2N91KAYSS4YAVG0SQN2YX2W` runs with a confirmed provider session and no error.
+The shared manager persona includes [the automatic repository access policy](../personas/automatic-repository-access.md).
+
+Project settings have no repository approval field. A database migration removes the saved approval flag without changing other settings.
+Agent and flow launches use the nearest configured ancestor directory when a subproject has no directory.
+An explicit child directory takes precedence. Other launch settings remain specific to the child project.
+Settings show the inheritance rule beside the directory field for subprojects.
+Native harness startup applies the repository trust and permission flags before execution.
+
+Nine focused browser tests pass. All 26 native trust and permission tests pass with 109 assertions.
+The affected backend passes 102 integration tests with 515 assertions. Five API schema tests and all nine workspace typechecks also pass.
+The separate flow-terminal browser fixture still expects SSE, although the terminal uses a WebSocket.
+Five other flow browser cases pass. The user checks the installed appearance.
+The existing Trellis SRE owns the coordinated production release after the source reaches tested main.
+Evidence: `/tmp/trellis-trust-live-proof.json`, `/tmp/trellis-trust-child-after.json`, and `/tmp/trellis-auto-trust-harness-checks.log`.
+The backend verification record is `/tmp/trellis-auto-trust-backend-validation.txt`.
+
 ## Project navigation
 
 The project name opens its manager terminal. Each project row uses the Trellis mark.

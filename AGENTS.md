@@ -24,6 +24,10 @@ Run `bun run desktop:install` from the `main` checkout. The command builds and v
 
 Preserve the manager conversation during prompt updates and deployment. Resume a stopped manager with `trellis agents start` and its existing persona and project. The `--new-session` flag resets the conversation and requires an explicit human reset. Keep the observed provider session ID before and after a resume to verify continuity.
 
+## Repository access
+
+Trellis automatically trusts configured project repositories and directories required by assigned work. Do not ask for a separate repository or directory trust approval. A subproject with no directory uses its nearest configured parent directory. Ask for a repository location only when neither project context nor an ancestor identifies it.
+
 ## Prose and comments
 
 - Write every sentence in ASD-STE100 Simplified Technical English (STE): one topic per sentence, active voice, simple present tense.
