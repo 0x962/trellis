@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync, statSync } from "node:fs";
+import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 
 // A test that builds real infrastructure belongs under `<workspace>/test/int/`.
@@ -37,8 +37,12 @@ const REGEX_PREFIX = /[([{,:;=!?&|+*%^~<>-]/;
 const REGEX_KEYWORD =
 	/\b(?:await|case|delete|do|else|in|instanceof|new|of|return|throw|typeof|void|yield)$/;
 const SOURCE_EXTENSIONS = new Set([".mjs", ".ts", ".tsx"]);
+const sourceForImports = (source: string) => {
+	if (!source.startsWith("#!")) return source;
+	return source.replace(/^#![^\n]*/, (shebang) => " ".repeat(shebang.length));
+};
 const scanImports = (file: string, source: string) =>
-	transpilers[extname(file) as keyof typeof transpilers].scanImports(source);
+	transpilers[extname(file) as keyof typeof transpilers].scanImports(sourceForImports(source));
 
 const sourceWithoutText = (source: string) => {
 	const code = source.split("");
@@ -154,38 +158,61 @@ const sourceFileFor = (from: string, specifier: string) => {
 	return tries.find((candidate) => statSync(candidate, { throwIfNoEntry: false })?.isFile());
 };
 
-const answers = new Map<string, boolean>();
+const createInfrastructureClassifier = () => {
+	type Inspection = { imports: ReturnType<typeof scanImports>; direct: boolean };
+	const answers = new Map<string, boolean>();
+	const inspections = new Map<string, Inspection>();
+	const scanCounts = new Map<string, number>();
+	const inspect = (file: string) => {
+		const cached = inspections.get(file);
+		if (cached) return cached;
+		const path = relative(root, file);
+		const source = readFileSync(file, "utf8");
+		const imports = scanImports(file, source);
+		const executable = sourceWithoutText(source);
+		const inspection = {
+			imports,
+			direct:
+				BUILDERS.includes(path) ||
+				STARTS_PROCESS.test(executable) ||
+				OPENS_DATABASE.test(executable) ||
+				imports.some(({ path }) => path === "node:child_process"),
+		};
+		inspections.set(file, inspection);
+		scanCounts.set(file, (scanCounts.get(file) ?? 0) + 1);
+		return inspection;
+	};
+	const visit = (file: string, visiting: Set<string>): boolean => {
+		const cached = answers.get(file);
+		if (cached !== undefined) return cached;
+		if (visiting.has(file)) return false;
+		visiting.add(file);
+		const { imports, direct } = inspect(file);
+		let answer = direct;
+		for (const { path: specifier } of imports) {
+			if (answer || !specifier.startsWith(".")) continue;
+			const imported = sourceFileFor(file, specifier);
+			if (imported && visit(imported, visiting)) answer = true;
+		}
+		visiting.delete(file);
+		return answer;
+	};
+	const buildsInfrastructure = (file: string) => {
+		const absolute = resolve(file);
+		const cached = answers.get(absolute);
+		if (cached !== undefined) return cached;
+		const answer = visit(absolute, new Set());
+		answers.set(absolute, answer);
+		return answer;
+	};
+	return {
+		buildsInfrastructure,
+		scanCountFor: (file: string) => scanCounts.get(resolve(file)) ?? 0,
+	};
+};
 
 // True when this file, or anything it imports, builds real infrastructure.
-const buildsInfrastructure = (file: string, visiting: Set<string> = new Set()): boolean => {
-	const cached = answers.get(file);
-	if (cached !== undefined) return cached;
-	if (visiting.has(file)) return false;
-	visiting.add(file);
-
-	const path = relative(root, file);
-	if (BUILDERS.includes(path)) return true;
-
-	const source = readFileSync(file, "utf8");
-	const imports = scanImports(file, source);
-	const executable = sourceWithoutText(source);
-	if (STARTS_PROCESS.test(executable) || OPENS_DATABASE.test(executable)) return true;
-	if (imports.some(({ path }) => path === "node:child_process")) return true;
-
-	let answer = false;
-	for (const { path: specifier } of imports) {
-		if (!specifier.startsWith(".")) continue;
-		const imported = sourceFileFor(file, specifier);
-		if (imported && buildsInfrastructure(imported, visiting)) {
-			answer = true;
-			break;
-		}
-	}
-	// Only a file whose answer needed no unfinished import is safe to keep. A
-	// file inside a cycle gets the answer of the walk that started the cycle.
-	if (visiting.size === 1) answers.set(file, answer);
-	return answer;
-};
+const { buildsInfrastructure } = createInfrastructureClassifier();
 
 // The repository rule is not one of the test files that it classifies.
 const testFiles = [...new Bun.Glob("**/*.test.{ts,tsx}").scanSync({ cwd: root, absolute: true })].filter(
@@ -216,6 +243,31 @@ describe("test layout", () => {
 	test("the import scan parses TypeScript generic arrow functions", () => {
 		const source = 'import { value } from "./value.ts"; const run = <T>(input: T) => input;';
 		expect(scanImports("fixture.ts", source).map(({ path }) => path)).toEqual(["./value.ts"]);
+	});
+
+	test("the import scan accepts source shebangs", () => {
+		const bun = '#!/usr/bin/env bun\nimport { value } from "./value.ts";';
+		const node = "#!/usr/bin/env node\ncreateServer();";
+		expect(scanImports("fixture.ts", bun).map(({ path }) => path)).toEqual(["./value.ts"]);
+		expect(scanImports("fixture.mjs", node)).toEqual([]);
+		expect(STARTS_PROCESS.test(sourceWithoutText(node))).toBe(true);
+	});
+
+	test("the classifier scans one shared helper once", () => {
+		const fixture = join(process.env.TRELLIS_TEST_ROOT!, "layout-cache");
+		mkdirSync(fixture);
+		const shared = join(fixture, "shared.ts");
+		writeFileSync(shared, "export const value = 1;\n");
+		for (const name of ["first", "second"]) {
+			writeFileSync(
+				join(fixture, `${name}.ts`),
+				'import { value } from "./shared.ts"; void value;\n',
+			);
+		}
+		const classifier = createInfrastructureClassifier();
+		expect(classifier.buildsInfrastructure(join(fixture, "first.ts"))).toBe(false);
+		expect(classifier.buildsInfrastructure(join(fixture, "second.ts"))).toBe(false);
+		expect(classifier.scanCountFor(shared)).toBe(1);
 	});
 
 	test("the source resolver ignores asset imports", () => {
