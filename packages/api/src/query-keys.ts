@@ -245,8 +245,13 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "gh.status":
 				enqueue([family("system", "gh")]);
 				return;
+			// A session detail carries the state of its run, so a run change
+			// refetches the sessions with the runs.
 			case "agent-runs.changed":
-				enqueue([family("agentRuns")]);
+				enqueue([family("agentRuns"), family("sessions")]);
+				return;
+			case "sessions.changed":
+				enqueue([family("sessions")]);
 				return;
 			case "personas.changed":
 				enqueue([family("personas", "list")]);

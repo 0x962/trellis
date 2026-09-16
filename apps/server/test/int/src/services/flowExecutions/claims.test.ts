@@ -7,6 +7,7 @@ import * as flows from "../../../../../src/services/flows/flows.ts";
 import { save } from "../../../../../src/services/flows/save.ts";
 import { seedActors, seedChild, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
+import { workingSession } from "../../../../helpers/controllerSession.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
@@ -169,7 +170,7 @@ test("a host restart observes a claimed attempt without another launch", async (
 	expect(launches).toBe(0);
 	expect(await h.rows(sql`SELECT * FROM agent_execution_attempts`)).toHaveLength(1);
 });
-test("ordinary starts and flow claims share the project capacity lock", async () => {
+test("ordinary starts and flow claims preserve exclusive persona ownership", async () => {
 	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
 	await h.rows(
 		sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{concurrency}','1') WHERE id=${project}`,
@@ -299,7 +300,9 @@ test("a flow can claim capacity held by an idle worker on another ticket", async
 	const execution = await h.run((ctx, tx) => start(ctx, tx, input()));
 	const { claimNext } = await import("../../../../../src/services/flowExecutions/claimNext.ts");
 	const { controllerSession } = await import("../../../../helpers/controllerSession.ts");
-	expect(await h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id }))).toBeNull();
+	expect(
+		await h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id, sessions: [workingSession("idle-attempt")] })),
+	).toBeNull();
 	const sessions = [controllerSession("idle-attempt")];
 	const claim = await h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id, sessions }));
 	expect(claim?.attempt.id).toBeTruthy();

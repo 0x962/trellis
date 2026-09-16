@@ -10,7 +10,7 @@ import { dispatch } from "../../../../../src/services/controller/dispatch.ts";
 import { handle } from "../../../../../src/services/controller/work.ts";
 import { seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
-import { controllerSession } from "../../../../helpers/controllerSession.ts";
+import { controllerSession, workingSession } from "../../../../helpers/controllerSession.ts";
 import { testCtx } from "../../../../helpers/ctx.ts";
 import { type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
@@ -139,9 +139,10 @@ test("a heartbeat reports unused capacity from tickets and assignments added aft
 		await seedTicket(tx, { projectId, rootId: projectId, statusId });
 		return projectId;
 	});
-	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,created_at,updated_at)
-		SELECT 'worker','Builder','Builder','builder','Build',project_id,project_path,${NOW},${NOW}
+	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,terminal_id,created_at,updated_at)
+		SELECT 'worker','Builder','Builder','builder','Build',project_id,project_path,'worker-attempt',${NOW},${NOW}
 		FROM agent_runs WHERE id='manager'`);
+	workers = [workingSession("worker-attempt")];
 	await send();
 	const message = Buffer.from(deliveries[0]!.data, "base64").toString();
 	const payload = JSON.parse(message.slice(message.indexOf("{"), message.lastIndexOf("}") + 1));

@@ -7,7 +7,7 @@ import type { WorkOutcome } from "../../../../../src/services/controller/types.t
 import { handle } from "../../../../../src/services/controller/work.ts";
 import { seedActors, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
-import { controllerSession } from "../../../../helpers/controllerSession.ts";
+import { controllerSession, workingSession } from "../../../../helpers/controllerSession.ts";
 import { type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
@@ -148,19 +148,26 @@ test("a human reply received before the wait is recorded still wakes its questio
 
 test("a due wait wakes the manager at full worker capacity but cannot exceed its worker limit", async () => {
 	await wait({ type: "time", at: secondsAfter(1).toISOString() });
-	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,created_at,updated_at)
-		VALUES ('busy','Builder','Builder','builder','Build',${projectId},'WAIT','native',${NOW},${NOW})`);
-	await gather(1);
-	const delivery = (await take(1))!;
+	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,created_at,updated_at)
+		VALUES ('busy','Builder','Builder','builder','Build',${projectId},'WAIT','native','busy-attempt',${NOW},${NOW})`);
+	const observed = [...sessions, workingSession("busy-attempt")];
+	await h.run((ctx, tx) => collect(ctx, tx, { sessions: observed }), { now: secondsAfter(1) });
+	const delivery = (await h.run((ctx, tx) => claim(ctx, tx, { sessions: observed }), { now: secondsAfter(1) }))!;
 	expect(delivery.nextActions).toHaveLength(1);
 	await expect(
 		h.run(
 			(ctx, tx) =>
-				reserve(ctx, tx, {
-					personaId: "builder",
-					ticket: ticketId,
-					requestId: delivery.nextActions[0]!.assignmentRequestId,
-				}),
+				reserve(
+					ctx,
+					tx,
+					{
+						personaId: "builder",
+						ticket: ticketId,
+						requestId: delivery.nextActions[0]!.assignmentRequestId,
+					},
+					[],
+					{ sessions: [workingSession("busy-attempt")] },
+				),
 			{ now: secondsAfter(1) },
 		),
 	).rejects.toThrow();
