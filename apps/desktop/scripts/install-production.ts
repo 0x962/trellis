@@ -4,6 +4,8 @@ import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs, promisify } from "node:util";
 import { installApplication } from "../src/installApplication/installApplication.ts";
+import { withInstallationLock } from "../src/installationLock/installationLock.ts";
+import { assertInstalledAncestry } from "../src/installedAncestry/installedAncestry.ts";
 import { readBundleManifest, writeBundleManifest } from "../src/resourceBundle/resourceBundle.ts";
 
 const { values } = parseArgs({ options: { prepare: { type: "string" } } });
@@ -13,10 +15,16 @@ const { stdout: status } = await execute("/usr/bin/git", ["status", "--porcelain
 if (status.trim()) throw new Error("Commit all source changes before the production build.");
 const { stdout } = await execute("/usr/bin/git", ["rev-parse", "HEAD"], { cwd: repo });
 const commit = stdout.trim();
+const installed = join(homedir(), "Applications/Trellis.app");
+const destination = values.prepare ? resolve(values.prepare) : installed;
+const assertAncestry = async () => {
+	await assertInstalledAncestry(repo, commit, installed);
+	if (destination !== installed) await assertInstalledAncestry(repo, commit, destination);
+};
+await assertAncestry();
 const build = await mkdtemp(join(tmpdir(), "trellis-production-"));
 const source = join(build, "source");
 const output = join(build, "package");
-const destination = values.prepare ? resolve(values.prepare) : join(homedir(), "Applications/Trellis.app");
 const cache = join(homedir(), "Library/Caches/Trellis");
 const env = {
 	...process.env,
@@ -60,7 +68,13 @@ await run(
 const application = join(output, process.arch === "arm64" ? "mac-arm64" : "mac", "Trellis.app");
 await run([process.execPath, "apps/desktop/scripts/sign-preview.ts", application]);
 await run([process.execPath, "apps/desktop/scripts/smoke.ts", join(application, "Contents/Resources/host")]);
-await installApplication(application, destination);
+await mkdir(join(homedir(), "Applications"), { recursive: true });
+await withInstallationLock(join(homedir(), "Applications/.trellis-install.lock"), async () => {
+	await installApplication(application, destination, async (staged) => {
+		await execute("/usr/bin/codesign", ["--verify", "--deep", "--strict", staged]);
+		await assertAncestry();
+	});
+});
 await run(["/usr/bin/codesign", "--verify", "--deep", "--strict", destination]);
 console.log(
 	JSON.stringify(
