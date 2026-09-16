@@ -23,8 +23,8 @@ import { createProcessHandle } from "./processHandle.ts";
 import { registerNativeDelivery } from "./registerNativeDelivery.ts";
 import type { SessionRecord as Record } from "./sessionRecord.ts";
 import { sessionResources } from "./sessionResources.ts";
+import { stopAttempt } from "./stopAttempt.ts";
 import { watchRecoveredSession } from "./watchRecoveredSession.ts";
-
 export class SessionStore {
 	private readonly records = new Map<string, Record>();
 	private readonly exits = new ProcessExitWatcher();
@@ -51,7 +51,7 @@ export class SessionStore {
 				activity: null,
 				inputPending: false,
 				...sessionResources(home, saved.session.id),
-				stopped: Promise.resolve(),
+				stopped: Promise.resolve(undefined),
 				resolveStop: () => {},
 			};
 			record.activity = record.observations.activity;
@@ -128,10 +128,6 @@ export class SessionStore {
 				});
 			return this.inspect(spec.id);
 		}
-		let resolveStop!: () => void;
-		const stopped = new Promise<void>((resolve) => {
-			resolveStop = resolve;
-		});
 		const session: RuntimeSession = {
 			id: spec.id,
 			daemonId: this.daemonId,
@@ -156,21 +152,22 @@ export class SessionStore {
 			activity: null,
 			inputPending: false,
 			...sessionResources(this.home, spec.id),
-			stopped,
-			resolveStop,
+			...stopAttempt(),
 		};
 		this.records.set(spec.id, record);
 		this.save(record);
+		let cleanupError: string | null = null;
 		const exit = (code: number | null, error: string | null = session.error) => {
 			clearTimeout(record.timer);
 			session.status = "exited";
 			session.exitCode = code;
 			session.error =
-				error ?? (code !== null && code !== 0 ? `Process ${spec.command} exited with code ${code}` : null);
+				(error === cleanupError ? null : error) ??
+				(code !== null && code !== 0 ? `Process ${spec.command} exited with code ${code}` : null);
 			session.endedAt = new Date().toISOString();
 			record.process = undefined;
 			this.save(record);
-			resolveStop();
+			record.resolveStop();
 		};
 		try {
 			record.process = createProcessHandle(
@@ -182,10 +179,11 @@ export class SessionStore {
 				(error) => {
 					clearTimeout(record.timer);
 					session.status = "unknown";
-					session.error = `Process cleanup is unconfirmed: ${error.message}`;
-					record.process = undefined;
+					cleanupError = `Process cleanup is unconfirmed: ${error.message}`;
+					session.error = cleanupError;
 					this.save(record);
-					resolveStop();
+					record.resolveStop(error);
+					Object.assign(record, stopAttempt());
 				},
 				(error) => {
 					session.error = `Input delivery is unconfirmed: ${error.message}`;
@@ -265,7 +263,7 @@ export class SessionStore {
 				activity: null,
 				inputPending: false,
 				...sessionResources(this.home, id),
-				stopped: Promise.resolve(),
+				stopped: Promise.resolve(undefined),
 				resolveStop: () => {},
 			};
 			this.records.set(id, record);
@@ -273,8 +271,10 @@ export class SessionStore {
 		}
 		const record = this.get(id);
 		if (record.process) {
+			const stopped = record.stopped;
 			record.process.stop();
-			await record.stopped;
+			const error = await stopped;
+			if (error) throw error;
 		}
 		return this.inspect(id);
 	}

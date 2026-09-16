@@ -1,0 +1,1 @@
+export { terminalOutput } from "./terminalOutput";

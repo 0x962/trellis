@@ -24,15 +24,21 @@ The host keeps its selected port across restarts. This preserves the renderer or
 
 Close a window to detach its view. Quit Trellis to close the desktop process. Both actions keep the host and agents active. Use the Help menu to reconnect to the host or open its logs.
 
-The packaged app requests permission to enable its background service. `SMAppService` registers the bundled LaunchAgent. macOS starts it at login and restarts it after a crash. The Trellis menu shows its status and opens Login Items when approval is required. The separate Open Trellis at login option controls the desktop window.
+Use **Trellis > Restart** to restart the host and desktop from the installed package. Compatible agents keep their processes and terminal output. If the packaged app detects an incompatible or unknown runtime, it blocks the restart and shows the reason.
+
+A local progress window shows a progress bar, numbered steps, and estimated time remaining. Estimates use the durations of previous runs. The step count continues across the desktop relaunch. The window fades out when the main window opens.
+
+The packaged app enables its background service at startup. `SMAppService` registers the bundled LaunchAgent. macOS starts it at login and restarts it after a crash. If macOS requires approval, Trellis opens Login Items. The separate Open Trellis at login option controls the desktop window.
 
 Stop local work and background service pauses local dispatch, stops known local processes, and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Resume local work allows new local launches. Each project keeps its saved dispatch setting.
 
-The helper reads the user login shell environment with a ten-second limit. It places the bundled executable directory first in PATH. Shell errors omit captured output because startup scripts can expose secrets.
+The host starts HTTP before it resolves the user login environment. External tools await the cached environment in their server thread. The shell has a ten-second limit. The bundled executable directory comes first in PATH. Shell errors omit captured output because startup scripts can expose secrets.
 
 The preload bridge exposes only `trellisDesktop.chooseDirectory()`. The renderer uses a sandbox and context isolation. The desktop session adds the host token only to requests from its window to its exact host origin. The token does not enter the renderer.
 
 `trellis://open/t/KEY-1` opens a ticket. External HTTP and HTTPS links open in the system browser.
+
+Use **Trellis > Restart** to load the installed package. A changed package stops active agent processes and resumes their saved provider conversations. An unchanged package keeps those processes. An agent without a confirmed provider session blocks the update and shows the reason.
 
 ## Package and verification
 
@@ -74,13 +80,43 @@ TRELLIS_DESKTOP_PREVIEW_APP="$PWD/apps/desktop/release/mac-arm64/Trellis.app" bu
 
 The test copies the app and uses a unique service label. It redirects the production data path to a scratch directory before any directory creation. It disables protocol registration and answers the fixture's native dialogs. It verifies new data and an existing project in a selected directory. It checks the native title bar and removes the temporary service.
 
-## Manual app replacement
+## Production install
 
-Use the Trellis menu to open Update status. Before you replace the app, use Stop local work and background service. Replace `Trellis.app`, reopen it, and enable its service. Resume local work when you want to permit new launches. Each project keeps its saved dispatch setting.
+Commit the source changes. Run this command from the repository root:
 
-The app retains earlier releases. A live execution service with a different protocol blocks the new host. The previous pinned host remains available to stop local work. An unknown service state also blocks activation.
+```sh
+bun run desktop:install
+```
+
+The command rejects uncommitted changes. It exports one commit into a fresh directory and installs the frozen dependency lockfile. It builds the renderer, runtime, harnesses, desktop, and complete host package. It records the commit in `build.json`. Electron downloads use `~/Library/Caches/Trellis` across builds.
+
+The command signs the local package and runs the packaged smoke checks. It copies the app with `ditto` into a temporary directory beside `~/Applications/Trellis.app` and verifies that copy. It publishes the copy through an atomic directory exchange when an installed app exists. Deleted source files cannot remain in the installed bundle. The running app and its services stay open during the copy.
+
+Use this command for each production install. Keep the installed bundle in place until the verified copy is complete. Run service commands through `~/Applications/Trellis.app/Contents/MacOS/TrellisHost`. The helper requires the LaunchAgent plist inside its app bundle.
+
+Restart Trellis to activate the installed build. For a changed package, Trellis saves the confirmed active agent sessions before it stops the previous runtime. After the new host starts, Trellis resumes those provider sessions in their saved workspaces. Agents that you stopped stay stopped. An unchanged package keeps the existing processes.
+
+Trellis stores pending resumes in `restart-plan.json` inside the selected data directory. A failed activation preserves this plan for the next app launch. Each saved attempt has one resume identity, which prevents duplicate processes and restart messages. A later package must complete any partial resume before it stops another runtime.
+
+A custom agent or an agent without a confirmed provider session blocks the update before runtime shutdown. Stop that agent, or wait for its provider session, then reopen Trellis.
+
+To prepare a verified candidate without a production install:
+
+```sh
+bun run desktop:install --prepare /tmp/trellis-preview/Trellis.app
+```
+
+This command uses the local ad-hoc signature described above. It requires Node, npm, the macOS developer tools, and network access for dependencies. A failed build leaves its temporary directory for inspection.
+
+The app retains earlier releases. The release identity includes the desktop launcher, preload bridge, service launcher, native helper, and LaunchAgent configuration. An unknown service state blocks activation.
 
 Runtime files stay outside the host database directory, so a database export does not include application binaries. A package replacement does not remove the files of an active runtime. The integration test removes the source app, retains a live PTY, starts another child with the pinned native modules, and restarts the host.
+
+### Fresh manager conversation
+
+Save your prompt changes. Open the project's Manager page. Select **Restart with new context** beside the process control. Confirm the restart. The manager starts a fresh conversation with the saved persona and project instructions. Existing workers keep their processes, and the manager keeps its workspace.
+
+Use **Resume manager** to continue the current conversation after a manual stop. A desktop app restart also preserves the current conversation.
 
 ## Release limits
 

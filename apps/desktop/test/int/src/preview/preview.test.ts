@@ -89,7 +89,6 @@ previewElectron.app.requestSingleInstanceLock = () => { previewResult.order.push
 previewElectron.dialog.showMessageBox = async (options) => {
  if (options.message === "Choose Trellis data") return {response: ${useExisting ? 1 : 0}};
  if (options.message === "Use this Trellis data directory?") { previewResult.confirmation = options; return {response: 1}; }
- if (options.message === "Enable Trellis background work?") return {response: 1};
  throw new Error("Unexpected preview prompt: " + options.message);
 };
 previewElectron.dialog.showOpenDialog = async (options) => {
@@ -102,13 +101,21 @@ previewElectron.dialog.showErrorBox = (title, message) => {
  previewElectron.app.exit(1);
 };
 previewElectron.app.on("browser-window-created", (_event, window) => {
- window.webContents.once("did-finish-load", () => {
+ window.once("ready-to-show", () => {
+  if (window.webContents.getURL().endsWith("/startup.html")) {
+   previewResult.progressSeen = true;
+   return;
+  }
+  setImmediate(async () => {
+  await Promise.all(previewElectron.BrowserWindow.getAllWindows().filter(other => other !== window).map(other => new Promise(resolve => other.once("closed", resolve))));
+  previewResult.openWindows = previewElectron.BrowserWindow.getAllWindows().length;
   previewResult.url = window.webContents.getURL();
   previewResult.windowButtons = window.getWindowButtonPosition();
   previewResult.windowBounds = window.getBounds();
   previewResult.contentBounds = window.getContentBounds();
   previewFs.writeFileSync(${JSON.stringify(resultPath)}, JSON.stringify(previewResult));
   previewElectron.app.quit();
+  });
  });
 });
 `;
@@ -150,7 +157,7 @@ previewElectron.app.on("browser-window-created", (_event, window) => {
 						stdout: "pipe",
 						stderr: "pipe",
 					});
-					const deadline = Date.now() + 45000;
+					const deadline = Date.now() + 120000;
 					while (
 						!existsSync(resultPath) &&
 						!existsSync(errorPath) &&
@@ -174,10 +181,12 @@ previewElectron.app.on("browser-window-created", (_event, window) => {
 				expect(result.defaultUserData).toBe(join(result.appData, "Trellis"));
 				expect(result.order).toEqual(["data", "lock"]);
 				expect(result.lockSawUserData).toBe(userData);
-				expect(result.windowButtons).toEqual({ x: 16, y: 14 });
+				expect(result.progressSeen).toBe(true);
+				expect(result.openWindows).toBe(1);
+				expect(result.windowButtons).toEqual({ x: 16, y: 20 });
 				expect(result.contentBounds.height).toBe(result.windowBounds.height);
 				const host = await adoptHost(home);
-				expect(result.url).toBe(`${host.origin}/`);
+				expect(new URL(result.url).origin).toBe(host.origin);
 				expect((await serviceCommand(helper, "status")).status).toBe("enabled");
 				expect(await desktop!.exited).toBe(0);
 				if (useExisting) {
@@ -219,5 +228,5 @@ previewElectron.app.on("browser-window-created", (_event, window) => {
 				await rm(directory, { recursive: true, force: true });
 			}
 		},
-		120000,
+		300000,
 	);

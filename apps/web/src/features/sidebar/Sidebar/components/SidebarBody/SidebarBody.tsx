@@ -19,7 +19,7 @@ import { ProjectTree } from "../../../ProjectTree";
 import { ConnectionPanel } from "../ConnectionPanel";
 
 const rowClass =
-	"flex h-7 items-center rounded-md pr-1 pl-2 text-fg-muted transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11";
+	"sidebar-row pl-2 text-sm text-fg-muted hover:bg-elevated hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
 type NavTarget = "/reviews" | "/needs-you" | "/search" | "/all" | "/ai/personas" | "/ai/flows";
 
@@ -82,7 +82,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	return (
 		<>
 			{onCollapse && (
-				<div className="mb-1 flex h-13 shrink-0 items-center">
+				<div data-sidebar-toolbar="" className="mb-1 flex h-13 shrink-0 items-center">
 					<Tooltip
 						side="right"
 						content={
@@ -124,13 +124,15 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 			<div hidden={collapsed} className="mt-3 min-h-0 flex-1 overflow-y-auto pb-2">
 				<div className="sidebar-section">
 					<h2>Projects</h2>
-					<IconButton
-						size="xs"
-						className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
-						label="New project"
-						icon={<Plus />}
-						onClick={() => navigate({ to: "/setup", search: { step: "project" } })}
-					/>
+					<Tooltip content="New project">
+						<IconButton
+							size="xs"
+							className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
+							label="New project"
+							icon={<Plus />}
+							onClick={() => navigate({ to: "/setup", search: { step: "project" } })}
+						/>
+					</Tooltip>
 				</div>
 				<ProjectTree />
 				<ArchivedProjects />

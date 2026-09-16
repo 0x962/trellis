@@ -1,3 +1,5 @@
+import { executionEnvironment } from "../../executionEnvironment";
+
 const read = async (stream: ReadableStream<Uint8Array>, limit: number) => {
 	const chunks: Uint8Array[] = [];
 	let size = 0;
@@ -10,6 +12,7 @@ const read = async (stream: ReadableStream<Uint8Array>, limit: number) => {
 
 export const git = async (workspace: string, args: string[], options = { limit: 16777216, truncate: false }) => {
 	const child = Bun.spawn(["git", "-c", "core.fsmonitor=false", "-C", workspace, ...args], {
+		env: await executionEnvironment(),
 		stdout: "pipe",
 		stderr: "pipe",
 	});

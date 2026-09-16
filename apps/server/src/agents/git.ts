@@ -1,3 +1,5 @@
+import { executionEnvironment } from "../executionEnvironment";
+
 // Reading a branch out of a checkout on this machine.
 
 // What a checkout says about one branch name. `unreadable` means git gave
@@ -29,9 +31,10 @@ const namesBranch = (refname: string, branch: string) => {
 // prefixes another name counts as absent.
 export const branchState = async (path: string, branch: string): Promise<BranchState> => {
 	const args = ["-C", path, "for-each-ref", "--format=%(refname)", `refs/heads/${branch}`, `refs/remotes/*/${branch}`];
+	const env = await executionEnvironment();
 	let proc: ReturnType<typeof Bun.spawn>;
 	try {
-		proc = Bun.spawn(["git", ...args], { env: process.env, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+		proc = Bun.spawn(["git", ...args], { env, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
 	} catch {
 		return "unreadable";
 	}

@@ -8,20 +8,7 @@ export const requireService = async (helper: string, home: string) => {
 	ensureHostToken(home);
 	assertManagedHome(home);
 	let state = await serviceCommand(helper, "status");
-	if (serviceNeedsRegistration(state.status)) {
-		const { response } = await dialog.showMessageBox({
-			type: "info",
-			message: "Enable Trellis background work?",
-			detail:
-				"The local host starts at login and keeps agents active after you close Trellis. macOS restarts the host after a crash. Use the Trellis menu to stop local work and disable the service.",
-			buttons: ["Cancel", "Enable background work"],
-			defaultId: 1,
-			cancelId: 0,
-		});
-		if (response !== 1)
-			throw new Error("Trellis needs its local background service. Enable it when you reopen the app.");
-		state = await serviceCommand(helper, "register");
-	}
+	if (serviceNeedsRegistration(state.status)) state = await serviceCommand(helper, "register");
 	if (state.status === "requiresApproval") {
 		await dialog.showMessageBox({
 			type: "info",

@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { sql } from "drizzle-orm";
+import { systemContext } from "../../../../src/context.ts";
 import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
 
@@ -89,6 +90,18 @@ test("native agents use an isolated Git worktree and retain output after stop", 
 		await Bun.sleep(20);
 	}
 	expect(output).toContain("native-probe");
+	const comment = await t.client.comments.create({ ticket: ticket.identifier, body: "@Fixture verify the ticket." });
+	await t.transport.call("controller.dispatch", systemContext(), {});
+	expect((await t.client.comments.thread({ id: comment.id })).root.notifications).toEqual([
+		{ runId: run.id, personaName: "Fixture", state: "sent", error: null },
+	]);
+	let notified = "";
+	for (let i = 0; i < 50 && !notified.includes(`trellis thread show ${comment.id}`); i++) {
+		notified = (await t.client.agentRuns.output({ id: run.id })).text;
+		await Bun.sleep(20);
+	}
+	expect(notified).toContain(`trellis thread show ${comment.id}`);
+
 	const bytes = await t.client.agentRuns.terminalOutput({ id: run.id, offset: 0 });
 	expect(Buffer.from(bytes.data, "base64").toString()).toContain("native-probe");
 	expect((await t.client.agentRuns.terminalOutput({ id: run.id, offset: bytes.nextOffset })).startOffset).toBe(

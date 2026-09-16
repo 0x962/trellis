@@ -22,6 +22,6 @@ export type SessionRecord = {
 	completion: CompletionStore;
 	process?: ProcessHandle;
 	timer?: ReturnType<typeof setTimeout>;
-	stopped: Promise<void>;
-	resolveStop: () => void;
+	stopped: Promise<Error | undefined>;
+	resolveStop: (error?: Error) => void;
 };

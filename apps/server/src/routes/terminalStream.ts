@@ -1,6 +1,6 @@
 import type { RuntimeOutputEvent } from "@trellis/runtime-protocol";
 import type { Context } from "hono";
-import { nativeClient } from "../agents/native/connection.ts";
+import { ensureNativeRuntime } from "../agents/native/connection.ts";
 import type { Config } from "../config.ts";
 import type { ServiceTransport } from "../db/transport.ts";
 import { invalidInput } from "../errors.ts";
@@ -31,7 +31,7 @@ export const terminalStreamRoute = (config: Config, transport: ServiceTransport)
 			expectedSessionId: c.req.query("sessionId"),
 		},
 	)) as { terminalId: string; sessionId: string | null };
-	const client = nativeClient(config.home);
+	const client = await ensureNativeRuntime(config.home);
 	if (!(await client.hello()).capabilities?.includes("terminal-stream"))
 		throw invalidInput("runtime", "The execution service requires an update before it can stream this terminal.");
 	const abort = new AbortController();

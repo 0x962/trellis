@@ -36,6 +36,7 @@ const tables = [
 	"statuses",
 	"tickets",
 	"comments",
+	"comment_deliveries",
 	"attachments",
 	"pull_requests",
 	"ticket_pull_requests",

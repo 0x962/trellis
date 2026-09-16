@@ -18,21 +18,19 @@ describe("Avatar", () => {
 		expect(full.querySelector("svg")).toBeNull();
 	});
 
-	test("an agent avatar is a circle of color that its name picks", () => {
+	test("a persona has a stable shape and color", () => {
 		render(
 			<>
-				<Avatar kind="agent" name="claude-code" />
-				<Avatar kind="agent" name="codex" />
+				<Avatar kind="agent" name="Builder" />
+				<Avatar kind="agent" name="builder" />
+				<Avatar kind="agent" name="Trellis" />
 			</>,
 		);
-		const avatar = screen.getByLabelText("claude-code · agent");
-		expect(avatar.textContent).toBe("");
-		expect(avatar.querySelector("svg")).toBeNull();
-		expectClasses(avatar, "size-4.5 rounded-round");
-		// The name picks the picture, so one name always draws the same one
-		// and two names draw two.
-		const image = avatar.getAttribute("style")!;
-		expect(image).toContain("radial-gradient");
-		expect(screen.getByLabelText("codex · agent").getAttribute("style")).not.toBe(image);
+		const builder = screen.getByLabelText("Builder · agent");
+		const trellis = screen.getByLabelText("Trellis · agent");
+		expect(builder.querySelector("svg") !== null).toBe(true);
+		expect(builder.innerHTML).toBe(screen.getByLabelText("builder · agent").innerHTML);
+		expect(builder.innerHTML).not.toBe(trellis.innerHTML);
+		expect(builder.getAttribute("style")).toBeNull();
 	});
 });

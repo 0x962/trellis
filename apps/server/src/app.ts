@@ -25,6 +25,7 @@ import { exportRoute } from "./routes/export.ts";
 import { filesRoute } from "./routes/files.ts";
 import { reviewImageRoute } from "./routes/reviewImage";
 import { staticRoute } from "./routes/static.ts";
+import { terminalSocketRoute } from "./routes/terminalSocket/terminalSocket.ts";
 import { terminalStreamRoute } from "./routes/terminalStream.ts";
 import { createDbTiming, type DbTiming, serverTimingHeader } from "./serverTiming.ts";
 import { checkGh } from "./services/system.ts";
@@ -125,8 +126,10 @@ export const createApp = ({
 	app.use(async (c, next) => {
 		const started = performance.now();
 		await next();
-		c.res.headers.set("x-request-id", c.get("requestId"));
-		c.res.headers.set("x-trellis-api-version", API_VERSION);
+		if (c.req.header("upgrade")?.toLowerCase() !== "websocket") {
+			c.res.headers.set("x-request-id", c.get("requestId"));
+			c.res.headers.set("x-trellis-api-version", API_VERSION);
+		}
 		const line = {
 			reqId: c.get("requestId"),
 			method: c.req.method,
@@ -151,7 +154,8 @@ export const createApp = ({
 	});
 
 	app.use(hostAuth(config.authToken));
-	app.use(cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) }));
+	const corsMiddleware = cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) });
+	app.use((c, next) => (c.req.header("upgrade")?.toLowerCase() === "websocket" ? next() : corsMiddleware(c, next)));
 
 	const maxBytes = config.maxUploadMb * MB;
 	app.use(
@@ -213,6 +217,7 @@ export const createApp = ({
 	app.get("/api/review-image", reviewImageRoute(transport));
 	app.get("/api/events", events.handler);
 	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport));
+	app.get("/api/agent-runs/:id/terminal/socket", terminalSocketRoute(config, transport));
 	app.get("/api/attachments/:id/file", filesRoute({ config, transport }));
 	app.get("/api/export", exportRoute({ transport }));
 	app.get("/api/openapi.json", docs.spec);

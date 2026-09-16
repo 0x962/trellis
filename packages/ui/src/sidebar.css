@@ -17,16 +17,24 @@
 }
 
 @utility sidebar-selected {
-	@apply bg-surface text-fg;
+	@apply bg-elevated text-fg;
 }
 
 /* Every row of the sidebar, fixed or project: one height, one radius, one
    hover. */
 @utility sidebar-row {
-	@apply flex h-7 items-center rounded-md pr-1 transition-colors duration-hover ease-out pointer-coarse:h-11;
+	@apply flex h-8 items-center rounded-md pr-1 transition-colors duration-hover ease-out pointer-coarse:h-11;
+}
+
+.sidebar-row[data-project-page] {
+	@apply h-7 pointer-coarse:h-11;
 }
 
 /* The rail a collapsed sidebar leaves behind: one icon per row, centred. */
 @utility sidebar-rail-row {
-	@apply flex h-7 w-8 shrink-0 items-center justify-center rounded-md text-fg-muted transition-colors duration-hover ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent pointer-coarse:h-11 pointer-coarse:w-11;
+	@apply flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-fg-muted transition-colors duration-hover ease-out hover:bg-elevated hover:text-fg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent pointer-coarse:h-11 pointer-coarse:w-11;
+}
+
+.sidebar-project-tree > li:nth-child(2n) {
+	padding-bottom: calc(var(--spacing) * 2);
 }

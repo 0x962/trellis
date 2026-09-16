@@ -83,16 +83,27 @@ Natural leader exit stops the remaining members of its OS session. Explicit stop
 The runtime reports exit only after cleanup and output completion. Failed cleanup records an unknown result.
 A descendant that leaves its session and loses its parent before inspection requires separate process inspection.
 
-Built-in harnesses launch through `HarnessHost` with an interactive CLI in a PTY and native permission bypass settings.
+Built-in harnesses launch through `HarnessHost` with an interactive CLI in a PTY.
+Builders and reviewers use native permission bypass settings.
+Managers use a private workspace and a Trellis tool allowlist.
+Each supported manager harness uses the selected persona instruction from the database as its exact system prompt.
+The persona editor shows this instruction. Manager start and restart read the current saved persona.
+The assignment message carries identity and project facts.
+The manager delegates technical work and records coordination outcomes through these tools.
+Claude, OpenCode, and Pi support this boundary. Codex and custom manager launches return an explicit error.
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
 Codex runs one private app-server per attempt. Its native terminal and Trellis event client connect to that engine.
 The Codex adapter maps native thread, turn, tool, result, and error events into the runtime journal.
 Every built-in start waits for the initial native prompt receipt. Each follow-up requires an idle process and its own receipt.
-Agent shells inherit the desktop login environment without another login startup.
+The desktop starts HTTP before it resolves the login environment. Git, GitHub, and new agent launches await the cached environment in their server thread.
+A failed login shell returns a tool error. Existing agent controls use their saved launch environment.
 Each launch selects the active host release on PATH, including when the runtime predates that host.
 `HarnessHost` exposes start, resume, send, interrupt, stop, status, and output APIs for native agent assignments.
 Its immutable launch descriptors retain configuration. The runtime supplies process status and observed provider identity.
 Assignment responses expose runtime-derived `processStatus` separately from the agent turn result. Terminal selection and process controls use that process status.
+Current observations include the process check time, control availability, turn activity, and turn outcome.
+Manager tools report `working` only for a controllable process with an active turn and no final outcome.
+They permit replacement after confirmed cleanup or proof that the prior attempt never launched.
 An exact prompt receipt confirms delivery. A provider turn and its observed activity time protect interrupt requests.
 `bun run test:host` tests this module and the runtime with isolated processes.
 `bun run test:host:real` also runs authenticated native CLI tests with explicit models and a configured credential home.
@@ -104,6 +115,11 @@ The controller stores ticket events in `manager_dispatches` with a fixed coalesc
 It sends a native manager one batch after the initial prompt receipt, when the runtime reports a controllable process with idle turn activity.
 An exact durable receipt can resolve an unknown delivery without another send.
 Stable assignment request identifiers prevent repeated worker starts from producing duplicate attempts.
+Each dispatch tracks delivery separately from its per-ticket coordination outcomes.
+Data-only envelopes include policy versions, stable assignment identifiers, and unfinished dispatches.
+The manager records an assignment, queue entry, blocker, or reason for no action for each affected ticket.
+A handled dispatch does not prove that a worker completed the ticket.
+Optional comment keys suppress duplicate writes for the same ticket and actor without new activity events.
 A partial database index permits one active manager per project.
 
 Native ticket agents use Git worktrees under `agents/<run id>/work`.
@@ -112,6 +128,7 @@ A later file change makes earlier evidence outdated. A passed process alone does
 The ticket page centers its content and opens Activity first. Shared ticket details stay above the tabs.
 The Agent tab shows the assigned agent's interactive terminal. Changes, Checks, and Flows hold their corresponding evidence.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
+The terminal WebSocket carries ordered input and binary output outside the database request path after attachment. See [terminal transport](terminal-transport.md).
 The terminal sends keyboard input and resize events to the runtime. An explicit reconnect resumes from the last displayed byte.
 Settings includes runtime diagnostics. `trellis doctor --json` reads the same report without starting the runtime.
 
@@ -230,11 +247,11 @@ The runtime owns each process through a distinct execution attempt. Each attempt
 A stable start request identifier returns its existing run before the concurrency check.
 A changed target or persona rejects reuse of that identifier.
 
-The Manager page at `/p/<project path>/settings/manager` has Operation, General, and Harness sections.
-Operation shows the manager's interactive terminal. The dispatch switch pauses automatic messages while events remain stored.
-General selects the manager persona, repository directory, trust, and concurrency limit.
-Harness selects the agent preset and its start and resume commands.
-`projects.managerConfig` stores these fields with `ade: native`.
+The Manager page at `/p/<project path>/settings/manager` shows the manager's interactive terminal and process controls.
+Project settings at `/p/<project path>/settings#manager` selects the persona, repository directory, trust, concurrency limit, and automatic dispatch.
+The dispatch switch pauses automatic messages while events remain stored.
+The `#harness` section selects the preset, model, and custom start and resume commands.
+Both settings sections share one draft and save status. `projects.managerConfig` stores these fields with `ade: native`.
 
 Every preset runs its command through a local PTY. Claude hooks identify ready, active, and completed turns.
 `launchCommand.ts` combines the persona instruction with the project or ticket context.
@@ -264,7 +281,8 @@ Ticket events take precedence. The queue holds at most one pending or unresolved
 Heartbeats respect project dispatch pause, the global work pause, and archived projects.
 The heartbeat asks the manager to follow its current persona and status descriptions, inspect work, and avoid comments that only acknowledge the heartbeat.
 
-Each heartbeat and ticket dispatch includes agent context from the runtime observations at dispatch time.
+Each heartbeat and ticket dispatch includes `agentContext` from the runtime observations at dispatch time.
+The JSON envelope retains policy references, ticket events, and unfinished work. Agent names use the assigned persona.
 The context covers native assignments in the manager's project scope and excludes the recipient manager.
 It includes open assignments and closed assignments whose processes still run.
 Each entry carries assignment identifiers, process status, the process check time, harness activity, the last activity time, and `isWorking`.
@@ -731,7 +749,7 @@ Conventions shared by every workspace:
 `packages/api` holds the contract and no runtime dependency beyond zod and oRPC:
 `refs.ts`, `errors.ts`, `events.ts`, `query-keys.ts`, `client.ts`, `pair.ts`,
 `schemas/`, `contract/`, `agentLaunch/` (agent command variables),
-`instructions.ts` (the `AGENTS.md` block), and `instructions/` (agent names).
+`instructions.ts` (the `AGENTS.md` block).
 
 `apps/server` holds `index.ts` (boot), `config.ts`, `log.ts`, `app.ts`,
 `context.ts`, `db/` (worker, transport, client, migrate, schema, tables, enums,

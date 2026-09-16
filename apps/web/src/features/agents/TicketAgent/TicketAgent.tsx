@@ -6,13 +6,6 @@ import { AgentRunSheet } from "../AgentRunSheet";
 import { hasAssignedProcess } from "../hasAssignedProcess";
 import { PersonaPicker } from "./components/PersonaPicker";
 
-// A person calls an agent by one name. Agents the server named before it
-// dropped surnames still carry two words, so the row takes the first one.
-const shortName = (name: string) => name.split(" ")[0]!;
-
-// The agent side of a ticket, under one heading: the agent runs of the
-// ticket and the persona picker that starts another one. One list and one
-// start control, both on the agent_runs path.
 export function TicketAgent({ ticket, disabled = false }: { ticket: string; disabled?: boolean }) {
 	const { orpc } = useApp();
 	const query = useQuery(orpc.agentRuns.list.queryOptions({ input: { ticket }, retry: false }));
@@ -41,14 +34,13 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 							key={run.id}
 							variant="quiet"
 							align="start"
-							aria-label={`${shortName(run.name)} · ${run.kind}`}
+							aria-label={run.personaName}
 							className="-ml-2.5 justify-start"
 							onClick={() => setOpenId(run.id)}
 						>
 							<span className="flex min-w-0 items-center gap-2">
-								<Avatar kind="agent" name={run.name} />
-								<span className="truncate text-fg">{shortName(run.name)}</span>
-								<span className="text-xs text-fg-faint">{run.kind}</span>
+								<Avatar kind="agent" name={run.personaName} />
+								<span className="truncate text-fg">{run.personaName}</span>
 								{run.state === "failed" && <span className="text-xs text-danger">failed</span>}
 							</span>
 						</Button>

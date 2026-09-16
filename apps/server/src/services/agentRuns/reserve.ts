@@ -11,7 +11,6 @@ import { reserveAttempt } from "../assignments/attempts.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { managerConfigOf, projectRow } from "../projectRows.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
-import { randomAgentName } from "./names.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { columns, type StoredRun } from "./queries.ts";
 
@@ -24,7 +23,7 @@ export const managerRowOf = async (tx: Tx, projectId: string) =>
 		)
 	).at(0);
 
-export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) => {
+export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, confirmedExited: string[] = []) => {
 	const actor = requireActor(ctx);
 	const [persona] = await rows<Persona>(
 		tx,
@@ -52,6 +51,11 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 	const config = managerConfigOf(await projectRow(tx, project.id));
 	await assertNativeWorkEnabled(tx);
 	if (ticket !== null) {
+		const assigned = await rows(
+			tx,
+			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket.id} AND persona_id=${persona.id} AND runtime='native' AND closed_at IS NULL LIMIT 1`,
+		);
+		if (assigned.length > 0) throw fail("DUPLICATE", { field: "active persona assignment on this ticket" });
 		const [active] = await rows<{ count: number }>(
 			tx,
 			sql`SELECT count(*)::int AS count FROM agent_runs WHERE project_id = ${project.id} AND kind <> 'manager' AND runtime = 'native' AND closed_at IS NULL`,
@@ -72,6 +76,13 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 	if (existing !== undefined && existing.runtime === "native" && existing.closedAt === null)
 		throw fail("DUPLICATE", { field: "active agent" });
 	if (existing && existing.runtime !== "native") existing = undefined;
+	if (existing !== undefined && input.newSession === true && actor.kind !== "human")
+		throw invalidInput(
+			"newSession",
+			"Only a person can reset an existing manager conversation. Resume it without newSession to preserve its context.",
+		);
+	if (existing?.terminalId && !confirmedExited.includes(existing.terminalId))
+		throw invalidInput("project", "Confirm the prior process stopped before you replace this manager.");
 	const resume =
 		existing !== undefined &&
 		existing.terminalId !== null &&
@@ -84,7 +95,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 			? await rows<StoredRun>(
 					tx,
 					sql`INSERT INTO agent_runs (id, name, persona_id, persona_name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
-		VALUES (${ulid()}, ${randomAgentName()}, ${persona.id}, ${persona.name}, ${persona.kind}, ${persona.instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
+		VALUES (${ulid()}, ${persona.name}, ${persona.id}, ${persona.name}, ${persona.kind}, ${persona.instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
 		ON CONFLICT DO NOTHING RETURNING ${columns}`,
 				)
 			: // A person can change the persona between two starts, so the row
@@ -93,7 +104,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 				await rows<StoredRun>(
 					tx,
 					sql`UPDATE agent_runs SET closed_at = NULL, error = NULL, session_lost = false, session_id = ${sessionId},
-			persona_id = ${persona.id}, persona_name = ${persona.name}, instruction = ${persona.instruction}, updated_at = ${ctx.now}
+			name = ${persona.name}, persona_id = ${persona.id}, persona_name = ${persona.name}, instruction = ${persona.instruction}, updated_at = ${ctx.now}
 			WHERE id = ${existing.id} RETURNING ${columns}`,
 				);
 	if (run === undefined) throw fail("DUPLICATE", { field: "active agent" });
@@ -104,7 +115,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 	await recordRequest(ctx, tx, { ...request, runId: run.id });
 	const context =
 		ticket === null
-			? `Project: ${projectPath}\nEffective statuses:\n${JSON.stringify(ctx.cache.effectiveStatuses(project.id).statuses)}\nRead the project and its tickets from Trellis before you act.\nUse a stable --request-id for each worker assignment. Reuse it when a start result is uncertain. Use a different ID for an intentional new assignment.`
+			? `Project: ${projectPath}\nEffective statuses:\n${JSON.stringify(ctx.cache.effectiveStatuses(project.id).statuses)}`
 			: `Ticket: ${ticket.identifier}: ${ticket.title}\nProject: ${projectPath}\n\n${ticket.description}\n\nRead the current ticket, comments, and linked pull requests before you act.\nUse trellis brief ${ticket.identifier} for the full task context.`;
 	return {
 		replay: false as const,
@@ -114,6 +125,6 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput) =
 		config,
 		resume,
 		previousAttemptId,
-		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || "Use the agent workspace."}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}`,
+		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || (ticket === null ? "Not configured" : "Use the agent workspace.")}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}`,
 	};
 };

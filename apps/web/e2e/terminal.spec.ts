@@ -94,6 +94,10 @@ test("the assigned agent opens an interactive terminal and receives live output"
 		const firstColumns = sizes.at(-1)!.cols;
 		await page.setViewportSize({ width: 1920, height: 1000 });
 		await expect.poll(() => sizes.at(-1)!.cols).toBeGreaterThan(firstColumns);
+		const canvas = await terminal.locator(".terminal-canvas").boundingBox();
+		const screen = await terminal.locator(".xterm-screen").boundingBox();
+		expect(screen!.x + screen!.width).toBeLessThanOrEqual(canvas!.x + canvas!.width);
+		expect(screen!.y + screen!.height).toBeLessThanOrEqual(canvas!.y + canvas!.height);
 		await page.screenshot({ path: testInfo.outputPath("interactive-terminal.png") });
 		await page.keyboard.press("Control+]");
 		await expect(terminal.getByRole("heading", { name: run.name, exact: true })).toBeFocused();

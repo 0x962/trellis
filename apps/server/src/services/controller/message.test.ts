@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { workItems } from "./coordination.ts";
 import { managerMessage } from "./message.ts";
 import type { Dispatch } from "./types.ts";
 
@@ -10,23 +11,35 @@ const delivery: Dispatch = {
 	sessionId: "session-1",
 	generation: 2,
 	state: "sending",
+	workState: "open",
+	outcomes: [],
+	handledAt: null,
 	events: [],
 	dueAt: "2026-09-15T00:00:00.000Z",
 	error: null,
 };
-const context = { observedAt: delivery.dueAt, agents: [] };
+const agents = { observedAt: delivery.dueAt, agents: [] };
+const context = {
+	policy: { personaId: "manager-policy", updatedAt: "2026-09-15T00:00:00.000Z" },
+	unfinished: [],
+	unfinishedCount: 0,
+};
 
-test("an empty dispatch wakes the manager without inventing ticket changes", () => {
-	const message = managerMessage(delivery, context);
-	expect(message).toStartWith("trellis: Manager heartbeat dispatch-1, generation 2.");
-	expect(message).toContain("current manager persona");
-	expect(message).toContain("Do not post a comment just to acknowledge this heartbeat.");
-	expect(message).not.toContain("0 ticket changes");
-	expect(message).toContain(`Agent context: ${JSON.stringify(context)}`);
-	expect(message).toContain("Terminal output alone does not establish active work.");
+test("a heartbeat includes coordination and current agent observations", () => {
+	const message = managerMessage(delivery, context, agents);
+	expect(JSON.parse(message)).toEqual({
+		type: "trellis.manager.heartbeat",
+		id: delivery.id,
+		projectId: delivery.projectId,
+		generation: delivery.generation,
+		events: [],
+		workItems: workItems(delivery),
+		...context,
+		agentContext: agents,
+	});
 });
 
-test("ticket activity keeps its identifiers and dispatch instructions", () => {
+test("a dispatch contains its event envelope and unmodified ticket events", () => {
 	const event = {
 		id: 42,
 		ticketId: "ticket-1",
@@ -34,10 +47,33 @@ test("ticket activity keeps its identifiers and dispatch instructions", () => {
 		actor: { name: "navid", kind: "human" },
 		createdAt: delivery.dueAt,
 	};
-	const message = managerMessage({ ...delivery, events: [event] }, context);
-	expect(message).toStartWith("trellis: Manager dispatch dispatch-1, generation 2.");
-	expect(message).toContain("1 ticket changes");
-	expect(message).toContain(JSON.stringify([event]));
-	expect(message).toContain("stable --request-id");
-	expect(message).toContain(`Agent context: ${JSON.stringify(context)}`);
+	const message = managerMessage({ ...delivery, events: [event] }, context, agents);
+	expect(JSON.parse(message)).toEqual({
+		type: "trellis.manager.dispatch",
+		id: delivery.id,
+		projectId: delivery.projectId,
+		generation: delivery.generation,
+		events: [event],
+		workItems: workItems({ ...delivery, events: [event] }),
+		...context,
+		agentContext: agents,
+	});
+});
+
+test("assignment identifiers survive a retry generation and completed tickets leave the work list", () => {
+	const events = ["one", "two", "one"].map((ticketId, id) => ({
+		id,
+		ticketId,
+		action: "ticket.updated",
+		actor: { name: "test", kind: "human" },
+		createdAt: delivery.dueAt,
+	}));
+	const first = workItems({ ...delivery, events });
+	expect(first).toHaveLength(2);
+	expect(first[0]!.assignmentRequestId).toMatch(/^[a-f0-9-]{36}$/);
+	expect(
+		workItems({ ...delivery, events, outcomes: [{ ticketId: "one", status: "queued", reason: "Capacity is full." }] }),
+	).toEqual([first[1]!]);
+	const next = JSON.parse(managerMessage({ ...delivery, generation: 8, events }, context, agents));
+	expect(next.workItems).toEqual(first);
 });

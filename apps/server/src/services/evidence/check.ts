@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
+import { executionEnvironment } from "../../executionEnvironment";
 import { assertNativeWorkEnabled } from "../agentRuns/nativeControl.ts";
 import { currentCheck } from "./current.ts";
 import { finishCheck } from "./finishCheck.ts";
@@ -78,6 +79,7 @@ export const check = async (ctx: EvidenceCtx, input: EvidenceCheckInput) => {
 			command: input.command,
 			args: input.args,
 			cwd: selected.workspace,
+			env: await executionEnvironment(),
 			mode: "stdio",
 			timeoutMs: input.timeoutMs,
 		});

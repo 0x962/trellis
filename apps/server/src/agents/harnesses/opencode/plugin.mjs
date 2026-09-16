@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { openCodeControl } from "./control.mjs";
 
 export const TrellisPlugin = async ({ client }) => {
+	const managerTools = process.env.TRELLIS_MANAGER_TOOLS ? JSON.parse(process.env.TRELLIS_MANAGER_TOOLS) : null;
 	let sessionId = null;
 	let turnId;
 	let working = false;
@@ -18,6 +19,7 @@ export const TrellisPlugin = async ({ client }) => {
 				path: { id },
 				body: {
 					parts: [{ type: "text", text }],
+					...(managerTools ? { agent: "trellis-manager" } : {}),
 					...(model ? { model: { providerID: model.slice(0, split), modelID: model.slice(split + 1) } } : {}),
 				},
 			});
@@ -60,9 +62,20 @@ export const TrellisPlugin = async ({ client }) => {
 	}
 	const matches = (id) => id === sessionId;
 	return {
+		"experimental.chat.system.transform": async (_input, output) => {
+			if (managerTools && output.system.some((text) => text.includes(process.env.TRELLIS_MANAGER_SYSTEM_PROMPT)))
+				output.system = [process.env.TRELLIS_MANAGER_SYSTEM_PROMPT];
+		},
 		config: async (config) => {
-			config.permission = { "*": "allow" };
-			for (const agent of Object.values(config.agent ?? {})) agent.permission = { "*": "allow" };
+			const permission = managerTools ? { "*": "deny", "trellis_trellis_*": "allow" } : { "*": "allow" };
+			config.permission = permission;
+			for (const agent of Object.values(config.agent ?? {})) agent.permission = permission;
+			if (managerTools) {
+				config.tools = { "*": false, "trellis_trellis_*": true };
+				config.mcp = {
+					trellis: { type: "local", command: [managerTools.command, ...managerTools.args], enabled: true },
+				};
+			}
 		},
 		"chat.message": async (input, output) => {
 			await control.beforePrompt();
@@ -97,6 +110,8 @@ export const TrellisPlugin = async ({ client }) => {
 				await send({ event: "session", sessionId, turnId, model: `${input.provider.id}/${input.model.id}` });
 		},
 		"tool.execute.before": async (input, output) => {
+			if (managerTools && !input.tool.startsWith("trellis_trellis_"))
+				throw new Error("This tool is unavailable in the manager tool catalog.");
 			if (matches(input.sessionID))
 				await send({
 					event: "tool-start",

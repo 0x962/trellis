@@ -3,6 +3,12 @@ import type { RequestContext } from "../../context.ts";
 
 export type ControllerInput = { sessions: RuntimeProcessStatus[] };
 export type ControllerCtx = Pick<RequestContext, "now">;
+export type WorkOutcome = {
+	ticketId: string | null;
+	status: "assigned" | "queued" | "blocked" | "no_action";
+	reference?: string;
+	reason: string;
+};
 export type ControllerEvent = {
 	id: number;
 	ticketId: string;
@@ -18,6 +24,9 @@ export type Dispatch = {
 	sessionId: string | null;
 	generation: number;
 	state: "pending" | "sending" | "sent" | "unknown";
+	workState: "untracked" | "open" | "handled";
+	outcomes: WorkOutcome[];
+	handledAt: string | null;
 	events: ControllerEvent[];
 	dueAt: string;
 	error: string | null;

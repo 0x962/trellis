@@ -1,9 +1,9 @@
 import type { GhReason } from "@trellis/api";
+import { executionEnvironment } from "../executionEnvironment";
 
-// runGh spawns the gh binary once per call. The binary is TRELLIS_GH_BIN or
-// "gh" on PATH, read when the runner is built. Every child gets
-// GH_PROMPT_DISABLED=1 and NO_COLOR=1 on top of process.env, so gh never
-// waits on a terminal and never colors its output.
+// TRELLIS_GH_BIN selects the executable. Otherwise, gh resolves through the
+// PATH from executionEnvironment(). GH_PROMPT_DISABLED=1 and NO_COLOR=1
+// keep each command suitable for a request without a terminal.
 //
 // One gh binary serves the whole process, so the slots are shared by every
 // runner: 2 poller slots and 1 interactive slot. A poller call past its two
@@ -64,11 +64,11 @@ const isMissing = (error: unknown) => (error as { code?: string }).code === "ENO
 // both give the unauthenticated reason and the same banner.
 const SIGN_IN_NEEDED = /gh auth login|HTTP 401|Bad credentials/;
 
-const spawnGh = async (bin: string, args: string[], timeoutMs: number): Promise<GhResult> => {
+const spawnGh = async (bin: string, args: string[], timeoutMs: number, env: NodeJS.ProcessEnv): Promise<GhResult> => {
 	let proc: ReturnType<typeof Bun.spawn>;
 	try {
 		proc = Bun.spawn([bin, ...args], {
-			env: { ...process.env, GH_PROMPT_DISABLED: "1", NO_COLOR: "1" },
+			env: { ...env, GH_PROMPT_DISABLED: "1", NO_COLOR: "1" },
 			stdin: "ignore",
 			stdout: "pipe",
 			stderr: "pipe",
@@ -103,13 +103,22 @@ const spawnGh = async (bin: string, args: string[], timeoutMs: number): Promise<
 	return { ok: false, reason: "error", message, code, stdout };
 };
 
-export const createGhRunner = (options: { timeoutMs?: number } = {}): GhRunner => {
-	const bin = process.env.TRELLIS_GH_BIN ?? "gh";
+export const createGhRunner = (
+	options: { timeoutMs?: number; environment?: () => Promise<NodeJS.ProcessEnv> } = {},
+): GhRunner => {
+	const configuredBin = process.env.TRELLIS_GH_BIN;
+	const bin = configuredBin ?? "gh";
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 	const run = async (slot: GhSlot, args: string[]): Promise<GhResult> => {
+		let env: NodeJS.ProcessEnv;
+		try {
+			env = await (options.environment ?? executionEnvironment)();
+		} catch (error) {
+			return { ok: false, reason: "error", message: (error as Error).message, code: null, stdout: "" };
+		}
 		const release = await slots[slot].acquire();
 		try {
-			return await spawnGh(bin, args, timeoutMs);
+			return await spawnGh(configuredBin ?? env.TRELLIS_GH_BIN ?? "gh", args, timeoutMs, env);
 		} finally {
 			release();
 		}

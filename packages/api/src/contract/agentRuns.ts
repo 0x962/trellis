@@ -98,6 +98,7 @@ export const agentRuns = {
 		.input(AgentRunStartInputSchema)
 		.output(AgentRunSchema),
 	stop: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/agent-runs/{id}/stop", summary: "Stop an agent" })
 		.input(idInput)
 		.output(AgentRunSchema),

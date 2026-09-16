@@ -49,7 +49,7 @@ export const createConfig = (env: Record<string, string | undefined>): UserConfi
 			port: 5173,
 			strictPort: true,
 			proxy: {
-				"/api": { target, changeOrigin: false },
+				"/api": { target, changeOrigin: false, ws: true },
 				"/rpc": { target, changeOrigin: false },
 			},
 		},

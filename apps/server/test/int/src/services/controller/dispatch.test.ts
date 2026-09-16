@@ -109,7 +109,10 @@ test("a live manager receives one heartbeat and confirms its durable message rec
 	expect((await queue()).state).toBe("sent");
 	expect(deliveries).toHaveLength(1);
 	expect(deliveries[0]?.requireIdle).toBe(true);
-	expect(Buffer.from(deliveries[0]!.data, "base64").toString()).toContain("Manager heartbeat");
+	const text = Buffer.from(deliveries[0]!.data, "base64").toString();
+	const payload = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+	expect(payload.type).toBe("trellis.manager.heartbeat");
+	expect(payload.events).toEqual([]);
 	expect(session.acknowledgedMessageIds).toEqual([session.id, deliveries[0]!.messageId]);
 	await send();
 	expect(deliveries).toHaveLength(1);
@@ -128,7 +131,7 @@ test("a heartbeat reports the current worker turn after the heartbeat enters the
 	];
 	await send();
 	const message = Buffer.from(deliveries[0]!.data, "base64").toString();
-	const context = JSON.parse(message.split("Agent context: ")[1]!.replaceAll("\x1b[201~", "").trim());
+	const context = JSON.parse(message.slice(message.indexOf("{"), message.lastIndexOf("}") + 1)).agentContext;
 	expect(context.observedAt).toBe(secondsAfter(61).toISOString());
 	expect(context.agents).toHaveLength(1);
 	expect(context.agents[0]).toMatchObject({

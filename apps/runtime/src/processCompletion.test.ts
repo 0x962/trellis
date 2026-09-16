@@ -49,3 +49,113 @@ test("stop and exit share one cleanup", async () => {
 	expect(calls).toBe(1);
 	expect(exits).toEqual([null]);
 });
+
+test("an explicit stop can repeat failed cleanup and waits for stream closure", async () => {
+	let calls = 0;
+	const second = Promise.withResolvers<void>();
+	const errors: string[] = [];
+	const exits: (number | null)[] = [];
+	const lifecycle = processCompletion(
+		() => (++calls === 1 ? Promise.reject(new Error("Native process snapshot failed")) : second.promise),
+		(code) => exits.push(code),
+		(error) => errors.push(error.message),
+	);
+	lifecycle.stop();
+	await Promise.resolve();
+	expect(errors).toEqual(["Native process snapshot failed"]);
+	lifecycle.stop();
+	expect(calls).toBe(2);
+	second.resolve();
+	await second.promise;
+	expect(exits).toEqual([]);
+	lifecycle.closed(null);
+	expect(exits).toEqual([null]);
+});
+
+test("natural PTY exit confirms cleanup after an earlier stop failed", async () => {
+	let calls = 0;
+	const exits: (number | null)[] = [];
+	const errors: string[] = [];
+	const lifecycle = processCompletion(
+		async () => {
+			calls++;
+			if (calls === 1) throw new Error("Native process snapshot failed");
+		},
+		(code) => exits.push(code),
+		(error) => errors.push(error.message),
+	);
+	lifecycle.stop();
+	await Promise.resolve();
+	expect(errors).toEqual(["Native process snapshot failed"]);
+	lifecycle.closed(0);
+	await Promise.resolve();
+	expect(calls).toBe(2);
+	expect(exits).toEqual([0]);
+});
+
+test("natural leader exit after failed stop waits for output closure", async () => {
+	let calls = 0;
+	const exits: (number | null)[] = [];
+	const lifecycle = processCompletion(
+		async () => {
+			if (++calls === 1) throw new Error("Cleanup failed");
+		},
+		(code) => exits.push(code),
+		() => {},
+	);
+	lifecycle.stop();
+	await Promise.resolve();
+	lifecycle.leaderExited(3);
+	await Promise.resolve();
+	expect(calls).toBe(2);
+	expect(exits).toEqual([]);
+	lifecycle.closed(3);
+	expect(exits).toEqual([3]);
+});
+
+test("duplicate natural exit events do not repeat failed cleanup", async () => {
+	let calls = 0;
+	const errors: string[] = [];
+	const lifecycle = processCompletion(
+		async () => {
+			calls++;
+			throw new Error("Cleanup failed");
+		},
+		() => {},
+		(error) => errors.push(error.message),
+	);
+	lifecycle.stop();
+	await Promise.resolve();
+	lifecycle.leaderExited(0);
+	await Promise.resolve();
+	lifecycle.leaderExited(0);
+	lifecycle.closed(0);
+	await Promise.resolve();
+	lifecycle.closed(0);
+	await Promise.resolve();
+	expect(calls).toBe(3);
+	expect(errors).toHaveLength(3);
+});
+
+test("each explicit stop can repeat a failed cleanup attempt", async () => {
+	let calls = 0;
+	const exits: (number | null)[] = [];
+	const lifecycle = processCompletion(
+		async () => {
+			if (++calls < 3) throw new Error("Cleanup failed");
+		},
+		(code) => exits.push(code),
+		() => {},
+	);
+	lifecycle.stop();
+	lifecycle.stop();
+	await Promise.resolve();
+	expect(calls).toBe(1);
+	lifecycle.stop();
+	await Promise.resolve();
+	lifecycle.stop();
+	lifecycle.closed(0);
+	await Promise.resolve();
+	expect(calls).toBe(3);
+	expect(exits).toEqual([0]);
+});

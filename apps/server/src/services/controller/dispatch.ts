@@ -2,9 +2,11 @@ import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { Tx } from "../../db/tx.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
+import { dispatchMentions } from "../commentMentions/dispatch.ts";
 import type { ServiceCtx } from "../support.ts";
 import { agentContext } from "./agentContext/index.ts";
 import { claim, complete, defer } from "./controller.ts";
+import { coordination } from "./coordination.ts";
 import { managerMessage } from "./message.ts";
 import { dispatchMessageId } from "./messageId.ts";
 import { readySession } from "./readySession.ts";
@@ -16,6 +18,7 @@ type Ctx = ServiceCtx & { publicUrl: string };
 
 export const dispatch = async (ctx: Ctx) => {
 	const sessions = await readRuntimeSessions(ctx.home);
+	await dispatchMentions(ctx, sessions);
 	await ctx.newTx((tx) => reconcile({ now: ctx.now() }, tx, { sessions }));
 	const deliveries: Dispatch[] = [];
 	for (let i = 0; i < 20; i++) {
@@ -35,14 +38,15 @@ export const dispatch = async (ctx: Ctx) => {
 					);
 					return;
 				}
-				const context = await ctx.newTx((tx) =>
+				const context = await ctx.newTx((tx) => coordination(tx, delivery));
+				const agents = await ctx.newTx((tx) =>
 					agentContext({ now: ctx.now() }, tx, { sessions, projectId: delivery.projectId, runId: delivery.runId! }),
 				);
 				attempted = true;
 				await sendDeadline(
 					prepareSend(ctx, {
 						id: delivery.runId!,
-						text: managerMessage(delivery, context),
+						text: managerMessage(delivery, context, agents),
 						messageId: dispatchMessageId(delivery),
 						requireIdle: true,
 						expectedTerminalId: delivery.terminalId!,

@@ -31,6 +31,7 @@
 	"scripts": {
 		"dev": "turbo run dev --filter=@trellis/server --filter=@trellis/web",
 		"dev:all": "turbo run dev",
+		"desktop:install": "bun apps/desktop/scripts/install-production.ts",
 		"build": "turbo run build",
 		"test": "turbo run test",
 		"test:int": "turbo run test:int",

@@ -26,7 +26,7 @@ export const agentContext = async (
 			SELECT id FROM projects WHERE id=${input.projectId}
 			UNION ALL SELECT p.id FROM projects p JOIN scope s ON p.parent_id=s.id
 			WHERE p.manager_config->>'personaId' IS NULL AND p.archived_at IS NULL
-		) SELECT r.id AS "runId", r.name, r.kind, r.ticket_id AS "ticketId",
+		) SELECT r.id AS "runId", r.persona_name AS name, r.kind, r.ticket_id AS "ticketId",
 			r.ticket_identifier AS "ticketIdentifier", r.terminal_id AS "attemptId", r.error
 		FROM agent_runs r WHERE r.project_id IN (SELECT id FROM scope)
 		AND r.id<>${input.runId} AND r.runtime='native'
@@ -42,7 +42,7 @@ export const agentContext = async (
 				session?.status === "exited"
 					? false
 					: session?.status === "running" && session.controllable && session.activity !== null
-						? session.activity.state === "working"
+						? session.activity.state === "working" && session.agent?.outcome == null
 						: null;
 			const tool = session?.agent?.tool;
 			const lastTool = session?.agent?.lastTool;
