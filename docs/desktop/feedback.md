@@ -63,6 +63,8 @@ The bridge publishes a discovery receipt for the exact attempt. The prompt hook 
 A failed connection or acknowledgment blocks the prompt and reports the cause. One eight-second deadline covers both operations.
 The desktop publishes its connected host after agent restoration, CLI setup, and update checks complete.
 Early activate, second-instance, and deep-link events keep the startup window open until that sequence finishes.
+App startup owns this sequence. Each restored session confirms its tool connection before startup completes.
+The same session check also applies to a manager that a person starts or restarts after the app opens.
 
 The desktop readiness and output-capture tests pass: 19 tests and 54 assertions.
 All 20 release activation tests pass. The native startup progress test passes with six assertions after the desktop assets build.
