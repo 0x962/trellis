@@ -5,12 +5,9 @@ import { TicketMetrics } from "./components/TicketMetrics";
 
 export type PropertiesRailProps = {
 	ticket: Ticket;
-	// A phone shows the properties under the title.
 	variant: "page" | "inline";
 };
 
-// The rail uses Row for editable ticket fields and read-only metrics.
-// TicketAgent owns the assignment controls below those rows.
 export function PropertiesRail({ ticket, variant }: PropertiesRailProps) {
 	const agent = (
 		<div className="col-span-full">

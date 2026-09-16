@@ -1,8 +1,14 @@
 import type { AgentRun } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
+import type { ExecutionAttemptRecord } from "../assignments/attempts.ts";
 import type { ServiceCtx } from "../support.ts";
-import type { StoredAttempt, StoredRun } from "./queries.ts";
+import type { StoredRun } from "./queries.ts";
+
+export type RuntimeSessionIndex = ReadonlyMap<string, RuntimeProcessStatus>;
+
+export const indexRuntimeSessions = (sessions: RuntimeProcessStatus[]): RuntimeSessionIndex =>
+	new Map(sessions.map((session) => [session.id, session]));
 
 export async function readRuntimeSessions(home: string): Promise<RuntimeProcessStatus[]> {
 	try {
@@ -13,25 +19,25 @@ export async function readRuntimeSessions(home: string): Promise<RuntimeProcessS
 	}
 }
 
-export function executionMetrics(attemptIds: string[], sessions: RuntimeProcessStatus[]) {
+export function executionMetrics(attemptIds: string[], sessions: RuntimeSessionIndex) {
 	if (attemptIds.length === 0) return { durationMs: null, tokenCount: null };
-	const attempts = attemptIds.map((id) => sessions.find((session) => session.id === id));
+	const attempts = attemptIds.map((id) => sessions.get(id));
 	if (attempts.some((attempt) => attempt === undefined)) return { durationMs: null, tokenCount: null };
-	const found = attempts as RuntimeProcessStatus[];
-	const durationMs = found.every((attempt) => attempt.elapsedMs !== null)
-		? found.reduce((total, attempt) => total + attempt.elapsedMs!, 0)
+	const runtimeAttempts = attempts as RuntimeProcessStatus[];
+	const durationMs = runtimeAttempts.every((attempt) => attempt.elapsedMs !== null)
+		? runtimeAttempts.reduce((total, attempt) => total + attempt.elapsedMs!, 0)
 		: null;
-	const sessionsByProvider = new Map<string, number | null>();
-	for (const attempt of found) {
+	const tokenTotalsBySession = new Map<string, number | null>();
+	for (const attempt of runtimeAttempts) {
 		const sessionId = attempt.agent?.sessionId;
 		if (sessionId == null) return { durationMs, tokenCount: null };
-		const previous = sessionsByProvider.get(sessionId);
+		const previous = tokenTotalsBySession.get(sessionId);
 		const total = attempt.agent?.tokenUsage?.totalTokens;
 		if (total !== undefined)
-			sessionsByProvider.set(sessionId, previous === null ? total : Math.max(previous ?? 0, total));
-		else if (previous === undefined) sessionsByProvider.set(sessionId, null);
+			tokenTotalsBySession.set(sessionId, previous === null ? total : Math.max(previous ?? 0, total));
+		else if (previous === undefined) tokenTotalsBySession.set(sessionId, null);
 	}
-	const totals = [...sessionsByProvider.values()];
+	const totals = [...tokenTotalsBySession.values()];
 	const tokenCount = totals.every((total) => total !== null)
 		? (totals as number[]).reduce((total, current) => total + current, 0)
 		: null;
@@ -40,10 +46,10 @@ export function executionMetrics(attemptIds: string[], sessions: RuntimeProcessS
 
 export function projectRun(
 	run: StoredRun,
-	sessions: RuntimeProcessStatus[],
+	sessions: RuntimeSessionIndex,
 	attemptIds = [run.terminalId].filter(String) as string[],
 ): AgentRun {
-	const process = sessions.find((session) => session.id === run.terminalId);
+	const process = run.terminalId === null ? undefined : sessions.get(run.terminalId);
 	const { closedAt: _closedAt, ...metadata } = run;
 	const metrics = executionMetrics(attemptIds, sessions);
 	if (!process)
@@ -84,12 +90,18 @@ export function projectRun(
 export async function observeRuns(
 	ctx: Pick<ServiceCtx, "home">,
 	runs: StoredRun[],
-	attempts: StoredAttempt[] = [],
+	attempts: ExecutionAttemptRecord[] = [],
 ): Promise<AgentRun[]> {
 	if (runs.length === 0) return [];
-	const sessions = await readRuntimeSessions(ctx.home);
+	const sessions = indexRuntimeSessions(await readRuntimeSessions(ctx.home));
+	const attemptIdsByRun = new Map<string, string[]>();
+	for (const attempt of attempts) {
+		const runAttemptIds = attemptIdsByRun.get(attempt.runId) ?? [];
+		runAttemptIds.push(attempt.id);
+		attemptIdsByRun.set(attempt.runId, runAttemptIds);
+	}
 	return runs.map((run) => {
-		const attemptIds = attempts.filter((attempt) => attempt.runId === run.id).map((attempt) => attempt.id);
-		return projectRun(run, sessions, attemptIds.length > 0 ? attemptIds : undefined);
+		const attemptIds = attemptIdsByRun.get(run.id);
+		return projectRun(run, sessions, attemptIds === undefined ? undefined : attemptIds);
 	});
 }

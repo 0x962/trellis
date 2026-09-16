@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
-import { AgentRunListInputSchema, AgentRunSchema, AgentRunStartInputSchema } from "../schemas/agentRun.ts";
+import {
+	AgentRunListInputSchema,
+	AgentRunSchema,
+	AgentRunStartInputSchema,
+	TicketMetricsSchema,
+} from "../schemas/agentRun.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
+import { TicketGetInputSchema } from "../schemas/ticket.ts";
 import { base } from "./base.ts";
 
 const idInput = z.strictObject({ id: UlidSchema });
@@ -98,6 +104,10 @@ export const agentRuns = {
 		.route({ method: "GET", path: "/agent-runs", summary: "List agents" })
 		.input(AgentRunListInputSchema)
 		.output(z.array(AgentRunSchema)),
+	ticketMetrics: base
+		.route({ method: "GET", path: "/tickets/{ticket}/metrics", summary: "Read ticket work metrics" })
+		.input(TicketGetInputSchema)
+		.output(TicketMetricsSchema),
 	start: base
 		.route({ method: "POST", path: "/agent-runs", successStatus: 201, summary: "Start an agent from a persona" })
 		.input(AgentRunStartInputSchema)

@@ -41,6 +41,7 @@ describe("contract", () => {
 			"agentRuns.stop POST /agent-runs/{id}/stop",
 			"agentRuns.terminalInput POST /agent-runs/{id}/terminal/input",
 			"agentRuns.terminalOutput GET /agent-runs/{id}/terminal/output",
+			"agentRuns.ticketMetrics GET /tickets/{ticket}/metrics",
 			"attachments.delete DELETE /attachments/{id}",
 			"attachments.get GET /attachments/{id}",
 			"attachments.list GET /tickets/{ticket}/attachments",

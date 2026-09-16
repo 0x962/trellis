@@ -44,6 +44,12 @@ export const AgentRunSchema = z.object({
 	updatedAt: IsoDateTimeSchema,
 });
 export type AgentRun = z.infer<typeof AgentRunSchema>;
+export const TicketMetricsSchema = z.object({
+	durationMs: z.number().nonnegative().nullable(),
+	tokenCount: z.number().int().nonnegative().nullable(),
+	ageMs: z.number().nonnegative(),
+});
+export type TicketMetrics = z.infer<typeof TicketMetricsSchema>;
 export const AgentRunStartInputSchema = z
 	.strictObject({
 		personaId: UlidSchema,

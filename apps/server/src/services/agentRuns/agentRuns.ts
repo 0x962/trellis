@@ -1,15 +1,18 @@
-import type { AgentRun, AgentRunListInput, AgentRunStartInput } from "@trellis/api";
+import type { AgentRun, AgentRunListInput, AgentRunStartInput, TicketGetInputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import type { z } from "zod";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { listExecutionAttempts } from "../assignments/attempts.ts";
 import { resolveProject, resolveTicket } from "../refs.ts";
 import type { ServiceCtx } from "../support.ts";
 import { closeExitedAssignments } from "./closeExitedAssignments.ts";
 import { observeRuns } from "./liveState.ts";
 import { startNative } from "./nativeStart.ts";
-import { columns, getRun, listAttempts, type StoredRun } from "./queries.ts";
+import { columns, getRun, type StoredRun } from "./queries.ts";
 import { reserve } from "./reserve.ts";
+import { aggregateTicketMetrics } from "./ticketMetrics.ts";
 
 type Ctx = ServiceCtx & { core: CoreCtx; localUrl: string };
 
@@ -29,7 +32,7 @@ export const prepareList = async (ctx: Ctx, input: AgentRunListInput) => {
 		const runs = await list(ctx.core, tx, input);
 		return {
 			runs,
-			attempts: await listAttempts(
+			attempts: await listExecutionAttempts(
 				tx,
 				runs.map((run) => run.id),
 			),
@@ -41,9 +44,32 @@ export const prepareList = async (ctx: Ctx, input: AgentRunListInput) => {
 export const observeResult = async (ctx: Ctx, input: { id: string }) => {
 	const { run, attempts } = await ctx.newTx(async (tx) => {
 		const run = await getRun(tx, input.id);
-		return { run, attempts: await listAttempts(tx, [run.id]) };
+		return { run, attempts: await listExecutionAttempts(tx, [run.id]) };
 	});
 	return (await observeRuns(ctx, [run], attempts))[0]!;
+};
+
+export const prepareTicketMetrics = async (ctx: Ctx, input: z.infer<typeof TicketGetInputSchema>) => {
+	const { ticket, runs, attempts } = await ctx.newTx(async (tx) => {
+		const ticket = await resolveTicket(ctx.core, tx, input.ticket);
+		const runs = await rows<StoredRun>(
+			tx,
+			sql`SELECT ${columns} FROM agent_runs WHERE ticket_id = ${ticket.id} ORDER BY created_at DESC, id DESC`,
+		);
+		return {
+			ticket,
+			runs,
+			attempts: await listExecutionAttempts(
+				tx,
+				runs.map((run) => run.id),
+			),
+		};
+	});
+	const observedRuns = await observeRuns(ctx, runs, attempts);
+	return aggregateTicketMetrics(
+		observedRuns.map((run) => run.metrics),
+		Math.max(0, ctx.now().getTime() - Date.parse(ticket.createdAt)),
+	);
 };
 
 export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
