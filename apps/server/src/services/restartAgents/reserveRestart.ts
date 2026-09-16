@@ -20,6 +20,10 @@ export async function reserveRestart(
 	session: Omit<RestartSession, "processIdentity"> & { processIdentity?: string },
 	reserve: boolean,
 ) {
+	// The capture writes a `custom` entry only as done and failed, and the
+	// resume never reserves a done entry. The check keeps the harness type
+	// narrow for the model lookup below.
+	if (session.harness === "custom") return null;
 	const [run] = await rows<StoredRun>(tx, sql`SELECT ${columns} FROM agent_runs WHERE id=${session.runId} FOR UPDATE`);
 	if (
 		!run ||
