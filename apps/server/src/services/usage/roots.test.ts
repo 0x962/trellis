@@ -16,6 +16,7 @@ test("a managed profile that links its projects to the default login shares one 
 	await mkdir(join(home, "accounts", "work", "profile"), { recursive: true });
 	await symlink(join(home, ".claude", "projects"), join(home, "accounts", "work", "profile", "projects"));
 	await mkdir(join(home, "codex-home", "sessions"), { recursive: true });
+	await mkdir(join(home, ".local", "share", "muse", "sessions"), { recursive: true });
 	const roots = await usageRoots(
 		[
 			{ harness: "claude", profilePath: join(home, "accounts", "work", "profile"), name: "Work", isDefault: true },
@@ -27,6 +28,7 @@ test("a managed profile that links its projects to the default login shares one 
 	expect(roots.map((root) => [root.harness, root.accounts])).toEqual([
 		["claude", ["Work"]],
 		["codex", ["Codex Work"]],
+		["muse", []],
 	]);
 	expect(roots[0]!.path.endsWith(join(".claude", "projects"))).toBe(true);
 });
@@ -36,4 +38,5 @@ test("each harness keeps its transcripts in its own directory of the profile", (
 	expect(transcriptDir("codex", "/p")).toBe("/p/sessions");
 	expect(transcriptDir("pi", "/p")).toBe("/p/sessions");
 	expect(transcriptDir("opencode", "/p")).toBe("/p/opencode/storage");
+	expect(transcriptDir("muse", "/p")).toBe("/p/sessions");
 });

@@ -2,9 +2,9 @@ import { Copy } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { UsageGroupRow, UsageMetric } from "@trellis/api";
-import { IconButton, QuotaWindows, SectionHeader, Skeleton, Tooltip, toast } from "@trellis/ui";
+import { IconButton, ProviderIcon, QuotaWindows, SectionHeader, Skeleton, Tooltip, toast } from "@trellis/ui";
 import { useApp } from "../../../../../lib/appContext";
-import { formatMetric, formatShare, harnessLabel } from "../../../formatUsage";
+import { formatMetric, formatShare, harnessLabel, harnessProvider } from "../../../formatUsage";
 
 export type UsageAccountsProps = {
 	// The account rows of the report, which give each login its cost.
@@ -19,7 +19,6 @@ const statusLabel: Record<string, string> = {
 	signed_out: "Sign in required",
 	expired: "Sign-in expired",
 	unavailable: "Quota unavailable",
-	unsupported: "Quota not supported",
 };
 
 // The statuses a new sign-in fixes. The card prints the login command for
@@ -82,8 +81,13 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 							aria-label={account.name}
 							className="flex min-w-0 flex-col gap-3 rounded-lg border border-border p-4"
 						>
-							<div className="flex items-baseline justify-between gap-2">
-								<h3 className="truncate text-md font-medium text-fg">{account.name}</h3>
+							<div className="flex items-center justify-between gap-2">
+								<h3 className="flex min-w-0 items-center gap-2 text-md font-medium text-fg">
+									{harnessProvider[account.harness] && (
+										<ProviderIcon provider={harnessProvider[account.harness]!} className="text-fg-muted" />
+									)}
+									<span className="truncate">{account.name}</span>
+								</h3>
 								<span className="shrink-0 text-xs text-fg-faint">
 									{harnessLabel[account.harness]}
 									{account.isDefault ? ` · Default${account.defaultSource === "superset" ? " via SuperSet" : ""}` : ""}
@@ -114,6 +118,10 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 							)}
 							{account.quota.status === "ok" ? (
 								<QuotaWindows name={account.name} windows={account.quota.windows} />
+							) : account.quota.status === "unlimited" ? (
+								<p role="status" className="text-sm text-success">
+									Unlimited{account.quota.detail ? ` · ${account.quota.detail}` : ""}
+								</p>
 							) : needsLogin.has(account.quota.status) && account.loginCommand ? (
 								<div className="flex flex-col gap-2">
 									<p role="status" className="text-sm text-warning">

@@ -1,4 +1,4 @@
-import type { AccountHarness, UsageReport, UsageReportInput } from "@trellis/api";
+import type { UsageHarness, UsageReport, UsageReportInput } from "@trellis/api";
 import { executionEnvironment } from "../../executionEnvironment";
 import { resolveHostDefault } from "../harnessAccounts/hostDefault.ts";
 import type { IoCtx } from "../support.ts";
@@ -38,7 +38,7 @@ export const prepareReport = async (
 		const env = await deps.env();
 		const roots = await usageRoots(accounts, env);
 		const sessionAccounts = await claudeSessionOwners(accounts, env);
-		const defaultAccounts: Partial<Record<AccountHarness, string>> = {};
+		const defaultAccounts: Partial<Record<UsageHarness, string>> = {};
 		for (const harness of ["claude", "codex", "pi", "opencode"] as const) {
 			const resolved = await resolveHostDefault(harness, accounts, env);
 			if (resolved.account) defaultAccounts[harness] = resolved.account.name;

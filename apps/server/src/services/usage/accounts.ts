@@ -4,14 +4,14 @@ import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { executionEnvironment } from "../../executionEnvironment";
-import { readCredential } from "../harnessAccounts/credentials.ts";
+import { readCredential, readOptionalJson } from "../harnessAccounts/credentials.ts";
 import { type Credential, fetchAccountQuota } from "../harnessAccounts/fetchQuota.ts";
 import { resolveHostDefault } from "../harnessAccounts/hostDefault.ts";
 import { loginCommandFor } from "../harnessAccounts/presentation.ts";
 import { profileDefault } from "../harnessAccounts/profiles.ts";
 import type { AccountRow } from "../harnessAccounts/queries.ts";
 import type { IoCtx } from "../support.ts";
-import { usageRoots } from "./roots.ts";
+import { museConfigDir, usageRoots } from "./roots.ts";
 
 // The harnesses whose default login exposes subscription quota. Pi and
 // OpenCode do not, so a default login of theirs adds nothing to the page.
@@ -21,6 +21,27 @@ const CACHE_MS = 5 * 60 * 1000;
 const REFRESH_FLOOR_MS = 10 * 1000;
 
 export type UsageLogin = Omit<UsageAccount, "quota">;
+export type UsageQuota = UsageAccount["quota"];
+
+type MuseAuth = { providers?: Record<string, { user_email?: string; obtained_via?: string }> };
+
+// The Muse login of this machine, from `<config>/muse/auth.json`. Meta
+// exposes no quota endpoint, so a signed-in Muse login is unlimited.
+export async function museQuota(configDir: string, now = Date.now()): Promise<UsageQuota> {
+	const auth = (await readOptionalJson(`${configDir}/auth.json`)) as MuseAuth | null;
+	const meta = auth?.providers?.meta;
+	const fetchedAt = new Date(now).toISOString();
+	if (!meta)
+		return { status: "signed_out", email: null, plan: null, detail: "Run muse login.", windows: [], fetchedAt };
+	return {
+		status: "unlimited",
+		email: meta.user_email ?? null,
+		plan: meta.obtained_via ?? null,
+		detail: null,
+		windows: [],
+		fetchedAt,
+	};
+}
 
 const listAccounts = (tx: Tx) =>
 	rows<AccountRow>(
@@ -71,6 +92,23 @@ export async function usageLogins(accounts: readonly AccountRow[], env: NodeJS.P
 			// The profile directory of this account is gone.
 		}
 	}
+	const museDir = museConfigDir(env);
+	try {
+		await realpath(`${museDir}/auth.json`);
+		logins.push({
+			key: "default:muse",
+			id: null,
+			name: "Default login",
+			harness: "muse",
+			profilePath: museDir,
+			isDefault: true,
+			defaultSource: "system",
+			loginCommand: loginCommandFor("muse", museDir),
+			sharedWith: [],
+		});
+	} catch {
+		// Muse is not signed in on this machine, or not installed.
+	}
 	for (const harness of QUOTA_HARNESSES) {
 		const profilePath = profileDefault(harness, env);
 		let real: string;
@@ -106,11 +144,13 @@ export const prepareAccounts = async (
 		env: () => executionEnvironment(),
 		now: Date.now,
 		quota: (login: UsageLogin) =>
-			fetchAccountQuota(
-				{ ...login, id: login.id ?? "", enabled: true, createdAt: "", updatedAt: "" },
-				fetch,
-				readCredential as (account: { harness: AccountHarness; profilePath: string }) => Promise<Credential>,
-			),
+			login.harness === "muse"
+				? museQuota(login.profilePath)
+				: fetchAccountQuota(
+						{ ...login, harness: login.harness, id: login.id ?? "", enabled: true, createdAt: "", updatedAt: "" },
+						fetch,
+						readCredential as (account: { harness: AccountHarness; profilePath: string }) => Promise<Credential>,
+					),
 	},
 ): Promise<UsageAccount[]> => {
 	const key = ctx.home;
@@ -122,8 +162,9 @@ export const prepareAccounts = async (
 		const logins = await usageLogins(accounts, await deps.env());
 		return Promise.all(
 			logins.map(async (login) => {
-				const { accountId: _accountId, ...quota } = await deps.quota(login);
-				return { ...login, quota };
+				const quota = await deps.quota(login);
+				const { accountId: _accountId, ...rest } = quota as UsageQuota & { accountId?: string };
+				return { ...login, quota: rest };
 			}),
 		);
 	})();

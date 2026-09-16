@@ -67,9 +67,9 @@ test("Codex uses the selected account header and maps its quota windows", async 
 		windows: [{ usedPercent: 45, resetsAt: "2026-09-16T00:01:00.000Z" }],
 	});
 });
-test("unsupported quota and API billing remain explicit", async () => {
-	expect((await fetchAccountQuota({ ...account, harness: "pi" }, fetch, read)).status).toBe("unsupported");
+test("a harness without a quota endpoint and API billing count as unlimited", async () => {
+	expect((await fetchAccountQuota({ ...account, harness: "pi" }, fetch, read)).status).toBe("unlimited");
 	expect((await fetchAccountQuota(account, fetch, async () => ({ ...(await read()), apiKey: true }))).status).toBe(
-		"unsupported",
+		"unlimited",
 	);
 });

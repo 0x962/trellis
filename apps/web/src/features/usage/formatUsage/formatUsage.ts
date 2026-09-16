@@ -1,5 +1,5 @@
-import type { AccountHarness, UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
-import { type ChartTone, otherTone, rankedTones } from "@trellis/ui";
+import type { UsageGroupBy, UsageGroupRow, UsageHarness, UsageMetric } from "@trellis/api";
+import { type ChartTone, type ModelProvider, otherTone, rankedTones } from "@trellis/ui";
 
 // "$19,211", "$46.20", "$0.85", "<$0.01". Whole dollars from $100 up.
 export function formatUsd(usd: number): string {
@@ -51,20 +51,40 @@ export function localDayKey(iso: string): string {
 // "42%" of `total`, or "" when there is no total.
 export const formatShare = (value: number, total: number) => (total > 0 ? `${Math.round((100 * value) / total)}%` : "");
 
-export const harnessLabel: Record<AccountHarness, string> = {
+export const harnessLabel: Record<UsageHarness, string> = {
 	claude: "Claude Code",
 	codex: "Codex",
 	opencode: "OpenCode",
 	pi: "Pi",
+	muse: "Muse",
 };
+
+// The company behind a harness that serves one provider. Pi and OpenCode
+// route to many, so a row of theirs takes its provider from the model.
+export const harnessProvider: Partial<Record<UsageHarness, ModelProvider>> = {
+	claude: "anthropic",
+	codex: "openai",
+	muse: "meta",
+};
+
+// The company behind a model id, from the vendor prefix or the model name.
+export function modelProvider(model: string): ModelProvider | null {
+	const id = model.toLowerCase();
+	if (id.startsWith("anthropic/") || id.includes("claude")) return "anthropic";
+	if (id.startsWith("openai/") || id.includes("gpt") || id.includes("codex")) return "openai";
+	if (id.startsWith("meta/") || id.includes("muse") || id.includes("llama")) return "meta";
+	if (id.startsWith("google/") || id.includes("gemini")) return "google";
+	return null;
+}
 
 // Each harness keeps one tone on every chart, so Claude Code is purple on
 // the harness split, on the model list, and on the quota cards.
-export const harnessTone: Record<AccountHarness, ChartTone> = {
+export const harnessTone: Record<UsageHarness, ChartTone> = {
 	claude: "agent",
 	codex: "fg",
 	opencode: "success",
 	pi: "warning",
+	muse: "danger",
 };
 
 // The tone of a breakdown row. Under the harness grouping a row keeps its

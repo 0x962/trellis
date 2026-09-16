@@ -51,10 +51,10 @@ export function HarnessAccountCard({
 	const label =
 		{
 			ok: "Quota available",
+			unlimited: "Unlimited: the provider reports no quota window",
 			signed_out: "Sign in required",
 			expired: "Sign-in refresh required",
 			unavailable: "Quota unavailable",
-			unsupported: "Quota not supported",
 		}[quota?.status ?? ""] ?? "Check quota…";
 	return (
 		<article aria-label={account.name} className="flex min-w-0 flex-col gap-3 py-4">

@@ -2,6 +2,12 @@ import { z } from "zod";
 import { AccountHarnessSchema } from "./harnessAccount.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
+// The harnesses whose transcripts the usage scan reads: every account
+// harness, and Muse, the Meta coding agent, which Trellis reads but does
+// not launch.
+export const UsageHarnessSchema = z.enum([...AccountHarnessSchema.options, "muse"]);
+export type UsageHarness = z.infer<typeof UsageHarnessSchema>;
+
 // The usage report reads the transcript files that each harness CLI writes
 // on this machine, prices every turn at the API list rate, and joins each
 // session to the Trellis agent run that started it. A session that Trellis
@@ -27,7 +33,7 @@ export type UsageDaySlice = z.infer<typeof UsageDaySliceSchema>;
 // One local calendar day of the range. `harnesses` holds only the harnesses
 // with usage that day.
 export const UsageDaySchema = UsageDaySliceSchema.extend({
-	harnesses: z.partialRecord(AccountHarnessSchema, UsageSliceSchema),
+	harnesses: z.partialRecord(UsageHarnessSchema, UsageSliceSchema),
 });
 export type UsageDay = z.infer<typeof UsageDaySchema>;
 
@@ -38,7 +44,7 @@ export const UsageGroupRowSchema = z.object({
 	label: z.string(),
 	detail: z.string().nullable(),
 	href: z.string().nullable(),
-	harness: AccountHarnessSchema.nullable(),
+	harness: UsageHarnessSchema.nullable(),
 	usd: z.number(),
 	tokens: z.number(),
 	sessions: z.number().int(),
@@ -52,7 +58,7 @@ export type UsageGroupRow = z.infer<typeof UsageGroupRowSchema>;
 // did. `groupKeys` names the row of every grouping the session belongs to.
 export const UsageSessionSchema = z.object({
 	sessionId: z.string(),
-	harness: AccountHarnessSchema,
+	harness: UsageHarnessSchema,
 	model: z.string(),
 	label: z.string().nullable(),
 	usd: z.number(),
@@ -128,7 +134,7 @@ export const UsageAccountSchema = z.object({
 	key: z.string(),
 	id: UlidSchema.nullable(),
 	name: z.string(),
-	harness: AccountHarnessSchema,
+	harness: UsageHarnessSchema,
 	profilePath: z.string(),
 	isDefault: z.boolean(),
 	// Where the default comes from: the SuperSet pointer file, the Trellis
@@ -141,7 +147,9 @@ export const UsageAccountSchema = z.object({
 	// The usage of such a directory is one shared row of the report.
 	sharedWith: z.array(z.string()),
 	quota: z.object({
-		status: z.enum(["ok", "signed_out", "expired", "unavailable", "unsupported"]),
+		// `unlimited` is a login whose provider reports no quota window: an
+		// API key, a plan without limits, or a harness with no quota endpoint.
+		status: z.enum(["ok", "unlimited", "signed_out", "expired", "unavailable"]),
 		email: z.string().nullable(),
 		plan: z.string().nullable(),
 		detail: z.string().nullable(),

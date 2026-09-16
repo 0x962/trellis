@@ -4,7 +4,7 @@
 // model id. An unknown model takes the cheapest rate of its harness, and
 // the result is marked approximate.
 
-import type { AccountHarness } from "@trellis/api";
+import type { UsageHarness } from "@trellis/api";
 
 export const PRICING_TABLE_UPDATED = "2026-09-03";
 
@@ -15,6 +15,9 @@ export type ModelRate = {
 	// its input rate.
 	cacheReadPerM?: number;
 	longContext?: ModelRate;
+	// True for a model with no published API list price. Its tokens count,
+	// its cost stays zero, and every row it touches is approximate.
+	unpriced?: boolean;
 };
 
 export const CACHE_READ_MULTIPLIER = 0.1;
@@ -64,19 +67,26 @@ const GEMINI_RATES: Record<string, ModelRate> = {
 	"gemini-2.5-flash": { inputPerM: 0.3, outputPerM: 2.5 },
 };
 
+// Meta publishes no API list price for the Muse models.
+const MUSE_RATES: Record<string, ModelRate> = {
+	"muse-spark": { inputPerM: 0, outputPerM: 0, unpriced: true },
+	"muse-glimmer": { inputPerM: 0, outputPerM: 0, unpriced: true },
+};
+
 // Pi and OpenCode route to many providers. They record their own cost, and
 // this table is the fallback for a message without one.
 const MULTI_PROVIDER_RATES: Record<string, ModelRate> = { ...CLAUDE_RATES, ...CODEX_RATES, ...GEMINI_RATES };
 
-const RATES_BY_HARNESS: Record<AccountHarness, Record<string, ModelRate>> = {
+const RATES_BY_HARNESS: Record<UsageHarness, Record<string, ModelRate>> = {
 	claude: CLAUDE_RATES,
 	codex: CODEX_RATES,
 	pi: MULTI_PROVIDER_RATES,
 	opencode: MULTI_PROVIDER_RATES,
+	muse: MUSE_RATES,
 };
 
-const cheapestByHarness = new Map<AccountHarness, ModelRate>();
-function cheapestRate(harness: AccountHarness): ModelRate {
+const cheapestByHarness = new Map<UsageHarness, ModelRate>();
+function cheapestRate(harness: UsageHarness): ModelRate {
 	let cheapest = cheapestByHarness.get(harness);
 	if (!cheapest) {
 		for (const rate of Object.values(RATES_BY_HARNESS[harness])) {
@@ -92,7 +102,7 @@ export type MatchedRate = ModelRate & {
 	approximate: boolean;
 };
 
-export function matchModelRate(harness: AccountHarness, model: string, promptTokens = 0): MatchedRate {
+export function matchModelRate(harness: UsageHarness, model: string, promptTokens = 0): MatchedRate {
 	const rates = RATES_BY_HARNESS[harness];
 	const normalized = model.toLowerCase();
 	// A multi-provider harness qualifies the id with its vendor, such as
@@ -108,7 +118,7 @@ export function matchModelRate(harness: AccountHarness, model: string, promptTok
 	}
 	if (best) {
 		const rate = promptTokens > 200_000 && best.rate.longContext ? best.rate.longContext : best.rate;
-		return { ...rate, approximate: false };
+		return { ...rate, approximate: rate.unpriced === true };
 	}
 	return { ...cheapestRate(harness), approximate: true };
 }

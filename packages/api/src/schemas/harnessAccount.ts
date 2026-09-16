@@ -50,7 +50,9 @@ export const HarnessAccountUpdateSchema = z.strictObject({
 export type HarnessAccountUpdate = z.infer<typeof HarnessAccountUpdateSchema>;
 export const HarnessAccountQuotaSchema = z.object({
 	accountId: UlidSchema,
-	status: z.enum(["ok", "signed_out", "expired", "unavailable", "unsupported"]),
+	// `unlimited` is a login whose provider reports no quota window: an API
+	// key, a plan without limits, or a harness with no quota endpoint.
+	status: z.enum(["ok", "unlimited", "signed_out", "expired", "unavailable"]),
 	email: z.string().nullable(),
 	plan: z.string().nullable(),
 	detail: z.string().nullable(),

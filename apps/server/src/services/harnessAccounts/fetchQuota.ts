@@ -24,17 +24,13 @@ export async function fetchAccountQuota(
 		windows: [],
 		fetchedAt: new Date(now).toISOString(),
 	};
-	if (!["claude", "codex"].includes(account.harness))
-		return {
-			...base,
-			status: "unsupported",
-			detail: "This harness does not expose subscription quota through Trellis.",
-		};
+	// A harness with no quota endpoint has no window to fill, so the login
+	// counts as unlimited.
+	if (!["claude", "codex"].includes(account.harness)) return { ...base, status: "unlimited" };
 	try {
 		const auth = await read(account);
 		const result = { ...base, email: auth.email, plan: auth.plan };
-		if (auth.apiKey)
-			return { ...result, status: "unsupported", detail: "API billing does not expose subscription quota windows." };
+		if (auth.apiKey) return { ...result, status: "unlimited", detail: "API billing, priced per token." };
 		if (!auth.token) return { ...result, status: "signed_out", detail: "Sign in with the account's login command." };
 		if (auth.expiresAt !== undefined && auth.expiresAt <= now)
 			return { ...result, status: "expired", detail: "Open this account in its CLI to refresh its sign-in." };
@@ -63,8 +59,8 @@ export async function fetchAccountQuota(
 		return {
 			...result,
 			...usage,
-			status: usage.windows.length ? "ok" : "unavailable",
-			detail: usage.windows.length ? null : "The provider returned no quota windows for this account.",
+			status: usage.windows.length ? "ok" : "unlimited",
+			detail: null,
 		};
 	} catch {
 		return {
