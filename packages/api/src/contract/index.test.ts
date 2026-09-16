@@ -204,5 +204,7 @@ describe("contract", () => {
 		expects("agentRuns.start", ["CONCURRENCY_LIMIT"]);
 		expects("agentRuns.resume", ["CONCURRENCY_LIMIT"]);
 		expects("agentRuns.setModel", ["CONCURRENCY_LIMIT"]);
+		expects("system.backup", ["BACKUP_FAILED"]);
+		expects("search.query", ["SEARCH_REPLACED"]);
 	});
 });

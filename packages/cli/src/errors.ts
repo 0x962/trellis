@@ -35,6 +35,8 @@ const exitCodes: Record<ErrorCode, number> = {
 	CONCURRENCY_LIMIT: 4,
 	RUNNER_UNAVAILABLE: 6,
 	RESTART_FAILED: 6,
+	BACKUP_FAILED: 1,
+	SEARCH_REPLACED: 4,
 };
 
 // An error the contract does not declare comes from a crashed handler, so it

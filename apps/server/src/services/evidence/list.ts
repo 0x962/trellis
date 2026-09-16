@@ -3,9 +3,9 @@ import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
 import { currentCheck } from "./current.ts";
 import { reconcileCheck } from "./reconcileCheck.ts";
-import { revision } from "./revision.ts";
 import { target } from "./target.ts";
 import type { EvidenceCtx } from "./types.ts";
+import { workspaceRevision } from "./workspaceRevision.ts";
 
 export const list = async (ctx: EvidenceCtx, input: { runId: string }) => {
 	const selected = await ctx.newTx((tx) => target(ctx.core, tx, input));
@@ -23,7 +23,7 @@ export const list = async (ctx: EvidenceCtx, input: { runId: string }) => {
 	for (const { document } of stored.checks) {
 		completed.push(await reconcileCheck(ctx, document, selected.workspace));
 	}
-	const state = await revision(selected.workspace);
+	const state = await workspaceRevision(selected.workspace);
 	const checks = completed.map((check) => currentCheck(check, { ...state, attemptId: selected.attemptId }));
 	const hashes = new Map(state.files.map((file) => [file.path, file.sha256]));
 	const artifacts = stored.artifacts.map(({ document }) => ({
