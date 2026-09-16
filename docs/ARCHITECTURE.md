@@ -422,6 +422,15 @@ Ticket events take precedence. The queue holds at most one pending or unresolved
 Heartbeats respect project dispatch pause, the global work pause, and archived projects.
 The heartbeat asks the manager to follow its current persona and status descriptions, inspect work, and avoid comments that only acknowledge the heartbeat.
 
+Each heartbeat and ticket dispatch includes `capacityReminder` when projects with unfinished tickets have free worker slots.
+The reminder reports `below_worker_capacity`, free slots, unfinished tickets, and counts for each eligible project.
+Blocked and review tickets count as unfinished. Done and canceled tickets do not count.
+Open native worker assignments occupy slots even when their processes are idle or stopped.
+
+The counts respect project limits, submanager reservations, manager scope, archives, and dispatch pauses.
+A submanager's shared capacity caps the total free slots across its projects.
+The reminder is null when no project with unfinished tickets can accept another worker.
+
 Each heartbeat and ticket dispatch includes `agentContext` from the runtime observations at dispatch time.
 The JSON envelope retains policy references, ticket events, and unfinished work. Agent names use the assigned persona.
 The context covers native assignments in the manager's project scope and excludes the recipient manager.
