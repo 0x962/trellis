@@ -207,7 +207,10 @@ describe("projects.create on a sub-project", () => {
 describe("projects.create side effects", () => {
 	test("a create upserts the actor and writes one activity row", async () => {
 		const created = await h.run((ctx, tx) => projects.create(ctx, tx, { key: "CDE", name: "Code" }));
-		expect(await h.rows(sql`SELECT name, kind FROM actors`)).toEqual([{ name: "dana", kind: "human" }]);
+		expect(await h.rows(sql`SELECT name, kind FROM actors ORDER BY name,kind`)).toEqual([
+			{ name: "dana", kind: "human" },
+			{ name: "trellis", kind: "system" },
+		]);
 		const rows = await activityRows(h);
 		expect(rows).toHaveLength(1);
 		const row = rows[0]!;

@@ -80,7 +80,7 @@ describe("actors.upsert", () => {
 	test("a service upserts the actor before its first write", async () => {
 		const unseen = { name: "fresh", kind: "agent" as const };
 		await h.run((ctx, tx) => projects.create(ctx, tx, { key: "CDE", name: "Code" }), { actor: unseen });
-		expect((await actorRows()).map((row) => `${row.kind}:${row.name}`)).toEqual(["agent:fresh"]);
+		expect((await actorRows()).map((row) => `${row.kind}:${row.name}`)).toEqual(["agent:fresh", "system:trellis"]);
 		const activity = await h.rows<{ actor_name: string; actor_kind: string }>(
 			sql`SELECT actor_name, actor_kind FROM activity`,
 		);
