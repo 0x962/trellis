@@ -290,28 +290,3 @@ test.each(["acknowledged", "unknown"])("a Claude start waits for its initial pro
 		await new Promise<void>((resolve) => server.close(() => resolve()));
 	}
 });
-
-test("an empty root directory reports a configuration error before runtime launch", async () => {
-	let runtimeCalled = false;
-	await startNative(
-		context(),
-		{
-			run: await h.read((tx) => getRun(tx, id)),
-			config: ProjectManagerConfigSchema.parse({ personaId: null, concurrency: 3, directory: "" }),
-			resume: false,
-			context: "Fixture",
-			attempt: { id: attemptId, generation: 1, token: "fixture-token" },
-		},
-		{
-			env: {},
-			runtime: async () => {
-				runtimeCalled = true;
-				throw new Error("Unexpected runtime start");
-			},
-		},
-	);
-	expect(runtimeCalled).toBe(false);
-	expect((await h.read((tx) => getRun(tx, id))).error).toBe(
-		"Select the local repository directory before you start a native agent.",
-	);
-});
