@@ -46,6 +46,22 @@ const sessionSchema = z.object({
 	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
+	resume: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "POST",
+			path: "/agent-runs/{id}/resume",
+			summary:
+				"Resume a stopped assignment with its exact conversation and workspace, optionally with another account of the same harness. Stop and inspect the prior attempt first.",
+		})
+		.input(
+			idInput.extend({
+				accountId: UlidSchema.optional(),
+				expectedTerminalId: z.string().min(1),
+				requestId: z.string().min(1).max(200),
+			}),
+		)
+		.output(AgentRunSchema),
 	interrupt: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/agent-runs/{id}/interrupt", summary: "Interrupt the current agent turn" })

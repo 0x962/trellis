@@ -35,6 +35,7 @@ describe("contract", () => {
 			"agentRuns.output GET /agent-runs/{id}/output",
 			"agentRuns.refresh POST /agent-runs/{id}/refresh",
 			"agentRuns.resize POST /agent-runs/{id}/terminal/resize",
+			"agentRuns.resume POST /agent-runs/{id}/resume",
 			"agentRuns.send POST /agent-runs/{id}/send",
 			"agentRuns.session GET /agent-runs/{id}/session",
 			"agentRuns.start POST /agent-runs",
@@ -73,6 +74,11 @@ describe("contract", () => {
 			"flows.list GET /flows",
 			"flows.save PUT /flows/{flow}/graph",
 			"flows.update PATCH /flows/{flow}",
+			"harnessAccounts.create POST /harness-accounts",
+			"harnessAccounts.list GET /harness-accounts",
+			"harnessAccounts.quota GET /harness-accounts/{id}/quota",
+			"harnessAccounts.remove DELETE /harness-accounts/{id}",
+			"harnessAccounts.update PATCH /harness-accounts/{id}",
 			"needsYou.list POST /needs-you/list",
 			"needsYou.summary POST /needs-you/summary",
 			"needsYou.update POST /needs-you/update",
@@ -148,7 +154,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(119);
+		expect(table).toHaveLength(125);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

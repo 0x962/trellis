@@ -12,6 +12,7 @@ import { capacityAvailable } from "../assignments/capacity.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { assertTicketReady } from "../controller/nextActions/assertTicketReady.ts";
 import { assignment } from "../controller/nextActions/assignment.ts";
+import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
@@ -45,15 +46,20 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 			projectId: project.id,
 			ticketId: ticket?.id ?? null,
 			newSession: input.newSession === true,
+			accountId: input.accountId ?? null,
 		},
 	};
 	const replay =
-		(await assignment(ctx, tx, { requestId: input.requestId, ticketId: ticket?.id ?? null, personaId: persona.id })) ??
-		(await replayRequest(ctx, tx, request));
+		(await assignment(ctx, tx, {
+			requestId: input.requestId,
+			ticketId: ticket?.id ?? null,
+			personaId: persona.id,
+			accountId: input.accountId,
+		})) ?? (await replayRequest(ctx, tx, request));
 	if (replay) return { replay: true as const, run: replay };
 	assertProjectActive(ctx, project.id);
 	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
-	const config = await projectLaunchConfig(tx, { projectId: project.id });
+	let config = await projectLaunchConfig(tx, { projectId: project.id });
 	await assertNativeWorkEnabled(tx);
 	if (ticket !== null) {
 		await assertTicketReady(ctx, tx, { ticketId: ticket.id, projectId: project.id });
@@ -91,6 +97,12 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 		existing.terminalId !== null &&
 		existing.workspaceId !== null &&
 		input.newSession !== true;
+	const selected = await selectAccount(tx, {
+		accountId: input.accountId ?? (resume ? existing?.accountId : undefined),
+		config,
+		useDefault: !resume,
+	});
+	config = selected.config;
 	const previousAttemptId = existing?.terminalId ?? null;
 	const sessionId = resume ? existing!.sessionId! : config.harness.preset === "custom" ? randomUUID() : null;
 	const [run] =
@@ -112,7 +124,10 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 				);
 	if (run === undefined) throw fail("DUPLICATE", { field: "active agent" });
 	const attempt = await reserveAttempt(ctx, tx, { runId: run.id });
-	await tx.execute(sql`UPDATE agent_runs SET runtime = 'native', terminal_id = ${attempt.id} WHERE id = ${run.id}`);
+	await tx.execute(
+		sql`UPDATE agent_runs SET runtime = 'native', terminal_id = ${attempt.id},account_id=${selected.accountId} WHERE id = ${run.id}`,
+	);
+	run.accountId = selected.accountId;
 	run.runtime = "native";
 	run.terminalId = attempt.id;
 	await recordRequest(ctx, tx, { ...request, runId: run.id });
@@ -133,6 +148,7 @@ export const reserve = async (ctx: CoreCtx, tx: Tx, input: AgentRunStartInput, c
 		config,
 		resume,
 		previousAttemptId,
+		previousAccountId: existing?.accountId ?? null,
 		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || (ticket === null ? "Not configured" : "Use the agent workspace.")}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}`,
 	};
 };

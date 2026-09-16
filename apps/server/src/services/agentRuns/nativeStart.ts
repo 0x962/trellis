@@ -1,9 +1,10 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ORPCError } from "@orpc/server";
 import type { ProjectManagerConfig } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
-import type { HarnessStartInput } from "../../agents/harnessHost/types.ts";
+import type { HarnessDescriptor, HarnessStartInput } from "../../agents/harnessHost/types.ts";
 import { launchCommand } from "../../agents/launchCommand/launchCommand.ts";
 import { launchPrompt } from "../../agents/launchCommand/launchPrompt.ts";
 import { ensureNativeRuntime } from "../../agents/native/connection.ts";
@@ -13,6 +14,9 @@ import { nativeWorkspace } from "../../agents/native/workspace.ts";
 import { rows } from "../../db/queries/support.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import type { ExecutionAttempt } from "../assignments/attempts.ts";
+import { profileDefault, profileEnvironment } from "../harnessAccounts/profiles.ts";
+import { getAccount } from "../harnessAccounts/queries.ts";
+import { transferSession } from "../harnessAccounts/transferSession.ts";
 import type { ServiceCtx } from "../support.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import type { StoredRun } from "./queries.ts";
@@ -32,6 +36,7 @@ export const startNative = async (
 		config: ProjectManagerConfig;
 		resume: boolean;
 		previousAttemptId?: string | null;
+		previousAccountId?: string | null;
 		context: string;
 		attempt: ExecutionAttempt;
 		deadlineAt?: number;
@@ -51,7 +56,11 @@ export const startNative = async (
 			);
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
-		const baseEnv = deps.env ?? (await (deps.environment ?? executionEnvironment)());
+		const ambientEnv = deps.env ?? (await (deps.environment ?? executionEnvironment)());
+		const account = run.accountId ? await ctx.newTx((tx) => getAccount(tx, { id: run.accountId! })) : null;
+		if (account && (!account.enabled || account.harness !== config.harness.preset))
+			throw new Error("The selected account is disabled or belongs to another harness.");
+		const baseEnv = account ? await profileEnvironment(account, ambientEnv) : ambientEnv;
 		const workspaceId = await (deps.workspace ?? nativeWorkspace)(ctx.home, run, config.directory);
 		const owned = await ctx.newTx((tx) =>
 			rows<{ id: string }>(
@@ -124,6 +133,21 @@ export const startNative = async (
 						"The prior attempt has no confirmed session for this harness. Start a new session.",
 					);
 				sessionId = previous.agent.sessionId;
+				const old: HarnessDescriptor = JSON.parse(
+					await readFile(join(ctx.home, "harness-attempts", input.previousAttemptId, "launch.json"), "utf8"),
+				);
+				const from = profileDefault(config.harness.preset, old.spec.env!);
+				const to = profileDefault(config.harness.preset, env);
+				if (from !== to)
+					await transferSession({
+						harness: config.harness.preset,
+						from,
+						to,
+						sessionId,
+						cwd: previous.launch!.cwd,
+						env,
+						directory: join(ctx.home, "harness-attempts", terminalId, "transfer"),
+					});
 				launch.cwd = previous.launch!.cwd;
 			}
 			const descriptor = await host.prepare(launch, sessionId);
@@ -140,7 +164,7 @@ export const startNative = async (
 	} catch (error) {
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET terminal_id = ${launchSubmitted || input.preserveAssignmentOnFailure ? terminalId : previousTerminalId}, session_lost = session_lost OR ${error instanceof MissingNativeSessionIdentity}, closed_at = ${launchSubmitted || input.preserveAssignmentOnFailure ? null : ctx.now()}, error = ${error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET account_id = ${!launchSubmitted && resume && input.previousAccountId !== undefined ? input.previousAccountId : (run.accountId ?? null)}, terminal_id = ${launchSubmitted || input.preserveAssignmentOnFailure ? terminalId : previousTerminalId}, session_lost = session_lost OR ${error instanceof MissingNativeSessionIdentity}, closed_at = ${launchSubmitted || input.preserveAssignmentOnFailure ? null : ctx.now()}, error = ${error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 		if (launchSubmitted)

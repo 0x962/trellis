@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const operations = {
 	projects: ["list", "get"],
+	harnessAccounts: ["list", "quota"],
 	statuses: ["list"],
 	personas: ["list"],
 	tickets: ["list", "counts", "get", "create", "update", "move", "updateMany"],
@@ -12,7 +13,7 @@ const operations = {
 	timeline: ["list"],
 	brief: ["get"],
 	pullRequests: ["list", "link", "unlink", "refresh"],
-	agentRuns: ["list", "start", "send", "stop", "interrupt", "session", "refresh"],
+	agentRuns: ["list", "start", "resume", "send", "stop", "interrupt", "session", "refresh"],
 	flows: ["list", "get"],
 	flowExecutions: ["list", "get", "start", "cancel"],
 	controller: ["list", "handle", "actions", "cancelAction"],
@@ -75,7 +76,11 @@ export const managerTools = (invoke: Invoke) => {
 				};
 			}
 			const result = await invoke(tool.operation, tool.schema.parse(input));
-			if (["agentRuns.start", "agentRuns.send", "agentRuns.stop", "agentRuns.refresh"].includes(tool.operation))
+			if (
+				["agentRuns.start", "agentRuns.resume", "agentRuns.send", "agentRuns.stop", "agentRuns.refresh"].includes(
+					tool.operation,
+				)
+			)
 				return assignmentRecord(result as AgentRun);
 			if (tool.operation !== "agentRuns.session") return result;
 			const session = result as Awaited<ReturnType<TrellisClient["agentRuns"]["session"]>>;

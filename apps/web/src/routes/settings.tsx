@@ -5,6 +5,7 @@ import { DesktopSettings } from "../features/settings/DesktopSettings";
 import { Diagnostics } from "../features/settings/Diagnostics";
 import { DraftTransfer } from "../features/settings/DraftTransfer";
 import { GhBanner } from "../features/settings/GhBanner";
+import { HarnessAccounts } from "../features/settings/HarnessAccounts";
 import { PairPhone } from "../features/settings/PairPhone";
 import { ThemeField } from "../features/settings/ThemeField";
 import { PageTitle } from "../features/shell/PageTitle";
@@ -40,6 +41,12 @@ type SettingsSection = {
 };
 
 const sections: SettingsSection[] = [
+	{
+		id: "agent-accounts",
+		title: "Agent accounts",
+		hint: "Manage harness logins, account selection, and quota on this machine.",
+		rows: <HarnessAccounts />,
+	},
 	{
 		id: "diagnostics",
 		title: "Diagnostics",

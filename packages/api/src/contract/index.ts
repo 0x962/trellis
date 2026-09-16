@@ -8,6 +8,7 @@ import { controller } from "./controller.ts";
 import { evidence } from "./evidence.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
+import { harnessAccounts } from "./harnessAccounts.ts";
 import { needsYou } from "./needsYou.ts";
 import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
@@ -24,6 +25,7 @@ import { timeline } from "./timeline.ts";
 // handler; the RPC handler at `/rpc` addresses a procedure by its dotted
 // name. The tag is the OpenAPI group.
 export const contract = {
+	harnessAccounts: oc.tag("harness accounts").router(harnessAccounts),
 	needsYou: oc.tag("needs you").router(needsYou),
 	evidence: oc.tag("evidence").router(evidence),
 	controller: oc.tag("controller").router(controller),

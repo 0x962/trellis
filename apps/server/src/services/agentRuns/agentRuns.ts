@@ -35,9 +35,9 @@ export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 	const exited = sessions.filter((session) => session.status === "exited").map((session) => session.id);
 	const reservation = await ctx.newTx((tx) => reserve(ctx.core, tx, input, exited));
 	if (reservation.replay) return { id: reservation.run.id };
-	const { run, context, config, resume, attempt, previousAttemptId } = reservation;
+	const { run, context, config, resume, attempt, previousAttemptId, previousAccountId } = reservation;
 	ctx.emit({ type: "agent-runs.changed", id: run.id });
-	return startNative(ctx, { run, context, config, resume, attempt, previousAttemptId });
+	return startNative(ctx, { run, context, config, resume, attempt, previousAttemptId, previousAccountId });
 };
 
 export const finish = async (ctx: Ctx, _tx: Tx, input: AgentRun) => {

@@ -256,7 +256,7 @@ An agent run copies its persona name, kind, and instruction at launch. Later per
 A builder or reviewer names one ticket. A manager names one project.
 The row retains the project path and ticket identifier so its history remains readable.
 
-`agentRuns` exposes start, stop, refresh, send, output, session inspection, terminal input, and terminal resize operations.
+`agentRuns` exposes start, resume, stop, refresh, send, output, session inspection, terminal input, and terminal resize operations.
 `GET /api/agent-runs/:id/terminal/stream` pushes terminal bytes and inspected process status through an authenticated SSE connection.
 The runtime owns each process through a distinct execution attempt. Each attempt has an identifier, generation, and token hash.
 A stable start request identifier returns its existing run before the concurrency check.
@@ -285,6 +285,28 @@ A failed launch retains its error. A stop retains the workspace and output after
 The concurrency limit counts ticket assignments with `closed_at IS NULL`. It excludes the manager.
 A confirmed process exit closes its assignment before the next claim.
 The limit runs from 1 to 64 and defaults to 3. A partial unique index permits one active manager per project.
+
+### Harness accounts
+
+The main Settings page stores several accounts per harness at `/settings#agent-accounts`.
+An account names an existing profile directory or a managed profile under `accounts/<id>/profile` in the data home.
+Each managed profile keeps separate credentials. Shared directories retain sessions and skills. The provider CLI owns sign-in and token renewal.
+Claude uses `CLAUDE_CONFIG_DIR`; Codex uses `CODEX_HOME`; Pi uses `PI_CODING_AGENT_DIR`; OpenCode uses `XDG_DATA_HOME`.
+Removal archives the account record and retains its files.
+
+`harnessAccounts.list` returns account metadata, login commands, and capabilities. Account mutation requires a human actor.
+`harnessAccounts.quota` reads Claude or Codex subscription usage outside database transactions and caches results for five minutes.
+A manual refresh has a ten-second minimum interval. OpenCode and Pi return `unsupported` quota.
+An unavailable quota result contains no allowance estimate. Credentials stay on the host and do not enter API responses.
+
+`agentRuns.start` accepts an optional `accountId`. A new assignment otherwise selects its harness default account.
+The assignment retains its account across process restarts. An explicit account also selects its harness for a new assignment.
+`agentRuns.resume` requires the stopped attempt identifier and a stable request identifier.
+A resume retains the assignment, workspace, and provider conversation. Its target account must use the same harness.
+Claude, Codex, and Pi transfer the selected session file. OpenCode exports and imports that session through its CLI.
+The runtime checks the resumed provider session identifier before it accepts the process.
+Existing manager personas receive the account instructions in migration `0046_harness_accounts`.
+The source instructions live in [manager-harness-accounts.md](personas/manager-harness-accounts.md).
 
 ### Manager controller
 
@@ -473,7 +495,8 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), version (CHECK > 0), created_at, updated_at. |
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
-| agent_runs | id PK, name, runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND `closed_at IS NULL`. Index (created_at). |
+| harness_accounts | id PK, name, harness, profile_path, is_default, enabled, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
+| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND `closed_at IS NULL`. Index (created_at). |
 | agent_sessions (stored history) | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |
 | agent_cursors | project_id PK (CASCADE), activity_id bigint, updated_at. Stored activity cursor from earlier data homes. |
 
@@ -549,6 +572,9 @@ returns one canonical spelling.
 | flows.list, get, create, update, save, delete | GET, POST /api/flows; GET, PATCH, DELETE /api/flows/{flow}; PUT /api/flows/{flow}/graph | `{flow}` is a ULID or a slug; save replaces every node and edge |
 | agentRuns.list, start | GET, POST /api/agent-runs | start answers 201 with the row in any state |
 | agentRuns.stop, refresh, send | POST /api/agent-runs/{id}/stop, /refresh, /send | send takes 1 to 20000 characters |
+| agentRuns.resume | POST /api/agent-runs/{id}/resume | existing assignment, accountId, expectedTerminalId, requestId |
+| harnessAccounts.list, create, update, remove | GET, POST /api/harness-accounts; PATCH, DELETE /api/harness-accounts/{id} | account metadata and profile selection |
+| harnessAccounts.quota | GET /api/harness-accounts/{id}/quota | cached usage windows and reset times |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
 | search.query | GET /api/search | tickets and projects |
 | brief.get | GET /api/tickets/{ticket}/brief | the markdown brief an agent starts from |
