@@ -100,6 +100,13 @@ Evidence: `/tmp/trellis-codex-final-combined.log` and `/tmp/trl-hhost-EQecZV`.
 All nine workspace typechecks pass. Scoped Biome checks pass.
 The [host guide](host-testing.md#codex-manager-checks) records the native and authenticated commands.
 
+The production package uses source `4df843c6` and release `e447b219`.
+All 13 packaged smoke checks pass. The signed app starts an isolated macOS service and opens its renderer with 23 passing assertions.
+At 00:28:50 UTC on September 16, an atomic ditto install updates `~/Applications/Trellis.app`.
+The desktop, HTTP host, runtime, and all four active agent processes keep their identities during the copy. The host returns HTTP 200.
+The user can restart Trellis to activate the package. This verification does not restart the live app or reset its manager conversation.
+Evidence: `/tmp/trellis-codex-manager-production.log`, `/tmp/trellis-codex-manager-signed-startup.log`, and `/tmp/trellis-startup-repair-install.json`.
+
 ## Default models
 
 New sessions with no model selection use explicit models:
