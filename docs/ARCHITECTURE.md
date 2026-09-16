@@ -264,7 +264,7 @@ The API is `notes.list`, `notes.get`, `notes.create`, `notes.update`, and
 invalidates every note query. The CLI verb is `trellis notes`, the manager
 tools are `trellis_notes_*`, and the web route is `/p/<project path>/notes`.
 What an agent is told about notes lives in `personas.instruction`, which the
-migration `0052_persona_notes_instructions` appends to. Code injects no prompt
+migration `0053_persona_notes_instructions` appends to. Code injects no prompt
 text; the launch prompt and the brief carry note content only.
 
 ### Pull request reviews

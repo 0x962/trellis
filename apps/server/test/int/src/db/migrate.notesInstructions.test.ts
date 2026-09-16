@@ -8,7 +8,7 @@ import { migrate } from "../../../../src/db/migrate.ts";
 
 const migrations = join(originDir(import.meta.dir), "../../drizzle");
 
-// 0052 appends the `## Project notes` section to every saved persona: the
+// 0053 appends the `## Project notes` section to every saved persona: the
 // CLI form to builders and reviewers, the tool form to managers. A persona
 // that already holds the section keeps one copy, so a rerun changes nothing.
 test("the notes migration appends one Project notes section per persona kind", async () => {
@@ -16,7 +16,7 @@ test("the notes migration appends one Project notes section per persona kind", a
 	cpSync(migrations, before, { recursive: true });
 	const journalPath = join(before, "meta/_journal.json");
 	const journal = JSON.parse(readFileSync(journalPath, "utf8"));
-	journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx < 52);
+	journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx < 53);
 	writeFileSync(journalPath, JSON.stringify(journal));
 	const db = await openDb(":memory:");
 	await migrate(db, before);
