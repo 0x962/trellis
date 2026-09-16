@@ -119,7 +119,7 @@ function ProjectPage() {
 				{view === "manager" ? (
 					<ProjectManagerPage key={project.id} project={project} />
 				) : view === "chat" ? (
-					<ChatPage key={project.rootId} project={project} />
+					<ChatPage key={project.id} project={project} />
 				) : view === "notes" ? (
 					<NotesPage key={project.id} project={project} />
 				) : (

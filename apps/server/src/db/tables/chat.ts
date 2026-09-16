@@ -4,10 +4,9 @@ import { actorColumns, actorFk, at } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
 import { projects } from "./projects.ts";
 
-// One chat room per root project, with named channels inside it. Every
-// project of the tree shares the room of its root, so `project_id` is a
-// root id. A channel is addressed by that root and its lower-case name, as
-// on IRC, so it has no id of its own. Every room holds `ai` and `general`.
+// One chat room per project, a root or a sub-project, with named channels
+// inside it. A channel is addressed by its project and its lower-case name,
+// as on IRC, so it has no id of its own. Every room holds `ai` and `general`.
 export const chatChannels = pgTable(
 	"chat_channels",
 	{

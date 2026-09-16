@@ -14,14 +14,12 @@ import { upsert } from "../actors.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import { channelSelect, type RawChannel, toChannel } from "./rows.ts";
 
-// The room of any project is the room of its root.
-export const resolveRoom = async (ctx: ServiceCtx, tx: Tx, ref: string) => {
-	const project = await resolveProject(ctx, tx, ref);
-	return ctx.cache.get(project.rootId)!;
-};
+// Every project, a root or a sub-project, has its own room. A sub-project
+// shares nothing with its parent.
+export const resolveRoom = (ctx: ServiceCtx, tx: Tx, ref: string) => resolveProject(ctx, tx, ref);
 
 // Inserts the channels every room starts with. The project create calls it
-// for a new root.
+// for every new project.
 export const seedDefaultChannels = async (ctx: ServiceCtx, tx: Tx, rootId: string) => {
 	await upsert(ctx, tx, SYSTEM_ACTOR);
 	for (const name of DEFAULT_CHAT_CHANNELS) {

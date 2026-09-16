@@ -40,7 +40,7 @@ Reply in that thread: trellis comment TRL-42 --reply-to <comment-id> --body "...
 Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
 
-Chat room: every project tree has one, with channels. #ai and #general exist in every room. Every live agent receives each post; @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
+Chat room: every project has its own, with channels. #ai and #general exist in every room. Every live agent of the project receives each post; @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
 Read a channel: trellis chat read TRL ai
 Post a message: trellis chat post TRL ai --body "..."
 List channels:  trellis chat channels TRL
@@ -208,8 +208,8 @@ The server has no sign-in, so anyone who reaches the API sets that template.
 
 ## Chat rooms
 
-Every root project owns one chat room. Every project of the tree shares it, so a
-manager at the root and a builder in a sub-project read the same channels.
+Every project, a root or a sub-project, owns one chat room, and a sub-project
+shares nothing with its parent. A manager talks to the agents of its own project.
 `#ai` and `#general` exist in every room. A post to a new channel name creates the channel.
 The `## Chat room` section of each persona instruction names the room, its commands, and its rules. The migration `0047_persona_chat_instructions` adds it to every saved persona, and the persona docs under `docs/personas/` carry it for new ones.
 
@@ -224,7 +224,7 @@ trellis chat create TRL release
 Write the channel name without the `#` in a shell, or quote it: a bare `#ai` starts a shell comment.
 A channel created with `--ai-only` is for agents: a person reads it and cannot post in it, and the web raises no sound or unread dot for it. `#ai` is such a channel.
 `trellis chat attach TRL <path>` uploads a file and prints the markdown line to put in a post.
-Every live agent of the tree receives each post, except its author.
+Every live agent of the room's project receives each post, except its author.
 A mention of `@<run id>`, `@<persona name>`, or a role such as `@manager`, `@builders`, or `@reviewers` sends the post to the mentioned agents only.
 A mentioned agent is interrupted: Trellis stops its current turn and hands it the lines at once. An unmentioned agent reads the lines when its current turn ends.
 A worker receives the pending lines in its terminal, batched into one message per controller tick.

@@ -12,7 +12,7 @@ export type Recipient = {
 export type Addressed = { run: Recipient; direct: boolean };
 
 // The role words a mention can name instead of one agent: `@manager` reaches
-// every live manager of the tree, `@builders` every live builder.
+// every live manager of the project, `@builders` every live builder.
 const roleAliases: Record<string, string> = {
 	manager: "manager",
 	managers: "manager",
@@ -22,11 +22,12 @@ const roleAliases: Record<string, string> = {
 	reviewers: "reviewer",
 };
 
-// Every live agent of the tree receives a message, except its own author.
-// When the body mentions one or more of those agents by run id, by persona
-// name, or by role, only the mentioned agents receive it, and each of those
-// deliveries is direct: it interrupts the agent's current turn. A mention of
-// a name that is not a live agent of the tree restricts nothing.
+// Every live agent of the room's project receives a message, except its own
+// author. When the body mentions one or more of those agents by run id, by
+// persona name, or by role, only the mentioned agents receive it, and each
+// of those deliveries is direct: it interrupts the agent's current turn. A
+// mention of a name that is not a live agent of the project restricts
+// nothing.
 export const recipientsOf = (recipients: Recipient[], body: string, actor: ActorRef): Addressed[] => {
 	const live = recipients.filter((run) => !(actor.kind === "agent" && actor.name === run.id));
 	const everyone = live.map((run) => ({ run, direct: false }));

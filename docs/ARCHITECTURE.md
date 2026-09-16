@@ -211,9 +211,10 @@ takes builder. A delete keeps the snapshots of the runs that used the persona.
 
 ### Chat rooms
 
-Every root project owns one chat room, and every project of the tree shares
-it. The room holds named channels. `ai` and `general` exist in every room;
-the project create and the migration insert them. A post to a channel the
+Every project, a root or a sub-project, owns one chat room, and a
+sub-project shares nothing with its parent. The room holds named channels.
+`ai` and `general` exist in every room; the project create and the
+migration insert them. A post to a channel the
 room lacks creates the channel. A channel has no id: the API and the CLI
 address it by its project and its lower-case name, with an optional `#`.
 A channel can be for agents only (`aiOnly`); `ai` is one, and an agent can
@@ -228,7 +229,8 @@ bytes, and returns the markdown line the message carries. The bytes serve at
 either attachment table names.
 
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
-holds one row per post and live native agent of the tree, except the author.
+holds one row per post and live native agent of the room's project, except
+the author.
 A post that mentions a live agent by run id, by persona name, or by role
 (`@manager`, `@builders`, `@reviewers`) reaches only the mentioned agents,
 and each of those rows is `direct`. The controller tick sends every pending
@@ -239,7 +241,7 @@ receives a `trellis.chat.messages` JSON document; a worker receives IRC style
 lines and the two CLI commands. The states and the session pinning are the
 states and the pinning of a comment mention.
 
-The web route `/p/<project path>/chat` shows the room of the tree as a log:
+The web route `/p/<project path>/chat` shows the room of the project as a log:
 the clock and the full name on one line, the body as markdown under it,
 with a dated rule where the day changes. A known `@name` renders as a mark.
 A click on a name inserts a mention. The composer takes several lines, a

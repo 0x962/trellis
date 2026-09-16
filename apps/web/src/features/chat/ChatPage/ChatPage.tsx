@@ -61,7 +61,7 @@ const withDayRules = (
 // no composer: a person reads it.
 export function ChatPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
-	const rootId = project.rootId;
+	const rootId = project.id;
 	const channel = useChatStore((state) => state.openChannel[rootId] ?? "ai");
 	const draft = useChatStore((state) => state.drafts[`${rootId}:${channel}`] ?? "");
 	const { setOpenChannel, setDraft, markRead } = useChatStore.getState();
@@ -73,8 +73,10 @@ export function ChatPage({ project }: { project: Project }) {
 	const messages = useQuery(
 		orpc.chat.list.queryOptions({ input: { project: project.path, channel, limit: LOG_LIMIT } }),
 	);
-	const agents = useQuery(orpc.agentRuns.list.queryOptions({ input: { project: rootId } }));
-	const live = (agents.data ?? []).filter((run) => run.state === "running" || run.state === "starting");
+	const agents = useQuery(orpc.agentRuns.list.queryOptions({ input: { project: project.path } }));
+	const live = (agents.data ?? []).filter(
+		(run) => run.projectId === project.id && (run.state === "running" || run.state === "starting"),
+	);
 	const items: ChatMessage[] = messages.data?.items ?? [];
 
 	// The names a mention in a body can address: the live agents by persona

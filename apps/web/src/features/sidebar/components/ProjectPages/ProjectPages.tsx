@@ -20,7 +20,7 @@ export function ProjectPages({
 	const settings = pathname.endsWith("/settings");
 	const chat = pathname.endsWith("/chat");
 	const notes = pathname.endsWith("/notes");
-	const { unread } = useChatUnread(project.rootId);
+	const { unread } = useChatUnread(project.id);
 	return (
 		<li>
 			<nav aria-label={`${project.name} pages`}>

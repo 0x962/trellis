@@ -72,10 +72,8 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput)
 			VALUES (${id}, ${parent?.id ?? null}, ${parent?.rootId ?? id}, ${key}, ${slug}, ${input.name},
 				${input.description ?? ""}, ${template}, 0, ${position}, NULL, ${ctx.now}, ${ctx.now}, ${JSON.stringify(input.managerConfig ?? DEFAULT_PROJECT_MANAGER_CONFIG)}::jsonb)`,
 	);
-	if (parent === null) {
-		await seedRootStatuses(ctx, tx, id);
-		await seedDefaultChannels(ctx, tx, id);
-	}
+	if (parent === null) await seedRootStatuses(ctx, tx, id);
+	await seedDefaultChannels(ctx, tx, id);
 	await ctx.cache.rebuild(tx);
 	await projectActivity(ctx, tx, id, "project.created", [
 		{ field: null, from: null, to: input.name, meta: { path: pathOf(ctx.cache, id) } },
