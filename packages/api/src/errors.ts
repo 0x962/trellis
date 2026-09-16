@@ -18,6 +18,16 @@ const IssueSchema = z.looseObject({
 // An error without a payload declares `z.undefined()`, so `data` is typed
 // as absent instead of as an empty object.
 export const errors = {
+	RESTART_FAILED: {
+		status: 503,
+		message: "An agent session could not resume after the system restart.",
+		data: z.object({
+			restartId: z.string().min(1),
+			runId: z.string().min(1),
+			attemptId: z.string().min(1),
+			requestId: z.string().min(1),
+		}),
+	},
 	REVIEW_VERSION_CONFLICT: {
 		status: 412,
 		message: "The review message changed. Read it again before an edit.",

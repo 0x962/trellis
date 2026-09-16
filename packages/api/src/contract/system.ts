@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pickErrors } from "../errors.ts";
 import { DiagnosticsSchema } from "../schemas/diagnostics.ts";
 import { BackupOutputSchema, GhStatusSchema, HealthSchema } from "../schemas/system.ts";
 import { base } from "./base.ts";
@@ -17,6 +18,7 @@ export const system = {
 		.input(z.object({}))
 		.output(z.object({ paused: z.boolean() })),
 	resumeRestart: base
+		.errors(pickErrors(["RESTART_FAILED"]))
 		.route({ method: "POST", path: "/native-work/restart/resume", summary: "Resume agents after a desktop restart" })
 		.input(z.object({ restartId: z.string().min(1) }).strict())
 		.output(z.object({ resumed: z.number(), skipped: z.number() })),

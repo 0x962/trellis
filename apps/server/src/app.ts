@@ -1,7 +1,8 @@
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
-import { ORPCError } from "@orpc/server";
+import { ORPCError, onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin, ResponseHeadersPlugin } from "@orpc/server/plugins";
+import type { StandardHandlerOptions } from "@orpc/server/standard";
 import { errors, reviewHref } from "@trellis/api";
 import { type Context, Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -167,14 +168,26 @@ export const createApp = ({
 		}),
 	);
 
+	const interceptors: StandardHandlerOptions<ProcedureContext>["interceptors"] = [
+		onError((error, { context, request }) => {
+			if (error instanceof ORPCError && error.status < 500) return;
+			log.error("procedure failed", {
+				reqId: context.reqId,
+				path: request.url.pathname,
+				message: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+			});
+		}),
+	];
 	const plugins = [new ResponseHeadersPlugin<ProcedureContext>()];
 	// The web app sends the calls of one tick as a single POST to
 	// /rpc/__batch__. Without BatchHandlerPlugin that path has no route and
 	// every page that reads two queries at once fails with a 404.
 	const rpc = new RPCHandler<ProcedureContext>(router, {
 		plugins: [new BatchHandlerPlugin<ProcedureContext>(), ...plugins],
+		interceptors,
 	});
-	const api = new OpenAPIHandler<ProcedureContext>(router, { plugins });
+	const api = new OpenAPIHandler<ProcedureContext>(router, { plugins, interceptors });
 	const contextOf = (c: Context): ProcedureContext => {
 		const timing = createDbTiming();
 		timings.set(c.req.raw, timing);

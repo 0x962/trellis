@@ -203,7 +203,17 @@ test("a prelaunch failure keeps the assignment and plan available for repair", a
 				},
 			}),
 	};
-	await expect(prepareResumeRestart(ctx(), { restartId: plan.id }, broken)).rejects.toThrow("did not start");
+	await expect(prepareResumeRestart(ctx(), { restartId: plan.id }, broken)).rejects.toMatchObject({
+		code: "RESTART_FAILED",
+		status: 503,
+		message: expect.stringContaining("Workspace temporarily unavailable"),
+		data: {
+			restartId: plan.id,
+			runId: plan.sessions[0]!.runId,
+			attemptId: plan.sessions[0]!.attempt.id,
+			requestId: "req-1",
+		},
+	});
 	const [run] = await h.rows(sql`SELECT closed_at,error,terminal_id FROM agent_runs`);
 	expect(run!.closed_at).toBeNull();
 	expect(run!.error).toContain("Workspace temporarily unavailable");

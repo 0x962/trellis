@@ -1,11 +1,14 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { ORPCError } from "@orpc/server";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { readRestartPlan, removeRestartPlan, writeRestartPlan } from "@trellis/runtime-protocol/restart-plan";
+import { sql } from "drizzle-orm";
 import type { HarnessHost } from "../../agents/harnessHost/harnessHost.ts";
 import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
+import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
 import { readNativeHarness } from "../agentRuns/readNativeHarness.ts";
@@ -95,7 +98,25 @@ async function resume(ctx: Ctx, input: { restartId: string }, deps: Dependencies
 				}
 				next = (await host.list()).find((p) => p.id === entry.attempt.id);
 			}
-			if (next === undefined) throw new Error(`Restart attempt ${entry.attempt.id} did not start.`);
+			if (next === undefined) {
+				const [failed] = await ctx.newTx((tx) =>
+					rows<{ error: string | null }>(
+						tx,
+						sql`SELECT error FROM agent_runs WHERE id=${entry.runId} AND terminal_id=${entry.attempt.id}`,
+					),
+				);
+				throw new ORPCError("RESTART_FAILED", {
+					defined: true,
+					status: 503,
+					message: `Could not restore ${eligible.run.name} in ${eligible.run.projectPath}: ${failed?.error ?? `Restart attempt ${entry.attempt.id} did not start.`}`,
+					data: {
+						restartId: plan.id,
+						runId: entry.runId,
+						attemptId: entry.attempt.id,
+						requestId: ctx.core.reqId,
+					},
+				});
+			}
 			const acknowledged = (p: RuntimeProcessStatus) =>
 				p.agent?.sessionId === entry.providerSessionId && p.acknowledgedMessageIds.includes(entry.attempt.id);
 			if (!acknowledged(next)) {
