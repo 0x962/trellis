@@ -65,16 +65,27 @@ export class MspClient {
 	private write(message: unknown) {
 		this.child.stdin!.write(`${JSON.stringify(message)}\n`);
 	}
-	// Returns the Muse home of the host: the data directory that holds its
-	// sessions.
+	// Returns the Muse home of the host, the data directory that holds its
+	// sessions, and the capabilities the host granted. A session that names
+	// an MCP server needs the `sessionMcp` capability, which the host grants
+	// only to a client that asks for it here.
 	async initialize() {
 		const result = z
-			.looseObject({ schema: z.looseObject({ version: z.number() }), museHome: z.string() })
-			.parse(await this.request("initialize", { clientInfo: { name: "trellis_host", version: "1" } }));
+			.looseObject({
+				schema: z.looseObject({ version: z.number() }),
+				museHome: z.string(),
+				grantedCapabilities: z.array(z.string()),
+			})
+			.parse(
+				await this.request("initialize", {
+					clientInfo: { name: "trellis_host", version: "1" },
+					capabilities: { requestedCapabilities: ["sessionMcp"] },
+				}),
+			);
 		if (result.schema.version !== 1)
 			throw new Error(`Muse speaks session protocol schema ${result.schema.version}; this host speaks 1`);
 		this.notify("initialized", {});
-		return { museHome: result.museHome };
+		return { museHome: result.museHome, grantedCapabilities: result.grantedCapabilities };
 	}
 	request(method: string, params: unknown): Promise<unknown> {
 		const id = ++this.nextId;

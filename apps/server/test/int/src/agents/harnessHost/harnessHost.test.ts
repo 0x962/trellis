@@ -344,3 +344,41 @@ test("a Muse turn saves the usage windows of its login where the account card re
 	expect(quota.windows.map((window) => window.id)).toEqual(["window", "weekly"]);
 	await host.stop("usage");
 });
+
+test("a Muse manager starts its session with the Trellis tool server and the granted MCP capability", async () => {
+	const museHome = join(home, "muse");
+	await mkdir(museHome);
+	host = new HarnessHost({
+		runtime: client,
+		directory: join(home, "attempts"),
+		env: {
+			...process.env,
+			PATH: join(home, "bin"),
+			HARNESS_FIXTURE_MUSE_HOME: museHome,
+			TRELLIS_URL: "http://127.0.0.1:1",
+		},
+		bun: process.execPath,
+		observationTimeoutMs: 1500,
+	});
+	await host.start({
+		id: "muse-manager",
+		managerId: "manager",
+		kind: "manager",
+		managerSystemPrompt: "Coordinate the project.",
+		harness: "muse",
+		cwd: home,
+		prompt: "Start",
+	});
+	await host.waitFor("muse-manager", (state) => state.activity?.state === "idle");
+	const started = JSON.parse(await readFile(join(museHome, "session-start.json"), "utf8"));
+	expect(started.config.mcpServers.trellis).toMatchObject({
+		transport: "stdio",
+		command: process.execPath,
+		framing: "lineDelimitedJson",
+		mode: "required",
+		env: { TRELLIS_URL: "http://127.0.0.1:1", TRELLIS_ATTEMPT_ID: "muse-manager" },
+	});
+	expect(started.config.mcpServers.trellis.args[0]).toEndWith("entry.ts");
+	expect(started.approvalMode).toBe("allowAll");
+	await host.stop("muse-manager");
+});

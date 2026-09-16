@@ -197,7 +197,10 @@ async function start() {
 		answerRequest,
 	);
 	client.closed.catch(reportFailure);
-	({ museHome } = await client.initialize());
+	const granted = await client.initialize();
+	museHome = granted.museHome;
+	if (manager && !granted.grantedCapabilities.includes("sessionMcp"))
+		throw new Error("Muse did not grant the sessionMcp capability, so the manager cannot reach the Trellis tools");
 	const config = manager
 		? {
 				mcpServers: {

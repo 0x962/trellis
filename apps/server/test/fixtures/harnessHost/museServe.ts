@@ -2,6 +2,8 @@
 // `serve` speaks enough of the Muse Session Protocol over stdio for the host
 // tests: one session, turns with one tool call and one answer, interrupts,
 // resume, and model changes. HARNESS_FIXTURE_BEHAVIOR selects a failure.
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { createInterface } from "node:readline";
 
 const args = process.argv.slice(2);
@@ -48,13 +50,20 @@ lines.on("line", (line) => {
 				serverInfo: { name: "muse", version: "1.3.0" },
 				schema: { version: 1, fingerprint: "sha256:fixture" },
 				museHome: process.env.HARNESS_FIXTURE_MUSE_HOME ?? "/tmp/muse-fixture",
-				grantedCapabilities: [],
+				grantedCapabilities: (request.params.capabilities?.requestedCapabilities ?? []).filter(
+					(name: string) => name === "sessionMcp",
+				),
 				experimentalApi: false,
 			});
 		case "initialized":
 			return;
 		case "session/start":
 			model = request.params.modelId ?? model;
+			if (request.params.config !== undefined && process.env.HARNESS_FIXTURE_MUSE_HOME)
+				writeFileSync(
+					join(process.env.HARNESS_FIXTURE_MUSE_HOME, "session-start.json"),
+					JSON.stringify(request.params),
+				);
 			return reply({
 				session: { sessionId, status: "idle", activeTurnId: null, modelId: model, providerId: "meta" },
 				viewCursor: "v:0",
