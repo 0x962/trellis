@@ -1,5 +1,5 @@
 import type { GhReason } from "@trellis/api";
-import { executionEnvironment } from "../executionEnvironment";
+import { type ExecutionEnvironment, executionEnvironment } from "../executionEnvironment";
 
 // TRELLIS_GH_BIN selects the executable. Otherwise, gh resolves through the
 // PATH from executionEnvironment(). GH_PROMPT_DISABLED=1 and NO_COLOR=1
@@ -64,7 +64,12 @@ const isMissing = (error: unknown) => (error as { code?: string }).code === "ENO
 // both give the unauthenticated reason and the same banner.
 const SIGN_IN_NEEDED = /gh auth login|HTTP 401|Bad credentials/;
 
-const spawnGh = async (bin: string, args: string[], timeoutMs: number, env: NodeJS.ProcessEnv): Promise<GhResult> => {
+const spawnGh = async (
+	bin: string,
+	args: string[],
+	timeoutMs: number,
+	env: ExecutionEnvironment,
+): Promise<GhResult> => {
 	let proc: ReturnType<typeof Bun.spawn>;
 	try {
 		proc = Bun.spawn([bin, ...args], {
@@ -104,13 +109,13 @@ const spawnGh = async (bin: string, args: string[], timeoutMs: number, env: Node
 };
 
 export const createGhRunner = (
-	options: { timeoutMs?: number; environment?: () => Promise<NodeJS.ProcessEnv> } = {},
+	options: { timeoutMs?: number; environment?: () => Promise<ExecutionEnvironment> } = {},
 ): GhRunner => {
 	const configuredBin = process.env.TRELLIS_GH_BIN;
 	const bin = configuredBin ?? "gh";
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 	const run = async (slot: GhSlot, args: string[]): Promise<GhResult> => {
-		let env: NodeJS.ProcessEnv;
+		let env: ExecutionEnvironment;
 		try {
 			env = await (options.environment ?? executionEnvironment)();
 		} catch (error) {
