@@ -43,14 +43,15 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 };
 
 // A post to a channel the room lacks creates the channel first, as a JOIN
-// does on IRC.
+// does on IRC. A person cannot post in a channel marked for agents only.
 export const post = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<ChatMessage> => {
 	const input = ChatPostInputSchema.parse(rawInput);
 	const root = await resolveRoom(ctx, tx, input.project);
 	assertProjectActive(ctx, root.id);
 	const actor = requireActor(ctx);
 	const name = chatChannelName(input.channel);
-	await ensureChannel(ctx, tx, root.id, name);
+	const { aiOnly } = await ensureChannel(ctx, tx, root.id, name);
+	if (aiOnly && actor.kind === "human") throw fail("CHAT_AI_ONLY");
 	await upsert(ctx, tx, actor);
 	const id = ulid();
 	await tx.execute(
@@ -58,6 +59,6 @@ export const post = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 			VALUES (${id}, ${root.id}, ${name}, ${input.body}, ${actor.name}, ${actor.kind}, ${ctx.now})`,
 	);
 	await enqueue(tx, { messageId: id, rootId: root.id, body: input.body, actor });
-	ctx.emit({ type: "chat.message", id, projectId: root.id, channel: name, actor });
+	ctx.emit({ type: "chat.message", id, projectId: root.id, channel: name, aiOnly, actor });
 	return messageById(tx, id);
 };

@@ -34,6 +34,9 @@ export type ChatNotification = z.infer<typeof ChatNotificationSchema>;
 export const ChatChannelSchema = z.object({
 	projectId: UlidSchema,
 	name: z.string(),
+	// True for a channel that only agents post in. A person reads it; the web
+	// shows no input for it and raises no sound or unread dot for it.
+	aiOnly: z.boolean(),
 	messageCount: z.number().int().nonnegative(),
 	// The id and the time of the newest message, or null for an empty channel.
 	// A reader compares `latestId` with the last id it saw to know what is unread.
@@ -63,6 +66,7 @@ export const ChatProjectInputSchema = z.strictObject({
 export const ChatChannelCreateInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
 	channel: ChatChannelRefSchema,
+	aiOnly: z.boolean().optional(),
 });
 export type ChatChannelCreateInput = z.input<typeof ChatChannelCreateInputSchema>;
 
@@ -84,6 +88,43 @@ export const ChatListSchema = z.object({
 	latestId: UlidSchema.nullable(),
 });
 export type ChatList = z.infer<typeof ChatListSchema>;
+
+// A file posted in a room. `url` is where the bytes are served:
+// `/api/chat/attachments/{id}/file`. The blob on disk is addressed by
+// `sha256` and is shared with the ticket attachments of the same bytes.
+export const ChatAttachmentSchema = z.object({
+	id: UlidSchema,
+	projectId: UlidSchema,
+	filename: z.string().min(1).max(255),
+	mime: z.string().min(1),
+	size: z.number().int().positive(),
+	sha256: z.string().regex(/^[0-9a-f]{64}$/),
+	actor: ActorRefSchema,
+	createdAt: IsoDateTimeSchema,
+	url: z.string().min(1),
+});
+export type ChatAttachment = z.infer<typeof ChatAttachmentSchema>;
+
+// `name` replaces the file's own name when set.
+export const ChatUploadInputSchema = z.strictObject({
+	project: ProjectRefStringSchema,
+	file: z.file(),
+	name: z.string().min(1).max(255).optional(),
+});
+export type ChatUploadInput = z.input<typeof ChatUploadInputSchema>;
+
+// `markdown` is the line to put in a message body: an image for an image,
+// a link for every other file.
+export const ChatUploadOutputSchema = z.object({
+	attachment: ChatAttachmentSchema,
+	url: z.string().min(1),
+	markdown: z.string().min(1),
+});
+export type ChatUploadOutput = z.infer<typeof ChatUploadOutputSchema>;
+
+export const ChatAttachmentIdInputSchema = z.strictObject({
+	id: UlidSchema,
+});
 
 export const ChatPostInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,

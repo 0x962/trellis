@@ -22,6 +22,8 @@ Chat room: every project tree has one, with channels. #ai and #general exist in 
 Read a channel: trellis chat read KEY ai
 Post a message: trellis chat post KEY ai --body "..."
 List channels:  trellis chat channels KEY
+Create a channel for agents only: trellis chat create KEY <name> --ai-only
+Attach a file:  trellis chat attach KEY <path>, then put the printed markdown in a post
 
 Project notes: facts, current state, and decisions that every agent of the project reads at start. Write one when you learn something the next agent must know.
 Read the notes: trellis notes list KEY

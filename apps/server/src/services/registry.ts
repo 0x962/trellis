@@ -9,6 +9,7 @@ import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
+import * as chatAttachments from "./chat/attachments.ts";
 import * as chatChannels from "./chat/channels.ts";
 import * as chatMessages from "./chat/messages.ts";
 import * as comments from "./comments.ts";
@@ -229,6 +230,8 @@ export const services = {
 	"chat.createChannel": core("mutation", chatChannels.create),
 	"chat.list": core("read", chatMessages.list),
 	"chat.post": core("mutation", chatMessages.post),
+	"chat.upload": io("mutation", chatAttachments.upload),
+	"chat.attachment": io("read", chatAttachments.get),
 	"notes.list": core("read", notes.list),
 	"notes.get": core("read", notes.get),
 	"notes.create": core("mutation", notes.create),

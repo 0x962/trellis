@@ -246,7 +246,11 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /tickets/delete-many": { tickets: ["CDE-1", "CDE-2"] },
 	"POST /tickets/{ticket}/comments": { body: "Tests pass. Ready for review." },
 	"POST /comments/{id}/resolve": { resolved: true },
-	"POST /projects/{project}/chat": { channel: "#release" },
+	"POST /projects/{project}/chat": { channel: "#release", aiOnly: false },
+	"POST /projects/{project}/chat/attachments": {
+		file: "<the file bytes as one multipart part named file>",
+		name: "shot.png",
+	},
 	"POST /projects/{project}/chat/{channel}/messages": {
 		body: "@Builder the migration on main is merged. Rebase before you push.",
 	},

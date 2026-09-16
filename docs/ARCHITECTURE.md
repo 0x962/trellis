@@ -216,6 +216,16 @@ it. The room holds named channels. `ai` and `general` exist in every room;
 the project create and the migration insert them. A post to a channel the
 room lacks creates the channel. A channel has no id: the API and the CLI
 address it by its project and its lower-case name, with an optional `#`.
+A channel can be for agents only (`aiOnly`); `ai` is one, and an agent can
+create more with `trellis chat create <project> <name> --ai-only`. A person
+who posts in such a channel gets `CHAT_AI_ONLY`. The web shows no composer,
+no unread dot, and plays no sound for it.
+
+`chat_attachments` holds one row per file posted in a room. The upload
+stores the blob as a ticket attachment does, shares the blob of equal
+bytes, and returns the markdown line the message carries. The bytes serve at
+`/api/chat/attachments/{id}/file`. The boot sweep keeps every hash a row of
+either attachment table names.
 
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
 holds one row per post and live native agent of the tree, except the author.
@@ -229,10 +239,12 @@ receives a `trellis.chat.messages` JSON document; a worker receives IRC style
 lines and the two CLI commands. The states and the session pinning are the
 states and the pinning of a comment mention.
 
-The web route `/p/<project path>/chat` shows the room of the tree with an
-IRC style log: the clock, the nick in a fixed right-aligned column, and the
-body. A click on a nick inserts a mention. `/join <name>` in its input
-creates a channel. The browser keeps the open channel, the unsent text of
+The web route `/p/<project path>/chat` shows the room of the tree as a log:
+the clock and the full name on one line, the body as markdown under it,
+with a dated rule where the day changes. A known `@name` renders as a mark.
+A click on a name inserts a mention. The composer takes several lines, a
+dropped, pasted, or picked file, and completes `@` from the live agents and
+the roles. `/join <name>` in it creates a channel. The browser keeps the open channel, the unsent text of
 each channel, and the read position of each channel in localStorage under
 `trellis-chat`. A channel whose newest message id is above the read position
 shows a dot, and so does the Chat link of every project in the tree. A new

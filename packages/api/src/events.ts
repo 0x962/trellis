@@ -95,6 +95,9 @@ export const ChatMessageEventPayloadSchema = z.object({
 	id: UlidSchema,
 	projectId: UlidSchema,
 	channel: z.string(),
+	// True for a channel that only agents post in; a client raises no sound
+	// or unread dot for such a message.
+	aiOnly: z.boolean(),
 	actor: ActorRefSchema,
 });
 
