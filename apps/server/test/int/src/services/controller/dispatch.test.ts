@@ -2,7 +2,9 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:te
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server, type Socket } from "node:net";
 import { join } from "node:path";
+import { DEFAULT_PROJECT_MANAGER_CONFIG } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { ulid } from "ulid";
 import { collect } from "../../../../../src/services/controller/collect.ts";
 import { dispatch } from "../../../../../src/services/controller/dispatch.ts";
 import { handle } from "../../../../../src/services/controller/work.ts";
@@ -39,7 +41,9 @@ beforeEach(async () => {
 	deliveries = [];
 	await h.run(
 		async (ctx, tx) => {
-			const project = await seedRoot(tx, "DSP", { manager_config: { personaId: "persona" } });
+			const project = await seedRoot(tx, "DSP", {
+				manager_config: { ...DEFAULT_PROJECT_MANAGER_CONFIG, personaId: ulid() },
+			});
 			await tx.execute(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,terminal_id,session_id,created_at,updated_at)
 			VALUES ('manager','Hana','Manager','manager','Manage',${project},'DSP','attempt','conversation',${NOW},${NOW})`);
 			await collect(ctx, tx, { sessions: [session] });
@@ -121,9 +125,34 @@ test("a live manager receives one heartbeat and confirms its durable message rec
 	const payload = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
 	expect(payload.type).toBe("trellis.manager.heartbeat");
 	expect(payload.events).toEqual([]);
+	expect(payload.capacityReminder).toBeNull();
 	expect(session.acknowledgedMessageIds).toEqual([session.id, deliveries[0]!.messageId]);
 	await send();
 	expect(deliveries).toHaveLength(1);
+});
+
+test("a heartbeat reports unused capacity from tickets and assignments added after collection", async () => {
+	const projectId = await h.read(async (tx) => {
+		const manager = await tx.execute(sql`SELECT project_id FROM agent_runs WHERE id='manager'`);
+		const projectId = manager.rows[0]!.project_id as string;
+		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
+		await seedTicket(tx, { projectId, rootId: projectId, statusId });
+		return projectId;
+	});
+	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,created_at,updated_at)
+		SELECT 'worker','Builder','Builder','builder','Build',project_id,project_path,${NOW},${NOW}
+		FROM agent_runs WHERE id='manager'`);
+	await send();
+	const message = Buffer.from(deliveries[0]!.data, "base64").toString();
+	const payload = JSON.parse(message.slice(message.indexOf("{"), message.lastIndexOf("}") + 1));
+	expect(payload.type).toBe("trellis.manager.heartbeat");
+	expect(payload.capacityReminder).toEqual({
+		type: "below_worker_capacity",
+		message: "Work is below full worker capacity while unfinished tickets remain.",
+		freeSlots: 2,
+		unfinishedTickets: 1,
+		projects: [{ projectId, workerLimit: 3, occupiedSlots: 1, freeSlots: 2, unfinishedTickets: 1 }],
+	});
 });
 
 test("a heartbeat reports the current worker turn after the heartbeat enters the queue", async () => {

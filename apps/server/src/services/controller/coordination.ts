@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { capacityReminder } from "./capacityReminder/capacityReminder.ts";
 import { dispatchMessageId } from "./messageId.ts";
 import type { Dispatch } from "./types.ts";
 
@@ -40,6 +41,7 @@ export const coordination = async (tx: Tx, dispatch: Pick<Dispatch, "id" | "proj
 		WHERE project_id=${dispatch.projectId} AND id<>${dispatch.id} AND work_state='open' AND state IN ('sent','unknown')`,
 	);
 	return {
+		capacityReminder: await capacityReminder(tx, { projectId: dispatch.projectId }),
 		policy: policy ?? null,
 		unfinished: unfinished.map((item) => ({ id: item.id, generation: item.generation, workItems: workItems(item) })),
 		unfinishedCount: count!.count,
