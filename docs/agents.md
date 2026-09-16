@@ -141,6 +141,12 @@ workspace resumes: the start opens one more terminal in that workspace and
 continues the chat the stop left behind. A start still reads the persona the
 project names now, so a change of persona takes effect on the next start.
 
+A sub-project can name its own manager persona in its project settings. Trellis asks for confirmation before it saves the first persona.
+From then on the parent manager receives no events from that sub-project and starts no agents for its tickets. The sub-project's manager owns them.
+The parent manager receives one event with a null ticket ID: `project.subproject_manager_enabled`, with the sub-project under `project`.
+A cleared persona returns the sub-project to the parent manager and sends `project.subproject_manager_disabled`.
+Persona, harness, and concurrency stay local to the sub-project. An empty directory uses the nearest configured ancestor directory.
+
 Every agent setting of a project sits on its Manager page, at
 `/p/<project path>/settings/manager`. The header holds one Play/Pause button. Play starts or resumes the manager. Pause stops its terminal. The Status section picks the manager persona and draws the
 manager in the page: its state, its output, a follow-up box, and Stop. The ADE
@@ -216,7 +222,7 @@ Use `blocked` with `waitFor` for the conditions below. A `blocked` outcome witho
 
 When capacity opens, the manager receives the ticket in `workItems` and the saved action in `nextActions`.
 Use its `assignmentRequestId` when you start the worker. That identifier retains the assignment across retries and manager replacement.
-Record an outcome for each ticket in the notification. Use a null ticket ID only for an empty heartbeat.
+Record an outcome for each ticket in the notification. Use a null ticket ID for an empty heartbeat and for a project event.
 
 ```sh
 trellis manager actions --project TRL --state waiting

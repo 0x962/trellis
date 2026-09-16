@@ -291,6 +291,10 @@ The limit runs from 1 to 64 and defaults to 3. A partial unique index permits on
 `manager_controller_cursors` records the last collected activity identifier for each project.
 `manager_dispatches` retains event batches and their send state. The first event fixes the batch deadline at ten seconds.
 The collector continues while dispatch pauses. It excludes the manager's own activity and respects child projects with their own manager.
+A child project with its own manager persona is outside the scope of every manager above it. Its own manager receives its ticket events.
+The project settings of a child ask for confirmation before the first persona is saved.
+The change writes one activity row on the direct parent project: `project.subproject_manager_enabled` or `project.subproject_manager_disabled`, with a null ticket, the child path in `to_value`, and the child id in `meta.projectId`.
+The collector delivers that row to the nearest manager above as an event with a null `ticketId` and the child under `project`. The manager records its outcome under a null ticket.
 
 The controller sends a batch only to the current native attempt with a matching conversation and ready or idle runtime activity.
 After one minute without manager activity or a successful dispatch, the controller queues a heartbeat for an idle manager.

@@ -11,12 +11,16 @@ export type WorkOutcome = {
 	reason: string;
 	waitFor?: ManagerWait;
 };
+// A ticket event names its ticket. A project event has a null `ticketId`
+// and names in `project` the sub-project that gained or lost its own
+// manager; the manager records its outcome under a null ticket.
 export type ControllerEvent = {
 	id: number;
-	ticketId: string;
+	ticketId: string | null;
 	action: string;
 	actor: { name: string; kind: string };
 	createdAt: string;
+	project?: { id: string; path: string };
 };
 export type Dispatch = {
 	id: string;

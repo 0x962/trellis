@@ -215,6 +215,55 @@ test("a saved directory lets the manager start without repository approval", asy
 	await expect(page.getByRole("button", { name: "Stop manager", exact: true })).toBeEnabled();
 });
 
+test("a sub-project confirms its own manager and the parent manager gets one event", async ({ page }) => {
+	const persona = await post<Persona>("/personas", {
+		name: "Sub-project manager",
+		kind: "manager",
+		instruction: "Wait.",
+	});
+	const parent = await post<Project>("/projects", {
+		key: "SPM",
+		name: "Sub-project manager parent",
+		managerConfig: { personaId: persona.id, concurrency: 3, directory: "/tmp", dispatchPaused: true },
+	});
+	const child = await post<Project>("/projects", { parent: "SPM", name: "Managed child", slug: "child" });
+	await signIn(page, "/p/SPM/child/settings#manager");
+	const personaPicker = page.getByRole("combobox", { name: "Manager persona", exact: true });
+	const dialog = page.getByRole("dialog", { name: "Turn on a manager for this sub-project?" });
+	await personaPicker.click();
+	await page.getByRole("option", { name: persona.name, exact: true }).click();
+	await expect(dialog).toBeVisible();
+	await expect(dialog.getByText("The parent manager receives one event about this change.")).toBeVisible();
+	await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+	await expect(dialog).toBeHidden();
+	await expect(personaPicker).toContainText("Select a manager persona");
+	expect((await get<Project>(`/projects/${child.id}`)).managerConfig?.personaId).toBeNull();
+	await personaPicker.click();
+	await page.getByRole("option", { name: persona.name, exact: true }).click();
+	await dialog.getByRole("button", { name: "Turn on manager", exact: true }).click();
+	await expect(dialog).toBeHidden();
+	await expect
+		.poll(async () => (await get<Project>(`/projects/${child.id}`)).managerConfig?.personaId)
+		.toBe(persona.id);
+	await expect(page.getByRole("main").getByRole("status")).toHaveText("All changes saved");
+	await expect(personaPicker).toContainText(persona.name);
+	await expect
+		.poll(async () =>
+			(await get<{ events: unknown[] }[]>(`/manager-dispatches?projectId=${parent.id}`)).flatMap((row) => row.events),
+		)
+		.toEqual([
+			expect.objectContaining({
+				ticketId: null,
+				action: "project.subproject_manager_enabled",
+				project: { id: child.id, path: "SPM.child" },
+			}),
+		]);
+	expect(await get<unknown[]>(`/manager-dispatches?projectId=${child.id}`)).toEqual([]);
+	await personaPicker.click();
+	await page.getByRole("option", { name: persona.name, exact: true }).click();
+	await expect(dialog).toBeHidden();
+});
+
 test("a child can clear its directory to use its parent repository", async ({ page }) => {
 	await post("/projects", {
 		key: "MDP",
