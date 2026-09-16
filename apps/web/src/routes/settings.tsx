@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
+import { ChatSoundField } from "../features/settings/ChatSoundField";
 import { DesktopSettings } from "../features/settings/DesktopSettings";
 import { Diagnostics } from "../features/settings/Diagnostics";
 import { DraftTransfer } from "../features/settings/DraftTransfer";
 import { GhBanner } from "../features/settings/GhBanner";
+import { HarnessAccounts } from "../features/settings/HarnessAccounts";
 import { PairPhone } from "../features/settings/PairPhone";
 import { ThemeField } from "../features/settings/ThemeField";
 import { PageTitle } from "../features/shell/PageTitle";
@@ -41,6 +43,12 @@ type SettingsSection = {
 
 const sections: SettingsSection[] = [
 	{
+		id: "agent-accounts",
+		title: "Agent accounts",
+		hint: "Manage harness logins, account selection, and quota on this machine.",
+		rows: <HarnessAccounts />,
+	},
+	{
 		id: "diagnostics",
 		title: "Diagnostics",
 		hint: "Inspect the local execution service, manager queue, and unresolved attempts.",
@@ -49,11 +57,12 @@ const sections: SettingsSection[] = [
 	{
 		id: "account",
 		title: "Account",
-		hint: "Set your name and choose how trellis looks.",
+		hint: "Set your name, choose how trellis looks, and choose whether chat makes a sound.",
 		rows: (
 			<>
 				<ActorNameField />
 				<ThemeField />
+				<ChatSoundField />
 			</>
 		),
 	},

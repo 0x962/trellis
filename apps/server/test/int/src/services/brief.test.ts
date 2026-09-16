@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { IsoDateTimeSchema } from "@trellis/api";
 import * as brief from "../../../../src/services/brief.ts";
+import * as notes from "../../../../src/services/notes/notes.ts";
 import {
 	claude,
 	count,
@@ -153,7 +154,7 @@ describe("brief.get", () => {
 			expect(protocol).toContain(text);
 		}
 		expect(protocol).toContain("agent-review");
-		expect(protocol).toMatch(/(never|do not)[^.\n]*\bdone\b/i);
+		expect(protocol).not.toMatch(/(never|do not)[^.\n]*\bdone\b/i);
 	});
 
 	test("the brief output is byte-stable for the same state", async () => {
@@ -178,5 +179,36 @@ describe("brief.get", () => {
 		await seed();
 		const data = await expectErrorData(get("CDE-999"), "NOT_FOUND");
 		expect(data).toEqual({ kind: "ticket", ref: "CDE-999" });
+	});
+
+	// A worker reads the notes of its project chain: its own project and the
+	// root above it, for the worker audience and for all, and none that
+	// expired. The section sits between the comments and the protocol.
+	test("the brief carries the active project notes for a worker", async () => {
+		await seed();
+		const write = (input: Record<string, unknown>) => h.as(dana)((ctx, tx) => notes.create(ctx, tx, input));
+		await write({ project: "CDE", title: "Root fact", body: "Run bun install first.\nA worktree starts empty." });
+		await write({
+			project: "CDE.web",
+			title: "Web fact",
+			body: "The login form posts to /session.",
+			audience: "worker",
+		});
+		await write({ project: "CDE", title: "Manager only", body: "Assign one SRE.", audience: "manager" });
+		await write({ project: "CDE", title: "Old state", body: "Disk was full.", expiresAt: "2020-01-01T00:00:00.000Z" });
+		const { result } = await get("CDE-42");
+		expect(headings(result.markdown)).toContain("## Project notes");
+		expect(result.markdown.indexOf("## Project notes")).toBeLessThan(result.markdown.indexOf("## Protocol"));
+		expect(lineWith(result.markdown, "Root fact")).toContain("(CDE, dana, updated ");
+		expect(lineWith(result.markdown, "Web fact")).toContain("(CDE.web, dana, updated ");
+		expect(result.markdown).toContain("  Run bun install first.\n  A worktree starts empty.");
+		expect(result.markdown).not.toContain("Manager only");
+		expect(result.markdown).not.toContain("Old state");
+	});
+
+	test("a ticket whose project chain holds no note has no notes section", async () => {
+		await seed();
+		const { result } = await get("CDE-42");
+		expect(headings(result.markdown)).not.toContain("## Project notes");
 	});
 });

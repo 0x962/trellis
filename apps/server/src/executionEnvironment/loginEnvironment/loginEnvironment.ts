@@ -1,16 +1,17 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import type { ExecutionEnvironment } from "../executionEnvironment.ts";
 
 const execute = promisify(execFile);
 
 export const loginEnvironment = async (
 	shell: string,
 	bundledBin: string,
-	env: NodeJS.ProcessEnv = process.env,
+	env: ExecutionEnvironment = process.env,
 	timeoutMs = 10000,
-): Promise<NodeJS.ProcessEnv> => {
+): Promise<ExecutionEnvironment> => {
 	const { stdout } = await execute(shell, ["-ilc", "/usr/bin/env -0"], {
-		env,
+		env: { NODE_ENV: process.env.NODE_ENV, ...env },
 		cwd: env.HOME,
 		timeout: timeoutMs,
 		maxBuffer: 1024 * 1024,
@@ -19,7 +20,7 @@ export const loginEnvironment = async (
 			error.killed ? `Login shell exceeded ${timeoutMs} ms.` : `Login shell failed (exit ${error.code}).`,
 		);
 	});
-	const result: NodeJS.ProcessEnv = {};
+	const result: ExecutionEnvironment = {};
 	for (const record of stdout.split("\0")) {
 		const match = record.match(/(?:^|\n)([A-Za-z_][A-Za-z0-9_]*)=([\s\S]*)$/);
 		if (match) result[match[1]!] = match[2]!;

@@ -1,5 +1,6 @@
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
+import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { sendDeadline } from "../controller/sendDeadline.ts";
@@ -22,8 +23,16 @@ type Recipient = {
 // not one turn per line. The rules of a comment mention apply: a closed or
 // replaced session fails its rows, a paused host and an archived room hold
 // them, a working agent receives its lines at once, and a send with no
-// receipt leaves the rows unknown.
-export const dispatchChat = async (ctx: ServiceCtx, sessions: RuntimeProcessStatus[], send = prepareSend) => {
+// receipt leaves the rows unknown. A batch that holds a direct line, one
+// whose message mentioned the agent, interrupts the agent's current turn
+// first. A custom terminal has no interrupt, so it receives the lines as
+// typed input.
+export const dispatchChat = async (
+	ctx: ServiceCtx,
+	sessions: RuntimeProcessStatus[],
+	send = prepareSend,
+	preset = nativePreset,
+) => {
 	await ctx.newTx((tx) =>
 		tx.execute(sql`UPDATE chat_deliveries d SET session_id=r.session_id FROM agent_runs r
 		WHERE d.run_id=r.id AND d.state='pending' AND d.session_id IS NULL AND r.session_id IS NOT NULL
@@ -65,13 +74,15 @@ export const dispatchChat = async (ctx: ServiceCtx, sessions: RuntimeProcessStat
 				sql`UPDATE chat_deliveries d SET state='sending' FROM chat_messages m
 				LEFT JOIN agent_runs author ON m.actor_kind='agent' AND author.id=m.actor_name
 				WHERE d.message_id=m.id AND d.run_id=${recipient.runId} AND d.state='pending'
-				RETURNING d.id, m.id AS "messageId", m.project_id AS "projectId", m.channel, m.body,
+				RETURNING d.id, d.direct, m.id AS "messageId", m.project_id AS "projectId", m.channel, m.body,
 				m.actor_name AS "actorName", m.actor_kind AS "actorKind", author.persona_name AS "actorDisplayName",
 				to_char(m.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "createdAt"`,
 			),
 		);
 		if (claimed.length === 0) continue;
 		claimed.sort((a, b) => (a.messageId < b.messageId ? -1 : 1));
+		const direct = claimed.some((line) => line.direct);
+		const interrupt = direct && (await preset(ctx.home, recipient.terminalId)) !== "custom";
 		let state = "sent";
 		let error: string | null = null;
 		try {
@@ -80,6 +91,7 @@ export const dispatchChat = async (ctx: ServiceCtx, sessions: RuntimeProcessStat
 					id: recipient.runId,
 					text: chatBatchText(recipient, claimed),
 					messageId: claimed[0]!.id,
+					interrupt,
 					expectedTerminalId: recipient.terminalId,
 					expectedSessionId: recipient.sessionId,
 				}),
@@ -101,4 +113,4 @@ export const dispatchChat = async (ctx: ServiceCtx, sessions: RuntimeProcessStat
 };
 
 const emitChanged = (ctx: ServiceCtx, delivery: Delivery) =>
-	ctx.emit({ type: "chat.message", id: delivery.messageId, projectId: delivery.projectId, channel: delivery.channel });
+	ctx.emit({ type: "chat.delivery", id: delivery.messageId, projectId: delivery.projectId, channel: delivery.channel });

@@ -3,11 +3,15 @@ import * as actors from "./actors.ts";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
+import { readRuntimeSessions } from "./agentRuns/liveState.ts";
 import { readNativeWork, setNativeWork } from "./agentRuns/nativeControl.ts";
+import { prepareResume } from "./agentRuns/resume.ts";
+import { prepareSetModel } from "./agentRuns/setModel/setModel.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
+import * as chatAttachments from "./chat/attachments.ts";
 import * as chatChannels from "./chat/channels.ts";
 import * as chatMessages from "./chat/messages.ts";
 import * as comments from "./comments.ts";
@@ -33,11 +37,14 @@ import { get as getFlowExecution } from "./flowExecutions/queries.ts";
 import { start as startFlowExecution } from "./flowExecutions/start.ts";
 import * as flows from "./flows/flows.ts";
 import * as flowSave from "./flows/save.ts";
+import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
+import { prepareQuota } from "./harnessAccounts/quota.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
+import * as notes from "./notes/notes.ts";
 import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
-import { prepareResumeRestart } from "./restartAgents/restartAgents.ts";
+import { prepareResumeRestart, restartStatus } from "./restartAgents/restartAgents.ts";
 import * as reviewDelivery from "./reviews/delivery";
 import * as reviewImage from "./reviews/image";
 import * as reviewMessages from "./reviews/messages";
@@ -51,10 +58,15 @@ import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
 import * as settings from "./settings.ts";
 import * as statuses from "./statuses.ts";
+import { list as listSubmanagers } from "./submanagers/list.ts";
+import { prepareStart as startSubmanager } from "./submanagers/prepareStart.ts";
+import { resize as resizeSubmanager } from "./submanagers/resize.ts";
+import { prepareRetire as retireSubmanager } from "./submanagers/retire.ts";
 import type { IoCtx, PrepareCtx } from "./support.ts";
 import * as system from "./system.ts";
 import * as tickets from "./tickets.ts";
 import * as timeline from "./timeline.ts";
+import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
 
 // The `family` selects the context shape. The `kind` sets the worker queue
 // priority before the service starts its transaction.
@@ -96,6 +108,24 @@ const agentMutation = (prepare: Prepare) =>
 	);
 
 export const services = {
+	"submanagers.list": prepared(
+		"read",
+		async (ctx, input) => ({ ...input, sessions: await readRuntimeSessions(ctx.home) }),
+		(ctx, tx, input) => listSubmanagers(ctx.core, tx, input),
+	),
+	"submanagers.start": agentMutation(startSubmanager),
+	"submanagers.resize": prepared(
+		"mutation",
+		async (ctx, input) => ({ ...input, sessions: await readRuntimeSessions(ctx.home) }),
+		(ctx, tx, input) => resizeSubmanager(ctx.core, tx, input),
+	),
+	"submanagers.retire": prepared("mutation", retireSubmanager, agentTerminal.result),
+	"harnessAccounts.list": io("read", harnessAccounts.list),
+	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),
+	"harnessAccounts.update": io("mutation", harnessAccounts.update),
+	"harnessAccounts.remove": io("mutation", harnessAccounts.remove),
+	"harnessAccounts.quota": prepared("read", prepareQuota, agentTerminal.result),
+	"usage.report": prepared("read", prepareUsageReport, agentTerminal.result),
 	"flowExecutions.start": core("mutation", startFlowExecution),
 	"flowExecutions.get": core("read", getFlowExecution),
 	"flowExecutions.list": core("read", listFlowExecutions),
@@ -106,6 +136,7 @@ export const services = {
 	"system.nativeWork": core("read", (_ctx, tx) => readNativeWork(tx)),
 	"system.resumeNativeWork": core("mutation", (ctx, tx) => setNativeWork(ctx, tx, { paused: false })),
 	"system.resumeRestart": prepared("mutation", prepareResumeRestart, agentTerminal.result),
+	"system.restartStatus": prepared("read", restartStatus, agentTerminal.result),
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
 	"evidence.workspace": prepared("read", evidenceWorkspace, evidenceResult),
 	"evidence.file": prepared("read", evidenceFile, evidenceResult),
@@ -162,6 +193,8 @@ export const services = {
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
 	"agentRuns.start": agentMutation(agentRuns.prepareStart),
+	"agentRuns.resume": agentMutation(prepareResume),
+	"agentRuns.setModel": agentMutation(prepareSetModel),
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
 	"personas.list": core("read", personas.list),
@@ -211,6 +244,13 @@ export const services = {
 	"chat.createChannel": core("mutation", chatChannels.create),
 	"chat.list": core("read", chatMessages.list),
 	"chat.post": core("mutation", chatMessages.post),
+	"chat.upload": io("mutation", chatAttachments.upload),
+	"chat.attachment": io("read", chatAttachments.get),
+	"notes.list": core("read", notes.list),
+	"notes.get": core("read", notes.get),
+	"notes.create": core("mutation", notes.create),
+	"notes.update": core("mutation", notes.update),
+	"notes.delete": core("mutation", notes.remove),
 	"attachments.list": io("read", attachments.list),
 	"attachments.upload": io("mutation", attachments.upload),
 	"attachments.get": io("read", attachments.get),

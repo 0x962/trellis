@@ -288,3 +288,19 @@ test("a flow waits until its persona assignment closes", async () => {
 	const claim = await h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id }));
 	expect(claim?.run.personaId).toBe(persona);
 });
+
+test("a flow can claim capacity held by an idle worker on another ticket", async () => {
+	await h.rows(
+		sql`UPDATE projects SET manager_config=manager_config || '{"concurrency":1}'::jsonb WHERE id=${project}`,
+	);
+	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
+	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,created_at,updated_at)
+		VALUES ('idle','Builder','Builder','builder','Wait',${project},'FLW','native','idle-attempt',now(),now())`);
+	const execution = await h.run((ctx, tx) => start(ctx, tx, input()));
+	const { claimNext } = await import("../../../../../src/services/flowExecutions/claimNext.ts");
+	const { controllerSession } = await import("../../../../helpers/controllerSession.ts");
+	expect(await h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id }))).toBeNull();
+	const sessions = [controllerSession("idle-attempt")];
+	const claim = await h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id, sessions }));
+	expect(claim?.attempt.id).toBeTruthy();
+});

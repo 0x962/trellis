@@ -49,8 +49,7 @@ export type TicketSeed = {
 	by?: "human" | "agent";
 };
 
-// One ticket, moved into its status by the actor that owns it. An agent needs
-// `force` to enter a done status, which is the human's explicit override.
+// The selected actor creates the ticket and moves it into its status.
 export const seedTicket = async (seeder: Seeder, seed: TicketSeed): Promise<Ticket> => {
 	const client = seed.by === "agent" ? seeder.agent : seeder.human;
 	const ticket = await client.tickets.create({

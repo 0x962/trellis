@@ -1,3 +1,4 @@
+import { fromHarnessModel } from "@trellis/api";
 import type { RestartSession } from "@trellis/runtime-protocol/restart-plan";
 import { sql } from "drizzle-orm";
 import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
@@ -9,10 +10,20 @@ import { readNativeWork } from "../agentRuns/nativeControl.ts";
 import { columns, type StoredRun } from "../agentRuns/queries.ts";
 import { type ExecutionAttempt, reserveAttempt } from "../assignments/attempts.ts";
 import type { StoredExecution } from "../flowExecutions/types.ts";
+import { getAccount } from "../harnessAccounts/queries.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { projectRow } from "../projectRows.ts";
 
-export async function reserveRestart(ctx: ServiceCtx, tx: Tx, session: RestartSession, reserve: boolean) {
+export async function reserveRestart(
+	ctx: ServiceCtx,
+	tx: Tx,
+	session: Omit<RestartSession, "processIdentity"> & { processIdentity?: string },
+	reserve: boolean,
+) {
+	// The capture writes a `custom` entry only as done and failed, and the
+	// resume never reserves a done entry. The check keeps the harness type
+	// narrow for the model lookup below.
+	if (session.harness === "custom") return null;
 	const [run] = await rows<StoredRun>(tx, sql`SELECT ${columns} FROM agent_runs WHERE id=${session.runId} FOR UPDATE`);
 	if (
 		!run ||
@@ -59,6 +70,11 @@ export async function reserveRestart(ctx: ServiceCtx, tx: Tx, session: RestartSe
 		}
 	}
 	if (deadlineAt !== undefined && deadlineAt <= ctx.now.getTime()) return null;
+	if (run.accountId) {
+		const account = await getAccount(tx, { id: run.accountId });
+		if (!account.enabled || account.harness !== session.harness)
+			throw invalidInput("accountId", "The saved account is disabled or belongs to another harness.");
+	}
 	let attempt: ExecutionAttempt | undefined;
 	if (reserve && run.terminalId === session.previousAttemptId) {
 		if (run.kind === "manager") {
@@ -90,7 +106,14 @@ export async function reserveRestart(ctx: ServiceCtx, tx: Tx, session: RestartSe
 	}
 	return {
 		run,
-		config: { ...config, harness: { ...config.harness, preset: session.harness, model: session.model } },
+		config: {
+			...config,
+			harness: {
+				...config.harness,
+				preset: session.harness,
+				model: session.model ? fromHarnessModel(session.harness, session.model) : undefined,
+			},
+		},
 		attempt,
 		deadlineAt,
 	};

@@ -13,11 +13,6 @@ import {
 } from "./index.ts";
 import { subscribeOutput } from "./subscribeOutput.ts";
 
-// A list reply holds one entry per process record, and the runtime keeps the record of every exited
-// process, so the reply grows with the age of the data directory. A directory with a few hundred
-// records already produces a reply of about 3 MB. The cap only stops a runaway stream from filling memory.
-const RESPONSE_LIMIT_CHARS = 64_000_000;
-
 export class RuntimeClient {
 	constructor(
 		readonly socketPath: string,
@@ -48,10 +43,6 @@ export class RuntimeClient {
 			);
 			socket.on("data", (chunk) => {
 				buffer += chunk;
-				if (buffer.length > RESPONSE_LIMIT_CHARS) {
-					fail(new Error("Runtime response exceeds the byte limit"));
-					return;
-				}
 				const end = buffer.indexOf("\n");
 				if (end < 0) return;
 				let reply: RuntimeResponse;
@@ -118,8 +109,8 @@ export class RuntimeClient {
 	input(id: string, data: string, userInput?: boolean, expected?: RuntimeExpectedTurn) {
 		return this.call("input", { id, data, userInput, expected });
 	}
-	deliver(id: string, messageId: string, data: string) {
-		return this.call("deliver", { id, messageId, data });
+	deliver(id: string, messageId: string, data: string, expected?: RuntimeExpectedTurn) {
+		return this.call("deliver", { id, messageId, data, expected });
 	}
 	resize(id: string, cols: number, rows: number) {
 		return this.call("resize", { id, cols, rows });

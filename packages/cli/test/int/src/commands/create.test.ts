@@ -25,7 +25,7 @@ describe("create", () => {
 		expect(quiet.stdout).toBe("CDE-42\n");
 	});
 
-	test("create --force sends force, so an agent can create a ticket in a done status", async () => {
+	test("create accepts the legacy force flag", async () => {
 		const result = await runCli(["create", "-p", "CDE", "-t", "T", "--status", "done", "--force"], {
 			"tickets.create": ticket(),
 		});

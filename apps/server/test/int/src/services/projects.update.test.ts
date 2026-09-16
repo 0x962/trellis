@@ -59,6 +59,57 @@ const seedTree = async () => {
 
 const update = (input: Parameters<typeof projects.update>[2]) => h.run((ctx, tx) => projects.update(ctx, tx, input));
 
+// A sub-project that gains or loses its own manager persona leaves or
+// rejoins the scope of its parent's manager. The parent project gets one
+// activity row for that change, so the controller can tell its manager.
+describe("projects.update manager scope", () => {
+	const persona = "01M2GHTTXSHPZDFTJQW1MC28N2";
+	const other = "01M2GJ634MAAPPB8JDZVDYWX3B";
+	const config = (personaId: string | null) => ({ personaId, concurrency: 3, directory: "" });
+	beforeEach(() =>
+		h.db.execute(
+			sql`INSERT INTO personas (id, name, kind, instruction, created_at, updated_at)
+				VALUES (${persona}, 'Manager', 'manager', 'Manage.', now(), now()), (${other}, 'Other', 'manager', 'Manage.', now(), now())`,
+		),
+	);
+	const parentRows = async (parentId: string) =>
+		(await activityRows(h)).filter((activity) => activity.project_id === parentId);
+
+	test("a sub-project that gains a manager writes one row on its parent", async () => {
+		const { cde, web } = await seedTree();
+		await update({ project: "CDE.web", managerConfig: config(persona) });
+		expect(await parentRows(cde)).toMatchObject([
+			{
+				ticket_id: null,
+				action: "project.subproject_manager_enabled",
+				field: null,
+				to_value: "CDE.web",
+				meta: { projectId: web },
+			},
+		]);
+	});
+
+	test("a persona swap keeps the scope and a cleared persona returns it", async () => {
+		const { cde, web } = await seedTree();
+		await update({ project: "CDE.web", managerConfig: config(persona) });
+		await update({ project: "CDE.web", managerConfig: config(other) });
+		expect((await parentRows(cde)).map((activity) => activity.action)).toEqual(["project.subproject_manager_enabled"]);
+		await update({ project: "CDE.web", managerConfig: config(null) });
+		expect((await parentRows(cde)).map((activity) => activity.action)).toEqual([
+			"project.subproject_manager_enabled",
+			"project.subproject_manager_disabled",
+		]);
+		expect((await activityRows(h)).at(-1)).toMatchObject({ to_value: "CDE.web", meta: { projectId: web } });
+	});
+
+	test("a root manager change writes no scope row", async () => {
+		const { cde } = await seedTree();
+		await update({ project: "CDE", managerConfig: config(persona) });
+		expect((await activityRows(h)).map((activity) => activity.action)).toEqual(["project.updated"]);
+		expect((await activityRows(h))[0]!.project_id).toBe(cde);
+	});
+});
+
 describe("projects.update fields", () => {
 	test("an update writes one activity row per changed field", async () => {
 		const { web } = await seedTree();

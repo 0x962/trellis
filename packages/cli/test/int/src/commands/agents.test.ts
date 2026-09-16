@@ -36,22 +36,20 @@ describe("agents start", () => {
 		const result = await runCli(
 			["agents", "start", personaId, "--ticket", "CDE-42", "--request-id", "CDE-42:builder"],
 			{
-				"personas.list": [persona()],
+				"personas.get": persona(),
 				"agentRuns.start": agentRun(),
 			},
 		);
 		expect(result.code).toBe(0);
 		expect(result.calls[1]!.input).toEqual({ personaId, ticket: "CDE-42", requestId: "CDE-42:builder" });
 	});
-	// CLI-125: the start route takes a persona id, so the verb reads the
-	// persona list and matches the ref there first.
 	test("agents start resolves the persona by id and by name", async () => {
 		const byId = await runCli(["agents", "start", personaId, "--ticket", "CDE-42"], {
-			"personas.list": [persona()],
+			"personas.get": persona(),
 			"agentRuns.start": agentRun(),
 		});
 		expect(byId.code).toBe(0);
-		expect(byId.calls.map((call) => call.path)).toEqual(["personas.list", "agentRuns.start"]);
+		expect(byId.calls.map((call) => call.path)).toEqual(["personas.get", "agentRuns.start"]);
 		expect(byId.calls[1]!.input).toEqual({ personaId, ticket: "CDE-42" });
 
 		const byName = await runCli(["agents", "start", "Trellis Manager", "--project", "CDE"], {
@@ -73,7 +71,7 @@ describe("agents start", () => {
 		const row = agentRun({ state: "failed", error: "no Superset project matches the repositories", url: null });
 		const result = await runCli(
 			["agents", "start", personaId, "--ticket", "CDE-42"],
-			{ "personas.list": [persona()], "agentRuns.start": row },
+			{ "personas.get": persona(), "agentRuns.start": row },
 			{ tty: true },
 		);
 		expect(result.code).toBe(6);
@@ -82,7 +80,7 @@ describe("agents start", () => {
 		expect(result.stderr).toContain("no Superset project matches the repositories");
 
 		const busy = await runCli(["agents", "start", personaId, "--ticket", "CDE-42"], {
-			"personas.list": [persona()],
+			"personas.get": persona(),
 			"agentRuns.start": rpcError("DUPLICATE", { field: "project concurrency limit" }),
 		});
 		expect(busy.code).toBe(4);
@@ -143,4 +141,70 @@ describe("agents refresh, stop, send, and output", () => {
 		const asJson = await runCli(["agents", "output", agentRunId, "--json"], { "agentRuns.output": { text } });
 		expect(JSON.parse(asJson.stdout)).toEqual({ text });
 	});
+});
+
+test("agents start and resume pass their model overrides", async () => {
+	const started = await runCli(
+		["agents", "start", personaId, "--ticket", "CDE-42", "--model", "anthropic/claude-sonnet-5"],
+		{
+			"personas.get": persona(),
+			"agentRuns.start": agentRun(),
+		},
+	);
+	expect(started.code).toBe(0);
+	expect(started.calls[1]!.input).toEqual({ personaId, ticket: "CDE-42", model: "anthropic/claude-sonnet-5" });
+	const resumed = await runCli(
+		[
+			"agents",
+			"resume",
+			agentRunId,
+			"--model",
+			"anthropic/claude-opus-5",
+			"--expected-terminal-id",
+			"attempt",
+			"--request-id",
+			"model-switch",
+		],
+		{ "agentRuns.resume": agentRun() },
+	);
+	expect(resumed.code).toBe(0);
+	expect(resumed.calls[0]!.input).toEqual({
+		id: agentRunId,
+		model: "anthropic/claude-opus-5",
+		expectedTerminalId: "attempt",
+		requestId: "model-switch",
+	});
+});
+
+test("agents model changes a running agent", async () => {
+	const result = await runCli(
+		[
+			"agents",
+			"model",
+			agentRunId,
+			"--model",
+			"anthropic/claude-opus-5",
+			"--expected-terminal-id",
+			"attempt",
+			"--request-id",
+			"switch",
+		],
+		{ "agentRuns.setModel": agentRun() },
+	);
+	expect(result.code).toBe(0);
+	expect(result.calls[0]!.input).toEqual({
+		id: agentRunId,
+		model: "anthropic/claude-opus-5",
+		expectedTerminalId: "attempt",
+		requestId: "switch",
+	});
+});
+
+test("models list passes a harness filter and prints canonical IDs", async () => {
+	const result = await runCli(["models", "list", "--harness", "codex", "--json"], {
+		"models.list": [{ id: "openai/gpt-6-astra", name: "GPT-6 Astra" }],
+	});
+	expect(result.code).toBe(0);
+	expect(result.calls[0]).toMatchObject({ path: "models.list", input: { harness: "codex" } });
+	expect(JSON.parse(result.stdout)).toEqual([{ id: "openai/gpt-6-astra", name: "GPT-6 Astra" }]);
 });

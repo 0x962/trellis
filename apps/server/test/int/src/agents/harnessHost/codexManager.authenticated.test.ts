@@ -43,7 +43,7 @@ test.skipIf(!authHome)(
 			id: "manager",
 			harness: "codex" as const,
 			kind: "manager" as const,
-			model: "gpt-5.6-sol",
+			model: "openai/gpt-5.6-sol",
 			cwd: fixture.home,
 			managerSystemPrompt:
 				"You coordinate work through the supplied Trellis tools. Follow the user request exactly. Keep the reply short.",

@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import type { CapacityObservation } from "../assignments/occupiesSlot/index.ts";
+import { capacityReminder } from "./capacityReminder/capacityReminder.ts";
 import { dispatchMessageId } from "./messageId.ts";
 import type { Dispatch } from "./types.ts";
 
@@ -22,11 +24,11 @@ export const workItems = (dispatch: Pick<Dispatch, "id" | "events" | "outcomes" 
 		}));
 };
 
-export const coordination = async (tx: Tx, dispatch: Pick<Dispatch, "id" | "projectId">) => {
+export const coordination = async (tx: Tx, dispatch: Pick<Dispatch, "id" | "projectId"> & CapacityObservation) => {
 	const [policy] = await rows<{ personaId: string; updatedAt: string }>(
 		tx,
 		sql`SELECT persona.id AS "personaId", ${iso(sql`persona.updated_at`)} AS "updatedAt"
-		FROM projects project JOIN personas persona ON persona.id=project.manager_config->>'personaId' WHERE project.id=${dispatch.projectId}`,
+		FROM projects project JOIN personas persona ON persona.id=COALESCE((SELECT r.persona_id FROM manager_delegations d JOIN agent_runs r ON r.id=d.run_id WHERE d.project_id=project.id AND d.retired_at IS NULL),project.manager_config->>'personaId') WHERE project.id=${dispatch.projectId}`,
 	);
 	const unfinished = await rows<Pick<Dispatch, "id" | "generation" | "events" | "outcomes" | "nextActions">>(
 		tx,
@@ -40,6 +42,7 @@ export const coordination = async (tx: Tx, dispatch: Pick<Dispatch, "id" | "proj
 		WHERE project_id=${dispatch.projectId} AND id<>${dispatch.id} AND work_state='open' AND state IN ('sent','unknown')`,
 	);
 	return {
+		capacityReminder: await capacityReminder(tx, { projectId: dispatch.projectId, sessions: dispatch.sessions }),
 		policy: policy ?? null,
 		unfinished: unfinished.map((item) => ({ id: item.id, generation: item.generation, workItems: workItems(item) })),
 		unfinishedCount: count!.count,

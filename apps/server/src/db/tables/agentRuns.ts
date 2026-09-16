@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { boolean, check, index, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
+import { harnessAccounts } from "./harnessAccounts.ts";
 import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
 export const agentRuns = pgTable(
@@ -9,6 +10,7 @@ export const agentRuns = pgTable(
 	{
 		id: text().primaryKey(),
 		name: text().notNull(),
+		accountId: text("account_id").references(() => harnessAccounts.id),
 		runtime: text().notNull().default("native"),
 		personaId: text("persona_id").references(() => personas.id, { onDelete: "set null" }),
 		personaName: text("persona_name").notNull(),

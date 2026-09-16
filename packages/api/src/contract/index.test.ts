@@ -35,8 +35,10 @@ describe("contract", () => {
 			"agentRuns.output GET /agent-runs/{id}/output",
 			"agentRuns.refresh POST /agent-runs/{id}/refresh",
 			"agentRuns.resize POST /agent-runs/{id}/terminal/resize",
+			"agentRuns.resume POST /agent-runs/{id}/resume",
 			"agentRuns.send POST /agent-runs/{id}/send",
 			"agentRuns.session GET /agent-runs/{id}/session",
+			"agentRuns.setModel POST /agent-runs/{id}/model",
 			"agentRuns.start POST /agent-runs",
 			"agentRuns.stop POST /agent-runs/{id}/stop",
 			"agentRuns.terminalInput POST /agent-runs/{id}/terminal/input",
@@ -46,10 +48,12 @@ describe("contract", () => {
 			"attachments.list GET /tickets/{ticket}/attachments",
 			"attachments.upload POST /tickets/{ticket}/attachments",
 			"brief.get GET /tickets/{ticket}/brief",
+			"chat.attachment GET /chat/attachments/{id}",
 			"chat.channels GET /projects/{project}/chat",
 			"chat.createChannel POST /projects/{project}/chat",
 			"chat.list GET /projects/{project}/chat/{channel}/messages",
 			"chat.post POST /projects/{project}/chat/{channel}/messages",
+			"chat.upload POST /projects/{project}/chat/attachments",
 			"comments.create POST /tickets/{ticket}/comments",
 			"comments.delete DELETE /comments/{id}",
 			"comments.resolve POST /comments/{id}/resolve",
@@ -76,11 +80,23 @@ describe("contract", () => {
 			"flows.list GET /flows",
 			"flows.save PUT /flows/{flow}/graph",
 			"flows.update PATCH /flows/{flow}",
+			"harnessAccounts.create POST /harness-accounts",
+			"harnessAccounts.list GET /harness-accounts",
+			"harnessAccounts.quota GET /harness-accounts/{id}/quota",
+			"harnessAccounts.remove DELETE /harness-accounts/{id}",
+			"harnessAccounts.update PATCH /harness-accounts/{id}",
+			"models.list GET /models",
 			"needsYou.list POST /needs-you/list",
 			"needsYou.summary POST /needs-you/summary",
 			"needsYou.update POST /needs-you/update",
+			"notes.create POST /projects/{project}/notes",
+			"notes.delete DELETE /notes/{id}",
+			"notes.get GET /notes/{id}",
+			"notes.list GET /projects/{project}/notes",
+			"notes.update PATCH /notes/{id}",
 			"personas.create POST /personas",
 			"personas.delete DELETE /personas/{id}",
+			"personas.get GET /personas/{id}",
 			"personas.list GET /personas",
 			"personas.update PATCH /personas/{id}",
 			"projects.create POST /projects",
@@ -129,6 +145,10 @@ describe("contract", () => {
 			"statuses.list GET /projects/{project}/statuses",
 			"statuses.reorder PUT /projects/{project}/statuses/order",
 			"statuses.update PATCH /projects/{project}/statuses/{status}",
+			"submanagers.list GET /submanagers",
+			"submanagers.resize PATCH /submanagers/{id}",
+			"submanagers.retire POST /submanagers/{id}/retire",
+			"submanagers.start POST /submanagers",
 			"system.backup POST /backup",
 			"system.checkGh POST /gh/check",
 			"system.chooseDirectory POST /choose-directory",
@@ -136,6 +156,7 @@ describe("contract", () => {
 			"system.gh GET /gh",
 			"system.health GET /health",
 			"system.nativeWork GET /native-work",
+			"system.restartStatus GET /native-work/restart",
 			"system.resumeNativeWork POST /native-work/resume",
 			"system.resumeRestart POST /native-work/restart/resume",
 			"system.stopNativeWork POST /native-work/stop",
@@ -151,7 +172,7 @@ describe("contract", () => {
 			"tickets.updateMany POST /tickets/update-many",
 			"timeline.list GET /tickets/{ticket}/timeline",
 		]);
-		expect(table).toHaveLength(119);
+		expect(table).toHaveLength(144);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has
@@ -173,7 +194,7 @@ describe("contract", () => {
 				expect(declared.get(name), `${name} declares ${code}`).toHaveProperty(code);
 			}
 		};
-		expects("tickets.move", ["AGENT_CANNOT_COMPLETE", "INVALID_ANCHOR", "VERSION_CONFLICT", "PROJECT_ARCHIVED"]);
+		expects("tickets.move", ["INVALID_ANCHOR", "VERSION_CONFLICT", "PROJECT_ARCHIVED"]);
 		expects("tickets.delete", ["AGENT_CANNOT_DELETE"]);
 		expects("projects.delete", ["AGENT_CANNOT_DELETE"]);
 		expects("tickets.list", ["INVALID_CURSOR"]);

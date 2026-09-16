@@ -60,7 +60,7 @@ test("manager tool errors retain closed assignment and stale generation reasons 
 							type: "text",
 							text: JSON.stringify({
 								code: "INPUT_VALIDATION_FAILED",
-								message: "The input does not match the schema.",
+								message,
 								data: { issues: [{ message, path: [path] }] },
 							}),
 						},

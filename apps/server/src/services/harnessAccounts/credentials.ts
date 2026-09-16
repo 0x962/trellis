@@ -1,0 +1,82 @@
+import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { homedir, platform, userInfo } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
+import { z } from "zod";
+import type { Credential } from "./fetchQuota.ts";
+import type { AccountRow } from "./queries.ts";
+
+const exec = promisify(execFile);
+const credential = z.object({
+	claudeAiOauth: z
+		.object({ accessToken: z.string(), expiresAt: z.number().optional(), subscriptionType: z.string().optional() })
+		.optional(),
+});
+const codex = z.object({
+	OPENAI_API_KEY: z.string().nullish(),
+	tokens: z.object({ access_token: z.string(), account_id: z.string().optional() }).optional(),
+});
+export async function readOptionalJson(path: string): Promise<unknown | null> {
+	try {
+		return JSON.parse(await readFile(path, "utf8"));
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+		throw new Error(`Cannot read account state at ${path}.`);
+	}
+}
+async function keychain(service: string, account?: string): Promise<string | null> {
+	if (platform() !== "darwin") return null;
+	try {
+		return (
+			await exec("security", ["find-generic-password", "-s", service, ...(account ? ["-a", account] : []), "-w"], {
+				timeout: 5000,
+			})
+		).stdout.trim();
+	} catch {
+		return null;
+	}
+}
+export async function readCredential(account: Pick<AccountRow, "harness" | "profilePath">): Promise<Credential> {
+	const empty: Credential = { token: null, email: null, plan: null };
+	if (account.harness === "codex") {
+		const data = await readOptionalJson(join(account.profilePath, "auth.json"));
+		if (!data) return empty;
+		const parsed = codex.parse(data);
+		return {
+			...empty,
+			token: parsed.tokens?.access_token ?? null,
+			accountId: parsed.tokens?.account_id,
+			apiKey: !!parsed.OPENAI_API_KEY,
+		};
+	}
+	if (account.harness !== "claude") return empty;
+	const main = account.profilePath === join(homedir(), ".claude");
+	const identity = await readOptionalJson(
+		main ? join(homedir(), ".claude.json") : join(account.profilePath, ".claude.json"),
+	);
+	const email = identity
+		? (z.object({ oauthAccount: z.object({ emailAddress: z.string().optional() }).optional() }).parse(identity)
+				.oauthAccount?.emailAddress ?? null)
+		: null;
+	let data = await readOptionalJson(join(account.profilePath, ".credentials.json"));
+	if (!data && identity) {
+		const paths = [account.profilePath, account.profilePath.replace(homedir(), "~"), `${account.profilePath}/`];
+		const services = main
+			? ["Claude Code-credentials"]
+			: paths.map(
+					(path) =>
+						`Claude Code-credentials-${createHash("sha256").update(path.normalize("NFC")).digest("hex").slice(0, 8)}`,
+				);
+		for (const service of services) {
+			const raw = await keychain(service, process.env.USER ?? userInfo().username);
+			if (raw) {
+				data = JSON.parse(raw);
+				break;
+			}
+		}
+	}
+	const auth = data ? credential.parse(data).claudeAiOauth : undefined;
+	return { token: auth?.accessToken ?? null, email, plan: auth?.subscriptionType ?? null, expiresAt: auth?.expiresAt };
+}

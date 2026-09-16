@@ -5,6 +5,8 @@ import { iso, rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
 import { invalidInput } from "../../../errors.ts";
 import { capacityAvailable } from "../../assignments/capacity.ts";
+import type { CapacityObservation } from "../../assignments/occupiesSlot/index.ts";
+import { isManaged, managerScope } from "../../submanagers/scope.ts";
 import { conditionMet } from "./condition.ts";
 
 export const columns = sql`id,project_id AS "projectId",ticket_id AS "ticketId",assignment_request_id AS "assignmentRequestId",COALESCE(wait_for->>'type','capacity') AS "wakeCondition",wait_for AS "waitFor",
@@ -30,11 +32,8 @@ export const assertOwner = async (ctx: Pick<RequestContext, "actor">, tx: Tx, pr
 export const ticketState = async (tx: Tx, input: { projectId: string; ticketId: string }) => {
 	const [ticket] = await rows<{ projectId: string; statusId: string; completedAt: string | null }>(
 		tx,
-		sql`WITH RECURSIVE scope AS (
- SELECT id FROM projects WHERE id=${input.projectId}
- UNION ALL SELECT p.id FROM projects p JOIN scope s ON p.parent_id=s.id WHERE p.manager_config->>'personaId' IS NULL
- ) SELECT project_id AS "projectId",status_id AS "statusId",completed_at AS "completedAt" FROM tickets
- WHERE id=${input.ticketId} AND project_id IN (SELECT id FROM scope)`,
+		sql` SELECT project_id AS "projectId",status_id AS "statusId",completed_at AS "completedAt" FROM tickets
+ WHERE id=${input.ticketId} AND project_id IN (${managerScope(input.projectId, true)})`,
 	);
 	return ticket;
 };
@@ -46,13 +45,13 @@ export const enabled = async (tx: Tx, input: { projectId: string; ticketProjectI
  SELECT id,parent_id,archived_at,manager_config FROM projects WHERE id=${input.ticketProjectId}
  UNION ALL SELECT p.id,p.parent_id,p.archived_at,p.manager_config FROM projects p JOIN ancestors a ON p.id=a.parent_id
  ) SELECT NOT EXISTS (SELECT 1 FROM ancestors WHERE archived_at IS NOT NULL OR manager_config->>'dispatchPaused'='true')
- AND EXISTS (SELECT 1 FROM projects WHERE id=${input.projectId} AND manager_config->>'personaId' IS NOT NULL)
+ AND EXISTS (SELECT 1 FROM projects p WHERE p.id=${input.projectId} AND ${isManaged(sql`p`)})
  AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb) AS allowed`,
 	);
 	return state!.allowed;
 };
 
-export const refresh = async (tx: Tx, input: { now: Date; projectId?: string }) => {
+export const refresh = async (tx: Tx, input: { now: Date; projectId?: string } & CapacityObservation) => {
 	const capacity = new Map<string, boolean>();
 	const permissions = new Map<string, boolean>();
 	for (const action of await pending(tx, input)) {
@@ -65,7 +64,10 @@ export const refresh = async (tx: Tx, input: { now: Date; projectId?: string }) 
 		if (!permissions.has(scope))
 			permissions.set(scope, await enabled(tx, { projectId: action.projectId, ticketProjectId: ticket.projectId }));
 		if (permissions.get(scope) && !action.waitFor && !capacity.has(ticket.projectId))
-			capacity.set(ticket.projectId, await capacityAvailable(tx, { projectId: ticket.projectId }));
+			capacity.set(
+				ticket.projectId,
+				await capacityAvailable(tx, { projectId: ticket.projectId, sessions: input.sessions }),
+			);
 		const ready =
 			permissions.get(scope) &&
 			(action.waitFor

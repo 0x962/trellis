@@ -18,6 +18,8 @@ test("a chat message invalidates the chat queries and nothing else", () => {
 		id: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
 		projectId: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
 		channel: "ai",
+		aiOnly: true,
+		actor: { name: "dana", kind: "human" },
 	});
 	advanceTo(1000);
 	expect(isInvalidated(queryClient, channelsKey)).toBe(true);
@@ -25,6 +27,20 @@ test("a chat message invalidates the chat queries and nothing else", () => {
 	for (const key of [listKey, detailKey, healthKey]) {
 		expect(isInvalidated(queryClient, key)).toBe(false);
 	}
+});
+
+test("a delivery state change invalidates the chat queries", () => {
+	const { queryClient, advanceTo, applier } = setup((client) => {
+		client.setQueryData(messagesKey, { channel: "ai", items: [], latestId: null });
+	});
+	applier.applyEvent({
+		type: "chat.delivery",
+		id: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+		projectId: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+		channel: "ai",
+	});
+	advanceTo(1000);
+	expect(isInvalidated(queryClient, messagesKey)).toBe(true);
 });
 
 test("a channel list change invalidates the chat queries", () => {

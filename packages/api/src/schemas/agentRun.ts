@@ -1,10 +1,12 @@
 import { z } from "zod";
+import { ModelIdSchema } from "../models/models.ts";
 import { PersonaKindSchema } from "./persona.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const AgentRunSchema = z.object({
 	id: UlidSchema,
 	name: z.string(),
+	accountId: UlidSchema.nullish(),
 	runtime: z.enum(["native", "superset", "tmux", "commands"]),
 	personaId: UlidSchema.nullable(),
 	personaName: z.string(),
@@ -43,6 +45,12 @@ export type AgentRun = z.infer<typeof AgentRunSchema>;
 export const AgentRunStartInputSchema = z
 	.strictObject({
 		personaId: UlidSchema,
+		model: ModelIdSchema.optional().describe(
+			"Canonical model ID from models.list for this assignment. Defaults to the project's harness model.",
+		),
+		accountId: UlidSchema.optional().describe(
+			"Configured harness account. Select an enabled account from harnessAccounts.list.",
+		),
 		requestId: z
 			.string()
 			.min(1)

@@ -3,6 +3,7 @@ import type { ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { HARNESS_DEFAULT_MODELS, toHarnessModel } from "@trellis/api";
 import type { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { HarnessHost } from "../../../../../src/agents/harnessHost/harnessHost.ts";
 import { providers } from "../../../../../src/agents/harnessHost/providers.ts";
@@ -38,14 +39,21 @@ test("the host preserves the assignment token and process deadline", async () =>
 test.each(["claude", "codex", "pi", "opencode"] as const)(
 	"%s host supports identity, model, input, output, events, lists, elapsed, resume, and stop",
 	async (harness) => {
-		const started = await host.start({ id: "attempt", harness, cwd: home, prompt: "initial", model: "explicit-model" });
+		const started = await host.start({
+			id: "attempt",
+			harness,
+			cwd: home,
+			prompt: "initial",
+			model: HARNESS_DEFAULT_MODELS[harness],
+		});
 		expect(started.process.agent?.sessionId).toBe(`provider-${harness}`);
-		expect(started.process.agent?.model).toBe("explicit-model");
+		expect(started.process.agent?.model).toBe(HARNESS_DEFAULT_MODELS[harness]);
 		expect(started.process.acknowledgedMessageIds).toContain("attempt");
 		expect(started.process.elapsedMs).toBeNumber();
 		const args = started.process.launch!.args;
 		if (harness === "claude") expect(args).toContain("--dangerously-skip-permissions");
-		if (harness === "codex") expect(JSON.parse(args[1]!).model).toBe("explicit-model");
+		if (harness === "codex")
+			expect(JSON.parse(args[1]!).model).toBe(toHarnessModel(harness, HARNESS_DEFAULT_MODELS[harness]));
 		if (harness === "pi") expect(args).toContain("read,bash,edit,write,grep,find,ls");
 		if (harness === "opencode") expect(args).toContain("--model");
 		await host.waitFor("attempt", (s) => s.activity?.state === "idle");
@@ -70,7 +78,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 			harness,
 			cwd: home,
 			prompt: "resume",
-			model: "explicit-model",
+			model: HARNESS_DEFAULT_MODELS[harness],
 			sessionId: `provider-${harness}`,
 		});
 		expect(resumed.process.agent?.sessionId).toBe(`provider-${harness}`);
@@ -175,7 +183,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 			bun: process.execPath,
 			observationTimeoutMs: 1500,
 		});
-		const input = { id: "duplicate", harness, cwd: home, prompt: "once", model: "explicit-model" };
+		const input = { id: "duplicate", harness, cwd: home, prompt: "once", model: HARNESS_DEFAULT_MODELS[harness] };
 		const results = await Promise.all(
 			Array.from({ length: 12 }, (_, index) => (index % 2 ? host : second).start(input)),
 		);

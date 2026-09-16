@@ -62,6 +62,10 @@
 				else if (current?.remainingMs !== null && current && Date.now() <= current.estimateExpiresAt) {
 					const seconds = Math.max(5, Math.ceil((current.remainingMs - (Date.now() - current.updatedAt)) / 5000) * 5);
 					text = seconds >= 60 ? `About ${Math.ceil(seconds / 60)} min remaining` : `About ${seconds} sec remaining`;
+				} else if (current) {
+					// The estimate for this step has run out. Show the step and the time it has taken, so a slow step is visible.
+					const seconds = Math.floor((Date.now() - current.updatedAt) / 1000);
+					text = `${current.stage}: ${seconds >= 60 ? `${Math.floor(seconds / 60)} min ${seconds % 60} sec` : `${seconds} sec`} so far`;
 				}
 				document.getElementById("remaining").textContent = text;
 			};
