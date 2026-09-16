@@ -101,11 +101,11 @@ export function CommentThread({ id, identifier, comments, onEdited, onDeleted, o
 				<Button
 					size="sm"
 					variant="default"
-					className="ml-8 justify-start"
+					icon={<CheckCircle />}
+					className="ml-7"
 					aria-expanded={expandedResolved}
 					onClick={() => setExpandedResolved(!expandedResolved)}
 				>
-					<CheckCircle aria-hidden="true" />
 					Resolved thread · {replies.length} {replies.length === 1 ? "reply" : "replies"}
 				</Button>
 			)}
