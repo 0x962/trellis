@@ -28,14 +28,17 @@ export type OpenApiBuild = { document: Awaited<ReturnType<OpenAPIGenerator["gene
 
 const METHODS = ["get", "post", "put", "patch", "delete"];
 
-const actorParameter = (): Parameter => ({
+const actorParameter = (example = ACTOR_HEADER_EXAMPLE): Parameter => ({
 	name: "x-trellis-actor",
 	in: "header",
 	required: true,
 	description: ACTOR_HEADER_DESCRIPTION,
-	example: ACTOR_HEADER_EXAMPLE,
+	example,
 	schema: { type: "string", pattern: "^(human|agent):[^:]{1,64}$" },
 });
+
+const needsActor = (method: string, path: string) =>
+	method !== "get" || path === "/needs-you" || path === "/needs-you/summary";
 
 // The generator writes the options of a DELETE as a JSON body. The server
 // reads them from the query string, so the document says so.
@@ -57,7 +60,10 @@ const postProcess = (paths: Paths) => {
 	for (const [path, methods] of Object.entries(paths)) {
 		for (const [method, operation] of Object.entries(methods)) {
 			if (!METHODS.includes(method)) continue;
-			if (method !== "get") operation.parameters = [actorParameter(), ...(operation.parameters ?? [])];
+			if (needsActor(method, path)) {
+				const example = path.startsWith("/needs-you") ? "human:dana" : ACTOR_HEADER_EXAMPLE;
+				operation.parameters = [actorParameter(example), ...(operation.parameters ?? [])];
+			}
 			if (method === "delete") bodyToQuery(operation);
 			const example = BODY_EXAMPLES[`${method.toUpperCase()} ${path}`];
 			if (operation.requestBody === undefined) continue;

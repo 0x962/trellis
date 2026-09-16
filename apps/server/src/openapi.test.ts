@@ -60,17 +60,24 @@ describe("actor header", () => {
 		}
 	});
 
-	test("no GET operation declares the actor header parameter", () => {
+	test("only personal GET operations declare the actor header parameter", () => {
 		const reads = operations.filter(({ method }) => method === "get");
 		expect(reads.length).toBeGreaterThanOrEqual(20);
-		for (const { path, operation } of reads) expect(actorParameter(operation), path).toBeUndefined();
+		for (const { path, operation } of reads) {
+			const parameter = actorParameter(operation);
+			if (path === "/needs-you" || path === "/needs-you/summary") {
+				expect(parameter, path).toBeDefined();
+				expect(parameter!.required, path).toBe(true);
+				expect(parameter!.example, path).toBe("human:dana");
+			} else expect(parameter, path).toBeUndefined();
+		}
 	});
 
 	test("the info description states the actor rule", () => {
 		const description = document.info.description ?? "";
-		expect(description).toMatch(/every non-GET request/i);
+		expect(description).toMatch(/every mutation/i);
 		expect(description).toContain("x-trellis-actor");
-		expect(description).toMatch(/GET[^.\n]*ignore/i);
+		expect(description).toMatch(/GET \/needs-you[^.\n]*require/i);
 	});
 });
 

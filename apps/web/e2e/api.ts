@@ -6,7 +6,7 @@ import { apiUrl } from "./env";
 const headers = { "content-type": "application/json", "x-trellis-actor": "human:dana" };
 
 export const get = async <T>(path: string): Promise<T> => {
-	const response = await fetch(`${apiUrl}/api${path}`);
+	const response = await fetch(`${apiUrl}/api${path}`, { headers });
 	return (await response.json()) as T;
 };
 
