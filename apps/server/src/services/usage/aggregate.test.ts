@@ -56,10 +56,12 @@ const report = () =>
 			entry({ sessionId: "s-sub", cwd: "/home/agents/run-1/work/packages/ui", timestampMs: at(1) }),
 			// $1.25 by session id, on the manager run, with Codex.
 			entry({ sessionId: "s-manager", harness: "codex", model: "gpt-5", cwd: "/repo", timestampMs: at(0) }),
-			// $2 by cwd inside the project directory: a person's own session.
+			// $2 by cwd inside the project directory: a person's own session in
+			// a transcript directory two accounts share.
 			entry({ sessionId: "s-person", cwd: "/repo/apps/web", accounts: ["Work", "Home"] }),
-			// $2 outside every project, on the second account.
-			entry({ sessionId: "s-outside", accounts: ["Home"] }),
+			// $2 outside every project, in the same shared directory, and named
+			// by the state file of the Home profile.
+			entry({ sessionId: "s-outside", accounts: ["Work", "Home"] }),
 			// Before the range: never counted.
 			entry({ sessionId: "s-old", timestampMs: at(9) }),
 		],
@@ -70,6 +72,8 @@ const report = () =>
 			{ path: "CDE", name: "Canary", directory: "/repo" },
 			{ path: "CDE.web", name: "Web", directory: "" },
 		],
+		sessionAccounts: new Map([["s-outside", "Home"]]),
+		defaultAccounts: { claude: "Work" },
 		days: 7,
 		cutoffMs,
 		now,
@@ -109,7 +113,7 @@ test("a session joins its run by session id, then by worktree, then a project by
 	expect(result.groups.persona.map((row) => row.label)).toEqual(["Builder", "Outside Trellis", "Manager"]);
 });
 
-test("the account of a run wins, a single profile account names the rest, and a shared profile says so", () => {
+test("the account of a run wins, then the state file of a profile, and a shared directory says so", () => {
 	const rows = report().groups.account;
 	expect(rows.map((row) => [row.key, row.usd])).toEqual([
 		["account:Work", 4],
@@ -117,6 +121,22 @@ test("the account of a run wins, a single profile account names the rest, and a 
 		["account:Home", 2],
 		["default:codex", 1.25],
 	]);
+});
+
+test("a run with no account of its own belongs to the default account of its harness", () => {
+	const result = computeUsageReport({
+		entries: [entry({ sessionId: "s-builder", cwd: "/home/agents/run-1/work", accounts: ["Work", "Home"] })],
+		sessionLabels: new Map(),
+		scannedFiles: 1,
+		runs: [{ ...builder, accountName: null }],
+		projects: [],
+		sessionAccounts: new Map(),
+		defaultAccounts: { claude: "Work" },
+		days: 7,
+		cutoffMs,
+		now,
+	});
+	expect(result.groups.account.map((row) => row.key)).toEqual(["account:Work"]);
 });
 
 test("model and harness rows carry the harness for the chart color", () => {

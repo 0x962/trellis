@@ -6,10 +6,12 @@ import type { Tx } from "../../db/tx.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import { readCredential } from "../harnessAccounts/credentials.ts";
 import { type Credential, fetchAccountQuota } from "../harnessAccounts/fetchQuota.ts";
+import { resolveHostDefault } from "../harnessAccounts/hostDefault.ts";
 import { loginCommandFor } from "../harnessAccounts/presentation.ts";
 import { profileDefault } from "../harnessAccounts/profiles.ts";
 import type { AccountRow } from "../harnessAccounts/queries.ts";
 import type { IoCtx } from "../support.ts";
+import { usageRoots } from "./roots.ts";
 
 // The harnesses whose default login exposes subscription quota. Pi and
 // OpenCode do not, so a default login of theirs adds nothing to the page.
@@ -32,16 +34,34 @@ const listAccounts = (tx: Tx) =>
 // Every login the page shows: each configured account, then the default
 // login of each quota harness whose profile directory exists and is not
 // the profile of a configured account. The key of a login is the row key
-// the usage report gives the sessions of that login.
+// the usage report gives the sessions of that login. The default of each
+// harness is the one hostDefault.ts resolves, with its source.
 export async function usageLogins(accounts: readonly AccountRow[], env: NodeJS.ProcessEnv): Promise<UsageLogin[]> {
+	const defaults = new Map<AccountHarness, Awaited<ReturnType<typeof resolveHostDefault<AccountRow>>>>();
+	for (const harness of ["claude", "codex", "pi", "opencode"] as const)
+		defaults.set(harness, await resolveHostDefault(harness, accounts, env));
+	const defaultOf = (harness: AccountHarness, profilePath: string, id: string | null) => {
+		const resolved = defaults.get(harness)!;
+		const isDefault = resolved.account ? resolved.account.id === id : resolved.profilePath === profilePath;
+		return { isDefault, defaultSource: isDefault ? resolved.source : null };
+	};
+	// The accounts that share one transcript directory. A session in such a
+	// directory can belong to any of them, so each card names the others.
+	const roots = await usageRoots(accounts, env);
+	const sharedWith = (account: AccountRow) =>
+		roots
+			.filter((root) => root.harness === account.harness && root.accounts.includes(account.name))
+			.flatMap((root) => root.accounts)
+			.filter((name) => name !== account.name);
 	const logins: UsageLogin[] = accounts.map((account) => ({
 		key: `account:${account.name}`,
 		id: account.id,
 		name: account.name,
 		harness: account.harness,
 		profilePath: account.profilePath,
-		isDefault: account.isDefault,
+		...defaultOf(account.harness, account.profilePath, account.id),
 		loginCommand: loginCommandFor(account.harness, account.profilePath),
+		sharedWith: sharedWith(account),
 	}));
 	const configured = new Set<string>();
 	for (const account of accounts) {
@@ -66,8 +86,9 @@ export async function usageLogins(accounts: readonly AccountRow[], env: NodeJS.P
 			name: "Default login",
 			harness,
 			profilePath,
-			isDefault: !accounts.some((account) => account.harness === harness && account.isDefault),
+			...defaultOf(harness, profilePath, null),
 			loginCommand: loginCommandFor(harness, profilePath),
+			sharedWith: [],
 		});
 	}
 	return logins;

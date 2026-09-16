@@ -72,6 +72,10 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 				{accounts.data.map((account) => {
 					const row = rows.find((candidate) => candidate.key === account.key);
 					const value = row?.[metric] ?? 0;
+					const shared = account.sharedWith.length
+						? rows.find((candidate) => candidate.key === `shared:${account.harness}`)
+						: undefined;
+					const sharedValue = shared?.[metric] ?? 0;
 					return (
 						<article
 							key={account.key}
@@ -82,7 +86,7 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 								<h3 className="truncate text-md font-medium text-fg">{account.name}</h3>
 								<span className="shrink-0 text-xs text-fg-faint">
 									{harnessLabel[account.harness]}
-									{account.isDefault ? " · Default" : ""}
+									{account.isDefault ? ` · Default${account.defaultSource === "superset" ? " via SuperSet" : ""}` : ""}
 								</span>
 							</div>
 							{account.quota.email && (
@@ -102,6 +106,12 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 									</span>
 								)}
 							</div>
+							{shared && sharedValue > 0 && (
+								<p className="text-xs text-fg-faint text-pretty">
+									{formatMetric(metric, sharedValue)} more is in a transcript directory this login shares with{" "}
+									{account.sharedWith.join(", ")}, so it cannot be split between them.
+								</p>
+							)}
 							{account.quota.status === "ok" ? (
 								<QuotaWindows name={account.name} windows={account.quota.windows} />
 							) : needsLogin.has(account.quota.status) && account.loginCommand ? (

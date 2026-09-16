@@ -8,7 +8,7 @@ import { profileDefault } from "../harnessAccounts/profiles.ts";
 // to the shared one, so several accounts can name one root.
 export type UsageRoot = { harness: AccountHarness; path: string; accounts: string[] };
 
-export type UsageAccountRow = { harness: AccountHarness; profilePath: string; name: string };
+export type UsageAccountRow = { harness: AccountHarness; profilePath: string; name: string; isDefault: boolean };
 
 const HARNESSES: readonly AccountHarness[] = ["claude", "codex", "pi", "opencode"];
 

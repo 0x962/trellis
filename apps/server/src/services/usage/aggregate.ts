@@ -39,6 +39,13 @@ export type UsageReportInputs = {
 	scannedFiles: number;
 	runs: readonly UsageRun[];
 	projects: readonly UsageProject[];
+	// The account that owns a session, by session id, from the state file of
+	// each profile. Several profiles can share one transcript directory, so
+	// the directory alone cannot name the account.
+	sessionAccounts: ReadonlyMap<string, string>;
+	// The default account of each harness. A run with no account of its own
+	// launched with the default profile, so its usage belongs to that account.
+	defaultAccounts: Partial<Record<AccountHarness, string>>;
 	days: UsageDays;
 	cutoffMs: number;
 	now: Date;
@@ -112,6 +119,7 @@ function attribute(
 function groupKeys(
 	entry: CollectedEntry,
 	attribution: Attribution,
+	input: Pick<UsageReportInputs, "sessionAccounts" | "defaultAccounts">,
 ): Record<UsageGroupBy, { key: string; label: RowLabel }> {
 	const { run, project, other } = attribution;
 	const outside: RowLabel = {
@@ -148,7 +156,11 @@ function groupKeys(
 	const kind = run
 		? { key: `kind:${run.kind}`, label: plain(KIND_LABELS[run.kind] ?? run.kind) }
 		: { key: OUTSIDE, label: outside };
-	const accountName = run?.accountName ?? (entry.accounts.length === 1 ? entry.accounts[0]! : null);
+	const accountName =
+		run?.accountName ??
+		(run ? input.defaultAccounts[entry.harness] : undefined) ??
+		input.sessionAccounts.get(entry.sessionId) ??
+		(entry.accounts.length === 1 ? entry.accounts[0]! : null);
 	const account = accountName
 		? { key: `account:${accountName}`, label: plain(accountName, HARNESS_LABELS[entry.harness]) }
 		: entry.accounts.length > 1
@@ -237,7 +249,7 @@ export function computeUsageReport(input: UsageReportInputs): UsageReport {
 		const tokens = entryTokens(entry);
 		const day = dayKey(entry.timestampMs);
 		const attribution = attribute(entry, runsBySession, runsByWorkDir, projectsByDirectory);
-		const keys = groupKeys(entry, attribution);
+		const keys = groupKeys(entry, attribution, input);
 
 		let bucket = bucketsByDay.get(day);
 		if (!bucket) {

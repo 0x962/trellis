@@ -447,6 +447,8 @@ The report holds the day series by harness, the totals, one row list per groupin
 `usage.accounts` lists every configured account and the default login of each harness that no account names, each with its quota. The page joins each login to its cost through the account grouping of the report.
 The page keeps the range, the metric, the grouping, the selected row, and the selected day in the URL.
 
+The default login of a harness resolves the way SuperSet resolves it. SuperSet keeps one pointer file per harness under `~/.superset/state/`: `default-claude-config-dir` and `default-codex-home`, each with the profile directory of the default, or nothing for the plain login. When the file exists it wins. Otherwise the account with the Trellis default flag wins. Otherwise the plain login of the harness is the default. A pointer whose directory is gone counts as the plain login. A default picked in Settings also writes the pointer, so both tools agree. A run with no account reads the pointer again at every launch, and a profile exported in the login shell wins over the pointer.
+
 `agentRuns.start` accepts an optional `accountId`. A new assignment otherwise selects its harness default account.
 The assignment retains its account across process restarts. An explicit account also selects its harness for a new assignment.
 `agentRuns.resume` requires the stopped attempt identifier and a stable request identifier.

@@ -1,8 +1,10 @@
-import type { UsageReport, UsageReportInput } from "@trellis/api";
+import type { AccountHarness, UsageReport, UsageReportInput } from "@trellis/api";
 import { executionEnvironment } from "../../executionEnvironment";
+import { resolveHostDefault } from "../harnessAccounts/hostDefault.ts";
 import type { IoCtx } from "../support.ts";
 import { computeUsageReport, rangeStart } from "./aggregate.ts";
 import { collectUsageEntries } from "./entries.ts";
+import { claudeSessionOwners } from "./owners.ts";
 import { listUsageAccounts, listUsageProjects, listUsageRuns } from "./queries.ts";
 import { usageRoots } from "./roots.ts";
 
@@ -33,9 +35,25 @@ export const prepareReport = async (
 			runs: await listUsageRuns(tx, ctx.home, new Date(cutoffMs)),
 			projects: await listUsageProjects(tx),
 		}));
-		const roots = await usageRoots(accounts, await deps.env());
+		const env = await deps.env();
+		const roots = await usageRoots(accounts, env);
+		const sessionAccounts = await claudeSessionOwners(accounts, env);
+		const defaultAccounts: Partial<Record<AccountHarness, string>> = {};
+		for (const harness of ["claude", "codex", "pi", "opencode"] as const) {
+			const resolved = await resolveHostDefault(harness, accounts, env);
+			if (resolved.account) defaultAccounts[harness] = resolved.account.name;
+		}
 		const collected = await collectUsageEntries(roots, days, cutoffMs);
-		return computeUsageReport({ ...collected, runs, projects, days, cutoffMs, now: new Date(deps.now()) });
+		return computeUsageReport({
+			...collected,
+			runs,
+			projects,
+			sessionAccounts,
+			defaultAccounts,
+			days,
+			cutoffMs,
+			now: new Date(deps.now()),
+		});
 	})();
 	cache.set(key, { at: now, result });
 	result.catch(() => {
