@@ -17,6 +17,14 @@ let h: Harness;
 let home: string;
 let id: string;
 let attemptId: string;
+const context = (emit: Parameters<Harness["ctx"]>[0] = () => {}) =>
+	({
+		...h.ctx(emit),
+		newTx: h.read,
+		home,
+		now: () => new Date(),
+		localUrl: "http://127.0.0.1:4521",
+	}) as unknown as Parameters<typeof startNative>[0];
 beforeAll(async () => {
 	h = await serviceHarness();
 });
@@ -43,13 +51,7 @@ test.each(["custom", "codex"] as const)(
 	async (preset) => {
 		let prepared = false;
 		const run = await h.read((tx) => getRun(tx, id));
-		const ctx = {
-			...h.ctx(() => {}),
-			newTx: h.read,
-			home,
-			now: () => new Date(),
-			localUrl: "http://127.0.0.1:4521",
-		} as unknown as Parameters<typeof startNative>[0];
+		const ctx = context();
 		await startNative(
 			ctx,
 			{
@@ -87,13 +89,7 @@ test.each([
 	["replaced", "environment"],
 ])("a %s start during %s cannot commit its workspace or launch", async (kind, boundary) => {
 	const run = await h.read((tx) => getRun(tx, id));
-	const ctx = {
-		...h.ctx((event) => h.flushed.push(event)),
-		newTx: h.read,
-		home,
-		now: () => new Date(),
-		localUrl: "http://127.0.0.1:4521",
-	} as unknown as Parameters<typeof startNative>[0];
+	const ctx = context((event) => h.flushed.push(event));
 	const config = ProjectManagerConfigSchema.parse({
 		personaId: null,
 		concurrency: 1,
@@ -137,13 +133,7 @@ test.each(["workspace", "environment"])(
 	"a failure in %s closes the unlaunched assignment and preserves its cause",
 	async (boundary) => {
 		const run = await h.read((tx) => getRun(tx, id));
-		const ctx = {
-			...h.ctx(() => {}),
-			newTx: h.read,
-			home,
-			now: () => new Date(),
-			localUrl: "http://127.0.0.1:4521",
-		} as unknown as Parameters<typeof startNative>[0];
+		const ctx = context();
 		await startNative(
 			ctx,
 			{
@@ -203,13 +193,7 @@ test("an uncertain launch reply keeps the assignment open for process inspection
 	await new Promise<void>((resolve) => server.listen(join(home, "runtime", "runtime.sock"), resolve));
 	try {
 		const run = await h.read((tx) => getRun(tx, id));
-		const ctx = {
-			...h.ctx(() => {}),
-			newTx: h.read,
-			home,
-			now: () => new Date(),
-			localUrl: "http://127.0.0.1:4521",
-		} as unknown as Parameters<typeof startNative>[0];
+		const ctx = context();
 		await expect(
 			startNative(
 				ctx,
@@ -273,13 +257,7 @@ test.each(["acknowledged", "unknown"])("a Claude start waits for its initial pro
 	await new Promise<void>((resolve) => server.listen(join(home, "runtime", "runtime.sock"), resolve));
 	try {
 		const run = await h.read((tx) => getRun(tx, id));
-		const ctx = {
-			...h.ctx(() => {}),
-			newTx: h.read,
-			home,
-			now: () => new Date(),
-			localUrl: "http://127.0.0.1:4521",
-		} as unknown as Parameters<typeof startNative>[0];
+		const ctx = context();
 		const start = startNative(
 			ctx,
 			{
